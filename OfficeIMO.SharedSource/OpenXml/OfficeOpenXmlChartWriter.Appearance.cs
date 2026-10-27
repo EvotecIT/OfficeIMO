@@ -127,7 +127,9 @@ namespace OfficeIMO.OpenXml.Internal {
                 // without an explicit shared dash means a solid native outline.
                 outline.RemoveAllChildren<A.PresetDash>();
             }
-            if (outline.Parent == null) properties.AddChild(outline, true);
+            // An empty a:ln reads back as an outline the caller never asked for, so a new
+            // outline is only written when it carries a fill, width or dash.
+            if (outline.Parent == null && (outline.HasChildren || outline.HasAttributes)) properties.AddChild(outline, true);
             if (properties.Parent == null) InsertSharedSeriesProperties(seriesElement, properties);
         }
 

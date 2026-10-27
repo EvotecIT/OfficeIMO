@@ -395,6 +395,14 @@ namespace OfficeIMO.PowerPoint {
             return this;
         }
 
+        // A pie or doughnut series fill colours every slice in PowerPoint, while LibreOffice
+        // keeps varying the slices when c:varyColors stays on. Turning it off, as PowerPoint
+        // does when a series fill is chosen, makes every renderer draw the same chart.
+        private static void UseSeriesColorForEverySlice(OpenXmlElement series) {
+            if (series is not C.PieChartSeries) return;
+            if (series.Parent?.GetFirstChild<C.VaryColors>() is C.VaryColors varyColors) varyColors.Val = false;
+        }
+
         /// <summary>
         ///     Sets the fill color for a chart series by index.
         /// </summary>
@@ -410,6 +418,7 @@ namespace OfficeIMO.PowerPoint {
                 C.ChartShapeProperties props = EnsureChartShapeProperties(series);
                 ApplySolidFill(props, color);
                 OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartAutomaticColors.ClearAutomaticSeriesColor(series);
+                UseSeriesColorForEverySlice(series);
             });
 
             if (!applied) {
@@ -435,6 +444,7 @@ namespace OfficeIMO.PowerPoint {
                 C.ChartShapeProperties props = EnsureChartShapeProperties(series);
                 ApplySolidFill(props, color);
                 OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartAutomaticColors.ClearAutomaticSeriesColor(series);
+                UseSeriesColorForEverySlice(series);
             });
 
             if (!applied) {
