@@ -301,11 +301,11 @@ namespace OfficeIMO.Excel {
         }
 
         private static double ResolveRowHeight(ExcelRowInfo? definition, ExcelImageExportOptions options) {
-            if (definition?.Height == null) {
+            if (definition?.StoredHeight== null) {
                 return options.DefaultRowHeightPixels;
             }
 
-            return Math.Max(1D, Math.Round(definition.Height.Value * 96D / 72D, 2));
+            return Math.Max(1D, Math.Round(definition.StoredHeight.Value * 96D / 72D, 2));
         }
 
     }

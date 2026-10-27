@@ -27,6 +27,12 @@ namespace OfficeIMO.Excel {
         /// <summary>Creates a dimension from an explicit physical length.</summary>
         public static ExcelColumnWidth Length(OfficeLength value) => new ExcelColumnWidth(value);
 
+        /// <summary>Gets the authored character count, or null for a physical length. No workbook is needed.</summary>
+        public double? CharacterCount => _isLength ? (double?)null : _characters;
+
+        /// <summary>Gets the authored physical length, or null for a character count. No workbook is needed.</summary>
+        public OfficeLength? PhysicalLength => _isLength ? _length : (OfficeLength?)null;
+
         /// <summary>Gets whether the value was specified as a physical length.</summary>
         public bool IsPhysical => _isLength;
 

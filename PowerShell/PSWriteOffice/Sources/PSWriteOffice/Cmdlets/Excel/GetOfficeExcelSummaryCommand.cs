@@ -216,7 +216,7 @@ public sealed class GetOfficeExcelSummaryCommand : PSCmdlet {
             var record = new PSObject();
             record.Properties.Add(new PSNoteProperty("SheetName", worksheet.Name));
             record.Properties.Add(new PSNoteProperty("Index", row.Index));
-            record.Properties.Add(new PSNoteProperty("Height", row.Height));
+            record.Properties.Add(new PSNoteProperty("Height", (row.Height?.PhysicalLength?.ToPoints())));
             record.Properties.Add(new PSNoteProperty("Hidden", row.Hidden));
             record.Properties.Add(new PSNoteProperty("CustomHeight", row.CustomHeight));
             record.Properties.Add(new PSNoteProperty("OutlineLevel", row.OutlineLevel));
@@ -231,7 +231,7 @@ public sealed class GetOfficeExcelSummaryCommand : PSCmdlet {
             record.Properties.Add(new PSNoteProperty("SheetName", worksheet.Name));
             record.Properties.Add(new PSNoteProperty("StartIndex", column.StartIndex));
             record.Properties.Add(new PSNoteProperty("EndIndex", column.EndIndex));
-            record.Properties.Add(new PSNoteProperty("Width", column.Width));
+            record.Properties.Add(new PSNoteProperty("Width", (column.Width?.CharacterCount)));
             record.Properties.Add(new PSNoteProperty("Hidden", column.Hidden));
             record.Properties.Add(new PSNoteProperty("CustomWidth", column.CustomWidth));
             record.Properties.Add(new PSNoteProperty("OutlineLevel", column.OutlineLevel));

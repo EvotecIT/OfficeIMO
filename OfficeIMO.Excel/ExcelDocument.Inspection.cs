@@ -126,7 +126,7 @@ namespace OfficeIMO.Excel {
                             if (rowIndex > 0 && (row.Hidden?.Value == true || row.CustomHeight?.Value == true || row.Height != null || customFormat || styleIndex != null || outlineLevel != null || collapsed)) {
                                 worksheetSnapshot.AddRow(new ExcelRowInfo {
                                     Index = rowIndex,
-                                    Height = row.Height?.Value,
+                                    StoredHeight = row.Height?.Value,
                                     Hidden = row.Hidden?.Value == true,
                                     CustomHeight = row.CustomHeight?.Value == true,
                                     CustomFormat = customFormat,

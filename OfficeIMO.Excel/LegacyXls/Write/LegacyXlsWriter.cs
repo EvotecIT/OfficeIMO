@@ -634,7 +634,7 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
                 columns.Add(new LegacyXlsColumnLayout(
                     checked((ushort)(column.StartIndex - 1)),
                     checked((ushort)(column.EndIndex - 1)),
-                    column.Width,
+                    column.StoredWidth,
                     column.Hidden,
                     styleIndex,
                     column.OutlineLevel ?? 0,
@@ -654,7 +654,7 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
                 ushort styleIndex = styleTable.GetBiffStyleIndex(row.StyleIndex);
                 rows.Add(new LegacyXlsRowLayout(
                     checked((ushort)(row.Index - 1)),
-                    row.Height,
+                    row.StoredHeight,
                     row.Hidden,
                     row.CustomHeight,
                     row.CustomFormat,

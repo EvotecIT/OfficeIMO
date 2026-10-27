@@ -91,8 +91,8 @@ try
         throw new InvalidOperationException("The Excel round trip lost its typed table data.");
     }
 
-    if (reopened.Sheets[0].GetColumnDefinitions().First().Width != 20
-        || reopened.Sheets[0].GetRowDefinitions().First().Height != 24)
+    if ((reopened.Sheets[0].GetColumnDefinitions().First().Width?.CharacterCount) != 20
+        || (reopened.Sheets[0].GetRowDefinitions().First().Height?.PhysicalLength?.ToPoints()) != 24)
     {
         throw new InvalidOperationException("Typed worksheet dimensions did not survive NativeAOT saving.");
     }

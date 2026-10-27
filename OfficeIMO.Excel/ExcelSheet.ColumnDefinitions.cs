@@ -51,7 +51,7 @@ namespace OfficeIMO.Excel {
                 result.Add(new ExcelColumnInfo {
                     StartIndex = start,
                     EndIndex = end,
-                    Width = column.Width?.Value,
+                    StoredWidth = column.Width?.Value,
                     Hidden = column.Hidden?.Value == true,
                     CustomWidth = column.CustomWidth?.Value == true,
                     StyleIndex = column.Style?.Value,

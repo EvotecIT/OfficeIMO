@@ -2,9 +2,9 @@
   "package": "OfficeIMO.Excel",
   "status": "M0 change map, generated from the OfficeIMO 3.5.3 net8.0 build (b7d2cf5137) by reflection plus source lookup. Signatures are reflection renderings: default values are unquoted and \"CancellationToken cancellationToken = null\" means \"= default\".",
   "summary": {
-    "changes": 297,
+    "changes": 299,
     "byAction": {
-      "change": 160,
+      "change": 162,
       "internalize": 4,
       "merge": 94,
       "remove": 19,
@@ -16,7 +16,7 @@
       "lifecycle": 52,
       "naming": 1,
       "options": 11,
-      "units": 121,
+      "units": 123,
       "visibility": 1
     },
     "packageMoves": 1
@@ -5058,6 +5058,38 @@
       "phase": "B",
       "applied": "phase-b-applied",
       "validation": "Worksheet sizing artifact tests pass on net8.0/net10.0; Excel builds netstandard2.0/net8.0/net10.0 and cross-compiles net472. Full Phase B qualification remains separate."
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelColumnInfo.Width",
+      "kind": "property",
+      "action": "change",
+      "new": "OfficeIMO.Excel.ExcelColumnInfo.ExcelColumnWidth? Width",
+      "reason": "Worksheet inspection uses the same typed dimensions as authoring.",
+      "file": "OfficeIMO.Excel/ExcelInspectionSnapshot.cs",
+      "category": "units",
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "implementation": {
+        "phase": "B",
+        "status": "applied"
+      },
+      "note": "Column widths retain native character units; row heights retain native point lengths. Detached inspection values remain readable after the workbook is disposed."
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelRowInfo.Height",
+      "kind": "property",
+      "action": "change",
+      "new": "OfficeIMO.Excel.ExcelRowInfo.ExcelColumnWidth? Height",
+      "reason": "Worksheet inspection uses the same typed dimensions as authoring.",
+      "file": "OfficeIMO.Excel/ExcelInspectionSnapshot.cs",
+      "category": "units",
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "implementation": {
+        "phase": "B",
+        "status": "applied"
+      },
+      "note": "Column widths retain native character units; row heights retain native point lengths. Detached inspection values remain readable after the workbook is disposed."
     }
   ],
   "packageMoves": [
@@ -5274,7 +5306,7 @@
     {
       "phase": "B",
       "applied": "phase-b-applied",
-      "note": "ExcelColumnWidth is a dependency-free value type in OfficeIMO.Excel with Characters/Length factories, explicit worksheet-aware conversions and unit-preserving equality. The existing default-font column geometry resolver remains the only font measurement path. Native legacy projections/writers, adapters, reports, examples, tests and mechanical PowerShell setters preserve their previous numeric units. Inspection ExcelColumnInfo.Width and ExcelRowInfo.Height remain pending the broader geometry pass.",
+      "note": "ExcelColumnWidth is a dependency-free value type in OfficeIMO.Excel with Characters/Length factories, explicit worksheet-aware conversions and unit-preserving equality. The existing default-font column geometry resolver remains the only font measurement path. Native legacy projections/writers, adapters, reports, examples, tests and mechanical PowerShell setters preserve their previous numeric units. Inspection ExcelColumnInfo.Width and ExcelRowInfo.Height use nullable ExcelColumnWidth; codecs retain internal numeric values in the native units.",
       "files": [
         "OfficeIMO.Excel/ExcelColumnWidth.cs",
         "OfficeIMO.Excel.Html/HtmlExcelConverterExtensions.Generic.TablePresentation.cs",
@@ -5289,6 +5321,11 @@
       "applied": "phase-b-applied",
       "note": "Excel AotSmoke targets net8.0 and net10.0, exercises typed dimensions and uses CreateWriter(...).WriteTable(...) for asynchronous rows and IDataReader data. Superseded static writer entry points in the library and other consumers remain scheduled for the writer removal batch.",
       "validation": "Native osx-arm64 smoke passes on net8.0 and net10.0 without IL warnings, covering streaming rows, readers, typed tables and worksheet dimensions."
+    },
+    {
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "note": "ExcelColumnWidth.CharacterCount and PhysicalLength expose nullable, unit-preserving inspection without requiring a live worksheet or font resolver. Internal StoredWidth and StoredHeight retain exact native values for codecs and adapters. Reader, Google Sheets, HTML, PDF, OpenDocument, iWork, markup and PowerShell summary consumers perform explicit conversions to preserve their existing output units. Native and legacy inspection round trips keep character widths and point heights."
     }
   ],
   "applicationStatus": "Phase A applied and validated on the supported macOS targets. Phase B and Tier 2 entries retain their status; Windows .NET Framework validation remains pending.",

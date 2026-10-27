@@ -36,8 +36,8 @@ namespace OfficeIMO.Excel.Pdf {
             for (int i = columnDefinitions.Count - 1; i >= 0; i--) {
                 ExcelColumnInfo definition = columnDefinitions[i];
                 if (columnIndex >= definition.StartIndex && columnIndex <= definition.EndIndex) {
-                    customWidth = definition.CustomWidth && definition.Width.HasValue && definition.Width.Value > 0D;
-                    return customWidth ? definition.Width!.Value : 8.43D;
+                    customWidth = definition.CustomWidth && definition.StoredWidth.HasValue && definition.StoredWidth.Value > 0D;
+                    return customWidth ? definition.StoredWidth!.Value : 8.43D;
                 }
             }
 
@@ -76,8 +76,8 @@ namespace OfficeIMO.Excel.Pdf {
             for (int i = rowDefinitions.Count - 1; i >= 0; i--) {
                 ExcelRowInfo definition = rowDefinitions[i];
                 if (definition.Index == rowIndex) {
-                    return definition.CustomHeight && definition.Height.HasValue && definition.Height.Value > 0D
-                        ? definition.Height.Value
+                    return definition.CustomHeight && definition.StoredHeight.HasValue && definition.StoredHeight.Value > 0D
+                        ? definition.StoredHeight.Value
                         : null;
                 }
             }

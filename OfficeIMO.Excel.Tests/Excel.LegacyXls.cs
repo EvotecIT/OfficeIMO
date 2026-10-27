@@ -1301,14 +1301,14 @@ namespace OfficeIMO.Tests {
             ExcelColumnInfo projectedColumn = Assert.Single(projected.GetColumnDefinitions());
             Assert.Equal(2, projectedColumn.StartIndex);
             Assert.Equal(2, projectedColumn.EndIndex);
-            Assert.Equal(12.5d, projectedColumn.Width);
+            Assert.Equal(12.5d, (projectedColumn.Width?.CharacterCount));
             Assert.True(projectedColumn.Hidden);
             Assert.Equal((byte?)2, projectedColumn.OutlineLevel);
             Assert.True(projectedColumn.Collapsed);
 
             ExcelRowInfo projectedRow = Assert.Single(projected.GetRowDefinitions());
             Assert.Equal(2, projectedRow.Index);
-            Assert.Equal(18d, projectedRow.Height);
+            Assert.Equal(18d, (projectedRow.Height?.PhysicalLength?.ToPoints()));
             Assert.True(projectedRow.Hidden);
             Assert.Equal((byte?)1, projectedRow.OutlineLevel);
             Assert.True(projectedRow.Collapsed);

@@ -1,26 +1,26 @@
 namespace OfficeIMO.Excel {
     /// <summary>
     /// Options for clamping column widths and enabling wrapping by header.
-    /// Widths use Excel's character-based units (approx. number of '0' glyphs).
+    /// Preset defaults use character units; each width also accepts a physical length.
     /// </summary>
     public sealed class ExcelColumnSizingOptions {
         /// <summary>
-        /// Width in characters used for headers registered in <see cref="ShortHeaders"/>.
+        /// Character or physical width used for headers registered in <see cref="ShortHeaders"/>.
         /// </summary>
         public ExcelColumnWidth ShortWidth { get; set; } = ExcelColumnWidth.Characters(16);     // Status/Alg/Hash
 
         /// <summary>
-        /// Width in characters used for headers registered in <see cref="NumericHeaders"/>.
+        /// Character or physical width used for headers registered in <see cref="NumericHeaders"/>.
         /// </summary>
         public ExcelColumnWidth NumericWidth { get; set; } = ExcelColumnWidth.Characters(10);   // Depth/Count/Days
 
         /// <summary>
-        /// Width in characters used for headers registered in <see cref="MediumHeaders"/>.
+        /// Character or physical width used for headers registered in <see cref="MediumHeaders"/>.
         /// </summary>
         public ExcelColumnWidth MediumWidth { get; set; } = ExcelColumnWidth.Characters(28);    // Provider/Target/Reason
 
         /// <summary>
-        /// Width in characters used for headers registered in <see cref="LongHeaders"/>.
+        /// Character or physical width used for headers registered in <see cref="LongHeaders"/>.
         /// </summary>
         public ExcelColumnWidth LongWidth { get; set; } = ExcelColumnWidth.Characters(56);      // Evidence/Record/URL/Summary
 
@@ -50,7 +50,7 @@ namespace OfficeIMO.Excel {
         public HashSet<string> WrapHeaders { get; } = new(StringComparer.OrdinalIgnoreCase);
 
         /// <summary>
-        /// Default width (in characters) used for headers registered in <see cref="WrapHeaders"/>.
+        /// Default character or physical width used for headers registered in <see cref="WrapHeaders"/>.
         /// </summary>
         public ExcelColumnWidth WrapWidth { get; set; } = ExcelColumnWidth.Characters(32);
 
@@ -65,7 +65,7 @@ namespace OfficeIMO.Excel {
         public bool AutoFitRemainingColumns { get; set; } = false;
 
         /// <summary>
-        /// Explicit column width overrides keyed by header name. Values are Excel character widths.
+        /// Explicit column width overrides keyed by header name. Values are character or physical dimensions.
         /// </summary>
         public Dictionary<string, ExcelColumnWidth> WidthByHeader { get; } = new(StringComparer.OrdinalIgnoreCase);
     }

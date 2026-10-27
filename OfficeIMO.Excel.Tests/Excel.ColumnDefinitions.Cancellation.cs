@@ -68,7 +68,7 @@ namespace OfficeIMO.Tests {
             using var reopened = ExcelDocument.Load(output);
             Assert.Single(reopened.GetTables());
             ExcelSheet sheet = reopened.Sheets[0];
-            if (autoFit) Assert.True(Assert.Single(sheet.GetColumnDefinitions()).Width > 0D);
+            if (autoFit) Assert.True(Assert.Single(sheet.GetColumnDefinitions()).Width?.CharacterCount > 0D);
             else Assert.Empty(sheet.GetColumnDefinitions());
             for (int day = 0; day < 3; day++) {
                 Assert.Equal(Date(day).UtcDateTime.ToOADate(), sheet.CellAt(day + 2, 1).GetValue<double>());

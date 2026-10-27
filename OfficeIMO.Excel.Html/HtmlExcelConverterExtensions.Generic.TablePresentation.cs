@@ -77,7 +77,7 @@ public static partial class HtmlExcelConverterExtensions {
             const double minimumWidth = 12D;
             double minimumTotal = columns.Sum(column => (column.EndIndex - column.StartIndex + 1) * minimumWidth);
             double extraTotal = columns.Sum(column => (column.EndIndex - column.StartIndex + 1)
-                * (Math.Min(60D, Math.Max(minimumWidth, column.Width ?? minimumWidth)) - minimumWidth));
+                * (Math.Min(60D, Math.Max(minimumWidth, column.StoredWidth ?? minimumWidth)) - minimumWidth));
             // Reuse the existing printable width without squeezing a wide grid's
             // columns below the readable minimum. Only surplus width is shared.
             double extraBudget = Math.Max(75D, minimumTotal) - minimumTotal;
@@ -85,7 +85,7 @@ public static partial class HtmlExcelConverterExtensions {
             var fittedWidths = new Dictionary<int, ExcelColumnWidth>();
             foreach (ExcelColumnInfo column in columns) {
                 double width = minimumWidth
-                    + (Math.Min(60D, Math.Max(minimumWidth, column.Width ?? minimumWidth)) - minimumWidth) * scale;
+                    + (Math.Min(60D, Math.Max(minimumWidth, column.StoredWidth ?? minimumWidth)) - minimumWidth) * scale;
                 for (int index = column.StartIndex; index <= column.EndIndex; index++) {
                     fittedWidths.Add(index, ExcelColumnWidth.Characters(width));
                 }

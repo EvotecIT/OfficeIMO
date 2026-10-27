@@ -254,7 +254,7 @@ namespace OfficeIMO.Excel.Pdf {
 
                 if (geometry.UseWorksheetColumnWidths &&
                     definition.CustomWidth &&
-                    definition.Width is double customWidth &&
+                    definition.StoredWidth is double customWidth &&
                     customWidth > 0D) {
                     width = customWidth;
                     hasExplicitWidth = true;
@@ -296,7 +296,7 @@ namespace OfficeIMO.Excel.Pdf {
 
                 return geometry.UseWorksheetRowHeights &&
                        definition.CustomHeight &&
-                       definition.Height is double customHeight &&
+                       definition.StoredHeight is double customHeight &&
                        customHeight > 0D
                     ? customHeight
                     : geometry.DefaultRowHeight;

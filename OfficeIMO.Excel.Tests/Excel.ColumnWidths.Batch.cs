@@ -37,9 +37,9 @@ namespace OfficeIMO.Tests {
             using var reopened = ExcelDocument.Load(filePath);
             reopened.Sheets[0].AutoFitColumnsFor(new[] { 2 });
             var saved = reopened.Sheets[0].GetColumnDefinitions().ToArray();
-            Assert.Equal(30D, saved[0].Width);
-            Assert.True(saved[1].Width > 12D);
-            Assert.Equal(30D, saved[2].Width);
+            Assert.Equal(30D, (saved[0].Width?.CharacterCount));
+            Assert.True((saved[1].Width?.CharacterCount) > 12D);
+            Assert.Equal(30D, (saved[2].Width?.CharacterCount));
         }
 
         [Theory]
@@ -60,14 +60,14 @@ namespace OfficeIMO.Tests {
             }
             using (var document = ExcelDocument.Load(filePath)) {
                 var sheet = document.Sheets[0];
-                Assert.Equal(12D, Assert.Single(sheet.GetColumnDefinitions()).Width);
+                Assert.Equal(12D, Assert.Single(sheet.GetColumnDefinitions()).Width?.CharacterCount);
                 sheet.AutoFitColumnsFor(new[] { 1 });
-                Assert.True(Assert.Single(sheet.GetColumnDefinitions()).Width > 12D);
+                Assert.True(Assert.Single(sheet.GetColumnDefinitions()).Width?.CharacterCount > 12D);
                 document.Save();
             }
             using var reopened = ExcelDocument.Load(filePath);
             Assert.Equal(label, reopened.Sheets[0].CellAt(1, 1).GetValue<string>());
-            Assert.True(Assert.Single(reopened.Sheets[0].GetColumnDefinitions()).Width > 12D);
+            Assert.True(Assert.Single(reopened.Sheets[0].GetColumnDefinitions()).Width?.CharacterCount > 12D);
         }
 
         [Theory]
@@ -98,17 +98,17 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(0, saves);
                 if (withRange) {
                     ExcelColumnInfo selected = sheet.GetColumnDefinitions().Single(column => column.StartIndex == 66);
-                    Assert.Equal(25D, selected.Width);
+                    Assert.Equal(25D, (selected.Width?.CharacterCount));
                     Assert.True(selected.Hidden && selected.Collapsed);
                     Assert.Equal((byte)2, selected.OutlineLevel);
-                    Assert.Equal(10D, sheet.GetColumnDefinitions().Single(column => column.StartIndex == 65).Width);
-                    Assert.Equal(10D, sheet.GetColumnDefinitions().Single(column => column.StartIndex == 67).Width);
+                    Assert.Equal(10D, (sheet.GetColumnDefinitions().Single(column => column.StartIndex == 65).Width?.CharacterCount));
+                    Assert.Equal(10D, (sheet.GetColumnDefinitions().Single(column => column.StartIndex == 67).Width?.CharacterCount));
                 }
                 document.Save();
             }
             using var reopened = ExcelDocument.Load(filePath);
             Assert.Equal("Cell 64", reopened.Sheets[0].CellAt(1, 64).GetValue<string>());
-            Assert.Equal(18.4D, reopened.Sheets[0].GetColumnDefinitions().Single(column => column.StartIndex == 64).Width);
+            Assert.Equal(18.4D, (reopened.Sheets[0].GetColumnDefinitions().Single(column => column.StartIndex == 64).Width?.CharacterCount));
         }
 
         [Theory]
@@ -124,7 +124,7 @@ namespace OfficeIMO.Tests {
             Assert.Throws<ArgumentOutOfRangeException>(() => sheet.SetColumnWidths(new Dictionary<int, ExcelColumnWidth> {
                 [1] = ExcelColumnWidth.Characters(30D), [invalidIndex] = ExcelColumnWidth.Characters(invalidWidth)
             }));
-            Assert.Equal(20D, Assert.Single(sheet.GetColumnDefinitions()).Width);
+            Assert.Equal(20D, Assert.Single(sheet.GetColumnDefinitions()).Width?.CharacterCount);
         }
     }
 }

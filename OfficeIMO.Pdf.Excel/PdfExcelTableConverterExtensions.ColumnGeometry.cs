@@ -39,8 +39,8 @@ namespace OfficeIMO.Pdf.Excel {
             var destinationWidths = Enumerable.Repeat(defaultWidth, columnCount).ToArray();
             foreach (ExcelColumnInfo definition in sheet.GetColumnDefinitions(options.CancellationToken)) {
                 options.CancellationToken.ThrowIfCancellationRequested();
-                if (!definition.CustomWidth || !definition.Width.HasValue) continue;
-                double width = definition.Width.Value;
+                if (!definition.CustomWidth || !definition.StoredWidth.HasValue) continue;
+                double width = definition.StoredWidth.Value;
                 if (!IsPositiveFiniteWidth(width)) return false;
                 int first = Math.Max(1, definition.StartIndex);
                 int last = Math.Min(columnCount, definition.EndIndex);

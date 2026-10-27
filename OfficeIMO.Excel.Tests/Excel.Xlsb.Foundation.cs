@@ -440,7 +440,7 @@ namespace OfficeIMO.Tests {
 
             IReadOnlyDictionary<int, ExcelRowInfo> rows = sheet.GetRowDefinitions().ToDictionary(row => row.Index);
             Assert.Equal(3, rows.Count);
-            Assert.Equal(30D, rows[1].Height);
+            Assert.Equal(30D, (rows[1].Height?.PhysicalLength?.ToPoints()));
             Assert.True(rows[1].CustomHeight);
             Assert.True(rows[3].Hidden);
             Assert.Equal((byte)2, rows[4].OutlineLevel);
@@ -471,7 +471,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal("Edited", value);
             Assert.Equal("A1:D5", sheet.WorksheetPart.Worksheet.GetFirstChild<SheetDimension>()?.Reference?.Value);
             Assert.Equal("A1:C1", Assert.Single(sheet.GetMergedRanges()).A1Range);
-            Assert.Equal(30D, sheet.GetRowDefinitions().Single(row => row.Index == 1).Height);
+            Assert.Equal(30D, (sheet.GetRowDefinitions().Single(row => row.Index == 1).Height?.PhysicalLength?.ToPoints()));
             Assert.True(sheet.GetColumnDefinitions().Single(column => column.StartIndex == 4).Hidden);
             Assert.Equal(PaneStateValues.FrozenSplit, sheet.WorksheetPart.Worksheet
                 .GetFirstChild<SheetViews>()?.GetFirstChild<SheetView>()?.GetFirstChild<Pane>()?.State?.Value);
@@ -492,7 +492,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal(ExcelColumnWidth.Characters(9D), sheet.DefaultColumnWidth);
             Assert.Equal(ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(18D)), sheet.DefaultRowHeight);
             Assert.Equal("A1:C1", Assert.Single(sheet.GetMergedRanges()).A1Range);
-            Assert.Equal(30D, sheet.GetRowDefinitions().Single(row => row.Index == 1).Height);
+            Assert.Equal(30D, (sheet.GetRowDefinitions().Single(row => row.Index == 1).Height?.PhysicalLength?.ToPoints()));
             Assert.True(sheet.GetRowDefinitions().Single(row => row.Index == 3).Hidden);
             Assert.True(sheet.GetColumnDefinitions().Single(column => column.StartIndex == 4).Hidden);
             Pane pane = Assert.IsType<Pane>(sheet.WorksheetPart.Worksheet
@@ -1355,11 +1355,11 @@ namespace OfficeIMO.Tests {
             Assert.Equal("A1:D5", result.WorksheetPart.Worksheet.GetFirstChild<SheetDimension>()?.Reference?.Value);
             Assert.Equal(ExcelColumnWidth.Characters(9D), result.DefaultColumnWidth);
             Assert.Equal(ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(18D)), result.DefaultRowHeight);
-            Assert.Equal(30D, result.GetRowDefinitions().Single(row => row.Index == 1).Height);
+            Assert.Equal(30D, (result.GetRowDefinitions().Single(row => row.Index == 1).Height?.PhysicalLength?.ToPoints()));
             Assert.True(result.GetRowDefinitions().Single(row => row.Index == 3).Hidden);
             Assert.Equal((byte)2, result.GetRowDefinitions().Single(row => row.Index == 4).OutlineLevel);
             Assert.True(result.GetRowDefinitions().Single(row => row.Index == 4).Collapsed);
-            Assert.Equal(20D, result.GetColumnDefinitions().Single(column => column.StartIndex == 1).Width);
+            Assert.Equal(20D, (result.GetColumnDefinitions().Single(column => column.StartIndex == 1).Width?.CharacterCount));
             Assert.True(result.GetColumnDefinitions().Single(column => column.StartIndex == 4).Hidden);
             Assert.Equal((byte)2, result.GetColumnDefinitions().Single(column => column.StartIndex == 3).OutlineLevel);
             Assert.True(result.GetColumnDefinitions().Single(column => column.StartIndex == 3).Collapsed);

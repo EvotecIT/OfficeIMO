@@ -196,7 +196,7 @@ namespace OfficeIMO.Tests {
                 Assert.Null(rowsRange.EndColumnIndex);
                 Assert.Contains(sheet.Cells, cell => cell.Row == 2 && cell.Column == 2 && cell.Formula == "SUM(1,2)");
                 ExcelRowInfo importedRow = Assert.Single(sheet.Rows, row => row.Index == 2);
-                Assert.Equal(30d, importedRow.Height);
+                Assert.Equal(30d, (importedRow.Height?.PhysicalLength?.ToPoints()));
                 Assert.True(importedRow.Hidden);
                 Assert.Equal((byte)1, importedRow.OutlineLevel);
                 ExcelColumnInfo importedColumn = Assert.Single(sheet.Columns, column => column.StartIndex == 2 && column.EndIndex == 2);

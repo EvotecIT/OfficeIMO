@@ -51,7 +51,7 @@ public static partial class ExcelOpenDocumentConversionExtensions {
                 for (int index = Math.Max(1, column.StartIndex); index <= last; index++) {
                     OdsColumn converted = sheet.Column(index - 1L);
                     converted.Hidden = column.Hidden;
-                    if (column.Width.HasValue) converted.Width = OdfLength.Points(ExcelWidthToPoints(column.Width.Value));
+                    if (column.StoredWidth.HasValue) converted.Width = OdfLength.Points(ExcelWidthToPoints(column.StoredWidth.Value));
                     columns++;
                 }
             }
@@ -59,7 +59,7 @@ public static partial class ExcelOpenDocumentConversionExtensions {
                 if (row.Index < 1 || row.Index > effective.MaximumRows) { skippedRows++; truncated = true; continue; }
                 OdsRow converted = sheet.Row(row.Index - 1L);
                 converted.Hidden = row.Hidden;
-                if (row.Height.HasValue) converted.Height = OdfLength.Points(row.Height.Value);
+                if (row.StoredHeight.HasValue) converted.Height = OdfLength.Points(row.StoredHeight.Value);
                 rows++;
             }
 

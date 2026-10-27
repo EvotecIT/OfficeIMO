@@ -30,7 +30,7 @@ namespace OfficeIMO.Excel {
 
                 result.Add(new ExcelRowInfo {
                     Index = index,
-                    Height = row.Height?.Value,
+                    StoredHeight = row.Height?.Value,
                     Hidden = hidden,
                     CustomHeight = customHeight,
                     CustomFormat = customFormat,

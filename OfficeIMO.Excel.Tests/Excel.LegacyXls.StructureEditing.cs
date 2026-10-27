@@ -29,8 +29,8 @@ public sealed class ExcelLegacyStructureEditingTests {
         }
         using var loaded = ExcelDocument.Load(new MemoryStream(document.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xls })));
         var result = loaded.GetSheet("Layout only");
-        Assert.Equal(12.5, Assert.Single(result.GetColumnDefinitions()).Width);
-        Assert.Equal(21, Assert.Single(result.GetRowDefinitions()).Height);
+        Assert.Equal(12.5, Assert.Single(result.GetColumnDefinitions()).Width?.CharacterCount);
+        Assert.Equal(21, Assert.Single(result.GetRowDefinitions()).Height?.PhysicalLength?.ToPoints());
         var native = LegacyXlsWorkbook.Load(document.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xls }));
         var layout = native.Worksheets.Single(sheet => sheet.Name == "Layout only");
         Assert.Empty(layout.Cells);

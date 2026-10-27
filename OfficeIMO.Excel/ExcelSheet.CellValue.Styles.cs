@@ -457,13 +457,13 @@ namespace OfficeIMO.Excel {
         }
 
         /// <summary>
-        /// Enables WrapText for the specified column and pins the target column width (in Excel character units).
+        /// Enables WrapText for the specified column and pins the target column width.
         /// Useful when mixed with auto-fit operations so wrapped columns keep a predictable width.
         /// </summary>
         /// <param name="fromRow">The first 1-based row index in the range.</param>
         /// <param name="toRow">The last 1-based row index in the range.</param>
         /// <param name="column">The 1-based column index whose cells should wrap.</param>
-        /// <param name="targetColumnWidth">The column width, in Excel character units, to enforce when wrapping.</param>
+        /// <param name="targetColumnWidth">The character or physical width to enforce when wrapping.</param>
         public void WrapCells(int fromRow, int toRow, int column, ExcelColumnWidth targetColumnWidth) {
             WrapCells(fromRow, toRow, column);
             if (targetColumnWidth.ToCharacters(this) > 0) {

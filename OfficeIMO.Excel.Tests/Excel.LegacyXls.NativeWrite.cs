@@ -319,7 +319,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(3, merge.EndColumn);
 
                 ExcelColumnInfo widthColumn = Assert.Single(loadedSheet.GetColumnDefinitions(), column => column.StartIndex == 2 && column.EndIndex == 2);
-                Assert.Equal(12.5d, widthColumn.Width);
+                Assert.Equal(12.5d, (widthColumn.Width?.CharacterCount));
                 Assert.Equal((byte?)2, widthColumn.OutlineLevel);
                 Assert.True(widthColumn.Collapsed);
 
@@ -327,7 +327,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(hiddenColumn.Hidden);
 
                 ExcelRowInfo heightRow = Assert.Single(loadedSheet.GetRowDefinitions(), row => row.Index == 2);
-                Assert.Equal(21d, heightRow.Height);
+                Assert.Equal(21d, (heightRow.Height?.PhysicalLength?.ToPoints()));
                 Assert.True(heightRow.CustomHeight);
                 Assert.Equal((byte?)1, heightRow.OutlineLevel);
                 Assert.True(heightRow.Collapsed);

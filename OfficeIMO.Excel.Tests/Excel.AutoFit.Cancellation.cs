@@ -177,7 +177,7 @@ public sealed class ExcelAutoFitCancellationTests {
 
     private static (int Start, int End, double? Width, bool Custom)[] ColumnState(ExcelSheet sheet) =>
         sheet.GetColumnDefinitions().Select(column =>
-            (column.StartIndex, column.EndIndex, column.Width, column.CustomWidth)).ToArray();
+            (column.StartIndex, column.EndIndex, (column.Width?.CharacterCount), column.CustomWidth)).ToArray();
 
     private static (int Start, int End, double? Width, bool Custom)[] ExpectedTableWidths(bool alreadyFit) {
         using var source = new MemoryStream();

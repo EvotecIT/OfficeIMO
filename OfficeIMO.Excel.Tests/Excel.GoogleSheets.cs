@@ -191,10 +191,10 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("Accent comment", fontColorCell.Comment.Text);
 
                 var column = Assert.Single(summarySheet.Columns, c => c.StartIndex == 1 && c.EndIndex == 1);
-                Assert.Equal(20, column.Width);
+                Assert.Equal(20, column.Width?.CharacterCount);
 
                 var row = Assert.Single(summarySheet.Rows, r => r.Index == 3);
-                Assert.True(row.Height > 15);
+                Assert.True(row.Height?.PhysicalLength?.ToPoints() > 15);
 
                 var hiddenSheet = Assert.Single(snapshot.Worksheets, w => w.Name == "Hidden");
                 Assert.True(hiddenSheet.Hidden);

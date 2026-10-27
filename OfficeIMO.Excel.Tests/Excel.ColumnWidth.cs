@@ -25,8 +25,8 @@ public sealed class ExcelColumnWidthTests {
 
         using ExcelDocument loaded = ExcelDocument.Load(new MemoryStream(document.ToBytes()));
         ExcelSheet saved = loaded.Sheets[0];
-        Assert.Equal(new double?[] { 12.25, 10 }, saved.GetColumnDefinitions().Select(column => column.Width));
-        Assert.Equal(new double?[] { 24.5, 31 }, saved.GetRowDefinitions().Select(row => row.Height));
+        Assert.Equal(new double?[] { 12.25, 10 }, saved.GetColumnDefinitions().Select(column => (column.Width?.CharacterCount)));
+        Assert.Equal(new double?[] { 24.5, 31 }, saved.GetRowDefinitions().Select(row => (row.Height?.PhysicalLength?.ToPoints())));
         Assert.Equal(12, saved.DefaultColumnWidth!.Value.ToCharacters(saved));
         Assert.Equal(OfficeLength.Points(18.25), saved.DefaultRowHeight!.Value.ToLength(saved));
         Assert.Equal(70, saved.Range("B1:B2").CreateVisualSnapshot().Columns.Single().Width);
@@ -51,7 +51,7 @@ public sealed class ExcelColumnWidthTests {
         UseMissingFont(document);
         sheet.SetRowHeight(1, ExcelColumnWidth.Characters(1.5));
         sheet.SetDefaultRowHeight(ExcelColumnWidth.Characters(2));
-        Assert.Equal(7.88, sheet.GetRowDefinitions().Single().Height);
+        Assert.Equal(7.88, (sheet.GetRowDefinitions().Single().Height?.PhysicalLength?.ToPoints()));
         Assert.Equal(OfficeLength.Points(10.5), sheet.DefaultRowHeight!.Value.ToLength(sheet));
         sheet.SetRowLayout(1, new ExcelRowLayoutOptions { ClearHeight = true });
         Assert.Empty(sheet.GetRowDefinitions());
@@ -66,7 +66,27 @@ public sealed class ExcelColumnWidthTests {
             [1] = ExcelColumnWidth.Length(OfficeLength.Inches(1)),
             [2] = default
         }));
-        Assert.Equal(15, sheet.GetColumnDefinitions().Single().Width);
+        Assert.Equal(15, (sheet.GetColumnDefinitions().Single().Width?.CharacterCount));
+    }
+
+    [Fact]
+    public void InspectionDimensionsRemainReadableAfterTheWorkbookIsDisposed() {
+        ExcelWorkbookInfo snapshot;
+        using (ExcelDocument document = ExcelDocument.Create()) {
+            ExcelSheet sheet = document.AddWorksheet("Snapshot");
+            sheet.CellValue(1, 1, "Value");
+            sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(19.75));
+            sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeLength.Points(23.5)));
+            snapshot = document.Inspect();
+        }
+        var worksheet = Assert.Single(snapshot.Worksheets);
+        var width = Assert.Single(worksheet.Columns).Width!.Value;
+        var height = Assert.Single(worksheet.Rows).Height!.Value;
+        Assert.Equal(ExcelColumnWidth.Characters(19.75), width);
+        Assert.Equal(19.75, width.CharacterCount);
+        Assert.Null(width.PhysicalLength);
+        Assert.Equal(OfficeLength.Points(23.5), height.PhysicalLength);
+        Assert.Null(height.CharacterCount);
     }
 
     [Theory]

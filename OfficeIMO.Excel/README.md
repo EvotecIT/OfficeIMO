@@ -1707,6 +1707,11 @@ sheet.SetColumnWidths(new Dictionary<int, ExcelColumnWidth> {
     [3] = ExcelColumnWidth.Characters(18)
 });
 sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeLength.Points(24)));
+
+ExcelColumnWidth? columnWidth = sheet.GetColumnDefinitions()[0].Width;
+ExcelColumnWidth? rowHeight = sheet.GetRowDefinitions()[0].Height;
+Console.WriteLine(columnWidth?.CharacterCount);
+Console.WriteLine(rowHeight?.PhysicalLength?.ToPoints());
 ```
 
 Indexes are 1-based. The method preserves column styles, visibility and outline

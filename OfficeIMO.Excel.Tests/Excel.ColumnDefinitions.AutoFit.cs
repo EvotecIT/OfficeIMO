@@ -35,25 +35,25 @@ namespace OfficeIMO.Tests {
                 beforeSave.Select(column => column.StartIndex));
             Assert.All(beforeSave, column => {
                 Assert.Equal(column.StartIndex, column.EndIndex);
-                Assert.True(column.Width > 0D);
+                Assert.True(column.Width?.CharacterCount > 0D);
                 Assert.True(column.CustomWidth);
             });
-            Assert.True(beforeSave[0].Width > 20D);
-            if (!selectedOnly) Assert.True(beforeSave[0].Width > beforeSave[1].Width);
+            Assert.True((beforeSave[0].Width?.CharacterCount) > 20D);
+            if (!selectedOnly) Assert.True((beforeSave[0].Width?.CharacterCount) > (beforeSave[1].Width?.CharacterCount));
 
             ExcelColumnInfo[] inspected = Assert.Single(document.Inspect().Worksheets).Columns.ToArray();
-            Assert.Equal(beforeSave.Select(column => (column.StartIndex, column.EndIndex, column.Width, column.CustomWidth)),
-                inspected.Select(column => (column.StartIndex, column.EndIndex, column.Width, column.CustomWidth)));
+            Assert.Equal(beforeSave.Select(column => (column.StartIndex, column.EndIndex, (column.Width?.CharacterCount), column.CustomWidth)),
+                inspected.Select(column => (column.StartIndex, column.EndIndex, (column.Width?.CharacterCount), column.CustomWidth)));
 
             var workbookLock = document.EnsureLock();
             workbookLock.EnterReadLock();
             try {
-                Assert.Equal(beforeSave.Select(column => column.Width), sheet.GetColumnDefinitions().Select(column => column.Width));
+                Assert.Equal(beforeSave.Select(column => (column.Width?.CharacterCount)), sheet.GetColumnDefinitions().Select(column => (column.Width?.CharacterCount)));
             } finally {
                 workbookLock.ExitReadLock();
             }
-            sheet.Batch(current => Assert.Equal(beforeSave.Select(column => column.Width),
-                current.GetColumnDefinitions().Select(column => column.Width)));
+            sheet.Batch(current => Assert.Equal(beforeSave.Select(column => (column.Width?.CharacterCount)),
+                current.GetColumnDefinitions().Select(column => (column.Width?.CharacterCount))));
 
             document.Save(output);
             if (!streamBacked) Assert.Equal(ExcelSavePackageWriter.DirectDataSetPackage, document.LastSaveDiagnostics.Writer);
@@ -65,7 +65,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(beforeSave[i].StartIndex, afterSave[i].StartIndex);
                 Assert.Equal(beforeSave[i].EndIndex, afterSave[i].EndIndex);
                 // The direct package writer stores widths to three decimal places.
-                Assert.InRange(System.Math.Abs(beforeSave[i].Width!.Value - afterSave[i].Width!.Value), 0D, 0.001D);
+                Assert.InRange(System.Math.Abs((beforeSave[i].Width?.CharacterCount)!.Value - (afterSave[i].Width?.CharacterCount)!.Value), 0D, 0.001D);
                 Assert.Equal(beforeSave[i].CustomWidth, afterSave[i].CustomWidth);
             }
             Assert.Equal("Return credit", reopened.Sheets[0].CellAt(3, 1).GetValue<string>());

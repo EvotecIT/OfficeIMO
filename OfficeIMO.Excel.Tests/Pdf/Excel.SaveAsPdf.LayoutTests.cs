@@ -31,7 +31,7 @@ public partial class Excel {
 
             IReadOnlyList<ExcelColumnInfo> columns = sheet.GetColumnDefinitions();
             Assert.Equal(3, columns.Count);
-            Assert.Equal(32, columns[1].Width);
+            Assert.Equal(32, (columns[1].Width?.CharacterCount));
             Assert.True(columns[1].CustomWidth);
             Assert.Equal((uint)50, sheet.GetPageSetup().Scale);
 
@@ -75,7 +75,7 @@ public partial class Excel {
 
             ExcelRowInfo row = Assert.Single(sheet.GetRowDefinitions());
             Assert.Equal(2, row.Index);
-            Assert.Equal(60, row.Height);
+            Assert.Equal(60, (row.Height?.PhysicalLength?.ToPoints()));
             Assert.True(row.CustomHeight);
 
             document.Save();
