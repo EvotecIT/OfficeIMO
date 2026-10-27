@@ -129,8 +129,12 @@ internal static partial class PdfWriter {
         foreach (int position in GetValidHyphenationBreakpoints(token, options)) {
             if (!candidates.ContainsKey(position)) candidates[position] = true;
         }
+        bool identifier = IsHyphenatedIdentifier(token);
         foreach (KeyValuePair<int, bool> candidate in candidates.Reverse()) {
             if (candidate.Key <= 0 || candidate.Key >= token.Length) continue;
+            // Identifiers such as invoice numbers, dates and part codes move to the next line whole
+            // instead of splitting at a hyphen; a token wider than a line still breaks later.
+            if (identifier && !candidate.Value && IsHyphenCharacter(token[candidate.Key - 1])) continue;
             string text = token.Substring(0, candidate.Key);
             if (candidate.Value) text += "-";
             double width = measure(text);
@@ -142,4 +146,16 @@ internal static partial class PdfWriter {
         }
         return false;
     }
+
+    private static bool IsHyphenatedIdentifier(string token) {
+        bool hasDigit = false, hasHyphen = false;
+        foreach (char ch in token) {
+            if (char.IsDigit(ch)) hasDigit = true;
+            else if (IsHyphenCharacter(ch)) hasHyphen = true;
+            else if (!char.IsLetter(ch) && ch != '.' && ch != '/' && ch != '_' && ch != '#') return false;
+        }
+        return hasDigit && hasHyphen;
+    }
+
+    private static bool IsHyphenCharacter(char ch) => ch == '-' || ch == '\u2010' || ch == '\u2011';
 }

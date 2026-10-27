@@ -85,6 +85,7 @@ internal static partial class PdfWriter {
                 resources);
         }
 
+        sb.Append(PdfAcroFormDictionaryBuilder.BuildDropDownArrowAppearanceContent(width, height, effectiveStyle));
         sb.Append("Q\n");
         fontResources = resources;
         return sb.ToString();
@@ -108,12 +109,14 @@ internal static partial class PdfWriter {
             selectedValues = field.Values;
             selectedIndices = Array.Empty<int>();
             topIndex = null;
+            PdfFormFieldStyle comboStyle = (field.Style ?? new PdfFormFieldStyle()).Clone();
+            comboStyle.ShowDropDownArrow = comboStyle.BorderColor.HasValue && comboStyle.BorderWidth > 0D;
             return BuildFormFieldTextAppearanceContent(
                 width,
                 height,
                 ResolveChoiceAppearanceValue(field),
                 field.FontSize,
-                field.Style,
+                comboStyle,
                 formOptions,
                 ensureFont,
                 out fontResources);
