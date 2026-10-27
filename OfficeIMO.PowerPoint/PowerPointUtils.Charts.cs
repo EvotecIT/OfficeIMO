@@ -231,7 +231,7 @@ namespace OfficeIMO.PowerPoint {
             if (data == null) throw new ArgumentNullException(nameof(data));
             var shared = new OfficeIMO.Drawing.OfficeChartData(
                 data.Series[0].XValues.Select(value => value.ToString(CultureInfo.InvariantCulture)),
-                data.Series.Select(series => new OfficeIMO.Drawing.OfficeChartSeries(series.Name, series.YValues, series.XValues)));
+                data.Series.Select(series => new OfficeIMO.OfficeSeries(series.Name, series.YValues, series.XValues)));
             OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartWriter.UpdateScatterData(chartPart, shared);
         }
         private static C.BarChart CreateBarChart(PowerPointChartData data, out uint categoryAxisId, out uint valueAxisId) {
@@ -272,7 +272,7 @@ namespace OfficeIMO.PowerPoint {
             );
 
             OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartWriter.MaterializeDefaultSeriesColor(
-                seriesElement, OfficeChartKind.ColumnClustered, seriesIndex);
+                seriesElement, OfficeChartType.ColumnClustered, seriesIndex);
 
             return seriesElement;
         }
@@ -311,7 +311,7 @@ namespace OfficeIMO.PowerPoint {
             );
 
             OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartWriter.MaterializeDefaultSeriesColor(
-                seriesElement, OfficeChartKind.Line, seriesIndex);
+                seriesElement, OfficeChartType.Line, seriesIndex);
 
             return seriesElement;
         }
@@ -348,7 +348,7 @@ namespace OfficeIMO.PowerPoint {
             );
 
             OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartWriter.MaterializeDefaultSeriesColor(
-                seriesElement, OfficeChartKind.Scatter, seriesIndex);
+                seriesElement, OfficeChartType.Scatter, seriesIndex);
 
             return seriesElement;
         }

@@ -265,19 +265,19 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private static PowerPointChartSnapshotKind MapAdvancedSnapshotKind(
-            OfficeChartKind kind) => kind switch {
-                OfficeChartKind.ColumnClustered => PowerPointChartSnapshotKind.ClusteredColumn,
-                OfficeChartKind.ColumnStacked => PowerPointChartSnapshotKind.StackedColumn,
-                OfficeChartKind.ColumnStacked100 => PowerPointChartSnapshotKind.StackedColumn100,
-                OfficeChartKind.BarClustered => PowerPointChartSnapshotKind.ClusteredBar,
-                OfficeChartKind.BarStacked => PowerPointChartSnapshotKind.StackedBar,
-                OfficeChartKind.BarStacked100 => PowerPointChartSnapshotKind.StackedBar100,
-                OfficeChartKind.Area => PowerPointChartSnapshotKind.Area,
-                OfficeChartKind.AreaStacked => PowerPointChartSnapshotKind.StackedArea,
-                OfficeChartKind.AreaStacked100 => PowerPointChartSnapshotKind.StackedArea100,
-                OfficeChartKind.LineStacked => PowerPointChartSnapshotKind.StackedLine,
-                OfficeChartKind.LineStacked100 => PowerPointChartSnapshotKind.StackedLine100,
-                OfficeChartKind.Pie => PowerPointChartSnapshotKind.Pie,
+            OfficeChartType kind) => kind switch {
+                OfficeChartType.ColumnClustered => PowerPointChartSnapshotKind.ClusteredColumn,
+                OfficeChartType.ColumnStacked => PowerPointChartSnapshotKind.StackedColumn,
+                OfficeChartType.ColumnStacked100 => PowerPointChartSnapshotKind.StackedColumn100,
+                OfficeChartType.BarClustered => PowerPointChartSnapshotKind.ClusteredBar,
+                OfficeChartType.BarStacked => PowerPointChartSnapshotKind.StackedBar,
+                OfficeChartType.BarStacked100 => PowerPointChartSnapshotKind.StackedBar100,
+                OfficeChartType.Area => PowerPointChartSnapshotKind.Area,
+                OfficeChartType.AreaStacked => PowerPointChartSnapshotKind.StackedArea,
+                OfficeChartType.AreaStacked100 => PowerPointChartSnapshotKind.StackedArea100,
+                OfficeChartType.LineStacked => PowerPointChartSnapshotKind.StackedLine,
+                OfficeChartType.LineStacked100 => PowerPointChartSnapshotKind.StackedLine100,
+                OfficeChartType.Pie => PowerPointChartSnapshotKind.Pie,
                 _ => PowerPointChartSnapshotKind.Line
             };
 

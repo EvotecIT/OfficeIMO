@@ -12,7 +12,7 @@ public partial class WordDocument {
     /// <param name="width">Drawing width in pixels.</param>
     /// <param name="height">Drawing height in pixels.</param>
     /// <returns>The created chart.</returns>
-    public WordChart AddChart(OfficeChartKind chartKind, OfficeChartData data, string title = "",
+    public WordChart AddChart(OfficeChartType chartKind, OfficeChartData data, string title = "",
         bool roundedCorners = false, int width = 600, int height = 600) {
         if (width <= 0) throw new ArgumentOutOfRangeException(nameof(width));
         if (height <= 0) throw new ArgumentOutOfRangeException(nameof(height));

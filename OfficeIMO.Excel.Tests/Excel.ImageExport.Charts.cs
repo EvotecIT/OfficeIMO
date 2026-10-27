@@ -1695,11 +1695,11 @@ namespace OfficeIMO.Tests {
             ExcelVisualChart visualChart = Assert.Single(snapshot.Charts);
             OfficeChartData chartData = new OfficeChartData(
                 visualChart.Snapshot.Data.Categories,
-                visualChart.Snapshot.Data.Series.Select(series => new OfficeChartSeries(series.Name, series.Values)));
+                visualChart.Snapshot.Data.Series.Select(series => new OfficeSeries(series.Name, series.Values)));
             OfficeChartSnapshot officeChartSnapshot = new OfficeChartSnapshot(
                 visualChart.Snapshot.Name,
                 visualChart.Snapshot.Title,
-                OfficeChartKind.ColumnClustered,
+                OfficeChartType.ColumnClustered,
                 chartData,
                 visualChart.Width,
                 visualChart.Height,
@@ -1741,11 +1741,11 @@ namespace OfficeIMO.Tests {
             ExcelVisualChart visualChart = Assert.Single(snapshot.Charts);
             OfficeChartData chartData = new OfficeChartData(
                 visualChart.Snapshot.Data.Categories,
-                visualChart.Snapshot.Data.Series.Select(series => new OfficeChartSeries(series.Name, series.Values)));
+                visualChart.Snapshot.Data.Series.Select(series => new OfficeSeries(series.Name, series.Values)));
             OfficeChartSnapshot officeChartSnapshot = new OfficeChartSnapshot(
                 visualChart.Snapshot.Name,
                 visualChart.Snapshot.Title,
-                OfficeChartKind.ColumnClustered,
+                OfficeChartType.ColumnClustered,
                 chartData,
                 visualChart.Width,
                 visualChart.Height,
@@ -1793,11 +1793,11 @@ namespace OfficeIMO.Tests {
             ExcelVisualChart visualChart = Assert.Single(snapshot.Charts);
             OfficeChartData chartData = new OfficeChartData(
                 visualChart.Snapshot.Data.Categories,
-                visualChart.Snapshot.Data.Series.Select(series => new OfficeChartSeries(series.Name, series.Values)));
+                visualChart.Snapshot.Data.Series.Select(series => new OfficeSeries(series.Name, series.Values)));
             OfficeChartSnapshot officeChartSnapshot = new OfficeChartSnapshot(
                 visualChart.Snapshot.Name,
                 visualChart.Snapshot.Title,
-                OfficeChartKind.ColumnClustered,
+                OfficeChartType.ColumnClustered,
                 chartData,
                 visualChart.Width,
                 visualChart.Height,
@@ -1846,11 +1846,11 @@ namespace OfficeIMO.Tests {
             ExcelVisualChart visualChart = Assert.Single(snapshot.Charts);
             OfficeChartData chartData = new OfficeChartData(
                 visualChart.Snapshot.Data.Categories,
-                visualChart.Snapshot.Data.Series.Select(series => new OfficeChartSeries(series.Name, series.Values)));
+                visualChart.Snapshot.Data.Series.Select(series => new OfficeSeries(series.Name, series.Values)));
             OfficeChartSnapshot officeChartSnapshot = new OfficeChartSnapshot(
                 visualChart.Snapshot.Name,
                 visualChart.Snapshot.Title,
-                OfficeChartKind.ColumnClustered,
+                OfficeChartType.ColumnClustered,
                 chartData,
                 visualChart.Width,
                 visualChart.Height,
@@ -1892,11 +1892,11 @@ namespace OfficeIMO.Tests {
             ExcelVisualChart visualChart = Assert.Single(snapshot.Charts);
             OfficeChartData chartData = new OfficeChartData(
                 visualChart.Snapshot.Data.Categories,
-                visualChart.Snapshot.Data.Series.Select(series => new OfficeChartSeries(series.Name, series.Values)));
+                visualChart.Snapshot.Data.Series.Select(series => new OfficeSeries(series.Name, series.Values)));
             OfficeChartSnapshot officeChartSnapshot = new OfficeChartSnapshot(
                 visualChart.Snapshot.Name,
                 visualChart.Snapshot.Title,
-                OfficeChartKind.ColumnClustered,
+                OfficeChartType.ColumnClustered,
                 chartData,
                 visualChart.Width,
                 visualChart.Height,
@@ -1940,11 +1940,11 @@ namespace OfficeIMO.Tests {
             ExcelVisualChart visualChart = Assert.Single(snapshot.Charts);
             OfficeChartData chartData = new OfficeChartData(
                 visualChart.Snapshot.Data.Categories,
-                visualChart.Snapshot.Data.Series.Select(series => new OfficeChartSeries(series.Name, series.Values)));
+                visualChart.Snapshot.Data.Series.Select(series => new OfficeSeries(series.Name, series.Values)));
             OfficeChartSnapshot officeChartSnapshot = new OfficeChartSnapshot(
                 visualChart.Snapshot.Name,
                 visualChart.Snapshot.Title,
-                OfficeChartKind.ColumnClustered,
+                OfficeChartType.ColumnClustered,
                 chartData,
                 visualChart.Width,
                 visualChart.Height,
@@ -2055,11 +2055,11 @@ namespace OfficeIMO.Tests {
             ExcelVisualChart visualChart = Assert.Single(snapshot.Charts);
             OfficeChartData chartData = new OfficeChartData(
                 visualChart.Snapshot.Data.Categories,
-                visualChart.Snapshot.Data.Series.Select(series => new OfficeChartSeries(series.Name, series.Values)));
+                visualChart.Snapshot.Data.Series.Select(series => new OfficeSeries(series.Name, series.Values)));
             OfficeChartSnapshot officeChartSnapshot = new OfficeChartSnapshot(
                 visualChart.Snapshot.Name,
                 visualChart.Snapshot.Title,
-                OfficeChartKind.ColumnClustered,
+                OfficeChartType.ColumnClustered,
                 chartData,
                 visualChart.Width,
                 visualChart.Height,
@@ -2100,11 +2100,11 @@ namespace OfficeIMO.Tests {
             ExcelVisualChart visualChart = Assert.Single(snapshot.Charts);
             OfficeChartData chartData = new OfficeChartData(
                 visualChart.Snapshot.Data.Categories,
-                visualChart.Snapshot.Data.Series.Select(series => new OfficeChartSeries(series.Name, series.Values)));
+                visualChart.Snapshot.Data.Series.Select(series => new OfficeSeries(series.Name, series.Values)));
             OfficeChartSnapshot officeChartSnapshot = new OfficeChartSnapshot(
                 visualChart.Snapshot.Name,
                 visualChart.Snapshot.Title,
-                OfficeChartKind.BarClustered,
+                OfficeChartType.BarClustered,
                 chartData,
                 visualChart.Width,
                 visualChart.Height,

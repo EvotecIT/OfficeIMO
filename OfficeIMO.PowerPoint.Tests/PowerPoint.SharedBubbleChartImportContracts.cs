@@ -78,13 +78,13 @@ public class PowerPointSharedBubbleChartImportContractTests {
         using PowerPointPresentation presentation =
             PowerPointPresentation.Create(new MemoryStream());
         var data = new OfficeChartData(new[] { "1" }, new[] {
-            OfficeChartSeries.CreateBubble(
+            OfficeSeries.CreateBubble(
                 "First", new[] { 1D }, new[] { 2D }, new[] { 4D }),
-            OfficeChartSeries.CreateBubble(
+            OfficeSeries.CreateBubble(
                 "Second", new[] { 3D }, new[] { 4D }, new[] { 9D })
         });
         PowerPointChart chart = presentation.AddSlide().AddChart(
-            OfficeChartKind.Bubble, data);
+            OfficeChartType.Bubble, data);
         C.Chart nativeChart = presentation.Slides[0].SlidePart.ChartParts
             .Single().ChartSpace!.GetFirstChild<C.Chart>()!;
         C.BubbleChartSeries[] series = nativeChart
@@ -190,7 +190,7 @@ public class PowerPointSharedBubbleChartImportContractTests {
         PowerPointPresentation presentation =
             PowerPointPresentation.Create(new MemoryStream());
         chart = presentation.AddSlide().AddChart(
-            OfficeChartKind.Bubble, CreateData(1D, 2D, 4D));
+            OfficeChartType.Bubble, CreateData(1D, 2D, 4D));
         return presentation;
     }
 
@@ -198,7 +198,7 @@ public class PowerPointSharedBubbleChartImportContractTests {
         OfficeColor?[]? pointColors = null) =>
         new(new[] { x.ToString(System.Globalization.CultureInfo.InvariantCulture) },
             new[] {
-                OfficeChartSeries.CreateBubble(
+                OfficeSeries.CreateBubble(
                     "Portfolio", new[] { x }, new[] { y }, new[] { size },
                     pointColors: pointColors)
             });

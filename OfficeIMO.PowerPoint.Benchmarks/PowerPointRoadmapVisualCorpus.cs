@@ -426,11 +426,11 @@ internal static class PowerPointRoadmapVisualCorpus {
         var data = new OfficeChartData(
             new[] { "Q1", "Q2", "Q3", "Q4" },
             new[] {
-                new OfficeChartSeries("Actual", new[] { 18D, 24D, 33D, 42D }),
-                new OfficeChartSeries("Target", new[] { 20D, 28D, 36D, 45D })
+                new OfficeSeries("Actual", new[] { 18D, 24D, 33D, 42D }),
+                new OfficeSeries("Target", new[] { 20D, 28D, 36D, 45D })
             });
         PowerPointChart chart = slide.AddChartPoints(
-            OfficeChartKind.ColumnClustered, data, 420, 110, 490, 340);
+            OfficeChartType.ColumnClustered, data, 420, 110, 490, 340);
         chart.SetTitle("Quarterly trajectory")
             .SetTitleTextStyle(fontName: "Arial")
             .SetLegendTextStyle(fontName: "Arial")

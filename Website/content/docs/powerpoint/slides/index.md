@@ -101,14 +101,14 @@ chartSlide.AddTitleCm("Quarterly Performance", content.LeftCm, content.TopCm, co
 var chartData = new OfficeChartData(
     rows.Select(r => r.Product),
     new[] {
-        new OfficeChartSeries("Q1", rows.Select(r => (double)r.Q1)),
-        new OfficeChartSeries("Q2", rows.Select(r => (double)r.Q2)),
-        new OfficeChartSeries("Q3", rows.Select(r => (double)r.Q3)),
-        new OfficeChartSeries("Q4", rows.Select(r => (double)r.Q4))
+        new OfficeSeries("Q1", rows.Select(r => (double)r.Q1)),
+        new OfficeSeries("Q2", rows.Select(r => (double)r.Q2)),
+        new OfficeSeries("Q3", rows.Select(r => (double)r.Q3)),
+        new OfficeSeries("Q4", rows.Select(r => (double)r.Q4))
     });
 
 chartSlide.AddChartCm(
-    OfficeChartKind.ColumnClustered,
+    OfficeChartType.ColumnClustered,
     chartData,
     content.LeftCm,
     content.TopCm + 2.0,
@@ -123,7 +123,7 @@ For a native bubble chart, create each series with explicit X, Y, and size value
 var bubbleData = new OfficeChartData(
     new[] { "1", "2", "3" },
     new[] {
-        OfficeChartSeries.CreateBubble(
+        OfficeSeries.CreateBubble(
             "Portfolio",
             xValues: new[] { 1D, 2D, 3D },
             yValues: new[] { 12D, 18D, 15D },
@@ -131,7 +131,7 @@ var bubbleData = new OfficeChartData(
     });
 
 chartSlide.AddChartCm(
-    OfficeChartKind.Bubble,
+    OfficeChartType.Bubble,
     bubbleData,
     content.LeftCm,
     content.TopCm + 2.0,

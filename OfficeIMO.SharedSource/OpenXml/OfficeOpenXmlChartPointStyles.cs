@@ -176,7 +176,7 @@ internal static class OfficeOpenXmlChartPointStyles {
         return new OfficeChartPointStyle(fill, noFill, hatch, hatchColor, line, width, showOutline, join);
     }
 
-    internal static void ApplySeries(OpenXmlCompositeElement series, OfficeChartSeries data) {
+    internal static void ApplySeries(OpenXmlCompositeElement series, OfficeSeries data) {
         if (data.SeriesStyle != null) {
             var properties = series.GetFirstChild<C.ChartShapeProperties>() ?? new C.ChartShapeProperties();
             ApplySeriesPaint(properties, data.SeriesStyle);

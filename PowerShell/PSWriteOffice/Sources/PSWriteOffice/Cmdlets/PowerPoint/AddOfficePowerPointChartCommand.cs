@@ -139,14 +139,14 @@ public sealed class AddOfficePowerPointChartCommand : PSWriteOffice.Cmdlets.Offi
     }
 
     private PowerPointChart AddDefaultChart(PowerPointSlide slide) {
-        OfficeChartKind kind = GetOfficeChartKind(Type);
-        OfficeChartData data = kind == OfficeChartKind.Scatter
+        OfficeChartType kind = GetOfficeChartKind(Type);
+        OfficeChartData data = kind == OfficeChartType.Scatter
             ? new OfficeChartData(
                 new[] { "1", "2", "3" },
-                new[] { new OfficeChartSeries("Series 1", new[] { 12d, 18d, 14d }, new[] { 1d, 2d, 3d }) })
+                new[] { new OfficeSeries("Series 1", new[] { 12d, 18d, 14d }, new[] { 1d, 2d, 3d }) })
             : new OfficeChartData(
                 new[] { "Q1", "Q2", "Q3" },
-                new[] { new OfficeChartSeries("Series 1", new[] { 12d, 18d, 14d }) });
+                new[] { new OfficeSeries("Series 1", new[] { 12d, 18d, 14d }) });
 
         return slide.AddChartPoints(kind, data, X, Y, Width, Height);
     }
@@ -176,14 +176,14 @@ public sealed class AddOfficePowerPointChartCommand : PSWriteOffice.Cmdlets.Offi
             throw new PSArgumentException("Provide at least one -YProperty.", nameof(YProperty));
         }
 
-        return slide.AddChartPoints(OfficeChartKind.Scatter, BuildScatterChartData(), X, Y, Width, Height);
+        return slide.AddChartPoints(OfficeChartType.Scatter, BuildScatterChartData(), X, Y, Width, Height);
     }
 
     private OfficeChartData BuildChartData() {
         var items = EnsureData();
         var categories = items.Select(item => ConvertToString(GetPropertyValue(item, CategoryProperty), CategoryProperty)).ToArray();
         var series = SeriesProperty.Select(property =>
-            new OfficeChartSeries(property, items.Select(item => ConvertToDouble(GetPropertyValue(item, property), property)).ToArray()))
+            new OfficeSeries(property, items.Select(item => ConvertToDouble(GetPropertyValue(item, property), property)).ToArray()))
             .ToArray();
 
         return new OfficeChartData(categories, series);
@@ -193,7 +193,7 @@ public sealed class AddOfficePowerPointChartCommand : PSWriteOffice.Cmdlets.Offi
         var items = EnsureData();
         var xValues = items.Select(item => ConvertToDouble(GetPropertyValue(item, XProperty), XProperty)).ToArray();
         var series = YProperty.Select(property =>
-            new OfficeChartSeries(
+            new OfficeSeries(
                 property,
                 items.Select(item => ConvertToDouble(GetPropertyValue(item, property), property)).ToArray(),
                 xValues))
@@ -204,12 +204,12 @@ public sealed class AddOfficePowerPointChartCommand : PSWriteOffice.Cmdlets.Offi
             series);
     }
 
-    private static OfficeChartKind GetOfficeChartKind(PowerPointChartType type) => type switch {
-        PowerPointChartType.Line => OfficeChartKind.Line,
-        PowerPointChartType.Pie => OfficeChartKind.Pie,
-        PowerPointChartType.Doughnut => OfficeChartKind.Doughnut,
-        PowerPointChartType.Scatter => OfficeChartKind.Scatter,
-        _ => OfficeChartKind.ColumnClustered
+    private static OfficeChartType GetOfficeChartKind(PowerPointChartType type) => type switch {
+        PowerPointChartType.Line => OfficeChartType.Line,
+        PowerPointChartType.Pie => OfficeChartType.Pie,
+        PowerPointChartType.Doughnut => OfficeChartType.Doughnut,
+        PowerPointChartType.Scatter => OfficeChartType.Scatter,
+        _ => OfficeChartType.ColumnClustered
     };
 
     private object[] EnsureData() {

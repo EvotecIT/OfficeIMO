@@ -878,9 +878,9 @@ public partial class HtmlOfficeAdapters {
         using PowerPointPresentation presentation = PowerPointPresentation.Create(new MemoryStream());
         PowerPointSlide slide = presentation.AddSlide();
         var data = new OfficeChartData(new[] { "1.5", "2.5" }, new[] {
-            new OfficeChartSeries("Forecast", new[] { 10D, 20D }, new[] { 1.5D, 2.5D })
+            new OfficeSeries("Forecast", new[] { 10D, 20D }, new[] { 1.5D, 2.5D })
         });
-        slide.AddChartPoints(OfficeChartKind.Scatter, data, 72, 96, 240, 140).SetTitle("Scatter");
+        slide.AddChartPoints(OfficeChartType.Scatter, data, 72, 96, 240, 140).SetTitle("Scatter");
 
         string html = presentation.ToHtml(new PowerPointHtmlSaveOptions {
             Profile = OfficeHtmlConversionProfile.PowerPointSemanticSlides
@@ -893,7 +893,7 @@ public partial class HtmlOfficeAdapters {
         using PowerPointPresentation imported = result.Value;
         PowerPointChart importedChart = Assert.Single(imported.Slides[0].Charts);
         Assert.True(importedChart.TryGetOfficeSnapshot(out OfficeChartSnapshot snapshot));
-        OfficeChartSeries series = Assert.Single(snapshot.Data.Series);
+        OfficeSeries series = Assert.Single(snapshot.Data.Series);
         Assert.Equal(new[] { 1.5D, 2.5D }, series.XValues);
         Assert.Equal(new[] { 10D, 20D }, series.Values);
     }
@@ -907,7 +907,7 @@ public partial class HtmlOfficeAdapters {
         OfficeColor pointColor = OfficeColor.FromRgba(68, 85, 102, 96);
         OfficeColor outlineColor = OfficeColor.FromRgba(119, 136, 153, 64);
         var data = new OfficeChartData(new[] { "1.5", "2.5" }, new[] {
-            OfficeChartSeries.CreateBubble("Portfolio",
+            OfficeSeries.CreateBubble("Portfolio",
                 new[] { 1.5D, 2.5D },
                 new[] { 10D, 20D },
                 new[] { 4D, 9D },
@@ -916,7 +916,7 @@ public partial class HtmlOfficeAdapters {
                 showInLegend: false,
                 markerOutlineColor: outlineColor,
                 markerOutlineWidth: 1.5D),
-            OfficeChartSeries.CreateBubble("No outline",
+            OfficeSeries.CreateBubble("No outline",
                 new[] { 1.5D, 2.5D },
                 new[] { 8D, 16D },
                 new[] { 3D, 7D },
@@ -927,7 +927,7 @@ public partial class HtmlOfficeAdapters {
                 markerOutlineWidth: null,
                 showMarkerOutline: false)
         });
-        slide.AddChartPoints(OfficeChartKind.Bubble, data, 72, 96, 240, 140)
+        slide.AddChartPoints(OfficeChartType.Bubble, data, 72, 96, 240, 140)
             .SetTitle("Bubble")
             .SetBubbleSizing(145U, OfficeChartBubbleSizeMode.Width);
 
@@ -961,9 +961,9 @@ public partial class HtmlOfficeAdapters {
         using PowerPointPresentation imported = result.Value;
         PowerPointChart importedChart = Assert.Single(imported.Slides[0].Charts);
         Assert.True(importedChart.TryGetOfficeSnapshot(out OfficeChartSnapshot snapshot));
-        Assert.Equal(OfficeChartKind.Bubble, snapshot.ChartKind);
+        Assert.Equal(OfficeChartType.Bubble, snapshot.ChartKind);
         Assert.Equal(2, snapshot.Data.Series.Count);
-        OfficeChartSeries series = snapshot.Data.Series[0];
+        OfficeSeries series = snapshot.Data.Series[0];
         Assert.Equal(new[] { 1.5D, 2.5D }, series.XValues);
         Assert.Equal(new[] { 10D, 20D }, series.Values);
         Assert.Equal(new[] { 4D, 9D }, series.BubbleSizes);
@@ -1005,7 +1005,7 @@ public partial class HtmlOfficeAdapters {
         PowerPointChart chart = Assert.Single(imported.Slides[0].Charts);
 
         Assert.True(chart.TryGetOfficeSnapshot(out OfficeChartSnapshot snapshot));
-        Assert.Equal(OfficeChartKind.Bubble, snapshot.ChartKind);
+        Assert.Equal(OfficeChartType.Bubble, snapshot.ChartKind);
         Assert.Equal(2, snapshot.Data.Series.Count);
         Assert.All(snapshot.Data.Series, series => {
             Assert.Equal(3, series.XValues!.Count);
@@ -1022,12 +1022,12 @@ public partial class HtmlOfficeAdapters {
             PowerPointPresentation.Create(new MemoryStream());
         PowerPointSlide slide = presentation.AddSlide();
         var data = new OfficeChartData(new[] { "1.5", "2.5" }, new[] {
-            OfficeChartSeries.CreateBubble("Portfolio",
+            OfficeSeries.CreateBubble("Portfolio",
                 new[] { 1.5D, 2.5D },
                 new[] { 10D, 20D },
                 new[] { 4D, 9D })
         });
-        slide.AddChartPoints(OfficeChartKind.Bubble, data, 72, 96, 240, 140);
+        slide.AddChartPoints(OfficeChartType.Bubble, data, 72, 96, 240, 140);
         string html = presentation.ToHtml(new PowerPointHtmlSaveOptions {
             Profile = OfficeHtmlConversionProfile.PowerPointSemanticSlides
         }).Replace(" data-officeimo-x=\"1.5\"", string.Empty)
@@ -1048,9 +1048,9 @@ public partial class HtmlOfficeAdapters {
         using PowerPointPresentation presentation = PowerPointPresentation.Create(new MemoryStream());
         PowerPointSlide slide = presentation.AddSlide();
         var data = new OfficeChartData(new[] { "A", "B" }, new[] {
-            new OfficeChartSeries("Actual", new[] { 10D, 20D })
+            new OfficeSeries("Actual", new[] { 10D, 20D })
         });
-        slide.AddChartPoints(OfficeChartKind.ColumnClustered, data, 72, 96, 240, 140).SetTitle("Columns");
+        slide.AddChartPoints(OfficeChartType.ColumnClustered, data, 72, 96, 240, 140).SetTitle("Columns");
 
         string html = presentation.ToHtml(new PowerPointHtmlSaveOptions {
             Profile = OfficeHtmlConversionProfile.PowerPointSemanticSlides
@@ -1063,7 +1063,7 @@ public partial class HtmlOfficeAdapters {
         PowerPointChart importedChart = Assert.Single(imported.Slides[0].Charts);
 
         Assert.True(importedChart.TryGetOfficeSnapshot(out OfficeChartSnapshot snapshot));
-        OfficeChartSeries series = Assert.Single(snapshot.Data.Series);
+        OfficeSeries series = Assert.Single(snapshot.Data.Series);
         Assert.Equal(2, series.Values.Count);
         Assert.Null(series.XValues);
         Assert.Contains(result.Report.Diagnostics,
@@ -1075,10 +1075,10 @@ public partial class HtmlOfficeAdapters {
         using PowerPointPresentation presentation = PowerPointPresentation.Create(new MemoryStream());
         PowerPointSlide slide = presentation.AddSlide();
         var data = new OfficeChartData(new[] { "1", "2", "3" }, new[] {
-            new OfficeChartSeries("Forecast", new[] { 10D, 20D, 30D }, new[] { 1D, 2D, 3D }),
-            new OfficeChartSeries("Outliers", new[] { 40D, 50D }, new[] { 4D, 5D })
+            new OfficeSeries("Forecast", new[] { 10D, 20D, 30D }, new[] { 1D, 2D, 3D }),
+            new OfficeSeries("Outliers", new[] { 40D, 50D }, new[] { 4D, 5D })
         });
-        slide.AddChartPoints(OfficeChartKind.Scatter, data, 72, 96, 240, 140).SetTitle("Scatter");
+        slide.AddChartPoints(OfficeChartType.Scatter, data, 72, 96, 240, 140).SetTitle("Scatter");
 
         string html = presentation.ToHtml(new PowerPointHtmlSaveOptions {
             Profile = OfficeHtmlConversionProfile.PowerPointSemanticSlides
@@ -1111,8 +1111,8 @@ public partial class HtmlOfficeAdapters {
 
         OfficeChartData chartData = new(
             new[] { "Q1", "Q2", "Q3" },
-            new[] { new OfficeChartSeries("Actual", new[] { 10D, 18D, 24D }) });
-        slide.AddChartPoints(OfficeChartKind.ColumnClustered, chartData, 180, 130, 260, 150).SetTitle("Pipeline");
+            new[] { new OfficeSeries("Actual", new[] { 10D, 18D, 24D }) });
+        slide.AddChartPoints(OfficeChartType.ColumnClustered, chartData, 180, 130, 260, 150).SetTitle("Pipeline");
 
         string html = presentation.ToHtml(new PowerPointHtmlSaveOptions {
             Profile = OfficeHtmlConversionProfile.PowerPointSemanticSlides
@@ -1145,8 +1145,8 @@ public partial class HtmlOfficeAdapters {
 
         OfficeChartData chartData = new(
             new[] { "Q1", "Q2", "Q3" },
-            new[] { new OfficeChartSeries("Actual", new[] { 8D, 13D, 21D }) });
-        slide.AddChartPoints(OfficeChartKind.ColumnClustered, chartData, 180, 180, 260, 150).SetTitle("Positioned Pipeline");
+            new[] { new OfficeSeries("Actual", new[] { 8D, 13D, 21D }) });
+        slide.AddChartPoints(OfficeChartType.ColumnClustered, chartData, 180, 180, 260, 150).SetTitle("Positioned Pipeline");
 
         string html = presentation.ToHtml(new PowerPointHtmlSaveOptions {
             Profile = OfficeHtmlConversionProfile.PowerPointVisualReview
@@ -1179,8 +1179,8 @@ public partial class HtmlOfficeAdapters {
 
         OfficeChartData hiddenChartData = new(
             new[] { "Q1", "Q2" },
-            new[] { new OfficeChartSeries("Hidden", new[] { 10D, 18D }) });
-        PowerPointChart hiddenChart = slide.AddChartPoints(OfficeChartKind.ColumnClustered, hiddenChartData, 120, 90, 240, 140);
+            new[] { new OfficeSeries("Hidden", new[] { 10D, 18D }) });
+        PowerPointChart hiddenChart = slide.AddChartPoints(OfficeChartType.ColumnClustered, hiddenChartData, 120, 90, 240, 140);
         hiddenChart.SetTitle("Hidden chart marker");
         hiddenChart.Hidden = true;
 
@@ -1275,8 +1275,8 @@ public partial class HtmlOfficeAdapters {
 
         OfficeChartData chartData = new(
             new[] { "Q1", "Q2", "Q3" },
-            new[] { new OfficeChartSeries("Actual", new[] { 8D, 13D, 21D }) });
-        slide.AddChartPoints(OfficeChartKind.ColumnClustered, chartData, 180, 180, 260, 150).SetTitle("Gallery Pipeline");
+            new[] { new OfficeSeries("Actual", new[] { 8D, 13D, 21D }) });
+        slide.AddChartPoints(OfficeChartType.ColumnClustered, chartData, 180, 180, 260, 150).SetTitle("Gallery Pipeline");
 
         string directory = Path.Combine(Path.GetTempPath(), "OfficeIMO.HtmlOfficeAdapters", Guid.NewGuid().ToString("N"));
         HtmlCapabilityGalleryManifest manifest = presentation.SaveHtmlCapabilityGallery(directory, new PowerPointHtmlCapabilityGalleryOptions {
@@ -1357,8 +1357,8 @@ public partial class HtmlOfficeAdapters {
 
         OfficeChartData chartData = new(
             new[] { "Q1", "Q2", "Q3" },
-            new[] { new OfficeChartSeries("Actual", new[] { 10D, 18D, 24D }) });
-        slide.AddChartPoints(OfficeChartKind.ColumnClustered, chartData, 180, 130, 260, 150).SetTitle("Pipeline");
+            new[] { new OfficeSeries("Actual", new[] { 10D, 18D, 24D }) });
+        slide.AddChartPoints(OfficeChartType.ColumnClustered, chartData, 180, 130, 260, 150).SetTitle("Pipeline");
 
         string html = presentation.ToHtml(new PowerPointHtmlSaveOptions {
             Profile = OfficeHtmlConversionProfile.PowerPointSemanticSlides
@@ -1392,7 +1392,7 @@ public partial class HtmlOfficeAdapters {
         Assert.Equal(150D, importedChart.HeightPoints, 3);
         Assert.True(importedChart.TryGetOfficeSnapshot(out OfficeChartSnapshot snapshot));
         Assert.Equal(new[] { "Q1", "Q2", "Q3" }, snapshot.Data.Categories);
-        OfficeChartSeries importedSeries = Assert.Single(snapshot.Data.Series);
+        OfficeSeries importedSeries = Assert.Single(snapshot.Data.Series);
         Assert.Equal("Actual", importedSeries.Name);
         Assert.Equal(new[] { 10D, 18D, 24D }, importedSeries.Values);
         Assert.Contains("Presenter reminder", importedSlide.Notes.Text, StringComparison.Ordinal);
@@ -1506,8 +1506,8 @@ public partial class HtmlOfficeAdapters {
         PowerPointSlide slide = presentation.AddSlide();
         OfficeChartData chartData = new(
             new[] { "Q1", "Q2" },
-            new[] { new OfficeChartSeries("Actual", new[] { 10D, 18D }) });
-        PowerPointChart chart = slide.AddChartPoints(OfficeChartKind.ColumnClustered, chartData, 120, 90, 240, 140);
+            new[] { new OfficeSeries("Actual", new[] { 10D, 18D }) });
+        PowerPointChart chart = slide.AddChartPoints(OfficeChartType.ColumnClustered, chartData, 120, 90, 240, 140);
         chart.SetTitle("Transform chart");
         chart.Rotation = 18.75D;
         chart.HorizontalFlip = true;
@@ -1625,8 +1625,8 @@ public partial class HtmlOfficeAdapters {
         PowerPointSlide slide = presentation.AddSlide();
         OfficeChartData chartData = new(
             new[] { "Q1", "Q2" },
-            new[] { new OfficeChartSeries("Actual", new[] { 10D, 12D }) });
-        slide.AddChartPoints(OfficeChartKind.Line, chartData, 72, 96, 240, 140).SetTitle("Trend");
+            new[] { new OfficeSeries("Actual", new[] { 10D, 12D }) });
+        slide.AddChartPoints(OfficeChartType.Line, chartData, 72, 96, 240, 140).SetTitle("Trend");
 
         string html = presentation.ToHtml(new PowerPointHtmlSaveOptions {
             Profile = OfficeHtmlConversionProfile.PowerPointSemanticSlides
@@ -1637,7 +1637,7 @@ public partial class HtmlOfficeAdapters {
         PowerPointChart importedChart = Assert.Single(imported.Slides[0].Charts);
 
         Assert.True(importedChart.TryGetOfficeSnapshot(out OfficeChartSnapshot snapshot));
-        Assert.Equal(OfficeChartKind.Line, snapshot.ChartKind);
+        Assert.Equal(OfficeChartType.Line, snapshot.ChartKind);
     }
 
     [Fact]
@@ -1671,9 +1671,9 @@ public partial class HtmlOfficeAdapters {
     }
 
     [Theory]
-    [InlineData("StackedLine", OfficeChartKind.LineStacked)]
-    [InlineData("StackedLine100", OfficeChartKind.LineStacked100)]
-    public void PowerPointHtml_LoadPreservesStackedLineChartKinds(string chartKind, OfficeChartKind expectedKind) {
+    [InlineData("StackedLine", OfficeChartType.LineStacked)]
+    [InlineData("StackedLine100", OfficeChartType.LineStacked100)]
+    public void PowerPointHtml_LoadPreservesStackedLineChartKinds(string chartKind, OfficeChartType expectedKind) {
         string html = $$"""
             <main>
               <section class="officeimo-slide">
@@ -1736,7 +1736,7 @@ public partial class HtmlOfficeAdapters {
 
         Assert.Equal(1, result.Charts);
         Assert.True(importedChart.TryGetOfficeSnapshot(out OfficeChartSnapshot snapshot));
-        Assert.Equal(OfficeChartKind.ColumnClustered, snapshot.ChartKind);
+        Assert.Equal(OfficeChartType.ColumnClustered, snapshot.ChartKind);
         Assert.Contains(result.Report.Diagnostics, diagnostic => diagnostic.Message.Contains("used chart kind '" + chartKind + "' and was imported as a clustered column fallback", StringComparison.Ordinal));
     }
 

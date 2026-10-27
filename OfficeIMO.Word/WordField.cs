@@ -169,17 +169,17 @@ namespace OfficeIMO.Word {
         /// <summary>Caps format switch.</summary>
         Caps,
         /// <summary>Mergeformat format switch.</summary>
-        Mergeformat,
+        MergeFormat,
         /// <summary>Roman format switch.</summary>
-        Roman,
+        UpperRoman,
         /// <summary>roman format switch.</summary>
-        roman,
+        LowerRoman,
         /// <summary>Arabic format switch.</summary>
         Arabic,
         /// <summary>Alphabetical format switch.</summary>
-        Alphabetical,
+        LowerLetter,
         /// <summary>ALPHABETICAL format switch.</summary>
-        ALPHABETICAL,
+        UpperLetter,
         /// <summary>Ordinal format switch.</summary>
         Ordinal,
         /// <summary>OrdText format switch.</summary>

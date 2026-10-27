@@ -13,13 +13,13 @@ namespace OfficeIMO.PowerPoint {
                 bool useNativeColor = style == null || !item.HasAutomaticSeriesColor;
                 OfficeColor? color = useNativeColor ? item.Color : null;
                 return item.BubbleSizes != null
-                ? OfficeChartSeries.CreateBubble(item.Name, item.XValues!, item.Values,
+                ? OfficeSeries.CreateBubble(item.Name, item.XValues!, item.Values,
                     item.BubbleSizes, color, item.PointColors,
                     showInLegend: item.ShowInLegend,
                     markerOutlineColor: useNativeColor ? item.StrokeColor ?? color : null,
                     markerOutlineWidth: item.StrokeWidth,
                     showMarkerOutline: item.ShowStroke)
-                : new OfficeChartSeries(item.Name, item.Values, item.XValues, color,
+                : new OfficeSeries(item.Name, item.Values, item.XValues, color,
                     pointColors: item.PointColors, showMarkers: item.SharedAppearance?.ShowMarkers ?? true,
                     showInLegend: item.ShowInLegend, connectLine: item.SharedAppearance?.ConnectLine ?? true,
                     markerSize: item.SharedAppearance?.MarkerSize,
@@ -40,24 +40,24 @@ namespace OfficeIMO.PowerPoint {
                 radialLayout: snapshot.RadialLayout);
         }
 
-        internal static OfficeChartKind MapKind(PowerPointChartSnapshotKind kind) => kind switch {
-            PowerPointChartSnapshotKind.ClusteredColumn => OfficeChartKind.ColumnClustered,
-            PowerPointChartSnapshotKind.StackedColumn => OfficeChartKind.ColumnStacked,
-            PowerPointChartSnapshotKind.StackedColumn100 => OfficeChartKind.ColumnStacked100,
-            PowerPointChartSnapshotKind.ClusteredBar => OfficeChartKind.BarClustered,
-            PowerPointChartSnapshotKind.StackedBar => OfficeChartKind.BarStacked,
-            PowerPointChartSnapshotKind.StackedBar100 => OfficeChartKind.BarStacked100,
-            PowerPointChartSnapshotKind.Line => OfficeChartKind.Line,
-            PowerPointChartSnapshotKind.StackedLine => OfficeChartKind.LineStacked,
-            PowerPointChartSnapshotKind.StackedLine100 => OfficeChartKind.LineStacked100,
-            PowerPointChartSnapshotKind.Area => OfficeChartKind.Area,
-            PowerPointChartSnapshotKind.StackedArea => OfficeChartKind.AreaStacked,
-            PowerPointChartSnapshotKind.StackedArea100 => OfficeChartKind.AreaStacked100,
-            PowerPointChartSnapshotKind.Scatter => OfficeChartKind.Scatter,
-            PowerPointChartSnapshotKind.Radar => OfficeChartKind.Radar,
-            PowerPointChartSnapshotKind.Pie => OfficeChartKind.Pie,
-            PowerPointChartSnapshotKind.Doughnut => OfficeChartKind.Doughnut,
-            PowerPointChartSnapshotKind.Bubble => OfficeChartKind.Bubble,
+        internal static OfficeChartType MapKind(PowerPointChartSnapshotKind kind) => kind switch {
+            PowerPointChartSnapshotKind.ClusteredColumn => OfficeChartType.ColumnClustered,
+            PowerPointChartSnapshotKind.StackedColumn => OfficeChartType.ColumnStacked,
+            PowerPointChartSnapshotKind.StackedColumn100 => OfficeChartType.ColumnStacked100,
+            PowerPointChartSnapshotKind.ClusteredBar => OfficeChartType.BarClustered,
+            PowerPointChartSnapshotKind.StackedBar => OfficeChartType.BarStacked,
+            PowerPointChartSnapshotKind.StackedBar100 => OfficeChartType.BarStacked100,
+            PowerPointChartSnapshotKind.Line => OfficeChartType.Line,
+            PowerPointChartSnapshotKind.StackedLine => OfficeChartType.LineStacked,
+            PowerPointChartSnapshotKind.StackedLine100 => OfficeChartType.LineStacked100,
+            PowerPointChartSnapshotKind.Area => OfficeChartType.Area,
+            PowerPointChartSnapshotKind.StackedArea => OfficeChartType.AreaStacked,
+            PowerPointChartSnapshotKind.StackedArea100 => OfficeChartType.AreaStacked100,
+            PowerPointChartSnapshotKind.Scatter => OfficeChartType.Scatter,
+            PowerPointChartSnapshotKind.Radar => OfficeChartType.Radar,
+            PowerPointChartSnapshotKind.Pie => OfficeChartType.Pie,
+            PowerPointChartSnapshotKind.Doughnut => OfficeChartType.Doughnut,
+            PowerPointChartSnapshotKind.Bubble => OfficeChartType.Bubble,
             _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, "Unsupported chart snapshot kind.")
         };
     }

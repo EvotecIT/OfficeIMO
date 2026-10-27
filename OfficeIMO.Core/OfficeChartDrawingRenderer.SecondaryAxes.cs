@@ -87,7 +87,7 @@ public static partial class OfficeChartDrawingRenderer {
             horizontal: barChart)
         : GetCartesianValueRange(snapshot, layout, horizontalValueAxis: barChart);
 
-    private static bool IsPercentKind(OfficeChartKind kind) =>
+    private static bool IsPercentKind(OfficeChartType kind) =>
         IsPercentStackedBarOrColumnChart(kind) || IsPercentStackedLineChart(kind) ||
         IsPercentStackedAreaChart(kind);
 

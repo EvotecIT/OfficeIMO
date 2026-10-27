@@ -121,8 +121,8 @@ public sealed class PowerPointChartAutomaticAppearanceTests {
     [Fact]
     public void SkippedChartWarningNamesTheUnsupportedAppearance() {
         using PowerPointPresentation presentation = PowerPointPresentation.Create();
-        presentation.AddSlide().AddChart(OfficeChartKind.ColumnClustered, new OfficeChartData(new[] { "A", "B" },
-            new[] { new OfficeChartSeries("Values", new[] { 2d, 3d }) }));
+        presentation.AddSlide().AddChart(OfficeChartType.ColumnClustered, new OfficeChartData(new[] { "A", "B" },
+            new[] { new OfficeSeries("Values", new[] { 2d, 3d }) }));
         ChartPart part = presentation.Slides.Single().SlidePart.ChartParts.Single();
         C.ChartShapeProperties properties = part.ChartSpace!.Descendants<C.BarChartSeries>().Single()
             .GetFirstChild<C.ChartShapeProperties>()!;
@@ -156,7 +156,7 @@ public sealed class PowerPointChartAutomaticAppearanceTests {
         });
         OfficeChartSnapshot flatRibbon = PowerPointChartSnapshotMapper.ToOfficeSnapshot(line, 640, 360);
         OfficeDrawing ribbonDrawing = OfficeChartDrawingRenderer.Render(flatRibbon);
-        foreach (OfficeChartSeries projectedSeries in flatRibbon.Data.Series)
+        foreach (OfficeSeries projectedSeries in flatRibbon.Data.Series)
             Assert.Contains(ribbonDrawing.Shapes, shape => shape.Shape.Kind == OfficeShapeKind.Line &&
                 shape.Shape.StrokeColor == projectedSeries.Color);
         PowerPointChartSnapshot stock = Snapshot(charts, "stockChart");
@@ -180,12 +180,12 @@ public sealed class PowerPointChartAutomaticAppearanceTests {
             string hex = color.ToRgbHex();
             if (!fills.Contains(hex)) fills.Add(hex);
         }
-        if (snapshot.ChartKind is OfficeChartKind.Pie or OfficeChartKind.Doughnut) {
+        if (snapshot.ChartKind is OfficeChartType.Pie or OfficeChartType.Doughnut) {
             for (int index = 0; index < snapshot.Data.Categories.Count; index++) Add(snapshot.Style.GetSeriesColor(index));
             return fills;
         }
-        bool lines = snapshot.ChartKind is OfficeChartKind.Line or OfficeChartKind.Scatter;
-        foreach (OfficeChartSeries series in snapshot.Data.Series) {
+        bool lines = snapshot.ChartKind is OfficeChartType.Line or OfficeChartType.Scatter;
+        foreach (OfficeSeries series in snapshot.Data.Series) {
             if (lines && (!series.ShowMarkers || series.MarkerShape == OfficeChartMarkerShape.None)) continue;
             Add(series.Color!.Value);
         }

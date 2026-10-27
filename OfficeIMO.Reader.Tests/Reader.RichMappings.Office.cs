@@ -286,9 +286,9 @@ public sealed class ReaderOfficeRichMappingTests {
             table.GetCell(0, 1).Text = "Qty";
             table.GetCell(1, 0).Text = "Bandage";
             table.GetCell(1, 1).Text = "4";
-            slide.AddChart(OfficeChartKind.ColumnClustered, new OfficeChartData(
+            slide.AddChart(OfficeChartType.ColumnClustered, new OfficeChartData(
                 new[] { "Q1", "Q2" },
-                new[] { new OfficeChartSeries("Sales", new[] { 1D, 2D }) }));
+                new[] { new OfficeSeries("Sales", new[] { 1D, 2D }) }));
             presentation.Save();
         }
         stream.Position = 0;
@@ -355,9 +355,9 @@ public sealed class ReaderOfficeRichMappingTests {
             PowerPointTable hiddenTable = slide.AddTable(1, 1);
             hiddenTable.GetCell(0, 0).Text = "Hidden table";
             hiddenTable.Hidden = true;
-            PowerPointChart hiddenChart = slide.AddChart(OfficeChartKind.ColumnClustered, new OfficeChartData(
+            PowerPointChart hiddenChart = slide.AddChart(OfficeChartType.ColumnClustered, new OfficeChartData(
                 new[] { "Q1" },
-                new[] { new OfficeChartSeries("Hidden series", new[] { 1D }) }));
+                new[] { new OfficeSeries("Hidden series", new[] { 1D }) }));
             hiddenChart.Hidden = true;
 
             PowerPointPicture visiblePicture = slide.AddPicture(

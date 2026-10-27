@@ -8,18 +8,18 @@ namespace OfficeIMO.Tests.Markup;
 
 public class OfficeMarkupPowerPointChartParityTests {
     [Theory]
-    [InlineData("line", OfficeChartKind.Line)]
-    [InlineData("bar", OfficeChartKind.BarClustered)]
-    [InlineData("clustered-bar", OfficeChartKind.BarClustered)]
-    [InlineData("stackedbar", OfficeChartKind.BarStacked)]
-    [InlineData("stacked-column", OfficeChartKind.ColumnStacked)]
-    [InlineData("pie", OfficeChartKind.Pie)]
-    [InlineData("donut", OfficeChartKind.Doughnut)]
-    [InlineData("scatter", OfficeChartKind.Scatter)]
-    [InlineData("area", OfficeChartKind.Area)]
-    [InlineData("unknown", OfficeChartKind.ColumnClustered)]
+    [InlineData("line", OfficeChartType.Line)]
+    [InlineData("bar", OfficeChartType.BarClustered)]
+    [InlineData("clustered-bar", OfficeChartType.BarClustered)]
+    [InlineData("stackedbar", OfficeChartType.BarStacked)]
+    [InlineData("stacked-column", OfficeChartType.ColumnStacked)]
+    [InlineData("pie", OfficeChartType.Pie)]
+    [InlineData("donut", OfficeChartType.Doughnut)]
+    [InlineData("scatter", OfficeChartType.Scatter)]
+    [InlineData("area", OfficeChartType.Area)]
+    [InlineData("unknown", OfficeChartType.ColumnClustered)]
     public void PowerPointChartTokensMatchBetweenDirectExportAndCSharpEmitter(
-        string chartType, OfficeChartKind expectedKind) {
+        string chartType, OfficeChartType expectedKind) {
         string markup = $$"""
             ---
             profile: presentation
@@ -40,7 +40,7 @@ public class OfficeMarkupPowerPointChartParityTests {
         OfficeMarkupParseResult parsed = OfficeMarkupParser.Parse(markup);
         Assert.False(parsed.HasErrors);
         string emittedCode = new OfficeMarkupCSharpEmitter().Emit(parsed.Document);
-        Assert.Contains($"OfficeChartKind.{expectedKind}", emittedCode, StringComparison.Ordinal);
+        Assert.Contains($"OfficeChartType.{expectedKind}", emittedCode, StringComparison.Ordinal);
 
         string outputPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
         try {
@@ -53,7 +53,7 @@ public class OfficeMarkupPowerPointChartParityTests {
             PowerPointChart chart = Assert.Single(presentation.Slides.SelectMany(slide => slide.Charts));
             Assert.True(chart.TryGetOfficeSnapshot(out OfficeChartSnapshot snapshot));
             Assert.Equal(expectedKind, snapshot.ChartKind);
-            if (expectedKind is OfficeChartKind.Pie or OfficeChartKind.Doughnut) {
+            if (expectedKind is OfficeChartType.Pie or OfficeChartType.Doughnut) {
                 Assert.Equal(9D, snapshot.Layout.DataLabelFontSize);
                 Assert.Equal(OfficeColor.Parse("#172033"), snapshot.Style.DataLabelTextColor);
             }

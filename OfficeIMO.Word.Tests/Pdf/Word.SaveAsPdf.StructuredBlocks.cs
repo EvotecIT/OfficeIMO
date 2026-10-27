@@ -1197,7 +1197,7 @@ public partial class Word {
             document.AddParagraph("After chart");
 
             object snapshot = CreateNativeWordChartSnapshot(chart);
-            Assert.Equal(OfficeChartKind.Pie, snapshot.GetType().GetProperty("ChartKind")!.GetValue(snapshot));
+            Assert.Equal(OfficeChartType.Pie, snapshot.GetType().GetProperty("ChartKind")!.GetValue(snapshot));
             object data = snapshot.GetType().GetProperty("Data")!.GetValue(snapshot)!;
             var categories = ((System.Collections.IEnumerable)data.GetType().GetProperty("Categories")!.GetValue(data)!).Cast<string>().ToList();
             Assert.Equal(new[] { "Passed", "Failed" }, categories);

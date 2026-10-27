@@ -954,7 +954,7 @@ modernChart.SetTitle("Current pipeline")
 
 ### Individual chart point styles
 
-Shared chart authoring accepts `OfficeChartSeries.WithPointStyles`; existing native charts
+Shared chart authoring accepts `OfficeSeries.WithPointStyles`; existing native charts
 can be edited with `chart.SetDataPointStyle(seriesIndex, pointIndex, style)`. Solid fills,
 explicit no-fill, outlines, and seven hatch patterns remain editable in Excel and survive
 save/reopen. A null style clears the point's fill and outline overrides.

@@ -45,9 +45,9 @@ namespace OfficeIMO.Word {
     /// Series values extracted from cached Word chart data.
     /// </summary>
     public sealed class WordChartSeries {
-        private readonly OfficeIMO.Drawing.OfficeChartSeries _sharedSeries;
+        private readonly OfficeIMO.OfficeSeries _sharedSeries;
 
-        internal WordChartSeries(OfficeIMO.Drawing.OfficeChartSeries series) {
+        internal WordChartSeries(OfficeIMO.OfficeSeries series) {
             _sharedSeries = series;
             Name = series.Name;
             Values = series.Values;
@@ -76,7 +76,7 @@ namespace OfficeIMO.Word {
         public IReadOnlyList<OfficeIMO.Drawing.OfficeChartPointStyle?>? PointStyles { get; }
 
         /// <summary>Returns the shared series, retaining native line, marker and point appearance.</summary>
-        public OfficeIMO.Drawing.OfficeChartSeries ToOfficeSeries() => _sharedSeries;
+        public OfficeIMO.OfficeSeries ToOfficeSeries() => _sharedSeries;
     }
 
     /// <summary>

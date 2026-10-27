@@ -12,7 +12,7 @@ public sealed partial class OfficeMarkupCSharpEmitter {
         EmitPowerPointChartData(chart, dataVariable, sb);
         var kind = ToPowerPointChartKind(chart.ChartType);
         var chartVariable = $"chart{chartIndex}";
-        sb.AppendLine($"var {chartVariable} = {slideVariable}.AddChart(OfficeChartKind.{kind}, {dataVariable});");
+        sb.AppendLine($"var {chartVariable} = {slideVariable}.AddChart(OfficeChartType.{kind}, {dataVariable});");
         if (!string.IsNullOrWhiteSpace(chart.Title)) {
             sb.AppendLine($"{chartVariable}.SetTitle({CsString(chart.Title!)});");
         }
@@ -91,7 +91,7 @@ public sealed partial class OfficeMarkupCSharpEmitter {
         for (int seriesIndex = 1; seriesIndex < headers.Count; seriesIndex++) {
             var values = chart.Data.Skip(1).Select(row => NumericLiteral(row.Count > seriesIndex ? row[seriesIndex] : "0"));
             var comma = seriesIndex == headers.Count - 1 ? string.Empty : ",";
-            sb.AppendLine($"        new OfficeChartSeries({CsString(headers[seriesIndex])}, new[] {{ {string.Join(", ", values)} }}){comma}");
+            sb.AppendLine($"        new OfficeSeries({CsString(headers[seriesIndex])}, new[] {{ {string.Join(", ", values)} }}){comma}");
         }
 
         sb.AppendLine("    });");

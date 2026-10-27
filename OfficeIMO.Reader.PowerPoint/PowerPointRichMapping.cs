@@ -298,7 +298,7 @@ internal static class PowerPointRichMapping {
             writer.WriteEndArray();
             writer.WritePropertyName("series");
             writer.WriteStartArray();
-            foreach (OfficeChartSeries series in snapshot.Data.Series) {
+            foreach (OfficeSeries series in snapshot.Data.Series) {
                 writer.WriteStartObject();
                 writer.WriteString("name", series.Name);
                 WritePowerPointChartValues(writer, "values", series.Values);

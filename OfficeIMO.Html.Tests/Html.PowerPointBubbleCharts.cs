@@ -15,11 +15,11 @@ public class HtmlPowerPointBubbleChartTests {
         using PowerPointPresentation presentation =
             PowerPointPresentation.Create(new MemoryStream());
         presentation.AddSlide().AddChart(
-                OfficeChartKind.Bubble, CreateBubbleData())
+                OfficeChartType.Bubble, CreateBubbleData())
             .SetTitle("Positioned")
             .SetLegend(OfficeChartLegendPosition.Top, overlay: true);
         presentation.AddSlide().AddChart(
-                OfficeChartKind.Bubble, CreateBubbleData())
+                OfficeChartType.Bubble, CreateBubbleData())
             .SetTitle("Hidden")
             .HideLegend();
 
@@ -60,7 +60,7 @@ public class HtmlPowerPointBubbleChartTests {
 
     private static OfficeChartData CreateBubbleData() =>
         new(new[] { "1", "2" }, new[] {
-            OfficeChartSeries.CreateBubble(
+            OfficeSeries.CreateBubble(
                 "Portfolio", new[] { 1D, 2D }, new[] { 3D, 4D },
                 new[] { 5D, 6D })
         });

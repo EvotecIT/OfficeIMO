@@ -16,20 +16,20 @@ namespace OfficeIMO.OpenXml.Internal {
         internal const int MaximumSharedChartPoints = 100_000;
 
         private sealed class SharedSeriesDescriptor {
-            internal SharedSeriesDescriptor(int index, OfficeChartSeries series, OfficeChartKind kind) {
+            internal SharedSeriesDescriptor(int index, OfficeSeries series, OfficeChartType kind) {
                 Index = index;
                 Series = series;
                 Kind = kind;
             }
 
             internal int Index { get; }
-            internal OfficeChartSeries Series { get; }
-            internal OfficeChartKind Kind { get; }
+            internal OfficeSeries Series { get; }
+            internal OfficeChartType Kind { get; }
             internal OfficeChartAxisGroup AxisGroup => Series.AxisGroup;
         }
 
         internal static void PopulateSharedChart(ChartPart chartPart, string embeddedRelId, OfficeChartData data,
-            OfficeChartKind defaultKind) {
+            OfficeChartType defaultKind) {
             if (chartPart == null) throw new ArgumentNullException(nameof(chartPart));
             ValidateSharedChartData(data, defaultKind);
 
@@ -61,7 +61,7 @@ namespace OfficeIMO.OpenXml.Internal {
         }
 
         internal static void UpdateSharedChartData(ChartPart chartPart, OfficeChartData data,
-            OfficeChartKind defaultKind) {
+            OfficeChartType defaultKind) {
             if (chartPart == null) throw new ArgumentNullException(nameof(chartPart));
             ValidateSharedChartData(data, defaultKind);
 
@@ -76,7 +76,7 @@ namespace OfficeIMO.OpenXml.Internal {
                 C.PieChart or C.DoughnutChart;
 
             ISet<uint>? preservedSeriesIndexes = null;
-            if (defaultKind == OfficeChartKind.Scatter && IsOnlySharedScatterPlot(plotArea)) {
+            if (defaultKind == OfficeChartType.Scatter && IsOnlySharedScatterPlot(plotArea)) {
                 preservedSeriesIndexes = new HashSet<uint>(EnumerateSharedSeriesElements(plotArea)
                     .Select(series => series.GetFirstChild<C.Index>()?.Val?.Value ?? uint.MaxValue));
                 UpdateScatterData(chartPart, NormalizeScatterData(data));
@@ -110,7 +110,7 @@ namespace OfficeIMO.OpenXml.Internal {
         }
 
         internal static void ApplySharedChartSeriesStyle(ChartPart chartPart, OfficeChartData data,
-            OfficeChartKind defaultKind,
+            OfficeChartType defaultKind,
             ISet<uint>? preservedSeriesIndexes = null) {
             C.PlotArea? plotArea = chartPart.ChartSpace?.GetFirstChild<C.Chart>()?.GetFirstChild<C.PlotArea>();
             if (plotArea == null) return;
@@ -120,11 +120,11 @@ namespace OfficeIMO.OpenXml.Internal {
                     uint.MaxValue;
                 int index = (int)nativeIndex;
                 if (index < 0 || index >= data.Series.Count) continue;
-                OfficeChartSeries series = data.Series[index];
-                OfficeChartKind kind = series.RenderKind ?? defaultKind;
+                OfficeSeries series = data.Series[index];
+                OfficeChartType kind = series.RenderKind ?? defaultKind;
                 bool newSeries = preservedSeriesIndexes == null || !preservedSeriesIndexes.Contains(nativeIndex);
                 OfficeColor? fallbackSeriesColor = newSeries &&
-                    kind is not OfficeChartKind.Pie and not OfficeChartKind.Doughnut &&
+                    kind is not OfficeChartType.Pie and not OfficeChartType.Doughnut &&
                     !series.Color.HasValue
                         ? OfficeChartStyle.Default.GetSeriesColor(index)
                         : null;
@@ -145,24 +145,24 @@ namespace OfficeIMO.OpenXml.Internal {
         }
 
         private static void AppendSharedChartContent(C.PlotArea plotArea, OfficeChartData data,
-            OfficeChartKind defaultKind) {
+            OfficeChartType defaultKind) {
             List<SharedSeriesDescriptor> descriptors = DescribeSharedSeries(data, defaultKind);
-            if (descriptors.All(item => item.Kind == OfficeChartKind.Pie)) {
+            if (descriptors.All(item => item.Kind == OfficeChartType.Pie)) {
                 plotArea.Append(CreatePieChart(data));
                 return;
             }
-            if (descriptors.All(item => item.Kind == OfficeChartKind.Doughnut)) {
+            if (descriptors.All(item => item.Kind == OfficeChartType.Doughnut)) {
                 plotArea.Append(CreateDoughnutChart(data));
                 return;
             }
-            if (descriptors.All(item => item.Kind == OfficeChartKind.Scatter)) {
+            if (descriptors.All(item => item.Kind == OfficeChartType.Scatter)) {
                 C.ScatterChart scatter = CreateScatterChart(NormalizeScatterData(data), out uint xAxisId, out uint yAxisId);
                 plotArea.Append(scatter);
                 plotArea.Append(CreateValueAxis(xAxisId, yAxisId, C.AxisPositionValues.Bottom));
                 plotArea.Append(CreateValueAxis(yAxisId, xAxisId, C.AxisPositionValues.Left));
                 return;
             }
-            if (descriptors.All(item => item.Kind == OfficeChartKind.Bubble)) {
+            if (descriptors.All(item => item.Kind == OfficeChartType.Bubble)) {
                 uint xAxisId = GetNextAxisId();
                 uint yAxisId = GetNextAxisId();
                 plotArea.Append(CreateSharedBubbleChart(data, xAxisId, yAxisId));
@@ -185,7 +185,7 @@ namespace OfficeIMO.OpenXml.Internal {
             uint secondaryCategoryId = hasSecondary ? GetNextAxisId() : 0U;
             uint secondaryValueId = hasSecondary ? GetNextAxisId() : 0U;
 
-            foreach (IGrouping<(OfficeChartKind Kind, OfficeChartAxisGroup AxisGroup), SharedSeriesDescriptor> group in
+            foreach (IGrouping<(OfficeChartType Kind, OfficeChartAxisGroup AxisGroup), SharedSeriesDescriptor> group in
                      descriptors.GroupBy(item => (item.Kind, item.AxisGroup)).OrderBy(item => ChartLayer(item.Key.Kind))) {
                 uint categoryId = group.Key.AxisGroup == OfficeChartAxisGroup.Primary
                     ? primaryCategoryId : secondaryCategoryId;
@@ -198,7 +198,7 @@ namespace OfficeIMO.OpenXml.Internal {
                     plotArea.Append(CreateSharedLineChart(group.Key.Kind, items, data.Categories, categoryId, valueId));
                 } else if (IsAreaKind(group.Key.Kind)) {
                     plotArea.Append(CreateSharedAreaChart(group.Key.Kind, items, data.Categories, categoryId, valueId));
-                } else if (group.Key.Kind == OfficeChartKind.Radar) {
+                } else if (group.Key.Kind == OfficeChartType.Radar) {
                     plotArea.Append(CreateSharedRadarChart(items, data.Categories, categoryId, valueId));
                 } else {
                     throw new NotSupportedException("Chart kind " + group.Key.Kind + " is not supported in this chart composition.");
@@ -227,7 +227,7 @@ namespace OfficeIMO.OpenXml.Internal {
             }
         }
 
-        private static C.BarChart CreateSharedBarChart(OfficeChartKind kind,
+        private static C.BarChart CreateSharedBarChart(OfficeChartType kind,
             IReadOnlyList<SharedSeriesDescriptor> descriptors, IReadOnlyList<string> categories,
             uint categoryAxisId, uint valueAxisId) {
             C.BarGroupingValues grouping = GetBarGrouping(kind);
@@ -247,7 +247,7 @@ namespace OfficeIMO.OpenXml.Internal {
             return chart;
         }
 
-        private static C.LineChart CreateSharedLineChart(OfficeChartKind kind,
+        private static C.LineChart CreateSharedLineChart(OfficeChartType kind,
             IReadOnlyList<SharedSeriesDescriptor> descriptors, IReadOnlyList<string> categories,
             uint categoryAxisId, uint valueAxisId) {
             C.LineChart chart = new(new C.Grouping { Val = GetLineGrouping(kind) },
@@ -262,7 +262,7 @@ namespace OfficeIMO.OpenXml.Internal {
             return chart;
         }
 
-        private static C.AreaChart CreateSharedAreaChart(OfficeChartKind kind,
+        private static C.AreaChart CreateSharedAreaChart(OfficeChartType kind,
             IReadOnlyList<SharedSeriesDescriptor> descriptors, IReadOnlyList<string> categories,
             uint categoryAxisId, uint valueAxisId) {
             C.AreaChart chart = new(new C.Grouping { Val = GetAreaGrouping(kind) },
@@ -368,9 +368,9 @@ namespace OfficeIMO.OpenXml.Internal {
             return axis;
         }
 
-        private static IEnumerable<uint> GetHiddenSharedLegendIndexes(OfficeChartData data, OfficeChartKind kind) {
+        private static IEnumerable<uint> GetHiddenSharedLegendIndexes(OfficeChartData data, OfficeChartType kind) {
             kind = data.Series.FirstOrDefault()?.RenderKind ?? kind;
-            if (kind == OfficeChartKind.Pie || kind == OfficeChartKind.Doughnut) {
+            if (kind == OfficeChartType.Pie || kind == OfficeChartType.Doughnut) {
                 if (data.Series.Any(series => !series.ShowInLegend))
                     for (int point = 0; point < data.Categories.Count; point++) yield return (uint)point;
             } else {
@@ -401,7 +401,7 @@ namespace OfficeIMO.OpenXml.Internal {
             return true;
         }
 
-        private static C.Legend CreateSharedLegend(OfficeChartData data, OfficeChartKind kind) {
+        private static C.Legend CreateSharedLegend(OfficeChartData data, OfficeChartType kind) {
             C.Legend legend = new(new C.LegendPosition { Val = C.LegendPositionValues.Bottom });
             foreach (uint index in GetHiddenSharedLegendIndexes(data, kind)) {
                 legend.Append(new C.LegendEntry(new C.Index { Val = index }, new C.Delete { Val = true }));
@@ -411,7 +411,7 @@ namespace OfficeIMO.OpenXml.Internal {
             return legend;
         }
 
-        private static void UpdateSharedLegend(C.Chart chart, OfficeChartData data, OfficeChartKind kind,
+        private static void UpdateSharedLegend(C.Chart chart, OfficeChartData data, OfficeChartType kind,
             bool previousLegendUsesCategories) {
             C.Legend? current = chart.GetFirstChild<C.Legend>();
             if (current == null) {
@@ -420,7 +420,7 @@ namespace OfficeIMO.OpenXml.Internal {
 
             var replacement = (C.Legend)current.CloneNode(true);
             kind = data.Series.FirstOrDefault()?.RenderKind ?? kind;
-            bool legendUsesCategories = kind is OfficeChartKind.Pie or OfficeChartKind.Doughnut;
+            bool legendUsesCategories = kind is OfficeChartType.Pie or OfficeChartType.Doughnut;
             int entryCount = legendUsesCategories ? data.Categories.Count : data.Series.Count;
             var retained = (previousLegendUsesCategories == legendUsesCategories
                 ? replacement.Elements<C.LegendEntry>() : Enumerable.Empty<C.LegendEntry>())
@@ -457,7 +457,7 @@ namespace OfficeIMO.OpenXml.Internal {
         }
 
         private static List<SharedSeriesDescriptor> DescribeSharedSeries(OfficeChartData data,
-            OfficeChartKind defaultKind) => data.Series.Select((series, index) =>
+            OfficeChartType defaultKind) => data.Series.Select((series, index) =>
                 new SharedSeriesDescriptor(index, series, series.RenderKind ?? defaultKind)).ToList();
 
         private static IReadOnlyList<double> ParseScatterCategories(IReadOnlyList<string> categories) {
@@ -474,51 +474,51 @@ namespace OfficeIMO.OpenXml.Internal {
             return values;
         }
 
-        private static bool IsBarOrColumnKind(OfficeChartKind kind) =>
-            kind == OfficeChartKind.ColumnClustered || kind == OfficeChartKind.ColumnStacked ||
-            kind == OfficeChartKind.ColumnStacked100 || kind == OfficeChartKind.BarClustered ||
-            kind == OfficeChartKind.BarStacked || kind == OfficeChartKind.BarStacked100;
+        private static bool IsBarOrColumnKind(OfficeChartType kind) =>
+            kind == OfficeChartType.ColumnClustered || kind == OfficeChartType.ColumnStacked ||
+            kind == OfficeChartType.ColumnStacked100 || kind == OfficeChartType.BarClustered ||
+            kind == OfficeChartType.BarStacked || kind == OfficeChartType.BarStacked100;
 
-        private static bool IsHorizontalBarKind(OfficeChartKind kind) =>
-            kind == OfficeChartKind.BarClustered || kind == OfficeChartKind.BarStacked ||
-            kind == OfficeChartKind.BarStacked100;
+        private static bool IsHorizontalBarKind(OfficeChartType kind) =>
+            kind == OfficeChartType.BarClustered || kind == OfficeChartType.BarStacked ||
+            kind == OfficeChartType.BarStacked100;
 
-        private static bool IsLineKind(OfficeChartKind kind) =>
-            kind == OfficeChartKind.Line || kind == OfficeChartKind.LineStacked ||
-            kind == OfficeChartKind.LineStacked100;
+        private static bool IsLineKind(OfficeChartType kind) =>
+            kind == OfficeChartType.Line || kind == OfficeChartType.LineStacked ||
+            kind == OfficeChartType.LineStacked100;
 
-        private static bool IsAreaKind(OfficeChartKind kind) =>
-            kind == OfficeChartKind.Area || kind == OfficeChartKind.AreaStacked ||
-            kind == OfficeChartKind.AreaStacked100;
+        private static bool IsAreaKind(OfficeChartType kind) =>
+            kind == OfficeChartType.Area || kind == OfficeChartType.AreaStacked ||
+            kind == OfficeChartType.AreaStacked100;
 
-        private static bool IsFilledSharedKind(OfficeChartKind kind) =>
-            IsBarOrColumnKind(kind) || IsAreaKind(kind) || kind == OfficeChartKind.Pie ||
-            kind == OfficeChartKind.Doughnut || kind == OfficeChartKind.Bubble;
+        private static bool IsFilledSharedKind(OfficeChartType kind) =>
+            IsBarOrColumnKind(kind) || IsAreaKind(kind) || kind == OfficeChartType.Pie ||
+            kind == OfficeChartType.Doughnut || kind == OfficeChartType.Bubble;
 
-        private static bool IsMarkerKind(OfficeChartKind kind) => IsLineKind(kind) ||
-            kind == OfficeChartKind.Scatter || kind == OfficeChartKind.Radar;
+        private static bool IsMarkerKind(OfficeChartType kind) => IsLineKind(kind) ||
+            kind == OfficeChartType.Scatter || kind == OfficeChartType.Radar;
 
-        private static C.BarGroupingValues GetBarGrouping(OfficeChartKind kind) {
-            if (kind == OfficeChartKind.ColumnStacked100 || kind == OfficeChartKind.BarStacked100)
+        private static C.BarGroupingValues GetBarGrouping(OfficeChartType kind) {
+            if (kind == OfficeChartType.ColumnStacked100 || kind == OfficeChartType.BarStacked100)
                 return C.BarGroupingValues.PercentStacked;
-            if (kind == OfficeChartKind.ColumnStacked || kind == OfficeChartKind.BarStacked)
+            if (kind == OfficeChartType.ColumnStacked || kind == OfficeChartType.BarStacked)
                 return C.BarGroupingValues.Stacked;
             return C.BarGroupingValues.Clustered;
         }
 
-        private static C.GroupingValues GetLineGrouping(OfficeChartKind kind) {
-            if (kind == OfficeChartKind.LineStacked100) return C.GroupingValues.PercentStacked;
-            if (kind == OfficeChartKind.LineStacked) return C.GroupingValues.Stacked;
+        private static C.GroupingValues GetLineGrouping(OfficeChartType kind) {
+            if (kind == OfficeChartType.LineStacked100) return C.GroupingValues.PercentStacked;
+            if (kind == OfficeChartType.LineStacked) return C.GroupingValues.Stacked;
             return C.GroupingValues.Standard;
         }
 
-        private static C.GroupingValues GetAreaGrouping(OfficeChartKind kind) {
-            if (kind == OfficeChartKind.AreaStacked100) return C.GroupingValues.PercentStacked;
-            if (kind == OfficeChartKind.AreaStacked) return C.GroupingValues.Stacked;
+        private static C.GroupingValues GetAreaGrouping(OfficeChartType kind) {
+            if (kind == OfficeChartType.AreaStacked100) return C.GroupingValues.PercentStacked;
+            if (kind == OfficeChartType.AreaStacked) return C.GroupingValues.Stacked;
             return C.GroupingValues.Standard;
         }
 
-        private static int ChartLayer(OfficeChartKind kind) {
+        private static int ChartLayer(OfficeChartType kind) {
             if (IsAreaKind(kind)) return 0;
             if (IsBarOrColumnKind(kind)) return 1;
             return 2;

@@ -44,13 +44,13 @@ namespace OfficeIMO.Examples.PowerPoint {
             var chartData = new OfficeChartData(
                 new[] { "Q1", "Q2", "Q3", "Q4" },
                 new[] {
-                    new OfficeChartSeries("Adoption", new[] { 28D, 43D, 61D, 72D }, null, null, null,
-                        showMarkers: false, renderKind: OfficeChartKind.ColumnClustered),
-                    new OfficeChartSeries("Conversion", new[] { 6.2D, 7.8D, 9.6D, 11.4D }, null, null, null,
-                        showMarkers: true, markerSize: 8, renderKind: OfficeChartKind.Line,
+                    new OfficeSeries("Adoption", new[] { 28D, 43D, 61D, 72D }, null, null, null,
+                        showMarkers: false, renderKind: OfficeChartType.ColumnClustered),
+                    new OfficeSeries("Conversion", new[] { 6.2D, 7.8D, 9.6D, 11.4D }, null, null, null,
+                        showMarkers: true, markerSize: 8, renderKind: OfficeChartType.Line,
                         axisGroup: OfficeChartAxisGroup.Secondary)
                 });
-            var chartStory = new PowerPointChartStoryContent(OfficeChartKind.ColumnClustered, chartData,
+            var chartStory = new PowerPointChartStoryContent(OfficeChartType.ColumnClustered, chartData,
                 new[] { "Adoption improved every quarter.", "Conversion increased with adoption." }) {
                 Caption = "Quarterly adoption and conversion",
                 Provenance = "Illustrative customer-success dataset",

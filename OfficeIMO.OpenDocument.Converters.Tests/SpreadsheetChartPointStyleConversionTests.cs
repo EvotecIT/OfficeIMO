@@ -19,9 +19,9 @@ public sealed class SpreadsheetChartPointStyleConversionTests {
     public void ExcelPointBlackWhiteModeReportsChartLossInsteadOfDroppingAppearance() {
         using ExcelDocument source = ExcelDocument.Create();
         ExcelSheet sheet = source.AddWorksheet("Summary");
-        sheet.AddChart(OfficeChartKind.Pie,
+        sheet.AddChart(OfficeChartType.Pie,
             new OfficeChartData(new[] { "Pass", "Fail" }, new[] {
-                new OfficeChartSeries("Status", new[] { 3d, 4d })
+                new OfficeSeries("Status", new[] { 3d, 4d })
                     .WithPointStyles(new OfficeChartPointStyle?[] {
                         new(fillColor: OfficeColor.Parse("#228844")), null
                     }) }), row: 2, column: 4);
@@ -100,14 +100,14 @@ public sealed class SpreadsheetChartPointStyleConversionTests {
     }
 
     [Theory]
-    [InlineData(OfficeChartKind.Pie, "chart:circle")]
-    [InlineData(OfficeChartKind.Doughnut, "chart:ring")]
-    public void ExcelSharedPointStylesConvertToNativeOds(OfficeChartKind sourceType,
+    [InlineData(OfficeChartType.Pie, "chart:circle")]
+    [InlineData(OfficeChartType.Doughnut, "chart:ring")]
+    public void ExcelSharedPointStylesConvertToNativeOds(OfficeChartType sourceType,
         string chartClass) {
         using ExcelDocument source = ExcelDocument.Create();
         ExcelSheet sheet = source.AddWorksheet("Summary");
         var data = new OfficeChartData(new[] { "Pass", "Fail", "Unknown" },
-            new[] { new OfficeChartSeries("Status", new[] { 3d, 4d, 5d })
+            new[] { new OfficeSeries("Status", new[] { 3d, 4d, 5d })
                 .WithPointStyles(CreatePointStyles()) });
         sheet.AddChart(sourceType, data, row: 2, column: 4, title: "Status");
 
@@ -126,17 +126,17 @@ public sealed class SpreadsheetChartPointStyleConversionTests {
     }
 
     [Theory]
-    [InlineData(OfficeChartKind.Pie)]
-    [InlineData(OfficeChartKind.Doughnut)]
-    public void ExcelNondefaultRadialGeometryReportsChartLoss(OfficeChartKind sourceType) {
+    [InlineData(OfficeChartType.Pie)]
+    [InlineData(OfficeChartType.Doughnut)]
+    public void ExcelNondefaultRadialGeometryReportsChartLoss(OfficeChartType sourceType) {
         using ExcelDocument source = ExcelDocument.Create();
         ExcelSheet sheet = source.AddWorksheet("Summary");
         var data = new OfficeChartData(new[] { "A", "B" },
-            new[] { new OfficeChartSeries("Values", new[] { 3d, 4d }) });
+            new[] { new OfficeSeries("Values", new[] { 3d, 4d }) });
         sheet.AddChart(sourceType, data, row: 2, column: 4)
             .SetRadialLayout(new OfficeChartRadialLayout(
-                sourceType == OfficeChartKind.Pie ? 45 : 0,
-                sourceType == OfficeChartKind.Doughnut ? 65 : 50));
+                sourceType == OfficeChartType.Pie ? 45 : 0,
+                sourceType == OfficeChartType.Doughnut ? 65 : 50));
 
         OdfConversionResult<OdsDocument> result = source.ToOpenDocumentResult();
         Assert.Empty(result.Value.GetSheet("Summary")!.Charts);
@@ -359,11 +359,11 @@ public sealed class SpreadsheetChartPointStyleConversionTests {
         using ExcelDocument source = ExcelDocument.Create();
         ExcelSheet sheet = source.AddWorksheet("Summary");
         var data = new OfficeChartData(new[] { "Pass", "Fail", "Unknown" },
-            new[] { new OfficeChartSeries("Status", new[] { 3d, 4d, 5d })
+            new[] { new OfficeSeries("Status", new[] { 3d, 4d, 5d })
                 .WithPointStyles(new OfficeChartPointStyle?[] {
                     new(fillColor: OfficeColor.Parse("#228844")), null, null
                 }) });
-        sheet.AddChart(OfficeChartKind.Line, data, row: 2, column: 4);
+        sheet.AddChart(OfficeChartType.Line, data, row: 2, column: 4);
 
         OdfConversionResult<OdsDocument> result = source.ToOpenDocumentResult();
         Assert.Empty(result.Value.GetSheet("Summary")!.Charts);
@@ -375,9 +375,9 @@ public sealed class SpreadsheetChartPointStyleConversionTests {
     [Fact]
     public void ExcelPointInversionReportsWholeChartLoss() {
         using ExcelDocument source = ExcelDocument.Create();
-        ExcelChart chart = source.AddWorksheet("Summary").AddChart(OfficeChartKind.ColumnClustered,
+        ExcelChart chart = source.AddWorksheet("Summary").AddChart(OfficeChartType.ColumnClustered,
             new OfficeChartData(new[] { "Loss", "Gain" }, new[] {
-                new OfficeChartSeries("Status", new[] { -3d, 4d })
+                new OfficeSeries("Status", new[] { -3d, 4d })
             }), row: 2, column: 4);
         C.BarChartSeries native = source.OpenXmlDocument.WorkbookPart!.WorksheetParts
             .Single(part => part.DrawingsPart != null).DrawingsPart!.ChartParts.Single()
@@ -435,9 +435,9 @@ public sealed class SpreadsheetChartPointStyleConversionTests {
         using ExcelDocument source = ExcelDocument.Create();
         ExcelSheet sheet = source.AddWorksheet("Summary");
         var data = new OfficeChartData(new[] { "Pass", "Fail", "Unknown" },
-            new[] { new OfficeChartSeries("Status", new[] { 3d, 4d, 5d })
+            new[] { new OfficeSeries("Status", new[] { 3d, 4d, 5d })
                 .WithPointStyles(CreatePointStyles()).WithPointExplosions(new[] { 0, 25, 0 }) });
-        sheet.AddChart(OfficeChartKind.Pie, data, row: 2, column: 4);
+        sheet.AddChart(OfficeChartType.Pie, data, row: 2, column: 4);
 
         OdfConversionResult<OdsDocument> result = source.ToOpenDocumentResult();
         Assert.Empty(result.Value.GetSheet("Summary")!.Charts);
@@ -452,11 +452,11 @@ public sealed class SpreadsheetChartPointStyleConversionTests {
         ExcelSheet sheet = source.AddWorksheet("Summary");
         sheet.Cell(1, 1, "Retained cell");
         var data = new OfficeChartData(new[] { "Pass", "Fail", "Unknown" },
-            new[] { new OfficeChartSeries("Status", new[] { 3d, 4d, 5d })
+            new[] { new OfficeSeries("Status", new[] { 3d, 4d, 5d })
                 .WithPointStyles(new OfficeChartPointStyle?[] {
                     new(fillColor: OfficeColor.FromRgba(34, 136, 68, 128)), null, null
                 }) });
-        sheet.AddChart(OfficeChartKind.Pie, data, row: 2, column: 4);
+        sheet.AddChart(OfficeChartType.Pie, data, row: 2, column: 4);
 
         OdfConversionResult<OdsDocument> result = source.ToOpenDocumentResult();
         OdsSheet converted = result.Value.GetSheet("Summary")!;

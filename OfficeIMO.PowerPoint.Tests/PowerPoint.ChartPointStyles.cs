@@ -18,8 +18,8 @@ public sealed class PowerPointChartPointStylesTests {
         var outline = new OfficeChartPointStyle(noFill: true, outlineColor: OfficeColor.Black,
             outlineWidth: 2, outlineJoin: OfficeStrokeLineJoin.Round);
         using PowerPointPresentation authored = PowerPointPresentation.Create();
-        authored.AddSlide().AddChartPoints(OfficeChartKind.Pie,
-            Data(OfficeChartKind.Pie, new OfficeChartPointStyle?[] { outline, null, null }), 20, 20, 600, 320);
+        authored.AddSlide().AddChartPoints(OfficeChartType.Pie,
+            Data(OfficeChartType.Pie, new OfficeChartPointStyle?[] { outline, null, null }), 20, 20, 600, 320);
         using PowerPointPresentation htmlReopened = OfficeIMO.Html.HtmlConversionDocument.Parse(authored.ToHtml())
             .ToPowerPointPresentation();
         Assert.True(htmlReopened.Slides.Single().Charts.Single().TryGetOfficeSnapshot(out OfficeChartSnapshot snapshot));
@@ -29,8 +29,8 @@ public sealed class PowerPointChartPointStylesTests {
     [Fact]
     public void PointStyles_ClearCompetingDirectAndMarkerOverrides() {
         using PowerPointPresentation presentation = PowerPointPresentation.Create();
-        PowerPointChart chart = presentation.AddSlide().AddChart(OfficeChartKind.Line,
-            Data(OfficeChartKind.Line, new OfficeChartPointStyle?[] { null, null, null }));
+        PowerPointChart chart = presentation.AddSlide().AddChart(OfficeChartType.Line,
+            Data(OfficeChartType.Line, new OfficeChartPointStyle?[] { null, null, null }));
         LineChartSeries series = presentation.Slides.Single().SlidePart.ChartParts.Single()
             .ChartSpace!.Descendants<LineChartSeries>().Single();
         var point = new DataPoint(new DocumentFormat.OpenXml.Drawing.Charts.Index { Val = 0U },
@@ -54,16 +54,16 @@ public sealed class PowerPointChartPointStylesTests {
 
     [Fact]
     public void PointStyles_WidthOnlyColumnOutlineMatchesDirectAndReopenedRendering() {
-        var data = Data(OfficeChartKind.ColumnClustered, new OfficeChartPointStyle?[] {
+        var data = Data(OfficeChartType.ColumnClustered, new OfficeChartPointStyle?[] {
             new(outlineWidth: 2), null, null });
         using PowerPointPresentation authored = PowerPointPresentation.Create();
-        authored.AddSlide().AddChartPoints(OfficeChartKind.ColumnClustered, data, 20, 20, 600, 320);
+        authored.AddSlide().AddChartPoints(OfficeChartType.ColumnClustered, data, 20, 20, 600, 320);
         using var bytes = new MemoryStream(authored.ToBytes());
         using PowerPointPresentation reopened = PowerPointPresentation.Load(bytes);
         Assert.True(reopened.Slides.Single().Charts.Single().TryGetOfficeSnapshot(out OfficeChartSnapshot snapshot));
         foreach (OfficeChartData source in new[] { data, snapshot.Data }) {
             OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot("Results", null,
-                OfficeChartKind.ColumnClustered, source, 600, 320, layout: new OfficeChartLayout(showLegend: false)));
+                OfficeChartType.ColumnClustered, source, 600, 320, layout: new OfficeChartLayout(showLegend: false)));
             Assert.Contains(drawing.Shapes, shape => shape.Shape.Kind == OfficeShapeKind.Rectangle &&
                 shape.Shape.StrokeColor == OfficeColor.Black && shape.Shape.StrokeWidth == 2 && shape.Shape.Height > 50);
         }
@@ -71,15 +71,15 @@ public sealed class PowerPointChartPointStylesTests {
     }
 
     public static IEnumerable<object[]> StyledKinds() {
-        foreach (OfficeChartKind kind in new[] { OfficeChartKind.Pie, OfficeChartKind.Doughnut,
-            OfficeChartKind.ColumnClustered, OfficeChartKind.Scatter, OfficeChartKind.Bubble })
+        foreach (OfficeChartType kind in new[] { OfficeChartType.Pie, OfficeChartType.Doughnut,
+            OfficeChartType.ColumnClustered, OfficeChartType.Scatter, OfficeChartType.Bubble })
             foreach (OfficeChartHatchPattern hatch in Enum.GetValues(typeof(OfficeChartHatchPattern)))
                 yield return new object[] { kind, hatch };
     }
 
     [Theory]
     [MemberData(nameof(StyledKinds))]
-    public void PointStyles_SurviveNativeAuthoringReopenUpdateAndReset(OfficeChartKind kind, OfficeChartHatchPattern hatch) {
+    public void PointStyles_SurviveNativeAuthoringReopenUpdateAndReset(OfficeChartType kind, OfficeChartHatchPattern hatch) {
         var outline = new OfficeChartPointStyle(noFill: true, outlineColor: OfficeColor.Black, outlineWidth: 2);
         var pattern = new OfficeChartPointStyle(OfficeColor.White, hatch: hatch,
             hatchColor: OfficeColor.Parse("#7300A3"), outlineColor: OfficeColor.Black, outlineWidth: 1);
@@ -105,9 +105,9 @@ public sealed class PowerPointChartPointStylesTests {
     }
 
     [Theory]
-    [InlineData(OfficeChartKind.Pie)]
-    [InlineData(OfficeChartKind.Bubble)]
-    public void PointStyles_PreserveExplicitOutlineVisibilityWithoutColourOrWidth(OfficeChartKind kind) {
+    [InlineData(OfficeChartType.Pie)]
+    [InlineData(OfficeChartType.Bubble)]
+    public void PointStyles_PreserveExplicitOutlineVisibilityWithoutColourOrWidth(OfficeChartType kind) {
         using PowerPointPresentation authored = PowerPointPresentation.Create();
         authored.AddSlide().AddChartPoints(kind, Data(kind, new OfficeChartPointStyle?[] {
             new(showOutline: true), new(showOutline: false), null }), 20, 20, 600, 320);
@@ -120,10 +120,10 @@ public sealed class PowerPointChartPointStylesTests {
     }
 
     [Theory]
-    [InlineData(OfficeChartKind.Pie)]
-    [InlineData(OfficeChartKind.Doughnut)]
-    [InlineData(OfficeChartKind.ColumnClustered)]
-    public void PointStyles_RenderHatchesInPngHtmlAndPdf(OfficeChartKind kind) {
+    [InlineData(OfficeChartType.Pie)]
+    [InlineData(OfficeChartType.Doughnut)]
+    [InlineData(OfficeChartType.ColumnClustered)]
+    public void PointStyles_RenderHatchesInPngHtmlAndPdf(OfficeChartType kind) {
         var hatch = new OfficeChartPointStyle(hatch: OfficeChartHatchPattern.DiagonalCross,
             hatchColor: OfficeColor.Parse("#7300A3"), outlineColor: OfficeColor.Black, outlineWidth: 2);
         using PowerPointPresentation presentation = PowerPointPresentation.Create();
@@ -149,11 +149,11 @@ public sealed class PowerPointChartPointStylesTests {
         Assert.True(hatchPixels > 50, "Hatch strokes should be visible in PDF; actual pixels " + hatchPixels);
     }
 
-    private static OfficeChartData Data(OfficeChartKind kind, OfficeChartPointStyle?[] styles) {
-        OfficeChartSeries series = kind == OfficeChartKind.Bubble
-            ? OfficeChartSeries.CreateBubble("Status", new double[] { 1, 2, 3 }, new double[] { 3, 2, 1 }, new double[] { 3, 2, 1 })
-            : new OfficeChartSeries("Status", new double[] { 3, 2, 1 },
-                kind == OfficeChartKind.Scatter ? new double[] { 1, 2, 3 } : null);
+    private static OfficeChartData Data(OfficeChartType kind, OfficeChartPointStyle?[] styles) {
+        OfficeSeries series = kind == OfficeChartType.Bubble
+            ? OfficeSeries.CreateBubble("Status", new double[] { 1, 2, 3 }, new double[] { 3, 2, 1 }, new double[] { 3, 2, 1 })
+            : new OfficeSeries("Status", new double[] { 3, 2, 1 },
+                kind == OfficeChartType.Scatter ? new double[] { 1, 2, 3 } : null);
         return new OfficeChartData(new[] { "Pass", "Unknown", "Fail" }, new[] { series.WithPointStyles(styles) });
     }
 

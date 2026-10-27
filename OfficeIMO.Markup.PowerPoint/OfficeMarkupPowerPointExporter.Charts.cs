@@ -349,8 +349,8 @@ internal sealed partial class OfficeMarkupPowerPointExporter {
         string chartType,
         OfficeChartData data,
         LayoutCursor box) {
-        OfficeChartKind kind = OfficeMarkupChartKindResolver.Resolve(chartType);
-        OfficeChartData resolved = kind == OfficeChartKind.Pie || kind == OfficeChartKind.Doughnut
+        OfficeChartType kind = OfficeMarkupChartKindResolver.Resolve(chartType);
+        OfficeChartData resolved = kind == OfficeChartType.Pie || kind == OfficeChartType.Doughnut
             ? FirstSeriesOnly(data)
             : data;
         return slide.AddChartInches(kind, resolved, box.Left, box.Top, box.Width, box.Height);
@@ -390,10 +390,10 @@ internal sealed partial class OfficeMarkupPowerPointExporter {
             return false;
         }
 
-        var series = new List<OfficeChartSeries>();
+        var series = new List<OfficeSeries>();
         for (int index = 0; index < seriesValues.Count; index++) {
             var name = string.IsNullOrWhiteSpace(headers[index + 1]) ? $"Series {index + 1}" : headers[index + 1];
-            series.Add(new OfficeChartSeries(name, seriesValues[index]));
+            series.Add(new OfficeSeries(name, seriesValues[index]));
         }
 
         data = new OfficeChartData(categories, series);

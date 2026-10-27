@@ -1393,12 +1393,12 @@ using OfficeIMO.Drawing;
 var snapshot = new OfficeChartSnapshot(
     name: "RevenueChart",
     title: "Revenue by quarter",
-    chartKind: OfficeChartKind.ColumnClustered,
+    chartKind: OfficeChartType.ColumnClustered,
     data: new OfficeChartData(
         new[] { "Q1", "Q2", "Q3", "Q4" },
         new[] {
-            new OfficeChartSeries("Revenue", new[] { 10d, 18d, 24d, 30d }),
-            new OfficeChartSeries("Forecast", new[] { 12d, 19d, 25d, 33d })
+            new OfficeSeries("Revenue", new[] { 10d, 18d, 24d, 30d }),
+            new OfficeSeries("Forecast", new[] { 12d, 19d, 25d, 33d })
         }),
     widthPoints: 420,
     heightPoints: 260);
@@ -1420,7 +1420,7 @@ var framedStyle = new OfficeChartStyle(
     legendBorderColor: OfficeColor.Parse("#375A7F"),
     legendBorderWidth: 1);
 var framedSnapshot = new OfficeChartSnapshot("RevenueChart", "Revenue by quarter",
-    OfficeChartKind.ColumnClustered, snapshot.Data, 420, 260, style: framedStyle);
+    OfficeChartType.ColumnClustered, snapshot.Data, 420, 260, style: framedStyle);
 OfficeDrawing framedChart = OfficeChartDrawingRenderer.Render(framedSnapshot);
 ```
 
@@ -1438,7 +1438,7 @@ do not gain false edge markers or labels. Data labels for visible points can ext
 
 ### Style individual chart points
 
-Use `OfficeChartSeries.WithSeriesStyle` for independent series fill and outline paint, and
+Use `OfficeSeries.WithSeriesStyle` for independent series fill and outline paint, and
 `WithPointStyles` for overrides aligned with the series values. Both use `OfficeChartPointStyle`.
 For example, `.WithSeriesStyle(new OfficeChartPointStyle(noFill: true,
 outlineColor: OfficeColor.Red, outlineWidth: 2, showOutline: true))` draws an unfilled area,
@@ -1449,7 +1449,7 @@ The returned series preserves its data and other settings. A null entry inherits
 colour; an explicit no-fill style leaves an outlined slice visible without changing its value.
 
 ```csharp
-var status = new OfficeChartSeries("Status", new[] { 8d, 2d, 1d })
+var status = new OfficeSeries("Status", new[] { 8d, 2d, 1d })
     .WithPointStyles(new OfficeChartPointStyle?[] {
         new(fillColor: OfficeColor.Parse("#168A56")),
         new(noFill: true, outlineColor: OfficeColor.Black, outlineWidth: 2,
@@ -1476,11 +1476,11 @@ from the top, from 0 through 360 degrees; hole size is an inner-to-outer diamete
 percentage from 10 through 90, with a default of 50.
 
 ```csharp
-var series = new OfficeChartSeries("Status", new[] { 7d, 3d })
+var series = new OfficeSeries("Status", new[] { 7d, 3d })
     .WithPointExplosions(new[] { 25, 0 });
 var data = new OfficeChartData(new[] { "Complete", "Pending" }, new[] { series });
 var radial = new OfficeChartRadialLayout(firstSliceAngleDegrees: 90, doughnutHolePercent: 70);
-var snapshot = new OfficeChartSnapshot("Status", null, OfficeChartKind.Doughnut,
+var snapshot = new OfficeChartSnapshot("Status", null, OfficeChartType.Doughnut,
     data, 400, 300, null, new OfficeChartLayout(showLegend: false), radial);
 OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(snapshot);
 ```

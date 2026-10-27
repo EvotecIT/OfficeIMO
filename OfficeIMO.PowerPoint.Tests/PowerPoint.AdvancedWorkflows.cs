@@ -993,9 +993,9 @@ namespace OfficeIMO.Tests {
             presentation.SlideSize.SetSizePoints(640, 360);
             PowerPointSlide slide = presentation.AddSlide();
             PowerPointChart chart = slide.AddChartPoints(
-                OfficeChartKind.ColumnClustered,
+                OfficeChartType.ColumnClustered,
                 new OfficeChartData(new[] { "Q1", "Q2" }, new[] {
-                    new OfficeChartSeries("Actual", new[] { 10D, 20D })
+                    new OfficeSeries("Actual", new[] { 10D, 20D })
                 }), 40, 40, 560, 280);
             chart.SetLegendTextStyle(fontName: "Arial")
                 .SetCategoryAxisLabelTextStyle(fontName: "Georgia")

@@ -11,14 +11,14 @@ public sealed class PowerPointChartAxisTickBudgetTests {
     public void Snapshot_RejectsRadarUnitsAndSuppressedOverMaximumLabels() {
         using PowerPointPresentation presentation = PowerPointPresentation.Create();
         var data = new OfficeChartData(new[] { "A", "B" }, new[] {
-            new OfficeChartSeries("Values", new[] { 3d, 4d }) });
-        PowerPointChart radar = presentation.AddSlide().AddChart(OfficeChartKind.Radar, data);
+            new OfficeSeries("Values", new[] { 3d, 4d }) });
+        PowerPointChart radar = presentation.AddSlide().AddChart(OfficeChartType.Radar, data);
         C.ValueAxis radarAxis = presentation.Slides.Last().SlidePart.ChartParts.Single()
             .ChartSpace!.Descendants<C.ValueAxis>().Single();
         radarAxis.AddChild(new C.MajorUnit { Val = 1 }, true);
         Assert.False(radar.TryGetOfficeSnapshot(out _));
 
-        PowerPointChart column = presentation.AddSlide().AddChart(OfficeChartKind.ColumnClustered, data);
+        PowerPointChart column = presentation.AddSlide().AddChart(OfficeChartType.ColumnClustered, data);
         C.Chart native = presentation.Slides.Last().SlidePart.ChartParts.Single().ChartSpace!
             .GetFirstChild<C.Chart>()!;
         C.ValueAxis axis = native.PlotArea!.Elements<C.ValueAxis>().Single();
@@ -33,13 +33,13 @@ public sealed class PowerPointChartAxisTickBudgetTests {
     }
 
     [Theory]
-    [InlineData(OfficeChartKind.ColumnClustered, false)]
-    [InlineData(OfficeChartKind.Scatter, true)]
-    public void Snapshot_RejectsMajorUnitsThatCannotKeepNativeTicks(OfficeChartKind kind,
+    [InlineData(OfficeChartType.ColumnClustered, false)]
+    [InlineData(OfficeChartType.Scatter, true)]
+    public void Snapshot_RejectsMajorUnitsThatCannotKeepNativeTicks(OfficeChartType kind,
         bool horizontal) {
         using PowerPointPresentation presentation = PowerPointPresentation.Create();
         var data = new OfficeChartData(new[] { "0", "100" }, new[] {
-            new OfficeChartSeries("Values", new[] { 0d, 100d },
+            new OfficeSeries("Values", new[] { 0d, 100d },
                 horizontal ? new[] { 0d, 100d } : null)
         });
         PowerPointChart chart = presentation.AddSlide().AddChart(kind, data);
@@ -66,9 +66,9 @@ public sealed class PowerPointChartAxisTickBudgetTests {
     [Fact]
     public void Snapshot_TreatsEmptyNativeAxisDeleteAsHidden() {
         using PowerPointPresentation presentation = PowerPointPresentation.Create();
-        PowerPointChart chart = presentation.AddSlide().AddChart(OfficeChartKind.ColumnClustered,
+        PowerPointChart chart = presentation.AddSlide().AddChart(OfficeChartType.ColumnClustered,
             new OfficeChartData(new[] { "A", "B" }, new[] {
-                new OfficeChartSeries("Values", new[] { 1d, 2d })
+                new OfficeSeries("Values", new[] { 1d, 2d })
             }));
         C.ValueAxis axis = presentation.Slides.Single().SlidePart.ChartParts.Single()
             .ChartSpace!.Descendants<C.ValueAxis>().Single();

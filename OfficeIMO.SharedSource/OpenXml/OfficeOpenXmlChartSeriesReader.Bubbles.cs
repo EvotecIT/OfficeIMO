@@ -60,7 +60,7 @@ namespace OfficeIMO.OpenXml.Internal {
                     if (fill == null) return null;
                     automaticColor = true;
                 }
-                var data = OfficeChartSeries.CreateBubble(name, x, y, sizes, fill,
+                var data = OfficeSeries.CreateBubble(name, x, y, sizes, fill,
                     ReadBubblePointColors(element, x.Count, colorScheme, maximumPointOverrides), markerOutlineColor: stroke,
                     markerOutlineWidth: width, showMarkerOutline: outline?.GetFirstChild<NoFill>() == null)
                     .WithSeriesStyle(OfficeOpenXmlChartPointStyles.ReadSeriesStyle(element, colorScheme))

@@ -24,11 +24,11 @@ namespace OfficeIMO.Tests {
 
                     var data = new OfficeChartData(
                         new[] { "Q1", "Q2", "Q3", "Q4" },
-                        new[] { new OfficeChartSeries("Revenue", new[] { 3.2, 3.8, 4.1, 4.9 }) });
+                        new[] { new OfficeSeries("Revenue", new[] { 3.2, 3.8, 4.1, 4.9 }) });
 
                     PowerPointSlide chartSlide = presentation.AddSlide();
                     chartSlide.AddTitleCm("Revenue by quarter", 1.5, 1.2, 22, 1.4);
-                    chartSlide.AddChartCm(OfficeChartKind.ColumnClustered, data, 1.5, 3.0, 22, 9,
+                    chartSlide.AddChartCm(OfficeChartType.ColumnClustered, data, 1.5, 3.0, 22, 9,
                             new PowerPointChartAccessibilityOptions {
                                 AlternativeText = "Quarterly revenue increased from 3.2 to 4.9"
                             })

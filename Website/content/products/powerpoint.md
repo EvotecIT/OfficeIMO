@@ -29,7 +29,7 @@ OfficeIMO.PowerPoint creates and edits `.pptx` presentations and supports docume
 - **Images** — insert from file path or stream in PNG, JPEG, GIF, BMP, TIFF, EMF, and WMF formats
 - **Shapes with fill, stroke & effects** — rectangles, circles, arrows, and callouts with fill, line, shadow, glow, and reflection settings
 - **SmartArt and custom geometry** — editable process, hierarchy, cycle, list, matrix, pyramid, relationship, path, and polygon content
-- **Editable shared charts with formatting** — all 17 `OfficeChartKind` families, including bubble charts, plus combo/secondary axes, data labels, legends, axis configuration, and accessibility summaries
+- **Editable shared charts with formatting** — all 17 `OfficeChartType` families, including bubble charts, plus combo/secondary axes, data labels, legends, axis configuration, and accessibility summaries
 - **Review and presentation workflows** — classic comments, modern threaded comments and replies, custom shows, and supported shape/text/chart animations
 - **OLE and macro package workflows** — add or replace embedded OLE storage and bounded opaque VBA projects while keeping macro-enabled formats explicit
 - **Slide sections & transitions** — organize slides into sections and apply transition animations
@@ -72,11 +72,11 @@ highlights.AddBullets(new[] {
 
 var data = new OfficeChartData(
     new[] { "Q1", "Q2", "Q3", "Q4" },
-    new[] { new OfficeChartSeries("Revenue", new[] { 3.2, 3.8, 4.1, 4.9 }) });
+    new[] { new OfficeSeries("Revenue", new[] { 3.2, 3.8, 4.1, 4.9 }) });
 
 var chartSlide = presentation.AddSlide();
 chartSlide.AddTitleCm("Revenue by quarter", 1.5, 1.2, 22, 1.4);
-chartSlide.AddChartCm(OfficeChartKind.ColumnClustered, data, 1.5, 3.0, 22, 9,
+chartSlide.AddChartCm(OfficeChartType.ColumnClustered, data, 1.5, 3.0, 22, 9,
         new PowerPointChartAccessibilityOptions {
             AlternativeText = "Quarterly revenue increased from 3.2 to 4.9"
         })

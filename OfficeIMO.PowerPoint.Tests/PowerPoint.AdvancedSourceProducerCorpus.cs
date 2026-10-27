@@ -215,16 +215,16 @@ public sealed class PowerPointAdvancedSourceProducerCorpusTests {
                 categoryCount: 1, seriesCount: 1,
                 totalPoints: 100_001));
         OfficeChartData nonFinite = new(new[] { "A" },
-            new[] { new OfficeChartSeries("Series", new[] { double.NaN }) });
+            new[] { new OfficeSeries("Series", new[] { double.NaN }) });
         Assert.Throws<ArgumentOutOfRangeException>(() =>
             PowerPointUtils.ValidateSharedChartData(nonFinite,
-                OfficeChartKind.ColumnClustered));
+                OfficeChartType.ColumnClustered));
         OfficeChartData nonFiniteScatterCategory = new(
             new[] { "NaN" },
-            new[] { new OfficeChartSeries("Series", new[] { 1D }) });
+            new[] { new OfficeSeries("Series", new[] { 1D }) });
         Assert.Throws<ArgumentException>(() =>
             PowerPointUtils.ValidateSharedChartData(nonFiniteScatterCategory,
-                OfficeChartKind.Scatter));
+                OfficeChartType.Scatter));
     }
 
     [Fact]
@@ -284,8 +284,8 @@ public sealed class PowerPointAdvancedSourceProducerCorpusTests {
                 editedChart.InspectImportedContent();
             Assert.True(editedChart.TryGetOfficeSnapshot(
                 out OfficeChartSnapshot snapshot), report.Family.ToString());
-            OfficeChartSeries[] series = snapshot.Data.Series
-                .Select((item, index) => new OfficeChartSeries(
+            OfficeSeries[] series = snapshot.Data.Series
+                .Select((item, index) => new OfficeSeries(
                     index == 0 ? "OfficeIMO edited " + report.Family
                         : item.Name,
                     item.Values)).ToArray();

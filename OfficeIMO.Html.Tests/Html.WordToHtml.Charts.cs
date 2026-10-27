@@ -13,8 +13,8 @@ public sealed class HtmlWordChartTests {
     [Fact]
     public void Export_ProjectsOnlyVisibleChartInSinglePhysicalFieldRun() {
         using var document = WordDocument.Create();
-        document.AddChart(OfficeChartKind.ColumnClustered, Data());
-        document.AddChart(OfficeChartKind.ColumnClustered, Data());
+        document.AddChart(OfficeChartType.ColumnClustered, Data());
+        document.AddChart(OfficeChartType.ColumnClustered, Data());
         var paragraphs = document.Paragraphs.ToArray();
         var visibleRun = paragraphs[0].GetRuns().Single()._run!;
         var hiddenRun = paragraphs[1].GetRuns().Single()._run!;
@@ -39,7 +39,7 @@ public sealed class HtmlWordChartTests {
     public void Export_NestedTextBoxChartDoesNotTurnOuterDrawingIntoChart() {
         using var document = WordDocument.Create();
         WordTextBox box = document.AddTextBox("Text box content");
-        box.Paragraphs.First().AddChart(OfficeChartKind.ColumnClustered, Data());
+        box.Paragraphs.First().AddChart(OfficeChartType.ColumnClustered, Data());
         var outer = document.Paragraphs.First().GetRuns().First();
         Assert.Null(outer.Chart);
 
@@ -56,7 +56,7 @@ public sealed class HtmlWordChartTests {
     [InlineData("HTMLPreformatted")]
     public void Export_StyledCodeParagraphWithChartRetainsImage(string style) {
         using var document = WordDocument.Create();
-        document.AddChart(OfficeChartKind.ColumnClustered, Data());
+        document.AddChart(OfficeChartType.ColumnClustered, Data());
         var paragraph = document.Paragraphs.Single();
         paragraph.SetStyleId(style);
         paragraph.GetRuns().Single()._run!.Append(new DocumentFormat.OpenXml.Wordprocessing.Text(" chart text"));
@@ -72,7 +72,7 @@ public sealed class HtmlWordChartTests {
     [InlineData(false, false)]
     public void Export_EachMixedRunNoteReferenceUsesItsOwnOccurrence(bool footnote, bool withChart) {
         using var document = WordDocument.Create();
-        if (withChart) document.AddChart(OfficeChartKind.ColumnClustered, Data());
+        if (withChart) document.AddChart(OfficeChartType.ColumnClustered, Data());
         else document.AddParagraph("Adjacent text");
         var targetRun = document.Paragraphs.First().GetRuns().Single()._run!;
         for (int index = 1; index <= 2; index++) {
@@ -96,7 +96,7 @@ public sealed class HtmlWordChartTests {
     [Fact]
     public void Export_EachMixedChartRunCommentReferenceUsesItsOwnOccurrence() {
         using var document = WordDocument.Create();
-        document.AddChart(OfficeChartKind.ColumnClustered, Data());
+        document.AddChart(OfficeChartType.ColumnClustered, Data());
         var chartRun = document.Paragraphs.First().GetRuns().Single()._run!;
         for (int index = 1; index <= 2; index++) {
             var source = document.AddParagraph("Comment " + index);
@@ -122,7 +122,7 @@ public sealed class HtmlWordChartTests {
         var source = document.AddParagraph("Reference");
         var reference = footnote ? source.AddFootNote("Note text") : source.AddEndNote("Note text");
         var note = footnote ? reference.FootNote!.Paragraphs!.Skip(1).First() : reference.EndNote!.Paragraphs!.Skip(1).First();
-        note.AddChart(OfficeChartKind.ColumnClustered, Data());
+        note.AddChart(OfficeChartType.ColumnClustered, Data());
         var result = document.ConvertToHtmlWithEvidence(new WordHtmlExportOptions { ExportFootnotes = true, ExportEndnotes = true });
         var html = new HtmlParser().ParseDocument(result.RequireValue());
         Assert.Single(html.QuerySelectorAll((footnote ? ".footnotes" : ".endnotes") + " img"));
@@ -131,14 +131,14 @@ public sealed class HtmlWordChartTests {
     [Fact]
     public void Export_BorderedChartParagraphRetainsItsImage() {
         using var document = WordDocument.Create();
-        document.AddChart(OfficeChartKind.ColumnClustered, Data());
+        document.AddChart(OfficeChartType.ColumnClustered, Data());
         document.Paragraphs.Single().Borders.BottomStyle = WordBorderStyle.Single;
         Assert.Single(new HtmlParser().ParseDocument(document.ToHtml()).QuerySelectorAll("img"));
     }
     [Fact]
     public void Export_ChartRunsRetainCarriageReturnsAndEachBreakType() {
         using var document = WordDocument.Create();
-        document.AddChart(OfficeChartKind.ColumnClustered, Data());
+        document.AddChart(OfficeChartType.ColumnClustered, Data());
         var run = document.Paragraphs.Single().GetRuns().Single()._run!;
         run.Append(new DocumentFormat.OpenXml.Wordprocessing.CarriageReturn(),
             new DocumentFormat.OpenXml.Wordprocessing.Break(),
@@ -155,7 +155,7 @@ public sealed class HtmlWordChartTests {
         var first = document.Sections[0];
         var region = header ? (WordHeaderFooter)first.GetOrCreateHeader(WordHeaderFooterType.Default)
             : first.GetOrCreateFooter(WordHeaderFooterType.Default);
-        region.AddParagraph().AddChart(OfficeChartKind.ColumnClustered, Data());
+        region.AddParagraph().AddChart(OfficeChartType.ColumnClustered, Data());
         var paragraph = document.AddParagraph("Revision");
         var run = paragraph.GetRuns().Single()._run!; run.Remove();
         paragraph._paragraph.Append(new DocumentFormat.OpenXml.Wordprocessing.InsertedRun(run) { Id = "1", Author = "Review" });
@@ -186,7 +186,7 @@ public sealed class HtmlWordChartTests {
         using var document = WordDocument.Create();
         var region = header ? (WordHeaderFooter)document.Sections[0].GetOrCreateHeader(WordHeaderFooterType.Default)
             : document.Sections[0].GetOrCreateFooter(WordHeaderFooterType.Default);
-        var chart = region.AddParagraph().AddChart(OfficeChartKind.ColumnClustered, Data());
+        var chart = region.AddParagraph().AddChart(OfficeChartType.ColumnClustered, Data());
         var paragraph = document.AddParagraph("Revision");
         var run = paragraph.GetRuns().Single()._run!; run.Remove();
         paragraph._paragraph.Append(new DocumentFormat.OpenXml.Wordprocessing.InsertedRun(run) { Id = "1", Author = "Review" });
@@ -203,7 +203,7 @@ public sealed class HtmlWordChartTests {
     [InlineData(false)]
     public void Export_PreservesChartsAndTextInNestedHyperlinkContentControls(bool hyperlinkOutside) {
         using var document = WordDocument.Create();
-        document.AddChart(OfficeChartKind.ColumnClustered, Data());
+        document.AddChart(OfficeChartType.ColumnClustered, Data());
         var paragraph = document.Paragraphs.Single();
         var run = paragraph.GetRuns().Single()._run!;
         run.Remove();
@@ -229,7 +229,7 @@ public sealed class HtmlWordChartTests {
     [InlineData("HtmlInsertedText", "ins")]
     public void Export_NestedLinkedChartUsesItsOwnRevisionAndTextFormatting(string style, string tag) {
         using var document = WordDocument.Create();
-        document.AddChart(OfficeChartKind.ColumnClustered, Data());
+        document.AddChart(OfficeChartType.ColumnClustered, Data());
         var paragraph = document.Paragraphs.Single();
         var run = paragraph.GetRuns().Single()._run!;
         run.Remove();
@@ -250,7 +250,7 @@ public sealed class HtmlWordChartTests {
     [Fact]
     public void Export_RendersChartsInsideRichTextContentControls() {
         using var document = WordDocument.Create();
-        document.AddChart(OfficeChartKind.ColumnClustered, Data());
+        document.AddChart(OfficeChartType.ColumnClustered, Data());
         var paragraph = document.Paragraphs.Single();
         var run = paragraph.GetRuns().Single()._run!;
         run.Remove();
@@ -267,7 +267,7 @@ public sealed class HtmlWordChartTests {
     [InlineData(false)]
     public void Export_RevisionMarkupWrapsChartArtifacts(bool inserted) {
         using var document = WordDocument.Create();
-        document.AddChart(OfficeChartKind.ColumnClustered, Data());
+        document.AddChart(OfficeChartType.ColumnClustered, Data());
         var paragraph = document.Paragraphs.Single();
         var run = paragraph.GetRuns().Single()._run!;
         run.Remove();
@@ -280,7 +280,7 @@ public sealed class HtmlWordChartTests {
     [Fact]
     public void Export_OmittedLinkedChartDoesNotConsumeTheDiscardedAnchorBudget() {
         using var document = WordDocument.Create();
-        var chart = document.AddChart(OfficeChartKind.Line, Data());
+        var chart = document.AddChart(OfficeChartType.Line, Data());
         chart.ChartPart!.ChartSpace!.Descendants<C.LineChartSeries>().Single().AddChild(new C.Smooth { Val = true }, true);
         var paragraph = document.Paragraphs.Single();
         var run = paragraph.GetRuns().Single()._run!;
@@ -295,7 +295,7 @@ public sealed class HtmlWordChartTests {
     [Fact]
     public void Export_AdjacentChartTextPreservesExplicitCapsResets() {
         using var document = WordDocument.Create();
-        document.AddChart(OfficeChartKind.ColumnClustered, Data());
+        document.AddChart(OfficeChartType.ColumnClustered, Data());
         var run = document.Paragraphs.Single().GetRuns().Single()._run!;
         run.RunProperties = new DocumentFormat.OpenXml.Wordprocessing.RunProperties(
             new DocumentFormat.OpenXml.Wordprocessing.Caps { Val = false },
@@ -308,7 +308,7 @@ public sealed class HtmlWordChartTests {
     [Fact]
     public void Export_PreservesEachVmlImageOccurrenceBesideAChart() {
         using var document = WordDocument.Create();
-        document.AddChart(OfficeChartKind.ColumnClustered, Data());
+        document.AddChart(OfficeChartType.ColumnClustered, Data());
         byte[] first = Convert.FromBase64String("R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7");
         byte[] second = Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAABFSURBVEhLY1BNfv2flpgBXYDaeBhaILCzkSKMbt6oBRgY3bxRCzAwunmjFmBgdPNGLcDA6OaNWoCB0c3DsIDaeNQCghgAFxBXzP1LTe4AAAAASUVORK5CYII=");
         var firstImage = document.AddParagraph().AddImage(new MemoryStream(first), "first.gif", 10, 10);
@@ -337,8 +337,8 @@ public sealed class HtmlWordChartTests {
     public void Export_DiagnosesUnsupportedExtendedChartsIncludingChartOnlyHeaders(bool header) {
         using var document = WordDocument.Create();
         var chart = header
-            ? document.Sections[0].GetOrCreateHeader(WordHeaderFooterType.Default).AddParagraph().AddChart(OfficeChartKind.ColumnClustered, Data())
-            : document.AddChart(OfficeChartKind.ColumnClustered, Data());
+            ? document.Sections[0].GetOrCreateHeader(WordHeaderFooterType.Default).AddParagraph().AddChart(OfficeChartType.ColumnClustered, Data())
+            : document.AddChart(OfficeChartType.ColumnClustered, Data());
         var reference = chart.Drawing!.Descendants<C.ChartReference>().Single();
         var extended = new DocumentFormat.OpenXml.OpenXmlUnknownElement("cx", "chart", "http://schemas.microsoft.com/office/drawing/2014/chartex");
         extended.SetAttribute(new DocumentFormat.OpenXml.OpenXmlAttribute("r", "id", "http://schemas.openxmlformats.org/officeDocument/2006/relationships", reference.Id!.Value!));
@@ -353,8 +353,8 @@ public sealed class HtmlWordChartTests {
     public void Export_ElementBudgetIncludesChartPartsBeforeSnapshotReading(bool header) {
         using var document = WordDocument.Create();
         var chart = header
-            ? document.Sections[0].GetOrCreateHeader(WordHeaderFooterType.Default).AddParagraph().AddChart(OfficeChartKind.ColumnClustered, Data())
-            : document.AddChart(OfficeChartKind.ColumnClustered, Data());
+            ? document.Sections[0].GetOrCreateHeader(WordHeaderFooterType.Default).AddParagraph().AddChart(OfficeChartType.ColumnClustered, Data())
+            : document.AddChart(OfficeChartType.ColumnClustered, Data());
         var space = chart.ChartPart!.ChartSpace!;
         var native = space.GetFirstChild<C.Chart>()!;
         native.Append(new C.TextProperties(new DocumentFormat.OpenXml.Drawing.BodyProperties(),
@@ -368,10 +368,10 @@ public sealed class HtmlWordChartTests {
     [Fact]
     public void Export_ReportsConfiguredAggregateLimitWhenTheFirstChartExhaustsIt() {
         using var document = WordDocument.Create();
-        document.AddChart(OfficeChartKind.ColumnClustered, Data());
+        document.AddChart(OfficeChartType.ColumnClustered, Data());
         string source = new HtmlParser().ParseDocument(document.ToHtml()).QuerySelector("img")!.GetAttribute("src")!;
         long exactLimit = Convert.FromBase64String(source.Substring("data:image/svg+xml;base64,".Length)).LongLength;
-        document.AddChart(OfficeChartKind.ColumnClustered, Data());
+        document.AddChart(OfficeChartType.ColumnClustered, Data());
         var error = Assert.Throws<HtmlConversionLimitException>(() => document.ToHtml(new WordHtmlExportOptions { MaxTotalEmbeddedImageBytes = exactLimit }));
         Assert.Equal("word-image-total-size-limit-exceeded", error.Code);
         Assert.Equal(exactLimit, error.Limit);
@@ -381,7 +381,7 @@ public sealed class HtmlWordChartTests {
     [Fact]
     public void Export_PreservesChartAlternativeTextAndAuthoredSmallCanvas() {
         using var document = WordDocument.Create();
-        var chart = document.AddChart(OfficeChartKind.ColumnClustered, Data(), title: "Visible title", width: 120, height: 40);
+        var chart = document.AddChart(OfficeChartType.ColumnClustered, Data(), title: "Visible title", width: 120, height: 40);
         chart.AltText = "Accessible chart description";
         var image = Assert.Single(new HtmlParser().ParseDocument(document.ToHtml()).QuerySelectorAll("img"));
         Assert.Equal("Accessible chart description", image.GetAttribute("alt"));
@@ -394,7 +394,7 @@ public sealed class HtmlWordChartTests {
     [InlineData(false)]
     public void Export_SelectsOnlyTheEffectiveAlternateContentChart(bool supportedChoice) {
         using var document = WordDocument.Create();
-        document.AddChart(OfficeChartKind.ColumnClustered, Data(), title: "Selected chart");
+        document.AddChart(OfficeChartType.ColumnClustered, Data(), title: "Selected chart");
         var run = document.Paragraphs.Single().GetRuns().Single()._run!;
         var drawing = run.GetFirstChild<DocumentFormat.OpenXml.Wordprocessing.Drawing>()!;
         drawing.Remove();
@@ -414,7 +414,7 @@ public sealed class HtmlWordChartTests {
     [InlineData(true)]
     public void Export_PreservesChartHyperlinkWithOrWithoutAdjacentText(bool adjacentText) {
         using var document = WordDocument.Create();
-        document.AddChart(OfficeChartKind.ColumnClustered, Data());
+        document.AddChart(OfficeChartType.ColumnClustered, Data());
         var paragraph = document.Paragraphs.Single();
         var run = paragraph.GetRuns().Single()._run!;
         paragraph.AddHyperLink("Link", new Uri("https://example.test/chart"));
@@ -430,8 +430,8 @@ public sealed class HtmlWordChartTests {
     [Fact]
     public void Export_PreservesPictureAndDistinctChartsInsideTheSameRun() {
         using var document = WordDocument.Create();
-        document.AddChart(OfficeChartKind.ColumnClustered, Data(), title: "First chart");
-        document.AddChart(OfficeChartKind.Doughnut, Data(), title: "Second chart");
+        document.AddChart(OfficeChartType.ColumnClustered, Data(), title: "First chart");
+        document.AddChart(OfficeChartType.Doughnut, Data(), title: "Second chart");
         using var pixels = new MemoryStream(Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAABFSURBVEhLY1BNfv2flpgBXYDaeBhaILCzkSKMbt6oBRgY3bxRCzAwunmjFmBgdPNGLcDA6OaNWoCB0c3DsIDaeNQCghgAFxBXzP1LTe4AAAAASUVORK5CYII="));
         document.AddParagraph().AddImage(pixels, "marker.png", 10, 10, description: "Picture marker");
         var runs = document.Paragraphs.SelectMany(paragraph => paragraph.GetRuns()).Select(run => run._run!).ToArray();
@@ -450,7 +450,7 @@ public sealed class HtmlWordChartTests {
     [Fact]
     public void Export_PreservesTextAdjacentToChartInTheSameRun() {
         using var document = WordDocument.Create();
-        document.AddChart(OfficeChartKind.ColumnClustered, Data());
+        document.AddChart(OfficeChartType.ColumnClustered, Data());
         var run = document.Paragraphs.Single().GetRuns().Single()._run!;
         run.PrependChild(new DocumentFormat.OpenXml.Wordprocessing.Text("Before chart "));
         run.Append(new DocumentFormat.OpenXml.Wordprocessing.Text(" after chart"));
@@ -465,7 +465,7 @@ public sealed class HtmlWordChartTests {
     [Fact]
     public void Export_TraversesChartOnlyHeaderEvenWhenItsRelationshipCannotBeProjected() {
         using var document = WordDocument.Create();
-        document.AddChart(OfficeChartKind.ColumnClustered, Data());
+        document.AddChart(OfficeChartType.ColumnClustered, Data());
         var source = document.Paragraphs.Single().GetRuns().Single()._run!;
         var header = document.Sections[0].GetOrCreateHeader(WordHeaderFooterType.Default).AddParagraph();
         header._paragraph.Append(source.CloneNode(true));
@@ -481,11 +481,11 @@ public sealed class HtmlWordChartTests {
     [InlineData(true)]
     public void Export_UsesTheNativeHeaderOrFooterChartPart(bool footer) {
         using var document = WordDocument.Create();
-        var bodyChart = document.AddChart(OfficeChartKind.ColumnClustered,
-            new OfficeChartData(new[] { "A" }, new[] { new OfficeChartSeries("Body", new[] { 1d }, null, OfficeColor.Parse("#224466")) }), title: "Body");
+        var bodyChart = document.AddChart(OfficeChartType.ColumnClustered,
+            new OfficeChartData(new[] { "A" }, new[] { new OfficeSeries("Body", new[] { 1d }, null, OfficeColor.Parse("#224466")) }), title: "Body");
         WordHeaderFooter region = footer ? document.Sections[0].GetOrCreateFooter(WordHeaderFooterType.Default) : document.Sections[0].GetOrCreateHeader(WordHeaderFooterType.Default);
-        var regionChart = region.AddParagraph().AddChart(OfficeChartKind.ColumnClustered,
-            new OfficeChartData(new[] { "B" }, new[] { new OfficeChartSeries("Region", new[] { 9d }, null, OfficeColor.Parse("#D97706")) }), title: "Region");
+        var regionChart = region.AddParagraph().AddChart(OfficeChartType.ColumnClustered,
+            new OfficeChartData(new[] { "B" }, new[] { new OfficeSeries("Region", new[] { 9d }, null, OfficeColor.Parse("#D97706")) }), title: "Region");
         var owner = footer ? (DocumentFormat.OpenXml.Packaging.OpenXmlPart)region._footer!.FooterPart! : region._header!.HeaderPart!;
         const string id = "rIdChartCollision";
         document.MainDocumentPartRoot.ChangeIdOfPart(bodyChart.ChartPart!, id);
@@ -506,15 +506,15 @@ public sealed class HtmlWordChartTests {
     }
 
     [Theory]
-    [InlineData(OfficeChartKind.Doughnut)]
-    [InlineData(OfficeChartKind.Bubble)]
-    [InlineData(OfficeChartKind.ColumnClustered)]
-    public void Export_RendersNativeChartsInDocumentOrder(OfficeChartKind kind) {
+    [InlineData(OfficeChartType.Doughnut)]
+    [InlineData(OfficeChartType.Bubble)]
+    [InlineData(OfficeChartType.ColumnClustered)]
+    public void Export_RendersNativeChartsInDocumentOrder(OfficeChartType kind) {
         using var document = WordDocument.Create();
         document.AddParagraph("Before");
-        var data = kind == OfficeChartKind.Bubble
-            ? new OfficeChartData(new[] { "1", "2" }, new[] { OfficeChartSeries.CreateBubble("Values", new[] { 1d, 2d }, new[] { 3d, 4d }, new[] { 5d, 10d }, OfficeColor.Parse("#224466")) })
-            : new OfficeChartData(new[] { "A", "B" }, new[] { new OfficeChartSeries("Values", new[] { 3d, 4d }, null, OfficeColor.Parse("#224466")) });
+        var data = kind == OfficeChartType.Bubble
+            ? new OfficeChartData(new[] { "1", "2" }, new[] { OfficeSeries.CreateBubble("Values", new[] { 1d, 2d }, new[] { 3d, 4d }, new[] { 5d, 10d }, OfficeColor.Parse("#224466")) })
+            : new OfficeChartData(new[] { "A", "B" }, new[] { new OfficeSeries("Values", new[] { 3d, 4d }, null, OfficeColor.Parse("#224466")) });
         document.AddChart(kind, data, title: "A <chart> & report", width: 600, height: 300);
         document.AddParagraph("After");
         var result = document.ConvertToHtmlWithEvidence();
@@ -538,12 +538,12 @@ public sealed class HtmlWordChartTests {
     [Fact]
     public void Export_PreservesOutlinedAndHatchedRadialPointsWithoutMutatingTheNativeChart() {
         using var document = WordDocument.Create();
-        var series = new OfficeChartSeries("Status", new[] { 3d, 2d, 1d }).WithPointStyles(new OfficeChartPointStyle?[] {
+        var series = new OfficeSeries("Status", new[] { 3d, 2d, 1d }).WithPointStyles(new OfficeChartPointStyle?[] {
             new(fillColor: OfficeColor.Parse("#224466")),
             new(noFill: true, outlineColor: OfficeColor.Parse("#778899"), outlineWidth: 2, showOutline: true),
             new(hatch: OfficeChartHatchPattern.DiagonalCross, hatchColor: OfficeColor.Parse("#ABCDEF"))
         });
-        var chart = document.AddChart(OfficeChartKind.Doughnut, new OfficeChartData(new[] { "Pass", "Unknown", "Fail" }, new[] { series }));
+        var chart = document.AddChart(OfficeChartType.Doughnut, new OfficeChartData(new[] { "Pass", "Unknown", "Fail" }, new[] { series }));
         string native = chart.ChartPart!.ChartSpace!.OuterXml;
         var result = document.ConvertToHtmlWithEvidence(new WordHtmlExportOptions { EmbedImagesAsBase64 = false });
         var image = new HtmlParser().ParseDocument(result.RequireValue()).QuerySelector("img")!;
@@ -559,7 +559,7 @@ public sealed class HtmlWordChartTests {
     [InlineData(true)]
     public void Export_ReportsUnsupportedChartOmission(bool unsupportedCategoryFormat) {
         using var document = WordDocument.Create();
-        var chart = document.AddChart(OfficeChartKind.Line, Data());
+        var chart = document.AddChart(OfficeChartType.Line, Data());
         if (unsupportedCategoryFormat) {
             var native = chart.ChartPart!.ChartSpace!;
             var categories = native.Descendants<C.CategoryAxisData>().Single();
@@ -579,7 +579,7 @@ public sealed class HtmlWordChartTests {
     [InlineData("output")]
     public void Export_EnforcesImageAndOutputBudgets(string limit) {
         using var document = WordDocument.Create();
-        document.AddChart(OfficeChartKind.ColumnClustered, Data());
+        document.AddChart(OfficeChartType.ColumnClustered, Data());
         var options = new WordHtmlExportOptions { IncludeDefaultCss = false };
         if (limit == "image") options.MaxEmbeddedImageBytes = 16;
         if (limit == "aggregate") options.MaxTotalEmbeddedImageBytes = 16;
@@ -590,5 +590,5 @@ public sealed class HtmlWordChartTests {
         Assert.True(error.Actual > error.Limit);
     }
 
-    private static OfficeChartData Data() => new(new[] { "A", "B" }, new[] { new OfficeChartSeries("Values", new[] { 3d, 4d }) });
+    private static OfficeChartData Data() => new(new[] { "A", "B" }, new[] { new OfficeSeries("Values", new[] { 3d, 4d }) });
 }

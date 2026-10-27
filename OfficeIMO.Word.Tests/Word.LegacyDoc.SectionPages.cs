@@ -55,7 +55,7 @@ public partial class Word {
         Assert.Equal("225588", display.RunProperties.Color!.Val!.Value);
         WordFieldInfo editable = Assert.Single(imported.InspectFields());
         Assert.Equal(WordFieldType.SectionPages, editable.FieldType);
-        Assert.Contains(WordFieldFormat.Roman, editable.FormatSwitches);
+        Assert.Contains(WordFieldFormat.UpperRoman, editable.FormatSwitches);
         Assert.Equal("II", editable.ResultText);
 
         field.Instruction = " SECTIONPAGES \\* Arabic ";
@@ -71,11 +71,11 @@ public partial class Word {
     [InlineData(true)]
     public void LegacyDoc_SectionPagesTypedAuthoringRemainsGettable(bool advanced) {
         using WordDocument source = WordDocument.Create();
-        source.AddParagraph().AddField(WordFieldType.SectionPages, WordFieldFormat.Roman, advanced: advanced);
+        source.AddParagraph().AddField(WordFieldType.SectionPages, WordFieldFormat.UpperRoman, advanced: advanced);
         using WordDocument imported = WordDocument.Load(new MemoryStream(source.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc })));
         WordField field = Assert.Single(imported.Paragraphs, p => p.Field != null).Field!;
         Assert.Equal(WordFieldType.SectionPages, field.FieldType);
-        Assert.Contains(WordFieldFormat.Roman, field.FieldFormat);
+        Assert.Contains(WordFieldFormat.UpperRoman, field.FieldFormat);
     }
 
     [Theory]

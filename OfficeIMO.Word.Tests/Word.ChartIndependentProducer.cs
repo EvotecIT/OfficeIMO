@@ -15,7 +15,7 @@ public sealed class WordChartIndependentProducerTests {
         string nativeXml = chart.ChartPart!.ChartSpace!.OuterXml;
 
         Assert.True(chart.TryGetOfficeSnapshot(out OfficeChartSnapshot snapshot));
-        Assert.Equal(OfficeChartKind.Pie, snapshot.ChartKind);
+        Assert.Equal(OfficeChartType.Pie, snapshot.ChartKind);
         Assert.Equal(new[] { "Pass", "Fail", "Unknown" }, snapshot.Data.Categories);
         var styles = Assert.Single(snapshot.Data.Series).PointStyles!;
         Assert.Equal(OfficeColor.Parse("#228844"), styles[0]!.FillColor);
@@ -59,9 +59,9 @@ public sealed class WordChartIndependentProducerTests {
         string nativeXml = chart.ChartPart!.ChartSpace!.OuterXml;
 
         Assert.True(chart.TryGetOfficeSnapshot(out OfficeChartSnapshot snapshot));
-        Assert.Equal(OfficeChartKind.Area, snapshot.ChartKind);
+        Assert.Equal(OfficeChartType.Area, snapshot.ChartKind);
         Assert.Equal(new[] { "A", "B", "C", "D" }, snapshot.Data.Categories);
-        OfficeChartSeries series = Assert.Single(snapshot.Data.Series);
+        OfficeSeries series = Assert.Single(snapshot.Data.Series);
         Assert.Equal(OfficeColor.Parse("#004586"), series.Color);
         Assert.False(series.ConnectLine);
         Assert.Equal(4, series.PointStyles!.Count);

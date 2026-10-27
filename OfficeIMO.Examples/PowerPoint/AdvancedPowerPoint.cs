@@ -124,11 +124,11 @@ namespace OfficeIMO.Examples.PowerPoint {
             OfficeChartData chartData = new OfficeChartData(
                 kpis.Select(k => k.Metric),
                 new[] {
-                    new OfficeChartSeries("Current", kpis.Select(k => (double)k.Current)),
-                    new OfficeChartSeries("Target", kpis.Select(k => (double)k.Target))
+                    new OfficeSeries("Current", kpis.Select(k => (double)k.Current)),
+                    new OfficeSeries("Target", kpis.Select(k => (double)k.Target))
                 });
             PowerPointChart chart = slide4.AddChartCm(
-                OfficeChartKind.ColumnClustered, chartData,
+                OfficeChartType.ColumnClustered, chartData,
                 bodyBox.LeftCm,
                 bodyBox.TopCm,
                 bodyBox.WidthCm,

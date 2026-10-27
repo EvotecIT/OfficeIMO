@@ -10,13 +10,13 @@ public sealed class DrawingChartPlotClippingTests {
     public void AutomaticScatterRangeMapsOppositeFiniteExtremes() {
         OfficeColor ink = OfficeColor.Parse("#D900AA");
         var data = new OfficeChartData(new[] { "A", "B" }, new[] {
-            new OfficeChartSeries("Series", new[] { -double.MaxValue, double.MaxValue },
+            new OfficeSeries("Series", new[] { -double.MaxValue, double.MaxValue },
                 new[] { -double.MaxValue, double.MaxValue }, ink)
         });
         var layout = new OfficeChartLayout(showLegend: false);
 
         OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot("", null,
-            OfficeChartKind.Scatter, data, 360, 240, layout: layout));
+            OfficeChartType.Scatter, data, 360, 240, layout: layout));
 
         Assert.Contains(drawing.Shapes, shape => shape.Shape.Kind == OfficeShapeKind.Line &&
             shape.Shape.StrokeColor == ink && shape.Shape.Width > 100D && shape.Shape.Height > 100D);
@@ -29,7 +29,7 @@ public sealed class DrawingChartPlotClippingTests {
     public void ExplicitExtremeScatterBoundsKeepTheConnectedLine() {
         OfficeColor ink = OfficeColor.Parse("#D900AA");
         var data = new OfficeChartData(new[] { "A", "B" }, new[] {
-            new OfficeChartSeries("Series", new[] { -double.MaxValue, double.MaxValue },
+            new OfficeSeries("Series", new[] { -double.MaxValue, double.MaxValue },
                 new[] { -double.MaxValue, double.MaxValue }, ink)
         });
         var layout = new OfficeChartLayout(showLegend: false,
@@ -37,7 +37,7 @@ public sealed class DrawingChartPlotClippingTests {
             verticalAxisMinimum: -double.MaxValue, verticalAxisMaximum: double.MaxValue);
 
         OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot("", null,
-            OfficeChartKind.Scatter, data, 360, 240, layout: layout));
+            OfficeChartType.Scatter, data, 360, 240, layout: layout));
         OfficeDrawingGroup group = Assert.Single(drawing.Elements.OfType<OfficeDrawingGroup>(),
             item => item.Drawing.Shapes.Any(shape => shape.Shape.Kind == OfficeShapeKind.Line &&
                 shape.Shape.StrokeColor == ink));
@@ -51,13 +51,13 @@ public sealed class DrawingChartPlotClippingTests {
     public void ClippedAreaDoesNotOutlineTheArtificialUpperEdge() {
         OfficeColor ink = OfficeColor.Parse("#D900AA");
         var data = new OfficeChartData(new[] { "A", "B" }, new[] {
-            new OfficeChartSeries("Series", new[] { 10d, 10d }, null, ink)
+            new OfficeSeries("Series", new[] { 10d, 10d }, null, ink)
         });
         // Points on the tick marks (OOXML midCat) put the clipped area across the whole plot.
         var layout = new OfficeChartLayout(showLegend: false,
             verticalAxisMinimum: 0, verticalAxisMaximum: 5).WithCategoryPointsOnTickMarks(true);
         OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot("", null,
-            OfficeChartKind.Area, data, 360, 240, layout: layout));
+            OfficeChartType.Area, data, 360, 240, layout: layout));
         OfficeDrawingGroup group = Assert.Single(drawing.Elements.OfType<OfficeDrawingGroup>());
         Assert.Contains(group.Drawing.Shapes, shape => shape.Shape.FillColor == ink);
         Assert.DoesNotContain(group.Drawing.Shapes, shape =>
@@ -77,7 +77,7 @@ public sealed class DrawingChartPlotClippingTests {
     public void OppositeFiniteExtremeScatterPointsCrossTheEntirePlot(bool diagonal) {
         OfficeColor ink = OfficeColor.Parse("#D900AA");
         var data = new OfficeChartData(new[] { "A", "B" }, new[] {
-            new OfficeChartSeries("Series", diagonal
+            new OfficeSeries("Series", diagonal
                     ? new[] { -double.MaxValue, double.MaxValue }
                     : new[] { .5d, .5d },
                 new[] { -double.MaxValue, double.MaxValue }, ink)
@@ -86,7 +86,7 @@ public sealed class DrawingChartPlotClippingTests {
             horizontalAxisMinimum: 0, horizontalAxisMaximum: 1,
             verticalAxisMinimum: 0, verticalAxisMaximum: 1);
         OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot("", null,
-            OfficeChartKind.Scatter, data, 360, 240, layout: layout));
+            OfficeChartType.Scatter, data, 360, 240, layout: layout));
         OfficeDrawingGroup group = Assert.Single(drawing.Elements.OfType<OfficeDrawingGroup>(),
             item => item.Drawing.Shapes.Any(shape => shape.Shape.Kind == OfficeShapeKind.Line &&
                 shape.Shape.StrokeColor == ink));
@@ -105,14 +105,14 @@ public sealed class DrawingChartPlotClippingTests {
     public void LargeFiniteScatterSegmentCrossesNarrowExplicitBounds() {
         OfficeColor ink = OfficeColor.Parse("#D900AA");
         var data = new OfficeChartData(new[] { "A", "B" }, new[] {
-            new OfficeChartSeries("Series", new[] { .5d, .5d },
+            new OfficeSeries("Series", new[] { .5d, .5d },
                 new[] { -1e16, 1e16 }, ink)
         });
         var layout = new OfficeChartLayout(showLegend: false,
             horizontalAxisMinimum: 0, horizontalAxisMaximum: 1,
             verticalAxisMinimum: 0, verticalAxisMaximum: 1);
         OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot("", null,
-            OfficeChartKind.Scatter, data, 360, 240, layout: layout));
+            OfficeChartType.Scatter, data, 360, 240, layout: layout));
         OfficeDrawingGroup group = Assert.Single(drawing.Elements.OfType<OfficeDrawingGroup>(),
             item => item.Drawing.Shapes.Any(shape => shape.Shape.Kind == OfficeShapeKind.Line &&
                 shape.Shape.StrokeColor == ink));
@@ -129,13 +129,13 @@ public sealed class DrawingChartPlotClippingTests {
         double[] x = reverse ? new[] { .5d, double.MaxValue } : new[] { double.MaxValue, .5d };
         double[] y = reverse ? new[] { .5d, double.MaxValue } : new[] { double.MaxValue, .5d };
         var data = new OfficeChartData(new[] { "A", "B" }, new[] {
-            new OfficeChartSeries("Series", y, x, ink)
+            new OfficeSeries("Series", y, x, ink)
         });
         var layout = new OfficeChartLayout(showLegend: false,
             horizontalAxisMinimum: 0, horizontalAxisMaximum: 1,
             verticalAxisMinimum: 0, verticalAxisMaximum: 1);
         OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot("", null,
-            OfficeChartKind.Scatter, data, 360, 240, layout: layout));
+            OfficeChartType.Scatter, data, 360, 240, layout: layout));
         OfficeDrawingGroup group = Assert.Single(drawing.Elements.OfType<OfficeDrawingGroup>(),
             item => item.Drawing.Shapes.Any(shape => shape.Shape.Kind == OfficeShapeKind.Line &&
                 shape.Shape.StrokeColor == ink));
@@ -146,15 +146,15 @@ public sealed class DrawingChartPlotClippingTests {
     }
 
     [Theory]
-    [InlineData(OfficeChartKind.Line)]
-    [InlineData(OfficeChartKind.Area)]
-    [InlineData(OfficeChartKind.Scatter)]
-    public void FiniteExtremeOutlierClipsBeforePixelConversion(OfficeChartKind kind) {
+    [InlineData(OfficeChartType.Line)]
+    [InlineData(OfficeChartType.Area)]
+    [InlineData(OfficeChartType.Scatter)]
+    public void FiniteExtremeOutlierClipsBeforePixelConversion(OfficeChartType kind) {
         OfficeColor ink = OfficeColor.Parse("#D900AA");
-        var series = kind == OfficeChartKind.Scatter
-            ? new OfficeChartSeries("Series", new[] { double.MaxValue, .5d },
+        var series = kind == OfficeChartType.Scatter
+            ? new OfficeSeries("Series", new[] { double.MaxValue, .5d },
                 new[] { double.MaxValue, .5d }, ink)
-            : new OfficeChartSeries("Series", new[] { double.MaxValue, .5d }, null, ink);
+            : new OfficeSeries("Series", new[] { double.MaxValue, .5d }, null, ink);
         var data = new OfficeChartData(new[] { "A", "B" }, new[] { series });
         var layout = new OfficeChartLayout(showLegend: false,
             horizontalAxisMinimum: 0, horizontalAxisMaximum: 1,
@@ -166,13 +166,13 @@ public sealed class DrawingChartPlotClippingTests {
     }
 
     [Theory]
-    [InlineData(OfficeChartKind.Line)]
-    [InlineData(OfficeChartKind.Scatter)]
-    public void OneSidedBoundOutsideDataStillClipsSeries(OfficeChartKind kind) {
+    [InlineData(OfficeChartType.Line)]
+    [InlineData(OfficeChartType.Scatter)]
+    public void OneSidedBoundOutsideDataStillClipsSeries(OfficeChartType kind) {
         OfficeColor ink = OfficeColor.Parse("#D900AA");
-        var series = kind == OfficeChartKind.Scatter
-            ? new OfficeChartSeries("Series", new[] { 10d, 20d }, new[] { 0d, 1d }, ink)
-            : new OfficeChartSeries("Series", new[] { 10d, 20d }, null, ink);
+        var series = kind == OfficeChartType.Scatter
+            ? new OfficeSeries("Series", new[] { 10d, 20d }, new[] { 0d, 1d }, ink)
+            : new OfficeSeries("Series", new[] { 10d, 20d }, null, ink);
         var data = new OfficeChartData(new[] { "A", "B" }, new[] { series });
         var layout = new OfficeChartLayout(showLegend: false, verticalAxisMaximum: 5);
         OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot("", null,
@@ -187,13 +187,13 @@ public sealed class DrawingChartPlotClippingTests {
     public void ExtremeScatterOutlierKeepsTrueLineSlopeAtPlotBoundary() {
         OfficeColor ink = OfficeColor.Parse("#D900AA");
         var data = new OfficeChartData(new[] { "A", "B" }, new[] {
-            new OfficeChartSeries("Series", new[] { -1e9, .5d }, new[] { -1e12, .5d }, ink)
+            new OfficeSeries("Series", new[] { -1e9, .5d }, new[] { -1e12, .5d }, ink)
         });
         var layout = new OfficeChartLayout(showLegend: false,
             horizontalAxisMinimum: 0, horizontalAxisMaximum: 1,
             verticalAxisMinimum: 0, verticalAxisMaximum: 1);
         OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot("", null,
-            OfficeChartKind.Scatter, data, 360, 240, layout: layout));
+            OfficeChartType.Scatter, data, 360, 240, layout: layout));
         OfficeDrawingGroup group = Assert.Single(drawing.Elements.OfType<OfficeDrawingGroup>(),
             item => item.Drawing.Shapes.Any(shape => shape.Shape.Kind == OfficeShapeKind.Line &&
                 shape.Shape.StrokeColor == ink));
@@ -206,12 +206,12 @@ public sealed class DrawingChartPlotClippingTests {
     }
 
     [Theory]
-    [InlineData(OfficeChartKind.Line)]
-    [InlineData(OfficeChartKind.Area)]
-    public void ExtremeCategoryOutliersKeepTrueCrossingNearSecondCategory(OfficeChartKind kind) {
+    [InlineData(OfficeChartType.Line)]
+    [InlineData(OfficeChartType.Area)]
+    public void ExtremeCategoryOutliersKeepTrueCrossingNearSecondCategory(OfficeChartType kind) {
         OfficeColor ink = OfficeColor.Parse("#D900AA");
         var data = new OfficeChartData(new[] { "A", "B" }, new[] {
-            new OfficeChartSeries("Series", new[] { -1e12, 1e9 }, null, ink)
+            new OfficeSeries("Series", new[] { -1e12, 1e9 }, null, ink)
         });
         // Points on the tick marks (OOXML midCat) put the second category at the plot edge.
         var layout = new OfficeChartLayout(showLegend: false,
@@ -231,14 +231,14 @@ public sealed class DrawingChartPlotClippingTests {
     [Fact]
     public void HorizontalBarBoundsClipMixedPrimaryLine() {
         OfficeColor ink = OfficeColor.Parse("#D900AA");
-        var data = new OfficeChartData(new[] { "A", "B" }, new OfficeChartSeries[] {
+        var data = new OfficeChartData(new[] { "A", "B" }, new OfficeSeries[] {
             new("Bars", new[] { 1d, 2d }),
             new("Trend", new[] { 10d, 20d }, null, ink, null, true,
-                renderKind: OfficeChartKind.Line)
+                renderKind: OfficeChartType.Line)
         });
         var layout = new OfficeChartLayout(showLegend: false, horizontalAxisMaximum: 5);
         var drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot("", null,
-            OfficeChartKind.BarClustered, data, 360, 240, layout: layout));
+            OfficeChartType.BarClustered, data, 360, 240, layout: layout));
         OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(drawing);
         for (int y = 0; y < raster.Height; y++)
             for (int x = 0; x < raster.Width; x++)
@@ -249,16 +249,16 @@ public sealed class DrawingChartPlotClippingTests {
     public void MixedBubblePaddingDoesNotExposeOffscaleScatterLine() {
         OfficeColor lineInk = OfficeColor.Parse("#D900AA");
         OfficeColor bubbleInk = OfficeColor.Parse("#2A9D8F");
-        var data = new OfficeChartData(new[] { "A", "B" }, new OfficeChartSeries[] {
+        var data = new OfficeChartData(new[] { "A", "B" }, new OfficeSeries[] {
             new("Trend", new[] { 5d, 5d }, new[] { -2d, 5d }, lineInk),
-            OfficeChartSeries.CreateBubble("Bubbles", new[] { 0d, 10d },
+            OfficeSeries.CreateBubble("Bubbles", new[] { 0d, 10d },
                 new[] { 0d, 10d }, new[] { 100d, 100d }, bubbleInk)
         });
         var layout = new OfficeChartLayout(showLegend: false,
             horizontalAxisMinimum: 0, horizontalAxisMaximum: 10,
             verticalAxisMinimum: 0, verticalAxisMaximum: 10);
         var drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot("", null,
-            OfficeChartKind.Scatter, data, 420, 260, layout: layout));
+            OfficeChartType.Scatter, data, 420, 260, layout: layout));
 
         OfficeDrawingGroup[] groups = drawing.Elements.OfType<OfficeDrawingGroup>().ToArray();
         OfficeDrawingGroup lineGroup = Assert.Single(groups,
@@ -286,14 +286,14 @@ public sealed class DrawingChartPlotClippingTests {
     public void BubbleAtExplicitAxisBoundRetainsPaintInReservedPlotMargin() {
         OfficeColor ink = OfficeColor.Parse("#D900AA");
         var data = new OfficeChartData(new[] { "A", "B" }, new[] {
-            OfficeChartSeries.CreateBubble("Bubbles", new[] { 0d, 10d },
+            OfficeSeries.CreateBubble("Bubbles", new[] { 0d, 10d },
                 new[] { 0d, 10d }, new[] { 100d, 100d }, ink)
         });
         var layout = new OfficeChartLayout(showLegend: false,
             horizontalAxisMinimum: 0, horizontalAxisMaximum: 10,
             verticalAxisMinimum: 0, verticalAxisMaximum: 10);
         var drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot("", null,
-            OfficeChartKind.Bubble, data, 420, 260, layout: layout));
+            OfficeChartType.Bubble, data, 420, 260, layout: layout));
 
         OfficeDrawingGroup group = Assert.Single(drawing.Elements.OfType<OfficeDrawingGroup>());
         OfficeDrawingShape firstBubble = group.Drawing.Shapes
@@ -310,14 +310,14 @@ public sealed class DrawingChartPlotClippingTests {
     [Fact]
     public void InRangePointLabelCanExtendAboveClippedPlot() {
         var data = new OfficeChartData(new[] { "A", "B", "C" }, new[] {
-            new OfficeChartSeries("Series", new[] { 0d, 8d, 10d })
+            new OfficeSeries("Series", new[] { 0d, 8d, 10d })
         });
         var layout = new OfficeChartLayout(showLegend: false, showDataLabels: true,
             showDataLabelValues: true, dataLabelNumberFormat: "0.00",
             dataLabelPosition: OfficeChartDataLabelPosition.Top,
             verticalAxisMinimum: 2, verticalAxisMaximum: 8);
         var drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot("", null,
-            OfficeChartKind.Line, data, 360, 240, layout: layout));
+            OfficeChartType.Line, data, 360, 240, layout: layout));
         OfficeDrawingGroup group = Assert.Single(drawing.Elements.OfType<OfficeDrawingGroup>());
         OfficeDrawingText label = Assert.Single(drawing.Elements.OfType<OfficeDrawingText>(),
             text => text.Text == "8.00");
@@ -326,21 +326,21 @@ public sealed class DrawingChartPlotClippingTests {
     }
 
     [Theory]
-    [InlineData(OfficeChartKind.Line)]
-    [InlineData(OfficeChartKind.Area)]
-    [InlineData(OfficeChartKind.Scatter)]
-    public void ExplicitAxisBoundsClipSeriesPaintWithoutClippingLabels(OfficeChartKind kind) {
+    [InlineData(OfficeChartType.Line)]
+    [InlineData(OfficeChartType.Area)]
+    [InlineData(OfficeChartType.Scatter)]
+    public void ExplicitAxisBoundsClipSeriesPaintWithoutClippingLabels(OfficeChartType kind) {
         OfficeColor ink = OfficeColor.Parse("#D900AA");
-        var series = kind == OfficeChartKind.Scatter
-            ? new OfficeChartSeries("Series", new[] { 5d, 5d, 5d }, new[] { -2d, 5d, 12d }, ink)
-            : new OfficeChartSeries("Series", new[] { 0d, 5d, 10d }, null, ink);
+        var series = kind == OfficeChartType.Scatter
+            ? new OfficeSeries("Series", new[] { 5d, 5d, 5d }, new[] { -2d, 5d, 12d }, ink)
+            : new OfficeSeries("Series", new[] { 0d, 5d, 10d }, null, ink);
         var data = new OfficeChartData(new[] { "A", "B", "C" }, new[] { series });
         var layout = new OfficeChartLayout(showLegend: false, showDataLabels: true,
             showDataLabelValues: true, dataLabelNumberFormat: "0.00",
-            verticalAxisMinimum: kind == OfficeChartKind.Scatter ? 0 : 2,
-            verticalAxisMaximum: kind == OfficeChartKind.Scatter ? 10 : 8,
-            horizontalAxisMinimum: kind == OfficeChartKind.Scatter ? 0 : null,
-            horizontalAxisMaximum: kind == OfficeChartKind.Scatter ? 10 : null);
+            verticalAxisMinimum: kind == OfficeChartType.Scatter ? 0 : 2,
+            verticalAxisMaximum: kind == OfficeChartType.Scatter ? 10 : 8,
+            horizontalAxisMinimum: kind == OfficeChartType.Scatter ? 0 : null,
+            horizontalAxisMaximum: kind == OfficeChartType.Scatter ? 10 : null);
         var style = new OfficeChartStyle(showBackground: false, palette: new[] { ink },
             showGridLines: false, showBorder: false);
         var drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot("", null,

@@ -129,11 +129,11 @@ public sealed class DrawingAllSeverityBatch20SecurityTests {
         OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
             "Degenerate radar",
             null,
-            OfficeChartKind.Radar,
+            OfficeChartType.Radar,
             new OfficeChartData(
                 new[] { "North", "East", "South", "West" },
                 new[] {
-                    new OfficeChartSeries(
+                    new OfficeSeries(
                         "Series",
                         new[] { 1D, 0D, 1D, 0D },
                         xValues: null,

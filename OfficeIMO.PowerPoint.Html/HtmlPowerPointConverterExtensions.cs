@@ -903,7 +903,7 @@ public static partial class HtmlPowerPointConverterExtensions {
                 return false;
             }
 
-            chart = slide.AddChartPoints(OfficeChartKind.Bubble, bubbleData,
+            chart = slide.AddChartPoints(OfficeChartType.Bubble, bubbleData,
                 left, top, width, height);
             return true;
         }

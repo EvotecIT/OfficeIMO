@@ -12,7 +12,7 @@ public static partial class OfficeChartDrawingRenderer {
             (style.NoFill || style.FillColor.HasValue || style.Hatch.HasValue || style.OutlineColor.HasValue ||
                 style.OutlineWidth.HasValue || style.ShowOutline.HasValue || style.OutlineJoin.HasValue)) == true);
 
-    private static OfficeChartPointStyle? GetPointStyle(OfficeChartSeries series, int index) {
+    private static OfficeChartPointStyle? GetPointStyle(OfficeSeries series, int index) {
         var point = GetPointStyle(series.PointStyles, index);
         if (series.PointColors != null && index >= 0 && index < series.PointColors.Count &&
             series.PointColors[index] is OfficeColor color)
@@ -23,7 +23,7 @@ public static partial class OfficeChartDrawingRenderer {
     private static OfficeChartPointStyle? GetPointStyle(IReadOnlyList<OfficeChartPointStyle?>? styles, int index) =>
         styles != null && index >= 0 && index < styles.Count ? styles[index] : null;
 
-    private static OfficeColor GetPointDataLabelColor(OfficeChartStyle style, OfficeChartSeries series,
+    private static OfficeColor GetPointDataLabelColor(OfficeChartStyle style, OfficeSeries series,
         int index) {
         // Radial charts do not paint a separate plot-area rectangle.
         OfficeColor background = style.BackgroundColor;

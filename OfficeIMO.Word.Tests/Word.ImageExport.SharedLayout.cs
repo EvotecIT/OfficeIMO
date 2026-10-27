@@ -97,8 +97,8 @@ public sealed class WordSharedPageLayoutTests {
     public void SharedConversionReportsOmissionsAndStrictImagesRejectThem() {
         using WordDocument document = WordDocument.Create();
         document.AddParagraph("Visible text before the unsupported chart.");
-        var chart = document.AddChart(OfficeChartKind.Pie, new OfficeChartData(new[] { "A" },
-            new[] { new OfficeChartSeries("Values", new[] { 1D }) }));
+        var chart = document.AddChart(OfficeChartType.Pie, new OfficeChartData(new[] { "A" },
+            new[] { new OfficeSeries("Values", new[] { 1D }) }));
         chart.ChartPart!.ChartSpace!.RemoveAllChildren();
         var conversion = document.ConvertToPdfWithEvidence();
         Assert.Contains(conversion.Warnings, warning => warning.Code == "native-body-chart-unsupported"

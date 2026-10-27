@@ -6,7 +6,7 @@ using System.Linq;
 namespace OfficeIMO.Drawing;
 
 public static partial class OfficeChartDrawingRenderer {
-    private static double GetSeriesLegendWidth(IReadOnlyList<OfficeChartSeries> series, double chartWidth, OfficeChartLayout layout) {
+    private static double GetSeriesLegendWidth(IReadOnlyList<OfficeSeries> series, double chartWidth, OfficeChartLayout layout) {
         if (!ShouldRenderLegendSide(layout) || chartWidth < 180D) {
             return 0D;
         }
@@ -26,7 +26,7 @@ public static partial class OfficeChartDrawingRenderer {
         return BoundLegendWidth(Math.Max(58D, widest + 34D), chartWidth, layout.SeriesLegendWidthRatio);
     }
 
-    private static double GetOverlaySeriesLegendWidth(IReadOnlyList<OfficeChartSeries> series, double chartWidth, OfficeChartLayout layout) {
+    private static double GetOverlaySeriesLegendWidth(IReadOnlyList<OfficeSeries> series, double chartWidth, OfficeChartLayout layout) {
         List<int> legendIndexes = GetLegendSeriesIndexes(series);
         if (!layout.ShowLegend || legendIndexes.Count == 0 || chartWidth < 120D) {
             return 0D;
@@ -81,7 +81,7 @@ public static partial class OfficeChartDrawingRenderer {
     private static double BoundLegendWidth(double desired, double chartWidth, double ratio) =>
         Math.Min(desired, chartWidth * ratio);
 
-    private static void AddSeriesLegend(OfficeDrawing drawing, IReadOnlyList<OfficeChartSeries> series, double x, double y, double width, double plotHeight, OfficeChartStyle style, OfficeChartLayout layout) {
+    private static void AddSeriesLegend(OfficeDrawing drawing, IReadOnlyList<OfficeSeries> series, double x, double y, double width, double plotHeight, OfficeChartStyle style, OfficeChartLayout layout) {
         List<int> legendIndexes = GetLegendSeriesIndexes(series);
         if (!layout.ShowLegend || legendIndexes.Count == 0 || width < 28D) {
             return;
@@ -129,7 +129,7 @@ public static partial class OfficeChartDrawingRenderer {
         }
     }
 
-    private static void AddOverlaySeriesLegend(OfficeDrawing drawing, IReadOnlyList<OfficeChartSeries> series, double plotLeft, double plotTop, double plotWidth, double plotHeight, OfficeChartStyle style, OfficeChartLayout layout) {
+    private static void AddOverlaySeriesLegend(OfficeDrawing drawing, IReadOnlyList<OfficeSeries> series, double plotLeft, double plotTop, double plotWidth, double plotHeight, OfficeChartStyle style, OfficeChartLayout layout) {
         double width = GetOverlaySeriesLegendWidth(series, plotWidth, layout);
         if (width <= 0D) {
             return;
@@ -161,7 +161,7 @@ public static partial class OfficeChartDrawingRenderer {
         AddCategoryLegend(drawing, categories, x, y, width, availableHeight, style, layout, pointColors, pointStyles);
     }
 
-    private static double GetSeriesLegendBandHeight(IReadOnlyList<OfficeChartSeries> series, double chartWidth, OfficeChartLayout layout) {
+    private static double GetSeriesLegendBandHeight(IReadOnlyList<OfficeSeries> series, double chartWidth, OfficeChartLayout layout) {
         if (!ShouldRenderLegendBand(layout) || chartWidth < 160D) {
             return 0D;
         }
@@ -187,7 +187,7 @@ public static partial class OfficeChartDrawingRenderer {
         return GetLegendBandHeight(legendIndexes.Select(index => categories[index]), chartWidth, layout);
     }
 
-    private static void AddSeriesLegendBand(OfficeDrawing drawing, IReadOnlyList<OfficeChartSeries> series, double x, double y, double width, OfficeChartStyle style, OfficeChartLayout layout) {
+    private static void AddSeriesLegendBand(OfficeDrawing drawing, IReadOnlyList<OfficeSeries> series, double x, double y, double width, OfficeChartStyle style, OfficeChartLayout layout) {
         if (!ShouldRenderLegendBand(layout) || width < 48D) {
             return;
         }
@@ -209,7 +209,7 @@ public static partial class OfficeChartDrawingRenderer {
             legendIndexes.Select(index => series[index].SeriesStyle).ToList());
     }
 
-    private static List<int> GetLegendSeriesIndexes(IReadOnlyList<OfficeChartSeries> series) {
+    private static List<int> GetLegendSeriesIndexes(IReadOnlyList<OfficeSeries> series) {
         var indexes = new List<int>(series.Count);
         for (int i = 0; i < series.Count; i++) {
             if (series[i].ShowInLegend) {
@@ -417,12 +417,12 @@ public static partial class OfficeChartDrawingRenderer {
         AddChartText(drawing, label!, x, y, Math.Max(1D, width), Math.Max(9D, fontSize + 3D), fontSize, style.MutedTextColor, alignment, style, layout.AxisTextFontFamily, layout.AxisTextFontStyle);
     }
 
-    private static bool HasHorizontalAxisTitle(OfficeChartKind chartKind, OfficeChartLayout layout) =>
+    private static bool HasHorizontalAxisTitle(OfficeChartType chartKind, OfficeChartLayout layout) =>
         IsBarChart(chartKind)
             ? layout.ShowValueAxis && !string.IsNullOrWhiteSpace(layout.ValueAxisTitle)
             : layout.ShowCategoryAxis && !string.IsNullOrWhiteSpace(layout.CategoryAxisTitle);
 
-    private static bool HasVerticalAxisTitle(OfficeChartKind chartKind, OfficeChartLayout layout) =>
+    private static bool HasVerticalAxisTitle(OfficeChartType chartKind, OfficeChartLayout layout) =>
         IsBarChart(chartKind)
             ? layout.ShowCategoryAxis && !string.IsNullOrWhiteSpace(layout.CategoryAxisTitle)
             : layout.ShowValueAxis && !string.IsNullOrWhiteSpace(layout.ValueAxisTitle);
@@ -552,7 +552,7 @@ public static partial class OfficeChartDrawingRenderer {
             kind => IsPercentStackedLineChart(kind),
             snapshot);
 
-        List<OfficeChartSeries> scatterSeries = GetRenderableScatterSeries(snapshot).Where(item =>
+        List<OfficeSeries> scatterSeries = GetRenderableScatterSeries(snapshot).Where(item =>
             !axisGroup.HasValue || item.Series.AxisGroup == axisGroup.Value).Select(item => item.Series).ToList();
         if (scatterSeries.Count > 0) {
             ranges.Add(GetFiniteSeriesRange(scatterSeries));
@@ -574,17 +574,17 @@ public static partial class OfficeChartDrawingRenderer {
 
     private static void AddSeriesRange(
         List<ValueRange> ranges,
-        IReadOnlyList<OfficeChartSeries> series,
+        IReadOnlyList<OfficeSeries> series,
         int categoryCount,
-        Func<OfficeChartKind, bool> isStacked,
-        Func<OfficeChartKind, bool> isPercentStacked,
+        Func<OfficeChartType, bool> isStacked,
+        Func<OfficeChartType, bool> isPercentStacked,
         OfficeChartSnapshot snapshot) {
         if (series.Count == 0) {
             return;
         }
 
-        foreach (IGrouping<OfficeChartKind, OfficeChartSeries> group in series.GroupBy(item => GetEffectiveSeriesKind(snapshot, item))) {
-            List<OfficeChartSeries> groupedSeries = group.ToList();
+        foreach (IGrouping<OfficeChartType, OfficeSeries> group in series.GroupBy(item => GetEffectiveSeriesKind(snapshot, item))) {
+            List<OfficeSeries> groupedSeries = group.ToList();
             if (isPercentStacked(group.Key)) {
                 ranges.Add(GetPercentStackedSeriesRange(groupedSeries, categoryCount));
             } else if (isStacked(group.Key)) {
@@ -699,7 +699,7 @@ public static partial class OfficeChartDrawingRenderer {
         foreach (char c in text) pattern.Append('\\').Append(c);
     }
 
-    private static string FormatDataLabel(OfficeChartLayout layout, string category, OfficeChartSeries series,
+    private static string FormatDataLabel(OfficeChartLayout layout, string category, OfficeSeries series,
         double value, double total, double? percentageRatio = null) {
         var parts = new List<string>(4);
         if (layout.ShowDataLabelSeriesNames && !string.IsNullOrWhiteSpace(series.Name)) {
@@ -1134,7 +1134,7 @@ public static partial class OfficeChartDrawingRenderer {
         OfficeChartLayout layout,
         OfficeChartStyle style,
         string category,
-        OfficeChartSeries series,
+        OfficeSeries series,
         double value,
         double total,
         double centerX,
@@ -1176,7 +1176,7 @@ public static partial class OfficeChartDrawingRenderer {
         OfficeChartLayout layout,
         OfficeChartStyle style,
         string category,
-        OfficeChartSeries series,
+        OfficeSeries series,
         double value,
         double total,
         double barLeft,
@@ -1220,7 +1220,7 @@ public static partial class OfficeChartDrawingRenderer {
         OfficeChartLayout layout,
         OfficeChartStyle style,
         string category,
-        OfficeChartSeries series,
+        OfficeSeries series,
         double value,
         double total,
         double x,

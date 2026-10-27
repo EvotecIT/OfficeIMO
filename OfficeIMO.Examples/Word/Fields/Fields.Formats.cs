@@ -7,7 +7,7 @@ namespace OfficeIMO.Examples.Word {
             Console.WriteLine("[*] Creating document with roman page number field");
             string filePath = System.IO.Path.Combine(folderPath, "FieldFormatRoman.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
-                document.AddParagraph("Current page: ").AddField(WordFieldType.Page, WordFieldFormat.roman);
+                document.AddParagraph("Current page: ").AddField(WordFieldType.Page, WordFieldFormat.LowerRoman);
                 document.Save();
                 if (openWord) document.OpenInApplication();
             }

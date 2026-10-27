@@ -49,7 +49,7 @@ namespace OfficeIMO.Excel.Pdf {
         }
 
         private static OfficeChartSnapshot CreateOfficeChartSnapshotCore(ExcelChartInfo snapshot, ExcelPdfExportOptions options, bool preserveWorksheetLegend) {
-            if (!TryMapChartKind(snapshot.ChartType, out OfficeChartKind chartKind)) {
+            if (!TryMapChartKind(snapshot.ChartType, out OfficeChartType chartKind)) {
                 throw new NotSupportedException("Excel chart type '" + snapshot.ChartType + "' is not supported by the shared OfficeIMO chart renderer.");
             }
 
@@ -65,7 +65,7 @@ namespace OfficeIMO.Excel.Pdf {
                 PixelsToPoints(snapshot.WidthPixels),
                 PixelsToPoints(snapshot.HeightPixels),
                 options.ChartStyle ?? snapshot.Style,
-                options.ChartLayout ?? (preserveWorksheetLegend || chartKind is OfficeChartKind.Pie or OfficeChartKind.Doughnut
+                options.ChartLayout ?? (preserveWorksheetLegend || chartKind is OfficeChartType.Pie or OfficeChartType.Doughnut
                     ? snapshot.Layout ?? new OfficeChartLayout()
                     : WithNativeCategoryGeometry(DefaultExcelPdfChartLayout, snapshot.Layout)),
                 snapshot.BubbleScalePercent, snapshot.BubbleSizeMode, snapshot.RadialLayout);
@@ -79,16 +79,16 @@ namespace OfficeIMO.Excel.Pdf {
                 .WithCategoryPointsOnTickMarks(native.CategoryPointsOnTickMarks)
                 .WithHighLowLines(native.ShowHighLowLines, native.HighLowLineColor, native.HighLowLineWidth);
 
-        private static OfficeChartSeries CreateOfficeChartSeries(ExcelChartSeries series, ExcelChartType defaultType, OfficeChartKind defaultKind,
+        private static OfficeSeries CreateOfficeChartSeries(ExcelChartSeries series, ExcelChartType defaultType, OfficeChartType defaultKind,
             bool callerPalette = false) {
             if (defaultType == ExcelChartType.Bubble) return ExcelRangeImageRenderer.CreateBubbleChartSeries(series, callerPalette);
             ExcelChartType effectiveType = series.ChartType ?? defaultType;
-            OfficeChartKind? renderKind = null;
+            OfficeChartType? renderKind = null;
             if (effectiveType != defaultType) {
                 if (!ExcelRangeImageRenderer.TryMapCompatibleComboSeriesRenderKind(
                         defaultType,
                         effectiveType,
-                        out OfficeChartKind mappedKind,
+                        out OfficeChartType mappedKind,
                         out _,
                         out string? unsupportedReason)) {
                     throw new NotSupportedException(
@@ -98,7 +98,7 @@ namespace OfficeIMO.Excel.Pdf {
                 renderKind = mappedKind == defaultKind ? null : mappedKind;
             }
 
-            return new OfficeChartSeries(
+            return new OfficeSeries(
                 series.Name,
                 series.Values,
                 series.XValues,
@@ -119,78 +119,78 @@ namespace OfficeIMO.Excel.Pdf {
                 .WithPointExplosions(series.PointExplosions);
         }
 
-        private static bool TryMapChartKind(ExcelChartType type, out OfficeChartKind kind) {
+        private static bool TryMapChartKind(ExcelChartType type, out OfficeChartType kind) {
             switch (type) {
                 case ExcelChartType.ColumnClustered:
                 case ExcelChartType.Column3DClustered:
-                    kind = OfficeChartKind.ColumnClustered;
+                    kind = OfficeChartType.ColumnClustered;
                     return true;
                 case ExcelChartType.ColumnStacked:
                 case ExcelChartType.Column3DStacked:
-                    kind = OfficeChartKind.ColumnStacked;
+                    kind = OfficeChartType.ColumnStacked;
                     return true;
                 case ExcelChartType.ColumnStacked100:
                 case ExcelChartType.Column3DStacked100:
-                    kind = OfficeChartKind.ColumnStacked100;
+                    kind = OfficeChartType.ColumnStacked100;
                     return true;
                 case ExcelChartType.BarClustered:
                 case ExcelChartType.Bar3DClustered:
-                    kind = OfficeChartKind.BarClustered;
+                    kind = OfficeChartType.BarClustered;
                     return true;
                 case ExcelChartType.BarStacked:
                 case ExcelChartType.Bar3DStacked:
-                    kind = OfficeChartKind.BarStacked;
+                    kind = OfficeChartType.BarStacked;
                     return true;
                 case ExcelChartType.BarStacked100:
                 case ExcelChartType.Bar3DStacked100:
-                    kind = OfficeChartKind.BarStacked100;
+                    kind = OfficeChartType.BarStacked100;
                     return true;
                 case ExcelChartType.Line:
                 case ExcelChartType.Line3D:
-                    kind = OfficeChartKind.Line;
+                    kind = OfficeChartType.Line;
                     return true;
                 case ExcelChartType.LineStacked:
-                    kind = OfficeChartKind.LineStacked;
+                    kind = OfficeChartType.LineStacked;
                     return true;
                 case ExcelChartType.LineStacked100:
-                    kind = OfficeChartKind.LineStacked100;
+                    kind = OfficeChartType.LineStacked100;
                     return true;
                 case ExcelChartType.Area:
                 case ExcelChartType.Area3D:
-                    kind = OfficeChartKind.Area;
+                    kind = OfficeChartType.Area;
                     return true;
                 case ExcelChartType.AreaStacked:
                 case ExcelChartType.Area3DStacked:
-                    kind = OfficeChartKind.AreaStacked;
+                    kind = OfficeChartType.AreaStacked;
                     return true;
                 case ExcelChartType.AreaStacked100:
                 case ExcelChartType.Area3DStacked100:
-                    kind = OfficeChartKind.AreaStacked100;
+                    kind = OfficeChartType.AreaStacked100;
                     return true;
                 case ExcelChartType.Bubble:
-                    kind = OfficeChartKind.Bubble;
+                    kind = OfficeChartType.Bubble;
                     return true;
                 case ExcelChartType.Scatter:
-                    kind = OfficeChartKind.Scatter;
+                    kind = OfficeChartType.Scatter;
                     return true;
                 case ExcelChartType.Radar:
-                    kind = OfficeChartKind.Radar;
+                    kind = OfficeChartType.Radar;
                     return true;
                 case ExcelChartType.Pie:
                 case ExcelChartType.Pie3D:
                 case ExcelChartType.PieOfPie:
                 case ExcelChartType.BarOfPie:
-                    kind = OfficeChartKind.Pie;
+                    kind = OfficeChartType.Pie;
                     return true;
                 case ExcelChartType.Doughnut:
-                    kind = OfficeChartKind.Doughnut;
+                    kind = OfficeChartType.Doughnut;
                     return true;
                 case ExcelChartType.Stock:
                 case ExcelChartType.Surface:
                 case ExcelChartType.SurfaceWireframe:
                 case ExcelChartType.SurfaceContour:
                 case ExcelChartType.SurfaceContourWireframe:
-                    kind = OfficeChartKind.Line;
+                    kind = OfficeChartType.Line;
                     return true;
                 default:
                     kind = default;

@@ -2,12 +2,14 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 
-namespace OfficeIMO.Drawing;
+using OfficeIMO.Drawing;
+
+namespace OfficeIMO;
 
 /// <summary>
 /// Dependency-free chart series values used by shared OfficeIMO visual renderers.
 /// </summary>
-public sealed class OfficeChartSeries {
+public sealed partial class OfficeSeries {
     /// <summary>Largest pie or doughnut point explosion that the shared renderer supports.</summary>
     public const int MaximumPointExplosionPercent = 400;
     /// <summary>
@@ -15,7 +17,7 @@ public sealed class OfficeChartSeries {
     /// </summary>
     /// <param name="name">Display name for the series.</param>
     /// <param name="values">Values aligned with the chart categories.</param>
-    public OfficeChartSeries(string name, IEnumerable<double> values) : this(name, values, null, null, null, true, true) {
+    public OfficeSeries(string name, IEnumerable<double> values) : this(name, values, null, null, null, true, true) {
     }
 
     /// <summary>
@@ -24,7 +26,7 @@ public sealed class OfficeChartSeries {
     /// <param name="name">Display name for the series.</param>
     /// <param name="values">Values aligned with the chart categories or X-axis values.</param>
     /// <param name="xValues">Optional numeric X-axis values for this series.</param>
-    public OfficeChartSeries(string name, IEnumerable<double> values, IEnumerable<double>? xValues) : this(name, values, xValues, null, null, true, true) {
+    public OfficeSeries(string name, IEnumerable<double> values, IEnumerable<double>? xValues) : this(name, values, xValues, null, null, true, true) {
     }
 
     /// <summary>
@@ -34,7 +36,7 @@ public sealed class OfficeChartSeries {
     /// <param name="values">Values aligned with the chart categories or X-axis values.</param>
     /// <param name="xValues">Optional numeric X-axis values for this series.</param>
     /// <param name="color">Optional source-defined series color.</param>
-    public OfficeChartSeries(string name, IEnumerable<double> values, IEnumerable<double>? xValues, OfficeColor? color) : this(name, values, xValues, color, null, true, true) {
+    public OfficeSeries(string name, IEnumerable<double> values, IEnumerable<double>? xValues, OfficeColor? color) : this(name, values, xValues, color, null, true, true) {
     }
 
     /// <summary>
@@ -45,7 +47,7 @@ public sealed class OfficeChartSeries {
     /// <param name="xValues">Optional numeric X-axis values for this series.</param>
     /// <param name="color">Optional source-defined series color.</param>
     /// <param name="pointColors">Optional source-defined colors aligned with individual values.</param>
-    public OfficeChartSeries(string name, IEnumerable<double> values, IEnumerable<double>? xValues, OfficeColor? color, IEnumerable<OfficeColor?>? pointColors) : this(name, values, xValues, color, pointColors, true, true) {
+    public OfficeSeries(string name, IEnumerable<double> values, IEnumerable<double>? xValues, OfficeColor? color, IEnumerable<OfficeColor?>? pointColors) : this(name, values, xValues, color, pointColors, true, true) {
     }
 
     /// <summary>
@@ -67,7 +69,7 @@ public sealed class OfficeChartSeries {
     /// <param name="strokeDashStyle">Optional source-defined series stroke dash style.</param>
     /// <param name="renderKind">Optional per-series chart kind used by mixed/combo chart renderers.</param>
     /// <param name="axisGroup">Primary or secondary value axis used by combo chart renderers.</param>
-    public OfficeChartSeries(string name, IEnumerable<double> values, IEnumerable<double>? xValues, OfficeColor? color, IEnumerable<OfficeColor?>? pointColors, bool showMarkers, bool showInLegend = true, bool connectLine = true, int? markerSize = null, OfficeChartMarkerShape? markerShape = null, OfficeColor? markerOutlineColor = null, double? markerOutlineWidth = null, double? strokeWidth = null, OfficeStrokeDashStyle? strokeDashStyle = null, OfficeChartKind? renderKind = null, OfficeChartAxisGroup axisGroup = OfficeChartAxisGroup.Primary)
+    public OfficeSeries(string name, IEnumerable<double> values, IEnumerable<double>? xValues, OfficeColor? color, IEnumerable<OfficeColor?>? pointColors, bool showMarkers, bool showInLegend = true, bool connectLine = true, int? markerSize = null, OfficeChartMarkerShape? markerShape = null, OfficeColor? markerOutlineColor = null, double? markerOutlineWidth = null, double? strokeWidth = null, OfficeStrokeDashStyle? strokeDashStyle = null, OfficeChartType? renderKind = null, OfficeChartAxisGroup axisGroup = OfficeChartAxisGroup.Primary)
         : this(name, values, xValues, bubbleSizes: null, color, pointColors, showMarkers, showInLegend,
             connectLine, markerSize, markerShape, markerOutlineColor, markerOutlineWidth, strokeWidth,
             strokeDashStyle, renderKind, axisGroup) {
@@ -85,7 +87,7 @@ public sealed class OfficeChartSeries {
     /// <param name="showInLegend">Whether this series should appear in rendered legends.</param>
     /// <param name="markerOutlineColor">Optional source-defined bubble outline color.</param>
     /// <param name="markerOutlineWidth">Optional source-defined bubble outline width in points, greater than zero and at most 1584.</param>
-    public static OfficeChartSeries CreateBubble(string name, IEnumerable<double> xValues,
+    public static OfficeSeries CreateBubble(string name, IEnumerable<double> xValues,
         IEnumerable<double> yValues, IEnumerable<double> bubbleSizes, OfficeColor? color,
         IEnumerable<OfficeColor?>? pointColors, bool showInLegend,
         OfficeColor? markerOutlineColor, double? markerOutlineWidth) =>
@@ -106,7 +108,7 @@ public sealed class OfficeChartSeries {
     /// <param name="markerOutlineColor">Optional source-defined bubble outline color.</param>
     /// <param name="markerOutlineWidth">Optional source-defined bubble outline width in points, greater than zero and at most 1584.</param>
     /// <param name="showMarkerOutline">Whether the bubble outline should be rendered.</param>
-    public static OfficeChartSeries CreateBubble(string name, IEnumerable<double> xValues,
+    public static OfficeSeries CreateBubble(string name, IEnumerable<double> xValues,
         IEnumerable<double> yValues, IEnumerable<double> bubbleSizes, OfficeColor? color = null,
         IEnumerable<OfficeColor?>? pointColors = null, bool showInLegend = true,
         OfficeColor? markerOutlineColor = null, double? markerOutlineWidth = null,
@@ -118,17 +120,17 @@ public sealed class OfficeChartSeries {
         return new(name, yValues, xValues, bubbleSizes, color, pointColors, showMarkers: true,
             showInLegend, connectLine: false, markerSize: null, markerShape: OfficeChartMarkerShape.Circle,
             markerOutlineColor: markerOutlineColor ?? color, markerOutlineWidth, strokeWidth: null,
-            strokeDashStyle: null, renderKind: OfficeChartKind.Bubble,
+            strokeDashStyle: null, renderKind: OfficeChartType.Bubble,
             axisGroup: OfficeChartAxisGroup.Primary,
             showMarkerOutline: showMarkerOutline);
     }
 
-    private OfficeChartSeries(string name, IEnumerable<double> values, IEnumerable<double>? xValues,
+    private OfficeSeries(string name, IEnumerable<double> values, IEnumerable<double>? xValues,
         IEnumerable<double>? bubbleSizes, OfficeColor? color, IEnumerable<OfficeColor?>? pointColors,
         bool showMarkers, bool showInLegend, bool connectLine, int? markerSize,
         OfficeChartMarkerShape? markerShape, OfficeColor? markerOutlineColor,
         double? markerOutlineWidth, double? strokeWidth, OfficeStrokeDashStyle? strokeDashStyle,
-        OfficeChartKind? renderKind, OfficeChartAxisGroup axisGroup,
+        OfficeChartType? renderKind, OfficeChartAxisGroup axisGroup,
         bool showMarkerOutline = true) {
         if (values == null) {
             throw new ArgumentNullException(nameof(values));
@@ -218,7 +220,7 @@ public sealed class OfficeChartSeries {
     public OfficeChartPointStyle? SeriesStyle { get; private set; }
 
     /// <summary>Returns a copy with independent series fill and outline paint. Null restores inherited paint.</summary>
-    public OfficeChartSeries WithSeriesStyle(OfficeChartPointStyle? style) {
+    public OfficeSeries WithSeriesStyle(OfficeChartPointStyle? style) {
         var copy = CopyWithPresentation(PointStyles, PointExplosions, ShowInLegend);
         copy.SeriesStyle = style;
         return copy;
@@ -234,7 +236,7 @@ public sealed class OfficeChartSeries {
     /// Returns a copy with aligned immutable point styles. Null removes shared style metadata;
     /// null entries inherit the series/theme appearance and any legacy PointColors entry.
     /// </summary>
-    public OfficeChartSeries WithPointStyles(IEnumerable<OfficeChartPointStyle?>? pointStyles) {
+    public OfficeSeries WithPointStyles(IEnumerable<OfficeChartPointStyle?>? pointStyles) {
         IReadOnlyList<OfficeChartPointStyle?>? styles = pointStyles == null ? null :
             new ReadOnlyCollection<OfficeChartPointStyle?>(new List<OfficeChartPointStyle?>(pointStyles));
         if (styles != null && styles.Count != Values.Count)
@@ -243,7 +245,7 @@ public sealed class OfficeChartSeries {
     }
 
     /// <summary>Returns a copy with an explosion percentage for each pie or doughnut point. Null leaves native point offsets unchanged during data updates.</summary>
-    public OfficeChartSeries WithPointExplosions(IEnumerable<int>? pointExplosions) {
+    public OfficeSeries WithPointExplosions(IEnumerable<int>? pointExplosions) {
         IReadOnlyList<int>? explosions = pointExplosions == null ? null :
             new ReadOnlyCollection<int>(new List<int>(pointExplosions));
         if (explosions != null) {
@@ -258,11 +260,11 @@ public sealed class OfficeChartSeries {
     }
 
     /// <summary>Returns a copy with the requested legend visibility and unchanged data and appearance.</summary>
-    public OfficeChartSeries WithLegendVisibility(bool showInLegend) => CopyWithPresentation(PointStyles, PointExplosions, showInLegend);
+    public OfficeSeries WithLegendVisibility(bool showInLegend) => CopyWithPresentation(PointStyles, PointExplosions, showInLegend);
 
-    private OfficeChartSeries CopyWithPresentation(IReadOnlyList<OfficeChartPointStyle?>? styles,
+    private OfficeSeries CopyWithPresentation(IReadOnlyList<OfficeChartPointStyle?>? styles,
         IReadOnlyList<int>? explosions, bool showInLegend) {
-        return new OfficeChartSeries(Name, Values, XValues, BubbleSizes, Color, PointColors,
+        return new OfficeSeries(Name, Values, XValues, BubbleSizes, Color, PointColors,
             ShowMarkers, showInLegend, ConnectLine, MarkerSize, MarkerShape, MarkerOutlineColor,
             MarkerOutlineWidth, StrokeWidth, StrokeDashStyle, RenderKind, AxisGroup, ShowMarkerOutline) {
             SeriesStyle = SeriesStyle,
@@ -296,7 +298,7 @@ public sealed class OfficeChartSeries {
     public OfficeStrokeDashStyle? StrokeDashStyle { get; }
 
     /// <summary>Optional per-series chart kind for mixed/combo chart rendering.</summary>
-    public OfficeChartKind? RenderKind { get; }
+    public OfficeChartType? RenderKind { get; }
 
     /// <summary>Primary or secondary value axis used by combo chart renderers.</summary>
     public OfficeChartAxisGroup AxisGroup { get; }

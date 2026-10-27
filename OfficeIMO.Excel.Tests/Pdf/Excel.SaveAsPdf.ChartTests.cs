@@ -29,9 +29,9 @@ public partial class Excel {
     [Fact]
     public void SaveAsPdf_PlainPieRetainsOutsideLabelsAndLeaderLines() {
         using ExcelDocument document = ExcelDocument.Create();
-        ExcelChart chart = document.AddWorksheet("Results").AddChart(OfficeChartKind.Pie,
+        ExcelChart chart = document.AddWorksheet("Results").AddChart(OfficeChartType.Pie,
             new OfficeChartData(new[] { "A", "B" }, new[] {
-                new OfficeChartSeries("Status", new[] { 3d, 4d }) }), 1, 1);
+                new OfficeSeries("Status", new[] { 3d, 4d }) }), 1, 1);
         C.PieChart native = document.OpenXmlDocument.WorkbookPart!.WorksheetParts
             .Single(part => part.DrawingsPart != null).DrawingsPart!.ChartParts.Single()
             .ChartSpace!.Descendants<C.PieChart>().Single();
@@ -369,7 +369,7 @@ public partial class Excel {
         Assert.Contains("Profit", text);
 
         MethodInfo rangeMethod = typeof(OfficeChartDrawingRenderer).GetMethod("GetFiniteSeriesRange", BindingFlags.NonPublic | BindingFlags.Static)!;
-        object range = rangeMethod.Invoke(null, new object[] { new List<OfficeChartSeries> { new OfficeChartSeries("Profit", new[] { -10D, 0D, 10D }) } })!;
+        object range = rangeMethod.Invoke(null, new object[] { new List<OfficeSeries> { new OfficeSeries("Profit", new[] { -10D, 0D, 10D }) } })!;
         double min = (double)range.GetType().GetProperty("Min", BindingFlags.Instance | BindingFlags.Public)!.GetValue(range)!;
         double max = (double)range.GetType().GetProperty("Max", BindingFlags.Instance | BindingFlags.Public)!.GetValue(range)!;
 
@@ -390,10 +390,10 @@ public partial class Excel {
         var snapshot = new OfficeChartSnapshot(
             "PositiveLine",
             null,
-            OfficeChartKind.Line,
+            OfficeChartType.Line,
             new OfficeChartData(
                 new[] { "Low", "High" },
-                new[] { new OfficeChartSeries("Value", new[] { 10D, 20D }) }),
+                new[] { new OfficeSeries("Value", new[] { 10D, 20D }) }),
             360D,
             220D);
 
@@ -411,10 +411,10 @@ public partial class Excel {
         var snapshot = new OfficeChartSnapshot(
             "PositiveArea",
             null,
-            OfficeChartKind.Area,
+            OfficeChartType.Area,
             new OfficeChartData(
                 new[] { "Low", "High" },
-                new[] { new OfficeChartSeries("Value", new[] { 10D, 20D }) }),
+                new[] { new OfficeSeries("Value", new[] { 10D, 20D }) }),
             360D,
             220D);
 
@@ -428,12 +428,12 @@ public partial class Excel {
         var snapshot = new OfficeChartSnapshot(
             "MultiDoughnut",
             null,
-            OfficeChartKind.Doughnut,
+            OfficeChartType.Doughnut,
             new OfficeChartData(
                 new[] { "A", "B", "C" },
                 new[] {
-                    new OfficeChartSeries("Outer", new[] { 3D, 2D, 1D }),
-                    new OfficeChartSeries("Inner", new[] { 1D, 2D, 3D })
+                    new OfficeSeries("Outer", new[] { 3D, 2D, 1D }),
+                    new OfficeSeries("Inner", new[] { 1D, 2D, 3D })
                 }),
             360D,
             220D);
@@ -470,8 +470,8 @@ public partial class Excel {
             Assert.True(chart.TryGetSnapshot(out ExcelChartInfo snapshot));
             MethodInfo createSnapshot = typeof(ExcelPdfConverterExtensions).GetMethod("CreateOfficeChartSnapshot", BindingFlags.NonPublic | BindingFlags.Static)!;
             var sharedSnapshot = Assert.IsType<OfficeChartSnapshot>(createSnapshot.Invoke(null, new object[] { snapshot, options }));
-            Assert.Equal(OfficeChartKind.ColumnClustered, sharedSnapshot.ChartKind);
-            Assert.Equal(OfficeChartKind.Line, sharedSnapshot.Data.Series[1].RenderKind);
+            Assert.Equal(OfficeChartType.ColumnClustered, sharedSnapshot.ChartKind);
+            Assert.Equal(OfficeChartType.Line, sharedSnapshot.Data.Series[1].RenderKind);
             Assert.Equal(OfficeChartAxisGroup.Secondary, sharedSnapshot.Data.Series[1].AxisGroup);
 
             document.Save();
@@ -584,8 +584,8 @@ public partial class Excel {
 
         Assert.True((bool)method.Invoke(null, stackedArgs)!);
         Assert.True((bool)method.Invoke(null, percentArgs)!);
-        Assert.Equal(OfficeChartKind.LineStacked, stackedArgs[1]);
-        Assert.Equal(OfficeChartKind.LineStacked100, percentArgs[1]);
+        Assert.Equal(OfficeChartType.LineStacked, stackedArgs[1]);
+        Assert.Equal(OfficeChartType.LineStacked100, percentArgs[1]);
     }
 
     [Fact]
@@ -621,7 +621,7 @@ public partial class Excel {
         Assert.Contains("Delta", text);
 
         MethodInfo rangeMethod = typeof(OfficeChartDrawingRenderer).GetMethod("GetFiniteSeriesRange", BindingFlags.NonPublic | BindingFlags.Static)!;
-        object range = rangeMethod.Invoke(null, new object[] { new List<OfficeChartSeries> { new OfficeChartSeries("Delta", new[] { -6D, 0D, 9D }) } })!;
+        object range = rangeMethod.Invoke(null, new object[] { new List<OfficeSeries> { new OfficeSeries("Delta", new[] { -6D, 0D, 9D }) } })!;
         Assert.Equal(-6D, (double)range.GetType().GetProperty("Min", BindingFlags.Instance | BindingFlags.Public)!.GetValue(range)!);
         Assert.Equal(9D, (double)range.GetType().GetProperty("Max", BindingFlags.Instance | BindingFlags.Public)!.GetValue(range)!);
     }
@@ -719,7 +719,7 @@ public partial class Excel {
         };
 
         MethodInfo rangeMethod = typeof(OfficeChartDrawingRenderer).GetMethod("GetRadarValueRange", BindingFlags.NonPublic | BindingFlags.Static)!;
-        object range = rangeMethod.Invoke(null, new object[] { series.Select(item => new OfficeChartSeries(item.Name, item.Values)).ToList() })!;
+        object range = rangeMethod.Invoke(null, new object[] { series.Select(item => new OfficeSeries(item.Name, item.Values)).ToList() })!;
         double min = (double)range.GetType().GetProperty("Min", BindingFlags.Instance | BindingFlags.Public)!.GetValue(range)!;
         double max = (double)range.GetType().GetProperty("Max", BindingFlags.Instance | BindingFlags.Public)!.GetValue(range)!;
 

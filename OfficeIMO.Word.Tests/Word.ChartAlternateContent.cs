@@ -11,7 +11,7 @@ public sealed class WordChartAlternateContentTests {
     [InlineData(false)]
     public void ChartDiscoveryAndVisibleSegmentsSelectOnlyTheEffectiveBranch(bool supportedChoice) {
         using var document = WordDocument.Create();
-        document.AddChart(OfficeChartKind.ColumnClustered, new OfficeChartData(new[] { "A" }, new[] { new OfficeChartSeries("Values", new[] { 3d }) }));
+        document.AddChart(OfficeChartType.ColumnClustered, new OfficeChartData(new[] { "A" }, new[] { new OfficeSeries("Values", new[] { 3d }) }));
         var paragraph = document.Paragraphs.Single().GetRuns().Single();
         var run = paragraph._run!;
         var drawing = run.GetFirstChild<DocumentFormat.OpenXml.Wordprocessing.Drawing>()!;

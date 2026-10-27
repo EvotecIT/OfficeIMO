@@ -13,9 +13,9 @@ public sealed class PowerPointChartProjectionCompletionTests {
     [Fact]
     public void SeparateStackedLayersSharingAxesDoNotFlattenIntoOneStack() {
         using var presentation = PowerPointPresentation.Create();
-        PowerPointChart chart = presentation.AddSlide().AddChart(OfficeChartKind.ColumnStacked,
+        PowerPointChart chart = presentation.AddSlide().AddChart(OfficeChartType.ColumnStacked,
             new OfficeChartData(new[] { "A", "B" }, new[] {
-                new OfficeChartSeries("First", new[] { 1d, 2d })
+                new OfficeSeries("First", new[] { 1d, 2d })
             }));
         C.PlotArea plot = GetChartPart(presentation).ChartSpace!.GetFirstChild<C.Chart>()!.PlotArea!;
         C.BarChart first = plot.GetFirstChild<C.BarChart>()!;
@@ -60,9 +60,9 @@ public sealed class PowerPointChartProjectionCompletionTests {
     [Fact]
     public void RadarGridlinesLabelsAndFillFollowNativeAxes() {
         using var presentation = PowerPointPresentation.Create();
-        PowerPointChart chart = presentation.AddSlide().AddChart(OfficeChartKind.Radar,
+        PowerPointChart chart = presentation.AddSlide().AddChart(OfficeChartType.Radar,
             new OfficeChartData(new[] { "A", "B", "C" }, new[] {
-                new OfficeChartSeries("Values", new[] { 1d, 2d, 3d })
+                new OfficeSeries("Values", new[] { 1d, 2d, 3d })
             }));
         C.ChartSpace native = GetChartPart(presentation).ChartSpace!;
         C.CategoryAxis category = native.Descendants<C.CategoryAxis>().Single();

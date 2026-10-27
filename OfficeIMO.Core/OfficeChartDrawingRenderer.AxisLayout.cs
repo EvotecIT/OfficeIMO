@@ -16,7 +16,7 @@ public static partial class OfficeChartDrawingRenderer {
         double lineWidth, OfficeStrokeDashStyle dashStyle) {
         if (IsScatterChart(snapshot.ChartKind)) {
             IReadOnlyList<double> xValues = GetScatterXValues(snapshot.Data.Categories);
-            List<OfficeChartSeries> series = GetRenderableScatterSeries(snapshot).Select(item => item.Series).ToList();
+            List<OfficeSeries> series = GetRenderableScatterSeries(snapshot).Select(item => item.Series).ToList();
             ValueRange range = ApplyValueAxisScale(GetScatterPointRanges(series, xValues).XRange, layout, horizontal: true);
             IReadOnlyList<double> majorTicks = GetValueAxisMajorTicks(range, GetValueAxisMajorUnit(layout, horizontal: true));
             IReadOnlyList<double> ticks = minor

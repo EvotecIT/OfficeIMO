@@ -180,12 +180,12 @@ namespace OfficeIMO.Examples.PowerPoint {
             OfficeChartData chartData = new(
                 data.Select(d => d.Product),
                 new[] {
-                    new OfficeChartSeries("Q1", data.Select(d => (double)d.Q1)),
-                    new OfficeChartSeries("Q2", data.Select(d => (double)d.Q2)),
-                    new OfficeChartSeries("Q3", data.Select(d => (double)d.Q3)),
-                    new OfficeChartSeries("Q4", data.Select(d => (double)d.Q4))
+                    new OfficeSeries("Q1", data.Select(d => (double)d.Q1)),
+                    new OfficeSeries("Q2", data.Select(d => (double)d.Q2)),
+                    new OfficeSeries("Q3", data.Select(d => (double)d.Q3)),
+                    new OfficeSeries("Q4", data.Select(d => (double)d.Q4))
                 });
-            chartSlide.AddChartCm(OfficeChartKind.ColumnClustered, chartData, marginCm, bodyTopCm,
+            chartSlide.AddChartCm(OfficeChartType.ColumnClustered, chartData, marginCm, bodyTopCm,
                 content.WidthCm, bodyHeightCm);
             chartSlide.Notes.Text = "Chart and table share the same source data.";
 
@@ -224,7 +224,7 @@ namespace OfficeIMO.Examples.PowerPoint {
                 }
             }
 
-            comboSlide.AddChartCm(OfficeChartKind.ColumnClustered, chartData, rightColumn.LeftCm,
+            comboSlide.AddChartCm(OfficeChartType.ColumnClustered, chartData, rightColumn.LeftCm,
                 rightColumn.TopCm, rightColumn.WidthCm, rightColumn.HeightCm);
 
             // Slide 7: totals by quarter
@@ -239,8 +239,8 @@ namespace OfficeIMO.Examples.PowerPoint {
             };
             OfficeChartData totalsData = new(
                 quarterLabels,
-                new[] { new OfficeChartSeries("Total", totals.Select(t => (double)t)) });
-            totalsSlide.AddChartCm(OfficeChartKind.ColumnClustered, totalsData, marginCm, bodyTopCm,
+                new[] { new OfficeSeries("Total", totals.Select(t => (double)t)) });
+            totalsSlide.AddChartCm(OfficeChartType.ColumnClustered, totalsData, marginCm, bodyTopCm,
                 content.WidthCm, bodyHeightCm);
 
             // Slide 8: picture with caption

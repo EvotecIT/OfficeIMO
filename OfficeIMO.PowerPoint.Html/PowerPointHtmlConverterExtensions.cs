@@ -482,42 +482,42 @@ public static partial class PowerPointHtmlConverterExtensions {
         }
     }
 
-    private static OfficeChartKind MapChartKind(PptCore.PowerPointChartSnapshotKind kind) {
+    private static OfficeChartType MapChartKind(PptCore.PowerPointChartSnapshotKind kind) {
         switch (kind) {
             case PptCore.PowerPointChartSnapshotKind.ClusteredColumn:
-                return OfficeChartKind.ColumnClustered;
+                return OfficeChartType.ColumnClustered;
             case PptCore.PowerPointChartSnapshotKind.StackedColumn:
-                return OfficeChartKind.ColumnStacked;
+                return OfficeChartType.ColumnStacked;
             case PptCore.PowerPointChartSnapshotKind.StackedColumn100:
-                return OfficeChartKind.ColumnStacked100;
+                return OfficeChartType.ColumnStacked100;
             case PptCore.PowerPointChartSnapshotKind.ClusteredBar:
-                return OfficeChartKind.BarClustered;
+                return OfficeChartType.BarClustered;
             case PptCore.PowerPointChartSnapshotKind.StackedBar:
-                return OfficeChartKind.BarStacked;
+                return OfficeChartType.BarStacked;
             case PptCore.PowerPointChartSnapshotKind.StackedBar100:
-                return OfficeChartKind.BarStacked100;
+                return OfficeChartType.BarStacked100;
             case PptCore.PowerPointChartSnapshotKind.Line:
-                return OfficeChartKind.Line;
+                return OfficeChartType.Line;
             case PptCore.PowerPointChartSnapshotKind.StackedLine:
-                return OfficeChartKind.LineStacked;
+                return OfficeChartType.LineStacked;
             case PptCore.PowerPointChartSnapshotKind.StackedLine100:
-                return OfficeChartKind.LineStacked100;
+                return OfficeChartType.LineStacked100;
             case PptCore.PowerPointChartSnapshotKind.Area:
-                return OfficeChartKind.Area;
+                return OfficeChartType.Area;
             case PptCore.PowerPointChartSnapshotKind.StackedArea:
-                return OfficeChartKind.AreaStacked;
+                return OfficeChartType.AreaStacked;
             case PptCore.PowerPointChartSnapshotKind.StackedArea100:
-                return OfficeChartKind.AreaStacked100;
+                return OfficeChartType.AreaStacked100;
             case PptCore.PowerPointChartSnapshotKind.Radar:
-                return OfficeChartKind.Radar;
+                return OfficeChartType.Radar;
             case PptCore.PowerPointChartSnapshotKind.Scatter:
-                return OfficeChartKind.Scatter;
+                return OfficeChartType.Scatter;
             case PptCore.PowerPointChartSnapshotKind.Bubble:
-                return OfficeChartKind.Bubble;
+                return OfficeChartType.Bubble;
             case PptCore.PowerPointChartSnapshotKind.Pie:
-                return OfficeChartKind.Pie;
+                return OfficeChartType.Pie;
             case PptCore.PowerPointChartSnapshotKind.Doughnut:
-                return OfficeChartKind.Doughnut;
+                return OfficeChartType.Doughnut;
             default:
                 throw new NotSupportedException("PowerPoint chart kind '" + kind + "' is not supported by the shared Drawing chart renderer.");
         }

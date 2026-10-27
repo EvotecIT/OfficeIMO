@@ -17,7 +17,7 @@ public sealed class OfficeChartSnapshot {
     /// <param name="heightPoints">Requested render height in points.</param>
     /// <param name="style">Optional shared chart style metadata.</param>
     /// <param name="layout">Optional shared chart layout metadata.</param>
-    public OfficeChartSnapshot(string name, string? title, OfficeChartKind chartKind,
+    public OfficeChartSnapshot(string name, string? title, OfficeChartType chartKind,
         OfficeChartData data, double widthPoints, double heightPoints,
         OfficeChartStyle? style = null, OfficeChartLayout? layout = null)
         : this(name, title, chartKind, data, widthPoints, heightPoints,
@@ -35,7 +35,7 @@ public sealed class OfficeChartSnapshot {
     /// <param name="heightPoints">Requested render height in points.</param>
     /// <param name="bubbleScalePercent">Bubble diameter scale as a percentage from zero through 300.</param>
     /// <param name="bubbleSizeMode">Whether bubble values represent area or width.</param>
-    public OfficeChartSnapshot(string name, string? title, OfficeChartKind chartKind,
+    public OfficeChartSnapshot(string name, string? title, OfficeChartType chartKind,
         OfficeChartData data, double widthPoints, double heightPoints,
         double bubbleScalePercent,
         OfficeChartBubbleSizeMode bubbleSizeMode = OfficeChartBubbleSizeMode.Area)
@@ -56,7 +56,7 @@ public sealed class OfficeChartSnapshot {
     /// <param name="layout">Optional shared chart layout metadata.</param>
     /// <param name="bubbleScalePercent">Bubble diameter scale as a percentage from zero through 300.</param>
     /// <param name="bubbleSizeMode">Whether bubble values represent area or width.</param>
-    public OfficeChartSnapshot(string name, string? title, OfficeChartKind chartKind,
+    public OfficeChartSnapshot(string name, string? title, OfficeChartType chartKind,
         OfficeChartData data, double widthPoints, double heightPoints,
         OfficeChartStyle? style, OfficeChartLayout? layout,
         double bubbleScalePercent, OfficeChartBubbleSizeMode bubbleSizeMode)
@@ -65,7 +65,7 @@ public sealed class OfficeChartSnapshot {
     }
 
     /// <summary>Creates a chart snapshot with explicit radial geometry and default bubble sizing.</summary>
-    public OfficeChartSnapshot(string name, string? title, OfficeChartKind chartKind,
+    public OfficeChartSnapshot(string name, string? title, OfficeChartType chartKind,
         OfficeChartData data, double widthPoints, double heightPoints,
         OfficeChartStyle? style, OfficeChartLayout? layout, OfficeChartRadialLayout radialLayout)
         : this(name, title, chartKind, data, widthPoints, heightPoints, style, layout,
@@ -73,7 +73,7 @@ public sealed class OfficeChartSnapshot {
     }
 
     /// <summary>Creates a chart snapshot with explicit bubble sizing and radial geometry.</summary>
-    public OfficeChartSnapshot(string name, string? title, OfficeChartKind chartKind,
+    public OfficeChartSnapshot(string name, string? title, OfficeChartType chartKind,
         OfficeChartData data, double widthPoints, double heightPoints,
         OfficeChartStyle? style, OfficeChartLayout? layout,
         double bubbleScalePercent, OfficeChartBubbleSizeMode bubbleSizeMode, OfficeChartRadialLayout radialLayout) {
@@ -92,16 +92,16 @@ public sealed class OfficeChartSnapshot {
             throw new ArgumentOutOfRangeException(nameof(bubbleSizeMode));
         }
         for (int seriesIndex = 0; seriesIndex < data.Series.Count; seriesIndex++) {
-            OfficeChartSeries series = data.Series[seriesIndex];
-            OfficeChartKind effectiveKind = series.RenderKind ?? chartKind;
-            if (effectiveKind == OfficeChartKind.Bubble &&
-                chartKind != OfficeChartKind.Bubble &&
-                chartKind != OfficeChartKind.Scatter) {
+            OfficeSeries series = data.Series[seriesIndex];
+            OfficeChartType effectiveKind = series.RenderKind ?? chartKind;
+            if (effectiveKind == OfficeChartType.Bubble &&
+                chartKind != OfficeChartType.Bubble &&
+                chartKind != OfficeChartType.Scatter) {
                 throw new ArgumentException(
                     "Bubble series require a bubble or scatter snapshot with numeric axes.",
                     nameof(data));
             }
-            if (effectiveKind == OfficeChartKind.Bubble &&
+            if (effectiveKind == OfficeChartType.Bubble &&
                 (series.XValues == null || series.BubbleSizes == null ||
                  series.XValues.Count != series.Values.Count ||
                  series.BubbleSizes.Count != series.Values.Count)) {
@@ -131,7 +131,7 @@ public sealed class OfficeChartSnapshot {
     public string? Title { get; }
 
     /// <summary>Supported chart family.</summary>
-    public OfficeChartKind ChartKind { get; }
+    public OfficeChartType ChartKind { get; }
 
     /// <summary>Chart category and series data.</summary>
     public OfficeChartData Data { get; }

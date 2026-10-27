@@ -205,7 +205,7 @@ supplied `IOfficeSecurityProvider` for OPC creation and cryptographic validation
 - Composes reusable semantic plans through one `presentation.Compose(plan, options)` workflow.
 - Provides semantic executive-summary, chart-story, comparison, screenshot-story, appendix-table, architecture, and closing families with two editable variants each.
 - Inspects deck rhythm before rendering so repetitive layouts, dense streaks, long sections, and missing closings are visible to automation.
-- Authors every `OfficeIMO.Drawing.OfficeChartKind` family from one shared chart contract, including categorical combo charts and secondary value axes.
+- Authors every `OfficeIMO.OfficeChartType` family from one shared chart contract, including categorical combo charts and secondary value axes.
 - Authors bounded semantic SmartArt, shared custom geometry, classic and modern threaded comments, custom shows, embedded OLE objects, and opaque VBA projects through the normal presentation model.
 - Preserves and reports broader animation timelines while exposing first-party shape, text, and chart animation workflows for supported effects.
 - Supports encrypted Open XML and RC4 CryptoAPI binary presentation save/load workflows.
@@ -363,14 +363,14 @@ var metrics = new[] {
 var chartData = new OfficeChartData(
     metrics.Select(row => row.Quarter),
     new[] {
-        new OfficeChartSeries("Revenue", metrics.Select(row => row.Revenue)),
-        new OfficeChartSeries("Margin", metrics.Select(row => row.Margin))
+        new OfficeSeries("Revenue", metrics.Select(row => row.Revenue)),
+        new OfficeSeries("Margin", metrics.Select(row => row.Margin))
     });
 
 var slide = presentation.AddSlide();
 slide.AddTitle("Revenue and margin");
 
-slide.AddChartCm(OfficeChartKind.ColumnClustered, chartData,
+slide.AddChartCm(OfficeChartType.ColumnClustered, chartData,
         leftCm: 1.4, topCm: 3.0, widthCm: 13.2, heightCm: 8.0)
     .SetTitle("Quarterly performance")
     .SetCategoryAxisTitle("Quarter")
@@ -388,7 +388,7 @@ Use `OfficeChartData` when the same categories and series should drive PowerPoin
 or image workflows. A series can choose its own chart kind and primary or secondary value axis without a
 PowerPoint-only chart model.
 
-`OfficeChartSeries.PointColors` assigns solid colours by point index. Native chart snapshots preserve
+`OfficeSeries.PointColors` assigns solid colours by point index. Native chart snapshots preserve
 these overrides, including sparse and theme-based fills, so saved and reopened pie, doughnut, and column
 charts retain their colours in managed image and PDF exports. A null entry inherits the chart's normal
 colour selection. The [image export capability matrix](../Docs/officeimo.image-export-capability-matrix.md#powerpoint)
@@ -401,17 +401,17 @@ using OfficeIMO.Drawing;
 var sharedData = new OfficeChartData(
     new[] { "Q1", "Q2", "Q3", "Q4" },
     new[] {
-        new OfficeChartSeries("Revenue", new[] { 120d, 145d, 172d, 190d },
+        new OfficeSeries("Revenue", new[] { 120d, 145d, 172d, 190d },
             xValues: null, color: OfficeColor.Parse("#0B7FAB"), pointColors: null,
-            showMarkers: false, renderKind: OfficeChartKind.ColumnClustered),
-        new OfficeChartSeries("Margin", new[] { 22d, 26d, 31d, 35d },
+            showMarkers: false, renderKind: OfficeChartType.ColumnClustered),
+        new OfficeSeries("Margin", new[] { 22d, 26d, 31d, 35d },
             xValues: null, color: OfficeColor.Parse("#E85D04"), pointColors: null,
-            showMarkers: true, markerSize: 8, renderKind: OfficeChartKind.Line,
+            showMarkers: true, markerSize: 8, renderKind: OfficeChartType.Line,
             axisGroup: OfficeChartAxisGroup.Secondary)
     });
 
 PowerPointChart chart = slide.AddChartCm(
-    OfficeChartKind.ColumnClustered, sharedData,
+    OfficeChartType.ColumnClustered, sharedData,
     leftCm: 1.5, topCm: 3, widthCm: 22, heightCm: 9,
     accessibility: new PowerPointChartAccessibilityOptions {
         AlternativeText = "Revenue columns with margin line on a secondary axis"
@@ -467,9 +467,9 @@ authoring, each series' `RenderKind` must match the chart kind or be omitted.
 ```csharp
 var mix = new OfficeChartData(
     new[] { "Services", "Licenses", "Support" },
-    new[] { new OfficeChartSeries("Share", new[] { 55d, 30d, 15d }) });
+    new[] { new OfficeSeries("Share", new[] { 55d, 30d, 15d }) });
 
-slide.AddChartCm(OfficeChartKind.Doughnut, mix,
+slide.AddChartCm(OfficeChartType.Doughnut, mix,
         leftCm: 15.2, topCm: 3.0, widthCm: 8.0, heightCm: 8.0)
     .SetTitle("Revenue mix")
     .SetLegend(OfficeChartLegendPosition.Right);
@@ -477,7 +477,7 @@ slide.AddChartCm(OfficeChartKind.Doughnut, mix,
 
 ### Individual chart point styles
 
-Attach `OfficeChartSeries.WithPointStyles` when authoring shared chart data, or call
+Attach `OfficeSeries.WithPointStyles` when authoring shared chart data, or call
 `chart.SetDataPointStyle(seriesIndex, pointIndex, style)` to edit an existing native chart.
 Styles support solid fill, explicit no-fill, outlines, and seven hatch patterns from
 `OfficeIMO.Drawing.OfficeChartHatchPattern`. A null style clears the point's fill and outline
@@ -522,13 +522,13 @@ dashboard.AddTableCm(segments, new[] {
 var segmentChart = new OfficeChartData(
     segments.Select(row => row.Segment),
     new[] {
-        new OfficeChartSeries("Q1", segments.Select(row => (double)row.Q1)),
-        new OfficeChartSeries("Q2", segments.Select(row => (double)row.Q2)),
-        new OfficeChartSeries("Q3", segments.Select(row => (double)row.Q3)),
-        new OfficeChartSeries("Q4", segments.Select(row => (double)row.Q4))
+        new OfficeSeries("Q1", segments.Select(row => (double)row.Q1)),
+        new OfficeSeries("Q2", segments.Select(row => (double)row.Q2)),
+        new OfficeSeries("Q3", segments.Select(row => (double)row.Q3)),
+        new OfficeSeries("Q4", segments.Select(row => (double)row.Q4))
     });
 
-dashboard.AddChartCm(OfficeChartKind.Line, segmentChart,
+dashboard.AddChartCm(OfficeChartType.Line, segmentChart,
         leftCm: 12.2, topCm: 3.0, widthCm: 12.0, heightCm: 6.5)
     .SetTitle("Segment trend")
     .SetLegend(OfficeChartLegendPosition.Bottom);
@@ -676,10 +676,10 @@ and the rhythm report can be evaluated before the deck is created.
 using OfficeIMO.Drawing;
 
 var chartStory = new PowerPointChartStoryContent(
-    OfficeChartKind.ColumnClustered,
+    OfficeChartType.ColumnClustered,
     new OfficeChartData(
         new[] { "Q1", "Q2", "Q3", "Q4" },
-        new[] { new OfficeChartSeries("Adoption", new[] { 28d, 43d, 61d, 72d }) }),
+        new[] { new OfficeSeries("Adoption", new[] { 28d, 43d, 61d, 72d }) }),
     new[] { "Adoption improved every quarter." }) {
     Provenance = "Customer success dataset",
     AlternativeText = "Quarterly adoption columns",

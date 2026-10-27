@@ -12,14 +12,14 @@ namespace OfficeIMO.OpenXml.Internal {
     /// <summary>Reads cached series into the shared model without format-specific chart types.</summary>
     internal static partial class OfficeOpenXmlChartSeriesReader {
         internal sealed class Series {
-            internal Series(uint sourceIndex, OfficeChartSeries data, string? unsupportedAppearance = null,
+            internal Series(uint sourceIndex, OfficeSeries data, string? unsupportedAppearance = null,
                 uint? sourceOrder = null, bool hasAutomaticColor = false) {
                 SourceIndex = sourceIndex; Data = data; UnsupportedAppearance = unsupportedAppearance;
                 SourceOrder = sourceOrder; HasAutomaticColor = hasAutomaticColor;
             }
             internal uint SourceIndex { get; }
             internal uint? SourceOrder { get; }
-            internal OfficeChartSeries Data { get; }
+            internal OfficeSeries Data { get; }
             /// <summary>Why the series appearance cannot be rendered faithfully, or null when it can.</summary>
             internal string? UnsupportedAppearance { get; }
             internal bool HasUnsupportedAppearance => UnsupportedAppearance != null;
@@ -37,7 +37,7 @@ namespace OfficeIMO.OpenXml.Internal {
         }
 
         internal static Result? ReadCategories(IEnumerable<OpenXmlCompositeElement> source,
-            OfficeChartKind kind, A.ColorScheme? scheme, OfficeChartAxisGroup axisGroup, int maximumPoints,
+            OfficeChartType kind, A.ColorScheme? scheme, OfficeChartAxisGroup axisGroup, int maximumPoints,
             bool validatePlot = true, ProjectionBudget? projectionBudget = null, int maximumPointOverrides = 1_000_000,
             bool forDataUpdate = false) {
             List<OpenXmlCompositeElement> elements = OrderSeries(OfficeOpenXmlChartCacheReader.GetBoundedCachedPoints(source, maximumPoints));
@@ -89,7 +89,7 @@ namespace OfficeIMO.OpenXml.Internal {
                 projectionBudget.Reserve(Math.Max(x.Count, y.Count));
                 double[] alignedX = x.Take(count).ToArray();
                 categories ??= alignedX.Select(value => value.ToString(CultureInfo.InvariantCulture)).ToArray();
-                series.Add(ReadSeries(element, y.Take(count).ToArray(), alignedX, OfficeChartKind.Scatter,
+                series.Add(ReadSeries(element, y.Take(count).ToArray(), alignedX, OfficeChartType.Scatter,
                     scheme, OfficeChartAxisGroup.Primary, sourcePosition, maximumPoints, maximumPointOverrides, forDataUpdate));
             }
             return categories == null || series.Count == 0 ? null : new Result(categories, series);
@@ -132,17 +132,17 @@ namespace OfficeIMO.OpenXml.Internal {
         }
 
         private static Series ReadSeries(OpenXmlCompositeElement element, IReadOnlyList<double> values,
-            IReadOnlyList<double>? xValues, OfficeChartKind kind, A.ColorScheme? scheme,
+            IReadOnlyList<double>? xValues, OfficeChartType kind, A.ColorScheme? scheme,
             OfficeChartAxisGroup axisGroup, int fallbackIndex, int maximumPoints, int maximumPointOverrides,
             bool forDataUpdate) {
             C.ChartShapeProperties? properties = element.GetFirstChild<C.ChartShapeProperties>();
             A.Outline? outline = properties?.GetFirstChild<A.Outline>();
             OfficeColor? fill = OfficeOpenXmlThemeColorResolver.ResolveColor(properties?.GetFirstChild<A.SolidFill>(), scheme);
             OfficeColor? stroke = OfficeOpenXmlThemeColorResolver.ResolveColor(outline?.GetFirstChild<A.SolidFill>(), scheme);
-            bool filled = kind == OfficeChartKind.Pie || kind == OfficeChartKind.Doughnut || kind == OfficeChartKind.Bubble ||
-                kind == OfficeChartKind.Area || kind == OfficeChartKind.AreaStacked || kind == OfficeChartKind.AreaStacked100 ||
-                kind == OfficeChartKind.ColumnClustered || kind == OfficeChartKind.ColumnStacked || kind == OfficeChartKind.ColumnStacked100 ||
-                kind == OfficeChartKind.BarClustered || kind == OfficeChartKind.BarStacked || kind == OfficeChartKind.BarStacked100;
+            bool filled = kind == OfficeChartType.Pie || kind == OfficeChartType.Doughnut || kind == OfficeChartType.Bubble ||
+                kind == OfficeChartType.Area || kind == OfficeChartType.AreaStacked || kind == OfficeChartType.AreaStacked100 ||
+                kind == OfficeChartType.ColumnClustered || kind == OfficeChartType.ColumnStacked || kind == OfficeChartType.ColumnStacked100 ||
+                kind == OfficeChartType.BarClustered || kind == OfficeChartType.BarStacked || kind == OfficeChartType.BarStacked100;
             double? width = outline?.Width?.Value is int emus && emus > 0 ? emus / 12700d : null;
             if (width > OfficeChartStyleBounds.MaximumLineWidthPoints)
                 throw new InvalidDataException("The native chart line width exceeds the supported DrawingML bound.");
@@ -219,7 +219,7 @@ namespace OfficeIMO.OpenXml.Internal {
             Reject(showMarkers && markerShape == OfficeChartMarkerShape.Picture, "picture markers");
             Reject(connectLine && outline?.GetFirstChild<A.PresetDash>() != null && ReadDash(outline) == null,
                 "a line dash pattern");
-            bool area = kind == OfficeChartKind.Area || kind == OfficeChartKind.AreaStacked || kind == OfficeChartKind.AreaStacked100;
+            bool area = kind == OfficeChartType.Area || kind == OfficeChartType.AreaStacked || kind == OfficeChartType.AreaStacked100;
             Reject(!IsSupportedSeriesShape(properties, scheme, filled, area, connectLine, flatThreeDimensional),
                 "a series fill, line or effect");
             Reject(showMarkers && !IsSupportedSeriesShape(marker?.ChartShapeProperties, scheme, true), "a marker fill or effect");
@@ -234,7 +234,7 @@ namespace OfficeIMO.OpenXml.Internal {
             OfficeColor? seriesColor = ribbon ? ribbonHasFill ? fill : stroke :
                 filled ? fill : !connectLine && showMarkers ? markerFill ?? stroke ?? fill : stroke ?? fill;
             bool automaticColor = OfficeOpenXmlChartAutomaticColors.HasAutomaticSeriesColor(element);
-            if (!forDataUpdate && seriesColor == null && kind is not OfficeChartKind.Pie and not OfficeChartKind.Doughnut) {
+            if (!forDataUpdate && seriesColor == null && kind is not OfficeChartType.Pie and not OfficeChartType.Doughnut) {
                 // Office colours series without a stored colour from the chart style and theme.
                 seriesColor = OfficeOpenXmlChartAutomaticColors.ResolveSeries(element, scheme);
                 Reject(seriesColor == null, "an automatic colour whose theme colours cannot be resolved");
@@ -262,7 +262,7 @@ namespace OfficeIMO.OpenXml.Internal {
             // Unsupported appearance blocks static export, but update-only readers still need
             // the cached series. Native formatting remains in the source XML for the writer.
             var styles = unsupportedPoints ? null : OfficeOpenXmlChartPointStyles.Read(pointOverrides, values.Count, scheme, flatThreeDimensional);
-            var data = new OfficeChartSeries(name, values, xValues, seriesColor,
+            var data = new OfficeSeries(name, values, xValues, seriesColor,
                 pointColors, showMarkers: showMarkers,
                 connectLine: connectLine,
                 markerSize: markerSize, markerShape: markerShape,
@@ -270,7 +270,7 @@ namespace OfficeIMO.OpenXml.Internal {
                 strokeWidth: width, strokeDashStyle: ReadDash(outline), renderKind: kind, axisGroup: axisGroup)
                 .WithSeriesStyle(seriesPaint)
                 .WithPointStyles(styles);
-            if (kind is OfficeChartKind.Pie or OfficeChartKind.Doughnut) {
+            if (kind is OfficeChartType.Pie or OfficeChartType.Doughnut) {
                 if (OfficeOpenXmlChartExplosions.TryRead(element, pointOverrides, values.Count,
                     out int[]? explosions))
                     data = data.WithPointExplosions(explosions);

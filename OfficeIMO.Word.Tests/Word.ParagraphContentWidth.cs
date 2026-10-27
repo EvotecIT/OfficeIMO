@@ -101,9 +101,9 @@ public sealed class WordParagraphContentWidthTests {
         } else {
             paragraph = document.AddParagraph("Second section chart");
         }
-        WordChart chart = paragraph.AddChart(OfficeChartKind.Line,
+        WordChart chart = paragraph.AddChart(OfficeChartType.Line,
             new OfficeChartData(new[] { "A", "B" }, new[] {
-                new OfficeChartSeries("Values", new[] { 2D, 4D })
+                new OfficeSeries("Values", new[] { 2D, 4D })
             }));
         chart.SetWidthToPageContent(0.5, heightPx: 160);
         using var stream = new System.IO.MemoryStream();

@@ -8,11 +8,11 @@ try {
     using (PowerPointPresentation presentation = PowerPointPresentation.Create(path)) {
         var data = new OfficeChartData(
             new[] { "Q1", "Q2", "Q3" },
-            new[] { new OfficeChartSeries("Revenue", new[] { 1d, 2d, 3d }) });
+            new[] { new OfficeSeries("Revenue", new[] { 1d, 2d, 3d }) });
 
         PowerPointSlide slide = presentation.AddSlide();
         slide.AddTitle("OfficeIMO NativeAOT slide");
-        slide.AddChart(OfficeChartKind.ColumnClustered, data);
+        slide.AddChart(OfficeChartType.ColumnClustered, data);
         var dictionaryRows = new[] {
             new GenericOnlyDictionaryRow<int>(("Score", 10), ("Rank", 1)),
             new GenericOnlyDictionaryRow<int>(("Score", 20), ("Rank", 2))

@@ -43,7 +43,7 @@ public class OfficeDiagnosticCatalogTests {
 
     [Fact]
     public void SharedChartVocabularyRetainsExistingRendererAndNativeAuthoringFamilies() {
-        foreach (OfficeChartKind legacy in Enum.GetValues(typeof(OfficeChartKind))) {
+        foreach (OfficeChartType legacy in Enum.GetValues(typeof(OfficeChartType))) {
             Assert.True(Enum.TryParse(legacy.ToString(), out OfficeChartType shared));
             Assert.Equal((int)legacy, (int)shared);
         }

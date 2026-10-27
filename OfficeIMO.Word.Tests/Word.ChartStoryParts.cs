@@ -10,10 +10,10 @@ public sealed class WordChartStoryPartTests {
     [InlineData(true)]
     public void NativeChart_IsOwnedByItsHeaderOrFooterAndSurvivesReopen(bool footer) {
         using var document = WordDocument.Create();
-        var bodyChart = document.AddChart(OfficeChartKind.ColumnClustered, Data(1));
+        var bodyChart = document.AddChart(OfficeChartType.ColumnClustered, Data(1));
         WordHeaderFooter region = footer ? document.Sections[0].GetOrCreateFooter(WordHeaderFooterType.Default) : document.Sections[0].GetOrCreateHeader(WordHeaderFooterType.Default);
         var paragraph = region.AddParagraph();
-        var chart = paragraph.AddChart(OfficeChartKind.ColumnClustered, Data(9));
+        var chart = paragraph.AddChart(OfficeChartType.ColumnClustered, Data(9));
         var owner = footer ? (DocumentFormat.OpenXml.Packaging.OpenXmlPart)region._footer!.FooterPart! : region._header!.HeaderPart!;
         Assert.Single(owner.Parts, part => part.OpenXmlPart is DocumentFormat.OpenXml.Packaging.ChartPart);
         const string collisionId = "rIdChartCollision";
@@ -24,7 +24,7 @@ public sealed class WordChartStoryPartTests {
         chart.Drawing!.Descendants<DocumentFormat.OpenXml.Drawing.Charts.ChartReference>().Single().Id = collisionId;
         Assert.True(chart.TryGetOfficeSnapshot(out var snapshot));
         Assert.Equal(9d, snapshot.Data.Series.Single().Values.Single());
-        chart.SetData(OfficeChartKind.ColumnClustered, Data(11));
+        chart.SetData(OfficeChartType.ColumnClustered, Data(11));
         Assert.True(bodyChart.TryGetOfficeSnapshot(out var bodySnapshot));
         Assert.Equal(1d, bodySnapshot.Data.Series.Single().Values.Single());
         Assert.Empty(document.ValidateDocument());
@@ -37,5 +37,5 @@ public sealed class WordChartStoryPartTests {
         Assert.Empty(reopened.ValidateDocument());
     }
 
-    private static OfficeChartData Data(double value) => new(new[] { "A" }, new[] { new OfficeChartSeries("Values", new[] { value }) });
+    private static OfficeChartData Data(double value) => new(new[] { "A" }, new[] { new OfficeSeries("Values", new[] { value }) });
 }

@@ -720,9 +720,9 @@ namespace OfficeIMO.Tests {
             slide.AddTextBoxPoints("FILTERED TEXT", 48, 12, 100, 24);
             PowerPointTable table = slide.AddTablePoints(1, 1, 12, 44, 120, 30);
             table.GetCell(0, 0).Text = "FILTERED TABLE";
-            slide.AddChartPoints(OfficeChartKind.ColumnClustered,
+            slide.AddChartPoints(OfficeChartType.ColumnClustered,
                 new OfficeChartData(new[] { "FILTERED CATEGORY" }, new[] {
-                    new OfficeChartSeries("FILTERED CHART", new[] { 42D })
+                    new OfficeSeries("FILTERED CHART", new[] { 42D })
                 }), 150, 44, 120, 80);
 
             OfficeImageExportResult result = Assert.Single(presentation.ExportImages(

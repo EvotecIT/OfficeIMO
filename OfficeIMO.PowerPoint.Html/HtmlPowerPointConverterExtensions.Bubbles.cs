@@ -13,7 +13,7 @@ public static partial class HtmlPowerPointConverterExtensions {
         PptCore.PowerPointChartData data,
         out OfficeChartData? bubbleData) {
         bubbleData = null;
-        var series = new List<OfficeChartSeries>();
+        var series = new List<OfficeSeries>();
         foreach (PptCore.PowerPointChartSeries item in data.Series) {
             if (item.XValues == null || item.BubbleSizes == null ||
                 item.XValues.Count != item.Values.Count ||
@@ -21,7 +21,7 @@ public static partial class HtmlPowerPointConverterExtensions {
                 return false;
             }
 
-            series.Add(OfficeChartSeries.CreateBubble(
+            series.Add(OfficeSeries.CreateBubble(
                 item.Name, item.XValues, item.Values, item.BubbleSizes,
                 item.Color, item.PointColors,
                 showInLegend: item.ShowInLegend,

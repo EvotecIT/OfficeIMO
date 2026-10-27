@@ -15,9 +15,9 @@ public sealed class PowerPointChartDataSourceIntegrityTests {
     [InlineData(2)]
     public void Update_RejectsIncompatibleWorkbookBeforeChangingChartOrPackage(int updatePath) {
         using PowerPointPresentation document = PowerPointPresentation.Create();
-        OfficeChartKind kind = updatePath == 2 ? OfficeChartKind.Scatter : OfficeChartKind.Line;
+        OfficeChartType kind = updatePath == 2 ? OfficeChartType.Scatter : OfficeChartType.Line;
         var data = new OfficeChartData(new[] { "1", "2" },
-            new[] { new OfficeChartSeries("Old", new[] { 3d, 4d }, new[] { 1d, 2d }) });
+            new[] { new OfficeSeries("Old", new[] { 3d, 4d }, new[] { 1d, 2d }) });
         var chart = document.AddSlide().AddChart(kind, data);
         var part = document.Slides.Single().SlidePart.ChartParts.Single();
         part.DeletePart(part.GetPartsOfType<DocumentFormat.OpenXml.Packaging.EmbeddedPackagePart>().Single());
@@ -43,8 +43,8 @@ public sealed class PowerPointChartDataSourceIntegrityTests {
     [Fact]
     public void LegacyScatterUpdate_UsesSharedSchemaSafeSourceReplacement() {
         using PowerPointPresentation document = PowerPointPresentation.Create();
-        var chart = document.AddSlide().AddChart(OfficeChartKind.Scatter, new OfficeChartData(new[] { "1", "2" },
-            new[] { new OfficeChartSeries("Old", new[] { 3d, 4d }, new[] { 1d, 2d }) }));
+        var chart = document.AddSlide().AddChart(OfficeChartType.Scatter, new OfficeChartData(new[] { "1", "2" },
+            new[] { new OfficeSeries("Old", new[] { 3d, 4d }, new[] { 1d, 2d }) }));
         var part = document.Slides.Single().SlidePart.ChartParts.Single();
         C.ScatterChartSeries series = part.ChartSpace!.Descendants<C.ScatterChartSeries>().Single();
         series.AddChild(new C.SeriesText(new C.NumericValue { Text = "Literal title" }), true);
@@ -65,14 +65,14 @@ public sealed class PowerPointChartDataSourceIntegrityTests {
     }
 
     [Theory]
-    [InlineData(OfficeChartKind.ColumnClustered)]
-    [InlineData(OfficeChartKind.Line)]
-    [InlineData(OfficeChartKind.Area)]
-    [InlineData(OfficeChartKind.Pie)]
-    public void LegacyCategoryUpdate_ReplacesLiteralTitleAndNumericCategoryChoice(OfficeChartKind kind) {
+    [InlineData(OfficeChartType.ColumnClustered)]
+    [InlineData(OfficeChartType.Line)]
+    [InlineData(OfficeChartType.Area)]
+    [InlineData(OfficeChartType.Pie)]
+    public void LegacyCategoryUpdate_ReplacesLiteralTitleAndNumericCategoryChoice(OfficeChartType kind) {
         using PowerPointPresentation document = PowerPointPresentation.Create();
         var chart = document.AddSlide().AddChart(kind, new OfficeChartData(new[] { "1", "2" },
-            new[] { new OfficeChartSeries("Old", new[] { 3d, 4d }) }));
+            new[] { new OfficeSeries("Old", new[] { 3d, 4d }) }));
         var part = document.Slides.Single().SlidePart.ChartParts.Single();
         var series = part.ChartSpace!.Descendants<DocumentFormat.OpenXml.OpenXmlCompositeElement>().Single(element => element.LocalName == "ser");
         series.AddChild(new C.SeriesText(new C.NumericValue { Text = "Literal title" }), true);

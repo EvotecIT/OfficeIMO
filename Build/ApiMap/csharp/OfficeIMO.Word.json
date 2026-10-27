@@ -5469,7 +5469,12 @@
       "category": "naming",
       "notes": "Writes the same field switch as before (\\* Roman); only the member name changes.",
       "phase": "B",
-      "applied": "phase-b-pending"
+      "applied": "phase-b-applied",
+      "note": "The C# enum names use explicit casing. A shared field instruction codec preserves native Word switches when writing and parsing simple fields, advanced fields and formula updates. Field suites pass 121 tests on each modern target.",
+      "implementation": {
+        "phase": "B",
+        "status": "implemented-qualified"
+      }
     },
     {
       "old": "OfficeIMO.Word.WordFieldFormat.roman",
@@ -5481,7 +5486,12 @@
       "category": "naming",
       "notes": "Writes the same field switch as before (\\* roman); only the member name changes.",
       "phase": "B",
-      "applied": "phase-b-pending"
+      "applied": "phase-b-applied",
+      "note": "The C# enum names use explicit casing. A shared field instruction codec preserves native Word switches when writing and parsing simple fields, advanced fields and formula updates. Field suites pass 121 tests on each modern target.",
+      "implementation": {
+        "phase": "B",
+        "status": "implemented-qualified"
+      }
     },
     {
       "old": "OfficeIMO.Word.WordFieldFormat.ALPHABETICAL",
@@ -5493,7 +5503,12 @@
       "category": "naming",
       "notes": "Writes the same field switch as before (\\* ALPHABETICAL); only the member name changes.",
       "phase": "B",
-      "applied": "phase-b-pending"
+      "applied": "phase-b-applied",
+      "note": "The C# enum names use explicit casing. A shared field instruction codec preserves native Word switches when writing and parsing simple fields, advanced fields and formula updates. Field suites pass 121 tests on each modern target.",
+      "implementation": {
+        "phase": "B",
+        "status": "implemented-qualified"
+      }
     },
     {
       "old": "OfficeIMO.Word.WordFieldFormat.Alphabetical",
@@ -5505,7 +5520,12 @@
       "category": "naming",
       "notes": "Writes the same field switch as before (\\* Alphabetical); only the member name changes.",
       "phase": "B",
-      "applied": "phase-b-pending"
+      "applied": "phase-b-applied",
+      "note": "The C# enum names use explicit casing. A shared field instruction codec preserves native Word switches when writing and parsing simple fields, advanced fields and formula updates. Field suites pass 121 tests on each modern target.",
+      "implementation": {
+        "phase": "B",
+        "status": "implemented-qualified"
+      }
     },
     {
       "old": "OfficeIMO.Word.WordFieldFormat.Mergeformat",
@@ -5516,7 +5536,12 @@
       "file": "OfficeIMO.Word/WordField.cs",
       "category": "naming",
       "phase": "B",
-      "applied": "phase-b-pending"
+      "applied": "phase-b-applied",
+      "note": "The C# enum names use explicit casing. A shared field instruction codec preserves native Word switches when writing and parsing simple fields, advanced fields and formula updates. Field suites pass 121 tests on each modern target.",
+      "implementation": {
+        "phase": "B",
+        "status": "implemented-qualified"
+      }
     }
   ],
   "packageMoves": [
@@ -5626,6 +5651,11 @@
       "phase": "A",
       "applied": "applied",
       "note": "Password-bearing Load retains the requested SaveOnDispose lifecycle while decoding into a private package with explicit persistence. Disposal writes only through the associated encrypted destination. Native fallback fixtures inject the Word.Pdf visual renderer explicitly at the internal conversion boundary."
+    },
+    {
+      "phase": "B",
+      "applied": "implemented-typed-charts-qualified",
+      "note": "The existing OfficeChartSeries model becomes root OfficeIMO.OfficeSeries, adding numeric typed-selector factories. OfficeChartKind merges into the M1 OfficeChartType enum. Native chart writers and all in-repo type consumers use that single enum/model; typed and nameof-based AddChart overloads reuse the existing shared native chart data pipeline. Core builds on all three macOS targets with zero warnings; six typed native chart artifact cases and 166 shared chart regression cases pass on each modern framework."
     }
   ],
   "applicationStatus": "Phase A applied and validated on the supported macOS targets. Phase B and Tier 2 entries retain their status; Windows .NET Framework validation remains pending.",

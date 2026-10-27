@@ -7,12 +7,12 @@ namespace OfficeIMO.Tests;
 
 public sealed class ExcelChartAppearanceIntegrityTests {
     [Theory]
-    [InlineData(OfficeChartKind.Pie)]
-    [InlineData(OfficeChartKind.Doughnut)]
-    public void SharedAppearance_ExcelHidesAllRadialLegendEntries(OfficeChartKind kind) {
+    [InlineData(OfficeChartType.Pie)]
+    [InlineData(OfficeChartType.Doughnut)]
+    public void SharedAppearance_ExcelHidesAllRadialLegendEntries(OfficeChartType kind) {
         using ExcelDocument document = ExcelDocument.Create();
         document.AddWorksheet("Results").AddChart(kind, new OfficeChartData(new[] { "A", "B", "C" }, new[] {
-            new OfficeChartSeries("Status", new[] { 1d, 2d, 3d }, null, null, null, true, showInLegend: false)
+            new OfficeSeries("Status", new[] { 1d, 2d, 3d }, null, null, null, true, showInLegend: false)
         }), 1, 1);
         var part = document.OpenXmlDocument.WorkbookPart!.WorksheetParts.Single(p => p.DrawingsPart != null).DrawingsPart!.ChartParts.Single();
         Assert.Equal(new uint[] { 0, 1, 2 }, part.ChartSpace.Descendants<C.LegendEntry>().Select(e => e.Index!.Val!.Value));
@@ -22,8 +22,8 @@ public sealed class ExcelChartAppearanceIntegrityTests {
     [Fact]
     public void SharedAppearance_ExcelClampsAuthoredMarkerSizeAndPreflightsNativeBounds() {
         using ExcelDocument document = ExcelDocument.Create();
-        var chart = document.AddWorksheet("Results").AddChart(OfficeChartKind.Line,
-            new OfficeChartData(new[] { "A", "B" }, new[] { new OfficeChartSeries("Status", new[] { 1d, 2d }, null, null, null, true, markerSize: 1) }), 1, 1);
+        var chart = document.AddWorksheet("Results").AddChart(OfficeChartType.Line,
+            new OfficeChartData(new[] { "A", "B" }, new[] { new OfficeSeries("Status", new[] { 1d, 2d }, null, null, null, true, markerSize: 1) }), 1, 1);
         var part = document.OpenXmlDocument.WorkbookPart!.WorksheetParts.Single(p => p.DrawingsPart != null).DrawingsPart!.ChartParts.Single();
         Assert.Equal((byte)2, part.ChartSpace.Descendants<C.Size>().Single().Val!.Value);
         string before = part.ChartSpace.OuterXml;

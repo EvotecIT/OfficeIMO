@@ -9,12 +9,12 @@ namespace OfficeIMO.Tests;
 
 public sealed class WordChartThemePaletteTests {
     [Theory]
-    [InlineData(OfficeChartKind.Pie)]
-    [InlineData(OfficeChartKind.Doughnut)]
-    public void UnstyledRadialChartProjectsThemeAccentColors(OfficeChartKind kind) {
+    [InlineData(OfficeChartType.Pie)]
+    [InlineData(OfficeChartType.Doughnut)]
+    public void UnstyledRadialChartProjectsThemeAccentColors(OfficeChartType kind) {
         using var document = WordDocument.Create();
         WordChart chart = document.AddChart(kind, new OfficeChartData(new[] { "A", "B" }, new[] {
-            new OfficeChartSeries("Values", new[] { 3d, 2d })
+            new OfficeSeries("Values", new[] { 3d, 2d })
         }));
         Assert.True(chart.TryGetOfficeSnapshot(out OfficeChartSnapshot snapshot));
         A.ColorScheme scheme = document.MainDocumentPartRoot.ThemePart!.Theme!.ThemeElements!.ColorScheme!;
@@ -29,9 +29,9 @@ public sealed class WordChartThemePaletteTests {
     [Fact]
     public void RadialPaletteWithNonIdentityWordColorSchemeMappingFailsClosed() {
         using var document = WordDocument.Create();
-        WordChart chart = document.AddChart(OfficeChartKind.Pie,
+        WordChart chart = document.AddChart(OfficeChartType.Pie,
             new OfficeChartData(new[] { "A", "B" }, new[] {
-                new OfficeChartSeries("Values", new[] { 3d, 2d })
+                new OfficeSeries("Values", new[] { 3d, 2d })
             }));
         W.ColorSchemeMapping map = document.MainDocumentPartRoot.DocumentSettingsPart!
             .Settings!.GetFirstChild<W.ColorSchemeMapping>()!;

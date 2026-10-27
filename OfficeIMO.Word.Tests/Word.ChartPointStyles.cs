@@ -15,9 +15,9 @@ public sealed class WordChartPointStylesTests {
     [Fact]
     public void PointStyles_RejectConflictingDirectAndMarkerShapeOwners() {
         using WordDocument document = WordDocument.Create();
-        WordChart chart = document.AddChart(OfficeChartKind.Line,
+        WordChart chart = document.AddChart(OfficeChartType.Line,
             new OfficeChartData(new[] { "A", "B" }, new[] {
-                new OfficeChartSeries("Measured", new[] { 2d, 3d }) }));
+                new OfficeSeries("Measured", new[] { 2d, 3d }) }));
         C.LineChartSeries native = chart.ChartPart!.ChartSpace!.Descendants<C.LineChartSeries>().Single();
         var point = new C.DataPoint(new C.Index { Val = 0 });
         point.AddChild(new C.Marker(new C.ChartShapeProperties(
@@ -31,9 +31,9 @@ public sealed class WordChartPointStylesTests {
     [Fact]
     public void PointStyles_RejectDuplicateNativeMarkersOnOnePoint() {
         using WordDocument document = WordDocument.Create();
-        WordChart chart = document.AddChart(OfficeChartKind.Line,
+        WordChart chart = document.AddChart(OfficeChartType.Line,
             new OfficeChartData(new[] { "A", "B" }, new[] {
-                new OfficeChartSeries("Measured", new[] { 2d, 3d }) }));
+                new OfficeSeries("Measured", new[] { 2d, 3d }) }));
         C.LineChartSeries native = chart.ChartPart!.ChartSpace!.Descendants<C.LineChartSeries>().Single();
         var point = new C.DataPoint(new C.Index { Val = 0 });
         point.Append(new C.Marker(new C.ChartShapeProperties()), new C.Marker(new C.ChartShapeProperties()));

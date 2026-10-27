@@ -45,7 +45,7 @@ public static partial class ExcelOpenDocumentConversionExtensions {
                     chartType, chart.Title);
                 if (data.Series.Any(item => item.PointStyles != null)) {
                     convertedChart.ApplySharedPointStyles(data.Series.Select(item =>
-                        new OfficeChartSeries(item.Name, item.Values)
+                        new OfficeSeries(item.Name, item.Values)
                             .WithPointStyles(item.PointStyles)).ToArray());
                 }
                 expandedCells += chartCells;

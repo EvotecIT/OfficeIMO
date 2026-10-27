@@ -11,10 +11,10 @@ public sealed class ExcelChartRadialOutsideLabelsTests {
     [Fact]
     public void DifferingSeriesLabelContentsRejectOneSharedDoughnutLayout() {
         using var document = ExcelDocument.Create();
-        ExcelChart chart = document.AddWorksheet("Results").AddChart(OfficeChartKind.Doughnut,
+        ExcelChart chart = document.AddWorksheet("Results").AddChart(OfficeChartType.Doughnut,
             new OfficeChartData(new[] { "A", "B" }, new[] {
-                new OfficeChartSeries("Inner", new[] { 3d, 4d }),
-                new OfficeChartSeries("Outer", new[] { 4d, 3d })
+                new OfficeSeries("Inner", new[] { 3d, 4d }),
+                new OfficeSeries("Outer", new[] { 4d, 3d })
             }), 1, 1);
         C.DoughnutChart native = document.OpenXmlDocument.WorkbookPart!.WorksheetParts
             .Single(part => part.DrawingsPart != null).DrawingsPart!.ChartParts.Single()
@@ -29,10 +29,10 @@ public sealed class ExcelChartRadialOutsideLabelsTests {
     [Fact]
     public void OuterRingOnlyLabelsKeepTheirSeriesSelectionAndLeaders() {
         using var document = ExcelDocument.Create();
-        ExcelChart chart = document.AddWorksheet("Results").AddChart(OfficeChartKind.Doughnut,
+        ExcelChart chart = document.AddWorksheet("Results").AddChart(OfficeChartType.Doughnut,
             new OfficeChartData(new[] { "A", "B" }, new[] {
-                new OfficeChartSeries("Inner", new[] { 3d, 2d }),
-                new OfficeChartSeries("Outer", new[] { 4d, 1d })
+                new OfficeSeries("Inner", new[] { 3d, 2d }),
+                new OfficeSeries("Outer", new[] { 4d, 1d })
             }), 1, 1);
         C.DoughnutChart native = document.OpenXmlDocument.WorkbookPart!.WorksheetParts
             .Single(part => part.DrawingsPart != null).DrawingsPart!.ChartParts.Single()
@@ -53,9 +53,9 @@ public sealed class ExcelChartRadialOutsideLabelsTests {
     [InlineData(true)]
     public void NativeOutsideLabelsRetainLeaderLineSettingInImageSnapshot(bool showLeaderLines) {
         using var document = ExcelDocument.Create();
-        ExcelChart chart = document.AddWorksheet("Results").AddChart(OfficeChartKind.Doughnut,
+        ExcelChart chart = document.AddWorksheet("Results").AddChart(OfficeChartType.Doughnut,
             new OfficeChartData(new[] { "A", "B", "C" }, new[] {
-                new OfficeChartSeries("Status", new[] { 3d, 4d, 5d })
+                new OfficeSeries("Status", new[] { 3d, 4d, 5d })
             }), 1, 1);
         C.DoughnutChart native = document.OpenXmlDocument.WorkbookPart!.WorksheetParts
             .Single(part => part.DrawingsPart != null).DrawingsPart!.ChartParts.Single()
@@ -75,9 +75,9 @@ public sealed class ExcelChartRadialOutsideLabelsTests {
     [Fact]
     public void EmptyLeaderLinesContainerDoesNotReportMissingRenderedLines() {
         using var document = ExcelDocument.Create();
-        ExcelChart chart = document.AddWorksheet("Results").AddChart(OfficeChartKind.Pie,
+        ExcelChart chart = document.AddWorksheet("Results").AddChart(OfficeChartType.Pie,
             new OfficeChartData(new[] { "A", "B" }, new[] {
-                new OfficeChartSeries("Status", new[] { 3d, 4d })
+                new OfficeSeries("Status", new[] { 3d, 4d })
             }), 1, 1);
         C.DataLabels labels = document.OpenXmlDocument.WorkbookPart!.WorksheetParts
             .Single(part => part.DrawingsPart != null).DrawingsPart!.ChartParts.Single()
@@ -108,10 +108,10 @@ public sealed class ExcelChartRadialOutsideLabelsTests {
     [Fact]
     public void ConflictingSeriesLeaderLineSettingsRejectImageSnapshot() {
         using var document = ExcelDocument.Create();
-        ExcelChart chart = document.AddWorksheet("Results").AddChart(OfficeChartKind.Doughnut,
+        ExcelChart chart = document.AddWorksheet("Results").AddChart(OfficeChartType.Doughnut,
             new OfficeChartData(new[] { "A", "B" }, new[] {
-                new OfficeChartSeries("Inner", new[] { 3d, 4d }),
-                new OfficeChartSeries("Outer", new[] { 4d, 3d })
+                new OfficeSeries("Inner", new[] { 3d, 4d }),
+                new OfficeSeries("Outer", new[] { 4d, 3d })
             }), 1, 1);
         C.DoughnutChart native = document.OpenXmlDocument.WorkbookPart!.WorksheetParts
             .Single(part => part.DrawingsPart != null).DrawingsPart!.ChartParts.Single()

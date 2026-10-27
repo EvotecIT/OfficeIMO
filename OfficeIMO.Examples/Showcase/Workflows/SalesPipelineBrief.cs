@@ -10,8 +10,8 @@ namespace OfficeIMO.Examples.Showcase.Workflows {
             Text(pipeline, "Sales pipeline: where to focus next", 1.5, 1, 30, 2, 30, "17365D");
             Text(pipeline, "Synthetic snapshot / opportunity value in EUR thousands / not a revenue forecast", 1.5, 3, 30, 1.5, 17, "526179");
             var data = new OfficeChartData(new[] { "Qualified", "Discovery", "Proposal", "Negotiation" },
-                new[] { new OfficeChartSeries("Opportunity value", new double[] { 180, 145, 96, 52 }) });
-            pipeline.AddChartCm(OfficeChartKind.ColumnClustered, data, 1.5, 5, 30, 11)
+                new[] { new OfficeSeries("Opportunity value", new double[] { 180, 145, 96, 52 }) });
+            pipeline.AddChartCm(OfficeChartType.ColumnClustered, data, 1.5, 5, 30, 11)
                 .SetTitle("Open value by current stage").SetDataLabels(showValue: true).SetValueAxisTitle("EUR thousands");
             pipeline.Notes.Text = "Each opportunity appears in one current stage. Do not add stage percentages or describe this as contracted revenue. Values are synthetic.";
             var actions = deck.AddSlide();

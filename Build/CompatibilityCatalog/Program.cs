@@ -229,11 +229,11 @@ static void GenerateConverterPowerPointSample(string outputPath) {
     var chartData = new OfficeChartData(
         new[] { "Q1", "Q2", "Q3", "Q4" },
         new[] {
-            new OfficeChartSeries("Documents", new[] { 120D, 185D, 240D, 318D }),
-            new OfficeChartSeries("Reports", new[] { 42D, 68D, 96D, 132D })
+            new OfficeSeries("Documents", new[] { 120D, 185D, 240D, 318D }),
+            new OfficeSeries("Reports", new[] { 42D, 68D, 96D, 132D })
         });
     PowerPointChart chart = chartSlide.AddChartPoints(
-        OfficeChartKind.ColumnClustered,
+        OfficeChartType.ColumnClustered,
         chartData,
         66,
         128,

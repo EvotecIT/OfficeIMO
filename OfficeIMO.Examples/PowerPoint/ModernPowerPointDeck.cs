@@ -275,10 +275,10 @@ namespace OfficeIMO.Examples.PowerPoint {
             OfficeChartData data = new(
                 new[] { "Jan", "Feb", "Mar", "Apr", "May", "Jun" },
                 new[] {
-                    new OfficeChartSeries("Sales", new[] { 10d, 12d, 16d, 19d, 24d, 27d }),
-                    new OfficeChartSeries("Profit", new[] { 4d, 5d, 7d, 9d, 11d, 13d })
+                    new OfficeSeries("Sales", new[] { 10d, 12d, 16d, 19d, 24d, 27d }),
+                    new OfficeSeries("Profit", new[] { 4d, 5d, 7d, 9d, 11d, 13d })
                 });
-            PowerPointChart chart = slide.AddChartCm(OfficeChartKind.ColumnClustered, data, 1.8, 3.7, 15.1, 8.5);
+            PowerPointChart chart = slide.AddChartCm(OfficeChartType.ColumnClustered, data, 1.8, 3.7, 15.1, 8.5);
             chart.SetTitle("Sales vs Profit")
                 .SetLegend(OfficeChartLegendPosition.Bottom)
                 .SetChartAreaStyle(fillColor: "FFFFFF", lineColor: "FFFFFF")
@@ -331,8 +331,8 @@ namespace OfficeIMO.Examples.PowerPoint {
 
             OfficeChartData data = new(
                 new[] { "Direct", "Partner", "Online", "Events" },
-                new[] { new OfficeChartSeries("Share", new[] { 42d, 27d, 22d, 9d }) });
-            PowerPointChart chart = slide.AddChartCm(OfficeChartKind.Doughnut, data, 2.2, 3.9, 13.4, 7.8);
+                new[] { new OfficeSeries("Share", new[] { 42d, 27d, 22d, 9d }) });
+            PowerPointChart chart = slide.AddChartCm(OfficeChartType.Doughnut, data, 2.2, 3.9, 13.4, 7.8);
             chart.SetTitle("Revenue Share by Channel")
                 .SetLegend(OfficeChartLegendPosition.Bottom)
                 .SetDataLabels(showPercent: true)
@@ -371,10 +371,10 @@ namespace OfficeIMO.Examples.PowerPoint {
             OfficeChartData data = new(
                 new[] { "Jan", "Feb", "Mar", "Apr", "May", "Jun" },
                 new[] {
-                    new OfficeChartSeries("Sales", new[] { 10d, 14d, 18d, 21d, 25d, 28d }),
-                    new OfficeChartSeries("Profit", new[] { 4d, 6d, 8d, 10d, 12d, 14d })
+                    new OfficeSeries("Sales", new[] { 10d, 14d, 18d, 21d, 25d, 28d }),
+                    new OfficeSeries("Profit", new[] { 4d, 6d, 8d, 10d, 12d, 14d })
                 });
-            PowerPointChart chart = slide.AddChartCm(OfficeChartKind.Line, data, 2.8, 3.8, 19.5, 8.4);
+            PowerPointChart chart = slide.AddChartCm(OfficeChartType.Line, data, 2.8, 3.8, 19.5, 8.4);
             chart.SetTitle("Momentum Over Time")
                 .SetLegend(OfficeChartLegendPosition.Bottom)
                 .SetChartAreaStyle(fillColor: "FFFFFF", lineColor: "FFFFFF")

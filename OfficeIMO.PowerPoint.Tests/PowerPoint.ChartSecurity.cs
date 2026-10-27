@@ -21,7 +21,7 @@ public class PowerPointChartSecurityTests {
         using PowerPointPresentation presentation =
             PowerPointPresentation.Create(packageStream);
         PowerPointChart chart = presentation.AddSlide().AddChart(
-            OfficeChartKind.Bubble,
+            OfficeChartType.Bubble,
             CreateBubbleData(pointCount: 1));
         ChartPart chartPart = presentation.Slides[0].SlidePart.ChartParts.Single();
         C.Chart nativeChart = chartPart.ChartSpace!
@@ -51,7 +51,7 @@ public class PowerPointChartSecurityTests {
             using (PowerPointPresentation presentation =
                    PowerPointPresentation.Create(path)) {
                 PowerPointChart chart = presentation.AddSlide().AddChart(
-                    OfficeChartKind.Bubble,
+                    OfficeChartType.Bubble,
                     CreateBubbleData(pointCount: 1));
                 Assert.True(chart.TryGetOfficeSnapshot(out _));
                 presentation.Save();
@@ -99,7 +99,7 @@ public class PowerPointChartSecurityTests {
     public void BubblePointColorMaterialization_PreservesEveryDeclaredColor() {
         const int pointCount = 4;
         using PowerPointPresentation presentation = PowerPointPresentation.Create(new MemoryStream());
-        presentation.AddSlide().AddChart(OfficeChartKind.Bubble, CreateBubbleData(pointCount));
+        presentation.AddSlide().AddChart(OfficeChartType.Bubble, CreateBubbleData(pointCount));
         C.BubbleChartSeries nativeSeries = presentation.Slides[0].SlidePart
             .ChartParts.Single().ChartSpace!.Descendants<C.BubbleChartSeries>().Single();
         C.DataPoint[] points = nativeSeries.Elements<C.DataPoint>().ToArray();
@@ -123,7 +123,7 @@ public class PowerPointChartSecurityTests {
 
         using PowerPointPresentation presentation =
             PowerPointPresentation.Create(new MemoryStream());
-        presentation.AddSlide().AddChart(OfficeChartKind.Bubble, data);
+        presentation.AddSlide().AddChart(OfficeChartType.Bubble, data);
         stopwatch.Stop();
 
         C.BubbleChartSeries nativeSeries = presentation.Slides[0].SlidePart
@@ -146,7 +146,7 @@ public class PowerPointChartSecurityTests {
             points.Select(value => value.ToString(
                 System.Globalization.CultureInfo.InvariantCulture)),
             new[] {
-                OfficeChartSeries.CreateBubble(
+                OfficeSeries.CreateBubble(
                     "Series",
                     points,
                     points,

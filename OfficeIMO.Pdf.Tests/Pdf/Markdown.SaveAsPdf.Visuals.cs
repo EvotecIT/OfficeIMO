@@ -405,7 +405,7 @@ _Figure 2. Revenue chart_
         bool created = MarkdownPdfConverterExtensions.TryCreateChartSnapshot(semantic, CreateVisualOptions(), out OfficeChartSnapshot? snapshot, out string? warning);
 
         Assert.True(created, warning);
-        Assert.Equal(OfficeChartKind.BarClustered, snapshot!.ChartKind);
+        Assert.Equal(OfficeChartType.BarClustered, snapshot!.ChartKind);
     }
 
     [Fact]
@@ -826,7 +826,7 @@ _Figure 2. Revenue chart_
         bool created = MarkdownPdfConverterExtensions.TryCreateChartSnapshot(semantic, CreateVisualOptions(), out OfficeChartSnapshot? snapshot, out string? warning);
 
         Assert.True(created, warning);
-        OfficeChartSeries series = Assert.Single(snapshot!.Data.Series);
+        OfficeSeries series = Assert.Single(snapshot!.Data.Series);
         Assert.Equal(10D, series.XValues![0]);
         Assert.True(double.IsNaN(series.XValues[1]));
         Assert.Equal(40D, series.XValues[2]);
@@ -855,7 +855,7 @@ _Figure 2. Revenue chart_
         bool created = MarkdownPdfConverterExtensions.TryCreateChartSnapshot(semantic, CreateVisualOptions(), out OfficeChartSnapshot? snapshot, out string? warning);
 
         Assert.True(created, warning);
-        OfficeChartSeries series = Assert.Single(snapshot!.Data.Series);
+        OfficeSeries series = Assert.Single(snapshot!.Data.Series);
         Assert.Equal(new[] { 10D, 25D }, series.XValues);
         Assert.Equal(new[] { 2D, 4D }, series.Values);
         Assert.Equal(2, snapshot.Data.Categories.Count);
@@ -931,7 +931,7 @@ _Figure 2. Revenue chart_
         bool created = MarkdownPdfConverterExtensions.TryCreateChartSnapshot(semantic, CreateVisualOptions(), out OfficeChartSnapshot? snapshot, out string? warning);
 
         Assert.True(created, warning);
-        OfficeChartSeries series = Assert.Single(snapshot!.Data.Series);
+        OfficeSeries series = Assert.Single(snapshot!.Data.Series);
         Assert.True(double.IsNaN(series.Values[0]));
         Assert.Equal(14D, series.Values[1]);
     }
@@ -956,7 +956,7 @@ _Figure 2. Revenue chart_
         bool created = MarkdownPdfConverterExtensions.TryCreateChartSnapshot(semantic, CreateVisualOptions(), out OfficeChartSnapshot? snapshot, out string? warning);
 
         Assert.True(created, warning);
-        OfficeChartSeries series = Assert.Single(snapshot!.Data.Series);
+        OfficeSeries series = Assert.Single(snapshot!.Data.Series);
         Assert.Equal(10D, series.Values[0]);
         Assert.Equal(14D, series.Values[1]);
     }
@@ -1025,7 +1025,7 @@ _Figure 2. Revenue chart_
         bool created = MarkdownPdfConverterExtensions.TryCreateChartSnapshot(semantic, CreateVisualOptions(), out OfficeChartSnapshot? snapshot, out string? warning);
 
         Assert.True(created, warning);
-        OfficeChartSeries series = Assert.Single(snapshot!.Data.Series);
+        OfficeSeries series = Assert.Single(snapshot!.Data.Series);
         Assert.Equal(new[] { 10D, 25D }, series.XValues);
         Assert.Equal(new[] { 2D, 4D }, series.Values);
     }
@@ -1088,7 +1088,7 @@ _Figure 2. Revenue chart_
         bool created = MarkdownPdfConverterExtensions.TryCreateChartSnapshot(semantic, CreateVisualOptions(), out OfficeChartSnapshot? snapshot, out string? warning);
 
         Assert.True(created, warning);
-        OfficeChartSeries series = Assert.Single(snapshot!.Data.Series);
+        OfficeSeries series = Assert.Single(snapshot!.Data.Series);
         Assert.True(double.IsNaN(series.XValues![0]));
         Assert.Equal(1D, series.XValues[1]);
         Assert.True(double.IsNaN(series.Values[0]));
@@ -1117,7 +1117,7 @@ _Figure 2. Revenue chart_
         bool created = MarkdownPdfConverterExtensions.TryCreateChartSnapshot(semantic, CreateVisualOptions(), out OfficeChartSnapshot? snapshot, out string? warning);
 
         Assert.True(created, warning);
-        OfficeChartSeries series = snapshot!.Data.Series[0];
+        OfficeSeries series = snapshot!.Data.Series[0];
         Assert.True(double.IsNaN(series.XValues![0]));
         Assert.True(double.IsNaN(series.Values[0]));
         Assert.Equal(2D, series.XValues[1]);
@@ -1136,7 +1136,7 @@ _Figure 2. Revenue chart_
         bool created = MarkdownPdfConverterExtensions.TryCreateChartSnapshot(semantic, CreateVisualOptions(), out OfficeChartSnapshot? snapshot, out string? warning);
 
         Assert.True(created, warning);
-        OfficeChartSeries series = Assert.Single(snapshot!.Data.Series);
+        OfficeSeries series = Assert.Single(snapshot!.Data.Series);
         Assert.Equal(new[] { 10D, 25D }, series.XValues);
         Assert.Equal(new[] { 2D, 4D }, series.Values);
     }
@@ -1183,7 +1183,7 @@ _Figure 2. Revenue chart_
         bool created = MarkdownPdfConverterExtensions.TryCreateChartSnapshot(semantic, CreateVisualOptions(), out OfficeChartSnapshot? snapshot, out string? warning);
 
         Assert.True(created, warning);
-        OfficeChartSeries series = Assert.Single(snapshot!.Data.Series);
+        OfficeSeries series = Assert.Single(snapshot!.Data.Series);
         Assert.True(double.IsNaN(series.XValues![0]));
         Assert.True(double.IsNaN(series.Values[0]));
         Assert.Equal(1D, series.XValues![1]);
@@ -1281,7 +1281,7 @@ _Figure 2. Revenue chart_
         bool created = MarkdownPdfConverterExtensions.TryCreateChartSnapshot(semantic, CreateVisualOptions(), out OfficeChartSnapshot? snapshot, out string? warning);
 
         Assert.True(created, warning);
-        OfficeChartSeries series = Assert.Single(snapshot!.Data.Series);
+        OfficeSeries series = Assert.Single(snapshot!.Data.Series);
         Assert.Equal(1D, series.Values[0]);
         Assert.True(double.IsNaN(series.Values[1]));
         Assert.Equal(3D, series.Values[2]);
@@ -1582,7 +1582,7 @@ _Figure 2. Revenue chart_
         bool created = MarkdownPdfConverterExtensions.TryCreateChartSnapshot(semantic, CreateVisualOptions(), out OfficeChartSnapshot? snapshot, out string? warning);
 
         Assert.True(created, warning);
-        OfficeChartSeries series = Assert.Single(snapshot!.Data.Series);
+        OfficeSeries series = Assert.Single(snapshot!.Data.Series);
         Assert.Equal("Visible", series.Name);
         Assert.Equal(new[] { 1D, 2D, 3D }, series.Values);
     }
@@ -1803,7 +1803,7 @@ _Figure 2. Revenue chart_
         bool created = MarkdownPdfConverterExtensions.TryCreateChartSnapshot(semantic, CreateVisualOptions(), out OfficeChartSnapshot? snapshot, out string? warning);
 
         Assert.True(created, warning);
-        OfficeChartSeries series = Assert.Single(snapshot!.Data.Series);
+        OfficeSeries series = Assert.Single(snapshot!.Data.Series);
         Assert.Equal("Visible", series.Name);
         Assert.Equal(new[] { 1D, 2D }, series.Values);
     }
@@ -1831,7 +1831,7 @@ _Figure 2. Revenue chart_
         bool created = MarkdownPdfConverterExtensions.TryCreateChartSnapshot(semantic, CreateVisualOptions(), out OfficeChartSnapshot? snapshot, out string? warning);
 
         Assert.True(created, warning);
-        Assert.Equal(OfficeChartKind.AreaStacked, snapshot!.ChartKind);
+        Assert.Equal(OfficeChartType.AreaStacked, snapshot!.ChartKind);
     }
 
     [Fact]
@@ -1852,7 +1852,7 @@ _Figure 2. Revenue chart_
         bool created = MarkdownPdfConverterExtensions.TryCreateChartSnapshot(semantic, CreateVisualOptions(), out OfficeChartSnapshot? snapshot, out string? warning);
 
         Assert.True(created, warning);
-        Assert.Equal(OfficeChartKind.Doughnut, snapshot!.ChartKind);
+        Assert.Equal(OfficeChartType.Doughnut, snapshot!.ChartKind);
         Assert.Equal(2, snapshot.Data.Series.Count);
         Assert.Equal("Outer", snapshot.Data.Series[0].Name);
         Assert.Equal("Inner", snapshot.Data.Series[1].Name);
@@ -1900,7 +1900,7 @@ _Figure 2. Revenue chart_
         bool created = MarkdownPdfConverterExtensions.TryCreateChartSnapshot(semantic, CreateVisualOptions(), out OfficeChartSnapshot? snapshot, out string? warning);
 
         Assert.True(created, warning);
-        OfficeChartSeries series = Assert.Single(snapshot!.Data.Series);
+        OfficeSeries series = Assert.Single(snapshot!.Data.Series);
         Assert.Equal("Visible", series.Name);
         Assert.Equal(2D, Assert.Single(series.Values));
     }
@@ -2129,7 +2129,7 @@ _Figure 2. Revenue chart_
         bool created = MarkdownPdfConverterExtensions.TryCreateChartSnapshot(semantic, CreateVisualOptions(), out OfficeChartSnapshot? snapshot, out string? warning);
 
         Assert.True(created, warning);
-        Assert.Equal(OfficeChartKind.ColumnStacked, snapshot!.ChartKind);
+        Assert.Equal(OfficeChartType.ColumnStacked, snapshot!.ChartKind);
     }
 
     [Fact]
@@ -2155,7 +2155,7 @@ _Figure 2. Revenue chart_
         bool created = MarkdownPdfConverterExtensions.TryCreateChartSnapshot(semantic, CreateVisualOptions(), out OfficeChartSnapshot? snapshot, out string? warning);
 
         Assert.True(created, warning);
-        Assert.Equal(OfficeChartKind.LineStacked, snapshot!.ChartKind);
+        Assert.Equal(OfficeChartType.LineStacked, snapshot!.ChartKind);
     }
 
     [Fact]
@@ -2176,7 +2176,7 @@ _Figure 2. Revenue chart_
         bool created = MarkdownPdfConverterExtensions.TryCreateChartSnapshot(semantic, CreateVisualOptions(), out OfficeChartSnapshot? snapshot, out string? warning);
 
         Assert.True(created, warning);
-        Assert.Equal(OfficeChartKind.Area, snapshot!.ChartKind);
+        Assert.Equal(OfficeChartType.Area, snapshot!.ChartKind);
     }
 
     [Fact]
@@ -2202,7 +2202,7 @@ _Figure 2. Revenue chart_
         bool created = MarkdownPdfConverterExtensions.TryCreateChartSnapshot(semantic, CreateVisualOptions(), out OfficeChartSnapshot? snapshot, out string? warning);
 
         Assert.True(created, warning);
-        Assert.Equal(OfficeChartKind.Area, snapshot!.ChartKind);
+        Assert.Equal(OfficeChartType.Area, snapshot!.ChartKind);
     }
 
     [Fact]
@@ -2271,7 +2271,7 @@ _Figure 2. Revenue chart_
         bool created = MarkdownPdfConverterExtensions.TryCreateChartSnapshot(semantic, CreateVisualOptions(), out OfficeChartSnapshot? snapshot, out string? warning);
 
         Assert.True(created, warning);
-        Assert.Equal(OfficeChartKind.LineStacked, snapshot!.ChartKind);
+        Assert.Equal(OfficeChartType.LineStacked, snapshot!.ChartKind);
         Assert.True(snapshot.Layout.ShowMarkers);
     }
 

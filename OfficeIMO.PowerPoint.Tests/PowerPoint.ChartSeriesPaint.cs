@@ -25,13 +25,13 @@ public sealed class PowerPointChartSeriesPaintTests {
     [InlineData(false)]
     [InlineData(true)]
     public void NativeRoundTripKeepsMarkerFillIndependentOfConnectingLine(bool pointOverride) {
-        var series = new OfficeChartSeries("Paint", new[] { 2d, 4d }, null, OfficeColor.Blue,
+        var series = new OfficeSeries("Paint", new[] { 2d, 4d }, null, OfficeColor.Blue,
             null, true, markerSize: 10, markerShape: OfficeChartMarkerShape.Circle,
             strokeDashStyle: OfficeStrokeDashStyle.Dash)
             .WithSeriesStyle(new OfficeChartPointStyle(outlineColor: OfficeColor.Red, outlineWidth: 3));
         if (pointOverride) series = series.WithPointStyles(new OfficeChartPointStyle?[] { new(fillColor: OfficeColor.Green), null });
         using var document = PowerPointPresentation.Create();
-        document.AddSlide().AddChart(OfficeChartKind.Line, new OfficeChartData(new[] { "A", "B" }, new[] { series }));
+        document.AddSlide().AddChart(OfficeChartType.Line, new OfficeChartData(new[] { "A", "B" }, new[] { series }));
         using var stream = new MemoryStream(document.ToBytes());
         using var reopened = PowerPointPresentation.Load(stream);
         Assert.Empty(reopened.ValidateDocument());
@@ -56,18 +56,18 @@ public sealed class PowerPointChartSeriesPaintTests {
     }
 
     [Theory]
-    [InlineData(OfficeChartKind.Area, false)]
-    [InlineData(OfficeChartKind.Area, true)]
-    [InlineData(OfficeChartKind.Bubble, false)]
-    [InlineData(OfficeChartKind.Bubble, true)]
-    [InlineData(OfficeChartKind.ColumnClustered, false)]
-    [InlineData(OfficeChartKind.ColumnClustered, true)]
-    [InlineData(OfficeChartKind.Line, false)]
-    [InlineData(OfficeChartKind.Line, true)]
-    public void NativeColourSetterKeepsExplicitOutlineAfterRemovingAutomaticFill(OfficeChartKind kind, bool byName) {
-        var series = kind == OfficeChartKind.Bubble
-            ? OfficeChartSeries.CreateBubble("Paint", new[] { 1d, 2d }, new[] { 2d, 4d }, new[] { 3d, 5d })
-            : new OfficeChartSeries("Paint", new[] { 2d, 4d }, null, null, null, showMarkers: false);
+    [InlineData(OfficeChartType.Area, false)]
+    [InlineData(OfficeChartType.Area, true)]
+    [InlineData(OfficeChartType.Bubble, false)]
+    [InlineData(OfficeChartType.Bubble, true)]
+    [InlineData(OfficeChartType.ColumnClustered, false)]
+    [InlineData(OfficeChartType.ColumnClustered, true)]
+    [InlineData(OfficeChartType.Line, false)]
+    [InlineData(OfficeChartType.Line, true)]
+    public void NativeColourSetterKeepsExplicitOutlineAfterRemovingAutomaticFill(OfficeChartType kind, bool byName) {
+        var series = kind == OfficeChartType.Bubble
+            ? OfficeSeries.CreateBubble("Paint", new[] { 1d, 2d }, new[] { 2d, 4d }, new[] { 3d, 5d })
+            : new OfficeSeries("Paint", new[] { 2d, 4d }, null, null, null, showMarkers: false);
         using var document = PowerPointPresentation.Create();
         var chart = document.AddSlide().AddChart(kind, new OfficeChartData(new[] { "A", "B" }, new[] { series }));
         if (byName) chart.SetSeriesLineColor("Paint", "FF0000", 3);

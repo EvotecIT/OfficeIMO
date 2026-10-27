@@ -126,14 +126,14 @@ internal static class PowerPointBenchmarkCorpus {
         var data = new OfficeChartData(
             new[] { "Q1", "Q2", "Q3", "Q4" },
             new[] {
-                new OfficeChartSeries("Actual", new[] {
+                new OfficeSeries("Actual", new[] {
                     12D + index, 18D + index, 24D + index, 30D + index
                 }),
-                new OfficeChartSeries("Target", new[] {
+                new OfficeSeries("Target", new[] {
                     15D + index, 20D + index, 26D + index, 32D + index
                 })
             });
-        slide.AddChartPoints(OfficeChartKind.BarClustered, data,
+        slide.AddChartPoints(OfficeChartType.BarClustered, data,
             390, 214, 500, 260);
     }
 }

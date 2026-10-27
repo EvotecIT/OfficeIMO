@@ -9,11 +9,11 @@ namespace OfficeIMO.Tests;
 
 public sealed class PowerPointChartExplodedSlicesTests {
     [Theory]
-    [InlineData(OfficeChartKind.Pie)]
-    [InlineData(OfficeChartKind.Doughnut)]
-    public void ExplodedPoint_RoundTripsAndSurvivesValueUpdate(OfficeChartKind kind) {
+    [InlineData(OfficeChartType.Pie)]
+    [InlineData(OfficeChartType.Doughnut)]
+    public void ExplodedPoint_RoundTripsAndSurvivesValueUpdate(OfficeChartType kind) {
         var authored = new OfficeChartData(new[] { "A", "B" }, new[] {
-            new OfficeChartSeries("Status", new[] { 7d, 3d }).WithPointExplosions(new[] { 25, 0 })
+            new OfficeSeries("Status", new[] { 7d, 3d }).WithPointExplosions(new[] { 25, 0 })
         });
         using var presentation = PowerPointPresentation.Create();
         presentation.AddSlide().AddChart(kind, authored);
@@ -23,7 +23,7 @@ public sealed class PowerPointChartExplodedSlicesTests {
         Assert.True(chart.TryGetOfficeSnapshot(out OfficeChartSnapshot snapshot));
         Assert.Equal(new[] { 25, 0 }, snapshot.Data.Series.Single().PointExplosions);
         chart.UpdateData(new OfficeChartData(new[] { "A", "B" }, new[] {
-            new OfficeChartSeries("Status", new[] { 8d, 2d })
+            new OfficeSeries("Status", new[] { 8d, 2d })
         }));
         Assert.Equal((uint)25, reopened.Slides.Single().SlidePart.ChartParts.Single()
             .ChartSpace!.Descendants<C.PieChartSeries>().Single()

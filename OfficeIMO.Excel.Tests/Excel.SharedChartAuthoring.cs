@@ -13,7 +13,7 @@ namespace OfficeIMO.Tests {
             var sharedData = new OfficeChartData(
                 new[] { "Q1", "Q2", "Q3" },
                 new[] {
-                    new OfficeChartSeries(
+                    new OfficeSeries(
                         "Adoption",
                         new[] { 42d, 55d, 68d },
                         xValues: null,
@@ -21,8 +21,8 @@ namespace OfficeIMO.Tests {
                         pointColors: null,
                         showMarkers: false,
                         showInLegend: true,
-                        renderKind: OfficeChartKind.ColumnClustered),
-                    new OfficeChartSeries(
+                        renderKind: OfficeChartType.ColumnClustered),
+                    new OfficeSeries(
                         "Conversion",
                         new[] { 3.2d, 5.1d, 8.4d },
                         xValues: null,
@@ -30,14 +30,14 @@ namespace OfficeIMO.Tests {
                         pointColors: null,
                         showMarkers: true,
                         showInLegend: true,
-                        renderKind: OfficeChartKind.Line,
+                        renderKind: OfficeChartType.Line,
                         axisGroup: OfficeChartAxisGroup.Secondary)
                 });
 
             using (var document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddWorksheet("Shared");
                 sheet.AddChart(
-                    OfficeChartKind.ColumnClustered,
+                    OfficeChartType.ColumnClustered,
                     sharedData,
                     row: 1,
                     column: 5,
@@ -88,18 +88,18 @@ namespace OfficeIMO.Tests {
         public void Test_ExcelCharts_HorizontalSharedContractPreservesSecondaryAxis() {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelCharts.SharedContract.HorizontalSecondary.xlsx");
             var sharedData = new OfficeChartData(new[] { "North", "South" }, new[] {
-                new OfficeChartSeries("Primary", new[] { 42D, 55D },
+                new OfficeSeries("Primary", new[] { 42D, 55D },
                     xValues: null, color: null, pointColors: null, showMarkers: true,
-                    renderKind: OfficeChartKind.BarClustered),
-                new OfficeChartSeries("Secondary", new[] { 4.2D, 5.5D },
+                    renderKind: OfficeChartType.BarClustered),
+                new OfficeSeries("Secondary", new[] { 4.2D, 5.5D },
                     xValues: null, color: null, pointColors: null, showMarkers: true,
-                    renderKind: OfficeChartKind.BarClustered,
+                    renderKind: OfficeChartType.BarClustered,
                     axisGroup: OfficeChartAxisGroup.Secondary)
             });
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddWorksheet("Shared");
-                sheet.AddChart(OfficeChartKind.BarClustered, sharedData,
+                sheet.AddChart(OfficeChartType.BarClustered, sharedData,
                     row: 1, column: 5, title: "Horizontal secondary");
                 document.Save();
             }
@@ -116,12 +116,12 @@ namespace OfficeIMO.Tests {
         public void Test_ExcelCharts_SharedScatterUsesExplicitXValuesWithDisplayLabels() {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelCharts.SharedContract.ScatterLabels.xlsx");
             var sharedData = new OfficeChartData(new[] { "Discovery", "Delivery" }, new[] {
-                new OfficeChartSeries("Actual", new[] { 10D, 14D }, new[] { 1.25D, 2.75D })
+                new OfficeSeries("Actual", new[] { 10D, 14D }, new[] { 1.25D, 2.75D })
             });
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddWorksheet("Shared");
-                sheet.AddChart(OfficeChartKind.Scatter, sharedData,
+                sheet.AddChart(OfficeChartType.Scatter, sharedData,
                     row: 1, column: 5, title: "Explicit X values");
                 document.Save();
             }
@@ -138,12 +138,12 @@ namespace OfficeIMO.Tests {
             using ExcelDocument document = ExcelDocument.Create(new MemoryStream());
             ExcelSheet sheet = document.AddWorksheet("Shared");
             var data = new OfficeChartData(new[] { "1", "2" }, new[] {
-                OfficeChartSeries.CreateBubble("Bubbles",
+                OfficeSeries.CreateBubble("Bubbles",
                     new[] { 1D, 2D }, new[] { 10D, 20D }, new[] { 4D, 9D })
             });
 
             NotSupportedException exception = Assert.Throws<NotSupportedException>(() =>
-                sheet.AddChart(OfficeChartKind.Bubble, data, row: 1, column: 5));
+                sheet.AddChart(OfficeChartType.Bubble, data, row: 1, column: 5));
 
             Assert.Contains("native Excel bubble-chart API", exception.Message,
                 StringComparison.Ordinal);
@@ -154,19 +154,19 @@ namespace OfficeIMO.Tests {
         public void Test_ExcelCharts_SharedContractPersistsAuthoredSeriesStyles() {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelCharts.SharedContract.Styles.xlsx");
             var sharedData = new OfficeChartData(new[] { "Q1", "Q2" }, new[] {
-                new OfficeChartSeries("Styled", new[] { 12D, 18D }, xValues: null,
+                new OfficeSeries("Styled", new[] { 12D, 18D }, xValues: null,
                     color: OfficeColor.ParseHex("#2563EB"),
                     pointColors: new OfficeColor?[] { OfficeColor.ParseHex("#DC2626"), OfficeColor.ParseHex("#16A34A") },
                     showMarkers: true, connectLine: true, markerSize: 9,
                     markerShape: OfficeChartMarkerShape.Diamond,
                     markerOutlineColor: OfficeColor.ParseHex("#111827"), markerOutlineWidth: 1.5D,
                     strokeWidth: 2.25D, strokeDashStyle: OfficeStrokeDashStyle.Dash,
-                    showInLegend: false, renderKind: OfficeChartKind.Line)
+                    showInLegend: false, renderKind: OfficeChartType.Line)
             });
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddWorksheet("Shared");
-                sheet.AddChart(OfficeChartKind.Line, sharedData, row: 1, column: 5);
+                sheet.AddChart(OfficeChartType.Line, sharedData, row: 1, column: 5);
                 document.Save();
             }
 
@@ -205,13 +205,13 @@ namespace OfficeIMO.Tests {
         public void Test_ExcelCharts_SharedContractClampsMarkerSizeToChartSchemaLimit() {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelCharts.SharedContract.MarkerSize.xlsx");
             var sharedData = new OfficeChartData(new[] { "Q1", "Q2" }, new[] {
-                new OfficeChartSeries("Trend", new[] { 12D, 18D }, xValues: null,
+                new OfficeSeries("Trend", new[] { 12D, 18D }, xValues: null,
                     color: null, pointColors: null, showMarkers: true, markerSize: 300,
-                    renderKind: OfficeChartKind.Line)
+                    renderKind: OfficeChartType.Line)
             });
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                document.AddWorksheet("Shared").AddChart(OfficeChartKind.Line, sharedData,
+                document.AddWorksheet("Shared").AddChart(OfficeChartType.Line, sharedData,
                     row: 1, column: 5);
                 document.Save();
             }
@@ -229,19 +229,19 @@ namespace OfficeIMO.Tests {
         public void Test_ExcelCharts_SharedComboStylesMatchNativeSeriesIndexes() {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelCharts.SharedContract.InterleavedStyles.xlsx");
             var sharedData = new OfficeChartData(new[] { "Q1", "Q2" }, new[] {
-                new OfficeChartSeries("Columns A", new[] { 12D, 18D }, null,
+                new OfficeSeries("Columns A", new[] { 12D, 18D }, null,
                     OfficeColor.ParseHex("#DC2626"), null, showMarkers: false,
-                    renderKind: OfficeChartKind.ColumnClustered),
-                new OfficeChartSeries("Trend", new[] { 14D, 20D }, null,
+                    renderKind: OfficeChartType.ColumnClustered),
+                new OfficeSeries("Trend", new[] { 14D, 20D }, null,
                     OfficeColor.ParseHex("#16A34A"), null, showMarkers: true,
-                    renderKind: OfficeChartKind.Line),
-                new OfficeChartSeries("Columns B", new[] { 10D, 16D }, null,
+                    renderKind: OfficeChartType.Line),
+                new OfficeSeries("Columns B", new[] { 10D, 16D }, null,
                     OfficeColor.ParseHex("#2563EB"), null, showMarkers: false,
-                    renderKind: OfficeChartKind.ColumnClustered)
+                    renderKind: OfficeChartType.ColumnClustered)
             });
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                document.AddWorksheet("Shared").AddChart(OfficeChartKind.ColumnClustered, sharedData,
+                document.AddWorksheet("Shared").AddChart(OfficeChartType.ColumnClustered, sharedData,
                     row: 1, column: 5);
                 document.Save();
             }

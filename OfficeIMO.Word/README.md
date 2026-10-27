@@ -760,7 +760,7 @@ document.SaveAsPdf("report.pdf");
 
 ## Editable charts from shared data
 
-Use `WordDocument.AddChart(OfficeChartKind, OfficeChartData, ...)` or the corresponding
+Use `WordDocument.AddChart(OfficeChartType, OfficeChartData, ...)` or the corresponding
 `WordParagraph.AddChart(...)` overload to create a native chart
 with an embedded Excel worksheet. `WordChart.SetData(kind, data)` updates its caches and
 worksheet together, preserving the drawing dimensions, title, name, and alternative text.
@@ -788,13 +788,13 @@ using OfficeIMO.Word;
 
 using WordDocument document = WordDocument.Create();
 var data = new OfficeChartData(new[] { "Pass", "Could not evaluate", "Fail" }, new[] {
-    new OfficeChartSeries("Status", new[] { 8d, 2d, 1d }).WithPointStyles(new OfficeChartPointStyle?[] {
+    new OfficeSeries("Status", new[] { 8d, 2d, 1d }).WithPointStyles(new OfficeChartPointStyle?[] {
         new OfficeChartPointStyle(fillColor: OfficeColor.Parse("#008000")),
         new OfficeChartPointStyle(noFill: true, outlineColor: OfficeColor.Black, outlineWidth: 2),
         new OfficeChartPointStyle(fillColor: OfficeColor.Parse("#C00000"))
     })
 });
-WordChart chart = document.AddChart(OfficeChartKind.Doughnut, data, "Status", width: 360, height: 240);
+WordChart chart = document.AddChart(OfficeChartType.Doughnut, data, "Status", width: 360, height: 240);
 chart.Name = "Status distribution";
 chart.SetRadialLayout(new OfficeChartRadialLayout(firstSliceAngleDegrees: 90, doughnutHolePercent: 70));
 chart.AltText = "Eight passed, two could not be evaluated, and one failed.";

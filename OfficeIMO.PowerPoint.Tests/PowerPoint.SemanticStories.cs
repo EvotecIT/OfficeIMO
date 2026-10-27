@@ -249,12 +249,12 @@ namespace OfficeIMO.Tests {
         private static OfficeChartData CreateChartData() => new(
             new[] { "Q1", "Q2", "Q3", "Q4" },
             new[] {
-                new OfficeChartSeries("Adoption", new[] { 28D, 42D, 61D, 72D }),
-                new OfficeChartSeries("Target", new[] { 35D, 50D, 65D, 80D })
+                new OfficeSeries("Adoption", new[] { 28D, 42D, 61D, 72D }),
+                new OfficeSeries("Target", new[] { 35D, 50D, 65D, 80D })
             });
 
         private static PowerPointChartStoryContent CreateChartStory(OfficeChartData data) =>
-            new(OfficeChartKind.ColumnClustered, data,
+            new(OfficeChartType.ColumnClustered, data,
                 new[] { "Adoption increased every quarter.", "The current gap to target is eight points." }) {
                 Caption = "Quarterly product adoption",
                 Provenance = "Customer success dataset",

@@ -46,7 +46,7 @@ internal static class RealWorldWorkflowShowcase {
         AddStatusTable(document, DeliveredOutcomes, 34, 30, 18, 18);
 
         AddHeading(document, "Incidents per week");
-        document.AddChart(OfficeChartKind.ColumnClustered, WeeklyIncidents, width: 790, height: 200);
+        document.AddChart(OfficeChartType.ColumnClustered, WeeklyIncidents, width: 790, height: 200);
 
         AddHeading(document, "Next steps");
         AddStatusTable(document, NextSteps, 40, 24, 18, 18);
@@ -83,8 +83,8 @@ internal static class RealWorldWorkflowShowcase {
     private static readonly OfficeChartData WeeklyIncidents = new(
         new[] { "Week 1", "Week 2", "Week 3", "Week 4", "Week 5", "Week 6" },
         new[] {
-            new OfficeChartSeries("Last quarter", new double[] { 14, 13, 16, 12, 13, 14 }),
-            new OfficeChartSeries("This quarter", new double[] { 11, 9, 8, 7, 6, 5 })
+            new OfficeSeries("Last quarter", new double[] { 14, 13, 16, 12, 13, 14 }),
+            new OfficeSeries("This quarter", new double[] { 11, 9, 8, 7, 6, 5 })
         });
 
     // Small layout helpers for the delivery summary; every call inside them is the public OfficeIMO.Word API.

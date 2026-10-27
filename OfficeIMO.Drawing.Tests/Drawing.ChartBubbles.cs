@@ -19,13 +19,13 @@ public class DrawingChartBubbleTests {
             typeof(double?)
         };
 
-        Assert.NotNull(typeof(OfficeChartSeries).GetMethod(
-            nameof(OfficeChartSeries.CreateBubble),
+        Assert.NotNull(typeof(OfficeSeries).GetMethod(
+            nameof(OfficeSeries.CreateBubble),
             legacyParameterTypes));
-        Assert.True(OfficeChartSeries.CreateBubble(
+        Assert.True(OfficeSeries.CreateBubble(
             "Legacy", new[] { 1D }, new[] { 2D }, new[] { 3D })
             .ShowMarkerOutline);
-        Assert.False(OfficeChartSeries.CreateBubble(
+        Assert.False(OfficeSeries.CreateBubble(
             "Explicit", new[] { 1D }, new[] { 2D }, new[] { 3D },
             showMarkerOutline: false).ShowMarkerOutline);
     }
@@ -35,7 +35,7 @@ public class DrawingChartBubbleTests {
         Assert.NotNull(typeof(OfficeChartSnapshot).GetConstructor(new[] {
             typeof(string),
             typeof(string),
-            typeof(OfficeChartKind),
+            typeof(OfficeChartType),
             typeof(OfficeChartData),
             typeof(double),
             typeof(double),
@@ -124,7 +124,7 @@ public class DrawingChartBubbleTests {
     public void OfficeChartDrawingRenderer_InsetsBubbleOutlinesInsidePlotAxes() {
         OfficeColor color = OfficeColor.Parse("#2A9D8F");
         var data = new OfficeChartData(new[] { "1", "2" }, new[] {
-            OfficeChartSeries.CreateBubble(
+            OfficeSeries.CreateBubble(
                 "Outlined",
                 new[] { 1D, 2D },
                 new[] { 1D, 2D },
@@ -137,7 +137,7 @@ public class DrawingChartBubbleTests {
             new OfficeChartSnapshot(
                 "Outlined bubbles",
                 null,
-                OfficeChartKind.Bubble,
+                OfficeChartType.Bubble,
                 data,
                 widthPoints: 420D,
                 heightPoints: 260D,
@@ -179,7 +179,7 @@ public class DrawingChartBubbleTests {
     public void OfficeChartDrawingRenderer_CapsExtremeBubbleOutlineInsets() {
         OfficeColor color = OfficeColor.Parse("#2A9D8F");
         var data = new OfficeChartData(new[] { "1" }, new[] {
-            OfficeChartSeries.CreateBubble(
+            OfficeSeries.CreateBubble(
                 "Outlined", new[] { 1D }, new[] { 1D },
                 new[] { 100D }, color,
                 markerOutlineWidth: 1000D)
@@ -188,7 +188,7 @@ public class DrawingChartBubbleTests {
             new OfficeChartSnapshot(
                 "Compact",
                 null,
-                OfficeChartKind.Bubble,
+                OfficeChartType.Bubble,
                 data,
                 widthPoints: 80D,
                 heightPoints: 60D,
@@ -222,7 +222,7 @@ public class DrawingChartBubbleTests {
     [Fact]
     public void OfficeChartDrawingRenderer_IgnoresInvisibleBubbleOutlineWhenPaddingThePlot() {
         OfficeDrawing Render(bool styleZeroBubble) {
-            OfficeChartSeries series = OfficeChartSeries.CreateBubble(
+            OfficeSeries series = OfficeSeries.CreateBubble(
                 "Bubbles", new[] { 1D, 2D }, new[] { 1D, 2D },
                 new[] { 0D, 100D }, OfficeColor.Parse("#2A9D8F"));
             if (styleZeroBubble)
@@ -230,7 +230,7 @@ public class DrawingChartBubbleTests {
                     new(outlineWidth: 1584D), null
                 });
             return OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
-                "Bubbles", null, OfficeChartKind.Bubble,
+                "Bubbles", null, OfficeChartType.Bubble,
                 new OfficeChartData(new[] { "A", "B" }, new[] { series }),
                 420D, 260D, layout: new OfficeChartLayout(showLegend: false)));
         }
@@ -246,16 +246,16 @@ public class DrawingChartBubbleTests {
     [Fact]
     public void OfficeChartDrawingRenderer_InsetsBubblesInMixedScatterCharts() {
         OfficeColor bubbleColor = OfficeColor.Parse("#2A9D8F");
-        var data = new OfficeChartData(new[] { "1", "2" }, new OfficeChartSeries[] {
-            new OfficeChartSeries(
+        var data = new OfficeChartData(new[] { "1", "2" }, new OfficeSeries[] {
+            new OfficeSeries(
                 "Scatter",
                 new[] { 1D, 2D },
                 new[] { 1D, 2D },
                 OfficeColor.Parse("#264653"),
                 pointColors: null,
                 showMarkers: true,
-                renderKind: OfficeChartKind.Scatter),
-            OfficeChartSeries.CreateBubble(
+                renderKind: OfficeChartType.Scatter),
+            OfficeSeries.CreateBubble(
                 "Bubbles",
                 new[] { 1D, 2D },
                 new[] { 1D, 2D },
@@ -266,7 +266,7 @@ public class DrawingChartBubbleTests {
             new OfficeChartSnapshot(
                 "Mixed scatter",
                 null,
-                OfficeChartKind.Scatter,
+                OfficeChartType.Scatter,
                 data,
                 widthPoints: 420D,
                 heightPoints: 260D,
@@ -304,7 +304,7 @@ public class DrawingChartBubbleTests {
     public void OfficeChartDrawingRenderer_RendersBubblesWhenScatterMarkersAreHidden() {
         OfficeColor color = OfficeColor.Parse("#2A9D8F");
         var data = new OfficeChartData(new[] { "1", "2" }, new[] {
-            OfficeChartSeries.CreateBubble("Portfolio",
+            OfficeSeries.CreateBubble("Portfolio",
                 new[] { 1D, 2D },
                 new[] { 1D, 2D },
                 new[] { 25D, 100D },
@@ -315,7 +315,7 @@ public class DrawingChartBubbleTests {
             new OfficeChartSnapshot(
                 "Bubbles",
                 null,
-                OfficeChartKind.Bubble,
+                OfficeChartType.Bubble,
                 data,
                 widthPoints: 420D,
                 heightPoints: 260D,
@@ -328,7 +328,7 @@ public class DrawingChartBubbleTests {
     public void OfficeChartDrawingRenderer_PreservesDisabledBubbleOutline() {
         OfficeColor color = OfficeColor.Parse("#2A9D8F");
         var data = new OfficeChartData(new[] { "1" }, new[] {
-            OfficeChartSeries.CreateBubble("Portfolio",
+            OfficeSeries.CreateBubble("Portfolio",
                 new[] { 1D },
                 new[] { 2D },
                 new[] { 25D },
@@ -344,7 +344,7 @@ public class DrawingChartBubbleTests {
             new OfficeChartSnapshot(
                 "Bubbles",
                 null,
-                OfficeChartKind.Bubble,
+                OfficeChartType.Bubble,
                 data,
                 widthPoints: 420D,
                 heightPoints: 260D));
@@ -358,7 +358,7 @@ public class DrawingChartBubbleTests {
     [Fact]
     public void OfficeChartSnapshot_RejectsBubbleSeriesWithoutSizes() {
         var data = new OfficeChartData(new[] { "1", "2" }, new[] {
-            new OfficeChartSeries(
+            new OfficeSeries(
                 "Incomplete",
                 new[] { 2D, 4D },
                 new[] { 1D, 2D })
@@ -367,7 +367,7 @@ public class DrawingChartBubbleTests {
         Assert.Throws<System.ArgumentException>(() => new OfficeChartSnapshot(
             "Malformed",
             null,
-            OfficeChartKind.Bubble,
+            OfficeChartType.Bubble,
             data,
             widthPoints: 420D,
             heightPoints: 260D));
@@ -376,20 +376,20 @@ public class DrawingChartBubbleTests {
     [Fact]
     public void OfficeChartSnapshot_RejectsMixedBubbleSeriesWithoutSizes() {
         var data = new OfficeChartData(new[] { "1", "2" }, new[] {
-            new OfficeChartSeries(
+            new OfficeSeries(
                 "Incomplete bubble",
                 new[] { 2D, 4D },
                 new[] { 1D, 2D },
                 color: null,
                 pointColors: null,
                 showMarkers: true,
-                renderKind: OfficeChartKind.Bubble)
+                renderKind: OfficeChartType.Bubble)
         });
 
         Assert.Throws<System.ArgumentException>(() => new OfficeChartSnapshot(
             "Malformed mixed scatter",
             null,
-            OfficeChartKind.Scatter,
+            OfficeChartType.Scatter,
             data,
             widthPoints: 420D,
             heightPoints: 260D));
@@ -398,7 +398,7 @@ public class DrawingChartBubbleTests {
     [Fact]
     public void OfficeChartSnapshot_RejectsBubbleSeriesOnCategoricalAxes() {
         var data = new OfficeChartData(new[] { "1", "2" }, new[] {
-            OfficeChartSeries.CreateBubble(
+            OfficeSeries.CreateBubble(
                 "Misplaced bubble",
                 new[] { 1D, 2D },
                 new[] { 3D, 4D },
@@ -408,7 +408,7 @@ public class DrawingChartBubbleTests {
         Assert.Throws<System.ArgumentException>(() => new OfficeChartSnapshot(
             "Categorical",
             null,
-            OfficeChartKind.ColumnClustered,
+            OfficeChartType.ColumnClustered,
             data,
             widthPoints: 420D,
             heightPoints: 260D));
@@ -421,7 +421,7 @@ public class DrawingChartBubbleTests {
     public void OfficeChartSeries_RejectsNonFiniteBubbleOutlineWidths(
         double outlineWidth) {
         Assert.Throws<System.ArgumentOutOfRangeException>(() =>
-            OfficeChartSeries.CreateBubble(
+            OfficeSeries.CreateBubble(
                 "Invalid outline",
                 new[] { 1D },
                 new[] { 2D },
@@ -433,7 +433,7 @@ public class DrawingChartBubbleTests {
         OfficeChartBubbleSizeMode sizeMode) {
         OfficeColor color = OfficeColor.Parse("#2A9D8F");
         var data = new OfficeChartData(new[] { "1", "2" }, new[] {
-            OfficeChartSeries.CreateBubble("Portfolio",
+            OfficeSeries.CreateBubble("Portfolio",
                 new[] { 1D, 2D },
                 new[] { 1D, 2D },
                 new[] { 25D, 100D },
@@ -442,7 +442,7 @@ public class DrawingChartBubbleTests {
         return OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
             "Bubbles",
             null,
-            OfficeChartKind.Bubble,
+            OfficeChartType.Bubble,
             data,
             widthPoints: 420D,
             heightPoints: 260D,

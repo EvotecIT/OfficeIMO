@@ -88,10 +88,10 @@ namespace OfficeIMO.Examples.PowerPoint {
             table.BandedRows = true;
 
             OfficeChartData chartData = new OfficeChartData(rows.Select(r => r.Product), new[] {
-                new OfficeChartSeries("Q1", rows.Select(r => (double)r.Q1)),
-                new OfficeChartSeries("Q2", rows.Select(r => (double)r.Q2))
+                new OfficeSeries("Q1", rows.Select(r => (double)r.Q1)),
+                new OfficeSeries("Q2", rows.Select(r => (double)r.Q2))
             });
-            PowerPointChart chart = dataSlide.AddChart(OfficeChartKind.ColumnClustered, chartData,
+            PowerPointChart chart = dataSlide.AddChart(OfficeChartType.ColumnClustered, chartData,
                 rightColumn.Left, rightColumn.Top, rightColumn.Width, rightColumn.Height);
             chart.SetTitle("Quarterly results");
 

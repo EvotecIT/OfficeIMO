@@ -9,7 +9,7 @@ using C = DocumentFormat.OpenXml.Drawing.Charts;
 
 namespace OfficeIMO.OpenXml.Internal {
     internal static partial class OfficeOpenXmlChartWriter {
-        private static C.BarChartSeries CreateBarChartSeries(int seriesIndex, OfficeChartSeries series, IReadOnlyList<string> categories) {
+        private static C.BarChartSeries CreateBarChartSeries(int seriesIndex, OfficeSeries series, IReadOnlyList<string> categories) {
             int lastRow = categories.Count + 1;
             string seriesColumn = ColumnLetter(seriesIndex + 2);
             string seriesNameRef = $"Sheet1!${seriesColumn}$1";
@@ -28,7 +28,7 @@ namespace OfficeIMO.OpenXml.Internal {
             return seriesElement;
         }
 
-        private static C.LineChartSeries CreateLineChartSeries(int seriesIndex, OfficeChartSeries series, IReadOnlyList<string> categories) {
+        private static C.LineChartSeries CreateLineChartSeries(int seriesIndex, OfficeSeries series, IReadOnlyList<string> categories) {
             int lastRow = categories.Count + 1;
             string seriesColumn = ColumnLetter(seriesIndex + 2);
             string seriesNameRef = $"Sheet1!${seriesColumn}$1";
@@ -64,7 +64,7 @@ namespace OfficeIMO.OpenXml.Internal {
             return scatterChart;
         }
 
-        private static C.ScatterChartSeries CreateScatterChartSeries(int seriesIndex, OfficeChartSeries series) {
+        private static C.ScatterChartSeries CreateScatterChartSeries(int seriesIndex, OfficeSeries series) {
             string seriesNameRef = GetScatterSeriesNameReference(seriesIndex);
             string xValuesRef = GetScatterXValuesReference(seriesIndex, series.XValues!.Count);
             string yValuesRef = GetScatterYValuesReference(seriesIndex, series.Values.Count);
@@ -107,7 +107,7 @@ namespace OfficeIMO.OpenXml.Internal {
             return doughnutChart;
         }
 
-        private static C.PieChartSeries CreatePieChartSeries(int seriesIndex, OfficeChartSeries series, IReadOnlyList<string> categories) {
+        private static C.PieChartSeries CreatePieChartSeries(int seriesIndex, OfficeSeries series, IReadOnlyList<string> categories) {
             int lastRow = categories.Count + 1;
             string seriesColumn = ColumnLetter(seriesIndex + 2);
             string seriesNameRef = $"Sheet1!${seriesColumn}$1";
@@ -259,7 +259,7 @@ namespace OfficeIMO.OpenXml.Internal {
             if (data == null) {
                 throw new ArgumentNullException(nameof(data));
             }
-            ValidateSharedChartData(data, OfficeChartKind.Scatter);
+            ValidateSharedChartData(data, OfficeChartType.Scatter);
 
             C.ChartSpace? chartSpace = chartPart.ChartSpace;
             C.Chart? chart = chartSpace?.GetFirstChild<C.Chart>();

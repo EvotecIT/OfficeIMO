@@ -17,14 +17,14 @@ namespace OfficeIMO.Tests {
             PowerPointClassicAnimationBuildType buildType) {
             var data = new OfficeChartData(new[] { "Q1", "Q2", "Q3" },
                 new[] {
-                    new OfficeChartSeries("Revenue", new[] { 12D, 19D, 27D }),
-                    new OfficeChartSeries("Plan", new[] { 15D, 18D, 24D })
+                    new OfficeSeries("Revenue", new[] { 12D, 19D, 27D }),
+                    new OfficeSeries("Plan", new[] { 15D, 18D, 24D })
                 });
             byte[] bytes;
             using (PowerPointPresentation source = PowerPointPresentation.Create()) {
                 PowerPointSlide slide = source.AddSlide(PowerPointSlideLayoutType.Blank);
                 PowerPointChart chart = slide.AddChartPoints(
-                    OfficeChartKind.ColumnClustered, data, 30D, 20D, 240D, 150D);
+                    OfficeChartType.ColumnClustered, data, 30D, 20D, 240D, 150D);
                 slide.AddClassicAnimation(chart, PowerPointClassicAnimationEffect.Fade,
                     new PowerPointClassicAnimationOptions { BuildType = buildType });
                 bytes = source.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt,
@@ -50,17 +50,17 @@ namespace OfficeIMO.Tests {
         public void NativeWriter_ExplicitlyConvertsChartToStaticPngPicture() {
             var data = new OfficeChartData(new[] { "Q1", "Q2", "Q3" },
                 new[] {
-                    new OfficeChartSeries("Revenue",
+                    new OfficeSeries("Revenue",
                         new[] { 12D, 19D, 27D }, xValues: null,
                         color: OfficeColor.CornflowerBlue),
-                    new OfficeChartSeries("Plan",
+                    new OfficeSeries("Plan",
                         new[] { 15D, 18D, 24D }, xValues: null,
                         color: OfficeColor.Orange)
                 });
             byte[] bytes;
             using (PowerPointPresentation source = PowerPointPresentation.Create()) {
                 source.AddSlide(PowerPointSlideLayoutType.Blank)
-                    .AddChartPoints(OfficeChartKind.ColumnClustered, data,
+                    .AddChartPoints(OfficeChartType.ColumnClustered, data,
                         30D, 20D, 240D, 150D)
                     .SetTitle("Quarterly revenue");
 

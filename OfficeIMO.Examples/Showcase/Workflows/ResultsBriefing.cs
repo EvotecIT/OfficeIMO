@@ -11,9 +11,9 @@ internal static class ResultsBriefing {
         Text(results, "Pilot results: faster first response", 1.5, 1, 30, 2, 31, "17365D");
         Text(results, "Illustrative median response time in hours / lower is better", 1.5, 3, 30, 1.3, 18, "526179");
         var data = new OfficeChartData(new[] { "Week 1", "Week 2", "Week 3", "Week 4" },
-            new[] { new OfficeChartSeries("Baseline", new double[] { 8, 8, 8, 8 }),
-                new OfficeChartSeries("Pilot", new double[] { 7.4, 6.2, 5.1, 4.6 }) });
-        results.AddChartCm(OfficeChartKind.ColumnClustered, data, 1.5, 5, 30, 11)
+            new[] { new OfficeSeries("Baseline", new double[] { 8, 8, 8, 8 }),
+                new OfficeSeries("Pilot", new double[] { 7.4, 6.2, 5.1, 4.6 }) });
+        results.AddChartCm(OfficeChartType.ColumnClustered, data, 1.5, 5, 30, 11)
             .SetTitle("First response by week").SetLegend(OfficeChartLegendPosition.Bottom)
             .SetDataLabels(showValue: true).SetValueAxisTitle("Hours");
         results.Notes.Text = "These are synthetic figures. Explain sample size and measurement rules before drawing a conclusion from real data. Compare the same response-time definition across weeks.";
