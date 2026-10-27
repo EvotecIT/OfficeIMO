@@ -913,17 +913,17 @@
       "old": "OfficeIMO.PowerPoint.PowerPointPresentation.AddGuide(PowerPointGuideOrientation orientation, long positionEmus)",
       "kind": "method",
       "action": "change",
-      "new": "OfficeIMO.PowerPoint.PowerPointDocument.AddGuide(...) : PowerPointGuide",
+      "new": "OfficeIMO.PowerPoint.PowerPointDocument.AddGuide(PowerPointGuideOrientation orientation, OfficeLength position) : PowerPointGuideInfo",
       "reason": "Add* methods return the created object.",
       "file": "OfficeIMO.PowerPoint/PowerPointPresentation.View.cs",
       "category": "authoring",
-      "notes": "Also (units): change -> OfficeIMO.PowerPoint.PowerPointDocument.AddGuide(... OfficeLength ...)",
+      "notes": "Uses OfficeLength through PowerPointDocument.GridSpacingX/GridSpacingY, SetGridSpacing, AddGuide and the row/column guide methods. AddGuide returns the created PowerPointGuideInfo value; row/column methods return the created guide values. The package codec retains its Int32 coordinate boundary.",
       "implementation": {
         "phase": "B",
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
+      "applied": "phase-b-applied",
       "note": "The authoring, geometry and generated visibility analysis belongs to Phase B.",
       "currentFile": "OfficeIMO.PowerPoint/PowerPointDocument.View.cs"
     },
@@ -931,17 +931,17 @@
       "old": "OfficeIMO.PowerPoint.PowerPointPresentation.AddColumnGuides(int columnCount, long marginEmus, long gutterEmus, bool includeOuterEdges = True, bool clearExisting = False)",
       "kind": "method",
       "action": "change",
-      "new": "OfficeIMO.PowerPoint.PowerPointDocument.AddColumnGuides(...) : IReadOnlyList<PowerPointGuide>",
+      "new": "OfficeIMO.PowerPoint.PowerPointDocument.AddColumnGuides(int count, OfficeLength margin, OfficeLength gutter, ...) : IReadOnlyList<PowerPointGuideInfo>",
       "reason": "Add* methods return the created object.",
       "file": "OfficeIMO.PowerPoint/PowerPointPresentation.View.cs",
       "category": "authoring",
-      "notes": "Also (units): change -> OfficeIMO.PowerPoint.PowerPointDocument.AddColumnGuides(... OfficeLength ...)",
+      "notes": "Uses OfficeLength through PowerPointDocument.GridSpacingX/GridSpacingY, SetGridSpacing, AddGuide and the row/column guide methods. AddGuide returns the created PowerPointGuideInfo value; row/column methods return the created guide values. The package codec retains its Int32 coordinate boundary.",
       "implementation": {
         "phase": "B",
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
+      "applied": "phase-b-applied",
       "note": "The authoring, geometry and generated visibility analysis belongs to Phase B.",
       "currentFile": "OfficeIMO.PowerPoint/PowerPointDocument.View.cs"
     },
@@ -949,17 +949,17 @@
       "old": "OfficeIMO.PowerPoint.PowerPointPresentation.AddRowGuides(int rowCount, long marginEmus, long gutterEmus, bool includeOuterEdges = True, bool clearExisting = False)",
       "kind": "method",
       "action": "change",
-      "new": "OfficeIMO.PowerPoint.PowerPointDocument.AddRowGuides(...) : IReadOnlyList<PowerPointGuide>",
+      "new": "OfficeIMO.PowerPoint.PowerPointDocument.AddRowGuides(int count, OfficeLength margin, OfficeLength gutter, ...) : IReadOnlyList<PowerPointGuideInfo>",
       "reason": "Add* methods return the created object.",
       "file": "OfficeIMO.PowerPoint/PowerPointPresentation.View.cs",
       "category": "authoring",
-      "notes": "Also (units): change -> OfficeIMO.PowerPoint.PowerPointDocument.AddRowGuides(... OfficeLength ...)",
+      "notes": "Uses OfficeLength through PowerPointDocument.GridSpacingX/GridSpacingY, SetGridSpacing, AddGuide and the row/column guide methods. AddGuide returns the created PowerPointGuideInfo value; row/column methods return the created guide values. The package codec retains its Int32 coordinate boundary.",
       "implementation": {
         "phase": "B",
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
+      "applied": "phase-b-applied",
       "note": "The authoring, geometry and generated visibility analysis belongs to Phase B.",
       "currentFile": "OfficeIMO.PowerPoint/PowerPointDocument.View.cs"
     },
@@ -967,221 +967,221 @@
       "old": "OfficeIMO.PowerPoint.PowerPointSlideCompositionContext.AddTitle(string title, string subtitle = null)",
       "kind": "method",
       "action": "change",
-      "new": "OfficeIMO.PowerPoint.PowerPointSlideCompositionContext.AddTitle(...) : the created object",
+      "new": "OfficeIMO.PowerPoint.PowerPointSlideCompositionContext.AddTitle(...) : IReadOnlyList<PowerPointShape>",
       "reason": "Add* methods return the created object.",
       "file": "OfficeIMO.PowerPoint/PowerPointSlideCompositionContext.cs",
       "category": "authoring",
-      "notes": "Return type to be named in M2 when the created model type is public.",
+      "notes": "Returns the actual editable shapes appended by the composition in drawing order. Empty metric collections return an empty list, and forwarding overloads return the same created shapes.",
       "implementation": {
         "phase": "B",
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
+      "applied": "phase-b-applied",
       "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlideCompositionContext.AddCardGrid(IEnumerable<PowerPointCardContent> cards, PowerPointCardGridSlideOptions options = null)",
       "kind": "method",
       "action": "change",
-      "new": "OfficeIMO.PowerPoint.PowerPointSlideCompositionContext.AddCardGrid(...) : the created object",
+      "new": "OfficeIMO.PowerPoint.PowerPointSlideCompositionContext.AddCardGrid(...) : IReadOnlyList<PowerPointShape>",
       "reason": "Add* methods return the created object.",
       "file": "OfficeIMO.PowerPoint/PowerPointSlideCompositionContext.cs",
       "category": "authoring",
-      "notes": "Return type to be named in M2 when the created model type is public.",
+      "notes": "Returns the actual editable shapes appended by the composition in drawing order. Empty metric collections return an empty list, and forwarding overloads return the same created shapes.",
       "implementation": {
         "phase": "B",
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
+      "applied": "phase-b-applied",
       "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlideCompositionContext.AddCardGrid(IEnumerable<PowerPointCardContent> cards, PowerPointLayoutBox bounds, PowerPointCardGridSlideOptions options = null)",
       "kind": "method",
       "action": "change",
-      "new": "OfficeIMO.PowerPoint.PowerPointSlideCompositionContext.AddCardGrid(...) : the created object",
+      "new": "OfficeIMO.PowerPoint.PowerPointSlideCompositionContext.AddCardGrid(...) : IReadOnlyList<PowerPointShape>",
       "reason": "Add* methods return the created object.",
       "file": "OfficeIMO.PowerPoint/PowerPointSlideCompositionContext.cs",
       "category": "authoring",
-      "notes": "Return type to be named in M2 when the created model type is public.",
+      "notes": "Returns the actual editable shapes appended by the composition in drawing order. Empty metric collections return an empty list, and forwarding overloads return the same created shapes.",
       "implementation": {
         "phase": "B",
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
+      "applied": "phase-b-applied",
       "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlideCompositionContext.AddProcessTimeline(IEnumerable<PowerPointProcessStep> steps, PowerPointProcessSlideOptions options = null)",
       "kind": "method",
       "action": "change",
-      "new": "OfficeIMO.PowerPoint.PowerPointSlideCompositionContext.AddProcessTimeline(...) : the created object",
+      "new": "OfficeIMO.PowerPoint.PowerPointSlideCompositionContext.AddProcessTimeline(...) : IReadOnlyList<PowerPointShape>",
       "reason": "Add* methods return the created object.",
       "file": "OfficeIMO.PowerPoint/PowerPointSlideCompositionContext.cs",
       "category": "authoring",
-      "notes": "Return type to be named in M2 when the created model type is public.",
+      "notes": "Returns the actual editable shapes appended by the composition in drawing order. Empty metric collections return an empty list, and forwarding overloads return the same created shapes.",
       "implementation": {
         "phase": "B",
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
+      "applied": "phase-b-applied",
       "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlideCompositionContext.AddProcessTimeline(IEnumerable<PowerPointProcessStep> steps, PowerPointLayoutBox bounds, PowerPointProcessSlideOptions options = null)",
       "kind": "method",
       "action": "change",
-      "new": "OfficeIMO.PowerPoint.PowerPointSlideCompositionContext.AddProcessTimeline(...) : the created object",
+      "new": "OfficeIMO.PowerPoint.PowerPointSlideCompositionContext.AddProcessTimeline(...) : IReadOnlyList<PowerPointShape>",
       "reason": "Add* methods return the created object.",
       "file": "OfficeIMO.PowerPoint/PowerPointSlideCompositionContext.cs",
       "category": "authoring",
-      "notes": "Return type to be named in M2 when the created model type is public.",
+      "notes": "Returns the actual editable shapes appended by the composition in drawing order. Empty metric collections return an empty list, and forwarding overloads return the same created shapes.",
       "implementation": {
         "phase": "B",
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
+      "applied": "phase-b-applied",
       "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlideCompositionContext.AddMetricStrip(IEnumerable<PowerPointMetric> metrics, PowerPointLayoutBox bounds)",
       "kind": "method",
       "action": "change",
-      "new": "OfficeIMO.PowerPoint.PowerPointSlideCompositionContext.AddMetricStrip(...) : the created object",
+      "new": "OfficeIMO.PowerPoint.PowerPointSlideCompositionContext.AddMetricStrip(...) : IReadOnlyList<PowerPointShape>",
       "reason": "Add* methods return the created object.",
       "file": "OfficeIMO.PowerPoint/PowerPointSlideCompositionContext.cs",
       "category": "authoring",
-      "notes": "Return type to be named in M2 when the created model type is public.",
+      "notes": "Returns the actual editable shapes appended by the composition in drawing order. Empty metric collections return an empty list, and forwarding overloads return the same created shapes.",
       "implementation": {
         "phase": "B",
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
+      "applied": "phase-b-applied",
       "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlideCompositionContext.AddMetricStrip(IEnumerable<PowerPointMetric> metrics, PowerPointLayoutBox bounds, PowerPointMetricStripVariant variant)",
       "kind": "method",
       "action": "change",
-      "new": "OfficeIMO.PowerPoint.PowerPointSlideCompositionContext.AddMetricStrip(...) : the created object",
+      "new": "OfficeIMO.PowerPoint.PowerPointSlideCompositionContext.AddMetricStrip(...) : IReadOnlyList<PowerPointShape>",
       "reason": "Add* methods return the created object.",
       "file": "OfficeIMO.PowerPoint/PowerPointSlideCompositionContext.cs",
       "category": "authoring",
-      "notes": "Return type to be named in M2 when the created model type is public.",
+      "notes": "Returns the actual editable shapes appended by the composition in drawing order. Empty metric collections return an empty list, and forwarding overloads return the same created shapes.",
       "implementation": {
         "phase": "B",
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
+      "applied": "phase-b-applied",
       "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlideCompositionContext.AddVisualFrame(PowerPointLayoutBox bounds, string imagePath = null)",
       "kind": "method",
       "action": "change",
-      "new": "OfficeIMO.PowerPoint.PowerPointSlideCompositionContext.AddVisualFrame(...) : the created object",
+      "new": "OfficeIMO.PowerPoint.PowerPointSlideCompositionContext.AddVisualFrame(...) : IReadOnlyList<PowerPointShape>",
       "reason": "Add* methods return the created object.",
       "file": "OfficeIMO.PowerPoint/PowerPointSlideCompositionContext.cs",
       "category": "authoring",
-      "notes": "Return type to be named in M2 when the created model type is public.",
+      "notes": "Returns the actual editable shapes appended by the composition in drawing order. Empty metric collections return an empty list, and forwarding overloads return the same created shapes.",
       "implementation": {
         "phase": "B",
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
+      "applied": "phase-b-applied",
       "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlideCompositionContext.AddVisualFrame(PowerPointLayoutBox bounds, PowerPointVisualFrameVariant variant)",
       "kind": "method",
       "action": "change",
-      "new": "OfficeIMO.PowerPoint.PowerPointSlideCompositionContext.AddVisualFrame(...) : the created object",
+      "new": "OfficeIMO.PowerPoint.PowerPointSlideCompositionContext.AddVisualFrame(...) : IReadOnlyList<PowerPointShape>",
       "reason": "Add* methods return the created object.",
       "file": "OfficeIMO.PowerPoint/PowerPointSlideCompositionContext.cs",
       "category": "authoring",
-      "notes": "Return type to be named in M2 when the created model type is public.",
+      "notes": "Returns the actual editable shapes appended by the composition in drawing order. Empty metric collections return an empty list, and forwarding overloads return the same created shapes.",
       "implementation": {
         "phase": "B",
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
+      "applied": "phase-b-applied",
       "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlideCompositionContext.AddVisualFrame(PowerPointLayoutBox bounds, string imagePath, PowerPointVisualFrameVariant variant)",
       "kind": "method",
       "action": "change",
-      "new": "OfficeIMO.PowerPoint.PowerPointSlideCompositionContext.AddVisualFrame(...) : the created object",
+      "new": "OfficeIMO.PowerPoint.PowerPointSlideCompositionContext.AddVisualFrame(...) : IReadOnlyList<PowerPointShape>",
       "reason": "Add* methods return the created object.",
       "file": "OfficeIMO.PowerPoint/PowerPointSlideCompositionContext.cs",
       "category": "authoring",
-      "notes": "Return type to be named in M2 when the created model type is public.",
+      "notes": "Returns the actual editable shapes appended by the composition in drawing order. Empty metric collections return an empty list, and forwarding overloads return the same created shapes.",
       "implementation": {
         "phase": "B",
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
+      "applied": "phase-b-applied",
       "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlideCompositionContext.AddCalloutBand(string text, PowerPointLayoutBox bounds, string accentColor = null)",
       "kind": "method",
       "action": "change",
-      "new": "OfficeIMO.PowerPoint.PowerPointSlideCompositionContext.AddCalloutBand(...) : the created object",
+      "new": "OfficeIMO.PowerPoint.PowerPointSlideCompositionContext.AddCalloutBand(...) : IReadOnlyList<PowerPointShape>",
       "reason": "Add* methods return the created object.",
       "file": "OfficeIMO.PowerPoint/PowerPointSlideCompositionContext.cs",
       "category": "authoring",
-      "notes": "Return type to be named in M2 when the created model type is public.",
+      "notes": "Returns the actual editable shapes appended by the composition in drawing order. Empty metric collections return an empty list, and forwarding overloads return the same created shapes.",
       "implementation": {
         "phase": "B",
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
+      "applied": "phase-b-applied",
       "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlideCompositionContext.AddLogoWall(IEnumerable<PowerPointLogoItem> logos, PowerPointLayoutBox bounds, PowerPointLogoWallSlideOptions options = null)",
       "kind": "method",
       "action": "change",
-      "new": "OfficeIMO.PowerPoint.PowerPointSlideCompositionContext.AddLogoWall(...) : the created object",
+      "new": "OfficeIMO.PowerPoint.PowerPointSlideCompositionContext.AddLogoWall(...) : IReadOnlyList<PowerPointShape>",
       "reason": "Add* methods return the created object.",
       "file": "OfficeIMO.PowerPoint/PowerPointSlideCompositionContext.cs",
       "category": "authoring",
-      "notes": "Return type to be named in M2 when the created model type is public.",
+      "notes": "Returns the actual editable shapes appended by the composition in drawing order. Empty metric collections return an empty list, and forwarding overloads return the same created shapes.",
       "implementation": {
         "phase": "B",
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
+      "applied": "phase-b-applied",
       "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlideCompositionContext.AddCoverageMap(IEnumerable<PowerPointCoverageLocation> locations, PowerPointLayoutBox bounds, PowerPointCoverageSlideOptions options = null)",
       "kind": "method",
       "action": "change",
-      "new": "OfficeIMO.PowerPoint.PowerPointSlideCompositionContext.AddCoverageMap(...) : the created object",
+      "new": "OfficeIMO.PowerPoint.PowerPointSlideCompositionContext.AddCoverageMap(...) : IReadOnlyList<PowerPointShape>",
       "reason": "Add* methods return the created object.",
       "file": "OfficeIMO.PowerPoint/PowerPointSlideCompositionContext.cs",
       "category": "authoring",
-      "notes": "Return type to be named in M2 when the created model type is public.",
+      "notes": "Returns the actual editable shapes appended by the composition in drawing order. Empty metric collections return an empty list, and forwarding overloads return the same created shapes.",
       "implementation": {
         "phase": "B",
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
+      "applied": "phase-b-applied",
       "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
     },
     {
@@ -1789,13 +1789,13 @@
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.PowerPoint/PowerPointPresentation.View.cs",
       "category": "units",
-      "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values. Also (units): change -> OfficeIMO.PowerPoint.PowerPointDocument.AddColumnGuidesCm(... OfficeLength ...)",
+      "notes": "Uses OfficeLength through PowerPointDocument.GridSpacingX/GridSpacingY, SetGridSpacing, AddGuide and the row/column guide methods. AddGuide returns the created PowerPointGuideInfo value; row/column methods return the created guide values. The package codec retains its Int32 coordinate boundary.",
       "implementation": {
         "phase": "B",
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
+      "applied": "phase-b-applied",
       "note": "The authoring, geometry and generated visibility analysis belongs to Phase B.",
       "currentFile": "OfficeIMO.PowerPoint/PowerPointDocument.View.cs"
     },
@@ -1807,13 +1807,13 @@
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.PowerPoint/PowerPointPresentation.View.cs",
       "category": "units",
-      "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values. Also (units): change -> OfficeIMO.PowerPoint.PowerPointDocument.AddGuideCm(... OfficeLength ...)",
+      "notes": "Uses OfficeLength through PowerPointDocument.GridSpacingX/GridSpacingY, SetGridSpacing, AddGuide and the row/column guide methods. AddGuide returns the created PowerPointGuideInfo value; row/column methods return the created guide values. The package codec retains its Int32 coordinate boundary.",
       "implementation": {
         "phase": "B",
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
+      "applied": "phase-b-applied",
       "note": "The authoring, geometry and generated visibility analysis belongs to Phase B.",
       "currentFile": "OfficeIMO.PowerPoint/PowerPointDocument.View.cs"
     },
@@ -1825,13 +1825,13 @@
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.PowerPoint/PowerPointPresentation.View.cs",
       "category": "units",
-      "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values. Also (units): change -> OfficeIMO.PowerPoint.PowerPointDocument.AddGuideInches(... OfficeLength ...)",
+      "notes": "Uses OfficeLength through PowerPointDocument.GridSpacingX/GridSpacingY, SetGridSpacing, AddGuide and the row/column guide methods. AddGuide returns the created PowerPointGuideInfo value; row/column methods return the created guide values. The package codec retains its Int32 coordinate boundary.",
       "implementation": {
         "phase": "B",
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
+      "applied": "phase-b-applied",
       "note": "The authoring, geometry and generated visibility analysis belongs to Phase B.",
       "currentFile": "OfficeIMO.PowerPoint/PowerPointDocument.View.cs"
     },
@@ -1843,13 +1843,13 @@
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.PowerPoint/PowerPointPresentation.View.cs",
       "category": "units",
-      "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values. Also (units): change -> OfficeIMO.PowerPoint.PowerPointDocument.AddGuidePoints(... OfficeLength ...)",
+      "notes": "Uses OfficeLength through PowerPointDocument.GridSpacingX/GridSpacingY, SetGridSpacing, AddGuide and the row/column guide methods. AddGuide returns the created PowerPointGuideInfo value; row/column methods return the created guide values. The package codec retains its Int32 coordinate boundary.",
       "implementation": {
         "phase": "B",
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
+      "applied": "phase-b-applied",
       "note": "The authoring, geometry and generated visibility analysis belongs to Phase B.",
       "currentFile": "OfficeIMO.PowerPoint/PowerPointDocument.View.cs"
     },
@@ -1861,13 +1861,13 @@
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.PowerPoint/PowerPointPresentation.View.cs",
       "category": "units",
-      "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values. Also (units): change -> OfficeIMO.PowerPoint.PowerPointDocument.AddRowGuidesCm(... OfficeLength ...)",
+      "notes": "Uses OfficeLength through PowerPointDocument.GridSpacingX/GridSpacingY, SetGridSpacing, AddGuide and the row/column guide methods. AddGuide returns the created PowerPointGuideInfo value; row/column methods return the created guide values. The package codec retains its Int32 coordinate boundary.",
       "implementation": {
         "phase": "B",
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
+      "applied": "phase-b-applied",
       "note": "The authoring, geometry and generated visibility analysis belongs to Phase B.",
       "currentFile": "OfficeIMO.PowerPoint/PowerPointDocument.View.cs"
     },
@@ -1879,13 +1879,13 @@
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.PowerPoint/PowerPointPresentation.View.cs",
       "category": "units",
-      "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values. Also (units): change -> OfficeIMO.PowerPoint.PowerPointDocument.SetGridSpacingCm(... OfficeLength ...)",
+      "notes": "Uses OfficeLength through PowerPointDocument.GridSpacingX/GridSpacingY, SetGridSpacing, AddGuide and the row/column guide methods. AddGuide returns the created PowerPointGuideInfo value; row/column methods return the created guide values. The package codec retains its Int32 coordinate boundary.",
       "implementation": {
         "phase": "B",
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
+      "applied": "phase-b-applied",
       "note": "The authoring, geometry and generated visibility analysis belongs to Phase B.",
       "currentFile": "OfficeIMO.PowerPoint/PowerPointDocument.View.cs"
     },
@@ -1897,13 +1897,13 @@
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.PowerPoint/PowerPointPresentation.View.cs",
       "category": "units",
-      "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values. Also (units): change -> OfficeIMO.PowerPoint.PowerPointDocument.SetGridSpacingInches(... OfficeLength ...)",
+      "notes": "Uses OfficeLength through PowerPointDocument.GridSpacingX/GridSpacingY, SetGridSpacing, AddGuide and the row/column guide methods. AddGuide returns the created PowerPointGuideInfo value; row/column methods return the created guide values. The package codec retains its Int32 coordinate boundary.",
       "implementation": {
         "phase": "B",
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
+      "applied": "phase-b-applied",
       "note": "The authoring, geometry and generated visibility analysis belongs to Phase B.",
       "currentFile": "OfficeIMO.PowerPoint/PowerPointDocument.View.cs"
     },
@@ -1915,13 +1915,13 @@
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.PowerPoint/PowerPointPresentation.View.cs",
       "category": "units",
-      "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values. Also (units): change -> OfficeIMO.PowerPoint.PowerPointDocument.SetGridSpacingPoints(... OfficeLength ...)",
+      "notes": "Uses OfficeLength through PowerPointDocument.GridSpacingX/GridSpacingY, SetGridSpacing, AddGuide and the row/column guide methods. AddGuide returns the created PowerPointGuideInfo value; row/column methods return the created guide values. The package codec retains its Int32 coordinate boundary.",
       "implementation": {
         "phase": "B",
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
+      "applied": "phase-b-applied",
       "note": "The authoring, geometry and generated visibility analysis belongs to Phase B.",
       "currentFile": "OfficeIMO.PowerPoint/PowerPointDocument.View.cs"
     },
@@ -5662,13 +5662,13 @@
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.PowerPoint/PowerPointPresentation.View.cs",
       "category": "units",
-      "notes": "Numeric parameters with unit-suffixed names: xEmus, yEmus",
+      "notes": "Uses OfficeLength through PowerPointDocument.GridSpacingX/GridSpacingY, SetGridSpacing, AddGuide and the row/column guide methods. AddGuide returns the created PowerPointGuideInfo value; row/column methods return the created guide values. The package codec retains its Int32 coordinate boundary.",
       "implementation": {
         "phase": "B",
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
+      "applied": "phase-b-applied",
       "note": "The authoring, geometry and generated visibility analysis belongs to Phase B.",
       "currentFile": "OfficeIMO.PowerPoint/PowerPointDocument.View.cs"
     },
@@ -7052,8 +7052,9 @@
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B.",
+      "notes": "Uses OfficeLength through PowerPointDocument.GridSpacingX/GridSpacingY, SetGridSpacing, AddGuide and the row/column guide methods. AddGuide returns the created PowerPointGuideInfo value; row/column methods return the created guide values. The package codec retains its Int32 coordinate boundary."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointImageExportOptions.LogicalUnitsPerInch",
@@ -7564,9 +7565,10 @@
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
+      "applied": "phase-b-applied",
       "note": "The authoring, geometry and generated visibility analysis belongs to Phase B.",
-      "currentFile": "OfficeIMO.PowerPoint/PowerPointDocument.View.cs"
+      "currentFile": "OfficeIMO.PowerPoint/PowerPointDocument.View.cs",
+      "notes": "Uses OfficeLength through PowerPointDocument.GridSpacingX/GridSpacingY, SetGridSpacing, AddGuide and the row/column guide methods. AddGuide returns the created PowerPointGuideInfo value; row/column methods return the created guide values. The package codec retains its Int32 coordinate boundary."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointPresentation.GridSpacingYEmus",
@@ -7581,9 +7583,10 @@
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
+      "applied": "phase-b-applied",
       "note": "The authoring, geometry and generated visibility analysis belongs to Phase B.",
-      "currentFile": "OfficeIMO.PowerPoint/PowerPointDocument.View.cs"
+      "currentFile": "OfficeIMO.PowerPoint/PowerPointDocument.View.cs",
+      "notes": "Uses OfficeLength through PowerPointDocument.GridSpacingX/GridSpacingY, SetGridSpacing, AddGuide and the row/column guide methods. AddGuide returns the created PowerPointGuideInfo value; row/column methods return the created guide values. The package codec retains its Int32 coordinate boundary."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointShape.BottomCm",
@@ -9569,6 +9572,23 @@
       "phase": "B",
       "applied": "phase-b-applied",
       "note": "PowerShell shape-info snapshots retain numeric LeftPoints/TopPoints summary fields. Direct native shape and layout reads extract units from OfficeLength; the existing Get-OfficePowerPointShape snapshot contract is unchanged."
+    },
+    {
+      "change": "PowerPointGuideInfo takes and exposes OfficeLength Position; guide Add methods return created guide values. SetGridSpacing validates both coordinates before editing either axis.",
+      "reason": "View geometry follows the same typed length contract as document and shape geometry. No in-repository C# consumer uses the removed guide/grid unit twins.",
+      "applied": "phase-b-applied",
+      "files": [
+        "OfficeIMO.PowerPoint/PowerPointGuideInfo.cs",
+        "OfficeIMO.PowerPoint/PowerPointDocument.View.cs"
+      ]
+    },
+    {
+      "change": "PowerPointSlideCompositionContext Add operations return the editable shapes created by each composite operation.",
+      "reason": "A title/subtitle, card grid, metric strip or visual frame may create several shapes. Returning those existing attached objects preserves object-model editing without introducing another fluent builder or modifying grouping/rendering.",
+      "applied": "phase-b-applied",
+      "files": [
+        "OfficeIMO.PowerPoint/PowerPointSlideCompositionContext.cs"
+      ]
     }
   ],
   "applicationStatus": "Phase A applied and validated on the supported macOS targets. Phase B and Tier 2 entries retain their status; Windows .NET Framework validation remains pending.",

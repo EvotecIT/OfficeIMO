@@ -642,10 +642,18 @@ The bounded semantic layouts cover process, hierarchy, cycle, list, matrix, pyra
 
 The visual proof report records structural and extraction evidence, accessibility results, shared-snapshot diagnostics, PNG/SVG hashes, caller-supplied conversion artifacts, and perceptual-comparison results. PowerPoint Desktop reference rendering is available through `PowerPointDesktopReferenceRenderer.TryRender(...)` only when the caller explicitly enables it; normal generation and export never use Office automation.
 
+`SetGridSpacing` and guide creation use explicit `OfficeLength` values.
+`AddGuide` returns its `PowerPointGuideInfo`; `AddColumnGuides` and `AddRowGuides`
+return the guide values they created. The guide position is available as `Position`.
+
 ### Designer composition
 
 Use a semantic plan when a deck needs readable business composition without hand-positioning every object.
 `PowerPointDeckPlan` owns intent and `PowerPointDocument.Compose(...)` is the only public rendering operation:
+
+Inside custom composition callbacks, `AddTitle`, `AddCardGrid`,
+`AddCalloutBand` and the other composite Add methods return the shapes they
+create. Each shape remains attached and editable through the object model.
 
 ```csharp
 using var presentation = PowerPointDocument.Create("proposal.pptx");

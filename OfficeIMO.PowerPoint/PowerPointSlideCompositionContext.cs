@@ -104,20 +104,24 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Adds a standard title block using the active theme and slide surface.
         /// </summary>
-        public void AddTitle(string title, string? subtitle = null) {
-            if (title == null) {
-                throw new ArgumentNullException(nameof(title));
-            }
+        /// <returns>The editable shapes added by this composition, in drawing order.</returns>
+        public IReadOnlyList<PowerPointShape> AddTitle(string title, string? subtitle = null) {
+            return CaptureAddedShapes(() => {
+                if (title == null) {
+                    throw new ArgumentNullException(nameof(title));
+                }
 
-            string titleColor = _dark ? _theme.AccentContrastColor : _theme.PrimaryTextColor;
-            string subtitleColor = _dark ? _theme.AccentLightColor : _theme.SecondaryTextColor;
-            PowerPointDesignExtensions.AddText(_slide, title, 1.65, 1.45, _slideWidthCm * 0.62, 1.05, 31,
-                titleColor, _theme.HeadingFontName, bold: true);
+                string titleColor = _dark ? _theme.AccentContrastColor : _theme.PrimaryTextColor;
+                string subtitleColor = _dark ? _theme.AccentLightColor : _theme.SecondaryTextColor;
+                PowerPointDesignExtensions.AddText(_slide, title, 1.65, 1.45, _slideWidthCm * 0.62, 1.05, 31,
+                    titleColor, _theme.HeadingFontName, bold: true);
 
-            if (!string.IsNullOrWhiteSpace(subtitle)) {
-                PowerPointDesignExtensions.AddText(_slide, subtitle!, 1.7, 2.65, _slideWidthCm * 0.58, 0.55, 12,
-                    subtitleColor, _theme.BodyFontName, bold: true);
-            }
+                if (!string.IsNullOrWhiteSpace(subtitle)) {
+                    PowerPointDesignExtensions.AddText(_slide, subtitle!, 1.7, 2.65, _slideWidthCm * 0.58, 0.55, 12,
+                        subtitleColor, _theme.BodyFontName, bold: true);
+                }
+
+            });
         }
 
         /// <summary>
@@ -137,168 +141,214 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Adds a designer card grid using the supplied semantic card content.
         /// </summary>
-        public void AddCardGrid(IEnumerable<PowerPointCardContent> cards, PowerPointCardGridSlideOptions? options = null) {
-            PowerPointCardGridSlideOptions resolved = options ?? new PowerPointCardGridSlideOptions();
-            InheritDesignIntent(resolved);
-            List<PowerPointCardContent> cardList = PowerPointDesignExtensions.NormalizeCards(cards);
-            PowerPointCardGridLayoutVariant variant =
-                PowerPointDesignExtensions.ResolveCardGridVariant(resolved, cardList);
+        /// <returns>The editable shapes added by this composition, in drawing order.</returns>
+        public IReadOnlyList<PowerPointShape> AddCardGrid(IEnumerable<PowerPointCardContent> cards, PowerPointCardGridSlideOptions? options = null) {
+            return CaptureAddedShapes(() => {
+                PowerPointCardGridSlideOptions resolved = options ?? new PowerPointCardGridSlideOptions();
+                InheritDesignIntent(resolved);
+                List<PowerPointCardContent> cardList = PowerPointDesignExtensions.NormalizeCards(cards);
+                PowerPointCardGridLayoutVariant variant =
+                    PowerPointDesignExtensions.ResolveCardGridVariant(resolved, cardList);
 
-            PowerPointDesignExtensions.AddCardGrid(_slide, _theme, cardList, resolved, variant,
-                _slideWidthCm, _slideHeightCm);
+                PowerPointDesignExtensions.AddCardGrid(_slide, _theme, cardList, resolved, variant,
+                    _slideWidthCm, _slideHeightCm);
+
+            });
         }
 
         /// <summary>
         ///     Adds a designer card grid inside a caller-selected region.
         /// </summary>
-        public void AddCardGrid(IEnumerable<PowerPointCardContent> cards, PowerPointLayoutBox bounds,
+        /// <returns>The editable shapes added by this composition, in drawing order.</returns>
+        public IReadOnlyList<PowerPointShape> AddCardGrid(IEnumerable<PowerPointCardContent> cards, PowerPointLayoutBox bounds,
             PowerPointCardGridSlideOptions? options = null) {
-            PowerPointCardGridSlideOptions resolved = options ?? new PowerPointCardGridSlideOptions();
-            InheritDesignIntent(resolved);
-            List<PowerPointCardContent> cardList = PowerPointDesignExtensions.NormalizeCards(cards);
-            PowerPointCardGridLayoutVariant variant =
-                PowerPointDesignExtensions.ResolveCardGridVariant(resolved, cardList);
+            return CaptureAddedShapes(() => {
+                PowerPointCardGridSlideOptions resolved = options ?? new PowerPointCardGridSlideOptions();
+                InheritDesignIntent(resolved);
+                List<PowerPointCardContent> cardList = PowerPointDesignExtensions.NormalizeCards(cards);
+                PowerPointCardGridLayoutVariant variant =
+                    PowerPointDesignExtensions.ResolveCardGridVariant(resolved, cardList);
 
-            PowerPointDesignExtensions.AddCardGrid(_slide, _theme, cardList, resolved, variant, bounds);
+                PowerPointDesignExtensions.AddCardGrid(_slide, _theme, cardList, resolved, variant, bounds);
+
+            });
         }
 
         /// <summary>
         ///     Adds a process/timeline primitive using the supplied semantic steps.
         /// </summary>
-        public void AddProcessTimeline(IEnumerable<PowerPointProcessStep> steps, PowerPointProcessSlideOptions? options = null) {
-            PowerPointProcessSlideOptions resolved = options ?? new PowerPointProcessSlideOptions();
-            InheritDesignIntent(resolved);
-            List<PowerPointProcessStep> stepList = PowerPointDesignExtensions.NormalizeSteps(steps);
-            PowerPointDesignExtensions.AddProcessTimeline(_slide, _theme, stepList, resolved,
-                _slideWidthCm, _slideHeightCm);
+        /// <returns>The editable shapes added by this composition, in drawing order.</returns>
+        public IReadOnlyList<PowerPointShape> AddProcessTimeline(IEnumerable<PowerPointProcessStep> steps, PowerPointProcessSlideOptions? options = null) {
+            return CaptureAddedShapes(() => {
+                PowerPointProcessSlideOptions resolved = options ?? new PowerPointProcessSlideOptions();
+                InheritDesignIntent(resolved);
+                List<PowerPointProcessStep> stepList = PowerPointDesignExtensions.NormalizeSteps(steps);
+                PowerPointDesignExtensions.AddProcessTimeline(_slide, _theme, stepList, resolved,
+                    _slideWidthCm, _slideHeightCm);
+
+            });
         }
 
         /// <summary>
         ///     Adds a process/timeline primitive inside a caller-selected region.
         /// </summary>
-        public void AddProcessTimeline(IEnumerable<PowerPointProcessStep> steps, PowerPointLayoutBox bounds,
+        /// <returns>The editable shapes added by this composition, in drawing order.</returns>
+        public IReadOnlyList<PowerPointShape> AddProcessTimeline(IEnumerable<PowerPointProcessStep> steps, PowerPointLayoutBox bounds,
             PowerPointProcessSlideOptions? options = null) {
-            PowerPointProcessSlideOptions resolved = options ?? new PowerPointProcessSlideOptions();
-            InheritDesignIntent(resolved);
-            List<PowerPointProcessStep> stepList = PowerPointDesignExtensions.NormalizeSteps(steps);
-            PowerPointDesignExtensions.AddProcessTimeline(_slide, _theme, stepList, resolved, bounds);
+            return CaptureAddedShapes(() => {
+                PowerPointProcessSlideOptions resolved = options ?? new PowerPointProcessSlideOptions();
+                InheritDesignIntent(resolved);
+                List<PowerPointProcessStep> stepList = PowerPointDesignExtensions.NormalizeSteps(steps);
+                PowerPointDesignExtensions.AddProcessTimeline(_slide, _theme, stepList, resolved, bounds);
+
+            });
         }
 
         /// <summary>
         ///     Adds a themed metric strip inside explicit bounds.
         /// </summary>
-        public void AddMetricStrip(IEnumerable<PowerPointMetric> metrics, PowerPointLayoutBox bounds) {
-            AddMetricStrip(metrics, bounds, PowerPointMetricStripVariant.SolidBand);
+        /// <returns>The editable shapes added by this composition, in drawing order.</returns>
+        public IReadOnlyList<PowerPointShape> AddMetricStrip(IEnumerable<PowerPointMetric> metrics, PowerPointLayoutBox bounds) {
+            return AddMetricStrip(metrics, bounds, PowerPointMetricStripVariant.SolidBand);
         }
 
         /// <summary>
         ///     Adds a themed metric strip inside explicit bounds using a selected surface variant.
         /// </summary>
-        public void AddMetricStrip(IEnumerable<PowerPointMetric> metrics, PowerPointLayoutBox bounds,
+        /// <returns>The editable shapes added by this composition, in drawing order.</returns>
+        public IReadOnlyList<PowerPointShape> AddMetricStrip(IEnumerable<PowerPointMetric> metrics, PowerPointLayoutBox bounds,
             PowerPointMetricStripVariant variant) {
-            if (metrics == null) {
-                throw new ArgumentNullException(nameof(metrics));
-            }
+            return CaptureAddedShapes(() => {
+                if (metrics == null) {
+                    throw new ArgumentNullException(nameof(metrics));
+                }
 
-            List<PowerPointMetric> metricList = metrics.Where(metric => metric != null).ToList();
-            if (metricList.Count == 0) {
-                return;
-            }
+                List<PowerPointMetric> metricList = metrics.Where(metric => metric != null).ToList();
+                if (metricList.Count == 0) {
+                    return;
+                }
 
-            PowerPointMetricStripVariant resolvedVariant = ResolveMetricStripVariant(variant);
-            if (resolvedVariant == PowerPointMetricStripVariant.SeparatedTiles) {
-                AddMetricTiles(metricList, bounds);
-                return;
-            }
-            if (resolvedVariant == PowerPointMetricStripVariant.Underlined) {
-                AddUnderlinedMetrics(metricList, bounds);
-                return;
-            }
+                PowerPointMetricStripVariant resolvedVariant = ResolveMetricStripVariant(variant);
+                if (resolvedVariant == PowerPointMetricStripVariant.SeparatedTiles) {
+                    AddMetricTiles(metricList, bounds);
+                    return;
+                }
+                if (resolvedVariant == PowerPointMetricStripVariant.Underlined) {
+                    AddUnderlinedMetrics(metricList, bounds);
+                    return;
+                }
 
-            PowerPointAutoShape band = _slide.AddRectangleCm(bounds.Left.ToCentimeters(), bounds.Top.ToCentimeters(), bounds.Width.ToCentimeters(),
-                bounds.Height.ToCentimeters(), "Composer Metric Band");
-            band.FillColor = _dark ? _theme.AccentColor : _theme.AccentColor;
-            band.FillTransparency = _dark ? 55 : 0;
-            band.OutlineColor = _dark ? _theme.AccentLightColor : _theme.AccentColor;
-            band.OutlineWidthPoints = 0.45;
-            band.SetShadow("000000", blurPoints: 3, distancePoints: 0.8, angleDegrees: 90, transparencyPercent: 90);
+                PowerPointAutoShape band = _slide.AddRectangleCm(bounds.Left.ToCentimeters(), bounds.Top.ToCentimeters(), bounds.Width.ToCentimeters(),
+                    bounds.Height.ToCentimeters(), "Composer Metric Band");
+                band.FillColor = _dark ? _theme.AccentColor : _theme.AccentColor;
+                band.FillTransparency = _dark ? 55 : 0;
+                band.OutlineColor = _dark ? _theme.AccentLightColor : _theme.AccentColor;
+                band.OutlineWidthPoints = 0.45;
+                band.SetShadow("000000", blurPoints: 3, distancePoints: 0.8, angleDegrees: 90, transparencyPercent: 90);
 
-            PowerPointDesignExtensions.AddMetrics(_slide, _theme, metricList, bounds.Left.ToCentimeters(), bounds.Top.ToCentimeters(),
-                bounds.Width.ToCentimeters(), bounds.Height.ToCentimeters());
+                PowerPointDesignExtensions.AddMetrics(_slide, _theme, metricList, bounds.Left.ToCentimeters(), bounds.Top.ToCentimeters(),
+                    bounds.Width.ToCentimeters(), bounds.Height.ToCentimeters());
+
+            });
         }
 
         /// <summary>
         ///     Adds a polished image or editable placeholder surface inside explicit bounds.
         /// </summary>
-        public void AddVisualFrame(PowerPointLayoutBox bounds, string? imagePath = null) {
-            AddVisualFrame(bounds, imagePath, PowerPointVisualFrameVariant.Auto);
+        /// <returns>The editable shapes added by this composition, in drawing order.</returns>
+        public IReadOnlyList<PowerPointShape> AddVisualFrame(PowerPointLayoutBox bounds, string? imagePath = null) {
+            return AddVisualFrame(bounds, imagePath, PowerPointVisualFrameVariant.Auto);
         }
 
         /// <summary>
         ///     Adds a polished editable placeholder surface inside explicit bounds using a selected visual variant.
         /// </summary>
-        public void AddVisualFrame(PowerPointLayoutBox bounds, PowerPointVisualFrameVariant variant) {
-            AddVisualFrame(bounds, null, variant);
+        /// <returns>The editable shapes added by this composition, in drawing order.</returns>
+        public IReadOnlyList<PowerPointShape> AddVisualFrame(PowerPointLayoutBox bounds, PowerPointVisualFrameVariant variant) {
+            return AddVisualFrame(bounds, null, variant);
         }
 
         /// <summary>
         ///     Adds a polished image or editable placeholder surface inside explicit bounds using a selected visual variant.
         /// </summary>
-        public void AddVisualFrame(PowerPointLayoutBox bounds, string? imagePath, PowerPointVisualFrameVariant variant) {
-            PowerPointDesignExtensions.AddVisualFrame(_slide, _theme, imagePath, bounds.Left.ToCentimeters(), bounds.Top.ToCentimeters(),
-                bounds.Width.ToCentimeters(), bounds.Height.ToCentimeters(), variant, _options.DesignIntent);
+        /// <returns>The editable shapes added by this composition, in drawing order.</returns>
+        public IReadOnlyList<PowerPointShape> AddVisualFrame(PowerPointLayoutBox bounds, string? imagePath, PowerPointVisualFrameVariant variant) {
+            return CaptureAddedShapes(() => {
+                PowerPointDesignExtensions.AddVisualFrame(_slide, _theme, imagePath, bounds.Left.ToCentimeters(), bounds.Top.ToCentimeters(),
+                    bounds.Width.ToCentimeters(), bounds.Height.ToCentimeters(), variant, _options.DesignIntent);
+
+            });
         }
 
         /// <summary>
         ///     Adds a lightweight callout band inside explicit bounds.
         /// </summary>
-        public void AddCalloutBand(string text, PowerPointLayoutBox bounds, string? accentColor = null) {
-            if (text == null) {
-                throw new ArgumentNullException(nameof(text));
-            }
+        /// <returns>The editable shapes added by this composition, in drawing order.</returns>
+        public IReadOnlyList<PowerPointShape> AddCalloutBand(string text, PowerPointLayoutBox bounds, string? accentColor = null) {
+            return CaptureAddedShapes(() => {
+                if (text == null) {
+                    throw new ArgumentNullException(nameof(text));
+                }
 
-            string accent = accentColor ?? _theme.AccentColor;
-            PowerPointAutoShape band = _slide.AddRectangleCm(bounds.Left.ToCentimeters(), bounds.Top.ToCentimeters(), bounds.Width.ToCentimeters(),
-                bounds.Height.ToCentimeters(), "Composer Callout Band");
-            band.FillColor = _dark ? _theme.AccentColor : _theme.PanelColor;
-            band.FillTransparency = _dark ? 60 : 0;
-            band.OutlineColor = _dark ? _theme.AccentLightColor : _theme.PanelBorderColor;
-            band.OutlineWidthPoints = 0.45;
-            band.SetShadow("000000", blurPoints: 3, distancePoints: 0.8, angleDegrees: 90, transparencyPercent: 90);
+                string accent = accentColor ?? _theme.AccentColor;
+                PowerPointAutoShape band = _slide.AddRectangleCm(bounds.Left.ToCentimeters(), bounds.Top.ToCentimeters(), bounds.Width.ToCentimeters(),
+                    bounds.Height.ToCentimeters(), "Composer Callout Band");
+                band.FillColor = _dark ? _theme.AccentColor : _theme.PanelColor;
+                band.FillTransparency = _dark ? 60 : 0;
+                band.OutlineColor = _dark ? _theme.AccentLightColor : _theme.PanelBorderColor;
+                band.OutlineWidthPoints = 0.45;
+                band.SetShadow("000000", blurPoints: 3, distancePoints: 0.8, angleDegrees: 90, transparencyPercent: 90);
 
-            PowerPointAutoShape rule = _slide.AddRectangleCm(bounds.Left.ToCentimeters(), bounds.Top.ToCentimeters(), 0.13, bounds.Height.ToCentimeters(),
-                "Composer Callout Accent");
-            rule.FillColor = accent;
-            rule.OutlineColor = accent;
+                PowerPointAutoShape rule = _slide.AddRectangleCm(bounds.Left.ToCentimeters(), bounds.Top.ToCentimeters(), 0.13, bounds.Height.ToCentimeters(),
+                    "Composer Callout Accent");
+                rule.FillColor = accent;
+                rule.OutlineColor = accent;
 
-            PowerPointDesignExtensions.AddText(_slide, text, bounds.Left.ToCentimeters() + 0.55, bounds.Top.ToCentimeters() + 0.28,
-                bounds.Width.ToCentimeters() - 0.85, bounds.Height.ToCentimeters() - 0.45, 13,
-                _dark ? _theme.AccentContrastColor : _theme.SecondaryTextColor, _theme.BodyFontName, bold: true);
+                PowerPointDesignExtensions.AddText(_slide, text, bounds.Left.ToCentimeters() + 0.55, bounds.Top.ToCentimeters() + 0.28,
+                    bounds.Width.ToCentimeters() - 0.85, bounds.Height.ToCentimeters() - 0.45, 13,
+                    _dark ? _theme.AccentContrastColor : _theme.SecondaryTextColor, _theme.BodyFontName, bold: true);
+
+            });
         }
 
         /// <summary>
         ///     Adds a logo, partner, or certification wall inside a caller-selected region.
         /// </summary>
-        public void AddLogoWall(IEnumerable<PowerPointLogoItem> logos, PowerPointLayoutBox bounds,
+        /// <returns>The editable shapes added by this composition, in drawing order.</returns>
+        public IReadOnlyList<PowerPointShape> AddLogoWall(IEnumerable<PowerPointLogoItem> logos, PowerPointLayoutBox bounds,
             PowerPointLogoWallSlideOptions? options = null) {
-            PowerPointLogoWallSlideOptions resolved = options ?? new PowerPointLogoWallSlideOptions();
-            InheritDesignIntent(resolved);
-            IReadOnlyList<PowerPointLogoItem> logoList = PowerPointDesignExtensions.NormalizeLogoItems(logos);
-            PowerPointLogoWallLayoutVariant variant =
-                PowerPointDesignExtensions.ResolveLogoWallVariant(resolved, logoList);
+            return CaptureAddedShapes(() => {
+                PowerPointLogoWallSlideOptions resolved = options ?? new PowerPointLogoWallSlideOptions();
+                InheritDesignIntent(resolved);
+                IReadOnlyList<PowerPointLogoItem> logoList = PowerPointDesignExtensions.NormalizeLogoItems(logos);
+                PowerPointLogoWallLayoutVariant variant =
+                    PowerPointDesignExtensions.ResolveLogoWallVariant(resolved, logoList);
 
-            PowerPointDesignExtensions.AddLogoWall(_slide, _theme, logoList, resolved, variant, bounds);
+                PowerPointDesignExtensions.AddLogoWall(_slide, _theme, logoList, resolved, variant, bounds);
+
+            });
         }
 
         /// <summary>
         ///     Adds an editable coverage map-like surface with normalized location pins inside explicit bounds.
         /// </summary>
-        public void AddCoverageMap(IEnumerable<PowerPointCoverageLocation> locations, PowerPointLayoutBox bounds,
+        /// <returns>The editable shapes added by this composition, in drawing order.</returns>
+        public IReadOnlyList<PowerPointShape> AddCoverageMap(IEnumerable<PowerPointCoverageLocation> locations, PowerPointLayoutBox bounds,
             PowerPointCoverageSlideOptions? options = null) {
-            PowerPointCoverageSlideOptions resolved = options ?? new PowerPointCoverageSlideOptions();
-            InheritDesignIntent(resolved);
-            IReadOnlyList<PowerPointCoverageLocation> locationList = PowerPointDesignExtensions.NormalizeLocations(locations);
-            PowerPointDesignExtensions.AddCoverageMap(_slide, _theme, locationList, bounds, resolved);
+            return CaptureAddedShapes(() => {
+                PowerPointCoverageSlideOptions resolved = options ?? new PowerPointCoverageSlideOptions();
+                InheritDesignIntent(resolved);
+                IReadOnlyList<PowerPointCoverageLocation> locationList = PowerPointDesignExtensions.NormalizeLocations(locations);
+                PowerPointDesignExtensions.AddCoverageMap(_slide, _theme, locationList, bounds, resolved);
+
+            });
+        }
+
+        /// <summary>Returns the attached shapes appended by one composite authoring operation.</summary>
+        private IReadOnlyList<PowerPointShape> CaptureAddedShapes(Action add) {
+            int first = _slide.Shapes.Count;
+            add();
+            return _slide.Shapes.Skip(first).ToArray();
         }
 
         private void InheritDesignIntent(PowerPointDesignerSlideOptions childOptions) {

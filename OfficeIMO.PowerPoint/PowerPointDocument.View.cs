@@ -30,64 +30,48 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
-        ///     Horizontal grid spacing in EMUs.
+        ///     Horizontal grid spacing.
         /// </summary>
-        public long GridSpacingXEmus {
+        public OfficeLength GridSpacingX {
             get {
                 ThrowIfDisposed();
-                return GetGridSpacing()?.Cx?.Value ?? 0L;
+                return OfficeLength.Emus(GetGridSpacing()?.Cx?.Value ?? 0L);
             }
             set {
                 ThrowIfDisposed();
                 GridSpacing spacing = EnsureGridSpacing();
-                spacing.Cx = EnsureInt32(value, nameof(GridSpacingXEmus));
+                spacing.Cx = EnsureInt32(value.ToEmus(), nameof(GridSpacingX));
             }
         }
 
         /// <summary>
-        ///     Vertical grid spacing in EMUs.
+        ///     Vertical grid spacing.
         /// </summary>
-        public long GridSpacingYEmus {
+        public OfficeLength GridSpacingY {
             get {
                 ThrowIfDisposed();
-                return GetGridSpacing()?.Cy?.Value ?? 0L;
+                return OfficeLength.Emus(GetGridSpacing()?.Cy?.Value ?? 0L);
             }
             set {
                 ThrowIfDisposed();
                 GridSpacing spacing = EnsureGridSpacing();
-                spacing.Cy = EnsureInt32(value, nameof(GridSpacingYEmus));
+                spacing.Cy = EnsureInt32(value.ToEmus(), nameof(GridSpacingY));
             }
         }
 
         /// <summary>
-        ///     Sets grid spacing in EMUs.
+        ///     Sets horizontal and vertical grid spacing with explicit lengths.
         /// </summary>
-        public void SetGridSpacing(long xEmus, long yEmus) {
+        public void SetGridSpacing(OfficeLength horizontal, OfficeLength vertical) {
             ThrowIfDisposed();
-            GridSpacingXEmus = xEmus;
-            GridSpacingYEmus = yEmus;
+            _ = EnsureInt32(horizontal.ToEmus(), nameof(horizontal));
+            _ = EnsureInt32(vertical.ToEmus(), nameof(vertical));
+            GridSpacingX = horizontal;
+            GridSpacingY = vertical;
         }
 
-        /// <summary>
-        ///     Sets grid spacing in centimeters.
-        /// </summary>
-        public void SetGridSpacingCm(double xCm, double yCm) {
-            SetGridSpacing(PowerPointUnits.FromCentimeters(xCm), PowerPointUnits.FromCentimeters(yCm));
-        }
 
-        /// <summary>
-        ///     Sets grid spacing in inches.
-        /// </summary>
-        public void SetGridSpacingInches(double xInches, double yInches) {
-            SetGridSpacing(PowerPointUnits.FromInches(xInches), PowerPointUnits.FromInches(yInches));
-        }
 
-        /// <summary>
-        ///     Sets grid spacing in points.
-        /// </summary>
-        public void SetGridSpacingPoints(double xPoints, double yPoints) {
-            SetGridSpacing(PowerPointUnits.FromPoints(xPoints), PowerPointUnits.FromPoints(yPoints));
-        }
 
         /// <summary>
         ///     Returns the current guides defined for slide view.
@@ -106,7 +90,7 @@ namespace OfficeIMO.PowerPoint {
                 PowerPointGuideOrientation orientation = direction == DirectionValues.Vertical
                     ? PowerPointGuideOrientation.Vertical
                     : PowerPointGuideOrientation.Horizontal;
-                guides.Add(new PowerPointGuideInfo(orientation, guide.Position?.Value ?? 0));
+                guides.Add(new PowerPointGuideInfo(orientation, OfficeLength.Emus(guide.Position?.Value ?? 0)));
             }
 
             return guides;
@@ -142,45 +126,29 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Adds a guide to slide view.
         /// </summary>
-        public void AddGuide(PowerPointGuideOrientation orientation, long positionEmus) {
+        public PowerPointGuideInfo AddGuide(PowerPointGuideOrientation orientation, OfficeLength position) {
             ThrowIfDisposed();
             CommonSlideViewProperties common = EnsureCommonSlideViewProperties();
             GuideList guideList = common.GuideList ??= new GuideList();
-            guideList.Append(CreateGuide(new PowerPointGuideInfo(orientation, positionEmus)));
+            var guide = new PowerPointGuideInfo(orientation, position);
+            guideList.Append(CreateGuide(guide));
+            return guide;
         }
 
-        /// <summary>
-        ///     Adds a guide using centimeter measurements.
-        /// </summary>
-        public void AddGuideCm(PowerPointGuideOrientation orientation, double positionCm) {
-            AddGuide(orientation, PowerPointUnits.FromCentimeters(positionCm));
-        }
 
-        /// <summary>
-        ///     Adds a guide using inch measurements.
-        /// </summary>
-        public void AddGuideInches(PowerPointGuideOrientation orientation, double positionInches) {
-            AddGuide(orientation, PowerPointUnits.FromInches(positionInches));
-        }
 
-        /// <summary>
-        ///     Adds a guide using point measurements.
-        /// </summary>
-        public void AddGuidePoints(PowerPointGuideOrientation orientation, double positionPoints) {
-            AddGuide(orientation, PowerPointUnits.FromPoints(positionPoints));
-        }
 
         /// <summary>
         ///     Adds vertical column guides based on a grid definition.
         /// </summary>
-        public void AddColumnGuides(int columnCount, long marginEmus, long gutterEmus, bool includeOuterEdges = true,
+        public IReadOnlyList<PowerPointGuideInfo> AddColumnGuides(int columnCount, OfficeLength margin, OfficeLength gutter, bool includeOuterEdges = true,
             bool clearExisting = false) {
             ThrowIfDisposed();
             if (clearExisting) {
                 ClearGuides();
             }
 
-            PowerPointLayoutBox[] columns = SlideSize.GetColumns(columnCount,OfficeIMO.OfficeLength.Emus(marginEmus),OfficeIMO.OfficeLength.Emus(gutterEmus));
+            PowerPointLayoutBox[] columns = SlideSize.GetColumns(columnCount,margin,gutter);
             var positions = new SortedSet<long>();
             foreach (PowerPointLayoutBox column in columns) {
                 positions.Add(column.Left.ToEmus());
@@ -192,34 +160,25 @@ namespace OfficeIMO.PowerPoint {
                 positions.Remove(positions.Max);
             }
 
+            var added = new List<PowerPointGuideInfo>(positions.Count);
             foreach (long position in positions) {
-                AddGuide(PowerPointGuideOrientation.Vertical, position);
+                added.Add(AddGuide(PowerPointGuideOrientation.Vertical, OfficeLength.Emus(position)));
             }
+            return added;
         }
 
-        /// <summary>
-        ///     Adds vertical column guides using centimeters.
-        /// </summary>
-        public void AddColumnGuidesCm(int columnCount, double marginCm, double gutterCm, bool includeOuterEdges = true,
-            bool clearExisting = false) {
-            AddColumnGuides(columnCount,
-                PowerPointUnits.FromCentimeters(marginCm),
-                PowerPointUnits.FromCentimeters(gutterCm),
-                includeOuterEdges,
-                clearExisting);
-        }
 
         /// <summary>
         ///     Adds horizontal row guides based on a grid definition.
         /// </summary>
-        public void AddRowGuides(int rowCount, long marginEmus, long gutterEmus, bool includeOuterEdges = true,
+        public IReadOnlyList<PowerPointGuideInfo> AddRowGuides(int rowCount, OfficeLength margin, OfficeLength gutter, bool includeOuterEdges = true,
             bool clearExisting = false) {
             ThrowIfDisposed();
             if (clearExisting) {
                 ClearGuides();
             }
 
-            PowerPointLayoutBox[] rows = SlideSize.GetRows(rowCount,OfficeIMO.OfficeLength.Emus(marginEmus),OfficeIMO.OfficeLength.Emus(gutterEmus));
+            PowerPointLayoutBox[] rows = SlideSize.GetRows(rowCount,margin,gutter);
             var positions = new SortedSet<long>();
             foreach (PowerPointLayoutBox row in rows) {
                 positions.Add(row.Top.ToEmus());
@@ -231,22 +190,13 @@ namespace OfficeIMO.PowerPoint {
                 positions.Remove(positions.Max);
             }
 
+            var added = new List<PowerPointGuideInfo>(positions.Count);
             foreach (long position in positions) {
-                AddGuide(PowerPointGuideOrientation.Horizontal, position);
+                added.Add(AddGuide(PowerPointGuideOrientation.Horizontal, OfficeLength.Emus(position)));
             }
+            return added;
         }
 
-        /// <summary>
-        ///     Adds horizontal row guides using centimeters.
-        /// </summary>
-        public void AddRowGuidesCm(int rowCount, double marginCm, double gutterCm, bool includeOuterEdges = true,
-            bool clearExisting = false) {
-            AddRowGuides(rowCount,
-                PowerPointUnits.FromCentimeters(marginCm),
-                PowerPointUnits.FromCentimeters(gutterCm),
-                includeOuterEdges,
-                clearExisting);
-        }
 
         private static Guide CreateGuide(PowerPointGuideInfo guide) {
             DirectionValues orientation = guide.Orientation == PowerPointGuideOrientation.Vertical
@@ -254,7 +204,7 @@ namespace OfficeIMO.PowerPoint {
                 : DirectionValues.Horizontal;
             return new Guide {
                 Orientation = orientation,
-                Position = EnsureInt32(guide.PositionEmus, nameof(guide.PositionEmus))
+                Position = EnsureInt32(guide.Position.ToEmus(), nameof(guide.Position))
             };
         }
 
