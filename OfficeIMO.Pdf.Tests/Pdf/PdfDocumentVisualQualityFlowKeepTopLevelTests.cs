@@ -511,6 +511,7 @@ public partial class PdfDocumentVisualQualityTests {
             .Paragraph(p => p.Text("IntroMarker"), style: new PdfParagraphStyle {
                 SpacingAfter = 45
             })
+            .Bookmark("bookmark-chain-top-heading")
             .H2("BookmarkChainTopHeading");
         for (int index = 0; index < 300; index++) {
             document.Bookmark("bookmark-chain-marker-" + index.ToString(CultureInfo.InvariantCulture));
@@ -529,6 +530,9 @@ public partial class PdfDocumentVisualQualityTests {
         Assert.Contains("BookmarkChainTopHeading", pdf.GetPage(2).Text);
         Assert.Contains("BookmarkChainSubHeading", pdf.GetPage(2).Text);
         Assert.Contains("BookmarkChainBody", pdf.GetPage(2).Text);
+        var destination = Assert.Single(PdfInspector.Inspect(bytes).NamedDestinations,
+            item => item.Name == "bookmark-chain-top-heading");
+        Assert.Equal(2, destination.PageNumber);
     }
 
     [Fact]

@@ -46,8 +46,7 @@ public static partial class WordPdfConverterExtensions {
         foreach (WordParagraph paragraph in paragraphs) {
             RecordNativeBodyParagraphDiagnostics(paragraph, options, "joined body paragraph",
                 mapsCheckBoxes: false, mapsFormFields: false, mapsPictureControls: false, mapsRepeatingSections: false);
-            if (nativeDefaults.RunningContentContext == null && !string.IsNullOrEmpty(paragraph.Bookmark?.Name))
-                pdf.Bookmark(paragraph.Bookmark!.Name!);
+            if (nativeDefaults.RunningContentContext == null) RenderNativeParagraphBookmarks(pdf, paragraph);
         }
         bool hasNoteReferences = paragraphs.Any(paragraph => GetNativeParagraphFootnoteNumbers(paragraph,
             GetNativeRunningContentRuns(paragraph, nativeDefaults.RunningContentContext), Array.Empty<int>(), footnoteNumbersById).Count > 0);

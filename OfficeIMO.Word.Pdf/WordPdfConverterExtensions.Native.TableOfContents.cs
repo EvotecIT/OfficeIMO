@@ -36,9 +36,7 @@ namespace OfficeIMO.Word.Pdf {
                         continue;
                     }
 
-                    string? bookmarkName = string.IsNullOrWhiteSpace(paragraph.Bookmark?.Name)
-                        ? null
-                        : paragraph.Bookmark!.Name;
+                    string? bookmarkName = GetNativeParagraphBookmarkNames(paragraph).FirstOrDefault();
                     string destinationName = bookmarkName ?? CreateNativeHeadingDestinationName(headingText, ++headingIndex, used, nextSuffixByBaseName);
                     destinations[paragraph._paragraph] = destinationName;
                     used.Add(destinationName);

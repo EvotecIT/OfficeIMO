@@ -166,9 +166,12 @@ namespace OfficeIMO.Word.Pdf {
             ordered = itemOrdered;
             level = info.Value.Level;
             index = listIndex.Index;
-            string? destination = paragraph.Bookmark?.Name;
+            string[] bookmarks = GetNativeParagraphBookmarkNames(paragraph).ToArray();
+            string? destination = bookmarks.FirstOrDefault();
             if (string.IsNullOrEmpty(destination)) headingDestinations.TryGetValue(paragraph._paragraph, out destination);
-            item = new PdfCore.PdfListItem(richRuns, destination, string.IsNullOrWhiteSpace(displayMarker) ? null : displayMarker);
+            item = new PdfCore.PdfListItem(richRuns, destination, string.IsNullOrWhiteSpace(displayMarker) ? null : displayMarker) {
+                BookmarkAliases = bookmarks.Skip(1).ToArray()
+            };
             align = ResolveNativeParagraphAlign(paragraph, allowJustify: false);
             NativeResolvedTextStyle textStyle = ResolveNativeTextRunStyle(paragraph, nativeDefaults: nativeDefaults, nativeFontMap: nativeFontMap);
             color = textStyle.Color;

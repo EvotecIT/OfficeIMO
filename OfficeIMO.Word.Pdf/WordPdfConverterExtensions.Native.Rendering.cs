@@ -90,7 +90,7 @@ namespace OfficeIMO.Word.Pdf {
 
             // A formatted section terminator is editable metadata, not a separate blank body line.
             if (WordParagraph.IsSectionMarkOnly(paragraph._paragraph)) {
-                if (!string.IsNullOrEmpty(paragraph.Bookmark?.Name)) pdf.Bookmark(paragraph.Bookmark!.Name!);
+                if (nativeDefaults.RunningContentContext == null) RenderNativeParagraphBookmarks(pdf, paragraph);
                 RecordNativeParagraphBarTabDiagnostics(paragraph, options, "section terminator", omitted: true);
                 return;
             }
@@ -116,9 +116,7 @@ namespace OfficeIMO.Word.Pdf {
                 : Array.Empty<W.SdtRun>();
             IReadOnlyList<W.SdtRun> repeatingSectionControls = GetNativeRepeatingSectionControls(paragraph);
 
-            if (nativeDefaults.RunningContentContext == null && !string.IsNullOrEmpty(paragraph.Bookmark?.Name)) {
-                pdf.Bookmark(paragraph.Bookmark!.Name!);
-            }
+            if (nativeDefaults.RunningContentContext == null) RenderNativeParagraphBookmarks(pdf, paragraph);
 
             List<WordTextBox> textBoxes = GetNativeVisibleTextBoxes(paragraph, runs);
             List<OfficeDrawing> smartArtDrawings = PrepareNativeRunSmartArt(paragraph, runs, options,
@@ -245,7 +243,7 @@ namespace OfficeIMO.Word.Pdf {
             }
 
             // Numbered headings retain paragraph flow but still own generated TOC destinations.
-            if (paragraph._paragraph != null && string.IsNullOrEmpty(paragraph.Bookmark?.Name) &&
+            if (paragraph._paragraph != null && !GetNativeParagraphBookmarkNames(paragraph).Any() &&
                 headingDestinations.TryGetValue(paragraph._paragraph, out string? generatedDestinationName)) {
                 pdf.Bookmark(generatedDestinationName);
             }

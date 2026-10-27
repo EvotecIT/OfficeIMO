@@ -23,7 +23,7 @@ public static partial class WordPdfConverterExtensions {
                 omitted: before == null && after == null);
         }
         if (HasNativePageBreakBefore(paragraph)) pdf.PageBreak();
-        if (paragraph._paragraph != null && string.IsNullOrEmpty(paragraph.Bookmark?.Name) &&
+        if (paragraph._paragraph != null && !GetNativeParagraphBookmarkNames(paragraph).Any() &&
             headingDestinations.TryGetValue(paragraph._paragraph, out string? generatedDestination)) pdf.Bookmark(generatedDestination);
         while (true) {
             if (before != null) {

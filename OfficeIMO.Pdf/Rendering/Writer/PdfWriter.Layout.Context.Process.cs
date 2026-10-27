@@ -19,6 +19,7 @@ internal static partial class PdfWriter {
 
         private void ProcessBlockSequence(BlockSequenceScope sequenceScope) {
             IList<IPdfBlock> blockList = sequenceScope.Blocks;
+            int nextBookmarkTargetIndex = -1;
             for (int blockIndex = 0; blockIndex < blockList.Count; blockIndex++) {
                 sequenceScope.Index = blockIndex;
                 cancellationToken.ThrowIfCancellationRequested();
@@ -109,7 +110,20 @@ internal static partial class PdfWriter {
                     continue;
                 }
                 if (block is BookmarkBlock bookmark) {
-                    if (HasFloatingTables) QueueFloatingBookmark(bookmark.Name);
+                    // Consecutive aliases share one look-ahead, including long
+                    // generated TOC chains. Bind them after pagination chooses
+                    // the following flow block's actual page and top position.
+                    if (blockIndex >= nextBookmarkTargetIndex) {
+                        nextBookmarkTargetIndex = blockIndex + 1;
+                        while (nextBookmarkTargetIndex < blockList.Count && IsNonVisualFlowMarker(blockList[nextBookmarkTargetIndex]))
+                            nextBookmarkTargetIndex++;
+                    }
+                    IPdfBlock? target = nextBookmarkTargetIndex < blockList.Count ? blockList[nextBookmarkTargetIndex] : null;
+                    bool followsFlow = target is HeadingBlock or RichParagraphBlock or PdfListBlock or TableBlock or DeferredTableBlock
+                        or ContainerBlock or RowBlock or ImageBlock or DrawingBlock or ShapeBlock or HorizontalRuleBlock
+                        or TextFieldBlock or CheckBoxBlock or ChoiceFieldBlock or RadioButtonGroupBlock
+                        or TextAnnotationBlock or FreeTextAnnotationBlock or HighlightAnnotationBlock;
+                    if (HasFloatingTables || followsFlow) QueueFloatingBookmark(bookmark.Name);
                     else AddNamedDestination(bookmark, y);
                     continue;
                 }

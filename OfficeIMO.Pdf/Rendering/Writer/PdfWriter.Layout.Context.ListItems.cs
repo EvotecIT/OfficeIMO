@@ -143,6 +143,7 @@ internal static partial class PdfWriter {
                     if (!string.IsNullOrEmpty(bookmarkName)) {
                         AddNamedDestinationName(bookmarkName!, y, listItemElement);
                     }
+                    foreach (string alias in item.BookmarkAliases) AddNamedDestinationName(alias, y, listItemElement);
 
                     var markerLines = new System.Collections.Generic.List<string>(1) { marker };
                     int? labelMarkedContentId = RegisterTextStructureElement("Lbl", listItemElementIndex);

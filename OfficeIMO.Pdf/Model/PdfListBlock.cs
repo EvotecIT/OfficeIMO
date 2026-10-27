@@ -39,7 +39,9 @@ internal abstract class PdfListBlock : IPdfBlock {
         var richItems = new System.Collections.Generic.List<PdfListItem>();
         foreach (PdfListItem? item in items) {
             if (item != null) {
-                richItems.Add(new PdfListItem(item.Runs, item.BookmarkName, item.Marker));
+                richItems.Add(new PdfListItem(item.Runs, item.BookmarkName, item.Marker) {
+                    BookmarkAliases = item.BookmarkAliases.ToArray()
+                });
             }
         }
 

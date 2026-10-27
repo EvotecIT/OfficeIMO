@@ -8,17 +8,27 @@ public sealed class PdfGeneratedNavigationRegressionTests {
     [InlineData(false)]
     [InlineData(true)]
     public void ListItemBookmarksTargetTheItemIncludingItsBody(bool columns) {
-        var items = new[] { new PdfListItem("First item", bookmarkName: "item") };
+        var items = new[] { new PdfListItem("First item", bookmarkName: "item") {
+            BookmarkAliases = new[] { "item-alias" }
+        } };
         var document = PdfDocument.Create(TaggedOptions());
         if (columns) document.Compose(c => c.Page(p => p.Content(content => content.Row(row =>
             row.PercentColumn(100, column => column.RichNumbered(items))))));
         else document.RichNumbered(items);
-        document.Paragraph(p => p.LinkToBookmark("Read item", "item"));
+        document.Paragraph(p => p.LinkToBookmark("Read item", "item").Text(" ")
+            .LinkToBookmark("Read the same item", "item-alias"));
 
-        var raw = PdfReadDocument.Open(document.ToBytes()).RawStructure();
-        var link = Assert.Single(raw.Objects, obj => obj.Value.Entries.TryGetValue("Subtype", out var type) && type.Text == "Link");
-        int target = link.Value.Entries["A"].Entries["SD"].Items[0].ReferenceObjectNumber!.Value;
-        Assert.Equal("LI", raw.GetObject(target)!.Value.Entries["S"].Text);
+        byte[] bytes = document.ToBytes();
+        var raw = PdfReadDocument.Open(bytes).RawStructure();
+        var links = raw.Objects.Where(obj => obj.Value.Entries.TryGetValue("Subtype", out var type) && type.Text == "Link").ToArray();
+        Assert.Equal(2, links.Length);
+        int[] targets = links.Select(link => link.Value.Entries["A"].Entries["SD"].Items[0].ReferenceObjectNumber!.Value).ToArray();
+        Assert.Equal(targets[0], targets[1]);
+        Assert.Equal("LI", raw.GetObject(targets[0])!.Value.Entries["S"].Text);
+        var destinations = PdfInspector.Inspect(bytes).NamedDestinations;
+        Assert.Equal(2, destinations.Count);
+        Assert.Equal(destinations[0].PageNumber, destinations[1].PageNumber);
+        Assert.Equal(destinations[0].DestinationTop, destinations[1].DestinationTop);
     }
 
     [Theory]

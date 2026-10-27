@@ -5,6 +5,16 @@ using W = DocumentFormat.OpenXml.Wordprocessing;
 namespace OfficeIMO.Word.Pdf;
 
 public static partial class WordPdfConverterExtensions {
+    /// <summary>Returns paragraph-level aliases without admitting bookmarks from nested stories.</summary>
+    private static IEnumerable<string> GetNativeParagraphBookmarkNames(WordParagraph paragraph) =>
+        paragraph._paragraph?.Elements<W.BookmarkStart>().Select(bookmark => bookmark.Name?.Value)
+            .OfType<string>().Where(name => !string.IsNullOrWhiteSpace(name)).Distinct(StringComparer.Ordinal)
+        ?? Enumerable.Empty<string>();
+
+    private static void RenderNativeParagraphBookmarks(INativePdfFlow flow, WordParagraph paragraph) {
+        foreach (string name in GetNativeParagraphBookmarkNames(paragraph)) flow.Bookmark(name);
+    }
+
     // Source existence and actual paragraph projection are distinct. A cached
     // Word link can target a table or text-box bookmark whose text is retained
     // without a corresponding PDF destination. Keep that text and its styling;
@@ -131,13 +141,11 @@ public static partial class WordPdfConverterExtensions {
         }
 
         void AddProjected(WordParagraph paragraph) {
-            // Flow-break fragments retain the first bookmark in each fragment.
-            // A second alias in one unsplit paragraph is not emitted by the
-            // existing paragraph owner and must not be declared available here.
+            // Flow-break fragments own only the aliases on their side of the break.
             if (TrySplitNativeParagraphAtVisibleFlowBreak(paragraph, out _, out WordParagraph? before, out WordParagraph? after)) {
                 if (before != null) AddProjected(before);
                 if (after != null) AddProjected(after);
-            } else if (!string.IsNullOrEmpty(paragraph.Bookmark?.Name)) projected.Add(paragraph.Bookmark!.Name!);
+            } else projected.UnionWith(GetNativeParagraphBookmarkNames(paragraph));
         }
     }
 }

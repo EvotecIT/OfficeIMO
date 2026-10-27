@@ -35,6 +35,7 @@ internal static partial class PdfWriter {
             PreparedListLayout prepared = unit.List!;
             PreparedListItem item = unit.ListItem!;
             if (!string.IsNullOrEmpty(item.Item.BookmarkName)) AddNamedDestinationName(item.Item.BookmarkName!, top);
+            foreach (string alias in item.Item.BookmarkAliases) AddNamedDestinationName(alias, top);
             var placement = GetListMarkerPlacement(prepared, item);
             double markerX = (originX ?? currentOpts.MarginLeft) + unit.FrameX + placement.X;
             double baseline = AdjustRichLineBaseline(FirstTextBaselineFromTop(ChooseNormal(currentOpts.DefaultFont), unit.Size, top),

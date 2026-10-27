@@ -48,6 +48,7 @@ internal static partial class PdfWriter {
         public double SpacingBefore;
         public double SpacingAfter;
         public string? BookmarkName;
+        public IReadOnlyList<string> BookmarkAliases = Array.Empty<string>();
         public int ListGroupId;
         public bool KeepTogether;
         public bool IsFirstInKeepGroup;

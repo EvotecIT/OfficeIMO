@@ -85,6 +85,7 @@ internal static partial class PdfWriter {
                             SpacingBefore = itemIndex == 0 ? prepared.SpacingBefore : 0D,
                             SpacingAfter = itemIndex == prepared.Items.Count - 1 ? prepared.SpacingAfter : prepared.ItemSpacing,
                             BookmarkName = item.BookmarkName,
+                            BookmarkAliases = item.BookmarkAliases,
                             ListGroupId = listGroupId
                         });
                     }
