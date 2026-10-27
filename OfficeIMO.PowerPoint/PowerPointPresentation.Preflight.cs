@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 using OfficeIMO.Drawing;
 
 namespace OfficeIMO.PowerPoint {
@@ -162,7 +163,14 @@ namespace OfficeIMO.PowerPoint {
                 contentWidth, contentHeight, 1.2D, 1D, measure, wrap: true, forceSingleLine: false,
                 shrinkToFit: false);
 
-            if (options.DetectTextOverflow && layout.Clipped &&
+            // A frame mixing sizes (a heading over smaller body text) is measured paragraph by paragraph at each
+            // paragraph's own size, spacing and margin instead of the largest size throughout.
+            bool clipped = layout.Clipped;
+            if (clipped && textBox.TextAutoFit != PowerPointTextAutoFit.Normal && HasMixedParagraphSizes(textBox)) {
+                clipped = MeasureParagraphs(textBox, contentWidth, measure, authoredFontSize) > contentHeight + 1D;
+            }
+
+            if (options.DetectTextOverflow && clipped &&
                 textBox.TextAutoFit != PowerPointTextAutoFit.Shape) {
                 findings.Add(CreateFinding(PowerPointDeckPreflightSeverity.Error, "text-clipped",
                     "Measured text does not fit inside the authored text box.", slideIndex, shapeIndex, textBox,
@@ -176,6 +184,30 @@ namespace OfficeIMO.PowerPoint {
                     options.MinimumReadableFontSizePoints.ToString("0.##", CultureInfo.InvariantCulture) +
                     " pt threshold.", slideIndex, shapeIndex, textBox, textBox.Bounds, resolvedFontSize));
             }
+        }
+
+        private static bool HasMixedParagraphSizes(PowerPointTextBox textBox) =>
+            textBox.Paragraphs.Count > 1 &&
+            textBox.Paragraphs.Select(p => p.Runs.Select(r => r.FontSize ?? 0D).DefaultIfEmpty(0D).Max()).Distinct().Count() > 1;
+
+        private static double MeasureParagraphs(PowerPointTextBox textBox, double contentWidth,
+            Func<string?, double, double> measure, double fallbackSize) {
+            double height = 0D;
+            IReadOnlyList<PowerPointParagraph> paragraphs = textBox.Paragraphs;
+            for (int index = 0; index < paragraphs.Count; index++) {
+                PowerPointParagraph paragraph = paragraphs[index];
+                double size = paragraph.Runs.Select(r => r.FontSize ?? 0D).DefaultIfEmpty(0D).Max();
+                if (size <= 0D) size = fallbackSize;
+                double lineHeight = paragraph.LineSpacingPoints ?? size * 1.2D * (paragraph.LineSpacingMultiplier ?? 1D);
+                double width = Math.Max(1D, contentWidth - Math.Max(0D, paragraph.LeftMarginPoints ?? 0D));
+                OfficeTextBlockLayout layout = OfficeTextLayoutEngine.LayoutTextBlock(paragraph.Text, size, width, double.MaxValue / 4D,
+                    1.2D, 1D, measure, wrap: true, forceSingleLine: false, shrinkToFit: false);
+                height += Math.Max(1, layout.Lines.Count) * lineHeight;
+                if (index > 0) height += paragraph.SpaceBeforePoints ?? 0D;
+                if (index < paragraphs.Count - 1) height += paragraph.SpaceAfterPoints ?? 0D;
+            }
+
+            return height;
         }
 
         private static double ResolveFontSize(PowerPointTextBox textBox, double fallback) {
