@@ -9453,6 +9453,11 @@
       "phase": "B",
       "applied": "implemented-typed-charts-qualified",
       "note": "The existing OfficeChartSeries model becomes root OfficeIMO.OfficeSeries, adding numeric typed-selector factories. OfficeChartKind merges into the M1 OfficeChartType enum. Native chart writers and all in-repo type consumers use that single enum/model; typed and nameof-based AddChart overloads reuse the existing shared native chart data pipeline. Core builds on all three macOS targets with zero warnings; six typed native chart artifact cases and 166 shared chart regression cases pass on each modern framework."
+    },
+    {
+      "change": "Typed table authoring on PowerPoint",
+      "applied": "phase-b-applied",
+      "note": "The shared declared-schema projection handles public properties, fields and string-keyed dictionaries without arbitrary object graph reflection. Word also retains rectangular text/matrix input and an explicit dynamic-object overload; PowerPoint retains configurable object flattening with an explicit configure argument; Excel retains DataTable values and returns native ExcelTable wrappers. Focused authoring tests: 10/10 per modern target; final table signature check: 4/4 per target."
     }
   ],
   "applicationStatus": "Phase A applied and validated on the supported macOS targets. Phase B and Tier 2 entries retain their status; Windows .NET Framework validation remains pending.",

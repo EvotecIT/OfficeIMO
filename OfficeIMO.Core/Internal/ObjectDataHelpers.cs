@@ -12,7 +12,7 @@ namespace OfficeIMO.Core.Internal;
 /// <summary>
 /// Shared helpers for projecting object data into tabular structures.
 /// </summary>
-internal static class ObjectDataHelpers
+internal static partial class ObjectDataHelpers
 {
     private static readonly ConcurrentDictionary<Type, ObjectPropertyPlan> PropertyPlans = new();
 

@@ -170,7 +170,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Adds a table built from a sequence of objects.
         /// </summary>
-        public PowerPointTable AddTable<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties | DynamicallyAccessedMemberTypes.PublicFields)] T>(IEnumerable<T> data, Action<ObjectFlattenerOptions>? configure = null,
+        public PowerPointTable AddTable<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties | DynamicallyAccessedMemberTypes.PublicFields)] T>(IEnumerable<T> data, Action<ObjectFlattenerOptions>? configure,
             bool includeHeaders = true, long left = 0L, long top = 0L, long width = 5000000L, long height = 3000000L) {
             if (data == null) {
                 throw new ArgumentNullException(nameof(data));

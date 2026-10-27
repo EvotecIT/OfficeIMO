@@ -59,8 +59,9 @@ public sealed class OfficeTypedChartAuthoringTests {
         if (format == "Excel") {
             Assert.NotEmpty(xml.Descendants(c + "strRef").Elements(c + "f"));
             using var workbook = SpreadsheetDocument.Open(new MemoryStream(output.ToArray()), false);
-            var text = workbook.WorkbookPart!.WorksheetParts.SelectMany(part => part.Worksheet.Descendants<InlineString>().Select(item => item.InnerText))
-                .Concat(workbook.WorkbookPart.SharedStringTablePart?.SharedStringTable.Elements<SharedStringItem>().Select(item => item.InnerText) ?? Enumerable.Empty<string>());
+            var workbookPart = workbook.WorkbookPart!;
+            var text = workbookPart.WorksheetParts.SelectMany(part => part.Worksheet!.Descendants<InlineString>().Select(item => item.InnerText))
+                .Concat(workbookPart.SharedStringTablePart?.SharedStringTable?.Elements<SharedStringItem>().Select(item => item.InnerText) ?? Enumerable.Empty<string>());
             Assert.Contains("First", text);
         } else Assert.Contains("First", xml.Descendants(c + "v").Select(value => value.Value));
     }

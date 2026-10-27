@@ -2056,11 +2056,11 @@
       "notes": "Returns void today, while Word and PowerPoint return the table.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "implemented-qualified"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Typed AddTable<T> and shared OfficeTableOptions create editable native tables. Excel range creation has one overload returning the created ExcelTable. Four artifact/return-value cases pass on each modern target. The Word dynamic-object overload retains explicit style selection and trimming diagnostics for runtime schemas."
     },
     {
       "old": "OfficeIMO.Excel.ExcelSheet.AddTable(string range, bool hasHeader, string name, ExcelTableStyle style, bool includeAutoFilter, ExcelTableNameValidationMode validationMode = Sanitize)",
@@ -2073,11 +2073,11 @@
       "notes": "Returns void today, while Word and PowerPoint return the table.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "implemented-qualified"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Typed AddTable<T> and shared OfficeTableOptions create editable native tables. Excel range creation has one overload returning the created ExcelTable. Four artifact/return-value cases pass on each modern target. The Word dynamic-object overload retains explicit style selection and trimming diagnostics for runtime schemas."
     },
     {
       "old": "OfficeIMO.Excel.ExcelSheet.AddConditionalRule(string range, ExcelConditionalFormattingOperator operator, string formula1)",
@@ -5026,6 +5026,11 @@
       "phase": "B",
       "applied": "implemented-typed-charts-qualified",
       "note": "The existing OfficeChartSeries model becomes root OfficeIMO.OfficeSeries, adding numeric typed-selector factories. OfficeChartKind merges into the M1 OfficeChartType enum. Native chart writers and all in-repo type consumers use that single enum/model; typed and nameof-based AddChart overloads reuse the existing shared native chart data pipeline. Core builds on all three macOS targets with zero warnings; six typed native chart artifact cases and 166 shared chart regression cases pass on each modern framework."
+    },
+    {
+      "change": "Typed table authoring on Excel",
+      "applied": "phase-b-applied",
+      "note": "The shared declared-schema projection handles public properties, fields and string-keyed dictionaries without arbitrary object graph reflection. Word also retains rectangular text/matrix input and an explicit dynamic-object overload; PowerPoint retains configurable object flattening with an explicit configure argument; Excel retains DataTable values and returns native ExcelTable wrappers. Focused authoring tests: 10/10 per modern target; final table signature check: 4/4 per target."
     }
   ],
   "applicationStatus": "Phase A applied and validated on the supported macOS targets. Phase B and Tier 2 entries retain their status; Windows .NET Framework validation remains pending.",

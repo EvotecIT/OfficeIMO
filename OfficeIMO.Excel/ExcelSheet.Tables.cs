@@ -341,23 +341,6 @@ namespace OfficeIMO.Excel {
         }
 
         /// <summary>
-        /// Adds an Excel table to the worksheet over the specified range.
-        /// </summary>
-        /// <param name="range">Cell range (e.g. "A1:B3") defining the table area.</param>
-        /// <param name="hasHeader">Indicates whether the first row is a header row.</param>
-        /// <param name="name">Name of the table. If empty, a default name is used.</param>
-        /// <param name="style">Table style to apply.</param>
-        /// <remarks>
-        /// All cells within <paramref name="range"/> must exist. Missing cells are automatically created with empty values.
-        /// </remarks>
-        /// <exception cref="ArgumentNullException">Thrown when <paramref name="range"/> is null or empty.</exception>
-        /// <exception cref="ArgumentException">Thrown when <paramref name="range"/> is not in a valid format.</exception>
-        /// <exception cref="InvalidOperationException">Thrown when the specified range overlaps with an existing table.</exception>
-        public void AddTable(string range, bool hasHeader, string name, ExcelTableStyle style) {
-            AddTableCore(range, hasHeader, name, style, includeAutoFilter: true, ensureRangeCellsExist: true);
-        }
-
-        /// <summary>
         /// Gets the A1 range covered by a table on this worksheet.
         /// </summary>
         /// <param name="tableName">Table name or display name.</param>
@@ -396,8 +379,8 @@ namespace OfficeIMO.Excel {
         /// - If includeAutoFilter is false and a worksheet-level AutoFilter exists, it's removed (Excel doesn't allow both worksheet AutoFilter and a table on the same range).
         /// - Order doesn't matter — the final state will be consistent regardless of operation order.
         /// </remarks>
-        public void AddTable(string range, bool hasHeader, string name, ExcelTableStyle style, bool includeAutoFilter, ExcelTableNameValidationMode validationMode = ExcelTableNameValidationMode.Sanitize) {
-            AddTableCore(range, hasHeader, name, style, includeAutoFilter, validationMode, ensureRangeCellsExist: true);
+        public ExcelTable AddTable(string range, bool hasHeader = true, string? name = null, ExcelTableStyle style = ExcelTableStyle.TableStyleMedium2, bool includeAutoFilter = true, ExcelTableNameValidationMode validationMode = ExcelTableNameValidationMode.Sanitize) {
+            return new ExcelTable(this, AddTableCore(range, hasHeader, name ?? "Table", style, includeAutoFilter, validationMode, ensureRangeCellsExist: true));
         }
 
         internal string AddTableAndGetName(string range, bool hasHeader, string name, ExcelTableStyle style, bool includeAutoFilter, ExcelTableNameValidationMode validationMode = ExcelTableNameValidationMode.Sanitize, bool ensureRangeCellsExist = true, IReadOnlyList<string>? headerNames = null, bool deferPartSave = false, bool skipExistingTableScan = false) {
