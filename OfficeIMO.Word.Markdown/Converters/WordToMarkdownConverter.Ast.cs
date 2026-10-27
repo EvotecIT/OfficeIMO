@@ -469,6 +469,13 @@ namespace OfficeIMO.Word.Markdown {
                     trimBoundaryWhitespace);
             }
 
+            // An empty paragraph whose only visible content is a bottom border is how Word (and Markdown to
+            // Word) draws a horizontal rule.
+            if (!hasCheckbox && IsHorizontalRuleParagraph(paragraph)) {
+                blocks.Add(new HorizontalRuleBlock());
+                return blocks;
+            }
+
             string? styleId = paragraph.StyleId;
             if (styleId is { Length: > 0 } sid && sid.StartsWith(codeLangPrefix, StringComparison.Ordinal)) {
                 var runs = paragraph.GetRuns()
@@ -504,6 +511,21 @@ namespace OfficeIMO.Word.Markdown {
                 hasCheckbox,
                 allowQuoteHeuristic,
                 trimBoundaryWhitespace);
+        }
+
+        private static bool IsHorizontalRuleParagraph(WordParagraph paragraph) {
+            var bottom = paragraph._paragraph.ParagraphProperties?.ParagraphBorders?.BottomBorder;
+            if (bottom?.Val == null || bottom.Val.Value == DocumentFormat.OpenXml.Wordprocessing.BorderValues.None
+                || bottom.Val.Value == DocumentFormat.OpenXml.Wordprocessing.BorderValues.Nil) return false;
+            var paragraphElement = paragraph._paragraph;
+            if (paragraphElement.Descendants<DocumentFormat.OpenXml.Wordprocessing.Text>().Any(text => !string.IsNullOrWhiteSpace(text.Text))) return false;
+            return !paragraphElement.Descendants<DocumentFormat.OpenXml.Wordprocessing.Drawing>().Any()
+                && !paragraphElement.Descendants<DocumentFormat.OpenXml.Wordprocessing.Picture>().Any()
+                && !paragraphElement.Descendants<DocumentFormat.OpenXml.Wordprocessing.EmbeddedObject>().Any()
+                && !paragraphElement.Descendants<DocumentFormat.OpenXml.Wordprocessing.FieldChar>().Any()
+                && !paragraphElement.Descendants<DocumentFormat.OpenXml.Wordprocessing.SimpleField>().Any()
+                && !paragraphElement.Descendants<DocumentFormat.OpenXml.Wordprocessing.SdtRun>().Any()
+                && !paragraphElement.Descendants<DocumentFormat.OpenXml.Math.OfficeMath>().Any();
         }
 
         private IReadOnlyList<IMarkdownBlock> BuildParagraphBlocksWithOrderedEquations(
@@ -1439,9 +1461,9 @@ namespace OfficeIMO.Word.Markdown {
 
             if (!string.IsNullOrEmpty(coreText)) {
                 var formatted = BuildFormattedRunInline(run, coreText, options, preferredCodeFont, implicitCodeFont);
-                if (run.IsHyperLink && run.Hyperlink?.Uri != null) {
+                string? url = run.IsHyperLink ? GetHyperlinkTarget(run.Hyperlink) : null;
+                if (url != null) {
                     var label = new InlineSequence { AutoSpacing = false }.AddRaw(formatted);
-                    string url = BuildHyperlinkUrl(run.Hyperlink.Uri);
                     formatted = new LinkInline(label, url, title: null);
                 }
 
@@ -1466,7 +1488,7 @@ namespace OfficeIMO.Word.Markdown {
                 || (options.EnableUnderline && run.Underline.HasValue && run.Underline.Value != WordUnderlineStyle.None)
                 || (options.EnableHighlight && run.Highlight.HasValue && run.Highlight.Value != WordHighlightColor.None)
                 || IsCodeRun(run, preferredCodeFont, implicitCodeFont)
-                || (run.IsHyperLink && run.Hyperlink?.Uri != null);
+                || (run.IsHyperLink && GetHyperlinkTarget(run.Hyperlink) != null);
         }
 
         private static IMarkdownInline BuildFormattedRunInline(

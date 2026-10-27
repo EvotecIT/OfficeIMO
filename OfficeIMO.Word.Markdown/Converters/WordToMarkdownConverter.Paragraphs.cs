@@ -160,22 +160,9 @@ namespace OfficeIMO.Word.Markdown {
                     text = fence + text + fence;
                 }
 
-                if (run.IsHyperLink && run.Hyperlink != null && run.Hyperlink.Uri != null) {
-                    var uri = run.Hyperlink.Uri;
-                    string url;
-                    if (uri.IsAbsoluteUri) {
-                        url = uri.GetComponents(UriComponents.AbsoluteUri, UriFormat.UriEscaped);
-                        var original = uri.OriginalString;
-                        if (!string.IsNullOrEmpty(original) &&
-                            !original.EndsWith("/", StringComparison.Ordinal) &&
-                            uri.AbsolutePath == "/" &&
-                            url.EndsWith("/", StringComparison.Ordinal)) {
-                            url = url.TrimEnd('/');
-                        }
-                    } else {
-                        url = uri.ToString();
-                    }
-                    text = $"[{text}]({url})";
+                string? hyperlinkTarget = run.IsHyperLink ? GetHyperlinkTarget(run.Hyperlink) : null;
+                if (hyperlinkTarget != null) {
+                    text = $"[{text}]({hyperlinkTarget})";
                 }
 
                 sb.Append(text);

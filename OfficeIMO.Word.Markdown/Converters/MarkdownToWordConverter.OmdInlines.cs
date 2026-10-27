@@ -381,6 +381,28 @@ namespace OfficeIMO.Word.Markdown {
             }
 
             protected override void VisitLinkInline(Omd.LinkInline inline) {
+                string? internalAnchor = ResolveInternalLinkBookmark(inline.Url, _options);
+                if (internalAnchor != null) {
+                    if (inline.LabelInlines != null && inline.LabelInlines.Nodes.Count > 0) {
+                        var anchorLabelRuns = BuildLinkLabelRunsOmd(
+                            inline.LabelInlines,
+                            _document,
+                            _fmt,
+                            _defaultFont,
+                            _options.MaxNestingDepth,
+                            _nestingDepth);
+                        if (anchorLabelRuns.Count > 0) {
+                            ApplyHyperlinkRunFormattingOmd(anchorLabelRuns, _options);
+                            WordHyperLink.AddHyperLink(_paragraph, anchorLabelRuns, internalAnchor);
+                            return;
+                        }
+                    }
+
+                    var anchorLink = _paragraph.AddHyperLink(inline.Text, internalAnchor);
+                    ApplyHyperlinkFormattingOmd(anchorLink, _fmt, _defaultFont, _options);
+                    return;
+                }
+
                 try {
                     var uri = new Uri(inline.Url, UriKind.RelativeOrAbsolute);
                     if (inline.LabelInlines != null && inline.LabelInlines.Nodes.Count > 0) {

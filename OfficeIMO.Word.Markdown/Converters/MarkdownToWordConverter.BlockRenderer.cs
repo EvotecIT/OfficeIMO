@@ -90,6 +90,10 @@ namespace OfficeIMO.Word.Markdown {
                 ProcessInlinesOmd(block.Inlines, headingParagraph, _options, _document, _converter._currentFootnotes, _pageContentWidthPixels, _listLevel, _quoteDepth);
                 headingParagraph.Style = WordHeadingStyleMapper.GetHeadingStyleForLevel(block.Level);
                 ApplyHeadingTheme(headingParagraph, _options);
+                string? bookmark = _converter.ResolveHeadingBookmark(block, _options);
+                if (bookmark != null) {
+                    WrapParagraphInBookmark(headingParagraph, bookmark, _options);
+                }
             }
 
             protected override void VisitParagraphBlock(Omd.ParagraphBlock block) {
@@ -124,8 +128,7 @@ namespace OfficeIMO.Word.Markdown {
             protected override void VisitCodeBlock(Omd.CodeBlock block) {
                 var codeParagraph = _host.CreateParagraph();
                 ApplyBlockParagraphFormatting(codeParagraph, _quoteDepth, _alignment);
-                var monoFont = WordFontResolver.Resolve("monospace") ?? "Consolas";
-                codeParagraph.AddFormattedText(block.Content ?? string.Empty).SetFontFamily(monoFont);
+                AddCodeText(codeParagraph, block.Content, block.Language);
                 ApplyCodeTheme(codeParagraph, _options);
                 if (!string.IsNullOrWhiteSpace(block.Caption)) {
                     var captionParagraph = _host.CreateParagraph();
@@ -146,8 +149,7 @@ namespace OfficeIMO.Word.Markdown {
 
                 var paragraph = _host.CreateParagraph();
                 ApplyBlockParagraphFormatting(paragraph, _quoteDepth, _alignment);
-                var monoFont = WordFontResolver.Resolve("monospace") ?? "Consolas";
-                paragraph.AddFormattedText(block.Content ?? string.Empty).SetFontFamily(monoFont);
+                AddCodeText(paragraph, block.Content, block.Language);
                 ApplyCodeTheme(paragraph, _options);
                 if (!string.IsNullOrWhiteSpace(block.Caption)) {
                     var captionParagraph = _host.CreateParagraph();
@@ -210,8 +212,11 @@ namespace OfficeIMO.Word.Markdown {
                     int effectiveLevel = Math.Max(0, _listLevel + entry.Level - baseLevel);
                     var paragraph = list.AddItem((string?)null, effectiveLevel);
                     ApplyBlockParagraphFormatting(paragraph, _quoteDepth, _alignment);
-                    if (!string.IsNullOrWhiteSpace(entry.Anchor)) {
-                        paragraph.AddHyperLink(entry.Text, entry.Anchor.TrimStart('#'), addStyle: true);
+                    string? entryBookmark = string.IsNullOrWhiteSpace(entry.Anchor)
+                        ? null
+                        : ResolveInternalLinkBookmark("#" + entry.Anchor.TrimStart('#'), _options);
+                    if (entryBookmark != null) {
+                        paragraph.AddHyperLink(entry.Text, entryBookmark, addStyle: true);
                     } else {
                         paragraph.AddText(entry.Text);
                         ApplyBodyTextTheme(paragraph, _options);
@@ -346,6 +351,22 @@ namespace OfficeIMO.Word.Markdown {
                     paragraph.AddFormattedText(lines[i]).SetFontFamily(monoFont);
                     ApplyCodeTheme(paragraph, _options);
                 }
+            }
+
+            /// <summary>Surrounds the paragraph content with a bookmark, as Word does for heading targets.</summary>
+            private static void WrapParagraphInBookmark(WordParagraph paragraph, string name, WordMarkdownImportOptions options) {
+                Paragraph element = paragraph._paragraph;
+                int next = options.NextBookmarkId ?? paragraph._document.BookmarkId;
+                options.NextBookmarkId = next + 1;
+                string id = next.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                var start = new BookmarkStart { Name = name, Id = id };
+                if (element.ParagraphProperties != null) {
+                    element.ParagraphProperties.InsertAfterSelf(start);
+                } else {
+                    element.PrependChild(start);
+                }
+
+                element.AppendChild(new BookmarkEnd { Id = id });
             }
 
             private static int NormalizeTocLevel(int level, int fallback) {

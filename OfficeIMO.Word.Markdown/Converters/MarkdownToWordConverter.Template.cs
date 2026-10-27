@@ -47,7 +47,7 @@ namespace OfficeIMO.Word.Markdown {
             WordMarkdownImportOptions options,
             double pageContentWidthPixels,
             CancellationToken cancellationToken) {
-            var blocks = GetRenderableBlocks(markdown);
+            var blocks = GetRenderableBlocks(markdown, options);
 
             _currentFootnotes = blocks
                 .OfType<Omd.FootnoteDefinitionBlock>()
