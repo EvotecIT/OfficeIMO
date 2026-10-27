@@ -41,7 +41,7 @@ namespace OfficeIMO.Examples.Pdf {
                     PdfColumnAlign.Right,
                     PdfColumnAlign.Left
                 },
-                ColumnWidthPoints = new List<double?> { 110, 38, 58, 68, 170 },
+                ColumnWidthWeights = new List<double> { 110, 38, 58, 68, 170 },
                 AutoFitColumns = false
             };
 

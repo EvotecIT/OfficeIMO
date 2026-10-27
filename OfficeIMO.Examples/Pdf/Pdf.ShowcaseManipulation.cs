@@ -21,7 +21,7 @@ namespace OfficeIMO.Examples.Pdf {
                     new[] { "Extract", "Ready", "Page ranges and reordered pages" }
                 }, style: UtilityTableStyle())
                 .PageBreak()
-                .H1("Source A - details", PdfAlign.Left, PdfColor.FromRgb(15, 23, 42))
+                .H1("Source A \u2013 details", PdfAlign.Left, PdfColor.FromRgb(15, 23, 42))
                 .PanelParagraph(
                     p => p.Bold("Page two is extracted later. ").Text("This proves the example is not just visual; it also exercises read/rewrite operations."),
                     new PdfPanelStyle {
@@ -57,15 +57,22 @@ namespace OfficeIMO.Examples.Pdf {
             merged.Save(mergedPath);
             merged.Pages.Extract(PdfPageRange.From(2, 2))
                 .Save(extractedPath);
-            PdfDocument stamped = merged.Stamp.Text(
-                "OfficeIMO.Pdf",
-                new PdfTextStampOptions {
-                    X = 386,
-                    Y = 30,
-                    Font = PdfStandardFont.HelveticaBold,
-                    FontSize = 11,
-                    Color = PdfColor.FromRgb(14, 116, 144)
-                });
+            // The sources carry no page numbers; the merged pack is numbered once, after the merge,
+            // on the left margin and baseline the source footers would have used.
+            PdfDocument stamped = merged;
+            int pageCount = merged.Pages.Count;
+            for (int page = 1; page <= pageCount; page++) {
+                stamped = stamped.Stamp.Text(
+                    "OfficeIMO.Pdf examples \u00B7 Page " + page + " of " + pageCount,
+                    new PdfTextStampOptions {
+                        PageNumbers = new[] { page },
+                        X = 72,
+                        Y = 36,
+                        Font = PdfStandardFont.Helvetica,
+                        FontSize = 8.5,
+                        Color = PdfColor.FromOfficeColor(OfficeTheme.Default.Palette.TextMuted)
+                    });
+            }
             stamped.Save(stampedPath);
             File.WriteAllText(extractedTextPath, stamped.Read().Text);
 
@@ -84,11 +91,6 @@ namespace OfficeIMO.Examples.Pdf {
                 HeaderFormat = header,
                 HeaderAlign = PdfAlign.Left,
                 ShowHeader = true,
-                FooterFont = PdfStandardFont.Helvetica,
-                FooterFontSize = 8,
-                FooterFormat = "OfficeIMO.Pdf examples - page {page}/{pages}",
-                FooterAlign = PdfAlign.Right,
-                ShowPageNumbers = true,
                 CreateOutlineFromHeadings = true
             };
         }

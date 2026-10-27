@@ -4,21 +4,23 @@ namespace OfficeIMO.Examples.Showcase.Workflows {
     /// <summary>Creates two small-format event badges as separate PDF pages suitable for individual printing.</summary>
     internal static class EventBadges {
         internal static void Create(string folder) {
-            var navy = PdfColor.FromRgb(23, 54, 93);
+            OfficeTheme theme = OfficeTheme.Default;
+            PdfColor accent = PdfColor.FromOfficeColor(theme.Palette.Accent1);
+            PdfColor muted = PdfColor.FromOfficeColor(theme.Palette.TextMuted);
+            const double width = 340, height = 255;
             PdfDocument.Create(pdf => pdf.Content(content => {
-                Badge("Maya Ellis", "FACILITATOR", "Service design");
+                Badge("Maya Ellis", "Facilitator", "Service design");
                 content.PageBreak();
-                Badge("Leon Brooks", "PARTICIPANT", "Operations");
+                Badge("Leon Brooks", "Participant", "Operations");
                 void Badge(string name, string role, string team) {
-                    content.Paragraph(p => p.Text("NORTHWIND / COMMUNITY WORKSHOP"))
-                        .HR(2, navy, 12, 18)
-                        .H1(name, PdfAlign.Left, navy)
-                        .H2(role, PdfAlign.Left, navy)
-                        .Paragraph(p => p.Text(team))
-                        .PanelParagraph(p => p.Text("14 OCT 2026  |  COPENHAGEN"),
-                            new PdfPanelStyle { Background = PdfColor.FromRgb(234, 241, 251), PaddingX = 10, PaddingY = 10 });
+                    content.Paragraph(p => p.FontSize(8.5).Text("Northwind · Community workshop"), defaultColor: muted)
+                        .HR(2, accent, 8, 14)
+                        .Title(name)
+                        .Paragraph(p => p.FontSize(13).Bold(role, accent))
+                        .Paragraph(p => p.Text(team), defaultColor: muted)
+                        .PanelParagraph(p => p.Text("14 October 2026 · Copenhagen"));
                 }
-            }), new PdfCreateOptions { PageWidth = 340, PageHeight = 255, MarginLeft = 24, MarginRight = 24, MarginTop = 24, MarginBottom = 24, DefaultFontSize = 10 })
+            }), new PdfCreateOptions { PageWidth = width, PageHeight = height, MarginLeft = 24, MarginRight = 24, MarginTop = 24, MarginBottom = 24, DefaultFontSize = 10 })
                 .Meta(title: "Workshop event badges", author: "OfficeIMO").Save(Path.Combine(folder, "example.pdf"));
         }
     }
