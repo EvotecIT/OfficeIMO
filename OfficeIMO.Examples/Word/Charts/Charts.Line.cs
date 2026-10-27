@@ -11,9 +11,10 @@ namespace OfficeIMO.Examples.Word {
             List<string> categories = new() { "Food", "Housing", "Mix", "Data" };
             var lineChart = document.AddChart("Line chart");
             lineChart.AddChartAxisX(categories);
-            lineChart.AddLine("USA", new List<int> { 10, 35, 18, 23 }, Color.AliceBlue);
+            lineChart.AddLine("USA", new List<int> { 10, 35, 18, 23 }, Color.Parse("#3F64D7"));
             lineChart.AddLine("Brazil", new List<int> { 10, 35, 300, 18 }, Color.Brown);
             lineChart.AddLine("Poland", new List<int> { 13, 20, 230, 150 }, Color.Green);
+            lineChart.AddLegend(OfficeChartLegendPosition.Top);
             document.Save();
 
             var valid = document.ValidateDocument();

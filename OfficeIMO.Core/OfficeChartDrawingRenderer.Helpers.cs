@@ -159,11 +159,11 @@ public static partial class OfficeChartDrawingRenderer {
         PercentStackedTotals totals = BuildPercentStackedTotals(series, categoryCount);
         for (int category = 0; category < categoryCount; category++) {
             if (totals.Negative[category] > 0D) {
-                return new ValueRange(-1D, 1D);
+                return new ValueRange(-1D, 1D).AsFixed();
             }
         }
 
-        return new ValueRange(0D, 1D);
+        return new ValueRange(0D, 1D).AsFixed();
     }
 
     private static ValueRange GetStackedSeriesRange(IReadOnlyList<OfficeChartSeries> series, int categoryCount) {
@@ -346,6 +346,9 @@ public static partial class OfficeChartDrawingRenderer {
     }
 
     private static ValueRange ApplyValueAxisScale(ValueRange range, OfficeChartLayout layout, bool horizontal) {
+        if (range.IsResolved) return range;
+        bool explicitMin = horizontal ? layout.HorizontalAxisMinimum.HasValue : layout.VerticalAxisMinimum.HasValue;
+        bool explicitMax = horizontal ? layout.HorizontalAxisMaximum.HasValue : layout.VerticalAxisMaximum.HasValue;
         double min = horizontal
             ? layout.HorizontalAxisMinimum ?? range.Min
             : layout.VerticalAxisMinimum ?? range.Min;
@@ -356,17 +359,95 @@ public static partial class OfficeChartDrawingRenderer {
             double span = range.Max - range.Min;
             if (double.IsNaN(span) || double.IsInfinity(span) || span <= 0D)
                 span = 1D;
-            bool explicitMin = horizontal ? layout.HorizontalAxisMinimum.HasValue : layout.VerticalAxisMinimum.HasValue;
-            bool explicitMax = horizontal ? layout.HorizontalAxisMaximum.HasValue : layout.VerticalAxisMaximum.HasValue;
-            if (!explicitMin && !explicitMax) return range;
+            if (!explicitMin && !explicitMax) return new ValueRange(range.Min, range.Max, null, range.IsFixed, isResolved: true);
             if (explicitMin && !explicitMax) max = min + span;
             else if (explicitMax && !explicitMin) min = max - span;
             else throw new ArgumentException("The value-axis maximum must exceed its minimum.", nameof(layout));
             if (double.IsInfinity(min) || double.IsInfinity(max) || max <= min)
                 throw new ArgumentException("The value-axis bounds cannot form a finite range.", nameof(layout));
+            explicitMin = explicitMax = true;
         }
 
-        return new ValueRange(min, max);
+        double? explicitUnit = GetValueAxisMajorUnit(layout, horizontal);
+        if (explicitUnit.HasValue && (explicitUnit.Value <= 0D || ExceedsAxisUnitBudget(new ValueRange(min, max), explicitUnit, 32)))
+            explicitUnit = null;
+        return ResolveNiceScale(min, max, !explicitMin && !range.IsFixed, !explicitMax && !range.IsFixed, explicitUnit, range.IsFixed);
+    }
+
+    // Automatic value-axis bounds follow the chart contract: round steps of 1, 2, 2.5 or 5
+    // times a power of ten, four or five intervals where possible, and a maximum above the
+    // data so the tallest mark never touches the top of the plot.
+    private const double AutomaticAxisHeadroom = 0.05D;
+    private static readonly double[] NiceStepMantissas = { 1D, 2D, 2.5D, 5D };
+
+    private static ValueRange ResolveNiceScale(double min, double max, bool automaticMin, bool automaticMax,
+        double? majorUnit, bool isFixed) {
+        double span = max - min;
+        if (!(span > 0D) || double.IsInfinity(span))
+            return new ValueRange(min, max, majorUnit, isFixed, isResolved: true);
+        double paddedMin = min;
+        double paddedMax = max;
+        if (automaticMin) {
+            // Positive data starts at zero unless the values sit in a narrow band far from it.
+            if (min > 0D && span / max > 1D / 6D) paddedMin = 0D;
+            else if (min < 0D || min > 0D) paddedMin = min - span * AutomaticAxisHeadroom;
+            if (min >= 0D && paddedMin < 0D) paddedMin = 0D;
+        }
+        if (automaticMax) {
+            if (max < 0D && span / -min > 1D / 6D) paddedMax = 0D;
+            else if (max > 0D || max < 0D) paddedMax = max + span * AutomaticAxisHeadroom;
+            if (max <= 0D && paddedMax > 0D) paddedMax = 0D;
+        }
+
+        if (majorUnit.HasValue) {
+            double lower = automaticMin ? FloorToStep(paddedMin, majorUnit.Value) : min;
+            double upper = automaticMax ? CeilingToStep(paddedMax, majorUnit.Value) : max;
+            return new ValueRange(lower, upper, majorUnit, isFixed, isResolved: true);
+        }
+
+        double bestLower = paddedMin, bestUpper = paddedMax, bestStep = 0D;
+        int bestTier = int.MaxValue;
+        double bestSpan = double.MaxValue;
+        int bestPenalty = int.MaxValue;
+        int baseExponent = (int)Math.Floor(Math.Log10((paddedMax - paddedMin) / 5D));
+        for (int exponent = baseExponent - 1; exponent <= baseExponent + 1; exponent++) {
+            double magnitude = Math.Pow(10D, exponent);
+            foreach (double mantissa in NiceStepMantissas) {
+                double step = mantissa * magnitude;
+                if (!(step > 0D) || double.IsInfinity(step)) continue;
+                double lower = automaticMin ? FloorToStep(paddedMin, step) : min;
+                double upper = automaticMax ? CeilingToStep(paddedMax, step) : max;
+                int intervals = (int)Math.Round((upper - lower) / step);
+                if (intervals < 1 || intervals > 12) continue;
+                int tier = intervals is 4 or 5 ? 0 : intervals is 3 or 6 ? 1 : intervals is 2 or 7 or 8 ? 2 : 3;
+                double candidateSpan = upper - lower;
+                int penalty = (mantissa == 2.5D ? 2 : 0) + Math.Abs(5 - intervals);
+                bool better = tier < bestTier ||
+                    tier == bestTier && candidateSpan < bestSpan - Math.Abs(bestSpan) * 1E-9 ||
+                    tier == bestTier && Math.Abs(candidateSpan - bestSpan) <= Math.Abs(bestSpan) * 1E-9 && penalty < bestPenalty;
+                if (!better) continue;
+                bestTier = tier;
+                bestSpan = candidateSpan;
+                bestPenalty = penalty;
+                bestStep = step;
+                bestLower = lower;
+                bestUpper = upper;
+            }
+        }
+
+        return bestStep > 0D
+            ? new ValueRange(bestLower, bestUpper, bestStep, isFixed, isResolved: true)
+            : new ValueRange(min, max, null, isFixed, isResolved: true);
+    }
+
+    private static double FloorToStep(double value, double step) => CleanStepMultiple(Math.Floor(value / step + 1E-9) * step, step);
+
+    private static double CeilingToStep(double value, double step) => CleanStepMultiple(Math.Ceiling(value / step - 1E-9) * step, step);
+
+    // Removes binary noise such as 0.30000000000000004 from step multiples.
+    private static double CleanStepMultiple(double value, double step) {
+        int decimals = Math.Max(0, Math.Min(15, 1 - (int)Math.Floor(Math.Log10(step))));
+        return Math.Round(value, decimals, MidpointRounding.AwayFromZero);
     }
 
     private static bool HasValueAxisScale(OfficeChartLayout layout, bool horizontal) =>
@@ -432,19 +513,30 @@ public static partial class OfficeChartDrawingRenderer {
     }
 
     private static IReadOnlyList<double> GetValueAxisMajorTicks(ValueRange range, double? majorUnit) {
-        if (!majorUnit.HasValue || majorUnit.Value <= 0D) {
-            return new[] {
-                range.Min,
-                range.Min * 0.75D + range.Max * 0.25D,
-                range.Min * 0.5D + range.Max * 0.5D,
-                range.Min * 0.25D + range.Max * 0.75D,
-                range.Max
-            };
-        }
-
         double span = range.Max - range.Min;
         if (span <= 0D) {
             return new[] { range.Min, range.Max };
+        }
+
+        if (!majorUnit.HasValue || majorUnit.Value <= 0D) {
+            double? automaticUnit = range.AutoMajorUnit ??
+                ResolveNiceScale(range.Min, range.Max, automaticMin: false, automaticMax: false, majorUnit: null, isFixed: true).AutoMajorUnit;
+            if (!automaticUnit.HasValue || ExceedsAxisUnitBudget(range, automaticUnit, 32)) {
+                return new[] { range.Min, range.Max };
+            }
+
+            // Automatic ticks sit on multiples of the unit; an authored bound between
+            // multiples is the plot edge, not another label.
+            var automaticTicks = new List<double>();
+            double first = CeilingToStep(range.Min, automaticUnit.Value);
+            double tolerance = automaticUnit.Value * 1E-6;
+            for (int i = 0; i <= 64; i++) {
+                double value = CleanStepMultiple(first + automaticUnit.Value * i, automaticUnit.Value);
+                if (value > range.Max + tolerance) break;
+                automaticTicks.Add(value);
+            }
+
+            return automaticTicks.Count >= 2 ? automaticTicks : new[] { range.Min, range.Max };
         }
 
         if (ExceedsAxisUnitBudget(range, majorUnit, 32))
@@ -597,6 +689,22 @@ public static partial class OfficeChartDrawingRenderer {
         return ratio;
     }
 
+    // Percent-stacked layers keep their fixed bounds only when every merged layer is percent.
+    private static ValueRange UnionRanges(IReadOnlyList<ValueRange> ranges) {
+        if (ranges.Count == 1) return ranges[0];
+        double min = ranges[0].Min;
+        double max = ranges[0].Max;
+        bool allFixed = ranges[0].IsFixed;
+        for (int i = 1; i < ranges.Count; i++) {
+            min = Math.Min(min, ranges[i].Min);
+            max = Math.Max(max, ranges[i].Max);
+            allFixed &= ranges[i].IsFixed;
+        }
+
+        ValueRange union = ExpandFlatRange(min, max);
+        return allFixed ? union.AsFixed() : union;
+    }
+
     private static ValueRange ExpandFlatRange(double min, double max) {
         if (max > min) {
             return new ValueRange(min, max);
@@ -607,12 +715,29 @@ public static partial class OfficeChartDrawingRenderer {
     }
 
     private readonly struct ValueRange {
-        public ValueRange(double min, double max) {
+        public ValueRange(double min, double max) : this(min, max, null, isFixed: false, isResolved: false) {
+        }
+
+        public ValueRange(double min, double max, double? autoMajorUnit, bool isFixed, bool isResolved) {
             Min = min;
             Max = max;
+            AutoMajorUnit = autoMajorUnit;
+            IsFixed = isFixed;
+            IsResolved = isResolved;
         }
 
         public double Min { get; }
         public double Max { get; }
+
+        /// <summary>Round major unit chosen for automatic bounds; null when the axis has none yet.</summary>
+        public double? AutoMajorUnit { get; }
+
+        /// <summary>Bounds that must not be widened, such as the 0-100 % range of percent-stacked data.</summary>
+        public bool IsFixed { get; }
+
+        /// <summary>The range already went through <see cref="ApplyValueAxisScale"/>.</summary>
+        public bool IsResolved { get; }
+
+        public ValueRange AsFixed() => new(Min, Max, AutoMajorUnit, isFixed: true, IsResolved);
     }
 }

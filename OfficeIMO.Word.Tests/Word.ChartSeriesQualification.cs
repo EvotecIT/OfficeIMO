@@ -87,8 +87,10 @@ public class WordChartSeriesQualificationTests {
         using var document = WordDocument.Create();
         var chart = document.AddChart(kind, new OfficeChartData(new[] { "A", "B" }, new[] {
             new OfficeChartSeries("Values", new[] { 1d, 2d }, null, OfficeColor.Parse("#123456")) }));
-        var outline = chart.ChartPart!.ChartSpace!.Descendants<C.AreaChartSeries>().Single()
-            .GetFirstChild<C.ChartShapeProperties>()!.GetFirstChild<A.Outline>()!;
+        // New series carry no outline of their own; add the hidden one under test.
+        var properties = chart.ChartPart!.ChartSpace!.Descendants<C.AreaChartSeries>().Single()
+            .GetFirstChild<C.ChartShapeProperties>()!;
+        var outline = properties.GetFirstChild<A.Outline>() ?? properties.AppendChild(new A.Outline());
         outline.RemoveAllChildren(); outline.Append(new A.NoFill());
         Assert.True(chart.TryGetOfficeSnapshot(out OfficeChartSnapshot snapshot));
         Assert.False(Assert.Single(snapshot.Data.Series).ConnectLine);
@@ -115,7 +117,8 @@ public class WordChartSeriesQualificationTests {
         var chart = document.AddChart(OfficeChartKind.ColumnClustered, new OfficeChartData(new[] { "A", "B" },
             new[] { new OfficeChartSeries("Values", new[] { 1d, 2d }, null, OfficeColor.Parse("#123456")) }));
         var series = chart.ChartPart!.ChartSpace!.Descendants<C.BarChartSeries>().Single();
-        var outline = series.GetFirstChild<C.ChartShapeProperties>()!.GetFirstChild<A.Outline>()!;
+        var properties = series.GetFirstChild<C.ChartShapeProperties>()!;
+        var outline = properties.GetFirstChild<A.Outline>() ?? properties.AppendChild(new A.Outline());
         outline.AddChild(new A.SolidFill(new A.RgbColorModelHex { Val = "ABCDEF" }), true);
         outline.Width = 25400;
         series.InsertBefore(new C.DataPoint(new C.Index { Val = 1 },

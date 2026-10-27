@@ -86,7 +86,7 @@ namespace OfficeIMO.Word.Pdf {
             if (allChartElements.Count > 1 || allChartElements.Any(element => element is BubbleChart) ||
                 HasMaterialNativeLegendFrame(openXmlChart) ||
                 (plotArea.GetFirstChild<DataTable>() == null &&
-                 (HasNativeExplicitValueAxisScale(plotArea) || chartPart?.ChartSpace?.GetFirstChild<ShapeProperties>() != null))) {
+                 (HasNativeExplicitValueAxisScale(plotArea) || HasMaterialNativeChartAreaShape(chartPart?.ChartSpace)))) {
                 return TryCreateSharedNativeWordChartSnapshot(chart, out snapshot, out warning);
             }
             List<OpenXmlElement> chartElements = allChartElements
@@ -648,7 +648,9 @@ namespace OfficeIMO.Word.Pdf {
 
             OfficeColor? backgroundColor = null;
             OfficeColor? borderColor = null;
-            ChartShapeProperties? chartShape = chart.GetFirstChild<ChartShapeProperties>();
+            // The chart area's c:spPr belongs to c:chartSpace, the parent of c:chart; older
+            // documents may carry it inside c:chart instead, which takes precedence.
+            OpenXmlElement? chartShape = (OpenXmlElement?)chart.GetFirstChild<ChartShapeProperties>() ?? chart.Parent?.GetFirstChild<ShapeProperties>();
             bool showBackground = !HasNativeDrawingNoFill(chartShape);
             bool hasExplicitChartNoFill = chartShape != null && !showBackground;
             bool showBorder = !HasNativeDrawingOutlineNoFill(chartShape);
@@ -692,6 +694,20 @@ namespace OfficeIMO.Word.Pdf {
                 plotAreaBorderColor: plotAreaBorderColor,
                 showGridLines: showGridLines,
                 showBorder: showBorder);
+        }
+
+        // A chart area with no fill and no outline, as OfficeIMO writes for new charts, is
+        // drawn by the simple projection; any other chart-area appearance needs the shared reader.
+        private static bool HasMaterialNativeChartAreaShape(ChartSpace? chartSpace) {
+            ShapeProperties? shape = chartSpace?.GetFirstChild<ShapeProperties>();
+            if (shape == null) return false;
+            foreach (OpenXmlElement child in shape.ChildElements) {
+                if (child is A.NoFill) continue;
+                if (child is A.Outline outline && outline.ChildElements.All(item => item is A.NoFill) && !outline.HasAttributes) continue;
+                return true;
+            }
+
+            return false;
         }
 
         private static bool IsNativeWordChartSeriesRenderable(OpenXmlElement seriesElement, OfficeChartKind chartKind) {

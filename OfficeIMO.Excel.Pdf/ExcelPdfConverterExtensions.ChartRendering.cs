@@ -116,7 +116,8 @@ namespace OfficeIMO.Excel.Pdf {
                 renderKind: renderKind,
                 axisGroup: series.AxisGroup)
                 .WithSeriesStyle(series.SeriesStyle).WithPointStyles(series.PointStyles)
-                .WithPointExplosions(series.PointExplosions);
+                .WithPointExplosions(series.PointExplosions)
+                .WithTrendline(series.Trendline);
         }
 
         private static bool TryMapChartKind(ExcelChartType type, out OfficeChartKind kind) {

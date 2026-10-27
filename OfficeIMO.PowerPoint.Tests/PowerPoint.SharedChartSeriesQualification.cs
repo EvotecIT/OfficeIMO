@@ -106,7 +106,8 @@ public class PowerPointSharedChartSeriesQualificationTests {
         var series = presentation.Slides[0].SlidePart.ChartParts.Single().ChartSpace!.Descendants().OfType<DocumentFormat.OpenXml.OpenXmlCompositeElement>().Single(item => item.LocalName == "ser");
         if (marker) series.GetFirstChild<C.Marker>()!.AddChild(new C.ChartShapeProperties(new A.Outline(new A.SolidFill(new A.RgbColorModelHex { Val = "123456" })) { Width = 0 }), true);
         else {
-            var outline = series.GetFirstChild<C.ChartShapeProperties>()!.GetFirstChild<A.Outline>()!;
+            var properties = series.GetFirstChild<C.ChartShapeProperties>()!;
+            var outline = properties.GetFirstChild<A.Outline>() ?? properties.AppendChild(new A.Outline());
             outline.RemoveAllChildren();
             outline.Append(new A.SolidFill(new A.RgbColorModelHex { Val = "123456" }));
             outline.Width = 0;

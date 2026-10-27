@@ -108,15 +108,17 @@ public class DrawingChartBubbleTests {
             .OrderBy(value => value)
             .ToArray();
 
-        Assert.Equal(5, horizontalTickPositions.Length);
-        Assert.Equal(5, verticalTickPositions.Length);
-        Assert.Equal(horizontalTickPositions[0],
+        // Values 1 and 2 resolve to a 0-2.5 axis in steps of 0.5, so the bubbles
+        // centre on the third and fifth ticks of both axes.
+        Assert.Equal(6, horizontalTickPositions.Length);
+        Assert.Equal(6, verticalTickPositions.Length);
+        Assert.Equal(horizontalTickPositions[2],
             bubbles[0].X + bubbles[0].Shape.Width / 2D, precision: 6);
         Assert.Equal(horizontalTickPositions[4],
             bubbles[1].X + bubbles[1].Shape.Width / 2D, precision: 6);
-        Assert.Equal(verticalTickPositions[0],
+        Assert.Equal(verticalTickPositions[1],
             bubbles[1].Y + bubbles[1].Shape.Height / 2D, precision: 6);
-        Assert.Equal(verticalTickPositions[4],
+        Assert.Equal(verticalTickPositions[3],
             bubbles[0].Y + bubbles[0].Shape.Height / 2D, precision: 6);
     }
 

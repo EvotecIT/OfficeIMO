@@ -335,10 +335,9 @@ namespace OfficeIMO.Examples.PowerPoint {
             PowerPointChart chart = slide.AddChartCm(OfficeChartKind.Doughnut, data, 2.2, 3.9, 13.4, 7.8);
             chart.SetTitle("Revenue Share by Channel")
                 .SetLegend(OfficeChartLegendPosition.Bottom)
-                .SetDataLabels(showPercent: true)
+                .SetDataLabels(showValue: false, showPercent: true)
                 .SetDataLabelPosition(OfficeChartDataLabelPosition.BestFit)
-                .SetChartAreaStyle(fillColor: "FFFFFF", lineColor: "FFFFFF")
-                .SetSeriesFillColor(0, Teal);
+                .SetChartAreaStyle(fillColor: "FFFFFF", lineColor: "FFFFFF");
 
             AddMetricCard(slide, "42%", "Direct", "Primary engine", 18.2, 3.1, Teal);
             AddMetricCard(slide, "27%", "Partner", "Strong co-sell base", 18.2, 6.1, Orange);

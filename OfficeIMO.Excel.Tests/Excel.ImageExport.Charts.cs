@@ -1393,8 +1393,8 @@ namespace OfficeIMO.Tests {
             Assert.DoesNotContain(png.Diagnostics, diagnostic => diagnostic.Code == ExcelImageExportDiagnosticCodes.ChartAxisNumberFormatApproximation);
             Assert.DoesNotContain(png.Diagnostics, diagnostic => diagnostic.Code == ExcelImageExportDiagnosticCodes.ChartCategoryAxisNumberFormatUnsupported);
             Assert.DoesNotContain(png.Diagnostics, diagnostic => diagnostic.Severity == OfficeImageExportDiagnosticSeverity.Error);
-            Assert.Contains("1,800.0", svg, StringComparison.Ordinal);
-            Assert.Contains("900.0", svg, StringComparison.Ordinal);
+            Assert.Contains("2,000.0", svg, StringComparison.Ordinal);
+            Assert.Contains("1,000.0", svg, StringComparison.Ordinal);
             Assert.Contains("0.0", svg, StringComparison.Ordinal);
         }
 
@@ -1427,7 +1427,7 @@ namespace OfficeIMO.Tests {
             Assert.DoesNotContain(png.Diagnostics, diagnostic => diagnostic.Code == ExcelImageExportDiagnosticCodes.ChartAxisNumberFormatApproximation);
             Assert.DoesNotContain(png.Diagnostics, diagnostic => diagnostic.Code == ExcelImageExportDiagnosticCodes.ChartCategoryAxisNumberFormatUnsupported);
             Assert.DoesNotContain(png.Diagnostics, diagnostic => diagnostic.Severity == OfficeImageExportDiagnosticSeverity.Error);
-            Assert.Contains("1,800.0", svg, StringComparison.Ordinal);
+            Assert.Contains("2,000.0", svg, StringComparison.Ordinal);
             Assert.Contains("0.0", svg, StringComparison.Ordinal);
         }
 
@@ -1713,8 +1713,8 @@ namespace OfficeIMO.Tests {
             Assert.Equal(OfficeChartAxisTickLabelPosition.High, visualChart.Snapshot.Layout!.VerticalAxisTickLabelPosition);
             Assert.Contains(
                 chartDrawing.Elements.OfType<OfficeDrawingText>(),
-                text => text.Text == "180" && text.X > chartDrawing.Width / 2D && text.Alignment == OfficeTextAlignment.Left);
-            Assert.Contains(">180<", svg, StringComparison.Ordinal);
+                text => text.Text == "200" && text.X > chartDrawing.Width / 2D && text.Alignment == OfficeTextAlignment.Left);
+            Assert.Contains(">200<", svg, StringComparison.Ordinal);
             Assert.DoesNotContain(png.Diagnostics, item => item.Code == ExcelImageExportDiagnosticCodes.ChartAxisTickLabelPositionApproximation);
             Assert.DoesNotContain(png.Diagnostics, item => item.Severity == OfficeImageExportDiagnosticSeverity.Error);
         }
@@ -1864,8 +1864,8 @@ namespace OfficeIMO.Tests {
             Assert.Equal(OfficeChartAxisCrossingPosition.Maximum, visualChart.Snapshot.Layout!.VerticalAxisCrossingPosition);
             Assert.Contains(
                 chartDrawing.Elements.OfType<OfficeDrawingText>(),
-                text => text.Text == "180" && text.X > chartDrawing.Width / 2D && text.Alignment == OfficeTextAlignment.Left);
-            Assert.Contains(">180<", svg, StringComparison.Ordinal);
+                text => text.Text == "200" && text.X > chartDrawing.Width / 2D && text.Alignment == OfficeTextAlignment.Left);
+            Assert.Contains(">200<", svg, StringComparison.Ordinal);
             Assert.DoesNotContain(png.Diagnostics, item => item.Code == ExcelImageExportDiagnosticCodes.ChartAxisCrossingApproximation);
             Assert.DoesNotContain(png.Diagnostics, item => item.Severity == OfficeImageExportDiagnosticSeverity.Error);
         }
@@ -2029,7 +2029,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal("Thousands", visualChart.Snapshot.Layout.VerticalAxisDisplayUnitLabel);
             Assert.DoesNotContain(png.Diagnostics, item => item.Code == "ExcelChartAxisDisplayUnitsUnsupported");
             Assert.DoesNotContain(png.Diagnostics, item => item.Severity == OfficeImageExportDiagnosticSeverity.Error);
-            Assert.Contains(">180<", svg, StringComparison.Ordinal);
+            Assert.Contains(">200<", svg, StringComparison.Ordinal);
             Assert.Contains("Thousands", svg, StringComparison.Ordinal);
         }
 

@@ -194,7 +194,8 @@ public sealed class WordChartOfficeSnapshotTests {
         Assert.Equal("Secondary percentage", snapshot.Layout.SecondaryValueAxis.Title);
         var drawing = OfficeChartDrawingRenderer.Render(snapshot);
         Assert.Contains(drawing.Elements.OfType<OfficeDrawingText>(), text =>
-            text.Text == "Secondary percentage" && text.Alignment == OfficeTextAlignment.Right);
+            // The secondary value-axis title reads bottom to top beside its tick labels.
+            text.Text == "Secondary percentage" && text.RotationDegrees == -90D && text.X > drawing.Width / 2D);
         Assert.Null(snapshot.Layout.VerticalAxisMaximum);
         Assert.Equal(2, secondary.Scaling!.GetFirstChild<C.MaxAxisValue>()!.Val!.Value);
         chart.SetData(snapshot.ChartKind, snapshot.Data);

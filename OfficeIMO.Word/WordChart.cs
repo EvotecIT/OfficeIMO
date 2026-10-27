@@ -6,7 +6,6 @@ using AxisId = DocumentFormat.OpenXml.Drawing.Charts.AxisId;
 using Chart = DocumentFormat.OpenXml.Drawing.Charts.Chart;
 using ChartSpace = DocumentFormat.OpenXml.Drawing.Charts.ChartSpace;
 using DataLabels = DocumentFormat.OpenXml.Drawing.Charts.DataLabels;
-using Formula = DocumentFormat.OpenXml.Drawing.Charts.Formula;
 using NumericValue = DocumentFormat.OpenXml.Drawing.Charts.NumericValue;
 using PlotArea = DocumentFormat.OpenXml.Drawing.Charts.PlotArea;
 
@@ -222,6 +221,18 @@ namespace OfficeIMO.Word {
             part.ChartSpace.Append(new RoundedCorners() { Val = roundedCorners });
             return part;
         }
+        // New charts have no chart-area frame or fill. Without c:spPr, Word and Excel draw a
+        // border around the chart; the document's own layout already separates it.
+        private void EnsureFramelessChartArea() {
+            ChartSpace? space = _chartPart?.ChartSpace;
+            Chart? chart = space?.GetFirstChild<Chart>();
+            if (space == null || chart == null || space.GetFirstChild<DocumentFormat.OpenXml.Drawing.Charts.ShapeProperties>() != null) return;
+            var properties = new DocumentFormat.OpenXml.Drawing.Charts.ShapeProperties(
+                new DocumentFormat.OpenXml.Drawing.NoFill(),
+                new DocumentFormat.OpenXml.Drawing.Outline(new DocumentFormat.OpenXml.Drawing.NoFill()));
+            chart.InsertAfterSelf(properties);
+        }
+
         private Chart GenerateChart(string title = "") {
             Chart chart1 = new Chart();
 
@@ -442,20 +453,11 @@ namespace OfficeIMO.Word {
             return categoryAxis;
         }
 
-        internal StringReference AddSeries(UInt32Value index, string series) {
-            StringReference stringReference1 = new StringReference();
-
-            Formula formula1 = new Formula() { Text = "" };
-            NumericValue numericValue1 = new NumericValue() { Text = series };
-            StringPoint stringPoint1 = new StringPoint() { Index = index };
-            StringCache stringCache1 = new StringCache();
-
-            stringPoint1.Append(numericValue1);
-            stringCache1.Append(stringPoint1);
-            stringReference1.Append(formula1);
-            stringReference1.Append(stringCache1);
-            return stringReference1;
-        }
+        // Literal series names use c:v. A c:strRef needs a formula into an embedded
+        // workbook; Word charts built here have none, and LibreOffice rejects the whole
+        // document when the reference formula is empty.
+        internal NumericValue AddSeries(UInt32Value index, string series) =>
+            new NumericValue() { Text = series };
 
         internal WordDrawing CreateChartDrawing(string id, int width = 600, int height = 600) {
             WordDrawing drawing1 = new WordDrawing();

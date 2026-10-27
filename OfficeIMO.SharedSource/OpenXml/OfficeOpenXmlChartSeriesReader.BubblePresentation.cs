@@ -143,10 +143,14 @@ namespace OfficeIMO.OpenXml.Internal {
                     .GetFirstChild<C.Title>()) ||
             plotArea.GetFirstChild<C.Layout>()?
                 .GetFirstChild<C.ManualLayout>() != null ||
-            chartPart.ChartSpace?.GetFirstChild<C.ShapeProperties>()?
-                .ChildElements.Count > 0 ||
+            !IsFramelessChartArea(chartPart.ChartSpace?.GetFirstChild<C.ShapeProperties>()) ||
             plotArea.GetFirstChild<C.ShapeProperties>()?
                 .ChildElements.Count > 0;
+
+        // No chart-area shape, or one with no fill and no outline, draws nothing.
+        private static bool IsFramelessChartArea(C.ShapeProperties? shape) =>
+            shape == null || shape.ChildElements.All(child => child is A.NoFill ||
+                child is A.Outline outline && !outline.HasAttributes && outline.ChildElements.All(item => item is A.NoFill));
 
         private static bool HasUnsupportedBubbleTitle(C.Title? title) =>
             title != null &&
