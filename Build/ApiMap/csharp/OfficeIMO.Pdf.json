@@ -1328,10 +1328,10 @@
       "reason": "The front door owns bounded plain-text file and stream conversion; native text projection remains internal, with no static From factory.",
       "file": "OfficeIMO.Pdf/Conversion/PdfPlainTextConverter.cs",
       "category": "conversion",
-      "phase": "A",
-      "applied": "applied",
+      "phase": "B",
+      "applied": "phase-b-applied",
       "supersededM0Target": "PdfDocument.FromText(...)",
-      "note": "Plain text conversion uses the bounded front-door route; the native text projection kernel is internal. No static FromText factory.",
+      "note": "The compiled-metadata inventory identified the empty public facade after its methods moved behind OfficeConverter. The native projection implementation is now internal; existing InternalsVisibleTo declarations serve its callers.",
       "supersededM0Reason": "Conversion forms are SaveAs{Target}, To{Target} and {Format}Document.From{Source}."
     },
     {
@@ -1740,9 +1740,9 @@
     {
       "old": "OfficeIMO.Pdf.PdfRedactionDecodedImage.GetRgbaPixels()",
       "kind": "method",
-      "action": "merge",
-      "new": "OfficeIMO.Pdf.PdfRedactionDecodedImage.GetRgba(... OfficeLength ...)",
-      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "action": "keep",
+      "new": "OfficeIMO.Pdf.PdfRedactionDecodedImage.GetRgbaPixels()",
+      "reason": "This API exposes raster data, a pixel count/budget or a coordinate density, not a physical length. OfficeLength applies to physical geometry.",
       "file": "OfficeIMO.Pdf/Manipulation/IPdfRedactionImageDecoder.cs",
       "category": "units",
       "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values.",
@@ -1751,8 +1751,10 @@
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "retained-scalar",
+      "note": "The source declaration and its allocation/measurement contract remain unchanged; the original length target was a name-based map false positive.",
+      "supersededM0Target": "OfficeIMO.Pdf.PdfRedactionDecodedImage.GetRgba(... OfficeLength ...)",
+      "supersededM0Reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix."
     },
     {
       "old": "OfficeIMO.Pdf.PdfLogicalTableContinuations.Group(PdfDocumentReadResult document, int maxRows, bool mergePageContinuations, bool suppressRepeatedBodyHeaderRows, int maximumSegmentsPerTable, double geometryTolerancePoints)",
@@ -1791,9 +1793,9 @@
     {
       "old": "OfficeIMO.Pdf.PdfImageExportOptions.LogicalUnitsPerInch",
       "kind": "property",
-      "action": "change",
-      "new": "OfficeIMO.Pdf.PdfImageExportOptions.LogicalUnitsPerInch : OfficeLength",
-      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "action": "keep",
+      "new": "OfficeIMO.Pdf.PdfImageExportOptions.LogicalUnitsPerInch",
+      "reason": "This API exposes raster data, a pixel count/budget or a coordinate density, not a physical length. OfficeLength applies to physical geometry.",
       "file": "OfficeIMO.Pdf/Rendering/PdfImageExportOptions.cs",
       "category": "units",
       "implementation": {
@@ -1801,15 +1803,17 @@
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "retained-scalar",
+      "note": "The source declaration and its allocation/measurement contract remain unchanged; the original length target was a name-based map false positive.",
+      "supersededM0Target": "OfficeIMO.Pdf.PdfImageExportOptions.LogicalUnitsPerInch : OfficeLength",
+      "supersededM0Reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix."
     },
     {
       "old": "OfficeIMO.Pdf.PdfLayoutDebugOverlayOptions.MaxRasterPixels",
       "kind": "property",
-      "action": "merge",
-      "new": "OfficeIMO.Pdf.PdfLayoutDebugOverlayOptions.MaxRaster : OfficeLength",
-      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "action": "keep",
+      "new": "OfficeIMO.Pdf.PdfLayoutDebugOverlayOptions.MaxRasterPixels",
+      "reason": "This API exposes raster data, a pixel count/budget or a coordinate density, not a physical length. OfficeLength applies to physical geometry.",
       "file": "OfficeIMO.Pdf/Reading/Interaction/PdfLayoutDebugOverlayOptions.cs",
       "category": "units",
       "implementation": {
@@ -1817,8 +1821,10 @@
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "retained-scalar",
+      "note": "The source declaration and its allocation/measurement contract remain unchanged; the original length target was a name-based map false positive.",
+      "supersededM0Target": "OfficeIMO.Pdf.PdfLayoutDebugOverlayOptions.MaxRaster : OfficeLength",
+      "supersededM0Reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix."
     },
     {
       "old": "OfficeIMO.Pdf.PdfLogicalParagraphContinuationOptions.GeometryTolerancePoints",
@@ -1855,9 +1861,9 @@
     {
       "old": "OfficeIMO.Pdf.PdfPageChangeOptions.MaxTotalPixels",
       "kind": "property",
-      "action": "merge",
-      "new": "OfficeIMO.Pdf.PdfPageChangeOptions.MaxTotal : OfficeLength",
-      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "action": "keep",
+      "new": "OfficeIMO.Pdf.PdfPageChangeOptions.MaxTotalPixels",
+      "reason": "This API exposes raster data, a pixel count/budget or a coordinate density, not a physical length. OfficeLength applies to physical geometry.",
       "file": "OfficeIMO.Pdf/Rendering/PdfPageChangeOptions.cs",
       "category": "units",
       "implementation": {
@@ -1865,15 +1871,17 @@
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "retained-scalar",
+      "note": "The source declaration and its allocation/measurement contract remain unchanged; the original length target was a name-based map false positive.",
+      "supersededM0Target": "OfficeIMO.Pdf.PdfPageChangeOptions.MaxTotal : OfficeLength",
+      "supersededM0Reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix."
     },
     {
       "old": "OfficeIMO.Pdf.PdfPageDisplayOptions.MaximumPixels",
       "kind": "property",
-      "action": "merge",
-      "new": "OfficeIMO.Pdf.PdfPageDisplayOptions.Maximum : OfficeLength",
-      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "action": "keep",
+      "new": "OfficeIMO.Pdf.PdfPageDisplayOptions.MaximumPixels",
+      "reason": "This API exposes raster data, a pixel count/budget or a coordinate density, not a physical length. OfficeLength applies to physical geometry.",
       "file": "OfficeIMO.Pdf/Rendering/PdfPageDisplayOptions.cs",
       "category": "units",
       "implementation": {
@@ -1881,15 +1889,17 @@
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "retained-scalar",
+      "note": "The source declaration and its allocation/measurement contract remain unchanged; the original length target was a name-based map false positive.",
+      "supersededM0Target": "OfficeIMO.Pdf.PdfPageDisplayOptions.Maximum : OfficeLength",
+      "supersededM0Reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix."
     },
     {
       "old": "OfficeIMO.Pdf.PdfPagePrintOptions.MaximumPixels",
       "kind": "property",
-      "action": "merge",
-      "new": "OfficeIMO.Pdf.PdfPagePrintOptions.Maximum : OfficeLength",
-      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "action": "keep",
+      "new": "OfficeIMO.Pdf.PdfPagePrintOptions.MaximumPixels",
+      "reason": "This API exposes raster data, a pixel count/budget or a coordinate density, not a physical length. OfficeLength applies to physical geometry.",
       "file": "OfficeIMO.Pdf/Rendering/PdfPagePrintOptions.cs",
       "category": "units",
       "implementation": {
@@ -1897,15 +1907,17 @@
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "retained-scalar",
+      "note": "The source declaration and its allocation/measurement contract remain unchanged; the original length target was a name-based map false positive.",
+      "supersededM0Target": "OfficeIMO.Pdf.PdfPagePrintOptions.Maximum : OfficeLength",
+      "supersededM0Reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix."
     },
     {
       "old": "OfficeIMO.Pdf.PdfReadLimits.MaxFunctionShadingPixels",
       "kind": "property",
-      "action": "merge",
-      "new": "OfficeIMO.Pdf.PdfReadLimits.MaxFunctionShading : OfficeLength",
-      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "action": "keep",
+      "new": "OfficeIMO.Pdf.PdfReadLimits.MaxFunctionShadingPixels",
+      "reason": "This API exposes raster data, a pixel count/budget or a coordinate density, not a physical length. OfficeLength applies to physical geometry.",
       "file": "OfficeIMO.Pdf/Reading/Options/PdfReadLimits.cs",
       "category": "units",
       "implementation": {
@@ -1913,8 +1925,10 @@
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "retained-scalar",
+      "note": "The source declaration and its allocation/measurement contract remain unchanged; the original length target was a name-based map false positive.",
+      "supersededM0Target": "OfficeIMO.Pdf.PdfReadLimits.MaxFunctionShading : OfficeLength",
+      "supersededM0Reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix."
     },
     {
       "old": "OfficeIMO.Pdf.PdfTextLayoutOptions.LineMergeMaxPoints",
@@ -1935,9 +1949,9 @@
     {
       "old": "OfficeIMO.Pdf.PdfVisualComparisonOptions.MaxTotalPixels",
       "kind": "property",
-      "action": "merge",
-      "new": "OfficeIMO.Pdf.PdfVisualComparisonOptions.MaxTotal : OfficeLength",
-      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "action": "keep",
+      "new": "OfficeIMO.Pdf.PdfVisualComparisonOptions.MaxTotalPixels",
+      "reason": "This API exposes raster data, a pixel count/budget or a coordinate density, not a physical length. OfficeLength applies to physical geometry.",
       "file": "OfficeIMO.Pdf/Rendering/PdfVisualComparisonOptions.cs",
       "category": "units",
       "implementation": {
@@ -1945,15 +1959,17 @@
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "retained-scalar",
+      "note": "The source declaration and its allocation/measurement contract remain unchanged; the original length target was a name-based map false positive.",
+      "supersededM0Target": "OfficeIMO.Pdf.PdfVisualComparisonOptions.MaxTotal : OfficeLength",
+      "supersededM0Reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix."
     },
     {
       "old": "OfficeIMO.Pdf.PdfVisualPageComparison.ComparedPixels",
       "kind": "property",
-      "action": "merge",
-      "new": "OfficeIMO.Pdf.PdfVisualPageComparison.Compared : OfficeLength",
-      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "action": "keep",
+      "new": "OfficeIMO.Pdf.PdfVisualPageComparison.ComparedPixels",
+      "reason": "This API exposes raster data, a pixel count/budget or a coordinate density, not a physical length. OfficeLength applies to physical geometry.",
       "file": "OfficeIMO.Pdf/Rendering/PdfVisualComparisonReport.cs",
       "category": "units",
       "implementation": {
@@ -1961,15 +1977,17 @@
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "retained-scalar",
+      "note": "The source declaration and its allocation/measurement contract remain unchanged; the original length target was a name-based map false positive.",
+      "supersededM0Target": "OfficeIMO.Pdf.PdfVisualPageComparison.Compared : OfficeLength",
+      "supersededM0Reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix."
     },
     {
       "old": "OfficeIMO.Pdf.PdfVisualPageComparison.DifferentPixels",
       "kind": "property",
-      "action": "merge",
-      "new": "OfficeIMO.Pdf.PdfVisualPageComparison.Different : OfficeLength",
-      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "action": "keep",
+      "new": "OfficeIMO.Pdf.PdfVisualPageComparison.DifferentPixels",
+      "reason": "This API exposes raster data, a pixel count/budget or a coordinate density, not a physical length. OfficeLength applies to physical geometry.",
       "file": "OfficeIMO.Pdf/Rendering/PdfVisualComparisonReport.cs",
       "category": "units",
       "implementation": {
@@ -1977,8 +1995,10 @@
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "retained-scalar",
+      "note": "The source declaration and its allocation/measurement contract remain unchanged; the original length target was a name-based map false positive.",
+      "supersededM0Target": "OfficeIMO.Pdf.PdfVisualPageComparison.Different : OfficeLength",
+      "supersededM0Reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix."
     },
     {
       "old": "OfficeIMO.Pdf.PageMargins",
@@ -2420,6 +2440,11 @@
       "phase": "A",
       "applied": "applied",
       "note": "InternalsVisibleTo grants the existing browser engine and its tests access to detailed conversion and serialization evidence. This preserves browser diagnostics while keeping conversion kernels outside the public API."
+    },
+    {
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "note": "Ten name-based units entries describe raster bytes, aggregate pixel budgets/counters or coordinate density; those APIs remain scalar. Migration generation supports the explicit C# keep action. Physical page and tolerance geometry entries remain pending."
     }
   ],
   "applicationStatus": "Phase A applied and validated on the supported macOS targets. Phase B and Tier 2 entries retain their status; Windows .NET Framework validation remains pending.",

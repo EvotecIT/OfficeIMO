@@ -5,7 +5,7 @@ using OfficeIMO.Core.Internal;
 namespace OfficeIMO.Pdf;
 
 /// <summary>Converts literal text through the canonical PDF flow engine without HTML or Markdown parsing.</summary>
-public static class PdfPlainTextConverter {
+internal static class PdfPlainTextConverter {
     /// <summary>Reads a caller-owned stream under a byte limit; seekable position is restored and the stream remains open.</summary>
     internal static PdfDocumentConversionResult ToPdfDocumentResult(Stream source,
         PdfTextImportOptions? options = null, long maximumInputBytes = 64L * 1024 * 1024,
