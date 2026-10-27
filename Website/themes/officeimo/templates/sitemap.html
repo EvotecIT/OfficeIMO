@@ -4,8 +4,8 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="robots" content="noindex" />
-  <title>{{ title }}</title>
-  {{ if css_href && css_href != "" }}<link rel="stylesheet" href="{{ css_href }}" />{{ end }}
+  <title>{{ title | html.escape }}</title>
+  {{ if css_href && css_href != "" }}<link rel="stylesheet" href="{{ css_href | html.escape }}" />{{ end }}
   <style>
     :root{color-scheme:dark}
     body{margin:0;background:#08111f;color:#e2e8f0;font-family:ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
@@ -99,20 +99,20 @@
       <section class="imo-sitemap__panel">
         <header class="imo-sitemap__header">
           <div>
-            <h1>{{ title }}</h1>
+            <h1>{{ title | html.escape }}</h1>
             <p>Browse the generated route graph for product pages, guides, API references, blog posts, and taxonomy landing pages.</p>
           </div>
-          <p class="imo-sitemap__meta">Generated from the current OfficeIMO route graph. Base URL: <a href="{{ base_url }}">{{ base_url }}</a></p>
+          <p class="imo-sitemap__meta">Generated from the current OfficeIMO route graph. Base URL: <a href="{{ base_url | html.escape }}">{{ base_url | html.escape }}</a></p>
         </header>
         <div class="imo-sitemap__groups">
           {{ for group in groups }}
           <section class="imo-sitemap__group">
-            <h2>{{ group.name }}</h2>
+            <h2>{{ group.name | html.escape }}</h2>
             <ul class="imo-sitemap__list">
               {{ for entry in group.items }}
               <li>
-                <a href="{{ entry.path }}">{{ entry.title }}</a>
-                {{ if entry.description && entry.description != "" }}<span class="imo-sitemap__desc">{{ entry.description }}</span>{{ end }}
+                <a href="{{ entry.path | html.escape }}">{{ entry.title | html.escape }}</a>
+                {{ if entry.description && entry.description != "" }}<span class="imo-sitemap__desc">{{ entry.description | html.escape }}</span>{{ end }}
               </li>
               {{ end }}
             </ul>
