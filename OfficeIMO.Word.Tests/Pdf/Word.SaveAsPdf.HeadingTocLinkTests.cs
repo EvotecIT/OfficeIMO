@@ -178,10 +178,12 @@ namespace OfficeIMO.Tests {
                 document.AddParagraph("Native TOC second heading").SetStyle(WordParagraphStyles.Heading2);
                 document.AddParagraph("Native TOC second body");
 
-                document.Save();
+                // Export before saving: saving writes the TOC entries and their _Toc
+                // heading bookmarks, which then name the PDF destinations instead.
                 document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                     IncludePageNumbers = false
                 });
+                document.Save();
             }
 
             Assert.True(File.Exists(pdfPath));

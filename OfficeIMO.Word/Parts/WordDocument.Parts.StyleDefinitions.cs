@@ -323,6 +323,9 @@ namespace OfficeIMO.Word {
             styles1.Append(GenerateStyleEndNoteText());
             styles1.Append(GenerateStyleEndNoteTextChar());
             styles1.Append(GenerateStyleEndNoteReference());
+            foreach (Style tableOfContentStyle in WordTableOfContentStyles.Create()) {
+                styles1.Append(tableOfContentStyle);
+            }
 
             return styles1;
         }

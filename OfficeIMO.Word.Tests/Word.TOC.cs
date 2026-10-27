@@ -53,9 +53,10 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Tables.Count == 0, "Tables count matches");
                 Assert.True(document.Lists.Count == 0, "List count matches");
                 Assert.True(document.PageBreaks.Count == 1, "PageBreak count should be 1");
-                Assert.True(document.Paragraphs.Count == 2, "Number of paragraphs during creation is wrong. Current: " + document.Paragraphs.Count);
+                // Saving stores the TOC entry and bookmarks the heading, which Paragraphs reports as one more part.
+                Assert.True(document.Paragraphs.Count == 3, "Number of paragraphs after load is wrong. Current: " + document.Paragraphs.Count);
                 Assert.True(document.Sections.Count == 1, "Number of sections during creation is wrong.");
-                Assert.True(document.Sections[0].Paragraphs.Count == 2, "Number of paragraphs on 1st section is wrong.");
+                Assert.True(document.Sections[0].Paragraphs.Count == 3, "Number of paragraphs on 1st section is wrong.");
 
                 document.TableOfContent.Text = "This is a test";
                 document.TableOfContent.TextNoContent = "This is sub test";
@@ -73,15 +74,24 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Tables.Count == 0, "Tables count matches");
                 Assert.True(document.Lists.Count == 0, "List count matches");
                 Assert.True(document.PageBreaks.Count == 1, "PageBreak count should be 1");
-                Assert.True(document.Paragraphs.Count == 2, "Number of paragraphs during creation is wrong. Current: " + document.Paragraphs.Count);
+                Assert.True(document.Paragraphs.Count == 3, "Number of paragraphs after load is wrong. Current: " + document.Paragraphs.Count);
                 Assert.True(document.Sections.Count == 1, "Number of sections during creation is wrong.");
-                Assert.True(document.Sections[0].Paragraphs.Count == 2, "Number of paragraphs on 1st section is wrong.");
+                Assert.True(document.Sections[0].Paragraphs.Count == 3, "Number of paragraphs on 1st section is wrong.");
 
                 Assert.True(document.TableOfContent.Text == "This is a test", "TableOfContent Text should be set");
                 Assert.True(document.TableOfContent.TextNoContent == "This is sub test", "TableOfContent Text should be set");
                 document.Save();
             }
         }
+
+        // Saving writes the generated TOC entries and bookmarks each listed heading with a
+        // TOC bookmark, which Paragraphs reports as an extra part; count authored parts only.
+        private static bool IsTocHeadingBookmark(WordParagraph paragraph) =>
+            paragraph.IsBookmark && paragraph.Bookmark?.Name is string name &&
+            (name.StartsWith("_Toc", StringComparison.Ordinal) || name.StartsWith("_OfficeIMO_Toc_", StringComparison.Ordinal));
+
+        private static int CountStoredTocEntries(WordDocument document) =>
+            document.Paragraphs.Count(IsTocHeadingBookmark);
 
         [Fact]
         public void Test_CreatingWordDocumentWithTOCAndList() {
@@ -144,7 +154,7 @@ namespace OfficeIMO.Tests {
             using (WordDocument document = WordDocument.Load(filePath)) {
                 Assert.True(document.Lists.Count == 2, "Lists count should be 2, just TOC + Bullets");
                 Assert.True(document.Settings.UpdateFieldsOnOpen == true, "Update field settings should be turned on when it was enabled");
-                Assert.True(document.Paragraphs.Count == 17, "All paragraphs including from lists and toc should be here");
+                Assert.True(document.Paragraphs.Count - CountStoredTocEntries(document) == 17, "All paragraphs including from lists and toc should be here");
                 Assert.True(document.PageBreaks.Count == 2, "All page breaks should be shown");
 
                 // we loaded document, lets add some text to continue 
@@ -170,12 +180,13 @@ namespace OfficeIMO.Tests {
 
                 Assert.True(document.Lists.Count == 2, "Lists count should be 2, just TOC + Bullets");
                 Assert.True(document.Settings.UpdateFieldsOnOpen == true, "Update field settings should be turned on when it was enabled");
-                Assert.True(document.Paragraphs.Count == 20, "All paragraphs including from lists and toc should be here");
+                Assert.True(document.Paragraphs.Count - CountStoredTocEntries(document) == 20, "All paragraphs including from lists and toc should be here");
                 Assert.True(document.PageBreaks.Count == 3, "All page breaks should be shown");
 
                 Assert.True(document.Lists[0].IsToc == true, "This list should be TOC");
                 Assert.True(document.Lists[1].IsToc == false, "This list should not be TOC");
-                Assert.True(document.Lists[0].ListItems[0].Text == document.Paragraphs[1].Text, "Text should be identical");
+                var authoredParagraphs = document.Paragraphs.Where(paragraph => !IsTocHeadingBookmark(paragraph)).ToList();
+                Assert.True(document.Lists[0].ListItems[0].Text == authoredParagraphs[1].Text, "Text should be identical");
 
                 Assert.True(document.Lists[0].ListItems[document.Lists[0].ListItems.Count - 1].Text == document.Paragraphs[document.Paragraphs.Count - 1].Text, "Text should be identical");
 

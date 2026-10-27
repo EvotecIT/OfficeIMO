@@ -62,7 +62,6 @@ namespace OfficeIMO.Tests {
 
             Assert.False(assessment.IsSupported);
             Assert.Equal("legacy-doc-write-unsupported", assessment.DiagnosticCode);
-            Assert.Contains("TOCHeading", assessment.Message, StringComparison.Ordinal);
             Assert.Equal(saveFailure.Message, assessment.Message);
         }
 
