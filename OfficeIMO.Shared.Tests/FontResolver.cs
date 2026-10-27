@@ -6,17 +6,14 @@ using Xunit;
 namespace OfficeIMO.Shared.Tests;
 
 public class FontResolverTests {
-    [Fact]
-    public void Resolve_GenericFonts() {
-        string resolved = WordFontResolver.Resolve("monospace")!;
-
-        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
-            Assert.Contains(resolved, new[] { "Consolas", "Calibri" });
-        } else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux)) {
-            Assert.Contains(resolved, new[] { "DejaVu Sans Mono", "DejaVu Sans" });
-        } else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX)) {
-            Assert.Contains(resolved, new[] { "Menlo", "Helvetica" });
-        }
+    [Theory]
+    [InlineData("monospace", "Consolas")]
+    [InlineData(" Monospace ", "Consolas")]
+    [InlineData("serif", "Times New Roman")]
+    [InlineData("sans-serif", "Calibri")]
+    public void Resolve_GenericFontsToPortableDocumentFamilies(string generic, string expected) {
+        // The written family must not depend on the machine that generates the document.
+        Assert.Equal(expected, WordFontResolver.Resolve(generic));
     }
 
     [Fact]

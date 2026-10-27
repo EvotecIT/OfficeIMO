@@ -6,28 +6,15 @@ namespace OfficeIMO.Word;
 /// Resolves generic font family names to platform specific fonts.
 /// </summary>
 public static class WordFontResolver {
-    private static readonly Dictionary<string, string> _windowsFonts = new(StringComparer.OrdinalIgnoreCase) {
+    // Generic families become document fonts that exist in Microsoft Office on every platform and have
+    // metric-compatible or classified substitutes in LibreOffice, so the written name never depends on the
+    // machine that generated the document.
+    private static readonly Dictionary<string, string> _genericFonts = new(StringComparer.OrdinalIgnoreCase) {
         { "serif", "Times New Roman" },
         { "sans-serif", "Calibri" },
         { "monospace", "Consolas" },
         { "cursive", "Comic Sans MS" },
         { "fantasy", "Impact" }
-    };
-
-    private static readonly Dictionary<string, string> _linuxFonts = new(StringComparer.OrdinalIgnoreCase) {
-        { "serif", "DejaVu Serif" },
-        { "sans-serif", "DejaVu Sans" },
-        { "monospace", "DejaVu Sans Mono" },
-        { "cursive", "DejaVu Sans" },
-        { "fantasy", "DejaVu Sans" }
-    };
-
-    private static readonly Dictionary<string, string> _macFonts = new(StringComparer.OrdinalIgnoreCase) {
-        { "serif", "Times" },
-        { "sans-serif", "Helvetica" },
-        { "monospace", "Menlo" },
-        { "cursive", "Apple Chancery" },
-        { "fantasy", "Papyrus" }
     };
 
     private static readonly string[] _windowsFallbackFonts = {
@@ -53,7 +40,8 @@ public static class WordFontResolver {
     /// <summary>
     /// Resolves the provided font family name to an actual installed font.
     /// Generic families like <c>serif</c> or <c>monospace</c> are mapped to
-    /// platform specific fonts.
+    /// portable Office families (Times New Roman, Calibri, Consolas, Comic Sans MS, Impact)
+    /// that are the same on every platform.
     /// </summary>
     /// <param name="fontFamily">The requested font family.</param>
     /// <returns>The resolved font family or <paramref name="fontFamily"/> if no mapping exists.</returns>
@@ -62,28 +50,31 @@ public static class WordFontResolver {
             return null;
         }
 
+        if (_genericFonts.TryGetValue(fontFamily!.Trim(), out string? generic)) {
+            return generic;
+        }
+
+        // The portable generic targets are valid document names on every platform, installed or not.
+        foreach (string portable in _genericFonts.Values) {
+            if (string.Equals(portable, fontFamily.Trim(), StringComparison.OrdinalIgnoreCase)) return portable;
+        }
+
         if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
-            return ResolvePlatform(fontFamily!, _windowsFonts, _windowsFallbackFonts);
+            return ResolvePlatform(fontFamily!, _windowsFallbackFonts);
         }
 
         if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux)) {
-            return ResolvePlatform(fontFamily!, _linuxFonts, _linuxFallbackFonts);
+            return ResolvePlatform(fontFamily!, _linuxFallbackFonts);
         }
 
         if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX)) {
-            return ResolvePlatform(fontFamily!, _macFonts, _macFallbackFonts);
+            return ResolvePlatform(fontFamily!, _macFallbackFonts);
         }
 
         return fontFamily;
     }
 
-    private static string ResolvePlatform(string fontFamily, Dictionary<string, string> genericFonts, IEnumerable<string> fallbackFonts) {
-        if (genericFonts.TryGetValue(fontFamily, out string? value) && !string.IsNullOrEmpty(value)) {
-            // Generic CSS-style families should resolve deterministically to the
-            // platform default instead of depending on font file name heuristics.
-            return value;
-        }
-
+    private static string ResolvePlatform(string fontFamily, IEnumerable<string> fallbackFonts) {
         bool installed = IsFontInstalled(fontFamily);
         if (installed) {
             return fontFamily;
