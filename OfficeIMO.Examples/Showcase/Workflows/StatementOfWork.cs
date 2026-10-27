@@ -55,6 +55,7 @@ namespace OfficeIMO.Examples.Showcase.Workflows {
                     paragraph.KeepWithNext = true;
                 }
             }
+            WorkflowFooter.Add(document, "Statement of work");
             document.Save();
         }
     }

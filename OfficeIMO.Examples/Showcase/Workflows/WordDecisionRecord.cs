@@ -55,13 +55,13 @@ internal static class WordDecisionRecord {
                     cell.MarginTopCentimeters = 0.10;
                     cell.MarginBottomCentimeters = 0.10;
                     foreach (var paragraph in cell.Paragraphs) {
-                        paragraph.FontFamily = "Carlito";
                         paragraph.FontSize = 11;
                         paragraph.LineSpacingAfterPoints = 3;
                     }
                 }
             }
         }
+        WorkflowFooter.Add(document, "Decision record / DR-014");
         document.Save();
     }
 }

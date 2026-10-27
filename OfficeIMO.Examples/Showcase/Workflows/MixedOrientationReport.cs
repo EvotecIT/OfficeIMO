@@ -40,10 +40,10 @@ internal static class MixedOrientationReport {
             if (row == 0) cell.ShadingFillColorHex = "E8EEF8";
         }
         foreach (var paragraph in document.Paragraphs) {
-            paragraph.FontFamily = "Carlito";
             paragraph.FontSize = paragraph.Style == WordParagraphStyles.Heading1 ? 26 : paragraph.Style == WordParagraphStyles.Heading2 ? 15 : 11;
             paragraph.LineSpacingAfterPoints = 9;
         }
+        WorkflowFooter.Add(document, "Supplier evaluation");
         document.Save();
     }
 }

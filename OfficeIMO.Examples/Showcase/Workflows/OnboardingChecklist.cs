@@ -48,13 +48,13 @@ internal static class OnboardingChecklist {
                     cell.MarginTopCentimeters = 0.10;
                     cell.MarginBottomCentimeters = 0.10;
                     foreach (var paragraph in cell.Paragraphs) {
-                        paragraph.FontFamily = "Carlito";
                         paragraph.FontSize = 11;
                         paragraph.LineSpacingAfterPoints = 3;
                     }
                 }
             }
         }
+        WorkflowFooter.Add(document, "A good first week");
         document.Save();
 
         void AddStage(string title, (string Task, string Owner, string Status)[] tasks) {

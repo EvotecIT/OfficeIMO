@@ -56,6 +56,7 @@ namespace OfficeIMO.Examples.Showcase.Workflows {
                     paragraph.KeepWithNext = true;
                 }
             }
+            WorkflowFooter.Add(document, "Post-incident review");
             document.Save();
         }
     }

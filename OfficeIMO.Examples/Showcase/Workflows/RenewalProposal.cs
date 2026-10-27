@@ -55,6 +55,7 @@ namespace OfficeIMO.Examples.Showcase.Workflows {
                     paragraph.KeepWithNext = true;
                 }
             }
+            WorkflowFooter.Add(document, "Managed service renewal");
             document.Save();
         }
     }

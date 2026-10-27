@@ -25,10 +25,10 @@ internal static class ResearchBrief {
         document.AddParagraph("Limits and next study").Style = WordParagraphStyles.Heading2;
         document.AddParagraph("These are invented observations for the example. A small moderated sample can reveal usability problems; it does not establish population-wide rates.");
         foreach (var paragraph in document.Paragraphs) {
-            paragraph.FontFamily = "Carlito";
             paragraph.FontSize = paragraph.Style == WordParagraphStyles.Heading1 ? 26 : paragraph.Style == WordParagraphStyles.Heading2 ? 15 : 11;
             paragraph.LineSpacingAfterPoints = 9;
         }
+        WorkflowFooter.Add(document, "Customer research brief");
         document.Save();
     }
 }

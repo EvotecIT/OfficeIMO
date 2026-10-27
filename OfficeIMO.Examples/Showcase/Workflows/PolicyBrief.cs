@@ -65,6 +65,7 @@ internal static class PolicyBrief {
                 paragraph.LineSpacingAfterPoints = 6;
             }
         }
+        WorkflowFooter.Add(document, "Shared workspace guide");
         document.Save();
 
         void Section(string heading, string body) {

@@ -59,13 +59,13 @@ internal static class ProjectCharter {
                     cell.MarginTopCentimeters = 0.10;
                     cell.MarginBottomCentimeters = 0.10;
                     foreach (var paragraph in cell.Paragraphs) {
-                        paragraph.FontFamily = "Carlito";
                         paragraph.FontSize = 11;
                         paragraph.LineSpacingAfterPoints = 3;
                     }
                 }
             }
         }
+        WorkflowFooter.Add(document, "Project charter");
         document.Save();
     }
 }
