@@ -133,8 +133,8 @@ public partial class Word {
         WordParagraph owner = tableCell
             ? document.AddTable(1, 1, WordTableStyle.TableNormal).Rows[0].Cells[0].Paragraphs[0].SetText(ZeroNotePrefix)
             : document.AddParagraph(ZeroNotePrefix);
-        owner.AddEquation("<m:oMath xmlns:m=\"http://schemas.openxmlformats.org/officeDocument/2006/math\"><m:r><m:t>MATH</m:t></m:r></m:oMath>")
-            .AddEndNote(ZeroNoteBody).AddText(ZeroNoteSuffix);
+        owner.AddEquation("<m:oMath xmlns:m=\"http://schemas.openxmlformats.org/officeDocument/2006/math\"><m:r><m:t>MATH</m:t></m:r></m:oMath>").Paragraph
+            .AddEndNote(ZeroNoteBody).Paragraph.AddText(ZeroNoteSuffix);
         document.AddParagraph(ZeroNoteFollowingBody);
         Assert.Empty(document.ValidateDocument());
         W.EndnoteReference allocatedReference = Assert.Single(owner._paragraph.Descendants<W.EndnoteReference>());
@@ -207,8 +207,8 @@ public partial class Word {
     public void Remove_OrdinaryZeroIdentifierPreservesSharedRunAndOtherDefinitions(bool endnote, bool reload) {
         using WordDocument source = CreateOrdinaryZeroNoteDocument(endnote, explicitNormal: false);
         WordParagraph owner = source.Paragraphs.First();
-        if (endnote) owner.AddText("ZEROSIBLINGTEXT").AddEndNote("KEPTNOTEBODY").AddFootNote("COMPANIONNOTEBODY");
-        else owner.AddText("ZEROSIBLINGTEXT").AddFootNote("KEPTNOTEBODY").AddEndNote("COMPANIONNOTEBODY");
+        if (endnote) owner.AddText("ZEROSIBLINGTEXT").AddEndNote("KEPTNOTEBODY").Paragraph.AddFootNote("COMPANIONNOTEBODY");
+        else owner.AddText("ZEROSIBLINGTEXT").AddFootNote("KEPTNOTEBODY").Paragraph.AddEndNote("COMPANIONNOTEBODY");
         var originalOwner = source._wordprocessingDocument.MainDocumentPart!.Document.Body!.Elements<W.Paragraph>().First();
         var shared = new W.Run(new W.RunProperties(new W.Bold()));
         foreach (W.Run run in originalOwner.Elements<W.Run>().Skip(1).ToArray()) {
@@ -322,8 +322,8 @@ public partial class Word {
         WordParagraph paragraph = document.AddParagraph(ZeroNotePrefix);
         if (endnote) {
             document.Sections[0].AddEndnoteProperties(WordNumberFormat.Decimal);
-            paragraph.AddEndNote(ZeroNoteBody).AddText(ZeroNoteSuffix);
-        } else paragraph.AddFootNote(ZeroNoteBody).AddText(ZeroNoteSuffix);
+            paragraph.AddEndNote(ZeroNoteBody).Paragraph.AddText(ZeroNoteSuffix);
+        } else paragraph.AddFootNote(ZeroNoteBody).Paragraph.AddText(ZeroNoteSuffix);
         document.AddParagraph(ZeroNoteFollowingBody);
         var main = document._wordprocessingDocument.MainDocumentPart!;
         W.Settings settings = main.DocumentSettingsPart!.Settings!;

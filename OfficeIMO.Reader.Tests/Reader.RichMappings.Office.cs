@@ -20,7 +20,7 @@ public sealed class ReaderOfficeRichMappingTests {
             document.AddParagraph("Policy").Style = WordParagraphStyles.Heading1;
             document.AddParagraph("Read ").AddHyperLink("the policy", new Uri("https://example.test/policy"));
             WordParagraph noteReference = document.AddParagraph("Supporting references");
-            WordParagraph footnoteReference = noteReference.AddFootNote("Footnote detail ");
+            WordParagraph footnoteReference = noteReference.AddFootNote("Footnote detail ").Paragraph;
             footnoteReference.FootNote!.Paragraphs![1].AddHyperLink(
                 "footnote source",
                 new Uri("https://example.test/footnote"));
@@ -108,7 +108,7 @@ public sealed class ReaderOfficeRichMappingTests {
             WordParagraph paragraph = document.AddParagraph();
             paragraph.AddText(plainBoundaryRun);
             paragraph.AddText(formattedBoundaryRun).Bold = true;
-            WordParagraph hyperlink = paragraph.AddHyperLink(hyperlinkText, new Uri(hyperlinkUri));
+            WordParagraph hyperlink = paragraph.AddHyperLink(hyperlinkText, new Uri(hyperlinkUri)).Paragraph;
             hyperlink.Bold = true;
             hyperlink.Italic = true;
             paragraph.AddText(finalRun).Italic = true;

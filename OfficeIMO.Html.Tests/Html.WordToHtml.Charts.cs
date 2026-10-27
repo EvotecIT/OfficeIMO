@@ -77,7 +77,7 @@ public sealed class HtmlWordChartTests {
         var targetRun = document.Paragraphs.First().GetRuns().Single()._run!;
         for (int index = 1; index <= 2; index++) {
             var source = document.AddParagraph("Reference " + index);
-            var noteRun = footnote ? source.AddFootNote("Note " + index) : source.AddEndNote("Note " + index);
+            var noteRun = footnote ? source.AddFootNote("Note " + index).Paragraph : source.AddEndNote("Note " + index).Paragraph;
             var reference = footnote
                 ? (DocumentFormat.OpenXml.OpenXmlElement)noteRun._run!.Elements<DocumentFormat.OpenXml.Wordprocessing.FootnoteReference>().Single()
                 : noteRun._run!.Elements<DocumentFormat.OpenXml.Wordprocessing.EndnoteReference>().Single();
@@ -120,7 +120,7 @@ public sealed class HtmlWordChartTests {
     public void Export_RendersChartsInNotes(bool footnote) {
         using var document = WordDocument.Create();
         var source = document.AddParagraph("Reference");
-        var reference = footnote ? source.AddFootNote("Note text") : source.AddEndNote("Note text");
+        var reference = footnote ? source.AddFootNote("Note text").Paragraph : source.AddEndNote("Note text").Paragraph;
         var note = footnote ? reference.FootNote!.Paragraphs!.Skip(1).First() : reference.EndNote!.Paragraphs!.Skip(1).First();
         note.AddChart(OfficeChartType.ColumnClustered, Data());
         var result = document.ConvertToHtmlWithEvidence(new WordHtmlExportOptions { ExportFootnotes = true, ExportEndnotes = true });

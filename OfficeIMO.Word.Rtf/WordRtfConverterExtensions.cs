@@ -940,7 +940,7 @@ public static partial class WordRtfConverterExtensions {
             }
 
             if (run.Hyperlink != null) {
-                wordRun = wordParagraph.AddHyperLink(run.Text, run.Hyperlink, addStyle: true);
+                wordRun = wordParagraph.AddHyperLink(run.Text, run.Hyperlink, addStyle: true).Paragraph;
             } else {
                 wordRun = wordParagraph.AddText(run.Text);
             }

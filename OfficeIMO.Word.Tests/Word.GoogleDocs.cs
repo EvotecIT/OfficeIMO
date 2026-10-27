@@ -3927,7 +3927,7 @@ namespace OfficeIMO.Tests {
         private WordDocument BuildGoogleDocsFootnoteBookmarkDocument(string filePath) {
             var document = WordDocument.Create(filePath);
             document.BuiltinDocumentProperties.Title = "Google Docs Footnote Bookmarks";
-            var footnoteReferenceParagraph = document.AddParagraph("Body text").AddFootNote("Footnote text");
+            var footnoteReferenceParagraph = document.AddParagraph("Body text").AddFootNote("Footnote text").Paragraph;
             footnoteReferenceParagraph.FootNote!.Paragraphs!.Last().AddBookmark("FootnoteBookmark");
             return document;
         }

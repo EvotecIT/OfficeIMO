@@ -12,8 +12,8 @@ public sealed class WordAllSeverityBatch14SecurityTests {
         string imagePath = Path.Combine(AppContext.BaseDirectory, "Images", "Kulek.jpg");
         using WordDocument document = WordDocument.Create();
         WordParagraph body = document.AddParagraph("stories");
-        WordParagraph footnote = body.AddFootNote("footnote").FootNote!.Paragraphs![1];
-        WordParagraph endnote = body.AddEndNote("endnote").EndNote!.Paragraphs![1];
+        WordParagraph footnote = body.AddFootNote("footnote").Paragraph.FootNote!.Paragraphs![1];
+        WordParagraph endnote = body.AddEndNote("endnote").Paragraph.EndNote!.Paragraphs![1];
         body.AddComment("OfficeIMO", "OI", "comment");
         WordParagraph comment = Assert.Single(document.Comments).Paragraphs[0];
         footnote.AddImage(imagePath, OfficeIMO.OfficeLength.Pixels(16), OfficeIMO.OfficeLength.Pixels(16));

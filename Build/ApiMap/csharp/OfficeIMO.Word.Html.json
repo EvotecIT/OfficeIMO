@@ -580,6 +580,11 @@
       "phase": "A",
       "applied": "applied",
       "note": "HTML row/cell traversal and serialized shadow-root traversal enumerate AngleSharp collections rather than binding their target-specific indexer member. This fixes MissingMethodException when a netstandard2.0 adapter is loaded with the runtime-selected modern AngleSharp asset, preserves traversal order and keeps linear traversal."
+    },
+    {
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "note": "HTML import uses the containing Paragraph of created hyperlinks to preserve subsequent formatting and insertion."
     }
   ],
   "applicationStatus": "Phase A applied and validated on macOS, including standard-library and modern-framework runtime proof. Windows .NET Framework validation remains pending.",

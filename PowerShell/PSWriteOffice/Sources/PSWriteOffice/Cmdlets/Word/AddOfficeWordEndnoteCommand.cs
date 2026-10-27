@@ -38,7 +38,7 @@ public sealed class AddOfficeWordEndnoteCommand : PSCmdlet
         }
 
         var paragraph = ResolveParagraph();
-        var note = paragraph.AddEndNote(Text.Trim());
+        var note = paragraph.AddEndNote(Text.Trim()).Paragraph;
 
         if (PassThru.IsPresent)
         {

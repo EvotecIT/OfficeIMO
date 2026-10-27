@@ -449,7 +449,7 @@ namespace OfficeIMO.Word.Html {
                 if (!Uri.TryCreate(match.Value, UriKind.Absolute, out var uri) || IsInvalidResolvedHref(uri, options)) {
                     AddFormattedSegment(paragraph, display, formatting, options);
                 } else {
-                    var linkRun = paragraph.AddHyperLink(display, uri);
+                    var linkRun = paragraph.AddHyperLink(display, uri).Paragraph;
                     ApplyFormatting(linkRun, formatting, options);
                 }
                 lastIndex = match.Index + match.Length;

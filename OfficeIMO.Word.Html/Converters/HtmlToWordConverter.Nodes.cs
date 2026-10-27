@@ -788,9 +788,9 @@ namespace OfficeIMO.Word.Html {
                                         listStack, fmtAnchor, cell, headerFooter, headingList);
                                     linkParaAnchor = inlineContent.Count > 0
                                         ? WordHyperLink.AddHyperLinkContent(currentParagraph!, inlineContent, anchor, tooltip: title ?? string.Empty, moveContent: true)
-                                        : currentParagraph!.AddHyperLink(element.TextContent, anchor);
+                                        : currentParagraph!.AddHyperLink(element.TextContent, anchor).Paragraph;
                                 } else {
-                                    linkParaAnchor = currentParagraph!.AddHyperLink(element.TextContent, anchor);
+                                    linkParaAnchor = currentParagraph!.AddHyperLink(element.TextContent, anchor).Paragraph;
                                 }
 
                                 if (!string.IsNullOrEmpty(options.FontFamily)) {
@@ -836,9 +836,9 @@ namespace OfficeIMO.Word.Html {
                                         listStack, fmtExternal, cell, headerFooter, headingList);
                                     linkPara = inlineContent.Count > 0
                                         ? WordHyperLink.AddHyperLinkContent(currentParagraph!, inlineContent, resolvedUri, tooltip: title ?? string.Empty, moveContent: true)
-                                        : currentParagraph!.AddHyperLink(element.TextContent, resolvedUri);
+                                        : currentParagraph!.AddHyperLink(element.TextContent, resolvedUri).Paragraph;
                                 } else {
-                                    linkPara = currentParagraph!.AddHyperLink(element.TextContent, resolvedUri);
+                                    linkPara = currentParagraph!.AddHyperLink(element.TextContent, resolvedUri).Paragraph;
                                 }
 
                                 if (!string.IsNullOrEmpty(options.FontFamily)) {

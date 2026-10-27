@@ -106,7 +106,7 @@ public static partial class LegacyWordImporter {
         IReadOnlyDictionary<string, LegacyWordStyle> recoveredStyles, CancellationToken cancellation) {
         if (index < 0 || index >= model.Notes.Count) throw new InvalidDataException("A recovered note anchor is outside the note collection.");
         LegacyWordNote note = model.Notes[index];
-        WordParagraph reference = note.Kind == LegacyWordNoteKind.Footnote ? anchor.AddFootNote(string.Empty) : anchor.AddEndNote(string.Empty);
+        WordParagraph reference = note.Kind == LegacyWordNoteKind.Footnote ? anchor.AddFootNote(string.Empty).Paragraph : anchor.AddEndNote(string.Empty).Paragraph;
         List<WordParagraph> paragraphs = (note.Kind == LegacyWordNoteKind.Footnote ? reference.FootNote!.Paragraphs : reference.EndNote!.Paragraphs)
             ?? throw new InvalidDataException("The projected note has no paragraphs.");
         WordParagraph target = paragraphs[0];

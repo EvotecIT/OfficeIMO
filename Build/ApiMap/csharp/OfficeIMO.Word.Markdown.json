@@ -571,6 +571,11 @@
       "phase": "B",
       "applied": "phase-b-applied",
       "note": "The merged transcript factory replaces its raw visualMaxWidthPx argument with OfficeLength? visualMaxWidth. Maintained README and transcript/cross-pipeline consumers use the options factory directly."
+    },
+    {
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "note": "Markdown import and retained tests use attached field, link and equation models, selecting Paragraph where paragraph formatting is required."
     }
   ],
   "applicationStatus": "Phase A applied and validated on the supported macOS targets. Phase B and Tier 2 entries retain their status; Windows .NET Framework validation remains pending.",

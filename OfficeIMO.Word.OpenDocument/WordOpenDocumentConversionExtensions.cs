@@ -387,10 +387,10 @@ public static partial class WordOpenDocumentConversionExtensions {
                     OdtHyperlink? link = leaf.TargetLink;
                     if (link != null) {
                         if (OdfUriReference.TryDecodeFragment(link.Href, out string fragment)) {
-                            output = target.AddHyperLink(displayText, fragment, addStyle: true);
+                            output = target.AddHyperLink(displayText, fragment, addStyle: true).Paragraph;
                         } else if (!link.Href.StartsWith("#", StringComparison.Ordinal)
                             && Uri.TryCreate(link.Href, UriKind.RelativeOrAbsolute, out Uri? uri)) {
-                            output = target.AddHyperLink(displayText, uri, addStyle: true);
+                            output = target.AddHyperLink(displayText, uri, addStyle: true).Paragraph;
                         }
                         if (output != null && convertedLinks.Add(link)) {
                             hyperlinks++;
@@ -487,10 +487,10 @@ public static partial class WordOpenDocumentConversionExtensions {
                         OdtHyperlink? fieldLink = leaf.TargetLink;
                         if (fieldLink != null) {
                             if (OdfUriReference.TryDecodeFragment(fieldLink.Href, out string fragment)) {
-                                result = target.AddHyperLink(displayText, fragment, addStyle: true);
+                                result = target.AddHyperLink(displayText, fragment, addStyle: true).Paragraph;
                             } else if (!fieldLink.Href.StartsWith("#", StringComparison.Ordinal)
                                 && Uri.TryCreate(fieldLink.Href, UriKind.RelativeOrAbsolute, out Uri? uri)) {
-                                result = target.AddHyperLink(displayText, uri, addStyle: true);
+                                result = target.AddHyperLink(displayText, uri, addStyle: true).Paragraph;
                             }
                             if (result != null && convertedLinks.Add(fieldLink)) {
                                 hyperlinks++;

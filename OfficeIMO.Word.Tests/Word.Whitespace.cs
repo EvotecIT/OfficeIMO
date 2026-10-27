@@ -130,7 +130,7 @@ public partial class Word {
     [Fact]
     public void HyperlinkText_ImportedWhitespaceAndAuthoredReplacementUseTheirRespectiveModes() {
         using WordDocument document = WordDocument.Create();
-        WordParagraph paragraph = document.AddParagraph().AddHyperLink(" Old ", new Uri("https://example.test/link"));
+        WordParagraph paragraph = document.AddParagraph().AddHyperLink(" Old ", new Uri("https://example.test/link")).Paragraph;
         W.Text text = paragraph._paragraph.Descendants<W.Text>().Single();
         text.Space = null;
         string xml = paragraph._paragraph.OuterXml;

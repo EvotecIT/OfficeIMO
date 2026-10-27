@@ -171,7 +171,7 @@ namespace OfficeIMO.Tests {
 
                 var fieldTypes = (WordFieldType[])Enum.GetValues(typeof(WordFieldType));
                 foreach (var fieldType in fieldTypes) {
-                    var paragraph = document.AddParagraph("field Type " + fieldType.ToString() + ": ").AddField(fieldType);
+                    var paragraph = document.AddParagraph("field Type " + fieldType.ToString() + ": ").AddField(fieldType).Paragraph;
                     Assert.NotNull(paragraph.Field);
                     Assert.True(paragraph.Field!.FieldType == fieldType, "FieldType matches");
                 }
@@ -179,7 +179,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Paragraphs.Count == 6 + fieldTypes.Length * 2);
 
                 foreach (var fieldType in fieldTypes) {
-                    var paragraph = document.AddParagraph("field Type " + fieldType.ToString() + ": ").AddField(fieldType, null, advanced: true);
+                    var paragraph = document.AddParagraph("field Type " + fieldType.ToString() + ": ").AddField(fieldType, null, advanced: true).Paragraph;
                     Assert.NotNull(paragraph.Field);
                     Assert.True(paragraph.Field!.FieldType == fieldType, "FieldType matches");
                 }
@@ -194,7 +194,7 @@ namespace OfficeIMO.Tests {
 
                 foreach (var fieldType in fieldTypes) {
                     foreach (var fieldTypeFormat in fieldTypesFormats) {
-                        var paragraph = document.AddParagraph("field Type " + fieldType.ToString() + ": ").AddField(fieldType, fieldTypeFormat);
+                        var paragraph = document.AddParagraph("field Type " + fieldType.ToString() + ": ").AddField(fieldType, fieldTypeFormat).Paragraph;
                         Assert.NotNull(paragraph.Field);
                         Assert.True(paragraph.Field!.FieldType == fieldType, "FieldType matches");
                         Assert.Contains(fieldTypeFormat, paragraph.Field!.FieldFormat);
@@ -302,7 +302,7 @@ namespace OfficeIMO.Tests {
         public void Test_FieldWithCustomFormat() {
             string filePath = Path.Combine(_directoryWithFiles, "CustomFormattedField.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
-                var paragraph = document.AddParagraph("Time: ").AddField(WordFieldType.Time, customFormat: "dd/MM/yyyy HH:mm");
+                var paragraph = document.AddParagraph("Time: ").AddField(WordFieldType.Time, customFormat: "dd/MM/yyyy HH:mm").Paragraph;
                 Assert.NotNull(paragraph.Field);
                 Assert.Equal(" TIME  \\@ \"dd/MM/yyyy HH:mm\" \\* MERGEFORMAT ", paragraph.Field!.Field);
                 document.Save();
@@ -337,9 +337,9 @@ namespace OfficeIMO.Tests {
         public void Test_FieldWithNewFormats() {
             string filePath = Path.Combine(_directoryWithFiles, "FieldWithFormats.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
-                var p1 = document.AddParagraph("Page as words: ").AddField(WordFieldType.Page, WordFieldFormat.CardText);
-                var p2 = document.AddParagraph("Page ordinal: ").AddField(WordFieldType.Page, WordFieldFormat.Ordinal);
-                var p3 = document.AddParagraph("Page hex: ").AddField(WordFieldType.Page, WordFieldFormat.Hex);
+                var p1 = document.AddParagraph("Page as words: ").AddField(WordFieldType.Page, WordFieldFormat.CardText).Paragraph;
+                var p2 = document.AddParagraph("Page ordinal: ").AddField(WordFieldType.Page, WordFieldFormat.Ordinal).Paragraph;
+                var p3 = document.AddParagraph("Page hex: ").AddField(WordFieldType.Page, WordFieldFormat.Hex).Paragraph;
                 document.Save();
             }
 

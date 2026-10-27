@@ -12,14 +12,14 @@ namespace OfficeIMO.Word {
         /// <param name="author">Provide an author of the comment</param>
         /// <param name="initials">Provide initials of an author</param>
         /// <param name="comment">Provide comment to insert</param>
-        public void AddComment(string author, string initials, string comment) {
+        public WordComment AddComment(string author, string initials, string comment) {
             TableCell[] cells = WordTableContent.Rows(_table)
                 .SelectMany(static row => WordTableContent.Cells(row))
                 .ToArray();
             TableCell? firstCell = cells.FirstOrDefault();
             TableCell? lastCell = cells.LastOrDefault();
             if (firstCell == null || lastCell == null) {
-                return;
+                throw new InvalidOperationException("A table comment requires at least one cell.");
             }
 
             Paragraph firstParagraph = firstCell.Elements<Paragraph>().FirstOrDefault()
@@ -31,6 +31,7 @@ namespace OfficeIMO.Word {
                 firstParagraph,
                 lastParagraph,
                 lastParagraph);
+            return wordComment;
         }
 
         internal void InsertComment(WordComment wordComment, OpenXmlElement rangeStart, OpenXmlElement rangeEnd, OpenXmlElement reference) {

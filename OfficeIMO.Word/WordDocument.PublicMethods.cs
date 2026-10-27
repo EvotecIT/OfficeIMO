@@ -114,8 +114,8 @@ namespace OfficeIMO.Word {
         /// <param name="addStyle">Whether to apply hyperlink style.</param>
         /// <param name="tooltip">Tooltip for the hyperlink.</param>
         /// <param name="history">Whether to track link history.</param>
-        /// <returns>The created <see cref="WordParagraph"/>.</returns>
-        public WordParagraph AddHyperLink(string text, Uri uri, bool addStyle = false, string tooltip = "", bool history = true) {
+        /// <returns>The created <see cref="WordHyperLink"/>.</returns>
+        public WordHyperLink AddHyperLink(string text, Uri uri, bool addStyle = false, string tooltip = "", bool history = true) {
             if (string.IsNullOrWhiteSpace(text)) {
                 throw new ArgumentException("Text cannot be null or empty.", nameof(text));
             }
@@ -135,8 +135,8 @@ namespace OfficeIMO.Word {
         /// <param name="addStyle">Whether to apply hyperlink style.</param>
         /// <param name="tooltip">Tooltip for the hyperlink.</param>
         /// <param name="history">Whether to track link history.</param>
-        /// <returns>The created <see cref="WordParagraph"/>.</returns>
-        public WordParagraph AddHyperLink(string text, string anchor, bool addStyle = false, string tooltip = "", bool history = true) {
+        /// <returns>The created <see cref="WordHyperLink"/>.</returns>
+        public WordHyperLink AddHyperLink(string text, string anchor, bool addStyle = false, string tooltip = "", bool history = true) {
             if (string.IsNullOrWhiteSpace(text)) {
                 throw new ArgumentException("Text cannot be null or empty.", nameof(text));
             }
@@ -638,8 +638,8 @@ namespace OfficeIMO.Word {
         /// Inserts a bookmark in a new paragraph.
         /// </summary>
         /// <param name="bookmarkName">Name of the bookmark.</param>
-        /// <returns>The created <see cref="WordParagraph"/>.</returns>
-        public WordParagraph AddBookmark(string bookmarkName) {
+        /// <returns>The created <see cref="WordBookmark"/>.</returns>
+        public WordBookmark AddBookmark(string bookmarkName) {
             return this.AddParagraph().AddBookmark(bookmarkName);
         }
 
@@ -647,8 +647,8 @@ namespace OfficeIMO.Word {
         /// Inserts a citation field referencing the specified source tag.
         /// </summary>
         /// <param name="sourceTag">Tag of the bibliographic source.</param>
-        /// <returns>The created <see cref="WordParagraph"/>.</returns>
-        public WordParagraph AddCitation(string sourceTag) {
+        /// <returns>The created <see cref="WordField"/>.</returns>
+        public WordField AddCitation(string sourceTag) {
             var field = new WordCitationField { SourceTag = sourceTag };
             return this.AddParagraph().AddField(field);
         }
@@ -661,8 +661,8 @@ namespace OfficeIMO.Word {
         /// <param name="customFormat">Custom format string for date or time fields.</param>
         /// <param name="advanced">Whether to use advanced formatting.</param>
         /// <param name="parameters">Additional switch parameters.</param>
-        /// <returns>The created <see cref="WordParagraph"/>.</returns>
-        public WordParagraph AddField(WordFieldType wordFieldType, WordFieldFormat? wordFieldFormat = null, string? customFormat = null, bool advanced = false, List<string>? parameters = null) {
+        /// <returns>The created <see cref="WordField"/>.</returns>
+        public WordField AddField(WordFieldType wordFieldType, WordFieldFormat? wordFieldFormat = null, string? customFormat = null, bool advanced = false, List<string>? parameters = null) {
             return this.AddParagraph().AddField(wordFieldType, wordFieldFormat, customFormat!, advanced, parameters!);
         }
 
@@ -673,8 +673,8 @@ namespace OfficeIMO.Word {
         /// <param name="wordFieldFormat">Optional field format.</param>
         /// <param name="customFormat">Custom format string for date or time fields.</param>
         /// <param name="advanced">Whether to use advanced formatting.</param>
-        /// <returns>The created <see cref="WordParagraph"/>.</returns>
-        public WordParagraph AddField(WordFieldCode fieldCode, WordFieldFormat? wordFieldFormat = null, string? customFormat = null, bool advanced = false) {
+        /// <returns>The created <see cref="WordField"/>.</returns>
+        public WordField AddField(WordFieldCode fieldCode, WordFieldFormat? wordFieldFormat = null, string? customFormat = null, bool advanced = false) {
             return this.AddParagraph().AddField(fieldCode, wordFieldFormat, customFormat!, advanced);
         }
 
@@ -683,8 +683,8 @@ namespace OfficeIMO.Word {
         /// </summary>
         /// <param name="builder">Field builder instance.</param>
         /// <param name="advanced">Whether to use advanced formatting.</param>
-        /// <returns>The created <see cref="WordParagraph"/>.</returns>
-        public WordParagraph AddField(WordFieldBuilder builder, bool advanced = false) {
+        /// <returns>The created <see cref="WordField"/>.</returns>
+        public WordField AddField(WordFieldBuilder builder, bool advanced = false) {
             return this.AddParagraph().AddField(builder, advanced);
         }
 
@@ -693,7 +693,7 @@ namespace OfficeIMO.Word {
         /// </summary>
         /// <param name="omml">OMML markup for the equation.</param>
         /// <returns>The created <see cref="WordParagraph"/>.</returns>
-        public WordParagraph AddEquation(string omml) {
+        public WordEquation AddEquation(string omml) {
             return this.AddParagraph().AddEquation(omml);
         }
 
@@ -704,8 +704,8 @@ namespace OfficeIMO.Word {
         /// <param name="imageFilePath">Preview image path.</param>
         /// <param name="width">Optional width in points.</param>
         /// <param name="height">Optional height in points.</param>
-        /// <returns>The paragraph containing the embedded object.</returns>
-        public WordParagraph AddEmbeddedObject(string filePath, string imageFilePath, double? width = null, double? height = null) {
+        /// <returns>The created embedded object.</returns>
+        public WordEmbeddedObject AddEmbeddedObject(string filePath, string imageFilePath, double? width = null, double? height = null) {
             return this.AddParagraph().AddEmbeddedObject(filePath, imageFilePath, width, height);
         }
 
@@ -714,8 +714,8 @@ namespace OfficeIMO.Word {
         /// </summary>
         /// <param name="filePath">Path to the object file.</param>
         /// <param name="options">Embedding options.</param>
-        /// <returns>The paragraph containing the embedded object.</returns>
-        public WordParagraph AddEmbeddedObject(string filePath, WordEmbeddedObjectOptions options) {
+        /// <returns>The created embedded object.</returns>
+        public WordEmbeddedObject AddEmbeddedObject(string filePath, WordEmbeddedObjectOptions options) {
             return this.AddParagraph().AddEmbeddedObject(filePath, options);
         }
 

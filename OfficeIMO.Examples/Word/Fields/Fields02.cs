@@ -21,7 +21,7 @@ namespace OfficeIMO.Examples.Word {
                 // Ensure headers/footers exist when needed; OrCreate accessors will create on demand
 
                 // added page number using fields which triggers fields refresh
-                document.AddField(WordFieldType.Page).AddText(" of ").AddField(WordFieldType.NumPages);
+                document.AddField(WordFieldType.Page).Paragraph.AddText(" of ").AddField(WordFieldType.NumPages);
 
                 document.AddField(WordFieldType.Author);
 

@@ -58,10 +58,10 @@ public partial class Word {
             document.AddHeadersAndFooters();
             paragraph = document.Sections[0].Header.Default!.AddParagraph();
         } else if (story == "footnote") {
-            WordParagraph reference = document.AddParagraph("Footnote ").AddFootNote("Note prefix ");
+            WordParagraph reference = document.AddParagraph("Footnote ").AddFootNote("Note prefix ").Paragraph;
             paragraph = reference.FootNote!.Paragraphs![1];
         } else if (story == "endnote") {
-            WordParagraph reference = document.AddParagraph("Endnote ").AddEndNote("Note prefix ");
+            WordParagraph reference = document.AddParagraph("Endnote ").AddEndNote("Note prefix ").Paragraph;
             paragraph = reference.EndNote!.Paragraphs![1];
         } else paragraph = document.AddParagraph("Body prefix ");
         paragraph.AddHyperLink("DOCLinkMarker", new Uri("https://example.test/doc-fields"), addStyle: true);

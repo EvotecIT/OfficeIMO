@@ -24,7 +24,7 @@ namespace OfficeIMO.Examples.Word {
                 document.AddParagraph("Test HYPERLINK ").AddHyperLink(" to website?", new Uri("https://evotec.xyz"), true);
 
                 // this hyperlink will be styled with defaults, but then changed a bit
-                var test = document.AddParagraph("Test Email Address ").AddHyperLink("Przemysław Klys", new Uri("mailto:kontakt@evotec.pl?subject=Test Subject"), true);
+                var test = document.AddParagraph("Test Email Address ").AddHyperLink("Przemysław Klys", new Uri("mailto:kontakt@evotec.pl?subject=Test Subject"), true).Paragraph;
                 test.Bold = true;
                 test.Italic = true;
                 test.Underline = WordUnderlineStyle.Dash;
@@ -34,7 +34,7 @@ namespace OfficeIMO.Examples.Word {
                 document.AddParagraph("Test HYPERLINK ").AddHyperLink(" to website?", new Uri("https://evotec.xyz"));
 
                 // lets style next hyperlink with orange color and make it 20 in size
-                var anotherHyperlink = document.AddParagraph("Test HYPERLINK ").AddHyperLink(" to website?", new Uri("https://evotec.pl"));
+                var anotherHyperlink = document.AddParagraph("Test HYPERLINK ").AddHyperLink(" to website?", new Uri("https://evotec.pl")).Paragraph;
                 anotherHyperlink.Color = Color.Orange;
                 anotherHyperlink.FontSize = 20;
 

@@ -65,7 +65,7 @@ namespace OfficeIMO.Examples.Word {
                 elements = document.Elements;
                 Console.WriteLine("Elements count after list: " + elements.Count);
 
-                var paragraphWithHyperlink = document.AddHyperLink("Go to Evotec Blogs", new Uri("https://evotec.xyz"), true, "URL with tooltip");
+                var paragraphWithHyperlink = document.AddHyperLink("Go to Evotec Blogs", new Uri("https://evotec.xyz"), true, "URL with tooltip").Paragraph;
                 // you can also change the hyperlink text, uri later on using properties
                 var hyperlink = Guard.NotNull(paragraphWithHyperlink.Hyperlink, "Hyperlink should be created when calling AddHyperLink.");
                 hyperlink.Uri = new Uri("https://evotec.xyz/hub");

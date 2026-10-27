@@ -20,18 +20,15 @@ namespace OfficeIMO.Word {
         /// <param name="author">The name of the commenting author</param>
         /// <param name="initials">The initials of the commenting author</param>
         /// <param name="comment">The comment text</param>
-        public void AddComment(string author, string initials, string comment) {
+        public WordComment AddComment(string author, string initials, string comment) {
             WordComment wordComment = WordComment.Create(_document, author, initials, comment);
 
-            // Specify the text range for the Comment.
-            // Insert the new CommentRangeStart before the first run of paragraph.
-            this._paragraph.InsertBefore(new CommentRangeStart() { Id = wordComment.Id }, this._paragraph.GetFirstChild<Run>());
-
-            // Insert the new CommentRangeEnd after last run of paragraph.
-            var cmtEnd = this._paragraph.InsertAfter(new CommentRangeEnd() { Id = wordComment.Id }, this._paragraph.Elements<Run>().Last());
-
-            // Compose a run with CommentReference and insert it.
-            this._paragraph.InsertAfter(new Run(new CommentReference() { Id = wordComment.Id }), cmtEnd);
+            OpenXmlElement? first = _paragraph.ChildElements.FirstOrDefault(child => child is not ParagraphProperties);
+            OpenXmlElement? last = _paragraph.ChildElements.LastOrDefault(child => child is not ParagraphProperties);
+            var start = _paragraph.InsertBefore(new CommentRangeStart { Id = wordComment.Id }, first);
+            var end = _paragraph.InsertAfter(new CommentRangeEnd { Id = wordComment.Id }, last ?? start);
+            _paragraph.InsertAfter(new Run(new CommentReference { Id = wordComment.Id }), end);
+            return wordComment;
         }
 
         // Does this return the paragraph after the line, or does this return the paragraph containing the line?
@@ -61,10 +58,10 @@ namespace OfficeIMO.Word {
         /// Add bookmark to a word document proceeding from the paragraph this was called on.
         /// </summary>
         /// <param name="bookmarkName">The name of the bookmark.</param>
-        /// <returns>The paragraph that this was called on.</returns>
-        public WordParagraph AddBookmark(string bookmarkName) {
+        /// <returns>The created object.</returns>
+        public WordBookmark AddBookmark(string bookmarkName) {
             var bookmark = WordBookmark.AddBookmark(this, bookmarkName);
-            return this;
+            return bookmark;
         }
 
         /// <summary>
@@ -72,21 +69,19 @@ namespace OfficeIMO.Word {
         /// </summary>
         /// <param name="referenceId">Bookmark or heading identifier.</param>
         /// <param name="type">Type of reference.</param>
-        /// <returns>The paragraph that this was called on.</returns>
-        public WordParagraph AddCrossReference(string referenceId, WordCrossReferenceType type) {
-            WordCrossReference.AddCrossReference(this, referenceId, type);
-            return this;
+        /// <returns>The created object.</returns>
+        public WordField AddCrossReference(string referenceId, WordCrossReferenceType type) {
+            return WordCrossReference.AddCrossReference(this, referenceId, type);
         }
 
         /// <summary>
         /// Adds a citation field referencing the specified source tag.
         /// </summary>
         /// <param name="sourceTag">Tag of the bibliographic source.</param>
-        /// <returns>The paragraph that this was called on.</returns>
-        public WordParagraph AddCitation(string sourceTag) {
+        /// <returns>The created object.</returns>
+        public WordField AddCitation(string sourceTag) {
             var field = new WordCitationField { SourceTag = sourceTag };
-            WordField.AddField(this, field, null!, null!, false);
-            return this;
+            return WordField.AddField(this, field, null!, null!, false);
         }
 
         /// <summary>
@@ -99,10 +94,9 @@ namespace OfficeIMO.Word {
         /// <param name="parameters">Usages like <code>parameters = new List&lt; String&gt;{ @"\d 'Default'", @"\c" };</code><br/>
         /// Also see available List of switches per field code:
         /// <see>https://support.microsoft.com/en-us/office/list-of-field-codes-in-word-1ad6d91a-55a7-4a8d-b535-cf7888659a51 </see></param>
-        /// <returns>The paragraph that this was called on.</returns>
-        public WordParagraph AddField(WordFieldType wordFieldType, WordFieldFormat? wordFieldFormat = null, string? customFormat = null, bool advanced = false, List<string>? parameters = null) {
-            var field = WordField.AddField(this, wordFieldType, wordFieldFormat, customFormat!, advanced, parameters!);
-            return this;
+        /// <returns>The created object.</returns>
+        public WordField AddField(WordFieldType wordFieldType, WordFieldFormat? wordFieldFormat = null, string? customFormat = null, bool advanced = false, List<string>? parameters = null) {
+            return WordField.AddField(this, wordFieldType, wordFieldFormat, customFormat!, advanced, parameters!);
         }
 
         /// <summary>
@@ -112,10 +106,9 @@ namespace OfficeIMO.Word {
         /// <param name="wordFieldFormat">Optional field format.</param>
         /// <param name="customFormat">Custom format string for date or time fields.</param>
         /// <param name="advanced">Use advanced field representation.</param>
-        /// <returns>The paragraph that this was called on.</returns>
-        public WordParagraph AddField(WordFieldCode fieldCode, WordFieldFormat? wordFieldFormat = null, string? customFormat = null, bool advanced = false) {
-            WordField.AddField(this, fieldCode, wordFieldFormat, customFormat!, advanced);
-            return this;
+        /// <returns>The created object.</returns>
+        public WordField AddField(WordFieldCode fieldCode, WordFieldFormat? wordFieldFormat = null, string? customFormat = null, bool advanced = false) {
+            return WordField.AddField(this, fieldCode, wordFieldFormat, customFormat!, advanced);
         }
 
         /// <summary>
@@ -123,10 +116,9 @@ namespace OfficeIMO.Word {
         /// </summary>
         /// <param name="builder">Field builder instance.</param>
         /// <param name="advanced">Use advanced field representation.</param>
-        /// <returns>The paragraph that this was called on.</returns>
-        public WordParagraph AddField(WordFieldBuilder builder, bool advanced = false) {
-            WordField.AddField(this, builder, advanced);
-            return this;
+        /// <returns>The created object.</returns>
+        public WordField AddField(WordFieldBuilder builder, bool advanced = false) {
+            return WordField.AddField(this, builder, advanced);
         }
 
         /// <summary>
@@ -154,26 +146,26 @@ namespace OfficeIMO.Word {
         /// Adds a mathematical equation represented as OMML XML.
         /// </summary>
         /// <param name="omml">Office Math Markup Language (OMML) fragment.</param>
-        /// <returns>The paragraph that this was called on.</returns>
-        public WordParagraph AddEquation(string omml) {
+        /// <returns>The created object.</returns>
+        public WordEquation AddEquation(string omml) {
             if (string.IsNullOrWhiteSpace(omml)) {
                 throw new ArgumentNullException(nameof(omml));
             }
 
             XElement x = XElement.Parse(omml);
-            WordParagraph paragraphWithEquation;
+            WordEquation equation;
 
             if (x.Name.LocalName == "oMath") {
                 var officeMath = new OfficeMath(omml);
                 _paragraph.Append(officeMath);
-                paragraphWithEquation = new WordParagraph(this._document, this._paragraph, officeMath);
+                equation = new WordEquation(this._document, this._paragraph, officeMath);
             } else {
                 var mathPara = new MathParagraph(omml);
                 _paragraph.Append(mathPara);
-                paragraphWithEquation = new WordParagraph(this._document, this._paragraph, mathPara);
+                equation = new WordEquation(this._document, this._paragraph, mathPara);
             }
 
-            return paragraphWithEquation;
+            return equation;
         }
 
         /// <summary>
@@ -184,10 +176,10 @@ namespace OfficeIMO.Word {
         /// <param name="addStyle">The optional style of the link.</param>
         /// <param name="tooltip">The optional tooltip to display over the link.</param>
         /// <param name="history"></param>
-        /// <returns>The paragraph that this was called on.</returns>
-        public WordParagraph AddHyperLink(string text, Uri uri, bool addStyle = false, string tooltip = "", bool history = true) {
+        /// <returns>The created object.</returns>
+        public WordHyperLink AddHyperLink(string text, Uri uri, bool addStyle = false, string tooltip = "", bool history = true) {
             var hyperlink = WordHyperLink.AddHyperLink(this, text, uri, addStyle, tooltip, history);
-            return this;
+            return hyperlink;
         }
 
         /// <summary>
@@ -198,10 +190,10 @@ namespace OfficeIMO.Word {
         /// <param name="addStyle">The optional style of this link.</param>
         /// <param name="tooltip">The optional tooltip over this link.</param>
         /// <param name="history"></param>
-        /// <returns>The paragraph that this was called on.</returns>
-        public WordParagraph AddHyperLink(string text, string anchor, bool addStyle = false, string tooltip = "", bool history = true) {
+        /// <returns>The created object.</returns>
+        public WordHyperLink AddHyperLink(string text, string anchor, bool addStyle = false, string tooltip = "", bool history = true) {
             var hyperlink = WordHyperLink.AddHyperLink(this, text, anchor, addStyle, tooltip, history);
-            return this;
+            return hyperlink;
         }
 
         /// <summary>

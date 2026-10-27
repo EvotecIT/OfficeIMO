@@ -66,7 +66,7 @@ public sealed class OpenDocumentTextFormattingConversionTests {
         styles.DocDefaults!.RunPropertiesDefault!.RunPropertiesBaseStyle!.SmallCaps = new W.SmallCaps();
 
         source.AddParagraph("Character").SetCharacterStyleId("InheritedCapsCharacter");
-        source.AddParagraph().AddHyperLink("Hyperlink", new Uri("https://example.test"))
+        source.AddParagraph().AddHyperLink("Hyperlink", new Uri("https://example.test")).Paragraph
             .SetCharacterStyleId("InheritedCapsCharacter");
         source.AddParagraph("Paragraph").SetStyleId("InheritedCapsParagraph");
         source.AddParagraph("Default");

@@ -30,11 +30,11 @@ namespace OfficeIMO.Tests {
                     AppendBookmarkedSimpleField(footerParagraph._paragraph, "84", "FooterSimpleFieldBookmark", " NUMPAGES ");
 
                     WordParagraph noteReferences = document.AddParagraph("Notes ");
-                    WordParagraph footnoteReference = noteReferences.AddFootNote("footnote placeholder");
+                    WordParagraph footnoteReference = noteReferences.AddFootNote("footnote placeholder").Paragraph;
                     WordParagraph footnoteBody = footnoteReference.FootNote!.Paragraphs![1];
                     AppendBookmarkedSimpleField(footnoteBody._paragraph, "85", "FootnoteSimpleFieldBookmark", " PAGE ");
 
-                    WordParagraph endnoteReference = noteReferences.AddEndNote("endnote placeholder");
+                    WordParagraph endnoteReference = noteReferences.AddEndNote("endnote placeholder").Paragraph;
                     WordParagraph endnoteBody = endnoteReference.EndNote!.Paragraphs![1];
                     AppendBookmarkedSimpleField(endnoteBody._paragraph, "86", "EndnoteSimpleFieldBookmark", " NUMPAGES ");
 
@@ -66,7 +66,7 @@ namespace OfficeIMO.Tests {
                     AppendInteriorBookmarkedSimpleField(bodyParagraph._paragraph, "87", "InteriorSimpleFieldBookmark", " DATE ", "Al", "pha");
 
                     WordParagraph noteReferences = document.AddParagraph("Notes ");
-                    WordParagraph footnoteReference = noteReferences.AddFootNote("footnote placeholder");
+                    WordParagraph footnoteReference = noteReferences.AddFootNote("footnote placeholder").Paragraph;
                     WordParagraph footnoteBody = footnoteReference.FootNote!.Paragraphs![1];
                     AppendInteriorBookmarkedSimpleField(footnoteBody._paragraph, "88", "InteriorFootnoteSimpleFieldBookmark", " DATE ", "Be", "ta");
 
@@ -109,11 +109,11 @@ namespace OfficeIMO.Tests {
                     AppendBookmarkedComplexField(footerParagraph._paragraph, "94", "FooterComplexFieldBookmark", " NUMPAGES ");
 
                     WordParagraph noteReferences = document.AddParagraph("Notes ");
-                    WordParagraph footnoteReference = noteReferences.AddFootNote("footnote placeholder");
+                    WordParagraph footnoteReference = noteReferences.AddFootNote("footnote placeholder").Paragraph;
                     WordParagraph footnoteBody = footnoteReference.FootNote!.Paragraphs![1];
                     AppendBookmarkedComplexField(footnoteBody._paragraph, "95", "FootnoteComplexFieldBookmark", " PAGE ");
 
-                    WordParagraph endnoteReference = noteReferences.AddEndNote("endnote placeholder");
+                    WordParagraph endnoteReference = noteReferences.AddEndNote("endnote placeholder").Paragraph;
                     WordParagraph endnoteBody = endnoteReference.EndNote!.Paragraphs![1];
                     AppendBookmarkedComplexField(endnoteBody._paragraph, "96", "EndnoteComplexFieldBookmark", " NUMPAGES ");
 
@@ -158,11 +158,11 @@ namespace OfficeIMO.Tests {
                     AppendComplexField(footerParagraph._paragraph, dateInstruction, "2026-07-04");
 
                     WordParagraph noteReferences = document.AddParagraph("Notes ");
-                    WordParagraph footnoteReference = noteReferences.AddFootNote("footnote placeholder");
+                    WordParagraph footnoteReference = noteReferences.AddFootNote("footnote placeholder").Paragraph;
                     WordParagraph footnoteBody = footnoteReference.FootNote!.Paragraphs![1];
                     AppendSimpleField(footnoteBody._paragraph, dateInstruction, "2026-07-05");
 
-                    WordParagraph endnoteReference = noteReferences.AddEndNote("endnote placeholder");
+                    WordParagraph endnoteReference = noteReferences.AddEndNote("endnote placeholder").Paragraph;
                     WordParagraph endnoteBody = endnoteReference.EndNote!.Paragraphs![1];
                     AppendComplexField(endnoteBody._paragraph, dateInstruction, "2026-07-06");
 
@@ -248,7 +248,7 @@ namespace OfficeIMO.Tests {
                         BreakValues.Column);
 
                     WordParagraph noteReferences = document.AddParagraph("Notes ");
-                    WordParagraph footnoteReference = noteReferences.AddFootNote("footnote placeholder");
+                    WordParagraph footnoteReference = noteReferences.AddFootNote("footnote placeholder").Paragraph;
                     WordParagraph footnoteBody = footnoteReference.FootNote!.Paragraphs![1];
                     AppendSimpleFieldWithResultRun(
                         footnoteBody._paragraph,
@@ -256,7 +256,7 @@ namespace OfficeIMO.Tests {
                         "Footnote",
                         BreakValues.TextWrapping);
 
-                    WordParagraph endnoteReference = noteReferences.AddEndNote("endnote placeholder");
+                    WordParagraph endnoteReference = noteReferences.AddEndNote("endnote placeholder").Paragraph;
                     WordParagraph endnoteBody = endnoteReference.EndNote!.Paragraphs![1];
                     AppendComplexFieldWithResultRun(
                         endnoteBody._paragraph,
@@ -300,11 +300,11 @@ namespace OfficeIMO.Tests {
                     AppendComplexField(section.Footer.Default!.AddParagraph("Subject ")._paragraph, " SUBJECT ", "Legacy DOC subject");
 
                     WordParagraph noteReferences = document.AddParagraph("Notes ");
-                    WordParagraph footnoteReference = noteReferences.AddFootNote("footnote placeholder");
+                    WordParagraph footnoteReference = noteReferences.AddFootNote("footnote placeholder").Paragraph;
                     WordParagraph footnoteBody = footnoteReference.FootNote!.Paragraphs![1];
                     AppendSimpleField(footnoteBody._paragraph, " KEYWORDS ", "doc fields");
 
-                    WordParagraph endnoteReference = noteReferences.AddEndNote("endnote placeholder");
+                    WordParagraph endnoteReference = noteReferences.AddEndNote("endnote placeholder").Paragraph;
                     WordParagraph endnoteBody = endnoteReference.EndNote!.Paragraphs![1];
                     AppendComplexField(endnoteBody._paragraph, " LASTSAVEDBY ", "OfficeIMO");
 
@@ -381,13 +381,13 @@ namespace OfficeIMO.Tests {
                         CreateSimpleField(" SAVEDATE \\@ \"yyyy-MM-dd\" ", "2026-06-02")));
 
                     WordParagraph noteReferences = document.AddParagraph("Notes ");
-                    WordParagraph footnoteReference = noteReferences.AddFootNote("footnote placeholder");
+                    WordParagraph footnoteReference = noteReferences.AddFootNote("footnote placeholder").Paragraph;
                     WordParagraph footnoteBody = footnoteReference.FootNote!.Paragraphs![1];
                     footnoteBody._paragraph.Append(CreateInlineContentControl(
                         "Legacy DOC footnote inline field",
                         CreateSimpleField(" PRINTDATE \\@ \"yyyy-MM-dd\" ", "2026-06-03")));
 
-                    WordParagraph endnoteReference = noteReferences.AddEndNote("endnote placeholder");
+                    WordParagraph endnoteReference = noteReferences.AddEndNote("endnote placeholder").Paragraph;
                     WordParagraph endnoteBody = endnoteReference.EndNote!.Paragraphs![1];
                     endnoteBody._paragraph.Append(CreateInlineContentControl(
                         "Legacy DOC endnote inline field",
@@ -436,9 +436,9 @@ namespace OfficeIMO.Tests {
                     document.Sections[0].Header.Default!.AddParagraph("Header ").AddEquation(fractionOmml);
                     document.Sections[0].Footer.Default!.AddParagraph("Footer ").AddEquation(oneSidedOmml.Replace("<m:t>x</m:t>", "<m:t>f</m:t>"));
                     WordParagraph noteReferences = document.AddParagraph("Notes ");
-                    WordParagraph footnoteReference = noteReferences.AddFootNote("footnote placeholder");
+                    WordParagraph footnoteReference = noteReferences.AddFootNote("footnote placeholder").Paragraph;
                     footnoteReference.FootNote!.Paragraphs![1].AddEquation(oneSidedOmml.Replace("<m:t>x</m:t>", "<m:t>n</m:t>"));
-                    WordParagraph endnoteReference = noteReferences.AddEndNote("endnote placeholder");
+                    WordParagraph endnoteReference = noteReferences.AddEndNote("endnote placeholder").Paragraph;
                     endnoteReference.EndNote!.Paragraphs![1].AddEquation(oneSidedOmml.Replace("<m:t>x</m:t>", "<m:t>e</m:t>"));
                     document.Save(docPath);
                 }
@@ -507,7 +507,7 @@ namespace OfficeIMO.Tests {
                         Anchor = "header-equation-target"
                     });
 
-                    WordParagraph noteReference = document.AddParagraph("note ").AddFootNote("placeholder");
+                    WordParagraph noteReference = document.AddParagraph("note ").AddFootNote("placeholder").Paragraph;
                     WordParagraph noteBody = noteReference.FootNote!.Paragraphs![1];
                     noteBody.Text = string.Empty;
                     noteBody._paragraph.Append(new Hyperlink(

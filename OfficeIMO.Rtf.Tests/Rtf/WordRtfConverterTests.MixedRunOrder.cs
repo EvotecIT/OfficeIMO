@@ -139,7 +139,7 @@ public partial class WordRtfConverterTests {
         "body" => source.AddParagraph(),
         "cell" => source.AddTable(1, 1).Rows[0].Cells[0].Paragraphs[0],
         "header" => source.HeaderDefaultOrCreate.AddParagraph(),
-        "footnote" => source.AddParagraph("Anchor").AddFootNote("Placeholder").FootNote!.Paragraphs!.Last(),
+        "footnote" => source.AddParagraph("Anchor").AddFootNote("Placeholder").Paragraph.FootNote!.Paragraphs!.Last(),
         _ => throw new ArgumentOutOfRangeException(nameof(story))
     };
 

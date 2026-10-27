@@ -117,7 +117,7 @@ public partial class Word {
         int slot = Array.IndexOf(new[] { "default", "first", "even" }, kind);
         WordParagraph marker = (footer ? footers : headers)[slot].AddParagraph("MARK");
         SetInheritedRunningControlStyle(marker);
-        if (mode == "fields") marker.AddText(" P").AddField(WordFieldType.Page).AddText(" S").AddField(WordFieldType.SectionPages);
+        if (mode == "fields") marker.AddText(" P").AddField(WordFieldType.Page).Paragraph.AddText(" S").AddField(WordFieldType.SectionPages);
         SetInheritedRunningControlStyle(source.AddParagraph("S1"));
         WordSection later = source.AddSection(mode == "continuous" ? WordSectionBreakType.Continuous : WordSectionBreakType.NextPage);
         later.DifferentFirstPage = kind == "first";

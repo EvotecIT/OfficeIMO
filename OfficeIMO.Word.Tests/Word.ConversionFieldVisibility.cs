@@ -250,7 +250,7 @@ public sealed class WordConversionFieldVisibilityTests {
     public void HyperlinkAroundContentControlRetainsLinkAndOnlyItsOwnText() {
         using WordDocument document = WordDocument.Create();
         WordParagraph paragraph = document.AddParagraph("Prefix ");
-        WordParagraph linked = paragraph.AddHyperLink("Original", new Uri("https://example.com/"));
+        WordParagraph linked = paragraph.AddHyperLink("Original", new Uri("https://example.com/")).Paragraph;
         Hyperlink hyperlink = linked._hyperlink!;
         hyperlink.RemoveAllChildren();
         hyperlink.Append(

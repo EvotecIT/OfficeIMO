@@ -398,7 +398,7 @@ namespace OfficeIMO.Word.Markdown {
                         }
                     }
 
-                    var hyperlink = _paragraph.AddHyperLink(inline.Text, uri);
+                    var hyperlink = _paragraph.AddHyperLink(inline.Text, uri).Paragraph;
                     ApplyHyperlinkFormattingOmd(hyperlink, _fmt, _defaultFont, _options);
                 } catch (UriFormatException ex) {
                     _options.OnWarning?.Invoke($"Invalid URI '{inline.Url}' - emitting as text. {ex.Message}");
@@ -420,7 +420,7 @@ namespace OfficeIMO.Word.Markdown {
                     }
 
                     var uri = new Uri(linkUrl, UriKind.RelativeOrAbsolute);
-                    var hyperlink = _paragraph.AddHyperLink(label, uri);
+                    var hyperlink = _paragraph.AddHyperLink(label, uri).Paragraph;
                     ApplyHyperlinkFormattingOmd(hyperlink, _fmt, _defaultFont, _options);
                 } catch (UriFormatException ex) {
                     _options.OnWarning?.Invoke($"Invalid URI '{linkUrl}' - emitting alt text. {ex.Message}");

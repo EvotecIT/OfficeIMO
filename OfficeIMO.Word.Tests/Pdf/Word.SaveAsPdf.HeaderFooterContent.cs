@@ -21,7 +21,7 @@ public partial class Word {
         document.AddHeadersAndFooters();
         WordHeader header = RequireSectionHeader(document, 0, HeaderFooterValues.Default);
         WordParagraph headerParagraph = header.AddParagraph("Header ");
-        WordParagraph linked = headerParagraph.AddHyperLink("Original", new Uri("https://example.com/"));
+        WordParagraph linked = headerParagraph.AddHyperLink("Original", new Uri("https://example.com/")).Paragraph;
         Hyperlink hyperlink = linked._hyperlink!;
         hyperlink.RemoveAllChildren();
         hyperlink.Append(

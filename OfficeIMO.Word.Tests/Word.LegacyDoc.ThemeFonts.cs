@@ -22,8 +22,8 @@ public partial class Word {
             "body" => source.AddParagraph("Story heading"),
             "header" => source.HeaderDefaultOrCreate.AddParagraph("Story heading"),
             "footer" => source.FooterDefaultOrCreate.AddParagraph("Story heading"),
-            "footnote" => source.AddParagraph("Reference").AddFootNote("Story heading").FootNote!.Paragraphs!.Single(item => item.Text == "Story heading"),
-            "endnote" => source.AddParagraph("Reference").AddEndNote("Story heading").EndNote!.Paragraphs!.Single(item => item.Text == "Story heading"),
+            "footnote" => source.AddParagraph("Reference").AddFootNote("Story heading").Paragraph.FootNote!.Paragraphs!.Single(item => item.Text == "Story heading"),
+            "endnote" => source.AddParagraph("Reference").AddEndNote("Story heading").Paragraph.EndNote!.Paragraphs!.Single(item => item.Text == "Story heading"),
             _ => AddCharacterScaleComment(source)
         };
         paragraph.SetStyleId("Heading1");

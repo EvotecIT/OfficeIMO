@@ -754,9 +754,9 @@ namespace OfficeIMO.Tests {
 
             using (var document = WordDocument.Create(filePath)) {
                 WordParagraph paragraph = document.AddParagraph("External story images");
-                WordParagraph footnoteReference = paragraph.AddFootNote("Footnote ");
+                WordParagraph footnoteReference = paragraph.AddFootNote("Footnote ").Paragraph;
                 footnoteReference.FootNote!.Paragraphs![1].AddImage(footnoteUri, OfficeIMO.OfficeLength.Pixels(20), OfficeIMO.OfficeLength.Pixels(16));
-                WordParagraph endnoteReference = paragraph.AddEndNote("Endnote ");
+                WordParagraph endnoteReference = paragraph.AddEndNote("Endnote ").Paragraph;
                 endnoteReference.EndNote!.Paragraphs![1].AddImage(endnoteUri, OfficeIMO.OfficeLength.Pixels(24), OfficeIMO.OfficeLength.Pixels(18));
                 paragraph.AddComment("OfficeIMO", "OI", "Comment ");
                 Assert.Single(document.Comments).Paragraphs[0].AddImage(commentUri, OfficeIMO.OfficeLength.Pixels(18), OfficeIMO.OfficeLength.Pixels(14));

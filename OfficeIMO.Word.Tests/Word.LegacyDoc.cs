@@ -3674,12 +3674,12 @@ namespace OfficeIMO.Tests {
                     ReplaceHyperlinkDisplayWithInlineContentControl(footerParagraph.Hyperlink!._hyperlink, "Legacy DOC footer hyperlink inline content control", "FooterLinkOne", "FooterLinkNested", "FooterLinkTwo");
 
                     WordParagraph noteReferences = document.AddParagraph("Notes ");
-                    WordParagraph footnoteReference = noteReferences.AddFootNote("footnote placeholder");
+                    WordParagraph footnoteReference = noteReferences.AddFootNote("footnote placeholder").Paragraph;
                     WordParagraph footnoteBody = footnoteReference.FootNote!.Paragraphs![1];
                     footnoteBody.AddHyperLink("placeholder", new Uri("https://officeimo.net/footnote-inline-control"), addStyle: true);
                     ReplaceHyperlinkDisplayWithInlineContentControl(footnoteBody.Hyperlink!._hyperlink, "Legacy DOC footnote hyperlink inline content control", "FootnoteLinkOne", "FootnoteLinkNested", "FootnoteLinkTwo");
 
-                    WordParagraph endnoteReference = noteReferences.AddEndNote("endnote placeholder");
+                    WordParagraph endnoteReference = noteReferences.AddEndNote("endnote placeholder").Paragraph;
                     WordParagraph endnoteBody = endnoteReference.EndNote!.Paragraphs![1];
                     endnoteBody.AddHyperLink("placeholder", new Uri("mailto:endnote@example.org"), addStyle: true);
                     ReplaceHyperlinkDisplayWithInlineContentControl(endnoteBody.Hyperlink!._hyperlink, "Legacy DOC endnote hyperlink inline content control", "EndnoteLinkOne", "EndnoteLinkNested", "EndnoteLinkTwo");
@@ -4361,7 +4361,7 @@ namespace OfficeIMO.Tests {
                 using (WordDocument document = WordDocument.Create()) {
                     WordParagraph paragraph = document.AddParagraph("Body with linked notes");
 
-                    WordParagraph footnoteReference = paragraph.AddFootNote("footnote ");
+                    WordParagraph footnoteReference = paragraph.AddFootNote("footnote ").Paragraph;
                     WordParagraph footnoteBody = footnoteReference.FootNote!.Paragraphs![1];
                     footnoteBody.AddHyperLink("site", new Uri("https://officeimo.net/footnote"), addStyle: true);
                     footnoteBody.Hyperlink!._hyperlink.Append(new Run(new TabChar()));
@@ -4371,7 +4371,7 @@ namespace OfficeIMO.Tests {
                     footnoteBody.Hyperlink!._hyperlink.Append(new Run(new Break { Type = BreakValues.Page }));
                     footnoteBody.Hyperlink!._hyperlink.Append(new Run(new Text("page") { Space = SpaceProcessingModeValues.Preserve }));
 
-                    WordParagraph endnoteReference = paragraph.AddEndNote("endnote ");
+                    WordParagraph endnoteReference = paragraph.AddEndNote("endnote ").Paragraph;
                     WordParagraph endnoteBody = endnoteReference.EndNote!.Paragraphs![1];
                     endnoteBody.AddHyperLink("mail", new Uri("mailto:endnote@example.org"), addStyle: true);
                     endnoteBody.Hyperlink!._hyperlink.Append(new Run(new Break()));
@@ -4432,7 +4432,7 @@ namespace OfficeIMO.Tests {
                 using (WordDocument document = WordDocument.Create()) {
                     WordParagraph paragraph = document.AddParagraph("Body with controlled notes");
 
-                    WordParagraph footnoteReference = paragraph.AddFootNote("footnote placeholder");
+                    WordParagraph footnoteReference = paragraph.AddFootNote("footnote placeholder").Paragraph;
                     WordParagraph footnoteBody = footnoteReference.FootNote!.Paragraphs![1];
                     footnoteBody._paragraph.RemoveAllChildren<Run>();
                     footnoteBody._paragraph.Append(new Run(new Text("FootnoteContentOne") { Space = SpaceProcessingModeValues.Preserve }));
@@ -4449,7 +4449,7 @@ namespace OfficeIMO.Tests {
                                 new SdtContentBlock(new Paragraph(new Run(new Text("FootnoteContentNested") { Space = SpaceProcessingModeValues.Preserve })))),
                             new Paragraph(new Run(new Text("FootnoteContentTwo") { Space = SpaceProcessingModeValues.Preserve })))));
 
-                    WordParagraph endnoteReference = paragraph.AddEndNote("endnote placeholder");
+                    WordParagraph endnoteReference = paragraph.AddEndNote("endnote placeholder").Paragraph;
                     WordParagraph endnoteBody = endnoteReference.EndNote!.Paragraphs![1];
                     endnoteBody._paragraph.RemoveAllChildren<Run>();
                     endnoteBody._paragraph.Append(new Run(new Text("EndnoteContentOne") { Space = SpaceProcessingModeValues.Preserve }));
@@ -4497,7 +4497,7 @@ namespace OfficeIMO.Tests {
                 using (WordDocument document = WordDocument.Create()) {
                     WordParagraph paragraph = document.AddParagraph("Body with bookmark-only note content controls");
 
-                    WordParagraph footnoteReference = paragraph.AddFootNote("footnote placeholder");
+                    WordParagraph footnoteReference = paragraph.AddFootNote("footnote placeholder").Paragraph;
                     Footnote sourceFootnote = document._wordprocessingDocument.MainDocumentPart!.FootnotesPart!.Footnotes!
                         .Elements<Footnote>()
                         .Single(note => note.Id?.Value == footnoteReference.FootNote!.ReferenceId);
@@ -4509,7 +4509,7 @@ namespace OfficeIMO.Tests {
                             new BookmarkEnd { Id = "77" },
                             new Paragraph(new Run(new Text("FootnoteAfterBookmark") { Space = SpaceProcessingModeValues.Preserve })))));
 
-                    WordParagraph endnoteReference = paragraph.AddEndNote("endnote placeholder");
+                    WordParagraph endnoteReference = paragraph.AddEndNote("endnote placeholder").Paragraph;
                     Endnote sourceEndnote = document._wordprocessingDocument.MainDocumentPart!.EndnotesPart!.Endnotes!
                         .Elements<Endnote>()
                         .Single(note => note.Id?.Value == endnoteReference.EndNote!.ReferenceId);
@@ -4590,7 +4590,7 @@ namespace OfficeIMO.Tests {
                         CreateTextRun("FooterInlineTwo"))));
 
                     WordParagraph noteReferences = document.AddParagraph("Body with inline controlled notes");
-                    WordParagraph footnoteReference = noteReferences.AddFootNote("footnote placeholder");
+                    WordParagraph footnoteReference = noteReferences.AddFootNote("footnote placeholder").Paragraph;
                     WordParagraph footnoteBody = footnoteReference.FootNote!.Paragraphs![1];
                     footnoteBody._paragraph.RemoveAllChildren<Run>();
                     footnoteBody._paragraph.Append(CreateInlineContentControl(
@@ -4599,7 +4599,7 @@ namespace OfficeIMO.Tests {
                         CreateInlineContentControl("Legacy DOC nested footnote inline content control", CreateTextRun("FootnoteInlineNested")),
                         CreateTextRun("FootnoteInlineTwo")));
 
-                    WordParagraph endnoteReference = noteReferences.AddEndNote("endnote placeholder");
+                    WordParagraph endnoteReference = noteReferences.AddEndNote("endnote placeholder").Paragraph;
                     WordParagraph endnoteBody = endnoteReference.EndNote!.Paragraphs![1];
                     endnoteBody._paragraph.RemoveAllChildren<Run>();
                     endnoteBody._paragraph.Append(CreateInlineContentControl(
@@ -4650,7 +4650,7 @@ namespace OfficeIMO.Tests {
                 using (WordDocument document = WordDocument.Create()) {
                     WordParagraph paragraph = document.AddParagraph("Body with bookmarked notes");
 
-                    WordParagraph footnoteReference = paragraph.AddFootNote("footnote placeholder");
+                    WordParagraph footnoteReference = paragraph.AddFootNote("footnote placeholder").Paragraph;
                     WordParagraph footnoteBody = footnoteReference.FootNote!.Paragraphs![1];
                     footnoteBody._paragraph.RemoveAllChildren<Run>();
                     footnoteBody._paragraph.Append(
@@ -4658,7 +4658,7 @@ namespace OfficeIMO.Tests {
                         new Run(new Text("FootnoteMarked") { Space = SpaceProcessingModeValues.Preserve }),
                         new BookmarkEnd { Id = "71" });
 
-                    WordParagraph endnoteReference = paragraph.AddEndNote("endnote placeholder");
+                    WordParagraph endnoteReference = paragraph.AddEndNote("endnote placeholder").Paragraph;
                     WordParagraph endnoteBody = endnoteReference.EndNote!.Paragraphs![1];
                     endnoteBody._paragraph.RemoveAllChildren<Run>();
                     endnoteBody._paragraph.Append(
@@ -4700,7 +4700,7 @@ namespace OfficeIMO.Tests {
                 using (WordDocument document = WordDocument.Create()) {
                     WordParagraph paragraph = document.AddParagraph("Body with cross bookmarked notes");
 
-                    WordParagraph footnoteReference = paragraph.AddFootNote("footnote placeholder");
+                    WordParagraph footnoteReference = paragraph.AddFootNote("footnote placeholder").Paragraph;
                     WordParagraph firstFootnoteBody = footnoteReference.FootNote!.Paragraphs![1];
                     firstFootnoteBody._paragraph.RemoveAllChildren<Run>();
                     firstFootnoteBody._paragraph.Append(
@@ -4712,7 +4712,7 @@ namespace OfficeIMO.Tests {
                         new Run(new Text("FootnoteSecond") { Space = SpaceProcessingModeValues.Preserve }),
                         new BookmarkEnd { Id = "73" });
 
-                    WordParagraph endnoteReference = paragraph.AddEndNote("endnote placeholder");
+                    WordParagraph endnoteReference = paragraph.AddEndNote("endnote placeholder").Paragraph;
                     WordParagraph firstEndnoteBody = endnoteReference.EndNote!.Paragraphs![1];
                     firstEndnoteBody._paragraph.RemoveAllChildren<Run>();
                     firstEndnoteBody._paragraph.Append(
@@ -4760,7 +4760,7 @@ namespace OfficeIMO.Tests {
                 using (WordDocument document = WordDocument.Create()) {
                     WordParagraph paragraph = document.AddParagraph("Body with note level bookmarks");
 
-                    WordParagraph footnoteReference = paragraph.AddFootNote("footnote placeholder");
+                    WordParagraph footnoteReference = paragraph.AddFootNote("footnote placeholder").Paragraph;
                     WordParagraph firstFootnoteBody = footnoteReference.FootNote!.Paragraphs![1];
                     firstFootnoteBody._paragraph.RemoveAllChildren<Run>();
                     firstFootnoteBody._paragraph.Append(new Run(new Text("FootnoteFirst") { Space = SpaceProcessingModeValues.Preserve }));
@@ -4773,7 +4773,7 @@ namespace OfficeIMO.Tests {
                     footnote.InsertBefore(new BookmarkStart { Id = "75", Name = "FootnoteLevelBookmark" }, firstFootnoteBody._paragraph);
                     footnote.InsertBefore(new BookmarkEnd { Id = "75" }, secondFootnoteBody._paragraph);
 
-                    WordParagraph endnoteReference = paragraph.AddEndNote("endnote placeholder");
+                    WordParagraph endnoteReference = paragraph.AddEndNote("endnote placeholder").Paragraph;
                     WordParagraph firstEndnoteBody = endnoteReference.EndNote!.Paragraphs![1];
                     firstEndnoteBody._paragraph.RemoveAllChildren<Run>();
                     firstEndnoteBody._paragraph.Append(new Run(new Text("EndnoteFirst") { Space = SpaceProcessingModeValues.Preserve }));
@@ -5019,7 +5019,7 @@ namespace OfficeIMO.Tests {
             try {
                 using (WordDocument document = WordDocument.Create()) {
                     WordParagraph paragraph = document.AddParagraph(bodyText);
-                    WordParagraph reference = paragraph.AddFootNote("plain ");
+                    WordParagraph reference = paragraph.AddFootNote("plain ").Paragraph;
                     WordParagraph noteBody = reference.FootNote!.Paragraphs![1];
                     noteBody.AddText("bold ").SetBold();
                     noteBody.AddText("italic").SetItalic();
@@ -5102,12 +5102,12 @@ namespace OfficeIMO.Tests {
             try {
                 using (WordDocument document = WordDocument.Create()) {
                     WordParagraph paragraph = document.AddParagraph("Body with note page fields");
-                    WordParagraph footnoteReference = paragraph.AddFootNote("Footnote page ");
+                    WordParagraph footnoteReference = paragraph.AddFootNote("Footnote page ").Paragraph;
                     WordParagraph footnoteBody = footnoteReference.FootNote!.Paragraphs!.Single(noteParagraph => noteParagraph.Text == "Footnote page ");
                     footnoteBody.AddPageNumber(includeTotalPages: true);
                     footnoteBody.AddText(" done");
 
-                    WordParagraph endnoteReference = paragraph.AddEndNote("Endnote page ");
+                    WordParagraph endnoteReference = paragraph.AddEndNote("Endnote page ").Paragraph;
                     WordParagraph endnoteBody = endnoteReference.EndNote!.Paragraphs!.Single(noteParagraph => noteParagraph.Text == "Endnote page ");
                     endnoteBody.AddPageNumber(includeTotalPages: true);
                     endnoteBody.AddText(" done");
@@ -5138,14 +5138,14 @@ namespace OfficeIMO.Tests {
             try {
                 using (WordDocument document = WordDocument.Create()) {
                     WordParagraph paragraph = document.AddParagraph("Body with note complex page fields");
-                    WordParagraph footnoteReference = paragraph.AddFootNote("Footnote page ");
+                    WordParagraph footnoteReference = paragraph.AddFootNote("Footnote page ").Paragraph;
                     WordParagraph footnoteBody = footnoteReference.FootNote!.Paragraphs!.Single(noteParagraph => noteParagraph.Text == "Footnote page ");
                     footnoteBody.AddField(WordFieldType.Page, advanced: true);
                     footnoteBody.AddText(" of ");
                     footnoteBody.AddField(WordFieldType.NumPages, advanced: true);
                     footnoteBody.AddText(" done");
 
-                    WordParagraph endnoteReference = paragraph.AddEndNote("Endnote page ");
+                    WordParagraph endnoteReference = paragraph.AddEndNote("Endnote page ").Paragraph;
                     WordParagraph endnoteBody = endnoteReference.EndNote!.Paragraphs!.Single(noteParagraph => noteParagraph.Text == "Endnote page ");
                     endnoteBody.AddField(WordFieldType.Page, advanced: true);
                     endnoteBody.AddText(" of ");
@@ -5179,7 +5179,7 @@ namespace OfficeIMO.Tests {
             try {
                 using (WordDocument document = WordDocument.Create()) {
                     WordParagraph paragraph = document.AddParagraph(bodyText);
-                    WordParagraph reference = paragraph.AddEndNote("plain ");
+                    WordParagraph reference = paragraph.AddEndNote("plain ").Paragraph;
                     WordParagraph noteBody = reference.EndNote!.Paragraphs![1];
                     noteBody.AddText("bold ").SetBold();
                     noteBody.AddText("italic").SetItalic();
@@ -5222,11 +5222,11 @@ namespace OfficeIMO.Tests {
             try {
                 using (WordDocument document = WordDocument.Create()) {
                     WordParagraph paragraph = document.AddParagraph(bodyText);
-                    WordParagraph footnoteReference = paragraph.AddFootNote("Centered footnote");
+                    WordParagraph footnoteReference = paragraph.AddFootNote("Centered footnote").Paragraph;
                     WordParagraph footnoteBody = footnoteReference.FootNote!.Paragraphs!.Single(noteParagraph => noteParagraph.Text == "Centered footnote");
                     ApplyNoteParagraphFormatting(footnoteBody, WordParagraphAlignment.Center);
 
-                    WordParagraph endnoteReference = paragraph.AddEndNote("Right endnote");
+                    WordParagraph endnoteReference = paragraph.AddEndNote("Right endnote").Paragraph;
                     WordParagraph endnoteBody = endnoteReference.EndNote!.Paragraphs!.Single(noteParagraph => noteParagraph.Text == "Right endnote");
                     ApplyNoteParagraphFormatting(endnoteBody, WordParagraphAlignment.Right);
 
@@ -5254,12 +5254,12 @@ namespace OfficeIMO.Tests {
             try {
                 using (WordDocument document = WordDocument.Create()) {
                     WordParagraph paragraph = document.AddParagraph(bodyText);
-                    WordParagraph footnoteReference = paragraph.AddFootNote("Footnote first");
+                    WordParagraph footnoteReference = paragraph.AddFootNote("Footnote first").Paragraph;
                     WordParagraph footnoteBody = footnoteReference.FootNote!.Paragraphs!.Single(noteParagraph => noteParagraph.Text == "Footnote first");
                     WordParagraph footnoteEmpty = footnoteBody.AddParagraph();
                     footnoteEmpty.AddParagraph("Footnote last");
 
-                    WordParagraph endnoteReference = paragraph.AddEndNote("Endnote first");
+                    WordParagraph endnoteReference = paragraph.AddEndNote("Endnote first").Paragraph;
                     WordParagraph endnoteBody = endnoteReference.EndNote!.Paragraphs!.Single(noteParagraph => noteParagraph.Text == "Endnote first");
                     WordParagraph endnoteEmpty = endnoteBody.AddParagraph();
                     endnoteEmpty.AddParagraph("Endnote last");
@@ -5294,7 +5294,7 @@ namespace OfficeIMO.Tests {
             try {
                 using (WordDocument document = WordDocument.Create()) {
                     WordParagraph paragraph = document.AddParagraph(bodyText);
-                    WordParagraph footnoteReference = paragraph.AddFootNote("Footnote first");
+                    WordParagraph footnoteReference = paragraph.AddFootNote("Footnote first").Paragraph;
                     WordParagraph footnoteBody = footnoteReference.FootNote!.Paragraphs!.Single(noteParagraph => noteParagraph.Text == "Footnote first");
                     footnoteBody.AddBreak();
                     footnoteBody.AddText("Footnote second");
@@ -5303,7 +5303,7 @@ namespace OfficeIMO.Tests {
                     footnoteBody.AddBreak(WordBreakType.Column);
                     footnoteBody.AddText("Footnote column");
 
-                    WordParagraph endnoteReference = paragraph.AddEndNote("Endnote first");
+                    WordParagraph endnoteReference = paragraph.AddEndNote("Endnote first").Paragraph;
                     WordParagraph endnoteBody = endnoteReference.EndNote!.Paragraphs!.Single(noteParagraph => noteParagraph.Text == "Endnote first");
                     endnoteBody.AddBreak();
                     endnoteBody.AddText("Endnote second");
@@ -5334,12 +5334,12 @@ namespace OfficeIMO.Tests {
             try {
                 using (WordDocument document = WordDocument.Create()) {
                     WordParagraph paragraph = document.AddParagraph(bodyText);
-                    WordParagraph footnoteReference = paragraph.AddFootNote("Footnote first");
+                    WordParagraph footnoteReference = paragraph.AddFootNote("Footnote first").Paragraph;
                     WordParagraph footnoteBody = footnoteReference.FootNote!.Paragraphs!.Single(noteParagraph => noteParagraph.Text == "Footnote first");
                     footnoteBody.AddBreak(WordBreakType.Page);
                     footnoteBody.AddText("Footnote page");
 
-                    WordParagraph endnoteReference = paragraph.AddEndNote("Endnote first");
+                    WordParagraph endnoteReference = paragraph.AddEndNote("Endnote first").Paragraph;
                     WordParagraph endnoteBody = endnoteReference.EndNote!.Paragraphs!.Single(noteParagraph => noteParagraph.Text == "Endnote first");
                     endnoteBody.AddBreak(WordBreakType.Page);
                     endnoteBody.AddText("Endnote page");
@@ -6130,9 +6130,9 @@ namespace OfficeIMO.Tests {
                     footer._paragraph.Append(new Run(new NoBreakHyphen()), new Run(new Text("NoBreak")), new Run(new SoftHyphen()), new Run(new Text("Soft")));
 
                     WordParagraph paragraph = document.AddParagraph("Notes");
-                    WordParagraph footnoteReference = paragraph.AddFootNote("Footnote");
+                    WordParagraph footnoteReference = paragraph.AddFootNote("Footnote").Paragraph;
                     footnoteReference.FootNote!.Paragraphs![1]._paragraph.Append(new Run(new NoBreakHyphen()), new Run(new Text("NoBreak")), new Run(new SoftHyphen()), new Run(new Text("Soft")));
-                    WordParagraph endnoteReference = paragraph.AddEndNote("Endnote");
+                    WordParagraph endnoteReference = paragraph.AddEndNote("Endnote").Paragraph;
                     endnoteReference.EndNote!.Paragraphs![1]._paragraph.Append(new Run(new NoBreakHyphen()), new Run(new Text("NoBreak")), new Run(new SoftHyphen()), new Run(new Text("Soft")));
 
                     document.Save(docPath);
@@ -6179,9 +6179,9 @@ namespace OfficeIMO.Tests {
                     footer._paragraph.Append(new Run(new LastRenderedPageBreak()), new Run(new Text("After")));
 
                     WordParagraph paragraph = document.AddParagraph("Notes");
-                    WordParagraph footnoteReference = paragraph.AddFootNote("Footnote");
+                    WordParagraph footnoteReference = paragraph.AddFootNote("Footnote").Paragraph;
                     footnoteReference.FootNote!.Paragraphs![1]._paragraph.Append(new Run(new LastRenderedPageBreak()), new Run(new Text("After")));
-                    WordParagraph endnoteReference = paragraph.AddEndNote("Endnote");
+                    WordParagraph endnoteReference = paragraph.AddEndNote("Endnote").Paragraph;
                     endnoteReference.EndNote!.Paragraphs![1]._paragraph.Append(new Run(new LastRenderedPageBreak()), new Run(new Text("After")));
 
                     document.Save(docPath);
@@ -6237,12 +6237,12 @@ namespace OfficeIMO.Tests {
                     AddProofErrorBoundary(footer.Hyperlink!._hyperlink);
 
                     WordParagraph paragraph = document.AddParagraph("Notes");
-                    WordParagraph footnoteReference = paragraph.AddFootNote("Footnote");
+                    WordParagraph footnoteReference = paragraph.AddFootNote("Footnote").Paragraph;
                     WordParagraph footnoteBody = footnoteReference.FootNote!.Paragraphs![1];
                     footnoteBody._paragraph.Append(new ProofError { Type = ProofingErrorValues.SpellStart }, new Run(new Text("After")), new ProofError { Type = ProofingErrorValues.SpellEnd });
                     footnoteBody.AddHyperLink("link", new Uri("https://officeimo.net/footnote-proofing"), addStyle: true);
                     AddProofErrorBoundary(footnoteBody.Hyperlink!._hyperlink);
-                    WordParagraph endnoteReference = paragraph.AddEndNote("Endnote");
+                    WordParagraph endnoteReference = paragraph.AddEndNote("Endnote").Paragraph;
                     WordParagraph endnoteBody = endnoteReference.EndNote!.Paragraphs![1];
                     endnoteBody._paragraph.Append(new ProofError { Type = ProofingErrorValues.SpellStart }, new Run(new Text("After")), new ProofError { Type = ProofingErrorValues.SpellEnd });
                     endnoteBody.AddHyperLink("link", new Uri("mailto:endnote-proofing@example.org"), addStyle: true);
@@ -6335,11 +6335,11 @@ namespace OfficeIMO.Tests {
                     AddProofErrorAroundComplexFieldResults(footer._paragraph);
 
                     WordParagraph paragraph = document.AddParagraph("Notes");
-                    WordParagraph footnoteBody = paragraph.AddFootNote("Footnote").FootNote!.Paragraphs![1];
+                    WordParagraph footnoteBody = paragraph.AddFootNote("Footnote").Paragraph.FootNote!.Paragraphs![1];
                     footnoteBody.AddField(WordFieldType.Page, advanced: true);
                     AddProofErrorAroundComplexFieldResults(footnoteBody._paragraph);
 
-                    WordParagraph endnoteBody = paragraph.AddEndNote("Endnote").EndNote!.Paragraphs![1];
+                    WordParagraph endnoteBody = paragraph.AddEndNote("Endnote").Paragraph.EndNote!.Paragraphs![1];
                     endnoteBody.AddField(WordFieldType.Page, advanced: true);
                     AddProofErrorAroundComplexFieldResults(endnoteBody._paragraph);
 
@@ -10594,7 +10594,7 @@ namespace OfficeIMO.Tests {
             try {
                 using (WordDocument document = WordDocument.Create()) {
                     WordParagraph paragraph = document.AddParagraph("Body");
-                    WordParagraph footnoteReference = paragraph.AddFootNote("Rich footnote");
+                    WordParagraph footnoteReference = paragraph.AddFootNote("Rich footnote").Paragraph;
                     WordParagraph footnoteBody = footnoteReference.FootNote!.Paragraphs!.Single(noteParagraph => noteParagraph.Text == "Rich footnote");
                     ParagraphProperties paragraphProperties = footnoteBody._paragraph.GetFirstChild<ParagraphProperties>()
                         ?? footnoteBody._paragraph.PrependChild(new ParagraphProperties());
@@ -10636,11 +10636,11 @@ namespace OfficeIMO.Tests {
                         .GetOrCreateFooter(WordHeaderFooterType.Default)
                         .AddParagraph("Footer section break"),
                     "footnote" => document.AddParagraph("Footnote reference")
-                        .AddFootNote("Footnote section break")
+                        .AddFootNote("Footnote section break").Paragraph
                         .FootNote!.Paragraphs!
                         .Single(noteParagraph => noteParagraph.Text == "Footnote section break"),
                     "endnote" => document.AddParagraph("Endnote reference")
-                        .AddEndNote("Endnote section break")
+                        .AddEndNote("Endnote section break").Paragraph
                         .EndNote!.Paragraphs!
                         .Single(noteParagraph => noteParagraph.Text == "Endnote section break"),
                     _ => throw new ArgumentOutOfRangeException(nameof(storyKind), storyKind, null)
@@ -10854,8 +10854,8 @@ namespace OfficeIMO.Tests {
                 section.GetOrCreateFooter(WordHeaderFooterType.Default).AddParagraph("Footer ").AddDeletedText("deleted", "Bob", revisionDate);
 
                 WordParagraph paragraph = document.AddParagraph("Notes");
-                paragraph.AddFootNote("Footnote").FootNote!.Paragraphs![1].AddInsertedText(" inserted", "Alice", revisionDate);
-                paragraph.AddEndNote("Endnote").EndNote!.Paragraphs![1].AddDeletedText(" deleted", "Bob", revisionDate);
+                paragraph.AddFootNote("Footnote").Paragraph.FootNote!.Paragraphs![1].AddInsertedText(" inserted", "Alice", revisionDate);
+                paragraph.AddEndNote("Endnote").Paragraph.EndNote!.Paragraphs![1].AddDeletedText(" deleted", "Bob", revisionDate);
 
                 document.Save(docPath);
 
@@ -11119,8 +11119,8 @@ namespace OfficeIMO.Tests {
                 AddCommentMarkers(section.GetOrCreateFooter(WordHeaderFooterType.Default).AddParagraph("Footer "), "102");
 
                 WordParagraph paragraph = document.AddParagraph("Notes");
-                AddCommentMarkers(paragraph.AddFootNote("Footnote").FootNote!.Paragraphs![1], "103");
-                AddCommentMarkers(paragraph.AddEndNote("Endnote").EndNote!.Paragraphs![1], "104");
+                AddCommentMarkers(paragraph.AddFootNote("Footnote").Paragraph.FootNote!.Paragraphs![1], "103");
+                AddCommentMarkers(paragraph.AddEndNote("Endnote").Paragraph.EndNote!.Paragraphs![1], "104");
 
                 NotSupportedException exception = Assert.Throws<NotSupportedException>(() => document.Save(docPath));
 
@@ -11281,9 +11281,9 @@ namespace OfficeIMO.Tests {
             try {
                 using (WordDocument document = WordDocument.Create()) {
                     WordParagraph paragraph = document.AddParagraph("Pictures in stories");
-                    WordParagraph footnoteReference = paragraph.AddFootNote("Footnote ");
+                    WordParagraph footnoteReference = paragraph.AddFootNote("Footnote ").Paragraph;
                     footnoteReference.FootNote!.Paragraphs![1].AddImage(jpegPath, OfficeIMO.OfficeLength.Pixels(20), OfficeIMO.OfficeLength.Pixels(18));
-                    WordParagraph endnoteReference = paragraph.AddEndNote("Endnote ");
+                    WordParagraph endnoteReference = paragraph.AddEndNote("Endnote ").Paragraph;
                     endnoteReference.EndNote!.Paragraphs![1].AddImage(pngPath, OfficeIMO.OfficeLength.Pixels(24), OfficeIMO.OfficeLength.Pixels(16));
                     paragraph.AddComment("OfficeIMO", "OI", "Comment ");
                     Assert.Single(document.Comments).Paragraphs[0].AddImage(jpegPath, OfficeIMO.OfficeLength.Pixels(18), OfficeIMO.OfficeLength.Pixels(14));

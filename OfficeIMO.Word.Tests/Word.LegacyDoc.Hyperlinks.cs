@@ -31,12 +31,12 @@ namespace OfficeIMO.Tests {
                     ReplaceHyperlinkDisplayWithBookmark(footerParagraph.Hyperlink!._hyperlink, "74", "FooterHyperlinkBookmark", "FooterMarked");
 
                     WordParagraph noteReferences = document.AddParagraph("Notes ");
-                    WordParagraph footnoteReference = noteReferences.AddFootNote("footnote placeholder");
+                    WordParagraph footnoteReference = noteReferences.AddFootNote("footnote placeholder").Paragraph;
                     WordParagraph footnoteBody = footnoteReference.FootNote!.Paragraphs![1];
                     footnoteBody.AddHyperLink("placeholder", new Uri("https://officeimo.net/footnote-bookmark"), addStyle: true);
                     ReplaceHyperlinkDisplayWithBookmark(footnoteBody.Hyperlink!._hyperlink, "75", "FootnoteHyperlinkBookmark", "FootnoteMarked");
 
-                    WordParagraph endnoteReference = noteReferences.AddEndNote("endnote placeholder");
+                    WordParagraph endnoteReference = noteReferences.AddEndNote("endnote placeholder").Paragraph;
                     WordParagraph endnoteBody = endnoteReference.EndNote!.Paragraphs![1];
                     endnoteBody.AddHyperLink("placeholder", new Uri("mailto:endnote-bookmark@example.org"), addStyle: true);
                     ReplaceHyperlinkDisplayWithBookmark(endnoteBody.Hyperlink!._hyperlink, "76", "EndnoteHyperlinkBookmark", "EndnoteMarked");

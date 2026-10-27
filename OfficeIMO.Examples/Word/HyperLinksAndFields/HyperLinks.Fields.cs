@@ -14,7 +14,7 @@ namespace OfficeIMO.Examples.Word {
 
                 document.AddParagraph("Our title is ").AddField(WordFieldType.Title, WordFieldFormat.Caps);
 
-                var para = document.AddParagraph("Our author is ").AddField(WordFieldType.Author);
+                var para = document.AddParagraph("Our author is ").AddField(WordFieldType.Author).Paragraph;
                 Console.WriteLine("----");
                 Console.WriteLine(document.Fields[0].FieldFormat);
                 Console.WriteLine(document.Fields[0].FieldType);

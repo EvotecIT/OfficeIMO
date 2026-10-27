@@ -14,7 +14,7 @@ internal static class ProjectCharter {
         document.AddParagraph("NORTHWIND / CUSTOMER PORTAL / VERSION 1.0");
         document.AddParagraph("Give the delivery team one agreed reference for the outcome, scope, and acceptance decision.");
 
-        document.AddParagraph("Outcome and boundaries").AddBookmark("Scope").Style = WordParagraphStyles.Heading2;
+        document.AddParagraph("Outcome and boundaries").AddBookmark("Scope").Paragraph.Style = WordParagraphStyles.Heading2;
         WordList scope = document.AddList(WordListStyle.Bulleted);
         scope.AddItem("Provide a single place to submit and track service requests.");
         scope.AddItem("Include request history and a clear escalation path.");

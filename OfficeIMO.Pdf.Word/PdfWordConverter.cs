@@ -643,7 +643,7 @@ namespace OfficeIMO.Pdf.Word {
             ApplySourceParagraphSpacing(paragraph, options);
             WordParagraph hyperlink;
             if (target.IsUri) {
-                hyperlink = paragraph.AddHyperLink(text, target.Uri!, addStyle: true, tooltip: "Imported PDF link from page " + link.PageNumber.ToString(CultureInfo.InvariantCulture));
+                hyperlink = paragraph.AddHyperLink(text, target.Uri!, addStyle: true, tooltip: "Imported PDF link from page " + link.PageNumber.ToString(CultureInfo.InvariantCulture)).Paragraph;
                 if (fontSizePoints > 0D) hyperlink.FontSizePoints = BoundEditableFontSize(fontSizePoints.Value);
                 AddWarning(
                     options,
@@ -658,7 +658,7 @@ namespace OfficeIMO.Pdf.Word {
                 return paragraph;
             }
 
-            hyperlink = paragraph.AddHyperLink(text, target.Anchor!, addStyle: true, tooltip: "Imported PDF internal link from page " + link.PageNumber.ToString(CultureInfo.InvariantCulture));
+            hyperlink = paragraph.AddHyperLink(text, target.Anchor!, addStyle: true, tooltip: "Imported PDF internal link from page " + link.PageNumber.ToString(CultureInfo.InvariantCulture)).Paragraph;
             if (fontSizePoints > 0D) hyperlink.FontSizePoints = BoundEditableFontSize(fontSizePoints.Value);
             AddWarning(
                 options,

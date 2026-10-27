@@ -39,7 +39,7 @@ namespace OfficeIMO.Tests {
         public void Test_WordToHtml_NotesDoNotReserveRevisionContentOmittedFromOriginalView(bool footnote) {
             using WordDocument document = WordDocument.Create();
             WordParagraph source = document.AddParagraph("Reference");
-            WordParagraph reference = footnote ? source.AddFootNote("Visible") : source.AddEndNote("Visible");
+            WordParagraph reference = footnote ? source.AddFootNote("Visible").Paragraph : source.AddEndNote("Visible").Paragraph;
             WordParagraph note = footnote ? reference.FootNote!.Paragraphs!.Skip(1).First() :
                 reference.EndNote!.Paragraphs!.Skip(1).First();
             note.AddInsertedText(new string('x', 16_384), "Reviewer");
@@ -684,7 +684,7 @@ namespace OfficeIMO.Tests {
         public void Test_WordToHtml_OutputBudgetReservesRepeatedFootnoteReferenceMetadata() {
             using WordDocument document = WordDocument.Create();
             WordParagraph paragraph = document.AddParagraph("Notes");
-            WordParagraph reference = paragraph.AddFootNote("shared note");
+            WordParagraph reference = paragraph.AddFootNote("shared note").Paragraph;
             for (int index = 0; index < 256; index++) {
                 paragraph._paragraph.Append(reference._run!.CloneNode(true));
             }

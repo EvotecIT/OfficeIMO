@@ -1277,11 +1277,11 @@
       "category": "authoring",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Returns the attached model. Access its Paragraph when subsequent authoring needs the containing paragraph."
     },
     {
       "old": "OfficeIMO.Word.WordParagraph.AddEmbeddedObject(string filePath, string imageFilePath, double? width = null, double? height = null)",
@@ -1293,11 +1293,11 @@
       "category": "authoring",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Returns the attached model. Access its Paragraph when subsequent authoring needs the containing paragraph."
     },
     {
       "old": "OfficeIMO.Word.WordParagraph.AddEmbeddedObject(string filePath, WordEmbeddedObjectOptions options)",
@@ -1309,11 +1309,11 @@
       "category": "authoring",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Returns the attached model. Access its Paragraph when subsequent authoring needs the containing paragraph."
     },
     {
       "old": "OfficeIMO.Word.WordParagraph.AddFootNote(string text)",
@@ -1325,11 +1325,11 @@
       "category": "authoring",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Returns the attached model. Access its Paragraph when subsequent authoring needs the containing paragraph."
     },
     {
       "old": "OfficeIMO.Word.WordParagraph.AddEndNote(string text)",
@@ -1341,11 +1341,11 @@
       "category": "authoring",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Returns the attached model. Access its Paragraph when subsequent authoring needs the containing paragraph."
     },
     {
       "old": "OfficeIMO.Word.WordParagraph.AddComment(string author, string initials, string comment)",
@@ -1357,11 +1357,11 @@
       "category": "authoring",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Returns the attached model. Access its Paragraph when subsequent authoring needs the containing paragraph."
     },
     {
       "old": "OfficeIMO.Word.WordParagraph.AddBookmark(string bookmarkName)",
@@ -1373,11 +1373,11 @@
       "category": "authoring",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Returns the attached model. Access its Paragraph when subsequent authoring needs the containing paragraph."
     },
     {
       "old": "OfficeIMO.Word.WordParagraph.AddCrossReference(string referenceId, WordCrossReferenceType type)",
@@ -1389,11 +1389,11 @@
       "category": "authoring",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Returns the attached model. Access its Paragraph when subsequent authoring needs the containing paragraph."
     },
     {
       "old": "OfficeIMO.Word.WordParagraph.AddCitation(string sourceTag)",
@@ -1405,11 +1405,11 @@
       "category": "authoring",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Returns the attached model. Access its Paragraph when subsequent authoring needs the containing paragraph."
     },
     {
       "old": "OfficeIMO.Word.WordParagraph.AddField(WordFieldType wordFieldType, WordFieldFormat? wordFieldFormat = null, string customFormat = null, bool advanced = False, List<string> parameters = null)",
@@ -1421,11 +1421,11 @@
       "category": "authoring",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Returns the attached model. Access its Paragraph when subsequent authoring needs the containing paragraph."
     },
     {
       "old": "OfficeIMO.Word.WordParagraph.AddField(WordFieldCode fieldCode, WordFieldFormat? wordFieldFormat = null, string customFormat = null, bool advanced = False)",
@@ -1437,11 +1437,11 @@
       "category": "authoring",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Returns the attached model. Access its Paragraph when subsequent authoring needs the containing paragraph."
     },
     {
       "old": "OfficeIMO.Word.WordParagraph.AddField(WordFieldBuilder builder, bool advanced = False)",
@@ -1453,11 +1453,11 @@
       "category": "authoring",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Returns the attached model. Access its Paragraph when subsequent authoring needs the containing paragraph."
     },
     {
       "old": "OfficeIMO.Word.WordParagraph.AddEquation(string omml)",
@@ -1469,11 +1469,11 @@
       "category": "authoring",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Returns the attached model. Access its Paragraph when subsequent authoring needs the containing paragraph."
     },
     {
       "old": "OfficeIMO.Word.WordParagraph.AddHyperLink(string text, Uri uri, bool addStyle = False, string tooltip = , bool history = True)",
@@ -1485,11 +1485,11 @@
       "category": "authoring",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Returns the attached model. Access its Paragraph when subsequent authoring needs the containing paragraph."
     },
     {
       "old": "OfficeIMO.Word.WordParagraph.AddHyperLink(string text, string anchor, bool addStyle = False, string tooltip = , bool history = True)",
@@ -1501,11 +1501,11 @@
       "category": "authoring",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Returns the attached model. Access its Paragraph when subsequent authoring needs the containing paragraph."
     },
     {
       "old": "OfficeIMO.Word.WordSection.AddHeadersAndFooters()",
@@ -1534,11 +1534,11 @@
       "category": "authoring",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Returns the attached model. Access its Paragraph when subsequent authoring needs the containing paragraph."
     },
     {
       "old": "OfficeIMO.Word.WordChart.AddChartLine<T>(string name, int[] values, OfficeColor color)",
@@ -1796,18 +1796,17 @@
       "old": "OfficeIMO.Word.WordListNumbering.AddLevel(WordListLevel wordListLevel)",
       "kind": "method",
       "action": "change",
-      "new": "OfficeIMO.Word.WordListNumbering.AddLevel(...) : the created object",
+      "new": "OfficeIMO.Word.WordListNumbering.AddLevel(WordListLevel wordListLevel) : WordListLevel",
       "reason": "Add* methods return the created object.",
       "file": "OfficeIMO.Word/WordListNumbering.cs",
       "category": "authoring",
-      "notes": "Return type to be named in M2 when the created model type is public.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Returns the attached list level."
     },
     {
       "old": "OfficeIMO.Word.WordPaperStyle.AddCover(WordDocument document, string eyebrow, string title, string subtitle)",
@@ -5681,6 +5680,21 @@
       "phase": "B",
       "applied": "phase-b-applied",
       "note": "Typed AddTable applies shared selection, order, header transformation, formatting and column alignment."
+    },
+    {
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "note": "Document, section and header/footer forwarding entry points and native static field, bookmark and hyperlink helpers return their created models. WordField, WordBookmark, WordHyperLink, WordEquation, WordEmbeddedObject, WordFootNote and WordEndNote expose the containing Paragraph. Fields and note references retain the exact newly attached native elements when several objects share a paragraph."
+    },
+    {
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "note": "Comment creation supports empty paragraphs and paragraphs containing hyperlinks without a direct run. Range markers enclose the paragraph content and references follow the range end. WordTable.AddComment rejects a table without cells before creating a comment."
+    },
+    {
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "note": "Native consumers, adapters, examples, tests and the Word README use the created models. Mechanical PowerShell changes explicitly select Paragraph where existing cmdlet output requires it; command parameters and output contracts are preserved."
     }
   ],
   "applicationStatus": "Phase A applied and validated on the supported macOS targets. Phase B and Tier 2 entries retain their status; Windows .NET Framework validation remains pending.",

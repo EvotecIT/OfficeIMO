@@ -147,8 +147,8 @@ public partial class Word {
             document.AddHeadersAndFooters();
             return story == "header" ? document.Sections[0].Header.Default!.AddParagraph() : document.Sections[0].Footer.Default!.AddParagraph();
         }
-        if (story == "footnote") return document.AddParagraph("Footnote ").AddFootNote("Note ").FootNote!.Paragraphs![1];
-        if (story == "endnote") return document.AddParagraph("Endnote ").AddEndNote("Note ").EndNote!.Paragraphs![1];
+        if (story == "footnote") return document.AddParagraph("Footnote ").AddFootNote("Note ").Paragraph.FootNote!.Paragraphs![1];
+        if (story == "endnote") return document.AddParagraph("Endnote ").AddEndNote("Note ").Paragraph.EndNote!.Paragraphs![1];
         return document.AddParagraph();
     }
 

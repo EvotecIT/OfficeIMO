@@ -14,7 +14,7 @@ public sealed class WordPdfSmallCapsTests {
     public void InheritedSmallCapsRestoreFullSizeAfterLowercaseText(bool hyperlink) {
         using WordDocument document = CreateDocument();
         WordParagraph paragraph = document.AddParagraph();
-        if (hyperlink) paragraph.AddHyperLink("aB", new Uri("https://example.com/caps")).CapsStyle = WordCapsStyle.SmallCaps;
+        if (hyperlink) paragraph.AddHyperLink("aB", new Uri("https://example.com/caps")).Paragraph.CapsStyle = WordCapsStyle.SmallCaps;
         else {
             paragraph.Text = "aB";
             paragraph.SetSmallCaps();
@@ -32,7 +32,7 @@ public sealed class WordPdfSmallCapsTests {
         WordTable table = document.AddTable(1, 1);
         table._tableProperties!.TableStyle?.Remove();
         WordParagraph paragraph = table.Rows[0].Cells[0].Paragraphs[0];
-        if (hyperlink) paragraph.AddHyperLink("AB", new Uri("https://example.com/caps")).CapsStyle = WordCapsStyle.SmallCaps;
+        if (hyperlink) paragraph.AddHyperLink("AB", new Uri("https://example.com/caps")).Paragraph.CapsStyle = WordCapsStyle.SmallCaps;
         else {
             paragraph.Text = "AB";
             paragraph.SetSmallCaps();
@@ -175,7 +175,7 @@ public sealed class WordPdfSmallCapsTests {
         using WordDocument document = CreateDocument();
         const string uri = "https://example.com/small-caps";
         WordParagraph paragraph = document.AddParagraph();
-        paragraph.AddHyperLink("AaBb", new Uri(uri), tooltip: "Small caps reference").CapsStyle = WordCapsStyle.SmallCaps;
+        paragraph.AddHyperLink("AaBb", new Uri(uri), tooltip: "Small caps reference").Paragraph.CapsStyle = WordCapsStyle.SmallCaps;
         byte[] bytes = document.ToPdf(Options()).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         using var pdf = PdfPigDocument.Open(bytes);
         Assert.Equal("AABB", pdf.GetPage(1).Text);

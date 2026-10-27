@@ -182,7 +182,7 @@ public partial class Word {
     public void SaveAsPdf_InlinePageBreakRetainsHyperlinkOnBothFragments() {
         using WordDocument document = WordDocument.Create();
         WordParagraph paragraph = document.AddParagraph();
-        WordParagraph link = paragraph.AddHyperLink("Before", new Uri("https://example.com/section"));
+        WordParagraph link = paragraph.AddHyperLink("Before", new Uri("https://example.com/section")).Paragraph;
         link._hyperlink!.Elements<W.Run>().Single().Append(new W.Break { Type = W.BreakValues.Page }, new W.Text("After"));
         byte[] bytes = document.ToPdf(new WordPdfExportOptions { IncludePageNumbers = false }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         using PdfPigDocument pdf = PdfPigDocument.Open(bytes);

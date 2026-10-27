@@ -35,9 +35,9 @@ public partial class Word {
             source.AddHeadersAndFooters();
             target = route == "header" ? source.Header.Default!.AddParagraph("Inherited") : source.Footer.Default!.AddParagraph("Inherited");
         } else if (route == "footnote") {
-            target = source.AddParagraph("Note").AddFootNote("Inherited").FootNote!.Paragraphs!.Last();
+            target = source.AddParagraph("Note").AddFootNote("Inherited").Paragraph.FootNote!.Paragraphs!.Last();
         } else if (route == "endnote") {
-            target = source.AddParagraph("Note").AddEndNote("Inherited").EndNote!.Paragraphs!.Last();
+            target = source.AddParagraph("Note").AddEndNote("Inherited").Paragraph.EndNote!.Paragraphs!.Last();
         } else if (route == "comment") {
             source.AddParagraph("Commented").AddComment("OfficeIMO", "OI", "Inherited");
             target = source.Comments.Single().Paragraphs.Single();

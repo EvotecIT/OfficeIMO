@@ -448,8 +448,8 @@ public partial class WordRtfConverterTests {
     [Fact]
     public void Word_Rtf_Image_Diagnostics_Include_Footnote_And_Endnote_Stories() {
         using WordDocument word = WordDocument.Create();
-        WordParagraph footnoteReference = word.AddParagraph("Footnote anchor").AddFootNote("Footnote body");
-        WordParagraph endnoteReference = word.AddParagraph("Endnote anchor").AddEndNote("Endnote body");
+        WordParagraph footnoteReference = word.AddParagraph("Footnote anchor").AddFootNote("Footnote body").Paragraph;
+        WordParagraph endnoteReference = word.AddParagraph("Endnote anchor").AddEndNote("Endnote body").Paragraph;
         footnoteReference.FootNote!.Paragraphs![1].AddImage(new Uri("https://example.test/footnote.png"), OfficeIMO.OfficeLength.Pixels(16), OfficeIMO.OfficeLength.Pixels(16));
         endnoteReference.EndNote!.Paragraphs![1].AddImage(new Uri("https://example.test/endnote.png"), OfficeIMO.OfficeLength.Pixels(16), OfficeIMO.OfficeLength.Pixels(16));
 
@@ -668,8 +668,8 @@ public partial class WordRtfConverterTests {
     [Fact]
     public void Word_Rtf_Image_Diagnostics_Ignore_Unreferenced_Note_Stories() {
         using WordDocument word = WordDocument.Create();
-        WordParagraph footnoteAnchor = word.AddParagraph("footnote").AddFootNote("orphaned footnote");
-        WordParagraph endnoteAnchor = word.AddParagraph("endnote").AddEndNote("orphaned endnote");
+        WordParagraph footnoteAnchor = word.AddParagraph("footnote").AddFootNote("orphaned footnote").Paragraph;
+        WordParagraph endnoteAnchor = word.AddParagraph("endnote").AddEndNote("orphaned endnote").Paragraph;
         footnoteAnchor.FootNote!.Paragraphs![1].AddImage(new Uri("https://example.test/orphaned-footnote.png"), OfficeIMO.OfficeLength.Pixels(16), OfficeIMO.OfficeLength.Pixels(16));
         endnoteAnchor.EndNote!.Paragraphs![1].AddImage(new Uri("https://example.test/orphaned-endnote.png"), OfficeIMO.OfficeLength.Pixels(16), OfficeIMO.OfficeLength.Pixels(16));
         foreach (FootnoteReference marker in word._document.Body!.Descendants<FootnoteReference>().ToList()) marker.Remove();

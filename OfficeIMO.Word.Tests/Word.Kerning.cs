@@ -100,7 +100,7 @@ public partial class Word {
         using WordDocument document = WordDocument.Create();
         WordParagraph paragraph = document.AddParagraph("Prefix ");
         paragraph.KerningMinimumFontSizePoints = 8D;
-        WordParagraph link = paragraph.AddHyperLink("AV", new Uri("https://example.com/kerning"));
+        WordParagraph link = paragraph.AddHyperLink("AV", new Uri("https://example.com/kerning")).Paragraph;
         link.KerningMinimumFontSizePoints = 1.5D;
         Assert.Equal(1.5D, link.KerningMinimumFontSizePoints);
         Assert.Equal(16U, paragraph._paragraph.Elements<Run>()
@@ -126,9 +126,9 @@ public partial class Word {
             .KerningMinimumFontSizePoints = 0D;
         document.HeaderDefaultOrCreate.AddParagraph("Header").KerningMinimumFontSizePoints = 1.5D;
         document.FooterDefaultOrCreate.AddParagraph("Footer").KerningMinimumFontSizePoints = 13D;
-        document.AddParagraph("Reference").AddFootNote("Footnote").FootNote!.Paragraphs!
+        document.AddParagraph("Reference").AddFootNote("Footnote").Paragraph.FootNote!.Paragraphs!
             .Single(item => item.Text == "Footnote").KerningMinimumFontSizePoints = 7.5D;
-        document.AddParagraph("Reference").AddEndNote("Endnote").EndNote!.Paragraphs!
+        document.AddParagraph("Reference").AddEndNote("Endnote").Paragraph.EndNote!.Paragraphs!
             .Single(item => item.Text == "Endnote").KerningMinimumFontSizePoints = 9D;
 
         using WordDocument reloaded = WordDocument.Load(new MemoryStream(nativeDoc

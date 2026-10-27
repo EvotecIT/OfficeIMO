@@ -121,7 +121,7 @@ public sealed class WordPdfLigatureTests {
             paragraph = runningStory.AddParagraph("fi");
         } else {
             paragraph = document.AddParagraph(story == "link" ? string.Empty : "fi");
-            if (story == "link") paragraph = paragraph.AddHyperLink("fi", new Uri("https://example.com/"));
+            if (story == "link") paragraph = paragraph.AddHyperLink("fi", new Uri("https://example.com/")).Paragraph;
         }
         paragraph.FontFamily = ManagedTextShapingTestAssets.FamilyName;
         paragraph.FontSize = 10;

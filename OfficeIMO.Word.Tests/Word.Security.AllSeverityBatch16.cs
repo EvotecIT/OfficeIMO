@@ -140,7 +140,7 @@ public sealed class WordAllSeverityBatch16SecurityTests {
         using WordDocument document = WordDocument.Create();
         const string omml = "<!DOCTYPE x [<!ENTITY boom 'expanded'>]><m:oMath xmlns:m='http://schemas.openxmlformats.org/officeDocument/2006/math'><m:r><m:t>&boom;</m:t></m:r></m:oMath>";
 
-        Assert.Throws<System.Xml.XmlException>(() => document.AddParagraph().AddEquation(omml));
+        Assert.Throws<System.Xml.XmlException>(() => document.AddParagraph().AddEquation(omml).Paragraph);
     }
 
     [Fact]

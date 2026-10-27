@@ -43,10 +43,10 @@ namespace OfficeIMO.Word {
         /// <param name="imageFilePath">Preview image path.</param>
         /// <param name="width">Optional width in points.</param>
         /// <param name="height">Optional height in points.</param>
-        /// <returns>The paragraph containing the embedded object.</returns>
-        public WordParagraph AddEmbeddedObject(string filePath, string imageFilePath, double? width = null, double? height = null) {
+        /// <returns>The created embedded object.</returns>
+        public WordEmbeddedObject AddEmbeddedObject(string filePath, string imageFilePath, double? width = null, double? height = null) {
             var wordEmbeddedObject = new WordEmbeddedObject(this, this._document, filePath, imageFilePath, "", width, height);
-            return this;
+            return wordEmbeddedObject;
         }
 
         /// <summary>
@@ -54,10 +54,10 @@ namespace OfficeIMO.Word {
         /// </summary>
         /// <param name="filePath">Path to the object file.</param>
         /// <param name="options">Embedding options.</param>
-        /// <returns>The paragraph containing the embedded object.</returns>
-        public WordParagraph AddEmbeddedObject(string filePath, WordEmbeddedObjectOptions options) {
+        /// <returns>The created embedded object.</returns>
+        public WordEmbeddedObject AddEmbeddedObject(string filePath, WordEmbeddedObjectOptions options) {
             var wordEmbeddedObject = new WordEmbeddedObject(this, this._document, filePath, options);
-            return this;
+            return wordEmbeddedObject;
         }
 
         /// <summary>
@@ -148,7 +148,7 @@ namespace OfficeIMO.Word {
         /// <param name="text">The text of the note.</param>
         /// <returns>The footnote.</returns>
         /// <exception cref="InvalidOperationException">The paragraph is in a header or footer.</exception>
-        public WordParagraph AddFootNote(string text) {
+        public WordFootNote AddFootNote(string text) {
             var footerWordParagraph = new WordParagraph(this._document, true, true) {
                 Text = text
             };
@@ -162,7 +162,7 @@ namespace OfficeIMO.Word {
         /// </summary>
         /// <param name="text">The text of the end note.</param>
         /// <returns>The end note.</returns>
-        public WordParagraph AddEndNote(string text) {
+        public WordEndNote AddEndNote(string text) {
             var endNoteWordParagraph = new WordParagraph(this._document, true, true);
             endNoteWordParagraph.Text = text;
 

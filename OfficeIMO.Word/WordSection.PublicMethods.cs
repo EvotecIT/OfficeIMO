@@ -248,7 +248,7 @@ namespace OfficeIMO.Word {
         /// <param name="tooltip">Optional tooltip.</param>
         /// <param name="history">Add to document history.</param>
         /// <returns>The created paragraph.</returns>
-        public WordParagraph AddHyperLink(string text, Uri uri, bool addStyle = false, string tooltip = "", bool history = true) {
+        public WordHyperLink AddHyperLink(string text, Uri uri, bool addStyle = false, string tooltip = "", bool history = true) {
             return this.AddParagraph("").AddHyperLink(text, uri, addStyle, tooltip, history);
         }
 
@@ -261,7 +261,7 @@ namespace OfficeIMO.Word {
         /// <param name="tooltip">Optional tooltip.</param>
         /// <param name="history">Add to document history.</param>
         /// <returns>The created paragraph.</returns>
-        public WordParagraph AddHyperLink(string text, string anchor, bool addStyle = false, string tooltip = "", bool history = true) {
+        public WordHyperLink AddHyperLink(string text, string anchor, bool addStyle = false, string tooltip = "", bool history = true) {
             return this.AddParagraph("").AddHyperLink(text, anchor, addStyle, tooltip, history);
         }
 

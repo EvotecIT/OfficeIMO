@@ -198,6 +198,12 @@ namespace OfficeIMO.Word {
     /// Represents a field element within a Word document.
     /// </summary>
     public partial class WordField : WordElement {
+        private WordParagraph? _authoringParagraph;
+
+        /// <summary>Gets the containing paragraph handle for continuing paragraph authoring.</summary>
+        public WordParagraph Paragraph => _authoringParagraph ?? (_simpleField != null
+            ? new WordParagraph(_document, _paragraph, _simpleField)
+            : new WordParagraph(_document, _paragraph, _runs));
         private readonly WordDocument _document;
         private readonly Paragraph _paragraph;
         private readonly List<Run> _runs = new List<Run>();

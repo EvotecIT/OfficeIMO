@@ -446,7 +446,9 @@ document.AddParagraph()
 ```csharp
 document.AddParagraph("Chapter 1").Style = WordParagraphStyles.Heading1;
 document.AddParagraph("Section 1.1").Style = WordParagraphStyles.Heading2;
-document.Paragraphs[0].AddField(WordFieldType.TOC);
+WordField contents = document.Paragraphs[0].AddField(WordFieldType.TOC);
+contents.UpdateField = true;
+contents.Paragraph.Style = WordParagraphStyles.Normal;
 ```
 
 ### Plain DOCX templates
@@ -733,8 +735,8 @@ OfficeMathExpression equation = OfficeMath.Fraction(
     OfficeMath.Superscript(OfficeMath.Identifier("x"), OfficeMath.Number("2")),
     OfficeMath.Number("2"));
 
-WordParagraph paragraph = document.AddEquation(equation);
-paragraph.AddText(" is editable Word math.");
+WordEquation wordEquation = document.AddEquation(equation);
+wordEquation.Paragraph.AddText(" is editable Word math.");
 ```
 
 `WordDocument.AddEquation(...)` and `WordParagraph.AddEquation(...)` map the shared expression directly to native OMML. Existing equations expose `ToExpression()`, `SetExpression(...)`, and `ToDrawing(...)`; `WordMathMarkup` converts between OMML and `OfficeMathExpression`. The adapter covers matrices and multi-column equation arrays, left/right scripts, centered limits, skewed fractions, delimiter lists, n-ary operators, and decorations. Display-equation replacement retains `oMathParaPr` presentation metadata. Shared `Stack` and `StretchStack` nodes fail closed because OMML has no lossless equivalent; use `OfficeMath.EquationArray(...)` explicitly if that alternate layout is acceptable. The reusable AST stays in `OfficeIMO.Drawing`, while Word owns only the OMML adapter.

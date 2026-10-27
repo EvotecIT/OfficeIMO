@@ -10,6 +10,11 @@ namespace OfficeIMO.Word {
     public class WordEmbeddedObject {
         private readonly WordDocument _document;
         private readonly Run _run;
+        private readonly WordParagraph? _authoringParagraph;
+
+        /// <summary>Gets the paragraph containing the embedded object.</summary>
+        public WordParagraph Paragraph => _authoringParagraph ?? new WordParagraph(_document,
+            _run.Ancestors<Paragraph>().First(), _run);
 
         /// <summary>
         /// Initializes a new instance of the <see cref="WordEmbeddedObject"/> class and
@@ -26,6 +31,7 @@ namespace OfficeIMO.Word {
 
 
             _document = wordDocument;
+            _authoringParagraph = wordParagraph;
 
             width ??= 64.8;
             height ??= 64.8;
@@ -52,6 +58,7 @@ namespace OfficeIMO.Word {
         /// <param name="options">Options controlling icon and dimensions.</param>
         internal WordEmbeddedObject(WordParagraph wordParagraph, WordDocument wordDocument, string fileName, WordEmbeddedObjectOptions options) {
             _document = wordDocument;
+            _authoringParagraph = wordParagraph;
             options ??= WordEmbeddedObjectOptions.Icon();
 
             string? iconPath = options.IconPath;

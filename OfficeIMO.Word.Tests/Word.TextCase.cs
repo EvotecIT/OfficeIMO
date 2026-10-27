@@ -36,7 +36,7 @@ public partial class Word {
             OfficeMath.Radical(OfficeMath.Text("OTHER Text")));
 
         using (WordDocument document = WordDocument.Create(path)) {
-            WordParagraph paragraph = document.AddEquation(expression);
+            WordParagraph paragraph = document.AddEquation(expression).Paragraph;
             paragraph.TransformTextCase(OfficeTextCase.Lowercase);
 
             WordEquation equation = Assert.Single(document.Equations);
@@ -66,7 +66,7 @@ public partial class Word {
             </m:oMath>
             """;
         using WordDocument document = WordDocument.Create();
-        WordParagraph paragraph = document.AddParagraph().AddEquation(omml);
+        WordParagraph paragraph = document.AddParagraph().AddEquation(omml).Paragraph;
         M.Run run = Assert.Single(paragraph.Equation!.MathElement!.Descendants<M.Run>());
         string[] formattingBefore = run.ChildElements
             .Where(element => element.LocalName == "rPr")

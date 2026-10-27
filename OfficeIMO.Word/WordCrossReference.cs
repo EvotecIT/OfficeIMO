@@ -19,16 +19,15 @@ namespace OfficeIMO.Word {
         /// <param name="paragraph">Paragraph to insert the field into.</param>
         /// <param name="referenceId">Bookmark or heading identifier.</param>
         /// <param name="type">Type of reference.</param>
-        /// <returns>The paragraph that this method was called on.</returns>
-        public static WordParagraph AddCrossReference(WordParagraph paragraph, string referenceId, WordCrossReferenceType type) {
+        /// <returns>The created reference field.</returns>
+        public static WordField AddCrossReference(WordParagraph paragraph, string referenceId, WordCrossReferenceType type) {
             if (paragraph == null) throw new ArgumentNullException(nameof(paragraph));
             if (string.IsNullOrWhiteSpace(referenceId)) throw new ArgumentNullException(nameof(referenceId));
 
             var builder = new WordFieldBuilder(WordFieldType.Ref)
                 .AddInstruction(referenceId)
                 .AddSwitch("\\h");
-            WordField.AddField(paragraph, builder, false);
-            return paragraph;
+            return WordField.AddField(paragraph, builder, false);
         }
     }
 }

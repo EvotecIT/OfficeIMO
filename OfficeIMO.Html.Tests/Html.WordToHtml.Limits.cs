@@ -36,7 +36,7 @@ namespace OfficeIMO.Tests {
             using var document = WordDocument.Create();
             document.AddParagraph("Visible body");
             string orphanedText = new string('x', 8192);
-            WordParagraph footnoteReference = document.AddParagraph().AddFootNote(orphanedText);
+            WordParagraph footnoteReference = document.AddParagraph().AddFootNote(orphanedText).Paragraph;
             footnoteReference._run!.Remove();
             WordParagraph commentParagraph = document.AddParagraph("Unreviewed text");
             commentParagraph.AddComment("Reviewer", "R", orphanedText);

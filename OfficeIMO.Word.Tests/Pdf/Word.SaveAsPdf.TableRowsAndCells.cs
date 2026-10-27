@@ -1574,7 +1574,7 @@ public partial class Word {
         using (WordDocument document = WordDocument.Create(docPath)) {
             WordTable table = document.AddTable(1, 1);
             WordTableCell cell = table.Rows[0].Cells[0];
-            WordParagraph linkParagraph = cell.Paragraphs[0].AddHyperLink("Native table link", new Uri(linkUri), addStyle: true, tooltip: "Native table link metadata");
+            WordParagraph linkParagraph = cell.Paragraphs[0].AddHyperLink("Native table link", new Uri(linkUri), addStyle: true, tooltip: "Native table link metadata").Paragraph;
             linkParagraph.Hyperlink!.Anchor = "IgnoredWhenExternalUriExists";
 
             document.Save();

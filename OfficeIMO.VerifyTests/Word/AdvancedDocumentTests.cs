@@ -71,7 +71,7 @@ public class AdvancedDocumentTests : VerifyTestBase {
         list.AddItem("Second element of list", 1);
 
         var paragraphWithHyperlink = document.AddHyperLink("Go to Evotec Blogs", new Uri("https://evotec.xyz"),
-            true, "URL with tooltip");
+            true, "URL with tooltip").Paragraph;
         // you can also change the hyperlink text, uri later on using properties
         paragraphWithHyperlink.Hyperlink!.Uri = new Uri("https://evotec.xyz/hub");
         paragraphWithHyperlink.ParagraphAlignment = WordParagraphAlignment.Center;

@@ -181,7 +181,7 @@ public sealed class WordPdfKerningTests {
             paragraph = story.AddParagraph("AV");
         } else {
             paragraph = document.AddParagraph(route == "link" ? string.Empty : "AV");
-            if (route == "link") paragraph = paragraph.AddHyperLink("AV", new Uri("https://example.com/"));
+            if (route == "link") paragraph = paragraph.AddHyperLink("AV", new Uri("https://example.com/")).Paragraph;
         }
         paragraph.FontSize = 10;
         paragraph.FontFamily = ManagedTextShapingTestAssets.FamilyName;
