@@ -60,7 +60,7 @@ Core selects the primary `hvc1` item or grid/identity derivation, stitches tiles
 
 HEVC, the codec inside HEIC, is covered by several patent pools and by patent holders outside them. I don't implement or bundle an HEVC decoder. On hosts without the ImageIO package, a .NET application can supply its own `IOfficeRasterImageCodec`. This is a workaround chosen and maintained by the application, not a supported OfficeIMO decoder. The decoder's copyright licence does not cover HEVC patents; check the patent position for your product and distribution before deploying one.
 
-For example, an application that separately chooses a Magick.NET build with HEIC decoding can adapt it as below. Its ImageMagick/libheif/libde265 dependencies and licensing remain the application's responsibility. This repository neither references nor installs them, and this example has not been used as a test oracle.
+For example, an application that separately chooses a Magick.NET build with HEIC decoding can adapt it as below. Its ImageMagick/libheif/libde265 dependencies and licensing remain the application's responsibility. This repository neither references nor installs them.
 
 ```csharp
 using ImageMagick;
@@ -94,7 +94,7 @@ In the application's startup code, register the adapter once, or pass it per cal
 OfficeRasterImageCodecs.Platform = new MagickHeicCodec();
 ```
 
-The example follows [Magick.NET 15.0.0](https://github.com/dlemstra/Magick.NET/blob/15.0.0/src/Magick.NET/MagickImage.cs), whose alpha method accepts `AlphaAction`, rather than the older `AlphaOption`. [`ToByteArray(PixelMapping.RGBA)`](https://github.com/dlemstra/Magick.NET/blob/15.0.0/src/Magick.NET/Pixels/PixelCollection.cs) exports four eight-bit components per pixel even in Q16 builds: its [native export uses `CharPixel`](https://github.com/dlemstra/Magick.Native/blob/2026.1010.1943/src/Magick.Native/Pixels/PixelCollection.c). No `Depth` change or manual Q16 sample scaling is needed. These signatures and export semantics were checked against upstream source; the adapter's decode, colour and resource behaviour has not been qualified with Magick.NET.
+The example is written against Magick.NET 15, where `ToByteArray(PixelMapping.RGBA)` returns eight-bit samples even in Q16 builds. I haven't qualified its decoding, colour or memory behaviour.
 
 Return top-to-bottom straight-alpha RGBA at each tile's stored dimensions, in the decoded source RGB encoding, without rotation or display colour matching. Core applies composition and supported colour conversion once afterwards. The application must also bound its decoder's native allocations; Core's managed limits do not impose a quota on third-party decoder internals.
 
