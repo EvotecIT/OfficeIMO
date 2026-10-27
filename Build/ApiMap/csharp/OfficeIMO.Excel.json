@@ -5084,6 +5084,11 @@
       "phase": "B",
       "applied": "phase-b-applied",
       "note": "The maintained website quickstart, workbook and table guides replace retired fluent examples with native typed tables, cell handles and document properties. Touched cell/table examples use the existing SetValue/SetFormula and ExcelTableStyle contracts."
+    },
+    {
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "note": "Typed and DataTable AddTable honor shared projection and alignment options alongside ExcelTableOptions.Projection; table-local selection/order and formatting take precedence over their advanced counterparts. Native DataTable row and selected-column bounds are checked before formatting or copying values."
     }
   ],
   "applicationStatus": "Phase A applied and validated on the supported macOS targets. Phase B and Tier 2 entries retain their status; Windows .NET Framework validation remains pending.",

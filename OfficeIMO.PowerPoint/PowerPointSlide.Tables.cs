@@ -610,6 +610,8 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private static string TransformHeader(string path, ObjectFlattenerOptions opts) {
+            if (opts.TableOptions is { } tableOptions && (tableOptions.HeaderRenames.ContainsKey(path) || tableOptions.HeaderTransform != null))
+                return OfficeIMO.Core.Internal.ObjectDataHelpers.GetTableHeader(path, tableOptions);
             path = opts.GetHeaderPath(path);
             return opts.HeaderCase switch {
                 HeaderCase.Pascal => string.Concat(path.Split('.').Select(s => char.ToUpperInvariant(s[0]) + s.Substring(1))),

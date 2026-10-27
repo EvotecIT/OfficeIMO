@@ -9,7 +9,7 @@ public partial class WordDocument {
     public WordTable AddTable<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties | DynamicallyAccessedMemberTypes.PublicFields)] T>(
         IEnumerable<T> rows, OfficeTableOptions? options = null) {
         bool headers = options?.IncludeHeaders ?? true;
-        var data = ObjectDataHelpers.ProjectTypedTable(rows, headers);
+        var data = ObjectDataHelpers.ProjectTypedTable(rows, headers, options: options);
         int rowCount = checked(data.Rows.Count + (headers ? 1 : 0));
         if (rowCount == 0) throw new ArgumentException("A headerless table requires at least one row.", nameof(rows));
         var table = AddTable(rowCount, data.Headers.Length, WordTableStyle.TableGrid);
@@ -22,12 +22,14 @@ public partial class WordDocument {
         for (int row = 0; row < data.Rows.Count; row++)
             for (int column = 0; column < data.Headers.Length; column++)
                 GetOrCreateParagraph(table, row + offset, column).Text = System.Convert.ToString(data.Rows[row][column], CultureInfo.CurrentCulture) ?? string.Empty;
+        ApplyTableAlignments(table, options);
         return table;
     }
 
     /// <summary>Adds an editable table from an existing rectangular matrix.</summary>
     public WordTable AddTable(object?[,] values, OfficeTableOptions? options = null) {
         if (values == null) throw new ArgumentNullException(nameof(values));
+        ObjectDataHelpers.ValidateTableAlignments(options);
         int rows = values.GetLength(0), columns = values.GetLength(1);
         if (rows == 0 || columns == 0) throw new ArgumentException("A table matrix requires at least one row and column.", nameof(values));
         var table = AddTable(rows, columns, WordTableStyle.TableGrid);
@@ -36,6 +38,7 @@ public partial class WordDocument {
         for (int row = 0; row < rows; row++)
             for (int column = 0; column < columns; column++)
                 GetOrCreateParagraph(table, row, column).Text = System.Convert.ToString(values[row, column], CultureInfo.CurrentCulture) ?? string.Empty;
+        ApplyTableAlignments(table, options);
         return table;
     }
 

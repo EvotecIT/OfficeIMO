@@ -73,7 +73,7 @@ namespace OfficeIMO.Data {
         /// <summary>Per‑path default values used when <see cref="NullPolicy.DefaultValue"/> is selected.</summary>
         public Dictionary<string, object?> DefaultValues { get; } = new(StringComparer.OrdinalIgnoreCase);
         /// <summary>Per‑path formatting delegates applied to values.</summary>
-        public Dictionary<string, Func<object?, object?>> Formatters { get; } = new(StringComparer.OrdinalIgnoreCase);
+        public Dictionary<string, Func<object?, object?>> Formatters { get; private set; } = new(StringComparer.OrdinalIgnoreCase);
         /// <summary>How to handle collections.</summary>
         public CollectionMode CollectionMode { get; set; } = CollectionMode.JoinWith;
         /// <summary>Delimiter used when <see cref="CollectionMode.JoinWith"/> is selected.</summary>

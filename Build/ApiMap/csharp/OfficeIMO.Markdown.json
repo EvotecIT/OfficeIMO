@@ -305,8 +305,10 @@
       "file": "OfficeIMO.Markdown/Core/MarkdownDoc.cs",
       "category": "lifecycle",
       "notes": "TableFromOptions merges into the shared table options.",
-      "phase": "A",
-      "applied": "applied"
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "currentFile": "OfficeIMO.Markdown/Core/MarkdownDocument.Tables.cs",
+      "note": "AddTable returns the added TableBlock. OfficeTableOptions retains include/exclude/order, header renames/transforms, formatters and shared column alignment. MarkdownTableOptions retains numeric/date heuristics. Runtime object and explicit selector overloads preserve their existing data shapes; no TableFrom wrappers remain."
     },
     {
       "old": "OfficeIMO.Markdown.MarkdownDoc.TableFromAuto(object data, Action<TableFromOptions> configure = null, bool alignNumeric = True, bool alignDates = True)",
@@ -318,8 +320,9 @@
       "category": "lifecycle",
       "notes": "TableFromOptions merges into the shared table options.",
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The typed AddTable and bounded streaming writer are Phase B authoring work."
+      "applied": "phase-b-applied",
+      "note": "AddTable returns the added TableBlock. OfficeTableOptions retains include/exclude/order, header renames/transforms, formatters and shared column alignment. MarkdownTableOptions retains numeric/date heuristics. Runtime object and explicit selector overloads preserve their existing data shapes; no TableFrom wrappers remain.",
+      "currentFile": "OfficeIMO.Markdown/Core/MarkdownDocument.Tables.cs"
     },
     {
       "old": "OfficeIMO.Markdown.MarkdownDoc.TableFrom<T>(IEnumerable<T> items, ValueTuple<string, Func<T, object>>[] columns)",
@@ -330,8 +333,10 @@
       "file": "OfficeIMO.Markdown/Core/MarkdownDoc.cs",
       "category": "lifecycle",
       "notes": "TableFromOptions merges into the shared table options.",
-      "phase": "A",
-      "applied": "applied"
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "currentFile": "OfficeIMO.Markdown/Core/MarkdownDocument.Tables.cs",
+      "note": "AddTable returns the added TableBlock. OfficeTableOptions retains include/exclude/order, header renames/transforms, formatters and shared column alignment. MarkdownTableOptions retains numeric/date heuristics. Runtime object and explicit selector overloads preserve their existing data shapes; no TableFrom wrappers remain."
     },
     {
       "old": "OfficeIMO.Markdown.MarkdownDoc.ToHtmlFragment(HtmlOptions options = null)",
@@ -1004,8 +1009,9 @@
       "file": "OfficeIMO.Markdown/Options/TableFromOptions.cs",
       "category": "options",
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The typed AddTable and bounded streaming writer are Phase B authoring work."
+      "applied": "phase-b-applied",
+      "note": "AddTable returns the added TableBlock. OfficeTableOptions retains include/exclude/order, header renames/transforms, formatters and shared column alignment. MarkdownTableOptions retains numeric/date heuristics. Runtime object and explicit selector overloads preserve their existing data shapes; no TableFrom wrappers remain.",
+      "currentFile": "OfficeIMO.Core/OfficeTableOptions.cs"
     }
   ],
   "packageMoves": [
@@ -1134,6 +1140,11 @@
       "phase": "A",
       "applied": "applied",
       "note": "Canonical SaveAs output failures retain the completed conversion report through the shared internal output helper; cancellation continues to propagate unchanged."
+    },
+    {
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "note": "Typed Markdown tables share declared property/field and dictionary projection with Core. They reject more than 10,000 data rows or 100 selected columns before adding a block. Runtime and explicit-selector paths retain the existing clipping counters. Formatter failures now propagate instead of silently falling back to unformatted values. Explicit alignment wins over heuristics; Markdown rejects justified columns. The NativeAOT smoke covers declared properties/fields, generic-only dictionary rows and empty dictionary schemas on net8.0 and net10.0."
     }
   ],
   "applicationStatus": "Phase A applied and validated on the supported macOS targets. Phase B and Tier 2 entries retain their status; Windows .NET Framework validation remains pending.",

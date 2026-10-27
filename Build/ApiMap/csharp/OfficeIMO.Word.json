@@ -5676,6 +5676,11 @@
       "phase": "B",
       "applied": "phase-b-applied",
       "note": "Package README and maintained website examples now use native document/table authoring and caller-owned image streams. The obsolete reflection test that pinned the removed Word image builder is removed; image relationship, resource, remote-load, VML and conversion artifact tests retain the behavior coverage. All changed in-repo image consumers use OfficeLength and WordImageOptions, including mechanical PSWriteOffice argument conversion without changing PowerShell parameters."
+    },
+    {
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "note": "Typed AddTable applies shared selection, order, header transformation, formatting and column alignment."
     }
   ],
   "applicationStatus": "Phase A applied and validated on the supported macOS targets. Phase B and Tier 2 entries retain their status; Windows .NET Framework validation remains pending.",

@@ -12,6 +12,8 @@ namespace OfficeIMO.Excel;
 
 internal sealed partial class ExcelObjectTableProjection {
         private static string TransformHeader(string path, ObjectFlattenerOptions opts) {
+            if (opts.TableOptions is { } tableOptions && (tableOptions.HeaderRenames.ContainsKey(path) || tableOptions.HeaderTransform != null))
+                return OfficeIMO.Core.Internal.ObjectDataHelpers.GetTableHeader(path, tableOptions);
             path = opts.GetHeaderPath(path);
             return opts.HeaderCase switch {
                 HeaderCase.Pascal => TransformHeaderPascal(path),

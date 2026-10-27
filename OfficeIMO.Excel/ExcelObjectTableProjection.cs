@@ -18,6 +18,10 @@ internal sealed partial class ExcelObjectTableProjection {
     private readonly int _startColumn;
     private int _currentRow;
     private string? _lastRange;
+    internal static bool HasTableProjection(OfficeTableOptions? options) => options != null &&
+        (options.Include.Count != 0 || options.Exclude.Count != 0 || options.Order.Count != 0 ||
+         options.HeaderRenames.Count != 0 || options.Formatters.Count != 0 || options.HeaderTransform != null);
+
     private int HeaderRows => _includeHeaders ? 1 : 0;
 
     internal ExcelObjectTableProjection(ExcelSheet sheet, int row, int column, bool includeHeaders) {
@@ -28,16 +32,17 @@ internal sealed partial class ExcelObjectTableProjection {
     }
     private string BuildRange(int startRow, int endRow, int columns) =>
         ExcelA1.CellReference(startRow, _startColumn) + ":" + ExcelA1.CellReference(endRow, _startColumn + columns - 1);
-        internal string? WriteRows<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties | DynamicallyAccessedMemberTypes.PublicFields)] T>(IEnumerable<T> data, ObjectFlattenerOptions? projectionOptions = null) {
+        internal string? WriteRows<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties | DynamicallyAccessedMemberTypes.PublicFields)] T>(IEnumerable<T> data, ObjectFlattenerOptions? projectionOptions = null, OfficeTableOptions? tableOptions = null) {
             if (Sheet == null) throw new InvalidOperationException("Sheet not initialized");
             if (data == null) throw new ArgumentNullException(nameof(data));
 
             var options = projectionOptions?.CreateProjectionSnapshot() ?? new ObjectFlattenerOptions();
+            OfficeIMO.Core.Internal.ObjectDataHelpers.ConfigureTableProjection(options, tableOptions);
             if (options.MaxRows <= 0) throw new ArgumentOutOfRangeException(nameof(options.MaxRows));
             options.MaxColumns = Math.Min(options.MaxColumns, ExcelA1.MaxColumns - _startColumn + 1);
             int maximumDataRows = Math.Min(options.MaxRows, Math.Max(0, ExcelA1.MaxRows - _currentRow + 1 - HeaderRows));
             int startRow = _currentRow;
-            if (projectionOptions == null && !ObjectDictionaryAdapter.IsDictionaryType(typeof(T))) {
+            if (projectionOptions == null && !HasTableProjection(tableOptions) && !ObjectDictionaryAdapter.IsDictionaryType(typeof(T))) {
                 RowsFromSimpleTypePlan typePlan = GetRowsFromSimpleTypePlan(typeof(T));
                 if (typePlan.CanUseDirectSave) {
                     EnsureRowsFromColumnLimit(typePlan.Headers.Length, options.MaxColumns);

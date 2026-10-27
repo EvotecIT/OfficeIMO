@@ -9534,6 +9534,11 @@
       "phase": "B",
       "applied": "phase-b-implemented-validation-pending",
       "note": "Document-owned properties use Document on PowerPointDeckComposer and GoogleSlidesImportResult; the legacy load result calls its binary model SourceDocument to distinguish the editable Document. Template/utility document creation and internal read/write/mutation helpers use Document in their names. PSWriteOffice service/context members follow those names mechanically. Existing PowerShell parameter names and Ppt aliases retain their behavior for M5; Google Slides PresentationId and native Open XML schema/property identifiers retain their external contract."
+    },
+    {
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "note": "Typed AddTable configures the existing bounded projection engine with shared column selection/order, header transformation, formatters and column alignment."
     }
   ],
   "applicationStatus": "Phase A applied and validated on the supported macOS targets. Phase B and Tier 2 entries retain their status; Windows .NET Framework validation remains pending.",

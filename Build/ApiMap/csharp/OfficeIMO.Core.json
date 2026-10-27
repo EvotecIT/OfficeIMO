@@ -43,6 +43,11 @@
       "phase": "B",
       "applied": "analysis-generated-review-pending",
       "note": "The public surface inventory now reads compiled metadata, documentation and examples across the seven Tier 1 packages. It follows cross-package model signatures and preserves interfaces, overrides, operators and model data, with separate constructor evidence. Accessibility decisions and shipped analyzer baselines remain pending review. The baseline generator uses compiler SARIF RS0016 declarations and tracks nullable signatures; its five-declaration compiler fixture rebuilds without warnings."
+    },
+    {
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "note": "OfficeTableOptions absorbs the Markdown projection controls. Declared-row projection applies selection before bounds and supports generic/read-only dictionaries through the existing dictionary adapter. Projection snapshots copy formatter dictionaries so native table overrides do not mutate reusable options. Empty dictionary-interface sequences are rejected without exposing dictionary metadata as columns. Display headers remain independent of unique source member names."
     }
   ],
   "applicationStatus": "Phase A applied and validated on the supported macOS targets. Phase B and Tier 2 entries retain their status; Windows .NET Framework validation remains pending.",

@@ -4,11 +4,11 @@ namespace OfficeIMO.Markdown;
 /// <summary>
 /// Builder for pipe tables.
 /// </summary>
-public sealed class MarkdownTableBuilder {
+public sealed partial class MarkdownTableBuilder {
     private const int MaxRows = 10000;
     private const int MaxColumns = 100;
     private readonly TableBlock _table = new TableBlock();
-    private TableFromOptions? _defaultOptions;
+    private OfficeTableOptions? _defaultOptions;
     private IReadOnlyList<string> NormalizeRow(IReadOnlyList<string> cells) {
         if (cells == null) return Array.Empty<string>();
         int count = cells.Count;
@@ -36,7 +36,11 @@ public sealed class MarkdownTableBuilder {
     public MarkdownTableBuilder Rows(IEnumerable<(string, string)> rows) { foreach ((string a, string b) in rows) { if (_table.Rows.Count >= MaxRows) break; _table.Rows.Add(NormalizeRow(new[] { a, b })); } return this; }
     /// <summary>Adds two-column rows from key/value pairs.</summary>
     public MarkdownTableBuilder Rows(IEnumerable<KeyValuePair<string, string>> rows) { foreach (KeyValuePair<string, string> kv in rows) { if (_table.Rows.Count >= MaxRows) break; _table.Rows.Add(NormalizeRow(new[] { kv.Key, kv.Value })); } return this; }
-    internal TableBlock Build() => _table;
+    private bool _includeHeaders = true;
+    internal TableBlock Build() {
+        if (!_includeHeaders) _table.Headers.Clear();
+        return _table;
+    }
 
     /// <summary>
     /// Populates the table from an arbitrary object. If <paramref name="data"/> is
@@ -54,7 +58,8 @@ public sealed class MarkdownTableBuilder {
     /// </summary>
     [RequiresUnreferencedCode("Uses reflection over arbitrary runtime types. For AOT-safe usage, use FromSequenceAuto/FromObject or FromSequence with selectors.")]
     [RequiresDynamicCode("Uses runtime generic inspection for arbitrary dictionaries. For NativeAOT, use FromSequenceAuto/FromObject or FromSequence with selectors.")]
-    public MarkdownTableBuilder FromAny(object? data, TableFromOptions? options) {
+    public MarkdownTableBuilder FromAny(object? data, OfficeTableOptions? options) {
+        _includeHeaders = options?.IncludeHeaders ?? true;
         if (data is null) return this;
         if (data is string || data.GetType().IsPrimitive) {
             if (_table.Headers.Count == 0) _table.Headers.Add("Value");
@@ -98,7 +103,7 @@ public sealed class MarkdownTableBuilder {
                 var row = props.Select(p => FormatValue(p.GetValue(item, null), p.Name, options)).ToArray();
                 if (_table.Rows.Count >= MaxRows) break; _table.Rows.Add(row);
             }
-            if (options?.Alignments != null && options.Alignments.Count > 0) { _table.Alignments.Clear(); _table.Alignments.AddRange(options.Alignments); }
+            if (options?.Alignments != null && options.Alignments.Count > 0) { _table.Alignments.Clear(); _table.Alignments.AddRange(options.Alignments.Select(ToMarkdownAlignment)); }
             return this;
         }
 
@@ -123,7 +128,7 @@ public sealed class MarkdownTableBuilder {
             var row = new List<string>(limitedProps.Length);
             foreach (var p in limitedProps) row.Add(FormatValue(p.GetValue(data, null), p.Name, options));
             _table.Rows.Add(row);
-            if (options?.Alignments != null && options.Alignments.Count > 0) { _table.Alignments.Clear(); _table.Alignments.AddRange(options.Alignments); }
+            if (options?.Alignments != null && options.Alignments.Count > 0) { _table.Alignments.Clear(); _table.Alignments.AddRange(options.Alignments.Select(ToMarkdownAlignment)); }
             return this;
         } else {
             if (_table.Headers.Count == 0) _table.Headers.AddRange(new[] { "Property", "Value" });
@@ -139,8 +144,8 @@ public sealed class MarkdownTableBuilder {
     /// </summary>
     [RequiresUnreferencedCode("Uses reflection over arbitrary runtime types. For AOT-safe usage, use FromSequenceAuto/FromObject or FromSequence with selectors.")]
     [RequiresDynamicCode("Uses runtime generic inspection for arbitrary dictionaries. For NativeAOT, use FromSequenceAuto/FromObject or FromSequence with selectors.")]
-    public MarkdownTableBuilder FromAny(object? data, System.Action<TableFromOptions> configure) {
-        var opts = new TableFromOptions();
+    public MarkdownTableBuilder FromAny(object? data, System.Action<OfficeTableOptions> configure) {
+        var opts = new OfficeTableOptions();
         configure(opts);
         return FromAny(data, opts);
     }
@@ -148,7 +153,8 @@ public sealed class MarkdownTableBuilder {
     /// <summary>
     /// Populates the table from a sequence of objects using public readable properties.
     /// </summary>
-    public MarkdownTableBuilder FromSequenceAuto<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] T>(IEnumerable<T> items, TableFromOptions? options = null) {
+    public MarkdownTableBuilder FromSequenceAuto<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] T>(IEnumerable<T> items, OfficeTableOptions? options = null) {
+        _includeHeaders = options?.IncludeHeaders ?? true;
         if (items == null) return this;
         var props = SelectProperties(typeof(T), options);
         if (_table.Headers.Count == 0) _table.Headers.AddRange(props.Select(p => Rename(p.Name, options)));
@@ -165,7 +171,7 @@ public sealed class MarkdownTableBuilder {
 
         if (options?.Alignments != null && options.Alignments.Count > 0) {
             _table.Alignments.Clear();
-            _table.Alignments.AddRange(options.Alignments);
+            _table.Alignments.AddRange(options.Alignments.Select(ToMarkdownAlignment));
         }
         return this;
     }
@@ -173,7 +179,8 @@ public sealed class MarkdownTableBuilder {
     /// <summary>
     /// Populates the table from a single object using public readable properties.
     /// </summary>
-    public MarkdownTableBuilder FromObject<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] T>(T data, TableFromOptions? options = null) {
+    public MarkdownTableBuilder FromObject<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] T>(T data, OfficeTableOptions? options = null) {
+        _includeHeaders = options?.IncludeHeaders ?? true;
         if (data == null) return this;
         var props = SelectProperties(typeof(T), options);
         bool wide = options != null && (
@@ -202,7 +209,7 @@ public sealed class MarkdownTableBuilder {
         }
         if (options?.Alignments != null && options.Alignments.Count > 0) {
             _table.Alignments.Clear();
-            _table.Alignments.AddRange(options.Alignments);
+            _table.Alignments.AddRange(options.Alignments.Select(ToMarkdownAlignment));
         }
         return this;
     }
@@ -261,9 +268,9 @@ public sealed class MarkdownTableBuilder {
         return t.IsPrimitive || t.IsEnum || t == typeof(string) || t == typeof(decimal) || t == typeof(DateTime) || t == typeof(Guid) || t == typeof(TimeSpan);
     }
 
-    private static string FormatValue(object? value, string? propertyName = null, TableFromOptions? options = null) {
+    internal static string FormatValue(object? value, string? propertyName = null, OfficeTableOptions? options = null) {
         if (propertyName != null && options != null && options.Formatters.TryGetValue(propertyName, out var fmt)) {
-            try { return fmt(value); } catch { /* ignore and fallback */ }
+            return fmt(value);
         }
         if (value is null) return "";
         if (value is string s) return s;
@@ -277,7 +284,7 @@ public sealed class MarkdownTableBuilder {
 
     [RequiresUnreferencedCode("Inspects arbitrary runtime dictionary element types.")]
     [RequiresDynamicCode("Inspects arbitrary runtime dictionary element types.")]
-    private bool TryFromDictionarySequence(List<object?> items, object firstNonNull, TableFromOptions? options) {
+    private bool TryFromDictionarySequence(List<object?> items, object firstNonNull, OfficeTableOptions? options) {
         if (!IsDictionaryLike(firstNonNull)) return false;
 
         var discovered = new List<string>();
@@ -322,11 +329,11 @@ public sealed class MarkdownTableBuilder {
             _table.Rows.Add(row);
         }
 
-        if (options?.Alignments != null && options.Alignments.Count > 0) { _table.Alignments.Clear(); _table.Alignments.AddRange(options.Alignments); }
+        if (options?.Alignments != null && options.Alignments.Count > 0) { _table.Alignments.Clear(); _table.Alignments.AddRange(options.Alignments.Select(ToMarkdownAlignment)); }
         return true;
     }
 
-    private static List<string> ApplyDictionaryOptions(List<string> keys, TableFromOptions? options) {
+    private static List<string> ApplyDictionaryOptions(List<string> keys, OfficeTableOptions? options) {
         var headerKeys = new List<string>(keys);
         if (options != null) {
             if (options.Include != null && options.Include.Count > 0) {
@@ -497,7 +504,7 @@ public sealed class MarkdownTableBuilder {
         return _propsCache.GetOrAdd(t, discovered);
     }
 
-    private static System.Reflection.PropertyInfo[] SelectProperties([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] System.Type t, TableFromOptions? options) {
+    private static System.Reflection.PropertyInfo[] SelectProperties([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] System.Type t, OfficeTableOptions? options) {
         var props = GetReadableProperties(t);
         if (options == null) return props;
         var list = new List<System.Reflection.PropertyInfo>(props);
@@ -514,7 +521,7 @@ public sealed class MarkdownTableBuilder {
         return list.ToArray();
     }
 
-    private static string Rename(string name, TableFromOptions? options) {
+    private static string Rename(string name, OfficeTableOptions? options) {
         if (options?.HeaderRenames != null && options.HeaderRenames.TryGetValue(name, out var newName)) return newName;
         if (options?.HeaderTransform != null) return options.HeaderTransform(name);
         return name;
@@ -613,9 +620,9 @@ public sealed class MarkdownTableBuilder {
     }
 
     /// <summary>Configures default column options for subsequent FromAny calls.</summary>
-    public MarkdownTableBuilder Columns(System.Action<TableFromOptions> configure) { _defaultOptions ??= new TableFromOptions(); configure(_defaultOptions); return this; }
+    public MarkdownTableBuilder Columns(System.Action<OfficeTableOptions> configure) { _defaultOptions ??= new OfficeTableOptions(); configure(_defaultOptions); return this; }
     /// <summary>Sets a simple header transform used for generating header text (e.g., prettifying PascalCase).</summary>
-    public MarkdownTableBuilder Columns(System.Func<string, string> headerTransform) { _defaultOptions ??= new TableFromOptions(); _defaultOptions.HeaderTransform = headerTransform; return this; }
+    public MarkdownTableBuilder Columns(System.Func<string, string> headerTransform) { _defaultOptions ??= new OfficeTableOptions(); _defaultOptions.HeaderTransform = headerTransform; return this; }
 
     /// <summary>Guess date-like columns and center-align them. Threshold is fraction of date-like values required (0..1).</summary>
     public MarkdownTableBuilder AlignDatesCenter(double threshold = 0.6) {

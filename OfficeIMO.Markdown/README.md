@@ -33,6 +33,28 @@ string htmlFragment = document.ToHtml(new MarkdownHtmlExportOptions { Kind = Mar
 string htmlDocument = document.ToHtml(new MarkdownHtmlExportOptions { Kind = MarkdownHtmlKind.Document });
 ```
 
+## Typed tables
+
+`AddTable` returns the added `TableBlock`, which remains editable. The shared `OfficeTableOptions` controls column selection, order, headers, formatting and alignment. `MarkdownTableOptions` also enables numeric and date alignment; explicit column alignments take precedence.
+
+```csharp
+using OfficeIMO;
+using OfficeIMO.Markdown;
+
+using var document = MarkdownDocument.Create();
+var rows = new[] {
+    new { Product = "Paper", Quantity = 12 },
+    new { Product = "Envelopes", Quantity = 24 }
+};
+var options = new MarkdownTableOptions();
+options.HeaderRenames["Quantity"] = "In stock";
+var table = document.AddTable(rows, options);
+table.Rows.Add(new[] { "Labels", "48" });
+Console.WriteLine(document.ToMarkdown());
+```
+
+Typed rows use declared public properties and fields, or the first dictionary row's string keys. The source is enumerated once. Projection rejects more than 10,000 data rows or 100 selected columns before adding the block. Formatter failures propagate. Explicit selector overloads support trim-safe column selection without reflection. Runtime data can be passed as `object` to retain scalar, property/value and dictionary-union projection.
+
 ## What it does
 
 - Builds Markdown documents with headings, paragraphs, lists, task lists, tables, code blocks, callouts, details, front matter, footnotes, table-of-contents helpers, and semantic fenced blocks.

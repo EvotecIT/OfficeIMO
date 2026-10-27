@@ -144,7 +144,7 @@ var data = new[] {
     new { Product = "Widget B", Price = 14.99, Stock = 75 },
 };
 
-doc.TableFrom(data);
+var table = doc.AddTable(data);
 ```
 
 ### Table with Auto-Alignment
@@ -152,13 +152,13 @@ doc.TableFrom(data);
 Automatically align numeric columns to the right and date columns to the center:
 
 ```csharp
-doc.TableFromAuto(data, alignNumeric: true, alignDates: true);
+doc.AddTable(data, new MarkdownTableOptions { AlignNumeric = true, AlignDates = true });
 ```
 
 ### Table with Column Selectors
 
 ```csharp
-doc.TableFrom(data,
+doc.AddTable(data,
     ("Product", x => x.Product),
     ("Price ($)", x => x.Price.ToString("F2")),
     ("In Stock", x => x.Stock > 100 ? "Yes" : "Low")

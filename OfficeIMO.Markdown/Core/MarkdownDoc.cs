@@ -534,39 +534,6 @@ public partial class MarkdownDocument : MarkdownObject {
         return Add(tb.Build());
     }
 
-    /// <summary>
-    /// Convenience to add a table from arbitrary data; see <see cref="MarkdownTableBuilder.FromAny(object?)"/> for rules.
-    /// </summary>
-    [System.Diagnostics.CodeAnalysis.RequiresUnreferencedCode("Uses reflection over arbitrary runtime types. For NativeAOT, use TableFrom<T> with explicit selectors.")]
-    [System.Diagnostics.CodeAnalysis.RequiresDynamicCode("Uses runtime generic inspection for arbitrary dictionaries. For NativeAOT, use TableFrom<T> with explicit selectors.")]
-    public MarkdownDocument TableFrom(object? data) {
-        MarkdownTableBuilder tb = new MarkdownTableBuilder();
-        tb.FromAny(data);
-        return Add(tb.Build());
-    }
-
-    /// <summary>
-    /// Creates a table from data and applies auto-alignment heuristics (numeric right, dates center) if requested.
-    /// </summary>
-    [System.Diagnostics.CodeAnalysis.RequiresUnreferencedCode("Uses reflection over arbitrary runtime types. For NativeAOT, use TableFrom<T> with explicit selectors.")]
-    [System.Diagnostics.CodeAnalysis.RequiresDynamicCode("Uses runtime generic inspection for arbitrary dictionaries. For NativeAOT, use TableFrom<T> with explicit selectors.")]
-    public MarkdownDocument TableFromAuto(object? data, System.Action<TableFromOptions>? configure = null, bool alignNumeric = true, bool alignDates = true) {
-        MarkdownTableBuilder tb = new MarkdownTableBuilder();
-        if (configure is null) tb.FromAny(data); else tb.FromAny(data, configure);
-        if (alignDates) tb.AlignDatesCenter();
-        if (alignNumeric) tb.AlignNumericRight();
-        return Add(tb.Build());
-    }
-
-    /// <summary>
-    /// Convenience to add a table from a sequence using column selectors.
-    /// </summary>
-    public MarkdownDocument TableFrom<T>(System.Collections.Generic.IEnumerable<T> items, params (string Header, System.Func<T, object?> Selector)[] columns) {
-        MarkdownTableBuilder tb = new MarkdownTableBuilder();
-        tb.FromSequence(items, columns);
-        return Add(tb.Build());
-    }
-
     /// <summary>Adds an unordered list from a sequence of items using ToString().</summary>
     public MarkdownDocument Ul<T>(System.Collections.Generic.IEnumerable<T> items) {
         MarkdownUnorderedListBuilder builder = new MarkdownUnorderedListBuilder();
