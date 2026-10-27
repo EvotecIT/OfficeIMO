@@ -116,6 +116,7 @@ namespace OfficeIMO.Tests {
             byte[] bytes;
             using (PowerPointPresentation source =
                    PowerPointPresentation.Create()) {
+                source.ClearThemeTextDefaults();
                 source.AddSlide(
                     PowerPointSlideLayoutType.Blank);
                 SlideMasterPart masterPart = source.OpenXmlDocument

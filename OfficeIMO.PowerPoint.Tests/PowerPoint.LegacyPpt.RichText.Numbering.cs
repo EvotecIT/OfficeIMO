@@ -141,6 +141,7 @@ namespace OfficeIMO.Tests {
                     .PresentationPart!.SlideMasterParts.Single();
                 P.BodyStyle bodyStyle = masterPart.SlideMaster!.TextStyles!
                     .BodyStyle!;
+                bodyStyle.RemoveAllChildren(); // replace the theme's level styles with the numbering under test
                 bodyStyle.Append(
                     new A.Level1ParagraphProperties(
                         new A.AutoNumberedBullet {
@@ -198,6 +199,7 @@ namespace OfficeIMO.Tests {
                 P.BodyStyle bodyStyle = source.OpenXmlDocument
                     .PresentationPart!.SlideMasterParts.Single().SlideMaster!
                     .TextStyles!.BodyStyle!;
+                bodyStyle.RemoveAllChildren(); // replace the theme's level styles with the numbering under test
                 bodyStyle.Append(
                     new A.Level1ParagraphProperties(
                         new A.AutoNumberedBullet {
@@ -272,6 +274,7 @@ namespace OfficeIMO.Tests {
                            writable: false)) {
                     imagePart.FeedData(imageStream);
                 }
+                masterPart.SlideMaster!.TextStyles!.BodyStyle!.RemoveAllChildren();
                 masterPart.SlideMaster!.TextStyles!.BodyStyle!.Append(
                     new A.Level1ParagraphProperties(
                         new A.PictureBullet(new A.Blip {

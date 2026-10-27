@@ -203,6 +203,7 @@ public sealed class PowerPointPdfTextFormattingTests {
     public void TableRunFormattingResolvesParagraphListAndThemeDefaults(string colorSource, bool useTableStyle) {
         using PowerPointPresentation presentation = PowerPointPresentation.Create(
             new MemoryStream(), new PowerPointCreateOptions());
+        presentation.ClearThemeTextDefaults();
         PowerPointTable table = presentation.AddSlide().AddTablePoints(1, 1, 10, 10, 200, 60);
         table.StyleId = useTableStyle ? "{5C22544A-7EE6-4342-B048-85BDC9FD1C3A}" : null;
         table.FirstRow = true;

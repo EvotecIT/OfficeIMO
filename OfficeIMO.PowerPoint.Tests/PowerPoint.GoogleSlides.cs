@@ -98,8 +98,9 @@ namespace OfficeIMO.Tests {
                 Assert.Single(presentation.BuildGoogleSlidesBatch().Slides)
                     .Elements.OfType<GoogleSlidesTextBox>());
 
-            Assert.Null(text.ForegroundColorHex);
-            Assert.Null(Assert.Single(text.TextRuns).ForegroundColorHex);
+            // The malformed run colour is dropped; the run may still inherit the theme text colour.
+            Assert.NotEqual("GG0000", text.ForegroundColorHex);
+            Assert.NotEqual("GG0000", Assert.Single(text.TextRuns).ForegroundColorHex);
         }
 
         [Fact]

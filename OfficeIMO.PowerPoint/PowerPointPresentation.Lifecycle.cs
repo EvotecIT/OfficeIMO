@@ -160,6 +160,7 @@ namespace OfficeIMO.PowerPoint {
                     _sourceStream = sourceStream,
                     _persistenceMode = options.PersistenceMode
                 };
+                presentation.ApplyLayoutTheme(options.Theme ?? OfficeTheme.Default);
                 presentation.PresentationRoot.Save();
                 presentation._document?.Save();
                 return presentation;

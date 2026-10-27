@@ -165,6 +165,7 @@ public sealed class PowerPointNativeTextBoundaryTests {
     [InlineData("paragraph")]
     public void ConfiguredFallbackFontsApplyToUnstyledGlyphsButPreserveAuthoredFonts(string flow) {
         using var presentation = PowerPointPresentation.Create(new MemoryStream());
+        presentation.ClearThemeTextDefaults();
         PowerPointSlide slide = presentation.AddSlide();
         PowerPointTextBox box = slide.AddTextBoxPoints("DEFAULT", 20, 20, 220, 80);
         box.FontSize = 12;
