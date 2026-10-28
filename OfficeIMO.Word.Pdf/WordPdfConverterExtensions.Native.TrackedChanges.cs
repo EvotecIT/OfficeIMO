@@ -14,7 +14,7 @@ namespace OfficeIMO.Word.Pdf {
         private static readonly AsyncLocal<WordPdfTrackedChangeView?> NativeTrackedChangeViewScope = new();
 
         private static WordPdfTrackedChangeView CurrentNativeTrackedChangeView =>
-            NativeTrackedChangeViewScope.Value ?? WordPdfTrackedChangeView.Final;
+            NativeTrackedChangeViewScope.Value ?? WordPdfTrackedChangeView.Markup;
 
         private static IDisposable UseNativeTrackedChangeView(WordPdfTrackedChangeView view) {
             WordPdfTrackedChangeView? previous = NativeTrackedChangeViewScope.Value;
@@ -85,6 +85,7 @@ namespace OfficeIMO.Word.Pdf {
         }
 
         private static void ReportNativeTrackedChanges(WordDocument document, WordPdfExportOptions options) {
+            if (options.TrackedChanges != WordPdfTrackedChangeView.Final) return;
             MainDocumentPart? mainPart = document._wordprocessingDocument?.MainDocumentPart;
             if (mainPart == null) return;
             int insertions = 0;
@@ -99,9 +100,7 @@ namespace OfficeIMO.Word.Pdf {
 
             string counts = insertions.ToString(CultureInfo.InvariantCulture) + " insertion(s) and " +
                 deletions.ToString(CultureInfo.InvariantCulture) + " deletion(s)";
-            string message = options.TrackedChanges == WordPdfTrackedChangeView.Markup
-                ? "Tracked changes (" + counts + ") are shown as static markup: insertions underlined and deletions struck through. Reviewer names, dates and balloons are not shown."
-                : "Tracked changes (" + counts + ") are shown as the final document: insertions are current text and deleted text is omitted. Set TrackedChanges to Markup to show the revisions.";
+            string message = "Tracked changes (" + counts + ") are shown as the final document: insertions are current text and deleted text is omitted. Set TrackedChanges to Markup to show the revisions.";
             AddNativeExportWarning(options, "tracked-revisions-projected", "tracked changes", message);
         }
 

@@ -8,8 +8,10 @@ using Xunit;
 namespace OfficeIMO.Tests;
 
 public partial class Word {
-    [Fact]
-    public void SaveAsPdf_EndnotesRetainVisibleRevisionTextWithoutDeletedOrMovedFromContent() {
+    [Theory]
+    [InlineData(WordPdfTrackedChangeView.Final)]
+    [InlineData(WordPdfTrackedChangeView.Markup)]
+    public void SaveAsPdf_BodyAndEndnotesFollowTheSelectedRevisionView(WordPdfTrackedChangeView view) {
         using WordDocument source = CreateFootnoteDiagnosticDocument();
         W.Paragraph body = source.AddParagraph("BODYREFERENCE")._paragraph;
         AppendNoteRevisionVisibilityProbe(body, "BODY", firstRevisionId: 100);
@@ -25,15 +27,19 @@ public partial class Word {
         string bodyBefore = main.Document.OuterXml;
         string notesBefore = main.EndnotesPart!.Endnotes!.OuterXml;
         Assert.Equal("BODYREFERENCEBODYKEPT", WordParagraph.ReadVisibleText(main.Document.Body!.Elements<W.Paragraph>().First()));
-        var result = document.ConvertToPdfWithEvidence(FootnoteDiagnosticOptions());
+        var options = FootnoteDiagnosticOptions();
+        options.TrackedChanges = view;
+        var result = document.ConvertToPdfWithEvidence(options);
 
         for (int serialization = 0; serialization < 2; serialization++) {
             using var pdf = PdfPigDocument.Open(result.ToBytes());
             string text = string.Concat(pdf.GetPages().Select(page => page.Text));
             foreach (string visible in new[] { "BODYREFERENCE", "BODYKEPT", "ENDREFERENCE", "ENDVISIBLE", "ENDKEPT" })
                 Assert.Single(System.Text.RegularExpressions.Regex.Matches(text, visible));
-            foreach (string removed in new[] { "BODYDELETEDSENTINEL", "BODYMOVEDFROMSENTINEL", "ENDDELETEDSENTINEL", "ENDMOVEDFROMSENTINEL" })
-                Assert.DoesNotContain(removed, text, StringComparison.Ordinal);
+            foreach (string revision in new[] { "BODYDELETEDSENTINEL", "BODYMOVEDFROMSENTINEL", "ENDDELETEDSENTINEL", "ENDMOVEDFROMSENTINEL" }) {
+                if (view == WordPdfTrackedChangeView.Final) Assert.DoesNotContain(revision, text, StringComparison.Ordinal);
+                else Assert.Contains(revision, text, StringComparison.Ordinal);
+            }
             Assert.DoesNotContain(result.Warnings, warning => warning.Code == "native-footnote-placement-approximated");
         }
         Assert.Equal(bodyBefore, main.Document.OuterXml);

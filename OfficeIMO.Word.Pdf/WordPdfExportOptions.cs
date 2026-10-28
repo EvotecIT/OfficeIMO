@@ -152,10 +152,11 @@ namespace OfficeIMO.Word.Pdf {
         public bool DefaultTableBorders { get; set; } = false;
 
         /// <summary>
-        /// Selects how tracked insertions and deletions are shown. Defaults to <see cref="WordPdfTrackedChangeView.Final"/>,
-        /// which renders insertions as current text and omits deletions; the conversion report says when a document has tracked changes.
+        /// Selects how tracked insertions and deletions are shown. Defaults to <see cref="WordPdfTrackedChangeView.Markup"/>,
+        /// which underlines insertions and strikes through deletions in a revision colour.
+        /// The final view reports when tracked revisions are projected into accepted text.
         /// </summary>
-        public WordPdfTrackedChangeView TrackedChanges { get; set; } = WordPdfTrackedChangeView.Final;
+        public WordPdfTrackedChangeView TrackedChanges { get; set; } = WordPdfTrackedChangeView.Markup;
 
         /// <summary>
         /// Applies shared deterministic typography resources to the first-party PDF engine.

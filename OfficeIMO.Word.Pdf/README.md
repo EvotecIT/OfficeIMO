@@ -44,6 +44,23 @@ document.SaveAsPdf("report.pdf");
 
 ## Examples
 
+### Tracked changes
+
+PDF export shows tracked insertions underlined and deletions struck through
+in a revision colour by default. Reviewer names, dates and balloons are not
+included. Documents without revisions are unaffected.
+
+For accepted text only, choose the Final view:
+
+```csharp
+document.SaveAsPdf("final.pdf", new WordPdfExportOptions {
+    TrackedChanges = WordPdfTrackedChangeView.Final
+});
+```
+
+The conversion report includes `tracked-revisions-projected` only when Final
+omits revisions from a document that has tracked changes.
+
 ### Export with page and metadata options
 
 ```csharp

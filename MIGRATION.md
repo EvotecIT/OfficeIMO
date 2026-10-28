@@ -52,10 +52,12 @@ such as `<m:int>`, with an `ArgumentException`. Write integrals and other n-ary
 operators as `<m:nary>` with an `<m:chr>` character.
 
 `WordPdfExportOptions.TrackedChanges` selects how tracked changes appear in PDF
-output. The default, `WordPdfTrackedChangeView.Final`, shows insertions as
-current text and omits deletions; the conversion report carries
-`tracked-revisions-projected` when a document has tracked changes. Use
-`WordPdfTrackedChangeView.Markup` to show both.
+output. The default, `WordPdfTrackedChangeView.Markup`, underlines insertions
+and strikes through deletions in a revision colour. Set
+`WordPdfExportOptions.TrackedChanges = WordPdfTrackedChangeView.Final` to show
+insertions as current text and omit deletions. Only the Final view carries
+`tracked-revisions-projected` when the source has tracked changes. Documents
+without revisions render as before.
 
 ## PDF text replacement fonts
 

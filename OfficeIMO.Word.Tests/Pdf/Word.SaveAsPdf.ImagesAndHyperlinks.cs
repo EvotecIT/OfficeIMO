@@ -310,7 +310,7 @@ public partial class Word {
     }
 
     [Fact]
-    public void SaveAsPdf_OfficeIMOEngine_Ignores_Deleted_Table_Cell_Images() {
+    public void SaveAsPdf_OfficeIMOEngine_FinalViewIgnoresDeletedTableCellImages() {
         string imagePath = Path.Combine(_directoryWithImages, "EvotecLogo.png");
         using WordDocument document = WordDocument.Create();
         WordParagraph paragraph = document.AddTable(1, 1, WordTableStyle.TableGrid)
@@ -322,7 +322,9 @@ public partial class Word {
         deletedRun.Remove();
         paragraph._paragraph!.Append(new DocumentFormat.OpenXml.Wordprocessing.DeletedRun(deletedRun));
 
-        document.ConvertToPdfWithEvidence(new WordPdfExportOptions { MaxImagesPerParagraph = 1 });
+        document.ConvertToPdfWithEvidence(new WordPdfExportOptions {
+            MaxImagesPerParagraph = 1, TrackedChanges = WordPdfTrackedChangeView.Final
+        });
     }
 
     private static void ReplaceFirstMainDocumentImagePart(string docPath, byte[] bytes) {

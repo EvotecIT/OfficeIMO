@@ -46,21 +46,28 @@ public partial class Word {
     }
 
     [Fact]
-    public void SaveAsPdf_TrackedInsertionsRenderAsCurrentTextAndDeletionsAreReported() {
+    public void SaveAsPdf_ExplicitFinalViewRendersCurrentTextAndReportsOmittedRevisions() {
         using WordDocument document = CreateTrackedChangeDocument();
-        using (document.ToPdf(null, out OfficeConversionReport report))
+        var options = new WordPdfExportOptions { TrackedChanges = WordPdfTrackedChangeView.Final };
+        using (document.ToPdf(options, out OfficeConversionReport report))
             Assert.Contains(report.Diagnostics, diagnostic => diagnostic.Code == "tracked-revisions-projected");
 
-        using PdfPigDocument pdf = OpenAuditPdf(document);
+        using PdfPigDocument pdf = OpenAuditPdf(document, options);
         string text = pdf.GetPage(1).Text;
         Assert.Contains("added words", text);
         Assert.DoesNotContain("removed words", text);
     }
 
-    [Fact]
-    public void SaveAsPdf_TrackedChangeMarkupShowsInsertionsAndDeletions() {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void SaveAsPdf_DefaultAndExplicitMarkupShowRevisionsWithoutFinalProjectionWarning(bool explicitMarkup) {
         using WordDocument document = CreateTrackedChangeDocument();
-        using PdfPigDocument pdf = OpenAuditPdf(document, new WordPdfExportOptions { TrackedChanges = WordPdfTrackedChangeView.Markup });
+        WordPdfExportOptions? options = explicitMarkup
+            ? new WordPdfExportOptions { TrackedChanges = WordPdfTrackedChangeView.Markup } : null;
+        using (document.ToPdf(options, out OfficeConversionReport report))
+            Assert.DoesNotContain(report.Diagnostics, diagnostic => diagnostic.Code == "tracked-revisions-projected");
+        using PdfPigDocument pdf = OpenAuditPdf(document, options);
         string text = pdf.GetPage(1).Text;
         Assert.Contains("added words", text);
         Assert.Contains("removed words", text);

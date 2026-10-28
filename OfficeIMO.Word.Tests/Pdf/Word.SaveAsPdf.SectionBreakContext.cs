@@ -32,7 +32,9 @@ public partial class Word {
         paragraph.Append(moveFrom
             ? new W.MoveFromRun(end) { Id = "2", Author = "OfficeIMO Tests", Date = new DateTime(2026, 10, 3, 0, 0, 0, DateTimeKind.Utc) }
             : new W.DeletedRun(end) { Id = "2", Author = "OfficeIMO Tests", Date = new DateTime(2026, 10, 3, 0, 0, 0, DateTimeKind.Utc) });
-        using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions { IncludePageNumbers = false }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
+        using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions {
+            IncludePageNumbers = false, TrackedChanges = WordPdfTrackedChangeView.Final
+        }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         string text = string.Join(" ", pdf.GetPages().Select(page => page.Text));
         Assert.Equal(columnBreak ? 1 : 2, pdf.NumberOfPages);
         Assert.Contains("Before", text);
