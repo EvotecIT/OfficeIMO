@@ -6,7 +6,7 @@ using System.Linq;
 namespace OfficeIMO.PowerPoint {
     /// <summary>Configures deterministic table continuation slides.</summary>
     public sealed class PowerPointTablePaginationOptions {
-        private double _minimumRowHeightPoints = 24D;
+        private OfficeLength _minimumRowHeight = OfficeLength.Points(24);
         private int? _maximumDataRowsPerSlide;
 
         /// <summary>Table placement available on every generated slide.</summary>
@@ -25,14 +25,14 @@ namespace OfficeIMO.PowerPoint {
         public bool RepeatHeaders { get; set; } = true;
 
         /// <summary>Minimum row height used to derive page capacity from <see cref="TableBounds"/>.</summary>
-        public double MinimumRowHeightPoints {
-            get => _minimumRowHeightPoints;
+        public OfficeLength MinimumRowHeight {
+            get => _minimumRowHeight;
             set {
-                if (double.IsNaN(value) || double.IsInfinity(value) || value <= 0D) {
-                    throw new ArgumentOutOfRangeException(nameof(MinimumRowHeightPoints),
-                        "Minimum row height must be a finite positive number.");
+                if (value <= OfficeLength.Zero) {
+                    throw new ArgumentOutOfRangeException(nameof(MinimumRowHeight),
+                        "Minimum row height must be positive.");
                 }
-                _minimumRowHeightPoints = value;
+                _minimumRowHeight = value;
             }
         }
 
@@ -141,12 +141,13 @@ namespace OfficeIMO.PowerPoint {
                 resolved.ConfigureSlide?.Invoke(slide, context);
 
                 int physicalRows = page.Count + (includeHeaders ? 1 : 0);
-                double tableHeightPoints = Math.Min(resolved.TableBounds.Height.ToPoints(),
-                    physicalRows * resolved.MinimumRowHeightPoints);
-                PowerPointLayoutBox tableBounds = new PowerPointLayoutBox(OfficeIMO.OfficeLength.Emus(resolved.TableBounds.Left.ToEmus()),                    OfficeIMO.OfficeLength.Emus(resolved.TableBounds.Top.ToEmus()),OfficeIMO.OfficeLength.Emus(resolved.TableBounds.Width.ToEmus()),                    OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(tableHeightPoints)));
+                OfficeLength tableHeight = OfficeLength.Emus(Math.Min(resolved.TableBounds.Height.ToEmus(),
+                    checked((long)physicalRows * resolved.MinimumRowHeight.ToEmus())));
+                PowerPointLayoutBox tableBounds = new PowerPointLayoutBox(resolved.TableBounds.Left,
+                    resolved.TableBounds.Top, resolved.TableBounds.Width, tableHeight);
                 PowerPointTable table = slide.AddTable(rows.GetRange(page.Offset, page.Count), bindings,
                     tableBounds, includeHeaders);
-                ApplyRowHeights(table, resolved.MinimumRowHeightPoints);
+                ApplyRowHeights(table, resolved.MinimumRowHeight);
                 resolved.ConfigureTable?.Invoke(table, context);
                 slides.Add(slide);
                 tables.Add(table);
@@ -156,8 +157,8 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private static List<PageSlice> CreatePageSlices(int rowCount, PowerPointTablePaginationOptions options) {
-            int physicalCapacity = Math.Max(1,
-                (int)Math.Floor(options.TableBounds.Height.ToPoints() / options.MinimumRowHeightPoints));
+            int physicalCapacity = (int)Math.Min(int.MaxValue, Math.Max(1L,
+                options.TableBounds.Height.ToEmus() / options.MinimumRowHeight.ToEmus()));
             int offset = 0;
             int pageIndex = 0;
             var pages = new List<PageSlice>();
@@ -180,10 +181,10 @@ namespace OfficeIMO.PowerPoint {
             return pages;
         }
 
-        private static void ApplyRowHeights(PowerPointTable table, double rowHeightPoints) {
+        private static void ApplyRowHeights(PowerPointTable table, OfficeLength rowHeight) {
             IReadOnlyList<PowerPointTableRow> rows = table.RowItems;
             for (int rowIndex = 0; rowIndex < rows.Count; rowIndex++) {
-                rows[rowIndex].Height= global::OfficeIMO.OfficeLength.Points(rowHeightPoints);
+                rows[rowIndex].Height = rowHeight;
             }
         }
 

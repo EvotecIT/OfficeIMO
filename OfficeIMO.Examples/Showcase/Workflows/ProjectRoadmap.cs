@@ -21,7 +21,7 @@ internal static class ProjectRoadmap {
 
         PowerPointSlide gates = deck.AddSlide();
         Heading(gates, "Advance on evidence", "DECISION CHECKPOINTS");
-        PowerPointTable table = gates.AddTableCm(4, 3, 1.5, 5.3, 30, 10);
+        PowerPointTable table = gates.AddTable(4,3,global::OfficeIMO.OfficeLength.Centimeters(1.5),global::OfficeIMO.OfficeLength.Centimeters(5.3),global::OfficeIMO.OfficeLength.Centimeters(30),global::OfficeIMO.OfficeLength.Centimeters(10));
         string[,] values = {
             { "Checkpoint", "Evidence", "Decision owner" },
             { "Pilot ready", "Support and recovery walkthrough", "Operations" },

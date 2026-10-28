@@ -47,17 +47,11 @@ namespace OfficeIMO.Examples.PowerPoint {
                 new ValidationRow { Check = "Theme", Status = "Info", Details = presentation.ThemeName ?? "Default" }
             };
 
-            PowerPointTable table = results.AddTableCm(
-                summaryRows,
-                o => {
+            PowerPointTable table = results.AddTable(
+                summaryRows,                o => {
                     o.HeaderCase = HeaderCase.Title;
                     o.PinFirst("Check");
-                },
-                includeHeaders: true,
-                leftCm: bodyBox.Left.ToCentimeters(),
-                topCm: bodyBox.Top.ToCentimeters(),
-                widthCm: bodyBox.Width.ToCentimeters(),
-                heightCm: bodyBox.Height.ToCentimeters());
+                },                includeHeaders: true,left: global::OfficeIMO.OfficeLength.Centimeters(bodyBox.Left.ToCentimeters()),top: global::OfficeIMO.OfficeLength.Centimeters(bodyBox.Top.ToCentimeters()),width: global::OfficeIMO.OfficeLength.Centimeters(bodyBox.Width.ToCentimeters()),height: global::OfficeIMO.OfficeLength.Centimeters(bodyBox.Height.ToCentimeters()));
             table.ApplyStyle(PowerPointTableStylePreset.Default);
             table.SetColumnWidthsEvenly();
             for (int c = 0; c < table.Columns; c++) {

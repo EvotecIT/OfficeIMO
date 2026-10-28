@@ -19,7 +19,7 @@ namespace OfficeIMO.Tests {
             try {
                 using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
                     PowerPointSlide slide = presentation.AddSlide();
-                    PowerPointTable table = slide.AddTable(2, 2, 914400L, 1828800L, 5000000L, 2000000L);
+                    PowerPointTable table = slide.AddTable(2,2,global::OfficeIMO.OfficeLength.Emus(914400L),global::OfficeIMO.OfficeLength.Emus(1828800L),global::OfficeIMO.OfficeLength.Emus(5000000L),global::OfficeIMO.OfficeLength.Emus(2000000L));
                     table.SetColumnWidth(0,global::OfficeIMO.OfficeLength.Points(columnWidthPoints));
                     table.SetRowHeight(0,global::OfficeIMO.OfficeLength.Points(rowHeightPoints));
 

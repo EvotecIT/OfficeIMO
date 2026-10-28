@@ -32,7 +32,7 @@ public static partial class ProjectReportWorkflow {
             title.FontName = "Arial"; title.FontSize = 22; title.Color = "183047";
             var subtitle = slide.AddTextBoxPoints(part.Title + (start > 0 ? " (continued)" : ""), view.PageMargin, view.PageMargin + 36, width, 25);
             subtitle.FontName = "Arial"; subtitle.FontSize = 13; subtitle.Color = "64748B";
-            var table = slide.AddTable(count + 1, part.Headers.Length);
+            var table = slide.AddTable(count + 1,part.Headers.Length);
             table.Left= OfficeIMO.OfficeLength.Points(view.PageMargin); table.Top= OfficeIMO.OfficeLength.Points(view.PageMargin + 72); table.Width= OfficeIMO.OfficeLength.Points(width); table.Height= OfficeIMO.OfficeLength.Points(height);
             table.SetColumnWidths((widths).Select(tableLength => global::OfficeIMO.OfficeLength.Points(tableLength)).ToArray()); table.HeaderRow = true;
             var rows = table.RowItems;

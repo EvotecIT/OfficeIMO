@@ -186,7 +186,7 @@ namespace OfficeIMO.Tests {
                     PowerPointTextBox textBox = slide.AddTextBox("Quarterly review");
                     textBox.Paragraphs.First().Runs.First().SetHyperlink("https://example.com/review");
                     slide.AddImage(imagePath);
-                    PowerPointTable table = slide.AddTable(2, 2);
+                    PowerPointTable table = slide.AddTable(2,2);
                     table.GetCell(0, 0).Text = "Metric";
                     slide.AddChart();
                     slide.Notes.Text = "Talk track";
@@ -473,7 +473,7 @@ namespace OfficeIMO.Tests {
             try {
                 using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
                     PowerPointSlide slide = presentation.AddSlide();
-                    PowerPointTable table = slide.AddTable(1, 1);
+                    PowerPointTable table = slide.AddTable(1,1);
                     table.GetCell(0, 0).Text = "Grouped";
                     PowerPointAutoShape shape = slide.AddRectangle(914400, 0, 914400, 914400);
                     slide.GroupShapes(new PowerPointShape[] { table, shape });
@@ -501,7 +501,7 @@ namespace OfficeIMO.Tests {
             try {
                 using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
                     PowerPointSlide slide = presentation.AddSlide();
-                    PowerPointTable table = slide.AddTable(1, 1);
+                    PowerPointTable table = slide.AddTable(1,1);
                     table.GetCell(0, 0).Text = "Inherited";
                     presentation.Save();
                 }
@@ -993,7 +993,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
-                    PowerPointTable table = presentation.AddSlide().AddTable(1, 1);
+                    PowerPointTable table = presentation.AddSlide().AddTable(1,1);
                     table.GetCell(0, 0).Text = "Header";
                     presentation.Save();
                 }
@@ -1020,7 +1020,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
-                    PowerPointTable table = presentation.AddSlide().AddTable(1, 1);
+                    PowerPointTable table = presentation.AddSlide().AddTable(1,1);
                     presentation.Save();
                 }
 
@@ -1054,7 +1054,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
-                    PowerPointTableCell cell = presentation.AddSlide().AddTable(1, 1).GetCell(0, 0);
+                    PowerPointTableCell cell = presentation.AddSlide().AddTable(1,1).GetCell(0, 0);
                     PowerPointParagraph paragraph = cell.AddParagraph("Fresh");
 
                     Assert.Single(cell.Paragraphs);
@@ -1081,7 +1081,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
-                    PowerPointTable table = presentation.AddSlide().AddTable(1, 1);
+                    PowerPointTable table = presentation.AddSlide().AddTable(1,1);
                     table.GetCell(0, 0).Text = "Linked";
                     presentation.Save();
                 }
@@ -1121,7 +1121,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
-                    PowerPointTable table = presentation.AddSlide().AddTable(1, 1);
+                    PowerPointTable table = presentation.AddSlide().AddTable(1,1);
                     table.GetCell(0, 0).Text = "Linked";
                     presentation.Save();
                 }
@@ -1739,7 +1739,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
-                    PowerPointTable table = presentation.AddSlide().AddTable(1, 1);
+                    PowerPointTable table = presentation.AddSlide().AddTable(1,1);
                     table.GetCell(0, 0).Text = "Plain";
                     presentation.Save();
                 }

@@ -29,7 +29,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void ReturnedTableRowsAndColumnsKeepTheirNativeIdentityAfterInsertions() {
             using var document = PowerPointDocument.Create();
-            var table = document.AddSlide().AddTable(2, 2);
+            var table = document.AddSlide().AddTable(2,2);
             var row = table.AddRow(0);
             row.GetCell(0).Text = "Added row";
             var column = table.AddColumn(1);
@@ -52,7 +52,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void TableLengthsKeepExactEmusAndAttachedSizingHandles() {
             using var document = PowerPointDocument.Create();
-            var table = document.AddSlide().AddTable(2, 2);
+            var table = document.AddSlide().AddTable(2,2);
             table.SetColumnWidths(OfficeLength.Centimeters(2.5), OfficeLength.Inches(1));
             table.SetRowHeights(OfficeLength.Points(18), OfficeLength.Pixels(32));
             var column = table.AddColumn();

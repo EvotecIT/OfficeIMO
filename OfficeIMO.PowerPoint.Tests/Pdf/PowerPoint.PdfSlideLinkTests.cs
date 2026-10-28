@@ -203,7 +203,7 @@ public sealed class PowerPointPdfSlideLinkTests {
         PowerPointPicture picture = first.AddImagePoints(new MemoryStream(PdfPngTestImages.Create16BitRgbPng()),
             OfficeImageFormat.Png, 20, 20, 60, 40);
         picture.Rotation = 30; picture.SetHyperlink(second);
-        PowerPointTableCell cell = first.AddTablePoints(1, 1, 20, 100, 220, 90).GetCell(0, 0);
+        PowerPointTableCell cell = first.AddTable(1,1,global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(100),global::OfficeIMO.OfficeLength.Points(220),global::OfficeIMO.OfficeLength.Points(90)).GetCell(0, 0);
         cell.Text = "Cell target"; cell.Paragraphs[0].Runs[0].SetHyperlink(second);
         using var saved = new MemoryStream(); presentation.Save(saved); saved.Position = 0;
         using var reopened = PowerPointDocument.Load(saved);

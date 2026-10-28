@@ -79,8 +79,7 @@ public static partial class HtmlPowerPointConverterExtensions {
 
             int rows = endRow - nextRow + (includeHeader ? 1 : 0);
             double height = Math.Max(90D, usedHeight);
-            PptCore.PowerPointTable table = slide.AddTablePoints(rows, grid.Columns,
-                64D, contentTop, tableWidth, height);
+            PptCore.PowerPointTable table = slide.AddTable(rows,grid.Columns,                global::OfficeIMO.OfficeLength.Points(64D),global::OfficeIMO.OfficeLength.Points(contentTop),global::OfficeIMO.OfficeLength.Points(tableWidth),global::OfficeIMO.OfficeLength.Points(height));
             int localRow = 0;
             if (includeHeader) {
                 CopyGenericTableRow(table, grid, source, 0, localRow++, options, result);

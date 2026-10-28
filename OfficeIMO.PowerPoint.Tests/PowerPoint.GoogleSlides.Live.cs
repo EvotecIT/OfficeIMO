@@ -22,7 +22,7 @@ namespace OfficeIMO.Tests {
                 using (PowerPointDocument source = PowerPointDocument.Create()) {
                     PowerPointSlide slide = source.AddSlide();
                     slide.AddTextBoxPoints("OfficeIMO Google Slides live round trip", 30, 40, 500, 80);
-                    slide.AddTablePoints(1, 1, 30, 150, 300, 100).RowItems[0].Cells[0].Text = "Native table";
+                    slide.AddTable(1,1,global::OfficeIMO.OfficeLength.Points(30),global::OfficeIMO.OfficeLength.Points(150),global::OfficeIMO.OfficeLength.Points(300),global::OfficeIMO.OfficeLength.Points(100)).RowItems[0].Cells[0].Text = "Native table";
                     slide.Notes.Text = "Live speaker notes";
                     GooglePresentationReference created = await source.ExportToGoogleSlidesAsync(session, new GoogleSlidesSaveOptions {
                         Title = "OfficeIMO disposable Slides test " + Guid.NewGuid().ToString("N"),

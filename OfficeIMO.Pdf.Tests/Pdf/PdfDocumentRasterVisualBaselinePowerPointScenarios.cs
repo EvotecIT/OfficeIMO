@@ -48,7 +48,7 @@ public partial class PdfDocumentRasterVisualBaselineTests {
 
         slide.AddImage(new MemoryStream(CreatePowerPointVisualGatePng()), OfficeImageFormat.Png, PowerPointUnits.FromPoints(250), PowerPointUnits.FromPoints(22), PowerPointUnits.FromPoints(42), PowerPointUnits.FromPoints(30));
 
-        PowerPointTable table = slide.AddTablePoints(2, 2, 20, 98, 120, 48);
+        PowerPointTable table = slide.AddTable(2,2,global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(98),global::OfficeIMO.OfficeLength.Points(120),global::OfficeIMO.OfficeLength.Points(48));
         table.ApplyToCells(cell => cell.FontSize = 8);
         table.SetColumnWidths(global::OfficeIMO.OfficeLength.Points(70),global::OfficeIMO.OfficeLength.Points(50));
         table.SetRowHeights(global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(28));
@@ -122,7 +122,7 @@ public partial class PdfDocumentRasterVisualBaselineTests {
                 paragraph.SetHangingPoints(10);
             });
 
-        PowerPointTable table = slide.AddTablePoints(2, 2, 20, 118, 132, 40);
+        PowerPointTable table = slide.AddTable(2,2,global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(118),global::OfficeIMO.OfficeLength.Points(132),global::OfficeIMO.OfficeLength.Points(40));
         table.SetColumnWidths(global::OfficeIMO.OfficeLength.Points(76),global::OfficeIMO.OfficeLength.Points(56));
         table.SetRowHeights(global::OfficeIMO.OfficeLength.Points(18),global::OfficeIMO.OfficeLength.Points(22));
         table.GetCell(0, 0).Text = "Section";

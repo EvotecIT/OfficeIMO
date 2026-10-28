@@ -66,7 +66,7 @@ namespace OfficeIMO.Tests {
             slide.AddTextBoxPoints("Hello Slides", 20, 30, 300, 80).Paragraphs[0].Runs[0].Bold = true;
             PowerPointTextBox hiddenText = slide.AddTextBoxPoints("Hidden shape", 20, 110, 300, 40);
             hiddenText.Hidden = true;
-            PowerPointTable table = slide.AddTablePoints(2, 2, 40, 140, 400, 160);
+            PowerPointTable table = slide.AddTable(2,2,global::OfficeIMO.OfficeLength.Points(40),global::OfficeIMO.OfficeLength.Points(140),global::OfficeIMO.OfficeLength.Points(400),global::OfficeIMO.OfficeLength.Points(160));
             table.RowItems[0].Cells[0].Text = "A1";
             table.RowItems[0].Cells[0].Runs[0].Italic = true;
             slide.Notes.Text = "Speaker note";
@@ -137,7 +137,7 @@ namespace OfficeIMO.Tests {
             PowerPointSlide source = presentation.AddSlide();
             PowerPointSlide target = presentation.AddSlide();
             PowerPointTextRun shapeRun = source.AddTextBox("Shape link").Paragraphs.Single().Runs.Single();
-            PowerPointTextRun tableRun = source.AddTablePoints(1, 1, 20, 100, 220, 60)
+            PowerPointTextRun tableRun = source.AddTable(1,1,global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(100),global::OfficeIMO.OfficeLength.Points(220),global::OfficeIMO.OfficeLength.Points(60))
                 .GetCell(0, 0).Runs.Single();
             tableRun.Text = "Table link";
             shapeRun.SetHyperlink(target);
@@ -184,7 +184,7 @@ namespace OfficeIMO.Tests {
             using PowerPointDocument presentation = PowerPointDocument.Create();
             PowerPointSlide slide = presentation.AddSlide();
             PowerPointTextBox textBox = slide.AddTextBoxPoints("textbox", 20, 30, 300, 80);
-            PowerPointTableCell cell = slide.AddTablePoints(1, 1, 20, 130, 220, 60).GetCell(0, 0);
+            PowerPointTableCell cell = slide.AddTable(1,1,global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(130),global::OfficeIMO.OfficeLength.Points(220),global::OfficeIMO.OfficeLength.Points(60)).GetCell(0, 0);
             cell.Text = "table";
             string baselineFingerprint = string.Join("|", GoogleSlidesDiffPlanner.CreateCheckpoint(presentation).ContentHashes
                 .Where(pair => pair.Key.Contains("/element/", StringComparison.Ordinal))
@@ -260,7 +260,7 @@ namespace OfficeIMO.Tests {
             using PowerPointDocument presentation = PowerPointDocument.Create();
             PowerPointSlide slide = presentation.AddSlide();
             PowerPointTextBox textBox = slide.AddTextBoxPoints("textbox", 20, 30, 300, 80);
-            PowerPointTableCell cell = slide.AddTablePoints(1, 1, 20, 130, 220, 60).GetCell(0, 0);
+            PowerPointTableCell cell = slide.AddTable(1,1,global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(130),global::OfficeIMO.OfficeLength.Points(220),global::OfficeIMO.OfficeLength.Points(60)).GetCell(0, 0);
             cell.Text = "table";
             textBox.Paragraphs[0].Paragraph.ParagraphProperties = new A.ParagraphProperties(
                 new A.DefaultRunProperties {
@@ -325,7 +325,7 @@ namespace OfficeIMO.Tests {
   <a:nwCell><a:tcTxStyle b=""on"" i=""on""><a:font><a:latin typeface=""Times New Roman"" /></a:font><a:srgbClr val=""FF00FF"" /></a:tcTxStyle></a:nwCell>
 </a:tblStyle>"));
 
-            PowerPointTable table = slide.AddTablePoints(3, 2, 20, 30, 220, 120);
+            PowerPointTable table = slide.AddTable(3,2,global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(30),global::OfficeIMO.OfficeLength.Points(220),global::OfficeIMO.OfficeLength.Points(120));
             table.StyleId = styleId;
             table.FirstRow = true;
             table.FirstColumn = true;
@@ -366,7 +366,7 @@ namespace OfficeIMO.Tests {
         public void BatchCompiler_PreservesTableFieldsAndLineBreaksInAuthoredOrder() {
             using PowerPointDocument presentation = PowerPointDocument.Create();
             PowerPointTableCell cell = presentation.AddSlide()
-                .AddTablePoints(1, 1, 20, 30, 300, 100)
+                .AddTable(1,1,global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(30),global::OfficeIMO.OfficeLength.Points(300),global::OfficeIMO.OfficeLength.Points(100))
                 .GetCell(0, 0);
             PowerPointParagraph paragraph = cell.Paragraphs[0];
             paragraph.Text = "Before ";
@@ -458,7 +458,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void BatchCompiler_RasterizesMergedTablesToPreserveCellLayout() {
             using PowerPointDocument presentation = PowerPointDocument.Create();
-            PowerPointTable table = presentation.AddSlide().AddTablePoints(2, 2, 20, 20, 300, 120);
+            PowerPointTable table = presentation.AddSlide().AddTable(2,2,global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(300),global::OfficeIMO.OfficeLength.Points(120));
             table.MergeCells(0, 0, 1, 1);
 
             GoogleSlidesBatch batch = presentation.BuildGoogleSlidesBatch();
@@ -550,7 +550,7 @@ namespace OfficeIMO.Tests {
                 run.SetSuperscript();
             });
             authoredSlide.AddTextShapePoints(OfficePresetShapeType.RightArrow, "Next step", 340, 30, 160, 80);
-            PowerPointTableCell styledCell = authoredSlide.AddTablePoints(1, 1, 20, 130, 220, 60).GetCell(0, 0);
+            PowerPointTableCell styledCell = authoredSlide.AddTable(1,1,global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(130),global::OfficeIMO.OfficeLength.Points(220),global::OfficeIMO.OfficeLength.Points(60)).GetCell(0, 0);
             styledCell.Text = "Styled cell";
             styledCell.Runs[0].Italic = true;
             styledCell.Runs[0].Underline = true;
@@ -1424,7 +1424,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal(projected, ElementHash(GoogleSlidesDiffPlanner.CreateCheckpoint(presentation)));
 
             using PowerPointDocument tablePresentation = PowerPointDocument.Create();
-            PowerPointTextRun tableRun = tablePresentation.AddSlide().AddTablePoints(1, 1, 10, 80, 200, 50).GetCell(0, 0).Runs.Single();
+            PowerPointTextRun tableRun = tablePresentation.AddSlide().AddTable(1,1,global::OfficeIMO.OfficeLength.Points(10),global::OfficeIMO.OfficeLength.Points(80),global::OfficeIMO.OfficeLength.Points(200),global::OfficeIMO.OfficeLength.Points(50)).GetCell(0, 0).Runs.Single();
             tableRun.Text = "Cell";
             string tableBaseline = ElementHash(GoogleSlidesDiffPlanner.CreateCheckpoint(tablePresentation));
             tableRun.Strikethrough = true;

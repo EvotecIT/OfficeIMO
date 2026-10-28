@@ -35,7 +35,7 @@ public sealed class PowerPointPdfThumbnailSlideLinkTests {
         grouped.Paragraphs[0].AddRun(" HIDDEN").SetHyperlink(hidden);
         grouped.Paragraphs[0].AddRun(" ABSENT").Hyperlink = new Uri("#slide-99", UriKind.Relative);
         first.GroupShapes(new PowerPointShape[] { grouped, first.AddRectanglePoints(20, 200, 350, 2) });
-        PowerPointTable table = first.AddTablePoints(1, 2, 20, 210, 350, 70);
+        PowerPointTable table = first.AddTable(1,2,global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(210),global::OfficeIMO.OfficeLength.Points(350),global::OfficeIMO.OfficeLength.Points(70));
         PowerPointTableCell cell = table.GetCell(0, 0);
         cell.Text = "TABLE TARGET"; cell.Paragraphs[0].Runs[0].SetHyperlink(fifth);
         PowerPointTableCell flowing = table.GetCell(0, 1);

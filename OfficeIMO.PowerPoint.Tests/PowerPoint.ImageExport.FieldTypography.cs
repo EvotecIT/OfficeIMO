@@ -27,7 +27,7 @@ namespace OfficeIMO.Tests {
                 run.Capitalization = PowerPointCapitalization.AllCaps;
             });
 
-            PowerPointTableCell cell = slide.AddTablePoints(1, 1, 175, 20, 140, 55).GetCell(0, 0);
+            PowerPointTableCell cell = slide.AddTable(1,1,global::OfficeIMO.OfficeLength.Points(175),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(140),global::OfficeIMO.OfficeLength.Points(55)).GetCell(0, 0);
             cell.Text = "seed";
             PowerPointParagraph cellParagraph = cell.Paragraphs[0];
             cellParagraph.Paragraph.RemoveAllChildren<A.Run>();
@@ -102,7 +102,7 @@ namespace OfficeIMO.Tests {
             textBoxRun.Capitalization = PowerPointCapitalization.AllCaps;
             textBoxParagraph.AddLineBreak().AddField("TextBoxField", "custom");
 
-            PowerPointTableCell cell = slide.AddTablePoints(1, 1, 170, 20, 120, 50).GetCell(0, 0);
+            PowerPointTableCell cell = slide.AddTable(1,1,global::OfficeIMO.OfficeLength.Points(170),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(120),global::OfficeIMO.OfficeLength.Points(50)).GetCell(0, 0);
             cell.Text = "small caps";
             cell.Runs[0].Capitalization = PowerPointCapitalization.SmallCaps;
             cell.Paragraphs[0].AddLineBreak().AddField("CellField", "custom");
@@ -133,7 +133,7 @@ namespace OfficeIMO.Tests {
                 new A.DefaultRunProperties { Capital = A.TextCapsValues.All, Language = "tr-TR" });
             textParagraph.Runs[0].BaselinePercent = 5D;
 
-            PowerPointTableCell cell = slide.AddTablePoints(1, 1, 180, 20, 140, 50).GetCell(0, 0);
+            PowerPointTableCell cell = slide.AddTable(1,1,global::OfficeIMO.OfficeLength.Points(180),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(140),global::OfficeIMO.OfficeLength.Points(50)).GetCell(0, 0);
             cell.Text = "small caps";
             PowerPointParagraph cellParagraph = cell.Paragraphs[0];
             cellParagraph.Paragraph.ParagraphProperties = new A.ParagraphProperties(

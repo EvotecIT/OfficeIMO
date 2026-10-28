@@ -49,17 +49,11 @@ namespace OfficeIMO.Examples.PowerPoint {
             // Slide 2: table from objects
             PowerPointSlide tableSlide = presentation.AddSlide();
             tableSlide.AddTitleCm("Sales by Product", marginCm, marginCm, content.Width.ToCentimeters(), titleHeightCm);
-            PowerPointTable table = tableSlide.AddTableCm(
-                data,
-                o => {
+            PowerPointTable table = tableSlide.AddTable(
+                data,                o => {
                     o.HeaderCase = HeaderCase.Title;
                     o.PinFirst("Product");
-                },
-                includeHeaders: true,
-                leftCm: marginCm,
-                topCm: bodyTopCm,
-                widthCm: content.Width.ToCentimeters(),
-                heightCm: bodyHeightCm);
+                },                includeHeaders: true,left: global::OfficeIMO.OfficeLength.Centimeters(marginCm),top: global::OfficeIMO.OfficeLength.Centimeters(bodyTopCm),width: global::OfficeIMO.OfficeLength.Centimeters(content.Width.ToCentimeters()),height: global::OfficeIMO.OfficeLength.Centimeters(bodyHeightCm));
             table.ApplyStyle(new PowerPointTableStylePreset(styleId: accentStyle?.StyleId, firstRow: true, bandedRows: true));
             table.SetColumnWidths(global::OfficeIMO.OfficeLength.Points(200),global::OfficeIMO.OfficeLength.Points(90),global::OfficeIMO.OfficeLength.Points(90),global::OfficeIMO.OfficeLength.Points(90),global::OfficeIMO.OfficeLength.Points(90));
             table.SetRowHeight(0,global::OfficeIMO.OfficeLength.Points(28));
@@ -95,13 +89,8 @@ namespace OfficeIMO.Examples.PowerPoint {
                         // Slide 3: merged cells
             PowerPointSlide mergeSlide = presentation.AddSlide();
             mergeSlide.AddTitleCm("Merged Cells", marginCm, marginCm, content.Width.ToCentimeters(), titleHeightCm);
-            PowerPointTable mergeTable = mergeSlide.AddTableCm(
-                rows: 4,
-                columns: 4,
-                leftCm: marginCm,
-                topCm: bodyTopCm,
-                widthCm: content.Width.ToCentimeters(),
-                heightCm: bodyHeightCm);
+            PowerPointTable mergeTable = mergeSlide.AddTable(
+                rows: 4,                columns: 4,left: global::OfficeIMO.OfficeLength.Centimeters(marginCm),top: global::OfficeIMO.OfficeLength.Centimeters(bodyTopCm),width: global::OfficeIMO.OfficeLength.Centimeters(content.Width.ToCentimeters()),height: global::OfficeIMO.OfficeLength.Centimeters(bodyHeightCm));
             mergeTable.ApplyStyle(new PowerPointTableStylePreset(styleId: accentStyle?.StyleId, firstRow: true, bandedRows: true));
             mergeTable.SetColumnWidthsEvenly();
             mergeTable.SetRowHeight(0,global::OfficeIMO.OfficeLength.Points(28));
@@ -144,33 +133,21 @@ namespace OfficeIMO.Examples.PowerPoint {
             double styleTableHeightCm = bodyHeightCm - styleLabelHeightCm - styleLabelGapCm;
             stylesSlide.AddTextBoxCm($"Style: {accentStyle?.Name ?? "Default"}", leftColumn.Left.ToCentimeters(), bodyTopCm,
                 leftColumn.Width.ToCentimeters(), styleLabelHeightCm);
-            PowerPointTable leftStyleTable = stylesSlide.AddTableCm(
-                data,
-                o => {
+            PowerPointTable leftStyleTable = stylesSlide.AddTable(
+                data,                o => {
                     o.HeaderCase = HeaderCase.Title;
                     o.PinFirst("Product");
-                },
-                includeHeaders: true,
-                leftCm: leftColumn.Left.ToCentimeters(),
-                topCm: styleTableTopCm,
-                widthCm: leftColumn.Width.ToCentimeters(),
-                heightCm: styleTableHeightCm);
+                },                includeHeaders: true,left: global::OfficeIMO.OfficeLength.Centimeters(leftColumn.Left.ToCentimeters()),top: global::OfficeIMO.OfficeLength.Centimeters(styleTableTopCm),width: global::OfficeIMO.OfficeLength.Centimeters(leftColumn.Width.ToCentimeters()),height: global::OfficeIMO.OfficeLength.Centimeters(styleTableHeightCm));
             leftStyleTable.ApplyStyle(new PowerPointTableStylePreset(styleId: accentStyle?.StyleId, firstRow: true, bandedRows: true));
             leftStyleTable.SetColumnWidthsEvenly();
 
             stylesSlide.AddTextBoxCm($"Style: {darkStyle?.Name ?? "Banded Columns"}", rightColumn.Left.ToCentimeters(), bodyTopCm,
                 rightColumn.Width.ToCentimeters(), styleLabelHeightCm);
-            PowerPointTable rightStyleTable = stylesSlide.AddTableCm(
-                data,
-                o => {
+            PowerPointTable rightStyleTable = stylesSlide.AddTable(
+                data,                o => {
                     o.HeaderCase = HeaderCase.Title;
                     o.PinFirst("Product");
-                },
-                includeHeaders: true,
-                leftCm: rightColumn.Left.ToCentimeters(),
-                topCm: styleTableTopCm,
-                widthCm: rightColumn.Width.ToCentimeters(),
-                heightCm: styleTableHeightCm);
+                },                includeHeaders: true,left: global::OfficeIMO.OfficeLength.Centimeters(rightColumn.Left.ToCentimeters()),top: global::OfficeIMO.OfficeLength.Centimeters(styleTableTopCm),width: global::OfficeIMO.OfficeLength.Centimeters(rightColumn.Width.ToCentimeters()),height: global::OfficeIMO.OfficeLength.Centimeters(styleTableHeightCm));
             rightStyleTable.ApplyStyle(new PowerPointTableStylePreset(styleId: darkStyle?.StyleId, firstRow: true, bandedColumns: true));
             rightStyleTable.SetColumnWidthsEvenly();
 
@@ -192,17 +169,11 @@ namespace OfficeIMO.Examples.PowerPoint {
             // Slide 6: table + chart side by side
             PowerPointSlide comboSlide = presentation.AddSlide();
             comboSlide.AddTitleCm("Table and Chart (Compact)", marginCm, marginCm, content.Width.ToCentimeters(), titleHeightCm);
-            PowerPointTable compactTable = comboSlide.AddTableCm(
-                data,
-                o => {
+            PowerPointTable compactTable = comboSlide.AddTable(
+                data,                o => {
                     o.HeaderCase = HeaderCase.Title;
                     o.PinFirst("Product");
-                },
-                includeHeaders: true,
-                leftCm: leftColumn.Left.ToCentimeters(),
-                topCm: leftColumn.Top.ToCentimeters(),
-                widthCm: leftColumn.Width.ToCentimeters(),
-                heightCm: leftColumn.Height.ToCentimeters());
+                },                includeHeaders: true,left: global::OfficeIMO.OfficeLength.Centimeters(leftColumn.Left.ToCentimeters()),top: global::OfficeIMO.OfficeLength.Centimeters(leftColumn.Top.ToCentimeters()),width: global::OfficeIMO.OfficeLength.Centimeters(leftColumn.Width.ToCentimeters()),height: global::OfficeIMO.OfficeLength.Centimeters(leftColumn.Height.ToCentimeters()));
             compactTable.ApplyStyle(new PowerPointTableStylePreset(styleId: lightStyle?.StyleId, firstRow: true, bandedRows: true));
             double compactWidthPoints = leftColumn.Width.ToPoints();
             double productWidthPoints = compactWidthPoints * 0.38;
@@ -261,14 +232,8 @@ namespace OfficeIMO.Examples.PowerPoint {
                 new SummaryRow { Metric = "Total Q3", Value = totals[2] },
                 new SummaryRow { Metric = "Total Q4", Value = totals[3] }
             };
-            PowerPointTable summary = summarySlide.AddTableCm(
-                summaryRows,
-                o => o.HeaderCase = HeaderCase.Title,
-                includeHeaders: true,
-                leftCm: marginCm,
-                topCm: bodyTopCm,
-                widthCm: content.Width.ToCentimeters(),
-                heightCm: bodyHeightCm);
+            PowerPointTable summary = summarySlide.AddTable(
+                summaryRows,                o => o.HeaderCase = HeaderCase.Title,                includeHeaders: true,left: global::OfficeIMO.OfficeLength.Centimeters(marginCm),top: global::OfficeIMO.OfficeLength.Centimeters(bodyTopCm),width: global::OfficeIMO.OfficeLength.Centimeters(content.Width.ToCentimeters()),height: global::OfficeIMO.OfficeLength.Centimeters(bodyHeightCm));
             summary.ApplyStyle(new PowerPointTableStylePreset(styleId: accentStyle?.StyleId, firstRow: true, bandedRows: true));
 
             PowerPointTableCell summaryHeader = summary.GetCell(0, 0);

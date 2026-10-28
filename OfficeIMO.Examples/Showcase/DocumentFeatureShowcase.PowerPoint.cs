@@ -43,7 +43,7 @@ internal static partial class DocumentFeatureShowcase {
     private static void CreateSlideTable(string folder, bool open) {
         using PowerPointDocument presentation = PowerPointDocument.Create(Path.Combine(folder, "sales-table.pptx"));
         PowerPointSlide slide = AddFeatureSlide(presentation, "A table that stays editable", "Generate slide cells from application data, then style the rows and columns.");
-        PowerPointTable table = slide.AddTableCm(5, 4, 1.5, 5, 30, 9);
+        PowerPointTable table = slide.AddTable(5,4,global::OfficeIMO.OfficeLength.Centimeters(1.5),global::OfficeIMO.OfficeLength.Centimeters(5),global::OfficeIMO.OfficeLength.Centimeters(30),global::OfficeIMO.OfficeLength.Centimeters(9));
         string[,] values = {
             { "Product", "Q1", "Q2", "Change" },
             { "Platform", "120", "148", "+23%" },

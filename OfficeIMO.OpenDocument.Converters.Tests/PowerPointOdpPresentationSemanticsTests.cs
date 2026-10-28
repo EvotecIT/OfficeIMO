@@ -637,7 +637,7 @@ public sealed class PowerPointOdpPresentationSemanticsTests {
         using PowerPointDocument source = PowerPointDocument.Create(new MemoryStream(), new PowerPointCreateOptions());
         PowerPointSlide slide = source.AddSlide(PowerPointSlideLayoutType.Blank);
         slide.AddRectanglePoints(20, 20, 100, 50);
-        slide.AddTable(1, 1);
+        slide.AddTable(1,1);
         ShapeProperties shapeProperties = source.OpenXmlDocument.PresentationPart!.SlideParts.First().Slide!
             .Descendants<ShapeProperties>().Single();
         shapeProperties.RemoveAllChildren<A.SolidFill>();

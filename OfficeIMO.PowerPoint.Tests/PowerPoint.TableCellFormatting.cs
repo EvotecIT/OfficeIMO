@@ -11,7 +11,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Hidden_borders_can_be_restored_without_conflicting_fills_or_changing_other_edges() {
             using var presentation = PowerPointDocument.Create();
-            var cell = presentation.AddSlide().AddTable(1, 1).GetCell(0, 0);
+            var cell = presentation.AddSlide().AddTable(1,1).GetCell(0, 0);
             cell.Text = "Preserved"; cell.FillColor = "ABCDEF";
             cell.SetBorders(PowerPointTableCellBorders.All, "123456", 1);
             cell.HideBorders(PowerPointTableCellBorders.Right | PowerPointTableCellBorders.Bottom);
@@ -40,7 +40,7 @@ namespace OfficeIMO.Tests {
 
             using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
                 PowerPointSlide slide = presentation.AddSlide();
-                PowerPointTable table = slide.AddTable(2, 2);
+                PowerPointTable table = slide.AddTable(2,2);
                 PowerPointTableCell cell = table.GetCell(0, 0);
                 cell.Text = "Header";
                 cell.SetBorders(PowerPointTableCellBorders.All, "FF0000", 1.5);
@@ -78,7 +78,7 @@ namespace OfficeIMO.Tests {
             try {
                 using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
                     PowerPointSlide slide = presentation.AddSlide();
-                    PowerPointTable table = slide.AddTable(1, 1);
+                    PowerPointTable table = slide.AddTable(1,1);
                     PowerPointTableCell cell = table.GetCell(0, 0);
                     IReadOnlyList<PowerPointParagraph> paragraphs = cell.SetParagraphs(new[] { "First", "Second" }, paragraph => {
                         paragraph.SetLineSpacingPoints(18);
@@ -107,7 +107,7 @@ namespace OfficeIMO.Tests {
             try {
                 using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
                     PowerPointSlide slide = presentation.AddSlide();
-                    PowerPointTable table = slide.AddTable(1, 1);
+                    PowerPointTable table = slide.AddTable(1,1);
                     PowerPointTableCell cell = table.GetCell(0, 0);
                     cell.SetBullets(new[] { "First bullet", "Second bullet" }, configure: paragraph => {
                         paragraph.SetBulletSizePoints(11);

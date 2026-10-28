@@ -70,7 +70,7 @@ public class HtmlArtifactRoundTrips {
 
         using PowerPointDocument sourcePresentation = PowerPointDocument.Create(new MemoryStream());
         PowerPointSlide sourceSlide = sourcePresentation.AddSlide();
-        PowerPointTable sourceTable = sourceSlide.AddTablePoints(2, 2, 40, 60, 300, 120);
+        PowerPointTable sourceTable = sourceSlide.AddTable(2,2,global::OfficeIMO.OfficeLength.Points(40),global::OfficeIMO.OfficeLength.Points(60),global::OfficeIMO.OfficeLength.Points(300),global::OfficeIMO.OfficeLength.Points(120));
         sourceTable.GetCell(0, 0).Text = Marker;
         sourceTable.MergeCells(0, 0, 0, 1);
         HtmlToPowerPointResult powerPointResult = OfficeIMO.Html.HtmlConversionDocument.Parse(sourcePresentation.ToHtml()).ToPowerPointDocumentResult();

@@ -648,13 +648,7 @@ public static partial class PdfPowerPointConverterExtensions {
                     ? MapTableBounds(page, extraction.Table, placement)
                     : GetContinuationTableBounds(presentation, options);
                 PptCore.PowerPointTable table = slide.AddTable(
-                    rowCount,
-                    segment.ColumnCount,
-                    options.TableStyle,
-                    PowerPointUnits.FromPoints(bounds.Left),
-                    PowerPointUnits.FromPoints(bounds.Top),
-                    PowerPointUnits.FromPoints(Math.Max(1D, bounds.Width)),
-                    PowerPointUnits.FromPoints(Math.Max(1D, bounds.Height)));
+                    rowCount,                    segment.ColumnCount,                    options.TableStyle,                    global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(bounds.Left)),                    global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(bounds.Top)),                    global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(Math.Max(1D, bounds.Width))),                    global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(Math.Max(1D, bounds.Height))));
                 PopulateTable(table, extraction.Table, data, segment, headerRowIncluded, options, cancellationToken);
                 ApplyEditableTableTypography(
                     table,

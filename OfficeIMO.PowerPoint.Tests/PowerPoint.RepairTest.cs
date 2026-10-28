@@ -26,7 +26,7 @@ namespace OfficeIMO.Tests {
                         slide.AddImage(imagePath);
                     }
                     
-                    slide.AddTable(2, 3);
+                    slide.AddTable(2,3);
                     slide.Notes.Text = $"Notes for slide {i + 1}";
                 }
                 

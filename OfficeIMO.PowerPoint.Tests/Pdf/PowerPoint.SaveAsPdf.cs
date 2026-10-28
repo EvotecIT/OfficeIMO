@@ -1345,7 +1345,7 @@ public partial class PowerPointSaveAsPdfTests {
         using var stream = new MemoryStream();
         using PowerPointDocument presentation = PowerPointDocument.Create(stream);
         presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(260),OfficeIMO.OfficeLength.Points(180));
-        PowerPointTable table = presentation.AddSlide().AddTablePoints(2, 2, 30, 34, 150, 70);
+        PowerPointTable table = presentation.AddSlide().AddTable(2,2,global::OfficeIMO.OfficeLength.Points(30),global::OfficeIMO.OfficeLength.Points(34),global::OfficeIMO.OfficeLength.Points(150),global::OfficeIMO.OfficeLength.Points(70));
         table.FirstRow = true;
         table.BandedRows = false;
         table.SetColumnWidths(global::OfficeIMO.OfficeLength.Points(90),global::OfficeIMO.OfficeLength.Points(60));
@@ -1404,7 +1404,7 @@ public partial class PowerPointSaveAsPdfTests {
         using var stream = new MemoryStream();
         using PowerPointDocument presentation = PowerPointDocument.Create(stream);
         presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(260),OfficeIMO.OfficeLength.Points(180));
-        PowerPointTable table = presentation.AddSlide().AddTablePoints(2, 2, 30, 34, 150, 70);
+        PowerPointTable table = presentation.AddSlide().AddTable(2,2,global::OfficeIMO.OfficeLength.Points(30),global::OfficeIMO.OfficeLength.Points(34),global::OfficeIMO.OfficeLength.Points(150),global::OfficeIMO.OfficeLength.Points(70));
         table.FirstRow = true;
         table.BandedRows = true;
         table.GetCell(0, 0).Text = "Header";
@@ -1450,7 +1450,7 @@ public partial class PowerPointSaveAsPdfTests {
         using var stream = new MemoryStream();
         using PowerPointDocument presentation = PowerPointDocument.Create(stream);
         presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(260),OfficeIMO.OfficeLength.Points(180));
-        PowerPointTable table = presentation.AddSlide().AddTablePoints(2, 2, 30, 34, 150, 70);
+        PowerPointTable table = presentation.AddSlide().AddTable(2,2,global::OfficeIMO.OfficeLength.Points(30),global::OfficeIMO.OfficeLength.Points(34),global::OfficeIMO.OfficeLength.Points(150),global::OfficeIMO.OfficeLength.Points(70));
         table.FirstRow = true;
         table.BandedRows = false;
         table.SetColumnWidths(global::OfficeIMO.OfficeLength.Points(90),global::OfficeIMO.OfficeLength.Points(60));
@@ -1515,7 +1515,7 @@ public partial class PowerPointSaveAsPdfTests {
         using var stream = new MemoryStream();
         using PowerPointDocument presentation = PowerPointDocument.Create(stream);
         presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(260),OfficeIMO.OfficeLength.Points(180));
-        PowerPointTable table = presentation.AddSlide().AddTablePoints(1, 1, 30, 34, 150, 40);
+        PowerPointTable table = presentation.AddSlide().AddTable(1,1,global::OfficeIMO.OfficeLength.Points(30),global::OfficeIMO.OfficeLength.Points(34),global::OfficeIMO.OfficeLength.Points(150),global::OfficeIMO.OfficeLength.Points(40));
         table.FirstRow = false;
         table.GetCell(0, 0).Text = "Value";
 
@@ -1545,7 +1545,7 @@ public partial class PowerPointSaveAsPdfTests {
         PowerPointTextBox excluded = slide.AddTextBoxPoints("Excluded", 30, 26, 100, 28);
         excluded.FontName = "Georgia";
 
-        PowerPointTable table = slide.AddTablePoints(1, 1, 30, 74, 150, 42);
+        PowerPointTable table = slide.AddTable(1,1,global::OfficeIMO.OfficeLength.Points(30),global::OfficeIMO.OfficeLength.Points(74),global::OfficeIMO.OfficeLength.Points(150),global::OfficeIMO.OfficeLength.Points(42));
         PowerPointTableCell cell = table.GetCell(0, 0);
         cell.Text = "Visible";
         cell.FontName = "Times New Roman";
@@ -1575,7 +1575,7 @@ public partial class PowerPointSaveAsPdfTests {
         PowerPointTextBox offSlide = slide.AddTextBoxPoints("OffSlide", -180, 24, 80, 28);
         offSlide.FontName = "Georgia";
 
-        PowerPointTable table = slide.AddTablePoints(1, 1, 30, 74, 150, 42);
+        PowerPointTable table = slide.AddTable(1,1,global::OfficeIMO.OfficeLength.Points(30),global::OfficeIMO.OfficeLength.Points(74),global::OfficeIMO.OfficeLength.Points(150),global::OfficeIMO.OfficeLength.Points(42));
         PowerPointTableCell cell = table.GetCell(0, 0);
         cell.Text = "Visible";
         cell.FontName = "Times New Roman";
@@ -1672,7 +1672,7 @@ public partial class PowerPointSaveAsPdfTests {
         using var stream = new MemoryStream();
         using PowerPointDocument presentation = PowerPointDocument.Create(stream);
         presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(260),OfficeIMO.OfficeLength.Points(180));
-        PowerPointTable table = presentation.AddSlide().AddTablePoints(1, 1, 30, 28, 150, 96);
+        PowerPointTable table = presentation.AddSlide().AddTable(1,1,global::OfficeIMO.OfficeLength.Points(30),global::OfficeIMO.OfficeLength.Points(28),global::OfficeIMO.OfficeLength.Points(150),global::OfficeIMO.OfficeLength.Points(96));
         table.SetRowHeights(global::OfficeIMO.OfficeLength.Points(96));
 
         PowerPointTableCell cell = table.GetCell(0, 0);
@@ -1704,7 +1704,7 @@ public partial class PowerPointSaveAsPdfTests {
         using var stream = new MemoryStream();
         using PowerPointDocument presentation = PowerPointDocument.Create(stream);
         presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(260),OfficeIMO.OfficeLength.Points(180));
-        PowerPointTable table = presentation.AddSlide().AddTablePoints(1, 1, 30, 34, 180, 70);
+        PowerPointTable table = presentation.AddSlide().AddTable(1,1,global::OfficeIMO.OfficeLength.Points(30),global::OfficeIMO.OfficeLength.Points(34),global::OfficeIMO.OfficeLength.Points(180),global::OfficeIMO.OfficeLength.Points(70));
         PowerPointTableCell cell = table.GetCell(0, 0);
         cell.Text = "SmallLarge";
         cell.FontSize = 10;
@@ -1733,7 +1733,7 @@ public partial class PowerPointSaveAsPdfTests {
         using var stream = new MemoryStream();
         using PowerPointDocument presentation = PowerPointDocument.Create(stream);
         presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(260),OfficeIMO.OfficeLength.Points(150));
-        PowerPointTable table = presentation.AddSlide().AddTablePoints(1, 1, 30, 34, 86, 22);
+        PowerPointTable table = presentation.AddSlide().AddTable(1,1,global::OfficeIMO.OfficeLength.Points(30),global::OfficeIMO.OfficeLength.Points(34),global::OfficeIMO.OfficeLength.Points(86),global::OfficeIMO.OfficeLength.Points(22));
         PowerPointTableCell cell = table.GetCell(0, 0);
         cell.Text = "A very dense PowerPoint table cell that cannot fit inside this tiny fixed PDF frame";
         cell.FontSize = 14;
@@ -1756,7 +1756,7 @@ public partial class PowerPointSaveAsPdfTests {
         using var stream = new MemoryStream();
         using PowerPointDocument presentation = PowerPointDocument.Create(stream);
         presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(260),OfficeIMO.OfficeLength.Points(180));
-        PowerPointTable table = presentation.AddSlide().AddTablePoints(1, 1, 30, 34, 150, 70);
+        PowerPointTable table = presentation.AddSlide().AddTable(1,1,global::OfficeIMO.OfficeLength.Points(30),global::OfficeIMO.OfficeLength.Points(34),global::OfficeIMO.OfficeLength.Points(150),global::OfficeIMO.OfficeLength.Points(70));
         table.Rotation = 90D;
         table.GetCell(0, 0).Text = "Rotated";
 

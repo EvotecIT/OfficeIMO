@@ -18,7 +18,7 @@ namespace OfficeIMO.Tests {
             presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(220),OfficeIMO.OfficeLength.Points(140));
             PowerPointSlide slide = presentation.AddSlide();
 
-            PowerPointTable table = slide.AddTablePoints(1, 1, 20, 20, 160, 90);
+            PowerPointTable table = slide.AddTable(1,1,global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(160),global::OfficeIMO.OfficeLength.Points(90));
             PowerPointTableCell cell = table.GetCell(0, 0);
             cell.Text = "Cell spaced first";
             cell.FontSize = 12;
@@ -59,7 +59,7 @@ namespace OfficeIMO.Tests {
             presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(220),OfficeIMO.OfficeLength.Points(140));
             PowerPointSlide slide = presentation.AddSlide();
 
-            PowerPointTable table = slide.AddTablePoints(1, 1, 20, 20, 160, 90);
+            PowerPointTable table = slide.AddTable(1,1,global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(160),global::OfficeIMO.OfficeLength.Points(90));
             PowerPointTableCell cell = table.GetCell(0, 0);
             cell.Text = "Cell line spacing";
             cell.FontSize = 12;
@@ -97,7 +97,7 @@ namespace OfficeIMO.Tests {
             presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(220),OfficeIMO.OfficeLength.Points(140));
             PowerPointSlide slide = presentation.AddSlide();
 
-            PowerPointTable table = slide.AddTablePoints(1, 1, 20, 20, 160, 90);
+            PowerPointTable table = slide.AddTable(1,1,global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(160),global::OfficeIMO.OfficeLength.Points(90));
             PowerPointTableCell cell = table.GetCell(0, 0);
             cell.FontSize = 12;
             cell.PaddingLeftPoints = 0D;
@@ -126,7 +126,7 @@ namespace OfficeIMO.Tests {
             presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(240),OfficeIMO.OfficeLength.Points(140));
             PowerPointSlide slide = presentation.AddSlide();
 
-            PowerPointTable table = slide.AddTablePoints(1, 1, 20, 20, 80, 30);
+            PowerPointTable table = slide.AddTable(1,1,global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(80),global::OfficeIMO.OfficeLength.Points(30));
             PowerPointTableCell cell = table.GetCell(0, 0);
             cell.Text = "Grouped";
             cell.FontSize = 10;
@@ -169,7 +169,7 @@ namespace OfficeIMO.Tests {
             presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(260),OfficeIMO.OfficeLength.Points(180));
             PowerPointSlide slide = presentation.AddSlide();
 
-            PowerPointTable table = slide.AddTablePoints(1, 1, 20, 20, 200, 120);
+            PowerPointTable table = slide.AddTable(1,1,global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(200),global::OfficeIMO.OfficeLength.Points(120));
             PowerPointTableCell cell = table.GetCell(0, 0);
             cell.FontSize = 12;
             cell.PaddingLeftPoints = 0D;
@@ -205,7 +205,7 @@ namespace OfficeIMO.Tests {
             presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(220),OfficeIMO.OfficeLength.Points(120));
             PowerPointSlide slide = presentation.AddSlide();
 
-            PowerPointTable table = slide.AddTablePoints(1, 1, 20, 20, 160, 70);
+            PowerPointTable table = slide.AddTable(1,1,global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(160),global::OfficeIMO.OfficeLength.Points(70));
             PowerPointTableCell cell = table.GetCell(0, 0);
             cell.FontSize = 12;
             cell.PaddingLeftPoints = 0D;

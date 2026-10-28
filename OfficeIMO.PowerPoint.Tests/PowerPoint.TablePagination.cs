@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using OfficeIMO;
 using OfficeIMO.PowerPoint;
 using Xunit;
 
@@ -25,7 +26,7 @@ namespace OfficeIMO.Tests {
                     PowerPointPaginatedTableResult result = presentation.AddTableSlides(source, columns,
                         new PowerPointTablePaginationOptions {
                             TableBounds = new OfficeIMO.PowerPoint.PowerPointLayoutBox(OfficeIMO.OfficeLength.Points(20),OfficeIMO.OfficeLength.Points(40),OfficeIMO.OfficeLength.Points(360),OfficeIMO.OfficeLength.Points(100)),
-                            MinimumRowHeightPoints = 20,
+                            MinimumRowHeight = global::OfficeIMO.OfficeLength.Points(20),
                             ConfigureSlide = (slide, context) => {
                                 configuredPages.Add(context.PageIndex);
                                 slide.AddTextBoxPoints(
@@ -68,10 +69,42 @@ namespace OfficeIMO.Tests {
             InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() =>
                 presentation.AddTableSlides(rows, columns, new PowerPointTablePaginationOptions {
                     TableBounds = new OfficeIMO.PowerPoint.PowerPointLayoutBox(OfficeIMO.OfficeLength.Points(10),OfficeIMO.OfficeLength.Points(10),OfficeIMO.OfficeLength.Points(200),OfficeIMO.OfficeLength.Points(20)),
-                    MinimumRowHeightPoints = 20
+                    MinimumRowHeight = global::OfficeIMO.OfficeLength.Points(20)
                 }));
 
             Assert.Contains("at least one data row", exception.Message, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void AddTableSlides_PreservesWholeEmuRowHeightsAfterSaving() {
+            using var stream = new MemoryStream();
+            using (PowerPointDocument document = PowerPointDocument.Create(stream)) {
+                var rows = Enumerable.Range(1, 5).Select(index => new TableRow(index, "Row " + index));
+                var columns = new[] { PowerPointTableColumn<TableRow>.Create("Id", row => row.Id) };
+                OfficeLength rowHeight = OfficeLength.Emus(304801);
+                var options = new PowerPointTablePaginationOptions {
+                    TableBounds = new PowerPointLayoutBox(OfficeLength.Points(20), OfficeLength.Points(30),
+                        OfficeLength.Inches(4), OfficeLength.Emus(914403)),
+                    MinimumRowHeight = rowHeight
+                };
+                PowerPointPaginatedTableResult result = document.AddTableSlides(rows, columns, options);
+                Assert.Equal(3, result.PageCount);
+                Assert.Equal(new[] { 3, 3, 2 }, result.Tables.Select(table => table.Rows));
+                Assert.All(result.Tables, table => {
+                    Assert.Equal(OfficeLength.Points(20), table.Left);
+                    Assert.Equal(OfficeLength.Points(30), table.Top);
+                    Assert.All(table.RowItems, row => Assert.Equal(rowHeight, row.Height));
+                });
+                Assert.Throws<ArgumentOutOfRangeException>(() => options.MinimumRowHeight = OfficeLength.Zero);
+                Assert.Equal(rowHeight, options.MinimumRowHeight);
+                document.Save();
+            }
+            stream.Position = 0;
+            using PowerPointDocument reopened = PowerPointDocument.Load(stream);
+            Assert.Equal(new long[] { 914403, 914403, 609602 },
+                reopened.Slides.Select(slide => slide.Tables.Single().Height.ToEmus()));
+            Assert.All(reopened.Slides, slide => Assert.All(slide.Tables.Single().RowItems,
+                row => Assert.Equal(OfficeLength.Emus(304801), row.Height)));
         }
 
         private sealed class TableRow {

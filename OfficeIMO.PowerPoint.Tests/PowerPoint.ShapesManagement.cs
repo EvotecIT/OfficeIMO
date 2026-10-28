@@ -79,7 +79,7 @@ namespace OfficeIMO.Tests {
                     PowerPointSlide slide = presentation.AddSlide();
                     PowerPointTextBox textBox = slide.AddTextBox("Quarterly update");
                     PowerPointAutoShape rectangle = slide.AddRectangle(1000, 1000, 2000, 1000);
-                    PowerPointTable table = slide.AddTable(2, 2);
+                    PowerPointTable table = slide.AddTable(2,2);
 
                     textBox.Name = "Hero Title";
                     textBox.AltText = "Main slide title";

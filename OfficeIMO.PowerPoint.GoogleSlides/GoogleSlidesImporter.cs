@@ -139,7 +139,7 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
                                     action: TranslationAction.Skip);
                             }
                         } else if (element.Table != null && element.Table.Rows > 0 && element.Table.Columns > 0) {
-                            PowerPointTable table = slide.AddTablePoints(element.Table.Rows, element.Table.Columns, left, top, Math.Max(1, width), Math.Max(1, height));
+                            PowerPointTable table = slide.AddTable(element.Table.Rows,element.Table.Columns,global::OfficeIMO.OfficeLength.Points(left),global::OfficeIMO.OfficeLength.Points(top),global::OfficeIMO.OfficeLength.Points(Math.Max(1, width)),global::OfficeIMO.OfficeLength.Points(Math.Max(1, height)));
                             ApplyTransform(table, geometry);
                             for (int row = 0; row < Math.Min(table.RowItems.Count, element.Table.TableRows.Count); row++) {
                                 for (int column = 0; column < Math.Min(table.RowItems[row].Cells.Count, element.Table.TableRows[row].TableCells.Count); column++) {

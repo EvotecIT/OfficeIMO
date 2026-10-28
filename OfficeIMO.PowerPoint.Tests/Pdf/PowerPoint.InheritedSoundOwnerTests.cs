@@ -88,7 +88,7 @@ public sealed partial class PowerPointInheritedLinkOwnerTests {
         PowerPointSlide slide = presentation.AddSlide();
         PowerPointShape shape;
         if (table) {
-            PowerPointTable value = slide.AddTablePoints(2, 2, 30, 30, 240, 60);
+            PowerPointTable value = slide.AddTable(2,2,global::OfficeIMO.OfficeLength.Points(30),global::OfficeIMO.OfficeLength.Points(30),global::OfficeIMO.OfficeLength.Points(240),global::OfficeIMO.OfficeLength.Points(60));
             value.GetCell(1, 1).Text = "Sounded";
             shape = value;
         } else {

@@ -39,7 +39,7 @@ public sealed class PowerPointPdfTextFormattingTests {
         string text = visibleText ? "Visible" : string.Empty;
         PowerPointParagraph paragraph;
         if (table) {
-            PowerPointTableCell cell = slide.AddTablePoints(1, 1, 10, 10, 200, 40).GetCell(0, 0);
+            PowerPointTableCell cell = slide.AddTable(1,1,global::OfficeIMO.OfficeLength.Points(10),global::OfficeIMO.OfficeLength.Points(10),global::OfficeIMO.OfficeLength.Points(200),global::OfficeIMO.OfficeLength.Points(40)).GetCell(0, 0);
             cell.Text = text;
             paragraph = cell.Paragraphs[0];
         } else {
@@ -112,7 +112,7 @@ public sealed class PowerPointPdfTextFormattingTests {
         using (PowerPointDocument presentation = PowerPointDocument.Create(bytes, new PowerPointCreateOptions())) {
             PowerPointSlide slide = presentation.AddSlide();
             slide.AddTextBoxPoints("Spaced", 10, 10, 200, 40).Paragraphs[0].Runs[0].CharacterSpacingPoints = -2.32;
-            PowerPointTableCell cell = slide.AddTablePoints(1, 1, 10, 80, 200, 60).GetCell(0, 0);
+            PowerPointTableCell cell = slide.AddTable(1,1,global::OfficeIMO.OfficeLength.Points(10),global::OfficeIMO.OfficeLength.Points(80),global::OfficeIMO.OfficeLength.Points(200),global::OfficeIMO.OfficeLength.Points(60)).GetCell(0, 0);
             cell.Text = "Cell";
             cell.Paragraphs[0].Runs[0].CharacterSpacingPoints = 1.25;
             presentation.Save();
@@ -186,7 +186,7 @@ public sealed class PowerPointPdfTextFormattingTests {
             new MemoryStream(), new PowerPointCreateOptions());
         PowerPointSlide slide = presentation.AddSlide();
         slide.AddTextBoxPoints("Text", 10, 10, 120, 40).Paragraphs[0].Runs[0].BaselinePercent = 5D;
-        PowerPointTableCell cell = slide.AddTablePoints(1, 1, 150, 10, 120, 40).GetCell(0, 0);
+        PowerPointTableCell cell = slide.AddTable(1,1,global::OfficeIMO.OfficeLength.Points(150),global::OfficeIMO.OfficeLength.Points(10),global::OfficeIMO.OfficeLength.Points(120),global::OfficeIMO.OfficeLength.Points(40)).GetCell(0, 0);
         cell.Text = "Cell";
         cell.Paragraphs[0].Runs[0].BaselinePercent = 80D;
 
@@ -203,7 +203,7 @@ public sealed class PowerPointPdfTextFormattingTests {
     public void TableRunFormattingResolvesParagraphListAndThemeDefaults(string colorSource, bool useTableStyle) {
         using PowerPointDocument presentation = PowerPointDocument.Create(
             new MemoryStream(), new PowerPointCreateOptions());
-        PowerPointTable table = presentation.AddSlide().AddTablePoints(1, 1, 10, 10, 200, 60);
+        PowerPointTable table = presentation.AddSlide().AddTable(1,1,global::OfficeIMO.OfficeLength.Points(10),global::OfficeIMO.OfficeLength.Points(10),global::OfficeIMO.OfficeLength.Points(200),global::OfficeIMO.OfficeLength.Points(60));
         table.StyleId = useTableStyle ? "{5C22544A-7EE6-4342-B048-85BDC9FD1C3A}" : null;
         table.FirstRow = true;
         PowerPointTableCell cell = table.GetCell(0, 0);
@@ -334,7 +334,7 @@ public sealed class PowerPointPdfTextFormattingTests {
         const string fieldFamily = "OfficeIMO Missing Field Face";
         using PowerPointDocument presentation = PowerPointDocument.Create(
             new MemoryStream(), new PowerPointCreateOptions());
-        PowerPointTable table = presentation.AddSlide().AddTablePoints(1, 1, 10, 10, 200, 60);
+        PowerPointTable table = presentation.AddSlide().AddTable(1,1,global::OfficeIMO.OfficeLength.Points(10),global::OfficeIMO.OfficeLength.Points(10),global::OfficeIMO.OfficeLength.Points(200),global::OfficeIMO.OfficeLength.Points(60));
         if (!useTableStyle) table.StyleId = null;
         PowerPointTableCell cell = table.GetCell(0, 0);
         cell.Text = "Run";

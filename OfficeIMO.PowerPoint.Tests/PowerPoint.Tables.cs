@@ -218,8 +218,7 @@ namespace OfficeIMO.Tests {
             PowerPointSlide slide = presentation.AddSlide();
 
             Assert.Throws<InvalidDataException>(() => slide.AddTable(
-                new[] { 1 },
-                InfiniteColumns()));
+                new[] { 1 },                InfiniteColumns()));
         }
 
         [Fact]
@@ -231,7 +230,7 @@ namespace OfficeIMO.Tests {
                 .Select(index => PowerPointTableColumn<int>.Create("Column" + index, value => value))
                 .ToArray();
 
-            Assert.Throws<InvalidDataException>(() => slide.AddTable(InfiniteRows(), columns));
+            Assert.Throws<InvalidDataException>(() => slide.AddTable(InfiniteRows(),columns));
         }
 
         [Fact]
@@ -246,7 +245,7 @@ namespace OfficeIMO.Tests {
 
                 PowerPointSlide slide = presentation.AddSlide();
 
-                PowerPointTable table = slide.AddTable(2, 2);
+                PowerPointTable table = slide.AddTable(2,2);
 
                 PowerPointTableCell cell = table.GetCell(0, 0);
 
@@ -306,7 +305,7 @@ namespace OfficeIMO.Tests {
 
             using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
                 PowerPointSlide slide = presentation.AddSlide();
-                PowerPointTable table = slide.AddTable(2, 2);
+                PowerPointTable table = slide.AddTable(2,2);
                 table.HeaderRow = false;
                 table.BandedRows = false;
                 presentation.Save();
@@ -344,9 +343,7 @@ namespace OfficeIMO.Tests {
                 styleName = string.IsNullOrWhiteSpace(style.Name) ? style.StyleId : style.Name;
 
                 PowerPointSlide slide = presentation.AddSlide();
-                slide.AddTable(rows: 2, columns: 2, styleName: styleName,
-                    left: 0L, top: 0L, width: 6000000L, height: 2000000L,
-                    firstRow: true, bandedRows: true);
+                slide.AddTable(rows: 2,columns: 2,styleName: styleName,left: global::OfficeIMO.OfficeLength.Emus(0L),top: global::OfficeIMO.OfficeLength.Emus(0L),width: global::OfficeIMO.OfficeLength.Emus(6000000L),height: global::OfficeIMO.OfficeLength.Emus(2000000L),                    firstRow: true,bandedRows: true);
                 presentation.Save();
             }
 
@@ -395,7 +392,7 @@ namespace OfficeIMO.Tests {
 
             using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
                 PowerPointSlide slide = presentation.AddSlide();
-                PowerPointTable table = slide.AddTable(1, 1);
+                PowerPointTable table = slide.AddTable(1,1);
                 PowerPointTableCell cell = table.GetCell(0, 0);
                 cell.SetTextAutoFit(PowerPointTextAutoFit.Normal,
                     new PowerPointTextAutoFitOptions(fontScalePercent: 80, lineSpaceReductionPercent: 10));
@@ -432,8 +429,7 @@ namespace OfficeIMO.Tests {
 
             using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
                 PowerPointSlide slide = presentation.AddSlide();
-                slide.AddTable(data, columns, includeHeaders: true,
-                    left: 0L, top: 0L, width: 6000000L, height: 2000000L);
+                slide.AddTable(data,columns,includeHeaders: true,left: global::OfficeIMO.OfficeLength.Emus(0L),top: global::OfficeIMO.OfficeLength.Emus(0L),width: global::OfficeIMO.OfficeLength.Emus(6000000L),height: global::OfficeIMO.OfficeLength.Emus(2000000L));
                 presentation.Save();
             }
 
@@ -462,7 +458,8 @@ namespace OfficeIMO.Tests {
             using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
                 PowerPointSlide slide = presentation.AddSlide();
                 slide.AddTable(data, configure: null, includeHeaders: true,
-                    left: 0L, top: 0L, width: tableWidth, height: 2000000L);
+                    left: OfficeIMO.OfficeLength.Zero, top: OfficeIMO.OfficeLength.Zero,
+                    width: OfficeIMO.OfficeLength.Emus(tableWidth), height: OfficeIMO.OfficeLength.Emus(2000000L));
                 presentation.Save();
             }
 
@@ -496,7 +493,7 @@ namespace OfficeIMO.Tests {
             using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
                 PowerPointSlide slide = presentation.AddSlide();
                 Assert.Throws<ArgumentException>(() =>
-                    slide.AddTable(data, columns, includeHeaders: true, left: 0L, top: 0L, width: 2000000L, height: 1000000L));
+                    slide.AddTable(data,columns,includeHeaders: true,left: global::OfficeIMO.OfficeLength.Emus(0L),top: global::OfficeIMO.OfficeLength.Emus(0L),width: global::OfficeIMO.OfficeLength.Emus(2000000L),height: global::OfficeIMO.OfficeLength.Emus(1000000L)));
             }
 
             File.Delete(filePath);
@@ -508,7 +505,7 @@ namespace OfficeIMO.Tests {
 
             using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
                 PowerPointSlide slide = presentation.AddSlide();
-                PowerPointTable table = slide.AddTable(1, 2, left: 0L, top: 0L, width: 6000000L, height: 1500000L);
+                PowerPointTable table = slide.AddTable(1,2,left: global::OfficeIMO.OfficeLength.Emus(0L),top: global::OfficeIMO.OfficeLength.Emus(0L),width: global::OfficeIMO.OfficeLength.Emus(6000000L),height: global::OfficeIMO.OfficeLength.Emus(1500000L));
                 table.SetColumnWidthsByRatio(2, 1);
                 presentation.Save();
             }
@@ -528,7 +525,7 @@ namespace OfficeIMO.Tests {
 
             using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
                 PowerPointSlide slide = presentation.AddSlide();
-                PowerPointTable table = slide.AddTable(1, 2);
+                PowerPointTable table = slide.AddTable(1,2);
 
                 table.AddColumn(table.Columns);
                 table.GetCell(0, 2).Text = "Appended";
@@ -561,7 +558,7 @@ namespace OfficeIMO.Tests {
 
                 using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
                     PowerPointSlide slide = presentation.AddSlide();
-                    PowerPointTable table = slide.AddTable(3, 3, left: 0L, top: 0L, width: 6000000L, height: 3000000L);
+                    PowerPointTable table = slide.AddTable(3,3,left: global::OfficeIMO.OfficeLength.Emus(0L),top: global::OfficeIMO.OfficeLength.Emus(0L),width: global::OfficeIMO.OfficeLength.Emus(6000000L),height: global::OfficeIMO.OfficeLength.Emus(3000000L));
 
                     table.ApplyStyle(new PowerPointTableStylePreset(firstRow: true, bandedRows: true, bandedColumns: true));
                     table.LastRow = true;

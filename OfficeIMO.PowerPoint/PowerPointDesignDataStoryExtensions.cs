@@ -201,8 +201,7 @@ namespace OfficeIMO.PowerPoint {
         private static PowerPointTable AddNativeTable(PowerPointSlide slide, PowerPointTableData data,
             PowerPointLayoutBox bounds, PowerPointDesignTheme theme) {
             int rowCount = data.Rows.Count + 1;
-            PowerPointTable table = slide.AddTable(rowCount, data.Headers.Count, bounds.Left.ToEmus(), bounds.Top.ToEmus(),
-                bounds.Width.ToEmus(), bounds.Height.ToEmus());
+            PowerPointTable table = slide.AddTable(rowCount, data.Headers.Count, bounds.Left, bounds.Top, bounds.Width, bounds.Height);
             table.Name = "Semantic Appendix Table";
             table.HeaderRow = true;
             table.BandedRows = true;

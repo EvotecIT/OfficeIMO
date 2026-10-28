@@ -18,7 +18,7 @@ public sealed class PowerPointNativeTextBoundaryTests {
     public void CondensedTableTextRemainsVisibleWhenTheCellGrowsToFit(bool rich, double height) {
         using var presentation = PowerPointDocument.Create(new MemoryStream());
         var slide = presentation.AddSlide();
-        var table = slide.AddTablePoints(1, 1, 20, 20, 200, height);
+        var table = slide.AddTable(1,1,global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(200),global::OfficeIMO.OfficeLength.Points(height));
         table.SetRowHeights(global::OfficeIMO.OfficeLength.Points(height));
         var cell = table.GetCell(0, 0);
         cell.Text = "gypsy"; cell.FontSize = 24;
@@ -82,7 +82,7 @@ public sealed class PowerPointNativeTextBoundaryTests {
     public void TableCellGrowthRetainsTheCompleteParagraph() {
         using var presentation = PowerPointDocument.Create(new MemoryStream());
         PowerPointSlide slide = presentation.AddSlide();
-        PowerPointTable table = slide.AddTablePoints(1, 1, 20, 20, 140, 40);
+        PowerPointTable table = slide.AddTable(1,1,global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(140),global::OfficeIMO.OfficeLength.Points(40));
         table.SetRowHeights(global::OfficeIMO.OfficeLength.Points(40));
         PowerPointTableCell cell = table.GetCell(0, 0);
         cell.FontSize = 12;

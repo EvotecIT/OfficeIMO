@@ -396,7 +396,7 @@ public sealed class OpenDocumentConversionContracts {
         PowerPointTextBox title = slide.AddTextBoxPoints("OpenDocument deck", 24, 20, 240, 40);
         title.Paragraphs[0].Runs[0].Bold = true;
         slide.AddRectanglePoints(30, 80, 100, 50, "Panel").FillColor = "DDEEFF";
-        PowerPointTable table = slide.AddTablePoints(2, 2, 150, 80, 160, 80);
+        PowerPointTable table = slide.AddTable(2,2,global::OfficeIMO.OfficeLength.Points(150),global::OfficeIMO.OfficeLength.Points(80),global::OfficeIMO.OfficeLength.Points(160),global::OfficeIMO.OfficeLength.Points(80));
         table.GetCell(0, 0).Text = "A";
         table.GetCell(1, 1).Text = "B";
         table.MergeCells(0, 0, 0, 1);
@@ -474,7 +474,7 @@ public sealed class OpenDocumentConversionContracts {
     public void PowerPointAndOdpTableCellsRoundTripParagraphsRunsAndHyperlinks() {
         using PowerPointDocument source = PowerPointDocument.Create(new MemoryStream(), new PowerPointCreateOptions());
         PowerPointTableCell sourceCell = source.AddSlide()
-            .AddTablePoints(1, 1, 10, 10, 240, 80)
+            .AddTable(1,1,global::OfficeIMO.OfficeLength.Points(10),global::OfficeIMO.OfficeLength.Points(10),global::OfficeIMO.OfficeLength.Points(240),global::OfficeIMO.OfficeLength.Points(80))
             .GetCell(0, 0);
         IReadOnlyList<PowerPointParagraph> sourceParagraphs = sourceCell.SetParagraphs(new[] { "Bold", "Second" });
         sourceParagraphs[0].Runs[0].Bold = true;
@@ -660,7 +660,7 @@ public sealed class OpenDocumentConversionContracts {
     [Fact]
     public void PowerPointToOdpRejectsTablesBeyondConfiguredBounds() {
         using PowerPointDocument source = PowerPointDocument.Create(new MemoryStream(), new PowerPointCreateOptions());
-        source.AddSlide().AddTablePoints(1, 3, 10, 10, 120, 40);
+        source.AddSlide().AddTable(1,3,global::OfficeIMO.OfficeLength.Points(10),global::OfficeIMO.OfficeLength.Points(10),global::OfficeIMO.OfficeLength.Points(120),global::OfficeIMO.OfficeLength.Points(40));
 
         InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
             source.ToOpenDocumentResult(new PowerPointOpenDocumentConversionOptions {

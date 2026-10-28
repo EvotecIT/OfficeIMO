@@ -209,7 +209,7 @@ static void GenerateConverterPowerPointSample(string outputPath) {
     AddMetric(overview, "100%", "local processing", 244, 126, "E9F8F0", "07875B");
     AddMetric(overview, "0", "server uploads", 446, 126, "FFF2E8", "C2410C");
 
-    PowerPointTable table = overview.AddTablePoints(4, 3, 42, 252, 646, 190);
+    PowerPointTable table = overview.AddTable(4,3,global::OfficeIMO.OfficeLength.Points(42),global::OfficeIMO.OfficeLength.Points(252),global::OfficeIMO.OfficeLength.Points(646),global::OfficeIMO.OfficeLength.Points(190));
     table.GetCell(0, 0).Text = "Workstream";
     table.GetCell(0, 1).Text = "Owner";
     table.GetCell(0, 2).Text = "Status";

@@ -47,7 +47,7 @@ public sealed partial class PowerPointInheritedLinkOwnerTests {
         using var presentation = PowerPointDocument.Create(new MemoryStream());
         PowerPointSlide first = presentation.AddSlide();
         PowerPointSlide second = presentation.AddSlide();
-        PowerPointTable table = first.AddTablePoints(1, 1, 30, 30, 240, 60);
+        PowerPointTable table = first.AddTable(1,1,global::OfficeIMO.OfficeLength.Points(30),global::OfficeIMO.OfficeLength.Points(30),global::OfficeIMO.OfficeLength.Points(240),global::OfficeIMO.OfficeLength.Points(60));
         PowerPointTextRun run = table.GetCell(0, 0).AddRun("Inherited link");
         OpenXmlPart owner = Owner(first, master);
         if (kind == "external") owner.AddHyperlinkRelationship(new Uri("https://example.com/correct-owner"), true, "inherited-link");

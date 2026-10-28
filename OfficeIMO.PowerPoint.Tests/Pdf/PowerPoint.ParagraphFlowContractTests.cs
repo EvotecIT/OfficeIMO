@@ -22,7 +22,7 @@ public sealed class PowerPointParagraphFlowContractTests {
         presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(300),OfficeIMO.OfficeLength.Points(220));
         var slide = presentation.AddSlide();
         if (table) {
-            var cell = slide.AddTablePoints(1, 1, 20, 20, 240, 60).GetCell(0, 0);
+            var cell = slide.AddTable(1,1,global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(240),global::OfficeIMO.OfficeLength.Points(60)).GetCell(0, 0);
             cell.Text = "VISIBLE"; cell.FontName = "Helvetica"; cell.FontSize = 32;
             cell.AddParagraph("");
             if (followingText) cell.AddParagraph("OVERFLOW");
@@ -83,7 +83,7 @@ public sealed class PowerPointParagraphFlowContractTests {
         var slide = presentation.AddSlide();
         PowerPointParagraph paragraph;
         if (table) {
-            var cell = slide.AddTablePoints(1, 1, 20, 20, 240, 160).GetCell(0, 0);
+            var cell = slide.AddTable(1,1,global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(240),global::OfficeIMO.OfficeLength.Points(160)).GetCell(0, 0);
             cell.Text = "FIRST\nSECOND\nTHIRD"; cell.FontName = "Helvetica"; cell.FontSize = 12;
             paragraph = cell.Paragraphs[0];
             if (trailingParagraph) cell.AddParagraph("END");
@@ -135,7 +135,7 @@ public sealed class PowerPointParagraphFlowContractTests {
         using var presentation = PowerPointDocument.Create(new MemoryStream());
         presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(300),OfficeIMO.OfficeLength.Points(220));
         foreach (bool spacer in new[] { false, true }) {
-            var cell = presentation.AddSlide().AddTablePoints(1, 1, 20, 20, 240, 160).GetCell(0, 0);
+            var cell = presentation.AddSlide().AddTable(1,1,global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(240),global::OfficeIMO.OfficeLength.Points(160)).GetCell(0, 0);
             cell.Text = "FIRST"; cell.FontName = "Helvetica"; cell.FontSize = 12;
             if (spacer) cell.AddParagraph("").SetSpaceBeforePoints(7).SetSpaceAfterPoints(11);
             cell.AddParagraph("SECOND");
@@ -153,7 +153,7 @@ public sealed class PowerPointParagraphFlowContractTests {
         using var presentation = PowerPointDocument.Create(new MemoryStream());
         presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(300),OfficeIMO.OfficeLength.Points(220));
         foreach (bool spacer in new[] { false, true }) {
-            var cell = presentation.AddSlide().AddTablePoints(1, 1, 20, 20, 240, 160).GetCell(0, 0);
+            var cell = presentation.AddSlide().AddTable(1,1,global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(240),global::OfficeIMO.OfficeLength.Points(160)).GetCell(0, 0);
             cell.Text = "FIRST"; cell.FontName = "Helvetica"; cell.FontSize = 12;
             if (spacer) {
                 var empty = cell.AddParagraph("");

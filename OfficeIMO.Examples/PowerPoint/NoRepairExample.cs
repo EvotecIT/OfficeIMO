@@ -68,18 +68,12 @@ namespace OfficeIMO.Examples.PowerPoint {
                 new MetricRow("Gamma", 6, 9)
             };
 
-            PowerPointTable table = dataSlide.AddTableCm(
-                rows,
-                columns: new[] {
+            PowerPointTable table = dataSlide.AddTable(
+                rows,                columns: new[] {
                     PowerPointTableColumn<MetricRow>.Create("Product", r => r.Product).WithWidth(global::OfficeIMO.OfficeLength.Centimeters(3.2)),
                     PowerPointTableColumn<MetricRow>.Create("Q1", r => r.Q1),
                     PowerPointTableColumn<MetricRow>.Create("Q2", r => r.Q2)
-                },
-                includeHeaders: true,
-                leftCm: leftColumn.Left.ToCentimeters(),
-                topCm: leftColumn.Top.ToCentimeters(),
-                widthCm: leftColumn.Width.ToCentimeters(),
-                heightCm: leftColumn.Height.ToCentimeters());
+                },                includeHeaders: true,left: global::OfficeIMO.OfficeLength.Centimeters(leftColumn.Left.ToCentimeters()),top: global::OfficeIMO.OfficeLength.Centimeters(leftColumn.Top.ToCentimeters()),width: global::OfficeIMO.OfficeLength.Centimeters(leftColumn.Width.ToCentimeters()),height: global::OfficeIMO.OfficeLength.Centimeters(leftColumn.Height.ToCentimeters()));
             table.ApplyStyle(PowerPointTableStylePreset.Default);
             table.SetColumnWidthsEvenly();
             table.HeaderRow = true;

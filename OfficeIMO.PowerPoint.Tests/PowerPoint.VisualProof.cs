@@ -114,7 +114,7 @@ namespace OfficeIMO.Tests {
         public void VisualReviewSharedSnapshotHonorsTableSuppression() {
             using var stream = new MemoryStream();
             using PowerPointDocument presentation = PowerPointDocument.Create(stream, new PowerPointCreateOptions());
-            PowerPointTable table = presentation.AddSlide().AddTablePoints(1, 1, 30, 40, 180, 45);
+            PowerPointTable table = presentation.AddSlide().AddTable(1,1,global::OfficeIMO.OfficeLength.Points(30),global::OfficeIMO.OfficeLength.Points(40),global::OfficeIMO.OfficeLength.Points(180),global::OfficeIMO.OfficeLength.Points(45));
             table.GetCell(0, 0).Text = "FILTERED REVIEW TABLE";
 
             string html = presentation.ToHtml(new PowerPointHtmlSaveOptions {

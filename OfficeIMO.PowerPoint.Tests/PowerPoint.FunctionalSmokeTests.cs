@@ -46,10 +46,7 @@ namespace OfficeIMO.Tests {
                     Assert.False(string.IsNullOrWhiteSpace(style.StyleId));
                     string styleName = string.IsNullOrWhiteSpace(style.Name) ? style.StyleId : style.Name;
 
-                    PowerPointTable table = slide.AddTable(rows: 2, columns: 2, styleName: styleName,
-                        left: PowerPointUnits.FromCentimeters(8), top: PowerPointUnits.FromCentimeters(4),
-                        width: PowerPointUnits.FromCentimeters(6), height: PowerPointUnits.FromCentimeters(3),
-                        firstRow: true, bandedRows: true);
+                    PowerPointTable table = slide.AddTable(rows: 2,columns: 2,styleName: styleName,left: global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromCentimeters(8)),top: global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromCentimeters(4)),width: global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromCentimeters(6)),height: global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromCentimeters(3)),                        firstRow: true,bandedRows: true);
                     table.GetCell(0, 0).Text = "Header";
                     table.GetCell(1, 0).Text = "Value";
                     table.GetCell(0, 0).SetTextAutoFit(PowerPointTextAutoFit.Normal,
@@ -169,11 +166,7 @@ namespace OfficeIMO.Tests {
                     chart.SetSeriesLineColor("Profit", "F26A3D", widthPoints: 2.5);
                     chart.SetValueAxisGridlines(showMajor: true, lineColor: "D8D5CC", lineWidthPoints: 0.75);
 
-                    PowerPointTable table = dashboard.AddTable(rows: 3, columns: 2,
-                        styleName: presentation.TableStyles.First().Name,
-                        left: PowerPointUnits.FromCentimeters(16.8), top: PowerPointUnits.FromCentimeters(1.5),
-                        width: PowerPointUnits.FromCentimeters(7.0), height: PowerPointUnits.FromCentimeters(3.8),
-                        firstRow: true, bandedRows: true);
+                    PowerPointTable table = dashboard.AddTable(rows: 3,columns: 2,                        styleName: presentation.TableStyles.First().Name,left: global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromCentimeters(16.8)),top: global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromCentimeters(1.5)),width: global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromCentimeters(7.0)),height: global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromCentimeters(3.8)),                        firstRow: true,bandedRows: true);
                     table.GetCell(0, 0).Text = "Metric";
                     table.GetCell(0, 1).Text = "Value";
                     table.GetCell(1, 0).Text = "Revenue";

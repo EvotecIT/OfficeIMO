@@ -16,7 +16,7 @@ public class PowerPointRunFormattingActionOrderTests {
         PowerPointSlide slide = presentation.AddSlide();
         PowerPointTextRun run;
         if (tableCell) {
-            PowerPointTableCell cell = slide.AddTablePoints(1, 1, 20, 20, 300, 80).GetCell(0, 0);
+            PowerPointTableCell cell = slide.AddTable(1,1,global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(300),global::OfficeIMO.OfficeLength.Points(80)).GetCell(0, 0);
             cell.Text = "Linked label";
             run = cell.Runs.Single();
         } else {
@@ -59,7 +59,7 @@ public class PowerPointRunFormattingActionOrderTests {
         PowerPointTextBox? textBox = null;
         PowerPointTextRun run;
         if (tableCell) {
-            cell = slide.AddTablePoints(1, 1, 20, 20, 300, 80).GetCell(0, 0);
+            cell = slide.AddTable(1,1,global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(300),global::OfficeIMO.OfficeLength.Points(80)).GetCell(0, 0);
             cell.Text = "Linked label";
             run = cell.Runs.Single();
         } else {

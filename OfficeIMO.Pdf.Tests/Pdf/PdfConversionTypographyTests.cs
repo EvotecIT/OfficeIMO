@@ -330,7 +330,7 @@ Zażółć gęślą jaźń
         PowerPointTextBox polish = slide.AddTextBoxPoints("Zażółć gęślą jaźń", 32, 70, 250, 28);
         polish.FontName = FamilyName;
         polish.FontSize = 12;
-        PowerPointTable table = slide.AddTablePoints(3, 2, 32, 118, 280, 98);
+        PowerPointTable table = slide.AddTable(3,2,global::OfficeIMO.OfficeLength.Points(32),global::OfficeIMO.OfficeLength.Points(118),global::OfficeIMO.OfficeLength.Points(280),global::OfficeIMO.OfficeLength.Points(98));
         table.GetCell(0, 0).Text = "Region";
         table.GetCell(0, 1).Text = "Signal";
         table.GetCell(1, 0).Text = "Ελλάδα";

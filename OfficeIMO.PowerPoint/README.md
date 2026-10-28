@@ -334,10 +334,10 @@ var columns = new[] {
 };
 
 slide.AddTable(rows, columns,
-    left: PowerPointUnits.FromCentimeters(1.5),
-    top: PowerPointUnits.FromCentimeters(4),
-    width: PowerPointUnits.FromCentimeters(20),
-    height: PowerPointUnits.FromCentimeters(6));
+    left: OfficeIMO.OfficeLength.Centimeters(1.5),
+    top: OfficeIMO.OfficeLength.Centimeters(4),
+    width: OfficeIMO.OfficeLength.Centimeters(20),
+    height: OfficeIMO.OfficeLength.Centimeters(6));
 
 record SalesRow(string Product, int Q1, int Q2);
 ```
@@ -513,14 +513,15 @@ var segments = new[] {
 var dashboard = presentation.AddSlide();
 dashboard.AddTitle("Segment dashboard");
 
-dashboard.AddTableCm(segments, new[] {
+dashboard.AddTable(segments, new[] {
         PowerPointTableColumn<SegmentRow>.Create("Segment", row => row.Segment).WithWidth(OfficeIMO.OfficeLength.Centimeters(4.0)),
         PowerPointTableColumn<SegmentRow>.Create("Q1", row => row.Q1),
         PowerPointTableColumn<SegmentRow>.Create("Q2", row => row.Q2),
         PowerPointTableColumn<SegmentRow>.Create("Q3", row => row.Q3),
         PowerPointTableColumn<SegmentRow>.Create("Q4", row => row.Q4)
     },
-    leftCm: 1.4, topCm: 3.0, widthCm: 10.0, heightCm: 5.0);
+    left: OfficeLength.Centimeters(1.4), top: OfficeLength.Centimeters(3.0),
+    width: OfficeLength.Centimeters(10.0), height: OfficeLength.Centimeters(5.0));
 
 var segmentChart = new OfficeChartData(
     segments.Select(row => row.Segment),

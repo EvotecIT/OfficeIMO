@@ -96,7 +96,7 @@ internal static class ReaderComparisonCorpus {
             PowerPointSlide slide = presentation.AddSlide();
             PowerPointTextBox text = slide.AddTextBox("Quarterly evidence");
             text.AddBullet("Presentation list marker");
-            PowerPointTable table = slide.AddTable(2, 2);
+            PowerPointTable table = slide.AddTable(2,2);
             table.GetCell(0, 0).Text = "Measure";
             table.GetCell(0, 1).Text = "Value";
             table.GetCell(1, 0).Text = "Presentation table marker";

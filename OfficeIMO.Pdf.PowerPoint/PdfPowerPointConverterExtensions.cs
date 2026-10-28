@@ -190,13 +190,7 @@ public static partial class PdfPowerPointConverterExtensions {
                 }
 
                 PptCore.PowerPointTable table = slide.AddTable(
-                    tableRowCount,
-                    segment.ColumnCount,
-                    options.TableStyle,
-                    options.TableLeft,
-                    options.TableTop,
-                    options.TableWidth,
-                    options.TableHeight);
+                    tableRowCount,                    segment.ColumnCount,                    options.TableStyle,                    global::OfficeIMO.OfficeLength.Emus(options.TableLeft),                    global::OfficeIMO.OfficeLength.Emus(options.TableTop),                    global::OfficeIMO.OfficeLength.Emus(options.TableWidth),                    global::OfficeIMO.OfficeLength.Emus(options.TableHeight));
                 PopulateTable(table, extraction.Table, data, segment, headerRowIncluded, options, cancellationToken);
 
                 results.Add(new PdfPowerPointTableImportEntry(
@@ -404,13 +398,7 @@ public static partial class PdfPowerPointConverterExtensions {
             presentation.SlideSize.Width.ToPoints(),
             presentation.SlideSize.Height.ToPoints());
         PptCore.PowerPointTable table = slide.AddTable(
-            rowCount,
-            segment.ColumnCount,
-            options.TableStyle,
-            left,
-            top,
-            width,
-            height);
+            rowCount,            segment.ColumnCount,            options.TableStyle,            global::OfficeIMO.OfficeLength.Emus(left),            global::OfficeIMO.OfficeLength.Emus(top),            global::OfficeIMO.OfficeLength.Emus(width),            global::OfficeIMO.OfficeLength.Emus(height));
         PopulateTable(table, sourceTable, data, segment, headerRowIncluded, options, cancellationToken);
     }
 

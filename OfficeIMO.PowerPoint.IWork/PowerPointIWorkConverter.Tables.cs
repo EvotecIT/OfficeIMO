@@ -15,8 +15,7 @@ public static partial class PowerPointIWorkConverter {
         double height = QuantizePositiveEmuPoints(TableAxisExtent(source.RowCount,
             source.RowHeights, source.DefaultRowHeight, source.Geometry?.HeightPoints,
             Math.Max(36d, 24d * source.RowCount)));
-        PowerPointTable table = slide.AddTablePoints(source.RowCount, source.ColumnCount,
-            left, top, width, height);
+        PowerPointTable table = slide.AddTable(source.RowCount,source.ColumnCount,            global::OfficeIMO.OfficeLength.Points(left),global::OfficeIMO.OfficeLength.Points(top),global::OfficeIMO.OfficeLength.Points(width),global::OfficeIMO.OfficeLength.Points(height));
         table.AltText = source.AccessibilityDescription;
         table.Rotation = source.Geometry?.RotationDegrees ?? 0d;
         // Native region styles are expanded below. Destination heading and

@@ -20,7 +20,7 @@ public sealed class PowerPointPdfFontResetTests {
             var slide = presentation.AddSlide();
             PowerPointParagraph paragraph;
             if (surface == "cell") {
-                var table = slide.AddTablePoints(1, 1, 30, 34, 160, 80);
+                var table = slide.AddTable(1,1,global::OfficeIMO.OfficeLength.Points(30),global::OfficeIMO.OfficeLength.Points(34),global::OfficeIMO.OfficeLength.Points(160),global::OfficeIMO.OfficeLength.Points(80));
                 table.ApplyStyle(PowerPointTableStylePreset.Plain);
                 var cell = table.GetCell(0, 0);
                 cell.Text = "Plain"; cell.FontName = "Helvetica"; cell.FontSize = 18;

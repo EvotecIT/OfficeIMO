@@ -468,7 +468,7 @@ namespace OfficeIMO.Tests {
             presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(180),OfficeIMO.OfficeLength.Points(120));
             PowerPointSlide slide = presentation.AddSlide();
 
-            PowerPointTable table = slide.AddTablePoints(2, 2, 20, 20, 120, 50);
+            PowerPointTable table = slide.AddTable(2,2,global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(120),global::OfficeIMO.OfficeLength.Points(50));
             table.SetColumnWidths(global::OfficeIMO.OfficeLength.Points(45),global::OfficeIMO.OfficeLength.Points(75));
             table.SetRowHeights(global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(30));
             table.Rotation = 5D;
@@ -688,7 +688,7 @@ namespace OfficeIMO.Tests {
             PowerPointAutoShape shape = slide.AddRectanglePoints(12, 12, 30, 20, "Filtered shape");
             shape.FillColor = "ABCDEF";
             slide.AddTextBoxPoints("FILTERED TEXT", 48, 12, 100, 24);
-            PowerPointTable table = slide.AddTablePoints(1, 1, 12, 44, 120, 30);
+            PowerPointTable table = slide.AddTable(1,1,global::OfficeIMO.OfficeLength.Points(12),global::OfficeIMO.OfficeLength.Points(44),global::OfficeIMO.OfficeLength.Points(120),global::OfficeIMO.OfficeLength.Points(30));
             table.GetCell(0, 0).Text = "FILTERED TABLE";
             slide.AddChartPoints(OfficeChartType.ColumnClustered,
                 new OfficeChartData(new[] { "FILTERED CATEGORY" }, new[] {

@@ -15,7 +15,7 @@ namespace OfficeIMO.Tests {
             PowerPointSlide slide = presentation.AddSlide();
             PowerPointTextBox box = slide.AddTextBox("Text");
             PowerPointTextRun run = box.Paragraphs.Single().Runs.Single();
-            PowerPointTableCell cell = slide.AddTable(1, 1).GetCell(0, 0);
+            PowerPointTableCell cell = slide.AddTable(1,1).GetCell(0, 0);
 
             run.FontSizePoints = 1D;
             Assert.Equal(1D, run.FontSizePoints);

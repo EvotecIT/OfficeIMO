@@ -90,17 +90,11 @@ namespace OfficeIMO.Examples.PowerPoint {
             PowerPointSlide slide3 = presentation.AddSlide();
             slide3.AddTitle("KPI Table", titleBox);
             slide3.Transition = PowerPointSlideTransition.Wipe;
-            PowerPointTable kpiTable = slide3.AddTableCm(
-                kpis,
-                o => {
+            PowerPointTable kpiTable = slide3.AddTable(
+                kpis,                o => {
                     o.HeaderCase = HeaderCase.Title;
                     o.PinFirst("Metric");
-                },
-                includeHeaders: true,
-                leftCm: bodyBox.Left.ToCentimeters(),
-                topCm: bodyBox.Top.ToCentimeters(),
-                widthCm: bodyBox.Width.ToCentimeters(),
-                heightCm: bodyBox.Height.ToCentimeters());
+                },                includeHeaders: true,left: global::OfficeIMO.OfficeLength.Centimeters(bodyBox.Left.ToCentimeters()),top: global::OfficeIMO.OfficeLength.Centimeters(bodyBox.Top.ToCentimeters()),width: global::OfficeIMO.OfficeLength.Centimeters(bodyBox.Width.ToCentimeters()),height: global::OfficeIMO.OfficeLength.Centimeters(bodyBox.Height.ToCentimeters()));
             kpiTable.ApplyStyle(PowerPointTableStylePreset.Default);
             kpiTable.SetColumnWidths(global::OfficeIMO.OfficeLength.Points(220),global::OfficeIMO.OfficeLength.Points(120),global::OfficeIMO.OfficeLength.Points(120));
             kpiTable.SetRowHeight(0,global::OfficeIMO.OfficeLength.Points(28));

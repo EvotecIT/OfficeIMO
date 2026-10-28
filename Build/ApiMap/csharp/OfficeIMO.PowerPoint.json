@@ -2635,11 +2635,11 @@
       "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values. Also (units): change -> OfficeIMO.PowerPoint.PowerPointSlide.AddTableCm(... OfficeLength ...)",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b",
+      "note": "Table authoring bounds and pagination minimum row height use OfficeLength. Unit-specific AddTable twins are removed. Omitted placement keeps the original EMU defaults; pagination calculates capacity from whole EMUs. Native consumers, adapters, PowerShell calls and README examples use explicit lengths."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlide.AddTableInches(int rows, int columns, double leftInches, double topInches, double widthInches, double heightInches)",
@@ -2652,11 +2652,11 @@
       "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values. Also (units): change -> OfficeIMO.PowerPoint.PowerPointSlide.AddTableInches(... OfficeLength ...)",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b",
+      "note": "Table authoring bounds and pagination minimum row height use OfficeLength. Unit-specific AddTable twins are removed. Omitted placement keeps the original EMU defaults; pagination calculates capacity from whole EMUs. Native consumers, adapters, PowerShell calls and README examples use explicit lengths."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlide.AddTablePoints(int rows, int columns, double leftPoints, double topPoints, double widthPoints, double heightPoints)",
@@ -2669,11 +2669,11 @@
       "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values. Also (units): change -> OfficeIMO.PowerPoint.PowerPointSlide.AddTablePoints(... OfficeLength ...)",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b",
+      "note": "Table authoring bounds and pagination minimum row height use OfficeLength. Unit-specific AddTable twins are removed. Omitted placement keeps the original EMU defaults; pagination calculates capacity from whole EMUs. Native consumers, adapters, PowerShell calls and README examples use explicit lengths."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlide.AddTextBoxCm(string text, double leftCm, double topCm, double widthCm, double heightCm)",
@@ -4728,11 +4728,11 @@
       "notes": "Raw EMU long geometry parameters with EMU defaults.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b",
+      "note": "Table authoring bounds and pagination minimum row height use OfficeLength. Unit-specific AddTable twins are removed. Omitted placement keeps the original EMU defaults; pagination calculates capacity from whole EMUs. Native consumers, adapters, PowerShell calls and README examples use explicit lengths."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlide.AddTable(int rows, int columns, long left = 0, long top = 0, long width = 5000000, long height = 3000000)",
@@ -4745,11 +4745,11 @@
       "notes": "Raw EMU long geometry parameters with EMU defaults.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b",
+      "note": "Table authoring bounds and pagination minimum row height use OfficeLength. Unit-specific AddTable twins are removed. Omitted placement keeps the original EMU defaults; pagination calculates capacity from whole EMUs. Native consumers, adapters, PowerShell calls and README examples use explicit lengths."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlide.AddTable(int rows, int columns, string styleName, long left = 0, long top = 0, long width = 5000000, long height = 3000000, bool ignoreCase = True, bool? firstRow = null, bool? lastRow = null, bool? firstColumn = null, bool? lastColumn = null, bool? bandedRows = null, bool? bandedColumns = null)",
@@ -4762,11 +4762,11 @@
       "notes": "Raw EMU long geometry parameters with EMU defaults.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b",
+      "note": "Table authoring bounds and pagination minimum row height use OfficeLength. Unit-specific AddTable twins are removed. Omitted placement keeps the original EMU defaults; pagination calculates capacity from whole EMUs. Native consumers, adapters, PowerShell calls and README examples use explicit lengths."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlide.AddTable<T>(IEnumerable<T> data, Action<ObjectFlattenerOptions> configure = null, bool includeHeaders = True, long left = 0, long top = 0, long width = 5000000, long height = 3000000)",
@@ -4779,11 +4779,11 @@
       "notes": "Raw EMU long geometry parameters with EMU defaults.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b",
+      "note": "Table authoring bounds and pagination minimum row height use OfficeLength. Unit-specific AddTable twins are removed. Omitted placement keeps the original EMU defaults; pagination calculates capacity from whole EMUs. Native consumers, adapters, PowerShell calls and README examples use explicit lengths."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlide.AddTable<T>(IEnumerable<T> data, IEnumerable<PowerPointTableColumn<T>> columns, PowerPointTableStylePreset preset, bool includeHeaders = True, long left = 0, long top = 0, long width = 5000000, long height = 3000000)",
@@ -4796,11 +4796,11 @@
       "notes": "Raw EMU long geometry parameters with EMU defaults.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b",
+      "note": "Table authoring bounds and pagination minimum row height use OfficeLength. Unit-specific AddTable twins are removed. Omitted placement keeps the original EMU defaults; pagination calculates capacity from whole EMUs. Native consumers, adapters, PowerShell calls and README examples use explicit lengths."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlide.AddTable<T>(IEnumerable<T> data, IEnumerable<PowerPointTableColumn<T>> columns, bool includeHeaders = True, long left = 0, long top = 0, long width = 5000000, long height = 3000000)",
@@ -4813,11 +4813,11 @@
       "notes": "Raw EMU long geometry parameters with EMU defaults.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b",
+      "note": "Table authoring bounds and pagination minimum row height use OfficeLength. Unit-specific AddTable twins are removed. Omitted placement keeps the original EMU defaults; pagination calculates capacity from whole EMUs. Native consumers, adapters, PowerShell calls and README examples use explicit lengths."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlide.AddTable<T>(IEnumerable<T> data, IEnumerable<PowerPointTableColumn<T>> columns, string styleName, bool includeHeaders = True, long left = 0, long top = 0, long width = 5000000, long height = 3000000, bool ignoreCase = True, bool? firstRow = null, bool? lastRow = null, bool? firstColumn = null, bool? lastColumn = null, bool? bandedRows = null, bool? bandedColumns = null)",
@@ -4830,11 +4830,11 @@
       "notes": "Raw EMU long geometry parameters with EMU defaults.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b",
+      "note": "Table authoring bounds and pagination minimum row height use OfficeLength. Unit-specific AddTable twins are removed. Omitted placement keeps the original EMU defaults; pagination calculates capacity from whole EMUs. Native consumers, adapters, PowerShell calls and README examples use explicit lengths."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlide.AddTextBox(string text, long left = 838200, long top = 2174875, long width = 7772400, long height = 3962400)",
@@ -5852,11 +5852,11 @@
       "notes": "Numeric parameters with unit-suffixed names: heightCm, leftCm, topCm, widthCm",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b",
+      "note": "Table authoring bounds and pagination minimum row height use OfficeLength. Unit-specific AddTable twins are removed. Omitted placement keeps the original EMU defaults; pagination calculates capacity from whole EMUs. Native consumers, adapters, PowerShell calls and README examples use explicit lengths."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlide.AddTableCm<T>(IEnumerable<T> data, IEnumerable<PowerPointTableColumn<T>> columns, bool includeHeaders, double leftCm, double topCm, double widthCm, double heightCm)",
@@ -5869,11 +5869,11 @@
       "notes": "Numeric parameters with unit-suffixed names: heightCm, leftCm, topCm, widthCm",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b",
+      "note": "Table authoring bounds and pagination minimum row height use OfficeLength. Unit-specific AddTable twins are removed. Omitted placement keeps the original EMU defaults; pagination calculates capacity from whole EMUs. Native consumers, adapters, PowerShell calls and README examples use explicit lengths."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlide.AddTableCm<T>(IEnumerable<T> data, IEnumerable<PowerPointTableColumn<T>> columns, double leftCm, double topCm, double widthCm, double heightCm)",
@@ -5886,11 +5886,11 @@
       "notes": "Numeric parameters with unit-suffixed names: heightCm, leftCm, topCm, widthCm",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b",
+      "note": "Table authoring bounds and pagination minimum row height use OfficeLength. Unit-specific AddTable twins are removed. Omitted placement keeps the original EMU defaults; pagination calculates capacity from whole EMUs. Native consumers, adapters, PowerShell calls and README examples use explicit lengths."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlide.AddTableCm<T>(IEnumerable<T> data, double leftCm, double topCm, double widthCm, double heightCm)",
@@ -5903,11 +5903,11 @@
       "notes": "Numeric parameters with unit-suffixed names: heightCm, leftCm, topCm, widthCm",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b",
+      "note": "Table authoring bounds and pagination minimum row height use OfficeLength. Unit-specific AddTable twins are removed. Omitted placement keeps the original EMU defaults; pagination calculates capacity from whole EMUs. Native consumers, adapters, PowerShell calls and README examples use explicit lengths."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlide.AddTableInches<T>(IEnumerable<T> data, Action<ObjectFlattenerOptions> configure, bool includeHeaders, double leftInches, double topInches, double widthInches, double heightInches)",
@@ -5920,11 +5920,11 @@
       "notes": "Numeric parameters with unit-suffixed names: heightInches, leftInches, topInches, widthInches",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b",
+      "note": "Table authoring bounds and pagination minimum row height use OfficeLength. Unit-specific AddTable twins are removed. Omitted placement keeps the original EMU defaults; pagination calculates capacity from whole EMUs. Native consumers, adapters, PowerShell calls and README examples use explicit lengths."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlide.AddTableInches<T>(IEnumerable<T> data, IEnumerable<PowerPointTableColumn<T>> columns, bool includeHeaders, double leftInches, double topInches, double widthInches, double heightInches)",
@@ -5937,11 +5937,11 @@
       "notes": "Numeric parameters with unit-suffixed names: heightInches, leftInches, topInches, widthInches",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b",
+      "note": "Table authoring bounds and pagination minimum row height use OfficeLength. Unit-specific AddTable twins are removed. Omitted placement keeps the original EMU defaults; pagination calculates capacity from whole EMUs. Native consumers, adapters, PowerShell calls and README examples use explicit lengths."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlide.AddTableInches<T>(IEnumerable<T> data, IEnumerable<PowerPointTableColumn<T>> columns, double leftInches, double topInches, double widthInches, double heightInches)",
@@ -5954,11 +5954,11 @@
       "notes": "Numeric parameters with unit-suffixed names: heightInches, leftInches, topInches, widthInches",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b",
+      "note": "Table authoring bounds and pagination minimum row height use OfficeLength. Unit-specific AddTable twins are removed. Omitted placement keeps the original EMU defaults; pagination calculates capacity from whole EMUs. Native consumers, adapters, PowerShell calls and README examples use explicit lengths."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlide.AddTableInches<T>(IEnumerable<T> data, double leftInches, double topInches, double widthInches, double heightInches)",
@@ -5971,11 +5971,11 @@
       "notes": "Numeric parameters with unit-suffixed names: heightInches, leftInches, topInches, widthInches",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b",
+      "note": "Table authoring bounds and pagination minimum row height use OfficeLength. Unit-specific AddTable twins are removed. Omitted placement keeps the original EMU defaults; pagination calculates capacity from whole EMUs. Native consumers, adapters, PowerShell calls and README examples use explicit lengths."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlide.AddTablePoints<T>(IEnumerable<T> data, Action<ObjectFlattenerOptions> configure, bool includeHeaders, double leftPoints, double topPoints, double widthPoints, double heightPoints)",
@@ -5988,11 +5988,11 @@
       "notes": "Numeric parameters with unit-suffixed names: heightPoints, leftPoints, topPoints, widthPoints",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b",
+      "note": "Table authoring bounds and pagination minimum row height use OfficeLength. Unit-specific AddTable twins are removed. Omitted placement keeps the original EMU defaults; pagination calculates capacity from whole EMUs. Native consumers, adapters, PowerShell calls and README examples use explicit lengths."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlide.AddTablePoints<T>(IEnumerable<T> data, IEnumerable<PowerPointTableColumn<T>> columns, bool includeHeaders, double leftPoints, double topPoints, double widthPoints, double heightPoints)",
@@ -6005,11 +6005,11 @@
       "notes": "Numeric parameters with unit-suffixed names: heightPoints, leftPoints, topPoints, widthPoints",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b",
+      "note": "Table authoring bounds and pagination minimum row height use OfficeLength. Unit-specific AddTable twins are removed. Omitted placement keeps the original EMU defaults; pagination calculates capacity from whole EMUs. Native consumers, adapters, PowerShell calls and README examples use explicit lengths."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlide.AddTablePoints<T>(IEnumerable<T> data, IEnumerable<PowerPointTableColumn<T>> columns, double leftPoints, double topPoints, double widthPoints, double heightPoints)",
@@ -6022,11 +6022,11 @@
       "notes": "Numeric parameters with unit-suffixed names: heightPoints, leftPoints, topPoints, widthPoints",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b",
+      "note": "Table authoring bounds and pagination minimum row height use OfficeLength. Unit-specific AddTable twins are removed. Omitted placement keeps the original EMU defaults; pagination calculates capacity from whole EMUs. Native consumers, adapters, PowerShell calls and README examples use explicit lengths."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlide.AddTablePoints<T>(IEnumerable<T> data, double leftPoints, double topPoints, double widthPoints, double heightPoints)",
@@ -6039,11 +6039,11 @@
       "notes": "Numeric parameters with unit-suffixed names: heightPoints, leftPoints, topPoints, widthPoints",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b",
+      "note": "Table authoring bounds and pagination minimum row height use OfficeLength. Unit-specific AddTable twins are removed. Omitted placement keeps the original EMU defaults; pagination calculates capacity from whole EMUs. Native consumers, adapters, PowerShell calls and README examples use explicit lengths."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlide.AlignShapesToSlideContent(IEnumerable<PowerPointShape> shapes, PowerPointShapeAlignment alignment, long marginEmus)",
@@ -8532,11 +8532,11 @@
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b",
+      "note": "Table authoring bounds and pagination minimum row height use OfficeLength. Unit-specific AddTable twins are removed. Omitted placement keeps the original EMU defaults; pagination calculates capacity from whole EMUs. Native consumers, adapters, PowerShell calls and README examples use explicit lengths."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointTableRow.HeightCm",
@@ -9905,6 +9905,12 @@
         "OfficeIMO.PowerPoint/PowerPointTableRow.cs",
         "OfficeIMO.PowerPoint/PowerPointTableColumn.cs"
       ]
+    },
+    {
+      "change": "PowerPoint table authoring bounds use optional OfficeLength values; layout forwarding retains typed lengths. Pagination computes capacity and final table height in whole EMUs.",
+      "reason": "Remove remaining raw placement and unit-specific table overloads while preserving default bounds, saved geometry, column bindings and page continuation.",
+      "phase": "B",
+      "applied": "phase-b"
     }
   ],
   "applicationStatus": "Phase A applied and validated on the supported macOS targets. Phase B and Tier 2 entries retain their status; Windows .NET Framework validation remains pending.",

@@ -52,7 +52,7 @@ public sealed class PowerPointNumberingResetRenderingTests {
     public void PDF_table_markers_retain_separate_font_and_point_size(bool characterBullet) {
         using var presentation = PowerPointDocument.Create();
         presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(300),OfficeIMO.OfficeLength.Points(200));
-        var cell = presentation.AddSlide().AddTablePoints(1, 1, 20, 20, 260, 150).GetCell(0, 0);
+        var cell = presentation.AddSlide().AddTable(1,1,global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(260),global::OfficeIMO.OfficeLength.Points(150)).GetCell(0, 0);
         cell.FontSize = 12;
         cell.FontName = "Arial";
         var paragraph = cell.Paragraphs[0];
@@ -84,7 +84,7 @@ public sealed class PowerPointNumberingResetRenderingTests {
     [InlineData(false, true, 14)]
     public void PDF_table_marker_percent_uses_effective_row_font_default(bool header, bool footer, int expectedSize) {
         using var presentation = PowerPointDocument.Create();
-        var table = presentation.AddSlide().AddTablePoints(1, 1, 20, 20, 260, 150);
+        var table = presentation.AddSlide().AddTable(1,1,global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(260),global::OfficeIMO.OfficeLength.Points(150));
         table.FirstRow = header;
         table.LastRow = footer;
         var paragraph = table.GetCell(0, 0).Paragraphs[0];
@@ -116,7 +116,7 @@ public sealed class PowerPointNumberingResetRenderingTests {
 
     private static void AddNestedItems(PowerPointSlide slide, bool tableCell) {
         var box = tableCell ? null : slide.AddTextBoxPoints(string.Empty, 20, 20, 560, 450);
-        var cell = tableCell ? slide.AddTablePoints(1, 1, 20, 20, 560, 450).GetCell(0, 0) : null;
+        var cell = tableCell ? slide.AddTable(1,1,global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(560),global::OfficeIMO.OfficeLength.Points(450)).GetCell(0, 0) : null;
         if (box != null) box.FontSize = 12;
         if (cell != null) cell.FontSize = 12;
         int[] levels = { 0, 1, 2, 1, 2, 0, 1, 1, 0, 1 };

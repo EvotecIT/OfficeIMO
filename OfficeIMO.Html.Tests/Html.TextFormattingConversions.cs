@@ -533,7 +533,7 @@ public class HtmlTextFormattingConversionTests {
     [Fact]
     public void PowerPointSemanticHtmlRoundTripRetainsTableCellRunTypography() {
         using PowerPointDocument source = PowerPointDocument.Create();
-        PowerPointTableCell cell = source.AddSlide().AddTablePoints(1, 1, 20, 20, 220, 60).GetCell(0, 0);
+        PowerPointTableCell cell = source.AddSlide().AddTable(1,1,global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(220),global::OfficeIMO.OfficeLength.Points(60)).GetCell(0, 0);
         cell.Text = "First";
         PowerPointParagraph paragraph = Assert.Single(cell.Paragraphs);
         PowerPointTextRun first = Assert.Single(paragraph.Runs);
@@ -641,7 +641,7 @@ public class HtmlTextFormattingConversionTests {
     [Fact]
     public void PowerPointSemanticHtmlRetainsLanguageOnAnOtherwisePlainTableRun() {
         using PowerPointDocument source = PowerPointDocument.Create();
-        PowerPointTextRun authored = source.AddSlide().AddTablePoints(1, 1, 20, 20, 220, 60)
+        PowerPointTextRun authored = source.AddSlide().AddTable(1,1,global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(220),global::OfficeIMO.OfficeLength.Points(60))
             .GetCell(0, 0).Paragraphs.Single().Runs.Single();
         authored.Text = "Polski";
         authored.Language = "pl-PL";

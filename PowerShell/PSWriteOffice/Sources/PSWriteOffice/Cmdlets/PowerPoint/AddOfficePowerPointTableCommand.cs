@@ -131,7 +131,7 @@ public sealed class AddOfficePowerPointTableCommand : PSWriteOffice.Cmdlets.Offi
             throw new ArgumentOutOfRangeException(nameof(Columns), "Columns must be greater than 0.");
         }
 
-        return slide.AddTablePoints(Rows, Columns, X, Y, Width, Height);
+        return slide.AddTable(Rows,Columns,global::OfficeIMO.OfficeLength.Points(X),global::OfficeIMO.OfficeLength.Points(Y),global::OfficeIMO.OfficeLength.Points(Width),global::OfficeIMO.OfficeLength.Points(Height));
     }
 
     private PowerPointTable CreateDataTable(PowerPointSlide slide) {
@@ -169,7 +169,7 @@ public sealed class AddOfficePowerPointTableCommand : PSWriteOffice.Cmdlets.Offi
                 row => row.TryGetValue(header, out var value) ? value : null))
             .ToList();
 
-        return slide.AddTablePoints(rows, columns, includeHeaders: !NoHeader.IsPresent, X, Y, Width, Height);
+        return slide.AddTable(rows,columns,includeHeaders: !NoHeader.IsPresent,global::OfficeIMO.OfficeLength.Points(X),global::OfficeIMO.OfficeLength.Points(Y),global::OfficeIMO.OfficeLength.Points(Width),global::OfficeIMO.OfficeLength.Points(Height));
     }
 
     private PowerPointTable CreateStructuredTable(PowerPointSlide slide, OfficeTableSpec spec) {
@@ -177,7 +177,7 @@ public sealed class AddOfficePowerPointTableCommand : PSWriteOffice.Cmdlets.Offi
             PowerPointTableCellSpecService.Validate(placement.Cell);
         }
 
-        var table = slide.AddTablePoints(spec.RowCount, spec.ColumnCount, X, Y, Width, Height);
+        var table = slide.AddTable(spec.RowCount,spec.ColumnCount,global::OfficeIMO.OfficeLength.Points(X),global::OfficeIMO.OfficeLength.Points(Y),global::OfficeIMO.OfficeLength.Points(Width),global::OfficeIMO.OfficeLength.Points(Height));
         foreach (var placement in spec.Placements) {
             var cell = table.GetCell(placement.RowIndex, placement.ColumnIndex);
             PowerPointTableCellSpecService.Apply(cell, placement.Cell);

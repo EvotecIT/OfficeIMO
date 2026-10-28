@@ -16,7 +16,7 @@ namespace OfficeIMO.Tests {
                     PowerPointTextBox bullets = first.AddTextBox(string.Empty);
                     bullets.AddBullet("One");
                     bullets.AddBullet("Two");
-                    first.AddTable(2, 2);
+                    first.AddTable(2,2);
                     first.Notes.Text = "Notes text";
 
                     PowerPointSlide second = presentation.AddSlide();

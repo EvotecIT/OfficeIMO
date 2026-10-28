@@ -391,7 +391,7 @@ public sealed class PowerPointOdpCurrentHeadReviewTests {
     [Fact]
     public void PowerPointTableExtensionIdentityIsExplicitLoss() {
         using PowerPointDocument source = CreatePowerPoint();
-        source.Slides[0].AddTable(1, 1);
+        source.Slides[0].AddTable(1,1);
         A.Table table = source.OpenXmlDocument.PresentationPart!.SlideParts.Single().Slide!
             .Descendants<A.Table>().Single();
         table.Elements<A.TableRow>().Single().AppendChild(new A.ExtensionList());

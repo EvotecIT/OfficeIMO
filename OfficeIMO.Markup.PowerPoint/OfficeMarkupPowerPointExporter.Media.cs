@@ -108,7 +108,7 @@ internal sealed partial class OfficeMarkupPowerPointExporter {
 
         var columns = rows.Max(row => row.Count);
         var height = Math.Min(cursor.RemainingHeight, Math.Max(0.8, 0.32 * rows.Count));
-        var powerPointTable = slide.AddTableInches(rows.Count, Math.Max(1, columns), cursor.Left, cursor.Top, cursor.Width, height);
+        var powerPointTable = slide.AddTable(rows.Count,Math.Max(1, columns),global::OfficeIMO.OfficeLength.Inches(cursor.Left),global::OfficeIMO.OfficeLength.Inches(cursor.Top),global::OfficeIMO.OfficeLength.Inches(cursor.Width),global::OfficeIMO.OfficeLength.Inches(height));
         for (int rowIndex = 0; rowIndex < rows.Count; rowIndex++) {
             var row = rows[rowIndex];
             for (int columnIndex = 0; columnIndex < row.Count; columnIndex++) {

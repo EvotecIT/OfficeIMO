@@ -76,7 +76,7 @@ namespace OfficeIMO.Tests {
                 PowerPointDocument.Create();
             PowerPointSlide slide = presentation.AddSlide(
                 PowerPointSlideLayoutType.Blank);
-            PowerPointTable sourceTable = slide.AddTable(2, 2);
+            PowerPointTable sourceTable = slide.AddTable(2,2);
             sourceTable.GetCell(0, 0).Text = "Merged master";
             sourceTable.MergeCells(0, 0, 0, 1);
             P.GraphicFrame masterTable = Assert.IsType<P.GraphicFrame>(

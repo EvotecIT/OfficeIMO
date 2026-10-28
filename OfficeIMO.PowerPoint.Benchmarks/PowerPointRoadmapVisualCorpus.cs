@@ -404,7 +404,7 @@ internal static class PowerPointRoadmapVisualCorpus {
         SetSlideBackground(slide);
         AddTitle(slide, "Chart and table authoring");
 
-        PowerPointTable table = slide.AddTablePoints(4, 3, 45, 125, 330, 290);
+        PowerPointTable table = slide.AddTable(4,3,global::OfficeIMO.OfficeLength.Points(45),global::OfficeIMO.OfficeLength.Points(125),global::OfficeIMO.OfficeLength.Points(330),global::OfficeIMO.OfficeLength.Points(290));
         string[,] values = {
             { "Metric", "Current", "Target" },
             { "Quality", "94", "98" },

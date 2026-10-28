@@ -89,7 +89,7 @@ internal static class PowerPointBenchmarkCorpus {
     }
 
     private static void AddTable(PowerPointSlide slide, int index) {
-        PowerPointTable table = slide.AddTablePoints(4, 3, 40, 224, 300, 220);
+        PowerPointTable table = slide.AddTable(4,3,global::OfficeIMO.OfficeLength.Points(40),global::OfficeIMO.OfficeLength.Points(224),global::OfficeIMO.OfficeLength.Points(300),global::OfficeIMO.OfficeLength.Points(220));
         string[,] values = {
             { "Metric", "Current", "Target" },
             { "Quality", (92 + index % 7).ToString(), "98" },

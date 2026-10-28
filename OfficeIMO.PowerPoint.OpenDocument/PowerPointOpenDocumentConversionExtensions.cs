@@ -435,7 +435,7 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
                     if (columnCount > effective.MaxTableColumns) {
                         throw new InvalidDataException($"ODP table columns ({columnCount}) exceed the configured conversion limit ({effective.MaxTableColumns}).");
                     }
-                    PowerPointTable converted = targetSlide.AddTable(rowCount, columnCount, tableBounds);
+                    PowerPointTable converted = targetSlide.AddTable(rowCount,columnCount,tableBounds);
                     converted.Name = table.Name;
                     unsupportedMeasurements += CopyShapeAppearance(table, converted, effective);
                     var merges = new List<(int Row, int Column, int RowSpan, int ColumnSpan)>();

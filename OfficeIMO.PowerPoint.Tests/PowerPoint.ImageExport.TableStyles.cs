@@ -18,7 +18,7 @@ namespace OfficeIMO.Tests {
             slide.BackgroundColor = "FFFF00";
             const string styleId = "{6A0E6B20-52C9-4C93-9DA8-000000000103}";
             AddImageExportTableStyle(slide, styleId);
-            var table = slide.AddTablePoints(1, 2, 20, 20, 120, 48);
+            var table = slide.AddTable(1,2,global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(120),global::OfficeIMO.OfficeLength.Points(48));
             table.StyleId = styleId;
             table.FirstRow = false; table.FirstColumn = false;
             table.BandedRows = false; table.BandedColumns = true;
@@ -43,7 +43,7 @@ namespace OfficeIMO.Tests {
             const string styleId = "{6A0E6B20-52C9-4C93-9DA8-000000000101}";
             AddImageExportTableStyle(slide, styleId);
 
-            PowerPointTable table = slide.AddTablePoints(2, 3, 20, 20, 120, 60);
+            PowerPointTable table = slide.AddTable(2,3,global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(120),global::OfficeIMO.OfficeLength.Points(60));
             table.StyleId = styleId;
             table.SetColumnWidths(global::OfficeIMO.OfficeLength.Points(40),global::OfficeIMO.OfficeLength.Points(40),global::OfficeIMO.OfficeLength.Points(40));
             table.SetRowHeights(global::OfficeIMO.OfficeLength.Points(30),global::OfficeIMO.OfficeLength.Points(30));
@@ -82,7 +82,7 @@ namespace OfficeIMO.Tests {
             const string styleId = "{6A0E6B20-52C9-4C93-9DA8-000000000103}";
             AddImageExportTableStyle(slide, styleId);
 
-            PowerPointTable table = slide.AddTablePoints(2, 4, 20, 20, 120, 48);
+            PowerPointTable table = slide.AddTable(2,4,global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(120),global::OfficeIMO.OfficeLength.Points(48));
             table.StyleId = styleId;
             table.SetColumnWidths(global::OfficeIMO.OfficeLength.Points(30),global::OfficeIMO.OfficeLength.Points(30),global::OfficeIMO.OfficeLength.Points(30),global::OfficeIMO.OfficeLength.Points(30));
             table.SetRowHeights(global::OfficeIMO.OfficeLength.Points(24),global::OfficeIMO.OfficeLength.Points(24));
@@ -118,7 +118,7 @@ namespace OfficeIMO.Tests {
             const string styleId = "{6A0E6B20-52C9-4C93-9DA8-000000000102}";
             AddImageExportMergedBorderTableStyle(slide, styleId);
 
-            PowerPointTable table = slide.AddTablePoints(1, 2, 20, 20, 80, 36);
+            PowerPointTable table = slide.AddTable(1,2,global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(80),global::OfficeIMO.OfficeLength.Points(36));
             table.StyleId = styleId;
             table.SetColumnWidths(global::OfficeIMO.OfficeLength.Points(40),global::OfficeIMO.OfficeLength.Points(40));
             table.SetRowHeights(global::OfficeIMO.OfficeLength.Points(36));

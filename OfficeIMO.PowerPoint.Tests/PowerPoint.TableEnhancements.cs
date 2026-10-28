@@ -15,7 +15,7 @@ namespace OfficeIMO.Tests {
             try {
                 using PowerPointDocument presentation = PowerPointDocument.Create(filePath);
                 PowerPointSlide slide = presentation.AddSlide();
-                PowerPointTable table = slide.AddTable(rows: 3, columns: 2, left: 0, top: 0, width: 4000, height: 9000);
+                PowerPointTable table = slide.AddTable(rows: 3,columns: 2,left: global::OfficeIMO.OfficeLength.Emus(0),top: global::OfficeIMO.OfficeLength.Emus(0),width: global::OfficeIMO.OfficeLength.Emus(4000),height: global::OfficeIMO.OfficeLength.Emus(9000));
 
                 table.SetRowHeightsEvenly();
 
@@ -35,7 +35,7 @@ namespace OfficeIMO.Tests {
             try {
                 using PowerPointDocument presentation = PowerPointDocument.Create(filePath);
                 PowerPointSlide slide = presentation.AddSlide();
-                PowerPointTable table = slide.AddTable(rows: 3, columns: 2, left: 0, top: 0, width: 4000, height: 9000);
+                PowerPointTable table = slide.AddTable(rows: 3,columns: 2,left: global::OfficeIMO.OfficeLength.Emus(0),top: global::OfficeIMO.OfficeLength.Emus(0),width: global::OfficeIMO.OfficeLength.Emus(4000),height: global::OfficeIMO.OfficeLength.Emus(9000));
 
                 Assert.Equal(3000, (table.GetRowHeight(0)).ToEmus());
                 Assert.Equal(3000, (table.GetRowHeight(1)).ToEmus());
@@ -53,7 +53,7 @@ namespace OfficeIMO.Tests {
             try {
                 using PowerPointDocument presentation = PowerPointDocument.Create(filePath);
                 PowerPointSlide slide = presentation.AddSlide();
-                PowerPointTable table = slide.AddTable(rows: 2, columns: 1, left: 0, top: 0, width: 4000, height: 9000);
+                PowerPointTable table = slide.AddTable(rows: 2,columns: 1,left: global::OfficeIMO.OfficeLength.Emus(0),top: global::OfficeIMO.OfficeLength.Emus(0),width: global::OfficeIMO.OfficeLength.Emus(4000),height: global::OfficeIMO.OfficeLength.Emus(9000));
 
                 table.SetRowHeightsByRatio(1, 2);
 
@@ -72,7 +72,7 @@ namespace OfficeIMO.Tests {
             try {
                 using PowerPointDocument presentation = PowerPointDocument.Create(filePath);
                 PowerPointSlide slide = presentation.AddSlide();
-                PowerPointTable table = slide.AddTable(rows: 1, columns: 1, left: 0, top: 0, width: 4000, height: 2000);
+                PowerPointTable table = slide.AddTable(rows: 1,columns: 1,left: global::OfficeIMO.OfficeLength.Emus(0),top: global::OfficeIMO.OfficeLength.Emus(0),width: global::OfficeIMO.OfficeLength.Emus(4000),height: global::OfficeIMO.OfficeLength.Emus(2000));
 
                 table.SetColumnWidth(0,global::OfficeIMO.OfficeLength.Points(72));
                 table.SetRowHeight(0,global::OfficeIMO.OfficeLength.Centimeters(1.0));
@@ -92,7 +92,7 @@ namespace OfficeIMO.Tests {
             try {
                 using PowerPointDocument presentation = PowerPointDocument.Create(filePath);
                 PowerPointSlide slide = presentation.AddSlide();
-                PowerPointTable table = slide.AddTable(rows: 2, columns: 2, left: 0, top: 0, width: 4000, height: 3000);
+                PowerPointTable table = slide.AddTable(rows: 2,columns: 2,left: global::OfficeIMO.OfficeLength.Emus(0),top: global::OfficeIMO.OfficeLength.Emus(0),width: global::OfficeIMO.OfficeLength.Emus(4000),height: global::OfficeIMO.OfficeLength.Emus(3000));
 
                 table.SetCellAlignment(PowerPointTextAlignment.Center, PowerPointTextVerticalAlignment.Center,
                     startRow: 0, endRow: 0, startColumn: 0, endColumn: 1);
@@ -113,7 +113,7 @@ namespace OfficeIMO.Tests {
             try {
                 using PowerPointDocument presentation = PowerPointDocument.Create(filePath);
                 PowerPointSlide slide = presentation.AddSlide();
-                PowerPointTable table = slide.AddTable(rows: 1, columns: 2, left: 0, top: 0, width: 4000, height: 2000);
+                PowerPointTable table = slide.AddTable(rows: 1,columns: 2,left: global::OfficeIMO.OfficeLength.Emus(0),top: global::OfficeIMO.OfficeLength.Emus(0),width: global::OfficeIMO.OfficeLength.Emus(4000),height: global::OfficeIMO.OfficeLength.Emus(2000));
 
                 table.SetCellPaddingCm(0.5, 0.5, 0.5, 0.5);
 
@@ -135,7 +135,7 @@ namespace OfficeIMO.Tests {
             try {
                 using PowerPointDocument presentation = PowerPointDocument.Create(filePath);
                 PowerPointSlide slide = presentation.AddSlide();
-                PowerPointTable table = slide.AddTable(rows: 1, columns: 1, left: 0, top: 0, width: 4000, height: 2000);
+                PowerPointTable table = slide.AddTable(rows: 1,columns: 1,left: global::OfficeIMO.OfficeLength.Emus(0),top: global::OfficeIMO.OfficeLength.Emus(0),width: global::OfficeIMO.OfficeLength.Emus(4000),height: global::OfficeIMO.OfficeLength.Emus(2000));
 
                 table.SetCellBorders(PowerPointTableCellBorders.All, "FF0000", widthPoints: 1);
 
@@ -153,7 +153,7 @@ namespace OfficeIMO.Tests {
             try {
                 using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
                     PowerPointSlide slide = presentation.AddSlide();
-                    PowerPointTable table = slide.AddTable(rows: 1, columns: 1, left: 0, top: 0, width: 4000, height: 2000);
+                    PowerPointTable table = slide.AddTable(rows: 1,columns: 1,left: global::OfficeIMO.OfficeLength.Emus(0),top: global::OfficeIMO.OfficeLength.Emus(0),width: global::OfficeIMO.OfficeLength.Emus(4000),height: global::OfficeIMO.OfficeLength.Emus(2000));
 
                     table.SetCellBorders(PowerPointTableCellBorders.All, "FF0000", widthPoints: 1,
                         dash: PowerPointLineDashStyle.Dash);

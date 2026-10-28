@@ -111,7 +111,7 @@ public sealed class ReaderPowerPointExtractionTests {
             slide.AddTextBox("Before group");
             PowerPointTextBox groupedText =
                 slide.AddTextBox("Grouped paragraph");
-            PowerPointTable groupedTable = slide.AddTable(2, 1);
+            PowerPointTable groupedTable = slide.AddTable(2,1);
             groupedTable.GetCell(0, 0).Text = "Header";
             groupedTable.GetCell(1, 0).Text = "Grouped cell";
             slide.GroupShapes(new PowerPointShape[] {
@@ -185,7 +185,7 @@ public sealed class ReaderPowerPointExtractionTests {
                PowerPointDocument.Create()) {
             PowerPointSlide slide = presentation.AddSlide();
             slide.AddTextBox("Before table");
-            PowerPointTable table = slide.AddTable(2, 2);
+            PowerPointTable table = slide.AddTable(2,2);
             table.HeaderRow = true;
             table.SetCellBorders(PowerPointTableCellBorders.All, "BFBFBF",
                 widthPoints: 0.5D);

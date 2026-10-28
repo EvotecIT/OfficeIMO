@@ -281,7 +281,7 @@ public sealed class ReaderOfficeRichMappingTests {
             title.Paragraphs[0].Runs[0].SetHyperlink("https://example.test/deck");
             PowerPointTextBox hidden = slide.AddTextBox("Hidden guidance");
             hidden.Hidden = true;
-            PowerPointTable table = slide.AddTable(2, 2);
+            PowerPointTable table = slide.AddTable(2,2);
             table.GetCell(0, 0).Text = "Name";
             table.GetCell(0, 1).Text = "Qty";
             table.GetCell(1, 0).Text = "Bandage";
@@ -323,7 +323,7 @@ public sealed class ReaderOfficeRichMappingTests {
     public void DocumentReader_PowerPointRichMapping_PreservesHeaderlessFirstRow() {
         using var stream = new MemoryStream();
         using (PowerPointDocument presentation = PowerPointDocument.Create(stream)) {
-            PowerPointTable table = presentation.AddSlide().AddTable(2, 1);
+            PowerPointTable table = presentation.AddSlide().AddTable(2,1);
             table.HeaderRow = false;
             table.GetCell(0, 0).Text = "First value";
             table.GetCell(1, 0).Text = "Second value";
@@ -352,7 +352,7 @@ public sealed class ReaderOfficeRichMappingTests {
             hiddenTitle.PlaceholderType = PowerPointPlaceholderType.Title;
             hiddenTitle.Hidden = true;
             hiddenTitle.Paragraphs[0].Runs[0].SetHyperlink("https://example.test/hidden");
-            PowerPointTable hiddenTable = slide.AddTable(1, 1);
+            PowerPointTable hiddenTable = slide.AddTable(1,1);
             hiddenTable.GetCell(0, 0).Text = "Hidden table";
             hiddenTable.Hidden = true;
             PowerPointChart hiddenChart = slide.AddChart(OfficeChartType.ColumnClustered, new OfficeChartData(

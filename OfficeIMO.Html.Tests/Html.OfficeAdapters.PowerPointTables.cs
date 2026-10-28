@@ -266,7 +266,7 @@ public class HtmlOfficeAdaptersPowerPointTables {
     public void PowerPointHtml_RoundTripsMergedTableCells() {
         using PowerPointDocument presentation = PowerPointDocument.Create(new MemoryStream());
         PowerPointSlide slide = presentation.AddSlide();
-        PowerPointTable table = slide.AddTablePoints(3, 3, 70, 90, 360, 150);
+        PowerPointTable table = slide.AddTable(3,3,global::OfficeIMO.OfficeLength.Points(70),global::OfficeIMO.OfficeLength.Points(90),global::OfficeIMO.OfficeLength.Points(360),global::OfficeIMO.OfficeLength.Points(150));
         table.GetCell(0, 0).Text = "Merged heading";
         table.GetCell(2, 0).Text = "Tail";
         table.MergeCells(0, 0, 1, 1);
@@ -366,7 +366,7 @@ public class HtmlOfficeAdaptersPowerPointTables {
   <a:firstRow><a:tcTxStyle b=""on""><a:font><a:latin typeface=""Arial"" /></a:font><a:srgbClr val=""AABBCC"" /></a:tcTxStyle></a:firstRow>
 </a:tblStyle>"));
 
-        PowerPointTable table = slide.AddTablePoints(2, 1, 20, 30, 220, 100);
+        PowerPointTable table = slide.AddTable(2,1,global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(30),global::OfficeIMO.OfficeLength.Points(220),global::OfficeIMO.OfficeLength.Points(100));
         table.StyleId = styleId;
         table.FirstRow = true;
         table.GetCell(0, 0).Text = "Header";

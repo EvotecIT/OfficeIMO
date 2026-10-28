@@ -14,7 +14,7 @@ namespace OfficeIMO.Tests {
             source.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(180),OfficeIMO.OfficeLength.Points(100));
             var slide = source.AddSlide(PowerPointSlideLayoutType.Blank);
             slide.BackgroundColor = "FFFF00";
-            var table = slide.AddTablePoints(1, 2, 20, 20, 120, 48);
+            var table = slide.AddTable(1,2,global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(120),global::OfficeIMO.OfficeLength.Points(48));
             table.GetCell(0, 0).NoFill = true;
             table.GetCell(0, 1).FillColor = "FF0000";
             Assert.True(source.AnalyzeLegacyPptWrite().CanWrite);
@@ -39,11 +39,7 @@ namespace OfficeIMO.Tests {
             using (PowerPointDocument source = PowerPointDocument.Create()) {
                 PowerPointTable sourceTable = source
                     .AddSlide(PowerPointSlideLayoutType.Blank)
-                    .AddTable(3, 3, PowerPointTableStylePreset.Default,
-                        PowerPointUnits.FromPoints(24D),
-                        PowerPointUnits.FromPoints(36D),
-                        PowerPointUnits.FromPoints(300D),
-                        PowerPointUnits.FromPoints(144D));
+                    .AddTable(3,3,PowerPointTableStylePreset.Default,                        global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(24D)),                        global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(36D)),                        global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(300D)),                        global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(144D)));
                 sourceTable.GetCell(0, 0).Text = "Region";
                 sourceTable.GetCell(0, 1).Text = "Revenue";
                 sourceTable.GetCell(0, 1).Paragraphs[0].Runs[0].SetHyperlink(
@@ -123,7 +119,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void NativeWriter_BlocksMergedCellsInsteadOfFlatteningThem() {
             using PowerPointDocument source = PowerPointDocument.Create();
-            PowerPointTable table = source.AddSlide().AddTable(2, 2);
+            PowerPointTable table = source.AddSlide().AddTable(2,2);
             table.MergeCells(0, 0, 0, 1);
 
             LegacyPptWriteFinding finding = Assert.Single(
@@ -147,7 +143,7 @@ namespace OfficeIMO.Tests {
         public void NativeWriter_BlocksConflictingSharedTableBorders() {
             using PowerPointDocument source = PowerPointDocument
                 .Create();
-            PowerPointTable table = source.AddSlide().AddTable(1, 2);
+            PowerPointTable table = source.AddSlide().AddTable(1,2);
             table.GetCell(0, 0).SetBorders(PowerPointTableCellBorders.Right,
                 "C1121F", widthPoints: 1.25D);
             table.GetCell(0, 1).SetBorders(PowerPointTableCellBorders.Left,
@@ -168,7 +164,7 @@ namespace OfficeIMO.Tests {
             byte[] bytes;
             using (PowerPointDocument source =
                    PowerPointDocument.Create()) {
-                PowerPointTable table = source.AddSlide().AddTable(1, 1);
+                PowerPointTable table = source.AddSlide().AddTable(1,1);
                 table.SetCellBorders(PowerPointTableCellBorders.All, "2563EB", 1.25D);
                 A.TableCellProperties properties = table.GetCell(0, 0)
                     .Cell.TableCellProperties!;
@@ -201,7 +197,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void StaticTableRasterizationRejectsExcessiveRowCountBeforeMatrices() {
             using PowerPointDocument source = PowerPointDocument.Create();
-            PowerPointTable table = source.AddSlide().AddTable(4097, 1);
+            PowerPointTable table = source.AddSlide().AddTable(4097,1);
 
             bool rendered = PowerPointSlideImageRenderer.TryCreateTableDrawing(
                 table, out _, out string? reason);

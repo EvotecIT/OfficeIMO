@@ -84,17 +84,17 @@ var rows = new[] {
 var tableSlide = presentation.AddSlide();
 tableSlide.AddTitleCm("Sales by Product", content.Left.ToCentimeters(), content.Top.ToCentimeters(), content.Width.ToCentimeters(), 1.4);
 
-var table = tableSlide.AddTableCm(
+var table = tableSlide.AddTable(
     rows,
     options => {
         options.HeaderCase = HeaderCase.Title;
         options.PinFirst("Product");
     },
     includeHeaders: true,
-    leftCm: content.Left.ToCentimeters(),
-    topCm: content.Top.ToCentimeters() + 2.0,
-    widthCm: content.Width.ToCentimeters(),
-    heightCm: 4.5);
+    left: content.Left,
+    top: content.Top + OfficeLength.Centimeters(2.0),
+    width: content.Width,
+    height: OfficeLength.Centimeters(4.5));
 
 table.SetColumnWidthsEvenly();
 
@@ -165,7 +165,7 @@ presentation.MoveSlide(2, 0);
 
 - Use `AddTitleCm` and `AddTextBoxCm` when you want a readable layout in source code.
 - Use `SetTextMarginsCm`, `ApplyTextStyle`, and `TextAutoFit` early so slides stay legible as content grows.
-- Build data-heavy slides from objects with `AddTableCm` and shared `OfficeChartData` instead of hard-coded cell text.
+- Build data-heavy slides from objects with `AddTable` and shared `OfficeChartData` instead of hard-coded cell text.
 - Use `Notes.Text` for speaker notes and `DuplicateSlide`, `ImportSlide`, and `MoveSlide` when you need reusable deck templates.
 
 ## Related guides

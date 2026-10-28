@@ -18,7 +18,7 @@ public sealed class PowerPointPdfTableFidelityTests {
         using (var presentation = PowerPointDocument.Create()) {
             presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(300),OfficeIMO.OfficeLength.Points(200));
             presentation.SetThemeLatinFonts("Helvetica", "Helvetica");
-            var table = presentation.AddSlide().AddTablePoints(2, 2, 20, 30, 132, 40);
+            var table = presentation.AddSlide().AddTable(2,2,global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(30),global::OfficeIMO.OfficeLength.Points(132),global::OfficeIMO.OfficeLength.Points(40));
             table.StyleId = "{5C22544A-7EE6-4342-B048-85BDC9FD1C3A}";
             table.FirstRow = true;
             table.BandedRows = true;
@@ -67,7 +67,7 @@ public sealed class PowerPointPdfTableFidelityTests {
         using var presentation = PowerPointDocument.Create();
         presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(400),OfficeIMO.OfficeLength.Points(300));
         presentation.SetThemeLatinFonts("Helvetica", "Helvetica");
-        var table = presentation.AddSlide().AddTablePoints(2, 2, 20, 20, 240, 24);
+        var table = presentation.AddSlide().AddTable(2,2,global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(240),global::OfficeIMO.OfficeLength.Points(24));
         table.StyleId = "{5C22544A-7EE6-4342-B048-85BDC9FD1C3A}";
         table.FirstRow = true;
         table.SetColumnWidths(global::OfficeIMO.OfficeLength.Points(120),global::OfficeIMO.OfficeLength.Points(120));
@@ -107,7 +107,7 @@ public sealed class PowerPointPdfTableFidelityTests {
     public void PlainTableHasNoPdfPresetFillAndLaterRunsDoNotInheritFirstRunsDirectFormatting() {
         using var presentation = PowerPointDocument.Create();
         presentation.SetThemeLatinFonts("Helvetica", "Helvetica");
-        var table = presentation.AddSlide().AddTablePoints(1, 1, 20, 20, 240, 60);
+        var table = presentation.AddSlide().AddTable(1,1,global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(240),global::OfficeIMO.OfficeLength.Points(60));
         table.ApplyStyle(PowerPointTableStylePreset.Plain);
         table.StyleId = null;
         table.FirstRow = true;
@@ -141,7 +141,7 @@ public sealed class PowerPointPdfTableFidelityTests {
     public void LegacyTablePreviewRetainsRowsThatGrowBeyondTheAuthoredFrame(bool onMaster) {
         using var presentation = PowerPointDocument.Create();
         presentation.SetThemeLatinFonts("Helvetica", "Helvetica");
-        var table = presentation.AddSlide().AddTablePoints(1, 1, 20, 20, 120, 12);
+        var table = presentation.AddSlide().AddTable(1,1,global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(120),global::OfficeIMO.OfficeLength.Points(12));
         table.StyleId = null;
         var cell = table.GetCell(0, 0);
         cell.Text = "First\nSecond\nTail";

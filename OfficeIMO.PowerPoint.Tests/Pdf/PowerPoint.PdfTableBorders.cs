@@ -13,7 +13,7 @@ public sealed class PowerPointPdfTableBorderTests {
         using var saved = new MemoryStream();
         using (var presentation = PowerPointDocument.Create()) {
             presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(260),OfficeIMO.OfficeLength.Points(180));
-            var table = presentation.AddSlide().AddTablePoints(2, 2, 30, 34, 160, 80);
+            var table = presentation.AddSlide().AddTable(2,2,global::OfficeIMO.OfficeLength.Points(30),global::OfficeIMO.OfficeLength.Points(34),global::OfficeIMO.OfficeLength.Points(160),global::OfficeIMO.OfficeLength.Points(80));
             table.ApplyStyle(PowerPointTableStylePreset.Plain);
             for (int row = 0; row < 2; row++) for (int column = 0; column < 2; column++) {
                 var cell = table.GetCell(row, column);

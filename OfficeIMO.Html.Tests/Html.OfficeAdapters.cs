@@ -1267,7 +1267,7 @@ public partial class HtmlOfficeAdapters {
             picture.AltText = "Gallery picture";
         }
 
-        PowerPointTable table = slide.AddTablePoints(2, 2, 72, 280, 220, 80);
+        PowerPointTable table = slide.AddTable(2,2,global::OfficeIMO.OfficeLength.Points(72),global::OfficeIMO.OfficeLength.Points(280),global::OfficeIMO.OfficeLength.Points(220),global::OfficeIMO.OfficeLength.Points(80));
         table.GetCell(0, 0).Text = "Milestone";
         table.GetCell(0, 1).Text = "State";
         table.GetCell(1, 0).Text = "HTML";
@@ -1349,7 +1349,7 @@ public partial class HtmlOfficeAdapters {
             picture.AltText = "Reusable renderer badge";
         }
 
-        PowerPointTable table = slide.AddTablePoints(2, 2, 72, 280, 220, 80);
+        PowerPointTable table = slide.AddTable(2,2,global::OfficeIMO.OfficeLength.Points(72),global::OfficeIMO.OfficeLength.Points(280),global::OfficeIMO.OfficeLength.Points(220),global::OfficeIMO.OfficeLength.Points(80));
         table.GetCell(0, 0).Text = "Milestone";
         table.GetCell(0, 1).Text = "State";
         table.GetCell(1, 0).Text = "HTML";

@@ -20,7 +20,7 @@ namespace OfficeIMO.Tests {
                 PowerPointSlide slide = presentation.AddSlide();
                 PowerPointTextBox textBox = slide.AddTextBox("Hello", left, top, width, height);
                 PowerPointPicture picture = slide.AddImage(imagePath, left, top, width, height);
-                PowerPointTable table = slide.AddTable(2, 2, left, top, width, height);
+                PowerPointTable table = slide.AddTable(2,2,global::OfficeIMO.OfficeLength.Emus(left),global::OfficeIMO.OfficeLength.Emus(top),global::OfficeIMO.OfficeLength.Emus(width),global::OfficeIMO.OfficeLength.Emus(height));
 
                 Assert.Equal(left, textBox.Left.ToEmus());
                 Assert.Equal(top, textBox.Top.ToEmus());

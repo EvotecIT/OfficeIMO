@@ -64,7 +64,7 @@ namespace OfficeIMO.Tests {
             link.FontSize = 12;
             link.FillColor = "FFFFFF";
             link.Paragraphs.Single().Runs.Single().SetHyperlink("https://example.test");
-            PowerPointTable table = slide.AddTablePoints(2, 2, 20, 70, 180, 60);
+            PowerPointTable table = slide.AddTable(2,2,global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(70),global::OfficeIMO.OfficeLength.Points(180),global::OfficeIMO.OfficeLength.Points(60));
             table.GetCell(0, 0).Text = "Metric";
             table.GetCell(0, 1).Text = "Value";
             table.GetCell(1, 0).Text = "Users";
@@ -188,7 +188,7 @@ namespace OfficeIMO.Tests {
             using var stream = new MemoryStream();
             using PowerPointDocument presentation = PowerPointDocument.Create(stream, new PowerPointCreateOptions());
             PowerPointSlide slide = presentation.AddSlide();
-            PowerPointTable table = slide.AddTablePoints(2, 2, 20, 50, 180, 70);
+            PowerPointTable table = slide.AddTable(2,2,global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(50),global::OfficeIMO.OfficeLength.Points(180),global::OfficeIMO.OfficeLength.Points(70));
             table.HeaderRow = false;
             PowerPointAutoShape anchor = slide.AddRectanglePoints(210, 50, 20, 20, "Group anchor");
             slide.GroupShapes(new PowerPointShape[] { table, anchor }, "Accessibility group");

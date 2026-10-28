@@ -526,7 +526,7 @@ namespace OfficeIMO.Tests {
                 paragraphReplaced.Paragraphs.Single().Runs.Single()
                     .SetMouseOverSound(audio, "Paragraph sound");
             }
-            PowerPointTableCell cell = slide.AddTable(1, 1)
+            PowerPointTableCell cell = slide.AddTable(1,1)
                 .GetCell(0, 0);
             cell.Text = "Cell sound";
             using (var audio = new MemoryStream(wave, writable: false)) {

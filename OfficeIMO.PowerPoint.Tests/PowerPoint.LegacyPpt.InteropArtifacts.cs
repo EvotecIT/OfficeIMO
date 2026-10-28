@@ -102,8 +102,7 @@ namespace OfficeIMO.Tests {
             PowerPointSlide second = presentation.AddSlide();
             second.AddTextBox("Second slide " + marker,
                 900000, 900000, 4200000, 800000);
-            PowerPointTable table = second.AddTable(2, 2,
-                900000, 2200000, 5000000, 1500000);
+            PowerPointTable table = second.AddTable(2,2,                global::OfficeIMO.OfficeLength.Emus(900000),global::OfficeIMO.OfficeLength.Emus(2200000),global::OfficeIMO.OfficeLength.Emus(5000000),global::OfficeIMO.OfficeLength.Emus(1500000));
             table.HeaderRow = true;
             table.GetCell(0, 0).Text = "Region";
             table.GetCell(0, 1).Text = "Revenue";

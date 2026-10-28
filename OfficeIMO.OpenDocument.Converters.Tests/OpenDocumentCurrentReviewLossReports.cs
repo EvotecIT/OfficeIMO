@@ -395,7 +395,7 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
         PowerPointSlide slide = source.AddSlide();
         PowerPointParagraph textBoxParagraph = slide.AddTextBoxPoints("Before", 10, 10, 200, 50)
             .Paragraphs.Single();
-        PowerPointParagraph tableParagraph = slide.AddTablePoints(1, 1, 10, 80, 200, 50)
+        PowerPointParagraph tableParagraph = slide.AddTable(1,1,global::OfficeIMO.OfficeLength.Points(10),global::OfficeIMO.OfficeLength.Points(80),global::OfficeIMO.OfficeLength.Points(200),global::OfficeIMO.OfficeLength.Points(50))
             .GetCell(0, 0).SetParagraphs(new[] { "Before" }).Single();
         PowerPointParagraph noteParagraph = slide.Notes.SetParagraphs(new[] { "Before" }).Single();
 

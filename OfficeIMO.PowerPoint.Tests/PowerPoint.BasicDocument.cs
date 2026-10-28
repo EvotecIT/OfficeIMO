@@ -20,7 +20,7 @@ namespace OfficeIMO.Tests {
                 PowerPointTextBox text = slide.AddTextBox("Hello");
                 text.AddBullet("Bullet1");
                 slide.AddImage(imagePath);
-                slide.AddTable(2, 2);
+                slide.AddTable(2,2);
                 slide.Notes.Text = "Test notes";
                 presentation.Save();
             }

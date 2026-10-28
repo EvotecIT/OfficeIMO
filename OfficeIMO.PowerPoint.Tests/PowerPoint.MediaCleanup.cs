@@ -47,7 +47,7 @@ namespace OfficeIMO.Tests {
             using PowerPointDocument presentation =
                 PowerPointDocument.Create();
             PowerPointSlide slide = presentation.AddSlide();
-            PowerPointTable table = slide.AddTable(2, 2);
+            PowerPointTable table = slide.AddTable(2,2);
             PowerPointTextRun removedRowRun = table.GetCell(0, 0)
                 .Paragraphs.Single().Runs.Single();
             using (var rowSound = new MemoryStream(CreateWave(),

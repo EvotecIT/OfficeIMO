@@ -293,21 +293,15 @@ namespace OfficeIMO.Examples.PowerPoint {
             AddLabel(slide, "Takeaway", 19.1, 3.55, 5.0, 0.55, Orange, 12, bold: true);
             AddBody(slide, "Sales nearly triple from January to June while profit expands at a steadier pace.", 19.1, 4.45, 9.8, 1.5, 18);
 
-            PowerPointTable table = slide.AddTableCm(
+            PowerPointTable table = slide.AddTable(
                 new[] {
                     new KpiRow { Metric = "Sales", Value = "27", Status = "up 170%" },
                     new KpiRow { Metric = "Profit", Value = "13", Status = "up 225%" },
                     new KpiRow { Metric = "Runway", Value = "Q3", Status = "healthy" }
-                },
-                options => {
+                },                options => {
                     options.HeaderCase = HeaderCase.Title;
                     options.PinFirst("Metric");
-                },
-                includeHeaders: true,
-                leftCm: 18.5,
-                topCm: 7.6,
-                widthCm: 11.4,
-                heightCm: 4.5);
+                },                includeHeaders: true,left: global::OfficeIMO.OfficeLength.Centimeters(18.5),top: global::OfficeIMO.OfficeLength.Centimeters(7.6),width: global::OfficeIMO.OfficeLength.Centimeters(11.4),height: global::OfficeIMO.OfficeLength.Centimeters(4.5));
             table.ApplyStyle(PowerPointTableStylePreset.Default);
             table.SetColumnWidths(global::OfficeIMO.OfficeLength.Points(105),global::OfficeIMO.OfficeLength.Points(75),global::OfficeIMO.OfficeLength.Points(125));
             StyleTable(table);

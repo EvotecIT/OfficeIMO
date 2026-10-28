@@ -14,10 +14,15 @@ namespace OfficeIMO.PowerPoint {
         private const int MaximumObjectTableColumns = 1_024;
         private const long MaximumObjectTableCells = 100_000L;
         /// <summary>
-        ///     Adds a table with the specified rows and columns.
+        ///     Adds a table with the specified rows, columns and physical bounds.
+        ///     Omitted coordinates start at zero; the default size is 5,000,000 by 3,000,000 EMUs.
         /// </summary>
-        public PowerPointTable AddTable(int rows, int columns, long left = 0L, long top = 0L, long width = 5000000L,
-            long height = 3000000L) {
+        public PowerPointTable AddTable(int rows, int columns, OfficeLength? left = null, OfficeLength? top = null, OfficeLength? width = null,
+            OfficeLength? height = null) {
+            long nativeLeft = (left ?? OfficeLength.Emus(0L)).ToEmus();
+            long nativeTop = (top ?? OfficeLength.Emus(0L)).ToEmus();
+            long nativeWidth = (width ?? OfficeLength.Emus(5000000L)).ToEmus();
+            long nativeHeight = (height ?? OfficeLength.Emus(3000000L)).ToEmus();
             if (rows <= 0) {
                 throw new ArgumentOutOfRangeException(nameof(rows));
             }
@@ -25,10 +30,10 @@ namespace OfficeIMO.PowerPoint {
             if (columns <= 0) {
                 throw new ArgumentOutOfRangeException(nameof(columns));
             }
-            if (width <= 0) {
+            if (nativeWidth <= 0) {
                 throw new ArgumentOutOfRangeException(nameof(width));
             }
-            if (height <= 0) {
+            if (nativeHeight <= 0) {
                 throw new ArgumentOutOfRangeException(nameof(height));
             }
 
@@ -81,7 +86,7 @@ namespace OfficeIMO.PowerPoint {
                     new NonVisualGraphicFrameDrawingProperties(),
                     new ApplicationNonVisualDrawingProperties()
                 ),
-                new Transform(new A.Offset { X = left, Y = top }, new A.Extents { Cx = width, Cy = height }),
+                new Transform(new A.Offset { X = nativeLeft, Y = nativeTop }, new A.Extents { Cx = nativeWidth, Cy = nativeHeight }),
                 new A.Graphic(new A.GraphicData(table) {
                     Uri = "http://schemas.openxmlformats.org/drawingml/2006/table"
                 })
@@ -100,8 +105,8 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Adds a table with a style preset applied.
         /// </summary>
-        public PowerPointTable AddTable(int rows, int columns, PowerPointTableStylePreset preset, long left = 0L,
-            long top = 0L, long width = 5000000L, long height = 3000000L) {
+        public PowerPointTable AddTable(int rows, int columns, PowerPointTableStylePreset preset, OfficeLength? left = null,
+            OfficeLength? top = null, OfficeLength? width = null, OfficeLength? height = null) {
             PowerPointTable table = AddTable(rows, columns, left, top, width, height);
             table.ApplyStyle(preset);
             return table;
@@ -110,8 +115,8 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Adds a table with a table style name applied.
         /// </summary>
-        public PowerPointTable AddTable(int rows, int columns, string styleName, long left = 0L, long top = 0L,
-            long width = 5000000L, long height = 3000000L, bool ignoreCase = true, bool? firstRow = null,
+        public PowerPointTable AddTable(int rows, int columns, string styleName, OfficeLength? left = null, OfficeLength? top = null,
+            OfficeLength? width = null, OfficeLength? height = null, bool ignoreCase = true, bool? firstRow = null,
             bool? lastRow = null, bool? firstColumn = null, bool? lastColumn = null, bool? bandedRows = null,
             bool? bandedColumns = null) {
             if (string.IsNullOrWhiteSpace(styleName)) {
@@ -128,50 +133,14 @@ namespace OfficeIMO.PowerPoint {
         ///     Adds a table using a layout box.
         /// </summary>
         public PowerPointTable AddTable(int rows, int columns, PowerPointLayoutBox layout) {
-            return AddTable(rows, columns, layout.Left.ToEmus(), layout.Top.ToEmus(), layout.Width.ToEmus(), layout.Height.ToEmus());
-        }
-
-        /// <summary>
-        ///     Adds a table with the specified rows and columns using centimeter measurements.
-        /// </summary>
-        public PowerPointTable AddTableCm(int rows, int columns, double leftCm, double topCm, double widthCm,
-            double heightCm) {
-            return AddTable(rows, columns,
-                PowerPointUnits.FromCentimeters(leftCm),
-                PowerPointUnits.FromCentimeters(topCm),
-                PowerPointUnits.FromCentimeters(widthCm),
-                PowerPointUnits.FromCentimeters(heightCm));
-        }
-
-        /// <summary>
-        ///     Adds a table with the specified rows and columns using inch measurements.
-        /// </summary>
-        public PowerPointTable AddTableInches(int rows, int columns, double leftInches, double topInches,
-            double widthInches, double heightInches) {
-            return AddTable(rows, columns,
-                PowerPointUnits.FromInches(leftInches),
-                PowerPointUnits.FromInches(topInches),
-                PowerPointUnits.FromInches(widthInches),
-                PowerPointUnits.FromInches(heightInches));
-        }
-
-        /// <summary>
-        ///     Adds a table with the specified rows and columns using point measurements.
-        /// </summary>
-        public PowerPointTable AddTablePoints(int rows, int columns, double leftPoints, double topPoints,
-            double widthPoints, double heightPoints) {
-            return AddTable(rows, columns,
-                PowerPointUnits.FromPoints(leftPoints),
-                PowerPointUnits.FromPoints(topPoints),
-                PowerPointUnits.FromPoints(widthPoints),
-                PowerPointUnits.FromPoints(heightPoints));
+            return AddTable(rows, columns, layout.Left, layout.Top, layout.Width, layout.Height);
         }
 
         /// <summary>
         ///     Adds a table built from a sequence of objects.
         /// </summary>
         public PowerPointTable AddTable<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties | DynamicallyAccessedMemberTypes.PublicFields)] T>(IEnumerable<T> data, Action<ObjectFlattenerOptions>? configure,
-            bool includeHeaders = true, long left = 0L, long top = 0L, long width = 5000000L, long height = 3000000L) {
+            bool includeHeaders = true, OfficeLength? left = null, OfficeLength? top = null, OfficeLength? width = null, OfficeLength? height = null) {
             if (data == null) {
                 throw new ArgumentNullException(nameof(data));
             }
@@ -289,7 +258,7 @@ namespace OfficeIMO.PowerPoint {
             var columns = headers
                 .Select(header => PowerPointTableColumn<object?[]>.Create(header, _ => null))
                 .ToList();
-            ApplyColumnWidths(table, width, columns);
+            ApplyColumnWidths(table, (width ?? OfficeLength.Emus(5000000L)).ToEmus(), columns);
             return table;
         }
 
@@ -312,7 +281,7 @@ namespace OfficeIMO.PowerPoint {
         ///     Adds a table using explicit column bindings.
         /// </summary>
         public PowerPointTable AddTable<T>(IEnumerable<T> data, IEnumerable<PowerPointTableColumn<T>> columns,
-            bool includeHeaders = true, long left = 0L, long top = 0L, long width = 5000000L, long height = 3000000L) {
+            bool includeHeaders = true, OfficeLength? left = null, OfficeLength? top = null, OfficeLength? width = null, OfficeLength? height = null) {
             if (data == null) {
                 throw new ArgumentNullException(nameof(data));
             }
@@ -368,7 +337,7 @@ namespace OfficeIMO.PowerPoint {
                 rowIndex++;
             }
 
-            ApplyColumnWidths(table, width, columnList);
+            ApplyColumnWidths(table, (width ?? OfficeLength.Emus(5000000L)).ToEmus(), columnList);
             return table;
         }
 
@@ -405,8 +374,8 @@ namespace OfficeIMO.PowerPoint {
         ///     Adds a table using explicit column bindings with a style preset applied.
         /// </summary>
         public PowerPointTable AddTable<T>(IEnumerable<T> data, IEnumerable<PowerPointTableColumn<T>> columns,
-            PowerPointTableStylePreset preset, bool includeHeaders = true, long left = 0L, long top = 0L,
-            long width = 5000000L, long height = 3000000L) {
+            PowerPointTableStylePreset preset, bool includeHeaders = true, OfficeLength? left = null, OfficeLength? top = null,
+            OfficeLength? width = null, OfficeLength? height = null) {
             PowerPointTable table = AddTable(data, columns, includeHeaders, left, top, width, height);
             table.ApplyStyle(preset);
             return table;
@@ -416,8 +385,8 @@ namespace OfficeIMO.PowerPoint {
         ///     Adds a table using explicit column bindings with a table style name applied.
         /// </summary>
         public PowerPointTable AddTable<T>(IEnumerable<T> data, IEnumerable<PowerPointTableColumn<T>> columns,
-            string styleName, bool includeHeaders = true, long left = 0L, long top = 0L, long width = 5000000L,
-            long height = 3000000L, bool ignoreCase = true, bool? firstRow = null, bool? lastRow = null,
+            string styleName, bool includeHeaders = true, OfficeLength? left = null, OfficeLength? top = null, OfficeLength? width = null,
+            OfficeLength? height = null, bool ignoreCase = true, bool? firstRow = null, bool? lastRow = null,
             bool? firstColumn = null, bool? lastColumn = null, bool? bandedRows = null, bool? bandedColumns = null) {
             if (string.IsNullOrWhiteSpace(styleName)) {
                 throw new ArgumentException("Style name cannot be null or empty.", nameof(styleName));
@@ -434,67 +403,7 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public PowerPointTable AddTable<T>(IEnumerable<T> data, IEnumerable<PowerPointTableColumn<T>> columns,
             PowerPointLayoutBox layout, bool includeHeaders = true) {
-            return AddTable(data, columns, includeHeaders, layout.Left.ToEmus(), layout.Top.ToEmus(), layout.Width.ToEmus(), layout.Height.ToEmus());
-        }
-
-        /// <summary>
-        ///     Adds a table using explicit column bindings (centimeters).
-        /// </summary>
-        public PowerPointTable AddTableCm<T>(IEnumerable<T> data, IEnumerable<PowerPointTableColumn<T>> columns,
-            bool includeHeaders, double leftCm, double topCm, double widthCm, double heightCm) {
-            return AddTable(data, columns, includeHeaders,
-                PowerPointUnits.FromCentimeters(leftCm),
-                PowerPointUnits.FromCentimeters(topCm),
-                PowerPointUnits.FromCentimeters(widthCm),
-                PowerPointUnits.FromCentimeters(heightCm));
-        }
-
-        /// <summary>
-        ///     Adds a table using explicit column bindings (centimeters).
-        /// </summary>
-        public PowerPointTable AddTableCm<T>(IEnumerable<T> data, IEnumerable<PowerPointTableColumn<T>> columns,
-            double leftCm, double topCm, double widthCm, double heightCm) {
-            return AddTableCm(data, columns, includeHeaders: true, leftCm, topCm, widthCm, heightCm);
-        }
-
-        /// <summary>
-        ///     Adds a table using explicit column bindings (inches).
-        /// </summary>
-        public PowerPointTable AddTableInches<T>(IEnumerable<T> data, IEnumerable<PowerPointTableColumn<T>> columns,
-            bool includeHeaders, double leftInches, double topInches, double widthInches, double heightInches) {
-            return AddTable(data, columns, includeHeaders,
-                PowerPointUnits.FromInches(leftInches),
-                PowerPointUnits.FromInches(topInches),
-                PowerPointUnits.FromInches(widthInches),
-                PowerPointUnits.FromInches(heightInches));
-        }
-
-        /// <summary>
-        ///     Adds a table using explicit column bindings (inches).
-        /// </summary>
-        public PowerPointTable AddTableInches<T>(IEnumerable<T> data, IEnumerable<PowerPointTableColumn<T>> columns,
-            double leftInches, double topInches, double widthInches, double heightInches) {
-            return AddTableInches(data, columns, includeHeaders: true, leftInches, topInches, widthInches, heightInches);
-        }
-
-        /// <summary>
-        ///     Adds a table using explicit column bindings (points).
-        /// </summary>
-        public PowerPointTable AddTablePoints<T>(IEnumerable<T> data, IEnumerable<PowerPointTableColumn<T>> columns,
-            bool includeHeaders, double leftPoints, double topPoints, double widthPoints, double heightPoints) {
-            return AddTable(data, columns, includeHeaders,
-                PowerPointUnits.FromPoints(leftPoints),
-                PowerPointUnits.FromPoints(topPoints),
-                PowerPointUnits.FromPoints(widthPoints),
-                PowerPointUnits.FromPoints(heightPoints));
-        }
-
-        /// <summary>
-        ///     Adds a table using explicit column bindings (points).
-        /// </summary>
-        public PowerPointTable AddTablePoints<T>(IEnumerable<T> data, IEnumerable<PowerPointTableColumn<T>> columns,
-            double leftPoints, double topPoints, double widthPoints, double heightPoints) {
-            return AddTablePoints(data, columns, includeHeaders: true, leftPoints, topPoints, widthPoints, heightPoints);
+            return AddTable(data, columns, includeHeaders, layout.Left, layout.Top, layout.Width, layout.Height);
         }
 
         private static void ApplyColumnWidths<T>(PowerPointTable table, long tableWidthEmus,
@@ -537,68 +446,6 @@ namespace OfficeIMO.PowerPoint {
                 }
                 table.SetColumnWidth(adjustIndex,global::OfficeIMO.OfficeLength.Emus(updated));
             }
-        }
-
-        /// <summary>
-        ///     Adds a table built from a sequence of objects using centimeter measurements.
-        /// </summary>
-        public PowerPointTable AddTableCm<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties | DynamicallyAccessedMemberTypes.PublicFields)] T>(IEnumerable<T> data, Action<ObjectFlattenerOptions>? configure,
-            bool includeHeaders, double leftCm, double topCm, double widthCm, double heightCm) {
-            return AddTable(data, configure, includeHeaders,
-                PowerPointUnits.FromCentimeters(leftCm),
-                PowerPointUnits.FromCentimeters(topCm),
-                PowerPointUnits.FromCentimeters(widthCm),
-                PowerPointUnits.FromCentimeters(heightCm));
-        }
-
-        /// <summary>
-        ///     Adds a table built from a sequence of objects using centimeter measurements.
-        /// </summary>
-        public PowerPointTable AddTableCm<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties | DynamicallyAccessedMemberTypes.PublicFields)] T>(IEnumerable<T> data, double leftCm, double topCm, double widthCm,
-            double heightCm) {
-            return AddTableCm(data, configure: null, includeHeaders: true, leftCm, topCm, widthCm, heightCm);
-        }
-
-        /// <summary>
-        ///     Adds a table built from a sequence of objects using inch measurements.
-        /// </summary>
-        public PowerPointTable AddTableInches<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties | DynamicallyAccessedMemberTypes.PublicFields)] T>(IEnumerable<T> data, Action<ObjectFlattenerOptions>? configure,
-            bool includeHeaders, double leftInches, double topInches, double widthInches, double heightInches) {
-            return AddTable(data, configure, includeHeaders,
-                PowerPointUnits.FromInches(leftInches),
-                PowerPointUnits.FromInches(topInches),
-                PowerPointUnits.FromInches(widthInches),
-                PowerPointUnits.FromInches(heightInches));
-        }
-
-        /// <summary>
-        ///     Adds a table built from a sequence of objects using inch measurements.
-        /// </summary>
-        public PowerPointTable AddTableInches<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties | DynamicallyAccessedMemberTypes.PublicFields)] T>(IEnumerable<T> data, double leftInches, double topInches,
-            double widthInches, double heightInches) {
-            return AddTableInches(data, configure: null, includeHeaders: true, leftInches, topInches, widthInches,
-                heightInches);
-        }
-
-        /// <summary>
-        ///     Adds a table built from a sequence of objects using point measurements.
-        /// </summary>
-        public PowerPointTable AddTablePoints<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties | DynamicallyAccessedMemberTypes.PublicFields)] T>(IEnumerable<T> data, Action<ObjectFlattenerOptions>? configure,
-            bool includeHeaders, double leftPoints, double topPoints, double widthPoints, double heightPoints) {
-            return AddTable(data, configure, includeHeaders,
-                PowerPointUnits.FromPoints(leftPoints),
-                PowerPointUnits.FromPoints(topPoints),
-                PowerPointUnits.FromPoints(widthPoints),
-                PowerPointUnits.FromPoints(heightPoints));
-        }
-
-        /// <summary>
-        ///     Adds a table built from a sequence of objects using point measurements.
-        /// </summary>
-        public PowerPointTable AddTablePoints<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties | DynamicallyAccessedMemberTypes.PublicFields)] T>(IEnumerable<T> data, double leftPoints, double topPoints,
-            double widthPoints, double heightPoints) {
-            return AddTablePoints(data, configure: null, includeHeaders: true, leftPoints, topPoints, widthPoints,
-                heightPoints);
         }
 
         private static OpenXmlUnknownElement CreateA16ExtensionElement(string localName, uint value) {

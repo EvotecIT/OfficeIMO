@@ -23,7 +23,7 @@ namespace OfficeIMO.Tests {
                 PowerPointSlide slide = presentation.AddSlide();
                 PowerPointTextBox text = slide.AddTextBox("Test");
                 slide.AddImage(imagePath);
-                slide.AddTable(2, 2);
+                slide.AddTable(2,2);
                 slide.AddChart();
                 slide.Notes.Text = "Notes";
 

@@ -30,7 +30,7 @@ public partial class PowerPointImageExportTests {
         properties.InsertAt(new A.SolidFill(new A.SchemeColor { Val = A.SchemeColorValues.Accent2 }), 0);
         title.Paragraphs[0].AddRun(" bold", run => { run.Bold = true; run.FontSize = 18; });
 
-        PowerPointTable table = slide.AddTablePoints(2, 2, 18, 64, 220, 64);
+        PowerPointTable table = slide.AddTable(2,2,global::OfficeIMO.OfficeLength.Points(18),global::OfficeIMO.OfficeLength.Points(64),global::OfficeIMO.OfficeLength.Points(220),global::OfficeIMO.OfficeLength.Points(64));
         table.SetColumnWidths(global::OfficeIMO.OfficeLength.Points(110),global::OfficeIMO.OfficeLength.Points(110));
         table.SetRowHeights(global::OfficeIMO.OfficeLength.Points(32),global::OfficeIMO.OfficeLength.Points(32));
         table.GetCell(0, 0).Text = "Region";

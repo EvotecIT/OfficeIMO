@@ -19,7 +19,7 @@ namespace OfficeIMO.Tests {
                     slide.AddTitle("Quarterly Review");
                     slide.AddTextBox("Agenda");
 
-                    PowerPointTable table = slide.AddTable(2, 2);
+                    PowerPointTable table = slide.AddTable(2,2);
                     table.GetRow(0).GetCell(0).Text = "Region";
                     table.GetRow(0).GetCell(1).Text = "Revenue";
                     table.GetRow(1).GetCell(0).Text = "North";
@@ -61,7 +61,7 @@ namespace OfficeIMO.Tests {
                     PowerPointSlide slide = presentation.AddSlide();
                     slide.AddTextBox(new string('A', 400));
 
-                    PowerPointTable table = slide.AddTable(2, 1);
+                    PowerPointTable table = slide.AddTable(2,1);
                     table.GetRow(0).GetCell(0).Text = "Header";
                     table.GetRow(1).GetCell(0).Text = "Value";
 
@@ -141,7 +141,7 @@ namespace OfficeIMO.Tests {
             wideNumber.AddBullets(new[] { "Arrow child" }, level: 1,
                 bulletChar: '\u2192');
 
-            PowerPointTable table = slide.AddTable(2, 2);
+            PowerPointTable table = slide.AddTable(2,2);
             table.GetCell(0, 0).Text = "Region";
             table.GetCell(0, 1).Text = "Revenue";
             table.GetCell(1, 0).Text = "North";
