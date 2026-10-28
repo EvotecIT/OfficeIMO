@@ -18,9 +18,6 @@ namespace OfficeIMO.Html.Pdf;
 /// </code>
 /// </example>
 public sealed class HtmlToPdfOptions : HtmlRenderOptions {
-    /// <summary>Rejects fidelity loss before returning a PDF or writing its destination.</summary>
-    public bool FailOnLoss { get; set; }
-
     private int _maxOutlinedTextCharactersPerRun = 16_384;
     private int _maxOutlinedTextPathCommands = 1_000_000;
     private double? _printLayoutWidthCssPixels;

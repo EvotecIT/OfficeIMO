@@ -6,6 +6,15 @@
       "phase": "A",
       "applied": "applied",
       "note": "InternalsVisibleTo grants the existing browser engine and its tests access to detailed conversion and serialization evidence. This preserves browser diagnostics while keeping conversion kernels outside the public API."
+    },
+    {
+      "old": "HtmlToPdfOptions.FailOnLoss declared separately from the shared image/render options base",
+      "new": "Inherited OfficeImageExportOptions.FailOnLoss",
+      "action": "merge",
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "file": "OfficeIMO.Html/Pdf/HtmlToPdfOptions.cs",
+      "reason": "Use the single loss control introduced in Core. The duplicate declaration hid the base property and failed the full staged module build; defaults, serialization shape and PDF loss rejection stay unchanged."
     }
   ]
 }
