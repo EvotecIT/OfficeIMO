@@ -1649,11 +1649,11 @@
       "category": "authoring",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "ExcelReportBuilder.BulletedListWithFill uses OfficeColor and retains report defaults, layout and native theme slots."
     },
     {
       "old": "OfficeIMO.Excel.Fluent.SheetComposer.KpiRow(IEnumerable<ValueTuple<string, object>> kpis, int perRow = 3, string labelFillHex = null)",
@@ -1665,11 +1665,11 @@
       "category": "authoring",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "ExcelReportBuilder.KpiRow uses OfficeColor and retains report defaults, layout and native theme slots."
     },
     {
       "old": "OfficeIMO.Excel.Fluent.SheetComposer.SectionLegend(string title, IReadOnlyList<string> headers, IEnumerable<IReadOnlyList<string>> rows, IDictionary<string, string> firstColumnFillByValue = null, string headerFillHex = null)",
@@ -1681,11 +1681,11 @@
       "category": "authoring",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "ExcelReportBuilder.SectionLegend uses OfficeColor and retains report defaults, layout and native theme slots."
     },
     {
       "old": "OfficeIMO.Excel.Fluent.SheetComposer.ConditionalColorScale(string rangeA1, string startHex, string endHex)",
@@ -1697,11 +1697,11 @@
       "category": "authoring",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "ExcelReportBuilder.ConditionalColorScale uses OfficeColor and retains report defaults, layout and native theme slots."
     },
     {
       "old": "OfficeIMO.Excel.Fluent.SheetComposer.ConditionalDataBar(string rangeA1, string colorHex)",
@@ -1713,11 +1713,11 @@
       "category": "authoring",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "ExcelReportBuilder.ConditionalDataBar uses OfficeColor and retains report defaults, layout and native theme slots."
     },
     {
       "old": "OfficeIMO.Excel.Fluent.SheetComposer.Margins(double left, double right, double top, double bottom, double header = 0.3, double footer = 0.3)",

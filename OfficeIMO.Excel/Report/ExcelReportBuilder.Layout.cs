@@ -110,24 +110,31 @@ namespace OfficeIMO.Excel {
         }
 
         /// <summary>Bulleted list with background fill per item row.</summary>
-        public ExcelReportBuilder BulletedListWithFill(IEnumerable<string> items, string fillHex) {
+        /// <param name="items">Items to write, one per row.</param>
+        /// <param name="fill">Background color; native theme roles keep their theme slot.</param>
+        public ExcelReportBuilder BulletedListWithFill(IEnumerable<string> items, OfficeColor fill) {
             if (items == null) return this;
             int start = _row;
             BulletedList(items);
             int end = _row - 1 - _theme.DefaultSpacingRows;
             if (end >= start)
                 for (int r = start; r <= end; r++)
-                    Sheet.CellBackground(r, 1, fillHex);
+                    Sheet.CellBackground(r, 1, fill.ThemeSlot != null ? fill : fill.Resolve(_theme.Theme));
             return this;
         }
 
         /// <summary>Renders a compact KPI row of label/value pairs.</summary>
-        public ExcelReportBuilder KpiRow(IEnumerable<(string Label, object? Value)> kpis, int perRow = 3, string? labelFillHex = null) {
+        /// <param name="kpis">Label/value pairs to render.</param>
+        /// <param name="perRow">Number of KPIs per row.</param>
+        /// <param name="labelFill">Optional label fill; null uses the report key fill.</param>
+        public ExcelReportBuilder KpiRow(IEnumerable<(string Label, object? Value)> kpis, int perRow = 3, OfficeColor? labelFill = null) {
             if (kpis == null) return this;
             var list = kpis as IReadOnlyList<(string Label, object? Value)> ?? kpis.ToList();
             if (list.Count == 0) return this;
 
-            int idx = 0; string fill = labelFillHex ?? _theme.KeyFillHex;
+            int idx = 0;
+            OfficeColor fill = labelFill ?? _theme.KeyFill ?? _theme.Theme.Palette.Background;
+            if (fill.ThemeSlot == null) fill = fill.Resolve(_theme.Theme);
             while (idx < list.Count) {
                 int col = 1; int rendered = 0;
                 for (; rendered < perRow && idx + rendered < list.Count; rendered++) {

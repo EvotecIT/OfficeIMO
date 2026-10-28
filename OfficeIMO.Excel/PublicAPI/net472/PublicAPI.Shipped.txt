@@ -2795,7 +2795,7 @@ OfficeIMO.Excel.ExcelReportBuilder.AddTable<T>(System.Collections.Generic.IEnume
 OfficeIMO.Excel.ExcelReportBuilder.AdvanceRows(int rows) -> OfficeIMO.Excel.ExcelReportBuilder!
 OfficeIMO.Excel.ExcelReportBuilder.ApplyColumnSizing(string? a1Range, System.Action<OfficeIMO.Excel.ExcelColumnSizingOptions!>! configure) -> OfficeIMO.Excel.ExcelReportBuilder!
 OfficeIMO.Excel.ExcelReportBuilder.BulletedList(System.Collections.Generic.IEnumerable<string!>! items) -> OfficeIMO.Excel.ExcelReportBuilder!
-OfficeIMO.Excel.ExcelReportBuilder.BulletedListWithFill(System.Collections.Generic.IEnumerable<string!>! items, string! fillHex) -> OfficeIMO.Excel.ExcelReportBuilder!
+OfficeIMO.Excel.ExcelReportBuilder.BulletedListWithFill(System.Collections.Generic.IEnumerable<string!>! items, OfficeIMO.OfficeColor fill) -> OfficeIMO.Excel.ExcelReportBuilder!
 OfficeIMO.Excel.ExcelReportBuilder.Callout(OfficeIMO.OfficeCalloutKind kind, string! title, string! body, int widthColumns = 8) -> OfficeIMO.Excel.ExcelReportBuilder!
 OfficeIMO.Excel.ExcelReportBuilder.ColumnComposer
 OfficeIMO.Excel.ExcelReportBuilder.ColumnComposer.AddTable<T>(System.Collections.Generic.IEnumerable<T>! items, string? title = null, System.Action<OfficeIMO.Data.ObjectFlattenerOptions!>? configure = null, OfficeIMO.Excel.ExcelTableStyle style = OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium9, bool autoFilter = true, System.Action<OfficeIMO.Excel.ExcelTableVisualOptions!>? visuals = null) -> OfficeIMO.Excel.ExcelTable!
@@ -2811,8 +2811,8 @@ OfficeIMO.Excel.ExcelReportBuilder.ColumnComposer.Spacer(int rows = 1) -> Office
 OfficeIMO.Excel.ExcelReportBuilder.Columns(int count, System.Action<OfficeIMO.Excel.ExcelReportBuilder.ColumnComposer![]!>! configure, int columnWidth = 3, int gutter = 1, OfficeIMO.Excel.ExcelReportOverflowMode overflow = OfficeIMO.Excel.ExcelReportOverflowMode.Throw) -> OfficeIMO.Excel.ExcelReportBuilder!
 OfficeIMO.Excel.ExcelReportBuilder.ColumnsAdaptive(System.Collections.Generic.IReadOnlyList<System.Action<OfficeIMO.Excel.ExcelReportBuilder.ColumnComposer!>!>! builders, int gutter = 1) -> OfficeIMO.Excel.ExcelReportBuilder!
 OfficeIMO.Excel.ExcelReportBuilder.ColumnsAdaptiveRows(System.Collections.Generic.IReadOnlyList<System.Collections.Generic.IReadOnlyList<System.Action<OfficeIMO.Excel.ExcelReportBuilder.ColumnComposer!>!>!>! rows, int gutter = 1) -> OfficeIMO.Excel.ExcelReportBuilder!
-OfficeIMO.Excel.ExcelReportBuilder.ConditionalColorScale(string! rangeA1, string! startHex, string! endHex) -> OfficeIMO.Excel.ExcelReportBuilder!
-OfficeIMO.Excel.ExcelReportBuilder.ConditionalDataBar(string! rangeA1, string! colorHex) -> OfficeIMO.Excel.ExcelReportBuilder!
+OfficeIMO.Excel.ExcelReportBuilder.ConditionalColorScale(string! rangeA1, OfficeIMO.OfficeColor startColor, OfficeIMO.OfficeColor endColor) -> OfficeIMO.Excel.ExcelReportBuilder!
+OfficeIMO.Excel.ExcelReportBuilder.ConditionalDataBar(string! rangeA1, OfficeIMO.OfficeColor color) -> OfficeIMO.Excel.ExcelReportBuilder!
 OfficeIMO.Excel.ExcelReportBuilder.ConditionalIconSet(string! rangeA1, OfficeIMO.Excel.ExcelIconSet set, bool showValue = true, bool reverse = false, double[]? percentThresholds = null, double[]? numberThresholds = null) -> OfficeIMO.Excel.ExcelReportBuilder!
 OfficeIMO.Excel.ExcelReportBuilder.CurrentRow.get -> int
 OfficeIMO.Excel.ExcelReportBuilder.Finish(bool autoFitColumns = true, bool autoFitRows = false) -> OfficeIMO.Excel.ExcelReportBuilder!
@@ -2824,7 +2824,7 @@ OfficeIMO.Excel.ExcelReportBuilder.HeaderLogoFromUrlAsync(string! url, OfficeIMO
 OfficeIMO.Excel.ExcelReportBuilder.ImageAt(int row, int column, byte[]! bytes, string! contentType = "image/png", int widthPixels = 96, int heightPixels = 32, int offsetXPixels = 0, int offsetYPixels = 0) -> OfficeIMO.Excel.ExcelReportBuilder!
 OfficeIMO.Excel.ExcelReportBuilder.ImageFromUrlAtAsync(int row, int column, string! url, OfficeIMO.Drawing.OfficeRemoteImageLoadOptions! remoteImageOptions, int widthPixels = 96, int heightPixels = 32, int offsetXPixels = 0, int offsetYPixels = 0, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<OfficeIMO.Excel.ExcelReportBuilder!>!
 OfficeIMO.Excel.ExcelReportBuilder.ImageFromUrlAtAsync(int row, int column, string! url, int widthPixels = 96, int heightPixels = 32, int offsetXPixels = 0, int offsetYPixels = 0, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<OfficeIMO.Excel.ExcelReportBuilder!>!
-OfficeIMO.Excel.ExcelReportBuilder.KpiRow(System.Collections.Generic.IEnumerable<(string! Label, object? Value)>! kpis, int perRow = 3, string? labelFillHex = null) -> OfficeIMO.Excel.ExcelReportBuilder!
+OfficeIMO.Excel.ExcelReportBuilder.KpiRow(System.Collections.Generic.IEnumerable<(string! Label, object? Value)>! kpis, int perRow = 3, OfficeIMO.OfficeColor? labelFill = null) -> OfficeIMO.Excel.ExcelReportBuilder!
 OfficeIMO.Excel.ExcelReportBuilder.Margins(OfficeIMO.Excel.ExcelMarginPreset preset) -> OfficeIMO.Excel.ExcelReportBuilder!
 OfficeIMO.Excel.ExcelReportBuilder.Margins(double left, double right, double top, double bottom, double header = 0.3, double footer = 0.3) -> OfficeIMO.Excel.ExcelReportBuilder!
 OfficeIMO.Excel.ExcelReportBuilder.Orientation(OfficeIMO.OfficePageOrientation orientation) -> OfficeIMO.Excel.ExcelReportBuilder!
@@ -2836,7 +2836,7 @@ OfficeIMO.Excel.ExcelReportBuilder.RepeatHeaderColumns(int firstCol, int lastCol
 OfficeIMO.Excel.ExcelReportBuilder.RepeatHeaderRows(int firstRow, int lastRow) -> OfficeIMO.Excel.ExcelReportBuilder!
 OfficeIMO.Excel.ExcelReportBuilder.Score(string! label, double value, double min = 0, double max = 10) -> OfficeIMO.Excel.ExcelReportBuilder!
 OfficeIMO.Excel.ExcelReportBuilder.Section(string! text) -> OfficeIMO.Excel.ExcelReportBuilder!
-OfficeIMO.Excel.ExcelReportBuilder.SectionLegend(string? title, System.Collections.Generic.IReadOnlyList<string!>! headers, System.Collections.Generic.IEnumerable<System.Collections.Generic.IReadOnlyList<string!>!>! rows, System.Collections.Generic.IDictionary<string!, string!>? firstColumnFillByValue = null, string? headerFillHex = null) -> OfficeIMO.Excel.ExcelReportBuilder!
+OfficeIMO.Excel.ExcelReportBuilder.SectionLegend(string? title, System.Collections.Generic.IReadOnlyList<string!>! headers, System.Collections.Generic.IEnumerable<System.Collections.Generic.IReadOnlyList<string!>!>! rows, System.Collections.Generic.IDictionary<string!, OfficeIMO.OfficeColor>? firstColumnFillByValue = null, OfficeIMO.OfficeColor? headerFill = null) -> OfficeIMO.Excel.ExcelReportBuilder!
 OfficeIMO.Excel.ExcelReportBuilder.SectionWithAnchor(string! text, string? anchorName = null, bool backToTopLink = true, string! backToTopText = "↑ Top") -> OfficeIMO.Excel.ExcelReportBuilder!
 OfficeIMO.Excel.ExcelReportBuilder.Sheet.get -> OfficeIMO.Excel.ExcelSheet!
 OfficeIMO.Excel.ExcelReportBuilder.Spacer(int rows = -1) -> OfficeIMO.Excel.ExcelReportBuilder!

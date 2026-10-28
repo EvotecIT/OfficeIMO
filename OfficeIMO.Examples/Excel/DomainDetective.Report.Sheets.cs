@@ -104,7 +104,7 @@ namespace OfficeIMO.Examples.Excel
             // Pretty legend (Status | Meaning | Recommended Action) using reusable SectionLegend
             {
                 var pal = ReportStatusColors.Create(OfficeTheme.Default);
-                var map = pal.FillHexMap; // case-insensitive
+                var map = pal.FillHexMap.ToDictionary(pair => pair.Key, pair => OfficeColor.Parse(pair.Value), StringComparer.OrdinalIgnoreCase);
                 overview.SectionLegend(title: "Legend", headers: new[] { "Status", "Meaning", "Recommended Action" }, rows: new[] { new[] { "OK", "All checks passed or acceptable", "No action required" }, new[] { "Warning", "Requires attention; not blocking", "Review recommendations" }, new[] { "Error", "Blocking or invalid configuration", "Fix immediately" }, }, firstColumnFillByValue: map);
             }
 
@@ -168,21 +168,21 @@ namespace OfficeIMO.Examples.Excel
             // Legend per domain (reusable SectionLegend)
             {
                 var pal = ReportStatusColors.Create(OfficeTheme.Default);
-                s.SectionLegend(title: "Legend", headers: new[] { "Status", "Meaning", "Recommended Action" }, rows: new[] { new[] { "OK", "All checks passed or acceptable", "No action required" }, new[] { "Warning", "Requires attention; not blocking", "Review recommendations" }, new[] { "Error", "Blocking or invalid configuration", "Fix immediately" }, }, firstColumnFillByValue: pal.FillHexMap);
+                s.SectionLegend(title: "Legend", headers: new[] { "Status", "Meaning", "Recommended Action" }, rows: new[] { new[] { "OK", "All checks passed or acceptable", "No action required" }, new[] { "Warning", "Requires attention; not blocking", "Review recommendations" }, new[] { "Error", "Blocking or invalid configuration", "Fix immediately" }, }, firstColumnFillByValue: pal.FillHexMap.ToDictionary(pair => pair.Key, pair => OfficeColor.Parse(pair.Value), StringComparer.OrdinalIgnoreCase));
             }
 
             // Recommendations highlighted (warning tone) using BulletedListWithFill
             if (d.Recommendations.Length > 0)
             {
                 s.SectionWithAnchor("Recommendations");
-                s.BulletedListWithFill(d.Recommendations, fillHex: "#FFF4CE");
+                s.BulletedListWithFill(d.Recommendations, fill: OfficeColor.Parse("#FFF4CE"));
             }
 
             // Positives highlighted (success tone) using BulletedListWithFill
             if (d.Positives.Length > 0)
             {
                 s.SectionWithAnchor("Positives");
-                s.BulletedListWithFill(d.Positives, fillHex: "#E7F4E4");
+                s.BulletedListWithFill(d.Positives, fill: OfficeColor.Parse("#E7F4E4"));
             }
 
             if (d.References.Length > 0)

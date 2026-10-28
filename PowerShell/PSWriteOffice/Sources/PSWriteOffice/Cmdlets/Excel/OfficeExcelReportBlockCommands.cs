@@ -8,6 +8,7 @@ using OfficeIMO.Excel;
 using PSWriteOffice.Services;
 using PSWriteOffice.Services.Excel;
 using PSWriteOffice.Services.Table;
+using PSWriteOffice.Services.Text;
 
 namespace PSWriteOffice.Cmdlets.Excel;
 
@@ -200,7 +201,7 @@ public sealed class AddOfficeExcelReportKpiRowCommand : PSWriteOffice.Cmdlets.Of
     /// <inheritdoc />
     protected override void ProcessRecord() {
         var context = ExcelDslContext.Require(this);
-        context.RequireComposer().KpiRow(ReportBlockInput.ToPairs(InputObject), PerRow, LabelFillColor);
+        context.RequireComposer().KpiRow(ReportBlockInput.ToPairs(InputObject), PerRow, OfficeColorUtilities.ToExcelColor(LabelFillColor, nameof(LabelFillColor)));
         WritePassThru(context.RequireSheet());
     }
 }
@@ -258,8 +259,8 @@ public sealed class AddOfficeExcelReportLegendCommand : PSWriteOffice.Cmdlets.Of
             Title,
             Header,
             InputObject.Select(row => ReportBlockInput.ToRow(row, Header)),
-            ReportBlockInput.ToStringMap(FirstColumnFillByValue, CaseSensitive.IsPresent),
-            HeaderFillColor);
+            ReportBlockInput.ToColorMap(FirstColumnFillByValue, CaseSensitive.IsPresent),
+            OfficeColorUtilities.ToExcelColor(HeaderFillColor, nameof(HeaderFillColor)));
         WritePassThru(context.RequireSheet());
     }
 }
@@ -479,18 +480,19 @@ internal static class ReportBlockInput {
         return headers.Select(header => Convert.ToString(GetPropertyValue(psObject, header), CultureInfo.InvariantCulture) ?? string.Empty).ToArray();
     }
 
-    public static Dictionary<string, string>? ToStringMap(Hashtable? table, bool caseSensitive = false) {
+    public static Dictionary<string, OfficeIMO.OfficeColor>? ToColorMap(Hashtable? table, bool caseSensitive = false) {
         if (table == null || table.Count == 0) {
             return null;
         }
 
         var comparer = caseSensitive ? StringComparer.Ordinal : StringComparer.OrdinalIgnoreCase;
-        var result = new Dictionary<string, string>(comparer);
+        var result = new Dictionary<string, OfficeIMO.OfficeColor>(comparer);
         foreach (DictionaryEntry entry in table) {
             var key = Convert.ToString(entry.Key, CultureInfo.InvariantCulture);
             var value = Convert.ToString(entry.Value, CultureInfo.InvariantCulture);
             if (!string.IsNullOrEmpty(key) && !string.IsNullOrEmpty(value)) {
-                result[key] = value;
+                var color = OfficeColorUtilities.ToExcelColor(value, "FirstColumnFillByValue");
+                if (color.HasValue) result[key] = color.Value;
             }
         }
 

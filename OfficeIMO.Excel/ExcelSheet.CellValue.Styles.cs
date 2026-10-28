@@ -134,10 +134,13 @@ namespace OfficeIMO.Excel {
         /// </summary>
         /// <param name="row">The 1-based row index of the cell to fill.</param>
         /// <param name="column">The 1-based column index of the cell to fill.</param>
-        /// <param name="color">The <see cref="OfficeIMO.OfficeColor"/> to convert to a hex value.</param>
+        /// <param name="color">Background color. Native theme roles remain linked to the workbook theme.</param>
         public void CellBackground(int row, int column, OfficeIMO.OfficeColor color) {
-            var argb = OfficeIMO.Excel.ExcelColor.ToArgbHex(color);
-            CellBackground(row, column, argb);
+            var spreadsheetColor = ExcelColor.ToSpreadsheetColor(color);
+            WriteLockConditional(() => {
+                var cell = GetCell(row, column);
+                ApplyBackground(cell, spreadsheetColor);
+            });
         }
 
         /// <summary>
@@ -845,7 +848,11 @@ namespace OfficeIMO.Excel {
             return hex.ToUpperInvariant();
         }
 
-        private void ApplyBackground(Cell cell, string hexColor) {
+        private void ApplyBackground(Cell cell, string hexColor) =>
+            ApplyBackground(cell, new Color { Rgb = NormalizeHexColor(hexColor) });
+
+        /// <summary>Applies a solid fill through the shared style cache without flattening theme colors.</summary>
+        private void ApplyBackground(Cell cell, Color color) {
             var workbookPart = _excelDocument.WorkbookPartRoot ?? throw new InvalidOperationException("WorkbookPart is null");
             var stylesPart = workbookPart.WorkbookStylesPart;
             if (stylesPart == null)
@@ -854,13 +861,12 @@ namespace OfficeIMO.Excel {
             var stylesheet = stylesPart.Stylesheet ??= new Stylesheet();
             EnsureDefaultStylePrimitives(stylesheet);
 
-            // Create a fill with solid color
-            string argb = NormalizeHexColor(hexColor);
-            ApplyDerivedCellFormat(stylesheet, cell, "fill " + argb, () => {
+            // Create a fill with a literal color or a native theme slot.
+            ApplyDerivedCellFormat(stylesheet, cell, "fill " + (color.Rgb?.Value ?? color.OuterXml), () => {
                 var fill = new Fill(new PatternFill {
                     PatternType = PatternValues.Solid,
-                    ForegroundColor = new ForegroundColor { Rgb = argb },
-                    BackgroundColor = new BackgroundColor { Rgb = argb }
+                    ForegroundColor = new ForegroundColor { Rgb = color.Rgb, Theme = color.Theme },
+                    BackgroundColor = new BackgroundColor { Rgb = color.Rgb, Theme = color.Theme }
                 });
                 var fillId = GetOrCreateFill(stylesheet, fill);
                 ApplyCellFormatOverride(stylesheet, cell, format => {

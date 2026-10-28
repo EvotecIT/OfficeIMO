@@ -155,8 +155,23 @@ var table = sheet.AddTable(new[] { new { Name = "Alpha", Value = 42 } },
 var report = document.AddWorksheet("Summary").Report();
 report.Section("Measurements");
 report.AddTable(new[] { new { Name = "Alpha", Value = 42 } });
+report.BulletedListWithFill(new[] { "Review measurements" }, OfficeColor.Parse("#FFF4CE"));
+report.KpiRow(new (string Label, object? Value)[] { ("Measurements", 1) },
+    labelFill: OfficeColor.Accent1);
+report.SectionLegend("Status", new[] { "Status", "Meaning" },
+    new[] { new[] { "Ready", "Reviewed" } },
+    new System.Collections.Generic.Dictionary<string, OfficeColor> {
+        ["Ready"] = OfficeColor.Success
+    }, headerFill: OfficeColor.Accent2);
+report.ConditionalColorScale("B2:B10", OfficeColor.Parse("#FFF0F0"), OfficeColor.Success);
+report.ConditionalDataBar("C2:C10", OfficeColor.Accent1);
 document.Save();
 ```
+
+Report fills and conditional colors use `OfficeColor`. Omitting `labelFill` or
+`headerFill` uses the report's key fill; legend dictionaries keep their own key
+comparer. Native theme roles such as `Accent1` stay linked to the workbook theme.
+`Success`, `Warning` and `Danger` use the report theme's literal palette colors.
 
 ## What it does
 

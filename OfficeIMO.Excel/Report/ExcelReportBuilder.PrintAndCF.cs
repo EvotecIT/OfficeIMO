@@ -14,14 +14,21 @@ namespace OfficeIMO.Excel {
         }
 
         /// <summary>Adds a conditional color scale to the given range.</summary>
-        public ExcelReportBuilder ConditionalColorScale(string rangeA1, string startHex, string endHex) {
-            Sheet.AddConditionalColorScale(rangeA1, startHex, endHex);
+        /// <param name="rangeA1">A1-style range to format.</param>
+        /// <param name="startColor">Starting color; native theme roles keep their theme slot.</param>
+        /// <param name="endColor">Ending color; native theme roles keep their theme slot.</param>
+        public ExcelReportBuilder ConditionalColorScale(string rangeA1, OfficeColor startColor, OfficeColor endColor) {
+            Sheet.AddConditionalColorScale(rangeA1,
+                startColor.ThemeSlot != null ? startColor : startColor.Resolve(_theme.Theme),
+                endColor.ThemeSlot != null ? endColor : endColor.Resolve(_theme.Theme));
             return this;
         }
 
         /// <summary>Adds a conditional data bar to the given range.</summary>
-        public ExcelReportBuilder ConditionalDataBar(string rangeA1, string colorHex) {
-            Sheet.AddConditionalDataBar(rangeA1, colorHex);
+        /// <param name="rangeA1">A1-style range to format.</param>
+        /// <param name="color">Bar color; native theme roles keep their theme slot.</param>
+        public ExcelReportBuilder ConditionalDataBar(string rangeA1, OfficeColor color) {
+            Sheet.AddConditionalDataBar(rangeA1, color.ThemeSlot != null ? color : color.Resolve(_theme.Theme));
             return this;
         }
 

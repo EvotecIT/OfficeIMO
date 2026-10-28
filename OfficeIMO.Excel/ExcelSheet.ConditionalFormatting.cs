@@ -105,10 +105,6 @@ namespace OfficeIMO.Excel {
             return createdRule!;
         }
 
-        private static string ConvertColor(OfficeColor color) {
-            return "FF" + color.ToRgbHex();
-        }
-
         /// <summary>
         /// Adds a two-color scale conditional format to a range.
         /// </summary>
@@ -117,7 +113,7 @@ namespace OfficeIMO.Excel {
         /// <param name="endColor">Ending color of the scale.</param>
         /// <returns>The attached editable rule model. Apply changes with UpdateConditionalFormattingRule.</returns>
         public ExcelConditionalFormattingInfo AddConditionalColorScale(string range, OfficeColor startColor, OfficeColor endColor) {
-            return AddConditionalColorScale(range, ConvertColor(startColor), ConvertColor(endColor));
+            return AddConditionalColorScaleCore(range, ExcelColor.ToSpreadsheetColor(startColor), ExcelColor.ToSpreadsheetColor(endColor));
         }
 
         /// <summary>
@@ -131,9 +127,17 @@ namespace OfficeIMO.Excel {
             if (string.IsNullOrEmpty(range)) {
                 throw new ArgumentNullException(nameof(range));
             }
+            return AddConditionalColorScaleCore(range,
+                new DocumentFormat.OpenXml.Spreadsheet.Color { Rgb = NormalizeHexColor(startColor) },
+                new DocumentFormat.OpenXml.Spreadsheet.Color { Rgb = NormalizeHexColor(endColor) });
+        }
 
-            startColor = NormalizeHexColor(startColor);
-            endColor = NormalizeHexColor(endColor);
+        /// <summary>Adds the native color-scale rule through the existing worksheet mutation path.</summary>
+        private ExcelConditionalFormattingInfo AddConditionalColorScaleCore(string range,
+            DocumentFormat.OpenXml.Spreadsheet.Color startColor, DocumentFormat.OpenXml.Spreadsheet.Color endColor) {
+            if (string.IsNullOrEmpty(range)) {
+                throw new ArgumentNullException(nameof(range));
+            }
 
             using var preserveDirectDataSet = _excelDocument.PreserveDirectDataSetSaveCandidateDuringDirtyMarks();
             ExcelConditionalFormattingInfo? createdRule = null;
@@ -152,8 +156,8 @@ namespace OfficeIMO.Excel {
                 ColorScale colorScale = new ColorScale();
                 colorScale.Append(new ConditionalFormatValueObject { Type = ConditionalFormatValueObjectValues.Min });
                 colorScale.Append(new ConditionalFormatValueObject { Type = ConditionalFormatValueObjectValues.Max });
-                colorScale.Append(new DocumentFormat.OpenXml.Spreadsheet.Color { Rgb = startColor });
-                colorScale.Append(new DocumentFormat.OpenXml.Spreadsheet.Color { Rgb = endColor });
+                colorScale.Append(startColor);
+                colorScale.Append(endColor);
                 rule.Append(colorScale);
 
                 conditionalFormatting.Append(rule);
@@ -172,7 +176,7 @@ namespace OfficeIMO.Excel {
         /// <param name="color">Bar color.</param>
         /// <returns>The attached editable rule model. Apply changes with UpdateConditionalFormattingRule.</returns>
         public ExcelConditionalFormattingInfo AddConditionalDataBar(string range, OfficeColor color) {
-            return AddConditionalDataBar(range, ConvertColor(color));
+            return AddConditionalDataBarCore(range, ExcelColor.ToSpreadsheetColor(color));
         }
 
         /// <summary>
@@ -185,8 +189,16 @@ namespace OfficeIMO.Excel {
             if (string.IsNullOrEmpty(range)) {
                 throw new ArgumentNullException(nameof(range));
             }
+            return AddConditionalDataBarCore(range,
+                new DocumentFormat.OpenXml.Spreadsheet.Color { Rgb = NormalizeHexColor(color) });
+        }
 
-            color = NormalizeHexColor(color);
+        /// <summary>Adds the native data-bar rule through the existing worksheet mutation path.</summary>
+        private ExcelConditionalFormattingInfo AddConditionalDataBarCore(string range,
+            DocumentFormat.OpenXml.Spreadsheet.Color color) {
+            if (string.IsNullOrEmpty(range)) {
+                throw new ArgumentNullException(nameof(range));
+            }
 
             using var preserveDirectDataSet = _excelDocument.PreserveDirectDataSetSaveCandidateDuringDirtyMarks();
             ExcelConditionalFormattingInfo? createdRule = null;
@@ -205,7 +217,7 @@ namespace OfficeIMO.Excel {
                 DataBar dataBar = new DataBar { ShowValue = true };
                 dataBar.Append(new ConditionalFormatValueObject { Type = ConditionalFormatValueObjectValues.Min });
                 dataBar.Append(new ConditionalFormatValueObject { Type = ConditionalFormatValueObjectValues.Max });
-                dataBar.Append(new DocumentFormat.OpenXml.Spreadsheet.Color { Rgb = color });
+                dataBar.Append(color);
                 rule.Append(dataBar);
 
                 conditionalFormatting.Append(rule);
