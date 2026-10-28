@@ -28,7 +28,7 @@ public sealed class PdfEditorCommandTests {
         PdfDocument reopened = PdfDocument.Load(new System.IO.MemoryStream(edited));
         PdfAnnotation annotation = Assert.Single(reopened.Inspect().GetAnnotationsBySubtype(subtype));
         PdfPageRenderResult render = Assert.Single(reopened.Render.Pages("1", new PdfPageRenderOptions {
-            Format = PdfPageRenderFormat.Svg,
+            Format = global::OfficeIMO.Drawing.OfficeImageExportFormat.Svg,
             ContinueOnError = false
         }));
 
@@ -93,7 +93,7 @@ public sealed class PdfEditorCommandTests {
         PdfDocument reopened = PdfDocument.Load(new System.IO.MemoryStream(withImage));
         Assert.Contains("Added overlay", reopened.Read().Text, StringComparison.Ordinal);
         Assert.NotEmpty(reopened.Read().Images);
-        Assert.True(Assert.Single(reopened.Render.Pages("1", new PdfPageRenderOptions { Format = PdfPageRenderFormat.Svg })).Succeeded);
+        Assert.True(Assert.Single(reopened.Render.Pages("1", new PdfPageRenderOptions { Format = global::OfficeIMO.Drawing.OfficeImageExportFormat.Svg })).Succeeded);
     }
 
     [Fact]

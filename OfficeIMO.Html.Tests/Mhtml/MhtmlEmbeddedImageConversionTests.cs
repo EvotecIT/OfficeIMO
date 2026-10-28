@@ -154,7 +154,7 @@ public sealed class MhtmlEmbeddedImageConversionTests {
 
         Assert.Equal(1, visible.AppliedStylesheetCount);
         Assert.Contains("max-width:210px", visible.Value.SourceHtml, StringComparison.Ordinal);
-        Assert.Equal(210D, Assert.Single(document.Images).Width!.Value, precision: 2);
+        Assert.Equal(210D, Assert.Single(document.Images).Width!.Value.ToPixels(), precision: 2);
         Assert.Contains(converted.Report.Diagnostics, diagnostic =>
             diagnostic.Code == HtmlConversionDiagnosticCodes.ContentApproximated
             && diagnostic.Source == "Site logo");

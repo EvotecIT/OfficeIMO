@@ -19,50 +19,50 @@ namespace OfficeIMO.Excel {
 
         /// <summary>Saves this chart as JPEG.</summary>
         public OfficeImageExportResult SaveAsJpeg(string path, ExcelImageExportOptions? options = null) =>
-            new ExcelChartImageExportBuilder(this, options).AsJpeg().Save(path);
+            CreateImageExportOperation(options, OfficeImageExportFormat.Jpeg).Save(path);
 
         /// <summary>Saves this chart as TIFF.</summary>
         public OfficeImageExportResult SaveAsTiff(string path, ExcelImageExportOptions? options = null) =>
-            new ExcelChartImageExportBuilder(this, options).AsTiff().Save(path);
+            CreateImageExportOperation(options, OfficeImageExportFormat.Tiff).Save(path);
 
         /// <summary>Saves this chart as lossless WebP.</summary>
         public OfficeImageExportResult SaveAsWebp(string path, ExcelImageExportOptions? options = null) =>
-            new ExcelChartImageExportBuilder(this, options).AsWebp().Save(path);
+            CreateImageExportOperation(options, OfficeImageExportFormat.Webp).Save(path);
 
         /// <summary>Writes this chart as JPEG.</summary>
         public OfficeImageExportResult SaveAsJpeg(Stream stream, ExcelImageExportOptions? options = null) =>
-            new ExcelChartImageExportBuilder(this, options).AsJpeg().Save(stream);
+            CreateImageExportOperation(options, OfficeImageExportFormat.Jpeg).Save(stream);
 
         /// <summary>Writes this chart as TIFF.</summary>
         public OfficeImageExportResult SaveAsTiff(Stream stream, ExcelImageExportOptions? options = null) =>
-            new ExcelChartImageExportBuilder(this, options).AsTiff().Save(stream);
+            CreateImageExportOperation(options, OfficeImageExportFormat.Tiff).Save(stream);
 
         /// <summary>Writes this chart as lossless WebP.</summary>
         public OfficeImageExportResult SaveAsWebp(Stream stream, ExcelImageExportOptions? options = null) =>
-            new ExcelChartImageExportBuilder(this, options).AsWebp().Save(stream);
+            CreateImageExportOperation(options, OfficeImageExportFormat.Webp).Save(stream);
 
         /// <summary>Asynchronously saves this chart as JPEG.</summary>
         public Task<OfficeImageExportResult> SaveAsJpegAsync(string path, ExcelImageExportOptions? options = null, CancellationToken cancellationToken = default) =>
-            new ExcelChartImageExportBuilder(this, options).AsJpeg().SaveAsync(path, cancellationToken);
+            CreateImageExportOperation(options, OfficeImageExportFormat.Jpeg).SaveAsync(path, cancellationToken);
 
         /// <summary>Asynchronously saves this chart as TIFF.</summary>
         public Task<OfficeImageExportResult> SaveAsTiffAsync(string path, ExcelImageExportOptions? options = null, CancellationToken cancellationToken = default) =>
-            new ExcelChartImageExportBuilder(this, options).AsTiff().SaveAsync(path, cancellationToken);
+            CreateImageExportOperation(options, OfficeImageExportFormat.Tiff).SaveAsync(path, cancellationToken);
 
         /// <summary>Asynchronously saves this chart as lossless WebP.</summary>
         public Task<OfficeImageExportResult> SaveAsWebpAsync(string path, ExcelImageExportOptions? options = null, CancellationToken cancellationToken = default) =>
-            new ExcelChartImageExportBuilder(this, options).AsWebp().SaveAsync(path, cancellationToken);
+            CreateImageExportOperation(options, OfficeImageExportFormat.Webp).SaveAsync(path, cancellationToken);
 
         /// <summary>Asynchronously writes this chart as JPEG.</summary>
         public Task<OfficeImageExportResult> SaveAsJpegAsync(Stream stream, ExcelImageExportOptions? options = null, CancellationToken cancellationToken = default) =>
-            new ExcelChartImageExportBuilder(this, options).AsJpeg().SaveAsync(stream, cancellationToken);
+            CreateImageExportOperation(options, OfficeImageExportFormat.Jpeg).SaveAsync(stream, cancellationToken);
 
         /// <summary>Asynchronously writes this chart as TIFF.</summary>
         public Task<OfficeImageExportResult> SaveAsTiffAsync(Stream stream, ExcelImageExportOptions? options = null, CancellationToken cancellationToken = default) =>
-            new ExcelChartImageExportBuilder(this, options).AsTiff().SaveAsync(stream, cancellationToken);
+            CreateImageExportOperation(options, OfficeImageExportFormat.Tiff).SaveAsync(stream, cancellationToken);
 
         /// <summary>Asynchronously writes this chart as lossless WebP.</summary>
         public Task<OfficeImageExportResult> SaveAsWebpAsync(Stream stream, ExcelImageExportOptions? options = null, CancellationToken cancellationToken = default) =>
-            new ExcelChartImageExportBuilder(this, options).AsWebp().SaveAsync(stream, cancellationToken);
+            CreateImageExportOperation(options, OfficeImageExportFormat.Webp).SaveAsync(stream, cancellationToken);
     }
 }

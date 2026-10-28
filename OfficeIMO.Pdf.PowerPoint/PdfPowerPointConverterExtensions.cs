@@ -419,7 +419,7 @@ public static partial class PdfPowerPointConverterExtensions {
         PowerPointPdfImportOptions options,
         CancellationToken cancellationToken) {
         var renderOptions = new PdfCore.PdfPageRenderOptions {
-            Format = PdfCore.PdfPageRenderFormat.Png,
+            Format = global::OfficeIMO.Drawing.OfficeImageExportFormat.Png,
             Dpi = options.Dpi,
             MaxPages = options.MaxPages,
             MaxPixelsPerPage = options.MaxPixelsPerPage,

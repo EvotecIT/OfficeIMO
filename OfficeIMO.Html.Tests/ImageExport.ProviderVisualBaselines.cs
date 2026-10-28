@@ -53,13 +53,14 @@ public sealed class ImageExportProviderVisualBaselineTests {
         using (var image = new MemoryStream(CreateVisualBadge())) {
             document.AddParagraph().AddImage(image, "delivery-status.png", OfficeIMO.OfficeLength.Pixels(120), OfficeIMO.OfficeLength.Pixels(40), options: new OfficeIMO.Word.WordImageOptions { Wrapping = WordImageTextWrapping.InLineWithText, Description = "Delivery status visualization" });
         }
-        return document.ToImage()
-            .WithFont(PortableFontFamily, PortableRegularFont.Value)
-            .WithFont(PortableFontFamily, PortableBoldFont.Value, OfficeFontStyle.Bold)
-            .FitWithin(360, 360)
-            .AsPng()
-            .Export()
-            .Bytes;
+        var options = new WordImageExportOptions {
+            Format = OfficeImageExportFormat.Png,
+            MaximumOutputWidth = 360,
+            MaximumOutputHeight = 360
+        };
+        options.Fonts.Add(PortableFontFamily, PortableRegularFont.Value);
+        options.Fonts.Add(PortableFontFamily, PortableBoldFont.Value, OfficeFontStyle.Bold);
+        return document.ToImage(options);
     }
 
     private static byte[] RenderPowerPoint() {

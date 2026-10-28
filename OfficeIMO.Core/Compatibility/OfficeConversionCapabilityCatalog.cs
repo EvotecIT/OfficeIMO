@@ -450,7 +450,7 @@ public static partial class OfficeConversionCapabilityCatalog {
         AddEmailRoutes(routes);
         AddBibliographyRoutes(routes);
         AddIWorkRoutes(routes);
-        AddImageRoutes(routes, "docx", "DOCX", OfficeConversionInputKind.File, new[] { ".docx" }, "OfficeIMO.Word", "WordDocument.Load(stream).ExportImages(format, options)");
+        AddImageRoutes(routes, "docx", "DOCX", OfficeConversionInputKind.File, new[] { ".docx" }, "OfficeIMO.Word.Pdf", "WordDocument.Load(stream).ExportImages(format, options)");
         AddImageRoutes(routes, "xlsx", "XLSX", OfficeConversionInputKind.File, new[] { ".xlsx" }, "OfficeIMO.Excel", "ExcelDocument.Load(stream).ExportImages(format, options)");
         AddImageRoutes(routes, "pptx", "PPTX", OfficeConversionInputKind.File, new[] { ".pptx" }, "OfficeIMO.PowerPoint", "PowerPointDocument.Load(stream).ExportImages(format, options)");
         AddImageRoutes(routes, "html", "HTML", OfficeConversionInputKind.Text, new[] { ".html", ".htm", ".txt" }, "OfficeIMO.Html", "HtmlConversionDocument.Parse(html).ExportImages(format, options)");

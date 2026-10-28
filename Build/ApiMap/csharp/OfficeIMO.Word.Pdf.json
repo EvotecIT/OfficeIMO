@@ -381,6 +381,31 @@
       "phase": "A",
       "applied": "applied",
       "note": "InternalsVisibleTo grants the existing browser engine and its tests access to detailed conversion and serialization evidence. This preserves browser diagnostics while keeping conversion kernels outside the public API."
+    },
+    {
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "change": "Word page images expose options-based ToImage/ToImageAsync, SaveAsImage/SaveAsImageAsync and aggregate SaveAsImages/SaveAsImagesAsync. Rendering kernels and snapshot reading remain on the existing Word adapter.",
+      "reason": "The Word map image entries apply to the forward Word.Pdf adapter after the Phase A package move.",
+      "files": [
+        "OfficeIMO.Word.Pdf/Imaging/WordDocument.Imaging.Conversion.cs",
+        "OfficeIMO.Word.Pdf/Imaging/ImageExportOperations.cs",
+        "OfficeIMO.Word.Pdf/Imaging/WordImageExportBuilder.cs",
+        "OfficeIMO.Word.Pdf/Imaging/WordDocument.Imaging.RasterFormats.cs",
+        "OfficeIMO.Word.Pdf/README.md"
+      ]
+    },
+    {
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "change": "The Word image cmdlet keeps its existing detailed PassThru values through an internal SaveImageResults operation and friend access. The public save API returns only OfficeConversionReport. Sync image conversion/saving accepts cancellation, and the out-report form follows the options-then-report order used by the PDF/HTML/Markdown adapters.",
+      "reason": "Mechanical consumer closure and shared-owner preservation for the approved API change.",
+      "files": [
+        "OfficeIMO.Word.Pdf/Imaging/ImageExportOperations.cs",
+        "OfficeIMO.Word.Pdf/Imaging/WordDocument.Imaging.Conversion.cs",
+        "OfficeIMO.Word.Pdf/OfficeIMO.Word.Pdf.csproj",
+        "PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Word/ExportOfficeWordImageCommand.cs"
+      ]
     }
   ],
   "applicationStatus": "Phase A applied and validated on the supported macOS targets. Phase B and Tier 2 entries retain their status; Windows .NET Framework validation remains pending.",

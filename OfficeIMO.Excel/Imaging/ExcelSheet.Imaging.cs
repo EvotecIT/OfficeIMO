@@ -136,53 +136,53 @@ namespace OfficeIMO.Excel {
         /// Saves the worksheet used range as PNG.
         /// </summary>
         public OfficeImageExportResult SaveAsPng(string path, ExcelWorksheetImageExportOptions? options = null) =>
-            new ExcelWorksheetImageExportBuilder(this, options).AsPng().Save(path);
+            CreateImageExportOperation(options, OfficeImageExportFormat.Png).Save(path);
 
         /// <summary>
         /// Saves the worksheet used range as SVG.
         /// </summary>
         public OfficeImageExportResult SaveAsSvg(string path, ExcelWorksheetImageExportOptions? options = null) =>
-            new ExcelWorksheetImageExportBuilder(this, options).AsSvg().Save(path);
+            CreateImageExportOperation(options, OfficeImageExportFormat.Svg).Save(path);
 
         /// <summary>
         /// Writes the worksheet used range as PNG to a stream.
         /// </summary>
         public OfficeImageExportResult SaveAsPng(Stream stream, ExcelWorksheetImageExportOptions? options = null) =>
-            new ExcelWorksheetImageExportBuilder(this, options).AsPng().Save(stream);
+            CreateImageExportOperation(options, OfficeImageExportFormat.Png).Save(stream);
 
         /// <summary>
         /// Writes the worksheet used range as SVG to a stream.
         /// </summary>
         public OfficeImageExportResult SaveAsSvg(Stream stream, ExcelWorksheetImageExportOptions? options = null) =>
-            new ExcelWorksheetImageExportBuilder(this, options).AsSvg().Save(stream);
+            CreateImageExportOperation(options, OfficeImageExportFormat.Svg).Save(stream);
 
         /// <summary>Asynchronously saves the worksheet used range as PNG.</summary>
         public Task<OfficeImageExportResult> SaveAsPngAsync(
             string path,
             ExcelWorksheetImageExportOptions? options = null,
             CancellationToken cancellationToken = default) =>
-            new ExcelWorksheetImageExportBuilder(this, options).AsPng().SaveAsync(path, cancellationToken);
+            CreateImageExportOperation(options, OfficeImageExportFormat.Png).SaveAsync(path, cancellationToken);
 
         /// <summary>Asynchronously saves the worksheet used range as SVG.</summary>
         public Task<OfficeImageExportResult> SaveAsSvgAsync(
             string path,
             ExcelWorksheetImageExportOptions? options = null,
             CancellationToken cancellationToken = default) =>
-            new ExcelWorksheetImageExportBuilder(this, options).AsSvg().SaveAsync(path, cancellationToken);
+            CreateImageExportOperation(options, OfficeImageExportFormat.Svg).SaveAsync(path, cancellationToken);
 
         /// <summary>Asynchronously writes the worksheet used range as PNG to a stream.</summary>
         public Task<OfficeImageExportResult> SaveAsPngAsync(
             Stream stream,
             ExcelWorksheetImageExportOptions? options = null,
             CancellationToken cancellationToken = default) =>
-            new ExcelWorksheetImageExportBuilder(this, options).AsPng().SaveAsync(stream, cancellationToken);
+            CreateImageExportOperation(options, OfficeImageExportFormat.Png).SaveAsync(stream, cancellationToken);
 
         /// <summary>Asynchronously writes the worksheet used range as SVG to a stream.</summary>
         public Task<OfficeImageExportResult> SaveAsSvgAsync(
             Stream stream,
             ExcelWorksheetImageExportOptions? options = null,
             CancellationToken cancellationToken = default) =>
-            new ExcelWorksheetImageExportBuilder(this, options).AsSvg().SaveAsync(stream, cancellationToken);
+            CreateImageExportOperation(options, OfficeImageExportFormat.Svg).SaveAsync(stream, cancellationToken);
 
         private static ExcelWorksheetImageExportOptions NormalizeWorksheetOptions(ExcelWorksheetImageExportOptions? options) {
             ExcelWorksheetImageExportOptions resolved = options?.CloneWorksheet() ?? new ExcelWorksheetImageExportOptions();

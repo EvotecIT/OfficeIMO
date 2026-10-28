@@ -773,6 +773,33 @@
         "Website/data/office_conversion_routes.json",
         "Website/data/format_map.json"
       ]
+    },
+    {
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "change": "Image execution and persistence move from fluent bases into internal shared operations. Format, FileConflictPolicy and FailOnLoss are image options; eight shared renderer codes join the M1 diagnostic catalog. Conversion evidence preserves severity, loss, location and source format independently.",
+      "reason": "The Tier 1 public image builders can be removed without duplicating execution code or removing the shared bases still used by Tier 2 packages.",
+      "files": [
+        "OfficeIMO.Core/Internal/OfficeImageExportOperation.cs",
+        "OfficeIMO.Core/Internal/OfficeImageExportBatchOperation.cs",
+        "OfficeIMO.Core/Internal/OfficeImageExportEvidence.cs",
+        "OfficeIMO.Core/OfficeImageExportOptions.cs",
+        "OfficeIMO.Core/Diagnostics/diagnostic-code-map.json",
+        "OfficeIMO.Core/Diagnostics/OfficeDiagnosticCodes.GP.Generated.cs"
+      ]
+    },
+    {
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "change": "The DOCX image routes identify OfficeIMO.Word.Pdf as their owning package, matching the moved Word page renderer. Compatibility artifacts and README projections are regenerated from the catalog.",
+      "reason": "Mechanical consumer closure and shared-owner preservation for the approved API change.",
+      "files": [
+        "OfficeIMO.Core/Compatibility/OfficeConversionCapabilityCatalog.cs",
+        "Docs/Compatibility/generated/conversion-routes.json",
+        "Docs/Compatibility/generated/conversion-routes.md",
+        "Website/data/office_conversion_routes.json",
+        "Website/data/format_map.json"
+      ]
     }
   ],
   "applicationStatus": "Phase A applied and validated on the supported macOS targets. Phase B and Tier 2 entries retain their status; Windows .NET Framework validation remains pending.",

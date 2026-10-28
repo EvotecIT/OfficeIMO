@@ -258,7 +258,7 @@ internal static class HtmlPdfEvidenceRunner {
             PdfPageRenderResult visual = OfficeIMO.Pdf.PdfDocument.Load(bytes).Render.Pages(
                 "1",
                 new PdfPageRenderOptions {
-                    Format = PdfPageRenderFormat.Png,
+                    Format = global::OfficeIMO.Drawing.OfficeImageExportFormat.Png,
                     Dpi = 120D,
                     ContinueOnError = false,
                     MaxPages = 1

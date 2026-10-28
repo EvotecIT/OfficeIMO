@@ -7143,9 +7143,9 @@
     {
       "old": "OfficeIMO.PowerPoint.PowerPointImageExportOptions.LogicalUnitsPerInch",
       "kind": "property",
-      "action": "change",
-      "new": "OfficeIMO.PowerPoint.PowerPointImageExportOptions.LogicalUnitsPerInch : OfficeLength",
-      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "action": "keep",
+      "new": "OfficeIMO.PowerPoint.PowerPointImageExportOptions.LogicalUnitsPerInch",
+      "reason": "This value is a coordinate density, not a physical length. OfficeLength applies to physical geometry.",
       "file": "OfficeIMO.PowerPoint/Imaging/PowerPointImageExportOptions.cs",
       "category": "units",
       "implementation": {
@@ -7153,8 +7153,10 @@
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "retained-scalar",
+      "note": "The source declaration remains double, matching the shared image options and the qualified PDF density contract. The original length target was a name-based map false positive.",
+      "supersededM0Target": "OfficeIMO.PowerPoint.PowerPointImageExportOptions.LogicalUnitsPerInch : OfficeLength",
+      "supersededM0Reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointLayoutBox.BottomCm",
@@ -9821,6 +9823,35 @@
         "Docs/Compatibility/generated/package-operations.md",
         "Docs/Compatibility/generated/protected-content.json",
         "Docs/Compatibility/generated/protected-content.md"
+      ]
+    },
+    {
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "change": "Image saving facades call internal Core operations directly, retaining one renderer, options snapshot, policy/deadline implementation, streamed batch saves, file conflict behavior and progress order.",
+      "reason": "The Tier 1 public image builders can be removed without duplicating execution code or removing the shared bases still used by Tier 2 packages.",
+      "files": [
+        "OfficeIMO.PowerPoint/Imaging/ImageExportOperations.cs"
+      ]
+    },
+    {
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "change": "Compiler-qualified consumer assertions use OfficeLength or explicit ToPoints/ToPixels conversion rather than removed PowerPoint unit twins or raw EMU comparisons.",
+      "reason": "Mechanical consumer closure and shared-owner preservation for the approved API change.",
+      "files": [
+        "OfficeIMO.IWork.Tests/IWorkCorpusTests.cs",
+        "OfficeIMO.IWork.Tests/IWorkKeynoteImageResizeTests.cs",
+        "OfficeIMO.IWork.Tests/IWorkListCounterMappingTests.cs",
+        "OfficeIMO.IWork.Tests/IWorkMergedTableBorderTests.cs",
+        "OfficeIMO.IWork.Tests/IWorkNineLevelCounterTests.cs",
+        "OfficeIMO.IWork.Tests/IWorkThirtiethWaveTests.cs",
+        "OfficeIMO.IWork.Tests/IWorkThirtySeventhWaveTests.cs",
+        "OfficeIMO.IWork.Tests/IWorkTwentyFifthWaveTests.cs",
+        "OfficeIMO.IWork.Tests/IWorkTwentySixthWaveTests.cs",
+        "OfficeIMO.Html.Tests/Html.EditableLayoutPowerPoint.cs",
+        "OfficeIMO.Html.Tests/Html.OfficeAdapters.PowerPointTables.cs",
+        "OfficeIMO.Html.Tests/Html.OfficeAdapters.PowerPointGenericPagination.cs"
       ]
     }
   ],

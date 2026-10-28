@@ -66,15 +66,13 @@ namespace OfficeIMO.Excel {
         /// Saves workbook sheets as PNG files in a folder.
         /// </summary>
         public IReadOnlyList<OfficeImageExportResult> SaveAsImages(string folderPath, ExcelWorkbookImageExportOptions? options = null) =>
-            new ExcelWorkbookImageExportBuilder(this, options).AsPng().Save(folderPath);
+            CreateImageExportBatchOperation(options, OfficeImageExportFormat.Png).Save(folderPath);
 
         /// <summary>
         /// Saves workbook sheets as image files in a folder.
         /// </summary>
         public IReadOnlyList<OfficeImageExportResult> SaveAsImages(string folderPath, OfficeImageExportFormat format, ExcelWorkbookImageExportOptions? options = null) {
-            ExcelWorkbookImageExportBuilder builder = new ExcelWorkbookImageExportBuilder(this, options);
-            builder.As(format);
-            return builder.Save(folderPath);
+            return CreateImageExportBatchOperation(options, format).Save(folderPath);
         }
 
         /// <summary>
@@ -84,7 +82,7 @@ namespace OfficeIMO.Excel {
             string folderPath,
             ExcelWorkbookImageExportOptions? options = null,
             CancellationToken cancellationToken = default) =>
-            new ExcelWorkbookImageExportBuilder(this, options).AsPng().SaveAsync(folderPath, cancellationToken);
+            CreateImageExportBatchOperation(options, OfficeImageExportFormat.Png).SaveAsync(folderPath, cancellationToken);
 
         /// <summary>
         /// Asynchronously saves workbook sheets as image files in a folder.
@@ -94,9 +92,7 @@ namespace OfficeIMO.Excel {
             OfficeImageExportFormat format,
             ExcelWorkbookImageExportOptions? options = null,
             CancellationToken cancellationToken = default) {
-            ExcelWorkbookImageExportBuilder builder = new ExcelWorkbookImageExportBuilder(this, options);
-            builder.As(format);
-            return builder.SaveAsync(folderPath, cancellationToken);
+            return CreateImageExportBatchOperation(options, format).SaveAsync(folderPath, cancellationToken);
         }
 
         private static ExcelWorkbookImageExportOptions NormalizeWorkbookOptions(ExcelWorkbookImageExportOptions? options) {

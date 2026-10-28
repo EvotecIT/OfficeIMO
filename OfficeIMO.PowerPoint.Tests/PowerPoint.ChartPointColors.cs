@@ -325,7 +325,7 @@ namespace OfficeIMO.Tests {
             byte[] pdf = reopened.ToPdf(options).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
             Assert.DoesNotContain(options.Warnings, warning => warning.Code == "unsupported-chart");
             PdfCore.PdfPageRenderResult page = Assert.Single(PdfCore.PdfDocument.Load(pdf).Render.Pages(options:
-                new PdfCore.PdfPageRenderOptions { Dpi = 72, Format = PdfCore.PdfPageRenderFormat.Png, MaxPages = 1, ContinueOnError = false }));
+                new PdfCore.PdfPageRenderOptions { Dpi = 72, Format = global::OfficeIMO.Drawing.OfficeImageExportFormat.Png, MaxPages = 1, ContinueOnError = false }));
             AssertColorPixels(page.Bytes!, Colors[0]!.Value, Colors[2]!.Value);
         }
 

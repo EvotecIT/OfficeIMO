@@ -176,7 +176,7 @@ Use `.AsJpeg()` or `.AsSvg()` for those formats, or `conversion.ExportImages(for
 
 High-resolution nearest-neighbour pictures can exceed the SVG rectangle-vectorization budget. Use PNG or JPEG for those pages until bounded SVG image fallback is supported.
 
-`document.ToPng()`, `ToJpeg()`, `ToSvg()` and `ExportImages(...)` use this same layout and page renderer. Set `WordImageExportOptions.LayoutOptions` when sharing customized conversion settings. The forward Word page adapter and options live in `OfficeIMO.Word`; PDF-to-Word import lives in `OfficeIMO.Pdf.Word`.
+`document.ToImage(options)` and `ExportImages(...)` use this same layout and page renderer. Set `options.Format` to select PNG, JPEG, TIFF, WebP or SVG. `SaveAsImage(pathOrStream, options)` and `SaveAsImages(folder, options)` return `OfficeConversionReport`; `ToImage(options, out report)` and `ToImageAsync(options)` also expose the fidelity report. `FailOnLoss` rejects loss before writing an image, and `FileConflictPolicy` controls an existing destination file. Set `WordImageExportOptions.LayoutOptions` when sharing customized conversion settings. The forward Word page adapter and options live in `OfficeIMO.Word`; PDF-to-Word import lives in `OfficeIMO.Pdf.Word`.
 
 SmartArt uses the same drawing projection for PDF and Word images. Supported persisted preset shapes retain node positions; process, cycle and hierarchy diagrams have node-text fallbacks. Header and footer diagrams resolve their parts and cached drawings from the containing story and repeat with its running content. These projections report their approximation because native diagram styles, effects and complete connector geometry are not reconstructed.
 
@@ -410,6 +410,7 @@ This table is generated from the package-neutral OfficeIMO operation catalog. Th
 | Operation | Supported | Partial | Preserved | Rejected | Unsupported | Not applicable |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
 | Convert | 1 | 0 | 0 | 0 | 0 | 0 |
+| Export | 5 | 0 | 0 | 0 | 0 | 0 |
 
 The complete rows for `OfficeIMO.Word.Pdf` are published in the [generated operation contract](https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/Compatibility/generated/package-operations.md).
 <!-- officeimo-operation-catalog:end -->

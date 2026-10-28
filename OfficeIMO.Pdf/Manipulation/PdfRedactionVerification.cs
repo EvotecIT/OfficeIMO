@@ -76,7 +76,7 @@ internal static partial class PdfRedactionVerification {
         }
 
         if (options.CheckManagedRendering) {
-            IReadOnlyList<PdfPageRenderResult> renders = PdfPageImageRenderer.RenderPages(redactedPdf, options: new PdfPageRenderOptions { Format = PdfPageRenderFormat.Svg, ContinueOnError = true }, readOptions: effectiveReadOptions, cancellationToken: options.CancellationToken);
+            IReadOnlyList<PdfPageRenderResult> renders = PdfPageImageRenderer.RenderPages(redactedPdf, options: new PdfPageRenderOptions { Format = global::OfficeIMO.Drawing.OfficeImageExportFormat.Svg, ContinueOnError = true }, readOptions: effectiveReadOptions, cancellationToken: options.CancellationToken);
             for (int i = 0; i < renders.Count; i++) if (!renders[i].Succeeded) issues.Add(new PdfRedactionVerificationIssue("ManagedRendering", renders[i].PageNumber.ToString(System.Globalization.CultureInfo.InvariantCulture), "Managed rendering failed for redacted page " + renders[i].PageNumber.ToString(System.Globalization.CultureInfo.InvariantCulture) + ": " + string.Join("; ", renders[i].Diagnostics)));
         }
 

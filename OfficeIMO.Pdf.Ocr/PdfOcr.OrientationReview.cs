@@ -39,7 +39,7 @@ internal static partial class PdfOcr {
                 continue;
             }
             var render = RenderOcrPage(read, page, new PdfPageRenderOptions {
-                Format = PdfPageRenderFormat.Png, Dpi = options.Dpi, ImageCodec = options.ImageCodec,
+                Format = global::OfficeIMO.Drawing.OfficeImageExportFormat.Png, Dpi = options.Dpi, ImageCodec = options.ImageCodec,
                 MaxPixelsPerPage = options.MaxPixelsPerPage, MaxOutputBytesPerPage = options.MaxRenderedBytesPerPage,
                 MaxDiagnosticsPerPage = options.MaxDiagnosticsPerPage,
                 MaxDiagnosticCharactersPerPage = options.MaxDiagnosticCharactersPerPage, ContinueOnError = false

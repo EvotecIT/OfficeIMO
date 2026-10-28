@@ -75,8 +75,8 @@ public sealed partial class IWorkBoundaryTests {
         PowerPointPicture preview = Assert.Single(Assert.Single(result.Value.Slides).Pictures);
 
         Assert.True(result.IsVisualFallback);
-        Assert.Equal(720d, result.Value.SlideSize.WidthPoints, 3);
-        Assert.Equal(360d, result.Value.SlideSize.HeightPoints, 3);
+        Assert.Equal(720d, result.Value.SlideSize.Width.ToPoints(), 3);
+        Assert.Equal(360d, result.Value.SlideSize.Height.ToPoints(), 3);
         Assert.Equal(5d, preview.Width.ToInches(), 3);
         Assert.Equal(5d, preview.Height.ToInches(), 3);
         Assert.Equal(2.5d, preview.Left.ToInches(), 3);

@@ -19,50 +19,50 @@ namespace OfficeIMO.Excel {
 
         /// <summary>Saves the worksheet used range as JPEG.</summary>
         public OfficeImageExportResult SaveAsJpeg(string path, ExcelWorksheetImageExportOptions? options = null) =>
-            new ExcelWorksheetImageExportBuilder(this, options).AsJpeg().Save(path);
+            CreateImageExportOperation(options, OfficeImageExportFormat.Jpeg).Save(path);
 
         /// <summary>Saves the worksheet used range as TIFF.</summary>
         public OfficeImageExportResult SaveAsTiff(string path, ExcelWorksheetImageExportOptions? options = null) =>
-            new ExcelWorksheetImageExportBuilder(this, options).AsTiff().Save(path);
+            CreateImageExportOperation(options, OfficeImageExportFormat.Tiff).Save(path);
 
         /// <summary>Saves the worksheet used range as lossless WebP.</summary>
         public OfficeImageExportResult SaveAsWebp(string path, ExcelWorksheetImageExportOptions? options = null) =>
-            new ExcelWorksheetImageExportBuilder(this, options).AsWebp().Save(path);
+            CreateImageExportOperation(options, OfficeImageExportFormat.Webp).Save(path);
 
         /// <summary>Writes the worksheet used range as JPEG.</summary>
         public OfficeImageExportResult SaveAsJpeg(Stream stream, ExcelWorksheetImageExportOptions? options = null) =>
-            new ExcelWorksheetImageExportBuilder(this, options).AsJpeg().Save(stream);
+            CreateImageExportOperation(options, OfficeImageExportFormat.Jpeg).Save(stream);
 
         /// <summary>Writes the worksheet used range as TIFF.</summary>
         public OfficeImageExportResult SaveAsTiff(Stream stream, ExcelWorksheetImageExportOptions? options = null) =>
-            new ExcelWorksheetImageExportBuilder(this, options).AsTiff().Save(stream);
+            CreateImageExportOperation(options, OfficeImageExportFormat.Tiff).Save(stream);
 
         /// <summary>Writes the worksheet used range as lossless WebP.</summary>
         public OfficeImageExportResult SaveAsWebp(Stream stream, ExcelWorksheetImageExportOptions? options = null) =>
-            new ExcelWorksheetImageExportBuilder(this, options).AsWebp().Save(stream);
+            CreateImageExportOperation(options, OfficeImageExportFormat.Webp).Save(stream);
 
         /// <summary>Asynchronously saves the worksheet used range as JPEG.</summary>
         public Task<OfficeImageExportResult> SaveAsJpegAsync(string path, ExcelWorksheetImageExportOptions? options = null, CancellationToken cancellationToken = default) =>
-            new ExcelWorksheetImageExportBuilder(this, options).AsJpeg().SaveAsync(path, cancellationToken);
+            CreateImageExportOperation(options, OfficeImageExportFormat.Jpeg).SaveAsync(path, cancellationToken);
 
         /// <summary>Asynchronously saves the worksheet used range as TIFF.</summary>
         public Task<OfficeImageExportResult> SaveAsTiffAsync(string path, ExcelWorksheetImageExportOptions? options = null, CancellationToken cancellationToken = default) =>
-            new ExcelWorksheetImageExportBuilder(this, options).AsTiff().SaveAsync(path, cancellationToken);
+            CreateImageExportOperation(options, OfficeImageExportFormat.Tiff).SaveAsync(path, cancellationToken);
 
         /// <summary>Asynchronously saves the worksheet used range as lossless WebP.</summary>
         public Task<OfficeImageExportResult> SaveAsWebpAsync(string path, ExcelWorksheetImageExportOptions? options = null, CancellationToken cancellationToken = default) =>
-            new ExcelWorksheetImageExportBuilder(this, options).AsWebp().SaveAsync(path, cancellationToken);
+            CreateImageExportOperation(options, OfficeImageExportFormat.Webp).SaveAsync(path, cancellationToken);
 
         /// <summary>Asynchronously writes the worksheet used range as JPEG.</summary>
         public Task<OfficeImageExportResult> SaveAsJpegAsync(Stream stream, ExcelWorksheetImageExportOptions? options = null, CancellationToken cancellationToken = default) =>
-            new ExcelWorksheetImageExportBuilder(this, options).AsJpeg().SaveAsync(stream, cancellationToken);
+            CreateImageExportOperation(options, OfficeImageExportFormat.Jpeg).SaveAsync(stream, cancellationToken);
 
         /// <summary>Asynchronously writes the worksheet used range as TIFF.</summary>
         public Task<OfficeImageExportResult> SaveAsTiffAsync(Stream stream, ExcelWorksheetImageExportOptions? options = null, CancellationToken cancellationToken = default) =>
-            new ExcelWorksheetImageExportBuilder(this, options).AsTiff().SaveAsync(stream, cancellationToken);
+            CreateImageExportOperation(options, OfficeImageExportFormat.Tiff).SaveAsync(stream, cancellationToken);
 
         /// <summary>Asynchronously writes the worksheet used range as lossless WebP.</summary>
         public Task<OfficeImageExportResult> SaveAsWebpAsync(Stream stream, ExcelWorksheetImageExportOptions? options = null, CancellationToken cancellationToken = default) =>
-            new ExcelWorksheetImageExportBuilder(this, options).AsWebp().SaveAsync(stream, cancellationToken);
+            CreateImageExportOperation(options, OfficeImageExportFormat.Webp).SaveAsync(stream, cancellationToken);
     }
 }

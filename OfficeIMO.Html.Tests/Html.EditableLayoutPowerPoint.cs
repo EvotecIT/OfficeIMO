@@ -185,17 +185,17 @@ public sealed class HtmlEditableLayoutPowerPointTests {
         PowerPointSlide slide = Assert.Single(presentation.Slides);
 
         Assert.All(slide.TextBoxes.Where(box => box.Text == "Short"), box => {
-            Assert.InRange(box.LeftPoints, -50D, 50D);
-            Assert.InRange(box.TopPoints, -50D, 50D);
-            Assert.InRange(box.WidthPoints, 1D, 50D);
-            Assert.InRange(box.HeightPoints, 1D, 50D);
+            Assert.InRange(box.Left.ToPoints(), -50D, 50D);
+            Assert.InRange(box.Top.ToPoints(), -50D, 50D);
+            Assert.InRange(box.Width.ToPoints(), 1D, 50D);
+            Assert.InRange(box.Height.ToPoints(), 1D, 50D);
         });
         Assert.DoesNotContain(slide.TextBoxes, box => box.Text.Contains("metadata is much", StringComparison.Ordinal));
         Assert.All(slide.Pictures, picture => {
-            Assert.InRange(picture.LeftPoints, -50D, 50D);
-            Assert.InRange(picture.TopPoints, -50D, 50D);
-            Assert.InRange(picture.WidthPoints, 1D, 50D);
-            Assert.InRange(picture.HeightPoints, 1D, 50D);
+            Assert.InRange(picture.Left.ToPoints(), -50D, 50D);
+            Assert.InRange(picture.Top.ToPoints(), -50D, 50D);
+            Assert.InRange(picture.Width.ToPoints(), 1D, 50D);
+            Assert.InRange(picture.Height.ToPoints(), 1D, 50D);
         });
         Assert.Contains(result.Report.Diagnostics, diagnostic =>
             diagnostic.Code == HtmlConversionDiagnosticCodes.TargetLimitExceeded);

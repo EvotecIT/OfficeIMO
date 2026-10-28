@@ -68,7 +68,7 @@ public partial class PowerPointSaveAsPdfTests {
             PdfCore.PdfDocument.Load(pdf).Render.Pages(options:
                 new PdfCore.PdfPageRenderOptions {
                     Dpi = 72D,
-                    Format = PdfCore.PdfPageRenderFormat.Png,
+                    Format = global::OfficeIMO.Drawing.OfficeImageExportFormat.Png,
                     MaxPages = 2,
                     ContinueOnError = false
                 });
@@ -160,7 +160,7 @@ public partial class PowerPointSaveAsPdfTests {
             PdfCore.PdfDocument.Load(pdf).Render.Pages(options:
                 new PdfCore.PdfPageRenderOptions {
                     Dpi = 72D,
-                    Format = PdfCore.PdfPageRenderFormat.Png,
+                    Format = global::OfficeIMO.Drawing.OfficeImageExportFormat.Png,
                     MaxPages = 1,
                     ContinueOnError = false
                 });

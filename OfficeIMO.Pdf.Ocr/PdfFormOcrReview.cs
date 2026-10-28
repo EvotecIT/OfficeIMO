@@ -38,7 +38,7 @@ public sealed class PdfFormOcrReview {
     public PdfPageRenderResult RenderPage(int pageNumber, CancellationToken cancellationToken = default) {
         if (!Ocr.Pages.Any(page => page.PageNumber == pageNumber)) throw new ArgumentOutOfRangeException(nameof(pageNumber));
         return PdfPageImageRenderer.RenderPages(_sourceBytes, PdfPageSelection.From(pageNumber), new() {
-            Dpi = _options.Dpi, Format = PdfPageRenderFormat.Png, MaxPages = 1,
+            Dpi = _options.Dpi, Format = global::OfficeIMO.Drawing.OfficeImageExportFormat.Png, MaxPages = 1,
             MaxPixelsPerPage = _options.MaxPixelsPerPage, MaxOutputBytesPerPage = _options.MaxRenderedBytesPerPage,
             ImageCodec = _options.ImageCodec, ContinueOnError = false
         }, _source.ReadOptions, cancellationToken).Single();

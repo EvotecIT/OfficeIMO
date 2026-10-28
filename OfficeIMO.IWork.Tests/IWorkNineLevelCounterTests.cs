@@ -26,9 +26,9 @@ public sealed partial class IWorkBoundaryTests {
             Mode = IWorkConversionMode.EditableOnly, AllowPartialEditableReconstruction = true });
         var content = Assert.Single(Assert.Single(result.Projection.Slides).Tables).Cells[0].RichText!;
         Assert.True(content.IsFormattingComplete);
-        result.Value.SlideSize.SetSizePoints(600, 600);
+        result.Value.SlideSize.SetSize(OfficeLength.Points(600), OfficeLength.Points(600));
         var table = Assert.Single(Assert.Single(result.Value.Slides).Tables);
-        table.WidthPoints = 500; table.HeightPoints = 500;
+        table.Width = OfficeLength.Points(500); table.Height = OfficeLength.Points(500);
         table.SetColumnWidthPoints(0, 500); table.SetRowHeightPoints(0, 500);
         using var saved = new MemoryStream(); result.Value.Save(saved); saved.Position = 0;
         using var reopened = PowerPointDocument.Load(saved);

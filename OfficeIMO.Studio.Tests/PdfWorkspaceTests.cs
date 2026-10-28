@@ -499,7 +499,7 @@ public sealed partial class PdfWorkspaceTests {
             string text = reopened.Read().Text;
             Assert.Contains("INTERNAL", text, StringComparison.Ordinal);
             Assert.Contains("1 / 1", text, StringComparison.Ordinal);
-            Assert.True(Assert.Single(reopened.Render.Pages("1", new PdfPageRenderOptions { Format = PdfPageRenderFormat.Svg })).Succeeded);
+            Assert.True(Assert.Single(reopened.Render.Pages("1", new PdfPageRenderOptions { Format = global::OfficeIMO.Drawing.OfficeImageExportFormat.Svg })).Succeeded);
         } finally {
             Directory.Delete(root, recursive: true);
         }

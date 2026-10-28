@@ -101,7 +101,7 @@ public sealed partial class MainWindowViewModel {
                 var page = candidate.Inspect().Pages[pageNumber - 1];
                 var result = candidate.Render.Pages(pageNumber.ToString(System.Globalization.CultureInfo.InvariantCulture),
                     new PdfPageRenderOptions {
-                        Format = PdfPageRenderFormat.Png, Scale = Math.Min(1D, 700D / Math.Max(page.Width, page.Height)),
+                        Format = global::OfficeIMO.Drawing.OfficeImageExportFormat.Png, Scale = Math.Min(1D, 700D / Math.Max(page.Width, page.Height)),
                         MaxPages = 1, MaxPixelsPerPage = 1_000_000,
                         MaxOutputBytesPerPage = 8 * 1024 * 1024, MaxTotalOutputBytes = 8 * 1024 * 1024
                     }, cancellationToken: token).Single();

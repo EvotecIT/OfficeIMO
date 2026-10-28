@@ -312,7 +312,7 @@ Appending comments to older DOCX files assigns missing paragraph identities to e
 - Applies optional shared package-security policy before parsing Open XML or compound DOC files, and preflights read, edit, template, render, and save capabilities.
 - Inspects and manages VBA and embedded package/OLE/ActiveX payload bytes without executing active content.
 - Creates and validates cross-platform OPC XML package signatures and managed VBA legacy, agile, and V3 signatures through an explicitly supplied `IOfficeSecurityProvider`; structural inspection remains provider-free.
-- Exports document page ranges as managed PNG, JPEG, TIFF, WebP or SVG pages through `ExportImages(...)`, `SaveAsImages(...)`, and `ToImages()`.
+- Exports document page ranges as managed PNG, JPEG, TIFF, WebP or SVG pages through `ExportImages(...)` and `SaveAsImages(...)`.
 - Chart series Add methods return `WordChartSeries`; set its `Name` or call `Remove()` to edit that exact series. `AddLegend` returns an editable `WordChartLegend`. `AddChartAxisX` returns category settings for subsequent series.
 - Keeps Office automation out of the runtime path, making it suitable for services, scheduled jobs, CI, desktop apps, and automation hosts.
 - Uses one object model for paragraphs, tables, lists, charts, images, and content blocks.
@@ -947,16 +947,21 @@ carries the [SmartArt projection limits](../OfficeIMO.Word.Pdf/README.md#page-im
 Word pages use the shared Word-to-PDF layout and Drawing renderer and can be returned as PNG, JPEG, TIFF, lossless WebP, or SVG without Office automation:
 
 ```csharp
+using OfficeIMO;
 using OfficeIMO.Drawing;
 
-byte[] webp = document.ToWebp(new WordImageExportOptions { PageIndex = 0, Scale = 1.5 });
+byte[] webp = document.ToImage(new WordImageExportOptions {
+    Format = OfficeImageExportFormat.Webp, PageIndex = 0, Scale = 1.5
+});
 
-document.ToImage()
-    .Page(0)
-    .FitWithin(1600, 1200)
-    .AsJpeg()
-    .WithRasterEncoding(raster => raster.Jpeg.Quality = 90)
-    .Save("page-1.jpg");
+var options = new WordImageExportOptions {
+    Format = OfficeImageExportFormat.Jpeg,
+    PageIndex = 0,
+    MaximumOutputWidth = 1600,
+    MaximumOutputHeight = 1200
+};
+options.RasterEncoding.Jpeg.Quality = 90;
+OfficeConversionReport report = document.SaveAsImage("page-1.jpg", options);
 ```
 
 Image export shares Word-to-PDF pagination, line breaks, fonts, headings and table borders. Paragraphs and cells flow across pages without preview ellipsis. `WordImageExportOptions.LayoutOptions` accepts the same `WordPdfExportOptions` as PDF conversion. For PDF and images from one conversion, use the [page-image route](../OfficeIMO.Word.Pdf/README.md#page-images-with-pdf-pagination).
@@ -1043,7 +1048,6 @@ This table is generated from the package-neutral OfficeIMO operation catalog. Th
 | Validate | 4 | 0 | 0 | 0 | 0 | 2 |
 | Remove | 4 | 0 | 0 | 0 | 1 | 0 |
 | Convert | 31 | 26 | 0 | 8 | 0 | 1 |
-| Export | 5 | 0 | 0 | 0 | 0 | 0 |
 
 The complete rows for `OfficeIMO.Word` are published in the [generated operation contract](https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/Compatibility/generated/package-operations.md).
 <!-- officeimo-operation-catalog:end -->

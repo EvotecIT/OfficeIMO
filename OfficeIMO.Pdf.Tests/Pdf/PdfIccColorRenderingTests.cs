@@ -550,7 +550,7 @@ public class PdfIccColorRenderingTests {
         OfficeDrawing drawing = PdfPageImageRenderer.RenderPage(pdf);
         PdfPageRenderResult result = Assert.Single(PdfPageImageRenderer.RenderPages(
             pdf,
-            options: new PdfPageRenderOptions { Format = PdfPageRenderFormat.Svg, ContinueOnError = true }));
+            options: new PdfPageRenderOptions { Format = global::OfficeIMO.Drawing.OfficeImageExportFormat.Svg, ContinueOnError = true }));
 
         Assert.Single(drawing.Shapes);
         Assert.DoesNotContain(

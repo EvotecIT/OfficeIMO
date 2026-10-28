@@ -95,7 +95,7 @@ public class PdfReverseConversionBenchmarks {
     [Benchmark]
     public int PdfToPng() {
         IReadOnlyList<PdfCore.PdfPageRenderResult> pages = PdfCore.PdfDocument.Load(_source).Render.Pages(
-            options: new PdfCore.PdfPageRenderOptions { Format = PdfCore.PdfPageRenderFormat.Png, Dpi = 72D });
+            options: new PdfCore.PdfPageRenderOptions { Format = global::OfficeIMO.Drawing.OfficeImageExportFormat.Png, Dpi = 72D });
         return checked(pages.Sum(static page => page.Bytes?.Length ?? 0));
     }
 
@@ -141,7 +141,7 @@ public class PdfReverseConversionBenchmarks {
         if (odpDocument.Slides.Count != _scenario.PageCount) throw new InvalidOperationException($"ODP reverse conversion produced {odpDocument.Slides.Count} of {_scenario.PageCount} slides.");
         ValidateContent(ReadOpenDocumentText(odp), "ODP");
         IReadOnlyList<PdfCore.PdfPageRenderResult> pngPages = PdfCore.PdfDocument.Load(_source).Render.Pages(
-            options: new PdfCore.PdfPageRenderOptions { Format = PdfCore.PdfPageRenderFormat.Png, Dpi = 72D });
+            options: new PdfCore.PdfPageRenderOptions { Format = global::OfficeIMO.Drawing.OfficeImageExportFormat.Png, Dpi = 72D });
         if (pngPages.Count != _scenario.PageCount || pngPages.Any(static page => !page.Succeeded || page.Bytes is null || page.Bytes.Length <= 24)) {
             throw new InvalidOperationException("PNG reverse conversion did not produce one valid visual artifact per source page.");
         }

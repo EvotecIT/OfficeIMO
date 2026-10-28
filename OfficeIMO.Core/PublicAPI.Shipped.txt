@@ -1665,8 +1665,14 @@ OfficeIMO.Drawing.OfficeImageExportOptions.BackgroundColor.get -> OfficeIMO.Offi
 OfficeIMO.Drawing.OfficeImageExportOptions.BackgroundColor.set -> void
 OfficeIMO.Drawing.OfficeImageExportOptions.CopyImageExportOptionsTo<T>(T! target) -> T!
 OfficeIMO.Drawing.OfficeImageExportOptions.EnsureAccepted(OfficeIMO.Drawing.OfficeImageExportResult! result) -> OfficeIMO.Drawing.OfficeImageExportResult!
+OfficeIMO.Drawing.OfficeImageExportOptions.FailOnLoss.get -> bool
+OfficeIMO.Drawing.OfficeImageExportOptions.FailOnLoss.set -> void
+OfficeIMO.Drawing.OfficeImageExportOptions.FileConflictPolicy.get -> OfficeIMO.Drawing.OfficeImageExportFileConflictPolicy
+OfficeIMO.Drawing.OfficeImageExportOptions.FileConflictPolicy.set -> void
 OfficeIMO.Drawing.OfficeImageExportOptions.Fonts.get -> OfficeIMO.Drawing.OfficeFontFaceCollection!
 OfficeIMO.Drawing.OfficeImageExportOptions.Fonts.set -> void
+OfficeIMO.Drawing.OfficeImageExportOptions.Format.get -> OfficeIMO.Drawing.OfficeImageExportFormat
+OfficeIMO.Drawing.OfficeImageExportOptions.Format.set -> void
 OfficeIMO.Drawing.OfficeImageExportOptions.GetEffectiveScale(double logicalWidth, double logicalHeight) -> double
 OfficeIMO.Drawing.OfficeImageExportOptions.ImageCodec.get -> OfficeIMO.Drawing.IOfficeRasterImageCodec?
 OfficeIMO.Drawing.OfficeImageExportOptions.ImageCodec.set -> void
@@ -6236,6 +6242,7 @@ const OfficeIMO.OfficeDiagnosticCodes.ImageOptimized = "image-optimized" -> stri
 const OfficeIMO.OfficeDiagnosticCodes.ImagePageRotationNotSafelyEditable = "image-page-rotation-not-safely-editable" -> string!
 const OfficeIMO.OfficeDiagnosticCodes.ImagePaintEffectNotSafelyEditable = "image-paint-effect-not-safely-editable" -> string!
 const OfficeIMO.OfficeDiagnosticCodes.ImagePlacementSoftMaskNotSafelyEditable = "image-placement-soft-mask-not-safely-editable" -> string!
+const OfficeIMO.OfficeDiagnosticCodes.ImageRasterScaleReduced = "image-raster-scale-reduced" -> string!
 const OfficeIMO.OfficeDiagnosticCodes.ImageRegionCaptionProximity = "image-region-caption-proximity" -> string!
 const OfficeIMO.OfficeDiagnosticCodes.ImageRegionMarkedContent = "image-region-marked-content" -> string!
 const OfficeIMO.OfficeDiagnosticCodes.ImageRegionPaintOrder = "image-region-paint-order" -> string!
@@ -6246,6 +6253,12 @@ const OfficeIMO.OfficeDiagnosticCodes.ImageResourceBudgetExceeded = "image-resou
 const OfficeIMO.OfficeDiagnosticCodes.ImageResourceRejectedByPolicy = "image-resource-rejected-by-policy" -> string!
 const OfficeIMO.OfficeDiagnosticCodes.ImageResourceTooLarge = "image-resource-too-large" -> string!
 const OfficeIMO.OfficeDiagnosticCodes.ImageSkippedByPolicy = "image-skipped-by-policy" -> string!
+const OfficeIMO.OfficeDiagnosticCodes.ImageSourceDecodeFallback = "image-source-decode-fallback" -> string!
+const OfficeIMO.OfficeDiagnosticCodes.ImageSourceDecodeOmitted = "image-source-decode-omitted" -> string!
+const OfficeIMO.OfficeDiagnosticCodes.ImageSourceDecodedByCallerCodec = "image-source-decoded-by-caller-codec" -> string!
+const OfficeIMO.OfficeDiagnosticCodes.ImageSourceStaticFrameSelected = "image-source-static-frame-selected" -> string!
+const OfficeIMO.OfficeDiagnosticCodes.ImageSourceSvgPreviewLoss = "image-source-svg-preview-loss" -> string!
+const OfficeIMO.OfficeDiagnosticCodes.ImageTextShapingFallback = "image-text-shaping-fallback" -> string!
 const OfficeIMO.OfficeDiagnosticCodes.ImageTransformNotSafelyEditable = "image-transform-not-safely-editable" -> string!
 const OfficeIMO.OfficeDiagnosticCodes.ImageTransparencyMaskNotResolved = "image-transparency-mask-not-resolved" -> string!
 const OfficeIMO.OfficeDiagnosticCodes.ImageUnsupportedBlendModeNotSafelyEditable = "image-unsupported-blend-mode-not-safely-editable" -> string!

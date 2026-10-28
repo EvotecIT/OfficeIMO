@@ -453,8 +453,8 @@ public sealed class IWorkCorpusTests {
         using var result = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(Fixture("iwork-converter/a.key"), conversionOptions: new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
 
         Assert.True(result.IsVisualFallback);
-        Assert.Equal(1920d, result.Value.SlideSize.WidthPoints, 3);
-        Assert.Equal(1080d, result.Value.SlideSize.HeightPoints, 3);
+        Assert.Equal(1920d, result.Value.SlideSize.Width.ToPoints(), 3);
+        Assert.Equal(1080d, result.Value.SlideSize.Height.ToPoints(), 3);
         PowerPointPicture preview = Assert.Single(Assert.Single(result.Value.Slides).Pictures);
         Assert.Equal("Visual fallback from the source Keynote package", preview.AltText);
         IWorkTextBox box = Assert.Single(result.Projection.Slides)
@@ -578,8 +578,8 @@ public sealed class IWorkCorpusTests {
             conversionOptions: IWorkTestPolicy.ForIncompletePreview(new IWorkConversionOptions { Mode = IWorkConversionMode.VisualOnly }));
 
         PowerPointPicture picture = Assert.Single(Assert.Single(result.Value.Slides).Pictures);
-        Assert.Equal(result.Value.SlideSize.WidthPoints / 72d, picture.Width.ToInches(), 3);
-        Assert.Equal(result.Value.SlideSize.HeightPoints / 72d, picture.Height.ToInches(), 3);
+        Assert.Equal(result.Value.SlideSize.Width.ToPoints() / 72d, picture.Width.ToInches(), 3);
+        Assert.Equal(result.Value.SlideSize.Height.ToPoints() / 72d, picture.Height.ToInches(), 3);
         Assert.Equal(0d, picture.Left.ToInches(), 3);
         Assert.Equal(0d, picture.Top.ToInches(), 3);
     }

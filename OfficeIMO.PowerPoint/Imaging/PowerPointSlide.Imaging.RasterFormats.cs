@@ -19,50 +19,50 @@ namespace OfficeIMO.PowerPoint {
 
         /// <summary>Saves this slide as JPEG.</summary>
         public OfficeImageExportResult SaveAsJpeg(string path, PowerPointImageExportOptions? options = null) =>
-            new PowerPointSlideImageExportBuilder(this, options).AsJpeg().Save(path);
+            CreateImageExportOperation(options, OfficeImageExportFormat.Jpeg).Save(path);
 
         /// <summary>Saves this slide as TIFF.</summary>
         public OfficeImageExportResult SaveAsTiff(string path, PowerPointImageExportOptions? options = null) =>
-            new PowerPointSlideImageExportBuilder(this, options).AsTiff().Save(path);
+            CreateImageExportOperation(options, OfficeImageExportFormat.Tiff).Save(path);
 
         /// <summary>Saves this slide as lossless WebP.</summary>
         public OfficeImageExportResult SaveAsWebp(string path, PowerPointImageExportOptions? options = null) =>
-            new PowerPointSlideImageExportBuilder(this, options).AsWebp().Save(path);
+            CreateImageExportOperation(options, OfficeImageExportFormat.Webp).Save(path);
 
         /// <summary>Writes this slide as JPEG.</summary>
         public OfficeImageExportResult SaveAsJpeg(Stream stream, PowerPointImageExportOptions? options = null) =>
-            new PowerPointSlideImageExportBuilder(this, options).AsJpeg().Save(stream);
+            CreateImageExportOperation(options, OfficeImageExportFormat.Jpeg).Save(stream);
 
         /// <summary>Writes this slide as TIFF.</summary>
         public OfficeImageExportResult SaveAsTiff(Stream stream, PowerPointImageExportOptions? options = null) =>
-            new PowerPointSlideImageExportBuilder(this, options).AsTiff().Save(stream);
+            CreateImageExportOperation(options, OfficeImageExportFormat.Tiff).Save(stream);
 
         /// <summary>Writes this slide as lossless WebP.</summary>
         public OfficeImageExportResult SaveAsWebp(Stream stream, PowerPointImageExportOptions? options = null) =>
-            new PowerPointSlideImageExportBuilder(this, options).AsWebp().Save(stream);
+            CreateImageExportOperation(options, OfficeImageExportFormat.Webp).Save(stream);
 
         /// <summary>Asynchronously saves this slide as JPEG.</summary>
         public Task<OfficeImageExportResult> SaveAsJpegAsync(string path, PowerPointImageExportOptions? options = null, CancellationToken cancellationToken = default) =>
-            new PowerPointSlideImageExportBuilder(this, options).AsJpeg().SaveAsync(path, cancellationToken);
+            CreateImageExportOperation(options, OfficeImageExportFormat.Jpeg).SaveAsync(path, cancellationToken);
 
         /// <summary>Asynchronously saves this slide as TIFF.</summary>
         public Task<OfficeImageExportResult> SaveAsTiffAsync(string path, PowerPointImageExportOptions? options = null, CancellationToken cancellationToken = default) =>
-            new PowerPointSlideImageExportBuilder(this, options).AsTiff().SaveAsync(path, cancellationToken);
+            CreateImageExportOperation(options, OfficeImageExportFormat.Tiff).SaveAsync(path, cancellationToken);
 
         /// <summary>Asynchronously saves this slide as lossless WebP.</summary>
         public Task<OfficeImageExportResult> SaveAsWebpAsync(string path, PowerPointImageExportOptions? options = null, CancellationToken cancellationToken = default) =>
-            new PowerPointSlideImageExportBuilder(this, options).AsWebp().SaveAsync(path, cancellationToken);
+            CreateImageExportOperation(options, OfficeImageExportFormat.Webp).SaveAsync(path, cancellationToken);
 
         /// <summary>Asynchronously writes this slide as JPEG.</summary>
         public Task<OfficeImageExportResult> SaveAsJpegAsync(Stream stream, PowerPointImageExportOptions? options = null, CancellationToken cancellationToken = default) =>
-            new PowerPointSlideImageExportBuilder(this, options).AsJpeg().SaveAsync(stream, cancellationToken);
+            CreateImageExportOperation(options, OfficeImageExportFormat.Jpeg).SaveAsync(stream, cancellationToken);
 
         /// <summary>Asynchronously writes this slide as TIFF.</summary>
         public Task<OfficeImageExportResult> SaveAsTiffAsync(Stream stream, PowerPointImageExportOptions? options = null, CancellationToken cancellationToken = default) =>
-            new PowerPointSlideImageExportBuilder(this, options).AsTiff().SaveAsync(stream, cancellationToken);
+            CreateImageExportOperation(options, OfficeImageExportFormat.Tiff).SaveAsync(stream, cancellationToken);
 
         /// <summary>Asynchronously writes this slide as lossless WebP.</summary>
         public Task<OfficeImageExportResult> SaveAsWebpAsync(Stream stream, PowerPointImageExportOptions? options = null, CancellationToken cancellationToken = default) =>
-            new PowerPointSlideImageExportBuilder(this, options).AsWebp().SaveAsync(stream, cancellationToken);
+            CreateImageExportOperation(options, OfficeImageExportFormat.Webp).SaveAsync(stream, cancellationToken);
     }
 }

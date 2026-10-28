@@ -1,5 +1,21 @@
 # Upgrading OfficeIMO
 
+## Word page image exports
+
+Replace Word's `ToPng`, `ToSvg`, `ToJpeg`, `ToTiff` and `ToWebp` with
+`document.ToImage(new WordImageExportOptions { Format = OfficeImageExportFormat.Webp })`.
+SVG is returned as UTF-8 bytes. Replace the format-named save methods and the
+`ToImage()` / `ToImages()` fluent builders with `SaveAsImage(pathOrStream, options)`
+or `SaveAsImages(folder, options)`. Both save forms return `OfficeConversionReport`.
+Use `ToImage(options, out report)` or `await ToImageAsync(options)` for in-memory
+conversion evidence. Set `FileConflictPolicy` to replace an existing output and
+`FailOnLoss` to reject loss before writing. These extensions require `OfficeIMO.Word.Pdf`.
+
+`PdfPageRenderFormat` is replaced by `OfficeIMO.Drawing.OfficeImageExportFormat`.
+`PdfPageRenderOptions.Format` is inherited from the shared image options, and
+`PdfPageRenderResult.Format` uses the same enum. The bounded `Render.Pages` path
+continues to accept PNG and SVG only.
+
 ## Added collection objects
 
 `ExcelCustomDocumentPropertyCollection.Add` returns the attached `ExcelCustomProperty`.

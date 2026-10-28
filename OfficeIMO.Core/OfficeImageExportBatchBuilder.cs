@@ -1,10 +1,7 @@
 using System;
 using System.Collections.Generic;
-using System.Globalization;
-using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
-using OfficeIMO.Core.Internal;
 
 namespace OfficeIMO.Drawing;
 
@@ -270,261 +267,32 @@ public abstract class OfficeImageExportBatchBuilder<TBuilder, TOptions>
         return This;
     }
 
+    private OfficeImageExportBatchOperation<TOptions> Operation => new OfficeImageExportBatchOperation<TOptions>(
+        Options, _format, _conflictPolicy, _export, _exportAsync, _exportEach, _exportEachAsync);
+
     /// <summary>Exports all selected images and materializes their encoded payloads.</summary>
-    public IReadOnlyList<OfficeImageExportResult> Export() {
-        var results = new List<OfficeImageExportResult>();
-        ExportEach(results.Add);
-        FinalizeSequence(results);
-        return results.AsReadOnly();
-    }
+    public IReadOnlyList<OfficeImageExportResult> Export() => Operation.Export();
 
     /// <summary>Asynchronously exports all selected images and materializes their encoded payloads.</summary>
-    public async Task<IReadOnlyList<OfficeImageExportResult>> ExportAsync(
-        CancellationToken cancellationToken = default) {
-        var results = new List<OfficeImageExportResult>();
-        await ExportEachAsync(
-            (result, _) => {
-                results.Add(result);
-                return Task.CompletedTask;
-            },
-            cancellationToken).ConfigureAwait(false);
-        FinalizeSequence(results);
-        return results.AsReadOnly();
-    }
+    public Task<IReadOnlyList<OfficeImageExportResult>> ExportAsync(CancellationToken cancellationToken = default) => Operation.ExportAsync(cancellationToken);
 
-    /// <summary>Streams results to a consumer so callers can release each payload immediately.</summary>
-    public void ExportEach(OfficeImageExportConsumer consumer, CancellationToken cancellationToken = default) {
-        if (consumer == null) throw new ArgumentNullException(nameof(consumer));
-        cancellationToken.ThrowIfCancellationRequested();
-        TOptions effective = Options.CreateEffectiveImageExportOptions<TOptions>();
-        using OfficeImageExportExecutionScope execution = OfficeImageExportExecutionScope.Start(
-            effective.RenderTimeout,
-            cancellationToken);
-        try {
-            var tracker = new OfficeImageExportBatchTracker(effective);
-            int completed = 0;
-            effective.Progress?.Report(new OfficeImageExportProgress(OfficeImageExportProgressStage.Rendering, 0));
+    /// <summary>Streams results without retaining their encoded payloads.</summary>
+    public void ExportEach(OfficeImageExportConsumer consumer, CancellationToken cancellationToken = default) => Operation.ExportEach(consumer, cancellationToken);
 
-            void Accept(OfficeImageExportResult result) {
-                execution.Token.ThrowIfCancellationRequested();
-                result.Require(effective.Policy);
-                tracker.Add(result);
-                int? sequenceCount = result.SequenceIndex == completed ? result.SequenceCount : null;
-                OfficeImageExportResult sequenced = result.WithSequence(completed, sequenceCount);
-                consumer(sequenced);
-                completed++;
-                effective.Progress?.Report(new OfficeImageExportProgress(
-                    OfficeImageExportProgressStage.Completed,
-                    completed,
-                    name: sequenced.Name));
-            }
+    /// <summary>Streams results asynchronously without retaining their encoded payloads.</summary>
+    public Task ExportEachAsync(OfficeImageExportAsyncConsumer consumer, CancellationToken cancellationToken = default) => Operation.ExportEachAsync(consumer, cancellationToken);
 
-            if (_exportEach != null) {
-                _exportEach(_format, effective, Accept, execution.Token);
-                execution.ThrowIfCancellationRequested();
-                return;
-            }
+    /// <summary>Saves images and returns payload-bearing results with normalized paths.</summary>
+    public IReadOnlyList<OfficeImageExportResult> Save(string folderPath) => Operation.Save(folderPath);
 
-            foreach (OfficeImageExportResult result in _export(_format, effective)) Accept(result);
-            execution.ThrowIfCancellationRequested();
-        } catch (OperationCanceledException exception) when (execution.IsTimeoutCancellation(exception)) {
-            throw execution.CreateTimeoutException(exception);
-        }
-    }
+    /// <summary>Saves images without retaining encoded payloads in the returned result.</summary>
+    public OfficeImageExportBatchSaveResult SaveFiles(string folderPath) => Operation.SaveFiles(folderPath);
 
-    /// <summary>Streams results asynchronously when the adapter owns a genuine asynchronous path.</summary>
-    public async Task ExportEachAsync(
-        OfficeImageExportAsyncConsumer consumer,
-        CancellationToken cancellationToken = default) {
-        if (consumer == null) throw new ArgumentNullException(nameof(consumer));
-        cancellationToken.ThrowIfCancellationRequested();
-        TOptions effective = Options.CreateEffectiveImageExportOptions<TOptions>();
-        using OfficeImageExportExecutionScope execution = OfficeImageExportExecutionScope.Start(
-            effective.RenderTimeout,
-            cancellationToken);
-        CancellationToken operationCancellationToken = execution.Token;
-        var tracker = new OfficeImageExportBatchTracker(effective);
-        int completed = 0;
-        effective.Progress?.Report(new OfficeImageExportProgress(OfficeImageExportProgressStage.Rendering, 0));
-
-        async Task AcceptAsync(OfficeImageExportResult result, CancellationToken token) {
-            token.ThrowIfCancellationRequested();
-            result.Require(effective.Policy);
-            tracker.Add(result);
-            int? sequenceCount = result.SequenceIndex == completed ? result.SequenceCount : null;
-            OfficeImageExportResult sequenced = result.WithSequence(completed, sequenceCount);
-            await consumer(sequenced, token).ConfigureAwait(false);
-            completed++;
-            effective.Progress?.Report(new OfficeImageExportProgress(
-                OfficeImageExportProgressStage.Completed,
-                completed,
-                name: sequenced.Name));
-        }
-
-        try {
-            if (_exportEachAsync != null) {
-                await _exportEachAsync(_format, effective, AcceptAsync, operationCancellationToken).ConfigureAwait(false);
-                execution.ThrowIfCancellationRequested();
-                return;
-            }
-
-            if (_exportAsync != null) {
-                IReadOnlyList<OfficeImageExportResult> asyncResults =
-                    await _exportAsync(_format, effective, operationCancellationToken).ConfigureAwait(false);
-                foreach (OfficeImageExportResult result in asyncResults) await AcceptAsync(result, operationCancellationToken).ConfigureAwait(false);
-                execution.ThrowIfCancellationRequested();
-                return;
-            }
-
-            if (_exportEach != null) {
-                using var linkedCancellation = CancellationTokenSource.CreateLinkedTokenSource(operationCancellationToken);
-                using var buffer = new OfficeImageExportAsyncBuffer();
-                Task producer = Task.Run(() => {
-                    try {
-                        _exportEach(
-                            _format,
-                            effective,
-                            result => buffer.Add(result, linkedCancellation.Token),
-                            linkedCancellation.Token);
-                        buffer.Complete();
-                    } catch (Exception exception) {
-                        buffer.Complete(exception);
-                    }
-                });
-                try {
-                    while (await buffer.ReadAsync(operationCancellationToken).ConfigureAwait(false) is { } result) {
-                        await AcceptAsync(result, operationCancellationToken).ConfigureAwait(false);
-                    }
-                } finally {
-                    linkedCancellation.Cancel();
-                    await producer.ConfigureAwait(false);
-                }
-                execution.ThrowIfCancellationRequested();
-                return;
-            }
-
-            foreach (OfficeImageExportResult result in _export(_format, effective)) {
-                await AcceptAsync(result, operationCancellationToken).ConfigureAwait(false);
-            }
-            execution.ThrowIfCancellationRequested();
-        } catch (OperationCanceledException exception) when (execution.IsTimeoutCancellation(exception)) {
-            throw execution.CreateTimeoutException(exception);
-        }
-    }
-
-    /// <summary>Saves all selected images and returns payload-bearing results with their normalized paths.</summary>
-    public IReadOnlyList<OfficeImageExportResult> Save(string folderPath) {
-        string fullFolder = PrepareFolder(folderPath);
-        var saved = new List<OfficeImageExportResult>();
-        var usedFileNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        int index = 0;
-        ExportEach(result => {
-            string path = ResolveBatchPath(fullFolder, result, index++, usedFileNames);
-            Options.Progress?.Report(new OfficeImageExportProgress(OfficeImageExportProgressStage.Saving, index - 1, name: result.Name, destinationPath: path));
-            string savedPath = result.WriteToFile(path, _conflictPolicy);
-            saved.Add(result.WithSavedPath(savedPath));
-        });
-        FinalizeSequence(saved);
-        return saved.AsReadOnly();
-    }
-
-    /// <summary>
-    /// Saves all selected images and returns only paths, metadata, and diagnostics so encoded payloads can be released.
-    /// </summary>
-    public OfficeImageExportBatchSaveResult SaveFiles(string folderPath) {
-        string fullFolder = PrepareFolder(folderPath);
-        var files = new List<OfficeImageExportSavedFile>();
-        var usedFileNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        int index = 0;
-        ExportEach(result => {
-            string path = ResolveBatchPath(fullFolder, result, index++, usedFileNames);
-            Options.Progress?.Report(new OfficeImageExportProgress(OfficeImageExportProgressStage.Saving, index - 1, name: result.Name, destinationPath: path));
-            string savedPath = result.WriteToFile(path, _conflictPolicy);
-            files.Add(new OfficeImageExportSavedFile(result, savedPath));
-        });
-        FinalizeSequence(files);
-        return new OfficeImageExportBatchSaveResult(files);
-    }
-
-    /// <summary>Asynchronously saves all selected images and returns payload-bearing results with normalized paths.</summary>
-    public async Task<IReadOnlyList<OfficeImageExportResult>> SaveAsync(
-        string folderPath,
-        CancellationToken cancellationToken = default) {
-        string fullFolder = PrepareFolder(folderPath);
-        var saved = new List<OfficeImageExportResult>();
-        var usedFileNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        int index = 0;
-        await ExportEachAsync(async (result, token) => {
-            string path = ResolveBatchPath(fullFolder, result, index++, usedFileNames);
-            Options.Progress?.Report(new OfficeImageExportProgress(OfficeImageExportProgressStage.Saving, index - 1, name: result.Name, destinationPath: path));
-            string savedPath = await result.WriteToFileAsync(path, _conflictPolicy, token).ConfigureAwait(false);
-            saved.Add(result.WithSavedPath(savedPath));
-        }, cancellationToken).ConfigureAwait(false);
-        FinalizeSequence(saved);
-        return saved.AsReadOnly();
-    }
+    /// <summary>Asynchronously saves images and returns payload-bearing results with normalized paths.</summary>
+    public Task<IReadOnlyList<OfficeImageExportResult>> SaveAsync(string folderPath, CancellationToken cancellationToken = default) => Operation.SaveAsync(folderPath, cancellationToken);
 
     /// <summary>Asynchronously saves images without retaining encoded payloads in the returned result.</summary>
-    public async Task<OfficeImageExportBatchSaveResult> SaveFilesAsync(
-        string folderPath,
-        CancellationToken cancellationToken = default) {
-        string fullFolder = PrepareFolder(folderPath);
-        var files = new List<OfficeImageExportSavedFile>();
-        var usedFileNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        int index = 0;
-        await ExportEachAsync(async (result, token) => {
-            string path = ResolveBatchPath(fullFolder, result, index++, usedFileNames);
-            Options.Progress?.Report(new OfficeImageExportProgress(OfficeImageExportProgressStage.Saving, index - 1, name: result.Name, destinationPath: path));
-            string savedPath = await result.WriteToFileAsync(path, _conflictPolicy, token).ConfigureAwait(false);
-            files.Add(new OfficeImageExportSavedFile(result, savedPath));
-        }, cancellationToken).ConfigureAwait(false);
-        FinalizeSequence(files);
-        return new OfficeImageExportBatchSaveResult(files);
-    }
-
-    private string ResolveBatchPath(
-        string folder,
-        OfficeImageExportResult result,
-        int index,
-        ISet<string> usedFileNames) {
-        string name = string.IsNullOrWhiteSpace(result.Name)
-            ? "image-" + (index + 1).ToString(CultureInfo.InvariantCulture)
-            : result.Name!;
-        string fileName = GetUniqueFileName(OfficePortableFileName.SanitizeBaseName(name), _format.GetFileExtension(), usedFileNames);
-        return OfficeImageExportPath.NormalizeFile(Path.Combine(folder, fileName), _format);
-    }
-
-    private static void FinalizeSequence(List<OfficeImageExportResult> results) {
-        for (int index = 0; index < results.Count; index++) {
-            results[index] = results[index].WithSequence(index, results.Count);
-        }
-    }
-
-    private static void FinalizeSequence(List<OfficeImageExportSavedFile> files) {
-        for (int index = 0; index < files.Count; index++) {
-            files[index] = files[index].WithSequence(index, files.Count);
-        }
-    }
-
-    private static string PrepareFolder(string folderPath) {
-        if (string.IsNullOrWhiteSpace(folderPath)) throw new ArgumentException("Output folder cannot be null or whitespace.", nameof(folderPath));
-        string fullFolder = Path.GetFullPath(folderPath);
-        Directory.CreateDirectory(fullFolder);
-        return fullFolder;
-    }
-
-    private static string GetUniqueFileName(string baseName, string extension, ISet<string> usedFileNames) {
-        if (string.IsNullOrWhiteSpace(baseName)) baseName = "image";
-        string candidate = baseName + extension;
-        if (usedFileNames.Add(candidate)) return candidate;
-
-        int suffix = 2;
-        do {
-            candidate = baseName + "-" + suffix.ToString(CultureInfo.InvariantCulture) + extension;
-            suffix++;
-        } while (!usedFileNames.Add(candidate));
-        return candidate;
-    }
+    public Task<OfficeImageExportBatchSaveResult> SaveFilesAsync(string folderPath, CancellationToken cancellationToken = default) => Operation.SaveFilesAsync(folderPath, cancellationToken);
 
     private TBuilder This => (TBuilder)this;
 }

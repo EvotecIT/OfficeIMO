@@ -115,7 +115,7 @@ public class HtmlOfficeAdaptersPowerPointTables {
             diagnostic.Code == HtmlConversionDiagnosticCodes.ContentApproximated
             && diagnostic.Detail?.Contains("projection=paginatedNativeTable", StringComparison.Ordinal) == true);
         Assert.All(tables, table =>
-            Assert.True(table.TopPoints + table.HeightPoints <= presentation.SlideSize.Height.ToPoints() - 30D));
+            Assert.True(table.Top.ToPoints() + table.Height.ToPoints() <= presentation.SlideSize.Height.ToPoints() - 30D));
     }
 
     [Fact]

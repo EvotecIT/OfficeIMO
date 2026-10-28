@@ -59,7 +59,7 @@ public sealed class StudioFormPreviewTests {
             Assert.False(model.HasFormPreview);
             Assert.Equal("Created", Assert.Single(model.FormFields).Name);
             await model.SaveCommand.ExecuteAsync(null);
-            var rendered = PdfDocument.Load(source).Render.Pages("1", new PdfPageRenderOptions { Format = PdfPageRenderFormat.Png, Scale = 1D }).Single();
+            var rendered = PdfDocument.Load(source).Render.Pages("1", new PdfPageRenderOptions { Format = global::OfficeIMO.Drawing.OfficeImageExportFormat.Png, Scale = 1D }).Single();
             using var stream = new MemoryStream(rendered.Bytes!);
             using var bitmap = new Bitmap(stream);
             Assert.Equal(preview, Encode(bitmap));
@@ -90,7 +90,7 @@ public sealed class StudioFormPreviewTests {
             Assert.Equal(original, File.ReadAllBytes(source));
             await model.SaveAsCommand.ExecuteAsync(null);
             Assert.False(model.HasFormPreview);
-            var rendered = PdfDocument.Load(output).Render.Pages("1", new PdfPageRenderOptions { Format = PdfPageRenderFormat.Png, Scale = 1D }).Single();
+            var rendered = PdfDocument.Load(output).Render.Pages("1", new PdfPageRenderOptions { Format = global::OfficeIMO.Drawing.OfficeImageExportFormat.Png, Scale = 1D }).Single();
             Assert.True(rendered.Succeeded);
             using (var stream = new MemoryStream(rendered.Bytes!))
             using (var bitmap = new Bitmap(stream)) Assert.Equal(preview, Encode(bitmap));

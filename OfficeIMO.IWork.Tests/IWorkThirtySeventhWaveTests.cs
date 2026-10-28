@@ -18,8 +18,8 @@ public sealed partial class IWorkBoundaryTests {
 
         Assert.True(result.IsVisualFallback);
         Assert.True(result.Projection.HasEditableContent);
-        Assert.Equal(960d, result.Value.SlideSize.WidthPoints, 3);
-        Assert.Equal(540d, result.Value.SlideSize.HeightPoints, 3);
+        Assert.Equal(960d, result.Value.SlideSize.Width.ToPoints(), 3);
+        Assert.Equal(540d, result.Value.SlideSize.Height.ToPoints(), 3);
         Assert.Empty(result.Value.ValidateDocument());
     }
 
@@ -33,8 +33,8 @@ public sealed partial class IWorkBoundaryTests {
         using var result = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(package);
 
         Assert.False(result.IsVisualFallback);
-        Assert.Equal(size, result.Value.SlideSize.WidthPoints, 3);
-        Assert.Equal(size, result.Value.SlideSize.HeightPoints, 3);
+        Assert.Equal(size, result.Value.SlideSize.Width.ToPoints(), 3);
+        Assert.Equal(size, result.Value.SlideSize.Height.ToPoints(), 3);
         Assert.Empty(result.Value.ValidateDocument());
     }
 

@@ -3217,7 +3217,7 @@ public partial class PdfPageImageRendererTests {
         OfficeDrawing drawing = PdfPageImageRenderer.RenderPage(pdf);
         PdfPageRenderResult result = Assert.Single(PdfPageImageRenderer.RenderPages(
             pdf,
-            options: new PdfPageRenderOptions { Format = PdfPageRenderFormat.Svg }));
+            options: new PdfPageRenderOptions { Format = global::OfficeIMO.Drawing.OfficeImageExportFormat.Svg }));
 
         var image = Assert.Single(drawing.Images);
         Assert.Equal("image/png", image.ContentType);
@@ -3240,7 +3240,7 @@ public partial class PdfPageImageRendererTests {
         OfficeDrawing drawing = PdfPageImageRenderer.RenderPage(pdf);
         PdfPageRenderResult result = Assert.Single(PdfPageImageRenderer.RenderPages(
             pdf,
-            options: new PdfPageRenderOptions { Format = PdfPageRenderFormat.Svg, ContinueOnError = true }));
+            options: new PdfPageRenderOptions { Format = global::OfficeIMO.Drawing.OfficeImageExportFormat.Svg, ContinueOnError = true }));
 
         Assert.Equal("image/png", Assert.Single(drawing.Images).ContentType);
         Assert.DoesNotContain(
@@ -3263,7 +3263,7 @@ public partial class PdfPageImageRendererTests {
 
         PdfPageRenderResult result = Assert.Single(PdfPageImageRenderer.RenderPages(
             pdf,
-            options: new PdfPageRenderOptions { Format = PdfPageRenderFormat.Svg, ContinueOnError = true }));
+            options: new PdfPageRenderOptions { Format = global::OfficeIMO.Drawing.OfficeImageExportFormat.Svg, ContinueOnError = true }));
 
         Assert.DoesNotContain(
             result.CapabilityDiagnostics,
@@ -3284,7 +3284,7 @@ public partial class PdfPageImageRendererTests {
 
         PdfPageRenderResult result = Assert.Single(PdfPageImageRenderer.RenderPages(
             pdf,
-            options: new PdfPageRenderOptions { Format = PdfPageRenderFormat.Svg, ContinueOnError = true }));
+            options: new PdfPageRenderOptions { Format = global::OfficeIMO.Drawing.OfficeImageExportFormat.Svg, ContinueOnError = true }));
 
         Assert.Contains(
             result.CapabilityDiagnostics,
@@ -3302,7 +3302,7 @@ public partial class PdfPageImageRendererTests {
         OfficeDrawing drawing = PdfPageImageRenderer.RenderPage(pdf);
         PdfPageRenderResult result = Assert.Single(PdfPageImageRenderer.RenderPages(
             pdf,
-            options: new PdfPageRenderOptions { Format = PdfPageRenderFormat.Svg, ContinueOnError = true }));
+            options: new PdfPageRenderOptions { Format = global::OfficeIMO.Drawing.OfficeImageExportFormat.Svg, ContinueOnError = true }));
 
         Assert.Equal("image/png", Assert.Single(drawing.Images).ContentType);
         Assert.DoesNotContain(
@@ -3326,7 +3326,7 @@ public partial class PdfPageImageRendererTests {
         OfficeDrawing drawing = PdfPageImageRenderer.RenderPage(pdf);
         PdfPageRenderResult result = Assert.Single(PdfPageImageRenderer.RenderPages(
             pdf,
-            options: new PdfPageRenderOptions { Format = PdfPageRenderFormat.Svg }));
+            options: new PdfPageRenderOptions { Format = global::OfficeIMO.Drawing.OfficeImageExportFormat.Svg }));
 
         Assert.Contains(drawing.Shapes, item => item.Shape.FillColor == OfficeColor.FromRgb(128, 0, 0));
         Assert.DoesNotContain(result.CapabilityDiagnostics, item => item.Code == PdfRenderCapabilities.ColorSpaceId);
@@ -3367,7 +3367,7 @@ public partial class PdfPageImageRendererTests {
         OfficeDrawing drawing = PdfPageImageRenderer.RenderPage(pdf);
         PdfPageRenderResult result = Assert.Single(PdfPageImageRenderer.RenderPages(
             pdf,
-            options: new PdfPageRenderOptions { Format = PdfPageRenderFormat.Svg }));
+            options: new PdfPageRenderOptions { Format = global::OfficeIMO.Drawing.OfficeImageExportFormat.Svg }));
 
         Assert.Contains(drawing.Shapes, item => item.Shape.FillColor == OfficeColor.FromRgb(0, 255, 0));
         Assert.Contains(drawing.Shapes, item => item.Shape.FillColor == OfficeColor.FromRgb(237, 28, 36));
@@ -3524,7 +3524,7 @@ public partial class PdfPageImageRendererTests {
         OfficeDrawing drawing = PdfPageImageRenderer.RenderPage(pdf);
         PdfPageRenderResult result = Assert.Single(PdfPageImageRenderer.RenderPages(
             pdf,
-            options: new PdfPageRenderOptions { Format = PdfPageRenderFormat.Svg }));
+            options: new PdfPageRenderOptions { Format = global::OfficeIMO.Drawing.OfficeImageExportFormat.Svg }));
 
         OfficeColor calibrated = OfficeColorSpaceConverter.FromCalibratedRgb(
             0.1D, 0.2D, 0.3D,

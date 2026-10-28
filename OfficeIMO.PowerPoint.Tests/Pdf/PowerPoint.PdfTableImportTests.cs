@@ -833,7 +833,7 @@ public class PowerPointPdfTableImportTests {
     public void PdfPowerPointConversionReport_HybridCorrelatesRenderFailuresWithSourcePages() {
         var successfulRender = new PdfCore.PdfPageRenderResult(
             1,
-            PdfCore.PdfPageRenderFormat.Png,
+            global::OfficeIMO.Drawing.OfficeImageExportFormat.Png,
             new byte[] { 1 },
             1,
             1,
@@ -842,7 +842,7 @@ public class PowerPointPdfTableImportTests {
             new PdfCore.PdfPageRenderOptions().MaxDiagnosticCharactersPerPage);
         var failedRender = new PdfCore.PdfPageRenderResult(
             2,
-            PdfCore.PdfPageRenderFormat.Png,
+            global::OfficeIMO.Drawing.OfficeImageExportFormat.Png,
             null,
             0,
             0,
@@ -934,7 +934,7 @@ public class PowerPointPdfTableImportTests {
         OfficeConversionLossKind lossKind,
         bool hasOmittedPageContent) {
         var successfulRender = new PdfCore.PdfPageRenderResult(
-            1, PdfCore.PdfPageRenderFormat.Png, new byte[] { 1 }, 1, 1, TimeSpan.Zero,
+            1, global::OfficeIMO.Drawing.OfficeImageExportFormat.Png, new byte[] { 1 }, 1, 1, TimeSpan.Zero,
             Array.Empty<PdfCore.PdfRenderCapabilityDiagnostic>(),
             new PdfCore.PdfPageRenderOptions().MaxDiagnosticCharactersPerPage);
         var scope = new PdfCore.PdfTableExtractionScopeReport(
@@ -984,11 +984,11 @@ public class PowerPointPdfTableImportTests {
     [Fact]
     public void PdfPowerPointConversionReport_ClassifiesPartiallyOmittedHybridContentAsOmission() {
         var successfulRender = new PdfCore.PdfPageRenderResult(
-            1, PdfCore.PdfPageRenderFormat.Png, new byte[] { 1 }, 1, 1, TimeSpan.Zero,
+            1, global::OfficeIMO.Drawing.OfficeImageExportFormat.Png, new byte[] { 1 }, 1, 1, TimeSpan.Zero,
             Array.Empty<PdfCore.PdfRenderCapabilityDiagnostic>(),
             new PdfCore.PdfPageRenderOptions().MaxDiagnosticCharactersPerPage);
         var failedRender = new PdfCore.PdfPageRenderResult(
-            2, PdfCore.PdfPageRenderFormat.Png, null, 0, 0, TimeSpan.Zero,
+            2, global::OfficeIMO.Drawing.OfficeImageExportFormat.Png, null, 0, 0, TimeSpan.Zero,
             Array.Empty<PdfCore.PdfRenderCapabilityDiagnostic>(),
             new PdfCore.PdfPageRenderOptions().MaxDiagnosticCharactersPerPage,
             new[] { "render failed" });

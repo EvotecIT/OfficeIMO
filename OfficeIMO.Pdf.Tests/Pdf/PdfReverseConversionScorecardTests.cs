@@ -251,7 +251,7 @@ public sealed class PdfReverseConversionScorecardTests {
             }
             case "pdf-to-png": {
                 var options = new PdfCore.PdfPageRenderOptions {
-                    Format = PdfCore.PdfPageRenderFormat.Png,
+                    Format = global::OfficeIMO.Drawing.OfficeImageExportFormat.Png,
                     Dpi = routeConfiguration.GetProperty("dpi").GetDouble(),
                     ContinueOnError = false
                 };

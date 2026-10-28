@@ -315,8 +315,8 @@ public sealed class HtmlWordChartTests {
         var secondImage = document.AddParagraph().AddImage(new MemoryStream(second), "second.png", OfficeIMO.OfficeLength.Pixels(20), OfficeIMO.OfficeLength.Pixels(20));
         var target = document.Paragraphs[0].GetRuns().Single()._run!;
         foreach (var item in new[] { (firstImage, "First"), (secondImage, "Second") }) {
-            string id = item.Item1.Image!.RelationshipId!;
-            item.Item1.Image!._Image.Remove();
+            string id = item.Item1.RelationshipId!;
+            item.Item1._Image.Remove();
             target.Append(new DocumentFormat.OpenXml.Wordprocessing.Picture(
                 new DocumentFormat.OpenXml.Vml.Shape(new DocumentFormat.OpenXml.Vml.ImageData { RelationshipId = id }) {
                     Id = item.Item2, Style = "width:15pt;height:15pt"

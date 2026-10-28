@@ -151,7 +151,7 @@ public sealed class StudioPaneOcrPromptTests {
     private static void CreateMixedScan(string path) {
         byte[] image = PdfDocument.Create(compose => compose.Page(page => page.Size(300, 400)
             .Content(content => content.Text("SCANNED DOCUMENT"))))
-            .Render.Pages(PdfPageSelection.From(1), new PdfPageRenderOptions { Format = PdfPageRenderFormat.Png, Dpi = 72 }).Single().Bytes!;
+            .Render.Pages(PdfPageSelection.From(1), new PdfPageRenderOptions { Format = global::OfficeIMO.Drawing.OfficeImageExportFormat.Png, Dpi = 72 }).Single().Bytes!;
         PdfDocument.Create(compose => {
             compose.Page(page => page.Size(300, 400).Content(content => content.Text("This page has selectable text.")));
             compose.Page(page => page.Size(300, 400).Content(content => content.Image(image, 150, 200)));

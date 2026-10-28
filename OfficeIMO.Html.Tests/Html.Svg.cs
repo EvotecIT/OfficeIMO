@@ -38,8 +38,8 @@ namespace OfficeIMO.Tests {
                 using var document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWord();
                 var image = Assert.Single(document.Images);
 
-                Assert.InRange(image.Width!.Value, 10.49D, 10.51D);
-                Assert.InRange(image.Height!.Value, 5.49D, 5.51D);
+                Assert.InRange(image.Width!.Value.ToPixels(), 10.49D, 10.51D);
+                Assert.InRange(image.Height!.Value.ToPixels(), 5.49D, 5.51D);
             } finally {
                 CultureInfo.CurrentCulture = previousCulture;
             }

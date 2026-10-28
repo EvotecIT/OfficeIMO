@@ -91,7 +91,7 @@ public partial class Word {
             Directory.CreateDirectory(output);
             string stem = Path.Combine(output, colorKind + "-" + transforms);
             File.WriteAllBytes(stem + ".pdf", bytes);
-            File.WriteAllBytes(stem + ".png", document.ToPng(new WordImageExportOptions { Scale = 1D }));
+            File.WriteAllBytes(stem + ".png", document.ToImage(new WordImageExportOptions { Scale = 1D }));
         }
     }
 }

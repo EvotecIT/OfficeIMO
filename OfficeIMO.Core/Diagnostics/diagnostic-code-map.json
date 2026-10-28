@@ -10626,6 +10626,70 @@
         "OfficeIMO.Workflows/OfficeWorkflowRunner.cs"
       ],
       "note": "Completed registered conversion readback is retained in the shared report."
+    },
+    {
+      "oldCode": "IMAGE_RASTER_SCALE_REDUCED",
+      "catalogCode": "image-raster-scale-reduced",
+      "member": "ImageRasterScaleReduced",
+      "origins": [
+        "OfficeIMO.Core/OfficeImageExportDiagnosticCodes.cs:6"
+      ]
+    },
+    {
+      "oldCode": "IMAGE_SOURCE_DECODED_BY_CALLER_CODEC",
+      "catalogCode": "image-source-decoded-by-caller-codec",
+      "member": "ImageSourceDecodedByCallerCodec",
+      "origins": [
+        "OfficeIMO.Core/OfficeImageExportDiagnosticCodes.cs:9"
+      ]
+    },
+    {
+      "oldCode": "IMAGE_SOURCE_DECODE_FALLBACK",
+      "catalogCode": "image-source-decode-fallback",
+      "member": "ImageSourceDecodeFallback",
+      "origins": [
+        "OfficeIMO.Core/OfficeImageExportDiagnosticCodes.cs:12"
+      ]
+    },
+    {
+      "oldCode": "IMAGE_SOURCE_DECODE_OMITTED",
+      "catalogCode": "image-source-decode-omitted",
+      "member": "ImageSourceDecodeOmitted",
+      "origins": [
+        "OfficeIMO.Core/OfficeImageExportDiagnosticCodes.cs:15"
+      ]
+    },
+    {
+      "oldCode": "IMAGE_SOURCE_STATIC_FRAME_SELECTED",
+      "catalogCode": "image-source-static-frame-selected",
+      "member": "ImageSourceStaticFrameSelected",
+      "origins": [
+        "OfficeIMO.Core/OfficeImageExportDiagnosticCodes.cs:18"
+      ]
+    },
+    {
+      "oldCode": "IMAGE_SOURCE_SVG_PREVIEW_LOSS",
+      "catalogCode": "image-source-svg-preview-loss",
+      "member": "ImageSourceSvgPreviewLoss",
+      "origins": [
+        "OfficeIMO.Core/OfficeImageExportDiagnosticCodes.cs:21"
+      ]
+    },
+    {
+      "oldCode": "IMAGE_FONT_SUBSTITUTED",
+      "catalogCode": "font-family-substitution",
+      "member": "FontFamilySubstitution",
+      "origins": [
+        "OfficeIMO.Core/OfficeImageExportDiagnosticCodes.cs:24"
+      ]
+    },
+    {
+      "oldCode": "IMAGE_TEXT_SHAPING_FALLBACK",
+      "catalogCode": "image-text-shaping-fallback",
+      "member": "ImageTextShapingFallback",
+      "origins": [
+        "OfficeIMO.Core/OfficeImageExportDiagnosticCodes.cs:27"
+      ]
     }
   ],
   "dynamicPatterns": [

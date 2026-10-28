@@ -69,7 +69,7 @@ internal static class PdfInvoiceEvidenceRunner {
 
         PdfDocument document = PdfDocument.Load(pdf);
         IReadOnlyList<PdfPageRenderResult> rendered = document.Render.Pages("1-2", new PdfPageRenderOptions {
-            Format = PdfPageRenderFormat.Png,
+            Format = global::OfficeIMO.Drawing.OfficeImageExportFormat.Png,
             Dpi = 120,
             MaxPages = 2,
             ContinueOnError = false

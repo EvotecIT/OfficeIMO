@@ -32,15 +32,13 @@ namespace OfficeIMO.PowerPoint {
         /// Saves visible presentation slides as PNG files in a folder.
         /// </summary>
         public IReadOnlyList<OfficeImageExportResult> SaveAsImages(string folderPath, PowerPointDocumentImageExportOptions? options = null) =>
-            new PowerPointDocumentImageExportBuilder(this, options).AsPng().Save(folderPath);
+            CreateImageExportBatchOperation(options, OfficeImageExportFormat.Png).Save(folderPath);
 
         /// <summary>
         /// Saves visible presentation slides as image files in a folder.
         /// </summary>
         public IReadOnlyList<OfficeImageExportResult> SaveAsImages(string folderPath, OfficeImageExportFormat format, PowerPointDocumentImageExportOptions? options = null) {
-            PowerPointDocumentImageExportBuilder builder = new PowerPointDocumentImageExportBuilder(this, options);
-            builder.As(format);
-            return builder.Save(folderPath);
+            return CreateImageExportBatchOperation(options, format).Save(folderPath);
         }
 
         /// <summary>
@@ -50,7 +48,7 @@ namespace OfficeIMO.PowerPoint {
             string folderPath,
             PowerPointDocumentImageExportOptions? options = null,
             CancellationToken cancellationToken = default) =>
-            new PowerPointDocumentImageExportBuilder(this, options).AsPng().SaveAsync(folderPath, cancellationToken);
+            CreateImageExportBatchOperation(options, OfficeImageExportFormat.Png).SaveAsync(folderPath, cancellationToken);
 
         /// <summary>
         /// Asynchronously saves visible presentation slides as image files in a folder.
@@ -60,9 +58,7 @@ namespace OfficeIMO.PowerPoint {
             OfficeImageExportFormat format,
             PowerPointDocumentImageExportOptions? options = null,
             CancellationToken cancellationToken = default) {
-            PowerPointDocumentImageExportBuilder builder = new PowerPointDocumentImageExportBuilder(this, options);
-            builder.As(format);
-            return builder.SaveAsync(folderPath, cancellationToken);
+            return CreateImageExportBatchOperation(options, format).SaveAsync(folderPath, cancellationToken);
         }
 
         private static PowerPointDocumentImageExportOptions NormalizeDocumentImageExportOptions(PowerPointDocumentImageExportOptions? options) {

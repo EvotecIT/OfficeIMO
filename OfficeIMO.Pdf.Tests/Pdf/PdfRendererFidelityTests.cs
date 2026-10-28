@@ -188,7 +188,7 @@ public sealed partial class PdfRendererFidelityTests {
             "/DR << /Font << /Helv << /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >> >> >>" +
             (needAppearances ? " /NeedAppearances true" : string.Empty) + " >>";
         byte[] pdf = BuildPdf(string.Empty, "<< >>", objects: objects, catalogEntries: acroForm, pageEntries: "/Annots [" + references + " ]");
-        return Assert.Single(PdfPageImageRenderer.RenderPages(pdf, options: new PdfPageRenderOptions { Format = PdfPageRenderFormat.Png, Dpi = 72D }));
+        return Assert.Single(PdfPageImageRenderer.RenderPages(pdf, options: new PdfPageRenderOptions { Format = global::OfficeIMO.Drawing.OfficeImageExportFormat.Png, Dpi = 72D }));
     }
 
     private static int CountPixels(OfficeRasterImage image, int left, int top, int right, int bottom, Func<OfficeColor, bool> predicate) {

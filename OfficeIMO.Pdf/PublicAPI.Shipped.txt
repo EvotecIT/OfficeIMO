@@ -5572,9 +5572,6 @@ OfficeIMO.Pdf.PdfPageRegion.Top.get -> double
 OfficeIMO.Pdf.PdfPageRegion.Width.get -> double
 OfficeIMO.Pdf.PdfPageRegion.X.get -> double
 OfficeIMO.Pdf.PdfPageRegion.Y.get -> double
-OfficeIMO.Pdf.PdfPageRenderFormat
-OfficeIMO.Pdf.PdfPageRenderFormat.Png = 0 -> OfficeIMO.Pdf.PdfPageRenderFormat
-OfficeIMO.Pdf.PdfPageRenderFormat.Svg = 1 -> OfficeIMO.Pdf.PdfPageRenderFormat
 OfficeIMO.Pdf.PdfPageRenderOptions
 OfficeIMO.Pdf.PdfPageRenderOptions.Background.get -> OfficeIMO.OfficeColor
 OfficeIMO.Pdf.PdfPageRenderOptions.Background.set -> void
@@ -5582,8 +5579,6 @@ OfficeIMO.Pdf.PdfPageRenderOptions.ContinueOnError.get -> bool
 OfficeIMO.Pdf.PdfPageRenderOptions.ContinueOnError.set -> void
 OfficeIMO.Pdf.PdfPageRenderOptions.Dpi.get -> double?
 OfficeIMO.Pdf.PdfPageRenderOptions.Dpi.set -> void
-OfficeIMO.Pdf.PdfPageRenderOptions.Format.get -> OfficeIMO.Pdf.PdfPageRenderFormat
-OfficeIMO.Pdf.PdfPageRenderOptions.Format.set -> void
 OfficeIMO.Pdf.PdfPageRenderOptions.MaxDiagnosticCharactersPerPage.get -> int
 OfficeIMO.Pdf.PdfPageRenderOptions.MaxDiagnosticCharactersPerPage.set -> void
 OfficeIMO.Pdf.PdfPageRenderOptions.MaxDiagnosticsPerPage.get -> int
@@ -5604,7 +5599,7 @@ OfficeIMO.Pdf.PdfPageRenderResult.Bytes.get -> byte[]?
 OfficeIMO.Pdf.PdfPageRenderResult.CapabilityDiagnostics.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.Pdf.PdfRenderCapabilityDiagnostic!>!
 OfficeIMO.Pdf.PdfPageRenderResult.Diagnostics.get -> System.Collections.Generic.IReadOnlyList<string!>!
 OfficeIMO.Pdf.PdfPageRenderResult.Elapsed.get -> System.TimeSpan
-OfficeIMO.Pdf.PdfPageRenderResult.Format.get -> OfficeIMO.Pdf.PdfPageRenderFormat
+OfficeIMO.Pdf.PdfPageRenderResult.Format.get -> OfficeIMO.Drawing.OfficeImageExportFormat
 OfficeIMO.Pdf.PdfPageRenderResult.Height.get -> int
 OfficeIMO.Pdf.PdfPageRenderResult.PageNumber.get -> int
 OfficeIMO.Pdf.PdfPageRenderResult.Succeeded.get -> bool

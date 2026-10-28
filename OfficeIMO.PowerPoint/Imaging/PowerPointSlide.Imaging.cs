@@ -42,53 +42,53 @@ namespace OfficeIMO.PowerPoint {
         /// Saves this slide as a PNG file.
         /// </summary>
         public OfficeImageExportResult SaveAsPng(string path, PowerPointImageExportOptions? options = null) =>
-            new PowerPointSlideImageExportBuilder(this, options).AsPng().Save(path);
+            CreateImageExportOperation(options, OfficeImageExportFormat.Png).Save(path);
 
         /// <summary>
         /// Saves this slide as an SVG file.
         /// </summary>
         public OfficeImageExportResult SaveAsSvg(string path, PowerPointImageExportOptions? options = null) =>
-            new PowerPointSlideImageExportBuilder(this, options).AsSvg().Save(path);
+            CreateImageExportOperation(options, OfficeImageExportFormat.Svg).Save(path);
 
         /// <summary>
         /// Writes this slide as PNG to a stream.
         /// </summary>
         public OfficeImageExportResult SaveAsPng(Stream stream, PowerPointImageExportOptions? options = null) =>
-            new PowerPointSlideImageExportBuilder(this, options).AsPng().Save(stream);
+            CreateImageExportOperation(options, OfficeImageExportFormat.Png).Save(stream);
 
         /// <summary>
         /// Writes this slide as SVG to a stream.
         /// </summary>
         public OfficeImageExportResult SaveAsSvg(Stream stream, PowerPointImageExportOptions? options = null) =>
-            new PowerPointSlideImageExportBuilder(this, options).AsSvg().Save(stream);
+            CreateImageExportOperation(options, OfficeImageExportFormat.Svg).Save(stream);
 
         /// <summary>Asynchronously saves this slide as a PNG file.</summary>
         public Task<OfficeImageExportResult> SaveAsPngAsync(
             string path,
             PowerPointImageExportOptions? options = null,
             CancellationToken cancellationToken = default) =>
-            new PowerPointSlideImageExportBuilder(this, options).AsPng().SaveAsync(path, cancellationToken);
+            CreateImageExportOperation(options, OfficeImageExportFormat.Png).SaveAsync(path, cancellationToken);
 
         /// <summary>Asynchronously saves this slide as an SVG file.</summary>
         public Task<OfficeImageExportResult> SaveAsSvgAsync(
             string path,
             PowerPointImageExportOptions? options = null,
             CancellationToken cancellationToken = default) =>
-            new PowerPointSlideImageExportBuilder(this, options).AsSvg().SaveAsync(path, cancellationToken);
+            CreateImageExportOperation(options, OfficeImageExportFormat.Svg).SaveAsync(path, cancellationToken);
 
         /// <summary>Asynchronously writes this slide as PNG to a stream.</summary>
         public Task<OfficeImageExportResult> SaveAsPngAsync(
             Stream stream,
             PowerPointImageExportOptions? options = null,
             CancellationToken cancellationToken = default) =>
-            new PowerPointSlideImageExportBuilder(this, options).AsPng().SaveAsync(stream, cancellationToken);
+            CreateImageExportOperation(options, OfficeImageExportFormat.Png).SaveAsync(stream, cancellationToken);
 
         /// <summary>Asynchronously writes this slide as SVG to a stream.</summary>
         public Task<OfficeImageExportResult> SaveAsSvgAsync(
             Stream stream,
             PowerPointImageExportOptions? options = null,
             CancellationToken cancellationToken = default) =>
-            new PowerPointSlideImageExportBuilder(this, options).AsSvg().SaveAsync(stream, cancellationToken);
+            CreateImageExportOperation(options, OfficeImageExportFormat.Svg).SaveAsync(stream, cancellationToken);
 
         private static PowerPointImageExportOptions NormalizeImageExportOptions(PowerPointImageExportOptions? options) {
             PowerPointImageExportOptions resolved = options?.Clone() ?? new PowerPointImageExportOptions();

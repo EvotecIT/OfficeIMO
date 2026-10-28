@@ -74,12 +74,12 @@ public sealed partial class IWorkBoundaryTests {
             // Border evidence does not depend on the host's minimum font line box.
             var authoredTable = result.Value.Slides[0].Tables.First();
             for (int row = 0; row < authoredTable.Rows; row++) authoredTable.SetRowHeightPoints(row, 60D);
-            authoredTable.HeightPoints = authoredTable.Rows * 60D;
+            authoredTable.Height = OfficeLength.Points(authoredTable.Rows * 60D);
             result.Value.Save(saved); saved.Position = 0;
             using var reopened = PowerPointDocument.Load(saved); Assert.Empty(reopened.ValidateDocument());
             var pdf = reopened.ToPdf();
             var rendered = pdf.Render.Pages("1", new PdfCore.PdfPageRenderOptions {
-                Format = PdfCore.PdfPageRenderFormat.Svg, ContinueOnError = false
+                Format = global::OfficeIMO.Drawing.OfficeImageExportFormat.Svg, ContinueOnError = false
             }).Single();
             Assert.True(rendered.Succeeded);
             string svg = System.Text.Encoding.UTF8.GetString(rendered.Bytes!);

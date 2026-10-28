@@ -5936,6 +5936,15 @@
       "files": [
         "OfficeIMO.Excel/ExcelCustomDocumentPropertyCollection.cs"
       ]
+    },
+    {
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "change": "Image saving facades call internal Core operations directly, retaining one renderer, options snapshot, policy/deadline implementation, streamed batch saves, file conflict behavior and progress order.",
+      "reason": "The Tier 1 public image builders can be removed without duplicating execution code or removing the shared bases still used by Tier 2 packages.",
+      "files": [
+        "OfficeIMO.Excel/Imaging/ImageExportOperations.cs"
+      ]
     }
   ],
   "applicationStatus": "Phase A applied and validated on the supported macOS targets. Phase B and Tier 2 entries retain their status; Windows .NET Framework validation remains pending.",

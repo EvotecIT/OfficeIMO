@@ -19,7 +19,8 @@ public class PdfDirectDestinationScalingBenchmarks {
     public void Setup() {
         _source = BuildSource(PageCount, includeDestinations: true);
         _plainSource = BuildSource(PageCount, includeDestinations: false);
-        PdfDocumentPreflight preflight = PdfDocument.Preflight(_source);
+        using PdfDocument preflightDocument = Load(_source);
+        PdfDocumentPreflight preflight = preflightDocument.Analyze().Preflight;
         if (!preflight.CanRewrite || preflight.DocumentInfo?.PageCount != PageCount || !preflight.Probe.HasNamedDestinations) {
             throw new InvalidOperationException("Direct-destination source is not rewrite-safe.");
         }
@@ -33,7 +34,7 @@ public class PdfDirectDestinationScalingBenchmarks {
         byte[][] plainParts = SplitPlain();
         if (plainParts.Length != PageCount) throw new InvalidOperationException("Plain split output count changed.");
         for (int i = 0; i < plainParts.Length; i++) {
-            PdfReadDocument plainReadback = PdfReadDocument.Open(plainParts[i]);
+            using PdfDocument plainReadback = Load(plainParts[i]);
             if (plainReadback.Pages.Count != 1 ||
                 plainReadback.Pages[0].GetPageSize().Width != 200 + i + 1 ||
                 plainReadback.NamedDestinations.Count != 0) {
@@ -50,28 +51,56 @@ public class PdfDirectDestinationScalingBenchmarks {
     }
 
     [Benchmark]
-    public byte[][] Split() => PdfDocument.Load(_source).Pages.Split().Select(static part => part.ToBytes()).ToArray();
+    public byte[][] Split() => SplitSource(_source);
 
     [Benchmark]
-    public byte[][] SplitPlain() => PdfDocument.Load(_plainSource).Pages.Split().Select(static part => part.ToBytes()).ToArray();
+    public byte[][] SplitPlain() => SplitSource(_plainSource);
 
     [Benchmark]
-    public byte[] Select() => PdfDocument.Load(_source).Pages.Extract(_selectedPages).ToBytes();
+    public byte[] Select() {
+        using PdfDocument source = Load(_source);
+        using PdfDocument selected = source.Pages.Extract(_selectedPages);
+        return selected.ToBytes();
+    }
 
     [Benchmark]
-    public PdfReadDocument OpenSource() => PdfReadDocument.Open(_source);
+    public int OpenSource() {
+        using PdfDocument source = Load(_source);
+        return source.Pages.Count;
+    }
 
     [Benchmark]
-    public PdfReadDocument OpenPlainSource() => PdfReadDocument.Open(_plainSource);
+    public int OpenPlainSource() {
+        using PdfDocument source = Load(_plainSource);
+        return source.Pages.Count;
+    }
 
     [Benchmark]
-    public PdfDocumentPreflight PreflightSource() => PdfDocument.Preflight(_source);
+    public PdfDocumentPreflight PreflightSource() {
+        using PdfDocument source = Load(_source);
+        return source.Analyze().Preflight;
+    }
 
     [Benchmark]
-    public PdfDocumentInfo InspectSource() => PdfDocument.Load(_source).Inspect();
+    public PdfDocumentInfo InspectSource() {
+        using PdfDocument source = Load(_source);
+        return source.Inspect();
+    }
+
+    private static byte[][] SplitSource(byte[] bytes) {
+        using PdfDocument source = Load(bytes);
+        IReadOnlyList<PdfDocument> parts = source.Pages.Split();
+        try { return parts.Select(static part => part.ToBytes()).ToArray(); }
+        finally { foreach (PdfDocument part in parts) part.Dispose(); }
+    }
+
+    private static PdfDocument Load(byte[] bytes) {
+        using var input = new MemoryStream(bytes, writable: false);
+        return PdfDocument.Load(input);
+    }
 
     private static void Validate(byte[] output, IReadOnlyList<int> sourcePages) {
-        PdfReadDocument readback = PdfReadDocument.Open(output);
+        using PdfDocument readback = Load(output);
         if (readback.Pages.Count != sourcePages.Count || readback.NamedDestinations.Count != sourcePages.Count) {
             throw new InvalidOperationException("Direct destinations or selected pages were lost.");
         }

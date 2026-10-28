@@ -45,7 +45,7 @@ internal static class PdfCorpusProbe {
             IReadOnlyList<PdfPageRenderResult> renders = document.Render.Pages(
                 "1",
                 new PdfPageRenderOptions {
-                    Format = PdfPageRenderFormat.Svg,
+                    Format = global::OfficeIMO.Drawing.OfficeImageExportFormat.Svg,
                     MaxPages = 1,
                     MaxOutputBytesPerPage = 8L * 1024L * 1024L,
                     MaxTotalOutputBytes = 8L * 1024L * 1024L,

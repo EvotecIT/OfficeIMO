@@ -40,7 +40,7 @@ public sealed partial class IWorkBoundaryTests {
         PowerPointTextBox title = Assert.Single(Assert.Single(result.Value.Slides).TextBoxes);
 
         Assert.False(result.IsVisualFallback);
-        Assert.Equal(720d, result.Value.SlideSize.WidthPoints, 3);
+        Assert.Equal(720d, result.Value.SlideSize.Width.ToPoints(), 3);
         Assert.True(title.Left.ToPoints() >= 0);
         Assert.True(title.Top.ToPoints() >= 0);
         Assert.True(title.Right.ToPoints() <= 720d);

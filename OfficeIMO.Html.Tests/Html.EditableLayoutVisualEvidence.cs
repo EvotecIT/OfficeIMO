@@ -36,7 +36,7 @@ public sealed class HtmlEditableLayoutVisualEvidenceTests {
         Assert.Equal((int)((200D + margins.Top) * 9525D), positionedWordBox.VerticalPositionOffset);
         Assert.Equal(240L * 9525L, positionedWordBox.Width);
         Assert.Equal(72L * 9525L, positionedWordBox.Height);
-        byte[] wordPng = word.ToPng(new WordImageExportOptions { BackgroundColor = OfficeColor.White });
+        byte[] wordPng = word.ToImage(new WordImageExportOptions { BackgroundColor = OfficeColor.White });
 
         HtmlToRtfResult rtfResult = source.ToRtfDocumentResult();
         byte[] rtf = Encoding.ASCII.GetBytes(rtfResult.Value.ToRtf());
@@ -72,7 +72,7 @@ public sealed class HtmlEditableLayoutVisualEvidenceTests {
         WriteEvidenceWhenRequested("editable-layout-word.png", wordPng);
         if (!string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("OFFICEIMO_HTML_LAYOUT_EVIDENCE_DIR"))) {
             WriteEvidenceWhenRequested("editable-layout-word.pdf", (word.ToPdf()).ToBytes());
-            WriteEvidenceWhenRequested("editable-layout-word.svg", Encoding.UTF8.GetBytes(word.ToSvg()));
+            WriteEvidenceWhenRequested("editable-layout-word.svg", word.ToImage(new WordImageExportOptions { Format = OfficeImageExportFormat.Svg }));
         }
         WriteEvidenceWhenRequested("editable-layout-excel.png", excelPng);
         WriteEvidenceWhenRequested("editable-layout-powerpoint.png", powerPointPng);

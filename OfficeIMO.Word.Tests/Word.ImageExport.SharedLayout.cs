@@ -64,7 +64,7 @@ public sealed class WordSharedPageLayoutTests {
         using WordDocument document = CreateDocument();
         var options = new WordImageExportOptions { PageIndex = 1, PageCount = 1, Scale = .3D };
         var page = Assert.Single(document.ExportImages(OfficeImageExportFormat.Png, options));
-        Assert.Equal(page.Bytes, document.ToPng(options));
+        Assert.Equal(page.Bytes, document.ToImage(options));
         var single = document.ExportImage(OfficeImageExportFormat.Png, options);
         AssertWordIdentity(single, 2, 0, 1);
         AssertWordIdentity(page, 2, 0, 1);
@@ -76,7 +76,7 @@ public sealed class WordSharedPageLayoutTests {
         Assert.Equal(2, selected.Count);
         for (int index = 0; index < selected.Count; index++) AssertWordIdentity(selected[index], index + 2, index, 2);
         Assert.Equal(1, Assert.Single(document.CreateVisualSnapshots(options)).PageIndex);
-        Assert.Throws<ArgumentOutOfRangeException>(() => document.ToPng(new WordImageExportOptions { PageIndex = 999 }));
+        Assert.Throws<ArgumentOutOfRangeException>(() => document.ToImage(new WordImageExportOptions { PageIndex = 999 }));
     }
 
     [Fact]

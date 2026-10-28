@@ -191,9 +191,9 @@ public sealed class HtmlOfficeAdaptersPowerPointGenericPaginationTests {
             slide.TextBoxes.Count(box => box.Text.StartsWith("Entry ", StringComparison.Ordinal))));
         Assert.Equal(1, presentation.Slides.Sum(slide => slide.Pictures.Count()));
         Assert.All(presentation.Slides, slide => Assert.All(slide.Shapes, shape => {
-            Assert.True(shape.Bounds.Left >= 0 && shape.Bounds.Top >= 0);
-            Assert.True(shape.Bounds.Right <= presentation.SlideSize.Width.ToEmus());
-            Assert.True(shape.Bounds.Bottom <= presentation.SlideSize.Height.ToEmus());
+            Assert.True(shape.Bounds.Left >= OfficeLength.Zero && shape.Bounds.Top >= OfficeLength.Zero);
+            Assert.True(shape.Bounds.Right <= presentation.SlideSize.Width);
+            Assert.True(shape.Bounds.Bottom <= presentation.SlideSize.Height);
         }));
         Assert.DoesNotContain(result.Report.Diagnostics, item => item.Code == HtmlConversionDiagnosticCodes.ContentOmitted);
 

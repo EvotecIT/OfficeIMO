@@ -228,7 +228,7 @@ internal static class PowerPointRoadmapVisualCorpus {
             PdfCore.PdfDocument.Load(new System.IO.MemoryStream(pdf)).Render.Pages(options:
                 new PdfCore.PdfPageRenderOptions {
                     Dpi = 72D,
-                    Format = PdfCore.PdfPageRenderFormat.Png,
+                    Format = global::OfficeIMO.Drawing.OfficeImageExportFormat.Png,
                     MaxPages = expectedPageCount,
                     ContinueOnError = false,
                     MaxTotalOutputBytes = 256L * 1024L * 1024L

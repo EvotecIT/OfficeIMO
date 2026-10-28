@@ -51,7 +51,7 @@ internal static partial class PdfOcr {
             throw new ArgumentException("The preview page does not belong to the selected OCR pages.", nameof(pageNumber));
         var rendered = RenderOcrPage(document, pageNumber, new PdfPageRenderOptions {
             Dpi = options.Dpi,
-            Format = PdfPageRenderFormat.Png,
+            Format = global::OfficeIMO.Drawing.OfficeImageExportFormat.Png,
             ImageCodec = options.ImageCodec,
             MaxPixelsPerPage = options.MaxPixelsPerPage,
             MaxOutputBytesPerPage = options.MaxRenderedBytesPerPage,

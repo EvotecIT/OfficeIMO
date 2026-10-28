@@ -77,7 +77,7 @@ internal static class ScanQualityCorpus {
             }
             return result;
         }, engine.Capabilities);
-        PdfDocument document = PdfDocument.Load(input);
+        PdfDocument document = CorpusPdfInput.Load(input);
         PdfSearchableOcrReview review = await document.PrepareSearchableOcrAsync(recording, new PdfOcrMergeOptions {
             Dpi = 300, MinimumConfidence = 0, DetectOrientation = cleanup, ProviderTimeout = TimeSpan.FromSeconds(35),
             ScanProcessing = cleanup ? new OfficeScanProcessingOptions() : null
@@ -87,10 +87,10 @@ internal static class ScanQualityCorpus {
         await File.WriteAllBytesAsync(Path.Combine(output, id + ".pdf"), searchable, token);
         await File.WriteAllTextAsync(Path.Combine(output, id + "-provider.txt"), providerText, token);
         await File.WriteAllTextAsync(Path.Combine(output, id + "-extracted.txt"), review.Ocr.Text, token);
-        string roundTrip = PdfDocument.Load(searchable).Read(new PdfLoadOptions { Profile = PdfReadProfile.Structured }).Text;
+        string roundTrip = CorpusPdfInput.Load(searchable).Read(new PdfLoadOptions { Profile = PdfReadProfile.Structured }).Text;
         await File.WriteAllTextAsync(Path.Combine(output, id + "-roundtrip.txt"), roundTrip, token);
-        byte[] Render(byte[] bytes) => PdfDocument.Load(bytes).Render.Pages(PdfPageSelection.From(new PdfPageRange(1, 1)),
-            new PdfPageRenderOptions { Format = PdfPageRenderFormat.Png, Dpi = 72, ContinueOnError = false })[0].Bytes
+        byte[] Render(byte[] bytes) => CorpusPdfInput.Load(bytes).Render.Pages(PdfPageSelection.From(new PdfPageRange(1, 1)),
+            new PdfPageRenderOptions { Format = global::OfficeIMO.Drawing.OfficeImageExportFormat.Png, Dpi = 72, ContinueOnError = false })[0].Bytes
             ?? throw new InvalidOperationException("The preserved page did not render.");
         byte[] sourceRaster = Render(input);
         byte[] writtenRaster = Render(searchable);

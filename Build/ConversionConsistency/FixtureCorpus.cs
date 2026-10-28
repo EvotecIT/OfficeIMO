@@ -89,7 +89,7 @@ internal static partial class FixtureCorpus {
                         "The OneNote title requests bold. This regular-face fixture profile deliberately exercises synthetic bold and accepts the reported substitution to its pinned regular face."
                     } : new(),
                 AllowedDiagnostics = item.Item1 == "ods" ? new() { "ODF_IMAGE_COLUMN_LAYOUT_APPROXIMATED", "ODF_IMAGE_CELL_STYLES_APPROXIMATED" }
-                    : item.Item1 == "one" ? new() { "IMAGE_FONT_SUBSTITUTED" }
+                    : item.Item1 == "one" ? new() { global::OfficeIMO.OfficeDiagnosticCodes.ImageFontSubstituted }
                     : item.Item1 == "odp" ? new() { "ODF_IMAGE_MASTERS_LAYOUTS_APPROXIMATED" } : new(),
                 Pages = Enumerable.Range(1,2).Select(number => new PageExpectation {
                     Width = item.Item2, Height = item.Item3,

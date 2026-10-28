@@ -39,7 +39,7 @@ public sealed class PdfDocumentViewingTests {
         Assert.Equal("Private metadata", authorized.LogicalContent.Metadata.Title);
         Assert.Equal(authorized.Pages[0].Width, view.Pages[0].Width);
         PdfPageRenderResult raster = restricted.Render.DisplayPage(1);
-        Assert.True(raster.Succeeded); Assert.Equal(PdfPageRenderFormat.Png, raster.Format);
+        Assert.True(raster.Succeeded); Assert.Equal(global::OfficeIMO.Drawing.OfficeImageExportFormat.Png, raster.Format);
         Assert.Equal(owner.Render.DisplayPage(1).Bytes, raster.Bytes);
         string? capture = Environment.GetEnvironmentVariable("OFFICEIMO_PDF_VIEWING_CAPTURE_DIR");
         if (!string.IsNullOrEmpty(capture)) {
