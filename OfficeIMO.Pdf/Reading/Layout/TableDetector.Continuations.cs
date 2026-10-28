@@ -75,6 +75,10 @@ internal static partial class TableDetector {
             string[] cells = AssignHeaderSpansToColumns(table, header);
             int filled = cells.Count(static cell => !string.IsNullOrWhiteSpace(cell));
             if (filled < 2 || filled * 2 < cells.Length || !LooksLikeHeaderLabels(cells)) continue;
+            // Nearest-column assignment alone can split adjacent prose runs into
+            // labels. Require actual cell gaps using the existing compact geometry.
+            PositionedRow? positioned = TryCreatePositionedRow(header, useCompactGapThreshold: true);
+            if (positioned == null || positioned.Cells.Count < filled) continue;
             table.Rows.Insert(0, cells);
             var sourceLines = new List<TextLayoutEngine.TextLine>(table.SourceLines.Count + 1) { header };
             sourceLines.AddRange(table.SourceLines);

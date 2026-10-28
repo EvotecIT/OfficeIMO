@@ -100,6 +100,8 @@ public sealed class ReaderPdfInteroperabilityCorpusTests {
                 NormalizeTableLabel(table.Columns[1]) == "response"));
             Assert.Contains(result.Tables, table =>
                 table.Columns.Select(NormalizeTableLabel).SequenceEqual(new[] { "role", "name", "decision", "date", "notes" }));
+            Assert.Contains(NormalizeTableLabel("the first systems attackers target for credential material."),
+                NormalizeTableLabel(result.GetText()));
         }
         Assert.True(result.Assets.Count >= minimumAssets);
         Assert.Equal(result.Assets.Count, result.Visuals.Count);
