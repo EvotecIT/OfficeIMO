@@ -10,7 +10,8 @@ public sealed class AdfTaskProjectionTests {
     [InlineData(false)]
     [InlineData(true)]
     public void ConversionDoesNotRenderUnsupportedMarkdownToCreateTaskIds(bool withTask) {
-        MarkdownDocument markdown = MarkdownDocument.Create().Add(new UnrenderableBlock());
+        MarkdownDocument markdown = MarkdownDocument.Create();
+        markdown.Add(new UnrenderableBlock());
         if (withTask) markdown.Add(new UnorderedListBlock { Items = { ListItem.Task("Ready", done: true) } });
 
         AdfConversionResult<AdfDocument> result = AdfConverter.FromMarkdown(markdown);
@@ -45,8 +46,9 @@ public sealed class AdfTaskProjectionTests {
             current = child;
         }
         current.Items.Add(ListItem.Text("Deep content"));
-        MarkdownDocument markdown = MarkdownDocument.Create().Add(outer)
-            .Add(new UnorderedListBlock { Items = { ListItem.Task("Ready", done: false) } });
+        MarkdownDocument markdown = MarkdownDocument.Create();
+        markdown.Add(outer);
+        markdown.Add(new UnorderedListBlock { Items = { ListItem.Task("Ready", done: false) } });
 
         Assert.Throws<System.IO.InvalidDataException>(() => AdfConverter.FromMarkdown(markdown));
         var limits = new AdfConversionOptions { MaxDepth = 128 };
@@ -60,9 +62,12 @@ public sealed class AdfTaskProjectionTests {
 
     [Fact]
     public void TaskIdentitiesDoNotChangeWhenUnrelatedContentChanges() {
-        AdfDocument Convert(string text) => AdfConverter.FromMarkdown(MarkdownDocument.Create()
-            .Add(new ParagraphBlock(new InlineSequence().Text(text)))
-            .Add(new UnorderedListBlock { Items = { ListItem.Task("Ready") } })).Value;
+        AdfDocument Convert(string text) {
+            using var markdown = MarkdownDocument.Create();
+            markdown.Add(new ParagraphBlock(new InlineSequence().Text(text)));
+            markdown.Add(new UnorderedListBlock { Items = { ListItem.Task("Ready") } });
+            return AdfConverter.FromMarkdown(markdown).Value;
+        }
 
         AdfNode first = Convert("Before").Content[1];
         AdfNode second = Convert("After").Content[1];
@@ -80,7 +85,9 @@ public sealed class AdfTaskProjectionTests {
             current = child;
         }
         var limits = new AdfConversionOptions { MaxNodes = 64 };
-        AdfDocument document = AdfConverter.FromMarkdown(MarkdownDocument.Create().Add(outer), limits).Value;
+        using var addedDocument = MarkdownDocument.Create();
+        addedDocument.Add(outer);
+        AdfDocument document = AdfConverter.FromMarkdown(addedDocument, limits).Value;
         Assert.True(document.Validate(new AdfValidationOptions { Profile = AdfValidationProfile.FullSchema, MaxNodes = 64 }).IsValid);
         Assert.False(string.IsNullOrWhiteSpace(document.Content[0].GetStringAttribute("localId")));
         Assert.Contains("taskList", document.ToJson(limits));
@@ -93,7 +100,8 @@ public sealed class AdfTaskProjectionTests {
             MaxTextCharacters = 1,
             LocalIdFactory = path => { calls++; return path; }
         };
-        var markdown = MarkdownDocument.Create().Add(new UnorderedListBlock { Items = { ListItem.Task("Oversized") } });
+        var markdown = MarkdownDocument.Create();
+        markdown.Add(new UnorderedListBlock { Items = { ListItem.Task("Oversized") } });
         Assert.Throws<System.IO.InvalidDataException>(() => AdfConverter.FromMarkdown(markdown, options));
         Assert.Equal(0, calls);
     }

@@ -191,9 +191,9 @@ namespace OfficeIMO.Tests.MarkdownSuite {
                     new CodeBlock("text", "line 1\nline 2")
                 });
 
-            var doc = MarkdownDocument.Create()
-                .Add(new ParagraphBlock(OfficeIMO.Markdown.MarkdownReader.ParseInlineText("See [^shape].", MarkdownLoadOptions.CreateGitHubFlavoredMarkdownProfile())))
-                .Add(footnote);
+            var doc = MarkdownDocument.Create();
+            doc.Add(new ParagraphBlock(OfficeIMO.Markdown.MarkdownReader.ParseInlineText("See [^shape].", MarkdownLoadOptions.CreateGitHubFlavoredMarkdownProfile())));
+            doc.Add(footnote);
 
             string markdown = doc.ToMarkdown().Replace("\r\n", "\n");
 

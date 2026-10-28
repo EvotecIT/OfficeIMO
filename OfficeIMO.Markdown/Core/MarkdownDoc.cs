@@ -3,8 +3,8 @@ using OfficeIMO.Core.Internal;
 namespace OfficeIMO.Markdown;
 
 /// <summary>
-/// Root document container and fluent API entrypoint for composing Markdown.
-/// Supports a fluent-chaining style and an explicit object model via <see cref="Add(IMarkdownBlock)"/>.
+/// Root document container for Markdown blocks and syntax helpers.
+/// Use <see cref="Add{T}(T)"/> to append and retain a typed block.
 /// </summary>
 public partial class MarkdownDocument : MarkdownObject {
     internal MarkdownDocument() { }
@@ -43,54 +43,6 @@ public partial class MarkdownDocument : MarkdownObject {
         MarkdownDocument document = Create(options);
         document._filePath = System.IO.Path.GetFullPath(filePath);
         return document;
-    }
-
-    /// <summary>All blocks added to the document (excluding front matter).</summary>
-    public IReadOnlyList<IMarkdownBlock> Blocks => _blocks;
-    /// <summary>Document-level front matter/header block when present.</summary>
-    public FrontMatterBlock? DocumentHeader => _frontMatter as FrontMatterBlock;
-    /// <summary>Structured document front matter entries when present.</summary>
-    public IReadOnlyList<FrontMatterBlock.Entry> FrontMatterEntries => DocumentHeader?.Entries ?? Array.Empty<FrontMatterBlock.Entry>();
-    /// <summary>All top-level document blocks in order, including front matter when present.</summary>
-    public IReadOnlyList<IMarkdownBlock> TopLevelBlocks => BuildTopLevelBlocks();
-    /// <summary>Whether the document has front matter.</summary>
-    public bool HasDocumentHeader => DocumentHeader != null;
-
-    internal MarkdownParseInfo? AttachedParseResult => _parseResult;
-
-    /// <summary>Adds a block instance (object-model style).</summary>
-    /// <param name="block">Block to append to the document.</param>
-    /// <returns>Same <see cref="MarkdownDocument"/> for chaining.</returns>
-    public MarkdownDocument Add(IMarkdownBlock block) {
-        if (block is IFrontMatterMarkdownBlock fm) {
-            _frontMatter = fm;
-        } else {
-            _blocks.Add(block);
-            _lastBlock = block;
-        }
-        _parseResult = null;
-        RequestObjectTreeBinding();
-        return this;
-    }
-
-    /// <summary>Adds multiple blocks and binds the resulting object tree once after the batch is complete.</summary>
-    /// <param name="blocks">Blocks to append in source order.</param>
-    /// <returns>Same <see cref="MarkdownDocument"/> for chaining.</returns>
-    public MarkdownDocument AddRange(IEnumerable<IMarkdownBlock> blocks) {
-        if (blocks == null) throw new ArgumentNullException(nameof(blocks));
-        foreach (IMarkdownBlock block in blocks) {
-            if (block == null) throw new ArgumentException("Markdown blocks cannot contain null entries.", nameof(blocks));
-            if (block is IFrontMatterMarkdownBlock frontMatter) {
-                _frontMatter = frontMatter;
-            } else {
-                _blocks.Add(block);
-                _lastBlock = block;
-            }
-        }
-
-        _parseResult = null;
-        MarkdownObjectTreeBinder.BindDocument(this);
-        return this;
     }
 
     /// <summary>Rewrites the document using the provided rewriter.</summary>
@@ -412,36 +364,36 @@ public partial class MarkdownDocument : MarkdownObject {
     }
 
     /// <summary>Adds an MarkdownH1 heading.</summary>
-    public MarkdownDocument H1(string text) => Add(new HeadingBlock(1, text));
+    public MarkdownDocument H1(string text) => Append(new HeadingBlock(1, text));
     /// <summary>Adds an MarkdownH2 heading.</summary>
-    public MarkdownDocument H2(string text) => Add(new HeadingBlock(2, text));
+    public MarkdownDocument H2(string text) => Append(new HeadingBlock(2, text));
     /// <summary>Adds an MarkdownH3 heading.</summary>
-    public MarkdownDocument H3(string text) => Add(new HeadingBlock(3, text));
+    public MarkdownDocument H3(string text) => Append(new HeadingBlock(3, text));
     /// <summary>Adds an H4 heading.</summary>
-    public MarkdownDocument H4(string text) => Add(new HeadingBlock(4, text));
+    public MarkdownDocument H4(string text) => Append(new HeadingBlock(4, text));
     /// <summary>Adds an H5 heading.</summary>
-    public MarkdownDocument H5(string text) => Add(new HeadingBlock(5, text));
+    public MarkdownDocument H5(string text) => Append(new HeadingBlock(5, text));
     /// <summary>Adds an H6 heading.</summary>
-    public MarkdownDocument H6(string text) => Add(new HeadingBlock(6, text));
+    public MarkdownDocument H6(string text) => Append(new HeadingBlock(6, text));
 
     /// <summary>Adds a paragraph with plain text.</summary>
-    public MarkdownDocument P(string text) => Add(new ParagraphBlock(new InlineSequence().Text(text)));
+    public MarkdownDocument P(string text) => Append(new ParagraphBlock(new InlineSequence().Text(text)));
 
     /// <summary>Adds a paragraph composed with the paragraph builder.</summary>
     public MarkdownDocument P(Action<MarkdownParagraphBuilder> build) {
         MarkdownParagraphBuilder builder = new MarkdownParagraphBuilder();
         build(builder);
-        return Add(new ParagraphBlock(builder.Inlines));
+        return Append(new ParagraphBlock(builder.Inlines));
     }
 
     /// <summary>Adds a simple block quote with a single line of text.</summary>
-    public MarkdownDocument Quote(string text) => Add(new QuoteBlock(new[] { text ?? string.Empty }));
+    public MarkdownDocument Quote(string text) => Append(new QuoteBlock(new[] { text ?? string.Empty }));
 
     /// <summary>Adds a block quote composed via <see cref="MarkdownQuoteBuilder"/>.</summary>
     public MarkdownDocument Quote(Action<MarkdownQuoteBuilder> build) {
         MarkdownQuoteBuilder builder = new MarkdownQuoteBuilder();
         build(builder);
-        return Add(builder.Build());
+        return Append(builder.Build());
     }
 
     /// <summary>Adds a collapsible details block.</summary>
@@ -449,14 +401,14 @@ public partial class MarkdownDocument : MarkdownObject {
         var inner = MarkdownDocument.Create();
         buildBody(inner);
         var details = new DetailsBlock(new SummaryBlock(summary), inner.Blocks, open);
-        return Add(details);
+        return Append(details);
     }
 
     /// <summary>Adds a horizontal rule.</summary>
-    public MarkdownDocument Hr() => Add(new HorizontalRuleBlock());
+    public MarkdownDocument Hr() => Append(new HorizontalRuleBlock());
 
     /// <summary>Adds a callout/admonition block (Docs-style).</summary>
-    public MarkdownDocument Callout(string kind, string title, string body) => Add(new CalloutBlock(kind, title, body));
+    public MarkdownDocument Callout(string kind, string title, string body) => Append(new CalloutBlock(kind, title, body));
 
     /// <summary>Adds a callout/admonition block with structured markdown body content.</summary>
     public MarkdownDocument Callout(string kind, string title, Action<MarkdownDocument> buildBody) {
@@ -466,34 +418,34 @@ public partial class MarkdownDocument : MarkdownObject {
 
         var body = MarkdownDocument.Create();
         buildBody(body);
-        return Add(new CalloutBlock(kind, title, body.Blocks));
+        return Append(new CalloutBlock(kind, title, body.Blocks));
     }
 
     /// <summary>Adds an unordered list.</summary>
     public MarkdownDocument Ul(Action<MarkdownUnorderedListBuilder> build) {
         MarkdownUnorderedListBuilder builder = new MarkdownUnorderedListBuilder();
         build(builder);
-        return Add(builder.Build());
+        return Append(builder.Build());
     }
 
     /// <summary>Adds an ordered list.</summary>
     public MarkdownDocument Ol(Action<MarkdownOrderedListBuilder> build) {
         MarkdownOrderedListBuilder builder = new MarkdownOrderedListBuilder();
         build(builder);
-        return Add(builder.Build());
+        return Append(builder.Build());
     }
 
     /// <summary>Adds a definition list.</summary>
     public MarkdownDocument Dl(Action<MarkdownDefinitionListBuilder> build) {
         MarkdownDefinitionListBuilder builder = new MarkdownDefinitionListBuilder();
         build(builder);
-        return Add(builder.Build());
+        return Append(builder.Build());
     }
 
     /// <summary>Adds a fenced code block.</summary>
     public MarkdownDocument Code(string language, string content) {
         CodeBlock code = new CodeBlock(language, content);
-        Add(code);
+        Append(code);
         return this;
     }
 
@@ -510,17 +462,17 @@ public partial class MarkdownDocument : MarkdownObject {
 
     /// <summary>Adds an image block with optional alt text and title.</summary>
     public MarkdownDocument Image(string path, string? alt, string? title)
-        => Add(new ImageBlock(path, alt, title));
+        => Append(new ImageBlock(path, alt, title));
 
     /// <summary>Adds an image block with optional alt text, title, and size hints.</summary>
     public MarkdownDocument Image(string path, string? alt = null, string? title = null, double? width = null, double? height = null)
-        => Add(new ImageBlock(path, alt, title, width, height));
+        => Append(new ImageBlock(path, alt, title, width, height));
 
     /// <summary>Adds a table built with <see cref="MarkdownTableBuilder"/>.</summary>
     public MarkdownDocument Table(Action<MarkdownTableBuilder> build) {
         MarkdownTableBuilder tb = new MarkdownTableBuilder();
         build(tb);
-        return Add(tb.Build());
+        return Append(tb.Build());
     }
 
     /// <summary>
@@ -531,21 +483,21 @@ public partial class MarkdownDocument : MarkdownObject {
         build(tb);
         if (alignDates) tb.AlignDatesCenter();
         if (alignNumeric) tb.AlignNumericRight();
-        return Add(tb.Build());
+        return Append(tb.Build());
     }
 
     /// <summary>Adds an unordered list from a sequence of items using ToString().</summary>
     public MarkdownDocument Ul<T>(System.Collections.Generic.IEnumerable<T> items) {
         MarkdownUnorderedListBuilder builder = new MarkdownUnorderedListBuilder();
         builder.Items(items, null);
-        return Add(builder.Build());
+        return Append(builder.Build());
     }
 
     /// <summary>Adds an ordered list from a sequence of items using ToString().</summary>
     public MarkdownDocument Ol<T>(System.Collections.Generic.IEnumerable<T> items, int start = 1) {
         MarkdownOrderedListBuilder builder = new MarkdownOrderedListBuilder().StartAt(start);
         builder.Items(items, null);
-        return Add(builder.Build());
+        return Append(builder.Build());
     }
 
     /// <summary>Renders an embeddable HTML fragment. Wraps in &lt;article class="markdown-body"&gt; by default.</summary>

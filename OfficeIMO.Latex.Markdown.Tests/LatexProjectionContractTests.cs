@@ -51,7 +51,9 @@ public sealed class LatexProjectionContractTests {
     public void EmptyCustomListLabelsDoNotInjectVisiblePunctuation(string label) {
         MarkdownDocument markdown = LatexDocument.Parse(Wrap("\\begin{itemize}\\item" + label + " Body\\end{itemize}")).ToMarkdownDocument();
         ListItem item = Assert.Single(Assert.Single(markdown.Blocks.OfType<UnorderedListBlock>()).Items);
-        string rendered = MarkdownDocument.Create().Add(new ParagraphBlock(item.Content)).ToMarkdown();
+        using var addedDocument = MarkdownDocument.Create();
+        addedDocument.Add(new ParagraphBlock(item.Content));
+        string rendered = addedDocument.ToMarkdown();
         Assert.DoesNotContain(":", rendered, StringComparison.Ordinal);
         Assert.Contains("Body", rendered, StringComparison.Ordinal);
         if (label.Contains("label")) Assert.Contains("<a id=\"item\"></a>", rendered, StringComparison.Ordinal);
@@ -81,8 +83,9 @@ public sealed class LatexProjectionContractTests {
 
     [Fact]
     public void PlainMetadataAndFigureCaptionsRoundTripThroughTheWriter() {
-        var source = MarkdownDocument.Create().FrontMatter(new Dictionary<string, object?> { ["author"] = "Alice_Doe", ["date"] = "R&D" })
-            .Add(new ImageBlock("a.png", "100% useful") { Caption = "100% useful" });
+        var source = MarkdownDocument.Create();
+        source.FrontMatter(new Dictionary<string, object?> { ["author"] = "Alice_Doe", ["date"] = "R&D" });
+        source.Add(new ImageBlock("a.png", "100% useful") { Caption = "100% useful" });
         MarkdownDocument result = source.ToLatexDocument().ToMarkdownDocument();
         Assert.Equal("Alice_Doe", result.FindFrontMatterEntry("author")?.Value);
         Assert.Equal("R&D", result.FindFrontMatterEntry("date")?.Value);

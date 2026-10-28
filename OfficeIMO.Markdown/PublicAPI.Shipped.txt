@@ -518,8 +518,8 @@ OfficeIMO.Markdown.MarkdownDefinitionListBuilder
 OfficeIMO.Markdown.MarkdownDefinitionListBuilder.Item(string! term, string! definition) -> OfficeIMO.Markdown.MarkdownDefinitionListBuilder!
 OfficeIMO.Markdown.MarkdownDefinitionListBuilder.MarkdownDefinitionListBuilder() -> void
 OfficeIMO.Markdown.MarkdownDocument
-OfficeIMO.Markdown.MarkdownDocument.Add(OfficeIMO.Markdown.IMarkdownBlock! block) -> OfficeIMO.Markdown.MarkdownDocument!
-OfficeIMO.Markdown.MarkdownDocument.AddRange(System.Collections.Generic.IEnumerable<OfficeIMO.Markdown.IMarkdownBlock!>! blocks) -> OfficeIMO.Markdown.MarkdownDocument!
+OfficeIMO.Markdown.MarkdownDocument.Add<T>(T block) -> T
+OfficeIMO.Markdown.MarkdownDocument.AddRange(System.Collections.Generic.IEnumerable<OfficeIMO.Markdown.IMarkdownBlock!>! blocks) -> System.Collections.Generic.IReadOnlyList<OfficeIMO.Markdown.IMarkdownBlock!>!
 OfficeIMO.Markdown.MarkdownDocument.AddTable(object? data, OfficeIMO.OfficeTableOptions? options = null) -> OfficeIMO.Markdown.TableBlock!
 OfficeIMO.Markdown.MarkdownDocument.AddTable<T>(System.Collections.Generic.IEnumerable<T>! rows, OfficeIMO.OfficeTableOptions? options = null) -> OfficeIMO.Markdown.TableBlock!
 OfficeIMO.Markdown.MarkdownDocument.AddTable<T>(System.Collections.Generic.IEnumerable<T>! rows, params (string! Header, System.Func<T, object?>! Selector)[]! columns) -> OfficeIMO.Markdown.TableBlock!
@@ -2535,7 +2535,7 @@ OfficeIMO.Markdown.MarkdownTocScope.HeadingTitle = 2 -> OfficeIMO.Markdown.Markd
 OfficeIMO.Markdown.MarkdownTocScope.PreviousHeading = 1 -> OfficeIMO.Markdown.MarkdownTocScope
 OfficeIMO.Markdown.MarkdownTranscriptPreparation
 OfficeIMO.Markdown.MarkdownUnorderedList
-OfficeIMO.Markdown.MarkdownUnorderedList.Add(OfficeIMO.Markdown.ListItem! item) -> void
+OfficeIMO.Markdown.MarkdownUnorderedList.Add(OfficeIMO.Markdown.ListItem! item) -> OfficeIMO.Markdown.ListItem!
 OfficeIMO.Markdown.MarkdownUnorderedList.MarkdownUnorderedList() -> void
 OfficeIMO.Markdown.MarkdownUnorderedListBuilder
 OfficeIMO.Markdown.MarkdownUnorderedListBuilder.Item(string! text) -> OfficeIMO.Markdown.MarkdownUnorderedListBuilder!

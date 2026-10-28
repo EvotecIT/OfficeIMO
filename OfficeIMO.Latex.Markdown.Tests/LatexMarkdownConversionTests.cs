@@ -99,7 +99,8 @@ public sealed class LatexMarkdownConversionTests {
         TableCell cell = table.GetCell(0, 0)!;
         cell.ColumnSpan = 2;
         cell.RowSpan = 2;
-        MarkdownDocument document = MarkdownDocument.Create().Add(table);
+        MarkdownDocument document = MarkdownDocument.Create();
+        document.Add(table);
 
         MarkdownToLatexResult result = document.ToLatexDocumentResult();
 

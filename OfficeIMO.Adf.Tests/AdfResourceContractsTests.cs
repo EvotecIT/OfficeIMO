@@ -11,7 +11,8 @@ public sealed class AdfResourceContractsTests {
     [Fact]
     public void MutableMarkdownInputIsCheckedBeforeRecursiveConversion() {
         var quote = new QuoteBlock(Array.Empty<string>());
-        var document = MarkdownDocument.Create().Add(quote);
+        var document = MarkdownDocument.Create();
+        document.Add(quote);
         quote.ChildBlocks.Add(quote);
         Assert.Throws<InvalidOperationException>(() => AdfConverter.FromMarkdown(document));
 

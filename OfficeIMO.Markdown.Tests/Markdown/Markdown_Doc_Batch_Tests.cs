@@ -10,9 +10,11 @@ public class MarkdownDocBatchTests {
         var second = new ParagraphBlock(new InlineSequence().Text("Second"));
         MarkdownDocument document = MarkdownDocument.Create();
 
-        MarkdownDocument returned = document.AddRange(new IMarkdownBlock[] { first, second });
+        IReadOnlyList<IMarkdownBlock> returned = document.AddRange(new IMarkdownBlock[] { first, second });
 
-        Assert.Same(document, returned);
+        Assert.Equal(new IMarkdownBlock[] { first, second }, returned);
+        Assert.Same(first, returned[0]);
+        Assert.Same(second, returned[1]);
         Assert.Equal(new IMarkdownBlock[] { first, second }, document.Blocks);
         Assert.Same(document, first.Parent);
         Assert.Same(document, second.Parent);

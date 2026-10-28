@@ -96,7 +96,8 @@ public sealed class LatexAuditConversionTests {
         const string literal = "a_b%{c}~^\\$&#";
         const string url = "https://example.test/a%20b?q=x#part&v=1";
         var inlines = new InlineSequence().Code(literal).Underline(literal).Link(literal, url);
-        MarkdownDocument original = MarkdownDocument.Create().Add(new ParagraphBlock(inlines));
+        MarkdownDocument original = MarkdownDocument.Create();
+        original.Add(new ParagraphBlock(inlines));
         LatexToMarkdownResult back = original.ToLatexDocumentResult().Value.ToMarkdownDocumentResult();
         InlineSequence converted = Assert.Single(back.Value.Blocks.OfType<ParagraphBlock>()).Inlines;
         Assert.Equal(literal, Assert.Single(converted.Nodes.OfType<CodeSpanInline>()).Text);
@@ -112,7 +113,9 @@ public sealed class LatexAuditConversionTests {
         const string text = "Title] AFTER [more]";
         var definitions = new DefinitionListBlock();
         definitions.AddEntry(new DefinitionListEntry(new InlineSequence().Text(text), new IMarkdownBlock[] { new ParagraphBlock(new InlineSequence().Text("Definition body")) }));
-        MarkdownDocument markdown = MarkdownDocument.Create().Callout("theorem", text, "Theorem body").Add(definitions);
+        MarkdownDocument markdown = MarkdownDocument.Create();
+        markdown.Callout("theorem", text, "Theorem body");
+        markdown.Add(definitions);
         MarkdownToLatexResult latex = markdown.ToLatexDocumentResult();
         Assert.DoesNotContain(latex.Value.Diagnostics, static diagnostic => diagnostic.Severity == LatexDiagnosticSeverity.Error);
         LatexToMarkdownResult result = latex.Value.ToMarkdownDocumentResult();

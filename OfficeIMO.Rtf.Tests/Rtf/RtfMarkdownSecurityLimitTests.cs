@@ -11,7 +11,8 @@ public class RtfMarkdownSecurityLimitTests {
         var table = new TableBlock();
         table.Headers.AddRange(new[] { "A", "B" });
         table.Rows.Add(new[] { "1", "2" });
-        MarkdownDocument markdown = MarkdownDocument.Create().Add(table);
+        MarkdownDocument markdown = MarkdownDocument.Create();
+        markdown.Add(table);
 
         InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() =>
             markdown.ToRtfDocument(new MarkdownToRtfOptions { MaxTableCells = 3 }));
@@ -26,7 +27,8 @@ public class RtfMarkdownSecurityLimitTests {
         table.Rows.Add(new[] { "1", "2" });
         ListItem item = ListItem.Text("Item");
         item.NestedBlocks.Add(table);
-        MarkdownDocument markdown = MarkdownDocument.Create().Add(new UnorderedListBlock { Items = { item } });
+        MarkdownDocument markdown = MarkdownDocument.Create();
+        markdown.Add(new UnorderedListBlock { Items = { item } });
 
         InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() =>
             markdown.ToRtfDocument(new MarkdownToRtfOptions { MaxTableCells = 3 }));
@@ -52,7 +54,8 @@ public class RtfMarkdownSecurityLimitTests {
         ListItem second = ListItem.Text("BetaSibling");
         ListItem root = ListItem.Text("Root");
         root.NestedBlocks.Add(new UnorderedListBlock { Items = { first, second } });
-        MarkdownDocument markdown = MarkdownDocument.Create().Add(new UnorderedListBlock { Items = { root } });
+        MarkdownDocument markdown = MarkdownDocument.Create();
+        markdown.Add(new UnorderedListBlock { Items = { root } });
 
         string roundTrip = markdown.ToRtfDocument(new MarkdownToRtfOptions { MaxListNestingDepth = 1 }).ToMarkdown();
 
@@ -71,7 +74,8 @@ public class RtfMarkdownSecurityLimitTests {
                 ListItem.Task("Pending")
             }
         });
-        MarkdownDocument markdown = MarkdownDocument.Create().Add(new UnorderedListBlock { Items = { root } });
+        MarkdownDocument markdown = MarkdownDocument.Create();
+        markdown.Add(new UnorderedListBlock { Items = { root } });
 
         RtfDocument rtf = markdown.ToRtfDocument(new MarkdownToRtfOptions { MaxListNestingDepth = 1 });
         string plainText = string.Join("\n", rtf.Paragraphs.Select(paragraph => paragraph.ToPlainText()));
@@ -93,7 +97,8 @@ public class RtfMarkdownSecurityLimitTests {
                 ListItem.Text("Fourth")
             }
         });
-        MarkdownDocument markdown = MarkdownDocument.Create().Add(new UnorderedListBlock { Items = { root } });
+        MarkdownDocument markdown = MarkdownDocument.Create();
+        markdown.Add(new UnorderedListBlock { Items = { root } });
 
         RtfDocument rtf = markdown.ToRtfDocument(new MarkdownToRtfOptions { MaxListNestingDepth = 1 });
         string plainText = string.Join("\n", rtf.Paragraphs.Select(paragraph => paragraph.ToPlainText()));
@@ -111,7 +116,8 @@ public class RtfMarkdownSecurityLimitTests {
                 ListItem.Text("Second child")
             }
         });
-        MarkdownDocument markdown = MarkdownDocument.Create().Add(new UnorderedListBlock { Items = { root } });
+        MarkdownDocument markdown = MarkdownDocument.Create();
+        markdown.Add(new UnorderedListBlock { Items = { root } });
 
         RtfDocument rtf = markdown.ToRtfDocument(new MarkdownToRtfOptions { MaxListNestingDepth = 1 });
         string plainText = string.Join("\n", rtf.Paragraphs.Select(paragraph => paragraph.ToPlainText()));
@@ -123,7 +129,8 @@ public class RtfMarkdownSecurityLimitTests {
     [Fact]
     public void CodeBlockInfoBookmarkPayloadIsBounded() {
         string infoString = new string('x', 2_000);
-        MarkdownDocument markdown = MarkdownDocument.Create().Add(new CodeBlock(infoString, "value"));
+        MarkdownDocument markdown = MarkdownDocument.Create();
+        markdown.Add(new CodeBlock(infoString, "value"));
 
         string roundTrip = markdown.ToRtfDocument().ToMarkdown();
 

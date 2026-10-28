@@ -33,6 +33,21 @@ string htmlFragment = document.ToHtml(new MarkdownHtmlExportOptions { Kind = Mar
 string htmlDocument = document.ToHtml(new MarkdownHtmlExportOptions { Kind = MarkdownHtmlKind.Document });
 ```
 
+`Add` returns the same concrete block you append. `AddRange` returns a read-only snapshot of its inputs in source order; input enumeration and null validation finish before the document changes.
+
+```csharp
+using OfficeIMO.Markdown;
+
+using var document = MarkdownDocument.Create();
+ParagraphBlock paragraph = document.Add(new ParagraphBlock(new InlineSequence().Text("Deployment")));
+paragraph.Inlines.Text("complete");
+var added = document.AddRange(new IMarkdownBlock[] {
+    new HeadingBlock(2, "Next steps"),
+    new ParagraphBlock(new InlineSequence().Text("Verify the service."))
+});
+Console.WriteLine(document.ToMarkdown());
+```
+
 `DefinitionListBlock.AddEntry` returns the entry bound to the list. Editing its
 `Term` or `DefinitionBlocks` changes the rendered output. `AddGroup` returns the
 stored group, and `MarkdownTable.AddRow` returns the stored, editable cell array.

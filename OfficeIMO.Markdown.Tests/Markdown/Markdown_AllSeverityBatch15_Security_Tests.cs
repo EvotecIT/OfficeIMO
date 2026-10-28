@@ -7,11 +7,8 @@ namespace OfficeIMO.Tests;
 public sealed class MarkdownAllSeverityBatch15SecurityTests {
     [Fact]
     public void TypedHtmlRenderingRejectsUnsafeSchemesButKeepsRasterDataImages() {
-        var document = MarkdownDocument.Create()
-            .Add(new ParagraphBlock(new InlineSequence()
-                .Link("script", "java\tscript:alert(1)")
-                .Image("svg", "data:image/svg+xml,<svg onload=alert(1)></svg>")
-                .Image("png", "data:image/png;base64,AQID")));
+        var document = MarkdownDocument.Create();
+        document.Add(new ParagraphBlock(new InlineSequence().Link("script", "java\tscript:alert(1)").Image("svg", "data:image/svg+xml,<svg onload=alert(1)></svg>").Image("png", "data:image/png;base64,AQID")));
 
         string html = document.ToHtml(new MarkdownHtmlExportOptions
         {
@@ -36,7 +33,9 @@ public sealed class MarkdownAllSeverityBatch15SecurityTests {
 
         var options = new MarkdownHtmlExportOptions();
         options.AllowedHttpImageHosts.Add("images.example");
-        string html = MarkdownDocument.Create().Add(image).ToHtml(options);
+        using var document = MarkdownDocument.Create();
+        document.Add(image);
+        string html = document.ToHtml(options);
 
         Assert.Contains("https://images.example/photo.webp 1x", html, StringComparison.Ordinal);
         Assert.DoesNotContain("tracker.example", html, StringComparison.Ordinal);
@@ -52,7 +51,9 @@ public sealed class MarkdownAllSeverityBatch15SecurityTests {
 
         var options = new MarkdownHtmlExportOptions();
         options.AllowedHttpImageHosts.Add("images.example");
-        string html = MarkdownDocument.Create().Add(image).ToHtml(options);
+        using var document = MarkdownDocument.Create();
+        document.Add(image);
+        string html = document.ToHtml(options);
 
         Assert.Contains("https://images.example/photo.webp", html, StringComparison.Ordinal);
         Assert.DoesNotContain("tracker.example", html, StringComparison.Ordinal);
@@ -71,7 +72,9 @@ public sealed class MarkdownAllSeverityBatch15SecurityTests {
             BaseUri = new Uri("https://images.example/")
         };
         options.AllowedHttpImageHosts.Add("images.example");
-        string html = MarkdownDocument.Create().Add(image).ToHtml(options);
+        using var document = MarkdownDocument.Create();
+        document.Add(image);
+        string html = document.ToHtml(options);
 
         Assert.Contains("https://images.example/photo.webp 1x", html, StringComparison.Ordinal);
         Assert.DoesNotContain("tracker.example", html, StringComparison.Ordinal);
@@ -79,10 +82,8 @@ public sealed class MarkdownAllSeverityBatch15SecurityTests {
 
     [Fact]
     public void LinkPolicyKeepsNonExecutableProtocolsButRejectsMalformedPolicyTargets() {
-        var document = MarkdownDocument.Create()
-            .Add(new ParagraphBlock(new InlineSequence()
-                .Link("archive", "ftp://files.example/archive")
-                .Link("blocked", "https:/tracker.example/pixel")));
+        var document = MarkdownDocument.Create();
+        document.Add(new ParagraphBlock(new InlineSequence().Link("archive", "ftp://files.example/archive").Link("blocked", "https:/tracker.example/pixel")));
         var options = new MarkdownHtmlExportOptions();
         options.AllowedHttpLinkHosts.Add("safe.example");
 

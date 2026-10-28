@@ -38,7 +38,9 @@ internal static partial class LatexToMarkdownConverter {
             foreach (LatexTableCell sourceCell in source.Rows[rowIndex].Cells) {
                 context.CheckCancellation();
                 InlineSequence inlines = LatexInlineToMarkdownConverter.Convert(context, sourceCell.Span, diagnostics);
-                string markdown = MarkdownDocument.Create().Add(new ParagraphBlock(inlines)).ToMarkdown().Trim();
+                using var cellDocument = MarkdownDocument.Create();
+                cellDocument.Add(new ParagraphBlock(inlines));
+                string markdown = cellDocument.ToMarkdown().Trim();
                 values.Add(markdown);
                 cells.Add(new TableCell(new IMarkdownBlock[] { new ParagraphBlock(inlines) }));
             }

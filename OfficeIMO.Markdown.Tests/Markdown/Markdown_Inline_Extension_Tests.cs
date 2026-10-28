@@ -332,11 +332,8 @@ public sealed class Markdown_Inline_Extension_Tests {
             typeof(TestClaimInline),
             static (inline, _) => "[last:" + ((TestClaimInline)inline).Value + "]"));
 
-        var document = MarkdownDocument.Create()
-            .Add(new ParagraphBlock(new InlineSequence()
-                .Text("Lead")
-                .AddRaw(new TestClaimInline("core"))
-                .Text("tail")));
+        var document = MarkdownDocument.Create();
+        document.Add(new ParagraphBlock(new InlineSequence().Text("Lead").AddRaw(new TestClaimInline("core")).Text("tail")));
 
         Assert.Equal("Lead [last:core] tail\n", document.ToMarkdown(options));
     }
@@ -391,11 +388,8 @@ Lead {{core}} tail
             typeof(TestClaimInline),
             static (_, _) => null));
 
-        var document = MarkdownDocument.Create()
-            .Add(new ParagraphBlock(new InlineSequence()
-                .Text("Lead")
-                .AddRaw(new TestClaimInline("core"))
-                .Text("tail")));
+        var document = MarkdownDocument.Create();
+        document.Add(new ParagraphBlock(new InlineSequence().Text("Lead").AddRaw(new TestClaimInline("core")).Text("tail")));
 
         Assert.Equal("Lead core tail\n", document.ToMarkdown(options));
     }

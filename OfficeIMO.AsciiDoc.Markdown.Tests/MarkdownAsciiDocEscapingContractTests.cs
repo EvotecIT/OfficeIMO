@@ -13,7 +13,8 @@ public sealed class MarkdownAsciiDocEscapingContractTests {
     [InlineData("[literal-role]")]
     [InlineData("[[literal-anchor]]")]
     public void TypedPlainParagraphsRemainLiteral(string literal) {
-        MarkdownDocument source = MarkdownDocument.Create().Add(new ParagraphBlock(new InlineSequence().Text(literal)));
+        MarkdownDocument source = MarkdownDocument.Create();
+        source.Add(new ParagraphBlock(new InlineSequence().Text(literal)));
         MarkdownToAsciiDocResult result = source.ToAsciiDocDocumentResult();
         Assert.Single(result.Value.Blocks.OfType<AsciiDocParagraph>());
         AsciiDocToMarkdownResult reopened = result.Value.ToMarkdownDocumentResult();
@@ -37,7 +38,8 @@ public sealed class MarkdownAsciiDocEscapingContractTests {
     [Fact]
     public void CodeSpanPreservesLiteralFormattingCharacters() {
         var content = new InlineSequence().Code("*literal* {attribute} \\ `code`");
-        MarkdownDocument source = MarkdownDocument.Create().Add(new ParagraphBlock(content));
+        MarkdownDocument source = MarkdownDocument.Create();
+        source.Add(new ParagraphBlock(content));
         MarkdownDocument reopened = source.ToAsciiDocDocumentResult().Value.ToMarkdownDocumentResult().Value;
         CodeSpanInline code = Assert.Single(Assert.Single(reopened.Blocks.OfType<ParagraphBlock>()).Inlines.Nodes.OfType<CodeSpanInline>());
         Assert.Equal("*literal* {attribute} \\ `code`", code.Text);

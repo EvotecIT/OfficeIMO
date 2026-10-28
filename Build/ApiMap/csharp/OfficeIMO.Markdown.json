@@ -1563,6 +1563,54 @@
       "phase": "B",
       "applied": "phase-b-applied",
       "note": "Definition-list entries are the owner-bound entries created for the stored group, rather than detached input entries. Table rows return their stored editable cells."
+    },
+    {
+      "old": "OfficeIMO.Markdown.MarkdownDocument.Add(IMarkdownBlock block)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Markdown.MarkdownDocument.Add<T>(T block) : T where T : IMarkdownBlock",
+      "reason": "Authoring Add methods return the attached objects rather than the document or void.",
+      "file": "OfficeIMO.Markdown/Core/MarkdownDocument.Blocks.cs",
+      "category": "authoring",
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "implementation": {
+        "phase": "B",
+        "status": "applied"
+      },
+      "note": "Additional collection contracts identified in the final object-model sweep. Generic Add retains the concrete block type; AddRange returns a read-only input snapshot and completes input enumeration/validation before document mutation. Syntax conveniences use the same private append owner."
+    },
+    {
+      "old": "OfficeIMO.Markdown.MarkdownDocument.AddRange(IEnumerable<IMarkdownBlock> blocks)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Markdown.MarkdownDocument.AddRange(IEnumerable<IMarkdownBlock> blocks) : IReadOnlyList<IMarkdownBlock>",
+      "reason": "Authoring Add methods return the attached objects rather than the document or void.",
+      "file": "OfficeIMO.Markdown/Core/MarkdownDocument.Blocks.cs",
+      "category": "authoring",
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "implementation": {
+        "phase": "B",
+        "status": "applied"
+      },
+      "note": "Additional collection contracts identified in the final object-model sweep. Generic Add retains the concrete block type; AddRange returns a read-only input snapshot and completes input enumeration/validation before document mutation. Syntax conveniences use the same private append owner."
+    },
+    {
+      "old": "OfficeIMO.Markdown.MarkdownUnorderedList.Add(ListItem item)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Markdown.MarkdownUnorderedList.Add(ListItem item) : ListItem",
+      "reason": "Authoring Add methods return the attached objects rather than the document or void.",
+      "file": "OfficeIMO.Markdown/Model/UnorderedList.cs",
+      "category": "authoring",
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "implementation": {
+        "phase": "B",
+        "status": "applied"
+      },
+      "note": "Additional collection contracts identified in the final object-model sweep. Generic Add retains the concrete block type; AddRange returns a read-only input snapshot and completes input enumeration/validation before document mutation. Syntax conveniences use the same private append owner."
     }
   ],
   "packageMoves": [
@@ -1774,6 +1822,16 @@
         "OfficeIMO.Markdown/packages.lock.json",
         "OfficeIMO.Markdown/packages.nonwindows.lock.json"
       ]
+    },
+    {
+      "change": "Markdown block append ownership and failure ordering",
+      "reason": "Block mutation moved into a focused partial; the root document stays below 700 lines. Failed AddRange enumeration or a null entry leaves the document unchanged, and single-block/list additions reject null before mutation.",
+      "applied": "phase-b-applied"
+    },
+    {
+      "change": "Migrate Markdown block additions in adapters, renderer extensions, examples and tests",
+      "reason": "Source conversions retain the MarkdownDocument before adding blocks. Add returns the attached concrete block and AddRange returns a read-only snapshot. Failed input enumeration leaves parsed content and parent bindings unchanged. All fifteen direct or transitive consumer projects compile; Markdown, AsciiDoc, LaTeX, ADF and RTF suites pass on net8.0 and net10.0. The Add example compiles and renders on both runtimes; netstandard2.0 and an isolated net472 compile pass without changing framework declarations.",
+      "applied": "phase-b-applied"
     }
   ],
   "applicationStatus": "Phase A applied and validated on the supported macOS targets. Phase B and Tier 2 entries retain their status; Windows .NET Framework validation remains pending.",

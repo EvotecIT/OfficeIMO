@@ -20,7 +20,9 @@ public sealed class LatexRequestedReviewTests {
     [Fact]
     public void LinkMetadataAndHighlightSimplificationAreReportedWithoutLosingVisibleContent() {
         var inlines = new InlineSequence().Link("Visible", "https://example.test", "tooltip", "_blank", "noopener").Highlight("Highlighted");
-        var result = MarkdownDocument.Create().Add(new ParagraphBlock(inlines)).ToLatexDocumentResult();
+        using var addedDocument = MarkdownDocument.Create();
+        addedDocument.Add(new ParagraphBlock(inlines));
+        var result = addedDocument.ToLatexDocumentResult();
         Assert.Contains(result.Report.Diagnostics, diagnostic => diagnostic.Code == "MDLATEX027");
         Assert.Contains(result.Report.Diagnostics, diagnostic => diagnostic.Code == "MDLATEX028");
         Assert.Contains("[Visible](https://example.test)", ((result.Value.ToMarkdownDocument().ToMarkdown())), StringComparison.Ordinal);
@@ -33,7 +35,9 @@ public sealed class LatexRequestedReviewTests {
     [InlineData("before\\end% comment\n{verbatim}\\section{Literal}after")]
     [InlineData(@"before\end{ verbatim }\section{Literal}after")]
     public void RecognizedVerbatimClosingFormsCannotActivateLiteralCode(string content) {
-        var result = MarkdownDocument.Create().Add(new CodeBlock("text", content)).ToLatexDocumentResult();
+        using var addedDocument = MarkdownDocument.Create();
+        addedDocument.Add(new CodeBlock("text", content));
+        var result = addedDocument.ToLatexDocumentResult();
         Assert.Contains(result.Report.Diagnostics, diagnostic => diagnostic.Code == "MDLATEX021");
         Assert.Empty(result.Value.Headings);
         Assert.DoesNotContain(result.Value.Diagnostics, diagnostic => diagnostic.Code == "LATEX005");

@@ -106,7 +106,8 @@ namespace OfficeIMO.Tests.MarkdownSuite {
             table.Rows.Add(new[] { "Cell | one", "C: \\ Share" });
             table.Rows.Add(new[] { "Only first cell" });
 
-            var doc = MarkdownDocument.Create().Add(table);
+            var doc = MarkdownDocument.Create();
+            doc.Add(table);
 
             string markdown = doc.ToMarkdown().Replace("\r\n", "\n");
 
@@ -130,9 +131,9 @@ namespace OfficeIMO.Tests.MarkdownSuite {
 
         [Fact]
         public void Reader_Roundtrips_Linked_Image_Block() {
-            var md = MarkdownDocument.Create()
-                .Add(new ImageBlock("https://example.com/logo.png", "Logo", "Example", linkUrl: "https://example.com/docs", linkTitle: "Documentation"))
-                .Caption("Our linked logo");
+            var md = MarkdownDocument.Create();
+            md.Add(new ImageBlock("https://example.com/logo.png", "Logo", "Example", linkUrl: "https://example.com/docs", linkTitle: "Documentation"));
+            md.Caption("Our linked logo");
 
             var text = md.ToMarkdown();
             var parsed = OfficeIMO.Markdown.MarkdownDocument.Parse(text);
@@ -148,9 +149,9 @@ namespace OfficeIMO.Tests.MarkdownSuite {
 
         [Fact]
         public void Document_Add_Treats_FrontMatter_As_Document_Header_Block() {
-            var md = MarkdownDocument.Create()
-                .Add(FrontMatterBlock.FromObject(new { title = "Doc", published = true }))
-                .H1("Doc");
+            var md = MarkdownDocument.Create();
+            md.Add(FrontMatterBlock.FromObject(new { title = "Doc", published = true }));
+            md.H1("Doc");
 
             var text = md.ToMarkdown().Replace("\r", "");
 

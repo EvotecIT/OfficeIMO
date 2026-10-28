@@ -48,7 +48,9 @@ public class LatexFootnoteConversionTests {
     public void FootnotesInOpaqueArgumentsStayInTheFallbackAndNestedInsertionsAreReported() {
         LatexToMarkdownResult result = LatexDocument.Parse(Wrap("\\custom{Hidden\\footnote{Opaque}} Visible\\footnote{Outer\\footnote{Inner}} tail")).ToMarkdownDocumentResult();
         FootnoteDefinitionBlock definition = Assert.Single(result.Value.Blocks.OfType<FootnoteDefinitionBlock>());
-        string noteMarkdown = MarkdownDocument.Create().Add(definition).ToMarkdown();
+        using var addedDocument = MarkdownDocument.Create();
+        addedDocument.Add(definition);
+        string noteMarkdown = addedDocument.ToMarkdown();
         Assert.Contains("Outer", noteMarkdown, StringComparison.Ordinal);
         Assert.Contains("Inner", noteMarkdown, StringComparison.Ordinal);
         Assert.Contains(result.Report.Diagnostics, diagnostic => diagnostic.Feature == "nested-footnote" && diagnostic.Outcome == LatexMarkdownConversionOutcome.SourceFallback);

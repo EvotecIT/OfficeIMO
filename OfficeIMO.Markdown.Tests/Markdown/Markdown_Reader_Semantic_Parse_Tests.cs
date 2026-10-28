@@ -230,8 +230,8 @@ public sealed class Markdown_Reader_Semantic_Parse_Tests {
         var nestedInlines = new InlineSequence().Text("inline child");
         var blockChild = new ParagraphBlock(new InlineSequence().Text("block child"));
         var custom = new CompositeContainerInline(nestedInlines, blockChild);
-        var document = MarkdownDocument.Create()
-            .Add(new ParagraphBlock(new InlineSequence().AddRaw(custom)));
+        var document = MarkdownDocument.Create();
+        document.Add(new ParagraphBlock(new InlineSequence().AddRaw(custom)));
 
         Assert.Same(custom, nestedInlines.Parent);
         Assert.Same(custom, blockChild.Parent);

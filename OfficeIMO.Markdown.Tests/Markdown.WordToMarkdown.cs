@@ -850,20 +850,11 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void MarkdownToWord_ToWordDocument_Routes_First_And_Even_HeaderFooter_Semantic_Blocks() {
-            var markdown = MarkdownDocument.Create()
-                .Add(new SemanticFencedBlock(
-                    WordMarkdownSemanticBlocks.HeaderSemanticKind,
-                    $"{WordMarkdownSemanticBlocks.HeaderFenceLanguage} section=1 slot=first",
-                    "First header"))
-                .Add(new SemanticFencedBlock(
-                    WordMarkdownSemanticBlocks.HeaderSemanticKind,
-                    $"{WordMarkdownSemanticBlocks.HeaderFenceLanguage} section=1 slot=default",
-                    "Default header"))
-                .Add(new ParagraphBlock(new InlineSequence().Text("Body line")))
-                .Add(new SemanticFencedBlock(
-                    WordMarkdownSemanticBlocks.FooterSemanticKind,
-                    $"{WordMarkdownSemanticBlocks.FooterFenceLanguage} section=1 slot=even",
-                    "Even footer"));
+            var markdown = MarkdownDocument.Create();
+            markdown.Add(new SemanticFencedBlock(WordMarkdownSemanticBlocks.HeaderSemanticKind, $"{WordMarkdownSemanticBlocks.HeaderFenceLanguage} section=1 slot=first", "First header"));
+            markdown.Add(new SemanticFencedBlock(WordMarkdownSemanticBlocks.HeaderSemanticKind, $"{WordMarkdownSemanticBlocks.HeaderFenceLanguage} section=1 slot=default", "Default header"));
+            markdown.Add(new ParagraphBlock(new InlineSequence().Text("Body line")));
+            markdown.Add(new SemanticFencedBlock(WordMarkdownSemanticBlocks.FooterSemanticKind, $"{WordMarkdownSemanticBlocks.FooterFenceLanguage} section=1 slot=even", "Even footer"));
 
             using var document = markdown.ToWord();
 

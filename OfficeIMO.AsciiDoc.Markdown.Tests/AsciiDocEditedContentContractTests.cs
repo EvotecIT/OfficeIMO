@@ -48,7 +48,7 @@ public sealed class AsciiDocEditedContentContractTests {
     public void AttributeAssignmentsCaptureDocumentOrderAndUnsetFinalMetadata() {
         const string source = ":version: one\n:captured: {version}\n:draft:\n\n{version}\n\n:version: two\n:draft!:\n\n{version}\n\n{captured}\n";
         AsciiDocToMarkdownResult result = AsciiDocDocument.Parse(source).ToMarkdownDocumentResult();
-        string[] paragraphs = result.Value.Blocks.OfType<ParagraphBlock>().Select(item => MarkdownDocument.Create().Add(item).ToMarkdown()).ToArray();
+        string[] paragraphs = result.Value.Blocks.OfType<ParagraphBlock>().Select(item => { using var blockDocument = MarkdownDocument.Create(); blockDocument.Add(item); return blockDocument.ToMarkdown(); }).ToArray();
         Assert.Equal(new[] { "one", "two", "one" }, paragraphs.Select(value => value.Trim()));
         Assert.DoesNotContain("draft:", ((result.Value.ToMarkdown())), StringComparison.Ordinal);
     }
@@ -59,7 +59,7 @@ public sealed class AsciiDocEditedContentContractTests {
         AsciiDocDelimitedBlock container = document.BlocksOfType<AsciiDocDelimitedBlock>().Single();
         container.Body!.BlocksOfType<AsciiDocParagraph>().Last().Text = "Edited {value}";
         var paragraphs = document.ToMarkdownDocumentResult().Value.Blocks.OfType<ParagraphBlock>()
-            .Select(block => MarkdownDocument.Create().Add(block).ToMarkdown().Trim()).ToArray();
+            .Select(block => { using var blockDocument = MarkdownDocument.Create(); blockDocument.Add(block); return blockDocument.ToMarkdown().Trim(); }).ToArray();
         Assert.Equal(new[] { "before", "Edited inside", "inside" }, paragraphs);
     }
 

@@ -211,8 +211,12 @@ Console.WriteLine("OfficeIMO");
             }
         };
 
-        byte[] defaultPdf = (MarkdownDocument.Create().Add(defaultTable).ToPdf(options)).ToBytes();
-        byte[] narrowPdf = (MarkdownDocument.Create().Add(narrowFirstColumnTable).ToPdf(options)).ToBytes();
+        using var defaultDocument = MarkdownDocument.Create();
+        defaultDocument.Add(defaultTable);
+        using var narrowDocument = MarkdownDocument.Create();
+        narrowDocument.Add(narrowFirstColumnTable);
+        byte[] defaultPdf = (defaultDocument.ToPdf(options)).ToBytes();
+        byte[] narrowPdf = (narrowDocument.ToPdf(options)).ToBytes();
 
         PdfTextBounds defaultDescription = FindPdfTextBounds(defaultPdf, "Description");
         PdfTextBounds narrowDescription = FindPdfTextBounds(narrowPdf, "Description");
@@ -787,14 +791,14 @@ author: OfficeIMO
             Anchor = "pdf-playbook"
         });
 
-        MarkdownDocument document = MarkdownDocument.Create()
-            .Add(toc)
-            .H1("PDF Playbook")
-            .Callout("warning", "Deployment note", "Keep backup enabled.")
-            .Details("More detail", body => body.P("Hidden content."), open: true)
-            .Dl(list => list.Item("Term", "Definition value"))
-            .Add(new SemanticFencedBlock("diagram", "mermaid", "graph TD\nA-->B", "Flow caption"))
-            .Add(new FootnoteDefinitionBlock("audit", "Footnote audit trail."));
+        MarkdownDocument document = MarkdownDocument.Create();
+        document.Add(toc);
+        document.H1("PDF Playbook");
+        document.Callout("warning", "Deployment note", "Keep backup enabled.");
+        document.Details("More detail", body => body.P("Hidden content."), open: true);
+        document.Dl(list => list.Item("Term", "Definition value"));
+        document.Add(new SemanticFencedBlock("diagram", "mermaid", "graph TD\nA-->B", "Flow caption"));
+        document.Add(new FootnoteDefinitionBlock("audit", "Footnote audit trail."));
 
         var options = new MarkdownPdfExportOptions();
         PdfCore.PdfDocumentConversionResult result = document.ConvertToPdfWithEvidence(options);

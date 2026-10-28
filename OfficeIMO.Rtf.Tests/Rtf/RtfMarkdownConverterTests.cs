@@ -613,7 +613,8 @@ public class RtfMarkdownConverterTests {
         var item = ListItem.Text("Lead");
         item.AdditionalParagraphs.Add(new InlineSequence().Text("Continuation"));
         list.Items.Add(item);
-        MarkdownDocument markdownDoc = MarkdownDocument.Create().Add(list);
+        MarkdownDocument markdownDoc = MarkdownDocument.Create();
+        markdownDoc.Add(list);
 
         RtfDocument listDocument = markdownDoc.ToRtfDocument();
 

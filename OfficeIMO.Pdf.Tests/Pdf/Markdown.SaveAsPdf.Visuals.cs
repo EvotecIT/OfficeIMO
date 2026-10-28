@@ -29,9 +29,8 @@ public class MarkdownSaveAsPdfVisualTests {
     [Fact]
     public void ToPdfDocument_MarkdownImageOnlyParagraph_RendersImageInsteadOfTextPlaceholder() {
         string dataUri = CreateDataUriPng();
-        MarkdownDocument document = MarkdownDocument
-            .Create()
-            .Add(new ParagraphBlock(new InlineSequence().Image("Inline badge", dataUri, "Inline badge caption")));
+        MarkdownDocument document = MarkdownDocument.Create();
+        document.Add(new ParagraphBlock(new InlineSequence().Image("Inline badge", dataUri, "Inline badge caption")));
 
         byte[] bytes = document.ToPdf(CreateVisualOptions()).ToBytes();
         string text = PdfCore.PdfReadDocument.Open(bytes).ExtractText();
@@ -46,9 +45,8 @@ public class MarkdownSaveAsPdfVisualTests {
         string dataUri = CreateDataUriPng();
         var quote = new QuoteBlock();
         quote.ChildBlocks.Add(new ParagraphBlock(new InlineSequence().Image("Inline badge", dataUri, "Inline badge caption")));
-        MarkdownDocument document = MarkdownDocument
-            .Create()
-            .Add(quote);
+        MarkdownDocument document = MarkdownDocument.Create();
+        document.Add(quote);
 
         byte[] bytes = document.ToPdf(CreateVisualOptions()).ToBytes();
         string text = PdfCore.PdfReadDocument.Open(bytes).ExtractText();
@@ -68,9 +66,8 @@ public class MarkdownSaveAsPdfVisualTests {
         list.Items.Add(item);
         var quote = new QuoteBlock();
         quote.ChildBlocks.Add(list);
-        MarkdownDocument document = MarkdownDocument
-            .Create()
-            .Add(quote);
+        MarkdownDocument document = MarkdownDocument.Create();
+        document.Add(quote);
 
         byte[] bytes = document.ToPdf(CreateVisualOptions()).ToBytes();
         string text = PdfCore.PdfReadDocument.Open(bytes).ExtractText();
@@ -216,9 +213,8 @@ public class MarkdownSaveAsPdfVisualTests {
     [Fact]
     public void ToPdfDocument_MarkdownGifImage_NormalizesThroughSharedRasterEngine() {
         const string imageUrl = "https://example.test/badge.gif";
-        MarkdownDocument document = MarkdownDocument
-            .Create()
-            .Add(new ParagraphBlock(new InlineSequence().Image("Remote badge", imageUrl, "Remote badge caption")));
+        MarkdownDocument document = MarkdownDocument.Create();
+        document.Add(new ParagraphBlock(new InlineSequence().Image("Remote badge", imageUrl, "Remote badge caption")));
         var options = CreateVisualOptions();
         options.ResourcePolicy = PdfCore.PdfResourcePolicy.CreateTrustedHost();
         options.RemoteImageResolver = _ => CreateGifBytes();
@@ -352,9 +348,8 @@ _Figure 2. Revenue chart_
 }
 """)
         });
-        MarkdownDocument document = MarkdownDocument
-            .Create()
-            .Add(callout);
+        MarkdownDocument document = MarkdownDocument.Create();
+        document.Add(callout);
 
         var options = CreateVisualOptions();
         byte[] bytes = document.ToPdf(options).ToBytes();

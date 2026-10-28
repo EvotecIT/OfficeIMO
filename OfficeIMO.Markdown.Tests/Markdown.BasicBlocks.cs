@@ -202,16 +202,11 @@ code
 
         [Fact]
         public void TocMarkerBlock_ToHtmlFragment_Generates_Toc_From_Typed_Ast() {
-            var markdown = OfficeIMO.Markdown.MarkdownDocument.Create()
-                .Add(new OfficeIMO.Markdown.TocMarkerBlock {
-                    MinLevel = 2,
-                    MaxLevel = 3,
-                    IncludeTitle = true,
-                    Title = "Contents"
-                })
-                .H1("Report")
-                .H2("Region")
-                .H3("Pipeline");
+            var markdown = OfficeIMO.Markdown.MarkdownDocument.Create();
+            markdown.Add(new OfficeIMO.Markdown.TocMarkerBlock { MinLevel = 2, MaxLevel = 3, IncludeTitle = true, Title = "Contents" });
+            markdown.H1("Report");
+            markdown.H2("Region");
+            markdown.H3("Pipeline");
 
             string html = markdown.ToHtml(new OfficeIMO.Markdown.MarkdownHtmlExportOptions
             {
@@ -273,15 +268,10 @@ code
 
         [Fact]
         public void MarkdownToWord_Renders_Typed_TocMarkerBlock_As_Native_Word_TableOfContents() {
-            var markdown = OfficeIMO.Markdown.MarkdownDocument.Create()
-                .Add(new OfficeIMO.Markdown.TocMarkerBlock {
-                    MinLevel = 2,
-                    MaxLevel = 4,
-                    IncludeTitle = true,
-                    Title = "Contents"
-                })
-                .H1("Report")
-                .H2("Region");
+            var markdown = OfficeIMO.Markdown.MarkdownDocument.Create();
+            markdown.Add(new OfficeIMO.Markdown.TocMarkerBlock { MinLevel = 2, MaxLevel = 4, IncludeTitle = true, Title = "Contents" });
+            markdown.H1("Report");
+            markdown.H2("Region");
 
             using var document = markdown.ToWord();
 

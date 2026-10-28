@@ -685,8 +685,8 @@ Lead[^1]
     [Fact]
     public void MarkdownInlineNormalizationTransform_Updates_Builder_Footnote_Text_From_TextConstructorChildBlocks() {
         var options = MarkdownLoadOptions.CreateOfficeIMOProfile();
-        var document = MarkdownDocument.Create()
-            .Add(new FootnoteDefinitionBlock("1", "Why it matters:missing evidence"));
+        var document = MarkdownDocument.Create();
+        document.Add(new FootnoteDefinitionBlock("1", "Why it matters:missing evidence"));
         var transform = new MarkdownInlineNormalizationTransform(new MarkdownInputNormalizationOptions {
             NormalizeTightColonSpacing = true
         });
