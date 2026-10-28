@@ -14,9 +14,16 @@ public sealed partial class PdfReadPage {
         (double width, double height) = GetVisualPageSize();
         var pageContentBudget = new PageContentBudget(this, context.CancellationToken);
         Matrix2D transform = GetVisualPageTransform();
+        PdfDictionary? resources = ResolveDictionary(GetInheritedValue("Resources"));
+        string content = GetContentStreamContent(pageContentBudget);
+        if (content.Length == 0) return Array.Empty<PdfTableRuling>();
+        PdfPageInvokedResourceNames invoked = GetRootInvokedResourceNames(content, resources, () => context.ConsumeWork());
+        // This profile accepts root strokes only. Decline invoked objects before
+        // separate effect/geometry traversals could decode their content twice.
+        if (invoked.HasObjectPaint || !invoked.HasVectorPaint) return Array.Empty<PdfTableRuling>();
         // This bounded profile declines pages with graphics effects. IsDefault alone
         // does not exclude unresolved soft masks or unmodelled graphics-state paint.
-        foreach (PdfPageDrawingEffectTransition transition in GetGraphicsEffectTransitions(transform, height, pageContentBudget)) {
+        foreach (PdfPageDrawingEffectTransition transition in GetGraphicsEffectTransitions(content, transform, height, pageContentBudget)) {
             context.ConsumeWork();
             PdfPageDrawingEffect effect = transition.Effect;
             if (effect.HasUnsupportedGraphicsState || effect.SoftMask != null ||
@@ -25,8 +32,6 @@ public sealed partial class PdfReadPage {
         var rulings = new List<PdfTableRuling>();
         bool uncertain = false;
         (OfficeColor Color, double Width, double Opacity)? strokePaint = null;
-        PdfDictionary? resources = ResolveDictionary(GetInheritedValue("Resources"));
-        string content = GetContentStreamContent(pageContentBudget);
         if (content.Length > 0) {
             CollectVisualPrimitivesAndForms(content, resources, transform, width, height, Visit,
                 new HashSet<PdfStream>(), retainPrimitiveData: false,

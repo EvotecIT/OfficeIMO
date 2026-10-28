@@ -29,13 +29,14 @@ internal sealed class PdfAdvancedTableDetectionStage : IPdfTableDetectionStage {
             context.Height,
             context.ConsumeWork,
             context.ThrowIfCancellationRequested);
-        IReadOnlyList<PdfTableRuling> rulings = tables.Count == 0
-            ? Array.Empty<PdfTableRuling>()
-            : context.Page.GetTableRulings(context);
+        IReadOnlyList<PdfTableRuling> rulings = context.Page.GetTableRulings(context);
+        if (tables.Count == 0 && rulings.Count > 0)
+            tables.AddRange(TableDetector.RecoverClosedRulingTables(nativeLines, rulings, context));
         result.Capacity = tables.Count;
         foreach (PdfStructuredTable table in tables) {
             context.ConsumeWork();
-            bool ruledGrid = rulings.Count > 0 && TableDetector.TryRefineClosedRulingGrid(table, rulings, context);
+            bool ruledGrid = table.Kind == "closed-ruling-cells" ||
+                rulings.Count > 0 && TableDetector.TryRefineClosedRulingGrid(table, rulings, context);
             ContentStructureExtractor.NormalizeDetectedTable(table);
             if (table.Columns.Count < 2 || table.SourceRuns.Count == 0) continue;
 
