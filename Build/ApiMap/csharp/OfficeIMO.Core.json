@@ -824,6 +824,12 @@
       "reason": "The broader net8 PowerPoint HTML suite reproduced Enum.ToString selecting Column instead of ColumnClustered. One internal shared-source formatter now gives ColumnClustered/BarClustered consistently to PowerPoint HTML, Excel HTML and PowerPoint Reader payloads, including per-series kinds. Existing positioned HTML and rich Reader artifact tests cover the observable identifiers. No public helper or external dependency is added.",
       "phase": "B",
       "applied": "phase-b-applied"
+    },
+    {
+      "change": "Limit the ToHashSet compatibility extension to netstandard2.0",
+      "reason": "The .NET Framework 4.7.2 BCL already provides ToHashSet. Compiling the full net472 Workflows graph exposed ambiguous comparer overloads when the fallback was also visible. Other older-framework fallbacks remain available.",
+      "file": "OfficeIMO.Core/Internal/OfficeRuntimeCompatibility.Collections.cs",
+      "applied": "phase-b-applied"
     }
   ],
   "applicationStatus": "Phase A applied and validated on the supported macOS targets. Phase B and Tier 2 entries retain their status; Windows .NET Framework validation remains pending.",

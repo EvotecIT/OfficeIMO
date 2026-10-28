@@ -646,6 +646,12 @@
       "change": "Adapt PowerPoint table sizing to OfficeLength",
       "reason": "The project report layout passes explicit physical lengths to the unified PowerPoint row sizing API.",
       "applied": "phase-b-applied"
+    },
+    {
+      "change": "Reference the framework compression assembly on net472",
+      "reason": "The full Windows PowerShell payload graph compiles Workflows publishing and evidence ZIP contracts against .NET Framework. System.IO.Compression is a framework reference, with no package or target change.",
+      "file": "OfficeIMO.Workflows/OfficeIMO.Workflows.csproj",
+      "applied": "phase-b-applied"
     }
   ],
   "applicationStatus": "Phase A applied and validated on the supported macOS targets. Phase B and Tier 2 entries retain their status; Windows .NET Framework validation remains pending.",

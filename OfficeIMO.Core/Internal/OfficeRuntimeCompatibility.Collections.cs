@@ -33,7 +33,9 @@ namespace OfficeIMO.Internal {
                 return await task.ConfigureAwait(false);
             }
         }
+#if NETSTANDARD2_0
         internal static HashSet<T> ToHashSet<T>(this IEnumerable<T> source, IEqualityComparer<T>? comparer = null) => new HashSet<T>(source, comparer);
+#endif
         internal static bool TryAdd<TKey, TValue>(this IDictionary<TKey, TValue> dictionary, TKey key, TValue value) {
             if (dictionary.ContainsKey(key)) return false;
             dictionary.Add(key, value);
