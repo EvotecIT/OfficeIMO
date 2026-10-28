@@ -76,24 +76,24 @@ const double marginCm = 1.5;
 var content = presentation.SlideSize.GetContentBox(OfficeLength.Centimeters(marginCm));
 var slide = presentation.AddSlide();
 
-var title = slide.AddTitleCm(
+var title = slide.AddTitle(
     "Weekly Status",
-    content.Left.ToCentimeters(),
-    content.Top.ToCentimeters(),
-    content.Width.ToCentimeters(),
-    1.4);
+    OfficeIMO.OfficeLength.Centimeters(content.Left.ToCentimeters()),
+    OfficeIMO.OfficeLength.Centimeters(content.Top.ToCentimeters()),
+    OfficeIMO.OfficeLength.Centimeters(content.Width.ToCentimeters()),
+    OfficeIMO.OfficeLength.Centimeters(1.4));
 
 if (title.Paragraphs.Count > 0)
 {
     PowerPointTextStyle.Title.WithColor("1F4E79").Apply(title.Paragraphs[0]);
 }
 
-var agenda = slide.AddTextBoxCm(
+var agenda = slide.AddTextBox(
     string.Empty,
-    content.Left.ToCentimeters(),
-    content.Top.ToCentimeters() + 2.0,
-    content.Width.ToCentimeters(),
-    content.Height.ToCentimeters() - 2.0);
+    OfficeIMO.OfficeLength.Centimeters(content.Left.ToCentimeters()),
+    OfficeIMO.OfficeLength.Centimeters(content.Top.ToCentimeters() + 2.0),
+    OfficeIMO.OfficeLength.Centimeters(content.Width.ToCentimeters()),
+    OfficeIMO.OfficeLength.Centimeters(content.Height.ToCentimeters() - 2.0));
 
 agenda.AddBullets(new[]
 {

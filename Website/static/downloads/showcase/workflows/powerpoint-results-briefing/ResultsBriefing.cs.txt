@@ -13,7 +13,7 @@ internal static class ResultsBriefing {
         var data = new OfficeChartData(new[] { "Week 1", "Week 2", "Week 3", "Week 4" },
             new[] { new OfficeSeries("Baseline", new double[] { 8, 8, 8, 8 }),
                 new OfficeSeries("Pilot", new double[] { 7.4, 6.2, 5.1, 4.6 }) });
-        results.AddChartCm(OfficeChartType.ColumnClustered, data, 1.5, 5, 30, 11)
+        results.AddChart(OfficeChartType.ColumnClustered,data,global::OfficeIMO.OfficeLength.Centimeters(1.5),global::OfficeIMO.OfficeLength.Centimeters(5),global::OfficeIMO.OfficeLength.Centimeters(30),global::OfficeIMO.OfficeLength.Centimeters(11))
             .SetTitle("First response by week").SetLegend(OfficeChartLegendPosition.Bottom)
             .SetDataLabels(showValue: true).SetValueAxisTitle("Hours");
         results.Notes.Text = "These are synthetic figures. Explain sample size and measurement rules before drawing a conclusion from real data. Compare the same response-time definition across weeks.";
@@ -29,7 +29,7 @@ internal static class ResultsBriefing {
         deck.Save();
 
         void Text(PowerPointSlide slide, string text, double x, double y, double width, double height, int size, string color) {
-            var box = slide.AddTextBoxCm(text, x, y, width, height); box.FontSize = size; box.Color = color;
+            var box = slide.AddTextBox(text,global::OfficeIMO.OfficeLength.Centimeters(x),global::OfficeIMO.OfficeLength.Centimeters(y),global::OfficeIMO.OfficeLength.Centimeters(width),global::OfficeIMO.OfficeLength.Centimeters(height)); box.FontSize = size; box.Color = color;
         }
     }
 }

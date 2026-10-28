@@ -62,8 +62,8 @@ using var presentation = PowerPointDocument.Create("Overview.pptx");
 presentation.SlideSize.SetPreset(PowerPointSlideSizePreset.Screen16x9);
 
 var intro = presentation.AddSlide();
-intro.AddTitleCm("Product overview", 1.5, 1.2, 22, 1.4);
-var highlights = intro.AddTextBoxCm(string.Empty, 1.5, 3.0, 12, 5.5);
+intro.AddTitle("Product overview", OfficeIMO.OfficeLength.Centimeters(1.5), OfficeIMO.OfficeLength.Centimeters(1.2), OfficeIMO.OfficeLength.Centimeters(22), OfficeIMO.OfficeLength.Centimeters(1.4));
+var highlights = intro.AddTextBox(string.Empty, OfficeIMO.OfficeLength.Centimeters(1.5), OfficeIMO.OfficeLength.Centimeters(3.0), OfficeIMO.OfficeLength.Centimeters(12), OfficeIMO.OfficeLength.Centimeters(5.5));
 highlights.AddBullets(new[] {
     "Revenue grew 18% year over year",
     "Customer satisfaction reached 94%",
@@ -75,8 +75,8 @@ var data = new OfficeChartData(
     new[] { new OfficeSeries("Revenue", new[] { 3.2, 3.8, 4.1, 4.9 }) });
 
 var chartSlide = presentation.AddSlide();
-chartSlide.AddTitleCm("Revenue by quarter", 1.5, 1.2, 22, 1.4);
-chartSlide.AddChartCm(OfficeChartType.ColumnClustered, data, 1.5, 3.0, 22, 9,
+chartSlide.AddTitle("Revenue by quarter", OfficeIMO.OfficeLength.Centimeters(1.5), OfficeIMO.OfficeLength.Centimeters(1.2), OfficeIMO.OfficeLength.Centimeters(22), OfficeIMO.OfficeLength.Centimeters(1.4));
+chartSlide.AddChart(OfficeChartType.ColumnClustered, data, OfficeIMO.OfficeLength.Centimeters(1.5), OfficeIMO.OfficeLength.Centimeters(3.0), OfficeIMO.OfficeLength.Centimeters(22), OfficeIMO.OfficeLength.Centimeters(9),
         new PowerPointChartAccessibilityOptions {
             AlternativeText = "Quarterly revenue increased from 3.2 to 4.9"
         })

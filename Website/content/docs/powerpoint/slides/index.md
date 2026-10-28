@@ -19,19 +19,19 @@ const double marginCm = 1.5;
 var content = presentation.SlideSize.GetContentBox(OfficeLength.Centimeters(marginCm));
 var slide = presentation.AddSlide();
 
-slide.AddTitleCm(
+slide.AddTitle(
     "Quarterly Results",
-    content.Left.ToCentimeters(),
-    content.Top.ToCentimeters(),
-    content.Width.ToCentimeters(),
-    1.4);
+    OfficeIMO.OfficeLength.Centimeters(content.Left.ToCentimeters()),
+    OfficeIMO.OfficeLength.Centimeters(content.Top.ToCentimeters()),
+    OfficeIMO.OfficeLength.Centimeters(content.Width.ToCentimeters()),
+    OfficeIMO.OfficeLength.Centimeters(1.4));
 
-slide.AddTextBoxCm(
+slide.AddTextBox(
     "Generated from the reporting pipeline.",
-    content.Left.ToCentimeters(),
-    content.Top.ToCentimeters() + 1.8,
-    content.Width.ToCentimeters(),
-    1.0);
+    OfficeIMO.OfficeLength.Centimeters(content.Left.ToCentimeters()),
+    OfficeIMO.OfficeLength.Centimeters(content.Top.ToCentimeters() + 1.8),
+    OfficeIMO.OfficeLength.Centimeters(content.Width.ToCentimeters()),
+    OfficeIMO.OfficeLength.Centimeters(1.0));
 ```
 
 ## Add bullets and formatted text
@@ -41,12 +41,12 @@ using OfficeIMO;
 using OfficeIMO.PowerPoint;
 using A = DocumentFormat.OpenXml.Drawing;
 
-var text = slide.AddTextBoxCm(
+var text = slide.AddTextBox(
     string.Empty,
-    content.Left.ToCentimeters(),
-    content.Top.ToCentimeters() + 3.0,
-    content.Width.ToCentimeters() / 2,
-    4.5);
+    OfficeIMO.OfficeLength.Centimeters(content.Left.ToCentimeters()),
+    OfficeIMO.OfficeLength.Centimeters(content.Top.ToCentimeters() + 3.0),
+    OfficeIMO.OfficeLength.Centimeters(content.Width.ToCentimeters() / 2),
+    OfficeIMO.OfficeLength.Centimeters(4.5));
 
 text.SetTextMarginsCm(0.3, 0.2, 0.3, 0.2);
 text.TextAutoFit = PowerPointTextAutoFit.Normal;
@@ -82,7 +82,7 @@ var rows = new[] {
 };
 
 var tableSlide = presentation.AddSlide();
-tableSlide.AddTitleCm("Sales by Product", content.Left.ToCentimeters(), content.Top.ToCentimeters(), content.Width.ToCentimeters(), 1.4);
+tableSlide.AddTitle("Sales by Product", OfficeIMO.OfficeLength.Centimeters(content.Left.ToCentimeters()), OfficeIMO.OfficeLength.Centimeters(content.Top.ToCentimeters()), OfficeIMO.OfficeLength.Centimeters(content.Width.ToCentimeters()), OfficeIMO.OfficeLength.Centimeters(1.4));
 
 var table = tableSlide.AddTable(
     rows,
@@ -99,7 +99,7 @@ var table = tableSlide.AddTable(
 table.SetColumnWidthsEvenly();
 
 var chartSlide = presentation.AddSlide();
-chartSlide.AddTitleCm("Quarterly Performance", content.Left.ToCentimeters(), content.Top.ToCentimeters(), content.Width.ToCentimeters(), 1.4);
+chartSlide.AddTitle("Quarterly Performance", OfficeIMO.OfficeLength.Centimeters(content.Left.ToCentimeters()), OfficeIMO.OfficeLength.Centimeters(content.Top.ToCentimeters()), OfficeIMO.OfficeLength.Centimeters(content.Width.ToCentimeters()), OfficeIMO.OfficeLength.Centimeters(1.4));
 
 var chartData = new OfficeChartData(
     rows.Select(r => r.Product),
@@ -110,13 +110,13 @@ var chartData = new OfficeChartData(
         new OfficeSeries("Q4", rows.Select(r => (double)r.Q4))
     });
 
-chartSlide.AddChartCm(
+chartSlide.AddChart(
     OfficeChartType.ColumnClustered,
     chartData,
-    content.Left.ToCentimeters(),
-    content.Top.ToCentimeters() + 2.0,
-    content.Width.ToCentimeters(),
-    4.8);
+    OfficeIMO.OfficeLength.Centimeters(content.Left.ToCentimeters()),
+    OfficeIMO.OfficeLength.Centimeters(content.Top.ToCentimeters() + 2.0),
+    OfficeIMO.OfficeLength.Centimeters(content.Width.ToCentimeters()),
+    OfficeIMO.OfficeLength.Centimeters(4.8));
 chartSlide.Notes.Text = "Chart and table share the same source data.";
 ```
 
@@ -133,13 +133,13 @@ var bubbleData = new OfficeChartData(
             bubbleSizes: new[] { 9D, 36D, 16D })
     });
 
-chartSlide.AddChartCm(
+chartSlide.AddChart(
     OfficeChartType.Bubble,
     bubbleData,
-    content.Left.ToCentimeters(),
-    content.Top.ToCentimeters() + 2.0,
-    content.Width.ToCentimeters(),
-    4.8);
+    OfficeIMO.OfficeLength.Centimeters(content.Left.ToCentimeters()),
+    OfficeIMO.OfficeLength.Centimeters(content.Top.ToCentimeters() + 2.0),
+    OfficeIMO.OfficeLength.Centimeters(content.Width.ToCentimeters()),
+    OfficeIMO.OfficeLength.Centimeters(4.8));
 ```
 
 Bubble sizes must be finite and non-negative, with one size for every X/Y point. The chart remains editable in PowerPoint, and `UpdateData(...)` refreshes both cached chart values and the embedded workbook.
@@ -148,13 +148,13 @@ Bubble sizes must be finite and non-negative, with one size for every X/Y point.
 
 ```csharp
 var intro = presentation.AddSlide();
-intro.AddTitleCm("Intro", content.Left.ToCentimeters(), content.Top.ToCentimeters(), content.Width.ToCentimeters(), 1.4);
+intro.AddTitle("Intro", OfficeIMO.OfficeLength.Centimeters(content.Left.ToCentimeters()), OfficeIMO.OfficeLength.Centimeters(content.Top.ToCentimeters()), OfficeIMO.OfficeLength.Centimeters(content.Width.ToCentimeters()), OfficeIMO.OfficeLength.Centimeters(1.4));
 
 var duplicate = presentation.DuplicateSlide(0);
 duplicate.Hidden = true;
 
 using var source = PowerPointDocument.Create("source-deck.pptx");
-source.AddSlide().AddTitleCm("Imported slide", content.Left.ToCentimeters(), content.Top.ToCentimeters(), content.Width.ToCentimeters(), 1.4);
+source.AddSlide().AddTitle("Imported slide", OfficeIMO.OfficeLength.Centimeters(content.Left.ToCentimeters()), OfficeIMO.OfficeLength.Centimeters(content.Top.ToCentimeters()), OfficeIMO.OfficeLength.Centimeters(content.Width.ToCentimeters()), OfficeIMO.OfficeLength.Centimeters(1.4));
 source.Save();
 
 presentation.ImportSlide(source, 0, insertAt: 1);
