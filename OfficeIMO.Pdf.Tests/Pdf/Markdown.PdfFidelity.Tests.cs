@@ -113,10 +113,10 @@ public sealed class MarkdownPdfFidelityTests {
     public void MarkdownPageImagesUseSerializedPdfPaginationAndGeometry(OfficeImageExportFormat format) {
         var conversion = MarkdownDocument.Parse("# First\n\n```text\n    Indented\n```\n\n" + string.Join("\n\n", Enumerable.Repeat("A paragraph with `code` and a note[^1].", 30)) + "\n\n[^1]: Data source: dashboard.")
             .ConvertToPdfWithEvidence(new MarkdownPdfExportOptions { PdfOptions = new PdfCreateOptions { PageWidth = 300, PageHeight = 300, MarginLeft = 20, MarginRight = 20, MarginTop = 20, MarginBottom = 20 } });
-        var options = new PdfImageExportOptions { TargetDpi = 72 };
-        var direct = conversion.ToImages(options).As(format).Export();
+        var options = new PdfImageExportOptions { TargetDpi = 72, Format = format };
+        var direct = conversion.CreateImageExportOperation(options).Export();
         var reopened = PdfReadDocument.Open(conversion.ToBytes());
-        var saved = reopened.ToImages(options).As(format).Export();
+        var saved = reopened.CreateImageExportOperation(options).Export();
         Assert.True(direct.Count > 1);
         Assert.Equal(reopened.Pages.Count, direct.Count);
         for (int i = 0; i < direct.Count; i++) {

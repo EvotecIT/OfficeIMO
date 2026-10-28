@@ -70,11 +70,11 @@ internal sealed partial class PdfWorkspace {
         RunNonDetachableCpuWorkAsync(() => RenderTextPreviewPairAsync(prepared, page, token).GetAwaiter().GetResult(), token);
 
     private async Task<(byte[] Before, byte[] After)> RenderTextPreviewPairAsync(PreparedTextEdit prepared, int page, CancellationToken token) {
-        var options = new PdfImageExportOptions { Scale = 2, ThumbnailMaxDimension = 1600, MaximumOutputCount = 1 };
+        var options = new PdfImageExportOptions { Scale = 2, ThumbnailMaxDimension = 1600, MaximumOutputCount = 1, PageSelector = PdfPageSelector.Parse(page.ToString(System.Globalization.CultureInfo.InvariantCulture)) };
         async Task<byte[]> RenderAsync(byte[] bytes) {
-            IReadOnlyList<OfficeImageExportResult> result = await LoadDocument(bytes).ToImages(options)
-                .Pages(PdfPageSelection.From(page)).AsPng().ExportAsync(token).ConfigureAwait(false);
-            return result.Single().Bytes;
+            using PdfDocument document = LoadDocument(bytes);
+            OfficeConversionResult<IReadOnlyList<byte[]>> result = await document.ExportImagesAsync(options, token).ConfigureAwait(false);
+            return result.Value.Single();
         }
         byte[] before = await RenderAsync(prepared.SourceBytes).ConfigureAwait(false);
         byte[] after = await RenderAsync(prepared.OutputBytes).ConfigureAwait(false);

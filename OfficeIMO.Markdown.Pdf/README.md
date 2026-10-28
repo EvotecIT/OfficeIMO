@@ -60,13 +60,13 @@ Export PNG, JPEG, or SVG from the converted PDF document so images use its pagin
 ```csharp
 using OfficeIMO.Pdf;
 
-var conversion = document.ToPdf();
-conversion.ToImages().AsPng().SaveFiles("pages");
-conversion.ToImages().AsJpeg().SaveFiles("jpeg-pages");
-conversion.ToImages().AsSvg().SaveFiles("svg-pages");
+using var pdf = document.ToPdf(null, out OfficeIMO.OfficeConversionReport conversionReport);
+pdf.SaveAsImages("pages");
+pdf.SaveAsImages("jpeg-pages", new PdfImageExportOptions { Format = OfficeIMO.Drawing.OfficeImageExportFormat.Jpeg });
+pdf.SaveAsImages("svg-pages", new PdfImageExportOptions { Format = OfficeIMO.Drawing.OfficeImageExportFormat.Svg });
 ```
 
-SVG follows the PDF page renderer's vector and embedded-raster contract. Inspect the conversion report before rendering pages; image export results contain rendering diagnostics.
+SVG follows the PDF page renderer's vector and embedded-raster contract. Inspect the conversion report before rendering pages; each image export report contains rendering diagnostics.
 
 ## Examples
 

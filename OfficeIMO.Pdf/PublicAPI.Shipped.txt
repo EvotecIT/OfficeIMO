@@ -1947,12 +1947,6 @@ OfficeIMO.Pdf.PdfDocumentImageEditor.Remove(OfficeIMO.Pdf.PdfImagePlacement! pla
 OfficeIMO.Pdf.PdfDocumentImageEditor.Replace(OfficeIMO.Pdf.PdfImagePlacement! placement, byte[]! imageBytes, OfficeIMO.Pdf.PdfImageEditOptions? options = null, OfficeIMO.Pdf.PdfLoadOptions? readOptions = null) -> OfficeIMO.Pdf.PdfImageEditResult!
 OfficeIMO.Pdf.PdfDocumentImageEditor.Transform(OfficeIMO.Pdf.PdfImagePlacement! placement, double deltaX, double deltaY, double scale, OfficeIMO.Pdf.PdfImageEditOptions? options = null, OfficeIMO.Pdf.PdfLoadOptions? readOptions = null) -> OfficeIMO.Pdf.PdfImageEditResult!
 OfficeIMO.Pdf.PdfDocumentImageEditor.Visit(System.Action<OfficeIMO.Pdf.PdfExtractedImage!>! visit, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> void
-OfficeIMO.Pdf.PdfDocumentImageExportBuilder
-OfficeIMO.Pdf.PdfDocumentImageExportBuilder.AllPages() -> OfficeIMO.Pdf.PdfDocumentImageExportBuilder!
-OfficeIMO.Pdf.PdfDocumentImageExportBuilder.AsThumbnails(int maximumDimension) -> OfficeIMO.Pdf.PdfDocumentImageExportBuilder!
-OfficeIMO.Pdf.PdfDocumentImageExportBuilder.Pages(OfficeIMO.Pdf.PdfPageSelection! selection) -> OfficeIMO.Pdf.PdfDocumentImageExportBuilder!
-OfficeIMO.Pdf.PdfDocumentImageExportBuilder.Pages(string! selector) -> OfficeIMO.Pdf.PdfDocumentImageExportBuilder!
-OfficeIMO.Pdf.PdfDocumentImageExportBuilder.WithMaximumPages(int maximumPages) -> OfficeIMO.Pdf.PdfDocumentImageExportBuilder!
 OfficeIMO.Pdf.PdfDocumentInfo
 OfficeIMO.Pdf.PdfDocumentInfo.AcroFormAppendOnly.get -> bool
 OfficeIMO.Pdf.PdfDocumentInfo.AcroFormDefaultAppearance.get -> string?
@@ -3613,6 +3607,8 @@ OfficeIMO.Pdf.PdfImageExportOptions.MaxDiagnosticCharactersPerPage.get -> int
 OfficeIMO.Pdf.PdfImageExportOptions.MaxDiagnosticCharactersPerPage.set -> void
 OfficeIMO.Pdf.PdfImageExportOptions.MaxDiagnosticsPerPage.get -> int
 OfficeIMO.Pdf.PdfImageExportOptions.MaxDiagnosticsPerPage.set -> void
+OfficeIMO.Pdf.PdfImageExportOptions.PageSelector.get -> OfficeIMO.Pdf.PdfPageSelector?
+OfficeIMO.Pdf.PdfImageExportOptions.PageSelector.set -> void
 OfficeIMO.Pdf.PdfImageExportOptions.PdfImageExportOptions() -> void
 OfficeIMO.Pdf.PdfImageExportOptions.ThumbnailMaxDimension.get -> int?
 OfficeIMO.Pdf.PdfImageExportOptions.ThumbnailMaxDimension.set -> void
@@ -5376,8 +5372,6 @@ OfficeIMO.Pdf.PdfPageGeometry.TabOrder.get -> string?
 OfficeIMO.Pdf.PdfPageGeometry.Transition.get -> OfficeIMO.Pdf.PdfPageTransition?
 OfficeIMO.Pdf.PdfPageGeometry.TrimBox.get -> OfficeIMO.Pdf.PdfPageBox?
 OfficeIMO.Pdf.PdfPageGeometry.UserUnit.get -> double?
-OfficeIMO.Pdf.PdfPageImageExportBuilder
-OfficeIMO.Pdf.PdfPageImageExportBuilder.AsThumbnail(int maximumDimension) -> OfficeIMO.Pdf.PdfPageImageExportBuilder!
 OfficeIMO.Pdf.PdfPageImportOptions
 OfficeIMO.Pdf.PdfPageImportOptions.CancellationToken.get -> System.Threading.CancellationToken
 OfficeIMO.Pdf.PdfPageImportOptions.CancellationToken.set -> void
@@ -8754,16 +8748,11 @@ static OfficeIMO.Pdf.PdfImageConverterExtensions.ToPdfAsync(this System.Collecti
 static OfficeIMO.Pdf.PdfImageConverterExtensions.ToPdfAsync(this System.Collections.Generic.IEnumerable<string!>! imagePaths, OfficeIMO.Pdf.PdfImageImportOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<OfficeIMO.OfficeConversionResult<OfficeIMO.Pdf.PdfDocument!>!>!
 static OfficeIMO.Pdf.PdfImageDocumentSource.FromFile(string! path) -> OfficeIMO.Pdf.PdfImageDocumentSource!
 static OfficeIMO.Pdf.PdfImageDocumentSource.FromFile(string! path, long maximumEncodedImageBytes) -> OfficeIMO.Pdf.PdfImageDocumentSource!
-static OfficeIMO.Pdf.PdfImageExportExtensions.ExportImage(this OfficeIMO.Pdf.PdfReadPage! page, OfficeIMO.Drawing.OfficeImageExportFormat format, OfficeIMO.Pdf.PdfImageExportOptions? options = null) -> OfficeIMO.Drawing.OfficeImageExportResult!
-static OfficeIMO.Pdf.PdfImageExportExtensions.ExportImage(this OfficeIMO.Pdf.PdfReadPage! page, OfficeIMO.Drawing.OfficeImageExportFormat format, OfficeIMO.Pdf.PdfImageExportOptions? options, System.Threading.CancellationToken cancellationToken) -> OfficeIMO.Drawing.OfficeImageExportResult!
-static OfficeIMO.Pdf.PdfImageExportExtensions.ExportImages(this OfficeIMO.Pdf.PdfDocument! document, OfficeIMO.Drawing.OfficeImageExportFormat format, OfficeIMO.Pdf.PdfImageExportOptions? options = null, OfficeIMO.Pdf.PdfPageSelection? selection = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Collections.Generic.IReadOnlyList<OfficeIMO.Drawing.OfficeImageExportResult!>!
-static OfficeIMO.Pdf.PdfImageExportExtensions.ExportImages(this OfficeIMO.Pdf.PdfDocumentConversionResult! conversion, OfficeIMO.Drawing.OfficeImageExportFormat format, OfficeIMO.Pdf.PdfImageExportOptions? options = null, OfficeIMO.Pdf.PdfPageSelection? selection = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Collections.Generic.IReadOnlyList<OfficeIMO.Drawing.OfficeImageExportResult!>!
-static OfficeIMO.Pdf.PdfImageExportExtensions.ToImage(this OfficeIMO.Pdf.PdfReadPage! page) -> OfficeIMO.Pdf.PdfPageImageExportBuilder!
-static OfficeIMO.Pdf.PdfImageExportExtensions.ToImage(this OfficeIMO.Pdf.PdfReadPage! page, OfficeIMO.Pdf.PdfImageExportOptions! options) -> OfficeIMO.Pdf.PdfPageImageExportBuilder!
-static OfficeIMO.Pdf.PdfImageExportExtensions.ToImages(this OfficeIMO.Pdf.PdfDocument! document) -> OfficeIMO.Pdf.PdfDocumentImageExportBuilder!
-static OfficeIMO.Pdf.PdfImageExportExtensions.ToImages(this OfficeIMO.Pdf.PdfDocument! document, OfficeIMO.Pdf.PdfImageExportOptions! options) -> OfficeIMO.Pdf.PdfDocumentImageExportBuilder!
-static OfficeIMO.Pdf.PdfImageExportExtensions.ToImages(this OfficeIMO.Pdf.PdfDocumentConversionResult! conversion) -> OfficeIMO.Pdf.PdfDocumentImageExportBuilder!
-static OfficeIMO.Pdf.PdfImageExportExtensions.ToImages(this OfficeIMO.Pdf.PdfDocumentConversionResult! conversion, OfficeIMO.Pdf.PdfImageExportOptions! options) -> OfficeIMO.Pdf.PdfDocumentImageExportBuilder!
+static OfficeIMO.Pdf.PdfImageExportExtensions.ExportImages(this OfficeIMO.Pdf.PdfDocument! document, OfficeIMO.Pdf.PdfImageExportOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Collections.Generic.IReadOnlyList<byte[]!>!
+static OfficeIMO.Pdf.PdfImageExportExtensions.ExportImages(this OfficeIMO.Pdf.PdfDocument! document, OfficeIMO.Pdf.PdfImageExportOptions? options, out OfficeIMO.OfficeConversionReport! report, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Collections.Generic.IReadOnlyList<byte[]!>!
+static OfficeIMO.Pdf.PdfImageExportExtensions.ExportImagesAsync(this OfficeIMO.Pdf.PdfDocument! document, OfficeIMO.Pdf.PdfImageExportOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<OfficeIMO.OfficeConversionResult<System.Collections.Generic.IReadOnlyList<byte[]!>!>!>!
+static OfficeIMO.Pdf.PdfImageExportExtensions.SaveAsImages(this OfficeIMO.Pdf.PdfDocument! document, string! folderPath, OfficeIMO.Pdf.PdfImageExportOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> OfficeIMO.OfficeConversionReport!
+static OfficeIMO.Pdf.PdfImageExportExtensions.SaveAsImagesAsync(this OfficeIMO.Pdf.PdfDocument! document, string! folderPath, OfficeIMO.Pdf.PdfImageExportOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<OfficeIMO.OfficeConversionReport!>!
 static OfficeIMO.Pdf.PdfKeyValueRow.Rich(System.Collections.Generic.IEnumerable<OfficeIMO.Pdf.PdfTextRun!>! keyRuns, System.Collections.Generic.IEnumerable<OfficeIMO.Pdf.PdfTextRun!>! valueRuns) -> OfficeIMO.Pdf.PdfKeyValueRow!
 static OfficeIMO.Pdf.PdfKeyValueRow.Text(string? key, string? value) -> OfficeIMO.Pdf.PdfKeyValueRow!
 static OfficeIMO.Pdf.PdfLineSpacing.AtLeast(double points, double naturalMultiplier = 1.4) -> OfficeIMO.Pdf.PdfLineSpacing!

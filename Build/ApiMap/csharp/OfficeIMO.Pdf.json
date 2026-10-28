@@ -1661,7 +1661,8 @@
       "file": "OfficeIMO.Pdf/Rendering/PdfImageExportBuilder.cs",
       "category": "conversion",
       "phase": "A",
-      "applied": "applied"
+      "applied": "phase-b-applied",
+      "note": "The fluent builders are removed. PdfDocument.ExportImages(options[, out report]) returns page bytes and SaveAsImages returns the shared report; async export returns OfficeConversionResult<IReadOnlyList<byte[]>>. Conversion/read-document kernels remain internal for adapters, with source findings captured after deferred materialization."
     },
     {
       "old": "OfficeIMO.Pdf.PdfImageExportExtensions.ExportImages(PdfDocumentConversionResult conversion, OfficeImageExportFormat format, PdfImageExportOptions options = null, PdfPageSelection selection = null, CancellationToken cancellationToken = null)",
@@ -1673,7 +1674,8 @@
       "file": "OfficeIMO.Pdf/Rendering/PdfImageExportBuilder.cs",
       "category": "conversion",
       "phase": "A",
-      "applied": "applied"
+      "applied": "phase-b-applied",
+      "note": "The fluent builders are removed. PdfDocument.ExportImages(options[, out report]) returns page bytes and SaveAsImages returns the shared report; async export returns OfficeConversionResult<IReadOnlyList<byte[]>>. Conversion/read-document kernels remain internal for adapters, with source findings captured after deferred materialization."
     },
     {
       "old": "OfficeIMO.Pdf.PdfImageExportExtensions.ToImage(PdfReadPage page)",
@@ -1686,11 +1688,11 @@
       "category": "authoring",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "The fluent builders are removed. PdfDocument.ExportImages(options[, out report]) returns page bytes and SaveAsImages returns the shared report; async export returns OfficeConversionResult<IReadOnlyList<byte[]>>. Conversion/read-document kernels remain internal for adapters, with source findings captured after deferred materialization."
     },
     {
       "old": "OfficeIMO.Pdf.PdfImageExportExtensions.ToImage(PdfReadPage page, PdfImageExportOptions options)",
@@ -1703,11 +1705,11 @@
       "category": "authoring",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "The fluent builders are removed. PdfDocument.ExportImages(options[, out report]) returns page bytes and SaveAsImages returns the shared report; async export returns OfficeConversionResult<IReadOnlyList<byte[]>>. Conversion/read-document kernels remain internal for adapters, with source findings captured after deferred materialization."
     },
     {
       "old": "OfficeIMO.Pdf.PdfImageExportExtensions.ToImages(PdfReadDocument document)",
@@ -1719,7 +1721,8 @@
       "file": "OfficeIMO.Pdf/Rendering/PdfImageExportBuilder.cs",
       "category": "conversion",
       "phase": "A",
-      "applied": "applied"
+      "applied": "phase-b-applied",
+      "note": "The fluent builders are removed. PdfDocument.ExportImages(options[, out report]) returns page bytes and SaveAsImages returns the shared report; async export returns OfficeConversionResult<IReadOnlyList<byte[]>>. Conversion/read-document kernels remain internal for adapters, with source findings captured after deferred materialization."
     },
     {
       "old": "OfficeIMO.Pdf.PdfImageExportExtensions.ToImages(PdfReadDocument document, PdfImageExportOptions options)",
@@ -1731,7 +1734,8 @@
       "file": "OfficeIMO.Pdf/Rendering/PdfImageExportBuilder.cs",
       "category": "conversion",
       "phase": "A",
-      "applied": "applied"
+      "applied": "phase-b-applied",
+      "note": "The fluent builders are removed. PdfDocument.ExportImages(options[, out report]) returns page bytes and SaveAsImages returns the shared report; async export returns OfficeConversionResult<IReadOnlyList<byte[]>>. Conversion/read-document kernels remain internal for adapters, with source findings captured after deferred materialization."
     },
     {
       "old": "OfficeIMO.Pdf.PdfImageExportExtensions.ToImages(PdfDocument document)",
@@ -1744,11 +1748,11 @@
       "category": "authoring",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "The fluent builders are removed. PdfDocument.ExportImages(options[, out report]) returns page bytes and SaveAsImages returns the shared report; async export returns OfficeConversionResult<IReadOnlyList<byte[]>>. Conversion/read-document kernels remain internal for adapters, with source findings captured after deferred materialization."
     },
     {
       "old": "OfficeIMO.Pdf.PdfImageExportExtensions.ToImages(PdfDocument document, PdfImageExportOptions options)",
@@ -1761,11 +1765,11 @@
       "category": "authoring",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "The fluent builders are removed. PdfDocument.ExportImages(options[, out report]) returns page bytes and SaveAsImages returns the shared report; async export returns OfficeConversionResult<IReadOnlyList<byte[]>>. Conversion/read-document kernels remain internal for adapters, with source findings captured after deferred materialization."
     },
     {
       "old": "OfficeIMO.Pdf.PdfImageExportExtensions.ToImages(PdfDocumentConversionResult conversion)",
@@ -1777,7 +1781,8 @@
       "file": "OfficeIMO.Pdf/Rendering/PdfImageExportBuilder.cs",
       "category": "conversion",
       "phase": "A",
-      "applied": "applied"
+      "applied": "phase-b-applied",
+      "note": "The fluent builders are removed. PdfDocument.ExportImages(options[, out report]) returns page bytes and SaveAsImages returns the shared report; async export returns OfficeConversionResult<IReadOnlyList<byte[]>>. Conversion/read-document kernels remain internal for adapters, with source findings captured after deferred materialization."
     },
     {
       "old": "OfficeIMO.Pdf.PdfImageExportExtensions.ToImages(PdfDocumentConversionResult conversion, PdfImageExportOptions options)",
@@ -1789,7 +1794,8 @@
       "file": "OfficeIMO.Pdf/Rendering/PdfImageExportBuilder.cs",
       "category": "conversion",
       "phase": "A",
-      "applied": "applied"
+      "applied": "phase-b-applied",
+      "note": "The fluent builders are removed. PdfDocument.ExportImages(options[, out report]) returns page bytes and SaveAsImages returns the shared report; async export returns OfficeConversionResult<IReadOnlyList<byte[]>>. Conversion/read-document kernels remain internal for adapters, with source findings captured after deferred materialization."
     },
     {
       "old": "OfficeIMO.Pdf.PdfDocument.UpdateMetadataResult(CancellationToken cancellationToken, string title = null, string author = null, string subject = null, string keywords = null, PdfLoadOptions options = null)",
@@ -3318,6 +3324,22 @@
         "OfficeIMO.Pdf.Benchmarks/PdfRenderStageWorkload.cs",
         "OfficeIMO.Pdf.Benchmarks/PdfRenderStageWorkload.Validation.cs"
       ]
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfPageImageExportBuilder; OfficeIMO.Pdf.PdfDocumentImageExportBuilder",
+      "new": "PdfDocument.ExportImages/ExportImagesAsync/SaveAsImages/SaveAsImagesAsync with PdfImageExportOptions",
+      "action": "remove",
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "reason": "Remove parallel image builders. PdfImageExportOptions.PageSelector carries immutable caller-ordered document-relative selection, including last-page expressions. Shared Core operations own cancellation, deadlines, conflicts, budgets and payload-releasing saves."
+    },
+    {
+      "old": "PdfReadPage.ExportImage(format, options[, cancellationToken]); PdfDocument.ExportImages(format, options, selection, cancellationToken)",
+      "new": "PdfDocument.ExportImages(PdfImageExportOptions[, out OfficeConversionReport], CancellationToken)",
+      "action": "internalize",
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "reason": "Keep format/selection/report policy in one options-based public facade; per-page/native-result kernels serve internal rendering and adapter consumers. Workflows and the browser retain internal streaming metadata without duplicating persistence policy; Studio uses public async bytes."
     }
   ],
   "applicationStatus": "Phase A applied and validated on the supported macOS targets. Phase B and Tier 2 entries retain their status; Windows .NET Framework validation remains pending.",

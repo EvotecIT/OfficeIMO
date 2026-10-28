@@ -900,29 +900,24 @@ using OfficeIMO.Pdf;
 
 using PdfDocument pdf = PdfDocument.Load("input.pdf");
 
-pdf.Pages[0]
-    .ToImage()
-    .AtDpi(144)
-    .AsThumbnail(800)
-    .AsPng()
-    .Save("preview.png");
+OfficeIMO.OfficeConversionReport previews = pdf.SaveAsImages("preview", new PdfImageExportOptions {
+    TargetDpi = 144, ThumbnailMaxDimension = 800,
+    PageSelector = PdfPageSelector.Parse("1"), Format = OfficeImageExportFormat.Png
+});
 
-pdf.ToImages()
-    .Pages("1-3,last")
-    .FitWithin(1600, 1200)
-    .WithMaximumRasterPixels(20_000_000)
-    .AsWebp()
-    .Save("page-images");
+pdf.SaveAsImages("page-images", new PdfImageExportOptions {
+    PageSelector = PdfPageSelector.Parse("1-3,last"),
+    MaximumOutputWidth = 1600, MaximumOutputHeight = 1200,
+    MaximumRasterPixels = 20_000_000, Format = OfficeImageExportFormat.Webp
+});
 
-PdfDocument.Create(pdf => pdf.Content(content => content
-        .H1("Authored PDF")
-        .Paragraph(paragraph => paragraph.Text("The authored model uses the same page renderer."))))
-    .ToImages()
-    .AsPng()
-    .Save("authored-page-images");
+using PdfDocument authored = PdfDocument.Create(composer => composer.Content(content => content
+    .H1("Authored PDF")
+    .Paragraph(paragraph => paragraph.Text("The authored model uses the same page renderer."))));
+authored.SaveAsImages("authored-page-images");
 ```
 
-PNG, JPEG, TIFF, SVG, and WebP use the same `OfficeImageExportResult` contract and Drawing-owned encoders. Pixel-fit limits apply consistently to vector and raster output, and allocation limits are resolved before a raster buffer is created. Unsupported or simplified PDF operators and resources remain visible as typed image diagnostics.
+PNG, JPEG, TIFF, SVG, and WebP use the same options, `OfficeConversionReport` and Drawing-owned encoders. Pixel-fit limits apply consistently to vector and raster output, and allocation limits are resolved before a raster buffer is created. Unsupported or simplified PDF operators and resources remain visible as typed image diagnostics.
 
 When the PDF reader can prove a text span's code-to-glyph mapping, SVG export preserves its painted glyph contours and keeps the logical source in accessibility labels. Admitted finite zero-advance spans retain the same treatment. That text uses contours instead of relying on the PDF subset as a browser font; the outlines are not selectable SVG text. Unproven mappings and specialized text layouts keep the existing text-fallback limits. `SvgTextAsPaths` remains the opt-in for eligible caller-authored Drawing text.
 
@@ -941,10 +936,7 @@ using OfficeIMO.Markdown.Pdf;
 
 using var markdown = MarkdownDocument.Parse("# Page images");
 using var converted = markdown.ToPdf(null, out OfficeIMO.OfficeConversionReport report);
-IReadOnlyList<OfficeImageExportResult> pages = converted
-    .ToImages()
-    .AsPng()
-    .Export();
+IReadOnlyList<byte[]> pages = converted.ExportImages(null, out OfficeIMO.OfficeConversionReport imageReport);
 ```
 
 Inspect `report.Diagnostics` for source conversion findings; each page result contains rendering findings. Use `PdfReadPage.ToDrawing()` only when an intermediate `OfficeDrawing` is needed. The returned `OfficeDrawingText.Text` keeps decoded, editable text, including multi-letter ligatures. Raster and SVG rendering use the PDF's painted glyphs where the embedded font requires them, preserving the painted order of shaped Arabic text.
