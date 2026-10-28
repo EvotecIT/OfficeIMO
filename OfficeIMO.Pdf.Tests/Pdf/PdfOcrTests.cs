@@ -20,7 +20,7 @@ namespace OfficeIMO.Tests.Pdf;
 public class PdfOcrTests {
     [Fact]
     public async Task RecognizeAndMergeAsync_NormalizesFiltersAndMergesProviderWords() {
-        byte[] pdf = PdfDocument.Create()
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions { Margins = new PdfPageMargins(72, 72, 72, 72) })
             .Paragraph(paragraph => paragraph.Text("Native text"))
             .ToBytes();
         var provider = new StubOcrEngine(request => Result(new[] {

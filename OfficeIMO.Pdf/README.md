@@ -47,6 +47,10 @@ PdfDocument.Create(pdf => pdf.Content(content => content
 
 `document.Content.Heading(level, text)` accepts authored heading levels from 1 through 9 in document, page, column and container flow. The `H1`, `H2` and `H3` shortcuts retain their existing presets. Deeper headings accept the same `PdfHeadingStyle` overrides. Enable tagged output with `new PdfCreateOptions().EnableTaggedPdfCatalogMarkers()` when creating the document to retain explicit numeric levels during semantic reading, including skipped levels. Levels 7–9 use `H7`–`H9` tags mapped to the standard `H6` role. Bookmarks preserve the parent-child hierarchy; without tags, semantic reading uses their nesting depth and cannot recover skipped numeric levels.
 
+## Themes and page layout
+
+Page margins follow `PdfCreateOptions.Theme` (Modern by default). Setting an individual margin or `Margins` overrides those sides; cloning the options preserves the distinction between theme defaults and explicit values. The default list style leaves half an em between its marker and text. Set `PdfListStyle.MarkerGap` to choose a different gap.
+
 ## Find your next task
 
 - [Read text and tables](#load-once-and-build-one-semantic-read-result).

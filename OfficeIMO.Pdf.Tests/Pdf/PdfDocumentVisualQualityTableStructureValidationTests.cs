@@ -35,7 +35,8 @@ public partial class PdfDocumentVisualQualityTests {
         var tooWideStyle = PdfTableStyles.Minimal();
         tooWideStyle.ColumnWidthPoints = new List<double?> { 400, 400 };
 
-        byte[] bytes = PdfDocument.Create()
+        var options = new PdfCreateOptions();
+        byte[] bytes = PdfDocument.Create(options)
             .Table(new[] {
                 new[] { "A", "B" },
                 new[] { "1", "2" }
@@ -47,7 +48,8 @@ public partial class PdfDocumentVisualQualityTests {
         double firstColumnX = FindWordStartX(page, "A");
         double secondColumnX = FindWordStartX(page, "B");
 
-        Assert.InRange(secondColumnX - firstColumnX, 210D, 240D);
+        Assert.Equal((options.PageWidth - options.MarginLeft - options.MarginRight) / 2D,
+            secondColumnX - firstColumnX, 2);
     }
 
     [Fact]

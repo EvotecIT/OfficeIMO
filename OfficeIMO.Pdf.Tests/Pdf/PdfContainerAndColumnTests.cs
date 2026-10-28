@@ -35,7 +35,8 @@ public class PdfContainerAndColumnTests {
 
     [Fact]
     public void Columns_DistributesBlocksAcrossEqualFramesAndSupportsExplicitBreak() {
-        byte[] bytes = PdfDocument.Create()
+        var options = new PdfCreateOptions();
+        byte[] bytes = PdfDocument.Create(options)
             .Columns(columns => {
                 columns.Paragraph(paragraph => paragraph.Text("Left one"));
                 columns.Paragraph(paragraph => paragraph.Text("Left two"));
@@ -48,8 +49,9 @@ public class PdfContainerAndColumnTests {
         Assert.Single(blocks, block => block.Text.Contains("Left one", StringComparison.Ordinal));
         Assert.Single(blocks, block => block.Text.Contains("Right one", StringComparison.Ordinal));
         string raw = PdfTestContentText.ReadDecoded(bytes);
-        Assert.Contains("1 0 0 1 72 ", raw, StringComparison.Ordinal);
-        Assert.Contains("1 0 0 1 318 ", raw, StringComparison.Ordinal);
+        double secondColumnX = options.MarginLeft + (options.PageWidth - options.MarginLeft - options.MarginRight + 24D) / 2D;
+        Assert.Contains("1 0 0 1 " + options.MarginLeft.ToString(CultureInfo.InvariantCulture) + " ", raw, StringComparison.Ordinal);
+        Assert.Contains("1 0 0 1 " + secondColumnX.ToString(CultureInfo.InvariantCulture) + " ", raw, StringComparison.Ordinal);
         Assert.Single(PdfReadDocument.Open(bytes).Pages);
     }
 

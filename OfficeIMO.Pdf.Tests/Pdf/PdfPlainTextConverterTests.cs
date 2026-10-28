@@ -12,7 +12,9 @@ public sealed class PdfPlainTextConverterTests {
     [InlineData("")]
     [InlineData("BEFORE")]
     public void WidePreservedWhitespaceWrapsWithoutHidingFollowingText(string prefix) {
-        byte[] bytes = PdfPlainTextConverter.ToPdfDocumentResult(prefix + new string(' ', 100) + "VISIBLE").ToBytes();
+        var options = new PdfTextImportOptions();
+        options.PdfOptions.Margins = new PdfPageMargins(72, 72, 72, 72);
+        byte[] bytes = PdfPlainTextConverter.ToPdfDocumentResult(prefix + new string(' ', 100) + "VISIBLE", options).ToBytes();
         using var pdf = PdfPigDocument.Open(bytes);
         var page = pdf.GetPage(1);
         Assert.Contains("VISIBLE", page.Text);

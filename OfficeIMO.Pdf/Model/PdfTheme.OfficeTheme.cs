@@ -26,6 +26,7 @@ public sealed partial class PdfTheme {
             },
             ListStyle = new PdfListStyle {
                 LeftIndent = theme.Spacing.ListIndent.ToPoints(),
+                MarkerGap = theme.TypeScale.Body.ToPoints() * 0.5D,
                 MarkerColor = accent,
                 ItemSpacing = paragraphAfter * ListItemSpacingRatio,
                 SpacingAfter = paragraphAfter
