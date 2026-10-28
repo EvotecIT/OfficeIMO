@@ -12,6 +12,7 @@ namespace OfficeIMO.Examples.Pdf {
             OfficeThemePalette palette = OfficeTheme.Default.Palette;
             PdfDocument.Create(pdf => pdf.Content(content => content
                 .Image(logoBytes, 120, 48, PdfAlign.Right, fit: OfficeImageFit.Contain)
+                .Spacer(12)
                 .Title("Executive security summary")
                 .Paragraph(p => p
                     .Text("A first-party PDF report built with ")

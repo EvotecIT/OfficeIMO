@@ -15,7 +15,7 @@ public sealed partial class PdfInvoiceDocument {
 
     private string LineCell(InvoicePdfLineColumn column, InvoiceLine line, int index) => column switch {
         InvoicePdfLineColumn.Item => LineText(line, selectedColumns: true),
-        InvoicePdfLineColumn.Quantity => NumberText(line.Quantity) + (_layout.LineColumns.Contains(InvoicePdfLineColumn.Unit) ? string.Empty : " " + Unit(line.UnitCode)),
+        InvoicePdfLineColumn.Quantity => NumberText(line.Quantity) + (_layout.LineColumns.Contains(InvoicePdfLineColumn.Unit) ? string.Empty : " " + Unit(line.UnitCode, line.Quantity)),
         InvoicePdfLineColumn.NetPrice => Price(line.UnitPrice, line),
         InvoicePdfLineColumn.Vat => VatCategory(line.Tax.Code, line.Tax.Rate),
         InvoicePdfLineColumn.NetAmount => Money(_amounts.Lines[index]),
@@ -32,7 +32,7 @@ public sealed partial class PdfInvoiceDocument {
         _ => throw new InvalidOperationException("Invoice column is undefined.")
     };
 
-    private string Price(decimal value, InvoiceLine line) => NumberText(value) + " / " + NumberText(line.PriceBaseQuantity) + " " + Unit(line.UnitCode);
+    private string Price(decimal value, InvoiceLine line) => NumberText(value) + " / " + NumberText(line.PriceBaseQuantity) + " " + Unit(line.UnitCode, line.PriceBaseQuantity);
     private static InvoicePdfText ColumnLabel(InvoicePdfLineColumn column) => column switch {
         InvoicePdfLineColumn.Item => InvoicePdfText.Item,
         InvoicePdfLineColumn.Quantity => InvoicePdfText.Quantity,
@@ -67,7 +67,8 @@ public sealed partial class PdfInvoiceDocument {
         InvoicePdfLineColumn.Vat or InvoicePdfLineColumn.GrossPrice or InvoicePdfLineColumn.PriceDiscount
         ? PdfColumnAlign.Right : PdfColumnAlign.Left).ToList();
 
-    private string Unit(string code) => CodeDescription(code, _layout.UnitCodeDisplay, language => language.GetUnitDescription(code));
+    private string Unit(string code, decimal quantity = 1M) => CodeDescription(code, _layout.UnitCodeDisplay,
+        language => language.GetQuantityUnitDescription(code, quantity));
     private string PaymentMeans(InvoicePayment payment) {
         string means = CodeDescription(payment.MeansCode, _layout.PaymentCodeDisplay, language => language.GetPaymentDescription(payment.MeansCode));
         // Authored text that repeats the translated description is shown once.

@@ -31,13 +31,43 @@ public class PdfInvoiceReadabilityTests {
 
         string text = Text(snapshot.ToPdfBytes(Options()));
 
-        Assert.Contains("1,250 hour", text, StringComparison.Ordinal);
+        Assert.Contains("1,250 hours", text, StringComparison.Ordinal);
         Assert.DoesNotContain(" HUR", text, StringComparison.Ordinal);
         Assert.Contains("Standard rate 19%", text, StringComparison.Ordinal);
         Assert.Contains("Commercial invoice", text, StringComparison.Ordinal);
         Assert.Contains("SEPA credit transfer", text, StringComparison.Ordinal);
         Assert.DoesNotContain("Document type 380", text, StringComparison.Ordinal);
         Assert.Contains("125,000.00 EUR", text, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("1", "6", "1 hour", "/ 6 hours")]
+    [InlineData("6", "1", "6 hours", "/ 1 hour")]
+    [InlineData("7.5", "1", "7.5 hours", "/ 1 hour")]
+    public void EnglishQuantityPhrasesUseTheirOwnAmountForUnitGrammar(
+        string quantity, string priceBase, string quantityText, string priceText) {
+        Invoice invoice = InvoiceFixture.Create();
+        invoice.Lines[0].UnitCode = "HUR";
+        invoice.Lines[0].Quantity = decimal.Parse(quantity, System.Globalization.CultureInfo.InvariantCulture);
+        invoice.Lines[0].PriceBaseQuantity = decimal.Parse(priceBase, System.Globalization.CultureInfo.InvariantCulture);
+        byte[] pdf = PdfInvoiceDocument.Create(invoice, Contract(), InvoicePdfLayoutOptions.ForCultures("en-GB"))
+            .ToPresentationPdfBytes(Options());
+        string text = Text(pdf);
+        Assert.Contains(quantityText, text, StringComparison.Ordinal);
+        Assert.Contains(priceText, text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void QuantityFormattingKeepsAuthoredUnitLabelsLiteral() {
+        Invoice invoice = InvoiceFixture.Create();
+        invoice.Lines[0].UnitCode = "HUR";
+        invoice.Lines[0].Quantity = 6;
+        var layout = InvoicePdfLayoutOptions.ForCultures("en-GB");
+        layout.Languages[0] = layout.Languages[0].WithCodeDescriptions(
+            units: new Dictionary<string, string> { ["HUR"] = "hr" });
+        string text = Text(PdfInvoiceDocument.Create(invoice, Contract(), layout).ToPresentationPdfBytes(Options()));
+        Assert.Contains("6 hr", text, StringComparison.Ordinal);
+        Assert.DoesNotContain("hrs", text, StringComparison.Ordinal);
     }
 
     [Fact]

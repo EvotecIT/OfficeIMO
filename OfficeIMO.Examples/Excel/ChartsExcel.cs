@@ -15,6 +15,7 @@ namespace OfficeIMO.Examples.Excel {
             using (var document = ExcelDocument.Create(filePath)) {
                 document.DefaultChartStylePreset = ExcelChartStylePreset.Default;
                 var sheet = document.AddWorksheet("Summary");
+                sheet.SetPageSetup(fitToWidth: 1, fitToHeight: 0);
                 var data = new ExcelChartData(
                     new[] { "Q1", "Q2", "Q3", "Q4" },
                     new[] {
@@ -36,6 +37,7 @@ namespace OfficeIMO.Examples.Excel {
             using (var document = ExcelDocument.Create(filePath)) {
                 document.DefaultChartStylePreset = ExcelChartStylePreset.Default;
                 var sheet = document.AddWorksheet("Summary");
+                sheet.SetPageSetup(fitToWidth: 1, fitToHeight: 0);
 
                 var comboData = new ExcelChartData(
                     new[] { "Q1", "Q2", "Q3", "Q4" },

@@ -9,6 +9,17 @@ public sealed partial class InvoicePdfLanguagePack {
     /// <summary>Returns the translated description of a supported UN/ECE unit code, or null when unknown.</summary>
     public string? GetUnitDescription(string code) => CodeLabel(code, _unitDescriptions, UnitDescriptions);
 
+    /// <summary>Formats the built-in English unit in a quantity phrase, retaining authored labels literally.</summary>
+    internal string? GetQuantityUnitDescription(string code, decimal quantity) {
+        string? label = GetUnitDescription(code);
+        // These built-in English units all have a regular plural. Other language
+        // packs and caller-authored descriptions retain their own unit labels.
+        return label != null && Culture.TwoLetterISOLanguageName == "en" &&
+            quantity != 1M && quantity != -1M &&
+            _unitDescriptions?.ContainsKey(code) != true && UnitDescriptions.ContainsKey(code)
+                ? label + "s" : label;
+    }
+
     /// <summary>Returns the translated description of a supported UNCL 4461 payment code, or null when unknown.</summary>
     public string? GetPaymentDescription(string code) => CodeLabel(code, _paymentDescriptions, PaymentDescriptions);
 
@@ -51,7 +62,7 @@ public sealed partial class InvoicePdfLanguagePack {
     }
 
     // English, German, Polish, French, Spanish, Italian, Dutch, Portuguese, Czech, Slovak.
-    private static readonly IReadOnlyDictionary<string, string[]> UnitDescriptions = new Dictionary<string, string[]>(StringComparer.Ordinal) {
+    private static readonly Dictionary<string, string[]> UnitDescriptions = new Dictionary<string, string[]>(StringComparer.Ordinal) {
         ["C62"] = new[] { "piece", "Stück", "sztuka", "pièce", "unidad", "pezzo", "stuk", "unidade", "kus", "kus" },
         ["HUR"] = new[] { "hour", "Stunde", "godzina", "heure", "hora", "ora", "uur", "hora", "hodina", "hodina" },
         ["DAY"] = new[] { "day", "Tag", "dzień", "jour", "día", "giorno", "dag", "dia", "den", "deň" },

@@ -116,8 +116,8 @@ public sealed partial class PdfInvoiceDocument {
             (item.ListVersion == null ? string.Empty : ", " + Label(InvoicePdfText.Version) + " " + item.ListVersion) + "): " + item.Value)),
         string.Join("\n", line.Attributes.Select(item => item.Name + ": " + item.Value)),
         Inline(InvoicePdfLineColumn.Period) && Period(line.Period) is string period ? Label(InvoicePdfText.Period) + ": " + period : null,
-        Inline(InvoicePdfLineColumn.GrossPrice) && line.GrossPrice.HasValue ? Label(InvoicePdfText.GrossPrice) + ": " + NumberText(line.GrossPrice.Value) + " " + _invoice.Currency + " / " + NumberText(line.PriceBaseQuantity) + " " + Unit(line.UnitCode) : null,
-        Inline(InvoicePdfLineColumn.PriceDiscount) && line.PriceDiscount.HasValue ? Label(InvoicePdfText.PriceDiscount) + ": " + NumberText(line.PriceDiscount.Value) + " " + _invoice.Currency + " / " + NumberText(line.PriceBaseQuantity) + " " + Unit(line.UnitCode) : null,
+        Inline(InvoicePdfLineColumn.GrossPrice) && line.GrossPrice.HasValue ? Label(InvoicePdfText.GrossPrice) + ": " + NumberText(line.GrossPrice.Value) + " " + _invoice.Currency + " / " + NumberText(line.PriceBaseQuantity) + " " + Unit(line.UnitCode, line.PriceBaseQuantity) : null,
+        Inline(InvoicePdfLineColumn.PriceDiscount) && line.PriceDiscount.HasValue ? Label(InvoicePdfText.PriceDiscount) + ": " + NumberText(line.PriceDiscount.Value) + " " + _invoice.Currency + " / " + NumberText(line.PriceBaseQuantity) + " " + Unit(line.UnitCode, line.PriceBaseQuantity) : null,
         line.AllowancesAndCharges.Count == 0 ? null : string.Join("\n", line.AllowancesAndCharges.Select(item =>
             Label(item.IsCharge ? InvoicePdfText.Charge : InvoicePdfText.Allowance) + ": " + Money(item.Amount) + "\n" + AdjustmentDetails(item))));
     }
