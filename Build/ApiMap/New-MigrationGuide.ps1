@@ -613,7 +613,7 @@ Add-Paragraph 'For PowerShell scripts:'
     '- **Themes by default.** New documents start from the `Modern` theme; choose another with `-Theme` (a built-in name, a theme object or a template path). Opening an existing document never restyles it.'
     '- **Loss handling.** Converting to another format reports what could not be carried and continues; add `-FailOnLoss` to make loss an error. Saving a document in its own format fails if content would be lost; add `-AllowLoss` to accept it.'
     '- **Options.** Option objects come from `New-Office{Format}{Purpose}Options`, and every `-Options` parameter also accepts a hashtable of option property names. Unknown keys are errors.'
-    '- **Content blocks.** Styled text is written with child commands (`WordText`, `PowerPointText`, `PdfText`, `ExcelText`); `-Run` hashtables of parallel arrays are removed. Each DSL command has exactly one alias, and `Ppt` is the only PowerPoint prefix. Plural, spelling, verb-last and unprefixed alias twins are removed.'
+    '- **Content blocks.** Styled text is written with child commands (`WordText`, `PowerPointText`, `PdfText`, `ExcelText`); `-Run` hashtables of parallel arrays are removed. Each DSL command has exactly one alias, with the format name spelled out: `PowerPointSlide` replaces `PptSlide`. Plural, spelling, verb-last and unprefixed alias twins are removed.'
     '- **`-WhatIf` and `-Confirm`** cover file-system effects: `New`, `Save`, `Export`, `Convert`, `Repair`, `Protect` and `Remove` commands.'
     ("- **Electronic invoices** are no longer part of PSWriteOffice ($(Get-Plural $invoiceEntries.Count 'command and alias' 'commands and aliases') removed). Use the `OfficeIMO.Invoicing` packages from .NET.")
     '- **Removed-command hints.** When a script calls a command or alias that no longer exists, PSWriteOffice prints its replacement, taken from the reference tables below.'
@@ -810,7 +810,7 @@ foreach ($package in $packages) {
     if ($current.Count -eq 0 -and $targetFrameworks.Count -eq 0) { continue }
     $frameworkRows.Add(@((Format-Code $package.Name), (($current | ForEach-Object { Format-Code $_ }) -join ', '), (($targetFrameworks | ForEach-Object { Format-Code $_ }) -join ', ')))
 }
-Add-Paragraph 'Libraries target `netstandard2.0`, which serves .NET Framework 4.7.2 and later, and `net10.0`, identically on every build host. `net8.0` is dropped because .NET 8 reaches end of support in November 2026, and the separate `net472` build is dropped: .NET Framework applications use the `netstandard2.0` build.'
+Add-Paragraph 'Libraries retain `netstandard2.0`, `net8.0` and `net10.0`, with `net472` included on Windows. PSWriteOffice retains `net8.0` for PowerShell 7.4 and later, and `net472` for Windows PowerShell 5.1.'
 if ($frameworkRows.Count -gt 0) { Add-Table @('Package', '3.5', '3.6') $frameworkRows.ToArray() }
 
 #endregion
