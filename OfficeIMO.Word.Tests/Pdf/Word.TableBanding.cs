@@ -62,7 +62,7 @@ public partial class Word {
             Assert.Equal(expectedText.Item1, actualText.r, 3);
             Assert.Equal(expectedText.Item2, actualText.g, 3);
             Assert.Equal(expectedText.Item3, actualText.b, 3);
-            Assert.Equal(!first && !direct, letter.FontName.Contains("Bold", StringComparison.OrdinalIgnoreCase));
+            Assert.Equal(!first && !direct, letter.FontName.IndexOf("Bold", StringComparison.OrdinalIgnoreCase) >= 0);
             Assert.Contains(page.Paths, path => path.IsFilled && MatchesBandColor(path.FillColor.ToRGBValues(), expectedFill) &&
                 path.GetBoundingRectangle() is { } bounds && bounds.Left <= letter.StartBaseLine.X &&
                 bounds.Right >= letter.StartBaseLine.X && bounds.Bottom <= letter.StartBaseLine.Y && bounds.Top >= letter.StartBaseLine.Y);
