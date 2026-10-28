@@ -1,7 +1,7 @@
 namespace OfficeIMO;
 
 /// <summary>Thread-safe bounded collection for CLI, PowerShell, desktop and service batch observers.</summary>
-public sealed class OfficeBatchReportCollector : IProgress<OfficeBatchItemReport> {
+internal sealed class OfficeBatchReportCollector : IProgress<OfficeBatchItemReport> {
     /// <summary>Maximum retained item observations.</summary>
     public const int MaximumItems = 10_000;
     /// <summary>Maximum combined UTF-8 size of retained item observations.</summary>

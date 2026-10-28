@@ -152,10 +152,6 @@ OfficeIMO.OfficeBatchReport.Succeeded.init -> void
 OfficeIMO.OfficeBatchReport.Summary.get -> OfficeIMO.OfficeBatchSummary!
 OfficeIMO.OfficeBatchReport.Summary.init -> void
 OfficeIMO.OfficeBatchReport.ToJson() -> string!
-OfficeIMO.OfficeBatchReportCollector
-OfficeIMO.OfficeBatchReportCollector.Complete(OfficeIMO.OfficeBatchSummary! summary, bool allowEmpty = false) -> OfficeIMO.OfficeBatchReport!
-OfficeIMO.OfficeBatchReportCollector.OfficeBatchReportCollector() -> void
-OfficeIMO.OfficeBatchReportCollector.Report(OfficeIMO.OfficeBatchItemReport! item) -> void
 OfficeIMO.OfficeBatchRunState
 OfficeIMO.OfficeBatchRunState.Cancelled = 3 -> OfficeIMO.OfficeBatchRunState
 OfficeIMO.OfficeBatchRunState.Completed = 1 -> OfficeIMO.OfficeBatchRunState
@@ -314,8 +310,6 @@ OfficeIMO.OfficeInspectOptions.WordMacroSignatures.set -> void
 OfficeIMO.OfficeOcrConversionExtensions
 OfficeIMO.OfficeReaderConversionExtensions
 const OfficeIMO.OfficeBatchReport.CurrentSchema = "officeimo.conversion.batch.v2" -> string!
-const OfficeIMO.OfficeBatchReportCollector.MaximumItemBytes = 16777216 -> int
-const OfficeIMO.OfficeBatchReportCollector.MaximumItems = 10000 -> int
 override OfficeIMO.OfficeBatchItemReport.Equals(object? obj) -> bool
 override OfficeIMO.OfficeBatchItemReport.GetHashCode() -> int
 override OfficeIMO.OfficeBatchItemReport.ToString() -> string!

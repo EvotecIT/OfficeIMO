@@ -416,6 +416,19 @@
       "reason": "The showcase catalog now copies the current executable example sources and regenerates its source/excerpt projections and raw-byte manifest. This closes stale downloads from preceding public API migrations as well as Word physical geometry.",
       "applied": "phase-b-applied",
       "note": "Source synchronization only: existing rendered documents and previews are retained. The generator correctly invalidates the three older PowerShell producer receipts when their source bindings change; final showcase generation and preview qualification must use the final module candidate. No publication or visual acceptance is claimed."
+    },
+    {
+      "change": "Internalize batch report collection plumbing",
+      "reason": "Compiled surface analysis found no documentation reference or exposed model signature for OfficeBatchReportCollector. Its only callers are the owning batch engine and existing friend tests; the shipped baseline records the removal without a replacement public wrapper.",
+      "applied": "phase-b-applied"
+    },
+    {
+      "change": "Reference the framework ZIP assembly for the Visio dependency on net472",
+      "reason": "The front-door net472 dependency build exposed missing ZipArchive and ZipArchiveEntry types in OfficeIMO.Visio. Add the built-in System.IO.Compression reference for net472, matching the existing library framework-reference pattern. No target, Windows condition, package lock mechanism or external runtime dependency changes.",
+      "applied": "phase-b-applied",
+      "files": [
+        "OfficeIMO.Visio/OfficeIMO.Visio.csproj"
+      ]
     }
   ],
   "applicationStatus": "Phase A applied and validated on the supported macOS targets. Phase B and Tier 2 entries retain their status; Windows .NET Framework validation remains pending.",
@@ -436,6 +449,20 @@
       "applied": "phase-b-applied",
       "analysis": {
         "id": "T:OfficeIMO.OfficeBatchReportSerializer",
+        "kind": "type",
+        "source": "SurfaceAnalysis",
+        "membersHiddenWithType": 5
+      }
+    },
+    {
+      "type": "OfficeIMO.OfficeBatchReportCollector",
+      "file": [
+        "OfficeIMO/Batches/OfficeBatchReportCollector.cs"
+      ],
+      "why": "Undocumented bounded collection used only by the batch engine and its friend tests. The public observation contract remains IProgress<OfficeBatchItemReport>; consumers receive OfficeBatchReport.",
+      "applied": "phase-b-applied",
+      "analysis": {
+        "id": "T:OfficeIMO.OfficeBatchReportCollector",
         "kind": "type",
         "source": "SurfaceAnalysis",
         "membersHiddenWithType": 5
