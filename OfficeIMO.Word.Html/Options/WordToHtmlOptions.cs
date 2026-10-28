@@ -14,7 +14,7 @@ namespace OfficeIMO.Word.Html {
             Title = null,
             Language = null,
             Theme = OfficeVisualThemeKind.WordLike,
-            IncludeDefaultStyles = false,
+            IncludeDefaultStyles = true,
             BodyClass = "officeimo-html officeimo-word-html"
         };
 
@@ -294,8 +294,8 @@ namespace OfficeIMO.Word.Html {
         public List<(string Rel, string Href)> AdditionalLinkTags { get; } = new();
 
         /// <summary>
-        /// When true, injects a small, built-in "Word-like" CSS into the HTML &lt;head&gt; to make output readable out-of-the-box.
-        /// Default is false to preserve legacy behavior.
+        /// Includes the default OfficeIMO theme CSS for readable standalone output. Enabled by default.
+        /// Set to false when the host page supplies its own styles.
         /// </summary>
         public bool IncludeDefaultCss { get => DocumentOutput.IncludeDefaultStyles; set => DocumentOutput.IncludeDefaultStyles = value; }
 

@@ -287,7 +287,7 @@ public sealed class HtmlTextFormattingReviewClosureTests {
         source._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!.Append(style);
         source.AddParagraph().AddText("Styled").SetCharacterStyleId("Decorated");
 
-        string html = source.ToHtml(new WordHtmlExportOptions { IncludeRunClasses = true });
+        string html = source.ToHtml(new WordHtmlExportOptions { IncludeRunClasses = true, IncludeDefaultCss = false });
 
         Assert.Contains("class=\"Decorated\"", html, StringComparison.Ordinal);
         Assert.Contains("data-officeimo-word-underline=\"Wave\"", html, StringComparison.Ordinal);
@@ -351,7 +351,7 @@ public sealed class HtmlTextFormattingReviewClosureTests {
             .SetVerticalTextAlignment(WordVerticalTextPosition.Baseline);
         reset._runProperties!.Strike = new Strike { Val = false };
 
-        string html = source.ToHtml(new WordHtmlExportOptions { IncludeParagraphClasses = true });
+        string html = source.ToHtml(new WordHtmlExportOptions { IncludeParagraphClasses = true, IncludeDefaultCss = false });
         IElement output = HtmlDocumentParser.ParseDocument(html)
             .QuerySelector("p.ParagraphDecoratedScript")!;
 

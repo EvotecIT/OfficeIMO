@@ -46,6 +46,7 @@ public sealed class HtmlAllSeverityBatch13SecurityTests {
         document.AddParagraph().AddText("run-safe").SetCharacterStyleId(hostileStyle);
 
         string html = document.ToHtml(new WordHtmlExportOptions {
+            IncludeDefaultCss = false,
             IncludeParagraphClasses = true,
             IncludeRunClasses = true
         });

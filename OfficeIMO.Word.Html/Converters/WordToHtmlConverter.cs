@@ -47,7 +47,8 @@ namespace OfficeIMO.Word.Html {
             long MeasureCurrentHtmlCharacters() {
                 using var countingWriter = new CountingHtmlWriter();
                 htmlDoc.DocumentElement.ToHtml(countingWriter, HtmlMarkupFormatter.Instance);
-                return countingWriter.CharacterCount;
+                return SaturatingAdd(countingWriter.CharacterCount,
+                    options.EmitDocumentShell ? "<!doctype html>".Length + options.NewLine.Length : 0L);
             }
 
             long MeasureSerializedHtmlCharacters(INode node) {
@@ -1721,12 +1722,8 @@ namespace OfficeIMO.Word.Html {
                 options.MaxOutputCharacters,
                 actual => ThrowExportLimitExceeded(options, "word-html-output-limit-exceeded", "Generated HTML exceeds the configured output-character limit.", "MaxOutputCharacters", actual, options.MaxOutputCharacters));
             if (options.EmitDocumentShell) {
-                // Preserve legacy default serialization byte-for-byte. Named shared-shell
-                // profiles opt into the explicit HTML5 document marker.
-                if (options.UseSharedDocumentShell) {
-                    outputWriter.Write("<!doctype html>");
-                    outputWriter.Write(options.NewLine);
-                }
+                outputWriter.Write("<!doctype html>");
+                outputWriter.Write(options.NewLine);
                 htmlDoc.DocumentElement.ToHtml(outputWriter, HtmlMarkupFormatter.Instance);
             } else {
                 bool wroteNode = false;

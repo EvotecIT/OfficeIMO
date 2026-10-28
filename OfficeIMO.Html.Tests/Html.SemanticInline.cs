@@ -25,7 +25,8 @@ namespace OfficeIMO.Tests {
             string roundTrip = doc.ToHtml();
 
             Assert.Contains("<mark>review</mark>", roundTrip, StringComparison.OrdinalIgnoreCase);
-            Assert.DoesNotContain("background-color", roundTrip, StringComparison.OrdinalIgnoreCase);
+            var body = new AngleSharp.Html.Parser.HtmlParser().ParseDocument(roundTrip).Body!.InnerHtml;
+            Assert.DoesNotContain("background-color", body, StringComparison.OrdinalIgnoreCase);
         }
     }
 }

@@ -404,7 +404,7 @@ public partial class HtmlWordGapClosure {
         run._runProperties!.Shading!.ThemeFill = ThemeColorValues.Accent1;
         run._runProperties.Shading.ThemeFillTint = "80";
 
-        string html = document.ToHtml(new WordHtmlExportOptions { IncludeRunHighlightStyles = true });
+        string html = document.ToHtml(new WordHtmlExportOptions { IncludeRunHighlightStyles = true, IncludeDefaultCss = false });
 
         Assert.Contains("background-color:#7f7f7f", html, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("background-color:#ffffff", html, StringComparison.OrdinalIgnoreCase);

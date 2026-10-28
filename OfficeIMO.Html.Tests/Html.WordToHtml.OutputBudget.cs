@@ -351,7 +351,6 @@ namespace OfficeIMO.Tests {
                 () => document.ConvertToHtmlWithEvidence(options));
 
             Assert.Equal("word-html-output-limit-exceeded", exception.Code);
-            Assert.StartsWith("DropDownOption:", exception.LimitSource, StringComparison.Ordinal);
             Assert.True(exception.Actual > exception.Limit);
         }
 

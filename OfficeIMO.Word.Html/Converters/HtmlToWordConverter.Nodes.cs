@@ -495,13 +495,13 @@ namespace OfficeIMO.Word.Html {
                             currentParagraph ??= AddParagraphInScope(section, cell, headerFooter);
                             var fmt = formatting;
                             fmt.Strike = true;
-                            int startRuns = currentParagraph.GetRuns().Count();
+                            var runStart = CaptureTextRunStart(currentParagraph);
                             foreach (var child in element.ChildNodes) {
                                 ProcessNode(child, doc, section, options, currentParagraph, listStack, fmt, cell, headerFooter, headingList);
                             }
                             if (string.Equals(element.TagName, "del", StringComparison.OrdinalIgnoreCase)) {
                                 var runs = currentParagraph.GetRuns().ToList();
-                                for (int i = startRuns; i < runs.Count; i++) {
+                                for (int i = FirstEmittedTextRunIndex(runStart); i < runs.Count; i++) {
                                     runs[i].SetCharacterStyleId(HtmlSemanticStyleIds.DeletedText);
                                 }
                             }
@@ -512,12 +512,12 @@ namespace OfficeIMO.Word.Html {
                             var fmt = formatting;
                             fmt.Underline = true;
                             fmt.UnderlineStyle ??= UnderlineValues.Single;
-                            int startRuns = currentParagraph.GetRuns().Count();
+                            var runStart = CaptureTextRunStart(currentParagraph);
                             foreach (var child in element.ChildNodes) {
                                 ProcessNode(child, doc, section, options, currentParagraph, listStack, fmt, cell, headerFooter, headingList);
                             }
                             var runs = currentParagraph.GetRuns().ToList();
-                            for (int i = startRuns; i < runs.Count; i++) {
+                            for (int i = FirstEmittedTextRunIndex(runStart); i < runs.Count; i++) {
                                 runs[i].SetCharacterStyleId(HtmlSemanticStyleIds.InsertedText);
                             }
                             break;
@@ -528,12 +528,12 @@ namespace OfficeIMO.Word.Html {
                             fmt.Highlight = HighlightColorValues.Yellow;
                             fmt.PreserveHighlightOverBackground = !string.IsNullOrEmpty(formatting.BackgroundColorHex);
                             ApplySpanStyles(element, ref fmt);
-                            int startRuns = currentParagraph.GetRuns().Count();
+                            var runStart = CaptureTextRunStart(currentParagraph);
                             foreach (var child in element.ChildNodes) {
                                 ProcessNode(child, doc, section, options, currentParagraph, listStack, fmt, cell, headerFooter, headingList);
                             }
                             var runs = currentParagraph.GetRuns().ToList();
-                            for (int i = startRuns; i < runs.Count; i++) {
+                            for (int i = FirstEmittedTextRunIndex(runStart); i < runs.Count; i++) {
                                 runs[i].SetCharacterStyleId(HtmlSemanticStyleIds.MarkedText);
                             }
                             break;
@@ -558,12 +558,12 @@ namespace OfficeIMO.Word.Html {
                             var fmt = formatting;
                             fmt.Italic = true;
                             ApplySpanStyles(element, ref fmt);
-                            int startRuns = currentParagraph.GetRuns().Count();
+                            var runStart = CaptureTextRunStart(currentParagraph);
                             foreach (var child in element.ChildNodes) {
                                 ProcessNode(child, doc, section, options, currentParagraph, listStack, fmt, cell, headerFooter, headingList);
                             }
                             var runs = currentParagraph.GetRuns().ToList();
-                            for (int i = startRuns; i < runs.Count; i++) {
+                            for (int i = FirstEmittedTextRunIndex(runStart); i < runs.Count; i++) {
                                 runs[i].SetCharacterStyleId("HtmlCite");
                             }
                             break;
@@ -573,12 +573,12 @@ namespace OfficeIMO.Word.Html {
                             var fmt = formatting;
                             fmt.Italic = true;
                             ApplySpanStyles(element, ref fmt);
-                            int startRuns = currentParagraph.GetRuns().Count();
+                            var runStart = CaptureTextRunStart(currentParagraph);
                             foreach (var child in element.ChildNodes) {
                                 ProcessNode(child, doc, section, options, currentParagraph, listStack, fmt, cell, headerFooter, headingList);
                             }
                             var runs = currentParagraph.GetRuns().ToList();
-                            for (int i = startRuns; i < runs.Count; i++) {
+                            for (int i = FirstEmittedTextRunIndex(runStart); i < runs.Count; i++) {
                                 runs[i].SetCharacterStyleId("HtmlDfn");
                             }
                             break;
@@ -588,12 +588,12 @@ namespace OfficeIMO.Word.Html {
                             var fmt = formatting;
                             ApplySpanStyles(element, ref fmt);
                             var dateTime = element.GetAttribute("datetime");
-                            int startRuns = currentParagraph.GetRuns().Count();
+                            var runStart = CaptureTextRunStart(currentParagraph);
                             foreach (var child in element.ChildNodes) {
                                 ProcessNode(child, doc, section, options, currentParagraph, listStack, fmt, cell, headerFooter, headingList);
                             }
                             var runs = currentParagraph.GetRuns().ToList();
-                            for (int i = startRuns; i < runs.Count; i++) {
+                            for (int i = FirstEmittedTextRunIndex(runStart); i < runs.Count; i++) {
                                 runs[i].SetCharacterStyleId("HtmlTime");
                                 HtmlSemanticMetadata.SetTimeDateTime(runs[i], dateTime);
                             }

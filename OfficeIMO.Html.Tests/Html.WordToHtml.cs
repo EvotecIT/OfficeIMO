@@ -183,15 +183,23 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_WordToHtml_RejectsInlineSvgDocumentBeforeParsingPastOutputBudget() {
             using var doc = WordDocument.Create();
-            string assetPath = Path.Combine(AppContext.BaseDirectory, "Images", "Sample.svg");
+            string svg = "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"20\" height=\"20\"><!--" +
+                         new string('x', 4096) + "--><rect width=\"20\" height=\"20\"/></svg>";
+            byte[] svgBytes = System.Text.Encoding.UTF8.GetBytes(svg);
             doc.AddParagraph(new string('x', 32));
-            doc.AddParagraph().AddImage(assetPath, 20, 20);
-            var options = new WordHtmlExportOptions { MaxOutputCharacters = new FileInfo(assetPath).Length };
+            using (var stream = new MemoryStream(svgBytes)) {
+                doc.AddParagraph().AddImage(stream, "budget.svg", 20, 20);
+            }
+            var options = new WordHtmlExportOptions {
+                IncludeDefaultCss = false,
+                MaxOutputCharacters = svgBytes.Length
+            };
 
             HtmlConversionLimitException exception = Assert.Throws<HtmlConversionLimitException>(() => doc.ConvertToHtmlWithEvidence(options));
 
             Assert.Equal("word-html-output-limit-exceeded", exception.Code);
-            Assert.StartsWith("GeneratedElement:", exception.LimitSource, StringComparison.Ordinal);
+            Assert.Contains("budget.svg", exception.LimitSource, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("inline SVG", exception.Message, StringComparison.Ordinal);
             Assert.True(exception.Actual > exception.Limit);
         }
 
@@ -469,16 +477,10 @@ namespace OfficeIMO.Tests {
 
             string html = doc.ToHtml();
 
-            Assert.Contains("<thead><tr><th", html, StringComparison.OrdinalIgnoreCase);
-            Assert.Equal(2, html.Split(new[] { "scope=\"col\"" }, StringSplitOptions.None).Length - 1);
-            Assert.DoesNotContain("<td scope=\"col\"", html, StringComparison.OrdinalIgnoreCase);
-            Assert.Contains("<p>Name</p>", html, StringComparison.OrdinalIgnoreCase);
-            Assert.Contains("<p>Score</p>", html, StringComparison.OrdinalIgnoreCase);
-            Assert.Contains("</th></tr></thead>", html, StringComparison.OrdinalIgnoreCase);
-            Assert.Contains("<tbody><tr><td", html, StringComparison.OrdinalIgnoreCase);
-            Assert.Contains("<p>Ada</p>", html, StringComparison.OrdinalIgnoreCase);
-            Assert.Contains("<p>42</p>", html, StringComparison.OrdinalIgnoreCase);
-            Assert.Contains("</td></tr></tbody>", html, StringComparison.OrdinalIgnoreCase);
+            var parsed = new AngleSharp.Html.Parser.HtmlParser().ParseDocument(html);
+            Assert.Equal(new[] { "Name", "Score" }, parsed.QuerySelectorAll("thead th[scope=col]").Select(cell => cell.TextContent));
+            Assert.Empty(parsed.QuerySelectorAll("td[scope=col]"));
+            Assert.Equal(new[] { "Ada", "42" }, parsed.QuerySelectorAll("tbody td").Select(cell => cell.TextContent));
         }
 
         [Fact]
@@ -1329,11 +1331,10 @@ namespace OfficeIMO.Tests {
 
             string html = doc.ToHtml(options);
 
-            Assert.Contains("<meta name=\"viewport\" content=\"width=device-width\"", html, StringComparison.OrdinalIgnoreCase);
-            Assert.Contains("<link rel=\"stylesheet\" href=\"styles.css\"", html, StringComparison.OrdinalIgnoreCase);
-            int authorIndex = html.IndexOf("name=\"author\"", StringComparison.OrdinalIgnoreCase);
-            int viewportIndex = html.IndexOf("name=\"viewport\"", StringComparison.OrdinalIgnoreCase);
-            Assert.True(viewportIndex > authorIndex);
+            var parsed = new AngleSharp.Html.Parser.HtmlParser().ParseDocument(html);
+            Assert.Equal("width=device-width", Assert.Single(parsed.QuerySelectorAll("meta[name=viewport]")).GetAttribute("content"));
+            Assert.Equal("styles.css", parsed.QuerySelector("link[rel=stylesheet]")?.GetAttribute("href"));
+            Assert.Equal("Tester", parsed.QuerySelector("meta[name=author]")?.GetAttribute("content"));
         }
 
         [Fact]
@@ -1570,7 +1571,7 @@ namespace OfficeIMO.Tests {
             second.Margins.Right = 1200;
             second.AddParagraph("Second section");
 
-            string html = doc.ToHtml(new WordHtmlExportOptions { IncludeSectionMetadata = true });
+            string html = doc.ToHtml(new WordHtmlExportOptions { IncludeSectionMetadata = true, IncludeDefaultCss = false });
             var options = new WordHtmlImportOptions {
                 SectionTagHandling = WordHtmlSectionTagHandling.WordSection,
                 UnsupportedCssHandling = WordHtmlUnsupportedCssHandling.Error

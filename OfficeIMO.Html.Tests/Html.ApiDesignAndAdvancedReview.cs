@@ -380,6 +380,7 @@ public partial class Html {
         });
         HtmlConversionLimitException fieldException = Assert.Throws<HtmlConversionLimitException>(() =>
             fieldDocument.ConvertToHtmlWithEvidence(new WordHtmlExportOptions {
+                IncludeDefaultCss = false,
                 FieldPolicy = WordFieldExportPolicy.VisibleResultWithReviewMetadata,
                 MaxOutputCharacters = 8_000
             }));
@@ -390,6 +391,7 @@ public partial class Html {
         string sourceXml = revisionDocument._document.OuterXml;
         HtmlConversionLimitException revisionException = Assert.Throws<HtmlConversionLimitException>(() =>
             revisionDocument.ConvertToHtmlWithEvidence(new WordHtmlExportOptions {
+                IncludeDefaultCss = false,
                 TrackedChangePolicy = WordTrackedChangeExportPolicy.Markup,
                 MaxOutputCharacters = 9_000
             }));

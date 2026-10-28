@@ -26,7 +26,8 @@ namespace OfficeIMO.Word.Html {
             SetOutputAttribute(htmlDoc, charset, "charset", "UTF-8", "DocumentMetadata:charset");
             head.AppendChild(charset);
 
-            if (options.IncludeDefaultCss && options.UseSharedDocumentShell) {
+            if (options.IncludeDefaultCss && !options.AdditionalMetaTags.Any(tag =>
+                string.Equals(tag.Name, "viewport", StringComparison.OrdinalIgnoreCase))) {
                 var viewport = CreateOutputElement(htmlDoc, "meta");
                 SetOutputAttribute(htmlDoc, viewport, "name", "viewport", "DocumentMetadata:viewport-name");
                 SetOutputAttribute(htmlDoc, viewport, "content", "width=device-width, initial-scale=1", "DocumentMetadata:viewport-content");

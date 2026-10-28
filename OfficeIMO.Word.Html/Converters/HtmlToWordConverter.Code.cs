@@ -73,13 +73,13 @@ namespace OfficeIMO.Word.Html {
                 fmt.FontFamily = mono;
             }
 
-            int startRuns = currentParagraph.GetRuns().Count();
+            var runStart = CaptureTextRunStart(currentParagraph);
             foreach (var child in element.ChildNodes) {
                 ProcessNode(child, doc, section, options, currentParagraph, listStack, fmt, cell, headerFooter, headingList);
             }
 
             var runs = currentParagraph.GetRuns().ToList();
-            for (int i = startRuns; i < runs.Count; i++) {
+            for (int i = FirstEmittedTextRunIndex(runStart); i < runs.Count; i++) {
                 runs[i].SetCharacterStyleId("HtmlCode");
             }
         }

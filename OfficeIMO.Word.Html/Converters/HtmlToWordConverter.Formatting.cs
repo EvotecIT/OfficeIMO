@@ -468,8 +468,7 @@ namespace OfficeIMO.Word.Html {
 
                 int end = index > start && text[index - 1] == '\r' ? index - 1 : index;
                 if (end > start) {
-                    var textRun = paragraph.AddFormattedText(text.Substring(start, end - start), formatting.Bold,
-                        formatting.Italic, GetUnderlineValue(formatting)?.ToOfficeEnum());
+                    var textRun = AppendTextSegment(paragraph, text.Substring(start, end - start));
                     ApplyFormatting(textRun, formatting, options);
                 }
 
@@ -479,11 +478,35 @@ namespace OfficeIMO.Word.Html {
             }
 
             if (start < text.Length || text.Length == 0) {
-                var textRun = paragraph.AddFormattedText(text.Substring(start), formatting.Bold,
-                    formatting.Italic, GetUnderlineValue(formatting)?.ToOfficeEnum());
+                var textRun = AppendTextSegment(paragraph, text.Substring(start));
                 ApplyFormatting(textRun, formatting, options);
             }
         }
+
+        private static WordParagraph AppendTextSegment(WordParagraph paragraph, string text) {
+            if (GetReusableInitialRun(paragraph) != null) {
+                paragraph.CopyRunFormattingToParagraphMark();
+                paragraph.Text = text;
+                return paragraph;
+            }
+            return paragraph.AddText(text);
+        }
+
+        private static Run? GetReusableInitialRun(WordParagraph paragraph) {
+            var initialRun = paragraph._run;
+            return initialRun?.Parent == paragraph._paragraph && !initialRun.HasAttributes &&
+                initialRun.ChildElements.All(child => child is RunProperties) &&
+                paragraph._paragraph.ChildElements.All(child => child is ParagraphProperties || ReferenceEquals(child, initialRun))
+                ? initialRun : null;
+        }
+
+        // Semantic wrappers capture this before processing children. The first text may reuse
+        // the formatting-only run instead of adding a run, so count it only after it receives content.
+        private static (int Count, Run? InitialRun) CaptureTextRunStart(WordParagraph paragraph) =>
+            (paragraph.GetRuns().Count(), GetReusableInitialRun(paragraph));
+
+        private static int FirstEmittedTextRunIndex((int Count, Run? InitialRun) start) =>
+            start.InitialRun?.ChildElements.Any(child => child is not RunProperties) == true ? start.Count - 1 : start.Count;
 
         private static string ApplyWhiteSpace(string text, WhiteSpaceMode? mode) {
             if (!mode.HasValue) {
