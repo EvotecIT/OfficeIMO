@@ -37,17 +37,17 @@ public static partial class WordPdfConverterExtensions {
         IReadOnlyList<WordSectionColumn> definitions = section.ColumnDefinitions;
         if (definitions.Count > 0) {
             columnOptions.ColumnDefinitions = definitions.Select(column => new PdfCore.PdfFlowColumn(
-                PdfCore.PdfColumnWidth.Fixed(ConvertNativeTwipsToPoints(column.WidthTwips) ?? 0D),
-                column.SpaceAfterTwips is int space ? ConvertNativeTwipsToPoints(space) : 0D)).ToArray();
+                PdfCore.PdfColumnWidth.Fixed(column.Width.ToPoints()),
+                column.SpaceAfter?.ToPoints() ?? 0D)).ToArray();
         }
         PdfCore.PdfPageSize pageSize = GetNativePageSize(section, options);
         PdfCore.PdfPageMargins margins = GetNativeMargins(section, options);
         double sectionContentWidth = Math.Max(1D, pageSize.Width.ToPoints() - margins.Left.ToPoints() - margins.Right.ToPoints());
         double totalGap = definitions.Count > 0
-            ? definitions.Take(count - 1).Sum(column => column.SpaceAfterTwips is int space ? ConvertNativeTwipsToPoints(space) ?? 0D : 0D)
+            ? definitions.Take(count - 1).Sum(column => column.SpaceAfter?.ToPoints() ?? 0D)
             : gap * (count - 1);
         double firstColumnWidth = definitions.Count > 0
-            ? ConvertNativeTwipsToPoints(definitions[0].WidthTwips) ?? 0D
+            ? definitions[0].Width.ToPoints()
             : (sectionContentWidth - totalGap) / count;
         page.Content(content => content.Columns(column => {
             INativePdfFlow flow = new NativeSpacingCollapseFlow(new NativePdfColumnFlow(page, column, pageSize));

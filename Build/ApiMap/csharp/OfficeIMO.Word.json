@@ -2,9 +2,9 @@
   "package": "OfficeIMO.Word",
   "status": "M0 change map, generated from the OfficeIMO 3.5.3 net8.0 build (b7d2cf5137) by reflection plus source lookup. Signatures are reflection renderings: default values are unquoted and \"CancellationToken cancellationToken = null\" means \"= default\".",
   "summary": {
-    "changes": 349,
+    "changes": 350,
     "byAction": {
-      "change": 142,
+      "change": 143,
       "internalize": 40,
       "merge": 125,
       "move": 1,
@@ -18,7 +18,7 @@
       "naming": 11,
       "options": 4,
       "package": 1,
-      "units": 142,
+      "units": 143,
       "visibility": 40
     },
     "packageMoves": 3
@@ -3335,20 +3335,36 @@
       "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
     },
     {
+      "old": "OfficeIMO.Word.WordSectionColumn(int widthTwips, int? spaceAfterTwips = null)",
+      "kind": "constructor",
+      "action": "change",
+      "new": "OfficeIMO.Word.WordSectionColumn(OfficeLength width, OfficeLength? spaceAfter = null)",
+      "reason": "Public geometry uses OfficeLength; constructor parameters never take raw twips or carry a unit suffix.",
+      "file": "OfficeIMO.Word/WordSectionColumn.cs",
+      "category": "units",
+      "implementation": {
+        "phase": "B",
+        "status": "applied"
+      },
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "note": "Column widths and optional following gaps use OfficeLength with no unit aliases. The constructor validates positive width and non-negative optional gap within rounded int-twip ranges; ColumnDefinitions rounds at DOCX storage. Omission remains null in DOCX and effective zero in native DOC; native codec limits are unchanged. Point-based layout consumers and saved-file contracts are migrated."
+    },
+    {
       "old": "OfficeIMO.Word.WordSectionColumn.SpaceAfterTwips",
       "kind": "property",
       "action": "merge",
-      "new": "OfficeIMO.Word.WordSectionColumn.SpaceAfter : OfficeLength",
+      "new": "OfficeIMO.Word.WordSectionColumn.SpaceAfter : OfficeLength?",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.Word/WordSectionColumn.cs",
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Column widths and optional following gaps use OfficeLength with no unit aliases. The constructor validates positive width and non-negative optional gap within rounded int-twip ranges; ColumnDefinitions rounds at DOCX storage. Omission remains null in DOCX and effective zero in native DOC; native codec limits are unchanged. Point-based layout consumers and saved-file contracts are migrated."
     },
     {
       "old": "OfficeIMO.Word.WordSectionColumn.WidthTwips",
@@ -3360,11 +3376,11 @@
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Column widths and optional following gaps use OfficeLength with no unit aliases. The constructor validates positive width and non-negative optional gap within rounded int-twip ranges; ColumnDefinitions rounds at DOCX storage. Omission remains null in DOCX and effective zero in native DOC; native codec limits are unchanged. Point-based layout consumers and saved-file contracts are migrated."
     },
     {
       "old": "OfficeIMO.Word.WordSectionSnapshot.ColumnSpacingPoints",

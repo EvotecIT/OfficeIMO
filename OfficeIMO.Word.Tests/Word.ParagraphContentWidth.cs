@@ -49,7 +49,8 @@ public sealed class WordParagraphContentWidthTests {
 
         Assert.Equal(770D / 3D, paragraph.GetContentWidthPoints(), 6);
         section.ColumnDefinitions = new[] {
-            new WordSectionColumn(3600, 300), new WordSectionColumn(6000, 600)
+            new WordSectionColumn(OfficeLength.Points(180), OfficeLength.Points(15)),
+            new WordSectionColumn(OfficeLength.Points(300), OfficeLength.Points(30))
         };
         Assert.Equal(180D, paragraph.GetContentWidthPoints());
     }

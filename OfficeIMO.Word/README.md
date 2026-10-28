@@ -275,20 +275,20 @@ document.Save();
 
 ## Section columns
 
-Set `ColumnCount` and `ColumnsSpace` for equal-width columns. Set `ColumnDefinitions` to author or inspect individual widths and following gaps. Values are in twips, where 20 twips equals one point:
+Set `ColumnCount` and `ColumnsSpace` for equal-width columns; `ColumnsSpace` is in twips, where 20 twips equals one point. Set `ColumnDefinitions` to author or inspect individual widths and following gaps as `OfficeLength` values:
 
 ```csharp
 var section = document.Sections[0];
 section.ColumnDefinitions = new[] {
-    new WordSectionColumn(2000, 400),
-    new WordSectionColumn(6000, 0)
+    new WordSectionColumn(OfficeLength.Points(100), OfficeLength.Points(20)),
+    new WordSectionColumn(OfficeLength.Points(300), OfficeLength.Zero)
 };
-int firstWidth = section.ColumnDefinitions[0].WidthTwips;
+OfficeLength firstWidth = section.ColumnDefinitions[0].Width;
 ```
 
-The property takes a snapshot and synchronizes the column count. Replace the definitions to change an explicit layout's count; an empty list restores equal widths while retaining the count and default spacing.
+The property takes a snapshot, rounds lengths to whole twips and synchronizes the column count. Widths must round to a positive 32-bit twip value; gaps must be non-negative and round within the same integer range. Replace the definitions to change an explicit layout's count; an empty list restores equal widths while retaining the count and default spacing.
 
-An omitted `SpaceAfterTwips` has an effective gap of zero for unequal columns. `ColumnsSpace` applies to equal-width columns. DOCX retains the omitted individual value; native DOC writes its effective zero explicitly.
+An omitted `SpaceAfter` has an effective gap of zero for unequal columns. `ColumnsSpace` applies to equal-width columns. DOCX retains the omitted individual value; native DOC writes its effective zero explicitly.
 
 DOCX preserves these settings. Native DOC preserves indexed widths and individual gaps, with up to 44 columns, widths from 718 through 32767 twips and gaps from zero through 32767 twips. Saving a layout outside those native limits fails before creating output. Invalid or incomplete native indexed records produce an import diagnostic. PDF column flow is described separately in the [conversion contract](../OfficeIMO.Word.Pdf/README.md).
 

@@ -14,6 +14,17 @@ returns `OfficeConversionResult<byte[]>`. `FileConflictPolicy`, `FailOnLoss`,
 safety limits, fonts, cancellation and progress remain options.
 
 
+## Word section columns
+
+`WordSectionColumn` takes `OfficeLength width` and optional `OfficeLength? spaceAfter`.
+Replace `new WordSectionColumn(3000, 360)` with
+`new WordSectionColumn(OfficeLength.Points(150), OfficeLength.Points(18))`.
+Read `Width` and `SpaceAfter` instead of `WidthTwips` and `SpaceAfterTwips`;
+use `ToTwips()` only when a numeric native value is needed.
+Widths round to positive 32-bit twips, and gaps remain nullable and non-negative.
+`ColumnDefinitions` rounds at storage; an omitted gap stays omitted in DOCX and
+has effective zero in native DOC. `ColumnsSpace` remains in twips for equal widths.
+
 ## Word page image exports
 
 Replace Word's `ToPng`, `ToSvg`, `ToJpeg`, `ToTiff` and `ToWebp` with

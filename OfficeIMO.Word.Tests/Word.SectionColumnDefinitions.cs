@@ -15,15 +15,18 @@ public partial class Word {
             using WordDocument document = WordDocument.Create();
             document.AddParagraph("Unequal columns with inherited gap");
             document.Sections[0].ColumnsSpace = 720;
-            document.Sections[0].ColumnDefinitions = new[] { new WordSectionColumn(3000), new WordSectionColumn(4000, 0) };
+            document.Sections[0].ColumnDefinitions = new[] {
+                new WordSectionColumn(OfficeLength.Points(150)),
+                new WordSectionColumn(OfficeLength.Points(200), OfficeLength.Zero)
+            };
             document.Save(path);
-            Assert.Null(document.Sections[0].ColumnDefinitions[0].SpaceAfterTwips);
+            Assert.Null(document.Sections[0].ColumnDefinitions[0].SpaceAfter);
             using WordDocument reloaded = WordDocument.Load(path);
             Assert.Equal(720, reloaded.Sections[0].ColumnsSpace);
-            Assert.Equal(new[] { 3000, 4000 }, reloaded.Sections[0].ColumnDefinitions.Select(column => column.WidthTwips));
-            Assert.Equal(0, reloaded.Sections[0].ColumnDefinitions[0].SpaceAfterTwips ?? 0);
-            Assert.Equal(0, reloaded.Sections[0].ColumnDefinitions[1].SpaceAfterTwips);
-            if (extension == ".docx") Assert.Null(reloaded.Sections[0].ColumnDefinitions[0].SpaceAfterTwips);
+            Assert.Equal(new long[] { 3000, 4000 }, reloaded.Sections[0].ColumnDefinitions.Select(column => column.Width.ToTwips()));
+            Assert.Equal(0L, reloaded.Sections[0].ColumnDefinitions[0].SpaceAfter?.ToTwips() ?? 0);
+            Assert.Equal(0L, reloaded.Sections[0].ColumnDefinitions[1].SpaceAfter?.ToTwips());
+            if (extension == ".docx") Assert.Null(reloaded.Sections[0].ColumnDefinitions[0].SpaceAfter);
         } finally { DeleteIfExists(path); }
     }
 
@@ -38,23 +41,50 @@ public partial class Word {
                 WordSection section = document.Sections[0];
                 section.ColumnCount = 2;
                 section.ColumnsSpace = 720;
+                var firstColumn = new WordSectionColumn(OfficeLength.Points(150.03), OfficeLength.Points(18.03));
+                Assert.Equal(OfficeLength.Points(150.03), firstColumn.Width);
+                Assert.Equal(OfficeLength.Points(18.03), firstColumn.SpaceAfter);
                 section.ColumnDefinitions = new[] {
-                    new WordSectionColumn(3000, 360), new WordSectionColumn(4000, 0)
+                    firstColumn, new WordSectionColumn(OfficeLength.Points(200), OfficeLength.Zero)
                 };
+                Assert.Equal(OfficeLength.Points(150.05), section.ColumnDefinitions[0].Width);
+                Assert.Equal(OfficeLength.Points(18.05), section.ColumnDefinitions[0].SpaceAfter);
                 document.Save(path);
             }
             using WordDocument reloaded = WordDocument.Load(path);
             Columns actual = reloaded.Sections[0]._sectionProperties.GetFirstChild<Columns>()!;
             Assert.Equal(2, reloaded.Sections[0].ColumnCount);
             Assert.False(actual.EqualWidth?.Value ?? true);
-            Assert.Equal(new[] { "3000", "4000" }, actual.Elements<Column>().Select(column => column.Width?.Value));
-            Assert.Equal(new[] { "360", "0" }, actual.Elements<Column>().Select(column => column.Space?.Value));
-            Assert.Equal(new[] { 3000, 4000 }, reloaded.Sections[0].ColumnDefinitions.Select(column => column.WidthTwips));
-            Assert.Equal(new int?[] { 360, 0 }, reloaded.Sections[0].ColumnDefinitions.Select(column => column.SpaceAfterTwips));
+            Assert.Equal(new[] { "3001", "4000" }, actual.Elements<Column>().Select(column => column.Width?.Value));
+            Assert.Equal(new[] { "361", "0" }, actual.Elements<Column>().Select(column => column.Space?.Value));
+            Assert.Equal(new long[] { 3001, 4000 }, reloaded.Sections[0].ColumnDefinitions.Select(column => column.Width.ToTwips()));
+            Assert.Equal(new long?[] { 361, 0 }, reloaded.Sections[0].ColumnDefinitions.Select(column => column.SpaceAfter?.ToTwips()));
             Assert.Contains("Unequal section columns", reloaded.Paragraphs[0].Text);
         } finally {
             DeleteIfExists(path);
         }
+    }
+
+    [Fact]
+    public void SectionColumnDefinitions_ConstructorEnforcesNativeIntTwipRangesBeforeStorage() {
+        Assert.Throws<ArgumentOutOfRangeException>(() => new WordSectionColumn(OfficeLength.Zero));
+        Assert.Throws<ArgumentOutOfRangeException>(() => new WordSectionColumn(OfficeLength.Points(-1)));
+        Assert.Throws<ArgumentOutOfRangeException>(() => new WordSectionColumn(OfficeLength.Emus(1)));
+        Assert.Throws<ArgumentOutOfRangeException>(() => new WordSectionColumn(OfficeLength.Points(150), OfficeLength.Emus(-1)));
+        OfficeLength tooLarge = OfficeLength.Emus(((long)int.MaxValue + 1) * 635);
+        Assert.Throws<OverflowException>(() => new WordSectionColumn(tooLarge));
+        Assert.Throws<OverflowException>(() => new WordSectionColumn(OfficeLength.Points(150), tooLarge));
+
+        using WordDocument document = WordDocument.Create();
+        WordSection section = document.Sections[0];
+        section.ColumnDefinitions = new[] {
+            new WordSectionColumn(OfficeLength.Points(0.05), OfficeLength.Emus(1)),
+            new WordSectionColumn(OfficeLength.Emus((long)int.MaxValue * 635), OfficeLength.Emus((long)int.MaxValue * 635))
+        };
+        Columns stored = section._sectionProperties.GetFirstChild<Columns>()!;
+        Assert.Equal(new[] { "1", "2147483647" }, stored.Elements<Column>().Select(column => column.Width?.Value));
+        Assert.Equal(new[] { "0", "2147483647" }, stored.Elements<Column>().Select(column => column.Space?.Value));
+        Assert.Equal(OfficeLength.Zero, section.ColumnDefinitions[0].SpaceAfter);
     }
 
     [Theory]
@@ -92,10 +122,13 @@ public partial class Word {
     public void SectionColumnDefinitions_SnapshotAndCountChangesRemainCoherent() {
         using WordDocument document = WordDocument.Create();
         WordSection section = document.Sections[0];
-        var definitions = new[] { new WordSectionColumn(3000, 360), new WordSectionColumn(4000) };
+        var definitions = new[] {
+            new WordSectionColumn(OfficeLength.Points(150), OfficeLength.Points(18)),
+            new WordSectionColumn(OfficeLength.Points(200))
+        };
         section.ColumnDefinitions = definitions;
-        definitions[0] = new WordSectionColumn(5000);
-        Assert.Equal(3000, section.ColumnDefinitions[0].WidthTwips);
+        definitions[0] = new WordSectionColumn(OfficeLength.Points(250));
+        Assert.Equal(3000L, section.ColumnDefinitions[0].Width.ToTwips());
         section.ColumnCount = null;
         Assert.Equal(2, section.ColumnCount);
         Assert.Throws<InvalidOperationException>(() => section.ColumnCount = 3);
@@ -117,7 +150,10 @@ public partial class Word {
         try {
             using WordDocument document = WordDocument.Create();
             document.AddParagraph("Unrepresentable native columns");
-            document.Sections[0].ColumnDefinitions = new[] { new WordSectionColumn(width, gap), new WordSectionColumn(4000) };
+            document.Sections[0].ColumnDefinitions = new[] {
+                new WordSectionColumn(OfficeLength.Points(width / 20D), OfficeLength.Points(gap / 20D)),
+                new WordSectionColumn(OfficeLength.Points(200))
+            };
             Assert.Throws<NotSupportedException>(() => document.Save(path));
             Assert.False(File.Exists(path));
         } finally {
@@ -144,8 +180,8 @@ public partial class Word {
             LegacyDocTestBuilder.CreateIndexedSectionColumnDoc(false, "unused-cache")));
         Assert.True(result.HasDocument);
         Assert.DoesNotContain(result.Diagnostics, diagnostic => diagnostic.Code == "doc-sepx-invalid");
-        Assert.Equal(new[] { 3000, 4000 }, result.Document!.Sections[0].ColumnDefinitions.Select(column => column.WidthTwips));
-        Assert.Equal(new int?[] { 360, 0 }, result.Document.Sections[0].ColumnDefinitions.Select(column => column.SpaceAfterTwips));
+        Assert.Equal(new long[] { 3000, 4000 }, result.Document!.Sections[0].ColumnDefinitions.Select(column => column.Width.ToTwips()));
+        Assert.Equal(new long?[] { 360, 0 }, result.Document.Sections[0].ColumnDefinitions.Select(column => column.SpaceAfter?.ToTwips()));
         Assert.Equal(2, result.Document.Sections[0].ColumnCount);
     }
 

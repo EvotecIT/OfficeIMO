@@ -82,7 +82,7 @@ namespace OfficeIMO.Word {
             double width = GetSectionPageContentWidthPoints(section);
             IReadOnlyList<WordSectionColumn> definitions = section.ColumnDefinitions;
             if (definitions.Count > 0) {
-                return Math.Min(width, definitions.Min(column => column.WidthTwips) / 20D);
+                return Math.Min(width, definitions.Min(column => column.Width.ToPoints()));
             }
             int count = Math.Max(1, section.ColumnCount ?? 1);
             double gap = Math.Max(0, section.ColumnsSpace ?? 720) / 20D;

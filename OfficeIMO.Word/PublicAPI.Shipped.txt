@@ -3749,9 +3749,9 @@ OfficeIMO.Word.WordSectionBreakType.NextColumn = 1 -> OfficeIMO.Word.WordSection
 OfficeIMO.Word.WordSectionBreakType.NextPage = 0 -> OfficeIMO.Word.WordSectionBreakType
 OfficeIMO.Word.WordSectionBreakType.OddPage = 4 -> OfficeIMO.Word.WordSectionBreakType
 OfficeIMO.Word.WordSectionColumn
-OfficeIMO.Word.WordSectionColumn.SpaceAfterTwips.get -> int?
-OfficeIMO.Word.WordSectionColumn.WidthTwips.get -> int
-OfficeIMO.Word.WordSectionColumn.WordSectionColumn(int widthTwips, int? spaceAfterTwips = null) -> void
+OfficeIMO.Word.WordSectionColumn.SpaceAfter.get -> OfficeIMO.OfficeLength?
+OfficeIMO.Word.WordSectionColumn.Width.get -> OfficeIMO.OfficeLength
+OfficeIMO.Word.WordSectionColumn.WordSectionColumn(OfficeIMO.OfficeLength width, OfficeIMO.OfficeLength? spaceAfter = null) -> void
 OfficeIMO.Word.WordSectionInfo
 OfficeIMO.Word.WordSectionInfo.ColumnCount.get -> int?
 OfficeIMO.Word.WordSectionInfo.ColumnSpacingPoints.get -> double?

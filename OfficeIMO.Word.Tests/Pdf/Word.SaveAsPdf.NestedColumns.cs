@@ -75,7 +75,10 @@ public partial class Word {
     public void SaveAsPdf_NativeUnequalColumnsRetainAnOmittedGapAfterSaveReload(WordFileFormat format) {
         using WordDocument document = WordDocument.Create();
         document.Sections[0].ColumnsSpace = 720;
-        document.Sections[0].ColumnDefinitions = new[] { new WordSectionColumn(3000), new WordSectionColumn(4000, 0) };
+        document.Sections[0].ColumnDefinitions = new[] {
+            new WordSectionColumn(OfficeLength.Points(150)),
+            new WordSectionColumn(OfficeLength.Points(200), OfficeLength.Zero)
+        };
         WordParagraph paragraph = document.AddParagraph();
         ConfigurePartialColumnParagraph(paragraph);
         paragraph.AddText("LeftColumn"); paragraph.AddBreak(WordBreakType.Column); paragraph.AddText("RightColumn");
