@@ -18,7 +18,8 @@ public abstract class OfficeInputCmdlet : AsyncPSCmdlet {
     [ValidateNotNullOrEmpty]
     public string[] LiteralPath { get; set; } = Array.Empty<string>();
     /// <summary>Gets or sets the maximum number of concurrent background operations.</summary>
-    [Parameter]
+    [Parameter(ParameterSetName = "Path")]
+    [Parameter(ParameterSetName = "LiteralPath")]
     [ValidateRange(1, 1024)]
     public int ThrottleLimit { get; set; } = 4;
 

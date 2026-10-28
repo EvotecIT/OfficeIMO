@@ -46,11 +46,11 @@ Describe 'Reader cmdlets' {
         $searchParameters = (Get-Command -Name Search-OfficeDocument).Parameters.Keys
         $searchParameters | Should -Contain 'Path'
         $searchParameters | Should -Contain 'Recurse'
-        $searchParameters | Should -Contain 'MaxDocuments'
-        $searchParameters | Should -Contain 'NoDocumentLimit'
-        $searchParameters | Should -Contain 'MaxStoreItems'
-        $searchParameters | Should -Contain 'AllStoreItems'
-        $searchParameters | Should -Contain 'AllResults'
+        $searchParameters | Should -Contain 'MaximumFiles'
+        $searchParameters | Should -Contain 'LiteralPath'
+        $searchParameters | Should -Contain 'MaximumStoreItems'
+        $searchParameters | Should -Contain 'SimpleMatch'
+        $searchParameters | Should -Contain 'Pattern'
         $searchParameters | Should -Contain 'Reader'
 
         $batchParameters = (Get-Command -Name Get-OfficeDocumentBatch).Parameters.Keys
@@ -193,10 +193,10 @@ Describe 'Reader cmdlets' {
         $document = Get-OfficeDocument -Path $path -IncludePageLocations
         $document.Pages.Count | Should -Be 2
 
-        $matches = $document | Search-OfficeDocument -Query 'retention period' -WholeWord
-        $matches.Hits | Should -HaveCount 1
-        $matches.PageNumbers | Should -Be @(2)
-        $matches.Hits[0].Pages[0].Provenance.ToString() | Should -Be 'ExplicitBreak'
+        $matches = @($document | Search-OfficeDocument -Pattern 'retention period' -SimpleMatch -WholeWord)
+        $matches | Should -HaveCount 1
+        $matches[0].Pages | Should -Be @(2)
+        $matches[0].Match | Should -Be 'retention period'
 
         $pageMarkdown = @($document | Get-OfficeDocumentPageMarkdown)
         $pageMarkdown | Should -HaveCount 2
@@ -235,8 +235,8 @@ Describe 'Reader cmdlets' {
         Set-Content -Path (Join-Path $folder 'ignored.bin') -Value 'Synthetic unsupported input' -Encoding UTF8
 
         $readErrors = @()
-        $matches = @(Search-OfficeDocument -Path $folder -Recurse -Query 'Synthetic' `
-                -MaxDocuments 10 -MaxStoreItems 10 -MaximumResults 10 -MaxDegreeOfParallelism 2 `
+        $matches = @(Search-OfficeDocument -Path $folder -Recurse -Pattern 'Synthetic' `
+                -MaximumFiles 10 -MaximumStoreItems 10 -MaximumResults 10 -ThrottleLimit 2 `
                 -ErrorVariable +readErrors -ErrorAction SilentlyContinue)
 
         ($matches.Path | Select-Object -Unique) | Should -HaveCount 5
@@ -254,8 +254,8 @@ Describe 'Reader cmdlets' {
         $matches.SourceLimitReached | Should -Not -Contain $true
         $readErrors | Should -HaveCount 1
 
-        $unlimited = @(Search-OfficeDocument -Path $markdownPath -Query 'Synthetic' `
-                -NoDocumentLimit -AllStoreItems -AllResults)
+        $unlimited = @(Search-OfficeDocument -Path $markdownPath -Pattern 'Synthetic' `
+                -MaximumFiles 0 -MaximumStoreItems 0 -MaximumResults 0)
         $unlimited | Should -HaveCount 1
 
         $store = Get-OfficeDocument -Path $pstPath -AllStoreItems
@@ -273,12 +273,12 @@ Describe 'Reader cmdlets' {
         }
 
         $warnings = @()
-        $matches = @(Search-OfficeDocument -Path $folder -Query 'Synthetic' -MaxDocuments 2 `
+        $matches = @(Search-OfficeDocument -Path $folder -Pattern 'Synthetic' -MaximumFiles 2 `
                 -WarningVariable +warnings -WarningAction SilentlyContinue)
 
         ($matches.Path | Select-Object -Unique) | Should -HaveCount 2
         $matches.DocumentLimitReached | Should -Not -Contain $false
-        ($warnings -join ' ') | Should -Match 'configured document ceiling \(2\)'
+        ($warnings -join ' ') | Should -Match 'MaximumFiles \(2\)'
     }
 
     It 'applies extension filters before explicit paths consume the search ceiling' {
@@ -290,7 +290,7 @@ Describe 'Reader cmdlets' {
         Set-Content -Path $includedPath -Value '# Synthetic included document' -Encoding UTF8
 
         $matches = @(Search-OfficeDocument -Path @($excludedPath, $includedPath) `
-                -Extension md -Query 'Synthetic' -MaxDocuments 1)
+                -Extension md -Pattern 'Synthetic' -MaximumFiles 1)
 
         $matches | Should -HaveCount 1
         $matches[0].Path | Should -Be $includedPath
@@ -345,15 +345,15 @@ Describe 'Reader cmdlets' {
         Set-Content -Path $path -Value '# Concurrency', 'Synthetic configurable search' -Encoding UTF8
         $reader = New-OfficeDocumentReader -MaxConcurrentReads 6
 
-        $matches = @(Search-OfficeDocument -Path $path -Query 'Synthetic' `
-                -Reader $reader -MaxDegreeOfParallelism 6)
+        $matches = @(Search-OfficeDocument -Path $path -Pattern 'Synthetic' `
+                -Reader $reader -ThrottleLimit 6)
 
         $matches | Should -HaveCount 1
         $matches[0].Path | Should -Be $path
         {
-            Search-OfficeDocument -Path $path -Query 'Synthetic' `
+            Search-OfficeDocument -Path $path -Pattern 'Synthetic' `
                 -Reader (New-OfficeDocumentReader -MaxConcurrentReads 2) `
-                -MaxDegreeOfParallelism 3 -ErrorAction Stop
+                -ThrottleLimit 3 -ErrorAction Stop
         } | Should -Throw -ExpectedMessage '*requested batch concurrency (3)*Reader limit (2)*'
     }
 

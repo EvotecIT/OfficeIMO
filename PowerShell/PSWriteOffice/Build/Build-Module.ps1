@@ -61,6 +61,8 @@ Build-Module -ModuleName 'PSWriteOffice' -Path "$PSScriptRoot/../.." -RunMode $R
     }
     New-ConfigurationManifest @Manifest
 
+    New-ConfigurationInformation -IncludeRoot '*.psd1', '*.psm1', '*.Libraries.ps1', 'PSWriteOffice.Format.ps1xml', 'License*'
+
     if ($IncludePackages) {
         New-ConfigurationProjectBuild -ConfigPath '../../Build/project.build.json' -BuildBeforeModule -UseAsReleaseVersionSource `
             -SignAssemblies:$SignModule -SignPackages:$SignModule -PublishNuget
@@ -108,7 +110,7 @@ Build-Module -ModuleName 'PSWriteOffice' -Path "$PSScriptRoot/../.." -RunMode $R
     # when creating PSD1 use special style without comments and with only required parameters
     New-ConfigurationFormat -ApplyTo 'DefaultPSD1', 'OnMergePSD1' -PSD1Style 'Minimal'
     # configuration for documentation, at the same time it enables documentation processing
-    New-ConfigurationDocumentation -Enable:$true -PathReadme 'Docs\Readme.md' -Path 'Docs'
+    New-ConfigurationDocumentation -Enable:$true -PathReadme 'Docs/Readme.md' -Path 'Docs'
 
     New-ConfigurationImportModule -ImportSelf
 

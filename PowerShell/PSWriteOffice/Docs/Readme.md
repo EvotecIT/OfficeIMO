@@ -1469,7 +1469,7 @@ Saves an OfficeIMO.Visio document.
 Saves a Word document without disposing it.
 
 ### [Search-OfficeDocument](Search-OfficeDocument.md)
-Searches one Reader result or every supported document below file and folder paths.
+Finds regular-expression or literal matches across supported files and folders.
 
 ### [Send-OfficeConfluenceAttachment](Send-OfficeConfluenceAttachment.md)
 Uploads or versions a Confluence page attachment.

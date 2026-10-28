@@ -1,0 +1,33 @@
+{
+  "package": "OfficeIMO.Reader.Core",
+  "status": "Search cancellation and regular-expression contract for the cross-format command surface.",
+  "summary": {
+    "changes": 1,
+    "byAction": {
+      "change": 1
+    },
+    "byCategory": {
+      "reading": 1
+    },
+    "packageMoves": 0
+  },
+  "keep": [
+    "OfficeDocumentSearchOptions",
+    "OfficeDocumentSearchResult",
+    "OfficeDocumentSearchHit"
+  ],
+  "changes": [
+    {
+      "old": "OfficeIMO.Reader.OfficeDocumentReadResultExtensions.Search(OfficeDocumentReadResult document, string query, OfficeDocumentSearchOptions options = null)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Reader.OfficeDocumentReadResultExtensions.Search(OfficeDocumentReadResult document, string query, OfficeDocumentSearchOptions options = null, CancellationToken cancellationToken = default)",
+      "reason": "Search accepts cooperative cancellation for both literal and regular-expression matching. Existing source calls compile unchanged; binary consumers must recompile and method-group bindings must include the token or use a lambda. C# literal matching remains the default.",
+      "file": "OfficeIMO.Reader.Core/OfficeDocumentSearch.cs",
+      "category": "reading",
+      "phase": "M4",
+      "applied": "applied"
+    }
+  ],
+  "packageMoves": []
+}

@@ -80,6 +80,22 @@ format packages no longer bring the PDF engine. `OfficeIMO.Word.Markdown` no
 longer brings the HTML engine. Install the `OfficeIMO` package for the common
 formats, adapters, Reader handlers and file or batch conversions.
 
+## Document search
+
+Replace `Search-OfficeDocument -Query` with `-Pattern`. Patterns are regular
+expressions by default; add `-SimpleMatch` to retain literal matching.
+`-CaseSensitive` replaces `-MatchCase`. Use `-MaximumFiles`,
+`-MaximumStoreItems`, `-MaximumResults` and `-ThrottleLimit` for the selection
+and execution limits; zero removes each `Maximum*` ceiling. Search returns
+individual `OfficeDocumentSearchMatch` objects for both paths and piped Reader
+results, rather than an envelope with `Hits`. Use `-ErrorAction Stop` instead
+of `-StopOnError`.
+
+Recompile consumers of `OfficeIMO.Reader.Core`: `Search` now accepts an optional
+`CancellationToken` after its options. Ordinary source calls keep working;
+method-group bindings must include the token or use a lambda. C# search remains
+literal unless `OfficeDocumentSearchOptions.UseRegularExpressions` is enabled.
+
 ## Unified C# lifecycle and conversions
 
 Replace `MarkdownDoc` with `MarkdownDocument`, and `PdfReadDocument.Open(...)`
