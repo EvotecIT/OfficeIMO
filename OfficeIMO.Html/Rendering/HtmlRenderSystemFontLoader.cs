@@ -18,6 +18,9 @@ internal static partial class HtmlRenderSystemFontLoader {
         IReadOnlyList<string> configuredDefaults = Pdf.HtmlPdfRenderedConverter.RetainConfiguredDefaultFonts(
             fonts, options, resources, diagnostics, cancellationToken);
         if (!options.AllowSystemFontFallback) return;
+        bool allowDocumentFamilies = options is Pdf.HtmlToPdfOptions pdfOptions
+            && pdfOptions.ResourcePolicy.AllowSystemFontEmbedding
+            && pdfOptions.ResourcePolicy.AllowDocumentFontEmbedding;
         var inherited = new Dictionary<IElement, (string Families, OfficeFontFaceDescriptor Descriptor)>();
         var attempted = new Dictionary<(string Family, OfficeFontFaceDescriptor Descriptor), bool>();
         var supplied = new HashSet<string>(fonts.Faces.Select(face => face.FamilyName), StringComparer.OrdinalIgnoreCase);
@@ -46,8 +49,14 @@ internal static partial class HtmlRenderSystemFontLoader {
                 ? inheritedVisibility : DefaultFontVisibility.Visible;
             DefaultFontVisibility currentVisibility = ResolveDefaultFontVisibility(element, computed, parentVisibility, disclosures);
             visibility[element] = currentVisibility;
-            LoadList(families, descriptor);
-            if (currentVisibility.CanPaint && HasDirectDefaultFontText(element, computed, disclosures)) {
+            bool paintsText = currentVisibility.CanPaint && HasDirectDefaultFontText(element, computed, disclosures);
+            int suppliedCoverageBoundary = allowDocumentFamilies && paintsText
+                ? FindCoveredSuppliedPrefix(element, families, descriptor, fonts, supplied,
+                    disclosures, computed, counterStyles, cancellationToken)
+                : int.MaxValue;
+            LoadList(families, descriptor, documentRequest: paintsText,
+                suppliedCoverageBoundary: suppliedCoverageBoundary);
+            if (paintsText) {
                 visibleText.Add(element);
                 defaults.Add((element, families, descriptor, false, true));
             }
@@ -55,11 +64,11 @@ internal static partial class HtmlRenderSystemFontLoader {
                 if (!styles.TryGetPseudoStyle(element, kind, out HtmlComputedStyle pseudo)) continue;
                 string pseudoFamilies = HtmlRenderStyleResolver.ResolveFontFamily(string.Empty, pseudo, families, options.DefaultFontFamily);
                 OfficeFontFaceDescriptor pseudoDescriptor = HtmlRenderStyleResolver.ResolveFontFaceDescriptor(string.Empty, pseudo, descriptor);
-                LoadList(pseudoFamilies, pseudoDescriptor);
-                if (!currentVisibility.Blocked && CanPaintDefaultPseudo(pseudo, currentVisibility)
-                    && TryGetDefaultPseudoRequest(element, kind, pseudo, out bool needsText)) {
+                bool paintsPseudo = !currentVisibility.Blocked && CanPaintDefaultPseudo(pseudo, currentVisibility)
+                    && TryGetDefaultPseudoRequest(element, kind, pseudo, out _);
+                LoadList(pseudoFamilies, pseudoDescriptor, documentRequest: paintsPseudo);
+                if (paintsPseudo && TryGetDefaultPseudoRequest(element, kind, pseudo, out bool needsText))
                     defaults.Add((element, pseudoFamilies, pseudoDescriptor, needsText, false));
-                }
             }
         }
 
@@ -82,8 +91,10 @@ internal static partial class HtmlRenderSystemFontLoader {
         if (pageRules != null && document.DocumentElement is IElement root && styles.Elements.TryGetValue(root, out HtmlComputedStyle? rootStyle)) {
             foreach (var request in pageRules.EnumerateMarginFontRequests(rootStyle, styles, options, cancellationToken))
                 LoadList(request.Families, request.Descriptor);
-            foreach (var request in pageRules.EnumerateMarginFontRequests(rootStyle, styles, options, cancellationToken, requireGeneratedContent: true))
+            foreach (var request in pageRules.EnumerateMarginFontRequests(rootStyle, styles, options, cancellationToken, requireGeneratedContent: true)) {
+                LoadList(request.Families, request.Descriptor, documentRequest: true);
                 LoadDefaults(request.Families, request.Descriptor);
+            }
         }
 
         void LoadDefaults(string familyNames, OfficeFontFaceDescriptor descriptor) {
@@ -94,11 +105,22 @@ internal static partial class HtmlRenderSystemFontLoader {
                 LoadList(familyNames, descriptor, rendererDefault: true);
         }
 
-        void LoadList(string familyNames, OfficeFontFaceDescriptor descriptor, bool rendererDefault = false) {
+        void LoadList(string familyNames, OfficeFontFaceDescriptor descriptor, bool rendererDefault = false,
+            bool documentRequest = false, int suppliedCoverageBoundary = int.MaxValue) {
             IReadOnlyList<string> families = OfficeFontFamilyParser.Parse(familyNames);
-            if (!rendererDefault && !families.Any(family => OfficeSystemFontFamilyAliases.IsSystemUi(family) || OfficeSystemFontFamilyAliases.IsMath(family))) return;
-            foreach (string family in families) {
+            // Retain an allowed authored prefix before loading a later renderer default.
+            // Otherwise scoped fallback fixes the run to that default before PDF font selection.
+            // Other named stacks keep the PDF target's existing face and coverage resolver.
+            bool retainAuthoredPrefix = allowDocumentFamilies && documentRequest
+                && families.Any(defaultFamilies.Contains);
+            if (!rendererDefault && !retainAuthoredPrefix
+                && !families.Any(family => OfficeSystemFontFamilyAliases.IsSystemUi(family) || OfficeSystemFontFamilyAliases.IsMath(family))) return;
+            for (int familyIndex = 0; familyIndex < families.Count; familyIndex++) {
                 cancellationToken.ThrowIfCancellationRequested();
+                // Earlier installed candidates still win. A supplied prefix that covers
+                // this element's text and generated marker makes later discovery unused.
+                if (familyIndex >= suppliedCoverageBoundary) return;
+                string family = families[familyIndex];
                 // A default request cannot turn a preceding authored family into
                 // permission to discover that family on the host.
                 if (rendererDefault && !defaultFamilies.Contains(family)) continue;

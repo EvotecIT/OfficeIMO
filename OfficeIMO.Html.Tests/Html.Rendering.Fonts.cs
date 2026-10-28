@@ -644,7 +644,9 @@ public sealed partial class HtmlRenderingTests {
         byte[] pdf = (HtmlConversionDocument.Parse(html).ToPdf(options)).ToBytes();
         string rawPdf = Encoding.ASCII.GetString(pdf);
 
-        Assert.Matches(@"/BaseFont /(?:[A-Z]{6}\+)?" + System.Text.RegularExpressions.Regex.Escape("Scoped"), rawPdf);
+        // The unicode-range resource key is private; the PDF exposes its embedded program's name.
+        string embeddedName = PdfCore.PdfOpenTypeFontInspector.Inspect(fontData).FontName;
+        Assert.Matches(@"/BaseFont /(?:[A-Z]{6}\+)?" + System.Text.RegularExpressions.Regex.Escape(embeddedName), rawPdf);
         Assert.True(
             rawPdf.Contains("/BaseFont /Times-Roman", StringComparison.Ordinal)
             || rawPdf.Contains("/BaseFont /Helvetica", StringComparison.Ordinal),

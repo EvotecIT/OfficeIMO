@@ -83,6 +83,7 @@ public sealed partial class PdfCreateOptions {
                 AddString(entry.Key);
                 AddByte(_automaticFallbackOwnedNamedFamilyKeys?.Contains(entry.Key) == true ? (byte)1 : (byte)0);
                 AddString(entry.Value.FamilyName);
+                AddByte(entry.Value.UsesProgramFontNames ? (byte)1 : (byte)0);
                 AddBytes(entry.Value.RegularSnapshot);
                 AddBytes(entry.Value.BoldSnapshot);
                 AddBytes(entry.Value.ItalicSnapshot);

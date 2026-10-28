@@ -618,7 +618,8 @@ public sealed partial class OfficeFontFaceCollection {
         return null;
     }
 
-    private static bool MatchesFamily(OfficeFontFace face, string family) =>
+    /// <summary>Matches an authored family or resolved resource name, including the shared mathematical generic.</summary>
+    internal static bool MatchesFamily(OfficeFontFace face, string family) =>
         string.Equals(face.FamilyName, family, StringComparison.OrdinalIgnoreCase)
         || string.Equals(face.ResourceFamilyName, family, StringComparison.OrdinalIgnoreCase)
         || OfficeSystemFontFamilyAliases.IsMath(family) && OfficeSystemFontFamilyAliases.MathFamilyRank(face.FamilyName) != int.MaxValue;

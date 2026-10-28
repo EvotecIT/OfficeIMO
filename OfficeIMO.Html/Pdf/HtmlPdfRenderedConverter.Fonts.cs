@@ -480,12 +480,15 @@ internal static partial class HtmlPdfRenderedConverter {
         OfficeFontFace italic = FindFace(faces, OfficeFontStyle.Italic) ?? regular;
         OfficeFontFace boldItalic = FindFace(faces, OfficeFontStyle.Bold | OfficeFontStyle.Italic) ?? bold;
         cancellationToken.ThrowIfCancellationRequested();
-        return pdf.Options.TryRegisterNamedFontFamily(new PdfCore.PdfEmbeddedFontFamily(
+        var embedded = new PdfCore.PdfEmbeddedFontFamily(
             family,
             regular.Data,
             bold.Data,
             italic.Data,
-            boldItalic.Data));
+            boldItalic.Data);
+        if (!string.Equals(family, regular.FamilyName, StringComparison.OrdinalIgnoreCase))
+            embedded = embedded.WithProgramFontNames();
+        return pdf.Options.TryRegisterNamedFontFamily(embedded);
     }
 
     private static OfficeFontFace? FindFace(IReadOnlyList<OfficeFontFace> faces, OfficeFontStyle style) {

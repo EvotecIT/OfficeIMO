@@ -319,7 +319,7 @@ public sealed partial class PdfCreateOptions {
             faceName = "Regular";
         }
 
-        fontName = BuildFontFamilyFaceName(family.FamilyName, faceName);
+        fontName = family.UsesProgramFontNames ? null : BuildFontFamilyFaceName(family.FamilyName, faceName);
         return true;
     }
 

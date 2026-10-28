@@ -52,6 +52,24 @@ public sealed partial class PdfEmbeddedFontFamily {
     /// <summary>Family name used for generated PDF font resource names.</summary>
     public string FamilyName { get; }
 
+    // Converter resource identities can include a style or content fingerprint. Those
+    // remain lookup keys; the embedded program supplies the reader-visible font name.
+    internal bool UsesProgramFontNames { get; }
+
+    internal PdfEmbeddedFontFamily WithProgramFontNames() =>
+        UsesProgramFontNames ? this : new PdfEmbeddedFontFamily(this);
+
+    private PdfEmbeddedFontFamily(PdfEmbeddedFontFamily source) {
+        FamilyName = source.FamilyName;
+        _regular = source._regular;
+        _bold = source._bold;
+        _italic = source._italic;
+        _boldItalic = source._boldItalic;
+        _regularHasPhysicalSlant = source._regularHasPhysicalSlant;
+        _regularHasPhysicalWeight = source._regularHasPhysicalWeight;
+        UsesProgramFontNames = true;
+    }
+
     /// <summary>Regular TrueType face bytes.</summary>
     public byte[] Regular => (byte[])_regular.Clone();
 
@@ -74,8 +92,10 @@ public sealed partial class PdfEmbeddedFontFamily {
 
     internal PdfEmbeddedFontFamily Clone() => this;
 
-    internal PdfEmbeddedFontFamily CreateCoverageStableFallbackSnapshot(string? familyName = null) =>
-        new PdfEmbeddedFontFamily(familyName ?? FamilyName, _regular, _regularHasPhysicalSlant, _regularHasPhysicalWeight);
+    internal PdfEmbeddedFontFamily CreateCoverageStableFallbackSnapshot(string? familyName = null) {
+        var snapshot = new PdfEmbeddedFontFamily(familyName ?? FamilyName, _regular, _regularHasPhysicalSlant, _regularHasPhysicalWeight);
+        return UsesProgramFontNames ? snapshot.WithProgramFontNames() : snapshot;
+    }
 
     private PdfEmbeddedFontFamily(string familyName, byte[] regular, bool hasPhysicalSlant, bool hasPhysicalWeight = false) {
         FamilyName = familyName;
