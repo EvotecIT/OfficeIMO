@@ -417,6 +417,9 @@ namespace OfficeIMO.Excel {
             bool preserveMaterializedDirectModel = _preserveMaterializedDirectDataSetFastSaveModelForNextDirtyMark
                 || _materializedDirectDataSetFastSaveModelPreservationDepth > 0;
             if (!preserveMaterializedDirectModel && !_materializingDeferredDataSetImport) {
+                // A chart can retain rows in the direct-save model while adding its drawing.
+                // Persist those rows into the worksheet before a later mutation invalidates that model.
+                MaterializeDirectDataSetFastSaveModelIfNeeded();
                 _materializedDirectDataSetFastSaveModel = null;
                 _materializedDirectDataSetFastSaveModelHasMaterializedWorksheet = false;
             }

@@ -6132,6 +6132,21 @@
         "OfficeIMO.Excel.Html/HtmlExcelConverterExtensions.ImageGeometry.cs",
         "OfficeIMO.Shared.Tests/PublicApiNamingContracts.cs"
       ]
+    },
+    {
+      "change": "Preserve deferred table rows when chart edits invalidate the direct-save model",
+      "reason": "Shared and typed chart creation, later chart edits, custom-property edits, worksheet rename, copy and removal preserve deferred rows before invalidating or changing their worksheet identity. Saved files retain cells, table definitions, charts and property edits; removing a worksheet does not restore it from retained row data. The unsupported-bubble regression checks rejection and unchanged workbook contents rather than exception prose.",
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "files": [
+        "OfficeIMO.Excel/ExcelDocument.cs",
+        "OfficeIMO.Excel.Tests/Excel.TypedTableChartPreservation.cs",
+        "OfficeIMO.Excel/ExcelDocument.CustomDocumentProperties.cs",
+        "OfficeIMO.Excel/ExcelDocument.Worksheets.cs",
+        "OfficeIMO.Excel/ExcelDocument.WorksheetOperations.cs",
+        "OfficeIMO.Excel/ExcelDocument.Toc.cs",
+        "OfficeIMO.Excel.Tests/Excel.SharedChartAuthoring.cs"
+      ]
     }
   ],
   "applicationStatus": "Phase A applied and validated on the supported macOS targets. Phase B and Tier 2 entries retain their status; Windows .NET Framework validation remains pending.",

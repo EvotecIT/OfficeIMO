@@ -186,6 +186,7 @@ namespace OfficeIMO.Excel {
                     throw new InvalidDataException($"Worksheet '{sheetName}' has no valid package relationship.");
                 }
                 ValidateOwnedChartDataSheetRemoval(sheet.Name?.Value ?? sheetName);
+                DisqualifyDirectDataSetFastSaveState();
                 IReadOnlyList<uint> queryConnectionIds = GetWorksheetQueryConnectionIds(part);
 
                 // The cleanup may touch shared caches, other worksheets, and drawings. Keep it

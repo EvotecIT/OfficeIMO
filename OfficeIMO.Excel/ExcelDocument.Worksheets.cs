@@ -102,6 +102,7 @@ namespace OfficeIMO.Excel {
                     throw new ArgumentException("Worksheet not found in workbook.", nameof(sheet));
                 }
 
+                DisqualifyDirectDataSetFastSaveState();
                 target.Name = validatedName;
                 UpdateSheetNameReferences(currentName, validatedName);
                 WorkbookRoot.Save();

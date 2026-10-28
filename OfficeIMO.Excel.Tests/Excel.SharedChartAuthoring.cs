@@ -142,12 +142,10 @@ namespace OfficeIMO.Tests {
                     new[] { 1D, 2D }, new[] { 10D, 20D }, new[] { 4D, 9D })
             });
 
-            NotSupportedException exception = Assert.Throws<NotSupportedException>(() =>
+            Assert.Throws<NotSupportedException>(() =>
                 sheet.AddChart(OfficeChartType.Bubble, data, row: 1, column: 5));
-
-            Assert.Contains("native Excel bubble-chart API", exception.Message,
-                StringComparison.Ordinal);
             Assert.Empty(sheet.Charts);
+            Assert.Single(document.Sheets);
         }
 
         [Fact]
