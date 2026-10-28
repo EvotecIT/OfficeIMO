@@ -244,8 +244,8 @@ public sealed partial class IWorkBoundaryTests {
             PowerPointTable table = Assert.Single(Assert.Single(reopened.Slides).Tables);
             // Existing PPTX policy scales recovered dimensions to the native drawable extent.
             double expectedHeight = unknownIndex ? 60.25d / 3d : 30d * 60.25d / 50d;
-            Assert.InRange(Math.Abs(table.GetRowHeightPoints(2) - expectedHeight), 0d, 1d / 12700d);
-            Assert.Equal(40.5d, table.GetColumnWidthPoints(0), 5);
+            Assert.InRange(Math.Abs((table.GetRowHeight(2)).ToPoints() - expectedHeight), 0d, 1d / 12700d);
+            Assert.Equal(40.5d, (table.GetColumnWidth(0)).ToPoints(), 5);
         }
     }
 }

@@ -84,12 +84,12 @@ public static partial class HtmlPowerPointConverterExtensions {
             int localRow = 0;
             if (includeHeader) {
                 CopyGenericTableRow(table, grid, source, 0, localRow++, options, result);
-                table.SetRowHeightPoints(0, rowHeights[0]);
+                table.SetRowHeight(0,global::OfficeIMO.OfficeLength.Points(rowHeights[0]));
             }
             for (int sourceRow = nextRow; sourceRow < endRow; sourceRow++, localRow++) {
                 CopyGenericTableRow(table, grid, source, sourceRow, localRow, options, result);
                 double padding = localRow == rows - 1 ? height - usedHeight : 0D;
-                table.SetRowHeightPoints(localRow, rowHeights[sourceRow] + padding);
+                table.SetRowHeight(localRow,global::OfficeIMO.OfficeLength.Points(rowHeights[sourceRow] + padding));
             }
             ApplyShapeTransforms(block.SourceElement, table, budget, result);
             result.Tables++;

@@ -20,8 +20,8 @@ namespace OfficeIMO.Tests {
                 using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
                     PowerPointSlide slide = presentation.AddSlide();
                     PowerPointTable table = slide.AddTable(2, 2, 914400L, 1828800L, 5000000L, 2000000L);
-                    table.SetColumnWidthPoints(0, columnWidthPoints);
-                    table.SetRowHeightPoints(0, rowHeightPoints);
+                    table.SetColumnWidth(0,global::OfficeIMO.OfficeLength.Points(columnWidthPoints));
+                    table.SetRowHeight(0,global::OfficeIMO.OfficeLength.Points(rowHeightPoints));
 
                     PowerPointTableCell header = table.GetCell(0, 0);
                     header.Text = "Header";

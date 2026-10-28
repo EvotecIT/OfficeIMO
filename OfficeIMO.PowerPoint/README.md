@@ -328,7 +328,7 @@ var rows = new[] {
 };
 
 var columns = new[] {
-    PowerPointTableColumn<SalesRow>.Create("Product", row => row.Product).WithWidthCm(4.0),
+    PowerPointTableColumn<SalesRow>.Create("Product", row => row.Product).WithWidth(OfficeIMO.OfficeLength.Centimeters(4.0)),
     PowerPointTableColumn<SalesRow>.Create("Q1", row => row.Q1),
     PowerPointTableColumn<SalesRow>.Create("Q2", row => row.Q2)
 };
@@ -341,6 +341,8 @@ slide.AddTable(rows, columns,
 
 record SalesRow(string Product, int Q1, int Q2);
 ```
+
+Table rows and columns use `OfficeLength`: `table.SetColumnWidths(...)` and `table.SetRowHeights(...)` set a batch, while `table.ColumnItems[index].Width` and `table.RowItems[index].Height` edit attached handles. `GetColumnWidth` and `GetRowHeight` return lengths; convert them with `ToPoints()` or `ToCentimeters()` when a numeric value is needed.
 
 Use `slide.BackgroundColor` for a solid slide background or `slide.SetBackgroundNoFill()` for an explicit no-fill override that suppresses inherited layout or master fills. No-fill survives save/reopen and is returned as `PowerPointSlideBackgroundKind.None` by `GetBackground()`.
 
@@ -512,7 +514,7 @@ var dashboard = presentation.AddSlide();
 dashboard.AddTitle("Segment dashboard");
 
 dashboard.AddTableCm(segments, new[] {
-        PowerPointTableColumn<SegmentRow>.Create("Segment", row => row.Segment).WithWidthCm(4.0),
+        PowerPointTableColumn<SegmentRow>.Create("Segment", row => row.Segment).WithWidth(OfficeIMO.OfficeLength.Centimeters(4.0)),
         PowerPointTableColumn<SegmentRow>.Create("Q1", row => row.Q1),
         PowerPointTableColumn<SegmentRow>.Create("Q2", row => row.Q2),
         PowerPointTableColumn<SegmentRow>.Create("Q3", row => row.Q3),

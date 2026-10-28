@@ -19,9 +19,9 @@ namespace OfficeIMO.Tests {
 
                 table.SetRowHeightsEvenly();
 
-                Assert.Equal(3000, table.GetRowHeight(0));
-                Assert.Equal(3000, table.GetRowHeight(1));
-                Assert.Equal(3000, table.GetRowHeight(2));
+                Assert.Equal(3000, (table.GetRowHeight(0)).ToEmus());
+                Assert.Equal(3000, (table.GetRowHeight(1)).ToEmus());
+                Assert.Equal(3000, (table.GetRowHeight(2)).ToEmus());
             } finally {
                 if (File.Exists(filePath)) {
                     File.Delete(filePath);
@@ -37,9 +37,9 @@ namespace OfficeIMO.Tests {
                 PowerPointSlide slide = presentation.AddSlide();
                 PowerPointTable table = slide.AddTable(rows: 3, columns: 2, left: 0, top: 0, width: 4000, height: 9000);
 
-                Assert.Equal(3000, table.GetRowHeight(0));
-                Assert.Equal(3000, table.GetRowHeight(1));
-                Assert.Equal(3000, table.GetRowHeight(2));
+                Assert.Equal(3000, (table.GetRowHeight(0)).ToEmus());
+                Assert.Equal(3000, (table.GetRowHeight(1)).ToEmus());
+                Assert.Equal(3000, (table.GetRowHeight(2)).ToEmus());
             } finally {
                 if (File.Exists(filePath)) {
                     File.Delete(filePath);
@@ -57,8 +57,8 @@ namespace OfficeIMO.Tests {
 
                 table.SetRowHeightsByRatio(1, 2);
 
-                Assert.Equal(3000, table.GetRowHeight(0));
-                Assert.Equal(6000, table.GetRowHeight(1));
+                Assert.Equal(3000, (table.GetRowHeight(0)).ToEmus());
+                Assert.Equal(6000, (table.GetRowHeight(1)).ToEmus());
             } finally {
                 if (File.Exists(filePath)) {
                     File.Delete(filePath);
@@ -74,11 +74,11 @@ namespace OfficeIMO.Tests {
                 PowerPointSlide slide = presentation.AddSlide();
                 PowerPointTable table = slide.AddTable(rows: 1, columns: 1, left: 0, top: 0, width: 4000, height: 2000);
 
-                table.SetColumnWidthPoints(0, 72);
-                table.SetRowHeightCm(0, 1.0);
+                table.SetColumnWidth(0,global::OfficeIMO.OfficeLength.Points(72));
+                table.SetRowHeight(0,global::OfficeIMO.OfficeLength.Centimeters(1.0));
 
-                Assert.Equal(72, table.GetColumnWidthPoints(0), 3);
-                Assert.Equal(1.0, table.GetRowHeightCm(0), 3);
+                Assert.Equal(72, (table.GetColumnWidth(0)).ToPoints(), 3);
+                Assert.Equal(1.0, (table.GetRowHeight(0)).ToCentimeters(), 3);
             } finally {
                 if (File.Exists(filePath)) {
                     File.Delete(filePath);

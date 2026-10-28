@@ -73,7 +73,7 @@ public sealed partial class IWorkBoundaryTests {
             using var result = source.ToPowerPointDocumentResult(); result.Report.RequireCompleteEditableReconstruction();
             // Border evidence does not depend on the host's minimum font line box.
             var authoredTable = result.Value.Slides[0].Tables.First();
-            for (int row = 0; row < authoredTable.Rows; row++) authoredTable.SetRowHeightPoints(row, 60D);
+            for (int row = 0; row < authoredTable.Rows; row++) authoredTable.SetRowHeight(row, OfficeIMO.OfficeLength.Points(60D));
             authoredTable.Height = OfficeLength.Points(authoredTable.Rows * 60D);
             result.Value.Save(saved); saved.Position = 0;
             using var reopened = PowerPointDocument.Load(saved); Assert.Empty(reopened.ValidateDocument());
@@ -84,8 +84,8 @@ public sealed partial class IWorkBoundaryTests {
             Assert.True(rendered.Succeeded);
             string svg = System.Text.Encoding.UTF8.GetString(rendered.Bytes!);
             var target = reopened.Slides[0].Tables.First();
-            double right = target.Left.ToPoints() + Enumerable.Range(0, columns).Sum(target.GetColumnWidthPoints);
-            double bottom = target.Top.ToPoints() + Enumerable.Range(0, rows).Sum(target.GetRowHeightPoints);
+            double right = target.Left.ToPoints() + Enumerable.Range(0, columns).Sum(index => target.GetColumnWidth(index).ToPoints());
+            double bottom = target.Top.ToPoints() + Enumerable.Range(0, rows).Sum(index => target.GetRowHeight(index).ToPoints());
             AssertRenderedBorder(svg, right, target.Top.ToPoints(), right, bottom, columns == 2 ? 2d : 1d);
             AssertRenderedBorder(svg, target.Left.ToPoints(), bottom, right, bottom, rows == 3 ? 2d : 1d);
             saved.Position = 0; using var zip = new ZipArchive(saved, ZipArchiveMode.Read, leaveOpen: true);

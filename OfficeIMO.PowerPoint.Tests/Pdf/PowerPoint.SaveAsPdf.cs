@@ -1348,8 +1348,8 @@ public partial class PowerPointSaveAsPdfTests {
         PowerPointTable table = presentation.AddSlide().AddTablePoints(2, 2, 30, 34, 150, 70);
         table.FirstRow = true;
         table.BandedRows = false;
-        table.SetColumnWidthsPoints(90, 60);
-        table.SetRowHeightsPoints(28, 42);
+        table.SetColumnWidths(global::OfficeIMO.OfficeLength.Points(90),global::OfficeIMO.OfficeLength.Points(60));
+        table.SetRowHeights(global::OfficeIMO.OfficeLength.Points(28),global::OfficeIMO.OfficeLength.Points(42));
 
         PowerPointTableCell header = table.GetCell(0, 0);
         header.Text = "Metric";
@@ -1453,8 +1453,8 @@ public partial class PowerPointSaveAsPdfTests {
         PowerPointTable table = presentation.AddSlide().AddTablePoints(2, 2, 30, 34, 150, 70);
         table.FirstRow = true;
         table.BandedRows = false;
-        table.SetColumnWidthsPoints(90, 60);
-        table.SetRowHeightsPoints(28, 42);
+        table.SetColumnWidths(global::OfficeIMO.OfficeLength.Points(90),global::OfficeIMO.OfficeLength.Points(60));
+        table.SetRowHeights(global::OfficeIMO.OfficeLength.Points(28),global::OfficeIMO.OfficeLength.Points(42));
         table.GetCell(0, 0).Text = "Metric";
         table.GetCell(0, 1).Text = "Score";
         table.GetCell(1, 0).Text = "Quality";
@@ -1673,7 +1673,7 @@ public partial class PowerPointSaveAsPdfTests {
         using PowerPointDocument presentation = PowerPointDocument.Create(stream);
         presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(260),OfficeIMO.OfficeLength.Points(180));
         PowerPointTable table = presentation.AddSlide().AddTablePoints(1, 1, 30, 28, 150, 96);
-        table.SetRowHeightsPoints(96);
+        table.SetRowHeights(global::OfficeIMO.OfficeLength.Points(96));
 
         PowerPointTableCell cell = table.GetCell(0, 0);
         cell.FontSize = 12;

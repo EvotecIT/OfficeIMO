@@ -100,8 +100,8 @@ public sealed partial class IWorkBoundaryTests {
         Assert.Equal(20d, table.Top.ToPoints(), 5);
         Assert.Equal(60d, table.Width.ToPoints(), 5);
         Assert.Equal(40d, table.Height.ToPoints(), 5);
-        Assert.Equal(30d, table.GetColumnWidthPoints(0), 5);
-        Assert.Equal(20d, table.GetRowHeightPoints(0), 5);
+        Assert.Equal(30d, (table.GetColumnWidth(0)).ToPoints(), 5);
+        Assert.Equal(20d, (table.GetRowHeight(0)).ToPoints(), 5);
     }
 
     [Fact]

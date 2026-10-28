@@ -3933,15 +3933,9 @@ OfficeIMO.PowerPoint.PowerPointTable.FirstRow.get -> bool
 OfficeIMO.PowerPoint.PowerPointTable.FirstRow.set -> void
 OfficeIMO.PowerPoint.PowerPointTable.GetCell(int row, int column) -> OfficeIMO.PowerPoint.PowerPointTableCell!
 OfficeIMO.PowerPoint.PowerPointTable.GetColumn(int columnIndex) -> OfficeIMO.PowerPoint.PowerPointTableColumn!
-OfficeIMO.PowerPoint.PowerPointTable.GetColumnWidth(int columnIndex) -> long
-OfficeIMO.PowerPoint.PowerPointTable.GetColumnWidthCm(int columnIndex) -> double
-OfficeIMO.PowerPoint.PowerPointTable.GetColumnWidthInches(int columnIndex) -> double
-OfficeIMO.PowerPoint.PowerPointTable.GetColumnWidthPoints(int columnIndex) -> double
+OfficeIMO.PowerPoint.PowerPointTable.GetColumnWidth(int columnIndex) -> OfficeIMO.OfficeLength
 OfficeIMO.PowerPoint.PowerPointTable.GetRow(int rowIndex) -> OfficeIMO.PowerPoint.PowerPointTableRow!
-OfficeIMO.PowerPoint.PowerPointTable.GetRowHeight(int rowIndex) -> long
-OfficeIMO.PowerPoint.PowerPointTable.GetRowHeightCm(int rowIndex) -> double
-OfficeIMO.PowerPoint.PowerPointTable.GetRowHeightInches(int rowIndex) -> double
-OfficeIMO.PowerPoint.PowerPointTable.GetRowHeightPoints(int rowIndex) -> double
+OfficeIMO.PowerPoint.PowerPointTable.GetRowHeight(int rowIndex) -> OfficeIMO.OfficeLength
 OfficeIMO.PowerPoint.PowerPointTable.HeaderRow.get -> bool
 OfficeIMO.PowerPoint.PowerPointTable.HeaderRow.set -> void
 OfficeIMO.PowerPoint.PowerPointTable.LastColumn.get -> bool
@@ -3961,24 +3955,14 @@ OfficeIMO.PowerPoint.PowerPointTable.SetCellPaddingCm(double? leftCm, double? to
 OfficeIMO.PowerPoint.PowerPointTable.SetCellPaddingInches(double? leftInches, double? topInches, double? rightInches, double? bottomInches) -> void
 OfficeIMO.PowerPoint.PowerPointTable.SetCellPaddingPoints(double? left, double? top, double? right, double? bottom) -> void
 OfficeIMO.PowerPoint.PowerPointTable.SetCellPaddingPoints(double? left, double? top, double? right, double? bottom, int startRow, int endRow, int startColumn, int endColumn) -> void
-OfficeIMO.PowerPoint.PowerPointTable.SetColumnWidth(int columnIndex, long width) -> void
-OfficeIMO.PowerPoint.PowerPointTable.SetColumnWidthCm(int columnIndex, double widthCm) -> void
-OfficeIMO.PowerPoint.PowerPointTable.SetColumnWidthInches(int columnIndex, double widthInches) -> void
-OfficeIMO.PowerPoint.PowerPointTable.SetColumnWidthPoints(int columnIndex, double widthPoints) -> void
+OfficeIMO.PowerPoint.PowerPointTable.SetColumnWidth(int columnIndex, OfficeIMO.OfficeLength width) -> void
+OfficeIMO.PowerPoint.PowerPointTable.SetColumnWidths(params OfficeIMO.OfficeLength[]! widths) -> void
 OfficeIMO.PowerPoint.PowerPointTable.SetColumnWidthsByRatio(params double[]! ratios) -> void
-OfficeIMO.PowerPoint.PowerPointTable.SetColumnWidthsCm(params double[]! widthsCm) -> void
 OfficeIMO.PowerPoint.PowerPointTable.SetColumnWidthsEvenly() -> void
-OfficeIMO.PowerPoint.PowerPointTable.SetColumnWidthsInches(params double[]! widthsInches) -> void
-OfficeIMO.PowerPoint.PowerPointTable.SetColumnWidthsPoints(params double[]! widthsPoints) -> void
-OfficeIMO.PowerPoint.PowerPointTable.SetRowHeight(int rowIndex, long height) -> void
-OfficeIMO.PowerPoint.PowerPointTable.SetRowHeightCm(int rowIndex, double heightCm) -> void
-OfficeIMO.PowerPoint.PowerPointTable.SetRowHeightInches(int rowIndex, double heightInches) -> void
-OfficeIMO.PowerPoint.PowerPointTable.SetRowHeightPoints(int rowIndex, double heightPoints) -> void
+OfficeIMO.PowerPoint.PowerPointTable.SetRowHeight(int rowIndex, OfficeIMO.OfficeLength height) -> void
+OfficeIMO.PowerPoint.PowerPointTable.SetRowHeights(params OfficeIMO.OfficeLength[]! heights) -> void
 OfficeIMO.PowerPoint.PowerPointTable.SetRowHeightsByRatio(params double[]! ratios) -> void
-OfficeIMO.PowerPoint.PowerPointTable.SetRowHeightsCm(params double[]! heightsCm) -> void
 OfficeIMO.PowerPoint.PowerPointTable.SetRowHeightsEvenly() -> void
-OfficeIMO.PowerPoint.PowerPointTable.SetRowHeightsInches(params double[]! heightsInches) -> void
-OfficeIMO.PowerPoint.PowerPointTable.SetRowHeightsPoints(params double[]! heightsPoints) -> void
 OfficeIMO.PowerPoint.PowerPointTable.StyleId.get -> string?
 OfficeIMO.PowerPoint.PowerPointTable.StyleId.set -> void
 OfficeIMO.PowerPoint.PowerPointTable.TryApplyStyleByName(string! styleName, bool ignoreCase = true, bool? firstRow = null, bool? lastRow = null, bool? firstColumn = null, bool? lastColumn = null, bool? bandedRows = null, bool? bandedColumns = null) -> bool
@@ -4073,23 +4057,14 @@ OfficeIMO.PowerPoint.PowerPointTableColumn.Cells.get -> System.Collections.Gener
 OfficeIMO.PowerPoint.PowerPointTableColumn.GetCell(int rowIndex) -> OfficeIMO.PowerPoint.PowerPointTableCell!
 OfficeIMO.PowerPoint.PowerPointTableColumn.Index.get -> int
 OfficeIMO.PowerPoint.PowerPointTableColumn.Remove() -> void
-OfficeIMO.PowerPoint.PowerPointTableColumn.WidthCm.get -> double?
-OfficeIMO.PowerPoint.PowerPointTableColumn.WidthCm.set -> void
-OfficeIMO.PowerPoint.PowerPointTableColumn.WidthEmus.get -> long?
-OfficeIMO.PowerPoint.PowerPointTableColumn.WidthEmus.set -> void
-OfficeIMO.PowerPoint.PowerPointTableColumn.WidthInches.get -> double?
-OfficeIMO.PowerPoint.PowerPointTableColumn.WidthInches.set -> void
-OfficeIMO.PowerPoint.PowerPointTableColumn.WidthPoints.get -> double?
-OfficeIMO.PowerPoint.PowerPointTableColumn.WidthPoints.set -> void
+OfficeIMO.PowerPoint.PowerPointTableColumn.Width.get -> OfficeIMO.OfficeLength?
+OfficeIMO.PowerPoint.PowerPointTableColumn.Width.set -> void
 OfficeIMO.PowerPoint.PowerPointTableColumn<T>
 OfficeIMO.PowerPoint.PowerPointTableColumn<T>.Header.get -> string!
 OfficeIMO.PowerPoint.PowerPointTableColumn<T>.PowerPointTableColumn(string! header, System.Func<T, object?>! valueSelector) -> void
 OfficeIMO.PowerPoint.PowerPointTableColumn<T>.ValueSelector.get -> System.Func<T, object?>!
-OfficeIMO.PowerPoint.PowerPointTableColumn<T>.WidthEmus.get -> long?
-OfficeIMO.PowerPoint.PowerPointTableColumn<T>.WithWidth(long widthEmus) -> OfficeIMO.PowerPoint.PowerPointTableColumn<T>!
-OfficeIMO.PowerPoint.PowerPointTableColumn<T>.WithWidthCm(double widthCm) -> OfficeIMO.PowerPoint.PowerPointTableColumn<T>!
-OfficeIMO.PowerPoint.PowerPointTableColumn<T>.WithWidthInches(double widthInches) -> OfficeIMO.PowerPoint.PowerPointTableColumn<T>!
-OfficeIMO.PowerPoint.PowerPointTableColumn<T>.WithWidthPoints(double widthPoints) -> OfficeIMO.PowerPoint.PowerPointTableColumn<T>!
+OfficeIMO.PowerPoint.PowerPointTableColumn<T>.Width.get -> OfficeIMO.OfficeLength?
+OfficeIMO.PowerPoint.PowerPointTableColumn<T>.WithWidth(OfficeIMO.OfficeLength width) -> OfficeIMO.PowerPoint.PowerPointTableColumn<T>!
 OfficeIMO.PowerPoint.PowerPointTableData
 OfficeIMO.PowerPoint.PowerPointTableData.Caption.get -> string?
 OfficeIMO.PowerPoint.PowerPointTableData.Caption.set -> void
@@ -4130,14 +4105,8 @@ OfficeIMO.PowerPoint.PowerPointTablePaginationOptions.TableBounds.set -> void
 OfficeIMO.PowerPoint.PowerPointTableRow
 OfficeIMO.PowerPoint.PowerPointTableRow.Cells.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.PowerPoint.PowerPointTableCell!>!
 OfficeIMO.PowerPoint.PowerPointTableRow.GetCell(int columnIndex) -> OfficeIMO.PowerPoint.PowerPointTableCell!
-OfficeIMO.PowerPoint.PowerPointTableRow.HeightCm.get -> double?
-OfficeIMO.PowerPoint.PowerPointTableRow.HeightCm.set -> void
-OfficeIMO.PowerPoint.PowerPointTableRow.HeightEmus.get -> long?
-OfficeIMO.PowerPoint.PowerPointTableRow.HeightEmus.set -> void
-OfficeIMO.PowerPoint.PowerPointTableRow.HeightInches.get -> double?
-OfficeIMO.PowerPoint.PowerPointTableRow.HeightInches.set -> void
-OfficeIMO.PowerPoint.PowerPointTableRow.HeightPoints.get -> double?
-OfficeIMO.PowerPoint.PowerPointTableRow.HeightPoints.set -> void
+OfficeIMO.PowerPoint.PowerPointTableRow.Height.get -> OfficeIMO.OfficeLength?
+OfficeIMO.PowerPoint.PowerPointTableRow.Height.set -> void
 OfficeIMO.PowerPoint.PowerPointTableRow.Index.get -> int
 OfficeIMO.PowerPoint.PowerPointTableRow.Remove() -> void
 OfficeIMO.PowerPoint.PowerPointTableStyleInfo

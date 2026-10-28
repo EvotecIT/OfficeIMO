@@ -309,7 +309,7 @@ namespace OfficeIMO.Examples.PowerPoint {
                 widthCm: 11.4,
                 heightCm: 4.5);
             table.ApplyStyle(PowerPointTableStylePreset.Default);
-            table.SetColumnWidthsPoints(105, 75, 125);
+            table.SetColumnWidths(global::OfficeIMO.OfficeLength.Points(105),global::OfficeIMO.OfficeLength.Points(75),global::OfficeIMO.OfficeLength.Points(125));
             StyleTable(table);
 
             slide.Notes.Text = "Performance slide: keep the conversation on the widening gap between revenue growth and profitability.";

@@ -183,7 +183,7 @@ namespace OfficeIMO.PowerPoint {
         private static void ApplyRowHeights(PowerPointTable table, double rowHeightPoints) {
             IReadOnlyList<PowerPointTableRow> rows = table.RowItems;
             for (int rowIndex = 0; rowIndex < rows.Count; rowIndex++) {
-                rows[rowIndex].HeightPoints = rowHeightPoints;
+                rows[rowIndex].Height= global::OfficeIMO.OfficeLength.Points(rowHeightPoints);
             }
         }
 

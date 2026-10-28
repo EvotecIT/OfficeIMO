@@ -31,8 +31,8 @@ public partial class PowerPointImageExportTests {
         title.Paragraphs[0].AddRun(" bold", run => { run.Bold = true; run.FontSize = 18; });
 
         PowerPointTable table = slide.AddTablePoints(2, 2, 18, 64, 220, 64);
-        table.SetColumnWidthsPoints(110, 110);
-        table.SetRowHeightsPoints(32, 32);
+        table.SetColumnWidths(global::OfficeIMO.OfficeLength.Points(110),global::OfficeIMO.OfficeLength.Points(110));
+        table.SetRowHeights(global::OfficeIMO.OfficeLength.Points(32),global::OfficeIMO.OfficeLength.Points(32));
         table.GetCell(0, 0).Text = "Region";
         table.GetCell(0, 1).Text = "Revenue";
         table.GetCell(1, 0).Text = "North";

@@ -499,7 +499,7 @@ namespace OfficeIMO.PowerPoint {
 
         private static void ApplyColumnWidths<T>(PowerPointTable table, long tableWidthEmus,
             IReadOnlyList<PowerPointTableColumn<T>> columns) {
-            bool hasExplicitWidths = columns.Any(c => c.WidthEmus.HasValue);
+            bool hasExplicitWidths = columns.Any(c => c.Width.HasValue);
             if (!hasExplicitWidths) {
                 table.SetColumnWidthsEvenly();
                 return;
@@ -511,31 +511,31 @@ namespace OfficeIMO.PowerPoint {
                 return;
             }
 
-            long used = columns.Sum(c => c.WidthEmus ?? 0L);
+            long used = columns.Sum(c => c.Width?.ToEmus() ?? 0L);
             if (used > totalWidth) {
                 throw new ArgumentException(
                     $"Explicit column widths ({used}) exceed table width ({totalWidth}).",
                     nameof(columns));
             }
-            int remainingCount = columns.Count(c => !c.WidthEmus.HasValue);
+            int remainingCount = columns.Count(c => !c.Width.HasValue);
             long remaining = Math.Max(0L, totalWidth - used);
             long fallbackWidth = remainingCount > 0 ? remaining / remainingCount : 0L;
 
             for (int i = 0; i < columns.Count; i++) {
-                long width = columns[i].WidthEmus ?? fallbackWidth;
-                table.SetColumnWidth(i, width);
+                long width = columns[i].Width?.ToEmus() ?? fallbackWidth;
+                table.SetColumnWidth(i,global::OfficeIMO.OfficeLength.Emus(width));
             }
 
-            long assigned = columns.Sum(c => c.WidthEmus ?? fallbackWidth);
+            long assigned = columns.Sum(c => c.Width?.ToEmus() ?? fallbackWidth);
             long delta = totalWidth - assigned;
             if (delta != 0 && columns.Count > 0) {
                 int adjustIndex = columns.Count - 1;
-                long current = table.GetColumnWidth(adjustIndex);
+                long current = (table.GetColumnWidth(adjustIndex)).ToEmus();
                 long updated = current + delta;
                 if (updated <= 0) {
                     throw new InvalidOperationException("Computed table column width is not positive.");
                 }
-                table.SetColumnWidth(adjustIndex, updated);
+                table.SetColumnWidth(adjustIndex,global::OfficeIMO.OfficeLength.Emus(updated));
             }
         }
 

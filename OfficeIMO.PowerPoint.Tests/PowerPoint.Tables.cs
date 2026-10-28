@@ -425,7 +425,7 @@ namespace OfficeIMO.Tests {
             };
 
             var columns = new[] {
-                PowerPointTableColumn<SalesRow>.Create("Product", row => row.Product).WithWidthCm(4.0),
+                PowerPointTableColumn<SalesRow>.Create("Product", row => row.Product).WithWidth(global::OfficeIMO.OfficeLength.Centimeters(4.0)),
                 PowerPointTableColumn<SalesRow>.Create("Q1", row => row.Q1),
                 PowerPointTableColumn<SalesRow>.Create("Q2", row => row.Q2)
             };
@@ -442,7 +442,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("Product", table.GetCell(0, 0).Text);
                 Assert.Equal("Alpha", table.GetCell(1, 0).Text);
                 Assert.Equal("15", table.GetCell(1, 2).Text);
-                Assert.True(table.GetColumnWidth(0) > 0);
+                Assert.True((table.GetColumnWidth(0)).ToEmus() > 0);
             }
 
             File.Delete(filePath);
@@ -470,7 +470,7 @@ namespace OfficeIMO.Tests {
                 PowerPointTable table = presentation.Slides[0].Tables.First();
                 long sum = 0;
                 for (int i = 0; i < table.Columns; i++) {
-                    long width = table.GetColumnWidth(i);
+                    long width = (table.GetColumnWidth(i)).ToEmus();
                     Assert.True(width > 0);
                     sum += width;
                 }
@@ -487,8 +487,8 @@ namespace OfficeIMO.Tests {
             };
 
             var columns = new[] {
-                PowerPointTableColumn<SalesRow>.Create("Product", row => row.Product).WithWidth(1500000L),
-                PowerPointTableColumn<SalesRow>.Create("Q1", row => row.Q1).WithWidth(1500000L)
+                PowerPointTableColumn<SalesRow>.Create("Product", row => row.Product).WithWidth(global::OfficeIMO.OfficeLength.Emus(1500000L)),
+                PowerPointTableColumn<SalesRow>.Create("Q1", row => row.Q1).WithWidth(global::OfficeIMO.OfficeLength.Emus(1500000L))
             };
 
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
@@ -515,8 +515,8 @@ namespace OfficeIMO.Tests {
 
             using (PowerPointDocument presentation = PowerPointDocument.Load(filePath)) {
                 PowerPointTable table = presentation.Slides[0].Tables.First();
-                Assert.Equal(4000000L, table.GetColumnWidth(0));
-                Assert.Equal(2000000L, table.GetColumnWidth(1));
+                Assert.Equal(4000000L, (table.GetColumnWidth(0)).ToEmus());
+                Assert.Equal(2000000L, (table.GetColumnWidth(1)).ToEmus());
             }
 
             File.Delete(filePath);

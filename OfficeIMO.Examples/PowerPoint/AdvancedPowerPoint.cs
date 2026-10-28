@@ -102,8 +102,8 @@ namespace OfficeIMO.Examples.PowerPoint {
                 widthCm: bodyBox.Width.ToCentimeters(),
                 heightCm: bodyBox.Height.ToCentimeters());
             kpiTable.ApplyStyle(PowerPointTableStylePreset.Default);
-            kpiTable.SetColumnWidthsPoints(220, 120, 120);
-            kpiTable.SetRowHeightPoints(0, 28);
+            kpiTable.SetColumnWidths(global::OfficeIMO.OfficeLength.Points(220),global::OfficeIMO.OfficeLength.Points(120),global::OfficeIMO.OfficeLength.Points(120));
+            kpiTable.SetRowHeight(0,global::OfficeIMO.OfficeLength.Points(28));
             for (int c = 0; c < kpiTable.Columns; c++) {
                 PowerPointTableCell header = kpiTable.GetCell(0, c);
                 header.Bold = true;

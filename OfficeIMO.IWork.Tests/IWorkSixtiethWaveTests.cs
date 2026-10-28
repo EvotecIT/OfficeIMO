@@ -70,7 +70,7 @@ public sealed partial class IWorkBoundaryTests {
             diagnostic => diagnostic.Code == "IWORK_KEYNOTE_PPTX_PRECISION");
         PowerPointTable table = Assert.Single(result.Value.Slides[0].Tables);
         Assert.True(table.Height.ToEmus() > 0);
-        Assert.True(table.GetRowHeight(0) > 0);
+        Assert.True((table.GetRowHeight(0)).ToEmus() > 0);
     }
 
     [Fact]

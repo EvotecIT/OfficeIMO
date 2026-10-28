@@ -34,10 +34,10 @@ public static partial class ProjectReportWorkflow {
             subtitle.FontName = "Arial"; subtitle.FontSize = 13; subtitle.Color = "64748B";
             var table = slide.AddTable(count + 1, part.Headers.Length);
             table.Left= OfficeIMO.OfficeLength.Points(view.PageMargin); table.Top= OfficeIMO.OfficeLength.Points(view.PageMargin + 72); table.Width= OfficeIMO.OfficeLength.Points(width); table.Height= OfficeIMO.OfficeLength.Points(height);
-            table.SetColumnWidthsPoints(widths); table.HeaderRow = true;
+            table.SetColumnWidths((widths).Select(tableLength => global::OfficeIMO.OfficeLength.Points(tableLength)).ToArray()); table.HeaderRow = true;
             var rows = table.RowItems;
             for (int r = 0; r <= count; r++) {
-                rows[r].HeightPoints = r == 0 ? headerHeight : heights[start + r - 1];
+                rows[r].Height= global::OfficeIMO.OfficeLength.Points(r == 0 ? headerHeight : heights[start + r - 1]);
                 for (int c = 0; c < part.Headers.Length; c++) {
                     var cell = rows[r].Cells[c]; cell.Text = r == 0 ? part.Headers[c] : part.Rows[start + r - 1][c];
                     cell.FontSize = 12; cell.FontName = "Arial"; cell.Bold = r == 0; cell.TextAutoFit = PowerPointTextAutoFit.None;

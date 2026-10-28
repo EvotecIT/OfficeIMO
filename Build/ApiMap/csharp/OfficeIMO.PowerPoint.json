@@ -3896,8 +3896,8 @@
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Table sizing takes and returns OfficeLength. Unit-specific twins are removed; ratio/even sizing retains its native EMU rounding. Batch sizes remain capped by the existing row or column count."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointTable.GetColumnWidthInches(int columnIndex)",
@@ -3913,8 +3913,8 @@
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Table sizing takes and returns OfficeLength. Unit-specific twins are removed; ratio/even sizing retains its native EMU rounding. Batch sizes remain capped by the existing row or column count."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointTable.GetColumnWidthPoints(int columnIndex)",
@@ -3930,8 +3930,8 @@
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Table sizing takes and returns OfficeLength. Unit-specific twins are removed; ratio/even sizing retains its native EMU rounding. Batch sizes remain capped by the existing row or column count."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointTable.GetRowHeightCm(int rowIndex)",
@@ -3947,8 +3947,8 @@
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Table sizing takes and returns OfficeLength. Unit-specific twins are removed; ratio/even sizing retains its native EMU rounding. Batch sizes remain capped by the existing row or column count."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointTable.GetRowHeightInches(int rowIndex)",
@@ -3964,8 +3964,8 @@
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Table sizing takes and returns OfficeLength. Unit-specific twins are removed; ratio/even sizing retains its native EMU rounding. Batch sizes remain capped by the existing row or column count."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointTable.GetRowHeightPoints(int rowIndex)",
@@ -3981,8 +3981,8 @@
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Table sizing takes and returns OfficeLength. Unit-specific twins are removed; ratio/even sizing retains its native EMU rounding. Batch sizes remain capped by the existing row or column count."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointTable.SetCellPaddingCm(double? leftCm, double? topCm, double? rightCm, double? bottomCm)",
@@ -4066,8 +4066,8 @@
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Table sizing takes and returns OfficeLength. Unit-specific twins are removed; ratio/even sizing retains its native EMU rounding. Batch sizes remain capped by the existing row or column count."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointTable.SetColumnWidthInches(int columnIndex, double widthInches)",
@@ -4083,8 +4083,8 @@
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Table sizing takes and returns OfficeLength. Unit-specific twins are removed; ratio/even sizing retains its native EMU rounding. Batch sizes remain capped by the existing row or column count."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointTable.SetColumnWidthPoints(int columnIndex, double widthPoints)",
@@ -4100,8 +4100,8 @@
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Table sizing takes and returns OfficeLength. Unit-specific twins are removed; ratio/even sizing retains its native EMU rounding. Batch sizes remain capped by the existing row or column count."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointTable.SetColumnWidthsCm(double[] widthsCm)",
@@ -4117,8 +4117,8 @@
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Table sizing takes and returns OfficeLength. Unit-specific twins are removed; ratio/even sizing retains its native EMU rounding. Batch sizes remain capped by the existing row or column count."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointTable.SetColumnWidthsInches(double[] widthsInches)",
@@ -4134,8 +4134,8 @@
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Table sizing takes and returns OfficeLength. Unit-specific twins are removed; ratio/even sizing retains its native EMU rounding. Batch sizes remain capped by the existing row or column count."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointTable.SetColumnWidthsPoints(double[] widthsPoints)",
@@ -4151,8 +4151,8 @@
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Table sizing takes and returns OfficeLength. Unit-specific twins are removed; ratio/even sizing retains its native EMU rounding. Batch sizes remain capped by the existing row or column count."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointTable.SetRowHeightCm(int rowIndex, double heightCm)",
@@ -4168,8 +4168,8 @@
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Table sizing takes and returns OfficeLength. Unit-specific twins are removed; ratio/even sizing retains its native EMU rounding. Batch sizes remain capped by the existing row or column count."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointTable.SetRowHeightInches(int rowIndex, double heightInches)",
@@ -4185,8 +4185,8 @@
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Table sizing takes and returns OfficeLength. Unit-specific twins are removed; ratio/even sizing retains its native EMU rounding. Batch sizes remain capped by the existing row or column count."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointTable.SetRowHeightPoints(int rowIndex, double heightPoints)",
@@ -4202,8 +4202,8 @@
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Table sizing takes and returns OfficeLength. Unit-specific twins are removed; ratio/even sizing retains its native EMU rounding. Batch sizes remain capped by the existing row or column count."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointTable.SetRowHeightsCm(double[] heightsCm)",
@@ -4219,8 +4219,8 @@
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Table sizing takes and returns OfficeLength. Unit-specific twins are removed; ratio/even sizing retains its native EMU rounding. Batch sizes remain capped by the existing row or column count."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointTable.SetRowHeightsInches(double[] heightsInches)",
@@ -4236,8 +4236,8 @@
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Table sizing takes and returns OfficeLength. Unit-specific twins are removed; ratio/even sizing retains its native EMU rounding. Batch sizes remain capped by the existing row or column count."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointTable.SetRowHeightsPoints(double[] heightsPoints)",
@@ -4253,14 +4253,14 @@
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Table sizing takes and returns OfficeLength. Unit-specific twins are removed; ratio/even sizing retains its native EMU rounding. Batch sizes remain capped by the existing row or column count."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointTableColumn<T>.WithWidthCm(double widthCm)",
       "kind": "method",
       "action": "merge",
-      "new": "OfficeIMO.PowerPoint.PowerPointTableColumn<T>.WithWidth(... OfficeLength ...)",
+      "new": "OfficeIMO.PowerPoint.PowerPointTableColumn<T>.WithWidth(OfficeLength width)",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.PowerPoint/PowerPointTableColumn.cs",
       "category": "units",
@@ -4270,14 +4270,14 @@
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Table sizing takes and returns OfficeLength. Row and column handles expose nullable Width or Height, and typed column bindings expose Width and WithWidth(OfficeLength). Unit-specific twins are removed; ratio and evenly distributed sizing retain their native EMU rounding."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointTableColumn<T>.WithWidthInches(double widthInches)",
       "kind": "method",
       "action": "merge",
-      "new": "OfficeIMO.PowerPoint.PowerPointTableColumn<T>.WithWidth(... OfficeLength ...)",
+      "new": "OfficeIMO.PowerPoint.PowerPointTableColumn<T>.WithWidth(OfficeLength width)",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.PowerPoint/PowerPointTableColumn.cs",
       "category": "units",
@@ -4287,14 +4287,14 @@
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Table sizing takes and returns OfficeLength. Row and column handles expose nullable Width or Height, and typed column bindings expose Width and WithWidth(OfficeLength). Unit-specific twins are removed; ratio and evenly distributed sizing retain their native EMU rounding."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointTableColumn<T>.WithWidthPoints(double widthPoints)",
       "kind": "method",
       "action": "merge",
-      "new": "OfficeIMO.PowerPoint.PowerPointTableColumn<T>.WithWidth(... OfficeLength ...)",
+      "new": "OfficeIMO.PowerPoint.PowerPointTableColumn<T>.WithWidth(OfficeLength width)",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.PowerPoint/PowerPointTableColumn.cs",
       "category": "units",
@@ -4304,8 +4304,8 @@
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Table sizing takes and returns OfficeLength. Row and column handles expose nullable Width or Height, and typed column bindings expose Width and WithWidth(OfficeLength). Unit-specific twins are removed; ratio and evenly distributed sizing retain their native EMU rounding."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointTextBox.SetTextMarginsCm(double leftCm, double topCm, double rightCm, double bottomCm)",
@@ -4969,8 +4969,8 @@
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Table sizing takes and returns OfficeLength. Unit-specific twins are removed; ratio/even sizing retains its native EMU rounding. Batch sizes remain capped by the existing row or column count."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointTable.SetRowHeight(int rowIndex, long height)",
@@ -4986,8 +4986,8 @@
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Table sizing takes and returns OfficeLength. Unit-specific twins are removed; ratio/even sizing retains its native EMU rounding. Batch sizes remain capped by the existing row or column count."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointAutoShape.Stroke(string color, double? widthPoints = null)",
@@ -6933,7 +6933,7 @@
       "old": "OfficeIMO.PowerPoint.PowerPointTableColumn<T>.WithWidth(long widthEmus)",
       "kind": "method",
       "action": "change",
-      "new": "OfficeIMO.PowerPoint.PowerPointTableColumn<T>.WithWidth(... OfficeLength ...)",
+      "new": "OfficeIMO.PowerPoint.PowerPointTableColumn<T>.WithWidth(OfficeLength width)",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.PowerPoint/PowerPointTableColumn.cs",
       "category": "units",
@@ -6943,8 +6943,8 @@
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Table sizing takes and returns OfficeLength. Row and column handles expose nullable Width or Height, and typed column bindings expose Width and WithWidth(OfficeLength). Unit-specific twins are removed; ratio and evenly distributed sizing retain their native EMU rounding."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointTextBox.ApplyAutoSpacing(double lineSpacingMultiplier = 1.2, double? spaceBeforePoints = null, double? spaceAfterPoints = null)",
@@ -8446,7 +8446,7 @@
       "old": "OfficeIMO.PowerPoint.PowerPointTableColumn.WidthCm",
       "kind": "property",
       "action": "merge",
-      "new": "OfficeIMO.PowerPoint.PowerPointTableColumn.Width : OfficeLength",
+      "new": "OfficeIMO.PowerPoint.PowerPointTableColumn.Width : OfficeLength?",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.PowerPoint/PowerPointTableColumnModel.cs",
       "category": "units",
@@ -8455,14 +8455,14 @@
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Table sizing takes and returns OfficeLength. Row and column handles expose nullable Width or Height, and typed column bindings expose Width and WithWidth(OfficeLength). Unit-specific twins are removed; ratio and evenly distributed sizing retain their native EMU rounding."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointTableColumn.WidthEmus",
       "kind": "property",
       "action": "merge",
-      "new": "OfficeIMO.PowerPoint.PowerPointTableColumn.Width : OfficeLength",
+      "new": "OfficeIMO.PowerPoint.PowerPointTableColumn.Width : OfficeLength?",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.PowerPoint/PowerPointTableColumn.cs, OfficeIMO.PowerPoint/PowerPointTableColumnModel.cs",
       "category": "units",
@@ -8471,14 +8471,14 @@
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Table sizing takes and returns OfficeLength. Row and column handles expose nullable Width or Height, and typed column bindings expose Width and WithWidth(OfficeLength). Unit-specific twins are removed; ratio and evenly distributed sizing retain their native EMU rounding."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointTableColumn.WidthInches",
       "kind": "property",
       "action": "merge",
-      "new": "OfficeIMO.PowerPoint.PowerPointTableColumn.Width : OfficeLength",
+      "new": "OfficeIMO.PowerPoint.PowerPointTableColumn.Width : OfficeLength?",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.PowerPoint/PowerPointTableColumnModel.cs",
       "category": "units",
@@ -8487,14 +8487,14 @@
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Table sizing takes and returns OfficeLength. Row and column handles expose nullable Width or Height, and typed column bindings expose Width and WithWidth(OfficeLength). Unit-specific twins are removed; ratio and evenly distributed sizing retain their native EMU rounding."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointTableColumn.WidthPoints",
       "kind": "property",
       "action": "merge",
-      "new": "OfficeIMO.PowerPoint.PowerPointTableColumn.Width : OfficeLength",
+      "new": "OfficeIMO.PowerPoint.PowerPointTableColumn.Width : OfficeLength?",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.PowerPoint/PowerPointTableColumnModel.cs",
       "category": "units",
@@ -8503,14 +8503,14 @@
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Table sizing takes and returns OfficeLength. Row and column handles expose nullable Width or Height, and typed column bindings expose Width and WithWidth(OfficeLength). Unit-specific twins are removed; ratio and evenly distributed sizing retain their native EMU rounding."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointTableColumn<T>.WidthEmus",
       "kind": "property",
       "action": "merge",
-      "new": "OfficeIMO.PowerPoint.PowerPointTableColumn<T>.Width : OfficeLength",
+      "new": "OfficeIMO.PowerPoint.PowerPointTableColumn<T>.Width : OfficeLength?",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.PowerPoint/PowerPointTableColumn.cs, OfficeIMO.PowerPoint/PowerPointTableColumnModel.cs",
       "category": "units",
@@ -8519,8 +8519,8 @@
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Table sizing takes and returns OfficeLength. Row and column handles expose nullable Width or Height, and typed column bindings expose Width and WithWidth(OfficeLength). Unit-specific twins are removed; ratio and evenly distributed sizing retain their native EMU rounding."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointTablePaginationOptions.MinimumRowHeightPoints",
@@ -8542,7 +8542,7 @@
       "old": "OfficeIMO.PowerPoint.PowerPointTableRow.HeightCm",
       "kind": "property",
       "action": "merge",
-      "new": "OfficeIMO.PowerPoint.PowerPointTableRow.Height : OfficeLength",
+      "new": "OfficeIMO.PowerPoint.PowerPointTableRow.Height : OfficeLength?",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.PowerPoint/PowerPointTableRow.cs",
       "category": "units",
@@ -8551,14 +8551,14 @@
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Table sizing takes and returns OfficeLength. Row and column handles expose nullable Width or Height, and typed column bindings expose Width and WithWidth(OfficeLength). Unit-specific twins are removed; ratio and evenly distributed sizing retain their native EMU rounding."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointTableRow.HeightEmus",
       "kind": "property",
       "action": "merge",
-      "new": "OfficeIMO.PowerPoint.PowerPointTableRow.Height : OfficeLength",
+      "new": "OfficeIMO.PowerPoint.PowerPointTableRow.Height : OfficeLength?",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.PowerPoint/PowerPointTableRow.cs",
       "category": "units",
@@ -8567,14 +8567,14 @@
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Table sizing takes and returns OfficeLength. Row and column handles expose nullable Width or Height, and typed column bindings expose Width and WithWidth(OfficeLength). Unit-specific twins are removed; ratio and evenly distributed sizing retain their native EMU rounding."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointTableRow.HeightInches",
       "kind": "property",
       "action": "merge",
-      "new": "OfficeIMO.PowerPoint.PowerPointTableRow.Height : OfficeLength",
+      "new": "OfficeIMO.PowerPoint.PowerPointTableRow.Height : OfficeLength?",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.PowerPoint/PowerPointTableRow.cs",
       "category": "units",
@@ -8583,14 +8583,14 @@
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Table sizing takes and returns OfficeLength. Row and column handles expose nullable Width or Height, and typed column bindings expose Width and WithWidth(OfficeLength). Unit-specific twins are removed; ratio and evenly distributed sizing retain their native EMU rounding."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointTableRow.HeightPoints",
       "kind": "property",
       "action": "merge",
-      "new": "OfficeIMO.PowerPoint.PowerPointTableRow.Height : OfficeLength",
+      "new": "OfficeIMO.PowerPoint.PowerPointTableRow.Height : OfficeLength?",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.PowerPoint/PowerPointTableRow.cs",
       "category": "units",
@@ -8599,8 +8599,8 @@
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Table sizing takes and returns OfficeLength. Row and column handles expose nullable Width or Height, and typed column bindings expose Width and WithWidth(OfficeLength). Unit-specific twins are removed; ratio and evenly distributed sizing retain their native EMU rounding."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointTextBox.TextMarginBottomCm",
@@ -9894,6 +9894,17 @@
       "reason": "Markup, Mermaid, visual-artifact and workflow test consumers use canonical shape and image lengths instead of removed unit twins.",
       "applied": "phase-b-applied",
       "note": "The generated C# assertion accepts either supported name of the shared clustered-column enum value while retaining chart construction and semantic-option checks."
+    },
+    {
+      "change": "Unify physical PowerPoint table sizing and typed column bindings",
+      "reason": "Set/GetColumnWidth, Set/GetRowHeight and batch SetColumnWidths/SetRowHeights use OfficeLength. The attached row and column models keep their native identity and nullable dimension semantics. PowerPointTableColumn<T>.Width and WithWidth use the same length value. Migrate native adapters, rendering/layout consumers, examples, tests and mechanical PowerShell calls; ratios stay scalar. Native Open XML lengths preserve every EMU. The IWork adapter adapts its point-based layout callback to OfficeLength; method-group and inferred test callers are migrated explicitly. Saved-file tests and the two maintained table README examples verify native widths, heights and attached handles.",
+      "applied": "phase-b-applied",
+      "files": [
+        "OfficeIMO.PowerPoint/PowerPointTable.Sizing.cs",
+        "OfficeIMO.PowerPoint/PowerPointTableColumnModel.cs",
+        "OfficeIMO.PowerPoint/PowerPointTableRow.cs",
+        "OfficeIMO.PowerPoint/PowerPointTableColumn.cs"
+      ]
     }
   ],
   "applicationStatus": "Phase A applied and validated on the supported macOS targets. Phase B and Tier 2 entries retain their status; Windows .NET Framework validation remains pending.",

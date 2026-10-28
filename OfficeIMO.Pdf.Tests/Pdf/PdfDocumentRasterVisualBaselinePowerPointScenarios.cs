@@ -50,8 +50,8 @@ public partial class PdfDocumentRasterVisualBaselineTests {
 
         PowerPointTable table = slide.AddTablePoints(2, 2, 20, 98, 120, 48);
         table.ApplyToCells(cell => cell.FontSize = 8);
-        table.SetColumnWidthsPoints(70, 50);
-        table.SetRowHeightsPoints(20, 28);
+        table.SetColumnWidths(global::OfficeIMO.OfficeLength.Points(70),global::OfficeIMO.OfficeLength.Points(50));
+        table.SetRowHeights(global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(28));
         PowerPointTableCell metric = table.GetCell(0, 0);
         metric.Text = "Metric";
         metric.Bold = true;
@@ -123,8 +123,8 @@ public partial class PdfDocumentRasterVisualBaselineTests {
             });
 
         PowerPointTable table = slide.AddTablePoints(2, 2, 20, 118, 132, 40);
-        table.SetColumnWidthsPoints(76, 56);
-        table.SetRowHeightsPoints(18, 22);
+        table.SetColumnWidths(global::OfficeIMO.OfficeLength.Points(76),global::OfficeIMO.OfficeLength.Points(56));
+        table.SetRowHeights(global::OfficeIMO.OfficeLength.Points(18),global::OfficeIMO.OfficeLength.Points(22));
         table.GetCell(0, 0).Text = "Section";
         table.GetCell(0, 1).Text = "Status";
         table.GetCell(0, 0).Bold = true;

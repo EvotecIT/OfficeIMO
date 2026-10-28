@@ -98,7 +98,7 @@ public sealed class PdfRotatedTableGeometryTests {
         using (powerPoint.Value) {
             OfficeIMO.PowerPoint.PowerPointTable powerPointTable = Assert.Single(
                 powerPoint.Value.Slides.SelectMany(static slide => slide.Tables));
-            double columnRatio = powerPointTable.GetColumnWidthPoints(0) / powerPointTable.GetColumnWidthPoints(1);
+            double columnRatio = (powerPointTable.GetColumnWidth(0)).ToPoints() / (powerPointTable.GetColumnWidth(1)).ToPoints();
             Assert.InRange(columnRatio, expectedRatio - 0.01D, expectedRatio + 0.01D);
         }
     }

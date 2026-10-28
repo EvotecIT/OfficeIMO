@@ -22,8 +22,8 @@ public sealed class PowerPointPdfTableFidelityTests {
             table.StyleId = "{5C22544A-7EE6-4342-B048-85BDC9FD1C3A}";
             table.FirstRow = true;
             table.BandedRows = true;
-            table.SetColumnWidthsPoints(76, 56);
-            table.SetRowHeightsPoints(18, 22);
+            table.SetColumnWidths(global::OfficeIMO.OfficeLength.Points(76),global::OfficeIMO.OfficeLength.Points(56));
+            table.SetRowHeights(global::OfficeIMO.OfficeLength.Points(18),global::OfficeIMO.OfficeLength.Points(22));
             table.GetCell(0, 0).Text = "Section";
             table.GetCell(0, 1).Text = "Status";
             table.GetCell(1, 0).Text = "Packed";
@@ -70,8 +70,8 @@ public sealed class PowerPointPdfTableFidelityTests {
         var table = presentation.AddSlide().AddTablePoints(2, 2, 20, 20, 240, 24);
         table.StyleId = "{5C22544A-7EE6-4342-B048-85BDC9FD1C3A}";
         table.FirstRow = true;
-        table.SetColumnWidthsPoints(120, 120);
-        table.SetRowHeightsPoints(12, 12);
+        table.SetColumnWidths(global::OfficeIMO.OfficeLength.Points(120),global::OfficeIMO.OfficeLength.Points(120));
+        table.SetRowHeights(global::OfficeIMO.OfficeLength.Points(12),global::OfficeIMO.OfficeLength.Points(12));
         table.MergeCells(0, 0, 1, 0);
         var cell = table.GetCell(0, 0);
         cell.Text = "Alpha beta gamma delta epsilon zeta";

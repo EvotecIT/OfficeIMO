@@ -22,15 +22,15 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             }
             if (!TryReadShapeFormatting(table, out _, out reason)) return false;
             foreach (PowerPointTableColumn column in table.ColumnItems) {
-                if (!column.WidthEmus.HasValue || column.WidthEmus.Value <= 0L
-                    || ToMasterUnits(column.WidthEmus.Value) <= 0) {
+                if (!column.Width.HasValue || column.Width.Value.ToEmus() <= 0L
+                    || ToMasterUnits(column.Width.Value.ToEmus()) <= 0) {
                     reason = "Every native binary table column requires a positive representable width.";
                     return false;
                 }
             }
             foreach (PowerPointTableRow row in table.RowItems) {
-                if (!row.HeightEmus.HasValue || row.HeightEmus.Value <= 0L
-                    || ToMasterUnits(row.HeightEmus.Value) <= 0) {
+                if (!row.Height.HasValue || row.Height.Value.ToEmus() <= 0L
+                    || ToMasterUnits(row.Height.Value.ToEmus()) <= 0) {
                     reason = "Every native binary table row requires a positive representable height.";
                     return false;
                 }
@@ -123,9 +123,9 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 throw new NotSupportedException(reason);
             }
             int[] columnWidths = table.ColumnItems.Select(column =>
-                ToMasterUnits(column.WidthEmus!.Value)).ToArray();
+                ToMasterUnits(column.Width!.Value.ToEmus())).ToArray();
             int[] rowHeights = table.RowItems.Select(row =>
-                ToMasterUnits(row.HeightEmus!.Value)).ToArray();
+                ToMasterUnits(row.Height!.Value.ToEmus())).ToArray();
             int tableWidth = checked(columnWidths.Sum());
             int tableHeight = checked(rowHeights.Sum());
 

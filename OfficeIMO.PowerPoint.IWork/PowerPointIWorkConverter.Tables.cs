@@ -91,9 +91,9 @@ public static partial class PowerPointIWorkConverter {
                 merge.LastRow - 1, merge.LastColumn - 1);
         }
         ApplyAxisSizing(source.ColumnCount, source.ColumnWidths, source.DefaultColumnWidth,
-            source.Geometry?.WidthPoints, width, table.SetColumnWidthPoints, cancellationToken);
+            source.Geometry?.WidthPoints, width, (index, value) => table.SetColumnWidth(index, OfficeIMO.OfficeLength.Points(value)), cancellationToken);
         ApplyAxisSizing(source.RowCount, source.RowHeights, source.DefaultRowHeight,
-            source.Geometry?.HeightPoints, height, table.SetRowHeightPoints, cancellationToken);
+            source.Geometry?.HeightPoints, height, (index, value) => table.SetRowHeight(index, OfficeIMO.OfficeLength.Points(value)), cancellationToken);
     }
 
     private static IEnumerable<IWorkParagraphStyle> TableParagraphStyles(IWorkTable table) =>

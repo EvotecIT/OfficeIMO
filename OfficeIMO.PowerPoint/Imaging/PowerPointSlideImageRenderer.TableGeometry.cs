@@ -115,7 +115,7 @@ internal static partial class PowerPointSlideImageRenderer {
         double[] widths = new double[table.Columns];
         double fallback = table.Columns > 0 ? tableWidth / table.Columns : tableWidth;
         for (int column = 0; column < widths.Length; column++) {
-            double width = table.GetColumnWidthPoints(column);
+            double width = (table.GetColumnWidth(column)).ToPoints();
             widths[column] = width > 0D ? width : fallback;
         }
 
@@ -127,7 +127,7 @@ internal static partial class PowerPointSlideImageRenderer {
         double[] heights = new double[table.Rows];
         double fallback = table.Rows > 0 ? tableHeight / table.Rows : tableHeight;
         for (int row = 0; row < heights.Length; row++) {
-            double height = table.GetRowHeightPoints(row);
+            double height = (table.GetRowHeight(row)).ToPoints();
             heights[row] = height > 0D ? height : fallback;
         }
 

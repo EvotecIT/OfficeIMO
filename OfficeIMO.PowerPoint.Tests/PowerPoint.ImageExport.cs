@@ -469,8 +469,8 @@ namespace OfficeIMO.Tests {
             PowerPointSlide slide = presentation.AddSlide();
 
             PowerPointTable table = slide.AddTablePoints(2, 2, 20, 20, 120, 50);
-            table.SetColumnWidthsPoints(45, 75);
-            table.SetRowHeightsPoints(20, 30);
+            table.SetColumnWidths(global::OfficeIMO.OfficeLength.Points(45),global::OfficeIMO.OfficeLength.Points(75));
+            table.SetRowHeights(global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(30));
             table.Rotation = 5D;
 
             PowerPointTableCell header = table.GetCell(0, 0);

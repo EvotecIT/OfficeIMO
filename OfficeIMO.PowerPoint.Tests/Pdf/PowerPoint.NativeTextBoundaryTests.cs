@@ -19,7 +19,7 @@ public sealed class PowerPointNativeTextBoundaryTests {
         using var presentation = PowerPointDocument.Create(new MemoryStream());
         var slide = presentation.AddSlide();
         var table = slide.AddTablePoints(1, 1, 20, 20, 200, height);
-        table.SetRowHeightsPoints(height);
+        table.SetRowHeights(global::OfficeIMO.OfficeLength.Points(height));
         var cell = table.GetCell(0, 0);
         cell.Text = "gypsy"; cell.FontSize = 24;
         cell.PaddingTopPoints = cell.PaddingBottomPoints = 0;
@@ -83,7 +83,7 @@ public sealed class PowerPointNativeTextBoundaryTests {
         using var presentation = PowerPointDocument.Create(new MemoryStream());
         PowerPointSlide slide = presentation.AddSlide();
         PowerPointTable table = slide.AddTablePoints(1, 1, 20, 20, 140, 40);
-        table.SetRowHeightsPoints(40);
+        table.SetRowHeights(global::OfficeIMO.OfficeLength.Points(40));
         PowerPointTableCell cell = table.GetCell(0, 0);
         cell.FontSize = 12;
         cell.Text = "VISIBLE alpha beta gamma delta epsilon zeta eta theta iota kappa lambda mu TAIL";

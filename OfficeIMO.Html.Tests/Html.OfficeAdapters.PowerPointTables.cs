@@ -72,8 +72,8 @@ public class HtmlOfficeAdaptersPowerPointTables {
         PowerPointTable table = Assert.Single(presentation.Slides.SelectMany(slide => slide.Tables));
 
         Assert.Equal(300D, table.Width.ToPoints(), 3);
-        Assert.True(table.GetRowHeightPoints(1) > table.GetRowHeightPoints(0));
-        Assert.True(table.Top.ToPoints() + table.GetRowHeightPoints(0) + table.GetRowHeightPoints(1)
+        Assert.True((table.GetRowHeight(1)).ToPoints() > (table.GetRowHeight(0)).ToPoints());
+        Assert.True(table.Top.ToPoints() + (table.GetRowHeight(0)).ToPoints() + (table.GetRowHeight(1)).ToPoints()
             <= presentation.SlideSize.Height.ToPoints() - 30D);
         Assert.Equal(definition, table.GetCell(1, 1).Text);
     }
@@ -92,7 +92,7 @@ public class HtmlOfficeAdaptersPowerPointTables {
         PowerPointTable plainTable = Assert.Single(plain.Slides.SelectMany(slide => slide.Tables));
         PowerPointTable styledTable = Assert.Single(styled.Slides.SelectMany(slide => slide.Tables));
 
-        Assert.True(styledTable.GetRowHeightPoints(0) > plainTable.GetRowHeightPoints(0));
+        Assert.True((styledTable.GetRowHeight(0)).ToPoints() > (plainTable.GetRowHeight(0)).ToPoints());
         Assert.True(styledTable.GetCell(0, 1).Runs[0].FontSizePoints >= 27D);
     }
 

@@ -117,8 +117,8 @@ namespace OfficeIMO.Tests {
             AddMetricCard(slide, "Risk", "Low", "F59E0B", 214, 42);
 
             PowerPointTable table = slide.AddTablePoints(4, 2, 18, 104, 132, 54);
-            table.SetColumnWidthsPoints(66, 66);
-            table.SetRowHeightsPoints(13.5, 13.5, 13.5, 13.5);
+            table.SetColumnWidths(global::OfficeIMO.OfficeLength.Points(66),global::OfficeIMO.OfficeLength.Points(66));
+            table.SetRowHeights(global::OfficeIMO.OfficeLength.Points(13.5),global::OfficeIMO.OfficeLength.Points(13.5),global::OfficeIMO.OfficeLength.Points(13.5),global::OfficeIMO.OfficeLength.Points(13.5));
             string[] regions = { "North", "South", "East", "West" };
             string[] values = { "12.4", "9.8", "11.6", "8.2" };
             for (int row = 0; row < regions.Length; row++) {

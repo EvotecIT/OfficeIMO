@@ -71,7 +71,7 @@ namespace OfficeIMO.Examples.PowerPoint {
             PowerPointTable table = dataSlide.AddTableCm(
                 rows,
                 columns: new[] {
-                    PowerPointTableColumn<MetricRow>.Create("Product", r => r.Product).WithWidthCm(3.2),
+                    PowerPointTableColumn<MetricRow>.Create("Product", r => r.Product).WithWidth(global::OfficeIMO.OfficeLength.Centimeters(3.2)),
                     PowerPointTableColumn<MetricRow>.Create("Q1", r => r.Q1),
                     PowerPointTableColumn<MetricRow>.Create("Q2", r => r.Q2)
                 },

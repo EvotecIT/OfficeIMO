@@ -225,7 +225,7 @@ namespace OfficeIMO.PowerPoint {
                 }
             }
             double rowHeight = bounds.Height.ToPoints() / Math.Max(1, rowCount);
-            foreach (PowerPointTableRow row in table.RowItems) row.HeightPoints = rowHeight;
+            foreach (PowerPointTableRow row in table.RowItems) row.Height= global::OfficeIMO.OfficeLength.Points(rowHeight);
             return table;
         }
 

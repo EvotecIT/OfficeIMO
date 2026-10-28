@@ -80,10 +80,10 @@ namespace OfficeIMO.PowerPoint {
             table.StyleId = null;
 
             for (int index = 0; index < columnWidths.Length; index++) {
-                table.ColumnItems[index].WidthEmus = columnWidths[index];
+                table.ColumnItems[index].Width= global::OfficeIMO.OfficeLength.Emus(columnWidths[index]);
             }
             for (int index = 0; index < rowHeights.Length; index++) {
-                table.RowItems[index].HeightEmus = rowHeights[index];
+                table.RowItems[index].Height= global::OfficeIMO.OfficeLength.Emus(rowHeights[index]);
             }
 
             foreach (LegacyPptTableCell sourceCell in tableSource.Cells) {

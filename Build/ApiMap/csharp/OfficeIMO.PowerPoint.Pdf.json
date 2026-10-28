@@ -381,6 +381,11 @@
       "phase": "A",
       "applied": "applied",
       "note": "InternalsVisibleTo grants the existing browser engine and its tests access to detailed conversion and serialization evidence. This preserves browser diagnostics while keeping conversion kernels outside the public API."
+    },
+    {
+      "change": "Adapt PowerPoint table sizing to OfficeLength",
+      "reason": "Native table export reads the typed row and column sizes in points at its PDF layout boundary.",
+      "applied": "phase-b-applied"
     }
   ],
   "applicationStatus": "Phase A applied and validated on the supported macOS targets. Phase B and Tier 2 entries retain their status; Windows .NET Framework validation remains pending.",

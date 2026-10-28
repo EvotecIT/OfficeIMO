@@ -61,10 +61,10 @@ namespace OfficeIMO.Examples.PowerPoint {
                 widthCm: content.Width.ToCentimeters(),
                 heightCm: bodyHeightCm);
             table.ApplyStyle(new PowerPointTableStylePreset(styleId: accentStyle?.StyleId, firstRow: true, bandedRows: true));
-            table.SetColumnWidthsPoints(200, 90, 90, 90, 90);
-            table.SetRowHeightPoints(0, 28);
+            table.SetColumnWidths(global::OfficeIMO.OfficeLength.Points(200),global::OfficeIMO.OfficeLength.Points(90),global::OfficeIMO.OfficeLength.Points(90),global::OfficeIMO.OfficeLength.Points(90),global::OfficeIMO.OfficeLength.Points(90));
+            table.SetRowHeight(0,global::OfficeIMO.OfficeLength.Points(28));
             for (int r = 1; r < table.Rows; r++) {
-                table.SetRowHeightPoints(r, 24);
+                table.SetRowHeight(r,global::OfficeIMO.OfficeLength.Points(24));
             }
 
             for (int c = 0; c < table.Columns; c++) {
@@ -104,7 +104,7 @@ namespace OfficeIMO.Examples.PowerPoint {
                 heightCm: bodyHeightCm);
             mergeTable.ApplyStyle(new PowerPointTableStylePreset(styleId: accentStyle?.StyleId, firstRow: true, bandedRows: true));
             mergeTable.SetColumnWidthsEvenly();
-            mergeTable.SetRowHeightPoints(0, 28);
+            mergeTable.SetRowHeight(0,global::OfficeIMO.OfficeLength.Points(28));
 
             mergeTable.GetCell(0, 0).Text = "2025 Sales (Merged Header)";
             mergeTable.MergeCells(0, 0, 0, mergeTable.Columns - 1);
@@ -207,11 +207,10 @@ namespace OfficeIMO.Examples.PowerPoint {
             double compactWidthPoints = leftColumn.Width.ToPoints();
             double productWidthPoints = compactWidthPoints * 0.38;
             double quarterWidthPoints = (compactWidthPoints - productWidthPoints) / 4;
-            compactTable.SetColumnWidthsPoints(productWidthPoints, quarterWidthPoints, quarterWidthPoints,
-                quarterWidthPoints, quarterWidthPoints);
-            compactTable.SetRowHeightPoints(0, 20);
+            compactTable.SetColumnWidths(global::OfficeIMO.OfficeLength.Points(productWidthPoints),global::OfficeIMO.OfficeLength.Points(quarterWidthPoints),global::OfficeIMO.OfficeLength.Points(quarterWidthPoints),                global::OfficeIMO.OfficeLength.Points(quarterWidthPoints),global::OfficeIMO.OfficeLength.Points(quarterWidthPoints));
+            compactTable.SetRowHeight(0,global::OfficeIMO.OfficeLength.Points(20));
             for (int r = 1; r < compactTable.Rows; r++) {
-                compactTable.SetRowHeightPoints(r, 18);
+                compactTable.SetRowHeight(r,global::OfficeIMO.OfficeLength.Points(18));
             }
             for (int r = 0; r < compactTable.Rows; r++) {
                 for (int c = 0; c < compactTable.Columns; c++) {

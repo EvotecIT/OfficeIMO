@@ -227,7 +227,7 @@ public static partial class PowerPointPdfConverterExtensions {
         var widths = new List<double?>(table.Columns);
         double fallbackWidth = table.Columns > 0 ? tableWidth / table.Columns : tableWidth;
         for (int column = 0; column < table.Columns; column++) {
-            double width = table.GetColumnWidthPoints(column);
+            double width = (table.GetColumnWidth(column)).ToPoints();
             widths.Add(width > 0D ? width : fallbackWidth);
         }
 
@@ -238,7 +238,7 @@ public static partial class PowerPointPdfConverterExtensions {
         var heights = new List<double?>(table.Rows);
         double fallbackHeight = table.Rows > 0 ? tableHeight / table.Rows : tableHeight;
         for (int row = 0; row < table.Rows; row++) {
-            double height = table.GetRowHeightPoints(row);
+            double height = (table.GetRowHeight(row)).ToPoints();
             heights.Add(height > 0D ? height : fallbackHeight);
         }
 

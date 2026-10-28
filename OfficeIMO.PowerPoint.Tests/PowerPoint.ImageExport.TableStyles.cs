@@ -45,8 +45,8 @@ namespace OfficeIMO.Tests {
 
             PowerPointTable table = slide.AddTablePoints(2, 3, 20, 20, 120, 60);
             table.StyleId = styleId;
-            table.SetColumnWidthsPoints(40, 40, 40);
-            table.SetRowHeightsPoints(30, 30);
+            table.SetColumnWidths(global::OfficeIMO.OfficeLength.Points(40),global::OfficeIMO.OfficeLength.Points(40),global::OfficeIMO.OfficeLength.Points(40));
+            table.SetRowHeights(global::OfficeIMO.OfficeLength.Points(30),global::OfficeIMO.OfficeLength.Points(30));
             table.FirstRow = true;
             table.FirstColumn = true;
             table.LastColumn = true;
@@ -84,8 +84,8 @@ namespace OfficeIMO.Tests {
 
             PowerPointTable table = slide.AddTablePoints(2, 4, 20, 20, 120, 48);
             table.StyleId = styleId;
-            table.SetColumnWidthsPoints(30, 30, 30, 30);
-            table.SetRowHeightsPoints(24, 24);
+            table.SetColumnWidths(global::OfficeIMO.OfficeLength.Points(30),global::OfficeIMO.OfficeLength.Points(30),global::OfficeIMO.OfficeLength.Points(30),global::OfficeIMO.OfficeLength.Points(30));
+            table.SetRowHeights(global::OfficeIMO.OfficeLength.Points(24),global::OfficeIMO.OfficeLength.Points(24));
             table.FirstRow = false;
             table.FirstColumn = false;
             table.LastColumn = false;
@@ -120,8 +120,8 @@ namespace OfficeIMO.Tests {
 
             PowerPointTable table = slide.AddTablePoints(1, 2, 20, 20, 80, 36);
             table.StyleId = styleId;
-            table.SetColumnWidthsPoints(40, 40);
-            table.SetRowHeightsPoints(36);
+            table.SetColumnWidths(global::OfficeIMO.OfficeLength.Points(40),global::OfficeIMO.OfficeLength.Points(40));
+            table.SetRowHeights(global::OfficeIMO.OfficeLength.Points(36));
             table.GetCell(0, 0).Merge = (1, 2);
 
             OfficeImageExportResult png = slide.ExportImage(OfficeImageExportFormat.Png);

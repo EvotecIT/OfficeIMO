@@ -50,6 +50,27 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void TableLengthsKeepExactEmusAndAttachedSizingHandles() {
+            using var document = PowerPointDocument.Create();
+            var table = document.AddSlide().AddTable(2, 2);
+            table.SetColumnWidths(OfficeLength.Centimeters(2.5), OfficeLength.Inches(1));
+            table.SetRowHeights(OfficeLength.Points(18), OfficeLength.Pixels(32));
+            var column = table.AddColumn();
+            column.Width = OfficeLength.Emus(1234567);
+            var row = table.AddRow();
+            row.Height = OfficeLength.Emus(345679);
+            Assert.Equal(OfficeLength.Emus(900000), table.GetColumnWidth(0));
+            Assert.Equal(OfficeLength.Emus(304800), table.GetRowHeight(1));
+            using var output = new MemoryStream();
+            document.Save(output);
+            output.Position = 0;
+            using var native = PresentationDocument.Open(output, false);
+            var stored = native.PresentationPart!.SlideParts.Single().Slide.Descendants<A.Table>().Single();
+            Assert.Equal(new long[] { 900000, 914400, 1234567 }, stored.TableGrid!.Elements<A.GridColumn>().Select(item => item.Width!.Value));
+            Assert.Equal(new long[] { 228600, 304800, 345679 }, stored.Elements<A.TableRow>().Select(item => item.Height!.Value));
+        }
+
+        [Fact]
         public void MixedUnitBoundsWriteExactNativeCoordinates() {
             using var document = PowerPointDocument.Create();
             var shape = document.AddSlide().AddTextBox("Positioned");

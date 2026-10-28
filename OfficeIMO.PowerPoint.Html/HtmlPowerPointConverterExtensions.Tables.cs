@@ -36,7 +36,7 @@ public static partial class HtmlPowerPointConverterExtensions {
         if (genericRowHeights?.Count == grid.Rows && !tableElement.HasAttribute("data-officeimo-height")) {
             double remaining = Math.Max(0D, height - genericRowHeights.Sum());
             for (int row = 0; row < grid.Rows; row++) {
-                table.SetRowHeightPoints(row, genericRowHeights[row] + (row == grid.Rows - 1 ? remaining : 0D));
+                table.SetRowHeight(row,global::OfficeIMO.OfficeLength.Points(genericRowHeights[row] + (row == grid.Rows - 1 ? remaining : 0D)));
             }
         }
         foreach (PowerPointHtmlTableCell cell in grid.Cells) {
