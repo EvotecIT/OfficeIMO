@@ -128,7 +128,7 @@ internal static class ExcelBenchmarkSnapshotRunner {
         using var stream = new MemoryStream();
         using (var document = ExcelDocument.Create(stream)) {
             document.Execution.SaveWorksheetAfterAutoFit = false;
-            var sheet = document.AddWorksheet("Data");
+            var sheet = document.AddSheet("Data");
             ExcelBenchmarkScenarioFactory.PopulateOfficeImoWorksheet(sheet, rows);
             document.Save(stream);
         }

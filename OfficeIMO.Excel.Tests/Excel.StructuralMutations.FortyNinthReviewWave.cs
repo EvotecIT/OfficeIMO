@@ -13,7 +13,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_InCellImageLookup_SelectsRichValueRecordInsideMetadataBlock() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Images");
+            ExcelSheet sheet = document.AddSheet("Images");
             sheet.SetInCellImage(1, 1, TinyPng, altText: "Later rich-value record");
             Metadata metadata = document.WorkbookPartRoot.CellMetadataPart!.Metadata!;
             MetadataTypes types = metadata.MetadataTypes!;
@@ -40,7 +40,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public async Task Test_ModernChartProperties_WaitForWorkbookWriter() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Dashboard");
+            ExcelSheet sheet = document.AddSheet("Dashboard");
             ExcelModernChart chart = sheet.AddModernChart(
                 new ExcelChartData(
                     new[] { "A" },
@@ -63,7 +63,7 @@ namespace OfficeIMO.Tests {
         [InlineData(true)]
         public void Test_RangeCopies_AllocateUniqueFloatingImageNames(bool transpose) {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Images");
+            ExcelSheet sheet = document.AddSheet("Images");
             sheet.CellValue(1, 1, "source");
             sheet.AddImage(1, 1, TinyPng, name: "Logo");
 
@@ -79,7 +79,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_MutationRollback_RestoresFormulaLifecycleBaselines() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Calc");
+            ExcelSheet sheet = document.AddSheet("Calc");
             sheet.CellValue(1, 1, 1d);
             sheet.CellFormula(1, 2, "A1+1");
             Cell formula = sheet.WorksheetPart.Worksheet.Descendants<Cell>()
@@ -108,7 +108,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_TableResize_RelocatesTotalsCommentsAndHyperlinks() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.CellValue(1, 1, "Region");
             sheet.CellValue(1, 2, "Amount");
             sheet.CellValue(2, 1, "East");
@@ -138,7 +138,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_LineAndScatterChartAuthoring_UsesStraightSegments() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Charts");
+            ExcelSheet sheet = document.AddSheet("Charts");
             var data = new ExcelChartData(
                 new[] { "1", "2", "3" },
                 new[] { new ExcelChartSeries("Series", new[] { 1d, 3d, 2d }) });

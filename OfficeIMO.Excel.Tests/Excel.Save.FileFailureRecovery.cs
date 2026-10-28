@@ -86,7 +86,7 @@ namespace OfficeIMO.Tests {
                 return document;
             }
 
-            retainedSheet = document.AddWorksheet("Report");
+            retainedSheet = document.AddSheet("Report");
             retainedSheet.CellValue(1, 1, "Before file failure");
             retainedProperty = new ExcelCustomProperty("Before file failure");
             document.SetCustomDocumentProperty("Review", retainedProperty);

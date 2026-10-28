@@ -83,7 +83,7 @@ public sealed class ExcelSvgImageExportTests {
             ? Convert.FromBase64String("SUkqAFAAAAD9N3pYWgAAAP8S2UECAQMBACEBFnkgxO7gAv8ADV0Af4A8Fz4mR/wBtzwgAAAAAAAAASGABgAAAADtKJuoAAr8AgAAAAAAWVoKAAABAwABAAAAEAAAAAEBAwABAAAAEAAAAAIBAwADAAAAzgAAAAMBAwABAAAAbYgAAAYBAwABAAAAAgAAABEBBAABAAAACAAAABUBAwABAAAAAwAAABYBAwABAAAAEAAAABcBBAABAAAASAAAABwBAwABAAAAAQAAAAAAAAAIAAgACAA=")
             : new byte[] { 0xFF, 0xD8, 0xFF, 0xC0, 0, 17, 8, 0, 1, 0, 1, 3, 1, 17, 0, 2, 17, 0, 3, 17, 0, 0xFF, 0xD9 };
         using ExcelDocument document = ExcelDocument.Create(new MemoryStream());
-        ExcelSheet sheet = document.AddWorksheet("Inspected");
+        ExcelSheet sheet = document.AddSheet("Inspected");
         sheet.AddImage(1, 1, bytes, validContainer ? "image/tiff" : "image/jpeg", OfficeIMO.OfficeLength.Pixels(16), OfficeIMO.OfficeLength.Pixels(16), name: "Probe");
         var codec = new SolidCodec(16, 16);
 
@@ -103,7 +103,7 @@ public sealed class ExcelSvgImageExportTests {
     [InlineData(true)]
     public void OversizedSourceImageReportsOmissionAndStrictPolicyRejectsIt(bool callerDecodedSvg) {
         using ExcelDocument document = ExcelDocument.Create(new MemoryStream());
-        ExcelSheet sheet = document.AddWorksheet("Limited");
+        ExcelSheet sheet = document.AddSheet("Limited");
         byte[] bytes = callerDecodedSvg
             ? Encoding.UTF8.GetBytes(UnsupportedSvg)
             : OfficePngWriter.Encode(new OfficeRasterImage(64, 64, OfficeColor.Red));
@@ -133,7 +133,7 @@ public sealed class ExcelSvgImageExportTests {
     }
 
     private static void AddImage(ExcelDocument document, string svg) {
-        ExcelSheet sheet = document.AddWorksheet("Svg");
+        ExcelSheet sheet = document.AddSheet("Svg");
         sheet.AddImage(1, 1, Encoding.UTF8.GetBytes(svg), "image/svg+xml", OfficeIMO.OfficeLength.Pixels(32), OfficeIMO.OfficeLength.Pixels(16), name: "Probe");
     }
 

@@ -19,7 +19,7 @@ public sealed class ExcelRepeatedMetadataSaveTests {
         Directory.CreateDirectory(directory);
         try {
             using var document = ExcelDocument.Create();
-            ExcelSheet retainedSheet = document.AddWorksheet("Report");
+            ExcelSheet retainedSheet = document.AddSheet("Report");
             retainedSheet.CellValue(1, 1, 42);
             retainedSheet.AddChart(new ExcelChartData(new[] { "Value" },
                     new[] { new ExcelChartSeries("Series", new[] { 42d }) }),

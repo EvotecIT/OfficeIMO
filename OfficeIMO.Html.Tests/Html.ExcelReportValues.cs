@@ -123,7 +123,7 @@ public class HtmlExcelReportValues {
     [InlineData("First\t", "Second")]
     public void SemanticRichTextPreservesWhitespaceAndRunFormatting(string first, string second) {
         using ExcelDocument source = ExcelDocument.Create(new MemoryStream());
-        source.AddWorksheet("Notes").CellAt(1, 1).SetRichText(
+        source.AddSheet("Notes").CellAt(1, 1).SetRichText(
             new ExcelRichTextRun(first) { Bold = true },
             new ExcelRichTextRun(second) { Italic = true });
         string html = source.ToHtml(new ExcelHtmlSaveOptions { HeaderMode = ExcelHtmlHeaderMode.None });

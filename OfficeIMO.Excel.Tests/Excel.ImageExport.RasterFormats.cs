@@ -14,7 +14,7 @@ namespace OfficeIMO.Tests {
             OfficeImageFormat expected) {
             string path = Path.Combine(Path.GetTempPath(), System.Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(path);
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.CellValue(1, 1, "Shared raster export");
 
             OfficeImageExportResult result = sheet.Range("A1:B2").ExportImage(format);
@@ -35,7 +35,7 @@ namespace OfficeIMO.Tests {
             OfficeImageFormat expected) {
             string path = Path.Combine(Path.GetTempPath(), System.Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(path);
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.CellValue(1, 1, "Composed raster export");
 
             OfficeImageExportResult result = Assert.Single(sheet.ExportImages(format, new ExcelImageExportOptions {
@@ -50,7 +50,7 @@ namespace OfficeIMO.Tests {
         public void ExcelWorksheet_CompositionUsesRequestedFormatDensityInsteadOfWorkingPngDensity() {
             string path = Path.Combine(Path.GetTempPath(), System.Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(path);
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.CellValue(1, 1, "Format-specific density");
             sheet.SetPageSetup(scale: 100, paperSize: ExcelPaperSize.Letter);
 
@@ -78,7 +78,7 @@ namespace OfficeIMO.Tests {
         public void ExcelWorksheet_PageCompositionPlansSafetyReductionBeforeAllocatingFinalCanvas() {
             string path = Path.Combine(Path.GetTempPath(), System.Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(path);
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.CellValue(1, 1, "Safety-limited page");
             sheet.SetPageSetup(scale: 100, paperSize: ExcelPaperSize.Letter);
 
@@ -104,7 +104,7 @@ namespace OfficeIMO.Tests {
             string path = Path.Combine(Path.GetTempPath(), System.Guid.NewGuid() + ".xlsx");
             string folder = Path.Combine(Path.GetTempPath(), "OfficeIMO-" + System.Guid.NewGuid().ToString("N"));
             using ExcelDocument document = ExcelDocument.Create(path);
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.CellValue(1, 1, "Batch raster export");
             try {
                 document.SaveAsImages(folder, new ExcelImageExportOptions { Format = OfficeImageExportFormat.Tiff });

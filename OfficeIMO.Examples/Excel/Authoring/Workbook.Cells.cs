@@ -13,7 +13,7 @@ namespace OfficeIMO.Examples.Excel
             using (ExcelDocument document = ExcelDocument.Create(filePath))
             {
                 {
-                    var sheet1 = document.AddWorksheet("Data");
+                    var sheet1 = document.AddSheet("Data");
                     int nextRow2 = 1;
                     {
                         var cell1 = sheet1.CellAt("B2");

@@ -17,7 +17,7 @@ namespace OfficeIMO.Excel {
                 RemoveWorksheet(existing.Name);
             }
 
-            var toc = this.AddWorksheet(sheetName);
+            var toc = this.AddSheet(sheetName);
             string tocName = toc.Name;
             int r = 1;
             // Banner

@@ -269,7 +269,7 @@ public static partial class ExcelIWorkConverter {
                     }
                 }
             } else {
-                ExcelSheet sheet = document.AddWorksheet("Preview");
+                ExcelSheet sheet = document.AddSheet("Preview");
                 IWorkPreviewAsset visualPreview = preview!;
                 (int width, int height) = PreviewSize(visualPreview);
                 sheet.AddImage(1, 1, visualPreview.GetBytes(), visualPreview.MediaType, OfficeIMO.OfficeLength.Pixels(width), OfficeIMO.OfficeLength.Pixels(height),

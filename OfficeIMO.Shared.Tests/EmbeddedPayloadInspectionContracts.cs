@@ -125,7 +125,7 @@ public sealed class EmbeddedPayloadInspectionContracts {
             owner = word.OpenXmlDocument.MainDocumentPart!;
             inspect = word.InspectEmbeddedPayloads; open = word.OpenEmbeddedPayload;
         } else if (format == "excel") {
-            ExcelDocument excel = ExcelDocument.Create(); excel.AddWorksheet("Payloads"); document = excel;
+            ExcelDocument excel = ExcelDocument.Create(); excel.AddSheet("Payloads"); document = excel;
             owner = excel.OpenXmlDocument.WorkbookPart!.WorksheetParts.Single();
             inspect = excel.InspectEmbeddedPayloads; open = excel.OpenEmbeddedPayload;
         } else {

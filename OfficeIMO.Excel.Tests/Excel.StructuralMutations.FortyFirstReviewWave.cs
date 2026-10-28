@@ -47,7 +47,7 @@ namespace OfficeIMO.Tests
         public async Task Test_RemovePivotInteraction_RechecksSharedCacheInsideTransaction()
         {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet data = document.AddWorksheet("Data");
+            ExcelSheet data = document.AddSheet("Data");
             data.CellValue(1, 1, "Region");
             data.CellValue(1, 2, "Sales");
             data.CellValue(2, 1, "East");
@@ -89,7 +89,7 @@ namespace OfficeIMO.Tests
         [Fact]
         public void Test_ExtendedConnectionParameters_RemapAcrossStructuralAndRangeEdits() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             ExcelQueryBackedTableInfo query = document.AddQueryBackedTable(new ExcelQueryBackedTableOptions {
                 ConnectionName = "ExtendedConnection",
                 WorksheetName = sheet.Name,
@@ -128,7 +128,7 @@ namespace OfficeIMO.Tests
         [Fact]
         public void Test_PackageWorksheetCopy_ReusesSharedInCellImagePayload() {
             using var sourceDocument = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet source = sourceDocument.AddWorksheet("Source");
+            ExcelSheet source = sourceDocument.AddSheet("Source");
             source.SetInCellImage(1, 1, TinyPng, altText: "Shared A");
             source.CellValue(1, 2, "placeholder");
             Cell first = source.WorksheetPart.Worksheet!.Descendants<Cell>()
@@ -143,7 +143,7 @@ namespace OfficeIMO.Tests
             Assert.Equal(2, source.GetInCellImages().Count);
 
             using var targetDocument = ExcelDocument.Create(new MemoryStream());
-            targetDocument.AddWorksheet("Existing");
+            targetDocument.AddSheet("Existing");
             ExcelSheet copied = targetDocument.CopyWorksheetFrom(
                 sourceDocument,
                 source.Name,

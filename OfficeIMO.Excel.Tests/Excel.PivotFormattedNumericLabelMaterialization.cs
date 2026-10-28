@@ -149,7 +149,7 @@ namespace OfficeIMO.Tests
                 _ => ExcelPivotFilter.LabelNotEquals("Item", "1,000")};
             using (var document = ExcelDocument.Create())
             {
-                var source = document.AddWorksheet("Source");
+                var source = document.AddSheet("Source");
                 source.CellValue(1, 1, "Item");
                 source.CellValue(1, 2, "Sales");
                 double[] keys = kind == "midpoint-positive" ? new[]
@@ -341,7 +341,7 @@ namespace OfficeIMO.Tests
         public void Test_PivotNumericLabelRange_RejectsUnqualifiedOneDecimalCaptionBeforeWriting()
         {
             using var document = ExcelDocument.Create();
-            var source = document.AddWorksheet("Source");
+            var source = document.AddSheet("Source");
             source.CellValue(1, 1, "Item");
             source.CellValue(1, 2, "Sales");
             source.CellValue(2, 1, 1.2d);
@@ -379,7 +379,7 @@ namespace OfficeIMO.Tests
             var expected = oracle.GetSheet("Grouped").ReadRange($"A4:B{lastRow}");
             using (var document = ExcelDocument.Create())
             {
-                var source = document.AddWorksheet("Source");
+                var source = document.AddSheet("Source");
                 source.CellValue(1, 1, "Item");
                 source.CellValue(1, 2, "Sales");
                 double[] keys =
@@ -470,7 +470,7 @@ namespace OfficeIMO.Tests
             var expected = oracle.GetSheet("Grouped").ReadRange("A4:C10");
             using (var document = ExcelDocument.Create())
             {
-                var source = document.AddWorksheet("Source");
+                var source = document.AddSheet("Source");
                 source.CellValue(1, 1, "Quantity");
                 source.CellValue(1, 2, "Product");
                 source.CellValue(1, 3, "Sales");
@@ -514,7 +514,7 @@ namespace OfficeIMO.Tests
         public void Test_PivotExplicitShowAll_RejectsHeadlessMaterializationWithoutChangingView()
         {
             using var document = ExcelDocument.Create();
-            var source = document.AddWorksheet("Source");
+            var source = document.AddSheet("Source");
             source.CellValue(1, 1, "Quantity");
             source.CellValue(1, 2, "Product");
             source.CellValue(1, 3, "Sales");

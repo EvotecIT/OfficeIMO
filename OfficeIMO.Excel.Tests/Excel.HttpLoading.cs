@@ -370,7 +370,7 @@ namespace OfficeIMO.Tests {
                 $"OfficeIMO.Excel.Http.{Guid.NewGuid():N}.xls");
             try {
                 using (var document = ExcelDocument.Create(path)) {
-                    ExcelSheet sheet = document.AddWorksheet("Legacy");
+                    ExcelSheet sheet = document.AddSheet("Legacy");
                     sheet.CellValue(1, 1, "Id");
                     sheet.CellValue(2, 1, 7);
                     document.Save();
@@ -434,7 +434,7 @@ namespace OfficeIMO.Tests {
         private static byte[] CreateRemoteWorkbookBytes() {
             using var memory = new MemoryStream();
             using (var document = ExcelDocument.Create(memory, new ExcelCreateOptions { PersistenceMode = OfficeIMO.DocumentPersistenceMode.SaveOnDispose })) {
-                var sheet = document.AddWorksheet("Remote");
+                var sheet = document.AddSheet("Remote");
                 sheet.CellValue(1, 1, "Value");
             }
 

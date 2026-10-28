@@ -49,7 +49,7 @@ namespace OfficeIMO.Tests
             string output = Path.Combine(_directoryWithFiles, "ManualGroup.Filtered.Authored.xlsx");
             using (var document = ExcelDocument.Create())
             {
-                var sheet = document.AddWorksheet("Source");
+                var sheet = document.AddSheet("Source");
                 object? [, ] source = oracle.GetSheet("Source").ReadRange("A1:B6");
                 for (int row = 0; row < 6; row++)
                     for (int column = 0; column < 2; column++)
@@ -82,7 +82,7 @@ namespace OfficeIMO.Tests
         public void Test_PivotGroupedItemFilter_NumericAndDateAuthoring()
         {
             using var document = ExcelDocument.Create();
-            var numeric = document.AddWorksheet("Numbers");
+            var numeric = document.AddSheet("Numbers");
             using (var oracle = ExcelDocumentReader.Open(PivotNumericGroupOraclePath))
             {
                 object? [, ] source = oracle.GetSheet("Source").ReadRange("A1:B9");
@@ -104,7 +104,7 @@ namespace OfficeIMO.Tests
             Assert.True(numeric.MaterializePivotTable("FilteredBuckets").Mutation.PackageIsValid);
             Assert.Equal(813d, numeric.GetPivotData("FilteredBuckets", "Metric").Value);
             Assert.Equal("#REF!", numeric.GetPivotData("FilteredBuckets", "Metric", new Dictionary<string, object?> { ["Quantity"] = "0-9" }).Value);
-            var dates = document.AddWorksheet("Dates");
+            var dates = document.AddSheet("Dates");
             dates.CellValue(1, 1, "OrderDate");
             dates.CellValue(1, 2, "Sales");
             var values = new[]

@@ -9,7 +9,7 @@ namespace OfficeIMO.Tests {
         public void Test_ValidateDocument() {
             string filePath = Path.Combine(_directoryWithFiles, "ValidateDocument.xlsx");
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorksheet("Data");
+                var sheet = document.AddSheet("Data");
                 sheet.CellValue(1, 1, "Test");
                 document.Save();
             }

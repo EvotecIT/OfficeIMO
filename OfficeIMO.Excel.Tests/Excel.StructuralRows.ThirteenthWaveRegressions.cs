@@ -15,8 +15,8 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_StructuralRows_RewritesClassicChartExtensionFormulasOnOtherSheets() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet data = document.AddWorksheet("Data");
-            ExcelSheet summary = document.AddWorksheet("Summary");
+            ExcelSheet data = document.AddSheet("Data");
+            ExcelSheet summary = document.AddSheet("Summary");
             data.CellAt(5, 1).SetValue(1);
             summary.CellAt(1, 1).SetValue("Category");
             summary.CellAt(1, 2).SetValue("Value");
@@ -40,8 +40,8 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_StructuralRows_RejectsCrossSheetFormControlLinksAtomically() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet data = document.AddWorksheet("Data");
-            ExcelSheet summary = document.AddWorksheet("Summary");
+            ExcelSheet data = document.AddSheet("Data");
+            ExcelSheet summary = document.AddSheet("Summary");
             data.CellAt(5, 1).SetValue("Keep");
             VmlDrawingPart vmlPart = summary.WorksheetPart.AddNewPart<VmlDrawingPart>();
             string relationshipId = summary.WorksheetPart.GetIdOfPart(vmlPart);
@@ -70,7 +70,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_StructuralRows_RemovesScenariosWhenResultRangeIsDeleted() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.CellAt(1, 2).SetValue(1);
             sheet.CellAt(5, 1).SetValue(2);
             var scenario = new Scenario(
@@ -92,8 +92,8 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_StructuralRows_MaterializesOverflowedSharedFormulaFollowersAsRefErrors() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet data = document.AddWorksheet("Data");
-            ExcelSheet other = document.AddWorksheet("Other");
+            ExcelSheet data = document.AddSheet("Data");
+            ExcelSheet other = document.AddSheet("Other");
             other.CellAt(1, 1).SetValue("Delete");
             SheetData sheetData = data.WorksheetPart.Worksheet.GetFirstChild<SheetData>()!;
             var ownerRow = new Row { RowIndex = (uint)(ExcelA1.MaxRows - 1) };

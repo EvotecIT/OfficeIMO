@@ -18,7 +18,7 @@ namespace OfficeIMO.Tests
             {
                 using (ExcelDocument document = ExcelDocument.Create(filePath))
                 {
-                    ExcelSheet sheet = document.AddWorksheet("Sales");
+                    ExcelSheet sheet = document.AddSheet("Sales");
                     sheet.CellValue(1, 1, "Region");
                     sheet.CellValue(1, 2, "OrderDate");
                     sheet.CellValue(1, 3, "Sales");
@@ -61,7 +61,7 @@ namespace OfficeIMO.Tests
             string filePath = Path.Combine(_directoryWithFiles, "Excel.PivotInteractions.xlsx");
             using (ExcelDocument document = ExcelDocument.Create(filePath))
             {
-                ExcelSheet sheet = document.AddWorksheet("Sales");
+                ExcelSheet sheet = document.AddSheet("Sales");
                 sheet.CellValue(1, 1, "Region");
                 sheet.CellValue(1, 2, "OrderDate");
                 sheet.CellValue(1, 3, "Sales");
@@ -126,7 +126,7 @@ namespace OfficeIMO.Tests
         public void Test_PivotInteractionCaches_GenerateUniqueDefaultNames()
         {
             using ExcelDocument document = ExcelDocument.Create();
-            ExcelSheet sheet = document.AddWorksheet("Sales");
+            ExcelSheet sheet = document.AddSheet("Sales");
             sheet.CellValue(1, 1, "Region");
             sheet.CellValue(1, 2, "OrderDate");
             sheet.CellValue(1, 3, "Sales");
@@ -155,7 +155,7 @@ namespace OfficeIMO.Tests
         public void Test_PivotInteractionCaches_BoundDefaultNameSearchToExistingCaches()
         {
             using ExcelDocument document = ExcelDocument.Create();
-            ExcelSheet sheet = document.AddWorksheet("Sales");
+            ExcelSheet sheet = document.AddSheet("Sales");
             sheet.CellValue(1, 1, "Region");
             sheet.CellValue(1, 2, "Sales");
             sheet.CellValue(2, 1, "East");
@@ -194,7 +194,7 @@ namespace OfficeIMO.Tests
         public void Test_PivotTimelineCache_UsesDecisiveCacheBeforeUntrustedSourceRange()
         {
             using ExcelDocument document = ExcelDocument.Create();
-            ExcelSheet original = document.AddWorksheet("Original");
+            ExcelSheet original = document.AddSheet("Original");
             original.CellValue(1, 1, "Region");
             original.CellValue(1, 2, "OrderDate");
             original.CellValue(1, 3, "Sales");
@@ -222,7 +222,7 @@ namespace OfficeIMO.Tests
         public void Test_PivotTimelineCache_MapsRelaxedHeadersByCacheFieldPosition()
         {
             using ExcelDocument document = ExcelDocument.Create();
-            ExcelSheet original = document.AddWorksheet("Original");
+            ExcelSheet original = document.AddSheet("Original");
             original.CellValue(1, 1, "Region");
             original.CellValue(1, 2, "OrderDate");
             original.CellValue(1, 3, "Sales");
@@ -230,7 +230,7 @@ namespace OfficeIMO.Tests
             original.CellValue(2, 2, new DateTime(2026, 1, 2));
             original.CellValue(2, 3, 10d);
             original.AddPivotTable("A1:C2", "E2", options: new ExcelPivotTableOptions { Name = "SalesPivot", RowFields = new[] { "Region" }, DataFields = new[] { new ExcelPivotDataField("Sales", ExcelPivotDataFunction.Sum) } });
-            ExcelSheet replacement = document.AddWorksheet("Replacement");
+            ExcelSheet replacement = document.AddSheet("Replacement");
             replacement.CellValue(1, 1, "OrderDate");
             replacement.CellValue(1, 2, "Date");
             replacement.CellValue(1, 3, "Amount");
@@ -240,7 +240,7 @@ namespace OfficeIMO.Tests
             original.UpdatePivotTableSource("SalesPivot", replacement, "A1:C2", new ExcelPivotSourceUpdateOptions { RequireMatchingHeaders = false });
             document.AddPivotTimelineCache("SalesPivot", "OrderDate");
             Assert.Equal("OrderDate", Assert.Single(document.GetWorkbookTimelineCaches()).SourceName);
-            ExcelSheet misleading = document.AddWorksheet("Misleading");
+            ExcelSheet misleading = document.AddSheet("Misleading");
             misleading.CellValue(1, 1, "OrderDate");
             misleading.CellValue(1, 2, "Date");
             misleading.CellValue(1, 3, "Amount");
@@ -255,7 +255,7 @@ namespace OfficeIMO.Tests
         public void Test_PivotTimelineCache_UsesNormalizedDuplicateAndBlankSourceHeaders()
         {
             using ExcelDocument document = ExcelDocument.Create();
-            ExcelSheet sheet = document.AddWorksheet("Sales");
+            ExcelSheet sheet = document.AddSheet("Sales");
             sheet.CellValue(1, 1, "Region");
             sheet.CellValue(1, 2, "Date");
             sheet.CellValue(1, 3, "Date");
@@ -275,7 +275,7 @@ namespace OfficeIMO.Tests
         public void Test_PivotTimelineCache_AcceptsStyledFormulaDateCaches()
         {
             using ExcelDocument document = ExcelDocument.Create();
-            ExcelSheet sheet = document.AddWorksheet("Sales");
+            ExcelSheet sheet = document.AddSheet("Sales");
             sheet.CellValue(1, 1, "Region");
             sheet.CellValue(1, 2, "OrderDate");
             sheet.CellValue(1, 3, "Amount");

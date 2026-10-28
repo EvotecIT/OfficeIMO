@@ -16,8 +16,8 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (var document = ExcelDocument.Create(filePath)) {
-                    var data = document.AddWorksheet("Data", ExcelSheetNameValidationMode.Strict);
-                    var summary = document.AddWorksheet("Summary", ExcelSheetNameValidationMode.Strict);
+                    var data = document.AddSheet("Data", ExcelSheetNameValidationMode.Strict);
+                    var summary = document.AddSheet("Summary", ExcelSheetNameValidationMode.Strict);
 
                     data.CellValue(1, 1, 42);
                     summary.CellFormula(1, 1, "SUM(Data!A1)");
@@ -66,7 +66,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (var document = ExcelDocument.Create(filePath)) {
-                    var data = document.AddWorksheet("Data", ExcelSheetNameValidationMode.Strict);
+                    var data = document.AddSheet("Data", ExcelSheetNameValidationMode.Strict);
 
                     data.CellValue(1, 1, "Month");
                     data.CellValue(1, 2, "Sales");
@@ -124,8 +124,8 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (var document = ExcelDocument.Create(filePath)) {
-                    var data = document.AddWorksheet("Data", ExcelSheetNameValidationMode.Strict);
-                    var summary = document.AddWorksheet("Summary", ExcelSheetNameValidationMode.Strict);
+                    var data = document.AddSheet("Data", ExcelSheetNameValidationMode.Strict);
+                    var summary = document.AddSheet("Summary", ExcelSheetNameValidationMode.Strict);
 
                     data.CellValue(1, 1, 5);
                     data.CellValue(2, 1, 15);
@@ -164,8 +164,8 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (var document = ExcelDocument.Create(filePath)) {
-                    var data = document.AddWorksheet("Data", ExcelSheetNameValidationMode.Strict);
-                    var summary = document.AddWorksheet("Summary", ExcelSheetNameValidationMode.Strict);
+                    var data = document.AddSheet("Data", ExcelSheetNameValidationMode.Strict);
+                    var summary = document.AddSheet("Summary", ExcelSheetNameValidationMode.Strict);
 
                     data.CellValue(1, 1, "Value");
                     summary.CellValue(1, 1, "Other");
@@ -212,8 +212,8 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (var document = ExcelDocument.Create(filePath)) {
-                    var data = document.AddWorksheet("Data", ExcelSheetNameValidationMode.Strict);
-                    var summary = document.AddWorksheet("Summary", ExcelSheetNameValidationMode.Strict);
+                    var data = document.AddSheet("Data", ExcelSheetNameValidationMode.Strict);
+                    var summary = document.AddSheet("Summary", ExcelSheetNameValidationMode.Strict);
 
                     data.CellValue(1, 1, 10);
                     summary.CellFormula(1, 1, "SUM(Data!A1,'[Other.xlsx]Data'!A1,[Other.xlsx]Data!A1)");
@@ -251,8 +251,8 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (var document = ExcelDocument.Create(filePath)) {
-                    var data = document.AddWorksheet("Data", ExcelSheetNameValidationMode.Strict);
-                    var summary = document.AddWorksheet("Summary", ExcelSheetNameValidationMode.Strict);
+                    var data = document.AddSheet("Data", ExcelSheetNameValidationMode.Strict);
+                    var summary = document.AddSheet("Summary", ExcelSheetNameValidationMode.Strict);
 
                     data.CellValue(1, 1, 10);
                     data.CellValue(2, 1, 20);

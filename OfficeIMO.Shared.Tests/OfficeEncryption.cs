@@ -112,7 +112,7 @@ namespace OfficeIMO.Shared.Tests {
             string path = CreateTempPath(".xlsx");
 
             using (var document = ExcelDocument.Create(new MemoryStream())) {
-                var sheet = document.AddWorksheet("Encrypted");
+                var sheet = document.AddSheet("Encrypted");
                 sheet.CellValue(1, 1, "Encrypted Excel content");
                 document.Save(path, new ExcelSaveOptions { Password = Password });
             }
@@ -131,7 +131,7 @@ namespace OfficeIMO.Shared.Tests {
             using var encrypted = new MemoryStream();
 
             using (var document = ExcelDocument.Create(new MemoryStream())) {
-                var sheet = document.AddWorksheet("EncryptedStream");
+                var sheet = document.AddSheet("EncryptedStream");
                 sheet.CellValue(1, 1, "Encrypted Excel stream content");
                 document.Save(encrypted, new ExcelSaveOptions { Password = Password });
             }
@@ -148,7 +148,7 @@ namespace OfficeIMO.Shared.Tests {
         [Fact]
         public void Excel_PasswordLoadRetainsTheAssociatedPathAndEncryptsSubsequentSaves() {
             string file = CreateTempPath(".xlsx");
-            using (var document = ExcelDocument.Create()) { document.AddWorksheet("Data").CellValue(1, 1, "Original"); document.Save(file, new ExcelSaveOptions { Password = Password }); }
+            using (var document = ExcelDocument.Create()) { document.AddSheet("Data").CellValue(1, 1, "Original"); document.Save(file, new ExcelSaveOptions { Password = Password }); }
             using (var document = ExcelDocument.Load(file, new ExcelLoadOptions { Password = Password })) {
                 Assert.Equal(file, document.FilePath);
                 document.Sheets[0].CellValue(2, 1, "Explicit encrypted edit");
@@ -203,7 +203,7 @@ namespace OfficeIMO.Shared.Tests {
             string path = CreateTempPath(".xlsx");
 
             using (var document = ExcelDocument.Create(new MemoryStream())) {
-                document.AddWorksheet("Encrypted");
+                document.AddSheet("Encrypted");
                 document.Save(path, new ExcelSaveOptions { Password = Password });
             }
 
@@ -215,7 +215,7 @@ namespace OfficeIMO.Shared.Tests {
             string path = CreateTempPath(".xlsx");
 
             using (var document = ExcelDocument.Create(new MemoryStream())) {
-                var sheet = document.AddWorksheet("Encrypted");
+                var sheet = document.AddSheet("Encrypted");
                 sheet.CellValue(1, 1, "Tamper target");
                 document.Save(path, new ExcelSaveOptions { Password = Password });
             }

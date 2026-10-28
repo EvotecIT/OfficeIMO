@@ -51,7 +51,7 @@ public sealed partial class OfficeVisualIntegrationTests {
 
             string excelPath = Path.Combine(folder, "repeated.xlsx");
             using (var document = ExcelDocument.Create(excelPath)) {
-                var sheet = document.AddWorksheet("Requests");
+                var sheet = document.AddSheet("Requests");
                 for (int index = 0; index < expected.Length; index++) sheet.AddVisualArtifact(2 + index * 14, 2, expected[index]);
                 document.Save();
             }

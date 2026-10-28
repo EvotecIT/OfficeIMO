@@ -17,7 +17,7 @@ namespace OfficeIMO.Tests
             const string connectionXml = "<connections xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\" count=\"1\"><connection id=\"1\" name=\"SalesConnection\" type=\"5\" refreshedVersion=\"7\"/></connections>";
             using (var document = ExcelDocument.Create(filePath))
             {
-                ExcelSheet sheet = document.AddWorksheet("Data");
+                ExcelSheet sheet = document.AddSheet("Data");
                 sheet.CellValue(1, 1, "Region");
                 sheet.CellValue(1, 2, "Sales");
                 sheet.CellValue(2, 1, "East");
@@ -50,7 +50,7 @@ namespace OfficeIMO.Tests
             string filePath = Path.Combine(_directoryWithFiles, "ExcelRefreshOnOpen.TypedConnections.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                document.AddWorksheet("Data");
+                document.AddSheet("Data");
                 document.Save();
             }
 

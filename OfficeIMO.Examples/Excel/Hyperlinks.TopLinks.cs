@@ -36,7 +36,7 @@ namespace OfficeIMO.Examples.Excel
                 doc.ApplicationProperties.ApplicationName = "OfficeIMO.Excel";
             }
 
-            var s = doc.AddWorksheet("Top Links", ExcelSheetNameValidationMode.Sanitize).Report();
+            var s = doc.AddSheet("Top Links", ExcelSheetNameValidationMode.Sanitize).Report();
             s.Title("Top Links", "Demonstrates =HYPERLINK(Url, Title) in a table");
             // Build a simple table: Title | Url
             var rows = links.Select(l => new { l.Title, l.Url }).ToList();

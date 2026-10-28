@@ -14,7 +14,7 @@ namespace OfficeIMO.Tests
         [Fact]
         public void Test_CellShifts_ClearSpansOnlyOnChangedRows() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.CellValue(1, 1, "A");
             sheet.CellValue(1, 2, "B");
             sheet.CellValue(1, 3, "C");
@@ -44,7 +44,7 @@ namespace OfficeIMO.Tests
         public void Test_StructuralReferenceRewrites_InvalidatePivotCacheRecordsAcrossMutationKinds()
         {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.CellValue(1, 1, "Region");
             sheet.CellValue(1, 2, "Sales");
             sheet.CellValue(2, 1, "East");
@@ -70,7 +70,7 @@ namespace OfficeIMO.Tests
         [Fact]
         public void Test_RangeMovePlan_RejectsLegacyCommentVmlAnchorOverflow() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.CellValue(1, 1, "Keep");
             sheet.SetComment("A1", "Anchored note");
 
@@ -85,7 +85,7 @@ namespace OfficeIMO.Tests
         [Fact]
         public void Test_InCellImageRemoval_ReclaimsExclusiveRichValueChain() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             byte[] image = { 1, 2, 3, 4 };
 
             for (int cycle = 0; cycle < 2; cycle++) {

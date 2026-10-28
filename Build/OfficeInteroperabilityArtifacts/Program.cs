@@ -39,7 +39,7 @@ static void CreateWordArtifact(string outputDirectory, ICollection<Interoperabil
 static void CreateExcelArtifacts(string outputDirectory, ICollection<InteroperabilityArtifact> artifacts) {
     string source = Path.Combine(outputDirectory, "officeimo-excel-source.xlsx");
     using (ExcelDocument document = ExcelDocument.Create(source)) {
-        ExcelSheet sheet = document.AddWorksheet("Compatibility");
+        ExcelSheet sheet = document.AddSheet("Compatibility");
         sheet.CellValue(1, 1, "OfficeIMO Excel modern-to-binary interoperability artifact");
         sheet.CellValue(2, 1, 42);
         document.Save();

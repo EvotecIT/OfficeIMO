@@ -32,7 +32,7 @@ namespace OfficeIMO.Tests
                     doc.BuiltinDocumentProperties.Keywords = "test,excel,header,footer";
                 }
 
-                var sheet = doc.AddWorksheet("Summary");
+                var sheet = doc.AddSheet("Summary");
                 sheet.Cell(1, 1, "Hello");
                 // Header/footer with tokens and image
                 string logoPath = Path.Combine(_directoryWithImages, "EvotecLogo.png");
@@ -70,7 +70,7 @@ namespace OfficeIMO.Tests
 
             using (var doc = ExcelDocument.Create(filePath))
             {
-                var sheet = doc.AddWorksheet("Sheet1");
+                var sheet = doc.AddSheet("Sheet1");
                 var pngPath = Path.Combine(_directoryWithImages, "EvotecLogo.png");
                 var pngBytes = File.ReadAllBytes(pngPath);
                 sheet.SetHeaderImage(ExcelHeaderFooterPosition.Center, pngBytes, "image/png");
@@ -99,7 +99,7 @@ namespace OfficeIMO.Tests
 
             using (var doc = ExcelDocument.Create(filePath))
             {
-                var sheet = doc.AddWorksheet("Sheet1");
+                var sheet = doc.AddSheet("Sheet1");
                 var jpegPath = Path.Combine(_directoryWithImages, "Kulek.jpg");
                 var jpegBytes = File.ReadAllBytes(jpegPath);
                 sheet.SetHeaderImage(ExcelHeaderFooterPosition.Center, jpegBytes, " image/jpg; charset=binary ");
@@ -128,7 +128,7 @@ namespace OfficeIMO.Tests
 
             using (var doc = ExcelDocument.Create(filePath))
             {
-                var sheet = doc.AddWorksheet("Sheet1");
+                var sheet = doc.AddSheet("Sheet1");
                 var jpegPath = Path.Combine(_directoryWithImages, "Kulek.jpg");
                 var jpegBytes = File.ReadAllBytes(jpegPath);
                 sheet.SetFooterImage(ExcelHeaderFooterPosition.Center, jpegBytes, "image/jpeg");
@@ -157,7 +157,7 @@ namespace OfficeIMO.Tests
 
             using (var doc = ExcelDocument.Create(filePath))
             {
-                var sheet = doc.AddWorksheet("Sheet1");
+                var sheet = doc.AddSheet("Sheet1");
                 var pngPath = Path.Combine(_directoryWithImages, "EvotecLogo.png");
                 var pngBytes = File.ReadAllBytes(pngPath);
                 sheet.SetHeaderImage(ExcelHeaderFooterPosition.Center, pngBytes, "image/png");
@@ -199,7 +199,7 @@ namespace OfficeIMO.Tests
             try {
                 using (var doc = ExcelDocument.Create(filePath))
                 {
-                    var sheet = doc.AddWorksheet("Sheet1");
+                    var sheet = doc.AddSheet("Sheet1");
                     await sheet.SetHeaderImageFromUrlAsync(
                         ExcelHeaderFooterPosition.Center,
                         url,
@@ -239,7 +239,7 @@ namespace OfficeIMO.Tests
             try {
                 using (var doc = ExcelDocument.Create(filePath))
                 {
-                    var sheet = doc.AddWorksheet("Sheet1");
+                    var sheet = doc.AddSheet("Sheet1");
                     await sheet.SetFooterImageFromUrlAsync(
                         ExcelHeaderFooterPosition.Center,
                         url,

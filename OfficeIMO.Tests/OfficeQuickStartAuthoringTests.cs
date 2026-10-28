@@ -30,7 +30,7 @@ public sealed class OfficeQuickStartAuthoringTests {
         OfficeTheme theme = OfficeTheme.Modern.WithName("Review theme");
         using var bytes = new MemoryStream();
         using (var book = ExcelDocument.Create(new ExcelCreateOptions { Theme = theme })) {
-            book.AddWorksheet("Orders");
+            book.AddSheet("Orders");
             book.Save(bytes);
         }
         bytes.Position = 0;

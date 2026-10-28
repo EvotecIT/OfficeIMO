@@ -93,7 +93,7 @@ public partial class Excel {
 
     private static byte[] CreateAsyncCultureWorkbook(string rows, string trailingXml = "") {
         using ExcelDocument document = ExcelDocument.Create();
-        document.AddWorksheet("Data").CellValue(1, 1, "Name");
+        document.AddSheet("Data").CellValue(1, 1, "Name");
         byte[] original = document.ToBytes();
         using var buffer = new MemoryStream();
         buffer.Write(original, 0, original.Length);

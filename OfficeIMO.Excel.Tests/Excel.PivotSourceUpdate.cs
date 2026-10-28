@@ -16,15 +16,15 @@ namespace OfficeIMO.Tests
             string filePath = Path.Combine(_directoryWithFiles, "ExcelPivotTable.UpdateSource.xlsx");
             using (ExcelDocument document = ExcelDocument.Create(filePath))
             {
-                ExcelSheet original = document.AddWorksheet("Original");
+                ExcelSheet original = document.AddSheet("Original");
                 WritePivotSource(original, "Region", "Product", "Sales", 3);
                 original.AddPivotTable("A1:C4", "E2", options: new ExcelPivotTableOptions { SaveSourceData = true, Name = "SalesPivot", RowFields = new[] { "Region" }, ColumnFields = new[] { "Product" }, DataFields = new[] { new ExcelPivotDataField("Sales", ExcelPivotDataFunction.Sum, "Total Sales") } });
-                ExcelSheet mismatch = document.AddWorksheet("Mismatch");
+                ExcelSheet mismatch = document.AddSheet("Mismatch");
                 WritePivotSource(mismatch, "Area", "Product", "Sales", 4);
                 InvalidOperationException mismatchException = Assert.Throws<InvalidOperationException>(() => original.UpdatePivotTableSource("SalesPivot", mismatch, "A1:C5"));
                 Assert.Contains("do not match", mismatchException.Message, StringComparison.OrdinalIgnoreCase);
                 Assert.Equal("Original", Assert.Single(document.GetPivotTables()).SourceSheet);
-                ExcelSheet expanded = document.AddWorksheet("Expanded");
+                ExcelSheet expanded = document.AddSheet("Expanded");
                 WritePivotSource(expanded, "Region", "Product", "Sales", 4);
                 ExcelPivotSourceUpdateResult update = original.UpdatePivotTableSource("SalesPivot", expanded, "$A$1:$C$5");
                 Assert.Equal("SalesPivot", update.PivotTableName);
@@ -75,7 +75,7 @@ namespace OfficeIMO.Tests
             string filePath = Path.Combine(_directoryWithFiles, $"ExcelPivotTable.UpdateSource.{sourceKind}.xlsx");
             using (ExcelDocument document = ExcelDocument.Create(filePath))
             {
-                ExcelSheet original = document.AddWorksheet("Original");
+                ExcelSheet original = document.AddSheet("Original");
                 WritePivotSource(original, "Region", "Product", "Sales", 3);
                 original.AddPivotTable("A1:C4", "E2", options: new ExcelPivotTableOptions { Name = "SalesPivot", RowFields = new[] { "Region" }, DataFields = new[] { new ExcelPivotDataField("Sales", ExcelPivotDataFunction.Sum) } });
                 PivotTableCacheDefinitionPart cachePart = original.WorksheetPart.PivotTableParts.Single().PivotTableCacheDefinitionPart!;
@@ -93,7 +93,7 @@ namespace OfficeIMO.Tests
                     source.Id = relationship.Id;
                 }
 
-                ExcelSheet expanded = document.AddWorksheet("Expanded");
+                ExcelSheet expanded = document.AddSheet("Expanded");
                 WritePivotSource(expanded, "Region", "Product", "Sales", 4);
                 original.UpdatePivotTableSource("SalesPivot", expanded, "A1:C5");
                 Assert.Equal("Expanded", source.Sheet!.Value);
@@ -115,10 +115,10 @@ namespace OfficeIMO.Tests
         {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelPivotTable.UpdateSource.RelaxedHeaders.xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
-            ExcelSheet original = document.AddWorksheet("Original");
+            ExcelSheet original = document.AddSheet("Original");
             WritePivotSource(original, "Region", "Product", "Sales", 3);
             original.AddPivotTable("A1:C4", "E2", options: new ExcelPivotTableOptions { Name = "SalesPivot", RowFields = new[] { "Region" }, DataFields = new[] { new ExcelPivotDataField("Sales", ExcelPivotDataFunction.Sum) } });
-            ExcelSheet renamed = document.AddWorksheet("Renamed");
+            ExcelSheet renamed = document.AddSheet("Renamed");
             WritePivotSource(renamed, "Area", "Item", "Amount", 4);
             var relaxed = new ExcelPivotSourceUpdateOptions
             {

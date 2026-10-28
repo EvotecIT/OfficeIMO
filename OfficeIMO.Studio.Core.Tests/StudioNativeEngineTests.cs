@@ -821,7 +821,7 @@ public sealed class StudioNativeEngineTests : IDisposable {
         }
         string workbook = Path.Combine(_root, "figures.xlsx");
         using (var document = OfficeIMO.Excel.ExcelDocument.Create(workbook)) {
-            var sheet = document.AddWorksheet("Data");
+            var sheet = document.AddSheet("Data");
             sheet.CellValue(1, 1, "Quarterly figures");
             sheet.SetColumnWidth(1, OfficeIMO.Excel.ExcelColumnWidth.Characters(40)); // Search validates visible text, not clipped cell overflow.
             sheet.SetRowHeight(1, OfficeIMO.Excel.ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(30)));

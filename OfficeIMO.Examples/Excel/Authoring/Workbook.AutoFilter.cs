@@ -16,7 +16,7 @@ namespace OfficeIMO.Examples.Excel
             {
                 document1.Execution.Mode = ExcelExecutionMode.Sequential;
                 {
-                    var sheet1 = document1.AddWorksheet("TableWithFilter");
+                    var sheet1 = document1.AddSheet("TableWithFilter");
                     int nextRow2 = 1;
                     sheet1.Cell(nextRow2, 1, "Name");
                     sheet1.Cell(nextRow2, 2, "Score");
@@ -47,7 +47,7 @@ namespace OfficeIMO.Examples.Excel
             {
                 document2.Execution.Mode = ExcelExecutionMode.Sequential;
                 {
-                    var sheet3 = document2.AddWorksheet("TableNoFilter");
+                    var sheet3 = document2.AddSheet("TableNoFilter");
                     int nextRow4 = 1;
                     sheet3.Cell(nextRow4, 1, "Name");
                     sheet3.Cell(nextRow4, 2, "Score");
@@ -78,7 +78,7 @@ namespace OfficeIMO.Examples.Excel
             {
                 document3.Execution.Mode = ExcelExecutionMode.Sequential;
                 {
-                    var sheet5 = document3.AddWorksheet("WorksheetFilter");
+                    var sheet5 = document3.AddSheet("WorksheetFilter");
                     int nextRow6 = 1;
                     sheet5.Cell(nextRow6, 1, "Name");
                     sheet5.Cell(nextRow6, 2, "Score");
@@ -109,7 +109,7 @@ namespace OfficeIMO.Examples.Excel
             {
                 document4.Execution.Mode = ExcelExecutionMode.Sequential;
                 {
-                    var sheet7 = document4.AddWorksheet("TableThenFilter");
+                    var sheet7 = document4.AddSheet("TableThenFilter");
                     int nextRow8 = 1;
                     sheet7.Cell(nextRow8, 1, "Name");
                     sheet7.Cell(nextRow8, 2, "Score");
@@ -141,7 +141,7 @@ namespace OfficeIMO.Examples.Excel
             {
                 document5.Execution.Mode = ExcelExecutionMode.Sequential;
                 {
-                    var sheet9 = document5.AddWorksheet("FilterThenTable");
+                    var sheet9 = document5.AddSheet("FilterThenTable");
                     int nextRow10 = 1;
                     sheet9.Cell(nextRow10, 1, "Name");
                     sheet9.Cell(nextRow10, 2, "Score");

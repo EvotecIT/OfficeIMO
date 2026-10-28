@@ -49,7 +49,7 @@ namespace OfficeIMO.Examples.Excel
                 }
 
                 // Sheet 1: Summary of all domains as a table (ExcelReportBuilder)
-                var composer = doc.AddWorksheet("Summary", ExcelSheetNameValidationMode.Sanitize).Report();
+                var composer = doc.AddSheet("Summary", ExcelSheetNameValidationMode.Sanitize).Report();
                 composer.Title("Domain Detective — Mail Classification Summary");
                 // Totals callout (parity with Markdown)
                 int totalWarnings = data.Sum(d => d.WarningCount);
@@ -150,7 +150,7 @@ namespace OfficeIMO.Examples.Excel
                 // One sheet per domain with richer layout
                 foreach (var d in data)
                 {
-                    var rs = doc.AddWorksheet(d.Domain, ExcelSheetNameValidationMode.Sanitize).Report();
+                    var rs = doc.AddSheet(d.Domain, ExcelSheetNameValidationMode.Sanitize).Report();
                     rs.Title($"Mail Classification — {d.Domain}", d.Summary) // Per-domain status callout
                     .Callout(d.ErrorCount > 0 ? OfficeCalloutKind.Danger : (string.Equals(d.Status, "Warning", StringComparison.OrdinalIgnoreCase) ? OfficeCalloutKind.Warning : OfficeCalloutKind.Info), "Status", $"Status: {d.Status}; Findings: {d.WarningCount} warning(s), {d.ErrorCount} error(s).").SectionWithAnchor("Overview").PropertiesGrid(new (string, object? )[] { ("Domain", d.Domain), ("Classification", d.Classification), ("Confidence", d.Confidence), ("Status", d.Status), ("Warnings", d.WarningCount), ("Errors", d.ErrorCount) }, columns: 3).SectionWithAnchor("Signals").PropertiesGrid(new (string, object? )[] { ("Receiving", string.Join(", ", d.ReceivingSignals)), ("Sending", string.Join(", ", d.SendingSignals)) }, columns: 2).Score("Score", d.Score).SectionWithAnchor("Score Breakdown");
                     rs.AddTable(d.ScoreBreakdown, title: null, configure: o =>

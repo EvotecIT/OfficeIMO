@@ -17,7 +17,7 @@ public sealed class ExcelImageConversionTests {
     public async Task ImageOptions_SelectEncodingAndReturnTheSameEvidenceSynchronouslyAndAsynchronously(
         OfficeImageExportFormat encoding, OfficeImageFormat expected) {
         using var workbook = ExcelDocument.Create();
-        var sheet = workbook.AddWorksheet("Data");
+        var sheet = workbook.AddSheet("Data");
         var document = sheet.Range("A1:B2");
         sheet.CellValue(1, 1, "Image conversion");
         var options = new ExcelImageExportOptions { Format = encoding, Scale = .15D };
@@ -37,7 +37,7 @@ public sealed class ExcelImageConversionTests {
     [Fact]
     public async Task ImageSaving_PreservesCallerStreamAndHonorsFileConflictPolicy() {
         using var workbook = ExcelDocument.Create();
-        var sheet = workbook.AddWorksheet("Data");
+        var sheet = workbook.AddSheet("Data");
         var document = sheet.Range("A1:B2");
         sheet.CellValue(1, 1, "Saved page");
         var options = new ExcelImageExportOptions { Format = OfficeImageExportFormat.Png, Scale = .1D };
@@ -66,8 +66,8 @@ public sealed class ExcelImageConversionTests {
     [Fact]
     public async Task WorkbookSaving_SelectsSheetsAndHonorsConflicts() {
         using var document = ExcelDocument.Create();
-        document.AddWorksheet("First").CellValue(1, 1, "First");
-        document.AddWorksheet("Hidden").CellValue(1, 1, "Hidden");
+        document.AddSheet("First").CellValue(1, 1, "First");
+        document.AddSheet("Hidden").CellValue(1, 1, "Hidden");
         document.Sheets[1].SetHidden(true);
         string folder = Path.Combine(Path.GetTempPath(), "OfficeIMO-SheetBatch-" + Guid.NewGuid().ToString("N"));
         var options = new ExcelImageExportOptions {
@@ -93,7 +93,7 @@ public sealed class ExcelImageConversionTests {
     [Fact]
     public async Task WorksheetSaving_RetainsManualPageBreakSplits() {
         using var document = ExcelDocument.Create();
-        var sheet = document.AddWorksheet("Data");
+        var sheet = document.AddSheet("Data");
         for (int row = 1; row <= 4; row++) sheet.CellValue(row, 1, "Row " + row);
         sheet.AddManualRowPageBreak(2, save: false);
         string folder = Path.Combine(Path.GetTempPath(), "OfficeIMO-PrintImages-" + Guid.NewGuid().ToString("N"));
@@ -113,7 +113,7 @@ public sealed class ExcelImageConversionTests {
     [Fact]
     public async Task ImageSaving_PreCanceledOperationsLeaveStreamsUntouched() {
         using var workbook = ExcelDocument.Create();
-        var sheet = workbook.AddWorksheet("Data");
+        var sheet = workbook.AddSheet("Data");
         var document = sheet.Range("A1:B2");
         sheet.CellValue(1, 1, "Canceled");
         using var stream = new MemoryStream();

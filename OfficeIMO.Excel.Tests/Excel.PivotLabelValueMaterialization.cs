@@ -57,7 +57,7 @@ namespace OfficeIMO.Tests
             string output = Path.Combine(_directoryWithFiles, $"Filter.label-{kind}.Authored.xlsx");
             using (var document = ExcelDocument.Create())
             {
-                var source = document.AddWorksheet("Source");
+                var source = document.AddSheet("Source");
                 source.CellValue(1, 1, "Region");
                 source.CellValue(1, 2, "Sales");
                 var entries = new[]
@@ -113,7 +113,7 @@ namespace OfficeIMO.Tests
             string output = Path.Combine(_directoryWithFiles, $"Filter.label-equal-{total}.Authored.xlsx");
             using (var document = ExcelDocument.Create())
             {
-                var source = document.AddWorksheet("Source");
+                var source = document.AddSheet("Source");
                 source.CellValue(1, 1, "Region");
                 source.CellValue(1, 2, "Sales");
                 source.CellValue(2, 1, "E*st");
@@ -200,7 +200,7 @@ namespace OfficeIMO.Tests
             string output = Path.Combine(_directoryWithFiles, $"Filter.{kind}.Authored.xlsx");
             using (var document = ExcelDocument.Create())
             {
-                var source = document.AddWorksheet("Source");
+                var source = document.AddSheet("Source");
                 source.CellValue(1, 1, "Region");
                 source.CellValue(1, 2, "Sales");
                 var entries = new[]
@@ -260,7 +260,7 @@ namespace OfficeIMO.Tests
             string output = Path.Combine(_directoryWithFiles, $"Filter.{kind}.Authored.xlsx");
             using (var document = ExcelDocument.Create())
             {
-                var source = document.AddWorksheet("Source");
+                var source = document.AddSheet("Source");
                 source.CellValue(1, 1, "Item");
                 source.CellValue(1, 2, "Sales");
                 if (kind == "boolean")
@@ -319,7 +319,7 @@ namespace OfficeIMO.Tests
             string output = Path.Combine(_directoryWithFiles, $"Filter.{kind}.Unqualified.xlsx");
             using (var document = ExcelDocument.Create())
             {
-                var source = document.AddWorksheet("Source");
+                var source = document.AddSheet("Source");
                 source.CellValue(1, 1, "Item");
                 source.CellValue(1, 2, "Sales");
                 if (kind == "date")
@@ -369,7 +369,7 @@ namespace OfficeIMO.Tests
             string output = Path.Combine(_directoryWithFiles, $"Filter.value-{comparison}.Authored.xlsx");
             using (var document = ExcelDocument.Create())
             {
-                var source = document.AddWorksheet("Source");
+                var source = document.AddSheet("Source");
                 source.CellValue(1, 1, "Region");
                 source.CellValue(1, 2, "Sales");
                 var entries = new[]

@@ -18,7 +18,7 @@ public sealed class XlsbUtf8TextTests {
     [InlineData("Converter", false)]
     public void BorrowedXlsbText_LiveProjectionChangesKeepCreationTimeEligibilityAndCopyFallback(string projection, bool initiallyProjected) {
         using ExcelDocument document = ExcelDocument.Create();
-        ExcelSheet sheet = document.AddWorksheet("Data");
+        ExcelSheet sheet = document.AddSheet("Data");
         sheet.CellValue(1, 1, "Text");
         sheet.CellValue(2, 1, "first 🐢");
         sheet.CellValue(3, 1, "following 🐢");
@@ -55,7 +55,7 @@ public sealed class XlsbUtf8TextTests {
     public void BorrowedXlsbText_LiveProjectionBeforeCanonicalAccessKeepsCopyFallbackAndHeldSpan(string projection) {
         const string expected = "first Żółw 🐢";
         using ExcelDocument document = ExcelDocument.Create();
-        ExcelSheet sheet = document.AddWorksheet("Data");
+        ExcelSheet sheet = document.AddSheet("Data");
         sheet.CellValue(1, 1, "Text");
         sheet.CellValue(2, 1, expected);
         sheet.CellValue(3, 1, "following");
@@ -126,7 +126,7 @@ public sealed class XlsbUtf8TextTests {
     [InlineData(true)]
     public void BorrowedXlsbText_SameRowCollisionsAndLargeValuesKeepEarlierSpansValid(bool sharedStrings) {
         using ExcelDocument document = ExcelDocument.Create();
-        ExcelSheet sheet = document.AddWorksheet("Data");
+        ExcelSheet sheet = document.AddSheet("Data");
         for (int column = 1; column <= 257; column++) {
             sheet.CellValue(1, column, "Column" + column);
             sheet.CellValue(2, column, "value-" + column);
@@ -163,7 +163,7 @@ public sealed class XlsbUtf8TextTests {
         values[1][0] = new string('λ', 3000) + " 🐢";
         values[1][1] = new string('Ż', 5000) + " 🐢";
         using ExcelDocument document = ExcelDocument.Create();
-        ExcelSheet sheet = document.AddWorksheet("Data");
+        ExcelSheet sheet = document.AddSheet("Data");
         for (int column = 0; column < columns; column++) {
             sheet.CellValue(1, column + 1, "Column" + column);
             for (int row = 0; row < values.Length; row++) sheet.CellValue(row + 2, column + 1, values[row][column]);
@@ -239,7 +239,7 @@ public sealed class XlsbUtf8TextTests {
     [InlineData("UnhandledConverter")]
     public void BorrowedXlsbText_DeclinesSchemaReplayAndConverters(string projection) {
         using ExcelDocument document = ExcelDocument.Create();
-        ExcelSheet sheet = document.AddWorksheet("Data");
+        ExcelSheet sheet = document.AddSheet("Data");
         sheet.CellValue(1, 1, "Text");
         sheet.CellValue(2, 1, "sample");
         sheet.CellValue(3, 1, "following");
@@ -266,7 +266,7 @@ public sealed class XlsbUtf8TextTests {
     [Fact]
     public void BorrowedXlsbText_LeavesConvertedBinaryGetBytesAvailable() {
         using ExcelDocument document = ExcelDocument.Create();
-        ExcelSheet sheet = document.AddWorksheet("Data");
+        ExcelSheet sheet = document.AddSheet("Data");
         sheet.CellValue(1, 1, "Text");
         sheet.CellValue(2, 1, "original");
         byte[] binary = [0, 255, 42];
@@ -283,7 +283,7 @@ public sealed class XlsbUtf8TextTests {
     public async Task BorrowedXlsbText_FollowsAsyncCursorResultAndDisposalContracts() {
         using ExcelDocument document = ExcelDocument.Create();
         foreach (string name in new[] { "First", "Second" }) {
-            ExcelSheet sheet = document.AddWorksheet(name);
+            ExcelSheet sheet = document.AddSheet(name);
             sheet.CellValue(1, 1, "Text");
             sheet.CellValue(2, 1, name);
         }
@@ -323,7 +323,7 @@ public sealed class XlsbUtf8TextTests {
     [Fact]
     public void BorrowedXlsbText_UsesCanonicalRichTextCellValue() {
         using ExcelDocument document = ExcelDocument.Create();
-        ExcelSheet sheet = document.AddWorksheet("Data");
+        ExcelSheet sheet = document.AddSheet("Data");
         sheet.CellValue(1, 1, "Text");
         sheet.CellValue(2, 1, " rich Żółw 🐢 \r\n");
         using var package = new MemoryStream();

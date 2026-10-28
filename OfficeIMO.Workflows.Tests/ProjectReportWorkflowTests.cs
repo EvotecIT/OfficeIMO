@@ -66,7 +66,7 @@ public sealed class ProjectReportWorkflowTests {
 
     [Fact]
     public void ExcelIntegralDecimalScaleIsNormalizedBeforeIdentityImport() {
-        using var workbook = ExcelDocument.Create(); var sheet = workbook.AddWorksheet("Tasks");
+        using var workbook = ExcelDocument.Create(); var sheet = workbook.AddSheet("Tasks");
         sheet.CellValue(1, 1, "Uid"); sheet.CellValue(1, 2, "Name");
         sheet.CellValue(2, 1, 1.0m); sheet.CellValue(2, 2, "Task");
         Assert.True(sheet.TryGetCellValueSnapshot(2, 1, out var raw)); Assert.Equal("1.0", raw!.RawValue);
@@ -82,7 +82,7 @@ public sealed class ProjectReportWorkflowTests {
     [InlineData(1e-28, "0.0000000000000000000000000001")]
     public void NativeExcelNumbersNormalizeWithoutLosingPrecision(double number, string expected) {
         using var workbook = ExcelDocument.Create();
-        var sheet = workbook.AddWorksheet("Tasks");
+        var sheet = workbook.AddSheet("Tasks");
         sheet.CellValue(1, 1, "Uid"); sheet.CellValue(1, 2, "Name");
         sheet.CellValue(2, 1, number); sheet.CellValue(2, 2, "Task");
         var table = ProjectDataWorkflow.ReadExcel(sheet, 1, 2);
@@ -96,7 +96,7 @@ public sealed class ProjectReportWorkflowTests {
     [InlineData(1e-29)]
     [InlineData(-1e-29)]
     public void NativeExcelNumbersRejectDecimalUnderflow(double number) {
-        using var workbook = ExcelDocument.Create(); var sheet = workbook.AddWorksheet("Data");
+        using var workbook = ExcelDocument.Create(); var sheet = workbook.AddSheet("Data");
         sheet.CellValue(1, 1, "Cost"); sheet.CellValue(2, 1, number);
         Assert.Throws<InvalidDataException>(() => ProjectDataWorkflow.ReadExcel(sheet, 1, 1));
     }

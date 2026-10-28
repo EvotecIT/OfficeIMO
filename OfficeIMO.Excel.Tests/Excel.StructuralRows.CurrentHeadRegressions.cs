@@ -15,7 +15,7 @@ namespace OfficeIMO.Tests
         [Fact]
         public void Test_StructuralRows_PreservesOutOfGridNamesStructuredReferencesAndExternalTargets() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.CellAt(1, 1).SetValue("A3 Total");
             sheet.CellAt(2, 1).SetValue(10);
             sheet.AddTable(
@@ -38,7 +38,7 @@ namespace OfficeIMO.Tests
         [Fact]
         public void Test_StructuralRows_RemapsOffice2010DataValidationTargetsAndFormulas() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.CellAt(2, 1).SetValue(1);
             sheet.CellAt(3, 1).SetValue(2);
 
@@ -62,8 +62,8 @@ namespace OfficeIMO.Tests
         [Fact]
         public void Test_StructuralRows_DoesNotRebaseRelativeReferencesToOtherSheets() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
-            document.AddWorksheet("Other");
+            ExcelSheet sheet = document.AddSheet("Data");
+            document.AddSheet("Other");
             sheet.CellAt(2, 1).SetValue(1);
 
             var validation = new DataValidation(
@@ -90,7 +90,7 @@ namespace OfficeIMO.Tests
         [Fact]
         public void Test_StructuralRows_RemapsStandardAndOffice2010IgnoredErrors() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.CellAt(5, 1).SetValue("1");
             sheet.CellAt(6, 1).SetValue("2");
 
@@ -124,8 +124,8 @@ namespace OfficeIMO.Tests
         [Fact]
         public void Test_StructuralRows_RemapsOffice2010ConditionalFormattingTargetsAndFormulas() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
-            document.AddWorksheet("Other");
+            ExcelSheet sheet = document.AddSheet("Data");
+            document.AddSheet("Other");
             sheet.CellAt(2, 1).SetValue(1);
 
             var rule = new X14.ConditionalFormattingRule(
@@ -162,7 +162,7 @@ namespace OfficeIMO.Tests
         [Fact]
         public void Test_StructuralRows_RejectsFormControlsBeforeMutation() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.CellAt(2, 1).SetValue("Keep");
             sheet.WorksheetPart.Worksheet.Append(new Controls());
 
@@ -176,8 +176,8 @@ namespace OfficeIMO.Tests
         [Fact]
         public void Test_DeleteRows_ValidatesAllSharedFormulaGroupsBeforeMaterializingAny() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet first = document.AddWorksheet("First");
-            ExcelSheet second = document.AddWorksheet("Second");
+            ExcelSheet first = document.AddSheet("First");
+            ExcelSheet second = document.AddSheet("Second");
             first.CellAt(2, 1).SetValue(1);
             first.CellAt(3, 1).SetValue(2);
             second.CellAt(2, 1).SetValue(1);
@@ -200,7 +200,7 @@ namespace OfficeIMO.Tests
         public void Test_StructuralRows_InvalidatesNameBasedPivotSources()
         {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.CellAt(1, 1).SetValue("Region");
             sheet.CellAt(1, 2).SetValue("Sales");
             sheet.CellAt(2, 1).SetValue("East");

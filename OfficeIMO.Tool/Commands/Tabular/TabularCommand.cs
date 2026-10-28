@@ -191,7 +191,7 @@ Sheet and schema names escape backslashes and controls as \\, \t, \r, \n, or \uX
             }
 
             using ExcelDocument document = ExcelDocument.Create();
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.InsertDataReader(
                 reader,
                 includeHeaders: options.HasHeaderRow,

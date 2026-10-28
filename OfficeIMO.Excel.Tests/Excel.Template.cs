@@ -22,11 +22,11 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelTemplate.Markers.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var invoice = document.AddWorksheet("Invoice");
+                var invoice = document.AddSheet("Invoice");
                 invoice.CellAt(1, 1).SetValue("Invoice {{Invoice.Number}}").HeaderStyle();
                 invoice.CellAt(2, 1).SetValue("Customer: {{Customer.Name}}");
 
-                var summary = document.AddWorksheet("Summary");
+                var summary = document.AddSheet("Summary");
                 summary.CellAt(1, 1).SetValue("Total: {{Total}}");
 
                 int replacements = document.ApplyTemplate(new Dictionary<string, object?> {
@@ -53,7 +53,7 @@ namespace OfficeIMO.Tests {
             string outputPath = Path.Combine(_directoryWithFiles, "ExcelTemplate.FromTemplate.xlsx");
 
             using (var document = ExcelDocument.Create(templatePath)) {
-                var sheet = document.AddWorksheet("Template");
+                var sheet = document.AddSheet("Template");
                 sheet.CellAt(1, 1).SetValue("{{Name}}").SetBold().SetFillColor("FFF2CC");
                 sheet.CellAt(2, 1).SetValue("Footer");
                 var data = new ExcelChartData(
@@ -91,7 +91,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelTemplate.MissingMarker.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorksheet("Template");
+                var sheet = document.AddSheet("Template");
                 sheet.CellAt(1, 1).SetValue("Hello {{Name}}");
 
                 Assert.Throws<InvalidOperationException>(() =>
@@ -109,7 +109,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelTemplate.MissingValuePolicy.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorksheet("Template");
+                var sheet = document.AddSheet("Template");
                 sheet.CellAt(1, 1).SetValue("Hello {{Name}} {{OptionalSuffix}}");
                 sheet.CellAt(2, 1).SetValue("{{OptionalTotal}}");
                 sheet.CellAt(3, 1).SetValue("Still {{Unknown}}");
@@ -138,7 +138,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelTemplate.RepeatingRows.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorksheet("Invoice");
+                var sheet = document.AddSheet("Invoice");
                 sheet.CellAt(1, 1).SetValue("Item").HeaderStyle();
                 sheet.CellAt(1, 2).SetValue("Amount").HeaderStyle();
                 sheet.CellAt(2, 1).SetValue("{{Name}}");
@@ -179,7 +179,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelTemplate.RepeatingRowsBounds.xlsx");
 
             using var document = ExcelDocument.Create(filePath);
-            var sheet = document.AddWorksheet("Invoice");
+            var sheet = document.AddSheet("Invoice");
             sheet.CellAt(ExcelA1.MaxRows, 1).SetValue("{{Name}}");
 
             ArgumentOutOfRangeException exception = Assert.Throws<ArgumentOutOfRangeException>(() =>
@@ -195,7 +195,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelTemplate.RepeatingRowsFormulas.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorksheet("Invoice");
+                var sheet = document.AddSheet("Invoice");
                 sheet.CellAt(1, 1).SetValue("Item");
                 sheet.CellAt(1, 2).SetValue("Amount");
                 sheet.CellAt(1, 3).SetValue("Double");
@@ -239,7 +239,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelTemplate.RepeatingRowsStationaryFormulas.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorksheet("Invoice");
+                var sheet = document.AddSheet("Invoice");
                 sheet.CellFormula(1, 4, "B4+$B$4");
                 sheet.CellFormula(1, 5, "'Invoice'!$B$4");
                 sheet.CellAt(2, 1).SetValue("Intro");
@@ -309,7 +309,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelTemplate.RepeatingRowsSparklines.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorksheet("Invoice");
+                var sheet = document.AddSheet("Invoice");
                 sheet.CellAt(1, 1).SetValue("Item");
                 sheet.CellAt(2, 1).SetValue("{{Name}}");
                 sheet.CellAt(3, 1).SetValue(1);
@@ -345,7 +345,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelTemplate.RepeatingRowsCharts.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorksheet("Invoice");
+                var sheet = document.AddSheet("Invoice");
                 sheet.CellAt(1, 1).SetValue("Item");
                 sheet.CellAt(2, 1).SetValue("{{Name}}");
                 sheet.CellAt(4, 1).SetValue("Region");
@@ -393,8 +393,8 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelTemplate.RepeatingRowsCrossSheetFormulas.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var invoice = document.AddWorksheet("Invoice");
-                document.AddWorksheet("Inputs");
+                var invoice = document.AddSheet("Invoice");
+                document.AddSheet("Inputs");
                 invoice.CellAt(2, 1).SetValue("{{Name}}");
                 invoice.CellFormula(2, 2, "'Inputs'!B2+'Inputs'!$C$2");
 
@@ -423,7 +423,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelTemplate.OptionalRowsIncluded.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorksheet("Invoice");
+                var sheet = document.AddSheet("Invoice");
                 sheet.CellAt(1, 1).SetValue("Header");
                 sheet.CellAt(2, 1).SetValue("Discount");
                 sheet.CellAt(2, 2).SetValue("{{Discount:currency}}");
@@ -460,7 +460,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelTemplate.OptionalRowsRemoved.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorksheet("Invoice");
+                var sheet = document.AddSheet("Invoice");
                 sheet.CellAt(1, 1).SetValue("Header");
                 sheet.CellAt(2, 1).SetValue("Optional {{Note}}");
                 sheet.CellAt(3, 1).SetValue("Optional {{Amount:currency}}");
@@ -486,7 +486,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelTemplate.OptionalRowsCharts.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorksheet("Invoice");
+                var sheet = document.AddSheet("Invoice");
                 sheet.CellAt(1, 1).SetValue("Header");
                 sheet.CellAt(2, 1).SetValue("Optional {{Note}}");
                 sheet.CellAt(3, 1).SetValue("Optional detail");
@@ -528,7 +528,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelTemplate.OptionalRowsRemovedFormulas.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorksheet("Invoice");
+                var sheet = document.AddSheet("Invoice");
                 sheet.CellAt(1, 1).SetValue("Header");
                 sheet.CellAt(2, 1).SetValue("Optional {{Note}}");
                 sheet.CellAt(3, 1).SetValue("Optional {{Amount}}");
@@ -552,7 +552,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelTemplate.OptionalRowsRemovedStationaryFormulas.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorksheet("Invoice");
+                var sheet = document.AddSheet("Invoice");
                 sheet.CellAt(1, 1).SetValue("Header");
                 sheet.CellFormula(1, 4, "A4+$A$4");
                 sheet.CellFormula(1, 5, "'Invoice'!$A$4");
@@ -592,7 +592,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelTemplate.RepeatingRowsMetadata.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorksheet("Invoice");
+                var sheet = document.AddSheet("Invoice");
                 sheet.CellAt(1, 1).SetValue("Header");
                 sheet.CellAt(2, 1).SetValue("{{Name}}");
                 sheet.CellAt(3, 1).SetValue("Footer");
@@ -664,7 +664,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelTemplate.RepeatingRowsNamedRangesTables.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorksheet("Invoice");
+                var sheet = document.AddSheet("Invoice");
                 sheet.CellAt(1, 1).SetValue("Header");
                 sheet.CellAt(2, 1).SetValue("{{Name}}");
                 sheet.CellAt(4, 1).SetValue("Code");
@@ -712,7 +712,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelTemplate.OptionalRowsNamedRangesTables.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorksheet("Invoice");
+                var sheet = document.AddSheet("Invoice");
                 sheet.CellAt(1, 1).SetValue("Header");
                 sheet.CellAt(2, 1).SetValue("Optional {{Note}}");
                 sheet.CellAt(3, 1).SetValue("Optional detail");
@@ -755,7 +755,7 @@ namespace OfficeIMO.Tests {
             byte[] png = Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNgYAAAAAMAASsJTYQAAAAASUVORK5CYII=");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorksheet("Region Template");
+                var sheet = document.AddSheet("Region Template");
                 sheet.CellAt(1, 1).SetValue("Region {{Region}}").HeaderStyle();
                 sheet.CellAt(2, 1).SetValue("Owner");
                 sheet.CellAt(2, 2).SetValue("{{Owner}}");
@@ -940,7 +940,7 @@ namespace OfficeIMO.Tests {
             byte[] embeddedBytes = { 0x50, 0x4B, 0x03, 0x04, 0x4F, 0x49, 0x4D, 0x4F };
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorksheet("Chart Template");
+                var sheet = document.AddSheet("Chart Template");
                 sheet.CellAt(1, 1).SetValue("Region {{Region}}");
                 sheet.CellAt(3, 1).SetValue("Metric");
                 sheet.CellAt(3, 2).SetValue("Value");
@@ -999,7 +999,7 @@ namespace OfficeIMO.Tests {
             byte[] imageBytes = Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNgYAAAAAMAASsJTYQAAAAASUVORK5CYII=");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorksheet("Chart Template");
+                var sheet = document.AddSheet("Chart Template");
                 sheet.CellAt(1, 1).SetValue("Region {{Region}}");
                 sheet.CellAt(3, 1).SetValue("Metric");
                 sheet.CellAt(3, 2).SetValue("Value");
@@ -1077,7 +1077,7 @@ namespace OfficeIMO.Tests {
             string styleXml = "<dgm:styleDef uniqueId=\"urn:officeimo:test:style\" xmlns:dgm=\"http://schemas.openxmlformats.org/drawingml/2006/diagram\" xmlns:a=\"http://schemas.openxmlformats.org/drawingml/2006/main\"><dgm:title val=\"\" /><dgm:desc val=\"\" /><dgm:catLst><dgm:cat type=\"simple\" pri=\"10100\" /></dgm:catLst></dgm:styleDef>";
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorksheet("Diagram Template");
+                var sheet = document.AddSheet("Diagram Template");
                 sheet.CellAt(1, 1).SetValue("Region {{Region}}");
                 sheet.CellAt(3, 1).SetValue("Metric");
                 sheet.CellAt(3, 2).SetValue("Value");
@@ -1167,7 +1167,7 @@ namespace OfficeIMO.Tests {
             byte[] png = Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNgYAAAAAMAASsJTYQAAAAASUVORK5CYII=");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorksheet("Template");
+                var sheet = document.AddSheet("Template");
                 sheet.CellAt(1, 1).SetValue("{{Logo}}");
                 sheet.CellAt(3, 1).SetValue("{{Badge}}");
 
@@ -1209,7 +1209,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelTemplate.ObjectModel.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorksheet("Invoice");
+                var sheet = document.AddSheet("Invoice");
                 sheet.CellAt(1, 1).SetValue("Customer: {{Customer.Name}}");
                 sheet.CellAt(2, 1).SetValue("Total: {{Total:currency}}");
                 sheet.CellAt(3, 1).SetValue("Issued: {{Issued:yyyy-MM-dd}}");
@@ -1241,7 +1241,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelTemplate.CustomFormatters.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorksheet("Template");
+                var sheet = document.AddSheet("Template");
                 sheet.CellAt(1, 1).SetValue("Customer {{Name:upper}}");
                 sheet.CellAt(2, 1).SetValue("Risk {{Score:risk}}");
                 sheet.CellAt(3, 1).SetValue("{{Nullable:fallback}}");
@@ -1281,7 +1281,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelTemplate.TypedMarkers.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorksheet("Invoice");
+                var sheet = document.AddSheet("Invoice");
                 sheet.CellAt(1, 1).SetValue("{{Total:currency}}");
                 sheet.CellAt(2, 1).SetValue("{{Completion:percent}}");
                 sheet.CellAt(3, 1).SetValue("{{Issued:date}}");
@@ -1318,7 +1318,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelTemplate.DurationAlias.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorksheet("Schedule");
+                var sheet = document.AddSheet("Schedule");
                 sheet.CellAt(1, 1).SetValue("Elapsed {{Duration:duration}}");
                 sheet.CellAt(2, 1).SetValue("{{Duration:duration}}");
 
@@ -1347,7 +1347,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelTemplate.Inspect.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorksheet("Template");
+                var sheet = document.AddSheet("Template");
                 sheet.CellAt(1, 1).SetValue("Invoice {{Invoice.Number}}");
                 sheet.CellAt(2, 1).SetValue("{{Total:currency}}");
                 sheet.CellAt(3, 1).SetValue("Customer {{Customer.Name}}");

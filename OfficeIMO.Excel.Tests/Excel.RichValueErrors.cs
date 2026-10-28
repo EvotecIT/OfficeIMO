@@ -58,7 +58,7 @@ namespace OfficeIMO.Tests {
         public void RichValueErrors_EmptyArraysSaveReopenAndPreserveImages(string formula, bool includeImage) {
             string path = Path.Combine(_directoryWithFiles, "ModernErrors.xlsx");
             using (var document = ExcelDocument.Create(path)) {
-                var sheet = document.AddWorksheet("Data");
+                var sheet = document.AddSheet("Data");
                 sheet.CellValue(1, 1, 1d); sheet.CellValue(2, 1, 1d);
                 sheet.CellValue(1, 2, 0d); sheet.CellValue(2, 2, 0d);
                 if (includeImage) sheet.SetInCellImage(1, 4, TinyPng, altText: "Retained image");
@@ -92,7 +92,7 @@ namespace OfficeIMO.Tests {
         [InlineData("SUM(Table1[SEQUENCE(0)])", "SUM(Table1[SEQUENCE(0)])")]
         public void ArrayFormulaAuthoring_QualifiesFunctionsAndPreservesReferenceText(string formula, string expected) {
             using var document = ExcelDocument.Create();
-            var sheet = document.AddWorksheet("Data");
+            var sheet = document.AddSheet("Data");
             sheet.SetArrayFormula("G1:G1", formula);
             Assert.Equal(expected, sheet.GetFormulaText(1, 7));
         }
@@ -105,7 +105,7 @@ namespace OfficeIMO.Tests {
         public void RichValueErrors_CacheClearingDoesNotResurrectErrors(string mode) {
             string path = Path.Combine(_directoryWithFiles, "ClearedErrors.xlsx");
             using (var document = ExcelDocument.Create(path)) {
-                var sheet = document.AddWorksheet("Data");
+                var sheet = document.AddSheet("Data");
                 sheet.SetInCellImage(1, 4, TinyPng, altText: "Retained image");
                 sheet.SetArrayFormula("G1:G1", "SEQUENCE(0)");
                 Assert.Equal(1, document.Calculate());
@@ -132,7 +132,7 @@ namespace OfficeIMO.Tests {
         public void RichValueErrors_MissingSerializedPayloadDoesNotCreateACache() {
             string path = Path.Combine(_directoryWithFiles, "MissingPayload.xlsx");
             using (var document = ExcelDocument.Create(path)) {
-                var sheet = document.AddWorksheet("Data");
+                var sheet = document.AddSheet("Data");
                 sheet.SetArrayFormula("G1:G1", "SEQUENCE(0)");
                 Assert.Equal(1, document.Calculate());
                 sheet.WorksheetPart.Worksheet.Descendants<Cell>().Single().CellValue = null;
@@ -148,7 +148,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void RichValueErrors_DependencyGuardInvalidatesRichCache() {
             using var document = ExcelDocument.Create();
-            var sheet = document.AddWorksheet("Data");
+            var sheet = document.AddSheet("Data");
             sheet.SetArrayFormula("G1:G1", "SEQUENCE(0)");
             Assert.Equal(1, document.Calculate());
             Cell cell = sheet.WorksheetPart.Worksheet.Descendants<Cell>().Single();

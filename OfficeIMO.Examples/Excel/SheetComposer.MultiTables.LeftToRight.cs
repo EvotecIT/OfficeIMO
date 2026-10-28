@@ -64,7 +64,7 @@ namespace OfficeIMO.Examples.Excel
                     Url = "https://example.com/2"
                 },
             };
-            var s = doc.AddWorksheet("Left→Right", ExcelSheetNameValidationMode.Sanitize).Report();
+            var s = doc.AddSheet("Left→Right", ExcelSheetNameValidationMode.Sanitize).Report();
             s.Title("Tables (Left → Right)", "Two rows of 3 tables using fixed grid; per-table sizing only.");
             // Row 1 (fixed grid)
             s.Columns(3, cols =>
@@ -221,7 +221,7 @@ namespace OfficeIMO.Examples.Excel
             } }, gutter: 1);
             s.Finish(autoFitColumns: false);
             // Adaptive sheet where gutter is always 1 column regardless of table width
-            var ad = doc.AddWorksheet("Adaptive L→R", ExcelSheetNameValidationMode.Sanitize).Report();
+            var ad = doc.AddSheet("Adaptive L→R", ExcelSheetNameValidationMode.Sanitize).Report();
             ad.Title("Adaptive Columns (1 gutter)", "Widths inferred from rendered tables");
             // Re-declare the shapes used for the adaptive sheet to make them available in this scope
             var small2 = new List<object>
@@ -346,7 +346,7 @@ namespace OfficeIMO.Examples.Excel
             } }, gutter: 1);
             ad.Finish(autoFitColumns: false);
             // Overflow demos (fixed grid, with Shrink and Summarize)
-            var ov = doc.AddWorksheet("Overflow Demos", ExcelSheetNameValidationMode.Sanitize).Report();
+            var ov = doc.AddSheet("Overflow Demos", ExcelSheetNameValidationMode.Sanitize).Report();
             ov.Title("Fixed Grid Overflow Modes", "Demonstrates Shrink and Summarize without emitting in-sheet notices.");
             // Band 1: Shrink (keep only 3 columns)
             ov.Columns(2, cols =>
@@ -416,7 +416,7 @@ namespace OfficeIMO.Examples.Excel
             }, columnWidth: 3, gutter: 1, overflow: ExcelReportOverflowMode.Summarize);
             ov.Finish(autoFitColumns: false);
             // Third sheet: multiple adaptive rows (bands) using ColumnsAdaptiveRows
-            var ar = doc.AddWorksheet("Adaptive Rows", ExcelSheetNameValidationMode.Sanitize).Report();
+            var ar = doc.AddSheet("Adaptive Rows", ExcelSheetNameValidationMode.Sanitize).Report();
             ar.Title("Adaptive Rows (Bands)", "Multiple left→right bands stacked vertically; 1-column gutter everywhere.");
             // Example data for a score table with icon sets
             var grades = new List<object>

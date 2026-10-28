@@ -84,7 +84,7 @@ public sealed class ExcelSpreadsheetXmlPreservationTests {
     [InlineData(false)]
     [InlineData(true)]
     public void Unstyled_cells_keep_effective_column_or_row_styles(bool rowStyle) {
-        using var document = ExcelDocument.Create(); var sheet = document.AddWorksheet("Data");
+        using var document = ExcelDocument.Create(); var sheet = document.AddSheet("Data");
         sheet.CellValue(1, 1, "Inherited"); sheet.CellBold(1, 1);
         var worksheet = document.OpenXmlDocument.WorkbookPart!.WorksheetParts.Single().Worksheet;
         var cell = worksheet.Descendants<Cell>().Single(); uint id = cell.StyleIndex!.Value; cell.StyleIndex = null;
@@ -98,7 +98,7 @@ public sealed class ExcelSpreadsheetXmlPreservationTests {
 
     [Fact]
     public void Unmapped_nested_metadata_is_visible_in_export_diagnostics() {
-        using var document = ExcelDocument.Create(); var sheet = document.AddWorksheet("Data"); sheet.CellValue(1, 1, "Protected");
+        using var document = ExcelDocument.Create(); var sheet = document.AddSheet("Data"); sheet.CellValue(1, 1, "Protected");
         sheet.SetTabColor("FF0000"); sheet.Protect(new() { AllowSelectLockedCells = false });
         var result = document.ExportSpreadsheetXml();
         Assert.Contains(result.Report.FidelityDiagnostics, item => item.Message.Contains("tabColor"));
@@ -108,7 +108,7 @@ public sealed class ExcelSpreadsheetXmlPreservationTests {
 
     [Fact]
     public void Styleless_fast_package_export_obeys_cell_budget_and_preserves_values() {
-        using var document = ExcelDocument.Create(); var sheet = document.AddWorksheet("Data");
+        using var document = ExcelDocument.Create(); var sheet = document.AddSheet("Data");
         sheet.CellValue(1, 1, "first"); sheet.CellValue(2, 1, "second");
         using var copy = ExcelDocument.Load(new MemoryStream(document.ToBytes()));
         Assert.Contains("MaxCells", Assert.Throws<InvalidDataException>(() => copy.ExportSpreadsheetXml(new() { MaxCells = 1 })).Message);
@@ -156,7 +156,7 @@ public sealed class ExcelSpreadsheetXmlPreservationTests {
 
     [Fact]
     public void Export_keeps_empty_merge_anchors_and_rejects_covered_cell_data() {
-        using var document = ExcelDocument.Create(); var sheet = document.AddWorksheet("Data");
+        using var document = ExcelDocument.Create(); var sheet = document.AddSheet("Data");
         var worksheet = document.OpenXmlDocument.WorkbookPart!.WorksheetParts.Single().Worksheet!;
         worksheet.AddChild(new MergeCells(new MergeCell { Reference = "C3:D4" }), true);
         using var copy = ExcelDocument.ImportSpreadsheetXml(document.ExportSpreadsheetXml().Value).Value;

@@ -151,10 +151,10 @@ public partial class Excel {
             $"OfficeIMO.Excel.XlsxNativeSheetIndex.{Guid.NewGuid():N}.xlsx");
         try {
             using (var document = ExcelDocument.Create(path)) {
-                ExcelSheet first = document.AddWorksheet("First");
+                ExcelSheet first = document.AddSheet("First");
                 first.CellValue(1, 1, "Value");
                 first.CellValue(2, 1, 11);
-                ExcelSheet second = document.AddWorksheet("Second");
+                ExcelSheet second = document.AddSheet("Second");
                 second.CellValue(1, 1, "Value");
                 second.CellValue(2, 1, 22);
                 document.Save();

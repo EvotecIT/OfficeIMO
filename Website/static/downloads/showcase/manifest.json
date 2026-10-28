@@ -869,8 +869,8 @@
     {
       "id": "source-officeimo-examples-showcase-documentfeatureshowcase-excel-cs",
       "path": "/downloads/showcase/source/Showcase/DocumentFeatureShowcase.Excel.cs.txt",
-      "bytes": 7822,
-      "sha256": "ffe218eeb7c91232e82467b7479d6a930d69b27f03c80dc5f487945e32ddbce4",
+      "bytes": 7818,
+      "sha256": "5382dfeb142eff837c5814079b5a42e010b2c6a728e4820234cfb792104fe3b5",
       "generator": "Copy the generating C# source from the repository",
       "evidence": "C# source for the runnable example."
     },
@@ -1437,8 +1437,8 @@
     {
       "id": "excel-budget-scenarios-source",
       "path": "/downloads/showcase/workflows/excel-budget-scenarios/BudgetScenarios.cs.txt",
-      "bytes": 2516,
-      "sha256": "0e9b6daff88a74a3c5be95ad1b2f74738bc3cc872ebcc465baf637d353b1e495",
+      "bytes": 2512,
+      "sha256": "93ef507742ffae1a57845e59d080156c8c20b04cef606e9b679528b781e1cc24",
       "generator": "Copy the generating C# source from the repository",
       "evidence": "Complete C# source for the walkthrough example."
     },
@@ -1461,8 +1461,8 @@
     {
       "id": "excel-named-range-pricing-source",
       "path": "/downloads/showcase/workflows/excel-named-range-pricing/NamedRangePricing.cs.txt",
-      "bytes": 2342,
-      "sha256": "b9243d3c9e3adb3ae543815b6a950d6e89d7309a121e1b146b7e7ab298e2e89c",
+      "bytes": 2338,
+      "sha256": "f998e55855d88b410e41fc74d8789f15b2ebdba15f6b9e7cf0a21badc8029883",
       "generator": "Copy the generating C# source from the repository",
       "evidence": "Complete C# source for the walkthrough example."
     },
@@ -1485,8 +1485,8 @@
     {
       "id": "excel-project-workbook-source",
       "path": "/downloads/showcase/workflows/excel-project-workbook/ProjectWorkbook.cs.txt",
-      "bytes": 2616,
-      "sha256": "f83c570742dfe80fb502cfbc5c48ab42cecd78f62f39c2b98a28c69c10313ac0",
+      "bytes": 2608,
+      "sha256": "57a552b54fda20351ef31a8bff73d3eace25241e54daed838c3556bacdd4c8b6",
       "generator": "Copy the generating C# source from the repository",
       "evidence": "Complete C# source for the walkthrough example."
     },
@@ -1509,8 +1509,8 @@
     {
       "id": "excel-expense-register-source",
       "path": "/downloads/showcase/workflows/excel-expense-register/ExpenseRegister.cs.txt",
-      "bytes": 2633,
-      "sha256": "5754429f10a48ce17012410fb9a8f043d250bfb86fcfb10da7319492d2c68dc1",
+      "bytes": 2629,
+      "sha256": "583630f87dc9f0934a5fc54acbcdd6f99fa8e5cb69e57eab5fbe77107088e934",
       "generator": "Copy the generating C# source from the repository",
       "evidence": "Complete C# source for the walkthrough example."
     },
@@ -1533,8 +1533,8 @@
     {
       "id": "excel-object-export-source",
       "path": "/downloads/showcase/workflows/excel-object-export/ObjectExport.cs.txt",
-      "bytes": 4706,
-      "sha256": "5397346a69b0a6df9d5702c4e9a6a7258f9a06f80aeead7161bc743e73ca356b",
+      "bytes": 4702,
+      "sha256": "08c7a990229588830e45dc4dcf33cadfa9144e752d1860388dd56b7c1f7c9c02",
       "generator": "Copy the generating C# source from the repository",
       "evidence": "Complete C# source for the walkthrough example."
     },
@@ -2053,8 +2053,8 @@
     {
       "id": "excel-inventory-reorder-source",
       "path": "/downloads/showcase/workflows/excel-inventory-reorder/InventoryReorder.cs.txt",
-      "bytes": 2720,
-      "sha256": "f724e715eed40a93139bee9af7ef2cac096bb62654797ea92f4bf799f0e8f564",
+      "bytes": 2716,
+      "sha256": "c7da18c7ee1193dc8ff119c71c8ed905be1ceead6d2af5a7a24621f2e2c7891c",
       "generator": "Copy the generating C# source from the repository",
       "evidence": "Complete C# source for the walkthrough example."
     },
@@ -2077,8 +2077,8 @@
     {
       "id": "excel-training-matrix-source",
       "path": "/downloads/showcase/workflows/excel-training-matrix/TrainingMatrix.cs.txt",
-      "bytes": 2421,
-      "sha256": "fb91a2f861aa48e63707601290f42b782ef6e8d40fde9770dc3edd8543535ffb",
+      "bytes": 2417,
+      "sha256": "03a1015e942972a5728108b499bc1521ec7f7fa668ec2ea625fdde0acd87132c",
       "generator": "Copy the generating C# source from the repository",
       "evidence": "Complete C# source for the walkthrough example."
     },
@@ -2101,8 +2101,8 @@
     {
       "id": "excel-operational-trends-source",
       "path": "/downloads/showcase/workflows/excel-operational-trends/OperationalTrends.cs.txt",
-      "bytes": 1978,
-      "sha256": "2584a8806b6ff207ca8262027ca24d7e6998cdea60624626c4ca18875a4bb7a0",
+      "bytes": 1974,
+      "sha256": "aaa334f379963ebe75ce79358625e279543342072f74ea86929959ce982d7557",
       "generator": "Copy the generating C# source from the repository",
       "evidence": "Complete C# source for the walkthrough example."
     },
@@ -2885,8 +2885,8 @@
     {
       "id": "excel-cash-flow-forecast-source",
       "path": "/downloads/showcase/workflows/excel-cash-flow-forecast/CashFlowForecast.cs.txt",
-      "bytes": 3637,
-      "sha256": "99b0e33ab8f36f4a47eb21843fc37670a7bdad2448bcd3923b4ed02939b17c95",
+      "bytes": 3633,
+      "sha256": "b552e637c19e63d58e3f75bbb9b8475f20ad8302d939f1850f3c74c1c359f7e4",
       "generator": "Copy the generating C# source from the repository",
       "evidence": "Complete C# source for the walkthrough example."
     },
@@ -2909,8 +2909,8 @@
     {
       "id": "excel-asset-depreciation-source",
       "path": "/downloads/showcase/workflows/excel-asset-depreciation/AssetDepreciation.cs.txt",
-      "bytes": 3787,
-      "sha256": "0fbc81e8d516e4a6852e6bc8861f8bb6cb1617dba8ee57316812c3f62770075a",
+      "bytes": 3783,
+      "sha256": "2a3cb92911449a497e39d43692f127b5b80bd994e3de1ead25a859576249deb1",
       "generator": "Copy the generating C# source from the repository",
       "evidence": "Complete C# source for the walkthrough example."
     },
@@ -2933,8 +2933,8 @@
     {
       "id": "excel-vendor-comparison-source",
       "path": "/downloads/showcase/workflows/excel-vendor-comparison/VendorComparison.cs.txt",
-      "bytes": 3556,
-      "sha256": "23f276b1c2b3af3749facea04baf57050c17ada0d5047936c85d6ef90a14d2ac",
+      "bytes": 3552,
+      "sha256": "83b8da5470931ed668341dc14f53567f7e3b8fb332446a1c8e35f7c82c651a84",
       "generator": "Copy the generating C# source from the repository",
       "evidence": "Complete C# source for the walkthrough example."
     },
@@ -2957,8 +2957,8 @@
     {
       "id": "excel-workforce-rota-source",
       "path": "/downloads/showcase/workflows/excel-workforce-rota/WorkforceRota.cs.txt",
-      "bytes": 4123,
-      "sha256": "421611179a6a9de702974162b924eef3d5ad78459ddf037841ba68c75b9f0df0",
+      "bytes": 4119,
+      "sha256": "062208241a692287621f22fb7719d20e7ea06bb2bc079d63d9821be12412663a",
       "generator": "Copy the generating C# source from the repository",
       "evidence": "Complete C# source for the walkthrough example."
     },

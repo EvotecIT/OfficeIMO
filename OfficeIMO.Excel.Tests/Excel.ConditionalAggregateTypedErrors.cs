@@ -50,7 +50,7 @@ public sealed class ExcelConditionalAggregateTypedErrorTests {
     [Fact]
     public void Conditional_errors_do_not_mask_unqualified_ranges_criteria_or_resource_limits() {
         using var document = ExcelDocument.Create();
-        var sheet = document.AddWorksheet("Qualification");
+        var sheet = document.AddSheet("Qualification");
         sheet.CellValue(1, 1, "EU"); sheet.CellValue(2, 1, "EU");
         sheet.CellFormula(1, 2, "NA()"); sheet.CellFormula(2, 2, "UNKNOWN()");
         string[] expressions = {

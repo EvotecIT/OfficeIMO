@@ -56,7 +56,7 @@ public sealed class ExcelXlsbStyleEditingTests {
     [InlineData(true)]
     public void Native_locale_number_format_records_survive_appended_styles(bool encrypted) {
         using var seed = ExcelDocument.Create();
-        var sheet = seed.AddWorksheet("Data"); sheet.CellValue(1, 1, 12.5D); sheet.CellItalic(1, 1);
+        var sheet = seed.AddSheet("Data"); sheet.CellValue(1, 1, 12.5D); sheet.CellItalic(1, 1);
         var styles = seed.WorkbookPartRoot.WorkbookStylesPart!.Stylesheet!;
         styles.NumberingFormats ??= new NumberingFormats();
         styles.NumberingFormats.Append(new NumberingFormat { NumberFormatId = 5, FormatCode = "\"PLN\" #,##0.00" });

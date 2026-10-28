@@ -99,7 +99,7 @@ public partial class Excel {
     [Fact]
     public void ToPdfDocument_BoundedReadFallsBackToCreatedWorksheetStyles() {
         using ExcelDocument document = ExcelDocument.Create();
-        ExcelSheet sheet = document.AddWorksheet("Report");
+        ExcelSheet sheet = document.AddSheet("Report");
         sheet.Cell(1, 1, "Name");
         sheet.Cell(2, 1, "Platform");
         sheet.Range("A1").SetFillColor("C00000").SetFontColor("FFFFFF").SetBold();

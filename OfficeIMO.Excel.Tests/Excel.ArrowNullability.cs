@@ -10,7 +10,7 @@ public partial class Excel {
     [Fact]
     public void DataReader_RequiredArrowColumnRejectsNullFromTheWorkbookFastPath() {
         using ExcelDocument document = ExcelDocument.Create();
-        ExcelSheet sheet = document.AddWorksheet("Data");
+        ExcelSheet sheet = document.AddSheet("Data");
         sheet.CellValue(1, 1, "Id");
         sheet.CellValue(1, 2, "Name");
         sheet.CellValue(2, 2, "Alpha");

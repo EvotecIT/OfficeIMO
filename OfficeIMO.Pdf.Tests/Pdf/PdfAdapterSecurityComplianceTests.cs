@@ -271,7 +271,7 @@ public class PdfAdapterSecurityComplianceTests {
 
     private static byte[] ConvertAutomaticXlsx(string text) {
         using ExcelDocument document = ExcelDocument.Create();
-        ExcelSheet sheet = document.AddWorksheet("Proof");
+        ExcelSheet sheet = document.AddSheet("Proof");
         sheet.Cell(1, 1, text);
         sheet.Cell(2, 1, "Adapter proof");
         return (document.ToPdf()).ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
@@ -296,7 +296,7 @@ public class PdfAdapterSecurityComplianceTests {
 
     private static byte[] ConvertXlsx(PdfCore.PdfCreateOptions pdfOptions) {
         using ExcelDocument document = ExcelDocument.Create();
-        ExcelSheet sheet = document.AddWorksheet("Proof");
+        ExcelSheet sheet = document.AddSheet("Proof");
         sheet.Cell(1, 1, Marker("xlsx"));
         sheet.Cell(2, 1, "Adapter proof");
         return (document.ToPdf(new ExcelPdfExportOptions {

@@ -6,7 +6,7 @@ namespace OfficeIMO.Examples.Showcase.Workflows {
     internal static class WorkforceRota {
         internal static void Create(string folder) {
             using var document = ExcelDocument.Create(Path.Combine(folder, "example.xlsx"));
-            var sheet = document.AddWorksheet("Rota");
+            var sheet = document.AddSheet("Rota");
             sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(29));
             for (int column = 2; column <= 7; column++) sheet.SetColumnWidth(column, ExcelColumnWidth.Characters(22));
             sheet.MergeRange("A1:G1"); sheet.Cell(1, 1, "Weekly support rota");

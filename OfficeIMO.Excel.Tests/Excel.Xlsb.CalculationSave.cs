@@ -45,7 +45,7 @@ public sealed class ExcelXlsbCalculationSaveTests {
 
     [Fact]
     public void Fresh_workbooks_and_document_level_calculation_settings_apply_to_native_saves() {
-        using var seed = ExcelDocument.Create(); var sheet = seed.AddWorksheet("Data");
+        using var seed = ExcelDocument.Create(); var sheet = seed.AddSheet("Data");
         sheet.CellFormula(1, 1, "1+2"); sheet.RecalculateSupportedFormulas();
         byte[] cleared = seed.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xlsb,  ClearCachedFormulaResultsBeforeSave = true });
         using var blank = ExcelDocument.Load(new MemoryStream(cleared));
@@ -60,7 +60,7 @@ public sealed class ExcelXlsbCalculationSaveTests {
     [InlineData(false)]
     [InlineData(true)]
     public void Clearing_opaque_native_formula_cache_keeps_tokens_on_a_subsequent_edit(bool encryptedOutput) {
-        using var seed = ExcelDocument.Create(); var sheet = seed.AddWorksheet("Data");
+        using var seed = ExcelDocument.Create(); var sheet = seed.AddSheet("Data");
         sheet.CellFormula(1, 1, "1+2"); sheet.RecalculateSupportedFormulas();
         byte[] source = seed.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xlsb });
         byte[] refError = { 0x4A, 0, 0, 0, 0, 0, 0 }; // Valid BIFF12 PtgRefErrV, deliberately outside the text projection subset.

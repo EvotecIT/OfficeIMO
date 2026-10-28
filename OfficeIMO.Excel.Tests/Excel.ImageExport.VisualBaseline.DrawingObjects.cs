@@ -254,7 +254,7 @@ namespace OfficeIMO.Tests {
         private static ExcelBaselineFixture CreateRotatedPresetDrawingObjectBaselineWorkbook() {
             string filePath = Path.Combine(Path.GetTempPath(), "OfficeIMO-ExcelRotatedPresetDrawingObjectBaseline-" + Guid.NewGuid().ToString("N") + ".xlsx");
             ExcelDocument document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorksheet("RotatedShape");
+            ExcelSheet sheet = document.AddSheet("RotatedShape");
 
             sheet.CellValue(1, 1, "Rotated DrawingML preset");
             sheet.Range("A1:F1").Merge();
@@ -292,7 +292,7 @@ namespace OfficeIMO.Tests {
         private static ExcelBaselineFixture CreateRotatedShapeTextBaselineWorkbook() {
             string filePath = Path.Combine(Path.GetTempPath(), "OfficeIMO-ExcelRotatedShapeTextBaseline-" + Guid.NewGuid().ToString("N") + ".xlsx");
             ExcelDocument document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorksheet("RotatedText");
+            ExcelSheet sheet = document.AddSheet("RotatedText");
 
             sheet.CellValue(1, 1, "Rotated DrawingML text");
             sheet.Range("A1:F1").Merge();
@@ -330,7 +330,7 @@ namespace OfficeIMO.Tests {
         private static ExcelBaselineFixture CreateAlignedShapeTextBaselineWorkbook() {
             string filePath = Path.Combine(Path.GetTempPath(), "OfficeIMO-ExcelAlignedShapeTextBaseline-" + Guid.NewGuid().ToString("N") + ".xlsx");
             ExcelDocument document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorksheet("AlignedText");
+            ExcelSheet sheet = document.AddSheet("AlignedText");
 
             sheet.CellValue(1, 1, "Aligned DrawingML text");
             sheet.Range("A1:F1").Merge();
@@ -368,7 +368,7 @@ namespace OfficeIMO.Tests {
         private static ExcelBaselineFixture CreateVerticalShapeTextBaselineWorkbook() {
             string filePath = Path.Combine(Path.GetTempPath(), "OfficeIMO-ExcelVerticalShapeTextBaseline-" + Guid.NewGuid().ToString("N") + ".xlsx");
             ExcelDocument document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorksheet("VerticalText");
+            ExcelSheet sheet = document.AddSheet("VerticalText");
 
             sheet.CellValue(1, 1, "Vertical DrawingML text");
             sheet.Range("A1:F1").Merge();

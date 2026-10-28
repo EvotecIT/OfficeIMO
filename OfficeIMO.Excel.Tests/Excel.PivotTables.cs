@@ -19,7 +19,7 @@ namespace OfficeIMO.Tests
             var filePath = Path.Combine(_directoryWithFiles, "ExcelPivotTableBasic.xlsx");
             using (var document = ExcelDocument.Create(filePath))
             {
-                var sheet = document.AddWorksheet("Data");
+                var sheet = document.AddSheet("Data");
                 sheet.CellValue(1, 1, "Region");
                 sheet.CellValue(1, 2, "Product");
                 sheet.CellValue(1, 3, "Sales");
@@ -68,7 +68,7 @@ namespace OfficeIMO.Tests
             var filePath = Path.Combine(_directoryWithFiles, "ExcelPivotTableConditionalFormatting.xlsx");
             using (var document = ExcelDocument.Create(filePath))
             {
-                var sheet = document.AddWorksheet("Data");
+                var sheet = document.AddSheet("Data");
                 sheet.CellValue(1, 1, "Region");
                 sheet.CellValue(1, 2, "Product");
                 sheet.CellValue(1, 3, "Sales");
@@ -102,7 +102,7 @@ namespace OfficeIMO.Tests
             var filePath = Path.Combine(_directoryWithFiles, "ExcelPivotTableFluent.xlsx");
             using (var document = ExcelDocument.Create(filePath))
             {
-                var sheet = document.AddWorksheet("Data");
+                var sheet = document.AddSheet("Data");
                 sheet.CellValue(1, 1, "Region");
                 sheet.CellValue(1, 2, "Product");
                 sheet.CellValue(1, 3, "Sales");
@@ -167,7 +167,7 @@ namespace OfficeIMO.Tests
             var filePath = Path.Combine(_directoryWithFiles, "ExcelPivotTableInteractionOptions.xlsx");
             using (var document = ExcelDocument.Create(filePath))
             {
-                var sheet = document.AddWorksheet("Data");
+                var sheet = document.AddSheet("Data");
                 sheet.CellValue(1, 1, "Region");
                 sheet.CellValue(1, 2, "Sales");
                 sheet.CellValue(2, 1, "East");
@@ -215,7 +215,7 @@ namespace OfficeIMO.Tests
             var filePath = Path.Combine(_directoryWithFiles, "ExcelPivotTableNoSourceCacheByDefault.xlsx");
             using (var document = ExcelDocument.Create(filePath))
             {
-                var sheet = document.AddWorksheet("Data");
+                var sheet = document.AddSheet("Data");
                 sheet.CellValue(1, 1, "Region");
                 sheet.CellValue(1, 2, "Sales");
                 sheet.CellValue(2, 1, "Confidential East");
@@ -240,7 +240,7 @@ namespace OfficeIMO.Tests
             var filePath = Path.Combine(_directoryWithFiles, "ExcelPivotTableFluentItemFilters.xlsx");
             using (var document = ExcelDocument.Create(filePath))
             {
-                var sheet = document.AddWorksheet("Data");
+                var sheet = document.AddSheet("Data");
                 sheet.CellValue(1, 1, "Region");
                 sheet.CellValue(1, 2, "Product");
                 sheet.CellValue(1, 3, "Sales");
@@ -336,7 +336,7 @@ namespace OfficeIMO.Tests
             var filePath = Path.Combine(_directoryWithFiles, "ExcelPivotTableBuiltInNumberFormats.xlsx");
             using (var document = ExcelDocument.Create(filePath))
             {
-                var sheet = document.AddWorksheet("Data");
+                var sheet = document.AddSheet("Data");
                 sheet.CellValue(1, 1, "Region");
                 sheet.CellValue(1, 2, "Sales");
                 sheet.CellValue(2, 1, "East");
@@ -388,7 +388,7 @@ namespace OfficeIMO.Tests
             var filePath = Path.Combine(_directoryWithFiles, "ExcelPivotTableFieldOptions.xlsx");
             using (var document = ExcelDocument.Create(filePath))
             {
-                var sheet = document.AddWorksheet("Data");
+                var sheet = document.AddSheet("Data");
                 sheet.CellValue(1, 1, "Region");
                 sheet.CellValue(1, 2, "Product");
                 sheet.CellValue(1, 3, "Sales");
@@ -493,7 +493,7 @@ namespace OfficeIMO.Tests
             var filePath = Path.Combine(_directoryWithFiles, "ExcelPivotTableShowValuesAs.xlsx");
             using (var document = ExcelDocument.Create(filePath))
             {
-                var sheet = document.AddWorksheet("Data");
+                var sheet = document.AddSheet("Data");
                 sheet.CellValue(1, 1, "Region");
                 sheet.CellValue(1, 2, "Product");
                 sheet.CellValue(1, 3, "Sales");
@@ -546,7 +546,7 @@ namespace OfficeIMO.Tests
             var filePath = Path.Combine(_directoryWithFiles, "ExcelPivotTableFilters.xlsx");
             using (var document = ExcelDocument.Create(filePath))
             {
-                var sheet = document.AddWorksheet("Data");
+                var sheet = document.AddSheet("Data");
                 sheet.CellValue(1, 1, "Region");
                 sheet.CellValue(1, 2, "Product");
                 sheet.CellValue(1, 3, "Sales");
@@ -618,7 +618,7 @@ namespace OfficeIMO.Tests
             var filePath = Path.Combine(_directoryWithFiles, "ExcelPivotTableExpandedFilters.xlsx");
             using (var document = ExcelDocument.Create(filePath))
             {
-                var sheet = document.AddWorksheet("Data");
+                var sheet = document.AddSheet("Data");
                 sheet.CellValue(1, 1, "Region");
                 sheet.CellValue(1, 2, "Product");
                 sheet.CellValue(1, 3, "Sales");
@@ -710,7 +710,7 @@ namespace OfficeIMO.Tests
             var filePath = Path.Combine(_directoryWithFiles, "ExcelPivotTableDynamicDateFilters.xlsx");
             using (var document = ExcelDocument.Create(filePath))
             {
-                var sheet = document.AddWorksheet("Data");
+                var sheet = document.AddSheet("Data");
                 sheet.CellValue(1, 1, "OrderDate");
                 sheet.CellValue(1, 2, "Product");
                 sheet.CellValue(1, 3, "Sales");
@@ -782,7 +782,7 @@ namespace OfficeIMO.Tests
             string DateSerial(DateTime value) => value.ToOADate().ToString("G17", CultureInfo.InvariantCulture);
             using (var document = ExcelDocument.Create(filePath))
             {
-                var sheet = document.AddWorksheet("Data");
+                var sheet = document.AddSheet("Data");
                 sheet.CellValue(1, 1, "OrderDate");
                 sheet.CellValue(1, 2, "Product");
                 sheet.CellValue(1, 3, "Sales");
@@ -861,7 +861,7 @@ namespace OfficeIMO.Tests
             var filePath = Path.Combine(_directoryWithFiles, "ExcelPivotTableTopBottomFilters.xlsx");
             using (var document = ExcelDocument.Create(filePath))
             {
-                var sheet = document.AddWorksheet("Data");
+                var sheet = document.AddSheet("Data");
                 sheet.CellValue(1, 1, "Region");
                 sheet.CellValue(1, 2, "Product");
                 sheet.CellValue(1, 3, "Sales");
@@ -962,7 +962,7 @@ namespace OfficeIMO.Tests
             var filePath = Path.Combine(_directoryWithFiles, "ExcelPivotTableCalculatedFields.xlsx");
             using (var document = ExcelDocument.Create(filePath))
             {
-                var sheet = document.AddWorksheet("Data");
+                var sheet = document.AddSheet("Data");
                 sheet.CellValue(1, 1, "Region");
                 sheet.CellValue(1, 2, "Revenue");
                 sheet.CellValue(1, 3, "Cost");
@@ -1030,7 +1030,7 @@ namespace OfficeIMO.Tests
             var filePath = Path.Combine(_directoryWithFiles, "ExcelPivotTableGrouping.xlsx");
             using (var document = ExcelDocument.Create(filePath))
             {
-                var sheet = document.AddWorksheet("Data");
+                var sheet = document.AddSheet("Data");
                 sheet.CellValue(1, 1, "OrderDate");
                 sheet.CellValue(1, 2, "Quantity");
                 sheet.CellValue(1, 3, "Sales");
@@ -1110,7 +1110,7 @@ namespace OfficeIMO.Tests
             var filePath = Path.Combine(_directoryWithFiles, "ExcelPivotTableDateHierarchyGrouping.xlsx");
             using (var document = ExcelDocument.Create(filePath))
             {
-                var sheet = document.AddWorksheet("Data");
+                var sheet = document.AddSheet("Data");
                 sheet.CellValue(1, 1, "OrderDate");
                 sheet.CellValue(1, 2, "Region");
                 sheet.CellValue(1, 3, "Sales");
@@ -1191,7 +1191,7 @@ namespace OfficeIMO.Tests
             var filePath = Path.Combine(_directoryWithFiles, "ExcelPivotTableDateHierarchyFieldOptions.xlsx");
             using (var document = ExcelDocument.Create(filePath))
             {
-                var sheet = document.AddWorksheet("Data");
+                var sheet = document.AddSheet("Data");
                 sheet.CellValue(1, 1, "OrderDate");
                 sheet.CellValue(1, 2, "Region");
                 sheet.CellValue(1, 3, "Sales");
@@ -1269,7 +1269,7 @@ namespace OfficeIMO.Tests
             var filePath = Path.Combine(_directoryWithFiles, "ExcelPivotChart.xlsx");
             using (var document = ExcelDocument.Create(filePath))
             {
-                var sheet = document.AddWorksheet("Data");
+                var sheet = document.AddSheet("Data");
                 sheet.CellValue(1, 1, "Region");
                 sheet.CellValue(1, 2, "Product");
                 sheet.CellValue(1, 3, "Sales");

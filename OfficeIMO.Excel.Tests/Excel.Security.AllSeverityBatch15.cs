@@ -14,7 +14,7 @@ public sealed class ExcelAllSeverityBatch15SecurityTests
         string path = Path.Combine(Path.GetTempPath(), "officeimo-sheet-fast-" + Guid.NewGuid().ToString("N") + ".xlsx");
         try {
             using (ExcelDocument document = ExcelDocument.Create(path)) {
-                document.AddWorksheet("Data").CellValue(1, 1, "safe");
+                document.AddSheet("Data").CellValue(1, 1, "safe");
                 document.Save();
             }
 
@@ -61,7 +61,7 @@ public sealed class ExcelAllSeverityBatch15SecurityTests
     [Fact]
     public void UncachedSheetReadsDoNotMutateSharedSheetIdState() {
         using ExcelDocument document = ExcelDocument.Create(new MemoryStream());
-        document.AddWorksheet("Data");
+        document.AddSheet("Data");
         document.SheetCachingEnabled = false;
 
         Parallel.For(0, 200, _ => Assert.Single(document.Sheets));
@@ -70,7 +70,7 @@ public sealed class ExcelAllSeverityBatch15SecurityTests
     [Fact]
     public void TableTotalsRetainLastCaseInsensitiveDuplicate() {
         using ExcelDocument document = ExcelDocument.Create(new MemoryStream());
-        ExcelSheet sheet = document.AddWorksheet("Data");
+        ExcelSheet sheet = document.AddSheet("Data");
         sheet.CellValue(1, 1, "Name");
         sheet.CellValue(1, 2, "Value");
         sheet.CellValue(2, 1, "A");
@@ -95,7 +95,7 @@ public sealed class ExcelAllSeverityBatch15SecurityTests
             using (ExcelDocument document = ExcelDocument.Create(path))
             {
                 {
-                    var reportBuilder1 = document.AddWorksheet("Report", OfficeIMO.Excel.ExcelSheetNameValidationMode.Sanitize).Report();
+                    var reportBuilder1 = document.AddSheet("Report", OfficeIMO.Excel.ExcelSheetNameValidationMode.Sanitize).Report();
                     (reportBuilder1).Columns(2, columns => columns[0].AddTable(new[] { new WideRow("Alpha", 1, 2) }, title: "Wide"), columnWidth: 1, overflow: ExcelReportOverflowMode.Summarize);
                     (reportBuilder1).Finish(autoFitColumns: false);
                 }
@@ -121,7 +121,7 @@ public sealed class ExcelAllSeverityBatch15SecurityTests
     public void FixedGridOverflowReducesColumnsBeforeWorksheetBoundaryCheck(ExcelReportOverflowMode overflowMode)
     {
         using ExcelDocument document = ExcelDocument.Create(new MemoryStream());
-        ExcelSheet sheet = document.AddWorksheet("Data");
+        ExcelSheet sheet = document.AddSheet("Data");
         var composer = new ExcelReportBuilder.ColumnComposer(sheet, new ExcelReportOptions(), 1, ExcelA1.MaxColumns);
         composer.SetGridConstraints(3, overflowMode);
         string range = composer.AddTable(new[] { new WideRow("Alpha", 1, 2) }).Range!;
@@ -134,7 +134,7 @@ public sealed class ExcelAllSeverityBatch15SecurityTests
     public void FixedGridOverflowChargesCellLimitAgainstRenderedColumns(ExcelReportOverflowMode overflowMode)
     {
         using ExcelDocument document = ExcelDocument.Create(new MemoryStream());
-        ExcelSheet sheet = document.AddWorksheet("Data");
+        ExcelSheet sheet = document.AddSheet("Data");
         var composer = new ExcelReportBuilder.ColumnComposer(sheet, new ExcelReportOptions(), 1, 1);
         composer.SetGridConstraints(1, overflowMode);
         string range = composer.AddTable(new[] { new WideRow("Alpha", 1, 2) }, configure: options => options.MaxCells = 2).Range!;
@@ -145,8 +145,8 @@ public sealed class ExcelAllSeverityBatch15SecurityTests
     public void EmptyObjectTablesUseSingleCellFallbackWithoutChargingInferredHeaders()
     {
         using ExcelDocument document = ExcelDocument.Create(new MemoryStream());
-        var rootComposer = document.AddWorksheet("Root", ExcelSheetNameValidationMode.Sanitize).Report(new ExcelReportOptions());
-        ExcelSheet columnSheet = document.AddWorksheet("Column");
+        var rootComposer = document.AddSheet("Root", ExcelSheetNameValidationMode.Sanitize).Report(new ExcelReportOptions());
+        ExcelSheet columnSheet = document.AddSheet("Column");
         var columnComposer = new ExcelReportBuilder.ColumnComposer(columnSheet, new ExcelReportOptions(), 2, 2);
         string rootRange = rootComposer.AddTable(Array.Empty<WideRow>(), configure: options => options.MaxCells = 1).Range!;
         string columnRange = columnComposer.AddTable(Array.Empty<WideRow>(), configure: options => options.MaxCells = 1).Range!;
@@ -157,7 +157,7 @@ public sealed class ExcelAllSeverityBatch15SecurityTests
     [Fact]
     public void ParallelRowAutoFitAndRowMutationsSerializeOpenXmlTraversal() {
         using ExcelDocument document = ExcelDocument.Create(new MemoryStream());
-        ExcelSheet sheet = document.AddWorksheet("Data");
+        ExcelSheet sheet = document.AddSheet("Data");
         for (int row = 1; row <= 100; row++) sheet.CellValue(row, 1, "row " + row);
 
         Parallel.Invoke(

@@ -75,7 +75,7 @@ internal sealed class ExcelNativeBinaryWriteBenchmarks {
         if (reportStage is not null) {
             document.Execution.OnTiming = reportStage;
         }
-        ExcelSheet sheet = document.AddWorksheet("Data");
+        ExcelSheet sheet = document.AddSheet("Data");
         sheet.InsertObjects(
             _rows,
             ("Id", static row => row.Id),

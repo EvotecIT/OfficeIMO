@@ -15,7 +15,7 @@ namespace OfficeIMO.Tests {
             DateTime expectedDate = (DateTime)rows.Values[0][2]!;
             using ExcelDocument document = ExcelDocument.Create();
             document.DateSystem = aboveCaptureLimit ? ExcelDateSystem.NineteenFour : ExcelDateSystem.NineteenHundred;
-            document.AddWorksheet("Data");
+            document.AddSheet("Data");
             var source = new ExcelDirectTabularSource("Data", rows, includeHeaders: true, preserveMissingValues: true);
             using var destination = new SnapshotXlsbStream(() => {
                 Assert.Equal(rows.RowCount * rows.ColumnCount, rows.ValueReads);
@@ -70,7 +70,7 @@ namespace OfficeIMO.Tests {
                 (3, null, null),
             };
             using ExcelDocument document = ExcelDocument.Create();
-            document.AddWorksheet("Data").InsertObjects(rows, includeHeaders, startRow: 1,
+            document.AddSheet("Data").InsertObjects(rows, includeHeaders, startRow: 1,
                 ("Id", static row => row.Id), ("Value", static row => row.Value), ("Enabled", static row => row.Enabled));
 
             byte[] package = document.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xlsb,  XlsbUseSharedStrings = false });
@@ -103,7 +103,7 @@ namespace OfficeIMO.Tests {
         public void Xlsb_StreamingSnapshot_LateUnsupportedValueLeavesDestinationUntouched(bool sharedStrings, bool aboveCaptureLimit) {
             var rows = new SnapshotXlsbRows(aboveCaptureLimit) { LastValue = Guid.NewGuid() };
             using ExcelDocument document = ExcelDocument.Create();
-            document.AddWorksheet("Data");
+            document.AddSheet("Data");
             var source = new ExcelDirectTabularSource("Data", rows, includeHeaders: true, preserveMissingValues: true);
             using var destination = new MemoryStream();
             byte[] sentinel = Enumerable.Range(0, 64).Select(index => (byte)index).ToArray();
@@ -123,7 +123,7 @@ namespace OfficeIMO.Tests {
         [InlineData(true, true)]
         public void Xlsb_StreamingSnapshot_WriteFailureDoesNotContaminateNextSave(bool sharedStrings, bool aboveCaptureLimit) {
             using ExcelDocument document = ExcelDocument.Create();
-            document.AddWorksheet("Data");
+            document.AddSheet("Data");
             var failedRows = new SnapshotXlsbRows(aboveCaptureLimit);
             var failedSource = new ExcelDirectTabularSource("Data", failedRows, includeHeaders: true, preserveMissingValues: true);
             using var failing = new SnapshotXlsbStream(() => throw new IOException("Synthetic destination failure."));
@@ -152,7 +152,7 @@ namespace OfficeIMO.Tests {
         public void Xlsb_StagedPackage_LateOverlongTextLeavesDestinationUntouched(bool sharedStrings) {
             var rows = new SnapshotXlsbRows(aboveCaptureLimit: true) { LastValue = new string('X', 32_768) };
             using ExcelDocument document = ExcelDocument.Create();
-            document.AddWorksheet("Data");
+            document.AddSheet("Data");
             var source = new ExcelDirectTabularSource("Data", rows, includeHeaders: true, preserveMissingValues: true);
             using var destination = new MemoryStream();
             byte[] sentinel = Enumerable.Range(0, 64).Select(index => (byte)index).ToArray();
@@ -179,7 +179,7 @@ namespace OfficeIMO.Tests {
                 : 1024 * rows.ColumnCount;
             rows.OnValueRead = reads => { if (reads == cancelAfterReads) cancellation.Cancel(); };
             using ExcelDocument document = ExcelDocument.Create();
-            document.AddWorksheet("Data");
+            document.AddSheet("Data");
             var source = new ExcelDirectTabularSource("Data", rows, includeHeaders: true, preserveMissingValues: true);
             using var destination = new MemoryStream();
             byte[] sentinel = Enumerable.Range(0, 64).Select(index => (byte)index).ToArray();
@@ -205,7 +205,7 @@ namespace OfficeIMO.Tests {
             var rows = new SnapshotXlsbRows(aboveCaptureLimit: true);
             DateTime expectedDate = (DateTime)rows.Values[0][2]!;
             using ExcelDocument document = ExcelDocument.Create();
-            document.AddWorksheet("Data");
+            document.AddSheet("Data");
             var source = new ExcelDirectTabularSource("Data", rows, includeHeaders: false, preserveMissingValues: true);
             using var destination = new MemoryStream();
             byte[] existingContent = new byte[256 * 1024];

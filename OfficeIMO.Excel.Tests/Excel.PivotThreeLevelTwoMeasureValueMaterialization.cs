@@ -64,7 +64,7 @@ namespace OfficeIMO.Tests
             string authoredOutput = Path.Combine(_directoryWithFiles, $"Authored.TwoMeasure.{kind}.xlsx");
             using (var document = ExcelDocument.Create())
             {
-                var source = document.AddWorksheet("Source");
+                var source = document.AddSheet("Source");
                 PopulateThreeLevelPivotSource(source, ThreeLevelTopTwoRows);
                 source.CellValue(1, 5, "Units");
                 for (int index = 0; index < ThreeLevelTopTwoRows.Length; index++)
@@ -130,7 +130,7 @@ namespace OfficeIMO.Tests
         public void Test_PivotThreeLevelMixedValue_TwoMeasureUnqualifiedShapesFailClosed(string shape)
         {
             using var document = ExcelDocument.Create();
-            var source = document.AddWorksheet("Source");
+            var source = document.AddSheet("Source");
             PopulateThreeLevelPivotSource(source, ThreeLevelTopTwoRows);
             source.CellValue(1, 5, "Units");
             for (int index = 0; index < ThreeLevelTopTwoRows.Length; index++)

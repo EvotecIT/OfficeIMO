@@ -68,7 +68,7 @@ namespace OfficeIMO.Tests
             {
                 if (date1904)
                     document.DateSystem = ExcelDateSystem.NineteenFour;
-                var source = document.AddWorksheet("Source");
+                var source = document.AddSheet("Source");
                 source.CellValue(1, 1, "OrderDate");
                 source.CellValue(1, 2, "Sales");
                 double[] sales =

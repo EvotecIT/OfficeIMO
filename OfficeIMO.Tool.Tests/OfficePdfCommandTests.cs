@@ -389,7 +389,7 @@ public sealed class OfficePdfCommandTests {
                 break;
             case ".xlsx":
                 using (ExcelDocument workbook = ExcelDocument.Create(path)) {
-                    ExcelSheet sheet = workbook.AddWorksheet("Summary");
+                    ExcelSheet sheet = workbook.AddSheet("Summary");
                     sheet.CellValue(1, 1, "Tool Excel conversion");
                     workbook.Save();
                 }

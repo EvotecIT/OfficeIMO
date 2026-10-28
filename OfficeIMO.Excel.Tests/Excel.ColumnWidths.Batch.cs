@@ -15,7 +15,7 @@ namespace OfficeIMO.Tests {
         public void Test_SetColumnWidth_SplitsRangeWithoutChangingNeighborWidthsOrFitMetadata(double width) {
             string filePath = Path.Combine(_directoryWithFiles, "ColumnWidths.SingleRange." + width + ".xlsx");
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorksheet("Data");
+                var sheet = document.AddSheet("Data");
                 sheet.CellValue(1, 2, "A label that must grow beyond twelve characters when fitted");
                 var worksheet = document.OpenXmlDocument.WorkbookPart!.WorksheetParts.Single().Worksheet;
                 worksheet.InsertAt(new Columns(new Column {
@@ -51,7 +51,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ColumnWidths.Refit." + batch + "." + previouslyFitted + ".xlsx");
             const string label = "A long label whose content needs more than twelve characters of column width";
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorksheet("Data");
+                var sheet = document.AddSheet("Data");
                 sheet.CellValue(1, 1, label);
                 if (previouslyFitted) sheet.AutoFitColumns();
                 if (batch) sheet.SetColumnWidths(new Dictionary<int, ExcelColumnWidth> { [1] = ExcelColumnWidth.Characters(12D) });
@@ -76,7 +76,7 @@ namespace OfficeIMO.Tests {
         public void Test_SetColumnWidths_WritesThePartAtTheDocumentSaveAndPreservesColumnMetadata(bool withRange) {
             string filePath = Path.Combine(_directoryWithFiles, "ColumnWidths.Batch." + withRange + ".xlsx");
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorksheet("Data");
+                var sheet = document.AddSheet("Data");
                 for (int column = 1; column <= 64; column++) sheet.CellValue(1, column, "Cell " + column);
                 sheet.AutoFitColumns();
                 var package = document.OpenXmlDocument;
@@ -119,7 +119,7 @@ namespace OfficeIMO.Tests {
         [InlineData(2, double.PositiveInfinity)]
         public void Test_SetColumnWidths_ValidatesTheWholeBatchBeforeChangingWidths(int invalidIndex, double invalidWidth) {
             using var document = ExcelDocument.Create(Path.Combine(_directoryWithFiles, "ColumnWidths.Invalid.xlsx"));
-            var sheet = document.AddWorksheet("Data");
+            var sheet = document.AddSheet("Data");
             sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(20D));
             Assert.Throws<ArgumentOutOfRangeException>(() => sheet.SetColumnWidths(new Dictionary<int, ExcelColumnWidth> {
                 [1] = ExcelColumnWidth.Characters(30D), [invalidIndex] = ExcelColumnWidth.Characters(invalidWidth)

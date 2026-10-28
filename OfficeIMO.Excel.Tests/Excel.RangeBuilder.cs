@@ -43,7 +43,7 @@ namespace OfficeIMO.Tests
             using (ExcelDocument document = ExcelDocument.Create(filePath))
             {
                 {
-                    var sheet1 = document.AddWorksheet("Data");
+                    var sheet1 = document.AddSheet("Data");
 
                     var range3 = sheet1.Range("A1:B2");
                     range3.SetValues(values);
@@ -72,7 +72,7 @@ namespace OfficeIMO.Tests
             using (ExcelDocument document = ExcelDocument.Create(filePath))
             {
                 {
-                    var sheet4 = document.AddWorksheet("Data");
+                    var sheet4 = document.AddSheet("Data");
 
                     var range6 = sheet4.Range("A1:C3");
                     sheet4.Cell(range6.CellAt(2, 2).Row, range6.CellAt(2, 2).Column, "X");
@@ -111,7 +111,7 @@ namespace OfficeIMO.Tests
             using (ExcelDocument document = ExcelDocument.Create(filePath))
             {
                 {
-                    var sheet7 = document.AddWorksheet("Data");
+                    var sheet7 = document.AddSheet("Data");
 
                     var range9 = sheet7.Range("A1:B2");
                     range9.SetValues(values);
@@ -165,7 +165,7 @@ namespace OfficeIMO.Tests
             using (ExcelDocument document = ExcelDocument.Create(filePath))
             {
                 {
-                    var sheet10 = document.AddWorksheet("Data");
+                    var sheet10 = document.AddSheet("Data");
 
                     var range12 = sheet10.Range("A1:B2");
                     range12.SetValues(values);

@@ -142,7 +142,7 @@ public sealed class EncryptedSourceInspectionContracts {
             bytes = document.ToBytes();
         } else if (format == "excel") {
             using ExcelDocument document = ExcelDocument.Create();
-            document.AddWorksheet("Ordinary");
+            document.AddSheet("Ordinary");
             bytes = document.ToBytes();
         } else {
             using PowerPointDocument document = PowerPointDocument.Create();
@@ -180,7 +180,7 @@ public sealed class EncryptedSourceInspectionContracts {
             source.Save(output,new OfficeIMO.Word.WordSaveOptions{Password=Password});
         } else if (format == "excel") {
             using ExcelDocument source = ExcelDocument.Create();
-            source.AddWorksheet("Evidence").CellValue(1, 1, "Source evidence");
+            source.AddSheet("Evidence").CellValue(1, 1, "Source evidence");
             source.Save(output,new OfficeIMO.Excel.ExcelSaveOptions{Password=Password});
         } else {
             using PowerPointDocument source = PowerPointDocument.Create();

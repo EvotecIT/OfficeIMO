@@ -53,8 +53,8 @@ public partial class Excel {
             delivery.Cell(2, 1, "PDF workbench");
             delivery.Cell(2, 2, "Ready");
             delivery.AddTable("A1:B2", hasHeader: true, name: "DeliveryTable", style: ExcelTableStyle.TableStyleMedium2);
-            document.AddWorksheet("Empty one");
-            document.AddWorksheet("Empty two");
+            document.AddSheet("Empty one");
+            document.AddSheet("Empty two");
             document.Save();
 
             bytes = document.ToPdf().ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
@@ -76,7 +76,7 @@ public partial class Excel {
             delivery.Cell(1, 1, "Workstream");
             delivery.Cell(2, 1, "PDF workbench");
 
-            ExcelSheet excluded = document.AddWorksheet("Excluded");
+            ExcelSheet excluded = document.AddSheet("Excluded");
             excluded.Cell(10, 1, "Owner");
             excluded.Cell(10, 2, "Status");
             excluded.Cell(11, 1, "OfficeIMO");
@@ -102,7 +102,7 @@ public partial class Excel {
         using (ExcelDocument document = ExcelDocument.Create(workbookPath, new ExcelCreateOptions { FirstSheetName = "Delivery" })) {
             ExcelSheet delivery = document.Sheets[0];
             delivery.Cell(1, 1, "PDF workbench");
-            document.AddWorksheet("Empty cell");
+            document.AddSheet("Empty cell");
             document.Save();
         }
 
@@ -242,11 +242,11 @@ public partial class Excel {
 
         byte[] bytes;
         using (ExcelDocument document = ExcelDocument.Create(workbookPath)) {
-            ExcelSheet summary = document.AddWorksheet("Summary");
+            ExcelSheet summary = document.AddSheet("Summary");
             summary.Cell(1, 1, "Metric");
             summary.Cell(2, 1, "SelectedValue");
             summary.SetHeaderFooter(headerCenter: "Selected Header &A");
-            ExcelSheet internalSheet = document.AddWorksheet("Internal");
+            ExcelSheet internalSheet = document.AddSheet("Internal");
             internalSheet.Cell(1, 1, "HiddenValue");
             document.Save();
 
@@ -271,9 +271,9 @@ public partial class Excel {
         byte[] visibleBytes;
         byte[] explicitHiddenBytes;
         using (ExcelDocument document = ExcelDocument.Create(workbookPath)) {
-            ExcelSheet visible = document.AddWorksheet("Visible");
+            ExcelSheet visible = document.AddSheet("Visible");
             visible.Cell(1, 1, "VisibleSheetValue");
-            ExcelSheet hidden = document.AddWorksheet("Hidden");
+            ExcelSheet hidden = document.AddSheet("Hidden");
             hidden.Cell(1, 1, "HiddenSheetValue");
             hidden.SetHidden(true);
             Assert.True(hidden.Hidden);

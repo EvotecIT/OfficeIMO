@@ -12,7 +12,7 @@ namespace OfficeIMO.Examples.Excel
             string filePath = Path.Combine(folderPath, "Excel.AnchorsAndBackToTop.xlsx");
             using (var doc = ExcelDocument.Create(filePath))
             {
-                var s = doc.AddWorksheet("Report", ExcelSheetNameValidationMode.Sanitize).Report();
+                var s = doc.AddSheet("Report", ExcelSheetNameValidationMode.Sanitize).Report();
                 s.Title("Anchors & Back-to-Top Demo", "Demonstrates SectionWithAnchor + top links.");
                 // A few sections with anchors and a back-to-top link after each header
                 s.SectionWithAnchor("Overview").Paragraph("Some overview text...").SectionWithAnchor("Findings").Paragraph("Key findings listed here...").SectionWithAnchor("Details").Paragraph("Supporting details go here...").Finish(autoFitColumns: false);

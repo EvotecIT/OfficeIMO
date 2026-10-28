@@ -17,7 +17,7 @@ namespace OfficeIMO.Tests {
         [InlineData(12U, 13D, 273)]
         public void ExcelImage_RangeUsesImplicitColumnGeometryBeforeAndAfterSave(uint baseWidth, double? storedWidth, int expectedPixels) {
             using ExcelDocument document = ExcelDocument.Create();
-            ExcelSheet sheet = document.AddWorksheet("ImplicitWidth");
+            ExcelSheet sheet = document.AddSheet("ImplicitWidth");
             SetMissingGridFont(document);
             sheet.SetDefaultRowHeight(ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(15D)));
             X.SheetFormatProperties format = sheet.WorksheetPart.Worksheet.GetFirstChild<X.SheetFormatProperties>()!;
@@ -36,7 +36,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void ExcelChart_TwoCellAnchorUsesImplicitWidthAndRefreshesWhenBaseChanges() {
             using ExcelDocument document = ExcelDocument.Create();
-            ExcelSheet sheet = document.AddWorksheet("ImplicitChart");
+            ExcelSheet sheet = document.AddSheet("ImplicitChart");
             SetMissingGridFont(document);
             sheet.SetDefaultRowHeight(ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(15D)));
             sheet.CellValue(1, 1, "Category");
@@ -64,7 +64,7 @@ namespace OfficeIMO.Tests {
         [InlineData(true)]
         public void ExcelDrawing_StoredColumnWidthAppliesRegardlessOfCustomWidthFlag(bool? customWidth) {
             using ExcelDocument document = ExcelDocument.Create();
-            ExcelSheet sheet = document.AddWorksheet("StoredWidth");
+            ExcelSheet sheet = document.AddSheet("StoredWidth");
             SetMissingGridFont(document);
             sheet.SetDefaultRowHeight(ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(15D)));
             sheet.WorksheetPart.Worksheet.GetFirstChild<X.SheetFormatProperties>()!.BaseColumnWidth = 8U;

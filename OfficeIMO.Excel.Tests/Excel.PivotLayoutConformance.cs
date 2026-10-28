@@ -21,7 +21,7 @@ namespace OfficeIMO.Tests
         public void Test_AddPivotTable_RejectsAmbiguousMeasureCaptionsBeforeCreatingParts()
         {
             using var document = ExcelDocument.Create();
-            var sheet = document.AddWorksheet("Source");
+            var sheet = document.AddSheet("Source");
             sheet.CellValue(1, 1, "Key");
             sheet.CellValue(1, 2, "Amount");
             sheet.CellValue(2, 1, "A");
@@ -37,7 +37,7 @@ namespace OfficeIMO.Tests
         public void Test_AddPivotTable_RejectsInvalidValuesPositionBeforeCreatingParts(bool valuesOnRows, bool singleMeasure, int position)
         {
             using var document = ExcelDocument.Create();
-            var sheet = document.AddWorksheet("Source");
+            var sheet = document.AddSheet("Source");
             sheet.CellValue(1, 1, "Region");
             sheet.CellValue(1, 2, "Channel");
             sheet.CellValue(1, 3, "Sales");
@@ -75,7 +75,7 @@ namespace OfficeIMO.Tests
             var source = oracle.GetSheet("Source").ReadRange("A1:D9");
             using (var document = ExcelDocument.Create(output))
             {
-                var sheet = document.AddWorksheet("Sales");
+                var sheet = document.AddSheet("Sales");
                 for (int row = 1; row <= 9; row++)
                     for (int column = 1; column <= 4; column++)
                         if (source[row - 1, column - 1] != null)

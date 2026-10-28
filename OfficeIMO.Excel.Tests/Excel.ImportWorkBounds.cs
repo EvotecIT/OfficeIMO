@@ -16,8 +16,8 @@ namespace OfficeIMO.Tests {
         [InlineData("8", true, "#VALUE!")]
         public void RichValueAliasesPreserveErrorsAndMalformedFallback(string code, bool duplicateKey, string expected) {
             using var document = ExcelDocument.Create();
-            var sheet = document.AddWorksheet("Data");
-            document.AddWorksheet("Other");
+            var sheet = document.AddSheet("Data");
+            document.AddSheet("Other");
             sheet.SetArrayFormula("A1:A1", "SEQUENCE(0)");
             document.Calculate();
             var workbook = document.WorkbookPartRoot;
@@ -60,7 +60,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void ImportedRowLayoutPreservesCellsPrecisionAndHiddenState() {
             using var document = ExcelDocument.Create();
-            var sheet = document.AddWorksheet("Data");
+            var sheet = document.AddSheet("Data");
             sheet.CellValue(3, 1, "Keep");
             sheet.CellValue(1002, 1, "Tail");
             sheet.SetRowHeight(3, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(25)));
@@ -93,7 +93,7 @@ namespace OfficeIMO.Tests {
         [InlineData("ẂẂẂẂẂẂẂẂẂẂẂẂẂẂẂẂẂẂẂẂẂẂẂẂẂẂẂẂẂẂẂẂ")]
         public void WrappedRowsIgnoreZeroWidthPrefixWithoutLosingGraphemes(string visible) {
             using var document = ExcelDocument.Create();
-            var sheet = document.AddWorksheet("Data");
+            var sheet = document.AddSheet("Data");
             sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(5));
             sheet.CellValue(1, 1, visible);
             sheet.CellValue(2, 1, new string('\u200B', 30000) + visible);

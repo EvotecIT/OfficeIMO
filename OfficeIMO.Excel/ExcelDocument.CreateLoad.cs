@@ -174,7 +174,7 @@ namespace OfficeIMO.Excel {
             document.LoadCustomDocumentProperties();
 
             if (theme != null) document.SetWorkbookThemeXml(CreateWorkbookThemeXml(theme));
-            if (firstSheetName != null) document.AddWorksheet(firstSheetName);
+            if (firstSheetName != null) document.AddSheet(firstSheetName);
             return document;
         }
         private static ExcelDocument CreateDocument(

@@ -15,7 +15,7 @@ public sealed class HtmlOfficeAdapterLimitTests {
     [Fact]
     public void ExcelHtml_RejectsInvalidExportRowLimit() {
         using ExcelDocument workbook = ExcelDocument.Create();
-        workbook.AddWorksheet("Data").CellValue(1, 1, "value");
+        workbook.AddSheet("Data").CellValue(1, 1, "value");
 
         Assert.Throws<ArgumentOutOfRangeException>(() => workbook.ToHtml(new ExcelHtmlSaveOptions { MaxRowsPerSheet = -1 }));
         Assert.Throws<ArgumentOutOfRangeException>(() => workbook.ToHtml(new ExcelHtmlSaveOptions { MaxRowsPerSheet = 0 }));
@@ -25,7 +25,7 @@ public sealed class HtmlOfficeAdapterLimitTests {
     [Fact]
     public void OfficeHtml_ExportsVersionedSemanticEnvelopes() {
         using ExcelDocument workbook = ExcelDocument.Create();
-        workbook.AddWorksheet("Data").CellValue(1, 1, "value");
+        workbook.AddSheet("Data").CellValue(1, 1, "value");
         HtmlTextConversionResult export = workbook.ToHtmlResult();
         string html = export.RequireValue();
 

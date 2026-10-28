@@ -19,7 +19,7 @@ using OfficeIMO.Excel.GoogleSheets;
 using OfficeIMO.GoogleWorkspace;
 
 using var workbook = ExcelDocument.Create("report.xlsx");
-var sheet = workbook.AddWorksheet("Summary");
+var sheet = workbook.AddSheet("Summary");
 sheet.CellValue(1, 1, "Quarter");
 sheet.CellValue(1, 2, "Revenue");
 sheet.CellValue(2, 1, "Q1");

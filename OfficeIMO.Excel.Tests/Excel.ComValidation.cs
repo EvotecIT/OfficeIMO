@@ -222,7 +222,7 @@ namespace OfficeIMO.Tests
 
         private static string CreateDesktopExcelValuesWorkbook(string filePath) {
             using var document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorksheet("Values");
+            ExcelSheet sheet = document.AddSheet("Values");
             sheet.CellValue(1, 1, "Name");
             sheet.CellValue(1, 2, "Amount");
             sheet.CellValue(2, 1, "Alpha");
@@ -237,7 +237,7 @@ namespace OfficeIMO.Tests
 
         private static string CreateDesktopExcelTableWorkbook(string filePath) {
             using var document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.CellValue(1, 1, "Region");
             sheet.CellValue(1, 2, "Score");
             sheet.CellValue(2, 1, "North");
@@ -255,7 +255,7 @@ namespace OfficeIMO.Tests
 
         private static string CreateDesktopExcelFormattingWorkbook(string filePath) {
             using var document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorksheet("Formatting");
+            ExcelSheet sheet = document.AddSheet("Formatting");
             sheet.CellValue(1, 1, "Score");
             sheet.CellValue(2, 1, 42d);
             sheet.CellValue(3, 1, 87d);
@@ -269,7 +269,7 @@ namespace OfficeIMO.Tests
         private static string CreateDesktopExcelChartWorkbook(string filePath) {
             using var document = ExcelDocument.Create(filePath);
             document.DefaultChartStylePreset = ExcelChartStylePreset.Default;
-            ExcelSheet sheet = document.AddWorksheet("Summary");
+            ExcelSheet sheet = document.AddSheet("Summary");
 
             var data = new ExcelChartData(
                 new[] { "Q1", "Q2", "Q3", "Q4" },
@@ -290,7 +290,7 @@ namespace OfficeIMO.Tests
         private static string CreateDesktopExcelRecipeChartWorkbook(string filePath)
         {
             using var document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorksheet("Dashboard");
+            ExcelSheet sheet = document.AddSheet("Dashboard");
             sheet.CellValue(1, 1, "Month");
             sheet.CellValue(1, 2, "Revenue");
             sheet.CellValue(2, 1, "Jan");
@@ -313,7 +313,7 @@ namespace OfficeIMO.Tests
 
         private static string CreateDesktopExcelModernChartWorkbook(string filePath) {
             using var document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorksheet("Dashboard");
+            ExcelSheet sheet = document.AddSheet("Dashboard");
             sheet.AddHistogramChart(new[] { 1d, 2d, 2d, 3d, 5d, 8d }, row: 1, column: 1, binCount: 3);
             sheet.AddParetoChart(new[] { "Returns", "Delays", "Damage" }, new[] { 8d, 13d, 3d }, row: 1, column: 10);
             sheet.AddFunnelChart(new[] { "Leads", "Qualified", "Won" }, new[] { 120d, 70d, 25d }, row: 20, column: 1);
@@ -325,10 +325,10 @@ namespace OfficeIMO.Tests
         private static string CreateDesktopExcelPivotInteractionWorkbook(string filePath)
         {
             using var document = ExcelDocument.Create(filePath);
-            ExcelSheet source = document.AddWorksheet("Source");
+            ExcelSheet source = document.AddSheet("Source");
             WriteDesktopPivotSource(source, 3);
             source.AddPivotTable("A1:C4", "E2", options: new ExcelPivotTableOptions { Name = "SalesPivot", RowFields = new[] { "Region" }, DataFields = new[] { new ExcelPivotDataField("Sales", ExcelPivotDataFunction.Sum, "Total Sales") } });
-            ExcelSheet expanded = document.AddWorksheet("Expanded");
+            ExcelSheet expanded = document.AddSheet("Expanded");
             WriteDesktopPivotSource(expanded, 4);
             source.UpdatePivotTableSource("SalesPivot", expanded, "$A$1:$C$5");
             document.AddPivotSlicerCache("SalesPivot", "Region");

@@ -57,7 +57,7 @@ namespace OfficeIMO.Tests
             string output = Path.Combine(_directoryWithFiles, $"Filter.label-range-{kind}.Authored.xlsx");
             using (var document = ExcelDocument.Create())
             {
-                var source = document.AddWorksheet("Source");
+                var source = document.AddSheet("Source");
                 source.CellValue(1, 1, "Region");
                 source.CellValue(1, 2, "Sales");
                 var entries = new[]
@@ -147,7 +147,7 @@ namespace OfficeIMO.Tests
             {
                 CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo(cultureName);
                 using var document = ExcelDocument.Create();
-                var source = document.AddWorksheet("Source");
+                var source = document.AddSheet("Source");
                 source.CellValue(1, 1, "Region");
                 source.CellValue(1, 2, "Sales");
                 source.CellValue(2, 1, "Ch");

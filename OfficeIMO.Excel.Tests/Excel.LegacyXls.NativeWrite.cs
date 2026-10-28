@@ -31,7 +31,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (ExcelDocument document = ExcelDocument.Create(xlsPath)) {
-                    ExcelSheet sheet = document.AddWorksheet("SamePath");
+                    ExcelSheet sheet = document.AddSheet("SamePath");
                     sheet.CellValue(1, 1, "Native XLS");
 
                     document.Save();
@@ -61,7 +61,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
-                    ExcelSheet sheet = document.AddWorksheet("Biff");
+                    ExcelSheet sheet = document.AddSheet("Biff");
                     sheet.CellValue(1, 1, "BIFF8 BOF");
 
                     document.Save(xlsOutputPath);
@@ -104,7 +104,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
-                    ExcelSheet sheet = document.AddWorksheet("CopyBack");
+                    ExcelSheet sheet = document.AddSheet("CopyBack");
                     sheet.CellValue(1, 1, "OpenXML source");
                     document.Save();
                 }
@@ -135,7 +135,7 @@ namespace OfficeIMO.Tests {
             using var stream = new MemoryStream();
 
             using (ExcelDocument document = ExcelDocument.Create(stream, new OfficeIMO.Excel.ExcelCreateOptions { PersistenceMode = OfficeIMO.DocumentPersistenceMode.SaveOnDispose })) {
-                ExcelSheet sheet = document.AddWorksheet("StreamXls");
+                ExcelSheet sheet = document.AddSheet("StreamXls");
                 sheet.CellValue(1, 1, "Native stream XLS");
 
                 document.Save(stream, ExcelFileFormat.Xls);
@@ -271,7 +271,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
-                    ExcelSheet sheet = document.AddWorksheet("Layout");
+                    ExcelSheet sheet = document.AddSheet("Layout");
                     sheet.CellValue(1, 1, "Merged header");
                     sheet.CellValue(2, 2, 12.5d);
                     sheet.CellValue(3, 1, "Hidden row marker");
@@ -373,7 +373,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
-                    ExcelSheet sheet = document.AddWorksheet("PageLayout");
+                    ExcelSheet sheet = document.AddSheet("PageLayout");
                     sheet.CellValue(1, 1, "Page layout view");
                     sheet.SetViewOptions(zoomScale: 115, zoomScaleNormal: 100, view: ExcelWorksheetViewKind.PageLayout);
                     document.Save(xlsOutputPath);
@@ -414,7 +414,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
-                    ExcelSheet sheet = document.AddWorksheet("TabColor");
+                    ExcelSheet sheet = document.AddSheet("TabColor");
                     sheet.CellValue(1, 1, "Tab color");
                     DocumentFormat.OpenXml.Spreadsheet.Worksheet worksheet = sheet.WorksheetPart.Worksheet;
                     DocumentFormat.OpenXml.Spreadsheet.SheetProperties sheetProperties =
@@ -464,7 +464,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
-                    ExcelSheet sheet = document.AddWorksheet("Split");
+                    ExcelSheet sheet = document.AddSheet("Split");
                     sheet.CellValue(1, 1, "Split pane");
 
                     DocumentFormat.OpenXml.Spreadsheet.Worksheet worksheet = sheet.WorksheetPart.Worksheet;
@@ -525,7 +525,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
-                    ExcelSheet sheet = document.AddWorksheet("CodeNames");
+                    ExcelSheet sheet = document.AddSheet("CodeNames");
                     sheet.CellValue(1, 1, "Code name metadata");
 
                     DocumentFormat.OpenXml.Spreadsheet.WorkbookProperties workbookProperties =
@@ -580,8 +580,8 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
-                    ExcelSheet summary = document.AddWorksheet("Summary");
-                    ExcelSheet data = document.AddWorksheet("Data");
+                    ExcelSheet summary = document.AddSheet("Summary");
+                    ExcelSheet data = document.AddSheet("Data");
                     summary.CellValue(1, 1, "Tab id source");
                     data.CellValue(1, 1, 42d);
 
@@ -615,7 +615,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
-                    ExcelSheet sheet = document.AddWorksheet("Calc");
+                    ExcelSheet sheet = document.AddSheet("Calc");
                     sheet.CellValue(1, 1, "Calculation settings");
                     document.WorkbookRoot.Append(new DocumentFormat.OpenXml.Spreadsheet.CalculationProperties {
                         CalculationMode = DocumentFormat.OpenXml.Spreadsheet.CalculateModeValues.AutoNoTable,
@@ -662,7 +662,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
-                    ExcelSheet sheet = document.AddWorksheet("SheetCalc");
+                    ExcelSheet sheet = document.AddSheet("SheetCalc");
                     sheet.CellValue(1, 1, "Sheet recalc");
                     sheet.WorksheetPart.Worksheet.Append(new DocumentFormat.OpenXml.Spreadsheet.SheetCalculationProperties {
                         FullCalculationOnLoad = true
@@ -695,7 +695,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
-                    ExcelSheet sheet = document.AddWorksheet("Phonetic");
+                    ExcelSheet sheet = document.AddSheet("Phonetic");
                     sheet.CellValue(1, 1, "Worksheet phonetic defaults");
                     sheet.WorksheetPart.Worksheet.Append(new DocumentFormat.OpenXml.Spreadsheet.PhoneticProperties {
                         FontId = 0U,
@@ -739,7 +739,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
-                    ExcelSheet sheet = document.AddWorksheet("Options");
+                    ExcelSheet sheet = document.AddSheet("Options");
                     sheet.CellValue(1, 1, "Workbook options");
 
                     DocumentFormat.OpenXml.Spreadsheet.WorkbookProperties workbookProperties =
@@ -790,7 +790,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
-                    ExcelSheet sheet = document.AddWorksheet("Print");
+                    ExcelSheet sheet = document.AddSheet("Print");
                     sheet.CellValue(1, 1, "Printable sheet");
                     sheet.CellValue(20, 5, 42d);
                     sheet.SetMargins(OfficeLength.Inches(0.25d), OfficeLength.Inches(0.35d), OfficeLength.Inches(0.45d), OfficeLength.Inches(0.55d), OfficeLength.Inches(0.2d), OfficeLength.Inches(0.25d));
@@ -906,7 +906,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
-                    ExcelSheet sheet = document.AddWorksheet("Options");
+                    ExcelSheet sheet = document.AddSheet("Options");
                     sheet.CellValue(1, 1, "Worksheet options");
 
                     DocumentFormat.OpenXml.Spreadsheet.Worksheet worksheet = sheet.WorksheetPart.Worksheet!;
@@ -979,7 +979,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
-                    ExcelSheet sheet = document.AddWorksheet("Variants");
+                    ExcelSheet sheet = document.AddSheet("Variants");
                     sheet.CellValue(1, 1, "Header/footer variants");
                     sheet.SetHeaderFooter(
                         headerCenter: "Odd header",
@@ -1030,14 +1030,14 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
-                    ExcelSheet visible = document.AddWorksheet("Visible");
+                    ExcelSheet visible = document.AddSheet("Visible");
                     visible.CellValue(1, 1, "Visible");
 
-                    ExcelSheet hidden = document.AddWorksheet("Hidden");
+                    ExcelSheet hidden = document.AddSheet("Hidden");
                     hidden.CellValue(1, 1, "Hidden");
                     hidden.SetHidden(true);
 
-                    ExcelSheet veryHidden = document.AddWorksheet("VeryHidden");
+                    ExcelSheet veryHidden = document.AddSheet("VeryHidden");
                     veryHidden.CellValue(1, 1, "VeryHidden");
                     veryHidden.SetVeryHidden(true);
 
@@ -1069,9 +1069,9 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
-                    document.AddWorksheet("First").CellValue(1, 1, "First");
-                    document.AddWorksheet("Second").CellValue(1, 1, "Second");
-                    document.AddWorksheet("Third").CellValue(1, 1, "Third");
+                    document.AddSheet("First").CellValue(1, 1, "First");
+                    document.AddSheet("Second").CellValue(1, 1, "Second");
+                    document.AddSheet("Third").CellValue(1, 1, "Third");
                     document.SetActiveWorksheet("Third");
                     DocumentFormat.OpenXml.Spreadsheet.WorkbookView workbookView = document.WorkbookRoot
                         .GetFirstChild<DocumentFormat.OpenXml.Spreadsheet.BookViews>()!
@@ -1147,7 +1147,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
-                    ExcelSheet sheet = document.AddWorksheet("Formats");
+                    ExcelSheet sheet = document.AddSheet("Formats");
                     sheet.CellValue(1, 1, 44562d);
                     sheet.CellAt(1, 1).SetNumberFormat("yyyy-mm-dd");
                     sheet.CellValue(2, 1, new DateTime(2026, 1, 2));
@@ -1185,7 +1185,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
-                    ExcelSheet sheet = document.AddWorksheet("Fonts");
+                    ExcelSheet sheet = document.AddSheet("Fonts");
                     sheet.CellValue(1, 1, 12.345d);
                     sheet.CellAt(1, 1)
                         .SetNumberFormat("0.00")
@@ -1237,7 +1237,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
-                    ExcelSheet sheet = document.AddWorksheet("FontBytes");
+                    ExcelSheet sheet = document.AddSheet("FontBytes");
                     sheet.CellValue(1, 1, "Font bytes");
                     sheet.CellAt(1, 1).SetFontName("Arial");
 
@@ -1290,7 +1290,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
-                    ExcelSheet sheet = document.AddWorksheet("FontEscapement");
+                    ExcelSheet sheet = document.AddSheet("FontEscapement");
                     sheet.CellValue(1, 1, "Superscript");
                     sheet.CellAt(1, 1).SetFontName("Arial");
 
@@ -1345,7 +1345,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
-                    ExcelSheet sheet = document.AddWorksheet("FontOptionFlags");
+                    ExcelSheet sheet = document.AddSheet("FontOptionFlags");
                     sheet.CellValue(1, 1, "Option flags");
                     sheet.CellAt(1, 1).SetFontName("Arial");
 
@@ -1409,7 +1409,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
-                    ExcelSheet sheet = document.AddWorksheet("UnderlineStyle");
+                    ExcelSheet sheet = document.AddSheet("UnderlineStyle");
                     sheet.CellValue(1, 1, "Double underline");
                     sheet.CellAt(1, 1).SetFontName("Arial");
 
@@ -1464,7 +1464,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
-                    ExcelSheet sheet = document.AddWorksheet("Fills");
+                    ExcelSheet sheet = document.AddSheet("Fills");
                     sheet.CellValue(1, 1, "Filled");
                     sheet.CellAt(1, 1).SetFillColor("#ABCDEF");
 
@@ -1501,7 +1501,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
-                    ExcelSheet sheet = document.AddWorksheet("PatternFills");
+                    ExcelSheet sheet = document.AddSheet("PatternFills");
                     sheet.CellValue(1, 1, "Patterned");
                     sheet.CellAt(1, 1).SetFillColor("#EEEEEE");
 
@@ -1562,7 +1562,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
-                    ExcelSheet sheet = document.AddWorksheet("Alignment");
+                    ExcelSheet sheet = document.AddSheet("Alignment");
                     sheet.CellValue(1, 1, "Wrapped text");
                     sheet.CellAlign(1, 1, ExcelHorizontalAlignment.Center);
                     sheet.CellVerticalAlign(1, 1, ExcelVerticalAlignment.Bottom);
@@ -1609,7 +1609,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
-                    ExcelSheet sheet = document.AddWorksheet("Alignment");
+                    ExcelSheet sheet = document.AddSheet("Alignment");
                     sheet.CellValue(1, 1, "Extended alignment");
                     sheet.CellAlign(1, 1, ExcelHorizontalAlignment.Right);
 
@@ -1675,7 +1675,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
-                    ExcelSheet sheet = document.AddWorksheet("Borders");
+                    ExcelSheet sheet = document.AddSheet("Borders");
                     sheet.CellValue(1, 1, "Bordered");
                     sheet.CellAt(1, 1)
                         .SetFillColor("#ABCDEF")
@@ -1746,7 +1746,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
-                    ExcelSheet sheet = document.AddWorksheet("AutoBorder");
+                    ExcelSheet sheet = document.AddSheet("AutoBorder");
                     sheet.CellValue(1, 1, "Automatic border");
                     sheet.CellAt(1, 1).SetBorder(ExcelBorderStyle.Thin);
 
@@ -1783,7 +1783,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
-                    ExcelSheet sheet = document.AddWorksheet("Protection");
+                    ExcelSheet sheet = document.AddSheet("Protection");
                     sheet.CellValue(1, 1, "Unlocked hidden formula");
                     sheet.CellAt(1, 1).SetFillColor("#ABCDEF");
 
@@ -1839,7 +1839,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
-                    ExcelSheet sheet = document.AddWorksheet("QuotePrefix");
+                    ExcelSheet sheet = document.AddSheet("QuotePrefix");
                     sheet.CellValue(1, 1, "00123");
                     sheet.CellAt(1, 1).SetFillColor("#ABCDEF");
 
@@ -1916,7 +1916,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
-                    ExcelSheet sheet = document.AddWorksheet("ThemeColor");
+                    ExcelSheet sheet = document.AddSheet("ThemeColor");
                     sheet.CellValue(1, 1, "Theme color");
                     sheet.CellAt(1, 1).SetFillColor("#ABCDEF");
 
@@ -2000,7 +2000,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
-                    ExcelSheet sheet = document.AddWorksheet("Formulas");
+                    ExcelSheet sheet = document.AddSheet("Formulas");
                     sheet.CellValue(1, 1, 2d);
                     sheet.CellValue(2, 1, 3d);
                     sheet.CellValue(1, 3, 2d);
@@ -2346,7 +2346,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
-                    ExcelSheet sheet = document.AddWorksheet("NamedFormulas");
+                    ExcelSheet sheet = document.AddSheet("NamedFormulas");
                     sheet.CellValue(1, 1, 2d);
                     sheet.CellValue(2, 1, 3d);
                     sheet.CellValue(1, 2, 9d);
@@ -2389,19 +2389,19 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
-                    ExcelSheet data = document.AddWorksheet("Data Sheet");
+                    ExcelSheet data = document.AddSheet("Data Sheet");
                     data.CellValue(1, 1, 2d);
                     data.CellValue(2, 1, 3d);
 
-                    ExcelSheet region1 = document.AddWorksheet("Region 1");
+                    ExcelSheet region1 = document.AddSheet("Region 1");
                     region1.CellValue(1, 1, 2d);
                     region1.CellValue(2, 1, 4d);
 
-                    ExcelSheet region2 = document.AddWorksheet("Region 2");
+                    ExcelSheet region2 = document.AddSheet("Region 2");
                     region2.CellValue(1, 1, 3d);
                     region2.CellValue(2, 1, 6d);
 
-                    ExcelSheet calc = document.AddWorksheet("Calc");
+                    ExcelSheet calc = document.AddSheet("Calc");
                     calc.CellValue(1, 1, 5d);
                     calc.CellFormula(1, 1, "'Data Sheet'!A1+'Data Sheet'!A2");
                     calc.CellValue(2, 1, 5d);
@@ -2439,7 +2439,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
-                    ExcelSheet sheet = document.AddWorksheet("FormulaKinds");
+                    ExcelSheet sheet = document.AddSheet("FormulaKinds");
                     sheet.CellValue(1, 1, 2d);
                     sheet.CellValue(2, 1, 3d);
                     sheet.CellValue(3, 1, true);
@@ -2585,7 +2585,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
-                    ExcelSheet sheet = document.AddWorksheet("Errors");
+                    ExcelSheet sheet = document.AddSheet("Errors");
                     sheet.CellValue(1, 1, 1d);
 
                     sheet.CellValue(2, 1, "#N/A");
@@ -2643,7 +2643,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
-                    ExcelSheet sheet = document.AddWorksheet("Volatile");
+                    ExcelSheet sheet = document.AddSheet("Volatile");
                     sheet.CellValue(1, 1, 0.42d);
                     sheet.CellFormula(1, 1, "RAND()");
                     sheet.CellValue(2, 1, todaySerial);
@@ -2675,7 +2675,7 @@ namespace OfficeIMO.Tests {
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
                     document.DateSystem = ExcelDateSystem.NineteenFour;
-                    ExcelSheet sheet = document.AddWorksheet("Dates");
+                    ExcelSheet sheet = document.AddSheet("Dates");
                     sheet.CellValue(1, 1, date.ToString("O", CultureInfo.InvariantCulture));
                     sheet.CellAt(1, 1).SetNumberFormat("yyyy-mm-dd");
                     SetOpenXmlDateCell(sheet, "A1", date.ToString("O", CultureInfo.InvariantCulture));
@@ -2704,7 +2704,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using ExcelDocument document = ExcelDocument.Create(openXmlPath);
-                ExcelSheet sheet = document.AddWorksheet("Streamed");
+                ExcelSheet sheet = document.AddSheet("Streamed");
                 sheet.CellValue(1, 1, "Sync");
                 sheet.CellValue(2, 1, 42d);
                 var options = new ExcelSaveOptions();
@@ -2733,7 +2733,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
-                    ExcelSheet sheet = document.AddWorksheet("Metadata");
+                    ExcelSheet sheet = document.AddSheet("Metadata");
                     sheet.CellValue(1, 1, "Document metadata");
                     document.BuiltinDocumentProperties.Title = "Native Metadata Workbook";
                     document.BuiltinDocumentProperties.Subject = "Native XLS metadata parity";
@@ -2810,7 +2810,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
-                    ExcelSheet sheet = document.AddWorksheet("Protected");
+                    ExcelSheet sheet = document.AddSheet("Protected");
                     sheet.CellValue(1, 1, "Protected content");
                     document.ProtectWorkbook(new ExcelWorkbookProtectionOptions {
                         ProtectStructure = true,
@@ -2859,7 +2859,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
-                    ExcelSheet sheet = document.AddWorksheet("PasswordOnly");
+                    ExcelSheet sheet = document.AddSheet("PasswordOnly");
                     sheet.CellValue(1, 1, "Password-only workbook protection metadata");
                     document.WorkbookRoot.Append(new DocumentFormat.OpenXml.Spreadsheet.WorkbookProtection {
                         WorkbookPassword = "CAFE"
@@ -2897,7 +2897,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
-                    ExcelSheet sheet = document.AddWorksheet("Protected");
+                    ExcelSheet sheet = document.AddSheet("Protected");
                     sheet.CellValue(1, 1, "Protected table editing");
                     sheet.ProtectTableEditing();
 
@@ -2939,7 +2939,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
-                    ExcelSheet sheet = document.AddWorksheet("Revision");
+                    ExcelSheet sheet = document.AddSheet("Revision");
                     sheet.CellValue(1, 1, "Revision protection");
                     document.ProtectWorkbook(new ExcelWorkbookProtectionOptions {
                         ProtectStructure = true,
@@ -2985,7 +2985,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
-                    ExcelSheet sheet = document.AddWorksheet("Reservation");
+                    ExcelSheet sheet = document.AddSheet("Reservation");
                     sheet.CellValue(1, 1, "Write reservation");
                     document.SetWriteReservation(new ExcelWorkbookWriteReservationOptions {
                         ReadOnlyRecommended = true,
@@ -3023,7 +3023,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
-                    ExcelSheet sheet = document.AddWorksheet("Reservation");
+                    ExcelSheet sheet = document.AddSheet("Reservation");
                     sheet.CellValue(1, 1, "Write access");
                     document.SetWriteReservation(new ExcelWorkbookWriteReservationOptions {
                         ReadOnlyRecommended = true,
@@ -3063,8 +3063,8 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
-                    ExcelSheet links = document.AddWorksheet("Links");
-                    ExcelSheet target = document.AddWorksheet("Target");
+                    ExcelSheet links = document.AddSheet("Links");
+                    ExcelSheet target = document.AddSheet("Target");
                     target.CellValue(2, 2, "Target cell");
                     links.SetHyperlink(1, 1, "https://evotec.xyz/xls", "Evotec", style: false);
                     links.SetInternalLink(2, 1, target, "B2", "Jump", style: false);
@@ -3143,8 +3143,8 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
-                    ExcelSheet links = document.AddWorksheet("Links");
-                    ExcelSheet target = document.AddWorksheet("Target");
+                    ExcelSheet links = document.AddSheet("Links");
+                    ExcelSheet target = document.AddSheet("Target");
                     links.SetHyperlink(1, 1, "https://officeimo.net/legacy-xls", "OfficeIMO", style: false, tooltip: "Open OfficeIMO XLS docs");
                     links.SetInternalLink(2, 1, target, "A1", "Jump", style: false, tooltip: "Jump inside workbook");
 
@@ -3180,7 +3180,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
-                    ExcelSheet sheet = document.AddWorksheet("Filtered");
+                    ExcelSheet sheet = document.AddSheet("Filtered");
                     sheet.CellValue(1, 1, "Status");
                     sheet.CellValue(1, 2, "Amount");
                     sheet.CellValue(1, 3, "Notes");
@@ -3253,7 +3253,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
-                    ExcelSheet sheet = document.AddWorksheet("Validation");
+                    ExcelSheet sheet = document.AddSheet("Validation");
                     sheet.CellValue(1, 2, "Status");
                     sheet.CellValue(1, 3, "Quantity");
                     sheet.CellValue(1, 4, "Discount");
@@ -3345,7 +3345,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
-                    ExcelSheet sheet = document.AddWorksheet("Validation");
+                    ExcelSheet sheet = document.AddSheet("Validation");
                     sheet.CellValue(1, 1, "Header");
                     sheet.CellValue(2, 1, 1d);
                     sheet.ValidationCustomFormula("A2:A5", "A2>0");
@@ -3375,7 +3375,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
-                    ExcelSheet sheet = document.AddWorksheet("Conditions");
+                    ExcelSheet sheet = document.AddSheet("Conditions");
                     sheet.CellValue(1, 2, "Amount");
                     sheet.CellValue(2, 2, 8d);
                     sheet.CellValue(3, 2, 12d);
@@ -3446,7 +3446,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
-                    ExcelSheet sheet = document.AddWorksheet("Conditions");
+                    ExcelSheet sheet = document.AddSheet("Conditions");
                     sheet.CellValue(2, 1, 1d);
                     sheet.AddConditionalFormulaRule("A2:A5", "A2>0");
 
@@ -3475,7 +3475,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
-                    ExcelSheet sheet = document.AddWorksheet("Comments");
+                    ExcelSheet sheet = document.AddSheet("Comments");
                     sheet.CellValue(1, 1, "Review");
                     sheet.CellValue(2, 2, "Unicode");
                     sheet.SetComment(1, 1, "Review this cell", author: "Alice", initials: "AK");
@@ -3535,7 +3535,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
-                    ExcelSheet sheet = document.AddWorksheet("Rich Comments");
+                    ExcelSheet sheet = document.AddSheet("Rich Comments");
                     sheet.CellValue(1, 1, "Review");
                     sheet.SetCommentRichText(
                         1,
@@ -3603,8 +3603,8 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
-                    ExcelSheet names = document.AddWorksheet("Names");
-                    ExcelSheet scoped = document.AddWorksheet("Scoped");
+                    ExcelSheet names = document.AddSheet("Names");
+                    ExcelSheet scoped = document.AddSheet("Scoped");
                     names.CellValue(1, 1, "North");
                     names.CellValue(2, 2, 125d);
                     scoped.CellValue(3, 3, "Local");
@@ -3660,7 +3660,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
-                    ExcelSheet sheet = document.AddWorksheet("ExternalRefs");
+                    ExcelSheet sheet = document.AddSheet("ExternalRefs");
                     sheet.CellValue(1, 1, 2d);
                     sheet.CellFormula(1, 1, "'[Budget.xls]Other'!$A$1");
                     sheet.CellValue(2, 1, 5d);
@@ -3693,7 +3693,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
-                    ExcelSheet sheet = document.AddWorksheet("ExternalNames");
+                    ExcelSheet sheet = document.AddSheet("ExternalNames");
                     sheet.CellValue(1, 1, 0.25d);
                     sheet.CellFormula(1, 1, "[Budget.xls]TaxRate");
 
@@ -3729,8 +3729,8 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
-                    ExcelSheet first = document.AddWorksheet("First");
-                    ExcelSheet second = document.AddWorksheet("Second");
+                    ExcelSheet first = document.AddSheet("First");
+                    ExcelSheet second = document.AddSheet("Second");
                     second.CellValue(1, 1, 42d);
                     first.CellValue(1, 1, 42d);
                     first.CellFormula(1, 1, "Second!A1");
@@ -3801,7 +3801,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
-                    ExcelSheet sheet = document.AddWorksheet("Array Formula");
+                    ExcelSheet sheet = document.AddSheet("Array Formula");
                     sheet.CellValue(1, 1, 2d);
                     sheet.CellValue(2, 1, 3d);
                     sheet.CellValue(3, 1, 5d);
@@ -3833,7 +3833,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
-                    ExcelSheet sheet = document.AddWorksheet("Array Formula");
+                    ExcelSheet sheet = document.AddSheet("Array Formula");
                     sheet.CellValue(1, 1, 2d);
                     sheet.CellValue(2, 1, 3d);
                     sheet.CellValue(1, 2, 5d);
@@ -3865,7 +3865,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
-                    ExcelSheet sheet = document.AddWorksheet("Shared Formula");
+                    ExcelSheet sheet = document.AddSheet("Shared Formula");
                     sheet.CellValue(1, 1, 10d);
                     sheet.CellValue(2, 1, 20d);
                     sheet.CellValue(3, 1, 30d);
@@ -3913,11 +3913,11 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
-                    ExcelSheet data = document.AddWorksheet("Data");
+                    ExcelSheet data = document.AddSheet("Data");
                     data.CellValue(1, 1, 10d);
                     data.CellValue(2, 1, 20d);
 
-                    ExcelSheet sheet = document.AddWorksheet("Shared Formula");
+                    ExcelSheet sheet = document.AddSheet("Shared Formula");
                     sheet.CellValue(1, 2, 15d);
                     sheet.CellValue(2, 2, 25d);
                     sheet.CellFormula(1, 2, "Data!A1+5");
@@ -3959,7 +3959,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
-                    ExcelSheet sheet = document.AddWorksheet("Shared Formula");
+                    ExcelSheet sheet = document.AddSheet("Shared Formula");
                     sheet.CellValue(1, 1, 10d);
                     sheet.CellValue(2, 1, 20d);
 
@@ -4461,7 +4461,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using ExcelDocument document = ExcelDocument.Create(openXmlPath);
-                ExcelSheet sheet = document.AddWorksheet("Unsupported");
+                ExcelSheet sheet = document.AddSheet("Unsupported");
                 configure(document, sheet);
 
                 NotSupportedException exception = Assert.Throws<NotSupportedException>(() => document.Save(xlsOutputPath));
@@ -4481,7 +4481,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using ExcelDocument document = ExcelDocument.Create(openXmlPath);
-                ExcelSheet sheet = document.AddWorksheet("Signed");
+                ExcelSheet sheet = document.AddSheet("Signed");
                 configure(document, sheet);
 
                 ExcelSignedWorkbookMutationException exception = Assert.Throws<ExcelSignedWorkbookMutationException>(() =>

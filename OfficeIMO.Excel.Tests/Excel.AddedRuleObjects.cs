@@ -11,7 +11,7 @@ public sealed class ExcelAddedRuleObjectTests {
     [Fact]
     public void ReturnedConditionalRulesRetainTheirOwnIdentityThroughLaterAddsAndUpdates() {
         using var document = ExcelDocument.Create();
-        var sheet = document.AddWorksheet("Values");
+        var sheet = document.AddSheet("Values");
         sheet.CellValue(1, 1, "Amount");
         sheet.CellValue(2, 1, 10);
         var first = sheet.AddConditionalRule("A2:A4", ExcelConditionalFormattingOperator.GreaterThan, "5");
@@ -44,7 +44,7 @@ public sealed class ExcelAddedRuleObjectTests {
     [Fact]
     public void AutoFilterHandleTracksTableOwnershipAndTocReturnsItsCreatedSheet() {
         using var document = ExcelDocument.Create();
-        var sheet = document.AddWorksheet("Values");
+        var sheet = document.AddSheet("Values");
         sheet.CellValue(1, 1, "Name");
         sheet.CellValue(2, 1, "Alpha");
         var filter = sheet.AddAutoFilter("A1:A2");

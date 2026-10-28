@@ -31,7 +31,7 @@ namespace OfficeIMO.Tests
             using (ExcelDocument document = ExcelDocument.Create(filePath))
             {
                 {
-                    var sheet1 = document.AddWorksheet("Data");
+                    var sheet1 = document.AddSheet("Data");
                     int nextRow2 = 1;
                     sheet1.Cell(nextRow2, 1, "Name");
                     sheet1.Cell(nextRow2, 2, "Score");
@@ -71,7 +71,7 @@ namespace OfficeIMO.Tests
             using (ExcelDocument document = ExcelDocument.Create(filePath))
             {
                 {
-                    var sheet3 = document.AddWorksheet("Data");
+                    var sheet3 = document.AddSheet("Data");
                     int nextRow4 = 1;
                     {
                         var cell1 = sheet3.CellAt("B2");
@@ -112,7 +112,7 @@ namespace OfficeIMO.Tests
             using ExcelDocument document = ExcelDocument.Create();
             ArgumentException exception = Assert.Throws<ArgumentException>(() =>
             {
-                var sheet6 = document.AddWorksheet("Data");
+                var sheet6 = document.AddSheet("Data");
 
                 var range8 = sheet6.Range("'Other'!A1:B2");
             });
@@ -125,7 +125,7 @@ namespace OfficeIMO.Tests
             using ExcelDocument document = ExcelDocument.Create();
             ArgumentException exception = Assert.Throws<ArgumentException>(() =>
             {
-                var sheet9 = document.AddWorksheet("Data");
+                var sheet9 = document.AddSheet("Data");
 
                 {
                     var cell3 = sheet9.CellAt("'Other'!A1");
@@ -143,7 +143,7 @@ namespace OfficeIMO.Tests
             using (ExcelDocument document = ExcelDocument.Create(filePath))
             {
                 {
-                    var sheet11 = document.AddWorksheet("Data");
+                    var sheet11 = document.AddSheet("Data");
                     int nextRow12 = 1;
                     sheet11.Cell(nextRow12, 1, "Name");
                     sheet11.Cell(nextRow12, 2, "Score");
@@ -193,7 +193,7 @@ namespace OfficeIMO.Tests
             using (ExcelDocument document = ExcelDocument.Create(filePath))
             {
                 {
-                    var sheet13 = document.AddWorksheet("Data");
+                    var sheet13 = document.AddSheet("Data");
                     int nextRow14 = 1;
                     sheet13.Cell(nextRow14, 1, "Name");
                     sheet13.Cell(nextRow14, 2, "Score");

@@ -8,8 +8,8 @@ namespace OfficeIMO.Examples.Showcase.Workflows;
 internal static class ProjectWorkbook {
     internal static void Create(string folder) {
         using ExcelDocument document = ExcelDocument.Create(Path.Combine(folder, "example.xlsx"));
-        ExcelSheet summary = document.AddWorksheet("Summary");
-        ExcelSheet delivery = document.AddWorksheet("Delivery");
+        ExcelSheet summary = document.AddSheet("Summary");
+        ExcelSheet delivery = document.AddSheet("Delivery");
         summary.MergeRange("A1:D1");
         summary.Cell(1, 1, "Project workbook / weekly delivery");
         summary.CellFontSize(1, 1, 20);

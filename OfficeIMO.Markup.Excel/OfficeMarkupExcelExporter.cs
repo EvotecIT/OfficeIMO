@@ -800,7 +800,7 @@ internal sealed partial class OfficeMarkupExcelExporter {
                 return sheet;
             }
 
-            sheet = _workbook.AddWorksheet(sheetName);
+            sheet = _workbook.AddSheet(sheetName);
             _sheets[sheetName] = sheet;
             _sheets[sheet.Name] = sheet;
             _nextRows[sheet.Name] = 1;

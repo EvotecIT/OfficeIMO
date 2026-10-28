@@ -22,13 +22,13 @@ namespace OfficeIMO.Excel.LegacyXls.Projection {
                     ? ExcelDateSystem.NineteenFour
                     : ExcelDateSystem.NineteenHundred;
                 if (workbook.Worksheets.Count == 0 && workbook.ChartSheets.Count == 0) {
-                    document.AddWorksheet("Sheet1");
+                    document.AddSheet("Sheet1");
                 }
 
                 foreach (LegacyXlsSheetProjectionEntry sheetEntry in EnumerateSheetsInWorkbookOrder(workbook, cancellationToken)) {
                     cancellationToken.ThrowIfCancellationRequested();
                     if (sheetEntry.Worksheet != null) {
-                        ExcelSheet sheet = document.AddWorksheet(sheetEntry.Worksheet.Name);
+                        ExcelSheet sheet = document.AddSheet(sheetEntry.Worksheet.Name);
                         ProjectWorksheet(workbook, sheetEntry.Worksheet, sheet, cancellationToken);
                     } else if (sheetEntry.ChartSheet != null) {
                         ProjectChartSheet(sheetEntry.ChartSheet, document);

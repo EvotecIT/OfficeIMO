@@ -16,7 +16,7 @@ public sealed class ExcelResourceBudgetSecurityTests {
         string path = GetTemporaryWorkbookPath();
         try {
             using var document = ExcelDocument.Create(path);
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
 
             ArgumentOutOfRangeException exception = Assert.Throws<ArgumentOutOfRangeException>(() =>
                 sheet.AddSparklines("A1:B10001", "C1:C10001"));
@@ -108,7 +108,7 @@ public sealed class ExcelResourceBudgetSecurityTests {
         string path = GetTemporaryWorkbookPath();
         try {
             using (var document = ExcelDocument.Create(path)) {
-                ExcelSheet sheet = document.AddWorksheet("Data");
+                ExcelSheet sheet = document.AddSheet("Data");
                 sheet.CellValue(1, 1, "A");
                 sheet.CellValue(1, 2, "B");
                 sheet.CellValue(2, 1, 1);
@@ -171,7 +171,7 @@ public sealed class ExcelResourceBudgetSecurityTests {
         try {
             string header = new string('H', 25_000);
             using (var document = ExcelDocument.Create(path)) {
-                ExcelSheet sheet = document.AddWorksheet("Data");
+                ExcelSheet sheet = document.AddSheet("Data");
                 sheet.CellValue(1, 1, header + "1");
                 sheet.CellValue(1, 2, header + "2");
                 sheet.CellValue(1, 3, header + "3");
@@ -200,7 +200,7 @@ public sealed class ExcelResourceBudgetSecurityTests {
     private static string CreateWorkbookWithRows(int rowCount) {
         string path = GetTemporaryWorkbookPath();
         using var document = ExcelDocument.Create(path);
-        ExcelSheet sheet = document.AddWorksheet("Data");
+        ExcelSheet sheet = document.AddSheet("Data");
         sheet.CellValue(1, 1, "Name");
         for (int row = 2; row <= rowCount; row++) {
             sheet.CellValue(row, 1, "Row" + row.ToString(CultureInfo.InvariantCulture));

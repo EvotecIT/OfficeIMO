@@ -13,7 +13,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public async Task Test_DiscardedCells_ReclaimExclusiveInCellImagesWhileMovesPreserveThem() {
             using (var document = ExcelDocument.Create(new MemoryStream())) {
-                ExcelSheet sheet = document.AddWorksheet("Ranges");
+                ExcelSheet sheet = document.AddSheet("Ranges");
                 sheet.CellValue(1, 1, "Replacement");
                 sheet.SetInCellImage(1, 2, TinyPng, altText: "Discarded destination");
 
@@ -43,7 +43,7 @@ namespace OfficeIMO.Tests {
             }
 
             using (var document = ExcelDocument.Create(new MemoryStream())) {
-                ExcelSheet sheet = document.AddWorksheet("Query");
+                ExcelSheet sheet = document.AddSheet("Query");
                 ExcelQueryBackedTableInfo source = document.AddQueryBackedTable(new ExcelQueryBackedTableOptions {
                     ConnectionName = "RefreshImages",
                     WorksheetName = sheet.Name,
@@ -70,7 +70,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_OwnedChartDataWorksheet_CannotBeRemovedWhileChartsReferenceIt() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet dashboard = document.AddWorksheet("Dashboard");
+            ExcelSheet dashboard = document.AddSheet("Dashboard");
             ExcelModernChart chart = dashboard.AddModernChart(
                 new ExcelChartData(
                     new[] { "A", "B" },
@@ -107,7 +107,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_TableSchema_RejectsOversizedHeadersBeforeMutation() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.CellValue(1, 1, "Original");
             sheet.CellValue(2, 1, "Keep");
             sheet.AddTable("A1:A2", true, "DataTable", OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium2);
@@ -126,7 +126,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_FeatureReport_PreservesUnresolvableQueryTableParts() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             document.AddQueryBackedTable(new ExcelQueryBackedTableOptions {
                 ConnectionName = "BrokenBinding",
                 WorksheetName = sheet.Name,

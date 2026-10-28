@@ -14,14 +14,14 @@ namespace OfficeIMO.Examples.Excel
             string filePath = System.IO.Path.Combine(folderPath, "WrapText.xlsx");
             using var document = ExcelDocument.Create(filePath);
             // Sheet 1: wrap enabled but no auto-fit applied
-            var wrapOnly = document.AddWorksheet("WrapOnly");
+            var wrapOnly = document.AddSheet("WrapOnly");
             wrapOnly.CellValue(1, 1, "Wrap Text (no auto-fit)");
             wrapOnly.CellValue(3, 1, "Line1\nLine2\nLine3");
             wrapOnly.WrapCells(3,3,1, ExcelColumnWidth.Characters(28));
             wrapOnly.CellValue(5, 1, "Very long sentence that will wrap once the row height is increased manually or via API.");
             wrapOnly.WrapCells(5,5,1, ExcelColumnWidth.Characters(28));
             // Sheet 2: wrap text plus AutoFitRows so the height adjusts
-            var wrapAutoRows = document.AddWorksheet("Wrap+AutoFitRows");
+            var wrapAutoRows = document.AddSheet("Wrap+AutoFitRows");
             wrapAutoRows.CellValue(1, 1, "Wrap Text + AutoFitRows");
             wrapAutoRows.CellValue(3, 1, "Line1\nLine2\nLine3");
             wrapAutoRows.WrapCells(3,3,1, ExcelColumnWidth.Characters(28));
@@ -33,7 +33,7 @@ namespace OfficeIMO.Examples.Excel
             wrapAutoRows.WrapCells(8,8,1, ExcelColumnWidth.Characters(28));
             wrapAutoRows.AutoFitRows();
             // Sheet 3: wrap text combined with both AutoFitRows and AutoFitColumns to illustrate Excel's native behaviour
-            var wrapAll = document.AddWorksheet("Wrap+AutoFitAll");
+            var wrapAll = document.AddSheet("Wrap+AutoFitAll");
             wrapAll.CellValue(1, 1, "Wrap Text + AutoFitRows + AutoFitColumns");
             wrapAll.CellValue(3, 1, "Line1\nLine2\nLine3");
             wrapAll.WrapCells(3,3,1, ExcelColumnWidth.Characters(28));
@@ -46,7 +46,7 @@ namespace OfficeIMO.Examples.Excel
             wrapAll.AutoFitColumns();
             wrapAll.AutoFitRows();
             // Sheet 4: wrap column stays pinned while neighbours auto-fit
-            var selective = document.AddWorksheet("Wrap+SelectiveAutoFit");
+            var selective = document.AddSheet("Wrap+SelectiveAutoFit");
             selective.CellValue(1, 1, "ID");
             selective.CellValue(1, 2, "Summary");
             selective.CellValue(1, 3, "Notes");
@@ -60,7 +60,7 @@ namespace OfficeIMO.Examples.Excel
             selective.WrapCells(2,8,2, ExcelColumnWidth.Characters(26));
             selective.AutoFitColumnsExcept(new[] { 2 });
             // Sheet 5: ExcelReportBuilder example with column sizing helper
-            var composer = document.AddWorksheet("ComposerSizing", ExcelSheetNameValidationMode.Sanitize).Report();
+            var composer = document.AddSheet("ComposerSizing", ExcelSheetNameValidationMode.Sanitize).Report();
             composer.Sheet.CellValue(1, 1, "Wrap");
             composer.Sheet.CellValue(1, 2, "AutoFit");
             composer.Sheet.CellValue(1, 3, "Number");

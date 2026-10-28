@@ -22,7 +22,7 @@ namespace OfficeIMO.Tests
 
                 int tableIndex = 1;
                 foreach (var name in sheetNames) {
-                    var sheet = document.AddWorksheet(name);
+                    var sheet = document.AddSheet(name);
                     SeedWideContent(sheet, name, ref tableIndex);
                 }
 
@@ -71,7 +71,7 @@ namespace OfficeIMO.Tests
             string logoPath = Path.Combine(_directoryWithImages, "EvotecLogo.png");
             using (var document = ExcelDocument.Create(filePath))
             {
-                var summary = document.AddWorksheet("Summary");
+                var summary = document.AddSheet("Summary");
                 summary.CellValue(1, 1, "Label");
                 summary.CellValue(1, 2, "Value");
                 summary.CellValue(2, 1, "Status");
@@ -85,7 +85,7 @@ namespace OfficeIMO.Tests
                     summary.SetHeaderImage(ExcelHeaderFooterPosition.Center, File.ReadAllBytes(logoPath), "image/png", width: OfficeLength.Points(96), height: OfficeLength.Points(32));
                 }
 
-                var data = document.AddWorksheet("Data");
+                var data = document.AddSheet("Data");
                 data.CellValue(1, 1, "Category");
                 data.CellValue(1, 2, "Amount");
                 data.CellValue(1, 3, "Trend1");
@@ -121,7 +121,7 @@ namespace OfficeIMO.Tests
             string filePath = Path.Combine(_directoryWithFiles, "RepairRegression.DefinedNames.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                document.AddWorksheet("Data");
+                document.AddSheet("Data");
                 var workbook = document._spreadSheetDocument.WorkbookPart!.Workbook;
                 workbook.DefinedNames = new DefinedNames(
                     new DefinedName { Name = "DupName", Text = "'Data'!$A$1" },
@@ -155,7 +155,7 @@ namespace OfficeIMO.Tests
             string filePath = Path.Combine(_directoryWithFiles, "WrapWidth.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorksheet("Data");
+                var sheet = document.AddSheet("Data");
                 sheet.CellValue(1, 1, "ID");
                 sheet.CellValue(1, 2, "Description");
                 for (int r = 2; r <= 6; r++) {
@@ -186,7 +186,7 @@ namespace OfficeIMO.Tests
             string filePath = Path.Combine(_directoryWithFiles, "ColumnSizing.WrapAutoFit.xlsx");
             using (var document = ExcelDocument.Create(filePath))
             {
-                var composer = document.AddWorksheet("Report").Report();
+                var composer = document.AddSheet("Report").Report();
                 var sheet = composer.Sheet;
                 sheet.CellValue(1, 1, "Wrap");
                 sheet.CellValue(1, 2, "Auto");

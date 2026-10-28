@@ -20,7 +20,7 @@ public class ExcelCsvExtensionsTests {
         CsvDocument csv = CsvDocument.Parse("Name\r\nAlpha");
         using var stream = new MemoryStream();
         using var document = ExcelDocument.Create(stream);
-        ExcelSheet sheet = document.AddWorksheet("Existing");
+        ExcelSheet sheet = document.AddSheet("Existing");
 
         Assert.Throws<OperationCanceledException>(() =>
             document.ImportCsv(csv, options, cancellation.Token));
@@ -57,7 +57,7 @@ public class ExcelCsvExtensionsTests {
         using var document = ExcelDocument.Create(stream);
 
         document.ImportCsvText("Name\r\nélève", options);
-        ExcelSheet existing = document.AddWorksheet("Existing");
+        ExcelSheet existing = document.AddSheet("Existing");
         existing.ImportCsvText("Name\r\n東京", options);
 
         Assert.True(document["Imported"].TryGetCellText(2, 1, out string? imported));
@@ -101,7 +101,7 @@ public class ExcelCsvExtensionsTests {
         };
         using var stream = new MemoryStream();
         using var document = ExcelDocument.Create(stream);
-        ExcelSheet existing = document.AddWorksheet("Existing");
+        ExcelSheet existing = document.AddSheet("Existing");
 
         Assert.Throws<InvalidDataException>(() =>
             document.ImportCsvText("Name\r\nAlpha", options));
@@ -129,7 +129,7 @@ public class ExcelCsvExtensionsTests {
     public void WorksheetCsvExportHonorsReadOptionsCancellationBeforeWriting() {
         using var stream = new MemoryStream();
         using var document = ExcelDocument.Create(stream);
-        ExcelSheet sheet = document.AddWorksheet("Data");
+        ExcelSheet sheet = document.AddSheet("Data");
         sheet.CellValue(1, 1, "Name");
         sheet.CellValue(2, 1, "Alpha");
         using var cancellation = new CancellationTokenSource();
@@ -147,7 +147,7 @@ public class ExcelCsvExtensionsTests {
         const string csv = "Name,Note,Amount\r\nAlpha,\"Hello, \"\"world\"\"\",10.5\r\nBeta,\"Line\r\nbreak\",20\r\n";
         using var stream = new MemoryStream();
         using var document = ExcelDocument.Create(stream);
-        ExcelSheet sheet = document.AddWorksheet("Data");
+        ExcelSheet sheet = document.AddSheet("Data");
 
         ExcelCsvImportResult imported = sheet.ImportCsvText(csv, new ExcelCsvImportOptions {
             ReaderOptions = new CsvDataReaderOptions { InferSchema = false }
@@ -166,7 +166,7 @@ public class ExcelCsvExtensionsTests {
     public void WorksheetCsvExportPreservesFirstDataRowWhenThereIsNoHeader() {
         using var stream = new MemoryStream();
         using var document = ExcelDocument.Create(stream);
-        ExcelSheet sheet = document.AddWorksheet("Data");
+        ExcelSheet sheet = document.AddSheet("Data");
         sheet.CellValue(1, 1, "Alpha");
         sheet.CellValue(1, 2, 10);
         sheet.CellValue(2, 1, "Beta");
@@ -189,7 +189,7 @@ public class ExcelCsvExtensionsTests {
         const string csv = "Name,Value\r\nAlpha,1,Extra\r\nBeta,\r\n";
         using var stream = new MemoryStream();
         using var document = ExcelDocument.Create(stream);
-        ExcelSheet sheet = document.AddWorksheet("Data");
+        ExcelSheet sheet = document.AddSheet("Data");
 
         ExcelCsvImportResult imported = sheet.ImportCsvText(csv, new ExcelCsvImportOptions {
             ReaderOptions = new CsvDataReaderOptions { InferSchema = false }

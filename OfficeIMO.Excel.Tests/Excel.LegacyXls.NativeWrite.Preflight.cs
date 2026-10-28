@@ -19,7 +19,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
-                    ExcelSheet sheet = document.AddWorksheet("Protected");
+                    ExcelSheet sheet = document.AddSheet("Protected");
                     sheet.CellValue(1, 1, "Protected range");
                     sheet.CellValue(2, 3, "Second range");
                     sheet.Protect();
@@ -68,7 +68,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
-                    ExcelSheet sheet = document.AddWorksheet("SingleProtected");
+                    ExcelSheet sheet = document.AddSheet("SingleProtected");
                     sheet.CellValue(1, 1, "Editable");
                     sheet.Protect();
                     sheet.WorksheetPart.Worksheet.AppendChild(new ProtectedRanges(

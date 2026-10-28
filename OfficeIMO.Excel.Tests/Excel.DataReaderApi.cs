@@ -41,10 +41,10 @@ public partial class Excel {
         string path = Path.Combine(Path.GetTempPath(), $"OfficeIMO.Excel.DataReader.{Guid.NewGuid():N}.xlsx");
         try {
             using (var document = ExcelDocument.Create(path)) {
-                var first = document.AddWorksheet("First");
+                var first = document.AddSheet("First");
                 first.CellValue(1, 1, "Value");
                 first.CellValue(2, 1, "One");
-                var second = document.AddWorksheet("Second");
+                var second = document.AddSheet("Second");
                 second.CellValue(1, 1, "Value");
                 second.CellValue(2, 1, "Two");
                 document.Save();
@@ -72,8 +72,8 @@ public partial class Excel {
     [Fact]
     public void OpenDataReader_SelectsWorksheetIndexAndA1Range() {
         using var document = ExcelDocument.Create(new MemoryStream());
-        document.AddWorksheet("Ignore").CellValue(1, 1, "Ignored");
-        ExcelSheet selected = document.AddWorksheet("Data");
+        document.AddSheet("Ignore").CellValue(1, 1, "Ignored");
+        ExcelSheet selected = document.AddSheet("Data");
         selected.CellValue(1, 1, "Skip");
         selected.CellValue(1, 2, "Name");
         selected.CellValue(2, 1, 1);
@@ -95,7 +95,7 @@ public partial class Excel {
     [Fact]
     public void OpenDataReader_RejectsSheetNameAndIndexTogether() {
         using var document = ExcelDocument.Create(new MemoryStream());
-        document.AddWorksheet("Data").CellValue(1, 1, "Value");
+        document.AddSheet("Data").CellValue(1, 1, "Value");
 
         Assert.Throws<ArgumentException>(() => { using var reader = ExcelDocument.OpenReader(
             document.ToBytes(),
@@ -119,7 +119,7 @@ public partial class Excel {
     [Fact]
     public void OpenDataReader_GetFieldValueSupportsNullablePrimitives() {
         using var document = ExcelDocument.Create(new MemoryStream());
-        ExcelSheet sheet = document.AddWorksheet("Data");
+        ExcelSheet sheet = document.AddSheet("Data");
         sheet.CellValue(1, 1, "Value");
         sheet.CellValue(2, 1, 42);
         byte[] workbook = document.ToBytes();
@@ -134,7 +134,7 @@ public partial class Excel {
     [Fact]
     public void OpenDataReader_GetFieldValueSupportsDateOnlyAndTimeOnlyWithoutChangingSchemaTypes() {
         using var document = ExcelDocument.Create(new MemoryStream());
-        ExcelSheet sheet = document.AddWorksheet("Data");
+        ExcelSheet sheet = document.AddSheet("Data");
         sheet.CellValue(1, 1, "Date");
         sheet.CellValue(1, 2, "Time");
         sheet.CellValue(2, 1, new DateOnly(2026, 8, 6));
@@ -155,7 +155,7 @@ public partial class Excel {
     public void OpenDataReader_DateOnlyGetterRedactsSourceValuesWhenRequested() {
         const string sourceValue = "customer-secret-date";
         using var document = ExcelDocument.Create(new MemoryStream());
-        ExcelSheet sheet = document.AddWorksheet("Data");
+        ExcelSheet sheet = document.AddSheet("Data");
         sheet.CellValue(1, 1, "Date");
         sheet.CellValue(2, 1, sourceValue);
 
@@ -181,8 +181,8 @@ public partial class Excel {
             $"OfficeIMO.Excel.DuplicateOpenXmlWorksheetName.{Guid.NewGuid():N}.xlsx");
         try {
             using (var document = ExcelDocument.Create(path)) {
-                document.AddWorksheet("Data").CellValue(1, 1, "First");
-                document.AddWorksheet("Other").CellValue(1, 1, "Second");
+                document.AddSheet("Data").CellValue(1, 1, "First");
+                document.AddSheet("Other").CellValue(1, 1, "Second");
                 document.Save();
             }
 
@@ -208,7 +208,7 @@ public partial class Excel {
         string path = Path.Combine(Path.GetTempPath(), $"OfficeIMO.Excel.DataReader.{Guid.NewGuid():N}.xls");
         try {
             using (var document = ExcelDocument.Create(path)) {
-                var sheet = document.AddWorksheet("Legacy");
+                var sheet = document.AddSheet("Legacy");
                 sheet.CellValue(1, 1, "Id");
                 sheet.CellValue(1, 2, "Name");
                 sheet.CellValue(2, 1, 7);
@@ -281,8 +281,8 @@ public partial class Excel {
         string path = Path.Combine(Path.GetTempPath(), $"OfficeIMO.Excel.DataReaderSheet.{Guid.NewGuid():N}.xlsx");
         try {
             using (var document = ExcelDocument.Create(path)) {
-                document.AddWorksheet("Ignore").CellValue(1, 1, "Ignored");
-                var selected = document.AddWorksheet("Data");
+                document.AddSheet("Ignore").CellValue(1, 1, "Ignored");
+                var selected = document.AddSheet("Data");
                 selected.CellValue(1, 1, "Value");
                 selected.CellValue(2, 1, "Selected");
                 document.Save();
@@ -329,7 +329,7 @@ public partial class Excel {
             $"OfficeIMO.Excel.SharedFormulaDataReader.{Guid.NewGuid():N}.xlsx");
         try {
             using (var document = ExcelDocument.Create(path)) {
-                ExcelSheet sheet = document.AddWorksheet("Shared");
+                ExcelSheet sheet = document.AddSheet("Shared");
                 sheet.CellValue(1, 1, "Value");
                 sheet.CellFormula(2, 1, "B2+1");
                 sheet.CellFormula(3, 1, "B3+1");
@@ -373,10 +373,10 @@ public partial class Excel {
             $"OfficeIMO.Excel.DeferredFormulaValidation.{Guid.NewGuid():N}.xlsx");
         try {
             using (var document = ExcelDocument.Create(path)) {
-                ExcelSheet first = document.AddWorksheet("First");
+                ExcelSheet first = document.AddSheet("First");
                 first.CellValue(1, 1, "Value");
                 first.CellValue(2, 1, "Ready");
-                ExcelSheet second = document.AddWorksheet("Second");
+                ExcelSheet second = document.AddSheet("Second");
                 second.CellValue(1, 1, "Value");
                 second.CellFormula(2, 1, "B2+1");
                 second.CellFormula(3, 1, "B3+1");
@@ -435,7 +435,7 @@ public partial class Excel {
             $"OfficeIMO.Excel.FormulaExtension.{Guid.NewGuid():N}.xlsx");
         try {
             using (var document = ExcelDocument.Create(path)) {
-                ExcelSheet sheet = document.AddWorksheet("Shared");
+                ExcelSheet sheet = document.AddSheet("Shared");
                 sheet.CellValue(1, 1, "Value");
                 sheet.CellFormula(2, 1, "B2+1");
                 sheet.CellFormula(3, 1, "B3+1");
@@ -487,7 +487,7 @@ public partial class Excel {
             $"OfficeIMO.Excel.StrictSharedFormula.{Guid.NewGuid():N}.xlsx");
         try {
             using (var document = ExcelDocument.Create(path)) {
-                ExcelSheet sheet = document.AddWorksheet("Shared");
+                ExcelSheet sheet = document.AddSheet("Shared");
                 sheet.CellValue(1, 1, "Value");
                 sheet.CellFormula(2, 1, "B2+1");
                 sheet.CellFormula(3, 1, "B3+1");
@@ -534,7 +534,7 @@ public partial class Excel {
             $"OfficeIMO.Excel.SharedFormulaMissingCache.{Guid.NewGuid():N}.xlsx");
         try {
             using (var document = ExcelDocument.Create(path)) {
-                ExcelSheet sheet = document.AddWorksheet("Shared");
+                ExcelSheet sheet = document.AddSheet("Shared");
                 sheet.CellValue(1, 1, "Value");
                 sheet.CellFormula(2, 1, "B2+1");
                 sheet.CellFormula(3, 1, "B3+1");
@@ -577,7 +577,7 @@ public partial class Excel {
             $"OfficeIMO.Excel.SharedFormulaCached.{Guid.NewGuid():N}.xlsx");
         try {
             using (var document = ExcelDocument.Create(path)) {
-                ExcelSheet sheet = document.AddWorksheet("Shared");
+                ExcelSheet sheet = document.AddSheet("Shared");
                 sheet.CellValue(1, 1, "Value");
                 sheet.CellFormula(2, 1, "B2+1");
                 sheet.CellFormula(3, 1, "B3+1");
@@ -619,7 +619,7 @@ public partial class Excel {
         string path = Path.Combine(Path.GetTempPath(), $"OfficeIMO.Excel.MissingSheet.{Guid.NewGuid():N}.xlsx");
         try {
             using (var document = ExcelDocument.Create(path)) {
-                document.AddWorksheet("Data").CellValue(1, 1, "Value");
+                document.AddSheet("Data").CellValue(1, 1, "Value");
                 document.Save();
             }
 
@@ -641,7 +641,7 @@ public partial class Excel {
         string path = Path.Combine(Path.GetTempPath(), $"OfficeIMO.Excel.Dimension.{Guid.NewGuid():N}.xlsx");
         try {
             using (var document = ExcelDocument.Create(path)) {
-                var sheet = document.AddWorksheet("Data");
+                var sheet = document.AddSheet("Data");
                 sheet.CellValue(1, 1, "Id");
                 sheet.CellValue(1, 2, "Name");
                 sheet.CellValue(2, 1, 1);
@@ -714,7 +714,7 @@ public partial class Excel {
         Guid identifier = Guid.NewGuid();
         try {
             using (var document = ExcelDocument.Create(path)) {
-                var sheet = document.AddWorksheet("Data");
+                var sheet = document.AddSheet("Data");
                 sheet.CellValue(1, 1, "Amount");
                 sheet.CellValue(1, 2, "Identifier");
                 sheet.CellValue(2, 1, "1,5");
@@ -765,7 +765,7 @@ public partial class Excel {
         string path = Path.Combine(Path.GetTempPath(), $"OfficeIMO.Excel.HasRows.{Guid.NewGuid():N}.xlsx");
         try {
             using (var document = ExcelDocument.Create(path)) {
-                ExcelSheet sheet = document.AddWorksheet("Data");
+                ExcelSheet sheet = document.AddSheet("Data");
                 sheet.CellValue(1, 1, "Value");
                 sheet.CellValue(2, 1, "One");
                 document.Save();
@@ -828,7 +828,7 @@ public partial class Excel {
     [Fact]
     public void CreateDataReader_PreCancelledOpenDocumentDoesNotMaterializeDeferredRows() {
         using var document = ExcelDocument.Create(new MemoryStream());
-        ExcelSheet sheet = document.AddWorksheet("Data");
+        ExcelSheet sheet = document.AddSheet("Data");
         sheet.InsertObjects(
             new[] { new { Name = "North", Score = 10 } },
             ("Name", row => row.Name),
@@ -904,7 +904,7 @@ public partial class Excel {
     [Fact]
     public void PendingDirectCellValueMaterializationCanResumeAfterCancellation() {
         using var document = ExcelDocument.Create(new MemoryStream());
-        ExcelSheet sheet = document.AddWorksheet("Data");
+        ExcelSheet sheet = document.AddSheet("Data");
         for (int row = 1; row <= 50_000; row++) {
             sheet.CellValue(row, 1, row);
         }
@@ -987,7 +987,7 @@ public partial class Excel {
         string path = Path.Combine(Path.GetTempPath(), $"OfficeIMO.Excel.Cancel.{Guid.NewGuid():N}.xls");
         try {
             using (var document = ExcelDocument.Create(path)) {
-                ExcelSheet sheet = document.AddWorksheet("Data");
+                ExcelSheet sheet = document.AddSheet("Data");
                 sheet.CellValue(1, 1, "Value");
                 for (int row = 2; row <= 2000; row++) {
                     sheet.CellValue(row, 1, "Value " + row.ToString(CultureInfo.InvariantCulture));
@@ -1012,7 +1012,7 @@ public partial class Excel {
         string path = Path.Combine(Path.GetTempPath(), $"OfficeIMO.Excel.Schema.{Guid.NewGuid():N}.xlsx");
         try {
             using (var document = ExcelDocument.Create(path)) {
-                ExcelSheet sheet = document.AddWorksheet("Data");
+                ExcelSheet sheet = document.AddSheet("Data");
                 sheet.CellValue(1, 1, "Value");
                 sheet.CellValue(2, 1, 42);
                 document.Save();
@@ -1038,7 +1038,7 @@ public partial class Excel {
         string path = Path.Combine(Path.GetTempPath(), $"OfficeIMO.Excel.Empty.{Guid.NewGuid():N}.xlsx");
         try {
             using (var document = ExcelDocument.Create(path)) {
-                document.AddWorksheet("Empty");
+                document.AddSheet("Empty");
                 document.Save();
             }
 
@@ -1101,7 +1101,7 @@ public partial class Excel {
             $"OfficeIMO.Excel.SmallChunkSchema.{Guid.NewGuid():N}.xlsx");
         try {
             using (var document = ExcelDocument.Create(path)) {
-                ExcelSheet sheet = document.AddWorksheet("Data");
+                ExcelSheet sheet = document.AddSheet("Data");
                 sheet.CellValue(1, 1, "Value");
                 sheet.CellValue(2, 1, 42);
                 document.Save();
@@ -1188,7 +1188,7 @@ public partial class Excel {
             $"OfficeIMO.Excel.CancelDiscovery.{Guid.NewGuid():N}.xlsx");
         try {
             using (var document = ExcelDocument.Create(path)) {
-                ExcelSheet sheet = document.AddWorksheet("Data");
+                ExcelSheet sheet = document.AddSheet("Data");
                 sheet.CellValue(1, 1, "Value");
                 sheet.CellValue(2, 1, "One");
                 document.Save();
@@ -1214,7 +1214,7 @@ public partial class Excel {
         string path = Path.Combine(Path.GetTempPath(), $"OfficeIMO.Excel.Cancel.{Guid.NewGuid():N}.xlsx");
         try {
             using (var document = ExcelDocument.Create(path)) {
-                var sheet = document.AddWorksheet("Data");
+                var sheet = document.AddSheet("Data");
                 sheet.CellValue(1, 1, "Value");
                 for (int row = 2; row <= 2000; row++) {
                     sheet.CellValue(row, 1, "Value " + row.ToString(CultureInfo.InvariantCulture));

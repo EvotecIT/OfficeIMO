@@ -9,7 +9,7 @@ public sealed class ExcelImageOptionsTests {
     [Fact]
     public void WorksheetVisualReviewPreservesCellAndEncodedByteLimits() {
         using var document = ExcelDocument.Create();
-        var sheet = document.AddWorksheet("Data");
+        var sheet = document.AddSheet("Data");
         sheet.CellValue(1, 1, "One");
         sheet.CellValue(1, 2, "Two");
         var options = new ExcelHtmlSaveOptions {

@@ -61,7 +61,7 @@ namespace OfficeIMO.Tests
             string authoredOutput = Path.Combine(_directoryWithFiles, "Authored." + file);
             using (var document = ExcelDocument.Create())
             {
-                var source = document.AddWorksheet("Source");
+                var source = document.AddSheet("Source");
                 PopulateThreeLevelPivotSource(source, sourceRows);
                 if (kind.EndsWith("-error", StringComparison.Ordinal))
                     source.CellError(5, 4, "#DIV/0!");
@@ -166,7 +166,7 @@ namespace OfficeIMO.Tests
             string authoredOutput = Path.Combine(_directoryWithFiles, "Authored." + file);
             using (var document = ExcelDocument.Create())
             {
-                var source = document.AddWorksheet("Source");
+                var source = document.AddSheet("Source");
                 PopulateThreeLevelPivotSource(source, ThreeLevelTopTwoRows);
                 ExcelPivotFilter[] filters = kind == "mixed-row-top1-column-bottom1" ? new[]
                 {
@@ -256,7 +256,7 @@ namespace OfficeIMO.Tests
         public void Test_PivotThreeLevelMixedValue_UnqualifiedRuleFailsClosed(bool outerRow)
         {
             using var document = ExcelDocument.Create();
-            var source = document.AddWorksheet("Source");
+            var source = document.AddSheet("Source");
             PopulateThreeLevelPivotSource(source, ThreeLevelTopTwoRows);
             ExcelPivotFilter filter = outerRow ? ExcelPivotFilter.ValueGreaterThan("Region", "Metric", 50d) : ExcelPivotFilter.TopCount("Channel", "Metric", 2);
             {

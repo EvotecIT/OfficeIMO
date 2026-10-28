@@ -12,7 +12,7 @@ namespace OfficeIMO.Tests
         {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorksheet("Sparklines");
+            ExcelSheet sheet = document.AddSheet("Sparklines");
             sheet.CellValue(1, 1, "Metric");
             sheet.CellValue(2, 1, "Revenue");
             sheet.CellValue(2, 2, 10);
@@ -48,7 +48,7 @@ namespace OfficeIMO.Tests
         {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorksheet("Types");
+            ExcelSheet sheet = document.AddSheet("Types");
             sheet.CellValue(1, 1, 8);
             sheet.CellValue(1, 2, -4);
             sheet.CellValue(1, 3, 12);
@@ -75,7 +75,7 @@ namespace OfficeIMO.Tests
         {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorksheet("GroupScale");
+            ExcelSheet sheet = document.AddSheet("GroupScale");
             sheet.CellValue(1, 1, 1);
             sheet.CellValue(1, 2, 2);
             sheet.CellValue(1, 3, 3);
@@ -101,7 +101,7 @@ namespace OfficeIMO.Tests
         {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorksheet("PartialGroupScale");
+            ExcelSheet sheet = document.AddSheet("PartialGroupScale");
             sheet.CellValue(1, 1, 1);
             sheet.CellValue(1, 2, 2);
             sheet.CellValue(1, 3, 3);
@@ -120,7 +120,7 @@ namespace OfficeIMO.Tests
         {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorksheet("BoundedGroupScale");
+            ExcelSheet sheet = document.AddSheet("BoundedGroupScale");
             sheet.CellValue(1, 1, 1);
             sheet.CellValue(7, 1, 1000);
             sheet.AddSparklines("A1:XFC7", "XFD1:XFD7", ExcelSparklineType.Column, seriesColor: OfficeIMO.OfficeColor.ParseHex("#2563EB"));
@@ -138,11 +138,11 @@ namespace OfficeIMO.Tests
         public void ExcelRange_ImageExportReportsExternalSparklineRanges() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
-            ExcelSheet data = document.AddWorksheet("Data");
+            ExcelSheet data = document.AddSheet("Data");
             data.CellValue(1, 1, 2);
             data.CellValue(1, 2, 4);
             data.CellValue(1, 3, 8);
-            ExcelSheet summary = document.AddWorksheet("Summary");
+            ExcelSheet summary = document.AddSheet("Summary");
             summary.AddSparklines("'Data'!A1:C1", "A1", displayMarkers: true);
 
             ExcelRange range = summary.Range("A1:A1");
@@ -160,7 +160,7 @@ namespace OfficeIMO.Tests
         public void ExcelRange_ImageExportSkipsOffscreenSparklineDataPrefetch() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorksheet("Sparklines");
+            ExcelSheet sheet = document.AddSheet("Sparklines");
             sheet.CellValue(1, 1, 1);
             sheet.AddSparklines("A1:A100001", "Z1000");
 
@@ -174,7 +174,7 @@ namespace OfficeIMO.Tests
         public void ExcelRange_ImageExportRejectsOversizedVisibleSparklineDataRange() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorksheet("Sparklines");
+            ExcelSheet sheet = document.AddSheet("Sparklines");
             sheet.CellValue(1, 1, 1);
             sheet.AddSparklines("A1:A100001", "B1");
 

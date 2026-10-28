@@ -227,10 +227,10 @@ public sealed partial class ExcelUtf8TextTests {
     private static string CreateWorkbook(string cells, int columns = 1, bool utf16 = false, string extraRows = "", int firstColumn = 1, bool secondSheet = false, string? sharedStringItems = null) {
         string path = Path.Combine(Path.GetTempPath(), $"OfficeIMO.Excel.Utf8Text.{Guid.NewGuid():N}.xlsx");
         using (var document = ExcelDocument.Create(path)) {
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.CellValue(1, 1, "Value");
             if (secondSheet) {
-                document.AddWorksheet("Second").CellValue(1, 1, "Value");
+                document.AddSheet("Second").CellValue(1, 1, "Value");
             }
             document.Save();
         }

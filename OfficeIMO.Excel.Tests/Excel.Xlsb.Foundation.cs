@@ -175,7 +175,7 @@ namespace OfficeIMO.Tests {
         public void Xlsb_WorkbookReader_EnforcesRowMetadataBudget() {
             byte[] package;
             using (ExcelDocument document = ExcelDocument.Create()) {
-                ExcelSheet sheet = document.AddWorksheet("Rows");
+                ExcelSheet sheet = document.AddSheet("Rows");
                 sheet.CellValue(1, 1, "one");
                 sheet.CellValue(2, 1, "two");
                 package = document.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xlsb });
@@ -201,7 +201,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Xlsb_PackageDetector_DoesNotMisclassifyXmlWorkbookPackages() {
             using ExcelDocument document = ExcelDocument.Create();
-            document.AddWorksheet("Data").CellValue(1, 1, "XML package");
+            document.AddSheet("Data").CellValue(1, 1, "XML package");
             byte[] package = document.ToBytes();
 
             Assert.False(XlsbPackageDetector.TryFindWorkbookPart(package, out _));
@@ -1155,7 +1155,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public async Task Xlsb_NewWorkbook_SyncAndAsyncSaveProduceReadableNativePackages() {
             using ExcelDocument document = ExcelDocument.Create();
-            document.AddWorksheet("Data").CellValue(1, 1, "XLSB");
+            document.AddSheet("Data").CellValue(1, 1, "XLSB");
             using var synchronousDestination = new MemoryStream();
             using var asynchronousDestination = new MemoryStream();
 
@@ -1177,11 +1177,11 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Xlsb_NewWorkbook_WritesMultipleSheetsValuesVisibilityAndDimensions() {
             using ExcelDocument document = ExcelDocument.Create();
-            ExcelSheet values = document.AddWorksheet("Values");
+            ExcelSheet values = document.AddSheet("Values");
             values.CellValue(2, 2, "Text");
             values.CellValue(3, 3, 42.5D);
             values.CellValue(4, 4, true);
-            ExcelSheet hidden = document.AddWorksheet("Hidden Data");
+            ExcelSheet hidden = document.AddSheet("Hidden Data");
             hidden.CellValue(1, 1, "Hidden");
             hidden.SetHidden(true);
 
@@ -1204,7 +1204,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public async Task Xlsb_NewWorkbook_StreamsToNonSeekableDestinations() {
             using ExcelDocument document = ExcelDocument.Create();
-            document.AddWorksheet("Streamed").CellValue(1, 1, "BIFF12");
+            document.AddSheet("Streamed").CellValue(1, 1, "BIFF12");
             using var synchronousDestination = new NonSeekableReadWriteBuffer(Array.Empty<byte>());
             using var asynchronousDestination = new NonSeekableReadWriteBuffer(Array.Empty<byte>());
 
@@ -1222,7 +1222,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Xlsb_NewWorkbook_WritesCommonFormulaTokensAndCachedResults() {
             using ExcelDocument document = ExcelDocument.Create();
-            ExcelSheet sheet = document.AddWorksheet("Formula");
+            ExcelSheet sheet = document.AddSheet("Formula");
             sheet.CellValue(1, 1, 2D);
             sheet.CellValue(2, 1, 3D);
             sheet.CellFormula(3, 1, "SUM(A1:A2)");
@@ -1243,7 +1243,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Xlsb_NewWorkbook_RejectsUnsupportedFormulaBeforeTouchingDestinationContent() {
             using ExcelDocument document = ExcelDocument.Create();
-            document.AddWorksheet("Formula").CellFormula(1, 1, "Sheet1!A1");
+            document.AddSheet("Formula").CellFormula(1, 1, "Sheet1!A1");
             byte[] sentinel = Enumerable.Range(0, 64).Select(index => (byte)index).ToArray();
             using var destination = new MemoryStream();
             destination.Write(sentinel, 0, sentinel.Length);
@@ -1260,7 +1260,7 @@ namespace OfficeIMO.Tests {
             string path = Path.Combine(Path.GetTempPath(), "officeimo-new-native-" + Guid.NewGuid().ToString("N") + ".xlsb");
             try {
                 using (ExcelDocument document = ExcelDocument.Create()) {
-                    ExcelSheet sheet = document.AddWorksheet("Sequential");
+                    ExcelSheet sheet = document.AddSheet("Sequential");
                     sheet.CellValue(1, 1, "First");
                     document.Save(path);
                     Assert.Equal(ExcelFileFormat.Xlsb, document.SourceFormat);
@@ -1282,7 +1282,7 @@ namespace OfficeIMO.Tests {
             var date = new DateTime(2024, 2, 29);
             using ExcelDocument document = ExcelDocument.Create();
             document.DateSystem = ExcelDateSystem.NineteenFour;
-            ExcelSheet sheet = document.AddWorksheet("Styled");
+            ExcelSheet sheet = document.AddSheet("Styled");
             sheet.CellValue(1, 1, "Heading");
             sheet.CellBold(1, 1);
             sheet.CellBackground(1, 1, "#4472C4");
@@ -1312,7 +1312,7 @@ namespace OfficeIMO.Tests {
         [InlineData("pivot")]
         public void Xlsb_NewWorkbook_RejectsOversizedStyleNamesBeforeEncoding(string target) {
             using ExcelDocument document = ExcelDocument.Create();
-            ExcelSheet sheet = document.AddWorksheet("Styles");
+            ExcelSheet sheet = document.AddSheet("Styles");
             sheet.CellValue(1, 1, "Value");
             sheet.CellBold(1, 1);
             Stylesheet stylesheet = document.WorkbookPartRoot.WorkbookStylesPart!.Stylesheet!;
@@ -1335,7 +1335,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Xlsb_NewWorkbook_WritesWorksheetGeometry() {
             using ExcelDocument document = ExcelDocument.Create();
-            ExcelSheet sheet = document.AddWorksheet("Geometry");
+            ExcelSheet sheet = document.AddSheet("Geometry");
             sheet.CellValue(1, 1, "Merged heading");
             sheet.CellValue(5, 4, "Extent");
             sheet.SetDefaultColumnWidth(ExcelColumnWidth.Characters(9D));
@@ -1375,8 +1375,8 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Xlsb_NewWorkbook_WritesExternalAndInternalHyperlinks() {
             using ExcelDocument document = ExcelDocument.Create();
-            ExcelSheet links = document.AddWorksheet("Links");
-            ExcelSheet target = document.AddWorksheet("Target Sheet");
+            ExcelSheet links = document.AddSheet("Links");
+            ExcelSheet target = document.AddSheet("Target Sheet");
             links.SetHyperlink(
                 1,
                 1,
@@ -1429,7 +1429,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Xlsb_NewWorkbook_WritesCalculationProperties() {
             using ExcelDocument document = ExcelDocument.Create();
-            document.AddWorksheet("Calculation").CellValue(1, 1, 1D);
+            document.AddSheet("Calculation").CellValue(1, 1, 1D);
             document.WorkbookRoot.Append(new CalculationProperties {
                 CalculationId = 42U,
                 CalculationMode = CalculateModeValues.AutoNoTable,
@@ -1480,7 +1480,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Xlsb_NewWorkbook_WritesClassicWorkbookProtection() {
             using ExcelDocument document = ExcelDocument.Create();
-            document.AddWorksheet("Protected").CellValue(1, 1, "Locked structure");
+            document.AddSheet("Protected").CellValue(1, 1, "Locked structure");
             document.ProtectWorkbook(new ExcelWorkbookProtectionOptions {
                 ProtectStructure = true,
                 ProtectWindows = true,
@@ -1524,8 +1524,8 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Xlsb_NewWorkbook_WritesAndProjectsDefinedNamesAndPrintRanges() {
             using ExcelDocument document = ExcelDocument.Create();
-            ExcelSheet data = document.AddWorksheet("Data Sheet");
-            document.AddWorksheet("Summary");
+            ExcelSheet data = document.AddSheet("Data Sheet");
+            document.AddSheet("Summary");
             document.SetNamedRange("RevenueData", "'Data Sheet'!A1:B3", save: false, hidden: true);
             data.SetNamedRange("LocalCell", "C2", save: false);
             document.SetPrintArea(data, "A1:C10", save: false);
@@ -1589,7 +1589,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Xlsb_NewWorkbook_WritesAndProjectsCommonWorksheetMetadata() {
             using ExcelDocument document = ExcelDocument.Create();
-            ExcelSheet sheet = document.AddWorksheet("Report");
+            ExcelSheet sheet = document.AddSheet("Report");
             sheet.CellValue(1, 1, "Status");
             sheet.CellValue(1, 2, "Amount");
             sheet.CellValue(2, 1, "Open");

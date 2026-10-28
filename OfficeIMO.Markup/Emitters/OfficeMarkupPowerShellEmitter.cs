@@ -378,7 +378,7 @@ public sealed class OfficeMarkupPowerShellEmitter {
         sb.AppendLine("$sheet = $null");
         sb.AppendLine("function Get-OrAddOfficeExcelWorksheet {");
         sb.AppendLine("    param($Workbook, [string] $Name)");
-        sb.AppendLine("    try { return $Workbook.GetSheet($Name) } catch { return $Workbook.AddWorksheet($Name) }");
+        sb.AppendLine("    try { return $Workbook.GetSheet($Name) } catch { return $Workbook.AddSheet($Name) }");
         sb.AppendLine("}");
         var chartIndex = 0;
         foreach (var block in document.Blocks) {

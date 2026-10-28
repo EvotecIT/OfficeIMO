@@ -48,7 +48,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "InsertObjectsClass.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorksheet("Data");
+                var sheet = document.AddSheet("Data");
                 var people = new List<Person> {
                     new Person {
                         Name = "Alice",
@@ -101,7 +101,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "InsertObjectsDictionary.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorksheet("Data");
+                var sheet = document.AddSheet("Data");
                 var items = new List<Dictionary<string, object>> {
                     new Dictionary<string, object> {
                         { "Name", "Alice" },
@@ -181,7 +181,7 @@ namespace OfficeIMO.Tests {
             List<string> expectedHeaders = BuildExpectedHeaders(nodes.Cast<object>());
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorksheet("Data");
+                var sheet = document.AddSheet("Data");
                 sheet.InsertObjects(nodes);
                 document.Save();
             }

@@ -20,7 +20,7 @@ public sealed class ExcelOdsChartAuthoringTests {
     [InlineData(OfficeChartType.Line, "chart:line", null)]
     public void ExcelChartConvertsToReopenableOdsAndBack(OfficeChartType type, string chartClass, bool? vertical) {
         using ExcelDocument source = ExcelDocument.Create();
-        ExcelSheet sheet = source.AddWorksheet("Summary");
+        ExcelSheet sheet = source.AddSheet("Summary");
         var data = new ExcelChartData(new[] { "Jan", "Feb" },
             new[] { new ExcelChartSeries("Sales", new[] { 10d, 20d }) });
         sheet.AddChart(data, row: 5, column: 4, width: OfficeLength.Pixels(480), height: OfficeLength.Pixels(300),
@@ -65,7 +65,7 @@ public sealed class ExcelOdsChartAuthoringTests {
             Guid.NewGuid().ToString("N") + ".xlsx");
         try {
             using (ExcelDocument source = ExcelDocument.Create(path)) {
-                ExcelSheet sheet = source.AddWorksheet("Summary");
+                ExcelSheet sheet = source.AddSheet("Summary");
                 sheet.AddChart(new ExcelChartData(new[] { "Jan", "Feb" },
                     new[] { new ExcelChartSeries("Sales", new[] { 10d, 20d }) }),
                     row: 5, column: 4, type: OfficeChartType.ColumnClustered);
@@ -100,7 +100,7 @@ public sealed class ExcelOdsChartAuthoringTests {
             Guid.NewGuid().ToString("N") + ".xlsx");
         try {
             using (ExcelDocument source = ExcelDocument.Create(path)) {
-                source.AddWorksheet("Summary").AddChart(new ExcelChartData(new[] { "Jan" },
+                source.AddSheet("Summary").AddChart(new ExcelChartData(new[] { "Jan" },
                     new[] { new ExcelChartSeries("Sales", new[] { 10d }) }), row: 5, column: 4);
                 source.Save();
             }
@@ -127,7 +127,7 @@ public sealed class ExcelOdsChartAuthoringTests {
             Guid.NewGuid().ToString("N") + ".xlsx");
         try {
             using (ExcelDocument source = ExcelDocument.Create(path)) {
-                source.AddWorksheet("Summary").AddChart(new ExcelChartData(new[] { "Jan", "Feb" },
+                source.AddSheet("Summary").AddChart(new ExcelChartData(new[] { "Jan", "Feb" },
                     new[] { new ExcelChartSeries("Sales", new[] { 10d, 20d }) }), row: 5, column: 4);
                 source.Save();
             }
@@ -159,7 +159,7 @@ public sealed class ExcelOdsChartAuthoringTests {
             Guid.NewGuid().ToString("N") + ".xlsx");
         try {
             using (ExcelDocument source = ExcelDocument.Create(path)) {
-                ExcelSheet sheet = source.AddWorksheet("Summary");
+                ExcelSheet sheet = source.AddSheet("Summary");
                 var data = new ExcelChartData(new[] { "Jan" },
                     new[] { new ExcelChartSeries("Sales", new[] { 10d }) });
                 ExcelChartDataRange range = sheet.WriteChartData(data, orientation: ExcelChartDataOrientation.Horizontal);
@@ -179,7 +179,7 @@ public sealed class ExcelOdsChartAuthoringTests {
     [Fact]
     public void MixedSeriesAndSecondaryAxisRemainExplicitLoss() {
         using ExcelDocument source = ExcelDocument.Create();
-        ExcelSheet sheet = source.AddWorksheet("Summary");
+        ExcelSheet sheet = source.AddSheet("Summary");
         sheet.AddChart(new ExcelChartData(new[] { "Jan", "Feb" }, new[] {
             new ExcelChartSeries("Sales", new[] { 10d, 20d }, OfficeChartType.ColumnClustered),
             new ExcelChartSeries("Trend", new[] { 12d, 22d }, OfficeChartType.Line,
@@ -195,7 +195,7 @@ public sealed class ExcelOdsChartAuthoringTests {
     [Fact]
     public void NonnumericWorksheetValueRemainsExplicitChartLoss() {
         using ExcelDocument source = ExcelDocument.Create();
-        ExcelSheet sheet = source.AddWorksheet("Summary");
+        ExcelSheet sheet = source.AddSheet("Summary");
         ExcelChart chart = sheet.AddChart(new ExcelChartData(new[] { "Jan", "Feb" },
             new[] { new ExcelChartSeries("Sales", new[] { 10d, 20d }) }),
             row: 5, column: 4, type: OfficeChartType.ColumnClustered);
@@ -216,7 +216,7 @@ public sealed class ExcelOdsChartAuthoringTests {
         string dataSheet;
         try {
             using (ExcelDocument source = ExcelDocument.Create(path)) {
-                ExcelSheet sheet = source.AddWorksheet("Summary");
+                ExcelSheet sheet = source.AddSheet("Summary");
                 ExcelChart chart = sheet.AddChart(new ExcelChartData(new[] { "Jan", "Feb" }, new[] {
                     new ExcelChartSeries("Sales", new[] { 10d, 20d }),
                     new ExcelChartSeries("Trend", new[] { 12d, 22d })
@@ -253,7 +253,7 @@ public sealed class ExcelOdsChartAuthoringTests {
         string dataSheet;
         try {
             using (ExcelDocument source = ExcelDocument.Create(path)) {
-                ExcelSheet sheet = source.AddWorksheet("Summary");
+                ExcelSheet sheet = source.AddSheet("Summary");
                 ExcelChart sourceChart = sheet.AddChart(new ExcelChartData(new[] { "Jan", "Feb" },
                     new[] { new ExcelChartSeries("Sales", new[] { 10d, 20d }) }),
                     row: 5, column: 4, type: OfficeChartType.ColumnClustered);

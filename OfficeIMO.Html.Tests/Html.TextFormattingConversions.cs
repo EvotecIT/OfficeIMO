@@ -228,7 +228,7 @@ public class HtmlTextFormattingConversionTests {
     [Fact]
     public void ExcelSemanticHtmlRoundTripRetainsCellAndRichRunTypography() {
         using ExcelDocument source = ExcelDocument.Create();
-        ExcelSheet sheet = source.AddWorksheet("Text");
+        ExcelSheet sheet = source.AddSheet("Text");
         sheet.CellAt(1, 1).SetValue("Cell").SetBold().SetItalic()
             .SetUnderline(ExcelUnderlineStyle.DoubleAccounting).SetStrikethrough()
             .SetSuperscript().SetFontName("Aptos").SetFontSize(14).SetFontColor("336699");
@@ -280,7 +280,7 @@ public class HtmlTextFormattingConversionTests {
     [Fact]
     public void ExcelSemanticHtmlRoundTripRetainsTypographyOnEmptyTemplateCells() {
         using ExcelDocument source = ExcelDocument.Create();
-        ExcelSheet sheet = source.AddWorksheet("Template");
+        ExcelSheet sheet = source.AddSheet("Template");
         sheet.CellAt(1, 1).SetValue("Anchor");
         sheet.CellAt(1, 2).SetBold().SetItalic()
             .SetUnderline(ExcelUnderlineStyle.DoubleAccounting).SetStrikethrough()
@@ -330,7 +330,7 @@ public class HtmlTextFormattingConversionTests {
     [Fact]
     public void ExcelHtmlImportWalksPlainAndNestedStyledTextInDomOrder() {
         using ExcelDocument source = ExcelDocument.Create();
-        source.AddWorksheet("Text").CellAt(1, 1).SetValue("Placeholder");
+        source.AddSheet("Text").CellAt(1, 1).SetValue("Placeholder");
         ExcelHtmlSaveOptions options = ExcelHtmlSaveOptions.CreateSemanticTablesProfile();
         options.HeaderMode = ExcelHtmlHeaderMode.None;
         string html = source.ToHtml(options)
@@ -376,7 +376,7 @@ public class HtmlTextFormattingConversionTests {
     [Fact]
     public void ExcelSemanticHtmlRoundTripAppliesCellTypographyToRichRuns() {
         using ExcelDocument source = ExcelDocument.Create();
-        ExcelCell cell = source.AddWorksheet("Text").CellAt(1, 1)
+        ExcelCell cell = source.AddSheet("Text").CellAt(1, 1)
             .SetRichText(
                 new ExcelRichTextRun("Inherited"),
                 new ExcelRichTextRun(" Override") { Italic = true, FontColor = "CC0000" })
@@ -412,7 +412,7 @@ public class HtmlTextFormattingConversionTests {
     [Fact]
     public void ExcelSemanticHtmlPreservesDirectStyleResetsAndRendersPlainCellScriptsInline() {
         using ExcelDocument source = ExcelDocument.Create();
-        ExcelSheet sheet = source.AddWorksheet("Text");
+        ExcelSheet sheet = source.AddSheet("Text");
         sheet.CellAt(1, 1)
             .SetRichText(new ExcelRichTextRun("Direct off") {
                 Bold = false,
@@ -724,7 +724,7 @@ public class HtmlTextFormattingConversionTests {
         Assert.Null(Assert.Single(word.Paragraphs).Underline);
 
         using ExcelDocument excelSource = ExcelDocument.Create();
-        excelSource.AddWorksheet("Text").CellAt(1, 1).SetRichText(
+        excelSource.AddSheet("Text").CellAt(1, 1).SetRichText(
             new ExcelRichTextRun("Ex") { Bold = true },
             new ExcelRichTextRun("cel") { Italic = true });
         string excelHtml = excelSource.ToHtml(ExcelHtmlSaveOptions.CreateSemanticTablesProfile())
@@ -755,7 +755,7 @@ public class HtmlTextFormattingConversionTests {
         Assert.EndsWith("'", quoted, StringComparison.Ordinal);
 
         using ExcelDocument excel = ExcelDocument.Create();
-        excel.AddWorksheet("Text").CellAt(1, 1).SetValue("Excel").SetFontName(hostile);
+        excel.AddSheet("Text").CellAt(1, 1).SetValue("Excel").SetFontName(hostile);
         string excelHtml = excel.ToHtml(ExcelHtmlSaveOptions.CreateSemanticTablesProfile());
         Assert.Contains(OfficeHtmlText.EscapeAttribute(quoted), excelHtml, StringComparison.Ordinal);
 

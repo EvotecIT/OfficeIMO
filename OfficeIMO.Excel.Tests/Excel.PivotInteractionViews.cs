@@ -22,8 +22,8 @@ namespace OfficeIMO.Tests
             string filePath = Path.Combine(_directoryWithFiles, "Excel.PivotInteractionViews.xlsx");
             using (ExcelDocument document = ExcelDocument.Create(filePath))
             {
-                document.AddWorksheet("Dummy");
-                ExcelSheet data = document.AddWorksheet("Sales");
+                document.AddSheet("Dummy");
+                ExcelSheet data = document.AddSheet("Sales");
                 data.CellValue(1, 1, "Region");
                 data.CellValue(1, 2, "OrderDate");
                 data.CellValue(1, 3, "Sales");
@@ -49,7 +49,7 @@ namespace OfficeIMO.Tests
                 discardedCache.Remove();
                 workbookPart.DeletePart(discardedDefinition);
                 workbookPart.Workbook.Save();
-                ExcelSheet dashboard = document.AddWorksheet("Dashboard");
+                ExcelSheet dashboard = document.AddSheet("Dashboard");
                 document.RemoveWorksheet("Dummy");
                 ExcelPivotInteractionInfo slicer = document.AddPivotSlicer("SalesPivot", "Region", dashboard.Name, new ExcelSlicerViewOptions { Name = "RegionFilter", Row = 2, Column = 2 });
                 ExcelPivotInteractionInfo secondSlicer = document.AddPivotSlicer("SalesPivot2", "Region", dashboard.Name, new ExcelSlicerViewOptions { Name = "RegionFilter2", CacheName = slicer.CacheName, Row = 2, Column = 5 });
@@ -120,7 +120,7 @@ namespace OfficeIMO.Tests
         public void Test_PivotInteractionViews_RejectInvalidBindingsAndPreserveDrawingPlacement()
         {
             using ExcelDocument document = ExcelDocument.Create();
-            ExcelSheet sheet = document.AddWorksheet("Sales");
+            ExcelSheet sheet = document.AddSheet("Sales");
             sheet.CellValue(1, 1, "Region");
             sheet.CellValue(1, 2, "Sales");
             sheet.CellValue(2, 1, "East");
@@ -142,7 +142,7 @@ namespace OfficeIMO.Tests
             Assert.Equal("4", anchor.FromMarker.RowId!.Text);
             var errors = document.ValidateOpenXml().ToArray();
             Assert.True(errors.Length == 0, string.Join(Environment.NewLine, errors));
-            document.AddWorksheet("Keep");
+            document.AddSheet("Keep");
             document.RemoveWorksheet("Sales");
             Assert.Empty(document.GetPivotInteractions());
             Assert.Empty(document._spreadSheetDocument.WorkbookPart!.SlicerCacheParts);

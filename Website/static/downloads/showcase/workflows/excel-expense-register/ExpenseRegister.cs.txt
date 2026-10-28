@@ -9,7 +9,7 @@ namespace OfficeIMO.Examples.Showcase.Workflows;
 internal static class ExpenseRegister {
     internal static void Create(string folder) {
         using ExcelDocument document = ExcelDocument.Create(Path.Combine(folder, "example.xlsx"));
-        ExcelSheet sheet = document.AddWorksheet("Expenses");
+        ExcelSheet sheet = document.AddSheet("Expenses");
         sheet.MergeRange("A1:E1");
         sheet.Cell(1, 1, "September expense register");
         sheet.CellFontSize(1, 1, 20);

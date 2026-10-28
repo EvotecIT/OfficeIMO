@@ -13,7 +13,7 @@ namespace OfficeIMO.Tests
             string path = Path.Combine(_directoryWithFiles, "GoogleSheetsMetadataGridSizing.xlsx");
             try {
                 using var document = ExcelDocument.Create(path);
-                ExcelSheet sheet = document.AddWorksheet("Data");
+                ExcelSheet sheet = document.AddSheet("Data");
                 sheet.CellValue(1, 1, "Value");
                 sheet.SetRowHeight(2000, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(24)));
                 sheet.SetColumnWidth(28, ExcelColumnWidth.Characters(16));
@@ -38,13 +38,13 @@ namespace OfficeIMO.Tests
             string path = Path.Combine(_directoryWithFiles, "GoogleSheetsAdvancedMetadataGridSizing.xlsx");
             try {
                 using var document = ExcelDocument.Create(path);
-                ExcelSheet filters = document.AddWorksheet("Filters");
+                ExcelSheet filters = document.AddSheet("Filters");
                 filters.AddAutoFilter("A1:AA2001");
 
-                ExcelSheet conditional = document.AddWorksheet("Conditional");
+                ExcelSheet conditional = document.AddSheet("Conditional");
                 conditional.AddConditionalRule("B2:AB2002", ExcelConditionalFormattingOperator.GreaterThan, "10");
 
-                ExcelSheet charts = document.AddWorksheet("Charts");
+                ExcelSheet charts = document.AddSheet("Charts");
                 charts.AddChart(
                     new ExcelChartData(new[] { "A" }, new[] { new ExcelChartSeries("Sales", new[] { 1d }) }),
                     row: 2003,
@@ -74,7 +74,7 @@ namespace OfficeIMO.Tests
             string path = Path.Combine(_directoryWithFiles, "GoogleSheetsCountIfRanges.xlsx");
             try {
                 using var document = ExcelDocument.Create(path);
-                ExcelSheet sheet = document.AddWorksheet("Data");
+                ExcelSheet sheet = document.AddSheet("Data");
                 sheet.AddConditionalDuplicateValuesRule("A2:A100");
                 sheet.AddConditionalUniqueValuesRule("B2:B100");
 
@@ -96,7 +96,7 @@ namespace OfficeIMO.Tests
             try {
                 using var document = ExcelDocument.Create(path);
                 document.DateSystem = ExcelDateSystem.NineteenFour;
-                ExcelSheet sheet = document.AddWorksheet("Data");
+                ExcelSheet sheet = document.AddSheet("Data");
                 sheet.ValidationDate(
                     "A1:A2",
                     ExcelDataValidationOperator.Between,
@@ -118,8 +118,8 @@ namespace OfficeIMO.Tests
             string path = Path.Combine(_directoryWithFiles, "GoogleSheetsScopedNameHashes.xlsx");
             try {
                 using var document = ExcelDocument.Create(path);
-                ExcelSheet north = document.AddWorksheet("North");
-                ExcelSheet south = document.AddWorksheet("South");
+                ExcelSheet north = document.AddSheet("North");
+                ExcelSheet south = document.AddSheet("South");
                 north.SetNamedRange("LocalData", "A1:A2", save: false);
                 south.SetNamedRange("LocalData", "B1:B2", save: false);
 
@@ -137,7 +137,7 @@ namespace OfficeIMO.Tests
             string path = Path.Combine(_directoryWithFiles, "GoogleSheetsCultureCheckpoint.xlsx");
             try {
                 using var document = ExcelDocument.Create(path);
-                ExcelSheet sheet = document.AddWorksheet("Data");
+                ExcelSheet sheet = document.AddSheet("Data");
                 sheet.CellValue(1, 1, 0.1D);
                 sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(1.23D)));
                 sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(16.25D));
@@ -174,7 +174,7 @@ namespace OfficeIMO.Tests
                 string path = Path.Combine(_directoryWithFiles, $"GoogleSheetsCellHash-{Guid.NewGuid():N}.xlsx");
                 try {
                     using var document = ExcelDocument.Create(path);
-                    ExcelSheet sheet = document.AddWorksheet("Data");
+                    ExcelSheet sheet = document.AddSheet("Data");
                     sheet.CellValue(1, 1, "Value");
                     configure?.Invoke(sheet);
                     return GoogleSheetsDiffPlanner.CreateCheckpoint(document).ContentHashes["sheet/Data/cell/1:1"];
@@ -199,7 +199,7 @@ namespace OfficeIMO.Tests
             string path = Path.Combine(_directoryWithFiles, "GoogleSheetsTabColorHash.xlsx");
             try {
                 using var document = ExcelDocument.Create(path);
-                ExcelSheet sheet = document.AddWorksheet("Data");
+                ExcelSheet sheet = document.AddSheet("Data");
                 sheet.CellValue(1, 1, "Value");
                 GoogleSheetsSyncCheckpoint baseline = GoogleSheetsDiffPlanner.CreateCheckpoint(document);
 
@@ -218,7 +218,7 @@ namespace OfficeIMO.Tests
                 string path = Path.Combine(_directoryWithFiles, $"GoogleSheetsConditionalHash-{Guid.NewGuid():N}.xlsx");
                 try {
                     using var document = ExcelDocument.Create(path);
-                    ExcelSheet sheet = document.AddWorksheet("Data");
+                    ExcelSheet sheet = document.AddSheet("Data");
                     sheet.AddConditionalRule("A1:A10", ExcelConditionalFormattingOperator.GreaterThan, threshold, fillColor: fillColor);
                     return GoogleSheetsDiffPlanner.CreateCheckpoint(document).ContentHashes["sheet/Data/conditionalFormat/0"];
                 } finally {
@@ -237,7 +237,7 @@ namespace OfficeIMO.Tests
                 string path = Path.Combine(_directoryWithFiles, $"GoogleSheetsFilterHash-{Guid.NewGuid():N}.xlsx");
                 try {
                     using var document = ExcelDocument.Create(path);
-                    ExcelSheet sheet = document.AddWorksheet("Data");
+                    ExcelSheet sheet = document.AddSheet("Data");
                     sheet.CellValue(1, 1, "Region");
                     sheet.CellValue(2, 1, "North");
                     sheet.CellValue(3, 1, "South");
@@ -270,7 +270,7 @@ namespace OfficeIMO.Tests
             string path = Path.Combine(_directoryWithFiles, "GoogleSheetsMetadataHashes.xlsx");
             try {
                 using var document = ExcelDocument.Create(path);
-                ExcelSheet sheet = document.AddWorksheet("Data");
+                ExcelSheet sheet = document.AddSheet("Data");
                 sheet.SetRowHeight(2, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(20)));
                 sheet.SetColumnWidth(3, ExcelColumnWidth.Characters(12));
                 sheet.ValidationDate(
@@ -311,7 +311,7 @@ namespace OfficeIMO.Tests
                 string alternatePath = Path.Combine(_directoryWithFiles, "GoogleSheetsAlternateValidationHash.xlsx");
                 try {
                     using var alternate = ExcelDocument.Create(alternatePath);
-                    ExcelSheet alternateSheet = alternate.AddWorksheet("Data");
+                    ExcelSheet alternateSheet = alternate.AddSheet("Data");
                     alternateSheet.SetRowHeight(2, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(20)));
                     alternateSheet.SetColumnWidth(3, ExcelColumnWidth.Characters(12));
                     alternateSheet.ValidationDate(
@@ -336,7 +336,7 @@ namespace OfficeIMO.Tests
             try
             {
                 using var document = ExcelDocument.Create(path);
-                ExcelSheet sheet = document.AddWorksheet("Data");
+                ExcelSheet sheet = document.AddSheet("Data");
                 sheet.CellValue(1, 1, "Region");
                 sheet.CellValue(1, 3, "Region");
                 sheet.CellValue(1, 4, "Value");

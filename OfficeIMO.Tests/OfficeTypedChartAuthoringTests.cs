@@ -30,7 +30,7 @@ public sealed class OfficeTypedChartAuthoringTests {
                 break;
             case "Excel":
                 using (var document = ExcelDocument.Create()) {
-                    var sheet = document.AddWorksheet("Trend");
+                    var sheet = document.AddSheet("Trend");
                     if (named) sheet.AddChart(OfficeChartType.Column, rows, nameof(Trend.Week), nameof(Trend.Revenue));
                     else sheet.AddChart(OfficeChartType.Column, rows, row => row.Week, OfficeSeries.From(rows, row => row.Revenue));
                     document.Save(output);
@@ -75,7 +75,7 @@ public sealed class OfficeTypedChartAuthoringTests {
     [InlineData(OfficeChartType.Bubble)]
     public void UnsupportedGeneralExcelChartTypesLeaveTheWorkbookUntouched(OfficeChartType type) {
         using var document = ExcelDocument.Create();
-        var sheet = document.AddWorksheet("Trend");
+        var sheet = document.AddSheet("Trend");
         var data = new ExcelChartData(new[] { "First", "Next" }, new[] { new ExcelChartSeries("Revenue", new[] { 1d, 2d }) });
         Assert.Throws<NotSupportedException>(() => sheet.AddChart(data, 1, 1, type: type));
         Assert.Single(document.Sheets);

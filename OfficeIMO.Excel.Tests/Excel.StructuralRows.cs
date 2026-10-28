@@ -17,8 +17,8 @@ namespace OfficeIMO.Tests
             string filePath = Path.Combine(_directoryWithFiles, "Excel.StructuralRows.Insert.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                ExcelSheet data = document.AddWorksheet("Data");
-                ExcelSheet summary = document.AddWorksheet("Summary");
+                ExcelSheet data = document.AddSheet("Data");
+                ExcelSheet summary = document.AddSheet("Summary");
 
                 data.CellAt(1, 1).SetValue("Value");
                 data.CellAt(1, 2).SetValue("Link");
@@ -113,8 +113,8 @@ namespace OfficeIMO.Tests
             string filePath = Path.Combine(_directoryWithFiles, "Excel.StructuralRows.Delete.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                ExcelSheet data = document.AddWorksheet("Data");
-                ExcelSheet summary = document.AddWorksheet("Summary");
+                ExcelSheet data = document.AddSheet("Data");
+                ExcelSheet summary = document.AddSheet("Summary");
                 for (int row = 1; row <= 5; row++) {
                     data.CellAt(row, 1).SetValue(row);
                 }
@@ -155,7 +155,7 @@ namespace OfficeIMO.Tests
             string filePath = Path.Combine(_directoryWithFiles, "Excel.StructuralRows.Pivot.xlsx");
             using (var document = ExcelDocument.Create(filePath))
             {
-                ExcelSheet data = document.AddWorksheet("Data");
+                ExcelSheet data = document.AddSheet("Data");
                 data.CellAt(1, 1).SetValue("Region");
                 data.CellAt(1, 2).SetValue("Sales");
                 data.CellAt(2, 1).SetValue("East");
@@ -188,7 +188,7 @@ namespace OfficeIMO.Tests
             string filePath = Path.Combine(_directoryWithFiles, "Excel.StructuralRows.Chart.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                ExcelSheet data = document.AddWorksheet("Data");
+                ExcelSheet data = document.AddSheet("Data");
                 data.CellAt(1, 1).SetValue("Category");
                 data.CellAt(1, 2).SetValue("Value");
                 data.CellAt(2, 1).SetValue("First");
@@ -237,7 +237,7 @@ namespace OfficeIMO.Tests
             string filePath = Path.Combine(_directoryWithFiles, "Excel.StructuralRows.SharedFormula.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                ExcelSheet data = document.AddWorksheet("Data");
+                ExcelSheet data = document.AddSheet("Data");
                 for (int row = 2; row <= 4; row++) {
                     data.CellAt(row, 1).SetValue(row);
                 }
@@ -289,8 +289,8 @@ namespace OfficeIMO.Tests
             string filePath = Path.Combine(_directoryWithFiles, "Excel.StructuralRows.CrossSheetShared.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                ExcelSheet data = document.AddWorksheet("Data");
-                ExcelSheet summary = document.AddWorksheet("Summary");
+                ExcelSheet data = document.AddSheet("Data");
+                ExcelSheet summary = document.AddSheet("Summary");
                 for (int row = 2; row <= 4; row++) {
                     data.CellAt(row, 1).SetValue(row);
                     summary.CellAt(row, 1).SetValue(row);
@@ -339,7 +339,7 @@ namespace OfficeIMO.Tests
         [Fact]
         public void Test_InsertRows_RejectsSharedFormulaFollowerOverflowBeforeMaterialization() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.CellAt(1, 1).SetValue(1);
             sheet.CellAt(2, 1).SetValue(2);
             SheetData sheetData = sheet.WorksheetPart.Worksheet.GetFirstChild<SheetData>()!;
@@ -372,7 +372,7 @@ namespace OfficeIMO.Tests
         public void Test_InsertRows_RejectsReferenceOverflowAtomically()
         {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.CellAt(1, 1).SetValue("Keep");
             sheet.CellAt(1, 2).SetValue("Value");
             sheet.CellAt(2, 1).SetValue("Item");
@@ -417,7 +417,7 @@ namespace OfficeIMO.Tests
         public void Test_StructuralRows_RejectsEditsThroughPivotOutput()
         {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.CellAt(1, 1).SetValue("Region");
             sheet.CellAt(1, 2).SetValue("Sales");
             sheet.CellAt(2, 1).SetValue("East");
@@ -435,7 +435,7 @@ namespace OfficeIMO.Tests
             string filePath = Path.Combine(_directoryWithFiles, "Excel.StructuralRows.OwnedRanges.xlsx");
 
             using var document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.CellAt(1, 1).SetValue("Value");
             sheet.CellAt(1, 2).SetValue("Result");
             for (int row = 2; row <= 4; row++) {
@@ -463,7 +463,7 @@ namespace OfficeIMO.Tests
             string filePath = Path.Combine(_directoryWithFiles, "Excel.StructuralRows.Bounds.xlsx");
 
             using var document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.CellAt(ExcelA1.MaxRows, 1).SetValue("Last");
 
             Assert.Throws<ArgumentOutOfRangeException>(() => sheet.InsertRows(0));

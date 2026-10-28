@@ -33,7 +33,7 @@ public sealed class HtmlExcelPictureHyperlinkTests {
     [Fact]
     public void SemanticPictureRoundTripPreservesInertTargetAndExactImage() {
         using var source = ExcelDocument.Create();
-        ExcelSheet sheet = source.AddWorksheet("Pictures");
+        ExcelSheet sheet = source.AddSheet("Pictures");
         byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(2, 2, OfficeColor.Red));
         ExcelImage sourceImage = sheet.AddImage(2, 1, png, "image/png", OfficeIMO.OfficeLength.Pixels(32), OfficeIMO.OfficeLength.Pixels(16));
         var target = new Uri("https://example.org/photo?item=1&view=full");
@@ -57,7 +57,7 @@ public sealed class HtmlExcelPictureHyperlinkTests {
     [InlineData("javascript:alert(1)", false)]
     public void VisualReviewRetainsSafePictureTargetsAndReportsUnsafeOmission(string target, bool interactive) {
         using var document = ExcelDocument.Create();
-        ExcelSheet sheet = document.AddWorksheet("Pictures");
+        ExcelSheet sheet = document.AddSheet("Pictures");
         sheet.Cell(1, 1, "Photo");
         byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(2, 2, OfficeColor.Red));
         sheet.AddImage(1, 1, png, "image/png", OfficeIMO.OfficeLength.Pixels(32), OfficeIMO.OfficeLength.Pixels(16)).HyperlinkUri = new Uri(target, UriKind.RelativeOrAbsolute);

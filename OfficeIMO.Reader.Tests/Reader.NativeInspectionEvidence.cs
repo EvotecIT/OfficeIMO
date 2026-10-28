@@ -45,7 +45,7 @@ public sealed class ReaderNativeInspectionEvidenceTests {
     public void ExcelSeparatesExpressionsSavedCachesAndMissingCachesAndRetainsEmptyCellRepliesAndVisibility() {
         using var stream = new MemoryStream();
         using (ExcelDocument workbook = ExcelDocument.Create(stream)) {
-            ExcelSheet sheet = workbook.AddWorksheet("Hidden data");
+            ExcelSheet sheet = workbook.AddSheet("Hidden data");
             sheet.Cell(1, 1, 1); sheet.Cell(2, 1, 99);
             sheet.SetComment("A2", "Review cache", "Ada");
             var parent = sheet.AddThreadedComment("C4", "Blank-cell parent", "Grace");

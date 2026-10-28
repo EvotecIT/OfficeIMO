@@ -44,7 +44,7 @@ public static partial class HtmlExcelConverterExtensions {
                         "The full table caption was omitted because it exceeded a semantic or native Excel cell limit.",
                         lossKind: OfficeConversionLossKind.Omission, detail: captionLimit);
                 }
-                ExcelSheet sheet = workbook.AddWorksheet(sheetName);
+                ExcelSheet sheet = workbook.AddSheet(sheetName);
                 tableSheets[semanticTableNumber] = sheet;
                 result.Sheets++;
                 ImportTableGrid(
@@ -76,7 +76,7 @@ public static partial class HtmlExcelConverterExtensions {
                     "HTML text could not be imported because the shared worksheet limit was reached.",
                     HtmlDiagnosticSeverity.Error, OfficeConversionLossKind.Omission, detail: textContainerLimit);
             } else {
-                narrativeSheet = workbook.AddWorksheet(GetUniqueSheetName("Imported", usedNames));
+                narrativeSheet = workbook.AddSheet(GetUniqueSheetName("Imported", usedNames));
                 narrativeSheet.SetColumnWidth(1, OfficeIMO.Excel.ExcelColumnWidth.Characters(75D));
                 result.Sheets++;
                 int maxTableCells = budget.Limits.MaxTableCells;
@@ -166,7 +166,7 @@ public static partial class HtmlExcelConverterExtensions {
         HtmlImportBudget budget) {
         if (narrativeSheet == null && regions.Any(region => region.SemanticTableNumber == 0)) {
             if (budget.TryReserveSemanticContainer(out string narrativeContainerLimit)) {
-                narrativeSheet = workbook.AddWorksheet(GetUniqueSheetName("Imported", usedNames));
+                narrativeSheet = workbook.AddSheet(GetUniqueSheetName("Imported", usedNames));
                 result.Sheets++;
             } else {
                 AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.TargetLimitExceeded,

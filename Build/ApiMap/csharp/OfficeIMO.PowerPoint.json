@@ -10191,6 +10191,15 @@
       "files": [
         "OfficeIMO.PowerPoint/PowerPointSlide.CustomGeometry.cs"
       ]
+    },
+    {
+      "change": "Compare Markup conversion font sizes with OfficeLength",
+      "reason": "The PowerPoint font-size migration also changes reloaded text-box assertions in the Markup consumer suite. The native value remains thirty-two points.",
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "files": [
+        "OfficeIMO.Markup.Tests/OfficeMarkupParserTests.cs"
+      ]
     }
   ],
   "applicationStatus": "Phase A applied and validated on the supported macOS targets. Phase B and Tier 2 entries retain their status; Windows .NET Framework validation remains pending.",

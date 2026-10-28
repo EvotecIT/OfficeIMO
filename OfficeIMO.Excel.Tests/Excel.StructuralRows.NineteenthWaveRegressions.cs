@@ -12,7 +12,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_StructuralRows_RemapsSavedViewAndPaneTopLeftCells() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.CellAt(5, 1).SetValue(1);
 
             var normalPane = new Pane { TopLeftCell = "B5" };
@@ -51,7 +51,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_StructuralRows_PreflightsSavedViewTopLeftCells() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.CellAt(1, 1).SetValue("Keep");
             var view = new SheetView {
                 WorkbookViewId = 0U,
@@ -73,8 +73,8 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_StructuralRows_RewritesDrawingShapeTextLinksWorkbookWide() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet data = document.AddWorksheet("Data");
-            ExcelSheet dashboard = document.AddWorksheet("Dashboard");
+            ExcelSheet data = document.AddSheet("Data");
+            ExcelSheet dashboard = document.AddSheet("Dashboard");
             data.CellAt(5, 1).SetValue("Moved");
             Xdr.Shape localShape = AddCellLinkedDrawingShape(data, 1U, "A5");
             Xdr.Shape remoteShape = AddCellLinkedDrawingShape(dashboard, 2U, "Data!A5");
@@ -89,8 +89,8 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_StructuralRows_PreflightsDrawingShapeTextLinksWorkbookWide() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet data = document.AddWorksheet("Data");
-            ExcelSheet dashboard = document.AddWorksheet("Dashboard");
+            ExcelSheet data = document.AddSheet("Data");
+            ExcelSheet dashboard = document.AddSheet("Dashboard");
             data.CellAt(1, 1).SetValue("Keep");
             Xdr.Shape shape = AddCellLinkedDrawingShape(
                 dashboard,
@@ -108,7 +108,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_StructuralRows_MutationPlanCountsOnlyChangedDrawingAnchors() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             AddCellLinkedDrawingShape(sheet, 1U, string.Empty);
 
             ExcelRowMutationPlan unaffected = sheet.PlanInsertRows(10);

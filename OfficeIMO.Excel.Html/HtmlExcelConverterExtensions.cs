@@ -72,7 +72,7 @@ public static partial class HtmlExcelConverterExtensions {
                 "The semantic HTML envelope does not use a supported Excel source and schema version.",
                 HtmlDiagnosticSeverity.Error, OfficeConversionLossKind.Failure,
                 detail: "source=" + envelope.ActualSource + "; version=" + envelope.SchemaVersion);
-            workbook.AddWorksheet("Imported");
+            workbook.AddSheet("Imported");
             return result;
         }
         if (useSemantic && !envelope.CanRestoreTargetSpecific(trust)) {
@@ -99,7 +99,7 @@ public static partial class HtmlExcelConverterExtensions {
         if (sheetSections.Count == 0) {
             AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.SemanticContentMissing,
                 "No semantic Excel sheet sections were found.", HtmlDiagnosticSeverity.Error, OfficeConversionLossKind.Failure);
-            workbook.AddWorksheet("Imported");
+            workbook.AddSheet("Imported");
             return result;
         }
 
@@ -114,7 +114,7 @@ public static partial class HtmlExcelConverterExtensions {
                 break;
             }
 
-            ExcelSheet sheet = workbook.AddWorksheet(GetUniqueSheetName(GetSheetName(section), usedNames));
+            ExcelSheet sheet = workbook.AddSheet(GetUniqueSheetName(GetSheetName(section), usedNames));
             var importedFormulaCells = new HashSet<long>();
             result.Sheets++;
             ImportTable(section, sheet, result, options, budget, importedFormulaCells);

@@ -14,7 +14,7 @@ public partial class Excel {
     [InlineData(ExcelPdfWorksheetLayoutMode.FlowTable, true)]
     public void SaveAsPdf_ConditionalMergeDecorationsRetainTheirFullGeometryAcrossBreaks(ExcelPdfWorksheetLayoutMode layout, bool bar) {
         using ExcelDocument document = ExcelDocument.Create();
-        ExcelSheet sheet = document.AddWorksheet("Report");
+        ExcelSheet sheet = document.AddSheet("Report");
         for (int row = 1; row <= 4; row++) sheet.SetRowHeight(row, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(36)));
         for (int column = 1; column <= 4; column++) sheet.SetColumnWidth(column, ExcelColumnWidth.Characters(15));
         sheet.Cell(1, 1, 0); sheet.Cell(2, 2, 50); sheet.Cell(4, 4, 100);
@@ -40,7 +40,7 @@ public partial class Excel {
     [InlineData(ExcelPdfWorksheetLayoutMode.FlowTable)]
     public void SaveAsPdf_MergedDiagonalBordersRemainOnTheFragmentContainingTheSourceAnchor(ExcelPdfWorksheetLayoutMode layout) {
         using ExcelDocument document = ExcelDocument.Create();
-        ExcelSheet sheet = document.AddWorksheet("Report");
+        ExcelSheet sheet = document.AddSheet("Report");
         for (int row = 1; row <= 4; row++) sheet.SetRowHeight(row, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(36)));
         for (int column = 1; column <= 4; column++) sheet.SetColumnWidth(column, ExcelColumnWidth.Characters(15));
         sheet.Cell(1, 1, "Start"); sheet.Cell(2, 2, "End");
@@ -62,7 +62,7 @@ public partial class Excel {
     [InlineData(ExcelPdfWorksheetLayoutMode.FlowTable)]
     public void SaveAsPdf_MergedCenteredWrappedTextPreservesFullyVisibleLinesOnBothSidesOfTheBreak(ExcelPdfWorksheetLayoutMode layout) {
         using ExcelDocument document = ExcelDocument.Create();
-        ExcelSheet sheet = document.AddWorksheet("Report");
+        ExcelSheet sheet = document.AddSheet("Report");
         for (int row = 1; row <= 4; row++) sheet.SetRowHeight(row, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(50)));
         for (int column = 1; column <= 4; column++) sheet.SetColumnWidth(column, ExcelColumnWidth.Characters(15));
         sheet.Cell(1, 1, "Start"); sheet.Cell(4, 4, "End");
@@ -89,7 +89,7 @@ public partial class Excel {
     [InlineData(ExcelPdfWorksheetLayoutMode.FlowTable)]
     public void SaveAsPdf_MergeCrossingBothBreakAxesKeepsRightBottomTextOnTheLastPage(ExcelPdfWorksheetLayoutMode layout) {
         using ExcelDocument document = ExcelDocument.Create();
-        ExcelSheet sheet = document.AddWorksheet("Report");
+        ExcelSheet sheet = document.AddSheet("Report");
         for (int row = 1; row <= 4; row++) sheet.SetRowHeight(row, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(36)));
         for (int column = 1; column <= 4; column++) sheet.SetColumnWidth(column, ExcelColumnWidth.Characters(15));
         sheet.Cell(1, 1, "Start");
@@ -119,7 +119,7 @@ public partial class Excel {
     [InlineData(ExcelPdfWorksheetLayoutMode.FlowTable, true, false)]
     public void SaveAsPdf_ManualBreakAcrossMergeRetainsTheFullCellTextGeometry(ExcelPdfWorksheetLayoutMode layout, bool rowBreak, bool explicitAlignment) {
         using ExcelDocument document = ExcelDocument.Create();
-        ExcelSheet sheet = document.AddWorksheet("Report");
+        ExcelSheet sheet = document.AddSheet("Report");
         for (int row = 1; row <= 4; row++) sheet.SetRowHeight(row, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(36)));
         for (int column = 1; column <= 4; column++) sheet.SetColumnWidth(column, ExcelColumnWidth.Characters(15));
         sheet.Cell(1, 1, "FirstPage");
@@ -148,7 +148,7 @@ public partial class Excel {
     [InlineData(ExcelPdfWorksheetLayoutMode.FlowTable, false)]
     public void SaveAsPdf_ManualBreakIsRetainedWhenNextMergeDoesNotCrossItsAxis(ExcelPdfWorksheetLayoutMode layout, bool rowBreak) {
         using ExcelDocument document = ExcelDocument.Create();
-        ExcelSheet sheet = document.AddWorksheet("Report");
+        ExcelSheet sheet = document.AddSheet("Report");
         sheet.Cell(1, 1, "BeforeBreak");
         sheet.Cell(rowBreak ? 3 : 1, rowBreak ? 1 : 3, "AfterBreak");
         sheet.MergeRange(rowBreak ? "A3:B3" : "C1:C2");

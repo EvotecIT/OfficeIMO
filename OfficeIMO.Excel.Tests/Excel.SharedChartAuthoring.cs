@@ -35,7 +35,7 @@ namespace OfficeIMO.Tests {
                 });
 
             using (var document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorksheet("Shared");
+                ExcelSheet sheet = document.AddSheet("Shared");
                 sheet.AddChart(
                     OfficeChartType.ColumnClustered,
                     sharedData,
@@ -98,7 +98,7 @@ namespace OfficeIMO.Tests {
             });
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorksheet("Shared");
+                ExcelSheet sheet = document.AddSheet("Shared");
                 sheet.AddChart(OfficeChartType.BarClustered, sharedData,
                     row: 1, column: 5, title: "Horizontal secondary");
                 document.Save();
@@ -120,7 +120,7 @@ namespace OfficeIMO.Tests {
             });
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorksheet("Shared");
+                ExcelSheet sheet = document.AddSheet("Shared");
                 sheet.AddChart(OfficeChartType.Scatter, sharedData,
                     row: 1, column: 5, title: "Explicit X values");
                 document.Save();
@@ -136,7 +136,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_ExcelCharts_SharedBubbleKindIsRejectedInsteadOfFallingBack() {
             using ExcelDocument document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Shared");
+            ExcelSheet sheet = document.AddSheet("Shared");
             var data = new OfficeChartData(new[] { "1", "2" }, new[] {
                 OfficeSeries.CreateBubble("Bubbles",
                     new[] { 1D, 2D }, new[] { 10D, 20D }, new[] { 4D, 9D })
@@ -163,7 +163,7 @@ namespace OfficeIMO.Tests {
             });
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorksheet("Shared");
+                ExcelSheet sheet = document.AddSheet("Shared");
                 sheet.AddChart(OfficeChartType.Line, sharedData, row: 1, column: 5);
                 document.Save();
             }
@@ -209,7 +209,7 @@ namespace OfficeIMO.Tests {
             });
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                document.AddWorksheet("Shared").AddChart(OfficeChartType.Line, sharedData,
+                document.AddSheet("Shared").AddChart(OfficeChartType.Line, sharedData,
                     row: 1, column: 5);
                 document.Save();
             }
@@ -239,7 +239,7 @@ namespace OfficeIMO.Tests {
             });
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                document.AddWorksheet("Shared").AddChart(OfficeChartType.ColumnClustered, sharedData,
+                document.AddSheet("Shared").AddChart(OfficeChartType.ColumnClustered, sharedData,
                     row: 1, column: 5);
                 document.Save();
             }
@@ -256,7 +256,7 @@ namespace OfficeIMO.Tests {
         public void Test_ExcelCharts_UpdateRejectsScatterMixedWithCategoryCharts() {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelCharts.Update.ScatterCombo.xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorksheet("Shared");
+            ExcelSheet sheet = document.AddSheet("Shared");
             ExcelChart chart = sheet.AddChart(new ExcelChartData(
                 new[] { "Q1", "Q2" },
                 new[] {

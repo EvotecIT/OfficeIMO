@@ -17,7 +17,7 @@ public partial class Excel {
         using (var document = ExcelDocument.Create(
                    memory,
                    new ExcelCreateOptions { PersistenceMode = OfficeIMO.DocumentPersistenceMode.SaveOnDispose })) {
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.CellValue(1, 1, "Name");
             sheet.CellValue(1, 2, "Id");
             sheet.CellValue(1, 3, "Amount");
@@ -54,7 +54,7 @@ public partial class Excel {
         using (var document = ExcelDocument.Create(
                    memory,
                    new ExcelCreateOptions { PersistenceMode = OfficeIMO.DocumentPersistenceMode.SaveOnDispose })) {
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.CellValue(1, 1, "Text");
             sheet.CellValue(2, 1, "Placeholder");
         }

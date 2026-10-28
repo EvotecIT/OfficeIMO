@@ -35,7 +35,7 @@ public sealed class ExcelOdsDataPilotConversionTests {
     [InlineData(OfficeIMO.DocumentAccessMode.ReadWrite)]
     public void WideSharedStringPivotHeadersPreserveNativeBindings(OfficeIMO.DocumentAccessMode accessMode) {
         using ExcelDocument source = ExcelDocument.Create();
-        ExcelSheet sheet = source.AddWorksheet("Data");
+        ExcelSheet sheet = source.AddSheet("Data");
         const int columns = 128;
         for (int column = 1; column <= columns; column++) {
             sheet.CellValue(1, column, "Field-" + column);
@@ -74,7 +74,7 @@ public sealed class ExcelOdsDataPilotConversionTests {
     [Fact]
     public void ExcelPivotOutputOverMergeIsExplicitLoss() {
         using ExcelDocument source = ExcelDocument.Create();
-        ExcelSheet sheet = source.AddWorksheet("Data");
+        ExcelSheet sheet = source.AddSheet("Data");
         sheet.CellValue(1, 1, "Region");
         sheet.CellValue(1, 2, "Sales");
         sheet.CellValue(2, 1, "North");
@@ -95,7 +95,7 @@ public sealed class ExcelOdsDataPilotConversionTests {
     public void ExcelPivotNamesCollidingAcrossSheetsAreExplicitLoss() {
         using ExcelDocument source = ExcelDocument.Create();
         foreach ((string name, string sheetName) in new[] { ("Sales", "FirstData"), ("sales", "SecondData") }) {
-            ExcelSheet sheet = source.AddWorksheet(sheetName);
+            ExcelSheet sheet = source.AddSheet(sheetName);
             sheet.CellValue(1, 1, "Region");
             sheet.CellValue(1, 2, "Sales");
             sheet.CellValue(2, 1, "North");
@@ -138,7 +138,7 @@ public sealed class ExcelOdsDataPilotConversionTests {
     [InlineData("region")]
     public void UnusedInvalidExcelSourceHeaderIsExplicitPivotLoss(string unusedHeader) {
         using ExcelDocument source = ExcelDocument.Create();
-        ExcelSheet sheet = source.AddWorksheet("Data");
+        ExcelSheet sheet = source.AddSheet("Data");
         sheet.CellValue(1, 1, "Region");
         sheet.CellValue(1, 2, unusedHeader);
         sheet.CellValue(1, 3, "Sales");
@@ -161,7 +161,7 @@ public sealed class ExcelOdsDataPilotConversionTests {
     [Fact]
     public void ExcelPivotCacheSheetCasingUsesCanonicalOdsSheetName() {
         using ExcelDocument source = ExcelDocument.Create();
-        ExcelSheet sheet = source.AddWorksheet("Data");
+        ExcelSheet sheet = source.AddSheet("Data");
         sheet.CellValue(1, 1, "Region");
         sheet.CellValue(1, 2, "Sales");
         sheet.CellValue(2, 1, "North");
@@ -214,7 +214,7 @@ public sealed class ExcelOdsDataPilotConversionTests {
     [Fact]
     public void BasicExcelPivotBecomesNativeDataPilotAndReopens() {
         using ExcelDocument source = ExcelDocument.Create();
-        ExcelSheet sheet = source.AddWorksheet("Data");
+        ExcelSheet sheet = source.AddSheet("Data");
         sheet.CellValue(1, 1, "Region");
         sheet.CellValue(1, 2, "Sales");
         sheet.CellValue(2, 1, "North");
@@ -239,7 +239,7 @@ public sealed class ExcelOdsDataPilotConversionTests {
     [Fact]
     public void NumericExcelPivotHeaderUsesAuthoredCellText() {
         using ExcelDocument source = ExcelDocument.Create();
-        ExcelSheet sheet = source.AddWorksheet("Data");
+        ExcelSheet sheet = source.AddSheet("Data");
         sheet.CellValue(1, 1, 42d);
         sheet.CellValue(1, 2, "Sales");
         sheet.CellValue(2, 1, "North");
@@ -260,7 +260,7 @@ public sealed class ExcelOdsDataPilotConversionTests {
     [Fact]
     public void BooleanExcelPivotHeaderReportsLossInsteadOfThrowing() {
         using ExcelDocument source = ExcelDocument.Create();
-        ExcelSheet sheet = source.AddWorksheet("Data");
+        ExcelSheet sheet = source.AddSheet("Data");
         sheet.CellValue(1, 1, true);
         sheet.CellValue(1, 2, "Sales");
         sheet.CellValue(2, 1, false);
@@ -459,7 +459,7 @@ public sealed class ExcelOdsDataPilotConversionTests {
     [Fact]
     public void DuplicateExcelAxisFieldIndexIsExplicitLoss() {
         using ExcelDocument source = ExcelDocument.Create();
-        ExcelSheet sheet = source.AddWorksheet("Data");
+        ExcelSheet sheet = source.AddSheet("Data");
         sheet.CellValue(1, 1, "Region");
         sheet.CellValue(1, 2, "Sales");
         sheet.CellValue(2, 1, "North");
@@ -534,7 +534,7 @@ public sealed class ExcelOdsDataPilotConversionTests {
     [Fact]
     public void DuplicateHeaderAddedAfterPivotCreationRemainsExplicitLoss() {
         using ExcelDocument source = ExcelDocument.Create();
-        ExcelSheet sheet = source.AddWorksheet("Data");
+        ExcelSheet sheet = source.AddSheet("Data");
         sheet.CellValue(1, 1, "Region");
         sheet.CellValue(1, 2, "Sales");
         sheet.CellValue(1, 3, "Extra");
@@ -558,7 +558,7 @@ public sealed class ExcelOdsDataPilotConversionTests {
     public void DuplicateExcelPivotNamesOnDifferentSheetsRemainExplicitLoss() {
         using ExcelDocument source = ExcelDocument.Create();
         foreach (string name in new[] { "North", "South" }) {
-            ExcelSheet sheet = source.AddWorksheet(name);
+            ExcelSheet sheet = source.AddSheet(name);
             sheet.CellValue(1, 1, "Region");
             sheet.CellValue(1, 2, "Sales");
             sheet.CellValue(2, 1, name);
@@ -623,7 +623,7 @@ public sealed class ExcelOdsDataPilotConversionTests {
     [Fact]
     public void PivotWithStaleCacheHeaderCasingRemainsExplicitLoss() {
         using ExcelDocument source = ExcelDocument.Create();
-        ExcelSheet sheet = source.AddWorksheet("Data");
+        ExcelSheet sheet = source.AddSheet("Data");
         sheet.CellValue(1, 1, "Region");
         sheet.CellValue(1, 2, "Sales");
         sheet.CellValue(2, 1, "North");
@@ -646,7 +646,7 @@ public sealed class ExcelOdsDataPilotConversionTests {
     [Fact]
     public void PivotAndNamedRangeKeepOdfSpreadsheetChildOrder() {
         using ExcelDocument source = ExcelDocument.Create();
-        ExcelSheet sheet = source.AddWorksheet("Data");
+        ExcelSheet sheet = source.AddSheet("Data");
         sheet.CellValue(1, 1, "Region");
         sheet.CellValue(1, 2, "Sales");
         sheet.CellValue(2, 1, "North");
@@ -816,7 +816,7 @@ public sealed class ExcelOdsDataPilotConversionTests {
     [Fact]
     public void ExcelValuesAxisSentinelRemainsExplicitLoss() {
         using ExcelDocument source = ExcelDocument.Create();
-        ExcelSheet sheet = source.AddWorksheet("Data");
+        ExcelSheet sheet = source.AddSheet("Data");
         sheet.CellValue(1, 1, "Region");
         sheet.CellValue(1, 2, "Sales");
         sheet.CellValue(2, 1, "North");
@@ -849,7 +849,7 @@ public sealed class ExcelOdsDataPilotConversionTests {
     [Fact]
     public void RealHeaderNamedLikeValuesSentinelStillConverts() {
         using ExcelDocument source = ExcelDocument.Create();
-        ExcelSheet sheet = source.AddWorksheet("Data");
+        ExcelSheet sheet = source.AddSheet("Data");
         sheet.CellValue(1, 1, "Field-1");
         sheet.CellValue(1, 2, "Sales");
         sheet.CellValue(2, 1, "North");

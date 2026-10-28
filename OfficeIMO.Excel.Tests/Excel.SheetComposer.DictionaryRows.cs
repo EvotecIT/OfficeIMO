@@ -83,7 +83,7 @@ namespace OfficeIMO.Tests
                 new ReadOnlyDictionaryRow(("A", 1), ("B", 2)),
                 new ReadOnlyDictionaryRow(("A", 3), ("B", 4))
             };
-            InvalidDataException exception = Assert.Throws<InvalidDataException>(() => ((System.Action<OfficeIMO.Excel.ExcelReportBuilder>)(composer => composer.AddTable(rows, configure: options => options.MaxCells = 5)))(document.AddWorksheet("Report", OfficeIMO.Excel.ExcelSheetNameValidationMode.Sanitize).Report()));
+            InvalidDataException exception = Assert.Throws<InvalidDataException>(() => ((System.Action<OfficeIMO.Excel.ExcelReportBuilder>)(composer => composer.AddTable(rows, configure: options => options.MaxCells = 5)))(document.AddSheet("Report", OfficeIMO.Excel.ExcelSheetNameValidationMode.Sanitize).Report()));
             Assert.Contains("requires at least 6 cells", exception.Message, StringComparison.Ordinal);
             Assert.Contains("2 data rows + 1 header row x 2 columns", exception.Message, StringComparison.Ordinal);
 
@@ -99,11 +99,11 @@ namespace OfficeIMO.Tests
                 new ReadOnlyDictionaryRow(("A", 3), ("B", 4))
             };
             using var rowDocument = ExcelDocument.Create();
-            InvalidDataException rowException = Assert.Throws<InvalidDataException>(() => ((System.Action<OfficeIMO.Excel.ExcelReportBuilder>)(composer => composer.AddTable(rows, configure: options => options.MaxRows = 1)))(rowDocument.AddWorksheet("Rows", OfficeIMO.Excel.ExcelSheetNameValidationMode.Sanitize).Report()));
+            InvalidDataException rowException = Assert.Throws<InvalidDataException>(() => ((System.Action<OfficeIMO.Excel.ExcelReportBuilder>)(composer => composer.AddTable(rows, configure: options => options.MaxRows = 1)))(rowDocument.AddSheet("Rows", OfficeIMO.Excel.ExcelSheetNameValidationMode.Sanitize).Report()));
             Assert.Contains("requires at least 2 data rows", rowException.Message, StringComparison.Ordinal);
 
             using var columnDocument = ExcelDocument.Create();
-            InvalidDataException columnException = Assert.Throws<InvalidDataException>(() => ((System.Action<OfficeIMO.Excel.ExcelReportBuilder>)(composer => composer.AddTable(rows, configure: options => options.MaxColumns = 1)))(columnDocument.AddWorksheet("Columns", OfficeIMO.Excel.ExcelSheetNameValidationMode.Sanitize).Report()));
+            InvalidDataException columnException = Assert.Throws<InvalidDataException>(() => ((System.Action<OfficeIMO.Excel.ExcelReportBuilder>)(composer => composer.AddTable(rows, configure: options => options.MaxColumns = 1)))(columnDocument.AddSheet("Columns", OfficeIMO.Excel.ExcelSheetNameValidationMode.Sanitize).Report()));
             Assert.Contains("requires at least 2 columns", columnException.Message, StringComparison.Ordinal);
 
         }
@@ -117,7 +117,7 @@ namespace OfficeIMO.Tests
                 new ReadOnlyDictionaryRow(entries)
             };
             using ExcelDocument document = ExcelDocument.Create();
-            InvalidDataException exception = Assert.Throws<InvalidDataException>(() => ((System.Action<OfficeIMO.Excel.ExcelReportBuilder>)(composer => composer.AddTable(rows, configure: options => options.MaxColumns = int.MaxValue, freezeHeaderRow: false)))(document.AddWorksheet("Data", OfficeIMO.Excel.ExcelSheetNameValidationMode.Sanitize).Report()));
+            InvalidDataException exception = Assert.Throws<InvalidDataException>(() => ((System.Action<OfficeIMO.Excel.ExcelReportBuilder>)(composer => composer.AddTable(rows, configure: options => options.MaxColumns = int.MaxValue, freezeHeaderRow: false)))(document.AddSheet("Data", OfficeIMO.Excel.ExcelSheetNameValidationMode.Sanitize).Report()));
             Assert.Contains("requires at least 16385 columns", exception.Message, StringComparison.Ordinal);
             Assert.Contains("Select fewer columns or split the data across multiple worksheets", exception.Message, StringComparison.Ordinal);
             Assert.Contains("cannot be overridden", exception.Message, StringComparison.Ordinal);
@@ -138,7 +138,7 @@ namespace OfficeIMO.Tests
                 using (var document = ExcelDocument.Create(filePath))
                 {
                     {
-                        var reportBuilder1 = document.AddWorksheet("Report", OfficeIMO.Excel.ExcelSheetNameValidationMode.Sanitize).Report();
+                        var reportBuilder1 = document.AddSheet("Report", OfficeIMO.Excel.ExcelSheetNameValidationMode.Sanitize).Report();
                         (reportBuilder1).AddTable(rows, title: "Scores");
                         (reportBuilder1).Finish(autoFitColumns: false);
                     }
@@ -180,7 +180,7 @@ namespace OfficeIMO.Tests
                 using (var document = ExcelDocument.Create(filePath))
                 {
                     {
-                        var sheet1 = document.AddWorksheet("Report");
+                        var sheet1 = document.AddSheet("Report");
                         int nextRow2 = 1;
                         var projection3 = new OfficeIMO.Data.ObjectFlattenerOptions();
                         (projection3).Columns = new[]

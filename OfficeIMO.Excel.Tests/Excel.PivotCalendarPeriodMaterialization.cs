@@ -83,7 +83,7 @@ namespace OfficeIMO.Tests
             {
                 if (oracleCase.GetProperty("date1904").GetBoolean())
                     document.DateSystem = ExcelDateSystem.NineteenFour;
-                var source = document.AddWorksheet("Source");
+                var source = document.AddSheet("Source");
                 source.CellValue(1, 1, "OrderDate");
                 source.CellValue(1, 2, "Sales");
                 for (int index = 0; index < 24; index++)

@@ -13,7 +13,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_MutationSnapshot_RestoresDeletedCommentPartRelationships() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.SetComment("A1", "Legacy", "Tester");
             ExcelThreadedCommentResult threaded = sheet.AddThreadedComment("B1", "Threaded", "Tester");
             WorksheetCommentsPart legacyPart = sheet.WorksheetPart.WorksheetCommentsPart!;
@@ -44,8 +44,8 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_AutoFilterCriteria_RejectQualifiedRangesWithoutReplacingLocalState() {
             using var document = ExcelDocument.Create();
-            ExcelSheet sheet = document.AddWorksheet("Data");
-            document.AddWorksheet("Other");
+            ExcelSheet sheet = document.AddSheet("Data");
+            document.AddSheet("Other");
             sheet.AutoFilterBlanks("A1:C3", 1);
 
             Assert.Throws<ArgumentException>(() => sheet.AutoFilterBlanks("Other!A1:C3", 1));
@@ -59,7 +59,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_TableResize_RejectsMergedCellIntersectionBeforeMutation() {
             using var document = ExcelDocument.Create();
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.CellValue(1, 1, "A");
             sheet.CellValue(2, 1, 1);
             sheet.CellValue(3, 1, 2);
@@ -75,7 +75,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_StructuralColumns_RejectsEmptyBoundaryColumnDefinition() {
             using var document = ExcelDocument.Create();
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             var columns = new Columns(new Column {
                 Min = (uint)ExcelA1.MaxColumns,
                 Max = (uint)ExcelA1.MaxColumns,
@@ -93,7 +93,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_SparklineType_LineDefaultDoesNotSplitImportedGroup() {
             using var document = ExcelDocument.Create();
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.AddSparklines("A1:C2", "D1:D2");
             X14.SparklineGroup group = Assert.Single(sheet.WorksheetPart.Worksheet.Descendants<X14.SparklineGroup>());
             group.Type = null;
@@ -106,7 +106,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_StructuralColumns_RemapsWorksheetFilterCriteria() {
             using var document = ExcelDocument.Create();
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.AutoFilterBlanks("A1:C3", 1);
             sheet.AutoFilterTopBottom("A1:C3", 2, 5);
 
@@ -126,7 +126,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_StructuralColumns_RemapsManualColumnPageBreaks() {
             using var document = ExcelDocument.Create();
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.AddManualColumnPageBreak(2);
             sheet.AddManualColumnPageBreak(4);
 

@@ -2077,7 +2077,7 @@ public sealed class PdfRenderingProfileTests {
     [Fact]
     public void ExcelRenderingProfilePreservesWorksheetPageSizeUntilCallerOverridesIt() {
         using var workbook = OfficeIMO.Excel.ExcelDocument.Create(new MemoryStream());
-        OfficeIMO.Excel.ExcelSheet sheet = workbook.AddWorksheet("Profile");
+        OfficeIMO.Excel.ExcelSheet sheet = workbook.AddSheet("Profile");
         sheet.CellValue(1, 1, "Profile page size");
         sheet.SetPaperSize(OfficeIMO.Excel.ExcelPaperSize.A3);
         var options = new OfficeIMO.Excel.Pdf.ExcelPdfExportOptions()
@@ -2179,7 +2179,7 @@ public sealed class PdfRenderingProfileTests {
     [Fact]
     public void ExcelRenderingProfileHonorsEqualValueLetterPageSizeAssignment() {
         using var workbook = OfficeIMO.Excel.ExcelDocument.Create(new MemoryStream());
-        OfficeIMO.Excel.ExcelSheet sheet = workbook.AddWorksheet("Profile");
+        OfficeIMO.Excel.ExcelSheet sheet = workbook.AddSheet("Profile");
         sheet.CellValue(1, 1, "Explicit Letter page size");
         sheet.SetPaperSize(OfficeIMO.Excel.ExcelPaperSize.A3);
         var options = new OfficeIMO.Excel.Pdf.ExcelPdfExportOptions()
@@ -2211,7 +2211,7 @@ public sealed class PdfRenderingProfileTests {
         byte[] excelPdf;
         using (OfficeIMO.Excel.ExcelDocument excel =
             OfficeIMO.Excel.ExcelDocument.Create(new MemoryStream())) {
-            excel.AddWorksheet("Profile").CellValue(1, 1, "Excel profile proof");
+            excel.AddSheet("Profile").CellValue(1, 1, "Excel profile proof");
             excelPdf = (OfficeIMO.Excel.Pdf.ExcelPdfConverterExtensions.ToPdf(
                 excel,
                 new OfficeIMO.Excel.Pdf.ExcelPdfExportOptions().UseRenderingProfile(profile))).ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });

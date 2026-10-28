@@ -196,7 +196,7 @@ static void AddScenario(
 static byte[] WriteOfficeImoXlsx(IReadOnlyList<SalesRecord> records) {
     using var stream = new MemoryStream();
     using (var document = ExcelDocument.Create(stream)) {
-        ExcelSheet sheet = document.AddWorksheet("Data");
+        ExcelSheet sheet = document.AddSheet("Data");
         WriteOfficeImoRows(sheet, records);
         document.Save(stream);
     }

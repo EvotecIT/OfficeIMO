@@ -24,7 +24,7 @@ namespace OfficeIMO.Examples.Excel
             using (ExcelDocument document = ExcelDocument.Create(filePath))
             {
                 {
-                    var sheet1 = document.AddWorksheet("Data");
+                    var sheet1 = document.AddSheet("Data");
 
                     var range3 = sheet1.Range("A1:B2");
                     range3.SetValues(values);

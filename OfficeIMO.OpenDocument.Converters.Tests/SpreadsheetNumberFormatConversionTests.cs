@@ -18,7 +18,7 @@ public sealed class SpreadsheetNumberFormatConversionTests {
     public void WholeNumberValidationWithNonIntegerLexicalOperandIsReportedUnsupported() {
         byte[] package;
         using (ExcelDocument authored = ExcelDocument.Create()) {
-            authored.AddWorksheet("Data").ValidationWholeNumber(
+            authored.AddSheet("Data").ValidationWholeNumber(
                 "A1",
                 ExcelDataValidationOperator.GreaterThan,
                 1,
@@ -68,7 +68,7 @@ public sealed class SpreadsheetNumberFormatConversionTests {
     [Fact]
     public void ScalarAndListValidationsRoundTripThroughTypedOdfConditions() {
         using ExcelDocument source = ExcelDocument.Create();
-        ExcelSheet sheet = source.AddWorksheet("Data");
+        ExcelSheet sheet = source.AddSheet("Data");
         sheet.ValidationWholeNumber("B2:B3", ExcelDataValidationOperator.Between, 1, 10, allowBlank: false);
         sheet.SetDataValidationMessages("B2:B3", new ExcelDataValidationMessageOptions {
             PromptTitle = "Allowed values",
@@ -114,7 +114,7 @@ public sealed class SpreadsheetNumberFormatConversionTests {
     [Fact]
     public void EmptyValidationMessagesPreserveDisplayFlagsAndErrorStyle() {
         using ExcelDocument source = ExcelDocument.Create();
-        ExcelSheet sheet = source.AddWorksheet("Data");
+        ExcelSheet sheet = source.AddSheet("Data");
         sheet.ValidationWholeNumber("A1", ExcelDataValidationOperator.GreaterThan, 0);
         sheet.SetDataValidationMessages("A1", new ExcelDataValidationMessageOptions {
             ShowInputMessage = true,
@@ -147,7 +147,7 @@ public sealed class SpreadsheetNumberFormatConversionTests {
     [Fact]
     public void OverlappingExcelValidationsRetainLaterRuleAndReportTheConflict() {
         using ExcelDocument source = ExcelDocument.Create();
-        ExcelSheet sheet = source.AddWorksheet("Data");
+        ExcelSheet sheet = source.AddSheet("Data");
         sheet.ValidationWholeNumber("A1:A2", ExcelDataValidationOperator.GreaterThan, 0);
         sheet.ValidationDecimal("A2:A3", ExcelDataValidationOperator.LessThan, 10);
 
@@ -185,7 +185,7 @@ public sealed class SpreadsheetNumberFormatConversionTests {
     [Fact]
     public void LegacyExcelCommentsRoundTripThroughOdsAnnotations() {
         using ExcelDocument source = ExcelDocument.Create();
-        ExcelSheet sheet = source.AddWorksheet("Data");
+        ExcelSheet sheet = source.AddSheet("Data");
         sheet.SetComment("C4", "Review  this\tvalue\nbefore release", "Alice");
 
         OdfConversionResult<OdsDocument> toOds = source.ToOpenDocumentResult();
@@ -225,7 +225,7 @@ public sealed class SpreadsheetNumberFormatConversionTests {
     [Fact]
     public void ThreadedExcelCommentsBecomeExplicitlyApproximatedOdsAnnotations() {
         using ExcelDocument source = ExcelDocument.Create();
-        ExcelSheet sheet = source.AddWorksheet("Data");
+        ExcelSheet sheet = source.AddSheet("Data");
         DateTime timestamp = new DateTime(2026, 8, 9, 8, 30, 0, DateTimeKind.Utc);
         ExcelThreadedCommentResult root = sheet.AddThreadedComment(new ExcelThreadedCommentOptions {
             Address = "A1",
@@ -259,7 +259,7 @@ public sealed class SpreadsheetNumberFormatConversionTests {
     [Fact]
     public void ThreadedRootMergedWithLegacyCommentRetainsItsMetadataTranscript() {
         using ExcelDocument source = ExcelDocument.Create();
-        ExcelSheet sheet = source.AddWorksheet("Data");
+        ExcelSheet sheet = source.AddSheet("Data");
         sheet.SetComment("A1", "Legacy note", "Legacy Author");
         DateTime timestamp = new DateTime(2026, 8, 9, 9, 15, 0, DateTimeKind.Utc);
         ExcelThreadedCommentResult root = sheet.AddThreadedComment(new ExcelThreadedCommentOptions {
@@ -282,7 +282,7 @@ public sealed class SpreadsheetNumberFormatConversionTests {
     [Fact]
     public void Conversion_Loss_Policy_Distinguishes_Approximation_From_Skipped_Or_Unsupported_Content() {
         using ExcelDocument source = ExcelDocument.Create();
-        ExcelSheet sheet = source.AddWorksheet("Data");
+        ExcelSheet sheet = source.AddSheet("Data");
         sheet.CellAt(1, 1).SetValue(1D);
         sheet.CellAt(1, 2).SetFormula("A1+1");
 
@@ -305,7 +305,7 @@ public sealed class SpreadsheetNumberFormatConversionTests {
     [Fact]
     public void Quoted_Percent_Is_Not_Converted_To_Percentage_Scaling() {
         using ExcelDocument source = ExcelDocument.Create();
-        ExcelCell cell = source.AddWorksheet("Data").CellAt(1, 1);
+        ExcelCell cell = source.AddSheet("Data").CellAt(1, 1);
         cell.SetValue(0.5D);
         cell.SetNumberFormat("0.00\"%\"");
 
@@ -321,7 +321,7 @@ public sealed class SpreadsheetNumberFormatConversionTests {
     [Fact]
     public void Excel_Thousands_Scaling_Comma_Is_Not_Misreported_As_Grouping() {
         using ExcelDocument source = ExcelDocument.Create();
-        ExcelCell cell = source.AddWorksheet("Data").CellAt(1, 1);
+        ExcelCell cell = source.AddSheet("Data").CellAt(1, 1);
         cell.SetValue(12000D);
         cell.SetNumberFormat("#,##0,");
 
@@ -460,7 +460,7 @@ public sealed class SpreadsheetNumberFormatConversionTests {
     [InlineData("[$-409]0.00")]
     public void ExcelFormatsFlattenedByOdfProjectionAreReportedUnsupported(string numberFormat) {
         using ExcelDocument source = ExcelDocument.Create();
-        ExcelCell cell = source.AddWorksheet("Data").CellAt(1, 1);
+        ExcelCell cell = source.AddSheet("Data").CellAt(1, 1);
         cell.SetValue(12345D);
         cell.SetNumberFormat(numberFormat);
 
@@ -478,7 +478,7 @@ public sealed class SpreadsheetNumberFormatConversionTests {
     [Fact]
     public void UnprojectedExcelTextLayoutAndDecorationAreReportedUnsupported() {
         using ExcelDocument source = ExcelDocument.Create();
-        ExcelSheet sheet = source.AddWorksheet("Data");
+        ExcelSheet sheet = source.AddSheet("Data");
         ExcelCell cell = sheet.CellAt(1, 1).SetValue("Formatted").SetShrinkToFit();
         sheet.CellStrikethrough(1, 1);
         sheet.CellWrapText(1, 1);

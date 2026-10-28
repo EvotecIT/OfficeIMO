@@ -73,7 +73,7 @@ namespace OfficeIMO.Examples.Excel
             using var document = ExcelDocument.Create(filePath);
             // Sheet 1: Default order (discovery order)
             {
-                var sheet1 = document.AddWorksheet("Default");
+                var sheet1 = document.AddSheet("Default");
                 int nextRow2 = 1;
                 var projection3 = new OfficeIMO.Data.ObjectFlattenerOptions();
                 {
@@ -88,7 +88,7 @@ namespace OfficeIMO.Examples.Excel
 
             // Sheet 2: Include/Exclude by property names
             {
-                var sheet5 = document.AddWorksheet("IncludeExclude");
+                var sheet5 = document.AddSheet("IncludeExclude");
                 int nextRow6 = 1;
                 var projection7 = new OfficeIMO.Data.ObjectFlattenerOptions();
                 {
@@ -116,7 +116,7 @@ namespace OfficeIMO.Examples.Excel
 
             // Sheet 3: Priority ordering and pinning
             {
-                var sheet9 = document.AddWorksheet("Priority");
+                var sheet9 = document.AddSheet("Priority");
                 int nextRow10 = 1;
                 var projection11 = new OfficeIMO.Data.ObjectFlattenerOptions();
                 {
@@ -133,7 +133,7 @@ namespace OfficeIMO.Examples.Excel
 
             // Sheet 4: Only pin last
             {
-                var sheet13 = document.AddWorksheet("PinnedLastOnly");
+                var sheet13 = document.AddSheet("PinnedLastOnly");
                 int nextRow14 = 1;
                 var projection15 = new OfficeIMO.Data.ObjectFlattenerOptions();
                 {
@@ -148,7 +148,7 @@ namespace OfficeIMO.Examples.Excel
             }
 
             // Sheet 5: ExcelReportBuilder.TableFrom with the same options
-            var composer = document.AddWorksheet("ComposerPriority", ExcelSheetNameValidationMode.Sanitize).Report();
+            var composer = document.AddSheet("ComposerPriority", ExcelSheetNameValidationMode.Sanitize).Report();
             composer.Section("Users (Composer)");
             composer.AddTable(users, title: null, configure: o =>
             {
@@ -161,7 +161,7 @@ namespace OfficeIMO.Examples.Excel
             composer.Finish(autoFitColumns: true);
             // Sheet 6: Single-call Order(pinFirst, priority, pinLast)
             {
-                var sheet17 = document.AddWorksheet("OrderOneCall");
+                var sheet17 = document.AddSheet("OrderOneCall");
                 int nextRow18 = 1;
                 var projection19 = new OfficeIMO.Data.ObjectFlattenerOptions();
                 {

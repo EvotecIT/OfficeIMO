@@ -14,7 +14,7 @@ namespace OfficeIMO.Tests {
             string sourcePath = Path.Combine(_directoryWithFiles, "GoogleSheetsDriveImportSource.xlsx");
             try {
                 using (var source = ExcelDocument.Create(sourcePath)) {
-                    var sheet = source.AddWorksheet("Summary");
+                    var sheet = source.AddSheet("Summary");
                     sheet.CellValue(1, 1, "Name");
                     sheet.CellValue(2, 1, "Alpha");
                     source.Save();
@@ -259,7 +259,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "GoogleSheetsDriveVersionDiff.xlsx");
             try {
                 using var source = ExcelDocument.Create(filePath);
-                source.AddWorksheet("Data").CellValue(1, 1, "value");
+                source.AddSheet("Data").CellValue(1, 1, "value");
                 GoogleSheetsSyncCheckpoint checkpoint = GoogleSheetsDiffPlanner.CreateCheckpoint(source, driveVersion: 5);
                 const string nativeJson = "{\"spreadsheetId\":\"diff-sheet\",\"properties\":{\"title\":\"Diff\"},\"sheets\":[{\"properties\":{\"sheetId\":0,\"title\":\"Data\",\"index\":0},\"data\":[{\"startRow\":0,\"startColumn\":0,\"rowData\":[{\"values\":[{\"userEnteredValue\":{\"stringValue\":\"value\"}}]}]}]}]}";
                 using var httpClient = new HttpClient(new FakeHttpMessageHandler(request => {
@@ -288,7 +288,7 @@ namespace OfficeIMO.Tests {
             string path = Path.Combine(_directoryWithFiles, "GoogleSheetsLegacyCheckpoint.xlsx");
             try {
                 using var document = ExcelDocument.Create(path);
-                document.AddWorksheet("Data").CellValue(1, 1, "Unchanged");
+                document.AddSheet("Data").CellValue(1, 1, "Unchanged");
                 var legacyCheckpoint = new GoogleSheetsSyncCheckpoint { DriveVersion = 7 };
                 legacyCheckpoint.ContentHashes["sheet/Data"] = "old-culture-dependent-hash";
                 int requests = 0;
@@ -315,14 +315,14 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "GoogleSheetsChartHelperDiff.xlsx");
             try {
                 using var source = ExcelDocument.Create(filePath);
-                ExcelSheet data = source.AddWorksheet("Data");
+                ExcelSheet data = source.AddSheet("Data");
                 data.CellValue(1, 1, "value");
                 data.AddChart(
                     new ExcelChartData(new[] { "A" }, new[] { new ExcelChartSeries("Sales", new[] { 1d }) }),
                     row: 2,
                     column: 2,
                     type: OfficeChartType.ColumnClustered);
-                source.AddWorksheet("_OfficeIMO_ChartData").CellValue(1, 1, "User content");
+                source.AddSheet("_OfficeIMO_ChartData").CellValue(1, 1, "User content");
                 GoogleSheetsSyncCheckpoint checkpoint = GoogleSheetsDiffPlanner.CreateCheckpoint(source, driveVersion: 6);
                 const string nativeJson = "{\"spreadsheetId\":\"diff-chart\",\"properties\":{\"title\":\"Diff\"},\"sheets\":[{\"properties\":{\"sheetId\":0,\"title\":\"Data\",\"index\":0},\"data\":[{\"startRow\":0,\"startColumn\":0,\"rowData\":[{\"values\":[{\"userEnteredValue\":{\"stringValue\":\"value\"}}]}]}]},{\"properties\":{\"sheetId\":1,\"title\":\"_OfficeIMO_ChartData\",\"index\":1},\"data\":[{\"startRow\":0,\"startColumn\":0,\"rowData\":[{\"values\":[{\"userEnteredValue\":{\"stringValue\":\"User content\"}}]}]}]},{\"properties\":{\"sheetId\":2,\"title\":\"_OfficeIMO_ChartData_2\",\"index\":2,\"hidden\":true,\"gridProperties\":{\"hideGridlines\":true}},\"data\":[{\"startRow\":0,\"startColumn\":0,\"rowData\":[{\"values\":[{\"userEnteredValue\":{\"stringValue\":\"Category\"}},{\"userEnteredValue\":{\"stringValue\":\"Sales\"}}]},{\"values\":[{\"userEnteredValue\":{\"stringValue\":\"A\"}},{\"userEnteredValue\":{\"numberValue\":1}}]}]}]}]}";
                 using var httpClient = new HttpClient(new FakeHttpMessageHandler(request => {
@@ -350,7 +350,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "GoogleSheetsReplacePreflight.xlsx");
             try {
                 using var document = ExcelDocument.Create(filePath);
-                document.AddWorksheet("Data").CellValue(1, 1, "value");
+                document.AddSheet("Data").CellValue(1, 1, "value");
                 int requestCount = 0;
                 using var httpClient = new HttpClient(new FakeHttpMessageHandler(request => {
                     requestCount++;
@@ -375,7 +375,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "GoogleSheetsReplaceConflict.xlsx");
             try {
                 using var document = ExcelDocument.Create(filePath);
-                document.AddWorksheet("Data").CellValue(1, 1, "value");
+                document.AddSheet("Data").CellValue(1, 1, "value");
                 int sheetsRequests = 0;
                 using var httpClient = new HttpClient(new FakeHttpMessageHandler(request => {
                     if (request.RequestUri!.Host == "www.googleapis.com") {
@@ -418,7 +418,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "GoogleSheetsFormulaPreflight.xlsx");
             try {
                 using var document = ExcelDocument.Create(filePath);
-                document.AddWorksheet("Data").CellFormula(1, 1, "WEBSERVICE(A2)");
+                document.AddSheet("Data").CellFormula(1, 1, "WEBSERVICE(A2)");
                 int requestCount = 0;
                 using var httpClient = new HttpClient(new FakeHttpMessageHandler(request => {
                     requestCount++;
@@ -443,7 +443,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "GoogleSheetsValueChunks.xlsx");
             try {
                 using var document = ExcelDocument.Create(filePath);
-                ExcelSheet sheet = document.AddWorksheet("Data");
+                ExcelSheet sheet = document.AddSheet("Data");
                 sheet.CellValue(1, 1, "A");
                 sheet.CellValue(3, 1, "B");
                 sheet.CellValue(5, 1, "C");

@@ -13,7 +13,7 @@ namespace OfficeIMO.Tests
             string path = Path.Combine(_directoryWithFiles, "GoogleSheetsAdvancedCells.xlsx");
             try {
                 using var document = ExcelDocument.Create(path);
-                ExcelSheet sheet = document.AddWorksheet("Data");
+                ExcelSheet sheet = document.AddSheet("Data");
                 sheet.SetRichText(1, 1, new[] {
                     new ExcelRichTextRun("Bold") { Bold = true, FontColor = "FF112233" },
                     new ExcelRichTextRun(" plain"),
@@ -39,7 +39,7 @@ namespace OfficeIMO.Tests
             string path = Path.Combine(_directoryWithFiles, "GoogleSheetsConditionalExpression.xlsx");
             try {
                 using (var document = ExcelDocument.Create(path)) {
-                    ExcelSheet sheet = document.AddWorksheet("Data");
+                    ExcelSheet sheet = document.AddSheet("Data");
                     sheet.CellValue(2, 1, 12);
                     sheet.AddConditionalRule("A2:A5", ExcelConditionalFormattingOperator.GreaterThan, "10", fillColor: "FFC6EFCE");
                     document.Save();
@@ -100,7 +100,7 @@ namespace OfficeIMO.Tests
         [InlineData(false)]
         public void Test_GoogleSheetsBatch_PreservesConditionalStrike(bool strike) {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.CellValue(1, 1, 1);
             sheet.AddConditionalFormattingRule(new ExcelConditionalFormattingInfo {
                 Range = "A1",
@@ -133,7 +133,7 @@ namespace OfficeIMO.Tests
             string path = Path.Combine(_directoryWithFiles, "GoogleSheetsChart.xlsx");
             try {
                 using var document = ExcelDocument.Create(path);
-                ExcelSheet sheet = document.AddWorksheet("Dashboard");
+                ExcelSheet sheet = document.AddSheet("Dashboard");
                 sheet.AddChart(
                     new ExcelChartData(new[] { "A", "B" }, new[] { new ExcelChartSeries("Sales", new[] { 2d, 5d }) }),
                     row: 2,
@@ -158,7 +158,7 @@ namespace OfficeIMO.Tests
             string path = Path.Combine(_directoryWithFiles, "GoogleSheetsLargeChart.xlsx");
             try {
                 using var document = ExcelDocument.Create(path);
-                ExcelSheet sheet = document.AddWorksheet("Dashboard");
+                ExcelSheet sheet = document.AddSheet("Dashboard");
                 string[] categories = Enumerable.Range(1, 1001).Select(index => $"Category {index}").ToArray();
                 ExcelChartSeries[] series = Enumerable.Range(1, 27)
                     .Select(seriesIndex => new ExcelChartSeries(
@@ -198,7 +198,7 @@ namespace OfficeIMO.Tests
             string path = Path.Combine(_directoryWithFiles, "GoogleSheetsNamedRangeGrid.xlsx");
             try {
                 using var document = ExcelDocument.Create(path);
-                ExcelSheet sheet = document.AddWorksheet("Data");
+                ExcelSheet sheet = document.AddSheet("Data");
                 document.SetNamedRange("GlobalExtent", "'Data'!A1:AA2001", save: false);
                 sheet.SetNamedRange("LocalExtent", "AB1:AB2002", save: false);
 
@@ -219,7 +219,7 @@ namespace OfficeIMO.Tests
             string path = Path.Combine(_directoryWithFiles, "GoogleSheetsScatter.xlsx");
             try {
                 using var document = ExcelDocument.Create(path);
-                ExcelSheet sheet = document.AddWorksheet("Dashboard");
+                ExcelSheet sheet = document.AddSheet("Dashboard");
                 sheet.AddChart(
                     new ExcelChartData(
                         Array.Empty<string>(),
@@ -252,7 +252,7 @@ namespace OfficeIMO.Tests
             string path = Path.Combine(_directoryWithFiles, "GoogleSheetsScatterDifferentDomains.xlsx");
             try {
                 using var document = ExcelDocument.Create(path);
-                ExcelSheet sheet = document.AddWorksheet("Dashboard");
+                ExcelSheet sheet = document.AddSheet("Dashboard");
                 sheet.AddChart(
                     new ExcelChartData(
                         Array.Empty<string>(),
@@ -288,8 +288,8 @@ namespace OfficeIMO.Tests
             string path = Path.Combine(_directoryWithFiles, "GoogleSheetsNamedRangeScopes.xlsx");
             try {
                 using var document = ExcelDocument.Create(path);
-                ExcelSheet north = document.AddWorksheet("North");
-                ExcelSheet south = document.AddWorksheet("South");
+                ExcelSheet north = document.AddSheet("North");
+                ExcelSheet south = document.AddSheet("South");
                 north.SetNamedRange("LocalData", "A1:A2", save: false);
                 south.SetNamedRange("LocalData", "B1:B2", save: false);
                 document.SetNamedRange("North_LocalData", "'North'!C1:C2", save: false);
@@ -312,7 +312,7 @@ namespace OfficeIMO.Tests
             string path = Path.Combine(_directoryWithFiles, "GoogleSheetsChartDataCollision.xlsx");
             try {
                 using (var document = ExcelDocument.Create(path)) {
-                    ExcelSheet dashboard = document.AddWorksheet("ChartData");
+                    ExcelSheet dashboard = document.AddSheet("ChartData");
                     dashboard.CellValue(1, 1, "User content");
                     dashboard.AddChart(
                         new ExcelChartData(new[] { "A", "B" }, new[] { new ExcelChartSeries("Sales", new[] { 2d, 5d }) }),
@@ -344,7 +344,7 @@ namespace OfficeIMO.Tests
             string path = Path.Combine(_directoryWithFiles, "GoogleSheetsLiteralValues.xlsx");
             try {
                 using var document = ExcelDocument.Create(path);
-                ExcelSheet sheet = document.AddWorksheet("Data");
+                ExcelSheet sheet = document.AddSheet("Data");
                 sheet.CellValue(1, 1, "=1+1");
                 sheet.CellValue(1, 2, "00123");
                 sheet.CellFormula(1, 3, "1+1");
@@ -367,7 +367,7 @@ namespace OfficeIMO.Tests
             string path = Path.Combine(_directoryWithFiles, "GoogleSheetsSharedStringRichText.xlsx");
             try {
                 using (var document = ExcelDocument.Create(path)) {
-                    ExcelSheet sheet = document.AddWorksheet("Data");
+                    ExcelSheet sheet = document.AddSheet("Data");
                     sheet.SetRichText(1, 1, new[] {
                         new ExcelRichTextRun("Bold") { Bold = true },
                         new ExcelRichTextRun(" plain") { Italic = true },
@@ -410,7 +410,7 @@ namespace OfficeIMO.Tests
             string path = Path.Combine(_directoryWithFiles, "GoogleSheetsSettings.xlsx");
             try {
                 using var document = ExcelDocument.Create(path);
-                ExcelSheet sheet = document.AddWorksheet("Protected");
+                ExcelSheet sheet = document.AddSheet("Protected");
                 sheet.CellValue(1, 1, "Value");
                 sheet.Protect();
                 var options = new GoogleSheetsSaveOptions {
@@ -462,7 +462,7 @@ namespace OfficeIMO.Tests
             try
             {
                 using var document = ExcelDocument.Create(path);
-                ExcelSheet sheet = document.AddWorksheet("Data");
+                ExcelSheet sheet = document.AddSheet("Data");
                 sheet.CellValue(1, 1, "Region");
                 sheet.CellValue(1, 2, "Value");
                 sheet.CellValue(2, 1, "North");
@@ -490,7 +490,7 @@ namespace OfficeIMO.Tests
             try
             {
                 using var document = ExcelDocument.Create(path);
-                ExcelSheet sheet = document.AddWorksheet("Data");
+                ExcelSheet sheet = document.AddSheet("Data");
                 sheet.CellValue(1, 1, "Region");
                 sheet.CellValue(1, 2, "Value");
                 sheet.CellValue(2, 1, "North");

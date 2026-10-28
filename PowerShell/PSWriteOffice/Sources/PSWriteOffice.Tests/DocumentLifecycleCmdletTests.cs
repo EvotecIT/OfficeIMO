@@ -28,7 +28,7 @@ public sealed class DocumentLifecycleCmdletTests {
                 source.Save(template);
             } else {
                 using var source = ExcelDocument.Create();
-                source.AddWorksheet("Data").CellValue(1, 1, "Template content");
+                source.AddSheet("Data").CellValue(1, 1, "Template content");
                 source.Save(template);
             }
             byte[] sourceBytes = File.ReadAllBytes(template);

@@ -18,7 +18,7 @@ namespace OfficeIMO.Tests {
         [InlineData("ignored-error")]
         public void Test_RangeMove_RejectsPartiallyIntersectingRangeMetadata(string kind) {
             using var document = ExcelDocument.Create();
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.CellValue(1, 1, 1);
             sheet.CellValue(1, 2, 2);
             switch (kind) {
@@ -52,7 +52,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_RangeMove_ReplacesDestinationLegacyAndThreadedComments() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.CellValue(1, 1, "Legacy source");
             sheet.CellValue(1, 2, "Threaded source");
             sheet.SetComment("A1", "Keep legacy", "Tester");
@@ -75,7 +75,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_MutationSnapshot_RestoresNamedSheetViews() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             AddNamedSheetViewFilter(sheet, "A1:B2");
             NamedSheetViewsPart part = Assert.Single(sheet.WorksheetPart.NamedSheetViewsParts);
             using var cancellation = new CancellationTokenSource();
@@ -163,7 +163,7 @@ namespace OfficeIMO.Tests {
         [InlineData(ExcelIgnoredErrorKind.NumberStoredAsText | (ExcelIgnoredErrorKind)512)]
         public void Test_IgnoredErrors_RejectUndefinedFlags(ExcelIgnoredErrorKind errors) {
             using var document = ExcelDocument.Create();
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
 
             Assert.Throws<ArgumentOutOfRangeException>(() => sheet.AddIgnoredErrorRegion(new[] { "A1" }, errors));
             Assert.Empty(sheet.GetIgnoredErrorRegions());
@@ -172,7 +172,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_FormulaDependencies_FilterWhitespaceSeparatedCellLikeFunctions() {
             using var document = ExcelDocument.Create();
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.CellValue(1, 1, 10);
             sheet.CellFormula(1, 2, "LOG10 (A1)");
 
@@ -186,7 +186,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_AutoFilterState_UsesTop10SchemaDefaults() {
             using var document = ExcelDocument.Create();
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.AutoFilterAdd("A1:B2");
             AutoFilter filter = sheet.WorksheetPart.Worksheet.GetFirstChild<AutoFilter>()!;
             filter.Append(new FilterColumn(new Top10 { Val = 5D }) { ColumnId = 0U });

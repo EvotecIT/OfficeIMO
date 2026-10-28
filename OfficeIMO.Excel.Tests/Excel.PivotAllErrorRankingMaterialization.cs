@@ -56,7 +56,7 @@ namespace OfficeIMO.Tests
             string actualRange = $"L4:M{expected.GetLength(0) + 3}";
             using (var document = ExcelDocument.Create(output))
             {
-                var source = document.AddWorksheet("Source");
+                var source = document.AddSheet("Source");
                 for (int row = 0; row < input.GetLength(0); row++)
                 {
                     source.CellValue(row + 1, 1, Assert.IsType<string>(input[row, 0]));
@@ -114,7 +114,7 @@ namespace OfficeIMO.Tests
         public void PivotAllErrorRanking_LeavesUnqualifiedPercentAndSumDeferred(bool sum)
         {
             using var document = ExcelDocument.Create();
-            var source = document.AddWorksheet("Source");
+            var source = document.AddSheet("Source");
             source.CellValue(1, 1, "Region");
             source.CellValue(1, 2, "Sales");
             source.CellValue(2, 1, "Alpha");

@@ -11,14 +11,14 @@ namespace OfficeIMO.Tests {
             using var source = new MemoryStream();
             using var document = ExcelDocument.Create(source);
             document.DateTimeOffsetWriteStrategy = value => value.UtcDateTime;
-            ExcelSheet sheet = document.AddWorksheet("First");
+            ExcelSheet sheet = document.AddSheet("First");
             using DataTable table = Dates();
             sheet.InsertDataTableAsTable(table);
             using var cancellation = new CancellationTokenSource();
             cancellation.Cancel();
 
             OperationCanceledException error = Assert.Throws<OperationCanceledException>(() =>
-                document.AddWorksheet("Second", ExcelSheetNameValidationMode.Strict, cancellation.Token));
+                document.AddSheet("Second", ExcelSheetNameValidationMode.Strict, cancellation.Token));
 
             Assert.Equal(cancellation.Token, error.CancellationToken);
             AssertSavedDates(document);
@@ -29,7 +29,7 @@ namespace OfficeIMO.Tests {
             using var source = new MemoryStream();
             using var document = ExcelDocument.Create(source);
             document.DateTimeOffsetWriteStrategy = value => value.UtcDateTime;
-            ExcelSheet sheet = document.AddWorksheet("First");
+            ExcelSheet sheet = document.AddSheet("First");
             using DataTable table = Dates();
             sheet.InsertDataTableAsTable(table);
             using var cancellation = new CancellationTokenSource();
@@ -41,7 +41,7 @@ namespace OfficeIMO.Tests {
             };
 
             OperationCanceledException error = Assert.Throws<OperationCanceledException>(() =>
-                document.AddWorksheet("Second", ExcelSheetNameValidationMode.Strict, cancellation.Token));
+                document.AddSheet("Second", ExcelSheetNameValidationMode.Strict, cancellation.Token));
 
             Assert.Equal(cancellation.Token, error.CancellationToken);
             Assert.Equal(1, convertedDates);
@@ -59,7 +59,7 @@ namespace OfficeIMO.Tests {
             using var source = new MemoryStream();
             using var document = ExcelDocument.Create(source);
             document.DateTimeOffsetWriteStrategy = value => value.UtcDateTime;
-            ExcelSheet sheet = document.AddWorksheet("First");
+            ExcelSheet sheet = document.AddSheet("First");
             using DataTable prior = Dates();
             sheet.InsertDataTableAsTable(prior, tableName: "Existing");
             using var next = new DataTable("Replacement");
@@ -93,7 +93,7 @@ namespace OfficeIMO.Tests {
             using var source = new MemoryStream();
             using var document = ExcelDocument.Create(source);
             document.DateTimeOffsetWriteStrategy = value => value.UtcDateTime;
-            ExcelSheet sheet = document.AddWorksheet("First");
+            ExcelSheet sheet = document.AddSheet("First");
             using var prior = new DataTable("Prior");
             prior.Columns.Add("Original", typeof(string));
             prior.Rows.Add("Existing deferred value");

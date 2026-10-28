@@ -32,7 +32,7 @@ public sealed class ExcelHeaderFooterSvgImageExportTests {
     [Fact]
     public void SvgHeaderRespectsExistingSectionClip() {
         using ExcelDocument document = ExcelDocument.Create(new MemoryStream());
-        ExcelSheet sheet = document.AddWorksheet("Report");
+        ExcelSheet sheet = document.AddSheet("Report");
         byte[] svg = Encoding.UTF8.GetBytes("<svg xmlns='http://www.w3.org/2000/svg' width='96' height='16'><rect width='96' height='16' fill='red'/></svg>");
         sheet.SetHeaderImage(ExcelHeaderFooterPosition.Left, svg, "image/svg+xml", width: OfficeLength.Points(72), height: OfficeLength.Points(12));
 
@@ -62,7 +62,7 @@ public sealed class ExcelHeaderFooterSvgImageExportTests {
     [Fact]
     public void SvgHeaderAndFooterShareIntermediatePixelLimit() {
         using ExcelDocument document = ExcelDocument.Create(new MemoryStream());
-        ExcelSheet sheet = document.AddWorksheet("Report");
+        ExcelSheet sheet = document.AddSheet("Report");
         byte[] svg = Encoding.UTF8.GetBytes("<svg xmlns='http://www.w3.org/2000/svg' width='48' height='48'><rect width='48' height='48' fill='red'/></svg>");
         foreach (ExcelHeaderFooterPosition position in new[] { ExcelHeaderFooterPosition.Left, ExcelHeaderFooterPosition.Center, ExcelHeaderFooterPosition.Right })
             sheet.SetHeaderImage(position, svg, "image/svg+xml", width: OfficeLength.Points(36), height: OfficeLength.Points(36));
@@ -80,7 +80,7 @@ public sealed class ExcelHeaderFooterSvgImageExportTests {
     [Fact]
     public void HeaderSvgCallerCodecCancellationStopsExportBeforeDelivery() {
         using ExcelDocument document = ExcelDocument.Create(new MemoryStream());
-        ExcelSheet sheet = document.AddWorksheet("Report");
+        ExcelSheet sheet = document.AddSheet("Report");
         sheet.SetHeaderImage(ExcelHeaderFooterPosition.Left, Encoding.UTF8.GetBytes(UnsupportedSvg), "image/svg+xml", OfficeLength.Points(24), OfficeLength.Points(12));
         using var cancellation = new CancellationTokenSource();
         var codec = new CancellingCodec(cancellation);
@@ -98,7 +98,7 @@ public sealed class ExcelHeaderFooterSvgImageExportTests {
     [Fact]
     public void HeaderSourcePixelLimitReportsOmissionAndStrictPolicyRejectsIt() {
         using ExcelDocument document = ExcelDocument.Create(new MemoryStream());
-        ExcelSheet sheet = document.AddWorksheet("Report");
+        ExcelSheet sheet = document.AddSheet("Report");
         sheet.SetHeaderImage(ExcelHeaderFooterPosition.Left,
             OfficePngWriter.Encode(new OfficeRasterImage(128, 128, OfficeColor.Red)), "image/png", OfficeLength.Points(12), OfficeLength.Points(12));
         var options = new ExcelImageExportOptions {
@@ -129,7 +129,7 @@ public sealed class ExcelHeaderFooterSvgImageExportTests {
         });
         Assert.Contains("A|ar-SA", direct.Requests);
         using ExcelDocument document = ExcelDocument.Create(new MemoryStream());
-        ExcelSheet sheet = document.AddWorksheet("Report");
+        ExcelSheet sheet = document.AddSheet("Report");
         sheet.AddImage(1, 1, svg, "image/svg+xml", OfficeIMO.OfficeLength.Pixels(80), OfficeIMO.OfficeLength.Pixels(40));
         var anchored = new RecordingShaper();
         sheet.Range("A1:D4").ExportImage(OfficeImageExportFormat.Png, new ExcelImageExportOptions {
@@ -152,7 +152,7 @@ public sealed class ExcelHeaderFooterSvgImageExportTests {
     private static OfficeImageExportResult ExportPersisted(byte[] bytes, string contentType) {
         using var stream = new MemoryStream();
         using (ExcelDocument document = ExcelDocument.Create(stream)) {
-            ExcelSheet sheet = document.AddWorksheet("Report");
+            ExcelSheet sheet = document.AddSheet("Report");
             sheet.SetHeaderImage(ExcelHeaderFooterPosition.Left, bytes, contentType, width: OfficeLength.Points(24), height: OfficeLength.Points(12));
             sheet.SetFooterImage(ExcelHeaderFooterPosition.Center, bytes, contentType, width: OfficeLength.Points(24), height: OfficeLength.Points(12));
             document.Save();

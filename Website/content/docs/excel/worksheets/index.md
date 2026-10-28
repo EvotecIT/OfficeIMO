@@ -14,9 +14,9 @@ using OfficeIMO.Excel;
 using var workbook = ExcelDocument.Create("worksheets.xlsx");
 
 // Add worksheets
-var sheet1 = workbook.AddWorksheet("Sales");
-var sheet2 = workbook.AddWorksheet("Inventory");
-var sheet3 = workbook.AddWorksheet("Summary");
+var sheet1 = workbook.AddSheet("Sales");
+var sheet2 = workbook.AddSheet("Inventory");
+var sheet3 = workbook.AddSheet("Summary");
 
 workbook.Save();
 ```
@@ -26,7 +26,7 @@ workbook.Save();
 By default, OfficeIMO validates sheet names against Excel's rules (no special characters like `:`, `\`, `/`, `?`, `*`, `[`, `]`; maximum 31 characters). You can control validation behavior:
 
 ```csharp
-var sheet = workbook.AddWorksheet("My Sheet!", ExcelSheetNameValidationMode.Sanitize);
+var sheet = workbook.AddSheet("My Sheet!", ExcelSheetNameValidationMode.Sanitize);
 // Name will be sanitized to remove invalid characters
 ```
 
@@ -35,7 +35,7 @@ var sheet = workbook.AddWorksheet("My Sheet!", ExcelSheetNameValidationMode.Sani
 Access cells using A1-style references:
 
 ```csharp
-var sheet = workbook.AddWorksheet("Data");
+var sheet = workbook.AddSheet("Data");
 
 // String values
 sheet.Cells["A1"].Value = "Name";

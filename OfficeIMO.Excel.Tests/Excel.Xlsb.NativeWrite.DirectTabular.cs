@@ -13,7 +13,7 @@ namespace OfficeIMO.Tests {
         [InlineData(true)]
         public void Xlsb_DirectTabularSave_WritesSupportedScalarValuesThroughPublicApi(bool sharedStrings) {
             using ExcelDocument document = ExcelDocument.Create();
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.CellValue(1, 1, "Text");
             sheet.CellValue(1, 2, "Integer");
             sheet.CellValue(1, 3, "Decimal");
@@ -89,7 +89,7 @@ namespace OfficeIMO.Tests {
         public void Xlsb_DirectTabularSave_PreservesCellValueDateSemantics() {
             DateTime expected = new DateTime(2026, 8, 10, 14, 30, 0, DateTimeKind.Unspecified);
             using ExcelDocument document = ExcelDocument.Create();
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.CellValue(1, 1, "When");
             sheet.CellValue(2, 1, expected);
 
@@ -105,7 +105,7 @@ namespace OfficeIMO.Tests {
         public async Task Xlsb_DirectTabularSave_CoversSyncAndAsyncStreamsAndMutableFileState() {
             static ExcelDocument CreateDocument() {
                 ExcelDocument document = ExcelDocument.Create();
-                ExcelSheet sheet = document.AddWorksheet("Data");
+                ExcelSheet sheet = document.AddSheet("Data");
                 sheet.CellValue(1, 1, "Value");
                 for (int row = 2; row <= 256; row++) sheet.CellValue(row, 1, row - 1);
                 return document;
@@ -144,7 +144,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public async Task Xlsb_DirectTabularSave_HonorsPreCanceledAsyncStreamWrite() {
             using ExcelDocument document = ExcelDocument.Create();
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.CellValue(1, 1, "Value");
             sheet.CellValue(2, 1, 1);
             using var destination = new MemoryStream();

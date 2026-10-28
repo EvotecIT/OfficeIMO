@@ -42,7 +42,7 @@ public sealed class ExcelChartSeriesPaintTests
     public void RibbonProjectionKeepsItsEnabledPaintIndependent(bool fill, bool outline)
     {
         using var document = ExcelDocument.Create();
-        var sheet = document.AddWorksheet("Paint");
+        var sheet = document.AddSheet("Paint");
         sheet.CellValue(1, 1, "Category");
         sheet.CellValue(1, 2, "Series");
         sheet.CellValue(2, 1, "A");

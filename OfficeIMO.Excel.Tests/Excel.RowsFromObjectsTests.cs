@@ -78,7 +78,7 @@ namespace OfficeIMO.Tests
             using (var doc = ExcelDocument.Create(filePath))
             {
                 {
-                    var sheet1 = doc.AddWorksheet("People");
+                    var sheet1 = doc.AddSheet("People");
                     int nextRow2 = 1;
                     var projection3 = new OfficeIMO.Data.ObjectFlattenerOptions();
                     {
@@ -131,7 +131,7 @@ namespace OfficeIMO.Tests
             using (var doc = ExcelDocument.Create(filePath))
             {
                 {
-                    var sheet5 = doc.AddWorksheet("People");
+                    var sheet5 = doc.AddSheet("People");
                     int nextRow6 = 1;
                     var table7 = sheet5.AddTable(data, new ExcelTableOptions { Name = null, Style = ExcelTableStyle.TableStyleMedium2, IncludeAutoFilter = true, Projection = null }, row: nextRow6);
                     nextRow6 = table7.AsRange().LastRow + 1;
@@ -165,7 +165,7 @@ namespace OfficeIMO.Tests
             using (var doc = ExcelDocument.Create(filePath))
             {
                 {
-                    var sheet8 = doc.AddWorksheet("People");
+                    var sheet8 = doc.AddSheet("People");
                     int nextRow9 = 1;
                     var projection10 = new OfficeIMO.Data.ObjectFlattenerOptions();
                     {
@@ -212,7 +212,7 @@ namespace OfficeIMO.Tests
             using (var doc = ExcelDocument.Create(filePath))
             {
                 {
-                    var sheet12 = doc.AddWorksheet("People");
+                    var sheet12 = doc.AddSheet("People");
                     int nextRow13 = 1;
                     var projection14 = new OfficeIMO.Data.ObjectFlattenerOptions();
                     {
@@ -263,7 +263,7 @@ namespace OfficeIMO.Tests
             using (var doc = ExcelDocument.Create(filePath))
             {
                 {
-                    var sheet16 = doc.AddWorksheet("Pascal");
+                    var sheet16 = doc.AddSheet("Pascal");
                     int nextRow17 = 1;
                     var projection18 = new OfficeIMO.Data.ObjectFlattenerOptions();
                     {
@@ -273,7 +273,7 @@ namespace OfficeIMO.Tests
 
                     var table19 = sheet16.AddTable(data, new ExcelTableOptions { Name = null, Style = ExcelTableStyle.TableStyleMedium2, IncludeAutoFilter = true, Projection = projection18 }, row: nextRow17);
                     nextRow17 = table19.AsRange().LastRow + 1;
-                    var sheet20 = doc.AddWorksheet("Title");
+                    var sheet20 = doc.AddSheet("Title");
                     int nextRow21 = 1;
                     var projection22 = new OfficeIMO.Data.ObjectFlattenerOptions();
                     {
@@ -329,7 +329,7 @@ namespace OfficeIMO.Tests
             using (var doc = ExcelDocument.Create(filePath))
             {
                 {
-                    var sheet24 = doc.AddWorksheet("People");
+                    var sheet24 = doc.AddSheet("People");
                     int nextRow25 = 1;
                     var projection26 = new OfficeIMO.Data.ObjectFlattenerOptions();
                     {
@@ -378,7 +378,7 @@ namespace OfficeIMO.Tests
             using (var doc = ExcelDocument.Create(filePath))
             {
                 {
-                    var sheet28 = doc.AddWorksheet("People");
+                    var sheet28 = doc.AddSheet("People");
                     int nextRow29 = 1;
                     var projection30 = new OfficeIMO.Data.ObjectFlattenerOptions();
                     {
@@ -427,7 +427,7 @@ namespace OfficeIMO.Tests
             using (var doc = ExcelDocument.Create(filePath))
             {
                 {
-                    var sheet32 = doc.AddWorksheet("People");
+                    var sheet32 = doc.AddSheet("People");
                     int nextRow33 = 1;
                     var projection34 = new OfficeIMO.Data.ObjectFlattenerOptions();
                     {

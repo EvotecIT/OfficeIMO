@@ -18,7 +18,7 @@ public partial class HtmlOfficeAdapters {
     [Fact]
     public void ExcelHtml_ExportsSemanticWorksheetRichContent() {
         using ExcelDocument workbook = ExcelDocument.Create(new MemoryStream());
-        ExcelSheet sheet = workbook.AddWorksheet("Sales");
+        ExcelSheet sheet = workbook.AddSheet("Sales");
         sheet.CellValue(1, 1, "Region");
         sheet.CellValue(1, 2, "Amount");
         sheet.CellValue(2, 1, "North");
@@ -58,7 +58,7 @@ public partial class HtmlOfficeAdapters {
     [Fact]
     public void ExcelHtml_ExportsVisualReviewFromSharedSvgRenderer() {
         using ExcelDocument workbook = ExcelDocument.Create(new MemoryStream());
-        ExcelSheet sheet = workbook.AddWorksheet("Visual");
+        ExcelSheet sheet = workbook.AddSheet("Visual");
         sheet.CellValue(1, 1, "Metric");
         sheet.CellValue(1, 2, "Score");
         sheet.CellValue(2, 1, "Ready");
@@ -86,11 +86,11 @@ public partial class HtmlOfficeAdapters {
     [Fact]
     public void ExcelHtml_VisualWorkbookNamespacesEmbeddedSvgIdsPerWorksheet() {
         using ExcelDocument workbook = ExcelDocument.Create(new MemoryStream());
-        ExcelSheet first = workbook.AddWorksheet("One");
+        ExcelSheet first = workbook.AddSheet("One");
         first.CellValue(1, 1, "Shared label");
         first.SetColumnWidth(1, ExcelColumnWidth.Characters(14));
 
-        ExcelSheet second = workbook.AddWorksheet("Two");
+        ExcelSheet second = workbook.AddSheet("Two");
         second.CellValue(1, 1, "Shared label");
         second.SetColumnWidth(1, ExcelColumnWidth.Characters(14));
 
@@ -109,7 +109,7 @@ public partial class HtmlOfficeAdapters {
     [Fact]
     public void ExcelHtml_CapabilityGalleryWritesSharedManifestForRichWorkbook() {
         using ExcelDocument workbook = ExcelDocument.Create(new MemoryStream());
-        ExcelSheet sheet = workbook.AddWorksheet("Gallery");
+        ExcelSheet sheet = workbook.AddSheet("Gallery");
         sheet.CellValue(1, 1, "Region");
         sheet.CellValue(1, 2, "Amount");
         sheet.CellValue(2, 1, "North");
@@ -178,7 +178,7 @@ public partial class HtmlOfficeAdapters {
     [Fact]
     public void ExcelHtml_LoadsSemanticRichWorkbookBackToNativeWorkbook() {
         using ExcelDocument workbook = ExcelDocument.Create(new MemoryStream());
-        ExcelSheet sheet = workbook.AddWorksheet("Roundtrip");
+        ExcelSheet sheet = workbook.AddSheet("Roundtrip");
         sheet.CellValue(1, 1, "Region");
         sheet.CellValue(1, 2, "Amount");
         sheet.CellValue(2, 1, "North");
@@ -250,7 +250,7 @@ public partial class HtmlOfficeAdapters {
     [Fact]
     public void ExcelHtml_RoundTripsImageTransformsAbsoluteAnchorAndDrawingOrder() {
         using ExcelDocument workbook = ExcelDocument.Create(new MemoryStream());
-        ExcelSheet sheet = workbook.AddWorksheet("Drawings");
+        ExcelSheet sheet = workbook.AddSheet("Drawings");
         sheet.CellValue(1, 1, "Category");
         sheet.CellValue(1, 2, "Value");
         sheet.CellValue(2, 1, "A");
@@ -298,7 +298,7 @@ public partial class HtmlOfficeAdapters {
     [Fact]
     public void ExcelHtml_RejectsCropPairsThatConsumeTheWholeImage() {
         using ExcelDocument workbook = ExcelDocument.Create(new MemoryStream());
-        ExcelSheet sheet = workbook.AddWorksheet("Drawings");
+        ExcelSheet sheet = workbook.AddSheet("Drawings");
         sheet.CellValue(1, 1, "Seed");
         sheet.AddImageAbsolute(OfficeIMO.OfficeLength.Pixels(10), OfficeIMO.OfficeLength.Pixels(10), OnePixelPng, width: OfficeIMO.OfficeLength.Pixels(40), height: OfficeIMO.OfficeLength.Pixels(30))
             .SetCropRatio(0.1D, 0D, 0.1D, 0D);
@@ -323,7 +323,7 @@ public partial class HtmlOfficeAdapters {
     [Fact]
     public void ExcelHtml_RoundTripsTwoCellImageAnchors() {
         using ExcelDocument workbook = ExcelDocument.Create(new MemoryStream());
-        ExcelSheet sheet = workbook.AddWorksheet("Anchors");
+        ExcelSheet sheet = workbook.AddSheet("Anchors");
         sheet.CellValue(1, 1, "Seed");
         ExcelImage image = sheet.AddImageToRange("B2:D5", OnePixelPng, "image/png", offsetX: OfficeIMO.OfficeLength.Pixels(7), offsetY: OfficeIMO.OfficeLength.Pixels(8), endOffsetX: OfficeIMO.OfficeLength.Pixels(9), endOffsetY: OfficeIMO.OfficeLength.Pixels(10), name: "Range image", altText: "Two-cell anchor");
         image.SetRotation(12.5D).SetFlip(horizontal: true, vertical: false);
@@ -360,7 +360,7 @@ public partial class HtmlOfficeAdapters {
     [Fact]
     public void ExcelHtml_RoundTripsSameCellTwoCellImageMarkers() {
         using ExcelDocument workbook = ExcelDocument.Create(new MemoryStream());
-        ExcelSheet sheet = workbook.AddWorksheet("SameCellAnchor");
+        ExcelSheet sheet = workbook.AddSheet("SameCellAnchor");
         sheet.CellValue(1, 1, "Seed");
         sheet.AddImageToRange("B2:B2", OnePixelPng, "image/png", name: "Same-cell image", altText: "Same-cell anchor")
             .SetTwoCellEndingMarker(2, 2, OfficeIMO.OfficeLength.Pixels(3), OfficeIMO.OfficeLength.Pixels(4));
@@ -388,7 +388,7 @@ public partial class HtmlOfficeAdapters {
     [Fact]
     public void ExcelHtml_LoadHonorsSemanticRangeOrigin() {
         using ExcelDocument workbook = ExcelDocument.Create(new MemoryStream());
-        ExcelSheet sheet = workbook.AddWorksheet("Offset");
+        ExcelSheet sheet = workbook.AddSheet("Offset");
         sheet.CellValue(2, 2, "Region");
         sheet.CellValue(2, 3, "Amount");
         sheet.CellValue(3, 2, "North");
@@ -414,7 +414,7 @@ public partial class HtmlOfficeAdapters {
     [Fact]
     public void ExcelHtml_ExportsEmptySheetWithoutCreatingPlaceholderCell() {
         using ExcelDocument workbook = ExcelDocument.Create(new MemoryStream());
-        workbook.AddWorksheet("Empty");
+        workbook.AddSheet("Empty");
 
         string html = workbook.ToHtml(new ExcelHtmlSaveOptions {
             Profile = OfficeHtmlConversionProfile.ExcelSemanticTables,
@@ -436,7 +436,7 @@ public partial class HtmlOfficeAdapters {
     [Fact]
     public void ExcelHtml_ReportsTruncationWhenRetainedWindowContainsNoUsedCells() {
         using ExcelDocument workbook = ExcelDocument.Create(new MemoryStream());
-        ExcelSheet sheet = workbook.AddWorksheet("Sparse");
+        ExcelSheet sheet = workbook.AddSheet("Sparse");
         sheet.CellValue(1, ExcelA1.MaxColumns, "Far column");
         sheet.CellValue(ExcelA1.MaxRows, 1, "Far row");
 
@@ -455,9 +455,9 @@ public partial class HtmlOfficeAdapters {
     [Fact]
     public void ExcelHtml_RoundTripsHiddenWorksheetVisibility() {
         using ExcelDocument workbook = ExcelDocument.Create(new MemoryStream());
-        ExcelSheet visible = workbook.AddWorksheet("Visible");
-        ExcelSheet hidden = workbook.AddWorksheet("Hidden");
-        ExcelSheet veryHidden = workbook.AddWorksheet("VeryHidden");
+        ExcelSheet visible = workbook.AddSheet("Visible");
+        ExcelSheet hidden = workbook.AddSheet("Hidden");
+        ExcelSheet veryHidden = workbook.AddSheet("VeryHidden");
         visible.CellValue(1, 1, "Visible");
         hidden.CellValue(1, 1, "Hidden");
         veryHidden.CellValue(1, 1, "Very hidden");
@@ -487,7 +487,7 @@ public partial class HtmlOfficeAdapters {
     [Fact]
     public void ExcelHtml_DoesNotImportEmptyCellTextPlaceholdersAsValues() {
         using ExcelDocument workbook = ExcelDocument.Create(new MemoryStream());
-        ExcelSheet sheet = workbook.AddWorksheet("Placeholders");
+        ExcelSheet sheet = workbook.AddSheet("Placeholders");
         sheet.CellValue(1, 1, "Left");
         sheet.CellValue(1, 3, "Right");
 
@@ -584,7 +584,7 @@ public partial class HtmlOfficeAdapters {
     [Fact]
     public void ExcelHtml_RoundTripsSemanticCellValueKinds() {
         using ExcelDocument workbook = ExcelDocument.Create(new MemoryStream());
-        ExcelSheet sheet = workbook.AddWorksheet("Typed");
+        ExcelSheet sheet = workbook.AddSheet("Typed");
         sheet.CellValue(1, 1, "Label");
         sheet.CellValue(1, 2, "Value");
         sheet.CellValue(2, 1, "Numeric text");
@@ -618,7 +618,7 @@ public partial class HtmlOfficeAdapters {
     [Fact]
     public void ExcelHtml_RoundTripsSemanticErrorCellValueKind() {
         using ExcelDocument workbook = ExcelDocument.Create(new MemoryStream());
-        ExcelSheet sheet = workbook.AddWorksheet("Errors");
+        ExcelSheet sheet = workbook.AddSheet("Errors");
         sheet.CellValue(1, 1, "Error");
         sheet.CellError(2, 1, "#DIV/0!");
 
@@ -640,7 +640,7 @@ public partial class HtmlOfficeAdapters {
     [Fact]
     public void ExcelHtml_MaxRowsPerSheetFiltersFeatureInventoryToExportedRows() {
         using ExcelDocument workbook = ExcelDocument.Create(new MemoryStream());
-        ExcelSheet sheet = workbook.AddWorksheet("Limited");
+        ExcelSheet sheet = workbook.AddSheet("Limited");
         sheet.CellValue(1, 1, "Name");
         sheet.CellValue(1, 2, "Amount");
         sheet.CellValue(2, 1, "Visible");
@@ -728,7 +728,7 @@ public partial class HtmlOfficeAdapters {
     [Fact]
     public void ExcelHtml_RoundTripsScatterChartXValuesInSemanticChartData() {
         using ExcelDocument workbook = ExcelDocument.Create(new MemoryStream());
-        ExcelSheet sheet = workbook.AddWorksheet("Scatter");
+        ExcelSheet sheet = workbook.AddSheet("Scatter");
         var data = new ExcelChartData(
             new[] { "1.5", "2.5" },
             new[] { new ExcelChartSeries("Points", new[] { 10D, 20D }, new[] { 1.5D, 2.5D }, OfficeChartType.Scatter) });
@@ -753,7 +753,7 @@ public partial class HtmlOfficeAdapters {
     [Fact]
     public void ExcelHtml_RoundTripsVariableLengthScatterSeriesInSemanticChartData() {
         using ExcelDocument workbook = ExcelDocument.Create(new MemoryStream());
-        ExcelSheet sheet = workbook.AddWorksheet("Scatter");
+        ExcelSheet sheet = workbook.AddSheet("Scatter");
         var data = new ExcelChartData(
             new[] { "1", "2", "3" },
             new[] {
@@ -781,7 +781,7 @@ public partial class HtmlOfficeAdapters {
     [Fact]
     public void ExcelChart_ScatterSnapshotPrefersLiveRangesOverCachedValues() {
         using ExcelDocument workbook = ExcelDocument.Create(new MemoryStream());
-        ExcelSheet sheet = workbook.AddWorksheet("ScatterLive");
+        ExcelSheet sheet = workbook.AddSheet("ScatterLive");
         var data = new ExcelChartData(
             new[] { "1", "2" },
             new[] { new ExcelChartSeries("Points", new[] { 10D, 20D }, new[] { 1D, 2D }, OfficeChartType.Scatter) });
@@ -803,7 +803,7 @@ public partial class HtmlOfficeAdapters {
     [Fact]
     public void ExcelHtml_RoundTripsComboChartSeriesTypesInSemanticChartData() {
         using ExcelDocument workbook = ExcelDocument.Create(new MemoryStream());
-        ExcelSheet sheet = workbook.AddWorksheet("Combo");
+        ExcelSheet sheet = workbook.AddSheet("Combo");
         var data = new ExcelChartData(
             new[] { "Q1", "Q2" },
             new[] {
@@ -832,7 +832,7 @@ public partial class HtmlOfficeAdapters {
     [Fact]
     public void ExcelHtml_OmitsMixedRadialChartBeforeCreatingNativeArtifact() {
         using ExcelDocument workbook = ExcelDocument.Create(new MemoryStream());
-        ExcelSheet sheet = workbook.AddWorksheet("Mixed");
+        ExcelSheet sheet = workbook.AddSheet("Mixed");
         sheet.AddChart(new ExcelChartData(new[] { "A", "B" }, new[] {
             new ExcelChartSeries("Slice", new[] { 2D, 3D }, OfficeChartType.Pie)
         }), row: 1, column: 1, type: OfficeChartType.Pie, title: "Mixed chart");
@@ -854,7 +854,7 @@ public partial class HtmlOfficeAdapters {
     [Fact]
     public void ExcelHtml_OmitsRadialSeriesUnderNonRadialChartBeforeCreatingNativeArtifact() {
         using ExcelDocument workbook = ExcelDocument.Create(new MemoryStream());
-        ExcelSheet sheet = workbook.AddWorksheet("Mixed");
+        ExcelSheet sheet = workbook.AddSheet("Mixed");
         sheet.AddChart(new ExcelChartData(new[] { "A", "B" }, new[] {
             new ExcelChartSeries("Slice", new[] { 2D, 3D }, OfficeChartType.Line)
         }), row: 1, column: 1, type: OfficeChartType.Line, title: "Mixed chart");

@@ -82,8 +82,8 @@ internal static class ExcelRealWorldProfileRunner {
         }
 
         stageWatch.Restart();
-        var sheet = document.AddWorksheet("Data");
-        AddStage(totals, "AddWorksheet", stageWatch.Elapsed.TotalMilliseconds);
+        var sheet = document.AddSheet("Data");
+        AddStage(totals, "AddSheet", stageWatch.Elapsed.TotalMilliseconds);
 
         stageWatch.Restart();
         ExcelBenchmarkScenarioFactory.InsertOfficeImoObjects(sheet, rows);

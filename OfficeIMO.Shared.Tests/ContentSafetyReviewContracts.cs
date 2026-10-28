@@ -186,7 +186,7 @@ public sealed class ContentSafetyReviewContracts {
     private static byte[] CreateDrawingWorkbook() {
         byte[] bytes;
         using (ExcelDocument document = ExcelDocument.Create()) {
-            document.AddWorksheet("Drawing");
+            document.AddSheet("Drawing");
             bytes = document.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xlsx });
         }
         using var stream = new MemoryStream();

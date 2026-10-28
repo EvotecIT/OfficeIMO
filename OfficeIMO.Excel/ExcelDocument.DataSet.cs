@@ -45,7 +45,7 @@ namespace OfficeIMO.Excel {
                 string requestedSheetName = string.IsNullOrWhiteSpace(table.TableName)
                     ? "Table" + tableIndex.ToString(System.Globalization.CultureInfo.InvariantCulture)
                     : table.TableName;
-                ExcelSheet sheet = AddWorksheet(requestedSheetName, ExcelSheetNameValidationMode.Sanitize);
+                ExcelSheet sheet = AddSheet(requestedSheetName, ExcelSheetNameValidationMode.Sanitize);
                 string? requestedTableName = createTables ? requestedSheetName : null;
                 string? actualTableName = null;
                 string range;

@@ -11,7 +11,7 @@ public partial class Excel {
     [Fact]
     public void Batch19_MalformedStructuredRangeDoesNotResolveMissingEndpoint() {
         using ExcelDocument document = ExcelDocument.Create();
-        ExcelSheet sheet = document.AddWorksheet("Malformed");
+        ExcelSheet sheet = document.AddSheet("Malformed");
         sheet.CellValue(1, 1, "A");
         sheet.CellValue(1, 2, "B");
         sheet.CellValue(2, 1, 1D);
@@ -29,7 +29,7 @@ public partial class Excel {
     [Fact]
     public void Batch19_LegacyXlsSaveCoalescesDuplicateCellCoordinatesLastWins() {
         using ExcelDocument document = ExcelDocument.Create();
-        ExcelSheet sheet = document.AddWorksheet("Duplicates");
+        ExcelSheet sheet = document.AddSheet("Duplicates");
         SheetData data = sheet.WorksheetPart.Worksheet.GetFirstChild<SheetData>()!;
         data.RemoveAllChildren();
         data.Append(new Row(
@@ -48,7 +48,7 @@ public partial class Excel {
     [Fact]
     public void Batch19_LegacyXlsSaveRemovesEarlierDuplicateWhenLastCellIsBlank() {
         using ExcelDocument document = ExcelDocument.Create();
-        ExcelSheet sheet = document.AddWorksheet("Duplicates");
+        ExcelSheet sheet = document.AddSheet("Duplicates");
         SheetData data = sheet.WorksheetPart.Worksheet.GetFirstChild<SheetData>()!;
         data.RemoveAllChildren();
         data.Append(new Row(

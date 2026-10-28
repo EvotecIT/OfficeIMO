@@ -267,7 +267,7 @@ public sealed partial class OfficeVisualIntegrationTests {
             }
 
             using (ExcelDocument workbook = ExcelDocument.Create(excelPath)) {
-                ExcelSheet sheet = workbook.AddWorksheet("Dashboard");
+                ExcelSheet sheet = workbook.AddSheet("Dashboard");
                 sheet.AddVisualArtifact(2, 2, visual);
                 workbook.Save();
             }
@@ -397,7 +397,7 @@ public sealed partial class OfficeVisualIntegrationTests {
         string path = Path.Combine(Path.GetTempPath(), "OfficeIMO-ChartForgeX-excel-placement-" + Guid.NewGuid().ToString("N") + ".xlsx");
         try {
             using (var workbook = ExcelDocument.Create(path)) {
-                ExcelSheet sheet = workbook.AddWorksheet("Dashboard");
+                ExcelSheet sheet = workbook.AddSheet("Dashboard");
                 ExcelImage first = sheet.AddVisualArtifact(2, 2, visual);
                 ExcelImage second = sheet.AddVisualArtifact(20, 2, visual);
 

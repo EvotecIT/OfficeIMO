@@ -37,7 +37,7 @@ public sealed class HtmlExcelNamedTableLossTests {
     public void RemovedWorksheetExportCannotInspectReplacementTable(ExcelHtmlExportProfile profile) {
         using var workbook = ExcelDocument.Create();
         var original = AddTableSheet(workbook, "Orders", "OrderItems");
-        workbook.AddWorksheet("Plain");
+        workbook.AddSheet("Plain");
         workbook.RemoveWorksheet("Orders");
         AddTableSheet(workbook, "Orders", "ReplacementItems");
         Assert.Throws<InvalidOperationException>(() => original.ToHtmlResult(new ExcelHtmlSaveOptions { ExportProfile = profile }));
@@ -59,7 +59,7 @@ public sealed class HtmlExcelNamedTableLossTests {
         HtmlTextConversionResult result;
         var options = new ExcelHtmlSaveOptions { ExportProfile = profile };
         if (worksheetOnly) {
-            var sheet = workbook.AddWorksheet("Orders");
+            var sheet = workbook.AddSheet("Orders");
             sheet.InsertDataTableAsTable(table, tableName: "OrderItems");
             result = sheet.ToHtmlResult(options);
         } else {
@@ -80,7 +80,7 @@ public sealed class HtmlExcelNamedTableLossTests {
         using var workbook = ExcelDocument.Create();
         var orders = AddTableSheet(workbook, "Orders", "OrderItems");
         orders.SetHidden(true);
-        var plain = workbook.AddWorksheet("Plain");
+        var plain = workbook.AddSheet("Plain");
         plain.CellValue(1, 1, "Selected plain value");
         var result = workbook.ToHtmlResult(new ExcelHtmlSaveOptions {
             ExportProfile = ExcelHtmlExportProfile.VisualReview,
@@ -122,7 +122,7 @@ public sealed class HtmlExcelNamedTableLossTests {
     public void UnrelatedPlainWorksheetHasNoNamedTableOmission() {
         using var workbook = ExcelDocument.Create();
         AddTableSheet(workbook, "Orders", "OrderItems");
-        var plain = workbook.AddWorksheet("Plain");
+        var plain = workbook.AddSheet("Plain");
         plain.CellValue(1, 1, "Preserved plain value");
         var result = plain.ToHtmlResult();
         Assert.False(result.Report.HasLoss);
@@ -148,7 +148,7 @@ public sealed class HtmlExcelNamedTableLossTests {
     }
 
     private static ExcelSheet AddTableSheet(ExcelDocument workbook, string sheetName, string tableName) {
-        var sheet = workbook.AddWorksheet(sheetName);
+        var sheet = workbook.AddSheet(sheetName);
         sheet.CellValue(1, 1, "Item");
         sheet.CellValue(1, 2, "Count");
         sheet.CellValue(2, 1, "Alpha");

@@ -63,7 +63,7 @@ namespace OfficeIMO.Tests
             var expected = oracle.GetSheet("Grouped").ReadRange("A4:B11");
             using (var document = ExcelDocument.Create(output))
             {
-                var sheet = document.AddWorksheet("Source");
+                var sheet = document.AddSheet("Source");
                 for (int row = 0; row < 12; row++)
                     for (int column = 0; column < 2; column++)
                         sheet.CellValue(row + 1, column + 1, numbersStoredAsText && row > 0 && column == 0 ? Convert.ToString(sourceValues[row, column], CultureInfo.InvariantCulture) : sourceValues[row, column]);
@@ -122,7 +122,7 @@ namespace OfficeIMO.Tests
             var sourceValues = oracle.GetSheet("Source").ReadRange("A1:B12");
             using (var document = ExcelDocument.Create(output))
             {
-                var sheet = document.AddWorksheet("Source");
+                var sheet = document.AddSheet("Source");
                 for (int row = 0; row < 12; row++)
                     for (int column = 0; column < 2; column++)
                         sheet.CellValue(row + 1, column + 1, sourceValues[row, column]);
@@ -162,7 +162,7 @@ namespace OfficeIMO.Tests
             string output = Path.Combine(_directoryWithFiles, "DecimalGroup.Tenths.xlsx");
             using (var document = ExcelDocument.Create(output))
             {
-                var sheet = document.AddWorksheet("Source");
+                var sheet = document.AddSheet("Source");
                 sheet.CellValue(1, 1, "Quantity");
                 sheet.CellValue(1, 2, "Sales");
                 for (int index = 1; index <= 4; index++)
@@ -206,7 +206,7 @@ namespace OfficeIMO.Tests
             string output = Path.Combine(_directoryWithFiles, "NumericGroup.LargeIntegers.xlsx");
             using (var document = ExcelDocument.Create(output))
             {
-                var sheet = document.AddWorksheet("Source");
+                var sheet = document.AddSheet("Source");
                 sheet.CellValue(1, 1, "Quantity");
                 sheet.CellValue(1, 2, "Sales");
                 sheet.CellValue(2, 1, start);

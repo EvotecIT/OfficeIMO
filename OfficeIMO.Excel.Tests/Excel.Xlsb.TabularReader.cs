@@ -784,7 +784,7 @@ public partial class Excel {
         string path = Path.Combine(Path.GetTempPath(), $"OfficeIMO.Excel.ReaderDispose.{Guid.NewGuid():N}.xlsx");
         try {
             using (var document = ExcelDocument.Create(path)) {
-                document.AddWorksheet("Data").CellValue(1, 1, "Value");
+                document.AddSheet("Data").CellValue(1, 1, "Value");
                 document.Save();
             }
 

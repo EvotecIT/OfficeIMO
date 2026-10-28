@@ -13,7 +13,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "Reader.ExcelNumericArtifacts.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorksheet("Data");
+                var sheet = document.AddSheet("Data");
                 sheet.CellValue(1, 1, "Amount");
                 sheet.CellValue(1, 2, "TextAmount");
                 sheet.CellValue(2, 1, 1d);

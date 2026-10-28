@@ -12,7 +12,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_StructuralRows_PreservesBackslashNamesInSharedFormulas() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             SheetData sheetData = sheet.WorksheetPart.Worksheet.GetFirstChild<SheetData>()!;
             var ownerRow = new Row { RowIndex = 2U };
             ownerRow.Append(new Cell {
@@ -44,7 +44,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_StructuralRows_InvalidatesEveryWrapperForEditedWorksheet() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet retained = document.AddWorksheet("Data");
+            ExcelSheet retained = document.AddSheet("Data");
             retained.CellAt(5, 1).SetValue("Five");
             retained.CellAt(6, 1).SetValue("Six");
             Assert.Equal("Five", retained.CellAt(5, 1).GetValue<string>());
@@ -62,7 +62,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_StructuralRows_RenumbersSelectionActiveCellId() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             var selection = new Selection {
                 ActiveCell = "B5",
                 ActiveCellId = 1U,
@@ -85,7 +85,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_StructuralRows_InvalidatesInvariantDynamicNameChartCaches() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.CellAt(1, 1).SetValue("Category");
             sheet.CellAt(1, 2).SetValue("Value");
             sheet.CellAt(2, 1).SetValue("One");

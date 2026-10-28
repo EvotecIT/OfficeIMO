@@ -101,7 +101,7 @@ namespace OfficeIMO.Tests
             string output = Path.Combine(_directoryWithFiles, $"Value.multifield-{kind}.Authored.xlsx");
             using (var document = ExcelDocument.Create())
             {
-                var source = document.AddWorksheet("Source");
+                var source = document.AddSheet("Source");
                 PopulateMultiFieldPivotSource(source);
                 ExcelPivotFilter filter = kind switch
                 {
@@ -204,7 +204,7 @@ namespace OfficeIMO.Tests
             string authoredOutput = Path.Combine(_directoryWithFiles, $"Column.{kind}.Authored.xlsx");
             using (var document = ExcelDocument.Create())
             {
-                var source = document.AddWorksheet("Source");
+                var source = document.AddSheet("Source");
                 PopulateMultiFieldPivotSource(source);
                 var filter = kind switch
                 {
@@ -304,7 +304,7 @@ namespace OfficeIMO.Tests
             string authoredOutput = Path.Combine(_directoryWithFiles, $"Mixed.{kind}.Authored.xlsx");
             using (var document = ExcelDocument.Create())
             {
-                var source = document.AddWorksheet("Source");
+                var source = document.AddSheet("Source");
                 PopulateMultiFieldPivotSource(source);
                 var filter = kind switch
                 {
@@ -384,7 +384,7 @@ namespace OfficeIMO.Tests
         public void Test_PivotMultiFieldValue_TemplateFreeTiedSumFailsBeforeWritingView()
         {
             using var document = ExcelDocument.Create();
-            var source = document.AddWorksheet("Source");
+            var source = document.AddSheet("Source");
             PopulateMultiFieldPivotSource(source);
             {
                 var pivotOptions4 = new ExcelPivotTableOptions();
@@ -455,7 +455,7 @@ namespace OfficeIMO.Tests
             string authoredOutput = Path.Combine(_directoryWithFiles, "Authored." + file);
             using (var document = ExcelDocument.Create())
             {
-                var source = document.AddWorksheet("Source");
+                var source = document.AddSheet("Source");
                 PopulateWidePivotSource(source, kind);
                 var filter = kind switch
                 {

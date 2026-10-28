@@ -12,7 +12,7 @@ public partial class Excel {
     [InlineData(2)]
     public void SaveAsPdf_FutureTitleColumnsRetainBodyImagesAndCharts(int anchorColumn) {
         using ExcelDocument document = ExcelDocument.Create();
-        ExcelSheet sheet = document.AddWorksheet("Report");
+        ExcelSheet sheet = document.AddSheet("Report");
         for (int column = 1; column <= 6; column++) {
             sheet.Cell(1, column, "Column" + column);
             sheet.SetColumnWidth(column, ExcelColumnWidth.Characters(10D));
@@ -43,7 +43,7 @@ public partial class Excel {
     [Fact]
     public void SaveAsPdf_TerminalMediaUsesDisplayedColumnsAndRealTrailingGap() {
         using ExcelDocument document = ExcelDocument.Create();
-        ExcelSheet sheet = document.AddWorksheet("Report");
+        ExcelSheet sheet = document.AddSheet("Report");
         for (int column = 1; column <= 15; column++) sheet.SetColumnWidth(column, ExcelColumnWidth.Characters(10D));
         sheet.Cell(1, 1, "Title"); sheet.Cell(1, 12, "FinalBody");
         // M lies directly after the body; O additionally includes the real empty N column.

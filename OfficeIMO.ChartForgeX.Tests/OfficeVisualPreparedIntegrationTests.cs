@@ -40,7 +40,7 @@ namespace OfficeIMO.ChartForgeX.Tests
                     document.Save();
                 }
                 using (var document = ExcelDocument.Create(excelPath)) {
-                    document.AddWorksheet("Load").AddVisualArtifact(2, 3, conversion);
+                    document.AddSheet("Load").AddVisualArtifact(2, 3, conversion);
                     document.Save();
                 }
                 using (var document = PowerPointDocument.Create(presentationPath)) {

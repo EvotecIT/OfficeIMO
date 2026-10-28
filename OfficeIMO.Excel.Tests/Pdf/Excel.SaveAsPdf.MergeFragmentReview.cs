@@ -12,7 +12,7 @@ public partial class Excel {
     [InlineData(ExcelPdfWorksheetLayoutMode.FlowTable)]
     public void SaveAsPdf_MergeFragmentsAcceptAuthoredFractionalRowHeights(ExcelPdfWorksheetLayoutMode layout) {
         using ExcelDocument document = ExcelDocument.Create();
-        ExcelSheet sheet = document.AddWorksheet("Report");
+        ExcelSheet sheet = document.AddSheet("Report");
         sheet.Cell(1, 1, "Start"); sheet.Cell(2, 1, "Merged"); sheet.Cell(4, 4, "End");
         sheet.MergeRange("A2:A3"); sheet.SetRowHeight(2, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(15.1))); sheet.SetRowHeight(3, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(15.2)));
         document.SetPrintArea(sheet, "A1:D4"); sheet.AddManualRowPageBreak(2);
@@ -32,7 +32,7 @@ public partial class Excel {
     [InlineData(ExcelPdfWorksheetLayoutMode.FlowTable, true)]
     public void SaveAsPdf_ImageBearingMergeRetainsItsImageAcrossPageBreaks(ExcelPdfWorksheetLayoutMode layout, bool horizontal) {
         using ExcelDocument document = ExcelDocument.Create();
-        ExcelSheet sheet = document.AddWorksheet("Report");
+        ExcelSheet sheet = document.AddSheet("Report");
         for (int row = 1; row <= 4; row++) sheet.SetRowHeight(row, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(36)));
         for (int column = 1; column <= 4; column++) sheet.SetColumnWidth(column, ExcelColumnWidth.Characters(15));
         sheet.Cell(1, 1, "Start"); sheet.Cell(2, 1, "Merged"); sheet.Cell(4, 4, "End");

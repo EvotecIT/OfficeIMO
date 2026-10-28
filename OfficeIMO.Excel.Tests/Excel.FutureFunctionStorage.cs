@@ -58,7 +58,7 @@ public sealed class ExcelFutureFunctionStorageTests {
     [InlineData("array")]
     public void Future_function_storage_preserves_calls_literals_references_and_saved_calculation(string route) {
         using var document = ExcelDocument.Create();
-        ExcelSheet sheet = document.AddWorksheet("O'Brien, IFNA(MINIFS(");
+        ExcelSheet sheet = document.AddSheet("O'Brien, IFNA(MINIFS(");
         var cases = new[] {
             ("IFNA(NA(),99)", "_xlfn.IFNA(NA(),99)", "99"),
             ("IFNA(1/0,99)", "_xlfn.IFNA(1/0,99)", "#DIV/0!"),
@@ -174,7 +174,7 @@ public sealed class ExcelFutureFunctionStorageTests {
             ("CONCAT(\"IFS(CONCAT(\",'O''Brien, IFS(CONCAT('!A1)", "_xlfn.CONCAT(\"IFS(CONCAT(\",'O''Brien, IFS(CONCAT('!A1)")
         };
         using var document = ExcelDocument.Create();
-        ExcelSheet sheet = document.AddWorksheet("O'Brien, IFS(CONCAT(");
+        ExcelSheet sheet = document.AddSheet("O'Brien, IFS(CONCAT(");
         const int firstFormulaRow = 30;
         for (int row = 1; row < firstFormulaRow + cases.Length; row++) {
             for (int column = 1; column <= 6; column++) {
@@ -223,7 +223,7 @@ public sealed class ExcelFutureFunctionStorageTests {
         string prefix = function == "IFNA" ? "IFNA(NA(),\"" : function + "(B1,B1,\"";
         string expression = prefix + new string('x', 8190 - prefix.Length - 2) + "\")";
         using var document = ExcelDocument.Create();
-        ExcelSheet sheet = document.AddWorksheet("Report");
+        ExcelSheet sheet = document.AddSheet("Report");
         sheet.CellValue(1, 1, 17d); sheet.CellFormula(1, 1, "42");
         sheet.CellValue(2, 1, "keep");
         if (array) Assert.Throws<ArgumentException>(() => sheet.SetArrayFormula("A1:A2", expression));
@@ -242,7 +242,7 @@ public sealed class ExcelFutureFunctionStorageTests {
         string atLimit = prefix + new string('x', 8180 - prefix.Length - 2) + "\")";
         string oversized = prefix + new string('x', 8181 - prefix.Length - 2) + "\")";
         using var document = ExcelDocument.Create();
-        ExcelSheet sheet = document.AddWorksheet("Report");
+        ExcelSheet sheet = document.AddSheet("Report");
         sheet.CellValue(1, 1, 17d); sheet.CellFormula(1, 1, "42");
         sheet.CellValue(2, 1, "keep");
         Assert.Throws<ArgumentException>(() => Set(oversized));
@@ -272,7 +272,7 @@ public sealed class ExcelFutureFunctionStorageTests {
         const string stored = "_xlfn.IFNA(_xlfn.SEQUENCE (1),_xlfn._xlws.SORT(_xlfn.UNIQUE(_xlfn._xlws.FILTER(A1:A2,A1:A2>0))))"
             + "&\"SEQUENCE( SORT( IFNA(\"&Report!SEQUENCE(1)&'Report'!IFNA(NA(),99)&Table1[SEQUENCE(]";
         using var document = ExcelDocument.Create();
-        ExcelSheet sheet = document.AddWorksheet("Report");
+        ExcelSheet sheet = document.AddSheet("Report");
         sheet.SetArrayFormula("D1:D1", formula);
         Assert.Equal(stored, sheet.GetFormulaText(1, 4));
         using var output = new MemoryStream(); document.Save(output); output.Position = 0;

@@ -22,8 +22,8 @@ namespace OfficeIMO.Excel {
         /// </summary>
         /// <param name="worksheetName">Worksheet name.</param>
         /// <returns>Created <see cref="ExcelSheet"/> instance.</returns>
-        public ExcelSheet AddWorksheet(string worksheetName = "") {
-            return AddWorksheet(worksheetName, ExcelSheetNameValidationMode.Sanitize);
+        public ExcelSheet AddSheet(string worksheetName = "") {
+            return AddSheet(worksheetName, ExcelSheetNameValidationMode.Sanitize);
         }
 
         /// <summary>
@@ -32,8 +32,8 @@ namespace OfficeIMO.Excel {
         /// <param name="worksheetName">Requested worksheet name.</param>
         /// <param name="validationMode">How to validate the sheet name: None (no checks), Sanitize (coerce), or Strict (throw on invalid).</param>
         /// <returns>Created <see cref="ExcelSheet"/> instance.</returns>
-        public ExcelSheet AddWorksheet(string worksheetName, ExcelSheetNameValidationMode validationMode) =>
-            AddWorksheet(worksheetName, validationMode, CancellationToken.None);
+        public ExcelSheet AddSheet(string worksheetName, ExcelSheetNameValidationMode validationMode) =>
+            AddSheet(worksheetName, validationMode, CancellationToken.None);
 
         /// <summary>
         /// Adds a worksheet, observing cancellation while earlier deferred worksheet data is materialized.
@@ -43,7 +43,7 @@ namespace OfficeIMO.Excel {
         /// <param name="cancellationToken">Cancels deferred materialization and worksheet creation.</param>
         /// <returns>The created worksheet.</returns>
         /// <exception cref="OperationCanceledException">The operation was canceled.</exception>
-        public ExcelSheet AddWorksheet(string worksheetName, ExcelSheetNameValidationMode validationMode, CancellationToken cancellationToken) {
+        public ExcelSheet AddSheet(string worksheetName, ExcelSheetNameValidationMode validationMode, CancellationToken cancellationToken) {
             cancellationToken.ThrowIfCancellationRequested();
             if (!_materializingDeferredDataSetImport) {
                 MaterializeDeferredDataSetImport(cancellationToken);

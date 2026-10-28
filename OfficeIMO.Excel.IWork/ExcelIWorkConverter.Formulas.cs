@@ -13,7 +13,7 @@ public static partial class ExcelIWorkConverter {
             IWorkNumbersSheet sourceSheet = projection.Sheets[sheetIndex];
             cancellationToken.ThrowIfCancellationRequested();
             if (sourceSheet.TextBoxes.Count > 0 || sourceSheet.Tables.Count == 0) {
-                ExcelSheet text = document.AddWorksheet(sourceSheet.Name, nameMode);
+                ExcelSheet text = document.AddSheet(sourceSheet.Name, nameMode);
                 mappings.Add(new NumbersWorksheetMapping(sheetIndex + 1, sourceSheet.Name, null, null, sourceSheet.Name, text.Name));
                 for (int index = 0; index < sourceSheet.TextBoxes.Count; index++) {
                     cancellationToken.ThrowIfCancellationRequested();
@@ -25,7 +25,7 @@ public static partial class ExcelIWorkConverter {
                 IWorkTable table = sourceSheet.Tables[tableIndex];
                 string requested = sourceSheet.Tables.Count == 1 && sourceSheet.TextBoxes.Count == 0
                     ? sourceSheet.Name : sourceSheet.Name + " - " + (table.Name.Length > 0 ? table.Name : $"Table {tableIndex + 1}");
-                ExcelSheet sheet = document.AddWorksheet(requested, nameMode);
+                ExcelSheet sheet = document.AddSheet(requested, nameMode);
                 mappings.Add(new NumbersWorksheetMapping(sheetIndex + 1, sourceSheet.Name,
                     tableIndex + 1, table.Name, requested, sheet.Name));
                 tables.Add(table, sheet);

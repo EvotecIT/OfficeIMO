@@ -10,7 +10,7 @@ public class ExcelTemporalNumberFormatTests {
     [InlineData("hh:mm:ss.0000000", "13:04:09.9496000")]
     public void Pdf_retains_explicit_ISO_date_cell_ticks(string format, string expected) {
         using var workbook = ExcelDocument.Create();
-        var sheet = workbook.AddWorksheet("ISO date");
+        var sheet = workbook.AddSheet("ISO date");
         sheet.CellAt(1, 1).SetValue(0d).SetNumberFormat(format);
         sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(35));
         using var saved = new MemoryStream();
@@ -43,7 +43,7 @@ public class ExcelTemporalNumberFormatTests {
         AssertSavedDisplay(serial, format, expected, system);
         using var workbook = ExcelDocument.Create();
         workbook.DateSystem = system;
-        var sheet = workbook.AddWorksheet("Precision");
+        var sheet = workbook.AddSheet("Precision");
         sheet.CellAt(1, 1).SetValue(serial).SetNumberFormat(format);
         sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(35));
         foreach (var layout in new[] { ExcelPdfWorksheetLayoutMode.WorksheetCanvas, ExcelPdfWorksheetLayoutMode.FlowTable }) {
@@ -65,7 +65,7 @@ public class ExcelTemporalNumberFormatTests {
     [InlineData("[>=1]yyyy-mm-dd hh:mm;\"\"", "yyyy-mm-dd hh:mm")]
     public void Autofit_measures_the_section_selected_by_the_actual_date_serial(string sectionedFormat, string plainFormat) {
         using var workbook = ExcelDocument.Create();
-        var sheet = workbook.AddWorksheet("Autofit");
+        var sheet = workbook.AddSheet("Autofit");
         for (int column = 1; column <= 2; column++) {
             sheet.CellAt(1, column).SetValue(new DateTime(2026, 1, 5, 13, 4, 0))
                 .SetNumberFormat(column == 1 ? plainFormat : sectionedFormat);
@@ -132,7 +132,7 @@ public class ExcelTemporalNumberFormatTests {
     [Fact]
     public void Pdf_elapsed_display_preserves_integral_seconds_in_both_worksheet_layouts() {
         using var workbook = ExcelDocument.Create();
-        var sheet = workbook.AddWorksheet("Elapsed boundary");
+        var sheet = workbook.AddSheet("Elapsed boundary");
         sheet.CellAt(1, 1).SetValue(11d / 86400d).SetNumberFormat("[s]\"s\"");
         sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(20));
         using var saved = new MemoryStream(); workbook.Save(saved); saved.Position = 0;
@@ -162,7 +162,7 @@ public class ExcelTemporalNumberFormatTests {
     [InlineData(ExcelPdfWorksheetLayoutMode.FlowTable)]
     public void Pdf_and_image_use_the_same_temporal_format_semantics(ExcelPdfWorksheetLayoutMode layout) {
         using var workbook = ExcelDocument.Create();
-        var sheet = workbook.AddWorksheet("Formats");
+        var sheet = workbook.AddSheet("Formats");
         sheet.CellAt(1, 1).SetValue(new DateTime(2026, 1, 5, 13, 4, 0)).SetNumberFormat("d.mm.yyyy hh:mm");
         sheet.CellAt(2, 1).SetValue(0.1).SetNumberFormat("[h]\\h m\\m");
         sheet.CellAt(3, 1).SetValue(-1.5).SetNumberFormat("[h]:mm;[Red]([h]:mm)");
@@ -183,7 +183,7 @@ public class ExcelTemporalNumberFormatTests {
     public void Temporal_display_obeys_calendar_epoch_without_shifting_elapsed_values(ExcelDateSystem system) {
         using var workbook = ExcelDocument.Create();
         workbook.DateSystem = system;
-        var sheet = workbook.AddWorksheet("Formats");
+        var sheet = workbook.AddSheet("Formats");
         sheet.CellAt(1, 1).SetValue(new DateTime(2026, 1, 5, 13, 4, 59, 960)).SetNumberFormat("d.mm.yyyy hh:mm:ss.0");
         sheet.CellAt(2, 1).SetValue(0.1).SetNumberFormat("[h]\"h\" m\"m\"");
         sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(40));
@@ -208,7 +208,7 @@ public class ExcelTemporalNumberFormatTests {
     public void Pdf_selects_conditional_sections_using_the_workbook_serial(ExcelDateSystem system, ExcelPdfWorksheetLayoutMode layout) {
         using var workbook = ExcelDocument.Create();
         workbook.DateSystem = system;
-        var sheet = workbook.AddWorksheet("Epoch");
+        var sheet = workbook.AddSheet("Epoch");
         // The same calendar date is serial 1463 in the 1900 system and 1 in 1904.
         sheet.CellAt(1, 1).SetValue(new DateTime(1904, 1, 2)).SetNumberFormat("[>=1000]yyyy-mm-dd\" large\";yyyy-mm-dd\" small\"");
         sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(40));
@@ -221,7 +221,7 @@ public class ExcelTemporalNumberFormatTests {
     private static void AssertSavedDisplay(double value, string format, string expected, ExcelDateSystem system = ExcelDateSystem.NineteenHundred) {
         using var workbook = ExcelDocument.Create();
         workbook.DateSystem = system;
-        var sheet = workbook.AddWorksheet("Formats");
+        var sheet = workbook.AddSheet("Formats");
         sheet.CellAt(1, 1).SetValue(value).SetNumberFormat(format);
         using var saved = new MemoryStream();
         workbook.Save(saved);

@@ -129,7 +129,7 @@ namespace OfficeIMO.Tests {
         public void Removed_worksheet_drawings_do_not_attach_to_a_replacement() {
             using var document = ExcelDocument.Create();
             var (chart, image) = CreateRetainedDrawingWorkbook(document);
-            document.AddWorksheet("Keep");
+            document.AddSheet("Keep");
             document.RemoveWorksheet("Report");
             CreateRetainedDrawingWorkbook(document);
             using var result = new MemoryStream();
@@ -142,7 +142,7 @@ namespace OfficeIMO.Tests {
         }
 
         private static (ExcelChart Chart, ExcelImage Image) CreateRetainedDrawingWorkbook(ExcelDocument document) {
-            ExcelSheet sheet = document.AddWorksheet("Report");
+            ExcelSheet sheet = document.AddSheet("Report");
             sheet.CellValue(1, 1, "Category");
             sheet.CellValue(1, 2, 42d);
             var range = new ExcelChartDataRange("Report", 1, 1, 1, 1, hasHeaderRow: false);

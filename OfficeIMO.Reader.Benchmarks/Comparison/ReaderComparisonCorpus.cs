@@ -68,7 +68,7 @@ internal static class ReaderComparisonCorpus {
         string path = Path.Combine(Path.GetTempPath(), "officeimo-reader-evidence-" + Guid.NewGuid().ToString("N") + ".xlsx");
         try {
             using (ExcelDocument document = ExcelDocument.Create(path)) {
-                ExcelSheet sheet = document.AddWorksheet("Evidence");
+                ExcelSheet sheet = document.AddSheet("Evidence");
                 sheet.Cell(1, 1, "Control");
                 sheet.Cell(1, 2, "Owner");
                 sheet.Cell(1, 3, "Status");

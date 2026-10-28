@@ -21,7 +21,7 @@ namespace OfficeIMO.Tests
             using (var document = ExcelDocument.Create(filePath))
             {
                 {
-                    var sheet1 = document.AddWorksheet("Data");
+                    var sheet1 = document.AddSheet("Data");
 
                     sheet1.Freeze(topRows: 1);
                     document.Save();
@@ -58,7 +58,7 @@ namespace OfficeIMO.Tests
             using (var document = ExcelDocument.Create(filePath))
             {
                 {
-                    var sheet3 = document.AddWorksheet("Data");
+                    var sheet3 = document.AddSheet("Data");
 
                     sheet3.Freeze(leftCols: 2);
                     document.Save();
@@ -95,7 +95,7 @@ namespace OfficeIMO.Tests
             using (var document = ExcelDocument.Create(filePath))
             {
                 {
-                    var sheet5 = document.AddWorksheet("Data");
+                    var sheet5 = document.AddSheet("Data");
 
                     sheet5.Freeze(topRows: 1, leftCols: 1);
                     document.Save();
@@ -147,7 +147,7 @@ namespace OfficeIMO.Tests
             using (var document = ExcelDocument.Create(filePath))
             {
                 {
-                    var sheet7 = document.AddWorksheet("Data");
+                    var sheet7 = document.AddSheet("Data");
 
                     sheet7.Freeze(topRows: 1, leftCols: 1);
                     sheet7.Freeze();

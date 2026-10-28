@@ -9,7 +9,7 @@ public partial class Excel {
     [Fact]
     public void SaveAsPdf_WrappedAndShrunkCellsPreserveNeighborFontSizes() {
         using ExcelDocument document = ExcelDocument.Create();
-        ExcelSheet sheet = document.AddWorksheet("Layout");
+        ExcelSheet sheet = document.AddSheet("Layout");
         sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(12));
         sheet.SetColumnWidth(2, ExcelColumnWidth.Characters(25));
         sheet.SetColumnWidth(3, ExcelColumnWidth.Characters(15));

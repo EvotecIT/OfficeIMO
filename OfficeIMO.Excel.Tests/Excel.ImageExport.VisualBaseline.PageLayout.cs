@@ -92,7 +92,7 @@ namespace OfficeIMO.Tests {
         private static ExcelBaselineFixture CreatePageLayoutBaselineWorkbook() {
             string filePath = Path.Combine(Path.GetTempPath(), "OfficeIMO-ExcelPageLayoutBaseline-" + Guid.NewGuid().ToString("N") + ".xlsx");
             ExcelDocument document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorksheet("PageLayout");
+            ExcelSheet sheet = document.AddSheet("PageLayout");
 
             string[] headers = { "Region", "Owner", "Status", "Score" };
             for (int column = 1; column <= headers.Length; column++) {

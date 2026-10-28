@@ -11,7 +11,7 @@ public class ExcelSourceLinkedChartFormatTests {
     [Fact]
     public void ChartAxis_InheritsNamedStyleNumberFormat() {
         using var document = ExcelDocument.Create(new MemoryStream());
-        var sheet = document.AddWorksheet("Named");
+        var sheet = document.AddSheet("Named");
         sheet.CellValue(1, 1, "Region"); sheet.CellValue(1, 2, "Score");
         sheet.CellValue(2, 1, "North"); sheet.CellValue(2, 2, .94); sheet.CellAt(2, 2).Percent(0);
         sheet.AddChartFromRange("A1:B2", row: 1, column: 4);
@@ -36,7 +36,7 @@ public class ExcelSourceLinkedChartFormatTests {
     [InlineData(165U)]
     public void ChartAxis_PreservesDeclaredFallbackForUnknownSourceFormats(uint id) {
         using var document = ExcelDocument.Create(new MemoryStream());
-        var sheet = document.AddWorksheet("Unknown");
+        var sheet = document.AddSheet("Unknown");
         sheet.CellValue(1, 1, "Region"); sheet.CellValue(1, 2, "Score");
         sheet.CellValue(2, 1, "North"); sheet.CellValue(2, 2, .94); sheet.CellAt(2, 2).Percent(0);
         var chart = sheet.AddChartFromRange("A1:B2", row: 1, column: 4);
@@ -53,7 +53,7 @@ public class ExcelSourceLinkedChartFormatTests {
     [InlineData(true)]
     public void ChartAxis_ReportsOverflowingSourceNumberFormatIds(bool custom) {
         using var document = ExcelDocument.Create(new MemoryStream());
-        var sheet = document.AddWorksheet("Overflow");
+        var sheet = document.AddSheet("Overflow");
         sheet.CellValue(1, 1, "Region"); sheet.CellValue(1, 2, "Score");
         sheet.CellValue(2, 1, "North"); sheet.CellValue(2, 2, .94); sheet.CellAt(2, 2).Percent(0);
         sheet.AddChartFromRange("A1:B2", row: 1, column: 4);
@@ -74,7 +74,7 @@ public class ExcelSourceLinkedChartFormatTests {
     [InlineData(3)]
     public void ChartAxis_UsesCellThenRowThenColumnNumberFormats(int precedence) {
         using var document = ExcelDocument.Create(new MemoryStream());
-        var sheet = document.AddWorksheet("Inherited");
+        var sheet = document.AddSheet("Inherited");
         sheet.CellValue(1, 1, "Region"); sheet.CellValue(1, 2, "Score");
         sheet.CellValue(2, 1, "North"); sheet.CellValue(2, 2, .94); sheet.CellAt(2, 2).Percent(0);
         var worksheet = sheet.WorksheetPart.Worksheet;
@@ -92,7 +92,7 @@ public class ExcelSourceLinkedChartFormatTests {
     [Fact]
     public void ChartAxis_UsesExplicitStyleOnCellWithImplicitReference() {
         using var document = ExcelDocument.Create(new MemoryStream());
-        var sheet = document.AddWorksheet("Implicit");
+        var sheet = document.AddSheet("Implicit");
         sheet.CellValue(1, 1, "Region"); sheet.CellValue(1, 2, "Score");
         sheet.CellValue(2, 1, "North"); sheet.CellValue(2, 2, .94); sheet.CellAt(2, 2).Percent(0);
         sheet.AddChartFromRange("A1:B2", row: 1, column: 4);
@@ -110,7 +110,7 @@ public class ExcelSourceLinkedChartFormatTests {
     [Fact]
     public void ChartAxis_ReportsUnresolvedNumericCategorySourceFormats() {
         using var document = ExcelDocument.Create(new MemoryStream());
-        var sheet = document.AddWorksheet("Categories");
+        var sheet = document.AddSheet("Categories");
         sheet.CellValue(1, 1, "Fraction"); sheet.CellValue(1, 2, "Count");
         sheet.CellValue(2, 1, .94); sheet.CellAt(2, 1).Percent(0); sheet.CellValue(2, 2, 2);
         sheet.CellValue(3, 1, .82); sheet.CellValue(3, 2, 3);
@@ -128,7 +128,7 @@ public class ExcelSourceLinkedChartFormatTests {
     [Fact]
     public void ChartAxis_ReportsStylesheetsBeyondTheResolutionWorkBound() {
         using var document = ExcelDocument.Create(new MemoryStream());
-        var sheet = document.AddWorksheet("Styles");
+        var sheet = document.AddSheet("Styles");
         sheet.CellValue(1, 1, "Region"); sheet.CellValue(1, 2, "Score");
         sheet.CellValue(2, 1, "North"); sheet.CellValue(2, 2, .94); sheet.CellAt(2, 2).Percent(0);
         sheet.AddChartFromRange("A1:B2", row: 1, column: 4);
@@ -141,7 +141,7 @@ public class ExcelSourceLinkedChartFormatTests {
     [Fact]
     public void ChartAxis_ReportsMixedSourceNumberFormats() {
         using var document = ExcelDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx"));
-        var sheet = document.AddWorksheet("Mixed");
+        var sheet = document.AddSheet("Mixed");
         sheet.CellValue(1, 1, "Region"); sheet.CellValue(1, 2, "Score");
         sheet.CellValue(2, 1, "North"); sheet.CellValue(2, 2, .94); sheet.CellAt(2, 2).Percent(0);
         sheet.CellValue(3, 1, "South"); sheet.CellValue(3, 2, .82);
@@ -155,7 +155,7 @@ public class ExcelSourceLinkedChartFormatTests {
     [InlineData(OfficeChartType.ColumnClustered, false)]
     public void ChartAxis_UsesSourcePercentageOnlyWhenLinked(OfficeChartType kind, bool sourceLinked) {
         using var document = ExcelDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx"));
-        var sheet = document.AddWorksheet("Source");
+        var sheet = document.AddSheet("Source");
         sheet.CellValue(1, 1, "Region"); sheet.CellValue(1, 2, "Score");
         sheet.CellValue(2, 1, "North"); sheet.CellValue(2, 2, .94); sheet.CellAt(2, 2).Percent(0);
         sheet.CellValue(3, 1, "South"); sheet.CellValue(3, 2, .82); sheet.CellAt(3, 2).Percent(0);

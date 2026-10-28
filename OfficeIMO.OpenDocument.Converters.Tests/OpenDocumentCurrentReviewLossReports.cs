@@ -140,7 +140,7 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
     [Fact]
     public void RichExcelCommentFormattingIsReportedAsApproximated() {
         using ExcelDocument source = ExcelDocument.Create();
-        ExcelSheet sheet = source.AddWorksheet("Data");
+        ExcelSheet sheet = source.AddSheet("Data");
         sheet.SetCommentRichText("A1", new[] {
             new ExcelRichTextRun("Important") { Bold = true },
             new ExcelRichTextRun(" note")
@@ -655,7 +655,7 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
     [Fact]
     public void ExcelValidationRangeClippedByRowLimitIsAppliedPartiallyAndReported() {
         using ExcelDocument source = ExcelDocument.Create();
-        source.AddWorksheet("Data").ValidationWholeNumber(
+        source.AddSheet("Data").ValidationWholeNumber(
             "A1:A100", ExcelDataValidationOperator.Between, 1, 10);
 
         OdfConversionResult<OdsDocument> conversion = source.ToOpenDocumentResult(
@@ -676,7 +676,7 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
     [Fact]
     public void RejectedValidationCoordinateCannotBypassMaterializationBudgetInLaterRule() {
         using ExcelDocument source = ExcelDocument.Create();
-        ExcelSheet sheet = source.AddWorksheet("Data");
+        ExcelSheet sheet = source.AddSheet("Data");
         sheet.ValidationWholeNumber("A1:B1", ExcelDataValidationOperator.Between, 1, 10);
         sheet.ValidationList("B1:C1", new[] { "One", "Two" });
 
@@ -694,7 +694,7 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
     [Fact]
     public void MergeBudgetChargesOnlyCoordinatesNotAlreadyMaterialized() {
         using ExcelDocument source = ExcelDocument.Create();
-        ExcelSheet sheet = source.AddWorksheet("Data");
+        ExcelSheet sheet = source.AddSheet("Data");
         sheet.CellAt(1, 1).SetValue("Anchor");
         sheet.MergeRange("A1:B2");
 
@@ -1148,8 +1148,8 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
     [Fact]
     public void ExcelToOdsPreservesTypedValuesOnHyperlinkedCellsAndFormulaSeparators() {
         using ExcelDocument source = ExcelDocument.Create(new MemoryStream());
-        ExcelSheet sheet = source.AddWorksheet("Data");
-        source.AddWorksheet("Other, Sheet").CellAt(1, 1).SetValue(1);
+        ExcelSheet sheet = source.AddSheet("Data");
+        source.AddSheet("Other, Sheet").CellAt(1, 1).SetValue(1);
         sheet.SetHyperlink(1, 1, "https://example.com", "42");
         sheet.CellAt(1, 1).SetValue(42);
         sheet.CellAt(1, 2).SetFormula("IF(A1=42,\"x,y\",\"other\")");
@@ -1272,7 +1272,7 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
     [Fact]
     public void ExcelToOdsConvertsLowercaseFormulaReferences() {
         using ExcelDocument source = ExcelDocument.Create(new MemoryStream());
-        ExcelSheet sheet = source.AddWorksheet("Data");
+        ExcelSheet sheet = source.AddSheet("Data");
         sheet.CellAt(1, 1).SetValue(1);
         sheet.CellAt(1, 2).SetFormula("sum(a1,'Data'!a1)");
         source.SetNamedRange("A1_total", "'Data'!$A$1", save: false);

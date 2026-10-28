@@ -109,7 +109,7 @@ public sealed class OpenDocumentTextFormattingConversionTests {
     [Fact]
     public void ExcelAndOdsPreserveCellDecorationAndScriptAndApplyDisplayCase() {
         using ExcelDocument source = ExcelDocument.Create();
-        ExcelCell cell = source.AddWorksheet("Data").CellAt(1, 1)
+        ExcelCell cell = source.AddSheet("Data").CellAt(1, 1)
             .SetValue("Styled")
             .SetUnderline(ExcelUnderlineStyle.Double)
             .SetStrikethrough()
@@ -137,7 +137,7 @@ public sealed class OpenDocumentTextFormattingConversionTests {
         string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".xlsx");
         try {
             using (ExcelDocument created = ExcelDocument.Create(path)) {
-                created.AddWorksheet("Data").CellAt(1, 1).SetValue("Plain").SetBold();
+                created.AddSheet("Data").CellAt(1, 1).SetValue("Plain").SetBold();
                 created.Save();
             }
 

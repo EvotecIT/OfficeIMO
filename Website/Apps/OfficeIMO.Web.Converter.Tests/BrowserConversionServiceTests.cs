@@ -321,7 +321,7 @@ public sealed class BrowserConversionServiceTests {
     [Fact]
     public void ExcelBrowserReadPlan_AutomaticallyBoundsSparseWorksheetBeyondBrowserCellBudget() {
         using ExcelDocument document = ExcelDocument.Create();
-        ExcelSheet sheet = document.AddWorksheet("Data");
+        ExcelSheet sheet = document.AddSheet("Data");
         sheet.CellValue(1, 1, "First");
         sheet.CellValue(300, 200, "Last");
 
@@ -336,7 +336,7 @@ public sealed class BrowserConversionServiceTests {
     [Fact]
     public void ExcelBrowserReadPlan_LeavesNormalWorksheetUnboundedUnlessPreviewIsRequested() {
         using ExcelDocument document = ExcelDocument.Create();
-        ExcelSheet sheet = document.AddWorksheet("Data");
+        ExcelSheet sheet = document.AddSheet("Data");
         sheet.CellValue(1, 1, "Name");
         sheet.CellValue(2, 2, "Value");
 
@@ -646,7 +646,7 @@ public sealed class BrowserConversionServiceTests {
     [Fact]
     public void ExcelConversion_UsesThePortableTaggedPdfProfile() {
         using ExcelDocument workbook = ExcelDocument.Create();
-        var sheet = workbook.AddWorksheet("Delivery");
+        var sheet = workbook.AddSheet("Delivery");
         sheet.CellAt(1, 1).SetValue("Workstream").SetFontName("Calibri Light");
         sheet.CellValue(1, 2, "Status");
         sheet.CellValue(2, 1, "Platform");

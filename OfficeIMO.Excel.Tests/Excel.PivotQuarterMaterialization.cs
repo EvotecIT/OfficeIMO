@@ -47,7 +47,7 @@ namespace OfficeIMO.Tests
             string output = Path.Combine(_directoryWithFiles, "QuarterHierarchy.Authored.xlsx");
             using (var document = ExcelDocument.Create())
             {
-                var source = document.AddWorksheet("Source");
+                var source = document.AddSheet("Source");
                 source.CellValue(1, 1, "OrderDate");
                 source.CellValue(1, 2, "Sales");
                 var entries = new[]
@@ -109,7 +109,7 @@ namespace OfficeIMO.Tests
             string output = Path.Combine(_directoryWithFiles, "QuarterHierarchy.Bounded.xlsx");
             using (var document = ExcelDocument.Create())
             {
-                var source = document.AddWorksheet("Source");
+                var source = document.AddSheet("Source");
                 source.CellValue(1, 1, "OrderDate");
                 source.CellValue(1, 2, "Sales");
                 var entries = new[]

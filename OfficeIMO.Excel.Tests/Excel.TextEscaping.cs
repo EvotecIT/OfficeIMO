@@ -20,7 +20,7 @@ public class ExcelTextEscapingTests {
         foreach (string invalid in new[] { "control\u0001", "surrogate\ud800" }) {
             using var stream = new MemoryStream();
             using var document = ExcelDocument.Create(new MemoryStream());
-            var sheet = document.AddWorksheet("Text");
+            var sheet = document.AddSheet("Text");
             sheet.CellValue(1, 1, "placeholder");
             Cell cell = sheet.WorksheetPart.Worksheet.Descendants<Cell>().Single();
             cell.CellValue = null;
@@ -48,7 +48,7 @@ public class ExcelTextEscapingTests {
         using var stream = new MemoryStream();
         if (sharedStrings) {
             using var document = ExcelDocument.Create();
-            document.AddWorksheet("Data & '\"").InsertDataTable(table);
+            document.AddSheet("Data & '\"").InsertDataTable(table);
             document.Save(stream);
         }
         else {
@@ -86,7 +86,7 @@ public class ExcelTextEscapingTests {
         const string value = "Start\r\nMiddle\rEnd\nTab\tUnicode Łódź 😀 &<>";
         using var stream = new MemoryStream();
         using (var document = ExcelDocument.Create(new MemoryStream())) {
-            var sheet = document.AddWorksheet("Text");
+            var sheet = document.AddSheet("Text");
             sheet.CellValue(1, 1, value);
             sheet.CellValue(1, 2, "inline");
             sheet.CellValue(1, 3, "plain");
@@ -126,7 +126,7 @@ public class ExcelTextEscapingTests {
         const string value = "First\r\nSecond\rThird";
         using var stream = new MemoryStream();
         using (var document = ExcelDocument.Create(new MemoryStream())) {
-            var sheet = document.AddWorksheet("Text");
+            var sheet = document.AddSheet("Text");
             sheet.CellValue(1, 1, value);
             sheet.AddChart(
                 new ExcelChartData(new[] { "One" }, new[] { new ExcelChartSeries("Values", new[] { 1.0 }) }),
@@ -146,7 +146,7 @@ public class ExcelTextEscapingTests {
         const string value = "First\r\nSecond\rThird\nFourth";
         using var stream = new MemoryStream();
         using (var document = ExcelDocument.Create(new MemoryStream())) {
-            var sheet = document.AddWorksheet("Text");
+            var sheet = document.AddSheet("Text");
             sheet.CellValue(1, 1, value);
             sheet.CellValue(1, 2, "inline");
             sheet.CellValue(1, 3, "plain");
@@ -191,7 +191,7 @@ public class ExcelTextEscapingTests {
         using var stream = new MemoryStream();
         using (var document = ExcelDocument.Create(new MemoryStream())) {
             for (int index = 0; index < 12; index++) {
-                var sheet = document.AddWorksheet("Text" + index);
+                var sheet = document.AddSheet("Text" + index);
                 sheet.CellValue(1, 1, "Sheet" + index + "\r\nLine\rEnd");
                 var cell = sheet.WorksheetPart.Worksheet.Descendants<Cell>().Single();
                 cell.CellValue = null;
@@ -226,8 +226,8 @@ public class ExcelTextEscapingTests {
     public void CarriageReturnScanDoesNotMaterializeUntouchedWorksheets() {
         using var source = new MemoryStream();
         using (var created = ExcelDocument.Create(new MemoryStream())) {
-            created.AddWorksheet("Changed").CellValue(1, 1, "before");
-            created.AddWorksheet("Untouched").CellValue(1, 1, "raw");
+            created.AddSheet("Changed").CellValue(1, 1, "before");
+            created.AddSheet("Untouched").CellValue(1, 1, "raw");
             created.Save(source, new ExcelSaveOptions { DisableFastPackageWriter = true });
         }
 
@@ -257,7 +257,7 @@ public class ExcelTextEscapingTests {
         const string value = "First\r\nSecond\rThird";
         using var source = new MemoryStream();
         using (var created = ExcelDocument.Create(new MemoryStream())) {
-            created.AddWorksheet("Text").CellValue(1, 1, value);
+            created.AddSheet("Text").CellValue(1, 1, value);
             created.Save(source, new ExcelSaveOptions { DisableFastPackageWriter = true });
         }
 

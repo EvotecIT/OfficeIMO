@@ -23,7 +23,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal(date, ExcelDateSystemConverter.FromSerial(expectedSerial + 0.5d, ExcelDateSystem.NineteenHundred));
             string path = Path.Combine(_directoryWithFiles, $"EarlyDate{year}{month}{day}.xlsx");
             using (var document = ExcelDocument.Create(path)) {
-                document.AddWorksheet("Dates").CellValue(1, 1, date);
+                document.AddSheet("Dates").CellValue(1, 1, date);
                 document.Save();
             }
             using (var package = SpreadsheetDocument.Open(path, false)) {
@@ -60,7 +60,7 @@ namespace OfficeIMO.Tests {
             try {
                 using (var document = ExcelDocument.Create(filePath)) {
                     document.DateSystem = ExcelDateSystem.NineteenFour;
-                    var sheet = document.AddWorksheet("Data");
+                    var sheet = document.AddSheet("Data");
                     sheet.CellValue(1, 1, date);
                     sheet.ValidationDate("A1:A10", ExcelDataValidationOperator.Between, minimum, maximum);
                     document.Save();
@@ -126,7 +126,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (var document = ExcelDocument.Create(filePath)) {
-                    ExcelSheet sheet = document.AddWorksheet("Data");
+                    ExcelSheet sheet = document.AddSheet("Data");
                     sheet.CellValue(1, 1, date);
                     document.Save();
                 }

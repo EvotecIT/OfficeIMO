@@ -11,7 +11,7 @@ public partial class Excel {
     [InlineData(true)]
     public void AddedPageBreak_ReturnsAttachedObjectAndRejectsAReplacement(bool rowBreak) {
         using var document = ExcelDocument.Create();
-        var sheet = document.AddWorksheet("Data");
+        var sheet = document.AddSheet("Data");
         ExcelPageBreak pageBreak = rowBreak
             ? sheet.AddManualRowPageBreak(4) : sheet.AddManualColumnPageBreak(4);
         Assert.Same(sheet, pageBreak.Sheet);
@@ -38,7 +38,7 @@ public partial class Excel {
     [Fact]
     public void AddedMacro_ReturnsTheAttachedOpaqueProjectAndRejectsReplacement() {
         using var document = ExcelDocument.Create();
-        document.AddWorksheet("Data");
+        document.AddSheet("Data");
         ExcelMacroProject project = document.AddMacro(new byte[] { 1, 2, 3 });
         Assert.Same(document, project.Document);
         Assert.EndsWith("vbaProject.bin", project.PartUri, StringComparison.Ordinal);
@@ -57,8 +57,8 @@ public partial class Excel {
     [Fact]
     public void AddedIgnoredErrorRegionAndBackLinks_ReturnTheirCreatedMetadata() {
         using var document = ExcelDocument.Create();
-        var first = document.AddWorksheet("First");
-        document.AddWorksheet("Second");
+        var first = document.AddSheet("First");
+        document.AddSheet("Second");
         ExcelIgnoredErrorRegionInfo region = first.AddIgnoredErrorRegion(new[] { "a1:b4" }, ExcelIgnoredErrorKind.NumberStoredAsText);
         Assert.Equal(new[] { "A1:B4" }, region.Ranges);
         Assert.Equal(ExcelIgnoredErrorKind.NumberStoredAsText, region.Errors);
@@ -77,7 +77,7 @@ public partial class Excel {
     [Fact]
     public void CustomProperties_ReturnAttachedValuesAndKeepDictionaryContracts() {
         using var document = ExcelDocument.Create();
-        document.AddWorksheet("Data");
+        document.AddSheet("Data");
         var properties = document.CustomDocumentProperties;
         var supplied = new ExcelCustomProperty { Value = "Draft", PropertyType = ExcelCustomPropertyType.Text };
         var added = properties.Add(" Workflow ", supplied);

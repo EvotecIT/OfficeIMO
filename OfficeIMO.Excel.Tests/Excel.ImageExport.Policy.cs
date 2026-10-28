@@ -39,7 +39,7 @@ namespace OfficeIMO.Tests {
         public void ExcelRange_StrictOmissionPolicyRejectsTextSuppressedByDrawing() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorksheet("AnchorOverlay");
+            ExcelSheet sheet = document.AddSheet("AnchorOverlay");
             sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(18));
             sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(24)));
             sheet.CellValue(1, 1, "Covered anchor text should not show fragments");
@@ -71,7 +71,7 @@ namespace OfficeIMO.Tests {
         public void ExcelRange_StrictOmissionPolicyRejectsUnrenderedCommentBody() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorksheet("Strict");
+            ExcelSheet sheet = document.AddSheet("Strict");
             sheet.CellValue(1, 1, "Reviewed");
             sheet.SetComment("A1", "Needs design review", "Reviewer");
 
@@ -94,7 +94,7 @@ namespace OfficeIMO.Tests {
         public void ExcelRange_StrictOmissionPolicyAllowsRenderedCommentApproximation() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorksheet("Approximation");
+            ExcelSheet sheet = document.AddSheet("Approximation");
             sheet.CellValue(1, 1, "Reviewed");
             sheet.SetComment("A1", "Needs design review", "Reviewer");
 

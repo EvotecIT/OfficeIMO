@@ -14,7 +14,7 @@ public partial class Excel {
     [InlineData(ExcelPdfWorksheetLayoutMode.FlowTable, 3)]
     public void SaveAsPdf_TitleBlockRepeatsOnlyColumnsBeforeTheCurrentBodySegment(ExcelPdfWorksheetLayoutMode layout, int firstBreak) {
         using ExcelDocument document = ExcelDocument.Create();
-        ExcelSheet sheet = document.AddWorksheet("Report");
+        ExcelSheet sheet = document.AddSheet("Report");
         for (int column = 1; column <= 8; column++) sheet.Cell(1, column, "Column" + column);
         document.SetPrintArea(sheet, "A1:H2");
         document.SetPrintTitles(sheet, firstRow: null, lastRow: null, firstCol: 3, lastCol: 4);
@@ -40,7 +40,7 @@ public partial class Excel {
     [Fact]
     public void ToPdfDocument_GeneralAlignmentUsesCellTypesAndRetainsExplicitAlignment() {
         using ExcelDocument document = ExcelDocument.Create();
-        ExcelSheet sheet = document.AddWorksheet("Report");
+        ExcelSheet sheet = document.AddSheet("Report");
         sheet.Cell(1, 1, 123.45D); sheet.Cell(1, 2, "123.45"); sheet.Cell(1, 3, true);
         sheet.Cell(1, 4, 123.45D); sheet.CellAlign(1, 4, ExcelHorizontalAlignment.Left);
         PdfCore.PdfDocument pdf = document.ToPdf(new ExcelPdfExportOptions {
@@ -57,7 +57,7 @@ public partial class Excel {
     [Fact]
     public void SaveAsPdf_CanvasUsesDefaultBottomAlignmentAndRetainsExplicitTopAlignment() {
         using ExcelDocument document = ExcelDocument.Create();
-        ExcelSheet sheet = document.AddWorksheet("Report");
+        ExcelSheet sheet = document.AddSheet("Report");
         sheet.Cell(1, 1, "DefaultBottom"); sheet.Cell(1, 2, "ExplicitTop");
         sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(40D)));
         sheet.CellVerticalAlign(1, 2, ExcelVerticalAlignment.Top);
@@ -73,7 +73,7 @@ public partial class Excel {
     [InlineData(20D, true)]
     public void SaveAsPdf_FlowFitToHeightScalesExplicitCellFontsWithoutLosingRows(double fontSize, bool multiline) {
         using ExcelDocument document = ExcelDocument.Create();
-        ExcelSheet sheet = document.AddWorksheet("Report");
+        ExcelSheet sheet = document.AddSheet("Report");
         for (int row = 1; row <= 80; row++) {
             sheet.Cell(row, 1, "Row" + row.ToString("D3") + (multiline ? "\nDetail" + row.ToString("D3") : ""));
             sheet.CellFontSize(row, 1, fontSize);
@@ -95,7 +95,7 @@ public partial class Excel {
     [Fact]
     public void ToPdfDocument_RepeatedColumnsPreserveMergedTitleFormattingAndWidths() {
         using ExcelDocument document = ExcelDocument.Create();
-        ExcelSheet sheet = document.AddWorksheet("Report");
+        ExcelSheet sheet = document.AddSheet("Report");
         sheet.Cell(1, 1, "Merged title");
         sheet.Range("A1:B1").Merge();
         sheet.CellAt(1, 1).SetBold().SetFillColor("DDEEFF").SetFontColor("112233");

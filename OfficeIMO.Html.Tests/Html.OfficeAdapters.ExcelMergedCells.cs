@@ -19,7 +19,7 @@ public class HtmlOfficeAdaptersExcelMergedCells {
     [Fact]
     public void ExcelHtml_RoundTripsMergedCellsWithoutDuplicatingCoveredCells() {
         using ExcelDocument workbook = ExcelDocument.Create(new MemoryStream());
-        ExcelSheet sheet = workbook.AddWorksheet("Merged");
+        ExcelSheet sheet = workbook.AddSheet("Merged");
         sheet.CellValue(1, 1, "Quarterly result");
         sheet.CellValue(1, 4, "Status");
         sheet.CellValue(4, 2, "Approved");
@@ -96,7 +96,7 @@ public class HtmlOfficeAdaptersExcelMergedCells {
     [Fact]
     public void ExcelHtml_RoundTripsQuotedFontFamiliesContainingSemicolons() {
         using ExcelDocument workbook = ExcelDocument.Create(new MemoryStream());
-        workbook.AddWorksheet("Fonts").CellAt(1, 1).SetRichText(
+        workbook.AddSheet("Fonts").CellAt(1, 1).SetRichText(
             new ExcelRichTextRun("Styled") { FontName = "A;B", Bold = true });
 
         string html = workbook.ToHtml(new ExcelHtmlSaveOptions {
@@ -114,7 +114,7 @@ public class HtmlOfficeAdaptersExcelMergedCells {
     [Fact]
     public void ExcelHtml_TruncationClipsMergedRangeToExportedRows() {
         using ExcelDocument workbook = ExcelDocument.Create(new MemoryStream());
-        ExcelSheet sheet = workbook.AddWorksheet("Clipped");
+        ExcelSheet sheet = workbook.AddSheet("Clipped");
         sheet.CellValue(1, 1, "Visible");
         sheet.MergeRange("A1:B3");
 
@@ -132,7 +132,7 @@ public class HtmlOfficeAdaptersExcelMergedCells {
     [Fact]
     public void ExcelHtml_HugeMergeIsClippedBeforeCellMaterialization() {
         using ExcelDocument workbook = ExcelDocument.Create(new MemoryStream());
-        ExcelSheet sheet = workbook.AddWorksheet("Bounded");
+        ExcelSheet sheet = workbook.AddSheet("Bounded");
         sheet.CellValue(1, 1, "Visible");
         sheet.MergeRange("A1:XFD1048576");
 
@@ -150,7 +150,7 @@ public class HtmlOfficeAdaptersExcelMergedCells {
     [Fact]
     public void ExcelHtml_Reports_Column_Truncation_In_Semantic_Exports() {
         using ExcelDocument workbook = ExcelDocument.Create(new MemoryStream());
-        ExcelSheet sheet = workbook.AddWorksheet("Columns");
+        ExcelSheet sheet = workbook.AddSheet("Columns");
         sheet.CellValue(1, 1, "Visible");
         sheet.CellValue(1, 4, "Truncated");
 
@@ -166,7 +166,7 @@ public class HtmlOfficeAdaptersExcelMergedCells {
     [Fact]
     public void ExcelHtml_EmptyHugeMergeUsesTheBoundedProbeWindow() {
         using ExcelDocument workbook = ExcelDocument.Create(new MemoryStream());
-        ExcelSheet sheet = workbook.AddWorksheet("EmptyBounded");
+        ExcelSheet sheet = workbook.AddSheet("EmptyBounded");
         sheet.MergeRange("A1:XFD1048576");
 
         string html = workbook.ToHtml(new ExcelHtmlSaveOptions {
@@ -182,7 +182,7 @@ public class HtmlOfficeAdaptersExcelMergedCells {
     [Fact]
     public void ExcelHtml_RejectsMergeMetadataBeyondTheConfiguredLimit() {
         using ExcelDocument workbook = ExcelDocument.Create(new MemoryStream());
-        ExcelSheet sheet = workbook.AddWorksheet("MergeBounded");
+        ExcelSheet sheet = workbook.AddSheet("MergeBounded");
         sheet.MergeRange("A1:B1");
         sheet.MergeRange("A2:B2");
 

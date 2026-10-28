@@ -46,7 +46,7 @@ public sealed class ReaderDocumentReaderTests {
         var path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
         try {
             using (var doc = ExcelDocument.Create(path)) {
-                var sheet = doc.AddWorksheet("Data");
+                var sheet = doc.AddSheet("Data");
                 sheet.Cell(1, 1, "Name");
                 sheet.Cell(1, 2, "Value");
                 sheet.Cell(2, 1, "A");
@@ -105,7 +105,7 @@ public sealed class ReaderDocumentReaderTests {
         string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".xlsx");
         try {
             using ExcelDocument document = ExcelDocument.Create(path);
-            document.AddWorksheet("Data").CellValue(1, 1, "Preserved record warning");
+            document.AddSheet("Data").CellValue(1, 1, "Preserved record warning");
 
             typeof(ExcelDocument)
                 .GetProperty(nameof(ExcelDocument.SourceFormat))!
@@ -158,7 +158,7 @@ public sealed class ReaderDocumentReaderTests {
         string encryptedPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".xlsx");
         try {
             using (var doc = ExcelDocument.Create(sourcePath)) {
-                var sheet = doc.AddWorksheet("SecureData");
+                var sheet = doc.AddSheet("SecureData");
                 sheet.Cell(1, 1, "Name");
                 sheet.Cell(1, 2, "Value");
                 sheet.Cell(2, 1, "Token");

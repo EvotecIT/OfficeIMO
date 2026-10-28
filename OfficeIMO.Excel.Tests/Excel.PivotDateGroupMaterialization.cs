@@ -60,7 +60,7 @@ namespace OfficeIMO.Tests
             string output = Path.Combine(_directoryWithFiles, "DateGroup.TemplateFree.xlsx");
             using (var document = ExcelDocument.Create(output))
             {
-                var sheet = document.AddWorksheet("Source");
+                var sheet = document.AddSheet("Source");
                 sheet.CellValue(1, 1, "OrderDate");
                 sheet.CellValue(1, 2, "Sales");
                 var dates = new[]

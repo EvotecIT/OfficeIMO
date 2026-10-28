@@ -20,7 +20,7 @@ Describe 'Foundation output views' {
         $deck = [OfficeIMO.PowerPoint.PowerPointDocument]::Create()
         try {
             $paragraph = $word.AddParagraph('Visible paragraph')
-            $sheet = $excel.AddWorksheet('Visible sheet')
+            $sheet = $excel.AddSheet('Visible sheet')
             $slide = $deck.AddSlide()
             $table = $sheet.Table('A1:B2')
             $png = [OfficeIMO.Drawing.OfficePngWriter]::EncodeRgba(1,1,[byte[]]@(255,0,0,255))

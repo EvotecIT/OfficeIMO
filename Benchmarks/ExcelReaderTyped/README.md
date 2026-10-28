@@ -334,7 +334,7 @@ OfficeIMO's coordinate option omits data-row coordinates; the header retains its
 one row and four cell references. Setup checks the actual selected string and
 coordinate policies, every field, date styles, package CRCs, and relationships.
 
-`NativeWriterBenchmarks` compares XLSB using OfficeIMO's normal `Create`, `AddWorksheet`,
+`NativeWriterBenchmarks` compares XLSB using OfficeIMO's normal `Create`, `AddSheet`,
 `InsertObjects`, and native `Save` APIs. Model construction and saving are both
 inside the measured operation. The list of source records is prepared outside
 measurement for both libraries. XLSB preserves the upstream four-cell row buffer

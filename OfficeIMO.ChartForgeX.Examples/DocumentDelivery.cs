@@ -45,7 +45,7 @@ internal static class DocumentDelivery {
     private static void WriteExcel(string path, IReadOnlyList<VisualSpecimen> specimens) {
         using var document = ExcelDocument.Create(path);
         foreach (var specimen in specimens) {
-            var sheet = document.AddWorksheet(specimen.Name);
+            var sheet = document.AddSheet(specimen.Name);
             for (int column = 1; column <= 9; column++) sheet.SetColumnWidth(column, ExcelColumnWidth.Characters(12D));
             for (int row = 1; row <= 26; row++) sheet.SetRowHeight(row, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(18D)));
             sheet.MergeRange("B1:I2");

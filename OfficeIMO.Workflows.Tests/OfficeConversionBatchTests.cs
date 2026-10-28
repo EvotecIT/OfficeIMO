@@ -18,7 +18,7 @@ public sealed class OfficeConversionBatchTests {
         File.WriteAllText(Path.Combine(scope.Input, "rich.rtf"), "{\\rtf1\\ansi RTF source}");
         File.WriteAllText(Path.Combine(scope.Input, "other.bin"), "Unsupported input");
         using (var word = WordDocument.Create(Path.Combine(scope.Input, "word.docx"))) { word.AddParagraph("Word source"); word.Save(); }
-        using (var excel = ExcelDocument.Create(Path.Combine(scope.Input, "sheet.xlsx"))) { excel.AddWorksheet("Data").Cell(1, 1, "Excel source"); excel.Save(); }
+        using (var excel = ExcelDocument.Create(Path.Combine(scope.Input, "sheet.xlsx"))) { excel.AddSheet("Data").Cell(1, 1, "Excel source"); excel.Save(); }
         using (var slides = PowerPointDocument.Create(Path.Combine(scope.Input, "slides.pptx"))) { slides.AddSlide().AddTextBox("Slide source",global::OfficeIMO.OfficeLength.Points(40),global::OfficeIMO.OfficeLength.Points(40),global::OfficeIMO.OfficeLength.Points(500),global::OfficeIMO.OfficeLength.Points(60)); slides.Save(); }
         var items = new Items();
         var builder = (((new OfficeBatchOptions { InputDirectory = scope.Input } with { OutputDirectory = scope.Output }) with { ResumeFrom = Path.Combine(scope.State, "plan.json"), RetryFailed = false }) with {
@@ -50,7 +50,7 @@ public sealed class OfficeConversionBatchTests {
         string wordPath = Path.Combine(scope.Input, "locked.docx");
         string excelPath = Path.Combine(scope.Input, "locked.xlsx");
         using (var word = WordDocument.Create(wordPath)) { word.AddParagraph("Encrypted Word source"); word.Save(wordPath, new WordSaveOptions { Password = password }); }
-        using (var excel = ExcelDocument.Create(excelPath)) { excel.AddWorksheet("Data").Cell(1, 1, "Encrypted Excel source"); excel.Save(excelPath, new ExcelSaveOptions { Password = password }); }
+        using (var excel = ExcelDocument.Create(excelPath)) { excel.AddSheet("Data").Cell(1, 1, "Encrypted Excel source"); excel.Save(excelPath, new ExcelSaveOptions { Password = password }); }
         var result = await OfficeBatchExecutor.RunAsync(new OfficeConversionExecutor(), (((new OfficeBatchOptions { InputDirectory = scope.Input } with { OutputDirectory = scope.Output }) with { ResumeFrom = Path.Combine(scope.State, "plan.json"), RetryFailed = false }) with {
             ConversionOptions = new OfficeConversionOptions {
                 SourcePassword = password
@@ -205,7 +205,7 @@ public sealed class OfficeConversionBatchTests {
         File.WriteAllText(Path.Combine(scope.Input, "markup.md"), "# Encrypted Markdown");
         File.WriteAllText(Path.Combine(scope.Input, "rich.rtf"), "{\\rtf1\\ansi Encrypted RTF}");
         using (var word = WordDocument.Create(Path.Combine(scope.Input, "word.docx"))) { word.AddParagraph("Encrypted Word"); word.Save(); }
-        using (var excel = ExcelDocument.Create(Path.Combine(scope.Input, "sheet.xlsx"))) { excel.AddWorksheet("Data").Cell(1, 1, "Encrypted Excel"); excel.Save(); }
+        using (var excel = ExcelDocument.Create(Path.Combine(scope.Input, "sheet.xlsx"))) { excel.AddSheet("Data").Cell(1, 1, "Encrypted Excel"); excel.Save(); }
         using (var slides = PowerPointDocument.Create(Path.Combine(scope.Input, "slides.pptx"))) { slides.AddSlide().AddTextBox("Encrypted slides",global::OfficeIMO.OfficeLength.Points(40),global::OfficeIMO.OfficeLength.Points(40),global::OfficeIMO.OfficeLength.Points(500),global::OfficeIMO.OfficeLength.Points(60)); slides.Save(); }
         const string userPassword = "Synthetic output reader", ownerPassword = "Synthetic output owner";
         PdfCreateOptions Encryption() => new PdfCreateOptions().SetEncryption(userPassword, ownerPassword);

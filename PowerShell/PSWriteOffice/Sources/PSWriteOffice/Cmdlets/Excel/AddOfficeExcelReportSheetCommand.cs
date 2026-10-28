@@ -56,7 +56,7 @@ public sealed class AddOfficeExcelReportSheetCommand : PSCmdlet
     protected override void ProcessRecord()
     {
         var context = ExcelDslContext.Require(this);
-        var composer = context.Document.AddWorksheet(Name, ExcelSheetNameValidationMode.Sanitize).Report(BuildTheme());
+        var composer = context.Document.AddSheet(Name, ExcelSheetNameValidationMode.Sanitize).Report(BuildTheme());
 
         using (context.Push(composer))
         using (context.Push(composer.Sheet))

@@ -38,7 +38,7 @@ namespace OfficeIMO.Excel.Benchmarks {
         private byte[] WriteReport(bool validate = false) {
             using MemoryStream stream = new MemoryStream();
             using (ExcelDocument document = ExcelDocument.Create(stream)) {
-                ExcelSheet sheet = document.AddWorksheet("Report");
+                ExcelSheet sheet = document.AddSheet("Report");
                 for (int column = 1; column <= Columns; column++) {
                     sheet.CellValue(1, column, "Header " + column);
                     sheet.CellAt(1, column).HeaderStyle();

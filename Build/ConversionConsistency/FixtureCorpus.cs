@@ -28,7 +28,7 @@ internal static partial class FixtureCorpus {
         }
         using (var excel = ExcelDocument.Create()) {
             for (int page = 1; page <= 2; page++) {
-                var sheet = excel.AddWorksheet("Review " + page);
+                var sheet = excel.AddSheet("Review " + page);
                 sheet.CellValue(1, 1, "SERVICE REVIEW " + page);
                 sheet.CellValue(2, 1, "Availability"); sheet.CellValue(2, 2, 99.95D);
                 sheet.CellValue(3, 1, "Completed"); sheet.CellValue(3, 2, 9);

@@ -14,7 +14,7 @@ public partial class HtmlOfficeAdapters {
     [InlineData(OfficeChartType.Doughnut)]
     public void ExcelHtml_RoundTripsRadialGeometry(OfficeChartType kind) {
         using ExcelDocument document = ExcelDocument.Create();
-        document.AddWorksheet("Results").AddChart(kind,
+        document.AddSheet("Results").AddChart(kind,
             new OfficeChartData(new[] { "A", "B" }, new[] { new OfficeSeries("Status", new[] { 7d, 3d }) }), 1, 1)
             .SetRadialLayout(new OfficeChartRadialLayout(135, 75));
         using ExcelDocument restored = HtmlConversionDocument.Parse(document.ToHtml()).ToExcelDocument();

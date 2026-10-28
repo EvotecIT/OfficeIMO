@@ -44,7 +44,7 @@ namespace OfficeIMO.Reader.Dbf.Tests {
             int rowCount;
             if (buffered) {
                 using var document = ExcelDocument.Create();
-                rowCount = document.AddWorksheet("Data")
+                rowCount = document.AddSheet("Data")
                     .InsertDataReaderWithResult(reader, createTable: false).RowCount;
                 document.Save(output);
             } else {

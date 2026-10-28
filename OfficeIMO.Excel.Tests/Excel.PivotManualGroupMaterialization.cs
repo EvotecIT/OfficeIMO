@@ -79,7 +79,7 @@ namespace OfficeIMO.Tests
             var expectedView = oracle.GetSheet("Grouped").ReadRange("A4:C12");
             using (var document = ExcelDocument.Create())
             {
-                var sheet = document.AddWorksheet("Source");
+                var sheet = document.AddSheet("Source");
                 sheet.CellValue(1, 1, "Product");
                 sheet.CellValue(1, 2, "Sales");
                 sheet.CellValue(2, 1, "Apple");
@@ -123,7 +123,7 @@ namespace OfficeIMO.Tests
         public void Test_PivotManualGroup_NewSourceItemRemainsVisibleAfterRefresh()
         {
             using var document = ExcelDocument.Create();
-            var sheet = document.AddWorksheet("Source");
+            var sheet = document.AddSheet("Source");
             sheet.CellValue(1, 1, "Product");
             sheet.CellValue(1, 2, "Sales");
             sheet.CellValue(2, 1, "Apple");
@@ -153,7 +153,7 @@ namespace OfficeIMO.Tests
         {
             string output = Path.Combine(_directoryWithFiles, "ManualGroup.Columns.xlsx");
             using var document = ExcelDocument.Create();
-            var sheet = document.AddWorksheet("Source");
+            var sheet = document.AddSheet("Source");
             sheet.CellValue(1, 1, "Product");
             sheet.CellValue(1, 2, "Sales");
             sheet.CellValue(2, 1, "Apple");
@@ -186,7 +186,7 @@ namespace OfficeIMO.Tests
         public void Test_PivotManualGroup_ValidatesBeforeMutatingNamedPivot()
         {
             using var document = ExcelDocument.Create();
-            var sheet = document.AddWorksheet("Source");
+            var sheet = document.AddSheet("Source");
             sheet.CellValue(1, 1, "Product");
             sheet.CellValue(1, 2, "Sales");
             sheet.CellValue(2, 1, "Apple");

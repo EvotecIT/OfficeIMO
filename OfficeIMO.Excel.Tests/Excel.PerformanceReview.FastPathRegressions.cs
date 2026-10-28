@@ -20,7 +20,7 @@ namespace OfficeIMO.Tests {
             using (var document = ExcelDocument.Create(memory, new ExcelCreateOptions {
                 PersistenceMode = OfficeIMO.DocumentPersistenceMode.SaveOnDispose
             })) {
-                var sheet = document.AddWorksheet("Formula");
+                var sheet = document.AddSheet("Formula");
                 sheet.CellValue(2, 1, "Id");
                 sheet.CellValue(2, 2, "Active");
                 sheet.CellValue(2, 3, "Expression");
@@ -48,7 +48,7 @@ namespace OfficeIMO.Tests {
             using (var document = ExcelDocument.Create(memory, new ExcelCreateOptions {
                 PersistenceMode = OfficeIMO.DocumentPersistenceMode.SaveOnDispose
             })) {
-                var sheet = document.AddWorksheet("Data");
+                var sheet = document.AddSheet("Data");
                 sheet.CellValue(1, 1, "Id");
                 sheet.CellValue(1, 2, "Created");
                 sheet.CellValue(1, 3, "Active");
@@ -87,7 +87,7 @@ namespace OfficeIMO.Tests {
                     new FastPackageProjection("Beta", 20)
                 };
                 document.DefaultChartStylePreset = ExcelChartStylePreset.Default;
-                var sheet = document.AddWorksheet("Data");
+                var sheet = document.AddSheet("Data");
                 sheet.InsertObjects(
                     rows,
                     ("Name", row => row.Name),

@@ -164,7 +164,7 @@ public partial class Excel {
     [Fact]
     public void Reader_ImplicitLiveRowProjectionPreservesWorkbookModel() {
         using var document = ExcelDocument.Create();
-        var sheet = document.AddWorksheet("Data");
+        var sheet = document.AddSheet("Data");
         sheet.CellValue(10, 1, "First");
         sheet.CellValue(10, 2, "Value");
         var worksheet = document.OpenXmlDocument.WorkbookPart!.WorksheetParts.Single().Worksheet;
@@ -194,7 +194,7 @@ public partial class Excel {
     [InlineData(true, true)]
     public void Reader_ImplicitLiveRowsRetainHeaderMapAndWorkbookModel(bool omitFirstCellReference, bool unsorted) {
         using var document = ExcelDocument.Create();
-        var sheet = document.AddWorksheet("Data");
+        var sheet = document.AddSheet("Data");
         sheet.CellValue(6, 1, "Id");
         sheet.CellValue(6, 2, "Name");
         sheet.CellValue(7, 1, 42);

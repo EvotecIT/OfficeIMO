@@ -146,7 +146,7 @@ public partial class Excel {
             $"OfficeIMO.Excel.XlsxNativeSchemaGetters.{Guid.NewGuid():N}.xlsx");
         try {
             using (var document = ExcelDocument.Create(path)) {
-                ExcelSheet sheet = document.AddWorksheet("Data");
+                ExcelSheet sheet = document.AddSheet("Data");
                 sheet.CellValue(1, 1, "Value");
                 sheet.CellValue(1, 2, "Optional");
                 sheet.CellValue(2, 1, "Sampled");
@@ -184,7 +184,7 @@ public partial class Excel {
             $"OfficeIMO.Excel.XlsxNativeSharedFormula.{Guid.NewGuid():N}.xlsx");
         try {
             using (var document = ExcelDocument.Create(path)) {
-                ExcelSheet sheet = document.AddWorksheet("Data");
+                ExcelSheet sheet = document.AddSheet("Data");
                 sheet.CellValue(1, 1, "Value");
                 sheet.CellValue(2, 1, "Cached");
                 document.Save();

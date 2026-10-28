@@ -256,7 +256,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void StandaloneDefinitionsAreUsableNamedStylesAndReplacementPreservesOtherStyles() {
             using var document = ExcelDocument.Create();
-            var sheet = document.AddWorksheet("Data");
+            var sheet = document.AddSheet("Data");
             sheet.CellValue(1, 1, 12.5); sheet.CellValue(1, 2, "Other");
             var definition = new ExcelStyleDefinition { Bold = true, BackgroundColor = OfficeColor.Yellow, NumberFormat = "0.00" };
             document.DefineNamedStyle(" Highlight ", definition);

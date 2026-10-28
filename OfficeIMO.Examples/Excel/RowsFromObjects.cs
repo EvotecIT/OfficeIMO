@@ -56,7 +56,7 @@ namespace OfficeIMO.Examples.Excel
             {
                 // Sheet 1: Basic transform with formatting and title-case headers
                 {
-                    var sheet1 = document.AddWorksheet("People");
+                    var sheet1 = document.AddSheet("People");
                     int nextRow2 = 1;
                     var projection3 = new OfficeIMO.Data.ObjectFlattenerOptions();
                     {
@@ -77,7 +77,7 @@ namespace OfficeIMO.Examples.Excel
 
                 // Sheet 2: Include/Exclude — keep Name/Age/Address.City; drop Address.Street
                 {
-                    var sheet5 = document.AddWorksheet("IncludeExclude");
+                    var sheet5 = document.AddSheet("IncludeExclude");
                     int nextRow6 = 1;
                     var projection7 = new OfficeIMO.Data.ObjectFlattenerOptions();
                     {
@@ -94,7 +94,7 @@ namespace OfficeIMO.Examples.Excel
 
                 // Sheet 3: Ordering — pin Name first, then Age, then Address.City, push Address.Street last
                 {
-                    var sheet9 = document.AddWorksheet("Ordering");
+                    var sheet9 = document.AddSheet("Ordering");
                     int nextRow10 = 1;
                     var projection11 = new OfficeIMO.Data.ObjectFlattenerOptions();
                     {

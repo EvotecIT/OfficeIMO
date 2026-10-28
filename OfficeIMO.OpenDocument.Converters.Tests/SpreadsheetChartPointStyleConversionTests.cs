@@ -18,7 +18,7 @@ public sealed class SpreadsheetChartPointStyleConversionTests {
     [Fact]
     public void ExcelPointBlackWhiteModeReportsChartLossInsteadOfDroppingAppearance() {
         using ExcelDocument source = ExcelDocument.Create();
-        ExcelSheet sheet = source.AddWorksheet("Summary");
+        ExcelSheet sheet = source.AddSheet("Summary");
         sheet.AddChart(OfficeChartType.Pie,
             new OfficeChartData(new[] { "Pass", "Fail" }, new[] {
                 new OfficeSeries("Status", new[] { 3d, 4d })
@@ -105,7 +105,7 @@ public sealed class SpreadsheetChartPointStyleConversionTests {
     public void ExcelSharedPointStylesConvertToNativeOds(OfficeChartType sourceType,
         string chartClass) {
         using ExcelDocument source = ExcelDocument.Create();
-        ExcelSheet sheet = source.AddWorksheet("Summary");
+        ExcelSheet sheet = source.AddSheet("Summary");
         var data = new OfficeChartData(new[] { "Pass", "Fail", "Unknown" },
             new[] { new OfficeSeries("Status", new[] { 3d, 4d, 5d })
                 .WithPointStyles(CreatePointStyles()) });
@@ -130,7 +130,7 @@ public sealed class SpreadsheetChartPointStyleConversionTests {
     [InlineData(OfficeChartType.Doughnut)]
     public void ExcelNondefaultRadialGeometryReportsChartLoss(OfficeChartType sourceType) {
         using ExcelDocument source = ExcelDocument.Create();
-        ExcelSheet sheet = source.AddWorksheet("Summary");
+        ExcelSheet sheet = source.AddSheet("Summary");
         var data = new OfficeChartData(new[] { "A", "B" },
             new[] { new OfficeSeries("Values", new[] { 3d, 4d }) });
         sheet.AddChart(sourceType, data, row: 2, column: 4)
@@ -357,7 +357,7 @@ public sealed class SpreadsheetChartPointStyleConversionTests {
     [Fact]
     public void StyledExcelLineReportsWholeChartLoss() {
         using ExcelDocument source = ExcelDocument.Create();
-        ExcelSheet sheet = source.AddWorksheet("Summary");
+        ExcelSheet sheet = source.AddSheet("Summary");
         var data = new OfficeChartData(new[] { "Pass", "Fail", "Unknown" },
             new[] { new OfficeSeries("Status", new[] { 3d, 4d, 5d })
                 .WithPointStyles(new OfficeChartPointStyle?[] {
@@ -375,7 +375,7 @@ public sealed class SpreadsheetChartPointStyleConversionTests {
     [Fact]
     public void ExcelPointInversionReportsWholeChartLoss() {
         using ExcelDocument source = ExcelDocument.Create();
-        ExcelChart chart = source.AddWorksheet("Summary").AddChart(OfficeChartType.ColumnClustered,
+        ExcelChart chart = source.AddSheet("Summary").AddChart(OfficeChartType.ColumnClustered,
             new OfficeChartData(new[] { "Loss", "Gain" }, new[] {
                 new OfficeSeries("Status", new[] { -3d, 4d })
             }), row: 2, column: 4);
@@ -433,7 +433,7 @@ public sealed class SpreadsheetChartPointStyleConversionTests {
     [Fact]
     public void ExplodedExcelSliceReportsTheWholeChartAsLoss() {
         using ExcelDocument source = ExcelDocument.Create();
-        ExcelSheet sheet = source.AddWorksheet("Summary");
+        ExcelSheet sheet = source.AddSheet("Summary");
         var data = new OfficeChartData(new[] { "Pass", "Fail", "Unknown" },
             new[] { new OfficeSeries("Status", new[] { 3d, 4d, 5d })
                 .WithPointStyles(CreatePointStyles()).WithPointExplosions(new[] { 0, 25, 0 }) });
@@ -449,7 +449,7 @@ public sealed class SpreadsheetChartPointStyleConversionTests {
     [Fact]
     public void TransparentExcelPointReportsChartLossWithoutAbortingWorkbook() {
         using ExcelDocument source = ExcelDocument.Create();
-        ExcelSheet sheet = source.AddWorksheet("Summary");
+        ExcelSheet sheet = source.AddSheet("Summary");
         sheet.Cell(1, 1, "Retained cell");
         var data = new OfficeChartData(new[] { "Pass", "Fail", "Unknown" },
             new[] { new OfficeSeries("Status", new[] { 3d, 4d, 5d })

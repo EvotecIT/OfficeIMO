@@ -14,7 +14,7 @@ public sealed class ExcelChartSecondaryAxisLayoutTests {
     [InlineData("implicitOverlay")]
     public void SecondaryValueAxis_UnsupportedTitlePlacementRejectsSnapshot(string placement) {
         using var document = ExcelDocument.Create();
-        var sheet = document.AddWorksheet("Results");
+        var sheet = document.AddSheet("Results");
         var chart = sheet.AddChart(OfficeChartType.ColumnClustered, new OfficeChartData(new[] { "A" }, new[] {
             new OfficeSeries("Count", new[] { 100d }),
             new OfficeSeries("Ratio", new[] { 1d }, null, null, null, true,
@@ -39,7 +39,7 @@ public sealed class ExcelChartSecondaryAxisLayoutTests {
     [InlineData("deleted")]
     public void SecondaryValueAxis_InvalidImportedSettingsRejectSnapshot(string setting) {
         using var document = ExcelDocument.Create();
-        var sheet = document.AddWorksheet("Results");
+        var sheet = document.AddSheet("Results");
         var chart = sheet.AddChart(OfficeChartType.ColumnClustered, new OfficeChartData(new[] { "A" }, new[] {
             new OfficeSeries("Count", new[] { 100d }),
             new OfficeSeries("Ratio", new[] { 1d }, null, null, null, true,
@@ -65,7 +65,7 @@ public sealed class ExcelChartSecondaryAxisLayoutTests {
     [Fact]
     public void SecondaryValueAxis_ReopenSnapshotPreservesIndependentSettings() {
         using var document = ExcelDocument.Create();
-        var chart = document.AddWorksheet("Results").AddChart(OfficeChartType.ColumnClustered,
+        var chart = document.AddSheet("Results").AddChart(OfficeChartType.ColumnClustered,
             new OfficeChartData(new[] { "A", "B" }, new[] {
                 new OfficeSeries("Volume", new[] { 100d, 150d }),
                 new OfficeSeries("Ratio", new[] { 1d, 2d }, null, null, null, true,
@@ -97,7 +97,7 @@ public sealed class ExcelChartSecondaryAxisLayoutTests {
     [Fact]
     public void SecondaryValueAxis_ResolvesLinkedNumberFormatFromItsWorksheetValues() {
         using var document = ExcelDocument.Create();
-        var sheet = document.AddWorksheet("Results");
+        var sheet = document.AddSheet("Results");
         sheet.CellValue(1, 1, "Region"); sheet.CellValue(1, 2, "Count"); sheet.CellValue(1, 3, "Ratio");
         sheet.CellValue(2, 1, "North"); sheet.CellValue(2, 2, 100); sheet.CellValue(2, 3, .5);
         sheet.CellValue(3, 1, "South"); sheet.CellValue(3, 2, 200); sheet.CellValue(3, 3, .75);

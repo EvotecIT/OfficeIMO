@@ -19,7 +19,7 @@ public sealed class OfficeConverterNativeRouteTests {
                     using (var document = WordDocument.Create()) { document.AddParagraph("Native variant content"); document.Save(source); }
                     break;
                 case OfficeDocumentFormat.Excel:
-                    using (var document = ExcelDocument.Create()) { document.AddWorksheet("Data").CellValue(1, 1, "Native variant content"); document.Save(source); }
+                    using (var document = ExcelDocument.Create()) { document.AddSheet("Data").CellValue(1, 1, "Native variant content"); document.Save(source); }
                     break;
                 case OfficeDocumentFormat.PowerPoint:
                     using (var document = PowerPointDocument.Create()) { document.AddSlide().AddTextBox("Native variant content"); document.Save(source); }

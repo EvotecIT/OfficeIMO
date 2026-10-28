@@ -563,7 +563,7 @@ public class PdfDocumentImageValidationTests {
     [Fact]
     public void ExcelPdfAdapterUsesCanonicalRasterPreparation() {
         using ExcelDocument workbook = ExcelDocument.Create();
-        ExcelSheet sheet = workbook.AddWorksheet("Raster");
+        ExcelSheet sheet = workbook.AddSheet("Raster");
         sheet.AddImage(1, 1, CreateMinimalGif(), "image/gif", OfficeIMO.OfficeLength.Pixels(24), OfficeIMO.OfficeLength.Pixels(24));
 
         byte[] pdf = (workbook.ToPdf()).ToBytes();

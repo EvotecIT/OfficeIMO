@@ -95,7 +95,7 @@ public sealed class ReaderLoadedNativeProjectionTests {
     [Fact]
     public void LoadedExcelProjectionSnapshotsOptionsBeforeCallerConverterRuns() {
         using ExcelDocument document = ExcelDocument.Create();
-        var sheet = document.AddWorksheet("Evidence");
+        var sheet = document.AddSheet("Evidence");
         sheet.CellValue(1, 1, "Header"); sheet.CellFormula(2, 1, "1+1"); sheet.CellValue(3, 1, "Stable value");
         var options = new ReaderOptions { Projection = ReaderProjection.TextAndMetadata, ResourceLimits = new ReaderResourceLimits { MaxChunkCharacters = 1000 } };
         var format = new ReaderExcelOptions { SheetName = "Evidence", A1Range = "A1:A3", ChunkRows = 0, ReadOptions = new ExcelReaderOptions() };
@@ -127,7 +127,7 @@ public sealed class ReaderLoadedNativeProjectionTests {
         }
         if (format == "excel") {
             ExcelDocument document = ExcelDocument.Create();
-            var sheet = document.AddWorksheet("Evidence");
+            var sheet = document.AddSheet("Evidence");
             sheet.CellValue(1, 1, "Header"); sheet.CellValue(2, 1, "Current model evidence");
             sheet.AddImage(1, 1, Pixel, width: OfficeIMO.OfficeLength.Pixels(1), height: OfficeIMO.OfficeLength.Pixels(1));
             AddPayload(document.OpenXmlDocument.WorkbookPart!.WorksheetParts.Single());

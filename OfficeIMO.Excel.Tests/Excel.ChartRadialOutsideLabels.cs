@@ -11,7 +11,7 @@ public sealed class ExcelChartRadialOutsideLabelsTests {
     [Fact]
     public void DifferingSeriesLabelContentsRejectOneSharedDoughnutLayout() {
         using var document = ExcelDocument.Create();
-        ExcelChart chart = document.AddWorksheet("Results").AddChart(OfficeChartType.Doughnut,
+        ExcelChart chart = document.AddSheet("Results").AddChart(OfficeChartType.Doughnut,
             new OfficeChartData(new[] { "A", "B" }, new[] {
                 new OfficeSeries("Inner", new[] { 3d, 4d }),
                 new OfficeSeries("Outer", new[] { 4d, 3d })
@@ -29,7 +29,7 @@ public sealed class ExcelChartRadialOutsideLabelsTests {
     [Fact]
     public void OuterRingOnlyLabelsKeepTheirSeriesSelectionAndLeaders() {
         using var document = ExcelDocument.Create();
-        ExcelChart chart = document.AddWorksheet("Results").AddChart(OfficeChartType.Doughnut,
+        ExcelChart chart = document.AddSheet("Results").AddChart(OfficeChartType.Doughnut,
             new OfficeChartData(new[] { "A", "B" }, new[] {
                 new OfficeSeries("Inner", new[] { 3d, 2d }),
                 new OfficeSeries("Outer", new[] { 4d, 1d })
@@ -53,7 +53,7 @@ public sealed class ExcelChartRadialOutsideLabelsTests {
     [InlineData(true)]
     public void NativeOutsideLabelsRetainLeaderLineSettingInImageSnapshot(bool showLeaderLines) {
         using var document = ExcelDocument.Create();
-        ExcelChart chart = document.AddWorksheet("Results").AddChart(OfficeChartType.Doughnut,
+        ExcelChart chart = document.AddSheet("Results").AddChart(OfficeChartType.Doughnut,
             new OfficeChartData(new[] { "A", "B", "C" }, new[] {
                 new OfficeSeries("Status", new[] { 3d, 4d, 5d })
             }), 1, 1);
@@ -75,7 +75,7 @@ public sealed class ExcelChartRadialOutsideLabelsTests {
     [Fact]
     public void EmptyLeaderLinesContainerDoesNotReportMissingRenderedLines() {
         using var document = ExcelDocument.Create();
-        ExcelChart chart = document.AddWorksheet("Results").AddChart(OfficeChartType.Pie,
+        ExcelChart chart = document.AddSheet("Results").AddChart(OfficeChartType.Pie,
             new OfficeChartData(new[] { "A", "B" }, new[] {
                 new OfficeSeries("Status", new[] { 3d, 4d })
             }), 1, 1);
@@ -108,7 +108,7 @@ public sealed class ExcelChartRadialOutsideLabelsTests {
     [Fact]
     public void ConflictingSeriesLeaderLineSettingsRejectImageSnapshot() {
         using var document = ExcelDocument.Create();
-        ExcelChart chart = document.AddWorksheet("Results").AddChart(OfficeChartType.Doughnut,
+        ExcelChart chart = document.AddSheet("Results").AddChart(OfficeChartType.Doughnut,
             new OfficeChartData(new[] { "A", "B" }, new[] {
                 new OfficeSeries("Inner", new[] { 3d, 4d }),
                 new OfficeSeries("Outer", new[] { 4d, 3d })

@@ -12,7 +12,7 @@ namespace OfficeIMO.Tests {
         public void Xlsb_LoadedWorkbook_RewritesEqualityListAutoFilterCriteria() {
             byte[] source;
             using (ExcelDocument document = ExcelDocument.Create()) {
-                ExcelSheet sheet = document.AddWorksheet("Report");
+                ExcelSheet sheet = document.AddSheet("Report");
                 sheet.CellValue(1, 1, "Status");
                 sheet.CellValue(1, 2, "Owner");
                 sheet.CellValue(2, 1, "Open");
@@ -61,7 +61,7 @@ namespace OfficeIMO.Tests {
         public void Xlsb_LoadedWorkbook_ClearsEqualityListCriteriaWithoutRemovingFilterRange() {
             byte[] source;
             using (ExcelDocument document = ExcelDocument.Create()) {
-                ExcelSheet sheet = document.AddWorksheet("Report");
+                ExcelSheet sheet = document.AddSheet("Report");
                 sheet.CellValue(1, 1, "Status");
                 sheet.CellValue(2, 1, "Open");
                 sheet.AddAutoFilter("A1:A2", new Dictionary<uint, IEnumerable<string>> {
@@ -91,7 +91,7 @@ namespace OfficeIMO.Tests {
             try {
                 byte[] source;
                 using (ExcelDocument document = ExcelDocument.Create()) {
-                    ExcelSheet sheet = document.AddWorksheet("Report");
+                    ExcelSheet sheet = document.AddSheet("Report");
                     sheet.CellValue(1, 1, "Status");
                     sheet.CellValue(2, 1, "Open");
                     sheet.CellValue(3, 1, "Closed");
@@ -122,7 +122,7 @@ namespace OfficeIMO.Tests {
         public void Xlsb_LoadedWorkbook_PreservesRecognizedRecordsInsideUnsupportedAutoFilterAndBlocksMutation() {
             byte[] source;
             using (ExcelDocument document = ExcelDocument.Create()) {
-                ExcelSheet sheet = document.AddWorksheet("Report");
+                ExcelSheet sheet = document.AddSheet("Report");
                 sheet.CellValue(1, 1, "Status");
                 sheet.CellValue(2, 1, "Open");
                 sheet.AddAutoFilter("A1:A2", new Dictionary<uint, IEnumerable<string>> {
@@ -161,7 +161,7 @@ namespace OfficeIMO.Tests {
         public void Xlsb_LoadedWorkbook_RejectsForeignNamespaceAutoFilterAttributes() {
             byte[] source;
             using (ExcelDocument document = ExcelDocument.Create()) {
-                ExcelSheet sheet = document.AddWorksheet("Report");
+                ExcelSheet sheet = document.AddSheet("Report");
                 sheet.CellValue(1, 1, "Status");
                 sheet.CellValue(2, 1, "Open");
                 sheet.AddAutoFilter("A1:A2", new Dictionary<uint, IEnumerable<string>> {
@@ -188,7 +188,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Xlsb_NewWorkbook_AllowsRelationshipQualifiedHyperlinkIdButRejectsUnqualifiedId() {
             using ExcelDocument document = ExcelDocument.Create();
-            ExcelSheet sheet = document.AddWorksheet("Report");
+            ExcelSheet sheet = document.AddSheet("Report");
             sheet.CellValue(1, 1, "OfficeIMO");
             sheet.SetHyperlink(
                 1,
@@ -211,7 +211,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Xlsb_NewWorkbook_RejectsUnqualifiedPageSetupId() {
             using ExcelDocument document = ExcelDocument.Create();
-            ExcelSheet sheet = document.AddWorksheet("Report");
+            ExcelSheet sheet = document.AddSheet("Report");
             sheet.CellValue(1, 1, "Status");
             sheet.SetPageSetup(fitToWidth: 1U, fitToHeight: 0U);
             PageSetup pageSetup = Assert.IsType<PageSetup>(
@@ -229,7 +229,7 @@ namespace OfficeIMO.Tests {
         public void Xlsb_LoadedWorkbook_FailsClosedWhenFilterDatabaseNameWouldNeedChanging(bool remove) {
             byte[] source;
             using (ExcelDocument document = ExcelDocument.Create()) {
-                ExcelSheet sheet = document.AddWorksheet("Report");
+                ExcelSheet sheet = document.AddSheet("Report");
                 sheet.CellValue(1, 1, "Status");
                 sheet.CellValue(2, 1, "Open");
                 sheet.AddAutoFilter("A1:A2");

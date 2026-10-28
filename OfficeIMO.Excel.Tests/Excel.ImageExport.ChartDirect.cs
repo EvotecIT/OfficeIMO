@@ -14,7 +14,7 @@ namespace OfficeIMO.Tests {
         [InlineData(OfficeImageExportFormat.Webp)]
         public void ExcelChart_ExportsDirectlyThroughSharedImageContract(OfficeImageExportFormat format) {
             using ExcelDocument document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Summary");
+            ExcelSheet sheet = document.AddSheet("Summary");
             sheet.CellValue(1, 1, "Category");
             sheet.CellValue(1, 2, "Value");
             sheet.CellValue(2, 1, "Open");
@@ -43,7 +43,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void ExcelChart_UsesTheSharedFluentImageBuilder() {
             using ExcelDocument document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Summary");
+            ExcelSheet sheet = document.AddSheet("Summary");
             sheet.CellValue(1, 1, "Category");
             sheet.CellValue(1, 2, "Value");
             sheet.CellValue(2, 1, "Open");
@@ -67,7 +67,7 @@ namespace OfficeIMO.Tests {
         [InlineData(OfficeImageExportFormat.Svg)]
         public void ExcelChart_FitWithinAppliesToRasterAndSvg(OfficeImageExportFormat format) {
             using ExcelDocument document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Summary");
+            ExcelSheet sheet = document.AddSheet("Summary");
             sheet.CellValue(1, 1, "Category");
             sheet.CellValue(1, 2, "Value");
             sheet.CellValue(2, 1, "Open");
@@ -94,7 +94,7 @@ namespace OfficeIMO.Tests {
         [InlineData(OfficeImageExportFormat.Svg)]
         public void ExcelChart_PreservesSmallAnchoredDimensions(OfficeImageExportFormat format) {
             using ExcelDocument document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Summary");
+            ExcelSheet sheet = document.AddSheet("Summary");
             sheet.CellValue(1, 1, "Category");
             sheet.CellValue(1, 2, "Value");
             sheet.CellValue(2, 1, "Open");
@@ -116,7 +116,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void ExcelChart_SvgUsesRequestedExportBackgroundWhenChartHasNoFill() {
             using ExcelDocument document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Summary");
+            ExcelSheet sheet = document.AddSheet("Summary");
             sheet.CellValue(1, 1, "Category");
             sheet.CellValue(1, 2, "Value");
             sheet.CellValue(2, 1, "Open");
@@ -144,7 +144,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), System.Guid.NewGuid() + ".xlsx");
             try {
                 using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                    ExcelSheet sheet = document.AddWorksheet("Summary");
+                    ExcelSheet sheet = document.AddSheet("Summary");
                     sheet.CellValue(1, 1, "Category");
                     sheet.CellValue(1, 2, "Value");
                     sheet.CellValue(2, 1, "Open");

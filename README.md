@@ -1476,7 +1476,7 @@ document.SaveAsPng("report-preview.png");
 using OfficeIMO.Excel;
 
 using var workbook = ExcelDocument.Create("sales.xlsx");
-var sheet = workbook.AddWorksheet("Sales");
+var sheet = workbook.AddSheet("Sales");
 
 sheet.CellValue(1, 1, "Product");
 sheet.CellValue(1, 2, "Revenue");

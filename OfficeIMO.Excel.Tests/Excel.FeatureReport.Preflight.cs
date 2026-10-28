@@ -20,7 +20,7 @@ namespace OfficeIMO.Tests
             string filePath = Path.Combine(_directoryWithFiles, "FeatureReport.Preflight.Clean.xlsx");
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorksheet("Report");
+                ExcelSheet sheet = document.AddSheet("Report");
                 sheet.CellValue(1, 1, "Name");
                 sheet.CellValue(1, 2, "Score");
                 sheet.CellValue(2, 1, "Alpha");
@@ -55,7 +55,7 @@ namespace OfficeIMO.Tests
             string filePath = Path.Combine(_directoryWithFiles, "FeatureReport.Preflight.PreserveOnly.xlsx");
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorksheet("Metadata");
+                ExcelSheet sheet = document.AddSheet("Metadata");
                 sheet.CellValue(1, 1, "Resource");
                 document.Save();
             }
@@ -88,7 +88,7 @@ namespace OfficeIMO.Tests
             string filePath = Path.Combine(_directoryWithFiles, "FeatureReport.Preflight.PivotMetadata.xlsx");
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                document.AddWorksheet("Metadata").CellValue(1, 1, "Resource");
+                document.AddSheet("Metadata").CellValue(1, 1, "Resource");
                 document.AddWorkbookSlicerCache(new ExcelSlicerCacheOptions {
                     Name = "RegionSlicer",
                     SourceName = "Region",
@@ -113,7 +113,7 @@ namespace OfficeIMO.Tests
             string filePath = Path.Combine(_directoryWithFiles, "FeatureReport.Preflight.ExternalHyperlink.xlsx");
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorksheet("Links");
+                ExcelSheet sheet = document.AddSheet("Links");
                 sheet.CellValue(1, 1, "Resource");
                 sheet.SetHyperlink(2, 1, "https://example.org/spec", display: "Spec");
                 document.Save();
@@ -135,7 +135,7 @@ namespace OfficeIMO.Tests
             string filePath = Path.Combine(_directoryWithFiles, "FeatureReport.Preflight.RelativeHyperlink.xlsx");
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorksheet("Links");
+                ExcelSheet sheet = document.AddSheet("Links");
                 sheet.CellValue(1, 1, "Resource");
                 sheet.CellValue(2, 1, "Spec");
                 document.Save();
@@ -161,11 +161,11 @@ namespace OfficeIMO.Tests
             string filePath = Path.Combine(_directoryWithFiles, "FeatureReport.Preflight.InternalHiddenHyperlink.xlsx");
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet summary = document.AddWorksheet("Summary");
+                ExcelSheet summary = document.AddSheet("Summary");
                 summary.CellValue(1, 1, "Resource");
                 summary.CellValue(2, 1, "Hidden target");
 
-                ExcelSheet hidden = document.AddWorksheet("Hidden Details");
+                ExcelSheet hidden = document.AddSheet("Hidden Details");
                 hidden.CellValue(1, 1, "Target");
                 hidden.SetHidden(true);
                 document.Save();
@@ -192,7 +192,7 @@ namespace OfficeIMO.Tests
             string filePath = Path.Combine(_directoryWithFiles, "FeatureReport.Preflight.Formulas.xlsx");
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorksheet("Calc");
+                ExcelSheet sheet = document.AddSheet("Calc");
                 sheet.CellValue(1, 1, "A");
                 sheet.CellValue(2, 1, "B");
                 sheet.CellFormula(1, 2, "UNIQUE(A1:A2)");
@@ -227,7 +227,7 @@ namespace OfficeIMO.Tests
             string filePath = Path.Combine(_directoryWithFiles, "FeatureReport.Preflight.CleanCachedDependency.xlsx");
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorksheet("Calc");
+                ExcelSheet sheet = document.AddSheet("Calc");
                 sheet.CellValue(1, 1, "A");
                 sheet.CellFormula(1, 2, "UNIQUE(A1:A1)");
                 sheet.CellFormula(1, 3, "B1+1");
@@ -254,7 +254,7 @@ namespace OfficeIMO.Tests
             string filePath = Path.Combine(_directoryWithFiles, "FeatureReport.Preflight.RecalcRequest.xlsx");
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorksheet("Calc");
+                ExcelSheet sheet = document.AddSheet("Calc");
                 sheet.CellValue(1, 1, 2d);
                 sheet.CellFormula(1, 2, "A1+1");
                 Assert.Equal(1, document.Calculate());
@@ -280,7 +280,7 @@ namespace OfficeIMO.Tests
             string filePath = Path.Combine(_directoryWithFiles, "FeatureReport.Preflight.RepairHints.xlsx");
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorksheet("Calc");
+                ExcelSheet sheet = document.AddSheet("Calc");
                 sheet.CellValue(1, 1, 2d);
                 sheet.CellFormula(1, 2, "A1+1");
                 document.ConfigureFullCalculationOnOpen();
@@ -306,10 +306,10 @@ namespace OfficeIMO.Tests
             string filePath = Path.Combine(_directoryWithFiles, "FeatureReport.Preflight.HiddenFormulaCaches.xlsx");
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet visible = document.AddWorksheet("Report");
+                ExcelSheet visible = document.AddSheet("Report");
                 visible.CellValue(1, 1, "Ready");
 
-                ExcelSheet hidden = document.AddWorksheet("Scratch");
+                ExcelSheet hidden = document.AddSheet("Scratch");
                 hidden.CellValue(1, 1, 2d);
                 hidden.CellFormula(1, 2, "A1+1");
                 hidden.SetHidden(true);
@@ -332,7 +332,7 @@ namespace OfficeIMO.Tests
             string filePath = Path.Combine(_directoryWithFiles, "FeatureReport.Preflight.RecalcNoFormulas.xlsx");
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorksheet("Data");
+                ExcelSheet sheet = document.AddSheet("Data");
                 sheet.CellValue(1, 1, "Ready");
                 document.ConfigureFullCalculationOnOpen();
                 document.Save();
@@ -353,7 +353,7 @@ namespace OfficeIMO.Tests
             string filePath = Path.Combine(_directoryWithFiles, "FeatureReport.Preflight.Signed.xlsx");
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorksheet("Signed");
+                ExcelSheet sheet = document.AddSheet("Signed");
                 sheet.CellValue(1, 1, "Status");
                 sheet.CellValue(2, 1, "Ready");
                 document.Save();
@@ -379,7 +379,7 @@ namespace OfficeIMO.Tests
             string filePath = Path.Combine(_directoryWithFiles, "FeatureReport.Preflight.DirtyFormulaCaches.xlsx");
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorksheet("Calc");
+                ExcelSheet sheet = document.AddSheet("Calc");
                 sheet.CellValue(1, 1, 2d);
                 sheet.CellFormula(1, 2, "A1+1");
                 Assert.Equal(1, document.Calculate());
@@ -406,7 +406,7 @@ namespace OfficeIMO.Tests
             string filePath = Path.Combine(_directoryWithFiles, "FeatureReport.Preflight.FormulaChain.xlsx");
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorksheet("Calc");
+                ExcelSheet sheet = document.AddSheet("Calc");
                 sheet.CellValue(1, 1, 2d);
                 sheet.CellFormula(1, 2, "A1+1");
                 sheet.CellFormula(1, 3, "B1+1");
@@ -429,7 +429,7 @@ namespace OfficeIMO.Tests
             string filePath = Path.Combine(_directoryWithFiles, "FeatureReport.Preflight.CircularFormulaCaches.xlsx");
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorksheet("Calc");
+                ExcelSheet sheet = document.AddSheet("Calc");
                 sheet.CellFormula(1, 1, "B1+1");
                 sheet.CellFormula(1, 2, "A1+1");
                 document.Save();
@@ -465,7 +465,7 @@ namespace OfficeIMO.Tests
             string filePath = Path.Combine(_directoryWithFiles, "FeatureReport.Preflight.UnsupportedFormulaChain.xlsx");
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorksheet("Calc");
+                ExcelSheet sheet = document.AddSheet("Calc");
                 sheet.CellValue(1, 1, 2d);
                 sheet.CellFormula(1, 2, "A1+1");
                 sheet.CellFormula(1, 3, formula);
@@ -491,7 +491,7 @@ namespace OfficeIMO.Tests
         [InlineData("SUM(B1,LEN(\"_xlfn._xlws.FILTER(\"))")]
         public void FeatureReport_Preflight_IgnoresArrayNamesInsideStringLiterals(string formula) {
             using var document = ExcelDocument.Create();
-            var sheet = document.AddWorksheet("Calc");
+            var sheet = document.AddSheet("Calc");
             sheet.CellValue(1, 1, 2d);
             sheet.CellFormula(1, 2, "A1+1");
             sheet.CellFormula(1, 3, formula);
@@ -504,7 +504,7 @@ namespace OfficeIMO.Tests
             string filePath = Path.Combine(_directoryWithFiles, "FeatureReport.Preflight.CleanCachedUnsupportedFormula.xlsx");
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorksheet("Calc");
+                ExcelSheet sheet = document.AddSheet("Calc");
                 sheet.CellValue(1, 1, 7d);
                 sheet.CellFormula(1, 2, "UNIQUE(A1:A1)");
                 document.Save();
@@ -529,7 +529,7 @@ namespace OfficeIMO.Tests
             string filePath = Path.Combine(_directoryWithFiles, "FeatureReport.Preflight.ComboChart.xlsx");
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorksheet("Charts");
+                ExcelSheet sheet = document.AddSheet("Charts");
                 var data = new ExcelChartData(
                     new[] { "Q1", "Q2", "Q3" },
                     new[] {
@@ -557,7 +557,7 @@ namespace OfficeIMO.Tests
             string filePath = Path.Combine(_directoryWithFiles, "FeatureReport.Preflight.SameFamilyComboChart.xlsx");
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorksheet("Charts");
+                ExcelSheet sheet = document.AddSheet("Charts");
                 var data = new ExcelChartData(
                     new[] { "Q1", "Q2", "Q3" },
                     new[] {
@@ -615,7 +615,7 @@ namespace OfficeIMO.Tests
             string filePath = Path.Combine(_directoryWithFiles, "FeatureReport.Preflight.UnreadableChart.xlsx");
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorksheet("Charts");
+                ExcelSheet sheet = document.AddSheet("Charts");
                 sheet.CellValue(1, 1, "Zone");
                 sheet.CellValue(1, 2, "Value");
                 sheet.CellValue(2, 1, "North");
@@ -646,7 +646,7 @@ namespace OfficeIMO.Tests
             string filePath = Path.Combine(_directoryWithFiles, "FeatureReport.Preflight.DanglingChart.xlsx");
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorksheet("Charts");
+                ExcelSheet sheet = document.AddSheet("Charts");
                 sheet.CellValue(1, 1, "Zone");
                 sheet.CellValue(1, 2, "Value");
                 sheet.CellValue(2, 1, "North");
@@ -678,7 +678,7 @@ namespace OfficeIMO.Tests
             string filePath = Path.Combine(_directoryWithFiles, "FeatureReport.Preflight.SupportedGifImage.xlsx");
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorksheet("Images");
+                ExcelSheet sheet = document.AddSheet("Images");
                 sheet.CellValue(1, 1, "Image");
                 sheet.AddImage(2, 1, CreateFeatureReportGif(), "image/gif",
                     width: OfficeIMO.OfficeLength.Pixels(12), height: OfficeIMO.OfficeLength.Pixels(12), name: "GifLogo");
@@ -698,7 +698,7 @@ namespace OfficeIMO.Tests
             string filePath = Path.Combine(_directoryWithFiles, "FeatureReport.Preflight.SupportedHeaderGif.xlsx");
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorksheet("Images");
+                ExcelSheet sheet = document.AddSheet("Images");
                 sheet.CellValue(1, 1, "Image");
                 sheet.SetHeaderImage(ExcelHeaderFooterPosition.Center, CreateFeatureReportGif(), "image/gif",
                     width: OfficeLength.Points(24), height: OfficeLength.Points(24));
@@ -721,7 +721,7 @@ namespace OfficeIMO.Tests
             string filePath = Path.Combine(_directoryWithFiles, "FeatureReport.Preflight.UnsupportedHeaderFormatting.xlsx");
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorksheet("Headers");
+                ExcelSheet sheet = document.AddSheet("Headers");
                 sheet.CellValue(1, 1, "Report");
                 sheet.SetHeaderFooter(headerCenter: "&UConfidential");
                 document.Save();
@@ -744,7 +744,7 @@ namespace OfficeIMO.Tests
             string filePath = Path.Combine(_directoryWithFiles, "FeatureReport.Preflight.MultiAreaPrintArea.xlsx");
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorksheet("Report");
+                ExcelSheet sheet = document.AddSheet("Report");
                 sheet.CellValue(1, 1, "Top");
                 sheet.CellValue(2, 2, "Area one");
                 sheet.CellValue(2, 4, "Area two");
@@ -771,7 +771,7 @@ namespace OfficeIMO.Tests
             string filePath = Path.Combine(_directoryWithFiles, "FeatureReport.Preflight.PivotSparkline.xlsx");
             using (ExcelDocument document = ExcelDocument.Create(filePath))
             {
-                ExcelSheet sheet = document.AddWorksheet("Data");
+                ExcelSheet sheet = document.AddSheet("Data");
                 sheet.CellValue(1, 1, "Region");
                 sheet.CellValue(1, 2, "Sales");
                 sheet.CellValue(2, 1, "North");
@@ -799,9 +799,9 @@ namespace OfficeIMO.Tests
             string filePath = Path.Combine(_directoryWithFiles, "FeatureReport.Preflight.HiddenPivotSparkline.xlsx");
             using (ExcelDocument document = ExcelDocument.Create(filePath))
             {
-                ExcelSheet visible = document.AddWorksheet("Report");
+                ExcelSheet visible = document.AddSheet("Report");
                 visible.CellValue(1, 1, "Ready");
-                ExcelSheet hidden = document.AddWorksheet("Analysis");
+                ExcelSheet hidden = document.AddSheet("Analysis");
                 hidden.CellValue(1, 1, "Region");
                 hidden.CellValue(1, 2, "Sales");
                 hidden.CellValue(2, 1, "North");
@@ -830,7 +830,7 @@ namespace OfficeIMO.Tests
             string filePath = Path.Combine(_directoryWithFiles, "FeatureReport.Preflight.DrawingShapeLink.xlsx");
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorksheet("Shapes");
+                ExcelSheet sheet = document.AddSheet("Shapes");
                 sheet.CellValue(1, 1, "Callout");
                 document.Save();
             }
@@ -857,7 +857,7 @@ namespace OfficeIMO.Tests
             string filePath = Path.Combine(_directoryWithFiles, "FeatureReport.Preflight.RenderableDrawingShape.xlsx");
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorksheet("Shapes");
+                ExcelSheet sheet = document.AddSheet("Shapes");
                 sheet.CellValue(1, 1, "Box");
                 document.Save();
             }
@@ -879,7 +879,7 @@ namespace OfficeIMO.Tests
             string filePath = Path.Combine(_directoryWithFiles, "FeatureReport.Preflight.ChartSheet.xlsx");
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorksheet("Data");
+                ExcelSheet sheet = document.AddSheet("Data");
                 sheet.CellValue(1, 1, "Value");
                 sheet.CellValue(2, 1, 10d);
                 document.Save();

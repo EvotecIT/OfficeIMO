@@ -6,7 +6,7 @@ namespace OfficeIMO.Examples.Showcase.Workflows {
     internal static class VendorComparison {
         internal static void Create(string folder) {
             using var document = ExcelDocument.Create(Path.Combine(folder, "example.xlsx"));
-            var sheet = document.AddWorksheet("Evaluation");
+            var sheet = document.AddSheet("Evaluation");
             sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(29));
             for (int column = 2; column <= 5; column++) sheet.SetColumnWidth(column, ExcelColumnWidth.Characters(22));
             sheet.MergeRange("A1:E1"); sheet.Cell(1, 1, "Vendor evaluation scorecard");

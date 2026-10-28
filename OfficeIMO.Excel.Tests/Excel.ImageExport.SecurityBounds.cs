@@ -11,7 +11,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void ExcelRange_ImageExportKeepsAnchorsInsideTallRequestedRanges() {
             using ExcelDocument document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("TallRange");
+            ExcelSheet sheet = document.AddSheet("TallRange");
             sheet.AddImage(
                 15000,
                 1,
@@ -31,7 +31,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void ExcelChart_ImageExportSkipsWorksheetGeometryForOneCellAnchors() {
             using ExcelDocument document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("OneCell");
+            ExcelSheet sheet = document.AddSheet("OneCell");
             sheet.CellValue(1, 1, "Category");
             sheet.CellValue(1, 2, "Value");
             sheet.CellValue(2, 1, "Only");
@@ -49,7 +49,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void ExcelChart_ImageExportBoundsDuplicateRowDefinitionWork() {
             using ExcelDocument document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("DuplicateRows");
+            ExcelSheet sheet = document.AddSheet("DuplicateRows");
             sheet.CellValue(1, 1, "Category");
             sheet.CellValue(1, 2, "Value");
             sheet.CellValue(2, 1, "Only");
@@ -78,7 +78,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void ExcelChart_ImageExportCountsInvalidColumnDefinitionsAgainstWorkBudget() {
             using ExcelDocument document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("InvalidColumns");
+            ExcelSheet sheet = document.AddSheet("InvalidColumns");
             X.Worksheet worksheet = sheet.WorksheetPart.Worksheet!;
             var columns = new X.Columns();
             var invalid = new X.Column();
@@ -96,7 +96,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void ExcelRange_ImageExportKeepsNearbyAnchorsThatOverlapThroughNegativeOffsets() {
             using ExcelDocument document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("NegativeOffset");
+            ExcelSheet sheet = document.AddSheet("NegativeOffset");
             sheet.AddImage(
                 1,
                 2,

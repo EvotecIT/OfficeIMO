@@ -99,7 +99,7 @@ public sealed partial class OfficeProvenanceWorkflowTests {
         }
         string excel = Path.Combine(scope.Path, "workbook.xlsx");
         using (ExcelDocument document = ExcelDocument.Create(excel)) {
-            document.AddWorksheet("Data").Cell(1, 1, "workflow provenance");
+            document.AddSheet("Data").Cell(1, 1, "workflow provenance");
             document.Save();
         }
         string powerPoint = Path.Combine(scope.Path, "deck.pptx");

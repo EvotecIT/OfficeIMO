@@ -21,7 +21,7 @@ namespace OfficeIMO.Tests
                 { /* no-op in test */
                 };
                 {
-                    var reportBuilder1 = doc.AddWorksheet("Report", OfficeIMO.Excel.ExcelSheetNameValidationMode.Sanitize).Report();
+                    var reportBuilder1 = doc.AddSheet("Report", OfficeIMO.Excel.ExcelSheetNameValidationMode.Sanitize).Report();
                     (reportBuilder1).Title("Demo Report", "Subtitle");
                     (reportBuilder1).Callout(OfficeCalloutKind.Info, "Heads up", "Generated via fluent API");
                     (reportBuilder1).Section("Summary");

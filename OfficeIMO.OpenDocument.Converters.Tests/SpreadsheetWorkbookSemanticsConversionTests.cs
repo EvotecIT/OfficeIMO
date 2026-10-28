@@ -11,7 +11,7 @@ public sealed class SpreadsheetWorkbookSemanticsConversionTests {
     [Fact]
     public void ExcelBackslashDefinedNameIsPreservedExactlyInOds() {
         using ExcelDocument source = ExcelDocument.Create();
-        source.AddWorksheet("Data");
+        source.AddSheet("Data");
         source.SetNamedRange("\\Rate", "'Data'!A1", save: false,
             validationMode: ExcelDefinedNameValidationMode.Strict);
 
@@ -30,8 +30,8 @@ public sealed class SpreadsheetWorkbookSemanticsConversionTests {
     [Fact]
     public void ExcelNamedRangeHyperlinksFollowCollisionSafeOdsNames() {
         using ExcelDocument source = ExcelDocument.Create();
-        ExcelSheet north = source.AddWorksheet("North");
-        ExcelSheet south = source.AddWorksheet("South");
+        ExcelSheet north = source.AddSheet("North");
+        ExcelSheet south = source.AddSheet("South");
         north.SetNamedRange("LocalData", "A1", save: false);
         south.SetNamedRange("LocalData", "B1", save: false);
         north.SetInternalLink(1, 2, "LocalData", "North data");
@@ -50,7 +50,7 @@ public sealed class SpreadsheetWorkbookSemanticsConversionTests {
     [Fact]
     public void ExcelHyperlinkTooltipIsInspectedAndReportedAsUnsupportedByOds() {
         using ExcelDocument source = ExcelDocument.Create();
-        ExcelSheet sheet = source.AddWorksheet("Data");
+        ExcelSheet sheet = source.AddSheet("Data");
         sheet.SetHyperlink(1, 1, "https://example.test/docs", "Docs", style: true, tooltip: "Open docs");
 
         ExcelCellInfo authored = Assert.Single(source.Inspect().Worksheets.Single().Cells);
@@ -67,7 +67,7 @@ public sealed class SpreadsheetWorkbookSemanticsConversionTests {
     [Fact]
     public void ValidationDropdownVisibilityRoundTripsThroughTypedOdfDisplayList() {
         using ExcelDocument source = ExcelDocument.Create();
-        ExcelSheet sheet = source.AddWorksheet("Data");
+        ExcelSheet sheet = source.AddSheet("Data");
         sheet.ValidationList("A1", new[] { "One", "Two" });
         sheet.SetDataValidationMessages("A1", new ExcelDataValidationMessageOptions {
             SuppressDropDown = true,
@@ -103,7 +103,7 @@ public sealed class SpreadsheetWorkbookSemanticsConversionTests {
     [Fact]
     public void SpreadsheetMetadataMapsCreatorAndSubjectInBothDirections() {
         using ExcelDocument source = ExcelDocument.Create();
-        source.AddWorksheet("Data");
+        source.AddSheet("Data");
         source.BuiltinDocumentProperties.Title = "Quarterly report";
         source.BuiltinDocumentProperties.Creator = "Alice";
         source.BuiltinDocumentProperties.Subject = "Forecast";
@@ -122,8 +122,8 @@ public sealed class SpreadsheetWorkbookSemanticsConversionTests {
     [Fact]
     public void NonFirstActiveExcelWorksheetIsReportedUnsupportedByOds() {
         using ExcelDocument source = ExcelDocument.Create();
-        source.AddWorksheet("First");
-        ExcelSheet second = source.AddWorksheet("Second");
+        source.AddSheet("First");
+        ExcelSheet second = source.AddSheet("Second");
         source.SetActiveWorksheet(second);
 
         OdfConversionResult<OdsDocument> conversion = source.ToOpenDocumentResult();

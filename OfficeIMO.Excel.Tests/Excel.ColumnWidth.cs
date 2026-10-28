@@ -12,7 +12,7 @@ public sealed class ExcelColumnWidthTests {
     [Fact]
     public void PhysicalWidthsUseTheWorksheetGridAndSurviveSaving() {
         using ExcelDocument document = ExcelDocument.Create();
-        ExcelSheet sheet = document.AddWorksheet("Dimensions");
+        ExcelSheet sheet = document.AddSheet("Dimensions");
         UseMissingFont(document);
         sheet.SetColumnWidths(new Dictionary<int, ExcelColumnWidth> {
             [1] = ExcelColumnWidth.Characters(12.25),
@@ -35,7 +35,7 @@ public sealed class ExcelColumnWidthTests {
     [Fact]
     public void EveryWholePixelWidthRoundTripsThroughTheNativeCharacterGrid() {
         using ExcelDocument document = ExcelDocument.Create();
-        ExcelSheet sheet = document.AddWorksheet("Grid");
+        ExcelSheet sheet = document.AddSheet("Grid");
         UseMissingFont(document);
         for (int pixels = 1; pixels <= 100; pixels++) {
             ExcelColumnWidth physical = ExcelColumnWidth.Length(OfficeLength.Pixels(pixels));
@@ -47,7 +47,7 @@ public sealed class ExcelColumnWidthTests {
     [Fact]
     public void CharacterRowHeightsUseDigitAdvancesWithoutColumnRounding() {
         using ExcelDocument document = ExcelDocument.Create();
-        ExcelSheet sheet = document.AddWorksheet("Rows");
+        ExcelSheet sheet = document.AddSheet("Rows");
         UseMissingFont(document);
         sheet.SetRowHeight(1, ExcelColumnWidth.Characters(1.5));
         sheet.SetDefaultRowHeight(ExcelColumnWidth.Characters(2));
@@ -60,7 +60,7 @@ public sealed class ExcelColumnWidthTests {
     [Fact]
     public void MixedBatchValidatesEveryColumnBeforeChangingTheWorksheet() {
         using ExcelDocument document = ExcelDocument.Create();
-        ExcelSheet sheet = document.AddWorksheet("AtomicWidths");
+        ExcelSheet sheet = document.AddSheet("AtomicWidths");
         sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(15));
         Assert.Throws<ArgumentOutOfRangeException>(() => sheet.SetColumnWidths(new Dictionary<int, ExcelColumnWidth> {
             [1] = ExcelColumnWidth.Length(OfficeLength.Inches(1)),
@@ -73,7 +73,7 @@ public sealed class ExcelColumnWidthTests {
     public void InspectionDimensionsRemainReadableAfterTheWorkbookIsDisposed() {
         ExcelWorkbookInfo snapshot;
         using (ExcelDocument document = ExcelDocument.Create()) {
-            ExcelSheet sheet = document.AddWorksheet("Snapshot");
+            ExcelSheet sheet = document.AddSheet("Snapshot");
             sheet.CellValue(1, 1, "Value");
             sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(19.75));
             sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeLength.Points(23.5)));

@@ -50,7 +50,7 @@ try
             }
         }
 
-        ExcelSheet sheet = document.AddWorksheet("NativeAOT data");
+        ExcelSheet sheet = document.AddSheet("NativeAOT data");
         string range = sheet.InsertDataTableAsTable(sales, tableName: "Sales");
         if (range != "A1:D3")
         {
@@ -63,14 +63,14 @@ try
             new GenericOnlyDictionaryRow<int>(("Score", 20), ("Rank", 2))
         };
         {
-            var sheet1 = document.AddWorksheet("Dictionary builder");
+            var sheet1 = document.AddSheet("Dictionary builder");
             int nextRow2 = 1;
             var table3 = sheet1.AddTable(dictionaryRows, new ExcelTableOptions { Name = null, Style = ExcelTableStyle.TableStyleMedium2, IncludeAutoFilter = true, Projection = null }, row: nextRow2);
             nextRow2 = table3.AsRange().LastRow + 1;
         }
 
         {
-            var composer = document.AddWorksheet("Dictionary composer", OfficeIMO.Excel.ExcelSheetNameValidationMode.Sanitize).Report();
+            var composer = document.AddSheet("Dictionary composer", OfficeIMO.Excel.ExcelSheetNameValidationMode.Sanitize).Report();
             composer.AddTable(dictionaryRows, title: "Scores");
         }
 

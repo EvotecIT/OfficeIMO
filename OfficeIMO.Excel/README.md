@@ -79,7 +79,7 @@ using OfficeIMO;
 using OfficeIMO.Excel;
 
 using var document = ExcelDocument.Create("report.xlsx", new ExcelCreateOptions { Theme = OfficeTheme.Modern });
-var sheet = document.AddWorksheet("Data");
+var sheet = document.AddSheet("Data");
 
 sheet.CellValue(1, 1, "Name");
 sheet.CellValue(1, 2, "Value");
@@ -166,10 +166,10 @@ using OfficeIMO;
 using OfficeIMO.Excel;
 
 using var document = ExcelDocument.Create("report.xlsx");
-var sheet = document.AddWorksheet("Data");
+var sheet = document.AddSheet("Data");
 var table = sheet.AddTable(new[] { new { Name = "Alpha", Value = 42 } },
     new OfficeTableOptions { Name = "Measurements" });
-var report = document.AddWorksheet("Summary").Report();
+var report = document.AddSheet("Summary").Report();
 report.Section("Measurements");
 report.AddTable(new[] { new { Name = "Alpha", Value = 42 } });
 report.BulletedListWithFill(new[] { "Review measurements" }, OfficeColor.Parse("#FFF4CE"));
@@ -356,7 +356,7 @@ literal, so leading zeroes and formula-looking strings are retained.
 
 ```csharp
 using var workbook = ExcelDocument.Create();
-var sheet = workbook.AddWorksheet("Orders");
+var sheet = workbook.AddSheet("Orders");
 sheet.FromXml("<Table><Row><Data>00127</Data><Data>Ready</Data></Row></Table>");
 string xml = sheet.ToXml("A1:B1");
 ```
@@ -576,7 +576,7 @@ extension. For a stream, select the physical format explicitly:
 
 ```csharp
 using var document = ExcelDocument.Create();
-document.AddWorksheet("Data").CellValue(1, 1, "Protected workbook");
+document.AddSheet("Data").CellValue(1, 1, "Protected workbook");
 document.Save("protected.xlsb", new ExcelSaveOptions { Password = password });
 using var output = new MemoryStream();
 document.Save(output, new ExcelSaveOptions { Password = password, Format = ExcelFileFormat.Xls });
@@ -979,7 +979,7 @@ using OfficeIMO;
 using OfficeIMO.Excel;
 
 using var document = ExcelDocument.Create("dashboard.xlsx");
-var sheet = document.AddWorksheet("Summary");
+var sheet = document.AddSheet("Summary");
 
 sheet.CellValue(1, 1, "Quarter");
 sheet.CellValue(1, 2, "Revenue");
@@ -1056,7 +1056,7 @@ using OfficeIMO.Excel;
 using System.Linq;
 
 using var document = ExcelDocument.Create("pivot-report.xlsx");
-var sheet = document.AddWorksheet("Sales");
+var sheet = document.AddSheet("Sales");
 
 sheet.CellValue(1, 1, "Region");
 sheet.CellValue(1, 2, "Product");
@@ -1343,7 +1343,7 @@ remain available through the existing metadata and refresh-on-open APIs.
 
 ```csharp
 using var document = ExcelDocument.Create("query-report.xlsx");
-var sheet = document.AddWorksheet("Results");
+var sheet = document.AddSheet("Results");
 
 var query = document.AddQueryBackedTable(new ExcelQueryBackedTableOptions {
     ConnectionName = "SalesQuery",
@@ -1514,7 +1514,7 @@ shape:
 
 ```csharp
 using var document = ExcelDocument.Create("array-report.xlsx");
-var sheet = document.AddWorksheet("Results");
+var sheet = document.AddSheet("Results");
 sheet.SetArrayFormula("G2:H4", "SEQUENCE(3,2,10,-2)");
 document.Calculate();
 document.Save();
@@ -1524,7 +1524,7 @@ Use `SetDynamicArrayFormula` when the result shape may change:
 
 ```csharp
 using var document = ExcelDocument.Create("dynamic-report.xlsx");
-var sheet = document.AddWorksheet("Results");
+var sheet = document.AddSheet("Results");
 sheet.CellValue(1, 1, 3);
 sheet.SetDynamicArrayFormula("G2", "SEQUENCE(A1,2)");
 document.Calculate(); // G2:H4 contains 1 through 6
@@ -2092,7 +2092,7 @@ var project = OfficeVbaProject.Create("Automation");
 project.AddModule("Helpers",
     "Public Function Value() As Long\r\nValue = 42\r\nEnd Function\r\n");
 using var document = ExcelDocument.Create("automation.xlsm");
-document.AddWorksheet("Data");
+document.AddSheet("Data");
 document.SetVbaProject(project);
 document.Save();
 ```

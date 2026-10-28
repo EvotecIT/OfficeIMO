@@ -221,7 +221,7 @@ namespace OfficeIMO.Excel {
                         }
                     }
 
-                    snapshot.AddWorksheet(worksheetSnapshot);
+                    snapshot.AddSheet(worksheetSnapshot);
                 }
 
                 var definedNames = workbook.DefinedNames;

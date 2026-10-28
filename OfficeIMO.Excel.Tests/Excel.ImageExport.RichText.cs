@@ -34,7 +34,7 @@ namespace OfficeIMO.Tests {
         public void ExcelRange_ImageExportPreservesAdvancedPlainCellTypographyInSvgAndPng() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorksheet("PlainStyle");
+            ExcelSheet sheet = document.AddSheet("PlainStyle");
             sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(24));
             sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(34)));
             sheet.CellAt(1, 1)
@@ -64,7 +64,7 @@ namespace OfficeIMO.Tests {
         public void ExcelRange_ImageExportPreservesSingleLineRichTextRunsInSvg() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorksheet("Rich");
+            ExcelSheet sheet = document.AddSheet("Rich");
             sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(26));
             sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(28)));
             sheet.CellAt(1, 1).SetRichText(
@@ -100,7 +100,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             try {
                 using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                    ExcelSheet sheet = document.AddWorksheet("Overrides");
+                    ExcelSheet sheet = document.AddSheet("Overrides");
                     sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(44));
                     sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(28)));
                     ExcelCell cell = sheet.CellAt(1, 1);
@@ -156,7 +156,7 @@ namespace OfficeIMO.Tests {
         public void ExcelRange_ImageExportReportsUnresolvedRichTextRunFontFamilyFallback() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorksheet("RichFont");
+            ExcelSheet sheet = document.AddSheet("RichFont");
             sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(22));
             sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(28)));
             sheet.CellAt(1, 1).SetRichText(
@@ -178,7 +178,7 @@ namespace OfficeIMO.Tests {
         public void ExcelRange_ImageExportPreservesHardBreakRichTextRunsInPngAndSvg() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorksheet("Rich");
+            ExcelSheet sheet = document.AddSheet("Rich");
             sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(18));
             sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(44)));
             sheet.CellAt(1, 1)
@@ -205,7 +205,7 @@ namespace OfficeIMO.Tests {
         public void ExcelRange_ImageExportPreservesShrinkToFitRichTextRunsInPngAndSvg() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorksheet("Rich");
+            ExcelSheet sheet = document.AddSheet("Rich");
             sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(8));
             sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(30)));
             sheet.CellAt(1, 1)
@@ -233,7 +233,7 @@ namespace OfficeIMO.Tests {
         public void ExcelRange_SvgExportDoesNotEmbedClippedRichTextSuffix() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorksheet("RichClip");
+            ExcelSheet sheet = document.AddSheet("RichClip");
             sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(8));
             sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(24)));
             sheet.CellAt(1, 1).SetRichText(
@@ -259,7 +259,7 @@ namespace OfficeIMO.Tests {
         public void ExcelRange_ImageExportSpillsRichTextIntoBlankNeighborCells() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorksheet("RichSpill");
+            ExcelSheet sheet = document.AddSheet("RichSpill");
             sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(6));
             sheet.SetColumnWidth(2, ExcelColumnWidth.Characters(24));
             sheet.SetColumnWidth(3, ExcelColumnWidth.Characters(8));
@@ -295,7 +295,7 @@ namespace OfficeIMO.Tests {
         public void ExcelRange_ImageExportPreservesRotatedRichTextRunsWithApproximationDiagnostic() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorksheet("Rich");
+            ExcelSheet sheet = document.AddSheet("Rich");
             sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(16));
             sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(60)));
             sheet.CellAt(1, 1)
@@ -330,7 +330,7 @@ namespace OfficeIMO.Tests {
         public void ExcelRange_ImageExportPreservesStackedRichTextRunsWithApproximationDiagnostic() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorksheet("Rich");
+            ExcelSheet sheet = document.AddSheet("Rich");
             sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(5));
             sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(96)));
             sheet.CellAt(1, 1)

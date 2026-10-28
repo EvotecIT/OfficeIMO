@@ -10,7 +10,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_StructuralRows_MovesButDoesNotResizeOneCellCommentAnchors() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.SetComment(10, 2, "Move without sizing", author: "Tester");
             VmlDrawingPart vmlPart = Assert.Single(sheet.WorksheetPart.VmlDrawingParts);
             SetCommentVmlPlacement(vmlPart, "1, 0, 3, 0, 4, 0, 6, 0", moveWithCells: true, sizeWithCells: false);
@@ -28,7 +28,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_StructuralRows_PreservesAbsoluteCommentAnchors() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.SetComment(5, 2, "Do not move or size", author: "Tester");
             VmlDrawingPart vmlPart = Assert.Single(sheet.WorksheetPart.VmlDrawingParts);
             SetCommentVmlPlacement(vmlPart, "1, 0, 3, 0, 4, 0, 6, 0", moveWithCells: false, sizeWithCells: false);
@@ -42,7 +42,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_StructuralRows_AllowsInsertionThroughOneCellCommentAnchorAtGridBoundary() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.SetComment(2, 2, "Tall note", author: "Tester");
             VmlDrawingPart vmlPart = Assert.Single(sheet.WorksheetPart.VmlDrawingParts);
             string anchor = $"1, 0, 2, 0, 4, 0, {ExcelA1.MaxRows}, 0";
@@ -56,7 +56,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_StructuralRows_RejectsOneCellCommentAnchorOverflowAtomically() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.SetComment(2, 2, "Boundary note", author: "Tester");
             VmlDrawingPart vmlPart = Assert.Single(sheet.WorksheetPart.VmlDrawingParts);
             string anchor = $"1, 0, {ExcelA1.MaxRows - 2}, 0, 4, 0, {ExcelA1.MaxRows}, 0";

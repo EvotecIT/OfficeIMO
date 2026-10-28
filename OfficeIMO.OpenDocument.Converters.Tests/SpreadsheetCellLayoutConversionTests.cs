@@ -31,7 +31,7 @@ public sealed class SpreadsheetCellLayoutConversionTests {
     [Fact]
     public void ExcelAlignmentAndWrapRoundTripThroughOdsCellStyle() {
         using ExcelDocument source = ExcelDocument.Create();
-        ExcelSheet sheet = source.AddWorksheet("Layout");
+        ExcelSheet sheet = source.AddSheet("Layout");
         sheet.CellAt(1, 1).SetValue("Wrapped text");
         sheet.CellAlign(1, 1, ExcelHorizontalAlignment.Right);
         sheet.CellVerticalAlign(1, 1, ExcelVerticalAlignment.Center);
@@ -87,7 +87,7 @@ public sealed class SpreadsheetCellLayoutConversionTests {
     [Fact]
     public void UnsupportedAlignmentTokensRemainExplicitLoss() {
         using ExcelDocument excel = ExcelDocument.Create();
-        ExcelSheet sheet = excel.AddWorksheet("Layout");
+        ExcelSheet sheet = excel.AddSheet("Layout");
         sheet.CellAt(1, 1).SetValue("Across selection");
         sheet.CellAlign(1, 1, ExcelHorizontalAlignment.CenterContinuous);
         OdfConversionResult<OdsDocument> toOds = excel.ToOpenDocumentResult();

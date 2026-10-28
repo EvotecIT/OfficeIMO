@@ -158,7 +158,7 @@ internal sealed record PdfFormatConversionScenario(
 
     private static byte[] CreateXlsx(int recordCount, PdfFormatConversionProfile profile) {
         using ExcelDocument document = ExcelDocument.Create();
-        ExcelSheet sheet = document.AddWorksheet("Report");
+        ExcelSheet sheet = document.AddSheet("Report");
         sheet.Cell(1, 1, Heading);
         sheet.Cell(2, 1, "Record");
         sheet.Cell(2, 2, "Description");
@@ -176,7 +176,7 @@ internal sealed record PdfFormatConversionScenario(
         sheet.SetColumnWidth(3, ExcelColumnWidth.Characters(14));
         sheet.SetColumnWidth(4, ExcelColumnWidth.Characters(14));
         if (profile == PdfFormatConversionProfile.Structured) {
-            ExcelSheet details = document.AddWorksheet("Structured");
+            ExcelSheet details = document.AddSheet("Structured");
             details.Cell(1, 1, StructureMarker);
             details.Cell(2, 1, "This second worksheet verifies multi-sheet pagination and wrapped cell projection.");
             details.SetColumnWidth(1, ExcelColumnWidth.Characters(28));

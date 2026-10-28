@@ -67,7 +67,7 @@ namespace OfficeIMO.Tests
             {
                 if (date1904)
                     document.DateSystem = ExcelDateSystem.NineteenFour;
-                var source = document.AddWorksheet("Source");
+                var source = document.AddSheet("Source");
                 source.CellValue(1, 1, "OrderDate");
                 source.CellValue(1, 2, "Sales");
                 double[] sales =
@@ -135,7 +135,7 @@ namespace OfficeIMO.Tests
         public void PivotFixedDateFilter_RejectsNumericFieldWithoutChangingSavedView()
         {
             using var document = ExcelDocument.Create();
-            var sheet = document.AddWorksheet("Source");
+            var sheet = document.AddSheet("Source");
             sheet.CellValue(1, 1, "Item");
             sheet.CellValue(1, 2, "Sales");
             sheet.CellValue(2, 1, 1d);

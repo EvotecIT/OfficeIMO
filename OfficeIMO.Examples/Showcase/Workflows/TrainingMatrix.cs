@@ -7,7 +7,7 @@ namespace OfficeIMO.Examples.Showcase.Workflows;
 internal static class TrainingMatrix {
     internal static void Create(string folder) {
         using ExcelDocument document = ExcelDocument.Create(Path.Combine(folder, "example.xlsx"));
-        var sheet = document.AddWorksheet("Training");
+        var sheet = document.AddSheet("Training");
         sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(26));
         for (int column = 2; column <= 5; column++) sheet.SetColumnWidth(column, ExcelColumnWidth.Characters(21));
         sheet.MergeRange("A1:E1"); sheet.Cell(1, 1, "Team training coverage");

@@ -15,13 +15,13 @@ namespace OfficeIMO.Tests {
         public void Create_ToMemoryStream_ExplicitPersistenceDoesNotWriteUntilSave() {
             using var memory = new MemoryStream();
             using (var document = ExcelDocument.Create(memory)) {
-                document.AddWorksheet("Explicit").CellValue(1, 1, "Pending");
+                document.AddSheet("Explicit").CellValue(1, 1, "Pending");
             }
 
             Assert.Equal(0, memory.Length);
 
             using (var document = ExcelDocument.Create(memory)) {
-                document.AddWorksheet("Explicit").CellValue(1, 1, "Saved");
+                document.AddSheet("Explicit").CellValue(1, 1, "Saved");
                 document.Save();
             }
 
@@ -35,7 +35,7 @@ namespace OfficeIMO.Tests {
             File.Delete(filePath);
 
             using (var document = ExcelDocument.Create(filePath)) {
-                document.AddWorksheet("Explicit");
+                document.AddSheet("Explicit");
                 Assert.False(File.Exists(filePath));
                 document.Save();
             }
@@ -48,7 +48,7 @@ namespace OfficeIMO.Tests {
         public void Create_ToMemoryStream_SaveOnDisposeWritesPackage() {
             using var memory = new MemoryStream();
             using (var document = ExcelDocument.Create(memory, new ExcelCreateOptions { PersistenceMode = OfficeIMO.DocumentPersistenceMode.SaveOnDispose })) {
-                var sheet = document.AddWorksheet("StreamData");
+                var sheet = document.AddSheet("StreamData");
                 sheet.CellValue(1, 1, "Hello Stream");
             }
 
@@ -70,7 +70,7 @@ namespace OfficeIMO.Tests {
             using (var document = ExcelDocument.Create(associated, new ExcelCreateOptions {
                        PersistenceMode = OfficeIMO.DocumentPersistenceMode.SaveOnDispose
                    })) {
-                document.AddWorksheet("Associated").CellValue(1, 1, "Persisted");
+                document.AddSheet("Associated").CellValue(1, 1, "Persisted");
                 copy = document.ToBytes();
                 Assert.Equal(0, associated.Length);
             }
@@ -88,7 +88,7 @@ namespace OfficeIMO.Tests {
             await using (var document = ExcelDocument.Create(associated, new ExcelCreateOptions {
                              PersistenceMode = OfficeIMO.DocumentPersistenceMode.SaveOnDispose
                          })) {
-                document.AddWorksheet("Associated").CellValue(1, 1, "Persisted async");
+                document.AddSheet("Associated").CellValue(1, 1, "Persisted async");
                 await document.SaveAsync(copy);
                 Assert.Equal(0, associated.Length);
             }
@@ -151,7 +151,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ThemeAutoSaveFalse.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                document.AddWorksheet("Data");
+                document.AddSheet("Data");
                 document.SetWorkbookThemeName("Original Theme");
                 document.Save();
             }
@@ -184,7 +184,7 @@ namespace OfficeIMO.Tests {
             using var memory = new MemoryStream();
             using (var document = ExcelDocument.Create(memory, new ExcelCreateOptions { PersistenceMode = OfficeIMO.DocumentPersistenceMode.SaveOnDispose })) {
                 document.Execution.SaveWorksheetAfterAutoFit = false;
-                var sheet = document.AddWorksheet("Data");
+                var sheet = document.AddSheet("Data");
                 sheet.InsertObjects(rows,
                     ("Id", item => item.Id),
                     ("Region", item => item.Region),
@@ -235,7 +235,7 @@ namespace OfficeIMO.Tests {
             using var memory = new MemoryStream();
             using (var document = ExcelDocument.Create(memory, new ExcelCreateOptions { PersistenceMode = OfficeIMO.DocumentPersistenceMode.SaveOnDispose })) {
                 document.Execution.SaveWorksheetAfterAutoFit = false;
-                var sheet = document.AddWorksheet("Orders");
+                var sheet = document.AddSheet("Orders");
                 string range = sheet.InsertDataTableAsTable(
                     orders,
                     tableName: "OrdersExport",
@@ -287,7 +287,7 @@ namespace OfficeIMO.Tests {
             using var memory = new MemoryStream();
             using (var document = ExcelDocument.Create(memory, new ExcelCreateOptions { PersistenceMode = OfficeIMO.DocumentPersistenceMode.SaveOnDispose })) {
                 document.Execution.SaveWorksheetAfterAutoFit = false;
-                var sheet = document.AddWorksheet("Sales");
+                var sheet = document.AddSheet("Sales");
                 sheet.InsertObjects(rows,
                     ("Id", item => item.Id),
                     ("Region", item => item.Region),
@@ -329,7 +329,7 @@ namespace OfficeIMO.Tests {
         public void Create_ToMemoryStream_WithUnsupportedHyperlink_FallsBackToReadablePackage() {
             using var memory = new MemoryStream();
             using (var document = ExcelDocument.Create(memory, new ExcelCreateOptions { PersistenceMode = OfficeIMO.DocumentPersistenceMode.SaveOnDispose })) {
-                var sheet = document.AddWorksheet("Links");
+                var sheet = document.AddSheet("Links");
                 sheet.CellValue(1, 1, "Name");
                 sheet.CellValue(2, 1, "OfficeIMO");
                 sheet.SetHyperlink(2, 1, "https://github.com/evotecit/OfficeIMO", display: "OfficeIMO", style: false);
@@ -478,7 +478,7 @@ namespace OfficeIMO.Tests {
         private static byte[] CreateStreamSaveWorkbookBytes() {
             using var memory = new MemoryStream();
             using (var document = ExcelDocument.Create(memory, new ExcelCreateOptions { PersistenceMode = OfficeIMO.DocumentPersistenceMode.SaveOnDispose })) {
-                var sheet = document.AddWorksheet("StreamData");
+                var sheet = document.AddSheet("StreamData");
                 sheet.CellValue(1, 1, "Hello Stream");
                 sheet.AutoFitColumns();
             }

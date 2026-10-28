@@ -14,7 +14,7 @@ Tables in Excel provide structured references, automatic filtering, and styling.
 using OfficeIMO.Excel;
 
 using var workbook = ExcelDocument.Create("tables.xlsx");
-var sheet = workbook.AddWorksheet("Sales");
+var sheet = workbook.AddSheet("Sales");
 
 // Populate data
 sheet.CellAt("A1").SetValue("Product");
@@ -79,7 +79,7 @@ sheet.SetAutoFilter("A1:C10");
 using OfficeIMO.Excel;
 
 using var workbook = ExcelDocument.Create("grades.xlsx");
-var sheet = workbook.AddWorksheet("Data");
+var sheet = workbook.AddSheet("Data");
 var table = sheet.AddTable(new[] {
     new { Name = "Alice", Score = 95, Grade = "A" },
     new { Name = "Bob", Score = 82, Grade = "B" },

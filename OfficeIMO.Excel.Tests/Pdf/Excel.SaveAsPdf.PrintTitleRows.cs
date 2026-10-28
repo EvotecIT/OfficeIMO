@@ -12,7 +12,7 @@ public partial class Excel {
     [InlineData(ExcelPageOrder.OverThenDown)]
     public void SaveAsPdf_TitleOnlyManualPageKeepsItsSourceOrder(ExcelPageOrder pageOrder) {
         using ExcelDocument document = ExcelDocument.Create();
-        ExcelSheet sheet = document.AddWorksheet("Report");
+        ExcelSheet sheet = document.AddSheet("Report");
         for (int row = 1; row <= 8; row++) sheet.Cell(row, 1, "Row" + row.ToString("D3"));
         document.SetPrintArea(sheet, "A1:A8");
         document.SetPrintTitles(sheet, firstRow: 3, lastRow: 4, firstCol: null, lastCol: null);
@@ -35,7 +35,7 @@ public partial class Excel {
     [InlineData(ExcelPdfWorksheetLayoutMode.FlowTable, 3)]
     public void SaveAsPdf_MiddleTitleRowsRepeatOnlyAfterTheirFirstOccurrence(ExcelPdfWorksheetLayoutMode layout, int firstBreak) {
         using ExcelDocument document = ExcelDocument.Create();
-        ExcelSheet sheet = document.AddWorksheet("Report");
+        ExcelSheet sheet = document.AddSheet("Report");
         for (int row = 1; row <= 8; row++) sheet.Cell(row, 1, "Row" + row.ToString("D3"));
         document.SetPrintArea(sheet, "A1:B8");
         document.SetPrintTitles(sheet, firstRow: 3, lastRow: 4, firstCol: null, lastCol: null);
@@ -64,7 +64,7 @@ public partial class Excel {
     [InlineData(true, 3, 3)]
     public void SaveAsPdf_CanvasRepeatsMiddleTitleRowsAcrossAutomaticPages(bool repeatTitles, int fitPages, int expectedPages) {
         using ExcelDocument document = ExcelDocument.Create();
-        ExcelSheet sheet = document.AddWorksheet("Report");
+        ExcelSheet sheet = document.AddSheet("Report");
         for (int row = 1; row <= 26; row++) {
             sheet.Cell(row, 1, "Row" + row.ToString("D3")); sheet.SetRowHeight(row, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(30D)));
         }

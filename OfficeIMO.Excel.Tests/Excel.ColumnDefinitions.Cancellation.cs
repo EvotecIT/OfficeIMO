@@ -13,7 +13,7 @@ namespace OfficeIMO.Tests {
             using var source = new MemoryStream();
             using var document = ExcelDocument.Create(source);
             document.DateTimeOffsetWriteStrategy = value => value.UtcDateTime;
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             using DataTable table = Dates();
             sheet.InsertDataTableAsTable(table);
             if (autoFit) sheet.AutoFitColumns();
@@ -32,7 +32,7 @@ namespace OfficeIMO.Tests {
             using var source = new MemoryStream();
             using var document = ExcelDocument.Create(source);
             document.DateTimeOffsetWriteStrategy = value => value.UtcDateTime;
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             using DataTable table = Dates();
             sheet.InsertDataTableAsTable(table);
             using var cancellation = new CancellationTokenSource();

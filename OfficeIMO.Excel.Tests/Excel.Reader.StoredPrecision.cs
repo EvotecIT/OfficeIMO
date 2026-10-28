@@ -14,7 +14,7 @@ public partial class Excel {
         double[] expected = { 0.6249999999999999d, -0.6249999999999999d, 0.12345678912345678d, double.Epsilon, 6.25e60d };
         string path = Path.Combine(_directoryWithFiles, "Reader.StoredDoublePrecision.xlsx");
         using (var document = ExcelDocument.Create(path)) {
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.CellAt(1, 1).SetValue("Value");
             sheet.CellAt(1, 2).SetValue("Cache");
             sheet.CellAt(1, 3).SetValue("Text");
@@ -58,7 +58,7 @@ public partial class Excel {
     [Fact]
     public void SaveAsPdf_saved_fraction_values_match_image_snapshot_across_midpoints_and_large_integers() {
         using var document = ExcelDocument.Create();
-        ExcelSheet sheet = document.AddWorksheet("Fraction precision");
+        ExcelSheet sheet = document.AddSheet("Fraction precision");
         sheet.CellAt(1, 1).SetValue(0.6249999999999999d).SetNumberFormat("# ?/4;-# ?/4;0");
         sheet.CellAt(2, 1).SetValue(-0.6249999999999999d);
         sheet.CellFormula(2, 1, "=1");

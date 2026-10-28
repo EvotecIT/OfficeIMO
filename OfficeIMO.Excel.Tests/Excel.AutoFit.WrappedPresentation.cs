@@ -13,7 +13,7 @@ namespace OfficeIMO.Tests {
         public void Test_AutoFitRows_LeavesHeightForNativeWrappedLabels(string text, double width, bool bold) {
             string filePath = Path.Combine(_directoryWithFiles, "AutoFit.NativeWrapped." + width.ToString(System.Globalization.CultureInfo.InvariantCulture) + ".xlsx");
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorksheet("Data");
+                var sheet = document.AddSheet("Data");
                 sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(width));
                 sheet.CellValue(1, 1, text);
                 sheet.CellAt(1, 1).SetBold(bold);

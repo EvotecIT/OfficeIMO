@@ -85,7 +85,7 @@ public sealed partial class OfficeVisualIntegrationTests {
             string excelPath = Path.Combine(folder, "fit.xlsx");
             double rangeWidth, rangeHeight;
             using (var workbook = ExcelDocument.Create(excelPath)) {
-                var sheet = workbook.AddWorksheet("Requests");
+                var sheet = workbook.AddSheet("Requests");
                 var size = sheet.GetRangeSize("B2:D8");
                 rangeWidth = size.Width.ToPixels(); rangeHeight = size.Height.ToPixels();
                 sheet.AddVisualArtifact("B2:D8", artifact);

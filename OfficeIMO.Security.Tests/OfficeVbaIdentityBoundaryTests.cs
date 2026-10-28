@@ -26,7 +26,7 @@ public sealed class OfficeVbaIdentityBoundaryTests {
                 : OfficeVbaProject.Create();
             string collision = kind == OfficeVbaModuleKind.Designer ? "FrmNested" : "HostCode";
             if (kind != OfficeVbaModuleKind.Designer) candidate.AddModule(collision, "'replacement", kind);
-            using (var excel = ExcelDocument.Create(path)) { excel.AddWorksheet("Data"); excel.AddWorksheet("Collision"); excel.SetVbaProject(original); excel.Save(); }
+            using (var excel = ExcelDocument.Create(path)) { excel.AddSheet("Data"); excel.AddSheet("Collision"); excel.SetVbaProject(original); excel.Save(); }
             string workbookXml;
             string sheetXml;
             using (var package = SpreadsheetDocument.Open(path, true)) {

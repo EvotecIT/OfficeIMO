@@ -24,8 +24,8 @@ namespace OfficeIMO.Tests {
             using var stream = new MemoryStream();
             using (var document = ExcelDocument.Create(stream)) {
                 document.SheetCachingEnabled = false;
-                ExcelSheet sheet = document.AddWorksheet("Values");
-                ExcelSheet source = document.AddWorksheet("Styles");
+                ExcelSheet sheet = document.AddSheet("Values");
+                ExcelSheet source = document.AddSheet("Styles");
                 source.CellBold(1, 1);
                 source.CellItalic(1, 2);
                 source.DefineNamedStyle("Input", 1, 1);
@@ -61,8 +61,8 @@ namespace OfficeIMO.Tests {
             using var stream = new MemoryStream();
             using (var document = ExcelDocument.Create(stream)) {
                 document.SheetCachingEnabled = false;
-                ExcelSheet held = document.AddWorksheet("Values");
-                ExcelSheet other = document.AddWorksheet("Transaction");
+                ExcelSheet held = document.AddSheet("Values");
+                ExcelSheet other = document.AddSheet("Transaction");
                 held.CellValue(1, 1, "Stable");
                 object value = AutomaticFormatValue(kind);
                 Assert.Throws<InvalidOperationException>(() => other.ApplyTransactionalMutation(_ => {
@@ -90,7 +90,7 @@ namespace OfficeIMO.Tests {
         public void BulkMutation_view_protection_and_replacement_defer_writes_and_preserve_saved_edits(bool failCallback) {
             using var stream = new MemoryStream();
             using (var document = ExcelDocument.Create(stream)) {
-                ExcelSheet sheet = document.AddWorksheet("Settings");
+                ExcelSheet sheet = document.AddSheet("Settings");
                 for (int row = 1; row <= 20; row++) sheet.CellValue(row, 1, $"Old{row:D2}");
                 Func<int> saves = TrackPartSaves(document, document.OpenXmlDocument.WorkbookPart!.WorksheetParts.Single());
                 void Edit(ExcelSheet target) {
@@ -121,7 +121,7 @@ namespace OfficeIMO.Tests {
         public void BulkMutation_legacy_font_and_alignment_projection_share_the_stylesheet_batch() {
             using var stream = new MemoryStream();
             using (var document = ExcelDocument.Create(stream)) {
-                ExcelSheet sheet = document.AddWorksheet("Projection");
+                ExcelSheet sheet = document.AddSheet("Projection");
                 sheet.CellBold(1, 1);
                 Func<int> saves = TrackPartSaves(document, document.OpenXmlDocument.WorkbookPart!.WorkbookStylesPart!);
                 sheet.Batch(target => {
@@ -150,8 +150,8 @@ namespace OfficeIMO.Tests {
         public void BulkMutation_values_and_formulas_on_another_sheet_join_the_workbook_write_lock(bool materialized) {
             using var stream = new MemoryStream();
             using (var document = ExcelDocument.Create(stream)) {
-                ExcelSheet owner = document.AddWorksheet("Batch owner");
-                ExcelSheet target = document.AddWorksheet("Values");
+                ExcelSheet owner = document.AddSheet("Batch owner");
+                ExcelSheet target = document.AddSheet("Values");
                 if (materialized) {
                     target.CellValue(1, 1, "Seed");
                     target.CellBold(1, 1);
@@ -206,7 +206,7 @@ namespace OfficeIMO.Tests {
         public void BulkMutation_held_wrappers_share_header_and_search_cache_invalidation(bool replaceAll) {
             using var seed = new MemoryStream();
             using (var creator = ExcelDocument.Create(seed)) {
-                ExcelSheet sheet = creator.AddWorksheet("Aliases");
+                ExcelSheet sheet = creator.AddSheet("Aliases");
                 sheet.CellValue(1, 1, "Old");
                 sheet.CellValue(1, 2, "Other");
                 sheet.CellValue(2, 1, "Value");
@@ -243,8 +243,8 @@ namespace OfficeIMO.Tests {
             using var stream = new MemoryStream();
             using (var document = ExcelDocument.Create(stream)) {
                 document.SheetCachingEnabled = false;
-                ExcelSheet held = document.AddWorksheet("Values");
-                ExcelSheet owner = document.AddWorksheet("Transaction");
+                ExcelSheet held = document.AddSheet("Values");
+                ExcelSheet owner = document.AddSheet("Transaction");
                 held.CellValue(1, 1, "Stable");
                 Assert.Throws<InvalidOperationException>(() => owner.ApplyTransactionalMutation(_ => {
                     held.CellValue(2, 1, "Transient");
@@ -262,7 +262,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void BulkMutation_shared_header_cache_respects_date_options_converters_and_cancellation() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Headers");
+            ExcelSheet sheet = document.AddSheet("Headers");
             sheet.CellValue(1, 1, 45292D);
             sheet.CellValue(2, 1, "Value");
             sheet.FormatCell(1, 1, "yyyy-mm-dd");
@@ -292,8 +292,8 @@ namespace OfficeIMO.Tests {
         [InlineData("redefine")]
         public void BulkMutation_header_cache_follows_number_format_and_named_style_changes(string route) {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Headers");
-            ExcelSheet source = document.AddWorksheet("Styles");
+            ExcelSheet sheet = document.AddSheet("Headers");
+            ExcelSheet source = document.AddSheet("Styles");
             sheet.CellValue(1, 1, 45292D);
             sheet.CellValue(2, 1, "Value");
             source.CellValue(1, 1, "Date style");

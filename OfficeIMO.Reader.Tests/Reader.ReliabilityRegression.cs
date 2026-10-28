@@ -102,7 +102,7 @@ public sealed class ReaderReliabilityRegressionTests {
     public void ExcelRegistrationSnapshotsMutableReadOptions() {
         using var stream = new MemoryStream();
         using (var document = ExcelDocument.Create(stream)) {
-            var sheet = document.AddWorksheet("Data");
+            var sheet = document.AddSheet("Data");
             sheet.Cell(1, 1, "Name");
             sheet.Cell(2, 1, "alpha");
             document.Save();

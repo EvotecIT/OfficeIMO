@@ -126,7 +126,7 @@ public sealed class ReaderNativeLeanProjectionTests {
             using WordDocument ordinary = WordDocument.Load(new MemoryStream(source, writable: false));
             Assert.Contains(ordinary.Paragraphs, paragraph => paragraph.Text == "Legacy body");
         } else if (format == "excel") {
-            using ExcelDocument document = ExcelDocument.Create(); document.AddWorksheet("Legacy").CellValue(1, 1, "Legacy body");
+            using ExcelDocument document = ExcelDocument.Create(); document.AddSheet("Legacy").CellValue(1, 1, "Legacy body");
             source = document.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xls });
             using var input = new MemoryStream(source, writable: false);
             Assert.Throws<NotSupportedException>(() => ExcelDocument.Load(input, new ExcelLoadOptions { AllowBinaryProjection = false }));
@@ -216,7 +216,7 @@ public sealed class ReaderNativeLeanProjectionTests {
 
     [Fact]
     public void XmlOnlyExcelLoadRefusesXlsbBeforeProjection() {
-        using ExcelDocument source = ExcelDocument.Create(); source.AddWorksheet("Binary").CellValue(1, 1, "Saved value");
+        using ExcelDocument source = ExcelDocument.Create(); source.AddSheet("Binary").CellValue(1, 1, "Saved value");
         byte[] bytes = source.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xlsb });
         using var input = new MemoryStream(bytes, writable: false);
         Assert.Throws<NotSupportedException>(() => ExcelDocument.Load(input, new ExcelLoadOptions { AllowBinaryProjection = false }));
@@ -258,7 +258,7 @@ public sealed class ReaderNativeLeanProjectionTests {
         }
         if (format == "excel") {
             using ExcelDocument document = ExcelDocument.Create();
-            var sheet = document.AddWorksheet("Evidence"); sheet.CellValue(1, 1, "Header"); sheet.CellValue(2, 1, "Body evidence");
+            var sheet = document.AddSheet("Evidence"); sheet.CellValue(1, 1, "Header"); sheet.CellValue(2, 1, "Body evidence");
             sheet.AddImage(1, 1, Pixel, width: OfficeIMO.OfficeLength.Pixels(1), height: OfficeIMO.OfficeLength.Pixels(1));
             return document.ToBytes();
         }

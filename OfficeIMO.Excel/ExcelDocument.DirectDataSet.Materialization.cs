@@ -211,7 +211,7 @@ namespace OfficeIMO.Excel {
                 }
 
                 ExcelSheet sheet = TryGetExistingSheet(sheetModel.SheetName)
-                    ?? AddWorksheet(sheetModel.SheetName, ExcelSheetNameValidationMode.Strict);
+                    ?? AddSheet(sheetModel.SheetName, ExcelSheetNameValidationMode.Strict);
                 if (sheetModel.Range.Length == 0) {
                     continue;
                 }

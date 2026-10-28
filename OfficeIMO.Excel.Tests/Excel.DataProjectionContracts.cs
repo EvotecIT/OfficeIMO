@@ -43,7 +43,7 @@ public sealed class ExcelDataProjectionContractsTests
             using (var document = ExcelDocument.Create(path))
             {
                 {
-                    var sheet1 = document.AddWorksheet("Metrics");
+                    var sheet1 = document.AddSheet("Metrics");
                     int nextRow2 = 1;
                     var projection3 = new OfficeIMO.Data.ObjectFlattenerOptions();
                     {

@@ -30,7 +30,7 @@ public class ExcelDataTableRowShapeBenchmarks {
         _range = $"A1:{lastColumn}{RowCount}";
         try {
             using (var document = ExcelDocument.Create(_path)) {
-                document.AddWorksheet("Data");
+                document.AddSheet("Data");
                 document.Save();
             }
             using (var package = ZipFile.Open(_path, ZipArchiveMode.Update)) {

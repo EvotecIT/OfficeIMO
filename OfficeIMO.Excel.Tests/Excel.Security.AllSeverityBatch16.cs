@@ -7,7 +7,7 @@ public sealed class ExcelAllSeverityBatch16SecurityTests {
     [Fact]
     public void InsertObjectsRejectsCyclicDictionaryGraphs() {
         using ExcelDocument document = ExcelDocument.Create(new MemoryStream());
-        ExcelSheet sheet = document.AddWorksheet("Data");
+        ExcelSheet sheet = document.AddSheet("Data");
         var row = new Dictionary<string, object?>();
         row["Self"] = row;
 
@@ -20,7 +20,7 @@ public sealed class ExcelAllSeverityBatch16SecurityTests {
     [Fact]
     public void InsertObjectsStopsSourcesAtRemainingWorksheetRows() {
         using ExcelDocument document = ExcelDocument.Create(new MemoryStream());
-        ExcelSheet sheet = document.AddWorksheet("Data");
+        ExcelSheet sheet = document.AddSheet("Data");
 
         InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
             sheet.InsertObjects(TwoRows(), includeHeaders: false, startRow: 1_048_576));
@@ -31,7 +31,7 @@ public sealed class ExcelAllSeverityBatch16SecurityTests {
     [Fact]
     public void InsertObjectsCapturesReadOnlyListCountBeforeIndexedTraversal() {
         using ExcelDocument document = ExcelDocument.Create(new MemoryStream());
-        ExcelSheet sheet = document.AddWorksheet("Data");
+        ExcelSheet sheet = document.AddSheet("Data");
 
         sheet.InsertObjects(new EscalatingCountReadOnlyList(), includeHeaders: false, startRow: 1_048_576);
     }
@@ -39,7 +39,7 @@ public sealed class ExcelAllSeverityBatch16SecurityTests {
     [Fact]
     public void InsertObjectsRejectsDictionaryHeaderExpansionPastWorksheetColumns() {
         using ExcelDocument document = ExcelDocument.Create(new MemoryStream());
-        ExcelSheet sheet = document.AddWorksheet("Data");
+        ExcelSheet sheet = document.AddSheet("Data");
 
         InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
             sheet.InsertObjects(new object[] { new ExpandingReadOnlyDictionary() }, includeHeaders: false));
@@ -50,7 +50,7 @@ public sealed class ExcelAllSeverityBatch16SecurityTests {
     [Fact]
     public void InsertObjectsRejectsDenseDictionaryProjectionPastCellBudget() {
         using ExcelDocument document = ExcelDocument.Create(new MemoryStream());
-        ExcelSheet sheet = document.AddWorksheet("Data");
+        ExcelSheet sheet = document.AddSheet("Data");
         Dictionary<string, object?> row = Enumerable.Range(0, 1_024)
             .ToDictionary(index => $"Column{index}", index => (object?)index);
 

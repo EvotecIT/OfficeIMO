@@ -14,7 +14,7 @@ public sealed partial class ExcelChartBubbleSnapshotTests {
     [Fact]
     public void BubbleSnapshot_ReopenedWorksheetRangesPreserveEachSeriesCoordinates() {
         using ExcelDocument document = ExcelDocument.Create();
-        ExcelSheet sheet = document.AddWorksheet("Bubble data");
+        ExcelSheet sheet = document.AddSheet("Bubble data");
         sheet.CellValues(new[] {
             (2, 1, (object)2d), (2, 2, 11d), (2, 3, 4d),
             (3, 1, 8d), (3, 2, 17d), (3, 3, 16d),
@@ -121,7 +121,7 @@ public sealed partial class ExcelChartBubbleSnapshotTests {
     }
 
     private static ExcelChart CreateLiteralChart(ExcelDocument document, bool cached) {
-        ExcelSheet sheet = document.AddWorksheet("Bubble data");
+        ExcelSheet sheet = document.AddSheet("Bubble data");
         ExcelChart chart = sheet.AddBubbleChartFromRanges(new[] {
             new ExcelChartSeriesRange("Unused", "A2:A3", "B2:B3", "C2:C3")
         }, 8, 4, OfficeLength.Pixels(480), OfficeLength.Pixels(320), "Bubble snapshot");

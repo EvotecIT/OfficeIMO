@@ -11,7 +11,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_TableRename_RewritesStableAndDisplayNameAliases() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.CellValue(1, 1, "Amount");
             sheet.CellValue(2, 1, 10);
             sheet.AddTable("A1:A2", true, "Internal", OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium2);
@@ -33,7 +33,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_FormulaSearch_DoesNotTreatStructuredEscapeAsQuotedQualifier() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.CellFormula(1, 1, "Table1['#Data]+SUM(A2)");
             sheet.CellFormula(2, 1, "'SUM(A1)'!B2");
 
@@ -81,7 +81,7 @@ namespace OfficeIMO.Tests {
         }
 
         private static ExcelSheet CreateCellShiftDrawingSheet(ExcelDocument document, string name) {
-            ExcelSheet sheet = document.AddWorksheet(name);
+            ExcelSheet sheet = document.AddSheet(name);
             sheet.CellValue(1, 1, "Category");
             sheet.CellValue(1, 2, "Value");
             sheet.CellValue(2, 1, "One");

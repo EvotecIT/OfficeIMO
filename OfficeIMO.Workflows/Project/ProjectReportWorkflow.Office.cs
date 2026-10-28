@@ -85,7 +85,7 @@ public static partial class ProjectReportWorkflow {
         ValidateExcelGrid(view);
         var document = ExcelDocument.Create();
         try {
-            var sheet = document.AddWorksheet("Report");
+            var sheet = document.AddSheet("Report");
             for (int c = 0; c < view.Columns.Count; c++) sheet.CellValue(1, c + 1, ProjectView.ColumnTitle(view.Columns[c]));
             for (int r = 0; r < view.Rows.Count; r++) {
                 cancellationToken.ThrowIfCancellationRequested();
@@ -105,7 +105,7 @@ public static partial class ProjectReportWorkflow {
             }
             FinishSheet(sheet, cancellationToken, view.Rows.Count + 1, view.Columns.Count);
             if (IsUsage(view)) {
-                var usage = document.AddWorksheet("Work hours"); usage.CellValue(1, 1, "UID"); usage.CellValue(1, 2, "Name");
+                var usage = document.AddSheet("Work hours"); usage.CellValue(1, 1, "UID"); usage.CellValue(1, 2, "Name");
                 for (int b = 0; b < view.Buckets.Count; b++) { usage.CellValue(1, b + 3, view.Buckets[b].Start); usage.FormatCell(1, b + 3, "yyyy-mm-dd"); }
                 for (int r = 0; r < view.Rows.Count; r++) {
                     cancellationToken.ThrowIfCancellationRequested();

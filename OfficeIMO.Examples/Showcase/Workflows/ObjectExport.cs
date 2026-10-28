@@ -112,7 +112,7 @@ internal static class ObjectExport
         };
         using ExcelDocument document = ExcelDocument.Create(Path.Combine(folder, "example.xlsx"));
         {
-            var sheet1 = document.AddWorksheet("Assets");
+            var sheet1 = document.AddSheet("Assets");
             int nextRow2 = 1;
             var table3 = sheet1.AddTable(assets, new ExcelTableOptions { Name = "Assets", Style = ExcelTableStyle.TableStyleMedium2, IncludeAutoFilter = true, Projection = null }, row: nextRow2);
             nextRow2 = table3.AsRange().LastRow + 1;

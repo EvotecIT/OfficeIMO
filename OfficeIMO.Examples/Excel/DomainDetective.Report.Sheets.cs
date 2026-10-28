@@ -48,7 +48,7 @@ namespace OfficeIMO.Examples.Excel
             }
 
             // Overview sheet
-            var overview = doc.AddWorksheet("Overview", ExcelSheetNameValidationMode.Sanitize).Report();
+            var overview = doc.AddSheet("Overview", ExcelSheetNameValidationMode.Sanitize).Report();
             overview.Title("Domain Detective — Overview", $"Generated {DateTime.Now:yyyy-MM-dd HH:mm}");
             // Header/footer with Evotec logo + page text (fixed URL)
             const string logoUrl = "https://evotec.pl/wp-content/uploads/2015/05/Logo-evotec-012.png";
@@ -135,7 +135,7 @@ namespace OfficeIMO.Examples.Excel
 
         private static async Task BuildDomainSheet(ExcelDocument doc, DomainRow d)
         {
-            var s = doc.AddWorksheet(d.Domain, ExcelSheetNameValidationMode.Sanitize).Report();
+            var s = doc.AddSheet(d.Domain, ExcelSheetNameValidationMode.Sanitize).Report();
             s.Title($"Mail Classification — {d.Domain}", d.Summary).Callout(d.ErrorCount > 0 ? OfficeCalloutKind.Danger : (string.Equals(d.Status, "Warning", StringComparison.OrdinalIgnoreCase) ? OfficeCalloutKind.Warning : OfficeCalloutKind.Info), "Status", $"Status: {d.Status}; Findings: {d.WarningCount} warning(s), {d.ErrorCount} error(s).").SectionWithAnchor("Overview").PropertiesGrid(new (string, object? )[] { ("Domain", d.Domain), ("Classification", d.Classification), ("Confidence", d.Confidence), ("Status", d.Status), ("Warnings", d.WarningCount), ("Errors", d.ErrorCount) }, columns: 3).SectionWithAnchor("Signals").PropertiesGrid(new (string, object? )[] { ("Receiving", string.Join(", ", d.ReceivingSignals)), ("Sending", string.Join(", ", d.SendingSignals)) }, columns: 2).Score("Score", d.Score).SectionWithAnchor("Score Breakdown");
             s.AddTable(d.ScoreBreakdown, title: null, configure: o =>
             {

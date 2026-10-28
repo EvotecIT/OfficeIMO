@@ -1145,9 +1145,9 @@ OfficeIMO.Excel.ExcelDocument.AddWorkbookConnectionMetadata(string! xml) -> Offi
 OfficeIMO.Excel.ExcelDocument.AddWorkbookMetadataPart(string! relationshipType, string! contentType, string! xml, string! targetExtension = "xml") -> OfficeIMO.Excel.ExcelPackagePartInfo!
 OfficeIMO.Excel.ExcelDocument.AddWorkbookSlicerCache(OfficeIMO.Excel.ExcelSlicerCacheOptions! options) -> OfficeIMO.Excel.ExcelPackagePartInfo!
 OfficeIMO.Excel.ExcelDocument.AddWorkbookTimelineCache(OfficeIMO.Excel.ExcelTimelineCacheOptions! options) -> OfficeIMO.Excel.ExcelPackagePartInfo!
-OfficeIMO.Excel.ExcelDocument.AddWorksheet(string! worksheetName = "") -> OfficeIMO.Excel.ExcelSheet!
-OfficeIMO.Excel.ExcelDocument.AddWorksheet(string! worksheetName, OfficeIMO.Excel.ExcelSheetNameValidationMode validationMode) -> OfficeIMO.Excel.ExcelSheet!
-OfficeIMO.Excel.ExcelDocument.AddWorksheet(string! worksheetName, OfficeIMO.Excel.ExcelSheetNameValidationMode validationMode, System.Threading.CancellationToken cancellationToken) -> OfficeIMO.Excel.ExcelSheet!
+OfficeIMO.Excel.ExcelDocument.AddSheet(string! worksheetName = "") -> OfficeIMO.Excel.ExcelSheet!
+OfficeIMO.Excel.ExcelDocument.AddSheet(string! worksheetName, OfficeIMO.Excel.ExcelSheetNameValidationMode validationMode) -> OfficeIMO.Excel.ExcelSheet!
+OfficeIMO.Excel.ExcelDocument.AddSheet(string! worksheetName, OfficeIMO.Excel.ExcelSheetNameValidationMode validationMode, System.Threading.CancellationToken cancellationToken) -> OfficeIMO.Excel.ExcelSheet!
 OfficeIMO.Excel.ExcelDocument.AddWorksheetMetadataPart(OfficeIMO.Excel.ExcelSheet! sheet, string! relationshipType, string! contentType, string! xml, string! targetExtension = "xml") -> OfficeIMO.Excel.ExcelPackagePartInfo!
 OfficeIMO.Excel.ExcelDocument.AddWorksheetQueryTableMetadata(string! worksheetName, string! xml) -> OfficeIMO.Excel.ExcelPackagePartInfo!
 OfficeIMO.Excel.ExcelDocument.AnalyzeAccessibility() -> OfficeIMO.Excel.ExcelAccessibilityReport!

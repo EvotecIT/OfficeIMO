@@ -12,7 +12,7 @@ public sealed class ExcelAllSeverityBatch13SecurityTests
     public async Task RemoteImageInsertionRejectsLoopbackDestinationByDefault() {
         using var stream = new MemoryStream();
         using ExcelDocument document = ExcelDocument.Create(stream);
-        ExcelSheet sheet = document.AddWorksheet("Data");
+        ExcelSheet sheet = document.AddSheet("Data");
 
         await Assert.ThrowsAsync<InvalidDataException>(() =>
             sheet.AddImageFromUrlAsync(1, 1, "http://127.0.0.1:6553/private.png"));
@@ -22,7 +22,7 @@ public sealed class ExcelAllSeverityBatch13SecurityTests
     public void SaveRejectsPackageMaterializationBeyondConfiguredLimit() {
         using var source = new MemoryStream();
         using ExcelDocument document = ExcelDocument.Create(source);
-        document.AddWorksheet("Data").CellValue(1, 1, new string('x', 1024));
+        document.AddSheet("Data").CellValue(1, 1, new string('x', 1024));
         using var destination = new MemoryStream();
 
         InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
@@ -39,7 +39,7 @@ public sealed class ExcelAllSeverityBatch13SecurityTests
         byte[] package;
         using (var source = new MemoryStream())
         using (ExcelDocument created = ExcelDocument.Create(source)) {
-            created.AddWorksheet("Data").CellValue(1, 1, "value");
+            created.AddSheet("Data").CellValue(1, 1, "value");
             package = created.ToBytes();
         }
 
@@ -57,7 +57,7 @@ public sealed class ExcelAllSeverityBatch13SecurityTests
     public void SimpleFastSaveChecksLimitBeforeGrowingToBytesMemoryStream() {
         using var backing = new MemoryStream();
         using ExcelDocument document = ExcelDocument.Create(backing);
-        document.AddWorksheet("Data").CellValue(1, 1, new string('x', 1024));
+        document.AddSheet("Data").CellValue(1, 1, new string('x', 1024));
 
         InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
             document.ToBytes(options: new ExcelSaveOptions { MaxInMemoryPackageBytes = 64 }));
@@ -135,7 +135,7 @@ public sealed class ExcelAllSeverityBatch13SecurityTests
         using ExcelDocument document = ExcelDocument.Create(stream);
         InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
         {
-            var sheet1 = document.AddWorksheet("Data");
+            var sheet1 = document.AddSheet("Data");
             int nextRow2 = 1;
             var projection3 = new OfficeIMO.Data.ObjectFlattenerOptions();
             (projection3).MaxRows = 3;
@@ -166,7 +166,7 @@ public sealed class ExcelAllSeverityBatch13SecurityTests
 
         InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
         {
-            var sheet5 = document.AddWorksheet("Data");
+            var sheet5 = document.AddSheet("Data");
             int nextRow6 = 1;
             var projection7 = new OfficeIMO.Data.ObjectFlattenerOptions();
             {
@@ -187,7 +187,7 @@ public sealed class ExcelAllSeverityBatch13SecurityTests
     public void EmptyNativeTableHeadersHonorProjectionLimits(bool constrainColumns)
     {
         using ExcelDocument document = ExcelDocument.Create();
-        var sheet = document.AddWorksheet("Data");
+        var sheet = document.AddSheet("Data");
         var projection = new ObjectFlattenerOptions();
         if (constrainColumns)
             projection.MaxColumns = 1;
@@ -202,7 +202,7 @@ public sealed class ExcelAllSeverityBatch13SecurityTests
     {
         using var stream = new MemoryStream();
         using ExcelDocument document = ExcelDocument.Create(stream);
-        InvalidDataException exception = Assert.Throws<InvalidDataException>(() => ((System.Action<OfficeIMO.Excel.ExcelReportBuilder>)(sheet => sheet.AddTable(InfiniteRows(), configure: options => options.MaxRows = 3)))(document.AddWorksheet("Data", OfficeIMO.Excel.ExcelSheetNameValidationMode.Sanitize).Report()));
+        InvalidDataException exception = Assert.Throws<InvalidDataException>(() => ((System.Action<OfficeIMO.Excel.ExcelReportBuilder>)(sheet => sheet.AddTable(InfiniteRows(), configure: options => options.MaxRows = 3)))(document.AddSheet("Data", OfficeIMO.Excel.ExcelSheetNameValidationMode.Sanitize).Report()));
         Assert.Contains("3-row", exception.Message, StringComparison.Ordinal);
     }
 
@@ -226,7 +226,7 @@ public sealed class ExcelAllSeverityBatch13SecurityTests
         };
         InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
         {
-            var sheet13 = document.AddWorksheet("Data");
+            var sheet13 = document.AddSheet("Data");
             int nextRow14 = 1;
             var projection15 = new OfficeIMO.Data.ObjectFlattenerOptions();
             {
@@ -254,7 +254,7 @@ public sealed class ExcelAllSeverityBatch13SecurityTests
         };
         InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
         {
-            var sheet17 = document.AddWorksheet("Data");
+            var sheet17 = document.AddSheet("Data");
             int nextRow18 = 1;
             var projection19 = new OfficeIMO.Data.ObjectFlattenerOptions();
             {
@@ -273,7 +273,7 @@ public sealed class ExcelAllSeverityBatch13SecurityTests
     public void RowsFromSimpleFastPathRejectsColumnsBeyondConfiguredLimit()
     {
         using ExcelDocument document = ExcelDocument.Create();
-        var sheet = document.AddWorksheet("Data");
+        var sheet = document.AddSheet("Data");
         InvalidDataException exception = Assert.Throws<InvalidDataException>(() => sheet.AddTable(new[] { new WideSimpleRow() }, new ExcelTableOptions { Projection = new ObjectFlattenerOptions { MaxColumns = 1 } }));
         Assert.Contains("1-column", exception.Message, StringComparison.Ordinal);
     }
@@ -298,7 +298,7 @@ public sealed class ExcelAllSeverityBatch13SecurityTests
         };
         InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
         {
-            var sheet21 = document.AddWorksheet("Data");
+            var sheet21 = document.AddSheet("Data");
             int nextRow22 = 1;
             var projection23 = new OfficeIMO.Data.ObjectFlattenerOptions();
             {

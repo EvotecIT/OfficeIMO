@@ -158,12 +158,12 @@ public partial class Excel {
 
     private static byte[] CreateAsyncOpeningWorkbook(ExcelFileFormat format) {
         using ExcelDocument document = ExcelDocument.Create();
-        ExcelSheet sheet = document.AddWorksheet("Data");
+        ExcelSheet sheet = document.AddSheet("Data");
         sheet.CellValue(1, 1, "Name");
         sheet.CellValue(1, 2, "Id");
         sheet.CellValue(2, 1, "Alpha");
         sheet.CellValue(2, 2, 42);
-        ExcelSheet next = document.AddWorksheet("Next");
+        ExcelSheet next = document.AddSheet("Next");
         next.CellValue(1, 1, "Name");
         next.CellValue(2, 1, "Beta");
         return document.ToBytes(format);

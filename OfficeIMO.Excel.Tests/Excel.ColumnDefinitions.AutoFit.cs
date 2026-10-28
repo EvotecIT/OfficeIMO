@@ -14,7 +14,7 @@ namespace OfficeIMO.Tests {
             using var source = new MemoryStream();
             using var output = new MemoryStream();
             using var document = streamBacked ? ExcelDocument.Create(source) : ExcelDocument.Create();
-            var sheet = document.AddWorksheet("Data");
+            var sheet = document.AddSheet("Data");
             sheet.CellValues(new[] {
                 (1, 1, (object)"Description"), (1, 2, (object)"Amount"), (1, 3, (object)"Code")
             }, ExcelExecutionMode.Sequential);

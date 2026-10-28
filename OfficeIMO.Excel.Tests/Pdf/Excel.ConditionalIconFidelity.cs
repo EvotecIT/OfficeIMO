@@ -16,7 +16,7 @@ public sealed class ExcelConditionalIconFidelityTests {
     [InlineData(ExcelIconSet.FiveArrows, 5)]
     public void FlowTable_YellowArrowDirectionsMatchTheirConditionalValues(ExcelIconSet iconSet, int count) {
         using var document = ExcelDocument.Create(new MemoryStream());
-        ExcelSheet sheet = document.AddWorksheet("Directions");
+        ExcelSheet sheet = document.AddSheet("Directions");
         for (int row = 1; row <= count; row++) {
             sheet.CellValue(row, 1, row - 1);
             sheet.SetRowHeight(row, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(30)));
@@ -59,7 +59,7 @@ public sealed class ExcelConditionalIconFidelityTests {
     [InlineData(50, false)]
     public void Symbols_RenderActualArtworkAndReserveTextInPdfAndPng(int percent, bool showValue) {
         using var document = ExcelDocument.Create(new MemoryStream());
-        ExcelSheet sheet = document.AddWorksheet("Icons");
+        ExcelSheet sheet = document.AddSheet("Icons");
         sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(20));
         sheet.SetMargins(OfficeLength.Inches(0), OfficeLength.Inches(0), OfficeLength.Inches(0), OfficeLength.Inches(0));
         sheet.SetPageSetup(scale: (uint)percent);
@@ -122,7 +122,7 @@ public sealed class ExcelConditionalIconFidelityTests {
     public void ImportedCustomNoIconsAndNumericThresholds_AgreeInPdfAndPng(bool showValue, bool allNoIcons) {
         using var stream = new MemoryStream();
         using (var document = ExcelDocument.Create(stream)) {
-            ExcelSheet sheet = document.AddWorksheet("Custom");
+            ExcelSheet sheet = document.AddSheet("Custom");
             sheet.CellValue(1, 1, -1);
             sheet.CellValue(2, 1, 0);
             sheet.CellValue(3, 1, 1);

@@ -30,7 +30,7 @@ public sealed class OpenDocumentConversionLossReportTests {
         string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".xlsx");
         try {
             using (ExcelDocument created = ExcelDocument.Create(filePath)) {
-                created.AddWorksheet("Data").CellValue(1, 1, 1d);
+                created.AddSheet("Data").CellValue(1, 1, 1d);
                 created.Save();
             }
 
@@ -68,7 +68,7 @@ public sealed class OpenDocumentConversionLossReportTests {
     [Fact]
     public void ExcelToOdsReportsOfficeImoPivotBindingMetadataLoss() {
         using ExcelDocument source = ExcelDocument.Create();
-        ExcelSheet data = source.AddWorksheet("Data");
+        ExcelSheet data = source.AddSheet("Data");
         data.CellValue(1, 1, "Region");
         data.CellValue(1, 2, "OrderDate");
         data.CellValue(1, 3, "Sales");
@@ -133,7 +133,7 @@ public sealed class OpenDocumentConversionLossReportTests {
     public void ExcelToOdsReportUsesActualSourceFormat(ExcelFileFormat format, string expectedLabel) {
         byte[] bytes;
         using (ExcelDocument created = ExcelDocument.Create()) {
-            created.AddWorksheet("Data").CellValue(1, 1, 1d);
+            created.AddSheet("Data").CellValue(1, 1, 1d);
             bytes = created.ToBytes(new OfficeIMO.Excel.ExcelSaveOptions{Format=format});
         }
 
@@ -147,7 +147,7 @@ public sealed class OpenDocumentConversionLossReportTests {
     [Fact]
     public void ExcelFormulaConversionDoesNotRewriteQuotedCellLikeText() {
         using ExcelDocument source = ExcelDocument.Create(new MemoryStream());
-        ExcelSheet sheet = source.AddWorksheet("Data");
+        ExcelSheet sheet = source.AddSheet("Data");
         sheet.CellAt(1, 1).SetValue("B2");
         sheet.CellAt(1, 2).SetFormula("IF(A1=\"B2\",1,0)");
 
@@ -167,9 +167,9 @@ public sealed class OpenDocumentConversionLossReportTests {
     [Fact]
     public void ExcelFormulaConversionMapsSheetQualifiedReferences() {
         using ExcelDocument source = ExcelDocument.Create(new MemoryStream());
-        ExcelSheet data = source.AddWorksheet("Data");
-        source.AddWorksheet("Other").CellAt(1, 1).SetValue(1);
-        source.AddWorksheet("Other Sheet").CellAt(2, 2).SetValue(2);
+        ExcelSheet data = source.AddSheet("Data");
+        source.AddSheet("Other").CellAt(1, 1).SetValue(1);
+        source.AddSheet("Other Sheet").CellAt(2, 2).SetValue(2);
         data.CellAt(1, 1).SetFormula("SUM(Other!A1,'Other Sheet'!B2:C3)");
 
         OdfConversionResult<OdsDocument> conversion = source.ToOpenDocumentResult();
@@ -188,7 +188,7 @@ public sealed class OpenDocumentConversionLossReportTests {
         string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".xlsx");
         try {
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorksheet("Data");
+                ExcelSheet sheet = document.AddSheet("Data");
                 sheet.CellValue(1, 1, 1d);
                 sheet.CellValue(2, 1, 2d);
                 sheet.CellFormula(1, 2, "A1+1");
@@ -241,8 +241,8 @@ public sealed class OpenDocumentConversionLossReportTests {
     [Fact]
     public void DuplicateSheetLocalExcelNamesAreDisambiguatedWithoutAborting() {
         using ExcelDocument source = ExcelDocument.Create(new MemoryStream());
-        ExcelSheet first = source.AddWorksheet("First Sheet");
-        ExcelSheet second = source.AddWorksheet("Second Sheet");
+        ExcelSheet first = source.AddSheet("First Sheet");
+        ExcelSheet second = source.AddSheet("Second Sheet");
         first.CellAt(1, 1).SetValue(1);
         second.CellAt(1, 1).SetValue(2);
         first.SetNamedRange("LocalValue", "A1", save: false);
@@ -268,7 +268,7 @@ public sealed class OpenDocumentConversionLossReportTests {
     [Fact]
     public void ExcelDefinedExpressionsThatAreNotRangesAreReportedAsUnsupported() {
         using ExcelDocument source = ExcelDocument.Create(new MemoryStream());
-        ExcelSheet sheet = source.AddWorksheet("Data");
+        ExcelSheet sheet = source.AddSheet("Data");
         source.OpenXmlDocument.WorkbookPart!.Workbook!.DefinedNames = new DocumentFormat.OpenXml.Spreadsheet.DefinedNames(
             new DocumentFormat.OpenXml.Spreadsheet.DefinedName("0.2") { Name = "TaxRate" });
         sheet.CellAt(1, 1).SetFormula("TaxRate*100");
@@ -505,7 +505,7 @@ public sealed class OpenDocumentConversionLossReportTests {
     [Fact]
     public void ExcelToOdsReportsConfiguredCellAndStyleOmissions() {
         using ExcelDocument source = ExcelDocument.Create(new MemoryStream());
-        ExcelSheet sheet = source.AddWorksheet("Data");
+        ExcelSheet sheet = source.AddSheet("Data");
         sheet.CellAt(1, 1).SetValue("One").SetBold();
         sheet.CellAt(1, 2).SetValue("Two").SetBold();
 

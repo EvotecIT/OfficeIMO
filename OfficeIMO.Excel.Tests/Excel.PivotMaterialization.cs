@@ -32,7 +32,7 @@ namespace OfficeIMO.Tests
             var sourceValues = oracle.GetSheet("Source").ReadRange("A1:D9");
             using (var document = ExcelDocument.Create(path))
             {
-                var sheet = document.AddWorksheet("Sales");
+                var sheet = document.AddSheet("Sales");
                 for (int row = 1; row <= 9; row++)
                     for (int column = 1; column <= 4; column++)
                         sheet.CellValue(row, column, sourceValues[row - 1, column - 1]);

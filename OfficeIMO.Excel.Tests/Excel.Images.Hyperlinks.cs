@@ -18,7 +18,7 @@ public sealed class ExcelPictureHyperlinkTests {
     [InlineData(true, true)]
     public void RangeCopiesPreservePictureTargetsAndIndependentRelationshipLifetime(bool transpose, bool twoCellAnchor) {
         using var document = ExcelDocument.Create();
-        ExcelSheet sheet = document.AddWorksheet("Pictures");
+        ExcelSheet sheet = document.AddSheet("Pictures");
         byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(2, 2, OfficeColor.SteelBlue));
         ExcelImage original = twoCellAnchor
             ? sheet.AddImageToRange("A1:B2", png, "image/png")
@@ -62,7 +62,7 @@ public sealed class ExcelPictureHyperlinkTests {
     [Fact]
     public void PictureTargetsSetChangeRemoveAndPreserveMediaAndGeometry() {
         using var document = ExcelDocument.Create();
-        ExcelSheet sheet = document.AddWorksheet("Pictures");
+        ExcelSheet sheet = document.AddSheet("Pictures");
         byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(2, 2, OfficeColor.SteelBlue));
         ExcelImage first = sheet.AddImage(2, 1, png, "image/png", OfficeIMO.OfficeLength.Pixels(32), OfficeIMO.OfficeLength.Pixels(16));
         ExcelImage second = sheet.AddImage(4, 1, png, "image/png", OfficeIMO.OfficeLength.Pixels(32), OfficeIMO.OfficeLength.Pixels(16));
@@ -99,7 +99,7 @@ public sealed class ExcelPictureHyperlinkTests {
     [Fact]
     public void ClearingClickLinkPreservesSharedHoverAndUnrelatedRelationships() {
         using var document = ExcelDocument.Create();
-        ExcelSheet sheet = document.AddWorksheet("Pictures");
+        ExcelSheet sheet = document.AddSheet("Pictures");
         byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(2, 2, OfficeColor.Red));
         ExcelImage image = sheet.AddImage(1, 1, png, "image/png", OfficeIMO.OfficeLength.Pixels(32), OfficeIMO.OfficeLength.Pixels(16));
         image.HyperlinkUri = new Uri("https://example.org/shared");
@@ -119,7 +119,7 @@ public sealed class ExcelPictureHyperlinkTests {
     [Fact]
     public void RetainedPictureLinksSurviveSaveAndReadOnlyHandlesRejectChanges() {
         using var document = ExcelDocument.Create();
-        ExcelSheet sheet = document.AddWorksheet("Pictures");
+        ExcelSheet sheet = document.AddSheet("Pictures");
         byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(2, 2, OfficeColor.Blue));
         ExcelImage original = sheet.AddImage(1, 1, png, "image/png", OfficeIMO.OfficeLength.Pixels(32), OfficeIMO.OfficeLength.Pixels(16));
         var target = new Uri("https://example.org/current");
@@ -153,12 +153,12 @@ public sealed class ExcelPictureHyperlinkTests {
     [Fact]
     public void RemovedWorksheetPictureCannotBeReboundByName() {
         using var document = ExcelDocument.Create();
-        ExcelSheet sheet = document.AddWorksheet("Pictures");
+        ExcelSheet sheet = document.AddSheet("Pictures");
         byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(2, 2, OfficeColor.Blue));
         ExcelImage image = sheet.AddImage(1, 1, png, "image/png", OfficeIMO.OfficeLength.Pixels(32), OfficeIMO.OfficeLength.Pixels(16));
         image.HyperlinkUri = new Uri("https://example.org/old");
         document.RemoveWorksheet("Pictures");
-        document.AddWorksheet("Pictures");
+        document.AddSheet("Pictures");
         Assert.Throws<InvalidOperationException>(() => image.HyperlinkUri);
         Assert.Throws<InvalidOperationException>(() => image.HyperlinkUri = null);
     }
@@ -166,7 +166,7 @@ public sealed class ExcelPictureHyperlinkTests {
     [Fact]
     public void FragmentTargetsRemainDistinctAcrossRelationshipReuseAndReopen() {
         using var document = ExcelDocument.Create();
-        ExcelSheet sheet = document.AddWorksheet("Pictures");
+        ExcelSheet sheet = document.AddSheet("Pictures");
         byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(2, 2, OfficeColor.Blue));
         ExcelImage first = sheet.AddImage(1, 1, png, "image/png", OfficeIMO.OfficeLength.Pixels(32), OfficeIMO.OfficeLength.Pixels(16));
         ExcelImage second = sheet.AddImage(4, 1, png, "image/png", OfficeIMO.OfficeLength.Pixels(32), OfficeIMO.OfficeLength.Pixels(16));
@@ -184,7 +184,7 @@ public sealed class ExcelPictureHyperlinkTests {
     [Fact]
     public void TemplateSheetsRetainSharedPictureLinksHoverAndMediaWithoutIdCollisions() {
         using var document = ExcelDocument.Create();
-        ExcelSheet template = document.AddWorksheet("Template");
+        ExcelSheet template = document.AddSheet("Template");
         template.CellValue(1, 1, "Region {{Name}}");
         byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(2, 2, OfficeColor.Blue));
         var target = new Uri("https://example.org/template#photo");
@@ -234,7 +234,7 @@ public sealed class ExcelPictureHyperlinkTests {
         byte[] blue = OfficePngWriter.Encode(new OfficeRasterImage(2, 2, OfficeColor.Blue));
         byte[] red = OfficePngWriter.Encode(new OfficeRasterImage(2, 2, OfficeColor.Red));
         using var original = ExcelDocument.Create();
-        ExcelSheet template = original.AddWorksheet("Template");
+        ExcelSheet template = original.AddSheet("Template");
         template.CellValue(1, 1, "Region {{Name}}");
         var target = new Uri("https://example.org/template#photo");
         template.AddImage(3, 1, blue, "image/png", OfficeIMO.OfficeLength.Pixels(32), OfficeIMO.OfficeLength.Pixels(16)).HyperlinkUri = target;

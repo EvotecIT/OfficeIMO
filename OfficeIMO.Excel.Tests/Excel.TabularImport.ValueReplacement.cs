@@ -39,11 +39,11 @@ namespace OfficeIMO.Tests {
                     document.InsertDataSet(dataSet, createTables: false, includeAutoFilter: false);
                     sheet = document.Sheets[0];
                 } else {
-                    sheet = document.AddWorksheet("Data");
+                    sheet = document.AddSheet("Data");
                     sheet.InsertDataTable(table, mode: source == "ParallelDataTable" ? ExcelExecutionMode.Parallel : ExcelExecutionMode.Sequential);
                 }
             } else {
-                sheet = document.AddWorksheet("Data");
+                sheet = document.AddSheet("Data");
                 if (source == "Projected") {
                     sheet.InsertObjects(new[] { 1, 2 },
                         ("Id", (Func<int, object?>)(id => id == 1 ? 1 : null)),
@@ -120,7 +120,7 @@ namespace OfficeIMO.Tests {
         [InlineData(ExcelFileFormat.Xlsb, false, true, true)]
         public void TabularImport_ExplicitCellNullCompatibility_IsEmptyTextAcrossFormats(ExcelFileFormat format, bool standardWriter, bool batchWrite, bool useSharedStrings) {
             using ExcelDocument document = ExcelDocument.Create();
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             var values = Enumerable.Range(1, 140).Select(row => (Row: row, Column: 1, Value: row == 2 ? DBNull.Value : row == 3 ? null! : (object)"Value"));
             if (batchWrite) {
                 sheet.CellValues(values);
@@ -156,8 +156,8 @@ namespace OfficeIMO.Tests {
         public void TabularImport_PreparedOverwrite_ReplacesFormulaAndInlineTextAndPreservesStyles(string source, ExcelExecutionMode mode) {
             using ExcelDocument document = ExcelDocument.Create();
             document.Execution.Mode = mode;
-            ExcelSheet sheet = document.AddWorksheet("Data");
-            document.AddWorksheet("Other");
+            ExcelSheet sheet = document.AddSheet("Data");
+            document.AddSheet("Other");
             sheet.CellFormula(2, 1, "123");
             sheet.CellValue(2, 2, "Previous");
             sheet.FormatCell(2, 1, "0.0000");
@@ -218,8 +218,8 @@ namespace OfficeIMO.Tests {
         public void TabularImport_RejectedReplacement_PreservesTheExistingCell(string source) {
             using ExcelDocument document = ExcelDocument.Create();
             document.Execution.Mode = ExcelExecutionMode.Sequential;
-            ExcelSheet sheet = document.AddWorksheet("Data");
-            document.AddWorksheet("Other");
+            ExcelSheet sheet = document.AddSheet("Data");
+            document.AddSheet("Other");
             sheet.CellFormula(2, 1, "123");
             sheet.FormatCell(2, 1, "0.0000");
             Cell existing = sheet.WorksheetPart.Worksheet.GetFirstChild<SheetData>()!.Descendants<Cell>().Single(cell => cell.CellReference?.Value == "A2");
@@ -251,7 +251,7 @@ namespace OfficeIMO.Tests {
         public void TabularImport_HeaderlessStyledMissingRows_PreserveAllColumns(string source, bool standardWriter) {
             using ExcelDocument document = ExcelDocument.Create();
             if (source == "Objects") {
-                document.AddWorksheet("Data").InsertObjects(new[] {
+                document.AddSheet("Data").InsertObjects(new[] {
                     new HeaderlessDateStyleRow(), new HeaderlessDateStyleRow()
                 }, includeHeaders: false);
             } else {
@@ -266,7 +266,7 @@ namespace OfficeIMO.Tests {
                     dataSet.Tables.Add(table);
                     document.InsertDataSet(dataSet, createTables: false, includeHeaders: false, includeAutoFilter: false);
                 } else {
-                    document.AddWorksheet("Data").InsertDataTable(table, includeHeaders: false,
+                    document.AddSheet("Data").InsertDataTable(table, includeHeaders: false,
                         mode: source == "ParallelDataTable" ? ExcelExecutionMode.Parallel : ExcelExecutionMode.Sequential);
                 }
             }

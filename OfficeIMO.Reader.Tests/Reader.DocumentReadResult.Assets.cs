@@ -233,10 +233,10 @@ public sealed class ReaderDocumentReadResultAssetTests {
         byte[] png = Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNgYAAAAAMAASsJTYQAAAAASUVORK5CYII=");
         try {
             using (ExcelDocument document = ExcelDocument.Create(path)) {
-                ExcelSheet sheet = document.AddWorksheet("Images");
+                ExcelSheet sheet = document.AddSheet("Images");
                 sheet.Cell(1, 1, "Logo sheet");
                 sheet.AddImage(1, 1, png, "image/png", width: OfficeIMO.OfficeLength.Pixels(12), height: OfficeIMO.OfficeLength.Pixels(10), name: "Logo", altText: "Company logo");
-                ExcelSheet otherSheet = document.AddWorksheet("Other");
+                ExcelSheet otherSheet = document.AddSheet("Other");
                 otherSheet.Cell(1, 1, "Other sheet");
                 otherSheet.AddImage(1, 1, png, "image/png", width: OfficeIMO.OfficeLength.Pixels(12), height: OfficeIMO.OfficeLength.Pixels(10), name: "OtherLogo", altText: "Other logo");
                 document.Save();
@@ -289,7 +289,7 @@ public sealed class ReaderDocumentReadResultAssetTests {
         byte[] png = Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNgYAAAAAMAASsJTYQAAAAASUVORK5CYII=");
         try {
             using (ExcelDocument document = ExcelDocument.Create(path)) {
-                ExcelSheet sheet = document.AddWorksheet("Images");
+                ExcelSheet sheet = document.AddSheet("Images");
                 sheet.Cell(1, 1, "Plain workbook");
                 sheet.AddImage(1, 1, png, "image/png", width: OfficeIMO.OfficeLength.Pixels(12), height: OfficeIMO.OfficeLength.Pixels(10), name: "Logo", altText: "Plain logo");
                 document.Save();
@@ -313,7 +313,7 @@ public sealed class ReaderDocumentReadResultAssetTests {
         byte[] png = Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNgYAAAAAMAASsJTYQAAAAASUVORK5CYII=");
         try {
             using (ExcelDocument document = ExcelDocument.Create(path)) {
-                ExcelSheet sheet = document.AddWorksheet("Images");
+                ExcelSheet sheet = document.AddSheet("Images");
                 sheet.AddImage(1, 1, png, "image/png", width: OfficeIMO.OfficeLength.Pixels(12), height: OfficeIMO.OfficeLength.Pixels(10), name: "First", altText: "First");
                 sheet.AddImage(3, 1, png, "image/png", width: OfficeIMO.OfficeLength.Pixels(12), height: OfficeIMO.OfficeLength.Pixels(10), name: "Second", altText: "Second");
                 document.Save();
@@ -339,7 +339,7 @@ public sealed class ReaderDocumentReadResultAssetTests {
         byte[] png = Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNgYAAAAAMAASsJTYQAAAAASUVORK5CYII=");
         try {
             using (ExcelDocument document = ExcelDocument.Create(path)) {
-                ExcelSheet sheet = document.AddWorksheet("Images");
+                ExcelSheet sheet = document.AddSheet("Images");
                 sheet.AddImage(1, 1, png, "image/png", width: OfficeIMO.OfficeLength.Pixels(12), height: OfficeIMO.OfficeLength.Pixels(10), name: "First", altText: "First");
                 sheet.AddImage(3, 1, png, "image/png", width: OfficeIMO.OfficeLength.Pixels(12), height: OfficeIMO.OfficeLength.Pixels(10), name: "Second", altText: "Second");
                 document.Save();
@@ -375,7 +375,7 @@ public sealed class ReaderDocumentReadResultAssetTests {
         byte[] png = Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNgYAAAAAMAASsJTYQAAAAASUVORK5CYII=");
         try {
             using (ExcelDocument document = ExcelDocument.Create(path)) {
-                ExcelSheet sheet = document.AddWorksheet("Data");
+                ExcelSheet sheet = document.AddSheet("Data");
                 sheet.Cell(1, 1, "Inside");
                 sheet.Cell(5, 5, "Outside");
                 sheet.AddImage(1, 1, png, "image/png", width: OfficeIMO.OfficeLength.Pixels(12), height: OfficeIMO.OfficeLength.Pixels(10), name: "InsideLogo", altText: "Inside logo");

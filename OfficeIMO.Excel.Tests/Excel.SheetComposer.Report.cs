@@ -28,7 +28,7 @@ namespace OfficeIMO.Tests
         public void ComposerColumnSizingRejectsAQualifierThatWouldRetargetAnotherSheet()
         {
             using ExcelDocument document = ExcelDocument.Create();
-            var composer = document.AddWorksheet("Data", ExcelSheetNameValidationMode.Sanitize).Report();
+            var composer = document.AddSheet("Data", ExcelSheetNameValidationMode.Sanitize).Report();
             ArgumentException exception = Assert.Throws<ArgumentException>(() => composer.ApplyColumnSizing("'Other'!A1:B2", _ =>
             {
             }));
@@ -42,7 +42,7 @@ namespace OfficeIMO.Tests
             using (var doc = ExcelDocument.Create(filePath))
             {
                 {
-                    var reportBuilder1 = doc.AddWorksheet("Summary", OfficeIMO.Excel.ExcelSheetNameValidationMode.Sanitize).Report();
+                    var reportBuilder1 = doc.AddSheet("Summary", OfficeIMO.Excel.ExcelSheetNameValidationMode.Sanitize).Report();
                     (reportBuilder1).Title("Report");
                     (reportBuilder1).Callout(OfficeCalloutKind.Warning, "Heads up", "This is a caution.");
                     (reportBuilder1).Paragraph("After callout");
@@ -72,7 +72,7 @@ namespace OfficeIMO.Tests
             using (var doc = ExcelDocument.Create(filePath))
             {
                 {
-                    var reportBuilder2 = doc.AddWorksheet("Details", OfficeIMO.Excel.ExcelSheetNameValidationMode.Sanitize).Report();
+                    var reportBuilder2 = doc.AddSheet("Details", OfficeIMO.Excel.ExcelSheetNameValidationMode.Sanitize).Report();
                     (reportBuilder2).Section("Meta");
                     (reportBuilder2).PropertiesGrid(new (string, object? )[] { ("Name", "Alice"), ("Score", 95), ("Status", "OK") }, columns: 2);
                     (reportBuilder2).Finish();
@@ -108,7 +108,7 @@ namespace OfficeIMO.Tests
             using (var doc = ExcelDocument.Create(filePath))
             {
                 {
-                    var reportBuilder3 = doc.AddWorksheet("Details", OfficeIMO.Excel.ExcelSheetNameValidationMode.Sanitize).Report();
+                    var reportBuilder3 = doc.AddSheet("Details", OfficeIMO.Excel.ExcelSheetNameValidationMode.Sanitize).Report();
                     (reportBuilder3).PropertiesGrid(properties, columns: 2);
                     (reportBuilder3).KpiRow(kpis, perRow: 2);
                     (reportBuilder3).References(urls);
@@ -140,7 +140,7 @@ namespace OfficeIMO.Tests
             using (var doc = ExcelDocument.Create(filePath))
             {
                 {
-                    var reportBuilder4 = doc.AddWorksheet("Report", OfficeIMO.Excel.ExcelSheetNameValidationMode.Sanitize).Report();
+                    var reportBuilder4 = doc.AddSheet("Report", OfficeIMO.Excel.ExcelSheetNameValidationMode.Sanitize).Report();
                     (reportBuilder4).AddTable(rows, title: "Scores");
                     (reportBuilder4).Finish(autoFitColumns: false);
                 }
@@ -167,7 +167,7 @@ namespace OfficeIMO.Tests
             using (var doc = ExcelDocument.Create(filePath))
             {
                 {
-                    var reportBuilder5 = doc.AddWorksheet("Report", OfficeIMO.Excel.ExcelSheetNameValidationMode.Sanitize).Report();
+                    var reportBuilder5 = doc.AddSheet("Report", OfficeIMO.Excel.ExcelSheetNameValidationMode.Sanitize).Report();
                     (reportBuilder5).Columns(2, columns =>
                     {
                         columns[0].AddTable(rows, title: "Scores");
@@ -201,7 +201,7 @@ namespace OfficeIMO.Tests
             using (var doc = ExcelDocument.Create(filePath))
             {
                 {
-                    var reportBuilder6 = doc.AddWorksheet("Report", OfficeIMO.Excel.ExcelSheetNameValidationMode.Sanitize).Report();
+                    var reportBuilder6 = doc.AddSheet("Report", OfficeIMO.Excel.ExcelSheetNameValidationMode.Sanitize).Report();
                     (reportBuilder6).AddTable(rows, title: "Scores", visuals: options =>
                     {
                         options.ShowFirstColumn = true;
@@ -240,7 +240,7 @@ namespace OfficeIMO.Tests
             using (var doc = ExcelDocument.Create(filePath))
             {
                 {
-                    var reportBuilder7 = doc.AddWorksheet("Report", OfficeIMO.Excel.ExcelSheetNameValidationMode.Sanitize).Report();
+                    var reportBuilder7 = doc.AddSheet("Report", OfficeIMO.Excel.ExcelSheetNameValidationMode.Sanitize).Report();
                     (reportBuilder7).AddTable(rows, style: ExcelTableStyle.TableStyleMedium9);
                     (reportBuilder7).Finish(autoFitColumns: false);
                 }
@@ -270,7 +270,7 @@ namespace OfficeIMO.Tests
             using (var doc = ExcelDocument.Create(filePath))
             {
                 {
-                    var reportBuilder8 = doc.AddWorksheet("Report", OfficeIMO.Excel.ExcelSheetNameValidationMode.Sanitize).Report();
+                    var reportBuilder8 = doc.AddSheet("Report", OfficeIMO.Excel.ExcelSheetNameValidationMode.Sanitize).Report();
                     (reportBuilder8).AddTable(rows);
                     (reportBuilder8).Finish(autoFitColumns: false);
                 }
@@ -298,7 +298,7 @@ namespace OfficeIMO.Tests
             using (var doc = ExcelDocument.Create(filePath))
             {
                 {
-                    var reportBuilder9 = doc.AddWorksheet("Report", OfficeIMO.Excel.ExcelSheetNameValidationMode.Sanitize).Report();
+                    var reportBuilder9 = doc.AddSheet("Report", OfficeIMO.Excel.ExcelSheetNameValidationMode.Sanitize).Report();
                     (reportBuilder9).Columns(2, columns =>
                     {
                         columns[0].AddTable(rows, style: ExcelTableStyle.TableStyleMedium4);
@@ -325,7 +325,7 @@ namespace OfficeIMO.Tests
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
 
             using (var doc = ExcelDocument.Create(filePath)) {
-                doc.AddWorksheet("Data").Cell(1, 1, "Value");
+                doc.AddSheet("Data").Cell(1, 1, "Value");
                 doc.AddTableOfContents(sheetName: "Index", styled: true);
                 doc.Save();
             }
@@ -380,7 +380,7 @@ namespace OfficeIMO.Tests
             using var doc = ExcelDocument.Create();
             ExcelSheet? report = null;
             {
-                var reportBuilder10 = doc.AddWorksheet("Report", OfficeIMO.Excel.ExcelSheetNameValidationMode.Sanitize).Report();
+                var reportBuilder10 = doc.AddSheet("Report", OfficeIMO.Excel.ExcelSheetNameValidationMode.Sanitize).Report();
                 report = (reportBuilder10).Sheet;
                 (reportBuilder10).AddTable(new[] { new ComposerTableRow("Alpha", 10) }, style: ExcelTableStyle.TableStyleMedium9);
                 (reportBuilder10).Finish(autoFitColumns: false);
@@ -405,7 +405,7 @@ namespace OfficeIMO.Tests
             using var doc = ExcelDocument.Create();
             ExcelSheet? report = null;
             {
-                var reportBuilder11 = doc.AddWorksheet("Report", OfficeIMO.Excel.ExcelSheetNameValidationMode.Sanitize).Report();
+                var reportBuilder11 = doc.AddSheet("Report", OfficeIMO.Excel.ExcelSheetNameValidationMode.Sanitize).Report();
                 report = (reportBuilder11).Sheet;
                 (reportBuilder11).AddTable(new[] { new ComposerTableRow("Alpha", 10) }, style: ExcelTableStyle.TableStyleMedium9);
                 (reportBuilder11).Finish(autoFitColumns: false);
@@ -429,7 +429,7 @@ namespace OfficeIMO.Tests
             using var doc = ExcelDocument.Create();
             ExcelSheet? report = null;
             {
-                var reportBuilder12 = doc.AddWorksheet("Report", OfficeIMO.Excel.ExcelSheetNameValidationMode.Sanitize).Report();
+                var reportBuilder12 = doc.AddSheet("Report", OfficeIMO.Excel.ExcelSheetNameValidationMode.Sanitize).Report();
                 report = (reportBuilder12).Sheet;
                 (reportBuilder12).AddTable(new[] { new ComposerTableRow("Alpha", 10) }, style: ExcelTableStyle.TableStyleMedium9);
                 (reportBuilder12).Finish(autoFitColumns: false);
@@ -453,7 +453,7 @@ namespace OfficeIMO.Tests
             using var doc = ExcelDocument.Create();
             ExcelSheet? report = null;
             {
-                var reportBuilder13 = doc.AddWorksheet("Report", OfficeIMO.Excel.ExcelSheetNameValidationMode.Sanitize).Report();
+                var reportBuilder13 = doc.AddSheet("Report", OfficeIMO.Excel.ExcelSheetNameValidationMode.Sanitize).Report();
                 report = (reportBuilder13).Sheet;
                 (reportBuilder13).AddTable(new[] { new ComposerTableRow("Alpha", 10) }, style: ExcelTableStyle.TableStyleMedium9);
                 (reportBuilder13).Finish(autoFitColumns: false);
@@ -477,7 +477,7 @@ namespace OfficeIMO.Tests
             using var doc = ExcelDocument.Create();
             ExcelSheet? report = null;
             {
-                var reportBuilder14 = doc.AddWorksheet("Report", OfficeIMO.Excel.ExcelSheetNameValidationMode.Sanitize).Report();
+                var reportBuilder14 = doc.AddSheet("Report", OfficeIMO.Excel.ExcelSheetNameValidationMode.Sanitize).Report();
                 report = (reportBuilder14).Sheet;
                 (reportBuilder14).AddTable(new[] { new ComposerTableRow("Alpha", 10) }, style: ExcelTableStyle.TableStyleLight1);
                 (reportBuilder14).Finish(autoFitColumns: false);
@@ -498,7 +498,7 @@ namespace OfficeIMO.Tests
             using var doc = ExcelDocument.Create();
             ExcelSheet? report = null;
             {
-                var reportBuilder15 = doc.AddWorksheet("Report", OfficeIMO.Excel.ExcelSheetNameValidationMode.Sanitize).Report();
+                var reportBuilder15 = doc.AddSheet("Report", OfficeIMO.Excel.ExcelSheetNameValidationMode.Sanitize).Report();
                 report = (reportBuilder15).Sheet;
                 (reportBuilder15).AddTable(new[] { new ComposerTableRow("Alpha", 10) }, style: ExcelTableStyle.TableStyleLight1);
                 (reportBuilder15).Finish(autoFitColumns: false);
@@ -536,7 +536,7 @@ namespace OfficeIMO.Tests
             using var doc = ExcelDocument.Create();
             ExcelSheet? report = null;
             {
-                var reportBuilder16 = doc.AddWorksheet("Report", OfficeIMO.Excel.ExcelSheetNameValidationMode.Sanitize).Report();
+                var reportBuilder16 = doc.AddSheet("Report", OfficeIMO.Excel.ExcelSheetNameValidationMode.Sanitize).Report();
                 report = (reportBuilder16).Sheet;
                 (reportBuilder16).AddTable(new[] { new ComposerTableRow("Alpha", 10) }, style: ExcelTableStyle.TableStyleDark8);
                 (reportBuilder16).Finish(autoFitColumns: false);
@@ -564,7 +564,7 @@ namespace OfficeIMO.Tests
             using (var doc = ExcelDocument.Create(filePath))
             {
                 {
-                    var reportBuilder17 = doc.AddWorksheet("Report", OfficeIMO.Excel.ExcelSheetNameValidationMode.Sanitize).Report();
+                    var reportBuilder17 = doc.AddSheet("Report", OfficeIMO.Excel.ExcelSheetNameValidationMode.Sanitize).Report();
                     (reportBuilder17).Columns(2, columns =>
                     {
                         columns[0].AddTable(rows, title: "Wide");

@@ -27,7 +27,7 @@ namespace OfficeIMO.Excel.Tests {
             }
             else {
                 using var document = ExcelDocument.Create();
-                document.AddWorksheet("Data").InsertDataTable(table);
+                document.AddSheet("Data").InsertDataTable(table);
                 document.Save(output);
             }
 
@@ -67,7 +67,7 @@ namespace OfficeIMO.Excel.Tests {
             };
 
             using (var document = ExcelDocument.Create(new MemoryStream())) {
-                var sheet = document.AddWorksheet("Data");
+                var sheet = document.AddSheet("Data");
                 sheet.InsertObjects(rows,
                     ("Id", row => row.Id),
                     ("Region", row => row.Region),

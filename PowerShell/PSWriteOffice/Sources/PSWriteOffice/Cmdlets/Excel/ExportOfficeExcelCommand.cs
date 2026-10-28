@@ -1301,7 +1301,7 @@ public sealed partial class ExportOfficeExcelCommand : PSCmdlet
     {
         var sheet = document.Sheets.FirstOrDefault(existing =>
             string.Equals(existing.Name, sheetName, StringComparison.OrdinalIgnoreCase));
-        return sheet ?? document.AddWorksheet(sheetName, ExcelSheetNameValidationMode.None);
+        return sheet ?? document.AddSheet(sheetName, ExcelSheetNameValidationMode.None);
     }
 
     private static bool IsInvalidWorksheetNameCharacter(char ch)

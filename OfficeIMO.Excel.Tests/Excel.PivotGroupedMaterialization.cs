@@ -64,7 +64,7 @@ namespace OfficeIMO.Tests
             var expected = oracle.GetSheet("Grouped").ReadRange("A4:B10");
             using (var document = ExcelDocument.Create(output))
             {
-                var sheet = document.AddWorksheet("Source");
+                var sheet = document.AddSheet("Source");
                 for (int row = 0; row < 9; row++)
                     for (int column = 0; column < 2; column++)
                         sheet.CellValue(row + 1, column + 1, numbersStoredAsText && row > 0 && column == 0 ? Convert.ToString(sourceValues[row, column], CultureInfo.InvariantCulture) : sourceValues[row, column]);
@@ -132,7 +132,7 @@ namespace OfficeIMO.Tests
             var sourceValues = oracle.GetSheet("Source").ReadRange("A1:B9");
             using (var document = ExcelDocument.Create(output))
             {
-                var sheet = document.AddWorksheet("Source");
+                var sheet = document.AddSheet("Source");
                 for (int row = 0; row < 9; row++)
                     for (int column = 0; column < 2; column++)
                         sheet.CellValue(row + 1, column + 1, sourceValues[row, column]);

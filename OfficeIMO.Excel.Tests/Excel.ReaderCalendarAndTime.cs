@@ -28,7 +28,7 @@ namespace OfficeIMO.Tests {
             string path = Path.Combine(_directoryWithFiles, $"CalendarAndTime{system}{converterFallback}{unsorted}.xlsx");
             using (var document = ExcelDocument.Create(path)) {
                 document.DateSystem = system;
-                var sheet = document.AddWorksheet("Data");
+                var sheet = document.AddSheet("Data");
                 string[] headers = { "Calendar", "Duration", "Time", "Numeric", "Text" };
                 for (int c = 0; c < headers.Length; c++) sheet.CellValue(1, c + 1, headers[c]);
                 for (int row = 2; row <= 3; row++) {
@@ -91,7 +91,7 @@ namespace OfficeIMO.Tests {
             string[] formats = { "hhmmss", "hhmm", "mmss", "hh mm", "mmhh", "hhmmm", "[mm]:ss", "[ss].00" };
             using (var document = ExcelDocument.Create(path)) {
                 document.DateSystem = system;
-                var sheet = document.AddWorksheet("Data");
+                var sheet = document.AddSheet("Data");
                 for (int c = 0; c < formats.Length; c++) {
                     sheet.CellValue(1, c + 1, "Field" + c);
                     sheet.CellValue(2, c + 1, 1.5d);

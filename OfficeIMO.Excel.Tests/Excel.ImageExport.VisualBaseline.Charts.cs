@@ -96,7 +96,7 @@ namespace OfficeIMO.Tests {
         private static ExcelBaselineFixture CreateChartAxisLabelsBaselineWorkbook() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             ExcelDocument document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorksheet("ChartAxisLabels");
+            ExcelSheet sheet = document.AddSheet("ChartAxisLabels");
 
             sheet.CellValue(1, 1, "Chart Axis Label Density");
             sheet.Range("A1:H1").Merge();
@@ -143,7 +143,7 @@ namespace OfficeIMO.Tests {
         private static ExcelBaselineFixture CreateChartDataLabelBoxesBaselineWorkbook() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             ExcelDocument document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorksheet("ChartLabelBoxes");
+            ExcelSheet sheet = document.AddSheet("ChartLabelBoxes");
 
             sheet.CellValue(1, 1, "Data Label Box Fidelity");
             sheet.Range("A1:H1").Merge();

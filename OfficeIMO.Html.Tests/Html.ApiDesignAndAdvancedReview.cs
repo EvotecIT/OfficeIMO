@@ -175,7 +175,7 @@ public partial class Html {
             diagnostic.Code == "document-head-metadata-omitted-for-fragment");
 
         using ExcelDocument workbook = ExcelDocument.Create(new MemoryStream());
-        workbook.AddWorksheet("Data").CellValue(1, 1, "Value");
+        workbook.AddSheet("Data").CellValue(1, 1, "Value");
         ExcelHtmlSaveOptions excelOptions = ExcelHtmlSaveOptions.CreateSemanticTablesProfile();
         excelOptions.Title = "Packed review";
         excelOptions.Language = "pl-PL";
@@ -201,7 +201,7 @@ public partial class Html {
         Assert.Contains("class=\"officeimo-html officeimo-word-html customer-shell\"", word.ToHtml(wordOptions), StringComparison.Ordinal);
 
         using ExcelDocument workbook = ExcelDocument.Create(new MemoryStream());
-        workbook.AddWorksheet("Data").CellValue(1, 1, "Excel");
+        workbook.AddSheet("Data").CellValue(1, 1, "Excel");
         ExcelHtmlSaveOptions excelOptions = ExcelHtmlSaveOptions.CreateSemanticTablesProfile();
         excelOptions.DocumentOutput.BodyClass = "customer-shell";
         Assert.Contains("<body class=\"officeimo-html officeimo-excel-html customer-shell\"", workbook.ToHtml(excelOptions), StringComparison.Ordinal);
@@ -411,7 +411,7 @@ public partial class Html {
         string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".xlsx");
         try {
             using ExcelDocument document = ExcelDocument.Create(path);
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.CellValue(1, 1, "Region");
             sheet.CellValue(1, 2, "Sales");
             sheet.CellValue(2, 1, "East");

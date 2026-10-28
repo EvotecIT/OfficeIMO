@@ -14,7 +14,7 @@ namespace OfficeIMO.Tests
         public void Test_GoogleSheetsPivot_ReportsUnsupportedMiddleValuesPlacement(bool valuesOnRows)
         {
             using var document = ExcelDocument.Create();
-            var sheet = document.AddWorksheet("Data");
+            var sheet = document.AddSheet("Data");
             sheet.CellValue(1, 1, "Region");
             sheet.CellValue(1, 2, "Product");
             sheet.CellValue(1, 3, "Amount");
@@ -45,7 +45,7 @@ namespace OfficeIMO.Tests
         public void Test_GoogleSheetsPivot_PreservesMeasureOrientationAndRealValuesNamedField(bool valuesOnRows, string layout, ExcelPivotTableAxis axis)
         {
             using var document = ExcelDocument.Create();
-            var sheet = document.AddWorksheet("Data");
+            var sheet = document.AddSheet("Data");
             sheet.CellValue(1, 1, "Values");
             sheet.CellValue(1, 2, "Amount");
             sheet.CellValue(2, 1, "North");

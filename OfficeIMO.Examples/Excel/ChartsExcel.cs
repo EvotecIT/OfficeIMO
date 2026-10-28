@@ -14,7 +14,7 @@ namespace OfficeIMO.Examples.Excel {
             string filePath = Path.Combine(folderPath, "ExcelCharts.Basic.xlsx");
             using (var document = ExcelDocument.Create(filePath)) {
                 document.DefaultChartStylePreset = ExcelChartStylePreset.Default;
-                var sheet = document.AddWorksheet("Summary");
+                var sheet = document.AddSheet("Summary");
                 var data = new ExcelChartData(
                     new[] { "Q1", "Q2", "Q3", "Q4" },
                     new[] {
@@ -35,7 +35,7 @@ namespace OfficeIMO.Examples.Excel {
             string filePath = Path.Combine(folderPath, "ExcelCharts.ComboScatter.xlsx");
             using (var document = ExcelDocument.Create(filePath)) {
                 document.DefaultChartStylePreset = ExcelChartStylePreset.Default;
-                var sheet = document.AddWorksheet("Summary");
+                var sheet = document.AddSheet("Summary");
 
                 var comboData = new ExcelChartData(
                     new[] { "Q1", "Q2", "Q3", "Q4" },

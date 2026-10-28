@@ -24,7 +24,7 @@ public sealed class ExcelTypedTableChartPreservationTests {
         };
         using var output = new MemoryStream();
         using (var book = ExcelDocument.Create()) {
-            ExcelSheet sheet = book.AddWorksheet("Orders");
+            ExcelSheet sheet = book.AddSheet("Orders");
             sheet.AddTable(orders);
             switch (route) {
                 case "Named":
@@ -84,7 +84,7 @@ public sealed class ExcelTypedTableChartPreservationTests {
     [InlineData(true)]
     public void WorksheetCopyOrRemovalObservesRowsRetainedByNativeChart(bool remove) {
         using var book = ExcelDocument.Create();
-        ExcelSheet sheet = book.AddWorksheet("Orders");
+        ExcelSheet sheet = book.AddSheet("Orders");
         sheet.AddTable(new[] { new Order { Customer = "Northwind", Total = 12.5m } });
         sheet.AddChart(new ExcelChartData(new[] { "Northwind" },
             new[] { new ExcelChartSeries("Total", new[] { 12.5 }) }), 1, 4);

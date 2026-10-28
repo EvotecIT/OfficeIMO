@@ -132,7 +132,7 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public bool HasPivotTables => PivotTablePartCount > 0;
 
-        internal void AddWorksheet(ExcelWorksheetInfo worksheet) {
+        internal void AddSheet(ExcelWorksheetInfo worksheet) {
             if (worksheet == null) throw new ArgumentNullException(nameof(worksheet));
             _worksheets.Add(worksheet);
         }

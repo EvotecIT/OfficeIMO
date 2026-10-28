@@ -864,7 +864,7 @@ public sealed partial class ProvenanceDocumentContracts {
                 break;
             case "xlsx":
                 using (ExcelDocument document = ExcelDocument.Create(path)) {
-                    document.AddWorksheet("Data").CellValue(1, 1, "provenance fixture");
+                    document.AddSheet("Data").CellValue(1, 1, "provenance fixture");
                     document.Save();
                 }
                 break;

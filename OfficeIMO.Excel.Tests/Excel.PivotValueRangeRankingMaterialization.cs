@@ -87,7 +87,7 @@ namespace OfficeIMO.Tests
             string output = Path.Combine(_directoryWithFiles, $"Filter.value-{kind}.Authored.xlsx");
             using (var document = ExcelDocument.Create())
             {
-                var source = document.AddWorksheet("Source");
+                var source = document.AddSheet("Source");
                 source.CellValue(1, 1, "Region");
                 source.CellValue(1, 2, "Sales");
                 var entries = new[]
@@ -156,7 +156,7 @@ namespace OfficeIMO.Tests
             }
 
             using var authored = ExcelDocument.Create();
-            var source = authored.AddWorksheet("Source");
+            var source = authored.AddSheet("Source");
             source.CellValue(1, 1, "Region");
             source.CellValue(1, 2, "Sales");
             var entries = new[]
@@ -270,7 +270,7 @@ namespace OfficeIMO.Tests
                 _ => ExcelPivotFilter.BottomPercent("Region", "Metric", 40)};
             using (var document = ExcelDocument.Create())
             {
-                var source = document.AddWorksheet("Source");
+                var source = document.AddSheet("Source");
                 source.CellValue(1, 1, "Region");
                 source.CellValue(1, 2, "Sales");
                 string[] names =
@@ -342,7 +342,7 @@ namespace OfficeIMO.Tests
                 _ => ExcelPivotFilter.BottomSum("Region", "Metric", 60)};
             using (var document = ExcelDocument.Create())
             {
-                var source = document.AddWorksheet("Source");
+                var source = document.AddSheet("Source");
                 source.CellValue(1, 1, "Region");
                 source.CellValue(1, 2, "Sales");
                 string[] names =
@@ -396,7 +396,7 @@ namespace OfficeIMO.Tests
         public void Test_PivotTopPercent_LargeFiniteTotalDoesNotOverflowThreshold()
         {
             using var document = ExcelDocument.Create();
-            var source = document.AddWorksheet("Source");
+            var source = document.AddSheet("Source");
             source.CellValue(1, 1, "Region");
             source.CellValue(1, 2, "Sales");
             source.CellValue(2, 1, "Alpha");

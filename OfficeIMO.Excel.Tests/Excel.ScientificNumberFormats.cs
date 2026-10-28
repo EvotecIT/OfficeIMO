@@ -30,7 +30,7 @@ public partial class ExcelImageExportTests {
     [InlineData(true)]
     public void Saved_scientific_formats_reach_numeric_cells_and_formula_caches(bool merged) {
         using var workbook = ExcelDocument.Create();
-        ExcelSheet sheet = workbook.AddWorksheet("Scientific");
+        ExcelSheet sheet = workbook.AddSheet("Scientific");
         sheet.CellAt(1, 1).SetValue(-1250d).SetNumberFormat("0.00E+00;[Red](0.###E+00)");
         sheet.CellAt(2, 1).SetValue(1.5d);
         sheet.CellFormula(2, 1, "=1.5");

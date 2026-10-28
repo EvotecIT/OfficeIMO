@@ -15,14 +15,14 @@ namespace OfficeIMO.Tests
         [Fact]
         public async Task Test_RemoveQueryBackedTable_RevalidatesConnectionInsideTransaction() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet data = document.AddWorksheet("Data");
+            ExcelSheet data = document.AddSheet("Data");
             ExcelQueryBackedTableInfo original = document.AddQueryBackedTable(new ExcelQueryBackedTableOptions {
                 ConnectionName = "OriginalQuery",
                 WorksheetName = data.Name,
                 TableName = "Results",
                 ColumnNames = new[] { "Value" }
             });
-            ExcelSheet anchor = document.AddWorksheet("Anchor");
+            ExcelSheet anchor = document.AddSheet("Anchor");
             document.AddQueryBackedTable(new ExcelQueryBackedTableOptions {
                 ConnectionName = "AnchorQuery",
                 WorksheetName = anchor.Name,
@@ -74,7 +74,7 @@ namespace OfficeIMO.Tests
         [Fact]
         public void Test_AddQueryBackedTable_RejectsOrdinaryConnectionNameConflict() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             ConnectionsPart connectionsPart = document.WorkbookPartRoot.AddNewPart<ConnectionsPart>();
             connectionsPart.Connections = new Connections(new Connection {
                 Id = 42U,
@@ -99,7 +99,7 @@ namespace OfficeIMO.Tests
         public async Task Test_AddPivotTimeline_RevalidatesPivotInsideTransaction()
         {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet data = document.AddWorksheet("Data");
+            ExcelSheet data = document.AddSheet("Data");
             data.CellValue(1, 1, "OrderDate");
             data.CellValue(1, 2, "Sales");
             data.CellValue(2, 1, new DateTime(2026, 1, 2));
@@ -139,7 +139,7 @@ namespace OfficeIMO.Tests
         [Fact]
         public void Test_RenameTable_SynchronizesAttachedQueryTableName() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             ExcelQueryBackedTableInfo source = document.AddQueryBackedTable(new ExcelQueryBackedTableOptions {
                 ConnectionName = "RenameQuery",
                 WorksheetName = sheet.Name,
@@ -161,7 +161,7 @@ namespace OfficeIMO.Tests
         [Fact]
         public void Test_ModernChart_RenameRejectsDuplicateWorksheetDrawingName() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Dashboard");
+            ExcelSheet sheet = document.AddSheet("Dashboard");
             var data = new ExcelChartData(
                 new[] { "A" },
                 new[] { new ExcelChartSeries("Value", new[] { 1d }) });

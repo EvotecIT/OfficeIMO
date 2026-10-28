@@ -14,7 +14,7 @@ public sealed class ExcelDataReaderAutoFitCancellationTests {
     [InlineData(true)]
     public void CancellationDuringDeferredReaderAutoFitDoesNotPublishTheImport(bool hasLaterRow) {
         using var document = ExcelDocument.Create();
-        ExcelSheet sheet = document.AddWorksheet("Data");
+        ExcelSheet sheet = document.AddSheet("Data");
         using DataTable table = CreateDates(hasLaterRow);
         using var cancellation = new CancellationTokenSource();
         bool measuredDate = false;
@@ -51,7 +51,7 @@ public sealed class ExcelDataReaderAutoFitCancellationTests {
     [Fact]
     public void PreCanceledReaderAutoFitObservesCancellationForAnEmptyImport() {
         using var document = ExcelDocument.Create();
-        ExcelSheet sheet = document.AddWorksheet("Data");
+        ExcelSheet sheet = document.AddSheet("Data");
         using var table = new DataTable("Data");
         table.Columns.Add("When", typeof(DateTimeOffset));
         using var reader = table.CreateDataReader();
@@ -69,7 +69,7 @@ public sealed class ExcelDataReaderAutoFitCancellationTests {
     public void ReaderAutoFitOnANonemptySheetDoesNotApplyWidthsAfterCancellation() {
         using var document = ExcelDocument.Create();
         document.DateTimeOffsetWriteStrategy = value => value.UtcDateTime;
-        ExcelSheet sheet = document.AddWorksheet("Data");
+        ExcelSheet sheet = document.AddSheet("Data");
         sheet.CellValue(1, 1, "Existing value");
         var widths = sheet.GetColumnDefinitions().Select(column => (column.Width?.CharacterCount)).ToArray();
         using DataTable table = CreateDates(hasLaterRow: false);

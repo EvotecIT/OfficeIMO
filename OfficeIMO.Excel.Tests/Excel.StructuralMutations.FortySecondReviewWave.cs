@@ -17,14 +17,14 @@ namespace OfficeIMO.Tests
         [Fact]
         public async Task Test_QueryRefresh_RejectsRecreatedBindingBeforeWritingResults() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet data = document.AddWorksheet("Data");
+            ExcelSheet data = document.AddSheet("Data");
             ExcelQueryBackedTableInfo original = document.AddQueryBackedTable(new ExcelQueryBackedTableOptions {
                 ConnectionName = "OriginalQuery",
                 WorksheetName = data.Name,
                 TableName = "Results",
                 ColumnNames = new[] { "Value" }
             });
-            ExcelSheet anchor = document.AddWorksheet("Anchor");
+            ExcelSheet anchor = document.AddSheet("Anchor");
             document.AddQueryBackedTable(new ExcelQueryBackedTableOptions {
                 ConnectionName = "AnchorQuery",
                 WorksheetName = anchor.Name,
@@ -61,7 +61,7 @@ namespace OfficeIMO.Tests
         public async Task Test_PivotInteraction_ExplicitNameIsUniqueInsideTransaction()
         {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet data = document.AddWorksheet("Data");
+            ExcelSheet data = document.AddSheet("Data");
             data.CellValue(1, 1, "Region");
             data.CellValue(1, 2, "Sales");
             data.CellValue(2, 1, "East");
@@ -92,7 +92,7 @@ namespace OfficeIMO.Tests
         [Fact]
         public void Test_ModernChart_ValidatesPlotAreaBeforeWritingBackingData() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Dashboard");
+            ExcelSheet sheet = document.AddSheet("Dashboard");
             ExcelModernChart chart = sheet.AddModernChart(
                 new ExcelChartData(
                     new[] { "A" },
@@ -121,7 +121,7 @@ namespace OfficeIMO.Tests
         [Fact]
         public async Task Test_GetNamedStyles_WaitsForWorkbookWriter() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.CellAt(1, 1).SetBold();
             sheet.DefineNamedStyle("LockedStyle", 1, 1);
             ReaderWriterLockSlim workbookLock = document.EnsureLock();

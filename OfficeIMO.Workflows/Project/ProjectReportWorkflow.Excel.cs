@@ -14,7 +14,7 @@ public static partial class ProjectReportWorkflow {
     }
 
     private static void AddExcelSupplementalTables(ExcelDocument document, ProjectView view, CancellationToken token) {
-        var status = document.AddWorksheet("Status and groups");
+        var status = document.AddSheet("Status and groups");
         WriteHeaders(status, "UID", "Name", "Status", "Group");
         for (int r = 0; r < view.Rows.Count; r++) {
             token.ThrowIfCancellationRequested(); var row = view.Rows[r];
@@ -23,7 +23,7 @@ public static partial class ProjectReportWorkflow {
         }
         FinishSheet(status, token, view.Rows.Count + 1);
         if (view.Rows.Any(r => r.BaselineStart.HasValue || r.BaselineFinish.HasValue)) {
-            var baseline = document.AddWorksheet("Baseline dates");
+            var baseline = document.AddSheet("Baseline dates");
             WriteHeaders(baseline, "UID", "Name", "Baseline start", "Baseline finish");
             for (int r = 0; r < view.Rows.Count; r++) {
                 token.ThrowIfCancellationRequested(); var row = view.Rows[r];
@@ -34,7 +34,7 @@ public static partial class ProjectReportWorkflow {
             FinishSheet(baseline, token, view.Rows.Count + 1);
         }
         if (view.Links.Count > 0) {
-            var dependencies = document.AddWorksheet("Dependencies");
+            var dependencies = document.AddSheet("Dependencies");
             WriteHeaders(dependencies, "Predecessor UID", "Successor UID", "Type", "Lag");
             for (int r = 0; r < view.Links.Count; r++) {
                 token.ThrowIfCancellationRequested(); var link = view.Links[r];

@@ -18,7 +18,7 @@ namespace OfficeIMO.Tests {
             int legendRow;
             int extraAccentRow;
             using (var document = ExcelDocument.Create()) {
-                var report = document.AddWorksheet("Summary").Report();
+                var report = document.AddSheet("Summary").Report();
                 listRow = report.CurrentRow;
                 report.BulletedListWithFill(new[] { "Review" }, OfficeColor.Accent1);
                 kpiRow = report.CurrentRow;
@@ -62,7 +62,7 @@ namespace OfficeIMO.Tests {
                 success: OfficeColor.FromRgba(0x12, 0x34, 0x56, 0x80),
                 warning: OfficeColor.Parse("#234567"), danger: OfficeColor.Parse("#345678")));
             using (var document = ExcelDocument.Create()) {
-                var report = document.AddWorksheet("Summary").Report(new ExcelReportOptions {
+                var report = document.AddSheet("Summary").Report(new ExcelReportOptions {
                     Theme = theme,
                     KeyFill = OfficeColor.Parse("#123456"),
                     DefaultSpacingRows = 2
@@ -103,7 +103,7 @@ namespace OfficeIMO.Tests {
             using var output = new MemoryStream();
             int legendRow;
             using (var document = ExcelDocument.Create()) {
-                var report = document.AddWorksheet("Summary").Report(new ExcelReportOptions {
+                var report = document.AddSheet("Summary").Report(new ExcelReportOptions {
                     Theme = OfficeTheme.Dark,
                     KeyFill = OfficeColor.Accent5
                 });
@@ -132,7 +132,7 @@ namespace OfficeIMO.Tests {
         public void SheetColors_RequireResolvedStatusRolesWithCustomWorkbookTheme() {
             using var output = new MemoryStream();
             using (var document = ExcelDocument.Create()) {
-                var sheet = document.AddWorksheet("Summary");
+                var sheet = document.AddSheet("Summary");
                 document.EnsureWorkbookTheme();
                 var themeXml = XDocument.Parse(document.GetWorkbookThemeXml()!);
                 XNamespace drawing = "http://schemas.openxmlformats.org/drawingml/2006/main";

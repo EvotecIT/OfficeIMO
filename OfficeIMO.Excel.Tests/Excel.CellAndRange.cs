@@ -33,7 +33,7 @@ namespace OfficeIMO.Tests
             using (ExcelDocument document = ExcelDocument.Create(filePath))
             {
                 {
-                    var sheet1 = document.AddWorksheet("Data");
+                    var sheet1 = document.AddSheet("Data");
 
                     sheet1.Cell(2, 3, "Hello");
                 }
@@ -61,13 +61,13 @@ namespace OfficeIMO.Tests
             {
                 Assert.Throws<ArgumentOutOfRangeException>(() =>
                 {
-                    var sheet3 = document.AddWorksheet("Data");
+                    var sheet3 = document.AddSheet("Data");
 
                     sheet3.Cell(0, 1, "X");
                 });
                 Assert.Throws<ArgumentOutOfRangeException>(() =>
                 {
-                    var sheet5 = document.AddWorksheet("Data");
+                    var sheet5 = document.AddSheet("Data");
 
                     sheet5.Cell(1, 0, "X");
                 });
@@ -94,7 +94,7 @@ namespace OfficeIMO.Tests
             using (ExcelDocument document = ExcelDocument.Create(filePath))
             {
                 {
-                    var sheet7 = document.AddWorksheet("Data");
+                    var sheet7 = document.AddSheet("Data");
 
                     var range9 = sheet7.Range(ExcelA1.CellReference(1, 1) + ":" + ExcelA1.CellReference(2, 2));
                     range9.SetValues(values);
@@ -121,7 +121,7 @@ namespace OfficeIMO.Tests
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorksheet("Data");
+                ExcelSheet sheet = document.AddSheet("Data");
                 for (int row = 1; row <= 160; row++) {
                     sheet.CellAt(row, 1).SetValue("secret-" + row.ToString(CultureInfo.InvariantCulture));
                 }
@@ -153,14 +153,14 @@ namespace OfficeIMO.Tests
             {
                 Assert.Throws<ArgumentOutOfRangeException>(() =>
                 {
-                    var sheet10 = document.AddWorksheet("Data");
+                    var sheet10 = document.AddSheet("Data");
 
                     var range12 = sheet10.Range(ExcelA1.CellReference(0, 1) + ":" + ExcelA1.CellReference(1, 1));
                     range12.SetValues(null);
                 });
                 Assert.Throws<ArgumentOutOfRangeException>(() =>
                 {
-                    var sheet13 = document.AddWorksheet("Data");
+                    var sheet13 = document.AddSheet("Data");
 
                     var range15 = sheet13.Range(ExcelA1.CellReference(1, 0) + ":" + ExcelA1.CellReference(1, 1));
                     range15.SetValues(null);
@@ -237,7 +237,7 @@ namespace OfficeIMO.Tests
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorksheet("Styles");
+                var sheet = document.AddSheet("Styles");
                 sheet.CellAt(1, 1).SetValue("Amount").HeaderStyle();
                 sheet.CellAt(2, 1).SetValue(123.45).Currency(culture: CultureInfo.GetCultureInfo("en-US")).Success();
                 sheet.Range("B2:B3").Percent(1).Warning();

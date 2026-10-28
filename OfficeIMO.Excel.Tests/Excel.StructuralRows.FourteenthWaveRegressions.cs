@@ -69,7 +69,7 @@ namespace OfficeIMO.Tests {
         }
 
         private static ExcelSheet CreateDrawingSheet(ExcelDocument document) {
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.CellAt(1, 1).SetValue("Category");
             sheet.CellAt(1, 2).SetValue("Value");
             sheet.CellAt(2, 1).SetValue("One");

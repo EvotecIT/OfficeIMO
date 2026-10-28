@@ -66,7 +66,7 @@ namespace OfficeIMO.Tests
             string output = Path.Combine(_directoryWithFiles, "Authored." + file);
             using (var document = ExcelDocument.Create())
             {
-                var source = document.AddWorksheet("Source");
+                var source = document.AddSheet("Source");
                 PopulateThreeLevelPivotSource(source, rows);
                 {
                     var pivotOptions1 = new ExcelPivotTableOptions();
@@ -141,7 +141,7 @@ namespace OfficeIMO.Tests
             string authoredOutput = Path.Combine(_directoryWithFiles, "Authored." + file);
             using (var document = ExcelDocument.Create())
             {
-                var source = document.AddWorksheet("Source");
+                var source = document.AddSheet("Source");
                 PopulateThreeLevelPivotSource(source, ThreeLevelTopTwoRows);
                 ExcelPivotFilter filter = kind switch
                 {
@@ -190,7 +190,7 @@ namespace OfficeIMO.Tests
         public void Test_PivotThreeLevelValue_UnqualifiedCountFailsClosed(bool top, int count)
         {
             using var document = ExcelDocument.Create();
-            var source = document.AddWorksheet("Source");
+            var source = document.AddSheet("Source");
             PopulateThreeLevelPivotSource(source, ThreeLevelTopTwoRows);
             var filter = top ? ExcelPivotFilter.TopCount("Channel", "Metric", count) : ExcelPivotFilter.BottomCount("Channel", "Metric", count);
             {

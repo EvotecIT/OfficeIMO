@@ -11,7 +11,7 @@ public partial class HtmlOfficeAdapters {
     [Fact]
     public void ExcelHtml_InvalidNativePositionUsesItsPixelFallback() {
         using var workbook = ExcelDocument.Create();
-        var sheet = workbook.AddWorksheet("Fallback image");
+        var sheet = workbook.AddSheet("Fallback image");
         sheet.CellValue(1, 1, "Seed");
         sheet.AddImageAbsolute(OfficeLength.Pixels(12), OfficeLength.Pixels(7), OnePixelPng);
         string html = workbook.ToHtml(new ExcelHtmlSaveOptions { Profile = OfficeHtmlConversionProfile.ExcelSemanticTables });
@@ -30,7 +30,7 @@ public partial class HtmlOfficeAdapters {
     public void ExcelHtml_RoundTripsSignedNativeAbsoluteImagePosition() {
         using var source = new MemoryStream();
         using (var workbook = ExcelDocument.Create()) {
-            var sheet = workbook.AddWorksheet("Absolute image");
+            var sheet = workbook.AddSheet("Absolute image");
             sheet.CellValue(1, 1, "Seed");
             sheet.AddImageAbsolute(OfficeLength.Zero, OfficeLength.Zero, OnePixelPng,
                 width: OfficeLength.Emus(9526), height: OfficeLength.Emus(19051));
@@ -64,7 +64,7 @@ public partial class HtmlOfficeAdapters {
     public void ExcelHtml_RoundTripsNativeSameCellImageOffsets(long offsetX, long offsetY) {
         using var source = new MemoryStream();
         using (var workbook = ExcelDocument.Create()) {
-            var sheet = workbook.AddWorksheet("Native markers");
+            var sheet = workbook.AddSheet("Native markers");
             sheet.CellValue(1, 1, "Seed");
             sheet.AddImageToRange("B2:B2", OnePixelPng,
                 offsetX: OfficeLength.Pixels(-2), offsetY: OfficeLength.Pixels(-3))

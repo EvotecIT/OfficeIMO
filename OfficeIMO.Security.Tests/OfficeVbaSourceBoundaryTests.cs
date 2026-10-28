@@ -52,7 +52,7 @@ public sealed class OfficeVbaSourceBoundaryTests {
     public void ExcelWorkbookCodeNameCannotCollideWithWorksheetOrChartsheet(bool chartsheet) {
         string path = Path.Combine(Path.GetTempPath(), "OfficeIMO-vba-code-name-" + Guid.NewGuid().ToString("N") + ".xlsm");
         try {
-            using (var created = ExcelDocument.Create(path)) { created.AddWorksheet("Data"); created.Save(); }
+            using (var created = ExcelDocument.Create(path)) { created.AddSheet("Data"); created.Save(); }
             using (var package = SpreadsheetDocument.Open(path, true)) {
                 var workbookPart = package.WorkbookPart!;
                 workbookPart.WorksheetParts.Single().Worksheet!.SheetProperties = new SheetProperties { CodeName = chartsheet ? "DataCode" : "SheetCode" };
@@ -78,7 +78,7 @@ public sealed class OfficeVbaSourceBoundaryTests {
         Assert.True(OfficeCompoundFileReader.TryRead(largeBytes, out OfficeCompoundFile? compound, out _));
         largeBytes = OfficeCompoundFileWriter.Rewrite(compound!, new Dictionary<string, byte[]> { ["Opaque"] = new byte[limit + 1000] });
         large = OfficeVbaProject.Load(largeBytes);
-        using var excel = ExcelDocument.Create(); excel.AddWorksheet("Data"); excel.SetVbaProject(large);
+        using var excel = ExcelDocument.Create(); excel.AddSheet("Data"); excel.SetVbaProject(large);
         excel.SetVbaProject(small, new OfficeVbaWriteOptions { MaximumProjectBytes = limit });
         Assert.Equal("Helpers", Assert.Single(excel.ReadVbaProject()!.Modules).Name);
         using var presentation = PowerPointDocument.Create(); presentation.SetVbaProject(large);

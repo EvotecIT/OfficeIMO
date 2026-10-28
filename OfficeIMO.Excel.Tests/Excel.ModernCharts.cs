@@ -14,7 +14,7 @@ namespace OfficeIMO.Tests {
         public void Test_ModernCharts_AuthorRoundTripMutatePreserveAndRemoveChartEx() {
             string filePath = Path.Combine(_directoryWithFiles, "Excel.ModernCharts.xlsx");
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet dashboard = document.AddWorksheet("Dashboard");
+                ExcelSheet dashboard = document.AddSheet("Dashboard");
                 var data = new ExcelChartData(
                     new[] { "East", "West", "North" },
                     new[] { new ExcelChartSeries("Sales", new[] { 10d, 20d, 15d }) });
@@ -33,7 +33,7 @@ namespace OfficeIMO.Tests {
                 Assert.Empty(dashboard.Charts);
                 ExcelFeatureFinding charts = Assert.Single(document.InspectFeatures().FindFeatures("Charts"));
                 Assert.Equal(1, charts.Count);
-                ExcelSheet secondary = document.AddWorksheet("Secondary");
+                ExcelSheet secondary = document.AddSheet("Secondary");
                 ExcelModernChart secondChart = secondary.AddModernChart(
                     data,
                     row: 1,
@@ -112,7 +112,7 @@ namespace OfficeIMO.Tests {
         [InlineData(ExcelModernChartType.Sunburst)]
         public void Test_ModernCharts_AllSupportedLayoutsProduceNativeChartEx(ExcelModernChartType chartType) {
             using ExcelDocument document = ExcelDocument.Create();
-            ExcelSheet sheet = document.AddWorksheet("Dashboard");
+            ExcelSheet sheet = document.AddSheet("Dashboard");
             ExcelModernChart chart = sheet.AddModernChart(
                 new ExcelChartData(
                     new[] { "A", "B" },
@@ -132,14 +132,14 @@ namespace OfficeIMO.Tests {
         public void Test_ModernCharts_ImportedVisibleWorksheetDataIsInspectionOnly() {
             string filePath = Path.Combine(_directoryWithFiles, "Excel.ModernCharts.ImportedVisibleData.xlsx");
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet visibleData = document.AddWorksheet("VisibleData");
+                ExcelSheet visibleData = document.AddSheet("VisibleData");
                 visibleData.CellValue(1, 1, "Category");
                 visibleData.CellValue(1, 2, "Value");
                 visibleData.CellValue(2, 1, "Keep A");
                 visibleData.CellValue(2, 2, 10d);
                 visibleData.CellValue(3, 1, "Keep B");
                 visibleData.CellValue(3, 2, 20d);
-                ExcelSheet dashboard = document.AddWorksheet("Dashboard");
+                ExcelSheet dashboard = document.AddSheet("Dashboard");
                 dashboard.AddModernChart(
                     new ExcelChartData(
                         new[] { "A", "B" },
@@ -172,9 +172,9 @@ namespace OfficeIMO.Tests {
         public void Test_ModernCharts_VisibleReservedSheetNameDoesNotCaptureAuthoredData() {
             string filePath = Path.Combine(_directoryWithFiles, "Excel.ModernCharts.ReservedSheetCollision.xlsx");
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet reserved = document.AddWorksheet("OfficeIMO_ChartData");
+                ExcelSheet reserved = document.AddSheet("OfficeIMO_ChartData");
                 reserved.CellValue(1, 1, "user data");
-                ExcelSheet dashboard = document.AddWorksheet("Dashboard");
+                ExcelSheet dashboard = document.AddSheet("Dashboard");
                 ExcelModernChart chart = dashboard.AddModernChart(
                     new ExcelChartData(
                         new[] { "A", "B" },

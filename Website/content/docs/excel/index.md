@@ -23,7 +23,7 @@ using OfficeIMO.Excel;
 
 // Create with a file path
 using var workbook = ExcelDocument.Create("report.xlsx");
-var sheet = workbook.AddWorksheet("Sales");
+var sheet = workbook.AddSheet("Sales");
 
 sheet.CellAt("A1").SetValue("Product");
 sheet.CellAt("B1").SetValue("Revenue");
@@ -45,7 +45,7 @@ var sheet = workbook.Sheets[0]; // "Sales" sheet
 ```csharp
 using var stream = new MemoryStream();
 using var workbook = ExcelDocument.Create(stream);
-var sheet = workbook.AddWorksheet("Data");
+var sheet = workbook.AddSheet("Data");
 // ... populate ...
 workbook.Save();
 ```
@@ -68,12 +68,12 @@ using OfficeIMO.Excel;
 using var workbook = ExcelDocument.Create("monthly.xlsx");
 workbook.BuiltinDocumentProperties.Title = "Monthly Report";
 workbook.BuiltinDocumentProperties.Creator = "OfficeIMO";
-var summary = workbook.AddWorksheet("Summary");
+var summary = workbook.AddSheet("Summary");
 summary.AddTable(new[] {
     new { Metric = "Users", Value = 1250 },
     new { Metric = "Revenue", Value = 45000 }
 }, new ExcelTableOptions { Name = "Metrics" });
-var details = workbook.AddWorksheet("Details");
+var details = workbook.AddSheet("Details");
 details.AddTable(new[] { new { Item = "Widget A", Quantity = 100, Price = 15.99m } });
 workbook.Save();
 ```

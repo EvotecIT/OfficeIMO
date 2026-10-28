@@ -33,7 +33,7 @@ public sealed class ExcelAllSeverityBatch14SecurityTests {
             callbackCount++;
             return arguments[0];
         });
-        ExcelSheet sheet = document.AddWorksheet("Data");
+        ExcelSheet sheet = document.AddSheet("Data");
         sheet.CellFormula(1, 1, "ECHOFINITE(1E309)");
 
         Exception? exception = Record.Exception(() => document.Calculate());
@@ -49,7 +49,7 @@ public sealed class ExcelAllSeverityBatch14SecurityTests {
         string workbookPath = Path.Combine(root, "report.xlsx");
         try {
             using ExcelDocument document = ExcelDocument.Create(workbookPath);
-            ExcelSheet sheet = document.AddWorksheet("Report");
+            ExcelSheet sheet = document.AddSheet("Report");
             sheet.CellValue(1, 1, "body");
             sheet.SetHeaderFooter(headerLeft: "Path &[Path] &Z");
 
@@ -80,7 +80,7 @@ public sealed class ExcelAllSeverityBatch14SecurityTests {
         try {
             using (ExcelDocument document = ExcelDocument.Create(path)) {
                 document.SetCustomDocumentProperty("Valid", "retained");
-                document.AddWorksheet("Data").CellValue(1, 1, "body");
+                document.AddSheet("Data").CellValue(1, 1, "body");
                 document.Save();
             }
 

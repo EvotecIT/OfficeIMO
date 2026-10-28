@@ -14,7 +14,7 @@ namespace OfficeIMO.Tests {
             using var stream = new MemoryStream();
             using var document = ExcelDocument.Create(stream);
             document.SheetCachingEnabled = sheetCaching;
-            ExcelSheet sheet = document.AddWorksheet("Report");
+            ExcelSheet sheet = document.AddSheet("Report");
             sheet.CellValue(1, 1, "Notes");
             sheet.Cell(2, 1, 123.45, numberFormat: "0.00");
             sheet.CellBold(2, 1);
@@ -63,7 +63,7 @@ namespace OfficeIMO.Tests {
             string path = Path.Combine(Path.GetTempPath(), "OfficeIMO-RetainedSheet-" + Guid.NewGuid().ToString("N") + extension);
             try {
                 using (var document = ExcelDocument.Create(path)) {
-                    ExcelSheet sheet = document.AddWorksheet("Report");
+                    ExcelSheet sheet = document.AddSheet("Report");
                     sheet.CellValue(1, 1, "Before");
                     document.Save();
                     sheet.CellValue(1, 1, "After");
@@ -83,8 +83,8 @@ namespace OfficeIMO.Tests {
             using var stream = new MemoryStream();
             using var document = ExcelDocument.Create(stream);
             document.SheetCachingEnabled = false;
-            document.AddWorksheet("Keep");
-            ExcelSheet original = document.AddWorksheet("Original");
+            document.AddSheet("Keep");
+            ExcelSheet original = document.AddSheet("Original");
             original.CellValue(1, 1, "Original");
             using var cancellation = new System.Threading.CancellationTokenSource();
             Assert.ThrowsAny<OperationCanceledException>(() => original.ApplyTransactionalMutation(token => {
@@ -95,7 +95,7 @@ namespace OfficeIMO.Tests {
             }, new ExcelMutationPlanOptions(), cancellation.Token));
             uint originalId = original.SheetElement.SheetId!.Value;
             document.RemoveWorksheet("Original");
-            ExcelSheet replacement = document.AddWorksheet("Replacement");
+            ExcelSheet replacement = document.AddSheet("Replacement");
             replacement.CellValue(1, 1, "Replacement");
             Assert.Equal(originalId, replacement.SheetElement.SheetId!.Value);
             document.Save(stream);

@@ -8,7 +8,7 @@ namespace OfficeIMO.Examples.Showcase.Workflows;
 internal static class NamedRangePricing {
     internal static void Create(string folder) {
         using ExcelDocument document = ExcelDocument.Create(Path.Combine(folder, "example.xlsx"));
-        ExcelSheet sheet = document.AddWorksheet("Quote");
+        ExcelSheet sheet = document.AddSheet("Quote");
         sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(32));
         sheet.SetColumnWidth(2, ExcelColumnWidth.Characters(23));
         sheet.SetColumnWidth(3, ExcelColumnWidth.Characters(42));

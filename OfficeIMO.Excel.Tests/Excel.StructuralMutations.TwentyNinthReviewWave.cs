@@ -35,7 +35,7 @@ namespace OfficeIMO.Tests
         public void Test_RemoveWorksheet_PreflightsRelationshipBeforePivotInteractionCleanup()
         {
             using ExcelDocument document = ExcelDocument.Create();
-            ExcelSheet sales = document.AddWorksheet("Sales");
+            ExcelSheet sales = document.AddSheet("Sales");
             sales.CellValue(1, 1, "Region");
             sales.CellValue(1, 2, "Sales");
             sales.CellValue(2, 1, "East");

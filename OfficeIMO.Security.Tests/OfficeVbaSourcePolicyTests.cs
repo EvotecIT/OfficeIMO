@@ -166,7 +166,7 @@ public sealed class OfficeVbaSourcePolicyTests {
         try {
             switch (extension) {
                 case "docm": using (var doc = WordDocument.Create(path)) { doc.SetVbaProject(project); doc.Save(); } break;
-                case "xlsm": using (var doc = ExcelDocument.Create(path)) { doc.AddWorksheet("Data"); doc.SetVbaProject(project); doc.Save(); } break;
+                case "xlsm": using (var doc = ExcelDocument.Create(path)) { doc.AddSheet("Data"); doc.SetVbaProject(project); doc.Save(); } break;
                 case "pptm": using (var doc = PowerPointDocument.Create(path)) { doc.AddSlide(); doc.SetVbaProject(project); doc.Save(); } break;
             }
             using (OpenXmlPackage package = OpenPackage(path, extension)) {

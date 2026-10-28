@@ -75,7 +75,7 @@ internal static class NativeNumbersConditionalAggregateSmoke {
 
     private static void VerifyUnsupportedCriteria() {
         using var document = ExcelDocument.Create();
-        var sheet = document.AddWorksheet("Qualification");
+        var sheet = document.AddSheet("Qualification");
         sheet.CellValue(1, 1, 1d); sheet.CellValue(1, 2, 1d);
         string[] formulas = { "IFERROR(AVERAGEIF(OFFSET(A1,-1,0),UNKNOWN()+1),99)",
             "IFERROR(AVERAGEIFS(B1,OFFSET(A1,-1,0),UNKNOWN()+1),99)",

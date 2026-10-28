@@ -14,7 +14,7 @@ public sealed class ExcelChartExplodedSlicesTests {
     [Fact]
     public void PieWithoutThemePartUsesSpreadsheetDefaultAccentPalette() {
         using var document = ExcelDocument.Create();
-        ExcelChart chart = document.AddWorksheet("Results").AddChart(OfficeChartType.Pie,
+        ExcelChart chart = document.AddSheet("Results").AddChart(OfficeChartType.Pie,
             new OfficeChartData(new[] { "A", "B" }, new[] {
                 new OfficeSeries("Status", new[] { 7d, 3d })
             }), 1, 1);
@@ -30,7 +30,7 @@ public sealed class ExcelChartExplodedSlicesTests {
     public void MultiRingDoughnutWithExplicitSliceFillsDoesNotNeedTheTransformedPalette() {
         OfficeColor?[] colors = { OfficeColor.Parse("#234567"), OfficeColor.Parse("#89ABCD") };
         using var document = ExcelDocument.Create();
-        ExcelChart chart = document.AddWorksheet("Results").AddChart(OfficeChartType.Doughnut,
+        ExcelChart chart = document.AddSheet("Results").AddChart(OfficeChartType.Doughnut,
             new OfficeChartData(new[] { "A", "B" }, new[] {
                 new OfficeSeries("Inner", new[] { 7d, 3d }, null, null, colors),
                 new OfficeSeries("Outer", new[] { 2d, 8d }, null, null, colors)
@@ -72,7 +72,7 @@ public sealed class ExcelChartExplodedSlicesTests {
             new OfficeSeries("Status", new[] { 7d, 3d }).WithPointExplosions(new[] { 25, 0 })
         });
         using var document = ExcelDocument.Create();
-        document.AddWorksheet("Results").AddChart(kind, authored, 1, 1);
+        document.AddSheet("Results").AddChart(kind, authored, 1, 1);
         using var bytes = new MemoryStream(document.ToBytes());
         using ExcelDocument reopened = ExcelDocument.Load(bytes);
         ExcelChart chart = reopened.Sheets.Single(sheet => sheet.Name == "Results").Charts.Single();
@@ -95,7 +95,7 @@ public sealed class ExcelChartExplodedSlicesTests {
     [InlineData(OfficeChartType.Doughnut)]
     public void DataPointExplosion_CanBeChangedAndResetWithoutRecreatingTheChart(OfficeChartType kind) {
         using var document = ExcelDocument.Create();
-        ExcelChart chart = document.AddWorksheet("Results").AddChart(kind,
+        ExcelChart chart = document.AddSheet("Results").AddChart(kind,
             new OfficeChartData(new[] { "A", "B" }, new[] {
                 new OfficeSeries("Status", new[] { 7d, 3d })
                     .WithPointExplosions(new[] { 25, 0 })
@@ -112,7 +112,7 @@ public sealed class ExcelChartExplodedSlicesTests {
     [Fact]
     public void DataPointExplosion_ExplicitZeroOverridesInheritedSeriesOffset() {
         using var document = ExcelDocument.Create();
-        ExcelChart chart = document.AddWorksheet("Results").AddChart(OfficeChartType.Pie,
+        ExcelChart chart = document.AddSheet("Results").AddChart(OfficeChartType.Pie,
             new OfficeChartData(new[] { "A", "B" }, new[] {
                 new OfficeSeries("Status", new[] { 7d, 3d })
             }), 1, 1);
@@ -131,7 +131,7 @@ public sealed class ExcelChartExplodedSlicesTests {
     [Fact]
     public void UnsupportedNativeExplosion_RejectsStaticSnapshotWithoutChangingNativeXml() {
         using var document = ExcelDocument.Create();
-        ExcelChart chart = document.AddWorksheet("Results").AddChart(OfficeChartType.Pie,
+        ExcelChart chart = document.AddSheet("Results").AddChart(OfficeChartType.Pie,
             new OfficeChartData(new[] { "A", "B" }, new[] {
                 new OfficeSeries("Status", new[] { 7d, 3d })
             }), 1, 1);
@@ -148,7 +148,7 @@ public sealed class ExcelChartExplodedSlicesTests {
     [InlineData(OfficeChartType.Doughnut)]
     public void ShrinkingValues_IgnoresPreservedExplosionForRemovedPoint(OfficeChartType kind) {
         using var document = ExcelDocument.Create();
-        ExcelChart chart = document.AddWorksheet("Results").AddChart(kind,
+        ExcelChart chart = document.AddSheet("Results").AddChart(kind,
             new OfficeChartData(new[] { "A", "B" }, new[] {
                 new OfficeSeries("Status", new[] { 7d, 3d }).WithPointExplosions(new[] { 0, 25 })
             }), 1, 1);

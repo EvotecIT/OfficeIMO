@@ -25,7 +25,7 @@ public sealed class OfficeTypedTableAuthoringTests {
                 break;
             case "Excel":
                 using (var document = ExcelDocument.Create()) {
-                    var sheet = document.AddWorksheet("Products");
+                    var sheet = document.AddSheet("Products");
                     var table = sheet.AddTable(rows, new OfficeTableOptions { Name = "Products" }, row: 2, column: 3);
                     Assert.Equal("C2:D4", table.Range);
                     table.SetStyle(ExcelTableStyle.TableStyleMedium9);
@@ -56,7 +56,7 @@ public sealed class OfficeTypedTableAuthoringTests {
     [Fact]
     public void ExcelDataTableRetainsValuesAndReturnsTheCreatedTable() {
         using var document = ExcelDocument.Create();
-        var sheet = document.AddWorksheet("Data");
+        var sheet = document.AddSheet("Data");
         using var data = new System.Data.DataTable("Input");
         data.Columns.Add("Amount", typeof(decimal));
         data.Rows.Add(12.5m);
@@ -92,7 +92,7 @@ public sealed class OfficeTypedTableAuthoringTests {
                 break;
             case "Excel":
                 using (var document = ExcelDocument.Create()) {
-                    var table = document.AddWorksheet("Data").AddTable(rows, options);
+                    var table = document.AddSheet("Data").AddTable(rows, options);
                     Assert.Equal("A1:B2", table.Range);
                     document.Save(output);
                 }
@@ -124,7 +124,7 @@ public sealed class OfficeTypedTableAuthoringTests {
         var options = new ExcelTableOptions { Projection = projection };
         options.Formatters[nameof(Record.Count)] = _ => "Table";
         using var document = ExcelDocument.Create();
-        document.AddWorksheet("Data").AddTable(new[] { new Record { Product = "First", Count = 3 } }, options);
+        document.AddSheet("Data").AddTable(new[] { new Record { Product = "First", Count = 3 } }, options);
         Assert.Equal("Original", projection.Formatters[nameof(Record.Count)](3));
     }
 
@@ -137,7 +137,7 @@ public sealed class OfficeTypedTableAuthoringTests {
         var options = new OfficeTableOptions();
         options.Formatters["Amount"] = _ => throw new InvalidOperationException("A rejected table must not read values.");
         using var document = ExcelDocument.Create();
-        var sheet = document.AddWorksheet("Data");
+        var sheet = document.AddSheet("Data");
         Assert.Throws<ArgumentException>(() => sheet.AddTable(data, options, row: 1048576));
         Assert.Throws<ArgumentException>(() => sheet.AddTable(data, options, column: 16384));
         options.Formatters.Clear();

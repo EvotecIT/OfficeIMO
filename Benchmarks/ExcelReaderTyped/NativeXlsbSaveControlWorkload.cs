@@ -32,7 +32,7 @@ namespace OfficeIMO.Excel.ReaderComparison.Benchmarks {
             output.Position = 0;
             output.SetLength(0);
             using (ExcelDocument document = ExcelDocument.Create()) {
-                ExcelSheet sheet = document.AddWorksheet("Data");
+                ExcelSheet sheet = document.AddSheet("Data");
                 if (_allText)
                     sheet.InsertObjects(_records, ("Name", static record => record.Name),
                         ("Id", static record => record.Id.ToString(CultureInfo.InvariantCulture)),

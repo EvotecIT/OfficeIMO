@@ -33,7 +33,7 @@ public partial class Excel {
     [InlineData(12U)]
     public void Xlsb_New_Workbook_Writes_Implicit_Default_Column_Width_Sentinel(uint baseWidth) {
         using ExcelDocument document = ExcelDocument.Create();
-        ExcelSheet sheet = document.AddWorksheet("Geometry");
+        ExcelSheet sheet = document.AddSheet("Geometry");
         sheet.CellValue(1, 1, "Retained");
         sheet.SetDefaultRowHeight(ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(15D)));
         sheet.WorksheetPart.Worksheet.GetFirstChild<SheetFormatProperties>()!.BaseColumnWidth = baseWidth;
@@ -54,7 +54,7 @@ public partial class Excel {
     [InlineData(255.99609375D)]
     public void Xlsb_Authored_Default_Column_Width_Preserves_Encoded_Value(double width) {
         using ExcelDocument document = ExcelDocument.Create();
-        ExcelSheet sheet = document.AddWorksheet("Geometry");
+        ExcelSheet sheet = document.AddSheet("Geometry");
         sheet.CellValue(1, 1, "Retained");
         sheet.SetDefaultRowHeight(ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(15D)));
         sheet.WorksheetPart.Worksheet.GetFirstChild<SheetFormatProperties>()!.DefaultColumnWidth = width;

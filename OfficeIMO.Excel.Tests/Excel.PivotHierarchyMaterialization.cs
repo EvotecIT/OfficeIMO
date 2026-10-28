@@ -65,7 +65,7 @@ namespace OfficeIMO.Tests
         public void Test_PivotHierarchyMaterialization_BudgetsSubtotalWorkBeforeMutation()
         {
             using var document = ExcelDocument.Create();
-            var sheet = document.AddWorksheet("Source");
+            var sheet = document.AddSheet("Source");
             var headers = new[]
             {
                 "Region",
@@ -109,7 +109,7 @@ namespace OfficeIMO.Tests
         public void Test_PivotHierarchyMaterialization_BudgetsAllCriteriaBeforeMutation()
         {
             using var document = ExcelDocument.Create();
-            var sheet = document.AddWorksheet("Source");
+            var sheet = document.AddSheet("Source");
             var headers = Enumerable.Range(0, 6).Select(field => "Key" + field).Concat(new[] { "Amount" }).ToArray();
             for (int column = 0; column < headers.Length; column++)
                 sheet.CellValue(1, column + 1, headers[column]);

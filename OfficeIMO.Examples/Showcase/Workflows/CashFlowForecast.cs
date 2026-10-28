@@ -6,7 +6,7 @@ namespace OfficeIMO.Examples.Showcase.Workflows {
     internal static class CashFlowForecast {
         internal static void Create(string folder) {
             using var document = ExcelDocument.Create(Path.Combine(folder, "example.xlsx"));
-            var sheet = document.AddWorksheet("Cash flow");
+            var sheet = document.AddSheet("Cash flow");
             sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(29));
             for (int column = 2; column <= 6; column++) sheet.SetColumnWidth(column, ExcelColumnWidth.Characters(22));
             sheet.MergeRange("A1:F1"); sheet.Cell(1, 1, "Cash-flow forecast");

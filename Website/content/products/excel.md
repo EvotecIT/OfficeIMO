@@ -46,7 +46,7 @@ using DocumentFormat.OpenXml.Spreadsheet;
 using OfficeIMO.Excel;
 
 using var workbook = ExcelDocument.Create("Sales.xlsx");
-var sheet = workbook.AddWorksheet("Q4 Sales");
+var sheet = workbook.AddSheet("Q4 Sales");
 
 // Set headers
 sheet.Cells["A1"].Value = "Product";

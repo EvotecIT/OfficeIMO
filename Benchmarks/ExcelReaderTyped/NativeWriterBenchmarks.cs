@@ -105,7 +105,7 @@ namespace OfficeIMO.Excel.ReaderComparison.Benchmarks {
 
         private void WriteOfficeIMO(Stream stream, ExcelSaveOptions? options = null) {
             using ExcelDocument document = ExcelDocument.Create();
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.InsertObjects(_records, ("Name", static record => record.Name), ("Id", static record => record.Id),
                 ("Date", static record => record.Date), ("Value", static record => record.Value));
             options ??= new ExcelSaveOptions();

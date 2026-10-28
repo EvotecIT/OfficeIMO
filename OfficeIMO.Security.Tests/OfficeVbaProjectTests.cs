@@ -13,7 +13,7 @@ public sealed class OfficeVbaProjectTests {
         Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
         var wordProject = OfficeVbaProject.Load(File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "TestData", "Vba", "Word-authored.bin")));
         using var excel = ExcelDocument.Create();
-        excel.AddWorksheet("Data");
+        excel.AddSheet("Data");
         Assert.Throws<ArgumentException>(() => excel.SetVbaProject(wordProject));
         Assert.Null(excel.ReadVbaProject());
         using var presentation = PowerPointDocument.Create();
@@ -33,7 +33,7 @@ public sealed class OfficeVbaProjectTests {
         project.AddDocumentModule("DataCode", "", new Guid("00020820-0000-0000-C000-000000000046"));
         try {
             using (var excel = ExcelDocument.Create(path)) {
-                excel.AddWorksheet("Display Name");
+                excel.AddSheet("Display Name");
                 Assert.Throws<ArgumentException>(() => excel.SetVbaProject(project));
                 Assert.Null(excel.ReadVbaProject());
                 excel.Save();
@@ -265,7 +265,7 @@ public sealed class OfficeVbaProjectTests {
         try {
             switch (extension) {
                 case "xlsm":
-                    using (ExcelDocument document = ExcelDocument.Create(path)) { document.AddWorksheet("Data"); document.SetVbaProject(project); document.Save(); }
+                    using (ExcelDocument document = ExcelDocument.Create(path)) { document.AddSheet("Data"); document.SetVbaProject(project); document.Save(); }
                     using (ExcelDocument loaded = ExcelDocument.Load(path)) Assert.Contains("Value = 42", loaded.ReadVbaProject()!.GetModule("Helpers").Source);
                     break;
                 case "docm":

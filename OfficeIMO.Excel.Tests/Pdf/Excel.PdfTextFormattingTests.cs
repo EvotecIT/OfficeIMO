@@ -11,7 +11,7 @@ public sealed class ExcelPdfTextFormattingTests {
     [Fact]
     public void NativeCellFormattingProjectsToTypedPdfRuns() {
         using ExcelDocument document = ExcelDocument.Create();
-        document.AddWorksheet("Text").CellAt(1, 1)
+        document.AddSheet("Text").CellAt(1, 1)
             .SetValue("Styled")
             .SetBold()
             .SetItalic()

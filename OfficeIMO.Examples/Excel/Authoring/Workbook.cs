@@ -16,7 +16,7 @@ namespace OfficeIMO.Examples.Excel
                 // Set Sequential mode to prevent locking issues with combined operations
                 document.Execution.Mode = ExcelExecutionMode.Sequential;
                 {
-                    var sheet1 = document.AddWorksheet("Data");
+                    var sheet1 = document.AddSheet("Data");
                     int nextRow2 = 1;
                     sheet1.Cell(nextRow2, 1, "Name");
                     sheet1.Cell(nextRow2, 2, "Score");

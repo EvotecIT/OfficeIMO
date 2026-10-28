@@ -14,7 +14,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "Excel.ModernChartRecipes.xlsx");
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorksheet("Dashboard");
+                ExcelSheet sheet = document.AddSheet("Dashboard");
 
                 ExcelChart histogram = sheet.AddHistogramChart(
                     new[] { 1d, 2d, 2d, 3d, 4d, 5d },
@@ -106,7 +106,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "Excel.ModernChartRecipes.Invalid.xlsx");
 
             using ExcelDocument document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorksheet("Dashboard");
+            ExcelSheet sheet = document.AddSheet("Dashboard");
 
             Assert.Throws<ArgumentException>(() => sheet.AddHistogramChart(new[] { 1d, double.NaN }, 1, 1));
             Assert.Throws<ArgumentException>(() => sheet.AddHistogramChart(new[] { -double.MaxValue, double.MaxValue }, 1, 1));
@@ -190,7 +190,7 @@ namespace OfficeIMO.Tests {
             double[] changes = Enumerable.Range(0, pointCount).Select(index => index % 2 == 0 ? 1D : -1D).ToArray();
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorksheet("Waterfall");
+                ExcelSheet sheet = document.AddSheet("Waterfall");
 #if EXCEL_PERFORMANCE_EVIDENCE
                 var stopwatch = System.Diagnostics.Stopwatch.StartNew();
 #endif
@@ -220,7 +220,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "Excel.ModernChartRecipes.NoFill.xlsx");
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorksheet("Dashboard");
+                ExcelSheet sheet = document.AddSheet("Dashboard");
                 var data = new ExcelChartData(
                     new[] { "A", "B" },
                     new[] { new ExcelChartSeries("Value", new[] { 1d, 2d }, seriesColorArgb: "4F46E5") });
@@ -287,7 +287,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "Excel.ModernChartRecipes.NoFillEffects.xlsx");
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorksheet("Dashboard");
+                ExcelSheet sheet = document.AddSheet("Dashboard");
                 var data = new ExcelChartData(
                     new[] { "A", "B" },
                     new[] { new ExcelChartSeries("Value", new[] { 1d, 2d }, seriesColorArgb: "4F46E5") });
@@ -342,7 +342,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "Excel.ModernChartRecipes.LineFill.xlsx");
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorksheet("Dashboard");
+                ExcelSheet sheet = document.AddSheet("Dashboard");
                 var data = new ExcelChartData(
                     new[] { "A", "B" },
                     new[] {

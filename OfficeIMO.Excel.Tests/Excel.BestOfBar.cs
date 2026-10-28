@@ -16,7 +16,7 @@ namespace OfficeIMO.Tests
             string filePath = Path.Combine(_directoryWithFiles, "ExcelBestOfBar.SafePreflightFormula.xlsx");
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorksheet("Data");
+                ExcelSheet sheet = document.AddSheet("Data");
                 sheet.CellValue(1, 1, "Amount");
                 sheet.CellValue(2, 1, 10);
                 sheet.CellValue(3, 1, 20);
@@ -37,7 +37,7 @@ namespace OfficeIMO.Tests
             string filePath = Path.Combine(_directoryWithFiles, "ExcelBestOfBar.FullCalcExplicit.xlsx");
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorksheet("Data");
+                ExcelSheet sheet = document.AddSheet("Data");
                 sheet.CellValue(1, 1, 10);
                 sheet.CellFormula(1, 2, "A1*2");
                 document.Save(filePath, new ExcelSaveOptions { ForceFullCalculationOnOpen = true });
@@ -56,7 +56,7 @@ namespace OfficeIMO.Tests
             string filePath = Path.Combine(_directoryWithFiles, "ExcelBestOfBar.CategoryAxisScale.xlsx");
             using (ExcelDocument document = ExcelDocument.Create(filePath))
             {
-                ExcelSheet sheet = document.AddWorksheet("Trend");
+                ExcelSheet sheet = document.AddSheet("Trend");
                 sheet.CellValue(1, 1, "Month");
                 sheet.CellValue(1, 2, "Value");
                 sheet.CellValue(2, 1, "Jan");
@@ -98,7 +98,7 @@ namespace OfficeIMO.Tests
             string filePath = Path.Combine(_directoryWithFiles, "ExcelBestOfBar.WriteReservation.xlsx");
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                document.AddWorksheet("Data");
+                document.AddSheet("Data");
                 document.SetWriteReservation(new ExcelWorkbookWriteReservationOptions {
                     ReadOnlyRecommended = true,
                     UserName = "Reviewer",
@@ -149,7 +149,7 @@ namespace OfficeIMO.Tests
             string filePath = Path.Combine(_directoryWithFiles, "ExcelBestOfBar.RowHeight.xlsx");
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorksheet("Rows");
+                ExcelSheet sheet = document.AddSheet("Rows");
                 sheet.CellValue(3, 1, "Tall");
                 sheet.CellValue(4, 1, "Normal");
                 sheet.SetRowHeight(3, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(42D)));
@@ -208,7 +208,7 @@ namespace OfficeIMO.Tests
             table.Rows.Add("00042", 1234.5M, 0.125M, new DateTime(2026, 6, 23));
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorksheet("Data");
+                ExcelSheet sheet = document.AddSheet("Data");
                 sheet.InsertDataTableAsTable(table, 1, 1, includeHeaders: true, tableName: "Sales", style: ExcelTableStyle.TableStyleMedium2);
 
                 var plan = new ExcelColumnFormatPlan()
@@ -244,7 +244,7 @@ namespace OfficeIMO.Tests
             string filePath = Path.Combine(_directoryWithFiles, "ExcelBestOfBar.ColumnFormatPlan.HeaderRows.xlsx");
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorksheet("Data");
+                ExcelSheet sheet = document.AddSheet("Data");
                 sheet.CellValue(1, 1, "Report");
                 sheet.CellValue(2, 1, "Value");
                 sheet.CellValue(2, 2, "  Value  ");
@@ -284,7 +284,7 @@ namespace OfficeIMO.Tests
             string filePath = Path.Combine(_directoryWithFiles, "ExcelBestOfBar.ColumnFormatPlan.BlankExplicitHeader.xlsx");
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorksheet("Data");
+                ExcelSheet sheet = document.AddSheet("Data");
                 sheet.CellValue(3, 1, 42);
 
                 IReadOnlyList<ExcelColumnFormatResult> results = sheet.ApplyColumnFormatPlan(
@@ -303,7 +303,7 @@ namespace OfficeIMO.Tests
             string filePath = Path.Combine(_directoryWithFiles, "ExcelBestOfBar.ColumnFormatPlan.DefaultHeaderLookup.xlsx");
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorksheet("Data");
+                ExcelSheet sheet = document.AddSheet("Data");
                 sheet.CellValue(1, 1, "  Value  ");
                 sheet.CellValue(2, 1, 42);
 
@@ -331,7 +331,7 @@ namespace OfficeIMO.Tests
             table.Columns.Add("Count", typeof(int));
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorksheet("Data");
+                ExcelSheet sheet = document.AddSheet("Data");
                 sheet.InsertDataTableAsTable(table, 1, 1, includeHeaders: true, tableName: "Counts", style: ExcelTableStyle.TableStyleMedium2);
 
                 IReadOnlyList<ExcelColumnFormatResult> results = sheet.ApplyColumnFormatPlan(
@@ -360,7 +360,7 @@ namespace OfficeIMO.Tests
             table.Rows.Add("Alpha");
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorksheet("Data");
+                ExcelSheet sheet = document.AddSheet("Data");
                 sheet.InsertDataTableAsTable(table, 1, 1, includeHeaders: true, tableName: "Rows", style: ExcelTableStyle.TableStyleMedium2);
                 sheet.CellValue(1, 2, "Score");
                 sheet.CellValue(2, 2, 42);
@@ -391,7 +391,7 @@ namespace OfficeIMO.Tests
             table.Rows.Add("Alpha", 12.5M);
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorksheet("Data");
+                ExcelSheet sheet = document.AddSheet("Data");
                 sheet.InsertDataTableAsTable(table, 1, 1, includeHeaders: true, tableName: "Rows", style: ExcelTableStyle.TableStyleMedium2);
                 Assert.True(sheet.TryGetCellText(2, 1, out _));
 
@@ -421,7 +421,7 @@ namespace OfficeIMO.Tests
             table.Rows.Add("Long descriptive customer name", 1234.5M);
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorksheet("Data");
+                ExcelSheet sheet = document.AddSheet("Data");
                 sheet.InsertDataTableAsTable(table, 1, 1, includeHeaders: true, tableName: "Rows", style: ExcelTableStyle.TableStyleMedium2);
 
                 IReadOnlyList<ExcelColumnFormatResult> results = sheet.ApplyColumnFormatPlan(

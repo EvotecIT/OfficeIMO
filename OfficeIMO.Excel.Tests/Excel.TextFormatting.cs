@@ -17,7 +17,7 @@ public class ExcelTextFormattingTests {
         string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".xlsx");
         try {
             using (ExcelDocument document = ExcelDocument.Create(path)) {
-                ExcelSheet sheet = document.AddWorksheet("Text");
+                ExcelSheet sheet = document.AddSheet("Text");
                 sheet.CellAt(1, 1).SetValue("Primary")
                     .SetBold().SetItalic()
                     .SetUnderline(ExcelUnderlineStyle.DoubleAccounting)
@@ -60,7 +60,7 @@ public class ExcelTextFormattingTests {
         string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".xlsx");
         try {
             using (ExcelDocument document = ExcelDocument.Create(path)) {
-                ExcelSheet sheet = document.AddWorksheet("Text");
+                ExcelSheet sheet = document.AddSheet("Text");
                 sheet.CellAt(1, 1).SetValue("mixed CASE").SetBold().TransformTextCase(OfficeTextCase.TitleCase);
                 sheet.CellAt(2, 1).SetRichText(
                     new ExcelRichTextRun("Styled") { Bold = true, UnderlineStyle = ExcelUnderlineStyle.Double },
@@ -113,7 +113,7 @@ public class ExcelTextFormattingTests {
         string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".xlsx");
         try {
             using (ExcelDocument document = ExcelDocument.Create(path)) {
-                document.AddWorksheet("Text").CellAt(1, 1).SetFormula("\"mixed Case\"");
+                document.AddSheet("Text").CellAt(1, 1).SetFormula("\"mixed Case\"");
                 document.Save();
             }
             using (SpreadsheetDocument package = SpreadsheetDocument.Open(path, true)) {
@@ -147,7 +147,7 @@ public class ExcelTextFormattingTests {
         var expected = new DateTime(2026, 4, 5);
         try {
             using (ExcelDocument document = ExcelDocument.Create(path)) {
-                document.AddWorksheet("Dates").CellAt(1, 1).SetValue(expected);
+                document.AddSheet("Dates").CellAt(1, 1).SetValue(expected);
                 document.Save();
             }
             using (SpreadsheetDocument package = SpreadsheetDocument.Open(path, true)) {
@@ -169,7 +169,7 @@ public class ExcelTextFormattingTests {
     [Fact]
     public void RichTextCaseTransformsDoNotResetContextAtRunBoundaries() {
         using ExcelDocument document = ExcelDocument.Create();
-        ExcelSheet sheet = document.AddWorksheet("Text");
+        ExcelSheet sheet = document.AddSheet("Text");
         sheet.CellAt(1, 1).SetRichText(
             new ExcelRichTextRun("hELLO. ") { Bold = true },
             new ExcelRichTextRun("aNOTHER") { Italic = true },
@@ -189,7 +189,7 @@ public class ExcelTextFormattingTests {
         string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".xlsx");
         try {
             using (ExcelDocument created = ExcelDocument.Create(path)) {
-                ExcelSheet sheet = created.AddWorksheet("Text");
+                ExcelSheet sheet = created.AddSheet("Text");
                 sheet.CellAt(1, 1).SetValue("placeholder");
                 sheet.CellAt(2, 1).SetValue("placeholder");
                 created.Save();
@@ -247,7 +247,7 @@ public class ExcelTextFormattingTests {
         string expectedProperties;
         try {
             using (ExcelDocument created = ExcelDocument.Create(path)) {
-                created.AddWorksheet("Text").CellAt(1, 1).SetRichText(
+                created.AddSheet("Text").CellAt(1, 1).SetRichText(
                     new ExcelRichTextRun("istanbul") { Bold = true, FontName = "Aptos" });
                 created.Save();
             }
@@ -286,7 +286,7 @@ public class ExcelTextFormattingTests {
         string expectedProperties;
         try {
             using (ExcelDocument created = ExcelDocument.Create(path)) {
-                ExcelSheet sheet = created.AddWorksheet("Text");
+                ExcelSheet sheet = created.AddSheet("Text");
                 sheet.CellAt(1, 1).SetValue("First");
                 sheet.CellAt(2, 1).SetValue("Second");
                 created.Save();
@@ -349,7 +349,7 @@ public class ExcelTextFormattingTests {
         string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".xlsx");
         try {
             using (ExcelDocument created = ExcelDocument.Create(path)) {
-                created.AddWorksheet("Text").CellAt(1, 1).SetValue("Plain")
+                created.AddSheet("Text").CellAt(1, 1).SetValue("Plain")
                     .SetBold().SetItalic().SetUnderline().SetStrikethrough();
                 created.Sheets[0].CellAt(2, 1).SetRichText(
                     new ExcelRichTextRun("Rich") {

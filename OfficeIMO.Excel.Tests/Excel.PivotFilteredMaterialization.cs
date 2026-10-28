@@ -98,7 +98,7 @@ namespace OfficeIMO.Tests
             var expected = oracle.GetSheet("Filtered").ReadRange("A4:B7");
             using (var document = ExcelDocument.Create(output))
             {
-                var sheet = document.AddWorksheet("Source");
+                var sheet = document.AddSheet("Source");
                 for (int row = 0; row < 7; row++)
                     for (int column = 0; column < 3; column++)
                         sheet.CellValue(row + 1, column + 1, sourceValues[row, column]);

@@ -16,7 +16,7 @@ public sealed class PdfAssemblyFailureEvidenceTests {
             string input = Path.Combine(root, "source" + extension), output = Path.Combine(root, "result.pdf");
             const string text = "مرحبا";
             if (extension == ".docx") { using var word = WordDocument.Create(input); word.AddParagraph(text); word.Save(); }
-            else if (extension == ".xlsx") { using var excel = ExcelDocument.Create(input); excel.AddWorksheet("Unicode").CellValue(1, 1, text); excel.Save(); }
+            else if (extension == ".xlsx") { using var excel = ExcelDocument.Create(input); excel.AddSheet("Unicode").CellValue(1, 1, text); excel.Save(); }
             else if (extension == ".pptx") { using var ppt = PowerPointDocument.Create(input); ppt.AddSlide().AddTextBox(text); ppt.Save(); }
             else File.WriteAllText(input, "<html><body><p>" + text + "</p></body></html>");
             byte[] source = File.ReadAllBytes(input), destination = { 1, 2, 3 };

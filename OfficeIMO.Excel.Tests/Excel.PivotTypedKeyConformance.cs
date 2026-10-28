@@ -111,7 +111,7 @@ namespace OfficeIMO.Tests
         {
             using var document = ExcelDocument.Create();
             document.DateSystem = system;
-            var sheet = document.AddWorksheet("Source");
+            var sheet = document.AddSheet("Source");
             sheet.CellValue(1, 1, "Group");
             sheet.CellValue(1, 2, "Key");
             sheet.CellValue(1, 3, "Amount");
@@ -161,7 +161,7 @@ namespace OfficeIMO.Tests
         public void Test_PivotTypedKeys_RematerializationUsesCurrentSourceDateStyles()
         {
             using var document = ExcelDocument.Create();
-            var sheet = document.AddWorksheet("Source");
+            var sheet = document.AddSheet("Source");
             sheet.CellValue(1, 1, "Key");
             sheet.CellValue(1, 2, "Amount");
             sheet.CellValue(2, 1, 1d);

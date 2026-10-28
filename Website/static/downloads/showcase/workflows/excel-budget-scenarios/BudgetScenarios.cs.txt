@@ -8,7 +8,7 @@ namespace OfficeIMO.Examples.Showcase.Workflows;
 internal static class BudgetScenarios {
     internal static void Create(string folder) {
         using ExcelDocument document = ExcelDocument.Create(Path.Combine(folder, "example.xlsx"));
-        ExcelSheet sheet = document.AddWorksheet("Scenarios");
+        ExcelSheet sheet = document.AddSheet("Scenarios");
         sheet.MergeRange("A1:F1");
         sheet.Cell(1, 1, "Budget scenarios / next quarter");
         sheet.CellFontSize(1, 1, 20);

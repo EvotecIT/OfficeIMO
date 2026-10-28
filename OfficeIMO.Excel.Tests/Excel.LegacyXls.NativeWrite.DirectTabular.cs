@@ -17,7 +17,7 @@ namespace OfficeIMO.Tests {
             var timings = new List<string>();
             using ExcelDocument document = ExcelDocument.Create();
             document.Execution.OnTiming = (operation, _) => timings.Add(operation);
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.CellValue(1, 1, "Text");
             sheet.CellValue(1, 2, "Integer");
             sheet.CellValue(1, 3, "Decimal");
@@ -68,7 +68,7 @@ namespace OfficeIMO.Tests {
             var messages = new List<string>();
             using ExcelDocument document = ExcelDocument.Create();
             document.Execution.OnInfo = messages.Add;
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.CellValue(1, 1, "When");
             sheet.CellValue(2, 1, expected);
 
@@ -84,7 +84,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void LegacyXls_DirectTabularSave_DoesNotBypassUnsupportedPackagePartPreflight() {
             using ExcelDocument document = ExcelDocument.Create();
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.CellValue(1, 1, "Value");
             sheet.CellValue(2, 1, 42);
             CustomXmlPart customXmlPart = document._spreadSheetDocument.WorkbookPart!
@@ -108,7 +108,7 @@ namespace OfficeIMO.Tests {
                 var timings = new List<string>();
                 using ExcelDocument document = ExcelDocument.Create();
                 document.Execution.OnTiming = (operation, _) => timings.Add(operation);
-                ExcelSheet sheet = document.AddWorksheet("Data");
+                ExcelSheet sheet = document.AddSheet("Data");
                 sheet.CellValue(1, 1, "Value");
                 for (int row = 2; row <= 256; row++) {
                     sheet.CellValue(row, 1, row - 1);
@@ -296,7 +296,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public async Task LegacyXls_DirectTabularSave_HonorsPreCanceledAsyncStreamWrite() {
             using ExcelDocument document = ExcelDocument.Create();
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.CellValue(1, 1, "Value");
             sheet.CellValue(2, 1, 1);
             using var destination = new MemoryStream();
@@ -311,7 +311,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public async Task LegacyXls_DirectTabularSave_ObservesCancellationBeforeSharedStringSerialization() {
             using ExcelDocument document = ExcelDocument.Create();
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.CellValue(1, 1, "Value");
             for (int row = 2; row <= 4096; row++) {
                 sheet.CellValue(row, 1, "Unique value " + row);
@@ -370,7 +370,7 @@ namespace OfficeIMO.Tests {
             string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".xls");
             try {
                 using ExcelDocument document = ExcelDocument.Create();
-                ExcelSheet sheet = document.AddWorksheet("Data");
+                ExcelSheet sheet = document.AddSheet("Data");
                 sheet.CellValue(1, 1, "Value");
                 for (int row = 2; row <= 256; row++) {
                     sheet.CellValue(row, 1, row - 1);
@@ -397,7 +397,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void LegacyXls_GeneralWriter_IndexesSparseCoordinateBandsAndFormattingOnlyRows() {
             using ExcelDocument document = ExcelDocument.Create();
-            ExcelSheet sheet = document.AddWorksheet("Sparse");
+            ExcelSheet sheet = document.AddSheet("Sparse");
             sheet.CellValue(10, 1, "First");
             sheet.SetRowHeight(65, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(21d)));
             sheet.CellValue(100, 1, "Last");
@@ -425,7 +425,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void LegacyXls_GeneralWriter_LeavesIndexDataBoundsEmptyForFormattingOnlySheet() {
             using ExcelDocument document = ExcelDocument.Create();
-            ExcelSheet sheet = document.AddWorksheet("FormattingOnly");
+            ExcelSheet sheet = document.AddSheet("FormattingOnly");
             sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(18d));
             sheet.SetRowHeight(65, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(21d)));
 

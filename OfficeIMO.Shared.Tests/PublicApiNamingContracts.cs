@@ -52,7 +52,7 @@ public sealed class PublicApiNamingContracts {
         Assert.DoesNotContain(methods, method => method.Name.Contains("WorkSheet", StringComparison.Ordinal));
         Assert.DoesNotContain(methods.SelectMany(method => method.GetParameters()), parameter =>
             parameter.Name?.Contains("workSheet", StringComparison.Ordinal) == true);
-        Assert.Contains(methods, method => method.Name == "AddWorksheet");
+        Assert.Contains(methods, method => method.Name == "AddSheet");
         Assert.Contains(methods, method => method.Name == "RemoveWorksheet");
         Assert.Contains(methods, method => method.Name == "CopyWorksheet");
         Assert.Contains(methods, method => method.Name == "CopyWorksheetFrom");

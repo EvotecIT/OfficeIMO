@@ -11,7 +11,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_StructuralRows_HonorsEscapedStructuredReferenceBrackets() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.CellAt(1, 1).SetValue("Cost [ old");
             sheet.CellAt(2, 1).SetValue(10);
             sheet.CellAt(5, 1).SetValue(20);
@@ -32,7 +32,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_StructuralRows_RemapsQueryTableRefreshSortRanges() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             SortState sortState = AddQueryTableRefreshSortState(
                 document,
                 sheet,
@@ -60,7 +60,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_StructuralRows_PreflightsQueryTableRefreshSortRanges() {
             using var document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorksheet("Data");
+            ExcelSheet sheet = document.AddSheet("Data");
             sheet.CellAt(1, 1).SetValue("Keep");
             string reference = $"A{ExcelA1.MaxRows}:C{ExcelA1.MaxRows}";
             SortState sortState = AddQueryTableRefreshSortState(

@@ -12,13 +12,13 @@ public sealed class ExcelLegacyStructureEditingTests {
     [InlineData(true)]
     public void Adding_empty_worksheets_preserves_row_and_column_layout_styles(bool explicitStyle) {
         using var seed = ExcelDocument.Create();
-        var original = seed.AddWorksheet("Original");
+        var original = seed.AddSheet("Original");
         original.CellValue(1, 1, 42);
         original.CellAt(1, 1).SetNumberFormat("0.000");
         using var document = ExcelDocument.Load(new MemoryStream(seed.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xls })));
         uint style = explicitStyle
             ? document.Sheets[0].WorksheetPart.Worksheet!.Descendants<Cell>().Single().StyleIndex!.Value : 0U;
-        var added = document.AddWorksheet("Layout only");
+        var added = document.AddSheet("Layout only");
         added.SetColumnWidth(2, ExcelColumnWidth.Characters(12.5));
         added.SetRowHeight(3, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(21)));
         if (explicitStyle) {
@@ -46,7 +46,7 @@ public sealed class ExcelLegacyStructureEditingTests {
         Directory.CreateDirectory(root);
         string originalPath = Path.Combine(root, "original.xls"), target = Path.Combine(root, "edited.xls");
         try {
-            using var seed = ExcelDocument.Create(); seed.AddWorksheet("Data").CellValue(1, 1, "Original");
+            using var seed = ExcelDocument.Create(); seed.AddSheet("Data").CellValue(1, 1, "Original");
             byte[] original = seed.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xls }); File.WriteAllBytes(originalPath, original);
             using (var document = ExcelDocument.Load(originalPath)) {
                 document.Sheets[0].CellValue(1, 1, "First edit"); document.Save(target);
@@ -75,7 +75,7 @@ public sealed class ExcelLegacyStructureEditingTests {
         var retained = document.Sheets[0]; retained.Name = "Sales Łódź"; retained.CellValue(1, 1, 42D);
         document.ReorderWorksheet(retained, document.WorkbookRoot.Sheets!.Elements<Sheet>().Count() - 1);
         document.RemoveWorksheet(removedName);
-        var added = document.AddWorksheet("Added data");
+        var added = document.AddSheet("Added data");
         added.CellValue(1, 1, "New worksheet host");
         added.CellFormula(2, 1, "'Sales Łódź'!A1+1"); added.RecalculateSupportedFormulas();
         byte[] bytes = document.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xls });
@@ -109,9 +109,9 @@ public sealed class ExcelLegacyStructureEditingTests {
     [Fact]
     public void Reordering_keeps_local_names_attached_and_removing_a_named_sheet_does_not_retarget_name_tokens() {
         using var seed = ExcelDocument.Create();
-        var first = seed.AddWorksheet("First"); first.CellValue(1, 1, 10);
-        var second = seed.AddWorksheet("Second"); second.CellValue(1, 1, 20);
-        var third = seed.AddWorksheet("Third"); third.CellValue(1, 1, 30);
+        var first = seed.AddSheet("First"); first.CellValue(1, 1, 10);
+        var second = seed.AddSheet("Second"); second.CellValue(1, 1, 20);
+        var third = seed.AddSheet("Third"); third.CellValue(1, 1, 30);
         seed.SetNamedRange("FirstLocal", "A1", first, save: false);
         seed.SetNamedRange("SecondLocal", "A1", second, save: false);
         seed.SetNamedRange("GlobalThird", "'Third'!A1", save: false);
@@ -132,7 +132,7 @@ public sealed class ExcelLegacyStructureEditingTests {
     [InlineData(ExcelFileFormat.Xls)]
     [InlineData(ExcelFileFormat.Xlsb)]
     public void Renaming_a_native_sheet_keeps_internal_hyperlinks_pointing_at_it(ExcelFileFormat format) {
-        using var seed = ExcelDocument.Create(); var links = seed.AddWorksheet("Links"); var target = seed.AddWorksheet("Target");
+        using var seed = ExcelDocument.Create(); var links = seed.AddSheet("Links"); var target = seed.AddSheet("Target");
         target.CellValue(2, 2, "Destination"); links.SetInternalLink(1, 1, target, "B2", "Jump", style: false);
         using var document = ExcelDocument.Load(new MemoryStream(seed.ToBytes(format)));
         document.GetSheet("Target").Name = "Sales Łódź";

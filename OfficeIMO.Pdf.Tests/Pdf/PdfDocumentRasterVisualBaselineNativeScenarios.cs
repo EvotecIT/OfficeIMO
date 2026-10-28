@@ -260,7 +260,7 @@ public partial class PdfDocumentRasterVisualBaselineTests {
 
         try {
             using (ExcelDocument document = ExcelDocument.Create(workbookPath)) {
-                ExcelSheet summary = document.AddWorksheet("Summary");
+                ExcelSheet summary = document.AddSheet("Summary");
                 summary.CellAt(1, 1).SetValue("Daily Excel PDF Gate").SetBold().SetFontColor("1F4E79").SetFillColor("DDEEFF");
                 summary.MergeRange("A1:B1");
                 summary.CellAt(2, 1).SetValue("Metric").SetBold().SetFillColor("E6F2FF");
@@ -314,7 +314,7 @@ public partial class PdfDocumentRasterVisualBaselineTests {
                 summary.SetOrientation(OfficePageOrientation.Landscape);
                 summary.SetMargins(left: OfficeLength.Inches(0.35), right: OfficeLength.Inches(0.35), top: OfficeLength.Inches(0.55), bottom: OfficeLength.Inches(0.55));
 
-                ExcelSheet details = document.AddWorksheet("Details");
+                ExcelSheet details = document.AddSheet("Details");
                 details.CellAt(1, 1).SetValue("Details Target").SetBold().SetFillColor("E2F0D9");
                 details.Cell(2, 1, "Owner");
                 details.Cell(2, 2, "OfficeIMO");

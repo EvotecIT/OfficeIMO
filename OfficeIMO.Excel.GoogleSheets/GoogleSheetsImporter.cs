@@ -135,7 +135,7 @@ namespace OfficeIMO.Excel.GoogleSheets {
                     string title = string.IsNullOrWhiteSpace(nativeSheet.Properties.Title)
                         ? $"Sheet{nativeSheet.Properties.Index + 1}"
                         : nativeSheet.Properties.Title;
-                    ExcelSheet sheet = document.AddWorksheet(title);
+                    ExcelSheet sheet = document.AddSheet(title);
                     sheetNames[nativeSheet.Properties.SheetId] = sheet.Name;
                     ApplySheetProperties(sheet, nativeSheet.Properties);
                     ApplyGridData(sheet, nativeSheet.Data, report);

@@ -419,7 +419,7 @@ public static partial class ExcelOpenDocumentConversionExtensions {
         var sourceValidations = source.Validations
             .GroupBy(validation => validation.Name, StringComparer.Ordinal)
             .ToDictionary(group => group.Key, group => group.First(), StringComparer.Ordinal);
-        var sheetTargets = source.Sheets.Select(ods => (Source: ods, Target: target.AddWorksheet(ods.Name))).ToList();
+        var sheetTargets = source.Sheets.Select(ods => (Source: ods, Target: target.AddSheet(ods.Name))).ToList();
         var sheetNameMap = sheetTargets.ToDictionary(pair => pair.Source.Name, pair => pair.Target.Name, StringComparer.Ordinal);
         OdsNamedRangeConversionPlan namedRangePlan = BuildOdsNamedRangeConversionPlan(source.NamedRanges, sheetNameMap);
         CultureInfo textCaseCulture = OdfTextCultureResolver.Resolve(source.Metadata.Language);
@@ -736,7 +736,7 @@ public static partial class ExcelOpenDocumentConversionExtensions {
             conditionalTargetLimitFailures += conditionalTargetLimits.Count;
         }
 
-        if (target.Sheets.Count == 0) activeTarget = target.AddWorksheet("Sheet1");
+        if (target.Sheets.Count == 0) activeTarget = target.AddSheet("Sheet1");
         else if (activeTarget == null) {
             activeTarget = firstTarget!;
             activeTarget.SetHidden(false);

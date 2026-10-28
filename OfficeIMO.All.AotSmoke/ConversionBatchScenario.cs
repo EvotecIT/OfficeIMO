@@ -19,7 +19,7 @@ internal static class ConversionBatchScenario {
             word.AddParagraph("Native checkpoint Word"); word.Save();
         }
         using (var excel = OfficeIMO.Excel.ExcelDocument.Create(Path.Combine(input, "page.xlsx"))) {
-            excel.AddWorksheet("Data").Cell(1, 1, "Native checkpoint Excel"); excel.Save();
+            excel.AddSheet("Data").Cell(1, 1, "Native checkpoint Excel"); excel.Save();
         }
         using (var slides = OfficeIMO.PowerPoint.PowerPointDocument.Create(Path.Combine(input, "page.pptx"))) {
             slides.AddSlide().AddTextBox("Native checkpoint slide",global::OfficeIMO.OfficeLength.Points(40),global::OfficeIMO.OfficeLength.Points(40),global::OfficeIMO.OfficeLength.Points(500),global::OfficeIMO.OfficeLength.Points(60)); slides.Save();

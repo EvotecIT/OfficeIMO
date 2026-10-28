@@ -558,7 +558,7 @@ sheet name="Revenue"
         var code = new OfficeMarkupPowerShellEmitter().Emit(result.Document);
 
         Assert.Contains("New-OfficeExcel -FilePath $FilePath -NoSave", code, StringComparison.Ordinal);
-        Assert.Contains("$Workbook.AddWorksheet($Name)", code, StringComparison.Ordinal);
+        Assert.Contains("$Workbook.AddSheet($Name)", code, StringComparison.Ordinal);
         Assert.Contains("Revenue", code, StringComparison.Ordinal);
         Assert.Contains("Save-OfficeExcel -Document $workbook -Path $FilePath", code, StringComparison.Ordinal);
         Assert.DoesNotContain("New-OfficeExcelWorkbook", code, StringComparison.Ordinal);
@@ -1077,7 +1077,7 @@ Q3,260
                     shape.Name?.Contains("Canvas Rail", StringComparison.Ordinal) == true);
                 Assert.Contains(presentation.Slides[1].Shapes.OfType<PowerPointTextBox>(), box =>
                     box.Text.Contains("Pipeline: From Text to PPTX", StringComparison.Ordinal)
-                    && box.FontSize == 32
+                    && box.FontSize == OfficeIMO.OfficeLength.Points(32)
                     && box.Bold
                     && box.TextAutoFit == PowerPointTextAutoFit.Normal);
                 Assert.Contains(presentation.Slides[1].Shapes.OfType<PowerPointAutoShape>(), shape =>

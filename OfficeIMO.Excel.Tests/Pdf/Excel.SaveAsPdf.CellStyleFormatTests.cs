@@ -65,7 +65,7 @@ public partial class Excel {
     [Fact]
     public void SaveAsPdf_ExcelWorkbook_ReportsAccountingUnderlineApproximationOncePerSheet() {
         using ExcelDocument document = ExcelDocument.Create();
-        ExcelSheet sheet = document.AddWorksheet("Accounting");
+        ExcelSheet sheet = document.AddSheet("Accounting");
         sheet.CellAt(1, 1).SetValue("Single").SetUnderline(ExcelUnderlineStyle.SingleAccounting);
         sheet.CellAt(2, 1).SetValue("Double").SetUnderline(ExcelUnderlineStyle.DoubleAccounting);
 

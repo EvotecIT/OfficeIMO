@@ -185,7 +185,7 @@ public sealed class ReaderDocumentReadResultTests {
         var path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
         try {
             using (var workbook = ExcelDocument.Create(path)) {
-                var sheet = workbook.AddWorksheet("Data");
+                var sheet = workbook.AddSheet("Data");
                 sheet.Cell(1, 1, "Name");
                 sheet.Cell(1, 2, "Value");
                 sheet.Cell(2, 1, "Alpha");
@@ -253,7 +253,7 @@ public sealed class ReaderDocumentReadResultTests {
         var path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
         try {
             using (var workbook = ExcelDocument.Create(path)) {
-                var sheet = workbook.AddWorksheet("Data");
+                var sheet = workbook.AddSheet("Data");
                 sheet.Cell(1, 1, "Name");
                 sheet.Cell(1, 2, "Value");
                 sheet.Cell(2, 1, "Alpha");
@@ -282,10 +282,10 @@ public sealed class ReaderDocumentReadResultTests {
         var path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
         try {
             using (var workbook = ExcelDocument.Create(path)) {
-                var zSheet = workbook.AddWorksheet("Z");
+                var zSheet = workbook.AddSheet("Z");
                 zSheet.Cell(1, 1, "Name");
                 zSheet.Cell(2, 1, "Zulu");
-                var aSheet = workbook.AddWorksheet("A");
+                var aSheet = workbook.AddSheet("A");
                 aSheet.Cell(1, 1, "Name");
                 aSheet.Cell(2, 1, "Alpha");
                 workbook.Save();

@@ -29,7 +29,7 @@ public partial class Excel {
     [Fact]
     public void SaveAsPdf_PlainPieRetainsOutsideLabelsAndLeaderLines() {
         using ExcelDocument document = ExcelDocument.Create();
-        ExcelChart chart = document.AddWorksheet("Results").AddChart(OfficeChartType.Pie,
+        ExcelChart chart = document.AddSheet("Results").AddChart(OfficeChartType.Pie,
             new OfficeChartData(new[] { "A", "B" }, new[] {
                 new OfficeSeries("Status", new[] { 3d, 4d }) }), 1, 1);
         C.PieChart native = document.OpenXmlDocument.WorkbookPart!.WorksheetParts

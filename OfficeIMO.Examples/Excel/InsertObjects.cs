@@ -12,7 +12,7 @@ namespace OfficeIMO.Examples.Excel {
             string filePath = System.IO.Path.Combine(folderPath, "InsertObjects.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorksheet("Data");
+                var sheet = document.AddSheet("Data");
                 var people = new List<Person> {
                     new Person {
                         Name = "Alice",

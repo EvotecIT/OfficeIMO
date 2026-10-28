@@ -13,7 +13,7 @@ internal static partial class DocumentFeatureShowcase {
     }
 
     private static ExcelSheet PrepareSheet(ExcelDocument document, string title, string subtitle) {
-        ExcelSheet sheet = document.AddWorksheet("Report");
+        ExcelSheet sheet = document.AddSheet("Report");
         sheet.MergeRange("A1:F1");
         sheet.Cell(1, 1, title);
         sheet.CellBold(1, 1, true);

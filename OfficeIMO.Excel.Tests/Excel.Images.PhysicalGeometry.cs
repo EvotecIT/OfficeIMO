@@ -19,7 +19,7 @@ public partial class Excel {
         byte[] bytes = File.ReadAllBytes(Path.Combine(_directoryWithImages, "EvotecLogo.png"));
         using var output = new MemoryStream();
         using (var document = ExcelDocument.Create()) {
-            var sheet = document.AddWorksheet("Images");
+            var sheet = document.AddSheet("Images");
             ExcelImage image = sheet.Report().AddImage(2, 3, bytes,
                 width: OfficeLength.Emus(9526), height: OfficeLength.Emus(19051),
                 offsetX: OfficeLength.Emus(-1), offsetY: OfficeLength.Emus(17));
@@ -45,7 +45,7 @@ public partial class Excel {
     public void ImageLengths_EndMarkerRejectsNegativeSubPixelOffsetsBeforeMutation() {
         byte[] bytes = File.ReadAllBytes(Path.Combine(_directoryWithImages, "EvotecLogo.png"));
         using var document = ExcelDocument.Create();
-        var sheet = document.AddWorksheet("Images");
+        var sheet = document.AddSheet("Images");
         var image = sheet.AddImageToRange("A1:B2", bytes);
         image.SetTwoCellEndingMarker(3, 4, OfficeLength.Emus(1), OfficeLength.Emus(2));
         Assert.Throws<ArgumentOutOfRangeException>(() => image.SetTwoCellEndingMarker(5, 6, OfficeLength.Emus(-1)));
@@ -68,7 +68,7 @@ public partial class Excel {
         using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(30));
         try {
             using var document = ExcelDocument.Create();
-            var sheet = document.AddWorksheet("Remote");
+            var sheet = document.AddSheet("Remote");
             var policy = new OfficeRemoteImageLoadOptions { AllowPrivateNetworkAddresses = true };
             string url = $"http://127.0.0.1:{port}/logo.png";
             ExcelImage image = reportImage
@@ -97,7 +97,7 @@ public partial class Excel {
         byte[] bytes = File.ReadAllBytes(Path.Combine(_directoryWithImages, "EvotecLogo.png"));
         using var source = new MemoryStream();
         using (var original = ExcelDocument.Create()) {
-            var sheet = original.AddWorksheet("Copy images");
+            var sheet = original.AddSheet("Copy images");
             sheet.CellValue(1, 1, "Seed");
             sheet.AddImageToRange("A1:B3", bytes,
                 endOffsetX: OfficeLength.Emus(-1), endOffsetY: OfficeLength.Emus(-2));

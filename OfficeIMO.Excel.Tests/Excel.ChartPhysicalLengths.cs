@@ -13,7 +13,7 @@ public sealed class ExcelChartPhysicalLengthTests {
     public void TransparentMarkerPaintSurvivesSnapshotAndSvgExportAfterReload() {
         using var bytes = new MemoryStream();
         using (var book = ExcelDocument.Create()) {
-            var sheet = book.AddWorksheet("Markers");
+            var sheet = book.AddSheet("Markers");
             var chart = sheet.AddChart(new ExcelChartData(new[] { "First", "Next" },
                 new[] { new ExcelChartSeries("Revenue", new[] { 12.5, 19.75 }) }), 1, 1,
                 type: OfficeChartType.Line);
@@ -41,7 +41,7 @@ public sealed class ExcelChartPhysicalLengthTests {
     public void ChartLengthsColorsAndPrintMarginsRetainTheirNativeUnitsAfterReload() {
         using var bytes = new MemoryStream();
         using (var book = ExcelDocument.Create()) {
-            var sheet = book.AddWorksheet("Report");
+            var sheet = book.AddSheet("Report");
             sheet.SetMargins(OfficeLength.Centimeters(2.54), OfficeLength.Inches(0.5),
                 OfficeLength.Points(36), OfficeLength.Points(18));
             var chart = sheet.AddChart(new ExcelChartData(new[] { "First", "Next" },

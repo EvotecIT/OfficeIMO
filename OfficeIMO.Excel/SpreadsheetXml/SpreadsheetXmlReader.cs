@@ -32,7 +32,7 @@ internal static class SpreadsheetXmlReader {
                 string name = (string?)source.Attribute(Ss + "Name") ?? throw new InvalidDataException("Worksheet has no name.");
                 if (!names.Add(name) || name.Length == 0 || name.Length > 31 || name.IndexOfAny(new[] { '[', ']', ':', '*', '?', '/', '\\' }) >= 0)
                     throw new InvalidDataException("Invalid or duplicate worksheet name.");
-                var sheet = document.AddWorksheet(name);
+                var sheet = document.AddSheet(name);
                 context.Inspect(source, new[] { "Table", "Names", (X + "WorksheetOptions").ToString() }, new[] { "Name", "Protected", "RightToLeft" });
 
                 XElement? visible = source.Element(X + "WorksheetOptions")?.Element(X + "Visible");

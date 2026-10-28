@@ -24,7 +24,7 @@ public sealed class ExcelLongSharedStringsTests {
 
         using var output = new MemoryStream();
         using (var document = ExcelDocument.Create()) {
-            document.AddWorksheet("Data").InsertDataTable(table);
+            document.AddSheet("Data").InsertDataTable(table);
             document.Save(output);
         }
         byte[] package = output.ToArray();

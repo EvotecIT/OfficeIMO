@@ -23,7 +23,7 @@ public sealed class OfficeDocumentInspectionTests {
                     using (var document = WordDocument.Create()) { document.AddParagraph("Inspection content"); document.Save(path); }
                     break;
                 case ReaderInputKind.Excel:
-                    using (var document = ExcelDocument.Create()) { document.AddWorksheet("Data").CellValue(1, 1, "Inspection content"); document.Save(path); }
+                    using (var document = ExcelDocument.Create()) { document.AddSheet("Data").CellValue(1, 1, "Inspection content"); document.Save(path); }
                     break;
                 case ReaderInputKind.PowerPoint:
                     using (var document = PowerPointDocument.Create()) { document.AddSlide().AddTextBox("Inspection content"); document.Save(path); }

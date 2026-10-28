@@ -56,7 +56,7 @@ internal static class ArtifactWriter {
             foreach (var table in tables) {
                 cancellationToken.ThrowIfCancellationRequested();
                 var csv = new CsvDocument().WithHeader(table.Columns.ToArray());
-                var sheet = workbook.AddWorksheet(table.Name);
+                var sheet = workbook.AddSheet(table.Name);
                 for (int column = 0; column < table.Columns.Count; column++) {
                     cancellationToken.ThrowIfCancellationRequested();
                     sheet.CellValue(1, column + 1, table.Columns[column]);
