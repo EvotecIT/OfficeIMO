@@ -96,8 +96,8 @@ using OfficeIMO.Word;
 
 using var document = WordDocument.Create("assessment.docx");
 var paper = new WordPaperStyle { TableFontSizePoints = 9 };
-paper.AddCover(document, "ASSESSMENT", "Domain assessment", "Example fixture");
-paper.AddPageChrome(document, "Domain assessment", "Example reports", "example.test");
+var cover = paper.AddCover(document, "ASSESSMENT", "Domain assessment", "Example fixture");
+var chrome = paper.AddPageChrome(document, "Domain assessment", "Example reports", "example.test");
 var table = document.AddTable(2, 2);
 paper.SetCellText(table.Rows[0].Cells[0], "Hostname");
 paper.SetCellText(table.Rows[0].Cells[1], "Status");

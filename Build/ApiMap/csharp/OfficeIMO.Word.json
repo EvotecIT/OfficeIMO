@@ -2038,35 +2038,35 @@
       "old": "OfficeIMO.Word.WordPaperStyle.AddCover(WordDocument document, string eyebrow, string title, string subtitle)",
       "kind": "method",
       "action": "change",
-      "new": "OfficeIMO.Word.WordPaperStyle.AddCover(...) : the created object",
+      "new": "OfficeIMO.Word.WordPaperStyle.AddCover(WordDocument document, string eyebrow, string title, string subtitle) : (WordParagraph Eyebrow, WordParagraph Title, WordParagraph Subtitle)",
       "reason": "Add* methods return the created object.",
       "file": "OfficeIMO.Word/WordPaperStyle.cs",
       "category": "authoring",
       "notes": "Return type to be named in M2 when the created model type is public.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Returns the attached paragraphs as a named tuple so callers can edit every created element. Existing statement calls keep the same saved content."
     },
     {
       "old": "OfficeIMO.Word.WordPaperStyle.AddPageChrome(WordDocument document, string title, string product, string scope)",
       "kind": "method",
       "action": "change",
-      "new": "OfficeIMO.Word.WordPaperStyle.AddPageChrome(...) : the created object",
+      "new": "OfficeIMO.Word.WordPaperStyle.AddPageChrome(WordDocument document, string title, string product, string scope) : (WordParagraph DefaultHeader, WordParagraph EvenHeader, WordParagraph DefaultFooter, WordParagraph EvenFooter)",
       "reason": "Add* methods return the created object.",
       "file": "OfficeIMO.Word/WordPaperStyle.cs",
       "category": "authoring",
       "notes": "Return type to be named in M2 when the created model type is public.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Returns the attached paragraphs as a named tuple so callers can edit every created element. Existing statement calls keep the same saved content."
     },
     {
       "old": "OfficeIMO.Word.WordParagraph.GetContentWidthPoints()",

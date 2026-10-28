@@ -117,7 +117,8 @@ public sealed partial class WordPaperStyle {
     }
 
     /// <summary>Adds a cover's eyebrow, title and subtitle using the paper type scale.</summary>
-    public void AddCover(WordDocument document, string eyebrow, string title, string subtitle) {
+    /// <returns>The three attached paragraphs, which remain editable.</returns>
+    public (WordParagraph Eyebrow, WordParagraph Title, WordParagraph Subtitle) AddCover(WordDocument document, string eyebrow, string title, string subtitle) {
         WordParagraph label = document.AddParagraph(eyebrow.ToUpperInvariant());
         Format(label, 10, Accent, true);
         label.LineSpacingBefore = global::OfficeIMO.OfficeLength.Points(16D);
@@ -129,6 +130,7 @@ public sealed partial class WordPaperStyle {
         WordParagraph description = document.AddParagraph(subtitle);
         Format(description, 13, Muted);
         description.LineSpacingAfter = global::OfficeIMO.OfficeLength.Points(24D);
+        return (label, heading, description);
     }
 
     /// <summary>Adds a small muted source or coverage note separated from preceding content.</summary>
@@ -174,7 +176,9 @@ public sealed partial class WordPaperStyle {
     }
 
     /// <summary>Adds title and scope running headers and product, scope and page-total footers.</summary>
-    public void AddPageChrome(WordDocument document, string title, string product, string scope) {
+    /// <returns>The attached default/even header and footer paragraphs, which remain editable.</returns>
+    public (WordParagraph DefaultHeader, WordParagraph EvenHeader, WordParagraph DefaultFooter, WordParagraph EvenFooter) AddPageChrome(WordDocument document, string title, string product, string scope) {
+        var paragraphs = new System.Collections.Generic.List<WordParagraph>(4);
         document.AddHeadersAndFooters();
         document.DifferentOddAndEvenPages = true;
         string header = string.IsNullOrWhiteSpace(scope) ? title : title + " · " + scope;
@@ -183,13 +187,16 @@ public sealed partial class WordPaperStyle {
             WordParagraph paragraph = part.AddParagraph(header);
             Format(paragraph, 8, Muted);
             paragraph.ParagraphAlignment = WordParagraphAlignment.Center;
+            paragraphs.Add(paragraph);
         }
         foreach (WordFooter part in new[] { document.FooterDefaultOrCreate, document.FooterEvenOrCreate }) {
             WordParagraph paragraph = part.AddParagraph(footer);
             paragraph.AddPageNumber(includeTotalPages: true, separator: " / ");
             Format(paragraph, 8, Muted);
             paragraph.ParagraphAlignment = WordParagraphAlignment.Center;
+            paragraphs.Add(paragraph);
         }
+        return (paragraphs[0], paragraphs[1], paragraphs[2], paragraphs[3]);
     }
 
     private void Format(WordParagraph paragraph, int size, string color, bool bold = false) {

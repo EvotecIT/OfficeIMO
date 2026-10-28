@@ -2950,11 +2950,11 @@ OfficeIMO.Word.WordPaperStyle.Accent.get -> string!
 OfficeIMO.Word.WordPaperStyle.Accent.set -> void
 OfficeIMO.Word.WordPaperStyle.AddCallout(OfficeIMO.Word.WordDocument! document, string! title, string! body, string! tone, string! tint) -> OfficeIMO.Word.WordParagraph!
 OfficeIMO.Word.WordPaperStyle.AddCountTable(OfficeIMO.Word.WordDocument! document, System.Collections.Generic.IEnumerable<System.Collections.Generic.KeyValuePair<string!, string!>>! rows, string! keyHeader = "Metric", string! valueHeader = "Count") -> OfficeIMO.Word.WordTable!
-OfficeIMO.Word.WordPaperStyle.AddCover(OfficeIMO.Word.WordDocument! document, string! eyebrow, string! title, string! subtitle) -> void
+OfficeIMO.Word.WordPaperStyle.AddCover(OfficeIMO.Word.WordDocument! document, string! eyebrow, string! title, string! subtitle) -> (OfficeIMO.Word.WordParagraph! Eyebrow, OfficeIMO.Word.WordParagraph! Title, OfficeIMO.Word.WordParagraph! Subtitle)
 OfficeIMO.Word.WordPaperStyle.AddKeyValueTable(OfficeIMO.Word.WordDocument! document, System.Collections.Generic.IEnumerable<System.Collections.Generic.KeyValuePair<string!, string!>>! rows, string! keyHeader = "Field", string! valueHeader = "Value", bool allowRowSplit = false, bool hasHeader = true) -> OfficeIMO.Word.WordTable!
 OfficeIMO.Word.WordPaperStyle.AddMetrics(OfficeIMO.Word.WordDocument! document, params OfficeIMO.Word.WordPaperMetric![]! metrics) -> OfficeIMO.Word.WordTable!
 OfficeIMO.Word.WordPaperStyle.AddNote(OfficeIMO.Word.WordDocument! document, string! text) -> OfficeIMO.Word.WordParagraph!
-OfficeIMO.Word.WordPaperStyle.AddPageChrome(OfficeIMO.Word.WordDocument! document, string! title, string! product, string! scope) -> void
+OfficeIMO.Word.WordPaperStyle.AddPageChrome(OfficeIMO.Word.WordDocument! document, string! title, string! product, string! scope) -> (OfficeIMO.Word.WordParagraph! DefaultHeader, OfficeIMO.Word.WordParagraph! EvenHeader, OfficeIMO.Word.WordParagraph! DefaultFooter, OfficeIMO.Word.WordParagraph! EvenFooter)
 OfficeIMO.Word.WordPaperStyle.ApplyCellTone(OfficeIMO.Word.WordTableCell! cell, string! tone, string? tint = null) -> void
 OfficeIMO.Word.WordPaperStyle.ApplyCountTable(OfficeIMO.Word.WordTable! table, bool hasHeader = true) -> void
 OfficeIMO.Word.WordPaperStyle.ApplyKeyValueTable(OfficeIMO.Word.WordTable! table, bool hasHeader = true, bool allowRowSplit = false) -> void
