@@ -3,6 +3,8 @@ using System.Net.Http;
 namespace OfficeIMO.Excel;
 
 public sealed partial class ExcelCreateOptions {
+    /// <summary>Optional visual theme for a new workbook. Null retains the workbook or template defaults.</summary>
+    public OfficeTheme? Theme { get; set; }
     /// <summary>Optional workbook template copied into the new document.</summary>
     public string? Template { get; set; }
     /// <summary>Optional caller-owned template stream. It cannot be combined with Template.</summary>

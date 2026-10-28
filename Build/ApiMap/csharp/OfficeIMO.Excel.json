@@ -5469,6 +5469,42 @@
       "phase": "B",
       "applied": "phase-b-applied",
       "note": "IDictionary and ICollection Add remain available as explicit interface implementations. The public methods return the attached property; failed duplicate-key additions do not attach a change callback."
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelDocument.AddWorksheet(string worksheetName = \"\")",
+      "kind": "method",
+      "action": "rename",
+      "new": "OfficeIMO.Excel.ExcelDocument.AddSheet(string worksheetName = \"\")",
+      "reason": "The approved C# design and quick start name the document authoring method AddSheet. Migrate in-repository callers and remove the old name without an alias.",
+      "file": "OfficeIMO.Excel/ExcelDocument.Worksheets.cs",
+      "category": "naming",
+      "phase": "B",
+      "applied": "phase-b-pending",
+      "notes": "Recorded after the quick-start review. The rename and consumer migration remain pending."
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelDocument.AddWorksheet(string worksheetName, ExcelSheetNameValidationMode validationMode)",
+      "kind": "method",
+      "action": "rename",
+      "new": "OfficeIMO.Excel.ExcelDocument.AddSheet(string worksheetName, ExcelSheetNameValidationMode validationMode)",
+      "reason": "The approved C# design and quick start name the document authoring method AddSheet. Migrate in-repository callers and remove the old name without an alias.",
+      "file": "OfficeIMO.Excel/ExcelDocument.Worksheets.cs",
+      "category": "naming",
+      "phase": "B",
+      "applied": "phase-b-pending",
+      "notes": "Recorded after the quick-start review. The rename and consumer migration remain pending."
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelDocument.AddWorksheet(string worksheetName, ExcelSheetNameValidationMode validationMode, CancellationToken cancellationToken)",
+      "kind": "method",
+      "action": "rename",
+      "new": "OfficeIMO.Excel.ExcelDocument.AddSheet(string worksheetName, ExcelSheetNameValidationMode validationMode, CancellationToken cancellationToken)",
+      "reason": "The approved C# design and quick start name the document authoring method AddSheet. Migrate in-repository callers and remove the old name without an alias.",
+      "file": "OfficeIMO.Excel/ExcelDocument.Worksheets.cs",
+      "category": "naming",
+      "phase": "B",
+      "applied": "phase-b-pending",
+      "notes": "Recorded after the quick-start review. The rename and consumer migration remain pending."
     }
   ],
   "packageMoves": [
@@ -6146,6 +6182,19 @@
         "OfficeIMO.Excel/ExcelDocument.WorksheetOperations.cs",
         "OfficeIMO.Excel/ExcelDocument.Toc.cs",
         "OfficeIMO.Excel.Tests/Excel.SharedChartAuthoring.cs"
+      ]
+    },
+    {
+      "change": "Apply ExcelCreateOptions.Theme through the existing workbook theme serializer",
+      "reason": "The approved C# quick start uses this authoring contract. Existing style and theme serialization own its native representation; no compatibility alias is added.",
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "files": [
+        "OfficeIMO.Excel/ExcelLifecycleOptions.Unified.cs",
+        "OfficeIMO.Excel/ExcelDocument.Theme.Creation.cs",
+        "OfficeIMO.Excel/ExcelDocument.CreateLoad.cs",
+        "OfficeIMO.Excel/ExcelDocument.UnifiedLifecycle.cs",
+        "OfficeIMO.Excel/ExcelDocument.DirectDataSet.Writer.Streaming.cs"
       ]
     }
   ],

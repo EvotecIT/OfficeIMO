@@ -49,7 +49,7 @@ using OfficeIMO.Word;
 
 using var document = WordDocument.Create("report.docx");
 
-document.AddParagraph("Quarterly report").Style = WordParagraphStyles.Heading1;
+document.AddHeading("Quarterly report", level: 1);
 document.AddParagraph("Created with OfficeIMO.Word.");
 
 var table = document.AddTable(2, 2, WordTableStyle.TableGrid);

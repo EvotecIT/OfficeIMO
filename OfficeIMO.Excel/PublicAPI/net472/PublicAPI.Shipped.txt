@@ -7477,3 +7477,5 @@ static OfficeIMO.Excel.LegacyXls.Model.LegacyXlsWorkbook.Load(string! path, Offi
 static OfficeIMO.Excel.LegacyXls.Model.LegacyXlsWorksheetDimension.Empty.get -> OfficeIMO.Excel.LegacyXls.Model.LegacyXlsWorksheetDimension!
 virtual OfficeIMO.Excel.ExcelCustomFormulaFunction.Invoke(OfficeIMO.Excel.ExcelCustomFormulaFunctionContext! context, System.Collections.Generic.IReadOnlyList<OfficeIMO.Excel.ExcelFormulaValue>! arguments) -> OfficeIMO.Excel.ExcelFormulaValue?
 virtual OfficeIMO.Excel.ExcelTemplateValueFormatter.Invoke(object? value, System.IFormatProvider? provider) -> string!
+OfficeIMO.Excel.ExcelCreateOptions.Theme.get -> OfficeIMO.OfficeTheme?
+OfficeIMO.Excel.ExcelCreateOptions.Theme.set -> void

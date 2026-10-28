@@ -75,9 +75,10 @@ dotnet add package OfficeIMO.Excel
 ## Quick start
 
 ```csharp
+using OfficeIMO;
 using OfficeIMO.Excel;
 
-using var document = ExcelDocument.Create("report.xlsx");
+using var document = ExcelDocument.Create("report.xlsx", new ExcelCreateOptions { Theme = OfficeTheme.Modern });
 var sheet = document.AddWorksheet("Data");
 
 sheet.CellValue(1, 1, "Name");

@@ -5132,3 +5132,4 @@ static OfficeIMO.Word.WordTemplatePreflightReport.FromInspection(OfficeIMO.Word.
 static OfficeIMO.Word.WordXmlExtensions.AddParagraphFromXml(this OfficeIMO.Word.WordDocument! document, string! xml) -> OfficeIMO.Word.WordParagraph!
 static OfficeIMO.Word.WordXmlExtensions.ToXml(this OfficeIMO.Word.WordParagraph! paragraph) -> string!
 static StringExtensions.FindAndReplace(this string! str, string! oldValue, string! newValue, System.StringComparison comparisonType, ref int count) -> string!
+OfficeIMO.Word.WordDocument.AddHeading(string! text, int level = 1) -> OfficeIMO.Word.WordParagraph!

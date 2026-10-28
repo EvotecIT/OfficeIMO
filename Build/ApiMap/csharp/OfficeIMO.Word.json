@@ -6634,6 +6634,15 @@
         "OfficeIMO.Word/WordParagraph.DrawingMedia.cs",
         "OfficeIMO.Word/WordSection.cs"
       ]
+    },
+    {
+      "change": "Add a heading paragraph with a validated level from one through nine",
+      "reason": "The approved C# quick start uses this authoring contract. Existing style and theme serialization own its native representation; no compatibility alias is added.",
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "files": [
+        "OfficeIMO.Word/WordDocument.Headings.cs"
+      ]
     }
   ],
   "applicationStatus": "Phase A applied and validated on the supported macOS targets. Phase B and Tier 2 entries retain their status; Windows .NET Framework validation remains pending.",

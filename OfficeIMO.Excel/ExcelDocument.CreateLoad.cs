@@ -40,7 +40,7 @@ namespace OfficeIMO.Excel {
                 sourceStream: null,
                 resolved.PersistenceMode,
                 copyPackageToSourceOnDispose: false,
-                leaveSourceStreamOpen: true, firstSheetName: resolved.FirstSheetName);
+                leaveSourceStreamOpen: true, firstSheetName: resolved.FirstSheetName, theme: resolved.Theme);
         }
 
         /// <summary>
@@ -71,7 +71,7 @@ namespace OfficeIMO.Excel {
                 resolved.PersistenceMode,
                 copyPackageToSourceOnDispose: false,
                 leaveSourceStreamOpen: true,
-                copyPackageToFilePathOnDispose: saveOnDispose, firstSheetName: resolved.FirstSheetName);
+                copyPackageToFilePathOnDispose: saveOnDispose, firstSheetName: resolved.FirstSheetName, theme: resolved.Theme);
         }
 
         /// <summary>
@@ -91,7 +91,7 @@ namespace OfficeIMO.Excel {
                 : new MemoryStream(StreamBufferSize);
 
             var spreadSheetDocument = SpreadsheetDocument.Create(packageStream, resolved.DocumentType.ToOpenXml(), false);
-            return CreateNewDocument(spreadSheetDocument, filePath: null, packageStream, stream, resolved.PersistenceMode, saveOnDispose, leaveSourceStreamOpen: true, firstSheetName: resolved.FirstSheetName);
+            return CreateNewDocument(spreadSheetDocument, filePath: null, packageStream, stream, resolved.PersistenceMode, saveOnDispose, leaveSourceStreamOpen: true, firstSheetName: resolved.FirstSheetName, theme: resolved.Theme);
         }
 
         private static SpreadsheetDocumentType? ResolveSpreadsheetDocumentType(string? filePath) {
@@ -141,7 +141,7 @@ namespace OfficeIMO.Excel {
             bool leaveSourceStreamOpen,
             bool copyPackageToFilePathOnDispose = false,
             Stream? ownedOpenStream = null,
-            string? firstSheetName = null) {
+            string? firstSheetName = null, OfficeTheme? theme = null) {
             bool keepPackageStream = copyPackageToSourceOnDispose || copyPackageToFilePathOnDispose;
             var document = new ExcelDocument {
                 FilePath = filePath,
@@ -173,6 +173,7 @@ namespace OfficeIMO.Excel {
             document.CustomDocumentProperties.SetChangeHandler(document.MarkCustomDocumentPropertiesChanged);
             document.LoadCustomDocumentProperties();
 
+            if (theme != null) document.SetWorkbookThemeXml(CreateWorkbookThemeXml(theme));
             if (firstSheetName != null) document.AddWorksheet(firstSheetName);
             return document;
         }
