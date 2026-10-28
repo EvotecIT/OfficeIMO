@@ -244,7 +244,7 @@ public sealed class SpreadsheetChartPointStyleConversionTests {
         }
         sheet.AddChart(OdsChartType.Pie, "Data.$A$1:.$A$3",
             new[] { new OdsChartSeries("Data.$B$1:.$B$3") },
-            2, 4, OdfRect.FromCentimeters(0, 0, 10, 7));
+            2L, 4L, OdfRect.FromCentimeters(0, 0, 10, 7));
         XDocument part = XDocument.Parse(Encoding.UTF8.GetString(
             source.GetPackageEntryBytes("Object 1/content.xml")));
         XElement series = Assert.Single(part.Descendants(OdfNamespaces.Chart + "series"));
@@ -297,7 +297,7 @@ public sealed class SpreadsheetChartPointStyleConversionTests {
         }
         sheet.AddChart(OdsChartType.Pie, "Data.$A$1:.$A$2",
             new[] { new OdsChartSeries("Data.$B$1:.$B$2") },
-            2, 4, OdfRect.FromCentimeters(0, 0, 10, 7));
+            2L, 4L, OdfRect.FromCentimeters(0, 0, 10, 7));
         XDocument part = XDocument.Parse(Encoding.UTF8.GetString(
             source.GetPackageEntryBytes("Object 1/content.xml")));
         XElement point = Assert.Single(part.Descendants(OdfNamespaces.Chart + "series"))
@@ -329,7 +329,7 @@ public sealed class SpreadsheetChartPointStyleConversionTests {
         }
         sheet.AddChart(OdsChartType.Line, "Data.$A$1:.$A$3",
             new[] { new OdsChartSeries("Data.$B$1:.$B$3") },
-            2, 4, OdfRect.FromCentimeters(0, 0, 10, 7));
+            2L, 4L, OdfRect.FromCentimeters(0, 0, 10, 7));
         XDocument part = XDocument.Parse(Encoding.UTF8.GetString(
             source.GetPackageEntryBytes("Object 1/content.xml")));
         XElement series = Assert.Single(part.Descendants(OdfNamespaces.Chart + "series"));
@@ -407,7 +407,7 @@ public sealed class SpreadsheetChartPointStyleConversionTests {
             new OdsChartSeries("Data.$C$1:.$C$3").WithPointStyles(new OfficeChartPointStyle?[] {
                 new(fillColor: OfficeColor.Parse("#4466AA")), null, null
             })
-        }, 2, 4, OdfRect.FromCentimeters(0, 0, 10, 7));
+        }, 2L, 4L, OdfRect.FromCentimeters(0, 0, 10, 7));
 
         using ExcelDocument excel = source.ToExcelDocumentResult().Value;
         ExcelChart converted = Assert.Single(excel["Data"].Charts);
@@ -477,7 +477,7 @@ public sealed class SpreadsheetChartPointStyleConversionTests {
         sheet.AddChart(type, "Data.$A$1:.$A$3",
             new[] { new OdsChartSeries("Data.$B$1:.$B$3")
                 .WithPointStyles(CreatePointStyles()) },
-            2, 4, OdfRect.FromCentimeters(0, 0, 10, 7), "Status");
+            2L, 4L, OdfRect.FromCentimeters(0, 0, 10, 7), "Status");
         return document;
     }
 

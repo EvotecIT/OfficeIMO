@@ -46,11 +46,11 @@ namespace OfficeIMO.Excel {
         /// <summary>Include cached data in the chart for portability.</summary>
         public bool IncludeCachedData { get; set; } = true;
 
-        /// <summary>Optional width override in pixels.</summary>
-        public int? WidthPixels { get; set; }
+        /// <summary>Optional width physical override.</summary>
+        public OfficeLength? Width { get; set; }
 
-        /// <summary>Optional height override in pixels.</summary>
-        public int? HeightPixels { get; set; }
+        /// <summary>Optional height physical override.</summary>
+        public OfficeLength? Height { get; set; }
 
         /// <summary>Optional chart style id override.</summary>
         public int? StyleId { get; set; }
@@ -69,16 +69,16 @@ namespace OfficeIMO.Excel {
             if (options == null) throw new ArgumentNullException(nameof(options));
             if (options.Row <= 0 || options.Row > ExcelA1.MaxRows) throw new ArgumentOutOfRangeException(nameof(options.Row), "Chart row must be between 1 and the Excel row limit.");
             if (options.Column <= 0 || options.Column > ExcelA1.MaxColumns) throw new ArgumentOutOfRangeException(nameof(options.Column), "Chart column must be between 1 and the Excel column limit.");
-            if (options.WidthPixels <= 0) throw new ArgumentOutOfRangeException(nameof(options.WidthPixels), "Chart width must be greater than zero.");
-            if (options.HeightPixels <= 0) throw new ArgumentOutOfRangeException(nameof(options.HeightPixels), "Chart height must be greater than zero.");
+            if (options.Width <= OfficeLength.Zero) throw new ArgumentOutOfRangeException(nameof(options.Width), "Chart width must be greater than zero.");
+            if (options.Height <= OfficeLength.Zero) throw new ArgumentOutOfRangeException(nameof(options.Height), "Chart height must be greater than zero.");
             if (string.IsNullOrWhiteSpace(options.Range) == string.IsNullOrWhiteSpace(options.TableName)) {
                 throw new ArgumentException("Provide either Range or TableName.", nameof(options));
             }
 
             var preset = ResolveDashboardChartPreset(options.Preset);
             var chartType = options.ChartType ?? preset.ChartType;
-            int width = options.WidthPixels ?? preset.WidthPixels;
-            int height = options.HeightPixels ?? preset.HeightPixels;
+            OfficeLength width = options.Width ?? OfficeLength.Pixels(preset.WidthPixels);
+            OfficeLength height = options.Height ?? OfficeLength.Pixels(preset.HeightPixels);
             int styleId = options.StyleId ?? preset.StyleId;
             int colorStyleId = options.ColorStyleId ?? preset.ColorStyleId;
 
@@ -105,7 +105,7 @@ namespace OfficeIMO.Excel {
             }
 
             if (!string.IsNullOrWhiteSpace(options.Title)) {
-                chart.SetTitleTextStyle(fontSizePoints: 12, bold: true);
+                chart.SetTitleTextStyle(fontSize: OfficeLength.Points(12), bold: true);
             }
 
             return chart;

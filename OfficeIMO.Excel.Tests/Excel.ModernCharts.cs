@@ -50,7 +50,7 @@ namespace OfficeIMO.Tests {
 
                 chart.SetTitle("Updated Funnel")
                     .SetChartType(ExcelModernChartType.Waterfall)
-                    .SetPlacement(4, 5, 700, 400)
+                    .SetPlacement(4, 5, OfficeLength.Pixels(700), OfficeLength.Pixels(400))
                     .UpdateData(new ExcelChartData(
                         new[] { "East", "West", "North", "South" },
                         new[] {

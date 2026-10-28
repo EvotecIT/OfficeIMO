@@ -2029,12 +2029,12 @@ namespace OfficeIMO.Excel.LegacyXls.Projection {
                 || pageSetup.HeaderMargin.HasValue
                 || pageSetup.FooterMargin.HasValue) {
                 sheet.SetMargins(
-                    pageSetup.LeftMargin ?? 0.7d,
-                    pageSetup.RightMargin ?? 0.7d,
-                    pageSetup.TopMargin ?? 0.75d,
-                    pageSetup.BottomMargin ?? 0.75d,
-                    pageSetup.HeaderMargin ?? 0.3d,
-                    pageSetup.FooterMargin ?? 0.3d);
+                    OfficeLength.Inches(pageSetup.LeftMargin ?? 0.7d),
+                    OfficeLength.Inches(pageSetup.RightMargin ?? 0.7d),
+                    OfficeLength.Inches(pageSetup.TopMargin ?? 0.75d),
+                    OfficeLength.Inches(pageSetup.BottomMargin ?? 0.75d),
+                    OfficeLength.Inches(pageSetup.HeaderMargin ?? 0.3d),
+                    OfficeLength.Inches(pageSetup.FooterMargin ?? 0.3d));
             }
 
             if (pageSetup.Landscape.HasValue) {

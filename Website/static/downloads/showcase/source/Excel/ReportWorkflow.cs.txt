@@ -83,7 +83,7 @@ namespace OfficeIMO.Examples.Excel
                     sheet.CellFormula(row, 10, $"SUMIF($A$5:$A${lastRow},H{row},$E$5:$E${lastRow})");
                 }
 
-                sheet.AddChartFromRange("H4:J8", row: 10, column: 8, widthPixels: 350, heightPixels: 235, type: OfficeChartType.ColumnClustered, title: "Revenue and margin by region");
+                sheet.AddChartFromRange("H4:J8", row: 10, column: 8, width: OfficeLength.Pixels(350), height: OfficeLength.Pixels(235), type: OfficeChartType.ColumnClustered, title: "Revenue and margin by region");
                 sheet.AddPivotTable($"A4:F{lastRow}", $"A{totalRow + 3}", options: new ExcelPivotTableOptions { Name = "RevenuePivot", RowFields = new[] { "Region" }, DataFields = new[] { new ExcelPivotDataField("Revenue", ExcelPivotDataFunction.Sum, "Total Revenue") }, PivotStyleName = "PivotStyleMedium9" });
                 // Fill the {{ReportTitle}} placeholder from an object, then calculate every formula.
                 document.ApplyTemplate(new { ReportTitle = "Regional revenue report" });

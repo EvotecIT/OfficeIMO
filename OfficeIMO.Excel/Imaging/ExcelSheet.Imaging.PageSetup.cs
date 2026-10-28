@@ -128,10 +128,10 @@ namespace OfficeIMO.Excel {
 
             int width = pageSize.ToPixelWidth(ImageExportDpi, outputScale);
             int height = pageSize.ToPixelHeight(ImageExportDpi, outputScale);
-            double x = ExcelPageSetupGeometry.ClampMargin((margins?.Left ?? ExcelPageSetupGeometry.DefaultMarginLeftInches) * ImageExportDpi * outputScale, width);
-            double y = ExcelPageSetupGeometry.ClampMargin((margins?.Top ?? ExcelPageSetupGeometry.DefaultMarginTopInches) * ImageExportDpi * outputScale, height);
-            double right = ExcelPageSetupGeometry.ClampMargin((margins?.Right ?? ExcelPageSetupGeometry.DefaultMarginRightInches) * ImageExportDpi * outputScale, width);
-            double bottom = ExcelPageSetupGeometry.ClampMargin((margins?.Bottom ?? ExcelPageSetupGeometry.DefaultMarginBottomInches) * ImageExportDpi * outputScale, height);
+            double x = ExcelPageSetupGeometry.ClampMargin((margins?.Left.ToInches() ?? ExcelPageSetupGeometry.DefaultMarginLeftInches) * ImageExportDpi * outputScale, width);
+            double y = ExcelPageSetupGeometry.ClampMargin((margins?.Top.ToInches() ?? ExcelPageSetupGeometry.DefaultMarginTopInches) * ImageExportDpi * outputScale, height);
+            double right = ExcelPageSetupGeometry.ClampMargin((margins?.Right.ToInches() ?? ExcelPageSetupGeometry.DefaultMarginRightInches) * ImageExportDpi * outputScale, width);
+            double bottom = ExcelPageSetupGeometry.ClampMargin((margins?.Bottom.ToInches() ?? ExcelPageSetupGeometry.DefaultMarginBottomInches) * ImageExportDpi * outputScale, height);
             double printableWidth = Math.Max(1D, width - x - right);
             double printableHeight = Math.Max(1D, height - y - bottom);
             double contentScale = ExcelPageSetupGeometry.ResolveContentScale(

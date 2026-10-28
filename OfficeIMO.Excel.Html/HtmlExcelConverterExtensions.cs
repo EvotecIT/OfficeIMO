@@ -460,6 +460,12 @@ public static partial class HtmlExcelConverterExtensions {
             return;
         }
         ReadChartPlacement(item, chartIndex, budget, result, out int row, out int column, out int width, out int height);
+        OfficeLength chartWidth = ReadImageLength(item, "width",
+            TryReadDoubleAttribute(item, "data-officeimo-width", out double widthPixels) ? widthPixels : width,
+            true, budget, result, kind: "chart");
+        OfficeLength chartHeight = ReadImageLength(item, "height",
+            TryReadDoubleAttribute(item, "data-officeimo-height", out double heightPixels) ? heightPixels : height,
+            true, budget, result, kind: "chart");
         if (!budget.TryReserveChartWithShape(seriesCount, categoryCount, out HtmlImportBudgetReservation reservation, out string chartLimit)) {
             AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.TargetLimitExceeded,
                 "Chart inventory item '" + title + "' was omitted because the shared chart limit was reached.",
@@ -472,9 +478,9 @@ public static partial class HtmlExcelConverterExtensions {
             try {
                 ExcelChart chart;
                 if (hasSemanticData) {
-                    chart = sheet.AddChart(chartData!, row: row, column: column, widthPixels: width, heightPixels: height, type: type, title: title.Length == 0 ? null : title);
+                    chart = sheet.AddChart(chartData!, row: row, column: column, width: chartWidth, height: chartHeight, type: type, title: title.Length == 0 ? null : title);
                 } else {
-                    chart = sheet.AddChartFromRange(range, row: row, column: column, widthPixels: width, heightPixels: height, type: type, title: title.Length == 0 ? null : title);
+                    chart = sheet.AddChartFromRange(range, row: row, column: column, width: chartWidth, height: chartHeight, type: type, title: title.Length == 0 ? null : title);
                 }
                 if (isRadial) chart.SetRadialLayout(radialLayout);
 

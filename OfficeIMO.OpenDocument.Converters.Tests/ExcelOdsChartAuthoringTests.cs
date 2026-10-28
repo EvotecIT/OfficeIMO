@@ -23,7 +23,7 @@ public sealed class ExcelOdsChartAuthoringTests {
         ExcelSheet sheet = source.AddWorksheet("Summary");
         var data = new ExcelChartData(new[] { "Jan", "Feb" },
             new[] { new ExcelChartSeries("Sales", new[] { 10d, 20d }) });
-        sheet.AddChart(data, row: 5, column: 4, widthPixels: 480, heightPixels: 300,
+        sheet.AddChart(data, row: 5, column: 4, width: OfficeLength.Pixels(480), height: OfficeLength.Pixels(300),
             type: type, title: "Sales");
 
         OdfConversionResult<OdsDocument> result = source.ToOpenDocumentResult();

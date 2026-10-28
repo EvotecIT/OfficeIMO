@@ -50,8 +50,8 @@ namespace OfficeIMO.Excel {
             return this;
         }
 
-        /// <summary>Sets explicit margins in inches.</summary>
-        public ExcelReportBuilder Margins(double left, double right, double top, double bottom, double header = 0.3, double footer = 0.3) {
+        /// <summary>Sets physical margins; omitted header/footer margins are 0.3 inches.</summary>
+        public ExcelReportBuilder Margins(OfficeLength left, OfficeLength right, OfficeLength top, OfficeLength bottom, OfficeLength? header = null, OfficeLength? footer = null) {
             Sheet.SetMargins(left, right, top, bottom, header, footer);
             return this;
         }

@@ -21,7 +21,7 @@ public partial class Excel {
         sheet.SetColumnWidth(2, ExcelColumnWidth.Characters(12));
         sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(30)));
         sheet.SetRowHeight(2, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(30)));
-        sheet.SetMargins(0.5, 1, 0.75, 1.25);
+        sheet.SetMargins(OfficeLength.Inches(0.5), OfficeLength.Inches(1), OfficeLength.Inches(0.75), OfficeLength.Inches(1.25));
         sheet.SetPageSetup(paperSize: ExcelPaperSize.Letter, scale: 50);
         sheet.Range("A1:B2").SetFillColor("FFCC33");
         sheet.SetPrintOptions(horizontalCentered: false, verticalCentered: false);

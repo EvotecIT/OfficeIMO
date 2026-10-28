@@ -129,8 +129,8 @@ namespace OfficeIMO.Excel {
             double bandHeight,
             double scale,
             OfficeTextAlignment alignment) {
-            double width = PointsToPixels(image.WidthPoints, scale);
-            double height = PointsToPixels(image.HeightPoints, scale);
+            double width = PointsToPixels(image.Width.ToPoints(), scale);
+            double height = PointsToPixels(image.Height.ToPoints(), scale);
             double x = zone.X;
             if (alignment == OfficeTextAlignment.Center) {
                 x = zone.AnchorX - (width / 2D);

@@ -97,7 +97,7 @@ internal static partial class DocumentFeatureShowcase {
             sheet.Cell(index + 5, 2, new[] { 42, 58, 67, 81 }[index]);
             sheet.Cell(index + 5, 3, new[] { 45, 55, 65, 75 }[index]);
         }
-        sheet.AddChartFromRange("A4:C8", row: 10, column: 1, widthPixels: 620, heightPixels: 300,
+        sheet.AddChartFromRange("A4:C8", row: 10, column: 1, width: OfficeLength.Pixels(620), height: OfficeLength.Pixels(300),
             type: OfficeChartType.ColumnClustered, title: "Actual vs target");
         SaveExcelExample(document, sheet, folder, "A1:F27");
     }

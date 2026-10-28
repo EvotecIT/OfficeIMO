@@ -290,7 +290,7 @@ public partial class PdfDocumentRasterVisualBaselineTests {
                 summary.Cell(13, 1, "Mar");
                 summary.Cell(13, 2, 24);
                 summary.Cell(13, 3, 20);
-                summary.AddChartFromRange("A10:C13", row: 7, column: 1, widthPixels: 300, heightPixels: 140, type: OfficeChartType.ColumnClustered, title: "Revenue Chart");
+                summary.AddChartFromRange("A10:C13", row: 7, column: 1, width: OfficeLength.Pixels(300), height: OfficeLength.Pixels(140), type: OfficeChartType.ColumnClustered, title: "Revenue Chart");
                 summary.SetColumnWidth(1, ExcelColumnWidth.Characters(16));
                 summary.SetColumnWidth(2, ExcelColumnWidth.Characters(18));
                 summary.SetColumnWidth(3, ExcelColumnWidth.Characters(28));
@@ -310,9 +310,9 @@ public partial class PdfDocumentRasterVisualBaselineTests {
                     headerRight: "Page &P of &N",
                     footerLeft: "OfficeIMO Excel PDF",
                     footerRight: "Visual baseline");
-                summary.SetHeaderImage(ExcelHeaderFooterPosition.Left, logoBytes, "image/png", widthPoints: 28, heightPoints: 14);
+                summary.SetHeaderImage(ExcelHeaderFooterPosition.Left, logoBytes, "image/png", width: OfficeLength.Points(28), height: OfficeLength.Points(14));
                 summary.SetOrientation(OfficePageOrientation.Landscape);
-                summary.SetMargins(left: 0.35, right: 0.35, top: 0.55, bottom: 0.55);
+                summary.SetMargins(left: OfficeLength.Inches(0.35), right: OfficeLength.Inches(0.35), top: OfficeLength.Inches(0.55), bottom: OfficeLength.Inches(0.55));
 
                 ExcelSheet details = document.AddWorksheet("Details");
                 details.CellAt(1, 1).SetValue("Details Target").SetBold().SetFillColor("E2F0D9");

@@ -28,7 +28,7 @@ namespace OfficeIMO.Excel.Pdf {
         }
 
         private static PdfCore.PdfPageMargins ToPdfMargins(ExcelSheetPageMargins margins) {
-            return new OfficeIMO.Pdf.PdfPageMargins(OfficeIMO.OfficeLength.Inches(margins.Left),OfficeIMO.OfficeLength.Inches(margins.Top),OfficeIMO.OfficeLength.Inches(margins.Right),OfficeIMO.OfficeLength.Inches(margins.Bottom));
+            return new OfficeIMO.Pdf.PdfPageMargins(margins.Left,margins.Top,margins.Right,margins.Bottom);
         }
 
         private static IReadOnlyList<string> GetSheetNames(ExcelDocumentReader reader, ExcelPdfExportOptions options) {

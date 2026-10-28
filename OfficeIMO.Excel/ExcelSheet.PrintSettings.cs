@@ -12,7 +12,7 @@ namespace OfficeIMO.Excel {
         public OfficePageOrientation? Orientation { get; internal set; }
 
         /// <summary>
-        /// Worksheet print margins in inches when present.
+        /// Worksheet print physical margins when present.
         /// </summary>
         public ExcelSheetPageMargins? Margins { get; internal set; }
 
@@ -50,21 +50,21 @@ namespace OfficeIMO.Excel {
     }
 
     /// <summary>
-    /// Worksheet page margins in inches.
+    /// Worksheet page physical margins.
     /// </summary>
     public sealed class ExcelSheetPageMargins {
-        /// <summary>Left margin in inches.</summary>
-        public double Left { get; internal set; }
-        /// <summary>Right margin in inches.</summary>
-        public double Right { get; internal set; }
-        /// <summary>Top margin in inches.</summary>
-        public double Top { get; internal set; }
-        /// <summary>Bottom margin in inches.</summary>
-        public double Bottom { get; internal set; }
-        /// <summary>Header margin in inches.</summary>
-        public double Header { get; internal set; }
-        /// <summary>Footer margin in inches.</summary>
-        public double Footer { get; internal set; }
+        /// <summary>Left physical margin.</summary>
+        public OfficeLength Left { get; internal set; }
+        /// <summary>Right physical margin.</summary>
+        public OfficeLength Right { get; internal set; }
+        /// <summary>Top physical margin.</summary>
+        public OfficeLength Top { get; internal set; }
+        /// <summary>Bottom physical margin.</summary>
+        public OfficeLength Bottom { get; internal set; }
+        /// <summary>Header physical margin.</summary>
+        public OfficeLength Header { get; internal set; }
+        /// <summary>Footer physical margin.</summary>
+        public OfficeLength Footer { get; internal set; }
     }
 
     /// <summary>
@@ -138,12 +138,12 @@ namespace OfficeIMO.Excel {
             PageMargins? margins = WorksheetRoot.GetFirstChild<PageMargins>();
             if (margins != null) {
                 result.Margins = new ExcelSheetPageMargins {
-                    Left = margins.Left?.Value ?? 0D,
-                    Right = margins.Right?.Value ?? 0D,
-                    Top = margins.Top?.Value ?? 0D,
-                    Bottom = margins.Bottom?.Value ?? 0D,
-                    Header = margins.Header?.Value ?? 0D,
-                    Footer = margins.Footer?.Value ?? 0D
+                    Left = OfficeLength.Inches(margins.Left?.Value ?? 0D),
+                    Right = OfficeLength.Inches(margins.Right?.Value ?? 0D),
+                    Top = OfficeLength.Inches(margins.Top?.Value ?? 0D),
+                    Bottom = OfficeLength.Inches(margins.Bottom?.Value ?? 0D),
+                    Header = OfficeLength.Inches(margins.Header?.Value ?? 0D),
+                    Footer = OfficeLength.Inches(margins.Footer?.Value ?? 0D)
                 };
             }
 

@@ -27,7 +27,7 @@ namespace OfficeIMO.Tests {
             sheet.SetColumnHidden(2, true);
             sheet.SetRowHidden(2, true);
             sheet.AddImage(1, 2, CreateSolidPng(12, 10, OfficeColor.FromRgb(220, 38, 38)), "image/png", width: OfficeIMO.OfficeLength.Pixels(12), height: OfficeIMO.OfficeLength.Pixels(10), name: "HiddenLogo");
-            sheet.AddChartFromRange("A1:C3", row: 2, column: 3, widthPixels: 160, heightPixels: 90, type: OfficeChartType.ColumnClustered, title: "Hidden Chart");
+            sheet.AddChartFromRange("A1:C3", row: 2, column: 3, width: OfficeLength.Pixels(160), height: OfficeLength.Pixels(90), type: OfficeChartType.ColumnClustered, title: "Hidden Chart");
 
             ExcelRange range = sheet.Range("A1:C3");
             ExcelRangeVisualInfo snapshot = range.CreateVisualSnapshot();

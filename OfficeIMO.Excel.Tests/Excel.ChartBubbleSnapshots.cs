@@ -23,7 +23,7 @@ public sealed partial class ExcelChartBubbleSnapshotTests {
         sheet.AddBubbleChartFromRanges(new[] {
             new ExcelChartSeriesRange("First", "A2:A3", "B2:B3", "C2:C3"),
             new ExcelChartSeriesRange("Second", "E2:E2", "F2:F2", "G2:G2")
-        }, 8, 4, 480, 320, "Bubble snapshot");
+        }, 8, 4, OfficeLength.Pixels(480), OfficeLength.Pixels(320), "Bubble snapshot");
         using var stream = new MemoryStream(document.ToBytes());
         using ExcelDocument reopened = ExcelDocument.Load(stream);
         ExcelChart chart = reopened.Sheets.Single().Charts.Single();
@@ -124,7 +124,7 @@ public sealed partial class ExcelChartBubbleSnapshotTests {
         ExcelSheet sheet = document.AddWorksheet("Bubble data");
         ExcelChart chart = sheet.AddBubbleChartFromRanges(new[] {
             new ExcelChartSeriesRange("Unused", "A2:A3", "B2:B3", "C2:C3")
-        }, 8, 4, 480, 320, "Bubble snapshot");
+        }, 8, 4, OfficeLength.Pixels(480), OfficeLength.Pixels(320), "Bubble snapshot");
         C.BubbleChart native = GetNativeBubble(document);
         C.BubbleChartSeries series = native.Elements<C.BubbleChartSeries>().Single();
         series.RemoveAllChildren<C.SeriesText>();

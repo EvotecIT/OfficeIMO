@@ -42,8 +42,8 @@ namespace OfficeIMO.Excel {
             var diagnostics = new List<OfficeImageExportDiagnostic>(snapshot.Diagnostics);
             if (!ExcelRangeImageRenderer.TryCreateOfficeChartSnapshot(
                 snapshot,
-                snapshot.WidthPixels,
-                snapshot.HeightPixels,
+                ExcelImageExportLimits.ExtentPixels(snapshot.Width),
+                ExcelImageExportLimits.ExtentPixels(snapshot.Height),
                 diagnostics,
                 _sheetName,
                 out OfficeChartSnapshot? officeSnapshot) || officeSnapshot == null) {

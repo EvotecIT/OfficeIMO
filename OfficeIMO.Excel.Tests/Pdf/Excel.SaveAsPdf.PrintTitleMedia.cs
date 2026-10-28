@@ -19,7 +19,7 @@ public partial class Excel {
         }
         sheet.AddImage(2, anchorColumn, CreateMinimalRgbPng(), "image/png", width: OfficeIMO.OfficeLength.Pixels(24), height: OfficeIMO.OfficeLength.Pixels(16));
         sheet.AddChart(new ExcelChartData(new[] { "One", "Two" }, new[] { new ExcelChartSeries("Values", new double[] { 1, 2 }) }),
-            3, anchorColumn, widthPixels: 120, heightPixels: 80, title: "RetainedChart");
+            3, anchorColumn, width: OfficeLength.Pixels(120), height: OfficeLength.Pixels(80), title: "RetainedChart");
         document.SetPrintArea(sheet, "A1:F4");
         document.SetPrintTitles(sheet, firstRow: null, lastRow: null, firstCol: 3, lastCol: 3);
         sheet.AddManualColumnPageBreak(2);

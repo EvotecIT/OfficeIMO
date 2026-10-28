@@ -360,12 +360,12 @@ namespace OfficeIMO.Tests {
             Assert.Equal((uint)1, setup.FitToWidth);
             Assert.Equal((uint)2, setup.FitToHeight);
             Assert.NotNull(setup.Margins);
-            Assert.Equal(0.25d, setup.Margins!.Left);
-            Assert.Equal(0.35d, setup.Margins.Right);
-            Assert.Equal(0.5d, setup.Margins.Top);
-            Assert.Equal(0.6d, setup.Margins.Bottom);
-            Assert.Equal(0.4d, setup.Margins.Header);
-            Assert.Equal(0.45d, setup.Margins.Footer);
+            Assert.Equal(0.25d, setup.Margins!.Left.ToInches());
+            Assert.Equal(0.35d, setup.Margins.Right.ToInches());
+            Assert.Equal(0.5d, setup.Margins.Top.ToInches());
+            Assert.Equal(0.6d, setup.Margins.Bottom.ToInches());
+            Assert.Equal(0.4d, setup.Margins.Header.ToInches());
+            Assert.Equal(0.45d, setup.Margins.Footer.ToInches());
         }
 
         [Fact]

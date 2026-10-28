@@ -61,7 +61,7 @@ public sealed class ExcelConditionalIconFidelityTests {
         using var document = ExcelDocument.Create(new MemoryStream());
         ExcelSheet sheet = document.AddWorksheet("Icons");
         sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(20));
-        sheet.SetMargins(0, 0, 0, 0);
+        sheet.SetMargins(OfficeLength.Inches(0), OfficeLength.Inches(0), OfficeLength.Inches(0), OfficeLength.Inches(0));
         sheet.SetPageSetup(scale: (uint)percent);
         int[] values = { 123, 456, 789 };
         for (int row = 1; row <= 3; row++) {

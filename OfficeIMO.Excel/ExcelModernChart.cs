@@ -189,8 +189,8 @@ namespace OfficeIMO.Excel {
         }
 
         /// <summary>Moves and resizes the one-cell chart anchor.</summary>
-        public ExcelModernChart SetPlacement(int row, int column, int widthPixels, int heightPixels) {
-            ExcelSheet.ValidateModernChartPlacement(row, column, widthPixels, heightPixels);
+        public ExcelModernChart SetPlacement(int row, int column, OfficeLength width, OfficeLength height) {
+            ExcelSheet.ValidateModernChartPlacement(row, column, width, height);
             return Locking.ExecuteWrite(_sheet.Document.EnsureLock(), () => {
                 EnsureAttached();
                 Xdr.OneCellAnchor anchor = _frame.Ancestors<Xdr.OneCellAnchor>().FirstOrDefault()
@@ -200,11 +200,11 @@ namespace OfficeIMO.Excel {
                     new Xdr.ColumnOffset("0"),
                     new Xdr.RowId((row - 1).ToString(System.Globalization.CultureInfo.InvariantCulture)),
                     new Xdr.RowOffset("0"));
-                long width = (long)Math.Round(widthPixels * 9525D);
-                long height = (long)Math.Round(heightPixels * 9525D);
-                anchor.Extent = new Xdr.Extent { Cx = width, Cy = height };
+                long widthEmu = width.ToEmus();
+                long heightEmu = height.ToEmus();
+                anchor.Extent = new Xdr.Extent { Cx = widthEmu, Cy = heightEmu };
                 Xdr.Transform? transform = _frame.Transform;
-                if (transform != null) transform.Extents = new DocumentFormat.OpenXml.Drawing.Extents { Cx = width, Cy = height };
+                if (transform != null) transform.Extents = new DocumentFormat.OpenXml.Drawing.Extents { Cx = widthEmu, Cy = heightEmu };
                 SaveDrawing();
                 return this;
             });

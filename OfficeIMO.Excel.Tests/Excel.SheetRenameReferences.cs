@@ -75,7 +75,7 @@ namespace OfficeIMO.Tests {
                     data.CellValue(3, 1, "Feb");
                     data.CellValue(3, 2, 20);
 
-                    data.AddChartFromRange("A1:B3", row: 1, column: 4, widthPixels: 320, heightPixels: 220);
+                    data.AddChartFromRange("A1:B3", row: 1, column: 4, width: OfficeLength.Pixels(320), height: OfficeLength.Pixels(220));
                     data.AddPivotTable("A1:B3", "F1");
                     data.AddSparklines("'Data'!B2:B3", "C2:C3");
 

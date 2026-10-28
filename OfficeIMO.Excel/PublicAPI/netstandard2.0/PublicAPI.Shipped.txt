@@ -338,10 +338,10 @@ OfficeIMO.Excel.ExcelChart.SaveAsImage(string! path, OfficeIMO.Excel.ExcelImageE
 OfficeIMO.Excel.ExcelChart.SaveAsImageAsync(System.IO.Stream! stream, OfficeIMO.Excel.ExcelImageExportOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<OfficeIMO.OfficeConversionReport!>!
 OfficeIMO.Excel.ExcelChart.SaveAsImageAsync(string! path, OfficeIMO.Excel.ExcelImageExportOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<OfficeIMO.OfficeConversionReport!>!
 OfficeIMO.Excel.ExcelChart.SetCategoryAxisCrossing(OfficeIMO.Drawing.OfficeChartAxisCrossingPosition crosses, double? crossesAt = null, OfficeIMO.Drawing.OfficeChartAxisGroup axisGroup = OfficeIMO.Drawing.OfficeChartAxisGroup.Primary) -> OfficeIMO.Excel.ExcelChart!
-OfficeIMO.Excel.ExcelChart.SetCategoryAxisGridlines(bool showMajor = true, bool showMinor = false, string? lineColor = null, double? lineWidthPoints = null, OfficeIMO.Drawing.OfficeChartAxisGroup axisGroup = OfficeIMO.Drawing.OfficeChartAxisGroup.Primary) -> OfficeIMO.Excel.ExcelChart!
+OfficeIMO.Excel.ExcelChart.SetCategoryAxisGridlines(bool showMajor = true, bool showMinor = false, OfficeIMO.OfficeColor? lineColor = null, OfficeIMO.OfficeLength? lineWidth = null, OfficeIMO.Drawing.OfficeChartAxisGroup axisGroup = OfficeIMO.Drawing.OfficeChartAxisGroup.Primary) -> OfficeIMO.Excel.ExcelChart!
 OfficeIMO.Excel.ExcelChart.SetCategoryAxisLabelRotation(double rotationDegrees, OfficeIMO.Drawing.OfficeChartAxisGroup axisGroup = OfficeIMO.Drawing.OfficeChartAxisGroup.Primary) -> OfficeIMO.Excel.ExcelChart!
-OfficeIMO.Excel.ExcelChart.SetCategoryAxisLabelTextStyle(double? fontSizePoints = null, bool? bold = null, bool? italic = null, string? color = null, string? fontName = null, OfficeIMO.Drawing.OfficeChartAxisGroup axisGroup = OfficeIMO.Drawing.OfficeChartAxisGroup.Primary) -> OfficeIMO.Excel.ExcelChart!
-OfficeIMO.Excel.ExcelChart.SetCategoryAxisLine(string? lineColor = null, double? lineWidthPoints = null, bool noLine = false, OfficeIMO.Drawing.OfficeChartAxisGroup axisGroup = OfficeIMO.Drawing.OfficeChartAxisGroup.Primary) -> OfficeIMO.Excel.ExcelChart!
+OfficeIMO.Excel.ExcelChart.SetCategoryAxisLabelTextStyle(OfficeIMO.OfficeLength? fontSize = null, bool? bold = null, bool? italic = null, OfficeIMO.OfficeColor? color = null, string? fontName = null, OfficeIMO.Drawing.OfficeChartAxisGroup axisGroup = OfficeIMO.Drawing.OfficeChartAxisGroup.Primary) -> OfficeIMO.Excel.ExcelChart!
+OfficeIMO.Excel.ExcelChart.SetCategoryAxisLine(OfficeIMO.OfficeColor? lineColor = null, OfficeIMO.OfficeLength? lineWidth = null, bool noLine = false, OfficeIMO.Drawing.OfficeChartAxisGroup axisGroup = OfficeIMO.Drawing.OfficeChartAxisGroup.Primary) -> OfficeIMO.Excel.ExcelChart!
 OfficeIMO.Excel.ExcelChart.SetCategoryAxisNumberFormat(string! formatCode, bool sourceLinked = false) -> OfficeIMO.Excel.ExcelChart!
 OfficeIMO.Excel.ExcelChart.SetCategoryAxisNumberFormat(string! formatCode, bool sourceLinked, OfficeIMO.Drawing.OfficeChartAxisGroup axisGroup) -> OfficeIMO.Excel.ExcelChart!
 OfficeIMO.Excel.ExcelChart.SetCategoryAxisReverseOrder(bool reverseOrder = true, OfficeIMO.Drawing.OfficeChartAxisGroup axisGroup = OfficeIMO.Drawing.OfficeChartAxisGroup.Primary) -> OfficeIMO.Excel.ExcelChart!
@@ -349,85 +349,85 @@ OfficeIMO.Excel.ExcelChart.SetCategoryAxisScale(double? minimum = null, double? 
 OfficeIMO.Excel.ExcelChart.SetCategoryAxisTickLabelPosition(OfficeIMO.Drawing.OfficeChartAxisTickLabelPosition position, OfficeIMO.Drawing.OfficeChartAxisGroup axisGroup = OfficeIMO.Drawing.OfficeChartAxisGroup.Primary) -> OfficeIMO.Excel.ExcelChart!
 OfficeIMO.Excel.ExcelChart.SetCategoryAxisTitle(string! title) -> OfficeIMO.Excel.ExcelChart!
 OfficeIMO.Excel.ExcelChart.SetCategoryAxisTitle(string! title, OfficeIMO.Drawing.OfficeChartAxisGroup axisGroup) -> OfficeIMO.Excel.ExcelChart!
-OfficeIMO.Excel.ExcelChart.SetCategoryAxisTitleTextStyle(double? fontSizePoints = null, bool? bold = null, bool? italic = null, string? color = null, string? fontName = null, OfficeIMO.Drawing.OfficeChartAxisGroup axisGroup = OfficeIMO.Drawing.OfficeChartAxisGroup.Primary) -> OfficeIMO.Excel.ExcelChart!
-OfficeIMO.Excel.ExcelChart.SetChartAreaStyle(string? fillColor = null, string? lineColor = null, double? lineWidthPoints = null, bool noFill = false, bool noLine = false) -> OfficeIMO.Excel.ExcelChart!
-OfficeIMO.Excel.ExcelChart.SetDataLabelCallouts(bool enabled = true, OfficeIMO.Drawing.OfficeChartDataLabelPosition? position = null, string? lineColor = null, double? lineWidthPoints = null) -> OfficeIMO.Excel.ExcelChart!
-OfficeIMO.Excel.ExcelChart.SetDataLabelLeaderLines(bool showLeaderLines = true, string? lineColor = null, double? lineWidthPoints = null) -> OfficeIMO.Excel.ExcelChart!
+OfficeIMO.Excel.ExcelChart.SetCategoryAxisTitleTextStyle(OfficeIMO.OfficeLength? fontSize = null, bool? bold = null, bool? italic = null, OfficeIMO.OfficeColor? color = null, string? fontName = null, OfficeIMO.Drawing.OfficeChartAxisGroup axisGroup = OfficeIMO.Drawing.OfficeChartAxisGroup.Primary) -> OfficeIMO.Excel.ExcelChart!
+OfficeIMO.Excel.ExcelChart.SetChartAreaStyle(OfficeIMO.OfficeColor? fillColor = null, OfficeIMO.OfficeColor? lineColor = null, OfficeIMO.OfficeLength? lineWidth = null, bool noFill = false, bool noLine = false) -> OfficeIMO.Excel.ExcelChart!
+OfficeIMO.Excel.ExcelChart.SetDataLabelCallouts(bool enabled = true, OfficeIMO.Drawing.OfficeChartDataLabelPosition? position = null, OfficeIMO.OfficeColor? lineColor = null, OfficeIMO.OfficeLength? lineWidth = null) -> OfficeIMO.Excel.ExcelChart!
+OfficeIMO.Excel.ExcelChart.SetDataLabelLeaderLines(bool showLeaderLines = true, OfficeIMO.OfficeColor? lineColor = null, OfficeIMO.OfficeLength? lineWidth = null) -> OfficeIMO.Excel.ExcelChart!
 OfficeIMO.Excel.ExcelChart.SetDataLabelSeparator(string? separator) -> OfficeIMO.Excel.ExcelChart!
-OfficeIMO.Excel.ExcelChart.SetDataLabelShapeStyle(string? fillColor = null, string? lineColor = null, double? lineWidthPoints = null, bool noFill = false, bool noLine = false) -> OfficeIMO.Excel.ExcelChart!
-OfficeIMO.Excel.ExcelChart.SetDataLabelTextStyle(double? fontSizePoints = null, bool? bold = null, bool? italic = null, string? color = null, string? fontName = null) -> OfficeIMO.Excel.ExcelChart!
+OfficeIMO.Excel.ExcelChart.SetDataLabelShapeStyle(OfficeIMO.OfficeColor? fillColor = null, OfficeIMO.OfficeColor? lineColor = null, OfficeIMO.OfficeLength? lineWidth = null, bool noFill = false, bool noLine = false) -> OfficeIMO.Excel.ExcelChart!
+OfficeIMO.Excel.ExcelChart.SetDataLabelTextStyle(OfficeIMO.OfficeLength? fontSize = null, bool? bold = null, bool? italic = null, OfficeIMO.OfficeColor? color = null, string? fontName = null) -> OfficeIMO.Excel.ExcelChart!
 OfficeIMO.Excel.ExcelChart.SetDataLabels(bool showValue = true, bool showCategoryName = false, bool showSeriesName = false, bool showLegendKey = false, bool showPercent = false) -> OfficeIMO.Excel.ExcelChart!
 OfficeIMO.Excel.ExcelChart.SetDataLabels(bool showValue, bool showCategoryName, bool showSeriesName, bool showLegendKey, bool showPercent, OfficeIMO.Drawing.OfficeChartDataLabelPosition? position, string? numberFormat, bool sourceLinked = false) -> OfficeIMO.Excel.ExcelChart!
-OfficeIMO.Excel.ExcelChart.SetDataPointColor(int seriesIndex, uint pointIndex, string? fillColor = null, string? lineColor = null, double? lineWidthPoints = null) -> OfficeIMO.Excel.ExcelChart!
-OfficeIMO.Excel.ExcelChart.SetDataPointColor(string! seriesName, uint pointIndex, string? fillColor = null, string? lineColor = null, double? lineWidthPoints = null, bool ignoreCase = true) -> OfficeIMO.Excel.ExcelChart!
+OfficeIMO.Excel.ExcelChart.SetDataPointColor(int seriesIndex, uint pointIndex, OfficeIMO.OfficeColor? fillColor = null, OfficeIMO.OfficeColor? lineColor = null, OfficeIMO.OfficeLength? lineWidth = null) -> OfficeIMO.Excel.ExcelChart!
+OfficeIMO.Excel.ExcelChart.SetDataPointColor(string! seriesName, uint pointIndex, OfficeIMO.OfficeColor? fillColor = null, OfficeIMO.OfficeColor? lineColor = null, OfficeIMO.OfficeLength? lineWidth = null, bool ignoreCase = true) -> OfficeIMO.Excel.ExcelChart!
 OfficeIMO.Excel.ExcelChart.SetDataPointExplosion(int seriesIndex, uint pointIndex, int? percent) -> OfficeIMO.Excel.ExcelChart!
-OfficeIMO.Excel.ExcelChart.SetDataPointFillColor(int seriesIndex, uint pointIndex, string! color) -> OfficeIMO.Excel.ExcelChart!
-OfficeIMO.Excel.ExcelChart.SetDataPointFillColor(string! seriesName, uint pointIndex, string! color, bool ignoreCase = true) -> OfficeIMO.Excel.ExcelChart!
-OfficeIMO.Excel.ExcelChart.SetDataPointLineColor(int seriesIndex, uint pointIndex, string! color, double? widthPoints = null) -> OfficeIMO.Excel.ExcelChart!
-OfficeIMO.Excel.ExcelChart.SetDataPointLineColor(string! seriesName, uint pointIndex, string! color, double? widthPoints = null, bool ignoreCase = true) -> OfficeIMO.Excel.ExcelChart!
+OfficeIMO.Excel.ExcelChart.SetDataPointFillColor(int seriesIndex, uint pointIndex, OfficeIMO.OfficeColor color) -> OfficeIMO.Excel.ExcelChart!
+OfficeIMO.Excel.ExcelChart.SetDataPointFillColor(string! seriesName, uint pointIndex, OfficeIMO.OfficeColor color, bool ignoreCase = true) -> OfficeIMO.Excel.ExcelChart!
+OfficeIMO.Excel.ExcelChart.SetDataPointLineColor(int seriesIndex, uint pointIndex, OfficeIMO.OfficeColor color, OfficeIMO.OfficeLength? width = null) -> OfficeIMO.Excel.ExcelChart!
+OfficeIMO.Excel.ExcelChart.SetDataPointLineColor(string! seriesName, uint pointIndex, OfficeIMO.OfficeColor color, OfficeIMO.OfficeLength? width = null, bool ignoreCase = true) -> OfficeIMO.Excel.ExcelChart!
 OfficeIMO.Excel.ExcelChart.SetDataPointStyle(int seriesIndex, uint pointIndex, OfficeIMO.Drawing.OfficeChartPointStyle? style) -> OfficeIMO.Excel.ExcelChart!
 OfficeIMO.Excel.ExcelChart.SetLegend(OfficeIMO.Drawing.OfficeChartLegendPosition position, bool overlay = false) -> OfficeIMO.Excel.ExcelChart!
-OfficeIMO.Excel.ExcelChart.SetLegendTextStyle(double? fontSizePoints = null, bool? bold = null, bool? italic = null, string? color = null, string? fontName = null) -> OfficeIMO.Excel.ExcelChart!
+OfficeIMO.Excel.ExcelChart.SetLegendTextStyle(OfficeIMO.OfficeLength? fontSize = null, bool? bold = null, bool? italic = null, OfficeIMO.OfficeColor? color = null, string? fontName = null) -> OfficeIMO.Excel.ExcelChart!
 OfficeIMO.Excel.ExcelChart.SetPivotSource(string! pivotTableName, uint formatId = 0) -> OfficeIMO.Excel.ExcelChart!
-OfficeIMO.Excel.ExcelChart.SetPlotAreaStyle(string? fillColor = null, string? lineColor = null, double? lineWidthPoints = null, bool noFill = false, bool noLine = false) -> OfficeIMO.Excel.ExcelChart!
+OfficeIMO.Excel.ExcelChart.SetPlotAreaStyle(OfficeIMO.OfficeColor? fillColor = null, OfficeIMO.OfficeColor? lineColor = null, OfficeIMO.OfficeLength? lineWidth = null, bool noFill = false, bool noLine = false) -> OfficeIMO.Excel.ExcelChart!
 OfficeIMO.Excel.ExcelChart.SetRadialLayout(OfficeIMO.Drawing.OfficeChartRadialLayout! layout) -> OfficeIMO.Excel.ExcelChart!
 OfficeIMO.Excel.ExcelChart.SetScatterXAxisCrossing(OfficeIMO.Drawing.OfficeChartAxisCrossingPosition crosses, double? crossesAt = null) -> OfficeIMO.Excel.ExcelChart!
 OfficeIMO.Excel.ExcelChart.SetScatterXAxisScale(double? minimum = null, double? maximum = null, double? majorUnit = null, double? minorUnit = null, bool? reverseOrder = null, bool? logScale = null, double? logBase = null) -> OfficeIMO.Excel.ExcelChart!
 OfficeIMO.Excel.ExcelChart.SetScatterYAxisCrossing(OfficeIMO.Drawing.OfficeChartAxisCrossingPosition crosses, double? crossesAt = null) -> OfficeIMO.Excel.ExcelChart!
 OfficeIMO.Excel.ExcelChart.SetScatterYAxisScale(double? minimum = null, double? maximum = null, double? majorUnit = null, double? minorUnit = null, bool? reverseOrder = null, bool? logScale = null, double? logBase = null) -> OfficeIMO.Excel.ExcelChart!
 OfficeIMO.Excel.ExcelChart.SetSecondaryValueAxis(OfficeIMO.Drawing.OfficeChartValueAxisLayout! layout) -> OfficeIMO.Excel.ExcelChart!
-OfficeIMO.Excel.ExcelChart.SetSeriesDataLabelCallouts(int seriesIndex, bool enabled = true, OfficeIMO.Drawing.OfficeChartDataLabelPosition? position = null, string? lineColor = null, double? lineWidthPoints = null) -> OfficeIMO.Excel.ExcelChart!
-OfficeIMO.Excel.ExcelChart.SetSeriesDataLabelCallouts(string! seriesName, bool enabled = true, OfficeIMO.Drawing.OfficeChartDataLabelPosition? position = null, string? lineColor = null, double? lineWidthPoints = null, bool ignoreCase = true) -> OfficeIMO.Excel.ExcelChart!
+OfficeIMO.Excel.ExcelChart.SetSeriesDataLabelCallouts(int seriesIndex, bool enabled = true, OfficeIMO.Drawing.OfficeChartDataLabelPosition? position = null, OfficeIMO.OfficeColor? lineColor = null, OfficeIMO.OfficeLength? lineWidth = null) -> OfficeIMO.Excel.ExcelChart!
+OfficeIMO.Excel.ExcelChart.SetSeriesDataLabelCallouts(string! seriesName, bool enabled = true, OfficeIMO.Drawing.OfficeChartDataLabelPosition? position = null, OfficeIMO.OfficeColor? lineColor = null, OfficeIMO.OfficeLength? lineWidth = null, bool ignoreCase = true) -> OfficeIMO.Excel.ExcelChart!
 OfficeIMO.Excel.ExcelChart.SetSeriesDataLabelForPoint(int seriesIndex, int pointIndex, bool? showValue = null, bool? showCategoryName = null, bool? showSeriesName = null, bool? showLegendKey = null, bool? showPercent = null, bool? showBubbleSize = null, OfficeIMO.Drawing.OfficeChartDataLabelPosition? position = null, string? numberFormat = null, bool sourceLinked = false) -> OfficeIMO.Excel.ExcelChart!
 OfficeIMO.Excel.ExcelChart.SetSeriesDataLabelForPoint(string! seriesName, int pointIndex, bool? showValue = null, bool? showCategoryName = null, bool? showSeriesName = null, bool? showLegendKey = null, bool? showPercent = null, bool? showBubbleSize = null, OfficeIMO.Drawing.OfficeChartDataLabelPosition? position = null, string? numberFormat = null, bool sourceLinked = false, bool ignoreCase = true) -> OfficeIMO.Excel.ExcelChart!
-OfficeIMO.Excel.ExcelChart.SetSeriesDataLabelLeaderLines(int seriesIndex, bool showLeaderLines = true, string? lineColor = null, double? lineWidthPoints = null) -> OfficeIMO.Excel.ExcelChart!
-OfficeIMO.Excel.ExcelChart.SetSeriesDataLabelLeaderLines(string! seriesName, bool showLeaderLines = true, string? lineColor = null, double? lineWidthPoints = null, bool ignoreCase = true) -> OfficeIMO.Excel.ExcelChart!
+OfficeIMO.Excel.ExcelChart.SetSeriesDataLabelLeaderLines(int seriesIndex, bool showLeaderLines = true, OfficeIMO.OfficeColor? lineColor = null, OfficeIMO.OfficeLength? lineWidth = null) -> OfficeIMO.Excel.ExcelChart!
+OfficeIMO.Excel.ExcelChart.SetSeriesDataLabelLeaderLines(string! seriesName, bool showLeaderLines = true, OfficeIMO.OfficeColor? lineColor = null, OfficeIMO.OfficeLength? lineWidth = null, bool ignoreCase = true) -> OfficeIMO.Excel.ExcelChart!
 OfficeIMO.Excel.ExcelChart.SetSeriesDataLabelSeparator(int seriesIndex, string? separator) -> OfficeIMO.Excel.ExcelChart!
 OfficeIMO.Excel.ExcelChart.SetSeriesDataLabelSeparator(string! seriesName, string? separator, bool ignoreCase = true) -> OfficeIMO.Excel.ExcelChart!
 OfficeIMO.Excel.ExcelChart.SetSeriesDataLabelSeparatorForPoint(int seriesIndex, int pointIndex, string? separator) -> OfficeIMO.Excel.ExcelChart!
 OfficeIMO.Excel.ExcelChart.SetSeriesDataLabelSeparatorForPoint(string! seriesName, int pointIndex, string? separator, bool ignoreCase = true) -> OfficeIMO.Excel.ExcelChart!
-OfficeIMO.Excel.ExcelChart.SetSeriesDataLabelShapeStyle(int seriesIndex, string? fillColor = null, string? lineColor = null, double? lineWidthPoints = null, bool noFill = false, bool noLine = false) -> OfficeIMO.Excel.ExcelChart!
-OfficeIMO.Excel.ExcelChart.SetSeriesDataLabelShapeStyle(string! seriesName, string? fillColor = null, string? lineColor = null, double? lineWidthPoints = null, bool noFill = false, bool noLine = false, bool ignoreCase = true) -> OfficeIMO.Excel.ExcelChart!
-OfficeIMO.Excel.ExcelChart.SetSeriesDataLabelShapeStyleForPoint(int seriesIndex, int pointIndex, string? fillColor = null, string? lineColor = null, double? lineWidthPoints = null, bool noFill = false, bool noLine = false) -> OfficeIMO.Excel.ExcelChart!
-OfficeIMO.Excel.ExcelChart.SetSeriesDataLabelShapeStyleForPoint(string! seriesName, int pointIndex, string? fillColor = null, string? lineColor = null, double? lineWidthPoints = null, bool noFill = false, bool noLine = false, bool ignoreCase = true) -> OfficeIMO.Excel.ExcelChart!
+OfficeIMO.Excel.ExcelChart.SetSeriesDataLabelShapeStyle(int seriesIndex, OfficeIMO.OfficeColor? fillColor = null, OfficeIMO.OfficeColor? lineColor = null, OfficeIMO.OfficeLength? lineWidth = null, bool noFill = false, bool noLine = false) -> OfficeIMO.Excel.ExcelChart!
+OfficeIMO.Excel.ExcelChart.SetSeriesDataLabelShapeStyle(string! seriesName, OfficeIMO.OfficeColor? fillColor = null, OfficeIMO.OfficeColor? lineColor = null, OfficeIMO.OfficeLength? lineWidth = null, bool noFill = false, bool noLine = false, bool ignoreCase = true) -> OfficeIMO.Excel.ExcelChart!
+OfficeIMO.Excel.ExcelChart.SetSeriesDataLabelShapeStyleForPoint(int seriesIndex, int pointIndex, OfficeIMO.OfficeColor? fillColor = null, OfficeIMO.OfficeColor? lineColor = null, OfficeIMO.OfficeLength? lineWidth = null, bool noFill = false, bool noLine = false) -> OfficeIMO.Excel.ExcelChart!
+OfficeIMO.Excel.ExcelChart.SetSeriesDataLabelShapeStyleForPoint(string! seriesName, int pointIndex, OfficeIMO.OfficeColor? fillColor = null, OfficeIMO.OfficeColor? lineColor = null, OfficeIMO.OfficeLength? lineWidth = null, bool noFill = false, bool noLine = false, bool ignoreCase = true) -> OfficeIMO.Excel.ExcelChart!
 OfficeIMO.Excel.ExcelChart.SetSeriesDataLabelTemplate(int seriesIndex, OfficeIMO.Excel.ExcelChartDataLabelTemplate! template) -> OfficeIMO.Excel.ExcelChart!
 OfficeIMO.Excel.ExcelChart.SetSeriesDataLabelTemplate(string! seriesName, OfficeIMO.Excel.ExcelChartDataLabelTemplate! template, bool ignoreCase = true) -> OfficeIMO.Excel.ExcelChart!
-OfficeIMO.Excel.ExcelChart.SetSeriesDataLabelTextStyle(int seriesIndex, double? fontSizePoints = null, bool? bold = null, bool? italic = null, string? color = null, string? fontName = null) -> OfficeIMO.Excel.ExcelChart!
-OfficeIMO.Excel.ExcelChart.SetSeriesDataLabelTextStyle(string! seriesName, double? fontSizePoints = null, bool? bold = null, bool? italic = null, string? color = null, string? fontName = null, bool ignoreCase = true) -> OfficeIMO.Excel.ExcelChart!
-OfficeIMO.Excel.ExcelChart.SetSeriesDataLabelTextStyleForPoint(int seriesIndex, int pointIndex, double? fontSizePoints = null, bool? bold = null, bool? italic = null, string? color = null, string? fontName = null) -> OfficeIMO.Excel.ExcelChart!
-OfficeIMO.Excel.ExcelChart.SetSeriesDataLabelTextStyleForPoint(string! seriesName, int pointIndex, double? fontSizePoints = null, bool? bold = null, bool? italic = null, string? color = null, string? fontName = null, bool ignoreCase = true) -> OfficeIMO.Excel.ExcelChart!
+OfficeIMO.Excel.ExcelChart.SetSeriesDataLabelTextStyle(int seriesIndex, OfficeIMO.OfficeLength? fontSize = null, bool? bold = null, bool? italic = null, OfficeIMO.OfficeColor? color = null, string? fontName = null) -> OfficeIMO.Excel.ExcelChart!
+OfficeIMO.Excel.ExcelChart.SetSeriesDataLabelTextStyle(string! seriesName, OfficeIMO.OfficeLength? fontSize = null, bool? bold = null, bool? italic = null, OfficeIMO.OfficeColor? color = null, string? fontName = null, bool ignoreCase = true) -> OfficeIMO.Excel.ExcelChart!
+OfficeIMO.Excel.ExcelChart.SetSeriesDataLabelTextStyleForPoint(int seriesIndex, int pointIndex, OfficeIMO.OfficeLength? fontSize = null, bool? bold = null, bool? italic = null, OfficeIMO.OfficeColor? color = null, string? fontName = null) -> OfficeIMO.Excel.ExcelChart!
+OfficeIMO.Excel.ExcelChart.SetSeriesDataLabelTextStyleForPoint(string! seriesName, int pointIndex, OfficeIMO.OfficeLength? fontSize = null, bool? bold = null, bool? italic = null, OfficeIMO.OfficeColor? color = null, string? fontName = null, bool ignoreCase = true) -> OfficeIMO.Excel.ExcelChart!
 OfficeIMO.Excel.ExcelChart.SetSeriesDataLabels(int seriesIndex, bool showValue = true, bool showCategoryName = false, bool showSeriesName = false, bool showLegendKey = false, bool showPercent = false, OfficeIMO.Drawing.OfficeChartDataLabelPosition? position = null, string? numberFormat = null, bool sourceLinked = false) -> OfficeIMO.Excel.ExcelChart!
 OfficeIMO.Excel.ExcelChart.SetSeriesDataLabels(string! seriesName, bool showValue = true, bool showCategoryName = false, bool showSeriesName = false, bool showLegendKey = false, bool showPercent = false, OfficeIMO.Drawing.OfficeChartDataLabelPosition? position = null, string? numberFormat = null, bool sourceLinked = false, bool ignoreCase = true) -> OfficeIMO.Excel.ExcelChart!
-OfficeIMO.Excel.ExcelChart.SetSeriesFillColor(int seriesIndex, string! color) -> OfficeIMO.Excel.ExcelChart!
-OfficeIMO.Excel.ExcelChart.SetSeriesFillColor(string! seriesName, string! color, bool ignoreCase = true) -> OfficeIMO.Excel.ExcelChart!
-OfficeIMO.Excel.ExcelChart.SetSeriesLineColor(int seriesIndex, string! color, double? widthPoints = null) -> OfficeIMO.Excel.ExcelChart!
-OfficeIMO.Excel.ExcelChart.SetSeriesLineColor(string! seriesName, string! color, double? widthPoints = null, bool ignoreCase = true) -> OfficeIMO.Excel.ExcelChart!
-OfficeIMO.Excel.ExcelChart.SetSeriesMarker(int seriesIndex, OfficeIMO.Drawing.OfficeChartMarkerShape style, int? size = null, string? fillColor = null, string? lineColor = null, double? lineWidthPoints = null) -> OfficeIMO.Excel.ExcelChart!
-OfficeIMO.Excel.ExcelChart.SetSeriesMarker(string! seriesName, OfficeIMO.Drawing.OfficeChartMarkerShape style, int? size = null, string? fillColor = null, string? lineColor = null, double? lineWidthPoints = null, bool ignoreCase = true) -> OfficeIMO.Excel.ExcelChart!
+OfficeIMO.Excel.ExcelChart.SetSeriesFillColor(int seriesIndex, OfficeIMO.OfficeColor color) -> OfficeIMO.Excel.ExcelChart!
+OfficeIMO.Excel.ExcelChart.SetSeriesFillColor(string! seriesName, OfficeIMO.OfficeColor color, bool ignoreCase = true) -> OfficeIMO.Excel.ExcelChart!
+OfficeIMO.Excel.ExcelChart.SetSeriesLineColor(int seriesIndex, OfficeIMO.OfficeColor color, OfficeIMO.OfficeLength? width = null) -> OfficeIMO.Excel.ExcelChart!
+OfficeIMO.Excel.ExcelChart.SetSeriesLineColor(string! seriesName, OfficeIMO.OfficeColor color, OfficeIMO.OfficeLength? width = null, bool ignoreCase = true) -> OfficeIMO.Excel.ExcelChart!
+OfficeIMO.Excel.ExcelChart.SetSeriesMarker(int seriesIndex, OfficeIMO.Drawing.OfficeChartMarkerShape style, OfficeIMO.OfficeLength? size = null, OfficeIMO.OfficeColor? fillColor = null, OfficeIMO.OfficeColor? lineColor = null, OfficeIMO.OfficeLength? lineWidth = null) -> OfficeIMO.Excel.ExcelChart!
+OfficeIMO.Excel.ExcelChart.SetSeriesMarker(string! seriesName, OfficeIMO.Drawing.OfficeChartMarkerShape style, OfficeIMO.OfficeLength? size = null, OfficeIMO.OfficeColor? fillColor = null, OfficeIMO.OfficeColor? lineColor = null, OfficeIMO.OfficeLength? lineWidth = null, bool ignoreCase = true) -> OfficeIMO.Excel.ExcelChart!
 OfficeIMO.Excel.ExcelChart.SetSeriesNoFill(int seriesIndex, bool noLine = true) -> OfficeIMO.Excel.ExcelChart!
-OfficeIMO.Excel.ExcelChart.SetSeriesPointFillColor(int seriesIndex, int pointIndex, string! color) -> OfficeIMO.Excel.ExcelChart!
-OfficeIMO.Excel.ExcelChart.SetSeriesPointFillColor(string! seriesName, int pointIndex, string! color, bool ignoreCase = true) -> OfficeIMO.Excel.ExcelChart!
-OfficeIMO.Excel.ExcelChart.SetSeriesTrendline(int seriesIndex, OfficeIMO.Drawing.OfficeChartTrendlineType type, int? order = null, int? period = null, double? forward = null, double? backward = null, double? intercept = null, bool displayEquation = false, bool displayRSquared = false, string? lineColor = null, double? lineWidthPoints = null) -> OfficeIMO.Excel.ExcelChart!
-OfficeIMO.Excel.ExcelChart.SetSeriesTrendline(string! seriesName, OfficeIMO.Drawing.OfficeChartTrendlineType type, int? order = null, int? period = null, double? forward = null, double? backward = null, double? intercept = null, bool displayEquation = false, bool displayRSquared = false, string? lineColor = null, double? lineWidthPoints = null, bool ignoreCase = true) -> OfficeIMO.Excel.ExcelChart!
+OfficeIMO.Excel.ExcelChart.SetSeriesPointFillColor(int seriesIndex, int pointIndex, OfficeIMO.OfficeColor color) -> OfficeIMO.Excel.ExcelChart!
+OfficeIMO.Excel.ExcelChart.SetSeriesPointFillColor(string! seriesName, int pointIndex, OfficeIMO.OfficeColor color, bool ignoreCase = true) -> OfficeIMO.Excel.ExcelChart!
+OfficeIMO.Excel.ExcelChart.SetSeriesTrendline(int seriesIndex, OfficeIMO.Drawing.OfficeChartTrendlineType type, int? order = null, int? period = null, double? forward = null, double? backward = null, double? intercept = null, bool displayEquation = false, bool displayRSquared = false, OfficeIMO.OfficeColor? lineColor = null, OfficeIMO.OfficeLength? lineWidth = null) -> OfficeIMO.Excel.ExcelChart!
+OfficeIMO.Excel.ExcelChart.SetSeriesTrendline(string! seriesName, OfficeIMO.Drawing.OfficeChartTrendlineType type, int? order = null, int? period = null, double? forward = null, double? backward = null, double? intercept = null, bool displayEquation = false, bool displayRSquared = false, OfficeIMO.OfficeColor? lineColor = null, OfficeIMO.OfficeLength? lineWidth = null, bool ignoreCase = true) -> OfficeIMO.Excel.ExcelChart!
 OfficeIMO.Excel.ExcelChart.SetTitle(string! title) -> OfficeIMO.Excel.ExcelChart!
-OfficeIMO.Excel.ExcelChart.SetTitleTextStyle(double? fontSizePoints = null, bool? bold = null, bool? italic = null, string? color = null, string? fontName = null) -> OfficeIMO.Excel.ExcelChart!
+OfficeIMO.Excel.ExcelChart.SetTitleTextStyle(OfficeIMO.OfficeLength? fontSize = null, bool? bold = null, bool? italic = null, OfficeIMO.OfficeColor? color = null, string? fontName = null) -> OfficeIMO.Excel.ExcelChart!
 OfficeIMO.Excel.ExcelChart.SetValueAxisCrossBetween(OfficeIMO.Drawing.OfficeChartAxisCrossBetween between, OfficeIMO.Drawing.OfficeChartAxisGroup axisGroup = OfficeIMO.Drawing.OfficeChartAxisGroup.Primary) -> OfficeIMO.Excel.ExcelChart!
 OfficeIMO.Excel.ExcelChart.SetValueAxisCrossing(OfficeIMO.Drawing.OfficeChartAxisCrossingPosition crosses, double? crossesAt = null, OfficeIMO.Drawing.OfficeChartAxisGroup axisGroup = OfficeIMO.Drawing.OfficeChartAxisGroup.Primary) -> OfficeIMO.Excel.ExcelChart!
 OfficeIMO.Excel.ExcelChart.SetValueAxisDisplayUnits(OfficeIMO.Drawing.OfficeChartDisplayUnit unit, bool showLabel = true, OfficeIMO.Drawing.OfficeChartAxisGroup axisGroup = OfficeIMO.Drawing.OfficeChartAxisGroup.Primary) -> OfficeIMO.Excel.ExcelChart!
 OfficeIMO.Excel.ExcelChart.SetValueAxisDisplayUnits(OfficeIMO.Drawing.OfficeChartDisplayUnit unit, string! labelText, bool showLabel = true, OfficeIMO.Drawing.OfficeChartAxisGroup axisGroup = OfficeIMO.Drawing.OfficeChartAxisGroup.Primary) -> OfficeIMO.Excel.ExcelChart!
 OfficeIMO.Excel.ExcelChart.SetValueAxisDisplayUnits(double customUnit, bool showLabel = true, OfficeIMO.Drawing.OfficeChartAxisGroup axisGroup = OfficeIMO.Drawing.OfficeChartAxisGroup.Primary) -> OfficeIMO.Excel.ExcelChart!
 OfficeIMO.Excel.ExcelChart.SetValueAxisDisplayUnits(double customUnit, string! labelText, bool showLabel = true, OfficeIMO.Drawing.OfficeChartAxisGroup axisGroup = OfficeIMO.Drawing.OfficeChartAxisGroup.Primary) -> OfficeIMO.Excel.ExcelChart!
-OfficeIMO.Excel.ExcelChart.SetValueAxisGridlines(bool showMajor = true, bool showMinor = false, string? lineColor = null, double? lineWidthPoints = null, OfficeIMO.Drawing.OfficeChartAxisGroup axisGroup = OfficeIMO.Drawing.OfficeChartAxisGroup.Primary) -> OfficeIMO.Excel.ExcelChart!
+OfficeIMO.Excel.ExcelChart.SetValueAxisGridlines(bool showMajor = true, bool showMinor = false, OfficeIMO.OfficeColor? lineColor = null, OfficeIMO.OfficeLength? lineWidth = null, OfficeIMO.Drawing.OfficeChartAxisGroup axisGroup = OfficeIMO.Drawing.OfficeChartAxisGroup.Primary) -> OfficeIMO.Excel.ExcelChart!
 OfficeIMO.Excel.ExcelChart.SetValueAxisLabelRotation(double rotationDegrees, OfficeIMO.Drawing.OfficeChartAxisGroup axisGroup = OfficeIMO.Drawing.OfficeChartAxisGroup.Primary) -> OfficeIMO.Excel.ExcelChart!
-OfficeIMO.Excel.ExcelChart.SetValueAxisLabelTextStyle(double? fontSizePoints = null, bool? bold = null, bool? italic = null, string? color = null, string? fontName = null, OfficeIMO.Drawing.OfficeChartAxisGroup axisGroup = OfficeIMO.Drawing.OfficeChartAxisGroup.Primary) -> OfficeIMO.Excel.ExcelChart!
-OfficeIMO.Excel.ExcelChart.SetValueAxisLine(string? lineColor = null, double? lineWidthPoints = null, bool noLine = false, OfficeIMO.Drawing.OfficeChartAxisGroup axisGroup = OfficeIMO.Drawing.OfficeChartAxisGroup.Primary) -> OfficeIMO.Excel.ExcelChart!
+OfficeIMO.Excel.ExcelChart.SetValueAxisLabelTextStyle(OfficeIMO.OfficeLength? fontSize = null, bool? bold = null, bool? italic = null, OfficeIMO.OfficeColor? color = null, string? fontName = null, OfficeIMO.Drawing.OfficeChartAxisGroup axisGroup = OfficeIMO.Drawing.OfficeChartAxisGroup.Primary) -> OfficeIMO.Excel.ExcelChart!
+OfficeIMO.Excel.ExcelChart.SetValueAxisLine(OfficeIMO.OfficeColor? lineColor = null, OfficeIMO.OfficeLength? lineWidth = null, bool noLine = false, OfficeIMO.Drawing.OfficeChartAxisGroup axisGroup = OfficeIMO.Drawing.OfficeChartAxisGroup.Primary) -> OfficeIMO.Excel.ExcelChart!
 OfficeIMO.Excel.ExcelChart.SetValueAxisNumberFormat(string! formatCode, bool sourceLinked = false) -> OfficeIMO.Excel.ExcelChart!
 OfficeIMO.Excel.ExcelChart.SetValueAxisNumberFormat(string! formatCode, bool sourceLinked, OfficeIMO.Drawing.OfficeChartAxisGroup axisGroup) -> OfficeIMO.Excel.ExcelChart!
 OfficeIMO.Excel.ExcelChart.SetValueAxisScale(double? minimum = null, double? maximum = null, double? majorUnit = null, double? minorUnit = null, double? logBase = null, bool? reverseOrder = null, OfficeIMO.Drawing.OfficeChartAxisGroup axisGroup = OfficeIMO.Drawing.OfficeChartAxisGroup.Primary, bool? logScale = null) -> OfficeIMO.Excel.ExcelChart!
 OfficeIMO.Excel.ExcelChart.SetValueAxisTickLabelPosition(OfficeIMO.Drawing.OfficeChartAxisTickLabelPosition position, OfficeIMO.Drawing.OfficeChartAxisGroup axisGroup = OfficeIMO.Drawing.OfficeChartAxisGroup.Primary) -> OfficeIMO.Excel.ExcelChart!
 OfficeIMO.Excel.ExcelChart.SetValueAxisTitle(string! title) -> OfficeIMO.Excel.ExcelChart!
 OfficeIMO.Excel.ExcelChart.SetValueAxisTitle(string! title, OfficeIMO.Drawing.OfficeChartAxisGroup axisGroup) -> OfficeIMO.Excel.ExcelChart!
-OfficeIMO.Excel.ExcelChart.SetValueAxisTitleTextStyle(double? fontSizePoints = null, bool? bold = null, bool? italic = null, string? color = null, string? fontName = null, OfficeIMO.Drawing.OfficeChartAxisGroup axisGroup = OfficeIMO.Drawing.OfficeChartAxisGroup.Primary) -> OfficeIMO.Excel.ExcelChart!
+OfficeIMO.Excel.ExcelChart.SetValueAxisTitleTextStyle(OfficeIMO.OfficeLength? fontSize = null, bool? bold = null, bool? italic = null, OfficeIMO.OfficeColor? color = null, string? fontName = null, OfficeIMO.Drawing.OfficeChartAxisGroup axisGroup = OfficeIMO.Drawing.OfficeChartAxisGroup.Primary) -> OfficeIMO.Excel.ExcelChart!
 OfficeIMO.Excel.ExcelChart.Title.get -> string?
 OfficeIMO.Excel.ExcelChart.ToImage(OfficeIMO.Excel.ExcelImageExportOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> byte[]!
 OfficeIMO.Excel.ExcelChart.ToImage(OfficeIMO.Excel.ExcelImageExportOptions? options, out OfficeIMO.OfficeConversionReport! report, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> byte[]!
@@ -444,22 +444,22 @@ OfficeIMO.Excel.ExcelChartDataLabelTemplate
 OfficeIMO.Excel.ExcelChartDataLabelTemplate.Bold.get -> bool?
 OfficeIMO.Excel.ExcelChartDataLabelTemplate.Bold.set -> void
 OfficeIMO.Excel.ExcelChartDataLabelTemplate.ExcelChartDataLabelTemplate() -> void
-OfficeIMO.Excel.ExcelChartDataLabelTemplate.FillColor.get -> string?
+OfficeIMO.Excel.ExcelChartDataLabelTemplate.FillColor.get -> OfficeIMO.OfficeColor?
 OfficeIMO.Excel.ExcelChartDataLabelTemplate.FillColor.set -> void
 OfficeIMO.Excel.ExcelChartDataLabelTemplate.FontName.get -> string?
 OfficeIMO.Excel.ExcelChartDataLabelTemplate.FontName.set -> void
-OfficeIMO.Excel.ExcelChartDataLabelTemplate.FontSizePoints.get -> double?
-OfficeIMO.Excel.ExcelChartDataLabelTemplate.FontSizePoints.set -> void
+OfficeIMO.Excel.ExcelChartDataLabelTemplate.FontSize.get -> OfficeIMO.OfficeLength?
+OfficeIMO.Excel.ExcelChartDataLabelTemplate.FontSize.set -> void
 OfficeIMO.Excel.ExcelChartDataLabelTemplate.Italic.get -> bool?
 OfficeIMO.Excel.ExcelChartDataLabelTemplate.Italic.set -> void
-OfficeIMO.Excel.ExcelChartDataLabelTemplate.LeaderLineColor.get -> string?
+OfficeIMO.Excel.ExcelChartDataLabelTemplate.LeaderLineColor.get -> OfficeIMO.OfficeColor?
 OfficeIMO.Excel.ExcelChartDataLabelTemplate.LeaderLineColor.set -> void
-OfficeIMO.Excel.ExcelChartDataLabelTemplate.LeaderLineWidthPoints.get -> double?
-OfficeIMO.Excel.ExcelChartDataLabelTemplate.LeaderLineWidthPoints.set -> void
-OfficeIMO.Excel.ExcelChartDataLabelTemplate.LineColor.get -> string?
+OfficeIMO.Excel.ExcelChartDataLabelTemplate.LeaderLineWidth.get -> OfficeIMO.OfficeLength?
+OfficeIMO.Excel.ExcelChartDataLabelTemplate.LeaderLineWidth.set -> void
+OfficeIMO.Excel.ExcelChartDataLabelTemplate.LineColor.get -> OfficeIMO.OfficeColor?
 OfficeIMO.Excel.ExcelChartDataLabelTemplate.LineColor.set -> void
-OfficeIMO.Excel.ExcelChartDataLabelTemplate.LineWidthPoints.get -> double?
-OfficeIMO.Excel.ExcelChartDataLabelTemplate.LineWidthPoints.set -> void
+OfficeIMO.Excel.ExcelChartDataLabelTemplate.LineWidth.get -> OfficeIMO.OfficeLength?
+OfficeIMO.Excel.ExcelChartDataLabelTemplate.LineWidth.set -> void
 OfficeIMO.Excel.ExcelChartDataLabelTemplate.NoFill.get -> bool
 OfficeIMO.Excel.ExcelChartDataLabelTemplate.NoFill.set -> void
 OfficeIMO.Excel.ExcelChartDataLabelTemplate.NoLine.get -> bool
@@ -486,7 +486,7 @@ OfficeIMO.Excel.ExcelChartDataLabelTemplate.ShowValue.get -> bool?
 OfficeIMO.Excel.ExcelChartDataLabelTemplate.ShowValue.set -> void
 OfficeIMO.Excel.ExcelChartDataLabelTemplate.SourceLinked.get -> bool
 OfficeIMO.Excel.ExcelChartDataLabelTemplate.SourceLinked.set -> void
-OfficeIMO.Excel.ExcelChartDataLabelTemplate.TextColor.get -> string?
+OfficeIMO.Excel.ExcelChartDataLabelTemplate.TextColor.get -> OfficeIMO.OfficeColor?
 OfficeIMO.Excel.ExcelChartDataLabelTemplate.TextColor.set -> void
 OfficeIMO.Excel.ExcelChartDataOrientation
 OfficeIMO.Excel.ExcelChartDataOrientation.Horizontal = 1 -> OfficeIMO.Excel.ExcelChartDataOrientation
@@ -515,7 +515,7 @@ OfficeIMO.Excel.ExcelChartDataRange.StartColumn.get -> int
 OfficeIMO.Excel.ExcelChartDataRange.StartRow.get -> int
 OfficeIMO.Excel.ExcelChartDataRange.WithSize(int categoryCount, int seriesCount) -> OfficeIMO.Excel.ExcelChartDataRange!
 OfficeIMO.Excel.ExcelChartGridLayout
-OfficeIMO.Excel.ExcelChartGridLayout.ExcelChartGridLayout(int row, int column, int widthPixels = 520, int heightPixels = 320, int chartsPerRow = 2, int horizontalGapPixels = 48, int verticalGapRows = 2) -> void
+OfficeIMO.Excel.ExcelChartGridLayout.ExcelChartGridLayout(int row, int column, OfficeIMO.OfficeLength? width = null, OfficeIMO.OfficeLength? height = null, int chartsPerRow = 2, OfficeIMO.OfficeLength? horizontalGap = null, int verticalGapRows = 2) -> void
 OfficeIMO.Excel.ExcelChartGridLayout.Next() -> OfficeIMO.Excel.ExcelChartPlacement!
 OfficeIMO.Excel.ExcelChartInfo
 OfficeIMO.Excel.ExcelChartInfo.BubbleScalePercent.get -> double
@@ -524,23 +524,23 @@ OfficeIMO.Excel.ExcelChartInfo.ChartType.get -> OfficeIMO.OfficeChartType
 OfficeIMO.Excel.ExcelChartInfo.ColumnIndex.get -> int
 OfficeIMO.Excel.ExcelChartInfo.Data.get -> OfficeIMO.Excel.ExcelChartData!
 OfficeIMO.Excel.ExcelChartInfo.Diagnostics.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.Drawing.OfficeImageExportDiagnostic!>!
-OfficeIMO.Excel.ExcelChartInfo.HeightPixels.get -> int
+OfficeIMO.Excel.ExcelChartInfo.Height.get -> OfficeIMO.OfficeLength
 OfficeIMO.Excel.ExcelChartInfo.Layout.get -> OfficeIMO.Drawing.OfficeChartLayout?
 OfficeIMO.Excel.ExcelChartInfo.Name.get -> string!
-OfficeIMO.Excel.ExcelChartInfo.OffsetXPixels.get -> int
-OfficeIMO.Excel.ExcelChartInfo.OffsetYPixels.get -> int
+OfficeIMO.Excel.ExcelChartInfo.OffsetX.get -> OfficeIMO.OfficeLength
+OfficeIMO.Excel.ExcelChartInfo.OffsetY.get -> OfficeIMO.OfficeLength
 OfficeIMO.Excel.ExcelChartInfo.RadialLayout.get -> OfficeIMO.Drawing.OfficeChartRadialLayout!
 OfficeIMO.Excel.ExcelChartInfo.RowIndex.get -> int
 OfficeIMO.Excel.ExcelChartInfo.ShowNegativeBubbles.get -> bool
 OfficeIMO.Excel.ExcelChartInfo.Style.get -> OfficeIMO.Drawing.OfficeChartStyle?
 OfficeIMO.Excel.ExcelChartInfo.Title.get -> string?
-OfficeIMO.Excel.ExcelChartInfo.WidthPixels.get -> int
+OfficeIMO.Excel.ExcelChartInfo.Width.get -> OfficeIMO.OfficeLength
 OfficeIMO.Excel.ExcelChartPlacement
 OfficeIMO.Excel.ExcelChartPlacement.Column.get -> int
-OfficeIMO.Excel.ExcelChartPlacement.ExcelChartPlacement(int row, int column, int widthPixels, int heightPixels) -> void
-OfficeIMO.Excel.ExcelChartPlacement.HeightPixels.get -> int
+OfficeIMO.Excel.ExcelChartPlacement.ExcelChartPlacement(int row, int column, OfficeIMO.OfficeLength width, OfficeIMO.OfficeLength height) -> void
+OfficeIMO.Excel.ExcelChartPlacement.Height.get -> OfficeIMO.OfficeLength
 OfficeIMO.Excel.ExcelChartPlacement.Row.get -> int
-OfficeIMO.Excel.ExcelChartPlacement.WidthPixels.get -> int
+OfficeIMO.Excel.ExcelChartPlacement.Width.get -> OfficeIMO.OfficeLength
 OfficeIMO.Excel.ExcelChartSeries
 OfficeIMO.Excel.ExcelChartSeries.AxisGroup.get -> OfficeIMO.Drawing.OfficeChartAxisGroup
 OfficeIMO.Excel.ExcelChartSeries.BubbleSizes.get -> System.Collections.Generic.IReadOnlyList<double>?
@@ -549,14 +549,14 @@ OfficeIMO.Excel.ExcelChartSeries.ConnectLine.get -> bool
 OfficeIMO.Excel.ExcelChartSeries.ExcelChartSeries(string! name, System.Collections.Generic.IEnumerable<double>! values, OfficeIMO.OfficeChartType? chartType = null, OfficeIMO.Drawing.OfficeChartAxisGroup axisGroup = OfficeIMO.Drawing.OfficeChartAxisGroup.Primary, string? seriesColorArgb = null) -> void
 OfficeIMO.Excel.ExcelChartSeries.ExcelChartSeries(string! name, System.Collections.Generic.IEnumerable<double>! values, System.Collections.Generic.IEnumerable<double>! xValues, OfficeIMO.OfficeChartType? chartType = null, OfficeIMO.Drawing.OfficeChartAxisGroup axisGroup = OfficeIMO.Drawing.OfficeChartAxisGroup.Primary, string? seriesColorArgb = null) -> void
 OfficeIMO.Excel.ExcelChartSeries.MarkerOutlineColorArgb.get -> string?
-OfficeIMO.Excel.ExcelChartSeries.MarkerOutlineWidth.get -> double?
+OfficeIMO.Excel.ExcelChartSeries.MarkerOutlineWidth.get -> OfficeIMO.OfficeLength?
 OfficeIMO.Excel.ExcelChartSeries.MarkerShape.get -> OfficeIMO.Drawing.OfficeChartMarkerShape?
-OfficeIMO.Excel.ExcelChartSeries.MarkerSize.get -> int?
+OfficeIMO.Excel.ExcelChartSeries.MarkerSize.get -> OfficeIMO.OfficeLength?
 OfficeIMO.Excel.ExcelChartSeries.Name.get -> string!
 OfficeIMO.Excel.ExcelChartSeries.PointColorArgb.get -> System.Collections.Generic.IReadOnlyList<string?>?
 OfficeIMO.Excel.ExcelChartSeries.SeriesColorArgb.get -> string?
 OfficeIMO.Excel.ExcelChartSeries.SeriesLineDashStyle.get -> OfficeIMO.Drawing.OfficeStrokeDashStyle?
-OfficeIMO.Excel.ExcelChartSeries.SeriesLineWidth.get -> double?
+OfficeIMO.Excel.ExcelChartSeries.SeriesLineWidth.get -> OfficeIMO.OfficeLength?
 OfficeIMO.Excel.ExcelChartSeries.ShowMarkers.get -> bool
 OfficeIMO.Excel.ExcelChartSeries.Values.get -> System.Collections.Generic.IReadOnlyList<double>!
 OfficeIMO.Excel.ExcelChartSeries.XValues.get -> System.Collections.Generic.IReadOnlyList<double>?
@@ -966,8 +966,8 @@ OfficeIMO.Excel.ExcelDashboardChartOptions.Column.set -> void
 OfficeIMO.Excel.ExcelDashboardChartOptions.ExcelDashboardChartOptions() -> void
 OfficeIMO.Excel.ExcelDashboardChartOptions.HasHeaders.get -> bool
 OfficeIMO.Excel.ExcelDashboardChartOptions.HasHeaders.set -> void
-OfficeIMO.Excel.ExcelDashboardChartOptions.HeightPixels.get -> int?
-OfficeIMO.Excel.ExcelDashboardChartOptions.HeightPixels.set -> void
+OfficeIMO.Excel.ExcelDashboardChartOptions.Height.get -> OfficeIMO.OfficeLength?
+OfficeIMO.Excel.ExcelDashboardChartOptions.Height.set -> void
 OfficeIMO.Excel.ExcelDashboardChartOptions.IncludeCachedData.get -> bool
 OfficeIMO.Excel.ExcelDashboardChartOptions.IncludeCachedData.set -> void
 OfficeIMO.Excel.ExcelDashboardChartOptions.Preset.get -> OfficeIMO.Excel.ExcelDashboardChartPreset
@@ -982,8 +982,8 @@ OfficeIMO.Excel.ExcelDashboardChartOptions.TableName.get -> string?
 OfficeIMO.Excel.ExcelDashboardChartOptions.TableName.set -> void
 OfficeIMO.Excel.ExcelDashboardChartOptions.Title.get -> string?
 OfficeIMO.Excel.ExcelDashboardChartOptions.Title.set -> void
-OfficeIMO.Excel.ExcelDashboardChartOptions.WidthPixels.get -> int?
-OfficeIMO.Excel.ExcelDashboardChartOptions.WidthPixels.set -> void
+OfficeIMO.Excel.ExcelDashboardChartOptions.Width.get -> OfficeIMO.OfficeLength?
+OfficeIMO.Excel.ExcelDashboardChartOptions.Width.set -> void
 OfficeIMO.Excel.ExcelDashboardChartPreset
 OfficeIMO.Excel.ExcelDashboardChartPreset.CompactComparison = 3 -> OfficeIMO.Excel.ExcelDashboardChartPreset
 OfficeIMO.Excel.ExcelDashboardChartPreset.Comparison = 0 -> OfficeIMO.Excel.ExcelDashboardChartPreset
@@ -1853,7 +1853,7 @@ OfficeIMO.Excel.ExcelModernChart.Name.get -> string!
 OfficeIMO.Excel.ExcelModernChart.Name.set -> void
 OfficeIMO.Excel.ExcelModernChart.Remove() -> void
 OfficeIMO.Excel.ExcelModernChart.SetChartType(OfficeIMO.Excel.ExcelModernChartType chartType) -> OfficeIMO.Excel.ExcelModernChart!
-OfficeIMO.Excel.ExcelModernChart.SetPlacement(int row, int column, int widthPixels, int heightPixels) -> OfficeIMO.Excel.ExcelModernChart!
+OfficeIMO.Excel.ExcelModernChart.SetPlacement(int row, int column, OfficeIMO.OfficeLength width, OfficeIMO.OfficeLength height) -> OfficeIMO.Excel.ExcelModernChart!
 OfficeIMO.Excel.ExcelModernChart.SetTitle(string? title) -> OfficeIMO.Excel.ExcelModernChart!
 OfficeIMO.Excel.ExcelModernChart.Title.get -> string?
 OfficeIMO.Excel.ExcelModernChart.UpdateData(OfficeIMO.Excel.ExcelChartData! data) -> OfficeIMO.Excel.ExcelModernChart!
@@ -2820,13 +2820,13 @@ OfficeIMO.Excel.ExcelReportBuilder.ConditionalIconSet(string! rangeA1, OfficeIMO
 OfficeIMO.Excel.ExcelReportBuilder.CurrentRow.get -> int
 OfficeIMO.Excel.ExcelReportBuilder.Finish(bool autoFitColumns = true, bool autoFitRows = false) -> OfficeIMO.Excel.ExcelReportBuilder!
 OfficeIMO.Excel.ExcelReportBuilder.FlowColumns(System.Collections.Generic.IReadOnlyList<System.Collections.Generic.IReadOnlyList<System.Action<OfficeIMO.Excel.ExcelReportBuilder.ColumnComposer!>!>!>! columnGroups, int columnWidth = 12, int gutter = 2) -> OfficeIMO.Excel.ExcelReportBuilder!
-OfficeIMO.Excel.ExcelReportBuilder.FooterLogoFromUrlAsync(string! url, OfficeIMO.Drawing.OfficeRemoteImageLoadOptions! remoteImageOptions, OfficeIMO.Excel.ExcelHeaderFooterPosition position = OfficeIMO.Excel.ExcelHeaderFooterPosition.Right, double? widthPoints = null, double? heightPoints = null, string? leftText = null, string? centerText = null, string? rightText = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<OfficeIMO.Excel.ExcelReportBuilder!>!
-OfficeIMO.Excel.ExcelReportBuilder.FooterLogoFromUrlAsync(string! url, OfficeIMO.Excel.ExcelHeaderFooterPosition position = OfficeIMO.Excel.ExcelHeaderFooterPosition.Right, double? widthPoints = null, double? heightPoints = null, string? leftText = null, string? centerText = null, string? rightText = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<OfficeIMO.Excel.ExcelReportBuilder!>!
-OfficeIMO.Excel.ExcelReportBuilder.HeaderLogoFromUrlAsync(string! url, OfficeIMO.Drawing.OfficeRemoteImageLoadOptions! remoteImageOptions, OfficeIMO.Excel.ExcelHeaderFooterPosition position = OfficeIMO.Excel.ExcelHeaderFooterPosition.Right, double? widthPoints = null, double? heightPoints = null, string? leftText = null, string? centerText = null, string? rightText = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<OfficeIMO.Excel.ExcelReportBuilder!>!
-OfficeIMO.Excel.ExcelReportBuilder.HeaderLogoFromUrlAsync(string! url, OfficeIMO.Excel.ExcelHeaderFooterPosition position = OfficeIMO.Excel.ExcelHeaderFooterPosition.Right, double? widthPoints = null, double? heightPoints = null, string? leftText = null, string? centerText = null, string? rightText = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<OfficeIMO.Excel.ExcelReportBuilder!>!
+OfficeIMO.Excel.ExcelReportBuilder.FooterLogoFromUrlAsync(string! url, OfficeIMO.Drawing.OfficeRemoteImageLoadOptions! remoteImageOptions, OfficeIMO.Excel.ExcelHeaderFooterPosition position = OfficeIMO.Excel.ExcelHeaderFooterPosition.Right, OfficeIMO.OfficeLength? width = null, OfficeIMO.OfficeLength? height = null, string? leftText = null, string? centerText = null, string? rightText = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<OfficeIMO.Excel.ExcelReportBuilder!>!
+OfficeIMO.Excel.ExcelReportBuilder.FooterLogoFromUrlAsync(string! url, OfficeIMO.Excel.ExcelHeaderFooterPosition position = OfficeIMO.Excel.ExcelHeaderFooterPosition.Right, OfficeIMO.OfficeLength? width = null, OfficeIMO.OfficeLength? height = null, string? leftText = null, string? centerText = null, string? rightText = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<OfficeIMO.Excel.ExcelReportBuilder!>!
+OfficeIMO.Excel.ExcelReportBuilder.HeaderLogoFromUrlAsync(string! url, OfficeIMO.Drawing.OfficeRemoteImageLoadOptions! remoteImageOptions, OfficeIMO.Excel.ExcelHeaderFooterPosition position = OfficeIMO.Excel.ExcelHeaderFooterPosition.Right, OfficeIMO.OfficeLength? width = null, OfficeIMO.OfficeLength? height = null, string? leftText = null, string? centerText = null, string? rightText = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<OfficeIMO.Excel.ExcelReportBuilder!>!
+OfficeIMO.Excel.ExcelReportBuilder.HeaderLogoFromUrlAsync(string! url, OfficeIMO.Excel.ExcelHeaderFooterPosition position = OfficeIMO.Excel.ExcelHeaderFooterPosition.Right, OfficeIMO.OfficeLength? width = null, OfficeIMO.OfficeLength? height = null, string? leftText = null, string? centerText = null, string? rightText = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<OfficeIMO.Excel.ExcelReportBuilder!>!
 OfficeIMO.Excel.ExcelReportBuilder.KpiRow(System.Collections.Generic.IEnumerable<(string! Label, object? Value)>! kpis, int perRow = 3, OfficeIMO.OfficeColor? labelFill = null) -> OfficeIMO.Excel.ExcelReportBuilder!
 OfficeIMO.Excel.ExcelReportBuilder.Margins(OfficeIMO.Excel.ExcelMarginPreset preset) -> OfficeIMO.Excel.ExcelReportBuilder!
-OfficeIMO.Excel.ExcelReportBuilder.Margins(double left, double right, double top, double bottom, double header = 0.3, double footer = 0.3) -> OfficeIMO.Excel.ExcelReportBuilder!
+OfficeIMO.Excel.ExcelReportBuilder.Margins(OfficeIMO.OfficeLength left, OfficeIMO.OfficeLength right, OfficeIMO.OfficeLength top, OfficeIMO.OfficeLength bottom, OfficeIMO.OfficeLength? header = null, OfficeIMO.OfficeLength? footer = null) -> OfficeIMO.Excel.ExcelReportBuilder!
 OfficeIMO.Excel.ExcelReportBuilder.Orientation(OfficeIMO.OfficePageOrientation orientation) -> OfficeIMO.Excel.ExcelReportBuilder!
 OfficeIMO.Excel.ExcelReportBuilder.Paragraph(string! text, int widthColumns = 6) -> OfficeIMO.Excel.ExcelReportBuilder!
 OfficeIMO.Excel.ExcelReportBuilder.PrintDefaults(bool showGridlines = false, uint fitToWidth = 1, uint fitToHeight = 0, string? printAreaA1 = null) -> OfficeIMO.Excel.ExcelReportBuilder!
@@ -2985,14 +2985,14 @@ OfficeIMO.Excel.ExcelSaveOptions.XlsbUseSharedStrings.get -> bool?
 OfficeIMO.Excel.ExcelSaveOptions.XlsbUseSharedStrings.set -> void
 OfficeIMO.Excel.ExcelSheet
 OfficeIMO.Excel.ExcelSheet.AddAutoFilter(string! range, System.Collections.Generic.Dictionary<uint, System.Collections.Generic.IEnumerable<string!>!>? filterCriteria = null) -> OfficeIMO.Excel.ExcelAutoFilter!
-OfficeIMO.Excel.ExcelSheet.AddBubbleChartFromRanges(System.Collections.Generic.IEnumerable<OfficeIMO.Excel.ExcelChartSeriesRange!>! seriesRanges, int row, int column, int widthPixels = 640, int heightPixels = 360, string? title = null) -> OfficeIMO.Excel.ExcelChart!
-OfficeIMO.Excel.ExcelSheet.AddChart(OfficeIMO.Excel.ExcelChartData! data, int row, int column, int widthPixels = 640, int heightPixels = 360, OfficeIMO.OfficeChartType type = OfficeIMO.OfficeChartType.Column, string? title = null) -> OfficeIMO.Excel.ExcelChart!
-OfficeIMO.Excel.ExcelSheet.AddChart(OfficeIMO.Excel.ExcelChartDataRange! dataRange, int row, int column, int widthPixels = 640, int heightPixels = 360, OfficeIMO.OfficeChartType type = OfficeIMO.OfficeChartType.Column, OfficeIMO.Excel.ExcelChartData? cachedData = null, string? title = null) -> OfficeIMO.Excel.ExcelChart!
-OfficeIMO.Excel.ExcelSheet.AddChart(OfficeIMO.OfficeChartType chartKind, OfficeIMO.Drawing.OfficeChartData! data, int row, int column, int widthPixels = 640, int heightPixels = 360, string? title = null) -> OfficeIMO.Excel.ExcelChart!
+OfficeIMO.Excel.ExcelSheet.AddBubbleChartFromRanges(System.Collections.Generic.IEnumerable<OfficeIMO.Excel.ExcelChartSeriesRange!>! seriesRanges, int row, int column, OfficeIMO.OfficeLength? width = null, OfficeIMO.OfficeLength? height = null, string? title = null) -> OfficeIMO.Excel.ExcelChart!
+OfficeIMO.Excel.ExcelSheet.AddChart(OfficeIMO.Excel.ExcelChartData! data, int row, int column, OfficeIMO.OfficeLength? width = null, OfficeIMO.OfficeLength? height = null, OfficeIMO.OfficeChartType type = OfficeIMO.OfficeChartType.Column, string? title = null) -> OfficeIMO.Excel.ExcelChart!
+OfficeIMO.Excel.ExcelSheet.AddChart(OfficeIMO.Excel.ExcelChartDataRange! dataRange, int row, int column, OfficeIMO.OfficeLength? width = null, OfficeIMO.OfficeLength? height = null, OfficeIMO.OfficeChartType type = OfficeIMO.OfficeChartType.Column, OfficeIMO.Excel.ExcelChartData? cachedData = null, string? title = null) -> OfficeIMO.Excel.ExcelChart!
+OfficeIMO.Excel.ExcelSheet.AddChart(OfficeIMO.OfficeChartType chartKind, OfficeIMO.Drawing.OfficeChartData! data, int row, int column, OfficeIMO.OfficeLength? width = null, OfficeIMO.OfficeLength? height = null, string? title = null) -> OfficeIMO.Excel.ExcelChart!
 OfficeIMO.Excel.ExcelSheet.AddChart<T, TCategory>(OfficeIMO.OfficeChartType type, System.Collections.Generic.IEnumerable<T>! data, System.Func<T, TCategory>! category, params OfficeIMO.OfficeSeries![]! series) -> OfficeIMO.Excel.ExcelChart!
 OfficeIMO.Excel.ExcelSheet.AddChart<T>(OfficeIMO.OfficeChartType type, System.Collections.Generic.IEnumerable<T>! data, string! category, params string![]! series) -> OfficeIMO.Excel.ExcelChart!
-OfficeIMO.Excel.ExcelSheet.AddChartFromRange(string! dataRangeA1, int row, int column, int widthPixels = 640, int heightPixels = 360, OfficeIMO.OfficeChartType type = OfficeIMO.OfficeChartType.Column, bool hasHeaders = true, string? title = null, bool includeCachedData = true) -> OfficeIMO.Excel.ExcelChart!
-OfficeIMO.Excel.ExcelSheet.AddChartFromTable(string! tableName, int row, int column, int widthPixels = 640, int heightPixels = 360, OfficeIMO.OfficeChartType type = OfficeIMO.OfficeChartType.Column, string? title = null, bool includeCachedData = true) -> OfficeIMO.Excel.ExcelChart!
+OfficeIMO.Excel.ExcelSheet.AddChartFromRange(string! dataRangeA1, int row, int column, OfficeIMO.OfficeLength? width = null, OfficeIMO.OfficeLength? height = null, OfficeIMO.OfficeChartType type = OfficeIMO.OfficeChartType.Column, bool hasHeaders = true, string? title = null, bool includeCachedData = true) -> OfficeIMO.Excel.ExcelChart!
+OfficeIMO.Excel.ExcelSheet.AddChartFromTable(string! tableName, int row, int column, OfficeIMO.OfficeLength? width = null, OfficeIMO.OfficeLength? height = null, OfficeIMO.OfficeChartType type = OfficeIMO.OfficeChartType.Column, string? title = null, bool includeCachedData = true) -> OfficeIMO.Excel.ExcelChart!
 OfficeIMO.Excel.ExcelSheet.AddConditionalAboveAverageRule(string! range, bool aboveAverage = true, bool equalAverage = false, uint? standardDeviation = null, bool stopIfTrue = false, string? fillColor = null) -> OfficeIMO.Excel.ExcelConditionalFormattingInfo!
 OfficeIMO.Excel.ExcelSheet.AddConditionalBeginsWithTextRule(string! range, string! text, string? fillColor = null) -> OfficeIMO.Excel.ExcelConditionalFormattingInfo!
 OfficeIMO.Excel.ExcelSheet.AddConditionalBlanksRule(string! range, bool containsBlanks = true, bool stopIfTrue = false) -> OfficeIMO.Excel.ExcelConditionalFormattingInfo!
@@ -3025,11 +3025,11 @@ OfficeIMO.Excel.ExcelSheet.AddConditionalTopBottomRule(string! range, uint rank,
 OfficeIMO.Excel.ExcelSheet.AddConditionalTopBottomRule(string! range, uint rank, bool bottom, bool percent, string? fillColor) -> OfficeIMO.Excel.ExcelConditionalFormattingInfo!
 OfficeIMO.Excel.ExcelSheet.AddConditionalUniqueValuesRule(string! range) -> OfficeIMO.Excel.ExcelConditionalFormattingInfo!
 OfficeIMO.Excel.ExcelSheet.AddConditionalUniqueValuesRule(string! range, string? fillColor) -> OfficeIMO.Excel.ExcelConditionalFormattingInfo!
-OfficeIMO.Excel.ExcelSheet.AddContributionChart(string! dataRangeA1, int row, int column, string! title = "Contribution", int widthPixels = 520, int heightPixels = 320, bool hasHeaders = true, bool includeCachedData = true) -> OfficeIMO.Excel.ExcelChart!
+OfficeIMO.Excel.ExcelSheet.AddContributionChart(string! dataRangeA1, int row, int column, string! title = "Contribution", OfficeIMO.OfficeLength? width = null, OfficeIMO.OfficeLength? height = null, bool hasHeaders = true, bool includeCachedData = true) -> OfficeIMO.Excel.ExcelChart!
 OfficeIMO.Excel.ExcelSheet.AddDashboard(System.Data.DataTable! data, OfficeIMO.Excel.ExcelDashboardOptions? options = null) -> OfficeIMO.Excel.ExcelDashboardResult!
 OfficeIMO.Excel.ExcelSheet.AddDashboardChart(OfficeIMO.Excel.ExcelDashboardChartOptions! options) -> OfficeIMO.Excel.ExcelChart!
-OfficeIMO.Excel.ExcelSheet.AddFunnelChart(System.Collections.Generic.IEnumerable<string!>! categories, System.Collections.Generic.IEnumerable<double>! values, int row, int column, string! title = "Funnel", bool sortDescending = true, int widthPixels = 640, int heightPixels = 360) -> OfficeIMO.Excel.ExcelChart!
-OfficeIMO.Excel.ExcelSheet.AddHistogramChart(System.Collections.Generic.IEnumerable<double>! values, int row, int column, string! title = "Histogram", int? binCount = null, double? binWidth = null, int widthPixels = 640, int heightPixels = 360) -> OfficeIMO.Excel.ExcelChart!
+OfficeIMO.Excel.ExcelSheet.AddFunnelChart(System.Collections.Generic.IEnumerable<string!>! categories, System.Collections.Generic.IEnumerable<double>! values, int row, int column, string! title = "Funnel", bool sortDescending = true, OfficeIMO.OfficeLength? width = null, OfficeIMO.OfficeLength? height = null) -> OfficeIMO.Excel.ExcelChart!
+OfficeIMO.Excel.ExcelSheet.AddHistogramChart(System.Collections.Generic.IEnumerable<double>! values, int row, int column, string! title = "Histogram", int? binCount = null, double? binWidth = null, OfficeIMO.OfficeLength? width = null, OfficeIMO.OfficeLength? height = null) -> OfficeIMO.Excel.ExcelChart!
 OfficeIMO.Excel.ExcelSheet.AddIgnoredErrorRegion(System.Collections.Generic.IEnumerable<string!>! ranges, OfficeIMO.Excel.ExcelIgnoredErrorKind errors) -> OfficeIMO.Excel.ExcelIgnoredErrorRegionInfo!
 OfficeIMO.Excel.ExcelSheet.AddImage(int row, int column, byte[]! imageBytes, string! contentType = "image/png", OfficeIMO.OfficeLength? width = null, OfficeIMO.OfficeLength? height = null, OfficeIMO.OfficeLength offsetX = default(OfficeIMO.OfficeLength), OfficeIMO.OfficeLength offsetY = default(OfficeIMO.OfficeLength), string? name = null, string? altText = null, bool lockAspectRatio = true) -> OfficeIMO.Excel.ExcelImage!
 OfficeIMO.Excel.ExcelSheet.AddImageAbsolute(OfficeIMO.OfficeLength x, OfficeIMO.OfficeLength y, byte[]! imageBytes, string! contentType = "image/png", OfficeIMO.OfficeLength? width = null, OfficeIMO.OfficeLength? height = null, string? name = null, string? altText = null, string? title = null, bool lockAspectRatio = true, double rotationDegrees = 0) -> OfficeIMO.Excel.ExcelImage!
@@ -3042,23 +3042,23 @@ OfficeIMO.Excel.ExcelSheet.AddImageFromUrlToRangeAsync(string! range, string! ur
 OfficeIMO.Excel.ExcelSheet.AddImageFromUrlToRangeAsync(string! range, string! url, OfficeIMO.OfficeLength offsetX = default(OfficeIMO.OfficeLength), OfficeIMO.OfficeLength offsetY = default(OfficeIMO.OfficeLength), OfficeIMO.OfficeLength endOffsetX = default(OfficeIMO.OfficeLength), OfficeIMO.OfficeLength endOffsetY = default(OfficeIMO.OfficeLength), string? name = null, string? altText = null, string? title = null, bool lockAspectRatio = true, OfficeIMO.Excel.ExcelImagePlacement placement = OfficeIMO.Excel.ExcelImagePlacement.MoveAndSize, double rotationDegrees = 0, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<OfficeIMO.Excel.ExcelImage!>!
 OfficeIMO.Excel.ExcelSheet.AddImageFromUrlWithOptionsAsync(int row, int column, string! url, OfficeIMO.Drawing.OfficeRemoteImageLoadOptions! remoteImageOptions, OfficeIMO.OfficeLength? width = null, OfficeIMO.OfficeLength? height = null, OfficeIMO.OfficeLength offsetX = default(OfficeIMO.OfficeLength), OfficeIMO.OfficeLength offsetY = default(OfficeIMO.OfficeLength), string? name = null, string? altText = null, bool lockAspectRatio = true, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<OfficeIMO.Excel.ExcelImage!>!
 OfficeIMO.Excel.ExcelSheet.AddImageToRange(string! range, byte[]! imageBytes, string! contentType = "image/png", OfficeIMO.OfficeLength offsetX = default(OfficeIMO.OfficeLength), OfficeIMO.OfficeLength offsetY = default(OfficeIMO.OfficeLength), OfficeIMO.OfficeLength endOffsetX = default(OfficeIMO.OfficeLength), OfficeIMO.OfficeLength endOffsetY = default(OfficeIMO.OfficeLength), string? name = null, string? altText = null, string? title = null, bool lockAspectRatio = true, OfficeIMO.Excel.ExcelImagePlacement placement = OfficeIMO.Excel.ExcelImagePlacement.MoveAndSize, double rotationDegrees = 0) -> OfficeIMO.Excel.ExcelImage!
-OfficeIMO.Excel.ExcelSheet.AddKpiScorecardChart(string! dataRangeA1, int row, int column, string! title = "KPI Scorecard", int widthPixels = 520, int heightPixels = 300, bool hasHeaders = true, bool includeCachedData = true) -> OfficeIMO.Excel.ExcelChart!
+OfficeIMO.Excel.ExcelSheet.AddKpiScorecardChart(string! dataRangeA1, int row, int column, string! title = "KPI Scorecard", OfficeIMO.OfficeLength? width = null, OfficeIMO.OfficeLength? height = null, bool hasHeaders = true, bool includeCachedData = true) -> OfficeIMO.Excel.ExcelChart!
 OfficeIMO.Excel.ExcelSheet.AddManualColumnPageBreak(int column, bool save = true) -> OfficeIMO.Excel.ExcelPageBreak!
 OfficeIMO.Excel.ExcelSheet.AddManualRowPageBreak(int row, bool save = true) -> OfficeIMO.Excel.ExcelPageBreak!
-OfficeIMO.Excel.ExcelSheet.AddModernChart(OfficeIMO.Excel.ExcelChartData! data, int row, int column, OfficeIMO.Excel.ExcelModernChartType chartType, string? title = null, int widthPixels = 640, int heightPixels = 360) -> OfficeIMO.Excel.ExcelModernChart!
-OfficeIMO.Excel.ExcelSheet.AddParetoChart(System.Collections.Generic.IEnumerable<string!>! categories, System.Collections.Generic.IEnumerable<double>! values, int row, int column, string! title = "Pareto", int widthPixels = 720, int heightPixels = 360) -> OfficeIMO.Excel.ExcelChart!
-OfficeIMO.Excel.ExcelSheet.AddPivotChartFromRange(string! pivotTableName, string! dataRangeA1, int row, int column, int widthPixels = 640, int heightPixels = 360, OfficeIMO.OfficeChartType type = OfficeIMO.OfficeChartType.Column, bool hasHeaders = true, string? title = null, bool includeCachedData = true, uint formatId = 0) -> OfficeIMO.Excel.ExcelChart!
+OfficeIMO.Excel.ExcelSheet.AddModernChart(OfficeIMO.Excel.ExcelChartData! data, int row, int column, OfficeIMO.Excel.ExcelModernChartType chartType, string? title = null, OfficeIMO.OfficeLength? width = null, OfficeIMO.OfficeLength? height = null) -> OfficeIMO.Excel.ExcelModernChart!
+OfficeIMO.Excel.ExcelSheet.AddParetoChart(System.Collections.Generic.IEnumerable<string!>! categories, System.Collections.Generic.IEnumerable<double>! values, int row, int column, string! title = "Pareto", OfficeIMO.OfficeLength? width = null, OfficeIMO.OfficeLength? height = null) -> OfficeIMO.Excel.ExcelChart!
+OfficeIMO.Excel.ExcelSheet.AddPivotChartFromRange(string! pivotTableName, string! dataRangeA1, int row, int column, OfficeIMO.OfficeLength? width = null, OfficeIMO.OfficeLength? height = null, OfficeIMO.OfficeChartType type = OfficeIMO.OfficeChartType.Column, bool hasHeaders = true, string? title = null, bool includeCachedData = true, uint formatId = 0) -> OfficeIMO.Excel.ExcelChart!
 OfficeIMO.Excel.ExcelSheet.AddPivotConditionalColorScale(string! pivotTableName, string! startColor, string! endColor, OfficeIMO.Excel.ExcelPivotRangeTarget target = OfficeIMO.Excel.ExcelPivotRangeTarget.DataBody) -> OfficeIMO.Excel.ExcelConditionalFormattingInfo!
 OfficeIMO.Excel.ExcelSheet.AddPivotConditionalDataBar(string! pivotTableName, string! color, OfficeIMO.Excel.ExcelPivotRangeTarget target = OfficeIMO.Excel.ExcelPivotRangeTarget.DataBody) -> OfficeIMO.Excel.ExcelConditionalFormattingInfo!
 OfficeIMO.Excel.ExcelSheet.AddPivotConditionalIconSet(string! pivotTableName, OfficeIMO.Excel.ExcelIconSet iconSet, bool showValue, bool reverseIconOrder, double[]? percentThresholds = null, double[]? numberThresholds = null, OfficeIMO.Excel.ExcelPivotRangeTarget target = OfficeIMO.Excel.ExcelPivotRangeTarget.DataBody) -> OfficeIMO.Excel.ExcelConditionalFormattingInfo!
 OfficeIMO.Excel.ExcelSheet.AddPivotConditionalRule(string! pivotTableName, OfficeIMO.Excel.ExcelConditionalFormattingOperator operator, string! formula1, string? formula2 = null, OfficeIMO.Excel.ExcelPivotRangeTarget target = OfficeIMO.Excel.ExcelPivotRangeTarget.DataBody) -> OfficeIMO.Excel.ExcelConditionalFormattingInfo!
 OfficeIMO.Excel.ExcelSheet.AddPivotManualGrouping(string! pivotTableName, string! sourceFieldName, string! groupFieldName, System.Collections.Generic.IReadOnlyDictionary<string!, string![]!>! groups, System.Collections.Generic.IReadOnlyCollection<string!>? hiddenGroupItems = null) -> OfficeIMO.Excel.ExcelPivotGroupingInfo!
 OfficeIMO.Excel.ExcelSheet.AddPivotTable(string! sourceRange, string! destinationCell, OfficeIMO.Excel.ExcelPivotTableOptions? options = null) -> OfficeIMO.Excel.ExcelPivotTable!
-OfficeIMO.Excel.ExcelSheet.AddRevenueTrendChart(string! dataRangeA1, int row, int column, string! title = "Revenue Trend", int widthPixels = 720, int heightPixels = 320, bool hasHeaders = true, bool includeCachedData = true) -> OfficeIMO.Excel.ExcelChart!
-OfficeIMO.Excel.ExcelSheet.AddScatterChartFromRanges(System.Collections.Generic.IEnumerable<OfficeIMO.Excel.ExcelChartSeriesRange!>! seriesRanges, int row, int column, int widthPixels = 640, int heightPixels = 360, string? title = null) -> OfficeIMO.Excel.ExcelChart!
+OfficeIMO.Excel.ExcelSheet.AddRevenueTrendChart(string! dataRangeA1, int row, int column, string! title = "Revenue Trend", OfficeIMO.OfficeLength? width = null, OfficeIMO.OfficeLength? height = null, bool hasHeaders = true, bool includeCachedData = true) -> OfficeIMO.Excel.ExcelChart!
+OfficeIMO.Excel.ExcelSheet.AddScatterChartFromRanges(System.Collections.Generic.IEnumerable<OfficeIMO.Excel.ExcelChartSeriesRange!>! seriesRanges, int row, int column, OfficeIMO.OfficeLength? width = null, OfficeIMO.OfficeLength? height = null, string? title = null) -> OfficeIMO.Excel.ExcelChart!
 OfficeIMO.Excel.ExcelSheet.AddSparklines(string! dataRange, string! locationRange, OfficeIMO.Excel.ExcelSparklineType type, bool displayMarkers = false, bool displayHighLow = false, bool displayFirstLast = false, bool displayNegative = false, bool displayAxis = false, OfficeIMO.OfficeColor? seriesColor = null, OfficeIMO.OfficeColor? axisColor = null, OfficeIMO.OfficeColor? negativeColor = null, OfficeIMO.OfficeColor? markersColor = null, OfficeIMO.OfficeColor? highColor = null, OfficeIMO.OfficeColor? lowColor = null, OfficeIMO.OfficeColor? firstColor = null, OfficeIMO.OfficeColor? lastColor = null) -> OfficeIMO.Excel.ExcelSparklineGroup!
 OfficeIMO.Excel.ExcelSheet.AddSparklines(string! dataRange, string! locationRange, bool displayMarkers = false, bool displayHighLow = false, bool displayFirstLast = false, bool displayNegative = false, bool displayAxis = false, OfficeIMO.OfficeColor? seriesColor = null, OfficeIMO.OfficeColor? axisColor = null, OfficeIMO.OfficeColor? negativeColor = null, OfficeIMO.OfficeColor? markersColor = null, OfficeIMO.OfficeColor? highColor = null, OfficeIMO.OfficeColor? lowColor = null, OfficeIMO.OfficeColor? firstColor = null, OfficeIMO.OfficeColor? lastColor = null) -> OfficeIMO.Excel.ExcelSparklineGroup!
-OfficeIMO.Excel.ExcelSheet.AddStatusBreakdownChart(string! dataRangeA1, int row, int column, string! title = "Status Breakdown", int widthPixels = 520, int heightPixels = 320, bool hasHeaders = true, bool includeCachedData = true) -> OfficeIMO.Excel.ExcelChart!
+OfficeIMO.Excel.ExcelSheet.AddStatusBreakdownChart(string! dataRangeA1, int row, int column, string! title = "Status Breakdown", OfficeIMO.OfficeLength? width = null, OfficeIMO.OfficeLength? height = null, bool hasHeaders = true, bool includeCachedData = true) -> OfficeIMO.Excel.ExcelChart!
 OfficeIMO.Excel.ExcelSheet.AddSubtotalSummary(OfficeIMO.Excel.ExcelSubtotalOptions! options) -> OfficeIMO.Excel.ExcelSubtotalResult!
 OfficeIMO.Excel.ExcelSheet.AddTable(System.Data.DataTable! data, OfficeIMO.OfficeTableOptions? options = null, int row = 1, int column = 1) -> OfficeIMO.Excel.ExcelTable!
 OfficeIMO.Excel.ExcelSheet.AddTable(string! range, bool hasHeader = true, string? name = null, OfficeIMO.Excel.ExcelTableStyle style = OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium2, bool includeAutoFilter = true, OfficeIMO.Excel.ExcelTableNameValidationMode validationMode = OfficeIMO.Excel.ExcelTableNameValidationMode.Sanitize) -> OfficeIMO.Excel.ExcelTable!
@@ -3066,10 +3066,10 @@ OfficeIMO.Excel.ExcelSheet.AddTable<T>(System.Collections.Generic.IEnumerable<T>
 OfficeIMO.Excel.ExcelSheet.AddThreadedComment(OfficeIMO.Excel.ExcelThreadedCommentOptions! options) -> OfficeIMO.Excel.ExcelThreadedCommentResult!
 OfficeIMO.Excel.ExcelSheet.AddThreadedComment(string! address, string! text, string! author = "OfficeIMO", string? parentId = null, bool done = false) -> OfficeIMO.Excel.ExcelThreadedCommentResult!
 OfficeIMO.Excel.ExcelSheet.AddThreadedComments(System.Collections.Generic.IEnumerable<OfficeIMO.Excel.ExcelThreadedCommentOptions!>! options) -> System.Collections.Generic.IReadOnlyList<OfficeIMO.Excel.ExcelThreadedCommentResult!>!
-OfficeIMO.Excel.ExcelSheet.AddTopNBarChart(string! dataRangeA1, int row, int column, string! title = "Top Items", int widthPixels = 640, int heightPixels = 360, bool hasHeaders = true, bool includeCachedData = true) -> OfficeIMO.Excel.ExcelChart!
-OfficeIMO.Excel.ExcelSheet.AddVarianceColumnChart(string! dataRangeA1, int row, int column, string! title = "Variance", int widthPixels = 640, int heightPixels = 360, bool hasHeaders = true, bool includeCachedData = true) -> OfficeIMO.Excel.ExcelChart!
-OfficeIMO.Excel.ExcelSheet.AddVarianceWaterfallChart(string! dataRangeA1, int row, int column, string! title = "Variance Bridge", int widthPixels = 720, int heightPixels = 360, bool hasHeaders = true, bool includeCachedData = true) -> OfficeIMO.Excel.ExcelChart!
-OfficeIMO.Excel.ExcelSheet.AddWaterfallChart(System.Collections.Generic.IEnumerable<string!>! categories, System.Collections.Generic.IEnumerable<double>! changes, int row, int column, string! title = "Waterfall", bool includeTotal = true, string! totalLabel = "Total", int widthPixels = 720, int heightPixels = 360) -> OfficeIMO.Excel.ExcelChart!
+OfficeIMO.Excel.ExcelSheet.AddTopNBarChart(string! dataRangeA1, int row, int column, string! title = "Top Items", OfficeIMO.OfficeLength? width = null, OfficeIMO.OfficeLength? height = null, bool hasHeaders = true, bool includeCachedData = true) -> OfficeIMO.Excel.ExcelChart!
+OfficeIMO.Excel.ExcelSheet.AddVarianceColumnChart(string! dataRangeA1, int row, int column, string! title = "Variance", OfficeIMO.OfficeLength? width = null, OfficeIMO.OfficeLength? height = null, bool hasHeaders = true, bool includeCachedData = true) -> OfficeIMO.Excel.ExcelChart!
+OfficeIMO.Excel.ExcelSheet.AddVarianceWaterfallChart(string! dataRangeA1, int row, int column, string! title = "Variance Bridge", OfficeIMO.OfficeLength? width = null, OfficeIMO.OfficeLength? height = null, bool hasHeaders = true, bool includeCachedData = true) -> OfficeIMO.Excel.ExcelChart!
+OfficeIMO.Excel.ExcelSheet.AddWaterfallChart(System.Collections.Generic.IEnumerable<string!>! categories, System.Collections.Generic.IEnumerable<double>! changes, int row, int column, string! title = "Waterfall", bool includeTotal = true, string! totalLabel = "Total", OfficeIMO.OfficeLength? width = null, OfficeIMO.OfficeLength? height = null) -> OfficeIMO.Excel.ExcelChart!
 OfficeIMO.Excel.ExcelSheet.AppendDataTableToTable(System.Data.DataTable! dataTable, string! tableName, bool matchColumnsByHeader = true, OfficeIMO.Excel.ExcelExecutionMode? mode = null, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> string!
 OfficeIMO.Excel.ExcelSheet.ApplyColumnFormatPlan(OfficeIMO.Excel.ExcelColumnFormatPlan! plan, bool includeHeader = false, bool autoFit = false, int? headerRow = null, OfficeIMO.Excel.ExcelReaderOptions? options = null) -> System.Collections.Generic.IReadOnlyList<OfficeIMO.Excel.ExcelColumnFormatResult!>!
 OfficeIMO.Excel.ExcelSheet.ApplyNamedStyle(string! name, string! range, int maximumCells = 1000000, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> void
@@ -3150,7 +3150,7 @@ OfficeIMO.Excel.ExcelSheet.CellVerticalAlign(int row, int column, OfficeIMO.Exce
 OfficeIMO.Excel.ExcelSheet.CellVerticalTextAlignment(int row, int column, OfficeIMO.Excel.ExcelVerticalTextAlignment alignment) -> void
 OfficeIMO.Excel.ExcelSheet.CellWrapText(int row, int column, bool wrapText = true) -> void
 OfficeIMO.Excel.ExcelSheet.CellWrapTextFor(System.Collections.Generic.IEnumerable<(int Row, int Column)>! cells, bool wrapText = true) -> void
-OfficeIMO.Excel.ExcelSheet.ChartLayout(int row, int column, int widthPixels = 520, int heightPixels = 320, int chartsPerRow = 2, int horizontalGapPixels = 48, int verticalGapRows = 2) -> OfficeIMO.Excel.ExcelChartGridLayout!
+OfficeIMO.Excel.ExcelSheet.ChartLayout(int row, int column, OfficeIMO.OfficeLength? width = null, OfficeIMO.OfficeLength? height = null, int chartsPerRow = 2, OfficeIMO.OfficeLength? horizontalGap = null, int verticalGapRows = 2) -> OfficeIMO.Excel.ExcelChartGridLayout!
 OfficeIMO.Excel.ExcelSheet.Charts.get -> System.Collections.Generic.IEnumerable<OfficeIMO.Excel.ExcelChart!>!
 OfficeIMO.Excel.ExcelSheet.ClearArrayFormula(string! a1RangeOrCell) -> void
 OfficeIMO.Excel.ExcelSheet.ClearAutoFilterColumn(uint columnOffset) -> bool
@@ -3189,9 +3189,9 @@ OfficeIMO.Excel.ExcelSheet.EnumerateRange(string! a1Range, OfficeIMO.Excel.Excel
 OfficeIMO.Excel.ExcelSheet.ExcelHeaderFooterImageInfo
 OfficeIMO.Excel.ExcelSheet.ExcelHeaderFooterImageInfo.Bytes.get -> byte[]!
 OfficeIMO.Excel.ExcelSheet.ExcelHeaderFooterImageInfo.ContentType.get -> string!
-OfficeIMO.Excel.ExcelSheet.ExcelHeaderFooterImageInfo.HeightPoints.get -> double
+OfficeIMO.Excel.ExcelSheet.ExcelHeaderFooterImageInfo.Height.get -> OfficeIMO.OfficeLength
 OfficeIMO.Excel.ExcelSheet.ExcelHeaderFooterImageInfo.Position.get -> OfficeIMO.Excel.ExcelHeaderFooterPosition
-OfficeIMO.Excel.ExcelSheet.ExcelHeaderFooterImageInfo.WidthPoints.get -> double
+OfficeIMO.Excel.ExcelSheet.ExcelHeaderFooterImageInfo.Width.get -> OfficeIMO.OfficeLength
 OfficeIMO.Excel.ExcelSheet.ExcelHeaderFooterInfo
 OfficeIMO.Excel.ExcelSheet.ExcelHeaderFooterInfo.DifferentFirstPage.get -> bool
 OfficeIMO.Excel.ExcelSheet.ExcelHeaderFooterInfo.DifferentFirstPage.set -> void
@@ -3314,8 +3314,8 @@ OfficeIMO.Excel.ExcelSheet.GetZoomScale() -> uint?
 OfficeIMO.Excel.ExcelSheet.GroupColumns(int startColumn, int endColumn, byte outlineLevel = 1, bool collapsed = false, bool hidden = false) -> void
 OfficeIMO.Excel.ExcelSheet.GroupRows(int startRow, int endRow, byte outlineLevel = 1, bool collapsed = false, bool hidden = false) -> void
 OfficeIMO.Excel.ExcelSheet.HasComment(int row, int column) -> bool
-OfficeIMO.Excel.ExcelSheet.HeaderLogoFromUrlAsync(string! url, OfficeIMO.Drawing.OfficeRemoteImageLoadOptions! remoteImageOptions, OfficeIMO.Excel.ExcelHeaderFooterPosition position = OfficeIMO.Excel.ExcelHeaderFooterPosition.Right, double? widthPoints = null, double? heightPoints = null, string? leftText = null, string? centerText = null, string? rightText = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
-OfficeIMO.Excel.ExcelSheet.HeaderLogoFromUrlAsync(string! url, OfficeIMO.Excel.ExcelHeaderFooterPosition position = OfficeIMO.Excel.ExcelHeaderFooterPosition.Right, double? widthPoints = null, double? heightPoints = null, string? leftText = null, string? centerText = null, string? rightText = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+OfficeIMO.Excel.ExcelSheet.HeaderLogoFromUrlAsync(string! url, OfficeIMO.Drawing.OfficeRemoteImageLoadOptions! remoteImageOptions, OfficeIMO.Excel.ExcelHeaderFooterPosition position = OfficeIMO.Excel.ExcelHeaderFooterPosition.Right, OfficeIMO.OfficeLength? width = null, OfficeIMO.OfficeLength? height = null, string? leftText = null, string? centerText = null, string? rightText = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+OfficeIMO.Excel.ExcelSheet.HeaderLogoFromUrlAsync(string! url, OfficeIMO.Excel.ExcelHeaderFooterPosition position = OfficeIMO.Excel.ExcelHeaderFooterPosition.Right, OfficeIMO.OfficeLength? width = null, OfficeIMO.OfficeLength? height = null, string? leftText = null, string? centerText = null, string? rightText = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
 OfficeIMO.Excel.ExcelSheet.Hidden.get -> bool
 OfficeIMO.Excel.ExcelSheet.Images.get -> System.Collections.Generic.IEnumerable<OfficeIMO.Excel.ExcelImage!>!
 OfficeIMO.Excel.ExcelSheet.InsertCells(string! range, OfficeIMO.Excel.ExcelCellShiftDirection direction, OfficeIMO.Excel.ExcelMutationPlanOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> OfficeIMO.Excel.ExcelMutationResult!
@@ -3418,14 +3418,14 @@ OfficeIMO.Excel.ExcelSheet.SetDefaultRowHeight(OfficeIMO.Excel.ExcelColumnWidth 
 OfficeIMO.Excel.ExcelSheet.SetDynamicArrayFormula(string! a1Cell, string! formula) -> void
 OfficeIMO.Excel.ExcelSheet.SetEvenPageHeaderFooter(string? headerLeft = null, string? headerCenter = null, string? headerRight = null, string? footerLeft = null, string? footerCenter = null, string? footerRight = null, bool enabled = true) -> void
 OfficeIMO.Excel.ExcelSheet.SetFirstPageHeaderFooter(string? headerLeft = null, string? headerCenter = null, string? headerRight = null, string? footerLeft = null, string? footerCenter = null, string? footerRight = null, bool enabled = true) -> void
-OfficeIMO.Excel.ExcelSheet.SetFooterImage(OfficeIMO.Excel.ExcelHeaderFooterPosition position, byte[]! imageBytes, string! contentType = "image/png", double? widthPoints = null, double? heightPoints = null) -> void
-OfficeIMO.Excel.ExcelSheet.SetFooterImageFromUrlAsync(OfficeIMO.Excel.ExcelHeaderFooterPosition position, string! url, OfficeIMO.Drawing.OfficeRemoteImageLoadOptions! remoteImageOptions, double? widthPoints = null, double? heightPoints = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
-OfficeIMO.Excel.ExcelSheet.SetFooterImageFromUrlAsync(OfficeIMO.Excel.ExcelHeaderFooterPosition position, string! url, double? widthPoints = null, double? heightPoints = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+OfficeIMO.Excel.ExcelSheet.SetFooterImage(OfficeIMO.Excel.ExcelHeaderFooterPosition position, byte[]! imageBytes, string! contentType = "image/png", OfficeIMO.OfficeLength? width = null, OfficeIMO.OfficeLength? height = null) -> void
+OfficeIMO.Excel.ExcelSheet.SetFooterImageFromUrlAsync(OfficeIMO.Excel.ExcelHeaderFooterPosition position, string! url, OfficeIMO.Drawing.OfficeRemoteImageLoadOptions! remoteImageOptions, OfficeIMO.OfficeLength? width = null, OfficeIMO.OfficeLength? height = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+OfficeIMO.Excel.ExcelSheet.SetFooterImageFromUrlAsync(OfficeIMO.Excel.ExcelHeaderFooterPosition position, string! url, OfficeIMO.OfficeLength? width = null, OfficeIMO.OfficeLength? height = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
 OfficeIMO.Excel.ExcelSheet.SetGridlinesVisible(bool visible) -> void
 OfficeIMO.Excel.ExcelSheet.SetHeaderFooter(string? headerLeft = null, string? headerCenter = null, string? headerRight = null, string? footerLeft = null, string? footerCenter = null, string? footerRight = null, bool differentFirstPage = false, bool differentOddEven = false, bool alignWithMargins = true, bool scaleWithDoc = true) -> void
-OfficeIMO.Excel.ExcelSheet.SetHeaderImage(OfficeIMO.Excel.ExcelHeaderFooterPosition position, byte[]! imageBytes, string! contentType = "image/png", double? widthPoints = null, double? heightPoints = null) -> void
-OfficeIMO.Excel.ExcelSheet.SetHeaderImageFromUrlAsync(OfficeIMO.Excel.ExcelHeaderFooterPosition position, string! url, OfficeIMO.Drawing.OfficeRemoteImageLoadOptions! remoteImageOptions, double? widthPoints = null, double? heightPoints = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
-OfficeIMO.Excel.ExcelSheet.SetHeaderImageFromUrlAsync(OfficeIMO.Excel.ExcelHeaderFooterPosition position, string! url, double? widthPoints = null, double? heightPoints = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+OfficeIMO.Excel.ExcelSheet.SetHeaderImage(OfficeIMO.Excel.ExcelHeaderFooterPosition position, byte[]! imageBytes, string! contentType = "image/png", OfficeIMO.OfficeLength? width = null, OfficeIMO.OfficeLength? height = null) -> void
+OfficeIMO.Excel.ExcelSheet.SetHeaderImageFromUrlAsync(OfficeIMO.Excel.ExcelHeaderFooterPosition position, string! url, OfficeIMO.Drawing.OfficeRemoteImageLoadOptions! remoteImageOptions, OfficeIMO.OfficeLength? width = null, OfficeIMO.OfficeLength? height = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
+OfficeIMO.Excel.ExcelSheet.SetHeaderImageFromUrlAsync(OfficeIMO.Excel.ExcelHeaderFooterPosition position, string! url, OfficeIMO.OfficeLength? width = null, OfficeIMO.OfficeLength? height = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
 OfficeIMO.Excel.ExcelSheet.SetHidden(bool hidden) -> void
 OfficeIMO.Excel.ExcelSheet.SetHyperlink(int row, int column, string! url, string? display = null, bool style = true) -> void
 OfficeIMO.Excel.ExcelSheet.SetHyperlink(int row, int column, string! url, string? display, bool style, string? tooltip) -> void
@@ -3439,7 +3439,7 @@ OfficeIMO.Excel.ExcelSheet.SetInternalLink(int row, int column, OfficeIMO.Excel.
 OfficeIMO.Excel.ExcelSheet.SetInternalLink(int row, int column, OfficeIMO.Excel.ExcelSheet! target, string! a1, string? display, bool style, string? tooltip) -> void
 OfficeIMO.Excel.ExcelSheet.SetInternalLink(int row, int column, string! location, string? display = null, bool style = true) -> void
 OfficeIMO.Excel.ExcelSheet.SetInternalLink(int row, int column, string! location, string? display, bool style, string? tooltip) -> void
-OfficeIMO.Excel.ExcelSheet.SetMargins(double left, double right, double top, double bottom, double header = 0.3, double footer = 0.3) -> void
+OfficeIMO.Excel.ExcelSheet.SetMargins(OfficeIMO.OfficeLength left, OfficeIMO.OfficeLength right, OfficeIMO.OfficeLength top, OfficeIMO.OfficeLength bottom, OfficeIMO.OfficeLength? header = null, OfficeIMO.OfficeLength? footer = null) -> void
 OfficeIMO.Excel.ExcelSheet.SetMarginsPreset(OfficeIMO.Excel.ExcelMarginPreset preset) -> void
 OfficeIMO.Excel.ExcelSheet.SetNamedRange(string! name, string! range, bool save = true, bool hidden = false) -> void
 OfficeIMO.Excel.ExcelSheet.SetNamedRange(string! name, string! range, bool save, bool hidden, OfficeIMO.Excel.ExcelDefinedNameValidationMode validationMode) -> void
@@ -3524,13 +3524,13 @@ OfficeIMO.Excel.ExcelSheetNameValidationMode.None = 0 -> OfficeIMO.Excel.ExcelSh
 OfficeIMO.Excel.ExcelSheetNameValidationMode.Sanitize = 1 -> OfficeIMO.Excel.ExcelSheetNameValidationMode
 OfficeIMO.Excel.ExcelSheetNameValidationMode.Strict = 2 -> OfficeIMO.Excel.ExcelSheetNameValidationMode
 OfficeIMO.Excel.ExcelSheetPageMargins
-OfficeIMO.Excel.ExcelSheetPageMargins.Bottom.get -> double
+OfficeIMO.Excel.ExcelSheetPageMargins.Bottom.get -> OfficeIMO.OfficeLength
 OfficeIMO.Excel.ExcelSheetPageMargins.ExcelSheetPageMargins() -> void
-OfficeIMO.Excel.ExcelSheetPageMargins.Footer.get -> double
-OfficeIMO.Excel.ExcelSheetPageMargins.Header.get -> double
-OfficeIMO.Excel.ExcelSheetPageMargins.Left.get -> double
-OfficeIMO.Excel.ExcelSheetPageMargins.Right.get -> double
-OfficeIMO.Excel.ExcelSheetPageMargins.Top.get -> double
+OfficeIMO.Excel.ExcelSheetPageMargins.Footer.get -> OfficeIMO.OfficeLength
+OfficeIMO.Excel.ExcelSheetPageMargins.Header.get -> OfficeIMO.OfficeLength
+OfficeIMO.Excel.ExcelSheetPageMargins.Left.get -> OfficeIMO.OfficeLength
+OfficeIMO.Excel.ExcelSheetPageMargins.Right.get -> OfficeIMO.OfficeLength
+OfficeIMO.Excel.ExcelSheetPageMargins.Top.get -> OfficeIMO.OfficeLength
 OfficeIMO.Excel.ExcelSheetPageSetup
 OfficeIMO.Excel.ExcelSheetPageSetup.ExcelSheetPageSetup() -> void
 OfficeIMO.Excel.ExcelSheetPageSetup.FitToHeight.get -> uint?

@@ -39,7 +39,7 @@ namespace OfficeIMO.Tests
                 byte[]? logo = File.Exists(logoPath) ? File.ReadAllBytes(logoPath) : null;
                 sheet.SetHeaderFooter(headerCenter: "Domain Detective", headerRight: "Page &P of &N");
                 if (logo != null)
-                    sheet.SetHeaderImage(ExcelHeaderFooterPosition.Center, logo, "image/png", widthPoints: 96, heightPoints: 32);
+                    sheet.SetHeaderImage(ExcelHeaderFooterPosition.Center, logo, "image/png", width: OfficeLength.Points(96), height: OfficeLength.Points(32));
                 // Save and close
                 doc.Save();
             }

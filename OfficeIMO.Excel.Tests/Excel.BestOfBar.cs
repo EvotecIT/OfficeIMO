@@ -65,7 +65,7 @@ namespace OfficeIMO.Tests
                 sheet.CellValue(3, 2, 12);
                 sheet.CellValue(4, 1, "Mar");
                 sheet.CellValue(4, 2, 18);
-                sheet.AddChartFromRange("A1:B4", row: 1, column: 5, widthPixels: 640, heightPixels: 360, title: "Trend", includeCachedData: true, type: OfficeChartType.Line, hasHeaders: true).SetCategoryAxisScale(majorUnit: 2, minorUnit: 1, reverseOrder: true);
+                sheet.AddChartFromRange("A1:B4", row: 1, column: 5, width: OfficeLength.Pixels(640), height: OfficeLength.Pixels(360), title: "Trend", includeCachedData: true, type: OfficeChartType.Line, hasHeaders: true).SetCategoryAxisScale(majorUnit: 2, minorUnit: 1, reverseOrder: true);
                 document.Save();
             }
 

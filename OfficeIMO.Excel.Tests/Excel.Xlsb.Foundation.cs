@@ -1614,7 +1614,7 @@ namespace OfficeIMO.Tests {
                 horizontalCentered: true,
                 verticalCentered: false,
                 save: false);
-            sheet.SetMargins(0.25D, 0.35D, 0.45D, 0.55D, 0.2D, 0.3D);
+            sheet.SetMargins(OfficeLength.Inches(0.25D), OfficeLength.Inches(0.35D), OfficeLength.Inches(0.45D), OfficeLength.Inches(0.55D), OfficeLength.Inches(0.2D), OfficeLength.Inches(0.3D));
             sheet.SetPageSetup(
                 fitToWidth: 1U,
                 fitToHeight: 0U,

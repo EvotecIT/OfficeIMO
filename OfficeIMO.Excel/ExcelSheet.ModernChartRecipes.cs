@@ -13,8 +13,10 @@ namespace OfficeIMO.Excel {
             string title = "Histogram",
             int? binCount = null,
             double? binWidth = null,
-            int widthPixels = 640,
-            int heightPixels = 360) {
+            OfficeLength? width = null,
+            OfficeLength? height = null) {
+            width ??= OfficeLength.Pixels(640);
+            height ??= OfficeLength.Pixels(360);
             List<double> observations = MaterializeFiniteChartValues(values, nameof(values), allowNegative: true);
             if (binCount.HasValue && binWidth.HasValue) {
                 throw new ArgumentException("Specify either binCount or binWidth, not both.");
@@ -55,7 +57,7 @@ namespace OfficeIMO.Excel {
                 throw new ArgumentOutOfRangeException(nameof(binCount), "A histogram cannot exceed 10,000 bins.");
             }
             if (!(effectiveBinWidth > 0) || double.IsInfinity(effectiveBinWidth)) {
-                throw new ArgumentException("Histogram values and bin settings produce an unrepresentable bin width.", nameof(values));
+                throw new ArgumentException("Histogram values and bin settings produce an unrepresentable bin width.Value.", nameof(values));
             }
 
             var boundaries = new double[effectiveBinCount + 1];
@@ -86,12 +88,12 @@ namespace OfficeIMO.Excel {
             }
 
             var data = new ExcelChartData(categories, new[] { new ExcelChartSeries("Frequency", counts, seriesColorArgb: "4F46E5") });
-            ExcelChart chart = AddChart(data, row, column, widthPixels, heightPixels, OfficeChartType.ColumnClustered, title);
+            ExcelChart chart = AddChart(data, row, column, width.Value, height.Value, OfficeChartType.ColumnClustered, title);
             return chart.HideLegend()
                 .SetCategoryAxisTitle("Bin")
                 .SetValueAxisTitle("Frequency")
                 .SetValueAxisNumberFormat("0", sourceLinked: false)
-                .SetValueAxisGridlines(showMajor: true, showMinor: false, lineColor: "E5E7EB", lineWidthPoints: 0.5);
+                .SetValueAxisGridlines(showMajor: true, showMinor: false, lineColor: OfficeColor.Parse("E5E7EB"), lineWidth: OfficeLength.Points(0.5));
         }
 
         private static double SnapHistogramBinCountQuotient(double quotient) {
@@ -116,8 +118,10 @@ namespace OfficeIMO.Excel {
             int row,
             int column,
             string title = "Pareto",
-            int widthPixels = 720,
-            int heightPixels = 360) {
+            OfficeLength? width = null,
+            OfficeLength? height = null) {
+            width ??= OfficeLength.Pixels(720);
+            height ??= OfficeLength.Pixels(360);
             List<(string Category, double Value)> points = MaterializeCategoryChartValues(categories, values, nameof(values), allowNegative: false)
                 .OrderByDescending(point => point.Value)
                 .ThenBy(point => point.Category, StringComparer.OrdinalIgnoreCase)
@@ -144,13 +148,13 @@ namespace OfficeIMO.Excel {
                     new ExcelChartSeries("Value", points.Select(point => point.Value), OfficeChartType.ColumnClustered, OfficeChartAxisGroup.Primary, "4F46E5"),
                     new ExcelChartSeries("Cumulative %", cumulative, OfficeChartType.Line, OfficeChartAxisGroup.Secondary, "F59E0B")
                 });
-            ExcelChart chart = AddChart(data, row, column, widthPixels, heightPixels, OfficeChartType.ColumnClustered, title);
+            ExcelChart chart = AddChart(data, row, column, width.Value, height.Value, OfficeChartType.ColumnClustered, title);
             return chart.SetLegend(OfficeChartLegendPosition.Bottom)
-                .SetSeriesLineColor(1, "F59E0B", 2)
-                .SetSeriesMarker(1, OfficeChartMarkerShape.Circle, size: 6, fillColor: "F59E0B", lineColor: "F59E0B")
+                .SetSeriesLineColor(1, OfficeColor.Parse("F59E0B"), OfficeLength.Points(2))
+                .SetSeriesMarker(1, OfficeChartMarkerShape.Circle, size: OfficeLength.Points(6), fillColor: OfficeColor.Parse("F59E0B"), lineColor: OfficeColor.Parse("F59E0B"))
                 .SetValueAxisNumberFormat("0%", sourceLinked: false, OfficeChartAxisGroup.Secondary)
                 .SetValueAxisScale(minimum: 0, maximum: 1, majorUnit: 0.2, axisGroup: OfficeChartAxisGroup.Secondary)
-                .SetValueAxisGridlines(showMajor: true, showMinor: false, lineColor: "E5E7EB", lineWidthPoints: 0.5);
+                .SetValueAxisGridlines(showMajor: true, showMinor: false, lineColor: OfficeColor.Parse("E5E7EB"), lineWidth: OfficeLength.Points(0.5));
         }
 
         /// <summary>
@@ -163,8 +167,10 @@ namespace OfficeIMO.Excel {
             int column,
             string title = "Funnel",
             bool sortDescending = true,
-            int widthPixels = 640,
-            int heightPixels = 360) {
+            OfficeLength? width = null,
+            OfficeLength? height = null) {
+            width ??= OfficeLength.Pixels(640);
+            height ??= OfficeLength.Pixels(360);
             IEnumerable<(string Category, double Value)> source = MaterializeCategoryChartValues(categories, values, nameof(values), allowNegative: false);
             List<(string Category, double Value)> points = (sortDescending
                 ? source.OrderByDescending(point => point.Value).ThenBy(point => point.Category, StringComparer.OrdinalIgnoreCase)
@@ -183,7 +189,7 @@ namespace OfficeIMO.Excel {
                     new ExcelChartSeries("Value", actual, seriesColorArgb: "0EA5E9"),
                     new ExcelChartSeries("Right spacer", spacer)
                 });
-            ExcelChart chart = AddChart(data, row, column, widthPixels, heightPixels, OfficeChartType.BarStacked, title);
+            ExcelChart chart = AddChart(data, row, column, width.Value, height.Value, OfficeChartType.BarStacked, title);
             chart.ApplyAuthoredSeriesStyles(data.Series, new[] { false, true, false });
             return chart.SetSeriesNoFill(0)
                 .SetSeriesNoFill(2)
@@ -203,8 +209,10 @@ namespace OfficeIMO.Excel {
             string title = "Waterfall",
             bool includeTotal = true,
             string totalLabel = "Total",
-            int widthPixels = 720,
-            int heightPixels = 360) {
+            OfficeLength? width = null,
+            OfficeLength? height = null) {
+            width ??= OfficeLength.Pixels(720);
+            height ??= OfficeLength.Pixels(360);
             List<(string Category, double Value)> points = MaterializeCategoryChartValues(categories, changes, nameof(changes), allowNegative: true);
             int count = points.Count + (includeTotal ? 1 : 0);
             var chartCategories = new List<string>(count);
@@ -258,11 +266,11 @@ namespace OfficeIMO.Excel {
             }
 
             var data = new ExcelChartData(chartCategories, series);
-            ExcelChart chart = AddChart(data, row, column, widthPixels, heightPixels, OfficeChartType.ColumnStacked, title);
+            ExcelChart chart = AddChart(data, row, column, width.Value, height.Value, OfficeChartType.ColumnStacked, title);
             const string waterfallNumberFormat = "#,##0.###############";
             chart.ApplyAuthoredSeriesStyles(data.Series, visibleSeriesStyles);
             chart.SetSeriesNoFill(0)
-                .SetValueAxisGridlines(showMajor: true, showMinor: false, lineColor: "E5E7EB", lineWidthPoints: 0.5)
+                .SetValueAxisGridlines(showMajor: true, showMinor: false, lineColor: OfficeColor.Parse("E5E7EB"), lineWidth: OfficeLength.Points(0.5))
                 .SetValueAxisNumberFormat(waterfallNumberFormat, sourceLinked: false);
 
             var increasePoints = new List<int>();

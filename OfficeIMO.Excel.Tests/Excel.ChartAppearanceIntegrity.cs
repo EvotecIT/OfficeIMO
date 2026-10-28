@@ -27,12 +27,12 @@ public sealed class ExcelChartAppearanceIntegrityTests {
         var part = document.OpenXmlDocument.WorkbookPart!.WorksheetParts.Single(p => p.DrawingsPart != null).DrawingsPart!.ChartParts.Single();
         Assert.Equal((byte)2, part.ChartSpace.Descendants<C.Size>().Single().Val!.Value);
         string before = part.ChartSpace.OuterXml;
-        Assert.Throws<ArgumentOutOfRangeException>(() => chart.SetSeriesLineColor(0, "FF0000", 2000));
-        Assert.Throws<ArgumentOutOfRangeException>(() => chart.SetSeriesMarker(0, OfficeChartMarkerShape.Circle, size: 1));
-        Assert.Throws<ArgumentOutOfRangeException>(() => chart.SetSeriesMarker(0, OfficeChartMarkerShape.Circle, lineWidthPoints: 2000));
-        Assert.Throws<ArgumentOutOfRangeException>(() => chart.SetDataPointLineColor(0, 0, "FF0000", 2000));
-        Assert.Throws<ArgumentOutOfRangeException>(() => chart.SetValueAxisGridlines(showMajor: false, showMinor: true, lineWidthPoints: 2000));
-        Assert.Throws<ArgumentOutOfRangeException>(() => chart.SetSeriesTrendline(0, OfficeChartTrendlineType.Linear, lineWidthPoints: 2000));
+        Assert.Throws<ArgumentOutOfRangeException>(() => chart.SetSeriesLineColor(0, OfficeColor.Parse("FF0000"), OfficeLength.Points(2000)));
+        Assert.Throws<ArgumentOutOfRangeException>(() => chart.SetSeriesMarker(0, OfficeChartMarkerShape.Circle, size: OfficeLength.Points(1)));
+        Assert.Throws<ArgumentOutOfRangeException>(() => chart.SetSeriesMarker(0, OfficeChartMarkerShape.Circle, lineWidth: OfficeLength.Points(2000)));
+        Assert.Throws<ArgumentOutOfRangeException>(() => chart.SetDataPointLineColor(0, 0, OfficeColor.Parse("FF0000"), OfficeLength.Points(2000)));
+        Assert.Throws<ArgumentOutOfRangeException>(() => chart.SetValueAxisGridlines(showMajor: false, showMinor: true, lineWidth: OfficeLength.Points(2000)));
+        Assert.Throws<ArgumentOutOfRangeException>(() => chart.SetSeriesTrendline(0, OfficeChartTrendlineType.Linear, lineWidth: OfficeLength.Points(2000)));
         Assert.Equal(before, part.ChartSpace.OuterXml);
         Assert.Empty(document.ValidateDocument());
     }

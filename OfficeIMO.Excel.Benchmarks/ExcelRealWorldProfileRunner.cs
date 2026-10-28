@@ -179,7 +179,7 @@ internal static class ExcelRealWorldProfileRunner {
                 new ExcelChartSeries("Units", summaries.Select(static item => (double)item.Units))
             });
 
-        sheet.AddChart(chartData, row: 18, column: 10, widthPixels: 720, heightPixels: 360, type: OfficeChartType.ColumnClustered, title: "Regional Sales");
+        sheet.AddChart(chartData, row: 18, column: 10, width: OfficeLength.Pixels(720), height: OfficeLength.Pixels(360), type: OfficeChartType.ColumnClustered, title: "Regional Sales");
     }
 
     private static string BuildSalesRange(int rowCount)

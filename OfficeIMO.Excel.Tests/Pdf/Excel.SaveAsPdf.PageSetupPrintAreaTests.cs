@@ -158,8 +158,8 @@ public partial class Excel {
             sheet.Cell(10, 1, "OutsideData");
             sheet.AddImage(3, 2, imageBytes, "image/png", width: OfficeIMO.OfficeLength.Pixels(12), height: OfficeIMO.OfficeLength.Pixels(12), name: "Inside image");
             sheet.AddImage(10, 1, imageBytes, "image/png", width: OfficeIMO.OfficeLength.Pixels(12), height: OfficeIMO.OfficeLength.Pixels(12), name: "Outside image");
-            sheet.AddChartFromRange("B2:C3", row: 3, column: 2, widthPixels: 220, heightPixels: 120, type: OfficeChartType.ColumnClustered, title: "Inside Chart");
-            sheet.AddChartFromRange("B2:C3", row: 10, column: 1, widthPixels: 220, heightPixels: 120, type: OfficeChartType.ColumnClustered, title: "Outside Chart");
+            sheet.AddChartFromRange("B2:C3", row: 3, column: 2, width: OfficeLength.Pixels(220), height: OfficeLength.Pixels(120), type: OfficeChartType.ColumnClustered, title: "Inside Chart");
+            sheet.AddChartFromRange("B2:C3", row: 10, column: 1, width: OfficeLength.Pixels(220), height: OfficeLength.Pixels(120), type: OfficeChartType.ColumnClustered, title: "Outside Chart");
             document.SetPrintArea(sheet, "B2:C3");
             document.Save();
 
@@ -207,7 +207,7 @@ public partial class Excel {
             sheet.Cell(1, 1, "Name");
             sheet.Cell(2, 1, "WorksheetPageSetup");
             sheet.SetOrientation(OfficePageOrientation.Landscape);
-            sheet.SetMargins(left: 0.25, right: 0.25, top: 0.5, bottom: 0.5);
+            sheet.SetMargins(left: OfficeLength.Inches(0.25), right: OfficeLength.Inches(0.25), top: OfficeLength.Inches(0.5), bottom: OfficeLength.Inches(0.5));
             document.Save();
 
             bytes = document.ToPdf(new ExcelPdfExportOptions {

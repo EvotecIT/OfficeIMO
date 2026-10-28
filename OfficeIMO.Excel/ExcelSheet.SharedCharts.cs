@@ -10,10 +10,10 @@ namespace OfficeIMO.Excel {
         /// and primary or secondary axis assignments.
         /// </summary>
         public ExcelChart AddChart(OfficeChartType chartKind, OfficeChartData data, int row, int column,
-            int widthPixels = 640, int heightPixels = 360, string? title = null) {
+            OfficeLength? width = null, OfficeLength? height = null, string? title = null) {
             if (data == null) throw new ArgumentNullException(nameof(data));
             ExcelChartData excelData = ToExcelChartData(data, chartKind);
-            ExcelChart chart = AddChart(excelData, row, column, widthPixels, heightPixels,
+            ExcelChart chart = AddChart(excelData, row, column, width, height,
                 chartKind, title);
             chart.ApplyAuthoredSeriesStyles(excelData.Series,
                 data.Series.Select(series => series.ShowInLegend).ToList());

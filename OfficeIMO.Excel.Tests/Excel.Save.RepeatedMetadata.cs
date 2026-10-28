@@ -23,7 +23,7 @@ public sealed class ExcelRepeatedMetadataSaveTests {
             retainedSheet.CellValue(1, 1, 42);
             retainedSheet.AddChart(new ExcelChartData(new[] { "Value" },
                     new[] { new ExcelChartSeries("Series", new[] { 42d }) }),
-                row: 4, column: 1, widthPixels: 300, heightPixels: 180,
+                row: 4, column: 1, width: OfficeLength.Pixels(300), height: OfficeLength.Pixels(180),
                 type: OfficeChartType.ColumnClustered, title: "Metadata chart");
             string outputPath = Path.Combine(directory, "report.xlsx");
 

@@ -148,18 +148,18 @@ namespace OfficeIMO.Excel.Pdf {
             if (image == null) return null;
 
             if (image.Bytes.Length > 0 &&
-                image.WidthPoints > 0D &&
-                image.HeightPoints > 0D &&
+                image.Width.ToPoints() > 0D &&
+                image.Height.ToPoints() > 0D &&
                 IsPdfSupportedImageContentType(image.ContentType) &&
                 TryPreparePdfImageBytes(image.Bytes, image.ContentType, out byte[] preparedBytes, out _)) {
-                return new PreparedHeaderFooterImage(preparedBytes, image.WidthPoints, image.HeightPoints);
+                return new PreparedHeaderFooterImage(preparedBytes, image.Width.ToPoints(), image.Height.ToPoints());
             }
 
             AddWarning(
                 options,
                 sheetName,
                 "worksheet-header-footer-image",
-                $"The {location} image was not exported because it is not a supported PDF image payload. ContentType='{image.ContentType}', WidthPoints={image.WidthPoints.ToString(CultureInfo.InvariantCulture)}, HeightPoints={image.HeightPoints.ToString(CultureInfo.InvariantCulture)}, Bytes={image.Bytes.Length.ToString(CultureInfo.InvariantCulture)}.");
+                $"The {location} image was not exported because it is not a supported PDF image payload. ContentType='{image.ContentType}', WidthPoints={image.Width.ToPoints().ToString(CultureInfo.InvariantCulture)}, HeightPoints={image.Height.ToPoints().ToString(CultureInfo.InvariantCulture)}, Bytes={image.Bytes.Length.ToString(CultureInfo.InvariantCulture)}.");
             return null;
         }
 

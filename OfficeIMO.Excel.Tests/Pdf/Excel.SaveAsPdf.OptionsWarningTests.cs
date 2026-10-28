@@ -60,7 +60,7 @@ public partial class Excel {
                 headerCenter: "&U&\"Arial,Bold\"&14&KFF0000Styled &D &T &A",
                 footerRight: "Page &P of &N");
             sheet.AddBubbleChartFromRanges(new[] { new ExcelChartSeriesRange("Values", "B2:B3", "B2:B3", "B2:B3") },
-                row: 1, column: 4, widthPixels: 320, heightPixels: 180, title: "Unsupported Bubble Chart");
+                row: 1, column: 4, width: OfficeLength.Pixels(320), height: OfficeLength.Pixels(180), title: "Unsupported Bubble Chart");
 
             ExcelChart chart = Assert.Single(sheet.Charts);
             // Truncated producer data must remain an unreadable-chart diagnostic.

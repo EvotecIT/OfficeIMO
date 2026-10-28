@@ -52,7 +52,7 @@ namespace OfficeIMO.Examples.Excel
             overview.Title("Domain Detective — Overview", $"Generated {DateTime.Now:yyyy-MM-dd HH:mm}");
             // Header/footer with Evotec logo + page text (fixed URL)
             const string logoUrl = "https://evotec.pl/wp-content/uploads/2015/05/Logo-evotec-012.png";
-            await overview.HeaderLogoFromUrlAsync(logoUrl, OfficeIMO.Excel.ExcelHeaderFooterPosition.Center, 120, 40, leftText: "Page &P of &N");
+            await overview.HeaderLogoFromUrlAsync(logoUrl, OfficeIMO.Excel.ExcelHeaderFooterPosition.Center, OfficeLength.Points(120), OfficeLength.Points(40), leftText: "Page &P of &N");
             // Also place the logo inside the sheet (first page) via URL
             await overview.AddImageFromUrlAsync(row: 1, column: 6, url: logoUrl, width: OfficeIMO.OfficeLength.Pixels(120), height: OfficeIMO.OfficeLength.Pixels(40));
             int totalWarnings = rows.Sum(x => x.WarningCount);
@@ -122,7 +122,7 @@ namespace OfficeIMO.Examples.Excel
             if (idx != null)
             {
                 idx.SetHeaderFooter(headerRight: "Page &P of &N");
-                await idx.SetHeaderImageFromUrlAsync(ExcelHeaderFooterPosition.Left, logoUrl, widthPoints: 96, heightPoints: 32);
+                await idx.SetHeaderImageFromUrlAsync(ExcelHeaderFooterPosition.Left, logoUrl, width: OfficeLength.Points(96), height: OfficeLength.Points(32));
             }
 
             var errors = doc.ValidateOpenXml();
@@ -162,7 +162,7 @@ namespace OfficeIMO.Examples.Excel
                 };
             });
             // Header logo on the Right, page number on Left (complements Index/Overview)
-            await s.HeaderLogoFromUrlAsync("https://evotec.pl/wp-content/uploads/2015/05/Logo-evotec-012.png", OfficeIMO.Excel.ExcelHeaderFooterPosition.Right, 96, 32, leftText: "Page &P of &N");
+            await s.HeaderLogoFromUrlAsync("https://evotec.pl/wp-content/uploads/2015/05/Logo-evotec-012.png", OfficeIMO.Excel.ExcelHeaderFooterPosition.Right, OfficeLength.Points(96), OfficeLength.Points(32), leftText: "Page &P of &N");
             // Optional: embed the Evotec logo on each detail sheet near the title
             await s.AddImageFromUrlAsync(row: 1, column: 5, url: "https://evotec.pl/wp-content/uploads/2015/05/Logo-evotec-012.png", width: OfficeIMO.OfficeLength.Pixels(100), height: OfficeIMO.OfficeLength.Pixels(34));
             // Legend per domain (reusable SectionLegend)

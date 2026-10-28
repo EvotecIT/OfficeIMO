@@ -278,7 +278,7 @@ namespace OfficeIMO.Tests
                     new ExcelChartSeries("Trend", new[] { 12d, 18d, 28d, 35d }, OfficeChartType.Line, OfficeChartAxisGroup.Secondary)
                 });
 
-            ExcelChart chart = sheet.AddChart(data, row: 2, column: 6, widthPixels: 640, heightPixels: 360,
+            ExcelChart chart = sheet.AddChart(data, row: 2, column: 6, width: OfficeLength.Pixels(640), height: OfficeLength.Pixels(360),
                 type: OfficeChartType.ColumnClustered, title: "Sales vs Trend");
             chart.SetSeriesDataLabels(1, showValue: true, position: OfficeChartDataLabelPosition.Top)
                  .SetSeriesDataLabelForPoint(1, 2, showValue: true, position: OfficeChartDataLabelPosition.OutsideEnd);
@@ -305,8 +305,8 @@ namespace OfficeIMO.Tests
             sheet.AddVarianceColumnChart("A1:B4", row: 35, column: 5, title: "Revenue Variance");
             sheet.AddKpiScorecardChart("A1:B4", row: 52, column: 5, title: "Revenue KPI");
             sheet.AddContributionChart("A1:B4", row: 69, column: 5, title: "Revenue Mix");
-            sheet.AddStatusBreakdownChart(sheet.GetTableRange("RevenueData")!, row: 86, column: 5, widthPixels: 520, heightPixels: 320, title: "Revenue Mix", includeCachedData: true, hasHeaders: true);
-            sheet.AddVarianceWaterfallChart(sheet.GetTableRange("RevenueData")!, row: 103, column: 5, widthPixels: 720, heightPixels: 360, title: "Revenue Bridge", includeCachedData: true, hasHeaders: true);
+            sheet.AddStatusBreakdownChart(sheet.GetTableRange("RevenueData")!, row: 86, column: 5, width: OfficeLength.Pixels(520), height: OfficeLength.Pixels(320), title: "Revenue Mix", includeCachedData: true, hasHeaders: true);
+            sheet.AddVarianceWaterfallChart(sheet.GetTableRange("RevenueData")!, row: 103, column: 5, width: OfficeLength.Pixels(720), height: OfficeLength.Pixels(360), title: "Revenue Bridge", includeCachedData: true, hasHeaders: true);
             document.Save();
             return filePath;
         }

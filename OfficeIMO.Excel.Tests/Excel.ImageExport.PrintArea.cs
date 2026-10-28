@@ -395,7 +395,7 @@ namespace OfficeIMO.Tests {
             ExcelSheet sheet = document.AddWorksheet("Report");
             FillPageBreakGrid(sheet);
             sheet.SetOrientation(OfficePageOrientation.Landscape);
-            sheet.SetMargins(0.5D, 0.5D, 0.5D, 0.5D);
+            sheet.SetMargins(OfficeLength.Inches(0.5D), OfficeLength.Inches(0.5D), OfficeLength.Inches(0.5D), OfficeLength.Inches(0.5D));
             sheet.SetPageSetup(scale: 50);
             sheet.AddManualRowPageBreak(2, save: false);
 
@@ -425,7 +425,7 @@ namespace OfficeIMO.Tests {
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddWorksheet("Report");
             FillPageBreakGrid(sheet);
-            sheet.SetMargins(0.25D, 0.25D, 0.5D, 0.5D);
+            sheet.SetMargins(OfficeLength.Inches(0.25D), OfficeLength.Inches(0.25D), OfficeLength.Inches(0.5D), OfficeLength.Inches(0.5D));
             sheet.SetPageSetup(scale: 75);
             sheet.AddManualRowPageBreak(2, save: false);
 
@@ -457,7 +457,7 @@ namespace OfficeIMO.Tests {
                 sheet.SetColumnWidth(column, ExcelColumnWidth.Characters(40D));
             }
 
-            sheet.SetMargins(0.25D, 0.25D, 0.25D, 0.25D);
+            sheet.SetMargins(OfficeLength.Inches(0.25D), OfficeLength.Inches(0.25D), OfficeLength.Inches(0.25D), OfficeLength.Inches(0.25D));
             sheet.SetPageSetup(fitToWidth: 1, fitToHeight: 0, paperSize: ExcelPaperSize.Letter);
             sheet.AddManualRowPageBreak(2, save: false);
 
@@ -487,7 +487,7 @@ namespace OfficeIMO.Tests {
                 sheet.SetColumnWidth(column, ExcelColumnWidth.Characters(40D));
             }
 
-            sheet.SetMargins(0.25D, 0.25D, 0.25D, 0.25D);
+            sheet.SetMargins(OfficeLength.Inches(0.25D), OfficeLength.Inches(0.25D), OfficeLength.Inches(0.25D), OfficeLength.Inches(0.25D));
             sheet.SetPageSetup(fitToWidth: 1, fitToHeight: 0, paperSize: ExcelPaperSize.Letter);
             sheet.AddManualRowPageBreak(2, save: false);
 
@@ -515,7 +515,7 @@ namespace OfficeIMO.Tests {
             FillPageBreakGrid(sheet);
             sheet.SetRowHeight(3, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(800D)));
             sheet.SetRowHeight(4, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(800D)));
-            sheet.SetMargins(0.25D, 0.25D, 0.25D, 0.25D);
+            sheet.SetMargins(OfficeLength.Inches(0.25D), OfficeLength.Inches(0.25D), OfficeLength.Inches(0.25D), OfficeLength.Inches(0.25D));
             sheet.SetPageSetup(fitToWidth: 0, fitToHeight: 1, paperSize: ExcelPaperSize.Letter);
             sheet.AddManualRowPageBreak(2, save: false);
 
@@ -541,7 +541,7 @@ namespace OfficeIMO.Tests {
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddWorksheet("Report");
             FillPageBreakGrid(sheet);
-            sheet.SetMargins(0.25D, 0.25D, 0.5D, 0.5D);
+            sheet.SetMargins(OfficeLength.Inches(0.25D), OfficeLength.Inches(0.25D), OfficeLength.Inches(0.5D), OfficeLength.Inches(0.5D));
             sheet.SetPageSetup(scale: 100, paperSize: ExcelPaperSize.A4);
             sheet.AddManualRowPageBreak(2, save: false);
 
@@ -570,7 +570,7 @@ namespace OfficeIMO.Tests {
             ExcelSheet sheet = document.AddWorksheet("Report");
             FillPageBreakGrid(sheet);
             sheet.SetOrientation(OfficePageOrientation.Landscape);
-            sheet.SetMargins(0.25D, 0.25D, 0.25D, 0.25D);
+            sheet.SetMargins(OfficeLength.Inches(0.25D), OfficeLength.Inches(0.25D), OfficeLength.Inches(0.25D), OfficeLength.Inches(0.25D));
             sheet.SetPageSetup(scale: 100, paperSize: ExcelPaperSize.Legal);
             sheet.AddManualRowPageBreak(2, save: false);
 
@@ -597,7 +597,7 @@ namespace OfficeIMO.Tests {
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddWorksheet("Report");
                 FillPageBreakGrid(sheet);
-                sheet.SetMargins(0.25D, 0.25D, 0.25D, 0.25D);
+                sheet.SetMargins(OfficeLength.Inches(0.25D), OfficeLength.Inches(0.25D), OfficeLength.Inches(0.25D), OfficeLength.Inches(0.25D));
                 sheet.SetPageSetup(scale: 100);
                 sheet.AddManualRowPageBreak(2, save: false);
                 document.Save();

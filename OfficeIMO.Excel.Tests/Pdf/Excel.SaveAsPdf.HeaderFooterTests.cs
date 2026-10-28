@@ -392,15 +392,15 @@ public partial class Excel {
             sheet.Cell(1, 1, "Metric");
             sheet.Cell(2, 1, "HeaderFooterImageBody");
             sheet.SetHeaderFooter(headerCenter: "Logo Header");
-            sheet.SetHeaderImage(ExcelHeaderFooterPosition.Center, imageBytes, "image/png", widthPoints: 24, heightPoints: 16);
+            sheet.SetHeaderImage(ExcelHeaderFooterPosition.Center, imageBytes, "image/png", width: OfficeLength.Points(24), height: OfficeLength.Points(16));
 
             ExcelSheet.ExcelHeaderFooterInfo snapshot = sheet.GetHeaderFooter();
             Assert.True(snapshot.HeaderHasPicturePlaceholder);
             Assert.NotNull(snapshot.HeaderCenterImage);
             Assert.Equal(ExcelHeaderFooterPosition.Center, snapshot.HeaderCenterImage!.Position);
             Assert.Equal("image/png", snapshot.HeaderCenterImage.ContentType);
-            Assert.Equal(24, snapshot.HeaderCenterImage.WidthPoints);
-            Assert.Equal(16, snapshot.HeaderCenterImage.HeightPoints);
+            Assert.Equal(24, snapshot.HeaderCenterImage.Width.ToPoints());
+            Assert.Equal(16, snapshot.HeaderCenterImage.Height.ToPoints());
             Assert.Equal(imageBytes, snapshot.HeaderCenterImage.Bytes);
 
             document.Save();
@@ -449,7 +449,7 @@ public partial class Excel {
             }
 
             sheet.SetHeaderFooter(headerCenter: "Odd Header &A", footerCenter: "Odd Footer &P");
-            sheet.SetHeaderImage(ExcelHeaderFooterPosition.Center, imageBytes, "image/png", widthPoints: 24, heightPoints: 16);
+            sheet.SetHeaderImage(ExcelHeaderFooterPosition.Center, imageBytes, "image/png", width: OfficeLength.Points(24), height: OfficeLength.Points(16));
 
             HeaderFooter headerFooter = sheet.WorksheetPart.Worksheet.GetFirstChild<HeaderFooter>()!;
             headerFooter.DifferentFirst = true;

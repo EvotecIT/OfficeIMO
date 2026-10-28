@@ -262,7 +262,7 @@ internal static partial class ExcelLibraryComparisonRunner {
 
     private static void AddOfficeImoReportWorkbookChart(ExcelSheet sheet, int rowCount) {
         int lastRow = rowCount + 1;
-        sheet.AddChartFromRange($"F1:G{lastRow.ToString(CultureInfo.InvariantCulture)}", row: 2, column: 12, widthPixels: 720, heightPixels: 320, type: OfficeChartType.ColumnClustered, title: "Score by Created", includeCachedData: false);
+        sheet.AddChartFromRange($"F1:G{lastRow.ToString(CultureInfo.InvariantCulture)}", row: 2, column: 12, width: OfficeLength.Pixels(720), height: OfficeLength.Pixels(320), type: OfficeChartType.ColumnClustered, title: "Score by Created", includeCachedData: false);
     }
 
     private static void AddOfficeImoReportWorkbookPivotTable(ExcelSheet sheet, int rowCount) {

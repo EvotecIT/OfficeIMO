@@ -1575,7 +1575,7 @@ namespace OfficeIMO.Tests
             using var document = ExcelDocument.Create(new MemoryStream());
             var sheet = document.AddWorksheet("Report");
             sheet.CellValue(1, 1, "Report");
-            sheet.SetMargins(0.25D, 0.25D, 0.5D, 0.5D, 0.3D, 0.3D);
+            sheet.SetMargins(OfficeLength.Inches(0.25D), OfficeLength.Inches(0.25D), OfficeLength.Inches(0.5D), OfficeLength.Inches(0.5D), OfficeLength.Inches(0.3D), OfficeLength.Inches(0.3D));
             sheet.SetOrientation(OfficePageOrientation.Landscape);
             sheet.SetPageSetup(fitToWidth: 1U, fitToHeight: 0U);
             sheet.SetHeaderFooter(headerCenter: "OfficeIMO", footerRight: "Page &P of &N");
@@ -4131,7 +4131,7 @@ namespace OfficeIMO.Tests
                     rows.Select(row => row.Name),
                     new[] { new ExcelChartSeries("Score", rows.Select(row => (double)row.Score)) });
 
-                sheet.AddChart(chartData, row: 6, column: 5, widthPixels: 480, heightPixels: 280, type: OfficeChartType.ColumnClustered, title: "Scores");
+                sheet.AddChart(chartData, row: 6, column: 5, width: OfficeLength.Pixels(480), height: OfficeLength.Pixels(280), type: OfficeChartType.ColumnClustered, title: "Scores");
 
                 document.Save(memory);
 
@@ -4165,7 +4165,7 @@ namespace OfficeIMO.Tests
                 var sheet = document.AddWorksheet("Data");
                 sheet.InsertObjects(rows, ("Name", row => row.Name), ("Score", row => row.Score), ("Created", row => row.Created));
                 sheet.AddTable("A1:C4", hasHeader: true, name: "ReportData", style: OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium4, includeAutoFilter: true);
-                sheet.AddChartFromRange("A1:B4", row: 2, column: 6, widthPixels: 480, heightPixels: 280, type: OfficeChartType.ColumnClustered, title: "Scores", includeCachedData: false);
+                sheet.AddChartFromRange("A1:B4", row: 2, column: 6, width: OfficeLength.Pixels(480), height: OfficeLength.Pixels(280), type: OfficeChartType.ColumnClustered, title: "Scores", includeCachedData: false);
                 sheet.AddPivotTable("A1:C4", "F20", options: new ExcelPivotTableOptions { RowFields = new[] { "Name" }, DataFields = new[] { new ExcelPivotDataField("Score", ExcelPivotDataFunction.Sum, "Total Score") } });
                 document.Save(memory);
                 Assert.Equal(ExcelSavePackageWriter.ExtendedPackage, document.LastSaveDiagnostics.Writer);
@@ -4200,7 +4200,7 @@ namespace OfficeIMO.Tests
                 var sheet = document.AddWorksheet("Data");
                 sheet.InsertObjects(rows, ("Name", row => row.Name), ("Score", row => row.Score), ("Created", row => row.Created));
                 var chartData = new ExcelChartData(rows.Select(row => row.Name), new[] { new ExcelChartSeries("Score", rows.Select(row => (double)row.Score)) });
-                sheet.AddChart(chartData, row: 2, column: 6, widthPixels: 480, heightPixels: 280, type: OfficeChartType.ColumnClustered, title: "Scores");
+                sheet.AddChart(chartData, row: 2, column: 6, width: OfficeLength.Pixels(480), height: OfficeLength.Pixels(280), type: OfficeChartType.ColumnClustered, title: "Scores");
                 sheet.AddPivotTable("A1:C4", "F20", options: new ExcelPivotTableOptions { RowFields = new[] { "Name" }, DataFields = new[] { new ExcelPivotDataField("Score", ExcelPivotDataFunction.Sum, "Total Score") } });
                 document.Save(memory);
                 Assert.Equal(ExcelSavePackageWriter.ExtendedPackage, document.LastSaveDiagnostics.Writer);
@@ -4232,7 +4232,7 @@ namespace OfficeIMO.Tests
                 sheet.AddTable("A1:C4", hasHeader: true, name: "ReportData", style: OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium4, includeAutoFilter: true);
                 sheet.AddPivotTable("A1:C4", "F20", options: new ExcelPivotTableOptions { RowFields = new[] { "Name" }, DataFields = new[] { new ExcelPivotDataField("Score", ExcelPivotDataFunction.Sum, "Total Score") } });
                 var chartData = new ExcelChartData(rows.Select(row => row.Name), new[] { new ExcelChartSeries("Score", rows.Select(row => (double)row.Score)) });
-                sheet.AddChart(chartData, row: 2, column: 6, widthPixels: 480, heightPixels: 280, type: OfficeChartType.ColumnClustered, title: "Scores");
+                sheet.AddChart(chartData, row: 2, column: 6, width: OfficeLength.Pixels(480), height: OfficeLength.Pixels(280), type: OfficeChartType.ColumnClustered, title: "Scores");
                 sheet.CellValue(rows.Length + 4, 1, "Manual note after report features");
                 document.Save(memory);
                 Assert.Equal(ExcelSavePackageWriter.ExtendedPackage, document.LastSaveDiagnostics.Writer);
@@ -4282,7 +4282,7 @@ namespace OfficeIMO.Tests
                 var chartData = new ExcelChartData(
                     rows.Select(row => row.Name),
                     new[] { new ExcelChartSeries("Score", rows.Select(row => (double)row.Score)) });
-                sheet.AddChart(chartData, row: 2, column: 6, widthPixels: 480, heightPixels: 280, type: OfficeChartType.ColumnClustered, title: "Scores");
+                sheet.AddChart(chartData, row: 2, column: 6, width: OfficeLength.Pixels(480), height: OfficeLength.Pixels(280), type: OfficeChartType.ColumnClustered, title: "Scores");
 
                 document.Save(memory);
             }
@@ -4503,7 +4503,7 @@ namespace OfficeIMO.Tests
                 var chartData = new ExcelChartData(
                     rows.Select(row => row.Name),
                     new[] { new ExcelChartSeries("Score", rows.Select(row => (double)row.Score)) });
-                sheet.AddChart(chartData, row: 2, column: 6, widthPixels: 480, heightPixels: 280, type: OfficeChartType.ColumnClustered, title: "Scores");
+                sheet.AddChart(chartData, row: 2, column: 6, width: OfficeLength.Pixels(480), height: OfficeLength.Pixels(280), type: OfficeChartType.ColumnClustered, title: "Scores");
 
                 document.Save(memory);
             }
@@ -4671,7 +4671,7 @@ namespace OfficeIMO.Tests
                 chartSheet.CellValue(3, 2, 20);
                 chartSheet.CellValue(4, 1, "East");
                 chartSheet.CellValue(4, 2, 30);
-                chartSheet.AddChartFromRange("A1:B4", row: 2, column: 5, widthPixels: 480, heightPixels: 280, type: OfficeChartType.ColumnClustered, title: "Scores", includeCachedData: false);
+                chartSheet.AddChartFromRange("A1:B4", row: 2, column: 5, width: OfficeLength.Pixels(480), height: OfficeLength.Pixels(280), type: OfficeChartType.ColumnClustered, title: "Scores", includeCachedData: false);
                 var dataSheet = document.AddWorksheet("Data");
                 dataSheet.InsertObjects(rows, ("Name", row => row.Name), ("Score", row => row.Score), ("Created", row => row.Created));
                 dataSheet.AddTable("A1:C4", hasHeader: true, name: "ReportData", style: OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium4, includeAutoFilter: true);
@@ -4947,7 +4947,7 @@ namespace OfficeIMO.Tests
                     rows.Select(row => row.Name),
                     new[] { new ExcelChartSeries("Score", rows.Select(row => (double)row.Score)) });
 
-                sheet.AddChart(chartData, row: 1, column: 6, widthPixels: 360, heightPixels: 240, type: OfficeChartType.ColumnClustered, title: "Styled");
+                sheet.AddChart(chartData, row: 1, column: 6, width: OfficeLength.Pixels(360), height: OfficeLength.Pixels(240), type: OfficeChartType.ColumnClustered, title: "Styled");
 
                 document.Save(memory);
 
@@ -5250,7 +5250,7 @@ namespace OfficeIMO.Tests
                 var chartData = new ExcelChartData(
                     rows.Select(row => row.Name),
                     new[] { new ExcelChartSeries("Score", rows.Select(row => (double)row.Score)) });
-                sheet.AddChart(chartData, row: 2, column: 6, widthPixels: 480, heightPixels: 280, type: OfficeChartType.ColumnClustered, title: "Scores");
+                sheet.AddChart(chartData, row: 2, column: 6, width: OfficeLength.Pixels(480), height: OfficeLength.Pixels(280), type: OfficeChartType.ColumnClustered, title: "Scores");
                 sheet.ColumnStyleByHeader("Score").NumberFormat("#,##0.000");
 
                 document.Save(memory);
@@ -5413,7 +5413,7 @@ namespace OfficeIMO.Tests
                     ("Name", row => row.Name),
                     ("Score", row => row.Score),
                     ("Created", row => row.Created));
-                sheet.SetMargins(0.25D, 0.25D, 0.5D, 0.5D, 0.3D, 0.3D);
+                sheet.SetMargins(OfficeLength.Inches(0.25D), OfficeLength.Inches(0.25D), OfficeLength.Inches(0.5D), OfficeLength.Inches(0.5D), OfficeLength.Inches(0.3D), OfficeLength.Inches(0.3D));
                 sheet.SetOrientation(OfficePageOrientation.Landscape);
                 sheet.SetPageSetup(fitToWidth: 1U, fitToHeight: 0U);
 

@@ -13,7 +13,7 @@ public static partial class HtmlExcelConverterExtensions {
 
     // Exact native metadata takes precedence over presentation pixels; both obey the import geometry budget.
     private static OfficeLength ReadImageLength(IElement item, string name, double fallbackPixels,
-        bool positive, HtmlImportBudget budget, HtmlToExcelResult result) {
+        bool positive, HtmlImportBudget budget, HtmlToExcelResult result, string kind = "image") {
         double maximum = Math.Min(int.MaxValue, budget.Limits.MaxAbsoluteGeometry);
         string? text = item.GetAttribute("data-officeimo-" + name + "-emu");
         if (text != null) {
@@ -22,11 +22,11 @@ public static partial class HtmlExcelConverterExtensions {
                 && (!positive || emus > 0L) && emus <= limit && emus >= -limit)
                 return OfficeLength.Emus(emus);
             AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.SemanticValueInvalid,
-                "Invalid or out-of-range image " + name + " native metadata used its pixel fallback.");
+                "Invalid or out-of-range " + kind + " " + name + " native metadata used its pixel fallback.");
         }
         double fallback = positive ? (name == "height" ? 32D : 96D) : 0D;
         double pixels = NormalizeEditableLayoutGeometry(fallbackPixels, fallback,
-            positive ? 1D / 9525D : -maximum, maximum, budget, result, "image " + name);
+            positive ? 1D / 9525D : -maximum, maximum, budget, result, kind + " " + name);
         return OfficeLength.Pixels(pixels);
     }
 }

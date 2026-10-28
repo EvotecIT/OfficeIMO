@@ -656,8 +656,8 @@ namespace OfficeIMO.Tests {
             ExcelSheet sheet = document.AddWorksheet("Report");
             FillPageBreakGrid(sheet);
             byte[] logo = CreateHeaderFooterLogoPng();
-            sheet.SetHeaderImage(ExcelHeaderFooterPosition.Center, logo, "image/png", widthPoints: 36D, heightPoints: 16D);
-            sheet.SetFooterImage(ExcelHeaderFooterPosition.Right, logo, "image/png", widthPoints: 24D, heightPoints: 12D);
+            sheet.SetHeaderImage(ExcelHeaderFooterPosition.Center, logo, "image/png", width: OfficeLength.Points(36D), height: OfficeLength.Points(16D));
+            sheet.SetFooterImage(ExcelHeaderFooterPosition.Right, logo, "image/png", width: OfficeLength.Points(24D), height: OfficeLength.Points(12D));
             sheet.AddManualRowPageBreak(2, save: false);
 
             var options = new ExcelImageExportOptions {
@@ -689,7 +689,7 @@ namespace OfficeIMO.Tests {
             using ExcelDocument document = ExcelDocument.Create(new MemoryStream());
             ExcelSheet sheet = document.AddWorksheet("Report");
             FillPageBreakGrid(sheet);
-            sheet.SetHeaderImage(ExcelHeaderFooterPosition.Center, CreateHeaderFooterLogoPng(), "image/png", widthPoints: 36D, heightPoints: 16D);
+            sheet.SetHeaderImage(ExcelHeaderFooterPosition.Center, CreateHeaderFooterLogoPng(), "image/png", width: OfficeLength.Points(36D), height: OfficeLength.Points(16D));
             sheet.AddManualRowPageBreak(2, save: false);
 
             OfficeImageExportResult result = sheet.ExportImages(OfficeImageExportFormat.Svg, new ExcelImageExportOptions {
@@ -710,7 +710,7 @@ namespace OfficeIMO.Tests {
             ExcelSheet sheet = document.AddWorksheet("Report");
             FillPageBreakGrid(sheet);
             byte[] logo = CreateHeaderFooterLogoPng();
-            sheet.SetHeaderImage(ExcelHeaderFooterPosition.Center, logo, "image/png", widthPoints: 36D, heightPoints: 16D);
+            sheet.SetHeaderImage(ExcelHeaderFooterPosition.Center, logo, "image/png", width: OfficeLength.Points(36D), height: OfficeLength.Points(16D));
             sheet.AddImage(1, 1, logo, "image/png", width: OfficeIMO.OfficeLength.Pixels(24), height: OfficeIMO.OfficeLength.Pixels(12), name: "Worksheet logo");
             sheet.AddManualRowPageBreak(2, save: false);
 
@@ -731,7 +731,7 @@ namespace OfficeIMO.Tests {
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddWorksheet("Report");
             FillPageBreakGrid(sheet);
-            sheet.SetHeaderImage(ExcelHeaderFooterPosition.Center, CreateHeaderFooterLogoBmp(), "image/bmp", widthPoints: 36D, heightPoints: 16D);
+            sheet.SetHeaderImage(ExcelHeaderFooterPosition.Center, CreateHeaderFooterLogoBmp(), "image/bmp", width: OfficeLength.Points(36D), height: OfficeLength.Points(16D));
             sheet.AddManualRowPageBreak(2, save: false);
 
             var options = new ExcelImageExportOptions {
@@ -761,7 +761,7 @@ namespace OfficeIMO.Tests {
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddWorksheet("Report");
             FillPageBreakGrid(sheet);
-            sheet.SetHeaderImage(ExcelHeaderFooterPosition.Center, new byte[] { 0x47, 0x49, 0x46, 0x38, 0x39, 0x61 }, "image/gif", widthPoints: 36D, heightPoints: 16D);
+            sheet.SetHeaderImage(ExcelHeaderFooterPosition.Center, new byte[] { 0x47, 0x49, 0x46, 0x38, 0x39, 0x61 }, "image/gif", width: OfficeLength.Points(36D), height: OfficeLength.Points(16D));
             sheet.AddManualRowPageBreak(2, save: false);
 
             OfficeImageExportResult result = sheet.ExportImages(OfficeImageExportFormat.Png, new ExcelImageExportOptions {
@@ -787,8 +787,8 @@ namespace OfficeIMO.Tests {
                 ExcelHeaderFooterPosition.Center,
                 new byte[] { 0x47, 0x49, 0x46, 0x38, 0x39, 0x61 },
                 "image/gif",
-                widthPoints: 36D,
-                heightPoints: 16D);
+                width: OfficeLength.Points(36D),
+                height: OfficeLength.Points(16D));
             sheet.AddManualRowPageBreak(2, save: false);
             var codec = new HeaderImageCodec();
 

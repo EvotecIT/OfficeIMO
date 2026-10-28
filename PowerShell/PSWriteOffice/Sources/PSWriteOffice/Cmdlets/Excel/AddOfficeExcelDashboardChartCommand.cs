@@ -116,8 +116,8 @@ public sealed class AddOfficeExcelDashboardChartCommand : PSCmdlet
             Title = Title,
             HasHeaders = HasHeaders,
             IncludeCachedData = IncludeCachedData,
-            WidthPixels = WidthPixels,
-            HeightPixels = HeightPixels,
+            Width = WidthPixels.HasValue ? OfficeLength.Pixels(WidthPixels.Value) : (OfficeLength?)null,
+            Height = HeightPixels.HasValue ? OfficeLength.Pixels(HeightPixels.Value) : (OfficeLength?)null,
             StyleId = StyleId,
             ColorStyleId = ColorStyleId
         };

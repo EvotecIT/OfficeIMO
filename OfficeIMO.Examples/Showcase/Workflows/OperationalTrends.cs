@@ -20,7 +20,7 @@ internal static class OperationalTrends {
             sheet.CellFormula(row, 4, $"B{row}-C{row}");
         }
         sheet.AddTable("A4:D10", hasHeader: true, name: "WeeklyWorkload", style: ExcelTableStyle.TableStyleMedium2);
-        sheet.AddChartFromRange("A4:C10", row: 13, column: 1, widthPixels: 620, heightPixels: 300,
+        sheet.AddChartFromRange("A4:C10", row: 13, column: 1, width: OfficeLength.Pixels(620), height: OfficeLength.Pixels(300),
             type: OfficeChartType.Line, title: "Received and resolved requests");
         document.Calculate();
         sheet.Range("A1:D30").ExportImage(OfficeImageExportFormat.Png).Save(Path.Combine(folder, "preview.png"), OfficeImageExportFileConflictPolicy.Replace);

@@ -23,7 +23,7 @@ public static partial class ExcelOpenDocumentConversionExtensions {
             foreach (OdsChart chart in charts) {
                 if (!TryCreateExcelChartData(source, odsSheet.Name, chart, options, readers,
                     out ExcelChartData? data, out OfficeChartType chartType, out int row, out int column,
-                    out int width, out int height, out bool sourceLimitExceeded)) {
+                    out OfficeLength width, out OfficeLength height, out bool sourceLimitExceeded)) {
                     if (sourceLimitExceeded) truncated = true;
                     continue;
                 }
@@ -59,11 +59,12 @@ public static partial class ExcelOpenDocumentConversionExtensions {
     private static bool TryCreateExcelChartData(OdsDocument document, string hostSheetName, OdsChart chart,
         ExcelOpenDocumentConversionOptions options, Dictionary<string, ChartCellReader> readers,
         out ExcelChartData? data,
-        out OfficeChartType type, out int row, out int column, out int width, out int height,
+        out OfficeChartType type, out int row, out int column, out OfficeLength width, out OfficeLength height,
         out bool sourceLimitExceeded) {
         data = null;
         type = OfficeChartType.ColumnClustered;
-        row = column = width = height = 0;
+        row = column = 0;
+        width = height = OfficeLength.Zero;
         sourceLimitExceeded = false;
         if (chart.AnchorRow.HasValue && chart.AnchorColumn.HasValue &&
             (chart.AnchorRow.Value >= options.MaximumRows || chart.AnchorColumn.Value >= options.MaximumColumns)) {
@@ -140,8 +141,8 @@ public static partial class ExcelOpenDocumentConversionExtensions {
         data = new ExcelChartData(labels, series);
         row = checked((int)chart.AnchorRow.Value + 1);
         column = checked((int)chart.AnchorColumn.Value + 1);
-        width = Math.Max(1, (int)Math.Round(widthPoints * 96D / 72D));
-        height = Math.Max(1, (int)Math.Round(heightPoints * 96D / 72D));
+        width = OfficeLength.Points(widthPoints);
+        height = OfficeLength.Points(heightPoints);
         return true;
     }
 

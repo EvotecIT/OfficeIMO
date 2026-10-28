@@ -2451,7 +2451,7 @@ public sealed class PdfConversionScenarioManifestTests {
                     new ExcelChartSeries("Actual", new[] { 128D, 92D, 76D, 54D }, OfficeChartType.ColumnClustered, DrawingCore.OfficeChartAxisGroup.Primary),
                     new ExcelChartSeries("Target", new[] { 120D, 105D, 70D, 65D }, OfficeChartType.Line, DrawingCore.OfficeChartAxisGroup.Secondary)
                 });
-            sheet.AddChart(chartData, row: 1, column: 5, widthPixels: 320, heightPixels: 190, type: OfficeChartType.ColumnClustered, title: "KPI Trend");
+            sheet.AddChart(chartData, row: 1, column: 5, width: OfficeLength.Pixels(320), height: OfficeLength.Pixels(190), type: OfficeChartType.ColumnClustered, title: "KPI Trend");
             sheet.SetHeaderFooter(headerCenter: "Excel Dashboard PDF Gate", footerRight: "Page &P of &N");
             sheet.SetPageSetup(fitToWidth: 1U, fitToHeight: 1U);
             document.SetPrintArea(sheet, "A1:H14", save: false);

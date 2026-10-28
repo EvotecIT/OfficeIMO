@@ -123,8 +123,8 @@ namespace OfficeIMO.Tests {
                 new[] { 1e16d, -10000000000000002d },
                 1,
                 1));
-            Assert.Throws<ArgumentOutOfRangeException>(() => sheet.AddHistogramChart(new[] { 1d, 2d }, 1, 1, widthPixels: -1));
-            Assert.Throws<ArgumentOutOfRangeException>(() => sheet.AddParetoChart(new[] { "A" }, new[] { 1d }, 1, 1, heightPixels: 0));
+            Assert.Throws<ArgumentOutOfRangeException>(() => sheet.AddHistogramChart(new[] { 1d, 2d }, 1, 1, width: OfficeLength.Pixels(-1)));
+            Assert.Throws<ArgumentOutOfRangeException>(() => sheet.AddParetoChart(new[] { "A" }, new[] { 1d }, 1, 1, height: OfficeLength.Pixels(0)));
             Assert.Single(document.Sheets);
 
             ExcelChart wideBinHistogram = sheet.AddHistogramChart(
@@ -224,7 +224,7 @@ namespace OfficeIMO.Tests {
                 var data = new ExcelChartData(
                     new[] { "A", "B" },
                     new[] { new ExcelChartSeries("Value", new[] { 1d, 2d }, seriesColorArgb: "4F46E5") });
-                sheet.AddChart(data, 1, 1, 500, 300, OfficeChartType.ColumnClustered, "Loaded outline")
+                sheet.AddChart(data, 1, 1, OfficeLength.Pixels(500), OfficeLength.Pixels(300), OfficeChartType.ColumnClustered, "Loaded outline")
                     .SetSeriesNoFill(0, noLine: false);
                 document.Save();
             }
@@ -291,7 +291,7 @@ namespace OfficeIMO.Tests {
                 var data = new ExcelChartData(
                     new[] { "A", "B" },
                     new[] { new ExcelChartSeries("Value", new[] { 1d, 2d }, seriesColorArgb: "4F46E5") });
-                sheet.AddChart(data, 1, 1, 500, 300, OfficeChartType.ColumnClustered, "Effect ordering")
+                sheet.AddChart(data, 1, 1, OfficeLength.Pixels(500), OfficeLength.Pixels(300), OfficeChartType.ColumnClustered, "Effect ordering")
                     .SetSeriesNoFill(0, noLine: false);
                 document.Save();
             }
@@ -349,9 +349,9 @@ namespace OfficeIMO.Tests {
                         new ExcelChartSeries("First", new[] { 1d, 2d }, seriesColorArgb: "4F46E5"),
                         new ExcelChartSeries("Second", new[] { 2d, 3d }, seriesColorArgb: "16A34A")
                     });
-                ExcelChart chart = sheet.AddChart(data, 1, 1, 500, 300, OfficeChartType.ColumnClustered, "Line normalization");
-                chart.SetSeriesNoFill(0).SetSeriesLineColor(0, "DC2626", 1.5d);
-                chart.SetSeriesLineColor(1, "16A34A");
+                ExcelChart chart = sheet.AddChart(data, 1, 1, OfficeLength.Pixels(500), OfficeLength.Pixels(300), OfficeChartType.ColumnClustered, "Line normalization");
+                chart.SetSeriesNoFill(0).SetSeriesLineColor(0, OfficeColor.Parse("DC2626"), OfficeLength.Points(1.5d));
+                chart.SetSeriesLineColor(1, OfficeColor.Parse("16A34A"));
                 document.Save();
             }
 
@@ -371,7 +371,7 @@ namespace OfficeIMO.Tests {
             }
 
             using (ExcelDocument document = ExcelDocument.Load(filePath)) {
-                Assert.Single(document["Dashboard"].Charts).SetSeriesLineColor(1, "2563EB");
+                Assert.Single(document["Dashboard"].Charts).SetSeriesLineColor(1, OfficeColor.Parse("2563EB"));
                 document.Save();
             }
 

@@ -1730,11 +1730,11 @@
       "notes": "double inches today.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical chart/page geometry uses OfficeLength; chart style colors use OfficeColor with native theme slots and alpha. Optional defaults and native serialization precision remain at the owning XML/VML boundary. Raster budgets/counts, ratios, angles, percentages and indexes stay numeric. Native chart/page geometry and style readers use the physical units of their XML/VML owners. Current normal and isolated net472 compiles and focused native/consumer/module checks qualify this change; Windows runtime validation follows separately."
     },
     {
       "old": "OfficeIMO.Excel.Fluent.SheetComposer.TableFrom<T>(IEnumerable<T> items, string title = null, Action<ObjectFlattenerOptions> configure = null, ExcelTableStyle style = TableStyleMedium9, bool autoFilter = True, bool freezeHeaderRow = True, Action<TableVisualOptions> visuals = null)",
@@ -1785,7 +1785,7 @@
       },
       "phase": "B",
       "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "note": "Chart sizes use OfficeLength on native chart-data and shared-data entry points. The range/table authoring consolidation and shared chart options/order remain pending."
     },
     {
       "old": "OfficeIMO.Excel.ExcelSheet.AddChart(ExcelChartDataRange dataRange, int row, int column, int widthPixels = 640, int heightPixels = 360, ExcelChartType type = ColumnClustered, ExcelChartData cachedData = null, string title = null)",
@@ -1802,7 +1802,7 @@
       },
       "phase": "B",
       "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "note": "Chart sizes use OfficeLength on native chart-data and shared-data entry points. The range/table authoring consolidation and shared chart options/order remain pending."
     },
     {
       "old": "OfficeIMO.Excel.ExcelSheet.AddChartFromRange(string dataRangeA1, int row, int column, int widthPixels = 640, int heightPixels = 360, ExcelChartType type = ColumnClustered, bool hasHeaders = True, string title = null, bool includeCachedData = True)",
@@ -1819,7 +1819,7 @@
       },
       "phase": "B",
       "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "note": "Chart sizes use OfficeLength on native chart-data and shared-data entry points. The range/table authoring consolidation and shared chart options/order remain pending."
     },
     {
       "old": "OfficeIMO.Excel.ExcelSheet.AddChartFromTable(string tableName, int row, int column, int widthPixels = 640, int heightPixels = 360, ExcelChartType type = ColumnClustered, string title = null, bool includeCachedData = True)",
@@ -1836,7 +1836,7 @@
       },
       "phase": "B",
       "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "note": "Chart sizes use OfficeLength on native chart-data and shared-data entry points. The range/table authoring consolidation and shared chart options/order remain pending."
     },
     {
       "old": "OfficeIMO.Excel.ExcelSheet.InsertDataTable(DataTable table, int startRow = 1, int startColumn = 1, bool includeHeaders = True, ExcelExecutionMode? mode = null, CancellationToken ct = null)",
@@ -2985,11 +2985,11 @@
       "notes": "Numeric parameters with unit-suffixed names: lineWidthPoints",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical chart/page geometry uses OfficeLength; chart style colors use OfficeColor with native theme slots and alpha. Optional defaults and native serialization precision remain at the owning XML/VML boundary. Raster budgets/counts, ratios, angles, percentages and indexes stay numeric. Native chart/page geometry and style readers use the physical units of their XML/VML owners. Current normal and isolated net472 compiles and focused native/consumer/module checks qualify this change; Windows runtime validation follows separately."
     },
     {
       "old": "OfficeIMO.Excel.ExcelChart.SetCategoryAxisLabelTextStyle(double? fontSizePoints = null, bool? bold = null, bool? italic = null, string color = null, string fontName = null, OfficeChartAxisGroup axisGroup = Primary)",
@@ -3002,11 +3002,11 @@
       "notes": "Numeric parameters with unit-suffixed names: fontSizePoints",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical chart/page geometry uses OfficeLength; chart style colors use OfficeColor with native theme slots and alpha. Optional defaults and native serialization precision remain at the owning XML/VML boundary. Raster budgets/counts, ratios, angles, percentages and indexes stay numeric. Native chart/page geometry and style readers use the physical units of their XML/VML owners. Current normal and isolated net472 compiles and focused native/consumer/module checks qualify this change; Windows runtime validation follows separately."
     },
     {
       "old": "OfficeIMO.Excel.ExcelChart.SetCategoryAxisLine(string lineColor = null, double? lineWidthPoints = null, bool noLine = False, OfficeChartAxisGroup axisGroup = Primary)",
@@ -3019,11 +3019,11 @@
       "notes": "Numeric parameters with unit-suffixed names: lineWidthPoints",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical chart/page geometry uses OfficeLength; chart style colors use OfficeColor with native theme slots and alpha. Optional defaults and native serialization precision remain at the owning XML/VML boundary. Raster budgets/counts, ratios, angles, percentages and indexes stay numeric. Native chart/page geometry and style readers use the physical units of their XML/VML owners. Current normal and isolated net472 compiles and focused native/consumer/module checks qualify this change; Windows runtime validation follows separately."
     },
     {
       "old": "OfficeIMO.Excel.ExcelChart.SetCategoryAxisTitleTextStyle(double? fontSizePoints = null, bool? bold = null, bool? italic = null, string color = null, string fontName = null, OfficeChartAxisGroup axisGroup = Primary)",
@@ -3036,11 +3036,11 @@
       "notes": "Numeric parameters with unit-suffixed names: fontSizePoints",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical chart/page geometry uses OfficeLength; chart style colors use OfficeColor with native theme slots and alpha. Optional defaults and native serialization precision remain at the owning XML/VML boundary. Raster budgets/counts, ratios, angles, percentages and indexes stay numeric. Native chart/page geometry and style readers use the physical units of their XML/VML owners. Current normal and isolated net472 compiles and focused native/consumer/module checks qualify this change; Windows runtime validation follows separately."
     },
     {
       "old": "OfficeIMO.Excel.ExcelChart.SetChartAreaStyle(string fillColor = null, string lineColor = null, double? lineWidthPoints = null, bool noFill = False, bool noLine = False)",
@@ -3053,11 +3053,11 @@
       "notes": "Numeric parameters with unit-suffixed names: lineWidthPoints",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical chart/page geometry uses OfficeLength; chart style colors use OfficeColor with native theme slots and alpha. Optional defaults and native serialization precision remain at the owning XML/VML boundary. Raster budgets/counts, ratios, angles, percentages and indexes stay numeric. Native chart/page geometry and style readers use the physical units of their XML/VML owners. Current normal and isolated net472 compiles and focused native/consumer/module checks qualify this change; Windows runtime validation follows separately."
     },
     {
       "old": "OfficeIMO.Excel.ExcelChart.SetDataLabelCallouts(bool enabled = True, OfficeChartDataLabelPosition? position = null, string lineColor = null, double? lineWidthPoints = null)",
@@ -3070,11 +3070,11 @@
       "notes": "Numeric parameters with unit-suffixed names: lineWidthPoints",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical chart/page geometry uses OfficeLength; chart style colors use OfficeColor with native theme slots and alpha. Optional defaults and native serialization precision remain at the owning XML/VML boundary. Raster budgets/counts, ratios, angles, percentages and indexes stay numeric. Native chart/page geometry and style readers use the physical units of their XML/VML owners. Current normal and isolated net472 compiles and focused native/consumer/module checks qualify this change; Windows runtime validation follows separately."
     },
     {
       "old": "OfficeIMO.Excel.ExcelChart.SetDataLabelLeaderLines(bool showLeaderLines = True, string lineColor = null, double? lineWidthPoints = null)",
@@ -3087,11 +3087,11 @@
       "notes": "Numeric parameters with unit-suffixed names: lineWidthPoints",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical chart/page geometry uses OfficeLength; chart style colors use OfficeColor with native theme slots and alpha. Optional defaults and native serialization precision remain at the owning XML/VML boundary. Raster budgets/counts, ratios, angles, percentages and indexes stay numeric. Native chart/page geometry and style readers use the physical units of their XML/VML owners. Current normal and isolated net472 compiles and focused native/consumer/module checks qualify this change; Windows runtime validation follows separately."
     },
     {
       "old": "OfficeIMO.Excel.ExcelChart.SetDataLabelShapeStyle(string fillColor = null, string lineColor = null, double? lineWidthPoints = null, bool noFill = False, bool noLine = False)",
@@ -3104,11 +3104,11 @@
       "notes": "Numeric parameters with unit-suffixed names: lineWidthPoints",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical chart/page geometry uses OfficeLength; chart style colors use OfficeColor with native theme slots and alpha. Optional defaults and native serialization precision remain at the owning XML/VML boundary. Raster budgets/counts, ratios, angles, percentages and indexes stay numeric. Native chart/page geometry and style readers use the physical units of their XML/VML owners. Current normal and isolated net472 compiles and focused native/consumer/module checks qualify this change; Windows runtime validation follows separately."
     },
     {
       "old": "OfficeIMO.Excel.ExcelChart.SetDataLabelTextStyle(double? fontSizePoints = null, bool? bold = null, bool? italic = null, string color = null, string fontName = null)",
@@ -3121,11 +3121,11 @@
       "notes": "Numeric parameters with unit-suffixed names: fontSizePoints",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical chart/page geometry uses OfficeLength; chart style colors use OfficeColor with native theme slots and alpha. Optional defaults and native serialization precision remain at the owning XML/VML boundary. Raster budgets/counts, ratios, angles, percentages and indexes stay numeric. Native chart/page geometry and style readers use the physical units of their XML/VML owners. Current normal and isolated net472 compiles and focused native/consumer/module checks qualify this change; Windows runtime validation follows separately."
     },
     {
       "old": "OfficeIMO.Excel.ExcelChart.SetDataPointColor(int seriesIndex, uint pointIndex, string fillColor = null, string lineColor = null, double? lineWidthPoints = null)",
@@ -3138,11 +3138,11 @@
       "notes": "Numeric parameters with unit-suffixed names: lineWidthPoints",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical chart/page geometry uses OfficeLength; chart style colors use OfficeColor with native theme slots and alpha. Optional defaults and native serialization precision remain at the owning XML/VML boundary. Raster budgets/counts, ratios, angles, percentages and indexes stay numeric. Native chart/page geometry and style readers use the physical units of their XML/VML owners. Current normal and isolated net472 compiles and focused native/consumer/module checks qualify this change; Windows runtime validation follows separately."
     },
     {
       "old": "OfficeIMO.Excel.ExcelChart.SetDataPointColor(string seriesName, uint pointIndex, string fillColor = null, string lineColor = null, double? lineWidthPoints = null, bool ignoreCase = True)",
@@ -3155,11 +3155,11 @@
       "notes": "Numeric parameters with unit-suffixed names: lineWidthPoints",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical chart/page geometry uses OfficeLength; chart style colors use OfficeColor with native theme slots and alpha. Optional defaults and native serialization precision remain at the owning XML/VML boundary. Raster budgets/counts, ratios, angles, percentages and indexes stay numeric. Native chart/page geometry and style readers use the physical units of their XML/VML owners. Current normal and isolated net472 compiles and focused native/consumer/module checks qualify this change; Windows runtime validation follows separately."
     },
     {
       "old": "OfficeIMO.Excel.ExcelChart.SetDataPointLineColor(int seriesIndex, uint pointIndex, string color, double? widthPoints = null)",
@@ -3172,11 +3172,11 @@
       "notes": "Numeric parameters with unit-suffixed names: widthPoints",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical chart/page geometry uses OfficeLength; chart style colors use OfficeColor with native theme slots and alpha. Optional defaults and native serialization precision remain at the owning XML/VML boundary. Raster budgets/counts, ratios, angles, percentages and indexes stay numeric. Native chart/page geometry and style readers use the physical units of their XML/VML owners. Current normal and isolated net472 compiles and focused native/consumer/module checks qualify this change; Windows runtime validation follows separately."
     },
     {
       "old": "OfficeIMO.Excel.ExcelChart.SetDataPointLineColor(string seriesName, uint pointIndex, string color, double? widthPoints = null, bool ignoreCase = True)",
@@ -3189,11 +3189,11 @@
       "notes": "Numeric parameters with unit-suffixed names: widthPoints",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical chart/page geometry uses OfficeLength; chart style colors use OfficeColor with native theme slots and alpha. Optional defaults and native serialization precision remain at the owning XML/VML boundary. Raster budgets/counts, ratios, angles, percentages and indexes stay numeric. Native chart/page geometry and style readers use the physical units of their XML/VML owners. Current normal and isolated net472 compiles and focused native/consumer/module checks qualify this change; Windows runtime validation follows separately."
     },
     {
       "old": "OfficeIMO.Excel.ExcelChart.SetLegendTextStyle(double? fontSizePoints = null, bool? bold = null, bool? italic = null, string color = null, string fontName = null)",
@@ -3206,11 +3206,11 @@
       "notes": "Numeric parameters with unit-suffixed names: fontSizePoints",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical chart/page geometry uses OfficeLength; chart style colors use OfficeColor with native theme slots and alpha. Optional defaults and native serialization precision remain at the owning XML/VML boundary. Raster budgets/counts, ratios, angles, percentages and indexes stay numeric. Native chart/page geometry and style readers use the physical units of their XML/VML owners. Current normal and isolated net472 compiles and focused native/consumer/module checks qualify this change; Windows runtime validation follows separately."
     },
     {
       "old": "OfficeIMO.Excel.ExcelChart.SetPlotAreaStyle(string fillColor = null, string lineColor = null, double? lineWidthPoints = null, bool noFill = False, bool noLine = False)",
@@ -3223,11 +3223,11 @@
       "notes": "Numeric parameters with unit-suffixed names: lineWidthPoints",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical chart/page geometry uses OfficeLength; chart style colors use OfficeColor with native theme slots and alpha. Optional defaults and native serialization precision remain at the owning XML/VML boundary. Raster budgets/counts, ratios, angles, percentages and indexes stay numeric. Native chart/page geometry and style readers use the physical units of their XML/VML owners. Current normal and isolated net472 compiles and focused native/consumer/module checks qualify this change; Windows runtime validation follows separately."
     },
     {
       "old": "OfficeIMO.Excel.ExcelChart.SetSeriesDataLabelCallouts(int seriesIndex, bool enabled = True, OfficeChartDataLabelPosition? position = null, string lineColor = null, double? lineWidthPoints = null)",
@@ -3240,11 +3240,11 @@
       "notes": "Numeric parameters with unit-suffixed names: lineWidthPoints",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical chart/page geometry uses OfficeLength; chart style colors use OfficeColor with native theme slots and alpha. Optional defaults and native serialization precision remain at the owning XML/VML boundary. Raster budgets/counts, ratios, angles, percentages and indexes stay numeric. Native chart/page geometry and style readers use the physical units of their XML/VML owners. Current normal and isolated net472 compiles and focused native/consumer/module checks qualify this change; Windows runtime validation follows separately."
     },
     {
       "old": "OfficeIMO.Excel.ExcelChart.SetSeriesDataLabelCallouts(string seriesName, bool enabled = True, OfficeChartDataLabelPosition? position = null, string lineColor = null, double? lineWidthPoints = null, bool ignoreCase = True)",
@@ -3257,11 +3257,11 @@
       "notes": "Numeric parameters with unit-suffixed names: lineWidthPoints",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical chart/page geometry uses OfficeLength; chart style colors use OfficeColor with native theme slots and alpha. Optional defaults and native serialization precision remain at the owning XML/VML boundary. Raster budgets/counts, ratios, angles, percentages and indexes stay numeric. Native chart/page geometry and style readers use the physical units of their XML/VML owners. Current normal and isolated net472 compiles and focused native/consumer/module checks qualify this change; Windows runtime validation follows separately."
     },
     {
       "old": "OfficeIMO.Excel.ExcelChart.SetSeriesDataLabelLeaderLines(int seriesIndex, bool showLeaderLines = True, string lineColor = null, double? lineWidthPoints = null)",
@@ -3274,11 +3274,11 @@
       "notes": "Numeric parameters with unit-suffixed names: lineWidthPoints",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical chart/page geometry uses OfficeLength; chart style colors use OfficeColor with native theme slots and alpha. Optional defaults and native serialization precision remain at the owning XML/VML boundary. Raster budgets/counts, ratios, angles, percentages and indexes stay numeric. Native chart/page geometry and style readers use the physical units of their XML/VML owners. Current normal and isolated net472 compiles and focused native/consumer/module checks qualify this change; Windows runtime validation follows separately."
     },
     {
       "old": "OfficeIMO.Excel.ExcelChart.SetSeriesDataLabelLeaderLines(string seriesName, bool showLeaderLines = True, string lineColor = null, double? lineWidthPoints = null, bool ignoreCase = True)",
@@ -3291,11 +3291,11 @@
       "notes": "Numeric parameters with unit-suffixed names: lineWidthPoints",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical chart/page geometry uses OfficeLength; chart style colors use OfficeColor with native theme slots and alpha. Optional defaults and native serialization precision remain at the owning XML/VML boundary. Raster budgets/counts, ratios, angles, percentages and indexes stay numeric. Native chart/page geometry and style readers use the physical units of their XML/VML owners. Current normal and isolated net472 compiles and focused native/consumer/module checks qualify this change; Windows runtime validation follows separately."
     },
     {
       "old": "OfficeIMO.Excel.ExcelChart.SetSeriesDataLabelShapeStyle(int seriesIndex, string fillColor = null, string lineColor = null, double? lineWidthPoints = null, bool noFill = False, bool noLine = False)",
@@ -3308,11 +3308,11 @@
       "notes": "Numeric parameters with unit-suffixed names: lineWidthPoints",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical chart/page geometry uses OfficeLength; chart style colors use OfficeColor with native theme slots and alpha. Optional defaults and native serialization precision remain at the owning XML/VML boundary. Raster budgets/counts, ratios, angles, percentages and indexes stay numeric. Native chart/page geometry and style readers use the physical units of their XML/VML owners. Current normal and isolated net472 compiles and focused native/consumer/module checks qualify this change; Windows runtime validation follows separately."
     },
     {
       "old": "OfficeIMO.Excel.ExcelChart.SetSeriesDataLabelShapeStyle(string seriesName, string fillColor = null, string lineColor = null, double? lineWidthPoints = null, bool noFill = False, bool noLine = False, bool ignoreCase = True)",
@@ -3325,11 +3325,11 @@
       "notes": "Numeric parameters with unit-suffixed names: lineWidthPoints",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical chart/page geometry uses OfficeLength; chart style colors use OfficeColor with native theme slots and alpha. Optional defaults and native serialization precision remain at the owning XML/VML boundary. Raster budgets/counts, ratios, angles, percentages and indexes stay numeric. Native chart/page geometry and style readers use the physical units of their XML/VML owners. Current normal and isolated net472 compiles and focused native/consumer/module checks qualify this change; Windows runtime validation follows separately."
     },
     {
       "old": "OfficeIMO.Excel.ExcelChart.SetSeriesDataLabelShapeStyleForPoint(int seriesIndex, int pointIndex, string fillColor = null, string lineColor = null, double? lineWidthPoints = null, bool noFill = False, bool noLine = False)",
@@ -3342,11 +3342,11 @@
       "notes": "Numeric parameters with unit-suffixed names: lineWidthPoints",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical chart/page geometry uses OfficeLength; chart style colors use OfficeColor with native theme slots and alpha. Optional defaults and native serialization precision remain at the owning XML/VML boundary. Raster budgets/counts, ratios, angles, percentages and indexes stay numeric. Native chart/page geometry and style readers use the physical units of their XML/VML owners. Current normal and isolated net472 compiles and focused native/consumer/module checks qualify this change; Windows runtime validation follows separately."
     },
     {
       "old": "OfficeIMO.Excel.ExcelChart.SetSeriesDataLabelShapeStyleForPoint(string seriesName, int pointIndex, string fillColor = null, string lineColor = null, double? lineWidthPoints = null, bool noFill = False, bool noLine = False, bool ignoreCase = True)",
@@ -3359,11 +3359,11 @@
       "notes": "Numeric parameters with unit-suffixed names: lineWidthPoints",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical chart/page geometry uses OfficeLength; chart style colors use OfficeColor with native theme slots and alpha. Optional defaults and native serialization precision remain at the owning XML/VML boundary. Raster budgets/counts, ratios, angles, percentages and indexes stay numeric. Native chart/page geometry and style readers use the physical units of their XML/VML owners. Current normal and isolated net472 compiles and focused native/consumer/module checks qualify this change; Windows runtime validation follows separately."
     },
     {
       "old": "OfficeIMO.Excel.ExcelChart.SetSeriesDataLabelTextStyle(int seriesIndex, double? fontSizePoints = null, bool? bold = null, bool? italic = null, string color = null, string fontName = null)",
@@ -3376,11 +3376,11 @@
       "notes": "Numeric parameters with unit-suffixed names: fontSizePoints",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical chart/page geometry uses OfficeLength; chart style colors use OfficeColor with native theme slots and alpha. Optional defaults and native serialization precision remain at the owning XML/VML boundary. Raster budgets/counts, ratios, angles, percentages and indexes stay numeric. Native chart/page geometry and style readers use the physical units of their XML/VML owners. Current normal and isolated net472 compiles and focused native/consumer/module checks qualify this change; Windows runtime validation follows separately."
     },
     {
       "old": "OfficeIMO.Excel.ExcelChart.SetSeriesDataLabelTextStyle(string seriesName, double? fontSizePoints = null, bool? bold = null, bool? italic = null, string color = null, string fontName = null, bool ignoreCase = True)",
@@ -3393,11 +3393,11 @@
       "notes": "Numeric parameters with unit-suffixed names: fontSizePoints",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical chart/page geometry uses OfficeLength; chart style colors use OfficeColor with native theme slots and alpha. Optional defaults and native serialization precision remain at the owning XML/VML boundary. Raster budgets/counts, ratios, angles, percentages and indexes stay numeric. Native chart/page geometry and style readers use the physical units of their XML/VML owners. Current normal and isolated net472 compiles and focused native/consumer/module checks qualify this change; Windows runtime validation follows separately."
     },
     {
       "old": "OfficeIMO.Excel.ExcelChart.SetSeriesDataLabelTextStyleForPoint(int seriesIndex, int pointIndex, double? fontSizePoints = null, bool? bold = null, bool? italic = null, string color = null, string fontName = null)",
@@ -3410,11 +3410,11 @@
       "notes": "Numeric parameters with unit-suffixed names: fontSizePoints",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical chart/page geometry uses OfficeLength; chart style colors use OfficeColor with native theme slots and alpha. Optional defaults and native serialization precision remain at the owning XML/VML boundary. Raster budgets/counts, ratios, angles, percentages and indexes stay numeric. Native chart/page geometry and style readers use the physical units of their XML/VML owners. Current normal and isolated net472 compiles and focused native/consumer/module checks qualify this change; Windows runtime validation follows separately."
     },
     {
       "old": "OfficeIMO.Excel.ExcelChart.SetSeriesDataLabelTextStyleForPoint(string seriesName, int pointIndex, double? fontSizePoints = null, bool? bold = null, bool? italic = null, string color = null, string fontName = null, bool ignoreCase = True)",
@@ -3427,11 +3427,11 @@
       "notes": "Numeric parameters with unit-suffixed names: fontSizePoints",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical chart/page geometry uses OfficeLength; chart style colors use OfficeColor with native theme slots and alpha. Optional defaults and native serialization precision remain at the owning XML/VML boundary. Raster budgets/counts, ratios, angles, percentages and indexes stay numeric. Native chart/page geometry and style readers use the physical units of their XML/VML owners. Current normal and isolated net472 compiles and focused native/consumer/module checks qualify this change; Windows runtime validation follows separately."
     },
     {
       "old": "OfficeIMO.Excel.ExcelChart.SetSeriesLineColor(int seriesIndex, string color, double? widthPoints = null)",
@@ -3444,11 +3444,11 @@
       "notes": "Numeric parameters with unit-suffixed names: widthPoints",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical chart/page geometry uses OfficeLength; chart style colors use OfficeColor with native theme slots and alpha. Optional defaults and native serialization precision remain at the owning XML/VML boundary. Raster budgets/counts, ratios, angles, percentages and indexes stay numeric. Native chart/page geometry and style readers use the physical units of their XML/VML owners. Current normal and isolated net472 compiles and focused native/consumer/module checks qualify this change; Windows runtime validation follows separately."
     },
     {
       "old": "OfficeIMO.Excel.ExcelChart.SetSeriesLineColor(string seriesName, string color, double? widthPoints = null, bool ignoreCase = True)",
@@ -3461,11 +3461,11 @@
       "notes": "Numeric parameters with unit-suffixed names: widthPoints",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical chart/page geometry uses OfficeLength; chart style colors use OfficeColor with native theme slots and alpha. Optional defaults and native serialization precision remain at the owning XML/VML boundary. Raster budgets/counts, ratios, angles, percentages and indexes stay numeric. Native chart/page geometry and style readers use the physical units of their XML/VML owners. Current normal and isolated net472 compiles and focused native/consumer/module checks qualify this change; Windows runtime validation follows separately."
     },
     {
       "old": "OfficeIMO.Excel.ExcelChart.SetSeriesMarker(int seriesIndex, OfficeChartMarkerShape style, int? size = null, string fillColor = null, string lineColor = null, double? lineWidthPoints = null)",
@@ -3478,11 +3478,11 @@
       "notes": "Numeric parameters with unit-suffixed names: lineWidthPoints",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical chart/page geometry uses OfficeLength; chart style colors use OfficeColor with native theme slots and alpha. Optional defaults and native serialization precision remain at the owning XML/VML boundary. Raster budgets/counts, ratios, angles, percentages and indexes stay numeric. Native chart/page geometry and style readers use the physical units of their XML/VML owners. Current normal and isolated net472 compiles and focused native/consumer/module checks qualify this change; Windows runtime validation follows separately."
     },
     {
       "old": "OfficeIMO.Excel.ExcelChart.SetSeriesMarker(string seriesName, OfficeChartMarkerShape style, int? size = null, string fillColor = null, string lineColor = null, double? lineWidthPoints = null, bool ignoreCase = True)",
@@ -3495,11 +3495,11 @@
       "notes": "Numeric parameters with unit-suffixed names: lineWidthPoints",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical chart/page geometry uses OfficeLength; chart style colors use OfficeColor with native theme slots and alpha. Optional defaults and native serialization precision remain at the owning XML/VML boundary. Raster budgets/counts, ratios, angles, percentages and indexes stay numeric. Native chart/page geometry and style readers use the physical units of their XML/VML owners. Current normal and isolated net472 compiles and focused native/consumer/module checks qualify this change; Windows runtime validation follows separately."
     },
     {
       "old": "OfficeIMO.Excel.ExcelChart.SetSeriesTrendline(int seriesIndex, OfficeChartTrendlineType type, int? order = null, int? period = null, double? forward = null, double? backward = null, double? intercept = null, bool displayEquation = False, bool displayRSquared = False, string lineColor = null, double? lineWidthPoints = null)",
@@ -3512,11 +3512,11 @@
       "notes": "Numeric parameters with unit-suffixed names: lineWidthPoints",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical chart/page geometry uses OfficeLength; chart style colors use OfficeColor with native theme slots and alpha. Optional defaults and native serialization precision remain at the owning XML/VML boundary. Raster budgets/counts, ratios, angles, percentages and indexes stay numeric. Native chart/page geometry and style readers use the physical units of their XML/VML owners. Current normal and isolated net472 compiles and focused native/consumer/module checks qualify this change; Windows runtime validation follows separately."
     },
     {
       "old": "OfficeIMO.Excel.ExcelChart.SetSeriesTrendline(string seriesName, OfficeChartTrendlineType type, int? order = null, int? period = null, double? forward = null, double? backward = null, double? intercept = null, bool displayEquation = False, bool displayRSquared = False, string lineColor = null, double? lineWidthPoints = null, bool ignoreCase = True)",
@@ -3529,11 +3529,11 @@
       "notes": "Numeric parameters with unit-suffixed names: lineWidthPoints",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical chart/page geometry uses OfficeLength; chart style colors use OfficeColor with native theme slots and alpha. Optional defaults and native serialization precision remain at the owning XML/VML boundary. Raster budgets/counts, ratios, angles, percentages and indexes stay numeric. Native chart/page geometry and style readers use the physical units of their XML/VML owners. Current normal and isolated net472 compiles and focused native/consumer/module checks qualify this change; Windows runtime validation follows separately."
     },
     {
       "old": "OfficeIMO.Excel.ExcelChart.SetTitleTextStyle(double? fontSizePoints = null, bool? bold = null, bool? italic = null, string color = null, string fontName = null)",
@@ -3546,11 +3546,11 @@
       "notes": "Numeric parameters with unit-suffixed names: fontSizePoints",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical chart/page geometry uses OfficeLength; chart style colors use OfficeColor with native theme slots and alpha. Optional defaults and native serialization precision remain at the owning XML/VML boundary. Raster budgets/counts, ratios, angles, percentages and indexes stay numeric. Native chart/page geometry and style readers use the physical units of their XML/VML owners. Current normal and isolated net472 compiles and focused native/consumer/module checks qualify this change; Windows runtime validation follows separately."
     },
     {
       "old": "OfficeIMO.Excel.ExcelChart.SetValueAxisGridlines(bool showMajor = True, bool showMinor = False, string lineColor = null, double? lineWidthPoints = null, OfficeChartAxisGroup axisGroup = Primary)",
@@ -3563,11 +3563,11 @@
       "notes": "Numeric parameters with unit-suffixed names: lineWidthPoints",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical chart/page geometry uses OfficeLength; chart style colors use OfficeColor with native theme slots and alpha. Optional defaults and native serialization precision remain at the owning XML/VML boundary. Raster budgets/counts, ratios, angles, percentages and indexes stay numeric. Native chart/page geometry and style readers use the physical units of their XML/VML owners. Current normal and isolated net472 compiles and focused native/consumer/module checks qualify this change; Windows runtime validation follows separately."
     },
     {
       "old": "OfficeIMO.Excel.ExcelChart.SetValueAxisLabelTextStyle(double? fontSizePoints = null, bool? bold = null, bool? italic = null, string color = null, string fontName = null, OfficeChartAxisGroup axisGroup = Primary)",
@@ -3580,11 +3580,11 @@
       "notes": "Numeric parameters with unit-suffixed names: fontSizePoints",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical chart/page geometry uses OfficeLength; chart style colors use OfficeColor with native theme slots and alpha. Optional defaults and native serialization precision remain at the owning XML/VML boundary. Raster budgets/counts, ratios, angles, percentages and indexes stay numeric. Native chart/page geometry and style readers use the physical units of their XML/VML owners. Current normal and isolated net472 compiles and focused native/consumer/module checks qualify this change; Windows runtime validation follows separately."
     },
     {
       "old": "OfficeIMO.Excel.ExcelChart.SetValueAxisLine(string lineColor = null, double? lineWidthPoints = null, bool noLine = False, OfficeChartAxisGroup axisGroup = Primary)",
@@ -3597,11 +3597,11 @@
       "notes": "Numeric parameters with unit-suffixed names: lineWidthPoints",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical chart/page geometry uses OfficeLength; chart style colors use OfficeColor with native theme slots and alpha. Optional defaults and native serialization precision remain at the owning XML/VML boundary. Raster budgets/counts, ratios, angles, percentages and indexes stay numeric. Native chart/page geometry and style readers use the physical units of their XML/VML owners. Current normal and isolated net472 compiles and focused native/consumer/module checks qualify this change; Windows runtime validation follows separately."
     },
     {
       "old": "OfficeIMO.Excel.ExcelChart.SetValueAxisTitleTextStyle(double? fontSizePoints = null, bool? bold = null, bool? italic = null, string color = null, string fontName = null, OfficeChartAxisGroup axisGroup = Primary)",
@@ -3614,11 +3614,11 @@
       "notes": "Numeric parameters with unit-suffixed names: fontSizePoints",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical chart/page geometry uses OfficeLength; chart style colors use OfficeColor with native theme slots and alpha. Optional defaults and native serialization precision remain at the owning XML/VML boundary. Raster budgets/counts, ratios, angles, percentages and indexes stay numeric. Native chart/page geometry and style readers use the physical units of their XML/VML owners. Current normal and isolated net472 compiles and focused native/consumer/module checks qualify this change; Windows runtime validation follows separately."
     },
     {
       "old": "OfficeIMO.Excel.ExcelImage.MoveTo(int row, int column, int offsetXPixels = 0, int offsetYPixels = 0)",
@@ -3682,11 +3682,11 @@
       "notes": "Numeric parameters with unit-suffixed names: heightPixels, widthPixels",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical chart/page geometry uses OfficeLength; chart style colors use OfficeColor with native theme slots and alpha. Optional defaults and native serialization precision remain at the owning XML/VML boundary. Raster budgets/counts, ratios, angles, percentages and indexes stay numeric. Native chart/page geometry and style readers use the physical units of their XML/VML owners. Current normal and isolated net472 compiles and focused native/consumer/module checks qualify this change; Windows runtime validation follows separately."
     },
     {
       "old": "OfficeIMO.Excel.ExcelSheet.AddBubbleChartFromRanges(IEnumerable<ExcelChartSeriesRange> seriesRanges, int row, int column, int widthPixels = 640, int heightPixels = 360, string title = null)",
@@ -3699,11 +3699,11 @@
       "notes": "Numeric parameters with unit-suffixed names: heightPixels, widthPixels",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical chart/page geometry uses OfficeLength; chart style colors use OfficeColor with native theme slots and alpha. Optional defaults and native serialization precision remain at the owning XML/VML boundary. Raster budgets/counts, ratios, angles, percentages and indexes stay numeric. Native chart/page geometry and style readers use the physical units of their XML/VML owners. Current normal and isolated net472 compiles and focused native/consumer/module checks qualify this change; Windows runtime validation follows separately."
     },
     {
       "old": "OfficeIMO.Excel.ExcelSheet.AddContributionChart(string dataRangeA1, int row, int column, string title = Contribution, int widthPixels = 520, int heightPixels = 320, bool hasHeaders = True, bool includeCachedData = True)",
@@ -3716,11 +3716,11 @@
       "notes": "Numeric parameters with unit-suffixed names: heightPixels, widthPixels",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical chart/page geometry uses OfficeLength; chart style colors use OfficeColor with native theme slots and alpha. Optional defaults and native serialization precision remain at the owning XML/VML boundary. Raster budgets/counts, ratios, angles, percentages and indexes stay numeric. Native chart/page geometry and style readers use the physical units of their XML/VML owners. Current normal and isolated net472 compiles and focused native/consumer/module checks qualify this change; Windows runtime validation follows separately."
     },
     {
       "old": "OfficeIMO.Excel.ExcelSheet.AddFunnelChart(IEnumerable<string> categories, IEnumerable<double> values, int row, int column, string title = Funnel, bool sortDescending = True, int widthPixels = 640, int heightPixels = 360)",
@@ -3733,11 +3733,11 @@
       "notes": "Numeric parameters with unit-suffixed names: heightPixels, widthPixels",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical chart/page geometry uses OfficeLength; chart style colors use OfficeColor with native theme slots and alpha. Optional defaults and native serialization precision remain at the owning XML/VML boundary. Raster budgets/counts, ratios, angles, percentages and indexes stay numeric. Native chart/page geometry and style readers use the physical units of their XML/VML owners. Current normal and isolated net472 compiles and focused native/consumer/module checks qualify this change; Windows runtime validation follows separately."
     },
     {
       "old": "OfficeIMO.Excel.ExcelSheet.AddHistogramChart(IEnumerable<double> values, int row, int column, string title = Histogram, int? binCount = null, double? binWidth = null, int widthPixels = 640, int heightPixels = 360)",
@@ -3750,11 +3750,11 @@
       "notes": "Numeric parameters with unit-suffixed names: heightPixels, widthPixels",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical chart/page geometry uses OfficeLength; chart style colors use OfficeColor with native theme slots and alpha. Optional defaults and native serialization precision remain at the owning XML/VML boundary. Raster budgets/counts, ratios, angles, percentages and indexes stay numeric. Native chart/page geometry and style readers use the physical units of their XML/VML owners. Current normal and isolated net472 compiles and focused native/consumer/module checks qualify this change; Windows runtime validation follows separately."
     },
     {
       "old": "OfficeIMO.Excel.ExcelSheet.AddKpiScorecardChart(string dataRangeA1, int row, int column, string title = KPI Scorecard, int widthPixels = 520, int heightPixels = 300, bool hasHeaders = True, bool includeCachedData = True)",
@@ -3767,11 +3767,11 @@
       "notes": "Numeric parameters with unit-suffixed names: heightPixels, widthPixels",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical chart/page geometry uses OfficeLength; chart style colors use OfficeColor with native theme slots and alpha. Optional defaults and native serialization precision remain at the owning XML/VML boundary. Raster budgets/counts, ratios, angles, percentages and indexes stay numeric. Native chart/page geometry and style readers use the physical units of their XML/VML owners. Current normal and isolated net472 compiles and focused native/consumer/module checks qualify this change; Windows runtime validation follows separately."
     },
     {
       "old": "OfficeIMO.Excel.ExcelSheet.AddModernChart(ExcelChartData data, int row, int column, ExcelModernChartType chartType, string title = null, int widthPixels = 640, int heightPixels = 360)",
@@ -3784,11 +3784,11 @@
       "notes": "Numeric parameters with unit-suffixed names: heightPixels, widthPixels",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical chart/page geometry uses OfficeLength; chart style colors use OfficeColor with native theme slots and alpha. Optional defaults and native serialization precision remain at the owning XML/VML boundary. Raster budgets/counts, ratios, angles, percentages and indexes stay numeric. Native chart/page geometry and style readers use the physical units of their XML/VML owners. Current normal and isolated net472 compiles and focused native/consumer/module checks qualify this change; Windows runtime validation follows separately."
     },
     {
       "old": "OfficeIMO.Excel.ExcelSheet.AddParetoChart(IEnumerable<string> categories, IEnumerable<double> values, int row, int column, string title = Pareto, int widthPixels = 720, int heightPixels = 360)",
@@ -3801,11 +3801,11 @@
       "notes": "Numeric parameters with unit-suffixed names: heightPixels, widthPixels",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical chart/page geometry uses OfficeLength; chart style colors use OfficeColor with native theme slots and alpha. Optional defaults and native serialization precision remain at the owning XML/VML boundary. Raster budgets/counts, ratios, angles, percentages and indexes stay numeric. Native chart/page geometry and style readers use the physical units of their XML/VML owners. Current normal and isolated net472 compiles and focused native/consumer/module checks qualify this change; Windows runtime validation follows separately."
     },
     {
       "old": "OfficeIMO.Excel.ExcelSheet.AddPivotChartFromRange(string pivotTableName, string dataRangeA1, int row, int column, int widthPixels = 640, int heightPixels = 360, ExcelChartType type = ColumnClustered, bool hasHeaders = True, string title = null, bool includeCachedData = True, uint formatId = 0)",
@@ -3818,11 +3818,11 @@
       "notes": "Numeric parameters with unit-suffixed names: heightPixels, widthPixels",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical chart/page geometry uses OfficeLength; chart style colors use OfficeColor with native theme slots and alpha. Optional defaults and native serialization precision remain at the owning XML/VML boundary. Raster budgets/counts, ratios, angles, percentages and indexes stay numeric. Native chart/page geometry and style readers use the physical units of their XML/VML owners. Current normal and isolated net472 compiles and focused native/consumer/module checks qualify this change; Windows runtime validation follows separately."
     },
     {
       "old": "OfficeIMO.Excel.ExcelSheet.AddRevenueTrendChart(string dataRangeA1, int row, int column, string title = Revenue Trend, int widthPixels = 720, int heightPixels = 320, bool hasHeaders = True, bool includeCachedData = True)",
@@ -3835,11 +3835,11 @@
       "notes": "Numeric parameters with unit-suffixed names: heightPixels, widthPixels",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical chart/page geometry uses OfficeLength; chart style colors use OfficeColor with native theme slots and alpha. Optional defaults and native serialization precision remain at the owning XML/VML boundary. Raster budgets/counts, ratios, angles, percentages and indexes stay numeric. Native chart/page geometry and style readers use the physical units of their XML/VML owners. Current normal and isolated net472 compiles and focused native/consumer/module checks qualify this change; Windows runtime validation follows separately."
     },
     {
       "old": "OfficeIMO.Excel.ExcelSheet.AddScatterChartFromRanges(IEnumerable<ExcelChartSeriesRange> seriesRanges, int row, int column, int widthPixels = 640, int heightPixels = 360, string title = null)",
@@ -3852,11 +3852,11 @@
       "notes": "Numeric parameters with unit-suffixed names: heightPixels, widthPixels",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical chart/page geometry uses OfficeLength; chart style colors use OfficeColor with native theme slots and alpha. Optional defaults and native serialization precision remain at the owning XML/VML boundary. Raster budgets/counts, ratios, angles, percentages and indexes stay numeric. Native chart/page geometry and style readers use the physical units of their XML/VML owners. Current normal and isolated net472 compiles and focused native/consumer/module checks qualify this change; Windows runtime validation follows separately."
     },
     {
       "old": "OfficeIMO.Excel.ExcelSheet.AddStatusBreakdownChart(string dataRangeA1, int row, int column, string title = Status Breakdown, int widthPixels = 520, int heightPixels = 320, bool hasHeaders = True, bool includeCachedData = True)",
@@ -3869,11 +3869,11 @@
       "notes": "Numeric parameters with unit-suffixed names: heightPixels, widthPixels",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical chart/page geometry uses OfficeLength; chart style colors use OfficeColor with native theme slots and alpha. Optional defaults and native serialization precision remain at the owning XML/VML boundary. Raster budgets/counts, ratios, angles, percentages and indexes stay numeric. Native chart/page geometry and style readers use the physical units of their XML/VML owners. Current normal and isolated net472 compiles and focused native/consumer/module checks qualify this change; Windows runtime validation follows separately."
     },
     {
       "old": "OfficeIMO.Excel.ExcelSheet.AddTopNBarChart(string dataRangeA1, int row, int column, string title = Top Items, int widthPixels = 640, int heightPixels = 360, bool hasHeaders = True, bool includeCachedData = True)",
@@ -3886,11 +3886,11 @@
       "notes": "Numeric parameters with unit-suffixed names: heightPixels, widthPixels",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical chart/page geometry uses OfficeLength; chart style colors use OfficeColor with native theme slots and alpha. Optional defaults and native serialization precision remain at the owning XML/VML boundary. Raster budgets/counts, ratios, angles, percentages and indexes stay numeric. Native chart/page geometry and style readers use the physical units of their XML/VML owners. Current normal and isolated net472 compiles and focused native/consumer/module checks qualify this change; Windows runtime validation follows separately."
     },
     {
       "old": "OfficeIMO.Excel.ExcelSheet.AddVarianceColumnChart(string dataRangeA1, int row, int column, string title = Variance, int widthPixels = 640, int heightPixels = 360, bool hasHeaders = True, bool includeCachedData = True)",
@@ -3903,11 +3903,11 @@
       "notes": "Numeric parameters with unit-suffixed names: heightPixels, widthPixels",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical chart/page geometry uses OfficeLength; chart style colors use OfficeColor with native theme slots and alpha. Optional defaults and native serialization precision remain at the owning XML/VML boundary. Raster budgets/counts, ratios, angles, percentages and indexes stay numeric. Native chart/page geometry and style readers use the physical units of their XML/VML owners. Current normal and isolated net472 compiles and focused native/consumer/module checks qualify this change; Windows runtime validation follows separately."
     },
     {
       "old": "OfficeIMO.Excel.ExcelSheet.AddVarianceWaterfallChart(string dataRangeA1, int row, int column, string title = Variance Bridge, int widthPixels = 720, int heightPixels = 360, bool hasHeaders = True, bool includeCachedData = True)",
@@ -3920,11 +3920,11 @@
       "notes": "Numeric parameters with unit-suffixed names: heightPixels, widthPixels",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical chart/page geometry uses OfficeLength; chart style colors use OfficeColor with native theme slots and alpha. Optional defaults and native serialization precision remain at the owning XML/VML boundary. Raster budgets/counts, ratios, angles, percentages and indexes stay numeric. Native chart/page geometry and style readers use the physical units of their XML/VML owners. Current normal and isolated net472 compiles and focused native/consumer/module checks qualify this change; Windows runtime validation follows separately."
     },
     {
       "old": "OfficeIMO.Excel.ExcelSheet.AddWaterfallChart(IEnumerable<string> categories, IEnumerable<double> changes, int row, int column, string title = Waterfall, bool includeTotal = True, string totalLabel = Total, int widthPixels = 720, int heightPixels = 360)",
@@ -3937,11 +3937,11 @@
       "notes": "Numeric parameters with unit-suffixed names: heightPixels, widthPixels",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical chart/page geometry uses OfficeLength; chart style colors use OfficeColor with native theme slots and alpha. Optional defaults and native serialization precision remain at the owning XML/VML boundary. Raster budgets/counts, ratios, angles, percentages and indexes stay numeric. Native chart/page geometry and style readers use the physical units of their XML/VML owners. Current normal and isolated net472 compiles and focused native/consumer/module checks qualify this change; Windows runtime validation follows separately."
     },
     {
       "old": "OfficeIMO.Excel.ExcelSheet.ChartLayout(int row, int column, int widthPixels = 520, int heightPixels = 320, int chartsPerRow = 2, int horizontalGapPixels = 48, int verticalGapRows = 2)",
@@ -3954,11 +3954,11 @@
       "notes": "Numeric parameters with unit-suffixed names: heightPixels, horizontalGapPixels, widthPixels",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical chart/page geometry uses OfficeLength; chart style colors use OfficeColor with native theme slots and alpha. Optional defaults and native serialization precision remain at the owning XML/VML boundary. Raster budgets/counts, ratios, angles, percentages and indexes stay numeric. Native chart/page geometry and style readers use the physical units of their XML/VML owners. Current normal and isolated net472 compiles and focused native/consumer/module checks qualify this change; Windows runtime validation follows separately."
     },
     {
       "old": "OfficeIMO.Excel.ExcelSheet.HeaderLogoFromUrlAsync(string url, ExcelHeaderFooterPosition position = Right, double? widthPoints = null, double? heightPoints = null, string leftText = null, string centerText = null, string rightText = null, CancellationToken cancellationToken = null)",
@@ -3971,11 +3971,11 @@
       "notes": "Numeric parameters with unit-suffixed names: heightPoints, widthPoints",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical chart/page geometry uses OfficeLength; chart style colors use OfficeColor with native theme slots and alpha. Optional defaults and native serialization precision remain at the owning XML/VML boundary. Raster budgets/counts, ratios, angles, percentages and indexes stay numeric. Native chart/page geometry and style readers use the physical units of their XML/VML owners. Current normal and isolated net472 compiles and focused native/consumer/module checks qualify this change; Windows runtime validation follows separately."
     },
     {
       "old": "OfficeIMO.Excel.ExcelSheet.HeaderLogoFromUrlAsync(string url, OfficeRemoteImageLoadOptions remoteImageOptions, ExcelHeaderFooterPosition position = Right, double? widthPoints = null, double? heightPoints = null, string leftText = null, string centerText = null, string rightText = null, CancellationToken cancellationToken = null)",
@@ -3988,11 +3988,11 @@
       "notes": "Numeric parameters with unit-suffixed names: heightPoints, widthPoints",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical chart/page geometry uses OfficeLength; chart style colors use OfficeColor with native theme slots and alpha. Optional defaults and native serialization precision remain at the owning XML/VML boundary. Raster budgets/counts, ratios, angles, percentages and indexes stay numeric. Native chart/page geometry and style readers use the physical units of their XML/VML owners. Current normal and isolated net472 compiles and focused native/consumer/module checks qualify this change; Windows runtime validation follows separately."
     },
     {
       "old": "OfficeIMO.Excel.ExcelSheet.SetFooterImage(ExcelHeaderFooterPosition position, byte[] imageBytes, string contentType = image/png, double? widthPoints = null, double? heightPoints = null)",
@@ -4005,11 +4005,11 @@
       "notes": "Numeric parameters with unit-suffixed names: heightPoints, widthPoints",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical chart/page geometry uses OfficeLength; chart style colors use OfficeColor with native theme slots and alpha. Optional defaults and native serialization precision remain at the owning XML/VML boundary. Raster budgets/counts, ratios, angles, percentages and indexes stay numeric. Native chart/page geometry and style readers use the physical units of their XML/VML owners. Current normal and isolated net472 compiles and focused native/consumer/module checks qualify this change; Windows runtime validation follows separately."
     },
     {
       "old": "OfficeIMO.Excel.ExcelSheet.SetFooterImageFromUrlAsync(ExcelHeaderFooterPosition position, string url, OfficeRemoteImageLoadOptions remoteImageOptions, double? widthPoints = null, double? heightPoints = null, CancellationToken cancellationToken = null)",
@@ -4022,11 +4022,11 @@
       "notes": "Numeric parameters with unit-suffixed names: heightPoints, widthPoints",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical chart/page geometry uses OfficeLength; chart style colors use OfficeColor with native theme slots and alpha. Optional defaults and native serialization precision remain at the owning XML/VML boundary. Raster budgets/counts, ratios, angles, percentages and indexes stay numeric. Native chart/page geometry and style readers use the physical units of their XML/VML owners. Current normal and isolated net472 compiles and focused native/consumer/module checks qualify this change; Windows runtime validation follows separately."
     },
     {
       "old": "OfficeIMO.Excel.ExcelSheet.SetFooterImageFromUrlAsync(ExcelHeaderFooterPosition position, string url, double? widthPoints = null, double? heightPoints = null, CancellationToken cancellationToken = null)",
@@ -4039,11 +4039,11 @@
       "notes": "Numeric parameters with unit-suffixed names: heightPoints, widthPoints",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical chart/page geometry uses OfficeLength; chart style colors use OfficeColor with native theme slots and alpha. Optional defaults and native serialization precision remain at the owning XML/VML boundary. Raster budgets/counts, ratios, angles, percentages and indexes stay numeric. Native chart/page geometry and style readers use the physical units of their XML/VML owners. Current normal and isolated net472 compiles and focused native/consumer/module checks qualify this change; Windows runtime validation follows separately."
     },
     {
       "old": "OfficeIMO.Excel.ExcelSheet.SetHeaderImage(ExcelHeaderFooterPosition position, byte[] imageBytes, string contentType = image/png, double? widthPoints = null, double? heightPoints = null)",
@@ -4056,11 +4056,11 @@
       "notes": "Numeric parameters with unit-suffixed names: heightPoints, widthPoints",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical chart/page geometry uses OfficeLength; chart style colors use OfficeColor with native theme slots and alpha. Optional defaults and native serialization precision remain at the owning XML/VML boundary. Raster budgets/counts, ratios, angles, percentages and indexes stay numeric. Native chart/page geometry and style readers use the physical units of their XML/VML owners. Current normal and isolated net472 compiles and focused native/consumer/module checks qualify this change; Windows runtime validation follows separately."
     },
     {
       "old": "OfficeIMO.Excel.ExcelSheet.SetHeaderImageFromUrlAsync(ExcelHeaderFooterPosition position, string url, OfficeRemoteImageLoadOptions remoteImageOptions, double? widthPoints = null, double? heightPoints = null, CancellationToken cancellationToken = null)",
@@ -4073,11 +4073,11 @@
       "notes": "Numeric parameters with unit-suffixed names: heightPoints, widthPoints",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical chart/page geometry uses OfficeLength; chart style colors use OfficeColor with native theme slots and alpha. Optional defaults and native serialization precision remain at the owning XML/VML boundary. Raster budgets/counts, ratios, angles, percentages and indexes stay numeric. Native chart/page geometry and style readers use the physical units of their XML/VML owners. Current normal and isolated net472 compiles and focused native/consumer/module checks qualify this change; Windows runtime validation follows separately."
     },
     {
       "old": "OfficeIMO.Excel.ExcelSheet.SetHeaderImageFromUrlAsync(ExcelHeaderFooterPosition position, string url, double? widthPoints = null, double? heightPoints = null, CancellationToken cancellationToken = null)",
@@ -4090,11 +4090,11 @@
       "notes": "Numeric parameters with unit-suffixed names: heightPoints, widthPoints",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical chart/page geometry uses OfficeLength; chart style colors use OfficeColor with native theme slots and alpha. Optional defaults and native serialization precision remain at the owning XML/VML boundary. Raster budgets/counts, ratios, angles, percentages and indexes stay numeric. Native chart/page geometry and style readers use the physical units of their XML/VML owners. Current normal and isolated net472 compiles and focused native/consumer/module checks qualify this change; Windows runtime validation follows separately."
     },
     {
       "old": "OfficeIMO.Excel.ExcelTemplateImage.FromBytes(byte[] bytes, string contentType = image/png, int widthPixels = 96, int heightPixels = 32, int offsetXPixels = 0, int offsetYPixels = 0, string name = null, string altText = null, bool lockAspectRatio = True)",
@@ -4110,8 +4110,8 @@
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B. The approved design uses the existing OfficeDocumentFormat enum, root OfficeIMO shared types and source.ToTarget forms; no static From factories are added.",
+      "applied": "phase-b-applied",
+      "note": "Template-image width, height and offsets already use OfficeLength after the earlier image-geometry migration; the listed numeric signatures have been replaced.",
       "supersededM0Target": "OfficeIMO.Excel.ExcelTemplateImage.FromBytes(... OfficeLength ...)"
     },
     {
@@ -4128,8 +4128,8 @@
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B. The approved design uses the existing OfficeDocumentFormat enum, root OfficeIMO shared types and source.ToTarget forms; no static From factories are added.",
+      "applied": "phase-b-applied",
+      "note": "Template-image width, height and offsets already use OfficeLength after the earlier image-geometry migration; the listed numeric signatures have been replaced.",
       "supersededM0Target": "OfficeIMO.Excel.ExcelTemplateImage.FromStream(... OfficeLength ...)"
     },
     {
@@ -4146,8 +4146,8 @@
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B. The approved design uses the existing OfficeDocumentFormat enum, root OfficeIMO shared types and source.ToTarget forms; no static From factories are added.",
+      "applied": "phase-b-applied",
+      "note": "Template-image width, height and offsets already use OfficeLength after the earlier image-geometry migration; the listed numeric signatures have been replaced.",
       "supersededM0Target": "OfficeIMO.Excel.ExcelTemplateImage.FromUrlAsync(... OfficeLength ...)"
     },
     {
@@ -4164,77 +4164,77 @@
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B. The approved design uses the existing OfficeDocumentFormat enum, root OfficeIMO shared types and source.ToTarget forms; no static From factories are added.",
+      "applied": "phase-b-applied",
+      "note": "Template-image width, height and offsets already use OfficeLength after the earlier image-geometry migration; the listed numeric signatures have been replaced.",
       "supersededM0Target": "OfficeIMO.Excel.ExcelTemplateImage.FromUrlAsync(... OfficeLength ...)"
     },
     {
       "old": "OfficeIMO.Excel.Fluent.SheetComposer.FooterLogoFromUrlAsync(string url, ExcelHeaderFooterPosition position = Right, double? widthPoints = null, double? heightPoints = null, string leftText = null, string centerText = null, string rightText = null, CancellationToken cancellationToken = null)",
       "kind": "method",
       "action": "change",
-      "new": "OfficeIMO.Excel.Fluent.SheetComposer.FooterLogoFromUrlAsync(... OfficeLength ...)",
+      "new": "OfficeIMO.Excel.ExcelReportBuilder.FooterLogoFromUrlAsync(... OfficeLength ...)",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.Excel/Fluent/SheetComposer.HeaderFooter.cs",
       "category": "units",
       "notes": "Numeric parameters with unit-suffixed names: heightPoints, widthPoints",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical chart/page geometry uses OfficeLength; chart style colors use OfficeColor with native theme slots and alpha. Optional defaults and native serialization precision remain at the owning XML/VML boundary. Raster budgets/counts, ratios, angles, percentages and indexes stay numeric. Native chart/page geometry and style readers use the physical units of their XML/VML owners. Current normal and isolated net472 compiles and focused native/consumer/module checks qualify this change; Windows runtime validation follows separately."
     },
     {
       "old": "OfficeIMO.Excel.Fluent.SheetComposer.FooterLogoFromUrlAsync(string url, OfficeRemoteImageLoadOptions remoteImageOptions, ExcelHeaderFooterPosition position = Right, double? widthPoints = null, double? heightPoints = null, string leftText = null, string centerText = null, string rightText = null, CancellationToken cancellationToken = null)",
       "kind": "method",
       "action": "change",
-      "new": "OfficeIMO.Excel.Fluent.SheetComposer.FooterLogoFromUrlAsync(... OfficeLength ...)",
+      "new": "OfficeIMO.Excel.ExcelReportBuilder.FooterLogoFromUrlAsync(... OfficeLength ...)",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.Excel/Fluent/SheetComposer.HeaderFooter.cs",
       "category": "units",
       "notes": "Numeric parameters with unit-suffixed names: heightPoints, widthPoints",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical chart/page geometry uses OfficeLength; chart style colors use OfficeColor with native theme slots and alpha. Optional defaults and native serialization precision remain at the owning XML/VML boundary. Raster budgets/counts, ratios, angles, percentages and indexes stay numeric. Native chart/page geometry and style readers use the physical units of their XML/VML owners. Current normal and isolated net472 compiles and focused native/consumer/module checks qualify this change; Windows runtime validation follows separately."
     },
     {
       "old": "OfficeIMO.Excel.Fluent.SheetComposer.HeaderLogoFromUrlAsync(string url, ExcelHeaderFooterPosition position = Right, double? widthPoints = null, double? heightPoints = null, string leftText = null, string centerText = null, string rightText = null, CancellationToken cancellationToken = null)",
       "kind": "method",
       "action": "change",
-      "new": "OfficeIMO.Excel.Fluent.SheetComposer.HeaderLogoFromUrlAsync(... OfficeLength ...)",
+      "new": "OfficeIMO.Excel.ExcelReportBuilder.HeaderLogoFromUrlAsync(... OfficeLength ...)",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.Excel/Fluent/SheetComposer.HeaderFooter.cs",
       "category": "units",
       "notes": "Numeric parameters with unit-suffixed names: heightPoints, widthPoints",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical chart/page geometry uses OfficeLength; chart style colors use OfficeColor with native theme slots and alpha. Optional defaults and native serialization precision remain at the owning XML/VML boundary. Raster budgets/counts, ratios, angles, percentages and indexes stay numeric. Native chart/page geometry and style readers use the physical units of their XML/VML owners. Current normal and isolated net472 compiles and focused native/consumer/module checks qualify this change; Windows runtime validation follows separately."
     },
     {
       "old": "OfficeIMO.Excel.Fluent.SheetComposer.HeaderLogoFromUrlAsync(string url, OfficeRemoteImageLoadOptions remoteImageOptions, ExcelHeaderFooterPosition position = Right, double? widthPoints = null, double? heightPoints = null, string leftText = null, string centerText = null, string rightText = null, CancellationToken cancellationToken = null)",
       "kind": "method",
       "action": "change",
-      "new": "OfficeIMO.Excel.Fluent.SheetComposer.HeaderLogoFromUrlAsync(... OfficeLength ...)",
+      "new": "OfficeIMO.Excel.ExcelReportBuilder.HeaderLogoFromUrlAsync(... OfficeLength ...)",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.Excel/Fluent/SheetComposer.HeaderFooter.cs",
       "category": "units",
       "notes": "Numeric parameters with unit-suffixed names: heightPoints, widthPoints",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical chart/page geometry uses OfficeLength; chart style colors use OfficeColor with native theme slots and alpha. Optional defaults and native serialization precision remain at the owning XML/VML boundary. Raster budgets/counts, ratios, angles, percentages and indexes stay numeric. Native chart/page geometry and style readers use the physical units of their XML/VML owners. Current normal and isolated net472 compiles and focused native/consumer/module checks qualify this change; Windows runtime validation follows separately."
     },
     {
       "old": "OfficeIMO.Excel.ExcelChartDataLabelTemplate.FontSizePoints",
@@ -4246,11 +4246,11 @@
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical chart/page geometry uses OfficeLength; chart style colors use OfficeColor with native theme slots and alpha. Optional defaults and native serialization precision remain at the owning XML/VML boundary. Raster budgets/counts, ratios, angles, percentages and indexes stay numeric. Native chart/page geometry and style readers use the physical units of their XML/VML owners. Current normal and isolated net472 compiles and focused native/consumer/module checks qualify this change; Windows runtime validation follows separately."
     },
     {
       "old": "OfficeIMO.Excel.ExcelChartDataLabelTemplate.LeaderLineWidthPoints",
@@ -4262,11 +4262,11 @@
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical chart/page geometry uses OfficeLength; chart style colors use OfficeColor with native theme slots and alpha. Optional defaults and native serialization precision remain at the owning XML/VML boundary. Raster budgets/counts, ratios, angles, percentages and indexes stay numeric. Native chart/page geometry and style readers use the physical units of their XML/VML owners. Current normal and isolated net472 compiles and focused native/consumer/module checks qualify this change; Windows runtime validation follows separately."
     },
     {
       "old": "OfficeIMO.Excel.ExcelChartDataLabelTemplate.LineWidthPoints",
@@ -4278,11 +4278,11 @@
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical chart/page geometry uses OfficeLength; chart style colors use OfficeColor with native theme slots and alpha. Optional defaults and native serialization precision remain at the owning XML/VML boundary. Raster budgets/counts, ratios, angles, percentages and indexes stay numeric. Native chart/page geometry and style readers use the physical units of their XML/VML owners. Current normal and isolated net472 compiles and focused native/consumer/module checks qualify this change; Windows runtime validation follows separately."
     },
     {
       "old": "OfficeIMO.Excel.ExcelChartPlacement.HeightPixels",
@@ -4294,11 +4294,11 @@
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical chart/page geometry uses OfficeLength; chart style colors use OfficeColor with native theme slots and alpha. Optional defaults and native serialization precision remain at the owning XML/VML boundary. Raster budgets/counts, ratios, angles, percentages and indexes stay numeric. Native chart/page geometry and style readers use the physical units of their XML/VML owners. Current normal and isolated net472 compiles and focused native/consumer/module checks qualify this change; Windows runtime validation follows separately."
     },
     {
       "old": "OfficeIMO.Excel.ExcelChartPlacement.WidthPixels",
@@ -4310,75 +4310,75 @@
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical chart/page geometry uses OfficeLength; chart style colors use OfficeColor with native theme slots and alpha. Optional defaults and native serialization precision remain at the owning XML/VML boundary. Raster budgets/counts, ratios, angles, percentages and indexes stay numeric. Native chart/page geometry and style readers use the physical units of their XML/VML owners. Current normal and isolated net472 compiles and focused native/consumer/module checks qualify this change; Windows runtime validation follows separately."
     },
     {
       "old": "OfficeIMO.Excel.ExcelChartSnapshot.HeightPixels",
       "kind": "property",
       "action": "merge",
-      "new": "OfficeIMO.Excel.ExcelChartSnapshot.Height : OfficeLength",
+      "new": "OfficeIMO.Excel.ExcelChartInfo.Height : OfficeLength",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.Excel/ExcelChartSnapshot.cs",
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical chart/page geometry uses OfficeLength; chart style colors use OfficeColor with native theme slots and alpha. Optional defaults and native serialization precision remain at the owning XML/VML boundary. Raster budgets/counts, ratios, angles, percentages and indexes stay numeric. Native chart/page geometry and style readers use the physical units of their XML/VML owners. Current normal and isolated net472 compiles and focused native/consumer/module checks qualify this change; Windows runtime validation follows separately."
     },
     {
       "old": "OfficeIMO.Excel.ExcelChartSnapshot.OffsetXPixels",
       "kind": "property",
       "action": "merge",
-      "new": "OfficeIMO.Excel.ExcelChartSnapshot.OffsetX : OfficeLength",
+      "new": "OfficeIMO.Excel.ExcelChartInfo.OffsetX : OfficeLength",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.Excel/ExcelChartSnapshot.cs",
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical chart/page geometry uses OfficeLength; chart style colors use OfficeColor with native theme slots and alpha. Optional defaults and native serialization precision remain at the owning XML/VML boundary. Raster budgets/counts, ratios, angles, percentages and indexes stay numeric. Native chart/page geometry and style readers use the physical units of their XML/VML owners. Current normal and isolated net472 compiles and focused native/consumer/module checks qualify this change; Windows runtime validation follows separately."
     },
     {
       "old": "OfficeIMO.Excel.ExcelChartSnapshot.OffsetYPixels",
       "kind": "property",
       "action": "merge",
-      "new": "OfficeIMO.Excel.ExcelChartSnapshot.OffsetY : OfficeLength",
+      "new": "OfficeIMO.Excel.ExcelChartInfo.OffsetY : OfficeLength",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.Excel/ExcelChartSnapshot.cs",
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical chart/page geometry uses OfficeLength; chart style colors use OfficeColor with native theme slots and alpha. Optional defaults and native serialization precision remain at the owning XML/VML boundary. Raster budgets/counts, ratios, angles, percentages and indexes stay numeric. Native chart/page geometry and style readers use the physical units of their XML/VML owners. Current normal and isolated net472 compiles and focused native/consumer/module checks qualify this change; Windows runtime validation follows separately."
     },
     {
       "old": "OfficeIMO.Excel.ExcelChartSnapshot.WidthPixels",
       "kind": "property",
       "action": "merge",
-      "new": "OfficeIMO.Excel.ExcelChartSnapshot.Width : OfficeLength",
+      "new": "OfficeIMO.Excel.ExcelChartInfo.Width : OfficeLength",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.Excel/ExcelChartSnapshot.cs",
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical chart/page geometry uses OfficeLength; chart style colors use OfficeColor with native theme slots and alpha. Optional defaults and native serialization precision remain at the owning XML/VML boundary. Raster budgets/counts, ratios, angles, percentages and indexes stay numeric. Native chart/page geometry and style readers use the physical units of their XML/VML owners. Current normal and isolated net472 compiles and focused native/consumer/module checks qualify this change; Windows runtime validation follows separately."
     },
     {
       "old": "OfficeIMO.Excel.ExcelDashboardChartOptions.HeightPixels",
@@ -4390,11 +4390,11 @@
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical chart/page geometry uses OfficeLength; chart style colors use OfficeColor with native theme slots and alpha. Optional defaults and native serialization precision remain at the owning XML/VML boundary. Raster budgets/counts, ratios, angles, percentages and indexes stay numeric. Native chart/page geometry and style readers use the physical units of their XML/VML owners. Current normal and isolated net472 compiles and focused native/consumer/module checks qualify this change; Windows runtime validation follows separately."
     },
     {
       "old": "OfficeIMO.Excel.ExcelDashboardChartOptions.WidthPixels",
@@ -4406,11 +4406,11 @@
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical chart/page geometry uses OfficeLength; chart style colors use OfficeColor with native theme slots and alpha. Optional defaults and native serialization precision remain at the owning XML/VML boundary. Raster budgets/counts, ratios, angles, percentages and indexes stay numeric. Native chart/page geometry and style readers use the physical units of their XML/VML owners. Current normal and isolated net472 compiles and focused native/consumer/module checks qualify this change; Windows runtime validation follows separately."
     },
     {
       "old": "OfficeIMO.Excel.ExcelImage.HeightPixels",
@@ -4544,33 +4544,33 @@
       "old": "OfficeIMO.Excel.ExcelSheet+ExcelHeaderFooterImageSnapshot.HeightPoints",
       "kind": "property",
       "action": "merge",
-      "new": "OfficeIMO.Excel.ExcelSheet+ExcelHeaderFooterImageSnapshot.Height : OfficeLength",
+      "new": "OfficeIMO.Excel.ExcelSheet+ExcelHeaderFooterImageInfo.Height : OfficeLength",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.Excel/ExcelSheet.HeadersFooters.cs",
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical chart/page geometry uses OfficeLength; chart style colors use OfficeColor with native theme slots and alpha. Optional defaults and native serialization precision remain at the owning XML/VML boundary. Raster budgets/counts, ratios, angles, percentages and indexes stay numeric. Native chart/page geometry and style readers use the physical units of their XML/VML owners. Current normal and isolated net472 compiles and focused native/consumer/module checks qualify this change; Windows runtime validation follows separately."
     },
     {
       "old": "OfficeIMO.Excel.ExcelSheet+ExcelHeaderFooterImageSnapshot.WidthPoints",
       "kind": "property",
       "action": "merge",
-      "new": "OfficeIMO.Excel.ExcelSheet+ExcelHeaderFooterImageSnapshot.Width : OfficeLength",
+      "new": "OfficeIMO.Excel.ExcelSheet+ExcelHeaderFooterImageInfo.Width : OfficeLength",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.Excel/ExcelSheet.HeadersFooters.cs",
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical chart/page geometry uses OfficeLength; chart style colors use OfficeColor with native theme slots and alpha. Optional defaults and native serialization precision remain at the owning XML/VML boundary. Raster budgets/counts, ratios, angles, percentages and indexes stay numeric. Native chart/page geometry and style readers use the physical units of their XML/VML owners. Current normal and isolated net472 compiles and focused native/consumer/module checks qualify this change; Windows runtime validation follows separately."
     },
     {
       "old": "OfficeIMO.Excel.ExcelSlicerViewOptions.HeightPixels",
@@ -4633,8 +4633,8 @@
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Template-image width, height and offsets already use OfficeLength after the earlier image-geometry migration; the listed numeric signatures have been replaced."
     },
     {
       "old": "OfficeIMO.Excel.ExcelTemplateImage.OffsetXPixels",
@@ -4649,8 +4649,8 @@
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Template-image width, height and offsets already use OfficeLength after the earlier image-geometry migration; the listed numeric signatures have been replaced."
     },
     {
       "old": "OfficeIMO.Excel.ExcelTemplateImage.OffsetYPixels",
@@ -4665,8 +4665,8 @@
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Template-image width, height and offsets already use OfficeLength after the earlier image-geometry migration; the listed numeric signatures have been replaced."
     },
     {
       "old": "OfficeIMO.Excel.ExcelTemplateImage.WidthPixels",
@@ -4681,8 +4681,8 @@
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Template-image width, height and offsets already use OfficeLength after the earlier image-geometry migration; the listed numeric signatures have been replaced."
     },
     {
       "old": "OfficeIMO.Excel.ExcelTimelineViewOptions.HeightPixels",
@@ -6196,6 +6196,65 @@
         "OfficeIMO.Excel/ExcelDocument.UnifiedLifecycle.cs",
         "OfficeIMO.Excel/ExcelDocument.DirectDataSet.Writer.Streaming.cs"
       ]
+    },
+    {
+      "category": "units",
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "change": "Physical Excel chart and print geometry",
+      "files": [
+        "OfficeIMO.Excel/ExcelChart.Axes.cs",
+        "OfficeIMO.Excel/ExcelChart.DataLabelHelpers.cs",
+        "OfficeIMO.Excel/ExcelChart.DataLabels.cs",
+        "OfficeIMO.Excel/ExcelChart.DataPoints.cs",
+        "OfficeIMO.Excel/ExcelChart.SeriesAndAreas.cs",
+        "OfficeIMO.Excel/ExcelChart.ShapeStyleHelpers.cs",
+        "OfficeIMO.Excel/ExcelChart.SharedStyles.cs",
+        "OfficeIMO.Excel/ExcelChart.cs",
+        "OfficeIMO.Excel/ExcelChartDataLabelTemplate.cs",
+        "OfficeIMO.Excel/ExcelChartGridLayout.cs",
+        "OfficeIMO.Excel/ExcelChartPlacement.cs",
+        "OfficeIMO.Excel/ExcelChartSnapshot.cs",
+        "OfficeIMO.Excel/ExcelModernChart.cs",
+        "OfficeIMO.Excel/ExcelSheet.ChartLayout.cs",
+        "OfficeIMO.Excel/ExcelSheet.ChartRecipes.cs",
+        "OfficeIMO.Excel/ExcelSheet.Charts.cs",
+        "OfficeIMO.Excel/ExcelSheet.DashboardCharts.cs",
+        "OfficeIMO.Excel/ExcelSheet.HeaderLogos.cs",
+        "OfficeIMO.Excel/ExcelSheet.HeadersFooters.cs",
+        "OfficeIMO.Excel/ExcelSheet.ModernChartRecipes.cs",
+        "OfficeIMO.Excel/ExcelSheet.ModernCharts.cs",
+        "OfficeIMO.Excel/ExcelSheet.PageSetup.cs",
+        "OfficeIMO.Excel/ExcelSheet.PrintSettings.cs",
+        "OfficeIMO.Excel/ExcelSheet.SharedCharts.cs",
+        "OfficeIMO.Excel/Imaging/ExcelChart.Imaging.cs",
+        "OfficeIMO.Excel/Imaging/ExcelRangeVisualSnapshotBuilder.cs",
+        "OfficeIMO.Excel/Imaging/ExcelSheet.Imaging.HeaderFooter.Images.cs",
+        "OfficeIMO.Excel/Imaging/ExcelSheet.Imaging.HeaderFooter.cs",
+        "OfficeIMO.Excel/Imaging/ExcelSheet.Imaging.cs",
+        "OfficeIMO.Excel/LegacyXls/Projection/LegacyXlsWorkbookProjector.cs",
+        "OfficeIMO.Excel/LegacyXls/Write/LegacyXlsWriter.cs",
+        "OfficeIMO.Excel/README.md",
+        "OfficeIMO.Excel/Report/ExcelReportBuilder.HeaderFooter.cs",
+        "OfficeIMO.Excel/Report/ExcelReportBuilder.PrintAndCF.cs",
+        "OfficeIMO.Excel/ExcelChartSeries.cs"
+      ],
+      "note": "Chart placement, exact detached chart/header-footer geometry, chart styling and print margin authoring/inspection use OfficeLength. Chart colors use OfficeColor. Existing private native kernels and shared bounds remain the implementation owners. All current TFMs are retained. Mechanical PS call conversions preserve cmdlet names and parameters. Compiler/API-analyzer and artifact proof remain to be run after application. Read-only series line/marker metrics expose OfficeLength; existing native fields and render kernels remain numeric internally. HTML chart size inventory reuses the existing bounded native-EMU image-length reader; ODS chart creation carries physical lengths instead of integer pixels."
+    },
+    {
+      "change": "Preserve physical chart, print and header/footer geometry and marker alpha in native and rendered output",
+      "reason": "Charts use OfficeLength at authoring, styling and inspection boundaries. Native DrawingML retains whole-EMU extents and lines, rounds fonts to hundredths of a point and markers to whole points, and keeps theme slots. Marker fill and outline readers retain ARGB when alpha is present, so drawing and PDF adapters receive the native opacity. Print margins serialize inches and header/footer images serialize points. Scalar indexes, presets and remote-image policies retain their native types.",
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "files": [
+        "OfficeIMO.Excel/ExcelChart.ImageExport.cs",
+        "OfficeIMO.Excel/ExcelFeatureReport.PdfPreflight.cs",
+        "OfficeIMO.Excel/Imaging/ExcelSheet.Imaging.PageSetup.cs",
+        "OfficeIMO.Excel.Tests/Excel.ChartPhysicalLengths.cs",
+        "OfficeIMO.Excel.OpenDocument/ExcelOpenDocumentConversionExtensions.Charts.ToOds.cs",
+        "OfficeIMO.Markup.Excel/OfficeMarkupExcelExporter.cs"
+      ],
+      "validation": "Current normal library targets and twelve isolated net472 paths compile. Focused tests include saved native geometry/colors and transparent-marker SVG output. Module .NET and Pester suites pass. Runtime Windows qualification and final whole-phase gates remain separate."
     }
   ],
   "applicationStatus": "Phase A applied and validated on the supported macOS targets. Phase B and Tier 2 entries retain their status; Windows .NET Framework validation remains pending.",

@@ -117,7 +117,7 @@ namespace OfficeIMO.Tests {
             sheet.Range("A2:B2").SetFillColor("E2E8F0").SetBold();
             sheet.Range("A3:B6").SetFillColor("F8FAFC");
 
-            ExcelChart chart = sheet.AddChartFromRange("A2:B6", row: 2, column: 4, widthPixels: 340, heightPixels: 220, type: OfficeChartType.ColumnClustered, title: "Axis Label Density");
+            ExcelChart chart = sheet.AddChartFromRange("A2:B6", row: 2, column: 4, width: OfficeLength.Pixels(340), height: OfficeLength.Pixels(220), type: OfficeChartType.ColumnClustered, title: "Axis Label Density");
             chart.SetValueAxisNumberFormat("#,##0");
             chart.SetLegend(OfficeChartLegendPosition.Bottom);
 
@@ -162,7 +162,7 @@ namespace OfficeIMO.Tests {
             sheet.Range("A2:B2").SetFillColor("E2E8F0").SetBold();
             sheet.Range("A3:B5").SetFillColor("F8FAFC");
 
-            ExcelChart chart = sheet.AddChartFromRange("A2:B5", row: 2, column: 4, widthPixels: 340, heightPixels: 220, type: OfficeChartType.ColumnClustered, title: "Data Label Boxes");
+            ExcelChart chart = sheet.AddChartFromRange("A2:B5", row: 2, column: 4, width: OfficeLength.Pixels(340), height: OfficeLength.Pixels(220), type: OfficeChartType.ColumnClustered, title: "Data Label Boxes");
             chart.SetDataLabels(
                 showValue: true,
                 showCategoryName: false,
@@ -171,8 +171,8 @@ namespace OfficeIMO.Tests {
                 showPercent: false,
                 position: OfficeChartDataLabelPosition.OutsideEnd,
                 numberFormat: "0");
-            chart.SetDataLabelShapeStyle(fillColor: "FDE68A", lineColor: "B45309", lineWidthPoints: 1.5D);
-            chart.SetDataLabelTextStyle(color: "7C2D12", bold: true);
+            chart.SetDataLabelShapeStyle(fillColor: OfficeColor.Parse("FDE68A"), lineColor: OfficeColor.Parse("B45309"), lineWidth: OfficeLength.Points(1.5D));
+            chart.SetDataLabelTextStyle(color: OfficeColor.Parse("7C2D12"), bold: true);
             chart.SetLegend(OfficeChartLegendPosition.Bottom);
 
             for (int column = 1; column <= 8; column++) {

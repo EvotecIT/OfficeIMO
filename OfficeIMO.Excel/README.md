@@ -940,6 +940,24 @@ public sealed record ImmutableRow(string Name, string Status);
 
 ### Charts and dashboard recipes
 
+Chart placement, marker sizes, font sizes and line widths use `OfficeLength`, as do
+print margins and header/footer image sizes. For example:
+
+```csharp
+sheet.SetMargins(OfficeLength.Inches(0.7), OfficeLength.Inches(0.7),
+    OfficeLength.Inches(0.75), OfficeLength.Inches(0.75));
+ExcelChart styledChart = sheet.AddChartFromRange("A1:B5", row: 1, column: 5,
+    width: OfficeLength.Centimeters(16), height: OfficeLength.Centimeters(9), title: "Revenue");
+styledChart.SetTitleTextStyle(fontSize: OfficeLength.Points(12), color: OfficeColor.Text)
+    .SetValueAxisGridlines(lineColor: OfficeColor.Accent1, lineWidth: OfficeLength.Points(0.5));
+```
+
+Omitted chart sizes retain each operation's defaults; omitted header/footer margins
+are 0.3 inches. Geometry snapshots expose physical sizes and offsets without a
+pixel round trip. Raster export budgets and output pixel counts stay numeric;
+chart scales, angles, percentages and worksheet indexes keep their native meaning.
+
+
 Combination-chart snapshots retain secondary value-axis bounds, tick units and number formats
 independently of the primary axis. Configure them with `SetValueAxisScale(...,
 axisGroup: OfficeChartAxisGroup.Secondary)` and `SetValueAxisNumberFormat("0%", false,
@@ -957,6 +975,7 @@ references, and sources beyond the format-resolution work bounds report
 `ChartAxisNumberFormatApproximation` and use the axis's declared format.
 
 ```csharp
+using OfficeIMO;
 using OfficeIMO.Excel;
 
 using var document = ExcelDocument.Create("dashboard.xlsx");
@@ -974,10 +993,8 @@ sheet.CellValue(5, 1, "Q4");
 sheet.CellValue(5, 2, 30);
 
 sheet.AddTable("A1:B5", hasHeader: true, name: "RevenueTable", style: ExcelTableStyle.TableStyleMedium2);
-sheet.ChartFromTable("RevenueTable")
-    .RevenueTrend("Revenue trend")
-    .Size(640, 320)
-    .At(row: 1, column: 5);
+sheet.AddRevenueTrendChart("A1:B5", row: 1, column: 5, title: "Revenue trend",
+    width: OfficeLength.Pixels(640), height: OfficeLength.Pixels(320));
 
 sheet.AddHistogramChart(new[] { 8d, 10d, 10d, 12d, 15d, 18d }, row: 18, column: 1, binCount: 3);
 sheet.AddParetoChart(
@@ -1004,7 +1021,7 @@ var modernChart = sheet.AddModernChart(
     title: "Pipeline");
 
 modernChart.SetTitle("Current pipeline")
-    .SetPlacement(row: 18, column: 10, widthPixels: 640, heightPixels: 360);
+    .SetPlacement(row: 18, column: 10, width: OfficeLength.Pixels(640), height: OfficeLength.Pixels(360));
 ```
 
 `ExcelModernChart` can inspect imported ChartEx objects and change their name, title, supported layout, and one-cell placement without replacing unrelated markup. `UpdateData` is available only when the ChartEx formulas resolve to OfficeIMO's owned hidden chart-data sheet; visible imported business data is never claimed as writable chart storage. Other imported charts remain formatting-preserving but data replacement is rejected. Use `ExcelFormatCapabilityReport.Current.ToMarkdown()` when a workflow must choose between XLSX, XLS, and XLSB targets.

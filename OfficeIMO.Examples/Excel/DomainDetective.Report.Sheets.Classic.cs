@@ -58,7 +58,7 @@ namespace OfficeIMO.Examples.Excel
             // Header/footer + logo (fixed URL)
             const string logoUrl = "https://evotec.pl/wp-content/uploads/2015/05/Logo-evotec-012.png";
             overview.Sheet.SetHeaderFooter(headerLeft: "Domain Detective — Overview", headerRight: "Page &P of &N");
-            await overview.Sheet.SetHeaderImageFromUrlAsync(ExcelHeaderFooterPosition.Right, logoUrl, widthPoints: 96, heightPoints: 32);
+            await overview.Sheet.SetHeaderImageFromUrlAsync(ExcelHeaderFooterPosition.Right, logoUrl, width: OfficeLength.Points(96), height: OfficeLength.Points(32));
             await overview.AddImageFromUrlAsync(row: 1, column: 6, url: logoUrl, width: OfficeIMO.OfficeLength.Pixels(120), height: OfficeIMO.OfficeLength.Pixels(40));
             // Summary table
             var summaryRange = overview.AddTable(rows, title: "Domains", configure: opts =>

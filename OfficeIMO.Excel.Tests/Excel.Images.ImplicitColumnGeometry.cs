@@ -52,10 +52,10 @@ namespace OfficeIMO.Tests {
                 new Xdr.ToMarker(new Xdr.ColumnId("3"), new Xdr.ColumnOffset("0"), new Xdr.RowId("2"), new Xdr.RowOffset("0")));
 
             Assert.True(chart.TryGetSnapshot(out ExcelChartInfo before));
-            Assert.Equal(192, before.WidthPixels);
+            Assert.Equal(192, before.Width.ToPixels());
             format.BaseColumnWidth = 12U;
             Assert.True(chart.TryGetSnapshot(out ExcelChartInfo after));
-            Assert.Equal(288, after.WidthPixels);
+            Assert.Equal(288, after.Width.ToPixels());
         }
 
         [Theory]
@@ -84,12 +84,12 @@ namespace OfficeIMO.Tests {
 
             Assert.Equal(140, image.Width.ToPixels());
             Assert.True(chart.TryGetSnapshot(out ExcelChartInfo before));
-            Assert.Equal(140, before.WidthPixels);
+            Assert.Equal(140, before.Width.ToPixels());
             Assert.Equal(140, sheet.Range("A1:A2").ExportImage(OfficeImageExportFormat.Png).Width);
             using ExcelDocument reopened = ExcelDocument.Load(new MemoryStream(document.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xlsx })));
             Assert.Equal(140, reopened.Sheets[0].Images.Single().Width.ToPixels());
             Assert.True(reopened.Sheets[0].Charts.Single().TryGetSnapshot(out ExcelChartInfo after));
-            Assert.Equal(140, after.WidthPixels);
+            Assert.Equal(140, after.Width.ToPixels());
             Assert.Equal(140, reopened.Sheets[0].Range("A1:A2").ExportImage(OfficeImageExportFormat.Png).Width);
         }
 

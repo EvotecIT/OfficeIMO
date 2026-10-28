@@ -708,7 +708,7 @@ namespace OfficeIMO.Excel {
                 double height = 0D;
                 for (int index = 0; index < images.Length; index++) {
                     if (images[index] != null) {
-                        height = Math.Max(height, images[index]!.HeightPoints);
+                        height = Math.Max(height, images[index]!.Height.ToPoints());
                     }
                 }
 

@@ -37,7 +37,7 @@ namespace OfficeIMO.Tests {
                 new[] { "Changed" },
                 new[] { new ExcelChartSeries("Value", new[] { 99d }) })));
             Assert.Throws<InvalidOperationException>(() => removed.SetTitle("Changed"));
-            Assert.Throws<InvalidOperationException>(() => removed.SetPlacement(2, 2, 300, 200));
+            Assert.Throws<InvalidOperationException>(() => removed.SetPlacement(2, 2, OfficeLength.Pixels(300), OfficeLength.Pixels(200)));
             Assert.Throws<InvalidOperationException>(() => removed.Name = "Changed");
 
             ExcelSheet dataSheet = document[liveRange.SheetName];

@@ -892,7 +892,7 @@ namespace OfficeIMO.Tests
             }
 
             sheet.AddImage(6, 2, CreateMarkerPng(), "image/png", width: OfficeIMO.OfficeLength.Pixels(36), height: OfficeIMO.OfficeLength.Pixels(22), name: "QualityMarker");
-            sheet.AddChartFromRange("A2:B5", row: 2, column: 6, widthPixels: 230, heightPixels: 135, type: OfficeChartType.ColumnClustered, title: "Revenue Trend");
+            sheet.AddChartFromRange("A2:B5", row: 2, column: 6, width: OfficeLength.Pixels(230), height: OfficeLength.Pixels(135), type: OfficeChartType.ColumnClustered, title: "Revenue Trend");
             return new ExcelBaselineFixture(document, sheet);
         }
 

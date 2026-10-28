@@ -762,12 +762,16 @@ namespace OfficeIMO.Excel {
 
         private static string? GetImageExportMarkerFillColor(C.Marker? marker, WorkbookPart workbookPart) {
             C.ChartShapeProperties? properties = marker?.GetFirstChild<C.ChartShapeProperties>();
-            return properties != null && TryGetSolidFill(properties, workbookPart, out OfficeColor color) ? color.ToRgbHex() : null;
+            return properties != null && TryGetSolidFill(properties, workbookPart, out OfficeColor color)
+                ? color.A == 255 ? color.ToRgbHex() : color.ToArgbHex()
+                : null;
         }
 
         private static string? GetImageExportMarkerOutlineColor(C.Marker? marker, WorkbookPart workbookPart) {
             C.ChartShapeProperties? properties = marker?.GetFirstChild<C.ChartShapeProperties>();
-            return properties != null && TryGetSolidLine(properties, workbookPart, out OfficeColor color) ? color.ToRgbHex() : null;
+            return properties != null && TryGetSolidLine(properties, workbookPart, out OfficeColor color)
+                ? color.A == 255 ? color.ToRgbHex() : color.ToArgbHex()
+                : null;
         }
 
         private static double? GetImageExportMarkerOutlineWidth(C.Marker? marker) {

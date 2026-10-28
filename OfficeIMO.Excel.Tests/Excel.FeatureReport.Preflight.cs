@@ -536,7 +536,7 @@ namespace OfficeIMO.Tests
                         new ExcelChartSeries("Sales", new[] { 10d, 20d, 30d }, OfficeChartType.ColumnClustered, OfficeChartAxisGroup.Primary),
                         new ExcelChartSeries("Trend", new[] { 12d, 18d, 28d }, OfficeChartType.Line, OfficeChartAxisGroup.Secondary)
                     });
-                sheet.AddChart(data, row: 1, column: 5, widthPixels: 360, heightPixels: 220,
+                sheet.AddChart(data, row: 1, column: 5, width: OfficeLength.Pixels(360), height: OfficeLength.Pixels(220),
                     type: OfficeChartType.ColumnClustered, title: "Combo Chart");
                 document.Save();
             }
@@ -564,7 +564,7 @@ namespace OfficeIMO.Tests
                         new ExcelChartSeries("Sales", new[] { 10d, 20d, 30d }, OfficeChartType.ColumnClustered),
                         new ExcelChartSeries("Target", new[] { 12d, 18d, 28d }, OfficeChartType.ColumnStacked)
                     });
-                sheet.AddChart(data, row: 1, column: 5, widthPixels: 360, heightPixels: 220,
+                sheet.AddChart(data, row: 1, column: 5, width: OfficeLength.Pixels(360), height: OfficeLength.Pixels(220),
                     type: OfficeChartType.ColumnClustered, title: "Column Combo Chart");
                 document.Save();
             }
@@ -595,10 +595,10 @@ namespace OfficeIMO.Tests
                     }),
                 rowIndex: 1,
                 columnIndex: 5,
-                offsetXPixels: 0,
-                offsetYPixels: 0,
-                widthPixels: 360,
-                heightPixels: 220);
+                offsetX: OfficeLength.Pixels(0),
+                offsetY: OfficeLength.Pixels(0),
+                width: OfficeLength.Pixels(360),
+                height: OfficeLength.Pixels(220));
             MethodInfo method = typeof(ExcelDocument).GetMethod(
                 "GetPdfUnsupportedComboChartDetails",
                 BindingFlags.NonPublic | BindingFlags.Static)!;
@@ -622,7 +622,7 @@ namespace OfficeIMO.Tests
                 sheet.CellValue(2, 2, 10d);
                 sheet.CellValue(3, 1, "South");
                 sheet.CellValue(3, 2, 12d);
-                sheet.AddChartFromRange("A1:B3", row: 1, column: 5, widthPixels: 320, heightPixels: 180,
+                sheet.AddChartFromRange("A1:B3", row: 1, column: 5, width: OfficeLength.Pixels(320), height: OfficeLength.Pixels(180),
                     type: OfficeChartType.ColumnClustered, title: "Literal Chart");
                 document.Save();
             }
@@ -653,7 +653,7 @@ namespace OfficeIMO.Tests
                 sheet.CellValue(2, 2, 10d);
                 sheet.CellValue(3, 1, "South");
                 sheet.CellValue(3, 2, 12d);
-                ExcelChart chart = sheet.AddChartFromRange("A1:B3", row: 1, column: 5, widthPixels: 320, heightPixels: 180,
+                ExcelChart chart = sheet.AddChartFromRange("A1:B3", row: 1, column: 5, width: OfficeLength.Pixels(320), height: OfficeLength.Pixels(180),
                     type: OfficeChartType.ColumnClustered, title: "Dangling Chart");
                 chart.Name = "Dangling chart frame";
                 document.Save();
@@ -701,7 +701,7 @@ namespace OfficeIMO.Tests
                 ExcelSheet sheet = document.AddWorksheet("Images");
                 sheet.CellValue(1, 1, "Image");
                 sheet.SetHeaderImage(ExcelHeaderFooterPosition.Center, CreateFeatureReportGif(), "image/gif",
-                    widthPoints: 24, heightPoints: 24);
+                    width: OfficeLength.Points(24), height: OfficeLength.Points(24));
                 document.Save();
             }
 

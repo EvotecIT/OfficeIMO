@@ -42,8 +42,8 @@ namespace OfficeIMO.Tests {
             sheet.WorksheetPart.Worksheet!.GetFirstChild<X.SheetData>()!.Append(invalidRow);
 
             Assert.True(chart.TryGetSnapshot(out ExcelChartInfo snapshot));
-            Assert.True(snapshot.WidthPixels > 0);
-            Assert.True(snapshot.HeightPixels > 0);
+            Assert.True(snapshot.Width.ToPixels() > 0);
+            Assert.True(snapshot.Height.ToPixels() > 0);
         }
 
         [Fact]
@@ -71,8 +71,8 @@ namespace OfficeIMO.Tests {
             sheetData.Append(invalidRow);
 
             Assert.True(chart.TryGetSnapshot(out ExcelChartInfo snapshot));
-            Assert.True(snapshot.WidthPixels > 0);
-            Assert.True(snapshot.HeightPixels > 0);
+            Assert.True(snapshot.Width.ToPixels() > 0);
+            Assert.True(snapshot.Height.ToPixels() > 0);
         }
 
         [Fact]

@@ -34,7 +34,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(ExcelPaperSize.A4, setup.PaperSize);
                 Assert.Equal(9U, setup.PaperSizeCode);
                 Assert.NotNull(setup.Margins);
-                Assert.Equal(0.25D, setup.Margins!.Left);
+                Assert.Equal(0.25D, setup.Margins!.Left.ToInches());
                 Assert.Equal("$A$1:$D$25", sheet.GetPrintArea());
 
                 ExcelPrintTitles titles = sheet.GetPrintTitles();

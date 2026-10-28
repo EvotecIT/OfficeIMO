@@ -34,7 +34,7 @@ public sealed class ExcelHeaderFooterSvgImageExportTests {
         using ExcelDocument document = ExcelDocument.Create(new MemoryStream());
         ExcelSheet sheet = document.AddWorksheet("Report");
         byte[] svg = Encoding.UTF8.GetBytes("<svg xmlns='http://www.w3.org/2000/svg' width='96' height='16'><rect width='96' height='16' fill='red'/></svg>");
-        sheet.SetHeaderImage(ExcelHeaderFooterPosition.Left, svg, "image/svg+xml", widthPoints: 72, heightPoints: 12);
+        sheet.SetHeaderImage(ExcelHeaderFooterPosition.Left, svg, "image/svg+xml", width: OfficeLength.Points(72), height: OfficeLength.Points(12));
 
         OfficeImageExportResult result = sheet.ExportImages(OfficeImageExportFormat.Png,
             new ExcelImageExportOptions {
@@ -65,14 +65,14 @@ public sealed class ExcelHeaderFooterSvgImageExportTests {
         ExcelSheet sheet = document.AddWorksheet("Report");
         byte[] svg = Encoding.UTF8.GetBytes("<svg xmlns='http://www.w3.org/2000/svg' width='48' height='48'><rect width='48' height='48' fill='red'/></svg>");
         foreach (ExcelHeaderFooterPosition position in new[] { ExcelHeaderFooterPosition.Left, ExcelHeaderFooterPosition.Center, ExcelHeaderFooterPosition.Right })
-            sheet.SetHeaderImage(position, svg, "image/svg+xml", widthPoints: 36, heightPoints: 36);
-        sheet.SetFooterImage(ExcelHeaderFooterPosition.Left, svg, "image/svg+xml", widthPoints: 36, heightPoints: 36);
+            sheet.SetHeaderImage(position, svg, "image/svg+xml", width: OfficeLength.Points(36), height: OfficeLength.Points(36));
+        sheet.SetFooterImage(ExcelHeaderFooterPosition.Left, svg, "image/svg+xml", width: OfficeLength.Points(36), height: OfficeLength.Points(36));
         var options = new ExcelImageExportOptions {
             Range = "A1:A1", ShowGridlines = false, SplitByManualPageBreaks = true, MaximumRasterPixels = 10_000,
             TextShapingProvider = new RecordingShaper(), TextShapingLanguage = "ar-SA"
         };
         sheet.ExportImages(OfficeImageExportFormat.Png, options);
-        sheet.SetFooterImage(ExcelHeaderFooterPosition.Center, svg, "image/svg+xml", widthPoints: 36, heightPoints: 36);
+        sheet.SetFooterImage(ExcelHeaderFooterPosition.Center, svg, "image/svg+xml", width: OfficeLength.Points(36), height: OfficeLength.Points(36));
 
         Assert.Throws<OfficeImageExportLimitException>(() => sheet.ExportImages(OfficeImageExportFormat.Png, options));
     }
@@ -81,7 +81,7 @@ public sealed class ExcelHeaderFooterSvgImageExportTests {
     public void HeaderSvgCallerCodecCancellationStopsExportBeforeDelivery() {
         using ExcelDocument document = ExcelDocument.Create(new MemoryStream());
         ExcelSheet sheet = document.AddWorksheet("Report");
-        sheet.SetHeaderImage(ExcelHeaderFooterPosition.Left, Encoding.UTF8.GetBytes(UnsupportedSvg), "image/svg+xml", 24, 12);
+        sheet.SetHeaderImage(ExcelHeaderFooterPosition.Left, Encoding.UTF8.GetBytes(UnsupportedSvg), "image/svg+xml", OfficeLength.Points(24), OfficeLength.Points(12));
         using var cancellation = new CancellationTokenSource();
         var codec = new CancellingCodec(cancellation);
         var options = new ExcelImageExportOptions {
@@ -100,7 +100,7 @@ public sealed class ExcelHeaderFooterSvgImageExportTests {
         using ExcelDocument document = ExcelDocument.Create(new MemoryStream());
         ExcelSheet sheet = document.AddWorksheet("Report");
         sheet.SetHeaderImage(ExcelHeaderFooterPosition.Left,
-            OfficePngWriter.Encode(new OfficeRasterImage(128, 128, OfficeColor.Red)), "image/png", 12, 12);
+            OfficePngWriter.Encode(new OfficeRasterImage(128, 128, OfficeColor.Red)), "image/png", OfficeLength.Points(12), OfficeLength.Points(12));
         var options = new ExcelImageExportOptions {
             Range = "A1:A1", SplitByManualPageBreaks = true, MaximumRasterPixels = 5_000
         };
@@ -136,8 +136,8 @@ public sealed class ExcelHeaderFooterSvgImageExportTests {
             ShowGridlines = false, TextShapingProvider = anchored, TextShapingLanguage = "ar-SA"
         });
         Assert.Contains("A|ar-SA", anchored.Requests);
-        if (footer) sheet.SetFooterImage(ExcelHeaderFooterPosition.Left, svg, "image/svg+xml", 60, 30);
-        else sheet.SetHeaderImage(ExcelHeaderFooterPosition.Left, svg, "image/svg+xml", 60, 30);
+        if (footer) sheet.SetFooterImage(ExcelHeaderFooterPosition.Left, svg, "image/svg+xml", OfficeLength.Points(60), OfficeLength.Points(30));
+        else sheet.SetHeaderImage(ExcelHeaderFooterPosition.Left, svg, "image/svg+xml", OfficeLength.Points(60), OfficeLength.Points(30));
         var composed = new RecordingShaper();
 
         sheet.ExportImages(OfficeImageExportFormat.Png, new ExcelImageExportOptions {
@@ -153,8 +153,8 @@ public sealed class ExcelHeaderFooterSvgImageExportTests {
         using var stream = new MemoryStream();
         using (ExcelDocument document = ExcelDocument.Create(stream)) {
             ExcelSheet sheet = document.AddWorksheet("Report");
-            sheet.SetHeaderImage(ExcelHeaderFooterPosition.Left, bytes, contentType, widthPoints: 24, heightPoints: 12);
-            sheet.SetFooterImage(ExcelHeaderFooterPosition.Center, bytes, contentType, widthPoints: 24, heightPoints: 12);
+            sheet.SetHeaderImage(ExcelHeaderFooterPosition.Left, bytes, contentType, width: OfficeLength.Points(24), height: OfficeLength.Points(12));
+            sheet.SetFooterImage(ExcelHeaderFooterPosition.Center, bytes, contentType, width: OfficeLength.Points(24), height: OfficeLength.Points(12));
             document.Save();
         }
         using ExcelDocument reloaded = ExcelDocument.Load(new MemoryStream(stream.ToArray()));

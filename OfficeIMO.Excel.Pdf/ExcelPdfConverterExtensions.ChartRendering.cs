@@ -62,8 +62,8 @@ namespace OfficeIMO.Excel.Pdf {
                 snapshot.Title,
                 chartKind,
                 data,
-                PixelsToPoints(snapshot.WidthPixels),
-                PixelsToPoints(snapshot.HeightPixels),
+                snapshot.Width.ToPoints(),
+                snapshot.Height.ToPoints(),
                 options.ChartStyle ?? snapshot.Style,
                 options.ChartLayout ?? (preserveWorksheetLegend || chartKind is OfficeChartType.Pie or OfficeChartType.Doughnut
                     ? snapshot.Layout ?? new OfficeChartLayout()
@@ -107,11 +107,11 @@ namespace OfficeIMO.Excel.Pdf {
                 ExcelRangeImageRenderer.ResolvePointColors(series.PointColorArgb),
                 series.ShowMarkers,
                 connectLine: series.ConnectLine,
-                markerSize: series.MarkerSize,
+                markerSize: (int?)series.MarkerSize?.ToPoints(),
                 markerShape: series.MarkerShape,
                 markerOutlineColor: ExcelRangeImageRenderer.ResolveArgb(series.MarkerOutlineColorArgb),
-                markerOutlineWidth: series.MarkerOutlineWidth,
-                strokeWidth: series.SeriesLineWidth,
+                markerOutlineWidth: series.MarkerOutlineWidth?.ToPoints(),
+                strokeWidth: series.SeriesLineWidth?.ToPoints(),
                 strokeDashStyle: series.SeriesLineDashStyle,
                 renderKind: renderKind,
                 axisGroup: series.AxisGroup)

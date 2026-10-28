@@ -47,9 +47,17 @@ namespace OfficeIMO.Excel {
         }
 
         /// <summary>
-        /// Sets page margins in inches.
+        /// Sets physical page margins. Omitted header/footer margins are 0.3 inches.
         /// </summary>
-        public void SetMargins(double left, double right, double top, double bottom, double header = 0.3, double footer = 0.3) {
+        public void SetMargins(OfficeLength left, OfficeLength right, OfficeLength top, OfficeLength bottom, OfficeLength? header = null, OfficeLength? footer = null) {
+            header ??= OfficeLength.Inches(0.3);
+            footer ??= OfficeLength.Inches(0.3);
+            if (left < OfficeLength.Zero) throw new ArgumentOutOfRangeException(nameof(left));
+            if (right < OfficeLength.Zero) throw new ArgumentOutOfRangeException(nameof(right));
+            if (top < OfficeLength.Zero) throw new ArgumentOutOfRangeException(nameof(top));
+            if (bottom < OfficeLength.Zero) throw new ArgumentOutOfRangeException(nameof(bottom));
+            if (header.Value < OfficeLength.Zero) throw new ArgumentOutOfRangeException(nameof(header));
+            if (footer.Value < OfficeLength.Zero) throw new ArgumentOutOfRangeException(nameof(footer));
             WriteLock(() => {
                 var ws = WorksheetRoot;
                 var margins = ws.GetFirstChild<PageMargins>();
@@ -57,7 +65,7 @@ namespace OfficeIMO.Excel {
                     margins = new PageMargins();
                     ws.InsertAt(margins, 0);
                 }
-                margins.Left = left; margins.Right = right; margins.Top = top; margins.Bottom = bottom; margins.Header = header; margins.Footer = footer;
+                margins.Left = left.ToInches(); margins.Right = right.ToInches(); margins.Top = top.ToInches(); margins.Bottom = bottom.ToInches(); margins.Header = header.Value.ToInches(); margins.Footer = footer.Value.ToInches();
             });
         }
 
@@ -68,16 +76,16 @@ namespace OfficeIMO.Excel {
             // Values approximate Excel's presets in inches
             switch (preset) {
                 case ExcelMarginPreset.Narrow:
-                    SetMargins(left: 0.25, right: 0.25, top: 0.5, bottom: 0.5, header: 0.3, footer: 0.3);
+                    SetMargins(left: OfficeLength.Inches(0.25), right: OfficeLength.Inches(0.25), top: OfficeLength.Inches(0.5), bottom: OfficeLength.Inches(0.5), header: OfficeLength.Inches(0.3), footer: OfficeLength.Inches(0.3));
                     break;
                 case ExcelMarginPreset.Moderate:
-                    SetMargins(left: 0.75, right: 0.75, top: 1.0, bottom: 1.0, header: 0.5, footer: 0.5);
+                    SetMargins(left: OfficeLength.Inches(0.75), right: OfficeLength.Inches(0.75), top: OfficeLength.Inches(1.0), bottom: OfficeLength.Inches(1.0), header: OfficeLength.Inches(0.5), footer: OfficeLength.Inches(0.5));
                     break;
                 case ExcelMarginPreset.Wide:
-                    SetMargins(left: 1.0, right: 1.0, top: 1.0, bottom: 1.0, header: 0.5, footer: 0.5);
+                    SetMargins(left: OfficeLength.Inches(1.0), right: OfficeLength.Inches(1.0), top: OfficeLength.Inches(1.0), bottom: OfficeLength.Inches(1.0), header: OfficeLength.Inches(0.5), footer: OfficeLength.Inches(0.5));
                     break;
                 default:
-                    SetMargins(left: 0.7, right: 0.7, top: 0.75, bottom: 0.75, header: 0.3, footer: 0.3);
+                    SetMargins(left: OfficeLength.Inches(0.7), right: OfficeLength.Inches(0.7), top: OfficeLength.Inches(0.75), bottom: OfficeLength.Inches(0.75), header: OfficeLength.Inches(0.3), footer: OfficeLength.Inches(0.3));
                     break;
             }
         }

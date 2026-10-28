@@ -1454,12 +1454,12 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
 
             return new LegacyXlsWorksheetPageSetup(
                 pageSetup.Orientation,
-                pageSetup.Margins?.Left,
-                pageSetup.Margins?.Right,
-                pageSetup.Margins?.Top,
-                pageSetup.Margins?.Bottom,
-                pageSetup.Margins?.Header,
-                pageSetup.Margins?.Footer,
+                pageSetup.Margins?.Left.ToInches(),
+                pageSetup.Margins?.Right.ToInches(),
+                pageSetup.Margins?.Top.ToInches(),
+                pageSetup.Margins?.Bottom.ToInches(),
+                pageSetup.Margins?.Header.ToInches(),
+                pageSetup.Margins?.Footer.ToInches(),
                 // Rendering uses effective dimensions; serialization also retains
                 // cached dimensions while manual scaling is active.
                 storedPageSetup?.FitToWidth?.Value ?? pageSetup.FitToWidth,

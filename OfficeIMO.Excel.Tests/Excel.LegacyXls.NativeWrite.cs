@@ -793,7 +793,7 @@ namespace OfficeIMO.Tests {
                     ExcelSheet sheet = document.AddWorksheet("Print");
                     sheet.CellValue(1, 1, "Printable sheet");
                     sheet.CellValue(20, 5, 42d);
-                    sheet.SetMargins(0.25d, 0.35d, 0.45d, 0.55d, 0.2d, 0.25d);
+                    sheet.SetMargins(OfficeLength.Inches(0.25d), OfficeLength.Inches(0.35d), OfficeLength.Inches(0.45d), OfficeLength.Inches(0.55d), OfficeLength.Inches(0.2d), OfficeLength.Inches(0.25d));
                     sheet.SetOrientation(OfficePageOrientation.Landscape);
                     sheet.SetPageSetup(fitToWidth: 1U, fitToHeight: 0U, scale: 90U, pageOrder: ExcelPageOrder.OverThenDown);
                     sheet.SetPrintOptions(printGridLines: true, printHeadings: true, horizontalCentered: true, verticalCentered: false);
@@ -816,12 +816,12 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(90U, pageSetup.Scale);
                 Assert.Equal(ExcelPageOrder.OverThenDown, pageSetup.PageOrder);
                 Assert.NotNull(pageSetup.Margins);
-                Assert.Equal(0.25d, pageSetup.Margins!.Left, 6);
-                Assert.Equal(0.35d, pageSetup.Margins.Right, 6);
-                Assert.Equal(0.45d, pageSetup.Margins.Top, 6);
-                Assert.Equal(0.55d, pageSetup.Margins.Bottom, 6);
-                Assert.Equal(0.2d, pageSetup.Margins.Header, 6);
-                Assert.Equal(0.25d, pageSetup.Margins.Footer, 6);
+                Assert.Equal(0.25d, pageSetup.Margins!.Left.ToInches(), 6);
+                Assert.Equal(0.35d, pageSetup.Margins.Right.ToInches(), 6);
+                Assert.Equal(0.45d, pageSetup.Margins.Top.ToInches(), 6);
+                Assert.Equal(0.55d, pageSetup.Margins.Bottom.ToInches(), 6);
+                Assert.Equal(0.2d, pageSetup.Margins.Header.ToInches(), 6);
+                Assert.Equal(0.25d, pageSetup.Margins.Footer.ToInches(), 6);
 
                 ExcelSheetPrintOptions printOptions = loadedSheet.GetPrintOptions();
                 Assert.True(printOptions.PrintGridLines);

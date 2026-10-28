@@ -142,7 +142,7 @@ namespace OfficeIMO.Examples.Excel
                 byte[]? logo = System.IO.File.Exists(logoPath) ? System.IO.File.ReadAllBytes(logoPath) : null;
                 composer.Sheet.SetHeaderFooter(headerCenter: "Domain Detective", headerRight: "Page &P of &N");
                 if (logo != null)
-                    composer.Sheet.SetHeaderImage(ExcelHeaderFooterPosition.Center, logo, "image/png", 96, 32);
+                    composer.Sheet.SetHeaderImage(ExcelHeaderFooterPosition.Center, logo, "image/png", OfficeLength.Points(96), OfficeLength.Points(32));
                 // Back links to TOC on all sheets
                 doc.AddBackLinksToToc();
                 // Horizontal band: avoid full-sheet auto-fit to prevent column width fights

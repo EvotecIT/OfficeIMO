@@ -521,8 +521,8 @@ namespace OfficeIMO.Tests {
                         new[] { new ExcelChartSeries("Sales", new[] { 10D, 20D }) }),
                     row: 1,
                     column: 4,
-                    widthPixels: 280,
-                    heightPixels: 180,
+                    width: OfficeLength.Pixels(280),
+                    height: OfficeLength.Pixels(180),
                     type: OfficeChartType.ColumnClustered,
                     title: "Quarterly sales");
                 document.Save();
@@ -577,8 +577,8 @@ namespace OfficeIMO.Tests {
                         new[] { new ExcelChartSeries("Value", new[] { 3D, 7D }) }),
                     row: 2,
                     column: 2,
-                    widthPixels: 220,
-                    heightPixels: 140,
+                    width: OfficeLength.Pixels(220),
+                    height: OfficeLength.Pixels(140),
                     type: OfficeChartType.Pie,
                     title: "Preserved chart");
                 document.Save();

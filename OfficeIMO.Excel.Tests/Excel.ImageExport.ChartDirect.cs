@@ -25,8 +25,8 @@ namespace OfficeIMO.Tests {
                 "A1:B3",
                 row: 1,
                 column: 4,
-                widthPixels: 360,
-                heightPixels: 220,
+                width: OfficeLength.Pixels(360),
+                height: OfficeLength.Pixels(220),
                 title: "Ticket status");
             chart.Name = "TicketStatus";
 
@@ -52,8 +52,8 @@ namespace OfficeIMO.Tests {
                 "A1:B2",
                 row: 1,
                 column: 4,
-                widthPixels: 360,
-                heightPixels: 220,
+                width: OfficeLength.Pixels(360),
+                height: OfficeLength.Pixels(220),
                 title: "Ticket status");
 
             byte[] result = chart.ToImage(new ExcelImageExportOptions { Format = OfficeImageExportFormat.Webp, Scale = 1.25D });
@@ -76,8 +76,8 @@ namespace OfficeIMO.Tests {
                 "A1:B2",
                 row: 1,
                 column: 4,
-                widthPixels: 360,
-                heightPixels: 220,
+                width: OfficeLength.Pixels(360),
+                height: OfficeLength.Pixels(220),
                 title: "Bounded chart");
 
             byte[] result = chart.ToImage(new ExcelImageExportOptions {
@@ -103,8 +103,8 @@ namespace OfficeIMO.Tests {
                 "A1:B2",
                 row: 1,
                 column: 4,
-                widthPixels: 160,
-                heightPixels: 90,
+                width: OfficeLength.Pixels(160),
+                height: OfficeLength.Pixels(90),
                 title: "Small chart");
 
             OfficeImageExportResult result = chart.ExportImage(format);
@@ -125,8 +125,8 @@ namespace OfficeIMO.Tests {
                 "A1:B2",
                 row: 1,
                 column: 4,
-                widthPixels: 320,
-                heightPixels: 180,
+                width: OfficeLength.Pixels(320),
+                height: OfficeLength.Pixels(180),
                 title: "Transparent chart");
             chart.SetChartAreaStyle(noFill: true, noLine: true);
 
@@ -153,8 +153,8 @@ namespace OfficeIMO.Tests {
                         "A1:B2",
                         row: 1,
                         column: 4,
-                        widthPixels: 320,
-                        heightPixels: 180,
+                        width: OfficeLength.Pixels(320),
+                        height: OfficeLength.Pixels(180),
                         title: "Absolute chart");
                     document.Save();
                 }

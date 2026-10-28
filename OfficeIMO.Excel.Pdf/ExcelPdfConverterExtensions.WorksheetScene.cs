@@ -367,10 +367,10 @@ namespace OfficeIMO.Excel.Pdf {
                     continue;
                 }
 
-                left = Math.Min(left, x + PixelsToPoints(snapshot.OffsetXPixels));
-                top = Math.Min(top, y + PixelsToPoints(snapshot.OffsetYPixels));
-                right = Math.Max(right, x + PixelsToPoints(snapshot.OffsetXPixels + snapshot.WidthPixels));
-                bottom = Math.Max(bottom, y + PixelsToPoints(snapshot.OffsetYPixels + snapshot.HeightPixels));
+                left = Math.Min(left, x + snapshot.OffsetX.ToPoints());
+                top = Math.Min(top, y + snapshot.OffsetY.ToPoints());
+                right = Math.Max(right, x + (snapshot.OffsetX + snapshot.Width).ToPoints());
+                bottom = Math.Max(bottom, y + (snapshot.OffsetY + snapshot.Height).ToPoints());
             }
 
             foreach (var drawing in plan.DrawingObjects) {
@@ -433,10 +433,10 @@ namespace OfficeIMO.Excel.Pdf {
                 string chartName = string.IsNullOrWhiteSpace(snapshot.Title) ? snapshot.Name : snapshot.Title!;
                 canvas.Drawing(
                     rendering.Drawing,
-                    sceneX + (x + PixelsToPoints(snapshot.OffsetXPixels)) * scale,
-                    sceneY + (y + PixelsToPoints(snapshot.OffsetYPixels)) * scale,
-                    PixelsToPoints(snapshot.WidthPixels) * scale,
-                    PixelsToPoints(snapshot.HeightPixels) * scale,
+                    sceneX + (x + snapshot.OffsetX.ToPoints()) * scale,
+                    sceneY + (y + snapshot.OffsetY.ToPoints()) * scale,
+                    snapshot.Width.ToPoints() * scale,
+                    snapshot.Height.ToPoints() * scale,
                     new PdfCore.PdfDrawingStyle {
                         AlternativeText = string.IsNullOrWhiteSpace(chartName) ? "Worksheet chart" : chartName
                     });

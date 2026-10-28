@@ -456,8 +456,10 @@ public static partial class ExcelHtmlConverterExtensions {
             if (hasSnapshot) {
                 AppendDataAttribute(body, "data-officeimo-row", snapshot.RowIndex);
                 AppendDataAttribute(body, "data-officeimo-column", snapshot.ColumnIndex);
-                AppendDataAttribute(body, "data-officeimo-width", snapshot.WidthPixels);
-                AppendDataAttribute(body, "data-officeimo-height", snapshot.HeightPixels);
+                AppendDataAttribute(body, "data-officeimo-width", snapshot.Width.ToPixels());
+                body.Append(" data-officeimo-width-emu=\"").Append(snapshot.Width.ToEmus().ToString(CultureInfo.InvariantCulture)).Append('"');
+                AppendDataAttribute(body, "data-officeimo-height", snapshot.Height.ToPixels());
+                body.Append(" data-officeimo-height-emu=\"").Append(snapshot.Height.ToEmus().ToString(CultureInfo.InvariantCulture)).Append('"');
             }
 
             body.Append("><span class=\"officeimo-feature-label\">")
@@ -475,9 +477,9 @@ public static partial class ExcelHtmlConverterExtensions {
                     .Append(", ")
                     .Append(snapshot.ColumnIndex.ToString(CultureInfo.InvariantCulture))
                     .Append("; Size: ")
-                    .Append(snapshot.WidthPixels.ToString(CultureInfo.InvariantCulture))
+                    .Append(snapshot.Width.ToPixels().ToString(CultureInfo.InvariantCulture))
                     .Append("x")
-                    .Append(snapshot.HeightPixels.ToString(CultureInfo.InvariantCulture))
+                    .Append(snapshot.Height.ToPixels().ToString(CultureInfo.InvariantCulture))
                     .Append("</div>");
                 AppendChartDataTable(body, snapshot);
             } else {

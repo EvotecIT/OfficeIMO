@@ -59,7 +59,7 @@ namespace OfficeIMO.Tests {
                 var data = new ExcelChartData(
                     new[] { "Q1", "Q2" },
                     new[] { new ExcelChartSeries("Sales", new[] { 10d, 20d }) });
-                sheet.AddChart(data, row: 1, column: 4, widthPixels: 320, heightPixels: 200, type: OfficeChartType.ColumnClustered, title: "Template Chart");
+                sheet.AddChart(data, row: 1, column: 4, width: OfficeLength.Pixels(320), height: OfficeLength.Pixels(200), type: OfficeChartType.ColumnClustered, title: "Template Chart");
                 document.Save();
             }
 
@@ -355,7 +355,7 @@ namespace OfficeIMO.Tests {
                 sheet.CellAt(6, 1).SetValue("US");
                 sheet.CellAt(6, 2).SetValue(20);
                 sheet.SetPageSetup(fitToWidth: 1U, fitToHeight: 0U);
-                sheet.AddChartFromRange("A4:B6", row: 8, column: 4, widthPixels: 320, heightPixels: 180, type: OfficeChartType.ColumnClustered, hasHeaders: true, title: "Sales");
+                sheet.AddChartFromRange("A4:B6", row: 8, column: 4, width: OfficeLength.Pixels(320), height: OfficeLength.Pixels(180), type: OfficeChartType.ColumnClustered, hasHeaders: true, title: "Sales");
 
                 int replacements = sheet.ApplyTemplateRows(2, new[] {
                     new Dictionary<string, object?> {
@@ -497,7 +497,7 @@ namespace OfficeIMO.Tests {
                 sheet.CellAt(7, 1).SetValue("US");
                 sheet.CellAt(7, 2).SetValue(20);
                 sheet.SetPageSetup(fitToWidth: 1U, fitToHeight: 0U);
-                sheet.AddChartFromRange("A5:B7", row: 9, column: 4, widthPixels: 320, heightPixels: 180, type: OfficeChartType.ColumnClustered, hasHeaders: true, title: "Sales");
+                sheet.AddChartFromRange("A5:B7", row: 9, column: 4, width: OfficeLength.Pixels(320), height: OfficeLength.Pixels(180), type: OfficeChartType.ColumnClustered, hasHeaders: true, title: "Sales");
 
                 int replacements = sheet.RemoveTemplateOptionalRows(2, 2);
 
@@ -782,7 +782,7 @@ namespace OfficeIMO.Tests {
                 sheet.SetInternalLink(11, 1, "'Region Template'!A1", "Back to top");
                 sheet.SetComment("A10", "Template note", author: "Template");
                 sheet.AddImage(10, 3, png, "image/png", width: OfficeIMO.OfficeLength.Pixels(18), height: OfficeIMO.OfficeLength.Pixels(14), name: "Static Logo", altText: "Static template logo");
-                var chart = sheet.AddChartFromRange("A6:B7", row: 12, column: 4, widthPixels: 320, heightPixels: 180, type: OfficeChartType.ColumnClustered, hasHeaders: true, title: "Regional total");
+                var chart = sheet.AddChartFromRange("A6:B7", row: 12, column: 4, width: OfficeLength.Pixels(320), height: OfficeLength.Pixels(180), type: OfficeChartType.ColumnClustered, hasHeaders: true, title: "Regional total");
                 chart.ApplyStylePreset(ExcelChartStylePreset.Default);
 
                 int replacements = document.ApplyTemplateSheets(
@@ -946,7 +946,7 @@ namespace OfficeIMO.Tests {
                 sheet.CellAt(3, 2).SetValue("Value");
                 sheet.CellAt(4, 1).SetValue("Sales");
                 sheet.CellAt(4, 2).SetValue("{{Amount}}");
-                sheet.AddChartFromRange("A3:B4", row: 6, column: 3, widthPixels: 320, heightPixels: 180, type: OfficeChartType.ColumnClustered, hasHeaders: true, title: "Regional total");
+                sheet.AddChartFromRange("A3:B4", row: 6, column: 3, width: OfficeLength.Pixels(320), height: OfficeLength.Pixels(180), type: OfficeChartType.ColumnClustered, hasHeaders: true, title: "Regional total");
                 document.Save();
             }
 
@@ -1005,7 +1005,7 @@ namespace OfficeIMO.Tests {
                 sheet.CellAt(3, 2).SetValue("Value");
                 sheet.CellAt(4, 1).SetValue("Sales");
                 sheet.CellAt(4, 2).SetValue("{{Amount}}");
-                sheet.AddChartFromRange("A3:B4", row: 6, column: 3, widthPixels: 320, heightPixels: 180, type: OfficeChartType.ColumnClustered, hasHeaders: true, title: "Regional total");
+                sheet.AddChartFromRange("A3:B4", row: 6, column: 3, width: OfficeLength.Pixels(320), height: OfficeLength.Pixels(180), type: OfficeChartType.ColumnClustered, hasHeaders: true, title: "Regional total");
                 document.Save();
             }
 
@@ -1083,7 +1083,7 @@ namespace OfficeIMO.Tests {
                 sheet.CellAt(3, 2).SetValue("Value");
                 sheet.CellAt(4, 1).SetValue("Sales");
                 sheet.CellAt(4, 2).SetValue("{{Amount}}");
-                sheet.AddChartFromRange("A3:B4", row: 6, column: 3, widthPixels: 320, heightPixels: 180, type: OfficeChartType.ColumnClustered, hasHeaders: true, title: "Regional total");
+                sheet.AddChartFromRange("A3:B4", row: 6, column: 3, width: OfficeLength.Pixels(320), height: OfficeLength.Pixels(180), type: OfficeChartType.ColumnClustered, hasHeaders: true, title: "Regional total");
                 document.Save();
             }
 

@@ -85,8 +85,8 @@ public sealed class OpenDocumentConversionLossReportTests {
                 new[] { new ExcelChartSeries("Sales", new[] { 10d }) }),
             row: 8,
             column: 1,
-            widthPixels: 500,
-            heightPixels: 300,
+            width: OfficeLength.Pixels(500),
+            height: OfficeLength.Pixels(300),
             type: OfficeChartType.ColumnClustered,
             title: "Sales");
         source.AddWorkbookSlicerCache(new ExcelSlicerCacheOptions {

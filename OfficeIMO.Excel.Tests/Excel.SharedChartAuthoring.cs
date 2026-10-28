@@ -41,8 +41,8 @@ namespace OfficeIMO.Tests {
                     sharedData,
                     row: 1,
                     column: 5,
-                    widthPixels: 640,
-                    heightPixels: 360,
+                    width: OfficeLength.Pixels(640),
+                    height: OfficeLength.Pixels(360),
                     title: "Shared performance");
                 document.Save();
             }
@@ -190,13 +190,13 @@ namespace OfficeIMO.Tests {
             Assert.True(chart.TryGetSnapshot(out ExcelChartInfo snapshot));
             ExcelChartSeries series = Assert.Single(snapshot.Data.Series);
             Assert.Equal("2563EB", series.SeriesColorArgb);
-            Assert.Equal(2.25D, series.SeriesLineWidth);
+            Assert.Equal(2.25D, series.SeriesLineWidth?.ToPoints());
             Assert.Equal(OfficeStrokeDashStyle.Dash, series.SeriesLineDashStyle);
             Assert.Equal(new[] { "DC2626", "16A34A" }, series.PointColorArgb);
-            Assert.Equal(9, series.MarkerSize);
+            Assert.Equal(9, series.MarkerSize?.ToPoints());
             Assert.Equal(OfficeChartMarkerShape.Diamond, series.MarkerShape);
             Assert.Equal("111827", series.MarkerOutlineColorArgb);
-            Assert.Equal(1.5D, series.MarkerOutlineWidth);
+            Assert.Equal(1.5D, series.MarkerOutlineWidth?.ToPoints());
         }
 
         [Fact]
