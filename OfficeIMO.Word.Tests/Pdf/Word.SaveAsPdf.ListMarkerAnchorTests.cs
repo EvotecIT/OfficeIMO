@@ -13,8 +13,8 @@ public sealed class PdfListMarkerAnchorTests {
         WordList list = document.AddCustomList();
         list.Numbering.AddLevel(new WordListLevel(WordListLevelKind.DecimalDot).SetStartNumberingValue(12));
         WordListLevel level = list.Numbering.Levels[0];
-        level.IndentationLeft = 1440;
-        level.IndentationHanging = 720;
+        level.IndentationLeft= global::OfficeIMO.OfficeLength.Points(72D);
+        level.IndentationHanging= global::OfficeIMO.OfficeLength.Points(36D);
         level.LevelJustification = WordListLevelAlignment.Right;
         level.OpenXmlElement.NumberingSymbolRunProperties = new NumberingSymbolRunProperties(
             new RunFonts { Ascii = "Courier New", HighAnsi = "Courier New" }, new FontSize { Val = "24" });
@@ -59,8 +59,8 @@ public sealed class PdfListMarkerAnchorTests {
         WordList list = document.AddCustomList();
         list.Numbering.AddLevel(new WordListLevel(WordListLevelKind.DecimalDot).SetStartNumberingValue(12));
         WordListLevel level = list.Numbering.Levels[0];
-        level.IndentationLeft = 1440;
-        level.IndentationHanging = 0;
+        level.IndentationLeft= global::OfficeIMO.OfficeLength.Points(72D);
+        level.IndentationHanging= global::OfficeIMO.OfficeLength.Zero;
         level.LevelJustification = WordListLevelAlignment.Left;
         level.OpenXmlElement.PreviousParagraphProperties!.InsertAt(new Tabs(
             new TabStop { Val = TabStopValues.Number, Position = 3000 }), 0);
@@ -116,8 +116,8 @@ public sealed class PdfListMarkerAnchorTests {
         WordList list = document.AddCustomList();
         list.Numbering.AddLevel(new WordListLevel(WordListLevelKind.DecimalDot).SetStartNumberingValue(12));
         WordListLevel level = list.Numbering.Levels[0];
-        level.IndentationLeft = 1440;
-        level.IndentationHanging = 0;
+        level.IndentationLeft= global::OfficeIMO.OfficeLength.Points(72D);
+        level.IndentationHanging= global::OfficeIMO.OfficeLength.Zero;
         level.LevelJustification = alignment;
         level.OpenXmlElement.NumberingSymbolRunProperties = new NumberingSymbolRunProperties(
             new RunFonts { Ascii = "Courier New", HighAnsi = "Courier New" }, new FontSize { Val = "24" });
@@ -154,8 +154,8 @@ public sealed class PdfListMarkerAnchorTests {
         WordList list = document.AddCustomList();
         list.Numbering.AddLevel(new WordListLevel(WordListLevelKind.DecimalDot).SetStartNumberingValue(12));
         WordListLevel level = list.Numbering.Levels[0];
-        level.IndentationLeft = 1440;
-        level.IndentationHanging = 0;
+        level.IndentationLeft= global::OfficeIMO.OfficeLength.Points(72D);
+        level.IndentationHanging= global::OfficeIMO.OfficeLength.Zero;
         level.LevelJustification = WordListLevelAlignment.Left;
         level.OpenXmlElement.NumberingSymbolRunProperties = new NumberingSymbolRunProperties(
             new RunFonts { Ascii = "Courier New", HighAnsi = "Courier New" }, new FontSize { Val = "24" });
@@ -192,8 +192,8 @@ public sealed class PdfListMarkerAnchorTests {
         WordList list = document.AddCustomList();
         list.Numbering.AddLevel(new WordListLevel(WordListLevelKind.DecimalDot).SetStartNumberingValue(9));
         WordListLevel level = list.Numbering.Levels[0];
-        level.IndentationLeft = 1440;
-        level.IndentationHanging = 720;
+        level.IndentationLeft= global::OfficeIMO.OfficeLength.Points(72D);
+        level.IndentationHanging= global::OfficeIMO.OfficeLength.Points(36D);
         level.LevelJustification = alignment;
         level.LevelSuffix = suffix;
         level.OpenXmlElement.NumberingSymbolRunProperties = new NumberingSymbolRunProperties(
@@ -235,8 +235,8 @@ public sealed class PdfListMarkerAnchorTests {
         WordList list = document.AddCustomList();
         list.Numbering.AddLevel(new WordListLevel(WordListLevelKind.DecimalDot).SetStartNumberingValue(12));
         WordListLevel level = list.Numbering.Levels[0];
-        level.IndentationLeft = 1440;
-        level.IndentationHanging = 720;
+        level.IndentationLeft= global::OfficeIMO.OfficeLength.Points(72D);
+        level.IndentationHanging= global::OfficeIMO.OfficeLength.Points(36D);
         level.LevelJustification = WordListLevelAlignment.Right;
         level.OpenXmlElement.NumberingSymbolRunProperties = new NumberingSymbolRunProperties(
             new RunFonts { Ascii = "Courier New", HighAnsi = "Courier New" }, new FontSize { Val = "24" });
@@ -273,8 +273,8 @@ public sealed class PdfListMarkerAnchorTests {
         WordList list = document.AddCustomList();
         list.Numbering.AddLevel(new WordListLevel(WordListLevelKind.DecimalDot).SetStartNumberingValue(12));
         WordListLevel level = list.Numbering.Levels[0];
-        level.IndentationLeft = 1440;
-        level.IndentationHanging = hangingTwips;
+        level.IndentationLeft= global::OfficeIMO.OfficeLength.Points(72D);
+        level.IndentationHanging= global::OfficeIMO.OfficeLength.Points((hangingTwips) / 20D);
         level.LevelJustification = alignment;
         level.OpenXmlElement.NumberingSymbolRunProperties = new NumberingSymbolRunProperties(
             new RunFonts { Ascii = "Courier New", HighAnsi = "Courier New" }, new FontSize { Val = "24" });
@@ -315,8 +315,8 @@ public sealed class PdfListMarkerAnchorTests {
         WordList list = document.AddCustomList();
         list.Numbering.AddLevel(new WordListLevel(WordListLevelKind.DecimalDot).SetStartNumberingValue(12));
         WordListLevel level = list.Numbering.Levels[0];
-        level.IndentationLeft = 1440;
-        level.IndentationHanging = hangingTwips;
+        level.IndentationLeft= global::OfficeIMO.OfficeLength.Points(72D);
+        level.IndentationHanging= global::OfficeIMO.OfficeLength.Points((hangingTwips) / 20D);
         level.LevelJustification = alignment;
         level.OpenXmlElement.NumberingSymbolRunProperties = new NumberingSymbolRunProperties(
             new RunFonts { Ascii = "Courier New", HighAnsi = "Courier New" }, new FontSize { Val = "24" }, new CharacterScale { Val = 100 });

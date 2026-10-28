@@ -87,6 +87,23 @@ Use its `ToBytes`, `Save`, `Modules` and `Remove` members while the document is
 open. Replacing or removing the project invalidates earlier project handles.
 Reading and attaching a project never executes its code.
 
+## Editable list levels
+
+`AddListLevel` returns the attached `WordListLevel`. Its indents use physical lengths; numbering and bullet changes stay on that level.
+
+```csharp
+using OfficeIMO;
+using OfficeIMO.Word;
+
+using var document = WordDocument.Create();
+WordList list = document.AddCustomList();
+WordListLevel level = list.AddListLevel(1, WordListLevelKind.BulletSquareSymbol, "Arial");
+level.IndentationLeft = OfficeLength.Centimeters(1.25);
+level.IndentationHanging = OfficeLength.Points(18);
+list.AddItem("Review the deployment");
+document.Save("custom-list.docx");
+```
+
 ## Printed reports
 
 `WordPaperStyle` applies shared typography, page chrome, covers, metric strips and quiet tables. Configure its colors, fonts and table density once, then use the same style across reports:

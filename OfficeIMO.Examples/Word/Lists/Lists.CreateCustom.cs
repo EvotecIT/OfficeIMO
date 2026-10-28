@@ -28,22 +28,22 @@ namespace OfficeIMO.Examples.Word {
                 var levels = wordList1.Numbering.Levels;
                 if (levels.Count > 0) {
                     Console.WriteLine(levels[0].LevelIndex);
-                    Console.WriteLine(levels[0].IndentationHanging);
-                    Console.WriteLine(levels[0].IndentationLeft);
-                    Console.WriteLine(levels[0].IndentationLeftCentimeters);
+                    Console.WriteLine(checked((int)(levels[0].IndentationHanging.ToTwips())));
+                    Console.WriteLine(checked((int)(levels[0].IndentationLeft.ToTwips())));
+                    Console.WriteLine(levels[0].IndentationLeft.ToCentimeters());
                 }
                 if (levels.Count > 1) {
                     Console.WriteLine(levels[1].LevelIndex);
-                    Console.WriteLine(levels[1].IndentationLeftCentimeters);
+                    Console.WriteLine(levels[1].IndentationLeft.ToCentimeters());
                     Console.WriteLine(levels[1].LevelJustification);
                     Console.WriteLine(levels[1].StartNumberingValue);
                 }
                 if (levels.Count > 2) {
                     Console.WriteLine(levels[2].LevelIndex);
-                    Console.WriteLine(levels[2].IndentationLeftCentimeters);
+                    Console.WriteLine(levels[2].IndentationLeft.ToCentimeters());
                 }
                 if (levels.Count > 3) {
-                    Console.WriteLine(levels[3].IndentationLeftCentimeters);
+                    Console.WriteLine(levels[3].IndentationLeft.ToCentimeters());
                 }
 
                 Console.WriteLine("Current levels count: " + wordList1.Numbering.Levels.Count);

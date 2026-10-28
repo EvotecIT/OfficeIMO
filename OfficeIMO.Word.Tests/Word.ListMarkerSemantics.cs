@@ -287,8 +287,8 @@ public sealed partial class WordListMarkerSemanticsTests {
         WordList list = document.AddCustomBulletList('*', "Arial", "FF0000");
         WordListLevel level = list.Numbering.Levels[0];
         level.OpenXmlElement.GetFirstChild<NumberingSymbolRunProperties>()!.Append(new Bold(), new FontSize { Val = "36" });
-        level.IndentationLeft = 2160;
-        level.IndentationHanging = 360;
+        level.IndentationLeft= global::OfficeIMO.OfficeLength.Points(108D);
+        level.IndentationHanging= global::OfficeIMO.OfficeLength.Points(18D);
         WordTable table = document.AddTable(1, 1);
         table.Width = 7000;
         WordTableCell cell = table.Rows[0].Cells[0];
@@ -594,8 +594,8 @@ public sealed partial class WordListMarkerSemanticsTests {
         using WordDocument document = WordDocument.Create();
         WordList list = document.AddCustomList();
         list.Numbering.AddLevel(new WordListLevel(WordListLevelKind.None));
-        list.Numbering.Levels[0].IndentationLeft = 2160;
-        list.Numbering.Levels[0].IndentationHanging = 360;
+        list.Numbering.Levels[0].IndentationLeft= global::OfficeIMO.OfficeLength.Points(108D);
+        list.Numbering.Levels[0].IndentationHanging= global::OfficeIMO.OfficeLength.Points(18D);
         document.AddParagraph("PlainBody");
         list.AddItem("UnmarkedBody");
         WordTable table = document.AddTable(1, 1);
@@ -620,8 +620,8 @@ public sealed partial class WordListMarkerSemanticsTests {
         using WordDocument document = WordDocument.Create();
         WordList list = document.AddCustomList();
         list.Numbering.AddLevel(new WordListLevel(WordListLevelKind.None));
-        list.Numbering.Levels[0].IndentationLeft = 2160;
-        list.Numbering.Levels[0].IndentationHanging = 360;
+        list.Numbering.Levels[0].IndentationLeft= global::OfficeIMO.OfficeLength.Points(108D);
+        list.Numbering.Levels[0].IndentationHanging= global::OfficeIMO.OfficeLength.Points(18D);
         document.AddParagraph("Plain image line");
         list.AddItem("Unmarked image line");
 
@@ -640,8 +640,8 @@ public sealed partial class WordListMarkerSemanticsTests {
         section.SetMargins(WordMargin.Narrow);
         WordList list = document.AddCustomList();
         list.Numbering.AddLevel(new WordListLevel(WordListLevelKind.None));
-        list.Numbering.Levels[0].IndentationLeft = 1800;
-        list.Numbering.Levels[0].IndentationHanging = 360;
+        list.Numbering.Levels[0].IndentationLeft= global::OfficeIMO.OfficeLength.Points(90D);
+        list.Numbering.Levels[0].IndentationHanging= global::OfficeIMO.OfficeLength.Points(18D);
         WordTable table = document.AddTable(1, 1);
         table.WidthType = WordTableWidthUnit.Dxa;
         table.Width = 3600;
@@ -675,7 +675,7 @@ public sealed partial class WordListMarkerSemanticsTests {
         section.SetMargins(WordMargin.Narrow);
         WordList list = document.AddCustomList();
         list.Numbering.AddLevel(new WordListLevel(WordListLevelKind.None));
-        list.Numbering.Levels[0].IndentationLeft = 1800;
+        list.Numbering.Levels[0].IndentationLeft= global::OfficeIMO.OfficeLength.Points(90D);
         WordTable outer = document.AddTable(1, 1);
         outer.WidthType = WordTableWidthUnit.Dxa;
         outer.Width = 3600;

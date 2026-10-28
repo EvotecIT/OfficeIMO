@@ -252,48 +252,32 @@ namespace OfficeIMO.Word {
             return this;
         }
 
-        /// <summary>
-        /// Gets or sets the text indentation (left indentation) in twentieths of a point.
-        /// </summary>
-        public int IndentationLeft {
+        /// <summary>Gets or sets the physical text indentation for this level.</summary>
+        public OfficeLength IndentationLeft {
             get {
                 var indentation = GetIndentationElement();
-                return int.TryParse(indentation.Left, out int value) ? value : 0;
+                int.TryParse(indentation.Left, out int nativeValue);
+                return OfficeLength.Points(nativeValue / 20D);
             }
             set {
+                int nativeValue = checked((int)value.ToTwips());
                 var indentation = GetIndentationElement();
-                indentation.Left = value.ToString();
+                indentation.Left = nativeValue.ToString(System.Globalization.CultureInfo.InvariantCulture);
             }
         }
 
-        /// <summary>
-        /// Gets or sets the text indentation (left indentation) in centimeters.
-        /// </summary>
-        public double IndentationLeftCentimeters {
-            get => Helpers.ConvertTwentiethsOfPointToCentimeters(IndentationLeft);
-            set => IndentationLeft = (int)Math.Round(Helpers.ConvertCentimetersToTwentiethsOfPoint(value));
-        }
-
-        /// <summary>
-        /// Gets or sets the number position (hanging indentation) in twentieths of a point.
-        /// </summary>
-        public int IndentationHanging {
+        /// <summary>Gets or sets the physical number position for this level.</summary>
+        public OfficeLength IndentationHanging {
             get {
                 var indentation = GetIndentationElement();
-                return int.TryParse(indentation.Hanging, out int value) ? value : 0;
+                int.TryParse(indentation.Hanging, out int nativeValue);
+                return OfficeLength.Points(nativeValue / 20D);
             }
             set {
+                int nativeValue = checked((int)value.ToTwips());
                 var indentation = GetIndentationElement();
-                indentation.Hanging = value.ToString();
+                indentation.Hanging = nativeValue.ToString(System.Globalization.CultureInfo.InvariantCulture);
             }
-        }
-
-        /// <summary>
-        /// Gets or sets the number position (hanging indentation) in centimeters.
-        /// </summary>
-        public double IndentationHangingCentimeters {
-            get => Helpers.ConvertTwentiethsOfPointToCentimeters(IndentationHanging);
-            set => IndentationHanging = (int)Math.Round(Helpers.ConvertCentimetersToTwentiethsOfPoint(value));
         }
 
         /// <summary>

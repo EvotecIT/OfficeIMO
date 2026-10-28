@@ -2867,8 +2867,8 @@
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "List indents use OfficeLength and checked native twip writes; centimeter aliases are removed. Native integer overflow is rejected before changing the level."
     },
     {
       "old": "OfficeIMO.Word.WordListLevel.IndentationLeftCentimeters",
@@ -2883,8 +2883,8 @@
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "List indents use OfficeLength and checked native twip writes; centimeter aliases are removed. Native integer overflow is rejected before changing the level."
     },
     {
       "old": "OfficeIMO.Word.WordMargins.BottomCentimeters",
@@ -6537,6 +6537,22 @@
       "reason": "Visual-bridge and IWork assertion consumers read canonical OfficeLength properties in the relevant physical units.",
       "applied": "phase-b-applied",
       "note": "Removed obsolete commented native-margin assignments from the touched centimeter example."
+    },
+    {
+      "old": "WordList.AddListLevel(...) -> WordList",
+      "new": "WordList.AddListLevel(...) -> WordListLevel",
+      "action": "change",
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "reason": "All three symbol overloads return the newly attached level, so indentation and numbering edits target the created object. Preserve placeholder levels, native indices and bullet formatting; split former list chains in callers and executable XML documentation. List geometry uses OfficeLength with checked twip rounding."
+    },
+    {
+      "old": "WordListLevel.IndentationLeft : int; WordListLevel.IndentationHanging : int",
+      "new": "WordListLevel.IndentationLeft : OfficeLength; WordListLevel.IndentationHanging : OfficeLength",
+      "action": "change",
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "reason": "List-level physical geometry was not included by the original suffix-based map. Keep zero defaults and checked signed native twip storage; an out-of-range length fails before changing the attached level. Native integer formatting is culture-invariant."
     }
   ],
   "applicationStatus": "Phase A applied and validated on the supported macOS targets. Phase B and Tier 2 entries retain their status; Windows .NET Framework validation remains pending.",

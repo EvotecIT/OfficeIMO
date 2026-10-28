@@ -55,8 +55,8 @@ public sealed class WordPdfListMarkerKerningTests {
         WordList list = document.AddCustomList();
         list.Numbering.AddLevel(new WordListLevel(WordListLevelKind.DecimalDot));
         WordListLevel level = list.Numbering.Levels[0];
-        level.IndentationLeft = 1440;
-        level.IndentationHanging = 720;
+        level.IndentationLeft= global::OfficeIMO.OfficeLength.Points(72D);
+        level.IndentationHanging= global::OfficeIMO.OfficeLength.Points(36D);
         level.LevelText = "AV";
         level.LevelJustification = WordListLevelAlignment.Right;
         level.LevelSuffix = tabSuffix ? WordListLevelSuffix.Tab : WordListLevelSuffix.Nothing;

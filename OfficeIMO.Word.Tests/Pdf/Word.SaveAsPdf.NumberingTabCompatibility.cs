@@ -25,8 +25,8 @@ public sealed class PdfNumberingTabCompatibilityTests {
         WordList list = document.AddCustomList();
         list.Numbering.AddLevel(new WordListLevel(WordListLevelKind.DecimalDot));
         WordListLevel level = list.Numbering.Levels[0];
-        level.IndentationLeft = 720;
-        level.IndentationHanging = 360;
+        level.IndentationLeft= global::OfficeIMO.OfficeLength.Points(36D);
+        level.IndentationHanging= global::OfficeIMO.OfficeLength.Points(18D);
         level.OpenXmlElement.PreviousParagraphProperties!.InsertAt(new Tabs(
             new TabStop { Val = TabStopValues.Number, Position = 3000 }), 0);
         level.OpenXmlElement.NumberingSymbolRunProperties = new NumberingSymbolRunProperties(

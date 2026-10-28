@@ -72,7 +72,7 @@ public sealed class PdfShortNumberingTabTests {
     private static void ConfigureShortNumbering(WordList list, bool authored) {
         list.Numbering.AddLevel(new WordListLevel(WordListLevelKind.DecimalDot));
         WordListLevel level = list.Numbering.Levels[0];
-        level.IndentationLeft = 1440; level.IndentationHanging = 1080;
+        level.IndentationLeft= global::OfficeIMO.OfficeLength.Points(72D); level.IndentationHanging= global::OfficeIMO.OfficeLength.Points(54D);
         if (authored) level.OpenXmlElement.PreviousParagraphProperties!.InsertAt(new Tabs(
             new TabStop { Val = TabStopValues.Number, Position = 720 }), 0);
         level.OpenXmlElement.NumberingSymbolRunProperties = new NumberingSymbolRunProperties(
@@ -116,7 +116,7 @@ public sealed class PdfShortNumberingTabTests {
         WordList list = scope == "header" ? document.HeaderDefaultOrCreate.AddList(WordListStyle.Custom) : document.AddCustomList();
         ConfigureShortNumbering(list, false);
         WordListLevel level = list.Numbering.Levels[0];
-        level.SetStartNumberingValue(9); level.IndentationLeft = 1800; level.IndentationHanging = 720;
+        level.SetStartNumberingValue(9); level.IndentationLeft= global::OfficeIMO.OfficeLength.Points(90D); level.IndentationHanging= global::OfficeIMO.OfficeLength.Points(36D);
         level.LevelJustification = alignment; level.LevelSuffix = suffix;
         level.OpenXmlElement.NumberingSymbolRunProperties!.FontSize = new FontSize { Val = "36" };
         WordTableCell? cell = scope == "table" ? document.AddTable(1, 1).Rows[0].Cells[0] : null;
@@ -163,8 +163,8 @@ public sealed class PdfShortNumberingTabTests {
         WordHeaderFooter normal = footer ? document.FooterDefaultOrCreate : document.HeaderDefaultOrCreate;
         WordList list = normal.AddList(WordListStyle.Custom);
         list.Numbering.AddLevel(new WordListLevel(WordListLevelKind.DecimalDot));
-        list.Numbering.Levels[0].IndentationLeft = 720;
-        list.Numbering.Levels[0].IndentationHanging = 360;
+        list.Numbering.Levels[0].IndentationLeft= global::OfficeIMO.OfficeLength.Points(36D);
+        list.Numbering.Levels[0].IndentationHanging= global::OfficeIMO.OfficeLength.Points(18D);
         WordParagraph numbered = list.AddItem("RUNNING");
         WordHeaderFooter siblingStory = normal;
         if (route == "first-variant") {

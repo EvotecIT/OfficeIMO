@@ -52,8 +52,8 @@ public partial class Word {
         if (numbered) {
             WordList list = document.AddCustomList();
             list.Numbering.AddLevel(new WordListLevel(WordListLevelKind.DecimalDot));
-            list.Numbering.Levels[0].IndentationLeft = 240;
-            list.Numbering.Levels[0].IndentationHanging = 240;
+            list.Numbering.Levels[0].IndentationLeft= global::OfficeIMO.OfficeLength.Points(12D);
+            list.Numbering.Levels[0].IndentationHanging= global::OfficeIMO.OfficeLength.Points(12D);
             paragraph = list.AddItem(text);
         } else {
             paragraph = document.AddParagraph(text);
@@ -115,8 +115,8 @@ public partial class Word {
         document.Sections[0].ColumnsSpace = 400;
         WordList list = document.AddCustomList();
         list.Numbering.AddLevel(new WordListLevel(WordListLevelKind.DecimalDot));
-        list.Numbering.Levels[0].IndentationLeft = 240;
-        list.Numbering.Levels[0].IndentationHanging = 240;
+        list.Numbering.Levels[0].IndentationLeft= global::OfficeIMO.OfficeLength.Points(12D);
+        list.Numbering.Levels[0].IndentationHanging= global::OfficeIMO.OfficeLength.Points(12D);
         foreach (int item in Enumerable.Range(0, 2)) {
             WordParagraph paragraph = list.AddItem($"Marker{item * 2 + 1:D3}\nMarker{item * 2 + 2:D3}");
             ConfigurePartialColumnParagraph(paragraph);

@@ -94,8 +94,8 @@ namespace OfficeIMO.Tests {
             using (WordDocument document = WordDocument.Create(docPath)) {
                 WordList bulletList = document.AddList(WordListStyle.Bulleted);
                 WordListLevel level = bulletList.Numbering.Levels[0];
-                level.IndentationLeft = 720;
-                level.IndentationHanging = 360;
+                level.IndentationLeft= global::OfficeIMO.OfficeLength.Points(36D);
+                level.IndentationHanging= global::OfficeIMO.OfficeLength.Points(18D);
                 bulletList.AddItem("Wrapped native bullet item with enough body text to flow onto a second line so the generated PDF can prove the continuation aligns with the Word text position.");
 
                 document.Save();
@@ -135,8 +135,8 @@ namespace OfficeIMO.Tests {
             using (WordDocument document = WordDocument.Create(docPath)) {
                 WordList bulletList = document.AddList(WordListStyle.Bulleted);
                 WordListLevel level = bulletList.Numbering.Levels[0];
-                level.IndentationLeft = 720;
-                level.IndentationHanging = 360;
+                level.IndentationLeft= global::OfficeIMO.OfficeLength.Points(36D);
+                level.IndentationHanging= global::OfficeIMO.OfficeLength.Points(18D);
 
                 bulletList.AddItem("RegularIndentMarker");
                 WordParagraph wideIndent = bulletList.AddItem("WideIndentMarker");
@@ -180,8 +180,8 @@ namespace OfficeIMO.Tests {
 
                 WordList bulletList = document.AddList(WordListStyle.Bulleted);
                 WordListLevel level = bulletList.Numbering.Levels[0];
-                level.IndentationLeft = 720;
-                level.IndentationHanging = 360;
+                level.IndentationLeft= global::OfficeIMO.OfficeLength.Points(36D);
+                level.IndentationHanging= global::OfficeIMO.OfficeLength.Points(18D);
 
                 bulletList.AddItem("RegularStyleFallbackMarker");
                 WordParagraph styledIndent = bulletList.AddItem("StyledIndentMarker");
@@ -333,10 +333,10 @@ namespace OfficeIMO.Tests {
                 WordList list = document.AddCustomList();
                 list.Numbering.AddLevel(new WordListLevel(WordListLevelKind.LowerLetterDot));
                 list.Numbering.AddLevel(new WordListLevel(WordListLevelKind.LowerRomanDot));
-                list.Numbering.Levels[0].IndentationLeft = 720;
-                list.Numbering.Levels[0].IndentationHanging = 360;
-                list.Numbering.Levels[1].IndentationLeft = 1440;
-                list.Numbering.Levels[1].IndentationHanging = 360;
+                list.Numbering.Levels[0].IndentationLeft= global::OfficeIMO.OfficeLength.Points(36D);
+                list.Numbering.Levels[0].IndentationHanging= global::OfficeIMO.OfficeLength.Points(18D);
+                list.Numbering.Levels[1].IndentationLeft= global::OfficeIMO.OfficeLength.Points(72D);
+                list.Numbering.Levels[1].IndentationHanging= global::OfficeIMO.OfficeLength.Points(18D);
 
                 list.AddItem("Lower alpha item");
                 list.AddItem("Nested roman item", 1);
@@ -821,8 +821,8 @@ namespace OfficeIMO.Tests {
                 WordList numberedList = document.AddCustomList();
                 numberedList.Numbering.AddLevel(new WordListLevel(WordListLevelKind.DecimalDot));
                 WordListLevel level = numberedList.Numbering.Levels[0];
-                level.IndentationLeft = 1440;
-                level.IndentationHanging = 720;
+                level.IndentationLeft= global::OfficeIMO.OfficeLength.Points(72D);
+                level.IndentationHanging= global::OfficeIMO.OfficeLength.Points(36D);
                 level.OpenXmlElement.LevelJustification = new LevelJustification { Val = justification };
                 numberedList.AddItem(bodyText);
 
@@ -855,8 +855,8 @@ namespace OfficeIMO.Tests {
                 WordList numberedList = document.AddCustomList();
                 numberedList.Numbering.AddLevel(new WordListLevel(WordListLevelKind.DecimalDot));
                 WordListLevel level = numberedList.Numbering.Levels[0];
-                level.IndentationLeft = 1440;
-                level.IndentationHanging = 720;
+                level.IndentationLeft= global::OfficeIMO.OfficeLength.Points(72D);
+                level.IndentationHanging= global::OfficeIMO.OfficeLength.Points(36D);
                 level.LevelSuffix = suffix;
                 numberedList.AddItem(bodyText);
 

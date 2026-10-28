@@ -402,7 +402,7 @@ namespace OfficeIMO.Tests {
             using WordDocument document = WordDocument.Create();
             for (int index = 0; index < 64; index++) {
                 WordList list = document.AddList(WordListStyle.Numbered);
-                list.Numbering.Levels[0].IndentationLeft = 720 + index;
+                list.Numbering.Levels[0].IndentationLeft= global::OfficeIMO.OfficeLength.Points((720 + index) / 20D);
                 list.AddItem("Item " + index);
             }
             string expected = document.ConvertToHtmlWithEvidence(new WordHtmlExportOptions {

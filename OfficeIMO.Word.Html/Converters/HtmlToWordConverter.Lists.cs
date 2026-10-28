@@ -257,11 +257,11 @@ namespace OfficeIMO.Word.Html {
 
             var level = list.Numbering.Levels[levelIndex];
             if (TryGetTwipsAttribute(element, "data-left-indent-twips", out var leftIndentTwips)) {
-                level.IndentationLeft = leftIndentTwips;
+                level.IndentationLeft= global::OfficeIMO.OfficeLength.Points((leftIndentTwips) / 20D);
             }
 
             if (TryGetTwipsAttribute(element, "data-hanging-indent-twips", out var hangingIndentTwips)) {
-                level.IndentationHanging = hangingIndentTwips;
+                level.IndentationHanging= global::OfficeIMO.OfficeLength.Points((hangingIndentTwips) / 20D);
             }
         }
 

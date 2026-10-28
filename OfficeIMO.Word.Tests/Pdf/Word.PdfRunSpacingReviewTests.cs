@@ -118,8 +118,8 @@ public sealed class WordPdfRunSpacingReviewTests {
         level.LevelText = "%1.";
         level.LevelJustification = WordListLevelAlignment.Right;
         level.LevelSuffix = WordListLevelSuffix.Tab;
-        level.IndentationLeft = 1080;
-        level.IndentationHanging = 720;
+        level.IndentationLeft= global::OfficeIMO.OfficeLength.Points(54D);
+        level.IndentationHanging= global::OfficeIMO.OfficeLength.Points(36D);
         if (markerScale.HasValue) {
             var properties = new NumberingSymbolRunProperties(new Spacing { Val = markerSpacing }, new CharacterScale { Val = markerScale.Value });
             if (fullOverride) {

@@ -290,9 +290,9 @@ namespace OfficeIMO.Word {
         /// <code><![CDATA[
         /// using WordDocument document = WordDocument.Create(filePath);
         ///
-        /// WordList list = document.AddCustomList()
-        ///     .AddListLevel(1, WordListLevelKind.BulletSquareSymbol, "Courier New", colorHex: "#FF0000", fontSize: 14)
-        ///     .AddListLevel(5, WordListLevelKind.BulletBlackCircle, "Arial", colorHex: "#00FF00", fontSize: 10);
+        /// WordList list = document.AddCustomList();
+        /// list.AddListLevel(1, WordListLevelKind.BulletSquareSymbol, "Courier New", colorHex: "#FF0000", fontSize: 14);
+        /// list.AddListLevel(5, WordListLevelKind.BulletBlackCircle, "Arial", colorHex: "#00FF00", fontSize: 10);
         ///
         /// list.AddItem("First level item");
         /// list.AddItem("Fifth level item", 4);

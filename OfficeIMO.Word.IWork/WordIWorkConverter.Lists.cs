@@ -73,8 +73,8 @@ public static partial class WordIWorkConverter {
             if (firstObservation && qualifiedMarkerFontSize.HasValue) list.FontSize = qualifiedMarkerFontSize;
             if (qualifiedLeftOffset.HasValue && qualifiedHangingOffset.HasValue) {
                 WordListLevel numberingLevel = list.Numbering.Levels[level];
-                numberingLevel.IndentationLeft = qualifiedLeftOffset.Value;
-                numberingLevel.IndentationHanging = qualifiedHangingOffset.Value;
+                numberingLevel.IndentationLeft= global::OfficeIMO.OfficeLength.Points((qualifiedLeftOffset.Value) / 20D);
+                numberingLevel.IndentationHanging= global::OfficeIMO.OfficeLength.Points((qualifiedHangingOffset.Value) / 20D);
                 numberingLevel.LevelSuffix = WordListLevelSuffix.Tab;
             }
             OpenXmlParagraphProperties properties = paragraph._paragraph.ParagraphProperties

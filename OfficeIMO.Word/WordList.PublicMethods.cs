@@ -411,8 +411,8 @@ namespace OfficeIMO.Word {
         /// <param name="fontName">Font name used for the symbol.</param>
         /// <param name="colorHex">Bullet color specified as hex string.</param>
         /// <param name="fontSize">Optional font size in points.</param>
-        /// <returns>The current <see cref="WordList"/>.</returns>
-        public WordList AddListLevel(int levelIndex, char symbol, string fontName, string? colorHex, int? fontSize = null) {
+        /// <returns>The newly attached <see cref="WordListLevel"/>.</returns>
+        public WordListLevel AddListLevel(int levelIndex, char symbol, string fontName, string? colorHex, int? fontSize = null) {
             if (levelIndex < 1) throw new ArgumentOutOfRangeException(nameof(levelIndex));
 
             var currentCount = this.Numbering.Levels.Count;
@@ -434,7 +434,7 @@ namespace OfficeIMO.Word {
 
             var newLevel = CreateBulletLevel(symbol, fontName, colorHex ?? string.Empty, fontSize);
             this.Numbering.AddLevel(newLevel);
-            return this;
+            return new WordListLevel(newLevel);
         }
 
         /// <summary>
@@ -446,8 +446,8 @@ namespace OfficeIMO.Word {
         /// <param name="color">Optional symbol color.</param>
         /// <param name="colorHex">Optional color specified as hex string. Ignored when <paramref name="color"/> is provided.</param>
         /// <param name="fontSize">Optional font size in points.</param>
-        /// <returns>The current <see cref="WordList"/>.</returns>
-        public WordList AddListLevel(int levelIndex, WordBulletSymbol symbol, string fontName, OfficeIMO.OfficeColor? color = null, string? colorHex = null, int? fontSize = null) {
+        /// <returns>The newly attached <see cref="WordListLevel"/>.</returns>
+        public WordListLevel AddListLevel(int levelIndex, WordBulletSymbol symbol, string fontName, OfficeIMO.OfficeColor? color = null, string? colorHex = null, int? fontSize = null) {
             string? finalColor = color?.ToRgbHex() ?? colorHex;
             return AddListLevel(levelIndex, (char)symbol, fontName, finalColor, fontSize);
         }
@@ -461,18 +461,18 @@ namespace OfficeIMO.Word {
         /// <param name="color">Optional symbol color.</param>
         /// <param name="colorHex">Optional color specified as hex string. Ignored when <paramref name="color"/> is provided.</param>
         /// <param name="fontSize">Optional font size in points.</param>
-        /// <returns>The current <see cref="WordList"/>.</returns>
+        /// <returns>The newly attached <see cref="WordListLevel"/>.</returns>
         /// <example>
         /// <code><![CDATA[
-        /// WordList list = document.AddCustomList()
-        ///     .AddListLevel(1, WordListLevelKind.BulletSquareSymbol, "Courier New", colorHex: "#FF0000", fontSize: 14)
-        ///     .AddListLevel(2, WordListLevelKind.BulletBlackCircle, "Arial", colorHex: "#00FF00", fontSize: 10);
+        /// WordList list = document.AddCustomList();
+        /// list.AddListLevel(1, WordListLevelKind.BulletSquareSymbol, "Courier New", colorHex: "#FF0000", fontSize: 14);
+        /// list.AddListLevel(2, WordListLevelKind.BulletBlackCircle, "Arial", colorHex: "#00FF00", fontSize: 10);
         ///
         /// list.AddItem("Top level");
         /// list.AddItem("Nested level", 1);
         /// ]]></code>
         /// </example>
-        public WordList AddListLevel(int levelIndex, WordListLevelKind kind, string fontName, OfficeIMO.OfficeColor? color = null, string? colorHex = null, int? fontSize = null) {
+        public WordListLevel AddListLevel(int levelIndex, WordListLevelKind kind, string fontName, OfficeIMO.OfficeColor? color = null, string? colorHex = null, int? fontSize = null) {
             char symbol = GetBulletSymbol(kind);
             string? finalColor = color?.ToRgbHex() ?? colorHex;
             return AddListLevel(levelIndex, symbol, fontName, finalColor, fontSize);

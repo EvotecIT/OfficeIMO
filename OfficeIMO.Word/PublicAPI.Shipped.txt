@@ -2397,9 +2397,9 @@ OfficeIMO.Word.WordList
 OfficeIMO.Word.WordList.AddItem(OfficeIMO.Word.WordParagraph? wordParagraph, int level = 0) -> OfficeIMO.Word.WordParagraph!
 OfficeIMO.Word.WordList.AddItem(string? text, int level = 0, OfficeIMO.Word.WordParagraph? wordParagraph = null) -> OfficeIMO.Word.WordParagraph!
 OfficeIMO.Word.WordList.AddLinkItem(string! text, System.Uri! destination, bool addStyle = false, int level = 0) -> OfficeIMO.Word.WordParagraph!
-OfficeIMO.Word.WordList.AddListLevel(int levelIndex, OfficeIMO.Word.WordBulletSymbol symbol, string! fontName, OfficeIMO.OfficeColor? color = null, string? colorHex = null, int? fontSize = null) -> OfficeIMO.Word.WordList!
-OfficeIMO.Word.WordList.AddListLevel(int levelIndex, OfficeIMO.Word.WordListLevelKind kind, string! fontName, OfficeIMO.OfficeColor? color = null, string? colorHex = null, int? fontSize = null) -> OfficeIMO.Word.WordList!
-OfficeIMO.Word.WordList.AddListLevel(int levelIndex, char symbol, string! fontName, string? colorHex, int? fontSize = null) -> OfficeIMO.Word.WordList!
+OfficeIMO.Word.WordList.AddListLevel(int levelIndex, OfficeIMO.Word.WordBulletSymbol symbol, string! fontName, OfficeIMO.OfficeColor? color = null, string? colorHex = null, int? fontSize = null) -> OfficeIMO.Word.WordListLevel!
+OfficeIMO.Word.WordList.AddListLevel(int levelIndex, OfficeIMO.Word.WordListLevelKind kind, string! fontName, OfficeIMO.OfficeColor? color = null, string? colorHex = null, int? fontSize = null) -> OfficeIMO.Word.WordListLevel!
+OfficeIMO.Word.WordList.AddListLevel(int levelIndex, char symbol, string! fontName, string? colorHex, int? fontSize = null) -> OfficeIMO.Word.WordListLevel!
 OfficeIMO.Word.WordList.AddTaskItem(string! text, bool done = false, int level = 0) -> OfficeIMO.Word.WordParagraph!
 OfficeIMO.Word.WordList.Bold.get -> bool
 OfficeIMO.Word.WordList.Bold.set -> void
@@ -2437,14 +2437,10 @@ OfficeIMO.Word.WordList.WordList(OfficeIMO.Word.WordDocument! wordDocument, Offi
 OfficeIMO.Word.WordList.WordList(OfficeIMO.Word.WordDocument! wordDocument, bool isToc = false) -> void
 OfficeIMO.Word.WordList.WordList(OfficeIMO.Word.WordDocument! wordDocument, int numberId) -> void
 OfficeIMO.Word.WordListLevel
-OfficeIMO.Word.WordListLevel.IndentationHanging.get -> int
+OfficeIMO.Word.WordListLevel.IndentationHanging.get -> OfficeIMO.OfficeLength
 OfficeIMO.Word.WordListLevel.IndentationHanging.set -> void
-OfficeIMO.Word.WordListLevel.IndentationHangingCentimeters.get -> double
-OfficeIMO.Word.WordListLevel.IndentationHangingCentimeters.set -> void
-OfficeIMO.Word.WordListLevel.IndentationLeft.get -> int
+OfficeIMO.Word.WordListLevel.IndentationLeft.get -> OfficeIMO.OfficeLength
 OfficeIMO.Word.WordListLevel.IndentationLeft.set -> void
-OfficeIMO.Word.WordListLevel.IndentationLeftCentimeters.get -> double
-OfficeIMO.Word.WordListLevel.IndentationLeftCentimeters.set -> void
 OfficeIMO.Word.WordListLevel.LevelIndex.get -> int
 OfficeIMO.Word.WordListLevel.LevelJustification.get -> OfficeIMO.Word.WordListLevelAlignment
 OfficeIMO.Word.WordListLevel.LevelJustification.set -> void
