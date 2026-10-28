@@ -36,7 +36,7 @@ public sealed class PdfScanPreview {
     public PdfDocument CreateImagePdf(CancellationToken cancellationToken = default) => PdfDocument.CreateFromImages(
         new[] { new PdfImageDocumentSource(_processed) }, new PdfImageImportOptions {
             FixedPageSize = new PdfPageSize(OfficeIMO.OfficeLength.Points(Width),OfficeIMO.OfficeLength.Points(Height)),
-            Margin = 0,
+            Margin = OfficeLength.Zero,
             Fit = OfficeImageFit.Stretch
         }, cancellationToken);
 }

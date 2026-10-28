@@ -60,7 +60,7 @@ internal static class CupsPdfPrinter {
         foreach (PdfRenderedPrintSheet sheet in document.Sheets) {
             token.ThrowIfCancellationRequested();
             pages.Add(PdfDocument.CreateFromImages([new PdfImageDocumentSource(sheet.Png)],
-                new PdfImageImportOptions { FixedPageSize = sheet.Plan.PaperSize, Margin = 0, Fit = OfficeImageFit.Stretch }, token));
+                new PdfImageImportOptions { FixedPageSize = sheet.Plan.PaperSize, Margin = OfficeLength.Zero, Fit = OfficeImageFit.Stretch }, token));
         }
         byte[] bytes = SerializeSpool(pages, token);
         return await SubmitSpoolAsync(document, options, bytes, token, RunAsync).ConfigureAwait(false);

@@ -3623,11 +3623,11 @@ OfficeIMO.Pdf.PdfImageImportOptions.Fit.get -> OfficeIMO.Drawing.OfficeImageFit
 OfficeIMO.Pdf.PdfImageImportOptions.Fit.set -> void
 OfficeIMO.Pdf.PdfImageImportOptions.FixedPageSize.get -> OfficeIMO.Pdf.PdfPageSize?
 OfficeIMO.Pdf.PdfImageImportOptions.FixedPageSize.set -> void
-OfficeIMO.Pdf.PdfImageImportOptions.Margin.get -> double
+OfficeIMO.Pdf.PdfImageImportOptions.Margin.get -> OfficeIMO.OfficeLength
 OfficeIMO.Pdf.PdfImageImportOptions.Margin.set -> void
 OfficeIMO.Pdf.PdfImageImportOptions.MaximumEncodedImageBytes.get -> long
 OfficeIMO.Pdf.PdfImageImportOptions.MaximumEncodedImageBytes.set -> void
-OfficeIMO.Pdf.PdfImageImportOptions.MaximumPageDimension.get -> double
+OfficeIMO.Pdf.PdfImageImportOptions.MaximumPageDimension.get -> OfficeIMO.OfficeLength
 OfficeIMO.Pdf.PdfImageImportOptions.MaximumPageDimension.set -> void
 OfficeIMO.Pdf.PdfImageImportOptions.PdfImageImportOptions() -> void
 OfficeIMO.Pdf.PdfImageOptimizationOptions
@@ -4343,8 +4343,8 @@ OfficeIMO.Pdf.PdfLogicalParagraphContinuationGroup.Segments.get -> System.Collec
 OfficeIMO.Pdf.PdfLogicalParagraphContinuationGroup.SpansPages.get -> bool
 OfficeIMO.Pdf.PdfLogicalParagraphContinuationGroup.Text.get -> string!
 OfficeIMO.Pdf.PdfLogicalParagraphContinuationOptions
-OfficeIMO.Pdf.PdfLogicalParagraphContinuationOptions.GeometryTolerancePoints.get -> double
-OfficeIMO.Pdf.PdfLogicalParagraphContinuationOptions.GeometryTolerancePoints.init -> void
+OfficeIMO.Pdf.PdfLogicalParagraphContinuationOptions.GeometryTolerance.get -> OfficeIMO.OfficeLength
+OfficeIMO.Pdf.PdfLogicalParagraphContinuationOptions.GeometryTolerance.init -> void
 OfficeIMO.Pdf.PdfLogicalParagraphContinuationOptions.MaximumSegmentsPerParagraph.get -> int
 OfficeIMO.Pdf.PdfLogicalParagraphContinuationOptions.MaximumSegmentsPerParagraph.init -> void
 OfficeIMO.Pdf.PdfLogicalParagraphContinuationOptions.MergePageContinuations.get -> bool

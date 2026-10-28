@@ -2117,11 +2117,11 @@
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Both continuation models use OfficeLength GeometryTolerance; native point comparisons occur only inside the reading engine. Reader option snapshots copy the typed value. Table migration was already present; this applies the missing paragraph signature."
     },
     {
       "old": "OfficeIMO.Pdf.PdfLogicalTableContinuationOptions.GeometryTolerancePoints",
@@ -2133,11 +2133,11 @@
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Both continuation models use OfficeLength GeometryTolerance; native point comparisons occur only inside the reading engine. Reader option snapshots copy the typed value. Table migration was already present; this applies the missing paragraph signature."
     },
     {
       "old": "OfficeIMO.Pdf.PdfPageChangeOptions.MaxTotalPixels",
@@ -3340,6 +3340,14 @@
       "phase": "B",
       "applied": "phase-b-applied",
       "reason": "Keep format/selection/report policy in one options-based public facade; per-page/native-result kernels serve internal rendering and adapter consumers. Workflows and the browser retain internal streaming metadata without duplicating persistence policy; Studio uses public async bytes."
+    },
+    {
+      "old": "PdfImageImportOptions.Margin : double; PdfImageImportOptions.MaximumPageDimension : double",
+      "new": "PdfImageImportOptions.Margin : OfficeLength; PdfImageImportOptions.MaximumPageDimension : OfficeLength",
+      "action": "change",
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "reason": "Physical image-to-PDF page geometry uses explicit lengths, retaining zero margin and the 14,400-point maximum default. Validate EMU signs before materialization; convert to points only at layout calculations. Workflows, OCR and saved-artifact tests use typed lengths."
     }
   ],
   "applicationStatus": "Phase A applied and validated on the supported macOS targets. Phase B and Tier 2 entries retain their status; Windows .NET Framework validation remains pending.",
