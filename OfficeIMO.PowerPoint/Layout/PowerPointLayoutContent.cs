@@ -175,29 +175,6 @@ namespace OfficeIMO.PowerPoint {
         internal override bool IsContentBlock => false;
     }
 
-    /// <summary>A formatted metric, label and optional change.</summary>
-    public sealed class PowerPointLayoutKpi : PowerPointLayoutBlock {
-        /// <summary>Creates content for the shared layout engine.</summary>
-        public PowerPointLayoutKpi(string value, string label, string? change = null, OfficeColor? color = null) {
-            Value = value ?? throw new ArgumentNullException(nameof(value));
-            Label = label ?? throw new ArgumentNullException(nameof(label));
-            Change = change;
-            Color = color;
-        }
-
-        /// <summary>Formatted metric value.</summary>
-        public string Value { get; }
-        /// <summary>Metric label.</summary>
-        public string Label { get; }
-        /// <summary>Optional formatted change.</summary>
-        public string? Change { get; }
-
-        /// <summary>Shared colour or theme role (Success, Warning, Danger, Accent1…).</summary>
-        public OfficeColor? Color { get; }
-
-        internal override bool IsContentBlock => false;
-    }
-
     /// <summary>A narrative card or logo tile.</summary>
     public sealed class PowerPointLayoutCard : PowerPointLayoutBlock {
         /// <summary>Creates content for the shared layout engine.</summary>

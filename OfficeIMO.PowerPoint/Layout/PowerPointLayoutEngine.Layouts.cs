@@ -144,18 +144,16 @@ namespace OfficeIMO.PowerPoint {
         private static string? ChangeColor(PowerPointLayoutContext context, PowerPointLayoutKpi kpi) {
             string? explicitColor = context.ResolveColor(kpi.Color);
             if (explicitColor != null) return explicitColor;
-            string change = kpi.Change?.TrimStart() ?? string.Empty;
-            if (change.StartsWith("+", StringComparison.Ordinal)) return context.Theme.Success;
-            if (change.StartsWith("-", StringComparison.Ordinal) || change.StartsWith("−", StringComparison.Ordinal)) return context.Theme.Danger;
-            return context.Theme.TextMuted;
+            PowerPointKpiTrend? trend = kpi.EffectiveTrend;
+            if (!trend.HasValue || trend == PowerPointKpiTrend.Flat) return context.Theme.TextMuted;
+            bool improved = kpi.GoodDirection == PowerPointKpiDirection.Up
+                ? trend == PowerPointKpiTrend.Up : trend == PowerPointKpiTrend.Down;
+            return improved ? context.Theme.Success : context.Theme.Danger;
         }
 
-        private static string ChangeText(string change) {
-            string trimmed = change.TrimStart();
-            if (trimmed.StartsWith("+", StringComparison.Ordinal)) return "▲ " + trimmed;
-            if (trimmed.StartsWith("-", StringComparison.Ordinal) || trimmed.StartsWith("−", StringComparison.Ordinal)) return "▼ " + trimmed;
-            return trimmed;
-        }
+        /// <summary>Matches the change paragraph's enlarged caption font and its native line spacing.</summary>
+        private static double MetricChangeHeight(PowerPointTextStyleSpec caption) =>
+            (caption.Size + 1D) * caption.LineHeight + 2D;
 
         private static void RenderTakeaway(PowerPointLayoutContext context, PowerPointLayoutWriter writer, string? takeaway) {
             if (string.IsNullOrWhiteSpace(takeaway)) return;
@@ -199,7 +197,7 @@ namespace OfficeIMO.PowerPoint {
                     first = false;
                     double size = value.Size * (n == 1 ? 1.5D : 1D);
                     // In a region smaller than the tile stack, the value gives way first (never below 20 pt).
-                    double stack = 20D + 10D + label.Size * label.LineHeight + (string.IsNullOrWhiteSpace(kpi.Change) ? 0D : 12D + caption.Size * 1.4D);
+                    double stack = 20D + 10D + label.Size * label.LineHeight + (string.IsNullOrWhiteSpace(kpi.Change) ? 0D : 12D + MetricChangeHeight(caption));
                     size = Math.Max(20D, Math.Min(size, Math.Floor((Math.Min(rowHeight, zone.Height) - stack) / value.LineHeight)));
                     while (size - 2D >= value.Minimum && context.Width(kpi.Value, value, size) > w - 4D) size -= 2D;
                     double y = y0 + 2D + 18D;
@@ -209,8 +207,8 @@ namespace OfficeIMO.PowerPoint {
                     writer.Text("Metric Label", new PowerPointLayoutRect(x, y, w - 8D, labelHeight + 4D), context.Paragraph(kpi.Label, PowerPointTextRole.KpiLabel));
                     y += labelHeight + 12D;
                     if (!string.IsNullOrWhiteSpace(kpi.Change)) {
-                        writer.Text("Metric Change", new PowerPointLayoutRect(x, y, w, caption.Size * 1.4D + 2D),
-                            context.Paragraph(ChangeText(kpi.Change!), PowerPointTextRole.Caption, ChangeColor(context, kpi), caption.Size + 1D, bold: true, explicitColor: kpi.Color));
+                        writer.Text("Metric Change", new PowerPointLayoutRect(x, y, w, MetricChangeHeight(caption)),
+                            context.Paragraph(kpi.ChangeText, PowerPointTextRole.Caption, ChangeColor(context, kpi), caption.Size + 1D, bold: true, explicitColor: kpi.Color));
                     }
                 }
             }
@@ -391,9 +389,9 @@ namespace OfficeIMO.PowerPoint {
             PowerPointTextStyleSpec caption = context.Style(PowerPointTextRole.Caption);
             PowerPointLayoutRect inner = panel.Inset(24D, 23D, 24D, 20D);
             double labelHeight = label.Size * label.LineHeight;
-            double fit = (inner.Height - (kpis.Count - 1) * 26D) / kpis.Count - (4D + labelHeight + 6D + 14D);
+            double fit = (inner.Height - (kpis.Count - 1) * 26D) / kpis.Count - (4D + labelHeight + 6D + MetricChangeHeight(caption));
             double size = Math.Max(value.Minimum * 0.75D, Math.Min(PowerPointLayoutTheme.RoundSize(value.Size * 0.67D), Math.Floor(fit)));
-            double itemHeight = size + 4D + labelHeight + 6D + caption.Size * 1.4D;
+            double itemHeight = size + 4D + labelHeight + 6D + MetricChangeHeight(caption);
             double gap = kpis.Count > 1 ? (inner.Height - kpis.Count * itemHeight) / (kpis.Count - 1) : 0D;
             double ky = inner.Y;
             for (int i = 0; i < kpis.Count; i++) {
@@ -405,8 +403,8 @@ namespace OfficeIMO.PowerPoint {
                 double ly = ky + s + 4D;
                 writer.Text("Result Label", new PowerPointLayoutRect(inner.X, ly, inner.Width, labelHeight + 2D), context.Paragraph(kpi.Label, PowerPointTextRole.KpiLabel));
                 if (!string.IsNullOrWhiteSpace(kpi.Change)) {
-                    writer.Text("Result Change", new PowerPointLayoutRect(inner.X, ly + labelHeight + 6D, inner.Width, caption.Size * 1.4D),
-                        context.Paragraph(ChangeText(kpi.Change!), PowerPointTextRole.Caption, ChangeColor(context, kpi), caption.Size + 1D, bold: true, explicitColor: kpi.Color));
+                    writer.Text("Result Change", new PowerPointLayoutRect(inner.X, ly + labelHeight + 6D, inner.Width, MetricChangeHeight(caption)),
+                        context.Paragraph(kpi.ChangeText, PowerPointTextRole.Caption, ChangeColor(context, kpi), caption.Size + 1D, bold: true, explicitColor: kpi.Color));
                 }
 
                 ky += itemHeight + gap;

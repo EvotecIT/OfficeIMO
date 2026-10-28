@@ -701,6 +701,12 @@ explicit layout falls back automatically and reports a preflight warning.
 Automatic selection uses the logical plan position for both previews and rendering;
 physical continuations do not turn a short plan into a longer story.
 
+`PowerPointLayoutKpi.FromDelta` formats a signed change and chooses its arrow.
+With the `%` unit, `0.12` means `+12%`. Set `GoodDirection` to `Down` for metrics
+such as latency or incident counts, where a decrease is an improvement. The
+indicator uses the theme's success or danger color; an explicit `Color` overrides
+that choice. `Trend` can supply a direction when change text has no leading sign.
+
 Tables require at least one column heading and matching cell counts in every row.
 Set `IncludeHeaders = false` to omit the heading row on every continuation; a
 headerless table must contain at least one data row. A column
