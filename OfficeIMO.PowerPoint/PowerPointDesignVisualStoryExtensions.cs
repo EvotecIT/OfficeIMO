@@ -78,8 +78,8 @@ namespace OfficeIMO.PowerPoint {
         private static void AddScreenshotHero(PowerPointSlide slide, PowerPointDesignTheme theme,
             PowerPointImageAsset image, double width, double height) {
             PowerPointLayoutBox bounds = new OfficeIMO.PowerPoint.PowerPointLayoutBox(OfficeIMO.OfficeLength.Centimeters(1.5),OfficeIMO.OfficeLength.Centimeters(3.55),OfficeIMO.OfficeLength.Centimeters(width - 3),OfficeIMO.OfficeLength.Centimeters(height - 5.5));
-            PowerPointAutoShape frame = slide.AddRectangleCm(bounds.Left.ToCentimeters() - 0.08, bounds.Top.ToCentimeters() - 0.08,
-                bounds.Width.ToCentimeters() + 0.16, bounds.Height.ToCentimeters() + 0.16, "Screenshot Hero Frame");
+            PowerPointAutoShape frame = slide.AddRectangle(OfficeIMO.OfficeLength.Centimeters(bounds.Left.ToCentimeters() - 0.08), OfficeIMO.OfficeLength.Centimeters(bounds.Top.ToCentimeters() - 0.08),
+                OfficeIMO.OfficeLength.Centimeters(bounds.Width.ToCentimeters() + 0.16), OfficeIMO.OfficeLength.Centimeters(bounds.Height.ToCentimeters() + 0.16), "Screenshot Hero Frame");
             frame.FillColor = theme.AccentDarkColor;
             frame.OutlineColor = theme.AccentDarkColor;
             frame.SetShadow("000000", blurPoints: 5, distancePoints: 1.5, angleDegrees: 90, transparencyPercent: 82);
@@ -98,7 +98,7 @@ namespace OfficeIMO.PowerPoint {
 
             double railLeft = imageBounds.Right.ToCentimeters() + 0.7;
             double railWidth = body.Right.ToCentimeters() - railLeft;
-            PowerPointAutoShape rail = slide.AddRectangleCm(railLeft, body.Top.ToCentimeters(), railWidth, body.Height.ToCentimeters(),
+            PowerPointAutoShape rail = slide.AddRectangle(OfficeIMO.OfficeLength.Centimeters(railLeft), body.Top, OfficeIMO.OfficeLength.Centimeters(railWidth), body.Height,
                 "Screenshot Narrative Rail");
             rail.FillColor = theme.SurfaceColor;
             rail.OutlineColor = theme.PanelBorderColor;
@@ -120,8 +120,8 @@ namespace OfficeIMO.PowerPoint {
                 if (!TryProjectImageAnnotation(picture, annotation, out double x, out double y)) continue;
                 string accent = annotation.Color ?? GetAccent(theme, index);
                 double markerSize = compact ? 0.48 : 0.4;
-                PowerPointAutoShape marker = slide.AddEllipseCm(x - markerSize / 2D, y - markerSize / 2D,
-                    markerSize, markerSize, "Screenshot Annotation " + (index + 1));
+                PowerPointAutoShape marker = slide.AddEllipse(OfficeIMO.OfficeLength.Centimeters(x - markerSize / 2D), OfficeIMO.OfficeLength.Centimeters(y - markerSize / 2D),
+                    OfficeIMO.OfficeLength.Centimeters(markerSize), OfficeIMO.OfficeLength.Centimeters(markerSize), "Screenshot Annotation " + (index + 1));
                 marker.FillColor = accent;
                 marker.OutlineColor = theme.AccentContrastColor;
                 marker.OutlineWidthPoints = 1.2;
@@ -132,7 +132,7 @@ namespace OfficeIMO.PowerPoint {
                     : x - labelWidth - 0.38;
                 double labelTop = Math.Max(picture.Top.ToCentimeters() + 0.15,
                     Math.Min(picture.Bottom.ToCentimeters() - 0.95, y - 0.4));
-                PowerPointAutoShape label = slide.AddRectangleCm(labelLeft, labelTop, labelWidth, 0.82,
+                PowerPointAutoShape label = slide.AddRectangle(OfficeIMO.OfficeLength.Centimeters(labelLeft), OfficeIMO.OfficeLength.Centimeters(labelTop), OfficeIMO.OfficeLength.Centimeters(labelWidth), OfficeIMO.OfficeLength.Centimeters(0.82),
                     "Screenshot Annotation Label " + (index + 1));
                 label.FillColor = theme.AccentDarkColor;
                 label.OutlineColor = accent;
@@ -171,8 +171,8 @@ namespace OfficeIMO.PowerPoint {
             for (int row = 0; row < groups.Count; row++) {
                 List<PowerPointArchitectureNode> nodes = groups[row].ToList();
                 PowerPointLayoutBox groupBounds = rows[row];
-                PowerPointAutoShape band = slide.AddRectangleCm(groupBounds.Left.ToCentimeters(), groupBounds.Top.ToCentimeters(),
-                    groupBounds.Width.ToCentimeters(), groupBounds.Height.ToCentimeters(), "Architecture Layer " + groups[row].Key);
+                PowerPointAutoShape band = slide.AddRectangle(groupBounds.Left, groupBounds.Top,
+                    groupBounds.Width, groupBounds.Height, "Architecture Layer " + groups[row].Key);
                 band.FillColor = row % 2 == 0 ? theme.SurfaceColor : theme.PanelColor;
                 band.OutlineColor = theme.PanelBorderColor;
                 AddText(slide, groups[row].Key.ToUpperInvariant(), groupBounds.Left.ToCentimeters() + 0.25,
@@ -220,8 +220,8 @@ namespace OfficeIMO.PowerPoint {
                 PowerPointArchitectureEdge edge = edges[index];
                 PowerPointLayoutBox from = bounds[edge.FromId];
                 PowerPointLayoutBox to = bounds[edge.ToId];
-                PowerPointAutoShape connector = slide.AddLineCm(CenterX(from), CenterY(from),
-                    CenterX(to), CenterY(to), "Architecture Edge " + (index + 1));
+                PowerPointAutoShape connector = slide.AddLine(OfficeIMO.OfficeLength.Centimeters(CenterX(from)), OfficeIMO.OfficeLength.Centimeters(CenterY(from)),
+                    OfficeIMO.OfficeLength.Centimeters(CenterX(to)), OfficeIMO.OfficeLength.Centimeters(CenterY(to)), "Architecture Edge " + (index + 1));
                 connector.OutlineColor = GetAccent(theme, index);
                 connector.OutlineWidthPoints = 1.25;
                 connector.SetLineEnds(null, OfficeLineMarkerKind.Triangle, PowerPointLineEndWidth.Small,
@@ -237,8 +237,8 @@ namespace OfficeIMO.PowerPoint {
 
         private static void AddArchitectureNode(PowerPointSlide slide, PowerPointDesignTheme theme,
             PowerPointArchitectureNode node, PowerPointLayoutBox bounds) {
-            PowerPointAutoShape panel = slide.AddShapeCm(OfficePresetShapeType.RoundRectangle, bounds.Left.ToCentimeters(),
-                bounds.Top.ToCentimeters(), bounds.Width.ToCentimeters(), bounds.Height.ToCentimeters(), "Architecture Node " + node.Id);
+            PowerPointAutoShape panel = slide.AddShape(OfficePresetShapeType.RoundRectangle, bounds.Left,
+                bounds.Top, bounds.Width, bounds.Height, "Architecture Node " + node.Id);
             panel.FillColor = theme.BackgroundColor;
             panel.OutlineColor = theme.AccentColor;
             panel.OutlineWidthPoints = 1.4;

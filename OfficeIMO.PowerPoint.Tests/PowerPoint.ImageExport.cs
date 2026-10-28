@@ -264,9 +264,9 @@ namespace OfficeIMO.Tests {
             using var stream = new MemoryStream();
             using PowerPointDocument presentation = PowerPointDocument.Create(stream);
             PowerPointSlide slide = presentation.AddSlide();
-            PowerPointAutoShape first = slide.AddShapePoints(OfficePresetShapeType.Rectangle, 10, 10, 20, 20);
-            PowerPointAutoShape second = slide.AddShapePoints(OfficePresetShapeType.Rectangle, 40, 10, 20, 20);
-            PowerPointAutoShape third = slide.AddShapePoints(OfficePresetShapeType.Rectangle, 70, 10, 20, 20);
+            PowerPointAutoShape first = slide.AddShape(OfficePresetShapeType.Rectangle, OfficeIMO.OfficeLength.Points(10), OfficeIMO.OfficeLength.Points(10), OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(20));
+            PowerPointAutoShape second = slide.AddShape(OfficePresetShapeType.Rectangle, OfficeIMO.OfficeLength.Points(40), OfficeIMO.OfficeLength.Points(10), OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(20));
+            PowerPointAutoShape third = slide.AddShape(OfficePresetShapeType.Rectangle, OfficeIMO.OfficeLength.Points(70), OfficeIMO.OfficeLength.Points(10), OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(20));
             PowerPointGroupShape inner = slide.GroupShapes(new PowerPointShape[] { first, second }, "Inner");
             slide.GroupShapes(new PowerPointShape[] { inner, third }, "Outer");
 
@@ -283,13 +283,13 @@ namespace OfficeIMO.Tests {
             using PowerPointDocument presentation = PowerPointDocument.Create(stream);
             presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(160),OfficeIMO.OfficeLength.Points(100));
             PowerPointSlide slide = presentation.AddSlide();
-            PowerPointAutoShape rectangle = slide.AddRectanglePoints(20, 20, 60, 30);
+            PowerPointAutoShape rectangle = slide.AddRectangle(OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(60), OfficeIMO.OfficeLength.Points(30));
             rectangle.FillColor = "22AA66";
             rectangle.OutlineColor = "114433";
             rectangle.OutlineWidthPoints = 1D;
 
             PowerPointTextBox textBox = slide.AddTextBox("Shared renderer",global::OfficeIMO.OfficeLength.Points(24),global::OfficeIMO.OfficeLength.Points(54),global::OfficeIMO.OfficeLength.Points(150),global::OfficeIMO.OfficeLength.Points(36));
-            textBox.FontSize = 12;
+            textBox.FontSize = global::OfficeIMO.OfficeLength.Points(12);
             textBox.Color = "111111";
 
             OfficeImageExportResult result = slide.ExportImage(OfficeImageExportFormat.Png);
@@ -377,7 +377,7 @@ namespace OfficeIMO.Tests {
             PowerPointPicture picture = slide.AddImage(new MemoryStream(png), OfficeImageFormat.Png,
                 global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(20)), global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(20)),
                 global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(20)), global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(20)));
-            PowerPointAutoShape anchor = slide.AddRectanglePoints(50, 20, 12, 12);
+            PowerPointAutoShape anchor = slide.AddRectangle(OfficeIMO.OfficeLength.Points(50), OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(12), OfficeIMO.OfficeLength.Points(12));
             slide.GroupShapes(new PowerPointShape[] { picture, anchor }, "Bounded picture group");
 
             OfficeImageExportResult result = slide.ExportImage(OfficeImageExportFormat.Png, new PowerPointImageExportOptions {
@@ -479,7 +479,7 @@ namespace OfficeIMO.Tests {
             header.BorderColor = "114433";
             header.Color = "FFFFFF";
             header.Bold = true;
-            header.FontSize = 11;
+            header.FontSize = global::OfficeIMO.OfficeLength.Points(11);
             header.HorizontalAlignment = PowerPointTextAlignment.Center;
             header.VerticalAlignment = PowerPointTextVerticalAlignment.Center;
 
@@ -590,7 +590,7 @@ namespace OfficeIMO.Tests {
             PowerPointTextBox layoutTitle = presentation.EnsureLayoutPlaceholderTextBox(0, layoutIndex, PowerPointPlaceholderType.Title, bounds: bounds);
             presentation.SetLayoutPlaceholderBounds(0, layoutIndex, PowerPointPlaceholderType.Title, bounds);
             layoutTitle.Text = "Inherited layout title";
-            layoutTitle.FontSize = 14;
+            layoutTitle.FontSize = global::OfficeIMO.OfficeLength.Points(14);
             layoutTitle.Color = "1F4E79";
 
             PowerPointSlide slide = presentation.AddSlide(PowerPointSlideLayoutType.TitleOnly);
@@ -685,7 +685,7 @@ namespace OfficeIMO.Tests {
             using PowerPointDocument presentation = PowerPointDocument.Create(stream);
             PowerPointSlide slide = presentation.AddSlide();
             slide.AddImage(imagePath);
-            PowerPointAutoShape shape = slide.AddRectanglePoints(12, 12, 30, 20, "Filtered shape");
+            PowerPointAutoShape shape = slide.AddRectangle(OfficeIMO.OfficeLength.Points(12), OfficeIMO.OfficeLength.Points(12), OfficeIMO.OfficeLength.Points(30), OfficeIMO.OfficeLength.Points(20), "Filtered shape");
             shape.FillColor = "ABCDEF";
             slide.AddTextBox("FILTERED TEXT",global::OfficeIMO.OfficeLength.Points(48),global::OfficeIMO.OfficeLength.Points(12),global::OfficeIMO.OfficeLength.Points(100),global::OfficeIMO.OfficeLength.Points(24));
             PowerPointTable table = slide.AddTable(1,1,global::OfficeIMO.OfficeLength.Points(12),global::OfficeIMO.OfficeLength.Points(44),global::OfficeIMO.OfficeLength.Points(120),global::OfficeIMO.OfficeLength.Points(30));

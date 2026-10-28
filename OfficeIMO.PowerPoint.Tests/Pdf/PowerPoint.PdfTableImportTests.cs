@@ -414,7 +414,7 @@ public class PowerPointPdfTableImportTests {
             Assert.True(result.Value.Slides.Count > 1);
             double slideWidth = result.Value.SlideSize.Width.ToPoints();
             double slideHeight = result.Value.SlideSize.Height.ToPoints();
-            int primaryFontSize = Assert.Single(result.Value.Slides[0].Tables).GetCell(0, 0).FontSize ?? 0;
+            double primaryFontSize = Assert.Single(result.Value.Slides[0].Tables).GetCell(0, 0).FontSize?.ToPoints() ?? 0;
             Assert.InRange(primaryFontSize, 1, 3);
             foreach (OfficeIMO.PowerPoint.PowerPointSlide slide in result.Value.Slides.Skip(1)) {
                 OfficeIMO.PowerPoint.PowerPointTable table = Assert.Single(slide.Tables);
@@ -422,7 +422,7 @@ public class PowerPointPdfTableImportTests {
                 Assert.InRange(table.Top.ToPoints(), 0D, slideHeight);
                 Assert.True(table.Left.ToPoints() + table.Width.ToPoints() <= slideWidth + 0.01D);
                 Assert.True(table.Top.ToPoints() + table.Height.ToPoints() <= slideHeight + 0.01D);
-                Assert.InRange(table.GetCell(0, 0).FontSize ?? 0, 10, 18);
+                Assert.InRange(table.GetCell(0, 0).FontSize?.ToPoints() ?? 0, 10, 18);
             }
         }
     }
@@ -1161,14 +1161,14 @@ public class PowerPointPdfTableImportTests {
         using (scaled.Value) {
             OfficeIMO.PowerPoint.PowerPointSlide baselineSlide = Assert.Single(baseline.Value.Slides);
             OfficeIMO.PowerPoint.PowerPointSlide scaledSlide = Assert.Single(scaled.Value.Slides);
-            int? baselineTableFontSize = Assert.Single(baselineSlide.Tables).GetCell(0, 0).FontSize;
-            int? scaledTableFontSize = Assert.Single(scaledSlide.Tables).GetCell(0, 0).FontSize;
+            double? baselineTableFontSize = Assert.Single(baselineSlide.Tables).GetCell(0, 0).FontSize?.ToPoints();
+            double? scaledTableFontSize = Assert.Single(scaledSlide.Tables).GetCell(0, 0).FontSize?.ToPoints();
             double? baselineTextFontSize = Assert.Single(
                 baselineSlide.TextBoxes,
-                static textBox => textBox.Text == "Standalone marker").Paragraphs[0].Runs[0].FontSizePoints;
+                static textBox => textBox.Text == "Standalone marker").Paragraphs[0].Runs[0].FontSize?.ToPoints();
             double? scaledTextFontSize = Assert.Single(
                 scaledSlide.TextBoxes,
-                static textBox => textBox.Text == "Standalone marker").Paragraphs[0].Runs[0].FontSizePoints;
+                static textBox => textBox.Text == "Standalone marker").Paragraphs[0].Runs[0].FontSize?.ToPoints();
 
             Assert.Equal(baselineTableFontSize, scaledTableFontSize);
             Assert.Equal(baselineTextFontSize, scaledTextFontSize);
@@ -1203,7 +1203,7 @@ public class PowerPointPdfTableImportTests {
         int tableFontSize;
         using (result.Value) {
             OfficeIMO.PowerPoint.PowerPointSlide slide = Assert.Single(result.Value.Slides);
-            tableFontSize = Assert.Single(slide.Tables).GetCell(0, 0).FontSize ?? 0;
+            tableFontSize = (int)(Assert.Single(slide.Tables).GetCell(0, 0).FontSize?.ToPoints() ?? 0);
             Assert.True(tableFontSize > 18);
             serialized = result.Value.ToBytes();
         }
@@ -1211,7 +1211,7 @@ public class PowerPointPdfTableImportTests {
         using OfficeIMO.PowerPoint.PowerPointDocument reopened =
             OfficeIMO.PowerPoint.PowerPointDocument.Load(new MemoryStream(serialized));
         OfficeIMO.PowerPoint.PowerPointSlide reopenedSlide = Assert.Single(reopened.Slides);
-        int reopenedTableFontSize = Assert.Single(reopenedSlide.Tables).GetCell(0, 0).FontSize ?? 0;
+        int reopenedTableFontSize = (int)(Assert.Single(reopenedSlide.Tables).GetCell(0, 0).FontSize?.ToPoints() ?? 0);
         Assert.True(reopenedTableFontSize > 18);
         Assert.Equal(tableFontSize, reopenedTableFontSize);
     }

@@ -12,8 +12,8 @@ namespace OfficeIMO.Tests {
             try {
                 using PowerPointDocument presentation = PowerPointDocument.Create(filePath);
                 PowerPointSlide slide = presentation.AddSlide();
-                PowerPointAutoShape a = slide.AddRectangle(100, 200, 300, 400);
-                PowerPointAutoShape b = slide.AddRectangle(800, 1000, 200, 200);
+                PowerPointAutoShape a = slide.AddRectangle(OfficeIMO.OfficeLength.Emus(100), OfficeIMO.OfficeLength.Emus(200), OfficeIMO.OfficeLength.Emus(300), OfficeIMO.OfficeLength.Emus(400));
+                PowerPointAutoShape b = slide.AddRectangle(OfficeIMO.OfficeLength.Emus(800), OfficeIMO.OfficeLength.Emus(1000), OfficeIMO.OfficeLength.Emus(200), OfficeIMO.OfficeLength.Emus(200));
 
                 PowerPointGroupShape group = slide.GroupShapes(new PowerPointShape[] { a, b });
 
@@ -35,8 +35,8 @@ namespace OfficeIMO.Tests {
             try {
                 using PowerPointDocument presentation = PowerPointDocument.Create(filePath);
                 PowerPointSlide slide = presentation.AddSlide();
-                PowerPointAutoShape a = slide.AddRectangle(0, 0, 100, 100);
-                PowerPointAutoShape b = slide.AddRectangle(200, 300, 150, 120);
+                PowerPointAutoShape a = slide.AddRectangle(OfficeIMO.OfficeLength.Emus(0), OfficeIMO.OfficeLength.Emus(0), OfficeIMO.OfficeLength.Emus(100), OfficeIMO.OfficeLength.Emus(100));
+                PowerPointAutoShape b = slide.AddRectangle(OfficeIMO.OfficeLength.Emus(200), OfficeIMO.OfficeLength.Emus(300), OfficeIMO.OfficeLength.Emus(150), OfficeIMO.OfficeLength.Emus(120));
 
                 PowerPointGroupShape group = slide.GroupShapes(slide.Shapes);
                 var children = slide.UngroupShape(group).ToList();
@@ -69,8 +69,8 @@ namespace OfficeIMO.Tests {
             try {
                 using PowerPointDocument presentation = PowerPointDocument.Create(filePath);
                 PowerPointSlide slide = presentation.AddSlide();
-                PowerPointAutoShape a = slide.AddRectangle(100, 200, 300, 100);
-                PowerPointAutoShape b = slide.AddRectangle(500, 250, 200, 100);
+                PowerPointAutoShape a = slide.AddRectangle(OfficeIMO.OfficeLength.Emus(100), OfficeIMO.OfficeLength.Emus(200), OfficeIMO.OfficeLength.Emus(300), OfficeIMO.OfficeLength.Emus(100));
+                PowerPointAutoShape b = slide.AddRectangle(OfficeIMO.OfficeLength.Emus(500), OfficeIMO.OfficeLength.Emus(250), OfficeIMO.OfficeLength.Emus(200), OfficeIMO.OfficeLength.Emus(100));
 
                 PowerPointGroupShape group = slide.GroupShapes(slide.Shapes);
                 slide.AlignGroupChildren(group, PowerPointShapeAlignment.Left);
@@ -92,9 +92,9 @@ namespace OfficeIMO.Tests {
             try {
                 using PowerPointDocument presentation = PowerPointDocument.Create(filePath);
                 PowerPointSlide slide = presentation.AddSlide();
-                slide.AddRectangle(0, 0, 1000, 500);
-                slide.AddRectangle(2000, 0, 1000, 500);
-                slide.AddRectangle(4000, 0, 1000, 500);
+                slide.AddRectangle(OfficeIMO.OfficeLength.Emus(0), OfficeIMO.OfficeLength.Emus(0), OfficeIMO.OfficeLength.Emus(1000), OfficeIMO.OfficeLength.Emus(500));
+                slide.AddRectangle(OfficeIMO.OfficeLength.Emus(2000), OfficeIMO.OfficeLength.Emus(0), OfficeIMO.OfficeLength.Emus(1000), OfficeIMO.OfficeLength.Emus(500));
+                slide.AddRectangle(OfficeIMO.OfficeLength.Emus(4000), OfficeIMO.OfficeLength.Emus(0), OfficeIMO.OfficeLength.Emus(1000), OfficeIMO.OfficeLength.Emus(500));
 
                 PowerPointGroupShape group = slide.GroupShapes(slide.Shapes);
                 slide.DistributeGroupChildrenWithSpacing(group, PowerPointShapeDistribution.Horizontal, spacingEmus: 500);
@@ -118,10 +118,10 @@ namespace OfficeIMO.Tests {
             try {
                 using PowerPointDocument presentation = PowerPointDocument.Create(filePath);
                 PowerPointSlide slide = presentation.AddSlide();
-                slide.AddRectangle(0, 0, 100, 100);
-                slide.AddRectangle(200, 0, 100, 100);
-                slide.AddRectangle(0, 200, 100, 100);
-                slide.AddRectangle(200, 200, 100, 100);
+                slide.AddRectangle(OfficeIMO.OfficeLength.Emus(0), OfficeIMO.OfficeLength.Emus(0), OfficeIMO.OfficeLength.Emus(100), OfficeIMO.OfficeLength.Emus(100));
+                slide.AddRectangle(OfficeIMO.OfficeLength.Emus(200), OfficeIMO.OfficeLength.Emus(0), OfficeIMO.OfficeLength.Emus(100), OfficeIMO.OfficeLength.Emus(100));
+                slide.AddRectangle(OfficeIMO.OfficeLength.Emus(0), OfficeIMO.OfficeLength.Emus(200), OfficeIMO.OfficeLength.Emus(100), OfficeIMO.OfficeLength.Emus(100));
+                slide.AddRectangle(OfficeIMO.OfficeLength.Emus(200), OfficeIMO.OfficeLength.Emus(200), OfficeIMO.OfficeLength.Emus(100), OfficeIMO.OfficeLength.Emus(100));
 
                 PowerPointGroupShape group = slide.GroupShapes(slide.Shapes);
                 slide.ArrangeGroupChildrenInGrid(group, columns: 2, rows: 2);
@@ -157,7 +157,7 @@ namespace OfficeIMO.Tests {
                 PowerPointSlide slide = presentation.AddSlide();
                 slide.AddTextBox("A",global::OfficeIMO.OfficeLength.Emus(0),global::OfficeIMO.OfficeLength.Emus(0),global::OfficeIMO.OfficeLength.Emus(100),global::OfficeIMO.OfficeLength.Emus(100));
                 slide.AddTextBox("B",global::OfficeIMO.OfficeLength.Emus(200),global::OfficeIMO.OfficeLength.Emus(0),global::OfficeIMO.OfficeLength.Emus(100),global::OfficeIMO.OfficeLength.Emus(100));
-                slide.AddRectangle(400, 0, 100, 100);
+                slide.AddRectangle(OfficeIMO.OfficeLength.Emus(400), OfficeIMO.OfficeLength.Emus(0), OfficeIMO.OfficeLength.Emus(100), OfficeIMO.OfficeLength.Emus(100));
 
                 PowerPointGroupShape group = slide.GroupShapes(slide.Shapes);
                 var boxes = slide.GetGroupTextBoxes(group);

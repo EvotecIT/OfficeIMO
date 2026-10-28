@@ -1490,7 +1490,7 @@ namespace OfficeIMO.Tests {
 
                 PowerPointTextBox cardTitle = slide.TextBoxes.First(textBox =>
                     textBox.Text == "Operational Readiness And Service Transition");
-                Assert.True(cardTitle.FontSize <= 13);
+                Assert.True(cardTitle.FontSize?.ToPoints() <= 13);
                 Assert.Equal(PowerPointTextAutoFit.Normal, cardTitle.TextAutoFit);
                 Assert.NotNull(cardTitle.TextAutoFitOptions);
 
@@ -1500,12 +1500,12 @@ namespace OfficeIMO.Tests {
 
                 PowerPointTextBox metricValue = slide.TextBoxes.First(textBox =>
                     textBox.Text == "SplitComplementary");
-                Assert.True(metricValue.FontSize < 24);
+                Assert.True(metricValue.FontSize?.ToPoints() < 24);
                 Assert.NotNull(metricValue.TextAutoFitOptions);
 
                 PowerPointTextBox metricLabel = slide.TextBoxes.First(textBox =>
                     textBox.Text == "palette strategy");
-                Assert.True(metricLabel.FontSize <= 8);
+                Assert.True(metricLabel.FontSize?.ToPoints() <= 8);
                 Assert.NotNull(metricLabel.TextAutoFitOptions);
 
                 List<OfficeOpenXmlValidationError> errors = presentation.ValidateDocument();

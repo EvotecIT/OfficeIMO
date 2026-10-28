@@ -24,7 +24,7 @@ namespace OfficeIMO.Tests {
 
                 Assert.Equal(3, paragraphs.Count);
                 Assert.True(paragraphs[0].Runs[0].Bold);
-                Assert.Equal(28, paragraphs[0].Runs[0].FontSize);
+                Assert.Equal(OfficeLength.Points(28), paragraphs[0].Runs[0].FontSize);
                 Assert.NotNull(paragraphs[1].Paragraph.ParagraphProperties?.GetFirstChild<CharacterBullet>());
                 Assert.True(paragraphs[1].Runs[0].Bold);
                 Assert.True(paragraphs[1].Runs[2].Italic);

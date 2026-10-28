@@ -22,12 +22,12 @@ namespace OfficeIMO.Examples.Showcase.Workflows {
             deck.Save();
         }
         private static void Card(PowerPointSlide slide, double x, string title, string body, string fill) {
-            slide.AddRectangleCm(x, 5, 9.5, 10).Fill(fill).Stroke("CBD5E1", 1);
+            slide.AddRectangle(OfficeIMO.OfficeLength.Centimeters(x), OfficeIMO.OfficeLength.Centimeters(5), OfficeIMO.OfficeLength.Centimeters(9.5), OfficeIMO.OfficeLength.Centimeters(10)).Fill(fill).Stroke("CBD5E1", 1);
             Text(slide, title, x + 0.6, 5.8, 8.3, 2, 22, "17365D");
             Text(slide, body, x + 0.6, 8.2, 8.3, 5.5, 20, "243247");
         }
         private static void Text(PowerPointSlide slide, string value, double x, double y, double width, double height, int size, string color) {
-            var box = slide.AddTextBox(value,global::OfficeIMO.OfficeLength.Centimeters(x),global::OfficeIMO.OfficeLength.Centimeters(y),global::OfficeIMO.OfficeLength.Centimeters(width),global::OfficeIMO.OfficeLength.Centimeters(height)); box.FontSize = size; box.Color = color;
+            var box = slide.AddTextBox(value,global::OfficeIMO.OfficeLength.Centimeters(x),global::OfficeIMO.OfficeLength.Centimeters(y),global::OfficeIMO.OfficeLength.Centimeters(width),global::OfficeIMO.OfficeLength.Centimeters(height)); box.FontSize = global::OfficeIMO.OfficeLength.Points(size); box.Color = color;
         }
     }
 }

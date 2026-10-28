@@ -43,7 +43,7 @@ namespace OfficeIMO.PowerPoint {
         ///     Adds a native SmartArt diagram to the slide.
         /// </summary>
         public PowerPointSmartArt AddSmartArt(PowerPointSmartArtType type = PowerPointSmartArtType.BasicProcess,
-            long left = 0L, long top = 0L, long width = 5486400L, long height = 3200400L) {
+            OfficeLength? left = null, OfficeLength? top = null, OfficeLength? width = null, OfficeLength? height = null) {
             return AddSmartArt(type, new[] { "[Text]" }, left, top, width, height);
         }
 
@@ -51,14 +51,18 @@ namespace OfficeIMO.PowerPoint {
         ///     Adds a native SmartArt diagram populated with editable semantic node text.
         /// </summary>
         public PowerPointSmartArt AddSmartArt(PowerPointSmartArtType type, IEnumerable<string> nodeTexts,
-            long left = 0L, long top = 0L, long width = 5486400L, long height = 3200400L) {
-            ValidateCoordinate(left, nameof(left), "SmartArt left offset");
-            ValidateCoordinate(top, nameof(top), "SmartArt top offset");
-            if (width <= 0 || width > MaximumDrawingCoordinate) {
+            OfficeLength? left = null, OfficeLength? top = null, OfficeLength? width = null, OfficeLength? height = null) {
+            long nativeLeft = (left ?? OfficeLength.Emus(0L)).ToEmus();
+            long nativeTop = (top ?? OfficeLength.Emus(0L)).ToEmus();
+            long nativeWidth = (width ?? OfficeLength.Emus(5486400L)).ToEmus();
+            long nativeHeight = (height ?? OfficeLength.Emus(3200400L)).ToEmus();
+            ValidateCoordinate(nativeLeft, nameof(left), "SmartArt left offset");
+            ValidateCoordinate(nativeTop, nameof(top), "SmartArt top offset");
+            if (nativeWidth <= 0 || nativeWidth > MaximumDrawingCoordinate) {
                 throw new ArgumentOutOfRangeException(nameof(width),
                     "Width must be representable by DrawingML.");
             }
-            if (height <= 0 || height > MaximumDrawingCoordinate) {
+            if (nativeHeight <= 0 || nativeHeight > MaximumDrawingCoordinate) {
                 throw new ArgumentOutOfRangeException(nameof(height),
                     "Height must be representable by DrawingML.");
             }
@@ -66,10 +70,10 @@ namespace OfficeIMO.PowerPoint {
             List<string> nodes = NormalizeSmartArtNodes(nodeTexts);
             uint shapeId = AllocateShapeId();
             var (layoutRelId, colorsRelId, styleRelId, dataRelId) = AddSmartArtParts(
-                type, nodes, width, height);
+                type, nodes, nativeWidth, nativeHeight);
             string name = GenerateUniqueName("SmartArt");
             GraphicFrame frame = CreateSmartArtFrame(shapeId, name, layoutRelId, colorsRelId, styleRelId,
-                dataRelId, left, top, width, height);
+                dataRelId, nativeLeft, nativeTop, nativeWidth, nativeHeight);
 
             CommonSlideData data = SlideRoot.CommonSlideData ??= new CommonSlideData(new ShapeTree());
             ShapeTree tree = data.ShapeTree ??= new ShapeTree();
@@ -82,13 +86,13 @@ namespace OfficeIMO.PowerPoint {
         ///     Adds a native SmartArt diagram to the slide using a layout box.
         /// </summary>
         public PowerPointSmartArt AddSmartArt(PowerPointSmartArtType type, PowerPointLayoutBox layout) {
-            return AddSmartArt(type, layout.Left.ToEmus(), layout.Top.ToEmus(), layout.Width.ToEmus(), layout.Height.ToEmus());
+            return AddSmartArt(type, layout.Left, layout.Top, layout.Width, layout.Height);
         }
 
         /// <summary>Adds populated native SmartArt using a layout box.</summary>
         public PowerPointSmartArt AddSmartArt(PowerPointSmartArtType type, IEnumerable<string> nodeTexts,
             PowerPointLayoutBox layout) {
-            return AddSmartArt(type, nodeTexts, layout.Left.ToEmus(), layout.Top.ToEmus(), layout.Width.ToEmus(), layout.Height.ToEmus());
+            return AddSmartArt(type, nodeTexts, layout.Left, layout.Top, layout.Width, layout.Height);
         }
 
         private (string layoutRelId, string colorsRelId, string styleRelId, string dataRelId) AddSmartArtParts(

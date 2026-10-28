@@ -30,7 +30,7 @@ namespace OfficeIMO.Examples.PowerPoint {
                 "Creates a deck, saves it, and validates the Open XML package.",                bodyBox);
             intro.ApplyTextStyle(PowerPointTextStyle.Body.WithColor("1F4E79"));
             intro.TextAutoFit = PowerPointTextAutoFit.Normal;
-            intro.SetTextMarginsCm(0.3, 0.2, 0.3, 0.2);
+            intro.SetTextMargins(global::OfficeIMO.OfficeLength.Centimeters(0.3), global::OfficeIMO.OfficeLength.Centimeters(0.2), global::OfficeIMO.OfficeLength.Centimeters(0.3), global::OfficeIMO.OfficeLength.Centimeters(0.2));
 
             presentation.Save();
             var errors = presentation.ValidateDocument();

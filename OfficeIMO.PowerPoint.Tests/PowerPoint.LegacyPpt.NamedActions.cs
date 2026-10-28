@@ -17,7 +17,7 @@ namespace OfficeIMO.Tests {
             using (PowerPointDocument source = PowerPointDocument.Create()) {
                 PowerPointSlide slide = source.AddSlide(PowerPointSlideLayoutType.Blank);
                 PowerPointAutoShape macroShape = slide.AddRectangle(
-                    100000, 100000, 1000000, 500000);
+                    OfficeIMO.OfficeLength.Emus(100000), OfficeIMO.OfficeLength.Emus(100000), OfficeIMO.OfficeLength.Emus(1000000), OfficeIMO.OfficeLength.Emus(500000));
                 GetDrawingProperties(macroShape).Append(new A.HyperlinkOnClick {
                     Id = string.Empty,
                     Action = "ppaction://macro?name=" + MacroName,
@@ -94,7 +94,7 @@ namespace OfficeIMO.Tests {
             byte[] sourceBytes;
             using (PowerPointDocument source = PowerPointDocument.Create()) {
                 source.AddSlide(PowerPointSlideLayoutType.Blank).AddRectangle(
-                    100000, 100000, 1000000, 500000);
+                    OfficeIMO.OfficeLength.Emus(100000), OfficeIMO.OfficeLength.Emus(100000), OfficeIMO.OfficeLength.Emus(1000000), OfficeIMO.OfficeLength.Emus(500000));
                 sourceBytes = source.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
             LegacyPptDocument original = LegacyPptDocument.Load(sourceBytes);
@@ -172,7 +172,7 @@ namespace OfficeIMO.Tests {
         public void NativeWriter_BlocksNamedActionDataWithoutBinarySemantics() {
             using PowerPointDocument source = PowerPointDocument.Create();
             PowerPointAutoShape shape = source.AddSlide(PowerPointSlideLayoutType.Blank).AddRectangle(
-                100000, 100000, 1000000, 500000);
+                OfficeIMO.OfficeLength.Emus(100000), OfficeIMO.OfficeLength.Emus(100000), OfficeIMO.OfficeLength.Emus(1000000), OfficeIMO.OfficeLength.Emus(500000));
             GetDrawingProperties(shape).Append(new A.HyperlinkOnClick {
                 Id = string.Empty,
                 Action = "ppaction://macro?name=Module1.RunReport",

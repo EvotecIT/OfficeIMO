@@ -34,7 +34,7 @@ public partial class PowerPointSaveAsPdfTests {
             + "<foreignObject width='10' height='10'><div xmlns='http://www.w3.org/1999/xhtml'>Visible HTML</div></foreignObject></svg>");
         slide.AddImage(new MemoryStream(svg), OfficeImageFormat.Svg, global::OfficeIMO.OfficeLength.Emus(0), global::OfficeIMO.OfficeLength.Emus(0),
             global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(40)), global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(30)));
-        slide.AddShapePoints(OfficePresetShapeType.Rectangle, 80, 20, 30, 20).FillColor = "D7263D";
+        slide.AddShape(OfficePresetShapeType.Rectangle, OfficeIMO.OfficeLength.Points(80), OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(30), OfficeIMO.OfficeLength.Points(20)).FillColor = "D7263D";
 
         PdfDocumentConversionResult result = presentation.ConvertToPdfWithEvidence();
         byte[] pdf = result.ToBytes();

@@ -73,8 +73,8 @@ namespace OfficeIMO.Tests {
                 Assert.Empty(slide.Shapes);
             }
 
-            PowerPointAutoShape shape = slide.AddRectanglePoints(
-                10, 10, 100, 100);
+            PowerPointAutoShape shape = slide.AddRectangle(
+                OfficeIMO.OfficeLength.Points(10), OfficeIMO.OfficeLength.Points(10), OfficeIMO.OfficeLength.Points(100), OfficeIMO.OfficeLength.Points(100));
             Assert.Throws<ArgumentOutOfRangeException>(() =>
                 shape.OutlineWidthPoints = double.NaN);
             Assert.Null(shape.OutlineWidthPoints);
@@ -278,8 +278,8 @@ namespace OfficeIMO.Tests {
         public void PowerPointShape_OutlineOpacityPreservesSchemeColorChoice() {
             using var stream = new System.IO.MemoryStream();
             using PowerPointDocument presentation = PowerPointDocument.Create(stream);
-            PowerPointAutoShape shape = presentation.AddSlide().AddRectanglePoints(
-                20, 20, 120, 80);
+            PowerPointAutoShape shape = presentation.AddSlide().AddRectangle(
+                OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(120), OfficeIMO.OfficeLength.Points(80));
             shape.OutlineColor = "112233";
             A.SolidFill solid = shape.Element.Descendants<A.Outline>().Single()
                 .GetFirstChild<A.SolidFill>()!;
@@ -306,8 +306,8 @@ namespace OfficeIMO.Tests {
             presentation.SetThemeColorForAllMasters(
                 PowerPointThemeColor.Accent2, "123456");
             PowerPointSlide slide = presentation.AddSlide();
-            PowerPointAutoShape shape = slide.AddRectanglePoints(
-                20, 20, 120, 80);
+            PowerPointAutoShape shape = slide.AddRectangle(
+                OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(120), OfficeIMO.OfficeLength.Points(80));
             Shape openXmlShape = Assert.IsType<Shape>(shape.Element);
             A.Outline themeOutline = slide.SlidePart.SlideLayoutPart!
                 .SlideMasterPart!.ThemePart!.Theme.ThemeElements!
@@ -359,8 +359,8 @@ namespace OfficeIMO.Tests {
         public void PowerPointShape_FillTransparencyPreservesSchemeColorChoice() {
             using var stream = new System.IO.MemoryStream();
             using PowerPointDocument presentation = PowerPointDocument.Create(stream);
-            PowerPointAutoShape shape = presentation.AddSlide().AddRectanglePoints(
-                20, 20, 120, 80);
+            PowerPointAutoShape shape = presentation.AddSlide().AddRectangle(
+                OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(120), OfficeIMO.OfficeLength.Points(80));
             shape.FillColor = "112233";
             A.SolidFill solid = shape.Element.Descendants<ShapeProperties>().Single()
                 .GetFirstChild<A.SolidFill>()!;
@@ -387,8 +387,8 @@ namespace OfficeIMO.Tests {
             presentation.SetThemeColorForAllMasters(
                 PowerPointThemeColor.Accent2, "123456");
             PowerPointSlide slide = presentation.AddSlide();
-            PowerPointAutoShape shape = slide.AddRectanglePoints(
-                20, 20, 120, 80);
+            PowerPointAutoShape shape = slide.AddRectangle(
+                OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(120), OfficeIMO.OfficeLength.Points(80));
             Shape openXmlShape = Assert.IsType<Shape>(shape.Element);
             openXmlShape.ShapeProperties!.RemoveAllChildren<A.SolidFill>();
             var scheme = new A.SchemeColor {
@@ -421,8 +421,8 @@ namespace OfficeIMO.Tests {
             using PowerPointDocument presentation =
                 PowerPointDocument.Create();
             PowerPointSlide slide = presentation.AddSlide();
-            PowerPointAutoShape shape = slide.AddRectanglePoints(
-                20, 20, 120, 80);
+            PowerPointAutoShape shape = slide.AddRectangle(
+                OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(120), OfficeIMO.OfficeLength.Points(80));
             Shape openXmlShape = Assert.IsType<Shape>(shape.Element);
             openXmlShape.ShapeProperties!.RemoveAllChildren<A.SolidFill>();
             A.FillStyleList fillStyles = slide.SlidePart.SlideLayoutPart!
@@ -465,8 +465,8 @@ namespace OfficeIMO.Tests {
             presentation.SetThemeColorForAllMasters(
                 PowerPointThemeColor.Accent2, "123456");
             PowerPointSlide slide = presentation.AddSlide();
-            PowerPointAutoShape shape = slide.AddRectanglePoints(
-                20, 20, 120, 80);
+            PowerPointAutoShape shape = slide.AddRectangle(
+                OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(120), OfficeIMO.OfficeLength.Points(80));
             Shape openXmlShape = Assert.IsType<Shape>(shape.Element);
             openXmlShape.ShapeProperties!.RemoveAllChildren<A.SolidFill>();
             A.FillStyleList fillStyles = slide.SlidePart.SlideLayoutPart!
@@ -507,7 +507,7 @@ namespace OfficeIMO.Tests {
         public void PowerPointShape_FillTransparencyRejectsInheritedPictureFillWithoutMutation() {
             using PowerPointDocument presentation = PowerPointDocument.Create();
             PowerPointSlide slide = presentation.AddSlide();
-            PowerPointAutoShape shape = slide.AddRectanglePoints(20, 20, 120, 80);
+            PowerPointAutoShape shape = slide.AddRectangle(OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(120), OfficeIMO.OfficeLength.Points(80));
             Shape openXmlShape = Assert.IsType<Shape>(shape.Element);
             openXmlShape.ShapeProperties!.RemoveAllChildren<A.SolidFill>();
             A.FillStyleList fillStyles = slide.SlidePart.SlideLayoutPart!
@@ -543,8 +543,8 @@ namespace OfficeIMO.Tests {
             using PowerPointDocument presentation =
                 PowerPointDocument.Create();
             PowerPointSlide slide = presentation.AddSlide();
-            PowerPointAutoShape shape = slide.AddRectanglePoints(
-                20, 20, 120, 80);
+            PowerPointAutoShape shape = slide.AddRectangle(
+                OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(120), OfficeIMO.OfficeLength.Points(80));
             Shape openXmlShape = Assert.IsType<Shape>(shape.Element);
             openXmlShape.ShapeProperties!.RemoveAllChildren<A.Outline>();
             A.LineStyleList lineStyles = slide.SlidePart.SlideLayoutPart!
@@ -595,8 +595,8 @@ namespace OfficeIMO.Tests {
             using PowerPointDocument presentation =
                 PowerPointDocument.Create();
             PowerPointSlide slide = presentation.AddSlide();
-            PowerPointAutoShape shape = slide.AddRectanglePoints(
-                20, 20, 120, 80);
+            PowerPointAutoShape shape = slide.AddRectangle(
+                OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(120), OfficeIMO.OfficeLength.Points(80));
             Shape openXmlShape = Assert.IsType<Shape>(shape.Element);
             openXmlShape.ShapeProperties!.RemoveAllChildren<A.Outline>();
             A.LineStyleList lineStyles = slide.SlidePart.SlideLayoutPart!
@@ -637,8 +637,8 @@ namespace OfficeIMO.Tests {
             using PowerPointDocument presentation =
                 PowerPointDocument.Create();
             PowerPointSlide slide = presentation.AddSlide();
-            PowerPointAutoShape shape = slide.AddRectanglePoints(
-                20, 20, 120, 80);
+            PowerPointAutoShape shape = slide.AddRectangle(
+                OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(120), OfficeIMO.OfficeLength.Points(80));
             Shape openXmlShape = Assert.IsType<Shape>(shape.Element);
             openXmlShape.ShapeProperties!.RemoveAllChildren<A.SolidFill>();
             openXmlShape.ShapeProperties.RemoveAllChildren<A.Outline>();

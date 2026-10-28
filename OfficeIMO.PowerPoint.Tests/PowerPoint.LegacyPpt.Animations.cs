@@ -14,7 +14,7 @@ namespace OfficeIMO.Tests {
             using (PowerPointDocument source = PowerPointDocument.Create()) {
                 PowerPointSlide slide = source.AddSlide(PowerPointSlideLayoutType.Blank);
                 PowerPointAutoShape rectangle = slide.AddRectangle(
-                    100000, 100000, 1200000, 500000);
+                    OfficeIMO.OfficeLength.Emus(100000), OfficeIMO.OfficeLength.Emus(100000), OfficeIMO.OfficeLength.Emus(1200000), OfficeIMO.OfficeLength.Emus(500000));
                 PowerPointTextBox text = slide.AddTextBox("Animated text",                    global::OfficeIMO.OfficeLength.Emus(100000),global::OfficeIMO.OfficeLength.Emus(800000),global::OfficeIMO.OfficeLength.Emus(1800000),global::OfficeIMO.OfficeLength.Emus(500000));
                 slide.AddClassicAnimation(rectangle,
                     PowerPointClassicAnimationEffect.Wipe,
@@ -98,7 +98,7 @@ namespace OfficeIMO.Tests {
             using PowerPointDocument presentation = PowerPointDocument.Create();
             PowerPointSlide slide = presentation.AddSlide(PowerPointSlideLayoutType.Blank);
             PowerPointAutoShape shape = slide.AddRectangle(
-                100000, 100000, 1200000, 500000);
+                OfficeIMO.OfficeLength.Emus(100000), OfficeIMO.OfficeLength.Emus(100000), OfficeIMO.OfficeLength.Emus(1200000), OfficeIMO.OfficeLength.Emus(500000));
 
             Assert.Throws<ArgumentOutOfRangeException>(() =>
                 slide.AddClassicAnimation(shape,
@@ -187,7 +187,7 @@ namespace OfficeIMO.Tests {
             byte[] sourceBytes;
             using (PowerPointDocument source = PowerPointDocument.Create()) {
                 source.AddSlide(PowerPointSlideLayoutType.Blank).AddRectangle(
-                    100000, 100000, 1200000, 500000);
+                    OfficeIMO.OfficeLength.Emus(100000), OfficeIMO.OfficeLength.Emus(100000), OfficeIMO.OfficeLength.Emus(1200000), OfficeIMO.OfficeLength.Emus(500000));
                 sourceBytes = source.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
             LegacyPptDocument original = LegacyPptDocument.Load(sourceBytes);
@@ -218,7 +218,7 @@ namespace OfficeIMO.Tests {
             using (PowerPointDocument source = PowerPointDocument.Create()) {
                 PowerPointSlide slide = source.AddSlide(PowerPointSlideLayoutType.Blank);
                 PowerPointAutoShape shape = slide.AddRectangle(
-                    100000, 100000, 1200000, 500000);
+                    OfficeIMO.OfficeLength.Emus(100000), OfficeIMO.OfficeLength.Emus(100000), OfficeIMO.OfficeLength.Emus(1200000), OfficeIMO.OfficeLength.Emus(500000));
                 slide.AddClassicAnimation(shape,
                     PowerPointClassicAnimationEffect.Fade);
                 using var audio = new MemoryStream(wave, writable: false);
@@ -283,11 +283,11 @@ namespace OfficeIMO.Tests {
                    PowerPointDocument.Create()) {
                 PowerPointSlide slide = source.AddSlide(PowerPointSlideLayoutType.Blank);
                 PowerPointAutoShape dimmed = slide.AddRectangle(
-                    100000, 100000, 800000, 400000);
+                    OfficeIMO.OfficeLength.Emus(100000), OfficeIMO.OfficeLength.Emus(100000), OfficeIMO.OfficeLength.Emus(800000), OfficeIMO.OfficeLength.Emus(400000));
                 PowerPointAutoShape hiddenImmediately = slide.AddRectangle(
-                    100000, 600000, 800000, 400000);
+                    OfficeIMO.OfficeLength.Emus(100000), OfficeIMO.OfficeLength.Emus(600000), OfficeIMO.OfficeLength.Emus(800000), OfficeIMO.OfficeLength.Emus(400000));
                 PowerPointAutoShape hiddenOnClick = slide.AddRectangle(
-                    100000, 1100000, 800000, 400000);
+                    OfficeIMO.OfficeLength.Emus(100000), OfficeIMO.OfficeLength.Emus(1100000), OfficeIMO.OfficeLength.Emus(800000), OfficeIMO.OfficeLength.Emus(400000));
                 slide.AddClassicAnimation(dimmed,
                     PowerPointClassicAnimationEffect.Fade,
                     new PowerPointClassicAnimationOptions {
@@ -375,9 +375,9 @@ namespace OfficeIMO.Tests {
                 PowerPointSlide slide = source.AddSlide(
                     PowerPointSlideLayoutType.Blank);
                 PowerPointAutoShape first = slide.AddRectangle(
-                    100000, 100000, 800000, 400000);
+                    OfficeIMO.OfficeLength.Emus(100000), OfficeIMO.OfficeLength.Emus(100000), OfficeIMO.OfficeLength.Emus(800000), OfficeIMO.OfficeLength.Emus(400000));
                 PowerPointAutoShape second = slide.AddRectangle(
-                    100000, 600000, 800000, 400000);
+                    OfficeIMO.OfficeLength.Emus(100000), OfficeIMO.OfficeLength.Emus(600000), OfficeIMO.OfficeLength.Emus(800000), OfficeIMO.OfficeLength.Emus(400000));
                 var options = new PowerPointClassicAnimationOptions {
                     StopsSound = true
                 };
@@ -458,7 +458,7 @@ namespace OfficeIMO.Tests {
                 PowerPointDocument.Create();
             PowerPointSlide slide = presentation.AddSlide(PowerPointSlideLayoutType.Blank);
             PowerPointAutoShape shape = slide.AddRectangle(
-                100000, 100000, 1200000, 500000);
+                OfficeIMO.OfficeLength.Emus(100000), OfficeIMO.OfficeLength.Emus(100000), OfficeIMO.OfficeLength.Emus(1200000), OfficeIMO.OfficeLength.Emus(500000));
             slide.AddClassicAnimation(shape,
                 PowerPointClassicAnimationEffect.Fade);
             slide.SlidePart.Slide!.Timing!.Descendants<P.ChildTimeNodeList>()
@@ -480,7 +480,7 @@ namespace OfficeIMO.Tests {
                    PowerPointDocument.Create()) {
                 PowerPointSlide slide = automatic.AddSlide(PowerPointSlideLayoutType.Blank);
                 PowerPointAutoShape shape = slide.AddRectangle(
-                    100000, 100000, 1200000, 500000);
+                    OfficeIMO.OfficeLength.Emus(100000), OfficeIMO.OfficeLength.Emus(100000), OfficeIMO.OfficeLength.Emus(1200000), OfficeIMO.OfficeLength.Emus(500000));
                 P.Timing timing = CreatePowerPointAuthoredClassicTiming(
                     Assert.IsType<uint>(shape.Id));
                 P.CommonTimeNode effectOwner = timing
@@ -508,7 +508,7 @@ namespace OfficeIMO.Tests {
                 PowerPointDocument.Create();
             PowerPointSlide concurrentSlide = concurrent.AddSlide(PowerPointSlideLayoutType.Blank);
             PowerPointAutoShape concurrentShape = concurrentSlide.AddRectangle(
-                100000, 100000, 1200000, 500000);
+                OfficeIMO.OfficeLength.Emus(100000), OfficeIMO.OfficeLength.Emus(100000), OfficeIMO.OfficeLength.Emus(1200000), OfficeIMO.OfficeLength.Emus(500000));
             P.Timing concurrentTiming = CreatePowerPointAuthoredClassicTiming(
                 Assert.IsType<uint>(concurrentShape.Id));
             concurrentTiming.Descendants<P.CommonTimeNode>().Single(node =>
@@ -525,7 +525,7 @@ namespace OfficeIMO.Tests {
             using PowerPointDocument source = PowerPointDocument.Create();
             PowerPointSlide slide = source.AddSlide(PowerPointSlideLayoutType.Blank);
             PowerPointAutoShape shape = slide.AddRectangle(
-                100000, 100000, 1200000, 500000);
+                OfficeIMO.OfficeLength.Emus(100000), OfficeIMO.OfficeLength.Emus(100000), OfficeIMO.OfficeLength.Emus(1200000), OfficeIMO.OfficeLength.Emus(500000));
             slide.AddClassicAnimation(shape,
                 PowerPointClassicAnimationEffect.Wipe,
                 new PowerPointClassicAnimationOptions {

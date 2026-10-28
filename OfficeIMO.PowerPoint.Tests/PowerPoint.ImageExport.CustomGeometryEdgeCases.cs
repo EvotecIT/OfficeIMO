@@ -14,8 +14,8 @@ namespace OfficeIMO.Tests {
             using PowerPointDocument presentation =
                 PowerPointDocument.Create();
             PowerPointSlide slide = presentation.AddSlide();
-            PowerPointAutoShape source = slide.AddRectanglePoints(
-                20, 20, 80, 40);
+            PowerPointAutoShape source = slide.AddRectangle(
+                OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(80), OfficeIMO.OfficeLength.Points(40));
             Shape shape = Assert.IsType<Shape>(source.Element);
             ShapeProperties properties = shape.ShapeProperties!;
             properties.RemoveAllChildren<A.SolidFill>();

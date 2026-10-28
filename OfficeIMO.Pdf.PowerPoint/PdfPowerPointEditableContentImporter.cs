@@ -253,22 +253,22 @@ public static partial class PdfPowerPointConverterExtensions {
         PptCore.PowerPointAutoShape target;
         switch (source.Kind) {
             case OfficeShapeKind.Rectangle:
-                target = slide.AddShapePoints(OfficePresetShapeType.Rectangle, left, top, width, height);
+                target = slide.AddShape(OfficePresetShapeType.Rectangle, OfficeIMO.OfficeLength.Points(left), OfficeIMO.OfficeLength.Points(top), OfficeIMO.OfficeLength.Points(width), OfficeIMO.OfficeLength.Points(height));
                 break;
             case OfficeShapeKind.RoundedRectangle:
-                target = slide.AddShapePoints(OfficePresetShapeType.RoundRectangle, left, top, width, height);
+                target = slide.AddShape(OfficePresetShapeType.RoundRectangle, OfficeIMO.OfficeLength.Points(left), OfficeIMO.OfficeLength.Points(top), OfficeIMO.OfficeLength.Points(width), OfficeIMO.OfficeLength.Points(height));
                 break;
             case OfficeShapeKind.Ellipse:
-                target = slide.AddShapePoints(OfficePresetShapeType.Ellipse, left, top, width, height);
+                target = slide.AddShape(OfficePresetShapeType.Ellipse, OfficeIMO.OfficeLength.Points(left), OfficeIMO.OfficeLength.Points(top), OfficeIMO.OfficeLength.Points(width), OfficeIMO.OfficeLength.Points(height));
                 break;
             case OfficeShapeKind.Line when source.Points.Count >= 2:
                 OfficePoint start = source.Points[0];
                 OfficePoint end = source.Points[source.Points.Count - 1];
-                target = slide.AddLinePoints(
-                    placement.MapX(drawingShape.X + start.X),
-                    placement.MapY(drawingShape.Y + start.Y),
-                    placement.MapX(drawingShape.X + end.X),
-                    placement.MapY(drawingShape.Y + end.Y));
+                target = slide.AddLine(
+                    OfficeIMO.OfficeLength.Points(placement.MapX(drawingShape.X + start.X)),
+                    OfficeIMO.OfficeLength.Points(placement.MapY(drawingShape.Y + start.Y)),
+                    OfficeIMO.OfficeLength.Points(placement.MapX(drawingShape.X + end.X)),
+                    OfficeIMO.OfficeLength.Points(placement.MapY(drawingShape.Y + end.Y)));
                 break;
             default:
                 return false;
@@ -539,7 +539,7 @@ public static partial class PdfPowerPointConverterExtensions {
             }
             PptCore.PowerPointTextBox textBox = slide.AddTextBox(
                 string.Empty,                global::OfficeIMO.OfficeLength.Points(bounds.Left),                global::OfficeIMO.OfficeLength.Points(bounds.Top),                global::OfficeIMO.OfficeLength.Points(bounds.Width),                global::OfficeIMO.OfficeLength.Points(bounds.Height));
-            textBox.SetTextMarginsPoints(0D, 0D, 0D, 0D);
+            textBox.SetTextMargins(global::OfficeIMO.OfficeLength.Points(0D), global::OfficeIMO.OfficeLength.Points(0D), global::OfficeIMO.OfficeLength.Points(0D), global::OfficeIMO.OfficeLength.Points(0D));
             textBox.FillColor = "FFFFFF";
             textBox.FillTransparency = 100;
             textBox.OutlineColor = "FFFFFF";
@@ -576,7 +576,7 @@ public static partial class PdfPowerPointConverterExtensions {
         if (sourceRuns.Count == 0) {
             paragraph.Text = block.Text;
             PptCore.PowerPointTextRun targetRun = paragraph.Runs[0];
-            targetRun.FontSizePoints = ScaleEditableFontSize(block.FontSize, scale);
+            targetRun.FontSize = global::OfficeIMO.OfficeLength.Points(ScaleEditableFontSize(block.FontSize, scale));
             return;
         }
 
@@ -595,9 +595,9 @@ public static partial class PdfPowerPointConverterExtensions {
         PdfCore.PdfLogicalTextRun source,
         double fallbackFontSize,
         double scale) {
-        target.FontSizePoints = ScaleEditableFontSize(
+        target.FontSize = global::OfficeIMO.OfficeLength.Points(ScaleEditableFontSize(
             source.FontSize > 0D ? source.FontSize : fallbackFontSize,
-            scale);
+            scale));
         target.FontName = ResolvePowerPointFontFamily(source.BaseFont);
         target.Bold = source.IsBold;
         target.Italic = source.IsItalic;

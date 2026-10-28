@@ -21,8 +21,8 @@ public sealed class PowerPointNativeTextBoundaryTests {
         var table = slide.AddTable(1,1,global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(200),global::OfficeIMO.OfficeLength.Points(height));
         table.SetRowHeights(global::OfficeIMO.OfficeLength.Points(height));
         var cell = table.GetCell(0, 0);
-        cell.Text = "gypsy"; cell.FontSize = 24;
-        cell.PaddingTopPoints = cell.PaddingBottomPoints = 0;
+        cell.Text = "gypsy"; cell.FontSize = global::OfficeIMO.OfficeLength.Points(24);
+        cell.PaddingTop = cell.PaddingBottom = global::OfficeIMO.OfficeLength.Points(0);
         cell.Paragraphs[0].LineSpacingMultiplier = .75D;
         cell.Paragraphs[0].Runs[0].Bold = rich;
         var result = presentation.ConvertToPdfWithEvidence();
@@ -42,8 +42,8 @@ public sealed class PowerPointNativeTextBoundaryTests {
         using var presentation = PowerPointDocument.Create(new MemoryStream());
         var slide = presentation.AddSlide();
         var box = slide.AddTextBox(precedingParagraph ? "FIRST" : "gypsy",global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(200),global::OfficeIMO.OfficeLength.Points(precedingParagraph ? 36 : 18));
-        box.FontSize = 24; box.FontName = "Helvetica";
-        box.TextMarginLeftPoints = box.TextMarginRightPoints = box.TextMarginTopPoints = box.TextMarginBottomPoints = 0;
+        box.FontSize = global::OfficeIMO.OfficeLength.Points(24); box.FontName = "Helvetica";
+        box.TextMarginLeft = box.TextMarginRight = box.TextMarginTop = box.TextMarginBottom = global::OfficeIMO.OfficeLength.Points(0);
         if (precedingParagraph) box.AddParagraph("gypsy");
         foreach (var paragraph in box.Paragraphs) {
             paragraph.LineSpacingMultiplier = .75D;
@@ -63,7 +63,7 @@ public sealed class PowerPointNativeTextBoundaryTests {
     public void FirstLineTallerThanItsTextFrameRemainsVisibleAndReportsBoundedOverflow(bool rich) {
         using var presentation = PowerPointDocument.Create(new MemoryStream());
         PowerPointTextBox box = presentation.AddSlide().AddTextBox("TALL",global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(150),global::OfficeIMO.OfficeLength.Points(10));
-        box.FontSize = 32;
+        box.FontSize = global::OfficeIMO.OfficeLength.Points(32);
         box.Paragraphs[0].Runs[0].Underline = rich;
         var result = presentation.ConvertToPdfWithEvidence(new PowerPointPdfExportOptions {
             ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic()
@@ -85,7 +85,7 @@ public sealed class PowerPointNativeTextBoundaryTests {
         PowerPointTable table = slide.AddTable(1,1,global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(140),global::OfficeIMO.OfficeLength.Points(40));
         table.SetRowHeights(global::OfficeIMO.OfficeLength.Points(40));
         PowerPointTableCell cell = table.GetCell(0, 0);
-        cell.FontSize = 12;
+        cell.FontSize = global::OfficeIMO.OfficeLength.Points(12);
         cell.Text = "VISIBLE alpha beta gamma delta epsilon zeta eta theta iota kappa lambda mu TAIL";
         cell.Paragraphs[0].SetBullet('*');
         var result = presentation.ConvertToPdfWithEvidence();
@@ -112,12 +112,12 @@ public sealed class PowerPointNativeTextBoundaryTests {
         PowerPointTextBox box = slide.AddTextBox(
             "VISIBLE alpha beta gamma delta epsilon zeta eta theta iota kappa lambda mu nu xi omicron TAIL",global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(120),global::OfficeIMO.OfficeLength.Points(40));
         box.FontName = "BoundaryFont";
-        box.FontSize = 12;
+        box.FontSize = global::OfficeIMO.OfficeLength.Points(12);
         if (flow == "bullet") box.Paragraphs[0].SetBullet('*');
         else {
             PowerPointParagraph next = box.AddParagraph("LATER");
             if (flow == "alignment") next.Alignment = PowerPointTextAlignment.Right;
-            else box.Paragraphs[0].SetSpaceAfterPoints(4);
+            else box.Paragraphs[0].SetSpaceAfter(global::OfficeIMO.OfficeLength.Points(4));
         }
         var result = presentation.ConvertToPdfWithEvidence(new PowerPointPdfExportOptions().UseRenderingProfile(profile));
         using var pdf = UglyToad.PdfPig.PdfDocument.Open(result.ToBytes());
@@ -145,7 +145,7 @@ public sealed class PowerPointNativeTextBoundaryTests {
     public void PlainAndRichTextOverflowRetainsTheCompleteText(bool rich) {
         using var presentation = PowerPointDocument.Create(new MemoryStream());
         PowerPointTextBox box = presentation.AddSlide().AddTextBox("VISIBLE alpha beta gamma delta epsilon TAIL",global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(90),global::OfficeIMO.OfficeLength.Points(23));
-        box.FontSize = 12;
+        box.FontSize = global::OfficeIMO.OfficeLength.Points(12);
         box.Paragraphs[0].Runs[0].Underline = rich;
         var result = presentation.ConvertToPdfWithEvidence(new PowerPointPdfExportOptions { ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic() });
         using var pdf = UglyToad.PdfPig.PdfDocument.Open(result.ToBytes());
@@ -167,12 +167,12 @@ public sealed class PowerPointNativeTextBoundaryTests {
         using var presentation = PowerPointDocument.Create(new MemoryStream());
         PowerPointSlide slide = presentation.AddSlide();
         PowerPointTextBox box = slide.AddTextBox("DEFAULT",global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(220),global::OfficeIMO.OfficeLength.Points(80));
-        box.FontSize = 12;
+        box.FontSize = global::OfficeIMO.OfficeLength.Points(12);
         if (flow == "rich") box.Paragraphs[0].Runs[0].Underline = true;
         if (flow == "paragraph") box.Paragraphs[0].SetBullet('*');
         PowerPointTextBox authored = slide.AddTextBox("AUTHORED",global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(120),global::OfficeIMO.OfficeLength.Points(220),global::OfficeIMO.OfficeLength.Points(50));
         authored.FontName = "Courier";
-        authored.FontSize = 12;
+        authored.FontSize = global::OfficeIMO.OfficeLength.Points(12);
         byte[] bytes = presentation.ToPdf(new PowerPointPdfExportOptions {
             FontFamily = "serif", ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic()
         }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });

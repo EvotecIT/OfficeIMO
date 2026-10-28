@@ -316,7 +316,7 @@ namespace OfficeIMO.Tests {
                 PowerPointTextBox textBox = presentation.AddSlide(
                         PowerPointSlideLayoutType.Blank)
                     .AddTextBox("Text frame",global::OfficeIMO.OfficeLength.Points(30),global::OfficeIMO.OfficeLength.Points(30),global::OfficeIMO.OfficeLength.Points(240),global::OfficeIMO.OfficeLength.Points(120))
-                    .SetTextMarginsPoints(8, 4, 6, 2);
+                    .SetTextMargins(global::OfficeIMO.OfficeLength.Points(8), global::OfficeIMO.OfficeLength.Points(4), global::OfficeIMO.OfficeLength.Points(6), global::OfficeIMO.OfficeLength.Points(2));
                 textBox.TextVerticalAlignment =
                     PowerPointTextVerticalAlignment.Center;
                 textBox.TextDirection = PowerPointTextDirection.Vertical270;
@@ -354,10 +354,10 @@ namespace OfficeIMO.Tests {
             PowerPointTextBox projected = Assert.Single(
                 reopened.Slides[0].TextBoxes,
                 textBox => textBox.Text == "Text frame");
-            Assert.Equal(8D, projected.TextMarginLeftPoints);
-            Assert.Equal(4D, projected.TextMarginTopPoints);
-            Assert.Equal(6D, projected.TextMarginRightPoints);
-            Assert.Equal(2D, projected.TextMarginBottomPoints);
+            Assert.Equal(8D, projected.TextMarginLeft?.ToPoints());
+            Assert.Equal(4D, projected.TextMarginTop?.ToPoints());
+            Assert.Equal(6D, projected.TextMarginRight?.ToPoints());
+            Assert.Equal(2D, projected.TextMarginBottom?.ToPoints());
             Assert.Equal(PowerPointTextVerticalAlignment.Center,
                 projected.TextVerticalAlignment);
             Assert.Equal(PowerPointTextDirection.Vertical270,
@@ -380,7 +380,7 @@ namespace OfficeIMO.Tests {
                 PowerPointTextBox textBox = source.AddSlide(
                         PowerPointSlideLayoutType.Blank)
                     .AddTextBox("Editable frame",global::OfficeIMO.OfficeLength.Points(30),global::OfficeIMO.OfficeLength.Points(30),global::OfficeIMO.OfficeLength.Points(240),global::OfficeIMO.OfficeLength.Points(120))
-                    .SetTextMarginsPoints(8, 4, 6, 2);
+                    .SetTextMargins(global::OfficeIMO.OfficeLength.Points(8), global::OfficeIMO.OfficeLength.Points(4), global::OfficeIMO.OfficeLength.Points(6), global::OfficeIMO.OfficeLength.Points(2));
                 textBox.TextVerticalAlignment =
                     PowerPointTextVerticalAlignment.Center;
                 textBox.TextDirection = PowerPointTextDirection.Vertical270;
@@ -407,7 +407,7 @@ namespace OfficeIMO.Tests {
                     candidate => candidate.OpenXmlShapeId == textBox.Id);
                 Assert.True(projection.CanEditTextFrame);
                 Assert.True(projection.TextFrameMatches(textBox));
-                textBox.SetTextMarginsPoints(5, 7, 9, 11);
+                textBox.SetTextMargins(global::OfficeIMO.OfficeLength.Points(5), global::OfficeIMO.OfficeLength.Points(7), global::OfficeIMO.OfficeLength.Points(9), global::OfficeIMO.OfficeLength.Points(11));
                 textBox.TextVerticalAlignment =
                     PowerPointTextVerticalAlignment.Bottom;
                 textBox.TextDirection = PowerPointTextDirection.Vertical;
@@ -455,10 +455,10 @@ namespace OfficeIMO.Tests {
             PowerPointTextBox projected = Assert.Single(
                 reopened.Slides[0].TextBoxes,
                 textBox => textBox.Text == "Editable frame");
-            Assert.Equal(5D, projected.TextMarginLeftPoints);
-            Assert.Equal(7D, projected.TextMarginTopPoints);
-            Assert.Equal(9D, projected.TextMarginRightPoints);
-            Assert.Equal(11D, projected.TextMarginBottomPoints);
+            Assert.Equal(5D, projected.TextMarginLeft?.ToPoints());
+            Assert.Equal(7D, projected.TextMarginTop?.ToPoints());
+            Assert.Equal(9D, projected.TextMarginRight?.ToPoints());
+            Assert.Equal(11D, projected.TextMarginBottom?.ToPoints());
             Assert.Equal(PowerPointTextVerticalAlignment.Bottom,
                 projected.TextVerticalAlignment);
             Assert.Equal(PowerPointTextDirection.Vertical,

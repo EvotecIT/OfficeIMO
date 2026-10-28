@@ -697,9 +697,9 @@ namespace OfficeIMO.Tests {
             PowerPointSlide first = presentation.AddSlide();
             first.AddTitle("Binary title",global::OfficeIMO.OfficeLength.Emus(540000),global::OfficeIMO.OfficeLength.Emus(360000),global::OfficeIMO.OfficeLength.Emus(7200000),global::OfficeIMO.OfficeLength.Emus(700000));
             first.AddTextBox("Line one\nLine two",global::OfficeIMO.OfficeLength.Emus(540000),global::OfficeIMO.OfficeLength.Emus(1200000),global::OfficeIMO.OfficeLength.Emus(6000000),global::OfficeIMO.OfficeLength.Emus(1800000));
-            first.AddRectangle(600000, 3300000, 1200000, 700000);
-            first.AddEllipse(2100000, 3300000, 1200000, 700000);
-            first.AddShape(OfficePresetShapeType.Line, 3600000, 3300000, 1600000, 400000);
+            first.AddRectangle(OfficeIMO.OfficeLength.Emus(600000), OfficeIMO.OfficeLength.Emus(3300000), OfficeIMO.OfficeLength.Emus(1200000), OfficeIMO.OfficeLength.Emus(700000));
+            first.AddEllipse(OfficeIMO.OfficeLength.Emus(2100000), OfficeIMO.OfficeLength.Emus(3300000), OfficeIMO.OfficeLength.Emus(1200000), OfficeIMO.OfficeLength.Emus(700000));
+            first.AddShape(OfficePresetShapeType.Line, OfficeIMO.OfficeLength.Emus(3600000), OfficeIMO.OfficeLength.Emus(3300000), OfficeIMO.OfficeLength.Emus(1600000), OfficeIMO.OfficeLength.Emus(400000));
             presentation.AddSlide().AddTextBox("Second slide",global::OfficeIMO.OfficeLength.Emus(700000),global::OfficeIMO.OfficeLength.Emus(700000),global::OfficeIMO.OfficeLength.Emus(5000000),global::OfficeIMO.OfficeLength.Emus(1000000));
 
             LegacyPptWritePreflightReport preflight = presentation.AnalyzeLegacyPptWrite();
@@ -832,7 +832,7 @@ namespace OfficeIMO.Tests {
             using PowerPointDocument presentation = PowerPointDocument.Load(FixturePath);
             PowerPointSlide added = presentation.AddSlide();
             added.AddTextBox("Incremental new slide",global::OfficeIMO.OfficeLength.Emus(200000),global::OfficeIMO.OfficeLength.Emus(200000),global::OfficeIMO.OfficeLength.Emus(4000000),global::OfficeIMO.OfficeLength.Emus(700000));
-            added.AddRectangle(300000, 1200000, 1200000, 600000);
+            added.AddRectangle(OfficeIMO.OfficeLength.Emus(300000), OfficeIMO.OfficeLength.Emus(1200000), OfficeIMO.OfficeLength.Emus(1200000), OfficeIMO.OfficeLength.Emus(600000));
             added.Hidden = true;
 
             LegacyPptWritePreflightReport report = presentation
@@ -916,7 +916,7 @@ namespace OfficeIMO.Tests {
             PowerPointSlide slide = presentation.AddSlide();
             slide.Transition = PowerPointSlideTransition.Morph;
             PowerPointAutoShape shape = slide.AddRectangle(
-                100000, 100000, 1000000, 500000);
+                OfficeIMO.OfficeLength.Emus(100000), OfficeIMO.OfficeLength.Emus(100000), OfficeIMO.OfficeLength.Emus(1000000), OfficeIMO.OfficeLength.Emus(500000));
             shape.Fill("FF0000");
             shape.SetGlow("4472C4", radiusPoints: 4D);
 

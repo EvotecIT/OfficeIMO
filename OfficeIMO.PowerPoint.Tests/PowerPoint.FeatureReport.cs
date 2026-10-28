@@ -22,7 +22,7 @@ namespace OfficeIMO.Tests {
             PowerPointSlide slide = presentation.AddSlide();
             presentation.AddCustomShow("Valid", new[] { slide });
             Shape shape = Assert.IsType<Shape>(
-                slide.AddRectangle(0, 0, 914400, 914400).Element);
+                slide.AddRectangle(OfficeIMO.OfficeLength.Emus(0), OfficeIMO.OfficeLength.Emus(0), OfficeIMO.OfficeLength.Emus(914400), OfficeIMO.OfficeLength.Emus(914400)).Element);
             shape.NonVisualShapeProperties!.NonVisualDrawingProperties!
                 .Append(new A.HyperlinkOnClick {
                     Id = string.Empty,
@@ -47,7 +47,7 @@ namespace OfficeIMO.Tests {
             PowerPointCustomShow show = presentation.AddCustomShow(
                 "Valid", new[] { slide });
             Shape shape = Assert.IsType<Shape>(
-                slide.AddRectangle(0, 0, 914400, 914400).Element);
+                slide.AddRectangle(OfficeIMO.OfficeLength.Emus(0), OfficeIMO.OfficeLength.Emus(0), OfficeIMO.OfficeLength.Emus(914400), OfficeIMO.OfficeLength.Emus(914400)).Element);
             var hyperlink = new A.HyperlinkOnClick {
                 Id = "rIdUnexpected",
                 Action = "ppaction://customshow?id=" + show.Id,
@@ -80,7 +80,7 @@ namespace OfficeIMO.Tests {
             PowerPointCustomShow show = presentation.AddCustomShow(
                 "Valid", new[] { slide });
             Shape shape = Assert.IsType<Shape>(
-                slide.AddRectangle(0, 0, 914400, 914400).Element);
+                slide.AddRectangle(OfficeIMO.OfficeLength.Emus(0), OfficeIMO.OfficeLength.Emus(0), OfficeIMO.OfficeLength.Emus(914400), OfficeIMO.OfficeLength.Emus(914400)).Element);
             var hyperlink = new A.HyperlinkOnClick {
                 Action = "ppaction://customshow?id=" + show.Id
             };
@@ -126,7 +126,7 @@ namespace OfficeIMO.Tests {
                 .AddAudioReferenceRelationship(secondMedia);
 
             Shape firstShape = Assert.IsType<Shape>(slide.AddRectangle(
-                0, 0, 914400, 914400).Element);
+                OfficeIMO.OfficeLength.Emus(0), OfficeIMO.OfficeLength.Emus(0), OfficeIMO.OfficeLength.Emus(914400), OfficeIMO.OfficeLength.Emus(914400)).Element);
             firstShape.NonVisualShapeProperties!.NonVisualDrawingProperties!
                 .Append(new A.HyperlinkOnClick(
                     new A.HyperlinkSound {
@@ -134,7 +134,7 @@ namespace OfficeIMO.Tests {
                         Name = "Earlier sound"
                     }) { Action = "ppaction://hlinkshowjump?jump=nextslide" });
             Shape customShowShape = Assert.IsType<Shape>(slide.AddRectangle(
-                914400, 0, 914400, 914400).Element);
+                OfficeIMO.OfficeLength.Emus(914400), OfficeIMO.OfficeLength.Emus(0), OfficeIMO.OfficeLength.Emus(914400), OfficeIMO.OfficeLength.Emus(914400)).Element);
             customShowShape.NonVisualShapeProperties!.NonVisualDrawingProperties!
                 .Append(new A.HyperlinkOnClick(
                     new A.HyperlinkSound {
@@ -231,7 +231,7 @@ namespace OfficeIMO.Tests {
                     PowerPointSlide slide = presentation.AddSlide();
                     using var image = new MemoryStream(pixel);
                     PowerPointPicture picture = slide.AddImage(image, OfficeIMO.Drawing.OfficeImageFormat.Png);
-                    PowerPointAutoShape shape = slide.AddRectangle(914400, 0, 914400, 914400);
+                    PowerPointAutoShape shape = slide.AddRectangle(OfficeIMO.OfficeLength.Emus(914400), OfficeIMO.OfficeLength.Emus(0), OfficeIMO.OfficeLength.Emus(914400), OfficeIMO.OfficeLength.Emus(914400));
                     slide.GroupShapes(new PowerPointShape[] { picture, shape });
                     presentation.Save();
                 }
@@ -405,7 +405,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
-                    presentation.AddSlide().AddRectangle(0, 0, 914400, 914400);
+                    presentation.AddSlide().AddRectangle(OfficeIMO.OfficeLength.Emus(0), OfficeIMO.OfficeLength.Emus(0), OfficeIMO.OfficeLength.Emus(914400), OfficeIMO.OfficeLength.Emus(914400));
                     presentation.Save();
                 }
 
@@ -447,7 +447,7 @@ namespace OfficeIMO.Tests {
                 using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
                     PowerPointSlide slide = presentation.AddSlide();
                     PowerPointTextBox textBox = slide.AddTextBox("Grouped text");
-                    PowerPointAutoShape shape = slide.AddRectangle(914400, 0, 914400, 914400);
+                    PowerPointAutoShape shape = slide.AddRectangle(OfficeIMO.OfficeLength.Emus(914400), OfficeIMO.OfficeLength.Emus(0), OfficeIMO.OfficeLength.Emus(914400), OfficeIMO.OfficeLength.Emus(914400));
                     slide.GroupShapes(new PowerPointShape[] { textBox, shape });
                     presentation.Save();
                 }
@@ -475,7 +475,7 @@ namespace OfficeIMO.Tests {
                     PowerPointSlide slide = presentation.AddSlide();
                     PowerPointTable table = slide.AddTable(1,1);
                     table.GetCell(0, 0).Text = "Grouped";
-                    PowerPointAutoShape shape = slide.AddRectangle(914400, 0, 914400, 914400);
+                    PowerPointAutoShape shape = slide.AddRectangle(OfficeIMO.OfficeLength.Emus(914400), OfficeIMO.OfficeLength.Emus(0), OfficeIMO.OfficeLength.Emus(914400), OfficeIMO.OfficeLength.Emus(914400));
                     slide.GroupShapes(new PowerPointShape[] { table, shape });
                     presentation.Save();
                 }
@@ -915,7 +915,7 @@ namespace OfficeIMO.Tests {
                     PowerPointSlide slide = presentation.AddSlide();
                     using var media = new MemoryStream(new byte[] { 1, 2, 3, 4, 5 });
                     PowerPointMedia audio = slide.AddAudio(media, "audio/mpeg", ".mp3");
-                    PowerPointAutoShape shape = slide.AddRectangle(914400, 0, 914400, 914400);
+                    PowerPointAutoShape shape = slide.AddRectangle(OfficeIMO.OfficeLength.Emus(914400), OfficeIMO.OfficeLength.Emus(0), OfficeIMO.OfficeLength.Emus(914400), OfficeIMO.OfficeLength.Emus(914400));
                     slide.GroupShapes(new PowerPointShape[] { audio, shape });
                     presentation.Save();
                 }
@@ -943,7 +943,7 @@ namespace OfficeIMO.Tests {
                 using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
                     PowerPointSlide slide = presentation.AddSlide();
                     PowerPointSmartArt smartArt = slide.AddSmartArt();
-                    PowerPointAutoShape shape = slide.AddRectangle(914400, 0, 914400, 914400);
+                    PowerPointAutoShape shape = slide.AddRectangle(OfficeIMO.OfficeLength.Emus(914400), OfficeIMO.OfficeLength.Emus(0), OfficeIMO.OfficeLength.Emus(914400), OfficeIMO.OfficeLength.Emus(914400));
                     slide.GroupShapes(new PowerPointShape[] { smartArt, shape });
                     presentation.Save();
                 }

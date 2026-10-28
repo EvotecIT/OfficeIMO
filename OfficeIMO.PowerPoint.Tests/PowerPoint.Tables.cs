@@ -565,7 +565,7 @@ namespace OfficeIMO.Tests {
                     table.FirstColumn = true;
                     table.SetColumnWidthsByRatio(2, 1, 1);
                     table.SetRowHeightsByRatio(1, 1, 1);
-                    table.SetCellPaddingCm(0.15, 0.1, 0.15, 0.1);
+                    table.SetCellPadding(global::OfficeIMO.OfficeLength.Centimeters(0.15), global::OfficeIMO.OfficeLength.Centimeters(0.1), global::OfficeIMO.OfficeLength.Centimeters(0.15), global::OfficeIMO.OfficeLength.Centimeters(0.1));
                     table.SetCellAlignment(PowerPointTextAlignment.Center, PowerPointTextVerticalAlignment.Center);
                     table.SetCellBorders(PowerPointTableCellBorders.All, "4472C4", widthPoints: 0.75, dash: PowerPointLineDashStyle.Dash);
 
@@ -574,7 +574,7 @@ namespace OfficeIMO.Tests {
                     header.FillColor = "1F4E79";
                     header.Color = "FFFFFF";
                     header.Bold = true;
-                    header.FontSize = 12;
+                    header.FontSize = global::OfficeIMO.OfficeLength.Points(12);
                     header.FontName = "Aptos";
                     header.SetTextAutoFit(PowerPointTextAutoFit.Normal,
                         new PowerPointTextAutoFitOptions(fontScalePercent: 90, lineSpaceReductionPercent: 5));

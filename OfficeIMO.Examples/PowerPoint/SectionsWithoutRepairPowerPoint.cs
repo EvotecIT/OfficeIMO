@@ -37,7 +37,7 @@ namespace OfficeIMO.Examples.PowerPoint {
                 "Closing section",
                 "Morph transition slide"
             });
-            bullets.ApplyAutoSpacing(lineSpacingMultiplier: 1.15, spaceAfterPoints: 2);
+            bullets.ApplyAutoSpacing(lineSpacingMultiplier: 1.15, spaceAfter: global::OfficeIMO.OfficeLength.Points(2));
 
             PowerPointSlide results = presentation.AddSlide();
             AddTitleAndBody(
@@ -81,7 +81,7 @@ namespace OfficeIMO.Examples.PowerPoint {
 
             PowerPointTextBox bodyBox = slide.AddTextBox(body,global::OfficeIMO.OfficeLength.Centimeters(content.Left.ToCentimeters()),global::OfficeIMO.OfficeLength.Centimeters(content.Top.ToCentimeters() + 1.9),global::OfficeIMO.OfficeLength.Centimeters(content.Width.ToCentimeters()),global::OfficeIMO.OfficeLength.Centimeters(1.2));
             bodyBox.ApplyTextStyle(PowerPointTextStyle.Body);
-            bodyBox.SetTextMarginsCm(0.2, 0.1, 0.2, 0.1);
+            bodyBox.SetTextMargins(global::OfficeIMO.OfficeLength.Centimeters(0.2), global::OfficeIMO.OfficeLength.Centimeters(0.1), global::OfficeIMO.OfficeLength.Centimeters(0.2), global::OfficeIMO.OfficeLength.Centimeters(0.1));
         }
     }
 }

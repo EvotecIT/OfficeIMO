@@ -235,7 +235,7 @@ public sealed class PowerPointOdpCurrentHeadReviewTests {
     [Fact]
     public void PowerPointShapeBlackWhiteModeIsExplicitLoss() {
         using PowerPointDocument source = CreatePowerPoint();
-        source.Slides[0].AddRectanglePoints(20, 20, 100, 50);
+        source.Slides[0].AddRectangle(OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(100), OfficeIMO.OfficeLength.Points(50));
         ShapeProperties properties = source.OpenXmlDocument.PresentationPart!.SlideParts.Single().Slide!
             .Descendants<Shape>().Single().ShapeProperties!;
         properties.SetAttribute(new OpenXmlAttribute("", "bwMode", "", "black"));
@@ -246,7 +246,7 @@ public sealed class PowerPointOdpCurrentHeadReviewTests {
     [Fact]
     public void PowerPointShapeUseBackgroundFillIsExplicitLoss() {
         using PowerPointDocument source = CreatePowerPoint();
-        source.Slides[0].AddRectanglePoints(20, 20, 100, 50);
+        source.Slides[0].AddRectangle(OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(100), OfficeIMO.OfficeLength.Points(50));
         Shape shape = source.OpenXmlDocument.PresentationPart!.SlideParts.Single().Slide!
             .Descendants<Shape>().Single();
         shape.UseBackgroundFill = true;
@@ -524,7 +524,7 @@ public sealed class PowerPointOdpCurrentHeadReviewTests {
     [Fact]
     public void UnfilledPowerPointLineIsNotShapeAppearanceLoss() {
         using PowerPointDocument source = CreatePowerPoint();
-        source.Slides[0].AddLine(0, 0, 100000, 100000);
+        source.Slides[0].AddLine(OfficeIMO.OfficeLength.Emus(0), OfficeIMO.OfficeLength.Emus(0), OfficeIMO.OfficeLength.Emus(100000), OfficeIMO.OfficeLength.Emus(100000));
         ShapeProperties properties = source.OpenXmlDocument.PresentationPart!.SlideParts.Single().Slide!
             .Descendants<Shape>().Single().ShapeProperties!;
         Assert.NotNull(properties.GetFirstChild<A.NoFill>());

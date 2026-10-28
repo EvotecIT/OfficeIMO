@@ -444,7 +444,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void BatchCompiler_RasterizesUnmappedAutoShapesInsteadOfChangingTheirGeometry() {
             using PowerPointDocument presentation = PowerPointDocument.Create();
-            presentation.AddSlide().AddShapePoints(OfficePresetShapeType.Cloud, 20, 20, 160, 90);
+            presentation.AddSlide().AddShape(OfficePresetShapeType.Cloud, OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(160), OfficeIMO.OfficeLength.Points(90));
 
             GoogleSlidesBatch batch = presentation.BuildGoogleSlidesBatch();
 
@@ -473,7 +473,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void PlanBuilder_ReportsRasterFallbackWithoutMaterializingPngBytes() {
             using PowerPointDocument presentation = PowerPointDocument.Create();
-            presentation.AddSlide().AddShapePoints(OfficePresetShapeType.Cloud, 20, 20, 160, 90);
+            presentation.AddSlide().AddShape(OfficePresetShapeType.Cloud, OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(160), OfficeIMO.OfficeLength.Points(90));
 
             GoogleSlidesBatch planningBatch = GoogleSlidesBatchCompiler.Build(
                 presentation,
@@ -526,7 +526,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal("image/png", compiled.BackgroundImage!.ContentType);
             Assert.DoesNotContain(batch.Plan.Report.Notices, notice => notice.Code == "SLIDES.BACKGROUND.SKIPPED");
 
-            slide.AddShapePoints(OfficePresetShapeType.Cloud, 20, 20, 160, 90);
+            slide.AddShape(OfficePresetShapeType.Cloud, OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(160), OfficeIMO.OfficeLength.Points(90));
             GoogleSlidesBatch rasterized = GoogleSlidesBatchCompiler.Build(
                 presentation,
                 new GoogleSlidesSaveOptions(),
@@ -549,7 +549,7 @@ namespace OfficeIMO.Tests {
                 run.Capitalization = PowerPointCapitalization.SmallCaps;
                 run.SetSuperscript();
             });
-            authoredSlide.AddTextShapePoints(OfficePresetShapeType.RightArrow, "Next step", 340, 30, 160, 80);
+            authoredSlide.AddTextShape(OfficePresetShapeType.RightArrow, "Next step", OfficeIMO.OfficeLength.Points(340), OfficeIMO.OfficeLength.Points(30), OfficeIMO.OfficeLength.Points(160), OfficeIMO.OfficeLength.Points(80));
             PowerPointTableCell styledCell = authoredSlide.AddTable(1,1,global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(130),global::OfficeIMO.OfficeLength.Points(220),global::OfficeIMO.OfficeLength.Points(60)).GetCell(0, 0);
             styledCell.Text = "Styled cell";
             styledCell.Runs[0].Italic = true;
@@ -702,7 +702,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public async Task Exporter_PreservesShapeReflectionAndBasicAppearance() {
             using PowerPointDocument presentation = PowerPointDocument.Create();
-            PowerPointAutoShape shape = presentation.AddSlide().AddRectanglePoints(10, 20, 100, 40);
+            PowerPointAutoShape shape = presentation.AddSlide().AddRectangle(OfficeIMO.OfficeLength.Points(10), OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(100), OfficeIMO.OfficeLength.Points(40));
             shape.HorizontalFlip = true;
             shape.FillColor = "336699";
             shape.FillTransparency = 25;
@@ -1271,7 +1271,7 @@ namespace OfficeIMO.Tests {
             using PowerPointDocument presentation = PowerPointDocument.Create();
             PowerPointSlide slide = presentation.AddSlide();
             slide.SetBackgroundGradient("112233", "445566", 45.5D);
-            PowerPointAutoShape shape = slide.AddShapePoints(OfficePresetShapeType.Rectangle, 20.25D, 30.5D, 160.75D, 90.125D);
+            PowerPointAutoShape shape = slide.AddShape(OfficePresetShapeType.Rectangle, OfficeIMO.OfficeLength.Points(20.25D), OfficeIMO.OfficeLength.Points(30.5D), OfficeIMO.OfficeLength.Points(160.75D), OfficeIMO.OfficeLength.Points(90.125D));
             shape.Rotation = 22.5D;
             shape.OutlineWidthPoints = 1.25D;
             using var imageStream = new MemoryStream(imageBytes);
@@ -1313,7 +1313,7 @@ namespace OfficeIMO.Tests {
         public void DiffPlanner_HashesNativeGeometryAndEffectiveTextStyle() {
             string ShapeHash(OfficePresetShapeType shapeType) {
                 using PowerPointDocument presentation = PowerPointDocument.Create();
-                PowerPointAutoShape shape = presentation.AddSlide().AddShapePoints(shapeType, 20, 20, 160, 90);
+                PowerPointAutoShape shape = presentation.AddSlide().AddShape(shapeType, OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(160), OfficeIMO.OfficeLength.Points(90));
                 Assert.Equal(shapeType, shape.ShapeType);
                 return ElementHash(GoogleSlidesDiffPlanner.CreateCheckpoint(presentation));
             }
@@ -1321,7 +1321,7 @@ namespace OfficeIMO.Tests {
             Assert.NotEqual(ShapeHash(OfficePresetShapeType.Rectangle), ShapeHash(OfficePresetShapeType.RightArrow));
 
             using PowerPointDocument transformedPresentation = PowerPointDocument.Create();
-            PowerPointAutoShape transformedShape = transformedPresentation.AddSlide().AddShapePoints(OfficePresetShapeType.Rectangle, 20, 20, 160, 90);
+            PowerPointAutoShape transformedShape = transformedPresentation.AddSlide().AddShape(OfficePresetShapeType.Rectangle, OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(160), OfficeIMO.OfficeLength.Points(90));
             string unrotated = ElementHash(GoogleSlidesDiffPlanner.CreateCheckpoint(transformedPresentation));
             transformedShape.Rotation = 30;
             string rotated = ElementHash(GoogleSlidesDiffPlanner.CreateCheckpoint(transformedPresentation));
@@ -1333,7 +1333,7 @@ namespace OfficeIMO.Tests {
             string baseline = ElementHash(GoogleSlidesDiffPlanner.CreateCheckpoint(styledPresentation));
 
             run.Bold = true;
-            run.FontSize = 18;
+            run.FontSize = global::OfficeIMO.OfficeLength.Points(18);
             run.FontName = "Aptos";
             run.Color = "336699";
             run.Underline = true;
@@ -1414,13 +1414,13 @@ namespace OfficeIMO.Tests {
             PowerPointTextRun textRun = slide.AddTextBox("mixed").Paragraphs.Single().Runs.Single();
             textRun.Capitalization = PowerPointCapitalization.AllCaps;
             textRun.BaselinePercent = 80D;
-            textRun.FontSizePoints = 12.75D;
+            textRun.FontSize = global::OfficeIMO.OfficeLength.Points(12.75D);
             string projected = ElementHash(GoogleSlidesDiffPlanner.CreateCheckpoint(presentation));
 
             textRun.Text = "MIXED";
             textRun.Capitalization = null;
             textRun.BaselinePercent = 30D;
-            textRun.FontSize = 13;
+            textRun.FontSize = global::OfficeIMO.OfficeLength.Points(13);
             Assert.Equal(projected, ElementHash(GoogleSlidesDiffPlanner.CreateCheckpoint(presentation)));
 
             using PowerPointDocument tablePresentation = PowerPointDocument.Create();

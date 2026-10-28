@@ -53,15 +53,15 @@ public sealed class PowerPointNumberingResetRenderingTests {
         using var presentation = PowerPointDocument.Create();
         presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(300),OfficeIMO.OfficeLength.Points(200));
         var cell = presentation.AddSlide().AddTable(1,1,global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(260),global::OfficeIMO.OfficeLength.Points(150)).GetCell(0, 0);
-        cell.FontSize = 12;
+        cell.FontSize = global::OfficeIMO.OfficeLength.Points(12);
         cell.FontName = "Arial";
         var paragraph = cell.Paragraphs[0];
         paragraph.Text = "Separate marker";
         paragraph.Runs[0].FontName = "Arial";
-        paragraph.Runs[0].FontSize = 12;
+        paragraph.Runs[0].FontSize = global::OfficeIMO.OfficeLength.Points(12);
         if (characterBullet) paragraph.SetBullet('*');
         else paragraph.SetNumbered(PowerPointNumberingScheme.ArabicPeriod, 7);
-        paragraph.SetBulletFont("Times New Roman").SetBulletSizePoints(11);
+        paragraph.SetBulletFont("Times New Roman").SetBulletSize(global::OfficeIMO.OfficeLength.Points(11));
         using var saved = new MemoryStream(); presentation.Save(saved); saved.Position = 0;
         using var reopened = PowerPointDocument.Load(saved);
         var result = reopened.ConvertToPdfWithEvidence(new PowerPointPdfExportOptions {
@@ -117,8 +117,8 @@ public sealed class PowerPointNumberingResetRenderingTests {
     private static void AddNestedItems(PowerPointSlide slide, bool tableCell) {
         var box = tableCell ? null : slide.AddTextBox(string.Empty,global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(560),global::OfficeIMO.OfficeLength.Points(450));
         var cell = tableCell ? slide.AddTable(1,1,global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(560),global::OfficeIMO.OfficeLength.Points(450)).GetCell(0, 0) : null;
-        if (box != null) box.FontSize = 12;
-        if (cell != null) cell.FontSize = 12;
+        if (box != null) box.FontSize = global::OfficeIMO.OfficeLength.Points(12);
+        if (cell != null) cell.FontSize = global::OfficeIMO.OfficeLength.Points(12);
         int[] levels = { 0, 1, 2, 1, 2, 0, 1, 1, 0, 1 };
         int?[] starts = { 7, 1, 1, null, null, null, 5, null, null, null };
         for (int index = 0; index < levels.Length; index++) {

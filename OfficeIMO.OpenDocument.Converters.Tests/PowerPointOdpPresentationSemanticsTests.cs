@@ -161,7 +161,7 @@ public sealed class PowerPointOdpPresentationSemanticsTests {
         using PowerPointDocument source = PowerPointDocument.Create(new MemoryStream(), new PowerPointCreateOptions());
         PowerPointSlide slide = source.AddSlide(PowerPointSlideLayoutType.Blank);
         PowerPointTextBox box = slide.AddTextBox("Inset text",global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(200),global::OfficeIMO.OfficeLength.Points(40));
-        box.TextMarginLeftPoints = 18;
+        box.TextMarginLeft = global::OfficeIMO.OfficeLength.Points(18);
         slide.AddTextShape(OfficePresetShapeType.Ellipse, "Oval text");
         byte[] png = Convert.FromBase64String(
             "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=");
@@ -636,7 +636,7 @@ public sealed class PowerPointOdpPresentationSemanticsTests {
     public void ThemeShapeFillAndTableStyleAreExplicitLoss() {
         using PowerPointDocument source = PowerPointDocument.Create(new MemoryStream(), new PowerPointCreateOptions());
         PowerPointSlide slide = source.AddSlide(PowerPointSlideLayoutType.Blank);
-        slide.AddRectanglePoints(20, 20, 100, 50);
+        slide.AddRectangle(OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(100), OfficeIMO.OfficeLength.Points(50));
         slide.AddTable(1,1);
         ShapeProperties shapeProperties = source.OpenXmlDocument.PresentationPart!.SlideParts.First().Slide!
             .Descendants<ShapeProperties>().Single();
@@ -693,7 +693,7 @@ public sealed class PowerPointOdpPresentationSemanticsTests {
     [Fact]
     public void ExplicitNoFillShapeIsReportedInBothDirections() {
         using PowerPointDocument powerPoint = PowerPointDocument.Create(new MemoryStream(), new PowerPointCreateOptions());
-        powerPoint.AddSlide(PowerPointSlideLayoutType.Blank).AddRectanglePoints(20, 20, 100, 50);
+        powerPoint.AddSlide(PowerPointSlideLayoutType.Blank).AddRectangle(OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(100), OfficeIMO.OfficeLength.Points(50));
         ShapeProperties properties = powerPoint.OpenXmlDocument.PresentationPart!.SlideParts.First().Slide!
             .Descendants<ShapeProperties>().Single();
         properties.RemoveAllChildren<A.SolidFill>();

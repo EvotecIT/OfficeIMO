@@ -16,17 +16,17 @@ public class PowerPointTextInsetTests {
         bottomRight.TextVerticalAlignment = PowerPointTextVerticalAlignment.Bottom;
         var boxes = new[] { topLeft, bottomRight };
         foreach (var box in boxes) {
-            box.FontSize = 12;
+            box.FontSize = global::OfficeIMO.OfficeLength.Points(12);
             box.FontName = "Helvetica";
             if (explicitZero) {
-                box.TextMarginLeftPoints = box.TextMarginRightPoints = 0D;
-                box.TextMarginTopPoints = box.TextMarginBottomPoints = 0D;
+                box.TextMarginLeft = box.TextMarginRight = global::OfficeIMO.OfficeLength.Points(0D);
+                box.TextMarginTop = box.TextMarginBottom = global::OfficeIMO.OfficeLength.Points(0D);
             }
         }
         var inset = slide.CreateVisualSnapshot();
         foreach (var box in boxes) {
-            box.TextMarginLeftPoints = box.TextMarginRightPoints = 0D;
-            box.TextMarginTopPoints = box.TextMarginBottomPoints = 0D;
+            box.TextMarginLeft = box.TextMarginRight = global::OfficeIMO.OfficeLength.Points(0D);
+            box.TextMarginTop = box.TextMarginBottom = global::OfficeIMO.OfficeLength.Points(0D);
         }
         var zero = slide.CreateVisualSnapshot();
         foreach (var box in boxes) {

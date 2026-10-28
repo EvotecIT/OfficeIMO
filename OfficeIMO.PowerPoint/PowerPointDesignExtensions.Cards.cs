@@ -18,7 +18,7 @@ namespace OfficeIMO.PowerPoint {
             AddCardGrid(slide, theme, cards, options, variant, bounds);
 
             if (!string.IsNullOrWhiteSpace(options.SupportingText)) {
-                PowerPointAutoShape band = slide.AddRectangleCm(1.55, slideHeightCm - 3.25, slideWidthCm - 3.1, 1.8,
+                PowerPointAutoShape band = slide.AddRectangle(OfficeIMO.OfficeLength.Centimeters(1.55), OfficeIMO.OfficeLength.Centimeters(slideHeightCm - 3.25), OfficeIMO.OfficeLength.Centimeters(slideWidthCm - 3.1), OfficeIMO.OfficeLength.Centimeters(1.8),
                     "Designer Supporting Band");
                 band.FillColor = theme.PanelColor;
                 band.OutlineColor = theme.PanelBorderColor;
@@ -51,17 +51,17 @@ namespace OfficeIMO.PowerPoint {
             PowerPointLayoutBox box, int index, PowerPointCardGridLayoutVariant variant,
             PowerPointCardSurfaceStyle surfaceStyle) {
             string accent = card.AccentColor ?? GetAccent(theme, index);
-            PowerPointAutoShape panel = slide.AddRectangleCm(box.Left.ToCentimeters(), box.Top.ToCentimeters(), box.Width.ToCentimeters(), box.Height.ToCentimeters(),
+            PowerPointAutoShape panel = slide.AddRectangle(box.Left, box.Top, box.Width, box.Height,
                 "Designer Card " + (index + 1));
             ApplyDesignerCardSurface(panel, theme, accent, variant, surfaceStyle);
 
             if (variant == PowerPointCardGridLayoutVariant.SoftTiles) {
-                PowerPointAutoShape accentStrip = slide.AddRectangleCm(box.Left.ToCentimeters(), box.Top.ToCentimeters(), 0.13, box.Height.ToCentimeters(),
+                PowerPointAutoShape accentStrip = slide.AddRectangle(box.Left, box.Top, OfficeIMO.OfficeLength.Centimeters(0.13), box.Height,
                     "Designer Card Accent " + (index + 1));
                 accentStrip.FillColor = accent;
                 accentStrip.OutlineColor = accent;
             } else {
-                PowerPointAutoShape accentBar = slide.AddRectangleCm(box.Left.ToCentimeters(), box.Top.ToCentimeters(), box.Width.ToCentimeters(), 0.18,
+                PowerPointAutoShape accentBar = slide.AddRectangle(box.Left, box.Top, box.Width, OfficeIMO.OfficeLength.Centimeters(0.18),
                     "Designer Card Accent " + (index + 1));
                 accentBar.FillColor = accent;
                 accentBar.OutlineColor = accent;
@@ -79,7 +79,7 @@ namespace OfficeIMO.PowerPoint {
             int bodyFontSize = ResolveCardBodyFontSize(card.Items, titleWidth, bodyHeight);
             PowerPointTextBox body = slide.AddTextBox("",new OfficeIMO.PowerPoint.PowerPointLayoutBox(
                 OfficeIMO.OfficeLength.Centimeters(titleLeft + 0.1),OfficeIMO.OfficeLength.Centimeters(bodyTop),OfficeIMO.OfficeLength.Centimeters(box.Width.ToCentimeters() - 1.05),OfficeIMO.OfficeLength.Centimeters(bodyHeight)));
-            body.SetTextMarginsCm(0, 0, 0, 0);
+            body.SetTextMargins(global::OfficeIMO.OfficeLength.Centimeters(0), global::OfficeIMO.OfficeLength.Centimeters(0), global::OfficeIMO.OfficeLength.Centimeters(0), global::OfficeIMO.OfficeLength.Centimeters(0));
             body.TextAutoFit = PowerPointTextAutoFit.Normal;
 
             if (card.Items.Count == 0) {
@@ -90,10 +90,10 @@ namespace OfficeIMO.PowerPoint {
             int bulletSpaceAfter = bodyHeight < 1.15 || card.Items.Count > 3 ? 2 : 4;
             body.SetBullets(card.Items.Select(item => " " + item), configure: paragraph => {
                 paragraph.SetFontName(theme.BodyFontName)
-                    .SetFontSize(bodyFontSize)
+                    .SetFontSize(global::OfficeIMO.OfficeLength.Points(bodyFontSize))
                     .SetColor(theme.SecondaryTextColor)
-                    .SetHangingPoints(bodyFontSize <= 8 ? 12 : 16)
-                    .SetSpaceAfterPoints(bulletSpaceAfter)
+                    .SetHanging(global::OfficeIMO.OfficeLength.Points(bodyFontSize <= 8 ? 12 : 16))
+                    .SetSpaceAfter(global::OfficeIMO.OfficeLength.Points(bulletSpaceAfter))
                     .SetBulletSizePercent(70);
             });
         }

@@ -21,11 +21,11 @@ internal static partial class FixtureCorpus {
             box.FontName = family;
             box.FontSize = 14;
             box.Paragraphs[0].Runs[0].Underline = true;
-            var bar = slide.AddRectanglePoints(60, 140, 200, 10);
+            var bar = slide.AddRectangle(OfficeIMO.OfficeLength.Points(60), OfficeIMO.OfficeLength.Points(140), OfficeIMO.OfficeLength.Points(200), OfficeIMO.OfficeLength.Points(10));
             bar.FillColor = "10B981";
             var group = slide.GroupShapes(new PowerPointShape[] { box, bar });
             if (variant.Nested) group = slide.GroupShapes(new PowerPointShape[] {
-                group, slide.AddRectanglePoints(60, 160, 200, 10)
+                group, slide.AddRectangle(OfficeIMO.OfficeLength.Points(60), OfficeIMO.OfficeLength.Points(160), OfficeIMO.OfficeLength.Points(200), OfficeIMO.OfficeLength.Points(10))
             });
             group.Width = OfficeIMO.OfficeLength.Points(group.Width.ToPoints() * variant.ScaleX);
             group.Height = OfficeIMO.OfficeLength.Points(group.Height.ToPoints() * variant.ScaleY);

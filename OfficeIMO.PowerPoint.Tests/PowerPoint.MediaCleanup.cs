@@ -11,7 +11,7 @@ namespace OfficeIMO.Tests {
             presentation.AddSlide().AddTitle("Retained");
             PowerPointSlide removed = presentation.AddSlide();
             PowerPointAutoShape shape = removed.AddRectangle(
-                100000, 100000, 1000000, 500000);
+                OfficeIMO.OfficeLength.Emus(100000), OfficeIMO.OfficeLength.Emus(100000), OfficeIMO.OfficeLength.Emus(1000000), OfficeIMO.OfficeLength.Emus(500000));
             using (var actionSound = new MemoryStream(CreateWave(),
                        writable: false)) {
                 shape.SetClickSound(actionSound, "Action");

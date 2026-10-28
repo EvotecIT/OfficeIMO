@@ -548,7 +548,7 @@ Describe 'PowerPoint cmdlets' {
             $table.GetCell(0, 0).Text | Should -Be 'Build Ready'
             $table.GetCell(0, 0).Runs[0].Bold | Should -BeTrue
             $table.GetCell(0, 0).Runs[0].Color | Should -Be 'FF0000'
-            $table.GetCell(0, 0).Runs[0].FontSize | Should -Be 18
+            $table.GetCell(0, 0).Runs[0].FontSize.ToPoints() | Should -Be 18
             $table.GetCell(0, 0).Runs[1].Bold | Should -BeTrue
             $table.GetCell(0, 0).Runs[1].Color | Should -Be '2E8B57'
             $table.GetCell(1, 0).Text | Should -Be 'Owner'
@@ -892,13 +892,13 @@ Describe 'PowerPoint cmdlets' {
             $boundsBox.Height.ToPoints() | Should -Be 180
 
             $marginsBox = Set-OfficePowerPointLayoutPlaceholderTextMargins -Presentation $presentation -Master $layoutMaster -Layout $layoutIndex -PlaceholderType $layoutPlaceholderType -Index $layoutPlaceholder.PlaceholderIndex -Left 12 -Top 8 -Right 12 -Bottom 8 -PassThru
-            $marginsBox.TextMarginLeftPoints | Should -Be 12
-            $marginsBox.TextMarginTopPoints | Should -Be 8
-            $marginsBox.TextMarginRightPoints | Should -Be 12
-            $marginsBox.TextMarginBottomPoints | Should -Be 8
+            $marginsBox.TextMarginLeft.ToPoints() | Should -Be 12
+            $marginsBox.TextMarginTop.ToPoints() | Should -Be 8
+            $marginsBox.TextMarginRight.ToPoints() | Should -Be 12
+            $marginsBox.TextMarginBottom.ToPoints() | Should -Be 8
 
             $styleBox = Set-OfficePowerPointLayoutPlaceholderTextStyle -Presentation $presentation -Master $layoutMaster -Layout $layoutIndex -PlaceholderType $layoutPlaceholderType -Index $layoutPlaceholder.PlaceholderIndex -Style Body -FontSize 18 -Bold $true -PassThru
-            $styleBox.FontSize | Should -Be 18
+            $styleBox.FontSize.ToPoints() | Should -Be 18
             $styleBox.Bold | Should -BeTrue
         }
 

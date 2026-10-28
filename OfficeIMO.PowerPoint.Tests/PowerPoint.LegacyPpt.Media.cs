@@ -20,7 +20,7 @@ namespace OfficeIMO.Tests {
                 using var audio = new MemoryStream(wave,
                     writable: false);
                 PowerPointMedia media = slide.AddAudio(audio, "audio/wav",
-                    ".wav", 15875L, 31750L, 158750L, 79375L);
+                    ".wav", OfficeIMO.OfficeLength.Emus(15875L), OfficeIMO.OfficeLength.Emus(31750L), OfficeIMO.OfficeLength.Emus(158750L), OfficeIMO.OfficeLength.Emus(79375L));
                 media.Name = "Native WAV";
                 slide.Transition = PowerPointSlideTransition.Fade;
                 using var transitionSound = new MemoryStream(wave,
@@ -184,8 +184,8 @@ namespace OfficeIMO.Tests {
                 using var storage = new MemoryStream(
                     CreateOleTestStorage("Media carrier"),
                     writable: false);
-                slide.AddOleObject(storage, "Package", 12700L, 25400L,
-                    2743200L, 1828800L);
+                slide.AddOleObject(storage, "Package", OfficeIMO.OfficeLength.Emus(12700L), OfficeIMO.OfficeLength.Emus(25400L),
+                    OfficeIMO.OfficeLength.Emus(2743200L), OfficeIMO.OfficeLength.Emus(1828800L));
                 embeddedOleBytes = source.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
             LegacyPptDocument carrier = LegacyPptDocument.Load(
@@ -257,8 +257,8 @@ namespace OfficeIMO.Tests {
                 using var storage = new MemoryStream(
                     CreateOleTestStorage("Preservation carrier"),
                     writable: false);
-                slide.AddOleObject(storage, "Package", 15875L, 31750L,
-                    158750L, 79375L);
+                slide.AddOleObject(storage, "Package", OfficeIMO.OfficeLength.Emus(15875L), OfficeIMO.OfficeLength.Emus(31750L),
+                    OfficeIMO.OfficeLength.Emus(158750L), OfficeIMO.OfficeLength.Emus(79375L));
                 carrierBytes = source.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
             uint soundId = Assert.Single(LegacyPptDocument.Load(

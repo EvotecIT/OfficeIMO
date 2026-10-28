@@ -28,12 +28,12 @@ namespace OfficeIMO.Examples.PowerPoint {
             }
 
             PowerPointTextBox text = slide.AddTextBox(string.Empty,                global::OfficeIMO.OfficeLength.Centimeters(leftColumn.Left.ToCentimeters()),global::OfficeIMO.OfficeLength.Centimeters(leftColumn.Top.ToCentimeters()),global::OfficeIMO.OfficeLength.Centimeters(leftColumn.Width.ToCentimeters()),global::OfficeIMO.OfficeLength.Centimeters(leftColumn.Height.ToCentimeters()));
-            text.SetTextMarginsCm(0.3, 0.2, 0.3, 0.2);
+            text.SetTextMargins(global::OfficeIMO.OfficeLength.Centimeters(0.3), global::OfficeIMO.OfficeLength.Centimeters(0.2), global::OfficeIMO.OfficeLength.Centimeters(0.3), global::OfficeIMO.OfficeLength.Centimeters(0.2));
             text.TextAutoFit = PowerPointTextAutoFit.Normal;
 
             PowerPointParagraph heading = text.AddParagraph("Formatting demo", p => {
                 p.Alignment = PowerPointTextAlignment.Left;
-                p.SpaceAfterPoints = 6;
+                p.SpaceAfter = global::OfficeIMO.OfficeLength.Points(6);
             });
             PowerPointTextStyle.Subtitle.WithColor("1F4E79").Apply(heading);
 
@@ -64,14 +64,14 @@ namespace OfficeIMO.Examples.PowerPoint {
             text.AddBullet("Bulleted item two");
             text.AddNumberedItem("First step");
             text.AddNumberedItem("Second step");
-            text.ApplyAutoSpacing(lineSpacingMultiplier: 1.15, spaceAfterPoints: 2);
+            text.ApplyAutoSpacing(lineSpacingMultiplier: 1.15, spaceAfter: global::OfficeIMO.OfficeLength.Points(2));
 
             PowerPointTextBox callout = slide.AddTextBox(
                 "Auto-fit + margins keep text readable.",                global::OfficeIMO.OfficeLength.Centimeters(rightColumn.Left.ToCentimeters()),global::OfficeIMO.OfficeLength.Centimeters(rightColumn.Top.ToCentimeters()),global::OfficeIMO.OfficeLength.Centimeters(rightColumn.Width.ToCentimeters()),global::OfficeIMO.OfficeLength.Centimeters(rightColumn.Height.ToCentimeters()));
             callout.FillColor = "E7F7FF";
             callout.OutlineColor = "5B9BD5";
             callout.TextVerticalAlignment = PowerPointTextVerticalAlignment.Center;
-            callout.SetTextMarginsCm(0.3, 0.3, 0.3, 0.3);
+            callout.SetTextMargins(global::OfficeIMO.OfficeLength.Centimeters(0.3), global::OfficeIMO.OfficeLength.Centimeters(0.3), global::OfficeIMO.OfficeLength.Centimeters(0.3), global::OfficeIMO.OfficeLength.Centimeters(0.3));
             callout.ApplyTextStyle(PowerPointTextStyle.Body.WithColor("1F4E79"));
 
             presentation.Save();

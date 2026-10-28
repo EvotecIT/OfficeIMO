@@ -9,8 +9,8 @@ namespace OfficeIMO.PowerPoint {
     internal static partial class PowerPointDesignExtensions {
         private static void AddSubtleLightBackground(PowerPointSlide slide, PowerPointDesignTheme theme,
             double slideWidthCm, double slideHeightCm) {
-            PowerPointAutoShape diagonal = slide.AddShapeCm(OfficePresetShapeType.Parallelogram, slideWidthCm * 0.28, 0,
-                slideWidthCm * 0.22, slideHeightCm, "Designer Light Diagonal");
+            PowerPointAutoShape diagonal = slide.AddShape(OfficePresetShapeType.Parallelogram, OfficeIMO.OfficeLength.Centimeters(slideWidthCm * 0.28), OfficeIMO.OfficeLength.Centimeters(0),
+                OfficeIMO.OfficeLength.Centimeters(slideWidthCm * 0.22), OfficeIMO.OfficeLength.Centimeters(slideHeightCm), "Designer Light Diagonal");
             diagonal.FillColor = theme.SurfaceColor;
             diagonal.FillTransparency = 35;
             diagonal.OutlineColor = theme.SurfaceColor;
@@ -24,14 +24,14 @@ namespace OfficeIMO.PowerPoint {
             string baseColor = dark ? theme.PrimaryTextColor : theme.SurfaceColor;
             string second = dark ? theme.AccentDarkColor : theme.AccentLightColor;
 
-            PowerPointAutoShape left = slide.AddShapeCm(OfficePresetShapeType.Parallelogram, -1.0, 0,
-                slideWidthCm * 0.48, slideHeightCm, "Designer Plane Left");
+            PowerPointAutoShape left = slide.AddShape(OfficePresetShapeType.Parallelogram, OfficeIMO.OfficeLength.Centimeters(-1.0), OfficeIMO.OfficeLength.Centimeters(0),
+                OfficeIMO.OfficeLength.Centimeters(slideWidthCm * 0.48), OfficeIMO.OfficeLength.Centimeters(slideHeightCm), "Designer Plane Left");
             left.FillColor = baseColor;
             left.FillTransparency = dark ? 18 : 60;
             left.OutlineColor = baseColor;
 
-            PowerPointAutoShape middle = slide.AddShapeCm(OfficePresetShapeType.Parallelogram, slideWidthCm * 0.46, 0,
-                slideWidthCm * 0.27, slideHeightCm, "Designer Plane Middle");
+            PowerPointAutoShape middle = slide.AddShape(OfficePresetShapeType.Parallelogram, OfficeIMO.OfficeLength.Centimeters(slideWidthCm * 0.46), OfficeIMO.OfficeLength.Centimeters(0),
+                OfficeIMO.OfficeLength.Centimeters(slideWidthCm * 0.27), OfficeIMO.OfficeLength.Centimeters(slideHeightCm), "Designer Plane Middle");
             middle.FillColor = second;
             middle.FillTransparency = dark ? 35 : 72;
             middle.OutlineColor = second;
@@ -48,8 +48,8 @@ namespace OfficeIMO.PowerPoint {
             string secondary = dark ? theme.AccentLightColor : theme.WarningColor;
             switch (style) {
                 case PowerPointTitleAccentStyle.SideRule:
-                    PowerPointAutoShape sideRule = slide.AddRectangleCm(titleLeftCm - 0.28, titleTopCm + 0.16,
-                        0.08, Math.Max(0.82, titleHeightCm * 0.7), "Section Title Accent Side Rule");
+                    PowerPointAutoShape sideRule = slide.AddRectangle(OfficeIMO.OfficeLength.Centimeters(titleLeftCm - 0.28), OfficeIMO.OfficeLength.Centimeters(titleTopCm + 0.16),
+                        OfficeIMO.OfficeLength.Centimeters(0.08), OfficeIMO.OfficeLength.Centimeters(Math.Max(0.82, titleHeightCm * 0.7)), "Section Title Accent Side Rule");
                     sideRule.FillColor = accent;
                     sideRule.OutlineColor = accent;
                     sideRule.OutlineWidthPoints = 0;
@@ -57,8 +57,8 @@ namespace OfficeIMO.PowerPoint {
                 case PowerPointTitleAccentStyle.KickerRule:
                     double kickerWidth = Math.Min(3.2, titleWidthCm * 0.28);
                     double kickerLeft = centered ? titleLeftCm + (titleWidthCm - kickerWidth) / 2d : titleLeftCm;
-                    PowerPointAutoShape kicker = slide.AddLineCm(kickerLeft, Math.Max(0.65, titleTopCm - 0.22),
-                        kickerLeft + kickerWidth, Math.Max(0.65, titleTopCm - 0.22),
+                    PowerPointAutoShape kicker = slide.AddLine(OfficeIMO.OfficeLength.Centimeters(kickerLeft), OfficeIMO.OfficeLength.Centimeters(Math.Max(0.65, titleTopCm - 0.22)),
+                        OfficeIMO.OfficeLength.Centimeters(kickerLeft + kickerWidth), OfficeIMO.OfficeLength.Centimeters(Math.Max(0.65, titleTopCm - 0.22)),
                         "Section Title Accent Kicker Rule");
                     kicker.OutlineColor = secondary;
                     kicker.OutlineWidthPoints = 1.4;
@@ -67,8 +67,8 @@ namespace OfficeIMO.PowerPoint {
                     double underlineWidth = Math.Min(4.2, titleWidthCm * 0.36);
                     double underlineLeft = centered ? titleLeftCm + (titleWidthCm - underlineWidth) / 2d : titleLeftCm;
                     double underlineTop = titleTopCm + titleHeightCm + 0.12;
-                    PowerPointAutoShape underline = slide.AddRectangleCm(underlineLeft, underlineTop, underlineWidth,
-                        0.08, "Section Title Accent Underline");
+                    PowerPointAutoShape underline = slide.AddRectangle(OfficeIMO.OfficeLength.Centimeters(underlineLeft), OfficeIMO.OfficeLength.Centimeters(underlineTop), OfficeIMO.OfficeLength.Centimeters(underlineWidth),
+                        OfficeIMO.OfficeLength.Centimeters(0.08), "Section Title Accent Underline");
                     underline.FillColor = accent;
                     underline.OutlineColor = accent;
                     underline.OutlineWidthPoints = 0;
@@ -109,7 +109,7 @@ namespace OfficeIMO.PowerPoint {
 
         private static void AddProcessRail(PowerPointSlide slide, PowerPointDesignTheme theme,
             double startXCm, double endXCm, double yCm) {
-            PowerPointAutoShape rail = slide.AddLineCm(startXCm, yCm, endXCm, yCm, "Process Rail");
+            PowerPointAutoShape rail = slide.AddLine(OfficeIMO.OfficeLength.Centimeters(startXCm), OfficeIMO.OfficeLength.Centimeters(yCm), OfficeIMO.OfficeLength.Centimeters(endXCm), OfficeIMO.OfficeLength.Centimeters(yCm), "Process Rail");
             rail.OutlineColor = theme.AccentLightColor;
             rail.OutlineWidthPoints = 1.1;
         }
@@ -143,7 +143,7 @@ namespace OfficeIMO.PowerPoint {
 
         private static void AddProcessConnectorArrow(PowerPointSlide slide, PowerPointDesignTheme theme, int index,
             double startXCm, double endXCm, double yCm) {
-            PowerPointAutoShape connector = slide.AddLineCm(startXCm, yCm, endXCm, yCm,
+            PowerPointAutoShape connector = slide.AddLine(OfficeIMO.OfficeLength.Centimeters(startXCm), OfficeIMO.OfficeLength.Centimeters(yCm), OfficeIMO.OfficeLength.Centimeters(endXCm), OfficeIMO.OfficeLength.Centimeters(yCm),
                 "Process Connector " + (index + 1));
             connector.OutlineColor = GetAccent(theme, index);
             connector.OutlineWidthPoints = 1.2;
@@ -157,7 +157,7 @@ namespace OfficeIMO.PowerPoint {
             double spacing = (endXCm - startXCm) / (dotCount + 1);
             for (int dot = 0; dot < dotCount; dot++) {
                 double center = startXCm + spacing * (dot + 1);
-                PowerPointAutoShape marker = slide.AddEllipseCm(center - 0.055, yCm - 0.055, 0.11, 0.11,
+                PowerPointAutoShape marker = slide.AddEllipse(OfficeIMO.OfficeLength.Centimeters(center - 0.055), OfficeIMO.OfficeLength.Centimeters(yCm - 0.055), OfficeIMO.OfficeLength.Centimeters(0.11), OfficeIMO.OfficeLength.Centimeters(0.11),
                     "Process Connector Dot " + (index + 1) + "-" + (dot + 1));
                 marker.FillColor = GetAccent(theme, index);
                 marker.FillTransparency = 12 + dot * 8;
@@ -168,14 +168,14 @@ namespace OfficeIMO.PowerPoint {
 
         private static void AddProcessNode(PowerPointSlide slide, PowerPointDesignTheme theme, int index,
             double leftCm, double topCm, double sizeCm, string number) {
-            PowerPointAutoShape halo = slide.AddEllipseCm(leftCm - 0.08, topCm - 0.08,
-                sizeCm + 0.16, sizeCm + 0.16, "Process Node Halo " + (index + 1));
+            PowerPointAutoShape halo = slide.AddEllipse(OfficeIMO.OfficeLength.Centimeters(leftCm - 0.08), OfficeIMO.OfficeLength.Centimeters(topCm - 0.08),
+                OfficeIMO.OfficeLength.Centimeters(sizeCm + 0.16), OfficeIMO.OfficeLength.Centimeters(sizeCm + 0.16), "Process Node Halo " + (index + 1));
             halo.FillColor = theme.AccentLightColor;
             halo.FillTransparency = 78;
             halo.OutlineColor = theme.AccentLightColor;
             halo.OutlineWidthPoints = 0.2;
 
-            PowerPointAutoShape node = slide.AddEllipseCm(leftCm, topCm, sizeCm, sizeCm,
+            PowerPointAutoShape node = slide.AddEllipse(OfficeIMO.OfficeLength.Centimeters(leftCm), OfficeIMO.OfficeLength.Centimeters(topCm), OfficeIMO.OfficeLength.Centimeters(sizeCm), OfficeIMO.OfficeLength.Centimeters(sizeCm),
                 "Process Node " + (index + 1));
             node.FillColor = theme.AccentDarkColor;
             node.FillTransparency = 8;
@@ -247,8 +247,8 @@ namespace OfficeIMO.PowerPoint {
 
         private static void AddDirectionTriangle(PowerPointSlide slide, double leftCm, double topCm, int index,
             string color, int transparency, bool flip) {
-            PowerPointAutoShape arrow = slide.AddShapeCm(OfficePresetShapeType.Triangle,
-                leftCm, topCm, 0.22, 0.24, "Designer Direction " + (index + 1));
+            PowerPointAutoShape arrow = slide.AddShape(OfficePresetShapeType.Triangle,
+                OfficeIMO.OfficeLength.Centimeters(leftCm), OfficeIMO.OfficeLength.Centimeters(topCm), OfficeIMO.OfficeLength.Centimeters(0.22), OfficeIMO.OfficeLength.Centimeters(0.24), "Designer Direction " + (index + 1));
             arrow.FillColor = color;
             arrow.FillTransparency = transparency;
             arrow.OutlineColor = color;
@@ -257,7 +257,7 @@ namespace OfficeIMO.PowerPoint {
 
         private static void AddDirectionDot(PowerPointSlide slide, double leftCm, double topCm, int index,
             string color, int transparency) {
-            PowerPointAutoShape dot = slide.AddEllipseCm(leftCm, topCm + 0.04, 0.16, 0.16,
+            PowerPointAutoShape dot = slide.AddEllipse(OfficeIMO.OfficeLength.Centimeters(leftCm), OfficeIMO.OfficeLength.Centimeters(topCm + 0.04), OfficeIMO.OfficeLength.Centimeters(0.16), OfficeIMO.OfficeLength.Centimeters(0.16),
                 "Designer Direction " + (index + 1));
             dot.FillColor = color;
             dot.FillTransparency = transparency;
@@ -267,7 +267,7 @@ namespace OfficeIMO.PowerPoint {
 
         private static void AddDirectionBar(PowerPointSlide slide, double leftCm, double topCm, int index,
             string color, int transparency) {
-            PowerPointAutoShape bar = slide.AddRectangleCm(leftCm, topCm + 0.08, 0.24, 0.07,
+            PowerPointAutoShape bar = slide.AddRectangle(OfficeIMO.OfficeLength.Centimeters(leftCm), OfficeIMO.OfficeLength.Centimeters(topCm + 0.08), OfficeIMO.OfficeLength.Centimeters(0.24), OfficeIMO.OfficeLength.Centimeters(0.07),
                 "Designer Direction " + (index + 1));
             bar.FillColor = color;
             bar.FillTransparency = transparency;
@@ -281,12 +281,12 @@ namespace OfficeIMO.PowerPoint {
             double back = flip ? leftCm + 0.22 : leftCm;
             double middleY = topCm + 0.12;
 
-            PowerPointAutoShape upper = slide.AddLineCm(back, topCm + 0.02, tip, middleY,
+            PowerPointAutoShape upper = slide.AddLine(OfficeIMO.OfficeLength.Centimeters(back), OfficeIMO.OfficeLength.Centimeters(topCm + 0.02), OfficeIMO.OfficeLength.Centimeters(tip), OfficeIMO.OfficeLength.Centimeters(middleY),
                 "Designer Direction " + (index + 1));
             upper.OutlineColor = color;
             upper.OutlineWidthPoints = Math.Max(0.55, 1.0 - transparency / 100d);
 
-            PowerPointAutoShape lower = slide.AddLineCm(back, topCm + 0.22, tip, middleY,
+            PowerPointAutoShape lower = slide.AddLine(OfficeIMO.OfficeLength.Centimeters(back), OfficeIMO.OfficeLength.Centimeters(topCm + 0.22), OfficeIMO.OfficeLength.Centimeters(tip), OfficeIMO.OfficeLength.Centimeters(middleY),
                 "Designer Direction Chevron " + (index + 1) + "B");
             lower.OutlineColor = color;
             lower.OutlineWidthPoints = Math.Max(0.55, 1.0 - transparency / 100d);

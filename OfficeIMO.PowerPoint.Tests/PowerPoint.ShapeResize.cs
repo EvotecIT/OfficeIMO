@@ -11,9 +11,9 @@ namespace OfficeIMO.Tests {
             try {
                 using PowerPointDocument presentation = PowerPointDocument.Create(filePath);
                 PowerPointSlide slide = presentation.AddSlide();
-                PowerPointAutoShape a = slide.AddRectangle(0, 0, 1000, 2000);
-                PowerPointAutoShape b = slide.AddRectangle(0, 0, 2000, 3000);
-                PowerPointAutoShape c = slide.AddRectangle(0, 0, 1500, 4000);
+                PowerPointAutoShape a = slide.AddRectangle(OfficeIMO.OfficeLength.Emus(0), OfficeIMO.OfficeLength.Emus(0), OfficeIMO.OfficeLength.Emus(1000), OfficeIMO.OfficeLength.Emus(2000));
+                PowerPointAutoShape b = slide.AddRectangle(OfficeIMO.OfficeLength.Emus(0), OfficeIMO.OfficeLength.Emus(0), OfficeIMO.OfficeLength.Emus(2000), OfficeIMO.OfficeLength.Emus(3000));
+                PowerPointAutoShape c = slide.AddRectangle(OfficeIMO.OfficeLength.Emus(0), OfficeIMO.OfficeLength.Emus(0), OfficeIMO.OfficeLength.Emus(1500), OfficeIMO.OfficeLength.Emus(4000));
 
                 slide.ResizeShapes(slide.Shapes, PowerPointShapeSizeDimension.Width, PowerPointShapeSizeReference.Largest);
 
@@ -36,8 +36,8 @@ namespace OfficeIMO.Tests {
             try {
                 using PowerPointDocument presentation = PowerPointDocument.Create(filePath);
                 PowerPointSlide slide = presentation.AddSlide();
-                PowerPointAutoShape a = slide.AddRectangle(0, 0, 1000, 2000);
-                PowerPointAutoShape b = slide.AddRectangle(0, 0, 3000, 4000);
+                PowerPointAutoShape a = slide.AddRectangle(OfficeIMO.OfficeLength.Emus(0), OfficeIMO.OfficeLength.Emus(0), OfficeIMO.OfficeLength.Emus(1000), OfficeIMO.OfficeLength.Emus(2000));
+                PowerPointAutoShape b = slide.AddRectangle(OfficeIMO.OfficeLength.Emus(0), OfficeIMO.OfficeLength.Emus(0), OfficeIMO.OfficeLength.Emus(3000), OfficeIMO.OfficeLength.Emus(4000));
 
                 slide.ResizeShapes(slide.Shapes, PowerPointShapeSizeDimension.Both, PowerPointShapeSizeReference.Average);
 
@@ -58,8 +58,8 @@ namespace OfficeIMO.Tests {
             try {
                 using PowerPointDocument presentation = PowerPointDocument.Create(filePath);
                 PowerPointSlide slide = presentation.AddSlide();
-                PowerPointAutoShape a = slide.AddRectangle(0, 0, 1000, 500);
-                PowerPointAutoShape b = slide.AddRectangle(0, 0, 1000, 900);
+                PowerPointAutoShape a = slide.AddRectangle(OfficeIMO.OfficeLength.Emus(0), OfficeIMO.OfficeLength.Emus(0), OfficeIMO.OfficeLength.Emus(1000), OfficeIMO.OfficeLength.Emus(500));
+                PowerPointAutoShape b = slide.AddRectangle(OfficeIMO.OfficeLength.Emus(0), OfficeIMO.OfficeLength.Emus(0), OfficeIMO.OfficeLength.Emus(1000), OfficeIMO.OfficeLength.Emus(900));
 
                 slide.ResizeShapes(slide.Shapes, PowerPointShapeSizeDimension.Height, PowerPointShapeSizeReference.First);
 

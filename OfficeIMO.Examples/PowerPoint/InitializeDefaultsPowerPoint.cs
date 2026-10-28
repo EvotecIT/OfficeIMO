@@ -24,16 +24,16 @@ namespace OfficeIMO.Examples.PowerPoint {
                              $"Slide size: {presentation.SlideSize.Width.ToCentimeters():0.0} cm × {presentation.SlideSize.Height.ToCentimeters():0.0} cm";
             PowerPointTextBox body = slide.AddTextBox(summary,                global::OfficeIMO.OfficeLength.Centimeters(content.Left.ToCentimeters()),global::OfficeIMO.OfficeLength.Centimeters(content.Top.ToCentimeters() + 1.9),global::OfficeIMO.OfficeLength.Centimeters(content.Width.ToCentimeters()),global::OfficeIMO.OfficeLength.Centimeters(1.6));
             body.ApplyTextStyle(PowerPointTextStyle.Body);
-            body.SetTextMarginsCm(0.2, 0.2, 0.2, 0.2);
+            body.SetTextMargins(global::OfficeIMO.OfficeLength.Centimeters(0.2), global::OfficeIMO.OfficeLength.Centimeters(0.2), global::OfficeIMO.OfficeLength.Centimeters(0.2), global::OfficeIMO.OfficeLength.Centimeters(0.2));
 
             PowerPointTextBox notes = slide.AddTextBox(string.Empty,                global::OfficeIMO.OfficeLength.Centimeters(content.Left.ToCentimeters()),global::OfficeIMO.OfficeLength.Centimeters(content.Top.ToCentimeters() + 3.6),global::OfficeIMO.OfficeLength.Centimeters(content.Width.ToCentimeters()),global::OfficeIMO.OfficeLength.Centimeters(content.Height.ToCentimeters() - 3.6));
-            notes.SetTextMarginsCm(0.25, 0.2, 0.25, 0.2);
+            notes.SetTextMargins(global::OfficeIMO.OfficeLength.Centimeters(0.25), global::OfficeIMO.OfficeLength.Centimeters(0.2), global::OfficeIMO.OfficeLength.Centimeters(0.25), global::OfficeIMO.OfficeLength.Centimeters(0.2));
             notes.AddBullets(new[] {
                 "Default theme and table styles are embedded",
                 "Slides start with the standard Office layout",
                 "You can customize theme, transitions, and layout later"
             });
-            notes.ApplyAutoSpacing(lineSpacingMultiplier: 1.1, spaceAfterPoints: 2);
+            notes.ApplyAutoSpacing(lineSpacingMultiplier: 1.1, spaceAfter: global::OfficeIMO.OfficeLength.Points(2));
 
             presentation.Save();
             if (openPowerPoint) ExampleFileLauncher.Open(filePath);

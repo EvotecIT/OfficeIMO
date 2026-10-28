@@ -37,15 +37,15 @@ public static partial class PowerPointPdfConverterExtensions {
                 runs.Clear();
                 runs.Add(new PdfCore.PdfTextRun(string.Empty, fontSize: fontSize, font: MapFont(family), fontFamily: family));
             }
-            PdfCore.PdfLineSpacing lineSpacing = wrapped.LineSpacingPoints is double points
+            PdfCore.PdfLineSpacing lineSpacing = wrapped.LineSpacing?.ToPoints() is double points
                 ? PdfCore.PdfLineSpacing.Exactly(Math.Max(1D, points))
                 : PdfCore.PdfLineSpacing.Multiple(Math.Max(.01D, wrapped.LineSpacingMultiplier ?? fallbackLineHeight));
             paragraphs.Add(new PdfCore.PdfTableCellParagraph(runs,
-                spacingBefore: Math.Max(0D, wrapped.SpaceBeforePoints ?? 0D),
-                spacingAfter: Math.Max(0D, wrapped.SpaceAfterPoints ?? 0D),
+                spacingBefore: Math.Max(0D, wrapped.SpaceBefore?.ToPoints() ?? 0D),
+                spacingAfter: Math.Max(0D, wrapped.SpaceAfter?.ToPoints() ?? 0D),
                 align: MapAlign((wrapped.Alignment ?? cell.HorizontalAlignment).ToOpenXml()),
-                leftIndent: wrapped.LeftMarginPoints ?? 0D,
-                firstLineIndent: wrapped.IndentPoints ?? 0D,
+                leftIndent: wrapped.LeftMargin?.ToPoints() ?? 0D,
+                firstLineIndent: wrapped.Indent?.ToPoints() ?? 0D,
                 fontSize: fontSize, lineSpacing: lineSpacing));
         }
         return paragraphs;

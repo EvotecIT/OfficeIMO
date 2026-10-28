@@ -301,7 +301,7 @@ static void AddMetric(
     double top,
     string fill,
     string accent) {
-    PowerPointAutoShape card = slide.AddRectanglePoints(left, top, 180, 92, label);
+    PowerPointAutoShape card = slide.AddRectangle(OfficeIMO.OfficeLength.Points(left), OfficeIMO.OfficeLength.Points(top), OfficeIMO.OfficeLength.Points(180), OfficeIMO.OfficeLength.Points(92), label);
     card.FillColor = fill;
     card.OutlineColor = accent;
     card.OutlineWidthPoints = 1.25;
@@ -321,10 +321,10 @@ static PowerPointTextBox AddText(
     string color = "17324D") {
     PowerPointTextBox box = slide.AddTextBox(text,global::OfficeIMO.OfficeLength.Points(left),global::OfficeIMO.OfficeLength.Points(top),global::OfficeIMO.OfficeLength.Points(width),global::OfficeIMO.OfficeLength.Points(height));
     box.FontName = "Carlito";
-    box.FontSize = fontSize;
+    box.FontSize = global::OfficeIMO.OfficeLength.Points(fontSize);
     box.Bold = bold;
     box.Color = color;
-    box.SetTextMarginsPoints(0, 0, 0, 0);
+    box.SetTextMargins(global::OfficeIMO.OfficeLength.Points(0), global::OfficeIMO.OfficeLength.Points(0), global::OfficeIMO.OfficeLength.Points(0), global::OfficeIMO.OfficeLength.Points(0));
     box.TextAutoFit = PowerPointTextAutoFit.Normal;
     return box;
 }

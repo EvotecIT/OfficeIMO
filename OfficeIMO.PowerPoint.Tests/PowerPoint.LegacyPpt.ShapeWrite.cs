@@ -18,8 +18,8 @@ namespace OfficeIMO.Tests {
                        .Create()) {
                 PowerPointSlide slide = source.AddSlide(
                     PowerPointSlideLayoutType.Blank);
-                PowerPointAutoShape rectangle = slide.AddShapePoints(
-                    OfficePresetShapeType.Rectangle, 24, 24, 120, 70);
+                PowerPointAutoShape rectangle = slide.AddShape(
+                    OfficePresetShapeType.Rectangle, OfficeIMO.OfficeLength.Points(24), OfficeIMO.OfficeLength.Points(24), OfficeIMO.OfficeLength.Points(120), OfficeIMO.OfficeLength.Points(70));
                 rectangle.Fill("C0504D").Stroke("4F81BD", 2.5D);
                 rectangle.FillTransparency = 25;
                 rectangle.OutlineDash = PowerPointLineDashStyle.DashDot;
@@ -29,13 +29,13 @@ namespace OfficeIMO.Tests {
                     distancePoints: 3D, angleDegrees: 45D,
                     transparencyPercent: 35);
 
-                PowerPointAutoShape chevron = slide.AddShapePoints(
-                    OfficePresetShapeType.Chevron, 180, 24, 100, 70);
+                PowerPointAutoShape chevron = slide.AddShape(
+                    OfficePresetShapeType.Chevron, OfficeIMO.OfficeLength.Points(180), OfficeIMO.OfficeLength.Points(24), OfficeIMO.OfficeLength.Points(100), OfficeIMO.OfficeLength.Points(70));
                 chevron.Fill("9BBB59").Stroke("8064A2", 1.25D);
                 chevron.VerticalFlip = true;
 
-                PowerPointAutoShape line = slide.AddShapePoints(
-                    OfficePresetShapeType.Line, 24, 130, 180, 40);
+                PowerPointAutoShape line = slide.AddShape(
+                    OfficePresetShapeType.Line, OfficeIMO.OfficeLength.Points(24), OfficeIMO.OfficeLength.Points(130), OfficeIMO.OfficeLength.Points(180), OfficeIMO.OfficeLength.Points(40));
                 line.Stroke("00B050", 3D);
                 line.OutlineDash = PowerPointLineDashStyle
                     .LargeDashDotDot;
@@ -122,7 +122,7 @@ namespace OfficeIMO.Tests {
         public void NativeWriter_ReportsOversizedShadowOffsetsWithoutOverflowing() {
             using PowerPointDocument source = PowerPointDocument.Create();
             PowerPointAutoShape shape = source.AddSlide(PowerPointSlideLayoutType.Blank)
-                .AddShapePoints(OfficePresetShapeType.Rectangle, 24, 24, 120, 70);
+                .AddShape(OfficePresetShapeType.Rectangle, OfficeIMO.OfficeLength.Points(24), OfficeIMO.OfficeLength.Points(24), OfficeIMO.OfficeLength.Points(120), OfficeIMO.OfficeLength.Points(70));
             shape.SetShadow("222222", blurPoints: 1D, distancePoints: 1D,
                 angleDegrees: 0D, transparencyPercent: 0);
             P.Shape element = Assert.IsType<P.Shape>(shape.Element);
@@ -225,11 +225,11 @@ namespace OfficeIMO.Tests {
                        .Create()) {
                 PowerPointSlide slide = source.AddSlide(
                     PowerPointSlideLayoutType.Blank);
-                PowerPointAutoShape round = slide.AddShapePoints(
-                    OfficePresetShapeType.RoundRectangle, 20, 20, 120, 70);
+                PowerPointAutoShape round = slide.AddShape(
+                    OfficePresetShapeType.RoundRectangle, OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(120), OfficeIMO.OfficeLength.Points(70));
                 SetAdjustment(round, "val 30000");
-                PowerPointAutoShape donut = slide.AddShapePoints(
-                    OfficePresetShapeType.Donut, 170, 20, 90, 90);
+                PowerPointAutoShape donut = slide.AddShape(
+                    OfficePresetShapeType.Donut, OfficeIMO.OfficeLength.Points(170), OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(90), OfficeIMO.OfficeLength.Points(90));
                 SetAdjustment(donut, "val 40000");
 
                 LegacyPptWritePreflightReport preflight = source
@@ -265,8 +265,8 @@ namespace OfficeIMO.Tests {
                 .Create();
             PowerPointAutoShape round = source.AddSlide(
                     PowerPointSlideLayoutType.Blank)
-                .AddShapePoints(OfficePresetShapeType.RoundRectangle,
-                    20, 20, 120, 70);
+                .AddShape(OfficePresetShapeType.RoundRectangle,
+                    OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(120), OfficeIMO.OfficeLength.Points(70));
             SetAdjustment(round, "val 33334");
 
             LegacyPptWritePreflightReport preflight = source
@@ -284,11 +284,11 @@ namespace OfficeIMO.Tests {
                        .Create()) {
                 PowerPointSlide slide = source.AddSlide(
                     PowerPointSlideLayoutType.Blank);
-                PowerPointAutoShape rectangle = slide.AddShapePoints(
-                    OfficePresetShapeType.Rectangle, 30, 40, 80, 50);
+                PowerPointAutoShape rectangle = slide.AddShape(
+                    OfficePresetShapeType.Rectangle, OfficeIMO.OfficeLength.Points(30), OfficeIMO.OfficeLength.Points(40), OfficeIMO.OfficeLength.Points(80), OfficeIMO.OfficeLength.Points(50));
                 rectangle.Fill("4472C4");
-                PowerPointAutoShape ellipse = slide.AddShapePoints(
-                    OfficePresetShapeType.Ellipse, 125, 50, 65, 45);
+                PowerPointAutoShape ellipse = slide.AddShape(
+                    OfficePresetShapeType.Ellipse, OfficeIMO.OfficeLength.Points(125), OfficeIMO.OfficeLength.Points(50), OfficeIMO.OfficeLength.Points(65), OfficeIMO.OfficeLength.Points(45));
                 ellipse.Fill("ED7D31");
                 PowerPointGroupShape inner = slide.GroupShapes(
                     new PowerPointShape[] { rectangle, ellipse },
@@ -349,16 +349,16 @@ namespace OfficeIMO.Tests {
             PowerPointSlide slide = source.AddSlide(
                 PowerPointSlideLayoutType.Blank);
             PowerPointGroupShape group = slide.GroupShapes(new PowerPointShape[] {
-                slide.AddRectangle(100000, 100000, 500000, 500000),
-                slide.AddRectangle(700000, 100000, 500000, 500000)
+                slide.AddRectangle(OfficeIMO.OfficeLength.Emus(100000), OfficeIMO.OfficeLength.Emus(100000), OfficeIMO.OfficeLength.Emus(500000), OfficeIMO.OfficeLength.Emus(500000)),
+                slide.AddRectangle(OfficeIMO.OfficeLength.Emus(700000), OfficeIMO.OfficeLength.Emus(100000), OfficeIMO.OfficeLength.Emus(500000), OfficeIMO.OfficeLength.Emus(500000))
             }, "Group 0");
             for (int depth = 1;
                  depth <= LegacyPptWriter.MaximumGroupNestingDepth;
                  depth++) {
                 group = slide.GroupShapes(new PowerPointShape[] {
                     group,
-                    slide.AddRectangle(100000, 700000 + depth * 10000L,
-                        200000, 200000)
+                    slide.AddRectangle(OfficeIMO.OfficeLength.Emus(100000), OfficeIMO.OfficeLength.Emus(700000 + depth * 10000L),
+                        OfficeIMO.OfficeLength.Emus(200000), OfficeIMO.OfficeLength.Emus(200000))
                 }, $"Group {depth}");
             }
 
@@ -377,8 +377,8 @@ namespace OfficeIMO.Tests {
                 .Create();
             PowerPointAutoShape shape = source.AddSlide(
                     PowerPointSlideLayoutType.Blank)
-                .AddShapePoints(OfficePresetShapeType.Rectangle,
-                    20, 20, 100, 60);
+                .AddShape(OfficePresetShapeType.Rectangle,
+                    OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(100), OfficeIMO.OfficeLength.Points(60));
             shape.SetGlow("4472C4", radiusPoints: 5D);
 
             LegacyPptWritePreflightReport preflight = source
@@ -396,8 +396,8 @@ namespace OfficeIMO.Tests {
                        .Create()) {
                 PowerPointAutoShape shape = source.AddSlide(
                         PowerPointSlideLayoutType.Blank)
-                    .AddShapePoints(OfficePresetShapeType.Rectangle,
-                        20, 20, 120, 70);
+                    .AddShape(OfficePresetShapeType.Rectangle,
+                        OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(120), OfficeIMO.OfficeLength.Points(70));
                 shape.Fill("4472C4").Stroke("203864", 2D);
                 shape.SetShadow("222222", blurPoints: 3D,
                     distancePoints: 2D, angleDegrees: 90D,
@@ -454,12 +454,12 @@ namespace OfficeIMO.Tests {
                        .Create()) {
                 PowerPointSlide slide = source.AddSlide(
                     PowerPointSlideLayoutType.Blank);
-                PowerPointAutoShape hiddenChild = slide.AddShapePoints(
-                    OfficePresetShapeType.Rectangle, 20, 20, 90, 50);
+                PowerPointAutoShape hiddenChild = slide.AddShape(
+                    OfficePresetShapeType.Rectangle, OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(90), OfficeIMO.OfficeLength.Points(50));
                 hiddenChild.Name = "Hidden child";
                 hiddenChild.Hidden = true;
-                PowerPointAutoShape visibleChild = slide.AddShapePoints(
-                    OfficePresetShapeType.Ellipse, 130, 20, 70, 50);
+                PowerPointAutoShape visibleChild = slide.AddShape(
+                    OfficePresetShapeType.Ellipse, OfficeIMO.OfficeLength.Points(130), OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(70), OfficeIMO.OfficeLength.Points(50));
                 visibleChild.Name = "Visible child";
                 PowerPointGroupShape group = slide.GroupShapes(
                     new PowerPointShape[] { hiddenChild, visibleChild },

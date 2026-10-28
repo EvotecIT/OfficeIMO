@@ -83,7 +83,7 @@ public sealed class AddOfficePowerPointShapeCommand : PSWriteOffice.Cmdlets.Offi
             }
 
             var slide = Slide ?? PowerPointDslContext.Require(this).RequireSlide();
-            var shape = slide.AddShapePoints(ShapeType, X, Y, Width, Height, Name);
+            var shape = slide.AddShape(ShapeType, OfficeIMO.OfficeLength.Points(X), OfficeIMO.OfficeLength.Points(Y), OfficeIMO.OfficeLength.Points(Width), OfficeIMO.OfficeLength.Points(Height), Name);
 
             var fill = NormalizeColor(FillColor);
             if (fill != null) {

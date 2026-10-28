@@ -29,8 +29,8 @@ namespace OfficeIMO.Tests {
                     PowerPointTextBox box = slide.AddTextBox("Agenda",global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromCentimeters(1)),global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromCentimeters(3)),                        global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromCentimeters(6)),global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromCentimeters(3)));
                     box.AddBullets(new[] { "Shapes", "Images", "Tables", "Charts" });
 
-                    PowerPointAutoShape rect = slide.AddRectangle(PowerPointUnits.FromCentimeters(1), PowerPointUnits.FromCentimeters(7),
-                        PowerPointUnits.FromCentimeters(4), PowerPointUnits.FromCentimeters(2), "Card");
+                    PowerPointAutoShape rect = slide.AddRectangle(OfficeIMO.OfficeLength.Centimeters(1), OfficeIMO.OfficeLength.Centimeters(7),
+                        OfficeIMO.OfficeLength.Centimeters(4), OfficeIMO.OfficeLength.Centimeters(2), "Card");
                     rect.FillColor = "E7F7FF";
                     rect.OutlineColor = "007ACC";
 
@@ -119,20 +119,20 @@ namespace OfficeIMO.Tests {
                     cover.BackgroundColor = "F8F5EF";
                     cover.Transition = PowerPointSlideTransition.Morph;
                     PowerPointTextBox title = cover.AddTitle("Commercial Snapshot",                        new PowerPointLayoutBox(OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromCentimeters(1.4)),OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromCentimeters(1.0)),                            OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromCentimeters(18.0)),OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromCentimeters(1.2))));
-                    title.FontSize = 32;
+                    title.FontSize = global::OfficeIMO.OfficeLength.Points(32);
                     title.Color = "161411";
 
-                    PowerPointAutoShape hero = cover.AddRectangleCm(1.4, 3.0, 16.0, 3.0, "Hero Card");
+                    PowerPointAutoShape hero = cover.AddRectangle(OfficeIMO.OfficeLength.Centimeters(1.4), OfficeIMO.OfficeLength.Centimeters(3.0), OfficeIMO.OfficeLength.Centimeters(16.0), OfficeIMO.OfficeLength.Centimeters(3.0), "Hero Card");
                     hero.FillColor = "156082";
                     hero.FillTransparency = 8;
                     hero.OutlineColor = "156082";
                     hero.SetShadow("000000", blurPoints: 10, distancePoints: 4, angleDegrees: 90, transparencyPercent: 70);
 
                     PowerPointTextBox insight = cover.AddTextBox("A clean, generated deck with theme colors, font scheme, background, effects, chart, and table.",                        new PowerPointLayoutBox(OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromCentimeters(2.0)),OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromCentimeters(3.6)),                            OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromCentimeters(14.8)),OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromCentimeters(1.3))));
-                    insight.FontSize = 18;
+                    insight.FontSize = global::OfficeIMO.OfficeLength.Points(18);
                     insight.Color = "FFFFFF";
 
-                    PowerPointAutoShape accent = cover.AddEllipseCm(17.8, 0.7, 2.5, 2.5, "Glow Accent");
+                    PowerPointAutoShape accent = cover.AddEllipse(OfficeIMO.OfficeLength.Centimeters(17.8), OfficeIMO.OfficeLength.Centimeters(0.7), OfficeIMO.OfficeLength.Centimeters(2.5), OfficeIMO.OfficeLength.Centimeters(2.5), "Glow Accent");
                     accent.FillColor = "F26A3D";
                     accent.FillTransparency = 18;
                     accent.OutlineColor = "F26A3D";
@@ -142,7 +142,7 @@ namespace OfficeIMO.Tests {
                     dashboard.SetBackgroundImage(backgroundPath);
                     dashboard.Transition = PowerPointSlideTransition.Fade;
 
-                    PowerPointAutoShape panel = dashboard.AddRectangleCm(0.9, 0.7, 24.0, 12.0, "Dashboard Surface");
+                    PowerPointAutoShape panel = dashboard.AddRectangle(OfficeIMO.OfficeLength.Centimeters(0.9), OfficeIMO.OfficeLength.Centimeters(0.7), OfficeIMO.OfficeLength.Centimeters(24.0), OfficeIMO.OfficeLength.Centimeters(12.0), "Dashboard Surface");
                     panel.FillColor = "F8F5EF";
                     panel.FillTransparency = 3;
                     panel.OutlineColor = "EFE8DA";
@@ -171,7 +171,7 @@ namespace OfficeIMO.Tests {
                     table.GetCell(2, 0).Text = "Profit";
                     table.GetCell(2, 1).Text = "13";
 
-                    PowerPointAutoShape callout = dashboard.AddRectangleCm(16.8, 6.1, 7.0, 3.1, "Observation Card");
+                    PowerPointAutoShape callout = dashboard.AddRectangle(OfficeIMO.OfficeLength.Centimeters(16.8), OfficeIMO.OfficeLength.Centimeters(6.1), OfficeIMO.OfficeLength.Centimeters(7.0), OfficeIMO.OfficeLength.Centimeters(3.1), "Observation Card");
                     callout.FillColor = "EFE8DA";
                     callout.FillTransparency = 0;
                     callout.OutlineColor = "6B6EA8";
@@ -179,7 +179,7 @@ namespace OfficeIMO.Tests {
                     callout.SetReflection(blurPoints: 2, distancePoints: 1, startOpacityPercent: 20, endOpacityPercent: 0);
 
                     PowerPointTextBox calloutText = dashboard.AddTextBox("Observation\nThe revenue trend stays healthy through Q2.",                        new PowerPointLayoutBox(OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromCentimeters(17.3)),OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromCentimeters(6.5)),                            OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromCentimeters(6.0)),OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromCentimeters(2.2))));
-                    calloutText.FontSize = 16;
+                    calloutText.FontSize = global::OfficeIMO.OfficeLength.Points(16);
                     calloutText.Color = "161411";
 
                     dashboard.Notes.Text = "Modern deck smoke test validates theme, background, effects, chart and table.";

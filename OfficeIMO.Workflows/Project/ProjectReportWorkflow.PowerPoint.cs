@@ -29,9 +29,9 @@ public static partial class ProjectReportWorkflow {
             int start = page.RowOffset, count = page.RowCount; double height = page.Height;
             var slide = presentation.AddSlide();
             var title = slide.AddTextBox(view.Title,global::OfficeIMO.OfficeLength.Points(view.PageMargin),global::OfficeIMO.OfficeLength.Points(view.PageMargin),global::OfficeIMO.OfficeLength.Points(width),global::OfficeIMO.OfficeLength.Points(32));
-            title.FontName = "Arial"; title.FontSize = 22; title.Color = "183047";
+            title.FontName = "Arial"; title.FontSize = global::OfficeIMO.OfficeLength.Points(22); title.Color = "183047";
             var subtitle = slide.AddTextBox(part.Title + (start > 0 ? " (continued)" : ""),global::OfficeIMO.OfficeLength.Points(view.PageMargin),global::OfficeIMO.OfficeLength.Points(view.PageMargin + 36),global::OfficeIMO.OfficeLength.Points(width),global::OfficeIMO.OfficeLength.Points(25));
-            subtitle.FontName = "Arial"; subtitle.FontSize = 13; subtitle.Color = "64748B";
+            subtitle.FontName = "Arial"; subtitle.FontSize = global::OfficeIMO.OfficeLength.Points(13); subtitle.Color = "64748B";
             var table = slide.AddTable(count + 1,part.Headers.Length);
             table.Left= OfficeIMO.OfficeLength.Points(view.PageMargin); table.Top= OfficeIMO.OfficeLength.Points(view.PageMargin + 72); table.Width= OfficeIMO.OfficeLength.Points(width); table.Height= OfficeIMO.OfficeLength.Points(height);
             table.SetColumnWidths((widths).Select(tableLength => global::OfficeIMO.OfficeLength.Points(tableLength)).ToArray()); table.HeaderRow = true;
@@ -40,7 +40,7 @@ public static partial class ProjectReportWorkflow {
                 rows[r].Height= global::OfficeIMO.OfficeLength.Points(r == 0 ? headerHeight : heights[start + r - 1]);
                 for (int c = 0; c < part.Headers.Length; c++) {
                     var cell = rows[r].Cells[c]; cell.Text = r == 0 ? part.Headers[c] : part.Rows[start + r - 1][c];
-                    cell.FontSize = 12; cell.FontName = "Arial"; cell.Bold = r == 0; cell.TextAutoFit = PowerPointTextAutoFit.None;
+                    cell.FontSize = global::OfficeIMO.OfficeLength.Points(12); cell.FontName = "Arial"; cell.Bold = r == 0; cell.TextAutoFit = PowerPointTextAutoFit.None;
                     cell.FillColor = r == 0 ? "183047" : r % 2 == 1 ? "F4F7FA" : "FFFFFF";
                     cell.Color = r == 0 ? "FFFFFF" : "183047"; cell.BorderColor = "E3EAF0";
                 }

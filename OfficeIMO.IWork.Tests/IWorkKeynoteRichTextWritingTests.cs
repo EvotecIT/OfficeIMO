@@ -27,7 +27,7 @@ public sealed class IWorkKeynoteRichTextWritingTests {
             Assert.Equal(oracle.Select(r => r.Italic), actual.Select(r => r.Italic));
             Assert.Equal(oracle.Select(r => r.Underline), actual.Select(r => r.Underline));
             Assert.Equal(oracle.Select(r => r.Strikethrough), actual.Select(r => r.Strikethrough));
-            Assert.Equal(oracle.Select(r => r.FontSizePoints), actual.Select(r => r.FontSizePoints));
+            Assert.Equal(oracle.Select(r => r.FontSize), actual.Select(r => r.FontSize));
             // Apple's explicit typeface aliases and theme-backed Arial are separately
             // recorded in the independent range manifest and native font evidence.
             Assert.Equal(expectedBox.Left.ToEmus(), actualBox.Left.ToEmus());
@@ -104,7 +104,7 @@ public sealed class IWorkKeynoteRichTextWritingTests {
         PowerPointTextRun savedReset = Assert.Single(saved, run => run.Text == " plain");
         Assert.False(savedReset.Bold); Assert.False(savedReset.Italic);
         Assert.False(savedReset.Underline); Assert.False(savedReset.Strikethrough);
-        Assert.Equal(24, savedReset.FontSize);
+        Assert.Equal(global::OfficeIMO.OfficeLength.Points(24), savedReset.FontSize);
         Assert.Equal("000000", savedReset.Color);
         PowerPointTextRun savedLast = Assert.Single(saved, run => run.Text == "Italic");
         Assert.True(savedLast.Italic); Assert.False(savedLast.Bold);

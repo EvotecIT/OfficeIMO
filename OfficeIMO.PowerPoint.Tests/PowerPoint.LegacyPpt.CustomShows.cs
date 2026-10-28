@@ -21,7 +21,7 @@ namespace OfficeIMO.Tests {
                 third.AddTextBox("Third");
                 AddCustomShow(source, 42, "Executive path", third, first);
                 PowerPointAutoShape actionShape = actionSlide.AddRectangle(
-                    100000, 100000, 1000000, 500000);
+                    OfficeIMO.OfficeLength.Emus(100000), OfficeIMO.OfficeLength.Emus(100000), OfficeIMO.OfficeLength.Emus(1000000), OfficeIMO.OfficeLength.Emus(500000));
                 GetDrawingProperties(actionShape).Append(new A.HyperlinkOnClick {
                     Id = string.Empty,
                     Action = "ppaction://customshow?id=42&return=true",
@@ -89,7 +89,7 @@ namespace OfficeIMO.Tests {
             byte[] sourceBytes;
             using (PowerPointDocument source = PowerPointDocument.Create()) {
                 source.AddSlide(PowerPointSlideLayoutType.Blank).AddRectangle(
-                    100000, 100000, 1000000, 500000);
+                    OfficeIMO.OfficeLength.Emus(100000), OfficeIMO.OfficeLength.Emus(100000), OfficeIMO.OfficeLength.Emus(1000000), OfficeIMO.OfficeLength.Emus(500000));
                 source.AddSlide(PowerPointSlideLayoutType.Blank).AddTextBox("Destination");
                 sourceBytes = source.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }

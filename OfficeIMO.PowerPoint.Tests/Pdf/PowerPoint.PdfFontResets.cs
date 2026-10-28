@@ -23,13 +23,13 @@ public sealed class PowerPointPdfFontResetTests {
                 var table = slide.AddTable(1,1,global::OfficeIMO.OfficeLength.Points(30),global::OfficeIMO.OfficeLength.Points(34),global::OfficeIMO.OfficeLength.Points(160),global::OfficeIMO.OfficeLength.Points(80));
                 table.ApplyStyle(PowerPointTableStylePreset.Plain);
                 var cell = table.GetCell(0, 0);
-                cell.Text = "Plain"; cell.FontName = "Helvetica"; cell.FontSize = 18;
+                cell.Text = "Plain"; cell.FontName = "Helvetica"; cell.FontSize = global::OfficeIMO.OfficeLength.Points(18);
                 paragraph = cell.Paragraphs[0];
                 paragraph.Paragraph.ParagraphProperties = new A.ParagraphProperties(new A.DefaultRunProperties { Bold = true, Italic = true });
                 cell.Bold = false; cell.Italic = false;
             } else {
                 var box = slide.AddTextBox("Plain",global::OfficeIMO.OfficeLength.Points(30),global::OfficeIMO.OfficeLength.Points(34),global::OfficeIMO.OfficeLength.Points(160),global::OfficeIMO.OfficeLength.Points(80));
-                box.FontName = "Helvetica"; box.FontSize = 18;
+                box.FontName = "Helvetica"; box.FontSize = global::OfficeIMO.OfficeLength.Points(18);
                 paragraph = box.Paragraphs[0];
                 paragraph.Paragraph.ParagraphProperties = new A.ParagraphProperties(new A.DefaultRunProperties { Bold = true, Italic = true });
                 if (surface == "run") { paragraph.Runs[0].Bold = false; paragraph.Runs[0].Italic = false; }

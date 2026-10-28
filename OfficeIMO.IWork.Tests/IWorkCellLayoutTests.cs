@@ -121,10 +121,10 @@ public sealed partial class IWorkBoundaryTests {
             var table = Assert.Single(reopened.Slides[0].Tables);
             foreach (int column in new[] { 0, 1 }) {
                 var cell = table.GetCell(0, column);
-                Assert.Equal(4, cell.PaddingLeftPoints);
-                Assert.Equal(4, cell.PaddingTopPoints);
-                Assert.Equal(4, cell.PaddingRightPoints);
-                Assert.Equal(4, cell.PaddingBottomPoints);
+                Assert.Equal(4, cell.PaddingLeft?.ToPoints());
+                Assert.Equal(4, cell.PaddingTop?.ToPoints());
+                Assert.Equal(4, cell.PaddingRight?.ToPoints());
+                Assert.Equal(4, cell.PaddingBottom?.ToPoints());
                 Assert.Equal(OfficeIMO.PowerPoint.PowerPointTextVerticalAlignment.Center, cell.VerticalAlignment);
             }
         }
@@ -196,7 +196,7 @@ public sealed partial class IWorkBoundaryTests {
             Assert.Equal(!partial, result.IsVisualFallback);
             Assert.Equal(native, result.Projection.Slides[0].Tables[0].GetCell(1, 1)!.Padding!.LeftPoints);
             if (partial) {
-                Assert.Equal(1588d / 12700d, Assert.Single(result.Value.Slides[0].Tables).GetCell(0, 0).PaddingLeftPoints);
+                Assert.Equal(1588d / 12700d, Assert.Single(result.Value.Slides[0].Tables).GetCell(0, 0).PaddingLeft?.ToPoints());
                 Assert.Contains(result.Report.Diagnostics, diagnostic => diagnostic.Code == "IWORK_KEYNOTE_PPTX_PRECISION");
             }
         }

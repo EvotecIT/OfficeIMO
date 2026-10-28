@@ -18,10 +18,10 @@ public sealed class PowerPointTextFittingRegressionTests {
     public void StoredNormalFitScalesAllRunsAndReducesOnlyPercentageLeading(bool absoluteLeading) {
         using var presentation = PowerPointDocument.Create(new MemoryStream());
         var box = CreateBox(presentation, "FIRST\nSECOND", 220, 140);
-        box.Paragraphs[0].Runs[0].FontSize = 24;
+        box.Paragraphs[0].Runs[0].FontSize = global::OfficeIMO.OfficeLength.Points(24);
         box.Paragraphs[0].Runs[0].SetHyperlink("https://officeimo.com/text-fitting");
-        box.Paragraphs[0].AddRun("TAIL", run => { run.FontSize = 16; run.Bold = true; });
-        if (absoluteLeading) box.Paragraphs[0].LineSpacingPoints = 30;
+        box.Paragraphs[0].AddRun("TAIL", run => { run.FontSize = global::OfficeIMO.OfficeLength.Points(16); run.Bold = true; });
+        if (absoluteLeading) box.Paragraphs[0].LineSpacing = global::OfficeIMO.OfficeLength.Points(30);
         else box.Paragraphs[0].LineSpacingMultiplier = 1.2D;
         box.SetTextAutoFit(PowerPointTextAutoFit.Normal, new PowerPointTextAutoFitOptions(50, 20));
 
@@ -33,7 +33,7 @@ public sealed class PowerPointTextFittingRegressionTests {
         Assert.Equal("https://officeimo.com/text-fitting", text.Runs[0].LinkUri);
         Assert.True(text.Runs[1].Bold);
         Assert.DoesNotContain(diagnostics, diagnostic => diagnostic.Code == "powerpoint-text-overflow");
-        Assert.Equal(24, box.Paragraphs[0].Runs[0].FontSize);
+        Assert.Equal(24, box.Paragraphs[0].Runs[0].FontSize?.ToPoints());
     }
 
     [Theory]
@@ -42,7 +42,7 @@ public sealed class PowerPointTextFittingRegressionTests {
     public void MissingNormalFontScaleFitsCompleteParagraphFlow(bool storedReduction) {
         using var presentation = PowerPointDocument.Create(new MemoryStream());
         var box = CreateBox(presentation, "FIRST", 120, 45);
-        box.Paragraphs[0].SpaceAfterPoints = 3;
+        box.Paragraphs[0].SpaceAfter = global::OfficeIMO.OfficeLength.Points(3);
         box.AddParagraph("SECOND");
         box.AddParagraph("THIRD");
         box.SetTextAutoFit(PowerPointTextAutoFit.Normal,
@@ -144,13 +144,13 @@ public sealed class PowerPointTextFittingRegressionTests {
     [Fact]
     public void ShapeFitGrowsTheNativePdfEllipseFrameAfterTextMeasurement() {
         using var presentation = PowerPointDocument.Create(new MemoryStream());
-        var box = presentation.AddSlide().AddTextShapePoints(OfficePresetShapeType.Ellipse, "FIRST", 20, 20, 220, 15);
+        var box = presentation.AddSlide().AddTextShape(OfficePresetShapeType.Ellipse, "FIRST", OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(220), OfficeIMO.OfficeLength.Points(15));
         box.AddParagraph("SECOND");
         box.AddParagraph("LAST");
         box.FontName = "Helvetica";
-        box.FontSize = 24;
+        box.FontSize = global::OfficeIMO.OfficeLength.Points(24);
         box.FillColor = "1264A3";
-        box.TextMarginLeftPoints = box.TextMarginRightPoints = box.TextMarginTopPoints = box.TextMarginBottomPoints = 0;
+        box.TextMarginLeft = box.TextMarginRight = box.TextMarginTop = box.TextMarginBottom = global::OfficeIMO.OfficeLength.Points(0);
         box.TextAutoFit = PowerPointTextAutoFit.Shape;
         string source = box.Element.OuterXml;
 
@@ -269,9 +269,9 @@ public sealed class PowerPointTextFittingRegressionTests {
         var box = slide.AddTextBox("OOOOOOOO",global::OfficeIMO.OfficeLength.Points(-12),global::OfficeIMO.OfficeLength.Points(10),global::OfficeIMO.OfficeLength.Points(24),global::OfficeIMO.OfficeLength.Points(10));
         box.AddParagraph("OOOOOOOO");
         box.FontName = "OverflowRaster";
-        box.FontSize = 24;
+        box.FontSize = global::OfficeIMO.OfficeLength.Points(24);
         box.Color = "C02020";
-        box.TextMarginLeftPoints = box.TextMarginRightPoints = box.TextMarginTopPoints = box.TextMarginBottomPoints = 0;
+        box.TextMarginLeft = box.TextMarginRight = box.TextMarginTop = box.TextMarginBottom = global::OfficeIMO.OfficeLength.Points(0);
         box.TextAutoFit = PowerPointTextAutoFit.None;
         box.TextBody!.GetFirstChild<A.BodyProperties>()!.Wrap = A.TextWrappingValues.None;
         var fonts = new OfficeFontFaceCollection().Add("OverflowRaster",
@@ -301,8 +301,8 @@ public sealed class PowerPointTextFittingRegressionTests {
     private static PowerPointTextBox CreateBox(PowerPointDocument presentation, string text, double width, double height) {
         var box = presentation.AddSlide().AddTextBox(text,global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(width),global::OfficeIMO.OfficeLength.Points(height));
         box.FontName = "Helvetica";
-        box.FontSize = 24;
-        box.TextMarginLeftPoints = box.TextMarginRightPoints = box.TextMarginTopPoints = box.TextMarginBottomPoints = 0;
+        box.FontSize = global::OfficeIMO.OfficeLength.Points(24);
+        box.TextMarginLeft = box.TextMarginRight = box.TextMarginTop = box.TextMarginBottom = global::OfficeIMO.OfficeLength.Points(0);
         return box;
     }
 

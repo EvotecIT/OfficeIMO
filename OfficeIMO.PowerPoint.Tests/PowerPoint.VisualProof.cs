@@ -21,7 +21,7 @@ namespace OfficeIMO.Tests {
             using PowerPointDocument firstPresentation = PowerPointDocument.Create(firstStream);
             firstPresentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(160),OfficeIMO.OfficeLength.Points(100));
             PowerPointSlide firstSlide = firstPresentation.AddSlide();
-            firstSlide.AddRectanglePoints(500, 500, 20, 20, "Outside slide bounds");
+            firstSlide.AddRectangle(OfficeIMO.OfficeLength.Points(500), OfficeIMO.OfficeLength.Points(500), OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(20), "Outside slide bounds");
 
             PowerPointToHtmlResult first = firstPresentation.ToHtmlResult(options);
             Assert.Contains(first.ImageDiagnostics, diagnostic => diagnostic.Code == "invalid-shape-bounds"
@@ -32,7 +32,7 @@ namespace OfficeIMO.Tests {
             PowerPointTextBox cleanText = secondPresentation.AddSlide()
                 .AddTextBox("Clean snapshot",global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(160),global::OfficeIMO.OfficeLength.Points(40));
             cleanText.FontName = "Helvetica";
-            cleanText.FontSize = 12;
+            cleanText.FontSize = global::OfficeIMO.OfficeLength.Points(12);
             PowerPointToHtmlResult second = secondPresentation.ToHtmlResult(options);
 
             Assert.DoesNotContain(second.ImageDiagnostics, diagnostic => diagnostic.Code == "invalid-shape-bounds");
@@ -52,14 +52,14 @@ namespace OfficeIMO.Tests {
                     title.Title = "Slide title";
                     title.SetLanguage("en-US");
                     title.Color = "172033";
-                    title.FontSize = 28;
+                    title.FontSize = global::OfficeIMO.OfficeLength.Points(28);
                     PowerPointTextBox body = slide.AddTextBox(
                         "One OfficeDrawing scene feeds PNG, SVG, positioned HTML, and faithful PDF.",                        global::OfficeIMO.OfficeLength.Points(40),global::OfficeIMO.OfficeLength.Points(110),global::OfficeIMO.OfficeLength.Points(560),global::OfficeIMO.OfficeLength.Points(60));
                     body.Title = "Fidelity statement";
                     body.SetLanguage("en-US");
                     body.Color = "30343B";
-                    body.FontSize = 16;
-                    PowerPointAutoShape accent = slide.AddRectanglePoints(40, 205, 300, 18, "Decorative accent");
+                    body.FontSize = global::OfficeIMO.OfficeLength.Points(16);
+                    PowerPointAutoShape accent = slide.AddRectangle(OfficeIMO.OfficeLength.Points(40), OfficeIMO.OfficeLength.Points(205), OfficeIMO.OfficeLength.Points(300), OfficeIMO.OfficeLength.Points(18), "Decorative accent");
                     accent.FillColor = "0098C8";
                     accent.OutlineColor = "0098C8";
                     accent.Decorative = true;

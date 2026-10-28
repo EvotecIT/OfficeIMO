@@ -17,12 +17,12 @@ namespace OfficeIMO.Tests {
             PowerPointSlide slide = presentation.AddSlide();
 
             PowerPointTextBox textBox = slide.AddTextBox("PowerPoint spaced first",global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(190),global::OfficeIMO.OfficeLength.Points(80));
-            textBox.FontSize = 12;
-            textBox.SetTextMarginsPoints(0, 0, 0, 0);
+            textBox.FontSize = global::OfficeIMO.OfficeLength.Points(12);
+            textBox.SetTextMargins(global::OfficeIMO.OfficeLength.Points(0), global::OfficeIMO.OfficeLength.Points(0), global::OfficeIMO.OfficeLength.Points(0), global::OfficeIMO.OfficeLength.Points(0));
             PowerPointParagraph second = textBox.AddParagraph("PowerPoint spaced second");
             PowerPointSlideVisualInfo unspaced = slide.CreateVisualSnapshot();
-            textBox.Paragraphs[0].SetSpaceAfterPoints(18);
-            second.SetSpaceBeforePoints(6);
+            textBox.Paragraphs[0].SetSpaceAfter(global::OfficeIMO.OfficeLength.Points(18));
+            second.SetSpaceBefore(global::OfficeIMO.OfficeLength.Points(6));
 
             PowerPointSlideVisualInfo snapshot = slide.CreateVisualSnapshot();
             OfficeImageExportResult png = slide.ExportImage(OfficeImageExportFormat.Png);
@@ -52,9 +52,9 @@ namespace OfficeIMO.Tests {
             PowerPointSlide slide = presentation.AddSlide();
 
             PowerPointTextBox textBox = slide.AddTextBox("PowerPoint line spacing",global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(190),global::OfficeIMO.OfficeLength.Points(80));
-            textBox.FontSize = 12;
-            textBox.SetTextMarginsPoints(0, 0, 0, 0);
-            textBox.Paragraphs[0].SetLineSpacingPoints(24);
+            textBox.FontSize = global::OfficeIMO.OfficeLength.Points(12);
+            textBox.SetTextMargins(global::OfficeIMO.OfficeLength.Points(0), global::OfficeIMO.OfficeLength.Points(0), global::OfficeIMO.OfficeLength.Points(0), global::OfficeIMO.OfficeLength.Points(0));
+            textBox.Paragraphs[0].SetLineSpacing(global::OfficeIMO.OfficeLength.Points(24));
             textBox.AddParagraph("PowerPoint next line");
 
             PowerPointSlideVisualInfo snapshot = slide.CreateVisualSnapshot();

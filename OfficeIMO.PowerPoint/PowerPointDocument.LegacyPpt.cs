@@ -225,18 +225,18 @@ namespace OfficeIMO.PowerPoint {
                     projectedShape = textBox;
                     break;
                 case LegacyPptShapeKind.Rectangle:
-                    projectedShape = slide.AddShape(OfficePresetShapeType.Rectangle, left, top, width, height);
+                    projectedShape = slide.AddShape(OfficePresetShapeType.Rectangle, OfficeIMO.OfficeLength.Emus(left), OfficeIMO.OfficeLength.Emus(top), OfficeIMO.OfficeLength.Emus(width), OfficeIMO.OfficeLength.Emus(height));
                     break;
                 case LegacyPptShapeKind.Ellipse:
-                    projectedShape = slide.AddShape(OfficePresetShapeType.Ellipse, left, top, width, height);
+                    projectedShape = slide.AddShape(OfficePresetShapeType.Ellipse, OfficeIMO.OfficeLength.Emus(left), OfficeIMO.OfficeLength.Emus(top), OfficeIMO.OfficeLength.Emus(width), OfficeIMO.OfficeLength.Emus(height));
                     break;
                 case LegacyPptShapeKind.Line:
-                    projectedShape = slide.AddShape(OfficePresetShapeType.Line, left, top, width, height);
+                    projectedShape = slide.AddShape(OfficePresetShapeType.Line, OfficeIMO.OfficeLength.Emus(left), OfficeIMO.OfficeLength.Emus(top), OfficeIMO.OfficeLength.Emus(width), OfficeIMO.OfficeLength.Emus(height));
                     break;
                 case LegacyPptShapeKind.AutoShape:
                     if (LegacyPptShapeGeometryMapper.TryGetPreset(shape.OfficeArtShapeType,
                             out A.ShapeTypeValues geometry)) {
-                        projectedShape = slide.AddShape(geometry.ToOfficeEnum(), left, top, width, height);
+                        projectedShape = slide.AddShape(geometry.ToOfficeEnum(), OfficeIMO.OfficeLength.Emus(left), OfficeIMO.OfficeLength.Emus(top), OfficeIMO.OfficeLength.Emus(width), OfficeIMO.OfficeLength.Emus(height));
                     }
                     break;
                 case LegacyPptShapeKind.Connector:
@@ -258,8 +258,8 @@ namespace OfficeIMO.PowerPoint {
                         using var storage = new MemoryStream(
                             shape.OleObject.GetBytes(), writable: false);
                         PowerPointOleObject ole = slide.AddOleObject(storage,
-                            shape.OleObject.ProgId ?? "Package", left, top,
-                            width, height);
+                            shape.OleObject.ProgId ?? "Package", OfficeIMO.OfficeLength.Emus(left), OfficeIMO.OfficeLength.Emus(top),
+                            OfficeIMO.OfficeLength.Emus(width), OfficeIMO.OfficeLength.Emus(height));
                         ole.ShowAsIcon = shape.OleObject.DrawAspect
                             == LegacyPptOleDrawAspect.Icon;
                         ole.FollowColorScheme = shape.OleObject.ColorFollow switch {
@@ -278,7 +278,7 @@ namespace OfficeIMO.PowerPoint {
                         using var media = new MemoryStream(
                             shape.Media.GetData(), writable: false);
                         projectedShape = slide.AddAudio(media, "audio/wav",
-                            ".wav", left, top, width, height);
+                            ".wav", OfficeIMO.OfficeLength.Emus(left), OfficeIMO.OfficeLength.Emus(top), OfficeIMO.OfficeLength.Emus(width), OfficeIMO.OfficeLength.Emus(height));
                     }
                     break;
                 case LegacyPptShapeKind.Table:

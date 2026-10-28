@@ -95,7 +95,7 @@ public class PdfOfficeDefaultFontPolicyTests {
         using PowerPointDocument presentation = PowerPointDocument.Create(stream);
         PowerPointTextBox text = presentation.AddSlide().AddTextBox("Arial proof",global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(300),global::OfficeIMO.OfficeLength.Points(60));
         text.FontName = "Arial";
-        text.FontSize = 16;
+        text.FontSize = global::OfficeIMO.OfficeLength.Points(16);
         PdfDocumentConversionResult slidesResult = presentation.ConvertToPdfWithEvidence(new PowerPointPdfExportOptions { ResourcePolicy = policy });
         AssertFontSelection(slidesResult.ToBytes(), slidesResult.Report, portable);
     }

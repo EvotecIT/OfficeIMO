@@ -32,7 +32,7 @@ public sealed class PowerPointOdpPresentationLossCoverageTests {
     [Fact]
     public void NonTextShapePlaceholderIsExplicitLoss() {
         using PowerPointDocument source = CreateBlankPowerPoint();
-        source.Slides[0].AddRectanglePoints(20, 20, 100, 50);
+        source.Slides[0].AddRectangle(OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(100), OfficeIMO.OfficeLength.Points(50));
         Shape shape = source.OpenXmlDocument.PresentationPart!.SlideParts.First().Slide!
             .Descendants<Shape>().Single();
         shape.TextBody?.Remove();
@@ -307,7 +307,7 @@ public sealed class PowerPointOdpPresentationLossCoverageTests {
     [Fact]
     public void PowerPointShapeLocksAreExplicitLoss() {
         using PowerPointDocument source = CreateBlankPowerPoint();
-        source.Slides[0].AddRectanglePoints(20, 20, 100, 50);
+        source.Slides[0].AddRectangle(OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(100), OfficeIMO.OfficeLength.Points(50));
         Shape shape = source.OpenXmlDocument.PresentationPart!.SlideParts.First().Slide!
             .Descendants<Shape>().Single();
         NonVisualShapeDrawingProperties drawing = shape.NonVisualShapeProperties!
@@ -374,7 +374,7 @@ public sealed class PowerPointOdpPresentationLossCoverageTests {
     [Fact]
     public void ShapeDescriptionIsExplicitAccessibilityLoss() {
         using PowerPointDocument source = CreateBlankPowerPoint();
-        source.Slides[0].AddRectanglePoints(20, 20, 100, 50);
+        source.Slides[0].AddRectangle(OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(100), OfficeIMO.OfficeLength.Points(50));
         Shape shape = source.OpenXmlDocument.PresentationPart!.SlideParts.First().Slide!
             .Descendants<Shape>().Single();
         shape.NonVisualShapeProperties!.NonVisualDrawingProperties!.Description = "Forecast chart";
@@ -385,7 +385,7 @@ public sealed class PowerPointOdpPresentationLossCoverageTests {
     [Fact]
     public void DecorativeShapeIsExplicitAccessibilityLoss() {
         using PowerPointDocument source = CreateBlankPowerPoint();
-        source.Slides[0].AddRectanglePoints(20, 20, 100, 50).Decorative = true;
+        source.Slides[0].AddRectangle(OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(100), OfficeIMO.OfficeLength.Points(50)).Decorative = true;
 
         AssertLoss(source, "shape-accessibility");
     }
@@ -393,7 +393,7 @@ public sealed class PowerPointOdpPresentationLossCoverageTests {
     [Fact]
     public void UnrelatedNonVisualExtensionDoesNotReportAccessibilityLoss() {
         using PowerPointDocument source = CreateBlankPowerPoint();
-        source.Slides[0].AddRectanglePoints(20, 20, 100, 50);
+        source.Slides[0].AddRectangle(OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(100), OfficeIMO.OfficeLength.Points(50));
         Shape shape = source.OpenXmlDocument.PresentationPart!.SlideParts.First().Slide!
             .Descendants<Shape>().Single();
         shape.NonVisualShapeProperties!.NonVisualDrawingProperties!

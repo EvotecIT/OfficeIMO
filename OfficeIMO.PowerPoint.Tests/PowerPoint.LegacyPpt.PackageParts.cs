@@ -150,9 +150,9 @@ namespace OfficeIMO.Tests {
             using var storage = new MemoryStream(storageBytes,
                 writable: false);
             PowerPointOleObject ole = slide.AddOleObject(storage, "Package",
-                100000L, 100000L, 1000000L, 600000L);
+                OfficeIMO.OfficeLength.Emus(100000L), OfficeIMO.OfficeLength.Emus(100000L), OfficeIMO.OfficeLength.Emus(1000000L), OfficeIMO.OfficeLength.Emus(600000L));
             PowerPointAutoShape marker = slide.AddRectangle(
-                1200000L, 100000L, 600000L, 600000L);
+                OfficeIMO.OfficeLength.Emus(1200000L), OfficeIMO.OfficeLength.Emus(100000L), OfficeIMO.OfficeLength.Emus(600000L), OfficeIMO.OfficeLength.Emus(600000L));
             slide.GroupShapes(new PowerPointShape[] { ole, marker },
                 "Grouped OLE");
 
@@ -177,9 +177,9 @@ namespace OfficeIMO.Tests {
                 using var storage = new MemoryStream(storageBytes,
                     writable: false);
                 PowerPointOleObject ole = slide.AddOleObject(storage,
-                    "Package", 100000L, 100000L, 1000000L, 600000L);
+                    "Package", OfficeIMO.OfficeLength.Emus(100000L), OfficeIMO.OfficeLength.Emus(100000L), OfficeIMO.OfficeLength.Emus(1000000L), OfficeIMO.OfficeLength.Emus(600000L));
                 PowerPointAutoShape marker = slide.AddRectangle(
-                    1200000L, 100000L, 600000L, 600000L);
+                    OfficeIMO.OfficeLength.Emus(1200000L), OfficeIMO.OfficeLength.Emus(100000L), OfficeIMO.OfficeLength.Emus(600000L), OfficeIMO.OfficeLength.Emus(600000L));
                 PowerPointGroupShape group = slide.GroupShapes(
                     new PowerPointShape[] { ole, marker },
                     "Animated group");
@@ -212,9 +212,9 @@ namespace OfficeIMO.Tests {
                    PowerPointDocument.Create()) {
                 PowerPointSlide slide = presentation.AddSlide();
                 PowerPointAutoShape first = slide.AddRectangle(
-                    1000, 1000, 2000, 1000);
+                    OfficeIMO.OfficeLength.Emus(1000), OfficeIMO.OfficeLength.Emus(1000), OfficeIMO.OfficeLength.Emus(2000), OfficeIMO.OfficeLength.Emus(1000));
                 PowerPointAutoShape second = slide.AddRectangle(
-                    4000, 1000, 2000, 1000);
+                    OfficeIMO.OfficeLength.Emus(4000), OfficeIMO.OfficeLength.Emus(1000), OfficeIMO.OfficeLength.Emus(2000), OfficeIMO.OfficeLength.Emus(1000));
                 PowerPointGroupShape group = slide.GroupShapes(
                     new PowerPointShape[] { first, second });
                 group.GroupShape.Descendants<
@@ -236,7 +236,7 @@ namespace OfficeIMO.Tests {
 
             Assert.Equal(partCount, loadedSlide.SlidePart.Parts.Count());
             PowerPointAutoShape finalShape = loadedSlide.AddRectangle(
-                7000, 1000, 2000, 1000);
+                OfficeIMO.OfficeLength.Emus(7000), OfficeIMO.OfficeLength.Emus(1000), OfficeIMO.OfficeLength.Emus(2000), OfficeIMO.OfficeLength.Emus(1000));
             Assert.Equal(uint.MaxValue, finalShape.Id);
         }
 

@@ -11,7 +11,7 @@ namespace OfficeIMO.Tests {
             try {
                 using PowerPointDocument presentation = PowerPointDocument.Create(filePath);
                 PowerPointSlide slide = presentation.AddSlide();
-                PowerPointAutoShape shape = slide.AddRectangle(1000, 2000, 3000, 2000);
+                PowerPointAutoShape shape = slide.AddRectangle(OfficeIMO.OfficeLength.Emus(1000), OfficeIMO.OfficeLength.Emus(2000), OfficeIMO.OfficeLength.Emus(3000), OfficeIMO.OfficeLength.Emus(2000));
 
                 long centerX = shape.CenterX.ToEmus();
                 long centerY = shape.CenterY.ToEmus();
@@ -35,7 +35,7 @@ namespace OfficeIMO.Tests {
             try {
                 using PowerPointDocument presentation = PowerPointDocument.Create(filePath);
                 PowerPointSlide slide = presentation.AddSlide();
-                PowerPointAutoShape shape = slide.AddRectangle(1000, 2000, 3000, 2000);
+                PowerPointAutoShape shape = slide.AddRectangle(OfficeIMO.OfficeLength.Emus(1000), OfficeIMO.OfficeLength.Emus(2000), OfficeIMO.OfficeLength.Emus(3000), OfficeIMO.OfficeLength.Emus(2000));
 
                 shape.Resize(OfficeIMO.OfficeLength.Emus(5000),OfficeIMO.OfficeLength.Emus(4000),PowerPointShapeAnchor.TopLeft);
 
@@ -56,7 +56,7 @@ namespace OfficeIMO.Tests {
             try {
                 using PowerPointDocument presentation = PowerPointDocument.Create(filePath);
                 PowerPointSlide slide = presentation.AddSlide();
-                PowerPointAutoShape shape = slide.AddRectangle(1000, 2000, 3000, 2000);
+                PowerPointAutoShape shape = slide.AddRectangle(OfficeIMO.OfficeLength.Emus(1000), OfficeIMO.OfficeLength.Emus(2000), OfficeIMO.OfficeLength.Emus(3000), OfficeIMO.OfficeLength.Emus(2000));
 
                 long right = shape.Right.ToEmus();
                 long bottom = shape.Bottom.ToEmus();

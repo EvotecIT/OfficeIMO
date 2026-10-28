@@ -72,7 +72,7 @@ public sealed class HtmlTextFormattingReviewClosureTests {
         Assert.Equal(PowerPointStrikeStyle.Double, runs[0].StrikeStyle);
         Assert.Equal(PowerPointCapitalization.SmallCaps, runs[0].Capitalization);
         Assert.Equal(30D, runs[0].BaselinePercent);
-        Assert.Equal(18D, runs[0].FontSizePoints);
+        Assert.Equal(OfficeLength.Points(18), runs[0].FontSize);
         Assert.Equal("Aptos Display", runs[0].FontName);
         Assert.Equal("336699", runs[0].Color);
         Assert.Equal("pl-PL", runs[0].Language);

@@ -473,8 +473,8 @@ public static partial class HtmlPowerPointConverterExtensions {
 
                 using HtmlImportBudgetReservation? backgroundFillReservationScope = backgroundFillReservation;
                 if (backgroundFillReservation != null) {
-                    PptCore.PowerPointAutoShape backingFill = slide.AddRectanglePoints(
-                        left, top, width, height, "HTML background " + region.SourceKey);
+                    PptCore.PowerPointAutoShape backingFill = slide.AddRectangle(
+                        OfficeIMO.OfficeLength.Points(left), OfficeIMO.OfficeLength.Points(top), OfficeIMO.OfficeLength.Points(width), OfficeIMO.OfficeLength.Points(height), "HTML background " + region.SourceKey);
                     backingFill.FillColor = region.BackgroundColor!.Value.ToRgbHex();
                     backgroundFillReservation.Commit();
                     nativeRegionShapes.Add(backingFill);

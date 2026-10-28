@@ -110,7 +110,7 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
                             string text = ExtractText(element.Shape.Text);
                             PowerPointTextBox box;
                             if (TryMapShapeType(element.Shape.ShapeType, out OfficePresetShapeType textShapeType)) {
-                                box = slide.AddTextShapePoints(textShapeType, text, left, top, Math.Max(1, width), Math.Max(1, height), element.ObjectId);
+                                box = slide.AddTextShape(textShapeType, text, OfficeIMO.OfficeLength.Points(left), OfficeIMO.OfficeLength.Points(top), OfficeIMO.OfficeLength.Points(Math.Max(1, width)), OfficeIMO.OfficeLength.Points(Math.Max(1, height)), element.ObjectId);
                             } else {
                                 box = slide.AddTextBox(text,global::OfficeIMO.OfficeLength.Points(left),global::OfficeIMO.OfficeLength.Points(top),global::OfficeIMO.OfficeLength.Points(Math.Max(1, width)),global::OfficeIMO.OfficeLength.Points(Math.Max(1, height)));
                                 if (!string.Equals(element.Shape.ShapeType, "TEXT_BOX", StringComparison.OrdinalIgnoreCase)) {
@@ -127,7 +127,7 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
                             ApplyTextRuns(box, element.Shape.Text);
                         } else if (element.Shape != null) {
                             if (TryMapShapeType(element.Shape.ShapeType, out OfficePresetShapeType shapeType)) {
-                                PowerPointAutoShape shape = slide.AddShapePoints(shapeType, left, top, Math.Max(1, width), Math.Max(1, height), element.ObjectId);
+                                PowerPointAutoShape shape = slide.AddShape(shapeType, OfficeIMO.OfficeLength.Points(left), OfficeIMO.OfficeLength.Points(top), OfficeIMO.OfficeLength.Points(Math.Max(1, width)), OfficeIMO.OfficeLength.Points(Math.Max(1, height)), element.ObjectId);
                                 ApplyTransform(shape, geometry);
                                 ApplyShapeStyle(shape, element.Shape, report, element.ObjectId);
                             } else {
@@ -270,7 +270,7 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
                 "SUBSCRIPT" => -25D,
                 _ => null,
             };
-            if (style.FontSize != null) run.FontSize = (int)Math.Round(ToPoints(style.FontSize));
+            if (style.FontSize != null) run.FontSize = global::OfficeIMO.OfficeLength.Points((int)Math.Round(ToPoints(style.FontSize)));
             if (!string.IsNullOrWhiteSpace(style.FontFamily)) run.FontName = style.FontFamily;
             if (style.ForegroundColor?.OpaqueColor?.RgbColor is GoogleSlidesApiRgbColor textColor) run.Color = ToHex(textColor);
             if (Uri.TryCreate(style.Link?.Url, UriKind.Absolute, out Uri? link)) run.Hyperlink = link;

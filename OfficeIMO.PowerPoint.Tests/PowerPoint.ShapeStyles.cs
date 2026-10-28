@@ -12,7 +12,7 @@ namespace OfficeIMO.Tests {
 
             using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
                 PowerPointSlide slide = presentation.AddSlide();
-                PowerPointAutoShape rect = slide.AddRectangle(1000000, 1000000, 2000000, 1000000, "Styled Rect");
+                PowerPointAutoShape rect = slide.AddRectangle(OfficeIMO.OfficeLength.Emus(1000000), OfficeIMO.OfficeLength.Emus(1000000), OfficeIMO.OfficeLength.Emus(2000000), OfficeIMO.OfficeLength.Emus(1000000), "Styled Rect");
                 rect.FillColor = "E7F7FF";
                 rect.OutlineColor = "007ACC";
                 rect.OutlineWidthPoints = 2;
@@ -21,7 +21,7 @@ namespace OfficeIMO.Tests {
                 rect.HorizontalFlip = true;
                 rect.VerticalFlip = true;
 
-                PowerPointAutoShape accent = slide.AddEllipse(1200000, 1200000, 1500000, 800000, "Accent");
+                PowerPointAutoShape accent = slide.AddEllipse(OfficeIMO.OfficeLength.Emus(1200000), OfficeIMO.OfficeLength.Emus(1200000), OfficeIMO.OfficeLength.Emus(1500000), OfficeIMO.OfficeLength.Emus(800000), "Accent");
                 accent.FillColor = "FDEBD0";
                 accent.SendToBack();
 

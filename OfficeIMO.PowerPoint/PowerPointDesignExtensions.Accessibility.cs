@@ -9,7 +9,7 @@ namespace OfficeIMO.PowerPoint {
             PowerPointTextBox? detectedTitle = slide.TextBoxes
                 .Where(box => !string.IsNullOrWhiteSpace(box.Text))
                 .OrderBy(box => box.Top.ToPoints())
-                .ThenByDescending(box => box.FontSize ?? 0)
+                .ThenByDescending(box => box.FontSize?.ToPoints() ?? 0)
                 .FirstOrDefault();
             foreach (PowerPointShape shape in slide.Shapes) {
                 if (HasDesignerDecorativeName(shape.Name) &&

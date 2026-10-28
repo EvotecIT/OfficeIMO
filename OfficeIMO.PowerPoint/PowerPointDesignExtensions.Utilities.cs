@@ -17,9 +17,9 @@ namespace OfficeIMO.PowerPoint {
         internal static PowerPointTextBox AddText(PowerPointSlide slide, string text, double leftCm, double topCm,
             double widthCm, double heightCm, int fontSize, string color, string fontName, bool bold = false) {
             PowerPointTextBox box = slide.AddTextBox(text,global::OfficeIMO.OfficeLength.Centimeters(leftCm),global::OfficeIMO.OfficeLength.Centimeters(topCm),global::OfficeIMO.OfficeLength.Centimeters(widthCm),global::OfficeIMO.OfficeLength.Centimeters(heightCm));
-            box.SetTextMarginsCm(0, 0, 0, 0);
+            box.SetTextMargins(global::OfficeIMO.OfficeLength.Centimeters(0), global::OfficeIMO.OfficeLength.Centimeters(0), global::OfficeIMO.OfficeLength.Centimeters(0), global::OfficeIMO.OfficeLength.Centimeters(0));
             box.FontName = fontName;
-            box.FontSize = fontSize;
+            box.FontSize = global::OfficeIMO.OfficeLength.Points(fontSize);
             box.Color = color;
             box.Bold = bold;
             box.TextAutoFit = PowerPointTextAutoFit.Normal;

@@ -358,8 +358,8 @@ internal static class PowerPointRoadmapVisualCorpus {
         AddTitle(slide, title + " SmartArt");
         PowerPointSmartArt smartArt = slide.AddSmartArt(type,
             new[] { "Discover", "Design", "Build", "Validate" },
-            PowerPointUnits.FromPoints(60), PowerPointUnits.FromPoints(100),
-            PowerPointUnits.FromPoints(840), PowerPointUnits.FromPoints(360));
+            OfficeIMO.OfficeLength.Points(60), OfficeIMO.OfficeLength.Points(100),
+            OfficeIMO.OfficeLength.Points(840), OfficeIMO.OfficeLength.Points(360));
         smartArt.Name = title + " semantic diagram";
         AddFooter(slide, "Editable semantic diagram · create/save/open/render");
         return slide;
@@ -447,7 +447,7 @@ internal static class PowerPointRoadmapVisualCorpus {
     private static void AddTitle(PowerPointSlide slide, string text) {
         PowerPointTextBox title = slide.AddTextBox(text,global::OfficeIMO.OfficeLength.Points(45),global::OfficeIMO.OfficeLength.Points(28),global::OfficeIMO.OfficeLength.Points(760),global::OfficeIMO.OfficeLength.Points(46));
         title.FontName = "Arial";
-        title.FontSize = 28;
+        title.FontSize = global::OfficeIMO.OfficeLength.Points(28);
         title.Bold = true;
         title.Color = "0F172A";
     }
@@ -455,7 +455,7 @@ internal static class PowerPointRoadmapVisualCorpus {
     private static void AddFooter(PowerPointSlide slide, string text) {
         PowerPointTextBox footer = slide.AddTextBox(text,global::OfficeIMO.OfficeLength.Points(45),global::OfficeIMO.OfficeLength.Points(495),global::OfficeIMO.OfficeLength.Points(760),global::OfficeIMO.OfficeLength.Points(20));
         footer.FontName = "Arial";
-        footer.FontSize = 10;
+        footer.FontSize = global::OfficeIMO.OfficeLength.Points(10);
         footer.Color = "64748B";
     }
 }

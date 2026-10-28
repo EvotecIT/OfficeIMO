@@ -2477,17 +2477,17 @@ public sealed class PdfConversionScenarioManifestTests {
         PowerPointSlide slide = presentation.AddSlide();
         slide.SetBackgroundGradient("172554", "38BDF8", 35D);
         PowerPointTextBox title = slide.AddTextBox("Layout Theme Group Gate",global::OfficeIMO.OfficeLength.Points(18),global::OfficeIMO.OfficeLength.Points(8),global::OfficeIMO.OfficeLength.Points(220),global::OfficeIMO.OfficeLength.Points(34));
-        title.FontSize = 14;
+        title.FontSize = global::OfficeIMO.OfficeLength.Points(14);
         title.Color = "FFFFFF";
         PowerPointTextBox marker = slide.AddTextBox("Grouped transform marker",global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(58),global::OfficeIMO.OfficeLength.Points(150),global::OfficeIMO.OfficeLength.Points(20));
-        marker.FontSize = 9;
+        marker.FontSize = global::OfficeIMO.OfficeLength.Points(9);
         marker.Color = "0F172A";
-        PowerPointAutoShape preset = slide.AddShapePoints(OfficeIMO.Drawing.OfficePresetShapeType.Triangle, 176, 44, 36, 36);
+        PowerPointAutoShape preset = slide.AddShape(OfficeIMO.Drawing.OfficePresetShapeType.Triangle, OfficeIMO.OfficeLength.Points(176), OfficeIMO.OfficeLength.Points(44), OfficeIMO.OfficeLength.Points(36), OfficeIMO.OfficeLength.Points(36));
         preset.FillColor = "1F4E79";
         preset.OutlineColor = "1F4E79";
-        PowerPointAutoShape first = slide.AddRectanglePoints(20, 20, 30, 20);
+        PowerPointAutoShape first = slide.AddRectangle(OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(30), OfficeIMO.OfficeLength.Points(20));
         first.FillColor = "FF0000";
-        PowerPointAutoShape second = slide.AddRectanglePoints(60, 20, 30, 20);
+        PowerPointAutoShape second = slide.AddRectangle(OfficeIMO.OfficeLength.Points(60), OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(30), OfficeIMO.OfficeLength.Points(20));
         second.FillColor = "00AA00";
         slide.GroupShapes(new PowerPointShape[] { first, second }, "Dashboard group");
         DocumentFormat.OpenXml.Presentation.GroupShape group = slide.SlidePart.Slide!.CommonSlideData!.ShapeTree!

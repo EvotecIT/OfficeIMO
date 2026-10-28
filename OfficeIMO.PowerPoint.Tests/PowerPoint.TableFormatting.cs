@@ -26,7 +26,7 @@ namespace OfficeIMO.Tests {
                     PowerPointTableCell header = table.GetCell(0, 0);
                     header.Text = "Header";
                     header.Bold = true;
-                    header.FontSize = 14;
+                    header.FontSize = global::OfficeIMO.OfficeLength.Points(14);
                     header.Color = "FFFFFF";
 
                     presentation.Save();

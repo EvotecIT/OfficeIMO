@@ -45,7 +45,7 @@ public sealed class PowerPointPdfTextFormattingTests {
         } else {
             paragraph = slide.AddTextBox(text,global::OfficeIMO.OfficeLength.Points(10),global::OfficeIMO.OfficeLength.Points(10),global::OfficeIMO.OfficeLength.Points(200),global::OfficeIMO.OfficeLength.Points(40)).Paragraphs[0];
         }
-        paragraph.AddText(string.Empty, empty => empty.CharacterSpacingPoints = 1.25);
+        paragraph.AddText(string.Empty, empty => empty.CharacterSpacing = global::OfficeIMO.OfficeLength.Points(1.25));
         var conversion = presentation.ConvertToPdfWithEvidence();
         Assert.DoesNotContain(conversion.Warnings, warning => warning.Code == "character-spacing-approximation");
         Assert.DoesNotContain(conversion.Report.FidelityDiagnostics,
@@ -62,7 +62,7 @@ public sealed class PowerPointPdfTextFormattingTests {
         paragraph.Paragraph.ParagraphProperties = new A.ParagraphProperties(new A.DefaultRunProperties { Spacing = 125 });
         Assert.Contains(presentation.ConvertToPdfWithEvidence().Report.FidelityDiagnostics,
             diagnostic => diagnostic.Code == "powerpoint-character-spacing-approximated");
-        paragraph.InlineNodes.Single().Run!.CharacterSpacingPoints = 0;
+        paragraph.InlineNodes.Single().Run!.CharacterSpacing = global::OfficeIMO.OfficeLength.Points(0);
         Assert.DoesNotContain(presentation.ConvertToPdfWithEvidence().Report.FidelityDiagnostics,
             diagnostic => diagnostic.Code == "powerpoint-character-spacing-approximated");
     }
@@ -74,12 +74,12 @@ public sealed class PowerPointPdfTextFormattingTests {
         PowerPointTextBox title = presentation.Slides[0].TextBoxes.First(box => box.Paragraphs.Any(item => item.InlineNodes.Any(node => node.Run != null)));
         PowerPointParagraph paragraph = title.Paragraphs.First(item => item.InlineNodes.Any(node => node.Run != null));
         PowerPointTextRun run = paragraph.InlineNodes.First(node => node.Run != null).Run!;
-        Assert.Null(run.CharacterSpacingPoints);
+        Assert.Null(run.CharacterSpacing?.ToPoints());
         Assert.Equal(-2.32, PowerPointEffectiveRunStyleResolver.ResolveCharacterSpacingPoints(run, paragraph, title));
         Assert.Contains(presentation.ConvertToPdfWithEvidence().Report.FidelityDiagnostics,
             diagnostic => diagnostic.Code == "powerpoint-character-spacing-approximated"
                 && diagnostic.LossKind == OfficeConversionLossKind.Approximation);
-        foreach (PowerPointTextRun authored in title.Paragraphs.SelectMany(item => item.InlineNodes).Where(node => node.Run != null).Select(node => node.Run!)) authored.CharacterSpacingPoints = 0;
+        foreach (PowerPointTextRun authored in title.Paragraphs.SelectMany(item => item.InlineNodes).Where(node => node.Run != null).Select(node => node.Run!)) authored.CharacterSpacing = global::OfficeIMO.OfficeLength.Points(0);
         Assert.Equal(0, PowerPointEffectiveRunStyleResolver.ResolveCharacterSpacingPoints(run, paragraph, title));
     }
 
@@ -101,7 +101,7 @@ public sealed class PowerPointPdfTextFormattingTests {
         }
         Assert.Contains(presentation.ConvertToPdfWithEvidence().Report.FidelityDiagnostics,
             diagnostic => diagnostic.Code == "powerpoint-character-spacing-approximated");
-        box.Paragraphs[0].Runs[0].CharacterSpacingPoints = 0;
+        box.Paragraphs[0].Runs[0].CharacterSpacing = global::OfficeIMO.OfficeLength.Points(0);
         Assert.DoesNotContain(presentation.ConvertToPdfWithEvidence().Report.FidelityDiagnostics,
             diagnostic => diagnostic.Code == "powerpoint-character-spacing-approximated");
     }
@@ -111,15 +111,15 @@ public sealed class PowerPointPdfTextFormattingTests {
         using var bytes = new MemoryStream();
         using (PowerPointDocument presentation = PowerPointDocument.Create(bytes, new PowerPointCreateOptions())) {
             PowerPointSlide slide = presentation.AddSlide();
-            slide.AddTextBox("Spaced",global::OfficeIMO.OfficeLength.Points(10),global::OfficeIMO.OfficeLength.Points(10),global::OfficeIMO.OfficeLength.Points(200),global::OfficeIMO.OfficeLength.Points(40)).Paragraphs[0].Runs[0].CharacterSpacingPoints = -2.32;
+            slide.AddTextBox("Spaced",global::OfficeIMO.OfficeLength.Points(10),global::OfficeIMO.OfficeLength.Points(10),global::OfficeIMO.OfficeLength.Points(200),global::OfficeIMO.OfficeLength.Points(40)).Paragraphs[0].Runs[0].CharacterSpacing = global::OfficeIMO.OfficeLength.Points(-2.32);
             PowerPointTableCell cell = slide.AddTable(1,1,global::OfficeIMO.OfficeLength.Points(10),global::OfficeIMO.OfficeLength.Points(80),global::OfficeIMO.OfficeLength.Points(200),global::OfficeIMO.OfficeLength.Points(60)).GetCell(0, 0);
             cell.Text = "Cell";
-            cell.Paragraphs[0].Runs[0].CharacterSpacingPoints = 1.25;
+            cell.Paragraphs[0].Runs[0].CharacterSpacing = global::OfficeIMO.OfficeLength.Points(1.25);
             presentation.Save();
         }
         using PowerPointDocument reopened = PowerPointDocument.Load(new MemoryStream(bytes.ToArray()));
-        Assert.Equal(-2.32, reopened.Slides[0].TextBoxes.Single().Paragraphs[0].Runs[0].CharacterSpacingPoints);
-        Assert.Equal(1.25, reopened.Slides[0].Tables.Single().GetCell(0, 0).Paragraphs[0].Runs[0].CharacterSpacingPoints);
+        Assert.Equal(-2.32, reopened.Slides[0].TextBoxes.Single().Paragraphs[0].Runs[0].CharacterSpacing?.ToPoints());
+        Assert.Equal(1.25, reopened.Slides[0].Tables.Single().GetCell(0, 0).Paragraphs[0].Runs[0].CharacterSpacing?.ToPoints());
         PdfCore.PdfDocumentConversionResult conversion = reopened.ConvertToPdfWithEvidence();
         Assert.Contains(conversion.Report.FidelityDiagnostics, d => d.Code == OfficeDiagnosticCodes.PowerpointCharacterSpacingApproximated
             && d.LossKind == OfficeConversionLossKind.Approximation);
@@ -141,7 +141,7 @@ public sealed class PowerPointPdfTextFormattingTests {
         authored.Capitalization = PowerPointCapitalization.SmallCaps;
         authored.Color = "336699";
         authored.FontName = "Aptos";
-        authored.FontSizePoints = 14D;
+        authored.FontSize = global::OfficeIMO.OfficeLength.Points(14D);
 
         PdfCore.PdfDocumentConversionResult conversion = presentation.ConvertToPdfWithEvidence();
         var canvas = Assert.IsType<PdfCore.PdfCanvasBlock>(Assert.Single(conversion.Value.Blocks));

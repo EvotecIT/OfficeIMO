@@ -266,8 +266,8 @@ namespace OfficeIMO.Tests {
             using PowerPointDocument presentation =
                 PowerPointDocument.Create();
             PowerPointSlide slide = presentation.AddSlide();
-            PowerPointAutoShape actionShape = slide.AddRectanglePoints(
-                20, 20, 120, 60);
+            PowerPointAutoShape actionShape = slide.AddRectangle(
+                OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(120), OfficeIMO.OfficeLength.Points(60));
             PowerPointCustomShow show = presentation.AddCustomShow(
                 "Imported zero", new[] { slide });
             show.OpenXmlElement.Id = 0U;
@@ -318,10 +318,10 @@ namespace OfficeIMO.Tests {
             const string InternalRelationshipId = "rIdCustomShowTarget";
             source.SlidePart.AddPart(target.SlidePart,
                 InternalRelationshipId);
-            AppendCustomShowAction(source.AddRectanglePoints(
-                    20, 20, 120, 60), show.Id, external.Id);
-            AppendCustomShowAction(source.AddRectanglePoints(
-                    20, 100, 120, 60), show.Id,
+            AppendCustomShowAction(source.AddRectangle(
+                    OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(120), OfficeIMO.OfficeLength.Points(60)), show.Id, external.Id);
+            AppendCustomShowAction(source.AddRectangle(
+                    OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(100), OfficeIMO.OfficeLength.Points(120), OfficeIMO.OfficeLength.Points(60)), show.Id,
                 InternalRelationshipId);
 
             Assert.True(presentation.RemoveCustomShow(show));

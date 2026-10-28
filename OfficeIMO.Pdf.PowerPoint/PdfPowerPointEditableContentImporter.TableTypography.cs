@@ -26,11 +26,11 @@ public static partial class PdfPowerPointConverterExtensions {
             for (int columnIndex = 0; columnIndex < table.Columns; columnIndex++) {
                 cancellationToken.ThrowIfCancellationRequested();
                 PptCore.PowerPointTableCell cell = table.GetCell(rowIndex, columnIndex);
-                cell.FontSize = fontSize;
-                cell.PaddingLeftPoints = 0.5D;
-                cell.PaddingRightPoints = 0.5D;
-                cell.PaddingTopPoints = 0.25D;
-                cell.PaddingBottomPoints = 0.25D;
+                cell.FontSize = global::OfficeIMO.OfficeLength.Points(fontSize);
+                cell.PaddingLeft = global::OfficeIMO.OfficeLength.Points(0.5D);
+                cell.PaddingRight = global::OfficeIMO.OfficeLength.Points(0.5D);
+                cell.PaddingTop = global::OfficeIMO.OfficeLength.Points(0.25D);
+                cell.PaddingBottom = global::OfficeIMO.OfficeLength.Points(0.25D);
                 cell.VerticalAlignment = PptCore.PowerPointTextVerticalAlignment.Top;
                 cell.TextAutoFit = PptCore.PowerPointTextAutoFit.Normal;
             }

@@ -61,7 +61,7 @@ public sealed class IWorkCharacterTrackingCorpusTests {
         bytes.Position = 0;
         using PowerPointDocument reopened = PowerPointDocument.Load(bytes);
         PowerPointTextRun title = Assert.Single(reopened.Slides[0].TextBoxes.First(box => box.Text == "Image Test").Paragraphs[0].Runs);
-        Assert.Equal(-2.32, title.CharacterSpacingPoints);
+        Assert.Equal(-2.32, title.CharacterSpacing?.ToPoints());
         using PresentationDocument apple = PresentationDocument.Open(Path.Combine(root, "native-exports", "keynote-image-tracking-v15.4.pptx"), false);
         Assert.Contains(apple.PresentationPart!.SlideMasterParts.SelectMany(master => master.SlideLayoutParts)
             .SelectMany(layout => layout.SlideLayout!.Descendants<DocumentFormat.OpenXml.Drawing.DefaultRunProperties>()),

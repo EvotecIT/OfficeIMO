@@ -142,7 +142,7 @@ public static partial class PowerPointPdfConverterExtensions {
             bold: cell.Bold,
             italic: cell.Italic,
             color: ParsePdfColor(cell.Color),
-            fontSize: cell.FontSize,
+            fontSize: cell.FontSize?.ToPoints(),
             font: MapFont(fontFamily),
             fontFamily: fontFamily);
     }
@@ -269,12 +269,12 @@ public static partial class PowerPointPdfConverterExtensions {
     private static Dictionary<(int Row, int Column), PdfCore.PdfCellPadding>? CreateTableCellPaddings(PptCore.PowerPointTable table) {
         var paddings = new Dictionary<(int Row, int Column), PdfCore.PdfCellPadding>();
         ForEachTableAnchorCell(table, (row, column, cell) => {
-            if (cell.PaddingLeftPoints.HasValue || cell.PaddingRightPoints.HasValue || cell.PaddingTopPoints.HasValue || cell.PaddingBottomPoints.HasValue) {
+            if (cell.PaddingLeft.HasValue || cell.PaddingRight.HasValue || cell.PaddingTop.HasValue || cell.PaddingBottom.HasValue) {
                 paddings[(row, column)] = new PdfCore.PdfCellPadding {
-                    Left = cell.PaddingLeftPoints,
-                    Right = cell.PaddingRightPoints,
-                    Top = cell.PaddingTopPoints,
-                    Bottom = cell.PaddingBottomPoints
+                    Left = cell.PaddingLeft?.ToPoints(),
+                    Right = cell.PaddingRight?.ToPoints(),
+                    Top = cell.PaddingTop?.ToPoints(),
+                    Bottom = cell.PaddingBottom?.ToPoints()
                 };
             }
         });

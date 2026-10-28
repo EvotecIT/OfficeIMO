@@ -225,16 +225,16 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
-        ///     Gets or sets the font size in points.
+        ///     Gets or sets the font size as a physical length.
         /// </summary>
-        public int? FontSize {
+        public global::OfficeIMO.OfficeLength? FontSize {
             get {
                 int? size = GetRun()?.RunProperties?.FontSize?.Value;
-                return size != null ? size / 100 : null;
+                return size.HasValue ? global::OfficeIMO.OfficeLength.Points(size.Value / 100D) : (global::OfficeIMO.OfficeLength?)null;
             }
             set {
                 var props = EnsureRunProperties();
-                props.FontSize = PowerPointTextDefaults.ToDrawingFontSize(value, nameof(value));
+                props.FontSize = PowerPointTextDefaults.ToDrawingFontSize(value?.ToPoints(), nameof(value));
             }
         }
 
@@ -255,134 +255,46 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
-        ///     Gets or sets the left padding in points.
+        ///     Gets or sets the left padding as a physical length.
         /// </summary>
-        public double? PaddingLeftPoints {
-            get => FromEmus(Cell.TableCellProperties?.LeftMargin?.Value, EmusPerPoint);
+        public global::OfficeIMO.OfficeLength? PaddingLeft {
+            get => Cell.TableCellProperties?.LeftMargin?.Value is int value ? global::OfficeIMO.OfficeLength.Emus(value) : (global::OfficeIMO.OfficeLength?)null;
             set {
                 TableCellProperties props = EnsureProperties();
-                props.LeftMargin = ToEmus(value, EmusPerPoint);
+                props.LeftMargin = ToEmus(value?.ToPoints(), EmusPerPoint);
             }
         }
 
         /// <summary>
-        ///     Gets or sets the right padding in points.
+        ///     Gets or sets the right padding as a physical length.
         /// </summary>
-        public double? PaddingRightPoints {
-            get => FromEmus(Cell.TableCellProperties?.RightMargin?.Value, EmusPerPoint);
+        public global::OfficeIMO.OfficeLength? PaddingRight {
+            get => Cell.TableCellProperties?.RightMargin?.Value is int value ? global::OfficeIMO.OfficeLength.Emus(value) : (global::OfficeIMO.OfficeLength?)null;
             set {
                 TableCellProperties props = EnsureProperties();
-                props.RightMargin = ToEmus(value, EmusPerPoint);
+                props.RightMargin = ToEmus(value?.ToPoints(), EmusPerPoint);
             }
         }
 
         /// <summary>
-        ///     Gets or sets the top padding in points.
+        ///     Gets or sets the top padding as a physical length.
         /// </summary>
-        public double? PaddingTopPoints {
-            get => FromEmus(Cell.TableCellProperties?.TopMargin?.Value, EmusPerPoint);
+        public global::OfficeIMO.OfficeLength? PaddingTop {
+            get => Cell.TableCellProperties?.TopMargin?.Value is int value ? global::OfficeIMO.OfficeLength.Emus(value) : (global::OfficeIMO.OfficeLength?)null;
             set {
                 TableCellProperties props = EnsureProperties();
-                props.TopMargin = ToEmus(value, EmusPerPoint);
+                props.TopMargin = ToEmus(value?.ToPoints(), EmusPerPoint);
             }
         }
 
         /// <summary>
-        ///     Gets or sets the bottom padding in points.
+        ///     Gets or sets the bottom padding as a physical length.
         /// </summary>
-        public double? PaddingBottomPoints {
-            get => FromEmus(Cell.TableCellProperties?.BottomMargin?.Value, EmusPerPoint);
+        public global::OfficeIMO.OfficeLength? PaddingBottom {
+            get => Cell.TableCellProperties?.BottomMargin?.Value is int value ? global::OfficeIMO.OfficeLength.Emus(value) : (global::OfficeIMO.OfficeLength?)null;
             set {
                 TableCellProperties props = EnsureProperties();
-                props.BottomMargin = ToEmus(value, EmusPerPoint);
-            }
-        }
-
-        /// <summary>
-        ///     Gets or sets the left padding in centimeters.
-        /// </summary>
-        public double? PaddingLeftCm {
-            get => FromEmus(Cell.TableCellProperties?.LeftMargin?.Value, PowerPointUnits.EmusPerCentimeter);
-            set {
-                TableCellProperties props = EnsureProperties();
-                props.LeftMargin = ToEmus(value, PowerPointUnits.EmusPerCentimeter);
-            }
-        }
-
-        /// <summary>
-        ///     Gets or sets the right padding in centimeters.
-        /// </summary>
-        public double? PaddingRightCm {
-            get => FromEmus(Cell.TableCellProperties?.RightMargin?.Value, PowerPointUnits.EmusPerCentimeter);
-            set {
-                TableCellProperties props = EnsureProperties();
-                props.RightMargin = ToEmus(value, PowerPointUnits.EmusPerCentimeter);
-            }
-        }
-
-        /// <summary>
-        ///     Gets or sets the top padding in centimeters.
-        /// </summary>
-        public double? PaddingTopCm {
-            get => FromEmus(Cell.TableCellProperties?.TopMargin?.Value, PowerPointUnits.EmusPerCentimeter);
-            set {
-                TableCellProperties props = EnsureProperties();
-                props.TopMargin = ToEmus(value, PowerPointUnits.EmusPerCentimeter);
-            }
-        }
-
-        /// <summary>
-        ///     Gets or sets the bottom padding in centimeters.
-        /// </summary>
-        public double? PaddingBottomCm {
-            get => FromEmus(Cell.TableCellProperties?.BottomMargin?.Value, PowerPointUnits.EmusPerCentimeter);
-            set {
-                TableCellProperties props = EnsureProperties();
-                props.BottomMargin = ToEmus(value, PowerPointUnits.EmusPerCentimeter);
-            }
-        }
-
-        /// <summary>
-        ///     Gets or sets the left padding in inches.
-        /// </summary>
-        public double? PaddingLeftInches {
-            get => FromEmus(Cell.TableCellProperties?.LeftMargin?.Value, PowerPointUnits.EmusPerInch);
-            set {
-                TableCellProperties props = EnsureProperties();
-                props.LeftMargin = ToEmus(value, PowerPointUnits.EmusPerInch);
-            }
-        }
-
-        /// <summary>
-        ///     Gets or sets the right padding in inches.
-        /// </summary>
-        public double? PaddingRightInches {
-            get => FromEmus(Cell.TableCellProperties?.RightMargin?.Value, PowerPointUnits.EmusPerInch);
-            set {
-                TableCellProperties props = EnsureProperties();
-                props.RightMargin = ToEmus(value, PowerPointUnits.EmusPerInch);
-            }
-        }
-
-        /// <summary>
-        ///     Gets or sets the top padding in inches.
-        /// </summary>
-        public double? PaddingTopInches {
-            get => FromEmus(Cell.TableCellProperties?.TopMargin?.Value, PowerPointUnits.EmusPerInch);
-            set {
-                TableCellProperties props = EnsureProperties();
-                props.TopMargin = ToEmus(value, PowerPointUnits.EmusPerInch);
-            }
-        }
-
-        /// <summary>
-        ///     Gets or sets the bottom padding in inches.
-        /// </summary>
-        public double? PaddingBottomInches {
-            get => FromEmus(Cell.TableCellProperties?.BottomMargin?.Value, PowerPointUnits.EmusPerInch);
-            set {
-                TableCellProperties props = EnsureProperties();
-                props.BottomMargin = ToEmus(value, PowerPointUnits.EmusPerInch);
+                props.BottomMargin = ToEmus(value?.ToPoints(), EmusPerPoint);
             }
         }
 

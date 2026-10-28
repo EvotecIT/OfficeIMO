@@ -77,8 +77,8 @@ namespace OfficeIMO.Tests {
 
                     Assert.Throws<ArgumentOutOfRangeException>(() =>
                         slide.AddSmartArt(PowerPointSmartArtType.BasicProcess,
-                            new[] { "Plan", "Build" }, left, top,
-                            5486400L, 3200400L));
+                            new[] { "Plan", "Build" }, OfficeIMO.OfficeLength.Emus(left), OfficeIMO.OfficeLength.Emus(top),
+                            OfficeIMO.OfficeLength.Emus(5486400L), OfficeIMO.OfficeLength.Emus(3200400L)));
 
                     Assert.Empty(slide.Shapes);
                     presentation.Save();

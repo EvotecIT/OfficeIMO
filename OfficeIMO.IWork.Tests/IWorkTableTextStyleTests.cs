@@ -54,7 +54,7 @@ public sealed partial class IWorkBoundaryTests {
             var paragraph = Assert.Single(table.GetCell(row, column).Paragraphs);
             Assert.Equal(OfficeIMO.PowerPoint.PowerPointTextAlignment.Center, paragraph.Alignment);
             Assert.All(paragraph.Runs, run => {
-                Assert.Equal(32, run.FontSizePoints);
+                Assert.Equal(OfficeLength.Points(32), run.FontSize);
                 Assert.Equal("HelveticaNeue", run.FontName);
                 Assert.Equal(row == 0, run.Bold);
             });
@@ -130,10 +130,10 @@ public sealed partial class IWorkBoundaryTests {
             result.Value.Save(saved); saved.Position = 0;
             using var reopened = OfficeIMO.PowerPoint.PowerPointDocument.Load(saved);
             var target = Assert.Single(reopened.Slides[0].Tables);
-            Assert.Equal(18, target.GetCell(0, 0).Paragraphs[0].Runs[0].FontSizePoints);
+            Assert.Equal(18, target.GetCell(0, 0).Paragraphs[0].Runs[0].FontSize?.ToPoints());
             Assert.False(target.GetCell(0, 0).Paragraphs[0].Runs[0].Bold);
             Assert.Equal(OfficeIMO.PowerPoint.PowerPointTextAlignment.Right, target.GetCell(0, 0).Paragraphs[0].Alignment);
-            Assert.Equal(20, target.GetCell(2, 1).Paragraphs[0].Runs[0].FontSizePoints);
+            Assert.Equal(20, target.GetCell(2, 1).Paragraphs[0].Runs[0].FontSize?.ToPoints());
         }
         package.Position = 0;
         Assert.Throws<InvalidDataException>(() => {
@@ -266,8 +266,8 @@ public sealed partial class IWorkBoundaryTests {
             var target = Assert.Single(reopened.Slides[0].Tables);
             Assert.Equal(2, target.GetCell(0, 0).Paragraphs.Count);
             Assert.All(target.GetCell(0, 0).Paragraphs, paragraph => Assert.All(paragraph.Runs,
-                run => { Assert.Equal(36, run.FontSizePoints); Assert.True(run.Bold); }));
-            Assert.Equal(18, target.GetCell(0, 1).Paragraphs[0].Runs[0].FontSizePoints);
+                run => { Assert.Equal(36, run.FontSize?.ToPoints()); Assert.True(run.Bold); }));
+            Assert.Equal(18, target.GetCell(0, 1).Paragraphs[0].Runs[0].FontSize?.ToPoints());
         }
     }
 

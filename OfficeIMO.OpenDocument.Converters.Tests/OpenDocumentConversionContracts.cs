@@ -395,7 +395,7 @@ public sealed class OpenDocumentConversionContracts {
         PowerPointSlide slide = source.AddSlide();
         PowerPointTextBox title = slide.AddTextBox("OpenDocument deck",global::OfficeIMO.OfficeLength.Points(24),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(240),global::OfficeIMO.OfficeLength.Points(40));
         title.Paragraphs[0].Runs[0].Bold = true;
-        slide.AddRectanglePoints(30, 80, 100, 50, "Panel").FillColor = "DDEEFF";
+        slide.AddRectangle(OfficeIMO.OfficeLength.Points(30), OfficeIMO.OfficeLength.Points(80), OfficeIMO.OfficeLength.Points(100), OfficeIMO.OfficeLength.Points(50), "Panel").FillColor = "DDEEFF";
         PowerPointTable table = slide.AddTable(2,2,global::OfficeIMO.OfficeLength.Points(150),global::OfficeIMO.OfficeLength.Points(80),global::OfficeIMO.OfficeLength.Points(160),global::OfficeIMO.OfficeLength.Points(80));
         table.GetCell(0, 0).Text = "A";
         table.GetCell(1, 1).Text = "B";
@@ -439,7 +439,7 @@ public sealed class OpenDocumentConversionContracts {
         run.Italic = true;
         run.Underline = true;
         run.Strikethrough = true;
-        run.FontSize = 18;
+        run.FontSize = global::OfficeIMO.OfficeLength.Points(18);
         run.FontName = "Aptos";
         run.Color = "123456";
         run.HighlightColor = "FFF200";
@@ -464,7 +464,7 @@ public sealed class OpenDocumentConversionContracts {
         Assert.True(converted.Italic);
         Assert.True(converted.Underline);
         Assert.True(converted.Strikethrough);
-        Assert.Equal(18, converted.FontSize);
+        Assert.Equal(global::OfficeIMO.OfficeLength.Points(18), converted.FontSize);
         Assert.Equal("Aptos", converted.FontName);
         Assert.Equal("123456", converted.Color);
         Assert.Equal("FFF200", converted.HighlightColor);

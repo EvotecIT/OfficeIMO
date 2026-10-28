@@ -143,9 +143,9 @@ namespace OfficeIMO.PowerPoint {
             };
 
             double contentWidth = Math.Max(1D, textBox.Width.ToPoints() -
-                (textBox.TextMarginLeftPoints ?? PowerPointTextDefaults.DefaultHorizontalInsetPoints) - (textBox.TextMarginRightPoints ?? PowerPointTextDefaults.DefaultHorizontalInsetPoints));
+                (textBox.TextMarginLeft?.ToPoints() ?? PowerPointTextDefaults.DefaultHorizontalInsetPoints) - (textBox.TextMarginRight?.ToPoints() ?? PowerPointTextDefaults.DefaultHorizontalInsetPoints));
             double contentHeight = Math.Max(1D, textBox.Height.ToPoints() -
-                (textBox.TextMarginTopPoints ?? PowerPointTextDefaults.DefaultVerticalInsetPoints) - (textBox.TextMarginBottomPoints ?? PowerPointTextDefaults.DefaultVerticalInsetPoints));
+                (textBox.TextMarginTop?.ToPoints() ?? PowerPointTextDefaults.DefaultVerticalInsetPoints) - (textBox.TextMarginBottom?.ToPoints() ?? PowerPointTextDefaults.DefaultVerticalInsetPoints));
             double resolvedFontSize = authoredFontSize;
 
             if (textBox.TextAutoFit == PowerPointTextAutoFit.Normal) {
@@ -183,11 +183,11 @@ namespace OfficeIMO.PowerPoint {
             for (int paragraphIndex = 0; paragraphIndex < textBox.Paragraphs.Count; paragraphIndex++) {
                 IReadOnlyList<PowerPointTextRun> runs = textBox.Paragraphs[paragraphIndex].Runs;
                 for (int runIndex = 0; runIndex < runs.Count; runIndex++) {
-                    maximum = Math.Max(maximum, runs[runIndex].FontSize ?? 0D);
+                    maximum = Math.Max(maximum, runs[runIndex].FontSize?.ToPoints() ?? 0D);
                 }
             }
 
-            return maximum > 0D ? maximum : textBox.FontSize ?? fallback;
+            return maximum > 0D ? maximum : textBox.FontSize?.ToPoints() ?? fallback;
         }
 
         private static string ResolveFontName(PowerPointTextBox textBox) {

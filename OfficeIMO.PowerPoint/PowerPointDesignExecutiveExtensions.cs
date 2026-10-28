@@ -120,8 +120,8 @@ namespace OfficeIMO.PowerPoint {
             PowerPointExecutiveSummarySlideOptions options) {
             PowerPointLayoutBox body = new OfficeIMO.PowerPoint.PowerPointLayoutBox(OfficeIMO.OfficeLength.Centimeters(1.5),OfficeIMO.OfficeLength.Centimeters(3.65),OfficeIMO.OfficeLength.Centimeters(width - 3),OfficeIMO.OfficeLength.Centimeters(height - 5.3));
             PowerPointLayoutBox[] columns = body.SplitColumns(2,OfficeIMO.OfficeLength.Centimeters(0.75));
-            PowerPointAutoShape leadPanel = slide.AddRectangleCm(columns[0].Left.ToCentimeters(), columns[0].Top.ToCentimeters(),
-                columns[0].Width.ToCentimeters(), columns[0].Height.ToCentimeters(), "Executive Decision Panel");
+            PowerPointAutoShape leadPanel = slide.AddRectangle(columns[0].Left, columns[0].Top,
+                columns[0].Width, columns[0].Height, "Executive Decision Panel");
             leadPanel.FillColor = theme.AccentDarkColor;
             leadPanel.OutlineColor = theme.AccentDarkColor;
             string lead = string.IsNullOrWhiteSpace(content.Lead)
@@ -162,8 +162,8 @@ namespace OfficeIMO.PowerPoint {
             AddText(slide, content.Statement, columns[0].Left.ToCentimeters(), columns[0].Top.ToCentimeters() + 0.65,
                 columns[0].Width.ToCentimeters(), columns[0].Height.ToCentimeters() - 1.3, 28,
                 theme.PrimaryTextColor, theme.HeadingFontName, bold: true);
-            PowerPointAutoShape panel = slide.AddRectangleCm(columns[1].Left.ToCentimeters(), columns[1].Top.ToCentimeters(),
-                columns[1].Width.ToCentimeters(), columns[1].Height.ToCentimeters(), "Closing Action Panel");
+            PowerPointAutoShape panel = slide.AddRectangle(columns[1].Left, columns[1].Top,
+                columns[1].Width, columns[1].Height, "Closing Action Panel");
             panel.FillColor = theme.AccentColor;
             panel.OutlineColor = theme.AccentColor;
             string action = content.CallToAction ?? "Continue the conversation";

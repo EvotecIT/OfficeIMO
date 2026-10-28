@@ -1553,11 +1553,11 @@
       "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values. Also (units): change -> OfficeIMO.PowerPoint.PowerPointParagraph.SetBulletSizePoints(... OfficeLength ...)",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "scratch-candidate-unapplied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical text geometry uses OfficeLength. Canonical members preserve native EMU and hundredth-point storage; relative spacing, bullet percentages and angles retain their numeric units."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointParagraph.SetHangingCm(double centimeters)",
@@ -1570,11 +1570,11 @@
       "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "scratch-candidate-unapplied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical text geometry uses OfficeLength. Canonical members preserve native EMU and hundredth-point storage; relative spacing, bullet percentages and angles retain their numeric units."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointParagraph.SetHangingInches(double inches)",
@@ -1587,11 +1587,11 @@
       "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "scratch-candidate-unapplied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical text geometry uses OfficeLength. Canonical members preserve native EMU and hundredth-point storage; relative spacing, bullet percentages and angles retain their numeric units."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointParagraph.SetHangingPoints(double points)",
@@ -1604,11 +1604,11 @@
       "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "scratch-candidate-unapplied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical text geometry uses OfficeLength. Canonical members preserve native EMU and hundredth-point storage; relative spacing, bullet percentages and angles retain their numeric units."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointParagraph.SetIndentCm(double centimeters)",
@@ -1621,11 +1621,11 @@
       "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "scratch-candidate-unapplied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical text geometry uses OfficeLength. Canonical members preserve native EMU and hundredth-point storage; relative spacing, bullet percentages and angles retain their numeric units."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointParagraph.SetIndentInches(double inches)",
@@ -1638,11 +1638,11 @@
       "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "scratch-candidate-unapplied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical text geometry uses OfficeLength. Canonical members preserve native EMU and hundredth-point storage; relative spacing, bullet percentages and angles retain their numeric units."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointParagraph.SetIndentPoints(double points)",
@@ -1655,11 +1655,11 @@
       "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "scratch-candidate-unapplied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical text geometry uses OfficeLength. Canonical members preserve native EMU and hundredth-point storage; relative spacing, bullet percentages and angles retain their numeric units."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointParagraph.SetLeftMarginCm(double centimeters)",
@@ -1672,11 +1672,11 @@
       "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "scratch-candidate-unapplied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical text geometry uses OfficeLength. Canonical members preserve native EMU and hundredth-point storage; relative spacing, bullet percentages and angles retain their numeric units."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointParagraph.SetLeftMarginInches(double inches)",
@@ -1689,11 +1689,11 @@
       "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "scratch-candidate-unapplied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical text geometry uses OfficeLength. Canonical members preserve native EMU and hundredth-point storage; relative spacing, bullet percentages and angles retain their numeric units."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointParagraph.SetLeftMarginPoints(double points)",
@@ -1706,11 +1706,11 @@
       "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "scratch-candidate-unapplied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical text geometry uses OfficeLength. Canonical members preserve native EMU and hundredth-point storage; relative spacing, bullet percentages and angles retain their numeric units."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointParagraph.SetLineSpacingPoints(double points)",
@@ -1723,11 +1723,11 @@
       "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "scratch-candidate-unapplied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical text geometry uses OfficeLength. Canonical members preserve native EMU and hundredth-point storage; relative spacing, bullet percentages and angles retain their numeric units."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointParagraph.SetSpaceAfterPoints(double points)",
@@ -1740,11 +1740,11 @@
       "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "scratch-candidate-unapplied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical text geometry uses OfficeLength. Canonical members preserve native EMU and hundredth-point storage; relative spacing, bullet percentages and angles retain their numeric units."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointParagraph.SetSpaceBeforePoints(double points)",
@@ -1757,11 +1757,11 @@
       "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "scratch-candidate-unapplied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical text geometry uses OfficeLength. Canonical members preserve native EMU and hundredth-point storage; relative spacing, bullet percentages and angles retain their numeric units."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointParagraphStyle.WithHangingPoints(double? hangingPoints)",
@@ -1774,11 +1774,11 @@
       "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values. Also (units): change -> OfficeIMO.PowerPoint.PowerPointParagraphStyle.WithHangingPoints(... OfficeLength ...)",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "scratch-candidate-unapplied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical text geometry uses OfficeLength. Canonical members preserve native EMU and hundredth-point storage; relative spacing, bullet percentages and angles retain their numeric units."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointParagraphStyle.WithIndentPoints(double? indentPoints)",
@@ -1791,11 +1791,11 @@
       "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values. Also (units): change -> OfficeIMO.PowerPoint.PowerPointParagraphStyle.WithIndentPoints(... OfficeLength ...)",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "scratch-candidate-unapplied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical text geometry uses OfficeLength. Canonical members preserve native EMU and hundredth-point storage; relative spacing, bullet percentages and angles retain their numeric units."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointParagraphStyle.WithLeftMarginPoints(double? leftMarginPoints)",
@@ -1808,11 +1808,11 @@
       "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values. Also (units): change -> OfficeIMO.PowerPoint.PowerPointParagraphStyle.WithLeftMarginPoints(... OfficeLength ...)",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "scratch-candidate-unapplied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical text geometry uses OfficeLength. Canonical members preserve native EMU and hundredth-point storage; relative spacing, bullet percentages and angles retain their numeric units."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointParagraphStyle.WithLineSpacingPoints(double? lineSpacingPoints)",
@@ -1825,11 +1825,11 @@
       "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values. Also (units): change -> OfficeIMO.PowerPoint.PowerPointParagraphStyle.WithLineSpacingPoints(... OfficeLength ...)",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "scratch-candidate-unapplied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical text geometry uses OfficeLength. Canonical members preserve native EMU and hundredth-point storage; relative spacing, bullet percentages and angles retain their numeric units."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointParagraphStyle.WithSpaceAfterPoints(double? spaceAfterPoints)",
@@ -1842,11 +1842,11 @@
       "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values. Also (units): change -> OfficeIMO.PowerPoint.PowerPointParagraphStyle.WithSpaceAfterPoints(... OfficeLength ...)",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "scratch-candidate-unapplied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical text geometry uses OfficeLength. Canonical members preserve native EMU and hundredth-point storage; relative spacing, bullet percentages and angles retain their numeric units."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointParagraphStyle.WithSpaceBeforePoints(double? spaceBeforePoints)",
@@ -1859,11 +1859,11 @@
       "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values. Also (units): change -> OfficeIMO.PowerPoint.PowerPointParagraphStyle.WithSpaceBeforePoints(... OfficeLength ...)",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "scratch-candidate-unapplied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical text geometry uses OfficeLength. Canonical members preserve native EMU and hundredth-point storage; relative spacing, bullet percentages and angles retain their numeric units."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointPresentation.AddColumnGuidesCm(int columnCount, double marginCm, double gutterCm, bool includeOuterEdges = True, bool clearExisting = False)",
@@ -2020,11 +2020,11 @@
       "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values. Also (units): change -> OfficeIMO.PowerPoint.PowerPointDocument.SetLayoutPlaceholderTextMarginsCm(... OfficeLength ...)",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "scratch-candidate-unapplied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B.",
+      "applied": "phase-b-applied",
+      "note": "Physical text geometry uses OfficeLength. Canonical members preserve native EMU and hundredth-point storage; relative spacing, bullet percentages and angles retain their numeric units.",
       "currentFile": "OfficeIMO.PowerPoint/PowerPointDocument.Layouts.cs"
     },
     {
@@ -2038,11 +2038,11 @@
       "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values. Also (units): change -> OfficeIMO.PowerPoint.PowerPointDocument.SetLayoutPlaceholderTextMarginsInches(... OfficeLength ...)",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "scratch-candidate-unapplied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B.",
+      "applied": "phase-b-applied",
+      "note": "Physical text geometry uses OfficeLength. Canonical members preserve native EMU and hundredth-point storage; relative spacing, bullet percentages and angles retain their numeric units.",
       "currentFile": "OfficeIMO.PowerPoint/PowerPointDocument.Layouts.cs"
     },
     {
@@ -2056,11 +2056,11 @@
       "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values. Also (units): change -> OfficeIMO.PowerPoint.PowerPointDocument.SetLayoutPlaceholderTextMarginsPoints(... OfficeLength ...)",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "scratch-candidate-unapplied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B.",
+      "applied": "phase-b-applied",
+      "note": "Physical text geometry uses OfficeLength. Canonical members preserve native EMU and hundredth-point storage; relative spacing, bullet percentages and angles retain their numeric units.",
       "currentFile": "OfficeIMO.PowerPoint/PowerPointDocument.Layouts.cs"
     },
     {
@@ -2424,205 +2424,265 @@
       "old": "OfficeIMO.PowerPoint.PowerPointSlide.AddEllipseCm(double leftCm, double topCm, double widthCm, double heightCm, string name = null)",
       "kind": "method",
       "action": "merge",
-      "new": "OfficeIMO.PowerPoint.PowerPointSlide.AddEllipse(... OfficeLength ...)",
+      "new": "OfficeIMO.PowerPoint.PowerPointSlide.AddEllipse(OfficeLength left, OfficeLength top, OfficeLength width, OfficeLength height, string name = null)",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.PowerPoint/PowerPointSlide.Shapes.cs",
       "category": "units",
-      "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values. Also (units): change -> OfficeIMO.PowerPoint.PowerPointSlide.AddEllipseCm(... OfficeLength ...)",
+      "notes": "Placement uses OfficeLength; omitted nullable bounds preserve the existing native EMU defaults. Unit-specific twins consolidate into the canonical method. Native drawing kernels extract EMUs explicitly.",
       "implementation": {
         "phase": "B",
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B.",
+      "candidate": {
+        "status": "scratch-only-unapplied",
+        "scope": "remaining-slide-shape-media-placement",
+        "sourceHead": "5080d2e54b2b7fc3764493d04d13b7a306868354"
+      }
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlide.AddEllipseInches(double leftInches, double topInches, double widthInches, double heightInches, string name = null)",
       "kind": "method",
       "action": "merge",
-      "new": "OfficeIMO.PowerPoint.PowerPointSlide.AddEllipse(... OfficeLength ...)",
+      "new": "OfficeIMO.PowerPoint.PowerPointSlide.AddEllipse(OfficeLength left, OfficeLength top, OfficeLength width, OfficeLength height, string name = null)",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.PowerPoint/PowerPointSlide.Shapes.cs",
       "category": "units",
-      "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values. Also (units): change -> OfficeIMO.PowerPoint.PowerPointSlide.AddEllipseInches(... OfficeLength ...)",
+      "notes": "Placement uses OfficeLength; omitted nullable bounds preserve the existing native EMU defaults. Unit-specific twins consolidate into the canonical method. Native drawing kernels extract EMUs explicitly.",
       "implementation": {
         "phase": "B",
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B.",
+      "candidate": {
+        "status": "scratch-only-unapplied",
+        "scope": "remaining-slide-shape-media-placement",
+        "sourceHead": "5080d2e54b2b7fc3764493d04d13b7a306868354"
+      }
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlide.AddEllipsePoints(double leftPoints, double topPoints, double widthPoints, double heightPoints, string name = null)",
       "kind": "method",
       "action": "merge",
-      "new": "OfficeIMO.PowerPoint.PowerPointSlide.AddEllipse(... OfficeLength ...)",
+      "new": "OfficeIMO.PowerPoint.PowerPointSlide.AddEllipse(OfficeLength left, OfficeLength top, OfficeLength width, OfficeLength height, string name = null)",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.PowerPoint/PowerPointSlide.Shapes.cs",
       "category": "units",
-      "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values. Also (units): change -> OfficeIMO.PowerPoint.PowerPointSlide.AddEllipsePoints(... OfficeLength ...)",
+      "notes": "Placement uses OfficeLength; omitted nullable bounds preserve the existing native EMU defaults. Unit-specific twins consolidate into the canonical method. Native drawing kernels extract EMUs explicitly.",
       "implementation": {
         "phase": "B",
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B.",
+      "candidate": {
+        "status": "scratch-only-unapplied",
+        "scope": "remaining-slide-shape-media-placement",
+        "sourceHead": "5080d2e54b2b7fc3764493d04d13b7a306868354"
+      }
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlide.AddLineCm(double startXCm, double startYCm, double endXCm, double endYCm, string name = null)",
       "kind": "method",
       "action": "merge",
-      "new": "OfficeIMO.PowerPoint.PowerPointSlide.AddLine(... OfficeLength ...)",
+      "new": "OfficeIMO.PowerPoint.PowerPointSlide.AddLine(OfficeLength startX, OfficeLength startY, OfficeLength endX, OfficeLength endY, string name = null)",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.PowerPoint/PowerPointSlide.Shapes.cs",
       "category": "units",
-      "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values. Also (units): change -> OfficeIMO.PowerPoint.PowerPointSlide.AddLineCm(... OfficeLength ...)",
+      "notes": "Placement uses OfficeLength; omitted nullable bounds preserve the existing native EMU defaults. Unit-specific twins consolidate into the canonical method. Native drawing kernels extract EMUs explicitly.",
       "implementation": {
         "phase": "B",
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B.",
+      "candidate": {
+        "status": "scratch-only-unapplied",
+        "scope": "remaining-slide-shape-media-placement",
+        "sourceHead": "5080d2e54b2b7fc3764493d04d13b7a306868354"
+      }
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlide.AddLineInches(double startXInches, double startYInches, double endXInches, double endYInches, string name = null)",
       "kind": "method",
       "action": "merge",
-      "new": "OfficeIMO.PowerPoint.PowerPointSlide.AddLine(... OfficeLength ...)",
+      "new": "OfficeIMO.PowerPoint.PowerPointSlide.AddLine(OfficeLength startX, OfficeLength startY, OfficeLength endX, OfficeLength endY, string name = null)",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.PowerPoint/PowerPointSlide.Shapes.cs",
       "category": "units",
-      "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values. Also (units): change -> OfficeIMO.PowerPoint.PowerPointSlide.AddLineInches(... OfficeLength ...)",
+      "notes": "Placement uses OfficeLength; omitted nullable bounds preserve the existing native EMU defaults. Unit-specific twins consolidate into the canonical method. Native drawing kernels extract EMUs explicitly.",
       "implementation": {
         "phase": "B",
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B.",
+      "candidate": {
+        "status": "scratch-only-unapplied",
+        "scope": "remaining-slide-shape-media-placement",
+        "sourceHead": "5080d2e54b2b7fc3764493d04d13b7a306868354"
+      }
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlide.AddLinePoints(double startXPoints, double startYPoints, double endXPoints, double endYPoints, string name = null)",
       "kind": "method",
       "action": "merge",
-      "new": "OfficeIMO.PowerPoint.PowerPointSlide.AddLine(... OfficeLength ...)",
+      "new": "OfficeIMO.PowerPoint.PowerPointSlide.AddLine(OfficeLength startX, OfficeLength startY, OfficeLength endX, OfficeLength endY, string name = null)",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.PowerPoint/PowerPointSlide.Shapes.cs",
       "category": "units",
-      "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values. Also (units): change -> OfficeIMO.PowerPoint.PowerPointSlide.AddLinePoints(... OfficeLength ...)",
+      "notes": "Placement uses OfficeLength; omitted nullable bounds preserve the existing native EMU defaults. Unit-specific twins consolidate into the canonical method. Native drawing kernels extract EMUs explicitly.",
       "implementation": {
         "phase": "B",
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B.",
+      "candidate": {
+        "status": "scratch-only-unapplied",
+        "scope": "remaining-slide-shape-media-placement",
+        "sourceHead": "5080d2e54b2b7fc3764493d04d13b7a306868354"
+      }
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlide.AddRectangleCm(double leftCm, double topCm, double widthCm, double heightCm, string name = null)",
       "kind": "method",
       "action": "merge",
-      "new": "OfficeIMO.PowerPoint.PowerPointSlide.AddRectangle(... OfficeLength ...)",
+      "new": "OfficeIMO.PowerPoint.PowerPointSlide.AddRectangle(OfficeLength left, OfficeLength top, OfficeLength width, OfficeLength height, string name = null)",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.PowerPoint/PowerPointSlide.Shapes.cs",
       "category": "units",
-      "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values. Also (units): change -> OfficeIMO.PowerPoint.PowerPointSlide.AddRectangleCm(... OfficeLength ...)",
+      "notes": "Placement uses OfficeLength; omitted nullable bounds preserve the existing native EMU defaults. Unit-specific twins consolidate into the canonical method. Native drawing kernels extract EMUs explicitly.",
       "implementation": {
         "phase": "B",
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B.",
+      "candidate": {
+        "status": "scratch-only-unapplied",
+        "scope": "remaining-slide-shape-media-placement",
+        "sourceHead": "5080d2e54b2b7fc3764493d04d13b7a306868354"
+      }
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlide.AddRectangleInches(double leftInches, double topInches, double widthInches, double heightInches, string name = null)",
       "kind": "method",
       "action": "merge",
-      "new": "OfficeIMO.PowerPoint.PowerPointSlide.AddRectangle(... OfficeLength ...)",
+      "new": "OfficeIMO.PowerPoint.PowerPointSlide.AddRectangle(OfficeLength left, OfficeLength top, OfficeLength width, OfficeLength height, string name = null)",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.PowerPoint/PowerPointSlide.Shapes.cs",
       "category": "units",
-      "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values. Also (units): change -> OfficeIMO.PowerPoint.PowerPointSlide.AddRectangleInches(... OfficeLength ...)",
+      "notes": "Placement uses OfficeLength; omitted nullable bounds preserve the existing native EMU defaults. Unit-specific twins consolidate into the canonical method. Native drawing kernels extract EMUs explicitly.",
       "implementation": {
         "phase": "B",
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B.",
+      "candidate": {
+        "status": "scratch-only-unapplied",
+        "scope": "remaining-slide-shape-media-placement",
+        "sourceHead": "5080d2e54b2b7fc3764493d04d13b7a306868354"
+      }
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlide.AddRectanglePoints(double leftPoints, double topPoints, double widthPoints, double heightPoints, string name = null)",
       "kind": "method",
       "action": "merge",
-      "new": "OfficeIMO.PowerPoint.PowerPointSlide.AddRectangle(... OfficeLength ...)",
+      "new": "OfficeIMO.PowerPoint.PowerPointSlide.AddRectangle(OfficeLength left, OfficeLength top, OfficeLength width, OfficeLength height, string name = null)",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.PowerPoint/PowerPointSlide.Shapes.cs",
       "category": "units",
-      "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values. Also (units): change -> OfficeIMO.PowerPoint.PowerPointSlide.AddRectanglePoints(... OfficeLength ...)",
+      "notes": "Placement uses OfficeLength; omitted nullable bounds preserve the existing native EMU defaults. Unit-specific twins consolidate into the canonical method. Native drawing kernels extract EMUs explicitly.",
       "implementation": {
         "phase": "B",
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B.",
+      "candidate": {
+        "status": "scratch-only-unapplied",
+        "scope": "remaining-slide-shape-media-placement",
+        "sourceHead": "5080d2e54b2b7fc3764493d04d13b7a306868354"
+      }
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlide.AddShapeCm(OfficePresetShapeType shapeType, double leftCm, double topCm, double widthCm, double heightCm, string name = null)",
       "kind": "method",
       "action": "merge",
-      "new": "OfficeIMO.PowerPoint.PowerPointSlide.AddShape(... OfficeLength ...)",
+      "new": "OfficeIMO.PowerPoint.PowerPointSlide.AddShape(OfficePresetShapeType shapeType, OfficeLength? left = null, OfficeLength? top = null, OfficeLength? width = null, OfficeLength? height = null, string name = null)",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.PowerPoint/PowerPointSlide.Shapes.cs",
       "category": "units",
-      "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values. Also (units): change -> OfficeIMO.PowerPoint.PowerPointSlide.AddShapeCm(... OfficeLength ...)",
+      "notes": "Placement uses OfficeLength; omitted nullable bounds preserve the existing native EMU defaults. Unit-specific twins consolidate into the canonical method. Native drawing kernels extract EMUs explicitly.",
       "implementation": {
         "phase": "B",
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B.",
+      "candidate": {
+        "status": "scratch-only-unapplied",
+        "scope": "remaining-slide-shape-media-placement",
+        "sourceHead": "5080d2e54b2b7fc3764493d04d13b7a306868354"
+      }
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlide.AddShapeInches(OfficePresetShapeType shapeType, double leftInches, double topInches, double widthInches, double heightInches, string name = null)",
       "kind": "method",
       "action": "merge",
-      "new": "OfficeIMO.PowerPoint.PowerPointSlide.AddShape(... OfficeLength ...)",
+      "new": "OfficeIMO.PowerPoint.PowerPointSlide.AddShape(OfficePresetShapeType shapeType, OfficeLength? left = null, OfficeLength? top = null, OfficeLength? width = null, OfficeLength? height = null, string name = null)",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.PowerPoint/PowerPointSlide.Shapes.cs",
       "category": "units",
-      "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values. Also (units): change -> OfficeIMO.PowerPoint.PowerPointSlide.AddShapeInches(... OfficeLength ...)",
+      "notes": "Placement uses OfficeLength; omitted nullable bounds preserve the existing native EMU defaults. Unit-specific twins consolidate into the canonical method. Native drawing kernels extract EMUs explicitly.",
       "implementation": {
         "phase": "B",
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B.",
+      "candidate": {
+        "status": "scratch-only-unapplied",
+        "scope": "remaining-slide-shape-media-placement",
+        "sourceHead": "5080d2e54b2b7fc3764493d04d13b7a306868354"
+      }
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlide.AddShapePoints(OfficePresetShapeType shapeType, double leftPoints, double topPoints, double widthPoints, double heightPoints, string name = null)",
       "kind": "method",
       "action": "merge",
-      "new": "OfficeIMO.PowerPoint.PowerPointSlide.AddShape(... OfficeLength ...)",
+      "new": "OfficeIMO.PowerPoint.PowerPointSlide.AddShape(OfficePresetShapeType shapeType, OfficeLength? left = null, OfficeLength? top = null, OfficeLength? width = null, OfficeLength? height = null, string name = null)",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.PowerPoint/PowerPointSlide.Shapes.cs",
       "category": "units",
-      "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values. Also (units): change -> OfficeIMO.PowerPoint.PowerPointSlide.AddShapePoints(... OfficeLength ...)",
+      "notes": "Placement uses OfficeLength; omitted nullable bounds preserve the existing native EMU defaults. Unit-specific twins consolidate into the canonical method. Native drawing kernels extract EMUs explicitly.",
       "implementation": {
         "phase": "B",
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B.",
+      "candidate": {
+        "status": "scratch-only-unapplied",
+        "scope": "remaining-slide-shape-media-placement",
+        "sourceHead": "5080d2e54b2b7fc3764493d04d13b7a306868354"
+      }
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlide.AddTableCm(int rows, int columns, double leftCm, double topCm, double widthCm, double heightCm)",
@@ -2730,52 +2790,67 @@
       "old": "OfficeIMO.PowerPoint.PowerPointSlide.AddTextShapeCm(OfficePresetShapeType shapeType, string text, double leftCm, double topCm, double widthCm, double heightCm, string name = null)",
       "kind": "method",
       "action": "merge",
-      "new": "OfficeIMO.PowerPoint.PowerPointSlide.AddTextShape(... OfficeLength ...)",
+      "new": "OfficeIMO.PowerPoint.PowerPointSlide.AddTextShape(OfficePresetShapeType shapeType, string text, OfficeLength? left = null, OfficeLength? top = null, OfficeLength? width = null, OfficeLength? height = null, string name = null)",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.PowerPoint/PowerPointSlide.TextShapes.cs",
       "category": "units",
-      "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values. Also (units): change -> OfficeIMO.PowerPoint.PowerPointSlide.AddTextShapeCm(... OfficeLength ...)",
+      "notes": "Placement uses OfficeLength; omitted nullable bounds preserve the existing native EMU defaults. Unit-specific twins consolidate into the canonical method. Native drawing kernels extract EMUs explicitly.",
       "implementation": {
         "phase": "B",
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B.",
+      "candidate": {
+        "status": "scratch-only-unapplied",
+        "scope": "remaining-slide-shape-media-placement",
+        "sourceHead": "5080d2e54b2b7fc3764493d04d13b7a306868354"
+      }
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlide.AddTextShapeInches(OfficePresetShapeType shapeType, string text, double leftInches, double topInches, double widthInches, double heightInches, string name = null)",
       "kind": "method",
       "action": "merge",
-      "new": "OfficeIMO.PowerPoint.PowerPointSlide.AddTextShape(... OfficeLength ...)",
+      "new": "OfficeIMO.PowerPoint.PowerPointSlide.AddTextShape(OfficePresetShapeType shapeType, string text, OfficeLength? left = null, OfficeLength? top = null, OfficeLength? width = null, OfficeLength? height = null, string name = null)",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.PowerPoint/PowerPointSlide.TextShapes.cs",
       "category": "units",
-      "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values. Also (units): change -> OfficeIMO.PowerPoint.PowerPointSlide.AddTextShapeInches(... OfficeLength ...)",
+      "notes": "Placement uses OfficeLength; omitted nullable bounds preserve the existing native EMU defaults. Unit-specific twins consolidate into the canonical method. Native drawing kernels extract EMUs explicitly.",
       "implementation": {
         "phase": "B",
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B.",
+      "candidate": {
+        "status": "scratch-only-unapplied",
+        "scope": "remaining-slide-shape-media-placement",
+        "sourceHead": "5080d2e54b2b7fc3764493d04d13b7a306868354"
+      }
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlide.AddTextShapePoints(OfficePresetShapeType shapeType, string text, double leftPoints, double topPoints, double widthPoints, double heightPoints, string name = null)",
       "kind": "method",
       "action": "merge",
-      "new": "OfficeIMO.PowerPoint.PowerPointSlide.AddTextShape(... OfficeLength ...)",
+      "new": "OfficeIMO.PowerPoint.PowerPointSlide.AddTextShape(OfficePresetShapeType shapeType, string text, OfficeLength? left = null, OfficeLength? top = null, OfficeLength? width = null, OfficeLength? height = null, string name = null)",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.PowerPoint/PowerPointSlide.TextShapes.cs",
       "category": "units",
-      "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values. Also (units): change -> OfficeIMO.PowerPoint.PowerPointSlide.AddTextShapePoints(... OfficeLength ...)",
+      "notes": "Placement uses OfficeLength; omitted nullable bounds preserve the existing native EMU defaults. Unit-specific twins consolidate into the canonical method. Native drawing kernels extract EMUs explicitly.",
       "implementation": {
         "phase": "B",
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B.",
+      "candidate": {
+        "status": "scratch-only-unapplied",
+        "scope": "remaining-slide-shape-media-placement",
+        "sourceHead": "5080d2e54b2b7fc3764493d04d13b7a306868354"
+      }
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlide.AddTitleCm(string text, double leftCm, double topCm, double widthCm, double heightCm)",
@@ -3995,11 +4070,11 @@
       "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values. Also (units): change -> OfficeIMO.PowerPoint.PowerPointTable.SetCellPaddingCm(... OfficeLength ...)",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "scratch-candidate-unapplied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical text geometry uses OfficeLength. Canonical members preserve native EMU and hundredth-point storage; relative spacing, bullet percentages and angles retain their numeric units."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointTable.SetCellPaddingInches(double? leftInches, double? topInches, double? rightInches, double? bottomInches)",
@@ -4012,11 +4087,11 @@
       "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values. Also (units): change -> OfficeIMO.PowerPoint.PowerPointTable.SetCellPaddingInches(... OfficeLength ...)",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "scratch-candidate-unapplied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical text geometry uses OfficeLength. Canonical members preserve native EMU and hundredth-point storage; relative spacing, bullet percentages and angles retain their numeric units."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointTable.SetCellPaddingPoints(double? left, double? top, double? right, double? bottom)",
@@ -4029,11 +4104,11 @@
       "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "scratch-candidate-unapplied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical text geometry uses OfficeLength. Canonical members preserve native EMU and hundredth-point storage; relative spacing, bullet percentages and angles retain their numeric units."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointTable.SetCellPaddingPoints(double? left, double? top, double? right, double? bottom, int startRow, int endRow, int startColumn, int endColumn)",
@@ -4046,11 +4121,11 @@
       "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "scratch-candidate-unapplied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical text geometry uses OfficeLength. Canonical members preserve native EMU and hundredth-point storage; relative spacing, bullet percentages and angles retain their numeric units."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointTable.SetColumnWidthCm(int columnIndex, double widthCm)",
@@ -4318,11 +4393,11 @@
       "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values. Also (units): change -> OfficeIMO.PowerPoint.PowerPointTextBox.SetTextMarginsCm(... OfficeLength ...)",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "scratch-candidate-unapplied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical text geometry uses OfficeLength. Canonical members preserve native EMU and hundredth-point storage; relative spacing, bullet percentages and angles retain their numeric units."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointTextBox.SetTextMarginsInches(double leftInches, double topInches, double rightInches, double bottomInches)",
@@ -4335,11 +4410,11 @@
       "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values. Also (units): change -> OfficeIMO.PowerPoint.PowerPointTextBox.SetTextMarginsInches(... OfficeLength ...)",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "scratch-candidate-unapplied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical text geometry uses OfficeLength. Canonical members preserve native EMU and hundredth-point storage; relative spacing, bullet percentages and angles retain their numeric units."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointTextBox.SetTextMarginsPoints(double left, double top, double right, double bottom)",
@@ -4352,11 +4427,11 @@
       "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "scratch-candidate-unapplied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical text geometry uses OfficeLength. Canonical members preserve native EMU and hundredth-point storage; relative spacing, bullet percentages and angles retain their numeric units."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointUnits.FromInches(double inches)",
@@ -4517,35 +4592,45 @@
       "old": "OfficeIMO.PowerPoint.PowerPointSlide.AddAudio(Stream audio, string contentType, string extension, long left = 0, long top = 0, long width = 914400, long height = 914400)",
       "kind": "method",
       "action": "change",
-      "new": "OfficeIMO.PowerPoint.PowerPointSlide.AddAudio(... OfficeLength left, OfficeLength top, OfficeLength width, OfficeLength height ...)",
+      "new": "OfficeIMO.PowerPoint.PowerPointSlide.AddAudio(Stream audio, string contentType, string extension, OfficeLength? left = null, OfficeLength? top = null, OfficeLength? width = null, OfficeLength? height = null)",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.PowerPoint/PowerPointSlide.Media.cs",
       "category": "units",
-      "notes": "Raw EMU long geometry parameters with EMU defaults.",
+      "notes": "Placement uses OfficeLength; omitted nullable bounds preserve the existing native EMU defaults. Unit-specific twins consolidate into the canonical method. Native drawing kernels extract EMUs explicitly.",
       "implementation": {
         "phase": "B",
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B.",
+      "candidate": {
+        "status": "scratch-only-unapplied",
+        "scope": "remaining-slide-shape-media-placement",
+        "sourceHead": "5080d2e54b2b7fc3764493d04d13b7a306868354"
+      }
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlide.AddAudio(string audioPath, long left = 0, long top = 0, long width = 914400, long height = 914400)",
       "kind": "method",
       "action": "change",
-      "new": "OfficeIMO.PowerPoint.PowerPointSlide.AddAudio(... OfficeLength left, OfficeLength top, OfficeLength width, OfficeLength height ...)",
+      "new": "OfficeIMO.PowerPoint.PowerPointSlide.AddAudio(string audioPath, OfficeLength? left = null, OfficeLength? top = null, OfficeLength? width = null, OfficeLength? height = null)",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.PowerPoint/PowerPointSlide.Media.cs",
       "category": "units",
-      "notes": "Raw EMU long geometry parameters with EMU defaults.",
+      "notes": "Placement uses OfficeLength; omitted nullable bounds preserve the existing native EMU defaults. Unit-specific twins consolidate into the canonical method. Native drawing kernels extract EMUs explicitly.",
       "implementation": {
         "phase": "B",
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B.",
+      "candidate": {
+        "status": "scratch-only-unapplied",
+        "scope": "remaining-slide-shape-media-placement",
+        "sourceHead": "5080d2e54b2b7fc3764493d04d13b7a306868354"
+      }
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlide.AddCustomGeometry(OfficeShape geometry, long left, long top, long width, long height, string name = null)",
@@ -4568,154 +4653,199 @@
       "old": "OfficeIMO.PowerPoint.PowerPointSlide.AddEllipse(long left, long top, long width, long height, string name = null)",
       "kind": "method",
       "action": "change",
-      "new": "OfficeIMO.PowerPoint.PowerPointSlide.AddEllipse(... OfficeLength left, OfficeLength top, OfficeLength width, OfficeLength height ...)",
+      "new": "OfficeIMO.PowerPoint.PowerPointSlide.AddEllipse(OfficeLength left, OfficeLength top, OfficeLength width, OfficeLength height, string name = null)",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.PowerPoint/PowerPointSlide.Shapes.cs",
       "category": "units",
-      "notes": "Raw EMU long geometry parameters with EMU defaults.",
+      "notes": "Placement uses OfficeLength; omitted nullable bounds preserve the existing native EMU defaults. Unit-specific twins consolidate into the canonical method. Native drawing kernels extract EMUs explicitly.",
       "implementation": {
         "phase": "B",
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B.",
+      "candidate": {
+        "status": "scratch-only-unapplied",
+        "scope": "remaining-slide-shape-media-placement",
+        "sourceHead": "5080d2e54b2b7fc3764493d04d13b7a306868354"
+      }
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlide.AddLinkedAudio(Uri source, long left = 0, long top = 0, long width = 914400, long height = 914400)",
       "kind": "method",
       "action": "change",
-      "new": "OfficeIMO.PowerPoint.PowerPointSlide.AddLinkedAudio(... OfficeLength left, OfficeLength top, OfficeLength width, OfficeLength height ...)",
+      "new": "OfficeIMO.PowerPoint.PowerPointSlide.AddLinkedAudio(Uri source, OfficeLength? left = null, OfficeLength? top = null, OfficeLength? width = null, OfficeLength? height = null)",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.PowerPoint/PowerPointSlide.Media.cs",
       "category": "units",
-      "notes": "Raw EMU long geometry parameters with EMU defaults.",
+      "notes": "Placement uses OfficeLength; omitted nullable bounds preserve the existing native EMU defaults. Unit-specific twins consolidate into the canonical method. Native drawing kernels extract EMUs explicitly.",
       "implementation": {
         "phase": "B",
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B.",
+      "candidate": {
+        "status": "scratch-only-unapplied",
+        "scope": "remaining-slide-shape-media-placement",
+        "sourceHead": "5080d2e54b2b7fc3764493d04d13b7a306868354"
+      }
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlide.AddLinkedOleObject(Uri source, string progId, bool autoUpdate = False, long left = 0, long top = 0, long width = 2743200, long height = 1828800)",
       "kind": "method",
       "action": "change",
-      "new": "OfficeIMO.PowerPoint.PowerPointSlide.AddLinkedOleObject(... OfficeLength left, OfficeLength top, OfficeLength width, OfficeLength height ...)",
+      "new": "OfficeIMO.PowerPoint.PowerPointSlide.AddLinkedOleObject(Uri source, string progId, bool autoUpdate = False, OfficeLength? left = null, OfficeLength? top = null, OfficeLength? width = null, OfficeLength? height = null)",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.PowerPoint/PowerPointSlide.OleObjects.cs",
       "category": "units",
-      "notes": "Raw EMU long geometry parameters with EMU defaults.",
+      "notes": "Placement uses OfficeLength; omitted nullable bounds preserve the existing native EMU defaults. Unit-specific twins consolidate into the canonical method. Native drawing kernels extract EMUs explicitly.",
       "implementation": {
         "phase": "B",
         "status": "pending-phase-b"
       },
       "phase": "B",
       "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B.",
+      "candidate": {
+        "status": "scratch-only-unapplied",
+        "scope": "remaining-slide-shape-media-placement",
+        "sourceHead": "5080d2e54b2b7fc3764493d04d13b7a306868354"
+      }
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlide.AddLinkedVideo(Uri source, long left = 0, long top = 0, long width = 3657600, long height = 2057400)",
       "kind": "method",
       "action": "change",
-      "new": "OfficeIMO.PowerPoint.PowerPointSlide.AddLinkedVideo(... OfficeLength left, OfficeLength top, OfficeLength width, OfficeLength height ...)",
+      "new": "OfficeIMO.PowerPoint.PowerPointSlide.AddLinkedVideo(Uri source, OfficeLength? left = null, OfficeLength? top = null, OfficeLength? width = null, OfficeLength? height = null)",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.PowerPoint/PowerPointSlide.Media.cs",
       "category": "units",
-      "notes": "Raw EMU long geometry parameters with EMU defaults.",
+      "notes": "Placement uses OfficeLength; omitted nullable bounds preserve the existing native EMU defaults. Unit-specific twins consolidate into the canonical method. Native drawing kernels extract EMUs explicitly.",
       "implementation": {
         "phase": "B",
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B.",
+      "candidate": {
+        "status": "scratch-only-unapplied",
+        "scope": "remaining-slide-shape-media-placement",
+        "sourceHead": "5080d2e54b2b7fc3764493d04d13b7a306868354"
+      }
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlide.AddOleObject(Stream storage, string progId, long left = 0, long top = 0, long width = 2743200, long height = 1828800, string contentType = application/vnd.openxmlformats-officedocument.oleObject)",
       "kind": "method",
       "action": "change",
-      "new": "OfficeIMO.PowerPoint.PowerPointSlide.AddOleObject(... OfficeLength left, OfficeLength top, OfficeLength width, OfficeLength height ...)",
+      "new": "OfficeIMO.PowerPoint.PowerPointSlide.AddOleObject(Stream storage, string progId, OfficeLength? left = null, OfficeLength? top = null, OfficeLength? width = null, OfficeLength? height = null, string contentType = application/vnd.openxmlformats-officedocument.oleObject)",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.PowerPoint/PowerPointSlide.OleObjects.cs",
       "category": "units",
-      "notes": "Raw EMU long geometry parameters with EMU defaults.",
+      "notes": "Placement uses OfficeLength; omitted nullable bounds preserve the existing native EMU defaults. Unit-specific twins consolidate into the canonical method. Native drawing kernels extract EMUs explicitly.",
       "implementation": {
         "phase": "B",
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B.",
+      "candidate": {
+        "status": "scratch-only-unapplied",
+        "scope": "remaining-slide-shape-media-placement",
+        "sourceHead": "5080d2e54b2b7fc3764493d04d13b7a306868354"
+      }
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlide.AddRectangle(long left, long top, long width, long height, string name = null)",
       "kind": "method",
       "action": "change",
-      "new": "OfficeIMO.PowerPoint.PowerPointSlide.AddRectangle(... OfficeLength left, OfficeLength top, OfficeLength width, OfficeLength height ...)",
+      "new": "OfficeIMO.PowerPoint.PowerPointSlide.AddRectangle(OfficeLength left, OfficeLength top, OfficeLength width, OfficeLength height, string name = null)",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.PowerPoint/PowerPointSlide.Shapes.cs",
       "category": "units",
-      "notes": "Raw EMU long geometry parameters with EMU defaults.",
+      "notes": "Placement uses OfficeLength; omitted nullable bounds preserve the existing native EMU defaults. Unit-specific twins consolidate into the canonical method. Native drawing kernels extract EMUs explicitly.",
       "implementation": {
         "phase": "B",
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B.",
+      "candidate": {
+        "status": "scratch-only-unapplied",
+        "scope": "remaining-slide-shape-media-placement",
+        "sourceHead": "5080d2e54b2b7fc3764493d04d13b7a306868354"
+      }
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlide.AddShape(OfficePresetShapeType shapeType, long left = 0, long top = 0, long width = 914400, long height = 914400, string name = null)",
       "kind": "method",
       "action": "change",
-      "new": "OfficeIMO.PowerPoint.PowerPointSlide.AddShape(... OfficeLength left, OfficeLength top, OfficeLength width, OfficeLength height ...)",
+      "new": "OfficeIMO.PowerPoint.PowerPointSlide.AddShape(OfficePresetShapeType shapeType, OfficeLength? left = null, OfficeLength? top = null, OfficeLength? width = null, OfficeLength? height = null, string name = null)",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.PowerPoint/PowerPointSlide.Shapes.cs",
       "category": "units",
-      "notes": "Raw EMU long geometry parameters with EMU defaults.",
+      "notes": "Placement uses OfficeLength; omitted nullable bounds preserve the existing native EMU defaults. Unit-specific twins consolidate into the canonical method. Native drawing kernels extract EMUs explicitly.",
       "implementation": {
         "phase": "B",
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B.",
+      "candidate": {
+        "status": "scratch-only-unapplied",
+        "scope": "remaining-slide-shape-media-placement",
+        "sourceHead": "5080d2e54b2b7fc3764493d04d13b7a306868354"
+      }
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlide.AddSmartArt(PowerPointSmartArtType type = BasicProcess, long left = 0, long top = 0, long width = 5486400, long height = 3200400)",
       "kind": "method",
       "action": "change",
-      "new": "OfficeIMO.PowerPoint.PowerPointSlide.AddSmartArt(... OfficeLength left, OfficeLength top, OfficeLength width, OfficeLength height ...)",
+      "new": "OfficeIMO.PowerPoint.PowerPointSlide.AddSmartArt(PowerPointSmartArtType type = BasicProcess, OfficeLength? left = null, OfficeLength? top = null, OfficeLength? width = null, OfficeLength? height = null)",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.PowerPoint/PowerPointSlide.SmartArt.cs",
       "category": "units",
-      "notes": "Raw EMU long geometry parameters with EMU defaults.",
+      "notes": "Placement uses OfficeLength; omitted nullable bounds preserve the existing native EMU defaults. Unit-specific twins consolidate into the canonical method. Native drawing kernels extract EMUs explicitly.",
       "implementation": {
         "phase": "B",
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B.",
+      "candidate": {
+        "status": "scratch-only-unapplied",
+        "scope": "remaining-slide-shape-media-placement",
+        "sourceHead": "5080d2e54b2b7fc3764493d04d13b7a306868354"
+      }
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlide.AddSmartArt(PowerPointSmartArtType type, IEnumerable<string> nodeTexts, long left = 0, long top = 0, long width = 5486400, long height = 3200400)",
       "kind": "method",
       "action": "change",
-      "new": "OfficeIMO.PowerPoint.PowerPointSlide.AddSmartArt(... OfficeLength left, OfficeLength top, OfficeLength width, OfficeLength height ...)",
+      "new": "OfficeIMO.PowerPoint.PowerPointSlide.AddSmartArt(PowerPointSmartArtType type, IEnumerable<string> nodeTexts, OfficeLength? left = null, OfficeLength? top = null, OfficeLength? width = null, OfficeLength? height = null)",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.PowerPoint/PowerPointSlide.SmartArt.cs",
       "category": "units",
-      "notes": "Raw EMU long geometry parameters with EMU defaults.",
+      "notes": "Placement uses OfficeLength; omitted nullable bounds preserve the existing native EMU defaults. Unit-specific twins consolidate into the canonical method. Native drawing kernels extract EMUs explicitly.",
       "implementation": {
         "phase": "B",
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B.",
+      "candidate": {
+        "status": "scratch-only-unapplied",
+        "scope": "remaining-slide-shape-media-placement",
+        "sourceHead": "5080d2e54b2b7fc3764493d04d13b7a306868354"
+      }
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlide.AddTable(int rows, int columns, PowerPointTableStylePreset preset, long left = 0, long top = 0, long width = 5000000, long height = 3000000)",
@@ -4857,18 +4987,23 @@
       "old": "OfficeIMO.PowerPoint.PowerPointSlide.AddTextShape(OfficePresetShapeType shapeType, string text, long left = 0, long top = 0, long width = 914400, long height = 914400, string name = null)",
       "kind": "method",
       "action": "change",
-      "new": "OfficeIMO.PowerPoint.PowerPointSlide.AddTextShape(... OfficeLength left, OfficeLength top, OfficeLength width, OfficeLength height ...)",
+      "new": "OfficeIMO.PowerPoint.PowerPointSlide.AddTextShape(OfficePresetShapeType shapeType, string text, OfficeLength? left = null, OfficeLength? top = null, OfficeLength? width = null, OfficeLength? height = null, string name = null)",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.PowerPoint/PowerPointSlide.TextShapes.cs",
       "category": "units",
-      "notes": "Raw EMU long geometry parameters with EMU defaults.",
+      "notes": "Placement uses OfficeLength; omitted nullable bounds preserve the existing native EMU defaults. Unit-specific twins consolidate into the canonical method. Native drawing kernels extract EMUs explicitly.",
       "implementation": {
         "phase": "B",
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B.",
+      "candidate": {
+        "status": "scratch-only-unapplied",
+        "scope": "remaining-slide-shape-media-placement",
+        "sourceHead": "5080d2e54b2b7fc3764493d04d13b7a306868354"
+      }
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlide.AddTitle(string text, long left = 838200, long top = 365125, long width = 7772400, long height = 1470025)",
@@ -4891,35 +5026,45 @@
       "old": "OfficeIMO.PowerPoint.PowerPointSlide.AddVideo(Stream video, string contentType, string extension, long left = 0, long top = 0, long width = 3657600, long height = 2057400, Stream posterImage = null, OfficeImageFormat posterImageType = Png)",
       "kind": "method",
       "action": "change",
-      "new": "OfficeIMO.PowerPoint.PowerPointSlide.AddVideo(... OfficeLength left, OfficeLength top, OfficeLength width, OfficeLength height ...)",
+      "new": "OfficeIMO.PowerPoint.PowerPointSlide.AddVideo(Stream video, string contentType, string extension, OfficeLength? left = null, OfficeLength? top = null, OfficeLength? width = null, OfficeLength? height = null, Stream posterImage = null, OfficeImageFormat posterImageType = Png)",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.PowerPoint/PowerPointSlide.Media.cs",
       "category": "units",
-      "notes": "Raw EMU long geometry parameters with EMU defaults.",
+      "notes": "Placement uses OfficeLength; omitted nullable bounds preserve the existing native EMU defaults. Unit-specific twins consolidate into the canonical method. Native drawing kernels extract EMUs explicitly.",
       "implementation": {
         "phase": "B",
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B.",
+      "candidate": {
+        "status": "scratch-only-unapplied",
+        "scope": "remaining-slide-shape-media-placement",
+        "sourceHead": "5080d2e54b2b7fc3764493d04d13b7a306868354"
+      }
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlide.AddVideo(string videoPath, string posterImagePath = null, long left = 0, long top = 0, long width = 3657600, long height = 2057400)",
       "kind": "method",
       "action": "change",
-      "new": "OfficeIMO.PowerPoint.PowerPointSlide.AddVideo(... OfficeLength left, OfficeLength top, OfficeLength width, OfficeLength height ...)",
+      "new": "OfficeIMO.PowerPoint.PowerPointSlide.AddVideo(string videoPath, string posterImagePath = null, OfficeLength? left = null, OfficeLength? top = null, OfficeLength? width = null, OfficeLength? height = null)",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.PowerPoint/PowerPointSlide.Media.cs",
       "category": "units",
-      "notes": "Raw EMU long geometry parameters with EMU defaults.",
+      "notes": "Placement uses OfficeLength; omitted nullable bounds preserve the existing native EMU defaults. Unit-specific twins consolidate into the canonical method. Native drawing kernels extract EMUs explicitly.",
       "implementation": {
         "phase": "B",
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B.",
+      "candidate": {
+        "status": "scratch-only-unapplied",
+        "scope": "remaining-slide-shape-media-placement",
+        "sourceHead": "5080d2e54b2b7fc3764493d04d13b7a306868354"
+      }
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlide.DuplicateShape(PowerPointShape shape, long offsetX = 0, long offsetY = 0)",
@@ -6957,11 +7102,11 @@
       "notes": "Numeric parameters with unit-suffixed names: spaceAfterPoints, spaceBeforePoints",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "scratch-candidate-unapplied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical text geometry uses OfficeLength. Canonical members preserve native EMU and hundredth-point storage; relative spacing, bullet percentages and angles retain their numeric units."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointAccessibilityOptions.LargeBoldTextThresholdPoints",
@@ -7450,193 +7595,193 @@
       "old": "OfficeIMO.PowerPoint.PowerPointParagraph.BulletSizePoints",
       "kind": "property",
       "action": "merge",
-      "new": "OfficeIMO.PowerPoint.PowerPointParagraph.BulletSize : OfficeLength",
+      "new": "OfficeIMO.PowerPoint.PowerPointParagraph.BulletSize : OfficeLength?",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.PowerPoint/PowerPointParagraph.cs",
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "scratch-candidate-unapplied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical text geometry uses OfficeLength. Canonical members preserve native EMU and hundredth-point storage; relative spacing, bullet percentages and angles retain their numeric units."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointParagraph.IndentPoints",
       "kind": "property",
       "action": "merge",
-      "new": "OfficeIMO.PowerPoint.PowerPointParagraph.Indent : OfficeLength",
+      "new": "OfficeIMO.PowerPoint.PowerPointParagraph.Indent : OfficeLength?",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.PowerPoint/PowerPointParagraph.cs",
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "scratch-candidate-unapplied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical text geometry uses OfficeLength. Canonical members preserve native EMU and hundredth-point storage; relative spacing, bullet percentages and angles retain their numeric units."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointParagraph.LeftMarginPoints",
       "kind": "property",
       "action": "merge",
-      "new": "OfficeIMO.PowerPoint.PowerPointParagraph.LeftMargin : OfficeLength",
+      "new": "OfficeIMO.PowerPoint.PowerPointParagraph.LeftMargin : OfficeLength?",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.PowerPoint/PowerPointParagraph.cs",
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "scratch-candidate-unapplied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical text geometry uses OfficeLength. Canonical members preserve native EMU and hundredth-point storage; relative spacing, bullet percentages and angles retain their numeric units."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointParagraph.LineSpacingPoints",
       "kind": "property",
       "action": "merge",
-      "new": "OfficeIMO.PowerPoint.PowerPointParagraph.LineSpacing : OfficeLength",
+      "new": "OfficeIMO.PowerPoint.PowerPointParagraph.LineSpacing : OfficeLength?",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.PowerPoint/PowerPointParagraph.cs",
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "scratch-candidate-unapplied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical text geometry uses OfficeLength. Canonical members preserve native EMU and hundredth-point storage; relative spacing, bullet percentages and angles retain their numeric units."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointParagraph.SpaceAfterPoints",
       "kind": "property",
       "action": "merge",
-      "new": "OfficeIMO.PowerPoint.PowerPointParagraph.SpaceAfter : OfficeLength",
+      "new": "OfficeIMO.PowerPoint.PowerPointParagraph.SpaceAfter : OfficeLength?",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.PowerPoint/PowerPointParagraph.cs",
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "scratch-candidate-unapplied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical text geometry uses OfficeLength. Canonical members preserve native EMU and hundredth-point storage; relative spacing, bullet percentages and angles retain their numeric units."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointParagraph.SpaceBeforePoints",
       "kind": "property",
       "action": "merge",
-      "new": "OfficeIMO.PowerPoint.PowerPointParagraph.SpaceBefore : OfficeLength",
+      "new": "OfficeIMO.PowerPoint.PowerPointParagraph.SpaceBefore : OfficeLength?",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.PowerPoint/PowerPointParagraph.cs",
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "scratch-candidate-unapplied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical text geometry uses OfficeLength. Canonical members preserve native EMU and hundredth-point storage; relative spacing, bullet percentages and angles retain their numeric units."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointParagraphStyle.HangingPoints",
       "kind": "property",
       "action": "merge",
-      "new": "OfficeIMO.PowerPoint.PowerPointParagraphStyle.Hanging : OfficeLength",
+      "new": "OfficeIMO.PowerPoint.PowerPointParagraphStyle.Hanging : OfficeLength?",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.PowerPoint/PowerPointParagraphStyle.cs",
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "scratch-candidate-unapplied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical text geometry uses OfficeLength. Canonical members preserve native EMU and hundredth-point storage; relative spacing, bullet percentages and angles retain their numeric units."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointParagraphStyle.IndentPoints",
       "kind": "property",
       "action": "merge",
-      "new": "OfficeIMO.PowerPoint.PowerPointParagraphStyle.Indent : OfficeLength",
+      "new": "OfficeIMO.PowerPoint.PowerPointParagraphStyle.Indent : OfficeLength?",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.PowerPoint/PowerPointParagraphStyle.cs",
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "scratch-candidate-unapplied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical text geometry uses OfficeLength. Canonical members preserve native EMU and hundredth-point storage; relative spacing, bullet percentages and angles retain their numeric units."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointParagraphStyle.LeftMarginPoints",
       "kind": "property",
       "action": "merge",
-      "new": "OfficeIMO.PowerPoint.PowerPointParagraphStyle.LeftMargin : OfficeLength",
+      "new": "OfficeIMO.PowerPoint.PowerPointParagraphStyle.LeftMargin : OfficeLength?",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.PowerPoint/PowerPointParagraphStyle.cs",
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "scratch-candidate-unapplied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical text geometry uses OfficeLength. Canonical members preserve native EMU and hundredth-point storage; relative spacing, bullet percentages and angles retain their numeric units."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointParagraphStyle.LineSpacingPoints",
       "kind": "property",
       "action": "merge",
-      "new": "OfficeIMO.PowerPoint.PowerPointParagraphStyle.LineSpacing : OfficeLength",
+      "new": "OfficeIMO.PowerPoint.PowerPointParagraphStyle.LineSpacing : OfficeLength?",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.PowerPoint/PowerPointParagraphStyle.cs",
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "scratch-candidate-unapplied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical text geometry uses OfficeLength. Canonical members preserve native EMU and hundredth-point storage; relative spacing, bullet percentages and angles retain their numeric units."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointParagraphStyle.SpaceAfterPoints",
       "kind": "property",
       "action": "merge",
-      "new": "OfficeIMO.PowerPoint.PowerPointParagraphStyle.SpaceAfter : OfficeLength",
+      "new": "OfficeIMO.PowerPoint.PowerPointParagraphStyle.SpaceAfter : OfficeLength?",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.PowerPoint/PowerPointParagraphStyle.cs",
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "scratch-candidate-unapplied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical text geometry uses OfficeLength. Canonical members preserve native EMU and hundredth-point storage; relative spacing, bullet percentages and angles retain their numeric units."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointParagraphStyle.SpaceBeforePoints",
       "kind": "property",
       "action": "merge",
-      "new": "OfficeIMO.PowerPoint.PowerPointParagraphStyle.SpaceBefore : OfficeLength",
+      "new": "OfficeIMO.PowerPoint.PowerPointParagraphStyle.SpaceBefore : OfficeLength?",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.PowerPoint/PowerPointParagraphStyle.cs",
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "scratch-candidate-unapplied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical text geometry uses OfficeLength. Canonical members preserve native EMU and hundredth-point storage; relative spacing, bullet percentages and angles retain their numeric units."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointPresentation.GridSpacingXEmus",
@@ -8254,193 +8399,193 @@
       "old": "OfficeIMO.PowerPoint.PowerPointTableCell.PaddingBottomCm",
       "kind": "property",
       "action": "merge",
-      "new": "OfficeIMO.PowerPoint.PowerPointTableCell.PaddingBottom : OfficeLength",
+      "new": "OfficeIMO.PowerPoint.PowerPointTableCell.PaddingBottom : OfficeLength?",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.PowerPoint/PowerPointTableCell.cs",
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "scratch-candidate-unapplied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical text geometry uses OfficeLength. Canonical members preserve native EMU and hundredth-point storage; relative spacing, bullet percentages and angles retain their numeric units."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointTableCell.PaddingBottomInches",
       "kind": "property",
       "action": "merge",
-      "new": "OfficeIMO.PowerPoint.PowerPointTableCell.PaddingBottom : OfficeLength",
+      "new": "OfficeIMO.PowerPoint.PowerPointTableCell.PaddingBottom : OfficeLength?",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.PowerPoint/PowerPointTableCell.cs",
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "scratch-candidate-unapplied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical text geometry uses OfficeLength. Canonical members preserve native EMU and hundredth-point storage; relative spacing, bullet percentages and angles retain their numeric units."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointTableCell.PaddingBottomPoints",
       "kind": "property",
       "action": "merge",
-      "new": "OfficeIMO.PowerPoint.PowerPointTableCell.PaddingBottom : OfficeLength",
+      "new": "OfficeIMO.PowerPoint.PowerPointTableCell.PaddingBottom : OfficeLength?",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.PowerPoint/PowerPointTableCell.cs",
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "scratch-candidate-unapplied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical text geometry uses OfficeLength. Canonical members preserve native EMU and hundredth-point storage; relative spacing, bullet percentages and angles retain their numeric units."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointTableCell.PaddingLeftCm",
       "kind": "property",
       "action": "merge",
-      "new": "OfficeIMO.PowerPoint.PowerPointTableCell.PaddingLeft : OfficeLength",
+      "new": "OfficeIMO.PowerPoint.PowerPointTableCell.PaddingLeft : OfficeLength?",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.PowerPoint/PowerPointTableCell.cs",
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "scratch-candidate-unapplied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical text geometry uses OfficeLength. Canonical members preserve native EMU and hundredth-point storage; relative spacing, bullet percentages and angles retain their numeric units."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointTableCell.PaddingLeftInches",
       "kind": "property",
       "action": "merge",
-      "new": "OfficeIMO.PowerPoint.PowerPointTableCell.PaddingLeft : OfficeLength",
+      "new": "OfficeIMO.PowerPoint.PowerPointTableCell.PaddingLeft : OfficeLength?",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.PowerPoint/PowerPointTableCell.cs",
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "scratch-candidate-unapplied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical text geometry uses OfficeLength. Canonical members preserve native EMU and hundredth-point storage; relative spacing, bullet percentages and angles retain their numeric units."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointTableCell.PaddingLeftPoints",
       "kind": "property",
       "action": "merge",
-      "new": "OfficeIMO.PowerPoint.PowerPointTableCell.PaddingLeft : OfficeLength",
+      "new": "OfficeIMO.PowerPoint.PowerPointTableCell.PaddingLeft : OfficeLength?",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.PowerPoint/PowerPointTableCell.cs",
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "scratch-candidate-unapplied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical text geometry uses OfficeLength. Canonical members preserve native EMU and hundredth-point storage; relative spacing, bullet percentages and angles retain their numeric units."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointTableCell.PaddingRightCm",
       "kind": "property",
       "action": "merge",
-      "new": "OfficeIMO.PowerPoint.PowerPointTableCell.PaddingRight : OfficeLength",
+      "new": "OfficeIMO.PowerPoint.PowerPointTableCell.PaddingRight : OfficeLength?",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.PowerPoint/PowerPointTableCell.cs",
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "scratch-candidate-unapplied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical text geometry uses OfficeLength. Canonical members preserve native EMU and hundredth-point storage; relative spacing, bullet percentages and angles retain their numeric units."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointTableCell.PaddingRightInches",
       "kind": "property",
       "action": "merge",
-      "new": "OfficeIMO.PowerPoint.PowerPointTableCell.PaddingRight : OfficeLength",
+      "new": "OfficeIMO.PowerPoint.PowerPointTableCell.PaddingRight : OfficeLength?",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.PowerPoint/PowerPointTableCell.cs",
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "scratch-candidate-unapplied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical text geometry uses OfficeLength. Canonical members preserve native EMU and hundredth-point storage; relative spacing, bullet percentages and angles retain their numeric units."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointTableCell.PaddingRightPoints",
       "kind": "property",
       "action": "merge",
-      "new": "OfficeIMO.PowerPoint.PowerPointTableCell.PaddingRight : OfficeLength",
+      "new": "OfficeIMO.PowerPoint.PowerPointTableCell.PaddingRight : OfficeLength?",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.PowerPoint/PowerPointTableCell.cs",
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "scratch-candidate-unapplied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical text geometry uses OfficeLength. Canonical members preserve native EMU and hundredth-point storage; relative spacing, bullet percentages and angles retain their numeric units."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointTableCell.PaddingTopCm",
       "kind": "property",
       "action": "merge",
-      "new": "OfficeIMO.PowerPoint.PowerPointTableCell.PaddingTop : OfficeLength",
+      "new": "OfficeIMO.PowerPoint.PowerPointTableCell.PaddingTop : OfficeLength?",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.PowerPoint/PowerPointTableCell.cs",
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "scratch-candidate-unapplied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical text geometry uses OfficeLength. Canonical members preserve native EMU and hundredth-point storage; relative spacing, bullet percentages and angles retain their numeric units."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointTableCell.PaddingTopInches",
       "kind": "property",
       "action": "merge",
-      "new": "OfficeIMO.PowerPoint.PowerPointTableCell.PaddingTop : OfficeLength",
+      "new": "OfficeIMO.PowerPoint.PowerPointTableCell.PaddingTop : OfficeLength?",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.PowerPoint/PowerPointTableCell.cs",
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "scratch-candidate-unapplied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical text geometry uses OfficeLength. Canonical members preserve native EMU and hundredth-point storage; relative spacing, bullet percentages and angles retain their numeric units."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointTableCell.PaddingTopPoints",
       "kind": "property",
       "action": "merge",
-      "new": "OfficeIMO.PowerPoint.PowerPointTableCell.PaddingTop : OfficeLength",
+      "new": "OfficeIMO.PowerPoint.PowerPointTableCell.PaddingTop : OfficeLength?",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.PowerPoint/PowerPointTableCell.cs",
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "scratch-candidate-unapplied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical text geometry uses OfficeLength. Canonical members preserve native EMU and hundredth-point storage; relative spacing, bullet percentages and angles retain their numeric units."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointTableColumn.WidthCm",
@@ -8606,225 +8751,225 @@
       "old": "OfficeIMO.PowerPoint.PowerPointTextBox.TextMarginBottomCm",
       "kind": "property",
       "action": "merge",
-      "new": "OfficeIMO.PowerPoint.PowerPointTextBox.TextMarginBottom : OfficeLength",
+      "new": "OfficeIMO.PowerPoint.PowerPointTextBox.TextMarginBottom : OfficeLength?",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.PowerPoint/PowerPointTextBox.cs",
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "scratch-candidate-unapplied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical text geometry uses OfficeLength. Canonical members preserve native EMU and hundredth-point storage; relative spacing, bullet percentages and angles retain their numeric units."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointTextBox.TextMarginBottomInches",
       "kind": "property",
       "action": "merge",
-      "new": "OfficeIMO.PowerPoint.PowerPointTextBox.TextMarginBottom : OfficeLength",
+      "new": "OfficeIMO.PowerPoint.PowerPointTextBox.TextMarginBottom : OfficeLength?",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.PowerPoint/PowerPointTextBox.cs",
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "scratch-candidate-unapplied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical text geometry uses OfficeLength. Canonical members preserve native EMU and hundredth-point storage; relative spacing, bullet percentages and angles retain their numeric units."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointTextBox.TextMarginBottomPoints",
       "kind": "property",
       "action": "merge",
-      "new": "OfficeIMO.PowerPoint.PowerPointTextBox.TextMarginBottom : OfficeLength",
+      "new": "OfficeIMO.PowerPoint.PowerPointTextBox.TextMarginBottom : OfficeLength?",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.PowerPoint/PowerPointTextBox.cs",
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "scratch-candidate-unapplied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical text geometry uses OfficeLength. Canonical members preserve native EMU and hundredth-point storage; relative spacing, bullet percentages and angles retain their numeric units."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointTextBox.TextMarginLeftCm",
       "kind": "property",
       "action": "merge",
-      "new": "OfficeIMO.PowerPoint.PowerPointTextBox.TextMarginLeft : OfficeLength",
+      "new": "OfficeIMO.PowerPoint.PowerPointTextBox.TextMarginLeft : OfficeLength?",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.PowerPoint/PowerPointTextBox.cs",
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "scratch-candidate-unapplied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical text geometry uses OfficeLength. Canonical members preserve native EMU and hundredth-point storage; relative spacing, bullet percentages and angles retain their numeric units."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointTextBox.TextMarginLeftInches",
       "kind": "property",
       "action": "merge",
-      "new": "OfficeIMO.PowerPoint.PowerPointTextBox.TextMarginLeft : OfficeLength",
+      "new": "OfficeIMO.PowerPoint.PowerPointTextBox.TextMarginLeft : OfficeLength?",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.PowerPoint/PowerPointTextBox.cs",
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "scratch-candidate-unapplied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical text geometry uses OfficeLength. Canonical members preserve native EMU and hundredth-point storage; relative spacing, bullet percentages and angles retain their numeric units."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointTextBox.TextMarginLeftPoints",
       "kind": "property",
       "action": "merge",
-      "new": "OfficeIMO.PowerPoint.PowerPointTextBox.TextMarginLeft : OfficeLength",
+      "new": "OfficeIMO.PowerPoint.PowerPointTextBox.TextMarginLeft : OfficeLength?",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.PowerPoint/PowerPointTextBox.cs",
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "scratch-candidate-unapplied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical text geometry uses OfficeLength. Canonical members preserve native EMU and hundredth-point storage; relative spacing, bullet percentages and angles retain their numeric units."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointTextBox.TextMarginRightCm",
       "kind": "property",
       "action": "merge",
-      "new": "OfficeIMO.PowerPoint.PowerPointTextBox.TextMarginRight : OfficeLength",
+      "new": "OfficeIMO.PowerPoint.PowerPointTextBox.TextMarginRight : OfficeLength?",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.PowerPoint/PowerPointTextBox.cs",
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "scratch-candidate-unapplied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical text geometry uses OfficeLength. Canonical members preserve native EMU and hundredth-point storage; relative spacing, bullet percentages and angles retain their numeric units."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointTextBox.TextMarginRightInches",
       "kind": "property",
       "action": "merge",
-      "new": "OfficeIMO.PowerPoint.PowerPointTextBox.TextMarginRight : OfficeLength",
+      "new": "OfficeIMO.PowerPoint.PowerPointTextBox.TextMarginRight : OfficeLength?",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.PowerPoint/PowerPointTextBox.cs",
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "scratch-candidate-unapplied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical text geometry uses OfficeLength. Canonical members preserve native EMU and hundredth-point storage; relative spacing, bullet percentages and angles retain their numeric units."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointTextBox.TextMarginRightPoints",
       "kind": "property",
       "action": "merge",
-      "new": "OfficeIMO.PowerPoint.PowerPointTextBox.TextMarginRight : OfficeLength",
+      "new": "OfficeIMO.PowerPoint.PowerPointTextBox.TextMarginRight : OfficeLength?",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.PowerPoint/PowerPointTextBox.cs",
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "scratch-candidate-unapplied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical text geometry uses OfficeLength. Canonical members preserve native EMU and hundredth-point storage; relative spacing, bullet percentages and angles retain their numeric units."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointTextBox.TextMarginTopCm",
       "kind": "property",
       "action": "merge",
-      "new": "OfficeIMO.PowerPoint.PowerPointTextBox.TextMarginTop : OfficeLength",
+      "new": "OfficeIMO.PowerPoint.PowerPointTextBox.TextMarginTop : OfficeLength?",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.PowerPoint/PowerPointTextBox.cs",
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "scratch-candidate-unapplied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical text geometry uses OfficeLength. Canonical members preserve native EMU and hundredth-point storage; relative spacing, bullet percentages and angles retain their numeric units."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointTextBox.TextMarginTopInches",
       "kind": "property",
       "action": "merge",
-      "new": "OfficeIMO.PowerPoint.PowerPointTextBox.TextMarginTop : OfficeLength",
+      "new": "OfficeIMO.PowerPoint.PowerPointTextBox.TextMarginTop : OfficeLength?",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.PowerPoint/PowerPointTextBox.cs",
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "scratch-candidate-unapplied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical text geometry uses OfficeLength. Canonical members preserve native EMU and hundredth-point storage; relative spacing, bullet percentages and angles retain their numeric units."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointTextBox.TextMarginTopPoints",
       "kind": "property",
       "action": "merge",
-      "new": "OfficeIMO.PowerPoint.PowerPointTextBox.TextMarginTop : OfficeLength",
+      "new": "OfficeIMO.PowerPoint.PowerPointTextBox.TextMarginTop : OfficeLength?",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.PowerPoint/PowerPointTextBox.cs",
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "scratch-candidate-unapplied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical text geometry uses OfficeLength. Canonical members preserve native EMU and hundredth-point storage; relative spacing, bullet percentages and angles retain their numeric units."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointTextRun.CharacterSpacingPoints",
       "kind": "property",
       "action": "merge",
-      "new": "OfficeIMO.PowerPoint.PowerPointTextRun.CharacterSpacing : OfficeLength",
+      "new": "OfficeIMO.PowerPoint.PowerPointTextRun.CharacterSpacing : OfficeLength?",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.PowerPoint/PowerPointTextRun.CharacterSpacing.cs",
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "scratch-candidate-unapplied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical text geometry uses OfficeLength. Canonical members preserve native EMU and hundredth-point storage; relative spacing, bullet percentages and angles retain their numeric units."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointTextRun.FontSizePoints",
       "kind": "property",
       "action": "merge",
-      "new": "OfficeIMO.PowerPoint.PowerPointTextRun.FontSize : double (points)",
-      "reason": "Parameter and property names never carry a unit suffix; font sizes stay numeric points.",
+      "new": "OfficeIMO.PowerPoint.PowerPointTextRun.FontSize : OfficeLength?",
+      "reason": "Physical font sizes use the shared OfficeLength owner; the existing DrawingML font-size kernel retains range validation and hundredth-point rounding.",
       "file": "OfficeIMO.PowerPoint/PowerPointTextRun.cs",
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "scratch-candidate-unapplied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical text geometry uses OfficeLength. Canonical members preserve native EMU and hundredth-point storage; relative spacing, bullet percentages and angles retain their numeric units."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointLayoutBox(long left, long top, long width, long height)",
@@ -9650,6 +9795,28 @@
       "phase": "B",
       "applied": "phase-b-applied",
       "notes": "Generated by SurfaceAnalysis from the compiled surface, README/guide/example references and exposed-model closure. All partial declarations are internal; cross-assembly implementation access uses InternalsVisibleTo."
+    },
+    {
+      "old": "OfficeIMO.PowerPoint.PowerPointSlide.AddLine(long startX, long startY, long endX, long endY, string name = null)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.PowerPoint.PowerPointSlide.AddLine(OfficeLength startX, OfficeLength startY, OfficeLength endX, OfficeLength endY, string name = null)",
+      "reason": "Line endpoints are physical coordinates and use the shared OfficeLength contract.",
+      "file": "OfficeIMO.PowerPoint/PowerPointSlide.Shapes.cs",
+      "category": "units",
+      "notes": "The native AddLine entry is present in the shipped baseline but absent from the original map. Preserve endpoint normalization and the native one-EMU degenerate extent.",
+      "implementation": {
+        "phase": "B",
+        "status": "pending-phase-b"
+      },
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "note": "Line endpoints use OfficeLength. Native extents retain the existing one-EMU minimum for an otherwise empty axis.",
+      "candidate": {
+        "status": "scratch-only-unapplied",
+        "scope": "remaining-slide-shape-media-placement",
+        "sourceHead": "5080d2e54b2b7fc3764493d04d13b7a306868354"
+      }
     }
   ],
   "packageMoves": [
@@ -9997,6 +10164,24 @@
       "reason": "Consolidate geometry entry points while preserving native defaults, chart accessibility options, stream ownership, positive image dimensions and saved EMU precision. All source consumers and maintained PowerPoint examples use explicit lengths. Internal chart kernels retain their native storage units.",
       "phase": "B",
       "applied": "phase-b-applied"
+    },
+    {
+      "change": "PowerPoint paragraph and text physical geometry use OfficeLength: nullable paragraph styles, indents, hanging indents, spacing, absolute bullet size, run/text-box/cell FontSize, run CharacterSpacing, explicit tab-stop Position, text-box margins and cell padding. Padding and layout-placeholder margin forwarding use the same typed values.",
+      "reason": "Keep one physical-length contract and remove unit twins while retaining native kernels, nullable overrides, line-spacing multipliers, bullet percentages and all framework/analyzer settings. Font-size constructors, presets and WithFontSize use OfficeLength; numeric source styles and SDK fields stay native.",
+      "phase": "B",
+      "applied": "phase-b-applied"
+    },
+    {
+      "change": "Refresh declared showcase source downloads and code excerpts with Build-ShowcaseEvidence.ps1 -SourcesOnly",
+      "reason": "API examples follow their catalog source files. A source-only refresh preserves document and preview bytes and keeps their generation and visual-review evidence independent. It neither regenerates nor requalifies those artifacts.",
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "files": [
+        "Website/scripts/Build-ShowcaseEvidence.ps1",
+        "Website/data/showcase_sources.json",
+        "Website/data/showcase_excerpts.json",
+        "Website/static/downloads/showcase/manifest.json"
+      ]
     }
   ],
   "applicationStatus": "Phase A applied and validated on the supported macOS targets. Phase B and Tier 2 entries retain their status; Windows .NET Framework validation remains pending.",

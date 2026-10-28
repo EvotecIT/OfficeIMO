@@ -20,7 +20,7 @@ namespace OfficeIMO.Tests {
                 PowerPointSlide destination = source.AddSlide(PowerPointSlideLayoutType.Blank);
                 destination.AddTextBox("Destination");
                 AddInternalSlideHyperlink(first, destination, first.AddRectangle(
-                    100000, 100000, 1000000, 500000), mouseOver: false,
+                    OfficeIMO.OfficeLength.Emus(100000), OfficeIMO.OfficeLength.Emus(100000), OfficeIMO.OfficeLength.Emus(1000000), OfficeIMO.OfficeLength.Emus(500000)), mouseOver: false,
                     screenTip: "Go to destination");
 
                 LegacyPptWritePreflightReport report = source.AnalyzeLegacyPptWrite();
@@ -220,7 +220,7 @@ namespace OfficeIMO.Tests {
                 second.AddTextBox("Second destination");
                 third.AddTextBox("Third destination");
                 AddInternalSlideHyperlink(first, second, first.AddRectangle(
-                    100000, 100000, 1000000, 500000), mouseOver: false);
+                    OfficeIMO.OfficeLength.Emus(100000), OfficeIMO.OfficeLength.Emus(100000), OfficeIMO.OfficeLength.Emus(1000000), OfficeIMO.OfficeLength.Emus(500000)), mouseOver: false);
                 sourceBytes = source.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
             LegacyPptDocument original = LegacyPptDocument.Load(sourceBytes);
@@ -271,7 +271,7 @@ namespace OfficeIMO.Tests {
             byte[] sourceBytes;
             using (PowerPointDocument source = PowerPointDocument.Create()) {
                 source.AddSlide(PowerPointSlideLayoutType.Blank).AddRectangle(
-                    100000, 100000, 1000000, 500000);
+                    OfficeIMO.OfficeLength.Emus(100000), OfficeIMO.OfficeLength.Emus(100000), OfficeIMO.OfficeLength.Emus(1000000), OfficeIMO.OfficeLength.Emus(500000));
                 sourceBytes = source.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
             LegacyPptDocument original = LegacyPptDocument.Load(sourceBytes);
@@ -282,7 +282,7 @@ namespace OfficeIMO.Tests {
                 PowerPointSlide existing = imported.Slides[0];
                 PowerPointSlide appended = imported.AddSlide(PowerPointSlideLayoutType.Blank);
                 PowerPointAutoShape appendedShape = appended.AddRectangle(
-                    100000, 100000, 1000000, 500000);
+                    OfficeIMO.OfficeLength.Emus(100000), OfficeIMO.OfficeLength.Emus(100000), OfficeIMO.OfficeLength.Emus(1000000), OfficeIMO.OfficeLength.Emus(500000));
                 AddInternalSlideHyperlink(existing, appended,
                     Assert.Single(existing.Shapes), mouseOver: false,
                     screenTip: "Forward");
@@ -326,7 +326,7 @@ namespace OfficeIMO.Tests {
                 PowerPointSlide destination = source.AddSlide(PowerPointSlideLayoutType.Blank);
                 destination.AddTextBox("Destination");
                 AddInternalSlideHyperlink(first, destination, first.AddRectangle(
-                    100000, 100000, 1000000, 500000), mouseOver: false);
+                    OfficeIMO.OfficeLength.Emus(100000), OfficeIMO.OfficeLength.Emus(100000), OfficeIMO.OfficeLength.Emus(1000000), OfficeIMO.OfficeLength.Emus(500000)), mouseOver: false);
                 sourceBytes = source.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
 

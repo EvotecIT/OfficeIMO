@@ -22,8 +22,8 @@ public sealed class PowerPointPdfSlideLinkTests {
         presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(320),OfficeIMO.OfficeLength.Points(240));
         PowerPointSlide first = presentation.AddSlide(), second = presentation.AddSlide();
         PowerPointAutoShape line = helper
-            ? first.AddLinePoints(20, 40, vertical ? 20 : 220, vertical ? 200 : 40)
-            : first.AddShapePoints(OfficePresetShapeType.Line, 20, 40, vertical ? 0 : 200, vertical ? 160 : 0);
+            ? first.AddLine(OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(40), OfficeIMO.OfficeLength.Points(vertical ? 20 : 220), OfficeIMO.OfficeLength.Points(vertical ? 200 : 40))
+            : first.AddShape(OfficePresetShapeType.Line, OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(40), OfficeIMO.OfficeLength.Points(vertical ? 0 : 200), OfficeIMO.OfficeLength.Points(vertical ? 160 : 0));
         line.OutlineColor = "000000"; line.OutlineWidthPoints = 2;
         line.SetHyperlink(second);
         using var saved = new MemoryStream(); presentation.Save(saved); saved.Position = 0;
@@ -42,7 +42,7 @@ public sealed class PowerPointPdfSlideLinkTests {
         using var presentation = PowerPointDocument.Create(new MemoryStream());
         presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(320),OfficeIMO.OfficeLength.Points(240));
         PowerPointSlide first = presentation.AddSlide(), second = presentation.AddSlide();
-        PowerPointAutoShape line = first.AddShapePoints(OfficePresetShapeType.StraightConnector1, 20, 40, 200, 0);
+        PowerPointAutoShape line = first.AddShape(OfficePresetShapeType.StraightConnector1, OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(40), OfficeIMO.OfficeLength.Points(200), OfficeIMO.OfficeLength.Points(0));
         line.OutlineColor = "000000"; line.OutlineWidthPoints = 2;
         line.Rotation = rotation; line.SetHyperlink(second);
         PdfCore.PdfLinkAnnotation link = Assert.Single(PdfCore.PdfInspector.Inspect(presentation.ToPdf().ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true })).LinkAnnotations);
@@ -175,7 +175,7 @@ public sealed class PowerPointPdfSlideLinkTests {
         PowerPointSlide second = presentation.AddSlide();
         PowerPointSlide third = presentation.AddSlide();
         PowerPointTextBox box = first.AddTextBox("FIRST ",global::OfficeIMO.OfficeLength.Points(30),global::OfficeIMO.OfficeLength.Points(30),global::OfficeIMO.OfficeLength.Points(180),global::OfficeIMO.OfficeLength.Points(160));
-        box.FontName = "Arial"; box.FontSize = 16;
+        box.FontName = "Arial"; box.FontSize = global::OfficeIMO.OfficeLength.Points(16);
         box.Paragraphs[0].Runs[0].SetHyperlink(second);
         box.Paragraphs[0].AddRun("SECOND THIRD FOURTH FIFTH SIXTH").SetHyperlink(third);
         using var saved = new MemoryStream(); presentation.Save(saved); saved.Position = 0;
@@ -227,9 +227,9 @@ public sealed class PowerPointPdfSlideLinkTests {
         presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(320),OfficeIMO.OfficeLength.Points(220));
         PowerPointSlide first = presentation.AddSlide(); PowerPointSlide second = presentation.AddSlide();
         PowerPointTextBox box = first.AddTextBox("GROUP LINK",global::OfficeIMO.OfficeLength.Points(40),global::OfficeIMO.OfficeLength.Points(40),global::OfficeIMO.OfficeLength.Points(200),global::OfficeIMO.OfficeLength.Points(60));
-        box.FontName = "Arial"; box.FontSize = 14;
+        box.FontName = "Arial"; box.FontSize = global::OfficeIMO.OfficeLength.Points(14);
         box.Paragraphs[0].Runs[0].SetHyperlink(second);
-        PowerPointGroupShape group = first.GroupShapes(new PowerPointShape[] { box, first.AddRectanglePoints(40, 110, 200, 10) });
+        PowerPointGroupShape group = first.GroupShapes(new PowerPointShape[] { box, first.AddRectangle(OfficeIMO.OfficeLength.Points(40), OfficeIMO.OfficeLength.Points(110), OfficeIMO.OfficeLength.Points(200), OfficeIMO.OfficeLength.Points(10)) });
         PdfCore.PdfLinkAnnotation original = Assert.Single(PdfCore.PdfInspector.Inspect(presentation.ToPdf().ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true })).LinkAnnotations);
         group.Rotation = 30; group.HorizontalFlip = true;
         PdfCore.PdfLinkAnnotation actual = Assert.Single(PdfCore.PdfInspector.Inspect(presentation.ToPdf().ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true })).LinkAnnotations);

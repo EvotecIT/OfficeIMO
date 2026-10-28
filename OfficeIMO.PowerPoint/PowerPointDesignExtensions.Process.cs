@@ -85,14 +85,14 @@ namespace OfficeIMO.PowerPoint {
                 PowerPointProcessStep step = steps[i];
                 string number = !string.IsNullOrWhiteSpace(step.Number) ? step.Number! : (i + 1).ToString("00");
 
-                PowerPointAutoShape panel = slide.AddRectangleCm(box.Left.ToCentimeters(), box.Top.ToCentimeters(), box.Width.ToCentimeters(), box.Height.ToCentimeters(),
+                PowerPointAutoShape panel = slide.AddRectangle(box.Left, box.Top, box.Width, box.Height,
                     "Process Column " + (i + 1));
                 panel.FillColor = theme.AccentColor;
                 panel.FillTransparency = 72;
                 panel.OutlineColor = theme.AccentLightColor;
                 panel.OutlineWidthPoints = 0.35;
 
-                PowerPointAutoShape rule = slide.AddRectangleCm(box.Left.ToCentimeters(), box.Top.ToCentimeters(), box.Width.ToCentimeters() * 0.34, 0.08,
+                PowerPointAutoShape rule = slide.AddRectangle(box.Left, box.Top, OfficeIMO.OfficeLength.Centimeters(box.Width.ToCentimeters() * 0.34), OfficeIMO.OfficeLength.Centimeters(0.08),
                     "Process Column Rule " + (i + 1));
                 rule.FillColor = GetAccent(theme, i);
                 rule.OutlineColor = GetAccent(theme, i);

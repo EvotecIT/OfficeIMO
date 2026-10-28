@@ -32,11 +32,11 @@ namespace OfficeIMO.Tests {
                             new A.Text("OfficeIMO"))));
 
                 PowerPointAutoShape linkedShape = slide.AddRectangle(
-                    100000, 800000, 1200000, 500000);
+                    OfficeIMO.OfficeLength.Emus(100000), OfficeIMO.OfficeLength.Emus(800000), OfficeIMO.OfficeLength.Emus(1200000), OfficeIMO.OfficeLength.Emus(500000));
                 AddShapeHyperlink(slide, linkedShape, shapeUri,
                     mouseOver: true);
                 PowerPointAutoShape actionShape = slide.AddEllipse(
-                    1600000, 800000, 1200000, 500000);
+                    OfficeIMO.OfficeLength.Emus(1600000), OfficeIMO.OfficeLength.Emus(800000), OfficeIMO.OfficeLength.Emus(1200000), OfficeIMO.OfficeLength.Emus(500000));
                 GetDrawingProperties(actionShape).Append(new A.HyperlinkOnClick {
                     Id = string.Empty,
                     Action = "ppaction://hlinkshowjump?jump=nextslide"
@@ -161,10 +161,10 @@ namespace OfficeIMO.Tests {
             using (PowerPointDocument source = PowerPointDocument.Create()) {
                 PowerPointSlide slide = source.AddSlide(PowerPointSlideLayoutType.Blank);
                 AddShapeHyperlink(slide, slide.AddRectangle(
-                    100000, 100000, 1000000, 500000), target,
+                    OfficeIMO.OfficeLength.Emus(100000), OfficeIMO.OfficeLength.Emus(100000), OfficeIMO.OfficeLength.Emus(1000000), OfficeIMO.OfficeLength.Emus(500000)), target,
                     mouseOver: false, screenTip: "First tip");
                 AddShapeHyperlink(slide, slide.AddRectangle(
-                    1200000, 100000, 1000000, 500000), target,
+                    OfficeIMO.OfficeLength.Emus(1200000), OfficeIMO.OfficeLength.Emus(100000), OfficeIMO.OfficeLength.Emus(1000000), OfficeIMO.OfficeLength.Emus(500000)), target,
                     mouseOver: false, screenTip: "Second tip");
                 Assert.True(source.AnalyzeLegacyPptWrite().CanWrite);
                 bytes = source.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
@@ -181,7 +181,7 @@ namespace OfficeIMO.Tests {
             using PowerPointDocument source = PowerPointDocument.Create();
             PowerPointSlide slide = source.AddSlide(PowerPointSlideLayoutType.Blank);
             PowerPointAutoShape shape = slide.AddRectangle(
-                100000, 100000, 1000000, 500000);
+                OfficeIMO.OfficeLength.Emus(100000), OfficeIMO.OfficeLength.Emus(100000), OfficeIMO.OfficeLength.Emus(1000000), OfficeIMO.OfficeLength.Emus(500000));
             P.NonVisualDrawingProperties properties = GetDrawingProperties(shape);
             properties.Append(new A.HyperlinkOnClick {
                 Id = slide.SlidePart.AddHyperlinkRelationship(
@@ -234,7 +234,7 @@ namespace OfficeIMO.Tests {
             byte[] bytes;
             using (PowerPointDocument source = PowerPointDocument.Create()) {
                 PowerPointAutoShape shape = source.AddSlide(PowerPointSlideLayoutType.Blank).AddRectangle(
-                    100000, 100000, 1000000, 500000);
+                    OfficeIMO.OfficeLength.Emus(100000), OfficeIMO.OfficeLength.Emus(100000), OfficeIMO.OfficeLength.Emus(1000000), OfficeIMO.OfficeLength.Emus(500000));
                 GetDrawingProperties(shape).Append(new A.HyperlinkOnClick {
                     Id = string.Empty,
                     Action = "ppaction://hlinkshowjump?jump=" + actionName
@@ -283,7 +283,7 @@ namespace OfficeIMO.Tests {
             using (PowerPointDocument source = PowerPointDocument.Create()) {
                 PowerPointSlide slide = source.AddSlide(PowerPointSlideLayoutType.Blank);
                 PowerPointAutoShape rectangle = slide.AddRectangle(
-                    100000, 100000, 1000000, 500000);
+                    OfficeIMO.OfficeLength.Emus(100000), OfficeIMO.OfficeLength.Emus(100000), OfficeIMO.OfficeLength.Emus(1000000), OfficeIMO.OfficeLength.Emus(500000));
                 AddShapeHyperlink(slide, rectangle, target, mouseOver: false);
                 sourceBytes = source.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
@@ -322,7 +322,7 @@ namespace OfficeIMO.Tests {
             using (PowerPointDocument source = PowerPointDocument.Create()) {
                 PowerPointSlide slide = source.AddSlide(PowerPointSlideLayoutType.Blank);
                 PowerPointAutoShape shape = slide.AddRectangle(
-                    100000, 100000, 1000000, 500000);
+                    OfficeIMO.OfficeLength.Emus(100000), OfficeIMO.OfficeLength.Emus(100000), OfficeIMO.OfficeLength.Emus(1000000), OfficeIMO.OfficeLength.Emus(500000));
                 AddShapeHyperlink(slide, shape,
                     new Uri("https://example.com/no-op"), mouseOver: true);
                 sourceBytes = source.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
@@ -353,7 +353,7 @@ namespace OfficeIMO.Tests {
             using (PowerPointDocument source = PowerPointDocument.Create()) {
                 PowerPointSlide slide = source.AddSlide(PowerPointSlideLayoutType.Blank);
                 AddShapeHyperlink(slide, slide.AddRectangle(
-                    100000, 100000, 1000000, 500000), target,
+                    OfficeIMO.OfficeLength.Emus(100000), OfficeIMO.OfficeLength.Emus(100000), OfficeIMO.OfficeLength.Emus(1000000), OfficeIMO.OfficeLength.Emus(500000)), target,
                     mouseOver: false, screenTip: "Original tip");
                 sourceBytes = source.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
@@ -404,7 +404,7 @@ namespace OfficeIMO.Tests {
             byte[] sourceBytes;
             using (PowerPointDocument source = PowerPointDocument.Create()) {
                 source.AddSlide(PowerPointSlideLayoutType.Blank)
-                    .AddRectangle(100000, 100000, 1000000, 500000);
+                    .AddRectangle(OfficeIMO.OfficeLength.Emus(100000), OfficeIMO.OfficeLength.Emus(100000), OfficeIMO.OfficeLength.Emus(1000000), OfficeIMO.OfficeLength.Emus(500000));
                 sourceBytes = source.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
             LegacyPptDocument original = LegacyPptDocument.Load(sourceBytes);
@@ -547,7 +547,7 @@ namespace OfficeIMO.Tests {
             using (PowerPointDocument imported = PowerPointDocument.Load(input)) {
                 PowerPointSlide added = imported.AddSlide(PowerPointSlideLayoutType.Blank);
                 PowerPointAutoShape rectangle = added.AddRectangle(
-                    100000, 100000, 1000000, 500000);
+                    OfficeIMO.OfficeLength.Emus(100000), OfficeIMO.OfficeLength.Emus(100000), OfficeIMO.OfficeLength.Emus(1000000), OfficeIMO.OfficeLength.Emus(500000));
                 AddShapeHyperlink(added, rectangle, target, mouseOver: false);
                 LegacyPptWritePreflightReport report = imported.AnalyzeLegacyPptWrite();
                 Assert.False(report.CanWrite);

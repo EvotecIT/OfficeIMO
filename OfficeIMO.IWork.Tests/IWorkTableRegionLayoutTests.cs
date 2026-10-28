@@ -58,11 +58,11 @@ public sealed partial class IWorkBoundaryTests {
             var target = Assert.Single(reopened.Slides[0].Tables);
             foreach (var expected in defaults) {
                 var cell = target.GetCell(expected.Row - 1, expected.Column - 1);
-                Assert.Equal(expected.Padding, cell.PaddingBottomPoints);
+                Assert.Equal(expected.Padding, cell.PaddingBottom?.ToPoints());
                 Assert.Equal(expected.Vertical == IWorkCellVerticalAlignment.Middle ? PowerPointTextVerticalAlignment.Center : PowerPointTextVerticalAlignment.Bottom,
                     cell.VerticalAlignment);
             }
-            Assert.Equal(0, target.GetCell(0, 0).PaddingBottomPoints);
+            Assert.Equal(0, target.GetCell(0, 0).PaddingBottom?.ToPoints());
             Assert.Equal(PowerPointTextVerticalAlignment.Bottom, target.GetCell(0, 0).VerticalAlignment);
             Assert.Equal(PowerPointTextVerticalAlignment.Top, target.GetCell(0, 1).VerticalAlignment);
             Assert.Empty(reopened.ValidateDocument());

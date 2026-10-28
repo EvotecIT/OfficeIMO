@@ -32,10 +32,10 @@ internal static partial class DocumentFeatureShowcase {
     private static PowerPointSlide AddFeatureSlide(PowerPointDocument presentation, string title, string subtitle) {
         PowerPointSlide slide = presentation.AddSlide();
         PowerPointTextBox heading = slide.AddTitle(title,global::OfficeIMO.OfficeLength.Centimeters(1.5),global::OfficeIMO.OfficeLength.Centimeters(1.2),global::OfficeIMO.OfficeLength.Centimeters(29),global::OfficeIMO.OfficeLength.Centimeters(1.6));
-        heading.FontSize = 32;
+        heading.FontSize = global::OfficeIMO.OfficeLength.Points(32);
         heading.Color = "17365D";
         PowerPointTextBox description = slide.AddTextBox(subtitle,global::OfficeIMO.OfficeLength.Centimeters(1.5),global::OfficeIMO.OfficeLength.Centimeters(3),global::OfficeIMO.OfficeLength.Centimeters(29),global::OfficeIMO.OfficeLength.Centimeters(1.1));
-        description.FontSize = 16;
+        description.FontSize = global::OfficeIMO.OfficeLength.Points(16);
         description.Color = "526179";
         return slide;
     }
@@ -55,12 +55,12 @@ internal static partial class DocumentFeatureShowcase {
             for (int column = 0; column < 4; column++) {
                 PowerPointTableCell cell = table.GetCell(row, column);
                 cell.Text = values[row, column];
-                cell.FontSize = 20;
+                cell.FontSize = global::OfficeIMO.OfficeLength.Points(20);
                 cell.Bold = row == 0;
                 cell.Color = row == 0 ? "FFFFFF" : "17365D";
                 cell.FillColor = row == 0 ? "17365D" : row % 2 == 0 ? "EAF1FB" : "F8FAFC";
                 cell.VerticalAlignment = PowerPointTextVerticalAlignment.Center;
-                cell.PaddingLeftPoints = 14;
+                cell.PaddingLeft = global::OfficeIMO.OfficeLength.Points(14);
                 cell.HorizontalAlignment = column == 0 ? PowerPointTextAlignment.Left : PowerPointTextAlignment.Center;
             }
         }
@@ -75,12 +75,12 @@ internal static partial class DocumentFeatureShowcase {
         string[] fills = { "EAF1FB", "F1EAFC", "E7F6ED" };
         for (int index = 0; index < titles.Length; index++) {
             double left = 1.5 + index * 10.3;
-            slide.AddRectangleCm(left, 5.5, 9.3, 7.5, "Stage " + (index + 1)).Fill(fills[index]).Stroke("CBD5E1", 1);
+            slide.AddRectangle(OfficeIMO.OfficeLength.Centimeters(left), OfficeIMO.OfficeLength.Centimeters(5.5), OfficeIMO.OfficeLength.Centimeters(9.3), OfficeIMO.OfficeLength.Centimeters(7.5), "Stage " + (index + 1)).Fill(fills[index]).Stroke("CBD5E1", 1);
             PowerPointTextBox label = slide.AddTextBox(titles[index],global::OfficeIMO.OfficeLength.Centimeters(left + 0.5),global::OfficeIMO.OfficeLength.Centimeters(6.2),global::OfficeIMO.OfficeLength.Centimeters(8.3),global::OfficeIMO.OfficeLength.Centimeters(1.5));
-            label.FontSize = 24;
+            label.FontSize = global::OfficeIMO.OfficeLength.Points(24);
             label.Color = "17365D";
             PowerPointTextBox body = slide.AddTextBox(bodies[index],global::OfficeIMO.OfficeLength.Centimeters(left + 0.5),global::OfficeIMO.OfficeLength.Centimeters(8.4),global::OfficeIMO.OfficeLength.Centimeters(8.3),global::OfficeIMO.OfficeLength.Centimeters(3.5));
-            body.FontSize = 20;
+            body.FontSize = global::OfficeIMO.OfficeLength.Points(20);
             body.Color = "526179";
         }
         presentation.Save();
@@ -90,7 +90,7 @@ internal static partial class DocumentFeatureShowcase {
         using PowerPointDocument presentation = PowerPointDocument.Create(Path.Combine(folder, "formatted-text.pptx"));
         PowerPointSlide slide = AddFeatureSlide(presentation, "Rich text without a screenshot", "Mix emphasis, color, and list paragraphs in native PowerPoint text boxes.");
         PowerPointTextBox text = slide.AddTextBox(string.Empty,global::OfficeIMO.OfficeLength.Centimeters(1.5),global::OfficeIMO.OfficeLength.Centimeters(5),global::OfficeIMO.OfficeLength.Centimeters(19),global::OfficeIMO.OfficeLength.Centimeters(10));
-        text.FontSize = 22;
+        text.FontSize = global::OfficeIMO.OfficeLength.Points(22);
         PowerPointParagraph heading = text.AddParagraph("Make the decision clear.");
         PowerPointTextStyle.Subtitle.WithColor("17365D").Apply(heading);
         PowerPointParagraph line = text.AddParagraph();
@@ -102,12 +102,12 @@ internal static partial class DocumentFeatureShowcase {
         text.AddBullet("Keep the main point visible.");
         text.AddBullet("Group the supporting details.");
         text.AddBullet("Leave enough room to read.");
-        text.ApplyAutoSpacing(lineSpacingMultiplier: 1.25, spaceAfterPoints: 12);
+        text.ApplyAutoSpacing(lineSpacingMultiplier: 1.25, spaceAfter: global::OfficeIMO.OfficeLength.Points(12));
         PowerPointTextBox note = slide.AddTextBox("Editable text\n\nSearch, select, and revise the content in the slide.",global::OfficeIMO.OfficeLength.Centimeters(22),global::OfficeIMO.OfficeLength.Centimeters(5),global::OfficeIMO.OfficeLength.Centimeters(9.5),global::OfficeIMO.OfficeLength.Centimeters(10));
         note.FillColor = "EAF1FB";
         note.Color = "17365D";
-        note.FontSize = 22;
-        note.SetTextMarginsCm(0.6, 0.6, 0.6, 0.6);
+        note.FontSize = global::OfficeIMO.OfficeLength.Points(22);
+        note.SetTextMargins(global::OfficeIMO.OfficeLength.Centimeters(0.6), global::OfficeIMO.OfficeLength.Centimeters(0.6), global::OfficeIMO.OfficeLength.Centimeters(0.6), global::OfficeIMO.OfficeLength.Centimeters(0.6));
         presentation.Save();
     }
 }

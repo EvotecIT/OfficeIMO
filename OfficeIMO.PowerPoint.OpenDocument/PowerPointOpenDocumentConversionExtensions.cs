@@ -467,7 +467,7 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
                         unsupportedShapes++;
                         continue;
                     }
-                    PowerPointAutoShape converted = targetSlide.AddRectanglePoints(x, y, width, height, rectangle.Name);
+                    PowerPointAutoShape converted = targetSlide.AddRectangle(OfficeIMO.OfficeLength.Points(x), OfficeIMO.OfficeLength.Points(y), OfficeIMO.OfficeLength.Points(width), OfficeIMO.OfficeLength.Points(height), rectangle.Name);
                     unsupportedMeasurements += CopyShapeAppearance(rectangle, converted, effective);
                     basicShapes++;
                 } else if (shape is OdpEllipse ellipse) {
@@ -476,7 +476,7 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
                         unsupportedShapes++;
                         continue;
                     }
-                    PowerPointAutoShape converted = targetSlide.AddEllipsePoints(x, y, width, height, ellipse.Name);
+                    PowerPointAutoShape converted = targetSlide.AddEllipse(OfficeIMO.OfficeLength.Points(x), OfficeIMO.OfficeLength.Points(y), OfficeIMO.OfficeLength.Points(width), OfficeIMO.OfficeLength.Points(height), ellipse.Name);
                     unsupportedMeasurements += CopyShapeAppearance(ellipse, converted, effective);
                     basicShapes++;
                 } else if (shape is OdpLine line) {
@@ -487,7 +487,7 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
                         continue;
                     }
                     if (x1 > x2 || y1 > y2) transformedShapes++;
-                    PowerPointAutoShape converted = targetSlide.AddLinePoints(x1, y1, x2, y2, line.Name);
+                    PowerPointAutoShape converted = targetSlide.AddLine(OfficeIMO.OfficeLength.Points(x1), OfficeIMO.OfficeLength.Points(y1), OfficeIMO.OfficeLength.Points(x2), OfficeIMO.OfficeLength.Points(y2), line.Name);
                     unsupportedMeasurements += CopyShapeAppearance(line, converted, effective);
                     basicShapes++;
                 } else {
@@ -696,7 +696,7 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
         target.Bold = source.Bold ? true : (bool?)null;
         target.Italic = source.Italic ? true : (bool?)null;
         ApplyPowerPointTextSemantics(source, target);
-        if (source.FontSizePoints.HasValue) target.FontSize = OdfLength.Points(source.FontSizePoints.Value);
+        if (source.FontSize.HasValue) target.FontSize = OdfLength.Points(source.FontSize.Value.ToPoints());
         target.FontFamily = source.FontName;
         if (!string.IsNullOrWhiteSpace(source.Color)) target.Color = ParseColor(source.Color);
         if (!string.IsNullOrWhiteSpace(source.HighlightColor)) target.BackgroundColor = ParseColor(source.HighlightColor);
@@ -708,14 +708,14 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
         target.Bold = source.Bold ? true : (bool?)null;
         target.Italic = source.Italic ? true : (bool?)null;
         ApplyPowerPointTextSemantics(source, target);
-        if (source.FontSizePoints.HasValue) target.FontSize = OdfLength.Points(source.FontSizePoints.Value);
+        if (source.FontSize.HasValue) target.FontSize = OdfLength.Points(source.FontSize.Value.ToPoints());
         target.FontFamily = source.FontName;
         if (!string.IsNullOrWhiteSpace(source.Color)) target.Color = ParseColor(source.Color);
         if (!string.IsNullOrWhiteSpace(source.HighlightColor)) target.BackgroundColor = ParseColor(source.HighlightColor);
     }
 
     private static bool HasBasicFormatting(PowerPointTextRun run) =>
-        run.Bold || run.Italic || run.Underline || run.Strikethrough || run.FontSizePoints.HasValue ||
+        run.Bold || run.Italic || run.Underline || run.Strikethrough || run.FontSize.HasValue ||
         run.UnderlineStyle.HasValue || run.StrikeStyle.HasValue || run.BaselinePercent.HasValue || run.Capitalization.HasValue ||
         !string.IsNullOrWhiteSpace(run.FontName) || !string.IsNullOrWhiteSpace(run.Color) ||
         !string.IsNullOrWhiteSpace(run.HighlightColor);

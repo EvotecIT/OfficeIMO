@@ -8,7 +8,7 @@ internal sealed partial class OfficeMarkupPowerPointExporter {
         string.Equals(language, "mermaid", StringComparison.OrdinalIgnoreCase);
 
     private static void ApplyTextStyle(PowerPointTextBox textBox, OfficeMarkupResolvedStyle? style) {
-        textBox.SetTextMarginsInches(0.08, 0.04, 0.08, 0.04);
+        textBox.SetTextMargins(global::OfficeIMO.OfficeLength.Inches(0.08), global::OfficeIMO.OfficeLength.Inches(0.04), global::OfficeIMO.OfficeLength.Inches(0.08), global::OfficeIMO.OfficeLength.Inches(0.04));
 
         if (style == null) {
             return;
@@ -19,7 +19,7 @@ internal sealed partial class OfficeMarkupPowerPointExporter {
         }
 
         if (style.FontSize != null) {
-            textBox.FontSize = style.FontSize;
+            textBox.FontSize = global::OfficeIMO.OfficeLength.Points(style.FontSize.Value);
         }
 
         if (style.Bold != null) {
@@ -101,7 +101,7 @@ internal sealed partial class OfficeMarkupPowerPointExporter {
             return;
         }
 
-        var panel = slide.AddShapeInches(OfficePresetShapeType.Rectangle, box.Left, box.Top, box.Width, box.Height, name);
+        var panel = slide.AddShape(OfficePresetShapeType.Rectangle, OfficeIMO.OfficeLength.Inches(box.Left), OfficeIMO.OfficeLength.Inches(box.Top), OfficeIMO.OfficeLength.Inches(box.Width), OfficeIMO.OfficeLength.Inches(box.Height), name);
         if (!string.IsNullOrWhiteSpace(fillColor)) {
             panel.FillColor = fillColor;
         }

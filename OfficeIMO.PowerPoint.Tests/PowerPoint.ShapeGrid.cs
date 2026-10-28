@@ -12,10 +12,10 @@ namespace OfficeIMO.Tests {
             try {
                 using PowerPointDocument presentation = PowerPointDocument.Create(filePath);
                 PowerPointSlide slide = presentation.AddSlide();
-                PowerPointAutoShape a = slide.AddRectangle(0, 0, 500, 500);
-                PowerPointAutoShape b = slide.AddRectangle(0, 0, 500, 500);
-                PowerPointAutoShape c = slide.AddRectangle(0, 0, 500, 500);
-                PowerPointAutoShape d = slide.AddRectangle(0, 0, 500, 500);
+                PowerPointAutoShape a = slide.AddRectangle(OfficeIMO.OfficeLength.Emus(0), OfficeIMO.OfficeLength.Emus(0), OfficeIMO.OfficeLength.Emus(500), OfficeIMO.OfficeLength.Emus(500));
+                PowerPointAutoShape b = slide.AddRectangle(OfficeIMO.OfficeLength.Emus(0), OfficeIMO.OfficeLength.Emus(0), OfficeIMO.OfficeLength.Emus(500), OfficeIMO.OfficeLength.Emus(500));
+                PowerPointAutoShape c = slide.AddRectangle(OfficeIMO.OfficeLength.Emus(0), OfficeIMO.OfficeLength.Emus(0), OfficeIMO.OfficeLength.Emus(500), OfficeIMO.OfficeLength.Emus(500));
+                PowerPointAutoShape d = slide.AddRectangle(OfficeIMO.OfficeLength.Emus(0), OfficeIMO.OfficeLength.Emus(0), OfficeIMO.OfficeLength.Emus(500), OfficeIMO.OfficeLength.Emus(500));
 
                 slide.ArrangeShapesInGrid(slide.Shapes, new PowerPointLayoutBox(OfficeIMO.OfficeLength.Emus(0),OfficeIMO.OfficeLength.Emus(0),OfficeIMO.OfficeLength.Emus(4000),OfficeIMO.OfficeLength.Emus(4000)), 2, 2);
 
@@ -45,9 +45,9 @@ namespace OfficeIMO.Tests {
             try {
                 using PowerPointDocument presentation = PowerPointDocument.Create(filePath);
                 PowerPointSlide slide = presentation.AddSlide();
-                PowerPointAutoShape a = slide.AddRectangle(0, 0, 500, 500);
-                PowerPointAutoShape b = slide.AddRectangle(0, 0, 500, 500);
-                PowerPointAutoShape c = slide.AddRectangle(0, 0, 500, 500);
+                PowerPointAutoShape a = slide.AddRectangle(OfficeIMO.OfficeLength.Emus(0), OfficeIMO.OfficeLength.Emus(0), OfficeIMO.OfficeLength.Emus(500), OfficeIMO.OfficeLength.Emus(500));
+                PowerPointAutoShape b = slide.AddRectangle(OfficeIMO.OfficeLength.Emus(0), OfficeIMO.OfficeLength.Emus(0), OfficeIMO.OfficeLength.Emus(500), OfficeIMO.OfficeLength.Emus(500));
+                PowerPointAutoShape c = slide.AddRectangle(OfficeIMO.OfficeLength.Emus(0), OfficeIMO.OfficeLength.Emus(0), OfficeIMO.OfficeLength.Emus(500), OfficeIMO.OfficeLength.Emus(500));
 
                 slide.ArrangeShapesInGrid(slide.Shapes, new PowerPointLayoutBox(OfficeIMO.OfficeLength.Emus(0),OfficeIMO.OfficeLength.Emus(0),OfficeIMO.OfficeLength.Emus(4200),OfficeIMO.OfficeLength.Emus(4300)), 2, 2,
                     gutterX: 200, gutterY: 300, flow: PowerPointShapeGridFlow.ColumnMajor);
@@ -96,7 +96,7 @@ namespace OfficeIMO.Tests {
             try {
                 using PowerPointDocument presentation = PowerPointDocument.Create(filePath);
                 PowerPointSlide slide = presentation.AddSlide();
-                PowerPointAutoShape a = slide.AddRectangle(0, 0, 1000, 1500);
+                PowerPointAutoShape a = slide.AddRectangle(OfficeIMO.OfficeLength.Emus(0), OfficeIMO.OfficeLength.Emus(0), OfficeIMO.OfficeLength.Emus(1000), OfficeIMO.OfficeLength.Emus(1500));
 
                 slide.ArrangeShapesInGrid(slide.Shapes, new PowerPointLayoutBox(OfficeIMO.OfficeLength.Emus(0),OfficeIMO.OfficeLength.Emus(0),OfficeIMO.OfficeLength.Emus(4000),OfficeIMO.OfficeLength.Emus(4000)), 2, 2,
                     resizeToCell: false);
@@ -118,11 +118,11 @@ namespace OfficeIMO.Tests {
             try {
                 using PowerPointDocument presentation = PowerPointDocument.Create(filePath);
                 PowerPointSlide slide = presentation.AddSlide();
-                PowerPointAutoShape a = slide.AddRectangle(0, 0, 100, 100);
-                PowerPointAutoShape b = slide.AddRectangle(0, 0, 100, 100);
-                PowerPointAutoShape c = slide.AddRectangle(0, 0, 100, 100);
-                PowerPointAutoShape d = slide.AddRectangle(0, 0, 100, 100);
-                PowerPointAutoShape e = slide.AddRectangle(0, 0, 100, 100);
+                PowerPointAutoShape a = slide.AddRectangle(OfficeIMO.OfficeLength.Emus(0), OfficeIMO.OfficeLength.Emus(0), OfficeIMO.OfficeLength.Emus(100), OfficeIMO.OfficeLength.Emus(100));
+                PowerPointAutoShape b = slide.AddRectangle(OfficeIMO.OfficeLength.Emus(0), OfficeIMO.OfficeLength.Emus(0), OfficeIMO.OfficeLength.Emus(100), OfficeIMO.OfficeLength.Emus(100));
+                PowerPointAutoShape c = slide.AddRectangle(OfficeIMO.OfficeLength.Emus(0), OfficeIMO.OfficeLength.Emus(0), OfficeIMO.OfficeLength.Emus(100), OfficeIMO.OfficeLength.Emus(100));
+                PowerPointAutoShape d = slide.AddRectangle(OfficeIMO.OfficeLength.Emus(0), OfficeIMO.OfficeLength.Emus(0), OfficeIMO.OfficeLength.Emus(100), OfficeIMO.OfficeLength.Emus(100));
+                PowerPointAutoShape e = slide.AddRectangle(OfficeIMO.OfficeLength.Emus(0), OfficeIMO.OfficeLength.Emus(0), OfficeIMO.OfficeLength.Emus(100), OfficeIMO.OfficeLength.Emus(100));
 
                 slide.ArrangeShapesInGridAuto(slide.Shapes, new PowerPointLayoutBox(OfficeIMO.OfficeLength.Emus(0),OfficeIMO.OfficeLength.Emus(0),OfficeIMO.OfficeLength.Emus(6000),OfficeIMO.OfficeLength.Emus(4000)));
 
@@ -155,11 +155,11 @@ namespace OfficeIMO.Tests {
             try {
                 using PowerPointDocument presentation = PowerPointDocument.Create(filePath);
                 PowerPointSlide slide = presentation.AddSlide();
-                PowerPointAutoShape a = slide.AddRectangle(0, 0, 100, 100);
-                PowerPointAutoShape b = slide.AddRectangle(0, 0, 100, 100);
-                PowerPointAutoShape c = slide.AddRectangle(0, 0, 100, 100);
-                PowerPointAutoShape d = slide.AddRectangle(0, 0, 100, 100);
-                PowerPointAutoShape e = slide.AddRectangle(0, 0, 100, 100);
+                PowerPointAutoShape a = slide.AddRectangle(OfficeIMO.OfficeLength.Emus(0), OfficeIMO.OfficeLength.Emus(0), OfficeIMO.OfficeLength.Emus(100), OfficeIMO.OfficeLength.Emus(100));
+                PowerPointAutoShape b = slide.AddRectangle(OfficeIMO.OfficeLength.Emus(0), OfficeIMO.OfficeLength.Emus(0), OfficeIMO.OfficeLength.Emus(100), OfficeIMO.OfficeLength.Emus(100));
+                PowerPointAutoShape c = slide.AddRectangle(OfficeIMO.OfficeLength.Emus(0), OfficeIMO.OfficeLength.Emus(0), OfficeIMO.OfficeLength.Emus(100), OfficeIMO.OfficeLength.Emus(100));
+                PowerPointAutoShape d = slide.AddRectangle(OfficeIMO.OfficeLength.Emus(0), OfficeIMO.OfficeLength.Emus(0), OfficeIMO.OfficeLength.Emus(100), OfficeIMO.OfficeLength.Emus(100));
+                PowerPointAutoShape e = slide.AddRectangle(OfficeIMO.OfficeLength.Emus(0), OfficeIMO.OfficeLength.Emus(0), OfficeIMO.OfficeLength.Emus(100), OfficeIMO.OfficeLength.Emus(100));
 
                 slide.ArrangeShapesInGridAuto(slide.Shapes, new PowerPointLayoutBox(OfficeIMO.OfficeLength.Emus(0),OfficeIMO.OfficeLength.Emus(0),OfficeIMO.OfficeLength.Emus(6000),OfficeIMO.OfficeLength.Emus(4000)),
                     new PowerPointShapeGridOptions { MinColumns = 2, MaxColumns = 2 });
@@ -194,7 +194,7 @@ namespace OfficeIMO.Tests {
                 using PowerPointDocument presentation = PowerPointDocument.Create(filePath);
                 PowerPointSlide slide = presentation.AddSlide();
                 for (int i = 0; i < 6; i++) {
-                    slide.AddRectangle(0, 0, 100, 100);
+                    slide.AddRectangle(OfficeIMO.OfficeLength.Emus(0), OfficeIMO.OfficeLength.Emus(0), OfficeIMO.OfficeLength.Emus(100), OfficeIMO.OfficeLength.Emus(100));
                 }
 
                 slide.ArrangeShapesInGridAuto(slide.Shapes, new PowerPointLayoutBox(OfficeIMO.OfficeLength.Emus(0),OfficeIMO.OfficeLength.Emus(0),OfficeIMO.OfficeLength.Emus(6000),OfficeIMO.OfficeLength.Emus(2000)),
@@ -223,8 +223,8 @@ namespace OfficeIMO.Tests {
             try {
                 using PowerPointDocument presentation = PowerPointDocument.Create(filePath);
                 PowerPointSlide slide = presentation.AddSlide();
-                PowerPointAutoShape a = slide.AddRectangle(0, 0, 500, 500);
-                PowerPointAutoShape b = slide.AddRectangle(0, 0, 500, 500);
+                PowerPointAutoShape a = slide.AddRectangle(OfficeIMO.OfficeLength.Emus(0), OfficeIMO.OfficeLength.Emus(0), OfficeIMO.OfficeLength.Emus(500), OfficeIMO.OfficeLength.Emus(500));
+                PowerPointAutoShape b = slide.AddRectangle(OfficeIMO.OfficeLength.Emus(0), OfficeIMO.OfficeLength.Emus(0), OfficeIMO.OfficeLength.Emus(500), OfficeIMO.OfficeLength.Emus(500));
                 long margin = PowerPointUnits.FromCentimeters(1);
 
                 slide.ArrangeShapesInGridToSlideContent(slide.Shapes, columns: 2, rows: 1,
@@ -255,10 +255,10 @@ namespace OfficeIMO.Tests {
             try {
                 using PowerPointDocument presentation = PowerPointDocument.Create(filePath);
                 PowerPointSlide slide = presentation.AddSlide();
-                PowerPointAutoShape a = slide.AddRectangle(0, 0, 100, 100);
-                PowerPointAutoShape b = slide.AddRectangle(0, 0, 100, 100);
-                PowerPointAutoShape c = slide.AddRectangle(0, 0, 100, 100);
-                PowerPointAutoShape d = slide.AddRectangle(0, 0, 100, 100);
+                PowerPointAutoShape a = slide.AddRectangle(OfficeIMO.OfficeLength.Emus(0), OfficeIMO.OfficeLength.Emus(0), OfficeIMO.OfficeLength.Emus(100), OfficeIMO.OfficeLength.Emus(100));
+                PowerPointAutoShape b = slide.AddRectangle(OfficeIMO.OfficeLength.Emus(0), OfficeIMO.OfficeLength.Emus(0), OfficeIMO.OfficeLength.Emus(100), OfficeIMO.OfficeLength.Emus(100));
+                PowerPointAutoShape c = slide.AddRectangle(OfficeIMO.OfficeLength.Emus(0), OfficeIMO.OfficeLength.Emus(0), OfficeIMO.OfficeLength.Emus(100), OfficeIMO.OfficeLength.Emus(100));
+                PowerPointAutoShape d = slide.AddRectangle(OfficeIMO.OfficeLength.Emus(0), OfficeIMO.OfficeLength.Emus(0), OfficeIMO.OfficeLength.Emus(100), OfficeIMO.OfficeLength.Emus(100));
                 long margin = PowerPointUnits.FromCentimeters(1);
 
                 slide.ArrangeShapesInGridAutoToSlideContent(slide.Shapes, margin,

@@ -20,12 +20,12 @@ internal sealed partial class OfficeMarkupPowerPointExporter {
         }
 
         if (!string.IsNullOrWhiteSpace(spec.OverlayColor)) {
-            var overlay = slide.AddShapeInches(
+            var overlay = slide.AddShape(
                 OfficePresetShapeType.Rectangle,
-                0,
-                0,
-                metrics.Width,
-                metrics.Height,
+                OfficeIMO.OfficeLength.Inches(0),
+                OfficeIMO.OfficeLength.Inches(0),
+                OfficeIMO.OfficeLength.Inches(metrics.Width),
+                OfficeIMO.OfficeLength.Inches(metrics.Height),
                 "OfficeIMO Markup Background Overlay");
             overlay.FillColor = spec.OverlayColor;
             overlay.FillTransparency = spec.OverlayTransparency;

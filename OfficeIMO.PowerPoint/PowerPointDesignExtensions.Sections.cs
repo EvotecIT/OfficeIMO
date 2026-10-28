@@ -40,12 +40,12 @@ namespace OfficeIMO.PowerPoint {
             AddSubtleLightBackground(slide, theme, slideWidthCm, slideHeightCm);
             AddChrome(slide, theme, slideWidthCm, slideHeightCm, dark: false, options);
 
-            PowerPointAutoShape rail = slide.AddRectangleCm(1.45, 1.85, 0.18, slideHeightCm - 3.8,
+            PowerPointAutoShape rail = slide.AddRectangle(OfficeIMO.OfficeLength.Centimeters(1.45), OfficeIMO.OfficeLength.Centimeters(1.85), OfficeIMO.OfficeLength.Centimeters(0.18), OfficeIMO.OfficeLength.Centimeters(slideHeightCm - 3.8),
                 "Section Editorial Rail");
             rail.FillColor = theme.AccentColor;
             rail.OutlineColor = theme.AccentColor;
 
-            PowerPointAutoShape block = slide.AddRectangleCm(1.9, 3.65, slideWidthCm * 0.42, 0.18,
+            PowerPointAutoShape block = slide.AddRectangle(OfficeIMO.OfficeLength.Centimeters(1.9), OfficeIMO.OfficeLength.Centimeters(3.65), OfficeIMO.OfficeLength.Centimeters(slideWidthCm * 0.42), OfficeIMO.OfficeLength.Centimeters(0.18),
                 "Section Editorial Rule");
             block.FillColor = theme.WarningColor;
             block.OutlineColor = theme.WarningColor;
@@ -64,8 +64,8 @@ namespace OfficeIMO.PowerPoint {
                     theme.SecondaryTextColor, theme.BodyFontName);
             }
 
-            PowerPointAutoShape accentPanel = slide.AddShapeCm(OfficePresetShapeType.Parallelogram,
-                slideWidthCm * 0.64, 0, slideWidthCm * 0.26, slideHeightCm, "Section Editorial Accent Plane");
+            PowerPointAutoShape accentPanel = slide.AddShape(OfficePresetShapeType.Parallelogram,
+                OfficeIMO.OfficeLength.Centimeters(slideWidthCm * 0.64), OfficeIMO.OfficeLength.Centimeters(0), OfficeIMO.OfficeLength.Centimeters(slideWidthCm * 0.26), OfficeIMO.OfficeLength.Centimeters(slideHeightCm), "Section Editorial Accent Plane");
             accentPanel.FillColor = theme.AccentLightColor;
             accentPanel.FillTransparency = 30;
             accentPanel.OutlineColor = theme.AccentLightColor;
@@ -82,14 +82,14 @@ namespace OfficeIMO.PowerPoint {
             slide.BackgroundColor = theme.AccentDarkColor;
             AddChrome(slide, theme, slideWidthCm, slideHeightCm, dark: true, options);
 
-            PowerPointAutoShape wash = slide.AddRectangleCm(0, 0, slideWidthCm, slideHeightCm,
+            PowerPointAutoShape wash = slide.AddRectangle(OfficeIMO.OfficeLength.Centimeters(0), OfficeIMO.OfficeLength.Centimeters(0), OfficeIMO.OfficeLength.Centimeters(slideWidthCm), OfficeIMO.OfficeLength.Centimeters(slideHeightCm),
                 "Section Poster Wash");
             wash.FillColor = theme.AccentColor;
             wash.FillTransparency = 50;
             wash.OutlineColor = theme.AccentColor;
             wash.SendToBack();
 
-            PowerPointAutoShape frame = slide.AddRectangleCm(1.45, 1.55, slideWidthCm - 2.9, slideHeightCm - 3.2,
+            PowerPointAutoShape frame = slide.AddRectangle(OfficeIMO.OfficeLength.Centimeters(1.45), OfficeIMO.OfficeLength.Centimeters(1.55), OfficeIMO.OfficeLength.Centimeters(slideWidthCm - 2.9), OfficeIMO.OfficeLength.Centimeters(slideHeightCm - 3.2),
                 "Section Poster Frame");
             frame.FillColor = theme.AccentDarkColor;
             frame.FillTransparency = 100;
@@ -132,7 +132,7 @@ namespace OfficeIMO.PowerPoint {
                     theme.PrimaryTextColor, theme.HeadingFontName, bold: true);
 
                 if (i == 0) {
-                    PowerPointAutoShape rule = slide.AddRectangleCm(box.Left.ToCentimeters(), box.Top.ToCentimeters() + 0.97, box.Width.ToCentimeters(), 0.025,
+                    PowerPointAutoShape rule = slide.AddRectangle(box.Left, OfficeIMO.OfficeLength.Centimeters(box.Top.ToCentimeters() + 0.97), box.Width, OfficeIMO.OfficeLength.Centimeters(0.025),
                         "Case Study Client Rule");
                     rule.FillColor = theme.PanelBorderColor;
                     rule.OutlineColor = theme.PanelBorderColor;
@@ -153,7 +153,7 @@ namespace OfficeIMO.PowerPoint {
             AddText(slide, clientTitle, 1.45, 1.6, slideWidthCm * 0.58, 1.35, 22,
                 theme.PrimaryTextColor, theme.HeadingFontName, bold: true);
 
-            PowerPointAutoShape titleRule = slide.AddRectangleCm(1.47, 3.18, slideWidthCm * 0.24, 0.08,
+            PowerPointAutoShape titleRule = slide.AddRectangle(OfficeIMO.OfficeLength.Centimeters(1.47), OfficeIMO.OfficeLength.Centimeters(3.18), OfficeIMO.OfficeLength.Centimeters(slideWidthCm * 0.24), OfficeIMO.OfficeLength.Centimeters(0.08),
                 "Case Study Editorial Rule");
             titleRule.FillColor = theme.AccentColor;
             titleRule.OutlineColor = theme.AccentColor;
@@ -168,14 +168,14 @@ namespace OfficeIMO.PowerPoint {
                 PowerPointLayoutBox box = boxes[row, column];
                 PowerPointCaseStudySection section = sections[i];
 
-                PowerPointAutoShape panel = slide.AddRectangleCm(box.Left.ToCentimeters(), box.Top.ToCentimeters(), box.Width.ToCentimeters(), box.Height.ToCentimeters(),
+                PowerPointAutoShape panel = slide.AddRectangle(box.Left, box.Top, box.Width, box.Height,
                     "Case Study Editorial Section " + (i + 1));
                 panel.FillColor = theme.PanelColor;
                 panel.OutlineColor = theme.PanelBorderColor;
                 panel.OutlineWidthPoints = 0.45;
                 panel.SetShadow("000000", blurPoints: 3, distancePoints: 0.8, angleDegrees: 90, transparencyPercent: 90);
 
-                PowerPointAutoShape accent = slide.AddRectangleCm(box.Left.ToCentimeters(), box.Top.ToCentimeters(), 0.12, box.Height.ToCentimeters(),
+                PowerPointAutoShape accent = slide.AddRectangle(box.Left, box.Top, OfficeIMO.OfficeLength.Centimeters(0.12), box.Height,
                     "Case Study Editorial Accent " + (i + 1));
                 accent.FillColor = GetAccent(theme, i);
                 accent.OutlineColor = GetAccent(theme, i);
@@ -195,8 +195,8 @@ namespace OfficeIMO.PowerPoint {
                 options.VisualFrameVariant, options.DesignIntent);
 
             if (metrics.Count > 0) {
-                PowerPointAutoShape metricBand = slide.AddRectangleCm(visualLeft, visualTop + visualHeight + 0.55,
-                    visualWidth, 1.8, "Case Study Editorial Metric Band");
+                PowerPointAutoShape metricBand = slide.AddRectangle(OfficeIMO.OfficeLength.Centimeters(visualLeft), OfficeIMO.OfficeLength.Centimeters(visualTop + visualHeight + 0.55),
+                    OfficeIMO.OfficeLength.Centimeters(visualWidth), OfficeIMO.OfficeLength.Centimeters(1.8), "Case Study Editorial Metric Band");
                 metricBand.FillColor = theme.AccentColor;
                 metricBand.OutlineColor = theme.AccentColor;
                 metricBand.SetShadow("000000", blurPoints: 3, distancePoints: 0.8, angleDegrees: 90, transparencyPercent: 88);
@@ -212,14 +212,14 @@ namespace OfficeIMO.PowerPoint {
             double slideWidthCm, double slideHeightCm) {
             double bandTop = slideHeightCm * 0.55;
             double bandHeight = slideHeightCm * 0.36;
-            PowerPointAutoShape band = slide.AddRectangleCm(1.2, bandTop, slideWidthCm - 2.4, bandHeight,
+            PowerPointAutoShape band = slide.AddRectangle(OfficeIMO.OfficeLength.Centimeters(1.2), OfficeIMO.OfficeLength.Centimeters(bandTop), OfficeIMO.OfficeLength.Centimeters(slideWidthCm - 2.4), OfficeIMO.OfficeLength.Centimeters(bandHeight),
                 "Case Study Visual Band");
             band.FillColor = theme.AccentColor;
             band.OutlineColor = theme.AccentColor;
             band.SetSoftEdges(1.1);
 
-            PowerPointAutoShape wash = slide.AddShapeCm(OfficePresetShapeType.Parallelogram, 8.0, bandTop + 0.25,
-                7.2, bandHeight - 0.5, "Case Study Band Wash");
+            PowerPointAutoShape wash = slide.AddShape(OfficePresetShapeType.Parallelogram, OfficeIMO.OfficeLength.Centimeters(8.0), OfficeIMO.OfficeLength.Centimeters(bandTop + 0.25),
+                OfficeIMO.OfficeLength.Centimeters(7.2), OfficeIMO.OfficeLength.Centimeters(bandHeight - 0.5), "Case Study Band Wash");
             wash.FillColor = theme.Accent2Color;
             wash.FillTransparency = 45;
             wash.OutlineColor = theme.Accent2Color;

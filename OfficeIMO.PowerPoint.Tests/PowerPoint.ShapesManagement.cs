@@ -14,9 +14,9 @@ namespace OfficeIMO.Tests {
                    PowerPointDocument.Create()) {
                 PowerPointSlide slide = presentation.AddSlide();
                 PowerPointAutoShape first = slide.AddRectangle(
-                    1000, 1000, 2000, 1000);
+                    OfficeIMO.OfficeLength.Emus(1000), OfficeIMO.OfficeLength.Emus(1000), OfficeIMO.OfficeLength.Emus(2000), OfficeIMO.OfficeLength.Emus(1000));
                 PowerPointAutoShape second = slide.AddRectangle(
-                    4000, 1000, 2000, 1000);
+                    OfficeIMO.OfficeLength.Emus(4000), OfficeIMO.OfficeLength.Emus(1000), OfficeIMO.OfficeLength.Emus(2000), OfficeIMO.OfficeLength.Emus(1000));
                 PowerPointGroupShape group = slide.GroupShapes(
                     new PowerPointShape[] { first, second });
                 NonVisualDrawingProperties descendant = group.GroupShape
@@ -30,11 +30,11 @@ namespace OfficeIMO.Tests {
                 PowerPointDocument.Load(stream);
             PowerPointSlide loadedSlide = Assert.Single(loaded.Slides);
             PowerPointAutoShape finalShape = loadedSlide.AddRectangle(
-                7000, 1000, 2000, 1000);
+                OfficeIMO.OfficeLength.Emus(7000), OfficeIMO.OfficeLength.Emus(1000), OfficeIMO.OfficeLength.Emus(2000), OfficeIMO.OfficeLength.Emus(1000));
             Assert.Equal(uint.MaxValue, finalShape.Id);
             InvalidOperationException exception = Assert.Throws<
                 InvalidOperationException>(() => loadedSlide.AddRectangle(
-                    10000, 1000, 2000, 1000));
+                    OfficeIMO.OfficeLength.Emus(10000), OfficeIMO.OfficeLength.Emus(1000), OfficeIMO.OfficeLength.Emus(2000), OfficeIMO.OfficeLength.Emus(1000)));
             Assert.Contains("identifier space is exhausted",
                 exception.Message, StringComparison.OrdinalIgnoreCase);
         }
@@ -78,7 +78,7 @@ namespace OfficeIMO.Tests {
                 using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
                     PowerPointSlide slide = presentation.AddSlide();
                     PowerPointTextBox textBox = slide.AddTextBox("Quarterly update");
-                    PowerPointAutoShape rectangle = slide.AddRectangle(1000, 1000, 2000, 1000);
+                    PowerPointAutoShape rectangle = slide.AddRectangle(OfficeIMO.OfficeLength.Emus(1000), OfficeIMO.OfficeLength.Emus(1000), OfficeIMO.OfficeLength.Emus(2000), OfficeIMO.OfficeLength.Emus(1000));
                     PowerPointTable table = slide.AddTable(2,2);
 
                     textBox.Name = "Hero Title";
@@ -130,7 +130,7 @@ namespace OfficeIMO.Tests {
             try {
                 using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
                     PowerPointSlide slide = presentation.AddSlide();
-                    PowerPointAutoShape original = slide.AddRectangle(1000, 2000, 3000, 4000);
+                    PowerPointAutoShape original = slide.AddRectangle(OfficeIMO.OfficeLength.Emus(1000), OfficeIMO.OfficeLength.Emus(2000), OfficeIMO.OfficeLength.Emus(3000), OfficeIMO.OfficeLength.Emus(4000));
                     original.Name = "Source Shape";
 
                     PowerPointShape duplicate = original.Duplicate(offsetX: 500, offsetY: 600);

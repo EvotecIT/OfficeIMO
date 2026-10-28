@@ -13,7 +13,7 @@ namespace OfficeIMO.Tests {
                 PowerPointDocument.Create();
             PowerPointSlide source = presentation.AddSlide();
             PowerPointAutoShape actionShape = source.AddRectangle(
-                100000, 100000, 1000000, 500000);
+                OfficeIMO.OfficeLength.Emus(100000), OfficeIMO.OfficeLength.Emus(100000), OfficeIMO.OfficeLength.Emus(1000000), OfficeIMO.OfficeLength.Emus(500000));
             PowerPointSlide target = presentation.AddSlide();
             PresentationPart presentationPart = presentation
                 .OpenXmlDocument.PresentationPart!;
@@ -209,7 +209,7 @@ namespace OfficeIMO.Tests {
                 PowerPointDocument.Create();
             PowerPointSlide slide = presentation.AddSlide();
             PowerPointAutoShape shape = slide.AddRectangle(
-                100000, 100000, 1000000, 500000);
+                OfficeIMO.OfficeLength.Emus(100000), OfficeIMO.OfficeLength.Emus(100000), OfficeIMO.OfficeLength.Emus(1000000), OfficeIMO.OfficeLength.Emus(500000));
             slide.AddClassicAnimation(shape,
                 PowerPointClassicAnimationEffect.Fade);
             using (var sound = new MemoryStream(CreateWave(),
@@ -235,7 +235,7 @@ namespace OfficeIMO.Tests {
                 PowerPointDocument.Create();
             PowerPointSlide slide = presentation.AddSlide();
             PowerPointAutoShape shape = slide.AddRectangle(
-                100000, 100000, 1000000, 500000);
+                OfficeIMO.OfficeLength.Emus(100000), OfficeIMO.OfficeLength.Emus(100000), OfficeIMO.OfficeLength.Emus(1000000), OfficeIMO.OfficeLength.Emus(500000));
             using (var sound = new MemoryStream(CreateWave(),
                        writable: false)) {
                 shape.SetClickSound(sound, "Removed action sound");
@@ -256,7 +256,7 @@ namespace OfficeIMO.Tests {
             SlideLayoutPart layout = slide.SlidePart.SlideLayoutPart!;
             string layoutRelationshipId = slide.SlidePart.GetIdOfPart(layout);
             PowerPointAutoShape shape = slide.AddRectangle(
-                100000, 100000, 1000000, 500000);
+                OfficeIMO.OfficeLength.Emus(100000), OfficeIMO.OfficeLength.Emus(100000), OfficeIMO.OfficeLength.Emus(1000000), OfficeIMO.OfficeLength.Emus(500000));
             shape.Name = layoutRelationshipId;
 
             shape.Remove();
@@ -433,12 +433,12 @@ namespace OfficeIMO.Tests {
                 PowerPointDocument.Create();
             PowerPointSlide first = presentation.AddSlide();
             PowerPointAutoShape local = first.AddRectangle(
-                100000, 100000, 1000000, 500000);
+                OfficeIMO.OfficeLength.Emus(100000), OfficeIMO.OfficeLength.Emus(100000), OfficeIMO.OfficeLength.Emus(1000000), OfficeIMO.OfficeLength.Emus(500000));
             first.AddClassicAnimation(local,
                 PowerPointClassicAnimationEffect.Fade);
             PowerPointSlide second = presentation.AddSlide();
             PowerPointAutoShape foreign = second.AddRectangle(
-                100000, 100000, 1000000, 500000);
+                OfficeIMO.OfficeLength.Emus(100000), OfficeIMO.OfficeLength.Emus(100000), OfficeIMO.OfficeLength.Emus(1000000), OfficeIMO.OfficeLength.Emus(500000));
             Assert.Equal(local.Id, foreign.Id);
 
             Assert.Throws<ArgumentException>(() =>
@@ -471,7 +471,7 @@ namespace OfficeIMO.Tests {
                 PowerPointDocument.Create();
             PowerPointSlide slide = presentation.AddSlide();
             PowerPointAutoShape shape = slide.AddRectangle(
-                100000, 100000, 1000000, 500000);
+                OfficeIMO.OfficeLength.Emus(100000), OfficeIMO.OfficeLength.Emus(100000), OfficeIMO.OfficeLength.Emus(1000000), OfficeIMO.OfficeLength.Emus(500000));
             slide.AddClassicAnimation(shape,
                 PowerPointClassicAnimationEffect.Fade);
             using var audio = new MemoryStream(CreateWave(), writable: false);
@@ -493,9 +493,9 @@ namespace OfficeIMO.Tests {
                 PowerPointDocument.Create();
             PowerPointSlide slide = presentation.AddSlide();
             PowerPointAutoShape first = slide.AddRectangle(
-                100000, 100000, 1000000, 500000);
+                OfficeIMO.OfficeLength.Emus(100000), OfficeIMO.OfficeLength.Emus(100000), OfficeIMO.OfficeLength.Emus(1000000), OfficeIMO.OfficeLength.Emus(500000));
             PowerPointAutoShape second = slide.AddRectangle(
-                100000, 700000, 1000000, 500000);
+                OfficeIMO.OfficeLength.Emus(100000), OfficeIMO.OfficeLength.Emus(700000), OfficeIMO.OfficeLength.Emus(1000000), OfficeIMO.OfficeLength.Emus(500000));
             slide.AddClassicAnimation(first,
                 PowerPointClassicAnimationEffect.Fade);
             slide.AddClassicAnimation(second,
@@ -523,7 +523,7 @@ namespace OfficeIMO.Tests {
                 PowerPointDocument.Create();
             PowerPointSlide slide = presentation.AddSlide();
             PowerPointAutoShape shape = slide.AddRectangle(
-                100000, 100000, 1000000, 500000);
+                OfficeIMO.OfficeLength.Emus(100000), OfficeIMO.OfficeLength.Emus(100000), OfficeIMO.OfficeLength.Emus(1000000), OfficeIMO.OfficeLength.Emus(500000));
             slide.AddClassicAnimation(shape,
                 PowerPointClassicAnimationEffect.Fade);
             Timing timing = slide.SlidePart.Slide!.Timing!;
@@ -619,7 +619,7 @@ namespace OfficeIMO.Tests {
             run.SetHyperlink("https://example.test/remove");
             string relationshipId = Assert.Single(slide.SlidePart
                 .HyperlinkRelationships).Id;
-            slide.AddRectangle(100000, 100000, 1000000, 500000)
+            slide.AddRectangle(OfficeIMO.OfficeLength.Emus(100000), OfficeIMO.OfficeLength.Emus(100000), OfficeIMO.OfficeLength.Emus(1000000), OfficeIMO.OfficeLength.Emus(500000))
                 .Name = relationshipId;
 
             run.ClearHyperlink();
@@ -634,14 +634,14 @@ namespace OfficeIMO.Tests {
                 PowerPointDocument.Create();
             PowerPointSlide slide = presentation.AddSlide();
             PowerPointAutoShape sounded = slide.AddRectangle(
-                100000, 100000, 1000000, 500000);
+                OfficeIMO.OfficeLength.Emus(100000), OfficeIMO.OfficeLength.Emus(100000), OfficeIMO.OfficeLength.Emus(1000000), OfficeIMO.OfficeLength.Emus(500000));
             using (var sound = new MemoryStream(CreateWave(),
                        writable: false)) {
                 sounded.SetClickSound(sound, "Remove sound");
             }
             string relationshipId = Assert.Single(slide.SlidePart
                 .DataPartReferenceRelationships).Id;
-            slide.AddRectangle(100000, 700000, 1000000, 500000)
+            slide.AddRectangle(OfficeIMO.OfficeLength.Emus(100000), OfficeIMO.OfficeLength.Emus(700000), OfficeIMO.OfficeLength.Emus(1000000), OfficeIMO.OfficeLength.Emus(500000))
                 .Name = relationshipId;
 
             sounded.ClearClickSound();
@@ -657,7 +657,7 @@ namespace OfficeIMO.Tests {
                 PowerPointDocument.Create();
             PowerPointSlide slide = presentation.AddSlide();
             PowerPointAutoShape shape = slide.AddRectangle(
-                100000, 100000, 1000000, 500000);
+                OfficeIMO.OfficeLength.Emus(100000), OfficeIMO.OfficeLength.Emus(100000), OfficeIMO.OfficeLength.Emus(1000000), OfficeIMO.OfficeLength.Emus(500000));
             PowerPointTextRun run = slide.AddTextBox("Sound")
                 .Paragraphs.Single().Runs.Single();
             slide.AddClassicAnimation(shape,
@@ -685,7 +685,7 @@ namespace OfficeIMO.Tests {
                 PowerPointDocument.Create();
             PowerPointSlide slide = presentation.AddSlide();
             PowerPointAutoShape shape = slide.AddRectangle(
-                100000, 100000, 1000000, 500000);
+                OfficeIMO.OfficeLength.Emus(100000), OfficeIMO.OfficeLength.Emus(100000), OfficeIMO.OfficeLength.Emus(1000000), OfficeIMO.OfficeLength.Emus(500000));
             using var sound = new MemoryStream(CreateWave(), writable: false);
 
             Assert.Throws<InvalidOperationException>(() =>

@@ -15,10 +15,10 @@ namespace OfficeIMO.Tests {
             try {
                 using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
                     PowerPointSlide slide = presentation.AddSlide();
-                    PowerPointAutoShape shadow = slide.AddRectangle(0, 0, 4000, 2000, "ShadowRect");
+                    PowerPointAutoShape shadow = slide.AddRectangle(OfficeIMO.OfficeLength.Emus(0), OfficeIMO.OfficeLength.Emus(0), OfficeIMO.OfficeLength.Emus(4000), OfficeIMO.OfficeLength.Emus(2000), "ShadowRect");
                     shadow.SetShadow("000000", blurPoints: 6, distancePoints: 5, angleDegrees: 270, transparencyPercent: 40);
 
-                    PowerPointAutoShape clear = slide.AddRectangle(0, 3000, 4000, 2000, "ClearRect");
+                    PowerPointAutoShape clear = slide.AddRectangle(OfficeIMO.OfficeLength.Emus(0), OfficeIMO.OfficeLength.Emus(3000), OfficeIMO.OfficeLength.Emus(4000), OfficeIMO.OfficeLength.Emus(2000), "ClearRect");
                     clear.SetShadow("FF0000", blurPoints: 4, distancePoints: 3, angleDegrees: 45, transparencyPercent: 20);
                     clear.ClearShadow();
 
@@ -62,11 +62,11 @@ namespace OfficeIMO.Tests {
             try {
                 using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
                     PowerPointSlide slide = presentation.AddSlide();
-                    PowerPointAutoShape glowShape = slide.AddRectangle(0, 0, 4000, 2000, "GlowRect");
+                    PowerPointAutoShape glowShape = slide.AddRectangle(OfficeIMO.OfficeLength.Emus(0), OfficeIMO.OfficeLength.Emus(0), OfficeIMO.OfficeLength.Emus(4000), OfficeIMO.OfficeLength.Emus(2000), "GlowRect");
                     glowShape.SetGlow("FF00FF", radiusPoints: 5, transparencyPercent: 25);
                     glowShape.SetSoftEdges(3);
 
-                    PowerPointAutoShape clearShape = slide.AddRectangle(0, 3000, 4000, 2000, "ClearEffectsRect");
+                    PowerPointAutoShape clearShape = slide.AddRectangle(OfficeIMO.OfficeLength.Emus(0), OfficeIMO.OfficeLength.Emus(3000), OfficeIMO.OfficeLength.Emus(4000), OfficeIMO.OfficeLength.Emus(2000), "ClearEffectsRect");
                     clearShape.SetGlow("00FF00", radiusPoints: 4, transparencyPercent: 10);
                     clearShape.SetSoftEdges(2);
                     clearShape.ClearGlow();
@@ -114,10 +114,10 @@ namespace OfficeIMO.Tests {
             try {
                 using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
                     PowerPointSlide slide = presentation.AddSlide();
-                    PowerPointAutoShape blurShape = slide.AddRectangle(0, 0, 4000, 2000, "BlurRect");
+                    PowerPointAutoShape blurShape = slide.AddRectangle(OfficeIMO.OfficeLength.Emus(0), OfficeIMO.OfficeLength.Emus(0), OfficeIMO.OfficeLength.Emus(4000), OfficeIMO.OfficeLength.Emus(2000), "BlurRect");
                     blurShape.SetBlur(5, grow: true);
 
-                    PowerPointAutoShape reflectionShape = slide.AddRectangle(0, 3000, 4000, 2000, "ReflectionRect");
+                    PowerPointAutoShape reflectionShape = slide.AddRectangle(OfficeIMO.OfficeLength.Emus(0), OfficeIMO.OfficeLength.Emus(3000), OfficeIMO.OfficeLength.Emus(4000), OfficeIMO.OfficeLength.Emus(2000), "ReflectionRect");
                     reflectionShape.SetReflection(blurPoints: 6, distancePoints: 4,
                         directionDegrees: 270, fadeDirectionDegrees: 90,
                         startOpacityPercent: 60, endOpacityPercent: 0,
@@ -167,7 +167,7 @@ namespace OfficeIMO.Tests {
             try {
                 using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
                     PowerPointSlide slide = presentation.AddSlide();
-                    PowerPointAutoShape shape = slide.AddRectangle(0, 0, 4000, 2000, "StyledAfterEffects");
+                    PowerPointAutoShape shape = slide.AddRectangle(OfficeIMO.OfficeLength.Emus(0), OfficeIMO.OfficeLength.Emus(0), OfficeIMO.OfficeLength.Emus(4000), OfficeIMO.OfficeLength.Emus(2000), "StyledAfterEffects");
 
                     shape.SetSoftEdges(2);
                     shape.SetReflection(blurPoints: 2, distancePoints: 1, startOpacityPercent: 20);

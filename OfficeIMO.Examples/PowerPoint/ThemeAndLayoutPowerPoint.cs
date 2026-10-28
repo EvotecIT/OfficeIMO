@@ -25,13 +25,13 @@ namespace OfficeIMO.Examples.PowerPoint {
 
             PowerPointSlide first = presentation.AddSlide();
             PowerPointTextBox title = first.AddTitle("Theme and Layout",titleBox);
-            title.FontSize = 30;
+            title.FontSize = global::OfficeIMO.OfficeLength.Points(30);
             title.Color = "1F4E79";
             PowerPointLayoutBox summaryBox = new OfficeIMO.PowerPoint.PowerPointLayoutBox(
                 OfficeIMO.OfficeLength.Centimeters(bodyBox.Left.ToCentimeters()),OfficeIMO.OfficeLength.Centimeters(bodyBox.Top.ToCentimeters()),OfficeIMO.OfficeLength.Centimeters(bodyBox.Width.ToCentimeters()),OfficeIMO.OfficeLength.Centimeters(1.1));
             PowerPointTextBox details = first.AddTextBox(
                 "Uses the built-in Office theme, layout placeholders, and content boxes.",                summaryBox);
-            details.FontSize = 18;
+            details.FontSize = global::OfficeIMO.OfficeLength.Points(18);
             details.Color = "1F4E79";
             PowerPointLayoutBox themeBox = new OfficeIMO.PowerPoint.PowerPointLayoutBox(
                 OfficeIMO.OfficeLength.Centimeters(bodyBox.Left.ToCentimeters()),OfficeIMO.OfficeLength.Centimeters(bodyBox.Top.ToCentimeters() + 1.6),OfficeIMO.OfficeLength.Centimeters(bodyBox.Width.ToCentimeters()),OfficeIMO.OfficeLength.Centimeters(0.9));
@@ -42,11 +42,11 @@ namespace OfficeIMO.Examples.PowerPoint {
             string[] swatches = { "1F4E79", "5B9BD5", "ED7D31", "A5A5A5", "FFC000" };
             PowerPointLayoutBox[] swatchColumns = swatchBox.SplitColumns(swatches.Length,OfficeIMO.OfficeLength.Centimeters(0.4));
             for (int i = 0; i < swatches.Length; i++) {
-                first.AddRectangleCm(
-                        swatchColumns[i].Left.ToCentimeters(),
-                        swatchColumns[i].Top.ToCentimeters(),
-                        swatchColumns[i].Width.ToCentimeters(),
-                        swatchColumns[i].Height.ToCentimeters(),
+                first.AddRectangle(
+                        swatchColumns[i].Left,
+                        swatchColumns[i].Top,
+                        swatchColumns[i].Width,
+                        swatchColumns[i].Height,
                         $"Swatch {i + 1}")
                     .Fill(swatches[i])
                     .Stroke("FFFFFF", 1);
@@ -70,8 +70,8 @@ namespace OfficeIMO.Examples.PowerPoint {
                     "Text flows in the layout-defined box",
                     "Margins and spacing stay consistent"
                 });
-                bodyPlaceholder.SetTextMarginsCm(0.2, 0.1, 0.2, 0.1);
-                bodyPlaceholder.ApplyAutoSpacing(lineSpacingMultiplier: 1.15, spaceAfterPoints: 2);
+                bodyPlaceholder.SetTextMargins(global::OfficeIMO.OfficeLength.Centimeters(0.2), global::OfficeIMO.OfficeLength.Centimeters(0.1), global::OfficeIMO.OfficeLength.Centimeters(0.2), global::OfficeIMO.OfficeLength.Centimeters(0.1));
+                bodyPlaceholder.ApplyAutoSpacing(lineSpacingMultiplier: 1.15, spaceAfter: global::OfficeIMO.OfficeLength.Points(2));
             } else {
                 second.AddTextBox("Body placeholder not found in layout.",global::OfficeIMO.OfficeLength.Centimeters(marginCm),global::OfficeIMO.OfficeLength.Centimeters(3.4),global::OfficeIMO.OfficeLength.Centimeters(content.Width.ToCentimeters()),global::OfficeIMO.OfficeLength.Centimeters(1.2));
             }

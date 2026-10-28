@@ -37,10 +37,10 @@ public static partial class PowerPointIWorkConverter {
                     else fillTarget.FillColor = fill.Color!.RgbHex;
                 }
                 if (source.GetPadding(row, column) is { } padding) {
-                    fillTarget.PaddingLeftPoints = padding.LeftPoints;
-                    fillTarget.PaddingTopPoints = padding.TopPoints;
-                    fillTarget.PaddingRightPoints = padding.RightPoints;
-                    fillTarget.PaddingBottomPoints = padding.BottomPoints;
+                    fillTarget.PaddingLeft = global::OfficeIMO.OfficeLength.Points(padding.LeftPoints);
+                    fillTarget.PaddingTop = global::OfficeIMO.OfficeLength.Points(padding.TopPoints);
+                    fillTarget.PaddingRight = global::OfficeIMO.OfficeLength.Points(padding.RightPoints);
+                    fillTarget.PaddingBottom = global::OfficeIMO.OfficeLength.Points(padding.BottomPoints);
                 }
                 if (source.GetVerticalAlignment(row, column) is { } vertical) fillTarget.VerticalAlignment = vertical switch {
                     IWorkCellVerticalAlignment.Top => PowerPointTextVerticalAlignment.Top,

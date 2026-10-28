@@ -99,7 +99,7 @@ namespace OfficeIMO.Tests {
                 }
                 PowerPointAutoShape frame = slide.AddShape(
                     OfficePresetShapeType.Rectangle,
-                    952500, 317500, 635000, 476250);
+                    OfficeIMO.OfficeLength.Emus(952500), OfficeIMO.OfficeLength.Emus(317500), OfficeIMO.OfficeLength.Emus(635000), OfficeIMO.OfficeLength.Emus(476250));
                 frame.Fill("ED7D31");
                 slide.GroupShapes(new PowerPointShape[] { picture, frame },
                     "Picture group");

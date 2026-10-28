@@ -255,8 +255,8 @@ namespace OfficeIMO.PowerPoint {
                 return OfficeTextParagraphIndent.Empty;
             }
 
-            double leftMargin = Math.Max(0D, mapping.MapHorizontalLength(paragraph.LeftMarginPoints ?? 0D));
-            double firstLine = Math.Max(0D, leftMargin + mapping.MapHorizontalLength(paragraph.IndentPoints ?? 0D));
+            double leftMargin = Math.Max(0D, mapping.MapHorizontalLength(paragraph.LeftMargin?.ToPoints() ?? 0D));
+            double firstLine = Math.Max(0D, leftMargin + mapping.MapHorizontalLength(paragraph.Indent?.ToPoints() ?? 0D));
             return firstLine > 0D || leftMargin > 0D
                 ? new OfficeTextParagraphIndent(firstLine, leftMargin)
                 : OfficeTextParagraphIndent.Empty;
@@ -267,7 +267,7 @@ namespace OfficeIMO.PowerPoint {
             OfficeColor? backgroundColor = ResolveTextRunBackgroundColor(run, textBox, colorScheme);
             return new OfficeRichTextRun(
                 ResolvePowerPointDisplayText(text, run, paragraph, markerRun),
-                mapping.MapFontSize(markerRun ? paragraph?.BulletSizePoints ?? run?.FontSize ?? textBox.FontSize ?? 18 : run?.FontSize ?? textBox.FontSize ?? 18),
+                mapping.MapFontSize(markerRun ? paragraph?.BulletSize?.ToPoints() ?? run?.FontSize?.ToPoints() ?? textBox.FontSize?.ToPoints() ?? 18 : run?.FontSize?.ToPoints() ?? textBox.FontSize?.ToPoints() ?? 18),
                 color,
                 run?.Bold == true,
                 run?.Italic == true,

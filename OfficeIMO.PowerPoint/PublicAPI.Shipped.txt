@@ -2376,9 +2376,7 @@ OfficeIMO.PowerPoint.PowerPointDocument.SaveCopyAsync(string! filePath, System.T
 OfficeIMO.PowerPoint.PowerPointDocument.SetGridSpacing(OfficeIMO.OfficeLength horizontal, OfficeIMO.OfficeLength vertical) -> void
 OfficeIMO.PowerPoint.PowerPointDocument.SetGuides(System.Collections.Generic.IEnumerable<OfficeIMO.PowerPoint.PowerPointGuideInfo>! guides) -> void
 OfficeIMO.PowerPoint.PowerPointDocument.SetLayoutPlaceholderBounds(int masterIndex, int layoutIndex, OfficeIMO.PowerPoint.PowerPointPlaceholderType placeholderType, OfficeIMO.PowerPoint.PowerPointLayoutBox bounds, uint? index = null, bool createIfMissing = false) -> void
-OfficeIMO.PowerPoint.PowerPointDocument.SetLayoutPlaceholderTextMarginsCm(int masterIndex, int layoutIndex, OfficeIMO.PowerPoint.PowerPointPlaceholderType placeholderType, double leftCm, double topCm, double rightCm, double bottomCm, uint? index = null, bool createIfMissing = false) -> void
-OfficeIMO.PowerPoint.PowerPointDocument.SetLayoutPlaceholderTextMarginsInches(int masterIndex, int layoutIndex, OfficeIMO.PowerPoint.PowerPointPlaceholderType placeholderType, double leftInches, double topInches, double rightInches, double bottomInches, uint? index = null, bool createIfMissing = false) -> void
-OfficeIMO.PowerPoint.PowerPointDocument.SetLayoutPlaceholderTextMarginsPoints(int masterIndex, int layoutIndex, OfficeIMO.PowerPoint.PowerPointPlaceholderType placeholderType, double leftPoints, double topPoints, double rightPoints, double bottomPoints, uint? index = null, bool createIfMissing = false) -> void
+OfficeIMO.PowerPoint.PowerPointDocument.SetLayoutPlaceholderTextMargins(int masterIndex, int layoutIndex, OfficeIMO.PowerPoint.PowerPointPlaceholderType placeholderType, OfficeIMO.OfficeLength left, OfficeIMO.OfficeLength top, OfficeIMO.OfficeLength right, OfficeIMO.OfficeLength bottom, uint? index = null, bool createIfMissing = false) -> void
 OfficeIMO.PowerPoint.PowerPointDocument.SetLayoutPlaceholderTextStyle(int masterIndex, int layoutIndex, OfficeIMO.PowerPoint.PowerPointPlaceholderType placeholderType, OfficeIMO.PowerPoint.PowerPointTextStyle style, uint? index = null, int? level = null, char? bulletChar = null, OfficeIMO.PowerPoint.PowerPointNumberingScheme? numbering = null, bool createIfMissing = false) -> void
 OfficeIMO.PowerPoint.PowerPointDocument.SetThemeColor(OfficeIMO.PowerPoint.PowerPointThemeColor color, string! hexValue, int masterIndex = 0) -> void
 OfficeIMO.PowerPoint.PowerPointDocument.SetThemeColorForAllMasters(OfficeIMO.PowerPoint.PowerPointThemeColor color, string! hexValue) -> void
@@ -2878,23 +2876,23 @@ OfficeIMO.PowerPoint.PowerPointParagraph.Alignment.set -> void
 OfficeIMO.PowerPoint.PowerPointParagraph.BulletCharacter.get -> string?
 OfficeIMO.PowerPoint.PowerPointParagraph.BulletFontName.get -> string?
 OfficeIMO.PowerPoint.PowerPointParagraph.BulletFontName.set -> void
+OfficeIMO.PowerPoint.PowerPointParagraph.BulletSize.get -> OfficeIMO.OfficeLength?
+OfficeIMO.PowerPoint.PowerPointParagraph.BulletSize.set -> void
 OfficeIMO.PowerPoint.PowerPointParagraph.BulletSizePercent.get -> int?
 OfficeIMO.PowerPoint.PowerPointParagraph.BulletSizePercent.set -> void
-OfficeIMO.PowerPoint.PowerPointParagraph.BulletSizePoints.get -> int?
-OfficeIMO.PowerPoint.PowerPointParagraph.BulletSizePoints.set -> void
 OfficeIMO.PowerPoint.PowerPointParagraph.ClearBullet() -> void
-OfficeIMO.PowerPoint.PowerPointParagraph.IndentPoints.get -> double?
-OfficeIMO.PowerPoint.PowerPointParagraph.IndentPoints.set -> void
+OfficeIMO.PowerPoint.PowerPointParagraph.Indent.get -> OfficeIMO.OfficeLength?
+OfficeIMO.PowerPoint.PowerPointParagraph.Indent.set -> void
 OfficeIMO.PowerPoint.PowerPointParagraph.InlineNodes.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.PowerPoint.PowerPointParagraphInline!>!
 OfficeIMO.PowerPoint.PowerPointParagraph.IsNumbered.get -> bool
-OfficeIMO.PowerPoint.PowerPointParagraph.LeftMarginPoints.get -> double?
-OfficeIMO.PowerPoint.PowerPointParagraph.LeftMarginPoints.set -> void
+OfficeIMO.PowerPoint.PowerPointParagraph.LeftMargin.get -> OfficeIMO.OfficeLength?
+OfficeIMO.PowerPoint.PowerPointParagraph.LeftMargin.set -> void
 OfficeIMO.PowerPoint.PowerPointParagraph.Level.get -> int?
 OfficeIMO.PowerPoint.PowerPointParagraph.Level.set -> void
+OfficeIMO.PowerPoint.PowerPointParagraph.LineSpacing.get -> OfficeIMO.OfficeLength?
+OfficeIMO.PowerPoint.PowerPointParagraph.LineSpacing.set -> void
 OfficeIMO.PowerPoint.PowerPointParagraph.LineSpacingMultiplier.get -> double?
 OfficeIMO.PowerPoint.PowerPointParagraph.LineSpacingMultiplier.set -> void
-OfficeIMO.PowerPoint.PowerPointParagraph.LineSpacingPoints.get -> double?
-OfficeIMO.PowerPoint.PowerPointParagraph.LineSpacingPoints.set -> void
 OfficeIMO.PowerPoint.PowerPointParagraph.NumberingScheme.get -> OfficeIMO.PowerPoint.PowerPointNumberingScheme?
 OfficeIMO.PowerPoint.PowerPointParagraph.NumberingStartAt.get -> int?
 OfficeIMO.PowerPoint.PowerPointParagraph.ReplaceText(string! oldValue, string! newValue) -> int
@@ -2905,38 +2903,32 @@ OfficeIMO.PowerPoint.PowerPointParagraph.SetAlignment(OfficeIMO.PowerPoint.Power
 OfficeIMO.PowerPoint.PowerPointParagraph.SetBold(bool isBold = true) -> OfficeIMO.PowerPoint.PowerPointParagraph!
 OfficeIMO.PowerPoint.PowerPointParagraph.SetBullet(char bulletChar = '•') -> void
 OfficeIMO.PowerPoint.PowerPointParagraph.SetBulletFont(string! fontName) -> OfficeIMO.PowerPoint.PowerPointParagraph!
+OfficeIMO.PowerPoint.PowerPointParagraph.SetBulletSize(OfficeIMO.OfficeLength size) -> OfficeIMO.PowerPoint.PowerPointParagraph!
 OfficeIMO.PowerPoint.PowerPointParagraph.SetBulletSizePercent(int percent) -> OfficeIMO.PowerPoint.PowerPointParagraph!
-OfficeIMO.PowerPoint.PowerPointParagraph.SetBulletSizePoints(int sizePoints) -> OfficeIMO.PowerPoint.PowerPointParagraph!
 OfficeIMO.PowerPoint.PowerPointParagraph.SetColor(string! color) -> OfficeIMO.PowerPoint.PowerPointParagraph!
 OfficeIMO.PowerPoint.PowerPointParagraph.SetFontName(string! fontName) -> OfficeIMO.PowerPoint.PowerPointParagraph!
-OfficeIMO.PowerPoint.PowerPointParagraph.SetFontSize(int size) -> OfficeIMO.PowerPoint.PowerPointParagraph!
-OfficeIMO.PowerPoint.PowerPointParagraph.SetHangingCm(double centimeters) -> OfficeIMO.PowerPoint.PowerPointParagraph!
-OfficeIMO.PowerPoint.PowerPointParagraph.SetHangingInches(double inches) -> OfficeIMO.PowerPoint.PowerPointParagraph!
-OfficeIMO.PowerPoint.PowerPointParagraph.SetHangingPoints(double points) -> OfficeIMO.PowerPoint.PowerPointParagraph!
+OfficeIMO.PowerPoint.PowerPointParagraph.SetFontSize(OfficeIMO.OfficeLength size) -> OfficeIMO.PowerPoint.PowerPointParagraph!
+OfficeIMO.PowerPoint.PowerPointParagraph.SetHanging(OfficeIMO.OfficeLength value) -> OfficeIMO.PowerPoint.PowerPointParagraph!
 OfficeIMO.PowerPoint.PowerPointParagraph.SetHighlightColor(string! color) -> OfficeIMO.PowerPoint.PowerPointParagraph!
-OfficeIMO.PowerPoint.PowerPointParagraph.SetIndentCm(double centimeters) -> OfficeIMO.PowerPoint.PowerPointParagraph!
-OfficeIMO.PowerPoint.PowerPointParagraph.SetIndentInches(double inches) -> OfficeIMO.PowerPoint.PowerPointParagraph!
-OfficeIMO.PowerPoint.PowerPointParagraph.SetIndentPoints(double points) -> OfficeIMO.PowerPoint.PowerPointParagraph!
+OfficeIMO.PowerPoint.PowerPointParagraph.SetIndent(OfficeIMO.OfficeLength value) -> OfficeIMO.PowerPoint.PowerPointParagraph!
 OfficeIMO.PowerPoint.PowerPointParagraph.SetItalic(bool isItalic = true) -> OfficeIMO.PowerPoint.PowerPointParagraph!
-OfficeIMO.PowerPoint.PowerPointParagraph.SetLeftMarginCm(double centimeters) -> OfficeIMO.PowerPoint.PowerPointParagraph!
-OfficeIMO.PowerPoint.PowerPointParagraph.SetLeftMarginInches(double inches) -> OfficeIMO.PowerPoint.PowerPointParagraph!
-OfficeIMO.PowerPoint.PowerPointParagraph.SetLeftMarginPoints(double points) -> OfficeIMO.PowerPoint.PowerPointParagraph!
+OfficeIMO.PowerPoint.PowerPointParagraph.SetLeftMargin(OfficeIMO.OfficeLength value) -> OfficeIMO.PowerPoint.PowerPointParagraph!
 OfficeIMO.PowerPoint.PowerPointParagraph.SetLevel(int level) -> OfficeIMO.PowerPoint.PowerPointParagraph!
+OfficeIMO.PowerPoint.PowerPointParagraph.SetLineSpacing(OfficeIMO.OfficeLength value) -> OfficeIMO.PowerPoint.PowerPointParagraph!
 OfficeIMO.PowerPoint.PowerPointParagraph.SetLineSpacingMultiplier(double multiplier) -> OfficeIMO.PowerPoint.PowerPointParagraph!
-OfficeIMO.PowerPoint.PowerPointParagraph.SetLineSpacingPoints(double points) -> OfficeIMO.PowerPoint.PowerPointParagraph!
 OfficeIMO.PowerPoint.PowerPointParagraph.SetNumbered(OfficeIMO.PowerPoint.PowerPointNumberingScheme style) -> void
 OfficeIMO.PowerPoint.PowerPointParagraph.SetNumbered(OfficeIMO.PowerPoint.PowerPointNumberingScheme style, int startAt = 1) -> void
 OfficeIMO.PowerPoint.PowerPointParagraph.SetNumbered(int startAt = 1) -> void
-OfficeIMO.PowerPoint.PowerPointParagraph.SetSpaceAfterPoints(double points) -> OfficeIMO.PowerPoint.PowerPointParagraph!
-OfficeIMO.PowerPoint.PowerPointParagraph.SetSpaceBeforePoints(double points) -> OfficeIMO.PowerPoint.PowerPointParagraph!
+OfficeIMO.PowerPoint.PowerPointParagraph.SetSpaceAfter(OfficeIMO.OfficeLength value) -> OfficeIMO.PowerPoint.PowerPointParagraph!
+OfficeIMO.PowerPoint.PowerPointParagraph.SetSpaceBefore(OfficeIMO.OfficeLength value) -> OfficeIMO.PowerPoint.PowerPointParagraph!
 OfficeIMO.PowerPoint.PowerPointParagraph.SetStrikethrough(bool strikethrough = true) -> OfficeIMO.PowerPoint.PowerPointParagraph!
 OfficeIMO.PowerPoint.PowerPointParagraph.SetTabStops(System.Collections.Generic.IEnumerable<OfficeIMO.PowerPoint.PowerPointTabStop!>! tabStops) -> OfficeIMO.PowerPoint.PowerPointParagraph!
 OfficeIMO.PowerPoint.PowerPointParagraph.SetText(string! text) -> OfficeIMO.PowerPoint.PowerPointParagraph!
 OfficeIMO.PowerPoint.PowerPointParagraph.SetUnderline(bool underline = true) -> OfficeIMO.PowerPoint.PowerPointParagraph!
-OfficeIMO.PowerPoint.PowerPointParagraph.SpaceAfterPoints.get -> double?
-OfficeIMO.PowerPoint.PowerPointParagraph.SpaceAfterPoints.set -> void
-OfficeIMO.PowerPoint.PowerPointParagraph.SpaceBeforePoints.get -> double?
-OfficeIMO.PowerPoint.PowerPointParagraph.SpaceBeforePoints.set -> void
+OfficeIMO.PowerPoint.PowerPointParagraph.SpaceAfter.get -> OfficeIMO.OfficeLength?
+OfficeIMO.PowerPoint.PowerPointParagraph.SpaceAfter.set -> void
+OfficeIMO.PowerPoint.PowerPointParagraph.SpaceBefore.get -> OfficeIMO.OfficeLength?
+OfficeIMO.PowerPoint.PowerPointParagraph.SpaceBefore.set -> void
 OfficeIMO.PowerPoint.PowerPointParagraph.TabStops.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.PowerPoint.PowerPointTabStop!>!
 OfficeIMO.PowerPoint.PowerPointParagraph.Text.get -> string!
 OfficeIMO.PowerPoint.PowerPointParagraph.Text.set -> void
@@ -2953,25 +2945,25 @@ OfficeIMO.PowerPoint.PowerPointParagraphInlineKind.Run = 0 -> OfficeIMO.PowerPoi
 OfficeIMO.PowerPoint.PowerPointParagraphStyle
 OfficeIMO.PowerPoint.PowerPointParagraphStyle.Alignment.get -> OfficeIMO.PowerPoint.PowerPointTextAlignment?
 OfficeIMO.PowerPoint.PowerPointParagraphStyle.Apply(OfficeIMO.PowerPoint.PowerPointParagraph! paragraph) -> void
-OfficeIMO.PowerPoint.PowerPointParagraphStyle.HangingPoints.get -> double?
-OfficeIMO.PowerPoint.PowerPointParagraphStyle.IndentPoints.get -> double?
-OfficeIMO.PowerPoint.PowerPointParagraphStyle.LeftMarginPoints.get -> double?
+OfficeIMO.PowerPoint.PowerPointParagraphStyle.Hanging.get -> OfficeIMO.OfficeLength?
+OfficeIMO.PowerPoint.PowerPointParagraphStyle.Indent.get -> OfficeIMO.OfficeLength?
+OfficeIMO.PowerPoint.PowerPointParagraphStyle.LeftMargin.get -> OfficeIMO.OfficeLength?
 OfficeIMO.PowerPoint.PowerPointParagraphStyle.Level.get -> int?
+OfficeIMO.PowerPoint.PowerPointParagraphStyle.LineSpacing.get -> OfficeIMO.OfficeLength?
 OfficeIMO.PowerPoint.PowerPointParagraphStyle.LineSpacingMultiplier.get -> double?
-OfficeIMO.PowerPoint.PowerPointParagraphStyle.LineSpacingPoints.get -> double?
 OfficeIMO.PowerPoint.PowerPointParagraphStyle.PowerPointParagraphStyle() -> void
-OfficeIMO.PowerPoint.PowerPointParagraphStyle.PowerPointParagraphStyle(OfficeIMO.PowerPoint.PowerPointTextAlignment? alignment = null, int? level = null, double? indentPoints = null, double? leftMarginPoints = null, double? hangingPoints = null, double? lineSpacingPoints = null, double? lineSpacingMultiplier = null, double? spaceBeforePoints = null, double? spaceAfterPoints = null) -> void
-OfficeIMO.PowerPoint.PowerPointParagraphStyle.SpaceAfterPoints.get -> double?
-OfficeIMO.PowerPoint.PowerPointParagraphStyle.SpaceBeforePoints.get -> double?
+OfficeIMO.PowerPoint.PowerPointParagraphStyle.PowerPointParagraphStyle(OfficeIMO.PowerPoint.PowerPointTextAlignment? alignment = null, int? level = null, OfficeIMO.OfficeLength? indent = null, OfficeIMO.OfficeLength? leftMargin = null, OfficeIMO.OfficeLength? hanging = null, OfficeIMO.OfficeLength? lineSpacing = null, double? lineSpacingMultiplier = null, OfficeIMO.OfficeLength? spaceBefore = null, OfficeIMO.OfficeLength? spaceAfter = null) -> void
+OfficeIMO.PowerPoint.PowerPointParagraphStyle.SpaceAfter.get -> OfficeIMO.OfficeLength?
+OfficeIMO.PowerPoint.PowerPointParagraphStyle.SpaceBefore.get -> OfficeIMO.OfficeLength?
 OfficeIMO.PowerPoint.PowerPointParagraphStyle.WithAlignment(OfficeIMO.PowerPoint.PowerPointTextAlignment alignment) -> OfficeIMO.PowerPoint.PowerPointParagraphStyle
-OfficeIMO.PowerPoint.PowerPointParagraphStyle.WithHangingPoints(double? hangingPoints) -> OfficeIMO.PowerPoint.PowerPointParagraphStyle
-OfficeIMO.PowerPoint.PowerPointParagraphStyle.WithIndentPoints(double? indentPoints) -> OfficeIMO.PowerPoint.PowerPointParagraphStyle
-OfficeIMO.PowerPoint.PowerPointParagraphStyle.WithLeftMarginPoints(double? leftMarginPoints) -> OfficeIMO.PowerPoint.PowerPointParagraphStyle
+OfficeIMO.PowerPoint.PowerPointParagraphStyle.WithHanging(OfficeIMO.OfficeLength? hanging) -> OfficeIMO.PowerPoint.PowerPointParagraphStyle
+OfficeIMO.PowerPoint.PowerPointParagraphStyle.WithIndent(OfficeIMO.OfficeLength? indent) -> OfficeIMO.PowerPoint.PowerPointParagraphStyle
+OfficeIMO.PowerPoint.PowerPointParagraphStyle.WithLeftMargin(OfficeIMO.OfficeLength? leftMargin) -> OfficeIMO.PowerPoint.PowerPointParagraphStyle
 OfficeIMO.PowerPoint.PowerPointParagraphStyle.WithLevel(int level) -> OfficeIMO.PowerPoint.PowerPointParagraphStyle
+OfficeIMO.PowerPoint.PowerPointParagraphStyle.WithLineSpacing(OfficeIMO.OfficeLength? lineSpacing) -> OfficeIMO.PowerPoint.PowerPointParagraphStyle
 OfficeIMO.PowerPoint.PowerPointParagraphStyle.WithLineSpacingMultiplier(double? lineSpacingMultiplier) -> OfficeIMO.PowerPoint.PowerPointParagraphStyle
-OfficeIMO.PowerPoint.PowerPointParagraphStyle.WithLineSpacingPoints(double? lineSpacingPoints) -> OfficeIMO.PowerPoint.PowerPointParagraphStyle
-OfficeIMO.PowerPoint.PowerPointParagraphStyle.WithSpaceAfterPoints(double? spaceAfterPoints) -> OfficeIMO.PowerPoint.PowerPointParagraphStyle
-OfficeIMO.PowerPoint.PowerPointParagraphStyle.WithSpaceBeforePoints(double? spaceBeforePoints) -> OfficeIMO.PowerPoint.PowerPointParagraphStyle
+OfficeIMO.PowerPoint.PowerPointParagraphStyle.WithSpaceAfter(OfficeIMO.OfficeLength? spaceAfter) -> OfficeIMO.PowerPoint.PowerPointParagraphStyle
+OfficeIMO.PowerPoint.PowerPointParagraphStyle.WithSpaceBefore(OfficeIMO.OfficeLength? spaceBefore) -> OfficeIMO.PowerPoint.PowerPointParagraphStyle
 OfficeIMO.PowerPoint.PowerPointPerceptualProof
 OfficeIMO.PowerPoint.PowerPointPerceptualProof.AllowedDifferenceRatio.get -> double
 OfficeIMO.PowerPoint.PowerPointPerceptualProof.DifferenceRatio.get -> double
@@ -3345,8 +3337,8 @@ OfficeIMO.PowerPoint.PowerPointSignatureReport.XmlSignaturePartCount.get -> int
 OfficeIMO.PowerPoint.PowerPointSignedDocumentMutationException
 OfficeIMO.PowerPoint.PowerPointSignedDocumentMutationException.Report.get -> OfficeIMO.PowerPoint.PowerPointSignatureReport!
 OfficeIMO.PowerPoint.PowerPointSlide
-OfficeIMO.PowerPoint.PowerPointSlide.AddAudio(System.IO.Stream! audio, string! contentType, string! extension, long left = 0, long top = 0, long width = 914400, long height = 914400) -> OfficeIMO.PowerPoint.PowerPointMedia!
-OfficeIMO.PowerPoint.PowerPointSlide.AddAudio(string! audioPath, long left = 0, long top = 0, long width = 914400, long height = 914400) -> OfficeIMO.PowerPoint.PowerPointMedia!
+OfficeIMO.PowerPoint.PowerPointSlide.AddAudio(System.IO.Stream! audio, string! contentType, string! extension, OfficeIMO.OfficeLength? left = null, OfficeIMO.OfficeLength? top = null, OfficeIMO.OfficeLength? width = null, OfficeIMO.OfficeLength? height = null) -> OfficeIMO.PowerPoint.PowerPointMedia!
+OfficeIMO.PowerPoint.PowerPointSlide.AddAudio(string! audioPath, OfficeIMO.OfficeLength? left = null, OfficeIMO.OfficeLength? top = null, OfficeIMO.OfficeLength? width = null, OfficeIMO.OfficeLength? height = null) -> OfficeIMO.PowerPoint.PowerPointMedia!
 OfficeIMO.PowerPoint.PowerPointSlide.AddChart(OfficeIMO.OfficeChartType chartKind, OfficeIMO.Drawing.OfficeChartData! data, OfficeIMO.OfficeLength? left = null, OfficeIMO.OfficeLength? top = null, OfficeIMO.OfficeLength? width = null, OfficeIMO.OfficeLength? height = null, OfficeIMO.PowerPoint.PowerPointChartAccessibilityOptions? accessibility = null) -> OfficeIMO.PowerPoint.PowerPointChart!
 OfficeIMO.PowerPoint.PowerPointSlide.AddChart<T, TCategory>(OfficeIMO.OfficeChartType type, System.Collections.Generic.IEnumerable<T>! data, System.Func<T, TCategory>! category, params OfficeIMO.OfficeSeries![]! series) -> OfficeIMO.PowerPoint.PowerPointChart!
 OfficeIMO.PowerPoint.PowerPointSlide.AddChart<T>(OfficeIMO.OfficeChartType type, System.Collections.Generic.IEnumerable<T>! data, string! category, params string![]! series) -> OfficeIMO.PowerPoint.PowerPointChart!
@@ -3357,37 +3349,25 @@ OfficeIMO.PowerPoint.PowerPointSlide.AddCustomGeometry(OfficeIMO.Drawing.OfficeS
 OfficeIMO.PowerPoint.PowerPointSlide.AddCustomGeometryCm(OfficeIMO.Drawing.OfficeShape! geometry, double leftCm, double topCm, double widthCm, double heightCm, string? name = null) -> OfficeIMO.PowerPoint.PowerPointAutoShape!
 OfficeIMO.PowerPoint.PowerPointSlide.AddCustomGeometryInches(OfficeIMO.Drawing.OfficeShape! geometry, double leftInches, double topInches, double widthInches, double heightInches, string? name = null) -> OfficeIMO.PowerPoint.PowerPointAutoShape!
 OfficeIMO.PowerPoint.PowerPointSlide.AddCustomGeometryPoints(OfficeIMO.Drawing.OfficeShape! geometry, double leftPoints, double topPoints, double widthPoints, double heightPoints, string? name = null) -> OfficeIMO.PowerPoint.PowerPointAutoShape!
-OfficeIMO.PowerPoint.PowerPointSlide.AddEllipse(long left, long top, long width, long height, string? name = null) -> OfficeIMO.PowerPoint.PowerPointAutoShape!
-OfficeIMO.PowerPoint.PowerPointSlide.AddEllipseCm(double leftCm, double topCm, double widthCm, double heightCm, string? name = null) -> OfficeIMO.PowerPoint.PowerPointAutoShape!
-OfficeIMO.PowerPoint.PowerPointSlide.AddEllipseInches(double leftInches, double topInches, double widthInches, double heightInches, string? name = null) -> OfficeIMO.PowerPoint.PowerPointAutoShape!
-OfficeIMO.PowerPoint.PowerPointSlide.AddEllipsePoints(double leftPoints, double topPoints, double widthPoints, double heightPoints, string? name = null) -> OfficeIMO.PowerPoint.PowerPointAutoShape!
+OfficeIMO.PowerPoint.PowerPointSlide.AddEllipse(OfficeIMO.OfficeLength left, OfficeIMO.OfficeLength top, OfficeIMO.OfficeLength width, OfficeIMO.OfficeLength height, string? name = null) -> OfficeIMO.PowerPoint.PowerPointAutoShape!
 OfficeIMO.PowerPoint.PowerPointSlide.AddImage(OfficeIMO.PowerPoint.PowerPointImageAsset! asset, OfficeIMO.PowerPoint.PowerPointLayoutBox bounds) -> OfficeIMO.PowerPoint.PowerPointPicture!
 OfficeIMO.PowerPoint.PowerPointSlide.AddImage(System.IO.Stream! image, OfficeIMO.Drawing.OfficeImageFormat imageType, OfficeIMO.OfficeLength? left = null, OfficeIMO.OfficeLength? top = null, OfficeIMO.OfficeLength? width = null, OfficeIMO.OfficeLength? height = null) -> OfficeIMO.PowerPoint.PowerPointPicture!
 OfficeIMO.PowerPoint.PowerPointSlide.AddImage(System.IO.Stream! image, OfficeIMO.Drawing.OfficeImageFormat imageType, OfficeIMO.PowerPoint.PowerPointLayoutBox layout) -> OfficeIMO.PowerPoint.PowerPointPicture!
 OfficeIMO.PowerPoint.PowerPointSlide.AddImage(string! imagePath, OfficeIMO.OfficeLength? left = null, OfficeIMO.OfficeLength? top = null, OfficeIMO.OfficeLength? width = null, OfficeIMO.OfficeLength? height = null) -> OfficeIMO.PowerPoint.PowerPointPicture!
 OfficeIMO.PowerPoint.PowerPointSlide.AddImage(string! imagePath, OfficeIMO.PowerPoint.PowerPointLayoutBox layout) -> OfficeIMO.PowerPoint.PowerPointPicture!
-OfficeIMO.PowerPoint.PowerPointSlide.AddLine(long startX, long startY, long endX, long endY, string? name = null) -> OfficeIMO.PowerPoint.PowerPointAutoShape!
-OfficeIMO.PowerPoint.PowerPointSlide.AddLineCm(double startXCm, double startYCm, double endXCm, double endYCm, string? name = null) -> OfficeIMO.PowerPoint.PowerPointAutoShape!
-OfficeIMO.PowerPoint.PowerPointSlide.AddLineInches(double startXInches, double startYInches, double endXInches, double endYInches, string? name = null) -> OfficeIMO.PowerPoint.PowerPointAutoShape!
-OfficeIMO.PowerPoint.PowerPointSlide.AddLinePoints(double startXPoints, double startYPoints, double endXPoints, double endYPoints, string? name = null) -> OfficeIMO.PowerPoint.PowerPointAutoShape!
-OfficeIMO.PowerPoint.PowerPointSlide.AddLinkedAudio(System.Uri! source, long left = 0, long top = 0, long width = 914400, long height = 914400) -> OfficeIMO.PowerPoint.PowerPointMedia!
-OfficeIMO.PowerPoint.PowerPointSlide.AddLinkedOleObject(System.Uri! source, string! progId, bool autoUpdate = false, long left = 0, long top = 0, long width = 2743200, long height = 1828800) -> OfficeIMO.PowerPoint.PowerPointOleObject!
-OfficeIMO.PowerPoint.PowerPointSlide.AddLinkedVideo(System.Uri! source, long left = 0, long top = 0, long width = 3657600, long height = 2057400) -> OfficeIMO.PowerPoint.PowerPointMedia!
+OfficeIMO.PowerPoint.PowerPointSlide.AddLine(OfficeIMO.OfficeLength startX, OfficeIMO.OfficeLength startY, OfficeIMO.OfficeLength endX, OfficeIMO.OfficeLength endY, string? name = null) -> OfficeIMO.PowerPoint.PowerPointAutoShape!
+OfficeIMO.PowerPoint.PowerPointSlide.AddLinkedAudio(System.Uri! source, OfficeIMO.OfficeLength? left = null, OfficeIMO.OfficeLength? top = null, OfficeIMO.OfficeLength? width = null, OfficeIMO.OfficeLength? height = null) -> OfficeIMO.PowerPoint.PowerPointMedia!
+OfficeIMO.PowerPoint.PowerPointSlide.AddLinkedOleObject(System.Uri! source, string! progId, bool autoUpdate = false, OfficeIMO.OfficeLength? left = null, OfficeIMO.OfficeLength? top = null, OfficeIMO.OfficeLength? width = null, OfficeIMO.OfficeLength? height = null) -> OfficeIMO.PowerPoint.PowerPointOleObject!
+OfficeIMO.PowerPoint.PowerPointSlide.AddLinkedVideo(System.Uri! source, OfficeIMO.OfficeLength? left = null, OfficeIMO.OfficeLength? top = null, OfficeIMO.OfficeLength? width = null, OfficeIMO.OfficeLength? height = null) -> OfficeIMO.PowerPoint.PowerPointMedia!
 OfficeIMO.PowerPoint.PowerPointSlide.AddMotionAnimation(OfficeIMO.PowerPoint.PowerPointShape! shape, string! path, OfficeIMO.PowerPoint.PowerPointTimelineOptions? options = null) -> OfficeIMO.PowerPoint.PowerPointTimelineAction!
-OfficeIMO.PowerPoint.PowerPointSlide.AddOleObject(System.IO.Stream! storage, string! progId, long left = 0, long top = 0, long width = 2743200, long height = 1828800, string! contentType = "application/vnd.openxmlformats-officedocument.oleObject") -> OfficeIMO.PowerPoint.PowerPointOleObject!
-OfficeIMO.PowerPoint.PowerPointSlide.AddRectangle(long left, long top, long width, long height, string? name = null) -> OfficeIMO.PowerPoint.PowerPointAutoShape!
-OfficeIMO.PowerPoint.PowerPointSlide.AddRectangleCm(double leftCm, double topCm, double widthCm, double heightCm, string? name = null) -> OfficeIMO.PowerPoint.PowerPointAutoShape!
-OfficeIMO.PowerPoint.PowerPointSlide.AddRectangleInches(double leftInches, double topInches, double widthInches, double heightInches, string? name = null) -> OfficeIMO.PowerPoint.PowerPointAutoShape!
-OfficeIMO.PowerPoint.PowerPointSlide.AddRectanglePoints(double leftPoints, double topPoints, double widthPoints, double heightPoints, string? name = null) -> OfficeIMO.PowerPoint.PowerPointAutoShape!
+OfficeIMO.PowerPoint.PowerPointSlide.AddOleObject(System.IO.Stream! storage, string! progId, OfficeIMO.OfficeLength? left = null, OfficeIMO.OfficeLength? top = null, OfficeIMO.OfficeLength? width = null, OfficeIMO.OfficeLength? height = null, string! contentType = "application/vnd.openxmlformats-officedocument.oleObject") -> OfficeIMO.PowerPoint.PowerPointOleObject!
+OfficeIMO.PowerPoint.PowerPointSlide.AddRectangle(OfficeIMO.OfficeLength left, OfficeIMO.OfficeLength top, OfficeIMO.OfficeLength width, OfficeIMO.OfficeLength height, string? name = null) -> OfficeIMO.PowerPoint.PowerPointAutoShape!
 OfficeIMO.PowerPoint.PowerPointSlide.AddRotationAnimation(OfficeIMO.PowerPoint.PowerPointShape! shape, double degrees, OfficeIMO.PowerPoint.PowerPointTimelineOptions? options = null) -> OfficeIMO.PowerPoint.PowerPointTimelineAction!
-OfficeIMO.PowerPoint.PowerPointSlide.AddShape(OfficeIMO.Drawing.OfficePresetShapeType shapeType, long left = 0, long top = 0, long width = 914400, long height = 914400, string? name = null) -> OfficeIMO.PowerPoint.PowerPointAutoShape!
-OfficeIMO.PowerPoint.PowerPointSlide.AddShapeCm(OfficeIMO.Drawing.OfficePresetShapeType shapeType, double leftCm, double topCm, double widthCm, double heightCm, string? name = null) -> OfficeIMO.PowerPoint.PowerPointAutoShape!
-OfficeIMO.PowerPoint.PowerPointSlide.AddShapeInches(OfficeIMO.Drawing.OfficePresetShapeType shapeType, double leftInches, double topInches, double widthInches, double heightInches, string? name = null) -> OfficeIMO.PowerPoint.PowerPointAutoShape!
-OfficeIMO.PowerPoint.PowerPointSlide.AddShapePoints(OfficeIMO.Drawing.OfficePresetShapeType shapeType, double leftPoints, double topPoints, double widthPoints, double heightPoints, string? name = null) -> OfficeIMO.PowerPoint.PowerPointAutoShape!
-OfficeIMO.PowerPoint.PowerPointSlide.AddSmartArt(OfficeIMO.PowerPoint.PowerPointSmartArtType type = OfficeIMO.PowerPoint.PowerPointSmartArtType.BasicProcess, long left = 0, long top = 0, long width = 5486400, long height = 3200400) -> OfficeIMO.PowerPoint.PowerPointSmartArt!
+OfficeIMO.PowerPoint.PowerPointSlide.AddShape(OfficeIMO.Drawing.OfficePresetShapeType shapeType, OfficeIMO.OfficeLength? left = null, OfficeIMO.OfficeLength? top = null, OfficeIMO.OfficeLength? width = null, OfficeIMO.OfficeLength? height = null, string? name = null) -> OfficeIMO.PowerPoint.PowerPointAutoShape!
+OfficeIMO.PowerPoint.PowerPointSlide.AddSmartArt(OfficeIMO.PowerPoint.PowerPointSmartArtType type = OfficeIMO.PowerPoint.PowerPointSmartArtType.BasicProcess, OfficeIMO.OfficeLength? left = null, OfficeIMO.OfficeLength? top = null, OfficeIMO.OfficeLength? width = null, OfficeIMO.OfficeLength? height = null) -> OfficeIMO.PowerPoint.PowerPointSmartArt!
 OfficeIMO.PowerPoint.PowerPointSlide.AddSmartArt(OfficeIMO.PowerPoint.PowerPointSmartArtType type, OfficeIMO.PowerPoint.PowerPointLayoutBox layout) -> OfficeIMO.PowerPoint.PowerPointSmartArt!
+OfficeIMO.PowerPoint.PowerPointSlide.AddSmartArt(OfficeIMO.PowerPoint.PowerPointSmartArtType type, System.Collections.Generic.IEnumerable<string!>! nodeTexts, OfficeIMO.OfficeLength? left = null, OfficeIMO.OfficeLength? top = null, OfficeIMO.OfficeLength? width = null, OfficeIMO.OfficeLength? height = null) -> OfficeIMO.PowerPoint.PowerPointSmartArt!
 OfficeIMO.PowerPoint.PowerPointSlide.AddSmartArt(OfficeIMO.PowerPoint.PowerPointSmartArtType type, System.Collections.Generic.IEnumerable<string!>! nodeTexts, OfficeIMO.PowerPoint.PowerPointLayoutBox layout) -> OfficeIMO.PowerPoint.PowerPointSmartArt!
-OfficeIMO.PowerPoint.PowerPointSlide.AddSmartArt(OfficeIMO.PowerPoint.PowerPointSmartArtType type, System.Collections.Generic.IEnumerable<string!>! nodeTexts, long left = 0, long top = 0, long width = 5486400, long height = 3200400) -> OfficeIMO.PowerPoint.PowerPointSmartArt!
 OfficeIMO.PowerPoint.PowerPointSlide.AddTable(int rows, int columns, OfficeIMO.OfficeLength? left = null, OfficeIMO.OfficeLength? top = null, OfficeIMO.OfficeLength? width = null, OfficeIMO.OfficeLength? height = null) -> OfficeIMO.PowerPoint.PowerPointTable!
 OfficeIMO.PowerPoint.PowerPointSlide.AddTable(int rows, int columns, OfficeIMO.PowerPoint.PowerPointLayoutBox layout) -> OfficeIMO.PowerPoint.PowerPointTable!
 OfficeIMO.PowerPoint.PowerPointSlide.AddTable(int rows, int columns, OfficeIMO.PowerPoint.PowerPointTableStylePreset preset, OfficeIMO.OfficeLength? left = null, OfficeIMO.OfficeLength? top = null, OfficeIMO.OfficeLength? width = null, OfficeIMO.OfficeLength? height = null) -> OfficeIMO.PowerPoint.PowerPointTable!
@@ -3401,15 +3381,12 @@ OfficeIMO.PowerPoint.PowerPointSlide.AddTable<T>(System.Collections.Generic.IEnu
 OfficeIMO.PowerPoint.PowerPointSlide.AddTextBox(OfficeIMO.PowerPoint.PowerPointLayoutBox layout) -> OfficeIMO.PowerPoint.PowerPointTextBox!
 OfficeIMO.PowerPoint.PowerPointSlide.AddTextBox(string! text, OfficeIMO.OfficeLength? left = null, OfficeIMO.OfficeLength? top = null, OfficeIMO.OfficeLength? width = null, OfficeIMO.OfficeLength? height = null) -> OfficeIMO.PowerPoint.PowerPointTextBox!
 OfficeIMO.PowerPoint.PowerPointSlide.AddTextBox(string! text, OfficeIMO.PowerPoint.PowerPointLayoutBox layout) -> OfficeIMO.PowerPoint.PowerPointTextBox!
-OfficeIMO.PowerPoint.PowerPointSlide.AddTextShape(OfficeIMO.Drawing.OfficePresetShapeType shapeType, string! text, long left = 0, long top = 0, long width = 914400, long height = 914400, string? name = null) -> OfficeIMO.PowerPoint.PowerPointTextBox!
-OfficeIMO.PowerPoint.PowerPointSlide.AddTextShapeCm(OfficeIMO.Drawing.OfficePresetShapeType shapeType, string! text, double leftCm, double topCm, double widthCm, double heightCm, string? name = null) -> OfficeIMO.PowerPoint.PowerPointTextBox!
-OfficeIMO.PowerPoint.PowerPointSlide.AddTextShapeInches(OfficeIMO.Drawing.OfficePresetShapeType shapeType, string! text, double leftInches, double topInches, double widthInches, double heightInches, string? name = null) -> OfficeIMO.PowerPoint.PowerPointTextBox!
-OfficeIMO.PowerPoint.PowerPointSlide.AddTextShapePoints(OfficeIMO.Drawing.OfficePresetShapeType shapeType, string! text, double leftPoints, double topPoints, double widthPoints, double heightPoints, string? name = null) -> OfficeIMO.PowerPoint.PowerPointTextBox!
+OfficeIMO.PowerPoint.PowerPointSlide.AddTextShape(OfficeIMO.Drawing.OfficePresetShapeType shapeType, string! text, OfficeIMO.OfficeLength? left = null, OfficeIMO.OfficeLength? top = null, OfficeIMO.OfficeLength? width = null, OfficeIMO.OfficeLength? height = null, string? name = null) -> OfficeIMO.PowerPoint.PowerPointTextBox!
 OfficeIMO.PowerPoint.PowerPointSlide.AddTextToPlaceholder(OfficeIMO.PowerPoint.PowerPointTemplatePlaceholderInfo! placeholder, string! text) -> OfficeIMO.PowerPoint.PowerPointTextBox!
 OfficeIMO.PowerPoint.PowerPointSlide.AddTitle(string! text, OfficeIMO.OfficeLength? left = null, OfficeIMO.OfficeLength? top = null, OfficeIMO.OfficeLength? width = null, OfficeIMO.OfficeLength? height = null) -> OfficeIMO.PowerPoint.PowerPointTextBox!
 OfficeIMO.PowerPoint.PowerPointSlide.AddTitle(string! text, OfficeIMO.PowerPoint.PowerPointLayoutBox layout) -> OfficeIMO.PowerPoint.PowerPointTextBox!
-OfficeIMO.PowerPoint.PowerPointSlide.AddVideo(System.IO.Stream! video, string! contentType, string! extension, long left = 0, long top = 0, long width = 3657600, long height = 2057400, System.IO.Stream? posterImage = null, OfficeIMO.Drawing.OfficeImageFormat posterImageType = OfficeIMO.Drawing.OfficeImageFormat.Png) -> OfficeIMO.PowerPoint.PowerPointMedia!
-OfficeIMO.PowerPoint.PowerPointSlide.AddVideo(string! videoPath, string? posterImagePath = null, long left = 0, long top = 0, long width = 3657600, long height = 2057400) -> OfficeIMO.PowerPoint.PowerPointMedia!
+OfficeIMO.PowerPoint.PowerPointSlide.AddVideo(System.IO.Stream! video, string! contentType, string! extension, OfficeIMO.OfficeLength? left = null, OfficeIMO.OfficeLength? top = null, OfficeIMO.OfficeLength? width = null, OfficeIMO.OfficeLength? height = null, System.IO.Stream? posterImage = null, OfficeIMO.Drawing.OfficeImageFormat posterImageType = OfficeIMO.Drawing.OfficeImageFormat.Png) -> OfficeIMO.PowerPoint.PowerPointMedia!
+OfficeIMO.PowerPoint.PowerPointSlide.AddVideo(string! videoPath, string? posterImagePath = null, OfficeIMO.OfficeLength? left = null, OfficeIMO.OfficeLength? top = null, OfficeIMO.OfficeLength? width = null, OfficeIMO.OfficeLength? height = null) -> OfficeIMO.PowerPoint.PowerPointMedia!
 OfficeIMO.PowerPoint.PowerPointSlide.AlignGroupChildren(OfficeIMO.PowerPoint.PowerPointGroupShape! groupShape, OfficeIMO.PowerPoint.PowerPointShapeAlignment alignment) -> void
 OfficeIMO.PowerPoint.PowerPointSlide.AlignShapes(System.Collections.Generic.IEnumerable<OfficeIMO.PowerPoint.PowerPointShape!>! shapes, OfficeIMO.PowerPoint.PowerPointShapeAlignment alignment) -> void
 OfficeIMO.PowerPoint.PowerPointSlide.AlignShapes(System.Collections.Generic.IEnumerable<OfficeIMO.PowerPoint.PowerPointShape!>! shapes, OfficeIMO.PowerPoint.PowerPointShapeAlignment alignment, OfficeIMO.PowerPoint.PowerPointLayoutBox bounds) -> void
@@ -3876,8 +3853,8 @@ OfficeIMO.PowerPoint.PowerPointTabAlignment.Left = 0 -> OfficeIMO.PowerPoint.Pow
 OfficeIMO.PowerPoint.PowerPointTabAlignment.Right = 2 -> OfficeIMO.PowerPoint.PowerPointTabAlignment
 OfficeIMO.PowerPoint.PowerPointTabStop
 OfficeIMO.PowerPoint.PowerPointTabStop.Alignment.get -> OfficeIMO.PowerPoint.PowerPointTabAlignment
-OfficeIMO.PowerPoint.PowerPointTabStop.PositionPoints.get -> double
-OfficeIMO.PowerPoint.PowerPointTabStop.PowerPointTabStop(double positionPoints, OfficeIMO.PowerPoint.PowerPointTabAlignment alignment = OfficeIMO.PowerPoint.PowerPointTabAlignment.Left) -> void
+OfficeIMO.PowerPoint.PowerPointTabStop.Position.get -> OfficeIMO.OfficeLength
+OfficeIMO.PowerPoint.PowerPointTabStop.PowerPointTabStop(OfficeIMO.OfficeLength position, OfficeIMO.PowerPoint.PowerPointTabAlignment alignment = OfficeIMO.PowerPoint.PowerPointTabAlignment.Left) -> void
 OfficeIMO.PowerPoint.PowerPointTable
 OfficeIMO.PowerPoint.PowerPointTable.AddColumn(int? index = null) -> OfficeIMO.PowerPoint.PowerPointTableColumn!
 OfficeIMO.PowerPoint.PowerPointTable.AddColumnFromTemplate(int templateColumnIndex, int? index = null, bool clearText = true) -> OfficeIMO.PowerPoint.PowerPointTableColumn!
@@ -3921,10 +3898,8 @@ OfficeIMO.PowerPoint.PowerPointTable.SetCellAlignment(OfficeIMO.PowerPoint.Power
 OfficeIMO.PowerPoint.PowerPointTable.SetCellAlignment(OfficeIMO.PowerPoint.PowerPointTextAlignment? horizontal, OfficeIMO.PowerPoint.PowerPointTextVerticalAlignment? vertical, int startRow, int endRow, int startColumn, int endColumn) -> void
 OfficeIMO.PowerPoint.PowerPointTable.SetCellBorders(OfficeIMO.PowerPoint.PowerPointTableCellBorders borders, string! color, double? widthPoints = null) -> void
 OfficeIMO.PowerPoint.PowerPointTable.SetCellBorders(OfficeIMO.PowerPoint.PowerPointTableCellBorders borders, string! color, double? widthPoints, OfficeIMO.PowerPoint.PowerPointLineDashStyle dash) -> void
-OfficeIMO.PowerPoint.PowerPointTable.SetCellPaddingCm(double? leftCm, double? topCm, double? rightCm, double? bottomCm) -> void
-OfficeIMO.PowerPoint.PowerPointTable.SetCellPaddingInches(double? leftInches, double? topInches, double? rightInches, double? bottomInches) -> void
-OfficeIMO.PowerPoint.PowerPointTable.SetCellPaddingPoints(double? left, double? top, double? right, double? bottom) -> void
-OfficeIMO.PowerPoint.PowerPointTable.SetCellPaddingPoints(double? left, double? top, double? right, double? bottom, int startRow, int endRow, int startColumn, int endColumn) -> void
+OfficeIMO.PowerPoint.PowerPointTable.SetCellPadding(OfficeIMO.OfficeLength? left, OfficeIMO.OfficeLength? top, OfficeIMO.OfficeLength? right, OfficeIMO.OfficeLength? bottom) -> void
+OfficeIMO.PowerPoint.PowerPointTable.SetCellPadding(OfficeIMO.OfficeLength? left, OfficeIMO.OfficeLength? top, OfficeIMO.OfficeLength? right, OfficeIMO.OfficeLength? bottom, int startRow, int endRow, int startColumn, int endColumn) -> void
 OfficeIMO.PowerPoint.PowerPointTable.SetColumnWidth(int columnIndex, OfficeIMO.OfficeLength width) -> void
 OfficeIMO.PowerPoint.PowerPointTable.SetColumnWidths(params OfficeIMO.OfficeLength[]! widths) -> void
 OfficeIMO.PowerPoint.PowerPointTable.SetColumnWidthsByRatio(params double[]! ratios) -> void
@@ -3957,7 +3932,7 @@ OfficeIMO.PowerPoint.PowerPointTableCell.FillColor.get -> string?
 OfficeIMO.PowerPoint.PowerPointTableCell.FillColor.set -> void
 OfficeIMO.PowerPoint.PowerPointTableCell.FontName.get -> string?
 OfficeIMO.PowerPoint.PowerPointTableCell.FontName.set -> void
-OfficeIMO.PowerPoint.PowerPointTableCell.FontSize.get -> int?
+OfficeIMO.PowerPoint.PowerPointTableCell.FontSize.get -> OfficeIMO.OfficeLength?
 OfficeIMO.PowerPoint.PowerPointTableCell.FontSize.set -> void
 OfficeIMO.PowerPoint.PowerPointTableCell.HideBorders(OfficeIMO.PowerPoint.PowerPointTableCellBorders borders) -> void
 OfficeIMO.PowerPoint.PowerPointTableCell.HorizontalAlignment.get -> OfficeIMO.PowerPoint.PowerPointTextAlignment?
@@ -3970,30 +3945,14 @@ OfficeIMO.PowerPoint.PowerPointTableCell.Merge.get -> (int rows, int columns)
 OfficeIMO.PowerPoint.PowerPointTableCell.Merge.set -> void
 OfficeIMO.PowerPoint.PowerPointTableCell.NoFill.get -> bool
 OfficeIMO.PowerPoint.PowerPointTableCell.NoFill.set -> void
-OfficeIMO.PowerPoint.PowerPointTableCell.PaddingBottomCm.get -> double?
-OfficeIMO.PowerPoint.PowerPointTableCell.PaddingBottomCm.set -> void
-OfficeIMO.PowerPoint.PowerPointTableCell.PaddingBottomInches.get -> double?
-OfficeIMO.PowerPoint.PowerPointTableCell.PaddingBottomInches.set -> void
-OfficeIMO.PowerPoint.PowerPointTableCell.PaddingBottomPoints.get -> double?
-OfficeIMO.PowerPoint.PowerPointTableCell.PaddingBottomPoints.set -> void
-OfficeIMO.PowerPoint.PowerPointTableCell.PaddingLeftCm.get -> double?
-OfficeIMO.PowerPoint.PowerPointTableCell.PaddingLeftCm.set -> void
-OfficeIMO.PowerPoint.PowerPointTableCell.PaddingLeftInches.get -> double?
-OfficeIMO.PowerPoint.PowerPointTableCell.PaddingLeftInches.set -> void
-OfficeIMO.PowerPoint.PowerPointTableCell.PaddingLeftPoints.get -> double?
-OfficeIMO.PowerPoint.PowerPointTableCell.PaddingLeftPoints.set -> void
-OfficeIMO.PowerPoint.PowerPointTableCell.PaddingRightCm.get -> double?
-OfficeIMO.PowerPoint.PowerPointTableCell.PaddingRightCm.set -> void
-OfficeIMO.PowerPoint.PowerPointTableCell.PaddingRightInches.get -> double?
-OfficeIMO.PowerPoint.PowerPointTableCell.PaddingRightInches.set -> void
-OfficeIMO.PowerPoint.PowerPointTableCell.PaddingRightPoints.get -> double?
-OfficeIMO.PowerPoint.PowerPointTableCell.PaddingRightPoints.set -> void
-OfficeIMO.PowerPoint.PowerPointTableCell.PaddingTopCm.get -> double?
-OfficeIMO.PowerPoint.PowerPointTableCell.PaddingTopCm.set -> void
-OfficeIMO.PowerPoint.PowerPointTableCell.PaddingTopInches.get -> double?
-OfficeIMO.PowerPoint.PowerPointTableCell.PaddingTopInches.set -> void
-OfficeIMO.PowerPoint.PowerPointTableCell.PaddingTopPoints.get -> double?
-OfficeIMO.PowerPoint.PowerPointTableCell.PaddingTopPoints.set -> void
+OfficeIMO.PowerPoint.PowerPointTableCell.PaddingBottom.get -> OfficeIMO.OfficeLength?
+OfficeIMO.PowerPoint.PowerPointTableCell.PaddingBottom.set -> void
+OfficeIMO.PowerPoint.PowerPointTableCell.PaddingLeft.get -> OfficeIMO.OfficeLength?
+OfficeIMO.PowerPoint.PowerPointTableCell.PaddingLeft.set -> void
+OfficeIMO.PowerPoint.PowerPointTableCell.PaddingRight.get -> OfficeIMO.OfficeLength?
+OfficeIMO.PowerPoint.PowerPointTableCell.PaddingRight.set -> void
+OfficeIMO.PowerPoint.PowerPointTableCell.PaddingTop.get -> OfficeIMO.OfficeLength?
+OfficeIMO.PowerPoint.PowerPointTableCell.PaddingTop.set -> void
 OfficeIMO.PowerPoint.PowerPointTableCell.Paragraphs.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.PowerPoint.PowerPointParagraph!>!
 OfficeIMO.PowerPoint.PowerPointTableCell.ReplaceText(string! oldValue, string! newValue) -> int
 OfficeIMO.PowerPoint.PowerPointTableCell.Runs.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.PowerPoint.PowerPointTextRun!>!
@@ -4202,7 +4161,7 @@ OfficeIMO.PowerPoint.PowerPointTextBox.AddNumberedList(System.Collections.Generi
 OfficeIMO.PowerPoint.PowerPointTextBox.AddNumberedList(System.Collections.Generic.IEnumerable<string!>! items, int startAt = 1, int level = 0, System.Action<OfficeIMO.PowerPoint.PowerPointParagraph!>? configure = null) -> System.Collections.Generic.IReadOnlyList<OfficeIMO.PowerPoint.PowerPointParagraph!>!
 OfficeIMO.PowerPoint.PowerPointTextBox.AddParagraph(string! text = "", System.Action<OfficeIMO.PowerPoint.PowerPointParagraph!>? configure = null, System.Action<OfficeIMO.PowerPoint.PowerPointTextRun!>? run = null) -> OfficeIMO.PowerPoint.PowerPointParagraph!
 OfficeIMO.PowerPoint.PowerPointTextBox.AddParagraphs(System.Collections.Generic.IEnumerable<string!>! paragraphs, System.Action<OfficeIMO.PowerPoint.PowerPointParagraph!>? configure = null) -> System.Collections.Generic.IReadOnlyList<OfficeIMO.PowerPoint.PowerPointParagraph!>!
-OfficeIMO.PowerPoint.PowerPointTextBox.ApplyAutoSpacing(double lineSpacingMultiplier = 1.2, double? spaceBeforePoints = null, double? spaceAfterPoints = null) -> OfficeIMO.PowerPoint.PowerPointTextBox!
+OfficeIMO.PowerPoint.PowerPointTextBox.ApplyAutoSpacing(double lineSpacingMultiplier = 1.2, OfficeIMO.OfficeLength? spaceBefore = null, OfficeIMO.OfficeLength? spaceAfter = null) -> OfficeIMO.PowerPoint.PowerPointTextBox!
 OfficeIMO.PowerPoint.PowerPointTextBox.ApplyParagraphStyle(OfficeIMO.PowerPoint.PowerPointParagraphStyle style) -> OfficeIMO.PowerPoint.PowerPointTextBox!
 OfficeIMO.PowerPoint.PowerPointTextBox.ApplyTextStyle(OfficeIMO.PowerPoint.PowerPointTextStyle style, bool applyToRuns = false) -> OfficeIMO.PowerPoint.PowerPointTextBox!
 OfficeIMO.PowerPoint.PowerPointTextBox.Bold.get -> bool
@@ -4212,7 +4171,7 @@ OfficeIMO.PowerPoint.PowerPointTextBox.Color.get -> string?
 OfficeIMO.PowerPoint.PowerPointTextBox.Color.set -> void
 OfficeIMO.PowerPoint.PowerPointTextBox.FontName.get -> string?
 OfficeIMO.PowerPoint.PowerPointTextBox.FontName.set -> void
-OfficeIMO.PowerPoint.PowerPointTextBox.FontSize.get -> int?
+OfficeIMO.PowerPoint.PowerPointTextBox.FontSize.get -> OfficeIMO.OfficeLength?
 OfficeIMO.PowerPoint.PowerPointTextBox.FontSize.set -> void
 OfficeIMO.PowerPoint.PowerPointTextBox.IsPlaceholder.get -> bool
 OfficeIMO.PowerPoint.PowerPointTextBox.Italic.get -> bool
@@ -4233,9 +4192,7 @@ OfficeIMO.PowerPoint.PowerPointTextBox.SetNumberedList(System.Collections.Generi
 OfficeIMO.PowerPoint.PowerPointTextBox.SetNumberedList(System.Collections.Generic.IEnumerable<string!>! items, int startAt = 1, int level = 0, System.Action<OfficeIMO.PowerPoint.PowerPointParagraph!>? configure = null) -> System.Collections.Generic.IReadOnlyList<OfficeIMO.PowerPoint.PowerPointParagraph!>!
 OfficeIMO.PowerPoint.PowerPointTextBox.SetParagraphs(System.Collections.Generic.IEnumerable<string!>! paragraphs, System.Action<OfficeIMO.PowerPoint.PowerPointParagraph!>? configure = null) -> System.Collections.Generic.IReadOnlyList<OfficeIMO.PowerPoint.PowerPointParagraph!>!
 OfficeIMO.PowerPoint.PowerPointTextBox.SetTextAutoFit(OfficeIMO.PowerPoint.PowerPointTextAutoFit fit, OfficeIMO.PowerPoint.PowerPointTextAutoFitOptions? options = null) -> OfficeIMO.PowerPoint.PowerPointTextBox!
-OfficeIMO.PowerPoint.PowerPointTextBox.SetTextMarginsCm(double leftCm, double topCm, double rightCm, double bottomCm) -> OfficeIMO.PowerPoint.PowerPointTextBox!
-OfficeIMO.PowerPoint.PowerPointTextBox.SetTextMarginsInches(double leftInches, double topInches, double rightInches, double bottomInches) -> OfficeIMO.PowerPoint.PowerPointTextBox!
-OfficeIMO.PowerPoint.PowerPointTextBox.SetTextMarginsPoints(double left, double top, double right, double bottom) -> OfficeIMO.PowerPoint.PowerPointTextBox!
+OfficeIMO.PowerPoint.PowerPointTextBox.SetTextMargins(OfficeIMO.OfficeLength left, OfficeIMO.OfficeLength top, OfficeIMO.OfficeLength right, OfficeIMO.OfficeLength bottom) -> OfficeIMO.PowerPoint.PowerPointTextBox!
 OfficeIMO.PowerPoint.PowerPointTextBox.ShapeType.get -> OfficeIMO.Drawing.OfficePresetShapeType?
 OfficeIMO.PowerPoint.PowerPointTextBox.Text.get -> string!
 OfficeIMO.PowerPoint.PowerPointTextBox.Text.set -> void
@@ -4245,30 +4202,14 @@ OfficeIMO.PowerPoint.PowerPointTextBox.TextAutoFitOptions.get -> OfficeIMO.Power
 OfficeIMO.PowerPoint.PowerPointTextBox.TextAutoFitOptions.set -> void
 OfficeIMO.PowerPoint.PowerPointTextBox.TextDirection.get -> OfficeIMO.PowerPoint.PowerPointTextDirection?
 OfficeIMO.PowerPoint.PowerPointTextBox.TextDirection.set -> void
-OfficeIMO.PowerPoint.PowerPointTextBox.TextMarginBottomCm.get -> double?
-OfficeIMO.PowerPoint.PowerPointTextBox.TextMarginBottomCm.set -> void
-OfficeIMO.PowerPoint.PowerPointTextBox.TextMarginBottomInches.get -> double?
-OfficeIMO.PowerPoint.PowerPointTextBox.TextMarginBottomInches.set -> void
-OfficeIMO.PowerPoint.PowerPointTextBox.TextMarginBottomPoints.get -> double?
-OfficeIMO.PowerPoint.PowerPointTextBox.TextMarginBottomPoints.set -> void
-OfficeIMO.PowerPoint.PowerPointTextBox.TextMarginLeftCm.get -> double?
-OfficeIMO.PowerPoint.PowerPointTextBox.TextMarginLeftCm.set -> void
-OfficeIMO.PowerPoint.PowerPointTextBox.TextMarginLeftInches.get -> double?
-OfficeIMO.PowerPoint.PowerPointTextBox.TextMarginLeftInches.set -> void
-OfficeIMO.PowerPoint.PowerPointTextBox.TextMarginLeftPoints.get -> double?
-OfficeIMO.PowerPoint.PowerPointTextBox.TextMarginLeftPoints.set -> void
-OfficeIMO.PowerPoint.PowerPointTextBox.TextMarginRightCm.get -> double?
-OfficeIMO.PowerPoint.PowerPointTextBox.TextMarginRightCm.set -> void
-OfficeIMO.PowerPoint.PowerPointTextBox.TextMarginRightInches.get -> double?
-OfficeIMO.PowerPoint.PowerPointTextBox.TextMarginRightInches.set -> void
-OfficeIMO.PowerPoint.PowerPointTextBox.TextMarginRightPoints.get -> double?
-OfficeIMO.PowerPoint.PowerPointTextBox.TextMarginRightPoints.set -> void
-OfficeIMO.PowerPoint.PowerPointTextBox.TextMarginTopCm.get -> double?
-OfficeIMO.PowerPoint.PowerPointTextBox.TextMarginTopCm.set -> void
-OfficeIMO.PowerPoint.PowerPointTextBox.TextMarginTopInches.get -> double?
-OfficeIMO.PowerPoint.PowerPointTextBox.TextMarginTopInches.set -> void
-OfficeIMO.PowerPoint.PowerPointTextBox.TextMarginTopPoints.get -> double?
-OfficeIMO.PowerPoint.PowerPointTextBox.TextMarginTopPoints.set -> void
+OfficeIMO.PowerPoint.PowerPointTextBox.TextMarginBottom.get -> OfficeIMO.OfficeLength?
+OfficeIMO.PowerPoint.PowerPointTextBox.TextMarginBottom.set -> void
+OfficeIMO.PowerPoint.PowerPointTextBox.TextMarginLeft.get -> OfficeIMO.OfficeLength?
+OfficeIMO.PowerPoint.PowerPointTextBox.TextMarginLeft.set -> void
+OfficeIMO.PowerPoint.PowerPointTextBox.TextMarginRight.get -> OfficeIMO.OfficeLength?
+OfficeIMO.PowerPoint.PowerPointTextBox.TextMarginRight.set -> void
+OfficeIMO.PowerPoint.PowerPointTextBox.TextMarginTop.get -> OfficeIMO.OfficeLength?
+OfficeIMO.PowerPoint.PowerPointTextBox.TextMarginTop.set -> void
 OfficeIMO.PowerPoint.PowerPointTextBox.TextVerticalAlignment.get -> OfficeIMO.PowerPoint.PowerPointTextVerticalAlignment?
 OfficeIMO.PowerPoint.PowerPointTextBox.TextVerticalAlignment.set -> void
 OfficeIMO.PowerPoint.PowerPointTextBox.UsesTextBoxGeometry.get -> bool
@@ -4287,8 +4228,8 @@ OfficeIMO.PowerPoint.PowerPointTextRun.Bold.get -> bool
 OfficeIMO.PowerPoint.PowerPointTextRun.Bold.set -> void
 OfficeIMO.PowerPoint.PowerPointTextRun.Capitalization.get -> OfficeIMO.PowerPoint.PowerPointCapitalization?
 OfficeIMO.PowerPoint.PowerPointTextRun.Capitalization.set -> void
-OfficeIMO.PowerPoint.PowerPointTextRun.CharacterSpacingPoints.get -> double?
-OfficeIMO.PowerPoint.PowerPointTextRun.CharacterSpacingPoints.set -> void
+OfficeIMO.PowerPoint.PowerPointTextRun.CharacterSpacing.get -> OfficeIMO.OfficeLength?
+OfficeIMO.PowerPoint.PowerPointTextRun.CharacterSpacing.set -> void
 OfficeIMO.PowerPoint.PowerPointTextRun.ClearClickSound() -> void
 OfficeIMO.PowerPoint.PowerPointTextRun.ClearHyperlink() -> void
 OfficeIMO.PowerPoint.PowerPointTextRun.ClearMouseOverSound() -> void
@@ -4299,10 +4240,8 @@ OfficeIMO.PowerPoint.PowerPointTextRun.Color.get -> string?
 OfficeIMO.PowerPoint.PowerPointTextRun.Color.set -> void
 OfficeIMO.PowerPoint.PowerPointTextRun.FontName.get -> string?
 OfficeIMO.PowerPoint.PowerPointTextRun.FontName.set -> void
-OfficeIMO.PowerPoint.PowerPointTextRun.FontSize.get -> int?
+OfficeIMO.PowerPoint.PowerPointTextRun.FontSize.get -> OfficeIMO.OfficeLength?
 OfficeIMO.PowerPoint.PowerPointTextRun.FontSize.set -> void
-OfficeIMO.PowerPoint.PowerPointTextRun.FontSizePoints.get -> double?
-OfficeIMO.PowerPoint.PowerPointTextRun.FontSizePoints.set -> void
 OfficeIMO.PowerPoint.PowerPointTextRun.GetClickSoundBytes() -> byte[]?
 OfficeIMO.PowerPoint.PowerPointTextRun.GetMouseOverSoundBytes() -> byte[]?
 OfficeIMO.PowerPoint.PowerPointTextRun.HasClickInteraction.get -> bool
@@ -4361,17 +4300,17 @@ OfficeIMO.PowerPoint.PowerPointTextStyle.Apply(OfficeIMO.PowerPoint.PowerPointTe
 OfficeIMO.PowerPoint.PowerPointTextStyle.Bold.get -> bool?
 OfficeIMO.PowerPoint.PowerPointTextStyle.Color.get -> string?
 OfficeIMO.PowerPoint.PowerPointTextStyle.FontName.get -> string?
-OfficeIMO.PowerPoint.PowerPointTextStyle.FontSize.get -> int?
+OfficeIMO.PowerPoint.PowerPointTextStyle.FontSize.get -> OfficeIMO.OfficeLength?
 OfficeIMO.PowerPoint.PowerPointTextStyle.HighlightColor.get -> string?
 OfficeIMO.PowerPoint.PowerPointTextStyle.Italic.get -> bool?
 OfficeIMO.PowerPoint.PowerPointTextStyle.PowerPointTextStyle() -> void
-OfficeIMO.PowerPoint.PowerPointTextStyle.PowerPointTextStyle(int? fontSize = null, string? fontName = null, string? color = null, bool? bold = null, bool? italic = null, bool? underline = null, string? highlightColor = null, bool? strikethrough = null) -> void
+OfficeIMO.PowerPoint.PowerPointTextStyle.PowerPointTextStyle(OfficeIMO.OfficeLength? fontSize = null, string? fontName = null, string? color = null, bool? bold = null, bool? italic = null, bool? underline = null, string? highlightColor = null, bool? strikethrough = null) -> void
 OfficeIMO.PowerPoint.PowerPointTextStyle.Strikethrough.get -> bool?
 OfficeIMO.PowerPoint.PowerPointTextStyle.Underline.get -> bool?
 OfficeIMO.PowerPoint.PowerPointTextStyle.WithBold(bool? bold) -> OfficeIMO.PowerPoint.PowerPointTextStyle
 OfficeIMO.PowerPoint.PowerPointTextStyle.WithColor(string? color) -> OfficeIMO.PowerPoint.PowerPointTextStyle
 OfficeIMO.PowerPoint.PowerPointTextStyle.WithFontName(string? fontName) -> OfficeIMO.PowerPoint.PowerPointTextStyle
-OfficeIMO.PowerPoint.PowerPointTextStyle.WithFontSize(int? fontSize) -> OfficeIMO.PowerPoint.PowerPointTextStyle
+OfficeIMO.PowerPoint.PowerPointTextStyle.WithFontSize(OfficeIMO.OfficeLength? fontSize) -> OfficeIMO.PowerPoint.PowerPointTextStyle
 OfficeIMO.PowerPoint.PowerPointTextStyle.WithHighlightColor(string? highlightColor) -> OfficeIMO.PowerPoint.PowerPointTextStyle
 OfficeIMO.PowerPoint.PowerPointTextStyle.WithItalic(bool? italic) -> OfficeIMO.PowerPoint.PowerPointTextStyle
 OfficeIMO.PowerPoint.PowerPointTextStyle.WithStrikethrough(bool? strikethrough) -> OfficeIMO.PowerPoint.PowerPointTextStyle

@@ -148,7 +148,7 @@ using var presentation = PowerPointDocument.Create("simple-deck.ppt");
 var slide = presentation.AddSlide();
 slide.AddTitle("Binary PowerPoint");
 slide.AddTextBox("Written without PowerPoint automation.");
-slide.AddRectangle(600000, 3200000, 1800000, 700000);
+slide.AddRectangle(OfficeIMO.OfficeLength.Emus(600000), OfficeIMO.OfficeLength.Emus(3200000), OfficeIMO.OfficeLength.Emus(1800000), OfficeIMO.OfficeLength.Emus(700000));
 
 LegacyPptWritePreflightReport report = presentation.AnalyzeLegacyPptWrite();
 if (report.CanWrite) {
@@ -271,14 +271,31 @@ var agenda = slide.AddTextBox("Topics",
 agenda.AddBullets(new[] { "Intro", "KPIs", "Next steps" });
 ```
 
+### Text geometry
+
+Font sizes, paragraph spacing, indents and text padding use `OfficeLength`. Units are explicit at the call site; nullable properties remove their local override when set to `null`. Line-spacing multipliers and bullet-size percentages remain dimensionless.
+
+```csharp
+var text = slide.AddTextBox("Quarterly review");
+text.FontSize = OfficeIMO.OfficeLength.Points(18.5);
+text.SetTextMargins(OfficeIMO.OfficeLength.Centimeters(0.3), OfficeIMO.OfficeLength.Points(4),
+    OfficeIMO.OfficeLength.Centimeters(0.3), OfficeIMO.OfficeLength.Points(4));
+text.ApplyParagraphStyle(new PowerPointParagraphStyle(
+    hanging: OfficeIMO.OfficeLength.Points(18),
+    spaceAfter: OfficeIMO.OfficeLength.Points(6), lineSpacingMultiplier: 1.15));
+text.Paragraphs[0].Runs[0].CharacterSpacing = OfficeIMO.OfficeLength.Points(0.25);
+```
+
+DrawingML font sizes retain hundredth-point precision and accept 1–4000 points. Absolute paragraph spacing rounds to hundredths of a point using the paragraph conversion rules; character spacing and font sizes use their existing midpoint-away-from-zero conversion. Insets and indentation retain native EMUs.
+
 ### Custom paragraph tab stops
 
-`SetTabStops` replaces the paragraph's explicit stops and `TabStops` reads them back. Positions use points; alignment can be left, center, right, or decimal. Passing an empty sequence removes local stops while leaving inherited defaults unchanged.
+`SetTabStops` replaces the paragraph's explicit stops and `TabStops` reads them back. Positions use `OfficeLength`; alignment can be left, center, right, or decimal. Passing an empty sequence removes local stops while leaving inherited defaults unchanged.
 
 ```csharp
 var paragraph = slide.AddTextBox("Label\t12.50").Paragraphs[0];
 paragraph.SetTabStops(new[] {
-    new PowerPointTabStop(72, PowerPointTabAlignment.Decimal)
+    new PowerPointTabStop(global::OfficeIMO.OfficeLength.Points(72), PowerPointTabAlignment.Decimal)
 });
 ```
 
@@ -304,16 +321,20 @@ slide.AddImage("diagram.svg",
 
 ### Shapes and layout
 
+Shape, SmartArt, audio, video, and OLE placement uses `OfficeLength`. Mix units in
+one call as needed. For optional bounds, omitting a value or passing `null` keeps
+that method's default position or size; an explicit zero remains zero.
+
 ```csharp
 slide.AddRectangle(
-        PowerPointUnits.FromCentimeters(1), PowerPointUnits.FromCentimeters(1),
-        PowerPointUnits.FromCentimeters(3), PowerPointUnits.FromCentimeters(1))
+        OfficeIMO.OfficeLength.Centimeters(1), OfficeIMO.OfficeLength.Centimeters(1),
+        OfficeIMO.OfficeLength.Centimeters(3), OfficeIMO.OfficeLength.Centimeters(1))
     .Fill("#E7F7FF")
     .Stroke("#007ACC");
 
 slide.AddLine(
-        PowerPointUnits.FromCentimeters(1), PowerPointUnits.FromCentimeters(3),
-        PowerPointUnits.FromCentimeters(8), PowerPointUnits.FromCentimeters(3))
+        OfficeIMO.OfficeLength.Centimeters(1), OfficeIMO.OfficeLength.Centimeters(3),
+        OfficeIMO.OfficeLength.Centimeters(8), OfficeIMO.OfficeLength.Centimeters(3))
     .Stroke("#404040");
 ```
 

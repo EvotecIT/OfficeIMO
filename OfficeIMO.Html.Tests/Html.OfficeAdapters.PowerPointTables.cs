@@ -93,7 +93,7 @@ public class HtmlOfficeAdaptersPowerPointTables {
         PowerPointTable styledTable = Assert.Single(styled.Slides.SelectMany(slide => slide.Tables));
 
         Assert.True((styledTable.GetRowHeight(0)).ToPoints() > (plainTable.GetRowHeight(0)).ToPoints());
-        Assert.True(styledTable.GetCell(0, 1).Runs[0].FontSizePoints >= 27D);
+        Assert.True(styledTable.GetCell(0, 1).Runs[0].FontSize?.ToPoints() >= 27D);
     }
 
     [Fact]

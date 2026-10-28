@@ -10,7 +10,7 @@ namespace OfficeIMO.Tests {
             var table = source.AddSlide().AddTable(1,1,global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(120),global::OfficeIMO.OfficeLength.Points(48));
             var cell = table.GetCell(0, 0);
             cell.BorderColor = "008000";
-            cell.PaddingLeftPoints = 4;
+            cell.PaddingLeft = global::OfficeIMO.OfficeLength.Points(4);
             cell.Cell.TableCellProperties!.AddChild(new ExtensionList(), true);
             cell.FillColor = "FF0000";
             cell.NoFill = true;
@@ -28,7 +28,7 @@ namespace OfficeIMO.Tests {
             cell.NoFill = false;
             Assert.False(cell.NoFill);
             Assert.Equal("008000", cell.BorderColor);
-            Assert.Equal(4, cell.PaddingLeftPoints);
+            Assert.Equal(4, cell.PaddingLeft?.ToPoints());
             Assert.NotNull(cell.Cell.TableCellProperties.GetFirstChild<ExtensionList>());
             Assert.Empty(source.ValidateDocument());
         }

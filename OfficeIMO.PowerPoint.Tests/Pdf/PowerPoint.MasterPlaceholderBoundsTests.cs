@@ -59,7 +59,7 @@ public sealed class PowerPointMasterPlaceholderBoundsTests {
             title.PlaceholderType = PowerPointPlaceholderType.Title;
             title.PlaceholderIndex = 0;
             title.FontName = "Helvetica";
-            title.FontSize = 18;
+            title.FontSize = global::OfficeIMO.OfficeLength.Points(18);
             Assert.IsType<Shape>(title.Element).ShapeProperties!.Transform2D = null;
             var layout = slide.SlidePart.SlideLayoutPart!.SlideLayout.CommonSlideData!.ShapeTree!;
             foreach (var shape in layout.Elements<Shape>().ToArray()) shape.Remove();

@@ -18,7 +18,7 @@ public sealed class PowerPointOdpReviewLossTests {
             new PowerPointCreateOptions());
         PowerPointSlide slide = source.AddSlide(PowerPointSlideLayoutType.Blank);
         source.AddCustomShow("Executive path", new[] { slide });
-        PowerPointAutoShape shape = slide.AddRectangle(100000, 100000, 1200000, 500000);
+        PowerPointAutoShape shape = slide.AddRectangle(OfficeIMO.OfficeLength.Emus(100000), OfficeIMO.OfficeLength.Emus(100000), OfficeIMO.OfficeLength.Emus(1200000), OfficeIMO.OfficeLength.Emus(500000));
         slide.AddClassicAnimation(shape, PowerPointClassicAnimationEffect.Wipe);
 
         OdfConversionResult<OdpPresentation> result = source.ToOpenDocumentResult();

@@ -370,7 +370,7 @@ public sealed class ReaderOfficeRichMappingTests {
             hiddenPicture.AltText = "Hidden direct picture";
             hiddenPicture.Hidden = true;
 
-            PowerPointAutoShape hiddenImageFill = slide.AddRectangle(0, 0, 914400, 914400);
+            PowerPointAutoShape hiddenImageFill = slide.AddRectangle(OfficeIMO.OfficeLength.Emus(0), OfficeIMO.OfficeLength.Emus(0), OfficeIMO.OfficeLength.Emus(914400), OfficeIMO.OfficeLength.Emus(914400));
             hiddenImageFill.Hidden = true;
             hiddenImageFillId = hiddenImageFill.Id ?? throw new InvalidOperationException("Hidden image-fill shape has no id.");
 

@@ -27,7 +27,7 @@ namespace OfficeIMO.Examples.PowerPoint {
             PowerPointTextBox duplicateBadge = duplicate.AddTextBox(
                 "Duplicate of Slide 1",                global::OfficeIMO.OfficeLength.Centimeters(content.Left.ToCentimeters()),global::OfficeIMO.OfficeLength.Centimeters(content.Top.ToCentimeters() + 3.2),global::OfficeIMO.OfficeLength.Centimeters(content.Width.ToCentimeters()),global::OfficeIMO.OfficeLength.Centimeters(0.8));
             duplicateBadge.ApplyTextStyle(PowerPointTextStyle.Caption.WithColor("1F4E79"));
-            duplicateBadge.SetTextMarginsCm(0.2, 0.1, 0.2, 0.1);
+            duplicateBadge.SetTextMargins(global::OfficeIMO.OfficeLength.Centimeters(0.2), global::OfficeIMO.OfficeLength.Centimeters(0.1), global::OfficeIMO.OfficeLength.Centimeters(0.2), global::OfficeIMO.OfficeLength.Centimeters(0.1));
 
             slide2.Hidden = true;
 
@@ -39,14 +39,14 @@ namespace OfficeIMO.Examples.PowerPoint {
                 PowerPointTextBox sourceBadge = sourceSlide.AddTextBox(
                     "Source deck",                    global::OfficeIMO.OfficeLength.Centimeters(sourceContent.Left.ToCentimeters()),global::OfficeIMO.OfficeLength.Centimeters(sourceContent.Top.ToCentimeters() + 3.2),global::OfficeIMO.OfficeLength.Centimeters(sourceContent.Width.ToCentimeters()),global::OfficeIMO.OfficeLength.Centimeters(0.8));
                 sourceBadge.ApplyTextStyle(PowerPointTextStyle.Caption.WithColor("1F4E79"));
-                sourceBadge.SetTextMarginsCm(0.2, 0.1, 0.2, 0.1);
+                sourceBadge.SetTextMargins(global::OfficeIMO.OfficeLength.Centimeters(0.2), global::OfficeIMO.OfficeLength.Centimeters(0.1), global::OfficeIMO.OfficeLength.Centimeters(0.2), global::OfficeIMO.OfficeLength.Centimeters(0.1));
                 sourcePresentation.Save();
 
                 PowerPointSlide imported = presentation.ImportSlide(sourcePresentation, 0, insertAt: 1);
                 PowerPointTextBox importBadge = imported.AddTextBox(
                     "Imported from Slides Management - Source.pptx",                    global::OfficeIMO.OfficeLength.Centimeters(content.Left.ToCentimeters()),global::OfficeIMO.OfficeLength.Centimeters(content.Top.ToCentimeters() + 3.2),global::OfficeIMO.OfficeLength.Centimeters(content.Width.ToCentimeters()),global::OfficeIMO.OfficeLength.Centimeters(0.8));
                 importBadge.ApplyTextStyle(PowerPointTextStyle.Caption.WithColor("1F4E79"));
-                importBadge.SetTextMarginsCm(0.2, 0.1, 0.2, 0.1);
+                importBadge.SetTextMargins(global::OfficeIMO.OfficeLength.Centimeters(0.2), global::OfficeIMO.OfficeLength.Centimeters(0.1), global::OfficeIMO.OfficeLength.Centimeters(0.2), global::OfficeIMO.OfficeLength.Centimeters(0.1));
             }
 
             presentation.MoveSlide(3, 0);
@@ -57,7 +57,7 @@ namespace OfficeIMO.Examples.PowerPoint {
                 PowerPointTextBox badge = slide.AddTextBox(
                     $"Final position: {i + 1}{hiddenLabel}",                    global::OfficeIMO.OfficeLength.Centimeters(content.Left.ToCentimeters()),global::OfficeIMO.OfficeLength.Centimeters(content.Top.ToCentimeters() + 4.2),global::OfficeIMO.OfficeLength.Centimeters(content.Width.ToCentimeters()),global::OfficeIMO.OfficeLength.Centimeters(0.8));
                 badge.ApplyTextStyle(PowerPointTextStyle.Caption.WithColor("666666"));
-                badge.SetTextMarginsCm(0.2, 0.1, 0.2, 0.1);
+                badge.SetTextMargins(global::OfficeIMO.OfficeLength.Centimeters(0.2), global::OfficeIMO.OfficeLength.Centimeters(0.1), global::OfficeIMO.OfficeLength.Centimeters(0.2), global::OfficeIMO.OfficeLength.Centimeters(0.1));
             }
 
             presentation.Save();
@@ -72,7 +72,7 @@ namespace OfficeIMO.Examples.PowerPoint {
 
             PowerPointTextBox description = slide.AddTextBox(body,                global::OfficeIMO.OfficeLength.Centimeters(content.Left.ToCentimeters()),global::OfficeIMO.OfficeLength.Centimeters(content.Top.ToCentimeters() + 1.9),global::OfficeIMO.OfficeLength.Centimeters(content.Width.ToCentimeters()),global::OfficeIMO.OfficeLength.Centimeters(1.2));
             description.ApplyTextStyle(PowerPointTextStyle.Body);
-            description.SetTextMarginsCm(0.2, 0.1, 0.2, 0.1);
+            description.SetTextMargins(global::OfficeIMO.OfficeLength.Centimeters(0.2), global::OfficeIMO.OfficeLength.Centimeters(0.1), global::OfficeIMO.OfficeLength.Centimeters(0.2), global::OfficeIMO.OfficeLength.Centimeters(0.1));
         }
     }
 }

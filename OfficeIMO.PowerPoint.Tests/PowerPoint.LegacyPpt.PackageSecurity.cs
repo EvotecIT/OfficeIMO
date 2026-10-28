@@ -299,7 +299,7 @@ namespace OfficeIMO.Tests {
                 PowerPointSlide slide = source.AddSlide(
                     PowerPointSlideLayoutType.Blank);
                 PowerPointAutoShape shape = slide.AddRectangle(
-                    100000, 100000, 1000000, 500000);
+                    OfficeIMO.OfficeLength.Emus(100000), OfficeIMO.OfficeLength.Emus(100000), OfficeIMO.OfficeLength.Emus(1000000), OfficeIMO.OfficeLength.Emus(500000));
                 HyperlinkRelationship relationship = slide.SlidePart
                     .AddHyperlinkRelationship(programUri, true);
                 P.NonVisualDrawingProperties properties =
@@ -343,7 +343,7 @@ namespace OfficeIMO.Tests {
                    PowerPointDocument.Create()) {
                 PowerPointAutoShape shape = source.AddSlide(
                         PowerPointSlideLayoutType.Blank)
-                    .AddRectangle(100000, 100000, 1000000, 500000);
+                    .AddRectangle(OfficeIMO.OfficeLength.Emus(100000), OfficeIMO.OfficeLength.Emus(100000), OfficeIMO.OfficeLength.Emus(1000000), OfficeIMO.OfficeLength.Emus(500000));
                 P.NonVisualDrawingProperties properties =
                     ((P.Shape)shape.Element).NonVisualShapeProperties!
                     .NonVisualDrawingProperties!;
@@ -428,7 +428,7 @@ namespace OfficeIMO.Tests {
                 PowerPointSlide slide = source.AddSlide(
                     PowerPointSlideLayoutType.Blank);
                 PowerPointAutoShape shape = slide.AddRectangle(
-                    100000, 100000, 1000000, 500000);
+                    OfficeIMO.OfficeLength.Emus(100000), OfficeIMO.OfficeLength.Emus(100000), OfficeIMO.OfficeLength.Emus(1000000), OfficeIMO.OfficeLength.Emus(500000));
                 HyperlinkRelationship relationship = slide.SlidePart
                     .AddHyperlinkRelationship(new Uri(
                         "https://example.test/preserved"), true);
@@ -497,7 +497,7 @@ namespace OfficeIMO.Tests {
                     PowerPointSlideLayoutType.Blank);
                 source.AddSlide(PowerPointSlideLayoutType.Blank);
                 PowerPointAutoShape shape = slide.AddRectangle(
-                    100000, 100000, 1000000, 500000);
+                    OfficeIMO.OfficeLength.Emus(100000), OfficeIMO.OfficeLength.Emus(100000), OfficeIMO.OfficeLength.Emus(1000000), OfficeIMO.OfficeLength.Emus(500000));
                 HyperlinkRelationship external = slide.SlidePart
                     .AddHyperlinkRelationship(
                         new Uri("https://example.test/remove"), true);
@@ -537,7 +537,7 @@ namespace OfficeIMO.Tests {
                 PowerPointSlide slide = source.AddSlide(
                     PowerPointSlideLayoutType.Blank);
                 PowerPointAutoShape shape = slide.AddRectangle(
-                    100000, 100000, 1000000, 500000);
+                    OfficeIMO.OfficeLength.Emus(100000), OfficeIMO.OfficeLength.Emus(100000), OfficeIMO.OfficeLength.Emus(1000000), OfficeIMO.OfficeLength.Emus(500000));
                 HyperlinkRelationship relationship = slide.SlidePart
                     .AddHyperlinkRelationship(externalUri, true);
                 ((P.Shape)shape.Element).NonVisualShapeProperties!
@@ -577,7 +577,7 @@ namespace OfficeIMO.Tests {
                 PowerPointSlide slide = source.AddSlide(
                     PowerPointSlideLayoutType.Blank);
                 PowerPointAutoShape shape = slide.AddRectangle(
-                    100000, 100000, 1000000, 500000);
+                    OfficeIMO.OfficeLength.Emus(100000), OfficeIMO.OfficeLength.Emus(100000), OfficeIMO.OfficeLength.Emus(1000000), OfficeIMO.OfficeLength.Emus(500000));
                 HyperlinkRelationship relationship = slide.SlidePart
                     .AddHyperlinkRelationship(externalUri, true);
                 ((P.Shape)shape.Element).NonVisualShapeProperties!
@@ -663,7 +663,7 @@ namespace OfficeIMO.Tests {
                 PowerPointSlide slide = source.AddSlide(
                     PowerPointSlideLayoutType.Blank);
                 PowerPointAutoShape shape = slide.AddRectangle(
-                    100000, 100000, 1000000, 500000);
+                    OfficeIMO.OfficeLength.Emus(100000), OfficeIMO.OfficeLength.Emus(100000), OfficeIMO.OfficeLength.Emus(1000000), OfficeIMO.OfficeLength.Emus(500000));
                 HyperlinkRelationship relationship = slide.SlidePart
                     .AddHyperlinkRelationship(externalUri, true);
                 ((P.Shape)shape.Element).NonVisualShapeProperties!
@@ -710,7 +710,7 @@ namespace OfficeIMO.Tests {
                 PowerPointSlide destination = source.AddSlide(
                     PowerPointSlideLayoutType.Blank);
                 PowerPointAutoShape shape = first.AddRectangle(
-                    100000, 100000, 1000000, 500000);
+                    OfficeIMO.OfficeLength.Emus(100000), OfficeIMO.OfficeLength.Emus(100000), OfficeIMO.OfficeLength.Emus(1000000), OfficeIMO.OfficeLength.Emus(500000));
                 first.SlidePart.AddPart(destination.SlidePart);
                 string relationshipId = first.SlidePart.GetIdOfPart(
                     destination.SlidePart);
@@ -754,7 +754,7 @@ namespace OfficeIMO.Tests {
                 PowerPointSlide slide = source.AddSlide(
                     PowerPointSlideLayoutType.Blank);
                 PowerPointAutoShape shape = slide.AddRectangle(
-                    100000, 100000, 1000000, 500000);
+                    OfficeIMO.OfficeLength.Emus(100000), OfficeIMO.OfficeLength.Emus(100000), OfficeIMO.OfficeLength.Emus(1000000), OfficeIMO.OfficeLength.Emus(500000));
                 HyperlinkRelationship relationship = slide.SlidePart
                     .AddHyperlinkRelationship(
                         new Uri("https://example.com/malformed-list"), true);

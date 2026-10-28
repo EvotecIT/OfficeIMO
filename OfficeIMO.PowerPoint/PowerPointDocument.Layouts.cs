@@ -185,27 +185,10 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
-        ///     Sets layout placeholder text margins in centimeters.
+        ///     Sets layout placeholder physical text margins.
         /// </summary>
-        public void SetLayoutPlaceholderTextMarginsCm(int masterIndex, int layoutIndex, PowerPointPlaceholderType placeholderType,
-            double leftCm, double topCm, double rightCm, double bottomCm, uint? index = null, bool createIfMissing = false) {
-            ThrowIfDisposed();
-            PowerPointTextBox? textBox = createIfMissing
-                ? EnsureLayoutPlaceholderTextBox(masterIndex, layoutIndex, placeholderType, index)
-                : GetLayoutPlaceholderTextBox(masterIndex, layoutIndex, placeholderType, index);
-
-            if (textBox == null) {
-                throw new InvalidOperationException("Layout placeholder was not found.");
-            }
-
-            textBox.SetTextMarginsCm(leftCm, topCm, rightCm, bottomCm);
-        }
-
-        /// <summary>
-        ///     Sets layout placeholder text margins in inches.
-        /// </summary>
-        public void SetLayoutPlaceholderTextMarginsInches(int masterIndex, int layoutIndex, PowerPointPlaceholderType placeholderType,
-            double leftInches, double topInches, double rightInches, double bottomInches, uint? index = null,
+        public void SetLayoutPlaceholderTextMargins(int masterIndex, int layoutIndex, PowerPointPlaceholderType placeholderType,
+            global::OfficeIMO.OfficeLength left, global::OfficeIMO.OfficeLength top, global::OfficeIMO.OfficeLength right, global::OfficeIMO.OfficeLength bottom, uint? index = null,
             bool createIfMissing = false) {
             ThrowIfDisposed();
             PowerPointTextBox? textBox = createIfMissing
@@ -216,25 +199,7 @@ namespace OfficeIMO.PowerPoint {
                 throw new InvalidOperationException("Layout placeholder was not found.");
             }
 
-            textBox.SetTextMarginsInches(leftInches, topInches, rightInches, bottomInches);
-        }
-
-        /// <summary>
-        ///     Sets layout placeholder text margins in points.
-        /// </summary>
-        public void SetLayoutPlaceholderTextMarginsPoints(int masterIndex, int layoutIndex, PowerPointPlaceholderType placeholderType,
-            double leftPoints, double topPoints, double rightPoints, double bottomPoints, uint? index = null,
-            bool createIfMissing = false) {
-            ThrowIfDisposed();
-            PowerPointTextBox? textBox = createIfMissing
-                ? EnsureLayoutPlaceholderTextBox(masterIndex, layoutIndex, placeholderType, index)
-                : GetLayoutPlaceholderTextBox(masterIndex, layoutIndex, placeholderType, index);
-
-            if (textBox == null) {
-                throw new InvalidOperationException("Layout placeholder was not found.");
-            }
-
-            textBox.SetTextMarginsPoints(leftPoints, topPoints, rightPoints, bottomPoints);
+            textBox.SetTextMargins(left, top, right, bottom);
         }
 
         /// <summary>

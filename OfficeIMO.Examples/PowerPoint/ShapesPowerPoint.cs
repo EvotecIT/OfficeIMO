@@ -32,7 +32,7 @@ namespace OfficeIMO.Examples.PowerPoint {
             }
 
             PowerPointTextBox textBox = slide.AddTitle("Shapes and images",titleBox);
-            textBox.FontSize = 30;
+            textBox.FontSize = global::OfficeIMO.OfficeLength.Points(30);
             textBox.Color = "1F4E79";
 
             const double captionGapCm = 0.6;
@@ -43,19 +43,19 @@ namespace OfficeIMO.Examples.PowerPoint {
             PowerPointLayoutBox captionBox = new OfficeIMO.PowerPoint.PowerPointLayoutBox(
                 OfficeIMO.OfficeLength.Centimeters(leftColumn.Left.ToCentimeters()),                OfficeIMO.OfficeLength.Centimeters(leftColumn.Top.ToCentimeters() + canvasHeightCm + captionGapCm),                OfficeIMO.OfficeLength.Centimeters(leftColumn.Width.ToCentimeters()),                OfficeIMO.OfficeLength.Centimeters(captionHeightCm));
 
-            PowerPointAutoShape card = slide.AddRectangleCm(
-                    canvasBox.Left.ToCentimeters(), canvasBox.Top.ToCentimeters(), canvasBox.Width.ToCentimeters(), canvasBox.Height.ToCentimeters() * 0.6,
+            PowerPointAutoShape card = slide.AddRectangle(
+                    canvasBox.Left, canvasBox.Top, canvasBox.Width, OfficeIMO.OfficeLength.Centimeters(canvasBox.Height.ToCentimeters() * 0.6),
                     "Hero Card")
                 .Fill("E7F7FF")
                 .Stroke("007ACC", 2);
             card.FillTransparency = 6;
             card.Rotation = -1.5;
 
-            PowerPointAutoShape accent = slide.AddRectangleCm(
-                    canvasBox.Left.ToCentimeters() + 0.7,
-                    canvasBox.Top.ToCentimeters() + 0.7,
-                    canvasBox.Width.ToCentimeters() * 0.55,
-                    canvasBox.Height.ToCentimeters() * 0.35,
+            PowerPointAutoShape accent = slide.AddRectangle(
+                    OfficeIMO.OfficeLength.Centimeters(canvasBox.Left.ToCentimeters() + 0.7),
+                    OfficeIMO.OfficeLength.Centimeters(canvasBox.Top.ToCentimeters() + 0.7),
+                    OfficeIMO.OfficeLength.Centimeters(canvasBox.Width.ToCentimeters() * 0.55),
+                    OfficeIMO.OfficeLength.Centimeters(canvasBox.Height.ToCentimeters() * 0.35),
                     "Accent Panel")
                 .Fill("FFF4E5")
                 .Stroke("C48A00", 1.5);
@@ -63,21 +63,21 @@ namespace OfficeIMO.Examples.PowerPoint {
             accent.BringToFront();
 
             const double badgeSizeCm = 2.1;
-            slide.AddEllipseCm(
-                    canvasBox.Left.ToCentimeters() + canvasBox.Width.ToCentimeters() - badgeSizeCm - 0.4,
-                    canvasBox.Top.ToCentimeters() + 0.4,
-                    badgeSizeCm,
-                    badgeSizeCm,
+            slide.AddEllipse(
+                    OfficeIMO.OfficeLength.Centimeters(canvasBox.Left.ToCentimeters() + canvasBox.Width.ToCentimeters() - badgeSizeCm - 0.4),
+                    OfficeIMO.OfficeLength.Centimeters(canvasBox.Top.ToCentimeters() + 0.4),
+                    OfficeIMO.OfficeLength.Centimeters(badgeSizeCm),
+                    OfficeIMO.OfficeLength.Centimeters(badgeSizeCm),
                     "Badge")
                 .Fill("FDEBD0")
                 .Stroke("D35400", 1.5);
 
-            PowerPointAutoShape arrow = slide.AddShapeCm(
+            PowerPointAutoShape arrow = slide.AddShape(
                     OfficePresetShapeType.RightArrow,
-                    canvasBox.Left.ToCentimeters() + 0.4,
-                    canvasBox.Top.ToCentimeters() + canvasBox.Height.ToCentimeters() * 0.68,
-                    canvasBox.Width.ToCentimeters() * 0.6,
-                    canvasBox.Height.ToCentimeters() * 0.25,
+                    OfficeIMO.OfficeLength.Centimeters(canvasBox.Left.ToCentimeters() + 0.4),
+                    OfficeIMO.OfficeLength.Centimeters(canvasBox.Top.ToCentimeters() + canvasBox.Height.ToCentimeters() * 0.68),
+                    OfficeIMO.OfficeLength.Centimeters(canvasBox.Width.ToCentimeters() * 0.6),
+                    OfficeIMO.OfficeLength.Centimeters(canvasBox.Height.ToCentimeters() * 0.25),
                     "Flow Arrow")
                 .Fill("D9EAD3")
                 .Stroke("6AA84F", 1.5);
@@ -85,7 +85,7 @@ namespace OfficeIMO.Examples.PowerPoint {
 
             PowerPointTextBox label = slide.AddTextBox(
                 "Rotation, layering, and named shapes for lookup.",                captionBox);
-            label.FontSize = 14;
+            label.FontSize = global::OfficeIMO.OfficeLength.Points(14);
             label.Color = "1F4E79";
 
             if (File.Exists(imagePath)) {

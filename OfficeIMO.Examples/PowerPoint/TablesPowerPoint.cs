@@ -42,7 +42,7 @@ namespace OfficeIMO.Examples.PowerPoint {
             // Slide 1: title
             PowerPointSlide titleSlide = presentation.AddSlide();
             PowerPointTextBox title = titleSlide.AddTitle("Quarterly Sales Overview",global::OfficeIMO.OfficeLength.Centimeters(marginCm),global::OfficeIMO.OfficeLength.Centimeters(marginCm),global::OfficeIMO.OfficeLength.Centimeters(content.Width.ToCentimeters()),global::OfficeIMO.OfficeLength.Centimeters(titleHeightCm));
-            title.FontSize = 32;
+            title.FontSize = global::OfficeIMO.OfficeLength.Points(32);
             title.Color = "1F4E79";
             titleSlide.AddTextBox("Tables created from data objects with built-in styles.",global::OfficeIMO.OfficeLength.Centimeters(marginCm),global::OfficeIMO.OfficeLength.Centimeters(3.2),global::OfficeIMO.OfficeLength.Centimeters(content.Width.ToCentimeters()),global::OfficeIMO.OfficeLength.Centimeters(1.1));
 
@@ -64,25 +64,25 @@ namespace OfficeIMO.Examples.PowerPoint {
             for (int c = 0; c < table.Columns; c++) {
                 PowerPointTableCell header = table.GetCell(0, c);
                 header.Bold = true;
-                header.FontSize = 12;
+                header.FontSize = global::OfficeIMO.OfficeLength.Points(12);
                 header.HorizontalAlignment = PowerPointTextAlignment.Center;
                 header.VerticalAlignment = PowerPointTextVerticalAlignment.Center;
-                header.PaddingLeftPoints = 4;
-                header.PaddingRightPoints = 4;
-                header.PaddingTopPoints = 3;
-                header.PaddingBottomPoints = 3;
+                header.PaddingLeft = global::OfficeIMO.OfficeLength.Points(4);
+                header.PaddingRight = global::OfficeIMO.OfficeLength.Points(4);
+                header.PaddingTop = global::OfficeIMO.OfficeLength.Points(3);
+                header.PaddingBottom = global::OfficeIMO.OfficeLength.Points(3);
             }
 
             for (int r = 1; r < table.Rows; r++) {
                 for (int c = 0; c < table.Columns; c++) {
                     PowerPointTableCell cell = table.GetCell(r, c);
-                    cell.FontSize = 11;
+                    cell.FontSize = global::OfficeIMO.OfficeLength.Points(11);
                     cell.VerticalAlignment = PowerPointTextVerticalAlignment.Center;
                     if (c > 0) {
                         cell.HorizontalAlignment = PowerPointTextAlignment.Center;
                     }
-                    cell.PaddingLeftPoints = 3;
-                    cell.PaddingRightPoints = 3;
+                    cell.PaddingLeft = global::OfficeIMO.OfficeLength.Points(3);
+                    cell.PaddingRight = global::OfficeIMO.OfficeLength.Points(3);
                 }
             }
 
@@ -115,13 +115,13 @@ namespace OfficeIMO.Examples.PowerPoint {
             for (int r = 0; r < mergeTable.Rows; r++) {
                 for (int c = 0; c < mergeTable.Columns; c++) {
                     PowerPointTableCell cell = mergeTable.GetCell(r, c);
-                    cell.FontSize = r == 0 ? 12 : 11;
+                    cell.FontSize = global::OfficeIMO.OfficeLength.Points(r == 0 ? 12 : 11);
                     cell.VerticalAlignment = PowerPointTextVerticalAlignment.Center;
                     if (r <= 1 || c > 0) {
                         cell.HorizontalAlignment = PowerPointTextAlignment.Center;
                     }
-                    cell.PaddingLeftPoints = 3;
-                    cell.PaddingRightPoints = 3;
+                    cell.PaddingLeft = global::OfficeIMO.OfficeLength.Points(3);
+                    cell.PaddingRight = global::OfficeIMO.OfficeLength.Points(3);
                 }
             }
             // Slide 4: built-in styles showcase
@@ -183,7 +183,7 @@ namespace OfficeIMO.Examples.PowerPoint {
             for (int r = 0; r < compactTable.Rows; r++) {
                 for (int c = 0; c < compactTable.Columns; c++) {
                     PowerPointTableCell cell = compactTable.GetCell(r, c);
-                    cell.FontSize = r == 0 ? 10 : 9;
+                    cell.FontSize = global::OfficeIMO.OfficeLength.Points(r == 0 ? 10 : 9);
                     cell.VerticalAlignment = PowerPointTextVerticalAlignment.Center;
                     if (c > 0) {
                         cell.HorizontalAlignment = PowerPointTextAlignment.Center;
@@ -233,7 +233,7 @@ namespace OfficeIMO.Examples.PowerPoint {
 
             PowerPointTableCell summaryHeader = summary.GetCell(0, 0);
             summaryHeader.Bold = true;
-            summaryHeader.PaddingLeftPoints = 4;
+            summaryHeader.PaddingLeft = global::OfficeIMO.OfficeLength.Points(4);
 
             presentation.Save();
 

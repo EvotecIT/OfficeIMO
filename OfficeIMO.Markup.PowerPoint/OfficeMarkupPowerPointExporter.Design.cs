@@ -201,36 +201,36 @@ internal sealed partial class OfficeMarkupPowerPointExporter {
             slide.BackgroundColor = strong ? theme.SurfaceColor : theme.BackgroundColor;
         }
 
-        var wash = slide.AddShapeInches(
+        var wash = slide.AddShape(
             OfficePresetShapeType.Parallelogram,
-            metrics.Horizontal(strong ? 6.95 : 8.18),
-            metrics.Vertical(-0.12),
-            metrics.Horizontal(strong ? 2.95 : 1.96),
-            metrics.Vertical(SlideHeight + 0.34),
+            OfficeIMO.OfficeLength.Inches(metrics.Horizontal(strong ? 6.95 : 8.18)),
+            OfficeIMO.OfficeLength.Inches(metrics.Vertical(-0.12)),
+            OfficeIMO.OfficeLength.Inches(metrics.Horizontal(strong ? 2.95 : 1.96)),
+            OfficeIMO.OfficeLength.Inches(metrics.Vertical(SlideHeight + 0.34)),
             "OfficeIMO Markup Canvas Wash");
         wash.FillColor = theme.AccentLightColor;
         wash.FillTransparency = strong ? 8 : 24;
         wash.OutlineColor = theme.AccentLightColor;
         wash.OutlineWidthPoints = 0;
 
-        var rail = slide.AddShapeInches(
+        var rail = slide.AddShape(
             OfficePresetShapeType.Rectangle,
-            metrics.Horizontal(strong ? 9.72 : 9.82),
-            0,
-            metrics.Horizontal(strong ? 0.12 : 0.08),
-            metrics.Height,
+            OfficeIMO.OfficeLength.Inches(metrics.Horizontal(strong ? 9.72 : 9.82)),
+            OfficeIMO.OfficeLength.Inches(0),
+            OfficeIMO.OfficeLength.Inches(metrics.Horizontal(strong ? 0.12 : 0.08)),
+            OfficeIMO.OfficeLength.Inches(metrics.Height),
             "OfficeIMO Markup Canvas Rail");
         rail.FillColor = theme.AccentColor;
         rail.FillTransparency = strong ? 0 : 16;
         rail.OutlineColor = theme.AccentColor;
         rail.OutlineWidthPoints = 0;
 
-        var rule = slide.AddShapeInches(
+        var rule = slide.AddShape(
             OfficePresetShapeType.Rectangle,
-            metrics.Horizontal(0.72),
-            metrics.Vertical(strong ? 1.78 : 0.98),
-            metrics.Horizontal(strong ? 1.2 : 0.82),
-            metrics.Vertical(0.035),
+            OfficeIMO.OfficeLength.Inches(metrics.Horizontal(0.72)),
+            OfficeIMO.OfficeLength.Inches(metrics.Vertical(strong ? 1.78 : 0.98)),
+            OfficeIMO.OfficeLength.Inches(metrics.Horizontal(strong ? 1.2 : 0.82)),
+            OfficeIMO.OfficeLength.Inches(metrics.Vertical(0.035)),
             "OfficeIMO Markup Canvas Rule");
         rule.FillColor = theme.AccentColor;
         rule.OutlineColor = theme.AccentColor;
@@ -248,23 +248,23 @@ internal sealed partial class OfficeMarkupPowerPointExporter {
 
         for (var index = 0; index < count; index++) {
             var x = left + index * (cardWidth + gap);
-            var card = slide.AddShapeInches(
+            var card = slide.AddShape(
                 OfficePresetShapeType.Rectangle,
-                x,
-                top,
-                cardWidth,
-                cardHeight,
+                OfficeIMO.OfficeLength.Inches(x),
+                OfficeIMO.OfficeLength.Inches(top),
+                OfficeIMO.OfficeLength.Inches(cardWidth),
+                OfficeIMO.OfficeLength.Inches(cardHeight),
                 "OfficeIMO Markup Summary Card");
             card.FillColor = theme.PanelColor;
             card.OutlineColor = theme.PanelBorderColor;
             card.OutlineWidthPoints = 0.75;
 
-            var accent = slide.AddShapeInches(
+            var accent = slide.AddShape(
                 OfficePresetShapeType.Rectangle,
-                x,
-                top,
-                cardWidth,
-                metrics.Vertical(0.08),
+                OfficeIMO.OfficeLength.Inches(x),
+                OfficeIMO.OfficeLength.Inches(top),
+                OfficeIMO.OfficeLength.Inches(cardWidth),
+                OfficeIMO.OfficeLength.Inches(metrics.Vertical(0.08)),
                 "OfficeIMO Markup Summary Card Accent");
             accent.FillColor = index % 2 == 0 ? theme.AccentColor : theme.WarningColor;
             accent.OutlineColor = accent.FillColor;
@@ -324,13 +324,13 @@ internal sealed partial class OfficeMarkupPowerPointExporter {
             RenderMermaidDiagrams = false
         };
 
-        var panel = slide.AddRectangleCm(bounds.Left.ToCentimeters(), bounds.Top.ToCentimeters(), bounds.Width.ToCentimeters(), bounds.Height.ToCentimeters(),
+        var panel = slide.AddRectangle(bounds.Left, bounds.Top, bounds.Width, bounds.Height,
             "OfficeIMO Markup Semantic Column Panel");
         panel.FillColor = theme.PanelColor;
         panel.OutlineColor = theme.PanelBorderColor;
         panel.OutlineWidthPoints = 0.85;
 
-        var accent = slide.AddRectangleCm(bounds.Left.ToCentimeters(), bounds.Top.ToCentimeters(), bounds.Width.ToCentimeters(), 0.14,
+        var accent = slide.AddRectangle(bounds.Left, bounds.Top, bounds.Width, OfficeIMO.OfficeLength.Centimeters(0.14),
             "OfficeIMO Markup Semantic Column Accent");
         accent.FillColor = columnIndex % 2 == 0 ? theme.AccentColor : theme.Accent2Color;
         accent.OutlineColor = accent.FillColor;
@@ -352,12 +352,12 @@ internal sealed partial class OfficeMarkupPowerPointExporter {
                 TextColor = theme.PrimaryTextColor
             });
 
-            var rule = slide.AddShapeInches(
+            var rule = slide.AddShape(
                 OfficePresetShapeType.Rectangle,
-                cursor.Left,
-                cursor.Top + 0.47,
-                Math.Min(1.2, cursor.Width),
-                0.03,
+                OfficeIMO.OfficeLength.Inches(cursor.Left),
+                OfficeIMO.OfficeLength.Inches(cursor.Top + 0.47),
+                OfficeIMO.OfficeLength.Inches(Math.Min(1.2, cursor.Width)),
+                OfficeIMO.OfficeLength.Inches(0.03),
                 "OfficeIMO Markup Semantic Column Rule");
             rule.FillColor = theme.AccentColor;
             rule.OutlineColor = theme.AccentColor;

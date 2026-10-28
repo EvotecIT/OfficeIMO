@@ -33,7 +33,7 @@ namespace OfficeIMO.Tests {
                             }) { Loop = true }));
 
                 PowerPointAutoShape shape = slide.AddRectangle(
-                    100000, 100000, 1000000, 500000);
+                    OfficeIMO.OfficeLength.Emus(100000), OfficeIMO.OfficeLength.Emus(100000), OfficeIMO.OfficeLength.Emus(1000000), OfficeIMO.OfficeLength.Emus(500000));
                 HyperlinkRelationship hyperlinkRelationship = slide.SlidePart
                     .AddHyperlinkRelationship(new Uri("https://example.com/sound"), true);
                 P.NonVisualDrawingProperties properties = ((P.Shape)shape.Element)
@@ -482,7 +482,7 @@ namespace OfficeIMO.Tests {
                 PowerPointDocument.Create();
             PowerPointSlide slide = presentation.AddSlide();
             PowerPointAutoShape shape = slide.AddRectangle(
-                100000L, 100000L, 800000L, 500000L);
+                OfficeIMO.OfficeLength.Emus(100000L), OfficeIMO.OfficeLength.Emus(100000L), OfficeIMO.OfficeLength.Emus(800000L), OfficeIMO.OfficeLength.Emus(500000L));
             using (var audio = new MemoryStream(first, writable: false)) {
                 shape.SetClickSound(audio, "First click");
             }
@@ -658,7 +658,7 @@ namespace OfficeIMO.Tests {
                 }
                 slide.Transition = PowerPointSlideTransition.WheelFourSpokes;
                 PowerPointAutoShape shape = slide.AddRectangle(
-                    100000, 100000, 1000000, 500000);
+                    OfficeIMO.OfficeLength.Emus(100000), OfficeIMO.OfficeLength.Emus(100000), OfficeIMO.OfficeLength.Emus(1000000), OfficeIMO.OfficeLength.Emus(500000));
                 using (var audio = new MemoryStream(wave, writable: false)) {
                     shape.SetClickSound(audio, "Shared Sound");
                 }
@@ -763,7 +763,7 @@ namespace OfficeIMO.Tests {
                     Name = "OfficeIMO Chime"
                 }) { Loop = true }));
             PowerPointAutoShape shape = slide.AddRectangle(
-                100000, 100000, 1000000, 500000);
+                OfficeIMO.OfficeLength.Emus(100000), OfficeIMO.OfficeLength.Emus(100000), OfficeIMO.OfficeLength.Emus(1000000), OfficeIMO.OfficeLength.Emus(500000));
             HyperlinkRelationship hyperlink = slide.SlidePart
                 .AddHyperlinkRelationship(new Uri("https://example.com/sound"), true);
             ((P.Shape)shape.Element).NonVisualShapeProperties!

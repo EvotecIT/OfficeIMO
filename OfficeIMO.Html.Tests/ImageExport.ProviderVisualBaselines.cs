@@ -70,21 +70,21 @@ public sealed class ImageExportProviderVisualBaselineTests {
         PowerPointSlide slide = presentation.AddSlide();
         slide.BackgroundColor = "F8FAFC";
         PowerPointTextBox title = slide.AddTextBox("Delivery dashboard",global::OfficeIMO.OfficeLength.Points(28),global::OfficeIMO.OfficeLength.Points(22),global::OfficeIMO.OfficeLength.Points(300),global::OfficeIMO.OfficeLength.Points(34));
-        title.FontSize = 24;
+        title.FontSize = global::OfficeIMO.OfficeLength.Points(24);
         title.Bold = true;
         title.FontName = PortableFontFamily;
         title.Color = "1E3A8A";
         PowerPointTextBox status = slide.AddTextBox("On track",global::OfficeIMO.OfficeLength.Points(30),global::OfficeIMO.OfficeLength.Points(88),global::OfficeIMO.OfficeLength.Points(170),global::OfficeIMO.OfficeLength.Points(64));
-        status.FontSize = 18;
+        status.FontSize = global::OfficeIMO.OfficeLength.Points(18);
         status.Bold = true;
         status.FontName = PortableFontFamily;
         status.Color = "166534";
         PowerPointTextBox evidence = slide.AddTextBox("Evidence ready",global::OfficeIMO.OfficeLength.Points(260),global::OfficeIMO.OfficeLength.Points(88),global::OfficeIMO.OfficeLength.Points(170),global::OfficeIMO.OfficeLength.Points(64));
-        evidence.FontSize = 18;
+        evidence.FontSize = global::OfficeIMO.OfficeLength.Points(18);
         evidence.Bold = true;
         evidence.FontName = PortableFontFamily;
         evidence.Color = "155E75";
-        slide.AddShapePoints(OfficePresetShapeType.RoundRectangle, 28, 178, 174, 46)
+        slide.AddShape(OfficePresetShapeType.RoundRectangle, OfficeIMO.OfficeLength.Points(28), OfficeIMO.OfficeLength.Points(178), OfficeIMO.OfficeLength.Points(174), OfficeIMO.OfficeLength.Points(46))
             .Fill("DBEAFE")
             .Stroke("2563EB", 1D);
         using (var image = new MemoryStream(CreateVisualBadge())) {

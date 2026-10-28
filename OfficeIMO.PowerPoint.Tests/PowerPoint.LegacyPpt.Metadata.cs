@@ -268,12 +268,12 @@ namespace OfficeIMO.Tests {
                         PowerPointUnits.FromPoints(145));
                 connector.Name = "Trend connector";
                 connector.Description = "Connects the summary to detail";
-                PowerPointAutoShape child = slide.AddShapePoints(
-                    OfficePresetShapeType.Rectangle, 190, 20, 70, 45);
+                PowerPointAutoShape child = slide.AddShape(
+                    OfficePresetShapeType.Rectangle, OfficeIMO.OfficeLength.Points(190), OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(70), OfficeIMO.OfficeLength.Points(45));
                 child.Name = "Grouped child";
                 child.Description = "Child description";
-                PowerPointAutoShape secondChild = slide.AddShapePoints(
-                    OfficePresetShapeType.Ellipse, 205, 75, 45, 35);
+                PowerPointAutoShape secondChild = slide.AddShape(
+                    OfficePresetShapeType.Ellipse, OfficeIMO.OfficeLength.Points(205), OfficeIMO.OfficeLength.Points(75), OfficeIMO.OfficeLength.Points(45), OfficeIMO.OfficeLength.Points(35));
                 secondChild.Name = "Second grouped child";
                 secondChild.Description = "Second child description";
                 PowerPointGroupShape group = slide.GroupShapes(
@@ -322,8 +322,8 @@ namespace OfficeIMO.Tests {
                 PowerPointDocument.Create();
             PowerPointAutoShape shape = source.AddSlide(
                     PowerPointSlideLayoutType.Blank)
-                .AddShapePoints(OfficePresetShapeType.Rectangle,
-                    20, 20, 100, 60);
+                .AddShape(OfficePresetShapeType.Rectangle,
+                    OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(100), OfficeIMO.OfficeLength.Points(60));
             shape.Title = "Concise modern title";
 
             LegacyPptWritePreflightReport titlePreflight =

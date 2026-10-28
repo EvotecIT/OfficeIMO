@@ -8,7 +8,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         /// Creates a new text style instance.
         /// </summary>
-        public PowerPointTextStyle(int? fontSize = null, string? fontName = null, string? color = null,
+        public PowerPointTextStyle(global::OfficeIMO.OfficeLength? fontSize = null, string? fontName = null, string? color = null,
             bool? bold = null, bool? italic = null, bool? underline = null, string? highlightColor = null,
             bool? strikethrough = null) {
             FontSize = fontSize;
@@ -22,9 +22,9 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
-        /// Font size in points.
+        /// Physical font size, stored in DrawingML hundredths of a point.
         /// </summary>
-        public int? FontSize { get; }
+        public global::OfficeIMO.OfficeLength? FontSize { get; }
 
         /// <summary>
         /// Font name (Latin).
@@ -64,22 +64,22 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         /// A preset for typical slide titles.
         /// </summary>
-        public static PowerPointTextStyle Title => new(fontSize: 32, bold: true);
+        public static PowerPointTextStyle Title => new(fontSize: global::OfficeIMO.OfficeLength.Points(32), bold: true);
 
         /// <summary>
         /// A preset for subtitles.
         /// </summary>
-        public static PowerPointTextStyle Subtitle => new(fontSize: 24);
+        public static PowerPointTextStyle Subtitle => new(fontSize: global::OfficeIMO.OfficeLength.Points(24));
 
         /// <summary>
         /// A preset for body text.
         /// </summary>
-        public static PowerPointTextStyle Body => new(fontSize: 18);
+        public static PowerPointTextStyle Body => new(fontSize: global::OfficeIMO.OfficeLength.Points(18));
 
         /// <summary>
         /// A preset for captions or footnotes.
         /// </summary>
-        public static PowerPointTextStyle Caption => new(fontSize: 12);
+        public static PowerPointTextStyle Caption => new(fontSize: global::OfficeIMO.OfficeLength.Points(12));
 
         /// <summary>
         /// A preset that enables bold emphasis.
@@ -157,7 +157,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         /// Returns a copy with a new font size.
         /// </summary>
-        public PowerPointTextStyle WithFontSize(int? fontSize) {
+        public PowerPointTextStyle WithFontSize(global::OfficeIMO.OfficeLength? fontSize) {
             return new PowerPointTextStyle(fontSize, FontName, Color, Bold, Italic, Underline, HighlightColor, Strikethrough);
         }
 

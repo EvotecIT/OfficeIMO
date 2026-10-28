@@ -22,7 +22,7 @@ namespace OfficeIMO.Examples.PowerPoint {
                 PowerPointLayoutBox content = presentation.SlideSize.GetContentBox(OfficeIMO.OfficeLength.Centimeters(1.5));
                 PowerPointSlide slide = presentation.AddSlide();
                 PowerPointTextBox title = slide.AddTitle("Direct presentation editing",                    new OfficeIMO.PowerPoint.PowerPointLayoutBox(OfficeIMO.OfficeLength.Centimeters(content.Left.ToCentimeters()),OfficeIMO.OfficeLength.Centimeters(content.Top.ToCentimeters()),OfficeIMO.OfficeLength.Centimeters(content.Width.ToCentimeters()),OfficeIMO.OfficeLength.Centimeters(1.6)));
-                title.FontSize = 32;
+                title.FontSize = global::OfficeIMO.OfficeLength.Points(32);
                 title.Color = "1F4E79";
 
                 PowerPointTextBox bullets = slide.AddTextBox(string.Empty,                    new OfficeIMO.PowerPoint.PowerPointLayoutBox(OfficeIMO.OfficeLength.Centimeters(content.Left.ToCentimeters()),OfficeIMO.OfficeLength.Centimeters(content.Top.ToCentimeters() + 2.1),OfficeIMO.OfficeLength.Centimeters(11.0),OfficeIMO.OfficeLength.Centimeters(4.0)));
@@ -32,8 +32,8 @@ namespace OfficeIMO.Examples.PowerPoint {
                 bullets.TextAutoFit = PowerPointTextAutoFit.Normal;
 
                 slide.AddShape(OfficePresetShapeType.Rectangle,
-                        PowerPointUnits.FromCentimeters(content.Left.ToCentimeters() + 12.0), PowerPointUnits.FromCentimeters(content.Top.ToCentimeters() + 2.1),
-                        PowerPointUnits.FromCentimeters(10.0), PowerPointUnits.FromCentimeters(4.0))
+                        OfficeIMO.OfficeLength.Centimeters(content.Left.ToCentimeters() + 12.0), OfficeIMO.OfficeLength.Centimeters(content.Top.ToCentimeters() + 2.1),
+                        OfficeIMO.OfficeLength.Centimeters(10.0), OfficeIMO.OfficeLength.Centimeters(4.0))
                     .Fill("E7F7FF")
                     .Stroke("007ACC", 2);
                 slide.Notes.Text = "Concrete objects can be edited immediately or after reopening the deck.";

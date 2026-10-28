@@ -14,6 +14,29 @@ returns `OfficeConversionResult<byte[]>`. `FileConflictPolicy`, `FailOnLoss`,
 safety limits, fonts, cancellation and progress remain options.
 
 
+## PowerPoint text lengths
+
+Paragraph indentation, spacing, absolute bullet size, font size and text padding use `OfficeLength`.
+Replace numeric assignments such as `run.FontSize = 18` with
+`run.FontSize = OfficeLength.Points(18)`. Nullable overrides still accept `null`.
+Use `run.FontSize?.ToPoints()` when a numeric point value is required; it retains
+DrawingML hundredth-point precision rather than the former integer getter's truncation.
+
+| Previous member | Replacement |
+| --- | --- |
+| `IndentPoints`, `LeftMarginPoints`, `LineSpacingPoints`, `SpaceBeforePoints`, `SpaceAfterPoints`, `BulletSizePoints` | `Indent`, `LeftMargin`, `LineSpacing`, `SpaceBefore`, `SpaceAfter`, `BulletSize` |
+| `SetIndentPoints`, `SetIndentCm`, `SetIndentInches` and corresponding hanging/margin/spacing methods | Unit-free method with an explicit `OfficeLength`, such as `SetIndent(OfficeLength.Centimeters(1))` |
+| Paragraph-style `...Points` constructor parameters, properties and `With...Points` methods | Unit-free names with nullable `OfficeLength` values |
+| `FontSizePoints`, `CharacterSpacingPoints`, `PowerPointTabStop.PositionPoints` | `FontSize`, `CharacterSpacing`, `PowerPointTabStop.Position` |
+| Text-box `TextMargin...Points/Cm/Inches` and `SetTextMargins...` | `TextMarginLeft/Top/Right/Bottom` and `SetTextMargins` with lengths |
+| Cell `Padding...Points/Cm/Inches` and table `SetCellPadding...` | `PaddingLeft/Top/Right/Bottom` and `SetCellPadding` with lengths |
+
+`PowerPointTextStyle` font-size arguments, `SetFontSize`, tab-stop constructors,
+`ApplyAutoSpacing` before/after values and layout-placeholder text margins also
+use lengths. `LineSpacingMultiplier`, `BulletSizePercent`, list levels and
+baseline percentages keep their numeric meaning. Native font bounds, spacing
+precision and null/default behavior continue to apply.
+
 ## Word section columns
 
 `WordSectionColumn` takes `OfficeLength width` and optional `OfficeLength? spaceAfter`.

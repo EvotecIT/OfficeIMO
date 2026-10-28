@@ -31,10 +31,10 @@ namespace OfficeIMO.Tests {
                     .AddSlide(PowerPointSlideLayoutType.Blank)
                     .AddSmartArt(sourceKind,
                         new[] { "Discover", "Build", "Validate", "Ship" },
-                        PowerPointUnits.FromPoints(20D),
-                        PowerPointUnits.FromPoints(30D),
-                        PowerPointUnits.FromPoints(260D),
-                        PowerPointUnits.FromPoints(160D));
+                        OfficeIMO.OfficeLength.Points(20D),
+                        OfficeIMO.OfficeLength.Points(30D),
+                        OfficeIMO.OfficeLength.Points(260D),
+                        OfficeIMO.OfficeLength.Points(160D));
                 Assert.True(smartArt.TryGetOfficeDiagramSnapshot(
                     out OfficeDiagramSnapshot snapshot));
                 Assert.Equal(expectedKind, snapshot.Kind);

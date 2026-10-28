@@ -171,7 +171,7 @@ public sealed class SetOfficePowerPointLayoutPlaceholderTextStyleCommand : PSCmd
 
         if (FontSize != null)
         {
-            style = style.WithFontSize(FontSize);
+            style = style.WithFontSize(global::OfficeIMO.OfficeLength.Points(FontSize.Value));
         }
 
         if (!string.IsNullOrWhiteSpace(FontName))

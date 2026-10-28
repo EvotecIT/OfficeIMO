@@ -167,11 +167,11 @@ namespace OfficeIMO.Tests {
                 using (PowerPointDocument presentation = PowerPointDocument.Create(path)) {
                     PowerPointSlide slide = presentation.AddSlide();
                     PowerPointSmartArt process = slide.AddSmartArt(PowerPointSmartArtType.BasicProcess,
-                        new[] { "Discover", "Design", "Deliver" }, 20, 20, 2600000, 1200000);
+                        new[] { "Discover", "Design", "Deliver" }, OfficeIMO.OfficeLength.Emus(20), OfficeIMO.OfficeLength.Emus(20), OfficeIMO.OfficeLength.Emus(2600000), OfficeIMO.OfficeLength.Emus(1200000));
                     PowerPointSmartArt hierarchy = slide.AddSmartArt(PowerPointSmartArtType.BasicHierarchy,
-                        new[] { "Executive", "Platform", "Delivery" }, 2800000, 20, 2600000, 1200000);
+                        new[] { "Executive", "Platform", "Delivery" }, OfficeIMO.OfficeLength.Emus(2800000), OfficeIMO.OfficeLength.Emus(20), OfficeIMO.OfficeLength.Emus(2600000), OfficeIMO.OfficeLength.Emus(1200000));
                     PowerPointSmartArt cycle = slide.AddSmartArt(PowerPointSmartArtType.BasicCycle,
-                        new[] { "Plan", "Run", "Learn", "Improve" }, 20, 1400000, 5200000, 1400000);
+                        new[] { "Plan", "Run", "Learn", "Improve" }, OfficeIMO.OfficeLength.Emus(20), OfficeIMO.OfficeLength.Emus(1400000), OfficeIMO.OfficeLength.Emus(5200000), OfficeIMO.OfficeLength.Emus(1400000));
 
                     Assert.Equal(new[] { "Discover", "Design", "Deliver" }, process.GetNodeTexts());
                     Assert.Equal(3, hierarchy.NodeCount);
@@ -276,8 +276,8 @@ namespace OfficeIMO.Tests {
             ArgumentOutOfRangeException exception =
                 Assert.Throws<ArgumentOutOfRangeException>(() =>
                     slide.AddSmartArt(PowerPointSmartArtType.BasicProcess,
-                        new[] { "Discover", "Deliver" }, width: width,
-                        height: height));
+                        new[] { "Discover", "Deliver" }, width: OfficeIMO.OfficeLength.Emus(width),
+                        height: OfficeIMO.OfficeLength.Emus(height)));
 
             Assert.Equal(parameterName, exception.ParamName);
             Assert.Empty(slide.SmartArts);
@@ -424,10 +424,10 @@ namespace OfficeIMO.Tests {
                 presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(360),OfficeIMO.OfficeLength.Points(220));
                 PowerPointSmartArt smartArt = presentation.AddSlide().AddSmartArt(type,
                     new[] { "Discover", "Build", "Validate", "Ship" },
-                    PowerPointUnits.FromPoints(20),
-                    PowerPointUnits.FromPoints(20),
-                    PowerPointUnits.FromPoints(320),
-                    PowerPointUnits.FromPoints(180));
+                    OfficeIMO.OfficeLength.Points(20),
+                    OfficeIMO.OfficeLength.Points(20),
+                    OfficeIMO.OfficeLength.Points(320),
+                    OfficeIMO.OfficeLength.Points(180));
                 Assert.True(smartArt.TryGetOfficeDiagramSnapshot(
                     out OfficeDiagramSnapshot snapshot));
                 Assert.Equal(expectedKind, snapshot.Kind);
@@ -485,10 +485,10 @@ namespace OfficeIMO.Tests {
             PowerPointSmartArt smartArt = presentation.AddSlide().AddSmartArt(
                 PowerPointSmartArtType.BasicList,
                 new[] { "Discover", "Build", "Ship" },
-                PowerPointUnits.FromPoints(20),
-                PowerPointUnits.FromPoints(20),
-                PowerPointUnits.FromPoints(320),
-                PowerPointUnits.FromPoints(180));
+                OfficeIMO.OfficeLength.Points(20),
+                OfficeIMO.OfficeLength.Points(20),
+                OfficeIMO.OfficeLength.Points(320),
+                OfficeIMO.OfficeLength.Points(180));
 
             smartArt.Width= OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(240));
             smartArt.Height= OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(240));
@@ -526,8 +526,8 @@ namespace OfficeIMO.Tests {
             slide.BackgroundColor = "123456";
             slide.AddSmartArt(PowerPointSmartArtType.BasicProcess,
                 new[] { "Start", "Finish" },
-                PowerPointUnits.FromPoints(20), PowerPointUnits.FromPoints(20),
-                PowerPointUnits.FromPoints(320), PowerPointUnits.FromPoints(180));
+                OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(20),
+                OfficeIMO.OfficeLength.Points(320), OfficeIMO.OfficeLength.Points(180));
 
             OfficeImageExportResult png = slide.ExportImage(
                 OfficeImageExportFormat.Png);
@@ -952,15 +952,15 @@ namespace OfficeIMO.Tests {
             presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(100),OfficeIMO.OfficeLength.Points(100));
 
             PowerPointSlide offCanvas = presentation.AddSlide();
-            PowerPointAutoShape offCanvasShape = offCanvas.AddRectanglePoints(
-                120, 120, 20, 20);
+            PowerPointAutoShape offCanvasShape = offCanvas.AddRectangle(
+                OfficeIMO.OfficeLength.Points(120), OfficeIMO.OfficeLength.Points(120), OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(20));
             offCanvasShape.FillColor = "FF0000";
             Assert.False(PowerPointDesktopReferenceRenderer
                 .HasExpectedVisibleContent(offCanvas));
 
             PowerPointSlide unpainted = presentation.AddSlide();
-            PowerPointAutoShape unpaintedShape = unpainted.AddRectanglePoints(
-                20, 20, 40, 40);
+            PowerPointAutoShape unpaintedShape = unpainted.AddRectangle(
+                OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(40), OfficeIMO.OfficeLength.Points(40));
             ShapeProperties unpaintedProperties = ((Shape)unpaintedShape.Element)
                 .ShapeProperties!;
             unpaintedProperties.RemoveAllChildren<A.SolidFill>();
@@ -972,15 +972,15 @@ namespace OfficeIMO.Tests {
 
             PowerPointSlide transparent = presentation.AddSlide();
             PowerPointAutoShape transparentShape = transparent
-                .AddRectanglePoints(20, 20, 40, 40);
+                .AddRectangle(OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(40), OfficeIMO.OfficeLength.Points(40));
             transparentShape.FillColor = "FF0000";
             transparentShape.FillTransparency = 100;
             Assert.False(PowerPointDesktopReferenceRenderer
                 .HasExpectedVisibleContent(transparent));
 
             PowerPointSlide visible = presentation.AddSlide();
-            PowerPointAutoShape visibleShape = visible.AddRectanglePoints(
-                20, 20, 40, 40);
+            PowerPointAutoShape visibleShape = visible.AddRectangle(
+                OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(40), OfficeIMO.OfficeLength.Points(40));
             visibleShape.FillColor = "FF0000";
             Assert.True(PowerPointDesktopReferenceRenderer
                 .HasExpectedVisibleContent(visible));

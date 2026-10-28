@@ -498,7 +498,7 @@ public class HtmlTextFormattingConversionTests {
         authored.Capitalization = PowerPointCapitalization.SmallCaps;
         authored.BaselinePercent = 37.5D;
         authored.FontName = "Aptos";
-        authored.FontSizePoints = 14.5D;
+        authored.FontSize = global::OfficeIMO.OfficeLength.Points(14.5D);
         authored.Color = "336699";
 
         string html = source.ToHtml(PowerPointHtmlSaveOptions.CreateSemanticSlidesProfile());
@@ -526,7 +526,7 @@ public class HtmlTextFormattingConversionTests {
         Assert.Equal(PowerPointCapitalization.SmallCaps, actual.Capitalization);
         Assert.Equal(37.5D, actual.BaselinePercent);
         Assert.Equal("Aptos", actual.FontName);
-        Assert.Equal(14.5D, actual.FontSizePoints);
+        Assert.Equal(14.5D, actual.FontSize?.ToPoints());
         Assert.Equal("336699", actual.Color);
     }
 

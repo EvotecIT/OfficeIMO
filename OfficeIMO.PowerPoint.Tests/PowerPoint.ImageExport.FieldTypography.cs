@@ -22,7 +22,7 @@ namespace OfficeIMO.Tests {
                 run.Bold = true;
                 run.Italic = true;
                 run.FontName = "Arial";
-                run.FontSize = 15;
+                run.FontSize = global::OfficeIMO.OfficeLength.Points(15);
                 run.UnderlineStyle = PowerPointUnderlineStyle.Double;
                 run.Capitalization = PowerPointCapitalization.AllCaps;
             });
@@ -34,7 +34,7 @@ namespace OfficeIMO.Tests {
             cellParagraph.AddField("table field", "custom", null, run => {
                 run.Bold = true;
                 run.FontName = "Consolas";
-                run.FontSize = 13;
+                run.FontSize = global::OfficeIMO.OfficeLength.Points(13);
                 run.UnderlineStyle = PowerPointUnderlineStyle.Wavy;
                 run.Capitalization = PowerPointCapitalization.SmallCaps;
             });

@@ -17,18 +17,24 @@ namespace OfficeIMO.Tests {
             PowerPointTextRun run = box.Paragraphs.Single().Runs.Single();
             PowerPointTableCell cell = slide.AddTable(1,1).GetCell(0, 0);
 
-            run.FontSizePoints = 1D;
-            Assert.Equal(1D, run.FontSizePoints);
-            run.FontSizePoints = 4000D;
-            Assert.Equal(4000D, run.FontSizePoints);
+            run.FontSize = global::OfficeIMO.OfficeLength.Points(1D);
+            Assert.Equal(1D, run.FontSize?.ToPoints());
+            run.FontSize = global::OfficeIMO.OfficeLength.Points(4000D);
+            Assert.Equal(4000D, run.FontSize?.ToPoints());
 
-            Assert.Throws<ArgumentOutOfRangeException>(() => run.FontSizePoints = 0.5D);
-            Assert.Throws<ArgumentOutOfRangeException>(() => run.FontSizePoints = 4000.01D);
-            Assert.Throws<ArgumentOutOfRangeException>(() => run.FontSizePoints = double.NaN);
-            Assert.Throws<ArgumentOutOfRangeException>(() => box.FontSize = 0);
-            Assert.Throws<ArgumentOutOfRangeException>(() => box.FontSize = 4001);
-            Assert.Throws<ArgumentOutOfRangeException>(() => cell.FontSize = 0);
-            Assert.Throws<ArgumentOutOfRangeException>(() => cell.FontSize = 4001);
+            Assert.Throws<ArgumentOutOfRangeException>(() => run.FontSize = global::OfficeIMO.OfficeLength.Points(0.5D));
+            Assert.Throws<ArgumentOutOfRangeException>(() => run.FontSize = global::OfficeIMO.OfficeLength.Points(4000.01D));
+            Assert.Throws<ArgumentOutOfRangeException>(() => box.FontSize = global::OfficeIMO.OfficeLength.Points(0));
+            Assert.Throws<ArgumentOutOfRangeException>(() => box.FontSize = global::OfficeIMO.OfficeLength.Points(4001));
+            Assert.Throws<ArgumentOutOfRangeException>(() => cell.FontSize = global::OfficeIMO.OfficeLength.Points(0));
+            Assert.Throws<ArgumentOutOfRangeException>(() => cell.FontSize = global::OfficeIMO.OfficeLength.Points(4001));
+            Assert.Equal(global::OfficeIMO.OfficeLength.Points(4000), run.FontSize);
+            run.FontSize = global::OfficeIMO.OfficeLength.Points(14.505);
+            Assert.Equal(global::OfficeIMO.OfficeLength.Points(14.51), run.FontSize);
+            Assert.Equal(1451, run.RunProperties!.FontSize!.Value);
+            run.FontSize = null;
+            Assert.Null(run.FontSize);
+            Assert.Null(run.RunProperties.FontSize);
             Assert.Empty(presentation.ValidateDocument());
         }
 
@@ -41,7 +47,7 @@ namespace OfficeIMO.Tests {
                 PowerPointTextBox box = slide.AddTextBox("Hello");
                 box.Bold = true;
                 box.Italic = true;
-                box.FontSize = 24;
+                box.FontSize = global::OfficeIMO.OfficeLength.Points(24);
                 box.FontName = "Arial";
                 box.Color = "FF0000";
                 box.AddBullet("Bullet1");
@@ -156,12 +162,12 @@ namespace OfficeIMO.Tests {
                 PowerPointSlide slide = presentation.AddSlide();
                 PowerPointTextBox box = slide.AddTextBox("Highlights");
                 box.AddBullets(new[] { "First", "Second" });
-                box.ApplyTextStyle(new PowerPointTextStyle(fontSize: 20, bold: true, color: "336699"));
+                box.ApplyTextStyle(new PowerPointTextStyle(fontSize: global::OfficeIMO.OfficeLength.Points(20), bold: true, color: "336699"));
                 box.ApplyParagraphStyle(new PowerPointParagraphStyle(
                     lineSpacingMultiplier: 1.2,
-                    spaceAfterPoints: 4,
-                    leftMarginPoints: 18,
-                    indentPoints: -18));
+                    spaceAfter: global::OfficeIMO.OfficeLength.Points(4),
+                    leftMargin: global::OfficeIMO.OfficeLength.Points(18),
+                    indent: global::OfficeIMO.OfficeLength.Points(-18)));
                 presentation.Save();
             }
 
@@ -279,8 +285,8 @@ namespace OfficeIMO.Tests {
                 box.SetBullets(new[] { "First", "Second" }, configure: paragraph => {
                     paragraph.SetBulletSizePercent(72)
                         .SetBulletFont("Aptos")
-                        .SetHangingPoints(16)
-                        .SetFontSize(18);
+                        .SetHanging(global::OfficeIMO.OfficeLength.Points(16))
+                        .SetFontSize(global::OfficeIMO.OfficeLength.Points(18));
                 });
 
                 presentation.Save();
@@ -310,6 +316,54 @@ namespace OfficeIMO.Tests {
                 where T : DocumentFormat.OpenXml.OpenXmlElement {
                 return children.ToList().FindIndex(child => child is T);
             }
+        }
+
+        [Fact]
+        public void TextGeometryRetainsNativeUnitsAndAtomicHangingIndent() {
+            using PowerPointDocument presentation = PowerPointDocument.Create();
+            PowerPointSlide slide = presentation.AddSlide();
+            PowerPointTextBox box = slide.AddTextBox("Geometry");
+            PowerPointParagraph paragraph = box.Paragraphs.Single();
+            PowerPointTableCell cell = slide.AddTable(1, 1).GetCell(0, 0);
+            paragraph.Indent = global::OfficeIMO.OfficeLength.Emus(-12701);
+            paragraph.LeftMargin = global::OfficeIMO.OfficeLength.Emus(25401);
+            paragraph.SpaceBefore = global::OfficeIMO.OfficeLength.Emus(63);
+            paragraph.SpaceAfter = global::OfficeIMO.OfficeLength.Emus(64);
+            Assert.Equal(-12701, paragraph.Paragraph.ParagraphProperties!.Indent!.Value);
+            Assert.Equal(25401, paragraph.Paragraph.ParagraphProperties.LeftMargin!.Value);
+            Assert.Equal(0, paragraph.Paragraph.ParagraphProperties.SpaceBefore!.SpacingPoints!.Val!.Value);
+            Assert.Equal(1, paragraph.Paragraph.ParagraphProperties.SpaceAfter!.SpacingPoints!.Val!.Value);
+            paragraph.LineSpacingMultiplier = 1.25;
+            Assert.Null(paragraph.LineSpacing);
+            paragraph.LineSpacing = global::OfficeIMO.OfficeLength.Points(18);
+            Assert.Null(paragraph.LineSpacingMultiplier);
+            paragraph.BulletSize = global::OfficeIMO.OfficeLength.Points(11.5);
+            Assert.Equal(1150, paragraph.Paragraph.ParagraphProperties.GetFirstChild<A.BulletSizePoints>()!.Val!.Value);
+            paragraph.BulletSizePercent = 72;
+            Assert.Null(paragraph.BulletSize);
+            Assert.Equal(72, paragraph.BulletSizePercent);
+            paragraph.BulletSize = null;
+            Assert.Null(paragraph.BulletSizePercent);
+            string beforeFailure = paragraph.Paragraph.OuterXml;
+            Assert.Throws<OverflowException>(() => paragraph.SetHanging(global::OfficeIMO.OfficeLength.Emus(int.MinValue)));
+            Assert.Equal(beforeFailure, paragraph.Paragraph.OuterXml);
+            box.FontSize = global::OfficeIMO.OfficeLength.Inches(0.25);
+            box.TextMarginLeft = global::OfficeIMO.OfficeLength.Emus(91441);
+            cell.PaddingTop = global::OfficeIMO.OfficeLength.Emus(12701);
+            using var output = new MemoryStream();
+            presentation.Save(output);
+            output.Position = 0;
+            using PowerPointDocument reopened = PowerPointDocument.Load(output);
+            PowerPointTextBox restored = reopened.Slides[0].TextBoxes.Single();
+            Assert.Equal(global::OfficeIMO.OfficeLength.Points(18), restored.FontSize);
+            Assert.Equal(global::OfficeIMO.OfficeLength.Emus(91441), restored.TextMarginLeft);
+            Assert.Equal(global::OfficeIMO.OfficeLength.Emus(-12701), restored.Paragraphs[0].Indent);
+            Assert.Equal(global::OfficeIMO.OfficeLength.Emus(127), restored.Paragraphs[0].SpaceAfter);
+            Assert.Equal(global::OfficeIMO.OfficeLength.Emus(12701), reopened.Slides[0].Tables.Single().GetCell(0, 0).PaddingTop);
+            restored.Paragraphs[0].Indent = null;
+            restored.TextMarginLeft = null;
+            Assert.Null(restored.Paragraphs[0].Indent);
+            Assert.Null(restored.TextMarginLeft);
         }
 
         private static string CreateTempFilePath(string extension) {

@@ -109,8 +109,8 @@ public sealed class PowerPointImageConversionTests {
     public void FailOnLossRejectsAnOmittedGroupBeforeWriting() {
         using var deck = PowerPointDocument.Create();
         var slide = deck.AddSlide();
-        var first = slide.AddRectanglePoints(10, 10, 20, 20);
-        var second = slide.AddRectanglePoints(40, 10, 20, 20);
+        var first = slide.AddRectangle(OfficeIMO.OfficeLength.Points(10), OfficeIMO.OfficeLength.Points(10), OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(20));
+        var second = slide.AddRectangle(OfficeIMO.OfficeLength.Points(40), OfficeIMO.OfficeLength.Points(10), OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(20));
         slide.GroupShapes(new PowerPointShape[] { first, second }, "Omitted group");
         using var output = new MemoryStream();
         var options = new PowerPointImageExportOptions {

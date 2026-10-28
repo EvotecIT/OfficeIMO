@@ -16,7 +16,7 @@ namespace OfficeIMO.Tests {
             try {
                 using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
                     PowerPointSlide slide = presentation.AddSlide();
-                    PowerPointAutoShape accent = slide.AddRectanglePoints(10, 10, 40, 20, "Decorative accent");
+                    PowerPointAutoShape accent = slide.AddRectangle(OfficeIMO.OfficeLength.Points(10), OfficeIMO.OfficeLength.Points(10), OfficeIMO.OfficeLength.Points(40), OfficeIMO.OfficeLength.Points(20), "Decorative accent");
                     accent.Title = "Decorative accent";
                     accent.Decorative = true;
                     PowerPointTextBox text = slide.AddTextBox("Accessible documentation",global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(40),global::OfficeIMO.OfficeLength.Points(220),global::OfficeIMO.OfficeLength.Points(30));
@@ -61,7 +61,7 @@ namespace OfficeIMO.Tests {
             slide.BackgroundColor = "FFFFFF";
             PowerPointTextBox link = slide.AddTextBox("click here",global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(180),global::OfficeIMO.OfficeLength.Points(28));
             link.Color = "D0D0D0";
-            link.FontSize = 12;
+            link.FontSize = global::OfficeIMO.OfficeLength.Points(12);
             link.FillColor = "FFFFFF";
             link.Paragraphs.Single().Runs.Single().SetHyperlink("https://example.test");
             PowerPointTable table = slide.AddTable(2,2,global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(70),global::OfficeIMO.OfficeLength.Points(180),global::OfficeIMO.OfficeLength.Points(60));
@@ -154,7 +154,7 @@ namespace OfficeIMO.Tests {
             using PowerPointDocument presentation = PowerPointDocument.Create(stream, new PowerPointCreateOptions());
             PowerPointSlide hidden = presentation.AddSlide();
             hidden.Hidden = true;
-            hidden.AddRectanglePoints(20, 20, 120, 80, "Undescribed visual");
+            hidden.AddRectangle(OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(120), OfficeIMO.OfficeLength.Points(80), "Undescribed visual");
 
             PowerPointAccessibilityReport defaultReport = presentation.InspectAccessibility();
             PowerPointAccessibilityReport includedReport = presentation.InspectAccessibility(
@@ -190,7 +190,7 @@ namespace OfficeIMO.Tests {
             PowerPointSlide slide = presentation.AddSlide();
             PowerPointTable table = slide.AddTable(2,2,global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(50),global::OfficeIMO.OfficeLength.Points(180),global::OfficeIMO.OfficeLength.Points(70));
             table.HeaderRow = false;
-            PowerPointAutoShape anchor = slide.AddRectanglePoints(210, 50, 20, 20, "Group anchor");
+            PowerPointAutoShape anchor = slide.AddRectangle(OfficeIMO.OfficeLength.Points(210), OfficeIMO.OfficeLength.Points(50), OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(20), "Group anchor");
             slide.GroupShapes(new PowerPointShape[] { table, anchor }, "Accessibility group");
 
             PowerPointAccessibilityReport report = presentation.InspectAccessibility(
@@ -213,8 +213,8 @@ namespace OfficeIMO.Tests {
             using var stream = new MemoryStream();
             using PowerPointDocument presentation = PowerPointDocument.Create(stream, new PowerPointCreateOptions());
             PowerPointSlide slide = presentation.AddSlide();
-            slide.AddRectanglePoints(10, 10, 20, 20, "One");
-            slide.AddRectanglePoints(40, 10, 20, 20, "Two");
+            slide.AddRectangle(OfficeIMO.OfficeLength.Points(10), OfficeIMO.OfficeLength.Points(10), OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(20), "One");
+            slide.AddRectangle(OfficeIMO.OfficeLength.Points(40), OfficeIMO.OfficeLength.Points(10), OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(20), "Two");
 
             Assert.Throws<InvalidOperationException>(() => presentation.InspectAccessibility(
                 new PowerPointAccessibilityOptions { MaximumShapeCount = 1 }));
@@ -227,8 +227,8 @@ namespace OfficeIMO.Tests {
             using var stream = new MemoryStream();
             using PowerPointDocument presentation = PowerPointDocument.Create(stream, new PowerPointCreateOptions());
             PowerPointSlide slide = presentation.AddSlide();
-            PowerPointAutoShape first = slide.AddRectanglePoints(10, 10, 20, 20, "One");
-            PowerPointAutoShape second = slide.AddRectanglePoints(40, 10, 20, 20, "Two");
+            PowerPointAutoShape first = slide.AddRectangle(OfficeIMO.OfficeLength.Points(10), OfficeIMO.OfficeLength.Points(10), OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(20), "One");
+            PowerPointAutoShape second = slide.AddRectangle(OfficeIMO.OfficeLength.Points(40), OfficeIMO.OfficeLength.Points(10), OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(20), "Two");
             PowerPointGroupShape group = slide.GroupShapes(new PowerPointShape[] { first, second }, "Bounded group");
 
             Assert.Throws<InvalidOperationException>(() => slide.GetGroupChildren(group, maximumChildren: 1));
@@ -256,7 +256,7 @@ namespace OfficeIMO.Tests {
             using var stream = new MemoryStream();
             using PowerPointDocument presentation = PowerPointDocument.Create(stream, new PowerPointCreateOptions());
             PowerPointSlide slide = presentation.AddSlide();
-            slide.AddRectanglePoints(10, 10, 20, 20, "Unsaved shape");
+            slide.AddRectangle(OfficeIMO.OfficeLength.Points(10), OfficeIMO.OfficeLength.Points(10), OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(20), "Unsaved shape");
 
             _ = PowerPointPackageFingerprint.Create(presentation.OpenXmlDocument);
 
@@ -424,7 +424,7 @@ namespace OfficeIMO.Tests {
 
             PowerPointTextBox text = slide.AddTextBox("Readable inherited contrast",global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(180),global::OfficeIMO.OfficeLength.Points(30));
             text.Color = "FFFFFF";
-            text.FontSize = 12;
+            text.FontSize = global::OfficeIMO.OfficeLength.Points(12);
 
             PowerPointAccessibilityReport report = presentation.InspectAccessibility(
                 new PowerPointAccessibilityOptions {

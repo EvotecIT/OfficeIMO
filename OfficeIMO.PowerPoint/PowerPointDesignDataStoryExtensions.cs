@@ -114,15 +114,15 @@ namespace OfficeIMO.PowerPoint {
             chart.SetLegend(OfficeChartLegendPosition.Bottom);
             double railLeft = chartBounds.Right.ToCentimeters() + 0.7;
             double railWidth = body.Right.ToCentimeters() - railLeft;
-            PowerPointAutoShape rail = slide.AddRectangleCm(railLeft, body.Top.ToCentimeters(), railWidth, body.Height.ToCentimeters(),
+            PowerPointAutoShape rail = slide.AddRectangle(OfficeIMO.OfficeLength.Centimeters(railLeft), body.Top, OfficeIMO.OfficeLength.Centimeters(railWidth), body.Height,
                 "Chart Insight Rail");
             rail.FillColor = theme.SurfaceColor;
             rail.OutlineColor = theme.PanelBorderColor;
             double rowHeight = Math.Max(1.25, (body.Height.ToCentimeters() - 1.2) / Math.Max(1, content.Insights.Count));
             for (int index = 0; index < content.Insights.Count; index++) {
                 string accent = GetAccent(theme, index);
-                slide.AddRectangleCm(railLeft + 0.35, body.Top.ToCentimeters() + 0.45 + index * rowHeight, 0.12,
-                    rowHeight - 0.35, "Insight Accent " + (index + 1)).FillColor = accent;
+                slide.AddRectangle(OfficeIMO.OfficeLength.Centimeters(railLeft + 0.35), OfficeIMO.OfficeLength.Centimeters(body.Top.ToCentimeters() + 0.45 + index * rowHeight), OfficeIMO.OfficeLength.Centimeters(0.12),
+                    OfficeIMO.OfficeLength.Centimeters(rowHeight - 0.35), "Insight Accent " + (index + 1)).FillColor = accent;
                 AddText(slide, content.Insights[index], railLeft + 0.65,
                     body.Top.ToCentimeters() + 0.45 + index * rowHeight, railWidth - 1.0, rowHeight - 0.25, 11,
                     theme.PrimaryTextColor, theme.BodyFontName, bold: index == 0);
@@ -186,8 +186,8 @@ namespace OfficeIMO.PowerPoint {
             PowerPointLayoutBox table = new PowerPointLayoutBox(OfficeIMO.OfficeLength.Emus(columns[0].Left.ToEmus()),OfficeIMO.OfficeLength.Emus(columns[0].Top.ToEmus()),                OfficeIMO.OfficeLength.Emus((long)(body.Width.ToEmus() * 0.72)),OfficeIMO.OfficeLength.Emus(columns[0].Height.ToEmus()));
             AddNativeTable(slide, data, table, theme);
             double notesLeft = table.Right.ToCentimeters() + 0.7;
-            PowerPointAutoShape rail = slide.AddRectangleCm(notesLeft, body.Top.ToCentimeters(), body.Right.ToCentimeters() - notesLeft,
-                body.Height.ToCentimeters(), "Appendix Notes Rail");
+            PowerPointAutoShape rail = slide.AddRectangle(OfficeIMO.OfficeLength.Centimeters(notesLeft), body.Top, OfficeIMO.OfficeLength.Centimeters(body.Right.ToCentimeters() - notesLeft),
+                body.Height, "Appendix Notes Rail");
             rail.FillColor = theme.SurfaceColor;
             rail.OutlineColor = theme.PanelBorderColor;
             AddText(slide, "Notes", notesLeft + 0.45, body.Top.ToCentimeters() + 0.4, body.Right.ToCentimeters() - notesLeft - 0.9,

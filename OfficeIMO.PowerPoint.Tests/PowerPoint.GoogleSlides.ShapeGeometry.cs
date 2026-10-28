@@ -10,7 +10,7 @@ public sealed partial class GoogleSlidesTests {
         public void BatchCompiler_PreservesTextBearingPresetGeometry() {
             using PowerPointDocument presentation = PowerPointDocument.Create();
             PowerPointSlide slide = presentation.AddSlide();
-            slide.AddTextShapePoints(OfficePresetShapeType.RightArrow, "Next step", 20, 30, 180, 60);
+            slide.AddTextShape(OfficePresetShapeType.RightArrow, "Next step", OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(30), OfficeIMO.OfficeLength.Points(180), OfficeIMO.OfficeLength.Points(60));
             slide.AddTextBox("Plain text",global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(110),global::OfficeIMO.OfficeLength.Points(180),global::OfficeIMO.OfficeLength.Points(60));
 
             using MemoryStream saved = new System.IO.MemoryStream(presentation.ToBytes());

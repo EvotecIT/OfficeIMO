@@ -87,7 +87,7 @@ namespace OfficeIMO.Tests {
             PowerPointSlide first = presentation.AddSlide();
             first.AddTitle("Binary interoperability " + marker);
             first.AddTextBox("OfficeIMO generated " + marker,                global::OfficeIMO.OfficeLength.Emus(800000),global::OfficeIMO.OfficeLength.Emus(1700000),global::OfficeIMO.OfficeLength.Emus(4200000),global::OfficeIMO.OfficeLength.Emus(700000));
-            first.AddRectangle(800000, 2800000, 2200000, 900000,
+            first.AddRectangle(OfficeIMO.OfficeLength.Emus(800000), OfficeIMO.OfficeLength.Emus(2800000), OfficeIMO.OfficeLength.Emus(2200000), OfficeIMO.OfficeLength.Emus(900000),
                     "Interop rectangle")
                 .Fill("D9EAF7")
                 .Stroke("2563EB", 1.5D);

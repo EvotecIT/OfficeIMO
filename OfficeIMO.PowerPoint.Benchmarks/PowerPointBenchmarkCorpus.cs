@@ -51,19 +51,19 @@ internal static class PowerPointBenchmarkCorpus {
 
         PowerPointTextBox title = slide.AddTextBox(
             $"Operational review {index + 1}",global::OfficeIMO.OfficeLength.Points(40),global::OfficeIMO.OfficeLength.Points(24),global::OfficeIMO.OfficeLength.Points(600),global::OfficeIMO.OfficeLength.Points(40));
-        title.FontSize = 24;
+        title.FontSize = global::OfficeIMO.OfficeLength.Points(24);
         title.Bold = true;
         title.Color = "0F172A";
 
         PowerPointTextBox subtitle = slide.AddTextBox(
             $"Slide {index + 1} of {slideCount} · deterministic benchmark corpus",            global::OfficeIMO.OfficeLength.Points(40),global::OfficeIMO.OfficeLength.Points(72),global::OfficeIMO.OfficeLength.Points(700),global::OfficeIMO.OfficeLength.Points(28));
-        subtitle.FontSize = 12;
+        subtitle.FontSize = global::OfficeIMO.OfficeLength.Points(12);
         subtitle.Color = "475569";
 
         string[] colors = { "DBEAFE", "DCFCE7", "FEF3C7", "FCE7F3" };
         for (int card = 0; card < 4; card++) {
-            PowerPointAutoShape panel = slide.AddRectanglePoints(
-                40 + card * 220, 120, 190, 72, $"Metric {card + 1}");
+            PowerPointAutoShape panel = slide.AddRectangle(
+                OfficeIMO.OfficeLength.Points(40 + card * 220), OfficeIMO.OfficeLength.Points(120), OfficeIMO.OfficeLength.Points(190), OfficeIMO.OfficeLength.Points(72), $"Metric {card + 1}");
             panel.FillColor = colors[(card + index) % colors.Length];
             panel.OutlineColor = "CBD5E1";
             panel.OutlineWidthPoints = 1;
@@ -76,13 +76,13 @@ internal static class PowerPointBenchmarkCorpus {
         else {
             PowerPointTextBox narrative = slide.AddTextBox(
                 "Measured work includes editable text, vector shapes, package serialization, and rendering.",                global::OfficeIMO.OfficeLength.Points(390),global::OfficeIMO.OfficeLength.Points(238),global::OfficeIMO.OfficeLength.Points(500),global::OfficeIMO.OfficeLength.Points(110));
-            narrative.FontSize = 18;
+            narrative.FontSize = global::OfficeIMO.OfficeLength.Points(18);
             narrative.Color = "1E293B";
         }
 
         PowerPointTextBox footer = slide.AddTextBox(
             "OfficeIMO.PowerPoint performance corpus",global::OfficeIMO.OfficeLength.Points(40),global::OfficeIMO.OfficeLength.Points(500),global::OfficeIMO.OfficeLength.Points(420),global::OfficeIMO.OfficeLength.Points(20));
-        footer.FontSize = 9;
+        footer.FontSize = global::OfficeIMO.OfficeLength.Points(9);
         footer.Color = "64748B";
     }
 
@@ -108,13 +108,13 @@ internal static class PowerPointBenchmarkCorpus {
 
     private static void AddDetailPanels(PowerPointSlide slide, int index) {
         for (int row = 0; row < 3; row++) {
-            PowerPointAutoShape panel = slide.AddRectanglePoints(
-                40, 224 + row * 72, 300, 54, $"Detail {row + 1}");
+            PowerPointAutoShape panel = slide.AddRectangle(
+                OfficeIMO.OfficeLength.Points(40), OfficeIMO.OfficeLength.Points(224 + row * 72), OfficeIMO.OfficeLength.Points(300), OfficeIMO.OfficeLength.Points(54), $"Detail {row + 1}");
             panel.FillColor = row % 2 == 0 ? "FFFFFF" : "F8FAFC";
             panel.OutlineColor = "CBD5E1";
             PowerPointTextBox value = slide.AddTextBox(
                 $"Workstream {row + 1}: checkpoint {index + row + 1}",                global::OfficeIMO.OfficeLength.Points(56),global::OfficeIMO.OfficeLength.Points(239 + row * 72),global::OfficeIMO.OfficeLength.Points(260),global::OfficeIMO.OfficeLength.Points(24));
-            value.FontSize = 12;
+            value.FontSize = global::OfficeIMO.OfficeLength.Points(12);
             value.Color = "334155";
         }
     }

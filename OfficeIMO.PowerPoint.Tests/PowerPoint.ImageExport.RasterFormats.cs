@@ -80,10 +80,10 @@ namespace OfficeIMO.Tests {
                 video,
                 "video/mp4",
                 ".mp4",
-                PowerPointUnits.FromPoints(20),
-                PowerPointUnits.FromPoints(20),
-                PowerPointUnits.FromPoints(80),
-                PowerPointUnits.FromPoints(45));
+                OfficeIMO.OfficeLength.Points(20),
+                OfficeIMO.OfficeLength.Points(20),
+                OfficeIMO.OfficeLength.Points(80),
+                OfficeIMO.OfficeLength.Points(45));
 
             OfficeImageExportResult png = slide.ExportImage(OfficeImageExportFormat.Png);
             OfficeImageExportResult svg = slide.ExportImage(OfficeImageExportFormat.Svg);

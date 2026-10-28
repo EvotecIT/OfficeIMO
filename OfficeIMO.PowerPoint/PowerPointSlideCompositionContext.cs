@@ -238,8 +238,8 @@ namespace OfficeIMO.PowerPoint {
                     return;
                 }
 
-                PowerPointAutoShape band = _slide.AddRectangleCm(bounds.Left.ToCentimeters(), bounds.Top.ToCentimeters(), bounds.Width.ToCentimeters(),
-                    bounds.Height.ToCentimeters(), "Composer Metric Band");
+                PowerPointAutoShape band = _slide.AddRectangle(bounds.Left, bounds.Top, bounds.Width,
+                    bounds.Height, "Composer Metric Band");
                 band.FillColor = _dark ? _theme.AccentColor : _theme.AccentColor;
                 band.FillTransparency = _dark ? 55 : 0;
                 band.OutlineColor = _dark ? _theme.AccentLightColor : _theme.AccentColor;
@@ -291,15 +291,15 @@ namespace OfficeIMO.PowerPoint {
                 }
 
                 string accent = accentColor ?? _theme.AccentColor;
-                PowerPointAutoShape band = _slide.AddRectangleCm(bounds.Left.ToCentimeters(), bounds.Top.ToCentimeters(), bounds.Width.ToCentimeters(),
-                    bounds.Height.ToCentimeters(), "Composer Callout Band");
+                PowerPointAutoShape band = _slide.AddRectangle(bounds.Left, bounds.Top, bounds.Width,
+                    bounds.Height, "Composer Callout Band");
                 band.FillColor = _dark ? _theme.AccentColor : _theme.PanelColor;
                 band.FillTransparency = _dark ? 60 : 0;
                 band.OutlineColor = _dark ? _theme.AccentLightColor : _theme.PanelBorderColor;
                 band.OutlineWidthPoints = 0.45;
                 band.SetShadow("000000", blurPoints: 3, distancePoints: 0.8, angleDegrees: 90, transparencyPercent: 90);
 
-                PowerPointAutoShape rule = _slide.AddRectangleCm(bounds.Left.ToCentimeters(), bounds.Top.ToCentimeters(), 0.13, bounds.Height.ToCentimeters(),
+                PowerPointAutoShape rule = _slide.AddRectangle(bounds.Left, bounds.Top, OfficeIMO.OfficeLength.Centimeters(0.13), bounds.Height,
                     "Composer Callout Accent");
                 rule.FillColor = accent;
                 rule.OutlineColor = accent;
@@ -446,7 +446,7 @@ namespace OfficeIMO.PowerPoint {
             for (int i = 0; i < count; i++) {
                 PowerPointLayoutBox box = boxes[i];
                 string accent = GetComposerAccent(i);
-                PowerPointAutoShape tile = _slide.AddRectangleCm(box.Left.ToCentimeters(), box.Top.ToCentimeters(), box.Width.ToCentimeters(), box.Height.ToCentimeters(),
+                PowerPointAutoShape tile = _slide.AddRectangle(box.Left, box.Top, box.Width, box.Height,
                     "Composer Metric Tile " + (i + 1));
                 tile.FillColor = accent;
                 tile.FillTransparency = _dark ? 55 : 8;
@@ -478,9 +478,9 @@ namespace OfficeIMO.PowerPoint {
                 CenterComposerText(value);
 
                 double underlineWidth = Math.Min(box.Width.ToCentimeters() * 0.46, 1.4);
-                PowerPointAutoShape underline = _slide.AddRectangleCm(
-                    box.Left.ToCentimeters() + (box.Width.ToCentimeters() - underlineWidth) / 2,
-                    box.Top.ToCentimeters() + box.Height.ToCentimeters() * 0.54, underlineWidth, 0.05,
+                PowerPointAutoShape underline = _slide.AddRectangle(
+                    OfficeIMO.OfficeLength.Centimeters(box.Left.ToCentimeters() + (box.Width.ToCentimeters() - underlineWidth) / 2),
+                    OfficeIMO.OfficeLength.Centimeters(box.Top.ToCentimeters() + box.Height.ToCentimeters() * 0.54), OfficeIMO.OfficeLength.Centimeters(underlineWidth), OfficeIMO.OfficeLength.Centimeters(0.05),
                     "Composer Metric Underline " + (i + 1));
                 underline.FillColor = GetComposerAccent(i);
                 underline.OutlineColor = underline.FillColor;

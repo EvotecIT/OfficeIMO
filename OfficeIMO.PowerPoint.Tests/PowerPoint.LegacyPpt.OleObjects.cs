@@ -25,7 +25,7 @@ namespace OfficeIMO.Tests {
                 using var storage = new MemoryStream(storageBytes,
                     writable: false);
                 PowerPointOleObject ole = slide.AddOleObject(storage,
-                    "Package", 12700L, 25400L, 2743200L, 1828800L);
+                    "Package", OfficeIMO.OfficeLength.Emus(12700L), OfficeIMO.OfficeLength.Emus(25400L), OfficeIMO.OfficeLength.Emus(2743200L), OfficeIMO.OfficeLength.Emus(1828800L));
                 ole.ShowAsIcon = true;
                 ole.FollowColorScheme =
                     PowerPointOleFollowColorScheme.TextAndBackground;
@@ -103,7 +103,7 @@ namespace OfficeIMO.Tests {
                 using var storage = new MemoryStream(storageBytes,
                     writable: false);
                 PowerPointOleObject ole = slide.AddOleObject(storage,
-                    "Package", 12700L, 25400L, 2743200L, 1828800L);
+                    "Package", OfficeIMO.OfficeLength.Emus(12700L), OfficeIMO.OfficeLength.Emus(25400L), OfficeIMO.OfficeLength.Emus(2743200L), OfficeIMO.OfficeLength.Emus(1828800L));
                 ImagePart imagePart = slide.SlidePart.AddImagePart(
                     DocumentFormat.OpenXml.Packaging.ImagePartType.Png);
                 using (var image = new MemoryStream(imageBytes,
@@ -241,7 +241,7 @@ namespace OfficeIMO.Tests {
                 Embed = slide.SlidePart.GetIdOfPart(imagePart)
             }, new A.Stretch(new A.FillRectangle()));
             PowerPointAutoShape marker = slide.AddRectangle(
-                1200000, 100000, 600000, 600000);
+                OfficeIMO.OfficeLength.Emus(1200000), OfficeIMO.OfficeLength.Emus(100000), OfficeIMO.OfficeLength.Emus(600000), OfficeIMO.OfficeLength.Emus(600000));
             PowerPointGroupShape group = slide.GroupShapes(
                 new PowerPointShape[] { ole, marker }, "Removed group");
             slide.AddClassicAnimation(marker,
@@ -310,7 +310,7 @@ namespace OfficeIMO.Tests {
                 using var storage = new MemoryStream(originalStorage,
                     writable: false);
                 PowerPointOleObject ole = slide.AddOleObject(storage,
-                    "Package", 12700L, 25400L, 2743200L, 1828800L);
+                    "Package", OfficeIMO.OfficeLength.Emus(12700L), OfficeIMO.OfficeLength.Emus(25400L), OfficeIMO.OfficeLength.Emus(2743200L), OfficeIMO.OfficeLength.Emus(1828800L));
                 sourceBytes = created.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
             LegacyPptDocument source = LegacyPptDocument.Load(

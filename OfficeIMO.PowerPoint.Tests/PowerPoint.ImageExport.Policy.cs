@@ -11,8 +11,8 @@ namespace OfficeIMO.Tests {
         public void PowerPointSlide_StrictOmissionPolicyRejectsSkippedGroupContent() {
             using PowerPointDocument presentation = PowerPointDocument.Create();
             PowerPointSlide slide = presentation.AddSlide();
-            PowerPointAutoShape first = slide.AddRectanglePoints(10, 10, 20, 20);
-            PowerPointAutoShape second = slide.AddRectanglePoints(40, 10, 20, 20);
+            PowerPointAutoShape first = slide.AddRectangle(OfficeIMO.OfficeLength.Points(10), OfficeIMO.OfficeLength.Points(10), OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(20));
+            PowerPointAutoShape second = slide.AddRectangle(OfficeIMO.OfficeLength.Points(40), OfficeIMO.OfficeLength.Points(10), OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(20));
             slide.GroupShapes(new PowerPointShape[] { first, second }, "Omitted group");
 
             OfficeImageExportPolicyException exception = Assert.Throws<OfficeImageExportPolicyException>(() =>

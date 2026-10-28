@@ -130,12 +130,12 @@ internal sealed partial class OfficeMarkupPowerPointExporter {
         var top = Math.Max(metrics.Vertical(0.18), box.Top - metrics.Vertical(padding));
         var right = Math.Min(metrics.Width - metrics.Horizontal(0.18), box.Left + box.Width + metrics.Horizontal(padding));
         var bottom = Math.Min(metrics.Height - metrics.Vertical(0.18), box.Top + box.Height + metrics.Vertical(padding));
-        var panel = slide.AddShapeInches(
+        var panel = slide.AddShape(
             OfficePresetShapeType.Rectangle,
-            left,
-            top,
-            Math.Max(0.5, right - left),
-            Math.Max(0.5, bottom - top),
+            OfficeIMO.OfficeLength.Inches(left),
+            OfficeIMO.OfficeLength.Inches(top),
+            OfficeIMO.OfficeLength.Inches(Math.Max(0.5, right - left)),
+            OfficeIMO.OfficeLength.Inches(Math.Max(0.5, bottom - top)),
             name);
         panel.FillColor = "FFFFFF";
         panel.FillTransparency = 4;

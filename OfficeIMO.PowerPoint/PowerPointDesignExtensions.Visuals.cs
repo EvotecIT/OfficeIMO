@@ -50,7 +50,7 @@ namespace OfficeIMO.PowerPoint {
         internal static void AddVisualFrame(PowerPointSlide slide, PowerPointDesignTheme theme, string? imagePath,
             double leftCm, double topCm, double widthCm, double heightCm, PowerPointVisualFrameVariant variant,
             PowerPointDesignIntent? intent = null) {
-            PowerPointAutoShape frame = slide.AddRectangleCm(leftCm, topCm, widthCm, heightCm, "Case Study Visual Frame");
+            PowerPointAutoShape frame = slide.AddRectangle(OfficeIMO.OfficeLength.Centimeters(leftCm), OfficeIMO.OfficeLength.Centimeters(topCm), OfficeIMO.OfficeLength.Centimeters(widthCm), OfficeIMO.OfficeLength.Centimeters(heightCm), "Case Study Visual Frame");
             frame.FillColor = theme.AccentDarkColor;
             frame.OutlineColor = theme.AccentDarkColor;
             frame.OutlineWidthPoints = 0;
@@ -91,7 +91,7 @@ namespace OfficeIMO.PowerPoint {
         private static void AddVisualPlaceholder(PowerPointSlide slide, PowerPointDesignTheme theme,
             double leftCm, double topCm, double widthCm, double heightCm, PowerPointVisualFrameVariant variant,
             PowerPointDesignIntent? intent) {
-            PowerPointAutoShape surface = slide.AddRectangleCm(leftCm, topCm, widthCm, heightCm,
+            PowerPointAutoShape surface = slide.AddRectangle(OfficeIMO.OfficeLength.Centimeters(leftCm), OfficeIMO.OfficeLength.Centimeters(topCm), OfficeIMO.OfficeLength.Centimeters(widthCm), OfficeIMO.OfficeLength.Centimeters(heightCm),
                 "Case Study Visual Surface");
             surface.FillColor = theme.AccentDarkColor;
             surface.OutlineColor = theme.AccentDarkColor;
@@ -119,8 +119,8 @@ namespace OfficeIMO.PowerPoint {
 
         private static void AddVisualDashboardPlaceholder(PowerPointSlide slide, PowerPointDesignTheme theme,
             double leftCm, double topCm, double widthCm, double heightCm) {
-            PowerPointAutoShape glow = slide.AddShapeCm(OfficePresetShapeType.Parallelogram, leftCm + widthCm * 0.08,
-                topCm, widthCm * 0.42, heightCm, "Case Study Visual Wash");
+            PowerPointAutoShape glow = slide.AddShape(OfficePresetShapeType.Parallelogram, OfficeIMO.OfficeLength.Centimeters(leftCm + widthCm * 0.08),
+                OfficeIMO.OfficeLength.Centimeters(topCm), OfficeIMO.OfficeLength.Centimeters(widthCm * 0.42), OfficeIMO.OfficeLength.Centimeters(heightCm), "Case Study Visual Wash");
             glow.FillColor = theme.Accent2Color;
             glow.FillTransparency = 68;
             glow.OutlineColor = theme.Accent2Color;
@@ -129,39 +129,39 @@ namespace OfficeIMO.PowerPoint {
             double panelLeft = leftCm + widthCm * 0.17;
             double panelWidth = widthCm * 0.66;
             double panelHeight = heightCm * 0.42;
-            PowerPointAutoShape panel = slide.AddRectangleCm(panelLeft, panelTop, panelWidth, panelHeight,
+            PowerPointAutoShape panel = slide.AddRectangle(OfficeIMO.OfficeLength.Centimeters(panelLeft), OfficeIMO.OfficeLength.Centimeters(panelTop), OfficeIMO.OfficeLength.Centimeters(panelWidth), OfficeIMO.OfficeLength.Centimeters(panelHeight),
                 "Case Study Visual Content Panel");
             panel.FillColor = theme.AccentColor;
             panel.FillTransparency = 35;
             panel.OutlineColor = theme.AccentColor;
             panel.OutlineWidthPoints = 0;
 
-            PowerPointAutoShape imageBlock = slide.AddRectangleCm(panelLeft + panelWidth * 0.08, panelTop + panelHeight * 0.18,
-                panelWidth * 0.34, panelHeight * 0.56, "Case Study Visual Image Block");
+            PowerPointAutoShape imageBlock = slide.AddRectangle(OfficeIMO.OfficeLength.Centimeters(panelLeft + panelWidth * 0.08), OfficeIMO.OfficeLength.Centimeters(panelTop + panelHeight * 0.18),
+                OfficeIMO.OfficeLength.Centimeters(panelWidth * 0.34), OfficeIMO.OfficeLength.Centimeters(panelHeight * 0.56), "Case Study Visual Image Block");
             imageBlock.FillColor = theme.AccentLightColor;
             imageBlock.FillTransparency = 10;
             imageBlock.OutlineColor = theme.AccentLightColor;
 
             for (int i = 0; i < 3; i++) {
                 double barWidth = panelWidth * (i == 0 ? 0.36 : 0.28);
-                PowerPointAutoShape bar = slide.AddRectangleCm(panelLeft + panelWidth * 0.49,
-                    panelTop + panelHeight * (0.23 + i * 0.18), barWidth, 0.045,
+                PowerPointAutoShape bar = slide.AddRectangle(OfficeIMO.OfficeLength.Centimeters(panelLeft + panelWidth * 0.49),
+                    OfficeIMO.OfficeLength.Centimeters(panelTop + panelHeight * (0.23 + i * 0.18)), OfficeIMO.OfficeLength.Centimeters(barWidth), OfficeIMO.OfficeLength.Centimeters(0.045),
                     "Case Study Visual Line " + (i + 1));
                 bar.FillColor = theme.AccentLightColor;
                 bar.FillTransparency = i == 0 ? 5 : 35;
                 bar.OutlineColor = theme.AccentLightColor;
             }
 
-            PowerPointAutoShape baseLine = slide.AddLineCm(leftCm + widthCm * 0.18, topCm + heightCm * 0.84,
-                leftCm + widthCm * 0.82, topCm + heightCm * 0.84, "Case Study Visual Base Line");
+            PowerPointAutoShape baseLine = slide.AddLine(OfficeIMO.OfficeLength.Centimeters(leftCm + widthCm * 0.18), OfficeIMO.OfficeLength.Centimeters(topCm + heightCm * 0.84),
+                OfficeIMO.OfficeLength.Centimeters(leftCm + widthCm * 0.82), OfficeIMO.OfficeLength.Centimeters(topCm + heightCm * 0.84), "Case Study Visual Base Line");
             baseLine.OutlineColor = theme.AccentLightColor;
             baseLine.OutlineWidthPoints = 0.9;
         }
 
         private static void AddVisualCollagePlaceholder(PowerPointSlide slide, PowerPointDesignTheme theme,
             double leftCm, double topCm, double widthCm, double heightCm) {
-            PowerPointAutoShape wash = slide.AddShapeCm(OfficePresetShapeType.Parallelogram, leftCm + widthCm * 0.58,
-                topCm, widthCm * 0.24, heightCm, "Visual Collage Wash");
+            PowerPointAutoShape wash = slide.AddShape(OfficePresetShapeType.Parallelogram, OfficeIMO.OfficeLength.Centimeters(leftCm + widthCm * 0.58),
+                OfficeIMO.OfficeLength.Centimeters(topCm), OfficeIMO.OfficeLength.Centimeters(widthCm * 0.24), OfficeIMO.OfficeLength.Centimeters(heightCm), "Visual Collage Wash");
             wash.FillColor = theme.Accent2Color;
             wash.FillTransparency = 62;
             wash.OutlineColor = theme.Accent2Color;
@@ -175,8 +175,8 @@ namespace OfficeIMO.PowerPoint {
 
             for (int i = 0; i < 3; i++) {
                 double dot = 0.18 - i * 0.025;
-                PowerPointAutoShape node = slide.AddEllipseCm(leftCm + widthCm * (0.24 + i * 0.19),
-                    topCm + heightCm * (0.77 - i * 0.08), dot, dot, "Visual Collage Marker " + (i + 1));
+                PowerPointAutoShape node = slide.AddEllipse(OfficeIMO.OfficeLength.Centimeters(leftCm + widthCm * (0.24 + i * 0.19)),
+                    OfficeIMO.OfficeLength.Centimeters(topCm + heightCm * (0.77 - i * 0.08)), OfficeIMO.OfficeLength.Centimeters(dot), OfficeIMO.OfficeLength.Centimeters(dot), "Visual Collage Marker " + (i + 1));
                 node.FillColor = GetAccent(theme, i);
                 node.OutlineColor = theme.AccentLightColor;
                 node.OutlineWidthPoints = 0.55;
@@ -185,8 +185,8 @@ namespace OfficeIMO.PowerPoint {
 
         private static void AddVisualDiagramPlaceholder(PowerPointSlide slide, PowerPointDesignTheme theme,
             double leftCm, double topCm, double widthCm, double heightCm) {
-            PowerPointAutoShape rail = slide.AddRectangleCm(leftCm + widthCm * 0.12, topCm + heightCm * 0.49,
-                widthCm * 0.76, 0.045, "Visual Diagram Rail");
+            PowerPointAutoShape rail = slide.AddRectangle(OfficeIMO.OfficeLength.Centimeters(leftCm + widthCm * 0.12), OfficeIMO.OfficeLength.Centimeters(topCm + heightCm * 0.49),
+                OfficeIMO.OfficeLength.Centimeters(widthCm * 0.76), OfficeIMO.OfficeLength.Centimeters(0.045), "Visual Diagram Rail");
             rail.FillColor = theme.AccentLightColor;
             rail.FillTransparency = 15;
             rail.OutlineColor = theme.AccentLightColor;
@@ -194,21 +194,21 @@ namespace OfficeIMO.PowerPoint {
             for (int i = 0; i < 4; i++) {
                 double cx = leftCm + widthCm * (0.16 + i * 0.22);
                 double cy = topCm + heightCm * (i % 2 == 0 ? 0.35 : 0.61);
-                PowerPointAutoShape node = slide.AddEllipseCm(cx, cy, 0.58, 0.58, "Visual Diagram Node " + (i + 1));
+                PowerPointAutoShape node = slide.AddEllipse(OfficeIMO.OfficeLength.Centimeters(cx), OfficeIMO.OfficeLength.Centimeters(cy), OfficeIMO.OfficeLength.Centimeters(0.58), OfficeIMO.OfficeLength.Centimeters(0.58), "Visual Diagram Node " + (i + 1));
                 node.FillColor = GetAccent(theme, i);
                 node.FillTransparency = i == 0 ? 0 : 22;
                 node.OutlineColor = theme.AccentLightColor;
                 node.OutlineWidthPoints = 0.55;
 
-                PowerPointAutoShape label = slide.AddRectangleCm(cx + 0.78, cy + 0.22,
-                    widthCm * (i == 0 ? 0.22 : 0.16), 0.04, "Visual Diagram Label " + (i + 1));
+                PowerPointAutoShape label = slide.AddRectangle(OfficeIMO.OfficeLength.Centimeters(cx + 0.78), OfficeIMO.OfficeLength.Centimeters(cy + 0.22),
+                    OfficeIMO.OfficeLength.Centimeters(widthCm * (i == 0 ? 0.22 : 0.16)), OfficeIMO.OfficeLength.Centimeters(0.04), "Visual Diagram Label " + (i + 1));
                 label.FillColor = theme.AccentLightColor;
                 label.FillTransparency = i == 0 ? 0 : 35;
                 label.OutlineColor = theme.AccentLightColor;
             }
 
-            PowerPointAutoShape plate = slide.AddShapeCm(OfficePresetShapeType.Parallelogram, leftCm + widthCm * 0.20,
-                topCm + heightCm * 0.14, widthCm * 0.50, heightCm * 0.72, "Visual Diagram Plate");
+            PowerPointAutoShape plate = slide.AddShape(OfficePresetShapeType.Parallelogram, OfficeIMO.OfficeLength.Centimeters(leftCm + widthCm * 0.20),
+                OfficeIMO.OfficeLength.Centimeters(topCm + heightCm * 0.14), OfficeIMO.OfficeLength.Centimeters(widthCm * 0.50), OfficeIMO.OfficeLength.Centimeters(heightCm * 0.72), "Visual Diagram Plate");
             plate.FillColor = theme.AccentColor;
             plate.FillTransparency = 82;
             plate.OutlineColor = theme.AccentLightColor;
@@ -222,7 +222,7 @@ namespace OfficeIMO.PowerPoint {
             GetVisualDeviceContentBounds(leftCm, topCm, widthCm, heightCm, out double contentLeft,
                 out double contentTop, out double contentWidth, out double contentHeight);
 
-            PowerPointAutoShape hero = slide.AddRectangleCm(contentLeft, contentTop, contentWidth, contentHeight,
+            PowerPointAutoShape hero = slide.AddRectangle(OfficeIMO.OfficeLength.Centimeters(contentLeft), OfficeIMO.OfficeLength.Centimeters(contentTop), OfficeIMO.OfficeLength.Centimeters(contentWidth), OfficeIMO.OfficeLength.Centimeters(contentHeight),
                 "Visual Device Hero Area");
             hero.FillColor = theme.AccentColor;
             hero.FillTransparency = 34;
@@ -230,9 +230,9 @@ namespace OfficeIMO.PowerPoint {
             hero.OutlineWidthPoints = 0;
 
             for (int i = 0; i < 3; i++) {
-                PowerPointAutoShape bar = slide.AddRectangleCm(contentLeft + contentWidth * 0.09,
-                    contentTop + contentHeight * (0.22 + i * 0.18),
-                    contentWidth * (i == 0 ? 0.38 : 0.25), 0.06, "Visual Device Content Line " + (i + 1));
+                PowerPointAutoShape bar = slide.AddRectangle(OfficeIMO.OfficeLength.Centimeters(contentLeft + contentWidth * 0.09),
+                    OfficeIMO.OfficeLength.Centimeters(contentTop + contentHeight * (0.22 + i * 0.18)),
+                    OfficeIMO.OfficeLength.Centimeters(contentWidth * (i == 0 ? 0.38 : 0.25)), OfficeIMO.OfficeLength.Centimeters(0.06), "Visual Device Content Line " + (i + 1));
                 bar.FillColor = theme.AccentLightColor;
                 bar.FillTransparency = i == 0 ? 12 : 42;
                 bar.OutlineColor = theme.AccentLightColor;
@@ -240,8 +240,8 @@ namespace OfficeIMO.PowerPoint {
             }
 
             for (int i = 0; i < 3; i++) {
-                PowerPointAutoShape tile = slide.AddRectangleCm(contentLeft + contentWidth * (0.58 + i * 0.11),
-                    contentTop + contentHeight * 0.22, contentWidth * 0.08, contentHeight * 0.46,
+                PowerPointAutoShape tile = slide.AddRectangle(OfficeIMO.OfficeLength.Centimeters(contentLeft + contentWidth * (0.58 + i * 0.11)),
+                    OfficeIMO.OfficeLength.Centimeters(contentTop + contentHeight * 0.22), OfficeIMO.OfficeLength.Centimeters(contentWidth * 0.08), OfficeIMO.OfficeLength.Centimeters(contentHeight * 0.46),
                     "Visual Device Metric Tile " + (i + 1));
                 tile.FillColor = GetAccent(theme, i);
                 tile.FillTransparency = 18 + i * 10;
@@ -252,31 +252,31 @@ namespace OfficeIMO.PowerPoint {
 
         private static void AddVisualDeviceChrome(PowerPointSlide slide, PowerPointDesignTheme theme,
             double leftCm, double topCm, double widthCm, double heightCm) {
-            PowerPointAutoShape screen = slide.AddRectangleCm(leftCm + widthCm * 0.06, topCm + heightCm * 0.08,
-                widthCm * 0.88, heightCm * 0.76, "Visual Device Screen");
+            PowerPointAutoShape screen = slide.AddRectangle(OfficeIMO.OfficeLength.Centimeters(leftCm + widthCm * 0.06), OfficeIMO.OfficeLength.Centimeters(topCm + heightCm * 0.08),
+                OfficeIMO.OfficeLength.Centimeters(widthCm * 0.88), OfficeIMO.OfficeLength.Centimeters(heightCm * 0.76), "Visual Device Screen");
             screen.FillColor = theme.AccentDarkColor;
             screen.FillTransparency = 18;
             screen.OutlineColor = theme.AccentLightColor;
             screen.OutlineWidthPoints = 0.45;
 
-            PowerPointAutoShape topBar = slide.AddRectangleCm(leftCm + widthCm * 0.06, topCm + heightCm * 0.08,
-                widthCm * 0.88, 0.38, "Visual Device Chrome Bar");
+            PowerPointAutoShape topBar = slide.AddRectangle(OfficeIMO.OfficeLength.Centimeters(leftCm + widthCm * 0.06), OfficeIMO.OfficeLength.Centimeters(topCm + heightCm * 0.08),
+                OfficeIMO.OfficeLength.Centimeters(widthCm * 0.88), OfficeIMO.OfficeLength.Centimeters(0.38), "Visual Device Chrome Bar");
             topBar.FillColor = theme.AccentLightColor;
             topBar.FillTransparency = 8;
             topBar.OutlineColor = theme.AccentLightColor;
             topBar.OutlineWidthPoints = 0;
 
             for (int i = 0; i < 3; i++) {
-                PowerPointAutoShape dot = slide.AddEllipseCm(leftCm + widthCm * 0.10 + i * 0.18,
-                    topCm + heightCm * 0.08 + 0.12, 0.09, 0.09, "Visual Device Chrome Dot " + (i + 1));
+                PowerPointAutoShape dot = slide.AddEllipse(OfficeIMO.OfficeLength.Centimeters(leftCm + widthCm * 0.10 + i * 0.18),
+                    OfficeIMO.OfficeLength.Centimeters(topCm + heightCm * 0.08 + 0.12), OfficeIMO.OfficeLength.Centimeters(0.09), OfficeIMO.OfficeLength.Centimeters(0.09), "Visual Device Chrome Dot " + (i + 1));
                 dot.FillColor = GetAccent(theme, i);
                 dot.FillTransparency = i == 0 ? 0 : 18;
                 dot.OutlineColor = dot.FillColor;
                 dot.OutlineWidthPoints = 0;
             }
 
-            PowerPointAutoShape baseLine = slide.AddLineCm(leftCm + widthCm * 0.18, topCm + heightCm * 0.89,
-                leftCm + widthCm * 0.82, topCm + heightCm * 0.89, "Visual Device Base");
+            PowerPointAutoShape baseLine = slide.AddLine(OfficeIMO.OfficeLength.Centimeters(leftCm + widthCm * 0.18), OfficeIMO.OfficeLength.Centimeters(topCm + heightCm * 0.89),
+                OfficeIMO.OfficeLength.Centimeters(leftCm + widthCm * 0.82), OfficeIMO.OfficeLength.Centimeters(topCm + heightCm * 0.89), "Visual Device Base");
             baseLine.OutlineColor = theme.AccentLightColor;
             baseLine.OutlineWidthPoints = 1.1;
         }
@@ -309,8 +309,8 @@ namespace OfficeIMO.PowerPoint {
                 widthCm * 0.28, heightCm * 0.22, "Visual Proof Detail Panel 2", theme.AccentLightColor, 24);
 
             for (int i = 0; i < 3; i++) {
-                PowerPointAutoShape rule = slide.AddRectangleCm(leftCm + widthCm * 0.15,
-                    topCm + heightCm * (0.78 + i * 0.055), widthCm * (0.46 - i * 0.06), 0.045,
+                PowerPointAutoShape rule = slide.AddRectangle(OfficeIMO.OfficeLength.Centimeters(leftCm + widthCm * 0.15),
+                    OfficeIMO.OfficeLength.Centimeters(topCm + heightCm * (0.78 + i * 0.055)), OfficeIMO.OfficeLength.Centimeters(widthCm * (0.46 - i * 0.06)), OfficeIMO.OfficeLength.Centimeters(0.045),
                     "Visual Proof Caption Line " + (i + 1));
                 rule.FillColor = theme.AccentLightColor;
                 rule.FillTransparency = 18 + i * 18;
@@ -321,15 +321,15 @@ namespace OfficeIMO.PowerPoint {
 
         private static void AddVisualProofMat(PowerPointSlide slide, PowerPointDesignTheme theme,
             double leftCm, double topCm, double widthCm, double heightCm) {
-            PowerPointAutoShape mat = slide.AddRectangleCm(leftCm + widthCm * 0.05, topCm + heightCm * 0.08,
-                widthCm * 0.90, heightCm * 0.78, "Visual Proof Mat");
+            PowerPointAutoShape mat = slide.AddRectangle(OfficeIMO.OfficeLength.Centimeters(leftCm + widthCm * 0.05), OfficeIMO.OfficeLength.Centimeters(topCm + heightCm * 0.08),
+                OfficeIMO.OfficeLength.Centimeters(widthCm * 0.90), OfficeIMO.OfficeLength.Centimeters(heightCm * 0.78), "Visual Proof Mat");
             mat.FillColor = theme.AccentContrastColor;
             mat.FillTransparency = 8;
             mat.OutlineColor = theme.AccentLightColor;
             mat.OutlineWidthPoints = 0.4;
 
-            PowerPointAutoShape accent = slide.AddRectangleCm(leftCm + widthCm * 0.05, topCm + heightCm * 0.08,
-                widthCm * 0.90, 0.08, "Visual Proof Mat Accent");
+            PowerPointAutoShape accent = slide.AddRectangle(OfficeIMO.OfficeLength.Centimeters(leftCm + widthCm * 0.05), OfficeIMO.OfficeLength.Centimeters(topCm + heightCm * 0.08),
+                OfficeIMO.OfficeLength.Centimeters(widthCm * 0.90), OfficeIMO.OfficeLength.Centimeters(0.08), "Visual Proof Mat Accent");
             accent.FillColor = theme.Accent2Color;
             accent.OutlineColor = theme.Accent2Color;
             accent.OutlineWidthPoints = 0;
@@ -338,7 +338,7 @@ namespace OfficeIMO.PowerPoint {
         private static void AddVisualProofPanel(PowerPointSlide slide, PowerPointDesignTheme theme,
             double leftCm, double topCm, double widthCm, double heightCm, string name, string fillColor,
             int fillTransparency) {
-            PowerPointAutoShape panel = slide.AddRectangleCm(leftCm, topCm, widthCm, heightCm, name);
+            PowerPointAutoShape panel = slide.AddRectangle(OfficeIMO.OfficeLength.Centimeters(leftCm), OfficeIMO.OfficeLength.Centimeters(topCm), OfficeIMO.OfficeLength.Centimeters(widthCm), OfficeIMO.OfficeLength.Centimeters(heightCm), name);
             panel.FillColor = fillColor;
             panel.FillTransparency = fillTransparency;
             panel.OutlineColor = theme.PanelBorderColor;
@@ -348,7 +348,7 @@ namespace OfficeIMO.PowerPoint {
         private static void AddVisualTile(PowerPointSlide slide, PowerPointDesignTheme theme,
             double leftCm, double topCm, double widthCm, double heightCm, string name, string fillColor,
             int fillTransparency) {
-            PowerPointAutoShape tile = slide.AddShapeCm(OfficePresetShapeType.Parallelogram, leftCm, topCm, widthCm, heightCm, name);
+            PowerPointAutoShape tile = slide.AddShape(OfficePresetShapeType.Parallelogram, OfficeIMO.OfficeLength.Centimeters(leftCm), OfficeIMO.OfficeLength.Centimeters(topCm), OfficeIMO.OfficeLength.Centimeters(widthCm), OfficeIMO.OfficeLength.Centimeters(heightCm), name);
             tile.FillColor = fillColor;
             tile.FillTransparency = fillTransparency;
             tile.OutlineColor = theme.AccentLightColor;
@@ -402,7 +402,7 @@ namespace OfficeIMO.PowerPoint {
                 .SplitColumns(count,OfficeIMO.OfficeLength.Centimeters(0.28));
             for (int i = 0; i < count; i++) {
                 PowerPointLayoutBox box = boxes[i];
-                PowerPointAutoShape pill = slide.AddRectangleCm(box.Left.ToCentimeters(), box.Top.ToCentimeters(), box.Width.ToCentimeters(), box.Height.ToCentimeters(),
+                PowerPointAutoShape pill = slide.AddRectangle(box.Left, box.Top, box.Width, box.Height,
                     "Case Study Tag " + (i + 1));
                 pill.FillColor = i == count - 1 ? theme.Accent2Color : theme.AccentColor;
                 pill.FillTransparency = i == count - 1 ? 0 : 40;

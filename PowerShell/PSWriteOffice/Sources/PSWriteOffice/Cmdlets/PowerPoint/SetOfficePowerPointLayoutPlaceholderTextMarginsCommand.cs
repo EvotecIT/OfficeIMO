@@ -82,14 +82,14 @@ public sealed class SetOfficePowerPointLayoutPlaceholderTextMarginsCommand : PSC
         try
         {
             presentation = Presentation ?? PowerPointDslContext.Require(this).Document;
-            presentation.SetLayoutPlaceholderTextMarginsPoints(
+            presentation.SetLayoutPlaceholderTextMargins(
                 Master,
                 Layout,
                 PlaceholderType,
-                Left,
-                Top,
-                Right,
-                Bottom,
+                global::OfficeIMO.OfficeLength.Points(Left),
+                global::OfficeIMO.OfficeLength.Points(Top),
+                global::OfficeIMO.OfficeLength.Points(Right),
+                global::OfficeIMO.OfficeLength.Points(Bottom),
                 Index,
                 CreateIfMissing.IsPresent);
 

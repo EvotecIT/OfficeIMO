@@ -39,13 +39,13 @@ namespace OfficeIMO.Examples.PowerPoint {
             // Slide 1: title
             PowerPointSlide slide1 = presentation.AddSlide();
             PowerPointTextBox title = slide1.AddTitle("Advanced PowerPoint Example",titleBox);
-            title.FontSize = 30;
+            title.FontSize = global::OfficeIMO.OfficeLength.Points(30);
             title.Color = "1F4E79";
             PowerPointLayoutBox introBox = new OfficeIMO.PowerPoint.PowerPointLayoutBox(
                 OfficeIMO.OfficeLength.Centimeters(bodyBox.Left.ToCentimeters()),OfficeIMO.OfficeLength.Centimeters(bodyBox.Top.ToCentimeters()),OfficeIMO.OfficeLength.Centimeters(bodyBox.Width.ToCentimeters()),OfficeIMO.OfficeLength.Centimeters(1.1));
             PowerPointTextBox intro = slide1.AddTextBox(
                 "Shows layout, charts, tables, images, notes, and transitions.",                introBox);
-            intro.FontSize = 18;
+            intro.FontSize = global::OfficeIMO.OfficeLength.Points(18);
             intro.Color = "1F4E79";
             slide1.BackgroundColor = "F7F7F7";
             slide1.Transition = PowerPointSlideTransition.Fade;
@@ -56,12 +56,12 @@ namespace OfficeIMO.Examples.PowerPoint {
             slide2.Transition = PowerPointSlideTransition.PushLeft;
             PowerPointTextBox highlights = slide2.AddTextBox("This slide demonstrates:",leftColumn);
             highlights.TextAutoFit = PowerPointTextAutoFit.Normal;
-            highlights.SetTextMarginsCm(0.3, 0.2, 0.3, 0.2);
+            highlights.SetTextMargins(global::OfficeIMO.OfficeLength.Centimeters(0.3), global::OfficeIMO.OfficeLength.Centimeters(0.2), global::OfficeIMO.OfficeLength.Centimeters(0.3), global::OfficeIMO.OfficeLength.Centimeters(0.2));
             highlights.AddBullet("Positioned elements");
             highlights.AddBullet("Tables created from objects");
             highlights.AddBullet("Charts with real data");
             highlights.AddBullet("Notes and transitions");
-            highlights.ApplyAutoSpacing(lineSpacingMultiplier: 1.15, spaceAfterPoints: 2);
+            highlights.ApplyAutoSpacing(lineSpacingMultiplier: 1.15, spaceAfter: global::OfficeIMO.OfficeLength.Points(2));
 
             const double captionHeightCm = 1.0;
             const double captionGapCm = 0.4;
@@ -75,7 +75,7 @@ namespace OfficeIMO.Examples.PowerPoint {
             if (File.Exists(imagePath)) {
                 slide2.AddImage(imagePath,mediaBox);
                 PowerPointTextBox caption = slide2.AddTextBox("Illustration scaled to fit.",captionBox);
-                caption.FontSize = 12;
+                caption.FontSize = global::OfficeIMO.OfficeLength.Points(12);
                 caption.Color = "666666";
             } else {
                 PowerPointTextBox placeholder = slide2.AddTextBox("(image placeholder)",mediaBox);

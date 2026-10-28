@@ -185,7 +185,7 @@ public class HtmlRichGenericImports {
         Assert.True(bold.Bold);
         Assert.Equal("123456", bold.Color);
         Assert.Equal("Arial", bold.FontName);
-        Assert.Equal(15, bold.FontSize);
+        Assert.Equal(global::OfficeIMO.OfficeLength.Points(15), bold.FontSize);
         Assert.True(linked.Italic);
         Assert.Equal(new Uri("https://example.com/report"), linked.Hyperlink);
         Assert.True(list.Paragraphs[0].IsNumbered);

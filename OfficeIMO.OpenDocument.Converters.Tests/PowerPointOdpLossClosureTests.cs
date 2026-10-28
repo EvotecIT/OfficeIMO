@@ -60,7 +60,7 @@ public sealed class PowerPointOdpLossClosureTests {
     public void PlainNotesDrawingIsReportedBeforeStrictConversion() {
         using PowerPointDocument source = CreatePowerPoint();
         source.Slides[0].Notes.Text = "Speaker note";
-        source.Slides[0].AddRectangleCm(1, 1, 2, 1);
+        source.Slides[0].AddRectangle(OfficeIMO.OfficeLength.Centimeters(1), OfficeIMO.OfficeLength.Centimeters(1), OfficeIMO.OfficeLength.Centimeters(2), OfficeIMO.OfficeLength.Centimeters(1));
         var slidePart = source.OpenXmlDocument.PresentationPart!.SlideParts.Single();
         Shape drawing = slidePart.Slide!.Descendants<Shape>().Single();
         slidePart.NotesSlidePart!.NotesSlide!.CommonSlideData!.ShapeTree!

@@ -29,14 +29,14 @@ namespace OfficeIMO.Examples.PowerPoint {
                 introBox.AddBullet("Create slides in memory");
                 introBox.AddBullet("Save to persist content");
                 introBox.AddBullet("Reopen and append later");
-                introBox.ApplyAutoSpacing(lineSpacingMultiplier: 1.15, spaceAfterPoints: 2);
+                introBox.ApplyAutoSpacing(lineSpacingMultiplier: 1.15, spaceAfter: global::OfficeIMO.OfficeLength.Points(2));
 
                 PowerPointSlide step1 = presentation.AddSlide();
                 step1.AddTitle("Step 1: Create",titleBox);
                 PowerPointTextBox step1Box = step1.AddTextBox(
                     $"Created two slides in memory. Current count: {presentation.Slides.Count}",                    bodyBox);
                 step1Box.TextAutoFit = PowerPointTextAutoFit.Normal;
-                step1Box.SetTextMarginsCm(0.3, 0.2, 0.3, 0.2);
+                step1Box.SetTextMargins(global::OfficeIMO.OfficeLength.Centimeters(0.3), global::OfficeIMO.OfficeLength.Centimeters(0.2), global::OfficeIMO.OfficeLength.Centimeters(0.3), global::OfficeIMO.OfficeLength.Centimeters(0.2));
                 Console.WriteLine($"  After 2 slides: {presentation.Slides.Count} (expected: 2)");
 
                 presentation.Save();
@@ -57,7 +57,7 @@ namespace OfficeIMO.Examples.PowerPoint {
                     "Added a third slide after reopening the file.",                    bodyBox);
                 step2Box.AddBullet($"Total slides now: {presentation.Slides.Count}");
                 step2Box.AddBullet("Changes are persisted on Save()");
-                step2Box.ApplyAutoSpacing(lineSpacingMultiplier: 1.15, spaceAfterPoints: 2);
+                step2Box.ApplyAutoSpacing(lineSpacingMultiplier: 1.15, spaceAfter: global::OfficeIMO.OfficeLength.Points(2));
                 step2.Notes.Text = "Demonstrates lazy initialization and persistence.";
 
                 presentation.Save();

@@ -65,8 +65,8 @@ public sealed partial class IWorkBoundaryTests {
         result.Value.Save(saved); saved.Position = 0;
         using var reopened = PowerPointDocument.Load(saved);
         var box = Assert.Single(reopened.Slides[0].TextBoxes);
-        Assert.Equal(leftOnly ? 8 : 0, box.TextMarginLeftPoints);
-        Assert.Equal(0, box.TextMarginTopPoints);
+        Assert.Equal(leftOnly ? 8 : 0, box.TextMarginLeft?.ToPoints());
+        Assert.Equal(0, box.TextMarginTop?.ToPoints());
     }
 
     [Theory]
@@ -98,7 +98,7 @@ public sealed partial class IWorkBoundaryTests {
             && diagnostic.LossKind == global::OfficeIMO.OfficeConversionLossKind.Approximation);
         using var saved = new MemoryStream(); result.Value.Save(saved); saved.Position = 0;
         using var reopened = PowerPointDocument.Load(saved);
-        Assert.Equal(3.6, Assert.Single(reopened.Slides[0].TextBoxes).TextMarginLeftPoints);
+        Assert.Equal(3.6, Assert.Single(reopened.Slides[0].TextBoxes).TextMarginLeft?.ToPoints());
         Assert.Empty(reopened.ValidateDocument());
     }
 

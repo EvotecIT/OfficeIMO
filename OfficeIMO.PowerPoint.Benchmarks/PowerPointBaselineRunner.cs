@@ -174,7 +174,7 @@ internal static class PowerPointBaselineRunner {
             for (int index = 0; index < presentation.Slides.Count; index += 10) {
                 PowerPointTextBox edit = presentation.Slides[index].AddTextBox(
                     "Reviewed",global::OfficeIMO.OfficeLength.Points(760),global::OfficeIMO.OfficeLength.Points(486),global::OfficeIMO.OfficeLength.Points(140),global::OfficeIMO.OfficeLength.Points(22));
-                edit.FontSize = 9;
+                edit.FontSize = global::OfficeIMO.OfficeLength.Points(9);
                 edit.Color = "166534";
             }
             long afterEdit = GC.GetTotalAllocatedBytes(precise: true);

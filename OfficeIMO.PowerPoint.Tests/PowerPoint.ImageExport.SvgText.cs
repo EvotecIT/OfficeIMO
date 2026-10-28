@@ -23,12 +23,12 @@ public partial class PowerPointImageExportTests {
         slide.BackgroundColor = "FFF9E8";
 
         PowerPointTextBox title = slide.AddTextBox("Canonical slide",global::OfficeIMO.OfficeLength.Points(18),global::OfficeIMO.OfficeLength.Points(12),global::OfficeIMO.OfficeLength.Points(260),global::OfficeIMO.OfficeLength.Points(32));
-        title.FontSize = 18;
+        title.FontSize = global::OfficeIMO.OfficeLength.Points(18);
         A.Run run = title.Element.Descendants<A.Run>().First();
         A.RunProperties properties = run.RunProperties ??= new A.RunProperties();
         properties.RemoveAllChildren<A.SolidFill>();
         properties.InsertAt(new A.SolidFill(new A.SchemeColor { Val = A.SchemeColorValues.Accent2 }), 0);
-        title.Paragraphs[0].AddRun(" bold", run => { run.Bold = true; run.FontSize = 18; });
+        title.Paragraphs[0].AddRun(" bold", run => { run.Bold = true; run.FontSize = global::OfficeIMO.OfficeLength.Points(18); });
 
         PowerPointTable table = slide.AddTable(2,2,global::OfficeIMO.OfficeLength.Points(18),global::OfficeIMO.OfficeLength.Points(64),global::OfficeIMO.OfficeLength.Points(220),global::OfficeIMO.OfficeLength.Points(64));
         table.SetColumnWidths(global::OfficeIMO.OfficeLength.Points(110),global::OfficeIMO.OfficeLength.Points(110));
@@ -40,7 +40,7 @@ public partial class PowerPointImageExportTests {
         table.GetCell(0, 0).FillColor = "146C94";
         table.GetCell(0, 0).Color = "FFFFFF";
 
-        PowerPointAutoShape edge = slide.AddRectanglePoints(-12, 148, 60, 48);
+        PowerPointAutoShape edge = slide.AddRectangle(OfficeIMO.OfficeLength.Points(-12), OfficeIMO.OfficeLength.Points(148), OfficeIMO.OfficeLength.Points(60), OfficeIMO.OfficeLength.Points(48));
         edge.FillColor = "D7263D";
         edge.OutlineWidthPoints = 0;
 

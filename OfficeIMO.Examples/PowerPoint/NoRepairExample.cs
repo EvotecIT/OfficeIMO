@@ -33,26 +33,26 @@ namespace OfficeIMO.Examples.PowerPoint {
             PowerPointTextBox subtitle = cover.AddTextBox(
                 "Built with OfficeIMO.PowerPoint — pure Open XML, no manual fixes.",                global::OfficeIMO.OfficeLength.Centimeters(content.Left.ToCentimeters()),global::OfficeIMO.OfficeLength.Centimeters(content.Top.ToCentimeters() + 1.9),global::OfficeIMO.OfficeLength.Centimeters(content.Width.ToCentimeters()),global::OfficeIMO.OfficeLength.Centimeters(1.2));
             subtitle.ApplyTextStyle(PowerPointTextStyle.Body);
-            subtitle.SetTextMarginsCm(0.2, 0.1, 0.2, 0.1);
+            subtitle.SetTextMargins(global::OfficeIMO.OfficeLength.Centimeters(0.2), global::OfficeIMO.OfficeLength.Centimeters(0.1), global::OfficeIMO.OfficeLength.Centimeters(0.2), global::OfficeIMO.OfficeLength.Centimeters(0.1));
 
             // Slide 2: features + image
             PowerPointSlide features = presentation.AddSlide();
             features.AddTitle("What you can build",global::OfficeIMO.OfficeLength.Centimeters(content.Left.ToCentimeters()),global::OfficeIMO.OfficeLength.Centimeters(content.Top.ToCentimeters()),global::OfficeIMO.OfficeLength.Centimeters(content.Width.ToCentimeters()),global::OfficeIMO.OfficeLength.Centimeters(1.4));
             PowerPointTextBox bullets = features.AddTextBox(string.Empty,                global::OfficeIMO.OfficeLength.Centimeters(leftColumn.Left.ToCentimeters()),global::OfficeIMO.OfficeLength.Centimeters(leftColumn.Top.ToCentimeters()),global::OfficeIMO.OfficeLength.Centimeters(leftColumn.Width.ToCentimeters()),global::OfficeIMO.OfficeLength.Centimeters(leftColumn.Height.ToCentimeters()));
-            bullets.SetTextMarginsCm(0.3, 0.2, 0.3, 0.2);
+            bullets.SetTextMargins(global::OfficeIMO.OfficeLength.Centimeters(0.3), global::OfficeIMO.OfficeLength.Centimeters(0.2), global::OfficeIMO.OfficeLength.Centimeters(0.3), global::OfficeIMO.OfficeLength.Centimeters(0.2));
             bullets.AddBullets(new[] {
                 "Clean PPTX output without repair dialogs",
                 "Text boxes, shapes, images, tables, and charts",
                 "Typed helpers for layouts and measurements",
                 "Speaker notes and slide transitions"
             });
-            bullets.ApplyAutoSpacing(lineSpacingMultiplier: 1.15, spaceAfterPoints: 2);
+            bullets.ApplyAutoSpacing(lineSpacingMultiplier: 1.15, spaceAfter: global::OfficeIMO.OfficeLength.Points(2));
 
             if (File.Exists(imagePath)) {
                 features.AddImage(imagePath, rightColumn.Left, rightColumn.Top, rightColumn.Width, rightColumn.Height);
             } else {
                 PowerPointTextBox placeholder = features.AddTextBox("(image placeholder)",                    global::OfficeIMO.OfficeLength.Centimeters(rightColumn.Left.ToCentimeters()),global::OfficeIMO.OfficeLength.Centimeters(rightColumn.Top.ToCentimeters()),global::OfficeIMO.OfficeLength.Centimeters(rightColumn.Width.ToCentimeters()),global::OfficeIMO.OfficeLength.Centimeters(2.0));
-                placeholder.SetTextMarginsCm(0.2, 0.2, 0.2, 0.2);
+                placeholder.SetTextMargins(global::OfficeIMO.OfficeLength.Centimeters(0.2), global::OfficeIMO.OfficeLength.Centimeters(0.2), global::OfficeIMO.OfficeLength.Centimeters(0.2), global::OfficeIMO.OfficeLength.Centimeters(0.2));
             }
 
             // Slide 3: data snapshot
@@ -89,7 +89,7 @@ namespace OfficeIMO.Examples.PowerPoint {
             PowerPointTextBox notesBody = notesSlide.AddTextBox(
                 "This slide contains speaker notes that are not visible in the main view.",                global::OfficeIMO.OfficeLength.Centimeters(content.Left.ToCentimeters()),global::OfficeIMO.OfficeLength.Centimeters(content.Top.ToCentimeters() + 1.9),global::OfficeIMO.OfficeLength.Centimeters(content.Width.ToCentimeters()),global::OfficeIMO.OfficeLength.Centimeters(1.4));
             notesBody.ApplyTextStyle(PowerPointTextStyle.Body);
-            notesBody.SetTextMarginsCm(0.2, 0.2, 0.2, 0.2);
+            notesBody.SetTextMargins(global::OfficeIMO.OfficeLength.Centimeters(0.2), global::OfficeIMO.OfficeLength.Centimeters(0.2), global::OfficeIMO.OfficeLength.Centimeters(0.2), global::OfficeIMO.OfficeLength.Centimeters(0.2));
             notesSlide.Notes.Text = "Speaker notes live in the notes section of each slide.";
 
             presentation.Save();

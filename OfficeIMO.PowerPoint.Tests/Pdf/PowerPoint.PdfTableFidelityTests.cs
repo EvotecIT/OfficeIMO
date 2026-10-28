@@ -75,13 +75,13 @@ public sealed class PowerPointPdfTableFidelityTests {
         table.MergeCells(0, 0, 1, 0);
         var cell = table.GetCell(0, 0);
         cell.Text = "Alpha beta gamma delta epsilon zeta";
-        cell.FontSize = fontSize;
+        cell.FontSize = global::OfficeIMO.OfficeLength.Points(fontSize);
         cell.Bold = false;
         cell.Color = "FF0000";
-        cell.PaddingLeftPoints = 0;
-        cell.PaddingRightPoints = 9;
-        cell.PaddingTopPoints = 8;
-        cell.PaddingBottomPoints = 10;
+        cell.PaddingLeft = global::OfficeIMO.OfficeLength.Points(0);
+        cell.PaddingRight = global::OfficeIMO.OfficeLength.Points(9);
+        cell.PaddingTop = global::OfficeIMO.OfficeLength.Points(8);
+        cell.PaddingBottom = global::OfficeIMO.OfficeLength.Points(10);
         table.GetCell(0, 1).Text = "Header";
         table.GetCell(1, 1).Text = "Tail";
 
@@ -114,7 +114,7 @@ public sealed class PowerPointPdfTableFidelityTests {
         var cell = table.GetCell(0, 0);
         cell.Text = "Large";
         cell.Bold = true;
-        cell.FontSize = 28;
+        cell.FontSize = global::OfficeIMO.OfficeLength.Points(28);
         cell.Color = "FF0000";
         cell.AddRun(" regular");
         // AddRun copies the template for editing convenience; unspecify the
@@ -146,7 +146,7 @@ public sealed class PowerPointPdfTableFidelityTests {
         var cell = table.GetCell(0, 0);
         cell.Text = "First\nSecond\nTail";
         cell.FontName = "Helvetica";
-        cell.FontSize = 18;
+        cell.FontSize = global::OfficeIMO.OfficeLength.Points(18);
         if (onMaster) {
             // Legacy export wraps master frames without attaching them to a
             // consuming slide. Theme tokens must resolve through that part.

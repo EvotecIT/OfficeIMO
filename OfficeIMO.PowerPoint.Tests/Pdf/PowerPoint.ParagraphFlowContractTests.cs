@@ -23,13 +23,13 @@ public sealed class PowerPointParagraphFlowContractTests {
         var slide = presentation.AddSlide();
         if (table) {
             var cell = slide.AddTable(1,1,global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(240),global::OfficeIMO.OfficeLength.Points(60)).GetCell(0, 0);
-            cell.Text = "VISIBLE"; cell.FontName = "Helvetica"; cell.FontSize = 32;
+            cell.Text = "VISIBLE"; cell.FontName = "Helvetica"; cell.FontSize = global::OfficeIMO.OfficeLength.Points(32);
             cell.AddParagraph("");
             if (followingText) cell.AddParagraph("OVERFLOW");
         } else {
             var box = slide.AddTextBox("VISIBLE",global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(240),global::OfficeIMO.OfficeLength.Points(60));
-            box.FontName = "Helvetica"; box.FontSize = 32;
-            box.TextMarginLeftPoints = box.TextMarginRightPoints = box.TextMarginTopPoints = box.TextMarginBottomPoints = 0;
+            box.FontName = "Helvetica"; box.FontSize = global::OfficeIMO.OfficeLength.Points(32);
+            box.TextMarginLeft = box.TextMarginRight = box.TextMarginTop = box.TextMarginBottom = global::OfficeIMO.OfficeLength.Points(0);
             box.AddParagraph("");
             if (followingText) box.AddParagraph("OVERFLOW");
         }
@@ -54,8 +54,8 @@ public sealed class PowerPointParagraphFlowContractTests {
         using var presentation = PowerPointDocument.Create(new MemoryStream());
         presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(300),OfficeIMO.OfficeLength.Points(220));
         var box = presentation.AddSlide().AddTextBox("gypsy\nplaying\nquickly",global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(240),global::OfficeIMO.OfficeLength.Points(40));
-        box.FontSize = 24; box.FontName = "Helvetica";
-        box.TextMarginLeftPoints = box.TextMarginRightPoints = box.TextMarginTopPoints = box.TextMarginBottomPoints = 0;
+        box.FontSize = global::OfficeIMO.OfficeLength.Points(24); box.FontName = "Helvetica";
+        box.TextMarginLeft = box.TextMarginRight = box.TextMarginTop = box.TextMarginBottom = global::OfficeIMO.OfficeLength.Points(0);
         box.Paragraphs[0].LineSpacingMultiplier = 0.75D;
         box.Paragraphs[0].Runs[0].Bold = rich;
         byte[] bytes = presentation.ToPdf(new PowerPointPdfExportOptions {
@@ -84,12 +84,12 @@ public sealed class PowerPointParagraphFlowContractTests {
         PowerPointParagraph paragraph;
         if (table) {
             var cell = slide.AddTable(1,1,global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(240),global::OfficeIMO.OfficeLength.Points(160)).GetCell(0, 0);
-            cell.Text = "FIRST\nSECOND\nTHIRD"; cell.FontName = "Helvetica"; cell.FontSize = 12;
+            cell.Text = "FIRST\nSECOND\nTHIRD"; cell.FontName = "Helvetica"; cell.FontSize = global::OfficeIMO.OfficeLength.Points(12);
             paragraph = cell.Paragraphs[0];
             if (trailingParagraph) cell.AddParagraph("END");
         } else {
             var box = slide.AddTextBox("FIRST\nSECOND\nTHIRD",global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(240),global::OfficeIMO.OfficeLength.Points(160));
-            box.FontName = "Helvetica"; box.FontSize = 12;
+            box.FontName = "Helvetica"; box.FontSize = global::OfficeIMO.OfficeLength.Points(12);
             paragraph = box.Paragraphs[0];
             if (trailingParagraph) box.AddParagraph("END").Alignment = PowerPointTextAlignment.Right;
         }
@@ -115,7 +115,7 @@ public sealed class PowerPointParagraphFlowContractTests {
         presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(300),OfficeIMO.OfficeLength.Points(220));
         foreach (bool spacer in new[] { false, true }) {
             var box = presentation.AddSlide().AddTextBox("FIRST",global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(240),global::OfficeIMO.OfficeLength.Points(160));
-            box.FontName = "Helvetica"; box.FontSize = 12;
+            box.FontName = "Helvetica"; box.FontSize = global::OfficeIMO.OfficeLength.Points(12);
             if (spacer) {
                 var empty = box.AddParagraph("");
                 empty.Paragraph.Elements<A.Run>().Single().RunProperties = new A.RunProperties();
@@ -136,8 +136,8 @@ public sealed class PowerPointParagraphFlowContractTests {
         presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(300),OfficeIMO.OfficeLength.Points(220));
         foreach (bool spacer in new[] { false, true }) {
             var cell = presentation.AddSlide().AddTable(1,1,global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(240),global::OfficeIMO.OfficeLength.Points(160)).GetCell(0, 0);
-            cell.Text = "FIRST"; cell.FontName = "Helvetica"; cell.FontSize = 12;
-            if (spacer) cell.AddParagraph("").SetSpaceBeforePoints(7).SetSpaceAfterPoints(11);
+            cell.Text = "FIRST"; cell.FontName = "Helvetica"; cell.FontSize = global::OfficeIMO.OfficeLength.Points(12);
+            if (spacer) cell.AddParagraph("").SetSpaceBefore(global::OfficeIMO.OfficeLength.Points(7)).SetSpaceAfter(global::OfficeIMO.OfficeLength.Points(11));
             cell.AddParagraph("SECOND");
         }
         var pdf = Read(presentation);
@@ -154,7 +154,7 @@ public sealed class PowerPointParagraphFlowContractTests {
         presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(300),OfficeIMO.OfficeLength.Points(220));
         foreach (bool spacer in new[] { false, true }) {
             var cell = presentation.AddSlide().AddTable(1,1,global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(240),global::OfficeIMO.OfficeLength.Points(160)).GetCell(0, 0);
-            cell.Text = "FIRST"; cell.FontName = "Helvetica"; cell.FontSize = 12;
+            cell.Text = "FIRST"; cell.FontName = "Helvetica"; cell.FontSize = global::OfficeIMO.OfficeLength.Points(12);
             if (spacer) {
                 var empty = cell.AddParagraph("");
                 empty.Paragraph.RemoveAllChildren<A.Run>();
@@ -169,7 +169,7 @@ public sealed class PowerPointParagraphFlowContractTests {
                     level.RemoveAllChildren<A.DefaultRunProperties>(); level.Append(defaults);
                 }
             }
-            cell.AddParagraph("SECOND").Runs[0].FontSize = 12;
+            cell.AddParagraph("SECOND").Runs[0].FontSize = global::OfficeIMO.OfficeLength.Points(12);
         }
         var pdf = Read(presentation);
         Assert.InRange(Span(pdf.Pages[0], "SECOND").Y - Span(pdf.Pages[1], "SECOND").Y, 35D, 37D);
@@ -183,7 +183,7 @@ public sealed class PowerPointParagraphFlowContractTests {
     public void SingleEffectiveRunRetainsInheritedCapitalization(string source, bool flow) {
         using var presentation = PowerPointDocument.Create(new MemoryStream());
         var box = presentation.AddSlide().AddTextBox("mixed case",global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(240),global::OfficeIMO.OfficeLength.Points(120));
-        box.FontName = "Helvetica"; box.FontSize = 12;
+        box.FontName = "Helvetica"; box.FontSize = global::OfficeIMO.OfficeLength.Points(12);
         if (flow) box.AddParagraph("SECOND").Alignment = PowerPointTextAlignment.Right;
         SetDefaults(box, box.Paragraphs[0].Paragraph, source, new A.DefaultRunProperties { Capital = A.TextCapsValues.All });
         using var pdf = UglyToad.PdfPig.PdfDocument.Open(presentation.ToPdf().ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
@@ -216,11 +216,11 @@ public sealed class PowerPointParagraphFlowContractTests {
         foreach (bool spacer in new[] { false, true }) {
             var box = presentation.AddSlide().AddTextBox("FIRST",global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(240),global::OfficeIMO.OfficeLength.Points(160));
             box.FontName = "Helvetica";
-            box.FontSize = 12;
+            box.FontSize = global::OfficeIMO.OfficeLength.Points(12);
             if (spacer) {
                 var empty = box.AddParagraph("");
-                empty.SetSpaceBeforePoints(7);
-                empty.SetSpaceAfterPoints(11);
+                empty.SetSpaceBefore(global::OfficeIMO.OfficeLength.Points(7));
+                empty.SetSpaceAfter(global::OfficeIMO.OfficeLength.Points(11));
             }
             box.AddParagraph("SECOND").Alignment = PowerPointTextAlignment.Right;
             if (bullet) box.Paragraphs[0].SetBullet('*');
@@ -238,7 +238,7 @@ public sealed class PowerPointParagraphFlowContractTests {
         var slide = presentation.AddSlide();
         var box = slide.AddTextBox("INHERITED",global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(240),global::OfficeIMO.OfficeLength.Points(100));
         box.FontName = "Helvetica";
-        box.FontSize = 12;
+        box.FontSize = global::OfficeIMO.OfficeLength.Points(12);
         box.AddParagraph("SECOND").Alignment = PowerPointTextAlignment.Right;
         var paragraph = box.TextBody!.Elements<A.Paragraph>().First();
         paragraph.Elements<A.Run>().Single().RunProperties = new A.RunProperties();

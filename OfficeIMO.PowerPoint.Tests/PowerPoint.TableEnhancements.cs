@@ -115,13 +115,13 @@ namespace OfficeIMO.Tests {
                 PowerPointSlide slide = presentation.AddSlide();
                 PowerPointTable table = slide.AddTable(rows: 1,columns: 2,left: global::OfficeIMO.OfficeLength.Emus(0),top: global::OfficeIMO.OfficeLength.Emus(0),width: global::OfficeIMO.OfficeLength.Emus(4000),height: global::OfficeIMO.OfficeLength.Emus(2000));
 
-                table.SetCellPaddingCm(0.5, 0.5, 0.5, 0.5);
+                table.SetCellPadding(global::OfficeIMO.OfficeLength.Centimeters(0.5), global::OfficeIMO.OfficeLength.Centimeters(0.5), global::OfficeIMO.OfficeLength.Centimeters(0.5), global::OfficeIMO.OfficeLength.Centimeters(0.5));
 
                 PowerPointTableCell cell = table.GetCell(0, 0);
-                Assert.Equal(0.5, cell.PaddingLeftCm!.Value, 3);
-                Assert.Equal(0.5, cell.PaddingTopCm!.Value, 3);
-                Assert.Equal(0.5, cell.PaddingRightCm!.Value, 3);
-                Assert.Equal(0.5, cell.PaddingBottomCm!.Value, 3);
+                Assert.Equal(0.5, cell.PaddingLeft!.Value.ToCentimeters(), 3);
+                Assert.Equal(0.5, cell.PaddingTop!.Value.ToCentimeters(), 3);
+                Assert.Equal(0.5, cell.PaddingRight!.Value.ToCentimeters(), 3);
+                Assert.Equal(0.5, cell.PaddingBottom!.Value.ToCentimeters(), 3);
             } finally {
                 if (File.Exists(filePath)) {
                     File.Delete(filePath);

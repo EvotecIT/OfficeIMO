@@ -64,7 +64,7 @@ namespace OfficeIMO.PowerPoint {
             title ??= textBoxes.FirstOrDefault(box =>
                 string.Equals(box.Title, "Slide title", StringComparison.OrdinalIgnoreCase));
             title ??= textBoxes.Where(box => box.Top.ToPoints() <= slideHeightPoints * 0.32D)
-                .OrderByDescending(box => box.FontSize ?? 0).ThenBy(box => box.Top.ToPoints()).FirstOrDefault();
+                .OrderByDescending(box => box.FontSize?.ToPoints() ?? 0).ThenBy(box => box.Top.ToPoints()).FirstOrDefault();
             return string.IsNullOrWhiteSpace(title?.Text) ? null : NormalizeVisibleText(title!.Text);
         }
 
@@ -155,7 +155,7 @@ namespace OfficeIMO.PowerPoint {
                 foreach (PowerPointTextRun run in paragraph.Runs) {
                     if (string.IsNullOrWhiteSpace(run.Text)) continue;
                     OfficeColor? foreground = ParseColor(run.Color ?? textBox.Color);
-                    double? fontSize = run.FontSize ?? textBox.FontSize;
+                    double? fontSize = run.FontSize?.ToPoints() ?? textBox.FontSize?.ToPoints();
                     if (!foreground.HasValue || !fontSize.HasValue) continue;
                     inspectedRun = true;
                     bool large = fontSize.Value >= options.LargeTextThresholdPoints ||
@@ -176,7 +176,7 @@ namespace OfficeIMO.PowerPoint {
 
             if (!inspectedRun && !string.IsNullOrWhiteSpace(textBox.Text)) {
                 OfficeColor? foreground = ParseColor(textBox.Color);
-                double? fontSize = textBox.FontSize;
+                double? fontSize = textBox.FontSize?.ToPoints();
                 if (foreground.HasValue && fontSize.HasValue) {
                     double required = fontSize.Value >= options.LargeTextThresholdPoints
                         ? options.MinimumLargeTextContrastRatio : options.MinimumTextContrastRatio;

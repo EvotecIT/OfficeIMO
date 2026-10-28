@@ -104,9 +104,9 @@ public sealed class PowerPointOdpReviewWaveTests {
         PowerPointTextBox box = source.AddSlide(PowerPointSlideLayoutType.Blank)
             .AddTextBox("Indented",global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(200),global::OfficeIMO.OfficeLength.Points(40));
         PowerPointParagraph paragraph = box.Paragraphs.Single();
-        paragraph.LeftMarginPoints = 24;
-        paragraph.IndentPoints = -12;
-        paragraph.SpaceBeforePoints = 8;
+        paragraph.LeftMargin = global::OfficeIMO.OfficeLength.Points(24);
+        paragraph.Indent = global::OfficeIMO.OfficeLength.Points(-12);
+        paragraph.SpaceBefore = global::OfficeIMO.OfficeLength.Points(8);
         source.OpenXmlDocument.PresentationPart!.SlideParts.Single().Slide!
             .Descendants<A.ParagraphProperties>().First().DefaultTabSize = 914400;
 

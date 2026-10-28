@@ -506,8 +506,8 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
         try {
             using (PowerPointDocument created = PowerPointDocument.Create(path)) {
                 PowerPointSlide first = created.AddSlide();
-                first.AddRectanglePoints(10, 10, 40, 20, "External link");
-                first.AddRectanglePoints(60, 10, 40, 20, "Internal link");
+                first.AddRectangle(OfficeIMO.OfficeLength.Points(10), OfficeIMO.OfficeLength.Points(10), OfficeIMO.OfficeLength.Points(40), OfficeIMO.OfficeLength.Points(20), "External link");
+                first.AddRectangle(OfficeIMO.OfficeLength.Points(60), OfficeIMO.OfficeLength.Points(10), OfficeIMO.OfficeLength.Points(40), OfficeIMO.OfficeLength.Points(20), "Internal link");
                 created.AddSlide().AddTitle("Target");
                 created.Save();
             }
@@ -1434,12 +1434,11 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
         PowerPointTextRun converted = target.Slides.Single().TextBoxes.Single()
             .Paragraphs.Single().Runs.Single();
 
-        Assert.Equal(10.5D, converted.FontSizePoints);
-        Assert.Equal(10, converted.FontSize);
+        Assert.Equal(10.5D, converted.FontSize?.ToPoints());
         using var stream = new MemoryStream(target.ToBytes());
         using PowerPointDocument reopened = PowerPointDocument.Load(stream);
         Assert.Equal(10.5D, reopened.Slides.Single().TextBoxes.Single()
-            .Paragraphs.Single().Runs.Single().FontSizePoints);
+            .Paragraphs.Single().Runs.Single().FontSize?.ToPoints());
         Assert.Equal(PowerPointUnderlineStyle.Wavy, converted.UnderlineStyle);
         Assert.DoesNotContain(conversion.Report.Mappings, mapping => mapping.Feature == "text-decorations");
     }

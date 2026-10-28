@@ -23,7 +23,7 @@ namespace OfficeIMO.Examples.PowerPoint {
             PowerPointTextBox body = slide.AddTextBox(
                 "This slide includes speaker notes that remain hidden during presentation.",                global::OfficeIMO.OfficeLength.Centimeters(content.Left.ToCentimeters()),global::OfficeIMO.OfficeLength.Centimeters(content.Top.ToCentimeters() + 1.9),global::OfficeIMO.OfficeLength.Centimeters(content.Width.ToCentimeters()),global::OfficeIMO.OfficeLength.Centimeters(1.6));
             body.ApplyTextStyle(PowerPointTextStyle.Body);
-            body.SetTextMarginsCm(0.2, 0.2, 0.2, 0.2);
+            body.SetTextMargins(global::OfficeIMO.OfficeLength.Centimeters(0.2), global::OfficeIMO.OfficeLength.Centimeters(0.2), global::OfficeIMO.OfficeLength.Centimeters(0.2), global::OfficeIMO.OfficeLength.Centimeters(0.2));
 
             slide.Notes.Text = "Notes are stored in the notes section of the slide.\n" +
                                "Use them for presenter-only reminders.";

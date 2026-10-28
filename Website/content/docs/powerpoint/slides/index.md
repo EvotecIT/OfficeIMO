@@ -48,12 +48,12 @@ var text = slide.AddTextBox(
     OfficeIMO.OfficeLength.Centimeters(content.Width.ToCentimeters() / 2),
     OfficeIMO.OfficeLength.Centimeters(4.5));
 
-text.SetTextMarginsCm(0.3, 0.2, 0.3, 0.2);
+text.SetTextMargins(global::OfficeIMO.OfficeLength.Centimeters(0.3), global::OfficeIMO.OfficeLength.Centimeters(0.2), global::OfficeIMO.OfficeLength.Centimeters(0.3), global::OfficeIMO.OfficeLength.Centimeters(0.2));
 text.TextAutoFit = PowerPointTextAutoFit.Normal;
 
 var heading = text.AddParagraph("Highlights", p => {
     p.Alignment = PowerPointTextAlignment.Left;
-    p.SpaceAfterPoints = 6;
+    p.SpaceAfter = global::OfficeIMO.OfficeLength.Points(6);
 });
 PowerPointTextStyle.Subtitle.WithColor("1F4E79").Apply(heading);
 
@@ -66,7 +66,7 @@ text.AddBullet("Release completed on schedule");
 text.AddBullet("Customer guide updated");
 text.AddNumberedItem("Review adoption metrics");
 text.AddNumberedItem("Prepare next milestone");
-text.ApplyAutoSpacing(lineSpacingMultiplier: 1.15, spaceAfterPoints: 2);
+text.ApplyAutoSpacing(lineSpacingMultiplier: 1.15, spaceAfter: global::OfficeIMO.OfficeLength.Points(2));
 ```
 
 ## Build tables and charts from data
@@ -164,7 +164,7 @@ presentation.MoveSlide(2, 0);
 ## Common patterns
 
 - Use `AddTitleCm` and `AddTextBoxCm` when you want a readable layout in source code.
-- Use `SetTextMarginsCm`, `ApplyTextStyle`, and `TextAutoFit` early so slides stay legible as content grows.
+- Use `SetTextMargins`, `ApplyTextStyle`, and `TextAutoFit` early so slides stay legible as content grows.
 - Build data-heavy slides from objects with `AddTable` and shared `OfficeChartData` instead of hard-coded cell text.
 - Use `Notes.Text` for speaker notes and `DuplicateSlide`, `ImportSlide`, and `MoveSlide` when you need reusable deck templates.
 

@@ -98,7 +98,7 @@ namespace OfficeIMO.Tests {
                 .ParagraphProperties = new A.ParagraphProperties {
                 Alignment = A.TextAlignmentTypeValues.Center
             };
-            textBox.SetTextMarginsPoints(5, 6, 7, 8);
+            textBox.SetTextMargins(global::OfficeIMO.OfficeLength.Points(5), global::OfficeIMO.OfficeLength.Points(6), global::OfficeIMO.OfficeLength.Points(7), global::OfficeIMO.OfficeLength.Points(8));
             textBox.TextVerticalAlignment =
                 PowerPointTextVerticalAlignment.Bottom;
             textBox.TextDirection = PowerPointTextDirection.Vertical;
@@ -162,10 +162,10 @@ namespace OfficeIMO.Tests {
             Assert.Equal(3U, reopenedText.PlaceholderIndex);
             Assert.Equal(PowerPointPlaceholderSize.Half,
                 reopenedText.PlaceholderSize);
-            Assert.Equal(5D, reopenedText.TextMarginLeftPoints);
-            Assert.Equal(6D, reopenedText.TextMarginTopPoints);
-            Assert.Equal(7D, reopenedText.TextMarginRightPoints);
-            Assert.Equal(8D, reopenedText.TextMarginBottomPoints);
+            Assert.Equal(5D, reopenedText.TextMarginLeft?.ToPoints());
+            Assert.Equal(6D, reopenedText.TextMarginTop?.ToPoints());
+            Assert.Equal(7D, reopenedText.TextMarginRight?.ToPoints());
+            Assert.Equal(8D, reopenedText.TextMarginBottom?.ToPoints());
             Assert.Equal(PowerPointTextVerticalAlignment.Bottom,
                 reopenedText.TextVerticalAlignment);
             Assert.Equal(PowerPointTextDirection.Vertical,

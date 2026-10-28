@@ -326,10 +326,10 @@ Zażółć gęślą jaźń
         PowerPointSlide slide = presentation.AddSlide();
         PowerPointTextBox title = slide.AddTextBox("Converter typography report",global::OfficeIMO.OfficeLength.Points(32),global::OfficeIMO.OfficeLength.Points(26),global::OfficeIMO.OfficeLength.Points(280),global::OfficeIMO.OfficeLength.Points(28));
         title.FontName = FamilyName;
-        title.FontSize = 14;
+        title.FontSize = global::OfficeIMO.OfficeLength.Points(14);
         PowerPointTextBox polish = slide.AddTextBox("Zażółć gęślą jaźń",global::OfficeIMO.OfficeLength.Points(32),global::OfficeIMO.OfficeLength.Points(70),global::OfficeIMO.OfficeLength.Points(250),global::OfficeIMO.OfficeLength.Points(28));
         polish.FontName = FamilyName;
-        polish.FontSize = 12;
+        polish.FontSize = global::OfficeIMO.OfficeLength.Points(12);
         PowerPointTable table = slide.AddTable(3,2,global::OfficeIMO.OfficeLength.Points(32),global::OfficeIMO.OfficeLength.Points(118),global::OfficeIMO.OfficeLength.Points(280),global::OfficeIMO.OfficeLength.Points(98));
         table.GetCell(0, 0).Text = "Region";
         table.GetCell(0, 1).Text = "Signal";
@@ -416,7 +416,7 @@ Zażółć gęślą jaźń
         using PowerPointDocument presentation = PowerPointDocument.Create(stream);
         presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(520),OfficeIMO.OfficeLength.Points(320));
         PowerPointTextBox textBox = presentation.AddSlide().AddTextBox("office cafe\u0301",global::OfficeIMO.OfficeLength.Points(32),global::OfficeIMO.OfficeLength.Points(32),global::OfficeIMO.OfficeLength.Points(220),global::OfficeIMO.OfficeLength.Points(32));
-        textBox.FontSize = 14;
+        textBox.FontSize = global::OfficeIMO.OfficeLength.Points(14);
 
         var options = new PowerPointPdfExportOptions {
             PdfOptions = CreateOpenTypePdfOptions(fontPath, scalar)
@@ -498,7 +498,7 @@ Zażółć gęślą jaźń
         using PowerPointDocument presentation = PowerPointDocument.Create(stream);
         presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(520),OfficeIMO.OfficeLength.Points(320));
         PowerPointTextBox textBox = presentation.AddSlide().AddTextBox(text,global::OfficeIMO.OfficeLength.Points(32),global::OfficeIMO.OfficeLength.Points(32),global::OfficeIMO.OfficeLength.Points(220),global::OfficeIMO.OfficeLength.Points(32));
-        textBox.FontSize = 14;
+        textBox.FontSize = global::OfficeIMO.OfficeLength.Points(14);
 
         var options = new PowerPointPdfExportOptions {
             PdfOptions = new PdfCore.PdfCreateOptions { TextShapingMode = PdfCore.PdfTextShapingMode.UnicodeScalar }

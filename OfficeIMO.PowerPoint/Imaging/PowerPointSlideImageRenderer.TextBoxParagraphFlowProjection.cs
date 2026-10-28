@@ -104,8 +104,8 @@ internal static partial class PowerPointSlideImageRenderer {
 
     private static bool ShouldRenderTextBoxParagraphFlow(IReadOnlyList<PowerPointParagraph> paragraphs) =>
         paragraphs.Any(paragraph => !string.IsNullOrEmpty(paragraph.BulletCharacter) || paragraph.IsNumbered ||
-            paragraph.SpaceBeforePoints.HasValue || paragraph.SpaceAfterPoints.HasValue ||
-            paragraph.LineSpacingPoints.HasValue || paragraph.LineSpacingMultiplier.HasValue) ||
+            paragraph.SpaceBefore.HasValue || paragraph.SpaceAfter.HasValue ||
+            paragraph.LineSpacing.HasValue || paragraph.LineSpacingMultiplier.HasValue) ||
         (paragraphs.Count > 1 &&
             paragraphs.Any(paragraph =>
                 !paragraph.InlineNodes.Any(node => !string.IsNullOrEmpty(node.Text)) ||
