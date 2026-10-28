@@ -34,7 +34,7 @@ internal static class ServiceOverview {
         deck.Save();
 
         void Text(PowerPointSlide slide, string value, double x, double y, double width, double height, int size, string color) {
-            var box = slide.AddTextBoxCm(value, x, y, width, height);
+            var box = slide.AddTextBox(value,global::OfficeIMO.OfficeLength.Centimeters(x),global::OfficeIMO.OfficeLength.Centimeters(y),global::OfficeIMO.OfficeLength.Centimeters(width),global::OfficeIMO.OfficeLength.Centimeters(height));
             box.FontSize = size;
             box.Color = color;
         }

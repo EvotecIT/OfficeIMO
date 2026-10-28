@@ -358,13 +358,13 @@ public static partial class PdfPowerPointConverterExtensions {
                     bounds = bounds.SwapDimensionsAroundCenter();
                 }
                 using var stream = new MemoryStream(image.SourceImage.Bytes, writable: false);
-                PptCore.PowerPointPicture picture = slide.AddImagePoints(
+                PptCore.PowerPointPicture picture = slide.AddImage(
                     stream,
                     format,
-                    bounds.Left,
-                    bounds.Top,
-                    bounds.Width,
-                    bounds.Height);
+                    OfficeIMO.OfficeLength.Points(bounds.Left),
+                    OfficeIMO.OfficeLength.Points(bounds.Top),
+                    OfficeIMO.OfficeLength.Points(bounds.Width),
+                    OfficeIMO.OfficeLength.Points(bounds.Height));
                 if (pageRotation > 0.01D) {
                     picture.Rotation = pageRotation;
                 }
@@ -537,12 +537,8 @@ public static partial class PdfPowerPointConverterExtensions {
             if (Math.Abs(visualRotation - 90D) < 0.01D || Math.Abs(visualRotation - 270D) < 0.01D) {
                 bounds = bounds.SwapDimensionsAroundCenter();
             }
-            PptCore.PowerPointTextBox textBox = slide.AddTextBoxPoints(
-                string.Empty,
-                bounds.Left,
-                bounds.Top,
-                bounds.Width,
-                bounds.Height);
+            PptCore.PowerPointTextBox textBox = slide.AddTextBox(
+                string.Empty,                global::OfficeIMO.OfficeLength.Points(bounds.Left),                global::OfficeIMO.OfficeLength.Points(bounds.Top),                global::OfficeIMO.OfficeLength.Points(bounds.Width),                global::OfficeIMO.OfficeLength.Points(bounds.Height));
             textBox.SetTextMarginsPoints(0D, 0D, 0D, 0D);
             textBox.FillColor = "FFFFFF";
             textBox.FillTransparency = 100;

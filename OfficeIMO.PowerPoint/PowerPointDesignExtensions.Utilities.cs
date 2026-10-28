@@ -16,7 +16,7 @@ namespace OfficeIMO.PowerPoint {
 
         internal static PowerPointTextBox AddText(PowerPointSlide slide, string text, double leftCm, double topCm,
             double widthCm, double heightCm, int fontSize, string color, string fontName, bool bold = false) {
-            PowerPointTextBox box = slide.AddTextBoxCm(text, leftCm, topCm, widthCm, heightCm);
+            PowerPointTextBox box = slide.AddTextBox(text,global::OfficeIMO.OfficeLength.Centimeters(leftCm),global::OfficeIMO.OfficeLength.Centimeters(topCm),global::OfficeIMO.OfficeLength.Centimeters(widthCm),global::OfficeIMO.OfficeLength.Centimeters(heightCm));
             box.SetTextMarginsCm(0, 0, 0, 0);
             box.FontName = fontName;
             box.FontSize = fontSize;
@@ -32,7 +32,7 @@ namespace OfficeIMO.PowerPoint {
                 return null;
             }
 
-            PowerPointPicture picture = slide.AddImageCm(imagePath, leftCm, topCm, widthCm, heightCm);
+            PowerPointPicture picture = slide.AddImage(imagePath,global::OfficeIMO.OfficeLength.Centimeters(leftCm),global::OfficeIMO.OfficeLength.Centimeters(topCm),global::OfficeIMO.OfficeLength.Centimeters(widthCm),global::OfficeIMO.OfficeLength.Centimeters(heightCm));
             if (crop && TryGetImageDimensions(imagePath, out double imageWidth, out double imageHeight)) {
                 picture.FitToBox(imageWidth, imageHeight, crop: true);
             }

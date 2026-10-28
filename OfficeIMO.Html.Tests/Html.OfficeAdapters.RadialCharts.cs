@@ -29,8 +29,7 @@ public partial class HtmlOfficeAdapters {
     [InlineData(OfficeChartType.Doughnut)]
     public void PowerPointHtml_RoundTripsRadialGeometry(OfficeChartType kind) {
         using PowerPointDocument presentation = PowerPointDocument.Create();
-        presentation.AddSlide().AddChartPoints(kind,
-            new OfficeChartData(new[] { "A", "B" }, new[] { new OfficeSeries("Status", new[] { 7d, 3d }) }), 10, 10, 300, 200)
+        presentation.AddSlide().AddChart(kind,            new OfficeChartData(new[] { "A", "B" }, new[] { new OfficeSeries("Status", new[] { 7d, 3d }) }),global::OfficeIMO.OfficeLength.Points(10),global::OfficeIMO.OfficeLength.Points(10),global::OfficeIMO.OfficeLength.Points(300),global::OfficeIMO.OfficeLength.Points(200))
             .SetRadialLayout(new OfficeChartRadialLayout(135, 75));
         string html = presentation.ToHtml();
         using PowerPointDocument restored = HtmlConversionDocument.Parse(html).ToPowerPointDocument();
@@ -46,8 +45,7 @@ public partial class HtmlOfficeAdapters {
     [InlineData("invalid", "50")]
     public void PowerPointHtml_InvalidRadialMetadataOmitsChartWithDiagnostic(string angle, string hole) {
         using PowerPointDocument presentation = PowerPointDocument.Create();
-        presentation.AddSlide().AddChartPoints(OfficeChartType.Doughnut,
-            new OfficeChartData(new[] { "A" }, new[] { new OfficeSeries("Status", new[] { 1d }) }), 10, 10, 300, 200)
+        presentation.AddSlide().AddChart(OfficeChartType.Doughnut,            new OfficeChartData(new[] { "A" }, new[] { new OfficeSeries("Status", new[] { 1d }) }),global::OfficeIMO.OfficeLength.Points(10),global::OfficeIMO.OfficeLength.Points(10),global::OfficeIMO.OfficeLength.Points(300),global::OfficeIMO.OfficeLength.Points(200))
             .SetRadialLayout(new OfficeChartRadialLayout(90, 75));
         string html = presentation.ToHtml().Replace("data-officeimo-first-slice-angle=\"90\"", "data-officeimo-first-slice-angle=\"" + angle + "\"")
             .Replace("data-officeimo-doughnut-hole=\"75\"", "data-officeimo-doughnut-hole=\"" + hole + "\"");

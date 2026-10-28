@@ -173,7 +173,7 @@ public static partial class HtmlPowerPointConverterExtensions {
         ReadPictureSize(item, budget, result, out double width, out double height);
         ReadPicturePosition(item, fallbackLeft, fallbackTop, budget, result, out double left, out double pictureTop);
         using var stream = new MemoryStream(bytes);
-        PptCore.PowerPointPicture picture = slide.AddImagePoints(stream, imagePartType, left, pictureTop, width, height);
+        PptCore.PowerPointPicture picture = slide.AddImage(stream, imagePartType, OfficeIMO.OfficeLength.Points(left), OfficeIMO.OfficeLength.Points(pictureTop), OfficeIMO.OfficeLength.Points(width), OfficeIMO.OfficeLength.Points(height));
         string label = NormalizeText(item.QuerySelector(".officeimo-feature-label")?.TextContent);
         string alt = NormalizeText(image.GetAttribute("alt"));
         if (label.Length > 0) {
@@ -903,8 +903,7 @@ public static partial class HtmlPowerPointConverterExtensions {
                 return false;
             }
 
-            chart = slide.AddChartPoints(OfficeChartType.Bubble, bubbleData,
-                left, top, width, height);
+            chart = slide.AddChart(OfficeChartType.Bubble,bubbleData,                global::OfficeIMO.OfficeLength.Points(left),global::OfficeIMO.OfficeLength.Points(top),global::OfficeIMO.OfficeLength.Points(width),global::OfficeIMO.OfficeLength.Points(height));
             return true;
         }
 

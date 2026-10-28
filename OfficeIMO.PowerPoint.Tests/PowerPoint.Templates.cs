@@ -342,7 +342,7 @@ namespace OfficeIMO.Tests {
 
             for (int index = 1; index <= 3; index++) {
                 PowerPointSlide slide = presentation.AddSlide();
-                slide.AddTextBoxCm("Source slide " + index, 2, 2, 10, 1);
+                slide.AddTextBox("Source slide " + index,global::OfficeIMO.OfficeLength.Centimeters(2),global::OfficeIMO.OfficeLength.Centimeters(2),global::OfficeIMO.OfficeLength.Centimeters(10),global::OfficeIMO.OfficeLength.Centimeters(1));
             }
             presentation.Save();
             return path;

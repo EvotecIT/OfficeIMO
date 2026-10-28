@@ -2220,12 +2220,8 @@ public sealed class PdfRenderingProfileTests {
         byte[] powerPointPdf;
         using (OfficeIMO.PowerPoint.PowerPointDocument powerPoint =
             OfficeIMO.PowerPoint.PowerPointDocument.Create(new MemoryStream())) {
-            powerPoint.AddSlide().AddTextBoxPoints(
-                "PowerPoint profile proof",
-                24,
-                24,
-                240,
-                40);
+            powerPoint.AddSlide().AddTextBox(
+                "PowerPoint profile proof",                global::OfficeIMO.OfficeLength.Points(24),                global::OfficeIMO.OfficeLength.Points(24),                global::OfficeIMO.OfficeLength.Points(240),                global::OfficeIMO.OfficeLength.Points(40));
             powerPointPdf = (OfficeIMO.PowerPoint.Pdf.PowerPointPdfConverterExtensions.ToPdf(
                 powerPoint,
                 new OfficeIMO.PowerPoint.Pdf.PowerPointPdfExportOptions()

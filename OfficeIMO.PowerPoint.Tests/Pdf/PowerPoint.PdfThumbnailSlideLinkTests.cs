@@ -24,13 +24,13 @@ public sealed class PowerPointPdfThumbnailSlideLinkTests {
         PowerPointSlide third = presentation.AddSlide();
         PowerPointSlide fourth = presentation.AddSlide();
         PowerPointSlide fifth = presentation.AddSlide();
-        first.AddTextBoxPoints("VISIBLE TARGET", 20, 20, 350, 40)
+        first.AddTextBox("VISIBLE TARGET",global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(350),global::OfficeIMO.OfficeLength.Points(40))
             .Paragraphs[0].Runs[0].SetHyperlink(third);
-        first.AddTextBoxPoints("HIDDEN TARGET", 20, 65, 350, 40)
+        first.AddTextBox("HIDDEN TARGET",global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(65),global::OfficeIMO.OfficeLength.Points(350),global::OfficeIMO.OfficeLength.Points(40))
             .Paragraphs[0].Runs[0].SetHyperlink(hidden);
-        first.AddTextBoxPoints("ABSENT TARGET", 20, 110, 350, 40)
+        first.AddTextBox("ABSENT TARGET",global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(110),global::OfficeIMO.OfficeLength.Points(350),global::OfficeIMO.OfficeLength.Points(40))
             .Paragraphs[0].Runs[0].Hyperlink = new Uri("#slide-99", UriKind.Relative);
-        PowerPointTextBox grouped = first.AddTextBoxPoints("GROUP TARGET", 20, 155, 350, 40);
+        PowerPointTextBox grouped = first.AddTextBox("GROUP TARGET",global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(155),global::OfficeIMO.OfficeLength.Points(350),global::OfficeIMO.OfficeLength.Points(40));
         grouped.Paragraphs[0].Runs[0].SetHyperlink(fourth);
         grouped.Paragraphs[0].AddRun(" HIDDEN").SetHyperlink(hidden);
         grouped.Paragraphs[0].AddRun(" ABSENT").Hyperlink = new Uri("#slide-99", UriKind.Relative);
@@ -42,7 +42,7 @@ public sealed class PowerPointPdfThumbnailSlideLinkTests {
         flowing.Text = "TABLE FLOW"; flowing.Paragraphs[0].Runs[0].SetHyperlink(third);
         flowing.AddParagraph("TABLE HIDDEN").Runs[0].SetHyperlink(hidden);
         flowing.AddParagraph("TABLE EXTERNAL").Runs[0].Hyperlink = new Uri("https://example.com/table");
-        fifth.AddTextBoxPoints("EXTERNAL TARGET", 20, 20, 350, 40)
+        fifth.AddTextBox("EXTERNAL TARGET",global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(350),global::OfficeIMO.OfficeLength.Points(40))
             .Paragraphs[0].Runs[0].Hyperlink = new Uri("https://example.com/slide");
         var options = new PowerPointPdfExportOptions {
             PageLayout = layout, HandoutSlidesPerPage = perPage, IncludeHiddenSlides = includeHidden

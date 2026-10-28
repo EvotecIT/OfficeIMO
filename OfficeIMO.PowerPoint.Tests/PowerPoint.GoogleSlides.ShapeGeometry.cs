@@ -11,7 +11,7 @@ public sealed partial class GoogleSlidesTests {
             using PowerPointDocument presentation = PowerPointDocument.Create();
             PowerPointSlide slide = presentation.AddSlide();
             slide.AddTextShapePoints(OfficePresetShapeType.RightArrow, "Next step", 20, 30, 180, 60);
-            slide.AddTextBoxPoints("Plain text", 20, 110, 180, 60);
+            slide.AddTextBox("Plain text",global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(110),global::OfficeIMO.OfficeLength.Points(180),global::OfficeIMO.OfficeLength.Points(60));
 
             using MemoryStream saved = new System.IO.MemoryStream(presentation.ToBytes());
             using PowerPointDocument reloaded = PowerPointDocument.Load(saved);

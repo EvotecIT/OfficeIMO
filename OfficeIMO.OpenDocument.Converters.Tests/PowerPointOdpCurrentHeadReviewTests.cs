@@ -89,7 +89,7 @@ public sealed class PowerPointOdpCurrentHeadReviewTests {
     [InlineData("highlightClick", "1")]
     public void AuthoredRunHyperlinkFlagsAreExplicitLoss(string name, string value) {
         using PowerPointDocument source = CreatePowerPoint();
-        source.Slides[0].AddTextBoxPoints("Link", 20, 20, 100, 50);
+        source.Slides[0].AddTextBox("Link",global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(100),global::OfficeIMO.OfficeLength.Points(50));
         A.Run run = source.OpenXmlDocument.PresentationPart!.SlideParts.Single().Slide!
             .Descendants<A.Run>().Single();
         run.RunProperties ??= new A.RunProperties();
@@ -104,7 +104,7 @@ public sealed class PowerPointOdpCurrentHeadReviewTests {
     [InlineData("extension")]
     public void AuthoredTextPlaceholderMetadataIsExplicitLoss(string kind) {
         using PowerPointDocument source = CreatePowerPoint();
-        source.Slides[0].AddTextBoxPoints("Agenda", 20, 20, 100, 50);
+        source.Slides[0].AddTextBox("Agenda",global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(100),global::OfficeIMO.OfficeLength.Points(50));
         Shape shape = source.OpenXmlDocument.PresentationPart!.SlideParts.Single().Slide!
             .Descendants<Shape>().Single();
         PlaceholderShape placeholder = shape.NonVisualShapeProperties!
@@ -211,7 +211,7 @@ public sealed class PowerPointOdpCurrentHeadReviewTests {
     [Fact]
     public void PowerPointShapeHoverIsExplicitLoss() {
         using PowerPointDocument source = CreatePowerPoint();
-        source.Slides[0].AddTextBox("Hover", 0, 0, 100000, 100000);
+        source.Slides[0].AddTextBox("Hover",global::OfficeIMO.OfficeLength.Emus(0),global::OfficeIMO.OfficeLength.Emus(0),global::OfficeIMO.OfficeLength.Emus(100000),global::OfficeIMO.OfficeLength.Emus(100000));
         Shape shape = source.OpenXmlDocument.PresentationPart!.SlideParts.Single().Slide!
             .Descendants<Shape>().Single();
         shape.NonVisualShapeProperties!.NonVisualDrawingProperties!
@@ -223,7 +223,7 @@ public sealed class PowerPointOdpCurrentHeadReviewTests {
     [Fact]
     public void ActionOnlyPowerPointShapeClickIsExplicitLoss() {
         using PowerPointDocument source = CreatePowerPoint();
-        source.Slides[0].AddTextBox("Next", 0, 0, 100000, 100000);
+        source.Slides[0].AddTextBox("Next",global::OfficeIMO.OfficeLength.Emus(0),global::OfficeIMO.OfficeLength.Emus(0),global::OfficeIMO.OfficeLength.Emus(100000),global::OfficeIMO.OfficeLength.Emus(100000));
         Shape shape = source.OpenXmlDocument.PresentationPart!.SlideParts.Single().Slide!
             .Descendants<Shape>().Single();
         shape.NonVisualShapeProperties!.NonVisualDrawingProperties!
@@ -259,7 +259,7 @@ public sealed class PowerPointOdpCurrentHeadReviewTests {
     [InlineData(-10000)]
     public void PowerPointRunBaselineMagnitudeIsExplicitLoss(int baseline) {
         using PowerPointDocument source = CreatePowerPoint();
-        source.Slides[0].AddTextBoxPoints("Shifted", 20, 20, 100, 50);
+        source.Slides[0].AddTextBox("Shifted",global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(100),global::OfficeIMO.OfficeLength.Points(50));
         A.Run run = source.OpenXmlDocument.PresentationPart!.SlideParts.Single().Slide!
             .Descendants<A.Run>().Single();
         run.RunProperties ??= new A.RunProperties();
@@ -313,7 +313,7 @@ public sealed class PowerPointOdpCurrentHeadReviewTests {
         using PowerPointDocument source = CreatePowerPoint();
         PowerPointSlide destination = source.AddSlide(PowerPointSlideLayoutType.Blank);
         destination.Name = "Agenda";
-        PowerPointTextBox box = source.Slides[0].AddTextBoxPoints("Open agenda", 20, 20, 200, 40);
+        PowerPointTextBox box = source.Slides[0].AddTextBox("Open agenda",global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(200),global::OfficeIMO.OfficeLength.Points(40));
         box.Paragraphs[0].Runs[0].SetHyperlink(destination);
 
         OdpPresentation target = source.ToOpenDocumentResult().Value;
@@ -331,7 +331,7 @@ public sealed class PowerPointOdpCurrentHeadReviewTests {
         source.AddSlide(PowerPointSlideLayoutType.Blank).Name = "Agenda";
         PowerPointSlide destination = source.AddSlide(PowerPointSlideLayoutType.Blank);
         destination.Name = "Agenda";
-        source.Slides[0].AddTextBoxPoints("Open second agenda", 20, 20, 200, 40)
+        source.Slides[0].AddTextBox("Open second agenda",global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(200),global::OfficeIMO.OfficeLength.Points(40))
             .Paragraphs[0].Runs[0].SetHyperlink(destination);
 
         OdpPresentation target = source.ToOpenDocumentResult().Value;
@@ -346,7 +346,7 @@ public sealed class PowerPointOdpCurrentHeadReviewTests {
         using PowerPointDocument source = CreatePowerPoint();
         PowerPointSlide destination = source.AddSlide(PowerPointSlideLayoutType.Blank);
         destination.Name = new string('A', 2048);
-        source.Slides[0].AddTextBoxPoints("Open slide", 20, 20, 200, 40)
+        source.Slides[0].AddTextBox("Open slide",global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(200),global::OfficeIMO.OfficeLength.Points(40))
             .Paragraphs[0].Runs[0].SetHyperlink(destination);
 
         OdfConversionResult<OdpPresentation> conversion = source.ToOpenDocumentResult();
@@ -549,7 +549,7 @@ public sealed class PowerPointOdpCurrentHeadReviewTests {
     [Fact]
     public void TextBodyLevelParagraphDefaultsRemainExplicitLoss() {
         using PowerPointDocument source = CreatePowerPoint();
-        source.Slides[0].AddTextBoxPoints("Level text", 20, 20, 200, 40);
+        source.Slides[0].AddTextBox("Level text",global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(200),global::OfficeIMO.OfficeLength.Points(40));
         Shape shape = source.OpenXmlDocument.PresentationPart!.SlideParts.Single().Slide!
             .Descendants<Shape>().Single();
         A.ListStyle listStyle = shape.TextBody!.GetFirstChild<A.ListStyle>()
@@ -587,7 +587,7 @@ public sealed class PowerPointOdpCurrentHeadReviewTests {
     [InlineData("bmk", "Heading")]
     public void DirectUnsupportedRunAttributesAreExplicitLoss(string attribute, string value) {
         using PowerPointDocument source = CreatePowerPoint();
-        source.Slides[0].AddTextBoxPoints("Text", 20, 20, 100, 50);
+        source.Slides[0].AddTextBox("Text",global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(100),global::OfficeIMO.OfficeLength.Points(50));
         A.Run run = source.OpenXmlDocument.PresentationPart!.SlideParts.Single().Slide!
             .Descendants<A.Run>().Single();
         run.RunProperties ??= new A.RunProperties();

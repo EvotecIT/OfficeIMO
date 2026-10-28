@@ -270,7 +270,7 @@ internal sealed partial class OfficeMarkupPowerPointExporter {
             accent.OutlineColor = accent.FillColor;
             accent.OutlineWidthPoints = 0;
 
-            var number = slide.AddTextBoxInches((index + 1).ToString("00", CultureInfo.InvariantCulture), x + metrics.Horizontal(0.18), top + metrics.Vertical(0.25), metrics.Horizontal(0.52), metrics.Vertical(0.3));
+            var number = slide.AddTextBox((index + 1).ToString("00", CultureInfo.InvariantCulture),global::OfficeIMO.OfficeLength.Inches(x + metrics.Horizontal(0.18)),global::OfficeIMO.OfficeLength.Inches(top + metrics.Vertical(0.25)),global::OfficeIMO.OfficeLength.Inches(metrics.Horizontal(0.52)),global::OfficeIMO.OfficeLength.Inches(metrics.Vertical(0.3)));
             ApplyTextStyle(number, new OfficeMarkupResolvedStyle {
                 FontName = theme.HeadingFontName,
                 FontSize = 10,
@@ -278,7 +278,7 @@ internal sealed partial class OfficeMarkupPowerPointExporter {
                 TextColor = theme.AccentColor
             });
 
-            var text = slide.AddTextBoxInches(items[index], x + metrics.Horizontal(0.18), top + metrics.Vertical(0.65), cardWidth - metrics.Horizontal(0.36), metrics.Vertical(0.68));
+            var text = slide.AddTextBox(items[index],global::OfficeIMO.OfficeLength.Inches(x + metrics.Horizontal(0.18)),global::OfficeIMO.OfficeLength.Inches(top + metrics.Vertical(0.65)),global::OfficeIMO.OfficeLength.Inches(cardWidth - metrics.Horizontal(0.36)),global::OfficeIMO.OfficeLength.Inches(metrics.Vertical(0.68)));
             ApplyTextStyle(text, new OfficeMarkupResolvedStyle {
                 FontName = theme.BodyFontName,
                 FontSize = 14,
@@ -344,7 +344,7 @@ internal sealed partial class OfficeMarkupPowerPointExporter {
 
         var startIndex = 0;
         if (blocks.Count > 0 && blocks[0] is OfficeMarkupHeadingBlock heading) {
-            var headingBox = slide.AddTextBoxInches(heading.Text, cursor.Left, cursor.Top, cursor.Width, 0.42);
+            var headingBox = slide.AddTextBox(heading.Text,global::OfficeIMO.OfficeLength.Inches(cursor.Left),global::OfficeIMO.OfficeLength.Inches(cursor.Top),global::OfficeIMO.OfficeLength.Inches(cursor.Width),global::OfficeIMO.OfficeLength.Inches(0.42));
             ApplyTextStyle(headingBox, new OfficeMarkupResolvedStyle {
                 FontName = theme.HeadingFontName,
                 FontSize = 18,

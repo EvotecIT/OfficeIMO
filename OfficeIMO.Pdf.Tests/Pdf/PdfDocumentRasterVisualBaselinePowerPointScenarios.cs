@@ -34,19 +34,19 @@ public partial class PdfDocumentRasterVisualBaselineTests {
         panel.OutlineColor = "B9D7EA";
         panel.OutlineWidthPoints = 1.2D;
 
-        PowerPointTextBox title = slide.AddTextBoxPoints("PowerPoint PDF Visual Gate", 22, 20, 122, 32);
+        PowerPointTextBox title = slide.AddTextBox("PowerPoint PDF Visual Gate",global::OfficeIMO.OfficeLength.Points(22),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(122),global::OfficeIMO.OfficeLength.Points(32));
         title.FontName = "Georgia";
         title.FontSize = 12;
         title.Color = "123456";
         title.FillTransparency = 100;
 
-        PowerPointTextBox body = slide.AddTextBoxPoints(string.Empty, 22, 52, 118, 30);
+        PowerPointTextBox body = slide.AddTextBox(string.Empty,global::OfficeIMO.OfficeLength.Points(22),global::OfficeIMO.OfficeLength.Points(52),global::OfficeIMO.OfficeLength.Points(118),global::OfficeIMO.OfficeLength.Points(30));
         body.FontSize = 8;
         body.Color = "334155";
         body.FillTransparency = 100;
         body.SetBullets(new[] { "Text placement", "Tables and charts" });
 
-        slide.AddImage(new MemoryStream(CreatePowerPointVisualGatePng()), OfficeImageFormat.Png, PowerPointUnits.FromPoints(250), PowerPointUnits.FromPoints(22), PowerPointUnits.FromPoints(42), PowerPointUnits.FromPoints(30));
+        slide.AddImage(new MemoryStream(CreatePowerPointVisualGatePng()), OfficeImageFormat.Png, global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(250)), global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(22)), global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(42)), global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(30)));
 
         PowerPointTable table = slide.AddTable(2,2,global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(98),global::OfficeIMO.OfficeLength.Points(120),global::OfficeIMO.OfficeLength.Points(48));
         table.ApplyToCells(cell => cell.FontSize = 8);
@@ -104,14 +104,14 @@ public partial class PdfDocumentRasterVisualBaselineTests {
         background.FillColor = "FFFDF7";
         background.OutlineColor = "FFFDF7";
 
-        PowerPointTextBox title = slide.AddTextBoxPoints("Dense Layout Gate", 18, 16, 170, 22);
+        PowerPointTextBox title = slide.AddTextBox("Dense Layout Gate",global::OfficeIMO.OfficeLength.Points(18),global::OfficeIMO.OfficeLength.Points(16),global::OfficeIMO.OfficeLength.Points(170),global::OfficeIMO.OfficeLength.Points(22));
         title.FontName = "Arial";
         title.FontSize = 14;
         title.Color = "1A1F2B";
         title.Bold = true;
         title.FillTransparency = 100;
 
-        PowerPointTextBox list = slide.AddTextBoxPoints(string.Empty, 20, 44, 128, 62);
+        PowerPointTextBox list = slide.AddTextBox(string.Empty,global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(44),global::OfficeIMO.OfficeLength.Points(128),global::OfficeIMO.OfficeLength.Points(62));
         list.FontSize = 8;
         list.Color = "334155";
         list.FillTransparency = 100;
@@ -134,7 +134,7 @@ public partial class PdfDocumentRasterVisualBaselineTests {
         table.GetCell(1, 1).HorizontalAlignment = OfficeIMO.PowerPoint.PowerPointTextAlignment.Center;
 
         byte[] logoBytes = File.ReadAllBytes(System.IO.Path.Combine(GetTestsProjectRoot(), "Images", "EvotecLogo.png"));
-        PowerPointPicture picture = slide.AddImage(new MemoryStream(logoBytes), OfficeImageFormat.Png, PowerPointUnits.FromPoints(220), PowerPointUnits.FromPoints(18), PowerPointUnits.FromPoints(64), PowerPointUnits.FromPoints(30));
+        PowerPointPicture picture = slide.AddImage(new MemoryStream(logoBytes), OfficeImageFormat.Png, global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(220)), global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(18)), global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(64)), global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(30)));
         picture.AltText = "OfficeIMO visual gate logo";
 
         var chartData = new PowerPointChartData(

@@ -517,7 +517,7 @@ namespace OfficeIMO.Tests {
             byte[] source;
             using (PowerPointDocument created = PowerPointDocument.Create()) {
                 created.AddSlide(PowerPointSlideLayoutType.Blank)
-                    .AddTextBox("Short text", 100000, 100000, 3000000, 600000);
+                    .AddTextBox("Short text",global::OfficeIMO.OfficeLength.Emus(100000),global::OfficeIMO.OfficeLength.Emus(100000),global::OfficeIMO.OfficeLength.Emus(3000000),global::OfficeIMO.OfficeLength.Emus(600000));
                 source = created.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
 
@@ -695,12 +695,12 @@ namespace OfficeIMO.Tests {
         public void NativeWriter_RoundTripsTextAndBasicShapesAcrossTwoSlides() {
             using PowerPointDocument presentation = PowerPointDocument.Create();
             PowerPointSlide first = presentation.AddSlide();
-            first.AddTitle("Binary title", 540000, 360000, 7200000, 700000);
-            first.AddTextBox("Line one\nLine two", 540000, 1200000, 6000000, 1800000);
+            first.AddTitle("Binary title",global::OfficeIMO.OfficeLength.Emus(540000),global::OfficeIMO.OfficeLength.Emus(360000),global::OfficeIMO.OfficeLength.Emus(7200000),global::OfficeIMO.OfficeLength.Emus(700000));
+            first.AddTextBox("Line one\nLine two",global::OfficeIMO.OfficeLength.Emus(540000),global::OfficeIMO.OfficeLength.Emus(1200000),global::OfficeIMO.OfficeLength.Emus(6000000),global::OfficeIMO.OfficeLength.Emus(1800000));
             first.AddRectangle(600000, 3300000, 1200000, 700000);
             first.AddEllipse(2100000, 3300000, 1200000, 700000);
             first.AddShape(OfficePresetShapeType.Line, 3600000, 3300000, 1600000, 400000);
-            presentation.AddSlide().AddTextBox("Second slide", 700000, 700000, 5000000, 1000000);
+            presentation.AddSlide().AddTextBox("Second slide",global::OfficeIMO.OfficeLength.Emus(700000),global::OfficeIMO.OfficeLength.Emus(700000),global::OfficeIMO.OfficeLength.Emus(5000000),global::OfficeIMO.OfficeLength.Emus(1000000));
 
             LegacyPptWritePreflightReport preflight = presentation.AnalyzeLegacyPptWrite();
             Assert.True(preflight.CanWrite);
@@ -831,7 +831,7 @@ namespace OfficeIMO.Tests {
             LegacyPptDocument source = LegacyPptDocument.Load(FixturePath);
             using PowerPointDocument presentation = PowerPointDocument.Load(FixturePath);
             PowerPointSlide added = presentation.AddSlide();
-            added.AddTextBox("Incremental new slide", 200000, 200000, 4000000, 700000);
+            added.AddTextBox("Incremental new slide",global::OfficeIMO.OfficeLength.Emus(200000),global::OfficeIMO.OfficeLength.Emus(200000),global::OfficeIMO.OfficeLength.Emus(4000000),global::OfficeIMO.OfficeLength.Emus(700000));
             added.AddRectangle(300000, 1200000, 1200000, 600000);
             added.Hidden = true;
 
@@ -872,7 +872,7 @@ namespace OfficeIMO.Tests {
             LegacyPptMaster selectedMaster = source.Masters.Where(master => master.IsMainMaster).ElementAt(1);
             using PowerPointDocument presentation = PowerPointDocument.Load(FixturePath);
             PowerPointSlide added = presentation.AddSlide(masterIndex: 1, layoutIndex: 0);
-            added.AddTextBox("Uses second binary master", 200000, 200000, 4000000, 700000);
+            added.AddTextBox("Uses second binary master",global::OfficeIMO.OfficeLength.Emus(200000),global::OfficeIMO.OfficeLength.Emus(200000),global::OfficeIMO.OfficeLength.Emus(4000000),global::OfficeIMO.OfficeLength.Emus(700000));
 
             Assert.Equal($"Binary Main Master {selectedMaster.MasterId:X8}",
                 added.SlidePart.SlideLayoutPart!.SlideLayout!.CommonSlideData!.Name!.Value);

@@ -440,7 +440,7 @@ public static partial class PowerPointHtmlConverterExtensions {
             try {
                 OfficeChartRenderingResult rendering = OfficeChartDrawingRenderer.RenderWithQuality(officeSnapshot);
                 body.Append("<div class=\"officeimo-chart-rendered\" data-officeimo-visual-owner=\"OfficeIMO.Core\" data-officeimo-chart-kind=\"")
-                    .Append(OfficeHtmlText.EscapeAttribute(officeSnapshot.ChartKind.ToString()))
+                    .Append(OfficeHtmlText.EscapeAttribute(OfficeIMO.Internal.OfficeChartTypeName.Format(officeSnapshot.ChartKind)))
                     .Append("\">")
                     .Append(OfficeDrawingSvgExporter.ToSvg(rendering.Drawing));
                 if (rendering.QualityReport.HasIssues) {

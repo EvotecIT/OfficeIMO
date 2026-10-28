@@ -203,8 +203,8 @@ namespace OfficeIMO.PowerPoint {
                     PowerPointTextBox textBox = shape.PlaceholderKind == LegacyPptPlaceholderKind.Title
                         || shape.PlaceholderKind == LegacyPptPlaceholderKind.CenterTitle
                         || shape.PlaceholderKind == LegacyPptPlaceholderKind.VerticalTitle
-                        ? slide.AddTitle(shape.Text, left, top, width, height)
-                        : slide.AddTextBox(shape.Text, left, top, width, height);
+                        ? slide.AddTitle(shape.Text,global::OfficeIMO.OfficeLength.Emus(left),global::OfficeIMO.OfficeLength.Emus(top),global::OfficeIMO.OfficeLength.Emus(width),global::OfficeIMO.OfficeLength.Emus(height))
+                        : slide.AddTextBox(shape.Text,global::OfficeIMO.OfficeLength.Emus(left),global::OfficeIMO.OfficeLength.Emus(top),global::OfficeIMO.OfficeLength.Emus(width),global::OfficeIMO.OfficeLength.Emus(height));
                     PlaceholderValues? placeholder = MapPlaceholder(shape.PlaceholderKind);
                     if (placeholder.HasValue) textBox.PlaceholderType = placeholder.Value.ToOfficeEnum();
                     LegacyPptTextProjection.Apply(
@@ -249,7 +249,8 @@ namespace OfficeIMO.PowerPoint {
                     if (shape.Picture?.HasImportableImage == true && shape.Picture.ContentType != null) {
                         using var image = new MemoryStream(shape.Picture.ImageBytes, writable: false);
                         projectedShape = slide.AddImage(image,
-                            GetLegacyPicturePartType(shape.Picture.ContentType), left, top, width, height);
+                            GetLegacyPicturePartType(shape.Picture.ContentType), OfficeLength.Emus(left),
+                            OfficeLength.Emus(top), OfficeLength.Emus(width), OfficeLength.Emus(height));
                     }
                     break;
                 case LegacyPptShapeKind.OleObject:

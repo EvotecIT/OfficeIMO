@@ -23,8 +23,8 @@ namespace OfficeIMO.Tests {
             byte[] bytes;
             using (PowerPointDocument source = PowerPointDocument.Create()) {
                 PowerPointSlide slide = source.AddSlide(PowerPointSlideLayoutType.Blank);
-                PowerPointChart chart = slide.AddChartPoints(
-                    OfficeChartType.ColumnClustered, data, 30D, 20D, 240D, 150D);
+                PowerPointChart chart = slide.AddChart(
+                    OfficeChartType.ColumnClustered,data,global::OfficeIMO.OfficeLength.Points(30D),global::OfficeIMO.OfficeLength.Points(20D),global::OfficeIMO.OfficeLength.Points(240D),global::OfficeIMO.OfficeLength.Points(150D));
                 slide.AddClassicAnimation(chart, PowerPointClassicAnimationEffect.Fade,
                     new PowerPointClassicAnimationOptions { BuildType = buildType });
                 bytes = source.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt,
@@ -60,8 +60,7 @@ namespace OfficeIMO.Tests {
             byte[] bytes;
             using (PowerPointDocument source = PowerPointDocument.Create()) {
                 source.AddSlide(PowerPointSlideLayoutType.Blank)
-                    .AddChartPoints(OfficeChartType.ColumnClustered, data,
-                        30D, 20D, 240D, 150D)
+                    .AddChart(OfficeChartType.ColumnClustered,data,                        global::OfficeIMO.OfficeLength.Points(30D),global::OfficeIMO.OfficeLength.Points(20D),global::OfficeIMO.OfficeLength.Points(240D),global::OfficeIMO.OfficeLength.Points(150D))
                     .SetTitle("Quarterly revenue");
 
                 LegacyPptWritePreflightReport preflight = source

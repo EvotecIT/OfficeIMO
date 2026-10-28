@@ -18,12 +18,12 @@ namespace OfficeIMO.Tests {
                 PowerPointSlide slide = source.AddSlide(PowerPointSlideLayoutType.Blank);
                 using (var first = new MemoryStream(image, writable: false)) {
                     PowerPointPicture picture = slide.AddImage(first,
-                        OfficeIMO.Drawing.OfficeImageFormat.Png, 158750, 317500, 635000, 476250);
+                        OfficeIMO.Drawing.OfficeImageFormat.Png, global::OfficeIMO.OfficeLength.Emus(158750), global::OfficeIMO.OfficeLength.Emus(317500), global::OfficeIMO.OfficeLength.Emus(635000), global::OfficeIMO.OfficeLength.Emus(476250));
                     picture.Crop(10D, 20D, 5D, 15D);
                 }
                 using (var second = new MemoryStream(image, writable: false)) {
                     slide.AddImage(second, OfficeIMO.Drawing.OfficeImageFormat.Png,
-                        952500, 317500, 635000, 476250);
+                        global::OfficeIMO.OfficeLength.Emus(952500), global::OfficeIMO.OfficeLength.Emus(317500), global::OfficeIMO.OfficeLength.Emus(635000), global::OfficeIMO.OfficeLength.Emus(476250));
                 }
 
                 LegacyPptWritePreflightReport preflight = source
@@ -95,7 +95,7 @@ namespace OfficeIMO.Tests {
                 using (var stream = new MemoryStream(image,
                            writable: false)) {
                     picture = slide.AddImage(stream, OfficeIMO.Drawing.OfficeImageFormat.Png,
-                        158750, 317500, 635000, 476250);
+                        global::OfficeIMO.OfficeLength.Emus(158750), global::OfficeIMO.OfficeLength.Emus(317500), global::OfficeIMO.OfficeLength.Emus(635000), global::OfficeIMO.OfficeLength.Emus(476250));
                 }
                 PowerPointAutoShape frame = slide.AddShape(
                     OfficePresetShapeType.Rectangle,
@@ -309,10 +309,10 @@ namespace OfficeIMO.Tests {
                 using var stream = new MemoryStream(emf, writable: false);
                 source.AddSlide(PowerPointSlideLayoutType.Blank)
                     .AddImage(stream, OfficeIMO.Drawing.OfficeImageFormat.Emf,
-                        PowerPointUnits.FromPoints(20D),
-                        PowerPointUnits.FromPoints(30D),
-                        PowerPointUnits.FromPoints(120D),
-                        PowerPointUnits.FromPoints(90D));
+                        global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(20D)),
+                        global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(30D)),
+                        global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(120D)),
+                        global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(90D)));
                 Assert.True(source.AnalyzeLegacyPptWrite().CanWrite);
                 bytes = source.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
@@ -365,8 +365,8 @@ namespace OfficeIMO.Tests {
         private static PowerPointPicture AddImage(PowerPointSlide slide,
             byte[] image, long left) {
             using var stream = new MemoryStream(image, writable: false);
-            return slide.AddImage(stream, OfficeIMO.Drawing.OfficeImageFormat.Png, left, 0,
-                600000, 450000);
+            return slide.AddImage(stream, OfficeIMO.Drawing.OfficeImageFormat.Png, global::OfficeIMO.OfficeLength.Emus(left), global::OfficeIMO.OfficeLength.Emus(0),
+                global::OfficeIMO.OfficeLength.Emus(600000), global::OfficeIMO.OfficeLength.Emus(450000));
         }
 
         private static void WriteUInt32(byte[] target, int offset,

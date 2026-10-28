@@ -3361,6 +3361,12 @@
       "phase": "B",
       "applied": "phase-b-applied",
       "reason": "Remove the remaining public detailed-result image-export twin. Examples, compile contracts and the native corpus use byte payloads and shared reports; PowerShell retains its detailed page-result output through the existing internal kernel and disposes its document. Rendering cancellation remains covered through the public export path. Capability catalogs describe the public byte/report contract."
+    },
+    {
+      "change": "Migrate AI input/artifact contract tests to canonical PDF image bytes and options.",
+      "reason": "Full solution compilation exposed remaining callers of the removed format-plus-detailed-result image overload. Tests now set Format on PdfImageExportOptions, compare returned bytes directly, and dispose loaded documents. Page identity, DPI and permission assertions remain.",
+      "phase": "B",
+      "applied": "phase-b-applied"
     }
   ],
   "applicationStatus": "Phase A applied and validated on the supported macOS targets. Phase B and Tier 2 entries retain their status; Windows .NET Framework validation remains pending.",

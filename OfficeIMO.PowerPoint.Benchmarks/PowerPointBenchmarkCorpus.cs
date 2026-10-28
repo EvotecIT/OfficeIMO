@@ -49,15 +49,14 @@ internal static class PowerPointBenchmarkCorpus {
         PowerPointSlide slide = presentation.AddSlide();
         slide.BackgroundColor = index % 2 == 0 ? "F8FAFC" : "F1F5F9";
 
-        PowerPointTextBox title = slide.AddTextBoxPoints(
-            $"Operational review {index + 1}", 40, 24, 600, 40);
+        PowerPointTextBox title = slide.AddTextBox(
+            $"Operational review {index + 1}",global::OfficeIMO.OfficeLength.Points(40),global::OfficeIMO.OfficeLength.Points(24),global::OfficeIMO.OfficeLength.Points(600),global::OfficeIMO.OfficeLength.Points(40));
         title.FontSize = 24;
         title.Bold = true;
         title.Color = "0F172A";
 
-        PowerPointTextBox subtitle = slide.AddTextBoxPoints(
-            $"Slide {index + 1} of {slideCount} · deterministic benchmark corpus",
-            40, 72, 700, 28);
+        PowerPointTextBox subtitle = slide.AddTextBox(
+            $"Slide {index + 1} of {slideCount} · deterministic benchmark corpus",            global::OfficeIMO.OfficeLength.Points(40),global::OfficeIMO.OfficeLength.Points(72),global::OfficeIMO.OfficeLength.Points(700),global::OfficeIMO.OfficeLength.Points(28));
         subtitle.FontSize = 12;
         subtitle.Color = "475569";
 
@@ -75,15 +74,14 @@ internal static class PowerPointBenchmarkCorpus {
 
         if (index % 5 == 0) AddChart(slide, index);
         else {
-            PowerPointTextBox narrative = slide.AddTextBoxPoints(
-                "Measured work includes editable text, vector shapes, package serialization, and rendering.",
-                390, 238, 500, 110);
+            PowerPointTextBox narrative = slide.AddTextBox(
+                "Measured work includes editable text, vector shapes, package serialization, and rendering.",                global::OfficeIMO.OfficeLength.Points(390),global::OfficeIMO.OfficeLength.Points(238),global::OfficeIMO.OfficeLength.Points(500),global::OfficeIMO.OfficeLength.Points(110));
             narrative.FontSize = 18;
             narrative.Color = "1E293B";
         }
 
-        PowerPointTextBox footer = slide.AddTextBoxPoints(
-            "OfficeIMO.PowerPoint performance corpus", 40, 500, 420, 20);
+        PowerPointTextBox footer = slide.AddTextBox(
+            "OfficeIMO.PowerPoint performance corpus",global::OfficeIMO.OfficeLength.Points(40),global::OfficeIMO.OfficeLength.Points(500),global::OfficeIMO.OfficeLength.Points(420),global::OfficeIMO.OfficeLength.Points(20));
         footer.FontSize = 9;
         footer.Color = "64748B";
     }
@@ -114,9 +112,8 @@ internal static class PowerPointBenchmarkCorpus {
                 40, 224 + row * 72, 300, 54, $"Detail {row + 1}");
             panel.FillColor = row % 2 == 0 ? "FFFFFF" : "F8FAFC";
             panel.OutlineColor = "CBD5E1";
-            PowerPointTextBox value = slide.AddTextBoxPoints(
-                $"Workstream {row + 1}: checkpoint {index + row + 1}",
-                56, 239 + row * 72, 260, 24);
+            PowerPointTextBox value = slide.AddTextBox(
+                $"Workstream {row + 1}: checkpoint {index + row + 1}",                global::OfficeIMO.OfficeLength.Points(56),global::OfficeIMO.OfficeLength.Points(239 + row * 72),global::OfficeIMO.OfficeLength.Points(260),global::OfficeIMO.OfficeLength.Points(24));
             value.FontSize = 12;
             value.Color = "334155";
         }
@@ -133,7 +130,6 @@ internal static class PowerPointBenchmarkCorpus {
                     15D + index, 20D + index, 26D + index, 32D + index
                 })
             });
-        slide.AddChartPoints(OfficeChartType.BarClustered, data,
-            390, 214, 500, 260);
+        slide.AddChart(OfficeChartType.BarClustered,data,            global::OfficeIMO.OfficeLength.Points(390),global::OfficeIMO.OfficeLength.Points(214),global::OfficeIMO.OfficeLength.Points(500),global::OfficeIMO.OfficeLength.Points(260));
     }
 }

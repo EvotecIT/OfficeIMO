@@ -262,12 +262,12 @@ var slide = presentation.AddSlide();
 slide.AddTitle("Quarterly Review");
 
 slide.AddTextBox("Agenda",
-    PowerPointUnits.FromCentimeters(1.5), PowerPointUnits.FromCentimeters(2.0),
-    PowerPointUnits.FromCentimeters(8.0), PowerPointUnits.FromCentimeters(1.0));
+    OfficeIMO.OfficeLength.Centimeters(1.5), OfficeIMO.OfficeLength.Centimeters(2.0),
+    OfficeIMO.OfficeLength.Centimeters(8.0), OfficeIMO.OfficeLength.Centimeters(1.0));
 
 var agenda = slide.AddTextBox("Topics",
-    PowerPointUnits.FromCentimeters(1.5), PowerPointUnits.FromCentimeters(3.0),
-    PowerPointUnits.FromCentimeters(10.0), PowerPointUnits.FromCentimeters(3.0));
+    OfficeIMO.OfficeLength.Centimeters(1.5), OfficeIMO.OfficeLength.Centimeters(3.0),
+    OfficeIMO.OfficeLength.Centimeters(10.0), OfficeIMO.OfficeLength.Centimeters(3.0));
 agenda.AddBullets(new[] { "Intro", "KPIs", "Next steps" });
 ```
 
@@ -289,17 +289,17 @@ using OfficeIMO.Drawing;
 using OfficeIMO.PowerPoint;
 
 slide.AddImage("logo.png",
-    PowerPointUnits.FromCentimeters(23), PowerPointUnits.FromCentimeters(1.2),
-    PowerPointUnits.FromCentimeters(5), PowerPointUnits.FromCentimeters(2));
+    OfficeIMO.OfficeLength.Centimeters(23), OfficeIMO.OfficeLength.Centimeters(1.2),
+    OfficeIMO.OfficeLength.Centimeters(5), OfficeIMO.OfficeLength.Centimeters(2));
 
 using var logo = File.OpenRead("logo.png");
 slide.AddImage(logo, OfficeImageFormat.Png,
-    PowerPointUnits.FromCentimeters(2), PowerPointUnits.FromCentimeters(2),
-    PowerPointUnits.FromCentimeters(5), PowerPointUnits.FromCentimeters(2));
+    OfficeIMO.OfficeLength.Centimeters(2), OfficeIMO.OfficeLength.Centimeters(2),
+    OfficeIMO.OfficeLength.Centimeters(5), OfficeIMO.OfficeLength.Centimeters(2));
 
 slide.AddImage("diagram.svg",
-    PowerPointUnits.FromCentimeters(2), PowerPointUnits.FromCentimeters(5),
-    PowerPointUnits.FromCentimeters(8), PowerPointUnits.FromCentimeters(4));
+    OfficeIMO.OfficeLength.Centimeters(2), OfficeIMO.OfficeLength.Centimeters(5),
+    OfficeIMO.OfficeLength.Centimeters(8), OfficeIMO.OfficeLength.Centimeters(4));
 ```
 
 ### Shapes and layout
@@ -373,8 +373,8 @@ var chartData = new OfficeChartData(
 var slide = presentation.AddSlide();
 slide.AddTitle("Revenue and margin");
 
-slide.AddChartCm(OfficeChartType.ColumnClustered, chartData,
-        leftCm: 1.4, topCm: 3.0, widthCm: 13.2, heightCm: 8.0)
+slide.AddChart(OfficeChartType.ColumnClustered, chartData,
+left: OfficeIMO.OfficeLength.Centimeters(1.4), top: OfficeIMO.OfficeLength.Centimeters(3.0), width: OfficeIMO.OfficeLength.Centimeters(13.2), height: OfficeIMO.OfficeLength.Centimeters(8.0))
     .SetTitle("Quarterly performance")
     .SetCategoryAxisTitle("Quarter")
     .SetValueAxisTitle("Value")
@@ -413,9 +413,9 @@ var sharedData = new OfficeChartData(
             axisGroup: OfficeChartAxisGroup.Secondary)
     });
 
-PowerPointChart chart = slide.AddChartCm(
+PowerPointChart chart = slide.AddChart(
     OfficeChartType.ColumnClustered, sharedData,
-    leftCm: 1.5, topCm: 3, widthCm: 22, heightCm: 9,
+left: OfficeIMO.OfficeLength.Centimeters(1.5), top: OfficeIMO.OfficeLength.Centimeters(3), width: OfficeIMO.OfficeLength.Centimeters(22), height: OfficeIMO.OfficeLength.Centimeters(9),
     accessibility: new PowerPointChartAccessibilityOptions {
         AlternativeText = "Revenue columns with margin line on a secondary axis"
     });
@@ -472,8 +472,8 @@ var mix = new OfficeChartData(
     new[] { "Services", "Licenses", "Support" },
     new[] { new OfficeSeries("Share", new[] { 55d, 30d, 15d }) });
 
-slide.AddChartCm(OfficeChartType.Doughnut, mix,
-        leftCm: 15.2, topCm: 3.0, widthCm: 8.0, heightCm: 8.0)
+slide.AddChart(OfficeChartType.Doughnut, mix,
+left: OfficeIMO.OfficeLength.Centimeters(15.2), top: OfficeIMO.OfficeLength.Centimeters(3.0), width: OfficeIMO.OfficeLength.Centimeters(8.0), height: OfficeIMO.OfficeLength.Centimeters(8.0))
     .SetTitle("Revenue mix")
     .SetLegend(OfficeChartLegendPosition.Right);
 ```
@@ -532,8 +532,8 @@ var segmentChart = new OfficeChartData(
         new OfficeSeries("Q4", segments.Select(row => (double)row.Q4))
     });
 
-dashboard.AddChartCm(OfficeChartType.Line, segmentChart,
-        leftCm: 12.2, topCm: 3.0, widthCm: 12.0, heightCm: 6.5)
+dashboard.AddChart(OfficeChartType.Line, segmentChart,
+left: OfficeIMO.OfficeLength.Centimeters(12.2), top: OfficeIMO.OfficeLength.Centimeters(3.0), width: OfficeIMO.OfficeLength.Centimeters(12.0), height: OfficeIMO.OfficeLength.Centimeters(6.5))
     .SetTitle("Segment trend")
     .SetLegend(OfficeChartLegendPosition.Bottom);
 

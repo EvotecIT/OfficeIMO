@@ -34,7 +34,7 @@ public static partial class ProjectReportWorkflow {
             double scale = Math.Min(view.PageWidth / image.Width, view.PageHeight / image.Height);
             double width = image.Width * scale, height = image.Height * scale;
             using var stream = new MemoryStream(image.Bytes);
-            slide.AddImagePoints(stream, OfficeImageFormat.Png, (view.PageWidth - width) / 2, (view.PageHeight - height) / 2, width, height);
+            slide.AddImage(stream, OfficeImageFormat.Png, OfficeIMO.OfficeLength.Points((view.PageWidth - width) / 2), OfficeIMO.OfficeLength.Points((view.PageHeight - height) / 2), OfficeIMO.OfficeLength.Points(width), OfficeIMO.OfficeLength.Points(height));
         }, options.Images, token);
     }
 }

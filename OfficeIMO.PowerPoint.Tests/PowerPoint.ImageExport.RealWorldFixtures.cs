@@ -108,7 +108,7 @@ namespace OfficeIMO.Tests {
             PowerPointSlide slide = presentation.AddSlide();
             slide.BackgroundColor = "FFFFFF";
 
-            PowerPointTextBox title = slide.AddTextBoxPoints("Executive Summary", 18, 12, 260, 24);
+            PowerPointTextBox title = slide.AddTextBox("Executive Summary",global::OfficeIMO.OfficeLength.Points(18),global::OfficeIMO.OfficeLength.Points(12),global::OfficeIMO.OfficeLength.Points(260),global::OfficeIMO.OfficeLength.Points(24));
             title.FontSize = 18;
             title.Color = "0F172A";
 
@@ -151,7 +151,7 @@ namespace OfficeIMO.Tests {
                     OfficeColor.FromRgb(99, 102, 241)
                 },
                 topDown: true));
-            slide.AddImagePoints(image, OfficeImageFormat.Bmp, 276, 16, 24, 24);
+            slide.AddImage(image, OfficeImageFormat.Bmp, OfficeIMO.OfficeLength.Points(276), OfficeIMO.OfficeLength.Points(16), OfficeIMO.OfficeLength.Points(24), OfficeIMO.OfficeLength.Points(24));
 
             return presentation;
         }
@@ -172,7 +172,7 @@ namespace OfficeIMO.Tests {
             AddConnector(slide, 162, 76, 10, 0);
             AddConnector(slide, 238, 76, 10, 0);
 
-            PowerPointTextBox note = slide.AddTextBoxPoints("OpenXML + Drawing only", 56, 120, 208, 20);
+            PowerPointTextBox note = slide.AddTextBox("OpenXML + Drawing only",global::OfficeIMO.OfficeLength.Points(56),global::OfficeIMO.OfficeLength.Points(120),global::OfficeIMO.OfficeLength.Points(208),global::OfficeIMO.OfficeLength.Points(20));
             note.FontSize = 12;
             note.Color = "0F172A";
 
@@ -190,11 +190,11 @@ namespace OfficeIMO.Tests {
             accent.OutlineColor = color;
             accent.OutlineWidthPoints = 0D;
 
-            PowerPointTextBox labelBox = slide.AddTextBoxPoints(label, left + 8, top + 7, 68, 12);
+            PowerPointTextBox labelBox = slide.AddTextBox(label,global::OfficeIMO.OfficeLength.Points(left + 8),global::OfficeIMO.OfficeLength.Points(top + 7),global::OfficeIMO.OfficeLength.Points(68),global::OfficeIMO.OfficeLength.Points(12));
             labelBox.FontSize = 8;
             labelBox.Color = "334155";
 
-            PowerPointTextBox valueBox = slide.AddTextBoxPoints(value, left + 8, top + 22, 68, 16);
+            PowerPointTextBox valueBox = slide.AddTextBox(value,global::OfficeIMO.OfficeLength.Points(left + 8),global::OfficeIMO.OfficeLength.Points(top + 22),global::OfficeIMO.OfficeLength.Points(68),global::OfficeIMO.OfficeLength.Points(16));
             valueBox.FontSize = 14;
             valueBox.Color = color;
         }
@@ -205,7 +205,7 @@ namespace OfficeIMO.Tests {
             node.OutlineColor = "0F172A";
             node.OutlineWidthPoints = 1D;
 
-            PowerPointTextBox text = slide.AddTextBoxPoints(label, left + 4, top + 11, 58, 12);
+            PowerPointTextBox text = slide.AddTextBox(label,global::OfficeIMO.OfficeLength.Points(left + 4),global::OfficeIMO.OfficeLength.Points(top + 11),global::OfficeIMO.OfficeLength.Points(58),global::OfficeIMO.OfficeLength.Points(12));
             text.TextMarginLeftPoints = text.TextMarginRightPoints = 0D;
             text.TextMarginTopPoints = text.TextMarginBottomPoints = 0D;
             text.FontSize = 8;

@@ -15,8 +15,7 @@ namespace OfficeIMO.Tests {
                 PowerPointSlide slide = source.AddSlide(PowerPointSlideLayoutType.Blank);
                 PowerPointAutoShape rectangle = slide.AddRectangle(
                     100000, 100000, 1200000, 500000);
-                PowerPointTextBox text = slide.AddTextBox("Animated text",
-                    100000, 800000, 1800000, 500000);
+                PowerPointTextBox text = slide.AddTextBox("Animated text",                    global::OfficeIMO.OfficeLength.Emus(100000),global::OfficeIMO.OfficeLength.Emus(800000),global::OfficeIMO.OfficeLength.Emus(1800000),global::OfficeIMO.OfficeLength.Emus(500000));
                 slide.AddClassicAnimation(rectangle,
                     PowerPointClassicAnimationEffect.Wipe,
                     new PowerPointClassicAnimationOptions {
@@ -411,8 +410,7 @@ namespace OfficeIMO.Tests {
             byte[] bytes;
             using (PowerPointDocument source = PowerPointDocument.Create()) {
                 PowerPointSlide slide = source.AddSlide(PowerPointSlideLayoutType.Blank);
-                PowerPointTextBox shape = slide.AddTextBox("One\nTwo\nThree",
-                    100000, 100000, 1800000, 900000);
+                PowerPointTextBox shape = slide.AddTextBox("One\nTwo\nThree",                    global::OfficeIMO.OfficeLength.Emus(100000),global::OfficeIMO.OfficeLength.Emus(100000),global::OfficeIMO.OfficeLength.Emus(1800000),global::OfficeIMO.OfficeLength.Emus(900000));
                 uint shapeId = Assert.IsType<uint>(shape.Id);
                 slide.SlidePart.Slide!.Append(
                     CreatePowerPointAuthoredClassicTiming(shapeId));

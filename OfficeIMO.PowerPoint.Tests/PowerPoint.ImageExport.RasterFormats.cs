@@ -113,10 +113,10 @@ namespace OfficeIMO.Tests {
             slide.AddImage(
                 new MemoryStream(bmp),
                 OfficeImageFormat.Bmp,
-                PowerPointUnits.FromPoints(20),
-                PowerPointUnits.FromPoints(20),
-                PowerPointUnits.FromPoints(24),
-                PowerPointUnits.FromPoints(18));
+                global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(20)),
+                global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(20)),
+                global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(24)),
+                global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(18)));
 
             OfficeImageExportResult png = slide.ExportImage(OfficeImageExportFormat.Png);
             OfficeImageExportResult svg = slide.ExportImage(OfficeImageExportFormat.Svg);
@@ -141,10 +141,10 @@ namespace OfficeIMO.Tests {
             slide.AddImage(
                 new MemoryStream(bmp),
                 OfficeImageFormat.Bmp,
-                PowerPointUnits.FromPoints(20),
-                PowerPointUnits.FromPoints(20),
-                PowerPointUnits.FromPoints(24),
-                PowerPointUnits.FromPoints(18));
+                global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(20)),
+                global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(20)),
+                global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(24)),
+                global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(18)));
 
             OfficeImageExportResult png = slide.ExportImage(OfficeImageExportFormat.Png);
             OfficeImageExportResult svg = slide.ExportImage(OfficeImageExportFormat.Svg);
@@ -169,10 +169,10 @@ namespace OfficeIMO.Tests {
             slide.AddImage(
                 new MemoryStream(bmp),
                 OfficeImageFormat.Bmp,
-                PowerPointUnits.FromPoints(20),
-                PowerPointUnits.FromPoints(20),
-                PowerPointUnits.FromPoints(24),
-                PowerPointUnits.FromPoints(18));
+                global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(20)),
+                global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(20)),
+                global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(24)),
+                global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(18)));
 
             OfficeImageExportResult png = slide.ExportImage(OfficeImageExportFormat.Png, new PowerPointImageExportOptions { BackgroundColor = OfficeColor.White });
             OfficeImageExportResult svg = slide.ExportImage(OfficeImageExportFormat.Svg, new PowerPointImageExportOptions { BackgroundColor = OfficeColor.White });
@@ -198,10 +198,10 @@ namespace OfficeIMO.Tests {
             slide.AddImage(
                 new MemoryStream(CreateSinglePixelGif()),
                 OfficeImageFormat.Gif,
-                PowerPointUnits.FromPoints(20),
-                PowerPointUnits.FromPoints(20),
-                PowerPointUnits.FromPoints(24),
-                PowerPointUnits.FromPoints(18));
+                global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(20)),
+                global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(20)),
+                global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(24)),
+                global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(18)));
 
             OfficeImageExportResult png = slide.ExportImage(OfficeImageExportFormat.Png);
             OfficeImageExportResult svg = slide.ExportImage(OfficeImageExportFormat.Svg);

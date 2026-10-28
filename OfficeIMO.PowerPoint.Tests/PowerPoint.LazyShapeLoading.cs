@@ -14,10 +14,10 @@ namespace OfficeIMO.PowerPoint.Tests {
         public void LoadedSlidesMaterializeShapesOnlyWhenAccessedOrEdited() {
             byte[] source;
             using (var created = PowerPointDocument.Create(new MemoryStream())) {
-                created.AddSlide().AddTextBoxPoints("First", 20, 20, 120, 30);
-                created.AddSlide().AddTextBoxPoints("Second", 20, 20, 120, 30);
+                created.AddSlide().AddTextBox("First",global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(120),global::OfficeIMO.OfficeLength.Points(30));
+                created.AddSlide().AddTextBox("Second",global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(120),global::OfficeIMO.OfficeLength.Points(30));
                 PowerPointSlide third = created.AddSlide();
-                third.AddTextBoxPoints("Third", 20, 20, 120, 30);
+                third.AddTextBox("Third",global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(120),global::OfficeIMO.OfficeLength.Points(30));
                 third.Hide();
                 source = created.ToBytes();
             }
@@ -32,7 +32,7 @@ namespace OfficeIMO.PowerPoint.Tests {
             Assert.False(presentation.Slides[1].SlidePart.IsRootElementLoaded);
             Assert.False(presentation.Slides[2].SlidePart.IsRootElementLoaded);
 
-            presentation.Slides[1].AddTextBoxPoints("Reviewed", 20, 60, 120, 30);
+            presentation.Slides[1].AddTextBox("Reviewed",global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(60),global::OfficeIMO.OfficeLength.Points(120),global::OfficeIMO.OfficeLength.Points(30));
             Assert.Equal(2, presentation.Slides[1].Shapes.Count);
             Assert.False(presentation.Slides[2].SlidePart.IsRootElementLoaded);
 
@@ -52,7 +52,7 @@ namespace OfficeIMO.PowerPoint.Tests {
         public void SaveStillNormalizesLegacySlideVisibilityMarkup() {
             byte[] source;
             using (var created = PowerPointDocument.Create(new MemoryStream())) {
-                created.AddSlide().AddTextBoxPoints("Legacy hidden", 20, 20, 160, 30);
+                created.AddSlide().AddTextBox("Legacy hidden",global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(160),global::OfficeIMO.OfficeLength.Points(30));
                 source = created.ToBytes();
             }
 

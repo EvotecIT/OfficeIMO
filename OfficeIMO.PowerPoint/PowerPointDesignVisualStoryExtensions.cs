@@ -83,7 +83,7 @@ namespace OfficeIMO.PowerPoint {
             frame.FillColor = theme.AccentDarkColor;
             frame.OutlineColor = theme.AccentDarkColor;
             frame.SetShadow("000000", blurPoints: 5, distancePoints: 1.5, angleDegrees: 90, transparencyPercent: 82);
-            PowerPointPicture picture = slide.AddImage(image, bounds);
+            PowerPointPicture picture = slide.AddImage(image,bounds);
             AddImageAnnotations(slide, theme, image, picture, compact: true);
             AddStoryCaption(slide, theme, image.Caption, image.Provenance, 1.55, height - 1.65, width - 3.1);
         }
@@ -93,7 +93,7 @@ namespace OfficeIMO.PowerPoint {
             PowerPointLayoutBox body = new OfficeIMO.PowerPoint.PowerPointLayoutBox(OfficeIMO.OfficeLength.Centimeters(1.5),OfficeIMO.OfficeLength.Centimeters(3.55),OfficeIMO.OfficeLength.Centimeters(width - 3),OfficeIMO.OfficeLength.Centimeters(height - 5.25));
             double imageWidth = body.Width.ToCentimeters() * 0.69;
             PowerPointLayoutBox imageBounds = new OfficeIMO.PowerPoint.PowerPointLayoutBox(OfficeIMO.OfficeLength.Centimeters(body.Left.ToCentimeters()),OfficeIMO.OfficeLength.Centimeters(body.Top.ToCentimeters()),                OfficeIMO.OfficeLength.Centimeters(imageWidth),OfficeIMO.OfficeLength.Centimeters(body.Height.ToCentimeters()));
-            PowerPointPicture picture = slide.AddImage(image, imageBounds);
+            PowerPointPicture picture = slide.AddImage(image,imageBounds);
             AddImageAnnotations(slide, theme, image, picture, compact: false);
 
             double railLeft = imageBounds.Right.ToCentimeters() + 0.7;

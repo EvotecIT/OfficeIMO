@@ -191,7 +191,7 @@ public sealed partial class IWorkBoundaryTests {
     public void PowerPoint_shape_hyperlinks_round_trip_through_the_owner_model() {
         using PowerPointDocument presentation = PowerPointDocument.Create();
         PowerPointTextBox textBox = presentation.AddSlide()
-            .AddTextBoxPoints("Linked", 10, 10, 100, 30);
+            .AddTextBox("Linked",global::OfficeIMO.OfficeLength.Points(10),global::OfficeIMO.OfficeLength.Points(10),global::OfficeIMO.OfficeLength.Points(100),global::OfficeIMO.OfficeLength.Points(30));
         var target = new Uri("https://example.com/keynote-shape");
 
         textBox.SetHyperlink(target);

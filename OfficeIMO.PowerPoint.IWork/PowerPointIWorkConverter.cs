@@ -132,7 +132,7 @@ public static partial class PowerPointIWorkConverter {
                     : OfficeImageFormat.Jpeg;
                 (double left, double top, double width, double height) = PreviewLayout(preview,
                     canvasWidth / 72d, canvasHeight / 72d);
-                PowerPointPicture picture = slide.AddImageInches(image, format, left, top, width, height);
+                PowerPointPicture picture = slide.AddImage(image, format, OfficeIMO.OfficeLength.Inches(left), OfficeIMO.OfficeLength.Inches(top), OfficeIMO.OfficeLength.Inches(width), OfficeIMO.OfficeLength.Inches(height));
                 picture.AltText = "Visual fallback from the source Keynote package";
             }
 
@@ -180,9 +180,9 @@ public static partial class PowerPointIWorkConverter {
         width = QuantizePositiveEmuPoints(width);
         height = QuantizePositiveEmuPoints(height);
         using var stream = new MemoryStream(source.GetBytes(), writable: false);
-        PowerPointPicture picture = slide.AddImagePoints(stream,
+        PowerPointPicture picture = slide.AddImage(stream,
             source.MediaType == "image/png" ? OfficeImageFormat.Png : OfficeImageFormat.Jpeg,
-            left, top, width, height);
+            OfficeIMO.OfficeLength.Points(left), OfficeIMO.OfficeLength.Points(top), OfficeIMO.OfficeLength.Points(width), OfficeIMO.OfficeLength.Points(height));
         picture.Rotation = source.Geometry?.RotationDegrees;
         picture.AltText = source.AccessibilityDescription;
         if (source.Hyperlink != null

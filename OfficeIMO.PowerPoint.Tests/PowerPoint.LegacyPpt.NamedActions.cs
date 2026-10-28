@@ -24,8 +24,7 @@ namespace OfficeIMO.Tests {
                     HighlightClick = true
                 });
 
-                PowerPointTextBox textBox = slide.AddTextBox("Run tool",
-                    100000, 800000, 1000000, 500000);
+                PowerPointTextBox textBox = slide.AddTextBox("Run tool",                    global::OfficeIMO.OfficeLength.Emus(100000),global::OfficeIMO.OfficeLength.Emus(800000),global::OfficeIMO.OfficeLength.Emus(1000000),global::OfficeIMO.OfficeLength.Emus(500000));
                 HyperlinkRelationship programRelationship = slide.SlidePart
                     .AddHyperlinkRelationship(programUri, true);
                 A.Run run = ((P.Shape)textBox.Element).TextBody!

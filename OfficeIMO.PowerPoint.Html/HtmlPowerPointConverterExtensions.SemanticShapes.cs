@@ -136,7 +136,7 @@ public static partial class HtmlPowerPointConverterExtensions {
             ReadSemanticShapeGeometry(source, left, top, width, height, budget, result,
                 out left, out top, out width, out height);
         }
-        PptCore.PowerPointTextBox textBox = slide.AddTextBoxPoints(text, left, top, width, height);
+        PptCore.PowerPointTextBox textBox = slide.AddTextBox(text,global::OfficeIMO.OfficeLength.Points(left),global::OfficeIMO.OfficeLength.Points(top),global::OfficeIMO.OfficeLength.Points(width),global::OfficeIMO.OfficeLength.Points(height));
         if (semanticBlock?.Kind == HtmlSemanticBlockKind.List) {
             ApplySemanticList(textBox, semanticBlock, result,
                 options.NormalizedHyperlinkUrlPolicy ?? options.HyperlinkUrlPolicy);

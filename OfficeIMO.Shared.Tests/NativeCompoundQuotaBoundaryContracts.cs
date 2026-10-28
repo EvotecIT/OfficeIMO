@@ -66,7 +66,7 @@ public sealed class NativeCompoundQuotaBoundaryContracts {
     [InlineData("encrypted")]
     public void PowerPointExistingSmallRecordPolicyPreservesEffectiveCompoundLimit(string route) {
         using PowerPointDocument source = PowerPointDocument.Create();
-        source.AddSlide().AddTextBox("Ordinary binary content", 100000, 100000, 2000000, 500000);
+        source.AddSlide().AddTextBox("Ordinary binary content",global::OfficeIMO.OfficeLength.Emus(100000),global::OfficeIMO.OfficeLength.Emus(100000),global::OfficeIMO.OfficeLength.Emus(2000000),global::OfficeIMO.OfficeLength.Emus(500000));
         var options = new LegacyPptImportOptions { MaxRecordCount = 3 };
         byte[] bytes = route == "encrypted" ? source.ToBytes(new OfficeIMO.PowerPoint.PowerPointSaveOptions{Password="fixture-password",Format=PowerPointFileFormat.Ppt}): source.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
         OfficeInspectionResourceLimitException error = Assert.Throws<OfficeInspectionResourceLimitException>(() => {
@@ -168,7 +168,7 @@ public sealed class NativeCompoundQuotaBoundaryContracts {
             Assert.Equal("Ordinary full content", value);
         }
         using (PowerPointDocument source = PowerPointDocument.Create()) {
-            source.AddSlide().AddTextBox("Ordinary full content", 100000, 100000, 2000000, 500000);
+            source.AddSlide().AddTextBox("Ordinary full content",global::OfficeIMO.OfficeLength.Emus(100000),global::OfficeIMO.OfficeLength.Emus(100000),global::OfficeIMO.OfficeLength.Emus(2000000),global::OfficeIMO.OfficeLength.Emus(500000));
             using var input = new MemoryStream(source.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt }));
             using PowerPointDocument loaded = PowerPointDocument.Load(input);
             Assert.Contains(loaded.ExtractMarkdownChunks(), chunk => chunk.Text!.Contains("Ordinary full content", StringComparison.Ordinal));

@@ -616,7 +616,7 @@ namespace OfficeIMO.Tests {
                            writable: false)) {
                     slide.AddImage(second,
                         OfficeIMO.Drawing.OfficeImageFormat.Png,
-                        left: 1000000);
+                        left: global::OfficeIMO.OfficeLength.Emus(1000000));
                 }
                 bytes = created.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
@@ -657,7 +657,7 @@ namespace OfficeIMO.Tests {
                            writable: false)) {
                     slide.AddImage(second,
                         OfficeIMO.Drawing.OfficeImageFormat.Png,
-                        left: 1000000);
+                        left: global::OfficeIMO.OfficeLength.Emus(1000000));
                 }
                 bytes = created.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }

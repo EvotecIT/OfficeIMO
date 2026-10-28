@@ -62,7 +62,7 @@ public sealed class PowerPointPdfSlideLinkTests {
     public void InheritedNextSlideRunsUseEachActiveSlideAndRetainTheRelationshipOwner(bool master) {
         using var presentation = PowerPointDocument.Create(new MemoryStream());
         PowerPointSlide first = presentation.AddSlide(); presentation.AddSlide();
-        PowerPointTextBox box = first.AddTextBoxPoints("Inherited next", 30, 30, 240, 90);
+        PowerPointTextBox box = first.AddTextBox("Inherited next",global::OfficeIMO.OfficeLength.Points(30),global::OfficeIMO.OfficeLength.Points(30),global::OfficeIMO.OfficeLength.Points(240),global::OfficeIMO.OfficeLength.Points(90));
         box.PlaceholderType = null;
         A.Run run = box.Element.Descendants<A.Run>().Single();
         run.RunProperties ??= new A.RunProperties();
@@ -107,7 +107,7 @@ public sealed class PowerPointPdfSlideLinkTests {
     public void NativeNextSlideActionsWithoutRelationshipsResolveOrReportAMissingTarget(bool finalSlide) {
         using var presentation = PowerPointDocument.Create(new MemoryStream());
         PowerPointSlide first = presentation.AddSlide(), second = presentation.AddSlide();
-        PowerPointTextBox box = (finalSlide ? second : first).AddTextBoxPoints("Next slide", 30, 30, 240, 90);
+        PowerPointTextBox box = (finalSlide ? second : first).AddTextBox("Next slide",global::OfficeIMO.OfficeLength.Points(30),global::OfficeIMO.OfficeLength.Points(30),global::OfficeIMO.OfficeLength.Points(240),global::OfficeIMO.OfficeLength.Points(90));
         ((P.Shape)box.Element).NonVisualShapeProperties!.NonVisualDrawingProperties!.Append(
             new A.HyperlinkOnClick { Id = string.Empty, Action = "ppaction://hlinkshowjump?jump=nextslide" });
         A.Run run = box.Element.Descendants<A.Run>().Single();
@@ -140,9 +140,9 @@ public sealed class PowerPointPdfSlideLinkTests {
         PowerPointSlide first = presentation.AddSlide();
         PowerPointSlide hidden = presentation.AddSlide(); hidden.Hidden = true;
         PowerPointSlide visible = presentation.AddSlide();
-        PowerPointTextBox shown = first.AddTextBoxPoints("Visible target", 20, 20, 300, 60);
+        PowerPointTextBox shown = first.AddTextBox("Visible target",global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(300),global::OfficeIMO.OfficeLength.Points(60));
         shown.Paragraphs[0].Runs[0].SetHyperlink(visible);
-        PowerPointTextBox omitted = first.AddTextBoxPoints("Hidden target", 20, 100, 300, 60);
+        PowerPointTextBox omitted = first.AddTextBox("Hidden target",global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(100),global::OfficeIMO.OfficeLength.Points(300),global::OfficeIMO.OfficeLength.Points(60));
         omitted.Paragraphs[0].Runs[0].SetHyperlink(hidden);
         omitted.SetHyperlink(hidden);
 
@@ -174,7 +174,7 @@ public sealed class PowerPointPdfSlideLinkTests {
         PowerPointSlide first = presentation.AddSlide();
         PowerPointSlide second = presentation.AddSlide();
         PowerPointSlide third = presentation.AddSlide();
-        PowerPointTextBox box = first.AddTextBoxPoints("FIRST ", 30, 30, 180, 160);
+        PowerPointTextBox box = first.AddTextBox("FIRST ",global::OfficeIMO.OfficeLength.Points(30),global::OfficeIMO.OfficeLength.Points(30),global::OfficeIMO.OfficeLength.Points(180),global::OfficeIMO.OfficeLength.Points(160));
         box.FontName = "Arial"; box.FontSize = 16;
         box.Paragraphs[0].Runs[0].SetHyperlink(second);
         box.Paragraphs[0].AddRun("SECOND THIRD FOURTH FIFTH SIXTH").SetHyperlink(third);
@@ -200,8 +200,8 @@ public sealed class PowerPointPdfSlideLinkTests {
         presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(400),OfficeIMO.OfficeLength.Points(240));
         PowerPointSlide first = presentation.AddSlide();
         PowerPointSlide second = presentation.AddSlide();
-        PowerPointPicture picture = first.AddImagePoints(new MemoryStream(PdfPngTestImages.Create16BitRgbPng()),
-            OfficeImageFormat.Png, 20, 20, 60, 40);
+        PowerPointPicture picture = first.AddImage(new MemoryStream(PdfPngTestImages.Create16BitRgbPng()),
+            OfficeImageFormat.Png, OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(60), OfficeIMO.OfficeLength.Points(40));
         picture.Rotation = 30; picture.SetHyperlink(second);
         PowerPointTableCell cell = first.AddTable(1,1,global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(100),global::OfficeIMO.OfficeLength.Points(220),global::OfficeIMO.OfficeLength.Points(90)).GetCell(0, 0);
         cell.Text = "Cell target"; cell.Paragraphs[0].Runs[0].SetHyperlink(second);
@@ -226,7 +226,7 @@ public sealed class PowerPointPdfSlideLinkTests {
         using var presentation = PowerPointDocument.Create(new MemoryStream());
         presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(320),OfficeIMO.OfficeLength.Points(220));
         PowerPointSlide first = presentation.AddSlide(); PowerPointSlide second = presentation.AddSlide();
-        PowerPointTextBox box = first.AddTextBoxPoints("GROUP LINK", 40, 40, 200, 60);
+        PowerPointTextBox box = first.AddTextBox("GROUP LINK",global::OfficeIMO.OfficeLength.Points(40),global::OfficeIMO.OfficeLength.Points(40),global::OfficeIMO.OfficeLength.Points(200),global::OfficeIMO.OfficeLength.Points(60));
         box.FontName = "Arial"; box.FontSize = 14;
         box.Paragraphs[0].Runs[0].SetHyperlink(second);
         PowerPointGroupShape group = first.GroupShapes(new PowerPointShape[] { box, first.AddRectanglePoints(40, 110, 200, 10) });

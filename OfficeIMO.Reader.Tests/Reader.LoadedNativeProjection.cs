@@ -134,7 +134,7 @@ public sealed class ReaderLoadedNativeProjectionTests {
             return new Fixture(document, (options, token) => document.ReadDocument("archive!/current-model", options, cancellationToken: token), () => document.InspectEmbeddedPayloads());
         }
         PowerPointDocument presentation = PowerPointDocument.Create();
-        var slide = presentation.AddSlide(); slide.AddTextBox("Current model evidence", 100000, 100000, 2000000, 500000);
+        var slide = presentation.AddSlide(); slide.AddTextBox("Current model evidence",global::OfficeIMO.OfficeLength.Emus(100000),global::OfficeIMO.OfficeLength.Emus(100000),global::OfficeIMO.OfficeLength.Emus(2000000),global::OfficeIMO.OfficeLength.Emus(500000));
         using (var picture = new MemoryStream(Pixel, writable: false)) slide.AddImage(picture, OfficeImageFormat.Png);
         AddPayload(presentation.OpenXmlDocument.PresentationPart!.SlideParts.Single());
         return new Fixture(presentation, (options, token) => presentation.ReadDocument("archive!/current-model", options, cancellationToken: token), () => presentation.InspectEmbeddedPayloads());

@@ -8,41 +8,21 @@ namespace OfficeIMO.PowerPoint {
         /// Adds a native chart from the shared OfficeIMO chart contract. Supports all shared chart kinds,
         /// per-series combo kinds, and primary or secondary value axes where the selected families are compatible.
         /// </summary>
-        public PowerPointChart AddChart(OfficeChartType chartKind, OfficeChartData data,
-            long left = 0L, long top = 0L, long width = 5486400L, long height = 3200400L,
+        public PowerPointChart AddChart(OfficeChartType chartKind,OfficeChartData data,
+            OfficeLength? left = null, OfficeLength? top = null, OfficeLength? width = null, OfficeLength? height = null,
             PowerPointChartAccessibilityOptions? accessibility = null) {
+            long nativeLeft = (left ?? OfficeLength.Emus(0L)).ToEmus();
+            long nativeTop = (top ?? OfficeLength.Emus(0L)).ToEmus();
+            long nativeWidth = (width ?? OfficeLength.Emus(5486400L)).ToEmus();
+            long nativeHeight = (height ?? OfficeLength.Emus(3200400L)).ToEmus();
             if (data == null) throw new ArgumentNullException(nameof(data));
             byte[] workbookBytes = OfficeOpenXmlChartWriter.BuildWorkbook(data, chartKind);
             PowerPointChart chart = AddChartInternal(workbookBytes, (chartPart, embeddedRelId) =>
                 OfficeOpenXmlChartWriter.PopulateSharedChart(chartPart, embeddedRelId, data, chartKind),
-                left, top, width, height);
+                nativeLeft, nativeTop, nativeWidth, nativeHeight);
             ApplyChartAccessibility(chart, data, chartKind, accessibility);
             return chart;
         }
-
-        /// <summary>Adds a native shared-contract chart using centimeter measurements.</summary>
-        public PowerPointChart AddChartCm(OfficeChartType chartKind, OfficeChartData data,
-            double leftCm, double topCm, double widthCm, double heightCm,
-            PowerPointChartAccessibilityOptions? accessibility = null) =>
-            AddChart(chartKind, data,
-                PowerPointUnits.FromCentimeters(leftCm), PowerPointUnits.FromCentimeters(topCm),
-                PowerPointUnits.FromCentimeters(widthCm), PowerPointUnits.FromCentimeters(heightCm), accessibility);
-
-        /// <summary>Adds a native shared-contract chart using inch measurements.</summary>
-        public PowerPointChart AddChartInches(OfficeChartType chartKind, OfficeChartData data,
-            double leftInches, double topInches, double widthInches, double heightInches,
-            PowerPointChartAccessibilityOptions? accessibility = null) =>
-            AddChart(chartKind, data,
-                PowerPointUnits.FromInches(leftInches), PowerPointUnits.FromInches(topInches),
-                PowerPointUnits.FromInches(widthInches), PowerPointUnits.FromInches(heightInches), accessibility);
-
-        /// <summary>Adds a native shared-contract chart using point measurements.</summary>
-        public PowerPointChart AddChartPoints(OfficeChartType chartKind, OfficeChartData data,
-            double leftPoints, double topPoints, double widthPoints, double heightPoints,
-            PowerPointChartAccessibilityOptions? accessibility = null) =>
-            AddChart(chartKind, data,
-                PowerPointUnits.FromPoints(leftPoints), PowerPointUnits.FromPoints(topPoints),
-                PowerPointUnits.FromPoints(widthPoints), PowerPointUnits.FromPoints(heightPoints), accessibility);
 
         private static void ApplyChartAccessibility(PowerPointChart chart, OfficeChartData data,
             OfficeChartType chartKind, PowerPointChartAccessibilityOptions? options) {

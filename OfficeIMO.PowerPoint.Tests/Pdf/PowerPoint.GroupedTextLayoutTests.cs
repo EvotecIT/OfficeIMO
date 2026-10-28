@@ -19,7 +19,7 @@ public sealed class PowerPointGroupedTextLayoutTests {
         using var presentation = PowerPointDocument.Create(new MemoryStream());
         presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(320),OfficeIMO.OfficeLength.Points(220));
         var slide = presentation.AddSlide();
-        var box = slide.AddTextBoxPoints("EDGE", x, y, width, height);
+        var box = slide.AddTextBox("EDGE",global::OfficeIMO.OfficeLength.Points(x),global::OfficeIMO.OfficeLength.Points(y),global::OfficeIMO.OfficeLength.Points(width),global::OfficeIMO.OfficeLength.Points(height));
         box.FontName = "Helvetica";
         box.FontSize = 8;
         var bar = slide.AddRectanglePoints(x, y, width, height);
@@ -46,7 +46,7 @@ public sealed class PowerPointGroupedTextLayoutTests {
         using var presentation = PowerPointDocument.Create(new MemoryStream());
         presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(320),OfficeIMO.OfficeLength.Points(220));
         var slide = presentation.AddSlide();
-        var box = slide.AddTextBoxPoints("MAPPED", 1000, 1000, 160, 50);
+        var box = slide.AddTextBox("MAPPED",global::OfficeIMO.OfficeLength.Points(1000),global::OfficeIMO.OfficeLength.Points(1000),global::OfficeIMO.OfficeLength.Points(160),global::OfficeIMO.OfficeLength.Points(50));
         box.FontName = family;
         var group = slide.GroupShapes(new PowerPointShape[] { box, slide.AddRectanglePoints(1000, 1060, 160, 10) });
         if (nested) group = slide.GroupShapes(new PowerPointShape[] { group, slide.AddRectanglePoints(1000, 1080, 160, 10) });
@@ -72,7 +72,7 @@ public sealed class PowerPointGroupedTextLayoutTests {
         using var presentation = PowerPointDocument.Create(new MemoryStream());
         presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(600),OfficeIMO.OfficeLength.Points(500));
         PowerPointSlide slide = presentation.AddSlide();
-        var box = slide.AddTextBoxPoints("INK", 40, 40, 200, 60);
+        var box = slide.AddTextBox("INK",global::OfficeIMO.OfficeLength.Points(40),global::OfficeIMO.OfficeLength.Points(40),global::OfficeIMO.OfficeLength.Points(200),global::OfficeIMO.OfficeLength.Points(60));
         box.FontName = "Fixture";
         box.FontSize = 14;
         box.Paragraphs[0].Runs[0].Underline = true;
@@ -116,7 +116,7 @@ public sealed class PowerPointGroupedTextLayoutTests {
         using var presentation = PowerPointDocument.Create(new MemoryStream());
         presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(320),OfficeIMO.OfficeLength.Points(220));
         var slide = presentation.AddSlide();
-        var box = slide.AddTextBoxPoints("TRANSFORM", 40, 40, 200, 60);
+        var box = slide.AddTextBox("TRANSFORM",global::OfficeIMO.OfficeLength.Points(40),global::OfficeIMO.OfficeLength.Points(40),global::OfficeIMO.OfficeLength.Points(200),global::OfficeIMO.OfficeLength.Points(60));
         box.FontName = "Fixture";
         box.FontSize = 14;
         box.Paragraphs[0].Runs[0].SetHyperlink("https://officeimo.net/group");

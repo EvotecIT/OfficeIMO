@@ -53,9 +53,9 @@ internal static partial class FixtureCorpus {
             presentation.SlideSize.Height= OfficeIMO.OfficeLength.Centimeters(8.4666666667);
             for (int page = 1; page <= 2; page++) {
                 var slide = presentation.AddSlide();
-                var heading = slide.AddTextBoxPoints("SERVICE REVIEW " + page, 18, 18, 320, 30);
+                var heading = slide.AddTextBox("SERVICE REVIEW " + page,global::OfficeIMO.OfficeLength.Points(18),global::OfficeIMO.OfficeLength.Points(18),global::OfficeIMO.OfficeLength.Points(320),global::OfficeIMO.OfficeLength.Points(30));
                 heading.FontName = family; heading.FontSize = 18;
-                var body = slide.AddTextBoxPoints("Completed actions: 9 of 12", 18, 66, 320, 30);
+                var body = slide.AddTextBox("Completed actions: 9 of 12",global::OfficeIMO.OfficeLength.Points(18),global::OfficeIMO.OfficeLength.Points(66),global::OfficeIMO.OfficeLength.Points(320),global::OfficeIMO.OfficeLength.Points(30));
                 body.FontName = family; body.FontSize = 12;
             }
             presentation.Save(Path.Combine(output, "service-review.pptx"));

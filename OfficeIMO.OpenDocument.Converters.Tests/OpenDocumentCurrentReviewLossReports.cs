@@ -27,7 +27,7 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
     public void PowerPointToOdp_Reports_Formatting_And_Notes_Disabled_By_Options() {
         using PowerPointDocument source = PowerPointDocument.Create();
         PowerPointSlide slide = source.AddSlide();
-        PowerPointTextBox text = slide.AddTextBoxPoints("Styled", 10, 10, 200, 40);
+        PowerPointTextBox text = slide.AddTextBox("Styled",global::OfficeIMO.OfficeLength.Points(10),global::OfficeIMO.OfficeLength.Points(10),global::OfficeIMO.OfficeLength.Points(200),global::OfficeIMO.OfficeLength.Points(40));
         text.Paragraphs[0].Runs[0].Bold = true;
         text.FillColor = "112233";
         slide.Notes.Text = "Private note";
@@ -47,7 +47,7 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
     [Fact]
     public void PowerPointHyperlinkTooltipLossIsExplicit() {
         using PowerPointDocument source = PowerPointDocument.Create();
-        PowerPointTextRun run = source.AddSlide().AddTextBoxPoints("Documentation", 10, 10, 200, 40)
+        PowerPointTextRun run = source.AddSlide().AddTextBox("Documentation",global::OfficeIMO.OfficeLength.Points(10),global::OfficeIMO.OfficeLength.Points(10),global::OfficeIMO.OfficeLength.Points(200),global::OfficeIMO.OfficeLength.Points(40))
             .Paragraphs[0].Runs[0];
         run.SetHyperlink("https://example.test/docs", "Open the documentation");
 
@@ -64,7 +64,7 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
     [Fact]
     public void PowerPointHeavyAndWordsOnlyUnderlinesReportTheirApproximation() {
         using PowerPointDocument source = PowerPointDocument.Create();
-        PowerPointTextBox textBox = source.AddSlide().AddTextBoxPoints("Heavy", 10, 10, 200, 40);
+        PowerPointTextBox textBox = source.AddSlide().AddTextBox("Heavy",global::OfficeIMO.OfficeLength.Points(10),global::OfficeIMO.OfficeLength.Points(10),global::OfficeIMO.OfficeLength.Points(200),global::OfficeIMO.OfficeLength.Points(40));
         textBox.Paragraphs[0].Runs[0].UnderlineStyle = PowerPointUnderlineStyle.WavyHeavy;
         textBox.Paragraphs[0].AddRun(" Words").UnderlineStyle = PowerPointUnderlineStyle.Words;
 
@@ -364,7 +364,7 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
     [Fact]
     public void PowerPointParagraphAlignmentProjectsAcrossAllSupportedValues() {
         using PowerPointDocument source = PowerPointDocument.Create();
-        PowerPointTextBox textBox = source.AddSlide().AddTextBoxPoints("", 10, 10, 300, 100);
+        PowerPointTextBox textBox = source.AddSlide().AddTextBox("",global::OfficeIMO.OfficeLength.Points(10),global::OfficeIMO.OfficeLength.Points(10),global::OfficeIMO.OfficeLength.Points(300),global::OfficeIMO.OfficeLength.Points(100));
         IReadOnlyList<PowerPointParagraph> paragraphs = textBox.SetParagraphs(
             new[] { "Left", "Center", "Right", "Justified", "Distributed" });
         paragraphs[0].Alignment = PowerPointTextAlignment.Left;
@@ -393,7 +393,7 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
     public void PowerPointBreaksAndFieldsRetainOrderAcrossEveryOdpParagraphOwner() {
         using PowerPointDocument source = PowerPointDocument.Create();
         PowerPointSlide slide = source.AddSlide();
-        PowerPointParagraph textBoxParagraph = slide.AddTextBoxPoints("Before", 10, 10, 200, 50)
+        PowerPointParagraph textBoxParagraph = slide.AddTextBox("Before",global::OfficeIMO.OfficeLength.Points(10),global::OfficeIMO.OfficeLength.Points(10),global::OfficeIMO.OfficeLength.Points(200),global::OfficeIMO.OfficeLength.Points(50))
             .Paragraphs.Single();
         PowerPointParagraph tableParagraph = slide.AddTable(1,1,global::OfficeIMO.OfficeLength.Points(10),global::OfficeIMO.OfficeLength.Points(80),global::OfficeIMO.OfficeLength.Points(200),global::OfficeIMO.OfficeLength.Points(50))
             .GetCell(0, 0).SetParagraphs(new[] { "Before" }).Single();
@@ -1449,7 +1449,7 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
         string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".pptx");
         try {
             using (PowerPointDocument created = PowerPointDocument.Create(path)) {
-                created.AddSlide().AddTextBoxPoints("Action", 10, 10, 200, 40);
+                created.AddSlide().AddTextBox("Action",global::OfficeIMO.OfficeLength.Points(10),global::OfficeIMO.OfficeLength.Points(10),global::OfficeIMO.OfficeLength.Points(200),global::OfficeIMO.OfficeLength.Points(40));
                 created.Save();
             }
             using (PresentationDocument package = PresentationDocument.Open(path, true)) {

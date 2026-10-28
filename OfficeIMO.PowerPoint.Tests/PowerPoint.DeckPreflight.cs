@@ -12,9 +12,8 @@ namespace OfficeIMO.Tests {
             using PowerPointDocument presentation = PowerPointDocument.Create(stream);
             presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(400),OfficeIMO.OfficeLength.Points(225));
             PowerPointSlide slide = presentation.AddSlide();
-            PowerPointTextBox text = slide.AddTextBoxPoints(
-                "A deliberately long paragraph that cannot fit inside a tiny text frame without losing content.",
-                20, 20, 80, 14);
+            PowerPointTextBox text = slide.AddTextBox(
+                "A deliberately long paragraph that cannot fit inside a tiny text frame without losing content.",                global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(80),global::OfficeIMO.OfficeLength.Points(14));
             text.FontSize = 20;
             text.TextAutoFit = PowerPointTextAutoFit.None;
 
@@ -41,9 +40,8 @@ namespace OfficeIMO.Tests {
             using PowerPointDocument presentation = PowerPointDocument.Create(stream);
             presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(400),OfficeIMO.OfficeLength.Points(225));
             PowerPointSlide slide = presentation.AddSlide();
-            PowerPointTextBox text = slide.AddTextBoxPoints(
-                "A deliberately long grouped paragraph that cannot fit inside its tiny text frame.",
-                20, 20, 80, 14);
+            PowerPointTextBox text = slide.AddTextBox(
+                "A deliberately long grouped paragraph that cannot fit inside its tiny text frame.",                global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(80),global::OfficeIMO.OfficeLength.Points(14));
             text.FontSize = 20;
             text.TextAutoFit = PowerPointTextAutoFit.None;
             PowerPointAutoShape anchor = slide.AddRectanglePoints(110, 20, 20, 20, "Group anchor");
@@ -63,8 +61,8 @@ namespace OfficeIMO.Tests {
         public void Preflight_ChecksUnreadableReductionWhenOverflowDetectionIsDisabled() {
             using var stream = new MemoryStream();
             using PowerPointDocument presentation = PowerPointDocument.Create(stream);
-            PowerPointTextBox text = presentation.AddSlide().AddTextBoxPoints(
-                "Auto-fit text must shrink to remain inside this deliberately tiny frame.", 20, 20, 80, 14);
+            PowerPointTextBox text = presentation.AddSlide().AddTextBox(
+                "Auto-fit text must shrink to remain inside this deliberately tiny frame.",global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(80),global::OfficeIMO.OfficeLength.Points(14));
             text.FontSize = 20;
             text.TextAutoFit = PowerPointTextAutoFit.Normal;
 
@@ -164,7 +162,7 @@ namespace OfficeIMO.Tests {
             presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(400),OfficeIMO.OfficeLength.Points(225));
             PowerPointSlide slide = presentation.AddSlide();
             slide.AddRectanglePoints(20, 20, 360, 185, "Panel");
-            PowerPointTextBox text = slide.AddTextBoxPoints("Readable content", 40, 45, 250, 50);
+            PowerPointTextBox text = slide.AddTextBox("Readable content",global::OfficeIMO.OfficeLength.Points(40),global::OfficeIMO.OfficeLength.Points(45),global::OfficeIMO.OfficeLength.Points(250),global::OfficeIMO.OfficeLength.Points(50));
             text.FontSize = 18;
 
             PowerPointDeckPreflightReport report = presentation.Preflight(new PowerPointDeckPreflightOptions {
@@ -184,7 +182,7 @@ namespace OfficeIMO.Tests {
             presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(400),OfficeIMO.OfficeLength.Points(225));
             PowerPointSlide slide = presentation.AddSlide();
             slide.AddRectanglePoints(-20, 0, 220, 225, "Intentional plane");
-            PowerPointTextBox outside = slide.AddTextBoxPoints("Content outside", 390, 200, 40, 30);
+            PowerPointTextBox outside = slide.AddTextBox("Content outside",global::OfficeIMO.OfficeLength.Points(390),global::OfficeIMO.OfficeLength.Points(200),global::OfficeIMO.OfficeLength.Points(40),global::OfficeIMO.OfficeLength.Points(30));
             outside.Name = "Outside content";
 
             PowerPointDeckPreflightReport report = presentation.Preflight(new PowerPointDeckPreflightOptions {

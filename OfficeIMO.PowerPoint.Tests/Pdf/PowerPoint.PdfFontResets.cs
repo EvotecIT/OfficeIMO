@@ -28,7 +28,7 @@ public sealed class PowerPointPdfFontResetTests {
                 paragraph.Paragraph.ParagraphProperties = new A.ParagraphProperties(new A.DefaultRunProperties { Bold = true, Italic = true });
                 cell.Bold = false; cell.Italic = false;
             } else {
-                var box = slide.AddTextBoxPoints("Plain", 30, 34, 160, 80);
+                var box = slide.AddTextBox("Plain",global::OfficeIMO.OfficeLength.Points(30),global::OfficeIMO.OfficeLength.Points(34),global::OfficeIMO.OfficeLength.Points(160),global::OfficeIMO.OfficeLength.Points(80));
                 box.FontName = "Helvetica"; box.FontSize = 18;
                 paragraph = box.Paragraphs[0];
                 paragraph.Paragraph.ParagraphProperties = new A.ParagraphProperties(new A.DefaultRunProperties { Bold = true, Italic = true });

@@ -86,22 +86,20 @@ namespace OfficeIMO.Tests {
 
             PowerPointSlide first = presentation.AddSlide();
             first.AddTitle("Binary interoperability " + marker);
-            first.AddTextBox("OfficeIMO generated " + marker,
-                800000, 1700000, 4200000, 700000);
+            first.AddTextBox("OfficeIMO generated " + marker,                global::OfficeIMO.OfficeLength.Emus(800000),global::OfficeIMO.OfficeLength.Emus(1700000),global::OfficeIMO.OfficeLength.Emus(4200000),global::OfficeIMO.OfficeLength.Emus(700000));
             first.AddRectangle(800000, 2800000, 2200000, 900000,
                     "Interop rectangle")
                 .Fill("D9EAF7")
                 .Stroke("2563EB", 1.5D);
             using (var stream = new MemoryStream(image, writable: false)) {
                 first.AddImage(stream, OfficeImageFormat.Png,
-                    3600000, 2700000, 1800000, 1200000);
+                    global::OfficeIMO.OfficeLength.Emus(3600000), global::OfficeIMO.OfficeLength.Emus(2700000), global::OfficeIMO.OfficeLength.Emus(1800000), global::OfficeIMO.OfficeLength.Emus(1200000));
             }
             first.Notes.Text = "LibreOffice round-trip notes " + marker;
             first.Transition = PowerPointSlideTransition.Fade;
 
             PowerPointSlide second = presentation.AddSlide();
-            second.AddTextBox("Second slide " + marker,
-                900000, 900000, 4200000, 800000);
+            second.AddTextBox("Second slide " + marker,                global::OfficeIMO.OfficeLength.Emus(900000),global::OfficeIMO.OfficeLength.Emus(900000),global::OfficeIMO.OfficeLength.Emus(4200000),global::OfficeIMO.OfficeLength.Emus(800000));
             PowerPointTable table = second.AddTable(2,2,                global::OfficeIMO.OfficeLength.Emus(900000),global::OfficeIMO.OfficeLength.Emus(2200000),global::OfficeIMO.OfficeLength.Emus(5000000),global::OfficeIMO.OfficeLength.Emus(1500000));
             table.HeaderRow = true;
             table.GetCell(0, 0).Text = "Region";

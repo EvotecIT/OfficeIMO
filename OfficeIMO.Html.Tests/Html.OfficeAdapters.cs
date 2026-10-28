@@ -880,7 +880,7 @@ public partial class HtmlOfficeAdapters {
         var data = new OfficeChartData(new[] { "1.5", "2.5" }, new[] {
             new OfficeSeries("Forecast", new[] { 10D, 20D }, new[] { 1.5D, 2.5D })
         });
-        slide.AddChartPoints(OfficeChartType.Scatter, data, 72, 96, 240, 140).SetTitle("Scatter");
+        slide.AddChart(OfficeChartType.Scatter,data,global::OfficeIMO.OfficeLength.Points(72),global::OfficeIMO.OfficeLength.Points(96),global::OfficeIMO.OfficeLength.Points(240),global::OfficeIMO.OfficeLength.Points(140)).SetTitle("Scatter");
 
         string html = presentation.ToHtml(new PowerPointHtmlSaveOptions {
             Profile = OfficeHtmlConversionProfile.PowerPointSemanticSlides
@@ -927,7 +927,7 @@ public partial class HtmlOfficeAdapters {
                 markerOutlineWidth: null,
                 showMarkerOutline: false)
         });
-        slide.AddChartPoints(OfficeChartType.Bubble, data, 72, 96, 240, 140)
+        slide.AddChart(OfficeChartType.Bubble,data,global::OfficeIMO.OfficeLength.Points(72),global::OfficeIMO.OfficeLength.Points(96),global::OfficeIMO.OfficeLength.Points(240),global::OfficeIMO.OfficeLength.Points(140))
             .SetTitle("Bubble")
             .SetBubbleSizing(145U, OfficeChartBubbleSizeMode.Width);
 
@@ -1027,7 +1027,7 @@ public partial class HtmlOfficeAdapters {
                 new[] { 10D, 20D },
                 new[] { 4D, 9D })
         });
-        slide.AddChartPoints(OfficeChartType.Bubble, data, 72, 96, 240, 140);
+        slide.AddChart(OfficeChartType.Bubble,data,global::OfficeIMO.OfficeLength.Points(72),global::OfficeIMO.OfficeLength.Points(96),global::OfficeIMO.OfficeLength.Points(240),global::OfficeIMO.OfficeLength.Points(140));
         string html = presentation.ToHtml(new PowerPointHtmlSaveOptions {
             Profile = OfficeHtmlConversionProfile.PowerPointSemanticSlides
         }).Replace(" data-officeimo-x=\"1.5\"", string.Empty)
@@ -1050,7 +1050,7 @@ public partial class HtmlOfficeAdapters {
         var data = new OfficeChartData(new[] { "A", "B" }, new[] {
             new OfficeSeries("Actual", new[] { 10D, 20D })
         });
-        slide.AddChartPoints(OfficeChartType.ColumnClustered, data, 72, 96, 240, 140).SetTitle("Columns");
+        slide.AddChart(OfficeChartType.ColumnClustered,data,global::OfficeIMO.OfficeLength.Points(72),global::OfficeIMO.OfficeLength.Points(96),global::OfficeIMO.OfficeLength.Points(240),global::OfficeIMO.OfficeLength.Points(140)).SetTitle("Columns");
 
         string html = presentation.ToHtml(new PowerPointHtmlSaveOptions {
             Profile = OfficeHtmlConversionProfile.PowerPointSemanticSlides
@@ -1078,7 +1078,7 @@ public partial class HtmlOfficeAdapters {
             new OfficeSeries("Forecast", new[] { 10D, 20D, 30D }, new[] { 1D, 2D, 3D }),
             new OfficeSeries("Outliers", new[] { 40D, 50D }, new[] { 4D, 5D })
         });
-        slide.AddChartPoints(OfficeChartType.Scatter, data, 72, 96, 240, 140).SetTitle("Scatter");
+        slide.AddChart(OfficeChartType.Scatter,data,global::OfficeIMO.OfficeLength.Points(72),global::OfficeIMO.OfficeLength.Points(96),global::OfficeIMO.OfficeLength.Points(240),global::OfficeIMO.OfficeLength.Points(140)).SetTitle("Scatter");
 
         string html = presentation.ToHtml(new PowerPointHtmlSaveOptions {
             Profile = OfficeHtmlConversionProfile.PowerPointSemanticSlides
@@ -1104,7 +1104,7 @@ public partial class HtmlOfficeAdapters {
         slide.AddTextBox("HTML end to end");
         slide.Notes.Text = "Presenter reminder";
         using (var image = new MemoryStream(OnePixelPng)) {
-            PowerPointPicture picture = slide.AddImagePoints(image, OfficeIMO.Drawing.OfficeImageFormat.Png, 72, 140, 72, 72);
+            PowerPointPicture picture = slide.AddImage(image, OfficeIMO.Drawing.OfficeImageFormat.Png, OfficeIMO.OfficeLength.Points(72), OfficeIMO.OfficeLength.Points(140), OfficeIMO.OfficeLength.Points(72), OfficeIMO.OfficeLength.Points(72));
             picture.Name = "Architecture badge";
             picture.AltText = "Reusable renderer badge";
         }
@@ -1112,7 +1112,7 @@ public partial class HtmlOfficeAdapters {
         OfficeChartData chartData = new(
             new[] { "Q1", "Q2", "Q3" },
             new[] { new OfficeSeries("Actual", new[] { 10D, 18D, 24D }) });
-        slide.AddChartPoints(OfficeChartType.ColumnClustered, chartData, 180, 130, 260, 150).SetTitle("Pipeline");
+        slide.AddChart(OfficeChartType.ColumnClustered,chartData,global::OfficeIMO.OfficeLength.Points(180),global::OfficeIMO.OfficeLength.Points(130),global::OfficeIMO.OfficeLength.Points(260),global::OfficeIMO.OfficeLength.Points(150)).SetTitle("Pipeline");
 
         string html = presentation.ToHtml(new PowerPointHtmlSaveOptions {
             Profile = OfficeHtmlConversionProfile.PowerPointSemanticSlides
@@ -1133,20 +1133,22 @@ public partial class HtmlOfficeAdapters {
         Assert.Contains("<td>18</td>", html, StringComparison.Ordinal);
     }
 
-    [Fact]
-    public void PowerPointHtml_ExportsPositionedReviewSlides() {
+    [Theory]
+    [InlineData(OfficeChartType.Column, "ColumnClustered")]
+    [InlineData(OfficeChartType.Bar, "BarClustered")]
+    public void PowerPointHtml_ExportsPositionedReviewSlides(OfficeChartType type, string expectedKind) {
         using PowerPointDocument presentation = PowerPointDocument.Create(new MemoryStream());
         PowerPointSlide slide = presentation.AddSlide();
-        slide.AddTextBoxPoints("Positioned", 72, 96, 240, 60);
+        slide.AddTextBox("Positioned",global::OfficeIMO.OfficeLength.Points(72),global::OfficeIMO.OfficeLength.Points(96),global::OfficeIMO.OfficeLength.Points(240),global::OfficeIMO.OfficeLength.Points(60));
         using (var image = new MemoryStream(OnePixelPng)) {
-            PowerPointPicture picture = slide.AddImagePoints(image, OfficeIMO.Drawing.OfficeImageFormat.Png, 72, 180, 72, 72);
+            PowerPointPicture picture = slide.AddImage(image, OfficeIMO.Drawing.OfficeImageFormat.Png, OfficeIMO.OfficeLength.Points(72), OfficeIMO.OfficeLength.Points(180), OfficeIMO.OfficeLength.Points(72), OfficeIMO.OfficeLength.Points(72));
             picture.AltText = "Positioned image";
         }
 
         OfficeChartData chartData = new(
             new[] { "Q1", "Q2", "Q3" },
             new[] { new OfficeSeries("Actual", new[] { 8D, 13D, 21D }) });
-        slide.AddChartPoints(OfficeChartType.ColumnClustered, chartData, 180, 180, 260, 150).SetTitle("Positioned Pipeline");
+        slide.AddChart(type,chartData,global::OfficeIMO.OfficeLength.Points(180),global::OfficeIMO.OfficeLength.Points(180),global::OfficeIMO.OfficeLength.Points(260),global::OfficeIMO.OfficeLength.Points(150)).SetTitle("Positioned Pipeline");
 
         string html = presentation.ToHtml(new PowerPointHtmlSaveOptions {
             Profile = OfficeHtmlConversionProfile.PowerPointVisualReview
@@ -1159,7 +1161,7 @@ public partial class HtmlOfficeAdapters {
         Assert.Contains("data:image/png;base64", html, StringComparison.Ordinal);
         Assert.Contains("officeimo-chart-rendered", html, StringComparison.Ordinal);
         Assert.Contains("data-officeimo-visual-owner=\"OfficeIMO.Core\"", html, StringComparison.Ordinal);
-        Assert.Contains("data-officeimo-chart-kind=\"ColumnClustered\"", html, StringComparison.Ordinal);
+        Assert.Contains("data-officeimo-chart-kind=\"" + expectedKind + "\"", html, StringComparison.Ordinal);
         Assert.Contains("<svg", html, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("Positioned Pipeline", html, StringComparison.Ordinal);
     }
@@ -1172,7 +1174,7 @@ public partial class HtmlOfficeAdapters {
         PowerPointTextBox hidden = slide.AddTextBox("Hidden briefing");
         hidden.Hidden = true;
         using (var image = new MemoryStream(OnePixelPng)) {
-            PowerPointPicture hiddenPicture = slide.AddImagePoints(image, OfficeIMO.Drawing.OfficeImageFormat.Png, 80, 90, 120, 72);
+            PowerPointPicture hiddenPicture = slide.AddImage(image, OfficeIMO.Drawing.OfficeImageFormat.Png, OfficeIMO.OfficeLength.Points(80), OfficeIMO.OfficeLength.Points(90), OfficeIMO.OfficeLength.Points(120), OfficeIMO.OfficeLength.Points(72));
             hiddenPicture.Name = "Hidden image marker";
             hiddenPicture.Hidden = true;
         }
@@ -1180,7 +1182,7 @@ public partial class HtmlOfficeAdapters {
         OfficeChartData hiddenChartData = new(
             new[] { "Q1", "Q2" },
             new[] { new OfficeSeries("Hidden", new[] { 10D, 18D }) });
-        PowerPointChart hiddenChart = slide.AddChartPoints(OfficeChartType.ColumnClustered, hiddenChartData, 120, 90, 240, 140);
+        PowerPointChart hiddenChart = slide.AddChart(OfficeChartType.ColumnClustered,hiddenChartData,global::OfficeIMO.OfficeLength.Points(120),global::OfficeIMO.OfficeLength.Points(90),global::OfficeIMO.OfficeLength.Points(240),global::OfficeIMO.OfficeLength.Points(140));
         hiddenChart.SetTitle("Hidden chart marker");
         hiddenChart.Hidden = true;
 
@@ -1207,7 +1209,7 @@ public partial class HtmlOfficeAdapters {
     public void PowerPointHtml_VisualReviewIncludesInheritedLayoutShapes() {
         using PowerPointDocument presentation = PowerPointDocument.Create(new MemoryStream());
         PowerPointSlide slide = presentation.AddSlide();
-        PowerPointTextBox layoutText = slide.AddTextBoxPoints("Layout footer", 24, 200, 200, 24);
+        PowerPointTextBox layoutText = slide.AddTextBox("Layout footer",global::OfficeIMO.OfficeLength.Points(24),global::OfficeIMO.OfficeLength.Points(200),global::OfficeIMO.OfficeLength.Points(200),global::OfficeIMO.OfficeLength.Points(24));
         P.Shape slideShape = slide.SlidePart.Slide.CommonSlideData!.ShapeTree!
             .Elements<P.Shape>()
             .Single(shape => shape.InnerText.Contains("Layout footer", StringComparison.Ordinal));
@@ -1229,7 +1231,7 @@ public partial class HtmlOfficeAdapters {
     public void PowerPointHtml_VisualReviewPreservesPositionedTextBoxLineBreaks() {
         using PowerPointDocument presentation = PowerPointDocument.Create(new MemoryStream());
         PowerPointSlide slide = presentation.AddSlide();
-        slide.AddTextBoxPoints("Agenda\n  Owner", 72, 96, 240, 60);
+        slide.AddTextBox("Agenda\n  Owner",global::OfficeIMO.OfficeLength.Points(72),global::OfficeIMO.OfficeLength.Points(96),global::OfficeIMO.OfficeLength.Points(240),global::OfficeIMO.OfficeLength.Points(60));
 
         string html = presentation.ToHtml(new PowerPointHtmlSaveOptions {
             Profile = OfficeHtmlConversionProfile.PowerPointVisualReview
@@ -1243,7 +1245,7 @@ public partial class HtmlOfficeAdapters {
     public void PowerPointHtml_VisualReviewPreservesShapeFlipTransforms() {
         using PowerPointDocument presentation = PowerPointDocument.Create(new MemoryStream());
         PowerPointSlide slide = presentation.AddSlide();
-        PowerPointTextBox textBox = slide.AddTextBoxPoints("Flipped", 72, 96, 240, 60);
+        PowerPointTextBox textBox = slide.AddTextBox("Flipped",global::OfficeIMO.OfficeLength.Points(72),global::OfficeIMO.OfficeLength.Points(96),global::OfficeIMO.OfficeLength.Points(240),global::OfficeIMO.OfficeLength.Points(60));
         textBox.Rotation = 12.5D;
         textBox.HorizontalFlip = true;
         textBox.VerticalFlip = true;
@@ -1260,10 +1262,10 @@ public partial class HtmlOfficeAdapters {
         using PowerPointDocument presentation = PowerPointDocument.Create(new MemoryStream());
         PowerPointSlide slide = presentation.AddSlide();
         slide.AddTitle("Gallery Roadmap");
-        slide.AddTextBoxPoints("Positioned proof", 72, 96, 240, 60);
+        slide.AddTextBox("Positioned proof",global::OfficeIMO.OfficeLength.Points(72),global::OfficeIMO.OfficeLength.Points(96),global::OfficeIMO.OfficeLength.Points(240),global::OfficeIMO.OfficeLength.Points(60));
         slide.Notes.Text = "Gallery notes";
         using (var image = new MemoryStream(OnePixelPng)) {
-            PowerPointPicture picture = slide.AddImagePoints(image, OfficeIMO.Drawing.OfficeImageFormat.Png, 72, 180, 72, 72);
+            PowerPointPicture picture = slide.AddImage(image, OfficeIMO.Drawing.OfficeImageFormat.Png, OfficeIMO.OfficeLength.Points(72), OfficeIMO.OfficeLength.Points(180), OfficeIMO.OfficeLength.Points(72), OfficeIMO.OfficeLength.Points(72));
             picture.AltText = "Gallery picture";
         }
 
@@ -1276,7 +1278,7 @@ public partial class HtmlOfficeAdapters {
         OfficeChartData chartData = new(
             new[] { "Q1", "Q2", "Q3" },
             new[] { new OfficeSeries("Actual", new[] { 8D, 13D, 21D }) });
-        slide.AddChartPoints(OfficeChartType.ColumnClustered, chartData, 180, 180, 260, 150).SetTitle("Gallery Pipeline");
+        slide.AddChart(OfficeChartType.ColumnClustered,chartData,global::OfficeIMO.OfficeLength.Points(180),global::OfficeIMO.OfficeLength.Points(180),global::OfficeIMO.OfficeLength.Points(260),global::OfficeIMO.OfficeLength.Points(150)).SetTitle("Gallery Pipeline");
 
         string directory = Path.Combine(Path.GetTempPath(), "OfficeIMO.HtmlOfficeAdapters", Guid.NewGuid().ToString("N"));
         HtmlCapabilityGalleryManifest manifest = presentation.SaveHtmlCapabilityGallery(directory, new PowerPointHtmlCapabilityGalleryOptions {
@@ -1341,10 +1343,10 @@ public partial class HtmlOfficeAdapters {
         using PowerPointDocument presentation = PowerPointDocument.Create(new MemoryStream());
         PowerPointSlide slide = presentation.AddSlide();
         slide.AddTitle("Roundtrip Roadmap");
-        slide.AddTextBoxPoints("HTML end to end", 72, 96, 240, 60);
+        slide.AddTextBox("HTML end to end",global::OfficeIMO.OfficeLength.Points(72),global::OfficeIMO.OfficeLength.Points(96),global::OfficeIMO.OfficeLength.Points(240),global::OfficeIMO.OfficeLength.Points(60));
         slide.Notes.Text = "Presenter reminder";
         using (var image = new MemoryStream(OnePixelPng)) {
-            PowerPointPicture picture = slide.AddImagePoints(image, OfficeIMO.Drawing.OfficeImageFormat.Png, 72, 180, 72, 72);
+            PowerPointPicture picture = slide.AddImage(image, OfficeIMO.Drawing.OfficeImageFormat.Png, OfficeIMO.OfficeLength.Points(72), OfficeIMO.OfficeLength.Points(180), OfficeIMO.OfficeLength.Points(72), OfficeIMO.OfficeLength.Points(72));
             picture.Name = "Architecture badge";
             picture.AltText = "Reusable renderer badge";
         }
@@ -1358,7 +1360,7 @@ public partial class HtmlOfficeAdapters {
         OfficeChartData chartData = new(
             new[] { "Q1", "Q2", "Q3" },
             new[] { new OfficeSeries("Actual", new[] { 10D, 18D, 24D }) });
-        slide.AddChartPoints(OfficeChartType.ColumnClustered, chartData, 180, 130, 260, 150).SetTitle("Pipeline");
+        slide.AddChart(OfficeChartType.ColumnClustered,chartData,global::OfficeIMO.OfficeLength.Points(180),global::OfficeIMO.OfficeLength.Points(130),global::OfficeIMO.OfficeLength.Points(260),global::OfficeIMO.OfficeLength.Points(150)).SetTitle("Pipeline");
 
         string html = presentation.ToHtml(new PowerPointHtmlSaveOptions {
             Profile = OfficeHtmlConversionProfile.PowerPointSemanticSlides
@@ -1418,7 +1420,7 @@ public partial class HtmlOfficeAdapters {
         using PowerPointDocument presentation = PowerPointDocument.Create(new MemoryStream());
         PowerPointSlide slide = presentation.AddSlide();
         using (var image = new MemoryStream(OnePixelPng)) {
-            slide.AddImagePoints(image, OfficeIMO.Drawing.OfficeImageFormat.Png, -18, -12, 72, 72);
+            slide.AddImage(image, OfficeIMO.Drawing.OfficeImageFormat.Png, OfficeIMO.OfficeLength.Points(-18), OfficeIMO.OfficeLength.Points(-12), OfficeIMO.OfficeLength.Points(72), OfficeIMO.OfficeLength.Points(72));
         }
 
         string html = presentation.ToHtml(new PowerPointHtmlSaveOptions {
@@ -1439,7 +1441,7 @@ public partial class HtmlOfficeAdapters {
         using PowerPointDocument presentation = PowerPointDocument.Create(new MemoryStream());
         PowerPointSlide slide = presentation.AddSlide();
         using (var image = new MemoryStream(OnePixelPng)) {
-            PowerPointPicture picture = slide.AddImagePoints(image, OfficeIMO.Drawing.OfficeImageFormat.Png, 80, 90, 120, 72);
+            PowerPointPicture picture = slide.AddImage(image, OfficeIMO.Drawing.OfficeImageFormat.Png, OfficeIMO.OfficeLength.Points(80), OfficeIMO.OfficeLength.Points(90), OfficeIMO.OfficeLength.Points(120), OfficeIMO.OfficeLength.Points(72));
             picture.Name = "Transformed picture";
             picture.AltText = "Transformed alt";
             picture.Rotation = 23.5D;
@@ -1479,7 +1481,7 @@ public partial class HtmlOfficeAdapters {
         using PowerPointDocument presentation = PowerPointDocument.Create(new MemoryStream());
         PowerPointSlide slide = presentation.AddSlide();
         using (var image = new MemoryStream(OnePixelPng)) {
-            slide.AddImagePoints(image, OfficeIMO.Drawing.OfficeImageFormat.Png, 40, 40, 80, 60)
+            slide.AddImage(image, OfficeIMO.Drawing.OfficeImageFormat.Png, OfficeIMO.OfficeLength.Points(40), OfficeIMO.OfficeLength.Points(40), OfficeIMO.OfficeLength.Points(80), OfficeIMO.OfficeLength.Points(60))
                 .Crop(10D, 0D, 10D, 0D);
         }
         string html = presentation.ToHtml(new PowerPointHtmlSaveOptions {
@@ -1507,13 +1509,13 @@ public partial class HtmlOfficeAdapters {
         OfficeChartData chartData = new(
             new[] { "Q1", "Q2" },
             new[] { new OfficeSeries("Actual", new[] { 10D, 18D }) });
-        PowerPointChart chart = slide.AddChartPoints(OfficeChartType.ColumnClustered, chartData, 120, 90, 240, 140);
+        PowerPointChart chart = slide.AddChart(OfficeChartType.ColumnClustered,chartData,global::OfficeIMO.OfficeLength.Points(120),global::OfficeIMO.OfficeLength.Points(90),global::OfficeIMO.OfficeLength.Points(240),global::OfficeIMO.OfficeLength.Points(140));
         chart.SetTitle("Transform chart");
         chart.Rotation = 18.75D;
         chart.HorizontalFlip = true;
         chart.VerticalFlip = true;
         using (var image = new MemoryStream(OnePixelPng)) {
-            PowerPointPicture picture = slide.AddImagePoints(image, OfficeIMO.Drawing.OfficeImageFormat.Png, 96, 100, 80, 64);
+            PowerPointPicture picture = slide.AddImage(image, OfficeIMO.Drawing.OfficeImageFormat.Png, OfficeIMO.OfficeLength.Points(96), OfficeIMO.OfficeLength.Points(100), OfficeIMO.OfficeLength.Points(80), OfficeIMO.OfficeLength.Points(64));
             picture.Name = "Top picture";
         }
 
@@ -1544,7 +1546,7 @@ public partial class HtmlOfficeAdapters {
         using PowerPointDocument presentation = PowerPointDocument.Create(new MemoryStream());
         PowerPointSlide slide = presentation.AddSlide();
         using (var image = new MemoryStream(OnePixelPng)) {
-            slide.AddImagePoints(image, OfficeIMO.Drawing.OfficeImageFormat.Png, 40, 50, 180, 60);
+            slide.AddImage(image, OfficeIMO.Drawing.OfficeImageFormat.Png, OfficeIMO.OfficeLength.Points(40), OfficeIMO.OfficeLength.Points(50), OfficeIMO.OfficeLength.Points(180), OfficeIMO.OfficeLength.Points(60));
         }
 
         string html = presentation.ToHtml(new PowerPointHtmlSaveOptions {
@@ -1626,7 +1628,7 @@ public partial class HtmlOfficeAdapters {
         OfficeChartData chartData = new(
             new[] { "Q1", "Q2" },
             new[] { new OfficeSeries("Actual", new[] { 10D, 12D }) });
-        slide.AddChartPoints(OfficeChartType.Line, chartData, 72, 96, 240, 140).SetTitle("Trend");
+        slide.AddChart(OfficeChartType.Line,chartData,global::OfficeIMO.OfficeLength.Points(72),global::OfficeIMO.OfficeLength.Points(96),global::OfficeIMO.OfficeLength.Points(240),global::OfficeIMO.OfficeLength.Points(140)).SetTitle("Trend");
 
         string html = presentation.ToHtml(new PowerPointHtmlSaveOptions {
             Profile = OfficeHtmlConversionProfile.PowerPointSemanticSlides

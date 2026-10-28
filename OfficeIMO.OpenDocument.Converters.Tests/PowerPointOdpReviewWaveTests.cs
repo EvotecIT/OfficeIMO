@@ -102,7 +102,7 @@ public sealed class PowerPointOdpReviewWaveTests {
     public void AuthoredPowerPointParagraphLayoutRemainsExplicitLoss() {
         using PowerPointDocument source = PowerPointDocument.Create(new MemoryStream(), new PowerPointCreateOptions());
         PowerPointTextBox box = source.AddSlide(PowerPointSlideLayoutType.Blank)
-            .AddTextBoxPoints("Indented", 20, 20, 200, 40);
+            .AddTextBox("Indented",global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(200),global::OfficeIMO.OfficeLength.Points(40));
         PowerPointParagraph paragraph = box.Paragraphs.Single();
         paragraph.LeftMarginPoints = 24;
         paragraph.IndentPoints = -12;
@@ -117,7 +117,7 @@ public sealed class PowerPointOdpReviewWaveTests {
     [Fact]
     public void PowerPointDefaultTabIntervalAloneRemainsExplicitLoss() {
         using PowerPointDocument source = PowerPointDocument.Create(new MemoryStream(), new PowerPointCreateOptions());
-        source.AddSlide(PowerPointSlideLayoutType.Blank).AddTextBoxPoints("A\tB", 20, 20, 200, 40);
+        source.AddSlide(PowerPointSlideLayoutType.Blank).AddTextBox("A\tB",global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(200),global::OfficeIMO.OfficeLength.Points(40));
         A.Paragraph paragraph = source.OpenXmlDocument.PresentationPart!.SlideParts.Single().Slide!
             .Descendants<A.Paragraph>().Single();
         paragraph.ParagraphProperties ??= new A.ParagraphProperties();

@@ -170,7 +170,7 @@ namespace OfficeIMO.Shared.Tests {
 
             using (var presentation = PowerPointDocument.Create(new MemoryStream(), new PowerPointCreateOptions())) {
                 var slide = presentation.AddSlide();
-                slide.AddTextBox("Encrypted PowerPoint content", 1, 1, 4, 1);
+                slide.AddTextBox("Encrypted PowerPoint content",global::OfficeIMO.OfficeLength.Emus(1),global::OfficeIMO.OfficeLength.Emus(1),global::OfficeIMO.OfficeLength.Emus(4),global::OfficeIMO.OfficeLength.Emus(1));
                 presentation.Save(path, new PowerPointSaveOptions { Password = Password });
             }
 
@@ -187,7 +187,7 @@ namespace OfficeIMO.Shared.Tests {
 
             using (var presentation = PowerPointDocument.Create(new MemoryStream(), new PowerPointCreateOptions())) {
                 var slide = presentation.AddSlide();
-                slide.AddTextBox("Encrypted PowerPoint stream content", 1, 1, 4, 1);
+                slide.AddTextBox("Encrypted PowerPoint stream content",global::OfficeIMO.OfficeLength.Emus(1),global::OfficeIMO.OfficeLength.Emus(1),global::OfficeIMO.OfficeLength.Emus(4),global::OfficeIMO.OfficeLength.Emus(1));
                 presentation.Save(encrypted, new PowerPointSaveOptions { Password = Password });
             }
 

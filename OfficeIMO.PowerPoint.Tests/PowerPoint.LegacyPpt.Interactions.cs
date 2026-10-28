@@ -17,8 +17,7 @@ namespace OfficeIMO.Tests {
             byte[] bytes;
             using (PowerPointDocument source = PowerPointDocument.Create()) {
                 PowerPointSlide slide = source.AddSlide(PowerPointSlideLayoutType.Blank);
-                PowerPointTextBox textBox = slide.AddTextBox("Visit OfficeIMO",
-                    100000, 100000, 3000000, 500000);
+                PowerPointTextBox textBox = slide.AddTextBox("Visit OfficeIMO",                    global::OfficeIMO.OfficeLength.Emus(100000),global::OfficeIMO.OfficeLength.Emus(100000),global::OfficeIMO.OfficeLength.Emus(3000000),global::OfficeIMO.OfficeLength.Emus(500000));
                 P.Shape textShape = (P.Shape)textBox.Element;
                 HyperlinkRelationship textRelationship = slide.SlidePart
                     .AddHyperlinkRelationship(textUri, true);

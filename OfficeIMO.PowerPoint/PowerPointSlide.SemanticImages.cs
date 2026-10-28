@@ -9,7 +9,7 @@ namespace OfficeIMO.PowerPoint {
         public PowerPointPicture AddImage(PowerPointImageAsset asset, PowerPointLayoutBox bounds) {
             if (asset == null) throw new ArgumentNullException(nameof(asset));
             asset.Validate();
-            PowerPointPicture picture = AddImage(asset.Path, bounds);
+            PowerPointPicture picture = AddImage(asset.Path,bounds);
             picture.AltText = asset.AlternativeText;
             picture.Name = string.IsNullOrWhiteSpace(asset.Caption) ? "Semantic Image" : asset.Caption!;
             if (asset.Placement == PowerPointImagePlacement.Stretch) return picture;

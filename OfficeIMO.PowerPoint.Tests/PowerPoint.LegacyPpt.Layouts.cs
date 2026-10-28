@@ -127,11 +127,9 @@ namespace OfficeIMO.Tests {
         public void NativeWriter_RoundTripsLayoutAndPlaceholderIdentity() {
             using PowerPointDocument presentation = PowerPointDocument.Create();
             PowerPointSlide slide = presentation.AddSlide(PowerPointSlideLayoutType.Text);
-            PowerPointTextBox title = slide.AddTitle("Layout title", 500000, 300000,
-                7000000, 800000);
+            PowerPointTextBox title = slide.AddTitle("Layout title",global::OfficeIMO.OfficeLength.Emus(500000),global::OfficeIMO.OfficeLength.Emus(300000),                global::OfficeIMO.OfficeLength.Emus(7000000),global::OfficeIMO.OfficeLength.Emus(800000));
             title.PlaceholderIndex = 0;
-            PowerPointTextBox body = slide.AddTextBox("Vertical body", 800000, 1500000,
-                5000000, 3000000);
+            PowerPointTextBox body = slide.AddTextBox("Vertical body",global::OfficeIMO.OfficeLength.Emus(800000),global::OfficeIMO.OfficeLength.Emus(1500000),                global::OfficeIMO.OfficeLength.Emus(5000000),global::OfficeIMO.OfficeLength.Emus(3000000));
             body.PlaceholderType = PowerPointPlaceholderType.Body;
             body.PlaceholderIndex = 1;
             body.PlaceholderSize = PowerPointPlaceholderSize.Quarter;
@@ -171,21 +169,17 @@ namespace OfficeIMO.Tests {
         public void NativeWriter_ProjectsDistinctBinaryLayoutsUnderSharedMaster() {
             using PowerPointDocument presentation = PowerPointDocument.Create();
             PowerPointSlide titleSlide = presentation.AddSlide(PowerPointSlideLayoutType.Title);
-            PowerPointTextBox centeredTitle = titleSlide.AddTextBox("Centered", 500000,
-                500000, 7000000, 900000);
+            PowerPointTextBox centeredTitle = titleSlide.AddTextBox("Centered",global::OfficeIMO.OfficeLength.Emus(500000),                global::OfficeIMO.OfficeLength.Emus(500000),global::OfficeIMO.OfficeLength.Emus(7000000),global::OfficeIMO.OfficeLength.Emus(900000));
             centeredTitle.PlaceholderType = PowerPointPlaceholderType.CenteredTitle;
             centeredTitle.PlaceholderIndex = 0;
-            PowerPointTextBox subtitle = titleSlide.AddTextBox("Subtitle", 500000,
-                1800000, 7000000, 900000);
+            PowerPointTextBox subtitle = titleSlide.AddTextBox("Subtitle",global::OfficeIMO.OfficeLength.Emus(500000),                global::OfficeIMO.OfficeLength.Emus(1800000),global::OfficeIMO.OfficeLength.Emus(7000000),global::OfficeIMO.OfficeLength.Emus(900000));
             subtitle.PlaceholderType = PowerPointPlaceholderType.SubTitle;
             subtitle.PlaceholderIndex = 1;
 
             PowerPointSlide textSlide = presentation.AddSlide(PowerPointSlideLayoutType.Text);
-            PowerPointTextBox title = textSlide.AddTitle("Title and body", 500000,
-                300000, 7000000, 800000);
+            PowerPointTextBox title = textSlide.AddTitle("Title and body",global::OfficeIMO.OfficeLength.Emus(500000),                global::OfficeIMO.OfficeLength.Emus(300000),global::OfficeIMO.OfficeLength.Emus(7000000),global::OfficeIMO.OfficeLength.Emus(800000));
             title.PlaceholderIndex = 0;
-            PowerPointTextBox body = textSlide.AddTextBox("Body", 700000, 1500000,
-                6000000, 3000000);
+            PowerPointTextBox body = textSlide.AddTextBox("Body",global::OfficeIMO.OfficeLength.Emus(700000),global::OfficeIMO.OfficeLength.Emus(1500000),                global::OfficeIMO.OfficeLength.Emus(6000000),global::OfficeIMO.OfficeLength.Emus(3000000));
             body.PlaceholderType = PowerPointPlaceholderType.Body;
             body.PlaceholderIndex = 1;
 
@@ -265,8 +259,8 @@ namespace OfficeIMO.Tests {
                 PowerPointPlaceholderType.Title, layoutTitleBounds, index: 0);
             PowerPointSlide slide = presentation.AddSlide(0, layoutIndex);
             PowerPointTextBox title = slide.AddTitle("Slide override",
-                slideTitleBounds.Left.ToEmus(), slideTitleBounds.Top.ToEmus(),
-                slideTitleBounds.Width.ToEmus(), slideTitleBounds.Height.ToEmus());
+                slideTitleBounds.Left, slideTitleBounds.Top,
+                slideTitleBounds.Width, slideTitleBounds.Height);
             title.PlaceholderIndex = 0;
 
             LegacyPptSlide binary = Assert.Single(LegacyPptDocument.Load(

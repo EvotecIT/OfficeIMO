@@ -266,7 +266,7 @@ public sealed class PowerPointTextFittingRegressionTests {
         using var presentation = PowerPointDocument.Create(new MemoryStream());
         presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(160),OfficeIMO.OfficeLength.Points(100));
         var slide = presentation.AddSlide();
-        var box = slide.AddTextBoxPoints("OOOOOOOO", -12, 10, 24, 10);
+        var box = slide.AddTextBox("OOOOOOOO",global::OfficeIMO.OfficeLength.Points(-12),global::OfficeIMO.OfficeLength.Points(10),global::OfficeIMO.OfficeLength.Points(24),global::OfficeIMO.OfficeLength.Points(10));
         box.AddParagraph("OOOOOOOO");
         box.FontName = "OverflowRaster";
         box.FontSize = 24;
@@ -299,7 +299,7 @@ public sealed class PowerPointTextFittingRegressionTests {
     }
 
     private static PowerPointTextBox CreateBox(PowerPointDocument presentation, string text, double width, double height) {
-        var box = presentation.AddSlide().AddTextBoxPoints(text, 20, 20, width, height);
+        var box = presentation.AddSlide().AddTextBox(text,global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(width),global::OfficeIMO.OfficeLength.Points(height));
         box.FontName = "Helvetica";
         box.FontSize = 24;
         box.TextMarginLeftPoints = box.TextMarginRightPoints = box.TextMarginTopPoints = box.TextMarginBottomPoints = 0;

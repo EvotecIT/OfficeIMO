@@ -83,11 +83,11 @@ namespace OfficeIMO.Examples.PowerPoint {
             rail.FillColor = Teal;
             rail.OutlineColor = Teal;
 
-            PowerPointTextBox eyebrow = slide.AddTextBoxCm("Commercial snapshot", 1.5, 1.1, 9.0, 0.6);
+            PowerPointTextBox eyebrow = slide.AddTextBox("Commercial snapshot",global::OfficeIMO.OfficeLength.Centimeters(1.5),global::OfficeIMO.OfficeLength.Centimeters(1.1),global::OfficeIMO.OfficeLength.Centimeters(9.0),global::OfficeIMO.OfficeLength.Centimeters(0.6));
             eyebrow.FontSize = 11;
             eyebrow.Color = Teal;
 
-            PowerPointTextBox title = slide.AddTextBoxCm("Modern decks with OfficeIMO.PowerPoint", 1.5, 2.1, 17.5, 2.5);
+            PowerPointTextBox title = slide.AddTextBox("Modern decks with OfficeIMO.PowerPoint",global::OfficeIMO.OfficeLength.Centimeters(1.5),global::OfficeIMO.OfficeLength.Centimeters(2.1),global::OfficeIMO.OfficeLength.Centimeters(17.5),global::OfficeIMO.OfficeLength.Centimeters(2.5));
             title.FontSize = 34;
             title.Color = Ink;
             title.TextAutoFit = PowerPointTextAutoFit.Normal;
@@ -99,9 +99,8 @@ namespace OfficeIMO.Examples.PowerPoint {
             card.OutlineColor = Teal;
             card.SetShadow("000000", blurPoints: 10, distancePoints: 4, angleDegrees: 90, transparencyPercent: 72);
 
-            PowerPointTextBox story = slide.AddTextBoxCm(
-                "Themes, backgrounds, effects, editable charts, tables, notes, and transitions in one generated presentation.",
-                2.1, 6.35, 14.4, 1.5);
+            PowerPointTextBox story = slide.AddTextBox(
+                "Themes, backgrounds, effects, editable charts, tables, notes, and transitions in one generated presentation.",                global::OfficeIMO.OfficeLength.Centimeters(2.1),global::OfficeIMO.OfficeLength.Centimeters(6.35),global::OfficeIMO.OfficeLength.Centimeters(14.4),global::OfficeIMO.OfficeLength.Centimeters(1.5));
             story.FontSize = 19;
             story.Color = "FFFFFF";
             story.TextAutoFit = PowerPointTextAutoFit.Normal;
@@ -118,7 +117,7 @@ namespace OfficeIMO.Examples.PowerPoint {
             pill.OutlineColor = Linen;
             pill.SetSoftEdges(1.2);
 
-            PowerPointTextBox footer = slide.AddTextBoxCm("Composable layout system", 22.7, 13.45, 7.8, 0.45);
+            PowerPointTextBox footer = slide.AddTextBox("Composable layout system",global::OfficeIMO.OfficeLength.Centimeters(22.7),global::OfficeIMO.OfficeLength.Centimeters(13.45),global::OfficeIMO.OfficeLength.Centimeters(7.8),global::OfficeIMO.OfficeLength.Centimeters(0.45));
             footer.FontSize = 11;
             footer.Color = Ink;
             footer.TextVerticalAlignment = PowerPointTextVerticalAlignment.Center;
@@ -135,8 +134,7 @@ namespace OfficeIMO.Examples.PowerPoint {
             rail.FillColor = Teal;
             rail.OutlineColor = Teal;
 
-            PowerPointTextBox list = slide.AddTextBox("",
-                new OfficeIMO.PowerPoint.PowerPointLayoutBox(OfficeIMO.OfficeLength.Centimeters(2.25),OfficeIMO.OfficeLength.Centimeters(4.25),OfficeIMO.OfficeLength.Centimeters(13.4),OfficeIMO.OfficeLength.Centimeters(5.4)));
+            PowerPointTextBox list = slide.AddTextBox("",                new OfficeIMO.PowerPoint.PowerPointLayoutBox(OfficeIMO.OfficeLength.Centimeters(2.25),OfficeIMO.OfficeLength.Centimeters(4.25),OfficeIMO.OfficeLength.Centimeters(13.4),OfficeIMO.OfficeLength.Centimeters(5.4)));
             list.SetBullets(new[] {
                 "Build a reusable visual system",
                 "Use grids for predictable placement",
@@ -274,7 +272,7 @@ namespace OfficeIMO.Examples.PowerPoint {
                     new OfficeSeries("Sales", new[] { 10d, 12d, 16d, 19d, 24d, 27d }),
                     new OfficeSeries("Profit", new[] { 4d, 5d, 7d, 9d, 11d, 13d })
                 });
-            PowerPointChart chart = slide.AddChartCm(OfficeChartType.ColumnClustered, data, 1.8, 3.7, 15.1, 8.5);
+            PowerPointChart chart = slide.AddChart(OfficeChartType.ColumnClustered,data,global::OfficeIMO.OfficeLength.Centimeters(1.8),global::OfficeIMO.OfficeLength.Centimeters(3.7),global::OfficeIMO.OfficeLength.Centimeters(15.1),global::OfficeIMO.OfficeLength.Centimeters(8.5));
             chart.SetTitle("Sales vs Profit")
                 .SetLegend(OfficeChartLegendPosition.Bottom)
                 .SetChartAreaStyle(fillColor: "FFFFFF", lineColor: "FFFFFF")
@@ -322,7 +320,7 @@ namespace OfficeIMO.Examples.PowerPoint {
             OfficeChartData data = new(
                 new[] { "Direct", "Partner", "Online", "Events" },
                 new[] { new OfficeSeries("Share", new[] { 42d, 27d, 22d, 9d }) });
-            PowerPointChart chart = slide.AddChartCm(OfficeChartType.Doughnut, data, 2.2, 3.9, 13.4, 7.8);
+            PowerPointChart chart = slide.AddChart(OfficeChartType.Doughnut,data,global::OfficeIMO.OfficeLength.Centimeters(2.2),global::OfficeIMO.OfficeLength.Centimeters(3.9),global::OfficeIMO.OfficeLength.Centimeters(13.4),global::OfficeIMO.OfficeLength.Centimeters(7.8));
             chart.SetTitle("Revenue Share by Channel")
                 .SetLegend(OfficeChartLegendPosition.Bottom)
                 .SetDataLabels(showPercent: true)
@@ -364,7 +362,7 @@ namespace OfficeIMO.Examples.PowerPoint {
                     new OfficeSeries("Sales", new[] { 10d, 14d, 18d, 21d, 25d, 28d }),
                     new OfficeSeries("Profit", new[] { 4d, 6d, 8d, 10d, 12d, 14d })
                 });
-            PowerPointChart chart = slide.AddChartCm(OfficeChartType.Line, data, 2.8, 3.8, 19.5, 8.4);
+            PowerPointChart chart = slide.AddChart(OfficeChartType.Line,data,global::OfficeIMO.OfficeLength.Centimeters(2.8),global::OfficeIMO.OfficeLength.Centimeters(3.8),global::OfficeIMO.OfficeLength.Centimeters(19.5),global::OfficeIMO.OfficeLength.Centimeters(8.4));
             chart.SetTitle("Momentum Over Time")
                 .SetLegend(OfficeChartLegendPosition.Bottom)
                 .SetChartAreaStyle(fillColor: "FFFFFF", lineColor: "FFFFFF")
@@ -412,8 +410,7 @@ namespace OfficeIMO.Examples.PowerPoint {
             accent.OutlineColor = color;
 
             AddLabel(slide, title, box.Left.ToCentimeters() + 0.45, box.Top.ToCentimeters() + 0.65, box.Width.ToCentimeters() - 0.9, 0.55, color, 14, bold: true);
-            PowerPointTextBox list = slide.AddTextBox("",
-                new OfficeIMO.PowerPoint.PowerPointLayoutBox(OfficeIMO.OfficeLength.Centimeters(box.Left.ToCentimeters() + 0.55),OfficeIMO.OfficeLength.Centimeters(box.Top.ToCentimeters() + 1.55),OfficeIMO.OfficeLength.Centimeters(box.Width.ToCentimeters() - 0.95),OfficeIMO.OfficeLength.Centimeters(box.Height.ToCentimeters() - 1.9)));
+            PowerPointTextBox list = slide.AddTextBox("",                new OfficeIMO.PowerPoint.PowerPointLayoutBox(OfficeIMO.OfficeLength.Centimeters(box.Left.ToCentimeters() + 0.55),OfficeIMO.OfficeLength.Centimeters(box.Top.ToCentimeters() + 1.55),OfficeIMO.OfficeLength.Centimeters(box.Width.ToCentimeters() - 0.95),OfficeIMO.OfficeLength.Centimeters(box.Height.ToCentimeters() - 1.9)));
             list.SetBullets(bullets, configure: paragraph => {
                 paragraph.SetFontSize(10)
                     .SetColor("626B75")
@@ -468,8 +465,7 @@ namespace OfficeIMO.Examples.PowerPoint {
             numberBox.TextAutoFit = PowerPointTextAutoFit.Normal;
 
             AddLabel(slide, title, box.Left.ToCentimeters(), box.Top.ToCentimeters() + 2.0, box.Width.ToCentimeters(), 0.6, "FFFFFF", 15, bold: true);
-            PowerPointTextBox list = slide.AddTextBox("",
-                new OfficeIMO.PowerPoint.PowerPointLayoutBox(OfficeIMO.OfficeLength.Centimeters(box.Left.ToCentimeters()),OfficeIMO.OfficeLength.Centimeters(box.Top.ToCentimeters() + 3.15),OfficeIMO.OfficeLength.Centimeters(box.Width.ToCentimeters()),OfficeIMO.OfficeLength.Centimeters(1.85)));
+            PowerPointTextBox list = slide.AddTextBox("",                new OfficeIMO.PowerPoint.PowerPointLayoutBox(OfficeIMO.OfficeLength.Centimeters(box.Left.ToCentimeters()),OfficeIMO.OfficeLength.Centimeters(box.Top.ToCentimeters() + 3.15),OfficeIMO.OfficeLength.Centimeters(box.Width.ToCentimeters()),OfficeIMO.OfficeLength.Centimeters(1.85)));
             list.SetParagraphs(bullets, paragraph => {
                 paragraph.SetFontSize(11)
                     .SetColor("D7F3FA")
@@ -494,12 +490,12 @@ namespace OfficeIMO.Examples.PowerPoint {
             diagonal.FillTransparency = 62;
             diagonal.OutlineColor = Linen;
 
-            PowerPointTextBox brand = slide.AddTextBoxCm("OfficeIMO.PowerPoint", 1.3, 17.4, 7.0, 0.35);
+            PowerPointTextBox brand = slide.AddTextBox("OfficeIMO.PowerPoint",global::OfficeIMO.OfficeLength.Centimeters(1.3),global::OfficeIMO.OfficeLength.Centimeters(17.4),global::OfficeIMO.OfficeLength.Centimeters(7.0),global::OfficeIMO.OfficeLength.Centimeters(0.35));
             brand.FontSize = 8;
             brand.Color = Teal;
             brand.SetTextMarginsCm(0, 0, 0, 0);
 
-            PowerPointTextBox marker = slide.AddTextBoxCm("layout system", 27.6, 17.4, 4.3, 0.35);
+            PowerPointTextBox marker = slide.AddTextBox("layout system",global::OfficeIMO.OfficeLength.Centimeters(27.6),global::OfficeIMO.OfficeLength.Centimeters(17.4),global::OfficeIMO.OfficeLength.Centimeters(4.3),global::OfficeIMO.OfficeLength.Centimeters(0.35));
             marker.FontSize = 8;
             marker.Color = "8B847C";
             marker.SetTextMarginsCm(0, 0, 0, 0);
@@ -511,12 +507,12 @@ namespace OfficeIMO.Examples.PowerPoint {
             bottom.FillTransparency = 35;
             bottom.OutlineColor = "0B415A";
 
-            PowerPointTextBox brand = slide.AddTextBoxCm("OfficeIMO.PowerPoint", 1.85, 17.1, 7.0, 0.35);
+            PowerPointTextBox brand = slide.AddTextBox("OfficeIMO.PowerPoint",global::OfficeIMO.OfficeLength.Centimeters(1.85),global::OfficeIMO.OfficeLength.Centimeters(17.1),global::OfficeIMO.OfficeLength.Centimeters(7.0),global::OfficeIMO.OfficeLength.Centimeters(0.35));
             brand.FontSize = 8;
             brand.Color = "D7F3FA";
             brand.SetTextMarginsCm(0, 0, 0, 0);
 
-            PowerPointTextBox marker = slide.AddTextBoxCm("deck system", 27.0, 17.1, 4.8, 0.35);
+            PowerPointTextBox marker = slide.AddTextBox("deck system",global::OfficeIMO.OfficeLength.Centimeters(27.0),global::OfficeIMO.OfficeLength.Centimeters(17.1),global::OfficeIMO.OfficeLength.Centimeters(4.8),global::OfficeIMO.OfficeLength.Centimeters(0.35));
             marker.FontSize = 8;
             marker.Color = "D7F3FA";
             marker.SetTextMarginsCm(0, 0, 0, 0);
@@ -524,7 +520,7 @@ namespace OfficeIMO.Examples.PowerPoint {
 
         private static PowerPointTextBox AddBodyOnDark(PowerPointSlide slide, string text, double leftCm, double topCm,
             double widthCm, double heightCm, int fontSize) {
-            PowerPointTextBox box = slide.AddTextBoxCm(text, leftCm, topCm, widthCm, heightCm);
+            PowerPointTextBox box = slide.AddTextBox(text,global::OfficeIMO.OfficeLength.Centimeters(leftCm),global::OfficeIMO.OfficeLength.Centimeters(topCm),global::OfficeIMO.OfficeLength.Centimeters(widthCm),global::OfficeIMO.OfficeLength.Centimeters(heightCm));
             box.FontSize = fontSize;
             box.Color = "D7F3FA";
             box.TextAutoFit = PowerPointTextAutoFit.Normal;
@@ -535,12 +531,12 @@ namespace OfficeIMO.Examples.PowerPoint {
         private static void AddSlideTitle(PowerPointSlide slide, string title, string subtitle) {
             AddLightSlideChrome(slide);
 
-            PowerPointTextBox titleBox = slide.AddTextBoxCm(title, 1.3, 0.85, 17.5, 0.95);
+            PowerPointTextBox titleBox = slide.AddTextBox(title,global::OfficeIMO.OfficeLength.Centimeters(1.3),global::OfficeIMO.OfficeLength.Centimeters(0.85),global::OfficeIMO.OfficeLength.Centimeters(17.5),global::OfficeIMO.OfficeLength.Centimeters(0.95));
             titleBox.FontSize = 23;
             titleBox.Color = Ink;
             titleBox.SetTextMarginsCm(0, 0, 0, 0);
 
-            PowerPointTextBox subtitleBox = slide.AddTextBoxCm(subtitle, 1.35, 1.85, 16.5, 0.5);
+            PowerPointTextBox subtitleBox = slide.AddTextBox(subtitle,global::OfficeIMO.OfficeLength.Centimeters(1.35),global::OfficeIMO.OfficeLength.Centimeters(1.85),global::OfficeIMO.OfficeLength.Centimeters(16.5),global::OfficeIMO.OfficeLength.Centimeters(0.5));
             subtitleBox.FontSize = 10;
             subtitleBox.Color = "6A625B";
             subtitleBox.SetTextMarginsCm(0, 0, 0, 0);
@@ -570,7 +566,7 @@ namespace OfficeIMO.Examples.PowerPoint {
         }
 
         private static PowerPointTextBox AddLabel(PowerPointSlide slide, string text, double leftCm, double topCm, double widthCm, double heightCm, string color, int fontSize, bool bold) {
-            PowerPointTextBox box = slide.AddTextBoxCm(text, leftCm, topCm, widthCm, heightCm);
+            PowerPointTextBox box = slide.AddTextBox(text,global::OfficeIMO.OfficeLength.Centimeters(leftCm),global::OfficeIMO.OfficeLength.Centimeters(topCm),global::OfficeIMO.OfficeLength.Centimeters(widthCm),global::OfficeIMO.OfficeLength.Centimeters(heightCm));
             box.FontSize = fontSize;
             box.Color = color;
             box.Bold = bold;
@@ -579,7 +575,7 @@ namespace OfficeIMO.Examples.PowerPoint {
         }
 
         private static PowerPointTextBox AddBody(PowerPointSlide slide, string text, double leftCm, double topCm, double widthCm, double heightCm, int fontSize) {
-            PowerPointTextBox box = slide.AddTextBoxCm(text, leftCm, topCm, widthCm, heightCm);
+            PowerPointTextBox box = slide.AddTextBox(text,global::OfficeIMO.OfficeLength.Centimeters(leftCm),global::OfficeIMO.OfficeLength.Centimeters(topCm),global::OfficeIMO.OfficeLength.Centimeters(widthCm),global::OfficeIMO.OfficeLength.Centimeters(heightCm));
             box.FontSize = fontSize;
             box.Color = Ink;
             box.TextAutoFit = PowerPointTextAutoFit.Normal;

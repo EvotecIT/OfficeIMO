@@ -10,7 +10,7 @@ namespace OfficeIMO.Examples.Google {
             string filePath = Path.Combine(folderPath, "GoogleSlides.Plan.pptx");
             using PowerPointDocument deck = PowerPointDocument.Create(filePath);
             PowerPointSlide slide = deck.AddSlide();
-            slide.AddTextBoxPoints("OfficeIMO Google Slides plan", 30, 40, 500, 80);
+            slide.AddTextBox("OfficeIMO Google Slides plan",global::OfficeIMO.OfficeLength.Points(30),global::OfficeIMO.OfficeLength.Points(40),global::OfficeIMO.OfficeLength.Points(500),global::OfficeIMO.OfficeLength.Points(80));
             slide.Notes.Text = "This note remains editable in Google Slides.";
             deck.Save();
             GoogleSlidesTranslationPlan plan = deck.BuildGoogleSlidesPlan(new GoogleSlidesSaveOptions { Title = "OfficeIMO Google Slides plan" });
@@ -23,7 +23,7 @@ namespace OfficeIMO.Examples.Google {
             if (session == null) { GoogleWorkspaceExampleSession.PrintMissingTokenMessage(); return; }
             string filePath = Path.Combine(folderPath, "GoogleSlides.Export.pptx");
             using PowerPointDocument deck = PowerPointDocument.Create(filePath);
-            deck.AddSlide().AddTextBoxPoints("OfficeIMO Google Slides export", 30, 40, 500, 80);
+            deck.AddSlide().AddTextBox("OfficeIMO Google Slides export",global::OfficeIMO.OfficeLength.Points(30),global::OfficeIMO.OfficeLength.Points(40),global::OfficeIMO.OfficeLength.Points(500),global::OfficeIMO.OfficeLength.Points(80));
             deck.Save();
             try {
                 GooglePresentationReference result = await deck.ExportToGoogleSlidesAsync(session, new GoogleSlidesSaveOptions {

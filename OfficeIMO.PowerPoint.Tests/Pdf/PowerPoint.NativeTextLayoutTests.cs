@@ -21,16 +21,16 @@ public sealed class PowerPointNativeTextLayoutTests {
         using var presentation = PowerPointDocument.Create(new MemoryStream());
         presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(440),OfficeIMO.OfficeLength.Points(260));
         PowerPointSlide slide = presentation.AddSlide();
-        PowerPointTextBox plain = slide.AddTextBoxPoints("PLAIN baseline", 20, 15, 175, 44);
+        PowerPointTextBox plain = slide.AddTextBox("PLAIN baseline",global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(15),global::OfficeIMO.OfficeLength.Points(175),global::OfficeIMO.OfficeLength.Points(44));
         plain.FontName = "NativeFixture";
         plain.FontSize = 13;
 
-        PowerPointTextBox wrapped = slide.AddTextBoxPoints("ALPHA", 20, 68, 175, 90);
+        PowerPointTextBox wrapped = slide.AddTextBox("ALPHA",global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(68),global::OfficeIMO.OfficeLength.Points(175),global::OfficeIMO.OfficeLength.Points(90));
         wrapped.FontName = "NativeFixture";
         wrapped.FontSize = 13;
         wrapped.Paragraphs[0].AddRun(" beta gamma delta epsilon zeta eta theta", run => run.Italic = true);
 
-        PowerPointTextBox linked = slide.AddTextBoxPoints("LINKONE LINKTWO LINKTHREE ", 230, 15, 160, 90);
+        PowerPointTextBox linked = slide.AddTextBox("LINKONE LINKTWO LINKTHREE ",global::OfficeIMO.OfficeLength.Points(230),global::OfficeIMO.OfficeLength.Points(15),global::OfficeIMO.OfficeLength.Points(160),global::OfficeIMO.OfficeLength.Points(90));
         linked.FontName = "NativeFixture";
         linked.FontSize = 13;
         linked.Paragraphs[0].Runs[0].SetHyperlink("https://officeimo.net/native-layout");
@@ -38,7 +38,7 @@ public sealed class PowerPointNativeTextLayoutTests {
         linked.Paragraphs[0].Alignment = PowerPointTextAlignment.Center;
         linked.Paragraphs[0].AddRun("TAIL", run => run.Bold = true);
 
-        PowerPointTextBox spaced = slide.AddTextBoxPoints("FIRST", 20, 175, 375, 75);
+        PowerPointTextBox spaced = slide.AddTextBox("FIRST",global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(175),global::OfficeIMO.OfficeLength.Points(375),global::OfficeIMO.OfficeLength.Points(75));
         spaced.FontName = "NativeFixture";
         spaced.FontSize = 13;
         spaced.Paragraphs[0].Runs[0].Underline = true;

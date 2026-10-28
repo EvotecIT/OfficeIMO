@@ -27,7 +27,7 @@ internal sealed partial class OfficeMarkupPowerPointExporter {
                 using var stream = new MemoryStream(bytes, writable: false);
                 var placement = IsStretchFit(GetAttribute(image.Attributes, "fit"))
                     ? box : ContainPicture(box, info.Width, info.Height);
-                picture = slide.AddImageInches(stream, info.Format, placement.Left, placement.Top, placement.Width, placement.Height);
+                picture = slide.AddImage(stream, info.Format, OfficeIMO.OfficeLength.Inches(placement.Left), OfficeIMO.OfficeLength.Inches(placement.Top), OfficeIMO.OfficeLength.Inches(placement.Width), OfficeIMO.OfficeLength.Inches(placement.Height));
             } else {
                 picture = AddImage(slide, path, box, GetAttribute(image.Attributes, "fit"));
             }
@@ -147,7 +147,7 @@ internal sealed partial class OfficeMarkupPowerPointExporter {
         switch (Normalize(fit ?? string.Empty)) {
             case "fill":
             case "stretch":
-                return slide.AddImageInches(path, box.Left, box.Top, box.Width, box.Height);
+                return slide.AddImage(path,global::OfficeIMO.OfficeLength.Inches(box.Left),global::OfficeIMO.OfficeLength.Inches(box.Top),global::OfficeIMO.OfficeLength.Inches(box.Width),global::OfficeIMO.OfficeLength.Inches(box.Height));
             case "contain":
             default:
                 return AddPictureContained(slide, path, box);
@@ -157,7 +157,7 @@ internal sealed partial class OfficeMarkupPowerPointExporter {
     private static PowerPointPicture AddPictureContained(PowerPointSlide slide, string path, LayoutCursor box) {
         var placement = TryReadImageSize(path, out var pixelWidth, out var pixelHeight)
             ? ContainPicture(box, pixelWidth, pixelHeight) : box;
-        return slide.AddImageInches(path, placement.Left, placement.Top, placement.Width, placement.Height);
+        return slide.AddImage(path,global::OfficeIMO.OfficeLength.Inches(placement.Left),global::OfficeIMO.OfficeLength.Inches(placement.Top),global::OfficeIMO.OfficeLength.Inches(placement.Width),global::OfficeIMO.OfficeLength.Inches(placement.Height));
     }
 
     private static LayoutCursor ContainPicture(LayoutCursor box, int pixelWidth, int pixelHeight) {

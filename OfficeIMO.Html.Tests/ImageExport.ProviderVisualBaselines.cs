@@ -69,17 +69,17 @@ public sealed class ImageExportProviderVisualBaselineTests {
         presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(480),OfficeIMO.OfficeLength.Points(270));
         PowerPointSlide slide = presentation.AddSlide();
         slide.BackgroundColor = "F8FAFC";
-        PowerPointTextBox title = slide.AddTextBoxPoints("Delivery dashboard", 28, 22, 300, 34);
+        PowerPointTextBox title = slide.AddTextBox("Delivery dashboard",global::OfficeIMO.OfficeLength.Points(28),global::OfficeIMO.OfficeLength.Points(22),global::OfficeIMO.OfficeLength.Points(300),global::OfficeIMO.OfficeLength.Points(34));
         title.FontSize = 24;
         title.Bold = true;
         title.FontName = PortableFontFamily;
         title.Color = "1E3A8A";
-        PowerPointTextBox status = slide.AddTextBoxPoints("On track", 30, 88, 170, 64);
+        PowerPointTextBox status = slide.AddTextBox("On track",global::OfficeIMO.OfficeLength.Points(30),global::OfficeIMO.OfficeLength.Points(88),global::OfficeIMO.OfficeLength.Points(170),global::OfficeIMO.OfficeLength.Points(64));
         status.FontSize = 18;
         status.Bold = true;
         status.FontName = PortableFontFamily;
         status.Color = "166534";
-        PowerPointTextBox evidence = slide.AddTextBoxPoints("Evidence ready", 260, 88, 170, 64);
+        PowerPointTextBox evidence = slide.AddTextBox("Evidence ready",global::OfficeIMO.OfficeLength.Points(260),global::OfficeIMO.OfficeLength.Points(88),global::OfficeIMO.OfficeLength.Points(170),global::OfficeIMO.OfficeLength.Points(64));
         evidence.FontSize = 18;
         evidence.Bold = true;
         evidence.FontName = PortableFontFamily;
@@ -91,10 +91,10 @@ public sealed class ImageExportProviderVisualBaselineTests {
             slide.AddImage(
                 image,
                 OfficeImageFormat.Png,
-                PowerPointUnits.FromPoints(260),
-                PowerPointUnits.FromPoints(178),
-                PowerPointUnits.FromPoints(150),
-                PowerPointUnits.FromPoints(50));
+                global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(260)),
+                global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(178)),
+                global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(150)),
+                global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(50)));
         }
         var options = new PowerPointImageExportOptions();
         options.Fonts.Add(PortableFontFamily, PortableRegularFont.Value);

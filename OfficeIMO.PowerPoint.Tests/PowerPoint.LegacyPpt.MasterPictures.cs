@@ -290,7 +290,7 @@ namespace OfficeIMO.Tests {
             using var image = new MemoryStream(imageBytes, writable: false);
             P.Picture slidePicture = (P.Picture)slide.AddImage(image,
                 OfficeIMO.Drawing.OfficeImageFormat.Png,
-                450000L, 300000L, 800000L, 600000L)
+                global::OfficeIMO.OfficeLength.Emus(450000L), global::OfficeIMO.OfficeLength.Emus(300000L), global::OfficeIMO.OfficeLength.Emus(800000L), global::OfficeIMO.OfficeLength.Emus(600000L))
                 .Element;
             AddPicturePlaceholder(slidePicture, 7U);
 

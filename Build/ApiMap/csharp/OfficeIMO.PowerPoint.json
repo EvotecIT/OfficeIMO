@@ -771,11 +771,11 @@
       "notes": "Also (units): change -> OfficeIMO.PowerPoint.PowerPointSlide.AddPicture(... OfficeLength left, OfficeLength top, OfficeLength width, OfficeLength height ...)",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-image-rename-applied-geometry-pending",
-      "note": "AddPicture is renamed to AddImage across the native owner and consumers. Raw EMUs and the unit-specific overloads still await the OfficeLength migration."
+      "applied": "phase-b-applied",
+      "note": "Slide image, title, text-box and shared-chart placement uses OfficeLength. Omitted bounds preserve native defaults; centimeter, inch and point twins are removed. Layout overloads forward typed bounds, and native drawing storage extracts EMUs only inside the owner. Legacy chart construction remains internal."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlide.AddPicture(Stream image, OfficeImageFormat imageType, long left = 0, long top = 0, long width = 914400, long height = 914400)",
@@ -788,11 +788,11 @@
       "notes": "Also (units): change -> OfficeIMO.PowerPoint.PowerPointSlide.AddPicture(... OfficeLength left, OfficeLength top, OfficeLength width, OfficeLength height ...)",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-image-rename-applied-geometry-pending",
-      "note": "AddPicture is renamed to AddImage across the native owner and consumers. Raw EMUs and the unit-specific overloads still await the OfficeLength migration."
+      "applied": "phase-b-applied",
+      "note": "Slide image, title, text-box and shared-chart placement uses OfficeLength. Omitted bounds preserve native defaults; centimeter, inch and point twins are removed. Layout overloads forward typed bounds, and native drawing storage extracts EMUs only inside the owner. Legacy chart construction remains internal."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlide.AddPicture(string imagePath, PowerPointLayoutBox layout)",
@@ -804,11 +804,11 @@
       "category": "authoring",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-image-rename-applied-geometry-pending",
-      "note": "AddPicture is renamed to AddImage across the native owner and consumers. Raw EMUs and the unit-specific overloads still await the OfficeLength migration."
+      "applied": "phase-b-applied",
+      "note": "Slide image, title, text-box and shared-chart placement uses OfficeLength. Omitted bounds preserve native defaults; centimeter, inch and point twins are removed. Layout overloads forward typed bounds, and native drawing storage extracts EMUs only inside the owner. Legacy chart construction remains internal."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlide.AddPicture(Stream image, OfficeImageFormat imageType, PowerPointLayoutBox layout)",
@@ -820,11 +820,11 @@
       "category": "authoring",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-image-rename-applied-geometry-pending",
-      "note": "AddPicture is renamed to AddImage across the native owner and consumers. Raw EMUs and the unit-specific overloads still await the OfficeLength migration."
+      "applied": "phase-b-applied",
+      "note": "Slide image, title, text-box and shared-chart placement uses OfficeLength. Omitted bounds preserve native defaults; centimeter, inch and point twins are removed. Layout overloads forward typed bounds, and native drawing storage extracts EMUs only inside the owner. Legacy chart construction remains internal."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlide.AddPictureCm(string imagePath, double leftCm, double topCm, double widthCm, double heightCm)",
@@ -837,11 +837,11 @@
       "notes": "Also (units): merge -> OfficeIMO.PowerPoint.PowerPointSlide.AddPicture(... OfficeLength ...) Also (units): change -> OfficeIMO.PowerPoint.PowerPointSlide.AddPictureCm(... OfficeLength ...)",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-image-rename-applied-geometry-pending",
-      "note": "AddPicture is renamed to AddImage across the native owner and consumers. Raw EMUs and the unit-specific overloads still await the OfficeLength migration."
+      "applied": "phase-b-applied",
+      "note": "Slide image, title, text-box and shared-chart placement uses OfficeLength. Omitted bounds preserve native defaults; centimeter, inch and point twins are removed. Layout overloads forward typed bounds, and native drawing storage extracts EMUs only inside the owner. Legacy chart construction remains internal."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlide.AddPictureCm(Stream image, OfficeImageFormat imageType, double leftCm, double topCm, double widthCm, double heightCm)",
@@ -854,11 +854,11 @@
       "notes": "Also (units): merge -> OfficeIMO.PowerPoint.PowerPointSlide.AddPicture(... OfficeLength ...) Also (units): change -> OfficeIMO.PowerPoint.PowerPointSlide.AddPictureCm(... OfficeLength ...)",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-image-rename-applied-geometry-pending",
-      "note": "AddPicture is renamed to AddImage across the native owner and consumers. Raw EMUs and the unit-specific overloads still await the OfficeLength migration."
+      "applied": "phase-b-applied",
+      "note": "Slide image, title, text-box and shared-chart placement uses OfficeLength. Omitted bounds preserve native defaults; centimeter, inch and point twins are removed. Layout overloads forward typed bounds, and native drawing storage extracts EMUs only inside the owner. Legacy chart construction remains internal."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlide.AddPictureInches(string imagePath, double leftInches, double topInches, double widthInches, double heightInches)",
@@ -871,11 +871,11 @@
       "notes": "Also (units): merge -> OfficeIMO.PowerPoint.PowerPointSlide.AddPicture(... OfficeLength ...) Also (units): change -> OfficeIMO.PowerPoint.PowerPointSlide.AddPictureInches(... OfficeLength ...)",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-image-rename-applied-geometry-pending",
-      "note": "AddPicture is renamed to AddImage across the native owner and consumers. Raw EMUs and the unit-specific overloads still await the OfficeLength migration."
+      "applied": "phase-b-applied",
+      "note": "Slide image, title, text-box and shared-chart placement uses OfficeLength. Omitted bounds preserve native defaults; centimeter, inch and point twins are removed. Layout overloads forward typed bounds, and native drawing storage extracts EMUs only inside the owner. Legacy chart construction remains internal."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlide.AddPictureInches(Stream image, OfficeImageFormat imageType, double leftInches, double topInches, double widthInches, double heightInches)",
@@ -888,11 +888,11 @@
       "notes": "Also (units): merge -> OfficeIMO.PowerPoint.PowerPointSlide.AddPicture(... OfficeLength ...) Also (units): change -> OfficeIMO.PowerPoint.PowerPointSlide.AddPictureInches(... OfficeLength ...)",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-image-rename-applied-geometry-pending",
-      "note": "AddPicture is renamed to AddImage across the native owner and consumers. Raw EMUs and the unit-specific overloads still await the OfficeLength migration."
+      "applied": "phase-b-applied",
+      "note": "Slide image, title, text-box and shared-chart placement uses OfficeLength. Omitted bounds preserve native defaults; centimeter, inch and point twins are removed. Layout overloads forward typed bounds, and native drawing storage extracts EMUs only inside the owner. Legacy chart construction remains internal."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlide.AddPicturePoints(string imagePath, double leftPoints, double topPoints, double widthPoints, double heightPoints)",
@@ -905,11 +905,11 @@
       "notes": "Also (units): merge -> OfficeIMO.PowerPoint.PowerPointSlide.AddPicture(... OfficeLength ...) Also (units): change -> OfficeIMO.PowerPoint.PowerPointSlide.AddPicturePoints(... OfficeLength ...)",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-image-rename-applied-geometry-pending",
-      "note": "AddPicture is renamed to AddImage across the native owner and consumers. Raw EMUs and the unit-specific overloads still await the OfficeLength migration."
+      "applied": "phase-b-applied",
+      "note": "Slide image, title, text-box and shared-chart placement uses OfficeLength. Omitted bounds preserve native defaults; centimeter, inch and point twins are removed. Layout overloads forward typed bounds, and native drawing storage extracts EMUs only inside the owner. Legacy chart construction remains internal."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlide.AddPicturePoints(Stream image, OfficeImageFormat imageType, double leftPoints, double topPoints, double widthPoints, double heightPoints)",
@@ -922,11 +922,11 @@
       "notes": "Also (units): merge -> OfficeIMO.PowerPoint.PowerPointSlide.AddPicture(... OfficeLength ...) Also (units): change -> OfficeIMO.PowerPoint.PowerPointSlide.AddPicturePoints(... OfficeLength ...)",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-image-rename-applied-geometry-pending",
-      "note": "AddPicture is renamed to AddImage across the native owner and consumers. Raw EMUs and the unit-specific overloads still await the OfficeLength migration."
+      "applied": "phase-b-applied",
+      "note": "Slide image, title, text-box and shared-chart placement uses OfficeLength. Omitted bounds preserve native defaults; centimeter, inch and point twins are removed. Layout overloads forward typed bounds, and native drawing storage extracts EMUs only inside the owner. Legacy chart construction remains internal."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlide.AddPicture(PowerPointImageAsset asset, PowerPointLayoutBox bounds)",
@@ -938,11 +938,11 @@
       "category": "authoring",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-image-rename-applied-geometry-pending",
-      "note": "AddPicture is renamed to AddImage across the native owner and consumers. Raw EMUs and the unit-specific overloads still await the OfficeLength migration."
+      "applied": "phase-b-applied",
+      "note": "Slide image, title, text-box and shared-chart placement uses OfficeLength. Omitted bounds preserve native defaults; centimeter, inch and point twins are removed. Layout overloads forward typed bounds, and native drawing storage extracts EMUs only inside the owner. Legacy chart construction remains internal."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlide.AddChart(OfficeChartKind chartKind, OfficeChartData data, long left = 0, long top = 0, long width = 5486400, long height = 3200400, PowerPointChartAccessibilityOptions accessibility = null)",
@@ -955,11 +955,11 @@
       "notes": "Also (units): change -> OfficeIMO.PowerPoint.PowerPointSlide.AddChart(... OfficeLength left, OfficeLength top, OfficeLength width, OfficeLength height ...)",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Slide image, title, text-box and shared-chart placement uses OfficeLength. Omitted bounds preserve native defaults; centimeter, inch and point twins are removed. Layout overloads forward typed bounds, and native drawing storage extracts EMUs only inside the owner. Legacy chart construction remains internal."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointTable.AddRow(int? index = null)",
@@ -2329,11 +2329,11 @@
       "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values. Also (units): change -> OfficeIMO.PowerPoint.PowerPointSlide.AddChartCm(... OfficeLength ...)",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Slide image, title, text-box and shared-chart placement uses OfficeLength. Omitted bounds preserve native defaults; centimeter, inch and point twins are removed. Layout overloads forward typed bounds, and native drawing storage extracts EMUs only inside the owner. Legacy chart construction remains internal."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlide.AddChartInches(OfficeChartKind chartKind, OfficeChartData data, double leftInches, double topInches, double widthInches, double heightInches, PowerPointChartAccessibilityOptions accessibility = null)",
@@ -2346,11 +2346,11 @@
       "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values. Also (units): change -> OfficeIMO.PowerPoint.PowerPointSlide.AddChartInches(... OfficeLength ...)",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Slide image, title, text-box and shared-chart placement uses OfficeLength. Omitted bounds preserve native defaults; centimeter, inch and point twins are removed. Layout overloads forward typed bounds, and native drawing storage extracts EMUs only inside the owner. Legacy chart construction remains internal."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlide.AddChartPoints(OfficeChartKind chartKind, OfficeChartData data, double leftPoints, double topPoints, double widthPoints, double heightPoints, PowerPointChartAccessibilityOptions accessibility = null)",
@@ -2363,11 +2363,11 @@
       "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values. Also (units): change -> OfficeIMO.PowerPoint.PowerPointSlide.AddChartPoints(... OfficeLength ...)",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Slide image, title, text-box and shared-chart placement uses OfficeLength. Omitted bounds preserve native defaults; centimeter, inch and point twins are removed. Layout overloads forward typed bounds, and native drawing storage extracts EMUs only inside the owner. Legacy chart construction remains internal."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlide.AddCustomGeometryCm(OfficeShape geometry, double leftCm, double topCm, double widthCm, double heightCm, string name = null)",
@@ -2686,11 +2686,11 @@
       "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values. Also (units): change -> OfficeIMO.PowerPoint.PowerPointSlide.AddTextBoxCm(... OfficeLength ...)",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Slide image, title, text-box and shared-chart placement uses OfficeLength. Omitted bounds preserve native defaults; centimeter, inch and point twins are removed. Layout overloads forward typed bounds, and native drawing storage extracts EMUs only inside the owner. Legacy chart construction remains internal."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlide.AddTextBoxInches(string text, double leftInches, double topInches, double widthInches, double heightInches)",
@@ -2703,11 +2703,11 @@
       "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values. Also (units): change -> OfficeIMO.PowerPoint.PowerPointSlide.AddTextBoxInches(... OfficeLength ...)",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Slide image, title, text-box and shared-chart placement uses OfficeLength. Omitted bounds preserve native defaults; centimeter, inch and point twins are removed. Layout overloads forward typed bounds, and native drawing storage extracts EMUs only inside the owner. Legacy chart construction remains internal."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlide.AddTextBoxPoints(string text, double leftPoints, double topPoints, double widthPoints, double heightPoints)",
@@ -2720,11 +2720,11 @@
       "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values. Also (units): change -> OfficeIMO.PowerPoint.PowerPointSlide.AddTextBoxPoints(... OfficeLength ...)",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Slide image, title, text-box and shared-chart placement uses OfficeLength. Omitted bounds preserve native defaults; centimeter, inch and point twins are removed. Layout overloads forward typed bounds, and native drawing storage extracts EMUs only inside the owner. Legacy chart construction remains internal."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlide.AddTextShapeCm(OfficePresetShapeType shapeType, string text, double leftCm, double topCm, double widthCm, double heightCm, string name = null)",
@@ -2788,11 +2788,11 @@
       "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values. Also (units): change -> OfficeIMO.PowerPoint.PowerPointSlide.AddTitleCm(... OfficeLength ...)",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Slide image, title, text-box and shared-chart placement uses OfficeLength. Omitted bounds preserve native defaults; centimeter, inch and point twins are removed. Layout overloads forward typed bounds, and native drawing storage extracts EMUs only inside the owner. Legacy chart construction remains internal."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlide.AddTitleInches(string text, double leftInches, double topInches, double widthInches, double heightInches)",
@@ -2805,11 +2805,11 @@
       "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values. Also (units): change -> OfficeIMO.PowerPoint.PowerPointSlide.AddTitleInches(... OfficeLength ...)",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Slide image, title, text-box and shared-chart placement uses OfficeLength. Omitted bounds preserve native defaults; centimeter, inch and point twins are removed. Layout overloads forward typed bounds, and native drawing storage extracts EMUs only inside the owner. Legacy chart construction remains internal."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlide.AddTitlePoints(string text, double leftPoints, double topPoints, double widthPoints, double heightPoints)",
@@ -2822,11 +2822,11 @@
       "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values. Also (units): change -> OfficeIMO.PowerPoint.PowerPointSlide.AddTitlePoints(... OfficeLength ...)",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Slide image, title, text-box and shared-chart placement uses OfficeLength. Omitted bounds preserve native defaults; centimeter, inch and point twins are removed. Layout overloads forward typed bounds, and native drawing storage extracts EMUs only inside the owner. Legacy chart construction remains internal."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlide.AlignShapesToSlideContentCm(IEnumerable<PowerPointShape> shapes, PowerPointShapeAlignment alignment, double marginCm)",
@@ -4847,11 +4847,11 @@
       "notes": "Raw EMU long geometry parameters with EMU defaults.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Slide image, title, text-box and shared-chart placement uses OfficeLength. Omitted bounds preserve native defaults; centimeter, inch and point twins are removed. Layout overloads forward typed bounds, and native drawing storage extracts EMUs only inside the owner. Legacy chart construction remains internal."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlide.AddTextShape(OfficePresetShapeType shapeType, string text, long left = 0, long top = 0, long width = 914400, long height = 914400, string name = null)",
@@ -4881,11 +4881,11 @@
       "notes": "Raw EMU long geometry parameters with EMU defaults.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Slide image, title, text-box and shared-chart placement uses OfficeLength. Omitted bounds preserve native defaults; centimeter, inch and point twins are removed. Layout overloads forward typed bounds, and native drawing storage extracts EMUs only inside the owner. Legacy chart construction remains internal."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlide.AddVideo(Stream video, string contentType, string extension, long left = 0, long top = 0, long width = 3657600, long height = 2057400, Stream posterImage = null, OfficeImageFormat posterImageType = Png)",
@@ -9991,6 +9991,12 @@
       "reason": "Remove remaining raw placement and unit-specific table overloads while preserving default bounds, saved geometry, column bindings and page continuation.",
       "phase": "B",
       "applied": "phase-b"
+    },
+    {
+      "change": "PowerPoint public image, title, text-box and shared-chart bounds use optional OfficeLength values.",
+      "reason": "Consolidate geometry entry points while preserving native defaults, chart accessibility options, stream ownership, positive image dimensions and saved EMU precision. All source consumers and maintained PowerPoint examples use explicit lengths. Internal chart kernels retain their native storage units.",
+      "phase": "B",
+      "applied": "phase-b-applied"
     }
   ],
   "applicationStatus": "Phase A applied and validated on the supported macOS targets. Phase B and Tier 2 entries retain their status; Windows .NET Framework validation remains pending.",

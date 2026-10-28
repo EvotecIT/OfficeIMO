@@ -13,7 +13,7 @@ public static partial class PowerPointIWorkConverter {
         double top = source.Geometry?.TopPoints ?? fallbackTop;
         double width = source.Geometry?.WidthPoints ?? fallbackWidth;
         double height = source.Geometry?.HeightPoints ?? fallbackHeight;
-        PowerPointTextBox textBox = slide.AddTextBoxPoints(string.Empty, left, top, width, height);
+        PowerPointTextBox textBox = slide.AddTextBox(string.Empty,global::OfficeIMO.OfficeLength.Points(left),global::OfficeIMO.OfficeLength.Points(top),global::OfficeIMO.OfficeLength.Points(width),global::OfficeIMO.OfficeLength.Points(height));
         if (source.Layout is { } layout) {
             if (layout.LeftInsetPoints.HasValue) textBox.TextMarginLeftPoints = layout.LeftInsetPoints.Value;
             if (layout.TopInsetPoints.HasValue) textBox.TextMarginTopPoints = layout.TopInsetPoints.Value;

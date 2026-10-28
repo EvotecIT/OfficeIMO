@@ -15,14 +15,13 @@ namespace OfficeIMO.Examples.PowerPoint {
             PowerPointLayoutBox content = presentation.SlideSize.GetContentBox(OfficeIMO.OfficeLength.Centimeters(marginCm));
 
             PowerPointSlide slide = presentation.AddSlide();
-            PowerPointTextBox title = slide.AddTitleCm("Speaker Notes", content.Left.ToCentimeters(), content.Top.ToCentimeters(), content.Width.ToCentimeters(), 1.4);
+            PowerPointTextBox title = slide.AddTitle("Speaker Notes",global::OfficeIMO.OfficeLength.Centimeters(content.Left.ToCentimeters()),global::OfficeIMO.OfficeLength.Centimeters(content.Top.ToCentimeters()),global::OfficeIMO.OfficeLength.Centimeters(content.Width.ToCentimeters()),global::OfficeIMO.OfficeLength.Centimeters(1.4));
             if (title.Paragraphs.Count > 0) {
                 PowerPointTextStyle.Title.WithColor("1F4E79").Apply(title.Paragraphs[0]);
             }
 
-            PowerPointTextBox body = slide.AddTextBoxCm(
-                "This slide includes speaker notes that remain hidden during presentation.",
-                content.Left.ToCentimeters(), content.Top.ToCentimeters() + 1.9, content.Width.ToCentimeters(), 1.6);
+            PowerPointTextBox body = slide.AddTextBox(
+                "This slide includes speaker notes that remain hidden during presentation.",                global::OfficeIMO.OfficeLength.Centimeters(content.Left.ToCentimeters()),global::OfficeIMO.OfficeLength.Centimeters(content.Top.ToCentimeters() + 1.9),global::OfficeIMO.OfficeLength.Centimeters(content.Width.ToCentimeters()),global::OfficeIMO.OfficeLength.Centimeters(1.6));
             body.ApplyTextStyle(PowerPointTextStyle.Body);
             body.SetTextMarginsCm(0.2, 0.2, 0.2, 0.2);
 

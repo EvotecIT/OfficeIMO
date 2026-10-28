@@ -14,7 +14,7 @@ public sealed class PowerPointOdpLossClosureTests {
     [Fact]
     public void DirectEastAsianFontIsReportedBeforeStrictConversion() {
         using PowerPointDocument source = CreatePowerPoint();
-        source.Slides[0].AddTextBoxPoints("Text", 20, 20, 200, 40);
+        source.Slides[0].AddTextBox("Text",global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(200),global::OfficeIMO.OfficeLength.Points(40));
         A.Run run = source.OpenXmlDocument.PresentationPart!.SlideParts.Single()
             .Slide!.Descendants<A.Run>().Single();
         run.RunProperties = new A.RunProperties(new A.EastAsianFont { Typeface = "Noto Sans CJK JP" });
@@ -25,7 +25,7 @@ public sealed class PowerPointOdpLossClosureTests {
     [Fact]
     public void LatinFontMetadataBeyondTypefaceIsReported() {
         using PowerPointDocument source = CreatePowerPoint();
-        source.Slides[0].AddTextBoxPoints("Text", 20, 20, 200, 40);
+        source.Slides[0].AddTextBox("Text",global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(200),global::OfficeIMO.OfficeLength.Points(40));
         A.Run run = source.OpenXmlDocument.PresentationPart!.SlideParts.Single()
             .Slide!.Descendants<A.Run>().Single();
         run.RunProperties = new A.RunProperties(new A.LatinFont {
@@ -47,7 +47,7 @@ public sealed class PowerPointOdpLossClosureTests {
     [Fact]
     public void PictureBulletIsReportedBeforeStrictConversion() {
         using PowerPointDocument source = CreatePowerPoint();
-        source.Slides[0].AddTextBoxPoints("Item", 20, 20, 200, 40);
+        source.Slides[0].AddTextBox("Item",global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(200),global::OfficeIMO.OfficeLength.Points(40));
         A.Paragraph paragraph = source.OpenXmlDocument.PresentationPart!.SlideParts.Single()
             .Slide!.Descendants<A.Paragraph>().Single();
         paragraph.ParagraphProperties = new A.ParagraphProperties(

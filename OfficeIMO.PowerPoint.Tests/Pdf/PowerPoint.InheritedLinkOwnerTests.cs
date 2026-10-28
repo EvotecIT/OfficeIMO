@@ -16,7 +16,7 @@ public sealed partial class PowerPointInheritedLinkOwnerTests {
         using var presentation = PowerPointDocument.Create(new MemoryStream());
         PowerPointSlide first = presentation.AddSlide();
         PowerPointSlide second = presentation.AddSlide();
-        PowerPointTextBox box = first.AddTextBoxPoints("Inherited shape", 30, 30, 240, 60);
+        PowerPointTextBox box = first.AddTextBox("Inherited shape",global::OfficeIMO.OfficeLength.Points(30),global::OfficeIMO.OfficeLength.Points(30),global::OfficeIMO.OfficeLength.Points(240),global::OfficeIMO.OfficeLength.Points(60));
         box.PlaceholderType = null;
         OpenXmlPart owner = Owner(first, master);
         owner.AddHyperlinkRelationship(PowerPointHyperlinkResolver.CreatePartRelativeUri(owner, second.SlidePart), false, "inherited-link");

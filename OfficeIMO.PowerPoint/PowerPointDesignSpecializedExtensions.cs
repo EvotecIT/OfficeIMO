@@ -304,7 +304,7 @@ namespace OfficeIMO.PowerPoint {
             }
 
             if (section.Items.Count > 0 && currentTop < box.Bottom.ToCentimeters() - 0.3) {
-                PowerPointTextBox bullets = slide.AddTextBox("", new OfficeIMO.PowerPoint.PowerPointLayoutBox(
+                PowerPointTextBox bullets = slide.AddTextBox("",new OfficeIMO.PowerPoint.PowerPointLayoutBox(
                     OfficeIMO.OfficeLength.Centimeters(box.Left.ToCentimeters() + 0.52),OfficeIMO.OfficeLength.Centimeters(currentTop),OfficeIMO.OfficeLength.Centimeters(box.Width.ToCentimeters() - 0.85),OfficeIMO.OfficeLength.Centimeters(box.Bottom.ToCentimeters() - currentTop - 0.25)));
                 bullets.SetTextMarginsCm(0, 0, 0, 0);
                 bullets.TextAutoFit = PowerPointTextAutoFit.Normal;

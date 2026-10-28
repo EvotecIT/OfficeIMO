@@ -25,7 +25,7 @@ namespace OfficeIMO.Tests {
             using var stream = new MemoryStream();
             using PowerPointDocument presentation = PowerPointDocument.Create(stream, new PowerPointCreateOptions());
             PowerPointSlide slide = presentation.AddSlide();
-            PowerPointTextBox target = slide.AddTextBoxPoints("Animated review target", 40, 40, 240, 50);
+            PowerPointTextBox target = slide.AddTextBox("Animated review target",global::OfficeIMO.OfficeLength.Points(40),global::OfficeIMO.OfficeLength.Points(40),global::OfficeIMO.OfficeLength.Points(240),global::OfficeIMO.OfficeLength.Points(50));
 
             PresentationPart presentationPart = slide.SlidePart.GetParentParts().OfType<PresentationPart>().Single();
             CommentAuthorsPart classicAuthors = presentationPart.AddNewPart<CommentAuthorsPart>();
@@ -697,8 +697,8 @@ namespace OfficeIMO.Tests {
             control.AddSlide().AddTitle("Filtered thumbnail");
             withPicture.AddSlide().AddTitle("Filtered thumbnail");
             withPicture.Slides[0].AddImage(new MemoryStream(PdfPngTestImages.CreateRgbPng(255, 0, 0)),
-                OfficeIMO.Drawing.OfficeImageFormat.Png, PowerPointUnits.FromPoints(72), PowerPointUnits.FromPoints(72),
-                PowerPointUnits.FromPoints(180), PowerPointUnits.FromPoints(120));
+                OfficeIMO.Drawing.OfficeImageFormat.Png, global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(72)), global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(72)),
+                global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(180)), global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(120)));
 
             var controlOptions = new PowerPointPdfExportOptions { PageLayout = layout };
             var pictureOptions = new PowerPointPdfExportOptions { PageLayout = layout };
@@ -992,11 +992,10 @@ namespace OfficeIMO.Tests {
                 PowerPointDocument.Create();
             presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(640),OfficeIMO.OfficeLength.Points(360));
             PowerPointSlide slide = presentation.AddSlide();
-            PowerPointChart chart = slide.AddChartPoints(
-                OfficeChartType.ColumnClustered,
-                new OfficeChartData(new[] { "Q1", "Q2" }, new[] {
+            PowerPointChart chart = slide.AddChart(
+                OfficeChartType.ColumnClustered,                new OfficeChartData(new[] { "Q1", "Q2" }, new[] {
                     new OfficeSeries("Actual", new[] { 10D, 20D })
-                }), 40, 40, 560, 280);
+                }),global::OfficeIMO.OfficeLength.Points(40),global::OfficeIMO.OfficeLength.Points(40),global::OfficeIMO.OfficeLength.Points(560),global::OfficeIMO.OfficeLength.Points(280));
             chart.SetLegendTextStyle(fontName: "Arial")
                 .SetCategoryAxisLabelTextStyle(fontName: "Georgia")
                 .SetValueAxisLabelTextStyle(fontName: "Arial");

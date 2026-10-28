@@ -17,7 +17,7 @@ public sealed class PowerPointMasterPlaceholderBoundsTests {
         var tree = slide.SlidePart.SlideLayoutPart!.SlideLayout.CommonSlideData!.ShapeTree!;
         PlaceholderValues?[] types = { PlaceholderValues.DateAndTime, PlaceholderValues.Footer, PlaceholderValues.SlideNumber, null };
         for (int index = 0; index < types.Length; index++) {
-            var prompt = slide.AddTextBoxPoints("TEMPLATE PROMPT " + index, 20, 20 + index * 40, 300, 30);
+            var prompt = slide.AddTextBox("TEMPLATE PROMPT " + index,global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20 + index * 40),global::OfficeIMO.OfficeLength.Points(300),global::OfficeIMO.OfficeLength.Points(30));
             Assert.IsType<Shape>(prompt.Element).NonVisualShapeProperties!.ApplicationNonVisualDrawingProperties!
                 .PlaceholderShape = types[index].HasValue
                     ? new PlaceholderShape { Type = types[index]!.Value, Index = (uint)(10 + index) }
@@ -25,14 +25,14 @@ public sealed class PowerPointMasterPlaceholderBoundsTests {
             prompt.Element.Remove();
             tree.Append(prompt.Element);
             if (concrete) {
-                var actual = slide.AddTextBoxPoints("ACTUAL FIELD " + index, 20, 20 + index * 40, 300, 30);
+                var actual = slide.AddTextBox("ACTUAL FIELD " + index,global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20 + index * 40),global::OfficeIMO.OfficeLength.Points(300),global::OfficeIMO.OfficeLength.Points(30));
                 Assert.IsType<Shape>(actual.Element).NonVisualShapeProperties!.ApplicationNonVisualDrawingProperties!
                     .PlaceholderShape = types[index].HasValue
                         ? new PlaceholderShape { Type = types[index]!.Value, Index = (uint)(10 + index) }
                         : new PlaceholderShape();
             }
         }
-        var artwork = slide.AddTextBoxPoints("LAYOUT ARTWORK", 20, 180, 300, 30);
+        var artwork = slide.AddTextBox("LAYOUT ARTWORK",global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(180),global::OfficeIMO.OfficeLength.Points(300),global::OfficeIMO.OfficeLength.Points(30));
         artwork.PlaceholderType = null;
         artwork.Element.Remove();
         tree.Append(artwork.Element);
@@ -55,7 +55,7 @@ public sealed class PowerPointMasterPlaceholderBoundsTests {
         using (var deck = PowerPointDocument.Create()) {
             deck.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(400),OfficeIMO.OfficeLength.Points(250));
             var slide = deck.AddSlide();
-            var title = slide.AddTextBoxPoints("MASTER INHERITED TITLE", 10, 10, 200, 50);
+            var title = slide.AddTextBox("MASTER INHERITED TITLE",global::OfficeIMO.OfficeLength.Points(10),global::OfficeIMO.OfficeLength.Points(10),global::OfficeIMO.OfficeLength.Points(200),global::OfficeIMO.OfficeLength.Points(50));
             title.PlaceholderType = PowerPointPlaceholderType.Title;
             title.PlaceholderIndex = 0;
             title.FontName = "Helvetica";

@@ -77,7 +77,7 @@ namespace OfficeIMO.PowerPoint {
             double bodyTop = box.Top.ToCentimeters() + 0.65 + titleHeight + 0.28;
             double bodyHeight = Math.Max(0.42, box.Height.ToCentimeters() - (bodyTop - box.Top.ToCentimeters()) - 0.35);
             int bodyFontSize = ResolveCardBodyFontSize(card.Items, titleWidth, bodyHeight);
-            PowerPointTextBox body = slide.AddTextBox("", new OfficeIMO.PowerPoint.PowerPointLayoutBox(
+            PowerPointTextBox body = slide.AddTextBox("",new OfficeIMO.PowerPoint.PowerPointLayoutBox(
                 OfficeIMO.OfficeLength.Centimeters(titleLeft + 0.1),OfficeIMO.OfficeLength.Centimeters(bodyTop),OfficeIMO.OfficeLength.Centimeters(box.Width.ToCentimeters() - 1.05),OfficeIMO.OfficeLength.Centimeters(bodyHeight)));
             body.SetTextMarginsCm(0, 0, 0, 0);
             body.TextAutoFit = PowerPointTextAutoFit.Normal;

@@ -179,12 +179,8 @@ internal sealed record PdfFormatConversionScenario(
             PowerPointSlide slide = presentation.AddSlide();
             int first = (slideIndex * 10) + 1;
             string content = string.Join("\n", Enumerable.Range(first, 10).Select(PdfFormatConversionRecordManifest.RecordLine));
-            slide.AddTextBoxPoints(
-                slideIndex == 0 ? Heading + "\n" + content : content,
-                leftPoints: 36,
-                topPoints: 28,
-                widthPoints: 640,
-                heightPoints: 460);
+            slide.AddTextBox(
+                slideIndex == 0 ? Heading + "\n" + content : content,left: global::OfficeIMO.OfficeLength.Points(36),top: global::OfficeIMO.OfficeLength.Points(28),width: global::OfficeIMO.OfficeLength.Points(640),height: global::OfficeIMO.OfficeLength.Points(460));
         }
         return presentation.ToBytes();
     }

@@ -22,7 +22,7 @@ public partial class PowerPointImageExportTests {
         PowerPointSlide slide = presentation.AddSlide();
         slide.BackgroundColor = "FFF9E8";
 
-        PowerPointTextBox title = slide.AddTextBoxPoints("Canonical slide", 18, 12, 260, 32);
+        PowerPointTextBox title = slide.AddTextBox("Canonical slide",global::OfficeIMO.OfficeLength.Points(18),global::OfficeIMO.OfficeLength.Points(12),global::OfficeIMO.OfficeLength.Points(260),global::OfficeIMO.OfficeLength.Points(32));
         title.FontSize = 18;
         A.Run run = title.Element.Descendants<A.Run>().First();
         A.RunProperties properties = run.RunProperties ??= new A.RunProperties();

@@ -38,14 +38,13 @@ namespace OfficeIMO.Examples.PowerPoint {
 
             // Slide 1: title
             PowerPointSlide slide1 = presentation.AddSlide();
-            PowerPointTextBox title = slide1.AddTitle("Advanced PowerPoint Example", titleBox);
+            PowerPointTextBox title = slide1.AddTitle("Advanced PowerPoint Example",titleBox);
             title.FontSize = 30;
             title.Color = "1F4E79";
             PowerPointLayoutBox introBox = new OfficeIMO.PowerPoint.PowerPointLayoutBox(
                 OfficeIMO.OfficeLength.Centimeters(bodyBox.Left.ToCentimeters()),OfficeIMO.OfficeLength.Centimeters(bodyBox.Top.ToCentimeters()),OfficeIMO.OfficeLength.Centimeters(bodyBox.Width.ToCentimeters()),OfficeIMO.OfficeLength.Centimeters(1.1));
             PowerPointTextBox intro = slide1.AddTextBox(
-                "Shows layout, charts, tables, images, notes, and transitions.",
-                introBox);
+                "Shows layout, charts, tables, images, notes, and transitions.",                introBox);
             intro.FontSize = 18;
             intro.Color = "1F4E79";
             slide1.BackgroundColor = "F7F7F7";
@@ -53,9 +52,9 @@ namespace OfficeIMO.Examples.PowerPoint {
 
             // Slide 2: highlights with image
             PowerPointSlide slide2 = presentation.AddSlide();
-            slide2.AddTitle("Highlights", titleBox);
+            slide2.AddTitle("Highlights",titleBox);
             slide2.Transition = PowerPointSlideTransition.PushLeft;
-            PowerPointTextBox highlights = slide2.AddTextBox("This slide demonstrates:", leftColumn);
+            PowerPointTextBox highlights = slide2.AddTextBox("This slide demonstrates:",leftColumn);
             highlights.TextAutoFit = PowerPointTextAutoFit.Normal;
             highlights.SetTextMarginsCm(0.3, 0.2, 0.3, 0.2);
             highlights.AddBullet("Positioned elements");
@@ -74,12 +73,12 @@ namespace OfficeIMO.Examples.PowerPoint {
 
             string imagePath = Path.Combine(AppContext.BaseDirectory, "Images", "BackgroundImage.png");
             if (File.Exists(imagePath)) {
-                slide2.AddImage(imagePath, mediaBox);
-                PowerPointTextBox caption = slide2.AddTextBox("Illustration scaled to fit.", captionBox);
+                slide2.AddImage(imagePath,mediaBox);
+                PowerPointTextBox caption = slide2.AddTextBox("Illustration scaled to fit.",captionBox);
                 caption.FontSize = 12;
                 caption.Color = "666666";
             } else {
-                PowerPointTextBox placeholder = slide2.AddTextBox("(image placeholder)", mediaBox);
+                PowerPointTextBox placeholder = slide2.AddTextBox("(image placeholder)",mediaBox);
                 placeholder.FillColor = "F3F3F3";
                 placeholder.OutlineColor = "CCCCCC";
                 placeholder.TextVerticalAlignment = PowerPointTextVerticalAlignment.Center;
@@ -88,7 +87,7 @@ namespace OfficeIMO.Examples.PowerPoint {
 
             // Slide 3: KPI table
             PowerPointSlide slide3 = presentation.AddSlide();
-            slide3.AddTitle("KPI Table", titleBox);
+            slide3.AddTitle("KPI Table",titleBox);
             slide3.Transition = PowerPointSlideTransition.Wipe;
             PowerPointTable kpiTable = slide3.AddTable(
                 kpis,                o => {
@@ -107,7 +106,7 @@ namespace OfficeIMO.Examples.PowerPoint {
 
             // Slide 4: KPI chart
             PowerPointSlide slide4 = presentation.AddSlide();
-            slide4.AddTitle("KPI Chart", titleBox);
+            slide4.AddTitle("KPI Chart",titleBox);
             slide4.Transition = PowerPointSlideTransition.CombHorizontal;
             OfficeChartData chartData = new OfficeChartData(
                 kpis.Select(k => k.Metric),
@@ -115,12 +114,8 @@ namespace OfficeIMO.Examples.PowerPoint {
                     new OfficeSeries("Current", kpis.Select(k => (double)k.Current)),
                     new OfficeSeries("Target", kpis.Select(k => (double)k.Target))
                 });
-            PowerPointChart chart = slide4.AddChartCm(
-                OfficeChartType.ColumnClustered, chartData,
-                bodyBox.Left.ToCentimeters(),
-                bodyBox.Top.ToCentimeters(),
-                bodyBox.Width.ToCentimeters(),
-                bodyBox.Height.ToCentimeters());
+            PowerPointChart chart = slide4.AddChart(
+                OfficeChartType.ColumnClustered,chartData,                global::OfficeIMO.OfficeLength.Centimeters(bodyBox.Left.ToCentimeters()),                global::OfficeIMO.OfficeLength.Centimeters(bodyBox.Top.ToCentimeters()),                global::OfficeIMO.OfficeLength.Centimeters(bodyBox.Width.ToCentimeters()),                global::OfficeIMO.OfficeLength.Centimeters(bodyBox.Height.ToCentimeters()));
             chart.SetTitle("Current vs Target")
                 .SetLegend(OfficeChartLegendPosition.Right)
                 .SetDataLabels(showValue: true)

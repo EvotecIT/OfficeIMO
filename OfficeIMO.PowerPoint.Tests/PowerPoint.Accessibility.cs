@@ -19,7 +19,7 @@ namespace OfficeIMO.Tests {
                     PowerPointAutoShape accent = slide.AddRectanglePoints(10, 10, 40, 20, "Decorative accent");
                     accent.Title = "Decorative accent";
                     accent.Decorative = true;
-                    PowerPointTextBox text = slide.AddTextBoxPoints("Accessible documentation", 20, 40, 220, 30);
+                    PowerPointTextBox text = slide.AddTextBox("Accessible documentation",global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(40),global::OfficeIMO.OfficeLength.Points(220),global::OfficeIMO.OfficeLength.Points(30));
                     text.Title = "Slide title";
                     text.Description = "Documentation link";
                     text.SetLanguage("en-GB");
@@ -59,7 +59,7 @@ namespace OfficeIMO.Tests {
             using PowerPointDocument presentation = PowerPointDocument.Create(stream, new PowerPointCreateOptions());
             PowerPointSlide slide = presentation.AddSlide();
             slide.BackgroundColor = "FFFFFF";
-            PowerPointTextBox link = slide.AddTextBoxPoints("click here", 20, 20, 180, 28);
+            PowerPointTextBox link = slide.AddTextBox("click here",global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(180),global::OfficeIMO.OfficeLength.Points(28));
             link.Color = "D0D0D0";
             link.FontSize = 12;
             link.FillColor = "FFFFFF";
@@ -97,7 +97,7 @@ namespace OfficeIMO.Tests {
         public void AccessibilityGroupsContiguousRunsWithTheSameHyperlinkBeforeJudgingTheLabel() {
             using var stream = new MemoryStream();
             using PowerPointDocument presentation = PowerPointDocument.Create(stream, new PowerPointCreateOptions());
-            PowerPointTextBox link = presentation.AddSlide().AddTextBoxPoints("Open", 20, 20, 180, 28);
+            PowerPointTextBox link = presentation.AddSlide().AddTextBox("Open",global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(180),global::OfficeIMO.OfficeLength.Points(28));
             PowerPointParagraph paragraph = link.Paragraphs.Single();
             paragraph.Runs.Single().SetHyperlink("https://openai.com");
             paragraph.AddRun("AI", run => {
@@ -422,7 +422,7 @@ namespace OfficeIMO.Tests {
                         new DocumentFormat.OpenXml.Drawing.RgbColorModelHex { Val = "111827" }))));
             layoutPart.SlideLayout.Save();
 
-            PowerPointTextBox text = slide.AddTextBoxPoints("Readable inherited contrast", 20, 20, 180, 30);
+            PowerPointTextBox text = slide.AddTextBox("Readable inherited contrast",global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(180),global::OfficeIMO.OfficeLength.Points(30));
             text.Color = "FFFFFF";
             text.FontSize = 12;
 

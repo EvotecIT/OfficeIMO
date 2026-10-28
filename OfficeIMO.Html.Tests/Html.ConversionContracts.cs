@@ -161,7 +161,7 @@ public partial class Html {
         Assert.Single(importedWorkbook.Sheets);
 
         using PowerPointDocument presentation = PowerPointDocument.Create(new MemoryStream());
-        presentation.AddSlide().AddTextBoxPoints("Hello", 20, 20, 200, 40);
+        presentation.AddSlide().AddTextBox("Hello",global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(200),global::OfficeIMO.OfficeLength.Points(40));
         HtmlConversionDocument powerPointHtml = HtmlConversionDocument.Parse(presentation.ToHtml());
         using PowerPointDocument importedPresentation = powerPointHtml
             .ToPowerPointDocumentResult()

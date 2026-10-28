@@ -22,10 +22,9 @@ namespace OfficeIMO.Tests {
             byte[] encryptedBytes;
             using (PowerPointDocument source = PowerPointDocument.Create()) {
                 PowerPointSlide slide = source.AddSlide();
-                slide.AddTextBox("Encrypted binary deck", 100000, 100000,
-                    2200000, 600000);
+                slide.AddTextBox("Encrypted binary deck",global::OfficeIMO.OfficeLength.Emus(100000),global::OfficeIMO.OfficeLength.Emus(100000),                    global::OfficeIMO.OfficeLength.Emus(2200000),global::OfficeIMO.OfficeLength.Emus(600000));
                 slide.AddImage(new MemoryStream(imageBytes),
-                    OfficeIMO.Drawing.OfficeImageFormat.Png, 300000, 900000, 1800000, 1200000);
+                    OfficeIMO.Drawing.OfficeImageFormat.Png, global::OfficeIMO.OfficeLength.Emus(300000), global::OfficeIMO.OfficeLength.Emus(900000), global::OfficeIMO.OfficeLength.Emus(1800000), global::OfficeIMO.OfficeLength.Emus(1200000));
                 encryptedBytes = source.ToEncryptedBytes(password,
                     PowerPointFileFormat.Ppt, new PowerPointSaveOptions {
                         LegacyPptEncryptionKeySizeBits = keySizeBits
@@ -399,8 +398,7 @@ namespace OfficeIMO.Tests {
             const string targetPassword = "target-pass";
             byte[] plainBytes;
             using (PowerPointDocument source = PowerPointDocument.Create()) {
-                source.AddSlide().AddTextBox("Original secret", 100000,
-                    100000, 2200000, 600000);
+                source.AddSlide().AddTextBox("Original secret",global::OfficeIMO.OfficeLength.Emus(100000),                    global::OfficeIMO.OfficeLength.Emus(100000),global::OfficeIMO.OfficeLength.Emus(2200000),global::OfficeIMO.OfficeLength.Emus(600000));
                 plainBytes = source.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
             LegacyPptDocument plain = LegacyPptDocument.Load(plainBytes);
@@ -588,8 +586,7 @@ namespace OfficeIMO.Tests {
             string password) {
             using PowerPointDocument source =
                 PowerPointDocument.Create();
-            source.AddSlide().AddTextBox("Original secret", 100000,
-                100000, 2200000, 600000);
+            source.AddSlide().AddTextBox("Original secret",global::OfficeIMO.OfficeLength.Emus(100000),                global::OfficeIMO.OfficeLength.Emus(100000),global::OfficeIMO.OfficeLength.Emus(2200000),global::OfficeIMO.OfficeLength.Emus(600000));
             return source.ToEncryptedBytes(password, PowerPointFileFormat.Ppt);
         }
 

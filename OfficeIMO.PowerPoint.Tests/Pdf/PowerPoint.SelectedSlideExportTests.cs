@@ -13,8 +13,8 @@ public sealed class PowerPointSelectedSlideExportTests {
         deck.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(100),OfficeIMO.OfficeLength.Points(60));
         byte[] picture = OfficePngWriter.Encode(new OfficeRasterImage(2, 2, OfficeColor.CornflowerBlue));
         deck.AddSlide().AddImage(new MemoryStream(picture), OfficeImageFormat.Png,
-            PowerPointUnits.FromPoints(10), PowerPointUnits.FromPoints(10),
-            PowerPointUnits.FromPoints(20), PowerPointUnits.FromPoints(20));
+            global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(10)), global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(10)),
+            global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(20)), global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(20)));
         var background = deck.AddSlide();
         if (gradient) background.SetBackgroundGradient("123456", "123456", 0);
         else background.BackgroundColor = "123456";
@@ -47,7 +47,7 @@ public sealed class PowerPointSelectedSlideExportTests {
         using var deck = PowerPointDocument.Create();
         deck.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(220),OfficeIMO.OfficeLength.Points(180));
         var slide = deck.AddSlide();
-        var box = slide.AddTextBoxPoints("FIRST\nSECOND\nTAIL", -5, 20, 100, 12);
+        var box = slide.AddTextBox("FIRST\nSECOND\nTAIL",global::OfficeIMO.OfficeLength.Points(-5),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(100),global::OfficeIMO.OfficeLength.Points(12));
         box.FontName = "Helvetica";
         box.FontSize = 12;
         box.TextAutoFit = PowerPointTextAutoFit.None;
@@ -67,7 +67,7 @@ public sealed class PowerPointSelectedSlideExportTests {
     public void SelectingOneSlideDoesNotReportLossFromUnselectedSlides() {
         using var deck = PowerPointDocument.Create();
         var good = deck.AddSlide();
-        good.AddTextBoxPoints("SELECTED", 20, 20, 200, 50);
+        good.AddTextBox("SELECTED",global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(200),global::OfficeIMO.OfficeLength.Points(50));
         var omitted = deck.AddSlide();
         var first = omitted.AddRectanglePoints(10, 10, 20, 20);
         var second = omitted.AddRectanglePoints(40, 10, 20, 20);

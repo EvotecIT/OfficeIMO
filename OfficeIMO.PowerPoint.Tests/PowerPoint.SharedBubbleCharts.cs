@@ -35,9 +35,8 @@ namespace OfficeIMO.Tests {
                 new[] { 3D, 6D, 9D }, new[] { 12D, 24D, 36D }, new[] { 16D, 36D, 64D });
             try {
                 using (PowerPointDocument presentation = PowerPointDocument.Create(output)) {
-                    PowerPointChart chart = presentation.AddSlide().AddChartPoints(
-                        OfficeChartType.Bubble, initial, 36, 30, 420, 250,
-                        new PowerPointChartAccessibilityOptions {
+                    PowerPointChart chart = presentation.AddSlide().AddChart(
+                        OfficeChartType.Bubble,initial,global::OfficeIMO.OfficeLength.Points(36),global::OfficeIMO.OfficeLength.Points(30),global::OfficeIMO.OfficeLength.Points(420),global::OfficeIMO.OfficeLength.Points(250),                        new PowerPointChartAccessibilityOptions {
                             AlternativeText = "Portfolio position by return, risk, and investment"
                         });
 
@@ -315,8 +314,8 @@ namespace OfficeIMO.Tests {
                     new[] { 4D, 9D },
                     showInLegend: false)
             });
-            PowerPointChart chart = slide.AddChartPoints(
-                OfficeChartType.Bubble, data, 30, 20, 420, 250);
+            PowerPointChart chart = slide.AddChart(
+                OfficeChartType.Bubble,data,global::OfficeIMO.OfficeLength.Points(30),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(420),global::OfficeIMO.OfficeLength.Points(250));
             C.Delete nativeDelete = presentation.Slides[0].SlidePart.ChartParts
                 .Single().ChartSpace!.Descendants<C.LegendEntry>().Single()
                 .GetFirstChild<C.Delete>()!;
@@ -732,8 +731,7 @@ namespace OfficeIMO.Tests {
             using PowerPointDocument presentation = PowerPointDocument.Create(stream);
             presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(480),OfficeIMO.OfficeLength.Points(300));
             PowerPointSlide slide = presentation.AddSlide();
-            slide.AddChartPoints(OfficeChartType.Bubble,
-                CreateBubbleData(
+            slide.AddChart(OfficeChartType.Bubble,                CreateBubbleData(
                     new[] { 1D, 2D, 3D },
                     new[] { 2D, 5D, 4D },
                     new[] { 4D, 25D, 9D },
@@ -741,8 +739,7 @@ namespace OfficeIMO.Tests {
                         OfficeColor.Parse("#D62828"),
                         OfficeColor.Parse("#2A9D8F"),
                         OfficeColor.Parse("#F4A261")
-                    }),
-                30, 20, 420, 250);
+                    }),                global::OfficeIMO.OfficeLength.Points(30),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(420),global::OfficeIMO.OfficeLength.Points(250));
 
             OfficeImageExportResult png = slide.ExportImage(OfficeImageExportFormat.Png);
             OfficeImageExportResult svg = slide.ExportImage(OfficeImageExportFormat.Svg);
@@ -804,16 +801,14 @@ namespace OfficeIMO.Tests {
             using PowerPointDocument presentation =
                 PowerPointDocument.Create(new MemoryStream());
             PowerPointSlide slide = presentation.AddSlide();
-            slide.AddChartPoints(OfficeChartType.Bubble,
-                CreateBubbleData(
+            slide.AddChart(OfficeChartType.Bubble,                CreateBubbleData(
                     new[] { 1D, 2D },
                     new[] { 2D, 4D },
                     new[] { 0D, 9D },
                     new OfficeColor?[] {
                         OfficeColor.Parse("#D62828"),
                         OfficeColor.Parse("#2A9D8F")
-                    }),
-                30, 20, 420, 250);
+                    }),                global::OfficeIMO.OfficeLength.Points(30),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(420),global::OfficeIMO.OfficeLength.Points(250));
 
             string svg = System.Text.Encoding.UTF8.GetString(
                 slide.ExportImage(OfficeImageExportFormat.Svg).Bytes);

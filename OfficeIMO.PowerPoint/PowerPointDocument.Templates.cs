@@ -174,7 +174,7 @@ namespace OfficeIMO.PowerPoint {
                     "' is not a text placeholder. Use its Bounds for the matching native visual.");
             }
 
-            PowerPointTextBox textBox = AddTextBox(text ?? string.Empty, placeholder.Bounds.Value);
+            PowerPointTextBox textBox = AddTextBox(text ?? string.Empty,placeholder.Bounds.Value);
             textBox.Name = placeholder.Name;
             textBox.PlaceholderType = placeholder.PlaceholderType;
             textBox.PlaceholderIndex = placeholder.PlaceholderIndex;

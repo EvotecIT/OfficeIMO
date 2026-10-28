@@ -104,7 +104,7 @@ public sealed partial class OfficeProvenanceWorkflowTests {
         }
         string powerPoint = Path.Combine(scope.Path, "deck.pptx");
         using (PowerPointDocument presentation = PowerPointDocument.Create(powerPoint)) {
-            presentation.AddSlide().AddTextBoxPoints("workflow provenance", 20, 20, 300, 60);
+            presentation.AddSlide().AddTextBox("workflow provenance",global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(300),global::OfficeIMO.OfficeLength.Points(60));
             presentation.Save();
         }
         string visio = Path.Combine(scope.Path, "drawing.vsdx");

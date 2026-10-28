@@ -291,7 +291,7 @@ internal static class PowerPointRichMapping {
             writer.WriteStartObject();
             writer.WriteString("name", snapshot.Name);
             writer.WriteString("title", snapshot.Title);
-            writer.WriteString("kind", snapshot.ChartKind.ToString());
+            writer.WriteString("kind", OfficeIMO.Internal.OfficeChartTypeName.Format(snapshot.ChartKind));
             writer.WritePropertyName("categories");
             writer.WriteStartArray();
             foreach (string category in snapshot.Data.Categories) writer.WriteStringValue(category);
@@ -307,7 +307,7 @@ internal static class PowerPointRichMapping {
                 } else {
                     WritePowerPointChartValues(writer, "xValues", series.XValues);
                 }
-                writer.WriteString("kind", series.RenderKind?.ToString());
+                writer.WriteString("kind", series.RenderKind.HasValue ? OfficeIMO.Internal.OfficeChartTypeName.Format(series.RenderKind.Value) : null);
                 writer.WriteEndObject();
             }
             writer.WriteEndArray();

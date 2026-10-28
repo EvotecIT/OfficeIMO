@@ -16,7 +16,7 @@ namespace OfficeIMO.Tests {
             presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(340),OfficeIMO.OfficeLength.Points(150));
             PowerPointSlide slide = presentation.AddSlide();
 
-            PowerPointParagraph textBoxParagraph = slide.AddTextBoxPoints("seed", 20, 20, 135, 60).Paragraphs[0];
+            PowerPointParagraph textBoxParagraph = slide.AddTextBox("seed",global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(135),global::OfficeIMO.OfficeLength.Points(60)).Paragraphs[0];
             textBoxParagraph.Paragraph.RemoveAllChildren<A.Run>();
             textBoxParagraph.AddField("text field", "custom", null, run => {
                 run.Bold = true;
@@ -96,7 +96,7 @@ namespace OfficeIMO.Tests {
             presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(320),OfficeIMO.OfficeLength.Points(140));
             PowerPointSlide slide = presentation.AddSlide();
 
-            PowerPointParagraph textBoxParagraph = slide.AddTextBoxPoints("izmir", 20, 20, 130, 60).Paragraphs[0];
+            PowerPointParagraph textBoxParagraph = slide.AddTextBox("izmir",global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(130),global::OfficeIMO.OfficeLength.Points(60)).Paragraphs[0];
             PowerPointTextRun textBoxRun = textBoxParagraph.Runs[0];
             textBoxRun.Language = "tr-TR";
             textBoxRun.Capitalization = PowerPointCapitalization.AllCaps;
@@ -128,7 +128,7 @@ namespace OfficeIMO.Tests {
             presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(360),OfficeIMO.OfficeLength.Points(150));
             PowerPointSlide slide = presentation.AddSlide();
 
-            PowerPointParagraph textParagraph = slide.AddTextBoxPoints("izmir", 20, 20, 140, 50).Paragraphs[0];
+            PowerPointParagraph textParagraph = slide.AddTextBox("izmir",global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(140),global::OfficeIMO.OfficeLength.Points(50)).Paragraphs[0];
             textParagraph.Paragraph.ParagraphProperties = new A.ParagraphProperties(
                 new A.DefaultRunProperties { Capital = A.TextCapsValues.All, Language = "tr-TR" });
             textParagraph.Runs[0].BaselinePercent = 5D;

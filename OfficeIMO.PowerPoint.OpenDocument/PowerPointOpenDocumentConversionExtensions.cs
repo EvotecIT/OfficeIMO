@@ -372,7 +372,7 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
                     }
                     IReadOnlyList<OdpParagraph> sourceParagraphs = textBox.Paragraphs;
                     listParagraphs += textBox.Lists.Sum(list => list.Items.Count);
-                    PowerPointTextBox converted = targetSlide.AddTextBox(string.Empty, textBoxBounds);
+                    PowerPointTextBox converted = targetSlide.AddTextBox(string.Empty,textBoxBounds);
                     converted.Name = textBox.Name;
                     if (textBox.PresentationClass != null) {
                         PowerPointPlaceholderType? placeholderType = GetPowerPointPlaceholderType(textBox.PresentationClass);

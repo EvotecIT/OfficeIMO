@@ -484,7 +484,7 @@ public static partial class HtmlPowerPointConverterExtensions {
                     retainedBackgroundPictures = AddEditableLayoutPictures(slide, region, backgroundImages: true,
                         left, top, topOffset, maximumGeometry, budget, result, nativeRegionShapes);
                 }
-                PptCore.PowerPointTextBox textBox = slide.AddTextBoxPoints(region.SourceText, left, top, width, height);
+                PptCore.PowerPointTextBox textBox = slide.AddTextBox(region.SourceText,global::OfficeIMO.OfficeLength.Points(left),global::OfficeIMO.OfficeLength.Points(top),global::OfficeIMO.OfficeLength.Points(width),global::OfficeIMO.OfficeLength.Points(height));
                 reservedShape.Commit();
                 nativeRegionShapes.Add(textBox);
                 textBox.Name = "HTML " + region.RegionKind + " " + region.SourceKey;
@@ -608,8 +608,8 @@ public static partial class HtmlPowerPointConverterExtensions {
             double pictureHeight = NormalizeGeometry(image.Height * 0.75D, 1D, 1D,
                 budget, result, "editable layout picture height");
             using var stream = new MemoryStream(image.Bytes);
-            PptCore.PowerPointPicture picture = slide.AddImagePoints(stream, imageType,
-                pictureLeft, pictureTop, pictureWidth, pictureHeight);
+            PptCore.PowerPointPicture picture = slide.AddImage(stream, imageType,
+                OfficeIMO.OfficeLength.Points(pictureLeft), OfficeIMO.OfficeLength.Points(pictureTop), OfficeIMO.OfficeLength.Points(pictureWidth), OfficeIMO.OfficeLength.Points(pictureHeight));
             nativeRegionShapes.Add(picture);
             if (!string.IsNullOrWhiteSpace(image.AlternativeText)) picture.AltText = image.AlternativeText;
             if (image.Opacity < 0.999D) picture.FillTransparency = (int)Math.Round((1D - image.Opacity) * 100D);
@@ -700,7 +700,7 @@ public static partial class HtmlPowerPointConverterExtensions {
         GetGenericResourcePictureSize(resource, presentation, budget,
             out double width, out double height, out bool fitted);
         using var stream = new MemoryStream(bytes);
-        PptCore.PowerPointPicture picture = slide.AddImagePoints(stream, imagePartType, 64D, top, width, height);
+        PptCore.PowerPointPicture picture = slide.AddImage(stream, imagePartType, OfficeIMO.OfficeLength.Points(64D), OfficeIMO.OfficeLength.Points(top), OfficeIMO.OfficeLength.Points(width), OfficeIMO.OfficeLength.Points(height));
         if (!string.IsNullOrWhiteSpace(resource.AlternateText)) picture.AltText = resource.AlternateText;
         ApplyPictureHyperlink(picture, resource.Hyperlink, result, options.NormalizedHyperlinkUrlPolicy ?? options.HyperlinkUrlPolicy);
         result.Pictures++;

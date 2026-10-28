@@ -176,7 +176,7 @@ namespace OfficeIMO.Tests {
 
                 using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
                     PowerPointSlide slide = presentation.AddSlide();
-                    PowerPointPicture picture = slide.AddImage(svgPath, left: 1000, top: 1000, width: 2000, height: 1200);
+                    PowerPointPicture picture = slide.AddImage(svgPath,left: global::OfficeIMO.OfficeLength.Emus(1000),top: global::OfficeIMO.OfficeLength.Emus(1000),width: global::OfficeIMO.OfficeLength.Emus(2000),height: global::OfficeIMO.OfficeLength.Emus(1200));
                     picture.Name = "Vector Logo";
 
                     Assert.Equal("image/svg+xml", picture.ContentType);

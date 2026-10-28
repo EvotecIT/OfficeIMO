@@ -25,10 +25,9 @@ namespace OfficeIMO.Examples.PowerPoint {
                 OfficeIMO.OfficeLength.Centimeters(content.Left.ToCentimeters()),                OfficeIMO.OfficeLength.Centimeters(content.Top.ToCentimeters() + titleHeightCm + bodyGapCm),                OfficeIMO.OfficeLength.Centimeters(content.Width.ToCentimeters()),                OfficeIMO.OfficeLength.Centimeters(content.Height.ToCentimeters() - titleHeightCm - bodyGapCm));
 
             PowerPointSlide slide = presentation.AddSlide();
-            slide.AddTitle("Validation Example", titleBox);
+            slide.AddTitle("Validation Example",titleBox);
             PowerPointTextBox intro = slide.AddTextBox(
-                "Creates a deck, saves it, and validates the Open XML package.",
-                bodyBox);
+                "Creates a deck, saves it, and validates the Open XML package.",                bodyBox);
             intro.ApplyTextStyle(PowerPointTextStyle.Body.WithColor("1F4E79"));
             intro.TextAutoFit = PowerPointTextAutoFit.Normal;
             intro.SetTextMarginsCm(0.3, 0.2, 0.3, 0.2);
@@ -37,7 +36,7 @@ namespace OfficeIMO.Examples.PowerPoint {
             var errors = presentation.ValidateDocument();
 
             PowerPointSlide results = presentation.AddSlide();
-            results.AddTitle("Validation Result", titleBox);
+            results.AddTitle("Validation Result",titleBox);
             string status = errors.Count == 0 ? "Pass" : "Fail";
             string details = errors.Count == 0 ? "No validation errors found." : $"{errors.Count} validation issue(s).";
 

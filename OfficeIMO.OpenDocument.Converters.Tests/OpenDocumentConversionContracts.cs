@@ -393,7 +393,7 @@ public sealed class OpenDocumentConversionContracts {
     public void PowerPointAndOdpRoundTripSlidesShapesTablesNotesAndTransitions() {
         using PowerPointDocument source = PowerPointDocument.Create(new MemoryStream(), new PowerPointCreateOptions());
         PowerPointSlide slide = source.AddSlide();
-        PowerPointTextBox title = slide.AddTextBoxPoints("OpenDocument deck", 24, 20, 240, 40);
+        PowerPointTextBox title = slide.AddTextBox("OpenDocument deck",global::OfficeIMO.OfficeLength.Points(24),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(240),global::OfficeIMO.OfficeLength.Points(40));
         title.Paragraphs[0].Runs[0].Bold = true;
         slide.AddRectanglePoints(30, 80, 100, 50, "Panel").FillColor = "DDEEFF";
         PowerPointTable table = slide.AddTable(2,2,global::OfficeIMO.OfficeLength.Points(150),global::OfficeIMO.OfficeLength.Points(80),global::OfficeIMO.OfficeLength.Points(160),global::OfficeIMO.OfficeLength.Points(80));
@@ -433,7 +433,7 @@ public sealed class OpenDocumentConversionContracts {
     [Fact]
     public void PowerPointAndOdpRoundTripCommonRunFormatting() {
         using PowerPointDocument source = PowerPointDocument.Create(new MemoryStream(), new PowerPointCreateOptions());
-        PowerPointTextRun run = source.AddSlide().AddTextBoxPoints("Styled", 10, 10, 200, 40)
+        PowerPointTextRun run = source.AddSlide().AddTextBox("Styled",global::OfficeIMO.OfficeLength.Points(10),global::OfficeIMO.OfficeLength.Points(10),global::OfficeIMO.OfficeLength.Points(200),global::OfficeIMO.OfficeLength.Points(40))
             .Paragraphs[0].Runs[0];
         run.Bold = true;
         run.Italic = true;
@@ -626,7 +626,7 @@ public sealed class OpenDocumentConversionContracts {
     [Fact]
     public void PowerPointRunHyperlinksMapToOdpHyperlinkSyntax() {
         using PowerPointDocument source = PowerPointDocument.Create(new MemoryStream(), new PowerPointCreateOptions());
-        PowerPointTextRun run = source.AddSlide().AddTextBoxPoints("Linked", 10, 10, 160, 40)
+        PowerPointTextRun run = source.AddSlide().AddTextBox("Linked",global::OfficeIMO.OfficeLength.Points(10),global::OfficeIMO.OfficeLength.Points(10),global::OfficeIMO.OfficeLength.Points(160),global::OfficeIMO.OfficeLength.Points(40))
             .Paragraphs[0].Runs[0];
         run.Bold = true;
         run.SetHyperlink("https://example.com/path");

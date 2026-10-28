@@ -232,14 +232,8 @@ static void GenerateConverterPowerPointSample(string outputPath) {
             new OfficeSeries("Documents", new[] { 120D, 185D, 240D, 318D }),
             new OfficeSeries("Reports", new[] { 42D, 68D, 96D, 132D })
         });
-    PowerPointChart chart = chartSlide.AddChartPoints(
-        OfficeChartType.ColumnClustered,
-        chartData,
-        66,
-        128,
-        600,
-        310,
-        new PowerPointChartAccessibilityOptions {
+    PowerPointChart chart = chartSlide.AddChart(
+        OfficeChartType.ColumnClustered,        chartData,        global::OfficeIMO.OfficeLength.Points(66),        global::OfficeIMO.OfficeLength.Points(128),        global::OfficeIMO.OfficeLength.Points(600),        global::OfficeIMO.OfficeLength.Points(310),        new PowerPointChartAccessibilityOptions {
             Name = "Quarterly conversion volume",
             AlternativeText = "Document and report conversion volume increases from Q1 through Q4.",
             IncludeDataSummaryInAlternativeText = true
@@ -325,7 +319,7 @@ static PowerPointTextBox AddText(
     int fontSize,
     bool bold = false,
     string color = "17324D") {
-    PowerPointTextBox box = slide.AddTextBoxPoints(text, left, top, width, height);
+    PowerPointTextBox box = slide.AddTextBox(text,global::OfficeIMO.OfficeLength.Points(left),global::OfficeIMO.OfficeLength.Points(top),global::OfficeIMO.OfficeLength.Points(width),global::OfficeIMO.OfficeLength.Points(height));
     box.FontName = "Carlito";
     box.FontSize = fontSize;
     box.Bold = bold;

@@ -11,7 +11,7 @@ public partial class PowerPointSaveAsPdfTests {
     public void SaveAsPdf_InheritsAuthoredLayoutTextBoxWithoutTreatingItAsAnEditingPrompt() {
         using var presentation = PowerPointDocument.Create();
         PowerPointSlide slide = presentation.AddSlide();
-        PowerPointTextBox text = slide.AddTextBoxPoints("Layout footer", 24, 200, 200, 24);
+        PowerPointTextBox text = slide.AddTextBox("Layout footer",global::OfficeIMO.OfficeLength.Points(24),global::OfficeIMO.OfficeLength.Points(200),global::OfficeIMO.OfficeLength.Points(200),global::OfficeIMO.OfficeLength.Points(24));
         var source = slide.SlidePart.Slide.CommonSlideData!.ShapeTree!
             .Elements<DocumentFormat.OpenXml.Presentation.Shape>()
             .Single(shape => shape.InnerText.Contains("Layout footer", StringComparison.Ordinal));
@@ -32,8 +32,8 @@ public partial class PowerPointSaveAsPdfTests {
         byte[] svg = System.Text.Encoding.UTF8.GetBytes(
             "<svg xmlns='http://www.w3.org/2000/svg' width='10' height='10'>"
             + "<foreignObject width='10' height='10'><div xmlns='http://www.w3.org/1999/xhtml'>Visible HTML</div></foreignObject></svg>");
-        slide.AddImage(new MemoryStream(svg), OfficeImageFormat.Svg, 0, 0,
-            PowerPointUnits.FromPoints(40), PowerPointUnits.FromPoints(30));
+        slide.AddImage(new MemoryStream(svg), OfficeImageFormat.Svg, global::OfficeIMO.OfficeLength.Emus(0), global::OfficeIMO.OfficeLength.Emus(0),
+            global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(40)), global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(30)));
         slide.AddShapePoints(OfficePresetShapeType.Rectangle, 80, 20, 30, 20).FillColor = "D7263D";
 
         PdfDocumentConversionResult result = presentation.ConvertToPdfWithEvidence();

@@ -29,7 +29,7 @@ public sealed partial class OfficeProvenanceWorkflowTests {
         }
         string powerPointPath = Path.Combine(scope.Path, "qualified.pptx");
         using (PowerPointDocument presentation = PowerPointDocument.Create(powerPointPath)) {
-            presentation.AddSlide().AddTextBoxPoints("Qualified presentation", 20, 20, 300, 60);
+            presentation.AddSlide().AddTextBox("Qualified presentation",global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(300),global::OfficeIMO.OfficeLength.Points(60));
             presentation.Save();
         }
 
@@ -171,7 +171,7 @@ public sealed partial class OfficeProvenanceWorkflowTests {
         }
         string deck = Path.Combine(scope.Path, "report.pptx");
         using (var presentation = PowerPointDocument.Create(deck)) {
-            presentation.AddSlide().AddTextBoxPoints("Preserved content", 20, 20, 300, 60); presentation.Save();
+            presentation.AddSlide().AddTextBox("Preserved content",global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(300),global::OfficeIMO.OfficeLength.Points(60)); presentation.Save();
         }
         foreach (string path in new[] { word, excel, deck }) {
             byte[] bytes = File.ReadAllBytes(path);

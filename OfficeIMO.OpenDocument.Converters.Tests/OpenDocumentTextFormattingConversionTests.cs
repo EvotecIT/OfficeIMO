@@ -82,7 +82,7 @@ public sealed class OpenDocumentTextFormattingConversionTests {
     [Fact]
     public void PowerPointAndOdpPreserveNativeDecorationScriptAndCapsSemantics() {
         using PowerPointDocument source = PowerPointDocument.Create(new MemoryStream(), new PowerPointCreateOptions());
-        PowerPointTextRun run = source.AddSlide().AddTextBoxPoints("Styled", 10, 10, 200, 40)
+        PowerPointTextRun run = source.AddSlide().AddTextBox("Styled",global::OfficeIMO.OfficeLength.Points(10),global::OfficeIMO.OfficeLength.Points(10),global::OfficeIMO.OfficeLength.Points(200),global::OfficeIMO.OfficeLength.Points(40))
             .Paragraphs[0].Runs[0];
         run.UnderlineStyle = PowerPointUnderlineStyle.WavyDouble;
         run.StrikeStyle = PowerPointStrikeStyle.Double;

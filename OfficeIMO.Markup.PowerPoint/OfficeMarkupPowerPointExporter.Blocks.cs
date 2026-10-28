@@ -88,7 +88,7 @@ internal sealed partial class OfficeMarkupPowerPointExporter {
         }
 
         var actualHeight = Math.Max(0.28, Math.Min(height, cursor.RemainingHeight));
-        var textBox = slide.AddTextBoxInches(text.Trim(), cursor.Left, cursor.Top, cursor.Width, actualHeight);
+        var textBox = slide.AddTextBox(text.Trim(),global::OfficeIMO.OfficeLength.Inches(cursor.Left),global::OfficeIMO.OfficeLength.Inches(cursor.Top),global::OfficeIMO.OfficeLength.Inches(cursor.Width),global::OfficeIMO.OfficeLength.Inches(actualHeight));
         ApplyTextStyle(textBox, style);
         cursor.Advance(actualHeight);
     }
@@ -105,7 +105,7 @@ internal sealed partial class OfficeMarkupPowerPointExporter {
         SlideCanvasMetrics metrics,
         OfficeMarkupResolvedStyle? style) {
         var box = ResolveBox(placement, attributes, cursor, 0.62, metrics);
-        var textBox = slide.AddTextBoxInches(text.Trim(), box.Left, box.Top, box.Width, box.Height);
+        var textBox = slide.AddTextBox(text.Trim(),global::OfficeIMO.OfficeLength.Inches(box.Left),global::OfficeIMO.OfficeLength.Inches(box.Top),global::OfficeIMO.OfficeLength.Inches(box.Width),global::OfficeIMO.OfficeLength.Inches(box.Height));
         ApplyTextStyle(textBox, style);
         if (!HasExplicitPlacement(placement, attributes)) {
             cursor.Advance(box.Height);
@@ -133,7 +133,7 @@ internal sealed partial class OfficeMarkupPowerPointExporter {
 
         var box = ResolveBox(placement, attributes, cursor, Math.Min(1.25, cursor.RemainingHeight), metrics);
         AddPanel(slide, box, style, "OfficeIMO Markup Card Panel");
-        var textBox = slide.AddTextBoxInches(text, box.Left, box.Top, box.Width, box.Height);
+        var textBox = slide.AddTextBox(text,global::OfficeIMO.OfficeLength.Inches(box.Left),global::OfficeIMO.OfficeLength.Inches(box.Top),global::OfficeIMO.OfficeLength.Inches(box.Width),global::OfficeIMO.OfficeLength.Inches(box.Height));
         ApplyTextStyle(textBox, style);
         if (!HasExplicitPlacement(placement, attributes)) {
             cursor.Advance(box.Height);
@@ -161,7 +161,7 @@ internal sealed partial class OfficeMarkupPowerPointExporter {
         }
 
         var height = Math.Max(0.45, Math.Min(cursor.RemainingHeight, 0.28 * items.Count + 0.25));
-        var box = slide.AddTextBoxInches(string.Empty, cursor.Left, cursor.Top, cursor.Width, height);
+        var box = slide.AddTextBox(string.Empty,global::OfficeIMO.OfficeLength.Inches(cursor.Left),global::OfficeIMO.OfficeLength.Inches(cursor.Top),global::OfficeIMO.OfficeLength.Inches(cursor.Width),global::OfficeIMO.OfficeLength.Inches(height));
         box.Clear();
         if (list.Ordered) {
             box.SetNumberedList(items, list.Start);
@@ -200,7 +200,7 @@ internal sealed partial class OfficeMarkupPowerPointExporter {
 
         if (options.IncludeUnsupportedBlocksAsText) {
             var text = $"{diagram.Language} diagram\n{diagram.Content}";
-            var textBox = slide.AddTextBoxInches(text.Trim(), box.Left, box.Top, box.Width, box.Height);
+            var textBox = slide.AddTextBox(text.Trim(),global::OfficeIMO.OfficeLength.Inches(box.Left),global::OfficeIMO.OfficeLength.Inches(box.Top),global::OfficeIMO.OfficeLength.Inches(box.Width),global::OfficeIMO.OfficeLength.Inches(box.Height));
             ApplyTextStyle(textBox, styleResolver.Resolve("caption"));
             if (!HasExplicitPlacement(diagram.Placement, diagram.Attributes)) {
                 cursor.Advance(box.Height);

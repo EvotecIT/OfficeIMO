@@ -14,7 +14,7 @@ namespace OfficeIMO.Tests {
 
             using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
                 PowerPointSlide slide = presentation.AddSlide();
-                PowerPointPicture picture = slide.AddImage(imagePath, 0, 0, 2000000, 1000000);
+                PowerPointPicture picture = slide.AddImage(imagePath,global::OfficeIMO.OfficeLength.Emus(0),global::OfficeIMO.OfficeLength.Emus(0),global::OfficeIMO.OfficeLength.Emus(2000000),global::OfficeIMO.OfficeLength.Emus(1000000));
                 picture.Crop(10, 5, 10, 0);
                 presentation.Save();
             }
@@ -41,7 +41,7 @@ namespace OfficeIMO.Tests {
 
             using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
                 PowerPointSlide slide = presentation.AddSlide();
-                PowerPointPicture picture = slide.AddImage(imagePath, 0, 0, 2000000, 2000000);
+                PowerPointPicture picture = slide.AddImage(imagePath,global::OfficeIMO.OfficeLength.Emus(0),global::OfficeIMO.OfficeLength.Emus(0),global::OfficeIMO.OfficeLength.Emus(2000000),global::OfficeIMO.OfficeLength.Emus(2000000));
                 picture.FitToBox(400, 200, crop: false);
                 presentation.Save();
             }

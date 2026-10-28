@@ -146,7 +146,7 @@ public sealed class EncryptedSourceInspectionContracts {
             bytes = document.ToBytes();
         } else {
             using PowerPointDocument document = PowerPointDocument.Create();
-            document.AddSlide().AddTextBox("Ordinary source", 100000, 100000, 2200000, 600000);
+            document.AddSlide().AddTextBox("Ordinary source",global::OfficeIMO.OfficeLength.Emus(100000),global::OfficeIMO.OfficeLength.Emus(100000),global::OfficeIMO.OfficeLength.Emus(2200000),global::OfficeIMO.OfficeLength.Emus(600000));
             bytes = document.ToBytes(new OfficeIMO.PowerPoint.PowerPointSaveOptions{Format=format == "legacy-powerpoint" ? PowerPointFileFormat.Ppt : PowerPointFileFormat.Pptx});
         }
         using var input = new MemoryStream(bytes, writable: false);
@@ -184,7 +184,7 @@ public sealed class EncryptedSourceInspectionContracts {
             source.Save(output,new OfficeIMO.Excel.ExcelSaveOptions{Password=Password});
         } else {
             using PowerPointDocument source = PowerPointDocument.Create();
-            source.AddSlide().AddTextBox("Source evidence", 100000, 100000, 2200000, 600000);
+            source.AddSlide().AddTextBox("Source evidence",global::OfficeIMO.OfficeLength.Emus(100000),global::OfficeIMO.OfficeLength.Emus(100000),global::OfficeIMO.OfficeLength.Emus(2200000),global::OfficeIMO.OfficeLength.Emus(600000));
             return source.ToBytes(new OfficeIMO.PowerPoint.PowerPointSaveOptions{Password=Password,Format=format == "legacy-powerpoint" ? PowerPointFileFormat.Ppt : PowerPointFileFormat.Pptx});
         }
         return output.ToArray();

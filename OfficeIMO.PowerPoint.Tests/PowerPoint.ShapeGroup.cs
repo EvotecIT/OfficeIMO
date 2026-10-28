@@ -155,8 +155,8 @@ namespace OfficeIMO.Tests {
             try {
                 using PowerPointDocument presentation = PowerPointDocument.Create(filePath);
                 PowerPointSlide slide = presentation.AddSlide();
-                slide.AddTextBox("A", 0, 0, 100, 100);
-                slide.AddTextBox("B", 200, 0, 100, 100);
+                slide.AddTextBox("A",global::OfficeIMO.OfficeLength.Emus(0),global::OfficeIMO.OfficeLength.Emus(0),global::OfficeIMO.OfficeLength.Emus(100),global::OfficeIMO.OfficeLength.Emus(100));
+                slide.AddTextBox("B",global::OfficeIMO.OfficeLength.Emus(200),global::OfficeIMO.OfficeLength.Emus(0),global::OfficeIMO.OfficeLength.Emus(100),global::OfficeIMO.OfficeLength.Emus(100));
                 slide.AddRectangle(400, 0, 100, 100);
 
                 PowerPointGroupShape group = slide.GroupShapes(slide.Shapes);

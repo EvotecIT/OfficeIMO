@@ -10,8 +10,8 @@ public class PowerPointTextInsetTests {
     public void ImageTextFramesUseDrawingMlDefaultsAndPreserveExplicitZero(bool explicitZero, double horizontal, double vertical) {
         using var presentation = PowerPointDocument.Create();
         var slide = presentation.AddSlide();
-        var topLeft = slide.AddTextBoxPoints("Top left", 18, 18, 220, 60);
-        var bottomRight = slide.AddTextBoxPoints("Bottom right", 18, 100, 220, 60);
+        var topLeft = slide.AddTextBox("Top left",global::OfficeIMO.OfficeLength.Points(18),global::OfficeIMO.OfficeLength.Points(18),global::OfficeIMO.OfficeLength.Points(220),global::OfficeIMO.OfficeLength.Points(60));
+        var bottomRight = slide.AddTextBox("Bottom right",global::OfficeIMO.OfficeLength.Points(18),global::OfficeIMO.OfficeLength.Points(100),global::OfficeIMO.OfficeLength.Points(220),global::OfficeIMO.OfficeLength.Points(60));
         bottomRight.Paragraphs[0].Alignment = PowerPointTextAlignment.Right;
         bottomRight.TextVerticalAlignment = PowerPointTextVerticalAlignment.Bottom;
         var boxes = new[] { topLeft, bottomRight };

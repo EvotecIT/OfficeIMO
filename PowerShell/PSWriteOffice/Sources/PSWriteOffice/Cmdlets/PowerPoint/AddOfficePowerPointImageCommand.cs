@@ -59,7 +59,7 @@ public sealed class AddOfficePowerPointImageCommand : PSWriteOffice.Cmdlets.Offi
 
             var slide = Slide ?? PowerPointDslContext.Require(this).RequireSlide();
             var resolvedPath = SessionState.Path.GetUnresolvedProviderPathFromPSPath(Path);
-            var picture = slide.AddImagePoints(resolvedPath, X, Y, Width, Height);
+            var picture = slide.AddImage(resolvedPath, OfficeIMO.OfficeLength.Points(X), OfficeIMO.OfficeLength.Points(Y), OfficeIMO.OfficeLength.Points(Width), OfficeIMO.OfficeLength.Points(Height));
             WritePassThru(picture);
         } catch (Exception ex) {
             WriteError(new ErrorRecord(ex, "PowerPointAddImageFailed", ErrorCategory.InvalidOperation, Slide));

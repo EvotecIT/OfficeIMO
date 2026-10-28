@@ -22,14 +22,12 @@ namespace OfficeIMO.Examples.PowerPoint {
             PowerPointLayoutBox rightColumn = new(OfficeIMO.OfficeLength.Emus(columns[1].Left.ToEmus()),OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromCentimeters(bodyTopCm)),OfficeIMO.OfficeLength.Emus(columns[1].Width.ToEmus()),                OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromCentimeters(bodyHeightCm)));
 
             PowerPointSlide slide = presentation.AddSlide();
-            PowerPointTextBox title = slide.AddTitleCm("Text Formatting",
-                content.Left.ToCentimeters(), content.Top.ToCentimeters(), content.Width.ToCentimeters(), 1.4);
+            PowerPointTextBox title = slide.AddTitle("Text Formatting",                global::OfficeIMO.OfficeLength.Centimeters(content.Left.ToCentimeters()),global::OfficeIMO.OfficeLength.Centimeters(content.Top.ToCentimeters()),global::OfficeIMO.OfficeLength.Centimeters(content.Width.ToCentimeters()),global::OfficeIMO.OfficeLength.Centimeters(1.4));
             if (title.Paragraphs.Count > 0) {
                 PowerPointTextStyle.Title.WithColor("1F4E79").Apply(title.Paragraphs[0]);
             }
 
-            PowerPointTextBox text = slide.AddTextBoxCm(string.Empty,
-                leftColumn.Left.ToCentimeters(), leftColumn.Top.ToCentimeters(), leftColumn.Width.ToCentimeters(), leftColumn.Height.ToCentimeters());
+            PowerPointTextBox text = slide.AddTextBox(string.Empty,                global::OfficeIMO.OfficeLength.Centimeters(leftColumn.Left.ToCentimeters()),global::OfficeIMO.OfficeLength.Centimeters(leftColumn.Top.ToCentimeters()),global::OfficeIMO.OfficeLength.Centimeters(leftColumn.Width.ToCentimeters()),global::OfficeIMO.OfficeLength.Centimeters(leftColumn.Height.ToCentimeters()));
             text.SetTextMarginsCm(0.3, 0.2, 0.3, 0.2);
             text.TextAutoFit = PowerPointTextAutoFit.Normal;
 
@@ -68,9 +66,8 @@ namespace OfficeIMO.Examples.PowerPoint {
             text.AddNumberedItem("Second step");
             text.ApplyAutoSpacing(lineSpacingMultiplier: 1.15, spaceAfterPoints: 2);
 
-            PowerPointTextBox callout = slide.AddTextBoxCm(
-                "Auto-fit + margins keep text readable.",
-                rightColumn.Left.ToCentimeters(), rightColumn.Top.ToCentimeters(), rightColumn.Width.ToCentimeters(), rightColumn.Height.ToCentimeters());
+            PowerPointTextBox callout = slide.AddTextBox(
+                "Auto-fit + margins keep text readable.",                global::OfficeIMO.OfficeLength.Centimeters(rightColumn.Left.ToCentimeters()),global::OfficeIMO.OfficeLength.Centimeters(rightColumn.Top.ToCentimeters()),global::OfficeIMO.OfficeLength.Centimeters(rightColumn.Width.ToCentimeters()),global::OfficeIMO.OfficeLength.Centimeters(rightColumn.Height.ToCentimeters()));
             callout.FillColor = "E7F7FF";
             callout.OutlineColor = "5B9BD5";
             callout.TextVerticalAlignment = PowerPointTextVerticalAlignment.Center;

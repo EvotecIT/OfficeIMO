@@ -45,7 +45,7 @@ public sealed class PowerPointOdpPresentationLossCoverageTests {
     [Fact]
     public void TextPlaceholderIndexAndOrientationAreExplicitLoss() {
         using PowerPointDocument source = CreateBlankPowerPoint();
-        source.Slides[0].AddTextBoxPoints("Agenda", 20, 20, 100, 50);
+        source.Slides[0].AddTextBox("Agenda",global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(100),global::OfficeIMO.OfficeLength.Points(50));
         Shape shape = source.OpenXmlDocument.PresentationPart!.SlideParts.First().Slide!
             .Descendants<Shape>().Single();
         PlaceholderShape placeholder = shape.NonVisualShapeProperties!
@@ -65,7 +65,7 @@ public sealed class PowerPointOdpPresentationLossCoverageTests {
     [Fact]
     public void ThemeRunColorIsExplicitLoss() {
         using PowerPointDocument source = CreateBlankPowerPoint();
-        source.Slides[0].AddTextBoxPoints("Theme", 20, 20, 100, 50);
+        source.Slides[0].AddTextBox("Theme",global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(100),global::OfficeIMO.OfficeLength.Points(50));
         A.Run run = source.OpenXmlDocument.PresentationPart!.SlideParts.First().Slide!
             .Descendants<A.Run>().Single();
         run.RunProperties ??= new A.RunProperties();
@@ -78,7 +78,7 @@ public sealed class PowerPointOdpPresentationLossCoverageTests {
     [Fact]
     public void AuthoredThemeAndRunTypographyAreExplicitLoss() {
         using PowerPointDocument source = CreateBlankPowerPoint();
-        source.Slides[0].AddTextBoxPoints("Spaced", 20, 20, 100, 50);
+        source.Slides[0].AddTextBox("Spaced",global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(100),global::OfficeIMO.OfficeLength.Points(50));
         A.Run run = source.OpenXmlDocument.PresentationPart!.SlideParts.First().Slide!
             .Descendants<A.Run>().Single();
         run.RunProperties ??= new A.RunProperties();
@@ -140,7 +140,7 @@ public sealed class PowerPointOdpPresentationLossCoverageTests {
     [Fact]
     public void TransformedDefaultRunColorIsExplicitLoss() {
         using PowerPointDocument source = CreateBlankPowerPoint();
-        source.Slides[0].AddTextBoxPoints("Alpha", 20, 20, 100, 50);
+        source.Slides[0].AddTextBox("Alpha",global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(100),global::OfficeIMO.OfficeLength.Points(50));
         A.Paragraph paragraph = source.OpenXmlDocument.PresentationPart!.SlideParts.First().Slide!
             .Descendants<A.Paragraph>().Single();
         paragraph.ParagraphProperties ??= new A.ParagraphProperties();
@@ -154,7 +154,7 @@ public sealed class PowerPointOdpPresentationLossCoverageTests {
     [Fact]
     public void PlainRgbParagraphDefaultColorIsExplicitLoss() {
         using PowerPointDocument source = CreateBlankPowerPoint();
-        source.Slides[0].AddTextBoxPoints("Inherited", 20, 20, 100, 50);
+        source.Slides[0].AddTextBox("Inherited",global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(100),global::OfficeIMO.OfficeLength.Points(50));
         A.Paragraph paragraph = source.OpenXmlDocument.PresentationPart!.SlideParts.First().Slide!
             .Descendants<A.Paragraph>().Single();
         paragraph.ParagraphProperties ??= new A.ParagraphProperties();
@@ -167,7 +167,7 @@ public sealed class PowerPointOdpPresentationLossCoverageTests {
     [Fact]
     public void InheritedDefaultRunFormattingIsExplicitLoss() {
         using PowerPointDocument source = CreateBlankPowerPoint();
-        source.Slides[0].AddTextBoxPoints("Inherited", 20, 20, 100, 50);
+        source.Slides[0].AddTextBox("Inherited",global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(100),global::OfficeIMO.OfficeLength.Points(50));
         A.Paragraph paragraph = source.OpenXmlDocument.PresentationPart!.SlideParts.First().Slide!
             .Descendants<A.Paragraph>().Single();
         paragraph.ParagraphProperties ??= new A.ParagraphProperties();
@@ -179,7 +179,7 @@ public sealed class PowerPointOdpPresentationLossCoverageTests {
     [Fact]
     public void EmptyParagraphEndRunFormattingIsExplicitLoss() {
         using PowerPointDocument source = CreateBlankPowerPoint();
-        source.Slides[0].AddTextBoxPoints(string.Empty, 20, 20, 100, 50);
+        source.Slides[0].AddTextBox(string.Empty,global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(100),global::OfficeIMO.OfficeLength.Points(50));
         A.Paragraph paragraph = source.OpenXmlDocument.PresentationPart!.SlideParts.First().Slide!
             .Descendants<A.Paragraph>().Single();
         paragraph.Append(new A.EndParagraphRunProperties { FontSize = 1600 });
@@ -190,7 +190,7 @@ public sealed class PowerPointOdpPresentationLossCoverageTests {
     [Fact]
     public void ThemeHighlightAndSpeakerNoteColorAreExplicitLoss() {
         using PowerPointDocument source = CreateBlankPowerPoint();
-        source.Slides[0].AddTextBoxPoints("Highlight", 20, 20, 100, 50);
+        source.Slides[0].AddTextBox("Highlight",global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(100),global::OfficeIMO.OfficeLength.Points(50));
         A.Run run = source.OpenXmlDocument.PresentationPart!.SlideParts.First().Slide!
             .Descendants<A.Run>().Single();
         run.RunProperties ??= new A.RunProperties();

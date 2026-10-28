@@ -140,7 +140,7 @@ namespace OfficeIMO.Tests {
                        .Create()) {
                 PowerPointTextBox textBox = presentation.AddSlide(
                         PowerPointSlideLayoutType.Blank)
-                    .AddTextBoxPoints(string.Empty, 30, 30, 360, 180);
+                    .AddTextBox(string.Empty,global::OfficeIMO.OfficeLength.Points(30),global::OfficeIMO.OfficeLength.Points(30),global::OfficeIMO.OfficeLength.Points(360),global::OfficeIMO.OfficeLength.Points(180));
                 P.Shape shape = Assert.IsType<P.Shape>(textBox.Element);
                 var firstProperties = new A.ParagraphProperties(
                     new A.LineSpacing(
@@ -295,7 +295,7 @@ namespace OfficeIMO.Tests {
         public void NativeWriter_ReportsOutOfRangeRichTextLevelBeforeBuildingRuler() {
             using PowerPointDocument presentation = PowerPointDocument.Create();
             PowerPointTextBox textBox = presentation.AddSlide(PowerPointSlideLayoutType.Blank)
-                .AddTextBoxPoints("Unsafe level", 30, 30, 240, 120);
+                .AddTextBox("Unsafe level",global::OfficeIMO.OfficeLength.Points(30),global::OfficeIMO.OfficeLength.Points(30),global::OfficeIMO.OfficeLength.Points(240),global::OfficeIMO.OfficeLength.Points(120));
             P.Shape shape = Assert.IsType<P.Shape>(textBox.Element);
             A.Paragraph paragraph = Assert.Single(shape.TextBody!.Elements<A.Paragraph>());
             paragraph.ParagraphProperties ??= new A.ParagraphProperties();
@@ -315,7 +315,7 @@ namespace OfficeIMO.Tests {
                        .Create()) {
                 PowerPointTextBox textBox = presentation.AddSlide(
                         PowerPointSlideLayoutType.Blank)
-                    .AddTextBoxPoints("Text frame", 30, 30, 240, 120)
+                    .AddTextBox("Text frame",global::OfficeIMO.OfficeLength.Points(30),global::OfficeIMO.OfficeLength.Points(30),global::OfficeIMO.OfficeLength.Points(240),global::OfficeIMO.OfficeLength.Points(120))
                     .SetTextMarginsPoints(8, 4, 6, 2);
                 textBox.TextVerticalAlignment =
                     PowerPointTextVerticalAlignment.Center;
@@ -379,7 +379,7 @@ namespace OfficeIMO.Tests {
                        .Create()) {
                 PowerPointTextBox textBox = source.AddSlide(
                         PowerPointSlideLayoutType.Blank)
-                    .AddTextBoxPoints("Editable frame", 30, 30, 240, 120)
+                    .AddTextBox("Editable frame",global::OfficeIMO.OfficeLength.Points(30),global::OfficeIMO.OfficeLength.Points(30),global::OfficeIMO.OfficeLength.Points(240),global::OfficeIMO.OfficeLength.Points(120))
                     .SetTextMarginsPoints(8, 4, 6, 2);
                 textBox.TextVerticalAlignment =
                     PowerPointTextVerticalAlignment.Center;
@@ -491,7 +491,7 @@ namespace OfficeIMO.Tests {
                        .Load(input)) {
                 PowerPointTextBox textBox = imported.AddSlide(
                         PowerPointSlideLayoutType.Blank)
-                    .AddTextBoxPoints(string.Empty, 40, 40, 320, 120);
+                    .AddTextBox(string.Empty,global::OfficeIMO.OfficeLength.Points(40),global::OfficeIMO.OfficeLength.Points(40),global::OfficeIMO.OfficeLength.Points(320),global::OfficeIMO.OfficeLength.Points(120));
                 P.Shape shape = Assert.IsType<P.Shape>(textBox.Element);
                 shape.TextBody = new P.TextBody(
                     new A.BodyProperties(),

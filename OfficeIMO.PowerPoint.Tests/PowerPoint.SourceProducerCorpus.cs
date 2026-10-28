@@ -57,7 +57,7 @@ namespace OfficeIMO.Tests {
                 PowerPointSlide editedSlide = presentation.Slides.Count == 0
                     ? presentation.AddSlide()
                     : presentation.Slides[0];
-                editedSlide.AddTextBoxPoints("OfficeIMO corpus edit", 18, 18, 180, 24);
+                editedSlide.AddTextBox("OfficeIMO corpus edit",global::OfficeIMO.OfficeLength.Points(18),global::OfficeIMO.OfficeLength.Points(18),global::OfficeIMO.OfficeLength.Points(180),global::OfficeIMO.OfficeLength.Points(24));
                 using var editedBytes = new MemoryStream();
                 presentation.Save(editedBytes);
 

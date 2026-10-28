@@ -429,8 +429,8 @@ internal static class PowerPointRoadmapVisualCorpus {
                 new OfficeSeries("Actual", new[] { 18D, 24D, 33D, 42D }),
                 new OfficeSeries("Target", new[] { 20D, 28D, 36D, 45D })
             });
-        PowerPointChart chart = slide.AddChartPoints(
-            OfficeChartType.ColumnClustered, data, 420, 110, 490, 340);
+        PowerPointChart chart = slide.AddChart(
+            OfficeChartType.ColumnClustered,data,global::OfficeIMO.OfficeLength.Points(420),global::OfficeIMO.OfficeLength.Points(110),global::OfficeIMO.OfficeLength.Points(490),global::OfficeIMO.OfficeLength.Points(340));
         chart.SetTitle("Quarterly trajectory")
             .SetTitleTextStyle(fontName: "Arial")
             .SetLegendTextStyle(fontName: "Arial")
@@ -445,7 +445,7 @@ internal static class PowerPointRoadmapVisualCorpus {
     }
 
     private static void AddTitle(PowerPointSlide slide, string text) {
-        PowerPointTextBox title = slide.AddTextBoxPoints(text, 45, 28, 760, 46);
+        PowerPointTextBox title = slide.AddTextBox(text,global::OfficeIMO.OfficeLength.Points(45),global::OfficeIMO.OfficeLength.Points(28),global::OfficeIMO.OfficeLength.Points(760),global::OfficeIMO.OfficeLength.Points(46));
         title.FontName = "Arial";
         title.FontSize = 28;
         title.Bold = true;
@@ -453,7 +453,7 @@ internal static class PowerPointRoadmapVisualCorpus {
     }
 
     private static void AddFooter(PowerPointSlide slide, string text) {
-        PowerPointTextBox footer = slide.AddTextBoxPoints(text, 45, 495, 760, 20);
+        PowerPointTextBox footer = slide.AddTextBox(text,global::OfficeIMO.OfficeLength.Points(45),global::OfficeIMO.OfficeLength.Points(495),global::OfficeIMO.OfficeLength.Points(760),global::OfficeIMO.OfficeLength.Points(20));
         footer.FontName = "Arial";
         footer.FontSize = 10;
         footer.Color = "64748B";

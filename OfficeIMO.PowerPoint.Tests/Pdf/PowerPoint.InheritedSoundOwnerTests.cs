@@ -92,7 +92,7 @@ public sealed partial class PowerPointInheritedLinkOwnerTests {
             value.GetCell(1, 1).Text = "Sounded";
             shape = value;
         } else {
-            PowerPointTextBox box = slide.AddTextBoxPoints("Sounded", 30, 30, 240, 60);
+            PowerPointTextBox box = slide.AddTextBox("Sounded",global::OfficeIMO.OfficeLength.Points(30),global::OfficeIMO.OfficeLength.Points(30),global::OfficeIMO.OfficeLength.Points(240),global::OfficeIMO.OfficeLength.Points(60));
             box.PlaceholderType = null;
             shape = box;
         }

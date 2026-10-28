@@ -818,6 +818,12 @@
       "change": "Describe PDF image conversion through the public byte and report contract",
       "reason": "The capability source catalog uses PdfDocument.ExportImages with PdfImageExportOptions and OfficeConversionReport. All five PDF image routes describe IReadOnlyList<byte[]>; detailed per-page results remain internal host plumbing. Generated compatibility and website route projections follow this catalog.",
       "applied": "phase-b-applied"
+    },
+    {
+      "change": "Write canonical chart identifiers for Column/Bar convenience aliases in HTML and Reader JSON.",
+      "reason": "The broader net8 PowerPoint HTML suite reproduced Enum.ToString selecting Column instead of ColumnClustered. One internal shared-source formatter now gives ColumnClustered/BarClustered consistently to PowerPoint HTML, Excel HTML and PowerPoint Reader payloads, including per-series kinds. Existing positioned HTML and rich Reader artifact tests cover the observable identifiers. No public helper or external dependency is added.",
+      "phase": "B",
+      "applied": "phase-b-applied"
     }
   ],
   "applicationStatus": "Phase A applied and validated on the supported macOS targets. Phase B and Tier 2 entries retain their status; Windows .NET Framework validation remains pending.",

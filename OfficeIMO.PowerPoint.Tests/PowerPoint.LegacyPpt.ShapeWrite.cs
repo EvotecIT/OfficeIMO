@@ -46,8 +46,8 @@ namespace OfficeIMO.Tests {
                 line.HorizontalFlip = true;
                 line.VerticalFlip = true;
 
-                PowerPointTextBox text = slide.AddTextBoxPoints(
-                    "Styled text", 24, 200, 160, 45);
+                PowerPointTextBox text = slide.AddTextBox(
+                    "Styled text",global::OfficeIMO.OfficeLength.Points(24),global::OfficeIMO.OfficeLength.Points(200),global::OfficeIMO.OfficeLength.Points(160),global::OfficeIMO.OfficeLength.Points(45));
                 text.FillColor = "F2F2F2";
                 text.OutlineColor = "7F7F7F";
                 text.OutlineWidthPoints = 1D;
@@ -293,8 +293,8 @@ namespace OfficeIMO.Tests {
                 PowerPointGroupShape inner = slide.GroupShapes(
                     new PowerPointShape[] { rectangle, ellipse },
                     "Inner group");
-                PowerPointTextBox label = slide.AddTextBoxPoints(
-                    "Grouped label", 55, 115, 120, 35);
+                PowerPointTextBox label = slide.AddTextBox(
+                    "Grouped label",global::OfficeIMO.OfficeLength.Points(55),global::OfficeIMO.OfficeLength.Points(115),global::OfficeIMO.OfficeLength.Points(120),global::OfficeIMO.OfficeLength.Points(35));
                 PowerPointGroupShape outer = slide.GroupShapes(
                     new PowerPointShape[] { inner, label },
                     "Outer group");
@@ -506,11 +506,11 @@ namespace OfficeIMO.Tests {
                        .Create()) {
                 PowerPointSlide slide = source.AddSlide(
                     PowerPointSlideLayoutType.Blank);
-                PowerPointTextBox visible = slide.AddTextBoxPoints(
-                    "Visible", 20, 20, 100, 35);
+                PowerPointTextBox visible = slide.AddTextBox(
+                    "Visible",global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(100),global::OfficeIMO.OfficeLength.Points(35));
                 visible.Name = "Initially visible";
-                PowerPointTextBox hidden = slide.AddTextBoxPoints(
-                    "Hidden", 20, 70, 100, 35);
+                PowerPointTextBox hidden = slide.AddTextBox(
+                    "Hidden",global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(70),global::OfficeIMO.OfficeLength.Points(100),global::OfficeIMO.OfficeLength.Points(35));
                 hidden.Name = "Initially hidden";
                 hidden.Hidden = true;
                 sourceBytes = source.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
@@ -573,7 +573,7 @@ namespace OfficeIMO.Tests {
                     PowerPointSlideLayoutType.Blank);
                 using var stream = new MemoryStream(image, writable: false);
                 PowerPointPicture picture = slide.AddImage(stream,
-                    OfficeIMO.Drawing.OfficeImageFormat.Png, 158750, 317500, 635000, 476250);
+                    OfficeIMO.Drawing.OfficeImageFormat.Png, global::OfficeIMO.OfficeLength.Emus(158750), global::OfficeIMO.OfficeLength.Emus(317500), global::OfficeIMO.OfficeLength.Emus(635000), global::OfficeIMO.OfficeLength.Emus(476250));
                 picture.Name = "Tertiary visibility picture";
                 picture.Hidden = true;
                 picture.RecolorColor = OfficeColor.Orange;

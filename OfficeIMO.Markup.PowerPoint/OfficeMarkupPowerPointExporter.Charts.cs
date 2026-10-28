@@ -353,7 +353,7 @@ internal sealed partial class OfficeMarkupPowerPointExporter {
         OfficeChartData resolved = kind == OfficeChartType.Pie || kind == OfficeChartType.Doughnut
             ? FirstSeriesOnly(data)
             : data;
-        return slide.AddChartInches(kind, resolved, box.Left, box.Top, box.Width, box.Height);
+        return slide.AddChart(kind,resolved,global::OfficeIMO.OfficeLength.Inches(box.Left),global::OfficeIMO.OfficeLength.Inches(box.Top),global::OfficeIMO.OfficeLength.Inches(box.Width),global::OfficeIMO.OfficeLength.Inches(box.Height));
     }
 
     private static bool TryCreateChartData(OfficeMarkupChartBlock chart, out OfficeChartData data) {

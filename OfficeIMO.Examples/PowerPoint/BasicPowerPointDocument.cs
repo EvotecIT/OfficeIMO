@@ -17,21 +17,18 @@ namespace OfficeIMO.Examples.PowerPoint {
             Console.WriteLine($"Theme: {presentation.ThemeName}");
             PowerPointSlide slide = presentation.AddSlide();
 
-            PowerPointTextBox title = slide.AddTitleCm("OfficeIMO PowerPoint Basics",
-                content.Left.ToCentimeters(), content.Top.ToCentimeters(), content.Width.ToCentimeters(), 1.4);
+            PowerPointTextBox title = slide.AddTitle("OfficeIMO PowerPoint Basics",                global::OfficeIMO.OfficeLength.Centimeters(content.Left.ToCentimeters()),global::OfficeIMO.OfficeLength.Centimeters(content.Top.ToCentimeters()),global::OfficeIMO.OfficeLength.Centimeters(content.Width.ToCentimeters()),global::OfficeIMO.OfficeLength.Centimeters(1.4));
             if (title.Paragraphs.Count > 0) {
                 PowerPointTextStyle.Title.WithColor("1F4E79").Apply(title.Paragraphs[0]);
             }
 
-            PowerPointTextBox intro = slide.AddTextBoxCm(
-                "Create clean .pptx files with simple, readable APIs.",
-                content.Left.ToCentimeters(), content.Top.ToCentimeters() + 1.8, content.Width.ToCentimeters(), 1.1);
+            PowerPointTextBox intro = slide.AddTextBox(
+                "Create clean .pptx files with simple, readable APIs.",                global::OfficeIMO.OfficeLength.Centimeters(content.Left.ToCentimeters()),global::OfficeIMO.OfficeLength.Centimeters(content.Top.ToCentimeters() + 1.8),global::OfficeIMO.OfficeLength.Centimeters(content.Width.ToCentimeters()),global::OfficeIMO.OfficeLength.Centimeters(1.1));
             intro.ApplyTextStyle(PowerPointTextStyle.Body);
             intro.SetTextMarginsCm(0.2, 0.1, 0.2, 0.1);
             intro.TextAutoFit = PowerPointTextAutoFit.Normal;
 
-            PowerPointTextBox agenda = slide.AddTextBoxCm(string.Empty,
-                content.Left.ToCentimeters(), content.Top.ToCentimeters() + 3.1, content.Width.ToCentimeters(), content.Height.ToCentimeters() - 3.1);
+            PowerPointTextBox agenda = slide.AddTextBox(string.Empty,                global::OfficeIMO.OfficeLength.Centimeters(content.Left.ToCentimeters()),global::OfficeIMO.OfficeLength.Centimeters(content.Top.ToCentimeters() + 3.1),global::OfficeIMO.OfficeLength.Centimeters(content.Width.ToCentimeters()),global::OfficeIMO.OfficeLength.Centimeters(content.Height.ToCentimeters() - 3.1));
             agenda.SetTextMarginsCm(0.3, 0.2, 0.3, 0.2);
             agenda.AddBullets(new[] {
                 "Add slides, titles, and text boxes",

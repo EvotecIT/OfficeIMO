@@ -31,7 +31,7 @@ namespace OfficeIMO.Examples.PowerPoint {
                 slide.SetBackgroundImage(imagePath);
             }
 
-            PowerPointTextBox textBox = slide.AddTitle("Shapes and images", titleBox);
+            PowerPointTextBox textBox = slide.AddTitle("Shapes and images",titleBox);
             textBox.FontSize = 30;
             textBox.Color = "1F4E79";
 
@@ -84,16 +84,15 @@ namespace OfficeIMO.Examples.PowerPoint {
             arrow.Rotation = -1;
 
             PowerPointTextBox label = slide.AddTextBox(
-                "Rotation, layering, and named shapes for lookup.",
-                captionBox);
+                "Rotation, layering, and named shapes for lookup.",                captionBox);
             label.FontSize = 14;
             label.Color = "1F4E79";
 
             if (File.Exists(imagePath)) {
-                PowerPointPicture picture = slide.AddImage(imagePath, rightColumn);
+                PowerPointPicture picture = slide.AddImage(imagePath,rightColumn);
                 picture.FitToBox(1200, 800, crop: true);
             } else {
-                PowerPointTextBox placeholder = slide.AddTextBox("(image placeholder)", rightColumn);
+                PowerPointTextBox placeholder = slide.AddTextBox("(image placeholder)",rightColumn);
                 placeholder.FillColor = "F3F3F3";
                 placeholder.OutlineColor = "CCCCCC";
                 placeholder.TextVerticalAlignment = PowerPointTextVerticalAlignment.Center;

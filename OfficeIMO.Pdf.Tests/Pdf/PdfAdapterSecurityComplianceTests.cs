@@ -279,12 +279,8 @@ public class PdfAdapterSecurityComplianceTests {
 
     private static byte[] ConvertAutomaticPptx(string text) {
         using PowerPointDocument presentation = PowerPointDocument.Create();
-        presentation.AddSlide().AddTextBoxPoints(
-            text + "\nAdapter proof",
-            leftPoints: 36,
-            topPoints: 36,
-            widthPoints: 420,
-            heightPoints: 100);
+        presentation.AddSlide().AddTextBox(
+            text + "\nAdapter proof",left: global::OfficeIMO.OfficeLength.Points(36),top: global::OfficeIMO.OfficeLength.Points(36),width: global::OfficeIMO.OfficeLength.Points(420),height: global::OfficeIMO.OfficeLength.Points(100));
         return (presentation.ToPdf()).ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
     }
 
@@ -311,12 +307,8 @@ public class PdfAdapterSecurityComplianceTests {
 
     private static byte[] ConvertPptx(PdfCore.PdfCreateOptions pdfOptions) {
         using PowerPointDocument presentation = PowerPointDocument.Create();
-        presentation.AddSlide().AddTextBoxPoints(
-            Marker("pptx") + "\nAdapter proof",
-            leftPoints: 36,
-            topPoints: 36,
-            widthPoints: 420,
-            heightPoints: 100);
+        presentation.AddSlide().AddTextBox(
+            Marker("pptx") + "\nAdapter proof",left: global::OfficeIMO.OfficeLength.Points(36),top: global::OfficeIMO.OfficeLength.Points(36),width: global::OfficeIMO.OfficeLength.Points(420),height: global::OfficeIMO.OfficeLength.Points(100));
         return (presentation.ToPdf(new PowerPointPdfExportOptions {
             PdfOptions = pdfOptions,
             TextFallbacks = PdfCore.PdfTextFallbackFeatures.None

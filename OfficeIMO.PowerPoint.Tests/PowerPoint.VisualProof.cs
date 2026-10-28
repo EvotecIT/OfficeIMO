@@ -30,7 +30,7 @@ namespace OfficeIMO.Tests {
             using var secondStream = new MemoryStream();
             using PowerPointDocument secondPresentation = PowerPointDocument.Create(secondStream);
             PowerPointTextBox cleanText = secondPresentation.AddSlide()
-                .AddTextBoxPoints("Clean snapshot", 20, 20, 160, 40);
+                .AddTextBox("Clean snapshot",global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(160),global::OfficeIMO.OfficeLength.Points(40));
             cleanText.FontName = "Helvetica";
             cleanText.FontSize = 12;
             PowerPointToHtmlResult second = secondPresentation.ToHtmlResult(options);
@@ -48,14 +48,13 @@ namespace OfficeIMO.Tests {
                 using (PowerPointDocument presentation = PowerPointDocument.Create(presentationPath)) {
                     PowerPointSlide slide = presentation.AddSlide();
                     slide.BackgroundColor = "FFFFFF";
-                    PowerPointTextBox title = slide.AddTextBoxPoints("Shared fidelity proof", 40, 36, 480, 46);
+                    PowerPointTextBox title = slide.AddTextBox("Shared fidelity proof",global::OfficeIMO.OfficeLength.Points(40),global::OfficeIMO.OfficeLength.Points(36),global::OfficeIMO.OfficeLength.Points(480),global::OfficeIMO.OfficeLength.Points(46));
                     title.Title = "Slide title";
                     title.SetLanguage("en-US");
                     title.Color = "172033";
                     title.FontSize = 28;
-                    PowerPointTextBox body = slide.AddTextBoxPoints(
-                        "One OfficeDrawing scene feeds PNG, SVG, positioned HTML, and faithful PDF.",
-                        40, 110, 560, 60);
+                    PowerPointTextBox body = slide.AddTextBox(
+                        "One OfficeDrawing scene feeds PNG, SVG, positioned HTML, and faithful PDF.",                        global::OfficeIMO.OfficeLength.Points(40),global::OfficeIMO.OfficeLength.Points(110),global::OfficeIMO.OfficeLength.Points(560),global::OfficeIMO.OfficeLength.Points(60));
                     body.Title = "Fidelity statement";
                     body.SetLanguage("en-US");
                     body.Color = "30343B";

@@ -12,7 +12,7 @@ namespace OfficeIMO.Tests {
                 using PowerPointDocument presentation = PowerPointDocument.Create(filePath);
                 PowerPointSlide slide = presentation.AddSlide();
 
-                Assert.Throws<ArgumentNullException>(() => slide.AddImage(null!, OfficeIMO.Drawing.OfficeImageFormat.Png, 0, 0, 1000, 1000));
+                Assert.Throws<ArgumentNullException>(() => slide.AddImage(null!, OfficeIMO.Drawing.OfficeImageFormat.Png, global::OfficeIMO.OfficeLength.Emus(0), global::OfficeIMO.OfficeLength.Emus(0), global::OfficeIMO.OfficeLength.Emus(1000), global::OfficeIMO.OfficeLength.Emus(1000)));
             } finally {
                 if (File.Exists(filePath)) {
                     File.Delete(filePath);
@@ -30,7 +30,7 @@ namespace OfficeIMO.Tests {
                 PowerPointSlide slide = presentation.AddSlide();
 
                 using FileStream stream = new(tempImage, FileMode.Open, FileAccess.Write, FileShare.Read);
-                Assert.Throws<ArgumentException>(() => slide.AddImage(stream, OfficeIMO.Drawing.OfficeImageFormat.Png, 0, 0, 1000, 1000));
+                Assert.Throws<ArgumentException>(() => slide.AddImage(stream, OfficeIMO.Drawing.OfficeImageFormat.Png, global::OfficeIMO.OfficeLength.Emus(0), global::OfficeIMO.OfficeLength.Emus(0), global::OfficeIMO.OfficeLength.Emus(1000), global::OfficeIMO.OfficeLength.Emus(1000)));
             } finally {
                 if (File.Exists(tempImage)) {
                     File.Delete(tempImage);
@@ -51,7 +51,7 @@ namespace OfficeIMO.Tests {
                 PowerPointSlide slide = presentation.AddSlide();
                 using MemoryStream stream = new(new byte[] { 0x00, 0x01, 0x02 });
 
-                Assert.Throws<ArgumentOutOfRangeException>(() => slide.AddImage(stream, OfficeIMO.Drawing.OfficeImageFormat.Png, 0, 0, width, height));
+                Assert.Throws<ArgumentOutOfRangeException>(() => slide.AddImage(stream, OfficeIMO.Drawing.OfficeImageFormat.Png, global::OfficeIMO.OfficeLength.Emus(0), global::OfficeIMO.OfficeLength.Emus(0), global::OfficeIMO.OfficeLength.Emus(width), global::OfficeIMO.OfficeLength.Emus(height)));
             } finally {
                 if (File.Exists(filePath)) {
                     File.Delete(filePath);
@@ -67,7 +67,7 @@ namespace OfficeIMO.Tests {
                 using PowerPointDocument presentation = PowerPointDocument.Create(filePath);
                 PowerPointSlide slide = presentation.AddSlide();
 
-                Assert.Throws<FileNotFoundException>(() => slide.AddImage(missing, 0, 0, 1000, 1000));
+                Assert.Throws<FileNotFoundException>(() => slide.AddImage(missing,global::OfficeIMO.OfficeLength.Emus(0),global::OfficeIMO.OfficeLength.Emus(0),global::OfficeIMO.OfficeLength.Emus(1000),global::OfficeIMO.OfficeLength.Emus(1000)));
             } finally {
                 if (File.Exists(filePath)) {
                     File.Delete(filePath);
@@ -85,7 +85,7 @@ namespace OfficeIMO.Tests {
                 using PowerPointDocument presentation = PowerPointDocument.Create(filePath);
                 PowerPointSlide slide = presentation.AddSlide();
 
-                Assert.Throws<ArgumentOutOfRangeException>(() => slide.AddImage(imagePath, 0, 0, width, height));
+                Assert.Throws<ArgumentOutOfRangeException>(() => slide.AddImage(imagePath,global::OfficeIMO.OfficeLength.Emus(0),global::OfficeIMO.OfficeLength.Emus(0),global::OfficeIMO.OfficeLength.Emus(width),global::OfficeIMO.OfficeLength.Emus(height)));
             } finally {
                 if (File.Exists(filePath)) {
                     File.Delete(filePath);

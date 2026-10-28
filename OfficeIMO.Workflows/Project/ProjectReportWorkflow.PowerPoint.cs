@@ -28,9 +28,9 @@ public static partial class ProjectReportWorkflow {
             if (presentation.Slides.Count >= view.MaxPages) throw new InvalidOperationException("Editable presentation exceeds MaxPages.");
             int start = page.RowOffset, count = page.RowCount; double height = page.Height;
             var slide = presentation.AddSlide();
-            var title = slide.AddTextBoxPoints(view.Title, view.PageMargin, view.PageMargin, width, 32);
+            var title = slide.AddTextBox(view.Title,global::OfficeIMO.OfficeLength.Points(view.PageMargin),global::OfficeIMO.OfficeLength.Points(view.PageMargin),global::OfficeIMO.OfficeLength.Points(width),global::OfficeIMO.OfficeLength.Points(32));
             title.FontName = "Arial"; title.FontSize = 22; title.Color = "183047";
-            var subtitle = slide.AddTextBoxPoints(part.Title + (start > 0 ? " (continued)" : ""), view.PageMargin, view.PageMargin + 36, width, 25);
+            var subtitle = slide.AddTextBox(part.Title + (start > 0 ? " (continued)" : ""),global::OfficeIMO.OfficeLength.Points(view.PageMargin),global::OfficeIMO.OfficeLength.Points(view.PageMargin + 36),global::OfficeIMO.OfficeLength.Points(width),global::OfficeIMO.OfficeLength.Points(25));
             subtitle.FontName = "Arial"; subtitle.FontSize = 13; subtitle.Color = "64748B";
             var table = slide.AddTable(count + 1,part.Headers.Length);
             table.Left= OfficeIMO.OfficeLength.Points(view.PageMargin); table.Top= OfficeIMO.OfficeLength.Points(view.PageMargin + 72); table.Width= OfficeIMO.OfficeLength.Points(width); table.Height= OfficeIMO.OfficeLength.Points(height);

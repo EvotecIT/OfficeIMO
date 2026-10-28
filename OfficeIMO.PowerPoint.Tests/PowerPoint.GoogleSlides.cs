@@ -63,8 +63,8 @@ namespace OfficeIMO.Tests {
             using PowerPointDocument presentation = PowerPointDocument.Create();
             PowerPointSlide slide = presentation.AddSlide();
             slide.Hidden = true;
-            slide.AddTextBoxPoints("Hello Slides", 20, 30, 300, 80).Paragraphs[0].Runs[0].Bold = true;
-            PowerPointTextBox hiddenText = slide.AddTextBoxPoints("Hidden shape", 20, 110, 300, 40);
+            slide.AddTextBox("Hello Slides",global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(30),global::OfficeIMO.OfficeLength.Points(300),global::OfficeIMO.OfficeLength.Points(80)).Paragraphs[0].Runs[0].Bold = true;
+            PowerPointTextBox hiddenText = slide.AddTextBox("Hidden shape",global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(110),global::OfficeIMO.OfficeLength.Points(300),global::OfficeIMO.OfficeLength.Points(40));
             hiddenText.Hidden = true;
             PowerPointTable table = slide.AddTable(2,2,global::OfficeIMO.OfficeLength.Points(40),global::OfficeIMO.OfficeLength.Points(140),global::OfficeIMO.OfficeLength.Points(400),global::OfficeIMO.OfficeLength.Points(160));
             table.RowItems[0].Cells[0].Text = "A1";
@@ -90,7 +90,7 @@ namespace OfficeIMO.Tests {
         public void BatchCompiler_DropsMalformedRichTextColorsBeforeJsonGeneration() {
             using PowerPointDocument presentation = PowerPointDocument.Create();
             PowerPointTextRun run = presentation.AddSlide()
-                .AddTextBoxPoints("Unsafe color", 20, 30, 300, 80)
+                .AddTextBox("Unsafe color",global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(30),global::OfficeIMO.OfficeLength.Points(300),global::OfficeIMO.OfficeLength.Points(80))
                 .Paragraphs[0].Runs[0];
             run.Color = "GG0000";
 
@@ -105,7 +105,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void BatchCompiler_PreservesSupportedTypographyAndMaterializesAllCaps() {
             using PowerPointDocument presentation = PowerPointDocument.Create();
-            PowerPointTextBox textBox = presentation.AddSlide().AddTextBoxPoints("Normal", 20, 30, 300, 80);
+            PowerPointTextBox textBox = presentation.AddSlide().AddTextBox("Normal",global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(30),global::OfficeIMO.OfficeLength.Points(300),global::OfficeIMO.OfficeLength.Points(80));
             PowerPointTextRun first = textBox.Paragraphs[0].Runs[0];
             first.Strikethrough = true;
             first.Capitalization = PowerPointCapitalization.SmallCaps;
@@ -183,7 +183,7 @@ namespace OfficeIMO.Tests {
         public void BatchCompiler_ResolvesParagraphDefaultCapsAndBaselineForTextBoxesAndTables() {
             using PowerPointDocument presentation = PowerPointDocument.Create();
             PowerPointSlide slide = presentation.AddSlide();
-            PowerPointTextBox textBox = slide.AddTextBoxPoints("textbox", 20, 30, 300, 80);
+            PowerPointTextBox textBox = slide.AddTextBox("textbox",global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(30),global::OfficeIMO.OfficeLength.Points(300),global::OfficeIMO.OfficeLength.Points(80));
             PowerPointTableCell cell = slide.AddTable(1,1,global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(130),global::OfficeIMO.OfficeLength.Points(220),global::OfficeIMO.OfficeLength.Points(60)).GetCell(0, 0);
             cell.Text = "table";
             string baselineFingerprint = string.Join("|", GoogleSlidesDiffPlanner.CreateCheckpoint(presentation).ContentHashes
@@ -259,7 +259,7 @@ namespace OfficeIMO.Tests {
         public void BatchCompiler_ResolvesInheritedEmphasisAndDecorationsForTextBoxesAndTables() {
             using PowerPointDocument presentation = PowerPointDocument.Create();
             PowerPointSlide slide = presentation.AddSlide();
-            PowerPointTextBox textBox = slide.AddTextBoxPoints("textbox", 20, 30, 300, 80);
+            PowerPointTextBox textBox = slide.AddTextBox("textbox",global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(30),global::OfficeIMO.OfficeLength.Points(300),global::OfficeIMO.OfficeLength.Points(80));
             PowerPointTableCell cell = slide.AddTable(1,1,global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(130),global::OfficeIMO.OfficeLength.Points(220),global::OfficeIMO.OfficeLength.Points(60)).GetCell(0, 0);
             cell.Text = "table";
             textBox.Paragraphs[0].Paragraph.ParagraphProperties = new A.ParagraphProperties(
@@ -410,7 +410,7 @@ namespace OfficeIMO.Tests {
         public void BatchCompiler_MaterializesAllCapsUsingTheRunLanguage() {
             using PowerPointDocument presentation = PowerPointDocument.Create();
             PowerPointTextRun run = presentation.AddSlide()
-                .AddTextBoxPoints("i", 20, 30, 300, 80)
+                .AddTextBox("i",global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(30),global::OfficeIMO.OfficeLength.Points(300),global::OfficeIMO.OfficeLength.Points(80))
                 .Paragraphs[0].Runs[0];
             run.Capitalization = PowerPointCapitalization.AllCaps;
             run.Language = "tr-TR";
@@ -428,7 +428,7 @@ namespace OfficeIMO.Tests {
             try {
                 File.WriteAllText(svgPath, "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"2\" height=\"2\"><rect width=\"2\" height=\"2\"/></svg>");
                 using PowerPointDocument presentation = PowerPointDocument.Create();
-                presentation.AddSlide().AddImage(svgPath, left: 0, top: 0, width: 1000, height: 1000);
+                presentation.AddSlide().AddImage(svgPath,left: global::OfficeIMO.OfficeLength.Emus(0),top: global::OfficeIMO.OfficeLength.Emus(0),width: global::OfficeIMO.OfficeLength.Emus(1000),height: global::OfficeIMO.OfficeLength.Emus(1000));
 
                 GoogleSlidesBatch batch = presentation.BuildGoogleSlidesBatch(new GoogleSlidesSaveOptions {
                     ComplexSlides = GoogleSlidesComplexSlideMode.PreferNativeAndReport,
@@ -542,7 +542,7 @@ namespace OfficeIMO.Tests {
             PowerPointSlide authoredSlide = presentation.AddSlide();
             authoredSlide.Hidden = true;
             authoredSlide.BackgroundColor = "112233";
-            PowerPointTextBox mixedText = authoredSlide.AddTextBoxPoints("Hello ", 20, 30, 300, 80);
+            PowerPointTextBox mixedText = authoredSlide.AddTextBox("Hello ",global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(30),global::OfficeIMO.OfficeLength.Points(300),global::OfficeIMO.OfficeLength.Points(80));
             mixedText.Paragraphs[0].AddRun("Slides", run => {
                 run.Bold = true;
                 run.Strikethrough = true;
@@ -636,7 +636,7 @@ namespace OfficeIMO.Tests {
         public async Task Exporter_ScalesAndCentersElementsToTargetPageSize() {
             using PowerPointDocument presentation = PowerPointDocument.Create();
             presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(960),OfficeIMO.OfficeLength.Points(540));
-            presentation.AddSlide().AddTextBoxPoints("Edge", 800, 400, 100, 100);
+            presentation.AddSlide().AddTextBox("Edge",global::OfficeIMO.OfficeLength.Points(800),global::OfficeIMO.OfficeLength.Points(400),global::OfficeIMO.OfficeLength.Points(100),global::OfficeIMO.OfficeLength.Points(100));
             string? batchBody = null;
             using var httpClient = new HttpClient(new DelegateHandler(async request => {
                 string uri = request.RequestUri!.AbsoluteUri;
@@ -668,7 +668,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public async Task Exporter_ProjectsPowerPointRotationIntoSlidesAffineTransform() {
             using PowerPointDocument presentation = PowerPointDocument.Create();
-            PowerPointTextBox textBox = presentation.AddSlide().AddTextBoxPoints("Rotated", 10, 20, 100, 40);
+            PowerPointTextBox textBox = presentation.AddSlide().AddTextBox("Rotated",global::OfficeIMO.OfficeLength.Points(10),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(100),global::OfficeIMO.OfficeLength.Points(40));
             textBox.Rotation = 90;
             string? batchBody = null;
             using var httpClient = new HttpClient(new DelegateHandler(async request => {
@@ -1275,7 +1275,7 @@ namespace OfficeIMO.Tests {
             shape.Rotation = 22.5D;
             shape.OutlineWidthPoints = 1.25D;
             using var imageStream = new MemoryStream(imageBytes);
-            PowerPointPicture picture = slide.AddImagePoints(imageStream, OfficeIMO.Drawing.OfficeImageFormat.Png, 10.5D, 20.25D, 40.75D, 30.5D);
+            PowerPointPicture picture = slide.AddImage(imageStream, OfficeIMO.Drawing.OfficeImageFormat.Png, OfficeIMO.OfficeLength.Points(10.5D), OfficeIMO.OfficeLength.Points(20.25D), OfficeIMO.OfficeLength.Points(40.75D), OfficeIMO.OfficeLength.Points(30.5D));
             picture.Crop(10, 5, 0, 0);
 
             CultureInfo previousCulture = CultureInfo.CurrentCulture;
@@ -1328,7 +1328,7 @@ namespace OfficeIMO.Tests {
             Assert.NotEqual(unrotated, rotated);
 
             using PowerPointDocument styledPresentation = PowerPointDocument.Create();
-            PowerPointTextBox textBox = styledPresentation.AddSlide().AddTextBoxPoints("Styled text", 20, 20, 180, 60);
+            PowerPointTextBox textBox = styledPresentation.AddSlide().AddTextBox("Styled text",global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(180),global::OfficeIMO.OfficeLength.Points(60));
             PowerPointTextRun run = Assert.Single(Assert.Single(textBox.Paragraphs).Runs);
             string baseline = ElementHash(GoogleSlidesDiffPlanner.CreateCheckpoint(styledPresentation));
 

@@ -160,7 +160,7 @@ public sealed class PowerPointOdpPresentationSemanticsTests {
     public void TextBodyPictureEffectsAndTextGeometryHaveExplicitLoss() {
         using PowerPointDocument source = PowerPointDocument.Create(new MemoryStream(), new PowerPointCreateOptions());
         PowerPointSlide slide = source.AddSlide(PowerPointSlideLayoutType.Blank);
-        PowerPointTextBox box = slide.AddTextBoxPoints("Inset text", 20, 20, 200, 40);
+        PowerPointTextBox box = slide.AddTextBox("Inset text",global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(200),global::OfficeIMO.OfficeLength.Points(40));
         box.TextMarginLeftPoints = 18;
         slide.AddTextShape(OfficePresetShapeType.Ellipse, "Oval text");
         byte[] png = Convert.FromBase64String(
@@ -438,7 +438,7 @@ public sealed class PowerPointOdpPresentationSemanticsTests {
             .ChildElements.First().Append(new A.Level1ParagraphProperties(
                 new A.DefaultRunProperties { Bold = true }));
         source.AddSlide(PowerPointSlideLayoutType.Blank)
-            .AddTextBoxPoints("Inherited text", 20, 20, 200, 40);
+            .AddTextBox("Inherited text",global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(200),global::OfficeIMO.OfficeLength.Points(40));
 
         OdfConversionResult<OdpPresentation> conversion = source.ToOpenDocumentResult();
         Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "masters-layouts" &&
@@ -449,7 +449,7 @@ public sealed class PowerPointOdpPresentationSemanticsTests {
     public void EmptyMasterTextStyleContainersDoNotReportLossForOrdinaryText() {
         using PowerPointDocument source = PowerPointDocument.Create(new MemoryStream(), new PowerPointCreateOptions());
         source.AddSlide(PowerPointSlideLayoutType.Blank)
-            .AddTextBoxPoints("Ordinary text", 20, 20, 200, 40);
+            .AddTextBox("Ordinary text",global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(200),global::OfficeIMO.OfficeLength.Points(40));
 
         OdfConversionResult<OdpPresentation> conversion = source.ToOpenDocumentResult();
         Assert.DoesNotContain(conversion.Report.Mappings, mapping => mapping.Feature == "masters-layouts");
@@ -521,9 +521,9 @@ public sealed class PowerPointOdpPresentationSemanticsTests {
     public void TitleAndBodyPlaceholderRolesSurviveOdpAndPowerPointReopen() {
         using PowerPointDocument source = PowerPointDocument.Create(new MemoryStream(), new PowerPointCreateOptions());
         PowerPointSlide slide = source.AddSlide();
-        PowerPointTextBox title = slide.AddTextBoxPoints("Quarterly results", 20, 20, 300, 40);
+        PowerPointTextBox title = slide.AddTextBox("Quarterly results",global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(300),global::OfficeIMO.OfficeLength.Points(40));
         title.PlaceholderType = PowerPointPlaceholderType.Title;
-        PowerPointTextBox body = slide.AddTextBoxPoints("Revenue grew", 20, 75, 300, 80);
+        PowerPointTextBox body = slide.AddTextBox("Revenue grew",global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(75),global::OfficeIMO.OfficeLength.Points(300),global::OfficeIMO.OfficeLength.Points(80));
         body.PlaceholderType = PowerPointPlaceholderType.Body;
 
         OdfConversionResult<OdpPresentation> toOdp = source.ToOpenDocumentResult();
@@ -606,7 +606,7 @@ public sealed class PowerPointOdpPresentationSemanticsTests {
     public void AbsentPlaceholderTypeUsesObjectRole() {
         using PowerPointDocument source = PowerPointDocument.Create(new MemoryStream(), new PowerPointCreateOptions());
         PowerPointTextBox box = source.AddSlide(PowerPointSlideLayoutType.Blank)
-            .AddTextBoxPoints("Object", 20, 20, 200, 40);
+            .AddTextBox("Object",global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(200),global::OfficeIMO.OfficeLength.Points(40));
         box.PlaceholderType = PowerPointPlaceholderType.Object;
         PlaceholderShape placeholder = source.OpenXmlDocument.PresentationPart!.SlideParts.First().Slide!
             .Descendants<PlaceholderShape>().Single();

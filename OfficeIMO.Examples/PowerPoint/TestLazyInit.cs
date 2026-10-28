@@ -23,20 +23,18 @@ namespace OfficeIMO.Examples.PowerPoint {
                     OfficeIMO.OfficeLength.Centimeters(content.Left.ToCentimeters()),                    OfficeIMO.OfficeLength.Centimeters(content.Top.ToCentimeters() + titleHeightCm + bodyGapCm),                    OfficeIMO.OfficeLength.Centimeters(content.Width.ToCentimeters()),                    OfficeIMO.OfficeLength.Centimeters(content.Height.ToCentimeters() - titleHeightCm - bodyGapCm));
 
                 PowerPointSlide intro = presentation.AddSlide();
-                intro.AddTitle("Lifecycle Example", titleBox);
+                intro.AddTitle("Lifecycle Example",titleBox);
                 PowerPointTextBox introBox = intro.AddTextBox(
-                    "Slides are created on demand and persisted on Save().",
-                    bodyBox);
+                    "Slides are created on demand and persisted on Save().",                    bodyBox);
                 introBox.AddBullet("Create slides in memory");
                 introBox.AddBullet("Save to persist content");
                 introBox.AddBullet("Reopen and append later");
                 introBox.ApplyAutoSpacing(lineSpacingMultiplier: 1.15, spaceAfterPoints: 2);
 
                 PowerPointSlide step1 = presentation.AddSlide();
-                step1.AddTitle("Step 1: Create", titleBox);
+                step1.AddTitle("Step 1: Create",titleBox);
                 PowerPointTextBox step1Box = step1.AddTextBox(
-                    $"Created two slides in memory. Current count: {presentation.Slides.Count}",
-                    bodyBox);
+                    $"Created two slides in memory. Current count: {presentation.Slides.Count}",                    bodyBox);
                 step1Box.TextAutoFit = PowerPointTextAutoFit.Normal;
                 step1Box.SetTextMarginsCm(0.3, 0.2, 0.3, 0.2);
                 Console.WriteLine($"  After 2 slides: {presentation.Slides.Count} (expected: 2)");
@@ -54,10 +52,9 @@ namespace OfficeIMO.Examples.PowerPoint {
                 Console.WriteLine($"  Reopened slides: {presentation.Slides.Count} (expected: 2)");
 
                 PowerPointSlide step2 = presentation.AddSlide();
-                step2.AddTitle("Step 2: Reopen", titleBox);
+                step2.AddTitle("Step 2: Reopen",titleBox);
                 PowerPointTextBox step2Box = step2.AddTextBox(
-                    "Added a third slide after reopening the file.",
-                    bodyBox);
+                    "Added a third slide after reopening the file.",                    bodyBox);
                 step2Box.AddBullet($"Total slides now: {presentation.Slides.Count}");
                 step2Box.AddBullet("Changes are persisted on Save()");
                 step2Box.ApplyAutoSpacing(lineSpacingMultiplier: 1.15, spaceAfterPoints: 2);

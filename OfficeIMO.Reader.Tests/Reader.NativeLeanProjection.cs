@@ -67,7 +67,7 @@ public sealed class ReaderNativeLeanProjectionTests {
     [Fact]
     public void PowerPointPlainExtractionSnapshotsOptionsAndKeepsCompleteText() {
         using PowerPointDocument document = PowerPointDocument.Create();
-        document.AddSlide().AddTextBox(new string('x', 600), 100000, 100000, 2000000, 500000);
+        document.AddSlide().AddTextBox(new string('x', 600),global::OfficeIMO.OfficeLength.Emus(100000),global::OfficeIMO.OfficeLength.Emus(100000),global::OfficeIMO.OfficeLength.Emus(2000000),global::OfficeIMO.OfficeLength.Emus(500000));
         var extraction = new PowerPointExtractionExtensions.PowerPointExtractOptions { IncludeMarkdown = false };
         var chunking = new PowerPointExtractChunkingOptions { MaxChars = 256 };
         var pending = document.ExtractMarkdownChunks(extraction, chunking);
@@ -132,7 +132,7 @@ public sealed class ReaderNativeLeanProjectionTests {
             Assert.Throws<NotSupportedException>(() => ExcelDocument.Load(input, new ExcelLoadOptions { AllowBinaryProjection = false }));
             using ExcelDocument ordinary = ExcelDocument.Load(new MemoryStream(source, writable: false)); Assert.Single(ordinary.Sheets);
         } else {
-            using PowerPointDocument document = PowerPointDocument.Create(); document.AddSlide().AddTextBox("Legacy body", 100000, 100000, 2000000, 500000);
+            using PowerPointDocument document = PowerPointDocument.Create(); document.AddSlide().AddTextBox("Legacy body",global::OfficeIMO.OfficeLength.Emus(100000),global::OfficeIMO.OfficeLength.Emus(100000),global::OfficeIMO.OfficeLength.Emus(2000000),global::OfficeIMO.OfficeLength.Emus(500000));
             source = document.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             using var input = new MemoryStream(source, writable: false);
             Assert.Throws<NotSupportedException>(() => PowerPointDocument.Load(input, new PowerPointLoadOptions { AllowLegacyProjection = false, Password = "unused-wrong-password" }));
@@ -198,7 +198,7 @@ public sealed class ReaderNativeLeanProjectionTests {
     [InlineData("path-async")]
     [InlineData("stream-async")]
     public async Task NativeEncryptedBinaryPowerPointRefusalPrecedesPasswordAndPayloadProjection(string route) {
-        using PowerPointDocument source = PowerPointDocument.Create(); source.AddSlide().AddTextBox("Legacy body", 100000, 100000, 2000000, 500000);
+        using PowerPointDocument source = PowerPointDocument.Create(); source.AddSlide().AddTextBox("Legacy body",global::OfficeIMO.OfficeLength.Emus(100000),global::OfficeIMO.OfficeLength.Emus(100000),global::OfficeIMO.OfficeLength.Emus(2000000),global::OfficeIMO.OfficeLength.Emus(500000));
         byte[] bytes = source.ToBytes(new OfficeIMO.PowerPoint.PowerPointSaveOptions{Password="source-password",Format=PowerPointFileFormat.Ppt});
         string path = Path.Combine(Path.GetTempPath(), "lean-legacy-" + Guid.NewGuid().ToString("N") + ".ppt");
         File.WriteAllBytes(path, bytes);
@@ -263,7 +263,7 @@ public sealed class ReaderNativeLeanProjectionTests {
             return document.ToBytes();
         }
         using PowerPointDocument presentation = PowerPointDocument.Create();
-        PowerPointSlide slide = presentation.AddSlide(); slide.AddTextBox("Body evidence", 100000, 100000, 2000000, 500000);
+        PowerPointSlide slide = presentation.AddSlide(); slide.AddTextBox("Body evidence",global::OfficeIMO.OfficeLength.Emus(100000),global::OfficeIMO.OfficeLength.Emus(100000),global::OfficeIMO.OfficeLength.Emus(2000000),global::OfficeIMO.OfficeLength.Emus(500000));
         using var picture = new MemoryStream(Pixel, writable: false); slide.AddImage(picture, OfficeImageFormat.Png);
         return presentation.ToBytes();
     }

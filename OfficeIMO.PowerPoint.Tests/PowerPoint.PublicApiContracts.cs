@@ -62,7 +62,7 @@ namespace OfficeIMO.Tests {
                     Assert.Same(design, result.Design);
                     Assert.True(result.Preflight.IsSuccessful);
 
-                    result.Slides[1].AddTextBoxPoints("Edited after composition", 40, 430, 260, 30);
+                    result.Slides[1].AddTextBox("Edited after composition",global::OfficeIMO.OfficeLength.Points(40),global::OfficeIMO.OfficeLength.Points(430),global::OfficeIMO.OfficeLength.Points(260),global::OfficeIMO.OfficeLength.Points(30));
                     PowerPointInspectionReport inspection = presentation.Inspect();
                     Assert.Empty(inspection.PackageErrors);
                     Assert.NotNull(inspection.Preflight);

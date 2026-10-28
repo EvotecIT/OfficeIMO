@@ -16,7 +16,7 @@ public sealed class PowerPointPdfTextFormattingTests {
         using PowerPointDocument presentation = PowerPointDocument.Create(new MemoryStream(), new PowerPointCreateOptions());
         PowerPointSlide first = presentation.AddSlide();
         presentation.AddSlide();
-        PowerPointTextBox box = first.AddTextBoxPoints("Linked", 10, 10, 200, 40);
+        PowerPointTextBox box = first.AddTextBox("Linked",global::OfficeIMO.OfficeLength.Points(10),global::OfficeIMO.OfficeLength.Points(10),global::OfficeIMO.OfficeLength.Points(200),global::OfficeIMO.OfficeLength.Points(40));
         box.Hyperlink = new Uri("#slide-2", UriKind.Relative);
         box.Paragraphs[0].Runs[0].Hyperlink = new Uri("#slide-2", UriKind.Relative);
         PdfCore.PdfDocumentConversionResult conversion = presentation.ConvertToPdfWithEvidence();
@@ -43,7 +43,7 @@ public sealed class PowerPointPdfTextFormattingTests {
             cell.Text = text;
             paragraph = cell.Paragraphs[0];
         } else {
-            paragraph = slide.AddTextBoxPoints(text, 10, 10, 200, 40).Paragraphs[0];
+            paragraph = slide.AddTextBox(text,global::OfficeIMO.OfficeLength.Points(10),global::OfficeIMO.OfficeLength.Points(10),global::OfficeIMO.OfficeLength.Points(200),global::OfficeIMO.OfficeLength.Points(40)).Paragraphs[0];
         }
         paragraph.AddText(string.Empty, empty => empty.CharacterSpacingPoints = 1.25);
         var conversion = presentation.ConvertToPdfWithEvidence();
@@ -55,7 +55,7 @@ public sealed class PowerPointPdfTextFormattingTests {
     [Fact]
     public void FieldOnlyTextInheritsTrackingAndHonorsAZeroReset() {
         using PowerPointDocument presentation = PowerPointDocument.Create(new MemoryStream(), new PowerPointCreateOptions());
-        PowerPointTextBox box = presentation.AddSlide().AddTextBoxPoints(string.Empty, 10, 10, 200, 40);
+        PowerPointTextBox box = presentation.AddSlide().AddTextBox(string.Empty,global::OfficeIMO.OfficeLength.Points(10),global::OfficeIMO.OfficeLength.Points(10),global::OfficeIMO.OfficeLength.Points(200),global::OfficeIMO.OfficeLength.Points(40));
         PowerPointParagraph paragraph = box.Paragraphs[0];
         paragraph.Paragraph.RemoveAllChildren<A.Run>();
         paragraph.AddField("1", "slidenum", "{33333333-3333-3333-3333-333333333333}");
@@ -89,7 +89,7 @@ public sealed class PowerPointPdfTextFormattingTests {
     [InlineData("master")]
     public void InheritedTrackingParticipatesInRenderingEvidence(string owner) {
         using PowerPointDocument presentation = PowerPointDocument.Create(new MemoryStream(), new PowerPointCreateOptions());
-        PowerPointTextBox box = presentation.AddSlide().AddTextBoxPoints("Inherited", 10, 10, 200, 40);
+        PowerPointTextBox box = presentation.AddSlide().AddTextBox("Inherited",global::OfficeIMO.OfficeLength.Points(10),global::OfficeIMO.OfficeLength.Points(10),global::OfficeIMO.OfficeLength.Points(200),global::OfficeIMO.OfficeLength.Points(40));
         A.DefaultRunProperties defaults = new() { Spacing = 125 };
         if (owner == "paragraph") box.Paragraphs[0].Paragraph.ParagraphProperties = new A.ParagraphProperties(defaults);
         else if (owner == "list") box.TextBody!.ListStyle!.PrependChild(new A.Level1ParagraphProperties(defaults));
@@ -111,7 +111,7 @@ public sealed class PowerPointPdfTextFormattingTests {
         using var bytes = new MemoryStream();
         using (PowerPointDocument presentation = PowerPointDocument.Create(bytes, new PowerPointCreateOptions())) {
             PowerPointSlide slide = presentation.AddSlide();
-            slide.AddTextBoxPoints("Spaced", 10, 10, 200, 40).Paragraphs[0].Runs[0].CharacterSpacingPoints = -2.32;
+            slide.AddTextBox("Spaced",global::OfficeIMO.OfficeLength.Points(10),global::OfficeIMO.OfficeLength.Points(10),global::OfficeIMO.OfficeLength.Points(200),global::OfficeIMO.OfficeLength.Points(40)).Paragraphs[0].Runs[0].CharacterSpacingPoints = -2.32;
             PowerPointTableCell cell = slide.AddTable(1,1,global::OfficeIMO.OfficeLength.Points(10),global::OfficeIMO.OfficeLength.Points(80),global::OfficeIMO.OfficeLength.Points(200),global::OfficeIMO.OfficeLength.Points(60)).GetCell(0, 0);
             cell.Text = "Cell";
             cell.Paragraphs[0].Runs[0].CharacterSpacingPoints = 1.25;
@@ -131,7 +131,7 @@ public sealed class PowerPointPdfTextFormattingTests {
         using PowerPointDocument presentation = PowerPointDocument.Create(
             new MemoryStream(), new PowerPointCreateOptions());
         PowerPointTextRun authored = presentation.AddSlide()
-            .AddTextBoxPoints("Styled", 10, 10, 200, 40)
+            .AddTextBox("Styled",global::OfficeIMO.OfficeLength.Points(10),global::OfficeIMO.OfficeLength.Points(10),global::OfficeIMO.OfficeLength.Points(200),global::OfficeIMO.OfficeLength.Points(40))
             .Paragraphs[0].Runs[0];
         authored.Bold = true;
         authored.Italic = true;
@@ -166,7 +166,7 @@ public sealed class PowerPointPdfTextFormattingTests {
         using PowerPointDocument presentation = PowerPointDocument.Create(
             new MemoryStream(), new PowerPointCreateOptions());
         PowerPointTextRun authored = presentation.AddSlide()
-            .AddTextBoxPoints("i", 10, 10, 200, 40)
+            .AddTextBox("i",global::OfficeIMO.OfficeLength.Points(10),global::OfficeIMO.OfficeLength.Points(10),global::OfficeIMO.OfficeLength.Points(200),global::OfficeIMO.OfficeLength.Points(40))
             .Paragraphs[0].Runs[0];
         authored.Capitalization = PowerPointCapitalization.AllCaps;
         authored.Language = "tr-TR";
@@ -185,7 +185,7 @@ public sealed class PowerPointPdfTextFormattingTests {
         using PowerPointDocument presentation = PowerPointDocument.Create(
             new MemoryStream(), new PowerPointCreateOptions());
         PowerPointSlide slide = presentation.AddSlide();
-        slide.AddTextBoxPoints("Text", 10, 10, 120, 40).Paragraphs[0].Runs[0].BaselinePercent = 5D;
+        slide.AddTextBox("Text",global::OfficeIMO.OfficeLength.Points(10),global::OfficeIMO.OfficeLength.Points(10),global::OfficeIMO.OfficeLength.Points(120),global::OfficeIMO.OfficeLength.Points(40)).Paragraphs[0].Runs[0].BaselinePercent = 5D;
         PowerPointTableCell cell = slide.AddTable(1,1,global::OfficeIMO.OfficeLength.Points(150),global::OfficeIMO.OfficeLength.Points(10),global::OfficeIMO.OfficeLength.Points(120),global::OfficeIMO.OfficeLength.Points(40)).GetCell(0, 0);
         cell.Text = "Cell";
         cell.Paragraphs[0].Runs[0].BaselinePercent = 80D;
@@ -281,7 +281,7 @@ public sealed class PowerPointPdfTextFormattingTests {
         using PowerPointDocument presentation = PowerPointDocument.Create(
             new MemoryStream(), new PowerPointCreateOptions());
         PowerPointTextBox textBox = presentation.AddSlide()
-            .AddTextBoxPoints("i", 10, 10, 200, 60);
+            .AddTextBox("i",global::OfficeIMO.OfficeLength.Points(10),global::OfficeIMO.OfficeLength.Points(10),global::OfficeIMO.OfficeLength.Points(200),global::OfficeIMO.OfficeLength.Points(60));
         A.Paragraph paragraph = Assert.Single(textBox.TextBody!.Elements<A.Paragraph>());
         paragraph.ParagraphProperties = new A.ParagraphProperties(
             new A.DefaultRunProperties {

@@ -248,16 +248,16 @@ namespace OfficeIMO.Tests {
                    PowerPointDocument.Create()) {
                 PowerPointSlide slide = source.AddSlide(
                     PowerPointSlideLayoutType.Blank);
-                PowerPointTextBox text = slide.AddTextBoxPoints(
-                    "Accessible text", 20, 20, 140, 35);
+                PowerPointTextBox text = slide.AddTextBox(
+                    "Accessible text",global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(140),global::OfficeIMO.OfficeLength.Points(35));
                 text.Name = "Summary object";
                 text.Description = "Summary alternative text";
                 PowerPointPicture picture = slide.AddImage(
                     new MemoryStream(image), OfficeIMO.Drawing.OfficeImageFormat.Png,
-                    PowerPointUnits.FromPoints(20),
-                    PowerPointUnits.FromPoints(70),
-                    PowerPointUnits.FromPoints(90),
-                    PowerPointUnits.FromPoints(60));
+                    global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(20)),
+                    global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(70)),
+                    global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(90)),
+                    global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromPoints(60)));
                 picture.Name = "Chart preview";
                 picture.Description = "Blue chart preview";
                 PowerPointConnectionShape connector = slide

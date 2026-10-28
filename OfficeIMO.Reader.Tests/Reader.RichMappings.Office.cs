@@ -307,6 +307,8 @@ public sealed class ReaderOfficeRichMappingTests {
         ReaderVisual chart = Assert.Single(result.Visuals);
         Assert.Equal("chart", chart.Kind);
         Assert.Contains("Sales", chart.Content, StringComparison.Ordinal);
+        using var chartJson = System.Text.Json.JsonDocument.Parse(chart.Content);
+        Assert.Equal("ColumnClustered", chartJson.RootElement.GetProperty("kind").GetString());
         Assert.Equal("4", Assert.Single(result.Metadata, item => item.Name == "ShapeCount").Value);
         OfficeDocumentBlock notes = Assert.Single(result.Blocks, block => block.Kind == "speaker-notes");
         Assert.Equal("Speaker guidance", notes.Text);

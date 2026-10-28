@@ -451,7 +451,7 @@ public static partial class ExcelHtmlConverterExtensions {
             body.Append("<li class=\"officeimo-feature-item\" data-officeimo-layer-kind=\"chart\" data-officeimo-layer-index=\"")
                 .Append(chart.DrawingOrder.ToString(CultureInfo.InvariantCulture))
                 .Append("\" data-officeimo-chart-type=\"")
-                .Append(OfficeHtmlText.EscapeAttribute(chart.ChartType.ToString()))
+                .Append(OfficeHtmlText.EscapeAttribute(OfficeIMO.Internal.OfficeChartTypeName.Format(chart.ChartType)))
                 .Append('"');
             if (hasSnapshot) {
                 AppendDataAttribute(body, "data-officeimo-row", snapshot.RowIndex);
@@ -463,7 +463,7 @@ public static partial class ExcelHtmlConverterExtensions {
             body.Append("><span class=\"officeimo-feature-label\">")
                 .Append(OfficeHtmlText.Escape(label))
                 .Append("</span><div class=\"officeimo-feature-meta\">Type: ")
-                .Append(OfficeHtmlText.Escape(chart.ChartType.ToString()))
+                .Append(OfficeHtmlText.Escape(OfficeIMO.Internal.OfficeChartTypeName.Format(chart.ChartType)))
                 .Append("</div>");
             if (hasSnapshot) {
                 body.Append("<div class=\"officeimo-feature-meta\">Series: ")
@@ -515,7 +515,7 @@ public static partial class ExcelHtmlConverterExtensions {
             OfficeChartType chartType = series.ChartType ?? defaultChartType;
             body.Append("<tr");
             body.Append(" data-officeimo-chart-type=\"")
-                .Append(OfficeHtmlText.EscapeAttribute(chartType.ToString()))
+                .Append(OfficeHtmlText.EscapeAttribute(OfficeIMO.Internal.OfficeChartTypeName.Format(chartType)))
                 .Append('"');
 
             body.Append("><th>")

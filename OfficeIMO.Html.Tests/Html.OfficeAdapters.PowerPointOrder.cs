@@ -10,7 +10,7 @@ public class HtmlOfficeAdaptersPowerPointOrder {
     public void PowerPointHtml_RoundTripsShapesAtTheSlideOrigin() {
         using PowerPointDocument presentation = PowerPointDocument.Create(new MemoryStream());
         PowerPointSlide slide = presentation.AddSlide();
-        slide.AddTextBoxPoints("Origin text", 0, 0, 180, 35);
+        slide.AddTextBox("Origin text",global::OfficeIMO.OfficeLength.Points(0),global::OfficeIMO.OfficeLength.Points(0),global::OfficeIMO.OfficeLength.Points(180),global::OfficeIMO.OfficeLength.Points(35));
         PowerPointTable table = slide.AddTable(1,1,global::OfficeIMO.OfficeLength.Points(0),global::OfficeIMO.OfficeLength.Points(0),global::OfficeIMO.OfficeLength.Points(220),global::OfficeIMO.OfficeLength.Points(60));
         table.GetCell(0, 0).Text = "Origin table";
 
@@ -35,15 +35,15 @@ public class HtmlOfficeAdaptersPowerPointOrder {
     public void PowerPointHtml_RoundTripsUnifiedShapeReadingOrderAndGeometry() {
         using PowerPointDocument presentation = PowerPointDocument.Create(new MemoryStream());
         PowerPointSlide slide = presentation.AddSlide();
-        PowerPointTextBox firstText = slide.AddTextBoxPoints("First text", 30, 40, 180, 35);
+        PowerPointTextBox firstText = slide.AddTextBox("First text",global::OfficeIMO.OfficeLength.Points(30),global::OfficeIMO.OfficeLength.Points(40),global::OfficeIMO.OfficeLength.Points(180),global::OfficeIMO.OfficeLength.Points(35));
         using (var image = new MemoryStream(Convert.FromBase64String(
                    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNg+P//HwAF/gL9HjcXBgAAAABJRU5ErkJggg=="))) {
-            slide.AddImagePoints(image, OfficeIMO.Drawing.OfficeImageFormat.Png, 60, 90, 70, 50).Name = "Middle picture";
+            slide.AddImage(image, OfficeIMO.Drawing.OfficeImageFormat.Png, OfficeIMO.OfficeLength.Points(60), OfficeIMO.OfficeLength.Points(90), OfficeIMO.OfficeLength.Points(70), OfficeIMO.OfficeLength.Points(50)).Name = "Middle picture";
         }
 
         PowerPointTable table = slide.AddTable(1,1,global::OfficeIMO.OfficeLength.Points(90),global::OfficeIMO.OfficeLength.Points(150),global::OfficeIMO.OfficeLength.Points(220),global::OfficeIMO.OfficeLength.Points(60));
         table.GetCell(0, 0).Text = "Ordered table";
-        PowerPointTextBox lastText = slide.AddTextBoxPoints("Last text", 120, 230, 190, 40);
+        PowerPointTextBox lastText = slide.AddTextBox("Last text",global::OfficeIMO.OfficeLength.Points(120),global::OfficeIMO.OfficeLength.Points(230),global::OfficeIMO.OfficeLength.Points(190),global::OfficeIMO.OfficeLength.Points(40));
         table.MoveToReadingOrder(0);
 
         string html = presentation.ToHtml(new PowerPointHtmlSaveOptions {

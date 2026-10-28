@@ -662,8 +662,7 @@ namespace OfficeIMO.Tests {
                 using (var audio = new MemoryStream(wave, writable: false)) {
                     shape.SetClickSound(audio, "Shared Sound");
                 }
-                PowerPointTextBox textBox = slide.AddTextBox("Sound text",
-                    100000, 800000, 1600000, 500000);
+                PowerPointTextBox textBox = slide.AddTextBox("Sound text",                    global::OfficeIMO.OfficeLength.Emus(100000),global::OfficeIMO.OfficeLength.Emus(800000),global::OfficeIMO.OfficeLength.Emus(1600000),global::OfficeIMO.OfficeLength.Emus(500000));
                 PowerPointTextRun run = textBox.Paragraphs.Single().Runs.Single();
                 using (var audio = new MemoryStream(wave, writable: false)) {
                     run.SetMouseOverSound(audio, "Shared Sound");

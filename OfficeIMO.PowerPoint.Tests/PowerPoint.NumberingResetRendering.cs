@@ -115,7 +115,7 @@ public sealed class PowerPointNumberingResetRenderingTests {
         "2. Item 3", "1. Item 4", "8. Item 5", "5. Item 6", "6. Item 7", "9. Item 8", "1. Item 9" };
 
     private static void AddNestedItems(PowerPointSlide slide, bool tableCell) {
-        var box = tableCell ? null : slide.AddTextBoxPoints(string.Empty, 20, 20, 560, 450);
+        var box = tableCell ? null : slide.AddTextBox(string.Empty,global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(560),global::OfficeIMO.OfficeLength.Points(450));
         var cell = tableCell ? slide.AddTable(1,1,global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(560),global::OfficeIMO.OfficeLength.Points(450)).GetCell(0, 0) : null;
         if (box != null) box.FontSize = 12;
         if (cell != null) cell.FontSize = 12;

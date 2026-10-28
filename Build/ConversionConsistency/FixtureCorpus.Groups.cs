@@ -17,7 +17,7 @@ internal static partial class FixtureCorpus {
         for (int index = 0; index < variants.Length; index++) {
             var variant = variants[index];
             var slide = presentation.AddSlide();
-            var box = slide.AddTextBoxPoints("GROUP" + (index + 1), 60, 70, 200, 60);
+            var box = slide.AddTextBox("GROUP" + (index + 1),global::OfficeIMO.OfficeLength.Points(60),global::OfficeIMO.OfficeLength.Points(70),global::OfficeIMO.OfficeLength.Points(200),global::OfficeIMO.OfficeLength.Points(60));
             box.FontName = family;
             box.FontSize = 14;
             box.Paragraphs[0].Runs[0].Underline = true;

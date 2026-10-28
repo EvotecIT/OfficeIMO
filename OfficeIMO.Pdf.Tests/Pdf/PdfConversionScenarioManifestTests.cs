@@ -2476,10 +2476,10 @@ public sealed class PdfConversionScenarioManifestTests {
         presentation.SetThemeColor(PowerPointThemeColor.Accent2, "16A34A");
         PowerPointSlide slide = presentation.AddSlide();
         slide.SetBackgroundGradient("172554", "38BDF8", 35D);
-        PowerPointTextBox title = slide.AddTextBoxPoints("Layout Theme Group Gate", 18, 8, 220, 34);
+        PowerPointTextBox title = slide.AddTextBox("Layout Theme Group Gate",global::OfficeIMO.OfficeLength.Points(18),global::OfficeIMO.OfficeLength.Points(8),global::OfficeIMO.OfficeLength.Points(220),global::OfficeIMO.OfficeLength.Points(34));
         title.FontSize = 14;
         title.Color = "FFFFFF";
-        PowerPointTextBox marker = slide.AddTextBoxPoints("Grouped transform marker", 20, 58, 150, 20);
+        PowerPointTextBox marker = slide.AddTextBox("Grouped transform marker",global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(58),global::OfficeIMO.OfficeLength.Points(150),global::OfficeIMO.OfficeLength.Points(20));
         marker.FontSize = 9;
         marker.Color = "0F172A";
         PowerPointAutoShape preset = slide.AddShapePoints(OfficeIMO.Drawing.OfficePresetShapeType.Triangle, 176, 44, 36, 36);

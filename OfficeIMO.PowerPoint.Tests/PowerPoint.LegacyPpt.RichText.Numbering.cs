@@ -17,7 +17,7 @@ namespace OfficeIMO.Tests {
                        .Create()) {
                 PowerPointTextBox textBox = presentation.AddSlide(
                         PowerPointSlideLayoutType.Blank)
-                    .AddTextBoxPoints(string.Empty, 30, 30, 320, 180);
+                    .AddTextBox(string.Empty,global::OfficeIMO.OfficeLength.Points(30),global::OfficeIMO.OfficeLength.Points(30),global::OfficeIMO.OfficeLength.Points(320),global::OfficeIMO.OfficeLength.Points(180));
                 P.Shape shape = Assert.IsType<P.Shape>(textBox.Element);
                 shape.TextBody = new P.TextBody(new A.BodyProperties(),
                     new A.ListStyle(),
@@ -95,7 +95,7 @@ namespace OfficeIMO.Tests {
                        .Create()) {
                 PowerPointTextBox textBox = presentation.AddSlide(
                         PowerPointSlideLayoutType.Blank)
-                    .AddTextBoxPoints(string.Empty, 30, 30, 320, 120);
+                    .AddTextBox(string.Empty,global::OfficeIMO.OfficeLength.Points(30),global::OfficeIMO.OfficeLength.Points(30),global::OfficeIMO.OfficeLength.Points(320),global::OfficeIMO.OfficeLength.Points(120));
                 A.Paragraph first = CreateNumberedParagraph("Third", 0,
                     A.TextAutoNumberSchemeValues
                         .AlphaLowerCharacterParenR, 3);
@@ -427,7 +427,7 @@ namespace OfficeIMO.Tests {
                        .Create()) {
                 PowerPointTextBox textBox = source.AddSlide(
                         PowerPointSlideLayoutType.Blank)
-                    .AddTextBoxPoints(string.Empty, 30, 30, 320, 120);
+                    .AddTextBox(string.Empty,global::OfficeIMO.OfficeLength.Points(30),global::OfficeIMO.OfficeLength.Points(30),global::OfficeIMO.OfficeLength.Points(320),global::OfficeIMO.OfficeLength.Points(120));
                 Assert.IsType<P.Shape>(textBox.Element).TextBody =
                     new P.TextBody(new A.BodyProperties(), new A.ListStyle(),
                         CreateNumberedParagraph("Change", 0,
@@ -489,7 +489,7 @@ namespace OfficeIMO.Tests {
                        .Create()) {
                 PowerPointTextBox textBox = source.AddSlide(
                         PowerPointSlideLayoutType.Blank)
-                    .AddTextBoxPoints(string.Empty, 30, 30, 320, 120);
+                    .AddTextBox(string.Empty,global::OfficeIMO.OfficeLength.Points(30),global::OfficeIMO.OfficeLength.Points(30),global::OfficeIMO.OfficeLength.Points(320),global::OfficeIMO.OfficeLength.Points(120));
                 Assert.IsType<P.Shape>(textBox.Element).TextBody =
                     new P.TextBody(new A.BodyProperties(), new A.ListStyle(),
                         CreateNumberedParagraph("Remove all", 0,

@@ -29,9 +29,8 @@ namespace OfficeIMO.Tests {
                             MinimumRowHeight = global::OfficeIMO.OfficeLength.Points(20),
                             ConfigureSlide = (slide, context) => {
                                 configuredPages.Add(context.PageIndex);
-                                slide.AddTextBoxPoints(
-                                    "Inventory " + (context.PageIndex + 1) + "/" + context.PageCount,
-                                    20, 10, 250, 24);
+                                slide.AddTextBox(
+                                    "Inventory " + (context.PageIndex + 1) + "/" + context.PageCount,                                    global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(10),global::OfficeIMO.OfficeLength.Points(250),global::OfficeIMO.OfficeLength.Points(24));
                             }
                         });
 

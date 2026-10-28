@@ -112,7 +112,7 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
                             if (TryMapShapeType(element.Shape.ShapeType, out OfficePresetShapeType textShapeType)) {
                                 box = slide.AddTextShapePoints(textShapeType, text, left, top, Math.Max(1, width), Math.Max(1, height), element.ObjectId);
                             } else {
-                                box = slide.AddTextBoxPoints(text, left, top, Math.Max(1, width), Math.Max(1, height));
+                                box = slide.AddTextBox(text,global::OfficeIMO.OfficeLength.Points(left),global::OfficeIMO.OfficeLength.Points(top),global::OfficeIMO.OfficeLength.Points(Math.Max(1, width)),global::OfficeIMO.OfficeLength.Points(Math.Max(1, height)));
                                 if (!string.Equals(element.Shape.ShapeType, "TEXT_BOX", StringComparison.OrdinalIgnoreCase)) {
                                     report.Add(
                                         TranslationSeverity.Warning,
@@ -163,7 +163,7 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
                                     includeAuthorization: false,
                                     maxResponseBytes: options.MaxImageBytes).ConfigureAwait(false);
                                 using var image = new MemoryStream(bytes, writable: false);
-                                PowerPointPicture picture = slide.AddImagePoints(image, DetectImageType(bytes), left, top, Math.Max(1, width), Math.Max(1, height));
+                                PowerPointPicture picture = slide.AddImage(image, DetectImageType(bytes), OfficeIMO.OfficeLength.Points(left), OfficeIMO.OfficeLength.Points(top), OfficeIMO.OfficeLength.Points(Math.Max(1, width)), OfficeIMO.OfficeLength.Points(Math.Max(1, height)));
                                 ApplyTransform(picture, geometry);
                             } catch (Exception ex) when (!(ex is OperationCanceledException)) {
                                 report.Add(TranslationSeverity.Warning, "Images", "A native Google Slides image could not be downloaded; Drive-export import remains the broad fallback.", code: "SLIDES.IMPORT.IMAGE_FALLBACK", action: TranslationAction.Skip);
