@@ -13,7 +13,7 @@ internal static class PowerPointPageImageExport {
         PowerPointSlideImageRenderer.CreateSnapshot(slide, options);
 
     internal static void RenderPages(PowerPointDocument presentation, OfficeImageExportFormat format,
-        PowerPointDocumentImageExportOptions options, OfficeImageExportConsumer consumer, CancellationToken cancellationToken) {
+        PowerPointImageExportOptions options, OfficeImageExportConsumer consumer, CancellationToken cancellationToken) {
         OfficeImageExportExecutionScope.Run(options, cancellationToken, token => {
             options.Validate();
             if (options.SlideNumbers?.Any(number => number < 1 || number > presentation.Slides.Count) == true)

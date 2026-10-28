@@ -11,7 +11,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void HeaderFooterImageExportMatchesApprovedBaselines() {
             using ExcelBaselineFixture fixture = CreateHeaderFooterImagesBaselineWorkbook();
-            ExcelWorksheetImageExportOptions options = CreateHeaderFooterImagesBaselineOptions();
+            ExcelImageExportOptions options = CreateHeaderFooterImagesBaselineOptions();
 
             OfficeImageExportResult png = fixture.Sheet.ExportImages(OfficeImageExportFormat.Png, options)[1];
             OfficeImageExportResult svg = fixture.Sheet.ExportImages(OfficeImageExportFormat.Svg, options)[1];
@@ -45,7 +45,7 @@ namespace OfficeIMO.Tests {
             string svgPath = Path.Combine(BaselineDirectory, HeaderFooterImagesBaselineName + ".svg");
             if (UpdateBaselines) {
                 using ExcelBaselineFixture fixture = CreateHeaderFooterImagesBaselineWorkbook();
-                ExcelWorksheetImageExportOptions options = CreateHeaderFooterImagesBaselineOptions();
+                ExcelImageExportOptions options = CreateHeaderFooterImagesBaselineOptions();
                 AssertRasterBaseline(HeaderFooterImagesBaselineName + ".png", fixture.Sheet.ExportImages(OfficeImageExportFormat.Png, options)[1].Bytes);
                 AssertTextBaseline(HeaderFooterImagesBaselineName + ".svg", Encoding.UTF8.GetString(fixture.Sheet.ExportImages(OfficeImageExportFormat.Svg, options)[1].Bytes));
             }
@@ -128,8 +128,8 @@ namespace OfficeIMO.Tests {
             sheet.CellAlign(row, 4, ExcelHorizontalAlignment.Right);
         }
 
-        private static ExcelWorksheetImageExportOptions CreateHeaderFooterImagesBaselineOptions() =>
-            new ExcelWorksheetImageExportOptions {
+        private static ExcelImageExportOptions CreateHeaderFooterImagesBaselineOptions() =>
+            new ExcelImageExportOptions {
                 Fonts = OfficeIMO.TestAssets.PortableVisualFontAssets.CreateSpreadsheetFonts(),
                 Range = "A1:D4",
                 SplitByManualPageBreaks = true,

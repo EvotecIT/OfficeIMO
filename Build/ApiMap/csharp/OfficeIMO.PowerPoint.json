@@ -8892,8 +8892,8 @@
       "category": "options",
       "notes": "One image export options type per format; page selection becomes a property.",
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The image export consolidation shares ToImage signatures with the current image builders. It is applied together with builder removal in Phase B; the existing rendering kernels and format-specific authoring geometry remain available for that migration."
+      "applied": "phase-b-applied",
+      "note": "Selection, content, rendering and save policy settings are merged into one per-format image options type. Clone snapshots sheet/slide selections; no compatibility subclass remains."
     },
     {
       "old": "OfficeIMO.PowerPoint.Pdf.PowerPointPdfConverterExtensions.ToPdfDocument(PowerPointPresentation presentation, PowerPointToPdfOptions options = null, CancellationToken cancellationToken = null)",
@@ -9865,7 +9865,7 @@
     },
     {
       "old": "PowerPointDocumentImageExportBuilder.ForSlides/ForSlideRange and content filters",
-      "new": "PowerPointDocumentImageExportOptions.SlideNumbers/IncludeHiddenSlides and inherited content/size/font options",
+      "new": "PowerPointImageExportOptions.SlideNumbers/IncludeHiddenSlides and inherited content/size/font options",
       "action": "merge",
       "applied": "phase-b-applied",
       "phase": "B",

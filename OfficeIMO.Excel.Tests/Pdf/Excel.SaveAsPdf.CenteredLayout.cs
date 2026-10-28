@@ -27,11 +27,11 @@ public partial class Excel {
         sheet.SetPrintOptions(horizontalCentered: false, verticalCentered: false);
         byte[] originalPdf = workbook.ToPdf().ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         using var original = PdfPigDocument.Open(originalPdf);
-        var pngOriginal = sheet.ExportImages(OfficeImageExportFormat.Png, new ExcelWorksheetImageExportOptions { ShowGridlines = false, SplitByManualPageBreaks = true })[0];
+        var pngOriginal = sheet.ExportImages(OfficeImageExportFormat.Png, new ExcelImageExportOptions { ShowGridlines = false, SplitByManualPageBreaks = true })[0];
         sheet.SetPrintOptions(horizontalCentered: horizontal, verticalCentered: vertical);
         byte[] centeredPdf = workbook.ToPdf().ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         using var centered = PdfPigDocument.Open(centeredPdf);
-        var pngCentered = sheet.ExportImages(OfficeImageExportFormat.Png, new ExcelWorksheetImageExportOptions { ShowGridlines = false, SplitByManualPageBreaks = true })[0];
+        var pngCentered = sheet.ExportImages(OfficeImageExportFormat.Png, new ExcelImageExportOptions { ShowGridlines = false, SplitByManualPageBreaks = true })[0];
         var before = original.GetPage(1);
         var after = centered.GetPage(1);
         // Measure the uncentered cell fills independently of the centering code.

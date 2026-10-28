@@ -19,7 +19,7 @@ using PowerPointDocument presentation =
     PowerPointDocument.Load("Quarterly-Review.pptx");
 
 presentation.SaveAsImages("Quarterly-Review previews",
-    new PowerPointDocumentImageExportOptions { Format = OfficeImageExportFormat.Png });
+    new PowerPointImageExportOptions { Format = OfficeImageExportFormat.Png });
 ```
 
 Pair preview generation with `Preflight()` when text fit, shape bounds, image relationships, and package quality matter:

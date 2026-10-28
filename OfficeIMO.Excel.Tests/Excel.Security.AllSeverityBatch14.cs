@@ -55,13 +55,13 @@ public sealed class ExcelAllSeverityBatch14SecurityTests {
 
             string defaultSvg = Encoding.UTF8.GetString(Assert.Single(sheet.ExportImages(
                 OfficeImageExportFormat.Svg,
-                new ExcelWorksheetImageExportOptions {
+                new ExcelImageExportOptions {
                     Range = "A1:AZ2",
                     SplitByManualPageBreaks = true
                 })).Bytes);
             string optedInSvg = Encoding.UTF8.GetString(Assert.Single(sheet.ExportImages(
                 OfficeImageExportFormat.Svg,
-                new ExcelWorksheetImageExportOptions {
+                new ExcelImageExportOptions {
                     Range = "A1:AZ2",
                     SplitByManualPageBreaks = true,
                     IncludeWorkbookPathInHeaderFooter = true

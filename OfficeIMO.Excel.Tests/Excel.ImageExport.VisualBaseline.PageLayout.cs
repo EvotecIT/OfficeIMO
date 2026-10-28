@@ -10,7 +10,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void PageLayoutImageExportMatchesApprovedBaselines() {
             using ExcelBaselineFixture fixture = CreatePageLayoutBaselineWorkbook();
-            ExcelWorksheetImageExportOptions options = CreatePageLayoutBaselineOptions();
+            ExcelImageExportOptions options = CreatePageLayoutBaselineOptions();
 
             IReadOnlyList<OfficeImageExportResult> pngResults = fixture.Sheet.ExportImages(OfficeImageExportFormat.Png, options);
             IReadOnlyList<OfficeImageExportResult> svgResults = fixture.Sheet.ExportImages(OfficeImageExportFormat.Svg, options);
@@ -60,7 +60,7 @@ namespace OfficeIMO.Tests {
             string svgPath = Path.Combine(BaselineDirectory, PageLayoutBaselineName + ".svg");
             if (UpdateBaselines) {
                 using ExcelBaselineFixture fixture = CreatePageLayoutBaselineWorkbook();
-                ExcelWorksheetImageExportOptions options = CreatePageLayoutBaselineOptions();
+                ExcelImageExportOptions options = CreatePageLayoutBaselineOptions();
                 AssertRasterBaseline(PageLayoutBaselineName + ".png", fixture.Sheet.ExportImages(OfficeImageExportFormat.Png, options)[1].Bytes);
                 AssertTextBaseline(PageLayoutBaselineName + ".svg", System.Text.Encoding.UTF8.GetString(fixture.Sheet.ExportImages(OfficeImageExportFormat.Svg, options)[1].Bytes));
             }
@@ -147,8 +147,8 @@ namespace OfficeIMO.Tests {
             sheet.CellAlign(row, 4, ExcelHorizontalAlignment.Right);
         }
 
-        private static ExcelWorksheetImageExportOptions CreatePageLayoutBaselineOptions() =>
-            new ExcelWorksheetImageExportOptions {
+        private static ExcelImageExportOptions CreatePageLayoutBaselineOptions() =>
+            new ExcelImageExportOptions {
                 Fonts = OfficeIMO.TestAssets.PortableVisualFontAssets.CreateSpreadsheetFonts(),
                 Range = "A1:D8",
                 SplitByManualPageBreaks = true,

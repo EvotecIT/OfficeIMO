@@ -43,7 +43,7 @@ namespace OfficeIMO.Excel {
             double bandHeight,
             OfficeTextZoneLayout zones,
             double scale,
-            ExcelWorksheetImageExportOptions options,
+            ExcelImageExportOptions options,
             List<OfficeImageExportDiagnostic> diagnostics,
             string diagnosticSource,
             CancellationToken cancellationToken) {
@@ -61,7 +61,7 @@ namespace OfficeIMO.Excel {
             double bandHeight,
             double scale,
             OfficeTextAlignment alignment,
-            ExcelWorksheetImageExportOptions options,
+            ExcelImageExportOptions options,
             List<OfficeImageExportDiagnostic> diagnostics,
             string diagnosticSource,
             CancellationToken cancellationToken) {

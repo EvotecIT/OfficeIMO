@@ -1,0 +1,39 @@
+{
+  "package": "OfficeIMO.Excel.Html",
+  "summary": "Image adapter consumers use the single options type from their rendering package.",
+  "changes": [
+    {
+      "old": "OfficeIMO.Excel.Html.ExcelHtmlSaveOptions.VisualOptions : ExcelWorkbookImageExportOptions",
+      "new": "OfficeIMO.Excel.Html.ExcelHtmlSaveOptions.VisualOptions : ExcelImageExportOptions",
+      "file": "OfficeIMO.Excel.Html/ExcelHtmlSaveOptions.cs",
+      "kind": "property",
+      "action": "merge",
+      "category": "options",
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "reason": "The rendering package now exposes one image options type. The adapter preserves source conversion, selection, diagnostic attachment and cancellation behavior."
+    },
+    {
+      "old": "OfficeIMO.Excel.Html.ExcelHtmlCapabilityGalleryOptions.VisualOptions : ExcelWorkbookImageExportOptions",
+      "new": "OfficeIMO.Excel.Html.ExcelHtmlCapabilityGalleryOptions.VisualOptions : ExcelImageExportOptions",
+      "file": "OfficeIMO.Excel.Html/ExcelHtmlCapabilityGalleryOptions.cs",
+      "kind": "property",
+      "action": "merge",
+      "category": "options",
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "reason": "The rendering package now exposes one image options type. The adapter preserves source conversion, selection, diagnostic attachment and cancellation behavior."
+    }
+  ],
+  "extraChanges": [
+    {
+      "old": "Partial workbook-to-worksheet visual options copy",
+      "new": "ExcelImageExportOptions.Clone()",
+      "action": "remove",
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "file": "OfficeIMO.Excel.Html/ExcelHtmlConverterExtensions.cs",
+      "reason": "Use the canonical options snapshot after the options-type merge. The old manual field list dropped font, DPI and safety-limit settings."
+    }
+  ]
+}

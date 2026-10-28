@@ -783,7 +783,7 @@ byte[] jpeg = slide.ToImage(new PowerPointImageExportOptions {
 });
 
 OfficeIMO.OfficeConversionReport report = presentation.SaveAsImages("slide-previews",
-    new PowerPointDocumentImageExportOptions {
+    new PowerPointImageExportOptions {
         SlideNumbers = new[] { 1, 2, 3 },
         IncludeCharts = true,
         IncludeTables = true,

@@ -15,7 +15,7 @@ public partial class PowerPointImageExportTests {
         using var presentation = PowerPointDocument.Create(new MemoryStream());
         presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(80),OfficeIMO.OfficeLength.Points(60));
         for (int i = 0; i < 3; i++) presentation.AddSlide();
-        var options = new PowerPointDocumentImageExportOptions { SlideNumbers = new[] { 1, 3 } };
+        var options = new PowerPointImageExportOptions { SlideNumbers = new[] { 1, 3 } };
         var results = new List<OfficeImageExportResult>();
         if (streaming) presentation.ExportImages(OfficeImageExportFormat.Svg, results.Add, options);
         else results.AddRange(presentation.ExportImages(OfficeImageExportFormat.Svg, options));

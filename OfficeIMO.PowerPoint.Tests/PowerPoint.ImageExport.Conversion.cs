@@ -69,7 +69,7 @@ public sealed class PowerPointImageConversionTests {
         document.AddSlide().BackgroundColor = "112233";
         document.AddSlide().Hidden = true;
         string folder = Path.Combine(Path.GetTempPath(), "OfficeIMO-SlideBatch-" + Guid.NewGuid().ToString("N"));
-        var options = new PowerPointDocumentImageExportOptions {
+        var options = new PowerPointImageExportOptions {
             SlideNumbers = new[] { 2 }, IncludeHiddenSlides = true, Format = OfficeImageExportFormat.Webp
         };
         try {

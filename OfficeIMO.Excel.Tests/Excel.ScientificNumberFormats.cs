@@ -48,6 +48,6 @@ public partial class ExcelImageExportTests {
         ExcelVisualCell text = Assert.Single(snapshot.Cells, cell => cell.Row == 3);
         Assert.Equal("-1250", text.Text);
         Assert.Equal("0000FF", text.Style.FontColorHex);
-        Assert.Contains(">1.5E00</text>", range.ToSvg(), StringComparison.Ordinal);
+        Assert.Contains(">1.5E00</text>", System.Text.Encoding.UTF8.GetString(range.ExportImage(OfficeIMO.Drawing.OfficeImageExportFormat.Svg).Bytes), StringComparison.Ordinal);
     }
 }

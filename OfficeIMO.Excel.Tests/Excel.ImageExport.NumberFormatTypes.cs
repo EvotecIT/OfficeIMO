@@ -25,7 +25,7 @@ public partial class ExcelImageExportTests {
         Assert.Equal(ExcelVisualCellValueKind.Text, cell.ValueKind);
         Assert.Equal("0000FF", cell.Style.FontColorHex);
         if (formula) Assert.IsType<string>(reopened.Sheets[0].CellAt(1, 1).GetValue().Value);
-        Assert.Contains(">-5</text>", range.ToSvg(), StringComparison.Ordinal);
+        Assert.Contains(">-5</text>", System.Text.Encoding.UTF8.GetString(range.ExportImage(OfficeIMO.Drawing.OfficeImageExportFormat.Svg).Bytes), StringComparison.Ordinal);
     }
 
     [Theory]
@@ -45,7 +45,7 @@ public partial class ExcelImageExportTests {
             Assert.Equal(expected, cell.Text);
             Assert.Equal(ExcelVisualCellValueKind.Number, cell.ValueKind);
         });
-        Assert.Contains(">" + expected + "</text>", range.ToSvg(), StringComparison.Ordinal);
+        Assert.Contains(">" + expected + "</text>", System.Text.Encoding.UTF8.GetString(range.ExportImage(OfficeIMO.Drawing.OfficeImageExportFormat.Svg).Bytes), StringComparison.Ordinal);
     }
 
     [Theory]
@@ -60,7 +60,7 @@ public partial class ExcelImageExportTests {
         if (merged) sheet.Range("A1:B1").Merge();
         ExcelRange range = sheet.Range(merged ? "B1:B1" : "A1:A1");
         Assert.Equal(color, Assert.Single(range.CreateVisualSnapshot().Cells, c => c.Column == 1).Style.FontColorHex);
-        Assert.Contains("fill=\"#" + color + "\"", range.ToSvg(), StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("fill=\"#" + color + "\"", System.Text.Encoding.UTF8.GetString(range.ExportImage(OfficeIMO.Drawing.OfficeImageExportFormat.Svg).Bytes), StringComparison.OrdinalIgnoreCase);
         Assert.Equal("0000FF", sheet.CellAt(1, 1).GetStyle().FontColorHex);
     }
 

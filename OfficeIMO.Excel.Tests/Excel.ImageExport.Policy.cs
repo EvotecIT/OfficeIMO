@@ -103,8 +103,8 @@ namespace OfficeIMO.Tests {
                 new ExcelImageExportOptions {
                     ShowGridlines = false,
                     ShowCommentBodies = true,
-                    DefaultColumnWidthPixels = 92D,
-                    DefaultRowHeightPixels = 28D,
+                    DefaultColumnWidth = OfficeIMO.OfficeLength.Pixels(92D),
+                    DefaultRowHeight = OfficeIMO.OfficeLength.Pixels(28D),
                     Policy = new OfficeImageExportPolicy { RequireNoOmissions = true }
                 });
 

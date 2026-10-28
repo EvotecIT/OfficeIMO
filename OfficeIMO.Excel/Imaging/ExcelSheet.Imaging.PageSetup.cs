@@ -9,7 +9,7 @@ namespace OfficeIMO.Excel {
             OfficeImageExportFormat format,
             OfficeImageExportFormat rasterPlanningFormat,
             OfficeImageExportResult content,
-            ExcelWorksheetImageExportOptions options,
+            ExcelImageExportOptions options,
             ref ExcelRasterRenderState rasterState,
             System.Threading.CancellationToken cancellationToken,
             long? maximumSvgUtf8Bytes) {

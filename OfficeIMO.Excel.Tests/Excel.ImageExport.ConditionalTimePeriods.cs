@@ -32,7 +32,7 @@ namespace OfficeIMO.Tests {
             ExcelRange range = sheet.Range("A1:B3");
             ExcelRangeVisualInfo snapshot = range.CreateVisualSnapshot(options);
             OfficeImageExportResult png = range.ExportImage(OfficeImageExportFormat.Png, options);
-            string svg = range.ToSvg(options);
+            string svg = System.Text.Encoding.UTF8.GetString(range.ExportImage(OfficeIMO.Drawing.OfficeImageExportFormat.Svg, options).Bytes);
 
             Assert.Equal("FFC6EFCE", snapshot.Cells.Single(cell => cell.Row == 1 && cell.Column == 1).Style.FillColorArgb);
             Assert.Null(snapshot.Cells.Single(cell => cell.Row == 2 && cell.Column == 1).Style.FillColorArgb);

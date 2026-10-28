@@ -406,6 +406,16 @@
         "OfficeIMO.Word.Pdf/OfficeIMO.Word.Pdf.csproj",
         "PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Word/ExportOfficeWordImageCommand.cs"
       ]
+    },
+    {
+      "category": "consumers",
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "files": [
+        "OfficeIMO.ChartForgeX.Examples/OfficeIMO.ChartForgeX.Examples.csproj",
+        "OfficeIMO.ChartForgeX.Examples/DeliveryEvidence.cs"
+      ],
+      "note": "The saved-document evidence example references Word.Pdf directly for Word page images after the package move. PDF evidence uses public path loading with document disposal."
     }
   ],
   "applicationStatus": "Phase A applied and validated on the supported macOS targets. Phase B and Tier 2 entries retain their status; Windows .NET Framework validation remains pending.",

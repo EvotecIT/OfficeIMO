@@ -70,7 +70,7 @@ public partial class ExcelDocument {
                 foreach (ExcelSheet sheet in document.Sheets) {
                     OfficeImageExportResult image = sheet.ExportImage(
                         OfficeImageExportFormat.Png,
-                        new ExcelWorksheetImageExportOptions {
+                        new ExcelImageExportOptions {
                             BackgroundColor = OfficeColor.White,
                             ConditionalFormattingDate = new DateTime(2000, 1, 1),
                             HeaderFooterDateTime = new DateTime(2000, 1, 1),

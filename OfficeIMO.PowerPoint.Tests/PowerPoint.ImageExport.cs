@@ -17,7 +17,7 @@ namespace OfficeIMO.Tests {
             using PowerPointDocument presentation = PowerPointDocument.Create(stream);
             presentation.AddSlide().AddTextBox("First slide");
             presentation.AddSlide().AddTextBox("Second slide");
-            var baselineOptions = new PowerPointDocumentImageExportOptions {
+            var baselineOptions = new PowerPointImageExportOptions {
                 MaximumDegreeOfParallelism = 1
             };
             IReadOnlyList<OfficeImageExportResult> baseline = presentation.ExportImages(
@@ -29,7 +29,7 @@ namespace OfficeIMO.Tests {
             OfficeImageExportBatchLimitException exception = Assert.Throws<OfficeImageExportBatchLimitException>(() =>
                 presentation.ExportImages(
                     OfficeImageExportFormat.Png,
-                    new PowerPointDocumentImageExportOptions {
+                    new PowerPointImageExportOptions {
                         MaximumDegreeOfParallelism = 1,
                         MaximumTotalEncodedBytes = maximumBytes
                     }));
@@ -173,7 +173,7 @@ namespace OfficeIMO.Tests {
             string folder = Path.Combine(Path.GetTempPath(), "officeimo-ppt-images-" + Guid.NewGuid().ToString("N"));
             try {
                 OfficeConversionReport visibleResults = presentation.SaveAsImages(folder,
-                    new PowerPointDocumentImageExportOptions { Format = OfficeImageExportFormat.Svg });
+                    new PowerPointImageExportOptions { Format = OfficeImageExportFormat.Svg });
 
                 Assert.Equal(1, visibleResults.ItemsWritten);
                 string visiblePath = Path.Combine(folder, "Slide 1.svg");
@@ -185,7 +185,7 @@ namespace OfficeIMO.Tests {
 
                 string allFolder = Path.Combine(folder, "all");
                 OfficeConversionReport allResults = presentation.SaveAsImages(allFolder,
-                    new PowerPointDocumentImageExportOptions { Format = OfficeImageExportFormat.Svg, IncludeHiddenSlides = true });
+                    new PowerPointImageExportOptions { Format = OfficeImageExportFormat.Svg, IncludeHiddenSlides = true });
 
                 Assert.Equal(2, allResults.ItemsWritten);
                 string hiddenPath = Path.Combine(allFolder, "Slide 2.svg");
@@ -220,7 +220,7 @@ namespace OfficeIMO.Tests {
             string folder = Path.Combine(Path.GetTempPath(), "officeimo-ppt-filtered-images-" + Guid.NewGuid().ToString("N"));
             try {
                 OfficeConversionReport selectedResults = presentation.SaveAsImages(folder,
-                    new PowerPointDocumentImageExportOptions { Format = OfficeImageExportFormat.Svg, SlideNumbers = new[] { 3, 1, 3 } });
+                    new PowerPointImageExportOptions { Format = OfficeImageExportFormat.Svg, SlideNumbers = new[] { 3, 1, 3 } });
 
                 Assert.Equal(2, selectedResults.ItemsWritten);
                 Assert.True(File.Exists(Path.Combine(folder, "Slide 1.svg")));
@@ -231,7 +231,7 @@ namespace OfficeIMO.Tests {
 
                 string rangeFolder = Path.Combine(folder, "range");
                 OfficeConversionReport rangeResults = presentation.SaveAsImages(rangeFolder,
-                    new PowerPointDocumentImageExportOptions { Format = OfficeImageExportFormat.Svg, SlideNumbers = new[] { 2, 3 }, IncludeHiddenSlides = true });
+                    new PowerPointImageExportOptions { Format = OfficeImageExportFormat.Svg, SlideNumbers = new[] { 2, 3 }, IncludeHiddenSlides = true });
 
                 Assert.Equal(2, rangeResults.ItemsWritten);
                 Assert.Contains("#445566", File.ReadAllText(Path.Combine(rangeFolder, "Slide 2.svg")), StringComparison.OrdinalIgnoreCase);
@@ -655,7 +655,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal(1.25D, options.Scale);
             Assert.Equal(OfficeColor.AliceBlue, options.BackgroundColor);
 
-            PowerPointDocumentImageExportOptions presentationOptions = new PowerPointDocumentImageExportOptions {
+            PowerPointImageExportOptions presentationOptions = new PowerPointImageExportOptions {
                 Scale = 1.5D,
                 BackgroundColor = OfficeColor.White,
                 IncludeHiddenSlides = true,
@@ -673,9 +673,9 @@ namespace OfficeIMO.Tests {
             Assert.Throws<ArgumentOutOfRangeException>(() =>
                 presentation.AddSlide().ExportImage(OfficeImageExportFormat.Png, new PowerPointImageExportOptions { Scale = 0D }));
             Assert.Throws<ArgumentOutOfRangeException>(() =>
-                presentation.ExportImages(OfficeImageExportFormat.Png, new PowerPointDocumentImageExportOptions { SlideNumbers = new[] { 0 } }));
+                presentation.ExportImages(OfficeImageExportFormat.Png, new PowerPointImageExportOptions { SlideNumbers = new[] { 0 } }));
             Assert.Throws<ArgumentOutOfRangeException>(() =>
-                presentation.ExportImages(OfficeImageExportFormat.Png, new PowerPointDocumentImageExportOptions { SlideNumbers = new[] { 2 } }));
+                presentation.ExportImages(OfficeImageExportFormat.Png, new PowerPointImageExportOptions { SlideNumbers = new[] { 2 } }));
         }
 
         [Fact]
@@ -696,7 +696,7 @@ namespace OfficeIMO.Tests {
                 }), 150, 44, 120, 80);
 
             OfficeImageExportResult result = Assert.Single(presentation.ExportImages(
-                OfficeImageExportFormat.Svg, new PowerPointDocumentImageExportOptions {
+                OfficeImageExportFormat.Svg, new PowerPointImageExportOptions {
                     IncludeSlideBackground = false,
                     IncludePictures = false,
                     IncludeAutoShapes = false,
@@ -710,7 +710,7 @@ namespace OfficeIMO.Tests {
             Assert.DoesNotContain("ABCDEF", svg, StringComparison.OrdinalIgnoreCase);
             // A blank render proves filtering even when SVG contains glyph outlines rather than text.
             OfficeImageExportResult png = Assert.Single(presentation.ExportImages(
-                OfficeImageExportFormat.Png, new PowerPointDocumentImageExportOptions {
+                OfficeImageExportFormat.Png, new PowerPointImageExportOptions {
                     IncludeSlideBackground = false, IncludePictures = false, IncludeAutoShapes = false,
                     IncludeTextBoxes = false, IncludeTables = false, IncludeCharts = false,
                     BackgroundColor = OfficeColor.White

@@ -48,8 +48,8 @@ public sealed class HtmlEditableLayoutVisualEvidenceTests {
         using ExcelDocument excel = ExcelDocument.Load(
             new MemoryStream(xlsx),
             new ExcelLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly });
-        byte[] excelPng = Assert.Single(excel.Sheets).ToPng(
-            new ExcelWorksheetImageExportOptions { Range = "A1:E16" });
+        byte[] excelPng = Assert.Single(excel.Sheets).ToImage(
+            new ExcelImageExportOptions { Range = "A1:E16" });
 
         HtmlToPowerPointResult powerPointResult = source.ToPowerPointDocumentResult(
             new HtmlToPowerPointOptions { Mode = HtmlImportMode.Generic });
@@ -63,7 +63,7 @@ public sealed class HtmlEditableLayoutVisualEvidenceTests {
         PowerPointTextBox gridBox = Assert.Single(powerPointSlide.TextBoxes, box => box.Text == "Grid content");
         Assert.False(Overlaps(ordinaryFlow, gridBox));
         Assert.False(Overlaps(positionedBox, gridBox));
-        byte[] powerPointPng = powerPointSlide.ToPng();
+        byte[] powerPointPng = powerPointSlide.ToImage();
 
         WriteEvidenceWhenRequested("editable-layout.docx", docx);
         WriteEvidenceWhenRequested("editable-layout.rtf", rtf);

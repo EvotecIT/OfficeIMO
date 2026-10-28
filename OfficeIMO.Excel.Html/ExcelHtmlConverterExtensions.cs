@@ -95,7 +95,7 @@ public static partial class ExcelHtmlConverterExtensions {
         OfficeHtmlSemanticEnvelope.AppendRootAttributes(body, "excel", options.Profile.ToString());
         body.Append('>');
         body.Append("<h1>").Append(OfficeHtmlText.Escape(GetTitle(options, "Excel Visual Review"))).Append("</h1>");
-        ExcelWorkbookImageExportOptions visualOptions = ResolveWorkbookVisualOptions(options.VisualOptions);
+        ExcelImageExportOptions visualOptions = ResolveWorkbookVisualOptions(options.VisualOptions);
         Dictionary<string, ExcelSheet> sheetsByName = workbook.Sheets.ToDictionary(sheet => sheet.Name, StringComparer.OrdinalIgnoreCase);
         var reportedTableSheets = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         int svgIndex = 0;
@@ -119,7 +119,7 @@ public static partial class ExcelHtmlConverterExtensions {
         OfficeHtmlSemanticEnvelope.AppendRootAttributes(body, "excel", options.Profile.ToString());
         body.Append('>');
         body.Append("<h1>").Append(OfficeHtmlText.Escape(GetTitle(options, sheet.Name))).Append("</h1>");
-        AppendSvgResult(body, sheet.ExportImage(OfficeImageExportFormat.Svg, ToWorksheetOptions(ResolveWorkbookVisualOptions(options.VisualOptions))), "officeimo-sheet-svg-1-", diagnostics);
+        AppendSvgResult(body, sheet.ExportImage(OfficeImageExportFormat.Svg, ResolveWorkbookVisualOptions(options.VisualOptions).Clone()), "officeimo-sheet-svg-1-", diagnostics);
         AppendVisualCommentInventory(body, sheet.GetComments());
         if (options.IncludePivotInventory) AppendPivotInventory(body, sheet.GetPivotTables(), diagnostics);
         body.Append("</main>");
@@ -772,36 +772,14 @@ public static partial class ExcelHtmlConverterExtensions {
         return diagnostic.Severity.ToString() + "|" + diagnostic.Code + "|" + diagnostic.Message;
     }
 
-    private static ExcelWorkbookImageExportOptions ResolveWorkbookVisualOptions(ExcelWorkbookImageExportOptions? workbookOptions) {
+    private static ExcelImageExportOptions ResolveWorkbookVisualOptions(ExcelImageExportOptions? workbookOptions) {
         if (workbookOptions == null) {
-            return new ExcelWorkbookImageExportOptions {
+            return new ExcelImageExportOptions {
                 ShowCommentBodies = true
             };
         }
 
         return workbookOptions;
-    }
-
-    private static ExcelWorksheetImageExportOptions ToWorksheetOptions(ExcelWorkbookImageExportOptions workbookOptions) {
-        return new ExcelWorksheetImageExportOptions {
-            Scale = workbookOptions.Scale,
-            BackgroundColor = workbookOptions.BackgroundColor,
-            GridlineColor = workbookOptions.GridlineColor,
-            ShowGridlines = workbookOptions.ShowGridlines,
-            IncludeHidden = workbookOptions.IncludeHidden,
-            IncludeImages = workbookOptions.IncludeImages,
-            IncludeCharts = workbookOptions.IncludeCharts,
-            IncludeDrawingObjects = workbookOptions.IncludeDrawingObjects,
-            IncludeConditionalFormatting = workbookOptions.IncludeConditionalFormatting,
-            ConditionalFormattingDate = workbookOptions.ConditionalFormattingDate,
-            ShowHyperlinkHints = workbookOptions.ShowHyperlinkHints,
-            ShowCommentBodies = workbookOptions.ShowCommentBodies,
-            DefaultColumnWidthPixels = workbookOptions.DefaultColumnWidthPixels,
-            DefaultRowHeightPixels = workbookOptions.DefaultRowHeightPixels,
-            HeaderFooterDateTime = workbookOptions.HeaderFooterDateTime,
-            UsePrintArea = workbookOptions.UseWorksheetPrintAreas,
-            SplitByManualPageBreaks = workbookOptions.SplitWorksheetsByManualPageBreaks
-        };
     }
 
     private static string Wrap(string body, ExcelHtmlSaveOptions options, string title) {

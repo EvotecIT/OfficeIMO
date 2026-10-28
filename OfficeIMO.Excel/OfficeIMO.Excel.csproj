@@ -93,6 +93,7 @@
 
     <ItemGroup>
         <InternalsVisibleTo Include="OfficeIMO.Excel.Tests" />
+        <InternalsVisibleTo Include="PSWriteOffice" />
         <InternalsVisibleTo Include="OfficeIMO.LegacyImport.Tests" />
         <InternalsVisibleTo Include="OfficeIMO.Excel.IWork" />
         <InternalsVisibleTo Include="OfficeIMO.Excel.Benchmarks" />

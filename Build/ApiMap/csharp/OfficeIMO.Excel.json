@@ -4510,11 +4510,11 @@
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The image export consolidation shares ToImage signatures with the current image builders. It is applied together with builder removal in Phase B; the existing rendering kernels and format-specific authoring geometry remain available for that migration."
+      "applied": "phase-b-applied",
+      "note": "Image builders are removed; one ExcelImageExportOptions controls charts, ranges, worksheets and workbooks. Default rendered dimensions use OfficeLength. Shared internal operations preserve print-area/page-break batches, budgets, progress, cancellation and conflicts."
     },
     {
       "old": "OfficeIMO.Excel.ExcelImageExportOptions.DefaultRowHeightPixels",
@@ -4526,11 +4526,11 @@
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The image export consolidation shares ToImage signatures with the current image builders. It is applied together with builder removal in Phase B; the existing rendering kernels and format-specific authoring geometry remain available for that migration."
+      "applied": "phase-b-applied",
+      "note": "Image builders are removed; one ExcelImageExportOptions controls charts, ranges, worksheets and workbooks. Default rendered dimensions use OfficeLength. Shared internal operations preserve print-area/page-break batches, budgets, progress, cancellation and conflicts."
     },
     {
       "old": "OfficeIMO.Excel.ExcelSheet+ExcelHeaderFooterImageSnapshot.HeightPoints",
@@ -4791,8 +4791,8 @@
       "category": "options",
       "notes": "One image export options type per format.",
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The image export consolidation shares ToImage signatures with the current image builders. It is applied together with builder removal in Phase B; the existing rendering kernels and format-specific authoring geometry remain available for that migration."
+      "applied": "phase-b-applied",
+      "note": "Selection, content, rendering and save policy settings are merged into one per-format image options type. Clone snapshots sheet/slide selections; no compatibility subclass remains."
     },
     {
       "old": "OfficeIMO.Excel.ExcelWorksheetImageExportOptions",
@@ -4804,8 +4804,8 @@
       "category": "options",
       "notes": "One image export options type per format.",
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The image export consolidation shares ToImage signatures with the current image builders. It is applied together with builder removal in Phase B; the existing rendering kernels and format-specific authoring geometry remain available for that migration."
+      "applied": "phase-b-applied",
+      "note": "Selection, content, rendering and save policy settings are merged into one per-format image options type. Clone snapshots sheet/slide selections; no compatibility subclass remains."
     },
     {
       "old": "OfficeIMO.Excel.Legacy.LegacySpreadsheetImportOptions",
@@ -4857,11 +4857,11 @@
       "category": "authoring",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Image builders are removed; one ExcelImageExportOptions controls charts, ranges, worksheets and workbooks. Default rendered dimensions use OfficeLength. Shared internal operations preserve print-area/page-break batches, budgets, progress, cancellation and conflicts."
     },
     {
       "old": "OfficeIMO.Excel.ExcelDocument.ToImages(ExcelWorkbookImageExportOptions options)",
@@ -4874,11 +4874,11 @@
       "category": "authoring",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The image export consolidation shares ToImage signatures with the current image builders. It is applied together with builder removal in Phase B; the existing rendering kernels and format-specific authoring geometry remain available for that migration."
+      "applied": "phase-b-applied",
+      "note": "Image builders are removed; one ExcelImageExportOptions controls charts, ranges, worksheets and workbooks. Default rendered dimensions use OfficeLength. Shared internal operations preserve print-area/page-break batches, budgets, progress, cancellation and conflicts."
     },
     {
       "old": "OfficeIMO.Excel.ExcelDocument.InspectContentSafety(string filePath, OfficeContentSafetyOptions options = null)",
@@ -5945,6 +5945,42 @@
       "files": [
         "OfficeIMO.Excel/Imaging/ImageExportOperations.cs"
       ]
+    },
+    {
+      "old": "ExcelChart/ExcelRange/ExcelSheet format-named To*/SaveAs* methods and all image-export builders",
+      "new": "ToImage(options[, out report], cancellationToken), ToImageAsync; SaveAsImage(path|stream, options), SaveAsImageAsync",
+      "action": "merge",
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "reason": "Encoding belongs in ExcelImageExportOptions. Byte conversions and unified reports share the internal Core execution kernel; no builder or format-named compatibility wrapper remains.",
+      "file": "OfficeIMO.Excel/Imaging/ExcelRange.Imaging.Conversion.cs"
+    },
+    {
+      "old": "ExcelDocument.SaveAsImages encoding overloads; ExcelSheet.ToImages builder",
+      "new": "ExcelDocument/ExcelSheet.SaveAsImages(folder, ExcelImageExportOptions, cancellationToken) and SaveAsImagesAsync -> OfficeConversionReport",
+      "action": "merge",
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "reason": "Preserve workbook selection, multi-area print areas and manual page breaks with payload-releasing report saves. Internal SaveImageResults and PSWriteOffice friend access preserve the existing cmdlet PassThru contract.",
+      "file": "OfficeIMO.Excel/Imaging/ExcelSheet.Imaging.BatchConversion.cs"
+    },
+    {
+      "old": "ExcelWorkbookImageExportOptions.UseWorksheetPrintAreas/SplitWorksheetsByManualPageBreaks and worksheet/workbook Clone methods",
+      "new": "ExcelImageExportOptions.UsePrintArea/SplitByManualPageBreaks/Clone",
+      "action": "merge",
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "reason": "One per-format options type snapshots all selection and rendering settings; sheet selection is copied defensively. The workbook path passes the same options to selected sheets.",
+      "file": "OfficeIMO.Excel/Imaging/ExcelImageExportOptions.cs"
+    },
+    {
+      "old": "SheetComposer dictionary-row tests requiring removed fluent-builder guidance text",
+      "new": "Keep projected resource-limit exceptions and required row/column/cell counts",
+      "action": "remove",
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "reason": "The executable checks exposed stale incidental guidance assertions after the report-builder migration. Resource-limit behavior and hard Excel boundaries remain covered.",
+      "file": "OfficeIMO.Excel.Tests/Excel.SheetComposer.DictionaryRows.cs"
     }
   ],
   "applicationStatus": "Phase A applied and validated on the supported macOS targets. Phase B and Tier 2 entries retain their status; Windows .NET Framework validation remains pending.",

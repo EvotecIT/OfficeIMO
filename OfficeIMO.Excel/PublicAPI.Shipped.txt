@@ -333,26 +333,10 @@ OfficeIMO.Excel.ExcelChart.Name.get -> string!
 OfficeIMO.Excel.ExcelChart.Name.set -> void
 OfficeIMO.Excel.ExcelChart.PivotTableName.get -> string?
 OfficeIMO.Excel.ExcelChart.RadialLayout.get -> OfficeIMO.Drawing.OfficeChartRadialLayout!
-OfficeIMO.Excel.ExcelChart.SaveAsJpeg(System.IO.Stream! stream, OfficeIMO.Excel.ExcelImageExportOptions? options = null) -> OfficeIMO.Drawing.OfficeImageExportResult!
-OfficeIMO.Excel.ExcelChart.SaveAsJpeg(string! path, OfficeIMO.Excel.ExcelImageExportOptions? options = null) -> OfficeIMO.Drawing.OfficeImageExportResult!
-OfficeIMO.Excel.ExcelChart.SaveAsJpegAsync(System.IO.Stream! stream, OfficeIMO.Excel.ExcelImageExportOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<OfficeIMO.Drawing.OfficeImageExportResult!>!
-OfficeIMO.Excel.ExcelChart.SaveAsJpegAsync(string! path, OfficeIMO.Excel.ExcelImageExportOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<OfficeIMO.Drawing.OfficeImageExportResult!>!
-OfficeIMO.Excel.ExcelChart.SaveAsPng(System.IO.Stream! stream, OfficeIMO.Excel.ExcelImageExportOptions? options = null) -> OfficeIMO.Drawing.OfficeImageExportResult!
-OfficeIMO.Excel.ExcelChart.SaveAsPng(string! path, OfficeIMO.Excel.ExcelImageExportOptions? options = null) -> OfficeIMO.Drawing.OfficeImageExportResult!
-OfficeIMO.Excel.ExcelChart.SaveAsPngAsync(System.IO.Stream! stream, OfficeIMO.Excel.ExcelImageExportOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<OfficeIMO.Drawing.OfficeImageExportResult!>!
-OfficeIMO.Excel.ExcelChart.SaveAsPngAsync(string! path, OfficeIMO.Excel.ExcelImageExportOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<OfficeIMO.Drawing.OfficeImageExportResult!>!
-OfficeIMO.Excel.ExcelChart.SaveAsSvg(System.IO.Stream! stream, OfficeIMO.Excel.ExcelImageExportOptions? options = null) -> OfficeIMO.Drawing.OfficeImageExportResult!
-OfficeIMO.Excel.ExcelChart.SaveAsSvg(string! path, OfficeIMO.Excel.ExcelImageExportOptions? options = null) -> OfficeIMO.Drawing.OfficeImageExportResult!
-OfficeIMO.Excel.ExcelChart.SaveAsSvgAsync(System.IO.Stream! stream, OfficeIMO.Excel.ExcelImageExportOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<OfficeIMO.Drawing.OfficeImageExportResult!>!
-OfficeIMO.Excel.ExcelChart.SaveAsSvgAsync(string! path, OfficeIMO.Excel.ExcelImageExportOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<OfficeIMO.Drawing.OfficeImageExportResult!>!
-OfficeIMO.Excel.ExcelChart.SaveAsTiff(System.IO.Stream! stream, OfficeIMO.Excel.ExcelImageExportOptions? options = null) -> OfficeIMO.Drawing.OfficeImageExportResult!
-OfficeIMO.Excel.ExcelChart.SaveAsTiff(string! path, OfficeIMO.Excel.ExcelImageExportOptions? options = null) -> OfficeIMO.Drawing.OfficeImageExportResult!
-OfficeIMO.Excel.ExcelChart.SaveAsTiffAsync(System.IO.Stream! stream, OfficeIMO.Excel.ExcelImageExportOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<OfficeIMO.Drawing.OfficeImageExportResult!>!
-OfficeIMO.Excel.ExcelChart.SaveAsTiffAsync(string! path, OfficeIMO.Excel.ExcelImageExportOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<OfficeIMO.Drawing.OfficeImageExportResult!>!
-OfficeIMO.Excel.ExcelChart.SaveAsWebp(System.IO.Stream! stream, OfficeIMO.Excel.ExcelImageExportOptions? options = null) -> OfficeIMO.Drawing.OfficeImageExportResult!
-OfficeIMO.Excel.ExcelChart.SaveAsWebp(string! path, OfficeIMO.Excel.ExcelImageExportOptions? options = null) -> OfficeIMO.Drawing.OfficeImageExportResult!
-OfficeIMO.Excel.ExcelChart.SaveAsWebpAsync(System.IO.Stream! stream, OfficeIMO.Excel.ExcelImageExportOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<OfficeIMO.Drawing.OfficeImageExportResult!>!
-OfficeIMO.Excel.ExcelChart.SaveAsWebpAsync(string! path, OfficeIMO.Excel.ExcelImageExportOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<OfficeIMO.Drawing.OfficeImageExportResult!>!
+OfficeIMO.Excel.ExcelChart.SaveAsImage(System.IO.Stream! stream, OfficeIMO.Excel.ExcelImageExportOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> OfficeIMO.OfficeConversionReport!
+OfficeIMO.Excel.ExcelChart.SaveAsImage(string! path, OfficeIMO.Excel.ExcelImageExportOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> OfficeIMO.OfficeConversionReport!
+OfficeIMO.Excel.ExcelChart.SaveAsImageAsync(System.IO.Stream! stream, OfficeIMO.Excel.ExcelImageExportOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<OfficeIMO.OfficeConversionReport!>!
+OfficeIMO.Excel.ExcelChart.SaveAsImageAsync(string! path, OfficeIMO.Excel.ExcelImageExportOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<OfficeIMO.OfficeConversionReport!>!
 OfficeIMO.Excel.ExcelChart.SetCategoryAxisCrossing(OfficeIMO.Drawing.OfficeChartAxisCrossingPosition crosses, double? crossesAt = null, OfficeIMO.Drawing.OfficeChartAxisGroup axisGroup = OfficeIMO.Drawing.OfficeChartAxisGroup.Primary) -> OfficeIMO.Excel.ExcelChart!
 OfficeIMO.Excel.ExcelChart.SetCategoryAxisGridlines(bool showMajor = true, bool showMinor = false, string? lineColor = null, double? lineWidthPoints = null, OfficeIMO.Drawing.OfficeChartAxisGroup axisGroup = OfficeIMO.Drawing.OfficeChartAxisGroup.Primary) -> OfficeIMO.Excel.ExcelChart!
 OfficeIMO.Excel.ExcelChart.SetCategoryAxisLabelRotation(double rotationDegrees, OfficeIMO.Drawing.OfficeChartAxisGroup axisGroup = OfficeIMO.Drawing.OfficeChartAxisGroup.Primary) -> OfficeIMO.Excel.ExcelChart!
@@ -445,13 +429,9 @@ OfficeIMO.Excel.ExcelChart.SetValueAxisTitle(string! title) -> OfficeIMO.Excel.E
 OfficeIMO.Excel.ExcelChart.SetValueAxisTitle(string! title, OfficeIMO.Drawing.OfficeChartAxisGroup axisGroup) -> OfficeIMO.Excel.ExcelChart!
 OfficeIMO.Excel.ExcelChart.SetValueAxisTitleTextStyle(double? fontSizePoints = null, bool? bold = null, bool? italic = null, string? color = null, string? fontName = null, OfficeIMO.Drawing.OfficeChartAxisGroup axisGroup = OfficeIMO.Drawing.OfficeChartAxisGroup.Primary) -> OfficeIMO.Excel.ExcelChart!
 OfficeIMO.Excel.ExcelChart.Title.get -> string?
-OfficeIMO.Excel.ExcelChart.ToImage() -> OfficeIMO.Excel.ExcelChartImageExportBuilder!
-OfficeIMO.Excel.ExcelChart.ToImage(OfficeIMO.Excel.ExcelImageExportOptions! options) -> OfficeIMO.Excel.ExcelChartImageExportBuilder!
-OfficeIMO.Excel.ExcelChart.ToJpeg(OfficeIMO.Excel.ExcelImageExportOptions? options = null) -> byte[]!
-OfficeIMO.Excel.ExcelChart.ToPng(OfficeIMO.Excel.ExcelImageExportOptions? options = null) -> byte[]!
-OfficeIMO.Excel.ExcelChart.ToSvg(OfficeIMO.Excel.ExcelImageExportOptions? options = null) -> string!
-OfficeIMO.Excel.ExcelChart.ToTiff(OfficeIMO.Excel.ExcelImageExportOptions? options = null) -> byte[]!
-OfficeIMO.Excel.ExcelChart.ToWebp(OfficeIMO.Excel.ExcelImageExportOptions? options = null) -> byte[]!
+OfficeIMO.Excel.ExcelChart.ToImage(OfficeIMO.Excel.ExcelImageExportOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> byte[]!
+OfficeIMO.Excel.ExcelChart.ToImage(OfficeIMO.Excel.ExcelImageExportOptions? options, out OfficeIMO.OfficeConversionReport! report, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> byte[]!
+OfficeIMO.Excel.ExcelChart.ToImageAsync(OfficeIMO.Excel.ExcelImageExportOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<OfficeIMO.OfficeConversionResult<byte[]!>!>!
 OfficeIMO.Excel.ExcelChart.TryGetData(out OfficeIMO.Excel.ExcelChartData! data) -> bool
 OfficeIMO.Excel.ExcelChart.TryGetSnapshot(out OfficeIMO.Excel.ExcelChartInfo! snapshot) -> bool
 OfficeIMO.Excel.ExcelChart.UpdateData(OfficeIMO.Excel.ExcelChartData! data, OfficeIMO.Excel.ExcelChartDataRange? dataRange = null, bool writeToSheet = true) -> OfficeIMO.Excel.ExcelChart!
@@ -537,7 +517,6 @@ OfficeIMO.Excel.ExcelChartDataRange.WithSize(int categoryCount, int seriesCount)
 OfficeIMO.Excel.ExcelChartGridLayout
 OfficeIMO.Excel.ExcelChartGridLayout.ExcelChartGridLayout(int row, int column, int widthPixels = 520, int heightPixels = 320, int chartsPerRow = 2, int horizontalGapPixels = 48, int verticalGapRows = 2) -> void
 OfficeIMO.Excel.ExcelChartGridLayout.Next() -> OfficeIMO.Excel.ExcelChartPlacement!
-OfficeIMO.Excel.ExcelChartImageExportBuilder
 OfficeIMO.Excel.ExcelChartInfo
 OfficeIMO.Excel.ExcelChartInfo.BubbleScalePercent.get -> double
 OfficeIMO.Excel.ExcelChartInfo.BubbleSizeMode.get -> OfficeIMO.Drawing.OfficeChartBubbleSizeMode
@@ -1232,8 +1211,8 @@ OfficeIMO.Excel.ExcelDocument.ExcelTabularRowWriter.Write(ushort value) -> Offic
 OfficeIMO.Excel.ExcelDocument.ExcelTabularRowWriter.WriteBlank() -> OfficeIMO.Excel.ExcelDocument.ExcelTabularRowWriter!
 OfficeIMO.Excel.ExcelDocument.ExcelTabularRowWriter.WriteUtf8(System.ReadOnlySpan<byte> value) -> OfficeIMO.Excel.ExcelDocument.ExcelTabularRowWriter!
 OfficeIMO.Excel.ExcelDocument.Execution.get -> OfficeIMO.Excel.ExcelExecutionPolicy!
-OfficeIMO.Excel.ExcelDocument.ExportImages(OfficeIMO.Drawing.OfficeImageExportFormat format, OfficeIMO.Drawing.OfficeImageExportConsumer! consumer, OfficeIMO.Excel.ExcelWorkbookImageExportOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> void
-OfficeIMO.Excel.ExcelDocument.ExportImages(OfficeIMO.Drawing.OfficeImageExportFormat format, OfficeIMO.Excel.ExcelWorkbookImageExportOptions? options = null) -> System.Collections.Generic.IReadOnlyList<OfficeIMO.Drawing.OfficeImageExportResult!>!
+OfficeIMO.Excel.ExcelDocument.ExportImages(OfficeIMO.Drawing.OfficeImageExportFormat format, OfficeIMO.Drawing.OfficeImageExportConsumer! consumer, OfficeIMO.Excel.ExcelImageExportOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> void
+OfficeIMO.Excel.ExcelDocument.ExportImages(OfficeIMO.Drawing.OfficeImageExportFormat format, OfficeIMO.Excel.ExcelImageExportOptions? options = null) -> System.Collections.Generic.IReadOnlyList<OfficeIMO.Drawing.OfficeImageExportResult!>!
 OfficeIMO.Excel.ExcelDocument.ExportSpreadsheetXml(OfficeIMO.Excel.ExcelSpreadsheetXmlOptions? options = null) -> OfficeIMO.OfficeConversionResult<byte[]!, OfficeIMO.Excel.ExcelSpreadsheetXmlReport!>!
 OfficeIMO.Excel.ExcelDocument.ExtractEmbeddedPayload(string! id, long? maxBytes = null) -> byte[]!
 OfficeIMO.Excel.ExcelDocument.ExtractMacros(long? maxBytes = null) -> byte[]!
@@ -1317,10 +1296,8 @@ OfficeIMO.Excel.ExcelDocument.Save(System.IO.Stream! destination) -> void
 OfficeIMO.Excel.ExcelDocument.Save(System.IO.Stream! destination, OfficeIMO.Excel.ExcelSaveOptions? options) -> void
 OfficeIMO.Excel.ExcelDocument.Save(string! filePath) -> void
 OfficeIMO.Excel.ExcelDocument.Save(string! filePath, OfficeIMO.Excel.ExcelSaveOptions? options) -> void
-OfficeIMO.Excel.ExcelDocument.SaveAsImages(string! folderPath, OfficeIMO.Drawing.OfficeImageExportFormat format, OfficeIMO.Excel.ExcelWorkbookImageExportOptions? options = null) -> System.Collections.Generic.IReadOnlyList<OfficeIMO.Drawing.OfficeImageExportResult!>!
-OfficeIMO.Excel.ExcelDocument.SaveAsImages(string! folderPath, OfficeIMO.Excel.ExcelWorkbookImageExportOptions? options = null) -> System.Collections.Generic.IReadOnlyList<OfficeIMO.Drawing.OfficeImageExportResult!>!
-OfficeIMO.Excel.ExcelDocument.SaveAsImagesAsync(string! folderPath, OfficeIMO.Drawing.OfficeImageExportFormat format, OfficeIMO.Excel.ExcelWorkbookImageExportOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<OfficeIMO.Drawing.OfficeImageExportResult!>!>!
-OfficeIMO.Excel.ExcelDocument.SaveAsImagesAsync(string! folderPath, OfficeIMO.Excel.ExcelWorkbookImageExportOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<OfficeIMO.Drawing.OfficeImageExportResult!>!>!
+OfficeIMO.Excel.ExcelDocument.SaveAsImages(string! folderPath, OfficeIMO.Excel.ExcelImageExportOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> OfficeIMO.OfficeConversionReport!
+OfficeIMO.Excel.ExcelDocument.SaveAsImagesAsync(string! folderPath, OfficeIMO.Excel.ExcelImageExportOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<OfficeIMO.OfficeConversionReport!>!
 OfficeIMO.Excel.ExcelDocument.SaveAsync(OfficeIMO.Excel.ExcelSaveOptions? options, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
 OfficeIMO.Excel.ExcelDocument.SaveAsync(System.IO.Stream! destination, OfficeIMO.Excel.ExcelSaveOptions? options, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
 OfficeIMO.Excel.ExcelDocument.SaveAsync(System.IO.Stream! destination, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
@@ -1355,8 +1332,6 @@ OfficeIMO.Excel.ExcelDocument.SourcePath.get -> string?
 OfficeIMO.Excel.ExcelDocument.TableNameComparer.get -> System.Collections.Generic.IEqualityComparer<string!>!
 OfficeIMO.Excel.ExcelDocument.TableNameComparer.set -> void
 OfficeIMO.Excel.ExcelDocument.ToBytes(OfficeIMO.Excel.ExcelSaveOptions? options = null) -> byte[]!
-OfficeIMO.Excel.ExcelDocument.ToImages() -> OfficeIMO.Excel.ExcelWorkbookImageExportBuilder!
-OfficeIMO.Excel.ExcelDocument.ToImages(OfficeIMO.Excel.ExcelWorkbookImageExportOptions! options) -> OfficeIMO.Excel.ExcelWorkbookImageExportBuilder!
 OfficeIMO.Excel.ExcelDocument.TryGetCompatibilitySourcePayload(out OfficeIMO.OfficeCompatibilitySourcePayload? payload, out string? error) -> bool
 OfficeIMO.Excel.ExcelDocument.TryGetSheet(string! name, out OfficeIMO.Excel.ExcelSheet? sheet) -> bool
 OfficeIMO.Excel.ExcelDocument.UnprotectWorkbook() -> void
@@ -1731,13 +1706,15 @@ OfficeIMO.Excel.ExcelImageExportOptions
 OfficeIMO.Excel.ExcelImageExportOptions.Clone() -> OfficeIMO.Excel.ExcelImageExportOptions!
 OfficeIMO.Excel.ExcelImageExportOptions.ConditionalFormattingDate.get -> System.DateTime?
 OfficeIMO.Excel.ExcelImageExportOptions.ConditionalFormattingDate.set -> void
-OfficeIMO.Excel.ExcelImageExportOptions.DefaultColumnWidthPixels.get -> double
-OfficeIMO.Excel.ExcelImageExportOptions.DefaultColumnWidthPixels.set -> void
-OfficeIMO.Excel.ExcelImageExportOptions.DefaultRowHeightPixels.get -> double
-OfficeIMO.Excel.ExcelImageExportOptions.DefaultRowHeightPixels.set -> void
+OfficeIMO.Excel.ExcelImageExportOptions.DefaultColumnWidth.get -> OfficeIMO.OfficeLength
+OfficeIMO.Excel.ExcelImageExportOptions.DefaultColumnWidth.set -> void
+OfficeIMO.Excel.ExcelImageExportOptions.DefaultRowHeight.get -> OfficeIMO.OfficeLength
+OfficeIMO.Excel.ExcelImageExportOptions.DefaultRowHeight.set -> void
 OfficeIMO.Excel.ExcelImageExportOptions.ExcelImageExportOptions() -> void
 OfficeIMO.Excel.ExcelImageExportOptions.GridlineColor.get -> OfficeIMO.OfficeColor
 OfficeIMO.Excel.ExcelImageExportOptions.GridlineColor.set -> void
+OfficeIMO.Excel.ExcelImageExportOptions.HeaderFooterDateTime.get -> System.DateTime?
+OfficeIMO.Excel.ExcelImageExportOptions.HeaderFooterDateTime.set -> void
 OfficeIMO.Excel.ExcelImageExportOptions.IncludeCharts.get -> bool
 OfficeIMO.Excel.ExcelImageExportOptions.IncludeCharts.set -> void
 OfficeIMO.Excel.ExcelImageExportOptions.IncludeConditionalFormatting.get -> bool
@@ -1746,6 +1723,8 @@ OfficeIMO.Excel.ExcelImageExportOptions.IncludeDrawingObjects.get -> bool
 OfficeIMO.Excel.ExcelImageExportOptions.IncludeDrawingObjects.set -> void
 OfficeIMO.Excel.ExcelImageExportOptions.IncludeHidden.get -> bool
 OfficeIMO.Excel.ExcelImageExportOptions.IncludeHidden.set -> void
+OfficeIMO.Excel.ExcelImageExportOptions.IncludeHiddenSheets.get -> bool
+OfficeIMO.Excel.ExcelImageExportOptions.IncludeHiddenSheets.set -> void
 OfficeIMO.Excel.ExcelImageExportOptions.IncludeImages.get -> bool
 OfficeIMO.Excel.ExcelImageExportOptions.IncludeImages.set -> void
 OfficeIMO.Excel.ExcelImageExportOptions.IncludeWorkbookPathInHeaderFooter.get -> bool
@@ -1756,12 +1735,20 @@ OfficeIMO.Excel.ExcelImageExportOptions.MaximumRenderedCells.get -> int
 OfficeIMO.Excel.ExcelImageExportOptions.MaximumRenderedCells.set -> void
 OfficeIMO.Excel.ExcelImageExportOptions.MaximumTotalSourceImageBytes.get -> long
 OfficeIMO.Excel.ExcelImageExportOptions.MaximumTotalSourceImageBytes.set -> void
+OfficeIMO.Excel.ExcelImageExportOptions.Range.get -> string?
+OfficeIMO.Excel.ExcelImageExportOptions.Range.set -> void
+OfficeIMO.Excel.ExcelImageExportOptions.SheetNames.get -> System.Collections.Generic.IReadOnlyList<string!>?
+OfficeIMO.Excel.ExcelImageExportOptions.SheetNames.set -> void
 OfficeIMO.Excel.ExcelImageExportOptions.ShowCommentBodies.get -> bool
 OfficeIMO.Excel.ExcelImageExportOptions.ShowCommentBodies.set -> void
 OfficeIMO.Excel.ExcelImageExportOptions.ShowGridlines.get -> bool
 OfficeIMO.Excel.ExcelImageExportOptions.ShowGridlines.set -> void
 OfficeIMO.Excel.ExcelImageExportOptions.ShowHyperlinkHints.get -> bool
 OfficeIMO.Excel.ExcelImageExportOptions.ShowHyperlinkHints.set -> void
+OfficeIMO.Excel.ExcelImageExportOptions.SplitByManualPageBreaks.get -> bool
+OfficeIMO.Excel.ExcelImageExportOptions.SplitByManualPageBreaks.set -> void
+OfficeIMO.Excel.ExcelImageExportOptions.UsePrintArea.get -> bool
+OfficeIMO.Excel.ExcelImageExportOptions.UsePrintArea.set -> void
 OfficeIMO.Excel.ExcelImagePlacement
 OfficeIMO.Excel.ExcelImagePlacement.FreeFloating = 2 -> OfficeIMO.Excel.ExcelImagePlacement
 OfficeIMO.Excel.ExcelImagePlacement.MoveAndSize = 0 -> OfficeIMO.Excel.ExcelImagePlacement
@@ -2547,26 +2534,10 @@ OfficeIMO.Excel.ExcelRange.MoveTo(string! destinationTopLeft, OfficeIMO.Excel.Ex
 OfficeIMO.Excel.ExcelRange.MutedText() -> OfficeIMO.Excel.ExcelRange!
 OfficeIMO.Excel.ExcelRange.Number(int decimals = 2) -> OfficeIMO.Excel.ExcelRange!
 OfficeIMO.Excel.ExcelRange.Percent(int decimals = 0) -> OfficeIMO.Excel.ExcelRange!
-OfficeIMO.Excel.ExcelRange.SaveAsJpeg(System.IO.Stream! stream, OfficeIMO.Excel.ExcelImageExportOptions? options = null) -> OfficeIMO.Drawing.OfficeImageExportResult!
-OfficeIMO.Excel.ExcelRange.SaveAsJpeg(string! path, OfficeIMO.Excel.ExcelImageExportOptions? options = null) -> OfficeIMO.Drawing.OfficeImageExportResult!
-OfficeIMO.Excel.ExcelRange.SaveAsJpegAsync(System.IO.Stream! stream, OfficeIMO.Excel.ExcelImageExportOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<OfficeIMO.Drawing.OfficeImageExportResult!>!
-OfficeIMO.Excel.ExcelRange.SaveAsJpegAsync(string! path, OfficeIMO.Excel.ExcelImageExportOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<OfficeIMO.Drawing.OfficeImageExportResult!>!
-OfficeIMO.Excel.ExcelRange.SaveAsPng(System.IO.Stream! stream, OfficeIMO.Excel.ExcelImageExportOptions? options = null) -> OfficeIMO.Drawing.OfficeImageExportResult!
-OfficeIMO.Excel.ExcelRange.SaveAsPng(string! path, OfficeIMO.Excel.ExcelImageExportOptions? options = null) -> OfficeIMO.Drawing.OfficeImageExportResult!
-OfficeIMO.Excel.ExcelRange.SaveAsPngAsync(System.IO.Stream! stream, OfficeIMO.Excel.ExcelImageExportOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<OfficeIMO.Drawing.OfficeImageExportResult!>!
-OfficeIMO.Excel.ExcelRange.SaveAsPngAsync(string! path, OfficeIMO.Excel.ExcelImageExportOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<OfficeIMO.Drawing.OfficeImageExportResult!>!
-OfficeIMO.Excel.ExcelRange.SaveAsSvg(System.IO.Stream! stream, OfficeIMO.Excel.ExcelImageExportOptions? options = null) -> OfficeIMO.Drawing.OfficeImageExportResult!
-OfficeIMO.Excel.ExcelRange.SaveAsSvg(string! path, OfficeIMO.Excel.ExcelImageExportOptions? options = null) -> OfficeIMO.Drawing.OfficeImageExportResult!
-OfficeIMO.Excel.ExcelRange.SaveAsSvgAsync(System.IO.Stream! stream, OfficeIMO.Excel.ExcelImageExportOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<OfficeIMO.Drawing.OfficeImageExportResult!>!
-OfficeIMO.Excel.ExcelRange.SaveAsSvgAsync(string! path, OfficeIMO.Excel.ExcelImageExportOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<OfficeIMO.Drawing.OfficeImageExportResult!>!
-OfficeIMO.Excel.ExcelRange.SaveAsTiff(System.IO.Stream! stream, OfficeIMO.Excel.ExcelImageExportOptions? options = null) -> OfficeIMO.Drawing.OfficeImageExportResult!
-OfficeIMO.Excel.ExcelRange.SaveAsTiff(string! path, OfficeIMO.Excel.ExcelImageExportOptions? options = null) -> OfficeIMO.Drawing.OfficeImageExportResult!
-OfficeIMO.Excel.ExcelRange.SaveAsTiffAsync(System.IO.Stream! stream, OfficeIMO.Excel.ExcelImageExportOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<OfficeIMO.Drawing.OfficeImageExportResult!>!
-OfficeIMO.Excel.ExcelRange.SaveAsTiffAsync(string! path, OfficeIMO.Excel.ExcelImageExportOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<OfficeIMO.Drawing.OfficeImageExportResult!>!
-OfficeIMO.Excel.ExcelRange.SaveAsWebp(System.IO.Stream! stream, OfficeIMO.Excel.ExcelImageExportOptions? options = null) -> OfficeIMO.Drawing.OfficeImageExportResult!
-OfficeIMO.Excel.ExcelRange.SaveAsWebp(string! path, OfficeIMO.Excel.ExcelImageExportOptions? options = null) -> OfficeIMO.Drawing.OfficeImageExportResult!
-OfficeIMO.Excel.ExcelRange.SaveAsWebpAsync(System.IO.Stream! stream, OfficeIMO.Excel.ExcelImageExportOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<OfficeIMO.Drawing.OfficeImageExportResult!>!
-OfficeIMO.Excel.ExcelRange.SaveAsWebpAsync(string! path, OfficeIMO.Excel.ExcelImageExportOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<OfficeIMO.Drawing.OfficeImageExportResult!>!
+OfficeIMO.Excel.ExcelRange.SaveAsImage(System.IO.Stream! stream, OfficeIMO.Excel.ExcelImageExportOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> OfficeIMO.OfficeConversionReport!
+OfficeIMO.Excel.ExcelRange.SaveAsImage(string! path, OfficeIMO.Excel.ExcelImageExportOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> OfficeIMO.OfficeConversionReport!
+OfficeIMO.Excel.ExcelRange.SaveAsImageAsync(System.IO.Stream! stream, OfficeIMO.Excel.ExcelImageExportOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<OfficeIMO.OfficeConversionReport!>!
+OfficeIMO.Excel.ExcelRange.SaveAsImageAsync(string! path, OfficeIMO.Excel.ExcelImageExportOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<OfficeIMO.OfficeConversionReport!>!
 OfficeIMO.Excel.ExcelRange.SetBaseline() -> OfficeIMO.Excel.ExcelRange!
 OfficeIMO.Excel.ExcelRange.SetBold(bool bold = true) -> OfficeIMO.Excel.ExcelRange!
 OfficeIMO.Excel.ExcelRange.SetFillColor(string! hexColor) -> OfficeIMO.Excel.ExcelRange!
@@ -2590,13 +2561,9 @@ OfficeIMO.Excel.ExcelRange.SortByColumn(int columnOffset, bool ascending = true,
 OfficeIMO.Excel.ExcelRange.Success() -> OfficeIMO.Excel.ExcelRange!
 OfficeIMO.Excel.ExcelRange.Text() -> OfficeIMO.Excel.ExcelRange!
 OfficeIMO.Excel.ExcelRange.Time() -> OfficeIMO.Excel.ExcelRange!
-OfficeIMO.Excel.ExcelRange.ToImage() -> OfficeIMO.Excel.ExcelRangeImageExportBuilder!
-OfficeIMO.Excel.ExcelRange.ToImage(OfficeIMO.Excel.ExcelImageExportOptions! options) -> OfficeIMO.Excel.ExcelRangeImageExportBuilder!
-OfficeIMO.Excel.ExcelRange.ToJpeg(OfficeIMO.Excel.ExcelImageExportOptions? options = null) -> byte[]!
-OfficeIMO.Excel.ExcelRange.ToPng(OfficeIMO.Excel.ExcelImageExportOptions? options = null) -> byte[]!
-OfficeIMO.Excel.ExcelRange.ToSvg(OfficeIMO.Excel.ExcelImageExportOptions? options = null) -> string!
-OfficeIMO.Excel.ExcelRange.ToTiff(OfficeIMO.Excel.ExcelImageExportOptions? options = null) -> byte[]!
-OfficeIMO.Excel.ExcelRange.ToWebp(OfficeIMO.Excel.ExcelImageExportOptions? options = null) -> byte[]!
+OfficeIMO.Excel.ExcelRange.ToImage(OfficeIMO.Excel.ExcelImageExportOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> byte[]!
+OfficeIMO.Excel.ExcelRange.ToImage(OfficeIMO.Excel.ExcelImageExportOptions? options, out OfficeIMO.OfficeConversionReport! report, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> byte[]!
+OfficeIMO.Excel.ExcelRange.ToImageAsync(OfficeIMO.Excel.ExcelImageExportOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<OfficeIMO.OfficeConversionResult<byte[]!>!>!
 OfficeIMO.Excel.ExcelRange.TransformTextCase(OfficeIMO.Drawing.OfficeTextCase textCase, System.Globalization.CultureInfo? culture = null) -> OfficeIMO.Excel.ExcelRange!
 OfficeIMO.Excel.ExcelRange.TransposeTo(string! destinationTopLeft, OfficeIMO.Excel.ExcelMutationPlanOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> OfficeIMO.Excel.ExcelMutationResult!
 OfficeIMO.Excel.ExcelRange.Unmerge() -> OfficeIMO.Excel.ExcelRange!
@@ -2692,17 +2659,6 @@ OfficeIMO.Excel.ExcelRangeDifferenceKind
 OfficeIMO.Excel.ExcelRangeDifferenceKind.MissingFromLeft = 1 -> OfficeIMO.Excel.ExcelRangeDifferenceKind
 OfficeIMO.Excel.ExcelRangeDifferenceKind.MissingFromRight = 2 -> OfficeIMO.Excel.ExcelRangeDifferenceKind
 OfficeIMO.Excel.ExcelRangeDifferenceKind.ValueMismatch = 0 -> OfficeIMO.Excel.ExcelRangeDifferenceKind
-OfficeIMO.Excel.ExcelRangeImageExportBuilder
-OfficeIMO.Excel.ExcelRangeImageExportBuilder.IncludeCharts(bool include = true) -> OfficeIMO.Excel.ExcelRangeImageExportBuilder!
-OfficeIMO.Excel.ExcelRangeImageExportBuilder.IncludeConditionalFormatting(bool include = true) -> OfficeIMO.Excel.ExcelRangeImageExportBuilder!
-OfficeIMO.Excel.ExcelRangeImageExportBuilder.IncludeDrawingObjects(bool include = true) -> OfficeIMO.Excel.ExcelRangeImageExportBuilder!
-OfficeIMO.Excel.ExcelRangeImageExportBuilder.IncludeHidden(bool include = true) -> OfficeIMO.Excel.ExcelRangeImageExportBuilder!
-OfficeIMO.Excel.ExcelRangeImageExportBuilder.IncludeImages(bool include = true) -> OfficeIMO.Excel.ExcelRangeImageExportBuilder!
-OfficeIMO.Excel.ExcelRangeImageExportBuilder.ShowComments(bool show = true) -> OfficeIMO.Excel.ExcelRangeImageExportBuilder!
-OfficeIMO.Excel.ExcelRangeImageExportBuilder.ShowHyperlinkHints(bool show = true) -> OfficeIMO.Excel.ExcelRangeImageExportBuilder!
-OfficeIMO.Excel.ExcelRangeImageExportBuilder.WithConditionalFormattingDate(System.DateTime date) -> OfficeIMO.Excel.ExcelRangeImageExportBuilder!
-OfficeIMO.Excel.ExcelRangeImageExportBuilder.WithGridlines(bool show = true) -> OfficeIMO.Excel.ExcelRangeImageExportBuilder!
-OfficeIMO.Excel.ExcelRangeImageExportBuilder.WithoutGridlines() -> OfficeIMO.Excel.ExcelRangeImageExportBuilder!
 OfficeIMO.Excel.ExcelRangeVisualInfo
 OfficeIMO.Excel.ExcelRangeVisualInfo.Cells.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.Excel.ExcelVisualCell!>!
 OfficeIMO.Excel.ExcelRangeVisualInfo.Charts.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.Excel.ExcelVisualChart!>!
@@ -3224,7 +3180,7 @@ OfficeIMO.Excel.ExcelSheet.CloneConditionalFormattingRule(OfficeIMO.Excel.ExcelC
 OfficeIMO.Excel.ExcelSheet.ColumnStyleByHeader(string! header, bool includeHeader = false, OfficeIMO.Excel.ExcelReaderOptions? options = null) -> OfficeIMO.Excel.ExcelColumnStyleByHeaderBuilder!
 OfficeIMO.Excel.ExcelSheet.CopyRange(string! sourceRange, string! destinationTopLeft, OfficeIMO.Excel.ExcelMutationPlanOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> OfficeIMO.Excel.ExcelMutationResult!
 OfficeIMO.Excel.ExcelSheet.CreateDataReader(OfficeIMO.Excel.ExcelReaderOptions? options = null) -> OfficeIMO.Excel.ExcelWorkbookDataReader!
-OfficeIMO.Excel.ExcelSheet.CreateVisualSnapshot(OfficeIMO.Excel.ExcelWorksheetImageExportOptions? options = null) -> OfficeIMO.Excel.ExcelRangeVisualInfo!
+OfficeIMO.Excel.ExcelSheet.CreateVisualSnapshot(OfficeIMO.Excel.ExcelImageExportOptions? options = null) -> OfficeIMO.Excel.ExcelRangeVisualInfo!
 OfficeIMO.Excel.ExcelSheet.DefaultColumnWidth.get -> OfficeIMO.Excel.ExcelColumnWidth?
 OfficeIMO.Excel.ExcelSheet.DefaultRowHeight.get -> OfficeIMO.Excel.ExcelColumnWidth?
 OfficeIMO.Excel.ExcelSheet.DefaultRowsHidden.get -> bool
@@ -3302,9 +3258,9 @@ OfficeIMO.Excel.ExcelSheet.ExcelHeaderFooterInfo.HeaderRightImage.get -> OfficeI
 OfficeIMO.Excel.ExcelSheet.ExcelHeaderFooterInfo.HeaderRightImage.set -> void
 OfficeIMO.Excel.ExcelSheet.ExecutionOverride.get -> OfficeIMO.Excel.ExcelExecutionPolicy?
 OfficeIMO.Excel.ExcelSheet.ExecutionOverride.set -> void
-OfficeIMO.Excel.ExcelSheet.ExportImage(OfficeIMO.Drawing.OfficeImageExportFormat format, OfficeIMO.Excel.ExcelWorksheetImageExportOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> OfficeIMO.Drawing.OfficeImageExportResult!
-OfficeIMO.Excel.ExcelSheet.ExportImages(OfficeIMO.Drawing.OfficeImageExportFormat format, OfficeIMO.Drawing.OfficeImageExportConsumer! consumer, OfficeIMO.Excel.ExcelWorksheetImageExportOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> void
-OfficeIMO.Excel.ExcelSheet.ExportImages(OfficeIMO.Drawing.OfficeImageExportFormat format, OfficeIMO.Excel.ExcelWorksheetImageExportOptions? options = null) -> System.Collections.Generic.IReadOnlyList<OfficeIMO.Drawing.OfficeImageExportResult!>!
+OfficeIMO.Excel.ExcelSheet.ExportImage(OfficeIMO.Drawing.OfficeImageExportFormat format, OfficeIMO.Excel.ExcelImageExportOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> OfficeIMO.Drawing.OfficeImageExportResult!
+OfficeIMO.Excel.ExcelSheet.ExportImages(OfficeIMO.Drawing.OfficeImageExportFormat format, OfficeIMO.Drawing.OfficeImageExportConsumer! consumer, OfficeIMO.Excel.ExcelImageExportOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> void
+OfficeIMO.Excel.ExcelSheet.ExportImages(OfficeIMO.Drawing.OfficeImageExportFormat format, OfficeIMO.Excel.ExcelImageExportOptions? options = null) -> System.Collections.Generic.IReadOnlyList<OfficeIMO.Drawing.OfficeImageExportResult!>!
 OfficeIMO.Excel.ExcelSheet.FillRange(string! a1Range, string! hexColor) -> void
 OfficeIMO.Excel.ExcelSheet.FillRangeGradient(string! a1Range, string! fromHexColor, string! toHexColor, double degree = 0) -> void
 OfficeIMO.Excel.ExcelSheet.FindComments(OfficeIMO.Excel.ExcelCommentFilter? filter) -> System.Collections.Generic.IReadOnlyList<OfficeIMO.Excel.ExcelCommentInfo!>!
@@ -3444,26 +3400,12 @@ OfficeIMO.Excel.ExcelSheet.RowsAsParallel<T>(System.Func<System.Data.IDataRecord
 OfficeIMO.Excel.ExcelSheet.RowsAsParallel<T>(string! a1Range, OfficeIMO.Data.ParallelRowMappingOptions? parallelOptions = null, OfficeIMO.Excel.ExcelReaderOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Collections.Generic.IEnumerable<T>!
 OfficeIMO.Excel.ExcelSheet.RowsAsParallel<T>(string! a1Range, System.Action<OfficeIMO.Data.RowMapper<T>!>! configure, OfficeIMO.Data.ParallelRowMappingOptions? parallelOptions = null, OfficeIMO.Excel.ExcelReaderOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Collections.Generic.IEnumerable<T>!
 OfficeIMO.Excel.ExcelSheet.RowsAsParallel<T>(string! a1Range, System.Func<System.Data.IDataRecord!, T>! factory, OfficeIMO.Data.ParallelRowMappingOptions? parallelOptions = null, OfficeIMO.Excel.ExcelReaderOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Collections.Generic.IEnumerable<T>!
-OfficeIMO.Excel.ExcelSheet.SaveAsJpeg(System.IO.Stream! stream, OfficeIMO.Excel.ExcelWorksheetImageExportOptions? options = null) -> OfficeIMO.Drawing.OfficeImageExportResult!
-OfficeIMO.Excel.ExcelSheet.SaveAsJpeg(string! path, OfficeIMO.Excel.ExcelWorksheetImageExportOptions? options = null) -> OfficeIMO.Drawing.OfficeImageExportResult!
-OfficeIMO.Excel.ExcelSheet.SaveAsJpegAsync(System.IO.Stream! stream, OfficeIMO.Excel.ExcelWorksheetImageExportOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<OfficeIMO.Drawing.OfficeImageExportResult!>!
-OfficeIMO.Excel.ExcelSheet.SaveAsJpegAsync(string! path, OfficeIMO.Excel.ExcelWorksheetImageExportOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<OfficeIMO.Drawing.OfficeImageExportResult!>!
-OfficeIMO.Excel.ExcelSheet.SaveAsPng(System.IO.Stream! stream, OfficeIMO.Excel.ExcelWorksheetImageExportOptions? options = null) -> OfficeIMO.Drawing.OfficeImageExportResult!
-OfficeIMO.Excel.ExcelSheet.SaveAsPng(string! path, OfficeIMO.Excel.ExcelWorksheetImageExportOptions? options = null) -> OfficeIMO.Drawing.OfficeImageExportResult!
-OfficeIMO.Excel.ExcelSheet.SaveAsPngAsync(System.IO.Stream! stream, OfficeIMO.Excel.ExcelWorksheetImageExportOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<OfficeIMO.Drawing.OfficeImageExportResult!>!
-OfficeIMO.Excel.ExcelSheet.SaveAsPngAsync(string! path, OfficeIMO.Excel.ExcelWorksheetImageExportOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<OfficeIMO.Drawing.OfficeImageExportResult!>!
-OfficeIMO.Excel.ExcelSheet.SaveAsSvg(System.IO.Stream! stream, OfficeIMO.Excel.ExcelWorksheetImageExportOptions? options = null) -> OfficeIMO.Drawing.OfficeImageExportResult!
-OfficeIMO.Excel.ExcelSheet.SaveAsSvg(string! path, OfficeIMO.Excel.ExcelWorksheetImageExportOptions? options = null) -> OfficeIMO.Drawing.OfficeImageExportResult!
-OfficeIMO.Excel.ExcelSheet.SaveAsSvgAsync(System.IO.Stream! stream, OfficeIMO.Excel.ExcelWorksheetImageExportOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<OfficeIMO.Drawing.OfficeImageExportResult!>!
-OfficeIMO.Excel.ExcelSheet.SaveAsSvgAsync(string! path, OfficeIMO.Excel.ExcelWorksheetImageExportOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<OfficeIMO.Drawing.OfficeImageExportResult!>!
-OfficeIMO.Excel.ExcelSheet.SaveAsTiff(System.IO.Stream! stream, OfficeIMO.Excel.ExcelWorksheetImageExportOptions? options = null) -> OfficeIMO.Drawing.OfficeImageExportResult!
-OfficeIMO.Excel.ExcelSheet.SaveAsTiff(string! path, OfficeIMO.Excel.ExcelWorksheetImageExportOptions? options = null) -> OfficeIMO.Drawing.OfficeImageExportResult!
-OfficeIMO.Excel.ExcelSheet.SaveAsTiffAsync(System.IO.Stream! stream, OfficeIMO.Excel.ExcelWorksheetImageExportOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<OfficeIMO.Drawing.OfficeImageExportResult!>!
-OfficeIMO.Excel.ExcelSheet.SaveAsTiffAsync(string! path, OfficeIMO.Excel.ExcelWorksheetImageExportOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<OfficeIMO.Drawing.OfficeImageExportResult!>!
-OfficeIMO.Excel.ExcelSheet.SaveAsWebp(System.IO.Stream! stream, OfficeIMO.Excel.ExcelWorksheetImageExportOptions? options = null) -> OfficeIMO.Drawing.OfficeImageExportResult!
-OfficeIMO.Excel.ExcelSheet.SaveAsWebp(string! path, OfficeIMO.Excel.ExcelWorksheetImageExportOptions? options = null) -> OfficeIMO.Drawing.OfficeImageExportResult!
-OfficeIMO.Excel.ExcelSheet.SaveAsWebpAsync(System.IO.Stream! stream, OfficeIMO.Excel.ExcelWorksheetImageExportOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<OfficeIMO.Drawing.OfficeImageExportResult!>!
-OfficeIMO.Excel.ExcelSheet.SaveAsWebpAsync(string! path, OfficeIMO.Excel.ExcelWorksheetImageExportOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<OfficeIMO.Drawing.OfficeImageExportResult!>!
+OfficeIMO.Excel.ExcelSheet.SaveAsImage(System.IO.Stream! stream, OfficeIMO.Excel.ExcelImageExportOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> OfficeIMO.OfficeConversionReport!
+OfficeIMO.Excel.ExcelSheet.SaveAsImage(string! path, OfficeIMO.Excel.ExcelImageExportOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> OfficeIMO.OfficeConversionReport!
+OfficeIMO.Excel.ExcelSheet.SaveAsImageAsync(System.IO.Stream! stream, OfficeIMO.Excel.ExcelImageExportOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<OfficeIMO.OfficeConversionReport!>!
+OfficeIMO.Excel.ExcelSheet.SaveAsImageAsync(string! path, OfficeIMO.Excel.ExcelImageExportOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<OfficeIMO.OfficeConversionReport!>!
+OfficeIMO.Excel.ExcelSheet.SaveAsImages(string! folderPath, OfficeIMO.Excel.ExcelImageExportOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> OfficeIMO.OfficeConversionReport!
+OfficeIMO.Excel.ExcelSheet.SaveAsImagesAsync(string! folderPath, OfficeIMO.Excel.ExcelImageExportOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<OfficeIMO.OfficeConversionReport!>!
 OfficeIMO.Excel.ExcelSheet.SearchFormulas(OfficeIMO.Excel.ExcelFormulaSearchOptions! options) -> System.Collections.Generic.IReadOnlyList<OfficeIMO.Excel.ExcelFormulaCellInfo!>!
 OfficeIMO.Excel.ExcelSheet.SetAllowedEditRange(string! name, System.Collections.Generic.IEnumerable<string!>! ranges, string? password = null, string? securityDescriptor = null) -> void
 OfficeIMO.Excel.ExcelSheet.SetArrayFormula(string! a1Range, string! formula) -> void
@@ -3540,17 +3482,11 @@ OfficeIMO.Excel.ExcelSheet.TableToDataTable(string! tableName, bool? headersInFi
 OfficeIMO.Excel.ExcelSheet.TableToJson(string! tableName, bool? headersInFirstRow = null, OfficeIMO.Excel.ExcelReaderOptions? options = null, OfficeIMO.Excel.ExcelExecutionMode? mode = null, System.Text.Json.JsonSerializerOptions? jsonOptions = null, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> string!
 OfficeIMO.Excel.ExcelSheet.ToDataTable(bool headersInFirstRow = true, OfficeIMO.Excel.ExcelReaderOptions? options = null, OfficeIMO.Excel.ExcelExecutionMode? mode = null, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Data.DataTable!
 OfficeIMO.Excel.ExcelSheet.ToDataTable(string! a1Range, bool headersInFirstRow = true, OfficeIMO.Excel.ExcelReaderOptions? options = null, OfficeIMO.Excel.ExcelExecutionMode? mode = null, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Data.DataTable!
-OfficeIMO.Excel.ExcelSheet.ToImage() -> OfficeIMO.Excel.ExcelWorksheetImageExportBuilder!
-OfficeIMO.Excel.ExcelSheet.ToImage(OfficeIMO.Excel.ExcelWorksheetImageExportOptions! options) -> OfficeIMO.Excel.ExcelWorksheetImageExportBuilder!
-OfficeIMO.Excel.ExcelSheet.ToImages() -> OfficeIMO.Excel.ExcelWorksheetImageBatchExportBuilder!
-OfficeIMO.Excel.ExcelSheet.ToImages(OfficeIMO.Excel.ExcelWorksheetImageExportOptions! options) -> OfficeIMO.Excel.ExcelWorksheetImageBatchExportBuilder!
-OfficeIMO.Excel.ExcelSheet.ToJpeg(OfficeIMO.Excel.ExcelWorksheetImageExportOptions? options = null) -> byte[]!
+OfficeIMO.Excel.ExcelSheet.ToImage(OfficeIMO.Excel.ExcelImageExportOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> byte[]!
+OfficeIMO.Excel.ExcelSheet.ToImage(OfficeIMO.Excel.ExcelImageExportOptions? options, out OfficeIMO.OfficeConversionReport! report, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> byte[]!
+OfficeIMO.Excel.ExcelSheet.ToImageAsync(OfficeIMO.Excel.ExcelImageExportOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<OfficeIMO.OfficeConversionResult<byte[]!>!>!
 OfficeIMO.Excel.ExcelSheet.ToJson(bool headersInFirstRow = true, OfficeIMO.Excel.ExcelReaderOptions? options = null, OfficeIMO.Excel.ExcelExecutionMode? mode = null, System.Text.Json.JsonSerializerOptions? jsonOptions = null, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> string!
 OfficeIMO.Excel.ExcelSheet.ToJson(string! a1Range, bool headersInFirstRow = true, OfficeIMO.Excel.ExcelReaderOptions? options = null, OfficeIMO.Excel.ExcelExecutionMode? mode = null, System.Text.Json.JsonSerializerOptions? jsonOptions = null, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> string!
-OfficeIMO.Excel.ExcelSheet.ToPng(OfficeIMO.Excel.ExcelWorksheetImageExportOptions? options = null) -> byte[]!
-OfficeIMO.Excel.ExcelSheet.ToSvg(OfficeIMO.Excel.ExcelWorksheetImageExportOptions? options = null) -> string!
-OfficeIMO.Excel.ExcelSheet.ToTiff(OfficeIMO.Excel.ExcelWorksheetImageExportOptions? options = null) -> byte[]!
-OfficeIMO.Excel.ExcelSheet.ToWebp(OfficeIMO.Excel.ExcelWorksheetImageExportOptions? options = null) -> byte[]!
 OfficeIMO.Excel.ExcelSheet.ToXml(string! a1Range, bool headersInFirstRow = false, OfficeIMO.Excel.ExcelXmlTableOptions? options = null, OfficeIMO.Excel.ExcelReaderOptions? readOptions = null, OfficeIMO.Excel.ExcelExecutionMode? mode = null) -> string!
 OfficeIMO.Excel.ExcelSheet.TransformCellTextCase(int row, int column, OfficeIMO.Drawing.OfficeTextCase textCase, System.Globalization.CultureInfo? culture = null) -> bool
 OfficeIMO.Excel.ExcelSheet.TransposeRange(string! sourceRange, string! destinationTopLeft, OfficeIMO.Excel.ExcelMutationPlanOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> OfficeIMO.Excel.ExcelMutationResult!
@@ -4418,34 +4354,6 @@ OfficeIMO.Excel.ExcelWorkbookDoctorOptions.RepairDefinedNames.get -> bool
 OfficeIMO.Excel.ExcelWorkbookDoctorOptions.RepairDefinedNames.set -> void
 OfficeIMO.Excel.ExcelWorkbookDoctorOptions.ValidateOpenXml.get -> bool
 OfficeIMO.Excel.ExcelWorkbookDoctorOptions.ValidateOpenXml.set -> void
-OfficeIMO.Excel.ExcelWorkbookImageExportBuilder
-OfficeIMO.Excel.ExcelWorkbookImageExportBuilder.ForSheets(System.Collections.Generic.IEnumerable<string!>! sheetNames) -> OfficeIMO.Excel.ExcelWorkbookImageExportBuilder!
-OfficeIMO.Excel.ExcelWorkbookImageExportBuilder.ForSheets(params string![]! sheetNames) -> OfficeIMO.Excel.ExcelWorkbookImageExportBuilder!
-OfficeIMO.Excel.ExcelWorkbookImageExportBuilder.IncludeCharts(bool include = true) -> OfficeIMO.Excel.ExcelWorkbookImageExportBuilder!
-OfficeIMO.Excel.ExcelWorkbookImageExportBuilder.IncludeConditionalFormatting(bool include = true) -> OfficeIMO.Excel.ExcelWorkbookImageExportBuilder!
-OfficeIMO.Excel.ExcelWorkbookImageExportBuilder.IncludeDrawingObjects(bool include = true) -> OfficeIMO.Excel.ExcelWorkbookImageExportBuilder!
-OfficeIMO.Excel.ExcelWorkbookImageExportBuilder.IncludeHidden(bool include = true) -> OfficeIMO.Excel.ExcelWorkbookImageExportBuilder!
-OfficeIMO.Excel.ExcelWorkbookImageExportBuilder.IncludeHiddenSheets(bool include = true) -> OfficeIMO.Excel.ExcelWorkbookImageExportBuilder!
-OfficeIMO.Excel.ExcelWorkbookImageExportBuilder.IncludeImages(bool include = true) -> OfficeIMO.Excel.ExcelWorkbookImageExportBuilder!
-OfficeIMO.Excel.ExcelWorkbookImageExportBuilder.ShowComments(bool show = true) -> OfficeIMO.Excel.ExcelWorkbookImageExportBuilder!
-OfficeIMO.Excel.ExcelWorkbookImageExportBuilder.SplitByManualPageBreaks(bool split = true) -> OfficeIMO.Excel.ExcelWorkbookImageExportBuilder!
-OfficeIMO.Excel.ExcelWorkbookImageExportBuilder.UsePrintAreas(bool use = true) -> OfficeIMO.Excel.ExcelWorkbookImageExportBuilder!
-OfficeIMO.Excel.ExcelWorkbookImageExportBuilder.WithConditionalFormattingDate(System.DateTime date) -> OfficeIMO.Excel.ExcelWorkbookImageExportBuilder!
-OfficeIMO.Excel.ExcelWorkbookImageExportBuilder.WithGridlines(bool show = true) -> OfficeIMO.Excel.ExcelWorkbookImageExportBuilder!
-OfficeIMO.Excel.ExcelWorkbookImageExportBuilder.WithoutGridlines() -> OfficeIMO.Excel.ExcelWorkbookImageExportBuilder!
-OfficeIMO.Excel.ExcelWorkbookImageExportOptions
-OfficeIMO.Excel.ExcelWorkbookImageExportOptions.CloneWorkbook() -> OfficeIMO.Excel.ExcelWorkbookImageExportOptions!
-OfficeIMO.Excel.ExcelWorkbookImageExportOptions.ExcelWorkbookImageExportOptions() -> void
-OfficeIMO.Excel.ExcelWorkbookImageExportOptions.HeaderFooterDateTime.get -> System.DateTime?
-OfficeIMO.Excel.ExcelWorkbookImageExportOptions.HeaderFooterDateTime.set -> void
-OfficeIMO.Excel.ExcelWorkbookImageExportOptions.IncludeHiddenSheets.get -> bool
-OfficeIMO.Excel.ExcelWorkbookImageExportOptions.IncludeHiddenSheets.set -> void
-OfficeIMO.Excel.ExcelWorkbookImageExportOptions.SheetNames.get -> System.Collections.Generic.IReadOnlyList<string!>?
-OfficeIMO.Excel.ExcelWorkbookImageExportOptions.SheetNames.set -> void
-OfficeIMO.Excel.ExcelWorkbookImageExportOptions.SplitWorksheetsByManualPageBreaks.get -> bool
-OfficeIMO.Excel.ExcelWorkbookImageExportOptions.SplitWorksheetsByManualPageBreaks.set -> void
-OfficeIMO.Excel.ExcelWorkbookImageExportOptions.UseWorksheetPrintAreas.get -> bool
-OfficeIMO.Excel.ExcelWorkbookImageExportOptions.UseWorksheetPrintAreas.set -> void
 OfficeIMO.Excel.ExcelWorkbookInfo
 OfficeIMO.Excel.ExcelWorkbookInfo.ActiveWorksheetIndex.get -> int?
 OfficeIMO.Excel.ExcelWorkbookInfo.ActiveWorksheetName.get -> string?
@@ -4592,41 +4500,6 @@ OfficeIMO.Excel.ExcelWorksheetCopyOptions.MaxInCellImages.get -> int
 OfficeIMO.Excel.ExcelWorksheetCopyOptions.MaxInCellImages.set -> void
 OfficeIMO.Excel.ExcelWorksheetCopyOptions.MaxTotalInCellImageBytes.get -> long
 OfficeIMO.Excel.ExcelWorksheetCopyOptions.MaxTotalInCellImageBytes.set -> void
-OfficeIMO.Excel.ExcelWorksheetImageBatchExportBuilder
-OfficeIMO.Excel.ExcelWorksheetImageBatchExportBuilder.ForRange(string! range) -> OfficeIMO.Excel.ExcelWorksheetImageBatchExportBuilder!
-OfficeIMO.Excel.ExcelWorksheetImageBatchExportBuilder.IncludeCharts(bool include = true) -> OfficeIMO.Excel.ExcelWorksheetImageBatchExportBuilder!
-OfficeIMO.Excel.ExcelWorksheetImageBatchExportBuilder.IncludeConditionalFormatting(bool include = true) -> OfficeIMO.Excel.ExcelWorksheetImageBatchExportBuilder!
-OfficeIMO.Excel.ExcelWorksheetImageBatchExportBuilder.IncludeDrawingObjects(bool include = true) -> OfficeIMO.Excel.ExcelWorksheetImageBatchExportBuilder!
-OfficeIMO.Excel.ExcelWorksheetImageBatchExportBuilder.IncludeHidden(bool include = true) -> OfficeIMO.Excel.ExcelWorksheetImageBatchExportBuilder!
-OfficeIMO.Excel.ExcelWorksheetImageBatchExportBuilder.IncludeImages(bool include = true) -> OfficeIMO.Excel.ExcelWorksheetImageBatchExportBuilder!
-OfficeIMO.Excel.ExcelWorksheetImageBatchExportBuilder.ShowComments(bool show = true) -> OfficeIMO.Excel.ExcelWorksheetImageBatchExportBuilder!
-OfficeIMO.Excel.ExcelWorksheetImageBatchExportBuilder.ShowHyperlinkHints(bool show = true) -> OfficeIMO.Excel.ExcelWorksheetImageBatchExportBuilder!
-OfficeIMO.Excel.ExcelWorksheetImageBatchExportBuilder.SplitByManualPageBreaks(bool split = true) -> OfficeIMO.Excel.ExcelWorksheetImageBatchExportBuilder!
-OfficeIMO.Excel.ExcelWorksheetImageBatchExportBuilder.UsePrintArea(bool use = true) -> OfficeIMO.Excel.ExcelWorksheetImageBatchExportBuilder!
-OfficeIMO.Excel.ExcelWorksheetImageBatchExportBuilder.WithGridlines(bool show = true) -> OfficeIMO.Excel.ExcelWorksheetImageBatchExportBuilder!
-OfficeIMO.Excel.ExcelWorksheetImageExportBuilder
-OfficeIMO.Excel.ExcelWorksheetImageExportBuilder.ForRange(string! range) -> OfficeIMO.Excel.ExcelWorksheetImageExportBuilder!
-OfficeIMO.Excel.ExcelWorksheetImageExportBuilder.IncludeCharts(bool include = true) -> OfficeIMO.Excel.ExcelWorksheetImageExportBuilder!
-OfficeIMO.Excel.ExcelWorksheetImageExportBuilder.IncludeConditionalFormatting(bool include = true) -> OfficeIMO.Excel.ExcelWorksheetImageExportBuilder!
-OfficeIMO.Excel.ExcelWorksheetImageExportBuilder.IncludeDrawingObjects(bool include = true) -> OfficeIMO.Excel.ExcelWorksheetImageExportBuilder!
-OfficeIMO.Excel.ExcelWorksheetImageExportBuilder.IncludeHidden(bool include = true) -> OfficeIMO.Excel.ExcelWorksheetImageExportBuilder!
-OfficeIMO.Excel.ExcelWorksheetImageExportBuilder.IncludeImages(bool include = true) -> OfficeIMO.Excel.ExcelWorksheetImageExportBuilder!
-OfficeIMO.Excel.ExcelWorksheetImageExportBuilder.ShowComments(bool show = true) -> OfficeIMO.Excel.ExcelWorksheetImageExportBuilder!
-OfficeIMO.Excel.ExcelWorksheetImageExportBuilder.ShowHyperlinkHints(bool show = true) -> OfficeIMO.Excel.ExcelWorksheetImageExportBuilder!
-OfficeIMO.Excel.ExcelWorksheetImageExportBuilder.UsePrintArea(bool use = true) -> OfficeIMO.Excel.ExcelWorksheetImageExportBuilder!
-OfficeIMO.Excel.ExcelWorksheetImageExportBuilder.WithGridlines(bool show = true) -> OfficeIMO.Excel.ExcelWorksheetImageExportBuilder!
-OfficeIMO.Excel.ExcelWorksheetImageExportBuilder.WithoutGridlines() -> OfficeIMO.Excel.ExcelWorksheetImageExportBuilder!
-OfficeIMO.Excel.ExcelWorksheetImageExportOptions
-OfficeIMO.Excel.ExcelWorksheetImageExportOptions.CloneWorksheet() -> OfficeIMO.Excel.ExcelWorksheetImageExportOptions!
-OfficeIMO.Excel.ExcelWorksheetImageExportOptions.ExcelWorksheetImageExportOptions() -> void
-OfficeIMO.Excel.ExcelWorksheetImageExportOptions.HeaderFooterDateTime.get -> System.DateTime?
-OfficeIMO.Excel.ExcelWorksheetImageExportOptions.HeaderFooterDateTime.set -> void
-OfficeIMO.Excel.ExcelWorksheetImageExportOptions.Range.get -> string?
-OfficeIMO.Excel.ExcelWorksheetImageExportOptions.Range.set -> void
-OfficeIMO.Excel.ExcelWorksheetImageExportOptions.SplitByManualPageBreaks.get -> bool
-OfficeIMO.Excel.ExcelWorksheetImageExportOptions.SplitByManualPageBreaks.set -> void
-OfficeIMO.Excel.ExcelWorksheetImageExportOptions.UsePrintArea.get -> bool
-OfficeIMO.Excel.ExcelWorksheetImageExportOptions.UsePrintArea.set -> void
 OfficeIMO.Excel.ExcelWorksheetInfo
 OfficeIMO.Excel.ExcelWorksheetInfo.AutoFilter.get -> OfficeIMO.Excel.ExcelAutoFilterInspectionInfo?
 OfficeIMO.Excel.ExcelWorksheetInfo.Cells.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.Excel.ExcelCellInfo!>!

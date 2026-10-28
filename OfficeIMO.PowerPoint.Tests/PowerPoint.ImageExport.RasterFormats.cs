@@ -59,7 +59,7 @@ namespace OfficeIMO.Tests {
             presentation.AddSlide().BackgroundColor = "123456";
             string folder = Path.Combine(Path.GetTempPath(), "OfficeIMO-" + System.Guid.NewGuid().ToString("N"));
             try {
-                presentation.SaveAsImages(folder, new PowerPointDocumentImageExportOptions { Format = OfficeImageExportFormat.Webp });
+                presentation.SaveAsImages(folder, new PowerPointImageExportOptions { Format = OfficeImageExportFormat.Webp });
 
                 Assert.True(File.Exists(Path.Combine(folder, "Slide 1.webp")));
             } finally {

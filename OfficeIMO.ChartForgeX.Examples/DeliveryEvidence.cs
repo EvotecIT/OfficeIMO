@@ -21,10 +21,10 @@ internal static class DeliveryEvidence {
         }
         using (var document = ExcelDocument.Load(Path.Combine(output, "service-review.xlsx")))
             SaveImages(output, "excel-layout", document.ExportImages(OfficeImageExportFormat.Png,
-                new ExcelWorkbookImageExportOptions { ShowGridlines = false }));
+                new ExcelImageExportOptions { ShowGridlines = false }));
         using (var document = PowerPointDocument.Load(Path.Combine(output, "service-review.pptx")))
             SaveImages(output, "powerpoint-layout", document.ExportImages(OfficeImageExportFormat.Png));
-        var pdf = PdfDocument.Load(File.ReadAllBytes(Path.Combine(output, "service-review.pdf")));
+        using var pdf = PdfDocument.Load(Path.Combine(output, "service-review.pdf"));
         SaveImages(output, "saved-pdf", pdf.Render.ExportImages(OfficeImageExportFormat.Png));
         var visio = VisioDocument.Load(Path.Combine(output, "service-delivery.vsdx"));
         SaveImages(output, "visio-layout", visio.ExportImages(OfficeImageExportFormat.Png));

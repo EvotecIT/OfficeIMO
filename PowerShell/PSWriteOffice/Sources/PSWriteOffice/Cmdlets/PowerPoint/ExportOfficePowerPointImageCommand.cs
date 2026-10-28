@@ -36,7 +36,7 @@ public sealed class ExportOfficePowerPointImageCommand : PSCmdlet
 
     /// <summary>Optional slide selection, size, scale, theme, and rendering settings.</summary>
     [Parameter]
-    public PowerPointDocumentImageExportOptions? Options { get; set; }
+    public PowerPointImageExportOptions? Options { get; set; }
 
     /// <summary>Emit one structured image export result per saved slide.</summary>
     [Parameter]
@@ -58,7 +58,7 @@ public sealed class ExportOfficePowerPointImageCommand : PSCmdlet
                 owned = PowerPointDocumentService.LoadDocument(input, readOnly: true);
                 presentation = owned;
             }
-            PowerPointDocumentImageExportOptions effectiveOptions = Options?.CloneDocument() ?? new PowerPointDocumentImageExportOptions();
+            PowerPointImageExportOptions effectiveOptions = Options?.Clone() ?? new PowerPointImageExportOptions();
             effectiveOptions.Format = Format;
             IReadOnlyList<OfficeImageExportResult> results = presentation.SaveImageResults(output, effectiveOptions);
             if (PassThru.IsPresent) WriteObject(results, enumerateCollection: true);

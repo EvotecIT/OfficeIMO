@@ -16,7 +16,7 @@ namespace OfficeIMO.Excel {
             OfficeImageExportFormat format,
             OfficeImageExportFormat rasterPlanningFormat,
             OfficeImageExportResult content,
-            ExcelWorksheetImageExportOptions options,
+            ExcelImageExportOptions options,
             ExcelHeaderFooterInfo? headerFooterSnapshot,
             int pageNumber,
             int pageCount,
@@ -412,7 +412,7 @@ namespace OfficeIMO.Excel {
             int headerHeight,
             int footerHeight,
             double scale,
-            ExcelWorksheetImageExportOptions options,
+            ExcelImageExportOptions options,
             List<OfficeImageExportDiagnostic> diagnostics,
             string diagnosticSource,
             CancellationToken cancellationToken) {

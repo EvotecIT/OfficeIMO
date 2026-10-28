@@ -84,7 +84,7 @@ public sealed class HtmlExcelNamedTableLossTests {
         plain.CellValue(1, 1, "Selected plain value");
         var result = workbook.ToHtmlResult(new ExcelHtmlSaveOptions {
             ExportProfile = ExcelHtmlExportProfile.VisualReview,
-            VisualOptions = new ExcelWorkbookImageExportOptions {
+            VisualOptions = new ExcelImageExportOptions {
                 SheetNames = selectedSheet == null ? null : new[] { selectedSheet },
                 IncludeHiddenSheets = includeHidden
             }

@@ -25,7 +25,7 @@ namespace OfficeIMO.Tests
             ExcelRange range = sheet.Range("A1:E2");
             ExcelRangeVisualInfo snapshot = range.CreateVisualSnapshot();
             OfficeImageExportResult png = range.ExportImage(OfficeImageExportFormat.Png, new ExcelImageExportOptions { ShowGridlines = false });
-            string svg = range.ToSvg(new ExcelImageExportOptions { ShowGridlines = false });
+            string svg = System.Text.Encoding.UTF8.GetString(range.ExportImage(OfficeIMO.Drawing.OfficeImageExportFormat.Svg, new ExcelImageExportOptions { ShowGridlines = false }).Bytes);
             ExcelVisualSparkline visual = Assert.Single(snapshot.Sparklines);
             Assert.Equal("Sparklines!E2", visual.Source);
             Assert.Equal(new[] { 10D, 18D, 14D }, visual.Values);
@@ -59,7 +59,7 @@ namespace OfficeIMO.Tests
             sheet.AddSparklines("A2:C2", "D2", ExcelSparklineType.Stacked, displayNegative: true, displayAxis: true, seriesColor: OfficeIMO.OfficeColor.ParseHex("#0EA5E9"), negativeColor: OfficeIMO.OfficeColor.ParseHex("#DC2626"), axisColor: OfficeIMO.OfficeColor.ParseHex("#6B7280"));
             ExcelRange range = sheet.Range("A1:D2");
             ExcelRangeVisualInfo snapshot = range.CreateVisualSnapshot();
-            string svg = range.ToSvg(new ExcelImageExportOptions { ShowGridlines = false });
+            string svg = System.Text.Encoding.UTF8.GetString(range.ExportImage(OfficeIMO.Drawing.OfficeImageExportFormat.Svg, new ExcelImageExportOptions { ShowGridlines = false }).Bytes);
             Assert.Equal(2, snapshot.Sparklines.Count);
             Assert.Contains(snapshot.Sparklines, sparkline => sparkline.Kind == "column");
             Assert.Contains(snapshot.Sparklines, sparkline => sparkline.Kind == "stacked");

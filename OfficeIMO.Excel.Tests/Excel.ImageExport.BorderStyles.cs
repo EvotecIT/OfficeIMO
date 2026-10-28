@@ -24,7 +24,7 @@ namespace OfficeIMO.Tests {
 
             ExcelRange range = sheet.Range("A1:E1");
             ExcelRangeVisualInfo snapshot = range.CreateVisualSnapshot();
-            string svg = range.ToSvg(new ExcelImageExportOptions { ShowGridlines = false });
+            string svg = System.Text.Encoding.UTF8.GetString(range.ExportImage(OfficeIMO.Drawing.OfficeImageExportFormat.Svg, new ExcelImageExportOptions { ShowGridlines = false }).Bytes);
             OfficeImageExportResult png = range.ExportImage(OfficeImageExportFormat.Png, new ExcelImageExportOptions { Scale = 2, ShowGridlines = false });
 
             Assert.Contains("stroke-dasharray=\"4 2\"", svg, StringComparison.Ordinal);

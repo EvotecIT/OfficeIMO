@@ -297,12 +297,12 @@ namespace OfficeIMO.Excel {
             r1 <= otherR2 && r2 >= otherR1 && c1 <= otherC2 && c2 >= otherC1;
 
         private static double ResolveColumnWidth(ExcelWorksheetGeometryIndex geometry, ExcelColumnInfo? definition, ExcelImageExportOptions options) {
-            return geometry.GetExportColumnWidthPixels(definition?.StartIndex ?? 0, options.DefaultColumnWidthPixels);
+            return geometry.GetExportColumnWidthPixels(definition?.StartIndex ?? 0, options.DefaultColumnWidth.ToPixels());
         }
 
         private static double ResolveRowHeight(ExcelRowInfo? definition, ExcelImageExportOptions options) {
             if (definition?.StoredHeight== null) {
-                return options.DefaultRowHeightPixels;
+                return options.DefaultRowHeight.ToPixels();
             }
 
             return Math.Max(1D, Math.Round(definition.StoredHeight.Value * 96D / 72D, 2));

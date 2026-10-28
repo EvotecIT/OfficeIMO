@@ -63,14 +63,14 @@ Still lossy VP8 WebP with optional raw or lossless-compressed alpha and ordinary
 | Surface | Status | Evidence | Key gaps |
 | --- | --- | --- | --- |
 | Range to five image formats | Mature | Large `ExcelRange_ImageExport...` coverage; visual baseline and raster-format gates | Continue parity fixes from visual review |
-| Worksheet used range / explicit range | Supported | `ExcelSheet.ExportImage`, `ExcelWorksheetImageExportOptions.Range` | Automatic multi-page fit pagination is diagnostic-only |
-| Workbook/sheet batch export | Supported | `ExcelDocument.ExportImages`, worksheet split APIs, `ExcelDocument.ToImages()` | Preset profiles and example polish can build on the fluent surface |
+| Worksheet used range / explicit range | Supported | `ExcelSheet.ExportImage`, `ExcelImageExportOptions.Range` | Automatic multi-page fit pagination is diagnostic-only |
+| Workbook/sheet batch export | Supported | `ExcelDocument.ExportImages`, worksheet split APIs, `SaveAsImages(folder, options)` | Encoding, selection and limits are available through `ExcelImageExportOptions` |
 | Cell values, number formats, text layout, and borders | Broad support | Number format, alignment, spill, clipping, rotation, stacked text, and shared border-box export tests | Edge cases should stay Excel-owned until normalized Drawing input exists |
 | Comment indicators and bodies | Partial to broad | Indicator/body export tests, visible-range filtering, obstacle-aware callout placement, and rich legacy comment runs rendered through shared Drawing rich text | Exact Excel popover chrome and threaded-comment rich run semantics remain diagnostic-driven |
 | Conditional formatting | Broad support | Color scales, data bars, icon sets including arrows/traffic lights/ratings/quarters/flags, differential styles tests | Unsupported rule shapes remain diagnostic-driven |
 | Images/charts/drawing objects | Partial to broad. Raster outputs use the shared PNG/APNG, baseline/progressive JPEG, classic TIFF strip/tile and chunky/planar source set with uncompressed/LZW/PackBits/Deflate payloads, uncompressed BMP, composited GIF, bounded AVIF still images as described below, and ordinary lossless VP8L and lossy VP8 WebP with raw or lossless-compressed alpha; SVG output directly embeds detected PNG/GIF/WebP bytes when safe and transcodes other supported inputs | Shared Drawing image/chart/object paths and source-format tests | Raster rendering uses the default first APNG/GIF frame and first TIFF page; nonzero frame/page selection, animation timing, JPEG-in-TIFF, BigTIFF, and animated WebP rasterization remain caller-codec cases. Directly embedded SVG image behavior follows the SVG host |
 | Header/footer/page chrome | Partial to broad | Page-sliced text and image chrome use shared composition, Drawing/caller image decode, visible fallback diagnostics, and approved PNG/SVG baselines | Excel-exact image placement, scaling-with-document semantics, and full automatic fit pagination remain open |
-| Friendly API | Useful first slices | `ToPng`, `ToSvg`, `SaveAs...`, `ToImage()` for range/worksheet, `ToImages()` for workbook batch export, and inherited shared fluent presets/export/save/`ToPng()`/`ToSvg()` aliases | Example polish can build on the fluent adapters |
+| Friendly API | Useful first slices | `ToImage(options)` for charts, ranges and worksheets; `SaveAsImage` and worksheet/workbook `SaveAsImages`; bytes/out-report/async-result conversion forms | Current options and report forms share the Core execution engine |
 
 ## PowerPoint
 

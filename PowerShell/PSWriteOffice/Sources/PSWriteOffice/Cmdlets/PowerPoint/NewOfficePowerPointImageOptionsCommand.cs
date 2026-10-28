@@ -12,8 +12,8 @@ namespace PSWriteOffice.Cmdlets.PowerPoint;
 /// Export-OfficePowerPointImage -Path .\Deck.pptx -OutputPath .\Slides -Options $options</code>
 /// </example>
 [Cmdlet(VerbsCommon.New, "OfficePowerPointImageOptions")]
-[OutputType(typeof(PowerPointDocumentImageExportOptions))]
-public sealed class NewOfficePowerPointImageOptionsCommand : OfficeImageOptionsCommandBase<PowerPointDocumentImageExportOptions> {
+[OutputType(typeof(PowerPointImageExportOptions))]
+public sealed class NewOfficePowerPointImageOptionsCommand : OfficeImageOptionsCommandBase<PowerPointImageExportOptions> {
     /// <summary>One-based slide numbers to export.</summary>
     [Parameter] public int[]? SlideNumber { get; set; }
     /// <summary>Include hidden slides.</summary>
@@ -37,7 +37,7 @@ public sealed class NewOfficePowerPointImageOptionsCommand : OfficeImageOptionsC
 
     /// <inheritdoc />
     protected override void ProcessRecord() {
-        var options = new PowerPointDocumentImageExportOptions();
+        var options = new PowerPointImageExportOptions();
         ApplyCommon(options);
         if (SlideNumber != null) options.SlideNumbers = SlideNumber;
         Apply(nameof(IncludeHiddenSlides), value => options.IncludeHiddenSlides = value);

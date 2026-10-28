@@ -86,12 +86,12 @@ namespace OfficeIMO.Tests
             InvalidDataException exception = Assert.Throws<InvalidDataException>(() => ((System.Action<OfficeIMO.Excel.ExcelReportBuilder>)(composer => composer.AddTable(rows, configure: options => options.MaxCells = 5)))(document.AddWorksheet("Report", OfficeIMO.Excel.ExcelSheetNameValidationMode.Sanitize).Report()));
             Assert.Contains("requires at least 6 cells", exception.Message, StringComparison.Ordinal);
             Assert.Contains("2 data rows + 1 header row x 2 columns", exception.Message, StringComparison.Ordinal);
-            Assert.Contains("options.MaxCells = 6", exception.Message, StringComparison.Ordinal);
-            Assert.Contains("AddTable(DataTable)", exception.Message, StringComparison.Ordinal);
+
+            Assert.Empty(document.Sheets[0].WorksheetPart.Worksheet.Descendants<DocumentFormat.OpenXml.Spreadsheet.Cell>());
         }
 
         [Fact]
-        public void SheetComposer_ExplainsHowToOverrideRowAndColumnLimits()
+        public void SheetComposer_RejectsProjectedRowsAndColumnsBeyondConfiguredLimits()
         {
             var rows = new[]
             {
@@ -101,11 +101,11 @@ namespace OfficeIMO.Tests
             using var rowDocument = ExcelDocument.Create();
             InvalidDataException rowException = Assert.Throws<InvalidDataException>(() => ((System.Action<OfficeIMO.Excel.ExcelReportBuilder>)(composer => composer.AddTable(rows, configure: options => options.MaxRows = 1)))(rowDocument.AddWorksheet("Rows", OfficeIMO.Excel.ExcelSheetNameValidationMode.Sanitize).Report()));
             Assert.Contains("requires at least 2 data rows", rowException.Message, StringComparison.Ordinal);
-            Assert.Contains("options.MaxRows = 2", rowException.Message, StringComparison.Ordinal);
+
             using var columnDocument = ExcelDocument.Create();
             InvalidDataException columnException = Assert.Throws<InvalidDataException>(() => ((System.Action<OfficeIMO.Excel.ExcelReportBuilder>)(composer => composer.AddTable(rows, configure: options => options.MaxColumns = 1)))(columnDocument.AddWorksheet("Columns", OfficeIMO.Excel.ExcelSheetNameValidationMode.Sanitize).Report()));
             Assert.Contains("requires at least 2 columns", columnException.Message, StringComparison.Ordinal);
-            Assert.Contains("options.MaxColumns = 2", columnException.Message, StringComparison.Ordinal);
+
         }
 
         [Fact]

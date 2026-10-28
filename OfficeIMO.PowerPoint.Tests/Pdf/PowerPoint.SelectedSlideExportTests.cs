@@ -20,7 +20,7 @@ public sealed class PowerPointSelectedSlideExportTests {
         else background.BackgroundColor = "123456";
         deck.AddSlide().SetBackgroundImage(new MemoryStream(picture), OfficeImageFormat.Png);
 
-        var images = deck.ExportImages(OfficeImageExportFormat.Png, new PowerPointDocumentImageExportOptions {
+        var images = deck.ExportImages(OfficeImageExportFormat.Png, new PowerPointImageExportOptions {
             MaximumTotalEmbeddedImageBytes = picture.Length
         });
 

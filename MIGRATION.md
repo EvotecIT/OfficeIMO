@@ -1,5 +1,19 @@
 # Upgrading OfficeIMO
 
+Excel and PowerPoint image builders and format-named twins are removed. Use
+`ToImage(options)`, `ToImage(options, out report)`, `ToImageAsync(options)`,
+`SaveAsImage(pathOrStream, options)` or `SaveAsImages(folder, options)`.
+Set `Format` on the options; saves return `OfficeConversionReport`.
+`ExcelWorksheetImageExportOptions` and `ExcelWorkbookImageExportOptions` merge
+into `ExcelImageExportOptions`. Use `UsePrintArea` and `SplitByManualPageBreaks`
+for worksheets and workbooks. Fallback rendered column and row dimensions become
+`DefaultColumnWidth` and `DefaultRowHeight`, both `OfficeLength`.
+`PowerPointDocumentImageExportOptions` merges into `PowerPointImageExportOptions`;
+`SlideNumbers` and `IncludeHiddenSlides` select a batch. Async byte conversion
+returns `OfficeConversionResult<byte[]>`. `FileConflictPolicy`, `FailOnLoss`,
+safety limits, fonts, cancellation and progress remain options.
+
+
 ## Word page image exports
 
 Replace Word's `ToPng`, `ToSvg`, `ToJpeg`, `ToTiff` and `ToWebp` with
@@ -263,7 +277,7 @@ SVG non-interpolated images are embedded rasters with sampling hints instead of 
 
 ## PowerPoint PDF and slide images
 
-PowerPoint image export stays in `OfficeIMO.PowerPoint`; forward PDF conversion lives in `OfficeIMO.PowerPoint.Pdf`. Replace `ToPng`, `ToJpeg`, `ToSvg` and the image builders with `slide.ToImage(options)`, setting `options.Format`. `SaveAsImage(pathOrStream, options)` and `SaveAsImages(folder, options)` return `OfficeConversionReport`; async in-memory rendering returns `OfficeConversionResult<byte[]>`. Batch slide numbers and hidden-slide selection belong in `PowerPointDocumentImageExportOptions`.
+PowerPoint image export stays in `OfficeIMO.PowerPoint`; forward PDF conversion lives in `OfficeIMO.PowerPoint.Pdf`. Replace `ToPng`, `ToJpeg`, `ToSvg` and the image builders with `slide.ToImage(options)`, setting `options.Format`. `SaveAsImage(pathOrStream, options)` and `SaveAsImages(folder, options)` return `OfficeConversionReport`; async in-memory rendering returns `OfficeConversionResult<byte[]>`. Batch slide numbers and hidden-slide selection belong in `PowerPointImageExportOptions`.
 
 `AddTextBox` creates an ordinary text shape. Set `PlaceholderType` and `PlaceholderIndex` explicitly when creating a template placeholder. Ordinary text shapes on slide layouts remain visible inherited content; structural placeholder prompts supply styles and geometry.
 

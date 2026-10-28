@@ -38,7 +38,7 @@ namespace OfficeIMO.Tests {
             ExcelSheet sheet = document.AddWorksheet("Data");
             sheet.CellValue(1, 1, "Composed raster export");
 
-            OfficeImageExportResult result = Assert.Single(sheet.ExportImages(format, new ExcelWorksheetImageExportOptions {
+            OfficeImageExportResult result = Assert.Single(sheet.ExportImages(format, new ExcelImageExportOptions {
                 SplitByManualPageBreaks = true
             }));
 
@@ -56,7 +56,7 @@ namespace OfficeIMO.Tests {
 
             OfficeImageExportResult result = Assert.Single(sheet.ExportImages(
                 OfficeImageExportFormat.Jpeg,
-                new ExcelWorksheetImageExportOptions {
+                new ExcelImageExportOptions {
                     SplitByManualPageBreaks = true,
                     RasterEncoding = new OfficeRasterEncodingOptions {
                         Png = new OfficePngEncodeOptions {
@@ -84,7 +84,7 @@ namespace OfficeIMO.Tests {
 
             OfficeImageExportResult result = Assert.Single(sheet.ExportImages(
                 OfficeImageExportFormat.Png,
-                new ExcelWorksheetImageExportOptions {
+                new ExcelImageExportOptions {
                     SplitByManualPageBreaks = true,
                     TargetDpi = 192D,
                     MaximumRasterPixels = 100_000L
@@ -107,7 +107,7 @@ namespace OfficeIMO.Tests {
             ExcelSheet sheet = document.AddWorksheet("Data");
             sheet.CellValue(1, 1, "Batch raster export");
             try {
-                document.SaveAsImages(folder, OfficeImageExportFormat.Tiff);
+                document.SaveAsImages(folder, new ExcelImageExportOptions { Format = OfficeImageExportFormat.Tiff });
 
                 Assert.True(File.Exists(Path.Combine(folder, "Data.tiff")));
             } finally {

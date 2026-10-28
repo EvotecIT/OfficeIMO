@@ -56,13 +56,10 @@ namespace OfficeIMO.Tests {
                 heightPixels: 220,
                 title: "Ticket status");
 
-            OfficeImageExportResult result = chart.ToImage()
-                .AsWebp()
-                .WithScale(1.25)
-                .Export();
+            byte[] result = chart.ToImage(new ExcelImageExportOptions { Format = OfficeImageExportFormat.Webp, Scale = 1.25D });
 
-            Assert.Equal(OfficeImageExportFormat.Webp, result.Format);
-            Assert.True(result.EncodedLength > 0);
+            Assert.Equal(OfficeImageFormat.Webp, OfficeImageReader.Identify(result).Format);
+            Assert.NotEmpty(result);
         }
 
         [Theory]
@@ -83,14 +80,13 @@ namespace OfficeIMO.Tests {
                 heightPixels: 220,
                 title: "Bounded chart");
 
-            OfficeImageExportResult result = chart.ToImage()
-                .WithScale(2D)
-                .FitWithin(180, 100)
-                .As(format)
-                .Export();
+            byte[] result = chart.ToImage(new ExcelImageExportOptions {
+                Format = format, Scale = 2D, MaximumOutputWidth = 180, MaximumOutputHeight = 100
+            });
 
-            Assert.True(result.Width <= 180);
-            Assert.True(result.Height <= 100);
+            OfficeImageInfo info = OfficeImageReader.Identify(result);
+            Assert.True(info.Width <= 180);
+            Assert.True(info.Height <= 100);
         }
 
         [Theory]

@@ -94,7 +94,7 @@ public sealed class ExcelConditionalIconFidelityTests {
         }
 
         double imageScale = percent / 50D;
-        byte[] png = sheet.Range("A1:A3").ToPng(new ExcelImageExportOptions { ShowGridlines = false, Scale = imageScale });
+        byte[] png = sheet.Range("A1:A3").ToImage(new ExcelImageExportOptions { ShowGridlines = false, Scale = imageScale });
         Assert.True(OfficePngReader.TryDecode(png, out var image));
         AssertSymbolArtwork(image!, 32D * imageScale);
         foreach (var cell in snapshot.Cells) {
@@ -165,7 +165,7 @@ public sealed class ExcelConditionalIconFidelityTests {
             Assert.Equal(3, selected.Row);
             Assert.Equal(OfficeConditionalIconKind.GreenCheck, selected.Kind);
         }
-        string svg = imported.Range("A1:A3").ToSvg(new ExcelImageExportOptions { ShowGridlines = false });
+        string svg = System.Text.Encoding.UTF8.GetString(imported.Range("A1:A3").ExportImage(OfficeIMO.Drawing.OfficeImageExportFormat.Svg, new ExcelImageExportOptions { ShowGridlines = false }).Bytes);
         if (!showValue) {
             Assert.DoesNotContain(">-1<", svg, StringComparison.Ordinal);
             Assert.DoesNotContain(">0<", svg, StringComparison.Ordinal);

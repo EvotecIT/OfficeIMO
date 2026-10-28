@@ -386,7 +386,7 @@ namespace OfficeIMO.Tests
                 (reportBuilder10).Finish(autoFitColumns: false);
             }
 
-            string svg = report!.Range("A1:B2").ToSvg(new ExcelImageExportOptions { ShowGridlines = false });
+            string svg = System.Text.Encoding.UTF8.GetString(report!.Range("A1:B2").ExportImage(OfficeIMO.Drawing.OfficeImageExportFormat.Svg, new ExcelImageExportOptions { ShowGridlines = false }).Bytes);
             string accentArgb = Assert.IsType<string>(doc.ResolveThemeColorArgb(4U));
             string expectedAccent = accentArgb.Substring(accentArgb.Length - 6);
             int headerTextIndex = svg.IndexOf(">Name</text>", StringComparison.Ordinal);
@@ -412,7 +412,7 @@ namespace OfficeIMO.Tests
             }
 
             report!.Range("A1").SetFillColor("C00000").SetFontColor("FFFF00");
-            string svg = report.Range("A1:B2").ToSvg(new ExcelImageExportOptions { ShowGridlines = false });
+            string svg = System.Text.Encoding.UTF8.GetString(report.Range("A1:B2").ExportImage(OfficeIMO.Drawing.OfficeImageExportFormat.Svg, new ExcelImageExportOptions { ShowGridlines = false }).Bytes);
             int headerTextIndex = svg.IndexOf(">Name</text>", StringComparison.Ordinal);
             Assert.True(headerTextIndex > 0);
             int headerElementStart = svg.LastIndexOf("<text ", headerTextIndex, StringComparison.Ordinal);
@@ -436,7 +436,7 @@ namespace OfficeIMO.Tests
             }
 
             report!.Range("A1").SetFillColor("C00000");
-            string svg = report.Range("A1:B2").ToSvg(new ExcelImageExportOptions { ShowGridlines = false });
+            string svg = System.Text.Encoding.UTF8.GetString(report.Range("A1:B2").ExportImage(OfficeIMO.Drawing.OfficeImageExportFormat.Svg, new ExcelImageExportOptions { ShowGridlines = false }).Bytes);
             int headerTextIndex = svg.IndexOf(">Name</text>", StringComparison.Ordinal);
             Assert.True(headerTextIndex > 0);
             int headerElementStart = svg.LastIndexOf("<text ", headerTextIndex, StringComparison.Ordinal);
@@ -461,7 +461,7 @@ namespace OfficeIMO.Tests
 
             report!.CellAt(1, 1).SetGradientFill("C00000", "00A000", 45D);
             ExcelRangeVisualInfo snapshot = report.Range("A1:B2").CreateVisualSnapshot();
-            string svg = report.Range("A1:B2").ToSvg(new ExcelImageExportOptions { ShowGridlines = false });
+            string svg = System.Text.Encoding.UTF8.GetString(report.Range("A1:B2").ExportImage(OfficeIMO.Drawing.OfficeImageExportFormat.Svg, new ExcelImageExportOptions { ShowGridlines = false }).Bytes);
             ExcelVisualCell header = Assert.Single(snapshot.Cells, cell => cell.Row == 1 && cell.Column == 1);
             Assert.Equal("FFC00000", header.Style.FillGradientStartColorArgb);
             Assert.Equal("FF00A000", header.Style.FillGradientEndColorArgb);
@@ -484,7 +484,7 @@ namespace OfficeIMO.Tests
             }
 
             ExcelRangeVisualInfo snapshot = report!.Range("A1:B2").CreateVisualSnapshot();
-            string svg = report.Range("A1:B2").ToSvg(new ExcelImageExportOptions { ShowGridlines = false });
+            string svg = System.Text.Encoding.UTF8.GetString(report.Range("A1:B2").ExportImage(OfficeIMO.Drawing.OfficeImageExportFormat.Svg, new ExcelImageExportOptions { ShowGridlines = false }).Bytes);
             string borderArgb = Assert.IsType<string>(doc.ResolveThemeColorArgb(0U, -0.35D));
             string expectedBorder = borderArgb.Substring(borderArgb.Length - 6);
             ExcelVisualCell header = Assert.Single(snapshot.Cells, cell => cell.Row == 1 && cell.Column == 1);
@@ -506,7 +506,7 @@ namespace OfficeIMO.Tests
 
             report!.CellAt(1, 1).SetBorder(ExcelBorderStyle.Double, "C00000");
             ExcelRangeVisualInfo snapshot = report.Range("A1:B2").CreateVisualSnapshot();
-            string svg = report.Range("A1:B2").ToSvg(new ExcelImageExportOptions { ShowGridlines = false });
+            string svg = System.Text.Encoding.UTF8.GetString(report.Range("A1:B2").ExportImage(OfficeIMO.Drawing.OfficeImageExportFormat.Svg, new ExcelImageExportOptions { ShowGridlines = false }).Bytes);
             ExcelVisualCell header = Assert.Single(snapshot.Cells, cell => cell.Row == 1 && cell.Column == 1);
             Assert.Equal("double", header.Style.Border?.Bottom?.Style);
             Assert.Equal("FFC00000", header.Style.Border?.Bottom?.ColorArgb);
@@ -542,7 +542,7 @@ namespace OfficeIMO.Tests
                 (reportBuilder16).Finish(autoFitColumns: false);
             }
 
-            string svg = report!.Range("A1:B2").ToSvg(new ExcelImageExportOptions { ShowGridlines = false });
+            string svg = System.Text.Encoding.UTF8.GetString(report!.Range("A1:B2").ExportImage(OfficeIMO.Drawing.OfficeImageExportFormat.Svg, new ExcelImageExportOptions { ShowGridlines = false }).Bytes);
             int headerTextIndex = svg.IndexOf(">Name</text>", StringComparison.Ordinal);
             Assert.True(headerTextIndex > 0);
             int headerElementStart = svg.LastIndexOf("<text ", headerTextIndex, StringComparison.Ordinal);

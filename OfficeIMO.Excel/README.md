@@ -1945,25 +1945,27 @@ Ranges, worksheets, and workbook batches can be exported as PNG, JPEG, TIFF, los
 ```csharp
 using OfficeIMO.Drawing;
 
-byte[] tiff = sheet.Range("A1:F20").ToTiff(new ExcelImageExportOptions {
+byte[] tiff = sheet.Range("A1:F20").ToImage(new ExcelImageExportOptions {
+    Format = OfficeImageExportFormat.Tiff,
     ShowGridlines = false,
     RasterEncoding = new OfficeRasterEncodingOptions {
         Tiff = new OfficeTiffEncodeOptions { Compression = OfficeTiffCompression.PackBits }
     }
 });
 
-document.ToImages()
-    .ForSheets("Summary", "Data")
-    .FitWithin(1600, 1200)
-    .AsWebp()
-    .Save("preview-images");
+document.SaveAsImages("preview-images", new ExcelImageExportOptions {
+    SheetNames = new[] { "Summary", "Data" },
+    MaximumOutputWidth = 1600,
+    MaximumOutputHeight = 1200,
+    Format = OfficeImageExportFormat.Webp
+});
 
-sheet.ToImages()
-    .UsePrintArea()
-    .SplitByManualPageBreaks()
-    .WithGridlines(false)
-    .AsPng()
-    .Save("print-area-pages");
+sheet.SaveAsImages("print-area-pages", new ExcelImageExportOptions {
+    UsePrintArea = true,
+    SplitByManualPageBreaks = true,
+    ShowGridlines = false,
+    Format = OfficeImageExportFormat.Png
+});
 ```
 
 Excel layout, print-title, page-setup, and header/footer composition stays in `OfficeIMO.Excel`; final sizing and encoding are delegated once to `OfficeIMO.Drawing`. Worksheet batches can use print-area segments or manual page breaks without routing through a workbook export.
@@ -1971,18 +1973,18 @@ Excel layout, print-title, page-setup, and header/footer composition stays in `O
 Charts use the same managed image contract and preserve their anchored dimensions:
 
 ```csharp
-ExcelChart chart = sheet.ChartFromTable("RevenueTable")
-    .RevenueTrend("Revenue trend")
-    .Size(640, 320)
-    .At(row: 1, column: 5);
+ExcelChart chart = sheet.AddChartFromTable("RevenueTable", row: 1, column: 5,
+    title: "Revenue trend");
 
-chart.ToImage()
-    .WithBackground(OfficeColor.White)
-    .AsPng()
-    .Save("revenue-chart.png");
-
-chart.SaveAsSvg("revenue-chart.svg");
+chart.SaveAsImage("revenue-chart.png", new ExcelImageExportOptions {
+    BackgroundColor = OfficeIMO.OfficeColor.White
+});
+chart.SaveAsImage("revenue-chart.svg", new ExcelImageExportOptions {
+    Format = OfficeImageExportFormat.Svg
+});
 ```
+
+`ToImage(options)` returns encoded bytes. `ToImage(options, out report)` also supplies fidelity diagnostics; `ToImageAsync(options)` returns bytes and report together. Single-image and batch saves return `OfficeConversionReport`, preserve caller-owned streams and support cancellation. `FailOnLoss` rejects diagnosed loss before writing, and `FileConflictPolicy` controls existing files. One `ExcelImageExportOptions` type holds range, sheet, print-area, content, font and encoding settings. Fallback image-layout dimensions use `DefaultColumnWidth` and `DefaultRowHeight` as `OfficeLength` values.
 
 ## Content provenance
 

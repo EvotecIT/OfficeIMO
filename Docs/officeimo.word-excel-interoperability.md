@@ -229,11 +229,8 @@ using OfficeIMO.Word;
 using WordDocument document = WordDocument.Load("report.docx");
 document.InspectFeatures().EnsureCan(WordPreflightCapability.RenderFixedLayout);
 
-IReadOnlyList<OfficeImageExportResult> pages = document.ToImages()
-    .FromPage(0)
-    .TakePages(3)
-    .AsPng()
-    .Save("previews");
+OfficeIMO.OfficeConversionReport pages = document.SaveAsImages("previews",
+    new WordImageExportOptions { PageIndex = 0, PageCount = 3, Format = OfficeImageExportFormat.Png });
 ```
 
 The renderer estimates pagination; it is not Microsoft Word's layout engine.

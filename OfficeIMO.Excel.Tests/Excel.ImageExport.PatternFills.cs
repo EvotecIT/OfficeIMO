@@ -19,7 +19,7 @@ namespace OfficeIMO.Tests {
             ExcelRange range = sheet.Range("A1:A1");
             ExcelRangeVisualInfo snapshot = range.CreateVisualSnapshot();
             OfficeImageExportResult png = range.ExportImage(OfficeImageExportFormat.Png, new ExcelImageExportOptions { Scale = 2, ShowGridlines = false });
-            string svg = range.ToSvg(new ExcelImageExportOptions { Scale = 2, ShowGridlines = false });
+            string svg = System.Text.Encoding.UTF8.GetString(range.ExportImage(OfficeIMO.Drawing.OfficeImageExportFormat.Svg, new ExcelImageExportOptions { Scale = 2, ShowGridlines = false }).Bytes);
 
             ExcelVisualCell cell = Assert.Single(snapshot.Cells);
             Assert.Equal("darkGrid", cell.Style.FillPatternType);
@@ -46,7 +46,7 @@ namespace OfficeIMO.Tests {
 
             ExcelRange range = sheet.Range("A1:A1");
             OfficeImageExportResult png = range.ExportImage(OfficeImageExportFormat.Png, new ExcelImageExportOptions { Scale = 2, ShowGridlines = false });
-            string svg = range.ToSvg(new ExcelImageExportOptions { Scale = 2, ShowGridlines = false });
+            string svg = System.Text.Encoding.UTF8.GetString(range.ExportImage(OfficeIMO.Drawing.OfficeImageExportFormat.Svg, new ExcelImageExportOptions { Scale = 2, ShowGridlines = false }).Bytes);
 
             Assert.Contains("fill=\"#00A000\"", svg, StringComparison.Ordinal);
             Assert.DoesNotContain("stroke=\"#00A000\"", svg, StringComparison.Ordinal);
@@ -69,7 +69,7 @@ namespace OfficeIMO.Tests {
             ExcelRange range = sheet.Range("A1:A1");
             ExcelRangeVisualInfo snapshot = range.CreateVisualSnapshot();
             OfficeImageExportResult png = range.ExportImage(OfficeImageExportFormat.Png, new ExcelImageExportOptions { Scale = 2, ShowGridlines = false });
-            string svg = range.ToSvg(new ExcelImageExportOptions { Scale = 2, ShowGridlines = false });
+            string svg = System.Text.Encoding.UTF8.GetString(range.ExportImage(OfficeIMO.Drawing.OfficeImageExportFormat.Svg, new ExcelImageExportOptions { Scale = 2, ShowGridlines = false }).Bytes);
 
             ExcelVisualCell cell = Assert.Single(snapshot.Cells);
             Assert.Equal("gradient", cell.Style.FillPatternType);
@@ -100,7 +100,7 @@ namespace OfficeIMO.Tests {
             ExcelRange range = sheet.Range("A1:A1");
             ExcelRangeVisualInfo snapshot = range.CreateVisualSnapshot();
             OfficeImageExportResult png = range.ExportImage(OfficeImageExportFormat.Png, new ExcelImageExportOptions { Scale = 2, ShowGridlines = false });
-            string svg = range.ToSvg(new ExcelImageExportOptions { Scale = 2, ShowGridlines = false });
+            string svg = System.Text.Encoding.UTF8.GetString(range.ExportImage(OfficeIMO.Drawing.OfficeImageExportFormat.Svg, new ExcelImageExportOptions { Scale = 2, ShowGridlines = false }).Bytes);
 
             ExcelVisualCell cell = Assert.Single(snapshot.Cells);
             Assert.False(cell.Style.FillGradientUnsupported);
@@ -130,7 +130,7 @@ namespace OfficeIMO.Tests {
 
             ExcelRange range = sheet.Range("A1:A1");
             ExcelRangeVisualInfo snapshot = range.CreateVisualSnapshot();
-            string svg = range.ToSvg(new ExcelImageExportOptions { Scale = 2, ShowGridlines = false });
+            string svg = System.Text.Encoding.UTF8.GetString(range.ExportImage(OfficeIMO.Drawing.OfficeImageExportFormat.Svg, new ExcelImageExportOptions { Scale = 2, ShowGridlines = false }).Bytes);
 
             ExcelVisualCell cell = Assert.Single(snapshot.Cells);
             Assert.False(cell.Style.FillGradientUnsupported);

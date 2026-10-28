@@ -12,8 +12,8 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Creates a format-neutral visual snapshot for a worksheet range or the used range.
         /// </summary>
-        public ExcelRangeVisualInfo CreateVisualSnapshot(ExcelWorksheetImageExportOptions? options = null) {
-            ExcelWorksheetImageExportOptions resolved = NormalizeWorksheetOptions(options);
+        public ExcelRangeVisualInfo CreateVisualSnapshot(ExcelImageExportOptions? options = null) {
+            ExcelImageExportOptions resolved = NormalizeWorksheetOptions(options);
             WorksheetImageRangeResolution range = ResolveWorksheetImageRanges(resolved, allowMultipleResults: false)[0];
             return ExcelRangeVisualSnapshotBuilder.Build(this, range.Range, resolved, range.Diagnostics);
         }
@@ -23,9 +23,9 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public OfficeImageExportResult ExportImage(
             OfficeImageExportFormat format,
-            ExcelWorksheetImageExportOptions? options = null,
+            ExcelImageExportOptions? options = null,
             CancellationToken cancellationToken = default) {
-            ExcelWorksheetImageExportOptions resolved = NormalizeWorksheetOptions(options);
+            ExcelImageExportOptions resolved = NormalizeWorksheetOptions(options);
             return OfficeImageExportExecutionScope.Run(
                 resolved,
                 cancellationToken,
@@ -47,7 +47,7 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Exports one or more worksheet image results. Multi-area print areas and manual page-break splits are returned as separate images when requested.
         /// </summary>
-        public IReadOnlyList<OfficeImageExportResult> ExportImages(OfficeImageExportFormat format, ExcelWorksheetImageExportOptions? options = null) {
+        public IReadOnlyList<OfficeImageExportResult> ExportImages(OfficeImageExportFormat format, ExcelImageExportOptions? options = null) {
             var results = new List<OfficeImageExportResult>();
             ExportImages(format, results.Add, options);
             return results.AsReadOnly();
@@ -57,17 +57,17 @@ namespace OfficeIMO.Excel {
         public void ExportImages(
             OfficeImageExportFormat format,
             OfficeImageExportConsumer consumer,
-            ExcelWorksheetImageExportOptions? options = null,
+            ExcelImageExportOptions? options = null,
             CancellationToken cancellationToken = default) {
             if (consumer == null) throw new ArgumentNullException(nameof(consumer));
-            ExcelWorksheetImageExportOptions resolved = NormalizeWorksheetOptions(options);
+            ExcelImageExportOptions resolved = NormalizeWorksheetOptions(options);
             ExportImagesCore(format, consumer, resolved, cancellationToken, null);
         }
 
         internal void ExportImagesCore(
             OfficeImageExportFormat format,
             OfficeImageExportConsumer consumer,
-            ExcelWorksheetImageExportOptions resolved,
+            ExcelImageExportOptions resolved,
             CancellationToken cancellationToken,
             OfficeImageExportEncodingBudget? encodingBudget) {
             IReadOnlyList<WorksheetImageRangeResolution>? ranges = null;
@@ -112,7 +112,7 @@ namespace OfficeIMO.Excel {
         }
 
         internal int GetImageExportResultCount(
-            ExcelWorksheetImageExportOptions options,
+            ExcelImageExportOptions options,
             CancellationToken cancellationToken = default) {
             if (options == null) throw new ArgumentNullException(nameof(options));
             options.Validate();
@@ -120,72 +120,8 @@ namespace OfficeIMO.Excel {
             return ResolveWorksheetImageRanges(options, allowMultipleResults: true, cancellationToken).Count;
         }
 
-        /// <summary>
-        /// Renders the worksheet used range to PNG bytes.
-        /// </summary>
-        public byte[] ToPng(ExcelWorksheetImageExportOptions? options = null) =>
-            ExportImage(OfficeImageExportFormat.Png, options).Bytes;
-
-        /// <summary>
-        /// Renders the worksheet used range to SVG text.
-        /// </summary>
-        public string ToSvg(ExcelWorksheetImageExportOptions? options = null) =>
-            Encoding.UTF8.GetString(ExportImage(OfficeImageExportFormat.Svg, options).Bytes);
-
-        /// <summary>
-        /// Saves the worksheet used range as PNG.
-        /// </summary>
-        public OfficeImageExportResult SaveAsPng(string path, ExcelWorksheetImageExportOptions? options = null) =>
-            CreateImageExportOperation(options, OfficeImageExportFormat.Png).Save(path);
-
-        /// <summary>
-        /// Saves the worksheet used range as SVG.
-        /// </summary>
-        public OfficeImageExportResult SaveAsSvg(string path, ExcelWorksheetImageExportOptions? options = null) =>
-            CreateImageExportOperation(options, OfficeImageExportFormat.Svg).Save(path);
-
-        /// <summary>
-        /// Writes the worksheet used range as PNG to a stream.
-        /// </summary>
-        public OfficeImageExportResult SaveAsPng(Stream stream, ExcelWorksheetImageExportOptions? options = null) =>
-            CreateImageExportOperation(options, OfficeImageExportFormat.Png).Save(stream);
-
-        /// <summary>
-        /// Writes the worksheet used range as SVG to a stream.
-        /// </summary>
-        public OfficeImageExportResult SaveAsSvg(Stream stream, ExcelWorksheetImageExportOptions? options = null) =>
-            CreateImageExportOperation(options, OfficeImageExportFormat.Svg).Save(stream);
-
-        /// <summary>Asynchronously saves the worksheet used range as PNG.</summary>
-        public Task<OfficeImageExportResult> SaveAsPngAsync(
-            string path,
-            ExcelWorksheetImageExportOptions? options = null,
-            CancellationToken cancellationToken = default) =>
-            CreateImageExportOperation(options, OfficeImageExportFormat.Png).SaveAsync(path, cancellationToken);
-
-        /// <summary>Asynchronously saves the worksheet used range as SVG.</summary>
-        public Task<OfficeImageExportResult> SaveAsSvgAsync(
-            string path,
-            ExcelWorksheetImageExportOptions? options = null,
-            CancellationToken cancellationToken = default) =>
-            CreateImageExportOperation(options, OfficeImageExportFormat.Svg).SaveAsync(path, cancellationToken);
-
-        /// <summary>Asynchronously writes the worksheet used range as PNG to a stream.</summary>
-        public Task<OfficeImageExportResult> SaveAsPngAsync(
-            Stream stream,
-            ExcelWorksheetImageExportOptions? options = null,
-            CancellationToken cancellationToken = default) =>
-            CreateImageExportOperation(options, OfficeImageExportFormat.Png).SaveAsync(stream, cancellationToken);
-
-        /// <summary>Asynchronously writes the worksheet used range as SVG to a stream.</summary>
-        public Task<OfficeImageExportResult> SaveAsSvgAsync(
-            Stream stream,
-            ExcelWorksheetImageExportOptions? options = null,
-            CancellationToken cancellationToken = default) =>
-            CreateImageExportOperation(options, OfficeImageExportFormat.Svg).SaveAsync(stream, cancellationToken);
-
-        private static ExcelWorksheetImageExportOptions NormalizeWorksheetOptions(ExcelWorksheetImageExportOptions? options) {
-            ExcelWorksheetImageExportOptions resolved = options?.CloneWorksheet() ?? new ExcelWorksheetImageExportOptions();
+        private static ExcelImageExportOptions NormalizeWorksheetOptions(ExcelImageExportOptions? options) {
+            ExcelImageExportOptions resolved = options?.Clone() ?? new ExcelImageExportOptions();
             resolved.ConditionalFormattingDate ??= DateTime.Today;
             resolved.HeaderFooterDateTime ??= DateTime.Now;
             resolved.Validate();
@@ -194,7 +130,7 @@ namespace OfficeIMO.Excel {
         }
 
         private IReadOnlyList<WorksheetImageRangeResolution> ResolveWorksheetImageRanges(
-            ExcelWorksheetImageExportOptions options,
+            ExcelImageExportOptions options,
             bool allowMultipleResults,
             CancellationToken cancellationToken = default) {
             cancellationToken.ThrowIfCancellationRequested();
@@ -285,7 +221,7 @@ namespace OfficeIMO.Excel {
 
         private IReadOnlyList<WorksheetImageRangeResolution> ApplyManualPageBreakSplits(
             IReadOnlyList<WorksheetImageRangeResolution> ranges,
-            ExcelWorksheetImageExportOptions options,
+            ExcelImageExportOptions options,
             bool allowMultipleResults,
             CancellationToken cancellationToken = default) {
             cancellationToken.ThrowIfCancellationRequested();
@@ -534,7 +470,7 @@ namespace OfficeIMO.Excel {
         }
 
         private string ResolveWorksheetUsedImageRange(
-            ExcelWorksheetImageExportOptions options,
+            ExcelImageExportOptions options,
             CancellationToken cancellationToken = default) {
             cancellationToken.ThrowIfCancellationRequested();
             string range = GetUsedRangeA1();
@@ -785,12 +721,12 @@ namespace OfficeIMO.Excel {
         }
 
         private static double ResolveColumnWidth(ExcelWorksheetGeometryIndex geometry, ExcelColumnInfo? definition, ExcelImageExportOptions options) {
-            return geometry.GetExportColumnWidthPixels(definition?.StartIndex ?? 0, options.DefaultColumnWidthPixels);
+            return geometry.GetExportColumnWidthPixels(definition?.StartIndex ?? 0, options.DefaultColumnWidth.ToPixels());
         }
 
         private static double ResolveRowHeight(ExcelRowInfo? definition, ExcelImageExportOptions options) {
             if (definition?.StoredHeight== null) {
-                return options.DefaultRowHeightPixels;
+                return options.DefaultRowHeight.ToPixels();
             }
 
             return Math.Max(1D, Math.Round(definition.StoredHeight.Value * 96D / 72D, 2));

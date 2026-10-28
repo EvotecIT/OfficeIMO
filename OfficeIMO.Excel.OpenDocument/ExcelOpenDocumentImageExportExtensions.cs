@@ -11,7 +11,7 @@ public static class ExcelOpenDocumentImageExportExtensions {
     public static IReadOnlyList<OfficeImageExportResult> ExportImages(
         this OdsDocument source,
         OfficeImageExportFormat format,
-        ExcelWorkbookImageExportOptions? imageOptions = null,
+        ExcelImageExportOptions? imageOptions = null,
         ExcelOpenDocumentConversionOptions? conversionOptions = null,
         CancellationToken cancellationToken = default) {
         var results = new List<OfficeImageExportResult>();
@@ -29,13 +29,13 @@ public static class ExcelOpenDocumentImageExportExtensions {
         this OdsDocument source,
         OfficeImageExportFormat format,
         OfficeImageExportConsumer consumer,
-        ExcelWorkbookImageExportOptions? imageOptions = null,
+        ExcelImageExportOptions? imageOptions = null,
         ExcelOpenDocumentConversionOptions? conversionOptions = null,
         CancellationToken cancellationToken = default) {
         if (source == null) throw new ArgumentNullException(nameof(source));
         if (consumer == null) throw new ArgumentNullException(nameof(consumer));
-        ExcelWorkbookImageExportOptions effective =
-            imageOptions?.CloneWorkbook() ?? new ExcelWorkbookImageExportOptions();
+        ExcelImageExportOptions effective =
+            imageOptions?.Clone() ?? new ExcelImageExportOptions();
         OdfConversionResult<ExcelDocument> conversion =
             source.ToExcelDocumentResult(conversionOptions);
         using (conversion.Value) {
