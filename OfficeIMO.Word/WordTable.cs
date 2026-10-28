@@ -555,7 +555,7 @@ namespace OfficeIMO.Word {
                     : _table.GetFirstChild<TableGrid>()?.Elements<GridColumn>().Count() ?? 0;
             }
             for (int j = 0; j < cellsCount; j++) {
-                WordTableCell cell = new WordTableCell(_document, this, row);
+                row.AddCell();
             }
             try { RefreshTblGridFromColumnWidths(); } catch { }
         }

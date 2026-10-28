@@ -219,13 +219,8 @@ namespace OfficeIMO.Word {
             }
         }
 
-        /// <summary>
-        /// Appends the specified <see cref="WordTableCell"/> to the end of this row.
-        /// </summary>
-        /// <param name="cell">The cell to append.</param>
-        public void Add(WordTableCell cell) {
-            _tableRow.Append(cell._tableCell);
-        }
+        /// <summary>Creates and appends a cell, returning the attached cell for further editing.</summary>
+        public WordTableCell AddCell() => new WordTableCell(_document, _wordTable, this);
 
         /// <summary>
         /// Remove a row

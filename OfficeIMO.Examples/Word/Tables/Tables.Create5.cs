@@ -74,7 +74,7 @@ namespace OfficeIMO.Examples.Word {
                 wordTable2.RowHeight = new List<int>() { 1000, 300, 500, 200 };
 
                 // add a cell to 3rd row
-                WordTableCell cell = new WordTableCell(document, wordTable2, wordTable2.Rows[2]);
+                WordTableCell cell = wordTable2.Rows[2].AddCell();
                 cell.Paragraphs[0].Text = "This cell is outside a bit";
                 cell.TextDirection = WordTextDirection.TopToBottomLeftToRightRotated;
 

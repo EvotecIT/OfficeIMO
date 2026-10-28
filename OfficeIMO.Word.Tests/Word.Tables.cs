@@ -868,7 +868,8 @@ namespace OfficeIMO.Tests {
                 var wordTable1 = document.Tables[0];
 
                 // add a cell to 3rd row
-                WordTableCell cell = new WordTableCell(document, wordTable1, wordTable1.Rows[2]);
+                WordTableCell cell = wordTable1.Rows[2].AddCell();
+                Assert.Same(cell, wordTable1.Rows[2].Cells[4]);
                 cell.Paragraphs[0].Text = "This cell is outside a bit";
                 cell.TextDirection = WordTextDirection.TopToBottomLeftToRightRotated;
 

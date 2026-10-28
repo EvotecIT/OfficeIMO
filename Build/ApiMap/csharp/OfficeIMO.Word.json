@@ -6464,6 +6464,23 @@
         "OfficeIMO.Html.Tests/Html.WordToHtml.Charts.cs",
         "OfficeIMO.Html.Tests/Mhtml/MhtmlEmbeddedImageConversionTests.cs"
       ]
+    },
+    {
+      "old": "WordTableRow.Add(WordTableCell); new WordTableCell(WordDocument, WordTable, WordTableRow)",
+      "new": "WordTableRow.AddCell() -> WordTableCell",
+      "action": "merge",
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "reason": "The row creates and returns an attached cell. The old constructor already attached its cell; passing that cell to Add tried to append an already parented Open XML node. Remove the unused second attachment entry point and internalize document/table construction plumbing. Existing table growth and saved-document editing use the row method.",
+      "analysis": "Generated Word surface inventory retains the model members through documentation closure; source/caller review finds no caller of Add(WordTableCell). The table example and saved-document table test use AddCell instead of the direct-attachment constructor."
+    },
+    {
+      "old": "EmptyTableHeaderAndRowApisRemainUsable expected AddComment on an empty table to silently do nothing",
+      "new": "The empty-table workflow expects InvalidOperationException for a comment without a cell range, then verifies row/header editing still works.",
+      "action": "update-test",
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "reason": "The created-object AddComment contract already rejects a nonexistent range. Full-suite validation exposed this stale no-op assertion; the behavioral test now covers the current error and subsequent table editing."
     }
   ],
   "applicationStatus": "Phase A applied and validated on the supported macOS targets. Phase B and Tier 2 entries retain their status; Windows .NET Framework validation remains pending.",

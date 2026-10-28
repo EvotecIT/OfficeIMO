@@ -4366,7 +4366,6 @@ OfficeIMO.Word.WordTableCell.Width.get -> int?
 OfficeIMO.Word.WordTableCell.Width.set -> void
 OfficeIMO.Word.WordTableCell.WidthType.get -> OfficeIMO.Word.WordTableWidthUnit?
 OfficeIMO.Word.WordTableCell.WidthType.set -> void
-OfficeIMO.Word.WordTableCell.WordTableCell(OfficeIMO.Word.WordDocument! document, OfficeIMO.Word.WordTable! wordTable, OfficeIMO.Word.WordTableRow! wordTableRow) -> void
 OfficeIMO.Word.WordTableCell.WrapText.get -> bool
 OfficeIMO.Word.WordTableCell.WrapText.set -> void
 OfficeIMO.Word.WordTableCellBorder
@@ -4582,7 +4581,7 @@ OfficeIMO.Word.WordTablePosition.TopFromText.set -> void
 OfficeIMO.Word.WordTablePosition.VerticalAnchor.get -> OfficeIMO.Word.WordTableVerticalAnchor?
 OfficeIMO.Word.WordTablePosition.VerticalAnchor.set -> void
 OfficeIMO.Word.WordTableRow
-OfficeIMO.Word.WordTableRow.Add(OfficeIMO.Word.WordTableCell! cell) -> void
+OfficeIMO.Word.WordTableRow.AddCell() -> OfficeIMO.Word.WordTableCell!
 OfficeIMO.Word.WordTableRow.AllowRowToBreakAcrossPages.get -> bool
 OfficeIMO.Word.WordTableRow.AllowRowToBreakAcrossPages.set -> void
 OfficeIMO.Word.WordTableRow.Cells.get -> System.Collections.Generic.List<OfficeIMO.Word.WordTableCell!>!

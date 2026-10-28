@@ -541,7 +541,7 @@ namespace OfficeIMO.Word {
         /// <param name="document"></param>
         /// <param name="wordTable"></param>
         /// <param name="wordTableRow"></param>
-        public WordTableCell(WordDocument document, WordTable wordTable, WordTableRow wordTableRow) {
+        internal WordTableCell(WordDocument document, WordTable wordTable, WordTableRow wordTableRow) {
             TableCell tableCell = new TableCell();
             TableCellProperties tableCellProperties = new TableCellProperties(new TableCellWidth() { Type = TableWidthUnitValues.Dxa, Width = "2400" });
 

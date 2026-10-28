@@ -370,6 +370,8 @@ The document and section `FootNotes` and `EndNotes` collections include referenc
 
 ### Tables with structure
 
+`table.Rows[0].AddCell()` appends a cell and returns the attached `WordTableCell` for editing.
+
 ```csharp
 var table = document.AddTable(3, 3);
 table.Rows[0].Cells[0].Paragraphs[0].Text = "Area";
