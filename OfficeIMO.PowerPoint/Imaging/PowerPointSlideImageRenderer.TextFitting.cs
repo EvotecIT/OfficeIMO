@@ -135,7 +135,9 @@ namespace OfficeIMO.PowerPoint {
             double currentY = 0D, bottom = 0D;
             foreach (PowerPointParagraphDrawing paragraph in paragraphs) {
                 currentY += paragraph.SpaceBefore;
-                if (paragraph.HasContent) bottom = Math.Max(bottom, currentY + Math.Max(paragraph.Height, paragraph.PaintedHeight));
+                // Full leading advances the next paragraph; its unused trailing
+                // area does not make the last visible glyph exceed the frame.
+                if (paragraph.HasContent) bottom = Math.Max(bottom, currentY + paragraph.PaintedHeight);
                 currentY += paragraph.Height + paragraph.SpaceAfter;
             }
             return bottom;

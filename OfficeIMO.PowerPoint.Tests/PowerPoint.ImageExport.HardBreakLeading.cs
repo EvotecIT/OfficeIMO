@@ -65,5 +65,22 @@ namespace OfficeIMO.Tests {
             Assert.Contains(snapshot.Diagnostics, diagnostic => diagnostic.Code == "powerpoint-text-overflow");
             Assert.NotNull(SingleText(snapshot, "Leading last"));
         }
+
+        [Theory]
+        [InlineData(11, 14.25, false)]
+        [InlineData(24, 10, true)]
+        public void OverflowUsesPaintedTextRatherThanUnusedTrailingLeading(int fontSize, double leading, bool overflow) {
+            using var presentation = PowerPointPresentation.Create();
+            presentation.SlideSize.SetSizePoints(320, 180);
+            var box = presentation.AddSlide().AddTextBoxPoints("01", 20, 20, 100, 14);
+            box.FontSize = fontSize;
+            box.TextAutoFit = PowerPointTextAutoFit.None;
+            box.SetTextMarginsPoints(0, 0, 0, 0);
+            box.Paragraphs[0].SetLineSpacingPoints(leading);
+            using var saved = PowerPointPresentation.Load(new MemoryStream(presentation.ToBytes()));
+            var snapshot = saved.Slides[0].CreateVisualSnapshot();
+            Assert.Equal(overflow, snapshot.Diagnostics.Any(d => d.Code == "powerpoint-text-overflow"));
+            Assert.NotNull(SingleText(snapshot, "01"));
+        }
     }
 }
