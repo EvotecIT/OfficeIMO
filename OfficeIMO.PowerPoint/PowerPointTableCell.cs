@@ -28,7 +28,7 @@ namespace OfficeIMO.PowerPoint {
         ///     Gets or sets the text contained in the cell.
         /// </summary>
         public string Text {
-            get => Cell.TextBody?.InnerText ?? string.Empty;
+            get => string.Join(Environment.NewLine, Paragraphs.Select(paragraph => paragraph.Text));
 
 
             set {

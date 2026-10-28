@@ -186,12 +186,7 @@ namespace OfficeIMO.PowerPoint {
         ///     Text contained in the textbox.
         /// </summary>
         public string Text {
-            get {
-                var paragraphs = EnsureTextBody().Elements<A.Paragraph>()
-                    .Select(p => p.InnerText ?? string.Empty)
-                    .ToList();
-                return paragraphs.Count == 0 ? string.Empty : string.Join(Environment.NewLine, paragraphs);
-            }
+            get => string.Join(Environment.NewLine, Paragraphs.Select(paragraph => paragraph.Text));
             set {
                 string textValue = value ?? string.Empty;
                 TextBody textBody = EnsureTextBody();
