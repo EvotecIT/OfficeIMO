@@ -866,9 +866,9 @@ public class PdfDocumentChartDrawingTests {
         OfficeChartData data = new OfficeChartData(
             new[] { "Q1", "Q2", "Q3" },
             new[] {
-                new OfficeChartSeries("Actual", new[] { 12D, 18D, 24D })
+                new OfficeChartSeries("Actual", new[] { 12D, 18D, 24D }, null, null, null, showMarkers: true)
             });
-        OfficeDrawing defaultDrawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
+        OfficeDrawing visibleDrawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
             "Line markers",
             "Line Markers",
             OfficeChartKind.Line,
@@ -884,10 +884,10 @@ public class PdfDocumentChartDrawingTests {
             heightPoints: 180D,
             layout: new OfficeChartLayout(showMarkers: false)));
 
-        int defaultMarkers = defaultDrawing.Shapes.Count(shape => shape.Shape.Kind == OfficeShapeKind.Ellipse && shape.Shape.Width == 4D && shape.Shape.Height == 4D);
+        int visibleMarkers = visibleDrawing.Shapes.Count(shape => shape.Shape.Kind == OfficeShapeKind.Ellipse && shape.Shape.Width == 4D && shape.Shape.Height == 4D);
         int suppressedMarkers = suppressedDrawing.Shapes.Count(shape => shape.Shape.Kind == OfficeShapeKind.Ellipse && shape.Shape.Width == 4D && shape.Shape.Height == 4D);
 
-        Assert.Equal(3, defaultMarkers);
+        Assert.Equal(3, visibleMarkers);
         Assert.Equal(0, suppressedMarkers);
     }
 

@@ -651,6 +651,7 @@ public partial class Word {
     [Fact]
     public void SaveAsPdf_OfficeIMOEngine_Preserves_Explicit_TableGrid_When_Default_Table_Style_Is_Configured() {
         using WordDocument document = WordDocument.Create(Path.Combine(_directoryWithFiles, "PdfNativeExplicitTableGrid.docx"));
+        document.Settings.FontFamily = "Calibri";
         WordTable table = document.AddTable(1, 1, WordTableStyle.TableGrid);
 
         PdfCore.PdfTableStyle style = CreateNativeTableStyleForTest(table, new WordPdfExportOptions {
@@ -676,6 +677,7 @@ public partial class Word {
     [Fact]
     public void SaveAsPdf_OfficeIMOEngine_Resolves_Custom_Table_Style_Inheritance_For_Cell_Margins() {
         using WordDocument document = WordDocument.Create(Path.Combine(_directoryWithFiles, "PdfNativeCustomTableStyleInheritance.docx"));
+        document.Settings.FontFamily = "Calibri";
         Styles styles = document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
         styles.Append(
             new Style(
@@ -802,6 +804,7 @@ public partial class Word {
     [Fact]
     public void SaveAsPdf_OfficeIMOEngine_Maps_Table_Style_AtLeast_Line_Spacing() {
         using WordDocument document = WordDocument.Create(Path.Combine(_directoryWithFiles, "PdfNativeTableStyleAtLeastLineSpacing.docx"));
+        document.Settings.FontFamily = "Calibri";
         Styles styles = document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
         styles.Append(new Style(
             new StyleName { Val = "Generic AtLeast Spacing Table" },
@@ -821,6 +824,7 @@ public partial class Word {
     [Fact]
     public void SaveAsPdf_OfficeIMOEngine_Lets_Derived_Table_Style_Auto_Line_Spacing_Override_Exact() {
         using WordDocument document = WordDocument.Create(Path.Combine(_directoryWithFiles, "PdfNativeTableStyleAutoOverridesExactLineSpacing.docx"));
+        document.Settings.FontFamily = "Calibri";
         Styles styles = document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
         styles.Append(
             new Style(
@@ -869,6 +873,7 @@ public partial class Word {
     [Fact]
     public void SaveAsPdf_OfficeIMOEngine_Preserves_TableNormal_Mapping_For_Unrelated_PdfOptions() {
         using WordDocument document = WordDocument.Create(Path.Combine(_directoryWithFiles, "PdfNativeTableNormalUnrelatedOptions.docx"));
+        document.Settings.FontFamily = "Calibri";
         WordTable table = document.AddTable(1, 1, WordTableStyle.TableNormal);
 
         PdfCore.PdfTableStyle style = CreateNativeTableStyleForTest(table, new WordPdfExportOptions {
