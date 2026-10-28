@@ -21,7 +21,7 @@ namespace PSWriteOffice.Cmdlets.Reader;
 ///   <para>Writes materializable image payloads to deterministic filenames and returns materialization results.</para>
 /// </example>
 [Cmdlet(VerbsCommon.Get, "OfficeDocumentAsset")]
-[Alias("Read-OfficeDocumentAsset", "Export-OfficeDocumentAsset")]
+[Alias("Read-OfficeDocumentAsset")]
 [OutputType(typeof(OfficeDocumentAsset), typeof(OfficeDocumentMaterializedAsset))]
 public sealed class GetOfficeDocumentAssetCommand : OfficeDocumentReaderCommandBase
 {

@@ -232,7 +232,7 @@ internal static class ReaderCommandUtilities
         return result;
     }
 
-    private static string[] NormalizeSourceExtensions(IEnumerable<string> extensions) => extensions
+    internal static string[] NormalizeSourceExtensions(IEnumerable<string> extensions) => extensions
         .Where(static value => !string.IsNullOrWhiteSpace(value))
         .Select(static value => value.Trim())
         .Select(static value => value.StartsWith(".", StringComparison.Ordinal) ? value : "." + value)

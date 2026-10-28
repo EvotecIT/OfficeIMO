@@ -94,7 +94,9 @@ Describe 'Consolidated document reading' {
     }
 
     It 'returns flat table models and in-memory bundles without writing sidecars' {
-        $path = Join-Path $TestDrive 'table.md'
+        $folder = Join-Path $TestDrive 'in-memory-table'
+        $null = New-Item -ItemType Directory -Path $folder
+        $path = Join-Path $folder 'table.md'
         Set-Content -LiteralPath $path -Value "| Item | Score |`n| --- | --- |`n| Delivery | 42 |" -Encoding UTF8
         $document = Read-OfficeDocument $path
         $document | Read-OfficeDocument -As Text | Should -Match 'Delivery'
@@ -104,7 +106,7 @@ Describe 'Consolidated document reading' {
         $bundles = @($document | Read-OfficeDocument -As Tables -Bundle -Indented)
         $bundles | Should -HaveCount 1
         $bundles[0].GetType().Name | Should -Be 'ReaderTableExportBundle'
-        @(Get-ChildItem -LiteralPath $TestDrive -Filter 'table*').Count | Should -Be 1
+        @(Get-ChildItem -LiteralPath $folder).Count | Should -Be 1
     }
 
     It 'reports ingestion outcomes and counts chunks even when their payloads are omitted' {
