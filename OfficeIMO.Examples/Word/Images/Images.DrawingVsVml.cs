@@ -14,9 +14,9 @@ namespace OfficeIMO.Examples.Word {
             string drawingFile = Path.Combine(folderPath, "DrawingVsVml.Drawing.docx");
             using (WordDocument doc = WordDocument.Create(drawingFile)) {
                 doc.AddParagraph().AddImage(img);
-                doc.AddShapeDrawing(WordShapeType.Ellipse, 40, 40);
-                doc.AddShapeDrawing(WordShapeType.Rectangle, 60, 30);
-                doc.AddShapeDrawing(WordShapeType.RoundedRectangle, 50, 30);
+                doc.AddShapeDrawing(WordShapeType.Ellipse, OfficeIMO.OfficeLength.Points(40), OfficeIMO.OfficeLength.Points(40));
+                doc.AddShapeDrawing(WordShapeType.Rectangle, OfficeIMO.OfficeLength.Points(60), OfficeIMO.OfficeLength.Points(30));
+                doc.AddShapeDrawing(WordShapeType.RoundedRectangle, OfficeIMO.OfficeLength.Points(50), OfficeIMO.OfficeLength.Points(30));
                 doc.AddTextBox("Text");
                 doc.Save();
             }
@@ -24,9 +24,9 @@ namespace OfficeIMO.Examples.Word {
             string vmlFile = Path.Combine(folderPath, "DrawingVsVml.Vml.docx");
             using (WordDocument doc = WordDocument.Create(vmlFile)) {
                 doc.AddImage(img,options:new OfficeIMO.Word.WordImageOptions { Vml = true });
-                doc.AddShape(WordShapeType.Ellipse, 40, 40, Color.Red, Color.Blue);
-                doc.AddShape(WordShapeType.Rectangle, 60, 30, Color.Green, Color.Black);
-                doc.AddShape(WordShapeType.RoundedRectangle, 50, 30, Color.Yellow, Color.Black, 1, arcSize: 0.3);
+                doc.AddShape(WordShapeType.Ellipse, OfficeIMO.OfficeLength.Points(40), OfficeIMO.OfficeLength.Points(40), Color.Red, Color.Blue);
+                doc.AddShape(WordShapeType.Rectangle, OfficeIMO.OfficeLength.Points(60), OfficeIMO.OfficeLength.Points(30), Color.Green, Color.Black);
+                doc.AddShape(WordShapeType.RoundedRectangle, OfficeIMO.OfficeLength.Points(50), OfficeIMO.OfficeLength.Points(30), Color.Yellow, Color.Black, OfficeIMO.OfficeLength.Points(1), arcSize: 0.3);
                 doc.AddTextBoxVml("Text");
                 doc.Save();
             }

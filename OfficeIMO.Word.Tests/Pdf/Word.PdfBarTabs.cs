@@ -172,7 +172,7 @@ public sealed class WordPdfBarTabTests {
         document.AddParagraph("BODY");
         WordParagraph paragraph = header ? document.HeaderDefaultOrCreate.AddParagraph() : document.AddParagraph();
         ConfigureParagraph(paragraph, string.Empty);
-        paragraph.AddShape(48D, 36D, "#00A060");
+        paragraph.AddShape(OfficeIMO.OfficeLength.Points(48D), OfficeIMO.OfficeLength.Points(36D), OfficeIMO.OfficeColor.Parse("#00A060"));
         SetTabs(paragraph, Tab(W.TabStopValues.Bar));
         string sourceXml = paragraph._paragraph.OuterXml;
 
@@ -198,7 +198,7 @@ public sealed class WordPdfBarTabTests {
         WordTable table = header ? document.HeaderDefaultOrCreate.AddTable(1, 1) : document.AddTable(1, 1);
         WordParagraph paragraph = table.Rows[0].Cells[0].Paragraphs[0];
         ConfigureParagraph(paragraph, string.Empty);
-        paragraph.AddShape(48D, 36D, "#00A060");
+        paragraph.AddShape(OfficeIMO.OfficeLength.Points(48D), OfficeIMO.OfficeLength.Points(36D), OfficeIMO.OfficeColor.Parse("#00A060"));
         SetTabs(paragraph, Tab(W.TabStopValues.Bar));
         string sourceXml = paragraph._paragraph.OuterXml;
 

@@ -32,10 +32,10 @@ namespace OfficeIMO.Examples.Utils {
                 var (type, w, h, fill, stroke, label) = shapes[i];
 
                 var p = document.AddParagraph("");
-                var shp = p.AddShapeDrawing(type, w, h, left, top);
+                var shp = p.AddShapeDrawing(type, OfficeIMO.OfficeLength.Points(w), OfficeIMO.OfficeLength.Points(h), OfficeIMO.OfficeLength.Points(left), OfficeIMO.OfficeLength.Points(top));
                 shp.FillColor = fill;
                 shp.StrokeColor = stroke;
-                shp.StrokeWeight = 1.5;
+                shp.StrokeWeight = OfficeIMO.OfficeLength.Points(1.5);
                 placed.Add((left, top, w, h, string.IsNullOrWhiteSpace(label) ? type.ToString() : label));
             }
 
@@ -73,10 +73,10 @@ namespace OfficeIMO.Examples.Utils {
                     double arrowW = Math.Max(available - 8, 8);
                     double arrowTop = from.top + (from.h - arrowH) / 2.0;
                     var cp = document.AddParagraph("");
-                    var conn = cp.AddShapeDrawing(WordShapeType.RightArrow, arrowW, arrowH, gapLeft + 4, arrowTop);
+                    var conn = cp.AddShapeDrawing(WordShapeType.RightArrow, OfficeIMO.OfficeLength.Points(arrowW), OfficeIMO.OfficeLength.Points(arrowH), OfficeIMO.OfficeLength.Points(gapLeft + 4), OfficeIMO.OfficeLength.Points(arrowTop));
                     conn.FillColor = Color.Gray;
                     conn.StrokeColor = Color.DimGray;
-                    conn.StrokeWeight = 1;
+                    conn.StrokeWeight = OfficeIMO.OfficeLength.Points(1);
                 }
             }
 
@@ -92,10 +92,10 @@ namespace OfficeIMO.Examples.Utils {
                     double arrowH = Math.Max(available - 8, 8);
                     double arrowLeft = from.left + (from.w - arrowW) / 2.0;
                     var vp = document.AddParagraph("");
-                    var vconn = vp.AddShapeDrawing(WordShapeType.DownArrow, arrowW, arrowH, arrowLeft, gapTop + 4);
+                    var vconn = vp.AddShapeDrawing(WordShapeType.DownArrow, OfficeIMO.OfficeLength.Points(arrowW), OfficeIMO.OfficeLength.Points(arrowH), OfficeIMO.OfficeLength.Points(arrowLeft), OfficeIMO.OfficeLength.Points(gapTop + 4));
                     vconn.FillColor = Color.Gray;
                     vconn.StrokeColor = Color.DimGray;
-                    vconn.StrokeWeight = 1;
+                    vconn.StrokeWeight = OfficeIMO.OfficeLength.Points(1);
                 }
             }
 
@@ -129,18 +129,18 @@ namespace OfficeIMO.Examples.Utils {
                     double hW = Math.Max((elbowX - (from.left + from.w)), 8);
                     double hH = 12;
                     var hp = document.AddParagraph("");
-                    var hseg = hp.AddShapeDrawing(WordShapeType.RightArrow, hW, hH, from.left + from.w + 4, elbowY - hH / 2.0);
+                    var hseg = hp.AddShapeDrawing(WordShapeType.RightArrow, OfficeIMO.OfficeLength.Points(hW), OfficeIMO.OfficeLength.Points(hH), OfficeIMO.OfficeLength.Points(from.left + from.w + 4), OfficeIMO.OfficeLength.Points(elbowY - hH / 2.0));
                     hseg.FillColor = Color.Gray;
                     hseg.StrokeColor = Color.DimGray;
-                    hseg.StrokeWeight = 1;
+                    hseg.StrokeWeight = OfficeIMO.OfficeLength.Points(1);
                     // Vertical segment down to target
                     double vH = Math.Max(((target.top + target.h / 2.0) - elbowY), 8);
                     double vW = 12;
                     var vp = document.AddParagraph("");
-                    var vseg = vp.AddShapeDrawing(WordShapeType.DownArrow, vW, vH, elbowX - vW / 2.0, elbowY + 2);
+                    var vseg = vp.AddShapeDrawing(WordShapeType.DownArrow, OfficeIMO.OfficeLength.Points(vW), OfficeIMO.OfficeLength.Points(vH), OfficeIMO.OfficeLength.Points(elbowX - vW / 2.0), OfficeIMO.OfficeLength.Points(elbowY + 2));
                     vseg.FillColor = Color.Gray;
                     vseg.StrokeColor = Color.DimGray;
-                    vseg.StrokeWeight = 1;
+                    vseg.StrokeWeight = OfficeIMO.OfficeLength.Points(1);
                 }
             }
         }

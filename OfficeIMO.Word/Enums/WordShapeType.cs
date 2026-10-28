@@ -1,6 +1,6 @@
 namespace OfficeIMO.Word {
     /// <summary>
-    /// Shape types supported by <see cref="WordDocument.AddShape(WordShapeType,double,double,string,string,double,double)"/>.
+    /// Shape types supported by <see cref="WordDocument.AddShape"/>.
     /// </summary>
     public enum WordShapeType {
         /// <summary>

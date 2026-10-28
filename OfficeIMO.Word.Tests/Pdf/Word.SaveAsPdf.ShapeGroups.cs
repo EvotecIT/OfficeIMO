@@ -178,7 +178,7 @@ public sealed class PdfShapeGroupTests {
     public void NativeShapeUsesSelectedDrawingInsteadOfInactiveVmlFallback() {
         using WordDocument word = WordDocument.Create();
         var paragraph = word.AddParagraph();
-        paragraph.AddShapeDrawing(WordShapeType.Rectangle, 36, 18).FillColorHex = "FF0000";
+        paragraph.AddShapeDrawing(WordShapeType.Rectangle, OfficeIMO.OfficeLength.Points(36), OfficeIMO.OfficeLength.Points(18)).FillColorHex = "FF0000";
         var drawing = paragraph._run!.GetFirstChild<W.Drawing>()!;
         var alternate = WrapInAlternateContent(paragraph._run!, drawing, "wps", "http://schemas.microsoft.com/office/word/2010/wordprocessingShape");
         alternate.GetFirstChild<AlternateContentFallback>()!.Append(new W.Picture(new V.Rectangle {

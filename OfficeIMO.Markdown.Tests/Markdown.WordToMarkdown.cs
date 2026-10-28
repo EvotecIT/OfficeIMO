@@ -575,7 +575,7 @@ namespace OfficeIMO.Tests {
             using var doc = WordDocument.Create();
             WordParagraph paragraph = doc.AddParagraph("Mixed:");
             paragraph.AddEquation(omml);
-            paragraph.AddShape(WordShapeType.Rectangle, 60, 30);
+            paragraph.AddShape(WordShapeType.Rectangle, OfficeIMO.OfficeLength.Points(60), OfficeIMO.OfficeLength.Points(30));
 
             string markdown = ((doc.ToMarkdown(new WordMarkdownExportOptions {
                 UnsupportedContentMode = WordMarkdownUnsupportedContentMode.Placeholder
@@ -738,7 +738,7 @@ namespace OfficeIMO.Tests {
         public void WordToMarkdown_UnsupportedContentMode_Can_Emit_Placeholders() {
             using var doc = WordDocument.Create();
             doc.AddParagraph("Before");
-            doc.AddShape(WordShapeType.Rectangle, 60, 30);
+            doc.AddShape(WordShapeType.Rectangle, OfficeIMO.OfficeLength.Points(60), OfficeIMO.OfficeLength.Points(30));
             doc.AddParagraph("After");
             var warnings = new List<string>();
 
@@ -756,7 +756,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void WordToMarkdown_ReportsUnsupportedContentOmission() {
             using var document = WordDocument.Create();
-            document.AddShape(WordShapeType.Rectangle, 60, 30);
+            document.AddShape(WordShapeType.Rectangle, OfficeIMO.OfficeLength.Points(60), OfficeIMO.OfficeLength.Points(30));
             var options = new WordMarkdownExportOptions { UnsupportedContentMode = WordMarkdownUnsupportedContentMode.Placeholder };
             using var markdown = document.ToMarkdown(options, out OfficeConversionReport report);
             Assert.True(report.HasLoss);
@@ -771,7 +771,7 @@ namespace OfficeIMO.Tests {
         public void WordToMarkdown_UnsupportedContentMode_Emits_Placeholders_For_Mixed_Paragraph_Content() {
             using var doc = WordDocument.Create();
             var paragraph = doc.AddParagraph("Before");
-            paragraph.AddShape(WordShapeType.Rectangle, 60, 30);
+            paragraph.AddShape(WordShapeType.Rectangle, OfficeIMO.OfficeLength.Points(60), OfficeIMO.OfficeLength.Points(30));
 
             string markdown = ((doc.ToMarkdown(new WordMarkdownExportOptions {
                 UnsupportedContentMode = WordMarkdownUnsupportedContentMode.Placeholder
@@ -784,7 +784,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void WordToMarkdown_UnsupportedContentMode_Can_Emit_HtmlComments() {
             using var doc = WordDocument.Create();
-            doc.AddShape(WordShapeType.Rectangle, 60, 30);
+            doc.AddShape(WordShapeType.Rectangle, OfficeIMO.OfficeLength.Points(60), OfficeIMO.OfficeLength.Points(30));
 
             string markdown = ((doc.ToMarkdown(new WordMarkdownExportOptions {
                 UnsupportedContentMode = WordMarkdownUnsupportedContentMode.HtmlComment

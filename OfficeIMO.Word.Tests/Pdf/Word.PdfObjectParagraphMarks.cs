@@ -214,10 +214,10 @@ public partial class Word {
                     new WordShapeGroupItem(WordShapeType.Rectangle, 24, 0, 24, kind.EndsWith("short", StringComparison.Ordinal) ? 6 : 36) { FillColorHex = "00A060" }
                 });
             } else if (kind.StartsWith("shape-inline", StringComparison.Ordinal)) {
-                WordShape shape = WordShape.AddDrawingShape(p, WordShapeType.Rectangle, 48, kind.EndsWith("short", StringComparison.Ordinal) ? 6 : 36);
+                WordShape shape = WordShape.AddDrawingShape(p, WordShapeType.Rectangle, OfficeIMO.OfficeLength.Points(48), OfficeIMO.OfficeLength.Points(kind.EndsWith("short", StringComparison.Ordinal) ? 6 : 36));
                 shape.FillColorHex = "00A060";
             } else if (kind.StartsWith("shape", StringComparison.Ordinal) || kind == "hidden-shape") {
-                WordShape shape = p.AddShape(48, kind.EndsWith("short", StringComparison.Ordinal) ? 6 : 36, "#00A060");
+                WordShape shape = p.AddShape(OfficeIMO.OfficeLength.Points(48), OfficeIMO.OfficeLength.Points(kind.EndsWith("short", StringComparison.Ordinal) ? 6 : 36), OfficeIMO.OfficeColor.Parse("#00A060"));
                 if (kind == "hidden-shape") shape.Hidden = true;
             } else {
                 using var image = new MemoryStream(OfficeRasterImageEncoder.Encode(

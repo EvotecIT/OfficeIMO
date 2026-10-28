@@ -1235,10 +1235,9 @@ OfficeIMO.Word.WordDocument.AddPictureBulletList(string! imagePath) -> OfficeIMO
 OfficeIMO.Word.WordDocument.AddRepeatingSection(string? sectionTitle = null, string? alias = null, string? tag = null) -> OfficeIMO.Word.WordRepeatingSection!
 OfficeIMO.Word.WordDocument.AddSection() -> OfficeIMO.Word.WordSection!
 OfficeIMO.Word.WordDocument.AddSection(OfficeIMO.Word.WordSectionBreakType breakType) -> OfficeIMO.Word.WordSection!
-OfficeIMO.Word.WordDocument.AddShape(OfficeIMO.Word.WordShapeType shapeType, double widthPt, double heightPt, OfficeIMO.OfficeColor fillColor, OfficeIMO.OfficeColor strokeColor, double strokeWeightPt = 1, double arcSize = 0.25) -> OfficeIMO.Word.WordShape!
-OfficeIMO.Word.WordDocument.AddShape(OfficeIMO.Word.WordShapeType shapeType, double widthPt, double heightPt, string! fillColor = "#FFFFFF", string! strokeColor = "#000000", double strokeWeightPt = 1, double arcSize = 0.25) -> OfficeIMO.Word.WordShape!
-OfficeIMO.Word.WordDocument.AddShapeDrawing(OfficeIMO.Word.WordShapeType shapeType, double widthPt, double heightPt) -> OfficeIMO.Word.WordShape!
-OfficeIMO.Word.WordDocument.AddShapeDrawing(OfficeIMO.Word.WordShapeType shapeType, double widthPt, double heightPt, double leftPt, double topPt) -> OfficeIMO.Word.WordShape!
+OfficeIMO.Word.WordDocument.AddShape(OfficeIMO.Word.WordShapeType shapeType, OfficeIMO.OfficeLength width, OfficeIMO.OfficeLength height, OfficeIMO.OfficeColor? fillColor = null, OfficeIMO.OfficeColor? strokeColor = null, OfficeIMO.OfficeLength? strokeWeight = null, double arcSize = 0.25) -> OfficeIMO.Word.WordShape!
+OfficeIMO.Word.WordDocument.AddShapeDrawing(OfficeIMO.Word.WordShapeType shapeType, OfficeIMO.OfficeLength width, OfficeIMO.OfficeLength height) -> OfficeIMO.Word.WordShape!
+OfficeIMO.Word.WordDocument.AddShapeDrawing(OfficeIMO.Word.WordShapeType shapeType, OfficeIMO.OfficeLength width, OfficeIMO.OfficeLength height, OfficeIMO.OfficeLength left, OfficeIMO.OfficeLength top) -> OfficeIMO.Word.WordShape!
 OfficeIMO.Word.WordDocument.AddSmartArt(OfficeIMO.Word.WordSmartArtType type) -> OfficeIMO.Word.WordSmartArt!
 OfficeIMO.Word.WordDocument.AddStructuredDocumentTag(string! text, string? alias = null, string? tag = null) -> OfficeIMO.Word.WordStructuredDocumentTag!
 OfficeIMO.Word.WordDocument.AddTable(System.Collections.Generic.IEnumerable<System.Collections.Generic.IReadOnlyList<string!>!>! rows, OfficeIMO.OfficeTableOptions? options = null) -> OfficeIMO.Word.WordTable!
@@ -1929,9 +1928,8 @@ OfficeIMO.Word.WordFormattedRun.WordFormattedRun() -> void
 OfficeIMO.Word.WordHeader
 OfficeIMO.Word.WordHeader.AddImage(string! path, OfficeIMO.OfficeLength? width = null, OfficeIMO.OfficeLength? height = null, OfficeIMO.Word.WordImageOptions? options = null) -> OfficeIMO.Word.WordImage!
 OfficeIMO.Word.WordHeader.AddPageNumber(OfficeIMO.Word.WordPageNumberStyle wordPageNumberStyle) -> OfficeIMO.Word.WordPageNumber!
-OfficeIMO.Word.WordHeader.AddShape(OfficeIMO.Word.WordShapeType shapeType, double widthPt, double heightPt, OfficeIMO.OfficeColor fillColor, OfficeIMO.OfficeColor strokeColor, double strokeWeightPt = 1, double arcSize = 0.25) -> OfficeIMO.Word.WordShape!
-OfficeIMO.Word.WordHeader.AddShape(OfficeIMO.Word.WordShapeType shapeType, double widthPt, double heightPt, string! fillColor = "#FFFFFF", string! strokeColor = "#000000", double strokeWeightPt = 1, double arcSize = 0.25) -> OfficeIMO.Word.WordShape!
-OfficeIMO.Word.WordHeader.AddShapeDrawing(OfficeIMO.Word.WordShapeType shapeType, double widthPt, double heightPt) -> OfficeIMO.Word.WordShape!
+OfficeIMO.Word.WordHeader.AddShape(OfficeIMO.Word.WordShapeType shapeType, OfficeIMO.OfficeLength width, OfficeIMO.OfficeLength height, OfficeIMO.OfficeColor? fillColor = null, OfficeIMO.OfficeColor? strokeColor = null, OfficeIMO.OfficeLength? strokeWeight = null, double arcSize = 0.25) -> OfficeIMO.Word.WordShape!
+OfficeIMO.Word.WordHeader.AddShapeDrawing(OfficeIMO.Word.WordShapeType shapeType, OfficeIMO.OfficeLength width, OfficeIMO.OfficeLength height) -> OfficeIMO.Word.WordShape!
 OfficeIMO.Word.WordHeader.AddTextBox(string! text, OfficeIMO.Word.WordImageTextWrapping wrapTextImage = OfficeIMO.Word.WordImageTextWrapping.Square) -> OfficeIMO.Word.WordTextBox!
 OfficeIMO.Word.WordHeader.AddTextBoxVml(string! text) -> OfficeIMO.Word.WordTextBox!
 OfficeIMO.Word.WordHeader.AddWatermark(OfficeIMO.Word.WordWatermarkStyle watermarkStyle, string! textOrFilePath, double? horizontalOffset = null, double? verticalOffset = null, double scale = 1) -> OfficeIMO.Word.WordWatermark!
@@ -2387,8 +2385,8 @@ OfficeIMO.Word.WordLine.Color.set -> void
 OfficeIMO.Word.WordLine.ColorHex.get -> string!
 OfficeIMO.Word.WordLine.ColorHex.set -> void
 OfficeIMO.Word.WordLine.Remove() -> void
-OfficeIMO.Word.WordLine.StrokeWeightPt.get -> double
-OfficeIMO.Word.WordLine.StrokeWeightPt.set -> void
+OfficeIMO.Word.WordLine.StrokeWeight.get -> OfficeIMO.OfficeLength
+OfficeIMO.Word.WordLine.StrokeWeight.set -> void
 OfficeIMO.Word.WordLineSpacingRule
 OfficeIMO.Word.WordLineSpacingRule.AtLeast = 2 -> OfficeIMO.Word.WordLineSpacingRule
 OfficeIMO.Word.WordLineSpacingRule.Auto = 0 -> OfficeIMO.Word.WordLineSpacingRule
@@ -3017,8 +3015,7 @@ OfficeIMO.Word.WordParagraph.AddImage(System.IO.Stream! stream, string! fileName
 OfficeIMO.Word.WordParagraph.AddImage(System.Uri! uri, OfficeIMO.OfficeLength width, OfficeIMO.OfficeLength height, OfficeIMO.Word.WordImageOptions? options = null) -> OfficeIMO.Word.WordImage!
 OfficeIMO.Word.WordParagraph.AddImage(string! path, OfficeIMO.OfficeLength? width = null, OfficeIMO.OfficeLength? height = null, OfficeIMO.Word.WordImageOptions? options = null) -> OfficeIMO.Word.WordImage!
 OfficeIMO.Word.WordParagraph.AddInsertedText(string! text, string! author, System.DateTime? date = null) -> OfficeIMO.Word.WordParagraph!
-OfficeIMO.Word.WordParagraph.AddLine(double startXPt, double startYPt, double endXPt, double endYPt, OfficeIMO.OfficeColor color, double strokeWeightPt = 1) -> OfficeIMO.Word.WordLine!
-OfficeIMO.Word.WordParagraph.AddLine(double startXPt, double startYPt, double endXPt, double endYPt, string! color = "#000000", double strokeWeightPt = 1) -> OfficeIMO.Word.WordLine!
+OfficeIMO.Word.WordParagraph.AddLine(OfficeIMO.OfficeLength startX, OfficeIMO.OfficeLength startY, OfficeIMO.OfficeLength endX, OfficeIMO.OfficeLength endY, OfficeIMO.OfficeColor? color = null, OfficeIMO.OfficeLength? strokeWeight = null) -> OfficeIMO.Word.WordLine!
 OfficeIMO.Word.WordParagraph.AddList(OfficeIMO.Word.WordListStyle style) -> OfficeIMO.Word.WordList!
 OfficeIMO.Word.WordParagraph.AddPageNumber(bool includeTotalPages = false, OfficeIMO.Word.WordFieldFormat? format = null, string! separator = " of ") -> OfficeIMO.Word.WordParagraph!
 OfficeIMO.Word.WordParagraph.AddParagraph(OfficeIMO.Word.WordParagraph? wordParagraph = null) -> OfficeIMO.Word.WordParagraph!
@@ -3028,12 +3025,10 @@ OfficeIMO.Word.WordParagraph.AddParagraphAfterSelf(OfficeIMO.Word.WordSection! s
 OfficeIMO.Word.WordParagraph.AddParagraphBeforeSelf() -> OfficeIMO.Word.WordParagraph!
 OfficeIMO.Word.WordParagraph.AddPictureControl(string! filePath, double? width = null, double? height = null, string? alias = null, string? tag = null) -> OfficeIMO.Word.WordPictureControl!
 OfficeIMO.Word.WordParagraph.AddRepeatingSection(string? sectionTitle = null, string? alias = null, string? tag = null) -> OfficeIMO.Word.WordRepeatingSection!
-OfficeIMO.Word.WordParagraph.AddShape(OfficeIMO.Word.WordShapeType shapeType, double widthPt, double heightPt, OfficeIMO.OfficeColor fillColor, OfficeIMO.OfficeColor strokeColor, double strokeWeightPt = 1, double arcSize = 0.25) -> OfficeIMO.Word.WordShape!
-OfficeIMO.Word.WordParagraph.AddShape(OfficeIMO.Word.WordShapeType shapeType, double widthPt, double heightPt, string! fillColor = "#FFFFFF", string! strokeColor = "#000000", double strokeWeightPt = 1, double arcSize = 0.25) -> OfficeIMO.Word.WordShape!
-OfficeIMO.Word.WordParagraph.AddShape(double widthPt, double heightPt, OfficeIMO.OfficeColor fillColor) -> OfficeIMO.Word.WordShape!
-OfficeIMO.Word.WordParagraph.AddShape(double widthPt, double heightPt, string! fillColor = "#FFFFFF") -> OfficeIMO.Word.WordShape!
-OfficeIMO.Word.WordParagraph.AddShapeDrawing(OfficeIMO.Word.WordShapeType shapeType, double widthPt, double heightPt) -> OfficeIMO.Word.WordShape!
-OfficeIMO.Word.WordParagraph.AddShapeDrawing(OfficeIMO.Word.WordShapeType shapeType, double widthPt, double heightPt, double leftPt, double topPt) -> OfficeIMO.Word.WordShape!
+OfficeIMO.Word.WordParagraph.AddShape(OfficeIMO.OfficeLength width, OfficeIMO.OfficeLength height, OfficeIMO.OfficeColor? fillColor = null) -> OfficeIMO.Word.WordShape!
+OfficeIMO.Word.WordParagraph.AddShape(OfficeIMO.Word.WordShapeType shapeType, OfficeIMO.OfficeLength width, OfficeIMO.OfficeLength height, OfficeIMO.OfficeColor? fillColor = null, OfficeIMO.OfficeColor? strokeColor = null, OfficeIMO.OfficeLength? strokeWeight = null, double arcSize = 0.25) -> OfficeIMO.Word.WordShape!
+OfficeIMO.Word.WordParagraph.AddShapeDrawing(OfficeIMO.Word.WordShapeType shapeType, OfficeIMO.OfficeLength width, OfficeIMO.OfficeLength height) -> OfficeIMO.Word.WordShape!
+OfficeIMO.Word.WordParagraph.AddShapeDrawing(OfficeIMO.Word.WordShapeType shapeType, OfficeIMO.OfficeLength width, OfficeIMO.OfficeLength height, OfficeIMO.OfficeLength left, OfficeIMO.OfficeLength top) -> OfficeIMO.Word.WordShape!
 OfficeIMO.Word.WordParagraph.AddShapeGroup(System.Collections.Generic.IEnumerable<OfficeIMO.Word.WordShapeGroupItem!>! items) -> OfficeIMO.Word.WordShapeGroup!
 OfficeIMO.Word.WordParagraph.AddShapeGroup(System.Collections.Generic.IEnumerable<OfficeIMO.Word.WordShapeGroupItem!>! items, double leftPt, double topPt) -> OfficeIMO.Word.WordShapeGroup!
 OfficeIMO.Word.WordParagraph.AddSmartArt(OfficeIMO.Word.WordSmartArtType type) -> OfficeIMO.Word.WordSmartArt!
@@ -3644,9 +3639,8 @@ OfficeIMO.Word.WordSection.AddImage(string! path, OfficeIMO.OfficeLength? width 
 OfficeIMO.Word.WordSection.AddPageNumbering(int? startNumber = null, OfficeIMO.Word.WordNumberFormat? format = null) -> OfficeIMO.Word.WordPageNumberSettings!
 OfficeIMO.Word.WordSection.AddParagraph(bool newRun) -> OfficeIMO.Word.WordParagraph!
 OfficeIMO.Word.WordSection.AddParagraph(string! text = "") -> OfficeIMO.Word.WordParagraph!
-OfficeIMO.Word.WordSection.AddShape(OfficeIMO.Word.WordShapeType shapeType, double widthPt, double heightPt, OfficeIMO.OfficeColor fillColor, OfficeIMO.OfficeColor strokeColor, double strokeWeightPt = 1, double arcSize = 0.25) -> OfficeIMO.Word.WordShape!
-OfficeIMO.Word.WordSection.AddShape(OfficeIMO.Word.WordShapeType shapeType, double widthPt, double heightPt, string! fillColor = "#FFFFFF", string! strokeColor = "#000000", double strokeWeightPt = 1, double arcSize = 0.25) -> OfficeIMO.Word.WordShape!
-OfficeIMO.Word.WordSection.AddShapeDrawing(OfficeIMO.Word.WordShapeType shapeType, double widthPt, double heightPt) -> OfficeIMO.Word.WordShape!
+OfficeIMO.Word.WordSection.AddShape(OfficeIMO.Word.WordShapeType shapeType, OfficeIMO.OfficeLength width, OfficeIMO.OfficeLength height, OfficeIMO.OfficeColor? fillColor = null, OfficeIMO.OfficeColor? strokeColor = null, OfficeIMO.OfficeLength? strokeWeight = null, double arcSize = 0.25) -> OfficeIMO.Word.WordShape!
+OfficeIMO.Word.WordSection.AddShapeDrawing(OfficeIMO.Word.WordShapeType shapeType, OfficeIMO.OfficeLength width, OfficeIMO.OfficeLength height) -> OfficeIMO.Word.WordShape!
 OfficeIMO.Word.WordSection.AddSmartArt(OfficeIMO.Word.WordSmartArtType type) -> OfficeIMO.Word.WordSmartArt!
 OfficeIMO.Word.WordSection.AddTable(int rows, int columns, OfficeIMO.Word.WordTableStyle tableStyle = OfficeIMO.Word.WordTableStyle.TableGrid) -> OfficeIMO.Word.WordTable!
 OfficeIMO.Word.WordSection.AddTextBox(string! text, OfficeIMO.Word.WordImageTextWrapping wrapTextImage = OfficeIMO.Word.WordImageTextWrapping.Square) -> OfficeIMO.Word.WordTextBox!
@@ -3892,13 +3886,13 @@ OfficeIMO.Word.WordShape.FillColor.get -> OfficeIMO.OfficeColor
 OfficeIMO.Word.WordShape.FillColor.set -> void
 OfficeIMO.Word.WordShape.FillColorHex.get -> string!
 OfficeIMO.Word.WordShape.FillColorHex.set -> void
-OfficeIMO.Word.WordShape.Height.get -> double
+OfficeIMO.Word.WordShape.Height.get -> OfficeIMO.OfficeLength
 OfficeIMO.Word.WordShape.Height.set -> void
 OfficeIMO.Word.WordShape.Hidden.get -> bool?
 OfficeIMO.Word.WordShape.Hidden.set -> void
 OfficeIMO.Word.WordShape.Id.get -> string!
 OfficeIMO.Word.WordShape.Id.set -> void
-OfficeIMO.Word.WordShape.Left.get -> double?
+OfficeIMO.Word.WordShape.Left.get -> OfficeIMO.OfficeLength?
 OfficeIMO.Word.WordShape.Left.set -> void
 OfficeIMO.Word.WordShape.Remove() -> void
 OfficeIMO.Word.WordShape.Rotation.get -> double?
@@ -3907,16 +3901,16 @@ OfficeIMO.Word.WordShape.StrokeColor.get -> OfficeIMO.OfficeColor
 OfficeIMO.Word.WordShape.StrokeColor.set -> void
 OfficeIMO.Word.WordShape.StrokeColorHex.get -> string?
 OfficeIMO.Word.WordShape.StrokeColorHex.set -> void
-OfficeIMO.Word.WordShape.StrokeWeight.get -> double?
+OfficeIMO.Word.WordShape.StrokeWeight.get -> OfficeIMO.OfficeLength?
 OfficeIMO.Word.WordShape.StrokeWeight.set -> void
 OfficeIMO.Word.WordShape.Stroked.get -> bool?
 OfficeIMO.Word.WordShape.Stroked.set -> void
 OfficeIMO.Word.WordShape.Title.get -> string?
 OfficeIMO.Word.WordShape.Title.set -> void
-OfficeIMO.Word.WordShape.Top.get -> double?
+OfficeIMO.Word.WordShape.Top.get -> OfficeIMO.OfficeLength?
 OfficeIMO.Word.WordShape.Top.set -> void
 OfficeIMO.Word.WordShape.TryGetLayoutSnapshot(out OfficeIMO.Word.WordDrawingLayoutInfo! snapshot) -> bool
-OfficeIMO.Word.WordShape.Width.get -> double
+OfficeIMO.Word.WordShape.Width.get -> OfficeIMO.OfficeLength
 OfficeIMO.Word.WordShape.Width.set -> void
 OfficeIMO.Word.WordShape.ZIndex.get -> int?
 OfficeIMO.Word.WordShape.ZIndex.set -> void
@@ -5117,15 +5111,13 @@ static OfficeIMO.Word.WordParagraphStyle.ToStringStyle(this OfficeIMO.Word.WordP
 static OfficeIMO.Word.WordReviewReport.From(OfficeIMO.Word.WordReviewInfo! review, params OfficeIMO.Word.WordRevisionOperationReport![]! actions) -> OfficeIMO.Word.WordReviewReport!
 static OfficeIMO.Word.WordRevisionFilter.All() -> OfficeIMO.Word.WordRevisionFilter!
 static OfficeIMO.Word.WordSaveOptions.Default.get -> OfficeIMO.Word.WordSaveOptions!
-static OfficeIMO.Word.WordShape.AddDrawingShape(OfficeIMO.Word.WordParagraph! paragraph, OfficeIMO.Word.WordShapeType shapeType, double widthPt, double heightPt) -> OfficeIMO.Word.WordShape!
-static OfficeIMO.Word.WordShape.AddDrawingShapeAnchored(OfficeIMO.Word.WordParagraph! paragraph, OfficeIMO.Word.WordShapeType shapeType, double widthPt, double heightPt, double leftPt, double topPt) -> OfficeIMO.Word.WordShape!
-static OfficeIMO.Word.WordShape.AddEllipse(OfficeIMO.Word.WordParagraph! paragraph, double widthPt, double heightPt, OfficeIMO.OfficeColor fillColor) -> OfficeIMO.Word.WordShape!
-static OfficeIMO.Word.WordShape.AddEllipse(OfficeIMO.Word.WordParagraph! paragraph, double widthPt, double heightPt, string! fillColor = "#FFFFFF") -> OfficeIMO.Word.WordShape!
-static OfficeIMO.Word.WordShape.AddLine(OfficeIMO.Word.WordParagraph! paragraph, double startXPt, double startYPt, double endXPt, double endYPt, OfficeIMO.OfficeColor color, double strokeWeightPt = 1) -> OfficeIMO.Word.WordShape!
-static OfficeIMO.Word.WordShape.AddLine(OfficeIMO.Word.WordParagraph! paragraph, double startXPt, double startYPt, double endXPt, double endYPt, string! color = "#000000", double strokeWeightPt = 1) -> OfficeIMO.Word.WordShape!
+static OfficeIMO.Word.WordShape.AddDrawingShape(OfficeIMO.Word.WordParagraph! paragraph, OfficeIMO.Word.WordShapeType shapeType, OfficeIMO.OfficeLength width, OfficeIMO.OfficeLength height) -> OfficeIMO.Word.WordShape!
+static OfficeIMO.Word.WordShape.AddDrawingShapeAnchored(OfficeIMO.Word.WordParagraph! paragraph, OfficeIMO.Word.WordShapeType shapeType, OfficeIMO.OfficeLength width, OfficeIMO.OfficeLength height, OfficeIMO.OfficeLength left, OfficeIMO.OfficeLength top) -> OfficeIMO.Word.WordShape!
+static OfficeIMO.Word.WordShape.AddEllipse(OfficeIMO.Word.WordParagraph! paragraph, OfficeIMO.OfficeLength width, OfficeIMO.OfficeLength height, OfficeIMO.OfficeColor? fillColor = null) -> OfficeIMO.Word.WordShape!
+static OfficeIMO.Word.WordShape.AddLine(OfficeIMO.Word.WordParagraph! paragraph, OfficeIMO.OfficeLength startX, OfficeIMO.OfficeLength startY, OfficeIMO.OfficeLength endX, OfficeIMO.OfficeLength endY, OfficeIMO.OfficeColor? color = null, OfficeIMO.OfficeLength? strokeWeight = null) -> OfficeIMO.Word.WordShape!
 static OfficeIMO.Word.WordShape.AddPolygon(OfficeIMO.Word.WordParagraph! paragraph, string! points, OfficeIMO.OfficeColor fillColor, OfficeIMO.OfficeColor strokeColor) -> OfficeIMO.Word.WordShape!
 static OfficeIMO.Word.WordShape.AddPolygon(OfficeIMO.Word.WordParagraph! paragraph, string! points, string! fillColor = "#FFFFFF", string! strokeColor = "#000000") -> OfficeIMO.Word.WordShape!
-static OfficeIMO.Word.WordShape.AddRoundedRectangle(OfficeIMO.Word.WordParagraph! paragraph, double widthPt, double heightPt, string! fillColor = "#FFFFFF", double arcSize = 0.25) -> OfficeIMO.Word.WordShape!
+static OfficeIMO.Word.WordShape.AddRoundedRectangle(OfficeIMO.Word.WordParagraph! paragraph, OfficeIMO.OfficeLength width, OfficeIMO.OfficeLength height, OfficeIMO.OfficeColor? fillColor = null, double arcSize = 0.25) -> OfficeIMO.Word.WordShape!
 static OfficeIMO.Word.WordSignatureValidationReport.From(OfficeIMO.Word.WordSignatureInfo! signatureInfo) -> OfficeIMO.Word.WordSignatureValidationReport!
 static OfficeIMO.Word.WordSigningCapabilities.MacroProject.get -> OfficeIMO.Word.WordSigningCapability!
 static OfficeIMO.Word.WordSigningCapabilities.Package.get -> OfficeIMO.Word.WordSigningCapability!

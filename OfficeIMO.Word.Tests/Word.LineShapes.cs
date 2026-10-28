@@ -13,7 +13,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "CreateDocumentWithLines.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
                 var paragraph = document.AddParagraph("Paragraph with line");
-                var line = paragraph.AddLine(0, 0, 100, 0, "#FF0000", 2);
+                var line = paragraph.AddLine(OfficeIMO.OfficeLength.Points(0), OfficeIMO.OfficeLength.Points(0), OfficeIMO.OfficeLength.Points(100), OfficeIMO.OfficeLength.Points(0), OfficeIMO.OfficeColor.Parse("#FF0000"), OfficeIMO.OfficeLength.Points(2));
 
                 Assert.True(document.Paragraphs.Count == 1);
                 Assert.NotNull(paragraph.Line);
@@ -31,7 +31,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "CreateDocumentWithLinesColor.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
                 var paragraph = document.AddParagraph("Paragraph with line");
-                var line = paragraph.AddLine(0, 0, 100, 0, Color.Blue, 2);
+                var line = paragraph.AddLine(OfficeIMO.OfficeLength.Points(0), OfficeIMO.OfficeLength.Points(0), OfficeIMO.OfficeLength.Points(100), OfficeIMO.OfficeLength.Points(0), Color.Blue, OfficeIMO.OfficeLength.Points(2));
 
                 Assert.Equal(Color.Blue.ToRgbHex(), line.ColorHex.Replace("#", ""));
 

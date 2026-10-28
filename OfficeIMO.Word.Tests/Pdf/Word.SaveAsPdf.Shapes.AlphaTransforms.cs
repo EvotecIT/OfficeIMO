@@ -24,7 +24,7 @@ public partial class Word {
     [InlineData("gradient", "modulate-offset", 0.3D)]
     public void SaveAsPdf_DrawingMlFillAndOutlineShareOrderedAlphaTransforms(string colorKind, string transforms, double expected) {
         using WordDocument document = WordDocument.Create();
-        document.AddParagraph().AddShapeDrawing(WordShapeType.Rectangle, 112D, 48D);
+        document.AddParagraph().AddShapeDrawing(WordShapeType.Rectangle, OfficeIMO.OfficeLength.Points(112D), OfficeIMO.OfficeLength.Points(48D));
         OpenXmlElement color;
         if (colorKind == "scheme" || colorKind == "theme-alpha") {
             var accent = document.MainDocumentPartRoot.ThemePart!.Theme!.ThemeElements!.ColorScheme!.Accent1Color!;

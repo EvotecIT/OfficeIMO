@@ -120,10 +120,10 @@ namespace OfficeIMO.Tests {
             WordShape shape = WordShape.AddDrawingShapeAnchored(
                 document.AddParagraph("shape"),
                 WordShapeType.Rectangle,
-                80,
-                40,
-                18,
-                27);
+                OfficeIMO.OfficeLength.Points(80),
+                OfficeIMO.OfficeLength.Points(40),
+                OfficeIMO.OfficeLength.Points(18),
+                OfficeIMO.OfficeLength.Points(27));
             WordSmartArt smartArt = document.AddSmartArt(WordSmartArtType.BasicProcess);
 
             Assert.True(shape.TryGetLayoutSnapshot(out WordDrawingLayoutInfo shapeLayout));

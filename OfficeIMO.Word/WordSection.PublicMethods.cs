@@ -306,33 +306,26 @@ namespace OfficeIMO.Word {
         /// Adds a VML shape to the section.
         /// </summary>
         /// <param name="shapeType">Type of shape to create.</param>
-        /// <param name="widthPt">Width in points or line end X.</param>
-        /// <param name="heightPt">Height in points or line end Y.</param>
-        /// <param name="fillColor">Fill color specified as a hex string (for example, <c>#RRGGBB</c>).</param>
-        /// <param name="strokeColor">Stroke color specified as a hex string (for example, <c>#RRGGBB</c>).</param>
-        /// <param name="strokeWeightPt">Stroke weight in points.</param>
+        /// <param name="width">Width or line end X.</param>
+        /// <param name="height">Height or line end Y.</param>
+        /// <param name="fillColor">Fill color; white when omitted.</param>
+        /// <param name="strokeColor">Stroke color; black when omitted.</param>
+        /// <param name="strokeWeight">Stroke thickness; one point when omitted.</param>
         /// <param name="arcSize">Rounded corner size expressed as a fraction between 0 and 1.</param>
-        public WordShape AddShape(WordShapeType shapeType, double widthPt, double heightPt,
-            string fillColor = "#FFFFFF", string strokeColor = "#000000", double strokeWeightPt = 1, double arcSize = 0.25) {
-            return AddParagraph(newRun: true).AddShape(shapeType, widthPt, heightPt, fillColor, strokeColor, strokeWeightPt, arcSize);
-        }
-
-        /// <summary>
-        /// Adds a VML shape to the section using <see cref="OfficeIMO.OfficeColor"/> values.
-        /// </summary>
-        public WordShape AddShape(WordShapeType shapeType, double widthPt, double heightPt,
-            OfficeIMO.OfficeColor fillColor, OfficeIMO.OfficeColor strokeColor, double strokeWeightPt = 1, double arcSize = 0.25) {
-            return AddShape(shapeType, widthPt, heightPt, fillColor.ToRgbHex(), strokeColor.ToRgbHex(), strokeWeightPt, arcSize);
+        public WordShape AddShape(WordShapeType shapeType, OfficeLength width, OfficeLength height,
+            OfficeColor? fillColor = null, OfficeColor? strokeColor = null, OfficeLength? strokeWeight = null, double arcSize = 0.25) {
+            WordShape.ValidateVmlColors(fillColor, strokeColor);
+            return AddParagraph(newRun: true).AddShape(shapeType, width, height, fillColor, strokeColor, strokeWeight, arcSize);
         }
 
         /// <summary>
         /// Adds a DrawingML shape to the section.
         /// </summary>
         /// <param name="shapeType">Type of shape to create.</param>
-        /// <param name="widthPt">Width in points.</param>
-        /// <param name="heightPt">Height in points.</param>
-        public WordShape AddShapeDrawing(WordShapeType shapeType, double widthPt, double heightPt) {
-            return AddParagraph(newRun: true).AddShapeDrawing(shapeType, widthPt, heightPt);
+        /// <param name="width">Width.</param>
+        /// <param name="height">Height.</param>
+        public WordShape AddShapeDrawing(WordShapeType shapeType, OfficeLength width, OfficeLength height) {
+            return AddParagraph(newRun: true).AddShapeDrawing(shapeType, width, height);
         }
 
         /// <summary>

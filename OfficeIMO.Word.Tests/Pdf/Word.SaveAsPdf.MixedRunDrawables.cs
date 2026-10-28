@@ -26,7 +26,7 @@ public partial class Word {
             chart.AddPie("Two", 4);
             drawableRun = chart.Drawing!.Ancestors<W.Run>().Single();
         } else {
-            WordShape shape = document.AddShape(WordShapeType.Rectangle, 36, 18, "#CCB399", "#1A334D", 2.5);
+            WordShape shape = document.AddShape(WordShapeType.Rectangle, OfficeIMO.OfficeLength.Points(36), OfficeIMO.OfficeLength.Points(18), OfficeIMO.OfficeColor.Parse("#CCB399"), OfficeIMO.OfficeColor.Parse("#1A334D"), OfficeIMO.OfficeLength.Points(2.5));
             drawableRun = shape._run;
         }
         W.Paragraph drawableParagraph = drawableRun.Ancestors<W.Paragraph>().Single();

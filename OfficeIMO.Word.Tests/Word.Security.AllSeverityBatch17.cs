@@ -10,7 +10,7 @@ public partial class Word {
     [Fact]
     public void LineColorFallsBackForMissingAutomaticAndMalformedValues() {
         using WordDocument document = WordDocument.Create();
-        WordLine line = document.AddParagraph("line").AddLine(0, 0, 20, 0);
+        WordLine line = document.AddParagraph("line").AddLine(OfficeLength.Zero, OfficeLength.Zero, OfficeLength.Points(20), OfficeLength.Zero);
 
         line._line.StrokeColor = "auto";
         Assert.Equal(Color.Black, line.Color);
@@ -152,7 +152,7 @@ public partial class Word {
     public void RemovingShapePreservesTextInItsParagraph() {
         using WordDocument document = WordDocument.Create();
         WordParagraph paragraph = document.AddParagraph("keep this text");
-        WordShape shape = paragraph.AddShape(20, 10);
+        WordShape shape = paragraph.AddShape(OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(10));
 
         shape.Remove();
 

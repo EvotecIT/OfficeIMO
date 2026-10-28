@@ -85,7 +85,7 @@ namespace OfficeIMO.Tests {
         public void DrawingShapes_AllocateIdsAboveExistingPackageIdsAfterReload() {
             string filePath = System.IO.Path.Combine(_directoryWithFiles, "ShapeGroup.DocumentScopedIds.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
-                WordShape existing = WordShape.AddDrawingShape(document.AddParagraph(), WordShapeType.Rectangle, 40, 20);
+                WordShape existing = WordShape.AddDrawingShape(document.AddParagraph(), WordShapeType.Rectangle, OfficeIMO.OfficeLength.Points(40), OfficeIMO.OfficeLength.Points(20));
                 existing._drawing!.Inline!.DocProperties!.Id = 100U;
                 document.Save();
             }
@@ -95,8 +95,8 @@ namespace OfficeIMO.Tests {
                     new WordShapeGroupItem(WordShapeType.Rectangle, 0, 0, 20, 20),
                     new WordShapeGroupItem(WordShapeType.Ellipse, 30, 0, 20, 20),
                 });
-                WordShape.AddDrawingShape(document.AddParagraph(), WordShapeType.Diamond, 30, 30);
-                WordShape.AddDrawingShapeAnchored(document.AddParagraph(), WordShapeType.Chevron, 30, 20, 10, 10);
+                WordShape.AddDrawingShape(document.AddParagraph(), WordShapeType.Diamond, OfficeIMO.OfficeLength.Points(30), OfficeIMO.OfficeLength.Points(30));
+                WordShape.AddDrawingShapeAnchored(document.AddParagraph(), WordShapeType.Chevron, OfficeIMO.OfficeLength.Points(30), OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(10), OfficeIMO.OfficeLength.Points(10));
                 WordChart chart = document.AddChart("ID allocation");
                 chart.AddCategories(new List<string> { "A" });
                 chart.AddBar("Series", new List<int> { 1 }, OfficeIMO.OfficeColor.Blue);

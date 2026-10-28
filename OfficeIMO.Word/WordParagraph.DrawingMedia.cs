@@ -180,42 +180,27 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Returns a <see cref="WordShape"/> instance when the paragraph contains shapes.
         /// </summary>
-        public WordShape? Shape {
-            get {
-                if (_run is not null) {
-                    if (TextBox is not null) {
-                        return null;
-                    }
-                    // VML shapes
-                    OpenXmlElement? vmlShape = EnumerateEffectiveRunContent()
-                        .SelectMany(child => child.Descendants().Prepend(child))
-                        .FirstOrDefault(element => !element.Ancestors<V.Group>().Any() &&
-                            (element is V.Rectangle or V.RoundRectangle or V.Oval or V.Line or V.PolyLine ||
-                            element is V.Shape shape && !shape.Descendants<V.ImageData>().Any() && !shape.Descendants<V.TextBox>().Any()));
-                    if (vmlShape != null)
-                        return new WordShape(_document, _paragraph, _run, selectedVmlShape: vmlShape);
+        public WordShape? Shape => EnumerateShapes().FirstOrDefault();
 
-                    // DrawingML shapes (non-pictures and not text boxes)
-                    var drawing = VisibleSourceRunChildren().OfType<WordDrawing>().FirstOrDefault();
-                    if (drawing is null) {
-                        foreach (var ac in VisibleSourceRunChildren().OfType<AlternateContent>()) {
-                            DocumentFormat.OpenXml.OpenXmlCompositeElement? branch =
-                                WordAlternateContentResolver.SelectBranch(ac);
-                            drawing = branch?.Descendants<WordDrawing>().FirstOrDefault();
-                            if (drawing is not null) break;
-                        }
-                    }
-                    if (drawing is not null) {
-                        bool hasPicture = drawing.Descendants<DocumentFormat.OpenXml.Drawing.Pictures.Picture>().Any();
-                        bool hasTextBox = drawing.Descendants<Wps.TextBoxInfo2>().Any();
-                        bool hasShapeGroup = drawing.Descendants<Wpg.WordprocessingGroup>().Any();
-                        bool hasShape = drawing.Descendants<Wps.WordprocessingShape>().Any();
-                        if (!hasPicture && !hasTextBox && !hasShapeGroup && hasShape) {
-                            return new WordShape(_document, _paragraph, _run, drawing);
-                        }
-                    }
+        /// <summary>Enumerates the independent shapes associated with this run.</summary>
+        internal IEnumerable<WordShape> EnumerateShapes() {
+            if (_run == null || TextBox != null) yield break;
+            foreach (OpenXmlElement element in EnumerateEffectiveRunContent()
+                         .SelectMany(child => child.Descendants().Prepend(child))) {
+                if (!element.Ancestors<V.Group>().Any() &&
+                    (element is V.Rectangle or V.RoundRectangle or V.Oval or V.Line or V.PolyLine ||
+                     element is V.Shape shape && !shape.Descendants<V.ImageData>().Any() && !shape.Descendants<V.TextBox>().Any())) {
+                    yield return new WordShape(_document, _paragraph, _run, selectedVmlShape: element);
                 }
-                return null;
+            }
+            foreach (WordDrawing drawing in EnumerateEffectiveRunContent().OfType<WordDrawing>()) {
+                bool hasPicture = drawing.Descendants<DocumentFormat.OpenXml.Drawing.Pictures.Picture>().Any();
+                bool hasTextBox = drawing.Descendants<Wps.TextBoxInfo2>().Any();
+                bool hasShapeGroup = drawing.Descendants<Wpg.WordprocessingGroup>().Any();
+                bool hasShape = drawing.Descendants<Wps.WordprocessingShape>().Any();
+                if (!hasPicture && !hasTextBox && !hasShapeGroup && hasShape) {
+                    yield return new WordShape(_document, _paragraph, _run, drawing);
+                }
             }
         }
 

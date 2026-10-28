@@ -66,7 +66,7 @@ public partial class Word {
             paragraph = document.Paragraphs.Last();
         } else {
             paragraph = document.AddParagraph("PREFIX");
-            paragraph.AddShape(WordShapeType.Rectangle, 36D, 20D, "#CCB399");
+            paragraph.AddShape(WordShapeType.Rectangle, OfficeIMO.OfficeLength.Points(36D), OfficeIMO.OfficeLength.Points(20D), OfficeIMO.OfficeColor.Parse("#CCB399"));
             var rectangle = paragraph._paragraph.Descendants<DocumentFormat.OpenXml.Vml.Rectangle>().Single();
             var picture = Assert.IsType<W.Picture>(rectangle.Parent);
             rectangle.Remove();
@@ -183,8 +183,8 @@ public partial class Word {
         using WordDocument document = CreateJoinedParagraphDocument();
         WordParagraph paragraph = document.AddParagraph("PREFIX");
         paragraph.AddTextBox("BOX", WordImageTextWrapping.Square);
-        WordShape shape = drawingMl ? paragraph.AddShapeDrawing(WordShapeType.Rectangle, 36D, 20D)
-            : paragraph.AddShape(WordShapeType.Rectangle, 36D, 20D, "#CCB399");
+        WordShape shape = drawingMl ? paragraph.AddShapeDrawing(WordShapeType.Rectangle, OfficeIMO.OfficeLength.Points(36D), OfficeIMO.OfficeLength.Points(20D))
+            : paragraph.AddShape(WordShapeType.Rectangle, OfficeIMO.OfficeLength.Points(36D), OfficeIMO.OfficeLength.Points(20D), OfficeIMO.OfficeColor.Parse("#CCB399"));
         shape.FillColorHex = "#CCB399";
         paragraph.AddText("SUFFIX");
         Assert.Empty(document.ValidateDocument());

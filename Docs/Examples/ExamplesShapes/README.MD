@@ -6,11 +6,11 @@
 using (WordDocument document = WordDocument.Create(filePath)) {
     var paragraph = document.AddParagraph("Shapes demo");
     // rectangle
-    paragraph.AddShape(100, 50, OfficeIMO.OfficeColor.Red);
+    paragraph.AddShape(OfficeIMO.OfficeLength.Points(100), OfficeIMO.OfficeLength.Points(50), OfficeIMO.OfficeColor.Red);
     // ellipse
-    WordShape.AddEllipse(paragraph, 80, 40, OfficeIMO.OfficeColor.Green);
+    WordShape.AddEllipse(paragraph, OfficeIMO.OfficeLength.Points(80), OfficeIMO.OfficeLength.Points(40), OfficeIMO.OfficeColor.Green);
     // line
-    WordShape.AddLine(paragraph, 0, 60, 100, 60, OfficeIMO.OfficeColor.Blue, 2);
+    WordShape.AddLine(paragraph, OfficeIMO.OfficeLength.Points(0), OfficeIMO.OfficeLength.Points(60), OfficeIMO.OfficeLength.Points(100), OfficeIMO.OfficeLength.Points(60), OfficeIMO.OfficeColor.Blue, OfficeIMO.OfficeLength.Points(2));
     // polygon
     WordShape.AddPolygon(paragraph, "0,0 50,0 50,50 0,50", OfficeIMO.OfficeColor.Yellow, OfficeIMO.OfficeColor.Black);
     document.Save();

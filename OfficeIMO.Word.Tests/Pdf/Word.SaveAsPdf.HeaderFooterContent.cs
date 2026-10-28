@@ -352,12 +352,12 @@ public partial class Word {
         using (WordDocument document = WordDocument.Create(docPath)) {
             document.AddHeadersAndFooters();
             WordHeader header = RequireSectionHeader(document, 0, HeaderFooterValues.Default);
-            header.AddShape(WordShapeType.Rectangle, 36, 16, "#99ccff", "#003366", 1.5);
+            header.AddShape(WordShapeType.Rectangle, OfficeIMO.OfficeLength.Points(36), OfficeIMO.OfficeLength.Points(16), OfficeIMO.OfficeColor.Parse("#99ccff"), OfficeIMO.OfficeColor.Parse("#003366"), OfficeIMO.OfficeLength.Points(1.5));
 
             WordFooter footer = RequireSectionFooter(document, 0, HeaderFooterValues.Default);
             WordParagraph footerParagraph = footer.AddParagraph();
             footerParagraph.ParagraphAlignment = WordParagraphAlignment.Right;
-            footerParagraph.AddShape(WordShapeType.Rectangle, 34, 14, "#ffe699", "#663300", 1.25);
+            footerParagraph.AddShape(WordShapeType.Rectangle, OfficeIMO.OfficeLength.Points(34), OfficeIMO.OfficeLength.Points(14), OfficeIMO.OfficeColor.Parse("#ffe699"), OfficeIMO.OfficeColor.Parse("#663300"), OfficeIMO.OfficeLength.Points(1.25));
 
             document.AddParagraph("Native header footer shape body");
             document.Save();

@@ -508,44 +508,37 @@ namespace OfficeIMO.Word {
         /// Adds a basic shape to the document in a new paragraph.
         /// </summary>
         /// <param name="shapeType">Type of shape to create.</param>
-        /// <param name="widthPt">Width in points or line end X.</param>
-        /// <param name="heightPt">Height in points or line end Y.</param>
-        /// <param name="fillColor">Fill color in hex format.</param>
-        /// <param name="strokeColor">Stroke color in hex format.</param>
-        /// <param name="strokeWeightPt">Stroke weight in points.</param>
+        /// <param name="width">Width or line end X.</param>
+        /// <param name="height">Height or line end Y.</param>
+        /// <param name="fillColor">Fill color; white when omitted.</param>
+        /// <param name="strokeColor">Stroke color; black when omitted.</param>
+        /// <param name="strokeWeight">Stroke thickness; one point when omitted.</param>
         /// <param name="arcSize">Corner roundness fraction for rounded rectangles.</param>
         /// <returns>The created <see cref="WordShape"/>.</returns>
-        public WordShape AddShape(WordShapeType shapeType, double widthPt, double heightPt,
-            string fillColor = "#FFFFFF", string strokeColor = "#000000", double strokeWeightPt = 1, double arcSize = 0.25) {
+        public WordShape AddShape(WordShapeType shapeType, OfficeLength width, OfficeLength height,
+            OfficeColor? fillColor = null, OfficeColor? strokeColor = null, OfficeLength? strokeWeight = null, double arcSize = 0.25) {
+            WordShape.ValidateVmlColors(fillColor, strokeColor);
             var paragraph = AddParagraph();
-            return paragraph.AddShape(shapeType, widthPt, heightPt, fillColor, strokeColor, strokeWeightPt, arcSize);
-        }
-
-        /// <summary>
-        /// Adds a basic shape to the document using <see cref="OfficeIMO.OfficeColor"/> values.
-        /// </summary>
-        public WordShape AddShape(WordShapeType shapeType, double widthPt, double heightPt,
-            OfficeIMO.OfficeColor fillColor, OfficeIMO.OfficeColor strokeColor, double strokeWeightPt = 1, double arcSize = 0.25) {
-            return AddShape(shapeType, widthPt, heightPt, fillColor.ToRgbHex(), strokeColor.ToRgbHex(), strokeWeightPt, arcSize);
+            return paragraph.AddShape(shapeType, width, height, fillColor, strokeColor, strokeWeight, arcSize);
         }
 
         /// <summary>
         /// Adds a DrawingML shape to the document in a new paragraph.
         /// </summary>
         /// <param name="shapeType">Type of shape to create.</param>
-        /// <param name="widthPt">Width in points.</param>
-        /// <param name="heightPt">Height in points.</param>
-        public WordShape AddShapeDrawing(WordShapeType shapeType, double widthPt, double heightPt) {
+        /// <param name="width">Width.</param>
+        /// <param name="height">Height.</param>
+        public WordShape AddShapeDrawing(WordShapeType shapeType, OfficeLength width, OfficeLength height) {
             var paragraph = AddParagraph();
-            return paragraph.AddShapeDrawing(shapeType, widthPt, heightPt);
+            return paragraph.AddShapeDrawing(shapeType, width, height);
         }
 
         /// <summary>
         /// Adds a DrawingML shape anchored at an absolute position on the page in a new paragraph.
         /// </summary>
-        public WordShape AddShapeDrawing(WordShapeType shapeType, double widthPt, double heightPt, double leftPt, double topPt) {
+        public WordShape AddShapeDrawing(WordShapeType shapeType, OfficeLength width, OfficeLength height, OfficeLength left, OfficeLength top) {
             var paragraph = AddParagraph();
-            return paragraph.AddShapeDrawing(shapeType, widthPt, heightPt, leftPt, topPt);
+            return paragraph.AddShapeDrawing(shapeType, width, height, left, top);
         }
 
         /// <summary>

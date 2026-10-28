@@ -199,6 +199,33 @@ document.AddCodeBlock("return total;", "csharp");
 document.Save();
 ```
 
+## Shapes and lines
+
+Shape dimensions, positions and line weights use `OfficeLength`. `AddShape`
+creates a VML shape; its `Width`, `Height`, nullable `Left`, `Top` and
+`StrokeWeight` properties use the same lengths. `AddShapeDrawing` creates a
+DrawingML shape; `TryGetLayoutSnapshot` reads its persisted frame.
+
+```csharp
+using OfficeIMO;
+using OfficeIMO.Word;
+
+using var document = WordDocument.Create("shapes.docx");
+var shape = document.AddShape(WordShapeType.RoundedRectangle,
+    OfficeLength.Centimeters(4), OfficeLength.Points(36),
+    fillColor: OfficeColor.Parse("#DDEEFF"));
+shape.Left = OfficeLength.Points(18);
+shape.Top = OfficeLength.Points(24);
+shape.StrokeWeight = OfficeLength.Points(1);
+
+document.AddParagraph().AddShapeDrawing(WordShapeType.Ellipse,
+    OfficeLength.Inches(1), OfficeLength.Centimeters(1),
+    OfficeLength.Points(36), OfficeLength.Points(72));
+document.AddParagraph().AddLine(OfficeLength.Zero, OfficeLength.Zero,
+    OfficeLength.Centimeters(4), OfficeLength.Zero, OfficeColor.Blue);
+document.Save();
+```
+
 ## Paragraph formatting and inheritance
 
 `AddPageNumber(includeTotalPages: true)` uses its source run's typography for both page fields and the separator. Font family, size and colour can be set before or after adding the fields; unrelated runs keep their own formatting.

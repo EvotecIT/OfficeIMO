@@ -2124,256 +2124,256 @@
       "old": "OfficeIMO.Word.WordDocument.AddShape(WordShapeType shapeType, double widthPt, double heightPt, OfficeColor fillColor, OfficeColor strokeColor, double strokeWeightPt = 1, double arcSize = 0.25)",
       "kind": "method",
       "action": "change",
-      "new": "OfficeIMO.Word.WordDocument.AddShape(... OfficeLength ...)",
+      "new": "OfficeIMO.Word.WordDocument.AddShape(WordShapeType shapeType, OfficeLength width, OfficeLength height, OfficeColor? fillColor = null, OfficeColor? strokeColor = null, OfficeLength? strokeWeight = null, double arcSize = 0.25) : WordShape",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.Word/WordDocument.PublicMethods.cs",
       "category": "units",
-      "notes": "Numeric parameters with unit-suffixed names: ",
+      "notes": "One typed geometry/color signature retains the existing white fill, black stroke and one-point stroke defaults. DrawingML authoring writes whole EMUs directly; VML point text uses invariant precision rather than display formatting. ArcSize remains dimensionless.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Shared physical geometry and the consolidated typed-color overload preserve native defaults, whole-EMU DrawingML values and precise invariant VML point text. Native save restrictions remain unchanged."
     },
     {
       "old": "OfficeIMO.Word.WordDocument.AddShape(WordShapeType shapeType, double widthPt, double heightPt, string fillColor = #FFFFFF, string strokeColor = #000000, double strokeWeightPt = 1, double arcSize = 0.25)",
       "kind": "method",
-      "action": "change",
-      "new": "OfficeIMO.Word.WordDocument.AddShape(... OfficeLength ...)",
+      "action": "merge",
+      "new": "OfficeIMO.Word.WordDocument.AddShape(WordShapeType shapeType, OfficeLength width, OfficeLength height, OfficeColor? fillColor = null, OfficeColor? strokeColor = null, OfficeLength? strokeWeight = null, double arcSize = 0.25) : WordShape",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.Word/WordDocument.PublicMethods.cs",
       "category": "units",
-      "notes": "Numeric parameters with unit-suffixed names: ",
+      "notes": "One typed geometry/color signature retains the existing white fill, black stroke and one-point stroke defaults. DrawingML authoring writes whole EMUs directly; VML point text uses invariant precision rather than display formatting. ArcSize remains dimensionless.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Shared physical geometry and the consolidated typed-color overload preserve native defaults, whole-EMU DrawingML values and precise invariant VML point text. Native save restrictions remain unchanged."
     },
     {
       "old": "OfficeIMO.Word.WordDocument.AddShapeDrawing(WordShapeType shapeType, double widthPt, double heightPt)",
       "kind": "method",
       "action": "change",
-      "new": "OfficeIMO.Word.WordDocument.AddShapeDrawing(... OfficeLength ...)",
+      "new": "OfficeIMO.Word.WordDocument.AddShapeDrawing(WordShapeType shapeType, OfficeLength width, OfficeLength height) : WordShape",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.Word/WordDocument.PublicMethods.cs",
       "category": "units",
-      "notes": "Numeric parameters with unit-suffixed names: ",
+      "notes": "One typed geometry/color signature retains the existing white fill, black stroke and one-point stroke defaults. DrawingML authoring writes whole EMUs directly; VML point text uses invariant precision rather than display formatting. ArcSize remains dimensionless.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Shared physical geometry and the consolidated typed-color overload preserve native defaults, whole-EMU DrawingML values and precise invariant VML point text. Native save restrictions remain unchanged."
     },
     {
       "old": "OfficeIMO.Word.WordDocument.AddShapeDrawing(WordShapeType shapeType, double widthPt, double heightPt, double leftPt, double topPt)",
       "kind": "method",
       "action": "change",
-      "new": "OfficeIMO.Word.WordDocument.AddShapeDrawing(... OfficeLength ...)",
+      "new": "OfficeIMO.Word.WordDocument.AddShapeDrawing(WordShapeType shapeType, OfficeLength width, OfficeLength height, OfficeLength left, OfficeLength top) : WordShape",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.Word/WordDocument.PublicMethods.cs",
       "category": "units",
-      "notes": "Numeric parameters with unit-suffixed names: ",
+      "notes": "One typed geometry/color signature retains the existing white fill, black stroke and one-point stroke defaults. DrawingML authoring writes whole EMUs directly; VML point text uses invariant precision rather than display formatting. ArcSize remains dimensionless.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Shared physical geometry and the consolidated typed-color overload preserve native defaults, whole-EMU DrawingML values and precise invariant VML point text. Native save restrictions remain unchanged."
     },
     {
       "old": "OfficeIMO.Word.WordHeader.AddShape(WordShapeType shapeType, double widthPt, double heightPt, OfficeColor fillColor, OfficeColor strokeColor, double strokeWeightPt = 1, double arcSize = 0.25)",
       "kind": "method",
       "action": "change",
-      "new": "OfficeIMO.Word.WordHeader.AddShape(... OfficeLength ...)",
+      "new": "OfficeIMO.Word.WordHeader.AddShape(WordShapeType shapeType, OfficeLength width, OfficeLength height, OfficeColor? fillColor = null, OfficeColor? strokeColor = null, OfficeLength? strokeWeight = null, double arcSize = 0.25) : WordShape",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.Word/WordHeader.cs",
       "category": "units",
-      "notes": "Numeric parameters with unit-suffixed names: ",
+      "notes": "One typed geometry/color signature retains the existing white fill, black stroke and one-point stroke defaults. DrawingML authoring writes whole EMUs directly; VML point text uses invariant precision rather than display formatting. ArcSize remains dimensionless.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Shared physical geometry and the consolidated typed-color overload preserve native defaults, whole-EMU DrawingML values and precise invariant VML point text. Native save restrictions remain unchanged."
     },
     {
       "old": "OfficeIMO.Word.WordHeader.AddShape(WordShapeType shapeType, double widthPt, double heightPt, string fillColor = #FFFFFF, string strokeColor = #000000, double strokeWeightPt = 1, double arcSize = 0.25)",
       "kind": "method",
-      "action": "change",
-      "new": "OfficeIMO.Word.WordHeader.AddShape(... OfficeLength ...)",
+      "action": "merge",
+      "new": "OfficeIMO.Word.WordHeader.AddShape(WordShapeType shapeType, OfficeLength width, OfficeLength height, OfficeColor? fillColor = null, OfficeColor? strokeColor = null, OfficeLength? strokeWeight = null, double arcSize = 0.25) : WordShape",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.Word/WordHeader.cs",
       "category": "units",
-      "notes": "Numeric parameters with unit-suffixed names: ",
+      "notes": "One typed geometry/color signature retains the existing white fill, black stroke and one-point stroke defaults. DrawingML authoring writes whole EMUs directly; VML point text uses invariant precision rather than display formatting. ArcSize remains dimensionless.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Shared physical geometry and the consolidated typed-color overload preserve native defaults, whole-EMU DrawingML values and precise invariant VML point text. Native save restrictions remain unchanged."
     },
     {
       "old": "OfficeIMO.Word.WordHeader.AddShapeDrawing(WordShapeType shapeType, double widthPt, double heightPt)",
       "kind": "method",
       "action": "change",
-      "new": "OfficeIMO.Word.WordHeader.AddShapeDrawing(... OfficeLength ...)",
+      "new": "OfficeIMO.Word.WordHeader.AddShapeDrawing(WordShapeType shapeType, OfficeLength width, OfficeLength height) : WordShape",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.Word/WordHeader.cs",
       "category": "units",
-      "notes": "Numeric parameters with unit-suffixed names: ",
+      "notes": "One typed geometry/color signature retains the existing white fill, black stroke and one-point stroke defaults. DrawingML authoring writes whole EMUs directly; VML point text uses invariant precision rather than display formatting. ArcSize remains dimensionless.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Shared physical geometry and the consolidated typed-color overload preserve native defaults, whole-EMU DrawingML values and precise invariant VML point text. Native save restrictions remain unchanged."
     },
     {
       "old": "OfficeIMO.Word.WordParagraph.AddLine(double startXPt, double startYPt, double endXPt, double endYPt, OfficeColor color, double strokeWeightPt = 1)",
       "kind": "method",
       "action": "change",
-      "new": "OfficeIMO.Word.WordParagraph.AddLine(... OfficeLength ...)",
+      "new": "OfficeIMO.Word.WordParagraph.AddLine(OfficeLength startX, OfficeLength startY, OfficeLength endX, OfficeLength endY, OfficeColor? color = null, OfficeLength? strokeWeight = null) : WordLine",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.Word/WordParagraph.PublicMethods.Shapes.cs",
       "category": "units",
-      "notes": "Numeric parameters with unit-suffixed names: ",
+      "notes": "One typed geometry/color signature retains the existing white fill, black stroke and one-point stroke defaults. DrawingML authoring writes whole EMUs directly; VML point text uses invariant precision rather than display formatting. ArcSize remains dimensionless.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Shared physical geometry and the consolidated typed-color overload preserve native defaults, whole-EMU DrawingML values and precise invariant VML point text. Native save restrictions remain unchanged."
     },
     {
       "old": "OfficeIMO.Word.WordParagraph.AddLine(double startXPt, double startYPt, double endXPt, double endYPt, string color = #000000, double strokeWeightPt = 1)",
       "kind": "method",
-      "action": "change",
-      "new": "OfficeIMO.Word.WordParagraph.AddLine(... OfficeLength ...)",
+      "action": "merge",
+      "new": "OfficeIMO.Word.WordParagraph.AddLine(OfficeLength startX, OfficeLength startY, OfficeLength endX, OfficeLength endY, OfficeColor? color = null, OfficeLength? strokeWeight = null) : WordLine",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.Word/WordParagraph.PublicMethods.Shapes.cs",
       "category": "units",
-      "notes": "Numeric parameters with unit-suffixed names: ",
+      "notes": "One typed geometry/color signature retains the existing white fill, black stroke and one-point stroke defaults. DrawingML authoring writes whole EMUs directly; VML point text uses invariant precision rather than display formatting. ArcSize remains dimensionless.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Shared physical geometry and the consolidated typed-color overload preserve native defaults, whole-EMU DrawingML values and precise invariant VML point text. Native save restrictions remain unchanged."
     },
     {
       "old": "OfficeIMO.Word.WordParagraph.AddShape(WordShapeType shapeType, double widthPt, double heightPt, OfficeColor fillColor, OfficeColor strokeColor, double strokeWeightPt = 1, double arcSize = 0.25)",
       "kind": "method",
       "action": "change",
-      "new": "OfficeIMO.Word.WordParagraph.AddShape(... OfficeLength ...)",
+      "new": "OfficeIMO.Word.WordParagraph.AddShape(WordShapeType shapeType, OfficeLength width, OfficeLength height, OfficeColor? fillColor = null, OfficeColor? strokeColor = null, OfficeLength? strokeWeight = null, double arcSize = 0.25) : WordShape",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.Word/WordParagraph.PublicMethods.Shapes.cs",
       "category": "units",
-      "notes": "Numeric parameters with unit-suffixed names: ",
+      "notes": "One typed geometry/color signature retains the existing white fill, black stroke and one-point stroke defaults. DrawingML authoring writes whole EMUs directly; VML point text uses invariant precision rather than display formatting. ArcSize remains dimensionless.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Shared physical geometry and the consolidated typed-color overload preserve native defaults, whole-EMU DrawingML values and precise invariant VML point text. Native save restrictions remain unchanged."
     },
     {
       "old": "OfficeIMO.Word.WordParagraph.AddShape(WordShapeType shapeType, double widthPt, double heightPt, string fillColor = #FFFFFF, string strokeColor = #000000, double strokeWeightPt = 1, double arcSize = 0.25)",
       "kind": "method",
-      "action": "change",
-      "new": "OfficeIMO.Word.WordParagraph.AddShape(... OfficeLength ...)",
+      "action": "merge",
+      "new": "OfficeIMO.Word.WordParagraph.AddShape(WordShapeType shapeType, OfficeLength width, OfficeLength height, OfficeColor? fillColor = null, OfficeColor? strokeColor = null, OfficeLength? strokeWeight = null, double arcSize = 0.25) : WordShape",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.Word/WordParagraph.PublicMethods.Shapes.cs",
       "category": "units",
-      "notes": "Numeric parameters with unit-suffixed names: ",
+      "notes": "One typed geometry/color signature retains the existing white fill, black stroke and one-point stroke defaults. DrawingML authoring writes whole EMUs directly; VML point text uses invariant precision rather than display formatting. ArcSize remains dimensionless.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Shared physical geometry and the consolidated typed-color overload preserve native defaults, whole-EMU DrawingML values and precise invariant VML point text. Native save restrictions remain unchanged."
     },
     {
       "old": "OfficeIMO.Word.WordParagraph.AddShape(double widthPt, double heightPt, OfficeColor fillColor)",
       "kind": "method",
       "action": "change",
-      "new": "OfficeIMO.Word.WordParagraph.AddShape(... OfficeLength ...)",
+      "new": "OfficeIMO.Word.WordParagraph.AddShape(OfficeLength width, OfficeLength height, OfficeColor? fillColor = null) : WordShape",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.Word/WordParagraph.PublicMethods.Shapes.cs",
       "category": "units",
-      "notes": "Numeric parameters with unit-suffixed names: ",
+      "notes": "One typed geometry/color signature retains the existing white fill, black stroke and one-point stroke defaults. DrawingML authoring writes whole EMUs directly; VML point text uses invariant precision rather than display formatting. ArcSize remains dimensionless.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Shared physical geometry and the consolidated typed-color overload preserve native defaults, whole-EMU DrawingML values and precise invariant VML point text. Native save restrictions remain unchanged."
     },
     {
       "old": "OfficeIMO.Word.WordParagraph.AddShape(double widthPt, double heightPt, string fillColor = #FFFFFF)",
       "kind": "method",
-      "action": "change",
-      "new": "OfficeIMO.Word.WordParagraph.AddShape(... OfficeLength ...)",
+      "action": "merge",
+      "new": "OfficeIMO.Word.WordParagraph.AddShape(OfficeLength width, OfficeLength height, OfficeColor? fillColor = null) : WordShape",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.Word/WordParagraph.PublicMethods.Shapes.cs",
       "category": "units",
-      "notes": "Numeric parameters with unit-suffixed names: ",
+      "notes": "One typed geometry/color signature retains the existing white fill, black stroke and one-point stroke defaults. DrawingML authoring writes whole EMUs directly; VML point text uses invariant precision rather than display formatting. ArcSize remains dimensionless.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Shared physical geometry and the consolidated typed-color overload preserve native defaults, whole-EMU DrawingML values and precise invariant VML point text. Native save restrictions remain unchanged."
     },
     {
       "old": "OfficeIMO.Word.WordParagraph.AddShapeDrawing(WordShapeType shapeType, double widthPt, double heightPt)",
       "kind": "method",
       "action": "change",
-      "new": "OfficeIMO.Word.WordParagraph.AddShapeDrawing(... OfficeLength ...)",
+      "new": "OfficeIMO.Word.WordParagraph.AddShapeDrawing(WordShapeType shapeType, OfficeLength width, OfficeLength height) : WordShape",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.Word/WordParagraph.PublicMethods.Shapes.cs",
       "category": "units",
-      "notes": "Numeric parameters with unit-suffixed names: ",
+      "notes": "One typed geometry/color signature retains the existing white fill, black stroke and one-point stroke defaults. DrawingML authoring writes whole EMUs directly; VML point text uses invariant precision rather than display formatting. ArcSize remains dimensionless.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Shared physical geometry and the consolidated typed-color overload preserve native defaults, whole-EMU DrawingML values and precise invariant VML point text. Native save restrictions remain unchanged."
     },
     {
       "old": "OfficeIMO.Word.WordParagraph.AddShapeDrawing(WordShapeType shapeType, double widthPt, double heightPt, double leftPt, double topPt)",
       "kind": "method",
       "action": "change",
-      "new": "OfficeIMO.Word.WordParagraph.AddShapeDrawing(... OfficeLength ...)",
+      "new": "OfficeIMO.Word.WordParagraph.AddShapeDrawing(WordShapeType shapeType, OfficeLength width, OfficeLength height, OfficeLength left, OfficeLength top) : WordShape",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.Word/WordParagraph.PublicMethods.Shapes.cs",
       "category": "units",
-      "notes": "Numeric parameters with unit-suffixed names: ",
+      "notes": "One typed geometry/color signature retains the existing white fill, black stroke and one-point stroke defaults. DrawingML authoring writes whole EMUs directly; VML point text uses invariant precision rather than display formatting. ArcSize remains dimensionless.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Shared physical geometry and the consolidated typed-color overload preserve native defaults, whole-EMU DrawingML values and precise invariant VML point text. Native save restrictions remain unchanged."
     },
     {
       "old": "OfficeIMO.Word.WordParagraph.AddShapeGroup(IEnumerable<WordShapeGroupItem> items, double leftPt, double topPt)",
@@ -2396,171 +2396,171 @@
       "old": "OfficeIMO.Word.WordSection.AddShape(WordShapeType shapeType, double widthPt, double heightPt, OfficeColor fillColor, OfficeColor strokeColor, double strokeWeightPt = 1, double arcSize = 0.25)",
       "kind": "method",
       "action": "change",
-      "new": "OfficeIMO.Word.WordSection.AddShape(... OfficeLength ...)",
+      "new": "OfficeIMO.Word.WordSection.AddShape(WordShapeType shapeType, OfficeLength width, OfficeLength height, OfficeColor? fillColor = null, OfficeColor? strokeColor = null, OfficeLength? strokeWeight = null, double arcSize = 0.25) : WordShape",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.Word/WordSection.PublicMethods.cs",
       "category": "units",
-      "notes": "Numeric parameters with unit-suffixed names: ",
+      "notes": "One typed geometry/color signature retains the existing white fill, black stroke and one-point stroke defaults. DrawingML authoring writes whole EMUs directly; VML point text uses invariant precision rather than display formatting. ArcSize remains dimensionless.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Shared physical geometry and the consolidated typed-color overload preserve native defaults, whole-EMU DrawingML values and precise invariant VML point text. Native save restrictions remain unchanged."
     },
     {
       "old": "OfficeIMO.Word.WordSection.AddShape(WordShapeType shapeType, double widthPt, double heightPt, string fillColor = #FFFFFF, string strokeColor = #000000, double strokeWeightPt = 1, double arcSize = 0.25)",
       "kind": "method",
-      "action": "change",
-      "new": "OfficeIMO.Word.WordSection.AddShape(... OfficeLength ...)",
+      "action": "merge",
+      "new": "OfficeIMO.Word.WordSection.AddShape(WordShapeType shapeType, OfficeLength width, OfficeLength height, OfficeColor? fillColor = null, OfficeColor? strokeColor = null, OfficeLength? strokeWeight = null, double arcSize = 0.25) : WordShape",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.Word/WordSection.PublicMethods.cs",
       "category": "units",
-      "notes": "Numeric parameters with unit-suffixed names: ",
+      "notes": "One typed geometry/color signature retains the existing white fill, black stroke and one-point stroke defaults. DrawingML authoring writes whole EMUs directly; VML point text uses invariant precision rather than display formatting. ArcSize remains dimensionless.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Shared physical geometry and the consolidated typed-color overload preserve native defaults, whole-EMU DrawingML values and precise invariant VML point text. Native save restrictions remain unchanged."
     },
     {
       "old": "OfficeIMO.Word.WordSection.AddShapeDrawing(WordShapeType shapeType, double widthPt, double heightPt)",
       "kind": "method",
       "action": "change",
-      "new": "OfficeIMO.Word.WordSection.AddShapeDrawing(... OfficeLength ...)",
+      "new": "OfficeIMO.Word.WordSection.AddShapeDrawing(WordShapeType shapeType, OfficeLength width, OfficeLength height) : WordShape",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.Word/WordSection.PublicMethods.cs",
       "category": "units",
-      "notes": "Numeric parameters with unit-suffixed names: ",
+      "notes": "One typed geometry/color signature retains the existing white fill, black stroke and one-point stroke defaults. DrawingML authoring writes whole EMUs directly; VML point text uses invariant precision rather than display formatting. ArcSize remains dimensionless.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Shared physical geometry and the consolidated typed-color overload preserve native defaults, whole-EMU DrawingML values and precise invariant VML point text. Native save restrictions remain unchanged."
     },
     {
       "old": "OfficeIMO.Word.WordShape.AddDrawingShape(WordParagraph paragraph, WordShapeType shapeType, double widthPt, double heightPt)",
       "kind": "method",
       "action": "change",
-      "new": "OfficeIMO.Word.WordShape.AddDrawingShape(... OfficeLength ...)",
+      "new": "OfficeIMO.Word.WordShape.AddDrawingShape(WordParagraph paragraph, WordShapeType shapeType, OfficeLength width, OfficeLength height) : WordShape",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.Word/WordShape.cs",
       "category": "units",
-      "notes": "Numeric parameters with unit-suffixed names: ",
+      "notes": "One typed geometry/color signature retains the existing white fill, black stroke and one-point stroke defaults. DrawingML authoring writes whole EMUs directly; VML point text uses invariant precision rather than display formatting. ArcSize remains dimensionless.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Shared physical geometry and the consolidated typed-color overload preserve native defaults, whole-EMU DrawingML values and precise invariant VML point text. Native save restrictions remain unchanged."
     },
     {
       "old": "OfficeIMO.Word.WordShape.AddDrawingShapeAnchored(WordParagraph paragraph, WordShapeType shapeType, double widthPt, double heightPt, double leftPt, double topPt)",
       "kind": "method",
       "action": "change",
-      "new": "OfficeIMO.Word.WordShape.AddDrawingShapeAnchored(... OfficeLength ...)",
+      "new": "OfficeIMO.Word.WordShape.AddDrawingShapeAnchored(WordParagraph paragraph, WordShapeType shapeType, OfficeLength width, OfficeLength height, OfficeLength left, OfficeLength top) : WordShape",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.Word/WordShape.cs",
       "category": "units",
-      "notes": "Numeric parameters with unit-suffixed names: ",
+      "notes": "One typed geometry/color signature retains the existing white fill, black stroke and one-point stroke defaults. DrawingML authoring writes whole EMUs directly; VML point text uses invariant precision rather than display formatting. ArcSize remains dimensionless.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Shared physical geometry and the consolidated typed-color overload preserve native defaults, whole-EMU DrawingML values and precise invariant VML point text. Native save restrictions remain unchanged."
     },
     {
       "old": "OfficeIMO.Word.WordShape.AddEllipse(WordParagraph paragraph, double widthPt, double heightPt, OfficeColor fillColor)",
       "kind": "method",
       "action": "change",
-      "new": "OfficeIMO.Word.WordShape.AddEllipse(... OfficeLength ...)",
+      "new": "OfficeIMO.Word.WordShape.AddEllipse(WordParagraph paragraph, OfficeLength width, OfficeLength height, OfficeColor? fillColor = null) : WordShape",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.Word/WordShape.cs",
       "category": "units",
-      "notes": "Numeric parameters with unit-suffixed names: ",
+      "notes": "One typed geometry/color signature retains the existing white fill, black stroke and one-point stroke defaults. DrawingML authoring writes whole EMUs directly; VML point text uses invariant precision rather than display formatting. ArcSize remains dimensionless.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Shared physical geometry and the consolidated typed-color overload preserve native defaults, whole-EMU DrawingML values and precise invariant VML point text. Native save restrictions remain unchanged."
     },
     {
       "old": "OfficeIMO.Word.WordShape.AddEllipse(WordParagraph paragraph, double widthPt, double heightPt, string fillColor = #FFFFFF)",
       "kind": "method",
-      "action": "change",
-      "new": "OfficeIMO.Word.WordShape.AddEllipse(... OfficeLength ...)",
+      "action": "merge",
+      "new": "OfficeIMO.Word.WordShape.AddEllipse(WordParagraph paragraph, OfficeLength width, OfficeLength height, OfficeColor? fillColor = null) : WordShape",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.Word/WordShape.cs",
       "category": "units",
-      "notes": "Numeric parameters with unit-suffixed names: ",
+      "notes": "One typed geometry/color signature retains the existing white fill, black stroke and one-point stroke defaults. DrawingML authoring writes whole EMUs directly; VML point text uses invariant precision rather than display formatting. ArcSize remains dimensionless.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Shared physical geometry and the consolidated typed-color overload preserve native defaults, whole-EMU DrawingML values and precise invariant VML point text. Native save restrictions remain unchanged."
     },
     {
       "old": "OfficeIMO.Word.WordShape.AddLine(WordParagraph paragraph, double startXPt, double startYPt, double endXPt, double endYPt, OfficeColor color, double strokeWeightPt = 1)",
       "kind": "method",
       "action": "change",
-      "new": "OfficeIMO.Word.WordShape.AddLine(... OfficeLength ...)",
+      "new": "OfficeIMO.Word.WordShape.AddLine(WordParagraph paragraph, OfficeLength startX, OfficeLength startY, OfficeLength endX, OfficeLength endY, OfficeColor? color = null, OfficeLength? strokeWeight = null) : WordShape",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.Word/WordShape.cs",
       "category": "units",
-      "notes": "Numeric parameters with unit-suffixed names: ",
+      "notes": "One typed geometry/color signature retains the existing white fill, black stroke and one-point stroke defaults. DrawingML authoring writes whole EMUs directly; VML point text uses invariant precision rather than display formatting. ArcSize remains dimensionless.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Shared physical geometry and the consolidated typed-color overload preserve native defaults, whole-EMU DrawingML values and precise invariant VML point text. Native save restrictions remain unchanged."
     },
     {
       "old": "OfficeIMO.Word.WordShape.AddLine(WordParagraph paragraph, double startXPt, double startYPt, double endXPt, double endYPt, string color = #000000, double strokeWeightPt = 1)",
       "kind": "method",
-      "action": "change",
-      "new": "OfficeIMO.Word.WordShape.AddLine(... OfficeLength ...)",
+      "action": "merge",
+      "new": "OfficeIMO.Word.WordShape.AddLine(WordParagraph paragraph, OfficeLength startX, OfficeLength startY, OfficeLength endX, OfficeLength endY, OfficeColor? color = null, OfficeLength? strokeWeight = null) : WordShape",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.Word/WordShape.cs",
       "category": "units",
-      "notes": "Numeric parameters with unit-suffixed names: ",
+      "notes": "One typed geometry/color signature retains the existing white fill, black stroke and one-point stroke defaults. DrawingML authoring writes whole EMUs directly; VML point text uses invariant precision rather than display formatting. ArcSize remains dimensionless.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Shared physical geometry and the consolidated typed-color overload preserve native defaults, whole-EMU DrawingML values and precise invariant VML point text. Native save restrictions remain unchanged."
     },
     {
       "old": "OfficeIMO.Word.WordShape.AddRoundedRectangle(WordParagraph paragraph, double widthPt, double heightPt, string fillColor = #FFFFFF, double arcSize = 0.25)",
       "kind": "method",
-      "action": "change",
-      "new": "OfficeIMO.Word.WordShape.AddRoundedRectangle(... OfficeLength ...)",
+      "action": "merge",
+      "new": "OfficeIMO.Word.WordShape.AddRoundedRectangle(WordParagraph paragraph, OfficeLength width, OfficeLength height, OfficeColor? fillColor = null, double arcSize = 0.25) : WordShape",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.Word/WordShape.cs",
       "category": "units",
-      "notes": "Numeric parameters with unit-suffixed names: ",
+      "notes": "One typed geometry/color signature retains the existing white fill, black stroke and one-point stroke defaults. DrawingML authoring writes whole EMUs directly; VML point text uses invariant precision rather than display formatting. ArcSize remains dimensionless.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Shared physical geometry and the consolidated typed-color overload preserve native defaults, whole-EMU DrawingML values and precise invariant VML point text. Native save restrictions remain unchanged."
     },
     {
       "old": "OfficeIMO.Word.WordSmartArt.ReplaceTexts(IEnumerable<string> texts, bool bold, bool italic, bool underline, string colorHex = null, double? sizePt = null)",
@@ -6594,6 +6594,46 @@
       "phase": "B",
       "applied": "phase-b-applied",
       "reason": "The original suffix-based map missed equal-column physical geometry. Preserve signed 32-bit DOCX storage, nullable omission, the 720-twip layout/native default, zero, native DOC unsigned 16-bit limits and consumer units. 36.03pt stores 721 twips (36.05pt); overflow fails before mutation. Individual WordSectionColumn lengths retain their separate contract."
+    },
+    {
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "action": "change",
+      "old": "WordShape.Width/Height : double; Left/Top/StrokeWeight : double?; WordLine.StrokeWeightPt : double",
+      "new": "WordShape.Width/Height : OfficeLength; Left/Top/StrokeWeight : OfficeLength?; WordLine.StrokeWeight : OfficeLength",
+      "reason": "The suffix-based unit inventory omitted public shape geometry. Native point readers remain internal for rendering so imported VML is not quantized through the public whole-EMU boundary. Preserve VML missing-value and clearing behavior, DrawingML null-stroke no-op, direct native extents, layout snapshots and native DOC loss controls.",
+      "files": [
+        "OfficeIMO.Word/WordShape.cs",
+        "OfficeIMO.Word/WordShape.Geometry.cs",
+        "OfficeIMO.Word/WordLine.cs",
+        "OfficeIMO.Word.Pdf/WordPdfConverterExtensions.Native.Shapes.cs"
+      ],
+      "note": "Footer shape authoring continues through its paragraphs; section convenience methods migrate with the exact map. Polygon point strings and shape-group geometry belong to separate map rows. Public lengths use exact native EMUs and invariant decimal VML points; internal point readers preserve imported renderer precision."
+    },
+    {
+      "change": "Validate consolidated VML shape colors before document mutation",
+      "reason": "The former typed-color forwards converted colors before creating a paragraph. The single nullable-color factory retains that ordering, so a rejected color leaves no paragraph or shape behind. Geometry, nullable clearing and native defaults remain unchanged.",
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "files": [
+        "OfficeIMO.Word/WordShape.cs",
+        "OfficeIMO.Word/WordParagraph.PublicMethods.Shapes.cs",
+        "OfficeIMO.Word/WordDocument.PublicMethods.cs",
+        "OfficeIMO.Word/WordHeader.cs",
+        "OfficeIMO.Word/WordSection.PublicMethods.cs"
+      ]
+    },
+    {
+      "change": "Bind VML AddEllipse, AddRoundedRectangle, AddLine and AddPolygon results to the node each factory creates and enumerate every independent sibling in document/section shape collections",
+      "reason": "Multiple shapes may share one paragraph run. Returning the new shape must not select, mutate or remove an earlier sibling. Saved XML and reload proof cover mixed and repeated shape kinds. The collection uses the same selected-node discovery as the singular property while retaining its text-box/group/alternate-content classification.",
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "files": [
+        "OfficeIMO.Word/WordShape.cs",
+        "OfficeIMO.Word.Tests/Word.Shapes.PhysicalGeometry.cs",
+        "OfficeIMO.Word/WordParagraph.DrawingMedia.cs",
+        "OfficeIMO.Word/WordSection.cs"
+      ]
     }
   ],
   "applicationStatus": "Phase A applied and validated on the supported macOS targets. Phase B and Tier 2 entries retain their status; Windows .NET Framework validation remains pending.",

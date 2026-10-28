@@ -89,8 +89,8 @@ public sealed class AddOfficeWordShapeCommand : PSCmdlet
         var paragraph = context.CurrentParagraph ?? context.RequireParagraphHost().AddParagraph();
 
         var shape = Left.HasValue || Top.HasValue
-            ? WordShape.AddDrawingShapeAnchored(paragraph, Type, Width, Height, Left ?? 0, Top ?? 0)
-            : WordShape.AddDrawingShape(paragraph, Type, Width, Height);
+            ? WordShape.AddDrawingShapeAnchored(paragraph, Type, OfficeIMO.OfficeLength.Points(Width), OfficeIMO.OfficeLength.Points(Height), OfficeIMO.OfficeLength.Points(Left ?? 0), OfficeIMO.OfficeLength.Points(Top ?? 0))
+            : WordShape.AddDrawingShape(paragraph, Type, OfficeIMO.OfficeLength.Points(Width), OfficeIMO.OfficeLength.Points(Height));
 
         ApplyShape(shape);
 
@@ -114,7 +114,7 @@ public sealed class AddOfficeWordShapeCommand : PSCmdlet
 
         if (StrokeWidth.HasValue)
         {
-            shape.StrokeWeight = StrokeWidth;
+            shape.StrokeWeight = OfficeIMO.OfficeLength.Points(StrokeWidth.Value);
         }
 
         if (Title != null)

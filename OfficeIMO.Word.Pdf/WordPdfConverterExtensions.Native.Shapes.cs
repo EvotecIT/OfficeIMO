@@ -85,8 +85,8 @@ namespace OfficeIMO.Word.Pdf {
         }
 
         private static (double Width, double Height)? GetNativeShapeDimensions(WordShape shape) {
-            double width = shape.Width;
-            double height = shape.Height;
+            double width = shape.WidthPoints;
+            double height = shape.HeightPoints;
             if (width > 0 && height > 0) {
                 return (width, height);
             }
@@ -211,7 +211,7 @@ namespace OfficeIMO.Word.Pdf {
             // Transfer the shared resolver's completed alpha once alongside RGB.
             // Running text-box admission also relies on this separate-opacity contract.
             if (hasDrawingStrokeColor) nativeShape.StrokeOpacity = drawingStroke.A / 255D;
-            nativeShape.StrokeWidth = Math.Max(0D, wordShape.StrokeWeight ?? 1D);
+            nativeShape.StrokeWidth = Math.Max(0D, wordShape.StrokeWeightPoints ?? 1D);
             nativeShape.StrokeDashStyle = MapNativeDrawingPresetDash(drawingOutline);
         }
 

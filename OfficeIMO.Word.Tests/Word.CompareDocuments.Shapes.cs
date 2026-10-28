@@ -111,11 +111,11 @@ namespace OfficeIMO.Tests {
             string sourcePath = Path.Combine(_directoryWithFiles, "Compare.Shape.AnchorPolicy.Source.docx");
             string targetPath = Path.Combine(_directoryWithFiles, "Compare.Shape.AnchorPolicy.Target.docx");
             using (WordDocument source = WordDocument.Create(sourcePath)) {
-                WordShape.AddDrawingShapeAnchored(source.AddParagraph(), WordShapeType.Rectangle, 100, 50, 12, 24);
+                WordShape.AddDrawingShapeAnchored(source.AddParagraph(), WordShapeType.Rectangle, OfficeIMO.OfficeLength.Points(100), OfficeIMO.OfficeLength.Points(50), OfficeIMO.OfficeLength.Points(12), OfficeIMO.OfficeLength.Points(24));
                 source.Save();
             }
             using (WordDocument target = WordDocument.Create(targetPath)) {
-                WordShape shape = WordShape.AddDrawingShapeAnchored(target.AddParagraph(), WordShapeType.Rectangle, 100, 50, 12, 24);
+                WordShape shape = WordShape.AddDrawingShapeAnchored(target.AddParagraph(), WordShapeType.Rectangle, OfficeIMO.OfficeLength.Points(100), OfficeIMO.OfficeLength.Points(50), OfficeIMO.OfficeLength.Points(12), OfficeIMO.OfficeLength.Points(24));
                 DW.Anchor anchor = shape._drawing!.Anchor!;
                 anchor.RelativeHeight = 77U;
                 anchor.BehindDoc = true;
@@ -137,11 +137,11 @@ namespace OfficeIMO.Tests {
 
         private static void CreateShapeComparisonPair(string sourcePath, string targetPath) {
             using (WordDocument source = WordDocument.Create(sourcePath)) {
-                source.AddParagraph().AddShapeDrawing(WordShapeType.Rectangle, 100, 50);
+                source.AddParagraph().AddShapeDrawing(WordShapeType.Rectangle, OfficeIMO.OfficeLength.Points(100), OfficeIMO.OfficeLength.Points(50));
                 source.Save();
             }
             using (WordDocument target = WordDocument.Create(targetPath)) {
-                target.AddParagraph().AddShapeDrawing(WordShapeType.Ellipse, 100, 50);
+                target.AddParagraph().AddShapeDrawing(WordShapeType.Ellipse, OfficeIMO.OfficeLength.Points(100), OfficeIMO.OfficeLength.Points(50));
                 target.AddParagraph().AddShapeGroup(new[] {
                     new WordShapeGroupItem(WordShapeType.Chevron, 0, 0, 60, 30),
                     new WordShapeGroupItem(WordShapeType.Chevron, 48, 0, 60, 30)

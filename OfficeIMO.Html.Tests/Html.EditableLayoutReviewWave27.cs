@@ -55,7 +55,7 @@ public sealed class HtmlEditableLayoutReviewWave27Tests {
     [Fact]
     public void CustomGeometryWordShapeInsertsFillBeforeOutlineAndEffects() {
         using WordDocument document = WordDocument.Create();
-        WordShape shape = document.AddShapeDrawing(WordShapeType.Rectangle, 80, 40);
+        WordShape shape = document.AddShapeDrawing(WordShapeType.Rectangle, OfficeIMO.OfficeLength.Points(80), OfficeIMO.OfficeLength.Points(40));
         Wps.ShapeProperties properties = Assert.IsType<Wps.ShapeProperties>(
             shape._wpsShape?.GetFirstChild<Wps.ShapeProperties>());
         properties.GetFirstChild<A.PresetGeometry>()?.Remove();

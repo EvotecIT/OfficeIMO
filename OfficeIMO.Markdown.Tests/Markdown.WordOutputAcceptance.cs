@@ -41,7 +41,7 @@ public sealed class WordMarkdownOutputAcceptanceTests {
     [Fact]
     public void SilentUnsupportedContentPolicyStillReportsOmission() {
         using var word = WordDocument.Create();
-        word.AddShape(WordShapeType.Rectangle, 60, 30);
+        word.AddShape(WordShapeType.Rectangle, OfficeIMO.OfficeLength.Points(60), OfficeIMO.OfficeLength.Points(30));
         var warnings = new List<string>();
         var options = new WordMarkdownExportOptions { UnsupportedContentMode = WordMarkdownUnsupportedContentMode.Omit, OnWarning = warnings.Add };
         using var markdown = word.ToMarkdown(options, out var report);
