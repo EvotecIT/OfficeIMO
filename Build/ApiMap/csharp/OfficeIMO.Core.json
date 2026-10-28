@@ -823,7 +823,8 @@
       "change": "Write canonical chart identifiers for Column/Bar convenience aliases in HTML and Reader JSON.",
       "reason": "The broader net8 PowerPoint HTML suite reproduced Enum.ToString selecting Column instead of ColumnClustered. One internal shared-source formatter now gives ColumnClustered/BarClustered consistently to PowerPoint HTML, Excel HTML and PowerPoint Reader payloads, including per-series kinds. Existing positioned HTML and rich Reader artifact tests cover the observable identifiers. No public helper or external dependency is added.",
       "phase": "B",
-      "applied": "phase-b-applied"
+      "applied": "phase-b-applied",
+      "note": "The shared-source package guardrail includes the internal chart-name formatter in its approved infrastructure list."
     },
     {
       "change": "Limit the ToHashSet compatibility extension to netstandard2.0",
