@@ -5,7 +5,8 @@ internal static partial class TableDetector {
         IReadOnlyList<TextLayoutEngine.TextLine> lines,
         double? pageHeight = null,
         Action<long>? consumeWork = null,
-        Action? cancellationCheck = null) {
+        Action? cancellationCheck = null,
+        IReadOnlyList<TextLayoutEngine.TextLine>? completePageLines = null) {
         var result = new List<PdfStructuredTable>();
         var group = new List<PositionedRow>();
         int inspectedLines = 0;
@@ -37,7 +38,9 @@ internal static partial class TableDetector {
         }
 
         AddPositionedGroup(result, group);
-        AddWrappedPositionedCellTables(result, lines, pageHeight, consumeWork, cancellationCheck);
+        // Earlier band fragments must not hide their header and first row from
+        // the complete wrapped-cell candidate that can supersede them.
+        AddWrappedPositionedCellTables(result, completePageLines ?? lines, pageHeight, consumeWork, cancellationCheck);
         return result;
     }
 
@@ -142,18 +145,15 @@ internal static partial class TableDetector {
             }
         }
         bool firstAnchorIsHeader = anchors.Count >= 3 &&
-            hasWrappedBodyEvidence &&
             LooksLikeHeaderRow(firstAnchorCells) &&
-            (HasEmphasizedText(anchors[0].Line) || !firstAnchorCells.Any(IsTabularValue));
-        double headerBottom;
+            (HasEmphasizedText(anchors[0].Line) || hasWrappedBodyEvidence && !firstAnchorCells.Any(IsTabularValue));
         List<TextLayoutEngine.TextLine> headerLines;
         int firstBodyAnchorIndex;
         if (firstAnchorIsHeader) {
-            headerBottom = (anchors[0].Row.Y + anchors[1].Row.Y) / 2D;
             headerLines = new List<TextLayoutEngine.TextLine> { anchors[0].Line };
             firstBodyAnchorIndex = 1;
         } else {
-            headerBottom = anchors[0].Row.Y + rowPitch / 2D;
+            double headerBottom = anchors[0].Row.Y + rowPitch / 2D;
             double headerTop = anchors[0].Row.Y + rowPitch;
             headerLines = SelectWrappedCellLines(
                 lines,
@@ -181,14 +181,22 @@ internal static partial class TableDetector {
         table.Rows.Add(Header);
         var sourceLines = new List<TextLayoutEngine.TextLine> { HeaderSource };
         var sourceRuns = new List<PdfTextSpan>(HeaderSource.Spans);
+        bool hasCategoricalHeaderEvidence = firstAnchorIsHeader && anchors.Count >= 4 && HasEmphasizedText(anchors[0].Line);
+        double firstBodyY = anchors[firstBodyAnchorIndex].Row.Y;
+        double headerBodyBoundary = (headerLines.Min(static line => line.Y) + firstBodyY) / 2D;
+        HashSet<int> centeredAnchors = FindCenteredWrappedAnchors(anchors, lines, splits,
+            firstBodyAnchorIndex, headerBodyBoundary, rowPitch, left, right, consumeWork, cancellationCheck);
 
         for (int anchorIndex = firstBodyAnchorIndex; anchorIndex < anchors.Count; anchorIndex++) {
             cancellationCheck?.Invoke();
-            double upper = anchorIndex == 0
-                ? headerBottom
+            // Leading body text establishes centred anchors. Otherwise a full
+            // baseline starts its row, whose wrapped lines precede the next anchor.
+            double upper = !centeredAnchors.Contains(anchorIndex) ? anchors[anchorIndex].Row.Y + 1.5D
+                : anchorIndex == firstBodyAnchorIndex ? headerBodyBoundary
                 : (anchors[anchorIndex - 1].Row.Y + anchors[anchorIndex].Row.Y) / 2D;
             double lower = anchorIndex + 1 < anchors.Count
-                ? (anchors[anchorIndex].Row.Y + anchors[anchorIndex + 1].Row.Y) / 2D
+                ? !centeredAnchors.Contains(anchorIndex + 1) ? anchors[anchorIndex + 1].Row.Y + 1.5D
+                    : (anchors[anchorIndex].Row.Y + anchors[anchorIndex + 1].Row.Y) / 2D
                 : anchors[anchorIndex].Row.Y - rowPitch / 2D;
             List<TextLayoutEngine.TextLine> bodyLines = SelectWrappedCellLines(
                 lines,
@@ -204,7 +212,7 @@ internal static partial class TableDetector {
                 splits,
                 anchors[anchorIndex].Row.Y);
             if (Row.Count(static cell => !string.IsNullOrWhiteSpace(cell)) != columnCount ||
-                !Row.Any(IsTabularValue)) return;
+                !Row.Any(IsTabularValue) && !hasCategoricalHeaderEvidence) return;
             table.Rows.Add(Row);
             sourceLines.Add(Source);
             sourceRuns.AddRange(Source.Spans);
@@ -226,8 +234,8 @@ internal static partial class TableDetector {
         table.SourceLines = sourceLines;
         table.SourceRuns = sourceRuns.Distinct().ToArray();
         if (!HasValidatedRows(table, sourceLines) ||
-            result.Any(existing => IsSubsumedByPositionedTable(table, existing))) return;
-        result.RemoveAll(existing => IsSubsumedByPositionedTable(existing, table));
+            result.Any(existing => IsSubsumedByPositionedTable(table, existing, consumeWork, cancellationCheck))) return;
+        result.RemoveAll(existing => IsSubsumedByPositionedTable(existing, table, consumeWork, cancellationCheck));
         result.Add(table);
     }
 

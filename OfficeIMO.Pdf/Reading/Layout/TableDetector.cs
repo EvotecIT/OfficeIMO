@@ -82,8 +82,11 @@ internal static partial class TableDetector {
                 if (table != null && table.Rows.Count >= 2 && HasValidatedRows(table, band)) tables.Add(table);
             }
         }
-        List<TextLayoutEngine.TextLine> unmatchedLines = nonLeaderBands
-            .SelectMany(static band => band)
+        List<TextLayoutEngine.TextLine> pageLines = nonLeaderBands.SelectMany(static band => band).ToList();
+        // Establish detached header ownership before a larger wrapped candidate
+        // can replace a fragment that would otherwise acquire that header later.
+        AttachDetachedHeaderRows(tables, pageLines, consumeWork, cancellationCheck);
+        List<TextLayoutEngine.TextLine> unmatchedLines = pageLines
             .Where(line => !IsCoveredByDetectedTable(line, tables))
             .Take(MaximumPositionedRecoveryLines)
             .ToList();
@@ -91,15 +94,18 @@ internal static partial class TableDetector {
             unmatchedLines,
             pageHeight,
             consumeWork,
-            cancellationCheck);
+            cancellationCheck,
+            pageLines);
         if (positionedTables.Count > 0) {
-            tables.RemoveAll(table =>
-                table.Rows.Count < 3 &&
-                !string.Equals(table.Kind, "leaders", StringComparison.Ordinal) &&
-                positionedTables.Any(positioned => IsSubsumedByPositionedTable(table, positioned)));
-            tables.AddRange(positionedTables);
+            foreach (PdfStructuredTable positioned in positionedTables) {
+                cancellationCheck?.Invoke();
+                // Equivalent complete tables keep their existing evidence and geometry.
+                if (tables.Any(table => IsSubsumedByPositionedTable(positioned, table, consumeWork, cancellationCheck))) continue;
+                tables.RemoveAll(table => !string.Equals(table.Kind, "leaders", StringComparison.Ordinal) &&
+                    IsSubsumedByPositionedTable(table, positioned, consumeWork, cancellationCheck));
+                tables.Add(positioned);
+            }
         }
-        List<TextLayoutEngine.TextLine> pageLines = nonLeaderBands.SelectMany(static band => band).ToList();
         RecoverTablesWithPeripheralRowText(tables, pageLines, consumeWork, cancellationCheck);
         MergeStackedTablePieces(tables, pageLines, consumeWork, cancellationCheck);
         AttachDetachedHeaderRows(tables, pageLines, consumeWork, cancellationCheck);
@@ -108,8 +114,10 @@ internal static partial class TableDetector {
         return tables;
     }
 
-    private static bool IsSubsumedByPositionedTable(PdfStructuredTable candidate, PdfStructuredTable positioned) {
-        if (candidate.Columns.Count == 0 || positioned.Columns.Count == 0 || positioned.Rows.Count <= candidate.Rows.Count) {
+    private static bool IsSubsumedByPositionedTable(PdfStructuredTable candidate, PdfStructuredTable positioned,
+        Action<long>? consumeWork, Action? cancellationCheck) {
+        cancellationCheck?.Invoke();
+        if (candidate.Columns.Count == 0 || positioned.Columns.Count == 0) {
             return false;
         }
 
@@ -129,6 +137,23 @@ internal static partial class TableDetector {
         double candidateHeight = candidateTop - candidateBottom;
         if (candidateHeight > 0.001D && verticalOverlap + 0.001D < candidateHeight * 0.5D) return false;
 
+        // Complete wrapped rows contain the same source paint even when the old
+        // fragment contains only the first words of a cell.
+        if (candidate.SourceRuns.Count > 0 && positioned.SourceRuns.Count > 0) {
+            var runs = new HashSet<PdfTextSpan>();
+            foreach (PdfTextSpan run in positioned.SourceRuns) {
+                consumeWork?.Invoke(1);
+                cancellationCheck?.Invoke();
+                runs.Add(run);
+            }
+            foreach (PdfTextSpan run in candidate.SourceRuns) {
+                consumeWork?.Invoke(1);
+                cancellationCheck?.Invoke();
+                if (!runs.Contains(run)) return false;
+            }
+            return true;
+        }
+        if (positioned.Rows.Count <= candidate.Rows.Count) return false;
         var positionedCells = new HashSet<string>(
             positioned.Rows.SelectMany(static row => row).Where(static cell => !string.IsNullOrWhiteSpace(cell)),
             StringComparer.Ordinal);
