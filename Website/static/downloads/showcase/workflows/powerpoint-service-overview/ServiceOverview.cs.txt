@@ -6,7 +6,7 @@ namespace OfficeIMO.Examples.Showcase.Workflows;
 /// <summary>Creates a service briefing deck with a cover, responsibilities, and a handover checklist.</summary>
 internal static class ServiceOverview {
     internal static void Create(string folder) {
-        using PowerPointPresentation deck = PowerPointPresentation.Create(Path.Combine(folder, "example.pptx"));
+        using PowerPointDocument deck = PowerPointDocument.Create(Path.Combine(folder, "example.pptx"));
         PowerPointSlide cover = deck.AddSlide();
         cover.AddRectangleCm(0, 0, 33.866, 19.05, "Cover background").Fill("17365D").Stroke("17365D", 0);
         Text(cover, "NORTHWIND / OPERATIONS", 1.7, 2, 29, 1, 17, "B8D4FF");

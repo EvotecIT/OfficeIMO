@@ -4,33 +4,34 @@ using OfficeIMO.Excel.Pdf;
 using System.Text;
 using PdfCore = OfficeIMO.Pdf;
 
-namespace OfficeIMO.Examples.Excel {
+namespace OfficeIMO.Examples.Excel
+{
     /// <summary>
     /// Demonstrates a template-to-report workflow with formulas, number formats, a chart, a pivot, and an honest PDF preflight decision.
     /// </summary>
-    public static class ReportWorkflow {
+    public static class ReportWorkflow
+    {
         private static readonly (string Region, string Product, double Revenue, double Cost)[] Sales = {
             ("North", "Platform", 482000, 301000), ("North", "Services", 236000, 171000), ("North", "Support", 118000, 64000),
             ("South", "Platform", 391000, 262000), ("South", "Services", 204000, 158000), ("South", "Support", 97000, 58000),
             ("East", "Platform", 538000, 322000), ("East", "Services", 289000, 201000), ("East", "Support", 141000, 73000),
             ("West", "Platform", 455000, 296000), ("West", "Services", 262000, 189000), ("West", "Support", 126000, 70000)
         };
-
-        public static void Example(string folderPath, bool openExcel) {
+        public static void Example(string folderPath, bool openExcel)
+        {
             Console.WriteLine("[*] Excel - Report workflow");
             string workbookPath = Path.Combine(folderPath, "ExcelReportWorkflow.xlsx");
             string pdfPath = Path.Combine(folderPath, "ExcelReportWorkflow.pdf");
             string previewPath = Path.Combine(folderPath, "ExcelReportWorkflow.png");
             string diagnosticsPath = Path.Combine(folderPath, "ExcelReportWorkflow.preflight.txt");
-
-            using (ExcelDocument document = ExcelDocument.Create(workbookPath, "Report")) {
+            using (ExcelDocument document = ExcelDocument.Create(workbookPath, new ExcelCreateOptions { FirstSheetName = "Report" }))
+            {
                 ExcelSheet sheet = document.Sheets[0];
-
                 WriteTitleBand(sheet);
-
-                #region Excerpt:operational-excel-report
+#region Excerpt:operational-excel-report
                 // Typed values with number formats; margin and margin % are formulas.
-                for (int index = 0; index < Sales.Length; index++) {
+                for (int index = 0; index < Sales.Length; index++)
+                {
                     int row = 5 + index;
                     sheet.Cell(row, 1, Sales[index].Region);
                     sheet.Cell(row, 2, Sales[index].Product);
@@ -41,72 +42,77 @@ namespace OfficeIMO.Examples.Excel {
                     sheet.FormatCell(row, 5, "#,##0");
                     sheet.FormatCell(row, 6, "0.0%");
                 }
+
                 int lastRow = 4 + Sales.Length, totalRow = lastRow + 1;
                 sheet.Cell(totalRow, 1, "Total");
-                foreach ((int column, string letter) in new[] { (3, "C"), (4, "D"), (5, "E") }) {
+                foreach ((int column, string letter)in new[]
+                {
+                    (3, "C"),
+                    (4, "D"),
+                    (5, "E")
+                }
+
+                )
+                {
                     sheet.CellFormula(totalRow, column, $"SUM({letter}5:{letter}{lastRow})");
                     sheet.FormatCell(totalRow, column, "#,##0");
                 }
+
                 sheet.CellFormula(totalRow, 6, $"E{totalRow}/C{totalRow}");
                 sheet.FormatCell(totalRow, 6, "0.0%");
-
                 // Table style, a colour scale on margin %, and a frozen header.
                 sheet.AddTable($"A4:F{lastRow}", hasHeader: true, name: "RevenueData", style: OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium2);
                 sheet.AddConditionalColorScale($"F5:F{lastRow}", "F8D7DA", "C9ECD3");
                 sheet.Freeze(topRows: 4);
-
                 // A SUMIF summary by region feeds the chart; the pivot reads the same table.
-                string[] regions = { "North", "South", "East", "West" };
-                sheet.Cell(4, 8, "Region"); sheet.Cell(4, 9, "Revenue"); sheet.Cell(4, 10, "Margin");
-                for (int index = 0; index < regions.Length; index++) {
+                string[] regions =
+                {
+                    "North",
+                    "South",
+                    "East",
+                    "West"
+                };
+                sheet.Cell(4, 8, "Region");
+                sheet.Cell(4, 9, "Revenue");
+                sheet.Cell(4, 10, "Margin");
+                for (int index = 0; index < regions.Length; index++)
+                {
                     int row = 5 + index;
                     sheet.Cell(row, 8, regions[index]);
                     sheet.CellFormula(row, 9, $"SUMIF($A$5:$A${lastRow},H{row},$C$5:$C${lastRow})");
                     sheet.CellFormula(row, 10, $"SUMIF($A$5:$A${lastRow},H{row},$E$5:$E${lastRow})");
                 }
-                sheet.AddChartFromRange("H4:J8", row: 10, column: 8, widthPixels: 350, heightPixels: 235,
-                    type: ExcelChartType.ColumnClustered, title: "Revenue and margin by region");
-                sheet.AddPivotTable(
-                    sourceRange: $"A4:F{lastRow}",
-                    destinationCell: $"A{totalRow + 3}",
-                    name: "RevenuePivot",
-                    rowFields: new[] { "Region" },
-                    dataFields: new[] { new ExcelPivotDataField("Revenue", ExcelPivotDataFunction.Sum, "Total Revenue") },
-                    pivotStyleName: "PivotStyleMedium9");
 
+                sheet.AddChartFromRange("H4:J8", row: 10, column: 8, widthPixels: 350, heightPixels: 235, type: OfficeChartType.ColumnClustered, title: "Revenue and margin by region");
+                sheet.AddPivotTable($"A4:F{lastRow}", $"A{totalRow + 3}", options: new ExcelPivotTableOptions { Name = "RevenuePivot", RowFields = new[] { "Region" }, DataFields = new[] { new ExcelPivotDataField("Revenue", ExcelPivotDataFunction.Sum, "Total Revenue") }, PivotStyleName = "PivotStyleMedium9" });
                 // Fill the {{ReportTitle}} placeholder from an object, then calculate every formula.
                 document.ApplyTemplate(new { ReportTitle = "Regional revenue report" });
                 document.Calculate();
-                #endregion
-
+#endregion
                 StyleLayout(sheet, totalRow);
-
                 OfficeImageExportResult preview = sheet.Range("A1:K22").ExportImage(OfficeImageExportFormat.Png);
                 File.WriteAllBytes(previewPath, preview.Bytes);
-
                 ExcelFeatureReport report = document.InspectFeatures();
                 document.Save();
-                if (!report.Can(ExcelPreflightCapability.ExportPdfReport)) {
+                if (!report.Can(ExcelPreflightCapability.ExportPdfReport))
+                {
                     IReadOnlyList<string> diagnostics = report.GetCapabilityDiagnostics(ExcelPreflightCapability.ExportPdfReport);
                     File.WriteAllLines(diagnosticsPath, diagnostics, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
                     Console.WriteLine("[!] Excel-to-PDF export is blocked:");
-                    foreach (string diagnostic in diagnostics) {
+                    foreach (string diagnostic in diagnostics)
+                    {
                         Console.WriteLine("  - " + diagnostic);
                     }
+
                     Console.WriteLine("    Workbook: " + workbookPath);
                     Console.WriteLine("    Preview: " + previewPath);
                     Console.WriteLine("    Diagnostics: " + diagnosticsPath);
                     return;
                 }
 
-                document.SaveAsPdf(pdfPath, new ExcelToPdfOptions {
-                    IncludeSheetHeadings = false,
-                    HeaderRowCount = 1,
-                    PageSize = new PdfCore.PageSize(560, 520),
-                    Margins = PdfCore.PageMargins.Uniform(24)
-                });
-
-                if (openExcel) {
+                document.SaveAsPdf(pdfPath, new ExcelPdfExportOptions { IncludeSheetHeadings = false, HeaderRowCount = 1, PageSize = new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(560),OfficeIMO.OfficeLength.Points(520)), Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(24)) });
+                if (openExcel)
+                {
                     document.OpenInApplication(workbookPath);
                 }
             }
@@ -119,7 +125,7 @@ namespace OfficeIMO.Examples.Excel {
             sheet.CellBold(1, 1, true);
             sheet.CellFontColor(1, 1, "FFFFFF");
             for (int column = 1; column <= 6; column++) sheet.CellBackground(1, column, "17365D");
-            sheet.SetRowHeight(1, 34);
+            sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(34)));
             sheet.MergeRange("A2:F2");
             sheet.Cell(2, 1, "Revenue, cost and margin by region and product line. Margin columns are formulas.");
             sheet.CellFontColor(2, 1, "5B6B7F");
@@ -137,7 +143,7 @@ namespace OfficeIMO.Examples.Excel {
                 sheet.FormatCell(row, 10, "#,##0");
             }
             foreach ((int column, double width) in new[] { (1, 12d), (2, 14d), (3, 14d), (4, 14d), (5, 14d), (6, 12d), (7, 3d), (8, 12d), (9, 14d), (10, 14d) }) {
-                sheet.SetColumnWidth(column, width);
+                sheet.SetColumnWidth(column, ExcelColumnWidth.Characters(width));
             }
         }
     }

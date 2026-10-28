@@ -8,8 +8,8 @@ internal static class TrainingMatrix {
     internal static void Create(string folder) {
         using ExcelDocument document = ExcelDocument.Create(Path.Combine(folder, "example.xlsx"));
         var sheet = document.AddWorksheet("Training");
-        sheet.SetColumnWidth(1, 26);
-        for (int column = 2; column <= 5; column++) sheet.SetColumnWidth(column, 21);
+        sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(26));
+        for (int column = 2; column <= 5; column++) sheet.SetColumnWidth(column, ExcelColumnWidth.Characters(21));
         sheet.MergeRange("A1:E1"); sheet.Cell(1, 1, "Team training coverage");
         sheet.CellFontSize(1, 1, 20); sheet.CellBold(1, 1, true); sheet.CellFontColor(1, 1, "17365D");
         sheet.MergeRange("A2:E2"); sheet.Cell(2, 1, "Three required modules / sample completion record");

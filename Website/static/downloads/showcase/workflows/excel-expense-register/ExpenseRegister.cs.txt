@@ -18,7 +18,7 @@ internal static class ExpenseRegister {
         string[] headers = { "Date", "Description", "Category", "Amount (EUR)", "Status" };
         for (int column = 0; column < headers.Length; column++) {
             sheet.Cell(4, column + 1, headers[column]);
-            sheet.SetColumnWidth(column + 1, column == 1 ? 32 : 21);
+            sheet.SetColumnWidth(column + 1, ExcelColumnWidth.Characters(column == 1 ? 32 : 21));
         }
         var expenses = new[] {
             (Day: 2, Description: "Client workshop travel", Category: "Travel", Amount: 184.50),

@@ -39,7 +39,7 @@ internal static class PolicyBrief {
         }
 
         WordParagraph reminder = document.AddParagraph("Release a booking as soon as plans change. Unused space is returned to the pool automatically after the release time.");
-        reminder.LineSpacingBeforePoints = 10;
+        reminder.LineSpacingBefore = global::OfficeIMO.OfficeLength.Points(10D);
         reminder.ShadingFillColorHex = "EAF1FB";
         reminder.Borders.LeftStyle = WordBorderStyle.Single;
         reminder.Borders.LeftColorHex = "2F5597";
@@ -55,16 +55,16 @@ internal static class PolicyBrief {
         foreach (WordParagraph paragraph in document.Paragraphs) {
             paragraph.FontFamily = "Carlito";
             paragraph.FontSize = 11;
-            paragraph.LineSpacingAfterPoints = 7;
+            paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Points(7D);
             if (paragraph.Style == WordParagraphStyles.Heading1) {
                 paragraph.FontSize = 26;
                 paragraph.Bold = true;
-                paragraph.LineSpacingAfterPoints = 12;
+                paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Points(12D);
             } else if (paragraph.Style == WordParagraphStyles.Heading2) {
                 paragraph.FontSize = 15;
                 paragraph.Bold = true;
-                paragraph.LineSpacingBeforePoints = 12;
-                paragraph.LineSpacingAfterPoints = 6;
+                paragraph.LineSpacingBefore = global::OfficeIMO.OfficeLength.Points(12D);
+                paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Points(6D);
             }
         }
         document.Save();

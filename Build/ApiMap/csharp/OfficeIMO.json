@@ -410,6 +410,12 @@
       "phase": "B",
       "applied": "phase-b-applied",
       "reason": "Normal example compilation exposed a nullable dereference warning while validating migrated consumers. Resolved connectors retain the same selection behavior."
+    },
+    {
+      "change": "Refresh downloadable C# and PowerShell example sources",
+      "reason": "The showcase catalog now copies the current executable example sources and regenerates its source/excerpt projections and raw-byte manifest. This closes stale downloads from preceding public API migrations as well as Word physical geometry.",
+      "applied": "phase-b-applied",
+      "note": "Source synchronization only: existing rendered documents and previews are retained. The generator correctly invalidates the three older PowerShell producer receipts when their source bindings change; final showcase generation and preview qualification must use the final module candidate. No publication or visual acceptance is claimed."
     }
   ],
   "applicationStatus": "Phase A applied and validated on the supported macOS targets. Phase B and Tier 2 entries retain their status; Windows .NET Framework validation remains pending.",

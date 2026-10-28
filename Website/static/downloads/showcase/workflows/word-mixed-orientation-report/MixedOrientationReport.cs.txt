@@ -37,13 +37,13 @@ internal static class MixedOrientationReport {
             var cell = table.Rows[row].Cells[column];
             cell.Paragraphs[0].Text = rows[row, column];
             cell.Paragraphs[0].Bold = row == 0;
-            cell.MarginTopCentimeters = cell.MarginBottomCentimeters = 0.15;
+            cell.MarginTop = cell.MarginBottom = global::OfficeIMO.OfficeLength.Centimeters(0.15D);
             if (row == 0) cell.ShadingFillColorHex = "E8EEF8";
         }
         foreach (var paragraph in document.Paragraphs) {
             paragraph.FontFamily = "Carlito";
             paragraph.FontSize = paragraph.Style == WordParagraphStyles.Heading1 ? 26 : paragraph.Style == WordParagraphStyles.Heading2 ? 15 : 11;
-            paragraph.LineSpacingAfterPoints = 9;
+            paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Points(9D);
         }
         document.Save();
     }

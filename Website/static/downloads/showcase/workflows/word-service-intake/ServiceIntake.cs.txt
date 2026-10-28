@@ -21,7 +21,7 @@ internal static class ServiceIntake {
             foreach (var paragraph in template.Paragraphs) {
                 paragraph.FontFamily = "Carlito";
                 paragraph.FontSize = paragraph.Style == WordParagraphStyles.Heading1 ? 26 : paragraph.Style == WordParagraphStyles.Heading2 ? 15 : 11;
-                paragraph.LineSpacingAfterPoints = 8;
+                paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Points(8D);
             }
             template.Save();
 

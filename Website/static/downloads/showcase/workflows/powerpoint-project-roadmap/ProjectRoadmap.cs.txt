@@ -6,7 +6,7 @@ namespace OfficeIMO.Examples.Showcase.Workflows;
 /// <summary>Creates an editable roadmap deck with phase cards and a decision table.</summary>
 internal static class ProjectRoadmap {
     internal static void Create(string folder) {
-        using PowerPointPresentation deck = PowerPointPresentation.Create(Path.Combine(folder, "example.pptx"));
+        using PowerPointDocument deck = PowerPointDocument.Create(Path.Combine(folder, "example.pptx"));
         PowerPointSlide roadmap = deck.AddSlide();
         Heading(roadmap, "From pilot to everyday service", "PROJECT ROADMAP / NEXT 90 DAYS");
         string[] phases = { "01 / Prepare", "02 / Prove", "03 / Expand" };

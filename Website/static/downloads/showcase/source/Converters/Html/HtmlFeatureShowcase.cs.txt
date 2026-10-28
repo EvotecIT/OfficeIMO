@@ -37,7 +37,7 @@ namespace OfficeIMO.Examples.Html {
                 document.SaveAsPdf(stem + ".pdf", options);
                 document.ToImage(options).AsPng().OnFileConflict(OfficeImageExportFileConflictPolicy.Replace).Save(stem + ".png");
                 document.ToImage(options).AsSvg().OnFileConflict(OfficeImageExportFileConflictPolicy.Replace).Save(stem + ".svg");
-                var inspection = global::OfficeIMO.Pdf.PdfDocument.Load(File.ReadAllBytes(stem + ".pdf")).Inspect();
+                var inspection = global::OfficeIMO.Pdf.PdfDocument.Load(new System.IO.MemoryStream(File.ReadAllBytes(stem + ".pdf"))).Inspect();
                 if (name == "fillable-forms" && inspection.FormFieldCount < 4) {
                     throw new InvalidOperationException($"{name}: expected at least four interactive PDF fields, found {inspection.FormFieldCount}.");
                 }

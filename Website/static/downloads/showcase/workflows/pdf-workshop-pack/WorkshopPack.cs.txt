@@ -7,7 +7,7 @@ namespace OfficeIMO.Examples.Showcase.Workflows;
 internal static class WorkshopPack {
     internal static void Create(string folder) {
         PdfColor accent = PdfColor.FromRgb(103, 58, 140);
-        var options = new PdfOptions {
+        var options = new PdfCreateOptions {
             DefaultFontSize = 11, ShowHeader = true, HeaderFormat = "NORTHWIND / SERVICE DESIGN",
             HeaderFontSize = 8, HeaderAlign = PdfAlign.Left,
             ShowPageNumbers = true, FooterFormat = "Workshop pack | {page} / {pages}",

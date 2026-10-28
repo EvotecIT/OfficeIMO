@@ -7,7 +7,7 @@ namespace OfficeIMO.Examples.Pdf {
         public static void Example_Pdf_ShowcaseDashboard(string folderPath, bool open = false) {
             string path = Path.Combine(folderPath, "Pdf.Showcase.Dashboard.pdf");
 
-            var options = new PdfOptions {
+            var options = new PdfCreateOptions {
                 DefaultFont = PdfStandardFont.Helvetica,
                 DefaultFontSize = 9.5,
                 DefaultTextColor = PdfColor.FromRgb(30, 41, 59),
@@ -27,7 +27,7 @@ namespace OfficeIMO.Examples.Pdf {
             PdfDocument.Create(document => {
                     #region Excerpt:executive-pdf-dashboard
                     document.Page(page => {
-                        page.Size(PageSizes.A4).Landscape().Margin(42, 38, 42, 42);
+                        page.Size(PdfPageSizes.A4).Landscape().Margin(42, 38, 42, 42);
                         page.DefaultParagraphStyle(new PdfParagraphStyle { LineHeight = 1.18, SpacingAfter = 5 });
                         page.Content(content => {
                             content.Item(item => item.H1("Quarterly operations dashboard", PdfAlign.Left, PdfColor.FromRgb(15, 23, 42)));

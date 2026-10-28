@@ -19,7 +19,7 @@ namespace OfficeIMO.Examples.Showcase.Workflows {
                 .Paragraph(p => p.Bold("Outcome")).ChoiceField("outcome", new[] { "Awaiting work", "Completed", "Follow-up needed" }, value: "Awaiting work", width: 260)
                 .Paragraph(p => p.Text("Handover acknowledged")).CheckBox("handover-acknowledged")
                 .Paragraph(p => p.Bold("Follow-up owner and date")).TextField("follow-up", width: 450)),
-                new PdfOptions { DefaultFontSize = 11 }.SetDefaultHeadingStyle(2, new PdfHeadingStyle { SpacingBefore = 14, SpacingAfter = 8 }))
+                new PdfCreateOptions { DefaultFontSize = 11 }.SetDefaultHeadingStyle(2, new PdfHeadingStyle { SpacingBefore = 14, SpacingAfter = 8 }))
                 .Meta(title: "Maintenance job card", author: "OfficeIMO").Save(Path.Combine(folder, "example.pdf"));
         }
     }

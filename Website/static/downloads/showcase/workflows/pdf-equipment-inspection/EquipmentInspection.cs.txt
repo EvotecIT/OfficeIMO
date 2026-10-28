@@ -29,7 +29,7 @@ internal static class EquipmentInspection {
                 value: "Awaiting inspection", width: 280)
             .Paragraph(p => p.Bold("Follow-up note"))
             .TextField("follow-up", width: 450, height: 38)),
-            new PdfOptions { DefaultFontSize = 10 })
+            new PdfCreateOptions { DefaultFontSize = 10 })
             .Meta(title: "Equipment inspection", author: "OfficeIMO");
         template.Save(Path.Combine(folder, "example.pdf"));
 

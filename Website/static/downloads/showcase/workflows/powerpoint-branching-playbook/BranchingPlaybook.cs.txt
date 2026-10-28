@@ -5,7 +5,7 @@ namespace OfficeIMO.Examples.Showcase.Workflows;
 /// <summary>Creates a slide-based support playbook with internal links and return navigation.</summary>
 internal static class BranchingPlaybook {
     internal static void Create(string folder) {
-        using var deck = PowerPointPresentation.Create(Path.Combine(folder, "example.pptx"));
+        using var deck = PowerPointDocument.Create(Path.Combine(folder, "example.pptx"));
         var menu = deck.AddSlide(); var access = deck.AddSlide(); var service = deck.AddSlide();
         Title(menu, "Choose the support path");
         Text(menu, "Select a card in presentation mode to open the relevant checklist.", 1.5, 3.5, 30, 2, 22);

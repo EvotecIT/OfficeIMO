@@ -26,7 +26,7 @@ internal static class BrandedInvoice {
 
         PdfInvoiceDocument snapshot = PdfInvoiceDocument.Create(invoice, contract, layout);
         string fonts = Path.Combine(AppContext.BaseDirectory, "Assets", "Fonts");
-        var pdfOptions = new PdfOptions {
+        var pdfOptions = new PdfCreateOptions {
             DefaultFontSize = 9.5D,
             TaggedStructureMode = PdfTaggedStructureMode.CatalogMarkers
         }.UseFontFamily(new PdfEmbeddedFontFamily(
