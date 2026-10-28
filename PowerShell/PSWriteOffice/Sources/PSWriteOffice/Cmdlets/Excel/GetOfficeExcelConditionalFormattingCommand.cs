@@ -37,7 +37,7 @@ public sealed class GetOfficeExcelConditionalFormattingCommand : PSCmdlet {
     [Parameter]
     public int? SheetIndex { get; set; }
 
-    /// <summary>Optional ExcelA1 range filter.</summary>
+    /// <summary>Optional A1 range filter.</summary>
     [Parameter]
     public string? Range { get; set; }
 

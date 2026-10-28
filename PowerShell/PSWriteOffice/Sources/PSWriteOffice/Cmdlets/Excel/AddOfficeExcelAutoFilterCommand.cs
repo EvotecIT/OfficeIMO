@@ -13,13 +13,13 @@ namespace PSWriteOffice.Cmdlets.Excel;
 /// <example>
 ///   <summary>Add AutoFilter to a range.</summary>
 ///   <prefix>PS&gt; </prefix>
-///   <code>ExcelSheet 'Data' { Add-OfficeExcelAutoFilter -Range 'ExcelA1:D200' }</code>
+///   <code>ExcelSheet 'Data' { Add-OfficeExcelAutoFilter -Range 'A1:D200' }</code>
 ///   <para>Enables filter dropdowns on the range.</para>
 /// </example>
 /// <example>
 ///   <summary>Add AutoFilter with criteria.</summary>
 ///   <prefix>PS&gt; </prefix>
-///   <code>Add-OfficeExcelAutoFilter -Range 'ExcelA1:D200' -Criteria @{ 2 = 'Open','Hold' }</code>
+///   <code>Add-OfficeExcelAutoFilter -Range 'A1:D200' -Criteria @{ 2 = 'Open','Hold' }</code>
 ///   <para>Filters the third column (0-based within the range) to Open/Hold.</para>
 /// </example>
 [Cmdlet(VerbsCommon.Add, "OfficeExcelAutoFilter", DefaultParameterSetName = ParameterSetContext)]
@@ -40,7 +40,7 @@ public sealed class AddOfficeExcelAutoFilterCommand : PSWriteOffice.Cmdlets.Offi
     [Parameter(ParameterSetName = ParameterSetDocument)]
     public int? SheetIndex { get; set; }
 
-    /// <summary>ExcelA1 range to apply AutoFilter.</summary>
+    /// <summary>A1 range to apply AutoFilter.</summary>
     [Parameter(Mandatory = true, Position = 0)]
     public string Range { get; set; } = string.Empty;
 

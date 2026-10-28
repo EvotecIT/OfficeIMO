@@ -9,7 +9,7 @@ namespace PSWriteOffice.Cmdlets.Excel;
 ///   <summary>Write a status label with a bold colored value.</summary>
 ///   <prefix>PS&gt; </prefix>
 ///   <code>ExcelSheet 'Summary' {
-///     Set-OfficeExcelRichText -Address ExcelA1 -Run 'Status: ', @{ Text = 'Blocked'; Bold = $true; Color = '#C00000' }
+///     Set-OfficeExcelRichText -Address A1 -Run 'Status: ', @{ Text = 'Blocked'; Bold = $true; Color = '#C00000' }
 /// }</code>
 ///   <para>Stores inline rich text in the target cell using OfficeIMO's reusable rich-text cell model.</para>
 /// </example>
@@ -50,7 +50,7 @@ public sealed class SetOfficeExcelRichTextCommand : PSCmdlet {
     [Parameter(ParameterSetName = ParameterSetPath)]
     public int? Column { get; set; }
 
-    /// <summary>ExcelA1-style cell address.</summary>
+    /// <summary>A1-style cell address.</summary>
     [Parameter(ParameterSetName = ParameterSetContext)]
     [Parameter(ParameterSetName = ParameterSetDocument)]
     [Parameter(ParameterSetName = ParameterSetPath)]

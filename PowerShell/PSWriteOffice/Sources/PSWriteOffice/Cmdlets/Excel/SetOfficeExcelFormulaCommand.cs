@@ -5,7 +5,7 @@ using PSWriteOffice.Services.Excel;
 namespace PSWriteOffice.Cmdlets.Excel;
 
 /// <summary>Sets a formula in a worksheet cell.</summary>
-/// <para>Supports ExcelA1 addresses or row/column coordinates in the Excel DSL.</para>
+/// <para>Supports A1 addresses or row/column coordinates in the Excel DSL.</para>
 /// <example>
 ///   <summary>Write a SUM formula.</summary>
 ///   <prefix>PS&gt; </prefix>
@@ -23,7 +23,7 @@ public sealed class SetOfficeExcelFormulaCommand : PSWriteOffice.Cmdlets.OfficeM
     [Parameter(ParameterSetName = "Coordinates")]
     public int? Column { get; set; }
 
-    /// <summary>ExcelA1-style cell address (e.g., ExcelA1, C5).</summary>
+    /// <summary>A1-style cell address (e.g., A1, C5).</summary>
     [Parameter(ParameterSetName = "Address")]
     public string? Address { get; set; }
 

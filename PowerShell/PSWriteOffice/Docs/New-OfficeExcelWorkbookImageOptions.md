@@ -421,7 +421,7 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 
 ## OUTPUTS
 
-- `OfficeIMO.Excel.ExcelWorkbookImageExportOptions`
+- `OfficeIMO.Excel.ExcelImageExportOptions`
 
 ## RELATED LINKS
 

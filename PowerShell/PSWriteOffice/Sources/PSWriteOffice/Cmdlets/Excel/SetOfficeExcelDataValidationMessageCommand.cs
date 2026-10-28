@@ -41,7 +41,7 @@ public sealed class SetOfficeExcelDataValidationMessageCommand : PSCmdlet {
     [Parameter]
     public int? SheetIndex { get; set; }
 
-    /// <summary>ExcelA1 range used to select existing validation rules.</summary>
+    /// <summary>A1 range used to select existing validation rules.</summary>
     [Parameter]
     public string? Range { get; set; }
 

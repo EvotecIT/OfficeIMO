@@ -10,7 +10,7 @@ namespace PSWriteOffice.Cmdlets.Excel;
 /// <example>
 ///   <summary>Add a compact comparison chart.</summary>
 ///   <prefix>PS&gt; </prefix>
-///   <code>ExcelSheet 'Dashboard' { Add-OfficeExcelDashboardChart -Range ExcelA1:B12 -Preset CompactComparison -Row 1 -Column 5 -Title 'Revenue' }</code>
+///   <code>ExcelSheet 'Dashboard' { Add-OfficeExcelDashboardChart -Range A1:B12 -Preset CompactComparison -Row 1 -Column 5 -Title 'Revenue' }</code>
 ///   <para>Creates a styled chart from the range using reusable OfficeIMO dashboard chart defaults.</para>
 /// </example>
 [Cmdlet(VerbsCommon.Add, "OfficeExcelDashboardChart", DefaultParameterSetName = ParameterSetContextRange)]
@@ -37,7 +37,7 @@ public sealed class AddOfficeExcelDashboardChartCommand : PSCmdlet
     [Parameter(ParameterSetName = ParameterSetDocumentTable)]
     public int? SheetIndex { get; set; }
 
-    /// <summary>ExcelA1 range containing chart data.</summary>
+    /// <summary>A1 range containing chart data.</summary>
     [Parameter(Mandatory = true, Position = 0, ParameterSetName = ParameterSetContextRange)]
     [Parameter(Mandatory = true, Position = 0, ParameterSetName = ParameterSetDocumentRange)]
     public string Range { get; set; } = string.Empty;

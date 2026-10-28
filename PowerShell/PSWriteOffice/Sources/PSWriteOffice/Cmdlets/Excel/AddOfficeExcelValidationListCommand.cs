@@ -32,7 +32,7 @@ public sealed class AddOfficeExcelValidationListCommand : PSCmdlet
     [Parameter(ParameterSetName = ParameterSetDocument)]
     public int? SheetIndex { get; set; }
 
-    /// <summary>Target range in ExcelA1 notation.</summary>
+    /// <summary>Target range in A1 notation.</summary>
     [Parameter(Position = 0)]
     public string? Range { get; set; }
 

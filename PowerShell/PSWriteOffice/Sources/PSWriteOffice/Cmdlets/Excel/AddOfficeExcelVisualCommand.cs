@@ -27,7 +27,7 @@ public sealed class AddOfficeExcelVisualCommand : OfficeVisualCommandBase {
     [Parameter]
     public int? Column { get; set; }
 
-    /// <summary>ExcelA1-style target cell address.</summary>
+    /// <summary>A1-style target cell address.</summary>
     [Parameter]
     [Alias("Cell")]
     public string? Address { get; set; }

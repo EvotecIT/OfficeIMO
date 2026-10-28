@@ -74,7 +74,7 @@ public sealed class ImportOfficeExcelCommand : AsyncPSCmdlet
     [Parameter]
     public SwitchParameter AllSheets { get; set; }
 
-    /// <summary>Optional ExcelA1 range to read. When omitted, the used range is imported.</summary>
+    /// <summary>Optional A1 range to read. When omitted, the used range is imported.</summary>
     [Parameter(ValueFromPipelineByPropertyName = true)]
     public string? Range { get; set; }
 

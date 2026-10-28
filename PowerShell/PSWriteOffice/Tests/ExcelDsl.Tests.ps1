@@ -3953,6 +3953,12 @@ Describe 'Excel DSL surface' {
             $backLink = $null
             $doc['Data'].TryGetCellText(5, 1, [ref] $backLink) | Should -BeTrue
             $backLink | Should -Be "$([char]0x2190) TOC"
+            $dataXml = Get-ZipXmlDocumentLocal -Path $path -Entry 'xl/worksheets/sheet1.xml'
+            $backLinks = $dataXml.SelectNodes("/*[local-name()='worksheet']/*[local-name()='hyperlinks']/*[local-name()='hyperlink']")
+            $backLinks.Count | Should -BeGreaterThan 0
+            foreach ($link in $backLinks) {
+                ($link.GetAttribute('location') -split '!')[-1] | Should -Be 'A1'
+            }
         } finally {
             Close-OfficeExcel -Document $doc
         }
@@ -4453,6 +4459,9 @@ namespace PSWriteOffice.Tests {
         $sheetXml = Get-ZipXmlDocumentLocal -Path $path -Entry 'xl/worksheets/sheet1.xml'
         $hyperlinks = $sheetXml.SelectNodes("/*[local-name()='worksheet']/*[local-name()='hyperlinks']/*[local-name()='hyperlink']")
         $hyperlinks.Count | Should -Be 4
+        foreach ($hyperlink in $hyperlinks) {
+            ($hyperlink.GetAttribute('location') -split '!')[-1] | Should -Be 'A1'
+        }
     }
 
     It 'supports external URL link helpers for summary sheets' {

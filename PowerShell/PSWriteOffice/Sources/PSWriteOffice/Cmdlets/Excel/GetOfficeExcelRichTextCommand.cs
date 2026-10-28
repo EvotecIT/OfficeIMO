@@ -8,7 +8,7 @@ namespace PSWriteOffice.Cmdlets.Excel;
 /// <example>
 ///   <summary>Inspect rich text runs from a workbook.</summary>
 ///   <prefix>PS&gt; </prefix>
-///   <code>$runs = Get-OfficeExcelRichText -Path .\Report.xlsx -Sheet Summary -Address ExcelA1
+///   <code>$runs = Get-OfficeExcelRichText -Path .\Report.xlsx -Sheet Summary -Address A1
 /// $runs |
 ///     Format-Table Index, Text, Bold, Italic, Color</code>
 ///   <para>Returns one object per inline rich text run with text and style properties.</para>
@@ -51,7 +51,7 @@ public sealed class GetOfficeExcelRichTextCommand : PSCmdlet {
     [Parameter(ParameterSetName = ParameterSetPath)]
     public int? Column { get; set; }
 
-    /// <summary>ExcelA1-style cell address.</summary>
+    /// <summary>A1-style cell address.</summary>
     [Parameter(ParameterSetName = ParameterSetContext)]
     [Parameter(ParameterSetName = ParameterSetDocument)]
     [Parameter(ParameterSetName = ParameterSetPath)]

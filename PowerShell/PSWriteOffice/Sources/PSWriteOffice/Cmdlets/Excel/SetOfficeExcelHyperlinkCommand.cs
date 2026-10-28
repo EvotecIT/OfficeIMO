@@ -9,13 +9,13 @@ namespace PSWriteOffice.Cmdlets.Excel;
 /// <example>
 ///   <summary>Set an external hyperlink.</summary>
 ///   <prefix>PS&gt; </prefix>
-///   <code>ExcelSheet 'Data' { Set-OfficeExcelHyperlink -Address 'ExcelA1' -Url 'https://example.org' -Display 'Example' }</code>
+///   <code>ExcelSheet 'Data' { Set-OfficeExcelHyperlink -Address 'A1' -Url 'https://example.org' -Display 'Example' }</code>
 ///   <para>Creates a styled hyperlink in ExcelA1.</para>
 /// </example>
 /// <example>
 ///   <summary>Set an internal hyperlink.</summary>
 ///   <prefix>PS&gt; </prefix>
-///   <code>ExcelSheet 'Data' { Set-OfficeExcelHyperlink -Row 2 -Column 1 -TargetSheet 'Summary' -TargetAddress 'ExcelA1' -Display 'Go to Summary' }</code>
+///   <code>ExcelSheet 'Data' { Set-OfficeExcelHyperlink -Row 2 -Column 1 -TargetSheet 'Summary' -TargetAddress 'A1' -Display 'Go to Summary' }</code>
 ///   <para>Links A2 to Summary!ExcelA1.</para>
 /// </example>
 [Cmdlet(VerbsCommon.Set, "OfficeExcelHyperlink", DefaultParameterSetName = ParameterSetContextExternal)]
@@ -50,7 +50,7 @@ public sealed class SetOfficeExcelHyperlinkCommand : PSCmdlet
     [Parameter]
     public int? Column { get; set; }
 
-    /// <summary>ExcelA1-style cell address (e.g., ExcelA1, C5).</summary>
+    /// <summary>A1-style cell address (e.g., A1, C5).</summary>
     [Parameter]
     public string? Address { get; set; }
 
@@ -59,7 +59,7 @@ public sealed class SetOfficeExcelHyperlinkCommand : PSCmdlet
     [Parameter(Mandatory = true, ParameterSetName = ParameterSetDocumentExternal)]
     public string Url { get; set; } = string.Empty;
 
-    /// <summary>Internal location to link to (e.g., "'Summary'!ExcelA1").</summary>
+    /// <summary>Internal location to link to (e.g., "'Summary'!A1").</summary>
     [Parameter(ParameterSetName = ParameterSetContextInternal)]
     [Parameter(ParameterSetName = ParameterSetDocumentInternal)]
     public string? Location { get; set; }
@@ -69,7 +69,7 @@ public sealed class SetOfficeExcelHyperlinkCommand : PSCmdlet
     [Parameter(ParameterSetName = ParameterSetDocumentInternal)]
     public string? TargetSheet { get; set; }
 
-    /// <summary>Target ExcelA1 address for internal links.</summary>
+    /// <summary>Target A1 address for internal links.</summary>
     [Parameter(ParameterSetName = ParameterSetContextInternal)]
     [Parameter(ParameterSetName = ParameterSetDocumentInternal)]
     public string? TargetAddress { get; set; }

@@ -167,7 +167,7 @@ public sealed class AddOfficeExcelTableOfContentsCommand : PSCmdlet {
             var usedRange = sheet.UsedRangeA1;
             var (startRow, _, endRow, _) = ExcelA1.ParseRange(usedRange);
             var row = System.Math.Max(1, System.Math.Max(startRow, endRow) + 2);
-            sheet.SetInternalLink(row, 1, tocSheet, "ExcelA1", BackLinkText);
+            sheet.SetInternalLink(row, 1, tocSheet, "A1", BackLinkText);
         }
     }
 }

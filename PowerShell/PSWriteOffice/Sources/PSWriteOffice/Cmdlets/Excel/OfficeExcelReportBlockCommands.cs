@@ -358,7 +358,7 @@ public sealed class AddOfficeExcelReportTableCommand : PSCmdlet {
     [Parameter]
     public SwitchParameter NoAutoFormatDynamicCollections { get; set; }
 
-    /// <summary>Emit the ExcelA1 range used by the generated table.</summary>
+    /// <summary>Emit the A1 range used by the generated table.</summary>
     [Parameter]
     public SwitchParameter PassThru { get; set; }
 

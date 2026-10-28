@@ -32,7 +32,7 @@ public sealed class AddOfficeExcelConditionalIconSetCommand : PSCmdlet
     [Parameter(ParameterSetName = ParameterSetDocument)]
     public int? SheetIndex { get; set; }
 
-    /// <summary>ExcelA1 range to format.</summary>
+    /// <summary>A1 range to format.</summary>
     [Parameter(Position = 0)]
     public string? Range { get; set; }
 

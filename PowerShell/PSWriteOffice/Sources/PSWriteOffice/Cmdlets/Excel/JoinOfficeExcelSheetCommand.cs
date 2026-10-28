@@ -50,7 +50,7 @@ public sealed class JoinOfficeExcelSheetCommand : PSCmdlet {
     [Parameter]
     public string? SourcePath { get; set; }
 
-    /// <summary>Source ExcelA1 range to copy. Defaults to the source used range.</summary>
+    /// <summary>Source A1 range to copy. Defaults to the source used range.</summary>
     [Parameter]
     public string? SourceRange { get; set; }
 

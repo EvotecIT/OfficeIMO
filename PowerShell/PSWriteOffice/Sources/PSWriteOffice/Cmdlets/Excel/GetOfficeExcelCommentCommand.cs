@@ -39,11 +39,11 @@ public sealed class GetOfficeExcelCommentCommand : PSCmdlet {
     [Parameter]
     public int? SheetIndex { get; set; }
 
-    /// <summary>ExcelA1 cell address to match.</summary>
+    /// <summary>A1 cell address to match.</summary>
     [Parameter]
     public string? Address { get; set; }
 
-    /// <summary>ExcelA1 cell or range to match.</summary>
+    /// <summary>A1 cell or range to match.</summary>
     [Parameter]
     public string? Range { get; set; }
 

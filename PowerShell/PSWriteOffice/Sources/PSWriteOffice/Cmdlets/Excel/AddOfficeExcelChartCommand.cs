@@ -10,8 +10,8 @@ namespace PSWriteOffice.Cmdlets.Excel;
 /// <example>
 ///   <summary>Add a chart from a range.</summary>
 ///   <prefix>PS&gt; </prefix>
-///   <code>ExcelSheet 'Data' { Add-OfficeExcelChart -Range 'ExcelA1:D10' -Row 2 -Column 6 -Type Line -Title 'Trend' }</code>
-///   <para>Creates a line chart from ExcelA1:D10 and places it at F2.</para>
+///   <code>ExcelSheet 'Data' { Add-OfficeExcelChart -Range 'A1:D10' -Row 2 -Column 6 -Type Line -Title 'Trend' }</code>
+///   <para>Creates a line chart from A1:D10 and places it at F2.</para>
 /// </example>
 /// <example>
 ///   <summary>Add a chart from a table.</summary>
@@ -43,7 +43,7 @@ public sealed class AddOfficeExcelChartCommand : PSCmdlet
     [Parameter(ParameterSetName = ParameterSetDocumentTable)]
     public int? SheetIndex { get; set; }
 
-    /// <summary>ExcelA1 range containing chart data.</summary>
+    /// <summary>A1 range containing chart data.</summary>
     [Parameter(Mandatory = true, Position = 0, ParameterSetName = ParameterSetContextRange)]
     [Parameter(Mandatory = true, Position = 0, ParameterSetName = ParameterSetDocumentRange)]
     public string Range { get; set; } = string.Empty;

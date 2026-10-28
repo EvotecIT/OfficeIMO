@@ -51,7 +51,7 @@ public sealed class SetOfficeExcelUrlLinksByHeaderCommand : PSCmdlet
     [Parameter(Mandatory = true, ParameterSetName = ParameterSetDocumentTable)]
     public string TableName { get; set; } = string.Empty;
 
-    /// <summary>Restrict linking to a specific ExcelA1 range whose first row contains headers.</summary>
+    /// <summary>Restrict linking to a specific A1 range whose first row contains headers.</summary>
     [Parameter(Mandatory = true, ParameterSetName = ParameterSetContextRange)]
     [Parameter(Mandatory = true, ParameterSetName = ParameterSetDocumentRange)]
     public string Range { get; set; } = string.Empty;

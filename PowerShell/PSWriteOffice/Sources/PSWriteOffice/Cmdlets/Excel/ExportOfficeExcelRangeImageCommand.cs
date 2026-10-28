@@ -9,7 +9,7 @@ namespace PSWriteOffice.Cmdlets.Excel;
 /// <example>
 ///   <summary>Export a report range for use in an email.</summary>
 ///   <prefix>PS&gt; </prefix>
-///   <code>Export-OfficeExcelRangeImage -Path .\Report.xlsx -WorksheetName Summary -Range ExcelA1:H20 -OutputPath .\summary.png</code>
+///   <code>Export-OfficeExcelRangeImage -Path .\Report.xlsx -WorksheetName Summary -Range A1:H20 -OutputPath .\summary.png</code>
 /// </example>
 [Cmdlet(VerbsData.Export, "OfficeExcelRangeImage", DefaultParameterSetName = "Path", SupportsShouldProcess = true)]
 [OutputType(typeof(OfficeImageExportResult))]
@@ -27,7 +27,7 @@ public sealed class ExportOfficeExcelRangeImageCommand : PSCmdlet
     [Parameter(Mandatory = true)]
     public string WorksheetName { get; set; } = string.Empty;
 
-    /// <summary>ExcelA1 range address to export.</summary>
+    /// <summary>A1 range address to export.</summary>
     [Parameter(Mandatory = true)]
     public string Range { get; set; } = string.Empty;
 

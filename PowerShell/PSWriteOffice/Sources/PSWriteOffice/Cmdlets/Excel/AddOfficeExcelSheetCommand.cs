@@ -10,14 +10,14 @@ namespace PSWriteOffice.Cmdlets.Excel;
 /// <example>
 ///   <summary>Create a sheet named Data.</summary>
 ///   <prefix>PS&gt; </prefix>
-///   <code>New-OfficeExcel -Path .\report.xlsx { Add-OfficeExcelSheet -Name 'Data' { ExcelCell -Address 'ExcelA1' -Value 'Region' } }</code>
+///   <code>New-OfficeExcel -Path .\report.xlsx { Add-OfficeExcelSheet -Name 'Data' { ExcelCell -Address 'A1' -Value 'Region' } }</code>
 ///   <para>Creates a workbook with a worksheet named Data and writes the header “Region”.</para>
 /// </example>
 /// <example>
 ///   <summary>Add a worksheet through the workbook pipeline.</summary>
 ///   <prefix>PS&gt; </prefix>
 ///   <code>$sheet = $workbook | Add-OfficeExcelSheet -Name 'Data' -PassThru
-/// $sheet | Set-OfficeExcelCell -Address ExcelA1 -Value 'Region'</code>
+/// $sheet | Set-OfficeExcelCell -Address A1 -Value 'Region'</code>
 ///   <para>Returns the worksheet so subsequent commands can target it directly.</para>
 /// </example>
 [Cmdlet(VerbsCommon.Add, "OfficeExcelSheet", DefaultParameterSetName = ParameterSetContext)]
