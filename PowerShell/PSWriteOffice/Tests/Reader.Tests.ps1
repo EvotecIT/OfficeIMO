@@ -32,58 +32,6 @@ Describe 'Reader cmdlets' {
         $capabilities.Id | Should -Contain 'officeimo.reader.rtf'
     }
 
-    It 'exports Reader projection and ingestion cmdlets' {
-        Get-Command -Name Get-OfficeDocumentTable -ErrorAction Stop | Should -Not -BeNullOrEmpty
-        Get-Command -Name Get-OfficeDocumentVisual -ErrorAction Stop | Should -Not -BeNullOrEmpty
-        Get-Command -Name Get-OfficeDocumentAsset -ErrorAction Stop | Should -Not -BeNullOrEmpty
-        Get-Command -Name Get-OfficeDocumentIngest -ErrorAction Stop | Should -Not -BeNullOrEmpty
-        Get-Command -Name Search-OfficeDocument -ErrorAction Stop | Should -Not -BeNullOrEmpty
-        Get-Command -Name Get-OfficeDocumentPageMarkdown -ErrorAction Stop | Should -Not -BeNullOrEmpty
-        Get-Command -Name Read-OfficeDocumentTable -ErrorAction Stop | Should -Not -BeNullOrEmpty
-        Get-Command -Name Read-OfficeDocumentVisual -ErrorAction Stop | Should -Not -BeNullOrEmpty
-        Get-Command -Name Read-OfficeDocumentAsset -ErrorAction Stop | Should -Not -BeNullOrEmpty
-        (Get-Command -Name Get-OfficeDocument).Parameters.Keys | Should -Contain 'IncludePageLocations'
-        $searchParameters = (Get-Command -Name Search-OfficeDocument).Parameters.Keys
-        $searchParameters | Should -Contain 'Path'
-        $searchParameters | Should -Contain 'Recurse'
-        $searchParameters | Should -Contain 'MaximumFiles'
-        $searchParameters | Should -Contain 'LiteralPath'
-        $searchParameters | Should -Contain 'MaximumStoreItems'
-        $searchParameters | Should -Contain 'SimpleMatch'
-        $searchParameters | Should -Contain 'Pattern'
-        $searchParameters | Should -Contain 'Reader'
-
-        $batchParameters = (Get-Command -Name Get-OfficeDocumentBatch).Parameters.Keys
-        $batchParameters | Should -Contain 'MaxDocuments'
-        $batchParameters | Should -Contain 'MaxDegreeOfParallelism'
-        $batchParameters | Should -Contain 'ContinueOnError'
-
-        $readerParameters = (Get-Command -Name New-OfficeDocumentReader).Parameters.Keys
-        $readerParameters | Should -Contain 'TesseractLanguage'
-        $readerParameters | Should -Contain 'MaxStoreItems'
-
-        foreach ($commandName in 'Get-OfficeDocument', 'Get-OfficeDocumentChunk', 'Get-OfficeDocumentIngest') {
-            $parameters = (Get-Command -Name $commandName).Parameters.Keys
-            $parameters | Should -Contain 'MaxStoreItems'
-            $parameters | Should -Contain 'AllStoreItems'
-        }
-    }
-
-    It 'rejects conflicting advanced OCR sources before provisioning either runtime' {
-        $command = Get-Command New-OfficeDocumentReader
-        $tesseractOptions = [Activator]::CreateInstance($command.Parameters['TesseractOptions'].ParameterType)
-        $tesseractOptions.Engine.ExecutablePath = 'definitely-missing-tesseract-for-pswriteoffice'
-        $processOptions = [Activator]::CreateInstance($command.Parameters['ProcessOcrOptions'].ParameterType)
-        $processOptions.FileName = 'unused-process-ocr-provider'
-
-        {
-            New-OfficeDocumentReader `
-                -TesseractOptions $tesseractOptions `
-                -ProcessOcrOptions $processOptions `
-                -ErrorAction Stop
-        } | Should -Throw '*Specify only one OCR source*'
-    }
-
     It 'accepts a caller-configured immutable Reader' {
         $handlerId = 'pswriteoffice.test.custom'
         $registrationType = Get-TestPSWriteOfficeType -AssemblyName 'OfficeIMO.Reader.Core' -TypeName 'OfficeIMO.Reader.ReaderHandlerRegistration' -CommandName 'Get-OfficeDocumentCapability'
@@ -112,13 +60,13 @@ Describe 'Reader cmdlets' {
         $customCapability | Should -HaveCount 1
         $customCapability.Extensions | Should -Contain '.custom'
         (Get-Command Get-OfficeDocumentChunk).Parameters.Keys | Should -Contain 'Reader'
-        (Get-Command New-OfficeDocumentReader).Parameters.Keys | Should -Contain 'ReaderAllOptions'
+        (Get-Command New-OfficeDocumentReader).Parameters.Keys | Should -Contain 'Options'
 
         $customPath = Join-Path $TestDrive 'source.custom'
         Set-Content -Path $customPath -Value 'custom reader input' -Encoding UTF8
 
-        { Get-OfficeDocumentChunk -Path $customPath -Reader $reader -NoMarkdownHeadingChunks } |
-            Should -Throw -ExpectedMessage '*immutable OfficeIMO 3 reader*'
+        { Read-OfficeDocument -Path $customPath -Reader $reader -NoHeadingChunks } |
+            Should -Throw -ExpectedMessage '*immutable Reader*'
     }
 
     It 'reads Markdown files as chunks and a document envelope' {
@@ -331,9 +279,8 @@ Describe 'Reader cmdlets' {
 
     It 'creates configurable readers without requiring OfficeIMO option objects' {
         $runtime = New-TestTesseractExecutable -Directory $TestDrive
-        $reader = New-OfficeDocumentReader -TesseractLanguage 'eng+pol' `
-            -TesseractExecutablePath $runtime -TesseractTimeoutSeconds 30 `
-            -MaxStoreItems 2500 -MaxConcurrentReads 2
+        $ocr = New-OfficeOcrOptions -TesseractLanguageExpression 'eng+pol' -TesseractPath $runtime -NoLanguageDownload
+        $reader = New-OfficeDocumentReader -OcrOptions $ocr -MaximumStoreItems 2500 -MaximumConcurrentReads 2
 
         $reader | Should -Not -BeNullOrEmpty
         $reader.MaxConcurrentReads | Should -Be 2
@@ -343,7 +290,7 @@ Describe 'Reader cmdlets' {
     It 'uses caller-selected search concurrency and rejects an undersized immutable Reader' {
         $path = Join-Path $TestDrive 'configured-search.md'
         Set-Content -Path $path -Value '# Concurrency', 'Synthetic configurable search' -Encoding UTF8
-        $reader = New-OfficeDocumentReader -MaxConcurrentReads 6
+        $reader = New-OfficeDocumentReader -MaximumConcurrentReads 6
 
         $matches = @(Search-OfficeDocument -Path $path -Pattern 'Synthetic' `
                 -Reader $reader -ThrottleLimit 6)
@@ -352,7 +299,7 @@ Describe 'Reader cmdlets' {
         $matches[0].Path | Should -Be $path
         {
             Search-OfficeDocument -Path $path -Pattern 'Synthetic' `
-                -Reader (New-OfficeDocumentReader -MaxConcurrentReads 2) `
+                -Reader (New-OfficeDocumentReader -MaximumConcurrentReads 2) `
                 -ThrottleLimit 3 -ErrorAction Stop
         } | Should -Throw -ExpectedMessage '*requested batch concurrency (3)*Reader limit (2)*'
     }

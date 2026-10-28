@@ -4,6 +4,11 @@ public sealed partial class PdfLoadOptions {
     /// <summary>Snapshots all load settings and resource limits. The caller-supplied AES provider is retained.</summary>
     public PdfLoadOptions Clone() => Snapshot(null, null);
 
+    /// <summary>Copies the complete policy, optionally tightening its input ceiling and overriding the open password.</summary>
+    /// <remarks>A larger input ceiling does not relax this policy. A null password retains the existing password.</remarks>
+    public PdfLoadOptions Clone(long? maximumInputBytes, string? passwordOverride) =>
+        Snapshot(maximumInputBytes.HasValue ? System.Math.Min(Limits.MaxInputBytes, maximumInputBytes.Value) : (long?)null, passwordOverride);
+
     internal PdfLoadOptions Snapshot(long? maximumInputBytes, string? passwordOverride) {
         PdfLoadOptions effective = Resolve(this);
         return new PdfLoadOptions {

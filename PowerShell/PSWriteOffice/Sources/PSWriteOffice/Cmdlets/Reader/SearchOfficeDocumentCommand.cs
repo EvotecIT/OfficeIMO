@@ -90,14 +90,21 @@ public sealed class SearchOfficeDocumentCommand : OfficeInputCmdlet {
             throw new PSArgumentException("Configure page locations and mail-store limits when creating a caller-provided immutable Reader.");
         var configuration = ReaderCommandUtilities.BuildSearchConfiguration(IncludePageLocations,
             Reader == null ? (MaximumStoreItems == 0 ? int.MaxValue : MaximumStoreItems) : null);
-        configuration.ReaderOptions.OpenPassword = Password == null ? null : new NetworkCredential(string.Empty, Password).Password;
+        var readOptions = Reader?.DefaultOptions ?? configuration.ReaderOptions;
+        readOptions.ComputeHashes = false;
+        if (MyInvocation.BoundParameters.ContainsKey(nameof(Password))) readOptions.OpenPassword = Password == null ? null : new NetworkCredential(string.Empty, Password).Password;
         var reader = Reader ?? ReaderCommandUtilities.CreateReader(configuration.HandlerOptions, ThrottleLimit);
-        var batch = new ReaderBatchOptions { MaxDocuments = MaximumFiles == 0 ? int.MaxValue : MaximumFiles, MaxDegreeOfParallelism = ThrottleLimit };
+        int fileCeiling = MyInvocation.BoundParameters.ContainsKey(nameof(MaximumFiles)) ? MaximumFiles : Math.Max(1, readOptions.FolderOptions?.MaxFiles ?? MaximumFiles);
+        long? byteCeiling = readOptions.FolderOptions?.MaxTotalBytes;
+        var batch = new ReaderBatchOptions { MaxDocuments = fileCeiling == 0 ? int.MaxValue : fileCeiling,
+            MaxDegreeOfParallelism = byteCeiling.HasValue ? 1 : ThrottleLimit, MaxTotalBytes = byteCeiling };
         ReaderCommandUtilities.ValidateBatchConcurrency(reader, batch);
-        var folder = ReaderCommandUtilities.BuildFolderOptions(Recurse, int.MaxValue, null, Extension);
+        var folder = OfficeReadConfiguration.CreateFolder(readOptions,
+            MyInvocation.BoundParameters.ContainsKey(nameof(Recurse)) ? (bool)Recurse : (bool?)null,
+            Extension, MyInvocation.BoundParameters.ContainsKey(nameof(Extension)));
         var paths = ReaderCommandUtilities.CollectDocumentPaths(reader.EnumerateDocumentPaths(_paths, folder, CancelToken),
             batch.MaxDocuments, folder.Extensions, out _documentLimitReached);
-        if (_documentLimitReached) WriteWarning($"Document selection reached MaximumFiles ({MaximumFiles}). Use zero for no limit.");
+        if (_documentLimitReached) WriteWarning($"Document selection reached MaximumFiles ({fileCeiling}). Use zero for no limit.");
         int completed = 0;
         try {
             await reader.ReadDocumentsAsCompletedAsync(paths, outcome => {
@@ -107,9 +114,9 @@ public sealed class SearchOfficeDocumentCommand : OfficeInputCmdlet {
                     catch (RegexMatchTimeoutException error) { WriteError(OfficeError.Create(error, "search-timeout", outcome.Path)); }
                 }
                 WriteProgress(new ProgressRecord(0, "Search documents", $"{System.Threading.Interlocked.Increment(ref completed)} completed"));
-            }, configuration.ReaderOptions, batch, CancelToken);
+            }, readOptions, batch, CancelToken);
         } finally {
-            configuration.ReaderOptions.OpenPassword = null;
+            readOptions.OpenPassword = null;
             WriteProgress(new ProgressRecord(0, "Search documents", "Finished") { RecordType = ProgressRecordType.Completed });
         }
     }

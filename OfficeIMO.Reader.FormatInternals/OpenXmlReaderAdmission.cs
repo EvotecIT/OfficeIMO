@@ -3,7 +3,8 @@ namespace OfficeIMO.Reader.FormatInternals;
 /// <summary>Maps neutral Reader admission settings to the canonical package security owner.</summary>
 internal static class OpenXmlReaderAdmission {
     internal static OfficePackageSecurityOptions? Policy(ReaderOptions options, long nativeInputLimit, bool requirePolicy = false) {
-        if (!requirePolicy && !options.OpenXmlMaxPartUncompressedBytes.HasValue && !options.OpenXmlMaxTotalUncompressedBytes.HasValue) return null;
+        if (!requirePolicy && !options.MaxInputBytes.HasValue && !options.InputByteBudget.HasValue
+            && !options.OpenXmlMaxPartUncompressedBytes.HasValue && !options.OpenXmlMaxTotalUncompressedBytes.HasValue) return null;
         var policy = new OfficePackageSecurityOptions();
         policy.MaxPackageBytes = nativeInputLimit;
         // Reader's input guard handles zero-byte admission; the native policy requires a positive ceiling.

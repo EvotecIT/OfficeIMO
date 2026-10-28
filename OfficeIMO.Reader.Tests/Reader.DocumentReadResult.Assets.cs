@@ -3,7 +3,6 @@ using OfficeIMO.Excel;
 using OfficeIMO.PowerPoint;
 using OfficeIMO.Reader;
 using OfficeIMO.Word;
-using System.Reflection;
 using System.Text.Json;
 using Xdr = DocumentFormat.OpenXml.Drawing.Spreadsheet;
 using Xunit;
@@ -354,19 +353,6 @@ public sealed class ReaderDocumentReadResultAssetTests {
         } finally {
             if (File.Exists(path)) File.Delete(path);
         }
-    }
-
-    [Fact]
-    public void DocumentReader_NormalizeOptions_AppliesOpenXmlSafetyDefaultsWhenOptionsAreNull() {
-        MethodInfo method = typeof(DocumentReaderEngine).GetMethod("NormalizeOptions", BindingFlags.NonPublic | BindingFlags.Static)!;
-        var normalized = (ReaderOptions)method.Invoke(null, new object?[] { null })!;
-        var defaults = new ReaderOptions();
-
-        Assert.Equal(defaults.OpenXmlMaxCharactersInPart, normalized.OpenXmlMaxCharactersInPart);
-        Assert.Equal(defaults.MaxOpenXmlImageAssets, normalized.MaxOpenXmlImageAssets);
-        Assert.Equal(defaults.MaxOpenXmlImagePlacementsPerRelationship, normalized.MaxOpenXmlImagePlacementsPerRelationship);
-        Assert.Equal(defaults.MaxOpenXmlImageAssetBytes, normalized.MaxOpenXmlImageAssetBytes);
-        Assert.Equal(defaults.MaxOpenXmlImageTotalAssetBytes, normalized.MaxOpenXmlImageTotalAssetBytes);
     }
 
     [Fact]

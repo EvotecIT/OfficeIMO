@@ -24,7 +24,7 @@ public abstract class OfficeDocumentReaderCommandBase : PSCmdlet
             {
                 throw new PSArgumentException(
                     "Format-specific switches cannot alter a caller-provided immutable OfficeIMO 3 reader. " +
-                    "Configure the reader with New-OfficeDocumentReader -ReaderAllOptions, or omit -Reader.");
+                    "Configure the reader with New-OfficeDocumentReader -Options, or omit -Reader.");
             }
 
             return Reader;

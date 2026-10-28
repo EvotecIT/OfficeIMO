@@ -63,7 +63,7 @@ internal static class ReaderCommandUtilities
             throw new PSArgumentException(
                 $"The requested batch concurrency ({batchOptions.MaxDegreeOfParallelism.Value}) exceeds the " +
                 $"immutable Reader limit ({reader.MaxConcurrentReads}). Create one with " +
-                "New-OfficeDocumentReader -MaxConcurrentReads set to the same or a higher value.");
+                "New-OfficeDocumentReader -MaximumConcurrentReads set to the same or a higher value.");
         }
     }
 
@@ -205,7 +205,7 @@ internal static class ReaderCommandUtilities
         var unique = new HashSet<string>(comparer);
         HashSet<string>? allowedExtensions = extensions == null
             ? null
-            : new HashSet<string>(extensions, StringComparer.OrdinalIgnoreCase);
+            : new HashSet<string>(NormalizeSourceExtensions(extensions), StringComparer.OrdinalIgnoreCase);
         var result = new List<string>(Math.Min(maxDocuments, 256));
         limitReached = false;
         foreach (var path in paths)
@@ -232,6 +232,12 @@ internal static class ReaderCommandUtilities
         return result;
     }
 
+    private static string[] NormalizeSourceExtensions(IEnumerable<string> extensions) => extensions
+        .Where(static value => !string.IsNullOrWhiteSpace(value))
+        .Select(static value => value.Trim())
+        .Select(static value => value.StartsWith(".", StringComparison.Ordinal) ? value : "." + value)
+        .ToArray();
+
     internal static ReaderFolderOptions BuildFolderOptions(bool recurse, int? maxFiles, long? maxTotalBytes, string[]? extension)
     {
         var options = new ReaderFolderOptions
@@ -251,10 +257,7 @@ internal static class ReaderCommandUtilities
 
         if (extension != null && extension.Length > 0)
         {
-            options.Extensions = extension
-                .Where(static value => !string.IsNullOrWhiteSpace(value))
-                .Select(static value => value.StartsWith(".", StringComparison.Ordinal) ? value : "." + value)
-                .ToArray();
+            options.Extensions = NormalizeSourceExtensions(extension);
         }
 
         return options;

@@ -287,6 +287,10 @@ public sealed class OfficeDocumentPage {
 /// Normalized logical block emitted by a document read adapter.
 /// </summary>
 public sealed class OfficeDocumentBlock {
+    // A bounded chunk can be promoted into the canonical block/page model without
+    // losing its continuation or structured-table projection provenance.
+    internal ReaderChunk? ChunkProjection { get; set; }
+
     /// <summary>Recognition provenance for OCR text; null means no recognition provenance was supplied.</summary>
     public OfficeDocumentRecognitionEvidence? Recognition { get; set; }
 

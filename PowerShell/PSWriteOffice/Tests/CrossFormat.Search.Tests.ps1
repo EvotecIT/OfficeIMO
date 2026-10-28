@@ -9,7 +9,7 @@ Describe 'Cross-format document search' {
     It 'searches multiple regular expressions and emits flat matches for pipeline documents' {
         $path = Join-Path $TestDrive 'patterns.md'
         Set-Content -LiteralPath $path -Value 'Invoice INV-42 and INV-730. Total USD 1250.50.' -Encoding UTF8
-        $matches = @(Get-OfficeDocument -Path $path | Search-OfficeDocument -Pattern 'INV-\d+', 'USD \d+\.\d+')
+        $matches = @(Read-OfficeDocument -Path $path | Search-OfficeDocument -Pattern 'INV-\d+', 'USD \d+\.\d+')
         $matches | Should -HaveCount 3
         $matches.Match | Should -Contain 'INV-42'
         $matches.Match | Should -Contain 'INV-730'

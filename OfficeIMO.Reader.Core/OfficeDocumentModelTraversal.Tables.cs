@@ -4,6 +4,18 @@ using System.Collections.Generic;
 namespace OfficeIMO.Reader;
 
 internal static partial class OfficeDocumentModelTraversal {
+    /// <summary>Matches text-bearing chunk tables to canonical projections using the existing occurrence assignment.</summary>
+    internal static HashSet<ReaderTable> TablesCoveredByTextChunks(IEnumerable<ReaderChunk> emittedChunks, IReadOnlyList<OfficeDocumentContentItem> content) {
+        var canonical = content.Where(item => item.Table != null).Select(item => item.Table!).ToArray();
+        var textTables = emittedChunks.Where(chunk => !string.IsNullOrEmpty(chunk.Text))
+            .Distinct(ReferenceIdentityComparer<ReaderChunk>.Instance)
+            .SelectMany(chunk => (chunk.Tables ?? Array.Empty<ReaderTable>()).Select(table =>
+                WithLocationFallback(table, chunk.Location ?? new ReaderLocation(), null))).ToArray();
+        TableMatchKey Key(ReaderTable table) => new(BuildTableIdentity(table, includeLocation: false, includeAnchor: false, includeCoverage: false), table.Location);
+        int[] assignments = AssignTableOccurrences(textTables.Select(Key).ToArray(), canonical.Select(Key).ToArray());
+        return new HashSet<ReaderTable>(assignments.Where(index => index >= 0).Select(index => canonical[index]), ReferenceIdentityComparer<ReaderTable>.Instance);
+    }
+
     internal static IEnumerable<ReaderTable> Tables(OfficeDocumentReadResult document) {
         var seen = new HashSet<ReaderTable>(ReferenceIdentityComparer<ReaderTable>.Instance);
         var canonical = new List<ReaderTable>();

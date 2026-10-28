@@ -15,6 +15,14 @@ For CSV import and export, install the separate `OfficeIMO.Excel.Csv` adapter.
 Keeping conversion outside the Reader package avoids pulling CSV behavior into
 applications that only need generic Excel document extraction.
 
+## Select a worksheet
+
+Set `ReaderExcelOptions.SheetName` to a literal worksheet name, or `SheetNumber`
+to its one-based position. Omit both to read every worksheet; setting both is an
+error. A numeric name such as `"2"` remains a name. Positional selection is resolved
+once per workbook and applies to chunks, rich content, assets and inspection
+without changing the registered options. A position outside the workbook fails.
+
 ## Project an open workbook
 
 With `OfficeIMO.Reader.Excel` imported, call `document.ReadDocument(sourceName,

@@ -217,15 +217,17 @@ internal sealed class ReaderHandlerDescriptor {
         SourceHashBehavior = sourceHashBehavior;
         WarningBehavior = warningBehavior;
         DeterministicOutput = deterministicOutput;
-        ReadPath = readPath;
-        ReadStream = readStream;
-        ReadDocumentPath = readDocumentPath;
-        ReadDirectoryBundle = readDirectoryBundle;
-        ReadDocumentStream = readDocumentStream;
-        ReadDocumentPathAsync = readDocumentPathAsync;
-        ReadDocumentStreamAsync = readDocumentStreamAsync;
-        ProbeStream = probeStream;
-        ExtensionValidationProbeStream = extensionValidationProbeStream;
+        // Native loaders receive the same remaining admission ceiling as Core's
+        // initial guard, including when they reopen a path after detection.
+        ReadPath = readPath == null ? null : (path, options, token) => readPath(path, WithNativeInputBudget(path, options), token);
+        ReadStream = readStream == null ? null : (stream, name, options, token) => readStream(stream, name, WithNativeInputBudget(name, options), token);
+        ReadDocumentPath = readDocumentPath == null ? null : (path, options, token) => readDocumentPath(path, WithNativeInputBudget(path, options), token);
+        ReadDirectoryBundle = readDirectoryBundle == null ? null : (path, options, token) => readDirectoryBundle(path, WithNativeInputBudget(path, options), token);
+        ReadDocumentStream = readDocumentStream == null ? null : (stream, name, options, token) => readDocumentStream(stream, name, WithNativeInputBudget(name, options), token);
+        ReadDocumentPathAsync = readDocumentPathAsync == null ? null : (path, options, token) => readDocumentPathAsync(path, WithNativeInputBudget(path, options), token);
+        ReadDocumentStreamAsync = readDocumentStreamAsync == null ? null : (stream, name, options, token) => readDocumentStreamAsync(stream, name, WithNativeInputBudget(name, options), token);
+        ProbeStream = probeStream == null ? null : (stream, name, options, token) => probeStream(stream, name, WithNativeInputBudget(name, options), token);
+        ExtensionValidationProbeStream = extensionValidationProbeStream == null ? null : (stream, name, options, token) => extensionValidationProbeStream(stream, name, WithNativeInputBudget(name, options), token);
         OpenPathForContentDetection = openPathForContentDetection;
     }
 
@@ -390,6 +392,17 @@ internal sealed class ReaderHandlerDescriptor {
         return extension.Length > 0 && DefaultMaxInputBytesByExtension.TryGetValue(extension, out long value)
             ? value
             : DefaultMaxInputBytes;
+    }
+
+    private ReaderOptions WithNativeInputBudget(string? sourceName, ReaderOptions options) {
+        if (!options.InputByteBudget.HasValue) return options;
+        long maximum = options.InputByteBudget.Value;
+        long? configured = options.MaxInputBytes ?? ResolveDefaultMaxInputBytes(sourceName);
+        if (configured.HasValue) maximum = Math.Min(maximum, configured.Value);
+        if (MaxInputBytesCeiling.HasValue) maximum = Math.Min(maximum, MaxInputBytesCeiling.Value);
+        ReaderOptions bounded = DocumentReaderEngine.NormalizeOptions(options);
+        bounded.MaxInputBytes = maximum;
+        return bounded;
     }
 
     private static IReadOnlyDictionary<string, long> NormalizeExtensionLimits(

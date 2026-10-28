@@ -114,7 +114,7 @@ internal static partial class DocumentReaderEngine {
             ? Math.Min(configured.Value, ceiling.Value)
             : configured ?? ceiling;
 
-    private static ReaderOptions ApplyFolderInputBudget(ReaderOptions? options, long maximumBytes) {
+    internal static ReaderOptions ApplyFolderInputBudget(ReaderOptions? options, long maximumBytes) {
         ReaderOptions effective = NormalizeOptions(options);
         effective.InputByteBudget = CombineMaxInputBytes(effective.InputByteBudget, maximumBytes);
         return effective;
@@ -126,7 +126,7 @@ internal static partial class DocumentReaderEngine {
             : null;
     }
 
-    internal static ReaderOptions NormalizeOptions(ReaderOptions? options) {
+    internal static ReaderOptions NormalizeOptions(ReaderOptions? options, bool inheritProjection = true) {
         ReaderOptions? source = options;
         if (source != null && source.Projection != ReaderProjection.Full && source.Projection != ReaderProjection.TextAndMetadata)
             throw new ArgumentOutOfRangeException(nameof(ReaderOptions.Projection));
@@ -135,8 +135,9 @@ internal static partial class DocumentReaderEngine {
         if (source?.OpenXmlMaxTotalUncompressedBytes < 1)
             throw new ArgumentOutOfRangeException(nameof(ReaderOptions.OpenXmlMaxTotalUncompressedBytes));
         var clone = new ReaderOptions {
-            Projection = ReaderReadScope.Current?.Projection == ReaderProjection.TextAndMetadata
+            Projection = inheritProjection && ReaderReadScope.Current?.Projection == ReaderProjection.TextAndMetadata
                 ? ReaderProjection.TextAndMetadata : source?.Projection ?? ReaderProjection.Full,
+            FolderOptions = source?.FolderOptions == null ? null : NormalizeFolderOptions(source.FolderOptions),
             MaxInputBytes = source?.MaxInputBytes,
             InputByteBudget = source?.InputByteBudget,
             ResourceLimits = source?.ResourceLimits?.CloneValidated(),

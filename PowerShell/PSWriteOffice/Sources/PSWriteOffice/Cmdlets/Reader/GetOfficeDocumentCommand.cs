@@ -16,7 +16,6 @@ namespace PSWriteOffice.Cmdlets.Reader;
 ///   <para>Reads a supported document and stores the normalized Reader result for indexing or diagnostics.</para>
 /// </example>
 [Cmdlet(VerbsCommon.Get, "OfficeDocument")]
-[Alias("Read-OfficeDocument")]
 [OutputType(typeof(OfficeDocumentReadResult), typeof(string))]
 public sealed class GetOfficeDocumentCommand : OfficeDocumentReaderCommandBase
 {
