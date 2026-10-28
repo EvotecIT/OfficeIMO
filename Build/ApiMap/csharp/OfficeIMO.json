@@ -394,6 +394,14 @@
         "OfficeIMO/PublicAPI.Shipped.txt",
         "OfficeIMO/PublicAPI.Unshipped.txt"
       ]
+    },
+    {
+      "old": "Build/ConversionConsistency legacy conversion/diagnostic/geometry consumers",
+      "new": "Current source conversion, typed geometry and diagnostic APIs",
+      "action": "migrate-consumer",
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "reason": "The native conversion corpus uses source.ToPdf(options, out report) for Word/Excel/PowerPoint/HTML and preserves unified diagnostics. The public disposable PDF loader accepts a path; fixture output uses SaveAsPdf. Tier2 adapter result APIs remain until M4."
     }
   ],
   "applicationStatus": "Phase A applied and validated on the supported macOS targets. Phase B and Tier 2 entries retain their status; Windows .NET Framework validation remains pending.",

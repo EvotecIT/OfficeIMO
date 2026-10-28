@@ -24,21 +24,24 @@ internal static partial class NativeAdapters {
                 using var document = WordDocument.Load(source);
                 var imageOptions = Images<WordImageExportOptions>(suite, profile);
                 var pdfOptions = new WordPdfExportOptions().UseRenderingProfile(profile);
-                return Capture(document.ToPdfDocumentResult(pdfOptions, token),
+                using PdfDocument pdf = document.ToPdf(pdfOptions, out OfficeConversionReport report, token);
+                return Capture(pdf, report,
                     format => Collect(consumer => document.ExportImages(format, consumer, imageOptions, token)), token);
             }
             case "xlsx": {
                 using var document = ExcelDocument.Load(source);
                 var imageOptions = Images<ExcelImageExportOptions>(suite, profile);
                 var pdfOptions = new ExcelPdfExportOptions().UseRenderingProfile(profile);
-                return Capture(document.ToPdfDocumentResult(pdfOptions, token),
+                using PdfDocument pdf = document.ToPdf(pdfOptions, out OfficeConversionReport report, token);
+                return Capture(pdf, report,
                     format => Collect(consumer => document.ExportImages(format, consumer, imageOptions, token)), token);
             }
             case "pptx": {
                 using var document = PowerPointDocument.Load(source);
                 var imageOptions = Images<PowerPointImageExportOptions>(suite, profile);
                 var pdfOptions = new PowerPointPdfExportOptions().UseRenderingProfile(profile);
-                return Capture(document.ToPdfDocumentResult(pdfOptions, token),
+                using PdfDocument pdf = document.ToPdf(pdfOptions, out OfficeConversionReport report, token);
+                return Capture(pdf, report,
                     format => Collect(consumer => document.ExportImages(format, consumer, imageOptions, token)), token);
             }
             case "odt": {
@@ -64,7 +67,7 @@ internal static partial class NativeAdapters {
             }
             case "pdf": {
                 byte[] bytes = File.ReadAllBytes(source);
-                var document = PdfDocument.Load(bytes);
+                using var document = PdfDocument.Load(source);
                 var imageOptions = Images<PdfImageExportOptions>(suite, profile);
                 return Capture(bytes, format => document.Render.ExportImages(format, imageOptions), new(), token);
             }
@@ -85,6 +88,14 @@ internal static partial class NativeAdapters {
     }
 
     // Materialize while the native document is open; do not retain a delegate over a disposed package.
+    private static NativeExport Capture(PdfDocument pdf, OfficeConversionReport report,
+        Func<OfficeImageExportFormat, IReadOnlyList<OfficeImageExportResult>> images, CancellationToken token) {
+        byte[] bytes = pdf.ToBytes(new PdfSaveOptions { AllowLoss = true }, token);
+        return Capture(bytes, images, report.Diagnostics.Select(item => item.Code).ToList(), token) with {
+            DiagnosticDetails = report.Diagnostics.Select(item => item.Code + ": " + item.Message + " [" + item.Location + "]").ToList()
+        };
+    }
+
     private static NativeExport Capture(PdfDocumentConversionResult pdf,
         Func<OfficeImageExportFormat, IReadOnlyList<OfficeImageExportResult>> images, CancellationToken token) {
         byte[] bytes = pdf.ToBytes(token);

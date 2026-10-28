@@ -9880,6 +9880,14 @@
       "phase": "B",
       "reason": "Keep existing cmdlet PassThru metadata and behavior while public saves return the unified report. No cmdlet or alias redesign.",
       "file": "PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/PowerPoint/ExportOfficePowerPointImageCommand.cs"
+    },
+    {
+      "old": "Build/ConversionConsistency legacy conversion/diagnostic/geometry consumers",
+      "new": "Current source conversion, typed geometry and diagnostic APIs",
+      "action": "migrate-consumer",
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "reason": "The native grouped-text corpus scales OfficeLength dimensions by dimensionless ratios; it no longer multiplies two lengths after the geometry migration."
     }
   ],
   "applicationStatus": "Phase A applied and validated on the supported macOS targets. Phase B and Tier 2 entries retain their status; Windows .NET Framework validation remains pending.",

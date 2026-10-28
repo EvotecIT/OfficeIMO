@@ -76,8 +76,8 @@ internal static partial class NativeAdapters {
             PageSize = new OfficePageSize(contract.Pages[0].Width / (double)suite.Dpi, contract.Pages[0].Height / (double)suite.Dpi)
         };
         options.UseRenderingProfile(profile);
-        var pdf = document.ToPdfDocumentResult(new HtmlToPdfOptions(options), cancellationToken);
-        return new NativeExport(pdf.ToBytes(cancellationToken), format => document.ExportImages(format, options),
-            pdf.Report.Warnings.Select(item => item.Code).ToList());
+        using var pdf = document.ToPdf(new HtmlToPdfOptions(options), out OfficeConversionReport report, cancellationToken);
+        return new NativeExport(pdf.ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }, cancellationToken), format => document.ExportImages(format, options),
+            report.Diagnostics.Select(item => item.Code).ToList());
     }
 }

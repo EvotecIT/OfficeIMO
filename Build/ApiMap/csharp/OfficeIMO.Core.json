@@ -800,6 +800,14 @@
         "Website/data/office_conversion_routes.json",
         "Website/data/format_map.json"
       ]
+    },
+    {
+      "old": "Build/ConversionConsistency legacy conversion/diagnostic/geometry consumers",
+      "new": "Current source conversion, typed geometry and diagnostic APIs",
+      "action": "migrate-consumer",
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "reason": "The native conversion corpus uses the canonical font-family-substitution diagnostic constant."
     }
   ],
   "applicationStatus": "Phase A applied and validated on the supported macOS targets. Phase B and Tier 2 entries retain their status; Windows .NET Framework validation remains pending.",
