@@ -29,14 +29,14 @@ internal static partial class NativeAdapters {
             }
             case "xlsx": {
                 using var document = ExcelDocument.Load(source);
-                var imageOptions = Images<ExcelWorkbookImageExportOptions>(suite, profile);
+                var imageOptions = Images<ExcelImageExportOptions>(suite, profile);
                 var pdfOptions = new ExcelPdfExportOptions().UseRenderingProfile(profile);
                 return Capture(document.ToPdfDocumentResult(pdfOptions, token),
                     format => Collect(consumer => document.ExportImages(format, consumer, imageOptions, token)), token);
             }
             case "pptx": {
                 using var document = PowerPointDocument.Load(source);
-                var imageOptions = Images<PowerPointDocumentImageExportOptions>(suite, profile);
+                var imageOptions = Images<PowerPointImageExportOptions>(suite, profile);
                 var pdfOptions = new PowerPointPdfExportOptions().UseRenderingProfile(profile);
                 return Capture(document.ToPdfDocumentResult(pdfOptions, token),
                     format => Collect(consumer => document.ExportImages(format, consumer, imageOptions, token)), token);
@@ -50,14 +50,14 @@ internal static partial class NativeAdapters {
             }
             case "ods": {
                 var document = OdsDocument.Load(source);
-                var imageOptions = Images<ExcelWorkbookImageExportOptions>(suite, profile);
+                var imageOptions = Images<ExcelImageExportOptions>(suite, profile);
                 var pdfOptions = new ExcelPdfExportOptions().UseRenderingProfile(profile);
                 return Capture(document.ToPdfDocumentResult(pdfOptions: pdfOptions, cancellationToken: token),
                     format => document.ExportImages(format, imageOptions, cancellationToken: token), token);
             }
             case "odp": {
                 var document = OdpPresentation.Load(source);
-                var imageOptions = Images<PowerPointDocumentImageExportOptions>(suite, profile);
+                var imageOptions = Images<PowerPointImageExportOptions>(suite, profile);
                 var pdfOptions = new PowerPointPdfExportOptions().UseRenderingProfile(profile);
                 return Capture(document.ToPdfDocumentResult(pdfOptions: pdfOptions, cancellationToken: token),
                     format => document.ExportImages(format, imageOptions, cancellationToken: token), token);

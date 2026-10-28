@@ -6071,6 +6071,15 @@
         "PowerShell/PSWriteOffice/Docs/New-OfficePowerPointImageOptions.md"
       ],
       "note": "Image command reference pages are regenerated with the native documentation lane against the consolidated CLR option types. Parameter names, aliases and development-loader framework discovery are unchanged."
+    },
+    {
+      "category": "consumers",
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "files": [
+        "Build/ConversionConsistency/NativeAdapters.Office.cs"
+      ],
+      "note": "The native conversion corpus consumes the consolidated ExcelImageExportOptions and PowerPointImageExportOptions in both direct and OpenDocument routes."
     }
   ],
   "applicationStatus": "Phase A applied and validated on the supported macOS targets. Phase B and Tier 2 entries retain their status; Windows .NET Framework validation remains pending.",
