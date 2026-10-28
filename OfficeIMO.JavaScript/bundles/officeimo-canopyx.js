@@ -11839,7 +11839,7 @@ _modules.set("040752afe195985e6f2e91f8c62fc13464c455fc44034b8cef4828851e05b83d",
 return _exports;
 })();
 
-const _m96 = _modules.get("96ec39a0eee24369a0bc788957efa2991ac7c3740c7c419b4888b0ed29d00e7b") ?? (() => {
+const _m96 = _modules.get("0e05302f81cca19d66440743c197954b4c2e42d08b01b9dc4330208ebb94884d") ?? (() => {
 const { ExportCell, checkAbort, inputRows } = _m1;
 
 const { canopyPivot, pivotNumberFormat } = _m97;
@@ -11946,7 +11946,10 @@ function prepareCanopyExport(capture, format, options = {}) {
                 ...(override.format === undefined && numericFormat !== undefined ? { format: numericFormat } : {}),
                 ...(format === "xlsx" && values === "raw" && column.kind === "datetime" && override.format === undefined ? { format: "yyyy-mm-dd hh:mm:ss.000" } : {}),
                 ...(values === "raw" && column.kind === "number" ? { type: "number" } : {}),
-                ...(override.wrapText === undefined && column.wrap === undefined ? {} : { wrapText: override.wrapText ?? column.wrap }),
+                // Screen nowrap is not a promise that its CSS width will survive PDF fitting.
+                // PDF defaults to lossless wrapping; an explicit writer override stays strict.
+                ...(format === "pdf" ? { wrapText: override.wrapText ?? true } :
+                    override.wrapText === undefined && column.wrap === undefined ? {} : { wrapText: override.wrapText ?? column.wrap }),
                 ...(override.alignment === undefined && column.alignment === undefined ? {} : { alignment: override.alignment ?? column.alignment }) }]);
         return Object.freeze({ id: column.id, kind: column.kind, input: column, nativeFormatOverride: override.format, column: Object.freeze(captured) });
     });
@@ -12003,7 +12006,7 @@ function prepareCanopyExport(capture, format, options = {}) {
     return Object.freeze({ source, request: Object.freeze({ ...request, columns: Object.freeze(specs.map(spec => spec.input)) }), report, tones, pivot });
 }
 const _exports = Object.freeze({ canopyIdentityValue: canopyIdentityValue, createCanopyExport: createCanopyExport, prepareCanopyExport: prepareCanopyExport });
-_modules.set("96ec39a0eee24369a0bc788957efa2991ac7c3740c7c419b4888b0ed29d00e7b", _exports);
+_modules.set("0e05302f81cca19d66440743c197954b4c2e42d08b01b9dc4330208ebb94884d", _exports);
 return _exports;
 })();
 
@@ -12310,7 +12313,7 @@ _modules.set("13582dc7ba6ecf2a33722c6fee326b500408542ffdaa5cdac26ae72c310ea1ba",
 return _exports;
 })();
 
-const _m102 = _modules.get("e4641e1fba547a7dd4ec3881578ee6eeb552e00b20ed7ebf0c9fd60696672eb1") ?? (() => {
+const _m102 = _modules.get("a40ef4172a6f3d4fed9ed1b105687ddd22ed56afe644716e5eaa7633856e0ade") ?? (() => {
 const { createGroupedReport } = _m8;
 
 const { checkAbort } = _m4;
@@ -12516,7 +12519,7 @@ function canopyGrouped(source, request, options, limits, report, format) {
         ...(options.signal === undefined ? {} : { signal: options.signal }), ...(sourceLimits === undefined ? {} : { limits: sourceLimits }) });
 }
 const _exports = Object.freeze({ canopyGrouped: canopyGrouped });
-_modules.set("e4641e1fba547a7dd4ec3881578ee6eeb552e00b20ed7ebf0c9fd60696672eb1", _exports);
+_modules.set("a40ef4172a6f3d4fed9ed1b105687ddd22ed56afe644716e5eaa7633856e0ade", _exports);
 return _exports;
 })();
 
@@ -12640,7 +12643,7 @@ _modules.set("8b7d3691def49cffcdaa55a0e3bd181bae4e69f2bce767724190882eec6dc645",
 return _exports;
 })();
 
-const _m0 = _modules.get("0c6180381a632ed2c9898644d690cfe801871acad4106199acb604a36b034ec7") ?? (() => {
+const _m0 = _modules.get("5663f1109db8f1694f27bd65932412db3b5a1efd9349bb022a2ed5d3bf9de095") ?? (() => {
 const { BlobByteSink, ExportCell } = _m1;
 
 const { notifyProgress } = _m14;
@@ -12771,7 +12774,7 @@ async function exportCanopy(capture, format, options = {}) {
     }
 }
 const _exports = Object.freeze({ createCanopyExport: _m96.createCanopyExport, ExportCell: _m5.ExportCell, PdfFont: _m64.PdfFont, writeCanopyTo: writeCanopyTo, exportCanopy: exportCanopy });
-_modules.set("0c6180381a632ed2c9898644d690cfe801871acad4106199acb604a36b034ec7", _exports);
+_modules.set("5663f1109db8f1694f27bd65932412db3b5a1efd9349bb022a2ed5d3bf9de095", _exports);
 return _exports;
 })();
 Object.assign(officeimo, _m0);

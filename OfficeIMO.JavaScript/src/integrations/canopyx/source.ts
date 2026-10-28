@@ -94,7 +94,10 @@ export function prepareCanopyExport(capture: CanopyCapture, format: CanopyFormat
       ...(override.format === undefined && numericFormat !== undefined ? { format: numericFormat } : {}),
       ...(format === "xlsx" && values === "raw" && column.kind === "datetime" && override.format === undefined ? { format: "yyyy-mm-dd hh:mm:ss.000" } : {}),
       ...(values === "raw" && column.kind === "number" ? { type: "number" as const } : {}),
-      ...(override.wrapText === undefined && column.wrap === undefined ? {} : { wrapText: override.wrapText ?? column.wrap! }),
+      // Screen nowrap is not a promise that its CSS width will survive PDF fitting.
+      // PDF defaults to lossless wrapping; an explicit writer override stays strict.
+      ...(format === "pdf" ? { wrapText: override.wrapText ?? true } :
+        override.wrapText === undefined && column.wrap === undefined ? {} : { wrapText: override.wrapText ?? column.wrap! }),
       ...(override.alignment === undefined && column.alignment === undefined ? {} : { alignment: override.alignment ?? column.alignment! }) }]);
     return Object.freeze({ id: column.id, kind: column.kind, input: column, nativeFormatOverride: override.format, column: Object.freeze(captured!) });
   });
