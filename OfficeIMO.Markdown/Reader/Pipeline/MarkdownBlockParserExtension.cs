@@ -1,7 +1,7 @@
 namespace OfficeIMO.Markdown;
 
 /// <summary>
-/// Named block parser extension registration used by <see cref="MarkdownReaderPipeline.Default(MarkdownLoadOptions?)"/>.
+/// Named block parser extension registration used by the Markdown reader.
 /// </summary>
 public sealed class MarkdownBlockParserExtension {
     /// <summary>

@@ -1832,6 +1832,12 @@
       "change": "Migrate Markdown block additions in adapters, renderer extensions, examples and tests",
       "reason": "Source conversions retain the MarkdownDocument before adding blocks. Add returns the attached concrete block and AddRange returns a read-only snapshot. Failed input enumeration leaves parsed content and parent bindings unchanged. All fifteen direct or transitive consumer projects compile; Markdown, AsciiDoc, LaTeX, ADF and RTF suites pass on net8.0 and net10.0. The Add example compiles and renders on both runtimes; netstandard2.0 and an isolated net472 compile pass without changing framework declarations.",
       "applied": "phase-b-applied"
+    },
+    {
+      "change": "Internalize MarkdownReaderPipeline and its parser collection mutation methods.",
+      "reason": "Generated surface analysis identified an undocumented reader implementation type. Only MarkdownReader and its paragraph parsing implementation consume it. Public MarkdownLoadOptions.BlockParserExtensions, MarkdownBlockParserExtension and IMarkdownBlockParser remain the supported extension contract; no cross-assembly caller or public model exposes the pipeline.",
+      "phase": "B",
+      "applied": "phase-b"
     }
   ],
   "applicationStatus": "Phase A applied and validated on the supported macOS targets. Phase B and Tier 2 entries retain their status; Windows .NET Framework validation remains pending.",

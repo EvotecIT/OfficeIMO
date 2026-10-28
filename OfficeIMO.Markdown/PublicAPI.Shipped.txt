@@ -2122,11 +2122,6 @@ OfficeIMO.Markdown.MarkdownRawHtmlHandling.Allow = 0 -> OfficeIMO.Markdown.Markd
 OfficeIMO.Markdown.MarkdownRawHtmlHandling.Escape = 1 -> OfficeIMO.Markdown.MarkdownRawHtmlHandling
 OfficeIMO.Markdown.MarkdownRawHtmlHandling.Sanitize = 2 -> OfficeIMO.Markdown.MarkdownRawHtmlHandling
 OfficeIMO.Markdown.MarkdownRawHtmlHandling.Strip = 3 -> OfficeIMO.Markdown.MarkdownRawHtmlHandling
-OfficeIMO.Markdown.MarkdownReaderPipeline
-OfficeIMO.Markdown.MarkdownReaderPipeline.Add(OfficeIMO.Markdown.IMarkdownBlockParser! parser) -> OfficeIMO.Markdown.MarkdownReaderPipeline!
-OfficeIMO.Markdown.MarkdownReaderPipeline.Insert(int index, OfficeIMO.Markdown.IMarkdownBlockParser! parser) -> OfficeIMO.Markdown.MarkdownReaderPipeline!
-OfficeIMO.Markdown.MarkdownReaderPipeline.MarkdownReaderPipeline() -> void
-OfficeIMO.Markdown.MarkdownReaderPipeline.Parsers.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.Markdown.IMarkdownBlockParser!>!
 OfficeIMO.Markdown.MarkdownReaderState
 OfficeIMO.Markdown.MarkdownReaderState.MarkdownReaderState() -> void
 OfficeIMO.Markdown.MarkdownReadmeOptions
@@ -2882,7 +2877,6 @@ static OfficeIMO.Markdown.MarkdownProvenance.Inspect(string! markdown, OfficeIMO
 static OfficeIMO.Markdown.MarkdownProvenance.InspectFile(string! filePath, OfficeIMO.Provenance.OfficeProvenanceOptions? options = null) -> OfficeIMO.Provenance.OfficeProvenanceReport!
 static OfficeIMO.Markdown.MarkdownProvenance.Remove(string! markdown, OfficeIMO.Provenance.OfficeProvenanceRemovalOptions? options = null) -> OfficeIMO.Provenance.OfficeProvenanceRemovalResult!
 static OfficeIMO.Markdown.MarkdownProvenance.RemoveFile(string! inputPath, string! outputPath, OfficeIMO.Provenance.OfficeProvenanceRemovalOptions? options = null) -> OfficeIMO.Provenance.OfficeProvenanceRemovalResult!
-static OfficeIMO.Markdown.MarkdownReaderPipeline.Default(OfficeIMO.Markdown.MarkdownLoadOptions? options = null) -> OfficeIMO.Markdown.MarkdownReaderPipeline!
 static OfficeIMO.Markdown.MarkdownSaveOptions.CreateCommonMarkProfile() -> OfficeIMO.Markdown.MarkdownSaveOptions!
 static OfficeIMO.Markdown.MarkdownSaveOptions.CreateGitHubFlavoredMarkdownProfile() -> OfficeIMO.Markdown.MarkdownSaveOptions!
 static OfficeIMO.Markdown.MarkdownSaveOptions.CreateHtmlImageProfile() -> OfficeIMO.Markdown.MarkdownSaveOptions!

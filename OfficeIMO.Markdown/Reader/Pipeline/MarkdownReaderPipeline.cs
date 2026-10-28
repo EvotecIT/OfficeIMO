@@ -3,7 +3,7 @@ namespace OfficeIMO.Markdown;
 /// <summary>
 /// Ordered collection of block parsers that the reader consults at each position.
 /// </summary>
-public sealed class MarkdownReaderPipeline {
+internal sealed class MarkdownReaderPipeline {
     private const int DefaultParserCapacity = 20;
     private static readonly IMarkdownBlockParser FrontMatterParser = new MarkdownReader.FrontMatterParser();
     private static readonly IMarkdownBlockParser QuoteParser = new MarkdownReader.QuoteParser();
