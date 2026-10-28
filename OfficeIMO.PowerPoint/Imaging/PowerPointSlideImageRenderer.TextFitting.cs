@@ -103,12 +103,12 @@ namespace OfficeIMO.PowerPoint {
                     double renderHeight = Math.Max(paragraph.Height, paragraph.PaintedHeight) + 0.01D;
                     double renderWidth = (wrap ? Math.Max(textWidth, paragraph.MeasuredWidth) : textWidth) + 0.000001D;
                     var content = new OfficeDrawing(renderWidth, renderHeight);
-                    if (!wrap) {
-                        // Paragraph rendering preserves hard breaks and lets no-wrap text
-                        // overhang its left/center/right anchor without shortening the run.
+                    if (!wrap || paragraph.AbsoluteLineHeight) {
+                        // Keep fixed point leading exact across every visual line.
+                        // Unwrapped text may overhang its authored alignment anchor.
                         content.AddRichTextParagraphs(new[] { new OfficeRichTextParagraph(paragraph.RichRuns,
                             paragraph.Alignment, lineHeight: paragraph.LineHeight, indent: paragraph.Indent) },
-                            0D, 0D, renderWidth, renderHeight, wrapText: false);
+                            0D, 0D, renderWidth, renderHeight, wrapText: wrap);
                     } else if (paragraph.RichRuns.Count > 0) {
                         content.AddRichText(paragraph.RichRuns, 0D, 0D, renderWidth, renderHeight, paragraph.Alignment,
                             paragraph.LineHeight, paragraphIndent: paragraph.Indent);

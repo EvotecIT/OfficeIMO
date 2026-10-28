@@ -33,17 +33,18 @@ namespace OfficeIMO.PowerPoint {
                     : Math.Max(1D, maxFontSize * Math.Max(0.01D, (paragraph.LineSpacingMultiplier ?? 1.2D) - lineSpaceReduction));
                 double height, paintedHeight, measuredWidth;
                 bool clipped;
-                if (!wrap) {
+                if (!wrap || paragraph.LineSpacingPoints.HasValue) {
                     if (richRuns.Count == 0) {
                         OfficeFontInfo font = ResolveParagraphFont(textBox, paragraph, mapping, defaultFontFamily);
                         richRuns.Add(new OfficeRichTextRun(string.Empty, font.Size * fontScale,
                             ResolveParagraphTextColor(textBox, paragraph, colorScheme), fontFamily: font.FamilyName));
                     }
-                    // Measure the intrinsic width without an ellipsis or an artificial
-                    // wrapping width. Alignment is applied later against the authored frame.
+                    // Absolute leading must stay independent of run sizes, including
+                    // the inherited style of explicit breaks. The paragraph owner also
+                    // preserves continuation indentation on hard breaks.
                     var natural = OfficeDrawingTextLayout.CreateParagraphs(
                         new[] { new OfficeRichTextParagraph(richRuns, lineHeight: lineHeight, indent: indent) },
-                        double.MaxValue, double.MaxValue, measure, wrap: false, cancellationToken: cancellationToken);
+                        wrap ? textWidth : double.MaxValue, double.MaxValue, measure, wrap: wrap, cancellationToken: cancellationToken);
                     results.Add(PowerPointParagraphDrawing.FromRichText(paragraph, richRuns, alignment, indent,
                         lineHeight, Math.Max(lineHeight, natural.Height), OfficeDrawingTextLayout.PaintedHeight(natural),
                         mapping, natural.Width, natural.Clipped));
@@ -207,7 +208,8 @@ namespace OfficeIMO.PowerPoint {
                 double spaceBefore,
                 double spaceAfter,
                 double measuredWidth = 0D,
-                bool clipped = false) {
+                bool clipped = false,
+                bool absoluteLineHeight = false) {
                 Text = text;
                 RichRuns = richRuns;
                 Font = font;
@@ -221,6 +223,7 @@ namespace OfficeIMO.PowerPoint {
                 SpaceAfter = spaceAfter;
                 MeasuredWidth = measuredWidth;
                 Clipped = clipped;
+                AbsoluteLineHeight = absoluteLineHeight;
             }
 
             internal string Text { get; }
@@ -238,6 +241,8 @@ namespace OfficeIMO.PowerPoint {
             internal OfficeTextParagraphIndent Indent { get; }
 
             internal double LineHeight { get; }
+
+            internal bool AbsoluteLineHeight { get; }
 
             internal double Height { get; }
 
@@ -277,7 +282,8 @@ namespace OfficeIMO.PowerPoint {
                     Math.Max(0D, mapping.MapVerticalLength(paragraph.SpaceBeforePoints ?? 0D)),
                     Math.Max(0D, mapping.MapVerticalLength(paragraph.SpaceAfterPoints ?? 0D)),
                     measuredWidth,
-                    clipped);
+                    clipped,
+                    paragraph.LineSpacingPoints.HasValue);
 
             internal static PowerPointParagraphDrawing FromRichText(
                 PowerPointParagraph paragraph,
@@ -301,7 +307,8 @@ namespace OfficeIMO.PowerPoint {
                     Math.Max(0D, mapping.MapVerticalLength(paragraph.SpaceBeforePoints ?? 0D)),
                     Math.Max(0D, mapping.MapVerticalLength(paragraph.SpaceAfterPoints ?? 0D)),
                     measuredWidth,
-                    clipped);
+                    clipped,
+                    paragraph.LineSpacingPoints.HasValue);
         }
     }
 }

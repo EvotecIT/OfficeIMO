@@ -56,7 +56,15 @@ namespace OfficeIMO.PowerPoint {
                 }
                 if (visibleHeight <= 0D) return true;
 
-                if (paragraph.RichRuns.Count > 0) {
+                if (paragraph.AbsoluteLineHeight) {
+                    var content = new OfficeDrawing(textWidth, visibleHeight);
+                    content.AddRichTextParagraphs(new[] { new OfficeRichTextParagraph(paragraph.RichRuns,
+                        paragraph.Alignment, lineHeight: paragraph.LineHeight, indent: paragraph.Indent) },
+                        0D, 0D, textWidth, visibleHeight);
+                    drawing.AddDrawingForClippedRendering(content, cellLeft + marginLeft, currentY,
+                        new OfficeImageFrameTransform(rotation, rotationCenterX, rotationCenterY,
+                            flipHorizontal, flipVertical));
+                } else if (paragraph.RichRuns.Count > 0) {
                     drawing.AddRichText(
                         paragraph.RichRuns,
                         cellLeft + marginLeft,
@@ -124,7 +132,17 @@ namespace OfficeIMO.PowerPoint {
                     : richRuns.Max(run => run.FontSize);
                 double lineHeight = ResolveTableCellParagraphLineHeight(paragraph, maxFontSize, mapping);
                 double height, paintedHeight;
-                if (ShouldRenderParagraphRichText(richRuns, marker)) {
+                if (paragraph.LineSpacingPoints.HasValue) {
+                    var layout = OfficeDrawingTextLayout.CreateParagraphs(
+                        new[] { new OfficeRichTextParagraph(richRuns, lineHeight: lineHeight, indent: indent) },
+                        textWidth, double.MaxValue, measure);
+                    results.Add(new PowerPointParagraphDrawing(string.Empty, richRuns, OfficeFontInfo.Default,
+                        OfficeColor.Black, alignment, indent, lineHeight, Math.Max(lineHeight, layout.Height),
+                        OfficeDrawingTextLayout.PaintedHeight(layout),
+                        Math.Max(0D, mapping.MapVerticalLength(paragraph.SpaceBeforePoints ?? 0D)),
+                        Math.Max(0D, mapping.MapVerticalLength(paragraph.SpaceAfterPoints ?? 0D)),
+                        layout.Width, layout.Clipped, absoluteLineHeight: true));
+                } else if (ShouldRenderParagraphRichText(richRuns, marker)) {
                     height = EstimateParagraphRichTextHeight(richRuns, maxFontSize, lineHeight, textWidth, indent, out paintedHeight, measure);
                     results.Add(new PowerPointParagraphDrawing(
                         string.Empty,

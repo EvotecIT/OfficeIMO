@@ -29,7 +29,9 @@ public sealed class PowerPointTextFittingRegressionTests {
         var drawing = Draw(box, 220, 140, diagnostics);
         var text = Assert.IsType<OfficeDrawingRichText>(Assert.Single(drawing.Elements));
         Assert.Equal(new[] { 12D, 8D }, text.Runs.Select(run => run.FontSize));
-        Assert.Equal(absoluteLeading ? 30D : 12D, text.LineHeight!.Value, 6);
+        var layout = OfficeDrawingTextLayout.Create(text, text.Width, text.Height,
+            (value, size, _, _) => (value?.Length ?? 0) * size / 2D);
+        Assert.All(layout.Lines, line => Assert.Equal(absoluteLeading ? 30D : 12D, line.LineHeight, 6));
         Assert.Equal("https://officeimo.com/text-fitting", text.Runs[0].LinkUri);
         Assert.True(text.Runs[1].Bold);
         Assert.DoesNotContain(diagnostics, diagnostic => diagnostic.Code == "powerpoint-text-overflow");
