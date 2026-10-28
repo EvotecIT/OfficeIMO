@@ -152,17 +152,13 @@ namespace OfficeIMO.Word {
         /// Add paragraph to the table cell
         /// </summary>
         /// <param name="paragraph">The paragraph to add to this cell, if
-        /// this is not passed then a new empty paragraph with settings from
-        /// the previous paragraph will be added.</param>
+        /// omitted, a new empty paragraph is appended.</param>
         /// <param name="removeExistingParagraphs">If value is not passed or false then add
         /// the given paragraph into the cell. If set to true then clear
         /// every existing paragraph before adding the new paragraph.
         /// </param>
         /// <returns>A reference to the added paragraph.</returns>
         public WordParagraph AddParagraph(WordParagraph? paragraph = null, bool removeExistingParagraphs = false) {
-            // Considering between implementing a reset that clears all paragraphs or
-            // a deletePrevious that will replace the last paragraph.
-            // NOTE: Raise this during PR.
             if (removeExistingParagraphs) {
                 var paragraphs = _tableCell.ChildElements.OfType<Paragraph>().ToList();
                 foreach (var wordParagraph in paragraphs) {
@@ -170,7 +166,7 @@ namespace OfficeIMO.Word {
                 }
             }
             if (paragraph == null) {
-                paragraph = new WordParagraph(this._document);
+                paragraph = new WordParagraph(this._document, newParagraph: true, newRun: false);
             }
             WordParagraph.EnsureParagraphCanBeInserted(this._document, _tableCell, paragraph,
                 "append a paragraph to the table cell");
