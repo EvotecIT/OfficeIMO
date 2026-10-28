@@ -2,10 +2,11 @@
   "package": "OfficeIMO.Word",
   "status": "M0 change map, generated from the OfficeIMO 3.5.3 net8.0 build (b7d2cf5137) by reflection plus source lookup. Signatures are reflection renderings: default values are unquoted and \"CancellationToken cancellationToken = null\" means \"= default\".",
   "summary": {
-    "changes": 350,
+    "changes": 353,
     "byAction": {
-      "change": 143,
+      "change": 145,
       "internalize": 40,
+      "keep": 1,
       "merge": 125,
       "move": 1,
       "remove": 26,
@@ -18,7 +19,7 @@
       "naming": 11,
       "options": 4,
       "package": 1,
-      "units": 143,
+      "units": 146,
       "visibility": 40
     },
     "packageMoves": 3
@@ -6043,6 +6044,22 @@
         "status": "applied"
       },
       "note": "Additional geometry identified while migrating the native model. Null clears the matching constraint; negative heights remain invalid."
+    },
+    {
+      "old": "OfficeIMO.Word.WordSection.ColumnsSpace",
+      "kind": "property",
+      "action": "change",
+      "new": "OfficeIMO.Word.WordSection.ColumnsSpace : OfficeLength?",
+      "reason": "Equal-column spacing is public physical geometry even though its original name has no unit suffix.",
+      "file": "OfficeIMO.Word/WordSection.SectionProperties.cs",
+      "category": "units",
+      "implementation": {
+        "phase": "B",
+        "status": "applied"
+      },
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "note": "Nullable OfficeLength replaces signed int twips without aliases. Checked midpoint-away-from-zero twip rounding occurs before XML mutation; null, zero, malformed-value reads, layout defaults and native DOC limits are preserved. DOC/RTF boundaries, PDF/paragraph layout, inspection, PowerShell wiring and in-repository callers are migrated. Execution proof is recorded separately."
     }
   ],
   "packageMoves": [
@@ -6569,6 +6586,14 @@
       "phase": "B",
       "applied": "phase-b-applied",
       "reason": "List-level physical geometry was not included by the original suffix-based map. Keep zero defaults and checked signed native twip storage; an out-of-range length fails before changing the attached level. Native integer formatting is culture-invariant."
+    },
+    {
+      "old": "WordSection.ColumnsSpace : int?",
+      "new": "WordSection.ColumnsSpace : OfficeLength?",
+      "action": "change",
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "reason": "The original suffix-based map missed equal-column physical geometry. Preserve signed 32-bit DOCX storage, nullable omission, the 720-twip layout/native default, zero, native DOC unsigned 16-bit limits and consumer units. 36.03pt stores 721 twips (36.05pt); overflow fails before mutation. Individual WordSectionColumn lengths retain their separate contract."
     }
   ],
   "applicationStatus": "Phase A applied and validated on the supported macOS targets. Phase B and Tier 2 entries retain their status; Windows .NET Framework validation remains pending.",

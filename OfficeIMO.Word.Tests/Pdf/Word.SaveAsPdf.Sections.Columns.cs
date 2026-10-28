@@ -21,11 +21,11 @@ public partial class Word {
         string target = Path.Combine(_directoryWithFiles, "PdfContinuousSameColumns-" + extension + ".pdf");
         using (WordDocument document = WordDocument.Create(source)) {
             document.Sections[0].ColumnCount = 2;
-            document.Sections[0].ColumnsSpace = 400;
+            document.Sections[0].ColumnsSpace = global::OfficeIMO.OfficeLength.Points(20);
             AddLines("FirstSection", 10);
             var second = document.AddSection(WordSectionBreakType.Continuous);
             second.ColumnCount = 2;
-            second.ColumnsSpace = 400;
+            second.ColumnsSpace = global::OfficeIMO.OfficeLength.Points(20);
             AddLines("NextSection", 20);
             document.Save();
 
@@ -56,7 +56,7 @@ public partial class Word {
         using (WordDocument document = WordDocument.Create(docPath)) {
             WordSection section = document.Sections[0];
             section.ColumnCount = 2;
-            section.ColumnsSpace = 720;
+            section.ColumnsSpace = global::OfficeIMO.OfficeLength.Points(36);
 
             document.AddParagraph("LeftColumnMarker starts in the first Word section column.")
                 .AddBreak(WordBreakType.Column);
@@ -91,7 +91,7 @@ public partial class Word {
         using (WordDocument document = WordDocument.Create(docPath)) {
             WordSection section = document.Sections[0];
             section.ColumnCount = 2;
-            section.ColumnsSpace = 720;
+            section.ColumnsSpace = global::OfficeIMO.OfficeLength.Points(36);
             Columns columns = section._sectionProperties.GetFirstChild<Columns>()!;
             columns.EqualWidth = false;
             columns.RemoveAllChildren<Column>();
@@ -135,7 +135,7 @@ public partial class Word {
         using (WordDocument document = WordDocument.Create(docPath)) {
             WordSection section = document.Sections[0];
             section.ColumnCount = 2;
-            section.ColumnsSpace = 720;
+            section.ColumnsSpace = global::OfficeIMO.OfficeLength.Points(36);
             section.HasColumnSeparator = true;
 
             document.AddParagraph("SeparatorLeftMarker starts in the first Word section column.")
@@ -169,7 +169,7 @@ public partial class Word {
         using (WordDocument document = WordDocument.Create(docPath)) {
             WordSection section = document.Sections[0];
             section.ColumnCount = 2;
-            section.ColumnsSpace = 720;
+            section.ColumnsSpace = global::OfficeIMO.OfficeLength.Points(36);
 
             document.AddParagraph("AutoLeftColumnMarker starts in the first automatic Word section column.");
             document.AddParagraph("AutoRightColumnMarker starts in the second automatic Word section column.");
@@ -203,7 +203,7 @@ public partial class Word {
         using (WordDocument document = WordDocument.Create(docPath)) {
             WordSection section = document.Sections[0];
             section.ColumnCount = 2;
-            section.ColumnsSpace = 720;
+            section.ColumnsSpace = global::OfficeIMO.OfficeLength.Points(36);
 
             WordParagraph prelude = document.AddParagraph("ColumnKeepPrelude\n" + string.Join("\n", Enumerable.Range(1, 14).Select(index => "Prelude" + index)));
             WordParagraph heading = document.AddParagraph("ColumnKeepHeading").SetStyle(WordParagraphStyles.Heading2);
@@ -245,7 +245,7 @@ public partial class Word {
         using (WordDocument document = WordDocument.Create(docPath)) {
             WordSection section = document.Sections[0];
             section.ColumnCount = 2;
-            section.ColumnsSpace = 720;
+            section.ColumnsSpace = global::OfficeIMO.OfficeLength.Points(36);
 
             const string styleId = "AutomaticColumnStyledKeepNext";
             Styles styles = document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
@@ -299,7 +299,7 @@ public partial class Word {
         using (WordDocument document = WordDocument.Create(docPath)) {
             WordSection section = document.Sections[0];
             section.ColumnCount = 2;
-            section.ColumnsSpace = 720;
+            section.ColumnsSpace = global::OfficeIMO.OfficeLength.Points(36);
 
             WordParagraph paragraph = document.AddParagraph();
             paragraph.AddText("InlineLeftColumnMarker remains before the inline Word column break.");

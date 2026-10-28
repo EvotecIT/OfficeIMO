@@ -125,7 +125,7 @@ public partial class WordRtfConverterTests {
         first.DifferentFirstPage = true;
         first._sectionProperties.Append(new VerticalTextAlignmentOnPage { Val = VerticalJustificationValues.Center });
         first.ColumnCount = 2;
-        first.ColumnsSpace = 720;
+        first.ColumnsSpace = global::OfficeIMO.OfficeLength.Points(36);
         first.HasColumnSeparator = true;
         Columns firstColumns = first._sectionProperties.GetFirstChild<Columns>()!;
         firstColumns.EqualWidth = false;
@@ -313,7 +313,7 @@ public partial class WordRtfConverterTests {
         Assert.Equal(VerticalJustificationValues.Both, wordVerticalAlignment.Val?.Value);
         Assert.True(word.Sections[0].DifferentFirstPage);
         Assert.Equal(2, word.Sections[0].ColumnCount);
-        Assert.Equal(720, word.Sections[0].ColumnsSpace);
+        Assert.Equal(global::OfficeIMO.OfficeLength.Points(36), word.Sections[0].ColumnsSpace);
         Assert.True(word.Sections[0].HasColumnSeparator);
         Columns wordColumns = word.Sections[0]._sectionProperties.GetFirstChild<Columns>()!;
         Assert.False(wordColumns.EqualWidth?.Value ?? true);

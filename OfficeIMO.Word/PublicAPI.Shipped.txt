@@ -3664,7 +3664,7 @@ OfficeIMO.Word.WordSection.ColumnCount.get -> int?
 OfficeIMO.Word.WordSection.ColumnCount.set -> void
 OfficeIMO.Word.WordSection.ColumnDefinitions.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.Word.WordSectionColumn!>!
 OfficeIMO.Word.WordSection.ColumnDefinitions.set -> void
-OfficeIMO.Word.WordSection.ColumnsSpace.get -> int?
+OfficeIMO.Word.WordSection.ColumnsSpace.get -> OfficeIMO.OfficeLength?
 OfficeIMO.Word.WordSection.ColumnsSpace.set -> void
 OfficeIMO.Word.WordSection.ComboBoxes.get -> System.Collections.Generic.List<OfficeIMO.Word.WordComboBox!>!
 OfficeIMO.Word.WordSection.DatePickers.get -> System.Collections.Generic.List<OfficeIMO.Word.WordDatePicker!>!

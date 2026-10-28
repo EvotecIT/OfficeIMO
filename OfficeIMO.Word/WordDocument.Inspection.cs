@@ -80,7 +80,7 @@ namespace OfficeIMO.Word {
                     HeaderMarginPoints = ConvertTwipsToPoints(section._sectionProperties?.GetFirstChild<PageMargin>()?.Header?.Value),
                     FooterMarginPoints = ConvertTwipsToPoints(section._sectionProperties?.GetFirstChild<PageMargin>()?.Footer?.Value),
                     ColumnCount = section.ColumnCount,
-                    ColumnSpacingPoints = ConvertTwipsToPoints(section.ColumnsSpace),
+                    ColumnSpacingPoints = section.ColumnsSpace?.ToPoints(),
                     HasColumnSeparator = section._sectionProperties?.GetFirstChild<Columns>()?.Separator?.Value ?? false,
                     PageNumberStart = section._sectionProperties?.GetFirstChild<PageNumberType>()?.Start?.Value,
                     HeaderCount = CountHeaderParts(section.Header),

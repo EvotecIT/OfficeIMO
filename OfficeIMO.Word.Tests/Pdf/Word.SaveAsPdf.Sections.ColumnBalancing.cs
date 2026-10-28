@@ -34,7 +34,7 @@ public partial class Word {
             if (compatibility.Parent == null) settings.AddChild(compatibility, true);
             compatibility.AddChild(new NoColumnBalance { Val = suppressBalancing }, true);
             document.Sections[0].ColumnCount = 2;
-            document.Sections[0].ColumnsSpace = 400;
+            document.Sections[0].ColumnsSpace = global::OfficeIMO.OfficeLength.Points(20);
             AddParagraph(string.Join("\n", Enumerable.Range(1, lineCount).Select(index => $"BalanceLine{index:D3}")));
             document.AddSection(WordSectionBreakType.Continuous).ColumnCount = 1;
             AddParagraph("AfterContinuous");

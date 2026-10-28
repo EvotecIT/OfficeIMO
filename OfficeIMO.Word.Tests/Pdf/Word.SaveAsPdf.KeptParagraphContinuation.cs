@@ -35,7 +35,7 @@ public partial class Word {
         using WordDocument document = WordDocument.Create();
         document.CompatibilitySettings.CompatibilityMode = mode;
         document.Sections[0].ColumnCount = 2;
-        document.Sections[0].ColumnsSpace = 400;
+        document.Sections[0].ColumnsSpace = global::OfficeIMO.OfficeLength.Points(20);
         if (prelude) {
             WordParagraph before = document.AddParagraph("Before");
             ConfigurePartialColumnParagraph(before);
@@ -45,7 +45,7 @@ public partial class Word {
             document.Sections[0].ColumnCount = 1;
             WordSection columns = document.AddSection(WordSectionBreakType.Continuous);
             columns.ColumnCount = 2;
-            columns.ColumnsSpace = 400;
+            columns.ColumnsSpace = global::OfficeIMO.OfficeLength.Points(20);
         }
         string text = "Marker001\nMarker002\nMarker003\nMarker004";
         WordParagraph paragraph;
@@ -112,7 +112,7 @@ public partial class Word {
         using WordDocument document = WordDocument.Create();
         document.CompatibilitySettings.CompatibilityMode = mode;
         document.Sections[0].ColumnCount = 2;
-        document.Sections[0].ColumnsSpace = 400;
+        document.Sections[0].ColumnsSpace = global::OfficeIMO.OfficeLength.Points(20);
         WordList list = document.AddCustomList();
         list.Numbering.AddLevel(new WordListLevel(WordListLevelKind.DecimalDot));
         list.Numbering.Levels[0].IndentationLeft= global::OfficeIMO.OfficeLength.Points(12D);
@@ -166,7 +166,7 @@ public partial class Word {
         using WordDocument document = WordDocument.Create();
         document.CompatibilitySettings.CompatibilityMode = mode;
         document.Sections[0].ColumnCount = 2;
-        document.Sections[0].ColumnsSpace = 400;
+        document.Sections[0].ColumnsSpace = global::OfficeIMO.OfficeLength.Points(20);
         WordParagraph paragraph = document.AddParagraph("Marker001\nMarker002\nMarker003\nMarker004");
         ConfigurePartialColumnParagraph(paragraph);
         paragraph.KeepLinesTogetherOverride = keepTogether;

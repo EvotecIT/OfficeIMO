@@ -24,7 +24,7 @@ public sealed class PdfAnchoredImagePaginationTests {
             using WordDocument word = WordDocument.Create();
             var section = word.Sections[0];
             section.PageSettings.Width = global::OfficeIMO.OfficeLength.Points(300D); section.PageSettings.Height = global::OfficeIMO.OfficeLength.Points(300D);
-            if (columns) { section.ColumnCount = 2; section.ColumnsSpace = 120; }
+            if (columns) { section.ColumnCount = 2; section.ColumnsSpace = global::OfficeIMO.OfficeLength.Points(6); }
             var anchor = word.AddParagraph();
             var control = anchor.AddPictureControl(path, 24, 24);
             var image = control.Image!;
@@ -77,7 +77,7 @@ public sealed class PdfAnchoredImagePaginationTests {
         var section = word.Sections[0];
         section.PageSettings.Width = global::OfficeIMO.OfficeLength.Points(300D);
         section.PageSettings.Height = global::OfficeIMO.OfficeLength.Points(300D);
-        if (columns) { section.ColumnCount = 2; section.ColumnsSpace = 120; }
+        if (columns) { section.ColumnCount = 2; section.ColumnsSpace = global::OfficeIMO.OfficeLength.Points(6); }
         for (int index = 0; index < 16; index++) {
             var filler = word.AddParagraph("Filler " + index);
             filler.FontSize = 12;

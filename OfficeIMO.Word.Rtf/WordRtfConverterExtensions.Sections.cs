@@ -69,7 +69,7 @@ public static partial class WordRtfConverterExtensions {
         CopyLineNumbering(source._sectionProperties.GetFirstChild<LineNumberType>(), destination.LineNumbering);
         destination.VerticalAlignment = ToRtfSectionVerticalAlignment(source._sectionProperties.GetFirstChild<VerticalTextAlignmentOnPage>()?.Val?.Value);
         destination.ColumnCount = source.ColumnCount;
-        destination.ColumnSpaceTwips = source.ColumnsSpace;
+        destination.ColumnSpaceTwips = checked((int?)(source.ColumnsSpace?.ToTwips()));
         destination.ColumnSeparator = source.HasColumnSeparator;
         CopySectionColumns(source._sectionProperties.GetFirstChild<Columns>(), destination);
     }
@@ -155,7 +155,8 @@ public static partial class WordRtfConverterExtensions {
         ApplyLineNumbering(source.LineNumbering, destination);
         ApplySectionVerticalAlignment(source.VerticalAlignment, destination);
         destination.ColumnCount = source.ColumnCount;
-        destination.ColumnsSpace = source.ColumnSpaceTwips;
+        destination.ColumnsSpace = source.ColumnSpaceTwips.HasValue
+            ? OfficeLength.Points(source.ColumnSpaceTwips.Value / 20D) : (OfficeLength?)null;
         destination.HasColumnSeparator = source.ColumnSeparator;
         ApplySectionColumns(source, destination);
     }

@@ -275,7 +275,9 @@ document.Save();
 
 ## Section columns
 
-Set `ColumnCount` and `ColumnsSpace` for equal-width columns; `ColumnsSpace` is in twips, where 20 twips equals one point. Set `ColumnDefinitions` to author or inspect individual widths and following gaps as `OfficeLength` values:
+Set `ColumnCount` and nullable `ColumnsSpace` for equal-width columns, for example `section.ColumnsSpace = OfficeLength.Points(36)`. Setting it to `null` omits the stored gap; layout uses a 36-point default. The gap rounds to whole twips at storage (36.03 points becomes 721 twips, or 36.05 points). The property retains its signed 32-bit twip storage range; native DOC saving accepts equal-column gaps only from zero through 65535 twips.
+
+Set `ColumnDefinitions` to author or inspect individual widths and following gaps as `OfficeLength` values:
 
 ```csharp
 var section = document.Sections[0];

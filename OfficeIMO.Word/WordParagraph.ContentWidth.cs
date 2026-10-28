@@ -85,7 +85,7 @@ namespace OfficeIMO.Word {
                 return Math.Min(width, definitions.Min(column => column.Width.ToPoints()));
             }
             int count = Math.Max(1, section.ColumnCount ?? 1);
-            double gap = Math.Max(0, section.ColumnsSpace ?? 720) / 20D;
+            double gap = Math.Max(0D, section.ColumnsSpace?.ToPoints() ?? 36D);
             return (width - gap * (count - 1)) / count;
         }
     }

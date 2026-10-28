@@ -14,7 +14,7 @@ public partial class Word {
         try {
             using WordDocument document = WordDocument.Create();
             document.AddParagraph("Unequal columns with inherited gap");
-            document.Sections[0].ColumnsSpace = 720;
+            document.Sections[0].ColumnsSpace = global::OfficeIMO.OfficeLength.Points(36);
             document.Sections[0].ColumnDefinitions = new[] {
                 new WordSectionColumn(OfficeLength.Points(150)),
                 new WordSectionColumn(OfficeLength.Points(200), OfficeLength.Zero)
@@ -22,7 +22,7 @@ public partial class Word {
             document.Save(path);
             Assert.Null(document.Sections[0].ColumnDefinitions[0].SpaceAfter);
             using WordDocument reloaded = WordDocument.Load(path);
-            Assert.Equal(720, reloaded.Sections[0].ColumnsSpace);
+            Assert.Equal(global::OfficeIMO.OfficeLength.Points(36), reloaded.Sections[0].ColumnsSpace);
             Assert.Equal(new long[] { 3000, 4000 }, reloaded.Sections[0].ColumnDefinitions.Select(column => column.Width.ToTwips()));
             Assert.Equal(0L, reloaded.Sections[0].ColumnDefinitions[0].SpaceAfter?.ToTwips() ?? 0);
             Assert.Equal(0L, reloaded.Sections[0].ColumnDefinitions[1].SpaceAfter?.ToTwips());
@@ -40,7 +40,7 @@ public partial class Word {
                 document.AddParagraph("Unequal section columns");
                 WordSection section = document.Sections[0];
                 section.ColumnCount = 2;
-                section.ColumnsSpace = 720;
+                section.ColumnsSpace = global::OfficeIMO.OfficeLength.Points(36);
                 var firstColumn = new WordSectionColumn(OfficeLength.Points(150.03), OfficeLength.Points(18.03));
                 Assert.Equal(OfficeLength.Points(150.03), firstColumn.Width);
                 Assert.Equal(OfficeLength.Points(18.03), firstColumn.SpaceAfter);
@@ -183,6 +183,71 @@ public partial class Word {
         Assert.Equal(new long[] { 3000, 4000 }, result.Document!.Sections[0].ColumnDefinitions.Select(column => column.Width.ToTwips()));
         Assert.Equal(new long?[] { 360, 0 }, result.Document.Sections[0].ColumnDefinitions.Select(column => column.SpaceAfter?.ToTwips()));
         Assert.Equal(2, result.Document.Sections[0].ColumnCount);
+    }
+
+    [Theory]
+    [InlineData(".docx", null, null)]
+    [InlineData(".docx", 0D, "0")]
+    [InlineData(".docx", 36.03D, "721")]
+    [InlineData(".doc", null, "720")]
+    [InlineData(".doc", 0D, "0")]
+    [InlineData(".doc", 36.03D, "721")]
+    [InlineData(".doc", 3276.75D, "65535")]
+    public void ColumnsSpace_SaveAndReloadPreservesOmissionZeroAndRoundedGap(string extension, double? points, string? expectedTwips) {
+        string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + extension);
+        try {
+            using (WordDocument document = WordDocument.Create()) {
+                document.AddParagraph("Equal columns");
+                WordSection section = document.Sections[0];
+                section.ColumnCount = 2;
+                section.ColumnsSpace = OfficeLength.Points(18);
+                section.ColumnsSpace = points.HasValue ? OfficeLength.Points(points.Value) : (OfficeLength?)null;
+                Assert.Equal(points.HasValue ? expectedTwips : null,
+                    section._sectionProperties.GetFirstChild<Columns>()!.Space?.Value);
+                document.Save(path);
+            }
+            using WordDocument reloaded = WordDocument.Load(path);
+            Assert.Equal(expectedTwips, reloaded.Sections[0]._sectionProperties.GetFirstChild<Columns>()!.Space?.Value);
+            Assert.Equal(expectedTwips == null ? (OfficeLength?)null
+                : OfficeLength.Points(int.Parse(expectedTwips, System.Globalization.CultureInfo.InvariantCulture) / 20D),
+                reloaded.Sections[0].ColumnsSpace);
+            Assert.Equal(2, reloaded.Sections[0].ColumnCount);
+            Assert.Equal("Equal columns", Assert.Single(reloaded.Paragraphs).Text);
+        } finally { DeleteIfExists(path); }
+    }
+
+    [Fact]
+    public void ColumnsSpace_CheckedStorageRetainsSignedRangeAndDoesNotMutateOnOverflow() {
+        using WordDocument document = WordDocument.Create();
+        WordSection section = document.Sections[0];
+        OfficeLength tooLarge = OfficeLength.Emus(((long)int.MaxValue + 1) * 635);
+        string before = section._sectionProperties.OuterXml;
+        Assert.Throws<OverflowException>(() => section.ColumnsSpace = tooLarge);
+        Assert.Equal(before, section._sectionProperties.OuterXml);
+        foreach (int twips in new[] { int.MinValue, -1, 0, int.MaxValue }) {
+            section.ColumnsSpace = OfficeLength.Emus((long)twips * 635);
+            Assert.Equal((long)twips, section.ColumnsSpace?.ToTwips());
+        }
+        before = section._sectionProperties.OuterXml;
+        Assert.Throws<OverflowException>(() => section.ColumnsSpace = OfficeLength.Emus(((long)int.MinValue - 1) * 635));
+        Assert.Equal(before, section._sectionProperties.OuterXml);
+        section.ColumnsSpace = null;
+        Assert.Null(section.ColumnsSpace);
+    }
+
+    [Theory]
+    [InlineData(-1)]
+    [InlineData(65536)]
+    public void ColumnsSpace_NativeSaveRetainsUnsignedTwipLimit(int twips) {
+        string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+        try {
+            using WordDocument document = WordDocument.Create();
+            document.AddParagraph("Invalid native equal-column gap");
+            document.Sections[0].ColumnCount = 2;
+            document.Sections[0].ColumnsSpace = OfficeLength.Points(twips / 20D);
+            Assert.Throws<NotSupportedException>(() => document.Save(path));
+            Assert.False(File.Exists(path));
+        } finally { DeleteIfExists(path); }
     }
 
     private static partial class LegacyDocTestBuilder {

@@ -124,7 +124,7 @@ public partial class PdfDocumentRasterVisualBaselineTests {
                 section.Margins.Top = global::OfficeIMO.OfficeLength.Centimeters(1.4D);
                 section.Margins.Bottom = global::OfficeIMO.OfficeLength.Centimeters(1.6D);
                 section.ColumnCount = 2;
-                section.ColumnsSpace = 540;
+                section.ColumnsSpace = global::OfficeIMO.OfficeLength.Points(27);
                 section.HasColumnSeparator = true;
 
                 document.AddHeadersAndFooters();

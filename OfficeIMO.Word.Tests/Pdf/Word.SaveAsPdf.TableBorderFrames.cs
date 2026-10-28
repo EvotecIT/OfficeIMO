@@ -116,7 +116,7 @@ public partial class Word {
     public void SaveAsPdf_SpacedTableFlowsBetweenSectionColumns(bool exact, bool repeatHeader) {
         using WordDocument document = WordDocument.Create();
         document.Sections[0].ColumnCount = 2;
-        document.Sections[0].ColumnsSpace = 720;
+        document.Sections[0].ColumnsSpace = global::OfficeIMO.OfficeLength.Points(36);
         WordTable table = CreateBorderFrameControl(document, 40, 2, 120);
         for (int row = 0; row < 40; row++) {
             if (exact) table.Rows[row].Height = global::OfficeIMO.OfficeLength.Points(24D);
@@ -146,7 +146,7 @@ public partial class Word {
         using WordDocument document = WordDocument.Create();
         if (columns) {
             document.Sections[0].ColumnCount = 2;
-            document.Sections[0].ColumnsSpace = 720;
+            document.Sections[0].ColumnsSpace = global::OfficeIMO.OfficeLength.Points(36);
         }
         WordTable table = CreateBorderFrameControl(document, 40, 2, 120);
         if (exact) foreach (WordTableRow row in table.Rows) row.Height = global::OfficeIMO.OfficeLength.Points(24D);

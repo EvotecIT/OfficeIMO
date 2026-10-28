@@ -33,7 +33,7 @@ public partial class Word {
         using WordDocument source = WordDocument.Create();
         source.CompatibilitySettings.CompatibilityMode = WordCompatibilityMode.Word2013;
         source.Sections[0].ColumnCount = partial ? 1 : 2;
-        source.Sections[0].ColumnsSpace = 240;
+        source.Sections[0].ColumnsSpace = global::OfficeIMO.OfficeLength.Points(12);
         source.Sections[0].Margins.HeaderDistance = source.Sections[0].Margins.FooterDistance = global::OfficeIMO.OfficeLength.Points(36D);
         if (header) SetColumnStory(source.HeaderDefaultOrCreate);
         if (footer) SetColumnStory(source.FooterDefaultOrCreate);
@@ -45,7 +45,7 @@ public partial class Word {
             preceding.LineSpacingBefore = preceding.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
             WordSection columns = source.AddSection(WordSectionBreakType.Continuous);
             columns.ColumnCount = 2;
-            columns.ColumnsSpace = 240;
+            columns.ColumnsSpace = global::OfficeIMO.OfficeLength.Points(12);
         }
         WordParagraph paragraph = source.AddParagraph();
         paragraph._paragraph.RemoveAllChildren<W.Run>();
@@ -85,7 +85,7 @@ public partial class Word {
         using WordDocument source = WordDocument.Create();
         source.CompatibilitySettings.CompatibilityMode = WordCompatibilityMode.Word2013;
         source.Sections[0].ColumnCount = 2;
-        source.Sections[0].ColumnsSpace = 240;
+        source.Sections[0].ColumnsSpace = global::OfficeIMO.OfficeLength.Points(12);
         source.Sections[0].Margins.FooterDistance = global::OfficeIMO.OfficeLength.Points(36D);
         SetColumnStory(source.FooterDefaultOrCreate);
         WordParagraph tall = source.AddParagraph();

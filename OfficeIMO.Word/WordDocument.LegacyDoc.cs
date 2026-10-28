@@ -310,7 +310,7 @@ namespace OfficeIMO.Word {
             }
 
             if (sectionFormat.ColumnSpacingTwips != null) {
-                section.ColumnsSpace = sectionFormat.ColumnSpacingTwips.Value;
+                section.ColumnsSpace = OfficeLength.Points(sectionFormat.ColumnSpacingTwips.Value / 20D);
             }
 
             if (sectionFormat.ColumnDefinitions != null) {

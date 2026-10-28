@@ -115,7 +115,7 @@ public partial class Word {
 
     private static WordTable CreatePaginationTable(WordDocument document, int rowCount) {
         document.Sections[0].ColumnCount = 2;
-        document.Sections[0].ColumnsSpace = 400;
+        document.Sections[0].ColumnsSpace = global::OfficeIMO.OfficeLength.Points(20);
         WordTable table = document.AddTable(rowCount, 1);
         // Keep frame capacity governed by the authored line heights; border
         // paint and cell margins have separate artifact regression coverage.

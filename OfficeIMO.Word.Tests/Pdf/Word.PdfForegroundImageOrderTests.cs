@@ -18,7 +18,7 @@ public sealed class PdfForegroundImageOrderTests {
             File.WriteAllBytes(path, OfficeRasterImageEncoder.Encode(new OfficeRasterImage(20, 20, OfficeColor.Blue), OfficeImageExportFormat.Png));
             using WordDocument word = WordDocument.Create();
             word.Sections[0].PageSettings.Width = global::OfficeIMO.OfficeLength.Points(300D); word.Sections[0].PageSettings.Height = global::OfficeIMO.OfficeLength.Points(300D);
-            if (columns) { word.Sections[0].ColumnCount = 2; word.Sections[0].ColumnsSpace = 120; }
+            if (columns) { word.Sections[0].ColumnCount = 2; word.Sections[0].ColumnsSpace = global::OfficeIMO.OfficeLength.Points(6); }
             var paragraph = word.AddParagraph("Anchor text");
             if (!controlFirst) AddImage(paragraph.AddText("red"), OfficeColor.Red, 10, 10);
             var image = paragraph.AddPictureControl(path, 72, 72).Image!;
@@ -54,7 +54,7 @@ public sealed class PdfForegroundImageOrderTests {
         using WordDocument word = WordDocument.Create();
         word.Sections[0].PageSettings.Width = global::OfficeIMO.OfficeLength.Points(300D);
         word.Sections[0].PageSettings.Height = global::OfficeIMO.OfficeLength.Points(300D);
-        if (columns) { word.Sections[0].ColumnCount = 2; word.Sections[0].ColumnsSpace = 120; }
+        if (columns) { word.Sections[0].ColumnCount = 2; word.Sections[0].ColumnsSpace = global::OfficeIMO.OfficeLength.Points(6); }
         var first = word.AddParagraph("First anchor");
         AddImage(first, OfficeColor.Red, firstOrder, 10);
         var second = sameParagraph ? first.AddText("Second anchor") : word.AddParagraph("Second anchor");

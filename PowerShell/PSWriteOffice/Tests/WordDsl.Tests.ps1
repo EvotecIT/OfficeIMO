@@ -1162,7 +1162,7 @@ Describe 'Word DSL surface' {
             $document.Sections[0].PageOrientation.ToString() | Should -Be 'Landscape'
             $document.Sections[0].Margins.Type.ToString() | Should -Be 'Narrow'
             $document.Sections[0].ColumnCount | Should -Be 2
-            $document.Sections[0].ColumnsSpace | Should -Be 720
+            $document.Sections[0].ColumnsSpace.ToTwips() | Should -Be 720
             $document.Sections[0].HasColumnSeparator | Should -BeTrue
             ($document.Paragraphs | Where-Object { $_.TabStops.Count -gt 0 }).Count | Should -BeGreaterThan 0
             $document.Equations.Count | Should -Be 1

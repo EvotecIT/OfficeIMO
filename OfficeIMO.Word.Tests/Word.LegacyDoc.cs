@@ -2624,7 +2624,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.SourceFormat == WordFileFormat.Doc);
                 Assert.Equal("Column section", Assert.Single(document.Paragraphs).Text);
                 Assert.Equal(2, document.Sections[0].ColumnCount);
-                Assert.Equal(720, document.Sections[0].ColumnsSpace);
+                Assert.Equal(global::OfficeIMO.OfficeLength.Points(36), document.Sections[0].ColumnsSpace);
                 Assert.True(document.Sections[0].HasColumnSeparator);
 
                 document.Save(docPath);
@@ -2632,7 +2632,7 @@ namespace OfficeIMO.Tests {
                 using WordDocument reloaded = WordDocument.Load(docPath);
                 Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 Assert.Equal(2, reloaded.Sections[0].ColumnCount);
-                Assert.Equal(720, reloaded.Sections[0].ColumnsSpace);
+                Assert.Equal(global::OfficeIMO.OfficeLength.Points(36), reloaded.Sections[0].ColumnsSpace);
                 Assert.True(reloaded.Sections[0].HasColumnSeparator);
             } finally {
                 DeleteIfExists(docPath);
@@ -11767,7 +11767,7 @@ namespace OfficeIMO.Tests {
                 using (WordDocument document = WordDocument.Create()) {
                     document.AddParagraph("Columns");
                     document.Sections[0].ColumnCount = 2;
-                    document.Sections[0].ColumnsSpace = 720;
+                    document.Sections[0].ColumnsSpace = global::OfficeIMO.OfficeLength.Points(36.03);
                     document.Sections[0].HasColumnSeparator = true;
 
                     document.Save(docPath);
@@ -11777,7 +11777,7 @@ namespace OfficeIMO.Tests {
                 byte[] wordDocumentStream = ReadCompoundStream(compoundBytes, "WordDocument");
                 byte[] tableStream = ReadCompoundStream(compoundBytes, "1Table");
                 AssertSectionSepxContainsUInt16Sprm(wordDocumentStream, tableStream, 0x500B, 1);
-                AssertSectionSepxContainsUInt16Sprm(wordDocumentStream, tableStream, 0x900C, 720);
+                AssertSectionSepxContainsUInt16Sprm(wordDocumentStream, tableStream, 0x900C, 721);
                 AssertSectionSepxContainsSingleByteSprm(wordDocumentStream, tableStream, 0x3019, 1);
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
@@ -11785,7 +11785,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 Assert.Equal("Columns", Assert.Single(reloaded.Paragraphs).Text);
                 Assert.Equal(2, reloaded.Sections[0].ColumnCount);
-                Assert.Equal(720, reloaded.Sections[0].ColumnsSpace);
+                Assert.Equal(global::OfficeIMO.OfficeLength.Points(36.05), reloaded.Sections[0].ColumnsSpace);
                 Assert.True(reloaded.Sections[0].HasColumnSeparator);
             } finally {
                 DeleteIfExists(docPath);

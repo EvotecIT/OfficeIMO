@@ -16,7 +16,7 @@ public partial class Word {
         using WordDocument document = WordDocument.Create();
         document.CompatibilitySettings.CompatibilityMode = mode;
         document.Sections[0].ColumnCount = 2;
-        document.Sections[0].ColumnsSpace = 400;
+        document.Sections[0].ColumnsSpace = global::OfficeIMO.OfficeLength.Points(20);
         WordParagraph leader = document.AddParagraph("Lead001\nLead002\nLead003");
         ConfigurePartialColumnParagraph(leader);
         leader.KeepWithNextOverride = true;
@@ -53,7 +53,7 @@ public partial class Word {
         document.CompatibilitySettings.CompatibilityMode = mode;
         ConfigurePartialColumnParagraph(document.AddParagraph(string.Join("\n", Enumerable.Range(1, 12).Select(index => $"Prelude{index:D3}"))));
         WordSection columns = document.AddSection(WordSectionBreakType.Continuous);
-        columns.ColumnCount = 2; columns.ColumnsSpace = 400;
+        columns.ColumnCount = 2; columns.ColumnsSpace = global::OfficeIMO.OfficeLength.Points(20);
         WordParagraph paragraph = document.AddParagraph(string.Join("\n", Enumerable.Range(1, 13).Select(index => $"Marker{index:D3}")));
         ConfigurePartialColumnParagraph(paragraph); paragraph.KeepLinesTogetherOverride = true;
         document.AddSection(WordSectionBreakType.Continuous).ColumnCount = 1;
@@ -74,7 +74,7 @@ public partial class Word {
     [InlineData(WordFileFormat.Doc)]
     public void SaveAsPdf_NativeUnequalColumnsRetainAnOmittedGapAfterSaveReload(WordFileFormat format) {
         using WordDocument document = WordDocument.Create();
-        document.Sections[0].ColumnsSpace = 720;
+        document.Sections[0].ColumnsSpace = global::OfficeIMO.OfficeLength.Points(36);
         document.Sections[0].ColumnDefinitions = new[] {
             new WordSectionColumn(OfficeLength.Points(150)),
             new WordSectionColumn(OfficeLength.Points(200), OfficeLength.Zero)
@@ -173,7 +173,7 @@ public partial class Word {
     public void SaveAsPdf_ShadedKeepWithNextParagraphMovesWithItsFollowingBodyInColumns(WordFileFormat format) {
         byte[] source;
         using (WordDocument document = WordDocument.Create()) {
-            document.Sections[0].ColumnCount = 2; document.Sections[0].ColumnsSpace = 400;
+            document.Sections[0].ColumnCount = 2; document.Sections[0].ColumnsSpace = global::OfficeIMO.OfficeLength.Points(20);
             ConfigurePartialColumnParagraph(document.AddParagraph(string.Join("\n", Enumerable.Range(1, 15).Select(index => $"Prelude{index:D3}"))));
             WordParagraph heading = document.AddParagraph("ShadedHeading");
             ConfigurePartialColumnParagraph(heading); heading.ShadingFillColorHex = "00FFFF"; heading.KeepWithNextOverride = true;
@@ -202,7 +202,7 @@ public partial class Word {
     public void SaveAsPdf_DecoratedParagraphsPreserveExactSpacingAndBalancedContinuation(WordFileFormat format, int lines, bool border) {
         byte[] source;
         using (WordDocument document = WordDocument.Create()) {
-            WordSection section = document.Sections[0]; section.ColumnCount = 2; section.ColumnsSpace = 400;
+            WordSection section = document.Sections[0]; section.ColumnCount = 2; section.ColumnsSpace = global::OfficeIMO.OfficeLength.Points(20);
             WordParagraph paragraph = document.AddParagraph(string.Join("\n", Enumerable.Range(1, lines).Select(index => $"Nested{index:D3}")));
             ConfigurePartialColumnParagraph(paragraph);
             if (border) {

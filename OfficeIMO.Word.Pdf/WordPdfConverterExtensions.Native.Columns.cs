@@ -20,7 +20,8 @@ public static partial class WordPdfConverterExtensions {
         bool balanceColumns) {
         int count = section.ColumnCount ?? 1;
         if (count <= 1) return false;
-        double gap = section.ColumnsSpace is int spacing ? ConvertNativeTwipsToPoints(spacing) ?? 36D : 36D;
+        double gap = section.ColumnsSpace is OfficeLength spacing && spacing >= OfficeLength.Zero
+            ? spacing.ToPoints() : 36D;
         // Word 2013 layout ignores this legacy option without clearing its stored value.
         bool suppressBalancing = !UsesModernNativeWordLayout(section._document) &&
             section._document.CompatibilitySettings.DoNotBalanceTextColumns;

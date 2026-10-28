@@ -23,7 +23,15 @@ Read `Width` and `SpaceAfter` instead of `WidthTwips` and `SpaceAfterTwips`;
 use `ToTwips()` only when a numeric native value is needed.
 Widths round to positive 32-bit twips, and gaps remain nullable and non-negative.
 `ColumnDefinitions` rounds at storage; an omitted gap stays omitted in DOCX and
-has effective zero in native DOC. `ColumnsSpace` remains in twips for equal widths.
+has effective zero in native DOC.
+
+`WordSection.ColumnsSpace` becomes `OfficeLength?` for equal-width columns.
+Replace `section.ColumnsSpace = 720` with
+`section.ColumnsSpace = OfficeLength.Points(36)`. Null still clears the stored gap;
+zero remains explicit. Storage rounds to signed 32-bit twips (36.03 points becomes
+721 twips, or 36.05 points); an out-of-range rounded value throws before mutation.
+Native DOC retains its zero-through-65535-twip limit and 720-twip default.
+Use `section.ColumnsSpace?.ToTwips()` only at a native-value boundary.
 
 ## Word page image exports
 

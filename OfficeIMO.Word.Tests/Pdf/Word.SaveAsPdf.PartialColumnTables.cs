@@ -27,7 +27,7 @@ public partial class Word {
             ConfigurePartialColumnParagraph(document.AddParagraph(string.Join("\n",
                 Enumerable.Range(1, 12).Select(index => $"Before{index:D3}"))));
             WordSection columns = document.AddSection(WordSectionBreakType.Continuous);
-            columns.ColumnCount=2; columns.ColumnsSpace=400;
+            columns.ColumnCount=2; columns.ColumnsSpace=global::OfficeIMO.OfficeLength.Points(20);
             WordTable table = document.AddTable(1, 1);
             table.StyleDetails!.SetBordersForAllSides(WordBorderStyle.Nil, 0U, OfficeIMO.OfficeColor.Black);
             table.LayoutMode=WordTableLayoutMode.Fixed; table.Width=4000; table.WidthType=WordTableWidthUnit.Dxa;

@@ -44,9 +44,14 @@ public sealed class WordParagraphContentWidthTests {
         WordSection section = document.Sections[0];
         SetPage(section, 18000);
         section.ColumnCount = 3;
-        section.ColumnsSpace = 300;
         WordParagraph paragraph = document.AddParagraph("Column content");
-
+        section.ColumnsSpace = null;
+        Assert.Equal(728D / 3D, paragraph.GetContentWidthPoints(), 6);
+        section.ColumnsSpace = OfficeLength.Zero;
+        Assert.Equal(800D / 3D, paragraph.GetContentWidthPoints(), 6);
+        section.ColumnsSpace = OfficeLength.Points(-1);
+        Assert.Equal(800D / 3D, paragraph.GetContentWidthPoints(), 6);
+        section.ColumnsSpace = OfficeLength.Points(15);
         Assert.Equal(770D / 3D, paragraph.GetContentWidthPoints(), 6);
         section.ColumnDefinitions = new[] {
             new WordSectionColumn(OfficeLength.Points(180), OfficeLength.Points(15)),

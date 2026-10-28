@@ -3850,7 +3850,7 @@ namespace OfficeIMO.Tests {
 
             var section = document.Sections[0];
             section.ColumnCount = 2;
-            section.ColumnsSpace = 360;
+            section.ColumnsSpace = global::OfficeIMO.OfficeLength.Points(18);
             section.HasColumnSeparator = true;
 
             document.AddParagraph("Section columns paragraph");

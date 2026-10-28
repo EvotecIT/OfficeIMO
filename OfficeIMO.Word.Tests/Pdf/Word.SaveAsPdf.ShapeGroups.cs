@@ -135,7 +135,7 @@ public sealed class PdfShapeGroupTests {
         using WordDocument word = WordDocument.Create();
         word.Sections[0].PageSettings.Width = global::OfficeIMO.OfficeLength.Points(300D);
         word.Sections[0].PageSettings.Height = global::OfficeIMO.OfficeLength.Points(300D);
-        if (columns) { word.Sections[0].ColumnCount = 2; word.Sections[0].ColumnsSpace = 120; }
+        if (columns) { word.Sections[0].ColumnCount = 2; word.Sections[0].ColumnsSpace = global::OfficeIMO.OfficeLength.Points(6); }
         for (int i = 0; i < (columns ? 40 : 20); i++) word.AddParagraph("Filler " + i).FontSize = 12;
         var paragraph = word.AddParagraph();
         paragraph.AddShapeGroup(new[] {

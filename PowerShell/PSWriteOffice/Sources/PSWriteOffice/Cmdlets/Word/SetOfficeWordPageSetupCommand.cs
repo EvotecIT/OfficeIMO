@@ -211,7 +211,7 @@ public sealed class SetOfficeWordPageSetupCommand : PSCmdlet
         }
         if (ColumnSpacing.HasValue)
         {
-            section.ColumnsSpace = ColumnSpacing.Value;
+            section.ColumnsSpace = global::OfficeIMO.OfficeLength.Points(ColumnSpacing.Value / 20D);
         }
         if (ColumnSeparator.HasValue)
         {
