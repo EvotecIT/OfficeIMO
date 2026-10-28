@@ -55,14 +55,7 @@ namespace OfficeIMO.PowerPoint {
                 // Group extents scale shape coordinates; the existing slide export contract
                 // retains authored outline widths for shapes and connectors.
                 target.StrokeWidth = widthPoints;
-                A.PresetLineDashValues? dash = localOutline?
-                    .GetFirstChild<A.PresetDash>()?.Val?.Value;
-                if (!dash.HasValue
-                    && localOutline?.GetFirstChild<A.CustomDash>() == null) {
-                    dash = themeOutline?.GetFirstChild<A.PresetDash>()?
-                        .Val?.Value;
-                }
-                target.StrokeDashStyle = MapDash(dash);
+                ApplyStrokeDash(target, source, localOutline, themeOutline, diagnostics);
                 ApplyStrokeLineCapAndJoin(target, localOutline, themeOutline);
                 ApplyLineMarkers(target, localOutline, themeOutline);
             } else {
@@ -97,6 +90,29 @@ namespace OfficeIMO.PowerPoint {
             OfficeColor? resolved = source.ResolveOutlineColorForExport();
             color = resolved.GetValueOrDefault();
             return resolved.HasValue;
+        }
+
+        /// <summary>Converts DrawingML dash percentages to exact lengths in the authored stroke width.</summary>
+        private static void ApplyStrokeDash(OfficeShape target, PowerPointShape source,
+            A.Outline? localOutline, A.Outline? themeOutline, List<OfficeImageExportDiagnostic> diagnostics) {
+            A.Outline? outline = localOutline?.GetFirstChild<A.PresetDash>() != null
+                || localOutline?.GetFirstChild<A.CustomDash>() != null ? localOutline : themeOutline;
+            target.StrokeDashStyle = MapDash(outline?.GetFirstChild<A.PresetDash>()?.Val?.Value);
+            A.CustomDash? custom = outline?.GetFirstChild<A.CustomDash>();
+            if (custom == null || target.StrokeWidth <= 0D) return;
+
+            var pattern = new List<double>();
+            foreach (A.DashStop stop in custom.Elements<A.DashStop>()) {
+                pattern.Add(target.StrokeWidth * (stop.DashLength?.Value ?? 0) / 100000D);
+                pattern.Add(target.StrokeWidth * (stop.SpaceLength?.Value ?? 0) / 100000D);
+            }
+            if (pattern.Any(value => value < 0D) || !pattern.Any(value => value > 0D)) {
+                AddUnsupportedShapeDiagnostic(diagnostics, source,
+                    "Rendered a PowerPoint custom dash pattern without valid positive lengths as a solid outline.",
+                    OfficeConversionLossKind.Approximation);
+                return;
+            }
+            target.SetStrokeDashArray(pattern);
         }
 
         private static void ApplyStrokeLineCapAndJoin(OfficeShape target,
