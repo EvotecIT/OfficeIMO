@@ -8,17 +8,10 @@ namespace OfficeIMO.Examples.Pdf {
             string path = Path.Combine(folderPath, "Pdf.Showcase.Statement.pdf");
 
             var options = new PdfCreateOptions {
-                DefaultFont = PdfStandardFont.Helvetica,
-                DefaultFontSize = 10.5,
-                DefaultTextColor = PdfColor.FromRgb(24, 31, 42),
-                HeaderFont = PdfStandardFont.Helvetica,
-                HeaderFontSize = 8,
                 HeaderFormat = "OfficeIMO.Pdf showcase - business statement",
                 HeaderAlign = PdfAlign.Left,
                 HeaderOffsetY = 18,
                 ShowHeader = true,
-                FooterFont = PdfStandardFont.Helvetica,
-                FooterFontSize = 9,
                 FooterAlign = PdfAlign.Right,
                 ShowPageNumbers = true,
                 CreateOutlineFromHeadings = true
@@ -28,7 +21,7 @@ namespace OfficeIMO.Examples.Pdf {
                     document.Page(page => {
                         page.Margin(54, 54, 54, 58);
                         page.Content(content => {
-                            content.Item(item => item.H1("Statement #4048", PdfAlign.Left, PdfColor.FromRgb(15, 23, 42)));
+                            content.Item(item => item.H1("Statement #4048", PdfAlign.Left));
                             content.Item(item => item.Paragraph(p => p.Text("Issue date: 23/12/2025 \u00B7 Due date: 06/01/2026"), style: TightParagraph()));
                             content.Spacer(18);
                             content.Row(row => {
@@ -149,57 +142,49 @@ namespace OfficeIMO.Examples.Pdf {
         }
 
         private static PdfTableStyle LineItemStyle() {
-            return new PdfTableStyle {
-                BorderColor = null,
-                BorderWidth = 0,
-                HeaderFill = null,
-                HeaderTextColor = PdfColor.FromRgb(15, 23, 42),
-                HeaderSeparatorColor = PdfColor.FromRgb(15, 23, 42),
-                HeaderSeparatorWidth = 1.2,
-                RowSeparatorColor = PdfColor.FromRgb(219, 226, 235),
-                RowSeparatorWidth = 0.55,
-                RowStripeFill = null,
-                CellPaddingX = 6,
-                CellPaddingY = 5,
-                HeaderFontSize = 10,
-                FontSize = 10,
-                LineHeight = 1.2,
-                RightAlignNumeric = true,
-                // The totals beside the payment note follow the final rows instead of starting a page alone.
-                KeepWithNext = true,
-                ColumnWidthPoints = new List<double?> { 26, null, 92, 62, 92 },
-                ColumnWidthWeights = new List<double> { 0.4, 4.2, 1.3, 0.9, 1.3 },
-                Alignments = new List<PdfColumnAlign> {
+            var style = PdfTheme.FromOfficeTheme(OfficeTheme.Default).TableStyle!;
+            style.HeaderFill = null;
+            style.HeaderSeparatorColor = PdfColor.FromRgb(15, 23, 42);
+            style.HeaderSeparatorWidth = 1.2;
+            style.RowStripeFill = null;
+            style.CellPaddingX = 6;
+            style.CellPaddingY = 5;
+            style.CellPaddingTop = 5;
+            style.CellPaddingBottom = 5;
+            style.FontSize = 10;
+            style.LineHeight = 1.2;
+            style.RightAlignNumeric = true;
+            style.// The totals beside the payment note follow the final rows instead of starting a page alone.
+                KeepWithNext = true;
+            style.ColumnWidthPoints = new List<double?> { 26, null, 92, 62, 92 };
+            style.ColumnWidthWeights = new List<double> { 0.4, 4.2, 1.3, 0.9, 1.3 };
+            style.Alignments = new List<PdfColumnAlign> {
                     PdfColumnAlign.Right,
                     PdfColumnAlign.Left,
                     PdfColumnAlign.Right,
                     PdfColumnAlign.Right,
                     PdfColumnAlign.Right
-                }
-            };
+                };
+            return style;
         }
 
         private static PdfTableStyle TotalsStyle() {
-            return new PdfTableStyle {
-                BorderColor = PdfColor.FromRgb(203, 213, 225),
-                BorderWidth = 0.4,
-                HeaderFill = PdfColor.FromRgb(15, 23, 42),
-                HeaderTextColor = PdfColor.White,
-                HeaderRowCount = 1,
-                FooterRowCount = 1,
-                FooterBold = true,
-                FooterFill = null,
-                FooterSeparatorColor = PdfColor.FromRgb(15, 23, 42),
-                FooterSeparatorWidth = 1,
-                RowStripeFill = PdfColor.FromRgb(248, 250, 252),
-                CellPaddingX = 8,
-                CellPaddingY = 6,
-                HeaderFontSize = 10,
-                FontSize = 10,
-                RightAlignNumeric = true,
-                Alignments = new List<PdfColumnAlign> { PdfColumnAlign.Left, PdfColumnAlign.Right },
-                ColumnWidthWeights = new List<double> { 1.2, 1.0 }
-            };
+            var style = PdfTheme.FromOfficeTheme(OfficeTheme.Default).TableStyle!;
+            style.HeaderRowCount = 1;
+            style.FooterRowCount = 1;
+            style.FooterBold = true;
+            style.FooterFill = null;
+            style.FooterSeparatorColor = PdfColor.FromRgb(15, 23, 42);
+            style.FooterSeparatorWidth = 1;
+            style.CellPaddingX = 8;
+            style.CellPaddingY = 6;
+            style.CellPaddingTop = 6;
+            style.CellPaddingBottom = 6;
+            style.FontSize = 10;
+            style.RightAlignNumeric = true;
+            style.Alignments = new List<PdfColumnAlign> { PdfColumnAlign.Left, PdfColumnAlign.Right };
+            style.ColumnWidthWeights = new List<double> { 1.2, 1.0 };
+            return style;
         }
 
         private static PdfParagraphStyle TightParagraph() {

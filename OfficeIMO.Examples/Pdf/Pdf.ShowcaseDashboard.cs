@@ -9,16 +9,9 @@ namespace OfficeIMO.Examples.Pdf {
             string path = Path.Combine(folderPath, "Pdf.Showcase.Dashboard.pdf");
 
             var options = new PdfCreateOptions {
-                DefaultFont = PdfStandardFont.Helvetica,
-                DefaultFontSize = 9.5,
-                DefaultTextColor = PdfColor.FromRgb(30, 41, 59),
-                HeaderFont = PdfStandardFont.Helvetica,
-                HeaderFontSize = 8,
                 HeaderFormat = "Northwind Support \u2013 Q3 operations review (sample data)",
                 HeaderAlign = PdfAlign.Left,
                 ShowHeader = true,
-                FooterFont = PdfStandardFont.Helvetica,
-                FooterFontSize = 8,
                 FooterFormat = "Page {page} of {pages}",
                 FooterAlign = PdfAlign.Right,
                 ShowPageNumbers = true,
@@ -31,7 +24,7 @@ namespace OfficeIMO.Examples.Pdf {
                         page.Size(PdfPageSizes.A4).Landscape().Margin(42, 38, 42, 42);
                         page.DefaultParagraphStyle(new PdfParagraphStyle { LineHeight = 1.18, SpacingAfter = 5 });
                         page.Content(content => {
-                            content.Item(item => item.H1("Quarterly operations dashboard", PdfAlign.Left, PdfColor.FromRgb(15, 23, 42)));
+                            content.Item(item => item.H1("Quarterly operations dashboard", PdfAlign.Left));
                             content.Item(item => item.Paragraph(p => p.Text("Service levels, resolved volume and the decisions needed for Q4."), style: new PdfParagraphStyle { SpacingAfter = 10 }));
 
                             // Four KPI panels share the row width.
@@ -163,44 +156,35 @@ namespace OfficeIMO.Examples.Pdf {
         }
 
         private static PdfTableStyle ServiceTableStyle() {
-            return new PdfTableStyle {
-                HeaderFill = PdfColor.FromRgb(15, 23, 42),
-                HeaderTextColor = PdfColor.White,
-                RowStripeFill = PdfColor.FromRgb(248, 250, 252),
-                BorderColor = PdfColor.FromRgb(203, 213, 225),
-                BorderWidth = 0.4,
-                RowSeparatorColor = PdfColor.FromRgb(226, 232, 240),
-                RowSeparatorWidth = 0.45,
-                CellPaddingX = 7,
-                CellPaddingY = 5,
-                HeaderFontSize = 9.5,
-                FontSize = 9,
-                RightAlignNumeric = true,
-                ColumnWidthWeights = new List<double> { 1.6, 0.8, 1.0, 1.0, 1.1 },
-                Alignments = new List<PdfColumnAlign> {
+            var style = PdfTheme.FromOfficeTheme(OfficeTheme.Default).TableStyle!;
+            style.CellPaddingX = 7;
+            style.CellPaddingY = 5;
+            style.CellPaddingTop = 5;
+            style.CellPaddingBottom = 5;
+            style.FontSize = 9;
+            style.RightAlignNumeric = true;
+            style.ColumnWidthWeights = new List<double> { 1.6, 0.8, 1.0, 1.0, 1.1 };
+            style.Alignments = new List<PdfColumnAlign> {
                     PdfColumnAlign.Left,
                     PdfColumnAlign.Right,
                     PdfColumnAlign.Right,
                     PdfColumnAlign.Right,
                     PdfColumnAlign.Left
-                }
-            };
+                };
+            return style;
         }
 
         private static PdfTableStyle DecisionTableStyle() {
-            return new PdfTableStyle {
-                HeaderFill = PdfColor.FromRgb(30, 64, 175),
-                HeaderTextColor = PdfColor.White,
-                RowStripeFill = PdfColor.FromRgb(239, 246, 255),
-                BorderColor = PdfColor.FromRgb(191, 219, 254),
-                BorderWidth = 0.45,
-                CellPaddingX = 7,
-                CellPaddingY = 5,
-                HeaderRowCount = 1,
-                FontSize = 8.7,
-                LineHeight = 1.15,
-                ColumnWidthWeights = new List<double> { 1.0, 2.1 }
-            };
+            var style = PdfTheme.FromOfficeTheme(OfficeTheme.Default).TableStyle!;
+            style.CellPaddingX = 7;
+            style.CellPaddingY = 5;
+            style.CellPaddingTop = 5;
+            style.CellPaddingBottom = 5;
+            style.HeaderRowCount = 1;
+            style.FontSize = 8.7;
+            style.LineHeight = 1.15;
+            style.ColumnWidthWeights = new List<double> { 1.0, 2.1 };
+            return style;
         }
     }
 }

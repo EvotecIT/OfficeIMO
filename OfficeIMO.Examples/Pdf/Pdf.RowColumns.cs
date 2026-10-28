@@ -7,17 +7,9 @@ namespace OfficeIMO.Examples.Pdf {
             string path = Path.Combine(folderPath, "Pdf.RowColumns.pdf");
 
             var options = new PdfCreateOptions {
-                DefaultFont = PdfStandardFont.Helvetica,
-                DefaultFontSize = 10,
-                DefaultTextColor = PdfColor.FromRgb(31, 41, 55),
-                HeaderFont = PdfStandardFont.Helvetica,
-                HeaderFontSize = 8,
                 HeaderFormat = "OfficeIMO.Pdf row columns",
                 HeaderAlign = PdfAlign.Left,
                 ShowHeader = true,
-                FooterFont = PdfStandardFont.Helvetica,
-                FooterFontSize = 8,
-                FooterFormat = "OfficeIMO.Pdf examples - page {page}/{pages}",
                 FooterAlign = PdfAlign.Right,
                 ShowPageNumbers = true
             };
@@ -68,25 +60,11 @@ namespace OfficeIMO.Examples.Pdf {
                                         new[] { "Metric", "Value" },
                                         new[] { "Sizing", "Relative" },
                                         new[] { "Panels", "Yes" }
-                                    }, style: new PdfTableStyle {
-                                        HeaderFill = PdfColor.FromRgb(25, 55, 85),
-                                        HeaderTextColor = PdfColor.White,
-                                        RowStripeFill = PdfColor.FromRgb(248, 250, 252),
-                                        BorderColor = PdfColor.FromRgb(183, 194, 207),
-                                        BorderWidth = 0.5,
-                                        CellPaddingX = 4,
-                                        CellPaddingY = 3,
-                                        HeaderRowCount = 1,
-                                        RightAlignNumeric = false,
-                                        SpacingBefore = 7,
-                                        SpacingAfter = 7,
-                                        Alignments = new System.Collections.Generic.List<PdfColumnAlign> { PdfColumnAlign.Left, PdfColumnAlign.Right },
-                                        ColumnWidthWeights = new System.Collections.Generic.List<double> { 1.2, 0.8 }
-                                    })
+                                    }, style: CreateTableStyle())
                                     .HR(0.8, PdfColor.FromRgb(183, 194, 207), 8, 8)
                                     .Paragraph(p => p
-                                        .Bold("Guarded: ")
-                                        .Text("the Poppler baseline catches cramped columns and accidental gutter regressions.")));
+                                        .Bold("Review: ")
+                                        .Text("columns keep long notes readable without placing them over neighboring content.")));
                             });
                             content.Column(column => {
                                 column.Item().Paragraph(p => p.Text("End of row column sample."), PdfAlign.Right, PdfColor.FromRgb(80, 80, 80));
@@ -98,6 +76,21 @@ namespace OfficeIMO.Examples.Pdf {
                 .Save(path);
 
             if (open) System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo { FileName = path, UseShellExecute = true });
+        }
+
+        private static PdfTableStyle CreateTableStyle() {
+            var style = PdfTheme.FromOfficeTheme(OfficeTheme.Default).TableStyle!;
+            style.CellPaddingX = 4;
+            style.CellPaddingY = 3;
+            style.CellPaddingTop = 3;
+            style.CellPaddingBottom = 3;
+            style.HeaderRowCount = 1;
+            style.RightAlignNumeric = false;
+            style.SpacingBefore = 7;
+            style.SpacingAfter = 7;
+            style.Alignments = new System.Collections.Generic.List<PdfColumnAlign> { PdfColumnAlign.Left, PdfColumnAlign.Right };
+            style.ColumnWidthWeights = new System.Collections.Generic.List<double> { 1.2, 0.8 };
+            return style;
         }
     }
 }

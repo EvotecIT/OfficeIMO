@@ -9,23 +9,15 @@ namespace OfficeIMO.Examples.Pdf {
             var rows = new[] {
                 new[] { "Signal", "State", "Notes" },
                 new[] { "Header", "Repeated", "The first row should stay readable without relying on a domain-specific preset." },
-                new[] { "Flow", "Generic", "Borders, row separators, and spacing should reveal the preset shape at raster level." }
+                new[] { "Flow", "Generic", "Borders, row separators and spacing distinguish each preset when viewed or printed." }
             };
 
             PdfDocument doc = PdfDocument.Create(pdf => pdf.Content(content => content
-                .H1("Table Style Gallery", PdfAlign.Left, PdfColor.FromRgb(25, 55, 85))
+                .H1("Table Style Gallery", PdfAlign.Left)
                 .Paragraph(p => p.Text("Generic Word-style table names rendered by OfficeIMO.Pdf without invoice or report-specific behavior."))), new PdfCreateOptions {
-                    DefaultFont = PdfStandardFont.Helvetica,
-                    DefaultFontSize = 9.5,
-                    DefaultTextColor = PdfColor.FromRgb(31, 41, 55),
-                    HeaderFont = PdfStandardFont.Helvetica,
-                    HeaderFontSize = 8,
                     HeaderFormat = "OfficeIMO.Pdf Word-like table styles",
                     HeaderAlign = PdfAlign.Left,
                     ShowHeader = true,
-                    FooterFont = PdfStandardFont.Helvetica,
-                    FooterFontSize = 8,
-                    FooterFormat = "OfficeIMO.Pdf examples - page {page}/{pages}",
                     FooterAlign = PdfAlign.Right,
                     ShowPageNumbers = true
                 })

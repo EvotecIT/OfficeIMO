@@ -7,7 +7,7 @@ namespace OfficeIMO.Examples.Pdf {
             string path = Path.Combine(folderPath, "Pdf.StyleCheatsheet.pdf");
 
             var doc = PdfDocument.Create(pdf => pdf.Content(content => content
-                .H1("Style Cheatsheet", PdfAlign.Left, PdfColor.FromRgb(25, 55, 85))
+                .H1("Style Cheatsheet", PdfAlign.Left)
                 .PanelParagraph(
                     p => p.Text("A compact visual sample for rich text, color, underline, and alignment behavior."),
                     new PdfPanelStyle {
@@ -44,17 +44,9 @@ namespace OfficeIMO.Examples.Pdf {
                 .HR(0.8, PdfColor.FromRgb(183, 194, 207), 8, 8)
                 .Paragraph(p => p.Text("Center aligned line"), PdfAlign.Center)
                 .Paragraph(p => p.Text("Right aligned line"), PdfAlign.Right)), new PdfCreateOptions {
-                    DefaultFont = PdfStandardFont.Helvetica,
-                    DefaultFontSize = 10,
-                    DefaultTextColor = PdfColor.FromRgb(31, 41, 55),
-                    HeaderFont = PdfStandardFont.Helvetica,
-                    HeaderFontSize = 8,
                     HeaderFormat = "OfficeIMO.Pdf style cheatsheet",
                     HeaderAlign = PdfAlign.Left,
                     ShowHeader = true,
-                    FooterFont = PdfStandardFont.Helvetica,
-                    FooterFontSize = 8,
-                    FooterFormat = "OfficeIMO.Pdf examples - page {page}/{pages}",
                     FooterAlign = PdfAlign.Right,
                     ShowPageNumbers = true
                 }).Meta(title: "OfficeIMO.Pdf Style Cheatsheet", author: "OfficeIMO");

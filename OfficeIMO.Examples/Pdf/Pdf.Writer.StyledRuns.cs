@@ -6,28 +6,20 @@ namespace OfficeIMO.Examples.Pdf {
         public static void Example_Pdf_StyledRuns(string folderPath, bool open = false) {
             string path = Path.Combine(folderPath, "Pdf.StyledRuns.pdf");
             var options = new PdfCreateOptions {
-                DefaultFont = PdfStandardFont.Helvetica,
-                DefaultFontSize = 10,
-                DefaultTextColor = PdfColor.FromRgb(31, 41, 55),
-                HeaderFont = PdfStandardFont.Helvetica,
-                HeaderFontSize = 8,
                 HeaderFormat = "OfficeIMO.Pdf styled runs",
                 HeaderAlign = PdfAlign.Left,
                 ShowHeader = true,
-                FooterFont = PdfStandardFont.Helvetica,
-                FooterFontSize = 8,
-                FooterFormat = "OfficeIMO.Pdf examples - page {page}/{pages}",
                 FooterAlign = PdfAlign.Right,
                 ShowPageNumbers = true
             };
 
             var doc = PdfDocument.Create(pdf => pdf.Content(content => content
-                .H1("Styled Runs", PdfAlign.Left, PdfColor.FromRgb(25, 55, 85))
+                .H1("Styled Runs", PdfAlign.Left)
                 .Paragraph(p => p.Text("A compact visual sample for inline font style, color, underline, strike-through, and stateful run toggles."))
                 .PanelParagraph(
                     p => p
                         .Bold("Inline styles")
-                        .Text(" should remain readable in normal business-report text, not only in synthetic text extraction checks."),
+                        .Text(" remain readable in ordinary business reports."),
                     new PdfPanelStyle {
                         Background = PdfColor.FromRgb(248, 250, 252),
                         BorderColor = PdfColor.FromRgb(183, 194, 207),

@@ -12,7 +12,7 @@ namespace OfficeIMO.Examples.Pdf {
             string extractedTextPath = Path.Combine(folderPath, "Pdf.Showcase.Manipulation.ExtractedText.txt");
 
             PdfDocument.Create(pdf => pdf.Content(content => content
-                .H1("Source A", PdfAlign.Left, PdfColor.FromRgb(15, 23, 42))
+                .H1("Source A", PdfAlign.Left)
                 .Paragraph(p => p.Text("This page is created first, then merged with Source B through the fluent PdfDocument API."))
                 .Table(new[] {
                     new[] { "Capability", "Status", "Notes" },
@@ -21,7 +21,7 @@ namespace OfficeIMO.Examples.Pdf {
                     new[] { "Extract", "Ready", "Page ranges and reordered pages" }
                 }, style: UtilityTableStyle())
                 .PageBreak()
-                .H1("Source A \u2013 details", PdfAlign.Left, PdfColor.FromRgb(15, 23, 42))
+                .H1("Source A \u2013 details", PdfAlign.Left)
                 .PanelParagraph(
                     p => p.Bold("Page two is extracted later. ").Text("This proves the example is not just visual; it also exercises read/rewrite operations."),
                     new PdfPanelStyle {
@@ -35,7 +35,7 @@ namespace OfficeIMO.Examples.Pdf {
                 .Save(sourceAPath);
 
             PdfDocument.Create(pdf => pdf.Content(content => content
-                .H1("Source B", PdfAlign.Left, PdfColor.FromRgb(15, 23, 42))
+                .H1("Source B", PdfAlign.Left)
                 .Paragraph(p => p.Text("A second input document is merged into the final pack, then a stamp is applied to the combined output."))
                 .Bullets(new[] {
                     "Merge reads source pages and rewrites a new document.",
@@ -83,11 +83,6 @@ namespace OfficeIMO.Examples.Pdf {
 
         private static PdfCreateOptions StandardOptions(string header) {
             return new PdfCreateOptions {
-                DefaultFont = PdfStandardFont.Helvetica,
-                DefaultFontSize = 10,
-                DefaultTextColor = PdfColor.FromRgb(31, 41, 55),
-                HeaderFont = PdfStandardFont.Helvetica,
-                HeaderFontSize = 8,
                 HeaderFormat = header,
                 HeaderAlign = PdfAlign.Left,
                 ShowHeader = true,
@@ -96,18 +91,15 @@ namespace OfficeIMO.Examples.Pdf {
         }
 
         private static PdfTableStyle UtilityTableStyle() {
-            return new PdfTableStyle {
-                HeaderFill = PdfColor.FromRgb(15, 23, 42),
-                HeaderTextColor = PdfColor.White,
-                RowStripeFill = PdfColor.FromRgb(248, 250, 252),
-                BorderColor = PdfColor.FromRgb(203, 213, 225),
-                BorderWidth = 0.5,
-                CellPaddingX = 7,
-                CellPaddingY = 5,
-                FontSize = 9.5,
-                LineHeight = 1.18,
-                AutoFitColumns = true
-            };
+            var style = PdfTheme.FromOfficeTheme(OfficeTheme.Default).TableStyle!;
+            style.CellPaddingX = 7;
+            style.CellPaddingY = 5;
+            style.CellPaddingTop = 5;
+            style.CellPaddingBottom = 5;
+            style.FontSize = 9.5;
+            style.LineHeight = 1.18;
+            style.AutoFitColumns = true;
+            return style;
         }
     }
 }
