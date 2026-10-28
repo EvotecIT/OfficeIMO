@@ -49,6 +49,22 @@ the VBA payload. Removed or replaced handles reject further operations.
 `AddIgnoredErrorRegion` returns the created `ExcelIgnoredErrorRegionInfo`.
 `AddBackLinksToToc` returns hyperlink metadata keyed by the worksheets receiving
 links. Use `AddImage` to create an image and receive its `ExcelImage`.
+Image dimensions and anchor offsets use `OfficeLength`: `image.Width`, `image.Height`,
+`image.OffsetX` and `image.OffsetY` retain whole EMUs. Two-cell ending offsets use
+`ToOffsetX` and `ToOffsetY`. For example, replace `widthPixels: 96` with
+`width: OfficeLength.Pixels(96)`. `SetSize`, `MoveTo`, `SetTwoCellEndingMarker` and
+`TryGetAbsoluteAnchorBounds` use the same length contract. Cell and ending-marker
+offsets on existing XML remain inspectable when signed; `SetTwoCellEndingMarker`
+requires non-negative ending offsets; `AddImageAbsolute` requires non-negative
+authored positions. HTML round trips preserve signed positions and offsets read
+from existing native drawings. Omitted byte-image
+sizes remain 96 by 32 pixels at 96 DPI, while file/scaled placement retains its
+source-dimension defaults. Remote insertion also uses detected source dimensions
+when width, height and scale are omitted; use explicit lengths to request a fixed
+96 by 32 pixel image. Raster export applies its pixel rounding and safety
+limits when rendering. `GetRangeSize` returns `Width` and `Height` as lengths;
+worksheet reports insert images through `sheet.Report().AddImage(...)`.
+
 
 ## Install
 
@@ -854,7 +870,7 @@ open it or fetch it.
 
 ```csharp
 ExcelImage picture = sheet.AddImage(2, 1, File.ReadAllBytes("photo.png"),
-    "image/png", widthPixels: 320, heightPixels: 160);
+    "image/png", width: OfficeIMO.OfficeLength.Pixels(320), height: OfficeIMO.OfficeLength.Pixels(160));
 picture.HyperlinkUri = new Uri("https://example.org/photos/1");
 picture.HyperlinkUri = null; // Remove the click link.
 ```

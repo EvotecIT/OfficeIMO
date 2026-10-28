@@ -77,7 +77,7 @@ namespace OfficeIMO.Excel.Pdf {
                 }
 
                 byte[] bytes = image.ToBytes();
-                if (bytes.Length == 0 || image.WidthPixels <= 0 || image.HeightPixels <= 0) {
+                if (bytes.Length == 0 || image.Width <= OfficeLength.Zero || image.Height <= OfficeLength.Zero) {
                     AddWarning(
                         options,
                         sheetName,
@@ -100,13 +100,13 @@ namespace OfficeIMO.Excel.Pdf {
                     : image.Description;
                 images.Add(new WorksheetImageExportData(
                     preparedBytes,
-                    PixelsToPoints(image.WidthPixels),
-                    PixelsToPoints(image.HeightPixels),
+                    image.Width.ToPoints(),
+                    image.Height.ToPoints(),
                     ExcelA1.CellReference(image.RowIndex, image.ColumnIndex),
                     image.RowIndex,
                     image.ColumnIndex,
-                    PixelsToPoints(image.OffsetXPixels),
-                    PixelsToPoints(image.OffsetYPixels),
+                    image.OffsetX.ToPoints(),
+                    image.OffsetY.ToPoints(),
                     image.RotationDegrees,
                     image.FlipHorizontal,
                     image.FlipVertical,

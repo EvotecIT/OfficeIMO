@@ -487,14 +487,14 @@ namespace OfficeIMO.Excel {
             if (options.IncludeImages) {
                 foreach (ExcelImage image in Images) {
                     cancellationToken.ThrowIfCancellationRequested();
-                    if (image.TryGetAbsoluteAnchorBounds(out int absoluteX, out int absoluteY, out int absoluteWidth, out int absoluteHeight)) {
-                        ExpandAbsoluteVisualAnchor(geometry, absoluteX, absoluteY, absoluteWidth, absoluteHeight, columns, rows, options, ref firstRow, ref firstColumn, ref lastRow, ref lastColumn);
+                    if (image.TryGetAbsoluteAnchorBounds(out OfficeLength absoluteX, out OfficeLength absoluteY, out OfficeLength absoluteWidth, out OfficeLength absoluteHeight)) {
+                        ExpandAbsoluteVisualAnchor(geometry, ExcelImageExportLimits.AbsoluteOffsetPixels(absoluteX), ExcelImageExportLimits.AbsoluteOffsetPixels(absoluteY), ExcelImageExportLimits.ExtentPixels(absoluteWidth), ExcelImageExportLimits.ExtentPixels(absoluteHeight), columns, rows, options, ref firstRow, ref firstColumn, ref lastRow, ref lastColumn);
                     } else if (options.IncludeHidden || !IsHiddenAnchor(image.RowIndex, image.ColumnIndex, rows, defaultRowsHidden, columns)) {
                         ExpandVisualAnchor(geometry,
                             image.RowIndex,
                             image.ColumnIndex,
-                            ExcelImageExportLimits.SaturatingAddExtent(image.WidthPixels, image.OffsetXPixels),
-                            ExcelImageExportLimits.SaturatingAddExtent(image.HeightPixels, image.OffsetYPixels),
+                            ExcelImageExportLimits.SaturatingAddExtent(ExcelImageExportLimits.ImageExtentPixels(image, horizontal: true), ExcelImageExportLimits.OffsetPixels(image.OffsetX)),
+                            ExcelImageExportLimits.SaturatingAddExtent(ExcelImageExportLimits.ImageExtentPixels(image, horizontal: false), ExcelImageExportLimits.OffsetPixels(image.OffsetY)),
                             columns,
                             rows,
                             defaultRowsHidden,

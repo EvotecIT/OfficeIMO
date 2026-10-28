@@ -88,7 +88,7 @@ namespace OfficeIMO.Tests {
             ExcelSheet sheet = document.AddWorksheet("FinalLimit");
             OfficeRasterImage source = CreateNoiseImage(320, 180);
             sheet.AddImage(1, 1, OfficePngWriter.Encode(source), "image/png",
-                widthPixels: 320, heightPixels: 180, name: "Noise");
+                width: OfficeIMO.OfficeLength.Pixels(320), height: OfficeIMO.OfficeLength.Pixels(180), name: "Noise");
 
             OfficeImageExportResult png = sheet.ExportImage(OfficeImageExportFormat.Png);
             OfficeImageExportResult jpeg = sheet.ExportImage(OfficeImageExportFormat.Jpeg);
@@ -109,7 +109,7 @@ namespace OfficeIMO.Tests {
             ExcelSheet sheet = document.AddWorksheet("FinalPngLimit");
             OfficeRasterImage source = CreateNoiseImage(1200, 900);
             sheet.AddImage(1, 1, OfficePngWriter.Encode(source), "image/png",
-                widthPixels: 1200, heightPixels: 900, name: "Noise");
+                width: OfficeIMO.OfficeLength.Pixels(1200), height: OfficeIMO.OfficeLength.Pixels(900), name: "Noise");
             sheet.SetPageSetup(scale: 10, paperSize: ExcelPaperSize.Letter);
 
             var contentOptions = new ExcelImageExportOptions {
@@ -711,7 +711,7 @@ namespace OfficeIMO.Tests {
             FillPageBreakGrid(sheet);
             byte[] logo = CreateHeaderFooterLogoPng();
             sheet.SetHeaderImage(ExcelHeaderFooterPosition.Center, logo, "image/png", widthPoints: 36D, heightPoints: 16D);
-            sheet.AddImage(1, 1, logo, "image/png", widthPixels: 24, heightPixels: 12, name: "Worksheet logo");
+            sheet.AddImage(1, 1, logo, "image/png", width: OfficeIMO.OfficeLength.Pixels(24), height: OfficeIMO.OfficeLength.Pixels(12), name: "Worksheet logo");
             sheet.AddManualRowPageBreak(2, save: false);
 
             OfficeImageExportResult result = sheet.ExportImages(OfficeImageExportFormat.Svg, new ExcelImageExportOptions {

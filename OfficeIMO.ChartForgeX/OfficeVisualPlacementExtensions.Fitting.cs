@@ -40,10 +40,10 @@ public static partial class OfficeVisualPlacementExtensions {
         out OfficeVisualConversionResult conversion, OfficeVisualConversionOptions? options = null) {
         if (sheet == null) throw new ArgumentNullException(nameof(sheet));
         var bounds = sheet.GetRangeBounds(range);
-        var size = sheet.GetRangeSizePixels(range);
-        conversion = artifact.ToOfficeVisual(options).WithSize(size.WidthPixels * PointsPerOfficePixel,
-            size.HeightPixels * PointsPerOfficePixel, options?.Fit ?? OfficeImageFit.Contain);
-        return PlaceInRange(sheet, bounds.r1, bounds.c1, size.WidthPixels, size.HeightPixels, conversion);
+        var size = sheet.GetRangeSize(range);
+        conversion = artifact.ToOfficeVisual(options).WithSize(size.Width.ToPoints(),
+            size.Height.ToPoints(), options?.Fit ?? OfficeImageFit.Contain);
+        return PlaceInRange(sheet, bounds.r1, bounds.c1, size.Width, size.Height, conversion);
     }
 
     /// <summary>Places a reusable conversion inside a worksheet range without rendering it again.</summary>
@@ -52,19 +52,19 @@ public static partial class OfficeVisualPlacementExtensions {
         if (sheet == null) throw new ArgumentNullException(nameof(sheet));
         if (conversion == null) throw new ArgumentNullException(nameof(conversion));
         var bounds = sheet.GetRangeBounds(range);
-        var size = sheet.GetRangeSizePixels(range);
-        var fitted = conversion.WithSize(size.WidthPixels * PointsPerOfficePixel, size.HeightPixels * PointsPerOfficePixel, fit);
-        return PlaceInRange(sheet, bounds.r1, bounds.c1, size.WidthPixels, size.HeightPixels, fitted);
+        var size = sheet.GetRangeSize(range);
+        var fitted = conversion.WithSize(size.Width.ToPoints(), size.Height.ToPoints(), fit);
+        return PlaceInRange(sheet, bounds.r1, bounds.c1, size.Width, size.Height, fitted);
     }
 
     private static PowerPointPicture PlaceInSlideBox(PowerPointSlide slide, OfficeVisualConversionResult fitted, PowerPointLayoutBox box) =>
         slide.AddVisualArtifact(fitted, box.Left.ToPoints() + (box.Width.ToPoints() - fitted.WidthPoints) / 2D,
             box.Top.ToPoints() + (box.Height.ToPoints() - fitted.HeightPoints) / 2D);
 
-    private static ExcelImage PlaceInRange(ExcelSheet sheet, int row, int column, int widthPixels, int heightPixels,
+    private static ExcelImage PlaceInRange(ExcelSheet sheet, int row, int column, OfficeLength width, OfficeLength height,
         OfficeVisualConversionResult fitted) {
-        int offsetX = Math.Max(0, (int)Math.Round((widthPixels - fitted.WidthPoints / PointsPerOfficePixel) / 2D));
-        int offsetY = Math.Max(0, (int)Math.Round((heightPixels - fitted.HeightPoints / PointsPerOfficePixel) / 2D));
+        OfficeLength offsetX = OfficeLength.Emus(Math.Max(0L, (width - OfficeLength.Points(fitted.WidthPoints)).ToEmus() / 2));
+        OfficeLength offsetY = OfficeLength.Emus(Math.Max(0L, (height - OfficeLength.Points(fitted.HeightPoints)).ToEmus() / 2));
         return sheet.AddVisualArtifact(row, column, fitted, offsetX, offsetY);
     }
 }

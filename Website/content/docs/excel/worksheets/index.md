@@ -166,7 +166,7 @@ sheet.HeaderFooter.OddFooter = "&LPage &P of &N&R&D";
 Add images to worksheets:
 
 ```csharp
-sheet.AddImage("chart.png", "A10", width: 400, height: 300);
+sheet.AddImageFromFile(10, 1, "chart.png", width: OfficeIMO.OfficeLength.Pixels(400), height: OfficeIMO.OfficeLength.Pixels(300));
 ```
 
 ## Freezing Panes

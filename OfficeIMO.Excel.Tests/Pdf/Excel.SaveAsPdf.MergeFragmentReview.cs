@@ -37,7 +37,7 @@ public partial class Excel {
         for (int column = 1; column <= 4; column++) sheet.SetColumnWidth(column, ExcelColumnWidth.Characters(15));
         sheet.Cell(1, 1, "Start"); sheet.Cell(2, 1, "Merged"); sheet.Cell(4, 4, "End");
         sheet.MergeRange(horizontal ? "A2:B2" : "A2:A3");
-        sheet.AddImage(2, 1, CreateMinimalRgbPng(), "image/png", widthPixels: 24, heightPixels: 16);
+        sheet.AddImage(2, 1, CreateMinimalRgbPng(), "image/png", width: OfficeIMO.OfficeLength.Pixels(24), height: OfficeIMO.OfficeLength.Pixels(16));
         document.SetPrintArea(sheet, "A1:D4");
         if (horizontal) sheet.AddManualColumnPageBreak(1); else sheet.AddManualRowPageBreak(2);
         byte[] bytes = document.ToPdf(new ExcelPdfExportOptions {

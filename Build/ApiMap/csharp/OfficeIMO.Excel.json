@@ -1576,52 +1576,52 @@
       "old": "OfficeIMO.Excel.Fluent.SheetComposer.ImageAt(int row, int column, byte[] bytes, string contentType = image/png, int widthPixels = 96, int heightPixels = 32, int offsetXPixels = 0, int offsetYPixels = 0)",
       "kind": "method",
       "action": "change",
-      "new": "OfficeIMO.Excel.ExcelReportBuilder.AddImage(... OfficeLength width, OfficeLength height ...)",
+      "new": "OfficeIMO.Excel.ExcelReportBuilder.AddImage(... OfficeLength? width = null, OfficeLength? height = null, OfficeLength offsetX = default, OfficeLength offsetY = default ...)",
       "reason": "One verb per concept: AddImage everywhere. Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.Excel/Fluent/SheetComposer.Images.cs",
       "category": "authoring",
       "notes": "Also (units): change -> OfficeIMO.Excel.Fluent.SheetComposer.ImageAt(... OfficeLength ...)",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "The native report builder forwards OfficeLength image geometry directly to the sheet and returns the attached ExcelImage (Task<ExcelImage> for asynchronous downloads). ImageAt and ImageFromUrlAtAsync are replaced without aliases."
     },
     {
       "old": "OfficeIMO.Excel.Fluent.SheetComposer.ImageFromUrlAtAsync(int row, int column, string url, int widthPixels = 96, int heightPixels = 32, int offsetXPixels = 0, int offsetYPixels = 0, CancellationToken cancellationToken = null)",
       "kind": "method",
       "action": "change",
-      "new": "OfficeIMO.Excel.ExcelReportBuilder.AddImage(... OfficeLength width, OfficeLength height ...)",
+      "new": "OfficeIMO.Excel.ExcelReportBuilder.AddImageFromUrlAsync(... OfficeLength? width = null, OfficeLength? height = null, OfficeLength offsetX = default, OfficeLength offsetY = default ...)",
       "reason": "One verb per concept: AddImage everywhere. Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.Excel/Fluent/SheetComposer.Images.cs",
       "category": "authoring",
       "notes": "Also (units): change -> OfficeIMO.Excel.Fluent.SheetComposer.ImageFromUrlAtAsync(... OfficeLength ...)",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "The native report builder forwards OfficeLength image geometry directly to the sheet and returns the attached ExcelImage (Task<ExcelImage> for asynchronous downloads). ImageAt and ImageFromUrlAtAsync are replaced without aliases."
     },
     {
       "old": "OfficeIMO.Excel.Fluent.SheetComposer.ImageFromUrlAtAsync(int row, int column, string url, OfficeRemoteImageLoadOptions remoteImageOptions, int widthPixels = 96, int heightPixels = 32, int offsetXPixels = 0, int offsetYPixels = 0, CancellationToken cancellationToken = null)",
       "kind": "method",
       "action": "change",
-      "new": "OfficeIMO.Excel.ExcelReportBuilder.AddImage(... OfficeLength width, OfficeLength height ...)",
+      "new": "OfficeIMO.Excel.ExcelReportBuilder.AddImageFromUrlAsync(... OfficeLength? width = null, OfficeLength? height = null, OfficeLength offsetX = default, OfficeLength offsetY = default ...)",
       "reason": "One verb per concept: AddImage everywhere. Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.Excel/Fluent/SheetComposer.Images.cs",
       "category": "authoring",
       "notes": "Also (units): change -> OfficeIMO.Excel.Fluent.SheetComposer.ImageFromUrlAtAsync(... OfficeLength ...)",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "The native report builder forwards OfficeLength image geometry directly to the sheet and returns the attached ExcelImage (Task<ExcelImage> for asynchronous downloads). ImageAt and ImageFromUrlAtAsync are replaced without aliases."
     },
     {
       "old": "OfficeIMO.Excel.Fluent.SheetComposer.Callout(string kind, string title, string body, int widthColumns = 8)",
@@ -1905,7 +1905,7 @@
       },
       "phase": "B",
       "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "note": "Image geometry is migrated to OfficeLength in the existing cell, range, absolute, file and remote placement paths. The proposed single source/options authoring overload family remains pending; this row is not complete."
     },
     {
       "old": "OfficeIMO.Excel.ExcelSheet.AddImageFromUrlAtAsync(int row, int column, string url, int widthPixels = 96, int heightPixels = 32, int offsetXPixels = 0, int offsetYPixels = 0, CancellationToken cancellationToken = null)",
@@ -1922,7 +1922,7 @@
       },
       "phase": "B",
       "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "note": "Image geometry is migrated to OfficeLength in the existing cell, range, absolute, file and remote placement paths. The proposed single source/options authoring overload family remains pending; this row is not complete."
     },
     {
       "old": "OfficeIMO.Excel.ExcelSheet.AddImageFromUrlAtAsync(int row, int column, string url, OfficeRemoteImageLoadOptions remoteImageOptions, int widthPixels = 96, int heightPixels = 32, int offsetXPixels = 0, int offsetYPixels = 0, CancellationToken cancellationToken = null)",
@@ -1939,7 +1939,7 @@
       },
       "phase": "B",
       "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "note": "Image geometry is migrated to OfficeLength in the existing cell, range, absolute, file and remote placement paths. The proposed single source/options authoring overload family remains pending; this row is not complete."
     },
     {
       "old": "OfficeIMO.Excel.ExcelSheet.AddImageFromUrlAsync(int row, int column, string url, int widthPixels = 96, int heightPixels = 32, int offsetXPixels = 0, int offsetYPixels = 0, string name = null, string altText = null, bool lockAspectRatio = True, CancellationToken cancellationToken = null)",
@@ -1956,7 +1956,7 @@
       },
       "phase": "B",
       "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "note": "Image geometry is migrated to OfficeLength in the existing cell, range, absolute, file and remote placement paths. The proposed single source/options authoring overload family remains pending; this row is not complete."
     },
     {
       "old": "OfficeIMO.Excel.ExcelSheet.AddImageFromUrlWithOptionsAsync(int row, int column, string url, OfficeRemoteImageLoadOptions remoteImageOptions, int widthPixels = 96, int heightPixels = 32, int offsetXPixels = 0, int offsetYPixels = 0, string name = null, string altText = null, bool lockAspectRatio = True, CancellationToken cancellationToken = null)",
@@ -1973,7 +1973,7 @@
       },
       "phase": "B",
       "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "note": "Image geometry is migrated to OfficeLength in the existing cell, range, absolute, file and remote placement paths. The proposed single source/options authoring overload family remains pending; this row is not complete."
     },
     {
       "old": "OfficeIMO.Excel.ExcelSheet.AddImageFromFile(int row, int column, string path, int? widthPixels = null, int? heightPixels = null, double? scalePercent = null, int offsetXPixels = 0, int offsetYPixels = 0, string name = null, string altText = null, string title = null, bool lockAspectRatio = True, double rotationDegrees = 0)",
@@ -1990,7 +1990,7 @@
       },
       "phase": "B",
       "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "note": "Image geometry is migrated to OfficeLength in the existing cell, range, absolute, file and remote placement paths. The proposed single source/options authoring overload family remains pending; this row is not complete."
     },
     {
       "old": "OfficeIMO.Excel.ExcelSheet.AddImageFromUrlAsync(int row, int column, string url, int? widthPixels, int? heightPixels, double? scalePercent = null, int offsetXPixels = 0, int offsetYPixels = 0, string name = null, string altText = null, string title = null, bool lockAspectRatio = True, double rotationDegrees = 0, CancellationToken cancellationToken = null)",
@@ -2007,7 +2007,7 @@
       },
       "phase": "B",
       "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "note": "Image geometry is migrated to OfficeLength in the existing cell, range, absolute, file and remote placement paths. The proposed single source/options authoring overload family remains pending; this row is not complete."
     },
     {
       "old": "OfficeIMO.Excel.ExcelSheet.AddImageFromUrlScaledAsync(int row, int column, string url, double scalePercent, OfficeRemoteImageLoadOptions remoteImageOptions, int offsetXPixels = 0, int offsetYPixels = 0, string name = null, string altText = null, string title = null, bool lockAspectRatio = True, double rotationDegrees = 0, CancellationToken cancellationToken = null)",
@@ -2024,7 +2024,7 @@
       },
       "phase": "B",
       "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "note": "Image geometry is migrated to OfficeLength in the existing cell, range, absolute, file and remote placement paths. The proposed single source/options authoring overload family remains pending; this row is not complete."
     },
     {
       "old": "OfficeIMO.Excel.ExcelSheet.AddImageFromUrlAsync(int row, int column, string url, double scalePercent, int offsetXPixels = 0, int offsetYPixels = 0, string name = null, string altText = null, string title = null, bool lockAspectRatio = True, double rotationDegrees = 0, CancellationToken cancellationToken = null)",
@@ -2041,7 +2041,7 @@
       },
       "phase": "B",
       "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "note": "Image geometry is migrated to OfficeLength in the existing cell, range, absolute, file and remote placement paths. The proposed single source/options authoring overload family remains pending; this row is not complete."
     },
     {
       "old": "OfficeIMO.Excel.ExcelSheet.AddImageToRange(string range, byte[] imageBytes, string contentType = image/png, int offsetXPixels = 0, int offsetYPixels = 0, int endOffsetXPixels = 0, int endOffsetYPixels = 0, string name = null, string altText = null, string title = null, bool lockAspectRatio = True, ExcelImagePlacement placement = MoveAndSize, double rotationDegrees = 0)",
@@ -2058,7 +2058,7 @@
       },
       "phase": "B",
       "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "note": "Image geometry is migrated to OfficeLength in the existing cell, range, absolute, file and remote placement paths. The proposed single source/options authoring overload family remains pending; this row is not complete."
     },
     {
       "old": "OfficeIMO.Excel.ExcelSheet.AddImageAbsolute(int xPixels, int yPixels, byte[] imageBytes, string contentType = image/png, int widthPixels = 96, int heightPixels = 32, string name = null, string altText = null, string title = null, bool lockAspectRatio = True, double rotationDegrees = 0)",
@@ -2075,7 +2075,7 @@
       },
       "phase": "B",
       "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "note": "Image geometry is migrated to OfficeLength in the existing cell, range, absolute, file and remote placement paths. The proposed single source/options authoring overload family remains pending; this row is not complete."
     },
     {
       "old": "OfficeIMO.Excel.ExcelSheet.AddImageFromFileToRange(string range, string path, int offsetXPixels = 0, int offsetYPixels = 0, int endOffsetXPixels = 0, int endOffsetYPixels = 0, string name = null, string altText = null, string title = null, bool lockAspectRatio = True, ExcelImagePlacement placement = MoveAndSize, double rotationDegrees = 0)",
@@ -2092,7 +2092,7 @@
       },
       "phase": "B",
       "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "note": "Image geometry is migrated to OfficeLength in the existing cell, range, absolute, file and remote placement paths. The proposed single source/options authoring overload family remains pending; this row is not complete."
     },
     {
       "old": "OfficeIMO.Excel.ExcelSheet.AddImageFromUrlToRangeAsync(string range, string url, int offsetXPixels = 0, int offsetYPixels = 0, int endOffsetXPixels = 0, int endOffsetYPixels = 0, string name = null, string altText = null, string title = null, bool lockAspectRatio = True, ExcelImagePlacement placement = MoveAndSize, double rotationDegrees = 0, CancellationToken cancellationToken = null)",
@@ -2109,7 +2109,7 @@
       },
       "phase": "B",
       "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "note": "Image geometry is migrated to OfficeLength in the existing cell, range, absolute, file and remote placement paths. The proposed single source/options authoring overload family remains pending; this row is not complete."
     },
     {
       "old": "OfficeIMO.Excel.ExcelSheet.AddImageFromUrlToRangeAsync(string range, string url, OfficeRemoteImageLoadOptions remoteImageOptions, int offsetXPixels = 0, int offsetYPixels = 0, int endOffsetXPixels = 0, int endOffsetYPixels = 0, string name = null, string altText = null, string title = null, bool lockAspectRatio = True, ExcelImagePlacement placement = MoveAndSize, double rotationDegrees = 0, CancellationToken cancellationToken = null)",
@@ -2126,7 +2126,7 @@
       },
       "phase": "B",
       "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "note": "Image geometry is migrated to OfficeLength in the existing cell, range, absolute, file and remote placement paths. The proposed single source/options authoring overload family remains pending; this row is not complete."
     },
     {
       "old": "OfficeIMO.Excel.ExcelSheet.InsertObjects<T>(IEnumerable<T> items, bool includeHeaders = True, int startRow = 1)",
@@ -2961,18 +2961,18 @@
       "old": "OfficeIMO.Excel.ExcelSheet.GetRangeSizePixels(string range)",
       "kind": "method",
       "action": "merge",
-      "new": "OfficeIMO.Excel.ExcelSheet.GetRangeSize(... OfficeLength ...)",
+      "new": "OfficeIMO.Excel.ExcelSheet.GetRangeSize(string range) : (OfficeLength Width, OfficeLength Height)",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.Excel/ExcelSheet.RangeSize.cs",
       "category": "units",
       "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "The range address parameter remains unchanged. The return tuple carries physical lengths using the existing font-aware column metric and native row heights; hidden-only ranges retain a one-EMU native anchor minimum."
     },
     {
       "old": "OfficeIMO.Excel.ExcelChart.SetCategoryAxisGridlines(bool showMajor = True, bool showMinor = False, string lineColor = null, double? lineWidthPoints = null, OfficeChartAxisGroup axisGroup = Primary)",
@@ -3631,11 +3631,11 @@
       "notes": "Numeric parameters with unit-suffixed names: offsetXPixels, offsetYPixels",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Image geometry uses OfficeLength at the native whole-EMU boundary. Signed marker offsets are retained; integer-pixel quantization and safety clamps belong to raster export. Build and runtime qualification are required."
     },
     {
       "old": "OfficeIMO.Excel.ExcelImage.SetSize(int widthPixels, int heightPixels)",
@@ -3648,11 +3648,11 @@
       "notes": "Numeric parameters with unit-suffixed names: heightPixels, widthPixels",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Image geometry uses OfficeLength at the native whole-EMU boundary. Signed marker offsets are retained; integer-pixel quantization and safety clamps belong to raster export. Build and runtime qualification are required."
     },
     {
       "old": "OfficeIMO.Excel.ExcelImage.SetTwoCellEndingMarker(int toRow, int toColumn, int toOffsetXPixels = 0, int toOffsetYPixels = 0)",
@@ -3665,11 +3665,11 @@
       "notes": "Numeric parameters with unit-suffixed names: toOffsetXPixels, toOffsetYPixels",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Image geometry uses OfficeLength at the native whole-EMU boundary. Signed marker offsets are retained; integer-pixel quantization and safety clamps belong to raster export. Build and runtime qualification are required."
     },
     {
       "old": "OfficeIMO.Excel.ExcelModernChart.SetPlacement(int row, int column, int widthPixels, int heightPixels)",
@@ -4422,11 +4422,11 @@
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Image geometry uses OfficeLength at the native whole-EMU boundary. Signed marker offsets are retained; integer-pixel quantization and safety clamps belong to raster export. Build and runtime qualification are required."
     },
     {
       "old": "OfficeIMO.Excel.ExcelImage.OffsetXPixels",
@@ -4438,11 +4438,11 @@
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Image geometry uses OfficeLength at the native whole-EMU boundary. Signed marker offsets are retained; integer-pixel quantization and safety clamps belong to raster export. Build and runtime qualification are required."
     },
     {
       "old": "OfficeIMO.Excel.ExcelImage.OffsetYPixels",
@@ -4454,11 +4454,11 @@
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Image geometry uses OfficeLength at the native whole-EMU boundary. Signed marker offsets are retained; integer-pixel quantization and safety clamps belong to raster export. Build and runtime qualification are required."
     },
     {
       "old": "OfficeIMO.Excel.ExcelImage.ToOffsetXPixels",
@@ -4470,11 +4470,11 @@
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Image geometry uses OfficeLength at the native whole-EMU boundary. Signed marker offsets are retained; integer-pixel quantization and safety clamps belong to raster export. Build and runtime qualification are required."
     },
     {
       "old": "OfficeIMO.Excel.ExcelImage.ToOffsetYPixels",
@@ -4486,11 +4486,11 @@
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Image geometry uses OfficeLength at the native whole-EMU boundary. Signed marker offsets are retained; integer-pixel quantization and safety clamps belong to raster export. Build and runtime qualification are required."
     },
     {
       "old": "OfficeIMO.Excel.ExcelImage.WidthPixels",
@@ -4502,11 +4502,11 @@
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Image geometry uses OfficeLength at the native whole-EMU boundary. Signed marker offsets are retained; integer-pixel quantization and safety clamps belong to raster export. Build and runtime qualification are required."
     },
     {
       "old": "OfficeIMO.Excel.ExcelImageExportOptions.DefaultColumnWidthPixels",
@@ -6088,6 +6088,50 @@
         "Build/ConversionConsistency/NativeAdapters.Office.cs"
       ],
       "note": "The native conversion corpus consumes the consolidated ExcelImageExportOptions and PowerPointImageExportOptions in both direct and OpenDocument routes."
+    },
+    {
+      "change": "Unify remote image sizing overloads after physical-length migration",
+      "reason": "One optional width/height/scale signature now uses detected source dimensions when sizing is omitted, matching file image placement. The duplicate fixed-default URL overload and its download core are removed. Explicit lengths still request the former 96 by 32 pixel size. Remote admission policy, cancellation and source-sized scaling share the existing loader. Ending-marker setters retain their existing rejection of negative offsets; signed existing XML remains inspectable. Report AddImage and its async remote forms return the attached ExcelImage instead of the report builder. Bounded HTML import restores signed native same-cell end offsets and absolute positions through internal methods shared with the owning model; the public nonnegative authoring checks remain. Saved-XLSX/HTML regressions cover native offsets of one EMU on either side of zero.",
+      "phase": "B",
+      "applied": "phase-b-applied"
+    },
+    {
+      "category": "units",
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "files": [
+        "OfficeIMO.Excel/ExcelImage.cs",
+        "OfficeIMO.Excel/ExcelSheet.Images.cs",
+        "OfficeIMO.Excel/ExcelSheet.Images.Placement.cs",
+        "OfficeIMO.Excel/ExcelSheet.RangeMutations.cs",
+        "OfficeIMO.Excel/ExcelSheet.RangeSize.cs",
+        "OfficeIMO.Excel/ExcelTemplate.cs",
+        "OfficeIMO.Excel/Report/ExcelReportBuilder.Images.cs",
+        "OfficeIMO.Excel/Utilities/ExcelWorksheetGeometryIndex.cs",
+        "OfficeIMO.Excel/Imaging/ExcelImageExportLimits.cs",
+        "OfficeIMO.Excel.Html/HtmlExcelConverterExtensions.ImageGeometry.cs",
+        "OfficeIMO.ChartForgeX/OfficeVisualPlacementExtensions.cs",
+        "OfficeIMO.ChartForgeX/OfficeVisualPlacementExtensions.Convenience.cs",
+        "OfficeIMO.ChartForgeX/OfficeVisualPlacementExtensions.Fitting.cs",
+        "OfficeIMO.Excel/PublicAPI.Shipped.txt",
+        "OfficeIMO.Excel/PublicAPI/net472/PublicAPI.Shipped.txt",
+        "OfficeIMO.Excel/PublicAPI/netstandard2.0/PublicAPI.Shipped.txt"
+      ],
+      "note": "Native image properties, size/move/end-marker/absolute-bounds operations, placement inputs, template values and range-copy snapshots use whole-EMU OfficeLength. GetRangeSize returns physical lengths. Report AddImage replaces ImageAt; redundant URL At aliases are removed. HTML image inventory retains exact EMU metadata and PDF consumes points without an integer-pixel round trip. ChartForgeX Excel image placement retains physical sizes and offsets. PowerShell calls mechanically convert their existing pixel parameters; command redesign remains outside this C# slice. Duplicate URL sizing overloads merge into one optional physical-size/scale route; omitted remote sizing uses detected dimensions. The ending-marker setter retains its non-negative-offset validation. The three framework baselines follow the compiled physical-length signatures.",
+      "change": "Use shared physical lengths for worksheet image geometry",
+      "reason": "Image placement, inspection and copy/template workflows retain whole EMUs through the public model; pixel rounding belongs to raster export."
+    },
+    {
+      "change": "Preserve signed native geometry through worksheet copies and bounded HTML import",
+      "reason": "Copies and transposes restore native marker offsets before retaining physical image size. HTML collision bounds use exclusive whole-EMU endpoints, and invalid native position metadata uses its actual pixel fallback. Public authoring validation stays unchanged. The obsolete removed report image-method spelling assertion is removed; remote policy and asynchronous operations retain their behavioral proof.",
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "files": [
+        "OfficeIMO.Excel/ExcelSheet.RangeMutations.cs",
+        "OfficeIMO.Excel.Html/HtmlExcelConverterExtensions.Generic.cs",
+        "OfficeIMO.Excel.Html/HtmlExcelConverterExtensions.ImageGeometry.cs",
+        "OfficeIMO.Shared.Tests/PublicApiNamingContracts.cs"
+      ]
     }
   ],
   "applicationStatus": "Phase A applied and validated on the supported macOS targets. Phase B and Tier 2 entries retain their status; Windows .NET Framework validation remains pending.",

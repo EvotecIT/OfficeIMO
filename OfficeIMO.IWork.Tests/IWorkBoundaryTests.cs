@@ -820,8 +820,8 @@ public sealed partial class IWorkBoundaryTests {
             conversionOptions: IWorkTestPolicy.ForIncompletePreview(new IWorkConversionOptions { Mode = IWorkConversionMode.VisualOnly }));
         ExcelImage image = Assert.Single(result.Value.Sheets[0].Images);
 
-        Assert.Equal(1600, image.WidthPixels);
-        Assert.Equal(800, image.HeightPixels);
+        Assert.Equal(1600, image.Width.ToPixels());
+        Assert.Equal(800, image.Height.ToPixels());
     }
 
     [Fact]

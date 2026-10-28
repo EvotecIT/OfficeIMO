@@ -564,10 +564,14 @@ public static partial class ExcelHtmlConverterExtensions {
             }
             AppendDataAttribute(body, "data-officeimo-row", image.RowIndex);
             AppendDataAttribute(body, "data-officeimo-column", image.ColumnIndex);
-            AppendDataAttribute(body, "data-officeimo-width", image.WidthPixels);
-            AppendDataAttribute(body, "data-officeimo-height", image.HeightPixels);
-            AppendDataAttribute(body, "data-officeimo-offset-x", image.OffsetXPixels);
-            AppendDataAttribute(body, "data-officeimo-offset-y", image.OffsetYPixels);
+            AppendDataAttribute(body, "data-officeimo-width", image.Width.ToPixels());
+            body.Append(" data-officeimo-width-emu=\"").Append(image.Width.ToEmus().ToString(CultureInfo.InvariantCulture)).Append('"');
+            AppendDataAttribute(body, "data-officeimo-height", image.Height.ToPixels());
+            body.Append(" data-officeimo-height-emu=\"").Append(image.Height.ToEmus().ToString(CultureInfo.InvariantCulture)).Append('"');
+            AppendDataAttribute(body, "data-officeimo-offset-x", image.OffsetX.ToPixels());
+            body.Append(" data-officeimo-offset-x-emu=\"").Append(image.OffsetX.ToEmus().ToString(CultureInfo.InvariantCulture)).Append('"');
+            AppendDataAttribute(body, "data-officeimo-offset-y", image.OffsetY.ToPixels());
+            body.Append(" data-officeimo-offset-y-emu=\"").Append(image.OffsetY.ToEmus().ToString(CultureInfo.InvariantCulture)).Append('"');
             AppendDataAttribute(body, "data-officeimo-rotation", image.RotationDegrees);
             AppendDataAttribute(body, "data-officeimo-flip-horizontal", image.FlipHorizontal);
             AppendDataAttribute(body, "data-officeimo-flip-vertical", image.FlipVertical);
@@ -575,16 +579,20 @@ public static partial class ExcelHtmlConverterExtensions {
             AppendDataAttribute(body, "data-officeimo-crop-top", image.CropTopRatio);
             AppendDataAttribute(body, "data-officeimo-crop-right", image.CropRightRatio);
             AppendDataAttribute(body, "data-officeimo-crop-bottom", image.CropBottomRatio);
-            if (image.HasAbsoluteAnchor && image.TryGetAbsoluteAnchorBounds(out int xPixels, out int yPixels, out _, out _)) {
-                AppendDataAttribute(body, "data-officeimo-x", xPixels);
-                AppendDataAttribute(body, "data-officeimo-y", yPixels);
+            if (image.HasAbsoluteAnchor && image.TryGetAbsoluteAnchorBounds(out OfficeLength x, out OfficeLength y, out _, out _)) {
+                AppendDataAttribute(body, "data-officeimo-x", x.ToPixels());
+                body.Append(" data-officeimo-x-emu=\"").Append(x.ToEmus().ToString(CultureInfo.InvariantCulture)).Append('"');
+                AppendDataAttribute(body, "data-officeimo-y", y.ToPixels());
+                body.Append(" data-officeimo-y-emu=\"").Append(y.ToEmus().ToString(CultureInfo.InvariantCulture)).Append('"');
             }
 
             if (image.HasTwoCellAnchor && image.ToRowIndex.HasValue && image.ToColumnIndex.HasValue) {
                 AppendDataAttribute(body, "data-officeimo-to-row", image.ToRowIndex.Value);
                 AppendDataAttribute(body, "data-officeimo-to-column", image.ToColumnIndex.Value);
-                AppendDataAttribute(body, "data-officeimo-to-offset-x", image.ToOffsetXPixels);
-                AppendDataAttribute(body, "data-officeimo-to-offset-y", image.ToOffsetYPixels);
+                AppendDataAttribute(body, "data-officeimo-to-offset-x", image.ToOffsetX.ToPixels());
+                body.Append(" data-officeimo-to-offset-x-emu=\"").Append(image.ToOffsetX.ToEmus().ToString(CultureInfo.InvariantCulture)).Append('"');
+                AppendDataAttribute(body, "data-officeimo-to-offset-y", image.ToOffsetY.ToPixels());
+                body.Append(" data-officeimo-to-offset-y-emu=\"").Append(image.ToOffsetY.ToEmus().ToString(CultureInfo.InvariantCulture)).Append('"');
             }
 
             body.Append("><span class=\"officeimo-feature-label\">")
@@ -594,13 +602,13 @@ public static partial class ExcelHtmlConverterExtensions {
                 .Append(", ")
                 .Append(image.ColumnIndex.ToString(CultureInfo.InvariantCulture))
                 .Append("; Size: ")
-                .Append(image.WidthPixels.ToString(CultureInfo.InvariantCulture))
+                .Append(image.Width.ToPixels().ToString(CultureInfo.InvariantCulture))
                 .Append("x")
-                .Append(image.HeightPixels.ToString(CultureInfo.InvariantCulture))
+                .Append(image.Height.ToPixels().ToString(CultureInfo.InvariantCulture))
                 .Append("; Offset: ")
-                .Append(image.OffsetXPixels.ToString(CultureInfo.InvariantCulture))
+                .Append(image.OffsetX.ToPixels().ToString(CultureInfo.InvariantCulture))
                 .Append(", ")
-                .Append(image.OffsetYPixels.ToString(CultureInfo.InvariantCulture))
+                .Append(image.OffsetY.ToPixels().ToString(CultureInfo.InvariantCulture))
                 .Append("; Type: ")
                 .Append(OfficeHtmlText.Escape(image.ContentType))
                 .Append("</div>");

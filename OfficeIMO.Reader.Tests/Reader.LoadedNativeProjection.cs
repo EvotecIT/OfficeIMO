@@ -129,7 +129,7 @@ public sealed class ReaderLoadedNativeProjectionTests {
             ExcelDocument document = ExcelDocument.Create();
             var sheet = document.AddWorksheet("Evidence");
             sheet.CellValue(1, 1, "Header"); sheet.CellValue(2, 1, "Current model evidence");
-            sheet.AddImage(1, 1, Pixel, widthPixels: 1, heightPixels: 1);
+            sheet.AddImage(1, 1, Pixel, width: OfficeIMO.OfficeLength.Pixels(1), height: OfficeIMO.OfficeLength.Pixels(1));
             AddPayload(document.OpenXmlDocument.WorkbookPart!.WorksheetParts.Single());
             return new Fixture(document, (options, token) => document.ReadDocument("archive!/current-model", options, cancellationToken: token), () => document.InspectEmbeddedPayloads());
         }

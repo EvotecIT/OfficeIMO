@@ -243,11 +243,11 @@ namespace OfficeIMO.Tests
             using (var document = ExcelDocument.Create(filePath)) {
                 var sheet = document.AddWorksheet("Images");
 
-                var image = sheet.AddImage(1, 1, png, "image/png", widthPixels: 12, heightPixels: 10,
+                var image = sheet.AddImage(1, 1, png, "image/png", width: OfficeIMO.OfficeLength.Pixels(12), height: OfficeIMO.OfficeLength.Pixels(10),
                     name: "Logo", altText: "Company logo");
                 image.SetAltText("Updated company logo", "Logo title")
                     .LockAspectRatio(false)
-                    .SetSize(24, 18);
+                    .SetSize(OfficeLength.Pixels(24), OfficeLength.Pixels(18));
 
                 Assert.Equal("Logo", sheet.GetImage("Logo")?.Name);
                 Assert.Single(sheet.Images);

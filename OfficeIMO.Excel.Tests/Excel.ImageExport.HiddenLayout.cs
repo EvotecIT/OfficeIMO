@@ -26,7 +26,7 @@ namespace OfficeIMO.Tests {
             sheet.SetRowHeight(3, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(24)));
             sheet.SetColumnHidden(2, true);
             sheet.SetRowHidden(2, true);
-            sheet.AddImage(1, 2, CreateSolidPng(12, 10, OfficeColor.FromRgb(220, 38, 38)), "image/png", widthPixels: 12, heightPixels: 10, name: "HiddenLogo");
+            sheet.AddImage(1, 2, CreateSolidPng(12, 10, OfficeColor.FromRgb(220, 38, 38)), "image/png", width: OfficeIMO.OfficeLength.Pixels(12), height: OfficeIMO.OfficeLength.Pixels(10), name: "HiddenLogo");
             sheet.AddChartFromRange("A1:C3", row: 2, column: 3, widthPixels: 160, heightPixels: 90, type: OfficeChartType.ColumnClustered, title: "Hidden Chart");
 
             ExcelRange range = sheet.Range("A1:C3");
@@ -94,7 +94,7 @@ namespace OfficeIMO.Tests {
             ExcelSheet sheet = document.AddWorksheet("HiddenAnchor");
             sheet.CellValue(1, 1, "Visible");
             sheet.SetColumnHidden(10, true);
-            sheet.AddImage(1, 10, CreateSolidPng(24, 18, OfficeColor.FromRgb(220, 38, 38)), "image/png", widthPixels: 24, heightPixels: 18, name: "HiddenLogo");
+            sheet.AddImage(1, 10, CreateSolidPng(24, 18, OfficeColor.FromRgb(220, 38, 38)), "image/png", width: OfficeIMO.OfficeLength.Pixels(24), height: OfficeIMO.OfficeLength.Pixels(18), name: "HiddenLogo");
 
             OfficeImageExportResult defaultResult = sheet.ExportImage(OfficeImageExportFormat.Png, new ExcelImageExportOptions { ShowGridlines = false });
             OfficeImageExportResult includeHiddenResult = sheet.ExportImage(OfficeImageExportFormat.Png, new ExcelImageExportOptions { IncludeHidden = true, ShowGridlines = false });
@@ -112,7 +112,7 @@ namespace OfficeIMO.Tests {
             sheet.CellValue(1, 1, "Visible");
             sheet.SetDefaultRowHeight(ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(18D)),hidden: true);
             sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(18D)));
-            sheet.AddImage(10, 1, CreateSolidPng(24, 18, OfficeColor.FromRgb(220, 38, 38)), "image/png", widthPixels: 24, heightPixels: 18, name: "DefaultHiddenLogo");
+            sheet.AddImage(10, 1, CreateSolidPng(24, 18, OfficeColor.FromRgb(220, 38, 38)), "image/png", width: OfficeIMO.OfficeLength.Pixels(24), height: OfficeIMO.OfficeLength.Pixels(18), name: "DefaultHiddenLogo");
 
             OfficeImageExportResult defaultResult = sheet.ExportImage(OfficeImageExportFormat.Png, new ExcelImageExportOptions { ShowGridlines = false });
             OfficeImageExportResult includeHiddenResult = sheet.ExportImage(OfficeImageExportFormat.Png, new ExcelImageExportOptions { IncludeHidden = true, ShowGridlines = false });
@@ -156,7 +156,7 @@ namespace OfficeIMO.Tests {
             ExcelSheet sheet = document.AddWorksheet("VisibleExtent");
             sheet.CellValue(1, 1, "Visible");
             sheet.SetColumnHidden(2, true);
-            sheet.AddImage(1, 1, CreateSolidPng(120, 18, OfficeColor.FromRgb(37, 99, 235)), "image/png", widthPixels: 120, heightPixels: 18, name: "VisibleLogo");
+            sheet.AddImage(1, 1, CreateSolidPng(120, 18, OfficeColor.FromRgb(37, 99, 235)), "image/png", width: OfficeIMO.OfficeLength.Pixels(120), height: OfficeIMO.OfficeLength.Pixels(18), name: "VisibleLogo");
 
             OfficeImageExportResult result = sheet.ExportImage(OfficeImageExportFormat.Png, new ExcelImageExportOptions { ShowGridlines = false });
 
@@ -172,7 +172,7 @@ namespace OfficeIMO.Tests {
             sheet.CellValue(1, 1, "Visible");
             sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(8));
             sheet.SetColumnWidth(2, ExcelColumnWidth.Characters(8));
-            sheet.AddImage(1, 1, CreateSolidPng(70, 18, OfficeColor.FromRgb(37, 99, 235)), "image/png", widthPixels: 70, heightPixels: 18, offsetXPixels: 58, name: "OffsetLogo");
+            sheet.AddImage(1, 1, CreateSolidPng(70, 18, OfficeColor.FromRgb(37, 99, 235)), "image/png", width: OfficeIMO.OfficeLength.Pixels(70), height: OfficeIMO.OfficeLength.Pixels(18), offsetX: OfficeIMO.OfficeLength.Pixels(58), name: "OffsetLogo");
 
             OfficeImageExportResult result = sheet.ExportImage(OfficeImageExportFormat.Png, new ExcelImageExportOptions { ShowGridlines = false });
 
@@ -185,7 +185,7 @@ namespace OfficeIMO.Tests {
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddWorksheet("unsupported-image");
             sheet.CellValue(1, 1, "Visible");
-            sheet.AddImage(12, 8, CreateMinimalJpegHeader(), "image/jpeg", widthPixels: 64, heightPixels: 32, name: "JpegOutside");
+            sheet.AddImage(12, 8, CreateMinimalJpegHeader(), "image/jpeg", width: OfficeIMO.OfficeLength.Pixels(64), height: OfficeIMO.OfficeLength.Pixels(32), name: "JpegOutside");
 
             OfficeImageExportResult png = sheet.ExportImage(OfficeImageExportFormat.Png, new ExcelImageExportOptions { ShowGridlines = false });
             ExcelRangeVisualInfo snapshot = sheet.CreateVisualSnapshot(new ExcelImageExportOptions { ShowGridlines = false });

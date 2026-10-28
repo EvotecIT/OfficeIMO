@@ -54,7 +54,7 @@ namespace OfficeIMO.Examples.Excel
             const string logoUrl = "https://evotec.pl/wp-content/uploads/2015/05/Logo-evotec-012.png";
             await overview.HeaderLogoFromUrlAsync(logoUrl, OfficeIMO.Excel.ExcelHeaderFooterPosition.Center, 120, 40, leftText: "Page &P of &N");
             // Also place the logo inside the sheet (first page) via URL
-            await overview.ImageFromUrlAtAsync(row: 1, column: 6, url: logoUrl, widthPixels: 120, heightPixels: 40);
+            await overview.AddImageFromUrlAsync(row: 1, column: 6, url: logoUrl, width: OfficeIMO.OfficeLength.Pixels(120), height: OfficeIMO.OfficeLength.Pixels(40));
             int totalWarnings = rows.Sum(x => x.WarningCount);
             int totalErrors = rows.Sum(x => x.ErrorCount);
             int atRisk = rows.Count(x => x.Status.Equals("Error", StringComparison.OrdinalIgnoreCase) || x.WarningCount > 0);
@@ -164,7 +164,7 @@ namespace OfficeIMO.Examples.Excel
             // Header logo on the Right, page number on Left (complements Index/Overview)
             await s.HeaderLogoFromUrlAsync("https://evotec.pl/wp-content/uploads/2015/05/Logo-evotec-012.png", OfficeIMO.Excel.ExcelHeaderFooterPosition.Right, 96, 32, leftText: "Page &P of &N");
             // Optional: embed the Evotec logo on each detail sheet near the title
-            await s.ImageFromUrlAtAsync(row: 1, column: 5, url: "https://evotec.pl/wp-content/uploads/2015/05/Logo-evotec-012.png", widthPixels: 100, heightPixels: 34);
+            await s.AddImageFromUrlAsync(row: 1, column: 5, url: "https://evotec.pl/wp-content/uploads/2015/05/Logo-evotec-012.png", width: OfficeIMO.OfficeLength.Pixels(100), height: OfficeIMO.OfficeLength.Pixels(34));
             // Legend per domain (reusable SectionLegend)
             {
                 var pal = ReportStatusColors.Create(OfficeTheme.Default);

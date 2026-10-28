@@ -1,6 +1,7 @@
 using System.Runtime.CompilerServices;
 
 [assembly: InternalsVisibleTo("OfficeIMO.Excel.Pdf")]
+[assembly: InternalsVisibleTo("OfficeIMO.Excel.Html")]
 [assembly: InternalsVisibleTo("OfficeIMO.Excel.Tests")]
 
 [assembly: InternalsVisibleTo("OfficeIMO.CompatibilityCatalog.Tool")]

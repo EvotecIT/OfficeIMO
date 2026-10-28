@@ -891,7 +891,7 @@ namespace OfficeIMO.Tests
                 }
             }
 
-            sheet.AddImage(6, 2, CreateMarkerPng(), "image/png", widthPixels: 36, heightPixels: 22, name: "QualityMarker");
+            sheet.AddImage(6, 2, CreateMarkerPng(), "image/png", width: OfficeIMO.OfficeLength.Pixels(36), height: OfficeIMO.OfficeLength.Pixels(22), name: "QualityMarker");
             sheet.AddChartFromRange("A2:B5", row: 2, column: 6, widthPixels: 230, heightPixels: 135, type: OfficeChartType.ColumnClustered, title: "Revenue Trend");
             return new ExcelBaselineFixture(document, sheet);
         }
@@ -1369,7 +1369,7 @@ namespace OfficeIMO.Tests
                 }
             }
 
-            sheet.AddImage(2, 1, CreateClippedBannerPng(), "image/png", widthPixels: 170, heightPixels: 44, name: "WideBanner");
+            sheet.AddImage(2, 1, CreateClippedBannerPng(), "image/png", width: OfficeIMO.OfficeLength.Pixels(170), height: OfficeIMO.OfficeLength.Pixels(44), name: "WideBanner");
             return new ExcelBaselineFixture(document, sheet);
         }
 

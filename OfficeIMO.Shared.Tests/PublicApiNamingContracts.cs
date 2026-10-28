@@ -215,7 +215,6 @@ public sealed class PublicApiNamingContracts {
         Assert.Contains(templateMethods, static method => method.Name == "FromUrlAsync");
         Assert.DoesNotContain(templateMethods, static method => method.Name == "FromUrl");
 
-        Assert.Contains(composerMethods, static method => method.Name == "ImageFromUrlAtAsync");
         Assert.Contains(composerMethods, static method => method.Name == "HeaderLogoFromUrlAsync");
         Assert.DoesNotContain(composerMethods, static method =>
             (method.Name.Contains("Image", StringComparison.Ordinal) || method.Name.Contains("Logo", StringComparison.Ordinal))

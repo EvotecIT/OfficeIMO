@@ -600,7 +600,7 @@ namespace OfficeIMO.Excel {
             }
 
             foreach (ExcelImage image in sheet.Images) {
-                bool absoluteAnchor = image.TryGetAbsoluteAnchorBounds(out int absoluteX, out int absoluteY, out int absoluteWidth, out int absoluteHeight);
+                bool absoluteAnchor = image.TryGetAbsoluteAnchorBounds(out OfficeLength absoluteX, out OfficeLength absoluteY, out OfficeLength absoluteWidth, out OfficeLength absoluteHeight);
                 if (!absoluteAnchor && !options.IncludeHidden && IsHiddenAnchorInRange(image.RowIndex, image.ColumnIndex, firstRow, firstColumn, lastRow, lastColumn, rowDefinitions, defaultRowsHidden, columnDefinitions)) {
                     diagnostics.Add(ExcelImageExportDiagnosticClassifier.Create(
                         OfficeImageExportDiagnosticSeverity.Warning,
@@ -621,14 +621,14 @@ namespace OfficeIMO.Excel {
                     rowsByIndex,
                     absoluteAnchor ? 1 : image.ColumnIndex,
                     absoluteAnchor ? 1 : image.RowIndex,
-                    absoluteAnchor ? absoluteX : image.OffsetXPixels,
-                    absoluteAnchor ? absoluteY : image.OffsetYPixels,
-                    absoluteAnchor ? absoluteWidth : image.WidthPixels,
-                    absoluteAnchor ? absoluteHeight : image.HeightPixels,
+                    absoluteAnchor ? ExcelImageExportLimits.AbsoluteOffsetPixels(absoluteX) : ExcelImageExportLimits.OffsetPixels(image.OffsetX),
+                    absoluteAnchor ? ExcelImageExportLimits.AbsoluteOffsetPixels(absoluteY) : ExcelImageExportLimits.OffsetPixels(image.OffsetY),
+                    absoluteAnchor ? ExcelImageExportLimits.ExtentPixels(absoluteWidth) : ExcelImageExportLimits.ImageExtentPixels(image, horizontal: true),
+                    absoluteAnchor ? ExcelImageExportLimits.ExtentPixels(absoluteHeight) : ExcelImageExportLimits.ImageExtentPixels(image, horizontal: false),
                     absoluteAnchor ? null : image.ToColumnIndex,
                     absoluteAnchor ? null : image.ToRowIndex,
-                    absoluteAnchor ? 0 : image.ToOffsetXPixels,
-                    absoluteAnchor ? 0 : image.ToOffsetYPixels,
+                    absoluteAnchor ? 0 : ExcelImageExportLimits.OffsetPixels(image.ToOffsetX),
+                    absoluteAnchor ? 0 : ExcelImageExportLimits.OffsetPixels(image.ToOffsetY),
                     out double x,
                     out double y,
                     out double width,

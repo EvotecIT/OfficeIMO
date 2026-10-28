@@ -513,6 +513,15 @@
       "phase": "B",
       "applied": "phase-b-applied",
       "note": "Worksheet sizing calls use ExcelColumnWidth.Characters for existing stored column units and ExcelColumnWidth.Length(OfficeLength.Points(...)) for existing row points. Default dimension reads convert explicitly at numeric format boundaries. This is a mechanical consumer migration; conversion/layout behavior is retained."
+    },
+    {
+      "change": "Consume shared worksheet image lengths at the PDF geometry boundary",
+      "reason": "Read physical image dimensions and offsets in points directly from OfficeLength rather than passing through integer pixels. Worksheet authoring and inspection retain whole EMUs; raster safety rounding remains in the image renderer.",
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "files": [
+        "OfficeIMO.Excel.Pdf/ExcelPdfConverterExtensions.WorksheetContent.cs"
+      ]
     }
   ],
   "applicationStatus": "Phase A applied and validated on the supported macOS targets. Phase B and Tier 2 entries retain their status; Windows .NET Framework validation remains pending.",

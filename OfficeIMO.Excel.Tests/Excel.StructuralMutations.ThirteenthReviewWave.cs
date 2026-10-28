@@ -57,7 +57,7 @@ namespace OfficeIMO.Tests {
             imageBytes[1] = 0x50;
             imageBytes[2] = 0x4E;
             imageBytes[3] = 0x47;
-            sheet.AddImage(1, 1, imageBytes, "image/png", 8, 8);
+            sheet.AddImage(1, 1, imageBytes, "image/png", OfficeIMO.OfficeLength.Pixels(8), OfficeIMO.OfficeLength.Pixels(8));
             var options = new ExcelMutationPlanOptions { MaximumSnapshotCharacters = 128_000 };
 
             InvalidOperationException copy = Assert.Throws<InvalidOperationException>(() =>

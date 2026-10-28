@@ -15,7 +15,7 @@ public sealed class ExcelAllSeverityBatch13SecurityTests
         ExcelSheet sheet = document.AddWorksheet("Data");
 
         await Assert.ThrowsAsync<InvalidDataException>(() =>
-            sheet.AddImageFromUrlAtAsync(1, 1, "http://127.0.0.1:6553/private.png"));
+            sheet.AddImageFromUrlAsync(1, 1, "http://127.0.0.1:6553/private.png"));
     }
 
     [Fact]

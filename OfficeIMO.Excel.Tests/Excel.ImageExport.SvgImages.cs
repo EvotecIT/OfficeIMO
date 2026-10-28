@@ -65,8 +65,8 @@ public sealed class ExcelSvgImageExportTests {
         AddImage(document, SupportedSvg);
         var options = new ExcelImageExportOptions { ShowGridlines = false, MaximumRasterPixels = 1_500 };
         document.Sheets[0].Range("A1:A1").ExportImage(OfficeImageExportFormat.Png, options);
-        document.Sheets[0].AddImage(1, 1, Encoding.UTF8.GetBytes(SupportedSvg), "image/svg+xml", 32, 16, name: "Second probe");
-        document.Sheets[0].AddImage(1, 1, Encoding.UTF8.GetBytes(SupportedSvg), "image/svg+xml", 32, 16, name: "Third probe");
+        document.Sheets[0].AddImage(1, 1, Encoding.UTF8.GetBytes(SupportedSvg), "image/svg+xml", OfficeIMO.OfficeLength.Pixels(32), OfficeIMO.OfficeLength.Pixels(16), name: "Second probe");
+        document.Sheets[0].AddImage(1, 1, Encoding.UTF8.GetBytes(SupportedSvg), "image/svg+xml", OfficeIMO.OfficeLength.Pixels(32), OfficeIMO.OfficeLength.Pixels(16), name: "Third probe");
 
         Assert.Throws<OfficeImageExportLimitException>(() => document.Sheets[0].Range("A1:A1")
             .ExportImage(OfficeImageExportFormat.Png, options));
@@ -84,7 +84,7 @@ public sealed class ExcelSvgImageExportTests {
             : new byte[] { 0xFF, 0xD8, 0xFF, 0xC0, 0, 17, 8, 0, 1, 0, 1, 3, 1, 17, 0, 2, 17, 0, 3, 17, 0, 0xFF, 0xD9 };
         using ExcelDocument document = ExcelDocument.Create(new MemoryStream());
         ExcelSheet sheet = document.AddWorksheet("Inspected");
-        sheet.AddImage(1, 1, bytes, validContainer ? "image/tiff" : "image/jpeg", 16, 16, name: "Probe");
+        sheet.AddImage(1, 1, bytes, validContainer ? "image/tiff" : "image/jpeg", OfficeIMO.OfficeLength.Pixels(16), OfficeIMO.OfficeLength.Pixels(16), name: "Probe");
         var codec = new SolidCodec(16, 16);
 
         OfficeImageExportResult result = sheet.Range("A1:A1").ExportImage(OfficeImageExportFormat.Png,
@@ -107,7 +107,7 @@ public sealed class ExcelSvgImageExportTests {
         byte[] bytes = callerDecodedSvg
             ? Encoding.UTF8.GetBytes(UnsupportedSvg)
             : OfficePngWriter.Encode(new OfficeRasterImage(64, 64, OfficeColor.Red));
-        sheet.AddImage(1, 1, bytes, callerDecodedSvg ? "image/svg+xml" : "image/png", 16, 16, name: "Oversized");
+        sheet.AddImage(1, 1, bytes, callerDecodedSvg ? "image/svg+xml" : "image/png", OfficeIMO.OfficeLength.Pixels(16), OfficeIMO.OfficeLength.Pixels(16), name: "Oversized");
         var codec = new SolidCodec(64, 64);
         var options = new ExcelImageExportOptions {
             ShowGridlines = false, MaximumRasterPixels = 1_500, ImageCodec = codec
@@ -134,7 +134,7 @@ public sealed class ExcelSvgImageExportTests {
 
     private static void AddImage(ExcelDocument document, string svg) {
         ExcelSheet sheet = document.AddWorksheet("Svg");
-        sheet.AddImage(1, 1, Encoding.UTF8.GetBytes(svg), "image/svg+xml", 32, 16, name: "Probe");
+        sheet.AddImage(1, 1, Encoding.UTF8.GetBytes(svg), "image/svg+xml", OfficeIMO.OfficeLength.Pixels(32), OfficeIMO.OfficeLength.Pixels(16), name: "Probe");
     }
 
     private sealed class SolidCodec : IOfficeRasterImageCodec {

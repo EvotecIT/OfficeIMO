@@ -17,8 +17,8 @@ namespace OfficeIMO.Tests {
                 1,
                 CreateSolidPng(8, 8, OfficeColor.FromRgb(37, 99, 235)),
                 "image/png",
-                widthPixels: 8,
-                heightPixels: 8,
+                width: OfficeIMO.OfficeLength.Pixels(8),
+                height: OfficeIMO.OfficeLength.Pixels(8),
                 name: "DeepAnchor");
 
             ExcelRangeVisualInfo snapshot = sheet.Range("A1:A20000").CreateVisualSnapshot(
@@ -101,9 +101,9 @@ namespace OfficeIMO.Tests {
                 1,
                 2,
                 CreateSolidPng(8, 8, OfficeColor.FromRgb(37, 99, 235)),
-                widthPixels: 64,
-                heightPixels: 8,
-                offsetXPixels: -50,
+                width: OfficeIMO.OfficeLength.Pixels(64),
+                height: OfficeIMO.OfficeLength.Pixels(8),
+                offsetX: OfficeIMO.OfficeLength.Pixels(-50),
                 name: "Overlap");
 
             ExcelRangeVisualInfo snapshot = sheet.Range("A1:A1").CreateVisualSnapshot(

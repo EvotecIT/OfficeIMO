@@ -23,15 +23,15 @@ public partial class Excel {
         using (ExcelDocument document = ExcelDocument.Create(workbookPath, new ExcelCreateOptions { FirstSheetName = "Images" })) {
             ExcelSheet sheet = document.Sheets[0];
             sheet.Cell(1, 1, "ImageMarker");
-            sheet.AddImage(2, 1, imageBytes, "image/png", widthPixels: 24, heightPixels: 16, name: "Pdf Logo", altText: "PDF logo");
+            sheet.AddImage(2, 1, imageBytes, "image/png", width: OfficeIMO.OfficeLength.Pixels(24), height: OfficeIMO.OfficeLength.Pixels(16), name: "Pdf Logo", altText: "PDF logo");
 
             ExcelImage image = Assert.Single(sheet.Images);
             Assert.Equal("Pdf Logo", image.Name);
             Assert.Equal("PDF logo", image.Description);
             Assert.Equal(2, image.RowIndex);
             Assert.Equal(1, image.ColumnIndex);
-            Assert.Equal(24, image.WidthPixels);
-            Assert.Equal(16, image.HeightPixels);
+            Assert.Equal(24, image.Width.ToPixels());
+            Assert.Equal(16, image.Height.ToPixels());
             Assert.Equal("image/png", image.ContentType);
             Assert.Equal(imageBytes, image.ToBytes());
 
@@ -65,7 +65,7 @@ public partial class Excel {
         using (ExcelDocument document = ExcelDocument.Create(workbookPath, new ExcelCreateOptions { FirstSheetName = "Images" })) {
             ExcelSheet sheet = document.Sheets[0];
             sheet.Cell(1, 1, "ImageMarker");
-            sheet.AddImage(2, 1, imageBytes, "image/png", widthPixels: 24, heightPixels: 16, name: "Rotated Logo").SetRotation(30);
+            sheet.AddImage(2, 1, imageBytes, "image/png", width: OfficeIMO.OfficeLength.Pixels(24), height: OfficeIMO.OfficeLength.Pixels(16), name: "Rotated Logo").SetRotation(30);
             document.Save();
 
             bytes = document.ToPdf(new ExcelPdfExportOptions {
@@ -90,7 +90,7 @@ public partial class Excel {
             ExcelSheet sheet = document.Sheets[0];
             sheet.Cell(1, 1, "VisibleMarker");
             sheet.Cell(2, 1, "HiddenImageMarker");
-            sheet.AddImage(2, 1, imageBytes, "image/png", widthPixels: 24, heightPixels: 16, name: "Hidden Logo", altText: "Hidden logo");
+            sheet.AddImage(2, 1, imageBytes, "image/png", width: OfficeIMO.OfficeLength.Pixels(24), height: OfficeIMO.OfficeLength.Pixels(16), name: "Hidden Logo", altText: "Hidden logo");
             sheet.SetRowHidden(2, true);
             document.Save();
 
@@ -131,7 +131,7 @@ public partial class Excel {
         using (ExcelDocument document = ExcelDocument.Create(workbookPath, new ExcelCreateOptions { FirstSheetName = "Images" })) {
             ExcelSheet sheet = document.Sheets[0];
             sheet.Cell(1, 1, "ImageMarker");
-            sheet.AddImage(2, 1, invalidPngBytes, "image/png", widthPixels: 24, heightPixels: 16, name: "Invalid PNG");
+            sheet.AddImage(2, 1, invalidPngBytes, "image/png", width: OfficeIMO.OfficeLength.Pixels(24), height: OfficeIMO.OfficeLength.Pixels(16), name: "Invalid PNG");
             document.Save();
 
             result = document.ConvertToPdfWithEvidence(options);
@@ -156,7 +156,7 @@ public partial class Excel {
         using (ExcelDocument document = ExcelDocument.Create(workbookPath, new ExcelCreateOptions { FirstSheetName = "Images" })) {
             ExcelSheet sheet = document.Sheets[0];
             sheet.Cell(1, 1, "ImageMarker");
-            sheet.AddImage(2, 1, CreateMinimalRgbPng(), "image/jpeg", widthPixels: 24, heightPixels: 16, name: "Declared JPEG");
+            sheet.AddImage(2, 1, CreateMinimalRgbPng(), "image/jpeg", width: OfficeIMO.OfficeLength.Pixels(24), height: OfficeIMO.OfficeLength.Pixels(16), name: "Declared JPEG");
             document.Save();
 
             result = document.ConvertToPdfWithEvidence(options);
@@ -185,7 +185,7 @@ public partial class Excel {
             sheet.Cell(2, 1, "BeforeRow");
             sheet.Cell(3, 1, "AnchorRow");
             sheet.Cell(4, 1, "AfterRow");
-            sheet.AddImage(3, 2, imageBytes, "image/png", widthPixels: 72, heightPixels: 72, name: "Anchored Cell Image");
+            sheet.AddImage(3, 2, imageBytes, "image/png", width: OfficeIMO.OfficeLength.Pixels(72), height: OfficeIMO.OfficeLength.Pixels(72), name: "Anchored Cell Image");
             document.Save();
 
             bytes = document.ToPdf(new ExcelPdfExportOptions {
@@ -228,7 +228,7 @@ public partial class Excel {
             sheet.Cell(2, 1, "BeforeImageRow");
             sheet.Cell(3, 1, "AnchoredImageRow");
             sheet.Cell(4, 1, "AfterImageRow");
-            sheet.AddImage(3, 2, CreateMinimalRgbPng(), "image/png", widthPixels: 72, heightPixels: 72, name: "Anchored Cell Image");
+            sheet.AddImage(3, 2, CreateMinimalRgbPng(), "image/png", width: OfficeIMO.OfficeLength.Pixels(72), height: OfficeIMO.OfficeLength.Pixels(72), name: "Anchored Cell Image");
             document.Save();
 
             bytes = document.ToPdf(new ExcelPdfExportOptions {
@@ -260,7 +260,7 @@ public partial class Excel {
             for (int row = 1; row <= 45; row++) {
                 sheet.Cell(row, 1, "Row " + row.ToString(CultureInfo.InvariantCulture));
             }
-            sheet.AddImage(42, 2, CreateMinimalRgbPng(), "image/png", widthPixels: 48, heightPixels: 32, name: "Late page image");
+            sheet.AddImage(42, 2, CreateMinimalRgbPng(), "image/png", width: OfficeIMO.OfficeLength.Pixels(48), height: OfficeIMO.OfficeLength.Pixels(32), name: "Late page image");
             document.Save();
 
             bytes = document.ToPdf(new ExcelPdfExportOptions {
@@ -286,7 +286,7 @@ public partial class Excel {
             for (int row = 1; row <= 45; row++) {
                 sheet.Cell(row, 1, "Row " + row.ToString(CultureInfo.InvariantCulture));
             }
-            sheet.AddImage(55, 2, CreateMinimalRgbPng(), "image/png", widthPixels: 72, heightPixels: 32, name: "Terminal image");
+            sheet.AddImage(55, 2, CreateMinimalRgbPng(), "image/png", width: OfficeIMO.OfficeLength.Pixels(72), height: OfficeIMO.OfficeLength.Pixels(32), name: "Terminal image");
             document.Save();
 
             bytes = document.ToPdf(new ExcelPdfExportOptions {
@@ -312,8 +312,8 @@ public partial class Excel {
         using (ExcelDocument document = ExcelDocument.Create(workbookPath, new ExcelCreateOptions { FirstSheetName = "Images" })) {
             ExcelSheet sheet = document.Sheets[0];
             byte[] image = CreateMinimalRgbPng();
-            sheet.AddImage(2, 2, image, "image/png", widthPixels: 24, heightPixels: 16, name: "Upper image");
-            sheet.AddImage(8, 4, image, "image/png", widthPixels: 24, heightPixels: 16, name: "Lower image");
+            sheet.AddImage(2, 2, image, "image/png", width: OfficeIMO.OfficeLength.Pixels(24), height: OfficeIMO.OfficeLength.Pixels(16), name: "Upper image");
+            sheet.AddImage(8, 4, image, "image/png", width: OfficeIMO.OfficeLength.Pixels(24), height: OfficeIMO.OfficeLength.Pixels(16), name: "Lower image");
             document.Save();
 
             bytes = document.ToPdf(new ExcelPdfExportOptions {

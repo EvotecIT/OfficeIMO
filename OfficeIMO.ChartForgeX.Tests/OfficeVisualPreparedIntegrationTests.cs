@@ -59,8 +59,8 @@ namespace OfficeIMO.ChartForgeX.Tests
                 }
                 using (var document = ExcelDocument.Load(excelPath)) {
                     var image = Assert.Single(document.Sheets[0].Images);
-                    Assert.Equal(213, image.WidthPixels);
-                    Assert.Equal(133, image.HeightPixels);
+                    Assert.Equal(160D, image.Width.ToPoints(), 6);
+                    Assert.Equal(100D, image.Height.ToPoints(), 6);
                     Assert.Equal(description, image.Description);
                     Assert.Equal("Service load", image.Title);
                     Assert.Equal(2, image.RowIndex);

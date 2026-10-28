@@ -341,7 +341,7 @@ namespace OfficeIMO.Excel {
                 return false;
             }
 
-            if (image.WidthPixels <= 0 || image.HeightPixels <= 0) {
+            if (image.Width <= OfficeLength.Zero || image.Height <= OfficeLength.Zero) {
                 reason = "image has non-positive dimensions.";
                 return false;
             }

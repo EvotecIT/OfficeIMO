@@ -61,8 +61,8 @@ public sealed partial class OfficeVisualIntegrationTests {
                 for (int index = 0; index < expected.Length; index++) {
                     Assert.Equal(expected[index].GetPlacementBytes(), images[index].ToBytes());
                     Assert.Equal(expected[index].AlternativeText, images[index].Description);
-                    Assert.Equal(400, images[index].WidthPixels);
-                    Assert.Equal(240, images[index].HeightPixels);
+                    Assert.Equal(400, images[index].Width.ToPixels());
+                    Assert.Equal(240, images[index].Height.ToPixels());
                 }
             }
 

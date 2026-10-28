@@ -184,7 +184,7 @@ namespace OfficeIMO.Tests
             using var cancellation = new CancellationTokenSource();
 
             Assert.Throws<OperationCanceledException>(() => sheet.ApplyTransactionalMutation(_ => {
-                sheet.AddImage(1, 1, new byte[] { 0x89, 0x50, 0x4E, 0x47 }, "image/png", 8, 8);
+                sheet.AddImage(1, 1, new byte[] { 0x89, 0x50, 0x4E, 0x47 }, "image/png", OfficeIMO.OfficeLength.Pixels(8), OfficeIMO.OfficeLength.Pixels(8));
                 cancellation.Cancel();
             }, 0, new ExcelMutationPlanOptions(), cancellation.Token));
 

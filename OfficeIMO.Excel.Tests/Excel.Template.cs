@@ -781,7 +781,7 @@ namespace OfficeIMO.Tests {
                 sheet.SetHyperlink("A9", "https://example.com/help", "Help");
                 sheet.SetInternalLink(11, 1, "'Region Template'!A1", "Back to top");
                 sheet.SetComment("A10", "Template note", author: "Template");
-                sheet.AddImage(10, 3, png, "image/png", widthPixels: 18, heightPixels: 14, name: "Static Logo", altText: "Static template logo");
+                sheet.AddImage(10, 3, png, "image/png", width: OfficeIMO.OfficeLength.Pixels(18), height: OfficeIMO.OfficeLength.Pixels(14), name: "Static Logo", altText: "Static template logo");
                 var chart = sheet.AddChartFromRange("A6:B7", row: 12, column: 4, widthPixels: 320, heightPixels: 180, type: OfficeChartType.ColumnClustered, hasHeaders: true, title: "Regional total");
                 chart.ApplyStylePreset(ExcelChartStylePreset.Default);
 
@@ -1173,8 +1173,8 @@ namespace OfficeIMO.Tests {
 
                 using var badgeStream = new MemoryStream(png);
                 int replacements = sheet.ApplyTemplate(new Dictionary<string, object?> {
-                    ["Logo"] = ExcelTemplateImage.FromBytes(png, widthPixels: 24, heightPixels: 18, name: "Logo", altText: "Company logo"),
-                    ["Badge"] = ExcelTemplateImage.FromStream(badgeStream, widthPixels: 12, heightPixels: 10, name: "Badge", altText: "Status badge")
+                    ["Logo"] = ExcelTemplateImage.FromBytes(png, width: OfficeIMO.OfficeLength.Pixels(24), height: OfficeIMO.OfficeLength.Pixels(18), name: "Logo", altText: "Company logo"),
+                    ["Badge"] = ExcelTemplateImage.FromStream(badgeStream, width: OfficeIMO.OfficeLength.Pixels(12), height: OfficeIMO.OfficeLength.Pixels(10), name: "Badge", altText: "Status badge")
                 });
 
                 Assert.Equal(2, replacements);
@@ -1366,7 +1366,7 @@ namespace OfficeIMO.Tests {
                 ExcelTemplateInspection missing = document.InspectTemplate(new Dictionary<string, object?> {
                     ["Invoice.Number"] = "INV-001",
                     ["Total"] = 10,
-                    ["Logo"] = ExcelTemplateImage.FromBytes(new byte[] { 1, 2, 3 }, widthPixels: 12, heightPixels: 12),
+                    ["Logo"] = ExcelTemplateImage.FromBytes(new byte[] { 1, 2, 3 }, width: OfficeIMO.OfficeLength.Pixels(12), height: OfficeIMO.OfficeLength.Pixels(12)),
                     ["Issued"] = new DateTime(2026, 5, 28)
                 });
 
@@ -1397,7 +1397,7 @@ namespace OfficeIMO.Tests {
                     Customer = new CustomerTemplateModel { Name = "Adatum" },
                     Total = 10,
                     Invoice = new InvoiceNumberTemplateModel { Number = "INV-001" },
-                    Logo = ExcelTemplateImage.FromBytes(new byte[] { 4, 5, 6 }, widthPixels: 12, heightPixels: 12),
+                    Logo = ExcelTemplateImage.FromBytes(new byte[] { 4, 5, 6 }, width: OfficeIMO.OfficeLength.Pixels(12), height: OfficeIMO.OfficeLength.Pixels(12)),
                     Issued = new DateTime(2026, 5, 28)
                 });
 

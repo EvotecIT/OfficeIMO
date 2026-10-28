@@ -34,6 +34,18 @@
       "applied": "phase-b-applied",
       "file": "OfficeIMO.Excel.Html/ExcelHtmlConverterExtensions.cs",
       "reason": "Use the canonical options snapshot after the options-type merge. The old manual field list dropped font, DPI and safety-limit settings."
+    },
+    {
+      "change": "Retain native worksheet image geometry through HTML conversion",
+      "reason": "The worksheet image model now uses OfficeLength. Semantic inventories carry bounded exact EMUs alongside pixel presentation values, retain signed native positions and marker offsets on import, and use valid pixel fallbacks when native metadata is invalid. Editable-layout image collision bounds use physical exclusive endpoints.",
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "files": [
+        "OfficeIMO.Excel.Html/ExcelHtmlConverterExtensions.cs",
+        "OfficeIMO.Excel.Html/HtmlExcelConverterExtensions.cs",
+        "OfficeIMO.Excel.Html/HtmlExcelConverterExtensions.Generic.cs",
+        "OfficeIMO.Excel.Html/HtmlExcelConverterExtensions.ImageGeometry.cs"
+      ]
     }
   ]
 }

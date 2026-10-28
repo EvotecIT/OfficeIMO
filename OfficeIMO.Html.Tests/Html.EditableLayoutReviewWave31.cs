@@ -56,8 +56,8 @@ public sealed class HtmlEditableLayoutReviewWave31Tests {
         using ExcelDocument workbook = result.Value;
 
         ExcelImage nativeImage = Assert.Single(Assert.Single(workbook.Sheets).Images);
-        Assert.Equal(24, nativeImage.WidthPixels);
-        Assert.Equal(18, nativeImage.HeightPixels);
+        Assert.Equal(24, nativeImage.Width.ToPixels());
+        Assert.Equal(18, nativeImage.Height.ToPixels());
         Assert.Equal("Vector marker", nativeImage.Description);
     }
 
@@ -89,8 +89,8 @@ public sealed class HtmlEditableLayoutReviewWave31Tests {
             new HtmlToExcelOptions { Mode = HtmlImportMode.Generic });
         using ExcelDocument workbook = excelResult.Value;
         ExcelImage excelImage = Assert.Single(Assert.Single(workbook.Sheets).Images);
-        Assert.Equal(20, excelImage.WidthPixels);
-        Assert.Equal(20, excelImage.HeightPixels);
+        Assert.Equal(20, excelImage.Width.ToPixels());
+        Assert.Equal(20, excelImage.Height.ToPixels());
         Assert.Equal(0.25D, excelImage.CropLeftRatio, precision: 3);
         Assert.Equal(0.25D, excelImage.CropRightRatio, precision: 3);
 

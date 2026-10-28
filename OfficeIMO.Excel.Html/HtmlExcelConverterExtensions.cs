@@ -330,7 +330,7 @@ public static partial class HtmlExcelConverterExtensions {
                 out byte[] bytes, out string contentType, out HtmlImportBudgetReservation imageReservation)) return;
         using HtmlImportBudgetReservation imageReservationScope = imageReservation;
 
-        ReadImagePlacement(item, budget, result, out int row, out int column, out int width, out int height, out int offsetX, out int offsetY);
+        ReadImagePlacement(item, budget, result, out int row, out int column, out OfficeLength width, out OfficeLength height, out OfficeLength offsetX, out OfficeLength offsetY);
         string name = NormalizeText(item.QuerySelector(".officeimo-feature-label")?.TextContent);
         string description = NormalizeText(item.QuerySelector("p")?.TextContent);
         if (description.Length == 0) {
@@ -338,11 +338,11 @@ public static partial class HtmlExcelConverterExtensions {
         }
 
         ExcelImage importedImage;
-        if (IsAbsoluteImageAnchor(item) && TryReadIntAttribute(item, "data-officeimo-x", out int xPixels) && TryReadIntAttribute(item, "data-officeimo-y", out int yPixels)) {
+        if (IsAbsoluteImageAnchor(item) && TryReadImagePosition(item, "x", out double xPixels) && TryReadImagePosition(item, "y", out double yPixels)) {
             int maxGeometry = (int)Math.Min(int.MaxValue, budget.Limits.MaxAbsoluteGeometry);
-            xPixels = NormalizeImportInt(xPixels, 0, -maxGeometry, maxGeometry, budget, result, "image x position");
-            yPixels = NormalizeImportInt(yPixels, 0, -maxGeometry, maxGeometry, budget, result, "image y position");
-            importedImage = sheet.AddImageAbsolute(xPixels, yPixels, bytes, contentType, width, height, name: name.Length == 0 ? null : name, altText: description.Length == 0 ? null : description);
+            xPixels = NormalizeEditableLayoutGeometry(xPixels, 0D, -maxGeometry, maxGeometry, budget, result, "image x position");
+            yPixels = NormalizeEditableLayoutGeometry(yPixels, 0D, -maxGeometry, maxGeometry, budget, result, "image y position");
+            importedImage = sheet.AddNativeAbsoluteImage(ReadImageLength(item, "x", xPixels, false, budget, result), ReadImageLength(item, "y", yPixels, false, budget, result), bytes, contentType, width, height, name: name.Length == 0 ? null : name, altText: description.Length == 0 ? null : description);
         } else if (IsAbsoluteImageAnchor(item)) {
             AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.ContentApproximated,
                 "Image inventory item '" + (name.Length == 0 ? "Image" : name) + "' used an absolute anchor without semantic x/y coordinates and was restored to its fallback cell anchor.", lossKind: OfficeConversionLossKind.Approximation);
@@ -384,10 +384,10 @@ public static partial class HtmlExcelConverterExtensions {
         string contentType,
         int row,
         int column,
-        int width,
-        int height,
-        int offsetX,
-        int offsetY,
+        OfficeLength width,
+        OfficeLength height,
+        OfficeLength offsetX,
+        OfficeLength offsetY,
         string name,
         string description) {
         if (TryReadIntAttribute(item, "data-officeimo-to-row", out int toRow)
@@ -405,9 +405,8 @@ public static partial class HtmlExcelConverterExtensions {
                     name: name.Length == 0 ? null : name,
                     altText: description.Length == 0 ? null : description);
             }
-            int maxGeometry = (int)Math.Min(int.MaxValue, budget.Limits.MaxAbsoluteGeometry);
-            int endOffsetX = NormalizeImportInt(ReadOptionalIntAttribute(item, "data-officeimo-to-offset-x") ?? 0, 0, 0, maxGeometry, budget, result, "image ending x offset");
-            int endOffsetY = NormalizeImportInt(ReadOptionalIntAttribute(item, "data-officeimo-to-offset-y") ?? 0, 0, 0, maxGeometry, budget, result, "image ending y offset");
+            OfficeLength endOffsetX = ReadImageLength(item, "to-offset-x", TryReadDoubleAttribute(item, "data-officeimo-to-offset-x", out double endOffsetXPixels) ? endOffsetXPixels : 0D, false, budget, result);
+            OfficeLength endOffsetY = ReadImageLength(item, "to-offset-y", TryReadDoubleAttribute(item, "data-officeimo-to-offset-y", out double endOffsetYPixels) ? endOffsetYPixels : 0D, false, budget, result);
             ExcelImage importedImage = sheet.AddImageToRange(
                 BuildRangeReference(row, column, endRow, endColumn),
                 bytes,
@@ -419,7 +418,7 @@ public static partial class HtmlExcelConverterExtensions {
                 name: name.Length == 0 ? null : name,
                 altText: description.Length == 0 ? null : description);
             if (toRow <= row || toColumn <= column) {
-                importedImage.SetTwoCellEndingMarker(toRow, toColumn, endOffsetX, endOffsetY);
+                importedImage.SetNativeTwoCellEndingMarker(toRow, toColumn, endOffsetX, endOffsetY);
             }
 
             return importedImage;
@@ -640,13 +639,11 @@ public static partial class HtmlExcelConverterExtensions {
         height = NormalizeImportInt(height, 180, 1, maxGeometry, budget, result, "chart height");
     }
 
-    private static void ReadImagePlacement(IElement item, HtmlImportBudget budget, HtmlToExcelResult result, out int row, out int column, out int width, out int height, out int offsetX, out int offsetY) {
-        row = 1;
-        column = 1;
-        width = 96;
-        height = 32;
-        offsetX = 0;
-        offsetY = 0;
+    private static void ReadImagePlacement(IElement item, HtmlImportBudget budget, HtmlToExcelResult result,
+        out int row, out int column, out OfficeLength width, out OfficeLength height,
+        out OfficeLength offsetX, out OfficeLength offsetY) {
+        row = column = 1;
+        double widthPixels = 96D, heightPixels = 32D, xPixels = 0D, yPixels = 0D;
         string meta = string.Join("; ", item.QuerySelectorAll(".officeimo-feature-meta").Select(element => element.TextContent));
         foreach (string part in meta.Split(';')) {
             string value = part.Trim();
@@ -659,37 +656,29 @@ public static partial class HtmlExcelConverterExtensions {
             } else if (value.StartsWith("Size:", StringComparison.OrdinalIgnoreCase)) {
                 string[] pieces = value.Substring("Size:".Length).Split('x');
                 if (pieces.Length == 2) {
-                    _ = int.TryParse(pieces[0].Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out width);
-                    _ = int.TryParse(pieces[1].Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out height);
+                    _ = double.TryParse(pieces[0].Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out widthPixels);
+                    _ = double.TryParse(pieces[1].Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out heightPixels);
                 }
             } else if (value.StartsWith("Offset:", StringComparison.OrdinalIgnoreCase)) {
                 string[] pieces = value.Substring("Offset:".Length).Split(',');
                 if (pieces.Length == 2) {
-                    _ = int.TryParse(pieces[0].Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out offsetX);
-                    _ = int.TryParse(pieces[1].Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out offsetY);
+                    _ = double.TryParse(pieces[0].Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out xPixels);
+                    _ = double.TryParse(pieces[1].Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out yPixels);
                 }
             }
         }
-
-        row = Math.Max(1, row);
-        column = Math.Max(1, column);
-        width = Math.Max(1, width);
-        height = Math.Max(1, height);
-        offsetX = Math.Max(0, offsetX);
-        offsetY = Math.Max(0, offsetY);
-        if (TryReadIntAttribute(item, "data-officeimo-row", out int attributeRow)) row = Math.Max(1, attributeRow);
-        if (TryReadIntAttribute(item, "data-officeimo-column", out int attributeColumn)) column = Math.Max(1, attributeColumn);
-        if (TryReadIntAttribute(item, "data-officeimo-width", out int attributeWidth)) width = Math.Max(1, attributeWidth);
-        if (TryReadIntAttribute(item, "data-officeimo-height", out int attributeHeight)) height = Math.Max(1, attributeHeight);
-        if (TryReadIntAttribute(item, "data-officeimo-offset-x", out int attributeOffsetX)) offsetX = Math.Max(0, attributeOffsetX);
-        if (TryReadIntAttribute(item, "data-officeimo-offset-y", out int attributeOffsetY)) offsetY = Math.Max(0, attributeOffsetY);
+        if (TryReadIntAttribute(item, "data-officeimo-row", out int attributeRow)) row = attributeRow;
+        if (TryReadIntAttribute(item, "data-officeimo-column", out int attributeColumn)) column = attributeColumn;
+        if (TryReadDoubleAttribute(item, "data-officeimo-width", out double attributeWidth)) widthPixels = attributeWidth;
+        if (TryReadDoubleAttribute(item, "data-officeimo-height", out double attributeHeight)) heightPixels = attributeHeight;
+        if (TryReadDoubleAttribute(item, "data-officeimo-offset-x", out double attributeX)) xPixels = attributeX;
+        if (TryReadDoubleAttribute(item, "data-officeimo-offset-y", out double attributeY)) yPixels = attributeY;
         row = NormalizeImportInt(row, 1, 1, ExcelA1.MaxRows, budget, result, "image row");
         column = NormalizeImportInt(column, 1, 1, ExcelA1.MaxColumns, budget, result, "image column");
-        int maxGeometry = (int)Math.Min(int.MaxValue, budget.Limits.MaxAbsoluteGeometry);
-        width = NormalizeImportInt(width, 96, 1, maxGeometry, budget, result, "image width");
-        height = NormalizeImportInt(height, 32, 1, maxGeometry, budget, result, "image height");
-        offsetX = NormalizeImportInt(offsetX, 0, 0, maxGeometry, budget, result, "image x offset");
-        offsetY = NormalizeImportInt(offsetY, 0, 0, maxGeometry, budget, result, "image y offset");
+        width = ReadImageLength(item, "width", widthPixels, true, budget, result);
+        height = ReadImageLength(item, "height", heightPixels, true, budget, result);
+        offsetX = ReadImageLength(item, "offset-x", xPixels, false, budget, result);
+        offsetY = ReadImageLength(item, "offset-y", yPixels, false, budget, result);
     }
 
     private static void ApplyImageTransforms(IElement item, ExcelImage image, HtmlImportBudget budget, HtmlToExcelResult result) {

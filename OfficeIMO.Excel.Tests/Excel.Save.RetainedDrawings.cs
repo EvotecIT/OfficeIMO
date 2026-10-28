@@ -149,7 +149,7 @@ namespace OfficeIMO.Tests {
             ExcelChart chart = sheet.AddChart(range, 4, 1, 300, 180, title: "Before title");
             byte[] imageBytes = File.ReadAllBytes(Path.Combine(RepositoryTestPaths.Find(), "Assets", "OfficeIMO.png"));
             ExcelImage image = sheet.AddImage(12, 1, imageBytes,
-                "image/png", widthPixels: 20, heightPixels: 20);
+                "image/png", width: OfficeIMO.OfficeLength.Pixels(20), height: OfficeIMO.OfficeLength.Pixels(20));
             image.Title = "Before image";
             return (chart, image);
         }

@@ -681,7 +681,7 @@ namespace OfficeIMO.Tests
                 ExcelSheet sheet = document.AddWorksheet("Images");
                 sheet.CellValue(1, 1, "Image");
                 sheet.AddImage(2, 1, CreateFeatureReportGif(), "image/gif",
-                    widthPixels: 12, heightPixels: 12, name: "GifLogo");
+                    width: OfficeIMO.OfficeLength.Pixels(12), height: OfficeIMO.OfficeLength.Pixels(12), name: "GifLogo");
                 document.Save();
             }
 

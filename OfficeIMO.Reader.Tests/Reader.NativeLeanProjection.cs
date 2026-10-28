@@ -259,7 +259,7 @@ public sealed class ReaderNativeLeanProjectionTests {
         if (format == "excel") {
             using ExcelDocument document = ExcelDocument.Create();
             var sheet = document.AddWorksheet("Evidence"); sheet.CellValue(1, 1, "Header"); sheet.CellValue(2, 1, "Body evidence");
-            sheet.AddImage(1, 1, Pixel, widthPixels: 1, heightPixels: 1);
+            sheet.AddImage(1, 1, Pixel, width: OfficeIMO.OfficeLength.Pixels(1), height: OfficeIMO.OfficeLength.Pixels(1));
             return document.ToBytes();
         }
         using PowerPointDocument presentation = PowerPointDocument.Create();

@@ -48,8 +48,8 @@ namespace OfficeIMO.Tests {
                 1,
                 CreateSolidOpaquePng(120, 32, OfficeColor.FromRgb(37, 99, 235)),
                 "image/png",
-                widthPixels: 120,
-                heightPixels: 32,
+                width: OfficeIMO.OfficeLength.Pixels(120),
+                height: OfficeIMO.OfficeLength.Pixels(32),
                 name: "AnchorOverlay");
 
             OfficeImageExportPolicyException exception = Assert.Throws<OfficeImageExportPolicyException>(() =>

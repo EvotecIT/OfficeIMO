@@ -17,7 +17,7 @@ namespace OfficeIMO.Tests {
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddWorksheet("Images");
                 sheet.CellValue(1, 1, "Image");
-                sheet.AddImage(2, 1, CreatePngWithInvalidCrc(), "image/png", widthPixels: 12, heightPixels: 12, name: "InvalidPng");
+                sheet.AddImage(2, 1, CreatePngWithInvalidCrc(), "image/png", width: OfficeIMO.OfficeLength.Pixels(12), height: OfficeIMO.OfficeLength.Pixels(12), name: "InvalidPng");
                 document.Save();
             }
 
@@ -39,7 +39,7 @@ namespace OfficeIMO.Tests {
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddWorksheet("Images");
-                sheet.AddImage(1, 1, CreatePngWithLargeNonIhdrFirstChunk(), "image/png", widthPixels: 12, heightPixels: 12, name: "InvalidDimensions");
+                sheet.AddImage(1, 1, CreatePngWithLargeNonIhdrFirstChunk(), "image/png", width: OfficeIMO.OfficeLength.Pixels(12), height: OfficeIMO.OfficeLength.Pixels(12), name: "InvalidDimensions");
                 document.Save();
             }
 

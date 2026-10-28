@@ -135,8 +135,8 @@ public class HtmlRichGenericImports {
         Assert.Contains(sheet.GetHyperlinks().Values,
             hyperlink => hyperlink.Target == "https://example.com/item");
         Assert.Equal("Evidence", image.Description);
-        Assert.Equal(24, image.WidthPixels);
-        Assert.Equal(30, image.HeightPixels);
+        Assert.Equal(24, image.Width.ToPixels());
+        Assert.Equal(30, image.Height.ToPixels());
         Assert.Equal(1, result.Images);
         Assert.True(result.Succeeded);
     }

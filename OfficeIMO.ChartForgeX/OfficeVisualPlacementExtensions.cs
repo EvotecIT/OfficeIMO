@@ -50,10 +50,10 @@ public static partial class OfficeVisualPlacementExtensions {
         VisualArtifact artifact,
         out OfficeVisualConversionResult conversion,
         OfficeVisualConversionOptions? options = null,
-        int offsetXPixels = 0,
-        int offsetYPixels = 0) {
+        OfficeLength offsetX = default,
+        OfficeLength offsetY = default) {
         conversion = artifact.ToOfficeVisual(options);
-        return sheet.AddVisualArtifact(row, column, conversion, offsetXPixels, offsetYPixels);
+        return sheet.AddVisualArtifact(row, column, conversion, offsetX, offsetY);
     }
 
     /// <summary>Inserts a converted ChartForgeX artifact using its selected SVG or PNG payload anchored to an Excel cell.</summary>
@@ -62,8 +62,8 @@ public static partial class OfficeVisualPlacementExtensions {
         int row,
         int column,
         OfficeVisualConversionResult conversion,
-        int offsetXPixels = 0,
-        int offsetYPixels = 0) {
+        OfficeLength offsetX = default,
+        OfficeLength offsetY = default) {
         if (sheet == null) throw new ArgumentNullException(nameof(sheet));
         if (conversion == null) throw new ArgumentNullException(nameof(conversion));
         ExcelImage image = sheet.AddImage(
@@ -71,10 +71,10 @@ public static partial class OfficeVisualPlacementExtensions {
             column,
             conversion.GetPlacementBytes(),
             conversion.PlacementMediaType,
-            ToPixels(conversion.WidthPoints),
-            ToPixels(conversion.HeightPoints),
-            offsetXPixels,
-            offsetYPixels,
+            OfficeLength.Points(conversion.WidthPoints),
+            OfficeLength.Points(conversion.HeightPoints),
+            offsetX,
+            offsetY,
             name: null,
             altText: conversion.AlternativeText,
             lockAspectRatio: true);
@@ -199,8 +199,6 @@ public static partial class OfficeVisualPlacementExtensions {
             linkUri,
             linkContents)));
     }
-
-    private static int ToPixels(double points) => Math.Max(1, (int)Math.Round(points / PointsPerOfficePixel, MidpointRounding.AwayFromZero));
 
     private static string ResolveTitle(OfficeVisualConversionResult conversion) =>
         string.IsNullOrWhiteSpace(conversion.Title) ? conversion.Id : conversion.Title;

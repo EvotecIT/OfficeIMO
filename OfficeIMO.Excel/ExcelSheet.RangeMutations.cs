@@ -411,7 +411,7 @@ namespace OfficeIMO.Excel {
                 int targetRow = destinationRow + (transpose ? columnOffset : rowOffset);
                 int targetColumn = destinationColumn + (transpose ? rowOffset : columnOffset);
                 if (move) {
-                    image.Image.MoveTo(targetRow, targetColumn, image.OffsetXPixels, image.OffsetYPixels);
+                    image.Image.MoveTo(targetRow, targetColumn, image.OffsetX, image.OffsetY);
                     continue;
                 }
 
@@ -431,32 +431,32 @@ namespace OfficeIMO.Excel {
                         ExcelA1.CellReference(targetRow, targetColumn) + ":" + ExcelA1.CellReference(targetRow, targetColumn),
                         image.Bytes!,
                         image.ContentType,
-                        transpose ? image.OffsetYPixels : image.OffsetXPixels,
-                        transpose ? image.OffsetXPixels : image.OffsetYPixels,
+                        transpose ? image.OffsetY : image.OffsetX,
+                        transpose ? image.OffsetX : image.OffsetY,
                         name: copyName,
                         altText: image.Description,
                         title: image.Title,
                         lockAspectRatio: image.IsAspectRatioLocked,
                         placement: image.Placement,
                         rotationDegrees: image.RotationDegrees);
-                    copy.SetTwoCellEndingMarker(
+                    copy.SetNativeTwoCellEndingMarker(
                         toRow,
                         toColumn,
-                        transpose ? image.ToOffsetYPixels : image.ToOffsetXPixels,
-                        transpose ? image.ToOffsetXPixels : image.ToOffsetYPixels);
+                        transpose ? image.ToOffsetY : image.ToOffsetX,
+                        transpose ? image.ToOffsetX : image.ToOffsetY);
                     copy.SetSize(
-                        transpose ? image.HeightPixels : image.WidthPixels,
-                        transpose ? image.WidthPixels : image.HeightPixels);
+                        transpose ? image.Height : image.Width,
+                        transpose ? image.Width : image.Height);
                 } else {
                     copy = AddImage(
                         targetRow,
                         targetColumn,
                         image.Bytes!,
                         image.ContentType,
-                        transpose ? image.HeightPixels : image.WidthPixels,
-                        transpose ? image.WidthPixels : image.HeightPixels,
-                        transpose ? image.OffsetYPixels : image.OffsetXPixels,
-                        transpose ? image.OffsetXPixels : image.OffsetYPixels,
+                        transpose ? image.Height : image.Width,
+                        transpose ? image.Width : image.Height,
+                        transpose ? image.OffsetY : image.OffsetX,
+                        transpose ? image.OffsetX : image.OffsetY,
                         copyName,
                         image.Description,
                         image.IsAspectRatioLocked);
@@ -563,15 +563,15 @@ namespace OfficeIMO.Excel {
                 IsAspectRatioLocked = image.IsAspectRatioLocked;
                 RowIndex = image.RowIndex;
                 ColumnIndex = image.ColumnIndex;
-                WidthPixels = image.WidthPixels;
-                HeightPixels = image.HeightPixels;
-                OffsetXPixels = image.OffsetXPixels;
-                OffsetYPixels = image.OffsetYPixels;
+                Width = image.Width;
+                Height = image.Height;
+                OffsetX = image.OffsetX;
+                OffsetY = image.OffsetY;
                 HasTwoCellAnchor = image.HasTwoCellAnchor;
                 ToRowIndex = image.ToRowIndex;
                 ToColumnIndex = image.ToColumnIndex;
-                ToOffsetXPixels = image.ToOffsetXPixels;
-                ToOffsetYPixels = image.ToOffsetYPixels;
+                ToOffsetX = image.ToOffsetX;
+                ToOffsetY = image.ToOffsetY;
                 Placement = image.Placement;
                 CropLeftRatio = image.CropLeftRatio;
                 CropTopRatio = image.CropTopRatio;
@@ -592,15 +592,15 @@ namespace OfficeIMO.Excel {
             internal bool IsAspectRatioLocked { get; }
             internal int RowIndex { get; }
             internal int ColumnIndex { get; }
-            internal int WidthPixels { get; }
-            internal int HeightPixels { get; }
-            internal int OffsetXPixels { get; }
-            internal int OffsetYPixels { get; }
+            internal OfficeLength Width { get; }
+            internal OfficeLength Height { get; }
+            internal OfficeLength OffsetX { get; }
+            internal OfficeLength OffsetY { get; }
             internal bool HasTwoCellAnchor { get; }
             internal int? ToRowIndex { get; }
             internal int? ToColumnIndex { get; }
-            internal int ToOffsetXPixels { get; }
-            internal int ToOffsetYPixels { get; }
+            internal OfficeLength ToOffsetX { get; }
+            internal OfficeLength ToOffsetY { get; }
             internal ExcelImagePlacement Placement { get; }
             internal double CropLeftRatio { get; }
             internal double CropTopRatio { get; }

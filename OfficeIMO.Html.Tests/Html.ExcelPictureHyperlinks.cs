@@ -24,8 +24,8 @@ public sealed class HtmlExcelPictureHyperlinkTests {
         ExcelImage image = reopened.Sheets.Single().Images.Single();
         Assert.Equal(target, image.HyperlinkUri!.OriginalString);
         Assert.Equal(png, image.ToBytes());
-        Assert.Equal(32, image.WidthPixels);
-        Assert.Equal(16, image.HeightPixels);
+        Assert.Equal(32, image.Width.ToPixels());
+        Assert.Equal(16, image.Height.ToPixels());
         using var native = SpreadsheetDocument.Open(new MemoryStream(artifact.ToArray()), false);
         Assert.Empty(new OpenXmlValidator().Validate(native));
     }
@@ -35,7 +35,7 @@ public sealed class HtmlExcelPictureHyperlinkTests {
         using var source = ExcelDocument.Create();
         ExcelSheet sheet = source.AddWorksheet("Pictures");
         byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(2, 2, OfficeColor.Red));
-        ExcelImage sourceImage = sheet.AddImage(2, 1, png, "image/png", 32, 16);
+        ExcelImage sourceImage = sheet.AddImage(2, 1, png, "image/png", OfficeIMO.OfficeLength.Pixels(32), OfficeIMO.OfficeLength.Pixels(16));
         var target = new Uri("https://example.org/photo?item=1&view=full");
         sourceImage.HyperlinkUri = target;
         string html = source.ToHtml();
@@ -48,8 +48,8 @@ public sealed class HtmlExcelPictureHyperlinkTests {
         Assert.Equal(png, image.ToBytes());
         Assert.Equal(2, image.RowIndex);
         Assert.Equal(1, image.ColumnIndex);
-        Assert.Equal(32, image.WidthPixels);
-        Assert.Equal(16, image.HeightPixels);
+        Assert.Equal(32, image.Width.ToPixels());
+        Assert.Equal(16, image.Height.ToPixels());
     }
     [Theory]
     [InlineData("https://example.org/photo?item=1&view=full", true)]
@@ -60,7 +60,7 @@ public sealed class HtmlExcelPictureHyperlinkTests {
         ExcelSheet sheet = document.AddWorksheet("Pictures");
         sheet.Cell(1, 1, "Photo");
         byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(2, 2, OfficeColor.Red));
-        sheet.AddImage(1, 1, png, "image/png", 32, 16).HyperlinkUri = new Uri(target, UriKind.RelativeOrAbsolute);
+        sheet.AddImage(1, 1, png, "image/png", OfficeIMO.OfficeLength.Pixels(32), OfficeIMO.OfficeLength.Pixels(16)).HyperlinkUri = new Uri(target, UriKind.RelativeOrAbsolute);
         var result = sheet.ToHtmlResult(new ExcelHtmlSaveOptions { ExportProfile = ExcelHtmlExportProfile.VisualReview });
         var parsed = System.Xml.Linq.XElement.Parse(result.Value.Substring(result.Value.IndexOf("<svg"), result.Value.IndexOf("</svg>") + 6 - result.Value.IndexOf("<svg")));
         var links = parsed.Descendants().Where(element => element.Name.LocalName == "a").ToArray();

@@ -272,7 +272,7 @@ public static partial class ExcelIWorkConverter {
                 ExcelSheet sheet = document.AddWorksheet("Preview");
                 IWorkPreviewAsset visualPreview = preview!;
                 (int width, int height) = PreviewSize(visualPreview);
-                sheet.AddImage(1, 1, visualPreview.GetBytes(), visualPreview.MediaType, width, height,
+                sheet.AddImage(1, 1, visualPreview.GetBytes(), visualPreview.MediaType, OfficeIMO.OfficeLength.Pixels(width), OfficeIMO.OfficeLength.Pixels(height),
                     name: "Numbers visual fallback", altText: "Visual fallback from the source Numbers package");
             }
 

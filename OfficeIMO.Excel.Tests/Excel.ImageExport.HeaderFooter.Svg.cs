@@ -130,7 +130,7 @@ public sealed class ExcelHeaderFooterSvgImageExportTests {
         Assert.Contains("A|ar-SA", direct.Requests);
         using ExcelDocument document = ExcelDocument.Create(new MemoryStream());
         ExcelSheet sheet = document.AddWorksheet("Report");
-        sheet.AddImage(1, 1, svg, "image/svg+xml", 80, 40);
+        sheet.AddImage(1, 1, svg, "image/svg+xml", OfficeIMO.OfficeLength.Pixels(80), OfficeIMO.OfficeLength.Pixels(40));
         var anchored = new RecordingShaper();
         sheet.Range("A1:D4").ExportImage(OfficeImageExportFormat.Png, new ExcelImageExportOptions {
             ShowGridlines = false, TextShapingProvider = anchored, TextShapingLanguage = "ar-SA"

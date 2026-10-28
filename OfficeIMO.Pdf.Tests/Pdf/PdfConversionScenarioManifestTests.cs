@@ -2444,7 +2444,7 @@ public sealed class PdfConversionScenarioManifestTests {
             sheet.SetColumnWidth(5, ExcelColumnWidth.Characters(16));
             sheet.AddConditionalColorScale("B4:B7", "FFFFF2CC", "FF70AD47");
             sheet.AddConditionalDataBar("C4:C7", "FF5B9BD5");
-            sheet.AddImage(10, 1, PdfPngTestImages.CreateRgbPng(2, 2), "image/png", widthPixels: 36, heightPixels: 24, name: "Dashboard badge", altText: "Dashboard badge");
+            sheet.AddImage(10, 1, PdfPngTestImages.CreateRgbPng(2, 2), "image/png", width: OfficeIMO.OfficeLength.Pixels(36), height: OfficeIMO.OfficeLength.Pixels(24), name: "Dashboard badge", altText: "Dashboard badge");
             var chartData = new ExcelChartData(
                 new[] { "Renewals", "New business", "Services", "Expansion" },
                 new[] {

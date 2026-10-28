@@ -327,7 +327,7 @@ namespace OfficeIMO.Tests {
 
             using (var document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddWorksheet("Images");
-                sheet.AddImage(1, 1, image, "image/png", widthPixels: 16, heightPixels: 16, name: "Absolute image");
+                sheet.AddImage(1, 1, image, "image/png", width: OfficeIMO.OfficeLength.Pixels(16), height: OfficeIMO.OfficeLength.Pixels(16), name: "Absolute image");
                 document.Save();
             }
 
@@ -358,7 +358,7 @@ namespace OfficeIMO.Tests {
 
             using var document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddWorksheet("Images");
-            ExcelImage imageRecord = sheet.AddImage(1, 1, image, "image/png", widthPixels: 16, heightPixels: 16);
+            ExcelImage imageRecord = sheet.AddImage(1, 1, image, "image/png", width: OfficeIMO.OfficeLength.Pixels(16), height: OfficeIMO.OfficeLength.Pixels(16));
 
             Assert.Throws<ArgumentOutOfRangeException>(() => imageRecord.MoveTo(ExcelA1.MaxRows + 1, 1));
             Assert.Throws<ArgumentOutOfRangeException>(() => imageRecord.MoveTo(1, ExcelA1.MaxColumns + 1));
@@ -371,7 +371,7 @@ namespace OfficeIMO.Tests {
 
             using (var document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddWorksheet("Images");
-                sheet.AddImage(1, 1, image, "image/png", widthPixels: 16, heightPixels: 16, name: "Resizable image");
+                sheet.AddImage(1, 1, image, "image/png", width: OfficeIMO.OfficeLength.Pixels(16), height: OfficeIMO.OfficeLength.Pixels(16), name: "Resizable image");
                 document.Save();
             }
 
@@ -400,7 +400,7 @@ namespace OfficeIMO.Tests {
 
             using (var document = ExcelDocument.Load(filePath)) {
                 ExcelImage imageRecord = Assert.Single(document["Images"].Images);
-                imageRecord.MoveTo(3, 4, offsetXPixels: 5, offsetYPixels: 7);
+                imageRecord.MoveTo(3, 4, offsetX: OfficeLength.Pixels(5), offsetY: OfficeLength.Pixels(7));
                 document.Save();
             }
 

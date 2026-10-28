@@ -3,7 +3,7 @@ using System.Threading.Tasks;
 using OfficeIMO.Drawing;
 
 namespace OfficeIMO.Excel {
-    // Image helpers for ExcelReportBuilder that forward to the underlying sheet and keep chaining.
+    // Image authoring forwards to the sheet and returns its attached image.
     public sealed partial class ExcelReportBuilder {
         /// <summary>
         /// Inserts an image anchored to a specific cell.
@@ -12,13 +12,12 @@ namespace OfficeIMO.Excel {
         /// <param name="column">1-based column index.</param>
         /// <param name="bytes">Image bytes.</param>
         /// <param name="contentType">Image content type (e.g., image/png).</param>
-        /// <param name="widthPixels">Width in pixels.</param>
-        /// <param name="heightPixels">Height in pixels.</param>
-        /// <param name="offsetXPixels">Optional X offset in pixels.</param>
-        /// <param name="offsetYPixels">Optional Y offset in pixels.</param>
-        public ExcelReportBuilder ImageAt(int row, int column, byte[] bytes, string contentType = "image/png", int widthPixels = 96, int heightPixels = 32, int offsetXPixels = 0, int offsetYPixels = 0) {
-            Sheet.AddImage(row, column, bytes, contentType, widthPixels, heightPixels, offsetXPixels, offsetYPixels);
-            return this;
+        /// <param name="width">Width as a document length.</param>
+        /// <param name="height">Height as a document length.</param>
+        /// <param name="offsetX">Optional X offset as a document length.</param>
+        /// <param name="offsetY">Optional Y offset as a document length.</param>
+        public ExcelImage AddImage(int row, int column, byte[] bytes, string contentType = "image/png", OfficeLength? width = null, OfficeLength? height = null, OfficeLength offsetX = default, OfficeLength offsetY = default) {
+            return Sheet.AddImage(row, column, bytes, contentType, width, height, offsetX, offsetY);
         }
 
         /// <summary>
@@ -27,27 +26,25 @@ namespace OfficeIMO.Excel {
         /// <param name="row">1-based row index.</param>
         /// <param name="column">1-based column index.</param>
         /// <param name="url">Direct URL to an image.</param>
-        /// <param name="widthPixels">Width in pixels.</param>
-        /// <param name="heightPixels">Height in pixels.</param>
-        /// <param name="offsetXPixels">Optional X offset in pixels.</param>
-        /// <param name="offsetYPixels">Optional Y offset in pixels.</param>
+        /// <param name="width">Width as a document length.</param>
+        /// <param name="height">Height as a document length.</param>
+        /// <param name="offsetX">Optional X offset as a document length.</param>
+        /// <param name="offsetY">Optional Y offset as a document length.</param>
         /// <param name="cancellationToken">Token used to cancel the remote request.</param>
-        public async Task<ExcelReportBuilder> ImageFromUrlAtAsync(int row, int column, string url, int widthPixels = 96,
-            int heightPixels = 32, int offsetXPixels = 0, int offsetYPixels = 0,
+        public async Task<ExcelImage> AddImageFromUrlAsync(int row, int column, string url, OfficeLength? width = null,
+            OfficeLength? height = null, OfficeLength offsetX = default, OfficeLength offsetY = default,
             CancellationToken cancellationToken = default) {
-            await Sheet.AddImageFromUrlAtAsync(row, column, url, widthPixels, heightPixels, offsetXPixels,
-                offsetYPixels, cancellationToken).ConfigureAwait(false);
-            return this;
+            return await Sheet.AddImageFromUrlAsync(row, column, url, width, height, offsetX: offsetX,
+                offsetY: offsetY, cancellationToken: cancellationToken).ConfigureAwait(false);
         }
 
         /// <summary>Downloads an image with an explicit remote-network policy and inserts it at a cell.</summary>
-        public async Task<ExcelReportBuilder> ImageFromUrlAtAsync(int row, int column, string url,
-            OfficeRemoteImageLoadOptions remoteImageOptions, int widthPixels = 96, int heightPixels = 32,
-            int offsetXPixels = 0, int offsetYPixels = 0, CancellationToken cancellationToken = default) {
+        public async Task<ExcelImage> AddImageFromUrlAsync(int row, int column, string url,
+            OfficeRemoteImageLoadOptions remoteImageOptions, OfficeLength? width = null, OfficeLength? height = null,
+            OfficeLength offsetX = default, OfficeLength offsetY = default, CancellationToken cancellationToken = default) {
             if (remoteImageOptions == null) throw new ArgumentNullException(nameof(remoteImageOptions));
-            await Sheet.AddImageFromUrlAtAsync(row, column, url, remoteImageOptions, widthPixels, heightPixels,
-                offsetXPixels, offsetYPixels, cancellationToken).ConfigureAwait(false);
-            return this;
+            return await Sheet.AddImageFromUrlWithOptionsAsync(row, column, url, remoteImageOptions, width, height,
+                offsetX, offsetY, cancellationToken: cancellationToken).ConfigureAwait(false);
         }
     }
 }
