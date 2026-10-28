@@ -152,6 +152,7 @@ namespace OfficeIMO.Excel.Xlsb {
             }
 
             ReadVbaProjectGraph(parts, workbookPartName!, relationships, resolved, workbook);
+            ReadThemeGraph(parts, workbookPartName!, relationships, resolved, workbook);
             workbook.SharedStringCount = sharedStrings.Count;
             if (workbook.PreservedRecords.Count > 0) {
                 workbook.AddDiagnostic(new XlsbImportDiagnostic(

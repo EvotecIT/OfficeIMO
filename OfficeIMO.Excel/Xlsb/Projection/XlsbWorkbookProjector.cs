@@ -78,6 +78,7 @@ namespace OfficeIMO.Excel.Xlsb.Projection {
                     }
                 }
 
+                relatedParts.ProjectTheme();
                 relatedParts.ProjectVba();
                 XlsbDefinedNameProjector.Apply(document, workbook.DefinedNames);
 

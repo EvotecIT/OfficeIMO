@@ -31,6 +31,8 @@ namespace OfficeIMO.Excel.Xlsb.Model {
 
         internal string? VbaProjectPartName { get; set; }
 
+        internal string? ThemePartName { get; set; }
+
         internal IReadOnlyList<XlsbDefinedName> DefinedNames => _definedNames;
 
         internal IReadOnlyList<XlsbExternalSheetReference> ExternalSheetReferences => _externalSheetReferences;

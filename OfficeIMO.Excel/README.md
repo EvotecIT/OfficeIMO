@@ -376,7 +376,7 @@ unmodified package parts. Supported cell edits use a native preservation-aware
 rewrite. Unsupported mutations and save-time transforms fail before output is
 written, so `.xlsx` bytes are never disguised as `.xlsb`.
 
-Chart-sheet drawing/chart parts and linked VBA project parts are projected through
+Chart-sheet drawing/chart parts, workbook themes and linked VBA project parts are projected through
 their original relationships without executing macros or following external links.
 Native cell, formula, style and worksheet rename/add/remove/reorder operations
 retain chart and VBA carriers. Structure edits update references, scoped names,
@@ -386,8 +386,13 @@ evaluate supported formulas, clear caches or request native recalculation.
 Editing the retained artwork or other unsupported package content remains guarded;
 use macro-compatible Open XML output for those edits. Unprojected chart-sheet view, protection and print records remain visible
 in `XlsbPreservedRecords`; native preservation does not imply lossless conversion.
-`MaxRelatedParts` and `MaxRelationshipDepth` bound imported chart/VBA graphs in
+`MaxRelatedParts` and `MaxRelationshipDepth` bound imported chart/theme/VBA graphs in
 addition to the existing decompressed-part and package budgets.
+
+New native XLSB workbooks retain their standalone DrawingML theme, including its
+color and font schemes. Themes with related payloads are rejected rather than
+discarded. Imported theme graphs are retained during supported native edits;
+changing those graphs requires Open XML output.
 
 New XLSB workbooks use inline text cells by default. To deduplicate repeated
 text across worksheets, save with `new ExcelSaveOptions { XlsbUseSharedStrings = true }`.
