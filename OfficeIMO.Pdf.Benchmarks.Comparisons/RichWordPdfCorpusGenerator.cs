@@ -75,20 +75,19 @@ internal static class RichWordPdfCorpusGenerator {
             pdfOptions.RegisterFontFamily(
                 PdfStandardFont.Helvetica,
                 new PdfEmbeddedFontFamily("Carlito", PdfBenchmarkAssets.CarlitoRegular));
-            PdfSaveResult saveResult = document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
+            OfficeConversionReport saveResult = document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
                 FontFamily = "Carlito",
                 PdfOptions = pdfOptions,
                 DefaultTableBorders = true
             });
-            saveResult.RequireSuccess();
             string[] allowedDiagnosticCodes = {
                 global::OfficeIMO.OfficeDiagnosticCodes.FontFamilySubstitution,
                 global::OfficeIMO.OfficeDiagnosticCodes.ChartQuality,
                 global::OfficeIMO.OfficeDiagnosticCodes.NativeBodySmartArtUnsupported,
                 "unsupported-font-ligature-substitution"
             };
-            PdfConversionWarning[] unexpectedWarnings = saveResult.Warnings
-                .Where(warning => warning.Severity != PdfConversionWarningSeverity.Information &&
+            OfficeDiagnostic[] unexpectedWarnings = saveResult.Diagnostics
+                .Where(warning => warning.Severity != OfficeDiagnosticSeverity.Information &&
                     !allowedDiagnosticCodes.Contains(warning.Code, StringComparer.Ordinal))
                 .ToArray();
             if (unexpectedWarnings.Length > 0) {
@@ -115,7 +114,8 @@ internal static class RichWordPdfCorpusGenerator {
     private static void ValidateGeneratedPdf(string pdfPath) {
         byte[] bytes = File.ReadAllBytes(pdfPath);
         var readOptions = new PdfLoadOptions { IncludeArtifactText = true };
-        PdfReadDocument readDocument = PdfReadDocument.Open(bytes, readOptions);
+        using var readDocumentStream = new MemoryStream(bytes, writable: false);
+        using PdfDocument readDocument = PdfDocument.Load(readDocumentStream, readOptions);
         if (readDocument.Pages.Count != PageCount) {
             throw new InvalidDataException(
                 $"Rich Word PDF has {readDocument.Pages.Count} pages; expected {PageCount}.");
@@ -137,7 +137,8 @@ internal static class RichWordPdfCorpusGenerator {
             }
         }
 
-        OfficeIMO.Pdf.PdfDocument opened = OfficeIMO.Pdf.PdfDocument.Load(bytes, readOptions);
+        using var openedStream = new MemoryStream(bytes, writable: false);
+        using OfficeIMO.Pdf.PdfDocument opened = OfficeIMO.Pdf.PdfDocument.Load(openedStream, readOptions);
         if (opened.Images.Placements().Count == 0) {
             throw new InvalidDataException("Rich Word PDF did not preserve its embedded image.");
         }
@@ -149,17 +150,21 @@ internal static class RichWordPdfCorpusGenerator {
         }
     }
 
-    private static void WriteConversionReport(string path, PdfSaveResult result) {
+    private static void WriteConversionReport(string path, OfficeConversionReport result) {
         var payload = new {
-            fidelityStatus = result.Report.FidelityStatus.ToString(),
+            result.Source,
+            result.Target,
+            result.OutputPath,
+            result.ItemsWritten,
+            elapsed = result.Elapsed,
             hasLoss = result.HasLoss,
-            warnings = result.Warnings.Select(static warning => new {
-                warning.Converter,
-                warning.Code,
-                warning.Source,
-                warning.Message,
-                severity = warning.Severity.ToString(),
-                warning.Details
+            diagnostics = result.Diagnostics.Select(static diagnostic => new {
+                diagnostic.Code,
+                diagnostic.Format,
+                diagnostic.Location,
+                diagnostic.Message,
+                severity = diagnostic.Severity.ToString(),
+                lossKind = diagnostic.LossKind.ToString()
             })
         };
         File.WriteAllText(path, JsonSerializer.Serialize(payload, new JsonSerializerOptions { WriteIndented = true }));

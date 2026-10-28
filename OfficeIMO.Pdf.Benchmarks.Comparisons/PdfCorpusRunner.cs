@@ -189,10 +189,12 @@ internal static partial class PdfCorpusRunner {
             ValidatePageExpectations(entry, officeDocument);
 
             if (recall < entry.MinimumTokenRecall) {
+                using var debugInput = new MemoryStream(bytes, writable: false);
+                using OfficePdfDocument debugDocument = OfficePdfDocument.Load(debugInput);
                 WriteSpanDiagnostics(bytes, readOptions, diagnosticsDirectory, entry.Id);
                 File.WriteAllText(
                     GetEntryOutputPath(diagnosticsDirectory, entry.Id, ".officeimo.debug.txt"),
-                    OfficePdfDocument.Load(bytes).Debug(new OfficeIMO.Pdf.PdfDebuggerOptions {
+                    debugDocument.Debug(new OfficeIMO.Pdf.PdfDebuggerOptions {
                         IncludeDecodedStreamPreviews = true,
                         MaxDecodedStreamPreviewBytes = 64 * 1024
                     }).ToText());
@@ -316,7 +318,8 @@ internal static partial class PdfCorpusRunner {
         string diagnosticsDirectory,
         string entryId) {
         const int maxSpans = 10_000;
-        OfficeIMO.Pdf.PdfReadDocument document = OfficeIMO.Pdf.PdfReadDocument.Open(bytes, readOptions);
+        using var documentStream = new MemoryStream(bytes, writable: false);
+        using OfficeIMO.Pdf.PdfDocument document = OfficeIMO.Pdf.PdfDocument.Load(documentStream, readOptions);
         using var writer = new StreamWriter(GetEntryOutputPath(diagnosticsDirectory, entryId, ".officeimo.spans.txt"));
         int written = 0;
         for (int pageIndex = 0; pageIndex < document.Pages.Count && written < maxSpans; pageIndex++) {

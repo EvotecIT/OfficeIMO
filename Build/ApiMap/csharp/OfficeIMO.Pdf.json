@@ -3367,6 +3367,16 @@
       "reason": "Full solution compilation exposed remaining callers of the removed format-plus-detailed-result image overload. Tests now set Format on PdfImageExportOptions, compare returned bytes directly, and dispose loaded documents. Page identity, DPI and permission assertions remain.",
       "phase": "B",
       "applied": "phase-b-applied"
+    },
+    {
+      "change": "Migrate optional PDF comparison consumers to the document API",
+      "reason": "Comparison and evidence producers use stream-based Load, public document reading and source conversions, and dispose their document/stream results. Removed isolated preflight timings become explicitly named consolidated analysis workloads. The deterministic fixture now uses numeric running-page header/footer identities supported by the reader; all semantic labels and 100 percent thresholds remain. No private reader access, compatibility facade, dependency or library reader heuristic is added.",
+      "files": [
+        "OfficeIMO.Pdf.Benchmarks.Comparisons/"
+      ],
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "notes": "The pinned comparison-only PdfPecker package keeps its own PdfOptions type; two accidental OfficeIMO-style options renames are corrected without a package/version change. Existing benchmark crypto advisory warnings remain outside this change."
     }
   ],
   "applicationStatus": "Phase A applied and validated on the supported macOS targets. Phase B and Tier 2 entries retain their status; Windows .NET Framework validation remains pending.",

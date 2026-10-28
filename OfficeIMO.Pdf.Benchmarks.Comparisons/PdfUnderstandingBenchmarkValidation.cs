@@ -50,7 +50,8 @@ internal static class PdfUnderstandingBenchmarkValidation {
         PdfBinaryClassificationScore tables = EvaluateTableDetection(document, corpus.Pages);
         PdfBinaryClassificationScore adjacency = EvaluateCellAdjacency(document, corpus.Pages);
 
-        PdfDocument continuationSource = PdfDocument.Load(corpus.ContinuationPdf);
+        using var continuationSourceStream = new MemoryStream(corpus.ContinuationPdf, writable: false);
+        using PdfDocument continuationSource = PdfDocument.Load(continuationSourceStream);
         PdfDocumentReadResult continuationDocument = continuationSource.Read(new PdfLoadOptions {
             Profile = PdfReadProfile.Structured
         });

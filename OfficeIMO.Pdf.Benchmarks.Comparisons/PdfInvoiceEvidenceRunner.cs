@@ -67,7 +67,8 @@ internal static class PdfInvoiceEvidenceRunner {
         string path = Path.Combine(output, engine + ".pdf");
         File.WriteAllBytes(path, pdf);
 
-        PdfDocument document = PdfDocument.Load(pdf);
+        using var documentStream = new MemoryStream(pdf, writable: false);
+        using PdfDocument document = PdfDocument.Load(documentStream);
         IReadOnlyList<PdfPageRenderResult> rendered = document.Render.Pages("1-2", new PdfPageRenderOptions {
             Format = global::OfficeIMO.Drawing.OfficeImageExportFormat.Png,
             Dpi = 120,

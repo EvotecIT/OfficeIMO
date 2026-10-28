@@ -75,10 +75,11 @@ public class PdfDirectDestinationScalingBenchmarks {
         return source.Pages.Count;
     }
 
+    /// <summary>Measures the complete consolidated analysis report for a source with direct destinations.</summary>
     [Benchmark]
-    public PdfDocumentPreflight PreflightSource() {
+    public PdfAnalysisReport AnalyzeSource() {
         using PdfDocument source = Load(_source);
-        return source.Analyze().Preflight;
+        return source.Analyze();
     }
 
     [Benchmark]

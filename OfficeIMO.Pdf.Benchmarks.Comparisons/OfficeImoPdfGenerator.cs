@@ -33,9 +33,9 @@ internal static class OfficeImoPdfGenerator {
         return document.ToBytes();
     }
 
-    internal static byte[] GenerateHtml(string html, PdfEmbeddedFontFamily? fontFamily = null) =>
-        HtmlConversionDocument.Parse(html).ToPdfBytes(new HtmlToPdfOptions {
-            FontFamily = fontFamily
-        });
-
+    internal static byte[] GenerateHtml(string html, PdfEmbeddedFontFamily? fontFamily = null) {
+        HtmlConversionDocument source = HtmlConversionDocument.Parse(html);
+        using PdfDocument document = source.ToPdf(new HtmlToPdfOptions { FontFamily = fontFamily });
+        return document.ToBytes();
+    }
 }

@@ -200,7 +200,9 @@ internal static class HtmlMhtmlEvidenceRunner {
             long allocatedBytes = GC.GetTotalAllocatedBytes(precise: true) - allocationStart;
             string file = name + ".pdf";
             await File.WriteAllBytesAsync(Path.Combine(output, file), bytes).ConfigureAwait(false);
-            PdfCore.PdfDocumentInfo inspection = PdfCore.PdfDocument.Load(bytes).Inspect();
+            using var pdfInput = new MemoryStream(bytes, writable: false);
+            using PdfCore.PdfDocument pdfDocument = PdfCore.PdfDocument.Load(pdfInput);
+            PdfCore.PdfDocumentInfo inspection = pdfDocument.Inspect();
             var warnings = result.Report.Warnings.Select(warning => new WarningEvidence(
                 warning.Converter,
                 warning.Code,

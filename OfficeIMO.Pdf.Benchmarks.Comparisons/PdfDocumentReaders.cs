@@ -37,14 +37,17 @@ internal static class PdfDocumentReaders {
 
     internal static global::OfficeIMO.Pdf.PdfDocumentReadResult ReadOfficeImoStructured(
         byte[] pdf,
-        global::OfficeIMO.Pdf.PdfLoadOptions? loadOptions = null) => OfficePdfDocument
-            .Load(pdf, loadOptions)
-            .Read(new global::OfficeIMO.Pdf.PdfLoadOptions {
-                Profile = global::OfficeIMO.Pdf.PdfReadProfile.Structured
+        global::OfficeIMO.Pdf.PdfLoadOptions? loadOptions = null) {
+        using var input = new MemoryStream(pdf, writable: false);
+        using OfficePdfDocument document = OfficePdfDocument.Load(input, loadOptions);
+        return document.Read(new global::OfficeIMO.Pdf.PdfLoadOptions {
+            Profile = global::OfficeIMO.Pdf.PdfReadProfile.Structured
         });
+    }
 
     private static PdfReadObservation ReadWithOfficeImo(byte[] pdf) {
-        global::OfficeIMO.Pdf.PdfReadDocument document = global::OfficeIMO.Pdf.PdfReadDocument.Open(pdf);
+        using var documentStream = new MemoryStream(pdf, writable: false);
+        using global::OfficeIMO.Pdf.PdfDocument document = global::OfficeIMO.Pdf.PdfDocument.Load(documentStream);
         string text = document.ExtractText();
         return PdfBenchmarkValidation.Observe(document.Pages.Count, text);
     }

@@ -3,9 +3,12 @@ using OfficeIMO.Pdf;
 
 namespace OfficeIMO.Pdf.Benchmarks.Comparisons;
 
-/// <summary>Measures preflight across page-count boundaries with and without catalog features.</summary>
+/// <summary>
+/// Measures consolidated health, capability, optimization, signature, and append-only analysis
+/// across page-count boundaries. Results are not comparable to former isolated-preflight timings.
+/// </summary>
 [MemoryDiagnoser]
-public class PdfPreflightScalingBenchmarks {
+public class PdfAnalysisScalingBenchmarks {
     private byte[] _source = null!;
 
     [Params(5, 6, 50, 500)]
@@ -23,7 +26,7 @@ public class PdfPreflightScalingBenchmarks {
                 ? new PdfViewerPreferencesOptions { DisplayDocTitle = true }
                 : null
         };
-        PdfDocument document = PdfDocument.Create(pdf => pdf.Content(content => {
+        using PdfDocument document = PdfDocument.Create(pdf => pdf.Content(content => {
             for (int page = 1; page <= PageCount; page++) {
                 if (page > 1) {
                     content.PageBreak();
@@ -34,7 +37,9 @@ public class PdfPreflightScalingBenchmarks {
         }), options).Meta(title: "Preflight scaling");
 
         _source = document.ToBytes();
-        PdfDocumentPreflight result = PdfDocument.Preflight(_source);
+        using var input = new MemoryStream(_source, writable: false);
+        using PdfDocument loaded = PdfDocument.Load(input);
+        PdfDocumentPreflight result = loaded.Analyze().Preflight;
         if (!result.CanRead || !result.CanRewrite || result.DocumentInfo?.PageCount != PageCount ||
             result.Probe.HasPageLabels != FeatureRich ||
             result.Probe.HasXmpMetadata != FeatureRich ||
@@ -44,5 +49,9 @@ public class PdfPreflightScalingBenchmarks {
     }
 
     [Benchmark]
-    public PdfDocumentPreflight Preflight() => PdfDocument.Preflight(_source);
+    public PdfAnalysisReport Analyze() {
+        using var input = new MemoryStream(_source, writable: false);
+        using PdfDocument document = PdfDocument.Load(input);
+        return document.Analyze();
+    }
 }

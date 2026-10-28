@@ -33,7 +33,7 @@ internal static class PdfUnderstandingBenchmarkCorpusFactory {
                 }
 
                 string suffix = AlphabeticPageToken(pageNumber);
-                string header = "HEADER-P" + suffix;
+                string header = "HEADER-P" + pageNumber.ToString("D3", System.Globalization.CultureInfo.InvariantCulture);
                 string title = "TITLE-P" + suffix;
                 string leftOne = "LEFT-ONE-P" + suffix;
                 string leftTwo = "LEFT-TWO-P" + suffix;
@@ -44,7 +44,7 @@ internal static class PdfUnderstandingBenchmarkCorpusFactory {
                 string list = "LIST-P" + suffix;
                 string caption = "CAPTION-P" + suffix;
                 string table = "TABLE-P" + suffix;
-                string footer = "FOOTER-P" + suffix;
+                string footer = "FOOTER-P" + pageNumber.ToString("D3", System.Globalization.CultureInfo.InvariantCulture);
                 string ownerHeader = "OH-P" + suffix;
                 string amountHeader = "AH-P" + suffix;
                 string statusHeader = "SH-P" + suffix;
@@ -136,7 +136,9 @@ internal static class PdfUnderstandingBenchmarkCorpusFactory {
         }));
 
         byte[] continuationPdf = CreateContinuationPdf();
-        int continuationPageCount = PdfReadDocument.Open(continuationPdf).Pages.Count;
+        using var continuationInput = new MemoryStream(continuationPdf, writable: false);
+        using PdfDocument continuationDocument = PdfDocument.Load(continuationInput);
+        int continuationPageCount = continuationDocument.Pages.Count;
         var continuationPairs = Enumerable.Range(1, Math.Max(0, continuationPageCount - 1))
             .Select(static page => (page, page + 1))
             .ToArray();
