@@ -447,16 +447,19 @@ namespace OfficeIMO.PowerPoint {
         private static IEnumerable<A.DefaultRunProperties> FindDefaultRunProperties(
             OpenXmlCompositeElement? container,
             int level) {
-            A.DefaultRunProperties? levelDefaults = container?
+            foreach (A.TextParagraphPropertiesType properties in FindParagraphProperties(container, level)) {
+                if (properties.GetFirstChild<A.DefaultRunProperties>() is { } defaults) yield return defaults;
+            }
+        }
+
+        private static IEnumerable<A.TextParagraphPropertiesType> FindParagraphProperties(
+            OpenXmlCompositeElement? container, int level) {
+            A.TextParagraphPropertiesType? levelProperties = container?
                 .ChildElements
                 .OfType<A.TextParagraphPropertiesType>()
-                .FirstOrDefault(properties => GetTextLevel(properties) == level)?
-                .GetFirstChild<A.DefaultRunProperties>();
-            if (levelDefaults != null) yield return levelDefaults;
-            A.DefaultRunProperties? fallbackDefaults = container?
-                .GetFirstChild<A.DefaultParagraphProperties>()?
-                .GetFirstChild<A.DefaultRunProperties>();
-            if (fallbackDefaults != null) yield return fallbackDefaults;
+                .FirstOrDefault(properties => GetTextLevel(properties) == level);
+            if (levelProperties != null) yield return levelProperties;
+            if (container?.GetFirstChild<A.DefaultParagraphProperties>() is { } fallback) yield return fallback;
         }
 
         private static int GetTextLevel(A.TextParagraphPropertiesType properties) => properties switch {

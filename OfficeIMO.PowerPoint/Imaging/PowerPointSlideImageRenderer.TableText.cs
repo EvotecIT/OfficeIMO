@@ -166,6 +166,8 @@ internal static partial class PowerPointSlideImageRenderer {
 
     private static OfficeRichTextRun CreateRichTextRun(string text, PowerPointTextRun? run, PowerPointTableCell cell, PowerPointParagraph? paragraph, A.ColorScheme? colorScheme, PowerPointShapeBoundsMapping mapping, bool markerRun = false) {
         OfficeColor color = ResolveTableCellTextRunColor(run, cell, colorScheme);
+        if (markerRun && paragraph != null)
+            color = PowerPointEffectiveRunStyleResolver.ResolveBulletColorForExport(paragraph, cell, colorScheme, color);
         OfficeColor? backgroundColor = ResolveTableCellTextRunBackgroundColor(run, colorScheme);
         Uri? hyperlink = markerRun ? null : run?.Hyperlink;
         return new OfficeRichTextRun(

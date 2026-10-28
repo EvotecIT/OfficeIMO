@@ -264,6 +264,8 @@ namespace OfficeIMO.PowerPoint {
 
         private static OfficeRichTextRun CreateRichTextRun(string text, PowerPointTextRun? run, PowerPointTextBox textBox, PowerPointParagraph? paragraph, A.ColorScheme? colorScheme, PowerPointShapeBoundsMapping mapping, bool markerRun = false, string? defaultFontFamily = null) {
             OfficeColor color = ResolveTextRunColor(run, textBox, colorScheme, paragraph);
+            if (markerRun && paragraph != null)
+                color = PowerPointEffectiveRunStyleResolver.ResolveBulletColorForExport(paragraph, textBox, color);
             OfficeColor? backgroundColor = ResolveTextRunBackgroundColor(run, textBox, colorScheme);
             return new OfficeRichTextRun(
                 ResolvePowerPointDisplayText(text, run, paragraph, markerRun),
