@@ -80,6 +80,7 @@ namespace OfficeIMO.PowerPoint {
         internal double? TitleSize { get; set; }
         internal int StepStart { get; set; } = 1;
         internal int CardStart { get; set; } = 1;
+        internal double? CardBodySize { get; set; }
 
         internal IEnumerable<T> Items<T>() where T : PowerPointLayoutBlock => Blocks.OfType<T>();
 

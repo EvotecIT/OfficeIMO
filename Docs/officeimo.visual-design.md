@@ -220,7 +220,7 @@ Content that does not fit is handled; nothing is clipped and nothing silently sh
 
 **Tables.** Rows per slide are computed from the content zone and the table row height (typically 8–9 data rows at 16:9). A longer table splits into balanced slides with the header repeated, and `Rows 9–16 of 30` appears under each part. `-MaxRows` overrides the limit; `-NoSplit` keeps one slide and shrinks to 11 pt before reporting `table-overflow`. Columns are never split: more than eight columns shrink to 11 pt and then report `table-too-wide`, which names `-Property` as the fix.
 
-**Tiles.** KPIs, cards and steps shrink their text to its minimum, then split into balanced slides above six KPIs or cards, eight steps, twelve logos or eighteen locations.
+**Tiles.** KPIs, cards and steps shrink their text to its minimum, then split into balanced slides above six KPIs or cards, eight steps, twelve logos or eighteen locations. Cards also reduce density when their content needs more width or height. A single oversized card continues at measured body-line and bullet boundaries, with its heading and logical card number repeated. Words remain whole; a word or heading that cannot fit at its minimum size raises an argument error without appending partial slides.
 
 **Charts** never split. A column or bar chart with more than twelve categories becomes a horizontal bar chart when `-Type` was not given.
 

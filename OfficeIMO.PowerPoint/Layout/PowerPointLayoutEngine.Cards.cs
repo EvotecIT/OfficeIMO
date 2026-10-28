@@ -20,7 +20,7 @@ namespace OfficeIMO.PowerPoint {
                 List<(double X, double Width)> tiles = Tiles(grid, rows[r], false, rows[r].Length);
                 double y = zone.Y + r * (rowHeight + TileGap);
                 List<PowerPointLayoutCard> rowCards = cards.Skip(index).Take(tiles.Count).ToList();
-                CardRowMetrics metrics = MeasureCardRow(context, rowCards, tiles, rowHeight);
+                CardRowMetrics metrics = MeasureCardRow(context, rowCards, tiles, rowHeight, slide.CardBodySize);
 
                 for (int i = 0; i < rowCards.Count; i++) {
                     PowerPointLayoutCard card = rowCards[i];
@@ -34,7 +34,7 @@ namespace OfficeIMO.PowerPoint {
                     double inner = w - 40D;
                     var paragraphs = new List<PowerPointLayoutParagraph>();
                     PowerPointLayoutParagraph title = context.Paragraph(card.Title, PowerPointTextRole.Heading, size: metrics.TitleSize);
-                    title.SpaceAfter = Math.Max(0D, metrics.TitleHeight - context.Height(card.Title, heading, inner, metrics.TitleSize));
+                    title.SpaceAfter = Math.Max(0D, metrics.TitleHeight - CardTextHeight(context, card.Title, heading, inner, metrics.TitleSize));
                     paragraphs.Add(title);
                     if (!string.IsNullOrWhiteSpace(card.Text)) {
                         PowerPointLayoutParagraph text = context.Paragraph(card.Text!, PowerPointTextRole.BodySmall, size: metrics.BodySize);
@@ -60,7 +60,7 @@ namespace OfficeIMO.PowerPoint {
                     // Every heading starts on the same row baseline. A short body
                     // must not pull its heading down, nor a long one above the index.
                     writer.Text("Card Text", new PowerPointLayoutRect(x + 20D, y + metrics.TextOffset,
-                        inner, Math.Max(metrics.AvailableHeight, metrics.Height)), paragraphs);
+                        inner, metrics.AvailableHeight), paragraphs);
 
                 }
 
@@ -85,36 +85,44 @@ namespace OfficeIMO.PowerPoint {
             internal double TextOffset;
             internal double AvailableHeight;
             internal double Height;
+            internal bool WidthFits;
+            internal bool Fits => WidthFits && Height <= AvailableHeight + 0.01D;
         }
+
+        // The saved rich-text renderer rounds each leading advance up to a
+        // whole point. Budget every line at that advance, including one-line
+        // bullets, so the rounding cannot accumulate outside the panel.
+        private static double CardTextHeight(PowerPointLayoutContext context, string text, PowerPointTextStyleSpec style,
+            double width, double size) => context.Lines(text, style, width / 1.06D, size) * Math.Ceiling(size * style.LineHeight);
 
         /// <summary>One measurement owns admission, shared heading geometry and the rendered card frames.</summary>
         private static CardRowMetrics MeasureCardRow(PowerPointLayoutContext context, IReadOnlyList<PowerPointLayoutCard> cards,
-            IReadOnlyList<(double X, double Width)> tiles, double rowHeight) {
+            IReadOnlyList<(double X, double Width)> tiles, double rowHeight, double? bodySize = null) {
             PowerPointTextStyleSpec heading = context.Style(PowerPointTextRole.Heading);
             PowerPointTextStyleSpec small = context.Style(PowerPointTextRole.BodySmall);
             PowerPointTextStyleSpec eyebrow = context.Style(PowerPointTextRole.Eyebrow);
             var metrics = new CardRowMetrics {
-                TitleSize = cards.Select((card, index) => context.WordFitSize(card.Title, heading, tiles[index].Width - 40D)).Min(),
-                BodySize = small.Size,
+                TitleSize = cards.Select((card, index) => context.WordFitSize(card.Title, heading, tiles[index].Width - 40D, heading.Minimum)).Min(),
+                BodySize = bodySize ?? small.Size,
                 ImageHeight = cards.Any(card => !string.IsNullOrWhiteSpace(card.Image)) ? Math.Min(90D, rowHeight * 0.24D) : 0D
             };
-            metrics.TitleHeight = cards.Select((card, index) => context.Height(card.Title, heading, tiles[index].Width - 40D, metrics.TitleSize)).Max();
+            metrics.TitleHeight = cards.Select((card, index) => CardTextHeight(context, card.Title, heading, tiles[index].Width - 40D, metrics.TitleSize)).Max();
             metrics.TextOffset = 23D + eyebrow.Size * eyebrow.LineHeight + 16D + (metrics.ImageHeight > 0D ? metrics.ImageHeight + 12D : 0D);
             metrics.AvailableHeight = Math.Max(0D, rowHeight - 20D - metrics.TextOffset);
             double Height() => cards.Select((card, index) => {
                 double width = tiles[index].Width - 40D;
                 double height = metrics.TitleHeight;
-                double lineHeight = metrics.BodySize * small.LineHeight;
+                double lineHeight = Math.Ceiling(metrics.BodySize * small.LineHeight);
                 bool wrapped = false;
                 if (!string.IsNullOrWhiteSpace(card.Text)) {
-                    double textHeight = context.Height(card.Text!, small, width, metrics.BodySize);
+                    double textHeight = CardTextHeight(context, card.Text!, small, width, metrics.BodySize);
                     height += 8D + textHeight;
                     wrapped |= textHeight > lineHeight + 0.01D;
                 }
                 if (card.Items.Count > 0) {
                     height += 10D + 3D * (card.Items.Count - 1);
                     foreach (string item in card.Items) {
-                        double itemHeight = context.Height(item, small, width - 16D, metrics.BodySize);
+                        double itemHeight = CardTextHeight(context, item, small, width - 16D, metrics.BodySize);
                         height += itemHeight;
                         wrapped |= itemHeight > lineHeight + 0.01D;
                     }
@@ -125,10 +133,18 @@ namespace OfficeIMO.PowerPoint {
                 if (wrapped) height += lineHeight;
                 return height;
             }).Max();
+            bool WidthFits() => cards.Select((card, index) => {
+                double width = tiles[index].Width - 40D;
+                return PowerPointTextMeasure.LongestWord(card.Title, metrics.TitleSize, context.FontOf(heading), heading.Bold) * 1.05D <= width &&
+                    PowerPointTextMeasure.LongestWord(card.Text ?? string.Empty, metrics.BodySize, context.FontOf(small)) * 1.05D <= width &&
+                    card.Items.All(item => PowerPointTextMeasure.LongestWord(item, metrics.BodySize, context.FontOf(small)) * 1.05D <= width - 16D);
+            }).All(fits => fits);
             metrics.Height = Height();
-            while (metrics.Height > metrics.AvailableHeight && metrics.BodySize - 1D >= small.Minimum) {
+            metrics.WidthFits = WidthFits();
+            while ((!metrics.WidthFits || metrics.Height > metrics.AvailableHeight) && !bodySize.HasValue && metrics.BodySize - 1D >= small.Minimum) {
                 metrics.BodySize -= 1D;
                 metrics.Height = Height();
+                metrics.WidthFits = WidthFits();
             }
             return metrics;
         }
@@ -151,7 +167,7 @@ namespace OfficeIMO.PowerPoint {
                         List<(double X, double Width)> tiles = Tiles(grid, spans, false, spans.Length);
                         List<PowerPointLayoutCard> row = chunk.Skip(offset).Take(tiles.Count).ToList();
                         CardRowMetrics metrics = MeasureCardRow(context, row, tiles, rowHeight);
-                        if (metrics.Height > metrics.AvailableHeight) { fits = false; break; }
+                        if (!metrics.Fits) { fits = false; break; }
                         offset += row.Count;
                     }
                     if (!fits) break;

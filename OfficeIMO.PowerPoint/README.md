@@ -701,6 +701,12 @@ explicit layout falls back automatically and reports a preflight warning.
 Automatic selection uses the logical plan position for both previews and rendering;
 physical continuations do not turn a short plan into a longer story.
 
+Cards reduce grid density before shrinking headings below 16pt or body text below
+12pt. An oversized card continues at measured body-line and bullet boundaries,
+repeating its heading and logical card number. An unbreakable word or heading
+that cannot fit at the minimum size raises an argument error without appending
+partial slides.
+
 `PowerPointLayoutKpi.FromDelta` formats a signed change and chooses its arrow.
 With the `%` unit, `0.12` means `+12%`. Set `GoodDirection` to `Down` for metrics
 such as latency or incident counts, where a decrease is an improvement. The
