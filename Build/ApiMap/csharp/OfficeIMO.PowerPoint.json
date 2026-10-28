@@ -9115,8 +9115,12 @@
       "category": "conversion",
       "notes": "Format inferred from the extension or options.Format. Proposal, confirm in review.",
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The image export consolidation shares ToImage signatures with the current image builders. It is applied together with builder removal in Phase B; the existing rendering kernels and format-specific authoring geometry remain available for that migration."
+      "applied": "phase-b-applied",
+      "note": "Encoding-specific save twins are removed. PowerPointSlide.SaveAsImage/SaveAsImageAsync take the encoding from PowerPointImageExportOptions and return OfficeConversionReport; ToImage returns bytes and has the out-report and OfficeConversionResult<byte[]> async forms.",
+      "implementation": {
+        "phase": "B",
+        "status": "applied"
+      }
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlide.SaveAsSvg(string path, PowerPointImageExportOptions options = null)",
@@ -9128,8 +9132,12 @@
       "category": "conversion",
       "notes": "Format inferred from the extension or options.Format. Proposal, confirm in review.",
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The image export consolidation shares ToImage signatures with the current image builders. It is applied together with builder removal in Phase B; the existing rendering kernels and format-specific authoring geometry remain available for that migration."
+      "applied": "phase-b-applied",
+      "note": "Encoding-specific save twins are removed. PowerPointSlide.SaveAsImage/SaveAsImageAsync take the encoding from PowerPointImageExportOptions and return OfficeConversionReport; ToImage returns bytes and has the out-report and OfficeConversionResult<byte[]> async forms.",
+      "implementation": {
+        "phase": "B",
+        "status": "applied"
+      }
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlide.SaveAsPng(Stream stream, PowerPointImageExportOptions options = null)",
@@ -9141,8 +9149,12 @@
       "category": "conversion",
       "notes": "Format inferred from the extension or options.Format. Proposal, confirm in review.",
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The image export consolidation shares ToImage signatures with the current image builders. It is applied together with builder removal in Phase B; the existing rendering kernels and format-specific authoring geometry remain available for that migration."
+      "applied": "phase-b-applied",
+      "note": "Encoding-specific save twins are removed. PowerPointSlide.SaveAsImage/SaveAsImageAsync take the encoding from PowerPointImageExportOptions and return OfficeConversionReport; ToImage returns bytes and has the out-report and OfficeConversionResult<byte[]> async forms.",
+      "implementation": {
+        "phase": "B",
+        "status": "applied"
+      }
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlide.SaveAsSvg(Stream stream, PowerPointImageExportOptions options = null)",
@@ -9154,8 +9166,12 @@
       "category": "conversion",
       "notes": "Format inferred from the extension or options.Format. Proposal, confirm in review.",
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The image export consolidation shares ToImage signatures with the current image builders. It is applied together with builder removal in Phase B; the existing rendering kernels and format-specific authoring geometry remain available for that migration."
+      "applied": "phase-b-applied",
+      "note": "Encoding-specific save twins are removed. PowerPointSlide.SaveAsImage/SaveAsImageAsync take the encoding from PowerPointImageExportOptions and return OfficeConversionReport; ToImage returns bytes and has the out-report and OfficeConversionResult<byte[]> async forms.",
+      "implementation": {
+        "phase": "B",
+        "status": "applied"
+      }
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlide.SaveAsPngAsync(string path, PowerPointImageExportOptions options = null, CancellationToken cancellationToken = null)",
@@ -9167,8 +9183,12 @@
       "category": "conversion",
       "notes": "Format inferred from the extension or options.Format. Proposal, confirm in review.",
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The image export consolidation shares ToImage signatures with the current image builders. It is applied together with builder removal in Phase B; the existing rendering kernels and format-specific authoring geometry remain available for that migration."
+      "applied": "phase-b-applied",
+      "note": "Encoding-specific save twins are removed. PowerPointSlide.SaveAsImage/SaveAsImageAsync take the encoding from PowerPointImageExportOptions and return OfficeConversionReport; ToImage returns bytes and has the out-report and OfficeConversionResult<byte[]> async forms.",
+      "implementation": {
+        "phase": "B",
+        "status": "applied"
+      }
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlide.SaveAsSvgAsync(string path, PowerPointImageExportOptions options = null, CancellationToken cancellationToken = null)",
@@ -9180,8 +9200,12 @@
       "category": "conversion",
       "notes": "Format inferred from the extension or options.Format. Proposal, confirm in review.",
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The image export consolidation shares ToImage signatures with the current image builders. It is applied together with builder removal in Phase B; the existing rendering kernels and format-specific authoring geometry remain available for that migration."
+      "applied": "phase-b-applied",
+      "note": "Encoding-specific save twins are removed. PowerPointSlide.SaveAsImage/SaveAsImageAsync take the encoding from PowerPointImageExportOptions and return OfficeConversionReport; ToImage returns bytes and has the out-report and OfficeConversionResult<byte[]> async forms.",
+      "implementation": {
+        "phase": "B",
+        "status": "applied"
+      }
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlide.SaveAsPngAsync(Stream stream, PowerPointImageExportOptions options = null, CancellationToken cancellationToken = null)",
@@ -9193,8 +9217,12 @@
       "category": "conversion",
       "notes": "Format inferred from the extension or options.Format. Proposal, confirm in review.",
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The image export consolidation shares ToImage signatures with the current image builders. It is applied together with builder removal in Phase B; the existing rendering kernels and format-specific authoring geometry remain available for that migration."
+      "applied": "phase-b-applied",
+      "note": "Encoding-specific save twins are removed. PowerPointSlide.SaveAsImage/SaveAsImageAsync take the encoding from PowerPointImageExportOptions and return OfficeConversionReport; ToImage returns bytes and has the out-report and OfficeConversionResult<byte[]> async forms.",
+      "implementation": {
+        "phase": "B",
+        "status": "applied"
+      }
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlide.SaveAsSvgAsync(Stream stream, PowerPointImageExportOptions options = null, CancellationToken cancellationToken = null)",
@@ -9206,8 +9234,12 @@
       "category": "conversion",
       "notes": "Format inferred from the extension or options.Format. Proposal, confirm in review.",
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The image export consolidation shares ToImage signatures with the current image builders. It is applied together with builder removal in Phase B; the existing rendering kernels and format-specific authoring geometry remain available for that migration."
+      "applied": "phase-b-applied",
+      "note": "Encoding-specific save twins are removed. PowerPointSlide.SaveAsImage/SaveAsImageAsync take the encoding from PowerPointImageExportOptions and return OfficeConversionReport; ToImage returns bytes and has the out-report and OfficeConversionResult<byte[]> async forms.",
+      "implementation": {
+        "phase": "B",
+        "status": "applied"
+      }
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlide.ToJpeg(PowerPointImageExportOptions options = null)",
@@ -9258,8 +9290,12 @@
       "category": "conversion",
       "notes": "Format inferred from the extension or options.Format. Proposal, confirm in review.",
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The image export consolidation shares ToImage signatures with the current image builders. It is applied together with builder removal in Phase B; the existing rendering kernels and format-specific authoring geometry remain available for that migration."
+      "applied": "phase-b-applied",
+      "note": "Encoding-specific save twins are removed. PowerPointSlide.SaveAsImage/SaveAsImageAsync take the encoding from PowerPointImageExportOptions and return OfficeConversionReport; ToImage returns bytes and has the out-report and OfficeConversionResult<byte[]> async forms.",
+      "implementation": {
+        "phase": "B",
+        "status": "applied"
+      }
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlide.SaveAsTiff(string path, PowerPointImageExportOptions options = null)",
@@ -9271,8 +9307,12 @@
       "category": "conversion",
       "notes": "Format inferred from the extension or options.Format. Proposal, confirm in review.",
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The image export consolidation shares ToImage signatures with the current image builders. It is applied together with builder removal in Phase B; the existing rendering kernels and format-specific authoring geometry remain available for that migration."
+      "applied": "phase-b-applied",
+      "note": "Encoding-specific save twins are removed. PowerPointSlide.SaveAsImage/SaveAsImageAsync take the encoding from PowerPointImageExportOptions and return OfficeConversionReport; ToImage returns bytes and has the out-report and OfficeConversionResult<byte[]> async forms.",
+      "implementation": {
+        "phase": "B",
+        "status": "applied"
+      }
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlide.SaveAsWebp(string path, PowerPointImageExportOptions options = null)",
@@ -9284,8 +9324,12 @@
       "category": "conversion",
       "notes": "Format inferred from the extension or options.Format. Proposal, confirm in review.",
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The image export consolidation shares ToImage signatures with the current image builders. It is applied together with builder removal in Phase B; the existing rendering kernels and format-specific authoring geometry remain available for that migration."
+      "applied": "phase-b-applied",
+      "note": "Encoding-specific save twins are removed. PowerPointSlide.SaveAsImage/SaveAsImageAsync take the encoding from PowerPointImageExportOptions and return OfficeConversionReport; ToImage returns bytes and has the out-report and OfficeConversionResult<byte[]> async forms.",
+      "implementation": {
+        "phase": "B",
+        "status": "applied"
+      }
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlide.SaveAsJpeg(Stream stream, PowerPointImageExportOptions options = null)",
@@ -9297,8 +9341,12 @@
       "category": "conversion",
       "notes": "Format inferred from the extension or options.Format. Proposal, confirm in review.",
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The image export consolidation shares ToImage signatures with the current image builders. It is applied together with builder removal in Phase B; the existing rendering kernels and format-specific authoring geometry remain available for that migration."
+      "applied": "phase-b-applied",
+      "note": "Encoding-specific save twins are removed. PowerPointSlide.SaveAsImage/SaveAsImageAsync take the encoding from PowerPointImageExportOptions and return OfficeConversionReport; ToImage returns bytes and has the out-report and OfficeConversionResult<byte[]> async forms.",
+      "implementation": {
+        "phase": "B",
+        "status": "applied"
+      }
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlide.SaveAsTiff(Stream stream, PowerPointImageExportOptions options = null)",
@@ -9310,8 +9358,12 @@
       "category": "conversion",
       "notes": "Format inferred from the extension or options.Format. Proposal, confirm in review.",
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The image export consolidation shares ToImage signatures with the current image builders. It is applied together with builder removal in Phase B; the existing rendering kernels and format-specific authoring geometry remain available for that migration."
+      "applied": "phase-b-applied",
+      "note": "Encoding-specific save twins are removed. PowerPointSlide.SaveAsImage/SaveAsImageAsync take the encoding from PowerPointImageExportOptions and return OfficeConversionReport; ToImage returns bytes and has the out-report and OfficeConversionResult<byte[]> async forms.",
+      "implementation": {
+        "phase": "B",
+        "status": "applied"
+      }
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlide.SaveAsWebp(Stream stream, PowerPointImageExportOptions options = null)",
@@ -9323,8 +9375,12 @@
       "category": "conversion",
       "notes": "Format inferred from the extension or options.Format. Proposal, confirm in review.",
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The image export consolidation shares ToImage signatures with the current image builders. It is applied together with builder removal in Phase B; the existing rendering kernels and format-specific authoring geometry remain available for that migration."
+      "applied": "phase-b-applied",
+      "note": "Encoding-specific save twins are removed. PowerPointSlide.SaveAsImage/SaveAsImageAsync take the encoding from PowerPointImageExportOptions and return OfficeConversionReport; ToImage returns bytes and has the out-report and OfficeConversionResult<byte[]> async forms.",
+      "implementation": {
+        "phase": "B",
+        "status": "applied"
+      }
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlide.SaveAsJpegAsync(string path, PowerPointImageExportOptions options = null, CancellationToken cancellationToken = null)",
@@ -9336,8 +9392,12 @@
       "category": "conversion",
       "notes": "Format inferred from the extension or options.Format. Proposal, confirm in review.",
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The image export consolidation shares ToImage signatures with the current image builders. It is applied together with builder removal in Phase B; the existing rendering kernels and format-specific authoring geometry remain available for that migration."
+      "applied": "phase-b-applied",
+      "note": "Encoding-specific save twins are removed. PowerPointSlide.SaveAsImage/SaveAsImageAsync take the encoding from PowerPointImageExportOptions and return OfficeConversionReport; ToImage returns bytes and has the out-report and OfficeConversionResult<byte[]> async forms.",
+      "implementation": {
+        "phase": "B",
+        "status": "applied"
+      }
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlide.SaveAsTiffAsync(string path, PowerPointImageExportOptions options = null, CancellationToken cancellationToken = null)",
@@ -9349,8 +9409,12 @@
       "category": "conversion",
       "notes": "Format inferred from the extension or options.Format. Proposal, confirm in review.",
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The image export consolidation shares ToImage signatures with the current image builders. It is applied together with builder removal in Phase B; the existing rendering kernels and format-specific authoring geometry remain available for that migration."
+      "applied": "phase-b-applied",
+      "note": "Encoding-specific save twins are removed. PowerPointSlide.SaveAsImage/SaveAsImageAsync take the encoding from PowerPointImageExportOptions and return OfficeConversionReport; ToImage returns bytes and has the out-report and OfficeConversionResult<byte[]> async forms.",
+      "implementation": {
+        "phase": "B",
+        "status": "applied"
+      }
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlide.SaveAsWebpAsync(string path, PowerPointImageExportOptions options = null, CancellationToken cancellationToken = null)",
@@ -9362,8 +9426,12 @@
       "category": "conversion",
       "notes": "Format inferred from the extension or options.Format. Proposal, confirm in review.",
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The image export consolidation shares ToImage signatures with the current image builders. It is applied together with builder removal in Phase B; the existing rendering kernels and format-specific authoring geometry remain available for that migration."
+      "applied": "phase-b-applied",
+      "note": "Encoding-specific save twins are removed. PowerPointSlide.SaveAsImage/SaveAsImageAsync take the encoding from PowerPointImageExportOptions and return OfficeConversionReport; ToImage returns bytes and has the out-report and OfficeConversionResult<byte[]> async forms.",
+      "implementation": {
+        "phase": "B",
+        "status": "applied"
+      }
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlide.SaveAsJpegAsync(Stream stream, PowerPointImageExportOptions options = null, CancellationToken cancellationToken = null)",
@@ -9375,8 +9443,12 @@
       "category": "conversion",
       "notes": "Format inferred from the extension or options.Format. Proposal, confirm in review.",
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The image export consolidation shares ToImage signatures with the current image builders. It is applied together with builder removal in Phase B; the existing rendering kernels and format-specific authoring geometry remain available for that migration."
+      "applied": "phase-b-applied",
+      "note": "Encoding-specific save twins are removed. PowerPointSlide.SaveAsImage/SaveAsImageAsync take the encoding from PowerPointImageExportOptions and return OfficeConversionReport; ToImage returns bytes and has the out-report and OfficeConversionResult<byte[]> async forms.",
+      "implementation": {
+        "phase": "B",
+        "status": "applied"
+      }
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlide.SaveAsTiffAsync(Stream stream, PowerPointImageExportOptions options = null, CancellationToken cancellationToken = null)",
@@ -9388,8 +9460,12 @@
       "category": "conversion",
       "notes": "Format inferred from the extension or options.Format. Proposal, confirm in review.",
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The image export consolidation shares ToImage signatures with the current image builders. It is applied together with builder removal in Phase B; the existing rendering kernels and format-specific authoring geometry remain available for that migration."
+      "applied": "phase-b-applied",
+      "note": "Encoding-specific save twins are removed. PowerPointSlide.SaveAsImage/SaveAsImageAsync take the encoding from PowerPointImageExportOptions and return OfficeConversionReport; ToImage returns bytes and has the out-report and OfficeConversionResult<byte[]> async forms.",
+      "implementation": {
+        "phase": "B",
+        "status": "applied"
+      }
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlide.SaveAsWebpAsync(Stream stream, PowerPointImageExportOptions options = null, CancellationToken cancellationToken = null)",
@@ -9401,8 +9477,12 @@
       "category": "conversion",
       "notes": "Format inferred from the extension or options.Format. Proposal, confirm in review.",
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The image export consolidation shares ToImage signatures with the current image builders. It is applied together with builder removal in Phase B; the existing rendering kernels and format-specific authoring geometry remain available for that migration."
+      "applied": "phase-b-applied",
+      "note": "Encoding-specific save twins are removed. PowerPointSlide.SaveAsImage/SaveAsImageAsync take the encoding from PowerPointImageExportOptions and return OfficeConversionReport; ToImage returns bytes and has the out-report and OfficeConversionResult<byte[]> async forms.",
+      "implementation": {
+        "phase": "B",
+        "status": "applied"
+      }
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointPresentation.ToImages()",

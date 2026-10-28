@@ -1117,8 +1117,12 @@
       "category": "lifecycle",
       "notes": "Raw package copy helper; File.Copy or Load+SaveCopy cover users.",
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "CopyPackage is internal package plumbing for Excel create/template options; no public copy factory remains.",
+      "implementation": {
+        "phase": "B",
+        "status": "applied"
+      }
     },
     {
       "old": "OfficeIMO.Excel.ExcelDocument.CopyPackage(Stream sourceStream, string destinationPath, bool overwrite = True)",
@@ -1130,8 +1134,12 @@
       "category": "lifecycle",
       "notes": "Raw package copy helper; File.Copy or Load+SaveCopy cover users.",
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "CopyPackage is internal package plumbing for Excel create/template options; no public copy factory remains.",
+      "implementation": {
+        "phase": "B",
+        "status": "applied"
+      }
     },
     {
       "old": "OfficeIMO.Excel.ExcelDocument.Create(string filePath, string worksheetName)",
@@ -1324,11 +1332,11 @@
       "category": "authoring",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "ExcelReportOverflowMode is the report model enum; the Fluent namespace and old enum are removed."
     },
     {
       "old": "OfficeIMO.Excel.Fluent.PivotTableBuilder",
@@ -1542,11 +1550,11 @@
       "category": "authoring",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "The HeaderFooter builder entry point is removed. Header/footer object-model setters and inspection remain."
     },
     {
       "old": "OfficeIMO.Excel.Fluent.SheetComposer(ExcelDocument workbook, string sheetName, SheetTheme theme = null)",
@@ -1625,11 +1633,11 @@
       "category": "authoring",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "ExcelReportBuilder.Callout takes OfficeCalloutKind and preserves the report layout behavior."
     },
     {
       "old": "OfficeIMO.Excel.Fluent.SheetComposer.BulletedListWithFill(IEnumerable<string> items, string fillHex)",
