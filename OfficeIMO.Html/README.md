@@ -285,6 +285,7 @@ responsive selection.
 ## Direct HTML rendering
 
 ```csharp
+using OfficeIMO;
 using OfficeIMO.Drawing;
 using OfficeIMO.Html;
 
@@ -308,11 +309,10 @@ string svg = source.ToSvg(options);
 byte[] webp = source.ToWebp(options);
 
 OfficeImageExportResult pngSave = source.SaveAsPng("status.png", options);
-IReadOnlyList<OfficeImageExportResult> webpPages = source
-    .ToImages(options)
-    .Paged()
-    .AsWebp()
-    .Save("status-pages");
+var imageOptions1 = options.Clone();
+imageOptions1.Mode = HtmlRenderMode.Paged;
+imageOptions1.Format = OfficeImageExportFormat.Webp;
+OfficeConversionReport webpPages = source.SaveAsImages("status-pages", imageOptions1);
 ```
 
 HTML image export uses the PDF page scenes. SVG keeps proven PDF glyph contours and the logical source as accessibility labels, including admitted finite zero-advance text. See the [PDF image-export contract](../OfficeIMO.Pdf/README.md#export-pdf-pages-as-images) for the supported spans and text-fallback limits.
@@ -777,7 +777,7 @@ metadata survives page fragmentation without repeating its text label. A float c
 
 See the [complete OfficeIMO package map](../README.md) for related formats and conversion paths.
 
-`ToPng()`, `ToJpeg()`, `ToTiff()`, `ToSvg()`, and `ToWebp()` return in-memory output. `ExportImage()` and `ExportImages()` return encoded output plus dimensions and diagnostics. Format-specific save methods and the shared `ToImage()` / `ToImages()` fluent builders write to files or caller-owned streams and return the same structured evidence.
+`ToPng()`, `ToJpeg()`, `ToTiff()`, `ToSvg()`, and `ToWebp()` return in-memory output. `ExportImage()` and `ExportImages()` return encoded output plus dimensions and diagnostics. `ToImage(options)` returns encoded bytes; its `out report` overload and `ToImageAsync(options)` also return fidelity evidence. `SaveAsImage(pathOrStream, options)` and `SaveAsImages(folder, options)` return `OfficeConversionReport`. Options select the format, zero-based page, layout, resource policy and output limits; caller-owned streams remain open.
 
 HTML-to-PDF generation is included in `OfficeIMO.Html`. The public types retain the `OfficeIMO.Html.Pdf` namespace. `HtmlToPdfOptions` derives from `HtmlRenderOptions`, so the same configured instance drives PDF and all five image formats. See [HTML to PDF and paged images](PDF.md) for resource policies, fonts, paged-media semantics and complete examples.
 

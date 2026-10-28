@@ -1,0 +1,18 @@
+{
+  "package": "OfficeIMO.OneNote",
+  "changes": [],
+  "extraChanges": [
+    {
+      "old": "OneNotePageImageExportBuilder; OneNotePageImageBatchExportBuilder; fluent ToImage / ToImages",
+      "new": "OneNotePage.ToImage(options), SaveAsImage(pathOrStream, options); section/notebook ExportImages and SaveAsImages; retain OneNotePageBatchRenderingOptions and ToDrawing",
+      "action": "consolidate",
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "files": [
+        "OfficeIMO.OneNote/Imaging/OneNoteImageExportBuilder.cs"
+      ],
+      "reason": "Remove the fluent image surface while retaining format renderers, Core execution/persistence, streaming, deadlines, limits and diagnostic evidence.",
+      "qualification": "Static preparation only. Parent applies and qualifies every maintained target; no build or test was run."
+    }
+  ]
+}

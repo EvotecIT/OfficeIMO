@@ -65,18 +65,18 @@ The direct bridges retain the source conversion evidence:
 IReadOnlyList<OfficeImageExportResult> slides =
     odp.ExportImages(OfficeImageExportFormat.Png);
 
-OfficeImageExportBatchSaveResult chapters = await epub
-    .ToImages()
-    .Paged()
-    .AtDpi(144)
-    .AsPng()
-    .SaveFilesAsync("chapters");
+OfficeConversionReport chapters = await epub.SaveAsImagesAsync("chapters",
+    new EpubImageExportOptions {
+        Mode = HtmlRenderMode.Paged,
+        TargetDpi = 144,
+        Format = OfficeImageExportFormat.Png
+    });
 
-OfficeImageExportResult message = await email
-    .ToImage()
-    .Continuous()
-    .AsPng()
-    .ExportAsync();
+OfficeConversionResult<byte[]> message = await email.ToImageAsync(
+    new EmailImageExportOptions {
+        Mode = HtmlRenderMode.Continuous,
+        Format = OfficeImageExportFormat.Png
+    });
 ```
 
 Load EPUB with `IncludeRawHtml = true` and `IncludeResourceData = true` for the best result. Email resolves allowed CID/content-location MIME resources through the HTML resource pipeline. ODT/ODS/ODP diagnostics are attached to the resulting Word/Excel/PowerPoint image diagnostics.

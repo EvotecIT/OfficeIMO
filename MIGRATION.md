@@ -37,6 +37,17 @@ Use `section.ColumnsSpace?.ToTwips()` only at a native-value boundary.
 
 Replace Word's `ToPng`, `ToSvg`, `ToJpeg`, `ToTiff` and `ToWebp` with
 `document.ToImage(new WordImageExportOptions { Format = OfficeImageExportFormat.Webp })`.
+The same options-based image contract applies to HTML, Email, OneNote and Visio.
+Replace their image-export builder chains with `ToImage(options)` for bytes,
+`SaveAsImage(pathOrStream, options)` or `SaveAsImages(folder, options)` for a
+conversion report. EPUB chapter batches and Project report views use
+`ExportImages(format, options)` or `SaveAsImages(folder, options)`. Selection,
+layout, encoding, conflict policy, rendering deadlines and resource limits are
+properties of the existing format options. `ExportImages` consumer overloads
+retain streaming, sequence metadata and per-image diagnostics. Shared
+`OfficeImageExportBuilder<TBuilder,TOptions>` and
+`OfficeImageExportBatchBuilder<TBuilder,TOptions>` base types are removed.
+
 SVG is returned as UTF-8 bytes. Replace the format-named save methods and the
 `ToImage()` / `ToImages()` fluent builders with `SaveAsImage(pathOrStream, options)`
 or `SaveAsImages(folder, options)`. Both save forms return `OfficeConversionReport`.
@@ -4043,7 +4054,7 @@ stream overload.
 | `SavePdfAsWord()` / `SavePdfAsRtf()` | `SaveAsWord()` / `SaveAsRtf()` on `PdfDocument` |
 | `SavePdfTablesAsExcel/Word/PowerPoint()` | `SaveTablesAsExcel()` / `SaveAsWord()` / `SaveAsPowerPoint()` |
 | `ToPngResult` / `ToSvgResult` and plural result aliases | `ExportImage()` / `ExportImages()` returning `OfficeImageExportResult` values |
-| `PdfImageExportOptions.MaxPages` | `MaximumOutputCount` or `ToImages().WithMaximumPages(...)` |
+| `PdfImageExportOptions.MaxPages` | `MaximumOutputCount` on `PdfImageExportOptions` |
 | `EmailDocument.WriteToBytes()` | `EmailDocument.ToBytes()` |
 
 Format-spelling aliases such as `SaveToPdf`, `SaveAsBytesToPdf`, and generic `WriteToBytes` were removed. Use `SaveAsPdf(...)` for a destination and `ToPdfBytes()` or `ToBytes()` for an in-memory result. Ambiguous `SaveImage` / `SaveAsImage` names were replaced by explicit encodings such as `SaveAsPng(...)`, or by `SaveAsImages(...)` for multi-page and multi-sheet output.

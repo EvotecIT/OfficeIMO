@@ -51,13 +51,15 @@ public sealed partial class HtmlRenderingTests {
 
     [Fact]
     public void HtmlFitWithinBoundsHighRequestedScaleBeforeSurfaceValidation() {
+        var imageOptions1 = new HtmlRenderOptions();
+        imageOptions1.Scale = 100D;
+        imageOptions1.TargetDpi = null;
+        imageOptions1.MaximumOutputWidth = 360;
+        imageOptions1.MaximumOutputHeight = 360;
+        imageOptions1.Format = OfficeImageExportFormat.Png;
         OfficeImageExportResult result = HtmlConversionDocument
             .Parse("<h1>Bounded</h1><p>High requested scale, small final surface.</p>")
-            .ToImage()
-            .WithScale(100D)
-            .FitWithin(360, 360)
-            .AsPng()
-            .Export();
+            .ExportImage(OfficeImageExportFormat.Png, imageOptions1, pageIndex: imageOptions1.PageIndex);
 
         Assert.True(result.Width <= 360);
         Assert.True(result.Height <= 360);

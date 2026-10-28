@@ -850,6 +850,19 @@
       ],
       "note": "Core and Drawing.Tests are qualified on net8.0/net10.0, with netstandard2.0 and net472 compilation. The PDF public color migration remains separate.",
       "notes": "Normalized RGB literals retain exact finite channels in unmanaged value storage. Byte getters and hexadecimal/CSS formatting remain byte projections. Exact byte fractions retain existing equality and hash values; precise colors remain distinct cache keys. Alpha stays a byte. No new runtime dependency or framework change."
+    },
+    {
+      "old": "OfficeImageExportBuilder<TBuilder,TOptions>; OfficeImageExportBatchBuilder<TBuilder,TOptions>",
+      "new": "Concrete source-document ToImage / SaveAsImage / SaveAsImages with format options; existing internal image operations",
+      "action": "consolidate",
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "files": [
+        "OfficeIMO.Core/OfficeImageExportBuilder.cs",
+        "OfficeIMO.Core/OfficeImageExportBatchBuilder.cs"
+      ],
+      "reason": "Remove the fluent image surface while retaining format renderers, Core execution/persistence, streaming, deadlines, limits and diagnostic evidence.",
+      "qualification": "Static preparation only. Parent applies and qualifies every maintained target; no build or test was run."
     }
   ],
   "applicationStatus": "Phase A applied and validated on the supported macOS targets. Phase B and Tier 2 entries retain their status; Windows .NET Framework validation remains pending.",

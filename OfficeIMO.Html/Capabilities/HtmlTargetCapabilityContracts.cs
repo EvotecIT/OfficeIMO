@@ -174,7 +174,7 @@ public static class HtmlTargetCapabilityContracts {
             "OfficeImageExportResult",
             null,
             null,
-            "Use the shared synchronous or asynchronous render pipeline for in-memory, path, stream, and paged fluent image outputs.",
+            "Use the shared synchronous or asynchronous render pipeline for options-based bytes, path, stream, and paged image outputs.",
             null,
             new[] { "ContinuousScreen", "PagedPrint" },
             null,

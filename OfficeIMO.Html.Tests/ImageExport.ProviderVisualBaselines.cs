@@ -149,14 +149,14 @@ public sealed class ImageExportProviderVisualBaselineTests {
         paragraph.Runs.Add(emphasized);
         outline.Children.Add(paragraph);
         page.Outlines.Add(outline);
-        return page.ToImage()
-            .ConfigureOptions(options => options.DefaultFont = new OfficeFontInfo(PortableFontFamily, 11D))
-            .WithFont(PortableFontFamily, PortableRegularFont.Value)
-            .WithFont(PortableFontFamily, PortableBoldFont.Value, OfficeFontStyle.Bold)
-            .FitWithin(360, 360)
-            .AsPng()
-            .Export()
-            .Bytes;
+        var imageOptions1 = new OneNotePageRenderingOptions();
+        imageOptions1.DefaultFont = new OfficeFontInfo(PortableFontFamily, 11D);
+        imageOptions1.Fonts.Add(PortableFontFamily, PortableRegularFont.Value);
+        imageOptions1.Fonts.Add(PortableFontFamily, PortableBoldFont.Value, OfficeFontStyle.Bold);
+        imageOptions1.MaximumOutputWidth = 360;
+        imageOptions1.MaximumOutputHeight = 360;
+        imageOptions1.Format = OfficeImageExportFormat.Png;
+        return page.ToImage(imageOptions1);
     }
 
     private static byte[] RenderEmail() {

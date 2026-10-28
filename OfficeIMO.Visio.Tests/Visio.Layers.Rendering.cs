@@ -247,16 +247,25 @@ public sealed class VisioLayerRenderingTests {
     }
 
     [Fact]
-    public void FluentExportsAndOptionsSnapshotsPreserveLayerSelection() {
+    public void ImageExportsAndOptionsSnapshotsPreserveLayerSelection() {
         VisioDocument document = CreateLayerDocument();
         VisioPage page = document.Pages[0];
         var options = new VisioImageExportOptions { LayerMode = VisioLayerRenderMode.All, RenderText = false };
-        VisioPageImageExportBuilder snapshot = page.ToImage(options);
+        VisioImageExportOptions snapshot = options.Clone();
         options.LayerMode = VisioLayerRenderMode.Visible;
-        AssertLayerShapes(ReadSvg(snapshot.AsSvg().Export()), VisioLayerRenderMode.All);
-        AssertLayerShapes(ReadSvg(page.ToImage().LayerMode(VisioLayerRenderMode.Printable).AsSvg().Export()), VisioLayerRenderMode.Printable);
-        AssertLayerShapes(ReadSvg(document.ToImage().LayerMode(VisioLayerRenderMode.All).AsSvg().Export()), VisioLayerRenderMode.All);
-        OfficeImageExportResult batchPage = Assert.Single(document.ToImages().LayerMode(VisioLayerRenderMode.Printable).AsSvg().Export());
+        AssertLayerShapes(ReadSvg(page.ExportImage(OfficeImageExportFormat.Svg, snapshot)), VisioLayerRenderMode.All);
+        var imageOptions1 = new VisioImageExportOptions();
+        imageOptions1.LayerMode = VisioLayerRenderMode.Printable;
+        imageOptions1.Format = OfficeImageExportFormat.Svg;
+        AssertLayerShapes(ReadSvg(page.ExportImage(OfficeImageExportFormat.Svg, imageOptions1)), VisioLayerRenderMode.Printable);
+        var imageOptions2 = new VisioImageExportOptions();
+        imageOptions2.LayerMode = VisioLayerRenderMode.All;
+        imageOptions2.Format = OfficeImageExportFormat.Svg;
+        AssertLayerShapes(ReadSvg(document.ExportImage(OfficeImageExportFormat.Svg, imageOptions2)), VisioLayerRenderMode.All);
+        var imageOptions3 = new VisioImageExportOptions();
+        imageOptions3.LayerMode = VisioLayerRenderMode.Printable;
+        imageOptions3.Format = OfficeImageExportFormat.Svg;
+        OfficeImageExportResult batchPage = Assert.Single(document.ExportImages(OfficeImageExportFormat.Svg, imageOptions3));
         AssertLayerShapes(ReadSvg(batchPage), VisioLayerRenderMode.Printable);
     }
 

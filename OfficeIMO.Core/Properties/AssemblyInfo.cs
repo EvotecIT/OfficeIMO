@@ -8,6 +8,7 @@ using System.Runtime.CompilerServices;
 [assembly: InternalsVisibleTo("OfficeIMO.Drawing.HarfBuzz")]
 [assembly: InternalsVisibleTo("OfficeIMO.Drawing.HarfBuzz.Tests")]
 [assembly: InternalsVisibleTo("OfficeIMO.Email")]
+[assembly: InternalsVisibleTo("OfficeIMO.Email.Image")]
 [assembly: InternalsVisibleTo("OfficeIMO.Email.Tests")]
 [assembly: InternalsVisibleTo("OfficeIMO.Epub")]
 [assembly: InternalsVisibleTo("OfficeIMO.Excel")]

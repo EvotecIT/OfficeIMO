@@ -53,102 +53,6 @@ public partial class DrawingTests {
     }
 
     [Fact]
-    public void OfficeImageExportBuilder_AppliesSharedFluentPresets() {
-        var options = new TestImageExportOptions();
-        var builder = new TestImageExportBuilder(options);
-
-        OfficeImageExportResult preview = builder
-            .ForPreview()
-            .Export();
-
-        Assert.Equal(OfficeImageExportFormat.Png, preview.Format);
-        Assert.Equal(1D, options.Scale);
-        Assert.Equal(OfficeColor.White, options.BackgroundColor);
-
-        OfficeImageExportResult customized = builder
-            .ForPrint(192D)
-            .AsSvg()
-            .WithScale(1.5D)
-            .WithBackground(OfficeColor.Transparent)
-            .Export();
-
-        Assert.Equal(OfficeImageExportFormat.Svg, customized.Format);
-        Assert.Equal(150, customized.Width);
-        Assert.Equal(OfficeColor.Transparent, options.BackgroundColor);
-    }
-
-    [Fact]
-    public void OfficeImageExportBuilder_AcceptsNamedAndHexBackgrounds() {
-        var options = new TestImageExportOptions();
-        var builder = new TestImageExportBuilder(options);
-
-        OfficeImageExportResult named = builder
-            .WithBackground("RebeccaPurple")
-            .Export();
-
-        Assert.Equal(OfficeColor.RebeccaPurple, options.BackgroundColor);
-        Assert.Equal(OfficeColor.RebeccaPurple.ToString(), named.Source);
-
-        OfficeImageExportResult hex = builder
-            .WithBackground("#336699CC")
-            .Export();
-
-        Assert.Equal(OfficeColor.FromRgba(0x33, 0x66, 0x99, 0xCC), options.BackgroundColor);
-        Assert.Equal("#336699CC", hex.Source);
-
-        builder.WithBackground(OfficeColor.White);
-        Assert.Equal(OfficeColor.White, options.BackgroundColor);
-
-        builder.WithBackground(OfficeColor.Transparent);
-        Assert.Equal(OfficeColor.Transparent, options.BackgroundColor);
-    }
-
-    [Fact]
-    public void OfficeImageExportBatchBuilder_AppliesSharedFluentPresets() {
-        var options = new TestImageExportOptions();
-        var builder = new TestImageExportBatchBuilder(options);
-
-        IReadOnlyList<OfficeImageExportResult> results = builder
-            .ForPrint(192D)
-            .AsSvg()
-            .WithBackground(OfficeColor.White)
-            .Export();
-
-        OfficeImageExportResult result = Assert.Single(results);
-        Assert.Equal(OfficeImageExportFormat.Svg, result.Format);
-        Assert.Equal(200, result.Width);
-        Assert.Equal(1D, options.Scale);
-        Assert.Equal(192D, options.TargetDpi);
-        Assert.Equal(OfficeColor.White, options.BackgroundColor);
-    }
-
-    [Fact]
-    public void OfficeImageExportBatchBuilder_AcceptsNamedAndHexBackgrounds() {
-        var options = new TestImageExportOptions();
-        var builder = new TestImageExportBatchBuilder(options);
-
-        IReadOnlyList<OfficeImageExportResult> named = builder
-            .WithBackground("SteelBlue")
-            .Export();
-
-        Assert.Equal(OfficeColor.SteelBlue, options.BackgroundColor);
-        Assert.Equal(OfficeColor.SteelBlue.ToString(), Assert.Single(named).Source);
-
-        IReadOnlyList<OfficeImageExportResult> hex = builder
-            .WithBackground("#112233")
-            .Export();
-
-        Assert.Equal(OfficeColor.FromRgb(0x11, 0x22, 0x33), options.BackgroundColor);
-        Assert.Equal("#112233", Assert.Single(hex).Source);
-
-        builder.WithBackground(OfficeColor.White);
-        Assert.Equal(OfficeColor.White, options.BackgroundColor);
-
-        builder.WithBackground(OfficeColor.Transparent);
-        Assert.Equal(OfficeColor.Transparent, options.BackgroundColor);
-    }
-
-    [Fact]
     public void OfficeImagePlacementFitsImagesIntoTargetRectangles() {
         OfficeImagePlacement stretch = OfficeImagePlacement.Fit(
             sourceWidth: 200D,
@@ -4505,92 +4409,60 @@ public partial class DrawingTests {
     private sealed class TestImageExportOptions : OfficeImageExportOptions {
     }
 
-    private sealed class TestImageExportBuilder : OfficeImageExportBuilder<TestImageExportBuilder, TestImageExportOptions> {
-        internal TestImageExportBuilder(TestImageExportOptions options)
-            : base(
-                options,
-                CreateTestImageExportResult,
-                (format, current, cancellationToken) => {
-                    cancellationToken.ThrowIfCancellationRequested();
-                    return Task.FromResult(CreateTestImageExportResult(format, current));
-                }) {
-        }
-    }
+    private static OfficeImageExportOperation<TestImageExportOptions> CreateTestImageOperation(TestImageExportOptions options) =>
+        new(options, options.Format, options.FileConflictPolicy, CreateTestImageExportResult,
+            exportAsync: (format, current, token) => {
+                token.ThrowIfCancellationRequested();
+                return Task.FromResult(CreateTestImageExportResult(format, current));
+            });
 
-    private sealed class TimeoutImageExportBuilder : OfficeImageExportBuilder<TimeoutImageExportBuilder, TestImageExportOptions> {
-        internal TimeoutImageExportBuilder(TestImageExportOptions options)
-            : base(options, (format, current, cancellationToken) => {
-                cancellationToken.WaitHandle.WaitOne();
-                cancellationToken.ThrowIfCancellationRequested();
+    private static OfficeImageExportOperation<TestImageExportOptions> CreateTimeoutImageOperation(TestImageExportOptions options) =>
+        new(options, options.Format, options.FileConflictPolicy, CreateTestImageExportResult,
+            exportWithCancellation: (format, current, token) => {
+                token.WaitHandle.WaitOne();
+                token.ThrowIfCancellationRequested();
                 return CreateTestImageExportResult(format, current);
-            }) {
-        }
-    }
+            });
 
-    private sealed class TimeoutAsyncImageExportBuilder : OfficeImageExportBuilder<TimeoutAsyncImageExportBuilder, TestImageExportOptions> {
-        internal TimeoutAsyncImageExportBuilder(TestImageExportOptions options)
-            : base(
-                options,
-                CreateTestImageExportResult,
-                async (format, current, cancellationToken) => {
-                    await Task.Delay(System.Threading.Timeout.InfiniteTimeSpan, cancellationToken);
-                    return CreateTestImageExportResult(format, current);
-                }) {
-        }
-    }
+    private static OfficeImageExportOperation<TestImageExportOptions> CreateTimeoutAsyncImageOperation(TestImageExportOptions options) =>
+        new(options, options.Format, options.FileConflictPolicy, CreateTestImageExportResult,
+            exportAsync: async (format, current, token) => {
+                await Task.Delay(System.Threading.Timeout.InfiniteTimeSpan, token);
+                return CreateTestImageExportResult(format, current);
+            });
 
-    private sealed class UncooperativeTimeoutImageExportBuilder : OfficeImageExportBuilder<UncooperativeTimeoutImageExportBuilder, TestImageExportOptions> {
-        internal UncooperativeTimeoutImageExportBuilder(TestImageExportOptions options)
-            : base(
-                options,
-                static (format, current) => CreateTestImageExportResult(format, current),
-                static (format, current, _) => Task.FromResult(CreateTestImageExportResult(format, current))) {
-        }
-    }
+    private static OfficeImageExportOperation<TestImageExportOptions> CreateUncooperativeTimeoutImageOperation(TestImageExportOptions options) =>
+        new(options, options.Format, options.FileConflictPolicy, CreateTestImageExportResult,
+            exportAsync: (format, current, _) => Task.FromResult(CreateTestImageExportResult(format, current)));
 
-    private sealed class TestImageExportBatchBuilder : OfficeImageExportBatchBuilder<TestImageExportBatchBuilder, TestImageExportOptions> {
-        internal TestImageExportBatchBuilder(TestImageExportOptions options, params string[] names)
-            : this(options, null, names) {
-        }
+    private static OfficeImageExportBatchOperation<TestImageExportOptions> CreateTestImageBatchOperation(
+        TestImageExportOptions options, params string[] names) => CreateTestImageBatchOperation(options, null, names);
 
-        internal TestImageExportBatchBuilder(
-            TestImageExportOptions options,
-            Action? onProduced,
-            params string[] names)
-            : base(
-                options,
-                (format, current) => CreateTestBatchResults(format, current, names),
-                (format, current, consumer, cancellationToken) => {
-                    foreach (OfficeImageExportResult result in CreateTestBatchResults(format, current, names)) {
-                        cancellationToken.ThrowIfCancellationRequested();
-                        onProduced?.Invoke();
-                        consumer(result);
-                    }
-                }) {
-        }
-    }
+    private static OfficeImageExportBatchOperation<TestImageExportOptions> CreateTestImageBatchOperation(
+        TestImageExportOptions options, Action? onProduced, params string[] names) =>
+        new(options, options.Format, options.FileConflictPolicy,
+            (format, current) => CreateTestBatchResults(format, current, names),
+            exportEach: (format, current, consumer, token) => {
+                foreach (OfficeImageExportResult result in CreateTestBatchResults(format, current, names)) {
+                    token.ThrowIfCancellationRequested();
+                    onProduced?.Invoke();
+                    consumer(result);
+                }
+            });
 
-    private sealed class TimeoutImageExportBatchBuilder : OfficeImageExportBatchBuilder<TimeoutImageExportBatchBuilder, TestImageExportOptions> {
-        internal TimeoutImageExportBatchBuilder(TestImageExportOptions options)
-            : base(
-                options,
-                (format, current) => Array.Empty<OfficeImageExportResult>(),
-                (format, current, consumer, cancellationToken) => {
-                    cancellationToken.WaitHandle.WaitOne();
-                    cancellationToken.ThrowIfCancellationRequested();
-                }) {
-        }
-    }
+    private static OfficeImageExportBatchOperation<TestImageExportOptions> CreateTimeoutImageBatchOperation(TestImageExportOptions options) =>
+        new(options, options.Format, options.FileConflictPolicy,
+            (_, _) => Array.Empty<OfficeImageExportResult>(),
+            exportEach: (_, _, _, token) => {
+                token.WaitHandle.WaitOne();
+                token.ThrowIfCancellationRequested();
+            });
 
-    private sealed class UncooperativeTimeoutImageExportBatchBuilder : OfficeImageExportBatchBuilder<UncooperativeTimeoutImageExportBatchBuilder, TestImageExportOptions> {
-        internal UncooperativeTimeoutImageExportBatchBuilder(TestImageExportOptions options)
-            : base(
-                options,
-                static (_, _) => Array.Empty<OfficeImageExportResult>(),
-                static (_, _, _, _) => { },
-                static (_, _, _, _) => Task.CompletedTask) {
-        }
-    }
+    private static OfficeImageExportBatchOperation<TestImageExportOptions> CreateUncooperativeTimeoutImageBatchOperation(TestImageExportOptions options) =>
+        new(options, options.Format, options.FileConflictPolicy,
+            (_, _) => Array.Empty<OfficeImageExportResult>(),
+            exportEach: (_, _, _, _) => { },
+            exportEachAsync: (_, _, _, _) => Task.CompletedTask);
 
     private static IReadOnlyList<OfficeImageExportResult> CreateTestBatchResults(
         OfficeImageExportFormat format,

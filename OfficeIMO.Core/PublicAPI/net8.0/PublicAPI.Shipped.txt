@@ -1522,51 +1522,6 @@ OfficeIMO.Drawing.OfficeImageEncodingEffort.Balanced = 1 -> OfficeIMO.Drawing.Of
 OfficeIMO.Drawing.OfficeImageEncodingEffort.Fast = 0 -> OfficeIMO.Drawing.OfficeImageEncodingEffort
 OfficeIMO.Drawing.OfficeImageEncodingEffort.Smallest = 2 -> OfficeIMO.Drawing.OfficeImageEncodingEffort
 OfficeIMO.Drawing.OfficeImageExportAsyncConsumer
-OfficeIMO.Drawing.OfficeImageExportBatchBuilder<TBuilder, TOptions>
-OfficeIMO.Drawing.OfficeImageExportBatchBuilder<TBuilder, TOptions>.As(OfficeIMO.Drawing.OfficeImageExportFormat format) -> TBuilder!
-OfficeIMO.Drawing.OfficeImageExportBatchBuilder<TBuilder, TOptions>.AsJpeg() -> TBuilder!
-OfficeIMO.Drawing.OfficeImageExportBatchBuilder<TBuilder, TOptions>.AsPng() -> TBuilder!
-OfficeIMO.Drawing.OfficeImageExportBatchBuilder<TBuilder, TOptions>.AsSvg() -> TBuilder!
-OfficeIMO.Drawing.OfficeImageExportBatchBuilder<TBuilder, TOptions>.AsTiff() -> TBuilder!
-OfficeIMO.Drawing.OfficeImageExportBatchBuilder<TBuilder, TOptions>.AsWebp() -> TBuilder!
-OfficeIMO.Drawing.OfficeImageExportBatchBuilder<TBuilder, TOptions>.AtDpi(double dpi) -> TBuilder!
-OfficeIMO.Drawing.OfficeImageExportBatchBuilder<TBuilder, TOptions>.ConfigureOptions(System.Action<TOptions!>! configure) -> TBuilder!
-OfficeIMO.Drawing.OfficeImageExportBatchBuilder<TBuilder, TOptions>.Export() -> System.Collections.Generic.IReadOnlyList<OfficeIMO.Drawing.OfficeImageExportResult!>!
-OfficeIMO.Drawing.OfficeImageExportBatchBuilder<TBuilder, TOptions>.ExportAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<OfficeIMO.Drawing.OfficeImageExportResult!>!>!
-OfficeIMO.Drawing.OfficeImageExportBatchBuilder<TBuilder, TOptions>.ExportEach(OfficeIMO.Drawing.OfficeImageExportConsumer! consumer, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> void
-OfficeIMO.Drawing.OfficeImageExportBatchBuilder<TBuilder, TOptions>.ExportEachAsync(OfficeIMO.Drawing.OfficeImageExportAsyncConsumer! consumer, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
-OfficeIMO.Drawing.OfficeImageExportBatchBuilder<TBuilder, TOptions>.FitWithin(int maximumWidth, int maximumHeight) -> TBuilder!
-OfficeIMO.Drawing.OfficeImageExportBatchBuilder<TBuilder, TOptions>.FitWithinHeight(int maximumHeight) -> TBuilder!
-OfficeIMO.Drawing.OfficeImageExportBatchBuilder<TBuilder, TOptions>.FitWithinWidth(int maximumWidth) -> TBuilder!
-OfficeIMO.Drawing.OfficeImageExportBatchBuilder<TBuilder, TOptions>.ForPreview() -> TBuilder!
-OfficeIMO.Drawing.OfficeImageExportBatchBuilder<TBuilder, TOptions>.ForPrint(double dpi = 300) -> TBuilder!
-OfficeIMO.Drawing.OfficeImageExportBatchBuilder<TBuilder, TOptions>.OfficeImageExportBatchBuilder(TOptions! options, System.Func<OfficeIMO.Drawing.OfficeImageExportFormat, TOptions!, System.Collections.Generic.IReadOnlyList<OfficeIMO.Drawing.OfficeImageExportResult!>!>! export) -> void
-OfficeIMO.Drawing.OfficeImageExportBatchBuilder<TBuilder, TOptions>.OfficeImageExportBatchBuilder(TOptions! options, System.Func<OfficeIMO.Drawing.OfficeImageExportFormat, TOptions!, System.Collections.Generic.IReadOnlyList<OfficeIMO.Drawing.OfficeImageExportResult!>!>! export, System.Action<OfficeIMO.Drawing.OfficeImageExportFormat, TOptions!, OfficeIMO.Drawing.OfficeImageExportConsumer!, System.Threading.CancellationToken>! exportEach) -> void
-OfficeIMO.Drawing.OfficeImageExportBatchBuilder<TBuilder, TOptions>.OfficeImageExportBatchBuilder(TOptions! options, System.Func<OfficeIMO.Drawing.OfficeImageExportFormat, TOptions!, System.Collections.Generic.IReadOnlyList<OfficeIMO.Drawing.OfficeImageExportResult!>!>! export, System.Action<OfficeIMO.Drawing.OfficeImageExportFormat, TOptions!, OfficeIMO.Drawing.OfficeImageExportConsumer!, System.Threading.CancellationToken>! exportEach, System.Func<OfficeIMO.Drawing.OfficeImageExportFormat, TOptions!, OfficeIMO.Drawing.OfficeImageExportAsyncConsumer!, System.Threading.CancellationToken, System.Threading.Tasks.Task!>! exportEachAsync) -> void
-OfficeIMO.Drawing.OfficeImageExportBatchBuilder<TBuilder, TOptions>.OfficeImageExportBatchBuilder(TOptions! options, System.Func<OfficeIMO.Drawing.OfficeImageExportFormat, TOptions!, System.Collections.Generic.IReadOnlyList<OfficeIMO.Drawing.OfficeImageExportResult!>!>! export, System.Func<OfficeIMO.Drawing.OfficeImageExportFormat, TOptions!, System.Threading.CancellationToken, System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<OfficeIMO.Drawing.OfficeImageExportResult!>!>!>! exportAsync) -> void
-OfficeIMO.Drawing.OfficeImageExportBatchBuilder<TBuilder, TOptions>.OnFileConflict(OfficeIMO.Drawing.OfficeImageExportFileConflictPolicy policy) -> TBuilder!
-OfficeIMO.Drawing.OfficeImageExportBatchBuilder<TBuilder, TOptions>.OnRasterOverflow(OfficeIMO.Drawing.OfficeRasterOverflowBehavior behavior) -> TBuilder!
-OfficeIMO.Drawing.OfficeImageExportBatchBuilder<TBuilder, TOptions>.Options.get -> TOptions!
-OfficeIMO.Drawing.OfficeImageExportBatchBuilder<TBuilder, TOptions>.Save(string! folderPath) -> System.Collections.Generic.IReadOnlyList<OfficeIMO.Drawing.OfficeImageExportResult!>!
-OfficeIMO.Drawing.OfficeImageExportBatchBuilder<TBuilder, TOptions>.SaveAsync(string! folderPath, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<OfficeIMO.Drawing.OfficeImageExportResult!>!>!
-OfficeIMO.Drawing.OfficeImageExportBatchBuilder<TBuilder, TOptions>.SaveFiles(string! folderPath) -> OfficeIMO.Drawing.OfficeImageExportBatchSaveResult!
-OfficeIMO.Drawing.OfficeImageExportBatchBuilder<TBuilder, TOptions>.SaveFilesAsync(string! folderPath, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<OfficeIMO.Drawing.OfficeImageExportBatchSaveResult!>!
-OfficeIMO.Drawing.OfficeImageExportBatchBuilder<TBuilder, TOptions>.WithBackground(OfficeIMO.OfficeColor color) -> TBuilder!
-OfficeIMO.Drawing.OfficeImageExportBatchBuilder<TBuilder, TOptions>.WithBackground(string! color) -> TBuilder!
-OfficeIMO.Drawing.OfficeImageExportBatchBuilder<TBuilder, TOptions>.WithBatchLimits(int maximumOutputCount, long maximumTotalRasterPixels, long maximumTotalEncodedBytes) -> TBuilder!
-OfficeIMO.Drawing.OfficeImageExportBatchBuilder<TBuilder, TOptions>.WithFont(string! familyName, byte[]! data, OfficeIMO.Drawing.OfficeFontStyle style = OfficeIMO.Drawing.OfficeFontStyle.Regular) -> TBuilder!
-OfficeIMO.Drawing.OfficeImageExportBatchBuilder<TBuilder, TOptions>.WithFonts(OfficeIMO.Drawing.OfficeFontFaceCollection! fonts) -> TBuilder!
-OfficeIMO.Drawing.OfficeImageExportBatchBuilder<TBuilder, TOptions>.WithImageCodec(OfficeIMO.Drawing.IOfficeRasterImageCodec! imageCodec) -> TBuilder!
-OfficeIMO.Drawing.OfficeImageExportBatchBuilder<TBuilder, TOptions>.WithMaximumConcurrency(int maximumDegreeOfParallelism) -> TBuilder!
-OfficeIMO.Drawing.OfficeImageExportBatchBuilder<TBuilder, TOptions>.WithMaximumRasterPixels(long maximumPixels) -> TBuilder!
-OfficeIMO.Drawing.OfficeImageExportBatchBuilder<TBuilder, TOptions>.WithPolicy(System.Action<OfficeIMO.Drawing.OfficeImageExportPolicy!>! configure) -> TBuilder!
-OfficeIMO.Drawing.OfficeImageExportBatchBuilder<TBuilder, TOptions>.WithProgress(System.IProgress<OfficeIMO.Drawing.OfficeImageExportProgress!>! progress) -> TBuilder!
-OfficeIMO.Drawing.OfficeImageExportBatchBuilder<TBuilder, TOptions>.WithQuality(OfficeIMO.Drawing.OfficeImageExportQuality quality) -> TBuilder!
-OfficeIMO.Drawing.OfficeImageExportBatchBuilder<TBuilder, TOptions>.WithRasterEncoding(System.Action<OfficeIMO.Drawing.OfficeRasterEncodingOptions!>! configure) -> TBuilder!
-OfficeIMO.Drawing.OfficeImageExportBatchBuilder<TBuilder, TOptions>.WithRenderTimeout(System.TimeSpan timeout) -> TBuilder!
-OfficeIMO.Drawing.OfficeImageExportBatchBuilder<TBuilder, TOptions>.WithScale(double scale) -> TBuilder!
-OfficeIMO.Drawing.OfficeImageExportBatchBuilder<TBuilder, TOptions>.WithTextShaping(OfficeIMO.Drawing.IOfficeTextShapingProvider! provider, string? language = null) -> TBuilder!
-OfficeIMO.Drawing.OfficeImageExportBatchBuilder<TBuilder, TOptions>.WithoutSizeLimit() -> TBuilder!
 OfficeIMO.Drawing.OfficeImageExportBatchLimitException
 OfficeIMO.Drawing.OfficeImageExportBatchLimitException.Actual.get -> long
 OfficeIMO.Drawing.OfficeImageExportBatchLimitException.LimitName.get -> string!
@@ -1574,48 +1529,6 @@ OfficeIMO.Drawing.OfficeImageExportBatchLimitException.Maximum.get -> long
 OfficeIMO.Drawing.OfficeImageExportBatchSaveResult
 OfficeIMO.Drawing.OfficeImageExportBatchSaveResult.Files.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.Drawing.OfficeImageExportSavedFile!>!
 OfficeIMO.Drawing.OfficeImageExportBatchSaveResult.Report.get -> OfficeIMO.Drawing.OfficeImageExportReport!
-OfficeIMO.Drawing.OfficeImageExportBuilder<TBuilder, TOptions>
-OfficeIMO.Drawing.OfficeImageExportBuilder<TBuilder, TOptions>.As(OfficeIMO.Drawing.OfficeImageExportFormat format) -> TBuilder!
-OfficeIMO.Drawing.OfficeImageExportBuilder<TBuilder, TOptions>.AsJpeg() -> TBuilder!
-OfficeIMO.Drawing.OfficeImageExportBuilder<TBuilder, TOptions>.AsPng() -> TBuilder!
-OfficeIMO.Drawing.OfficeImageExportBuilder<TBuilder, TOptions>.AsSvg() -> TBuilder!
-OfficeIMO.Drawing.OfficeImageExportBuilder<TBuilder, TOptions>.AsTiff() -> TBuilder!
-OfficeIMO.Drawing.OfficeImageExportBuilder<TBuilder, TOptions>.AsWebp() -> TBuilder!
-OfficeIMO.Drawing.OfficeImageExportBuilder<TBuilder, TOptions>.AtDpi(double dpi) -> TBuilder!
-OfficeIMO.Drawing.OfficeImageExportBuilder<TBuilder, TOptions>.ConfigureOptions(System.Action<TOptions!>! configure) -> TBuilder!
-OfficeIMO.Drawing.OfficeImageExportBuilder<TBuilder, TOptions>.Export() -> OfficeIMO.Drawing.OfficeImageExportResult!
-OfficeIMO.Drawing.OfficeImageExportBuilder<TBuilder, TOptions>.Export(System.Threading.CancellationToken cancellationToken) -> OfficeIMO.Drawing.OfficeImageExportResult!
-OfficeIMO.Drawing.OfficeImageExportBuilder<TBuilder, TOptions>.ExportAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<OfficeIMO.Drawing.OfficeImageExportResult!>!
-OfficeIMO.Drawing.OfficeImageExportBuilder<TBuilder, TOptions>.FitWithin(int maximumWidth, int maximumHeight) -> TBuilder!
-OfficeIMO.Drawing.OfficeImageExportBuilder<TBuilder, TOptions>.FitWithinHeight(int maximumHeight) -> TBuilder!
-OfficeIMO.Drawing.OfficeImageExportBuilder<TBuilder, TOptions>.FitWithinWidth(int maximumWidth) -> TBuilder!
-OfficeIMO.Drawing.OfficeImageExportBuilder<TBuilder, TOptions>.ForPreview() -> TBuilder!
-OfficeIMO.Drawing.OfficeImageExportBuilder<TBuilder, TOptions>.ForPrint(double dpi = 300) -> TBuilder!
-OfficeIMO.Drawing.OfficeImageExportBuilder<TBuilder, TOptions>.OfficeImageExportBuilder(TOptions! options, System.Func<OfficeIMO.Drawing.OfficeImageExportFormat, TOptions!, OfficeIMO.Drawing.OfficeImageExportResult!>! export) -> void
-OfficeIMO.Drawing.OfficeImageExportBuilder<TBuilder, TOptions>.OfficeImageExportBuilder(TOptions! options, System.Func<OfficeIMO.Drawing.OfficeImageExportFormat, TOptions!, OfficeIMO.Drawing.OfficeImageExportResult!>! export, System.Func<OfficeIMO.Drawing.OfficeImageExportFormat, TOptions!, System.Threading.CancellationToken, System.Threading.Tasks.Task<OfficeIMO.Drawing.OfficeImageExportResult!>!>! exportAsync) -> void
-OfficeIMO.Drawing.OfficeImageExportBuilder<TBuilder, TOptions>.OfficeImageExportBuilder(TOptions! options, System.Func<OfficeIMO.Drawing.OfficeImageExportFormat, TOptions!, System.Threading.CancellationToken, OfficeIMO.Drawing.OfficeImageExportResult!>! export) -> void
-OfficeIMO.Drawing.OfficeImageExportBuilder<TBuilder, TOptions>.OnFileConflict(OfficeIMO.Drawing.OfficeImageExportFileConflictPolicy policy) -> TBuilder!
-OfficeIMO.Drawing.OfficeImageExportBuilder<TBuilder, TOptions>.OnRasterOverflow(OfficeIMO.Drawing.OfficeRasterOverflowBehavior behavior) -> TBuilder!
-OfficeIMO.Drawing.OfficeImageExportBuilder<TBuilder, TOptions>.Options.get -> TOptions!
-OfficeIMO.Drawing.OfficeImageExportBuilder<TBuilder, TOptions>.Save(System.IO.Stream! stream) -> OfficeIMO.Drawing.OfficeImageExportResult!
-OfficeIMO.Drawing.OfficeImageExportBuilder<TBuilder, TOptions>.Save(string! path) -> OfficeIMO.Drawing.OfficeImageExportResult!
-OfficeIMO.Drawing.OfficeImageExportBuilder<TBuilder, TOptions>.SaveAsync(System.IO.Stream! stream, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<OfficeIMO.Drawing.OfficeImageExportResult!>!
-OfficeIMO.Drawing.OfficeImageExportBuilder<TBuilder, TOptions>.SaveAsync(string! path, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<OfficeIMO.Drawing.OfficeImageExportResult!>!
-OfficeIMO.Drawing.OfficeImageExportBuilder<TBuilder, TOptions>.ToBytes() -> byte[]!
-OfficeIMO.Drawing.OfficeImageExportBuilder<TBuilder, TOptions>.WithBackground(OfficeIMO.OfficeColor color) -> TBuilder!
-OfficeIMO.Drawing.OfficeImageExportBuilder<TBuilder, TOptions>.WithBackground(string! color) -> TBuilder!
-OfficeIMO.Drawing.OfficeImageExportBuilder<TBuilder, TOptions>.WithFont(string! familyName, byte[]! data, OfficeIMO.Drawing.OfficeFontStyle style = OfficeIMO.Drawing.OfficeFontStyle.Regular) -> TBuilder!
-OfficeIMO.Drawing.OfficeImageExportBuilder<TBuilder, TOptions>.WithFonts(OfficeIMO.Drawing.OfficeFontFaceCollection! fonts) -> TBuilder!
-OfficeIMO.Drawing.OfficeImageExportBuilder<TBuilder, TOptions>.WithImageCodec(OfficeIMO.Drawing.IOfficeRasterImageCodec! imageCodec) -> TBuilder!
-OfficeIMO.Drawing.OfficeImageExportBuilder<TBuilder, TOptions>.WithMaximumRasterPixels(long maximumPixels) -> TBuilder!
-OfficeIMO.Drawing.OfficeImageExportBuilder<TBuilder, TOptions>.WithPolicy(System.Action<OfficeIMO.Drawing.OfficeImageExportPolicy!>! configure) -> TBuilder!
-OfficeIMO.Drawing.OfficeImageExportBuilder<TBuilder, TOptions>.WithProgress(System.IProgress<OfficeIMO.Drawing.OfficeImageExportProgress!>! progress) -> TBuilder!
-OfficeIMO.Drawing.OfficeImageExportBuilder<TBuilder, TOptions>.WithQuality(OfficeIMO.Drawing.OfficeImageExportQuality quality) -> TBuilder!
-OfficeIMO.Drawing.OfficeImageExportBuilder<TBuilder, TOptions>.WithRasterEncoding(System.Action<OfficeIMO.Drawing.OfficeRasterEncodingOptions!>! configure) -> TBuilder!
-OfficeIMO.Drawing.OfficeImageExportBuilder<TBuilder, TOptions>.WithRenderTimeout(System.TimeSpan timeout) -> TBuilder!
-OfficeIMO.Drawing.OfficeImageExportBuilder<TBuilder, TOptions>.WithScale(double scale) -> TBuilder!
-OfficeIMO.Drawing.OfficeImageExportBuilder<TBuilder, TOptions>.WithTextShaping(OfficeIMO.Drawing.IOfficeTextShapingProvider! provider, string? language = null) -> TBuilder!
-OfficeIMO.Drawing.OfficeImageExportBuilder<TBuilder, TOptions>.WithoutSizeLimit() -> TBuilder!
 OfficeIMO.Drawing.OfficeImageExportConsumer
 OfficeIMO.Drawing.OfficeImageExportDiagnostic
 OfficeIMO.Drawing.OfficeImageExportDiagnostic.Code.get -> string!

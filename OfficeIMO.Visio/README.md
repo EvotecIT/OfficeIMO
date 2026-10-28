@@ -329,17 +329,20 @@ The AngularJS and NxBRE producer fixtures qualify page layer rows, values and me
 
 ### Layer selection in previews
 
-SVG and raster previews use `VisioLayerRenderMode.Visible` by default. Set `LayerMode` on `VisioSvgSaveOptions`, `VisioPngSaveOptions` or `VisioImageExportOptions`, or call `.LayerMode(...)` on a fluent image builder:
+SVG and raster previews use `VisioLayerRenderMode.Visible` by default. Set `LayerMode` on `VisioSvgSaveOptions`, `VisioPngSaveOptions` or `VisioImageExportOptions`:
 
 ```csharp
+using OfficeIMO;
+using OfficeIMO.Drawing;
+using OfficeIMO.Visio;
 string screenPreview = page.ToSvg();
 byte[] printPreview = page.ToPng(new VisioPngSaveOptions {
     LayerMode = VisioLayerRenderMode.Printable
 });
-OfficeImageExportResult allLayers = page.ToImage()
-    .LayerMode(VisioLayerRenderMode.All)
-    .AsSvg()
-    .Export();
+var imageOptions1 = new VisioImageExportOptions();
+imageOptions1.LayerMode = VisioLayerRenderMode.All;
+imageOptions1.Format = OfficeImageExportFormat.Svg;
+OfficeImageExportResult allLayers = page.ExportImage(OfficeImageExportFormat.Svg, imageOptions1);
 ```
 
 | Mode | Layer flag used |
@@ -630,6 +633,8 @@ Unsupported masters remain marked as unsupported even when included for inventor
 ### Headless image export
 
 ```csharp
+using OfficeIMO;
+using OfficeIMO.Drawing;
 using OfficeIMO.Visio;
 
 var document = VisioDocument.Create("pipeline.vsdx");
@@ -649,22 +654,24 @@ document.SaveAsPng("pipeline.png", new VisioPngSaveOptions {
     Supersampling = 3
 });
 
-OfficeImageExportResult webp = document
-    .ToImage()
-    .AtDpi(144)
-    .FitWithin(1600, 1200)
-    .ResolveConnectorLabelOverlaps()
-    .AsWebp()
-    .Save("pipeline.webp");
+var imageOptions2 = new VisioImageExportOptions();
+imageOptions2.TargetDpi = 144;
+imageOptions2.MaximumOutputWidth = 1600;
+imageOptions2.MaximumOutputHeight = 1200;
+imageOptions2.ResolveConnectorLabelOverlaps = true;
+imageOptions2.Format = OfficeImageExportFormat.Webp;
+OfficeConversionReport webp = document.SaveAsImage("pipeline.webp", imageOptions2);
 
-IReadOnlyList<OfficeImageExportResult> pages = document
-    .ToImages()
-    .AllPages()
-    .IncludeStencilArtwork()
-    .IncludeConnectorLabels()
-    .AsJpeg()
-    .Save("pipeline-pages");
+var imageOptions3 = new VisioImageExportOptions();
+imageOptions3.PageIndex = 0;
+imageOptions3.PageCount = null;
+imageOptions3.RenderStencilArtwork = true;
+imageOptions3.RenderConnectorLabels = true;
+imageOptions3.Format = OfficeImageExportFormat.Jpeg;
+OfficeConversionReport pages = document.SaveAsImages("pipeline-pages", imageOptions3);
 ```
+
+`SaveAsImages(folder, options)` and its async form return `OfficeConversionReport`. The options carry the output format, selection, deadlines, resource limits and file conflict policy. Use the `ExportImages` consumer overloads to process each image with its sequence metadata and diagnostics.
 
 ## Content provenance
 

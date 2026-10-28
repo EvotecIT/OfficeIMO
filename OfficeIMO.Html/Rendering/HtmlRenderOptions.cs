@@ -6,6 +6,9 @@ namespace OfficeIMO.Html;
 /// Shared layout and safety options used by HTML image and PDF rendering.
 /// </summary>
 public partial class HtmlRenderOptions : OfficeImageExportOptions {
+    /// <summary>Zero-based page used by single-image conversion and saving operations.</summary>
+    public int PageIndex { get; set; }
+
     private readonly List<string> _additionalStylesheets = new List<string>();
 
     /// <summary>CSS reference pixel density used for physical page conversion.</summary>
@@ -305,6 +308,7 @@ public partial class HtmlRenderOptions : OfficeImageExportOptions {
         target.MaxSurfaceWidth = MaxSurfaceWidth;
         target.MaxSurfaceHeight = MaxSurfaceHeight;
         target.MaxPageCount = MaxPageCount;
+        target.PageIndex = PageIndex;
         target.MaxProjectedVisuals = MaxProjectedVisuals;
         target.MaxLayoutDepth = MaxLayoutDepth;
         target.MaxInputCharacters = MaxInputCharacters;

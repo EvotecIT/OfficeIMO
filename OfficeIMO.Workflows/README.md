@@ -1799,12 +1799,15 @@ workbook.Save("delivery.xlsx");
 Project PNG exports default to 300 DPI, rendered from the drawing at the requested resolution. Choose a shared quality preset for screen images:
 
 ```csharp
+using OfficeIMO;
+using OfficeIMO.Project;
+using OfficeIMO.Workflows;
 using OfficeIMO.Drawing;
 
-var images = ProjectReportWorkflow.Images(view)
-    .WithQuality(OfficeImageExportQuality.Screen)
-    .As(OfficeImageExportFormat.Png)
-    .Export();
+var imageOptions = new ProjectImageExportOptions { Format = OfficeImageExportFormat.Png }
+    .UseQuality(OfficeImageExportQuality.Screen);
+var images = view.ExportImages(OfficeImageExportFormat.Png, imageOptions);
+OfficeConversionReport saved = view.SaveAsImages("project-pages", imageOptions);
 ```
 
 The presets are `Preview` (96 DPI), `Screen` (192 DPI), and `Print` (300 DPI). `ExportImages` returns encoded bytes, pixel dimensions, density, and diagnostics; its consumer overload streams results under shared batch limits. Supply `ProjectImageExportOptions` to select fonts, explicit density, pixel limits, or a rendering deadline. Oversized Project images fail by default; choose `RasterOverflowBehavior.ReduceScale` only when reduced detail is acceptable. Use SVG for zoomable vector text and geometry. Enlarging an existing PNG beyond its pixel dimensions still magnifies its pixels.

@@ -26,7 +26,9 @@ public sealed partial class HtmlRenderingTests {
         Assert.True(pdf.HasLoss);
         options.Policy.RequireNoLoss = true;
         using var output = new MemoryStream();
-        Assert.Throws<OfficeImageExportPolicyException>(() => document.ToImage(options).As(format).Save(output));
+        var imageOptions1 = options.Clone();
+        imageOptions1.Format = format;
+        Assert.Throws<OfficeImageExportPolicyException>(() => document.SaveAsImage(output, imageOptions1));
         Assert.Equal(0, output.Length);
         await Assert.ThrowsAsync<OfficeImageExportPolicyException>(() => document.ExportImageAsync(format, options));
         options.Policy.RequireNoLoss = false;

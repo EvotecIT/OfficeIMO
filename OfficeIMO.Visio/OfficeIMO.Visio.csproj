@@ -73,6 +73,7 @@
 
     <ItemGroup>
         <InternalsVisibleTo Include="OfficeIMO.Visio.Tests" />
+        <InternalsVisibleTo Include="PSWriteOffice" />
         <InternalsVisibleTo Include="OfficeIMO.Visio.Pdf" />
     </ItemGroup>
 

@@ -15,6 +15,19 @@
       "applied": "phase-b-applied",
       "file": "OfficeIMO.Html/Pdf/HtmlToPdfOptions.cs",
       "reason": "Use the single loss control introduced in Core. The duplicate declaration hid the base property and failed the full staged module build; defaults, serialization shape and PDF loss rejection stay unchanged."
+    },
+    {
+      "old": "HtmlPageImageExportBuilder; HtmlPageImageBatchExportBuilder; fluent ToImage / ToImages",
+      "new": "HtmlConversionDocument.ToImage(options), SaveAsImage(pathOrStream, options), SaveAsImages(folder, options); HtmlRenderOptions.PageIndex",
+      "action": "consolidate",
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "files": [
+        "OfficeIMO.Html/Rendering/HtmlImageExportBuilder.cs",
+        "OfficeIMO.Html/Rendering/HtmlRenderOptions.cs"
+      ],
+      "reason": "Remove the fluent image surface while retaining format renderers, Core execution/persistence, streaming, deadlines, limits and diagnostic evidence.",
+      "qualification": "Static preparation only. Parent applies and qualifies every maintained target; no build or test was run."
     }
   ]
 }

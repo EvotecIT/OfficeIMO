@@ -652,6 +652,19 @@
       "reason": "The full Windows PowerShell payload graph compiles Workflows publishing and evidence ZIP contracts against .NET Framework. System.IO.Compression is a framework reference, with no package or target change.",
       "file": "OfficeIMO.Workflows/OfficeIMO.Workflows.csproj",
       "applied": "phase-b-applied"
+    },
+    {
+      "old": "ProjectImageExportBuilder; ProjectReportWorkflow.Images(view)",
+      "new": "ProjectView.ExportImages(format, options), SaveAsImages(folder, options), asynchronous streaming and saving",
+      "action": "consolidate",
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "files": [
+        "OfficeIMO.Workflows/Project/ProjectImageExportOptions.cs",
+        "OfficeIMO.Workflows/Project/ProjectReportWorkflow.Images.cs"
+      ],
+      "reason": "Remove the fluent image surface while retaining format renderers, Core execution/persistence, streaming, deadlines, limits and diagnostic evidence.",
+      "qualification": "Static preparation only. Parent applies and qualifies every maintained target; no build or test was run."
     }
   ],
   "applicationStatus": "Phase A applied and validated on the supported macOS targets. Phase B and Tier 2 entries retain their status; Windows .NET Framework validation remains pending.",
