@@ -97,11 +97,9 @@ namespace OfficeIMO.PowerPoint {
         // Paragraph spacing in whole 1/8 points (the binary PowerPoint field) expressed in 1/100 points.
         private static string Spc(double points) => ((int)Math.Round(points * 4D) * 25).ToString(CultureInfo.InvariantCulture);
         private static string Sz(double points) => ((int)Math.Round(points * 100D)).ToString(CultureInfo.InvariantCulture);
-        // Whole percentages: binary PPT stores spacing in whole percent, so a deck saved as .ppt keeps the same spacing.
-        private static string Pct(double fraction) => ((int)Math.Round(fraction * 100D) * 1000).ToString(CultureInfo.InvariantCulture);
-
-        /// <summary>PowerPoint's 100 % line spacing is about 1.2 em; the design line heights are CSS-like em multiples.</summary>
-        internal static double LineSpacingFraction(double lineHeight) => Math.Round(lineHeight / 1.2D * 100D) / 100D;
+        // Absolute leading keeps the design's em-based measurement independent of each viewer's
+        // natural font line height. Quarter-point spacing also survives binary PowerPoint storage.
+        internal static string LineSpacingPoints(double size, double lineHeight) => Spc(size * lineHeight);
 
         // Master runs stay inside the binary PowerPoint character contract (size, weight, fill, Latin and East
         // Asian typefaces) so a new deck can still be saved as .ppt without loss. Tracking is applied on slide runs.
@@ -143,7 +141,7 @@ namespace OfficeIMO.PowerPoint {
             b.Append("<p:txStyles xmlns:p=\"").Append(NsP).Append("\" xmlns:a=\"").Append(NsA).Append("\">");
 
             b.Append("<p:titleStyle><a:lvl1pPr algn=\"l\" defTabSz=\"").Append(Pt(72)).Append("\" rtl=\"0\" eaLnBrk=\"1\" latinLnBrk=\"0\" hangingPunct=\"1\">");
-            b.Append("<a:lnSpc><a:spcPct val=\"").Append(Pct(LineSpacingFraction(title.LineHeight))).Append("\"/></a:lnSpc>");
+            b.Append("<a:lnSpc><a:spcPts val=\"").Append(LineSpacingPoints(title.Size, title.LineHeight)).Append("\"/></a:lnSpc>");
             b.Append("<a:spcBef><a:spcPct val=\"0\"/></a:spcBef><a:buNone/>");
             b.Append(Run("+mj-lt", title.Size, true, Scheme("tx1"), title.Tracking));
             b.Append("</a:lvl1pPr></p:titleStyle>");
@@ -155,7 +153,7 @@ namespace OfficeIMO.PowerPoint {
                 double marL = first ? theme.ListIndent : theme.ListIndent + 22D * (level - 1);
                 b.Append("<a:lvl").Append(level).Append("pPr marL=\"").Append(Pt(marL)).Append("\" indent=\"").Append(Pt(-(first ? theme.ListIndent : 18D)))
                     .Append("\" algn=\"l\" defTabSz=\"").Append(Pt(72)).Append("\" rtl=\"0\" eaLnBrk=\"1\" latinLnBrk=\"0\" hangingPunct=\"1\">");
-                b.Append("<a:lnSpc><a:spcPct val=\"").Append(Pct(LineSpacingFraction(body.LineHeight))).Append("\"/></a:lnSpc>");
+                b.Append("<a:lnSpc><a:spcPts val=\"").Append(LineSpacingPoints(size, body.LineHeight)).Append("\"/></a:lnSpc>");
                 b.Append("<a:spcBef><a:spcPct val=\"0\"/></a:spcBef>");
                 b.Append("<a:spcAft><a:spcPts val=\"").Append(Spc(after * size / body.Size)).Append("\"/></a:spcAft>");
                 if (first) {
@@ -255,7 +253,7 @@ namespace OfficeIMO.PowerPoint {
             PowerPointTextStyleSpec s = theme[role];
             string font = s.HeadingFont ? "+mj-lt" : "+mn-lt";
             string color = s.Color == theme.Text ? Scheme("tx1") : "<a:solidFill><a:srgbClr val=\"" + s.Color + "\"/></a:solidFill>";
-            return "<a:lstStyle><a:lvl1pPr marL=\"0\" indent=\"0\"><a:lnSpc><a:spcPct val=\"" + Pct(LineSpacingFraction(s.LineHeight)) + "\"/></a:lnSpc>" +
+            return "<a:lstStyle><a:lvl1pPr marL=\"0\" indent=\"0\"><a:lnSpc><a:spcPts val=\"" + LineSpacingPoints(s.Size, s.LineHeight) + "\"/></a:lnSpc>" +
                    (bullets ? string.Empty : "<a:buNone/>") + Run(font, s.Size, s.Bold, color, s.Tracking) + "</a:lvl1pPr></a:lstStyle>";
         }
 

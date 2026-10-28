@@ -172,7 +172,7 @@ namespace OfficeIMO.PowerPoint {
             var b = new StringBuilder("<a:p><a:pPr");
             if (p.Level > 1) b.Append(" lvl=\"").Append(p.Level - 1).Append('"');
             b.Append(" marL=\"").Append(E(p.MarginLeft)).Append("\" indent=\"").Append(E(p.Indent)).Append("\" algn=\"").Append(p.Align).Append("\">");
-            b.Append("<a:lnSpc><a:spcPct val=\"").Append(I(PowerPointLayoutMasterWriter.LineSpacingFraction(p.LineHeight) * 100000D)).Append("\"/></a:lnSpc>");
+            b.Append("<a:lnSpc><a:spcPts val=\"").Append(PowerPointLayoutMasterWriter.LineSpacingPoints(p.Runs.Count == 0 ? 12D : p.Runs.Max(run => run.Size), p.LineHeight)).Append("\"/></a:lnSpc>");
             b.Append("<a:spcBef><a:spcPts val=\"").Append(I(p.SpaceBefore * 100D)).Append("\"/></a:spcBef>");
             b.Append("<a:spcAft><a:spcPts val=\"").Append(I(p.SpaceAfter * 100D)).Append("\"/></a:spcAft>");
             if (p.NumberStart.HasValue) {

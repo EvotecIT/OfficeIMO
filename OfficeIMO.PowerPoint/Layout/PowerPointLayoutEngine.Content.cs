@@ -633,9 +633,16 @@ namespace OfficeIMO.PowerPoint {
                     context.Theme.OnAccent, 10D, bold: true);
                 writer.Circle("Screenshot Annotation " + (i + 1), new PowerPointLayoutRect(x - 11D, y - 11D, 22D, 22D), context.Theme.Accent1,
                     context.Theme.Background, 2D, number, shape: true);
-                double labelWidth = PowerPointTextMeasure.Width(label, caption.Size, context.Theme.BodyFont) * 1.1D + 16D;
-                writer.Text("Screenshot Annotation Label " + (i + 1), new PowerPointLayoutRect(x + 15D, y - 9D, labelWidth, 18D),
-                    new[] { context.Paragraph(label, PowerPointTextRole.Caption, context.Theme.Text) }, anchor: "ctr", fill: context.Theme.Background, inset: 3D);
+                const double labelInset = 3D;
+                var metrics = OfficeDrawingTextLayout.CreateMetrics(null);
+                var layout = OfficeTextLayoutEngine.LayoutTextBlock(label, caption.Size, double.MaxValue, double.MaxValue,
+                    OfficeDrawingTextLayout.ResolveLineHeightFactor(caption.Size * caption.LineHeight, caption.Size),
+                    Math.Min(6D, caption.Size),
+                    (text, size) => metrics.MeasureText(text, size, context.Theme.BodyFont, OfficeFontStyle.Regular), wrap: false);
+                double labelWidth = Math.Ceiling(layout.Width) + 2D * labelInset + 10D;
+                double labelHeight = Math.Max(18D, Math.Ceiling(Math.Max(layout.Height, OfficeDrawingTextLayout.PaintedHeight(layout))) + 2D * labelInset);
+                writer.Text("Screenshot Annotation Label " + (i + 1), new PowerPointLayoutRect(x + 15D, y - labelHeight / 2D, labelWidth, labelHeight),
+                    new[] { context.Paragraph(label, PowerPointTextRole.Caption, context.Theme.Text) }, anchor: "ctr", fill: context.Theme.Background, inset: labelInset);
             }
         }
 

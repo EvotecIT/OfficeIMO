@@ -99,8 +99,9 @@ namespace OfficeIMO.Tests {
                         MinimumReadableFontSizePoints = 8,
                         DetectShapeCollisions = false
                     });
-                    Assert.DoesNotContain(report.Findings, finding =>
-                        finding.Severity == PowerPointDeckPreflightSeverity.Error);
+                    var preflightErrors = report.Findings.Where(finding => finding.Severity == PowerPointDeckPreflightSeverity.Error).ToArray();
+                    Assert.True(preflightErrors.Length == 0, string.Join(Environment.NewLine, preflightErrors.Select(finding =>
+                        $"Slide {finding.SlideIndex}, {finding.ShapeName}: {finding.Code}: {finding.Message}")));
                     presentation.Save();
                 }
 
