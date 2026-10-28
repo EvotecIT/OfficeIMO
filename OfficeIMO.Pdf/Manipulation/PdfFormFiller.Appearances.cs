@@ -631,8 +631,12 @@ internal static partial class PdfFormFiller {
         }
 
         foreach (PdfDictionary candidateResources in EnumerateCandidateTextAppearanceResources(inheritedDefaultResources, widgetAppearanceResources, widgetPageResources)) {
+            // Composite fonts need the encoder above. A subset missing a new value cannot be
+            // reused by the single-byte appearance fallback, even when its resource name matches.
             if (ResolveDictionary(objects, candidateResources.Items.TryGetValue("Font", out PdfObject? fontsObject) ? fontsObject : null) is not PdfDictionary fonts ||
-                !fonts.Items.TryGetValue(defaultAppearanceFontName, out PdfObject? fontObject)) {
+                !fonts.Items.TryGetValue(defaultAppearanceFontName, out PdfObject? fontObject) ||
+                ResolveDictionary(objects, fontObject) is not PdfDictionary font ||
+                font.Get<PdfName>("Subtype")?.Name is not ("Type1" or "TrueType")) {
                 continue;
             }
 
