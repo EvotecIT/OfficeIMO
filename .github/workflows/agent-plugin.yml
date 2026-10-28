@@ -35,11 +35,15 @@ jobs:
     if: ${{ github.event_name != 'release' || startsWith(github.event.release.tag_name, 'OfficeIMO-v') || startsWith(github.event.release.tag_name, 'OfficeIMO.Tool-v') }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: officeimo
     steps:
       - uses: actions/checkout@v7
         with:
           fetch-depth: 0
           persist-credentials: false
+          path: officeimo
       - name: Validate release source
         if: ${{ github.event_name == 'release' }}
         env:
@@ -53,6 +57,8 @@ jobs:
         with:
           repository: EvotecIT/PSPublishModule
           ref: 9e7d940d6a107e83d1d2a65a16ead0b2dc3a6979
+          # Keep the two repositories as siblings so OfficeIMO build targets
+          # cannot change the shared packer's locked dependency graph.
           path: .powerforge-agent-plugin-build
           persist-credentials: false
       - uses: actions/setup-dotnet@v6
@@ -73,7 +79,7 @@ jobs:
         if: ${{ github.event_name == 'release' }}
         uses: actions/setup-dotnet@v6
         with:
-          global-json-file: global.json
+          global-json-file: officeimo/global.json
       - name: Verify the published launcher before distributing the plugin
         if: ${{ github.event_name == 'release' }}
         run: |
@@ -88,7 +94,7 @@ jobs:
         env:
           PLUGIN_OUTPUT: ${{ runner.temp }}/officeimo-agent-plugin
         run: |
-          packer=.powerforge-agent-plugin-build/PowerForge.Cli/bin/Release/net10.0/PowerForge.Cli.dll
+          packer="$GITHUB_WORKSPACE/.powerforge-agent-plugin-build/PowerForge.Cli/bin/Release/net10.0/PowerForge.Cli.dll"
           dotnet "$packer" agent-plugin validate --source .agents/plugins/officeimo-document-tools --project OfficeIMO.Tool/OfficeIMO.Tool.csproj
           dotnet "$packer" agent-plugin pack --source .agents/plugins/officeimo-document-tools --project OfficeIMO.Tool/OfficeIMO.Tool.csproj --out "$PLUGIN_OUTPUT"
       - uses: actions/upload-artifact@v7
