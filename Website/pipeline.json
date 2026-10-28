@@ -2926,10 +2926,17 @@
       "clean": false
     },
     {
+      "task": "hosting",
+      "id": "export-static-redirects",
+      "dependsOn": ["build-site-xref-refresh"],
+      "siteRoot": "./_site",
+      "target": "github-pages"
+    },
+    {
       "task": "exec",
       "id": "verify-content-layout-contracts",
       "dependsOn": [
-        "build-site-xref-refresh"
+        "export-static-redirects"
       ],
       "command": "pwsh",
       "argsList": [
