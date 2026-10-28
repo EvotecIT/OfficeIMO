@@ -17,6 +17,10 @@ public partial class Excel {
     public void SaveAsPdf_ResolvesNativePrintFitDefaultsAndEnabledState(int settingsCase, uint? fitWidth, uint? fitHeight, int expectedPages) {
         string path = Path.Combine(_directoryWithFiles, "NativePrintDefaults" + settingsCase + ".xlsx");
         using (var workbook = ExcelDocument.Create(path, new ExcelCreateOptions { FirstSheetName = "Layout" })) {
+            // Keep this print-setting matrix on its original physical column grid.
+            Font nativeFont = workbook.WorkbookPartRoot.WorkbookStylesPart!.Stylesheet.Fonts!.Elements<Font>().First();
+            nativeFont.FontName!.Val = "Calibri";
+            nativeFont.FontSize!.Val = 11D;
             ExcelSheet sheet = workbook.Sheets[0];
             sheet.SetColumnWidth(1, 50);
             sheet.SetColumnWidth(2, 80);

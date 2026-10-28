@@ -99,6 +99,9 @@ namespace OfficeIMO.Examples.Excel {
                 scatterChart.SetScatterYAxisScale(minimum: 0, maximum: 6, majorUnit: 1);
                 scatterChart.SetScatterYAxisCrossing(OfficeChartAxisCrossingPosition.Minimum, crossesAt: 2d);
 
+                // Each chart starts on its own printed page; none is cut at an automatic row boundary.
+                foreach (int row in new[] { 21, 41, 61 }) sheet.AddManualRowPageBreak(row);
+
                 var rangeCells = new List<(int Row, int Column, object Value)> {
                     (30, 1, "X"), (30, 2, "Y1"), (30, 3, "Y2"), (30, 4, "Size"),
                     (31, 1, 1d), (31, 2, 2d), (31, 3, 3d), (31, 4, 4d),

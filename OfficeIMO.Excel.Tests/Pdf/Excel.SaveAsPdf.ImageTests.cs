@@ -179,6 +179,10 @@ public partial class Excel {
         byte[] imageBytes = CreateMinimalRgbPng();
         byte[] bytes;
         using (ExcelDocument document = ExcelDocument.Create(workbookPath, new ExcelCreateOptions { FirstSheetName = "Images" })) {
+            // The placement assertions use Calibri 11 character-width units.
+            Font nativeFont = document.WorkbookPartRoot.WorkbookStylesPart!.Stylesheet.Fonts!.Elements<Font>().First();
+            nativeFont.FontName!.Val = "Calibri";
+            nativeFont.FontSize!.Val = 11D;
             ExcelSheet sheet = document.Sheets[0];
             sheet.Cell(1, 1, "Label");
             sheet.Cell(1, 2, "Visual");
