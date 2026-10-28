@@ -3885,6 +3885,7 @@ OfficeIMO.OfficeColor.ThemeSlot.get -> string?
 OfficeIMO.OfficeColor.ToArgbHex() -> string!
 OfficeIMO.OfficeColor.ToCssColor() -> string!
 OfficeIMO.OfficeColor.ToHex() -> string!
+OfficeIMO.OfficeColor.ToNormalizedRgb() -> (double R, double G, double B)
 OfficeIMO.OfficeColor.ToRgbHex() -> string!
 OfficeIMO.OfficeColorRole
 OfficeIMO.OfficeColorRole.Accent1 = 1 -> OfficeIMO.OfficeColorRole
@@ -7905,6 +7906,7 @@ static OfficeIMO.OfficeColor.DimGray.get -> OfficeIMO.OfficeColor
 static OfficeIMO.OfficeColor.DimGrey.get -> OfficeIMO.OfficeColor
 static OfficeIMO.OfficeColor.DodgerBlue.get -> OfficeIMO.OfficeColor
 static OfficeIMO.OfficeColor.ForestGreen.get -> OfficeIMO.OfficeColor
+static OfficeIMO.OfficeColor.FromNormalizedRgb(double r, double g, double b, byte alpha = 255) -> OfficeIMO.OfficeColor
 static OfficeIMO.OfficeColor.FromRgb(byte r, byte g, byte b) -> OfficeIMO.OfficeColor
 static OfficeIMO.OfficeColor.FromRgba(byte r, byte g, byte b, byte a) -> OfficeIMO.OfficeColor
 static OfficeIMO.OfficeColor.Gold.get -> OfficeIMO.OfficeColor

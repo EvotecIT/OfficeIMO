@@ -830,6 +830,25 @@
       "reason": "The .NET Framework 4.7.2 BCL already provides ToHashSet. Compiling the full net472 Workflows graph exposed ambiguous comparer overloads when the fallback was also visible. Other older-framework fallbacks remain available.",
       "file": "OfficeIMO.Core/Internal/OfficeRuntimeCompatibility.Collections.cs",
       "applied": "phase-b-applied"
+    },
+    {
+      "change": "Retain normalized RGB literals in the canonical OfficeColor value type.",
+      "reason": "The single public color contract preserves existing normalized PDF authoring precision without changing byte channel units, role resolution or hexadecimal/CSS byte projections. Exact byte fractions keep byte equality and hash values; other precise literals retain exact RGB channels in unmanaged value storage.",
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "files": [
+        "OfficeIMO.Core/OfficeColor.cs",
+        "OfficeIMO.Core/OfficeColor.ThemeRoles.cs",
+        "OfficeIMO.Core/OfficeColor.Normalized.cs",
+        "OfficeIMO.Core/README.md",
+        "OfficeIMO.Core/PublicAPI.Shipped.txt",
+        "OfficeIMO.Core/PublicAPI/net8.0/PublicAPI.Shipped.txt",
+        "OfficeIMO.Core/PublicAPI/netstandard2.0/PublicAPI.Shipped.txt",
+        "OfficeIMO.Core/PublicAPI/net472/PublicAPI.Shipped.txt",
+        "OfficeIMO.Drawing.Tests/Core.OfficeColor.Normalized.cs"
+      ],
+      "note": "Core and Drawing.Tests are qualified on net8.0/net10.0, with netstandard2.0 and net472 compilation. The PDF public color migration remains separate.",
+      "notes": "Normalized RGB literals retain exact finite channels in unmanaged value storage. Byte getters and hexadecimal/CSS formatting remain byte projections. Exact byte fractions retain existing equality and hash values; precise colors remain distinct cache keys. Alpha stays a byte. No new runtime dependency or framework change."
     }
   ],
   "applicationStatus": "Phase A applied and validated on the supported macOS targets. Phase B and Tier 2 entries retain their status; Windows .NET Framework validation remains pending.",

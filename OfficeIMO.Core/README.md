@@ -41,6 +41,29 @@ native theme references; call `Resolve(theme)` before reading RGBA channels or
 formatting a literal hexadecimal/CSS color. `ToString()` preserves a role name.
 Palette entries must be literal, preventing circular role references.
 
+`OfficeColor.FromNormalizedRgb(r, g, b, alpha: 255)` retains finite RGB values in
+the inclusive 0..1 range. `ToNormalizedRgb()` returns those values as a named
+`(double R, double G, double B)` tuple; resolve theme roles before calling it.
+The byte constructor, `FromRgb`, `FromRgba` and the `R`, `G`, `B`, `A` getters
+keep their 0..255 units. Normalized literals project RGB to the nearest byte,
+with midpoint ties to even, when byte channels are requested.
+
+```csharp
+OfficeColor precise = OfficeColor.FromNormalizedRgb(0.125, 0.5, 0.9, alpha: 17);
+var channels = precise.ToNormalizedRgb();     // (0.125, 0.5, 0.9)
+byte red = precise.R;                        // 32, the byte projection
+string css = precise.ToCssColor();           // "#2080e611", also a byte projection
+```
+
+`ToHex`, `ToRgbHex`, `ToArgbHex`, `ToCssColor` and literal `ToString()` output
+describe the byte projection. Parsing that output does not recover normalized
+precision. Existing hexadecimal/CSS parsing, color transforms and byte-based
+rendering keep their byte behavior; use `ToNormalizedRgb()` at boundaries that
+need the retained values. Equality and hashing include precise RGB values and
+byte alpha. An exact `byte / 255D` RGB triple equals its byte-constructed
+counterpart and has the same hash; different precise values can share a byte
+projection without being equal.
+
 `OfficeTheme.Default` is `Modern`. `Classic`, `Minimal`, `Boardroom` and `Dark` are
 also available. A theme contains `Palette`, `Fonts`, `TypeScale`, `TableStyle`,
 `ChartStyle` and `Spacing`. Top-level `WithPalette`, `WithFonts`, `WithTypeScale`,
