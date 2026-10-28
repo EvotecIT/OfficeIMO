@@ -30,9 +30,10 @@ public sealed class PdfPageImageLayoutTests {
         var images = conversion.ExportImages(format, options);
         Assert.True(images.Count > 1);
         Assert.Equal(pdf.Inspect().PageCount, images.Count);
-        var direct = pdf.Render.ExportImages(format, options);
+        options.Format = format;
+        var direct = pdf.ExportImages(options);
         for (int index = 0; index < images.Count; index++)
-            Assert.Equal(direct[index].Bytes, images[index].Bytes);
+            Assert.Equal(direct[index], images[index].Bytes);
         if (format == OfficeImageExportFormat.Svg) {
             string svg = string.Join("\n", images.Select(image => Encoding.UTF8.GetString(image.Bytes)));
             Assert.Contains("Heading", svg);

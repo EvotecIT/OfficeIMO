@@ -25,10 +25,25 @@ internal static class DeliveryEvidence {
         using (var document = PowerPointDocument.Load(Path.Combine(output, "service-review.pptx")))
             SaveImages(output, "powerpoint-layout", document.ExportImages(OfficeImageExportFormat.Png));
         using var pdf = PdfDocument.Load(Path.Combine(output, "service-review.pdf"));
-        SaveImages(output, "saved-pdf", pdf.Render.ExportImages(OfficeImageExportFormat.Png));
+        SavePdfImages(output, pdf);
         var visio = VisioDocument.Load(Path.Combine(output, "service-delivery.vsdx"));
         SaveImages(output, "visio-layout", visio.ExportImages(OfficeImageExportFormat.Png));
         SaveImages(output, "visio-layout", visio.ExportImages(OfficeImageExportFormat.Svg));
+    }
+
+    private static void SavePdfImages(string output, PdfDocument document) {
+        IReadOnlyList<byte[]> images = document.ExportImages(null, out var report);
+        if (images.Count == 0) throw new InvalidOperationException("The saved PDF did not render an image.");
+        var pages = new List<object>();
+        for (int index = 0; index < images.Count; index++) {
+            byte[] bytes = images[index];
+            if (!OfficeImageReader.TryValidateContent(bytes, ".png", out OfficeImageInfo info))
+                throw new InvalidDataException("The saved PDF preview is not a valid PNG.");
+            string fileName = "saved-pdf-" + (index + 1).ToString("D2") + ".png";
+            File.WriteAllBytes(Path.Combine(output, fileName), bytes);
+            pages.Add(new { File = fileName, info.Width, info.Height });
+        }
+        SaveJson(Path.Combine(output, "saved-pdf-png.json"), new { Pages = pages, report.Diagnostics });
     }
 
     private static void SaveImages(string output, string route, IReadOnlyList<OfficeImageExportResult> images) {

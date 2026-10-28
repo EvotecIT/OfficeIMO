@@ -67,8 +67,8 @@ public sealed class ExportOfficePdfImageCommand : PSCmdlet
         var output = SessionState.Path.GetUnresolvedProviderPathFromPSPath(OutputPath);
         if (!ShouldProcess(output, $"Export PDF pages as {Format}")) return;
         Directory.CreateDirectory(output);
-        var document = PdfCommandUtilities.LoadDocument(input, readOptions);
-        var pages = document.Render.ExportImages(Format, options, selection);
+        using var document = PdfCommandUtilities.LoadDocument(input, readOptions);
+        var pages = PdfImageExportExtensions.ExportImages(document, Format, options, selection);
         for (int index = 0; index < pages.Count; index++)
         {
             var page = pages[index];

@@ -813,6 +813,11 @@
       "change": "Close full-solution consumers of the unified API",
       "reason": "The shared managed-font fixture requires the internal text-element enumerator in OfficeIMO.Tool.Tests; an explicit test friend keeps that plumbing internal.",
       "applied": "phase-b-applied"
+    },
+    {
+      "change": "Describe PDF image conversion through the public byte and report contract",
+      "reason": "The capability source catalog uses PdfDocument.ExportImages with PdfImageExportOptions and OfficeConversionReport. All five PDF image routes describe IReadOnlyList<byte[]>; detailed per-page results remain internal host plumbing. Generated compatibility and website route projections follow this catalog.",
+      "applied": "phase-b-applied"
     }
   ],
   "applicationStatus": "Phase A applied and validated on the supported macOS targets. Phase B and Tier 2 entries retain their status; Windows .NET Framework validation remains pending.",

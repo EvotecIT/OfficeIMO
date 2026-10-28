@@ -53,14 +53,6 @@ public sealed class PdfDocumentRenderer {
         PdfLoadOptions? loadOptions = null) =>
         _document.Reader.Interactions(pageNumber, options, loadOptions);
 
-    /// <summary>Exports all pages or a caller-ordered selection through the shared image-export contract.</summary>
-    public IReadOnlyList<OfficeImageExportResult> ExportImages(
-        OfficeImageExportFormat format,
-        PdfImageExportOptions? options = null,
-        PdfPageSelection? selection = null,
-        CancellationToken cancellationToken = default) =>
-        _document.Reader.ExportImages(format, options, selection, cancellationToken: cancellationToken);
-
     /// <summary>Renders all pages or a caller-ordered selection through the managed batch renderer.</summary>
     public IReadOnlyList<PdfPageRenderResult> Pages(
         PdfPageSelection? selection = null,

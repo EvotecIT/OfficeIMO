@@ -78,7 +78,7 @@ public sealed class PdfDocumentViewingTests {
                 case "display": document.Render.DisplayPage(1, cancellationToken: cancellation.Token); break;
                 case "ranges": document.Render.Pages("1", cancellationToken: cancellation.Token); break;
                 case "selection": document.Render.Pages(PdfPageSelection.Parse("1"), cancellationToken: cancellation.Token); break;
-                case "images": document.Render.ExportImages(OfficeIMO.Drawing.OfficeImageExportFormat.Png, cancellationToken: cancellation.Token); break;
+                case "images": document.ExportImages(cancellationToken: cancellation.Token); break;
             }
         });
         Assert.InRange(callbacks, 1, 2);

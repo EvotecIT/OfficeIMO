@@ -3353,6 +3353,14 @@
       "change": "Close full-solution consumers of the unified API",
       "reason": "The XPS comparison and AI executable example use PdfDocument.ExportImages with options, caller-ordered selectors, byte payloads, metadata inspection and shared diagnostics. Loaded PDF documents are disposed.",
       "applied": "phase-b-applied"
+    },
+    {
+      "old": "PdfDocumentRenderer.ExportImages(OfficeImageExportFormat, PdfImageExportOptions, PdfPageSelection, CancellationToken)",
+      "new": "PdfDocument.ExportImages(PdfImageExportOptions, out OfficeConversionReport, CancellationToken)",
+      "action": "remove",
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "reason": "Remove the remaining public detailed-result image-export twin. Examples, compile contracts and the native corpus use byte payloads and shared reports; PowerShell retains its detailed page-result output through the existing internal kernel and disposes its document. Rendering cancellation remains covered through the public export path. Capability catalogs describe the public byte/report contract."
     }
   ],
   "applicationStatus": "Phase A applied and validated on the supported macOS targets. Phase B and Tier 2 entries retain their status; Windows .NET Framework validation remains pending.",

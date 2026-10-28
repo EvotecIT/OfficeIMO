@@ -2619,7 +2619,7 @@
       "package": "OfficeIMO.Pdf",
       "support": "Advanced",
       "fidelity": "FixedLayout",
-      "api": "PdfDocument.Load(stream).Render.ExportImages(format, options)",
+      "api": "PdfDocument.Load(stream).ExportImages(new PdfImageExportOptions { Format = format }, out report)",
       "surfaces": [
         "dotnet",
         "powershell"
@@ -2670,7 +2670,7 @@
       "package": "OfficeIMO.Pdf",
       "support": "Advanced",
       "fidelity": "FixedLayout",
-      "api": "PdfDocument.Load(stream).Render.ExportImages(OfficeImageExportFormat.Png, options)",
+      "api": "PdfDocument.Load(stream).ExportImages(new PdfImageExportOptions { Format = OfficeImageExportFormat.Png }, out report)",
       "surfaces": [
         "dotnet",
         "browser",
@@ -2719,7 +2719,7 @@
       "package": "OfficeIMO.Pdf",
       "support": "Advanced",
       "fidelity": "FixedLayout",
-      "api": "PdfDocument.Load(stream).Render.ExportImages(format, options)",
+      "api": "PdfDocument.Load(stream).ExportImages(new PdfImageExportOptions { Format = format }, out report)",
       "surfaces": [
         "dotnet",
         "powershell"
@@ -2734,7 +2734,7 @@
       "package": "OfficeIMO.Pdf",
       "support": "Advanced",
       "fidelity": "FixedLayout",
-      "api": "PdfDocument.Load(stream).Render.ExportImages(format, options)",
+      "api": "PdfDocument.Load(stream).ExportImages(new PdfImageExportOptions { Format = format }, out report)",
       "surfaces": [
         "dotnet",
         "powershell"
@@ -2749,7 +2749,7 @@
       "package": "OfficeIMO.Pdf",
       "support": "Advanced",
       "fidelity": "FixedLayout",
-      "api": "PdfDocument.Load(stream).Render.ExportImages(format, options)",
+      "api": "PdfDocument.Load(stream).ExportImages(new PdfImageExportOptions { Format = format }, out report)",
       "surfaces": [
         "dotnet",
         "powershell"
