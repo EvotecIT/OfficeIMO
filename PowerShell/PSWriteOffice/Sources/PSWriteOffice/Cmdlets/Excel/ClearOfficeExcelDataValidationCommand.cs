@@ -37,7 +37,7 @@ public sealed class ClearOfficeExcelDataValidationCommand : PSWriteOffice.Cmdlet
     [Parameter]
     public int? SheetIndex { get; set; }
 
-    /// <summary>Optional ExcelA1 range to clear. When omitted, all data validations on the selected sheet are cleared.</summary>
+    /// <summary>Optional A1 range to clear. When omitted, all data validations on the selected sheet are cleared.</summary>
     [Parameter]
     public string? Range { get; set; }
 

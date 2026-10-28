@@ -50,7 +50,7 @@ public sealed class SetOfficeExcelRichTextCommand : PSCmdlet {
     [Parameter(ParameterSetName = ParameterSetPath)]
     public int? Column { get; set; }
 
-    /// <summary>ExcelA1-style cell address.</summary>
+    /// <summary>A1-style cell address.</summary>
     [Parameter(ParameterSetName = ParameterSetContext)]
     [Parameter(ParameterSetName = ParameterSetDocument)]
     [Parameter(ParameterSetName = ParameterSetPath)]

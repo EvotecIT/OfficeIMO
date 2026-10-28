@@ -46,7 +46,7 @@ public sealed class FindOfficeExcelCommand : PSCmdlet {
     [Parameter]
     public int? SheetIndex { get; set; }
 
-    /// <summary>ExcelA1 range to search. Defaults to each selected worksheet's used range.</summary>
+    /// <summary>A1 range to search. Defaults to each selected worksheet's used range.</summary>
     [Parameter]
     public string? Range { get; set; }
 

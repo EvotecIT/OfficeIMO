@@ -9,7 +9,7 @@ namespace PSWriteOffice.Cmdlets.Excel;
 ///   <summary>Render a range with gridlines and hyperlinks visible.</summary>
 ///   <prefix>PS&gt; </prefix>
 ///   <code>$options = New-OfficeExcelImageOptions -ShowGridlines -ShowHyperlinkHints -TargetDpi 144
-/// Export-OfficeExcelRangeImage -Path .\Workbook.xlsx -Worksheet Summary -Range ExcelA1:H20 -OutputPath .\Summary.svg -Options $options</code>
+/// Export-OfficeExcelRangeImage -Path .\Workbook.xlsx -Worksheet Summary -Range A1:H20 -OutputPath .\Summary.svg -Options $options</code>
 /// </example>
 /// <example>
 ///   <summary>Reuse the same rendering controls for a chart.</summary>

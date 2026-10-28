@@ -3965,8 +3965,16 @@ Describe 'Excel DSL surface' {
         $summary.SheetCount | Should -Be 3
         $summary.VisibleSheetCount | Should -Be 3
         $summary.TableCount | Should -Be 2
-        $summary.NamedRangeCount | Should -Be 1
+        $summary.NamedRangeCount | Should -Be 2
+        $workbookXml = Get-ZipXmlDocumentLocal -Path $path -Entry 'xl/workbook.xml'
+        $definedNames = $workbookXml.SelectNodes("/*[local-name()='workbook']/*[local-name()='definedNames']/*[local-name()='definedName']")
+        @($definedNames | ForEach-Object { $_.GetAttribute('name') }) | Should -Contain 'SalesData'
+        @($definedNames | ForEach-Object { $_.GetAttribute('name') }) | Should -Contain '_xlnm.Print_Titles'
         $summary.HyperlinkCount | Should -BeGreaterThan 0
+        $dataXml = Get-ZipXmlDocumentLocal -Path $path -Entry 'xl/worksheets/sheet2.xml'
+        $backLinkNode = $dataXml.SelectSingleNode("/*[local-name()='worksheet']/*[local-name()='hyperlinks']/*[local-name()='hyperlink']")
+        $backLinkNode | Should -Not -BeNullOrEmpty
+        $backLinkNode.GetAttribute('location') | Should -Match 'TOC.*!A1$'
         $summary.Sheets.Name | Should -Contain 'Data'
         ($summary.Sheets | Where-Object Name -eq 'Data').UsedRange | Should -Be 'A1:B5'
         ($summary.Sheets | Where-Object Name -eq 'Data').Tables.Name | Should -Contain 'Sales'
@@ -4478,6 +4486,8 @@ namespace PSWriteOffice.Tests {
         $sheetXml = Get-ZipXmlDocumentLocal -Path $path -Entry 'xl/worksheets/sheet1.xml'
         $hyperlinks = $sheetXml.SelectNodes("/*[local-name()='worksheet']/*[local-name()='hyperlinks']/*[local-name()='hyperlink']")
         $hyperlinks.Count | Should -Be 4
+        @($hyperlinks | ForEach-Object { $_.GetAttribute('location') }) | Should -Not -Contain ''
+        foreach ($link in $hyperlinks) { $link.GetAttribute('location') | Should -Match '!A1$' }
     }
 
     It 'supports external URL link helpers for summary sheets' {

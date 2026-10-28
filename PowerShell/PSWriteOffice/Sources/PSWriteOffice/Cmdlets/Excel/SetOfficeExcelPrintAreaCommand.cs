@@ -9,7 +9,7 @@ namespace PSWriteOffice.Cmdlets.Excel;
 ///   <summary>Set a print area and keep the workbook printable.</summary>
 ///   <prefix>PS&gt; </prefix>
 ///   <code>$proof = @(
-///     Set-OfficeExcelPrintArea -Path .\Report.xlsx -Sheet Summary -Range ExcelA1:H40
+///     Set-OfficeExcelPrintArea -Path .\Report.xlsx -Sheet Summary -Range A1:H40
 ///     Set-OfficeExcelPrintTitles -Path .\Report.xlsx -Sheet Summary -FirstRow 1 -LastRow 2
 /// )
 /// $proof</code>
@@ -40,7 +40,7 @@ public sealed class SetOfficeExcelPrintAreaCommand : PSCmdlet {
     [Parameter]
     public int? SheetIndex { get; set; }
 
-    /// <summary>ExcelA1 range to print.</summary>
+    /// <summary>A1 range to print.</summary>
     [Parameter(Mandatory = true, Position = 1)]
     public string Range { get; set; } = string.Empty;
 

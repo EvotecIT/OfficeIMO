@@ -50,7 +50,7 @@ public sealed class SetOfficeExcelHyperlinkCommand : PSCmdlet
     [Parameter]
     public int? Column { get; set; }
 
-    /// <summary>ExcelA1-style cell address (e.g., ExcelA1, C5).</summary>
+    /// <summary>A1-style cell address (e.g., ExcelA1, C5).</summary>
     [Parameter]
     public string? Address { get; set; }
 
@@ -69,7 +69,7 @@ public sealed class SetOfficeExcelHyperlinkCommand : PSCmdlet
     [Parameter(ParameterSetName = ParameterSetDocumentInternal)]
     public string? TargetSheet { get; set; }
 
-    /// <summary>Target ExcelA1 address for internal links.</summary>
+    /// <summary>Target A1 address for internal links.</summary>
     [Parameter(ParameterSetName = ParameterSetContextInternal)]
     [Parameter(ParameterSetName = ParameterSetDocumentInternal)]
     public string? TargetAddress { get; set; }

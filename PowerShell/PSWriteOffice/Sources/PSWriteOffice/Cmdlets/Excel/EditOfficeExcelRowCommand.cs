@@ -37,7 +37,7 @@ public sealed class EditOfficeExcelRowCommand : PSCmdlet {
     [Parameter]
     public int? SheetIndex { get; set; }
 
-    /// <summary>ExcelA1 range to expose as editable rows. Defaults to the worksheet used range.</summary>
+    /// <summary>A1 range to expose as editable rows. Defaults to the worksheet used range.</summary>
     [Parameter]
     public string? Range { get; set; }
 

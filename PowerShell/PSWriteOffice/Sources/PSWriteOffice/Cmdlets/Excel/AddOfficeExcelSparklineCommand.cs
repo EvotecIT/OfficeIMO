@@ -33,11 +33,11 @@ public sealed class AddOfficeExcelSparklineCommand : PSCmdlet
     [Parameter(ParameterSetName = ParameterSetDocument)]
     public int? SheetIndex { get; set; }
 
-    /// <summary>ExcelA1 range containing source data (e.g., "B2:M2").</summary>
+    /// <summary>A1 range containing source data (e.g., "B2:M2").</summary>
     [Parameter(Mandatory = true)]
     public string DataRange { get; set; } = string.Empty;
 
-    /// <summary>ExcelA1 range where the sparklines will be placed (e.g., "N2:N2").</summary>
+    /// <summary>A1 range where the sparklines will be placed (e.g., "N2:N2").</summary>
     [Parameter(Mandatory = true)]
     public string LocationRange { get; set; } = string.Empty;
 

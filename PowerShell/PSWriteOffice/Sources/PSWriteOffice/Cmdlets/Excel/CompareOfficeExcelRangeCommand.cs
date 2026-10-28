@@ -8,7 +8,7 @@ namespace PSWriteOffice.Cmdlets.Excel;
 /// <example>
 ///   <summary>Compare current and expected ranges before publishing.</summary>
 ///   <prefix>PS&gt; </prefix>
-///   <code>$differences = Compare-OfficeExcelRange -Path .\Report.xlsx -LeftSheet Current -RightSheet Expected -LeftRange ExcelA1:D20 -RightRange ExcelA1:D20 -TrimStrings -IgnoreCase
+///   <code>$differences = Compare-OfficeExcelRange -Path .\Report.xlsx -LeftSheet Current -RightSheet Expected -LeftRange A1:D20 -RightRange A1:D20 -TrimStrings -IgnoreCase
 /// if ($differences) {
 ///     $differences | Export-Csv -Path .\RangeDifferences.csv -NoTypeInformation
 /// }</code>
@@ -56,11 +56,11 @@ public sealed class CompareOfficeExcelRangeCommand : PSCmdlet {
     [Parameter]
     public int? RightSheetIndex { get; set; }
 
-    /// <summary>Left ExcelA1 range. Defaults to the left worksheet used range.</summary>
+    /// <summary>Left A1 range. Defaults to the left worksheet used range.</summary>
     [Parameter]
     public string? LeftRange { get; set; }
 
-    /// <summary>Right ExcelA1 range. Defaults to the right worksheet used range.</summary>
+    /// <summary>Right A1 range. Defaults to the right worksheet used range.</summary>
     [Parameter]
     public string? RightRange { get; set; }
 

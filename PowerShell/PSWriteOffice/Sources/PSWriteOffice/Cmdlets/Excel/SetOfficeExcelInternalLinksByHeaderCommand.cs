@@ -50,7 +50,7 @@ public sealed class SetOfficeExcelInternalLinksByHeaderCommand : PSCmdlet
     [Parameter(Mandatory = true, ParameterSetName = ParameterSetDocumentTable)]
     public string TableName { get; set; } = string.Empty;
 
-    /// <summary>Restrict linking to a specific ExcelA1 range whose first row contains headers.</summary>
+    /// <summary>Restrict linking to a specific A1 range whose first row contains headers.</summary>
     [Parameter(Mandatory = true, ParameterSetName = ParameterSetContextRange)]
     [Parameter(Mandatory = true, ParameterSetName = ParameterSetDocumentRange)]
     public string Range { get; set; } = string.Empty;
@@ -65,7 +65,7 @@ public sealed class SetOfficeExcelInternalLinksByHeaderCommand : PSCmdlet
 
     /// <summary>Destination cell on the target sheet.</summary>
     [Parameter]
-    public string TargetAddress { get; set; } = "ExcelA1";
+    public string TargetAddress { get; set; } = "A1";
 
     /// <summary>Skip hyperlink styling (blue + underline).</summary>
     [Parameter]

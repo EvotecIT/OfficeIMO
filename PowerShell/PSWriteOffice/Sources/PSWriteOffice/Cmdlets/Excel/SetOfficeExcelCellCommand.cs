@@ -6,7 +6,7 @@ using PSWriteOffice.Services.Excel;
 namespace PSWriteOffice.Cmdlets.Excel;
 
 /// <summary>Sets a cell value, formula, number format, or fill.</summary>
-/// <para>Supports ExcelA1 addresses or row/column coordinates for DSL-style composition.</para>
+/// <para>Supports A1 addresses or row/column coordinates for DSL-style composition.</para>
 /// <example>
 ///   <summary>Write values to ExcelA1 and B1.</summary>
 ///   <prefix>PS&gt; </prefix>
@@ -47,7 +47,7 @@ public sealed class SetOfficeExcelCellCommand : PSWriteOffice.Cmdlets.OfficeMuta
     [Parameter(ParameterSetName = "Coordinates")]
     public int? Column { get; set; }
 
-    /// <summary>ExcelA1-style cell address (e.g., ExcelA1, C5).</summary>
+    /// <summary>A1-style cell address (e.g., ExcelA1, C5).</summary>
     [Parameter(ParameterSetName = "Address")]
     public string? Address { get; set; }
 

@@ -22,7 +22,7 @@ namespace PSWriteOffice.Cmdlets.Excel;
 /// New-OfficeExcel -Path .\SalesPivot.xlsx {
 ///     Add-OfficeExcelSheet -Name Data {
 ///         Add-OfficeExcelTable -InputObject $rows -TableName Sales -AutoFit
-///         Add-OfficeExcelPivotTable -SourceRange 'ExcelA1:C4' -DestinationCell 'E2' -Name 'SalesByRegion' -RowField Region -ColumnField Product -DataField Sales -DataFunction Sum -PivotStyle PivotStyleMedium9
+///         Add-OfficeExcelPivotTable -SourceRange 'A1:C4' -DestinationCell 'E2' -Name 'SalesByRegion' -RowField Region -ColumnField Product -DataField Sales -DataFunction Sum -PivotStyle PivotStyleMedium9
 ///     }
 /// }</code>
 ///   <para>Writes source rows to a worksheet and creates a pivot table using the existing OfficeIMO pivot support.</para>
@@ -46,7 +46,7 @@ public sealed class AddOfficeExcelPivotTableCommand : PSCmdlet
     [Parameter(ParameterSetName = ParameterSetDocument)]
     public int? SheetIndex { get; set; }
 
-    /// <summary>Source data range including header row (e.g., "ExcelA1:D200").</summary>
+    /// <summary>Source data range including header row (e.g., "A1:D200").</summary>
     [Parameter(Mandatory = true)]
     public string SourceRange { get; set; } = string.Empty;
 
