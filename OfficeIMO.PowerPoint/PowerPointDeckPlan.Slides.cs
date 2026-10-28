@@ -8,12 +8,12 @@ namespace OfficeIMO.PowerPoint {
     ///     Base type for one semantic designer slide request.
     /// </summary>
     public abstract class PowerPointDeckPlanSlide {
-        private protected PowerPointDeckPlanSlide(string title, string? subtitle, string? seed) {
-            if (string.IsNullOrWhiteSpace(title)) {
+        private protected PowerPointDeckPlanSlide(string? title, string? subtitle, string? seed, bool allowEmptyTitle = false) {
+            if (!allowEmptyTitle && string.IsNullOrWhiteSpace(title)) {
                 throw new ArgumentException("Plan slide title cannot be null or empty.", nameof(title));
             }
 
-            Title = title;
+            Title = title ?? string.Empty;
             Subtitle = subtitle;
             Seed = seed;
         }
@@ -52,9 +52,11 @@ namespace OfficeIMO.PowerPoint {
         }
 
         internal PowerPointDeckPlanSlideRenderSummary DescribeRender(int index, PowerPointDeckDesign design,
-            int slideIndexOffset = 0) {
+            int slideIndexOffset = 0, bool isLast = false) {
             string slideSeed = ResolveSeed(index, slideIndexOffset);
-            string? layoutVariant = ResolveLayoutVariant(design, slideSeed);
+            string? layoutVariant = this is PowerPointContentPlanSlide content
+                ? content.ResolvePreviewLayout(index + slideIndexOffset, isLast).ToString()
+                : ResolveLayoutVariant(design, slideSeed);
             return new PowerPointDeckPlanSlideRenderSummary(
                 index,
                 Kind,

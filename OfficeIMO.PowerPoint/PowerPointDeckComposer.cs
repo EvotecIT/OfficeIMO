@@ -11,6 +11,7 @@ namespace OfficeIMO.PowerPoint {
         private readonly PowerPointDeckDesign _design;
         private readonly PowerPointTemplateLayoutMap? _templateLayoutMap;
         private int _slideIndex;
+        private bool _isLastPlannedSlide;
 
         internal PowerPointDeckComposer(PowerPointPresentation presentation, PowerPointDeckDesign design,
             bool applyTheme, PowerPointTemplateLayoutMap? templateLayoutMap = null) {
@@ -219,8 +220,13 @@ namespace OfficeIMO.PowerPoint {
             }
 
             List<PowerPointSlide> slides = new();
-            foreach (PowerPointDeckPlanSlide slide in plan.Slides) {
-                slides.Add(slide.AddTo(this));
+            for (int index = 0; index < plan.Slides.Count; index++) {
+                PowerPointDeckPlanSlide slide = plan.Slides[index];
+                _isLastPlannedSlide = index == plan.Slides.Count - 1;
+                int first = _presentation.Slides.Count;
+                slide.AddTo(this);
+                // One logical request can produce several physical continuation slides.
+                slides.AddRange(_presentation.Slides.Skip(first));
             }
 
             return slides.AsReadOnly();
@@ -248,6 +254,16 @@ namespace OfficeIMO.PowerPoint {
             }
 
             return plan.DescribeSlides(_design, _slideIndex);
+        }
+
+        internal PowerPointSlide AddContentSlide(PowerPointContentPlanSlide content) {
+            ResolveSeed(content.Seed ?? content.Title);
+            PowerPointLayoutSlide slide = content.ToLayout();
+            slide.IsLast = _isLastPlannedSlide;
+            slide.SelectionDeckSize = _slideIndex;
+            slide.TemplateLayout ??= _templateLayoutMap?.Resolve(PowerPointDeckPlanSlideKind.Content);
+            return PowerPointLayoutEngine.AddSlides(_presentation, slide,
+                PowerPointDesignExtensions.LayoutThemeFor(_presentation, _design.Theme))[0];
         }
 
         private T Configure<T>(T options, string seed, Action<T>? configure)

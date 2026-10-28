@@ -131,43 +131,20 @@ namespace OfficeIMO.PowerPoint {
                 return;
             }
 
+            if (textBox.WidthPoints <= 0D || textBox.HeightPoints <= 0D) return;
             double authoredFontSize = ResolveFontSize(textBox, options.DefaultFontSizePoints);
             string fontName = ResolveFontName(textBox);
-            OfficeFontStyle fontStyle = OfficeFontStyle.Regular;
-            if (textBox.Bold) fontStyle |= OfficeFontStyle.Bold;
-            if (textBox.Italic) fontStyle |= OfficeFontStyle.Italic;
-            var font = new OfficeFontInfo(fontName, authoredFontSize, fontStyle);
-            OfficeTextMeasurer measurer = OfficeTextMeasurer.Create(font);
-            Func<string?, double, double> measure = (value, size) => {
-                OfficeTextMeasurementStyle style = measurer.CreateStyle(font.WithSize(size));
-                return measurer.MeasureWidth(value, style) * 72D / OfficeTextMeasurer.DefaultDpi;
-            };
-
-            double contentWidth = Math.Max(1D, textBox.WidthPoints -
-                (textBox.TextMarginLeftPoints ?? PowerPointTextDefaults.DefaultHorizontalInsetPoints) - (textBox.TextMarginRightPoints ?? PowerPointTextDefaults.DefaultHorizontalInsetPoints));
-            double contentHeight = Math.Max(1D, textBox.HeightPoints -
-                (textBox.TextMarginTopPoints ?? PowerPointTextDefaults.DefaultVerticalInsetPoints) - (textBox.TextMarginBottomPoints ?? PowerPointTextDefaults.DefaultVerticalInsetPoints));
+            var metrics = OfficeDrawingTextLayout.CreateMetrics(new OfficeDrawing(textBox.WidthPoints, textBox.HeightPoints));
+            var diagnostics = new List<OfficeImageExportDiagnostic>();
+            // Inspect the same paragraph flow, native fitting and mixed-run metrics used
+            // by image/PDF export instead of a second plain-text wrapping approximation.
+            OfficeDrawing drawing = PowerPointSlideImageRenderer.CreateTextBoxDrawing(textBox,
+                textBox.WidthPoints, textBox.HeightPoints, diagnostics, metrics.MeasureText, fontName);
+            bool clipped = diagnostics.Any(diagnostic => diagnostic.Code is "powerpoint-text-overflow" or "powerpoint-text-layout-limit");
             double resolvedFontSize = authoredFontSize;
-
             if (textBox.TextAutoFit == PowerPointTextAutoFit.Normal) {
-                OfficeTextBlockLayout fitted = OfficeTextLayoutEngine.FitWrappedText(text, authoredFontSize,
-                    contentWidth, contentHeight, 1.2D, 1D, measure);
-                resolvedFontSize = fitted.FontSize;
-                double? authoredScale = textBox.TextAutoFitOptions?.FontScalePercent;
-                if (authoredScale.HasValue) {
-                    resolvedFontSize = Math.Min(resolvedFontSize, authoredFontSize * authoredScale.Value / 100D);
-                }
-            }
-
-            OfficeTextBlockLayout layout = OfficeTextLayoutEngine.LayoutTextBlock(text, resolvedFontSize,
-                contentWidth, contentHeight, 1.2D, 1D, measure, wrap: true, forceSingleLine: false,
-                shrinkToFit: false);
-
-            // A frame mixing sizes (a heading over smaller body text) is measured paragraph by paragraph at each
-            // paragraph's own size, spacing and margin instead of the largest size throughout.
-            bool clipped = layout.Clipped;
-            if (clipped && textBox.TextAutoFit != PowerPointTextAutoFit.Normal && HasMixedParagraphSizes(textBox)) {
-                clipped = MeasureParagraphs(textBox, contentWidth, measure, authoredFontSize) > contentHeight + 1D;
+                resolvedFontSize = PowerPointSlideTextInspector.Read(drawing).Select(span => span.FontSize)
+                    .DefaultIfEmpty(authoredFontSize).Max();
             }
 
             if (options.DetectTextOverflow && clipped &&
@@ -184,30 +161,6 @@ namespace OfficeIMO.PowerPoint {
                     options.MinimumReadableFontSizePoints.ToString("0.##", CultureInfo.InvariantCulture) +
                     " pt threshold.", slideIndex, shapeIndex, textBox, textBox.Bounds, resolvedFontSize));
             }
-        }
-
-        private static bool HasMixedParagraphSizes(PowerPointTextBox textBox) =>
-            textBox.Paragraphs.Count > 1 &&
-            textBox.Paragraphs.Select(p => p.Runs.Select(r => r.FontSize ?? 0D).DefaultIfEmpty(0D).Max()).Distinct().Count() > 1;
-
-        private static double MeasureParagraphs(PowerPointTextBox textBox, double contentWidth,
-            Func<string?, double, double> measure, double fallbackSize) {
-            double height = 0D;
-            IReadOnlyList<PowerPointParagraph> paragraphs = textBox.Paragraphs;
-            for (int index = 0; index < paragraphs.Count; index++) {
-                PowerPointParagraph paragraph = paragraphs[index];
-                double size = paragraph.Runs.Select(r => r.FontSize ?? 0D).DefaultIfEmpty(0D).Max();
-                if (size <= 0D) size = fallbackSize;
-                double lineHeight = paragraph.LineSpacingPoints ?? size * 1.2D * (paragraph.LineSpacingMultiplier ?? 1D);
-                double width = Math.Max(1D, contentWidth - Math.Max(0D, paragraph.LeftMarginPoints ?? 0D));
-                OfficeTextBlockLayout layout = OfficeTextLayoutEngine.LayoutTextBlock(paragraph.Text, size, width, double.MaxValue / 4D,
-                    1.2D, 1D, measure, wrap: true, forceSingleLine: false, shrinkToFit: false);
-                height += Math.Max(1, layout.Lines.Count) * lineHeight;
-                if (index > 0) height += paragraph.SpaceBeforePoints ?? 0D;
-                if (index < paragraphs.Count - 1) height += paragraph.SpaceAfterPoints ?? 0D;
-            }
-
-            return height;
         }
 
         private static double ResolveFontSize(PowerPointTextBox textBox, double fallback) {
@@ -227,12 +180,14 @@ namespace OfficeIMO.PowerPoint {
                 IReadOnlyList<PowerPointTextRun> runs = textBox.Paragraphs[paragraphIndex].Runs;
                 for (int runIndex = 0; runIndex < runs.Count; runIndex++) {
                     if (!string.IsNullOrWhiteSpace(runs[runIndex].FontName)) {
-                        return runs[runIndex].FontName!;
+                        return PowerPointEffectiveRunStyleResolver.ResolveThemeFontReference(
+                            runs[runIndex].FontName, runs[runIndex].OwnerPart) ?? "Aptos";
                     }
                 }
             }
 
-            return string.IsNullOrWhiteSpace(textBox.FontName) ? "Aptos" : textBox.FontName!;
+            return PowerPointEffectiveRunStyleResolver.ResolveThemeFontReference(textBox.FontName,
+                textBox.RelationshipOwnerPart) ?? "Aptos";
         }
 
         private static void InspectPicture(PowerPointPicture picture, int shapeIndex, int slideIndex,

@@ -24,6 +24,7 @@ namespace OfficeIMO.PowerPoint {
         internal bool Heading { get; set; }
         internal double Size { get; }
         internal string Color { get; }
+        internal OfficeColor? ExplicitColor { get; set; }
         internal double Alpha { get; set; } = 1D;
         internal bool Bold { get; }
         internal double Tracking { get; set; }
@@ -73,6 +74,10 @@ namespace OfficeIMO.PowerPoint {
 
         /// <summary>A colour as a theme reference when it is a theme slot, otherwise a literal.</summary>
         internal string ColorXml(string hex, double alpha = 1D) {
+            if (hex.Length == 8 && OfficeColor.TryParse("#" + hex, out OfficeColor literal)) {
+                alpha *= literal.A / 255D;
+                hex = literal.ToRgbHex();
+            }
             string? scheme = null;
             if (string.Equals(hex, _theme.Text, StringComparison.OrdinalIgnoreCase)) scheme = "tx1";
             else if (string.Equals(hex, _theme.Background, StringComparison.OrdinalIgnoreCase)) scheme = "bg1";
@@ -85,8 +90,30 @@ namespace OfficeIMO.PowerPoint {
                 : "<a:srgbClr val=\"" + hex + "\">" + a + "</a:srgbClr>";
         }
 
-        private string Fill(string? hex, double alpha = 1D) =>
-            hex == null ? "<a:noFill/>" : "<a:solidFill>" + ColorXml(hex, alpha) + "</a:solidFill>";
+        private string ExplicitColorXml(OfficeColor color, double alpha) {
+            if (color.ThemeSlot is string slot) {
+                string slotOpacity = alpha < 0.999D ? "<a:alpha val=\"" + I(alpha * 100000D) + "\"/>" : string.Empty;
+                return "<a:schemeClr val=\"" + slot + "\">" + slotOpacity + "</a:schemeClr>";
+            }
+            string rgb;
+            if (color.IsThemeRole) {
+                rgb = color.Role switch {
+                    OfficeColorRole.Success => _theme.Success,
+                    OfficeColorRole.Warning => _theme.Warning,
+                    OfficeColorRole.Danger => _theme.Danger,
+                    _ => throw new ArgumentException("The colour role has no supported native slot.", nameof(color))
+                };
+            } else {
+                rgb = color.ToRgbHex();
+                alpha *= color.A / 255D;
+            }
+            string opacity = alpha < 0.999D ? "<a:alpha val=\"" + I(alpha * 100000D) + "\"/>" : string.Empty;
+            return "<a:srgbClr val=\"" + rgb + "\">" + opacity + "</a:srgbClr>";
+        }
+
+        private string Fill(string? hex, double alpha = 1D, OfficeColor? explicitColor = null) =>
+            hex == null && !explicitColor.HasValue ? "<a:noFill/>" : "<a:solidFill>" +
+                (explicitColor.HasValue ? ExplicitColorXml(explicitColor.Value, alpha) : ColorXml(hex!, alpha)) + "</a:solidFill>";
 
         private static string Header(string name, string? description, string? placeholder, bool decorative, bool textBox) {
             var b = new StringBuilder();
@@ -113,7 +140,7 @@ namespace OfficeIMO.PowerPoint {
             b.Append("<a:rPr lang=\"en-US\" sz=\"").Append(I(run.Size * 100D)).Append("\" b=\"").Append(run.Bold ? '1' : '0').Append('"');
             if (Math.Abs(run.Tracking) > 0.0001D) b.Append(" spc=\"").Append(I(run.Tracking * run.Size * 100D)).Append('"');
             b.Append('>');
-            b.Append("<a:solidFill>").Append(ColorXml(run.Color, run.Alpha)).Append("</a:solidFill>");
+            b.Append("<a:solidFill>").Append(run.ExplicitColor.HasValue ? ExplicitColorXml(run.ExplicitColor.Value, run.Alpha) : ColorXml(run.Color, run.Alpha)).Append("</a:solidFill>");
             if (font.StartsWith("+", StringComparison.Ordinal)) {
                 b.Append("<a:latin typeface=\"").Append(font).Append("\"/>");
             } else {
@@ -191,10 +218,10 @@ namespace OfficeIMO.PowerPoint {
 
         /// <summary>A filled rectangle (rules, panels, scrims). <paramref name="outline" /> draws a hairline frame.</summary>
         internal PowerPointAutoShape Rect(string name, PowerPointLayoutRect rect, string? fill, double fillAlpha = 1D,
-            string? outline = null, double outlineWidth = 1D, bool decorative = true, string? gradient = null) {
+            string? outline = null, double outlineWidth = 1D, bool decorative = true, string? gradient = null, OfficeColor? explicitFill = null) {
             var b = new StringBuilder(Header(name, null, null, decorative, textBox: false));
             b.Append("<p:spPr>").Append(Xfrm(rect)).Append("<a:prstGeom prst=\"rect\"><a:avLst/></a:prstGeom>");
-            b.Append(gradient ?? Fill(fill, fillAlpha));
+            b.Append(gradient ?? Fill(fill, fillAlpha, explicitFill));
             b.Append(outline == null ? "<a:ln><a:noFill/></a:ln>" : "<a:ln w=\"" + E(outlineWidth) + "\">" + Fill(outline) + "</a:ln>");
             b.Append("</p:spPr></p:sp>");
             return (PowerPointAutoShape)_slide.AppendLayoutShape(new Shape(b.ToString()), textBox: false);

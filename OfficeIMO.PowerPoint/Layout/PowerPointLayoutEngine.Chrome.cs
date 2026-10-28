@@ -207,15 +207,15 @@ namespace OfficeIMO.PowerPoint {
             string color = context.Theme.TextMuted;
             double alpha = 1D;
             switch (slide.Layout) {
-                case PowerPointLayoutKind.Title:
-                case PowerPointLayoutKind.Section:
-                case PowerPointLayoutKind.Closing:
+                case PowerPointLayout.Title:
+                case PowerPointLayout.Section:
+                case PowerPointLayout.Closing:
                     return;
-                case PowerPointLayoutKind.Quote:
+                case PowerPointLayout.Quote:
                     text = false;
                     number = true;
                     break;
-                case PowerPointLayoutKind.ImageFull:
+                case PowerPointLayout.ImageFull:
                     text = number = true;
                     color = "FFFFFF";
                     alpha = 0.8D;

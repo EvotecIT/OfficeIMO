@@ -127,7 +127,7 @@ namespace OfficeIMO.PowerPoint {
             PowerPointTextStyleSpec style = _context.Style(PowerPointTextRole.BodySmall);
             double size = Math.Max(style.Minimum, fontSize);
             PowerPointLayoutParagraph paragraph = _context.Paragraph(text, PowerPointTextRole.BodySmall,
-                _context.ResolveColor(color) ?? _context.Theme.Text, size, bold: bold);
+                _context.ResolveColor(PowerPointLayoutBlock.ParseColor(color)) ?? _context.Theme.Text, size, bold: bold);
             return _writer.Text("Text Block", ToRect(bounds), paragraph);
         }
 
@@ -141,7 +141,7 @@ namespace OfficeIMO.PowerPoint {
             List<PowerPointCardContent> list = PowerPointDesignExtensions.NormalizeCards(cards);
             var slide = new PowerPointLayoutSlide();
             foreach (PowerPointCardContent card in list) {
-                slide.Blocks.Add(new PowerPointLayoutCard(card.Title, card.Text, card.Items, card.ImagePath, card.AccentColor));
+                slide.Blocks.Add(new PowerPointLayoutCard(card.Title, card.Text, card.Items, card.ImagePath, PowerPointLayoutBlock.ParseColor(card.AccentColor)));
             }
 
             PowerPointLayoutEngine.DrawCards(_context, _writer, slide, ToRect(bounds), full: false);
@@ -171,7 +171,7 @@ namespace OfficeIMO.PowerPoint {
             if (metrics == null) throw new ArgumentNullException(nameof(metrics));
             var slide = new PowerPointLayoutSlide();
             foreach (PowerPointMetric metric in metrics.Where(m => m != null)) {
-                slide.Blocks.Add(new PowerPointLayoutKpi(metric.Value, metric.Label, metric.Change, metric.Color));
+                slide.Blocks.Add(new PowerPointLayoutKpi(metric.Value, metric.Label, metric.Change, PowerPointLayoutBlock.ParseColor(metric.Color)));
             }
 
             if (slide.Blocks.Count == 0) return;
@@ -204,7 +204,7 @@ namespace OfficeIMO.PowerPoint {
             if (text == null) throw new ArgumentNullException(nameof(text));
             PowerPointLayoutRect rect = ToRect(bounds);
             _writer.Rect("Callout Panel", rect, _context.Theme.Surface);
-            _writer.Rect("Callout Rule", new PowerPointLayoutRect(rect.X, rect.Y, 3D, rect.Height), _context.ResolveColor(accentColor) ?? _context.Theme.Accent1);
+            _writer.Rect("Callout Rule", new PowerPointLayoutRect(rect.X, rect.Y, 3D, rect.Height), _context.ResolveColor(PowerPointLayoutBlock.ParseColor(accentColor)) ?? _context.Theme.Accent1);
             PowerPointTextStyleSpec lede = _context.Style(PowerPointTextRole.Lede);
             PowerPointLayoutRect inner = rect.Inset(20D, 12D, 16D, 12D);
             double size = lede.Size;
@@ -217,7 +217,7 @@ namespace OfficeIMO.PowerPoint {
             PowerPointLogoWallSlideOptions? options = null) {
             IReadOnlyList<PowerPointLogoItem> list = PowerPointDesignExtensions.NormalizeLogoItems(logos);
             var slide = new PowerPointLayoutSlide();
-            foreach (PowerPointLogoItem logo in list) slide.Blocks.Add(new PowerPointLayoutCard(logo.Name, logo.Subtitle, image: logo.ImagePath, color: logo.AccentColor));
+            foreach (PowerPointLogoItem logo in list) slide.Blocks.Add(new PowerPointLayoutCard(logo.Name, logo.Subtitle, image: logo.ImagePath, color: PowerPointLayoutBlock.ParseColor(logo.AccentColor)));
             PowerPointLayoutEngine.DrawLogos(_context, _writer, slide, ToRect(bounds), full: false);
         }
 
@@ -245,7 +245,7 @@ namespace OfficeIMO.PowerPoint {
             if (presentation == null) throw new ArgumentNullException(nameof(presentation));
             if (compose == null) throw new ArgumentNullException(nameof(compose));
             PowerPointDesignerSlideOptions resolvedOptions = options ?? new PowerPointDesignerSlideOptions();
-            var slide = new PowerPointLayoutSlide { Layout = PowerPointLayoutKind.TitleAndContent, TemplateLayout = resolvedOptions.TemplateLayout };
+            var slide = new PowerPointLayoutSlide { Layout = PowerPointLayout.TitleAndContent, TemplateLayout = resolvedOptions.TemplateLayout };
             slide.Blocks.Add(new PowerPointLayoutDrawing((target, context, box) =>
                 compose(new PowerPointSlideCompositionContext(target, context, resolvedOptions))));
             IReadOnlyList<PowerPointSlide> slides = PowerPointLayoutEngine.AddSlides(presentation, slide, LayoutThemeFor(presentation, theme));

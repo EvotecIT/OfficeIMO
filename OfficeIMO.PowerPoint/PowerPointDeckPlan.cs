@@ -66,7 +66,9 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>Closing statement or action slide.</summary>
         Closing,
         /// <summary>Custom raw-composition slide.</summary>
-        Custom
+        Custom,
+        /// <summary>Ordered content blocks rendered by the shared automatic layout engine.</summary>
+        Content
     }
 
     /// <summary>
@@ -208,7 +210,7 @@ namespace OfficeIMO.PowerPoint {
             PowerPointDeckPlanSlideRenderSummary[] summaries =
                 new PowerPointDeckPlanSlideRenderSummary[_slides.Count];
             for (int i = 0; i < _slides.Count; i++) {
-                summaries[i] = _slides[i].DescribeRender(i, design, slideIndexOffset);
+                summaries[i] = _slides[i].DescribeRender(i, design, slideIndexOffset, isLast: i == _slides.Count - 1);
             }
 
             return summaries;

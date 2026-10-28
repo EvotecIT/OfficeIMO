@@ -210,7 +210,7 @@ namespace OfficeIMO.PowerPoint {
                     y += labelHeight + 12D;
                     if (!string.IsNullOrWhiteSpace(kpi.Change)) {
                         writer.Text("Metric Change", new PowerPointLayoutRect(x, y, w, caption.Size * 1.4D + 2D),
-                            context.Paragraph(ChangeText(kpi.Change!), PowerPointTextRole.Caption, ChangeColor(context, kpi), caption.Size + 1D, bold: true));
+                            context.Paragraph(ChangeText(kpi.Change!), PowerPointTextRole.Caption, ChangeColor(context, kpi), caption.Size + 1D, bold: true, explicitColor: kpi.Color));
                     }
                 }
             }
@@ -255,7 +255,8 @@ namespace OfficeIMO.PowerPoint {
                     return h;
                 }
 
-                double available = rowHeight - 20D - 23D - eyebrow.Size * eyebrow.LineHeight - 16D;
+                double imageHeight = rowCards.Any(card => !string.IsNullOrWhiteSpace(card.Image)) ? Math.Min(90D, rowHeight * 0.24D) : 0D;
+                double available = rowHeight - 20D - 23D - eyebrow.Size * eyebrow.LineHeight - 16D - (imageHeight > 0D ? imageHeight + 12D : 0D);
                 double shared = rowCards.Select((c, i) => GroupHeight(c, tiles[i].Width - 40D, bodySize)).DefaultIfEmpty(0D).Max();
                 while (shared > available && bodySize - 1D >= small.Minimum) {
                     bodySize -= 1D;
@@ -267,7 +268,7 @@ namespace OfficeIMO.PowerPoint {
                     (double x, double w) = tiles[i];
                     string accent = context.ResolveColor(card.Color) ?? theme.Accent1;
                     writer.Rect("Card", new PowerPointLayoutRect(x, y, w, rowHeight), theme.Surface);
-                    writer.Rect("Card Rule", new PowerPointLayoutRect(x, y, w, 3D), accent);
+                    writer.Rect("Card Rule", new PowerPointLayoutRect(x, y, w, 3D), accent, explicitFill: card.Color);
                     int number = slide.CardStart + index + i;
                     writer.Text("Card Number", new PowerPointLayoutRect(x + 20D, y + 23D, w - 40D, eyebrow.Size * eyebrow.LineHeight + 2D),
                         context.Paragraph(number.ToString("00", CultureInfo.InvariantCulture), PowerPointTextRole.Eyebrow, theme.TextMuted));
@@ -293,6 +294,11 @@ namespace OfficeIMO.PowerPoint {
 
                     // The title/body group sits on a shared line across the row, anchored to the card bottom.
                     double groupTop = y + rowHeight - 20D - shared;
+                    if (!string.IsNullOrWhiteSpace(card.Image)) {
+                        double imageTop = y + 23D + eyebrow.Size * eyebrow.LineHeight + 12D;
+                        RenderImage(context, writer, new PowerPointLayoutImage(card.Image!, card.Title),
+                            new PowerPointLayoutRect(x + 20D, imageTop, inner, imageHeight), cover: false);
+                    }
                     writer.Text("Card Text", new PowerPointLayoutRect(x + 20D, groupTop - 8D, inner, shared + 8D), paragraphs, anchor: "b");
                 }
 
@@ -483,7 +489,7 @@ namespace OfficeIMO.PowerPoint {
                 writer.Text("Result Label", new PowerPointLayoutRect(inner.X, ly, inner.Width, labelHeight + 2D), context.Paragraph(kpi.Label, PowerPointTextRole.KpiLabel));
                 if (!string.IsNullOrWhiteSpace(kpi.Change)) {
                     writer.Text("Result Change", new PowerPointLayoutRect(inner.X, ly + labelHeight + 6D, inner.Width, caption.Size * 1.4D),
-                        context.Paragraph(ChangeText(kpi.Change!), PowerPointTextRole.Caption, ChangeColor(context, kpi), caption.Size + 1D, bold: true));
+                        context.Paragraph(ChangeText(kpi.Change!), PowerPointTextRole.Caption, ChangeColor(context, kpi), caption.Size + 1D, bold: true, explicitColor: kpi.Color));
                 }
 
                 ky += itemHeight + gap;
@@ -523,7 +529,7 @@ namespace OfficeIMO.PowerPoint {
                     double pw = PowerPointUnits.ToPoints(picture.Width), ph = PowerPointUnits.ToPoints(picture.Height);
                     picture.Left = PowerPointUnits.FromPoints(tile.X + (tile.Width - pw) / 2D);
                     picture.Top = PowerPointUnits.FromPoints(tile.Y + (tile.Height - ph) / 2D);
-                    if (string.IsNullOrWhiteSpace(logo.Color)) picture.SetMonochrome(0.8D);
+                    if (!logo.Color.HasValue) picture.SetMonochrome(0.8D);
                 } else {
                     // A name-only logo: keep every word whole by shrinking to the widest word.
                     double size = heading.Size;

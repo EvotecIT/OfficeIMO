@@ -9448,6 +9448,11 @@
       "phase": "A",
       "applied": "applied",
       "note": "Bubble-chart export tests exercise authored colors in independently decoded native and PDF raster/SVG outputs. Cross-engine encoded-byte equality is removed because the format package now renders with Core instead of the PDF engine; native geometry and raster regressions keep their dedicated coverage."
+    },
+    {
+      "phase": "M5",
+      "applied": "applied",
+      "note": "PowerPointDeckPlan.AddContent and PowerPointContentPlanSlide pass public typed layout blocks to the existing Compose engine. PowerPointLayout selects automatic or explicit composition; composition results include every physical continuation slide."
     }
   ],
   "applicationStatus": "Phase A applied and validated on the supported macOS targets. Phase B and Tier 2 entries retain their status; Windows .NET Framework validation remains pending.",

@@ -15,7 +15,7 @@ namespace OfficeIMO.PowerPoint {
             if (content == null) throw new ArgumentNullException(nameof(content));
             var context = new PowerPointLayoutContext(document, theme ?? document.LayoutTheme);
             bool isFirst = content.IsFirst ?? document.Slides.Count == 0;
-            PowerPointLayoutKind layout = Resolve(context, content, isFirst, content.IsLast ?? false);
+            PowerPointLayout layout = Resolve(context, content, isFirst, content.IsLast ?? false);
             var slides = new List<PowerPointSlide>();
             foreach (PowerPointLayoutSlide part in Expand(context, content, layout)) {
                 slides.Add(Render(context, part));
@@ -26,51 +26,55 @@ namespace OfficeIMO.PowerPoint {
 
         // ------------------------------------------------------------------ selection
 
-        internal static PowerPointLayoutKind Resolve(PowerPointLayoutContext context, PowerPointLayoutSlide slide, bool isFirst,
+        internal static PowerPointLayout Resolve(PowerPointLayoutContext context, PowerPointLayoutSlide slide, bool isFirst,
             bool isLast) {
-            if (slide.Layout != PowerPointLayoutKind.Auto) {
+            if (slide.Layout != PowerPointLayout.Auto) {
                 if (Accepts(slide.Layout, slide)) return slide.Layout;
                 context.Deck.Report(PowerPointLayoutDiagnosticCodes.LayoutContentMismatch, OfficeDiagnosticSeverity.Warning,
                     "The " + slide.Layout + " layout does not accept this slide's content; the layout was chosen automatically.",
                     slide.Title);
             }
 
-            return Select(slide, isFirst, isLast, context.Document.Slides.Count + 1);
+            return ResolveForPosition(slide, isFirst, isLast, slide.SelectionDeckSize ?? context.Document.Slides.Count + 1);
         }
 
+        internal static PowerPointLayout ResolveForPosition(PowerPointLayoutSlide slide, bool isFirst, bool isLast, int deckSize) =>
+            slide.Layout != PowerPointLayout.Auto && Accepts(slide.Layout, slide)
+                ? slide.Layout : Select(slide, isFirst, isLast, deckSize);
+
         /// <summary>Automatic layout selection (powerpoint-layouts.json, selection.rules), first match wins.</summary>
-        internal static PowerPointLayoutKind Select(PowerPointLayoutSlide slide, bool isFirst, bool isLast, int deckSize) {
+        internal static PowerPointLayout Select(PowerPointLayoutSlide slide, bool isFirst, bool isLast, int deckSize) {
             List<PowerPointLayoutBlock> blocks = ContentBlocks(slide);
-            if (isFirst && blocks.Count == 0 && !HasSemantic(slide)) return PowerPointLayoutKind.Title;
-            if (slide.Items<PowerPointLayoutLocation>().Any()) return PowerPointLayoutKind.Coverage;
+            if (isFirst && blocks.Count == 0 && !HasSemantic(slide)) return PowerPointLayout.Title;
+            if (slide.Items<PowerPointLayoutLocation>().Any()) return PowerPointLayout.Coverage;
             bool kpis = slide.Items<PowerPointLayoutKpi>().Any();
             List<PowerPointLayoutCard> cards = slide.Items<PowerPointLayoutCard>().ToList();
-            if (kpis && cards.Count > 0) return PowerPointLayoutKind.CaseStudy;
-            if (kpis) return PowerPointLayoutKind.Kpi;
-            if (cards.Count > 0) return cards.All(card => card.IsLogo) ? PowerPointLayoutKind.Logos : PowerPointLayoutKind.Cards;
-            if (slide.Items<PowerPointLayoutStep>().Any()) return PowerPointLayoutKind.Process;
+            if (kpis && cards.Count > 0) return PowerPointLayout.CaseStudy;
+            if (kpis) return PowerPointLayout.Kpi;
+            if (cards.Count > 0) return cards.All(card => card.IsLogo) ? PowerPointLayout.Logos : PowerPointLayout.Cards;
+            if (slide.Items<PowerPointLayoutStep>().Any()) return PowerPointLayout.Process;
             List<PowerPointLayoutColumn> columns = blocks.OfType<PowerPointLayoutColumn>().ToList();
-            if (blocks.Count == 2 && columns.Count == 2 && columns.All(c => !string.IsNullOrWhiteSpace(c.Title))) {
-                return PowerPointLayoutKind.Comparison;
+            if (slide.Blocks.Count == 2 && blocks.Count == 2 && columns.Count == 2 && columns.All(c => !string.IsNullOrWhiteSpace(c.Title))) {
+                return PowerPointLayout.Comparison;
             }
 
-            if (blocks.Count == 1 && blocks[0] is PowerPointLayoutImage image && IsFullBleedCandidate(image)) {
-                return PowerPointLayoutKind.ImageFull;
+            if (slide.Blocks.Count == 1 && blocks.Count == 1 && blocks[0] is PowerPointLayoutImage image && IsFullBleedCandidate(image)) {
+                return PowerPointLayout.ImageFull;
             }
 
-            if (slide.Items<PowerPointLayoutQuote>().Any()) return PowerPointLayoutKind.Quote;
-            if (string.IsNullOrWhiteSpace(slide.Title) && blocks.Count == 1 && blocks[0] is PowerPointLayoutText text && text.Length <= 240) {
-                return PowerPointLayoutKind.Quote;
+            if (slide.Items<PowerPointLayoutQuote>().Any()) return PowerPointLayout.Quote;
+            if (string.IsNullOrWhiteSpace(slide.Title) && blocks.Count == 1 && blocks[0] is PowerPointLayoutText text && text.Paragraphs.Count == 1 && text.Length <= 240) {
+                return PowerPointLayout.Quote;
             }
 
-            if (isLast && deckSize >= 5 && (blocks.Count == 0 ||
-                                            blocks.Count == 1 && blocks[0] is PowerPointLayoutList list && list.Items.Count <= 4)) {
-                return PowerPointLayoutKind.Closing;
+            if (isLast && deckSize >= 5 && CanClose(slide) && (blocks.Count == 0 ||
+                                            blocks.Count == 1 && blocks[0] is PowerPointLayoutList list && list.Items.Count <= 4 && list.Items.All(item => item.Level == 1))) {
+                return PowerPointLayout.Closing;
             }
 
-            if (blocks.Count == 0) return PowerPointLayoutKind.Section;
-            if (blocks.Count >= 2) return PowerPointLayoutKind.TwoContent;
-            return PowerPointLayoutKind.TitleAndContent;
+            if (blocks.Count == 0) return PowerPointLayout.Section;
+            if (blocks.Count >= 2) return PowerPointLayout.TwoContent;
+            return PowerPointLayout.TitleAndContent;
         }
 
         private static bool HasSemantic(PowerPointLayoutSlide slide) =>
@@ -82,40 +86,52 @@ namespace OfficeIMO.PowerPoint {
             return width >= 1600 && Math.Abs(aspect / (16D / 9D) - 1D) <= 0.15D;
         }
 
-        private static bool Accepts(PowerPointLayoutKind layout, PowerPointLayoutSlide slide) {
+        private static bool Accepts(PowerPointLayout layout, PowerPointLayoutSlide slide) {
             List<PowerPointLayoutBlock> blocks = ContentBlocks(slide);
             bool semantic = HasSemantic(slide);
             switch (layout) {
-                case PowerPointLayoutKind.Title:
-                    return !semantic && blocks.Count <= 1;
-                case PowerPointLayoutKind.Section:
+                case PowerPointLayout.Title:
                     return !semantic && blocks.Count == 0;
-                case PowerPointLayoutKind.TitleAndContent:
-                case PowerPointLayoutKind.TwoContent:
+                case PowerPointLayout.Section:
+                    return !semantic && blocks.Count == 0;
+                case PowerPointLayout.TitleAndContent:
+                    return !semantic && blocks.Count == 1;
+                case PowerPointLayout.TwoContent:
                     return !semantic && blocks.Count >= 1;
-                case PowerPointLayoutKind.Comparison:
-                    return blocks.Count == 2 && blocks.All(b => b is PowerPointLayoutColumn);
-                case PowerPointLayoutKind.Kpi:
-                    return slide.Items<PowerPointLayoutKpi>().Any();
-                case PowerPointLayoutKind.Cards:
-                    return slide.Items<PowerPointLayoutCard>().Any();
-                case PowerPointLayoutKind.Logos:
-                    return slide.Items<PowerPointLayoutCard>().Any();
-                case PowerPointLayoutKind.Process:
-                    return slide.Items<PowerPointLayoutStep>().Any();
-                case PowerPointLayoutKind.Quote:
-                    return slide.Items<PowerPointLayoutQuote>().Any() || blocks.Count == 1 && blocks[0] is PowerPointLayoutText;
-                case PowerPointLayoutKind.ImageFull:
-                    return blocks.Count == 1 && blocks[0] is PowerPointLayoutImage;
-                case PowerPointLayoutKind.Closing:
-                    return !semantic && (blocks.Count == 0 || blocks.Count == 1 && blocks[0] is PowerPointLayoutList or PowerPointLayoutText);
-                case PowerPointLayoutKind.CaseStudy:
-                    return slide.Items<PowerPointLayoutCard>().Any() || slide.Items<PowerPointLayoutKpi>().Any();
-                case PowerPointLayoutKind.Coverage:
-                    return slide.Items<PowerPointLayoutLocation>().Any();
+                case PowerPointLayout.Comparison:
+                    return slide.Blocks.Count == 2 && blocks.Count == 2 && blocks.All(b => b is PowerPointLayoutColumn);
+                case PowerPointLayout.Kpi:
+                    return slide.Blocks.Count > 0 && slide.Blocks.All(block => block is PowerPointLayoutKpi);
+                case PowerPointLayout.Cards:
+                    return slide.Blocks.Count > 0 && slide.Blocks.All(block => block is PowerPointLayoutCard);
+                case PowerPointLayout.Logos:
+                    return slide.Blocks.Count > 0 && slide.Blocks.All(block => block is PowerPointLayoutCard card && string.IsNullOrWhiteSpace(card.Text) && card.Items.Count == 0);
+                case PowerPointLayout.Process:
+                    return slide.Blocks.Count > 0 && slide.Blocks.All(block => block is PowerPointLayoutStep);
+                case PowerPointLayout.Quote:
+                    return slide.Items<PowerPointLayoutQuote>().Any() || blocks.Count == 1 && blocks[0] is PowerPointLayoutText quote && quote.Paragraphs.Count == 1;
+                case PowerPointLayout.ImageFull:
+                    return slide.Blocks.Count == 1 && blocks.Count == 1 && blocks[0] is PowerPointLayoutImage;
+                case PowerPointLayout.Closing:
+                    return CanClose(slide);
+                case PowerPointLayout.CaseStudy:
+                    return slide.Blocks.Count > 0 && slide.Blocks.All(block => block is PowerPointLayoutCard or PowerPointLayoutKpi) &&
+                        slide.Items<PowerPointLayoutCard>().Count() <= PowerPointDeckPlanLimits.MaxCaseStudySections &&
+                        slide.Items<PowerPointLayoutKpi>().Count() <= PowerPointDeckPlanLimits.MaxCaseStudyMetrics &&
+                        slide.Items<PowerPointLayoutCard>().All(card => string.IsNullOrWhiteSpace(card.Image));
+                case PowerPointLayout.Coverage:
+                    return slide.Blocks.Count > 0 && slide.Blocks.All(block => block is PowerPointLayoutLocation);
                 default:
                     return true;
             }
+        }
+
+        private static bool CanClose(PowerPointLayoutSlide slide) {
+            var (lede, blocks) = SplitLede(slide.Blocks);
+            if (HasSemantic(slide) || lede != null && !string.IsNullOrWhiteSpace(slide.Subtitle)) return false;
+            return blocks.Count == 0 || blocks.Count == 1 &&
+                (blocks[0] is PowerPointLayoutList list && list.Items.Count <= 4 && list.Items.All(item => item.Level == 1) ||
+                 blocks[0] is PowerPointLayoutText text && text.Paragraphs.Count == 1 && string.IsNullOrWhiteSpace(slide.Subtitle));
         }
 
         /// <summary>Content blocks counted by selection; drawings count as one visual block.</summary>
@@ -129,19 +145,19 @@ namespace OfficeIMO.PowerPoint {
                 : AddNativeSlide(context, slide.Layout);
             var writer = new PowerPointLayoutWriter(target, context.Theme);
             switch (slide.Layout) {
-                case PowerPointLayoutKind.Title: RenderTitle(context, writer, slide); break;
-                case PowerPointLayoutKind.Section: RenderSection(context, writer, slide); break;
-                case PowerPointLayoutKind.TwoContent: RenderTwoContent(context, writer, slide); break;
-                case PowerPointLayoutKind.Comparison: RenderComparison(context, writer, slide); break;
-                case PowerPointLayoutKind.Kpi: RenderKpi(context, writer, slide); break;
-                case PowerPointLayoutKind.Cards: RenderCards(context, writer, slide); break;
-                case PowerPointLayoutKind.Process: RenderProcess(context, writer, slide); break;
-                case PowerPointLayoutKind.Quote: RenderQuote(context, writer, slide); break;
-                case PowerPointLayoutKind.ImageFull: RenderImageFull(context, writer, slide); break;
-                case PowerPointLayoutKind.Closing: RenderClosing(context, writer, slide); break;
-                case PowerPointLayoutKind.CaseStudy: RenderCaseStudy(context, writer, slide); break;
-                case PowerPointLayoutKind.Logos: RenderLogos(context, writer, slide); break;
-                case PowerPointLayoutKind.Coverage: RenderCoverage(context, writer, slide); break;
+                case PowerPointLayout.Title: RenderTitle(context, writer, slide); break;
+                case PowerPointLayout.Section: RenderSection(context, writer, slide); break;
+                case PowerPointLayout.TwoContent: RenderTwoContent(context, writer, slide); break;
+                case PowerPointLayout.Comparison: RenderComparison(context, writer, slide); break;
+                case PowerPointLayout.Kpi: RenderKpi(context, writer, slide); break;
+                case PowerPointLayout.Cards: RenderCards(context, writer, slide); break;
+                case PowerPointLayout.Process: RenderProcess(context, writer, slide); break;
+                case PowerPointLayout.Quote: RenderQuote(context, writer, slide); break;
+                case PowerPointLayout.ImageFull: RenderImageFull(context, writer, slide); break;
+                case PowerPointLayout.Closing: RenderClosing(context, writer, slide); break;
+                case PowerPointLayout.CaseStudy: RenderCaseStudy(context, writer, slide); break;
+                case PowerPointLayout.Logos: RenderLogos(context, writer, slide); break;
+                case PowerPointLayout.Coverage: RenderCoverage(context, writer, slide); break;
                 default: RenderTitleAndContent(context, writer, slide); break;
             }
 
@@ -150,21 +166,21 @@ namespace OfficeIMO.PowerPoint {
             return target;
         }
 
-        private static PowerPointSlide AddNativeSlide(PowerPointLayoutContext context, PowerPointLayoutKind layout) {
+        private static PowerPointSlide AddNativeSlide(PowerPointLayoutContext context, PowerPointLayout layout) {
             string name;
             PowerPointSlideLayoutType[] types;
             switch (layout) {
-                case PowerPointLayoutKind.Title: name = "Title Slide"; types = new[] { PowerPointSlideLayoutType.Title }; break;
-                case PowerPointLayoutKind.Section: name = "Section Header"; types = new[] { PowerPointSlideLayoutType.SectionHeader }; break;
-                case PowerPointLayoutKind.TitleAndContent:
+                case PowerPointLayout.Title: name = "Title Slide"; types = new[] { PowerPointSlideLayoutType.Title }; break;
+                case PowerPointLayout.Section: name = "Section Header"; types = new[] { PowerPointSlideLayoutType.SectionHeader }; break;
+                case PowerPointLayout.TitleAndContent:
                     name = "Title and Content";
                     types = new[] { PowerPointSlideLayoutType.Object, PowerPointSlideLayoutType.Text };
                     break;
-                case PowerPointLayoutKind.TwoContent:
+                case PowerPointLayout.TwoContent:
                     name = "Two Content";
                     types = new[] { PowerPointSlideLayoutType.TwoObjects, PowerPointSlideLayoutType.TwoColumnText };
                     break;
-                case PowerPointLayoutKind.Comparison:
+                case PowerPointLayout.Comparison:
                     name = "Comparison";
                     types = new[] { PowerPointSlideLayoutType.TwoTextAndTwoObjects, PowerPointSlideLayoutType.TwoObjects };
                     break;

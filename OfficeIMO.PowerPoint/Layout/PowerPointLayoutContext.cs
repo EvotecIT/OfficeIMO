@@ -79,34 +79,35 @@ namespace OfficeIMO.PowerPoint {
         }
 
         internal PowerPointLayoutParagraph Paragraph(string text, PowerPointTextRole role, string? color = null,
-            double? size = null, string align = "l", bool? bold = null) {
+            double? size = null, string align = "l", bool? bold = null, OfficeColor? explicitColor = null) {
             PowerPointTextStyleSpec style = Style(role);
-            return new PowerPointLayoutParagraph(new PowerPointLayoutRun(text, style, size, color, bold)) {
+            return new PowerPointLayoutParagraph(new PowerPointLayoutRun(text, style, size, color, bold) { ExplicitColor = explicitColor }) {
                 Align = align,
                 LineHeight = style.LineHeight
             };
         }
 
         /// <summary>Colour for a role name or hex literal supplied by content (KPI change colour, card accent).</summary>
-        internal string? ResolveColor(string? value) {
-            if (string.IsNullOrWhiteSpace(value)) return null;
-            string v = value!.Trim().TrimStart('#');
-            switch (v.ToLowerInvariant()) {
-                case "success": return Theme.Success;
-                case "warning": return Theme.Warning;
-                case "danger": return Theme.Danger;
-                case "text": return Theme.Text;
-                case "textmuted": return Theme.TextMuted;
-                case "accent1": return Theme.Accent1;
-                case "accent2": return Theme.Accent2;
-                case "accent3": return Theme.Accent3;
-                case "accent4": return Theme.Accent4;
-                case "accent5": return Theme.Accent5;
-                case "accent6": return Theme.Accent6;
-            }
+        internal string? ResolveColor(OfficeColor? value) {
+            if (!value.HasValue) return null;
+            OfficeColor color = value.Value;
+            if (!color.IsThemeRole) return color.A == 255 ? color.ToRgbHex() : color.ToHex();
+            return color.Role switch {
+                OfficeColorRole.Success => Theme.Success,
+                OfficeColorRole.Warning => Theme.Warning,
+                OfficeColorRole.Danger => Theme.Danger,
+                OfficeColorRole.Text => Theme.Text,
+                OfficeColorRole.TextMuted => Theme.TextMuted,
+                OfficeColorRole.Background => Theme.Background,
+                OfficeColorRole.Accent1 => Theme.Accent1,
+                OfficeColorRole.Accent2 => Theme.Accent2,
+                OfficeColorRole.Accent3 => Theme.Accent3,
+                OfficeColorRole.Accent4 => Theme.Accent4,
+                OfficeColorRole.Accent5 => Theme.Accent5,
+                OfficeColorRole.Accent6 => Theme.Accent6,
+                _ => null
+            };
 
-            if (v.Length == 6 && v.All(Uri.IsHexDigit)) return v.ToUpperInvariant();
-            return null;
         }
     }
 }

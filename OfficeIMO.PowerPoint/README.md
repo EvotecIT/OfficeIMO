@@ -675,6 +675,38 @@ PowerPointCompositionResult result = presentation.Compose(plan, composition);
 presentation.Save();
 ```
 
+For ordinary content slides, `AddContent` accepts the same typed blocks that the
+layout engine renders. `PowerPointLayout.Auto` selects a layout from the content;
+an explicit layout such as `Quote`, `Kpi` or `Comparison` requests that composition.
+
+```csharp
+var plan = new PowerPointDeckPlan()
+    .AddContent("Delivery results", new PowerPointLayoutBlock[] {
+        new PowerPointLayoutKpi("96%", "On time", "+4 points"),
+        new PowerPointLayoutKpi("42", "Deliveries")
+    })
+    .Add(new PowerPointContentPlanSlide("What changed", new PowerPointLayoutBlock[] {
+        new PowerPointLayoutQuote("Clear evidence makes decisions easier.", "Review team")
+    }, PowerPointLayout.Quote) { Notes = "Discuss the evidence before the decision." });
+
+var result = presentation.Compose(plan, composition);
+presentation.Save();
+```
+
+Blocks cover paragraphs, nested lists, tables, charts, images, columns, quotes,
+metrics, cards, process steps and locations. Speaker notes stay out of the visible
+body. Long content continues through the shared layout engine, and `result.Slides`
+contains every physical slide, including those continuations. An incompatible
+explicit layout falls back automatically and reports a preflight warning.
+Automatic selection uses the logical plan position for both previews and rendering;
+physical continuations do not turn a short plan into a longer story.
+
+Tables require at least one header and matching cell counts in every row. A column
+contains one body block, optionally preceded by a short paragraph, and may have a
+heading. Use separate slides for different semantic block kinds; a case study can
+combine up to four narrative cards and three metrics. Explicit `OfficeColor` roles
+remain native theme references, while literal colours remain literal.
+
 New presentations take their colours, fonts, type scale and slide margins from an `OfficeTheme`
 (`PowerPointCreateOptions.Theme`, `OfficeTheme.Modern` by default). Every semantic slide is composed from the
 same theme layouts: a shared header with the section title as eyebrow, content on a 12-column grid, and the deck

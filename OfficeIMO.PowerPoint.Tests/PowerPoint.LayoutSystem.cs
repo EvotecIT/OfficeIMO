@@ -207,7 +207,7 @@ namespace OfficeIMO.Tests {
         [InlineData("two", "TwoContent")]
         [InlineData("lede", "TitleAndContent")]
         public void AutomaticSelection_FollowsTheContent(string content, string expectedLayout) {
-            var expected = (PowerPointLayoutKind)Enum.Parse(typeof(PowerPointLayoutKind), expectedLayout);
+            var expected = (PowerPointLayout)Enum.Parse(typeof(PowerPointLayout), expectedLayout);
             var slide = new PowerPointLayoutSlide { Title = "Slide" };
             var list = new PowerPointLayoutList(new[] { "One", "Two" });
             switch (content) {
@@ -228,8 +228,8 @@ namespace OfficeIMO.Tests {
             }
 
             Assert.Equal(expected, PowerPointLayoutEngine.Select(slide, isFirst: false, isLast: false, deckSize: 3));
-            Assert.Equal(PowerPointLayoutKind.Title, PowerPointLayoutEngine.Select(new PowerPointLayoutSlide { Title = "Deck" }, true, false, 1));
-            Assert.Equal(PowerPointLayoutKind.Closing, PowerPointLayoutEngine.Select(new PowerPointLayoutSlide { Title = "Thanks" }, false, true, 6));
+            Assert.Equal(PowerPointLayout.Title, PowerPointLayoutEngine.Select(new PowerPointLayoutSlide { Title = "Deck" }, true, false, 1));
+            Assert.Equal(PowerPointLayout.Closing, PowerPointLayoutEngine.Select(new PowerPointLayoutSlide { Title = "Thanks" }, false, true, 6));
         }
 
         [Fact]
@@ -294,7 +294,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void LogoNames_ShrinkSoNoWordBreaks() {
             using PowerPointPresentation presentation = PowerPointPresentation.Create();
-            var slide = new PowerPointLayoutSlide { Title = "Partners", Layout = PowerPointLayoutKind.Logos };
+            var slide = new PowerPointLayoutSlide { Title = "Partners", Layout = PowerPointLayout.Logos };
             foreach (string name in new[] { "Brother", "Samsung", "Hewlett Packard Enterprise", "Lenovo", "Dell", "Cisco", "Fortinet", "Microsoft", "Amazon" }) {
                 slide.Blocks.Add(new PowerPointLayoutCard(name, image: "missing.png"));
             }

@@ -17,7 +17,7 @@ namespace OfficeIMO.PowerPoint {
         // ------------------------------------------------------------------ blocks and lede
 
         private static bool IsVisualOrList(PowerPointLayoutBlock block) =>
-            block is PowerPointLayoutList or PowerPointLayoutTable or PowerPointLayoutChart or PowerPointLayoutImage or PowerPointLayoutDrawing;
+            block is PowerPointLayoutList or PowerPointLayoutTable or PowerPointLayoutChart or PowerPointLayoutImage or PowerPointLayoutColumn or PowerPointLayoutDrawing;
 
         /// <summary>A paragraph immediately followed by a list, table, chart or image is that block's lede.</summary>
         internal static (PowerPointLayoutText? Lede, List<PowerPointLayoutBlock> Blocks) SplitLede(IEnumerable<PowerPointLayoutBlock> source) {
@@ -59,55 +59,57 @@ namespace OfficeIMO.PowerPoint {
 
         // ------------------------------------------------------------------ overflow
 
-        internal static IEnumerable<PowerPointLayoutSlide> Expand(PowerPointLayoutContext context, PowerPointLayoutSlide slide, PowerPointLayoutKind layout) {
+        internal static IEnumerable<PowerPointLayoutSlide> Expand(PowerPointLayoutContext context, PowerPointLayoutSlide slide, PowerPointLayout layout) {
             slide.Layout = layout;
             (PowerPointLayoutText? lede, List<PowerPointLayoutBlock> blocks) = SplitLede(slide.Blocks);
             switch (layout) {
-                case PowerPointLayoutKind.TwoContent when blocks.Count > 2: {
+                case PowerPointLayout.TwoContent when blocks.Count > 2: {
                         context.Deck.Report(PowerPointLayoutDiagnosticCodes.SlideContentSplit, OfficeDiagnosticSeverity.Information,
                             "The slide has " + blocks.Count + " content blocks; the first two stay and the rest continue on the next slide.", slide.Title);
                         PowerPointLayoutSlide first = slide.CloneHeader();
                         first.Notes = slide.Notes;
                         first.Subtitle = slide.Subtitle;
+                        if (lede != null) first.Blocks.Add(lede);
                         first.Blocks.AddRange(blocks.Take(2));
-                        first.Layout = PowerPointLayoutKind.TwoContent;
+                        first.Layout = PowerPointLayout.TwoContent;
                         yield return first;
                         PowerPointLayoutSlide rest = Continuation(context, slide, 2, 2);
                         rest.Blocks.AddRange(blocks.Skip(2));
-                        rest.Layout = PowerPointLayoutKind.Auto;
-                        PowerPointLayoutKind next = Select(rest, false, false, context.Document.Slides.Count + 2);
+                        rest.Layout = PowerPointLayout.Auto;
+                        PowerPointLayout next = Select(rest, false, false, context.Document.Slides.Count + 2);
                         foreach (PowerPointLayoutSlide s in Expand(context, rest, next)) yield return s;
                         yield break;
                     }
-                case PowerPointLayoutKind.TitleAndContent when blocks.Count == 1 && blocks[0] is PowerPointLayoutList list:
+                case PowerPointLayout.TitleAndContent when blocks.Count == 1 && blocks[0] is PowerPointLayoutList list:
                     foreach (PowerPointLayoutSlide s in SplitList(context, slide, list, lede)) yield return s;
                     yield break;
-                case PowerPointLayoutKind.TitleAndContent when blocks.Count == 1 && blocks[0] is PowerPointLayoutTable table:
+                case PowerPointLayout.TitleAndContent when blocks.Count == 1 && blocks[0] is PowerPointLayoutTable table:
                     foreach (PowerPointLayoutSlide s in SplitTable(context, slide, table, lede, context.Grid.W(12))) yield return s;
                     yield break;
-                case PowerPointLayoutKind.TwoContent when blocks.Count == 2 && blocks.OfType<PowerPointLayoutTable>().Count() == 1: {
+                case PowerPointLayout.TwoContent when blocks.Count == 2 && blocks.OfType<PowerPointLayoutTable>().Count() == 1: {
                         PowerPointLayoutTable twoTable = blocks.OfType<PowerPointLayoutTable>().Single();
                         PowerPointLayoutBlock other = blocks.Single(b => !ReferenceEquals(b, twoTable));
                         double width = context.Grid.W(IsTexty(other) ? 7 : 6);
-                        foreach (PowerPointLayoutSlide s in SplitTable(context, slide, twoTable, null, width)) yield return s;
+                        foreach (PowerPointLayoutSlide s in SplitTable(context, slide, twoTable, lede, width)) yield return s;
                         yield break;
                     }
-                case PowerPointLayoutKind.TitleAndContent when blocks.Count == 1 && blocks[0] is PowerPointLayoutText text:
+                case PowerPointLayout.TitleAndContent when blocks.Count == 1 && blocks[0] is PowerPointLayoutText text:
                     foreach (PowerPointLayoutSlide s in SplitText(context, slide, text)) yield return s;
                     yield break;
-                case PowerPointLayoutKind.Kpi:
+                case PowerPointLayout.Kpi:
                     foreach (PowerPointLayoutSlide s in SplitTiles<PowerPointLayoutKpi>(context, slide, 6)) yield return s;
                     yield break;
-                case PowerPointLayoutKind.Cards:
-                    foreach (PowerPointLayoutSlide s in SplitTiles<PowerPointLayoutCard>(context, slide, 6)) yield return s;
+                case PowerPointLayout.Cards:
+                    int cardLimit = slide.Items<PowerPointLayoutCard>().Any(card => !string.IsNullOrWhiteSpace(card.Image)) ? 3 : 6;
+                    foreach (PowerPointLayoutSlide s in SplitTiles<PowerPointLayoutCard>(context, slide, cardLimit)) yield return s;
                     yield break;
-                case PowerPointLayoutKind.Logos:
+                case PowerPointLayout.Logos:
                     foreach (PowerPointLayoutSlide s in SplitTiles<PowerPointLayoutCard>(context, slide, 12)) yield return s;
                     yield break;
-                case PowerPointLayoutKind.Process:
+                case PowerPointLayout.Process:
                     foreach (PowerPointLayoutSlide s in SplitTiles<PowerPointLayoutStep>(context, slide, 8)) yield return s;
                     yield break;
-                case PowerPointLayoutKind.Coverage:
+                case PowerPointLayout.Coverage:
                     foreach (PowerPointLayoutSlide s in SplitTiles<PowerPointLayoutLocation>(context, slide, 18)) yield return s;
                     yield break;
                 default:
@@ -216,7 +218,7 @@ namespace OfficeIMO.PowerPoint {
                     if (lede != null) part.Blocks.Add(lede);
                 }
 
-                part.Layout = PowerPointLayoutKind.TitleAndContent;
+                part.Layout = PowerPointLayout.TitleAndContent;
                 part.ListSize = body.Size;
                 part.ListStart = start;
                 part.Blocks.Add(new PowerPointLayoutList(items, list.Numbered));
@@ -265,7 +267,7 @@ namespace OfficeIMO.PowerPoint {
                     part.Notes = slide.Notes;
                 }
 
-                part.Layout = PowerPointLayoutKind.TitleAndContent;
+                part.Layout = PowerPointLayout.TitleAndContent;
                 part.ListSize = body.Size;
                 part.Blocks.Add(new PowerPointLayoutText(chunks[page]));
                 yield return part;
@@ -362,7 +364,7 @@ namespace OfficeIMO.PowerPoint {
             }
 
             List<int> units = table.Rows.Select(row => RowUnits(context, metrics, row)).ToList();
-            int first = table.MaxRows ?? TableCapacity(context, slide, metrics, lede != null);
+            int first = table.MaximumRows ?? TableCapacity(context, slide, metrics, lede != null);
             if (table.NoSplit || units.Sum() <= first && table.Rows.Count <= first) {
                 if (table.NoSplit && units.Sum() > first) {
                     context.Deck.Report(PowerPointLayoutDiagnosticCodes.TableOverflow, OfficeDiagnosticSeverity.Warning,
@@ -374,12 +376,12 @@ namespace OfficeIMO.PowerPoint {
             }
 
             PowerPointLayoutSlide probe = Continuation(context, slide, 2, 3);
-            int limit = table.MaxRows ?? Math.Min(first, TableCapacity(context, probe, metrics, false));
+            int limit = table.MaximumRows ?? Math.Min(first, TableCapacity(context, probe, metrics, false));
             int pages = (int)Math.Ceiling(table.Rows.Count / (double)limit);
             List<List<int>> chunks;
             while (true) {
                 chunks = Balance(Enumerable.Range(0, table.Rows.Count).ToList(), pages);
-                if (table.MaxRows.HasValue || chunks.All(c => c.Sum(i => units[i]) <= limit)) break;
+                if (table.MaximumRows.HasValue || chunks.All(c => c.Sum(i => units[i]) <= limit)) break;
                 pages++;
             }
 
@@ -637,136 +639,5 @@ namespace OfficeIMO.PowerPoint {
             }
         }
 
-        /// <summary>Draws one content block in <paramref name="box" />; list and text keep their measure.</summary>
-        internal static void RenderBlock(PowerPointLayoutContext context, PowerPointLayoutWriter writer, PowerPointLayoutBlock block,
-            PowerPointLayoutRect box, PowerPointLayoutSlide slide, string? placeholder = null) {
-            switch (block) {
-                case PowerPointLayoutList list:
-                    double listSize = slide.ListSize ?? FitListSize(context, list, box);
-                    RenderList(context, writer, list, box, listSize, slide.ListStart, placeholder);
-                    break;
-                case PowerPointLayoutText text:
-                    RenderText(context, writer, text, box, slide.ListSize ?? FitTextSize(context, text, box), placeholder);
-                    break;
-                case PowerPointLayoutTable table:
-                    RenderTable(context, writer, table, box, slide.TableRange);
-                    break;
-                case PowerPointLayoutChart chart:
-                    RenderChart(context, writer, chart, box);
-                    break;
-                case PowerPointLayoutImage image:
-                    RenderImage(context, writer, image, box, cover: false);
-                    break;
-                case PowerPointLayoutColumn column:
-                    (PowerPointLayoutText? lede, List<PowerPointLayoutBlock> inner) = SplitLede(column.Blocks);
-                    PowerPointLayoutRect rest = box;
-                    if (lede != null) {
-                        PowerPointTextStyleSpec ledeStyle = context.Style(PowerPointTextRole.BodySmall);
-                        double h = context.Height(lede.Paragraphs[0], ledeStyle, box.Width) + 10D;
-                        writer.Text("Column Lede", box.WithHeight(h), context.Paragraph(lede.Paragraphs[0], PowerPointTextRole.BodySmall));
-                        rest = box.Inset(0, h, 0, 0);
-                    }
-
-                    if (inner.Count > 0) RenderBlock(context, writer, inner[0], rest, slide, placeholder);
-                    break;
-                case PowerPointLayoutDrawing drawing:
-                    drawing.Draw(writer.Slide, context, box);
-                    break;
-            }
-        }
-
-        private static double FitListSize(PowerPointLayoutContext context, PowerPointLayoutList list, PowerPointLayoutRect box) {
-            PowerPointTextStyleSpec body = context.Style(PowerPointTextRole.Body);
-            double size = body.Size;
-            while (size - 2D >= 14D && ListHeight(context, list.Items, size, box.Width) > box.Height) size -= 2D;
-            return size;
-        }
-
-        private static double FitTextSize(PowerPointLayoutContext context, PowerPointLayoutText text, PowerPointLayoutRect box) {
-            PowerPointTextStyleSpec body = context.Style(PowerPointTextRole.Body);
-            double size = body.Size;
-            double Height(double s) => text.Paragraphs.Sum(p => context.Height(p, body, box.Width, s) + context.Theme.ParagraphAfter);
-            while (size - 2D >= 14D && Height(size) > box.Height) size -= 2D;
-            return size;
-        }
-
-        // ------------------------------------------------------------------ TitleAndContent, TwoContent, Comparison
-
-        private static void RenderTitleAndContent(PowerPointLayoutContext context, PowerPointLayoutWriter writer, PowerPointLayoutSlide slide) {
-            if (string.IsNullOrWhiteSpace(slide.Title) && slide.Blocks.Count > 0 && slide.Blocks.All(b => b is PowerPointLayoutDrawing)) {
-                // A custom composition draws its own header through the composition context.
-                foreach (PowerPointLayoutBlock drawing in slide.Blocks) RenderBlock(context, writer, drawing, context.Grid.Box(1, 12, 4, 9), slide);
-                return;
-            }
-
-            HeaderGeometry header = RenderHeader(context, writer, slide);
-            (PowerPointLayoutText? lede, List<PowerPointLayoutBlock> blocks) = SplitLede(slide.Blocks);
-            PowerPointLayoutRect zone = RenderSourceNote(context, writer, slide, ContentZone(context, header));
-            if (lede != null) {
-                writer.Text("Lede", new PowerPointLayoutRect(zone.X, zone.Y, context.Grid.W(8), 64D), context.Paragraph(lede.Paragraphs[0], PowerPointTextRole.Lede));
-                zone = zone.Inset(0, LedeAllowance, 0, 0);
-            }
-
-            if (blocks.Count == 0) return;
-            PowerPointLayoutBlock block = blocks[0];
-            bool measure = block is PowerPointLayoutList or PowerPointLayoutText;
-            if (measure) zone = zone.WithWidth(context.Grid.W(8));
-            RenderBlock(context, writer, block, zone, slide,
-                measure && writer.Slide.SlideLayoutName == "Title and Content" ? "<p:ph idx=\"1\"/>" : null);
-        }
-
-        private static bool IsTexty(PowerPointLayoutBlock block) {
-            if (block is PowerPointLayoutColumn column) {
-                List<PowerPointLayoutBlock> inner = SplitLede(column.Blocks).Blocks;
-                return inner.Count == 0 || inner[0] is PowerPointLayoutList or PowerPointLayoutText;
-            }
-
-            return block is PowerPointLayoutList or PowerPointLayoutText;
-        }
-
-        private static void RenderTwoContent(PowerPointLayoutContext context, PowerPointLayoutWriter writer, PowerPointLayoutSlide slide) {
-            HeaderGeometry header = RenderHeader(context, writer, slide);
-            List<PowerPointLayoutBlock> blocks = SplitLede(slide.Blocks).Blocks;
-            if (blocks.Count == 0) return;
-            PowerPointLayoutRect zone = RenderSourceNote(context, writer, slide, ContentZone(context, header));
-            if (blocks.Count == 1) {
-                RenderBlock(context, writer, blocks[0], zone, slide);
-                return;
-            }
-
-            (int Column, int Span)[] columns;
-            bool leftText = IsTexty(blocks[0]), rightText = IsTexty(blocks[1]);
-            if (leftText != rightText) {
-                columns = context.Grid.IsNarrow
-                    ? leftText ? new[] { (1, 5), (6, 7) } : new[] { (1, 7), (8, 5) }
-                    : leftText ? new[] { (1, 4), (6, 7) } : new[] { (1, 7), (9, 4) };
-            } else {
-                columns = new[] { (1, 6), (7, 6) };
-            }
-
-            bool native = writer.Slide.SlideLayoutName == "Two Content";
-            for (int i = 0; i < 2; i++) {
-                PowerPointLayoutRect box = new PowerPointLayoutRect(context.Grid.X(columns[i].Column), zone.Y, context.Grid.W(columns[i].Span), zone.Height);
-                RenderBlock(context, writer, blocks[i], box, slide, native && IsTexty(blocks[i]) ? "<p:ph idx=\"" + (i + 1) + "\"/>" : null);
-            }
-        }
-
-        private static void RenderComparison(PowerPointLayoutContext context, PowerPointLayoutWriter writer, PowerPointLayoutSlide slide) {
-            HeaderGeometry header = RenderHeader(context, writer, slide);
-            List<PowerPointLayoutColumn> columns = SplitLede(slide.Blocks).Blocks.OfType<PowerPointLayoutColumn>().Take(2).ToList();
-            bool native = writer.Slide.SlideLayoutName == "Comparison";
-            PowerPointTextStyleSpec heading = context.Style(PowerPointTextRole.Heading);
-            for (int i = 0; i < columns.Count; i++) {
-                int column = i == 0 ? 1 : 7;
-                PowerPointLayoutRect head = context.Grid.Box(column, 6, header.ContentRow, 1);
-                double size = heading.Size;
-                while (size - 2D >= heading.Minimum && context.Width(columns[i].Title ?? string.Empty, heading, size) > head.Width) size -= 2D;
-                writer.Text("Column Heading", new PowerPointLayoutRect(head.X, head.Y - 8D, head.Width, head.Height), context.Paragraph(columns[i].Title ?? string.Empty,
-                    PowerPointTextRole.Heading, size: size), anchor: "b", placeholder: native ? "<p:ph type=\"body\" sz=\"quarter\" idx=\"" + (i == 0 ? 1 : 3) + "\"/>" : null);
-                writer.Rect("Column Rule", new PowerPointLayoutRect(head.X, head.Bottom + 6D - 8D, head.Width, 3D), i == 0 ? context.Theme.Accent1 : context.Theme.Accent2);
-                PowerPointLayoutRect body = context.Grid.Box(column, 6, header.ContentRow + 1, header.ContentRows - 1).Inset(0, 12, 0, 0);
-                RenderBlock(context, writer, columns[i], body, slide, native ? "<p:ph sz=\"quarter\" idx=\"" + (i == 0 ? 2 : 4) + "\"/>" : null);
-            }
-        }
     }
 }

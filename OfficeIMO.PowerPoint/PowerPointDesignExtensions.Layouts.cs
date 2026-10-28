@@ -48,7 +48,7 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private static PowerPointLayoutSlide Content(PowerPointPresentation presentation, string? title, string? subtitle,
-            PowerPointDesignerSlideOptions options, PowerPointLayoutKind layout) {
+            PowerPointDesignerSlideOptions options, PowerPointLayout layout) {
             PowerPointLayoutDeck deck = presentation.LayoutDeck;
             if (!string.IsNullOrWhiteSpace(options.FooterLeft) && options.FooterLeft != LegacyFooterBrand) {
                 deck.FooterText ??= options.FooterLeft;
@@ -100,7 +100,7 @@ namespace OfficeIMO.PowerPoint {
             PowerPointDesignerSlideOptions resolved = options ?? new PowerPointDesignerSlideOptions();
             bool cover = presentation.Slides.Count == 0;
             PowerPointLayoutSlide slide = Content(presentation, title, subtitle, resolved,
-                cover ? PowerPointLayoutKind.Title : PowerPointLayoutKind.Section);
+                cover ? PowerPointLayout.Title : PowerPointLayout.Section);
             if (cover) slide.Eyebrow = resolved.Eyebrow;
             return Compose(presentation, slide, theme, title);
         }
@@ -116,7 +116,7 @@ namespace OfficeIMO.PowerPoint {
             if (metricList.Count > 3) {
                 throw new ArgumentOutOfRangeException(nameof(metrics), "A case study shows up to three result metrics.");
             }
-            PowerPointLayoutSlide slide = Content(presentation, clientTitle, null, resolved, PowerPointLayoutKind.CaseStudy);
+            PowerPointLayoutSlide slide = Content(presentation, clientTitle, null, resolved, PowerPointLayout.CaseStudy);
             foreach (PowerPointCaseStudySection section in sectionList) slide.Blocks.Add(new PowerPointLayoutCard(section.Heading, section.Body));
             foreach (PowerPointMetric metric in metricList.Take(3)) slide.Blocks.Add(Kpi(metric));
             if (!string.IsNullOrWhiteSpace(resolved.VisualImagePath) || !string.IsNullOrWhiteSpace(resolved.PersonImagePath)) {
@@ -133,7 +133,7 @@ namespace OfficeIMO.PowerPoint {
             if (title == null) throw new ArgumentNullException(nameof(title));
             PowerPointCardGridSlideOptions resolved = options ?? new PowerPointCardGridSlideOptions();
             List<PowerPointCardContent> cardList = NormalizeCards(cards);
-            PowerPointLayoutSlide slide = Content(presentation, title, subtitle, resolved, PowerPointLayoutKind.Cards);
+            PowerPointLayoutSlide slide = Content(presentation, title, subtitle, resolved, PowerPointLayout.Cards);
             foreach (PowerPointCardContent card in cardList) slide.Blocks.Add(Card(card));
             slide.Takeaway = resolved.SupportingText;
             return Compose(presentation, slide, theme, title);
@@ -146,7 +146,7 @@ namespace OfficeIMO.PowerPoint {
             if (title == null) throw new ArgumentNullException(nameof(title));
             PowerPointProcessSlideOptions resolved = options ?? new PowerPointProcessSlideOptions();
             List<PowerPointProcessStep> stepList = NormalizeSteps(steps);
-            PowerPointLayoutSlide slide = Content(presentation, title, subtitle, resolved, PowerPointLayoutKind.Process);
+            PowerPointLayoutSlide slide = Content(presentation, title, subtitle, resolved, PowerPointLayout.Process);
             foreach (PowerPointProcessStep step in stepList) slide.Blocks.Add(new PowerPointLayoutStep(step.Title, step.Body, step.Number));
             return Compose(presentation, slide, theme, title);
         }
@@ -160,9 +160,9 @@ namespace OfficeIMO.PowerPoint {
             if (title == null) throw new ArgumentNullException(nameof(title));
             PowerPointLogoWallSlideOptions resolved = options ?? new PowerPointLogoWallSlideOptions();
             List<PowerPointLogoItem> logoList = NormalizeLogoItems(logos);
-            PowerPointLayoutSlide slide = Content(presentation, title, subtitle, resolved, PowerPointLayoutKind.Logos);
+            PowerPointLayoutSlide slide = Content(presentation, title, subtitle, resolved, PowerPointLayout.Logos);
             foreach (PowerPointLogoItem logo in logoList) {
-                slide.Blocks.Add(new PowerPointLayoutCard(logo.Name, logo.Subtitle, image: logo.ImagePath, color: logo.AccentColor));
+                slide.Blocks.Add(new PowerPointLayoutCard(logo.Name, logo.Subtitle, image: logo.ImagePath, color: PowerPointLayoutBlock.ParseColor(logo.AccentColor)));
             }
 
             slide.Takeaway = resolved.SupportingText;
@@ -177,7 +177,7 @@ namespace OfficeIMO.PowerPoint {
             if (title == null) throw new ArgumentNullException(nameof(title));
             PowerPointCoverageSlideOptions resolved = options ?? new PowerPointCoverageSlideOptions();
             List<PowerPointCoverageLocation> locationList = NormalizeLocations(locations);
-            PowerPointLayoutSlide slide = Content(presentation, title, subtitle ?? resolved.SupportingText, resolved, PowerPointLayoutKind.Coverage);
+            PowerPointLayoutSlide slide = Content(presentation, title, subtitle ?? resolved.SupportingText, resolved, PowerPointLayout.Coverage);
             slide.MapLabel = resolved.MapLabel;
             foreach (PowerPointCoverageLocation location in locationList) {
                 slide.Blocks.Add(new PowerPointLayoutLocation(location.Name, location.X, location.Y, location.Detail));
@@ -199,11 +199,11 @@ namespace OfficeIMO.PowerPoint {
             }
 
             if (resolved.Metrics.Count > 0) {
-                slide = Content(presentation, title, subtitle, resolved, PowerPointLayoutKind.CaseStudy);
+                slide = Content(presentation, title, subtitle, resolved, PowerPointLayout.CaseStudy);
                 foreach (PowerPointCapabilitySection section in sectionList) slide.Blocks.Add(new PowerPointLayoutCard(section.Heading, section.Body, section.Items));
                 foreach (PowerPointMetric metric in resolved.Metrics.Take(3)) slide.Blocks.Add(Kpi(metric));
             } else if (resolved.Locations.Count > 0) {
-                slide = Content(presentation, title, subtitle, resolved, PowerPointLayoutKind.Coverage);
+                slide = Content(presentation, title, subtitle, resolved, PowerPointLayout.Coverage);
                 slide.MapLabel = resolved.VisualLabel;
                 foreach (PowerPointCoverageLocation location in resolved.Locations) {
                     slide.Blocks.Add(new PowerPointLayoutLocation(location.Name, location.X, location.Y, location.Detail));
@@ -211,17 +211,17 @@ namespace OfficeIMO.PowerPoint {
 
                 ReportIgnored(presentation, "capability sections beside a coverage visual", title);
             } else if (!string.IsNullOrWhiteSpace(resolved.VisualImagePath) && System.IO.File.Exists(resolved.VisualImagePath)) {
-                slide = Content(presentation, title, subtitle, resolved, PowerPointLayoutKind.TwoContent);
+                slide = Content(presentation, title, subtitle, resolved, PowerPointLayout.TwoContent);
                 slide.Blocks.Add(new PowerPointLayoutList(sectionList.SelectMany(SectionItems)));
                 slide.Blocks.Add(new PowerPointLayoutImage(resolved.VisualImagePath!, resolved.VisualLabel ?? title));
             } else if (resolved.Logos.Count > 0) {
-                slide = Content(presentation, title, subtitle, resolved, PowerPointLayoutKind.Logos);
+                slide = Content(presentation, title, subtitle, resolved, PowerPointLayout.Logos);
                 foreach (PowerPointLogoItem logo in resolved.Logos) slide.Blocks.Add(new PowerPointLayoutCard(logo.Name, logo.Subtitle, image: logo.ImagePath));
                 ReportIgnored(presentation, "capability sections beside a logo visual", title);
             } else {
-                slide = Content(presentation, title, subtitle, resolved, PowerPointLayoutKind.Cards);
+                slide = Content(presentation, title, subtitle, resolved, PowerPointLayout.Cards);
                 foreach (PowerPointCapabilitySection section in sectionList) {
-                    slide.Blocks.Add(new PowerPointLayoutCard(section.Heading, section.Body, section.Items, color: section.AccentColor));
+                    slide.Blocks.Add(new PowerPointLayoutCard(section.Heading, section.Body, section.Items, color: PowerPointLayoutBlock.ParseColor(section.AccentColor)));
                 }
             }
 
@@ -249,18 +249,18 @@ namespace OfficeIMO.PowerPoint {
                         nameof(content));
                 }
 
-                slide = Content(presentation, title, subtitle ?? content.Lead, resolved, PowerPointLayoutKind.CaseStudy);
+                slide = Content(presentation, title, subtitle ?? content.Lead, resolved, PowerPointLayout.CaseStudy);
                 foreach (PowerPointCardContent point in content.Points) slide.Blocks.Add(new PowerPointLayoutCard(point.Title, null, point.Items));
                 foreach (PowerPointMetric metric in content.Metrics.Take(3)) slide.Blocks.Add(Kpi(metric));
             } else if (content.Metrics.Count > 0) {
-                slide = Content(presentation, title, subtitle, resolved, PowerPointLayoutKind.Kpi);
+                slide = Content(presentation, title, subtitle, resolved, PowerPointLayout.Kpi);
                 foreach (PowerPointMetric metric in content.Metrics) slide.Blocks.Add(Kpi(metric));
                 slide.Takeaway = content.Lead;
             } else if (content.Points.Count > 0) {
-                slide = Content(presentation, title, subtitle ?? content.Lead, resolved, PowerPointLayoutKind.Cards);
+                slide = Content(presentation, title, subtitle ?? content.Lead, resolved, PowerPointLayout.Cards);
                 foreach (PowerPointCardContent point in content.Points) slide.Blocks.Add(Card(point));
             } else {
-                slide = Content(presentation, title, subtitle, resolved, PowerPointLayoutKind.TitleAndContent);
+                slide = Content(presentation, title, subtitle, resolved, PowerPointLayout.TitleAndContent);
                 slide.Blocks.Add(new PowerPointLayoutText(content.Lead ?? string.Empty));
             }
 
@@ -279,11 +279,11 @@ namespace OfficeIMO.PowerPoint {
             };
             PowerPointLayoutSlide slide;
             if (content.Insights.Count > 0) {
-                slide = Content(presentation, title, subtitle, resolved, PowerPointLayoutKind.TwoContent);
+                slide = Content(presentation, title, subtitle, resolved, PowerPointLayout.TwoContent);
                 slide.Blocks.Add(new PowerPointLayoutList(content.Insights));
                 slide.Blocks.Add(chart);
             } else {
-                slide = Content(presentation, title, subtitle, resolved, PowerPointLayoutKind.TitleAndContent);
+                slide = Content(presentation, title, subtitle, resolved, PowerPointLayout.TitleAndContent);
                 if (!string.IsNullOrWhiteSpace(content.Caption)) slide.Blocks.Add(new PowerPointLayoutText(content.Caption!));
                 slide.Blocks.Add(chart);
             }
@@ -304,7 +304,7 @@ namespace OfficeIMO.PowerPoint {
             PowerPointComparisonSlideOptions resolved = options ?? new PowerPointComparisonSlideOptions();
             PowerPointLayoutSlide slide;
             if (values.Count == 2) {
-                slide = Content(presentation, title, subtitle, resolved, PowerPointLayoutKind.Comparison);
+                slide = Content(presentation, title, subtitle, resolved, PowerPointLayout.Comparison);
                 foreach (PowerPointComparisonItem item in values) {
                     var blocks = new List<PowerPointLayoutBlock>();
                     if (!string.IsNullOrWhiteSpace(item.Summary)) blocks.Add(new PowerPointLayoutText(item.Summary!));
@@ -312,7 +312,7 @@ namespace OfficeIMO.PowerPoint {
                     slide.Blocks.Add(new PowerPointLayoutColumn(item.Title, blocks));
                 }
             } else {
-                slide = Content(presentation, title, subtitle, resolved, PowerPointLayoutKind.Cards);
+                slide = Content(presentation, title, subtitle, resolved, PowerPointLayout.Cards);
                 foreach (PowerPointComparisonItem item in values) {
                     slide.Blocks.Add(new PowerPointLayoutCard(item.Title, item.Summary, ComparisonItems(item).Select(i => i.Text)));
                 }
@@ -335,11 +335,11 @@ namespace OfficeIMO.PowerPoint {
             var table = new PowerPointLayoutTable(data.Headers, data.Rows) { Caption = Join(data.Caption, Source(data.Provenance)) };
             PowerPointLayoutSlide slide;
             if (data.Notes.Count > 0) {
-                slide = Content(presentation, title, subtitle, resolved, PowerPointLayoutKind.TwoContent);
+                slide = Content(presentation, title, subtitle, resolved, PowerPointLayout.TwoContent);
                 slide.Blocks.Add(table);
                 slide.Blocks.Add(new PowerPointLayoutList(data.Notes));
             } else {
-                slide = Content(presentation, title, subtitle, resolved, PowerPointLayoutKind.TitleAndContent);
+                slide = Content(presentation, title, subtitle, resolved, PowerPointLayout.TitleAndContent);
                 slide.Blocks.Add(table);
             }
 
@@ -364,10 +364,10 @@ namespace OfficeIMO.PowerPoint {
             PowerPointLayoutSlide slide;
             if (points.Count == 0) {
                 slide = Content(presentation, title, subtitle, resolved,
-                    image.Placement == PowerPointImagePlacement.Fill ? PowerPointLayoutKind.ImageFull : PowerPointLayoutKind.TitleAndContent);
+                    image.Placement == PowerPointImagePlacement.Fill ? PowerPointLayout.ImageFull : PowerPointLayout.TitleAndContent);
                 slide.Blocks.Add(picture);
             } else {
-                slide = Content(presentation, title, subtitle, resolved, PowerPointLayoutKind.TwoContent);
+                slide = Content(presentation, title, subtitle, resolved, PowerPointLayout.TwoContent);
                 slide.Blocks.Add(new PowerPointLayoutList(points));
                 slide.Blocks.Add(picture);
             }
@@ -384,7 +384,7 @@ namespace OfficeIMO.PowerPoint {
             if (string.IsNullOrWhiteSpace(title)) throw new ArgumentException("Title cannot be empty.", nameof(title));
             if (content == null) throw new ArgumentNullException(nameof(content));
             PowerPointArchitectureSlideOptions resolved = options ?? new PowerPointArchitectureSlideOptions();
-            PowerPointLayoutSlide slide = Content(presentation, title, subtitle, resolved, PowerPointLayoutKind.TitleAndContent);
+            PowerPointLayoutSlide slide = Content(presentation, title, subtitle, resolved, PowerPointLayout.TitleAndContent);
             slide.Blocks.Add(new PowerPointLayoutDrawing((target, context, box) => PowerPointLayoutDiagram.Draw(target, context, box, content)));
             return Compose(presentation, slide, theme, title);
         }
@@ -396,7 +396,7 @@ namespace OfficeIMO.PowerPoint {
             if (string.IsNullOrWhiteSpace(title)) throw new ArgumentException("Title cannot be empty.", nameof(title));
             if (content == null) throw new ArgumentNullException(nameof(content));
             PowerPointClosingSlideOptions resolved = options ?? new PowerPointClosingSlideOptions();
-            PowerPointLayoutSlide slide = Content(presentation, title, Join(content.Statement, content.Contact, "\n"), resolved, PowerPointLayoutKind.Closing);
+            PowerPointLayoutSlide slide = Content(presentation, title, Join(content.Statement, content.Contact, "\n"), resolved, PowerPointLayout.Closing);
             slide.Eyebrow = resolved.Eyebrow;
             if (!string.IsNullOrWhiteSpace(content.CallToAction)) slide.Blocks.Add(new PowerPointLayoutList(new[] { content.CallToAction! }));
             return Compose(presentation, slide, theme, title);
@@ -405,10 +405,10 @@ namespace OfficeIMO.PowerPoint {
         // ------------------------------------------------------------------ mapping helpers
 
         private static PowerPointLayoutKpi Kpi(PowerPointMetric metric) =>
-            new(metric.Value, metric.Label, metric.Change, metric.Color);
+            new(metric.Value, metric.Label, metric.Change, PowerPointLayoutBlock.ParseColor(metric.Color));
 
         private static PowerPointLayoutCard Card(PowerPointCardContent card) =>
-            new(card.Title, card.Text, card.Items, card.ImagePath, card.AccentColor);
+            new(card.Title, card.Text, card.Items, card.ImagePath, PowerPointLayoutBlock.ParseColor(card.AccentColor));
 
         private static string? Source(string? provenance) =>
             string.IsNullOrWhiteSpace(provenance) ? null : "Source: " + provenance!.Trim();

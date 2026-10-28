@@ -208,13 +208,18 @@ namespace OfficeIMO.PowerPoint {
             PowerPointFontScript script) {
             string? typeface = sources.Select(source => ResolveTypeface(source, script))
                 .FirstOrDefault(value => !string.IsNullOrWhiteSpace(value));
+            return ResolveThemeFontReference(typeface, run.OwnerPart);
+        }
+
+        /// <summary>Resolves a DrawingML theme reference at its relationship owner; literal family names pass through.</summary>
+        internal static string? ResolveThemeFontReference(string? typeface, OpenXmlPartContainer? ownerPart) {
             if (string.IsNullOrWhiteSpace(typeface)) return null;
             string token = typeface!.Trim().ToLowerInvariant();
             if (token is not ("+mj-lt" or "+mn-lt" or "+mj-ea" or "+mn-ea" or "+mj-cs" or "+mn-cs")) {
                 return typeface;
             }
 
-            foreach (A.FontScheme scheme in EnumerateFontSchemes(run.OwnerPart)) {
+            foreach (A.FontScheme scheme in EnumerateFontSchemes(ownerPart)) {
                 string? resolved = token switch {
                     "+mj-lt" => scheme.MajorFont?.LatinFont?.Typeface?.Value,
                     "+mn-lt" => scheme.MinorFont?.LatinFont?.Typeface?.Value,

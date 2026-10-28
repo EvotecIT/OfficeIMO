@@ -4,21 +4,36 @@ using System.Linq;
 
 namespace OfficeIMO.PowerPoint {
     /// <summary>The designed slide layouts (Build/Visual/powerpoint-layouts.json).</summary>
-    internal enum PowerPointLayoutKind {
+    public enum PowerPointLayout {
+        /// <summary>Choose a layout from content and deck position.</summary>
         Auto,
+        /// <summary>Opening title and metadata.</summary>
         Title,
+        /// <summary>Section divider.</summary>
         Section,
+        /// <summary>Title with one content zone.</summary>
         TitleAndContent,
+        /// <summary>Two content zones.</summary>
         TwoContent,
+        /// <summary>Two titled comparison columns.</summary>
         Comparison,
+        /// <summary>Metric tiles and takeaway.</summary>
         Kpi,
+        /// <summary>Content card grid.</summary>
         Cards,
+        /// <summary>Process steps.</summary>
         Process,
+        /// <summary>Quotation and attribution.</summary>
         Quote,
+        /// <summary>Full-slide image.</summary>
         ImageFull,
+        /// <summary>Closing statement or actions.</summary>
         Closing,
+        /// <summary>Narrative cards and result metrics.</summary>
         CaseStudy,
+        /// <summary>Logo or proof wall.</summary>
         Logos,
+        /// <summary>Location coverage panel.</summary>
         Coverage
     }
 
@@ -31,7 +46,7 @@ namespace OfficeIMO.PowerPoint {
         internal string? Subtitle { get; set; }
         internal string? Eyebrow { get; set; }
         internal string? MapLabel { get; set; }
-        internal PowerPointLayoutKind Layout { get; set; }
+        internal PowerPointLayout Layout { get; set; }
         internal List<PowerPointLayoutBlock> Blocks { get; } = new();
         internal string? Notes { get; set; }
         internal bool NoFooter { get; set; }
@@ -53,6 +68,9 @@ namespace OfficeIMO.PowerPoint {
         internal bool? IsFirst { get; set; }
 
         internal bool? IsLast { get; set; }
+
+        /// <summary>Logical plan position used for layout selection; physical continuations do not change previews.</summary>
+        internal int? SelectionDeckSize { get; set; }
 
         // Continuation state, set by the overflow pass.
         internal string? ContinuedSuffix { get; set; }
@@ -76,6 +94,7 @@ namespace OfficeIMO.PowerPoint {
                 NoSlideNumber = NoSlideNumber,
                 IsFirst = false,
                 IsLast = IsLast,
+                SelectionDeckSize = SelectionDeckSize,
                 TitleSize = TitleSize,
                 ListSize = ListSize,
                 TemplateLayout = TemplateLayout,
@@ -84,178 +103,6 @@ namespace OfficeIMO.PowerPoint {
             copy.Meta.AddRange(Meta);
             return copy;
         }
-    }
-
-    internal abstract class PowerPointLayoutBlock {
-        /// <summary>True for blocks counted by selection (lists, text, tables, charts, images, columns).</summary>
-        internal virtual bool IsContentBlock => true;
-    }
-
-    internal sealed class PowerPointLayoutListItem {
-        internal PowerPointLayoutListItem(string text, int level = 1) {
-            Text = text ?? string.Empty;
-            Level = Math.Max(1, Math.Min(2, level));
-        }
-
-        internal string Text { get; }
-        internal int Level { get; }
-    }
-
-    internal sealed class PowerPointLayoutList : PowerPointLayoutBlock {
-        internal PowerPointLayoutList(IEnumerable<PowerPointLayoutListItem> items, bool numbered = false) {
-            Items = items.ToList();
-            Numbered = numbered;
-        }
-
-        internal PowerPointLayoutList(IEnumerable<string> items, bool numbered = false)
-            : this(items.Where(i => !string.IsNullOrWhiteSpace(i)).Select(i => new PowerPointLayoutListItem(i)), numbered) {
-        }
-
-        internal List<PowerPointLayoutListItem> Items { get; }
-        internal bool Numbered { get; }
-    }
-
-    internal sealed class PowerPointLayoutText : PowerPointLayoutBlock {
-        internal PowerPointLayoutText(IEnumerable<string> paragraphs) {
-            Paragraphs = paragraphs.Where(p => !string.IsNullOrWhiteSpace(p)).ToList();
-        }
-
-        internal PowerPointLayoutText(string paragraph) : this(new[] { paragraph }) {
-        }
-
-        internal List<string> Paragraphs { get; }
-        internal int Length => Paragraphs.Sum(p => p.Length);
-    }
-
-    internal sealed class PowerPointLayoutTable : PowerPointLayoutBlock {
-        internal PowerPointLayoutTable(IReadOnlyList<string> headers, IReadOnlyList<IReadOnlyList<string>> rows) {
-            Headers = headers;
-            Rows = rows;
-        }
-
-        internal IReadOnlyList<string> Headers { get; }
-        internal IReadOnlyList<IReadOnlyList<string>> Rows { get; }
-        internal int? MaxRows { get; set; }
-        internal bool NoSplit { get; set; }
-        internal string? Caption { get; set; }
-
-        internal PowerPointLayoutTable WithRows(IReadOnlyList<IReadOnlyList<string>> rows) =>
-            new(Headers, rows) { MaxRows = MaxRows, NoSplit = NoSplit, Caption = Caption };
-    }
-
-    internal sealed class PowerPointLayoutChart : PowerPointLayoutBlock {
-        internal PowerPointLayoutChart(OfficeChartKind kind, OfficeChartData data) {
-            Kind = kind;
-            Data = data ?? throw new ArgumentNullException(nameof(data));
-        }
-
-        internal OfficeChartKind Kind { get; }
-        internal OfficeChartData Data { get; }
-        internal string? Title { get; set; }
-        internal string? AlternativeText { get; set; }
-    }
-
-    internal sealed class PowerPointLayoutImage : PowerPointLayoutBlock {
-        internal PowerPointLayoutImage(string path, string? alternativeText) {
-            Path = path;
-            AlternativeText = alternativeText;
-        }
-
-        internal string Path { get; }
-        internal string? AlternativeText { get; }
-        internal double FocalX { get; set; } = 0.5D;
-        internal double FocalY { get; set; } = 0.5D;
-        internal bool Contain { get; set; }
-        internal string? Caption { get; set; }
-
-        /// <summary>Numbered markers at fractional positions of the source image.</summary>
-        internal List<(double X, double Y, string Label)> Annotations { get; } = new();
-    }
-
-    internal sealed class PowerPointLayoutColumn : PowerPointLayoutBlock {
-        internal PowerPointLayoutColumn(string? title, IEnumerable<PowerPointLayoutBlock> blocks) {
-            Title = title;
-            Blocks = blocks.ToList();
-        }
-
-        internal string? Title { get; }
-        internal List<PowerPointLayoutBlock> Blocks { get; }
-    }
-
-    internal sealed class PowerPointLayoutQuote : PowerPointLayoutBlock {
-        internal PowerPointLayoutQuote(string text, string? attribution) {
-            Text = text;
-            Attribution = attribution;
-        }
-
-        internal string Text { get; }
-        internal string? Attribution { get; }
-        internal override bool IsContentBlock => false;
-    }
-
-    internal sealed class PowerPointLayoutKpi : PowerPointLayoutBlock {
-        internal PowerPointLayoutKpi(string value, string label, string? change = null, string? color = null) {
-            Value = value;
-            Label = label;
-            Change = change;
-            Color = color;
-        }
-
-        internal string Value { get; }
-        internal string Label { get; }
-        internal string? Change { get; }
-
-        /// <summary>Hex colour or role name (Success, Warning, Danger, Accent1…).</summary>
-        internal string? Color { get; }
-
-        internal override bool IsContentBlock => false;
-    }
-
-    internal sealed class PowerPointLayoutCard : PowerPointLayoutBlock {
-        internal PowerPointLayoutCard(string title, string? text = null, IEnumerable<string>? items = null,
-            string? image = null, string? color = null) {
-            Title = title;
-            Text = text;
-            Items = (items ?? Array.Empty<string>()).Where(i => !string.IsNullOrWhiteSpace(i)).ToList();
-            Image = image;
-            Color = color;
-        }
-
-        internal string Title { get; }
-        internal string? Text { get; }
-        internal List<string> Items { get; }
-        internal string? Image { get; }
-        internal string? Color { get; }
-        internal bool IsLogo => !string.IsNullOrWhiteSpace(Image) && string.IsNullOrWhiteSpace(Text) && Items.Count == 0;
-        internal override bool IsContentBlock => false;
-    }
-
-    internal sealed class PowerPointLayoutStep : PowerPointLayoutBlock {
-        internal PowerPointLayoutStep(string title, string? text = null, string? number = null) {
-            Title = title;
-            Text = text;
-            Number = number;
-        }
-
-        internal string Title { get; }
-        internal string? Text { get; }
-        internal string? Number { get; }
-        internal override bool IsContentBlock => false;
-    }
-
-    internal sealed class PowerPointLayoutLocation : PowerPointLayoutBlock {
-        internal PowerPointLayoutLocation(string name, double left, double top, string? detail = null) {
-            Name = name;
-            Left = Math.Max(0D, Math.Min(1D, left));
-            Top = Math.Max(0D, Math.Min(1D, top));
-            Detail = detail;
-        }
-
-        internal string Name { get; }
-        internal double Left { get; }
-        internal double Top { get; }
-        internal string? Detail { get; }
-        internal override bool IsContentBlock => false;
     }
 
     /// <summary>A free-form drawing hosted inside a designed slide's content zone (architecture diagrams, custom composition).</summary>

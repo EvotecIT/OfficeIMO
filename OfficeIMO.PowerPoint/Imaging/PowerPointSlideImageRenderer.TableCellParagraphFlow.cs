@@ -183,7 +183,8 @@ namespace OfficeIMO.PowerPoint {
                 PowerPointEffectiveRunStyle effective = PowerPointEffectiveRunStyleResolver.ResolveParagraph(
                     paragraph, cell.Cell.TextBody?.ListStyle,
                     cell.SlidePart?.SlideLayoutPart?.SlideMasterPart?.SlideMaster?.TextStyles?.OtherStyle);
-                return new OfficeFontInfo(effective.FontName ?? cell.FontName ?? "Calibri",
+                return new OfficeFontInfo(effective.FontName ?? PowerPointEffectiveRunStyleResolver.ResolveThemeFontReference(
+                        cell.FontName, cell.OwnerPart) ?? "Calibri",
                     mapping.MapFontSize(effective.FontSizePoints ?? cell.FontSize ?? 10),
                     ResolveEffectiveFontStyle(effective, cell.Bold, cell.Italic));
             }
@@ -206,7 +207,9 @@ namespace OfficeIMO.PowerPoint {
                 style |= OfficeFontStyle.Strikethrough;
             }
 
-            return new OfficeFontInfo(firstRun?.FontName ?? cell.FontName ?? "Calibri", mapping.MapFontSize(firstRun?.FontSize ?? cell.FontSize ?? 10), style);
+            return new OfficeFontInfo(PowerPointEffectiveRunStyleResolver.ResolveThemeFontReference(
+                firstRun?.FontName ?? cell.FontName, firstRun?.OwnerPart ?? cell.OwnerPart) ?? "Calibri",
+                mapping.MapFontSize(firstRun?.FontSize ?? cell.FontSize ?? 10), style);
         }
 
         private static OfficeColor ResolveTableCellParagraphTextColor(PowerPointTableCell cell, PowerPointParagraph paragraph, A.ColorScheme? colorScheme) {
