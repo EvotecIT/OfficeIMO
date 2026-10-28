@@ -263,11 +263,11 @@ SVG non-interpolated images are embedded rasters with sampling hints instead of 
 
 ## PowerPoint PDF and slide images
 
-PowerPoint PDF and PNG/JPEG/SVG exports share one slide layout. Existing `ToPng`, `ToJpeg`, `ToSvg`, `ExportImage`, `ExportImages`, and fluent builders keep their signatures. The core `OfficeIMO.PowerPoint` package now owns forward PDF conversion and references `OfficeIMO.Pdf`; the `OfficeIMO.PowerPoint.Pdf` namespace is unchanged. Rebuild applications that used the converter types from the former adapter assembly.
+PowerPoint image export stays in `OfficeIMO.PowerPoint`; forward PDF conversion lives in `OfficeIMO.PowerPoint.Pdf`. Replace `ToPng`, `ToJpeg`, `ToSvg` and the image builders with `slide.ToImage(options)`, setting `options.Format`. `SaveAsImage(pathOrStream, options)` and `SaveAsImages(folder, options)` return `OfficeConversionReport`; async in-memory rendering returns `OfficeConversionResult<byte[]>`. Batch slide numbers and hidden-slide selection belong in `PowerPointDocumentImageExportOptions`.
 
 `AddTextBox` creates an ordinary text shape. Set `PlaceholderType` and `PlaceholderIndex` explicitly when creating a template placeholder. Ordinary text shapes on slide layouts remain visible inherited content; structural placeholder prompts supply styles and geometry.
 
-`PowerPointImageExportOptions.LayoutOptions` supplies the shared `PowerPointPdfExportOptions`, including font policy. Image diagnostics now include the PDF conversion and rendering diagnostics. Code that filters the former image-only diagnostic codes should use the canonical codes, such as `text-box-overflow` and `small-caps-approximation`. `CreateVisualSnapshot().Drawing` contains the PDF page scene, including glyph paths; use the snapshot's `TextSpans` for text and geometry instead of assuming `OfficeDrawingText` or `OfficeDrawingRichText` elements.
+Image options carry font settings and fidelity diagnostics use the shared catalog. `CreateVisualSnapshot().TextSpans` exposes text and geometry. PDF options remain on the PDF adapter.
 
 PowerPoint page-image batches retain zero-based `SequenceIndex` and the selected batch's `SequenceCount`, alongside the original slide identity. Snapshot creation enforces `RenderTimeout` through the shared image-export deadline and reports `OfficeImageExportTimeoutException`.
 
@@ -3760,7 +3760,7 @@ The common conversion grammar is:
 | Report a general reverse conversion | `Pdf{Target}ConversionResult` | `PdfPowerPointConversionResult` |
 | Report narrow table recovery | `Pdf{Target}TableImportResult` | `PdfExcelTableImportResult` |
 
-Target names use .NET casing: `Pdf`, `Html`, `Rtf`, `Odt`, `Ods`, `Odp`, and `PowerPoint`. Image export follows the same result-versus-write distinction: `ToImage()` opens the fluent builder, `ExportImage()` returns one structured render result, `SaveAsPng(...)` and `SaveAsJpeg(...)` write explicit encodings, and `SaveAsImages(...)` writes a page, slide, or sheet set. The public surface does not use ambiguous `SaveImage` or singular `SaveAsImage` names.
+Target names use .NET casing: `Pdf`, `Html`, `Rtf`, `Odt`, `Ods`, `Odp`, and `PowerPoint`. Word and PowerPoint image export follows the same conversion grammar: `ToImage(options)` returns bytes, `SaveAsImage(pathOrStream, options)` saves one image, and `SaveAsImages(folder, options)` saves selected pages or slides. Encoding belongs in options, and saves return the unified conversion report.
 
 The reverse-route boundaries are:
 

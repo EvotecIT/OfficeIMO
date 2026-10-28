@@ -28,39 +28,6 @@ namespace OfficeIMO.PowerPoint {
             PowerPointPageImageExport.RenderPages(this, format, resolved, consumer, cancellationToken);
         }
 
-        /// <summary>
-        /// Saves visible presentation slides as PNG files in a folder.
-        /// </summary>
-        public IReadOnlyList<OfficeImageExportResult> SaveAsImages(string folderPath, PowerPointDocumentImageExportOptions? options = null) =>
-            CreateImageExportBatchOperation(options, OfficeImageExportFormat.Png).Save(folderPath);
-
-        /// <summary>
-        /// Saves visible presentation slides as image files in a folder.
-        /// </summary>
-        public IReadOnlyList<OfficeImageExportResult> SaveAsImages(string folderPath, OfficeImageExportFormat format, PowerPointDocumentImageExportOptions? options = null) {
-            return CreateImageExportBatchOperation(options, format).Save(folderPath);
-        }
-
-        /// <summary>
-        /// Asynchronously saves visible presentation slides as PNG files in a folder.
-        /// </summary>
-        public Task<IReadOnlyList<OfficeImageExportResult>> SaveAsImagesAsync(
-            string folderPath,
-            PowerPointDocumentImageExportOptions? options = null,
-            CancellationToken cancellationToken = default) =>
-            CreateImageExportBatchOperation(options, OfficeImageExportFormat.Png).SaveAsync(folderPath, cancellationToken);
-
-        /// <summary>
-        /// Asynchronously saves visible presentation slides as image files in a folder.
-        /// </summary>
-        public Task<IReadOnlyList<OfficeImageExportResult>> SaveAsImagesAsync(
-            string folderPath,
-            OfficeImageExportFormat format,
-            PowerPointDocumentImageExportOptions? options = null,
-            CancellationToken cancellationToken = default) {
-            return CreateImageExportBatchOperation(options, format).SaveAsync(folderPath, cancellationToken);
-        }
-
         private static PowerPointDocumentImageExportOptions NormalizeDocumentImageExportOptions(PowerPointDocumentImageExportOptions? options) {
             PowerPointDocumentImageExportOptions resolved = options?.CloneDocument() ?? new PowerPointDocumentImageExportOptions();
             resolved.Validate();

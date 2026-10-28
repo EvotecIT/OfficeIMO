@@ -99,6 +99,7 @@
 
     <ItemGroup>
         <InternalsVisibleTo Include="OfficeIMO.PowerPoint.Tests" />
+        <InternalsVisibleTo Include="PSWriteOffice" />
         <InternalsVisibleTo Include="OfficeIMO.Pdf.Tests" />
         <InternalsVisibleTo Include="OfficeIMO.Html.Tests" />
         <InternalsVisibleTo Include="OfficeIMO.PowerPoint.Pdf" />

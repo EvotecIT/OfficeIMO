@@ -9056,11 +9056,11 @@
       "category": "authoring",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Image builders and encoding twins are removed. Options select encoding, content, sizing and slide numbers; single bytes/out-report/async-result and single/batch report saves use shared internal execution."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlide.ToImage(PowerPointImageExportOptions options)",
@@ -9073,11 +9073,11 @@
       "category": "authoring",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Image builders and encoding twins are removed. Options select encoding, content, sizing and slide numbers; single bytes/out-report/async-result and single/batch report saves use shared internal execution."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlide.ToPng(PowerPointImageExportOptions options = null)",
@@ -9089,8 +9089,8 @@
       "category": "conversion",
       "notes": "Image export stays in the format package (design). Five format-named twins per form; the format belongs in the options or is inferred from the path extension. Proposal, confirm in review.",
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The image export consolidation shares ToImage signatures with the current image builders. It is applied together with builder removal in Phase B; the existing rendering kernels and format-specific authoring geometry remain available for that migration."
+      "applied": "phase-b-applied",
+      "note": "Image builders and encoding twins are removed. Options select encoding, content, sizing and slide numbers; single bytes/out-report/async-result and single/batch report saves use shared internal execution."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlide.ToSvg(PowerPointImageExportOptions options = null)",
@@ -9102,8 +9102,8 @@
       "category": "conversion",
       "notes": "Image export stays in the format package (design). Five format-named twins per form; the format belongs in the options or is inferred from the path extension. Proposal, confirm in review.",
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The image export consolidation shares ToImage signatures with the current image builders. It is applied together with builder removal in Phase B; the existing rendering kernels and format-specific authoring geometry remain available for that migration."
+      "applied": "phase-b-applied",
+      "note": "Image builders and encoding twins are removed. Options select encoding, content, sizing and slide numbers; single bytes/out-report/async-result and single/batch report saves use shared internal execution."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlide.SaveAsPng(string path, PowerPointImageExportOptions options = null)",
@@ -9219,8 +9219,8 @@
       "category": "conversion",
       "notes": "Image export stays in the format package (design). Five format-named twins per form; the format belongs in the options or is inferred from the path extension. Proposal, confirm in review.",
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The image export consolidation shares ToImage signatures with the current image builders. It is applied together with builder removal in Phase B; the existing rendering kernels and format-specific authoring geometry remain available for that migration."
+      "applied": "phase-b-applied",
+      "note": "Image builders and encoding twins are removed. Options select encoding, content, sizing and slide numbers; single bytes/out-report/async-result and single/batch report saves use shared internal execution."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlide.ToTiff(PowerPointImageExportOptions options = null)",
@@ -9232,8 +9232,8 @@
       "category": "conversion",
       "notes": "Image export stays in the format package (design). Five format-named twins per form; the format belongs in the options or is inferred from the path extension. Proposal, confirm in review.",
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The image export consolidation shares ToImage signatures with the current image builders. It is applied together with builder removal in Phase B; the existing rendering kernels and format-specific authoring geometry remain available for that migration."
+      "applied": "phase-b-applied",
+      "note": "Image builders and encoding twins are removed. Options select encoding, content, sizing and slide numbers; single bytes/out-report/async-result and single/batch report saves use shared internal execution."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlide.ToWebp(PowerPointImageExportOptions options = null)",
@@ -9245,8 +9245,8 @@
       "category": "conversion",
       "notes": "Image export stays in the format package (design). Five format-named twins per form; the format belongs in the options or is inferred from the path extension. Proposal, confirm in review.",
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The image export consolidation shares ToImage signatures with the current image builders. It is applied together with builder removal in Phase B; the existing rendering kernels and format-specific authoring geometry remain available for that migration."
+      "applied": "phase-b-applied",
+      "note": "Image builders and encoding twins are removed. Options select encoding, content, sizing and slide numbers; single bytes/out-report/async-result and single/batch report saves use shared internal execution."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlide.SaveAsJpeg(string path, PowerPointImageExportOptions options = null)",
@@ -9415,11 +9415,11 @@
       "category": "authoring",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Image builders and encoding twins are removed. Options select encoding, content, sizing and slide numbers; single bytes/out-report/async-result and single/batch report saves use shared internal execution."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointPresentation.ToImages(PowerPointPresentationImageExportOptions options)",
@@ -9432,11 +9432,11 @@
       "category": "authoring",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The image export consolidation shares ToImage signatures with the current image builders. It is applied together with builder removal in Phase B; the existing rendering kernels and format-specific authoring geometry remain available for that migration."
+      "applied": "phase-b-applied",
+      "note": "Image builders and encoding twins are removed. Options select encoding, content, sizing and slide numbers; single bytes/out-report/async-result and single/batch report saves use shared internal execution."
     },
     {
       "old": "OfficeIMO.PowerPoint.LegacyPpt.LegacyPptImportReport",
@@ -9853,6 +9853,33 @@
         "OfficeIMO.Html.Tests/Html.OfficeAdapters.PowerPointTables.cs",
         "OfficeIMO.Html.Tests/Html.OfficeAdapters.PowerPointGenericPagination.cs"
       ]
+    },
+    {
+      "old": "PowerPoint slide format-named image save methods and document SaveAsImages encoding overloads",
+      "new": "PowerPointSlide.SaveAsImage(path|stream, options, cancellationToken), SaveAsImageAsync; PowerPointDocument.SaveAsImages(folder, options, cancellationToken), SaveAsImagesAsync",
+      "action": "merge",
+      "applied": "phase-b-applied",
+      "phase": "B",
+      "reason": "Encoding and file conflicts belong in options. Saves return OfficeConversionReport and release batch payloads; async in-memory rendering returns OfficeConversionResult<byte[]>.",
+      "file": "OfficeIMO.PowerPoint/Imaging/PowerPointSlide.Imaging.Conversion.cs"
+    },
+    {
+      "old": "PowerPointDocumentImageExportBuilder.ForSlides/ForSlideRange and content filters",
+      "new": "PowerPointDocumentImageExportOptions.SlideNumbers/IncludeHiddenSlides and inherited content/size/font options",
+      "action": "merge",
+      "applied": "phase-b-applied",
+      "phase": "B",
+      "reason": "Preserve selected-slide document order and deduplication through options; the shared batch executor retains cancellation, budgets, filenames and progress.",
+      "file": "OfficeIMO.PowerPoint/Imaging/PowerPointDocument.Imaging.Conversion.cs"
+    },
+    {
+      "old": "ExportOfficePowerPointImageCommand presentation.SaveAsImages result list",
+      "new": "Internal PowerPointDocument.SaveImageResults with PSWriteOffice friend access",
+      "action": "internalize",
+      "applied": "phase-b-applied",
+      "phase": "B",
+      "reason": "Keep existing cmdlet PassThru metadata and behavior while public saves return the unified report. No cmdlet or alias redesign.",
+      "file": "PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/PowerPoint/ExportOfficePowerPointImageCommand.cs"
     }
   ],
   "applicationStatus": "Phase A applied and validated on the supported macOS targets. Phase B and Tier 2 entries retain their status; Windows .NET Framework validation remains pending.",

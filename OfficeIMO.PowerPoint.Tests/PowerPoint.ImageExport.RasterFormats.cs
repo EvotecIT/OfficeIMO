@@ -24,7 +24,7 @@ namespace OfficeIMO.Tests {
 
             Assert.Equal(nameof(OfficeImageExportOptions.MaximumTotalEncodedBytes), exception.LimitName);
             Assert.Throws<OperationCanceledException>(() =>
-                slide.ToImage().AsPng().Export(new System.Threading.CancellationToken(canceled: true)));
+                slide.ToImage(cancellationToken: new System.Threading.CancellationToken(canceled: true)));
         }
 
         [Theory]
@@ -59,7 +59,7 @@ namespace OfficeIMO.Tests {
             presentation.AddSlide().BackgroundColor = "123456";
             string folder = Path.Combine(Path.GetTempPath(), "OfficeIMO-" + System.Guid.NewGuid().ToString("N"));
             try {
-                presentation.SaveAsImages(folder, OfficeImageExportFormat.Webp);
+                presentation.SaveAsImages(folder, new PowerPointDocumentImageExportOptions { Format = OfficeImageExportFormat.Webp });
 
                 Assert.True(File.Exists(Path.Combine(folder, "Slide 1.webp")));
             } finally {

@@ -129,7 +129,7 @@ public sealed class PowerPointChartPointStylesTests {
         using PowerPointDocument presentation = PowerPointDocument.Create();
         presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(640),OfficeIMO.OfficeLength.Points(360));
         presentation.AddSlide().AddChartPoints(kind, Data(kind, new[] { null, null, hatch }), 20, 20, 600, 320);
-        Assert.True(OfficePngReader.TryDecode(presentation.Slides.Single().ToPng(), out OfficeRasterImage? raster));
+        Assert.True(OfficePngReader.TryDecode(presentation.Slides.Single().ToImage(), out OfficeRasterImage? raster));
         int hatchPixels = 0;
         for (int y = 0; y < raster!.Height; y++)
             for (int x = 0; x < raster.Width; x++)

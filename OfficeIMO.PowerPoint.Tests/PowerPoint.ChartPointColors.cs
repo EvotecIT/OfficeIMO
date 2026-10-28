@@ -320,7 +320,7 @@ namespace OfficeIMO.Tests {
             authored.AddSlide().AddChartPoints(kind, CreateData(kind, Colors), 20, 20, 600, 320);
             using var bytes = new MemoryStream(authored.ToBytes());
             using PowerPointDocument reopened = PowerPointDocument.Load(bytes);
-            AssertColorPixels(reopened.Slides.Single().ToPng(), Colors[0]!.Value, Colors[2]!.Value);
+            AssertColorPixels(reopened.Slides.Single().ToImage(), Colors[0]!.Value, Colors[2]!.Value);
             var options = new PowerPointPdfExportOptions();
             byte[] pdf = reopened.ToPdf(options).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
             Assert.DoesNotContain(options.Warnings, warning => warning.Code == "unsupported-chart");

@@ -96,12 +96,10 @@ public sealed class ImageExportProviderVisualBaselineTests {
                 PowerPointUnits.FromPoints(150),
                 PowerPointUnits.FromPoints(50));
         }
-        return slide.ToImage()
-            .WithFont(PortableFontFamily, PortableRegularFont.Value)
-            .WithFont(PortableFontFamily, PortableBoldFont.Value, OfficeFontStyle.Bold)
-            .AsPng()
-            .Export()
-            .Bytes;
+        var options = new PowerPointImageExportOptions();
+        options.Fonts.Add(PortableFontFamily, PortableRegularFont.Value);
+        options.Fonts.Add(PortableFontFamily, PortableBoldFont.Value, OfficeFontStyle.Bold);
+        return slide.ToImage(options);
     }
 
     private static byte[] CreateVisualBadge() {

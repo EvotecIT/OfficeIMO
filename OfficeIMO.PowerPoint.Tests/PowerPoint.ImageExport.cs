@@ -79,26 +79,26 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void PowerPointSlide_ToImageFluentSavesSvgThroughSharedBuilder() {
+        public void PowerPointSlide_SaveAsImageUsesEncodingAndContentOptions() {
             using var stream = new MemoryStream();
             using PowerPointDocument presentation = PowerPointDocument.Create(stream);
             presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(240),OfficeIMO.OfficeLength.Points(160));
             PowerPointSlide slide = presentation.AddSlide();
             slide.BackgroundColor = "112233";
-            slide.AddTextBoxPoints("Hidden by fluent content toggle", 20, 20, 140, 24);
+            slide.AddTextBoxPoints("Hidden by content option", 20, 20, 140, 24);
 
             using var output = new MemoryStream();
-            OfficeImageExportResult result = slide.ToImage()
-                .As(OfficeImageExportFormat.Svg)
-                .WithoutContent()
-                .Save(output);
+            OfficeConversionReport result = slide.SaveAsImage(output, new PowerPointImageExportOptions {
+                Format = OfficeImageExportFormat.Svg, IncludeSlideContent = false
+            });
 
-            Assert.Equal(OfficeImageExportFormat.Svg, result.Format);
-            Assert.Equal(result.Bytes.Length, output.Length);
+            Assert.Equal("Svg", result.Target);
+            Assert.True(output.Length > 0);
+            Assert.True(output.CanWrite);
             string svgText = Encoding.UTF8.GetString(output.ToArray());
             Assert.Contains("#112233", svgText, StringComparison.OrdinalIgnoreCase);
-            Assert.DoesNotContain("Hidden by fluent content toggle", svgText, StringComparison.Ordinal);
-            AssertNoUnexpectedDiagnostics(result.Diagnostics);
+            Assert.DoesNotContain("Hidden by content option", svgText, StringComparison.Ordinal);
+            Assert.False(result.HasLoss);
         }
 
         [Fact]
@@ -109,14 +109,10 @@ namespace OfficeIMO.Tests {
             PowerPointSlide slide = presentation.AddSlide();
             slide.BackgroundColor = "112233";
 
-            byte[] png = slide.ToImage()
-                .WithoutContent()
-                .AsPng()
-                .ToBytes();
-            string svg = Encoding.UTF8.GetString(slide.ToImage()
-                .WithoutContent()
-                .AsSvg()
-                .ToBytes());
+            byte[] png = slide.ToImage(new PowerPointImageExportOptions { IncludeSlideContent = false });
+            string svg = Encoding.UTF8.GetString(slide.ToImage(new PowerPointImageExportOptions {
+                    Format = OfficeImageExportFormat.Svg, IncludeSlideContent = false
+                }));
 
             Assert.Equal(new byte[] { 0x89, 0x50, 0x4E, 0x47 }, png.Take(4).ToArray());
             Assert.Contains("<svg", svg, StringComparison.Ordinal);
@@ -131,42 +127,38 @@ namespace OfficeIMO.Tests {
             PowerPointSlide slide = presentation.AddSlide();
             slide.BackgroundColor = "112233";
 
-            OfficeImageExportResult png = slide.ToImage()
-                .WithScale(4D)
-                .FitWithin(300, 300)
-                .IncludePictures(false)
-                .IncludeCharts(false)
-                .AsPng()
-                .Export();
-            OfficeImageExportResult svg = slide.ToImage()
-                .WithScale(4D)
-                .FitWithin(300, 300)
-                .ConfigureOptions(options => options.IncludeHiddenShapes = false)
-                .AsSvg()
-                .Export();
+            byte[] png = slide.ToImage(new PowerPointImageExportOptions {
+                Scale = 4D, MaximumOutputWidth = 300, MaximumOutputHeight = 300,
+                IncludePictures = false, IncludeCharts = false
+            });
+            byte[] svg = slide.ToImage(new PowerPointImageExportOptions {
+                Format = OfficeImageExportFormat.Svg, Scale = 4D,
+                MaximumOutputWidth = 300, MaximumOutputHeight = 300, IncludeHiddenShapes = false
+            });
 
-            Assert.Equal((300, 200), (png.Width, png.Height));
-            Assert.Equal((png.Width, png.Height), (svg.Width, svg.Height));
+            Assert.True(OfficePngReader.TryDecode(png, out OfficeRasterImage? raster));
+            Assert.Equal((300, 200), (raster!.Width, raster.Height));
+            Assert.Contains("width=\"300px\"", Encoding.UTF8.GetString(svg), StringComparison.Ordinal);
+            Assert.Contains("height=\"200px\"", Encoding.UTF8.GetString(svg), StringComparison.Ordinal);
         }
 
         [Theory]
         [InlineData(0)]
         [InlineData(-1)]
-        public void PowerPointSlide_GroupDepthFluentAcceptsZeroAndUnlimitedDepth(int maximumDepth) {
+        public void PowerPointSlide_GroupDepthOptionsAcceptZeroAndUnlimitedDepth(int maximumDepth) {
             using var stream = new MemoryStream();
             using PowerPointDocument presentation = PowerPointDocument.Create(stream);
             PowerPointSlide slide = presentation.AddSlide();
 
-            OfficeImageExportResult result = slide.ToImage()
-                .WithMaximumGroupDepth(maximumDepth)
-                .AsSvg()
-                .Export();
+            byte[] result = slide.ToImage(new PowerPointImageExportOptions {
+                Format = OfficeImageExportFormat.Svg, MaxGroupShapeDepth = maximumDepth
+            });
 
-            Assert.Equal(OfficeImageExportFormat.Svg, result.Format);
+            Assert.Contains("<svg", Encoding.UTF8.GetString(result), StringComparison.Ordinal);
         }
 
         [Fact]
-        public void PowerPointDocument_ToImagesFluentSavesVisibleSlidesAndCanIncludeHiddenSlides() {
+        public void PowerPointDocument_SaveAsImagesIncludesHiddenSlidesOnRequest() {
             using var stream = new MemoryStream();
             using PowerPointDocument presentation = PowerPointDocument.Create(stream);
             presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(180),OfficeIMO.OfficeLength.Points(100));
@@ -180,12 +172,10 @@ namespace OfficeIMO.Tests {
 
             string folder = Path.Combine(Path.GetTempPath(), "officeimo-ppt-images-" + Guid.NewGuid().ToString("N"));
             try {
-                IReadOnlyList<OfficeImageExportResult> visibleResults = presentation.ToImages()
-                    .AsSvg()
-                    .Save(folder);
+                OfficeConversionReport visibleResults = presentation.SaveAsImages(folder,
+                    new PowerPointDocumentImageExportOptions { Format = OfficeImageExportFormat.Svg });
 
-                Assert.Single(visibleResults);
-                Assert.Equal("Slide 1", visibleResults[0].Name);
+                Assert.Equal(1, visibleResults.ItemsWritten);
                 string visiblePath = Path.Combine(folder, "Slide 1.svg");
                 Assert.True(File.Exists(visiblePath));
                 string visibleSvg = File.ReadAllText(visiblePath);
@@ -194,13 +184,10 @@ namespace OfficeIMO.Tests {
                 Assert.False(File.Exists(Path.Combine(folder, "Slide 2.svg")));
 
                 string allFolder = Path.Combine(folder, "all");
-                IReadOnlyList<OfficeImageExportResult> allResults = presentation.ToImages()
-                    .IncludeHiddenSlides()
-                    .AsSvg()
-                    .Save(allFolder);
+                OfficeConversionReport allResults = presentation.SaveAsImages(allFolder,
+                    new PowerPointDocumentImageExportOptions { Format = OfficeImageExportFormat.Svg, IncludeHiddenSlides = true });
 
-                Assert.Equal(2, allResults.Count);
-                Assert.Equal("Slide 2", allResults[1].Name);
+                Assert.Equal(2, allResults.ItemsWritten);
                 string hiddenPath = Path.Combine(allFolder, "Slide 2.svg");
                 Assert.True(File.Exists(hiddenPath));
                 Assert.Contains("#445566", File.ReadAllText(hiddenPath), StringComparison.OrdinalIgnoreCase);
@@ -212,7 +199,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void PowerPointDocument_ToImagesFluentSelectsSlidesAndRangesThroughSharedBatchBuilder() {
+        public void PowerPointDocument_SaveAsImagesSelectsSlidesInDocumentOrder() {
             using var stream = new MemoryStream();
             using PowerPointDocument presentation = PowerPointDocument.Create(stream);
             presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(180),OfficeIMO.OfficeLength.Points(100));
@@ -232,14 +219,10 @@ namespace OfficeIMO.Tests {
 
             string folder = Path.Combine(Path.GetTempPath(), "officeimo-ppt-filtered-images-" + Guid.NewGuid().ToString("N"));
             try {
-                IReadOnlyList<OfficeImageExportResult> selectedResults = presentation.ToImages()
-                    .ForSlides(3, 1, 3)
-                    .AsSvg()
-                    .Save(folder);
+                OfficeConversionReport selectedResults = presentation.SaveAsImages(folder,
+                    new PowerPointDocumentImageExportOptions { Format = OfficeImageExportFormat.Svg, SlideNumbers = new[] { 3, 1, 3 } });
 
-                Assert.Equal(2, selectedResults.Count);
-                Assert.Equal("Slide 1", selectedResults[0].Name);
-                Assert.Equal("Slide 3", selectedResults[1].Name);
+                Assert.Equal(2, selectedResults.ItemsWritten);
                 Assert.True(File.Exists(Path.Combine(folder, "Slide 1.svg")));
                 Assert.False(File.Exists(Path.Combine(folder, "Slide 2.svg")));
                 Assert.True(File.Exists(Path.Combine(folder, "Slide 3.svg")));
@@ -247,15 +230,10 @@ namespace OfficeIMO.Tests {
                 Assert.Contains("#778899", File.ReadAllText(Path.Combine(folder, "Slide 3.svg")), StringComparison.OrdinalIgnoreCase);
 
                 string rangeFolder = Path.Combine(folder, "range");
-                IReadOnlyList<OfficeImageExportResult> rangeResults = presentation.ToImages()
-                    .ForSlideRange(2, 3)
-                    .IncludeHiddenSlides()
-                    .AsSvg()
-                    .Save(rangeFolder);
+                OfficeConversionReport rangeResults = presentation.SaveAsImages(rangeFolder,
+                    new PowerPointDocumentImageExportOptions { Format = OfficeImageExportFormat.Svg, SlideNumbers = new[] { 2, 3 }, IncludeHiddenSlides = true });
 
-                Assert.Equal(2, rangeResults.Count);
-                Assert.Equal("Slide 2", rangeResults[0].Name);
-                Assert.Equal("Slide 3", rangeResults[1].Name);
+                Assert.Equal(2, rangeResults.ItemsWritten);
                 Assert.Contains("#445566", File.ReadAllText(Path.Combine(rangeFolder, "Slide 2.svg")), StringComparison.OrdinalIgnoreCase);
             } finally {
                 if (Directory.Exists(folder)) {
@@ -698,8 +676,6 @@ namespace OfficeIMO.Tests {
                 presentation.ExportImages(OfficeImageExportFormat.Png, new PowerPointDocumentImageExportOptions { SlideNumbers = new[] { 0 } }));
             Assert.Throws<ArgumentOutOfRangeException>(() =>
                 presentation.ExportImages(OfficeImageExportFormat.Png, new PowerPointDocumentImageExportOptions { SlideNumbers = new[] { 2 } }));
-            Assert.Throws<ArgumentOutOfRangeException>(() => presentation.ToImages().ForSlides(0));
-            Assert.Throws<ArgumentOutOfRangeException>(() => presentation.ToImages().ForSlideRange(2, 1));
         }
 
         [Fact]

@@ -50,7 +50,7 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
                     target.BackgroundColorHex = null;
                     target.BackgroundImage = null;
                     if (materializeRasterImages) {
-                        byte[] bytes = source.ToPng(new PowerPointImageExportOptions { IncludeSlideBackground = true, IncludeHiddenShapes = false });
+                        byte[] bytes = source.ToImage(new PowerPointImageExportOptions { IncludeSlideBackground = true, IncludeHiddenShapes = false });
                         target.Add(new GoogleSlidesImage(ObjectId("render", slideIndex, 0), 0, 0, batch.WidthPoints, batch.HeightPoints, bytes, "image/png", $"slide-{slideIndex + 1}.png"));
                     }
                     plan.RasterizedSlideCount++;

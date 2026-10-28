@@ -2361,10 +2361,8 @@ OfficeIMO.PowerPoint.PowerPointDocument.Save(OfficeIMO.PowerPoint.PowerPointSave
 OfficeIMO.PowerPoint.PowerPointDocument.Save(System.IO.Stream! destination, OfficeIMO.PowerPoint.PowerPointSaveOptions? options = null) -> void
 OfficeIMO.PowerPoint.PowerPointDocument.Save(string! filePath) -> void
 OfficeIMO.PowerPoint.PowerPointDocument.Save(string! filePath, OfficeIMO.PowerPoint.PowerPointSaveOptions? options) -> void
-OfficeIMO.PowerPoint.PowerPointDocument.SaveAsImages(string! folderPath, OfficeIMO.Drawing.OfficeImageExportFormat format, OfficeIMO.PowerPoint.PowerPointDocumentImageExportOptions? options = null) -> System.Collections.Generic.IReadOnlyList<OfficeIMO.Drawing.OfficeImageExportResult!>!
-OfficeIMO.PowerPoint.PowerPointDocument.SaveAsImages(string! folderPath, OfficeIMO.PowerPoint.PowerPointDocumentImageExportOptions? options = null) -> System.Collections.Generic.IReadOnlyList<OfficeIMO.Drawing.OfficeImageExportResult!>!
-OfficeIMO.PowerPoint.PowerPointDocument.SaveAsImagesAsync(string! folderPath, OfficeIMO.Drawing.OfficeImageExportFormat format, OfficeIMO.PowerPoint.PowerPointDocumentImageExportOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<OfficeIMO.Drawing.OfficeImageExportResult!>!>!
-OfficeIMO.PowerPoint.PowerPointDocument.SaveAsImagesAsync(string! folderPath, OfficeIMO.PowerPoint.PowerPointDocumentImageExportOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<OfficeIMO.Drawing.OfficeImageExportResult!>!>!
+OfficeIMO.PowerPoint.PowerPointDocument.SaveAsImages(string! folderPath, OfficeIMO.PowerPoint.PowerPointDocumentImageExportOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> OfficeIMO.OfficeConversionReport!
+OfficeIMO.PowerPoint.PowerPointDocument.SaveAsImagesAsync(string! folderPath, OfficeIMO.PowerPoint.PowerPointDocumentImageExportOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<OfficeIMO.OfficeConversionReport!>!
 OfficeIMO.PowerPoint.PowerPointDocument.SaveAsync(OfficeIMO.PowerPoint.PowerPointSaveOptions! options, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
 OfficeIMO.PowerPoint.PowerPointDocument.SaveAsync(System.IO.Stream! destination, OfficeIMO.PowerPoint.PowerPointSaveOptions? options, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
 OfficeIMO.PowerPoint.PowerPointDocument.SaveAsync(System.IO.Stream! destination, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task!
@@ -2409,28 +2407,8 @@ OfficeIMO.PowerPoint.PowerPointDocument.TableStyles.get -> System.Collections.Ge
 OfficeIMO.PowerPoint.PowerPointDocument.ThemeName.get -> string!
 OfficeIMO.PowerPoint.PowerPointDocument.ThemeName.set -> void
 OfficeIMO.PowerPoint.PowerPointDocument.ToBytes(OfficeIMO.PowerPoint.PowerPointSaveOptions? options = null) -> byte[]!
-OfficeIMO.PowerPoint.PowerPointDocument.ToImages() -> OfficeIMO.PowerPoint.PowerPointDocumentImageExportBuilder!
-OfficeIMO.PowerPoint.PowerPointDocument.ToImages(OfficeIMO.PowerPoint.PowerPointDocumentImageExportOptions! options) -> OfficeIMO.PowerPoint.PowerPointDocumentImageExportBuilder!
 OfficeIMO.PowerPoint.PowerPointDocument.TryGetCompatibilitySourcePayload(out OfficeIMO.OfficeCompatibilitySourcePayload? payload, out string? error) -> bool
 OfficeIMO.PowerPoint.PowerPointDocument.ValidateDocument(OfficeIMO.OfficeOpenXmlFileFormatVersion fileFormatVersion = OfficeIMO.OfficeOpenXmlFileFormatVersion.Microsoft365) -> System.Collections.Generic.List<OfficeIMO.OfficeOpenXmlValidationError!>!
-OfficeIMO.PowerPoint.PowerPointDocumentImageExportBuilder
-OfficeIMO.PowerPoint.PowerPointDocumentImageExportBuilder.ForSlideRange(int firstSlideNumber, int lastSlideNumber) -> OfficeIMO.PowerPoint.PowerPointDocumentImageExportBuilder!
-OfficeIMO.PowerPoint.PowerPointDocumentImageExportBuilder.ForSlides(System.Collections.Generic.IEnumerable<int>! slideNumbers) -> OfficeIMO.PowerPoint.PowerPointDocumentImageExportBuilder!
-OfficeIMO.PowerPoint.PowerPointDocumentImageExportBuilder.ForSlides(params int[]! slideNumbers) -> OfficeIMO.PowerPoint.PowerPointDocumentImageExportBuilder!
-OfficeIMO.PowerPoint.PowerPointDocumentImageExportBuilder.IncludeAutoShapes(bool include = true) -> OfficeIMO.PowerPoint.PowerPointDocumentImageExportBuilder!
-OfficeIMO.PowerPoint.PowerPointDocumentImageExportBuilder.IncludeBackground(bool include = true) -> OfficeIMO.PowerPoint.PowerPointDocumentImageExportBuilder!
-OfficeIMO.PowerPoint.PowerPointDocumentImageExportBuilder.IncludeCharts(bool include = true) -> OfficeIMO.PowerPoint.PowerPointDocumentImageExportBuilder!
-OfficeIMO.PowerPoint.PowerPointDocumentImageExportBuilder.IncludeContent(bool include = true) -> OfficeIMO.PowerPoint.PowerPointDocumentImageExportBuilder!
-OfficeIMO.PowerPoint.PowerPointDocumentImageExportBuilder.IncludeHiddenShapes(bool include = true) -> OfficeIMO.PowerPoint.PowerPointDocumentImageExportBuilder!
-OfficeIMO.PowerPoint.PowerPointDocumentImageExportBuilder.IncludeHiddenSlides(bool include = true) -> OfficeIMO.PowerPoint.PowerPointDocumentImageExportBuilder!
-OfficeIMO.PowerPoint.PowerPointDocumentImageExportBuilder.IncludePictures(bool include = true) -> OfficeIMO.PowerPoint.PowerPointDocumentImageExportBuilder!
-OfficeIMO.PowerPoint.PowerPointDocumentImageExportBuilder.IncludeSmartArt(bool include = true) -> OfficeIMO.PowerPoint.PowerPointDocumentImageExportBuilder!
-OfficeIMO.PowerPoint.PowerPointDocumentImageExportBuilder.IncludeTables(bool include = true) -> OfficeIMO.PowerPoint.PowerPointDocumentImageExportBuilder!
-OfficeIMO.PowerPoint.PowerPointDocumentImageExportBuilder.IncludeTextBoxes(bool include = true) -> OfficeIMO.PowerPoint.PowerPointDocumentImageExportBuilder!
-OfficeIMO.PowerPoint.PowerPointDocumentImageExportBuilder.WithEmbeddedImageLimits(int maximumImageBytes, long maximumTotalImageBytes) -> OfficeIMO.PowerPoint.PowerPointDocumentImageExportBuilder!
-OfficeIMO.PowerPoint.PowerPointDocumentImageExportBuilder.WithMaximumGroupDepth(int maximumDepth) -> OfficeIMO.PowerPoint.PowerPointDocumentImageExportBuilder!
-OfficeIMO.PowerPoint.PowerPointDocumentImageExportBuilder.WithoutBackground() -> OfficeIMO.PowerPoint.PowerPointDocumentImageExportBuilder!
-OfficeIMO.PowerPoint.PowerPointDocumentImageExportBuilder.WithoutContent() -> OfficeIMO.PowerPoint.PowerPointDocumentImageExportBuilder!
 OfficeIMO.PowerPoint.PowerPointDocumentImageExportOptions
 OfficeIMO.PowerPoint.PowerPointDocumentImageExportOptions.CloneDocument() -> OfficeIMO.PowerPoint.PowerPointDocumentImageExportOptions!
 OfficeIMO.PowerPoint.PowerPointDocumentImageExportOptions.IncludeHiddenSlides.get -> bool
@@ -3613,26 +3591,10 @@ OfficeIMO.PowerPoint.PowerPointSlide.ResizeShapes(System.Collections.Generic.IEn
 OfficeIMO.PowerPoint.PowerPointSlide.ResizeShapesCm(System.Collections.Generic.IEnumerable<OfficeIMO.PowerPoint.PowerPointShape!>! shapes, double? widthCm, double? heightCm) -> void
 OfficeIMO.PowerPoint.PowerPointSlide.ResizeShapesInches(System.Collections.Generic.IEnumerable<OfficeIMO.PowerPoint.PowerPointShape!>! shapes, double? widthInches, double? heightInches) -> void
 OfficeIMO.PowerPoint.PowerPointSlide.ResizeShapesPoints(System.Collections.Generic.IEnumerable<OfficeIMO.PowerPoint.PowerPointShape!>! shapes, double? widthPoints, double? heightPoints) -> void
-OfficeIMO.PowerPoint.PowerPointSlide.SaveAsJpeg(System.IO.Stream! stream, OfficeIMO.PowerPoint.PowerPointImageExportOptions? options = null) -> OfficeIMO.Drawing.OfficeImageExportResult!
-OfficeIMO.PowerPoint.PowerPointSlide.SaveAsJpeg(string! path, OfficeIMO.PowerPoint.PowerPointImageExportOptions? options = null) -> OfficeIMO.Drawing.OfficeImageExportResult!
-OfficeIMO.PowerPoint.PowerPointSlide.SaveAsJpegAsync(System.IO.Stream! stream, OfficeIMO.PowerPoint.PowerPointImageExportOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<OfficeIMO.Drawing.OfficeImageExportResult!>!
-OfficeIMO.PowerPoint.PowerPointSlide.SaveAsJpegAsync(string! path, OfficeIMO.PowerPoint.PowerPointImageExportOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<OfficeIMO.Drawing.OfficeImageExportResult!>!
-OfficeIMO.PowerPoint.PowerPointSlide.SaveAsPng(System.IO.Stream! stream, OfficeIMO.PowerPoint.PowerPointImageExportOptions? options = null) -> OfficeIMO.Drawing.OfficeImageExportResult!
-OfficeIMO.PowerPoint.PowerPointSlide.SaveAsPng(string! path, OfficeIMO.PowerPoint.PowerPointImageExportOptions? options = null) -> OfficeIMO.Drawing.OfficeImageExportResult!
-OfficeIMO.PowerPoint.PowerPointSlide.SaveAsPngAsync(System.IO.Stream! stream, OfficeIMO.PowerPoint.PowerPointImageExportOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<OfficeIMO.Drawing.OfficeImageExportResult!>!
-OfficeIMO.PowerPoint.PowerPointSlide.SaveAsPngAsync(string! path, OfficeIMO.PowerPoint.PowerPointImageExportOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<OfficeIMO.Drawing.OfficeImageExportResult!>!
-OfficeIMO.PowerPoint.PowerPointSlide.SaveAsSvg(System.IO.Stream! stream, OfficeIMO.PowerPoint.PowerPointImageExportOptions? options = null) -> OfficeIMO.Drawing.OfficeImageExportResult!
-OfficeIMO.PowerPoint.PowerPointSlide.SaveAsSvg(string! path, OfficeIMO.PowerPoint.PowerPointImageExportOptions? options = null) -> OfficeIMO.Drawing.OfficeImageExportResult!
-OfficeIMO.PowerPoint.PowerPointSlide.SaveAsSvgAsync(System.IO.Stream! stream, OfficeIMO.PowerPoint.PowerPointImageExportOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<OfficeIMO.Drawing.OfficeImageExportResult!>!
-OfficeIMO.PowerPoint.PowerPointSlide.SaveAsSvgAsync(string! path, OfficeIMO.PowerPoint.PowerPointImageExportOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<OfficeIMO.Drawing.OfficeImageExportResult!>!
-OfficeIMO.PowerPoint.PowerPointSlide.SaveAsTiff(System.IO.Stream! stream, OfficeIMO.PowerPoint.PowerPointImageExportOptions? options = null) -> OfficeIMO.Drawing.OfficeImageExportResult!
-OfficeIMO.PowerPoint.PowerPointSlide.SaveAsTiff(string! path, OfficeIMO.PowerPoint.PowerPointImageExportOptions? options = null) -> OfficeIMO.Drawing.OfficeImageExportResult!
-OfficeIMO.PowerPoint.PowerPointSlide.SaveAsTiffAsync(System.IO.Stream! stream, OfficeIMO.PowerPoint.PowerPointImageExportOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<OfficeIMO.Drawing.OfficeImageExportResult!>!
-OfficeIMO.PowerPoint.PowerPointSlide.SaveAsTiffAsync(string! path, OfficeIMO.PowerPoint.PowerPointImageExportOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<OfficeIMO.Drawing.OfficeImageExportResult!>!
-OfficeIMO.PowerPoint.PowerPointSlide.SaveAsWebp(System.IO.Stream! stream, OfficeIMO.PowerPoint.PowerPointImageExportOptions? options = null) -> OfficeIMO.Drawing.OfficeImageExportResult!
-OfficeIMO.PowerPoint.PowerPointSlide.SaveAsWebp(string! path, OfficeIMO.PowerPoint.PowerPointImageExportOptions? options = null) -> OfficeIMO.Drawing.OfficeImageExportResult!
-OfficeIMO.PowerPoint.PowerPointSlide.SaveAsWebpAsync(System.IO.Stream! stream, OfficeIMO.PowerPoint.PowerPointImageExportOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<OfficeIMO.Drawing.OfficeImageExportResult!>!
-OfficeIMO.PowerPoint.PowerPointSlide.SaveAsWebpAsync(string! path, OfficeIMO.PowerPoint.PowerPointImageExportOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<OfficeIMO.Drawing.OfficeImageExportResult!>!
+OfficeIMO.PowerPoint.PowerPointSlide.SaveAsImage(System.IO.Stream! stream, OfficeIMO.PowerPoint.PowerPointImageExportOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> OfficeIMO.OfficeConversionReport!
+OfficeIMO.PowerPoint.PowerPointSlide.SaveAsImage(string! path, OfficeIMO.PowerPoint.PowerPointImageExportOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> OfficeIMO.OfficeConversionReport!
+OfficeIMO.PowerPoint.PowerPointSlide.SaveAsImageAsync(System.IO.Stream! stream, OfficeIMO.PowerPoint.PowerPointImageExportOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<OfficeIMO.OfficeConversionReport!>!
+OfficeIMO.PowerPoint.PowerPointSlide.SaveAsImageAsync(string! path, OfficeIMO.PowerPoint.PowerPointImageExportOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<OfficeIMO.OfficeConversionReport!>!
 OfficeIMO.PowerPoint.PowerPointSlide.SendBackward(OfficeIMO.PowerPoint.PowerPointShape! shape) -> void
 OfficeIMO.PowerPoint.PowerPointSlide.SendToBack(OfficeIMO.PowerPoint.PowerPointShape! shape) -> void
 OfficeIMO.PowerPoint.PowerPointSlide.SetAnimationDuration(uint timingId, uint durationMilliseconds) -> bool
@@ -3684,13 +3646,9 @@ OfficeIMO.PowerPoint.PowerPointSlide.StackShapesToSlideContentPoints(System.Coll
 OfficeIMO.PowerPoint.PowerPointSlide.StopTransitionSound() -> void
 OfficeIMO.PowerPoint.PowerPointSlide.Tables.get -> System.Collections.Generic.IEnumerable<OfficeIMO.PowerPoint.PowerPointTable!>!
 OfficeIMO.PowerPoint.PowerPointSlide.TextBoxes.get -> System.Collections.Generic.IEnumerable<OfficeIMO.PowerPoint.PowerPointTextBox!>!
-OfficeIMO.PowerPoint.PowerPointSlide.ToImage() -> OfficeIMO.PowerPoint.PowerPointSlideImageExportBuilder!
-OfficeIMO.PowerPoint.PowerPointSlide.ToImage(OfficeIMO.PowerPoint.PowerPointImageExportOptions! options) -> OfficeIMO.PowerPoint.PowerPointSlideImageExportBuilder!
-OfficeIMO.PowerPoint.PowerPointSlide.ToJpeg(OfficeIMO.PowerPoint.PowerPointImageExportOptions? options = null) -> byte[]!
-OfficeIMO.PowerPoint.PowerPointSlide.ToPng(OfficeIMO.PowerPoint.PowerPointImageExportOptions? options = null) -> byte[]!
-OfficeIMO.PowerPoint.PowerPointSlide.ToSvg(OfficeIMO.PowerPoint.PowerPointImageExportOptions? options = null) -> string!
-OfficeIMO.PowerPoint.PowerPointSlide.ToTiff(OfficeIMO.PowerPoint.PowerPointImageExportOptions? options = null) -> byte[]!
-OfficeIMO.PowerPoint.PowerPointSlide.ToWebp(OfficeIMO.PowerPoint.PowerPointImageExportOptions? options = null) -> byte[]!
+OfficeIMO.PowerPoint.PowerPointSlide.ToImage(OfficeIMO.PowerPoint.PowerPointImageExportOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> byte[]!
+OfficeIMO.PowerPoint.PowerPointSlide.ToImage(OfficeIMO.PowerPoint.PowerPointImageExportOptions? options, out OfficeIMO.OfficeConversionReport! report, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> byte[]!
+OfficeIMO.PowerPoint.PowerPointSlide.ToImageAsync(OfficeIMO.PowerPoint.PowerPointImageExportOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<OfficeIMO.OfficeConversionResult<byte[]!>!>!
 OfficeIMO.PowerPoint.PowerPointSlide.Transition.get -> OfficeIMO.PowerPoint.PowerPointSlideTransition
 OfficeIMO.PowerPoint.PowerPointSlide.Transition.set -> void
 OfficeIMO.PowerPoint.PowerPointSlide.TransitionAdvanceAfterSeconds.get -> double?
@@ -3753,20 +3711,6 @@ OfficeIMO.PowerPoint.PowerPointSlideDensity
 OfficeIMO.PowerPoint.PowerPointSlideDensity.Balanced = 1 -> OfficeIMO.PowerPoint.PowerPointSlideDensity
 OfficeIMO.PowerPoint.PowerPointSlideDensity.Compact = 0 -> OfficeIMO.PowerPoint.PowerPointSlideDensity
 OfficeIMO.PowerPoint.PowerPointSlideDensity.Relaxed = 2 -> OfficeIMO.PowerPoint.PowerPointSlideDensity
-OfficeIMO.PowerPoint.PowerPointSlideImageExportBuilder
-OfficeIMO.PowerPoint.PowerPointSlideImageExportBuilder.IncludeAutoShapes(bool include = true) -> OfficeIMO.PowerPoint.PowerPointSlideImageExportBuilder!
-OfficeIMO.PowerPoint.PowerPointSlideImageExportBuilder.IncludeBackground(bool include = true) -> OfficeIMO.PowerPoint.PowerPointSlideImageExportBuilder!
-OfficeIMO.PowerPoint.PowerPointSlideImageExportBuilder.IncludeCharts(bool include = true) -> OfficeIMO.PowerPoint.PowerPointSlideImageExportBuilder!
-OfficeIMO.PowerPoint.PowerPointSlideImageExportBuilder.IncludeContent(bool include = true) -> OfficeIMO.PowerPoint.PowerPointSlideImageExportBuilder!
-OfficeIMO.PowerPoint.PowerPointSlideImageExportBuilder.IncludeHiddenShapes(bool include = true) -> OfficeIMO.PowerPoint.PowerPointSlideImageExportBuilder!
-OfficeIMO.PowerPoint.PowerPointSlideImageExportBuilder.IncludePictures(bool include = true) -> OfficeIMO.PowerPoint.PowerPointSlideImageExportBuilder!
-OfficeIMO.PowerPoint.PowerPointSlideImageExportBuilder.IncludeSmartArt(bool include = true) -> OfficeIMO.PowerPoint.PowerPointSlideImageExportBuilder!
-OfficeIMO.PowerPoint.PowerPointSlideImageExportBuilder.IncludeTables(bool include = true) -> OfficeIMO.PowerPoint.PowerPointSlideImageExportBuilder!
-OfficeIMO.PowerPoint.PowerPointSlideImageExportBuilder.IncludeTextBoxes(bool include = true) -> OfficeIMO.PowerPoint.PowerPointSlideImageExportBuilder!
-OfficeIMO.PowerPoint.PowerPointSlideImageExportBuilder.WithEmbeddedImageLimits(int maximumImageBytes, long maximumTotalImageBytes) -> OfficeIMO.PowerPoint.PowerPointSlideImageExportBuilder!
-OfficeIMO.PowerPoint.PowerPointSlideImageExportBuilder.WithMaximumGroupDepth(int maximumDepth) -> OfficeIMO.PowerPoint.PowerPointSlideImageExportBuilder!
-OfficeIMO.PowerPoint.PowerPointSlideImageExportBuilder.WithoutBackground() -> OfficeIMO.PowerPoint.PowerPointSlideImageExportBuilder!
-OfficeIMO.PowerPoint.PowerPointSlideImageExportBuilder.WithoutContent() -> OfficeIMO.PowerPoint.PowerPointSlideImageExportBuilder!
 OfficeIMO.PowerPoint.PowerPointSlideLayoutInfo
 OfficeIMO.PowerPoint.PowerPointSlideLayoutInfo.LayoutIndex.get -> int
 OfficeIMO.PowerPoint.PowerPointSlideLayoutInfo.MasterIndex.get -> int

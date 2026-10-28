@@ -775,22 +775,27 @@ Slides and presentation batches can be exported as PNG, JPEG, TIFF, lossless Web
 ```csharp
 using OfficeIMO.Drawing;
 
-byte[] jpeg = slide.ToJpeg(new PowerPointImageExportOptions {
+byte[] jpeg = slide.ToImage(new PowerPointImageExportOptions {
+    Format = OfficeImageExportFormat.Jpeg,
     RasterEncoding = new OfficeRasterEncodingOptions {
         Jpeg = new OfficeJpegEncodeOptions { Quality = 92 }
     }
 });
 
-presentation.ToImages()
-    .ForSlideRange(1, 3)
-    .IncludeCharts()
-    .IncludeTables()
-    .FitWithin(1600, 900)
-    .AsWebp()
-    .Save("slide-previews");
+OfficeIMO.OfficeConversionReport report = presentation.SaveAsImages("slide-previews",
+    new PowerPointDocumentImageExportOptions {
+        SlideNumbers = new[] { 1, 2, 3 },
+        IncludeCharts = true,
+        IncludeTables = true,
+        MaximumOutputWidth = 1600,
+        MaximumOutputHeight = 900,
+        Format = OfficeImageExportFormat.Webp
+    });
 ```
 
-PowerPoint PDF and slide images use the same layout and font policy through `OfficeIMO.Pdf`; `OfficeIMO.Drawing` owns sizing and the common raster encoders. Set `PowerPointImageExportOptions.LayoutOptions` to configure that layout. `CreateVisualSnapshot().TextSpans` exposes its text geometry. Normal autofit uses stored scaling or shrinks overflowing text, shape autofit grows the exported frame, and fixed frames retain text without ellipses. Tables apply PowerPoint margins and grow rows for their content. The fluent builder can include or exclude backgrounds, pictures, auto shapes, SmartArt, text boxes, tables, charts, hidden shapes, and hidden slides. `SaveAsJpeg`, `SaveAsTiff`, and `SaveAsWebp` remain thin wrappers over the shared export builder.
+`OfficeIMO.Drawing` owns sizing and the common raster encoders. `PowerPointImageExportOptions` controls backgrounds, pictures, auto shapes, SmartArt, text boxes, tables, charts and hidden shapes. Batch options also select slides and include hidden slides. `CreateVisualSnapshot().TextSpans` exposes text geometry.
+
+`ToImage(options)` returns encoded bytes. Use `ToImage(options, out report)` for fidelity diagnostics or `ToImageAsync(options)` for bytes and report together. `SaveAsImage(pathOrStream, options)` and `SaveAsImages(folder, options)` return `OfficeConversionReport`; `FailOnLoss` rejects diagnosed loss before writing. The async save forms support cancellation, and caller-owned streams stay open. `FileConflictPolicy` controls existing output files.
 
 ## Content provenance
 

@@ -35,7 +35,7 @@ public sealed class PowerPointSelectedSlideExportTests {
         using var deck = PowerPointDocument.Create();
         deck.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(100),OfficeIMO.OfficeLength.Points(60));
         var slide = deck.AddSlide();
-        byte[] bytes = slide.ToPng(new PowerPointImageExportOptions {
+        byte[] bytes = slide.ToImage(new PowerPointImageExportOptions {
             IncludeSlideBackground = false, IncludeSlideContent = false, BackgroundColor = OfficeColor.AliceBlue
         });
         Assert.True(OfficePngReader.TryDecode(bytes, out OfficeRasterImage? image));
@@ -53,7 +53,7 @@ public sealed class PowerPointSelectedSlideExportTests {
         box.TextAutoFit = PowerPointTextAutoFit.None;
         box.TextMarginLeftPoints = 15;
         box.TextMarginRightPoints = box.TextMarginTopPoints = box.TextMarginBottomPoints = 0;
-        Assert.True(OfficePngReader.TryDecode(slide.ToPng(), out OfficeRasterImage? image));
+        Assert.True(OfficePngReader.TryDecode(slide.ToImage(), out OfficeRasterImage? image));
         int paintedBelowFrame = 0;
         for (int y = 45; y < 80; y++)
             for (int x = 0; x < 100; x++) {

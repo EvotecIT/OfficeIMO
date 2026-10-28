@@ -58,7 +58,9 @@ public sealed class ExportOfficePowerPointImageCommand : PSCmdlet
                 owned = PowerPointDocumentService.LoadDocument(input, readOnly: true);
                 presentation = owned;
             }
-            IReadOnlyList<OfficeImageExportResult> results = presentation.SaveAsImages(output, Format, Options);
+            PowerPointDocumentImageExportOptions effectiveOptions = Options?.CloneDocument() ?? new PowerPointDocumentImageExportOptions();
+            effectiveOptions.Format = Format;
+            IReadOnlyList<OfficeImageExportResult> results = presentation.SaveImageResults(output, effectiveOptions);
             if (PassThru.IsPresent) WriteObject(results, enumerateCollection: true);
         }
         finally
