@@ -309,7 +309,7 @@ internal static partial class DocumentReaderEngine {
             Mode = options.DetectionMode,
             MaxProbeBytes = options.DetectionMaxProbeBytes,
             MaxContainerEntries = options.DetectionMaxContainerEntries,
-            InspectContainers = true
+            InspectContainers = options.DetectionInspectContainers
         };
     }
 
@@ -495,7 +495,7 @@ internal static partial class DocumentReaderEngine {
             Mode = Enum.IsDefined(typeof(ReaderDetectionMode), source.Mode)
                 ? source.Mode
                 : ReaderDetectionMode.PreferContent,
-            MaxProbeBytes = Math.Min(ReaderOptions.MaximumDetectionProbeBytes, Math.Max(256, source.MaxProbeBytes)),
+            MaxProbeBytes = Math.Min(ReaderOptions.MaximumDetectionProbeBytes, Math.Max(1, source.MaxProbeBytes)),
             MaxContainerEntries = Math.Min(ReaderOptions.MaximumDetectionContainerEntries, Math.Max(1, source.MaxContainerEntries)),
             InspectContainers = source.InspectContainers
         };

@@ -141,7 +141,7 @@ internal static partial class ExcelReaderAdapter {
         }
     }
 
-    private static ExcelDocument Load(string path, ReaderOptions options) {
+    internal static ExcelDocument Load(string path, ReaderOptions options) {
         var loadOptions = new ExcelLoadOptions {
             AccessMode = DocumentAccessMode.ReadOnly,
             AllowBinaryProjection = options.Projection == ReaderProjection.Full,
@@ -158,7 +158,7 @@ internal static partial class ExcelReaderAdapter {
         }
     }
 
-    private static ExcelDocument Load(Stream stream, string? sourceName, ReaderOptions options) {
+    internal static ExcelDocument Load(Stream stream, string? sourceName, ReaderOptions options) {
         var loadOptions = new ExcelLoadOptions {
             AccessMode = DocumentAccessMode.ReadOnly,
             AllowBinaryProjection = options.Projection == ReaderProjection.Full,

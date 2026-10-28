@@ -15,6 +15,19 @@ public sealed class OfficeInspectOptions {
     /// <summary>Settings owned by the selected native format handler.</summary>
     public ReaderAllOptions Formats { get; set; } = new();
 
+    /// <summary>Includes format detection, native counts and encryption evidence without requiring content extraction.</summary>
+    public bool IncludeSummary { get; set; }
+    /// <summary>Includes the format's detached inspection snapshot with the summary.</summary>
+    public bool Detailed { get; set; }
+    /// <summary>Optional summary detection overrides. Null preserves the common Reader policy.</summary>
+    public ReaderDetectionOptions? Detection { get; set; }
+    /// <summary>Optional immutable handler registry for summary detection and otherwise unsupported native formats.</summary>
+    public OfficeDocumentReader? DocumentReader { get; set; }
+    /// <summary>Optional native presentation inspection selection.</summary>
+    public OfficeIMO.PowerPoint.PowerPointInspectionOptions? PowerPointInspection { get; set; }
+    /// <summary>Optional native workbook inspection settings.</summary>
+    public OfficeIMO.Excel.ExcelReaderOptions? ExcelInspection { get; set; }
+
     /// <summary>Maximum buffered input for stream inspection, in bytes.</summary>
     public long MaximumInputBytes { get; set; } = 64L * 1024L * 1024L;
 
@@ -39,6 +52,7 @@ public sealed class OfficeInspectOptions {
     private static ReaderOptions CreateReaderOptions() {
         ReaderOptions options = ReaderOptions.CreateSafeIngestion();
         options.Inspection = new ReaderInspectionOptions();
+        options.DetectionMode = ReaderDetectionMode.PreferContent;
         return options;
     }
 }

@@ -49,12 +49,28 @@ internal static class PowerPointReaderAdapter {
         }
     }
 
-    private static PowerPointPresentation Load(string path, ReaderOptions options, CancellationToken cancellationToken) =>
-        OpenXmlReaderAdmission.Load(options, () => PowerPointPresentation.Load(path, CreateLoadOptions(options, path), cancellationToken));
+    internal static PowerPointPresentation Load(string path, ReaderOptions options, CancellationToken cancellationToken) {
+        var loadOptions = CreateLoadOptions(options, path);
+        loadOptions.Password = null;
+        try {
+            return OpenXmlReaderAdmission.Load(options, () => PowerPointPresentation.Load(path, loadOptions, cancellationToken));
+        } catch (Exception error) when (OpenXmlReaderAdmission.CanRetryEncrypted(error, options)) {
+            loadOptions.Password = options.OpenPassword;
+            return OpenXmlReaderAdmission.Load(options, () => PowerPointPresentation.Load(path, loadOptions, cancellationToken));
+        }
+    }
 
-    private static PowerPointPresentation Load(Stream stream, string? sourceName, ReaderOptions options, CancellationToken cancellationToken) {
+    internal static PowerPointPresentation Load(Stream stream, string? sourceName, ReaderOptions options, CancellationToken cancellationToken) {
         if (stream.CanSeek) stream.Position = 0;
-        return OpenXmlReaderAdmission.Load(options, () => PowerPointPresentation.Load(stream, CreateLoadOptions(options, sourceName), cancellationToken));
+        var loadOptions = CreateLoadOptions(options, sourceName);
+        loadOptions.Password = null;
+        try {
+            return OpenXmlReaderAdmission.Load(options, () => PowerPointPresentation.Load(stream, loadOptions, cancellationToken));
+        } catch (Exception error) when (stream.CanSeek && OpenXmlReaderAdmission.CanRetryEncrypted(error, options)) {
+            stream.Position = 0;
+            loadOptions.Password = options.OpenPassword;
+            return OpenXmlReaderAdmission.Load(options, () => PowerPointPresentation.Load(stream, loadOptions, cancellationToken));
+        }
     }
 
     internal static PowerPointLoadOptions CreateLoadOptions(ReaderOptions options, string? sourceName) {

@@ -157,7 +157,8 @@ internal static partial class DocumentReaderEngine {
             ComputeHashes = source?.ComputeHashes ?? true,
             DetectionMode = source?.DetectionMode ?? ReaderDetectionMode.ContentWhenUnknown,
             DetectionMaxProbeBytes = source?.DetectionMaxProbeBytes ?? ReaderOptions.DefaultDetectionMaxProbeBytes,
-            DetectionMaxContainerEntries = source?.DetectionMaxContainerEntries ?? ReaderOptions.DefaultDetectionMaxContainerEntries
+            DetectionMaxContainerEntries = source?.DetectionMaxContainerEntries ?? ReaderOptions.DefaultDetectionMaxContainerEntries,
+            DetectionInspectContainers = source?.DetectionInspectContainers ?? true
         };
 
         clone.MaxChars = Math.Max(256, clone.MaxChars);

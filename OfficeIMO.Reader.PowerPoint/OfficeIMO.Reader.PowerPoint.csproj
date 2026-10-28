@@ -47,4 +47,5 @@
   <ItemGroup><Compile Include="..\OfficeIMO.Reader.FormatInternals\NativePackageInspectionProjection.cs" Link="FormatInternals\NativePackageInspectionProjection.cs" /></ItemGroup>
   <ItemGroup><Compile Include="..\OfficeIMO.Reader.FormatInternals\OpenXmlReaderAdmission.cs" Link="FormatInternals\OpenXmlReaderAdmission.cs" /></ItemGroup>
   <ItemGroup><Compile Include="..\OfficeIMO.Reader.FormatInternals\NativeReaderAdmission.cs" Link="FormatInternals\NativeReaderAdmission.cs" /></ItemGroup>
+  <ItemGroup><InternalsVisibleTo Include="OfficeIMO" /></ItemGroup>
 </Project>

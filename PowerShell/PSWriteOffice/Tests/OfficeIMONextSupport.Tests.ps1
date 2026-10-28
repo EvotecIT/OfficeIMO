@@ -15,8 +15,9 @@ Describe 'Expanded OfficeIMO support' {
         Set-Content -LiteralPath $asciiDocPath -Encoding UTF8 -Value "= Guide`n`n== Reader`n`nStructured AsciiDoc content."
         Set-Content -LiteralPath $latexPath -Encoding UTF8 -Value '\documentclass{article}\begin{document}\section{Reader}Structured LaTeX content.\end{document}'
 
-        $detection = Get-OfficeDocumentDetection -Path $asciiDocPath
-        $detection.GetType().FullName | Should -Be 'OfficeIMO.Reader.ReaderDetectionResult'
+        $info = Get-OfficeDocumentInfo -Path $asciiDocPath
+        $info.GetType().FullName | Should -Be 'OfficeIMO.OfficeDocumentInfo'
+        $info.Detection.GetType().FullName | Should -Be 'OfficeIMO.Reader.ReaderDetectionResult'
 
         $structured = Read-OfficeDocument -As Structure -Path $asciiDocPath
         $structured.GetType().FullName | Should -Be 'OfficeIMO.Reader.OfficeDocumentStructuredExtractionResult'

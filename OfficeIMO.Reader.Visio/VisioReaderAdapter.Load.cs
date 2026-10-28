@@ -3,6 +3,9 @@ using OfficeIMO.Visio;
 namespace OfficeIMO.Reader.Visio;
 
 internal static partial class VisioReaderAdapter {
+    internal static VisioDocument LoadForInspection(Stream stream, string sourceName, ReaderOptions options, CancellationToken cancellationToken) =>
+        LoadForReader(stream, sourceName, CreateLoadOptions(options), new SourceMetadata(), cancellationToken);
+
     private static VisioDocument LoadForReader(string path, VisioLoadOptions? options, SourceMetadata source, CancellationToken cancellationToken) {
         using var stream = File.OpenRead(path);
         return LoadForReader(stream, path, options, source, cancellationToken);

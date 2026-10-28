@@ -17,12 +17,12 @@ public static partial class OfficeDocument {
         if (source == null) throw new ArgumentNullException(nameof(source));
         if (string.IsNullOrWhiteSpace(sourceName)) throw new ArgumentException("A source filename is required.", nameof(sourceName));
         OfficeInspectOptions settings = options ?? new();
-        if (settings.Formats == null || (settings.IncludeContent && settings.Reader == null)) throw new ArgumentException("Reader and format settings are required.", nameof(options));
+        if (settings.Formats == null || ((settings.IncludeContent || settings.IncludeSummary) && settings.Reader == null)) throw new ArgumentException("Reader and format settings are required.", nameof(options));
         if (settings.MaximumInputBytes <= 0) throw new ArgumentOutOfRangeException(nameof(options));
         if (settings.VbaSignatures != null || settings.WordMacroSignatures != null)
             throw new NotSupportedException("VBA and Word macro signature inspection require a source path.");
         long maximumBytes = settings.MaximumInputBytes;
-        if (settings.IncludeContent && settings.Reader.MaxInputBytes is long readerMaximum) maximumBytes = Math.Min(maximumBytes, readerMaximum);
+        if ((settings.IncludeContent || settings.IncludeSummary) && settings.Reader.MaxInputBytes is long readerMaximum) maximumBytes = Math.Min(maximumBytes, readerMaximum);
         if (settings.ContentSafety != null) maximumBytes = Math.Min(maximumBytes, settings.ContentSafety.MaxInputBytes);
         if (settings.Provenance != null) maximumBytes = Math.Min(maximumBytes, settings.Provenance.MaxAssetBytes);
         if (settings.PackageSignatures != null) maximumBytes = Math.Min(maximumBytes, settings.PackageSignatures.MaxPackageBytes);
@@ -51,7 +51,11 @@ public static partial class OfficeDocument {
         }
         cancellationToken.ThrowIfCancellationRequested();
         if (settings.PackageSignatures != null) result.PackageSignatures = OfficePackageSignatureService.Inspect(bytes, settings.PackageSignatures);
-        if (settings.IncludeContent) result.Content = new OfficeDocumentReaderBuilder().AddAllOfficeIMOHandlers(settings.Formats).Build()
+        if (settings.IncludeSummary) {
+            using var input = new MemoryStream(bytes, writable: false);
+            InspectSummary(result, input, settings, cancellationToken);
+        }
+        if (settings.IncludeContent && !settings.IncludeSummary) result.Content = new OfficeDocumentReaderBuilder().AddAllOfficeIMOHandlers(settings.Formats).Build()
             .ReadDocument(bytes, sourceName, settings.Reader, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
         return result;

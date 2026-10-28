@@ -143,6 +143,9 @@ public sealed class ReaderOptions {
     /// Maximum ZIP entries inspected when classifying Office, Visio, EPUB, and ZIP containers. Default: 512.
     /// </summary>
     public int DetectionMaxContainerEntries { get; set; } = DefaultDetectionMaxContainerEntries;
+
+    /// <summary>Inspect container structure when classifying content during reads. Default: true.</summary>
+    public bool DetectionInspectContainers { get; set; } = true;
 }
 
 /// <summary>

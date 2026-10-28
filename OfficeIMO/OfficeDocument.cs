@@ -17,7 +17,7 @@ public static partial class OfficeDocument {
         CancellationToken cancellationToken = default) {
         if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("A document path is required.", nameof(path));
         OfficeInspectOptions settings = options ?? new();
-        if (settings.Formats == null || (settings.IncludeContent && settings.Reader == null)) throw new ArgumentException("Reader and format settings are required.", nameof(options));
+        if (settings.Formats == null || ((settings.IncludeContent || settings.IncludeSummary) && settings.Reader == null)) throw new ArgumentException("Reader and format settings are required.", nameof(options));
         string source = Path.GetFullPath(path);
         cancellationToken.ThrowIfCancellationRequested();
         var result = new OfficeDocumentInfo(source);
@@ -54,7 +54,12 @@ public static partial class OfficeDocument {
             ? WordDocument.InspectMacroProjectSignatures(source, settings.WordMacroSignatures)
             : WordDocument.InspectMacroProjectSignatures(source, settings.SecurityProvider, settings.WordMacroSignatures);
         cancellationToken.ThrowIfCancellationRequested();
-        if (settings.IncludeContent) result.Content = new OfficeDocumentReaderBuilder().AddAllOfficeIMOHandlers(settings.Formats).Build()
+        if (settings.IncludeSummary) {
+            using var input = File.OpenRead(source);
+            InspectSummary(result, input, settings, cancellationToken, sourceIsPath: true);
+            result.Modified = File.GetLastWriteTimeUtc(source);
+        }
+        if (settings.IncludeContent && !settings.IncludeSummary) result.Content = new OfficeDocumentReaderBuilder().AddAllOfficeIMOHandlers(settings.Formats).Build()
             .ReadDocument(source, settings.Reader, cancellationToken);
         return result;
     }

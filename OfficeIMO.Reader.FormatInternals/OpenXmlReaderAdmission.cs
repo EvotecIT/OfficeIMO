@@ -31,5 +31,5 @@ internal static class OpenXmlReaderAdmission {
     internal static bool CanRetryEncrypted(Exception exception, ReaderOptions options) =>
         !string.IsNullOrEmpty(options.OpenPassword)
         && exception is not OfficePackageSecurityException and not OfficeInspectionResourceLimitException and not ReaderResourceLimitException
-        && exception is InvalidDataException or IOException;
+        && exception is InvalidDataException or IOException or System.Security.Cryptography.CryptographicException;
 }

@@ -55,10 +55,9 @@ internal static class WordReaderAdapter {
         }
     }
 
-    private static WordDocument Load(string path, ReaderOptions options) {
+    internal static WordDocument Load(string path, ReaderOptions options) {
         var loadOptions = new WordLoadOptions {
             AccessMode = DocumentAccessMode.ReadOnly,
-            Password = options.OpenPassword,
             AllowLegacyProjection = options.Projection == ReaderProjection.Full,
             CaptureSourcePackageSecurity = options.Inspection?.IncludePackageContent == true,
             PackageSecurity = OpenXmlReaderAdmission.Policy(options, WordLoadOptions.DefaultMaxInputBytes),
@@ -66,13 +65,17 @@ internal static class WordReaderAdapter {
                 ? new OfficeOpenXmlLoadSettings { MaxCharactersInPart = options.OpenXmlMaxCharactersInPart.Value }
                 : null
         };
-        return OpenXmlReaderAdmission.Load(options, () => WordDocument.Load(path, loadOptions));
+        try {
+            return OpenXmlReaderAdmission.Load(options, () => WordDocument.Load(path, loadOptions));
+        } catch (Exception error) when (OpenXmlReaderAdmission.CanRetryEncrypted(error, options)) {
+            loadOptions.Password = options.OpenPassword;
+            return OpenXmlReaderAdmission.Load(options, () => WordDocument.Load(path, loadOptions));
+        }
     }
 
-    private static WordDocument Load(Stream stream, ReaderOptions options) {
+    internal static WordDocument Load(Stream stream, ReaderOptions options) {
         var loadOptions = new WordLoadOptions {
             AccessMode = DocumentAccessMode.ReadOnly,
-            Password = options.OpenPassword,
             AllowLegacyProjection = options.Projection == ReaderProjection.Full,
             CaptureSourcePackageSecurity = options.Inspection?.IncludePackageContent == true,
             PackageSecurity = OpenXmlReaderAdmission.Policy(options, WordLoadOptions.DefaultMaxInputBytes),
@@ -80,7 +83,14 @@ internal static class WordReaderAdapter {
                 ? new OfficeOpenXmlLoadSettings { MaxCharactersInPart = options.OpenXmlMaxCharactersInPart.Value }
                 : null
         };
-        return OpenXmlReaderAdmission.Load(options, () => WordDocument.Load(stream, loadOptions));
+        long position = stream.CanSeek ? stream.Position : 0;
+        try {
+            return OpenXmlReaderAdmission.Load(options, () => WordDocument.Load(stream, loadOptions));
+        } catch (Exception error) when (stream.CanSeek && OpenXmlReaderAdmission.CanRetryEncrypted(error, options)) {
+            stream.Position = position;
+            loadOptions.Password = options.OpenPassword;
+            return OpenXmlReaderAdmission.Load(options, () => WordDocument.Load(stream, loadOptions));
+        }
     }
 
     internal static OfficeDocumentReadResult Project(WordDocument document, string sourceName, ReaderOptions readerOptions, ReaderWordOptions options, CancellationToken cancellationToken, IReadOnlyList<string>? sourceWarnings = null, string capabilityId = OfficeDocumentReaderBuilderWordExtensions.HandlerId) {
