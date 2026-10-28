@@ -298,12 +298,12 @@ namespace OfficeIMO.PowerPoint {
                 HeaderSize = Math.Min(header.Size, (bodySize ?? body.Size) - 1D)
             };
             metrics.RowHeight = metrics.BodySize * body.LineHeight + 2D * (pad + 2D);
-            metrics.HeaderHeight = metrics.HeaderSize * header.LineHeight + 2D * (pad + 3D);
+            metrics.HeaderHeight = table.IncludeHeaders ? metrics.HeaderSize * header.LineHeight + 2D * (pad + 3D) : 0D;
             int columns = table.Headers.Count;
             var natural = new double[columns];
             metrics.Numeric = new bool[columns];
             for (int c = 0; c < columns; c++) {
-                double w = PowerPointTextMeasure.Width(table.Headers[c], metrics.HeaderSize, context.Theme.BodyFont, true);
+                double w = table.IncludeHeaders ? PowerPointTextMeasure.Width(table.Headers[c], metrics.HeaderSize, context.Theme.BodyFont, true) : 0D;
                 bool numeric = table.Rows.Count > 0;
                 foreach (IReadOnlyList<string> row in table.Rows) {
                     string value = c < row.Count ? row[c] ?? string.Empty : string.Empty;
@@ -440,17 +440,20 @@ namespace OfficeIMO.PowerPoint {
                 return b.ToString();
             }
 
-            var heights = new List<double> { metrics.HeaderHeight };
-            var xml = new StringBuilder("<a:tbl xmlns:a=\"").Append(PowerPointLayoutMasterWriter.NsA).Append("\"><a:tblPr firstRow=\"1\" bandRow=\"")
+            var heights = new List<double>();
+            if (table.IncludeHeaders) heights.Add(metrics.HeaderHeight);
+            var xml = new StringBuilder("<a:tbl xmlns:a=\"").Append(PowerPointLayoutMasterWriter.NsA).Append("\"><a:tblPr firstRow=\"").Append(table.IncludeHeaders ? '1' : '0').Append("\" bandRow=\"")
                 .Append(theme.TableBanding ? '1' : '0').Append("\"><a:tableStyleId>").Append(NoStyleTableId).Append("</a:tableStyleId></a:tblPr><a:tblGrid>");
             foreach (double w in metrics.Widths) xml.Append("<a:gridCol w=\"").Append(Emu(w)).Append("\"/>");
             xml.Append("</a:tblGrid>");
-            xml.Append("<a:tr h=\"").Append(Emu(metrics.HeaderHeight)).Append("\">");
-            for (int c = 0; c < table.Headers.Count; c++) {
-                xml.Append(Cell(table.Headers[c], true, c, theme.TableHeaderFill, pad + 3D, tintedHeader ? theme.Accent1 : theme.TableHeaderFill,
-                    tintedHeader ? Emu(1D) : "0"));
+            if (table.IncludeHeaders) {
+                xml.Append("<a:tr h=\"").Append(Emu(metrics.HeaderHeight)).Append("\">");
+                for (int c = 0; c < table.Headers.Count; c++) {
+                    xml.Append(Cell(table.Headers[c], true, c, theme.TableHeaderFill, pad + 3D, tintedHeader ? theme.Accent1 : theme.TableHeaderFill,
+                        tintedHeader ? Emu(1D) : "0"));
+                }
+                xml.Append("</a:tr>");
             }
-            xml.Append("</a:tr>");
             for (int r = 0; r < table.Rows.Count; r++) {
                 IReadOnlyList<string> row = table.Rows[r];
                 double height = metrics.RowHeight + (RowUnits(context, metrics, row) - 1) * metrics.BodySize * 1.2D;
@@ -466,7 +469,7 @@ namespace OfficeIMO.PowerPoint {
 
             double width = metrics.Widths.Sum();
             double total = heights.Sum();
-            PowerPointTable result = writer.Slide.AddTable(Math.Max(1, table.Rows.Count + 1), Math.Max(1, table.Headers.Count),
+            PowerPointTable result = writer.Slide.AddTable(Math.Max(1, table.Rows.Count + (table.IncludeHeaders ? 1 : 0)), Math.Max(1, table.Headers.Count),
                 PowerPointUnits.FromPoints(box.X), PowerPointUnits.FromPoints(box.Y), PowerPointUnits.FromPoints(width), PowerPointUnits.FromPoints(total));
             A.Table element = result.TableElement;
             A.GraphicData data = (A.GraphicData)element.Parent!;

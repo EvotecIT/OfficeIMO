@@ -73,6 +73,14 @@ namespace OfficeIMO.PowerPoint {
 
         /// <summary>Column headings.</summary>
         public IReadOnlyList<string> Headers { get; }
+        /// <summary>Whether to render the column headings on each physical slide.</summary>
+        public bool IncludeHeaders {
+            get => _includeHeaders;
+            set => _includeHeaders = !value && Rows.Count == 0
+                ? throw new ArgumentException("A table without headings requires at least one data row.", nameof(value))
+                : value;
+        }
+        private bool _includeHeaders = true;
         /// <summary>Table data rows.</summary>
         public IReadOnlyList<IReadOnlyList<string>> Rows { get; }
         private int? _maximumRows;
@@ -89,7 +97,7 @@ namespace OfficeIMO.PowerPoint {
         public string? Caption { get; set; }
 
         internal PowerPointLayoutTable WithRows(IReadOnlyList<IReadOnlyList<string>> rows) =>
-            new(Headers, rows) { MaximumRows = MaximumRows, NoSplit = NoSplit, Caption = Caption };
+            new(Headers, rows) { IncludeHeaders = IncludeHeaders, MaximumRows = MaximumRows, NoSplit = NoSplit, Caption = Caption };
     }
 
     /// <summary>An editable chart backed by shared chart data.</summary>

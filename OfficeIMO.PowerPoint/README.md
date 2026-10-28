@@ -701,7 +701,9 @@ explicit layout falls back automatically and reports a preflight warning.
 Automatic selection uses the logical plan position for both previews and rendering;
 physical continuations do not turn a short plan into a longer story.
 
-Tables require at least one header and matching cell counts in every row. A column
+Tables require at least one column heading and matching cell counts in every row.
+Set `IncludeHeaders = false` to omit the heading row on every continuation; a
+headerless table must contain at least one data row. A column
 contains one body block, optionally preceded by a short paragraph, and may have a
 heading. Use separate slides for different semantic block kinds; a case study can
 combine up to four narrative cards and three metrics. Explicit `OfficeColor` roles
