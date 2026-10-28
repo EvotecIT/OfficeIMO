@@ -100,7 +100,7 @@ namespace OfficeIMO.PowerPoint {
                     foreach (PowerPointLayoutSlide s in SplitTiles<PowerPointLayoutKpi>(context, slide, 6)) yield return s;
                     yield break;
                 case PowerPointLayout.Cards:
-                    int cardLimit = slide.Items<PowerPointLayoutCard>().Any(card => !string.IsNullOrWhiteSpace(card.Image)) ? 3 : 6;
+                    int cardLimit = CardsPerSlide(context, slide);
                     foreach (PowerPointLayoutSlide s in SplitTiles<PowerPointLayoutCard>(context, slide, cardLimit)) yield return s;
                     yield break;
                 case PowerPointLayout.Logos:
