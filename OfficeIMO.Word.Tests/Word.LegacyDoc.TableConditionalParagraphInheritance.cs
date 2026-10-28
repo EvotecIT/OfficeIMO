@@ -29,7 +29,7 @@ public partial class Word {
         if (alignmentFirst) derived.Append(columnCondition, rowCondition);
         else derived.Append(rowCondition, columnCondition);
         styles.Append(derived);
-        WordTable table = source.AddTable(1, 1);
+        WordTable table = source.AddTable(1, 1, WordTableStyle.TableGrid);
         table._tableProperties!.TableStyle = new TableStyle { Val = "DerivedRowSpacing" };
         table.ConditionalFormattingFirstRow = true;
         table.ConditionalFormattingFirstColumn = true;

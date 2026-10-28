@@ -24,7 +24,7 @@ namespace OfficeIMO.Tests {
             using var document = WordDocument.Create();
             document.Sections[0].AddEndnoteProperties(WordNumberFormat.Decimal);
             WordParagraph paragraph = context == "table"
-                ? document.AddTable(1, 1).Rows[0].Cells[0].Paragraphs[0].SetText("SameNumberMarker")
+                ? document.AddTable(1, 1, WordTableStyle.TableGrid).Rows[0].Cells[0].Paragraphs[0].SetText("SameNumberMarker")
                 : document.AddParagraph("SameNumberMarker");
             paragraph.AddFootNote("FootnoteBody");
             paragraph.AddEndNote("EndnoteBody");
@@ -189,8 +189,8 @@ namespace OfficeIMO.Tests {
             string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeNestedTableFootnotes.pdf");
 
             using (WordDocument document = WordDocument.Create(docPath)) {
-                WordTable outer = document.AddTable(1, 2);
-                WordTable nested = outer.Rows[0].Cells[0].AddTable(1, 1);
+                WordTable outer = document.AddTable(1, 2, WordTableStyle.TableGrid);
+                WordTable nested = outer.Rows[0].Cells[0].AddTable(1, 1, WordTableStyle.TableGrid);
                 nested.Rows[0].Cells[0].Paragraphs[0]
                     .SetText("Nested table note")
                     .AddFootNote("Nested table footnote");

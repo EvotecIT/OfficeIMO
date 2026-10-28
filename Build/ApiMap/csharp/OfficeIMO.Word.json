@@ -5517,6 +5517,18 @@
       "category": "naming",
       "phase": "B",
       "applied": "phase-b-pending"
+    },
+    {
+      "old": "OfficeIMO.Word.WordDocument.AddTable(int rows, int columns, WordTableStyle tableStyle = TableGrid)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Word.WordDocument.AddTable(int rows, int columns, WordTableStyle tableStyle = OfficeIMOModern)",
+      "reason": "New tables follow the shared Modern theme. Pass TableGrid explicitly to retain cell grid borders. Body, section, header, footer, nested and paragraph-adjacent creation use the same default. Assigning a plain numeric value in an unaligned Modern table cell applies the theme numeric alignment; explicit alignment and rich text retain their formatting.",
+      "file": "OfficeIMO.Word/WordDocument.PublicMethods.cs",
+      "category": "authoring",
+      "phase": "M6",
+      "applied": "applied",
+      "note": "Native DOC palette approximation is reported as word-doc-color-approximated. Native saves require WordSaveOptions.AllowLoss to accept changed border/fill colours; DOC conversions retain editable tables and report the approximation. DOCX retains RGB colours."
     }
   ],
   "packageMoves": [

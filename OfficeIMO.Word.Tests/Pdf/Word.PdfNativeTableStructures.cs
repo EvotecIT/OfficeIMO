@@ -68,7 +68,7 @@ public partial class Word {
         using WordDocument document = WordDocument.Create();
         WordHeaderFooter? story = storyKind == "header" ? document.HeaderDefaultOrCreate :
             storyKind == "footer" ? document.FooterDefaultOrCreate : null;
-        WordTable table = story == null ? document.AddTable(1, 2) : story.AddTable(1, 2);
+        WordTable table = story == null ? document.AddTable(1, 2, WordTableStyle.TableGrid) : story.AddTable(1, 2, WordTableStyle.TableGrid);
         ConfigureNativeInputTable(table, 4000);
         table.GridColumnWidth = new List<int> { 1600, 2400 };
         table.Rows[0].Cells[0].Width = 1600;
@@ -104,7 +104,7 @@ public partial class Word {
     [Fact]
     public void ContentControlCellSpansUseLogicalRowCellsAndExcludeNestedTables() {
         using WordDocument document = WordDocument.Create();
-        WordTable table = document.AddTable(2, 2);
+        WordTable table = document.AddTable(2, 2, WordTableStyle.TableGrid);
         ConfigureNativeInputTable(table, 4000);
         table.GridColumnWidth = new List<int> { 2000, 2000 };
         WordTableCell anchor = table.Rows[0].Cells[0];
@@ -115,7 +115,7 @@ public partial class Word {
             W.TableCell first = row.Cells[0]._tableCell;
             first.Parent!.ReplaceChild(new W.SdtCell(new W.SdtContentCell((W.TableCell)first.CloneNode(true))), first);
         }
-        WordTable nested = table.Rows[0].Cells[1].AddTable(1, 3);
+        WordTable nested = table.Rows[0].Cells[1].AddTable(1, 3, WordTableStyle.TableGrid);
         nested.Rows[0].Cells[0].Paragraphs[0].Text = "NestedMarker";
         WordTableCell reloadedAnchor = table.Rows[0].Cells[0];
         Assert.Equal(2, reloadedAnchor.RowSpan);
@@ -128,7 +128,7 @@ public partial class Word {
     }
 
     private static WordTable AddNativeInputTable(WordDocument document, string marker) {
-        WordTable table = document.AddTable(1, 1);
+        WordTable table = document.AddTable(1, 1, WordTableStyle.TableGrid);
         ConfigureNativeInputTable(table, 2000);
         table.Rows[0].Cells[0].Paragraphs[0].Text = marker;
         return table;

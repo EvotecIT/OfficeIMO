@@ -397,7 +397,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 return new LegacyDocTableCellShading(null);
             }
 
-            if (!LegacyDocColorPalette.TryGetIcoForHex(fillColorHex, out _)) {
+            if (!LegacyDocPaletteProjection.CanResolveColor(fillColorHex)) {
                 throw new NotSupportedException($"Native DOC saving supports {featureName} only for Word 97-2003 palette fill colors.");
             }
 
@@ -476,7 +476,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 colorHex = null;
             }
 
-            if (!LegacyDocColorPalette.TryGetIcoForHex(colorHex, out _)) {
+            if (!LegacyDocPaletteProjection.CanResolveColor(colorHex)) {
                 throw new NotSupportedException("Native DOC saving supports table cell borders only with Word 97-2003 palette colors.");
             }
 

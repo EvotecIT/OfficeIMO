@@ -71,7 +71,7 @@ public sealed partial class WordListMarkerSemanticsTests {
         document.AddHeadersAndFooters();
         WordList list = document.AddCustomList();
         list.Numbering.AddLevel(new WordListLevel(WordListLevelKind.BulletSolidRound));
-        WordTable table = document.AddTable(1, 1);
+        WordTable table = document.AddTable(1, 1, WordTableStyle.TableGrid);
         WordParagraph cell = table.Rows[0].Cells[0].Paragraphs[0];
         cell.Text = "Cell marker";
         AttachToList(cell, list.NumberId);
@@ -117,7 +117,7 @@ public sealed partial class WordListMarkerSemanticsTests {
         WordTextBox box = document.AddParagraph("Box host").AddTextBox("Inside box", WordImageTextWrapping.Square);
         WordParagraph inside = box.Paragraphs[0];
         AttachToList(inside, list.NumberId);
-        WordTable table = document.AddTable(1, 1);
+        WordTable table = document.AddTable(1, 1, WordTableStyle.TableGrid);
         WordParagraph inCell = table.Rows[0].Cells[0].Paragraphs[0];
         inCell.Text = "Inside table";
         AttachToList(inCell, list.NumberId);
@@ -141,7 +141,7 @@ public sealed partial class WordListMarkerSemanticsTests {
         using WordDocument document = WordDocument.Create();
         WordList list = document.AddCustomList();
         list.Numbering.AddLevel(new WordListLevel(WordListLevelKind.DecimalDot));
-        WordTable table = document.AddTable(1, 1);
+        WordTable table = document.AddTable(1, 1, WordTableStyle.TableGrid);
         WordTextBox box = table.Rows[0].Cells[0].Paragraphs[0].AddTextBox("Inside cell box", WordImageTextWrapping.Square);
         WordParagraph inside = box.Paragraphs[0];
         AttachToList(inside, list.NumberId);
@@ -289,7 +289,7 @@ public sealed partial class WordListMarkerSemanticsTests {
         level.OpenXmlElement.GetFirstChild<NumberingSymbolRunProperties>()!.Append(new Bold(), new FontSize { Val = "36" });
         level.IndentationLeft = 2160;
         level.IndentationHanging = 360;
-        WordTable table = document.AddTable(1, 1);
+        WordTable table = document.AddTable(1, 1, WordTableStyle.TableGrid);
         table.Width = 7000;
         WordTableCell cell = table.Rows[0].Cells[0];
         cell.Width = 7000;
@@ -598,7 +598,7 @@ public sealed partial class WordListMarkerSemanticsTests {
         list.Numbering.Levels[0].IndentationHanging = 360;
         document.AddParagraph("PlainBody");
         list.AddItem("UnmarkedBody");
-        WordTable table = document.AddTable(1, 1);
+        WordTable table = document.AddTable(1, 1, WordTableStyle.TableGrid);
         table.Width = 7000;
         WordTableCell cell = table.Rows[0].Cells[0];
         cell.Width = 7000;
@@ -642,7 +642,7 @@ public sealed partial class WordListMarkerSemanticsTests {
         list.Numbering.AddLevel(new WordListLevel(WordListLevelKind.None));
         list.Numbering.Levels[0].IndentationLeft = 1800;
         list.Numbering.Levels[0].IndentationHanging = 360;
-        WordTable table = document.AddTable(1, 1);
+        WordTable table = document.AddTable(1, 1, WordTableStyle.TableGrid);
         table.WidthType = WordTableWidthUnit.Dxa;
         table.Width = 3600;
         table.ColumnWidthType = WordTableWidthUnit.Dxa;
@@ -676,7 +676,7 @@ public sealed partial class WordListMarkerSemanticsTests {
         WordList list = document.AddCustomList();
         list.Numbering.AddLevel(new WordListLevel(WordListLevelKind.None));
         list.Numbering.Levels[0].IndentationLeft = 1800;
-        WordTable outer = document.AddTable(1, 1);
+        WordTable outer = document.AddTable(1, 1, WordTableStyle.TableGrid);
         outer.WidthType = WordTableWidthUnit.Dxa;
         outer.Width = 3600;
         outer.ColumnWidthType = WordTableWidthUnit.Dxa;
@@ -689,7 +689,7 @@ public sealed partial class WordListMarkerSemanticsTests {
             cell.AddParagraph().AddImage(Path.Combine(AppContext.BaseDirectory, "Images", "EvotecLogo.png"),
                 20, 20, description: "Ordered image");
         } else {
-            WordTable nested = cell.AddTable(1, 1);
+            WordTable nested = cell.AddTable(1, 1, WordTableStyle.TableGrid);
             nested.Rows[0].Cells[0].Paragraphs[0].Text = "Nested block";
         }
         for (int index = 0; index < 15; index++) cell.AddParagraph("Following line " + index);

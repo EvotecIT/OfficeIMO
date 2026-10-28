@@ -15,6 +15,9 @@ namespace OfficeIMO.Word.Pdf {
             cellBorders ??= new Dictionary<(int Row, int Column), PdfCore.PdfCellBorder>();
             bool changed = false;
 
+            int footerStartRowIndex = table.ConditionalFormattingLastRow == true && layout.Rows.Count > style.HeaderRowCount
+                ? layout.Rows.Count - 1 : layout.Rows.Count;
+            changed |= ApplyNativeTableConditionalBandBorders(table, layout, tableStyleDefaults, style.HeaderRowCount, footerStartRowIndex, cellBorders);
             if (table.ConditionalFormattingFirstRow == true) {
                 changed |= ApplyNativeTableConditionalRowBorder(layout, 0, tableStyleDefaults.FirstRowStyle, cellBorders);
             }
@@ -25,10 +28,6 @@ namespace OfficeIMO.Word.Pdf {
 
             int columnCount = GetNativeTableColumnCount(layout);
             if (columnCount > 0) {
-                int footerStartRowIndex = table.ConditionalFormattingLastRow == true && layout.Rows.Count > style.HeaderRowCount
-                    ? layout.Rows.Count - 1
-                    : layout.Rows.Count;
-                changed |= ApplyNativeTableConditionalBandBorders(table, layout, tableStyleDefaults, style.HeaderRowCount, footerStartRowIndex, cellBorders);
                 changed |= ApplyNativeTableConditionalColumnBorders(table, layout, tableStyleDefaults, columnCount, cellBorders);
             }
 
@@ -68,19 +67,8 @@ namespace OfficeIMO.Word.Pdf {
         }
 
         private static bool ApplyNativeTableConditionalBandBorders(WordTable table, TableLayout layout, NativeTableStyleDefaults tableStyleDefaults, int headerRowCount, int footerStartRowIndex, Dictionary<(int Row, int Column), PdfCore.PdfCellBorder> cellBorders) {
-            PdfCore.PdfCellBorder? horizontalBandBorder = table.ConditionalFormattingNoHorizontalBand != true
-                ? CreateNativeTableConditionalCellBorder(tableStyleDefaults.Band1HorizontalStyle.CellBorders)
-                : null;
-            PdfCore.PdfCellBorder? verticalBandBorder = table.ConditionalFormattingNoVerticalBand != true
-                ? CreateNativeTableConditionalCellBorder(tableStyleDefaults.Band1VerticalStyle.CellBorders)
-                : null;
-            if (horizontalBandBorder == null && verticalBandBorder == null) {
-                return false;
-            }
-
             bool changed = false;
             for (int rowIndex = headerRowCount; rowIndex < footerStartRowIndex; rowIndex++) {
-                int bodyRowIndex = rowIndex - headerRowCount;
                 IReadOnlyList<WordTableCell> row = layout.Rows[rowIndex];
                 int logicalColumnIndex = GetNativeTableRowStartColumn(layout, rowIndex);
                 for (int cellIndex = 0; cellIndex < row.Count; cellIndex++) {
@@ -96,13 +84,8 @@ namespace OfficeIMO.Word.Pdf {
                     }
 
                     (int Row, int Column) key = (rowIndex, logicalColumnIndex);
-                    if (bodyRowIndex % 2 == 1) {
-                        changed |= ApplyNativeTableConditionalCellBorder(cellBorders, key, horizontalBandBorder);
-                    }
-
-                    if (logicalColumnIndex % 2 == 1) {
-                        changed |= ApplyNativeTableConditionalCellBorder(cellBorders, key, verticalBandBorder);
-                    }
+                    changed |= ApplyNativeTableConditionalCellBorder(cellBorders, key, CreateNativeTableConditionalCellBorder(GetNativeHorizontalBandStyle(table, tableStyleDefaults, rowIndex, headerRowCount, footerStartRowIndex).CellBorders));
+                    changed |= ApplyNativeTableConditionalCellBorder(cellBorders, key, CreateNativeTableConditionalCellBorder(GetNativeVerticalBandStyle(table, tableStyleDefaults, rowIndex, logicalColumnIndex, headerRowCount, footerStartRowIndex).CellBorders));
 
                     logicalColumnIndex += columnSpan;
                 }

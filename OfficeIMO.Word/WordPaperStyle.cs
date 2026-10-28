@@ -199,10 +199,5 @@ public sealed partial class WordPaperStyle {
         if (bold) paragraph.Bold = true;
     }
 
-    private static bool IsNumeric(string? text) {
-        if (string.IsNullOrWhiteSpace(text)) return false;
-        string value = text!.Trim().TrimEnd('%');
-        return decimal.TryParse(value, NumberStyles.Number, CultureInfo.CurrentCulture, out _)
-            || decimal.TryParse(value, NumberStyles.Number, CultureInfo.InvariantCulture, out _);
-    }
+    private static bool IsNumeric(string? text) => WordNumericText.IsNumber(text);
 }

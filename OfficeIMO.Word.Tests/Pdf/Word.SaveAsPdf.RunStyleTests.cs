@@ -114,7 +114,7 @@ namespace OfficeIMO.Tests {
 
             using (WordDocument document = WordDocument.Create(docPath)) {
                 document.AddParagraph("BodyHalfPoint").FontSizePoints = 10.5D;
-                WordParagraph cellParagraph = document.AddTable(1, 1).Rows[0].Cells[0].Paragraphs[0];
+                WordParagraph cellParagraph = document.AddTable(1, 1, WordTableStyle.TableGrid).Rows[0].Cells[0].Paragraphs[0];
                 cellParagraph.Text = "CellHalfPoint";
                 cellParagraph.FontSizePoints = 10.5D;
                 document.Save();
@@ -373,7 +373,7 @@ namespace OfficeIMO.Tests {
             string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeUnmappedTableCellFontEmbedding.pdf");
 
             using (WordDocument document = WordDocument.Create(docPath)) {
-                WordTable table = document.AddTable(1, 1);
+                WordTable table = document.AddTable(1, 1, WordTableStyle.TableGrid);
                 WordParagraph cellParagraph = table.Rows[0].Cells[0].Paragraphs[0];
                 cellParagraph.Text = string.Empty;
                 cellParagraph.AddText(cellMarker).SetFontFamily(fontFamily);
@@ -561,7 +561,7 @@ namespace OfficeIMO.Tests {
                     CustomStyle = true
                 });
 
-                WordTable table = document.AddTable(1, 1);
+                WordTable table = document.AddTable(1, 1, WordTableStyle.TableGrid);
                 WordParagraph cellParagraph = table.Rows[0].Cells[0].Paragraphs[0];
                 cellParagraph.Text = string.Empty;
                 cellParagraph.AddText("CellStyledChar").SetCharacterStyleId(styleId);

@@ -122,7 +122,7 @@ namespace OfficeIMO.Tests {
             using WordDocument source = WordDocument.Create();
             WordParagraph[] paragraphs = {
                 source.AddParagraph(),
-                source.AddTable(1, 1).Rows[0].Cells[0].Paragraphs[0],
+                source.AddTable(1, 1, WordTableStyle.TableGrid).Rows[0].Cells[0].Paragraphs[0],
                 source.HeaderDefaultOrCreate.AddParagraph(),
                 source.FooterDefaultOrCreate.AddParagraph(),
                 source.AddParagraph("Reference").AddFootNote("Footnote prefix").FootNote!.Paragraphs!.Single(p => p.Text == "Footnote prefix"),

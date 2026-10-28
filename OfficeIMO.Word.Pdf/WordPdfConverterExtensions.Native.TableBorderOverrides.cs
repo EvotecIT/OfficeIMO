@@ -14,8 +14,8 @@ namespace OfficeIMO.Word.Pdf {
             (table.ConditionalFormattingLastRow == true && HasHiddenBorder(defaults.LastRowStyle.CellBorders)) ||
             (table.ConditionalFormattingFirstColumn == true && HasHiddenBorder(defaults.FirstColumnStyle.CellBorders)) ||
             (table.ConditionalFormattingLastColumn == true && HasHiddenBorder(defaults.LastColumnStyle.CellBorders)) ||
-            (table.ConditionalFormattingNoHorizontalBand != true && HasHiddenBorder(defaults.Band1HorizontalStyle.CellBorders)) ||
-            (table.ConditionalFormattingNoVerticalBand != true && HasHiddenBorder(defaults.Band1VerticalStyle.CellBorders));
+            (table.ConditionalFormattingNoHorizontalBand != true && (HasHiddenBorder(defaults.Band1HorizontalStyle.CellBorders) || HasHiddenBorder(defaults.Band2HorizontalStyle.CellBorders))) ||
+            (table.ConditionalFormattingNoVerticalBand != true && (HasHiddenBorder(defaults.Band1VerticalStyle.CellBorders) || HasHiddenBorder(defaults.Band2VerticalStyle.CellBorders)));
 
         private static bool HasHiddenBorder(W.TableCellBorders? borders) {
             if (borders == null) {
@@ -203,21 +203,17 @@ namespace OfficeIMO.Word.Pdf {
             }
 
             W.BorderValues? conditional = null;
+            int footerStartRow = table.ConditionalFormattingLastRow == true && layout.Rows.Count > headerRowCount
+                ? layout.Rows.Count - 1 : layout.Rows.Count;
+            UpdateNativeConditionalBorderValue(ref conditional,
+                GetNativeHorizontalBandStyle(table, defaults, key.Row, headerRowCount, footerStartRow).CellBorders, edge);
+            UpdateNativeConditionalBorderValue(ref conditional,
+                GetNativeVerticalBandStyle(table, defaults, key.Row, key.Column, headerRowCount, footerStartRow).CellBorders, edge);
             if (table.ConditionalFormattingFirstRow == true && key.Row == 0) {
                 UpdateNativeConditionalBorderValue(ref conditional, defaults.FirstRowStyle.CellBorders, edge);
             }
             if (table.ConditionalFormattingLastRow == true && layout.Rows.Count > headerRowCount && key.Row == layout.Rows.Count - 1) {
                 UpdateNativeConditionalBorderValue(ref conditional, defaults.LastRowStyle.CellBorders, edge);
-            }
-            int footerStartRow = table.ConditionalFormattingLastRow == true && layout.Rows.Count > headerRowCount
-                ? layout.Rows.Count - 1 : layout.Rows.Count;
-            if (key.Row >= headerRowCount && key.Row < footerStartRow) {
-                if (table.ConditionalFormattingNoHorizontalBand != true && (key.Row - headerRowCount) % 2 == 1) {
-                    UpdateNativeConditionalBorderValue(ref conditional, defaults.Band1HorizontalStyle.CellBorders, edge);
-                }
-                if (table.ConditionalFormattingNoVerticalBand != true && key.Column % 2 == 1) {
-                    UpdateNativeConditionalBorderValue(ref conditional, defaults.Band1VerticalStyle.CellBorders, edge);
-                }
             }
             if (table.ConditionalFormattingFirstColumn == true && key.Column == 0) {
                 UpdateNativeConditionalBorderValue(ref conditional, defaults.FirstColumnStyle.CellBorders, edge);

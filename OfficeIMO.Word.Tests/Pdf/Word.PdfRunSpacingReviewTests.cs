@@ -133,7 +133,7 @@ public sealed class WordPdfRunSpacingReviewTests {
         }
         WordParagraph item = list.AddItem("BODY");
         WordParagraph paragraph = item;
-        if (route == "cell") paragraph = document.AddTable(1, 1).Rows[0].Cells[0].Paragraphs[0];
+        if (route == "cell") paragraph = document.AddTable(1, 1, WordTableStyle.TableGrid).Rows[0].Cells[0].Paragraphs[0];
         else if (route == "header") paragraph = document.HeaderDefaultOrCreate.AddParagraph();
         else if (route == "footer") paragraph = document.FooterDefaultOrCreate.AddParagraph();
         else if (route == "header-box") paragraph = document.HeaderDefaultOrCreate.AddParagraph().AddTextBox("Placeholder", WordImageTextWrapping.Square).Paragraphs.Single();

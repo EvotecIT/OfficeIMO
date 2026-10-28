@@ -62,7 +62,7 @@ public partial class Word {
 
     private static WordDocument CreatePatternedTableDocument(WordBorderStyle borderStyle, bool inherited) {
         WordDocument document = WordDocument.Create();
-        WordTable table = document.AddTable(2, 2);
+        WordTable table = document.AddTable(2, 2, WordTableStyle.TableGrid);
         if (inherited) {
             BorderValues style = borderStyle switch {
                 WordBorderStyle.Dashed => BorderValues.Dashed,
@@ -94,7 +94,7 @@ public partial class Word {
     [InlineData(WordBorderStyle.Dotted, "[1.5 2.25] 0 d")]
     public void SaveAsPdf_CellBorderPatterns_PreserveSpecifiedStroke(WordBorderStyle borderStyle, string pattern) {
         using WordDocument document = WordDocument.Create();
-        var cell = document.AddTable(1, 1).Rows[0].Cells[0];
+        var cell = document.AddTable(1, 1, WordTableStyle.TableGrid).Rows[0].Cells[0];
         cell.Paragraphs[0].Text = "Cell border pattern";
         cell.Borders.TopStyle = borderStyle;
         cell.Borders.TopColorHex = "FF0000";

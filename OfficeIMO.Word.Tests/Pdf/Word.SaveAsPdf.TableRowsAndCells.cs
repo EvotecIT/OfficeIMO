@@ -19,7 +19,7 @@ public partial class Word {
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeTableRowHeight.pdf");
 
         using (WordDocument document = WordDocument.Create(docPath)) {
-            WordTable table = document.AddTable(1, 1);
+            WordTable table = document.AddTable(1, 1, WordTableStyle.TableGrid);
             table.Rows[0].Height = 1600;
             table.Rows[0].Cells[0].Paragraphs[0].Text = "TallRow";
             document.AddParagraph("AfterTall");
@@ -47,7 +47,7 @@ public partial class Word {
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeHiddenTableCellText.pdf");
 
         using (WordDocument document = WordDocument.Create(docPath)) {
-            WordTable table = document.AddTable(1, 2);
+            WordTable table = document.AddTable(1, 2, WordTableStyle.TableGrid);
             table.LayoutMode = WordTableLayoutMode.Fixed;
             table.Rows[0].Cells[0].Width = 2400;
             table.Rows[0].Cells[1].Width = 2400;
@@ -98,7 +98,7 @@ public partial class Word {
                 CustomStyle = true
             });
 
-            WordTable table = document.AddTable(1, 2);
+            WordTable table = document.AddTable(1, 2, WordTableStyle.TableGrid);
             table.LayoutMode = WordTableLayoutMode.Fixed;
             table._tableProperties!.TableStyle = new TableStyle { Val = styleId };
             table.Rows[0].Cells[0].Width = 2400;
@@ -147,7 +147,7 @@ public partial class Word {
                 CustomStyle = true
             });
 
-            WordTable table = document.AddTable(1, 1);
+            WordTable table = document.AddTable(1, 1, WordTableStyle.TableGrid);
             table.LayoutMode = WordTableLayoutMode.Fixed;
             table._tableProperties!.TableStyle = new TableStyle { Val = styleId };
             table.Rows[0].Cells[0].Width = 3600;
@@ -179,7 +179,7 @@ public partial class Word {
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeTableNonUniformRowHeights.pdf");
 
         using (WordDocument document = WordDocument.Create(docPath)) {
-            WordTable table = document.AddTable(3, 1);
+            WordTable table = document.AddTable(3, 1, WordTableStyle.TableGrid);
             table.Rows[0].Height = 400;
             table.Rows[0].Cells[0].Paragraphs[0].Text = "ShortA";
             table.Rows[1].Height = 1200;
@@ -228,7 +228,7 @@ public partial class Word {
             WordParagraph intro = document.AddParagraph("ParagraphTableChainIntro");
             intro.LineSpacingAfterPoints = 100;
             document.AddParagraph("ParagraphTableChainLead").SetStyleId(styleId);
-            WordTable table = document.AddTable(3, 1);
+            WordTable table = document.AddTable(3, 1, WordTableStyle.TableGrid);
             table._tableProperties!.TableStyle?.Remove();
             table.Rows[0].Cells[0].Paragraphs[0].Text = "ParagraphTableChainFirst";
             table.Rows[1].Cells[0].Paragraphs[0].Text = "ParagraphTableChainSecond";
@@ -278,7 +278,7 @@ public partial class Word {
     [Fact]
     public void SaveAsPdf_OfficeIMOEngine_Honors_Explicit_False_Table_Row_OnOff_Properties() {
         using WordDocument document = WordDocument.Create(Path.Combine(_directoryWithFiles, "PdfNativeTableRowOnOffFalse.docx"));
-        WordTable table = document.AddTable(2, 1);
+        WordTable table = document.AddTable(2, 1, WordTableStyle.TableGrid);
         table.Rows[0].RepeatHeaderRowAtTheTopOfEachPage = true;
         table.Rows[0]._tableRow.TableRowProperties!.GetFirstChild<TableHeader>()!.Val = OnOffOnlyValues.Off;
         table.Rows[1].AllowRowToBreakAcrossPages = false;
@@ -347,7 +347,7 @@ public partial class Word {
         string pdfPath = Path.Combine(_directoryWithFiles, fileNamePrefix + ".pdf");
 
         using (WordDocument document = WordDocument.Create(docPath)) {
-            WordTable table = document.AddTable(2, 1);
+            WordTable table = document.AddTable(2, 1, WordTableStyle.TableGrid);
             table.WidthType = WordTableWidthUnit.Dxa;
             table.Width = 2200;
             if (heightRule == HeightRuleValues.AtLeast) table.Rows[0].MinimumHeight = 360;
@@ -380,7 +380,7 @@ public partial class Word {
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativePercentageWidthTable.pdf");
 
         using (WordDocument document = WordDocument.Create(docPath)) {
-            WordTable table = document.AddTable(1, 2);
+            WordTable table = document.AddTable(1, 2, WordTableStyle.TableGrid);
             table.WidthType = WordTableWidthUnit.Pct;
             table.Width = 5000;
             table.Rows[0].Cells[0].Width = 1440;
@@ -414,7 +414,7 @@ public partial class Word {
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeTableRowGridBefore.pdf");
 
         using (WordDocument document = WordDocument.Create(docPath)) {
-            WordTable table = document.AddTable(2, 3);
+            WordTable table = document.AddTable(2, 3, WordTableStyle.TableGrid);
             table.Width = 4320;
             table.WidthType = WordTableWidthUnit.Dxa;
             table.LayoutMode = WordTableLayoutMode.Fixed;
@@ -464,7 +464,7 @@ public partial class Word {
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeTableRowGridAfter.pdf");
 
         using (WordDocument document = WordDocument.Create(docPath)) {
-            WordTable table = document.AddTable(1, 3);
+            WordTable table = document.AddTable(1, 3, WordTableStyle.TableGrid);
             table.Width = 4320;
             table.WidthType = WordTableWidthUnit.Dxa;
             table.LayoutMode = WordTableLayoutMode.Fixed;
@@ -504,7 +504,7 @@ public partial class Word {
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeAutofitPercentageTable.pdf");
 
         using (WordDocument document = WordDocument.Create(docPath)) {
-            WordTable table = document.AddTable(2, 7);
+            WordTable table = document.AddTable(2, 7, WordTableStyle.TableGrid);
             table.WidthType = WordTableWidthUnit.Pct;
             table.Width = 5000;
             table.LayoutMode = WordTableLayoutMode.AutoFit;
@@ -561,7 +561,7 @@ public partial class Word {
         string pdfPath = Path.Combine(_directoryWithFiles, fileNamePrefix + ".pdf");
 
         using (WordDocument document = WordDocument.Create(docPath)) {
-            WordTable table = document.AddTable(1, 1);
+            WordTable table = document.AddTable(1, 1, WordTableStyle.TableGrid);
             table.Rows[0].Cells[0].Paragraphs[0].Text = tableMarker;
 
             if (includeSpacingParagraph) {
@@ -595,7 +595,7 @@ public partial class Word {
         string pdfPath = Path.Combine(_directoryWithFiles, fileNamePrefix + ".pdf");
 
         using (WordDocument document = WordDocument.Create(docPath)) {
-            WordTable table = document.AddTable(1, 1);
+            WordTable table = document.AddTable(1, 1, WordTableStyle.TableGrid);
             table.Width = 900;
             table.WidthType = WordTableWidthUnit.Dxa;
             table.LayoutMode = WordTableLayoutMode.Fixed;
@@ -650,7 +650,7 @@ public partial class Word {
                 CustomStyle = true
             });
 
-            WordTable table = document.AddTable(1, 1);
+            WordTable table = document.AddTable(1, 1, WordTableStyle.TableGrid);
             table.Width = 2880;
             table.WidthType = WordTableWidthUnit.Dxa;
             table._tableProperties!.TableStyle = new TableStyle { Val = styleId };
@@ -682,7 +682,7 @@ public partial class Word {
         string pdfPath = Path.Combine(_directoryWithFiles, fileNamePrefix + ".pdf");
 
         using (WordDocument document = WordDocument.Create(docPath)) {
-            WordTable table = document.AddTable(1, 1);
+            WordTable table = document.AddTable(1, 1, WordTableStyle.TableGrid);
             table.Width = 900;
             table.WidthType = WordTableWidthUnit.Dxa;
             table.LayoutMode = WordTableLayoutMode.Fixed;
@@ -730,7 +730,7 @@ public partial class Word {
                 CustomStyle = true
             });
 
-            WordTable table = document.AddTable(1, 1);
+            WordTable table = document.AddTable(1, 1, WordTableStyle.TableGrid);
             table.Width = 3000;
             table.WidthType = WordTableWidthUnit.Dxa;
             table.LayoutMode = WordTableLayoutMode.Fixed;
@@ -774,7 +774,7 @@ public partial class Word {
             runDefaults.GetFirstChild<FontSize>()!.Val = "28";
             runDefaults.GetFirstChild<FontSizeComplexScript>()!.Val = "28";
 
-            WordTable table = document.AddTable(1, 1);
+            WordTable table = document.AddTable(1, 1, WordTableStyle.TableGrid);
             table.Rows[0].Cells[0].Paragraphs[0].Text = "InheritedTableSize";
 
             document.Save();
@@ -811,7 +811,7 @@ public partial class Word {
                 CustomStyle = true
             });
 
-            WordTable table = document.AddTable(1, 1);
+            WordTable table = document.AddTable(1, 1, WordTableStyle.TableGrid);
             table._tableProperties!.TableStyle = new TableStyle { Val = styleId };
             table.Rows[0].Cells[0].Paragraphs[0].Text = "StyledTableRun";
 
@@ -850,7 +850,7 @@ public partial class Word {
                 CustomStyle = true
             });
 
-            WordTable table = document.AddTable(1, 2);
+            WordTable table = document.AddTable(1, 2, WordTableStyle.TableGrid);
             table._tableProperties!.TableStyle = new TableStyle { Val = styleId };
             table.Rows[0].Cells[0].Paragraphs[0].Text = "InheritedFill";
             table.Rows[0].Cells[1].Paragraphs[0].Text = "DirectFill";
@@ -894,7 +894,7 @@ public partial class Word {
                 CustomStyle = true
             });
 
-            WordTable table = document.AddTable(2, 2);
+            WordTable table = document.AddTable(2, 2, WordTableStyle.TableGrid);
             table.Width = 3600;
             table.WidthType = WordTableWidthUnit.Dxa;
             table.LayoutMode = WordTableLayoutMode.Fixed;
@@ -957,7 +957,7 @@ public partial class Word {
                 CustomStyle = true
             });
 
-            WordTable table = document.AddTable(2, 1);
+            WordTable table = document.AddTable(2, 1, WordTableStyle.TableGrid);
             table.Width = 3600;
             table.WidthType = WordTableWidthUnit.Dxa;
             table.LayoutMode = WordTableLayoutMode.Fixed;
@@ -1015,7 +1015,7 @@ public partial class Word {
                 CustomStyle = true
             });
 
-            WordTable table = document.AddTable(2, 1);
+            WordTable table = document.AddTable(2, 1, WordTableStyle.TableGrid);
             table.Width = 900;
             table.WidthType = WordTableWidthUnit.Dxa;
             table.LayoutMode = WordTableLayoutMode.Fixed;
@@ -1071,7 +1071,7 @@ public partial class Word {
                 CustomStyle = true
             });
 
-            WordTable table = document.AddTable(2, 1);
+            WordTable table = document.AddTable(2, 1, WordTableStyle.TableGrid);
             table.Width = 3600;
             table.WidthType = WordTableWidthUnit.Dxa;
             table.LayoutMode = WordTableLayoutMode.Fixed;
@@ -1109,7 +1109,7 @@ public partial class Word {
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeTableCellParagraphIndentation.pdf");
 
         using (WordDocument document = WordDocument.Create(docPath)) {
-            WordTable table = document.AddTable(2, 1);
+            WordTable table = document.AddTable(2, 1, WordTableStyle.TableGrid);
             table.Width = 3000;
             table.WidthType = WordTableWidthUnit.Dxa;
             table.LayoutMode = WordTableLayoutMode.Fixed;
@@ -1147,7 +1147,7 @@ public partial class Word {
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeNegativeTableCellParagraphIndents.pdf");
 
         using (WordDocument document = WordDocument.Create(docPath)) {
-            WordTable table = document.AddTable(3, 1);
+            WordTable table = document.AddTable(3, 1, WordTableStyle.TableGrid);
             table.Width = 600;
             table.WidthType = WordTableWidthUnit.Dxa;
             table.LayoutMode = WordTableLayoutMode.Fixed;
@@ -1201,7 +1201,7 @@ public partial class Word {
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeTableCellParagraphTabs.pdf");
 
         using (WordDocument document = WordDocument.Create(docPath)) {
-            WordTable table = document.AddTable(1, 1);
+            WordTable table = document.AddTable(1, 1, WordTableStyle.TableGrid);
             table.Width = 5200;
             table.WidthType = WordTableWidthUnit.Dxa;
             table.LayoutMode = WordTableLayoutMode.Fixed;
@@ -1251,7 +1251,7 @@ public partial class Word {
             ParagraphPropertiesBaseStyle paragraphDefaults = docDefaults.GetFirstChild<ParagraphPropertiesDefault>()!.GetFirstChild<ParagraphPropertiesBaseStyle>()!;
             paragraphDefaults.GetFirstChild<SpacingBetweenLines>()!.After = "600";
 
-            WordTable table = document.AddTable(2, 1);
+            WordTable table = document.AddTable(2, 1, WordTableStyle.TableGrid);
             table._tableProperties!.TableStyle?.Remove();
             table.Rows[0].Cells[0].Paragraphs[0].Text = "CellSpacingOne";
             table.Rows[1].Cells[0].Paragraphs[0].Text = "CellSpacingTwo";
@@ -1290,7 +1290,7 @@ public partial class Word {
                 CustomStyle = true
             });
 
-            WordTable table = document.AddTable(2, 1);
+            WordTable table = document.AddTable(2, 1, WordTableStyle.TableGrid);
             table._tableProperties!.TableStyle?.Remove();
             table.Rows[0].Cells[0].Paragraphs[0].Text = "StyledCellSpacingOne";
             table.Rows[0].Cells[0].Paragraphs[0].SetStyleId(styleId);
@@ -1345,7 +1345,7 @@ public partial class Word {
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeTableCellNoImplicitParagraphSpacing.pdf");
 
         using (WordDocument document = WordDocument.Create(docPath)) {
-            WordTable table = document.AddTable(2, 1);
+            WordTable table = document.AddTable(2, 1, WordTableStyle.TableGrid);
             table._tableProperties!.TableStyle?.Remove();
             table.Rows[0].Cells[0].Paragraphs[0].Text = "CompactCellOne";
             table.Rows[1].Cells[0].Paragraphs[0].Text = "CompactCellTwo";
@@ -1409,7 +1409,7 @@ public partial class Word {
 
         using (WordDocument document = WordDocument.Create(docPath)) {
             document.Settings.DefaultTabStop = defaultTabStopTwips;
-            WordTable table = document.AddTable(1, 1);
+            WordTable table = document.AddTable(1, 1, WordTableStyle.TableGrid);
             table.Width = 5200;
             table.WidthType = WordTableWidthUnit.Dxa;
             table.LayoutMode = WordTableLayoutMode.Fixed;
@@ -1440,7 +1440,7 @@ public partial class Word {
         string pdfPath = Path.Combine(_directoryWithFiles, fileNamePrefix + ".pdf");
 
         using (WordDocument document = WordDocument.Create(docPath)) {
-            WordTable table = document.AddTable(1, 1);
+            WordTable table = document.AddTable(1, 1, WordTableStyle.TableGrid);
             table._tableProperties!.TableStyle?.Remove();
             table.Rows[0].Cells[0].Width = 2880;
             table.Rows[0].Cells[0].WidthType = WordTableWidthUnit.Dxa;
@@ -1485,7 +1485,7 @@ public partial class Word {
                 CustomStyle = true
             });
 
-            WordTable table = document.AddTable(1, 1);
+            WordTable table = document.AddTable(1, 1, WordTableStyle.TableGrid);
             table._tableProperties!.TableStyle?.Remove();
             table.Width = 3200;
             table.WidthType = WordTableWidthUnit.Dxa;
@@ -1540,7 +1540,7 @@ public partial class Word {
                 CustomStyle = true
             });
 
-            WordTable table = document.AddTable(1, 1);
+            WordTable table = document.AddTable(1, 1, WordTableStyle.TableGrid);
             table._tableProperties!.TableStyle?.Remove();
             table.Rows[0].Cells[0].Width = 2880;
             table.Rows[0].Cells[0].WidthType = WordTableWidthUnit.Dxa;
@@ -1572,7 +1572,7 @@ public partial class Word {
         const string linkUri = "https://evotec.xyz/native-table-link";
 
         using (WordDocument document = WordDocument.Create(docPath)) {
-            WordTable table = document.AddTable(1, 1);
+            WordTable table = document.AddTable(1, 1, WordTableStyle.TableGrid);
             WordTableCell cell = table.Rows[0].Cells[0];
             WordParagraph linkParagraph = cell.Paragraphs[0].AddHyperLink("Native table link", new Uri(linkUri), addStyle: true, tooltip: "Native table link metadata");
             linkParagraph.Hyperlink!.Anchor = "IgnoredWhenExternalUriExists";
@@ -1602,7 +1602,7 @@ public partial class Word {
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeAlignedTable.pdf");
 
         using (WordDocument document = WordDocument.Create(docPath)) {
-            WordTable table = document.AddTable(1, 3);
+            WordTable table = document.AddTable(1, 3, WordTableStyle.TableGrid);
             WordTableCell leftCell = table.Rows[0].Cells[0];
             WordTableCell centerCell = table.Rows[0].Cells[1];
             WordTableCell rightCell = table.Rows[0].Cells[2];
@@ -1661,7 +1661,7 @@ public partial class Word {
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeMixedParagraphAlignedTable.pdf");
 
         using (WordDocument document = WordDocument.Create(docPath)) {
-            WordTable table = document.AddTable(1, 1);
+            WordTable table = document.AddTable(1, 1, WordTableStyle.TableGrid);
             WordTableCell cell = table.Rows[0].Cells[0];
             cell.Width = 2880;
             cell.WidthType = WordTableWidthUnit.Dxa;
@@ -1729,7 +1729,7 @@ public partial class Word {
                     CustomStyle = true
                 });
 
-            WordTable table = document.AddTable(1, 3);
+            WordTable table = document.AddTable(1, 3, WordTableStyle.TableGrid);
             WordTableCell leftCell = table.Rows[0].Cells[0];
             WordTableCell centerCell = table.Rows[0].Cells[1];
             WordTableCell rightCell = table.Rows[0].Cells[2];
@@ -1776,7 +1776,7 @@ public partial class Word {
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeNonUniformAlignedTable.pdf");
 
         using (WordDocument document = WordDocument.Create(docPath)) {
-            WordTable table = document.AddTable(2, 2);
+            WordTable table = document.AddTable(2, 2, WordTableStyle.TableGrid);
             foreach (WordTableRow row in table.Rows) {
                 row.Height = 1100;
                 foreach (WordTableCell cell in row.Cells) {
@@ -1823,7 +1823,7 @@ public partial class Word {
         const string verticalUri = "https://evotec.xyz/native-table-row-span";
 
         using (WordDocument document = WordDocument.Create(docPath)) {
-            WordTable table = document.AddTable(3, 3);
+            WordTable table = document.AddTable(3, 3, WordTableStyle.TableGrid);
             foreach (WordTableRow row in table.Rows) {
                 foreach (WordTableCell cell in row.Cells) {
                     cell.Width = 1440;

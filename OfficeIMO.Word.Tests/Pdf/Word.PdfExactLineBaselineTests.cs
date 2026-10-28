@@ -16,7 +16,7 @@ public partial class Word {
     public void SaveAsPdf_TableTextKeepsTheCellClipWithNegativeIndents(bool nativeDoc, bool columns) {
         using WordDocument source = WordDocument.Create();
         if (columns) source.Sections[0].ColumnCount = 2;
-        WordTable table = source.AddTable(1, 1);
+        WordTable table = source.AddTable(1, 1, WordTableStyle.TableGrid);
         // Borderless cells isolate exact-line baselines and clipping from the
         // additional space reserved for table border paint.
         table.StyleDetails!.SetBordersForAllSides(WordBorderStyle.Nil, 0U, OfficeIMO.OfficeColor.Black);
@@ -67,7 +67,7 @@ public partial class Word {
         using WordDocument source = WordDocument.Create();
         WordParagraph paragraph;
         if (frame == "table") {
-            WordTable table = source.AddTable(1, 1);
+            WordTable table = source.AddTable(1, 1, WordTableStyle.TableGrid);
             table.StyleDetails!.SetBordersForAllSides(WordBorderStyle.Nil, 0U, OfficeIMO.OfficeColor.Black);
             WordTableCell cell = table.Rows[0].Cells[0];
             cell.MarginTopWidth = 0; cell.MarginBottomWidth = 0;

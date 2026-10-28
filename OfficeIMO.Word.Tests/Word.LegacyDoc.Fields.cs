@@ -17,7 +17,7 @@ namespace OfficeIMO.Tests {
                     WordParagraph bodyParagraph = document.AddParagraph("Body ");
                     AppendBookmarkedSimpleField(bodyParagraph._paragraph, "81", "BodySimpleFieldBookmark", " PAGE ");
 
-                    WordTable table = document.AddTable(1, 1);
+                    WordTable table = document.AddTable(1, 1, WordTableStyle.TableGrid);
                     WordParagraph cellParagraph = table.Rows[0].Cells[0].AddParagraph("Cell ", removeExistingParagraphs: true);
                     AppendBookmarkedSimpleField(cellParagraph._paragraph, "82", "CellSimpleFieldBookmark", " NUMPAGES ");
 
@@ -96,7 +96,7 @@ namespace OfficeIMO.Tests {
                     WordParagraph bodyParagraph = document.AddParagraph("Body ");
                     AppendBookmarkedComplexField(bodyParagraph._paragraph, "91", "BodyComplexFieldBookmark", " PAGE ");
 
-                    WordTable table = document.AddTable(1, 1);
+                    WordTable table = document.AddTable(1, 1, WordTableStyle.TableGrid);
                     WordParagraph cellParagraph = table.Rows[0].Cells[0].AddParagraph("Cell ", removeExistingParagraphs: true);
                     AppendBookmarkedComplexField(cellParagraph._paragraph, "92", "CellComplexFieldBookmark", " NUMPAGES ");
 
@@ -145,7 +145,7 @@ namespace OfficeIMO.Tests {
                     WordParagraph bodyParagraph = document.AddParagraph("Body date ");
                     AppendSimpleField(bodyParagraph._paragraph, dateInstruction, "2026-07-01");
 
-                    WordTable table = document.AddTable(1, 1);
+                    WordTable table = document.AddTable(1, 1, WordTableStyle.TableGrid);
                     WordParagraph cellParagraph = table.Rows[0].Cells[0].AddParagraph("Cell date ", removeExistingParagraphs: true);
                     AppendComplexField(cellParagraph._paragraph, dateInstruction, "2026-07-02");
 
@@ -231,7 +231,7 @@ namespace OfficeIMO.Tests {
                         "Body",
                         BreakValues.TextWrapping);
 
-                    WordTable table = document.AddTable(1, 1);
+                    WordTable table = document.AddTable(1, 1, WordTableStyle.TableGrid);
                     WordParagraph cellParagraph = table.Rows[0].Cells[0].AddParagraph("Cell inline field ", removeExistingParagraphs: true);
                     AppendComplexFieldWithResultRun(
                         cellParagraph._paragraph,
@@ -290,7 +290,7 @@ namespace OfficeIMO.Tests {
                 using (WordDocument document = WordDocument.Create()) {
                     AppendSimpleField(document.AddParagraph("Author ")._paragraph, " AUTHOR ", "Ada Writer");
 
-                    WordTable table = document.AddTable(1, 1);
+                    WordTable table = document.AddTable(1, 1, WordTableStyle.TableGrid);
                     WordParagraph cellParagraph = table.Rows[0].Cells[0].AddParagraph("Title ", removeExistingParagraphs: true);
                     AppendComplexField(cellParagraph._paragraph, " TITLE ", "Quarterly Plan");
 
@@ -362,7 +362,7 @@ namespace OfficeIMO.Tests {
                         "Legacy DOC body inline field",
                         CreateSimpleField(" DATE \\@ \"yyyy-MM-dd\" ", "2026-07-01")));
 
-                    WordTable table = document.AddTable(1, 1);
+                    WordTable table = document.AddTable(1, 1, WordTableStyle.TableGrid);
                     WordParagraph cellParagraph = table.Rows[0].Cells[0].AddParagraph("Cell controlled ", removeExistingParagraphs: true);
                     cellParagraph._paragraph.Append(CreateInlineContentControl(
                         "Legacy DOC table inline field",
@@ -430,7 +430,7 @@ namespace OfficeIMO.Tests {
                 using (WordDocument document = WordDocument.Create()) {
                     document.AddEquation(fractionOmml);
                     document.AddEquation(noBarFractionOmml);
-                    WordTable table = document.AddTable(1, 1);
+                    WordTable table = document.AddTable(1, 1, WordTableStyle.TableGrid);
                     table.Rows[0].Cells[0].AddParagraph(string.Empty, removeExistingParagraphs: true).AddEquation(oneSidedOmml.Replace("<m:t>x</m:t>", "<m:t>t</m:t>"));
                     document.AddHeadersAndFooters();
                     document.Sections[0].Header.Default!.AddParagraph("Header ").AddEquation(fractionOmml);

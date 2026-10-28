@@ -421,6 +421,8 @@ public static partial class OfficeDiagnosticCodes {
     public const string WordDestinationFeatureUnsupported = "word-destination-feature-unsupported";
     /// <summary>Stable code: <c>word-digital-signature-invalidated</c>.</summary>
     public const string WordDigitalSignatureInvalidated = "word-digital-signature-invalidated";
+    /// <summary>Stable code: <c>word-doc-color-approximated</c>.</summary>
+    public const string WordDocColorApproximated = "word-doc-color-approximated";
     /// <summary>Stable code: <c>word-element-limit-exceeded</c>.</summary>
     public const string WordElementLimitExceeded = "word-element-limit-exceeded";
     /// <summary>Stable code: <c>word-equation-depth-limit-exceeded</c>.</summary>

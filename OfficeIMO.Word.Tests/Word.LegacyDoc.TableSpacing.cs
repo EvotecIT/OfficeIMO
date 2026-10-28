@@ -13,7 +13,7 @@ public partial class Word {
     [InlineData(true)]
     public void LegacyDoc_TableSpacing_DoesNotInsertBlankBeforeFollowingBodyParagraph(bool authoredBlank) {
         using WordDocument document = WordDocument.Create();
-        document.AddTable(1, 1).Rows[0].Cells[0].Paragraphs[0].Text = "Cell";
+        document.AddTable(1, 1, WordTableStyle.TableGrid).Rows[0].Cells[0].Paragraphs[0].Text = "Cell";
         if (authoredBlank) document.AddParagraph();
         document.AddParagraph("After");
         byte[] bytes = document.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc });
@@ -30,8 +30,8 @@ public partial class Word {
     [Fact]
     public void LegacyDoc_TableSpacing_KeepsAdjacentTablesDistinctAndFinalBodyTerminator() {
         using WordDocument document = WordDocument.Create();
-        document.AddTable(1, 1).Rows[0].Cells[0].Paragraphs[0].Text = "First";
-        document.AddTable(1, 1).Rows[0].Cells[0].Paragraphs[0].Text = "Second";
+        document.AddTable(1, 1, WordTableStyle.TableGrid).Rows[0].Cells[0].Paragraphs[0].Text = "First";
+        document.AddTable(1, 1, WordTableStyle.TableGrid).Rows[0].Cells[0].Paragraphs[0].Text = "Second";
         byte[] bytes = document.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc });
         Assert.Equal("First\a\a\rSecond\a\a\r", ReadNativeTableSpacingStory(bytes));
         using WordDocument reopened = WordDocument.Load(new MemoryStream(bytes));
@@ -130,10 +130,10 @@ public partial class Word {
     [InlineData(0, true, true)]
     public void LegacyDoc_TableSpacing_AdjacentTableBookmarksExcludeSeparator(int contentControlDepth, bool previousEndAfterNextStart, bool authoredBlank) {
         using WordDocument document = WordDocument.Create();
-        WordTable first = document.AddTable(1, 1);
+        WordTable first = document.AddTable(1, 1, WordTableStyle.TableGrid);
         first.Rows[0].Cells[0].Paragraphs[0].Text = "First";
         if (authoredBlank) document.AddParagraph();
-        WordTable second = document.AddTable(1, 1);
+        WordTable second = document.AddTable(1, 1, WordTableStyle.TableGrid);
         second.Rows[0].Cells[0].Paragraphs[0].Text = "Second";
         Body body = document._wordprocessingDocument!.MainDocumentPart!.Document.Body!;
         body.InsertBefore(new BookmarkStart { Id = "61", Name = "FirstTable" }, first._table);

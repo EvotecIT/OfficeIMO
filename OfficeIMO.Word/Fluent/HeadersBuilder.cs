@@ -120,7 +120,7 @@ namespace OfficeIMO.Word.Fluent {
         /// <summary>
         /// Adds a table to the header.
         /// </summary>
-        public HeaderContentBuilder Table(int rows, int columns, WordTableStyle tableStyle = WordTableStyle.TableGrid, Action<WordTable>? configure = null) {
+        public HeaderContentBuilder Table(int rows, int columns, WordTableStyle tableStyle = WordTableStyle.OfficeIMOModern, Action<WordTable>? configure = null) {
             var table = _header.AddTable(rows, columns, tableStyle);
             configure?.Invoke(table);
             return this;

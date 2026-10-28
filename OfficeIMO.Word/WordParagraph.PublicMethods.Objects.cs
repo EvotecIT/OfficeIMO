@@ -20,7 +20,7 @@ namespace OfficeIMO.Word {
         /// <param name="columns">The number of columns in the table.</param>
         /// <param name="tableStyle">The optional style to be applied to the new table, defaults to TableGrid.</param>
         /// <returns>The new added table.</returns>
-        public WordTable AddTableAfter(int rows, int columns, WordTableStyle tableStyle = WordTableStyle.TableGrid) {
+        public WordTable AddTableAfter(int rows, int columns, WordTableStyle tableStyle = WordTableStyle.OfficeIMOModern) {
             WordTable wordTable = new WordTable(this._document, this, rows, columns, tableStyle, "After");
             return wordTable;
         }
@@ -32,7 +32,7 @@ namespace OfficeIMO.Word {
         /// <param name="columns">The number of columns in this table</param>
         /// <param name="tableStyle">The style of the table being added.</param>
         /// <returns>The new added table.</returns>
-        public WordTable AddTableBefore(int rows, int columns, WordTableStyle tableStyle = WordTableStyle.TableGrid) {
+        public WordTable AddTableBefore(int rows, int columns, WordTableStyle tableStyle = WordTableStyle.OfficeIMOModern) {
             WordTable wordTable = new WordTable(this._document, this, rows, columns, tableStyle, "Before");
             return wordTable;
         }

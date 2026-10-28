@@ -15,7 +15,7 @@ namespace OfficeIMO.Tests {
                     bodyParagraph.AddHyperLink("placeholder", new Uri("https://officeimo.net/body-bookmark"), addStyle: true);
                     ReplaceHyperlinkDisplayWithBookmark(bodyParagraph.Hyperlink!._hyperlink, "71", "BodyHyperlinkBookmark", "BodyMarked");
 
-                    WordTable table = document.AddTable(1, 1);
+                    WordTable table = document.AddTable(1, 1, WordTableStyle.TableGrid);
                     WordParagraph cellParagraph = table.Rows[0].Cells[0].AddParagraph("Cell ", removeExistingParagraphs: true);
                     cellParagraph.AddHyperLink("placeholder", new Uri("mailto:cell-bookmark@example.org"), addStyle: true);
                     ReplaceHyperlinkDisplayWithBookmark(cellParagraph.Hyperlink!._hyperlink, "72", "CellHyperlinkBookmark", "CellMarked");

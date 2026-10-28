@@ -14,8 +14,10 @@ namespace OfficeIMO.Word.Pdf {
             // authored run, paragraph and named table styles retain precedence.
             public bool UseConfiguredTypography { get; init; }
             public NativeParagraphPaginationDefaults ParagraphPagination { get; init; }
-            // Word's band 2 shades the second, fourth... body row.
-            public PdfCore.PdfColor? Band2HorizontalFill { get; init; }
+            public NativeTableConditionalStyleDefaults Band2HorizontalStyle { get; init; }
+            public NativeTableConditionalStyleDefaults Band2VerticalStyle { get; init; }
+            public int RowBandSize { get; init; }
+            public int ColumnBandSize { get; init; }
             public static NativeTableStyleDefaults Empty { get; } = new(null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, NativeTableRunStyleDefaults.Empty, NativeTableConditionalStyleDefaults.Empty, NativeTableConditionalStyleDefaults.Empty, NativeTableConditionalStyleDefaults.Empty, NativeTableConditionalStyleDefaults.Empty, NativeTableConditionalStyleDefaults.Empty, NativeTableConditionalStyleDefaults.Empty);
         }
 
@@ -95,6 +97,9 @@ namespace OfficeIMO.Word.Pdf {
             NativeTableConditionalStyleDefaults lastColumnStyle = NativeTableConditionalStyleDefaults.Empty;
             NativeTableConditionalStyleDefaults band1HorizontalStyle = NativeTableConditionalStyleDefaults.Empty;
             NativeTableConditionalStyleDefaults band1VerticalStyle = NativeTableConditionalStyleDefaults.Empty;
+            NativeTableConditionalStyleDefaults band2HorizontalStyle = NativeTableConditionalStyleDefaults.Empty;
+            NativeTableConditionalStyleDefaults band2VerticalStyle = NativeTableConditionalStyleDefaults.Empty;
+            int rowBandSize = 1, columnBandSize = 1;
 
             foreach (W.Style style in styleChain) {
                 W.StyleRunProperties? runProperties = style.GetFirstChild<W.StyleRunProperties>();
@@ -114,6 +119,8 @@ namespace OfficeIMO.Word.Pdf {
                 highlight = WordRunFormatting.ReadRunHighlight(runProperties) ?? highlight;
 
                 W.StyleTableProperties? tableProperties = style.GetFirstChild<W.StyleTableProperties>();
+                rowBandSize = tableProperties?.GetFirstChild<W.TableStyleRowBandSize>()?.Val?.Value ?? rowBandSize;
+                columnBandSize = tableProperties?.GetFirstChild<W.TableStyleColumnBandSize>()?.Val?.Value ?? columnBandSize;
                 preferredWidth = tableProperties?.GetFirstChild<W.TableWidth>() ?? preferredWidth;
                 layout = tableProperties?.GetFirstChild<W.TableLayout>()?.Type?.Value ?? layout;
                 leftIndent = GetNativeTableLeftIndent(tableProperties?.GetFirstChild<W.TableIndentation>()) ?? leftIndent;
@@ -210,6 +217,8 @@ namespace OfficeIMO.Word.Pdf {
                 lastColumnStyle = GetNativeTableConditionalStyleDefaults(style, W.TableStyleOverrideValues.LastColumn, lastColumnStyle, conditionalFontDefaults[W.TableStyleOverrideValues.LastColumn], table.Document);
                 band1HorizontalStyle = GetNativeTableConditionalStyleDefaults(style, W.TableStyleOverrideValues.Band1Horizontal, band1HorizontalStyle, conditionalFontDefaults[W.TableStyleOverrideValues.Band1Horizontal], table.Document);
                 band1VerticalStyle = GetNativeTableConditionalStyleDefaults(style, W.TableStyleOverrideValues.Band1Vertical, band1VerticalStyle, conditionalFontDefaults[W.TableStyleOverrideValues.Band1Vertical], table.Document);
+                band2HorizontalStyle = GetNativeTableConditionalStyleDefaults(style, W.TableStyleOverrideValues.Band2Horizontal, band2HorizontalStyle, conditionalFontDefaults[W.TableStyleOverrideValues.Band2Horizontal], table.Document);
+                band2VerticalStyle = GetNativeTableConditionalStyleDefaults(style, W.TableStyleOverrideValues.Band2Vertical, band2VerticalStyle, conditionalFontDefaults[W.TableStyleOverrideValues.Band2Vertical], table.Document);
             }
 
             PdfCore.PdfCellPadding? cellPadding = marginTop.HasValue || marginBottom.HasValue || marginLeft.HasValue || marginRight.HasValue
@@ -260,21 +269,8 @@ namespace OfficeIMO.Word.Pdf {
                 band1HorizontalStyle,
                 band1VerticalStyle) { LineSpacing = authoredLineSpacing, ParagraphSpacing = paragraphSpacing,
                     ParagraphPagination = paragraphPagination, SeparateCellBorders = separateCellBorders, RightToLeft = rightToLeft,
-                    Band2HorizontalFill = GetNativeTableBand2HorizontalFill(styleChain) };
-        }
-
-        private static PdfCore.PdfColor? GetNativeTableBand2HorizontalFill(IReadOnlyList<W.Style> styleChain) {
-            PdfCore.PdfColor? fill = null;
-            foreach (W.Style style in styleChain) {
-                foreach (W.TableStyleProperties properties in style.Elements<W.TableStyleProperties>()
-                             .Where(properties => properties.Type?.Value == W.TableStyleOverrideValues.Band2Horizontal)) {
-                    string? hex = properties.GetFirstChild<W.TableStyleConditionalFormattingTableCellProperties>()?
-                        .GetFirstChild<W.Shading>()?.Fill?.Value;
-                    if (hex != null && !string.Equals(hex, "auto", StringComparison.OrdinalIgnoreCase) && ParseNativeColor(hex) is { } color)
-                        fill = color;
-                }
-            }
-            return fill;
+                    Band2HorizontalStyle = band2HorizontalStyle, Band2VerticalStyle = band2VerticalStyle,
+                    RowBandSize = rowBandSize, ColumnBandSize = columnBandSize };
         }
 
         private static Dictionary<W.TableStyleOverrideValues, NativeDocumentDefaults> ResolveNativeConditionalFontDefaults(
@@ -283,7 +279,8 @@ namespace OfficeIMO.Word.Pdf {
             foreach (W.TableStyleOverrideValues type in new[] {
                 W.TableStyleOverrideValues.FirstRow, W.TableStyleOverrideValues.LastRow,
                 W.TableStyleOverrideValues.FirstColumn, W.TableStyleOverrideValues.LastColumn,
-                W.TableStyleOverrideValues.Band1Horizontal, W.TableStyleOverrideValues.Band1Vertical
+                W.TableStyleOverrideValues.Band1Horizontal, W.TableStyleOverrideValues.Band1Vertical,
+                W.TableStyleOverrideValues.Band2Horizontal, W.TableStyleOverrideValues.Band2Vertical
             }) {
                 NativeDocumentDefaults defaults = tableDefaults;
                 foreach (W.Style style in styleChain) {

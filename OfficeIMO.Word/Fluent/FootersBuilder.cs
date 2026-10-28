@@ -121,7 +121,7 @@ namespace OfficeIMO.Word.Fluent {
         /// <summary>
         /// Adds a table to the footer.
         /// </summary>
-        public FooterContentBuilder Table(int rows, int columns, WordTableStyle tableStyle = WordTableStyle.TableGrid, Action<WordTable>? configure = null) {
+        public FooterContentBuilder Table(int rows, int columns, WordTableStyle tableStyle = WordTableStyle.OfficeIMOModern, Action<WordTable>? configure = null) {
             var table = _footer.AddTable(rows, columns, tableStyle);
             configure?.Invoke(table);
             return this;

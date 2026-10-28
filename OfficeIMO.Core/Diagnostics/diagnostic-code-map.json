@@ -10682,6 +10682,14 @@
       "origins": [
         "OfficeIMO.Word.Pdf/WordPdfConverterExtensions.Native.Bookmarks.cs"
       ]
+    },
+    {
+      "oldCode": "word-doc-color-approximated",
+      "catalogCode": "word-doc-color-approximated",
+      "member": "WordDocColorApproximated",
+      "origins": [
+        "OfficeIMO.Word/LegacyDoc/Write/LegacyDocPaletteProjection.cs"
+      ]
     }
   ],
   "dynamicPatterns": [

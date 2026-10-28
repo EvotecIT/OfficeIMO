@@ -138,7 +138,7 @@ namespace OfficeIMO.Word {
         /// <param name="rows">Number of rows.</param>
         /// <param name="columns">Number of columns.</param>
         /// <param name="tableStyle">Table style to apply.</param>
-        public WordTable AddTable(int rows, int columns, WordTableStyle tableStyle = WordTableStyle.TableGrid) {
+        public WordTable AddTable(int rows, int columns, WordTableStyle tableStyle = WordTableStyle.OfficeIMOModern) {
             var table = WordTable.Create(_document, rows, columns, tableStyle);
             AppendElementToSection(table._table);
             return table;

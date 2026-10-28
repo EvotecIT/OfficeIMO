@@ -25,6 +25,23 @@ columns to the section's text width instead of 2400 twips each. Loaded documents
 keep their own styles. To keep the previous look in a new document, set the
 heading style definitions and column widths explicitly.
 
+New tables use `WordTableStyle.OfficeIMOModern`: a tinted header, horizontal
+rules and alternating body rows. Pass `WordTableStyle.TableGrid` explicitly to
+keep the grid style. This applies to body, section, header, footer, nested and
+paragraph-adjacent table creation. Assigning a plain numeric value in an
+unaligned Modern table cell now applies the theme's numeric alignment. Set
+`ParagraphAlignment` explicitly to choose a different alignment.
+
+`Bold = false` and `Italic = false` now explicitly disable inherited emphasis
+instead of removing the direct setting. This lets regular text override a
+bold table header or an italic paragraph style.
+
+Native DOC borders and fills approximate RGB colours outside its 16-colour
+palette. A native save rejects these changes with an `OfficeConversionException`
+whose report carries `word-doc-color-approximated`; set `WordSaveOptions.AllowLoss`
+to accept them. DOC conversion reports carry the same approximation while
+keeping tables editable. DOCX retains the authored RGB colours.
+
 A table of contents created with `AddTableOfContent` now stores its heading
 entries when the document is saved, so viewers that do not update fields show
 it; Word still refreshes the field on open. Paragraph counts after loading

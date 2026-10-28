@@ -59,7 +59,7 @@ public sealed class WordPdfNoteNumberingTests {
             WordFootnotePosition.PageBottom, WordNoteNumberRestart.Continuous, startNumber: 3);
         source.Sections[0].AddEndnoteProperties(WordNumberFormat.LowerLetter,
             WordEndnotePosition.DocumentEnd, WordNoteNumberRestart.Continuous, startNumber: 9);
-        WordParagraph foot = table ? source.AddTable(1, 1).Rows[0].Cells[0].Paragraphs[0] : source.AddParagraph();
+        WordParagraph foot = table ? source.AddTable(1, 1, WordTableStyle.TableGrid).Rows[0].Cells[0].Paragraphs[0] : source.AddParagraph();
         foot.Text = "FOOTREF";
         foot.AddFootNote("FOOTBODY");
         WordParagraph end = table ? source.Tables[0].Rows[0].Cells[0].AddParagraph() : source.AddParagraph();

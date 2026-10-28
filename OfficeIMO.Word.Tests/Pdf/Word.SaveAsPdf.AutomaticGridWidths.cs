@@ -202,7 +202,7 @@ public partial class Word {
     }
 
     private static WordTable CreateAutomaticWidthControl(WordDocument document, params int[] gridTwips) {
-        WordTable table = document.AddTable(1, gridTwips.Length);
+        WordTable table = document.AddTable(1, gridTwips.Length, WordTableStyle.TableGrid);
         table.ConditionalFormattingFirstRow = false;
         table.AutoFitToContents();
         for (int column = 0; column < gridTwips.Length; column++) {

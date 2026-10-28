@@ -51,16 +51,26 @@ using var document = WordDocument.Create("report.docx");
 document.AddParagraph("Quarterly report").Style = WordParagraphStyles.Heading1;
 document.AddParagraph("Created with OfficeIMO.Word.");
 
-var table = document.AddTable(2, 2, WordTableStyle.TableGrid);
+var table = document.AddTable(2, 2);
 table.Rows[0].Cells[0].Paragraphs[0].Text = "Area";
 table.Rows[0].Cells[1].Paragraphs[0].Text = "Status";
 table.Rows[1].Cells[0].Paragraphs[0].Text = "Documents";
 table.Rows[1].Cells[1].Paragraphs[0].Text = "Generated";
 table.RepeatHeaderRowAtTheTopOfEachPage = true;
-table.Style = WordTableStyle.TableGrid;
 
 document.Save();
 ```
+
+New tables use `WordTableStyle.OfficeIMOModern`, with a tinted header,
+horizontal rules and alternating body rows. Pass `WordTableStyle.TableGrid`
+when you want borders around every cell. Assigning a plain numeric value in an
+unaligned Modern table cell right-aligns it; explicit alignment and rich text
+retain their formatting. Loaded tables retain their own style.
+
+Native DOC output uses a 16-colour palette for borders and fills. Saving an RGB
+colour that needs approximation throws `OfficeConversionException` with a
+`word-doc-color-approximated` report. Accept it with `WordSaveOptions.AllowLoss`;
+DOCX retains the original RGB colours.
 
 ## Printed reports
 

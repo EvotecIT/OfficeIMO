@@ -32,8 +32,18 @@ public partial class WordDocument {
         try {
             _ = LegacyDocWriter.WriteDocument(
                 document,
+                out OfficeConversionReport nativeReport,
                 CreateLegacyWriterProbeOptions(options.SaveOptions),
                 isTemplate: destinationFormat.DocumentKind == OfficeDocumentKind.Template);
+            bool allowsPaletteLoss = AllowsLoss(options, mode);
+            foreach (OfficeDiagnostic finding in nativeReport.Diagnostics) {
+                diagnostics.Add(new OfficeConversionDiagnostic(finding.Code,
+                    OfficeConversionDiagnosticCategory.DataLoss,
+                    allowsPaletteLoss ? OfficeConversionDiagnosticSeverity.Warning : OfficeConversionDiagnosticSeverity.Error,
+                    finding.Message, representsDataLoss: true,
+                    allowsPaletteLoss ? OfficeCompatibilityState.Approximated : OfficeCompatibilityState.Blocked,
+                    OfficeCompatibilityImpact.Visual, sourceLocation: finding.Location));
+            }
             return null;
         } catch (NotSupportedException exception) {
             bool permitsVisualFallback = mode is OfficeCompatibilityMode.PreferVisual

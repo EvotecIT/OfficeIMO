@@ -3047,7 +3047,7 @@ namespace OfficeIMO.Tests {
                     paragraph.AddHyperLink("OfficeIMO", new Uri("https://officeimo.net/docs"), addStyle: true);
                     paragraph.AddText(" today");
 
-                    WordTable table = document.AddTable(1, 1);
+                    WordTable table = document.AddTable(1, 1, WordTableStyle.TableGrid);
                     table.Rows[0].Cells[0].Paragraphs[0].AddHyperLink("Table link", new Uri("mailto:support@example.org"), addStyle: true);
 
                     document.Save(docPath);
@@ -3295,7 +3295,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (WordDocument document = WordDocument.Create()) {
-                    WordTable table = document.AddTable(1, 1);
+                    WordTable table = document.AddTable(1, 1, WordTableStyle.TableGrid);
                     WordParagraph paragraph = table.Rows[0].Cells[0].Paragraphs[0];
                     paragraph._paragraph.RemoveAllChildren<Run>();
                     paragraph._paragraph.Append(
@@ -3343,7 +3343,7 @@ namespace OfficeIMO.Tests {
             try {
                 using (WordDocument document = WordDocument.Create()) {
                     document.AddParagraph("Body before table cell level bookmark");
-                    WordTable table = document.AddTable(1, 1);
+                    WordTable table = document.AddTable(1, 1, WordTableStyle.TableGrid);
                     WordTableCell cell = table.Rows[0].Cells[0];
                     cell._tableCell.RemoveAllChildren<Paragraph>();
                     cell._tableCell.Append(new SdtBlock(
@@ -3386,7 +3386,7 @@ namespace OfficeIMO.Tests {
             try {
                 using (WordDocument document = WordDocument.Create()) {
                     document.AddParagraph("Before table bookmark");
-                    WordTable table = document.AddTable(1, 1);
+                    WordTable table = document.AddTable(1, 1, WordTableStyle.TableGrid);
                     table.Rows[0].Cells[0].AddParagraph("TableBookmarkCell", removeExistingParagraphs: true);
                     document.AddParagraph("After table bookmark");
 
@@ -3424,7 +3424,7 @@ namespace OfficeIMO.Tests {
             try {
                 using (WordDocument document = WordDocument.Create()) {
                     document.AddParagraph("Before table child bookmark");
-                    WordTable table = document.AddTable(1, 1);
+                    WordTable table = document.AddTable(1, 1, WordTableStyle.TableGrid);
                     table.Rows[0].Cells[0].AddParagraph("TableChildBookmarkCell", removeExistingParagraphs: true);
                     document.AddParagraph("After table child bookmark");
 
@@ -3466,7 +3466,7 @@ namespace OfficeIMO.Tests {
             try {
                 using (WordDocument document = WordDocument.Create()) {
                     document.AddParagraph("Before table marker");
-                    WordTable table = document.AddTable(1, 1);
+                    WordTable table = document.AddTable(1, 1, WordTableStyle.TableGrid);
                     table.Rows[0].Cells[0].AddParagraph("BeforeBookmarkCell", removeExistingParagraphs: true);
 
                     Body body = document._wordprocessingDocument!.MainDocumentPart!.Document.Body!;
@@ -3504,7 +3504,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (WordDocument document = WordDocument.Create()) {
-                    WordTable table = document.AddTable(1, 1);
+                    WordTable table = document.AddTable(1, 1, WordTableStyle.TableGrid);
                     table.Rows[0].Cells[0].AddParagraph("AfterBookmarkCell", removeExistingParagraphs: true);
                     document.AddParagraph("After table marker");
 
@@ -3542,7 +3542,7 @@ namespace OfficeIMO.Tests {
                     paragraph._paragraph.Append(
                         new BookmarkStart { Id = "55", Name = "ParagraphToTableBookmark" },
                         new Run(new Text("Before table range") { Space = SpaceProcessingModeValues.Preserve }));
-                    WordTable table = document.AddTable(1, 1);
+                    WordTable table = document.AddTable(1, 1, WordTableStyle.TableGrid);
                     table.Rows[0].Cells[0].AddParagraph("ParagraphToTableCell", removeExistingParagraphs: true);
 
                     Body body = document._wordprocessingDocument!.MainDocumentPart!.Document.Body!;
@@ -3576,7 +3576,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (WordDocument document = WordDocument.Create()) {
-                    WordTable table = document.AddTable(1, 1);
+                    WordTable table = document.AddTable(1, 1, WordTableStyle.TableGrid);
                     table.Rows[0].Cells[0].AddParagraph("TableToParagraphCell", removeExistingParagraphs: true);
                     WordParagraph paragraph = document.AddParagraph();
                     paragraph._paragraph.Append(
@@ -3658,7 +3658,7 @@ namespace OfficeIMO.Tests {
                     bodyParagraph.AddHyperLink("placeholder", new Uri("https://officeimo.net/body-inline-control"), addStyle: true);
                     ReplaceHyperlinkDisplayWithInlineContentControl(bodyParagraph.Hyperlink!._hyperlink, "Legacy DOC body hyperlink inline content control", "BodyLinkOne", "BodyLinkNested", "BodyLinkTwo");
 
-                    WordTable table = document.AddTable(1, 1);
+                    WordTable table = document.AddTable(1, 1, WordTableStyle.TableGrid);
                     WordParagraph cellParagraph = table.Rows[0].Cells[0].AddParagraph("Cell ", removeExistingParagraphs: true);
                     cellParagraph.AddHyperLink("placeholder", new Uri("mailto:cell@example.org"), addStyle: true);
                     ReplaceHyperlinkDisplayWithInlineContentControl(cellParagraph.Hyperlink!._hyperlink, "Legacy DOC table hyperlink inline content control", "CellLinkOne", "CellLinkNested", "CellLinkTwo");
@@ -3952,7 +3952,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (WordDocument document = WordDocument.Create()) {
-                    WordTable table = document.AddTable(1, 1);
+                    WordTable table = document.AddTable(1, 1, WordTableStyle.TableGrid);
                     WordParagraph paragraph = table.Rows[0].Cells[0].AddParagraph("Cell page ", removeExistingParagraphs: true);
                     paragraph.AddField(WordFieldType.Page, advanced: true);
                     paragraph.AddText(" of ");
@@ -4562,7 +4562,7 @@ namespace OfficeIMO.Tests {
                         CreateTextRun("BodyInlineTwo"),
                         new BookmarkEnd { Id = "91" }));
 
-                    WordTable table = document.AddTable(1, 1);
+                    WordTable table = document.AddTable(1, 1, WordTableStyle.TableGrid);
                     WordTableCell cell = table.Rows[0].Cells[0];
                     cell._tableCell.RemoveAllChildren<Paragraph>();
                     cell._tableCell.Append(new Paragraph(CreateInlineContentControl(
@@ -6220,7 +6220,7 @@ namespace OfficeIMO.Tests {
                     bodyLink.AddHyperLink("site", new Uri("https://officeimo.net/proofing"), addStyle: true);
                     AddProofErrorBoundary(bodyLink.Hyperlink!._hyperlink);
 
-                    WordTable table = document.AddTable(1, 1);
+                    WordTable table = document.AddTable(1, 1, WordTableStyle.TableGrid);
                     WordParagraph cell = table.Rows[0].Cells[0].AddParagraph("Cell", removeExistingParagraphs: true);
                     cell._paragraph.Append(new ProofError { Type = ProofingErrorValues.GrammarStart }, new Run(new Text("After")), new ProofError { Type = ProofingErrorValues.GrammarEnd });
                     cell.AddHyperLink("link", new Uri("https://officeimo.net/table-proofing"), addStyle: true);
@@ -6320,7 +6320,7 @@ namespace OfficeIMO.Tests {
                     body.AddField(WordFieldType.Page, advanced: true);
                     AddProofErrorAroundComplexFieldResults(body._paragraph);
 
-                    WordTable table = document.AddTable(1, 1);
+                    WordTable table = document.AddTable(1, 1, WordTableStyle.TableGrid);
                     WordParagraph cell = table.Rows[0].Cells[0].AddParagraph("Cell field ", removeExistingParagraphs: true);
                     cell.AddField(WordFieldType.Page, advanced: true);
                     AddProofErrorAroundComplexFieldResults(cell._paragraph);
@@ -6829,7 +6829,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void LegacyDoc_SaveDocPath_BlocksUnsupportedParagraphShadingColorBeforeCreatingFile() {
+        public void LegacyDoc_SaveDocPath_BlocksUnacceptedApproximateParagraphShadingColorBeforeCreatingFile() {
             string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
 
             try {
@@ -6837,9 +6837,10 @@ namespace OfficeIMO.Tests {
                 WordParagraph paragraph = document.AddParagraph("Custom");
                 paragraph.ShadingFillColorHex = "336699";
 
-                NotSupportedException exception = Assert.Throws<NotSupportedException>(() => document.Save(docPath));
+                OfficeConversionException exception = Assert.Throws<OfficeConversionException>(() => document.Save(docPath));
 
-                Assert.Contains("palette fill colors", exception.Message.ToLowerInvariant());
+                Assert.Contains(exception.Report.FidelityDiagnostics, finding =>
+                    finding.Code == "word-doc-color-approximated" && finding.LossKind == OfficeConversionLossKind.Approximation);
                 Assert.False(File.Exists(docPath));
             } finally {
                 DeleteIfExists(docPath);
@@ -6906,7 +6907,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void LegacyDoc_SaveDocPath_BlocksUnsupportedParagraphBorderColorBeforeCreatingFile() {
+        public void LegacyDoc_SaveDocPath_BlocksUnacceptedApproximateParagraphBorderColorBeforeCreatingFile() {
             string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
 
             try {
@@ -6915,9 +6916,10 @@ namespace OfficeIMO.Tests {
                 paragraph.Borders.TopStyle = WordBorderStyle.Single;
                 paragraph.Borders.TopColorHex = "336699";
 
-                NotSupportedException exception = Assert.Throws<NotSupportedException>(() => document.Save(docPath));
+                OfficeConversionException exception = Assert.Throws<OfficeConversionException>(() => document.Save(docPath));
 
-                Assert.Contains("palette colors", exception.Message.ToLowerInvariant());
+                Assert.Contains(exception.Report.FidelityDiagnostics, finding =>
+                    finding.Code == "word-doc-color-approximated" && finding.LossKind == OfficeConversionLossKind.Approximation);
                 Assert.False(File.Exists(docPath));
             } finally {
                 DeleteIfExists(docPath);
@@ -7758,7 +7760,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (WordDocument document = WordDocument.Create()) {
-                    WordTable table = document.AddTable(2, 2);
+                    WordTable table = document.AddTable(2, 2, WordTableStyle.TableGrid);
                     table.Rows[0].Cells[0].AddParagraph("A1", removeExistingParagraphs: true);
                     table.Rows[0].Cells[1].AddParagraph("B1", removeExistingParagraphs: true);
                     table.Rows[1].Cells[0].AddParagraph("A2", removeExistingParagraphs: true);
@@ -7788,7 +7790,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (WordDocument document = WordDocument.Create()) {
-                    WordTable table = document.AddTable(1, 1);
+                    WordTable table = document.AddTable(1, 1, WordTableStyle.TableGrid);
                     table._tableProperties!.TableStyle = new TableStyle {
                         Val = "TableNormal"
                     };
@@ -8074,7 +8076,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (WordDocument document = WordDocument.Create()) {
-                    WordTable table = document.AddTable(1, 2);
+                    WordTable table = document.AddTable(1, 2, WordTableStyle.TableGrid);
                     WordParagraph firstCellParagraph = table.Rows[0].Cells[0].AddParagraph(removeExistingParagraphs: true);
                     firstCellParagraph.AddText("A1").SetBold();
                     table.Rows[0].Cells[1].AddParagraph("B1", removeExistingParagraphs: true);
@@ -8103,7 +8105,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (WordDocument document = WordDocument.Create()) {
-                    WordTable table = document.AddTable(1, 2);
+                    WordTable table = document.AddTable(1, 2, WordTableStyle.TableGrid);
                     WordParagraph formatted = table.Rows[0].Cells[0].AddParagraph("Centered", removeExistingParagraphs: true);
                     formatted.ParagraphAlignment = WordParagraphAlignment.Center;
                     formatted.LineSpacingAfter = 120;
@@ -8137,7 +8139,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (WordDocument document = WordDocument.Create()) {
-                    WordTable table = document.AddTable(1, 2);
+                    WordTable table = document.AddTable(1, 2, WordTableStyle.TableGrid);
                     table.Rows[0].Cells[0].AddParagraph("A1", removeExistingParagraphs: true);
                     table.Rows[0].Cells[1].AddParagraph(string.Empty, removeExistingParagraphs: true);
 
@@ -8175,7 +8177,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (WordDocument document = WordDocument.Create()) {
-                    WordTable table = document.AddTable(1, 2);
+                    WordTable table = document.AddTable(1, 2, WordTableStyle.TableGrid);
                     table.Rows[0].Cells[0].WidthType = WordTableWidthUnit.Dxa;
                     table.Rows[0].Cells[0].Width = 1440;
                     table.Rows[0].Cells[0].AddParagraph("Narrow", removeExistingParagraphs: true);
@@ -8213,7 +8215,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (WordDocument document = WordDocument.Create()) {
-                    WordTable table = document.AddTable(1, 2);
+                    WordTable table = document.AddTable(1, 2, WordTableStyle.TableGrid);
                     table.GridColumnWidth = new List<int> { 1800, 3600 };
                     foreach (WordTableCell cell in table.Rows[0].Cells) {
                         cell.Width = null;
@@ -8253,7 +8255,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (WordDocument document = WordDocument.Create()) {
-                    WordTable table = document.AddTable(1, 2);
+                    WordTable table = document.AddTable(1, 2, WordTableStyle.TableGrid);
                     table.Rows[0].Height = 720;
                     table.Rows[0].Cells[0].AddParagraph("Short", removeExistingParagraphs: true);
                     table.Rows[0].Cells[1].AddParagraph("Row", removeExistingParagraphs: true);
@@ -8287,7 +8289,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (WordDocument document = WordDocument.Create()) {
-                    WordTable table = document.AddTable(1, 1);
+                    WordTable table = document.AddTable(1, 1, WordTableStyle.TableGrid);
                     table.Rows[0].Height = 720;
                     TableRowHeight rowHeight = Assert.Single(table.Rows[0]._tableRow.TableRowProperties!.Elements<TableRowHeight>());
                     rowHeight.HeightType = HeightRuleValues.Auto;
@@ -8319,7 +8321,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using WordDocument document = WordDocument.Create();
-                WordTable table = document.AddTable(1, 1);
+                WordTable table = document.AddTable(1, 1, WordTableStyle.TableGrid);
                 table.GridColumnWidth = new List<int> { short.MaxValue + 1 };
                 table.Rows[0].Cells[0].Width = null;
                 table.Rows[0].Cells[0].WidthType = null;
@@ -8340,7 +8342,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (WordDocument document = WordDocument.Create()) {
-                    WordTable table = document.AddTable(1, 1);
+                    WordTable table = document.AddTable(1, 1, WordTableStyle.TableGrid);
                     table.Rows[0].RepeatHeaderRowAtTheTopOfEachPage = true;
                     table.Rows[0].AllowRowToBreakAcrossPages = false;
                     table.Rows[0].Cells[0].AddParagraph("Header", removeExistingParagraphs: true);
@@ -8375,7 +8377,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (WordDocument document = WordDocument.Create()) {
-                    WordTable table = document.AddTable(1, 1);
+                    WordTable table = document.AddTable(1, 1, WordTableStyle.TableGrid);
                     table.Alignment = WordTableAlignment.Right;
                     table.Rows[0].Cells[0].AddParagraph("Right table", removeExistingParagraphs: true);
 
@@ -8404,7 +8406,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (WordDocument document = WordDocument.Create()) {
-                    WordTable table = document.AddTable(1, 2);
+                    WordTable table = document.AddTable(1, 2, WordTableStyle.TableGrid);
                     table.Rows[0].Cells[0].AddParagraph("Indented", removeExistingParagraphs: true);
                     table.Rows[0].Cells[0].WidthType = WordTableWidthUnit.Dxa;
                     table.Rows[0].Cells[0].Width = 1440;
@@ -8441,7 +8443,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (WordDocument document = WordDocument.Create()) {
-                    WordTable table = document.AddTable(1, 2);
+                    WordTable table = document.AddTable(1, 2, WordTableStyle.TableGrid);
                     table.WidthType = WordTableWidthUnit.Pct;
                     table.Width = 3750;
                     table.LayoutMode = WordTableLayoutMode.Fixed;
@@ -8556,7 +8558,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (WordDocument document = WordDocument.Create()) {
-                    WordTable table = document.AddTable(1, 2);
+                    WordTable table = document.AddTable(1, 2, WordTableStyle.TableGrid);
                     table.Rows[0].Cells[0].AddParagraph("Merged", removeExistingParagraphs: true);
                     table.Rows[0].Cells[1].AddParagraph(string.Empty, removeExistingParagraphs: true);
                     table.Rows[0].Cells[0].MergeHorizontally(1);
@@ -8588,7 +8590,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (WordDocument document = WordDocument.Create()) {
-                    WordTable table = document.AddTable(2, 1);
+                    WordTable table = document.AddTable(2, 1, WordTableStyle.TableGrid);
                     table.Rows[0].Cells[0].AddParagraph("Merged", removeExistingParagraphs: true);
                     table.Rows[1].Cells[0].AddParagraph(string.Empty, removeExistingParagraphs: true);
                     table.Rows[0].Cells[0].MergeVertically(1);
@@ -8620,7 +8622,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (WordDocument document = WordDocument.Create()) {
-                    WordTable table = document.AddTable(2, 1);
+                    WordTable table = document.AddTable(2, 1, WordTableStyle.TableGrid);
                     table.Rows[0].Cells[0].AddParagraph("Merged", removeExistingParagraphs: true);
                     table.Rows[1].Cells[0].AddParagraph(string.Empty, removeExistingParagraphs: true);
                     table.Rows[0].Cells[0].MergeVertically(1);
@@ -8646,7 +8648,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (WordDocument document = WordDocument.Create()) {
-                    WordTable table = document.AddTable(1, 3);
+                    WordTable table = document.AddTable(1, 3, WordTableStyle.TableGrid);
                     table.Rows[0].Cells[0].AddParagraph("Top", removeExistingParagraphs: true);
                     table.Rows[0].Cells[1].AddParagraph("Center", removeExistingParagraphs: true);
                     table.Rows[0].Cells[1].VerticalAlignment = WordTableVerticalAlignment.Center;
@@ -8686,7 +8688,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (WordDocument document = WordDocument.Create()) {
-                    WordTable table = document.AddTable(1, 2);
+                    WordTable table = document.AddTable(1, 2, WordTableStyle.TableGrid);
                     table.Rows[0].Cells[0].AddParagraph("Fit", removeExistingParagraphs: true);
                     table.Rows[0].Cells[0].FitText = true;
                     table.Rows[0].Cells[0].HideMark = true;
@@ -8728,7 +8730,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (WordDocument document = WordDocument.Create()) {
-                    WordTable table = document.AddTable(1, 4);
+                    WordTable table = document.AddTable(1, 4, WordTableStyle.TableGrid);
                     table.Rows[0].Cells[0].AddParagraph("Clockwise", removeExistingParagraphs: true);
                     table.Rows[0].Cells[0].TextDirection = WordTextDirection.TopToBottomRightToLeft;
                     table.Rows[0].Cells[1].AddParagraph("Counter", removeExistingParagraphs: true);
@@ -8779,7 +8781,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (WordDocument document = WordDocument.Create()) {
-                    WordTable table = document.AddTable(1, 2);
+                    WordTable table = document.AddTable(1, 2, WordTableStyle.TableGrid);
                     table.Rows[0].Cells[0].AddParagraph("Default sides", removeExistingParagraphs: true);
                     table.Rows[0].Cells[0].MarginTopWidth = 120;
                     table.Rows[0].Cells[0].MarginBottomWidth = 160;
@@ -8821,7 +8823,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (WordDocument document = WordDocument.Create()) {
-                    WordTable table = document.AddTable(1, 2);
+                    WordTable table = document.AddTable(1, 2, WordTableStyle.TableGrid);
                     table.StyleDetails!.MarginDefaultTopWidth = 120;
                     table.StyleDetails.MarginDefaultLeftWidth = 180;
                     table.StyleDetails.MarginDefaultBottomWidth = 160;
@@ -8867,7 +8869,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (WordDocument document = WordDocument.Create()) {
-                    WordTable table = document.AddTable(1, 2);
+                    WordTable table = document.AddTable(1, 2, WordTableStyle.TableGrid);
                     table.StyleDetails!.CellSpacing = 240;
                     table.Rows[0].Cells[0].AddParagraph("Spaced A", removeExistingParagraphs: true);
                     table.Rows[0].Cells[1].AddParagraph("Spaced B", removeExistingParagraphs: true);
@@ -8975,7 +8977,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (WordDocument document = WordDocument.Create()) {
-                    WordTable table = document.AddTable(1, 1);
+                    WordTable table = document.AddTable(1, 1, WordTableStyle.TableGrid);
                     table._tableProperties!.TableCellSpacing = new TableCellSpacing {
                         Type = TableWidthUnitValues.Auto,
                         Width = "0"
@@ -9008,7 +9010,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (WordDocument document = WordDocument.Create()) {
-                    WordTable table = document.AddTable(1, 2);
+                    WordTable table = document.AddTable(1, 2, WordTableStyle.TableGrid);
                     table.Rows[0].Cells[0].AddParagraph("Red", removeExistingParagraphs: true);
                     table.Rows[0].Cells[0].ShadingFillColorHex = "FF0000";
                     table.Rows[0].Cells[1].AddParagraph("Plain", removeExistingParagraphs: true);
@@ -9041,7 +9043,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (WordDocument document = WordDocument.Create()) {
-                    WordTable table = document.AddTable(1, 2);
+                    WordTable table = document.AddTable(1, 2, WordTableStyle.TableGrid);
                     table.Rows[0].Cells[0].AddParagraph("Border", removeExistingParagraphs: true);
                     table.Rows[0].Cells[0].Borders.TopStyle = WordBorderStyle.Single;
                     table.Rows[0].Cells[0].Borders.TopColorHex = "FF0000";
@@ -9088,7 +9090,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (WordDocument document = WordDocument.Create()) {
-                    WordTable table = document.AddTable(2, 2);
+                    WordTable table = document.AddTable(2, 2, WordTableStyle.TableGrid);
                     table.Rows[0].Cells[0].AddParagraph("A1", removeExistingParagraphs: true);
                     table.Rows[0].Cells[1].AddParagraph("B1", removeExistingParagraphs: true);
                     table.Rows[1].Cells[0].AddParagraph("A2", removeExistingParagraphs: true);
@@ -9145,7 +9147,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (WordDocument document = WordDocument.Create()) {
-                    WordTable table = document.AddTable(1, 2);
+                    WordTable table = document.AddTable(1, 2, WordTableStyle.TableGrid);
                     table.Rows[0].Cells[0].AddParagraph("NoTop", removeExistingParagraphs: true);
                     table.Rows[0].Cells[1].AddParagraph("Inherited", removeExistingParagraphs: true);
                     table.StyleDetails!.TableBorders = new TableBorders(
@@ -9171,18 +9173,19 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void LegacyDoc_SaveDocPath_BlocksUnsupportedTableCellShadingColorBeforeCreatingFile() {
+        public void LegacyDoc_SaveDocPath_BlocksUnacceptedApproximateTableCellShadingColorBeforeCreatingFile() {
             string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
 
             try {
                 using WordDocument document = WordDocument.Create();
-                WordTable table = document.AddTable(1, 1);
+                WordTable table = document.AddTable(1, 1, WordTableStyle.TableGrid);
                 table.Rows[0].Cells[0].AddParagraph("Custom", removeExistingParagraphs: true);
                 table.Rows[0].Cells[0].ShadingFillColorHex = "336699";
 
-                NotSupportedException exception = Assert.Throws<NotSupportedException>(() => document.Save(docPath));
+                OfficeConversionException exception = Assert.Throws<OfficeConversionException>(() => document.Save(docPath));
 
-                Assert.Contains("palette fill colors", exception.Message.ToLowerInvariant());
+                Assert.Contains(exception.Report.FidelityDiagnostics, finding =>
+                    finding.Code == "word-doc-color-approximated" && finding.LossKind == OfficeConversionLossKind.Approximation);
                 Assert.False(File.Exists(docPath));
             } finally {
                 DeleteIfExists(docPath);
@@ -10131,18 +10134,19 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void LegacyDoc_SaveDocPath_BlocksUnsupportedVisualTableStyleBeforeCreatingFile() {
+        public void LegacyDoc_SaveDocPath_BlocksUnacceptedVisualTableStyleApproximationBeforeCreatingFile() {
             string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
 
             try {
                 using WordDocument document = WordDocument.Create();
-                WordTable table = document.AddTable(1, 1);
+                WordTable table = document.AddTable(1, 1, WordTableStyle.TableGrid);
                 table._tableProperties!.TableStyle = new TableStyle {
                     Val = "GridTable1Light"
                 };
                 table.Rows[0].Cells[0].AddParagraph("Styled", removeExistingParagraphs: true);
 
-                Assert.Throws<NotSupportedException>(() => document.Save(docPath));
+                OfficeConversionException failure = Assert.Throws<OfficeConversionException>(() => document.Save(docPath));
+                Assert.Contains(failure.Report.FidelityDiagnostics, finding => finding.Code == "word-doc-color-approximated");
                 Assert.False(File.Exists(docPath));
             } finally {
                 DeleteIfExists(docPath);
@@ -10150,28 +10154,30 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void LegacyDoc_SaveDocPath_BlocksUnsupportedCustomTableStyleShadingColorBeforeCreatingFile() {
+        public void LegacyDoc_SaveDocPath_IgnoresUnpaintedGapShadingWithZeroCellSpacing() {
             string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
-            const string styleId = "NativeDocUnsupportedShadingTable";
+            const string styleId = "NativeDocUnpaintedGapShadingTable";
 
             try {
                 using WordDocument document = WordDocument.Create();
                 var style = new Style { Type = StyleValues.Table, StyleId = styleId, CustomStyle = true };
-                style.Append(new StyleName { Val = "Native DOC Unsupported Shading Table" });
+                style.Append(new StyleName { Val = "Native DOC Unpainted Gap Shading Table" });
                 style.Append(new BasedOn { Val = "TableNormal" });
                 style.Append(new StyleTableProperties(
                     new Shading { Val = ShadingPatternValues.Clear, Fill = "336699" }));
                 document._wordprocessingDocument!.MainDocumentPart!.StyleDefinitionsPart!.Styles!.Append(style);
 
-                WordTable table = document.AddTable(1, 1);
+                WordTable table = document.AddTable(1, 1, WordTableStyle.TableGrid);
                 table._tableProperties!.TableStyle = new TableStyle { Val = styleId };
                 table.Rows[0].Cells[0].AddParagraph("Styled", removeExistingParagraphs: true);
 
-                NotSupportedException exception = Assert.Throws<NotSupportedException>(() => document.Save(docPath));
-
-                Assert.Contains("table style shading", exception.Message.ToLowerInvariant());
-                Assert.Contains("palette fill colors", exception.Message.ToLowerInvariant());
-                Assert.False(File.Exists(docPath));
+                // Table-level shading paints cell gaps. With no cell spacing
+                // it has no visible paint and must not trigger a color loss.
+                document.Save(docPath);
+                using WordDocument restored = WordDocument.Load(docPath);
+                WordTableCell cell = Assert.Single(restored.Tables).Rows[0].Cells[0];
+                Assert.Equal("Styled", cell.Paragraphs[0].Text);
+                Assert.Equal(string.Empty, cell.ShadingFillColorHex);
             } finally {
                 DeleteIfExists(docPath);
             }
@@ -10273,7 +10279,7 @@ namespace OfficeIMO.Tests {
                     new TableCellSpacing { Width = "500", Type = TableWidthUnitValues.Pct }));
                 document._wordprocessingDocument!.MainDocumentPart!.StyleDefinitionsPart!.Styles!.Append(style);
 
-                WordTable table = document.AddTable(1, 1);
+                WordTable table = document.AddTable(1, 1, WordTableStyle.TableGrid);
                 table._tableProperties!.TableStyle = new TableStyle { Val = styleId };
                 table.Rows[0].Cells[0].AddParagraph("Styled", removeExistingParagraphs: true);
 
@@ -10301,7 +10307,7 @@ namespace OfficeIMO.Tests {
                         new TableWidth { Width = "42", Type = TableWidthUnitValues.Auto }));
                     document._wordprocessingDocument!.MainDocumentPart!.StyleDefinitionsPart!.Styles!.Append(style);
 
-                    WordTable table = document.AddTable(1, 1);
+                    WordTable table = document.AddTable(1, 1, WordTableStyle.TableGrid);
                     table._tableProperties!.TableStyle = new TableStyle { Val = styleId };
                     table.Rows[0].Cells[0].AddParagraph("Styled", removeExistingParagraphs: true);
 
@@ -10326,7 +10332,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (WordDocument document = WordDocument.Create()) {
-                    WordTable table = document.AddTable(1, 2);
+                    WordTable table = document.AddTable(1, 2, WordTableStyle.TableGrid);
                     table.Rows[0].Cells[0].AddParagraph("First", removeExistingParagraphs: true);
                     WordParagraph second = table.Rows[0].Cells[0].AddParagraph("Second");
                     second.ParagraphAlignment = WordParagraphAlignment.Right;
@@ -10359,9 +10365,9 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (WordDocument document = WordDocument.Create()) {
-                    WordTable table = document.AddTable(1, 2);
+                    WordTable table = document.AddTable(1, 2, WordTableStyle.TableGrid);
                     table.Rows[0].Cells[0].AddParagraph("Outer A", removeExistingParagraphs: true);
-                    WordTable nestedTable = table.Rows[0].Cells[0].AddTable(1, 1);
+                    WordTable nestedTable = table.Rows[0].Cells[0].AddTable(1, 1, WordTableStyle.TableGrid);
                     nestedTable.Rows[0].Cells[0].AddParagraph("Inner A", removeExistingParagraphs: true);
                     table.Rows[0].Cells[1].AddParagraph("Outer B", removeExistingParagraphs: true);
 
@@ -10393,9 +10399,9 @@ namespace OfficeIMO.Tests {
 
             try {
                 using WordDocument document = WordDocument.Create();
-                WordTable table = document.AddTable(1, 1);
-                WordTable nestedTable = table.Rows[0].Cells[0].AddTable(1, 1);
-                WordTable deepNestedTable = nestedTable.Rows[0].Cells[0].AddTable(1, 1);
+                WordTable table = document.AddTable(1, 1, WordTableStyle.TableGrid);
+                WordTable nestedTable = table.Rows[0].Cells[0].AddTable(1, 1, WordTableStyle.TableGrid);
+                WordTable deepNestedTable = nestedTable.Rows[0].Cells[0].AddTable(1, 1, WordTableStyle.TableGrid);
                 deepNestedTable.Rows[0].Cells[0].AddParagraph("Deep", removeExistingParagraphs: true);
 
                 NotSupportedException exception = Assert.Throws<NotSupportedException>(() => document.Save(docPath));
@@ -10413,7 +10419,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (WordDocument document = WordDocument.Create()) {
-                    WordTable table = document.AddTable(2, 1);
+                    WordTable table = document.AddTable(2, 1, WordTableStyle.TableGrid);
                     table.Rows[0].Cells[0].AddParagraph("First row", removeExistingParagraphs: true);
                     table.Rows[1].Cells[0].AddParagraph("Second row", removeExistingParagraphs: true);
                     TableRow[] rows = table._table.Elements<TableRow>().ToArray();
@@ -10447,7 +10453,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using WordDocument document = WordDocument.Create();
-                WordTable table = document.AddTable(2, 1);
+                WordTable table = document.AddTable(2, 1, WordTableStyle.TableGrid);
                 table.Rows[0].Cells[0].AddParagraph("First row", removeExistingParagraphs: true);
                 table.Rows[1].Cells[0].AddParagraph("Second row", removeExistingParagraphs: true);
                 TableRow[] rows = table._table.Elements<TableRow>().ToArray();
@@ -10469,7 +10475,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using WordDocument document = WordDocument.Create();
-                WordTable table = document.AddTable(2, 1);
+                WordTable table = document.AddTable(2, 1, WordTableStyle.TableGrid);
                 table.Rows[0].Cells[0].AddParagraph("First row", removeExistingParagraphs: true);
                 table.Rows[1].Cells[0].AddParagraph("Second row", removeExistingParagraphs: true);
                 TableRow[] rows = table._table.Elements<TableRow>().ToArray();
@@ -10528,7 +10534,7 @@ namespace OfficeIMO.Tests {
                         ?? bodyParagraph._paragraph.PrependChild(new ParagraphProperties());
                     bodyProperties.Append(new ParagraphMarkRunProperties(new Bold()));
 
-                    WordTable table = document.AddTable(1, 1);
+                    WordTable table = document.AddTable(1, 1, WordTableStyle.TableGrid);
                     WordParagraph cellParagraph = table.Rows[0].Cells[0].AddParagraph("Cell paragraph mark", removeExistingParagraphs: true);
                     ParagraphProperties cellProperties = cellParagraph._paragraph.GetFirstChild<ParagraphProperties>()
                         ?? cellParagraph._paragraph.PrependChild(new ParagraphProperties());
@@ -10894,7 +10900,7 @@ namespace OfficeIMO.Tests {
                 comment.Paragraphs[0].AddInsertedText("inserted", "Alice", revisionDate);
                 comment.Paragraphs[0].AddDeletedText("deleted", "Bob", revisionDate);
 
-                WordTable table = document.AddTable(1, 1);
+                WordTable table = document.AddTable(1, 1, WordTableStyle.TableGrid);
                 WordParagraph cellParagraph = table.Rows[0].Cells[0].Paragraphs[0];
                 cellParagraph.AddText("Cell ");
                 cellParagraph.AddInsertedText("inserted", "Alice", revisionDate);
@@ -11144,7 +11150,7 @@ namespace OfficeIMO.Tests {
                     jpegParagraph.AddImage(jpegPath, 50, 40);
                     jpegParagraph.AddText(" after JPEG");
                     document.AddParagraph("PNG").AddImage(pngPath, 32, 24);
-                    WordParagraph tableParagraph = document.AddTable(1, 1)
+                    WordParagraph tableParagraph = document.AddTable(1, 1, WordTableStyle.TableGrid)
                         .Rows[0]
                         .Cells[0]
                         .AddParagraph("Cell ", removeExistingParagraphs: true);
@@ -11589,7 +11595,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (WordDocument document = WordDocument.Create()) {
-                    WordTable table = document.AddTable(1, 2);
+                    WordTable table = document.AddTable(1, 2, WordTableStyle.TableGrid);
                     table.Rows[0].Cells[0].AddParagraph("A1", removeExistingParagraphs: true);
                     table.Rows[0].Cells[1].AddParagraph("B1", removeExistingParagraphs: true);
 
@@ -11630,7 +11636,7 @@ namespace OfficeIMO.Tests {
             try {
                 using (WordDocument document = WordDocument.Create()) {
                     document.AddParagraph("Body with table cell content control");
-                    WordTable table = document.AddTable(1, 1);
+                    WordTable table = document.AddTable(1, 1, WordTableStyle.TableGrid);
                     WordTableCell cell = table.Rows[0].Cells[0];
                     cell._tableCell.RemoveAllChildren<Paragraph>();
                     cell._tableCell.Append(new SdtBlock(
@@ -11663,7 +11669,7 @@ namespace OfficeIMO.Tests {
             try {
                 using WordDocument document = WordDocument.Create();
                 document.AddParagraph("Body with unsupported table cell section");
-                WordTable table = document.AddTable(1, 1);
+                WordTable table = document.AddTable(1, 1, WordTableStyle.TableGrid);
                 WordTableCell cell = table.Rows[0].Cells[0];
                 cell._tableCell.RemoveAllChildren<Paragraph>();
                 cell._tableCell.Append(new SdtBlock(
@@ -11694,7 +11700,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (WordDocument document = WordDocument.Create()) {
-                    WordTable table = document.AddTable(1, 2);
+                    WordTable table = document.AddTable(1, 2, WordTableStyle.TableGrid);
                     table.Rows[0].Cells[0].AddParagraph("A1 first", removeExistingParagraphs: true);
                     WordParagraph secondCellParagraph = table.Rows[0].Cells[0].AddParagraph("A1 second");
                     secondCellParagraph.ParagraphAlignment = WordParagraphAlignment.Right;

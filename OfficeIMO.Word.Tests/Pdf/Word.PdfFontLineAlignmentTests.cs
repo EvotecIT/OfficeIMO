@@ -94,7 +94,7 @@ public partial class Word {
             new ParagraphPropertiesDefault(new ParagraphPropertiesBaseStyle(new SpacingBetweenLines {
                 Line = "800", LineRule = LineSpacingRuleValues.Exact, Before = "0", After = "0"
             }, route == "document" ? new TextAlignment { Val = value } : null)));
-        var cellTable = table ? source.AddTable(1, 1) : null;
+        var cellTable = table ? source.AddTable(1, 1, WordTableStyle.TableGrid) : null;
         WordParagraph paragraph = cellTable == null ? source.AddParagraph() : cellTable.Rows[0].Cells[0].Paragraphs[0];
         paragraph._paragraph.RemoveAllChildren<Run>();
         paragraph._paragraph.Append(new Run(new RunProperties(new RunFonts { Ascii = family, HighAnsi = family },

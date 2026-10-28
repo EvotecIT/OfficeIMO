@@ -388,7 +388,7 @@ namespace OfficeIMO.Word {
         /// <param name="columns">Number of columns to create.</param>
         /// <param name="tableStyle">Optional table style to apply.</param>
         /// <returns>The inserted <see cref="WordTable"/> instance.</returns>
-        public WordTable AddTable(int rows, int columns, WordTableStyle tableStyle = WordTableStyle.TableGrid) {
+        public WordTable AddTable(int rows, int columns, WordTableStyle tableStyle = WordTableStyle.OfficeIMOModern) {
             WordTable wordTable = new WordTable(this, rows, columns, tableStyle);
             return wordTable;
         }
@@ -400,7 +400,7 @@ namespace OfficeIMO.Word {
         /// <param name="columns">Number of columns to create.</param>
         /// <param name="tableStyle">Optional table style to apply.</param>
         /// <returns>The newly created <see cref="WordTable"/>.</returns>
-        public WordTable CreateTable(int rows, int columns, WordTableStyle tableStyle = WordTableStyle.TableGrid) {
+        public WordTable CreateTable(int rows, int columns, WordTableStyle tableStyle = WordTableStyle.OfficeIMOModern) {
             return WordTable.Create(this, rows, columns, tableStyle);
         }
 

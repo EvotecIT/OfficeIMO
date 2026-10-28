@@ -77,7 +77,7 @@ public partial class Word {
     [Fact]
     public void AddTable_DefaultStyleUsesThemeHeaderAndHorizontalRules() {
         using WordDocument document = WordDocument.Create();
-        WordTable table = document.AddTable(3, 3, WordTableStyle.OfficeIMOModern);
+        WordTable table = document.AddTable(3, 3);
         Assert.Equal(WordTableStyle.OfficeIMOModern, table.Style);
 
         Style style = GetStyleDefinition(document, "OfficeIMOModern");
@@ -92,6 +92,50 @@ public partial class Word {
             header.TableStyleConditionalFormattingTableCellProperties!.Shading!.Fill!.Value);
         Assert.NotNull(header.RunPropertiesBaseStyle!.Bold);
         Assert.NotNull(header.TableStyleConditionalFormattingTableRowProperties!.GetFirstChild<TableHeader>());
+    }
+
+    [Theory]
+    [InlineData("body")]
+    [InlineData("section")]
+    [InlineData("header")]
+    [InlineData("footer")]
+    [InlineData("cell")]
+    [InlineData("before")]
+    [InlineData("after")]
+    public void NewTableOwnersSaveTheSharedModernStyle(string owner) {
+        using WordDocument document = WordDocument.Create();
+        document.AddHeadersAndFooters();
+        WordTable table = owner switch {
+            "body" => document.AddTable(2, 2),
+            "section" => document.Sections[0].AddTable(2, 2),
+            "header" => document.Header.Default!.AddTable(2, 2),
+            "footer" => document.Footer.Default!.AddTable(2, 2),
+            "cell" => document.AddTable(1, 1).Rows[0].Cells[0].AddTable(2, 2),
+            "before" => document.AddParagraph("Anchor").AddTableBefore(2, 2),
+            "after" => document.AddParagraph("Anchor").AddTableAfter(2, 2),
+            _ => throw new ArgumentOutOfRangeException(nameof(owner))
+        };
+        table.Rows[0].Cells[0].Paragraphs[0].Text = "Header";
+        Assert.Equal(WordTableStyle.OfficeIMOModern, table.Style);
+        using var stream = new MemoryStream(document.ToBytes());
+        using var package = DocumentFormat.OpenXml.Packaging.WordprocessingDocument.Open(stream, false);
+        IEnumerable<Table> saved = owner switch {
+            "header" => package.MainDocumentPart!.HeaderParts.SelectMany(part => part.Header.Descendants<Table>()),
+            "footer" => package.MainDocumentPart!.FooterParts.SelectMany(part => part.Footer.Descendants<Table>()),
+            _ => package.MainDocumentPart!.Document.Descendants<Table>()
+        };
+        Table[] savedTables = saved.ToArray();
+        Assert.Contains(savedTables, item => item.InnerText == "Header");
+        Assert.All(savedTables, item => Assert.Equal("OfficeIMOModern", item.GetFirstChild<TableProperties>()!.TableStyle!.Val!.Value));
+        Assert.Empty(new DocumentFormat.OpenXml.Validation.OpenXmlValidator().Validate(package));
+    }
+
+    [Fact]
+    public void Load_KeepsAnAuthoredTableStyle() {
+        using WordDocument source = WordDocument.Create();
+        source.AddTable(2, 2, WordTableStyle.TableGrid);
+        using WordDocument loaded = WordDocument.Load(new MemoryStream(source.ToBytes()));
+        Assert.Equal(WordTableStyle.TableGrid, Assert.Single(loaded.Tables).Style);
     }
 
     [Fact]

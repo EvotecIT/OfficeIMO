@@ -6,6 +6,29 @@ using Xunit;
 
 namespace OfficeIMO.Tests {
     public partial class Word {
+        [Theory]
+        [InlineData(false, WordFileFormat.Docx)]
+        [InlineData(true, WordFileFormat.Docx)]
+        [InlineData(false, WordFileFormat.Doc)]
+        [InlineData(true, WordFileFormat.Doc)]
+        public void ObjectTablesOnlyStyleAndRepeatAnIncludedHeader(bool includeHeader, WordFileFormat format) {
+            using WordDocument source = WordDocument.Create();
+            var table = source.AddTableFromObjects(new object[] {
+                new { Name = "North", Value = 42 }, new { Name = "South", Value = 73 }
+            }, includeHeader: includeHeader);
+            Assert.Equal(WordTableStyle.OfficeIMOModern, table.Style);
+            Assert.Equal(includeHeader, table.ConditionalFormattingFirstRow);
+            using WordDocument restored = WordDocument.Load(new MemoryStream(source.ToBytes(new WordSaveOptions {
+                Format = format, AllowLoss = true
+            })));
+            WordTable native = Assert.Single(restored.Tables);
+            Assert.Equal(includeHeader ? 3 : 2, native.Rows.Count);
+            Assert.Equal(includeHeader ? "Name" : "North", native.Rows[0].Cells[0].Paragraphs[0].Text);
+            if (format == WordFileFormat.Docx) Assert.Equal(includeHeader, native.ConditionalFormattingFirstRow);
+            else Assert.Equal(includeHeader, native.Rows[0].RepeatHeaderRowAtTheTopOfEachPage);
+            Assert.False(native.Rows[includeHeader ? 1 : 0].Cells[0].Paragraphs[0].Bold);
+        }
+
         [Fact]
         public void Test_AddTableFromObjects_WritesHeadersAndValues() {
             string filePath = Path.Combine(_directoryWithFiles, "Table.FromObjects.docx");

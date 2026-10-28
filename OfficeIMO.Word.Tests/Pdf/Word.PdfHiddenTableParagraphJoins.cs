@@ -15,7 +15,7 @@ public partial class Word {
     [InlineData(true, true)]
     public void SaveAsPdf_HiddenTableParagraphJoinsRetainSourceAndCellBoundaries(bool nativeDoc, bool blockControl) {
         using WordDocument source = CreateJoinedParagraphDocument();
-        WordTable table = source.AddTable(1, 2);
+        WordTable table = source.AddTable(1, 2, WordTableStyle.TableGrid);
         WordTableCell cell = table.Rows[0].Cells[0];
         WordParagraph alpha = cell.AddParagraph("ALPHA", removeExistingParagraphs: true); HideJoinMark(alpha, true);
         WordParagraph blank = cell.AddParagraph("SECRET"); blank.Hidden = true; HideJoinMark(blank, true);
@@ -43,7 +43,7 @@ public partial class Word {
     [InlineData(true)]
     public void SaveAsPdf_HiddenTableJoinRetainsFirstAlignmentFinalSpacingAndContinuationMetrics(bool nativeDoc) {
         using WordDocument source = CreateJoinedParagraphDocument();
-        WordTable table = source.AddTable(1, 1);
+        WordTable table = source.AddTable(1, 1, WordTableStyle.TableGrid);
         table.WidthType = WordTableWidthUnit.Dxa; table.Width = 9360;
         table.LayoutMode = WordTableLayoutMode.Fixed; table.GridColumnWidth = new List<int> { 9360 };
         WordTableCell cell = table.Rows[0].Cells[0]; cell.WidthType = WordTableWidthUnit.Dxa; cell.Width = 9360;
@@ -72,7 +72,7 @@ public partial class Word {
     [InlineData(true)]
     public void SaveAsPdf_HiddenTableJoinPreservesNoteOnlyReferences(bool nativeDoc) {
         using WordDocument source = CreateJoinedParagraphDocument();
-        WordTableCell cell = source.AddTable(1, 1).Rows[0].Cells[0];
+        WordTableCell cell = source.AddTable(1, 1, WordTableStyle.TableGrid).Rows[0].Cells[0];
         WordParagraph first = cell.AddParagraph(removeExistingParagraphs: true); HideJoinMark(first, true);
         first.AddFootNote("NOTETEXT"); cell.AddParagraph();
         using WordDocument document = WordDocument.Load(new MemoryStream(source.ToBytes(nativeDoc ? WordFileFormat.Doc : WordFileFormat.Docx)));
@@ -84,7 +84,7 @@ public partial class Word {
     [Fact]
     public void SaveAsPdf_HiddenTableJoinRetainsUnsupportedObjectBoundaryWithDiagnostic() {
         using WordDocument document = CreateJoinedParagraphDocument();
-        WordTableCell cell = document.AddTable(1, 1).Rows[0].Cells[0];
+        WordTableCell cell = document.AddTable(1, 1, WordTableStyle.TableGrid).Rows[0].Cells[0];
         WordParagraph alpha = cell.AddParagraph("ALPHA", removeExistingParagraphs: true); HideJoinMark(alpha, true);
         alpha._paragraph.ParagraphProperties!.Shading = new W.Shading { Fill = "FFFF00" };
         cell.AddParagraph("BETA");
@@ -99,7 +99,7 @@ public partial class Word {
     [InlineData(true)]
     public void SaveAsPdf_UnstyledTableUsesDocumentDefaultCellMargins(bool nativeDoc) {
         using WordDocument source = CreateJoinedParagraphDocument();
-        WordTable table = source.AddTable(1, 1); table._tableProperties!.TableStyle = null;
+        WordTable table = source.AddTable(1, 1, WordTableStyle.TableGrid); table._tableProperties!.TableStyle = null;
         table.Rows[0].Cells[0].AddParagraph("MARGIN", removeExistingParagraphs: true);
         using WordDocument document = WordDocument.Load(new MemoryStream(source.ToBytes(nativeDoc ? WordFileFormat.Doc : WordFileFormat.Docx)));
         using var pdf = OpenJoinedParagraphPdf(document);
@@ -114,8 +114,8 @@ public partial class Word {
     [InlineData(false, true)]
     public void SaveAsPdf_HiddenTableJoinRetainsInlinePictureBoundaryAndDiagnostic(bool nativeDoc, bool nested) {
         using WordDocument source = CreateJoinedParagraphDocument();
-        WordTable table = source.AddTable(1, 1);
-        if (nested) table = table.Rows[0].Cells[0].AddTable(1, 1);
+        WordTable table = source.AddTable(1, 1, WordTableStyle.TableGrid);
+        if (nested) table = table.Rows[0].Cells[0].AddTable(1, 1, WordTableStyle.TableGrid);
         WordTableCell cell = table.Rows[0].Cells[0];
         WordParagraph alpha = cell.AddParagraph("ALPHA", removeExistingParagraphs: true);
         alpha.AddImage(Path.Combine(AppContext.BaseDirectory, "Images", "EvotecLogo.png"), 18, 12);
@@ -138,7 +138,7 @@ public partial class Word {
     [Fact]
     public void SaveAsPdf_UnstyledTableRetainsExplicitPdfDefaultPadding() {
         using WordDocument document = CreateJoinedParagraphDocument();
-        WordTable table = document.AddTable(1, 1); table._tableProperties!.TableStyle = null;
+        WordTable table = document.AddTable(1, 1, WordTableStyle.TableGrid); table._tableProperties!.TableStyle = null;
         table.Rows[0].Cells[0].AddParagraph("MARGIN", removeExistingParagraphs: true);
         var options = new WordPdfExportOptions { IncludePageNumbers = false,
             PdfOptions = new PdfCreateOptions { DefaultTableStyle = new PdfTableStyle { CellPaddingLeft = 20D } } };
@@ -155,8 +155,8 @@ public partial class Word {
         W.Style normal = document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!
             .Elements<W.Style>().Single(style => style.StyleId?.Value == "Normal");
         normal.StyleRunProperties = null;
-        WordTable table = story == "body" ? document.AddTable(1, 1)
-            : (story == "header" ? (WordHeaderFooter)document.HeaderDefaultOrCreate : document.FooterDefaultOrCreate).AddTable(1, 1);
+        WordTable table = story == "body" ? document.AddTable(1, 1, WordTableStyle.TableGrid)
+            : (story == "header" ? (WordHeaderFooter)document.HeaderDefaultOrCreate : document.FooterDefaultOrCreate).AddTable(1, 1, WordTableStyle.TableGrid);
         table._tableProperties!.TableStyle = null;
         WordParagraph alpha = table.Rows[0].Cells[0].AddParagraph("ALPHA", removeExistingParagraphs: true); HideJoinMark(alpha, true);
         table.Rows[0].Cells[0].AddParagraph("BETA");
@@ -172,7 +172,7 @@ public partial class Word {
     [Fact]
     public void LegacyDoc_TablePartialDefaultMarginsRetainHorizontalInsetAndExplicitZeroCellOverride() {
         using WordDocument source = CreateJoinedParagraphDocument();
-        WordTable table = source.AddTable(1, 2);
+        WordTable table = source.AddTable(1, 2, WordTableStyle.TableGrid);
         table.StyleDetails!.MarginDefaultTopWidth = 60;
         table._tableProperties!.TableStyle = null;
         table.Rows[0].Cells[0].AddParagraph("DEFAULT", removeExistingParagraphs: true);
@@ -223,7 +223,7 @@ public partial class Word {
     [InlineData(false, true)]
     public void SaveAsPdf_TablePartialMarginsRetainMissingSidesAndExplicitOverrides(bool nativeDoc, bool configuredPdf) {
         using WordDocument source = CreateJoinedParagraphDocument();
-        WordTable table = source.AddTable(1, 2);
+        WordTable table = source.AddTable(1, 2, WordTableStyle.TableGrid);
         table.WidthType = WordTableWidthUnit.Dxa; table.Width = 9360;
         table.LayoutMode = WordTableLayoutMode.Fixed; table.GridColumnWidth = new List<int> { 4680, 4680 };
         foreach (WordTableCell cell in table.Rows[0].Cells) { cell.WidthType = WordTableWidthUnit.Dxa; cell.Width = 4680; }
@@ -251,7 +251,7 @@ public partial class Word {
     [InlineData(true, true)]
     public void SaveAsPdf_UnnamedTableRetainsCustomDocumentDefaultMargins(bool nativeDoc, bool configuredPdf) {
         using WordDocument source = CreateJoinedParagraphDocument();
-        WordTable table = source.AddTable(1, 1); table._tableProperties!.TableStyle = null;
+        WordTable table = source.AddTable(1, 1, WordTableStyle.TableGrid); table._tableProperties!.TableStyle = null;
         table.Rows[0].Cells[0].AddParagraph("MARGIN", removeExistingParagraphs: true);
         W.Styles styles = source._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
         foreach (W.Style style in styles.Elements<W.Style>().Where(style => style.Type?.Value == W.StyleValues.Table)) style.Default = false;

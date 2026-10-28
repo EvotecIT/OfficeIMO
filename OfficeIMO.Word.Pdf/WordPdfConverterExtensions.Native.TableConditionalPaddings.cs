@@ -12,6 +12,9 @@ namespace OfficeIMO.Word.Pdf {
                 ? new Dictionary<(int Row, int Column), PdfCore.PdfCellPadding>()
                 : new Dictionary<(int Row, int Column), PdfCore.PdfCellPadding>(style.CellPaddings);
             bool changed = false;
+            int footerStartRowIndex = table.ConditionalFormattingLastRow == true && layout.Rows.Count > style.HeaderRowCount
+                ? layout.Rows.Count - 1 : layout.Rows.Count;
+            changed |= ApplyNativeTableConditionalBandPaddings(table, layout, tableStyleDefaults, style.HeaderRowCount, footerStartRowIndex, cellPaddings);
             if (table.ConditionalFormattingFirstRow == true && style.HeaderRowCount > 0) {
                 int headerRows = System.Math.Min(style.HeaderRowCount, layout.Rows.Count);
                 for (int rowIndex = 0; rowIndex < headerRows; rowIndex++) {
@@ -25,10 +28,6 @@ namespace OfficeIMO.Word.Pdf {
 
             int columnCount = GetNativeTableColumnCount(layout);
             if (columnCount > 0) {
-                int footerStartRowIndex = table.ConditionalFormattingLastRow == true && layout.Rows.Count > style.HeaderRowCount
-                    ? layout.Rows.Count - 1
-                    : layout.Rows.Count;
-                changed |= ApplyNativeTableConditionalBandPaddings(table, layout, tableStyleDefaults, style.HeaderRowCount, footerStartRowIndex, cellPaddings);
                 changed |= ApplyNativeTableConditionalColumnPaddings(table, layout, tableStyleDefaults, columnCount, cellPaddings);
             }
 
@@ -60,19 +59,8 @@ namespace OfficeIMO.Word.Pdf {
         }
 
         private static bool ApplyNativeTableConditionalBandPaddings(WordTable table, TableLayout layout, NativeTableStyleDefaults tableStyleDefaults, int headerRowCount, int footerStartRowIndex, Dictionary<(int Row, int Column), PdfCore.PdfCellPadding> cellPaddings) {
-            PdfCore.PdfCellPadding? horizontalBandPadding = table.ConditionalFormattingNoHorizontalBand != true
-                ? tableStyleDefaults.Band1HorizontalStyle.CellPadding
-                : null;
-            PdfCore.PdfCellPadding? verticalBandPadding = table.ConditionalFormattingNoVerticalBand != true
-                ? tableStyleDefaults.Band1VerticalStyle.CellPadding
-                : null;
-            if (horizontalBandPadding == null && verticalBandPadding == null) {
-                return false;
-            }
-
             bool changed = false;
             for (int rowIndex = headerRowCount; rowIndex < footerStartRowIndex; rowIndex++) {
-                int bodyRowIndex = rowIndex - headerRowCount;
                 IReadOnlyList<WordTableCell> row = layout.Rows[rowIndex];
                 int logicalColumnIndex = GetNativeTableRowStartColumn(layout, rowIndex);
                 for (int cellIndex = 0; cellIndex < row.Count; cellIndex++) {
@@ -83,13 +71,8 @@ namespace OfficeIMO.Word.Pdf {
 
                     int columnSpan = GetNativeCellColumnSpan(cell);
                     (int Row, int Column) key = (rowIndex, logicalColumnIndex);
-                    if (bodyRowIndex % 2 == 1) {
-                        changed |= ApplyNativeTableConditionalCellPadding(cellPaddings, key, horizontalBandPadding);
-                    }
-
-                    if (logicalColumnIndex % 2 == 1) {
-                        changed |= ApplyNativeTableConditionalCellPadding(cellPaddings, key, verticalBandPadding);
-                    }
+                    changed |= ApplyNativeTableConditionalCellPadding(cellPaddings, key, GetNativeHorizontalBandStyle(table, tableStyleDefaults, rowIndex, headerRowCount, footerStartRowIndex).CellPadding);
+                    changed |= ApplyNativeTableConditionalCellPadding(cellPaddings, key, GetNativeVerticalBandStyle(table, tableStyleDefaults, rowIndex, logicalColumnIndex, headerRowCount, footerStartRowIndex).CellPadding);
 
                     logicalColumnIndex += columnSpan;
                 }

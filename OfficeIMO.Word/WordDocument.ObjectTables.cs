@@ -13,7 +13,7 @@ namespace OfficeIMO.Word {
         /// <param name="layout">Optional table layout (Autofit or Fixed).</param>
         /// <returns>The created <see cref="WordTable"/>.</returns>
         [RequiresUnreferencedCode("Uses reflection over arbitrary object graphs. For AOT-safe usage, map values explicitly or pre-flatten items.")]
-        public WordTable AddTableFromObjects(IEnumerable<object?> items, WordTableStyle style = WordTableStyle.TableGrid, bool includeHeader = true, WordTableLayoutMode? layout = null) {
+        public WordTable AddTableFromObjects(IEnumerable<object?> items, WordTableStyle style = WordTableStyle.OfficeIMOModern, bool includeHeader = true, WordTableLayoutMode? layout = null) {
             if (items == null) {
                 throw new ArgumentNullException(nameof(items));
             }
@@ -37,6 +37,7 @@ namespace OfficeIMO.Word {
             int cols = columns.Count;
 
             var table = AddTable(rows, cols, style);
+            table.ConditionalFormattingFirstRow = includeHeader;
 
             if (layout.HasValue) {
                 table.LayoutMode = layout.Value;

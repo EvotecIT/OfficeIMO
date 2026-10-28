@@ -96,11 +96,11 @@ public partial class Word {
     [InlineData(1, true)]
     public void LegacyDoc_TableSpacing_TrailingPointBookmarkExcludesSyntheticSeparator(int controlDepth, bool authoredBlank) {
         using WordDocument document = WordDocument.Create();
-        WordTable first = document.AddTable(1, 1);
+        WordTable first = document.AddTable(1, 1, WordTableStyle.TableGrid);
         first.Rows[0].Cells[0].Paragraphs[0].Text = "First";
         first._table.Append(new BookmarkStart { Id = "71", Name = "TrailingPoint" });
         if (authoredBlank) document.AddParagraph();
-        WordTable second = document.AddTable(1, 1);
+        WordTable second = document.AddTable(1, 1, WordTableStyle.TableGrid);
         second.Rows[0].Cells[0].Paragraphs[0].Text = "Second";
         Body body = document._wordprocessingDocument!.MainDocumentPart!.Document.Body!;
         body.InsertBefore(new BookmarkStart { Id = "72", Name = "Second" }, second._table);

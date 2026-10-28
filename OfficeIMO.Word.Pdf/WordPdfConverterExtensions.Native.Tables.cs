@@ -91,8 +91,7 @@ namespace OfficeIMO.Word.Pdf {
                 usesConfiguredDefaultStyle,
                 ShouldApplyNativeTableStyleCellPadding(table) ? tableStyleDefaults : NativeTableStyleDefaults.Empty);
             ApplyNativeTableConditionalStyles(table, style, tableStyleDefaults, rowCount, layout);
-            ApplyNativeTableBandingStyles(table, layout, style, tableStyleDefaults);
-            ApplyNativeTableConditionalColumnFills(table, layout, tableStyleDefaults, style);
+            ApplyNativeTableConditionalFills(table, layout, style, tableStyleDefaults);
             if (HasNativeConditionalHiddenBorders(table, tableStyleDefaults)) {
                 MaterializeNativeTableBorderGrid(style, layout);
             }
@@ -244,7 +243,9 @@ namespace OfficeIMO.Word.Pdf {
             }
 
             if (conditionalStyle.Bold.HasValue) {
-                style.HeaderBold = conditionalStyle.Bold.Value;
+                // Conditional weight is already resolved into each run. A role-level
+                // force would overwrite an explicit run Bold=false.
+                style.HeaderBold = false;
             }
         }
 
@@ -262,119 +263,22 @@ namespace OfficeIMO.Word.Pdf {
             }
 
             if (conditionalStyle.Bold.HasValue) {
-                style.FooterBold = conditionalStyle.Bold.Value;
-            }
-        }
-
-        private static void ApplyNativeTableBandingStyles(WordTable table, TableLayout layout, PdfCore.PdfTableStyle style, NativeTableStyleDefaults tableStyleDefaults) {
-            if (table.ConditionalFormattingNoHorizontalBand != true && tableStyleDefaults.Band1HorizontalStyle.CellFill.HasValue) {
-                style.RowStripeFill = tableStyleDefaults.Band1HorizontalStyle.CellFill.Value;
-            } else if (table.ConditionalFormattingNoHorizontalBand != true && tableStyleDefaults.Band2HorizontalFill.HasValue) {
-                // The PDF stripe paints alternate body rows starting with the second, which is Word's band 2.
-                style.RowStripeFill = tableStyleDefaults.Band2HorizontalFill.Value;
-            }
-
-            if (table.ConditionalFormattingNoVerticalBand != true && tableStyleDefaults.Band1VerticalStyle.CellFill.HasValue) {
-                ApplyNativeTableVerticalBandingFill(layout, style, tableStyleDefaults.Band1VerticalStyle.CellFill.Value);
-            }
-        }
-
-        private static void ApplyNativeTableVerticalBandingFill(TableLayout layout, PdfCore.PdfTableStyle style, PdfCore.PdfColor fill) {
-            int columnCount = GetNativeTableColumnCount(layout);
-            if (columnCount == 0) {
-                return;
-            }
-
-            var bodyColumnFills = style.BodyColumnFills == null
-                ? new List<PdfCore.PdfColor?>(new PdfCore.PdfColor?[columnCount])
-                : new List<PdfCore.PdfColor?>(style.BodyColumnFills);
-            while (bodyColumnFills.Count < columnCount) {
-                bodyColumnFills.Add(null);
-            }
-
-            for (int columnIndex = 1; columnIndex < columnCount; columnIndex += 2) {
-                bodyColumnFills[columnIndex] = fill;
-            }
-
-            style.BodyColumnFills = bodyColumnFills;
-        }
-
-        private static void ApplyNativeTableConditionalColumnFills(WordTable table, TableLayout layout, NativeTableStyleDefaults tableStyleDefaults, PdfCore.PdfTableStyle style) {
-            Dictionary<(int Row, int Column), PdfCore.PdfColor>? cellFills = style.CellFills == null
-                ? null
-                : new Dictionary<(int Row, int Column), PdfCore.PdfColor>(style.CellFills);
-            cellFills ??= new Dictionary<(int Row, int Column), PdfCore.PdfColor>();
-            int originalCount = cellFills.Count;
-            ApplyNativeTableConditionalColumnFills(table, layout, tableStyleDefaults, cellFills);
-            if (cellFills.Count != originalCount) {
-                style.CellFills = cellFills;
-            }
-        }
-
-        private static void ApplyNativeTableConditionalColumnFills(WordTable table, TableLayout layout, NativeTableStyleDefaults tableStyleDefaults, Dictionary<(int Row, int Column), PdfCore.PdfColor> cellFills) {
-            int columnCount = GetNativeTableColumnCount(layout);
-            if (columnCount == 0) {
-                return;
-            }
-
-            PdfCore.PdfColor? firstColumnFill = table.ConditionalFormattingFirstColumn == true
-                ? tableStyleDefaults.FirstColumnStyle.CellFill
-                : null;
-            PdfCore.PdfColor? lastColumnFill = table.ConditionalFormattingLastColumn == true
-                ? tableStyleDefaults.LastColumnStyle.CellFill
-                : null;
-            if (!firstColumnFill.HasValue && !lastColumnFill.HasValue) {
-                return;
-            }
-
-            for (int rowIndex = 0; rowIndex < layout.Rows.Count; rowIndex++) {
-                IReadOnlyList<WordTableCell> row = layout.Rows[rowIndex];
-                int logicalColumnIndex = GetNativeTableRowStartColumn(layout, rowIndex);
-                for (int cellIndex = 0; cellIndex < row.Count; cellIndex++) {
-                    WordTableCell cell = row[cellIndex];
-                    if (IsNativeHorizontalMergeContinuation(cell)) {
-                        continue;
-                    }
-
-                    int columnSpan = GetNativeCellColumnSpan(cell);
-                    if (IsNativeVerticalMergeContinuation(cell)) {
-                        logicalColumnIndex += columnSpan;
-                        continue;
-                    }
-
-                    (int Row, int Column) key = (rowIndex, logicalColumnIndex);
-                    if (firstColumnFill.HasValue && logicalColumnIndex == 0 && !cellFills.ContainsKey(key)) {
-                        cellFills[key] = firstColumnFill.Value;
-                    }
-
-                    if (lastColumnFill.HasValue && logicalColumnIndex + columnSpan >= columnCount && !cellFills.ContainsKey(key)) {
-                        cellFills[key] = lastColumnFill.Value;
-                    }
-
-                    logicalColumnIndex += columnSpan;
-                }
+                // Preserve direct run weight over the resolved conditional default.
+                style.FooterBold = false;
             }
         }
 
         private static NativeTableStyleDefaults GetNativeTableCellStyleDefaults(WordTable table, NativeTableStyleDefaults tableStyleDefaults, int rowIndex, int logicalColumnIndex, int columnSpan, int columnCount, int headerRowCount, int footerStartRowIndex) {
             NativeTableStyleDefaults result = tableStyleDefaults;
+            result = ApplyNativeTableConditionalStyleDefaults(result,
+                GetNativeHorizontalBandStyle(table, tableStyleDefaults, rowIndex, headerRowCount, footerStartRowIndex));
+            result = ApplyNativeTableConditionalStyleDefaults(result,
+                GetNativeVerticalBandStyle(table, tableStyleDefaults, rowIndex, logicalColumnIndex, headerRowCount, footerStartRowIndex));
             if (table.ConditionalFormattingFirstRow == true && rowIndex == 0) {
                 result = ApplyNativeTableConditionalStyleDefaults(result, tableStyleDefaults.FirstRowStyle);
             }
-
             if (table.ConditionalFormattingLastRow == true && rowIndex >= footerStartRowIndex) {
                 result = ApplyNativeTableConditionalStyleDefaults(result, tableStyleDefaults.LastRowStyle);
-            }
-
-            if (rowIndex >= headerRowCount && rowIndex < footerStartRowIndex) {
-                int bodyRowIndex = rowIndex - headerRowCount;
-                if (table.ConditionalFormattingNoHorizontalBand != true && bodyRowIndex % 2 == 1) {
-                    result = ApplyNativeTableConditionalStyleDefaults(result, tableStyleDefaults.Band1HorizontalStyle);
-                }
-
-                if (table.ConditionalFormattingNoVerticalBand != true && logicalColumnIndex % 2 == 1) {
-                    result = ApplyNativeTableConditionalStyleDefaults(result, tableStyleDefaults.Band1VerticalStyle);
-                }
             }
 
             if (table.ConditionalFormattingFirstColumn == true && logicalColumnIndex == 0) {

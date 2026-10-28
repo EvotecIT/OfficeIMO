@@ -23,10 +23,10 @@ public partial class Word {
     public void LegacyDoc_NativeCellTextLayoutDeclaresAFormatThatPreservesItsFlags(string story, string setting) {
         using WordDocument document = WordDocument.Create();
         WordTable table;
-        if (story == "body") table = document.AddTable(1, 1);
+        if (story == "body") table = document.AddTable(1, 1, WordTableStyle.TableGrid);
         else {
             document.AddHeadersAndFooters();
-            table = (story == "header" ? (WordHeaderFooter)document.Header.Default : document.Footer.Default).AddTable(1, 1);
+            table = (story == "header" ? (WordHeaderFooter)document.Header.Default : document.Footer.Default).AddTable(1, 1, WordTableStyle.TableGrid);
         }
         WordTableCell cell = table.Rows[0].Cells[0];
         cell.Paragraphs[0].Text = "Cell text";

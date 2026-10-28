@@ -21,7 +21,7 @@ public partial class Word {
     public void SaveAsPdf_PreservesWordSpacesByDefaultAndHonorsExplicitPdfPolicy(bool table, string policy, int separatorCount) {
         using WordDocument word = WordDocument.Create();
         WordParagraph paragraph;
-        if (table) paragraph = word.AddTable(1, 1).Rows[0].Cells[0].Paragraphs[0];
+        if (table) paragraph = word.AddTable(1, 1, WordTableStyle.TableGrid).Rows[0].Cells[0].Paragraphs[0];
         else paragraph = word.AddParagraph();
         paragraph.Text = "  ALPHA   BETA"; paragraph.FontSize = 12; paragraph.FontFamily = "Arial";
         PdfCreateOptions? pdfOptions = policy == "none" ? null : new PdfCreateOptions { DefaultFontSize = 12D };

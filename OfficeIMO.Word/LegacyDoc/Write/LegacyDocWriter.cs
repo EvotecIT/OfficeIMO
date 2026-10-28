@@ -99,39 +99,6 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
         private static readonly byte[] PlainParagraphPapx = { 0x00, 0x01, 0x00, 0x00 };
         private static readonly byte[] FootnoteTextParagraphPapx = { 0x00, 0x01, (byte)NoteTextParagraphStyleIndex, (byte)(NoteTextParagraphStyleIndex >> 8) };
 
-        internal static byte[] WriteDocument(
-            WordDocument document,
-            WordSaveOptions? options = null,
-            bool isTemplate = false) {
-            if (document == null) throw new ArgumentNullException(nameof(document));
-
-            ThrowIfUnsupportedLegacyDocImportState(document, options);
-
-            LegacyDocWritableBody body = BuildBody(document);
-            byte[] wordDocumentStream = PadToRegularOleStream(CreateWordDocumentStream(body, isTemplate));
-            byte[] tableStream = PadToRegularOleStream(CreateTableStream(body));
-            IReadOnlyList<OfficeCompoundStream> propertyStreams = LegacyDocPropertySetWriter.CreateDocumentPropertyStreams(document);
-            var streams = new List<OfficeCompoundStream>(propertyStreams.Count + 2) {
-                new OfficeCompoundStream("WordDocument", wordDocumentStream),
-                new OfficeCompoundStream("1Table", tableStream)
-            };
-            if (body.HasPictures) {
-                streams.Add(new OfficeCompoundStream("Data", body.PictureData));
-            }
-            foreach (OfficeCompoundStream propertyStream in propertyStreams) {
-                streams.Add(new OfficeCompoundStream(propertyStream.Name, PadToRegularOleStream(propertyStream.Bytes)));
-            }
-
-            OfficeCompoundFile? sourceCompoundFile = document.LegacyDocSourceCompoundFile;
-            if (sourceCompoundFile == null) {
-                return OfficeCompoundFileWriter.Write(streams);
-            }
-
-            return OfficeCompoundFileWriter.Rewrite(
-                sourceCompoundFile,
-                streams.ToDictionary(stream => stream.Name, stream => stream.Bytes, StringComparer.OrdinalIgnoreCase));
-        }
-
         private static void ThrowIfUnsupportedLegacyDocImportState(WordDocument document, WordSaveOptions? options) {
             bool hasLegacyDigitalSignature = document.LegacyDocCompoundFeatures.Any(feature =>
                 feature.Kind == LegacyDocCompoundFeatureKind.DigitalSignature);

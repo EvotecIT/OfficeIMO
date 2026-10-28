@@ -28,7 +28,7 @@ public partial class Word {
                 Enumerable.Range(1, 12).Select(index => $"Before{index:D3}"))));
             WordSection columns = document.AddSection(WordSectionBreakType.Continuous);
             columns.ColumnCount=2; columns.ColumnsSpace=400;
-            WordTable table = document.AddTable(1, 1);
+            WordTable table = document.AddTable(1, 1, WordTableStyle.TableGrid);
             table.StyleDetails!.SetBordersForAllSides(WordBorderStyle.Nil, 0U, OfficeIMO.OfficeColor.Black);
             table.LayoutMode=WordTableLayoutMode.Fixed; table.Width=4000; table.WidthType=WordTableWidthUnit.Dxa;
             WordTableCell cell=table.Rows[0].Cells[0]; cell.Width=4000; cell.WidthType=WordTableWidthUnit.Dxa;

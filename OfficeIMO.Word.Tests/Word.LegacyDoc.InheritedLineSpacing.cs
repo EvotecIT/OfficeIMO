@@ -46,7 +46,7 @@ public partial class Word {
             list.Numbering.AddLevel(new WordListLevel(WordListLevelKind.DecimalDot));
             target = list.AddItem("Inherited");
         } else if (route.StartsWith("table", StringComparison.Ordinal)) {
-            var table = source.AddTable(1, 1);
+            var table = source.AddTable(1, 1, WordTableStyle.TableGrid);
             table._tableProperties!.TableStyle = null;
             target = table.Rows[0].Cells[0].Paragraphs[0];
             target.Text = "Inherited";
