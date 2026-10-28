@@ -382,7 +382,7 @@ internal static class PowerPointRoadmapVisualCorpus {
         curved.FillColor = OfficeColor.FromRgb(14, 165, 233);
         curved.StrokeColor = OfficeColor.FromRgb(12, 74, 110);
         curved.StrokeWidth = 2.25D;
-        slide.AddCustomGeometryPoints(curved, 90, 145, 300, 250,
+        slide.AddCustomGeometry(curved, OfficeIMO.OfficeLength.Points(90), OfficeIMO.OfficeLength.Points(145), OfficeIMO.OfficeLength.Points(300), OfficeIMO.OfficeLength.Points(250),
             "Curved freeform");
 
         OfficeShape polygon = OfficeShape.Polygon(
@@ -392,7 +392,7 @@ internal static class PowerPointRoadmapVisualCorpus {
         polygon.FillColor = OfficeColor.FromRgb(168, 85, 247);
         polygon.StrokeColor = OfficeColor.FromRgb(88, 28, 135);
         polygon.StrokeWidth = 2.25D;
-        slide.AddCustomGeometryPoints(polygon, 545, 145, 300, 250,
+        slide.AddCustomGeometry(polygon, OfficeIMO.OfficeLength.Points(545), OfficeIMO.OfficeLength.Points(145), OfficeIMO.OfficeLength.Points(300), OfficeIMO.OfficeLength.Points(250),
             "Polygon freeform");
         AddFooter(slide, "Shared Drawing geometry · editable PowerPoint custGeom");
         return slide;

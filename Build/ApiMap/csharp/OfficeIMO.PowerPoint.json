@@ -2373,51 +2373,51 @@
       "old": "OfficeIMO.PowerPoint.PowerPointSlide.AddCustomGeometryCm(OfficeShape geometry, double leftCm, double topCm, double widthCm, double heightCm, string name = null)",
       "kind": "method",
       "action": "merge",
-      "new": "OfficeIMO.PowerPoint.PowerPointSlide.AddCustomGeometry(... OfficeLength ...)",
+      "new": "OfficeIMO.PowerPoint.PowerPointSlide.AddCustomGeometry(OfficeShape geometry, OfficeLength left, OfficeLength top, OfficeLength width, OfficeLength height, string name = null)",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.PowerPoint/PowerPointSlide.CustomGeometry.cs",
       "category": "units",
-      "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values. Also (units): change -> OfficeIMO.PowerPoint.PowerPointSlide.AddCustomGeometryCm(... OfficeLength ...)",
+      "notes": "One authoring method accepts physical lengths for placement. Shared path points remain logical geometry coordinates; native transform bounds, command limits, fill rules, gradients and rejected-input behavior retain their existing validation.",
       "implementation": {
         "phase": "B",
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
+      "applied": "phase-b-applied",
       "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlide.AddCustomGeometryInches(OfficeShape geometry, double leftInches, double topInches, double widthInches, double heightInches, string name = null)",
       "kind": "method",
       "action": "merge",
-      "new": "OfficeIMO.PowerPoint.PowerPointSlide.AddCustomGeometry(... OfficeLength ...)",
+      "new": "OfficeIMO.PowerPoint.PowerPointSlide.AddCustomGeometry(OfficeShape geometry, OfficeLength left, OfficeLength top, OfficeLength width, OfficeLength height, string name = null)",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.PowerPoint/PowerPointSlide.CustomGeometry.cs",
       "category": "units",
-      "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values. Also (units): change -> OfficeIMO.PowerPoint.PowerPointSlide.AddCustomGeometryInches(... OfficeLength ...)",
+      "notes": "One authoring method accepts physical lengths for placement. Shared path points remain logical geometry coordinates; native transform bounds, command limits, fill rules, gradients and rejected-input behavior retain their existing validation.",
       "implementation": {
         "phase": "B",
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
+      "applied": "phase-b-applied",
       "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlide.AddCustomGeometryPoints(OfficeShape geometry, double leftPoints, double topPoints, double widthPoints, double heightPoints, string name = null)",
       "kind": "method",
       "action": "merge",
-      "new": "OfficeIMO.PowerPoint.PowerPointSlide.AddCustomGeometry(... OfficeLength ...)",
+      "new": "OfficeIMO.PowerPoint.PowerPointSlide.AddCustomGeometry(OfficeShape geometry, OfficeLength left, OfficeLength top, OfficeLength width, OfficeLength height, string name = null)",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.PowerPoint/PowerPointSlide.CustomGeometry.cs",
       "category": "units",
-      "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values. Also (units): change -> OfficeIMO.PowerPoint.PowerPointSlide.AddCustomGeometryPoints(... OfficeLength ...)",
+      "notes": "One authoring method accepts physical lengths for placement. Shared path points remain logical geometry coordinates; native transform bounds, command limits, fill rules, gradients and rejected-input behavior retain their existing validation.",
       "implementation": {
         "phase": "B",
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
+      "applied": "phase-b-applied",
       "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
     },
     {
@@ -4636,17 +4636,17 @@
       "old": "OfficeIMO.PowerPoint.PowerPointSlide.AddCustomGeometry(OfficeShape geometry, long left, long top, long width, long height, string name = null)",
       "kind": "method",
       "action": "change",
-      "new": "OfficeIMO.PowerPoint.PowerPointSlide.AddCustomGeometry(... OfficeLength left, OfficeLength top, OfficeLength width, OfficeLength height ...)",
+      "new": "OfficeIMO.PowerPoint.PowerPointSlide.AddCustomGeometry(OfficeShape geometry, OfficeLength left, OfficeLength top, OfficeLength width, OfficeLength height, string name = null)",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.PowerPoint/PowerPointSlide.CustomGeometry.cs",
       "category": "units",
-      "notes": "Raw EMU long geometry parameters with EMU defaults.",
+      "notes": "One authoring method accepts physical lengths for placement. Shared path points remain logical geometry coordinates; native transform bounds, command limits, fill rules, gradients and rejected-input behavior retain their existing validation.",
       "implementation": {
         "phase": "B",
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
+      "applied": "phase-b-applied",
       "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
     },
     {
@@ -10181,6 +10181,15 @@
         "Website/data/showcase_sources.json",
         "Website/data/showcase_excerpts.json",
         "Website/static/downloads/showcase/manifest.json"
+      ]
+    },
+    {
+      "change": "Use physical slide bounds for shared custom geometry",
+      "reason": "The base method accepts OfficeLength and replaces the point, centimeter and inch twins. Logical path coordinates retain their existing meaning. Existing custom-path/native-PDF consumers use explicit length factories.",
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "files": [
+        "OfficeIMO.PowerPoint/PowerPointSlide.CustomGeometry.cs"
       ]
     }
   ],

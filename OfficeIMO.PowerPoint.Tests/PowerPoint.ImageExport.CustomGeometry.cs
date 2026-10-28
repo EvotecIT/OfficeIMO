@@ -26,8 +26,8 @@ namespace OfficeIMO.Tests {
             using var stream = new System.IO.MemoryStream();
             using (PowerPointDocument presentation = PowerPointDocument.Create(stream)) {
                 presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(180),OfficeIMO.OfficeLength.Points(140));
-                PowerPointAutoShape shape = presentation.AddSlide().AddCustomGeometryPoints(
-                    sharedPath, 30, 20, 120, 100, "Shared freeform");
+                PowerPointAutoShape shape = presentation.AddSlide().AddCustomGeometry(
+                    sharedPath, OfficeIMO.OfficeLength.Points(30), OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(120), OfficeIMO.OfficeLength.Points(100), "Shared freeform");
                 Assert.Equal("Shared freeform", shape.Name);
                 Assert.Null(shape.ShapeType);
                 Assert.Equal("0EA5E9", shape.FillColor);
@@ -68,8 +68,8 @@ namespace OfficeIMO.Tests {
                 path.StrokeWidth = width;
 
                 Assert.Throws<ArgumentOutOfRangeException>(() =>
-                    slide.AddCustomGeometryPoints(path,
-                        10, 10, 100, 100));
+                    slide.AddCustomGeometry(path,
+                        OfficeIMO.OfficeLength.Points(10), OfficeIMO.OfficeLength.Points(10), OfficeIMO.OfficeLength.Points(100), OfficeIMO.OfficeLength.Points(100)));
                 Assert.Empty(slide.Shapes);
             }
 
@@ -93,8 +93,8 @@ namespace OfficeIMO.Tests {
                 OfficeColor.FromRgb(37, 99, 235),
                 OfficeColor.FromRgb(14, 165, 233));
             Assert.Throws<NotSupportedException>(() =>
-                slide.AddCustomGeometryPoints(fillGradient,
-                    10, 10, 100, 100));
+                slide.AddCustomGeometry(fillGradient,
+                    OfficeIMO.OfficeLength.Points(10), OfficeIMO.OfficeLength.Points(10), OfficeIMO.OfficeLength.Points(100), OfficeIMO.OfficeLength.Points(100)));
 
             OfficeShape strokeGradient = OfficeShape.Path(
                 OfficePathCommand.MoveTo(0, 0),
@@ -104,8 +104,8 @@ namespace OfficeIMO.Tests {
                     OfficeColor.FromRgb(37, 99, 235),
                     OfficeColor.FromRgb(14, 165, 233));
             Assert.Throws<NotSupportedException>(() =>
-                slide.AddCustomGeometryPoints(strokeGradient,
-                    10, 10, 100, 100));
+                slide.AddCustomGeometry(strokeGradient,
+                    OfficeIMO.OfficeLength.Points(10), OfficeIMO.OfficeLength.Points(10), OfficeIMO.OfficeLength.Points(100), OfficeIMO.OfficeLength.Points(100)));
             Assert.Empty(slide.Shapes);
         }
 
@@ -126,7 +126,7 @@ namespace OfficeIMO.Tests {
             PowerPointSlide slide = presentation.AddSlide();
 
             NotSupportedException error = Assert.Throws<NotSupportedException>(() =>
-                slide.AddCustomGeometryPoints(geometry, 10, 10, 100, 100));
+                slide.AddCustomGeometry(geometry, OfficeIMO.OfficeLength.Points(10), OfficeIMO.OfficeLength.Points(10), OfficeIMO.OfficeLength.Points(100), OfficeIMO.OfficeLength.Points(100)));
             Assert.Contains("even-odd", error.Message,
                 StringComparison.OrdinalIgnoreCase);
 
@@ -137,12 +137,12 @@ namespace OfficeIMO.Tests {
                 new OfficePoint(100, 0));
             selfIntersecting.FillColor = OfficeColor.FromRgb(14, 165, 233);
             Assert.Throws<NotSupportedException>(() =>
-                slide.AddCustomGeometryPoints(selfIntersecting,
-                    10, 10, 100, 100));
+                slide.AddCustomGeometry(selfIntersecting,
+                    OfficeIMO.OfficeLength.Points(10), OfficeIMO.OfficeLength.Points(10), OfficeIMO.OfficeLength.Points(100), OfficeIMO.OfficeLength.Points(100)));
 
             geometry.FillRule = OfficeFillRule.NonZero;
-            Assert.NotNull(slide.AddCustomGeometryPoints(geometry,
-                10, 10, 100, 100));
+            Assert.NotNull(slide.AddCustomGeometry(geometry,
+                OfficeIMO.OfficeLength.Points(10), OfficeIMO.OfficeLength.Points(10), OfficeIMO.OfficeLength.Points(100), OfficeIMO.OfficeLength.Points(100)));
             Assert.Empty(presentation.ValidateDocument());
         }
 
@@ -163,7 +163,7 @@ namespace OfficeIMO.Tests {
             PowerPointSlide slide = presentation.AddSlide();
 
             NotSupportedException error = Assert.Throws<NotSupportedException>(() =>
-                slide.AddCustomGeometryPoints(geometry, 10, 10, 100, 100));
+                slide.AddCustomGeometry(geometry, OfficeIMO.OfficeLength.Points(10), OfficeIMO.OfficeLength.Points(10), OfficeIMO.OfficeLength.Points(100), OfficeIMO.OfficeLength.Points(100)));
             Assert.Contains("even-odd", error.Message,
                 StringComparison.OrdinalIgnoreCase);
             Assert.Empty(slide.Shapes);
@@ -181,8 +181,8 @@ namespace OfficeIMO.Tests {
 
             using var stream = new System.IO.MemoryStream();
             using (PowerPointDocument presentation = PowerPointDocument.Create(stream)) {
-                PowerPointAutoShape shape = presentation.AddSlide().AddCustomGeometryPoints(
-                    polygon, 20, 20, 120, 80);
+                PowerPointAutoShape shape = presentation.AddSlide().AddCustomGeometry(
+                    polygon, OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(120), OfficeIMO.OfficeLength.Points(80));
                 Assert.Equal(75, shape.OutlineTransparency);
                 A.Alpha alpha = shape.Element.Descendants<A.Outline>().Single()
                     .Descendants<A.Alpha>().Single();
@@ -216,8 +216,8 @@ namespace OfficeIMO.Tests {
             using var stream = new System.IO.MemoryStream();
             using (PowerPointDocument presentation =
                    PowerPointDocument.Create(stream)) {
-                presentation.AddSlide().AddCustomGeometryPoints(path,
-                    20, 20, 120, 80);
+                presentation.AddSlide().AddCustomGeometry(path,
+                    OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(120), OfficeIMO.OfficeLength.Points(80));
                 var validation = presentation.ValidateDocument();
                 Assert.True(validation.Count == 0, string.Join(
                     Environment.NewLine, validation.Select(error =>
@@ -258,8 +258,8 @@ namespace OfficeIMO.Tests {
 
             using var stream = new System.IO.MemoryStream();
             using (PowerPointDocument presentation = PowerPointDocument.Create(stream)) {
-                PowerPointAutoShape shape = presentation.AddSlide().AddCustomGeometryPoints(
-                    polygon, 20, 20, 120, 80);
+                PowerPointAutoShape shape = presentation.AddSlide().AddCustomGeometry(
+                    polygon, OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(120), OfficeIMO.OfficeLength.Points(80));
                 Assert.Equal(75, shape.FillTransparency);
                 A.Alpha alpha = shape.Element.Descendants<A.SolidFill>().First()
                     .Descendants<A.Alpha>().Single();
@@ -709,9 +709,9 @@ namespace OfficeIMO.Tests {
             invalidStroke.StrokeOpacity = double.PositiveInfinity;
 
             Assert.Throws<ArgumentException>(() => slide
-                .AddCustomGeometryPoints(invalidFill, 10, 10, 100, 80));
+                .AddCustomGeometry(invalidFill, OfficeIMO.OfficeLength.Points(10), OfficeIMO.OfficeLength.Points(10), OfficeIMO.OfficeLength.Points(100), OfficeIMO.OfficeLength.Points(80)));
             Assert.Throws<ArgumentException>(() => slide
-                .AddCustomGeometryPoints(invalidStroke, 10, 10, 100, 80));
+                .AddCustomGeometry(invalidStroke, OfficeIMO.OfficeLength.Points(10), OfficeIMO.OfficeLength.Points(10), OfficeIMO.OfficeLength.Points(100), OfficeIMO.OfficeLength.Points(80)));
             Assert.Empty(slide.Shapes);
         }
 
@@ -727,11 +727,11 @@ namespace OfficeIMO.Tests {
             using var stream = new System.IO.MemoryStream();
             using PowerPointDocument presentation = PowerPointDocument.Create(stream);
             PowerPointSlide slide = presentation.AddSlide();
-            PowerPointAutoShape shape = slide.AddCustomGeometryCm(
-                polygon, 1, 1, 4, 3, "Shared polygon");
+            PowerPointAutoShape shape = slide.AddCustomGeometry(
+                polygon, OfficeIMO.OfficeLength.Centimeters(1), OfficeIMO.OfficeLength.Centimeters(1), OfficeIMO.OfficeLength.Centimeters(4), OfficeIMO.OfficeLength.Centimeters(3), "Shared polygon");
             Assert.Null(shape.ShapeType);
-            Assert.Throws<ArgumentException>(() => slide.AddCustomGeometryPoints(
-                OfficeShape.Rectangle(10, 10), 0, 0, 10, 10));
+            Assert.Throws<ArgumentException>(() => slide.AddCustomGeometry(
+                OfficeShape.Rectangle(10, 10), OfficeIMO.OfficeLength.Points(0), OfficeIMO.OfficeLength.Points(0), OfficeIMO.OfficeLength.Points(10), OfficeIMO.OfficeLength.Points(10)));
         }
 
         [Fact]
@@ -748,11 +748,11 @@ namespace OfficeIMO.Tests {
                 OfficePathCommand.LineTo(300000000D, 1D));
 
             Assert.Throws<ArgumentException>(() =>
-                slide.AddCustomGeometryPoints(infiniteNormalized,
-                    0D, 0D, 100D, 100D));
+                slide.AddCustomGeometry(infiniteNormalized,
+                    OfficeIMO.OfficeLength.Points(0D), OfficeIMO.OfficeLength.Points(0D), OfficeIMO.OfficeLength.Points(100D), OfficeIMO.OfficeLength.Points(100D)));
             Assert.Throws<ArgumentException>(() =>
-                slide.AddCustomGeometryPoints(outOfRangeNormalized,
-                    0D, 0D, 100D, 100D));
+                slide.AddCustomGeometry(outOfRangeNormalized,
+                    OfficeIMO.OfficeLength.Points(0D), OfficeIMO.OfficeLength.Points(0D), OfficeIMO.OfficeLength.Points(100D), OfficeIMO.OfficeLength.Points(100D)));
             Assert.Equal(originalShapeCount, slide.Shapes.Count);
             Assert.Empty(presentation.ValidateDocument());
         }

@@ -65,16 +65,16 @@ namespace OfficeIMO.Tests {
 
             Assert.Throws<ArgumentOutOfRangeException>(() =>
                 slide.AddCustomGeometry(geometry,
-                    MinimumCoordinate - 1L, 0L, 100L, 100L));
+                    OfficeIMO.OfficeLength.Emus(MinimumCoordinate - 1L), OfficeIMO.OfficeLength.Emus(0L), OfficeIMO.OfficeLength.Emus(100L), OfficeIMO.OfficeLength.Emus(100L)));
             Assert.Throws<ArgumentOutOfRangeException>(() =>
                 slide.AddCustomGeometry(geometry,
-                    0L, MaximumCoordinate + 1L, 100L, 100L));
+                    OfficeIMO.OfficeLength.Emus(0L), OfficeIMO.OfficeLength.Emus(MaximumCoordinate + 1L), OfficeIMO.OfficeLength.Emus(100L), OfficeIMO.OfficeLength.Emus(100L)));
             Assert.Throws<ArgumentOutOfRangeException>(() =>
                 slide.AddCustomGeometry(geometry,
-                    0L, 0L, MaximumCoordinate + 1L, 100L));
+                    OfficeIMO.OfficeLength.Emus(0L), OfficeIMO.OfficeLength.Emus(0L), OfficeIMO.OfficeLength.Emus(MaximumCoordinate + 1L), OfficeIMO.OfficeLength.Emus(100L)));
             Assert.Throws<ArgumentOutOfRangeException>(() =>
                 slide.AddCustomGeometry(geometry,
-                    0L, 0L, 100L, MaximumCoordinate + 1L));
+                    OfficeIMO.OfficeLength.Emus(0L), OfficeIMO.OfficeLength.Emus(0L), OfficeIMO.OfficeLength.Emus(100L), OfficeIMO.OfficeLength.Emus(MaximumCoordinate + 1L)));
             Assert.Empty(slide.Shapes);
         }
     }

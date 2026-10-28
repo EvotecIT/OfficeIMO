@@ -151,8 +151,8 @@ public partial class PowerPointSaveAsPdfTests {
             new OfficePoint(0, 38));
         geometry.FillColor = OfficeColor.FromRgb(168, 85, 247);
         geometry.StrokeColor = OfficeColor.FromRgb(88, 28, 135);
-        presentation.AddSlide().AddCustomGeometryPoints(geometry,
-            60, 30, 200, 120, "PDF polygon");
+        presentation.AddSlide().AddCustomGeometry(geometry,
+            OfficeIMO.OfficeLength.Points(60), OfficeIMO.OfficeLength.Points(30), OfficeIMO.OfficeLength.Points(200), OfficeIMO.OfficeLength.Points(120), "PDF polygon");
         var options = new PowerPointPdfExportOptions();
 
         byte[] pdf = presentation.ToPdf(options).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
