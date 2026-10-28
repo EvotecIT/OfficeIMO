@@ -425,21 +425,21 @@ namespace OfficeIMO.Word.Html {
             int horizontalEnd = (box.MarginRight ?? 0) + (box.PaddingRight ?? 0);
             foreach (WordParagraph paragraph in paragraphs) {
                 if (horizontalStart != 0) {
-                    paragraph.IndentationBefore = (paragraph.IndentationBefore ?? 0) + horizontalStart;
+                    paragraph.IndentationBefore = global::OfficeIMO.OfficeLength.Points(((checked((int?)(paragraph.IndentationBefore?.ToTwips())) ?? 0) + horizontalStart) / 20D);
                 }
                 if (horizontalEnd != 0) {
-                    paragraph.IndentationAfter = (paragraph.IndentationAfter ?? 0) + horizontalEnd;
+                    paragraph.IndentationAfter = global::OfficeIMO.OfficeLength.Points(((checked((int?)(paragraph.IndentationAfter?.ToTwips())) ?? 0) + horizontalEnd) / 20D);
                 }
             }
 
             int verticalStart = (box.MarginTop ?? 0) + (box.PaddingTop ?? 0);
             if (verticalStart != 0) {
-                paragraphs[0].LineSpacingBefore = (paragraphs[0].LineSpacingBefore ?? 0) + verticalStart;
+                paragraphs[0].LineSpacingBefore = global::OfficeIMO.OfficeLength.Points(((checked((int?)(paragraphs[0].LineSpacingBefore?.ToTwips())) ?? 0) + verticalStart) / 20D);
             }
             int verticalEnd = (box.MarginBottom ?? 0) + (box.PaddingBottom ?? 0);
             if (verticalEnd != 0) {
                 WordParagraph last = paragraphs[paragraphs.Count - 1];
-                last.LineSpacingAfter = (last.LineSpacingAfter ?? 0) + verticalEnd;
+                last.LineSpacingAfter = global::OfficeIMO.OfficeLength.Points(((checked((int?)(last.LineSpacingAfter?.ToTwips())) ?? 0) + verticalEnd) / 20D);
             }
         }
 

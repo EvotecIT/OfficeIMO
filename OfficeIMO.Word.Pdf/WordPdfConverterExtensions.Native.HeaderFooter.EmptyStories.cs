@@ -18,7 +18,7 @@ public static partial class WordPdfConverterExtensions {
         WordHeaderFooter? evenStory = section.DocumentOddEvenSettingEnabled
             ? isFooter ? section.ResolveEvenFooter() : section.ResolveEvenHeader() : null;
         WordHeaderFooter?[] stories = { defaultStory, firstStory, evenStory };
-        double distance = (isFooter ? section.Margins.FooterDistance : section.Margins.HeaderDistance) / 20D;
+        double distance = (isFooter ? checked((uint)(section.Margins.FooterDistance.GetValueOrDefault().ToTwips())) : checked((uint)(section.Margins.HeaderDistance.GetValueOrDefault().ToTwips()))) / 20D;
         for (int index = 0; index < stories.Length; index++) {
             WordHeaderFooter? story = stories[index];
             if (story == null || story.ChildElements.Any()) continue;

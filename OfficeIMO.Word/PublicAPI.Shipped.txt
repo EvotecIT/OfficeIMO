@@ -2721,28 +2721,20 @@ OfficeIMO.Word.WordMargin.Office2003Default = 5 -> OfficeIMO.Word.WordMargin
 OfficeIMO.Word.WordMargin.Unknown = 6 -> OfficeIMO.Word.WordMargin
 OfficeIMO.Word.WordMargin.Wide = 4 -> OfficeIMO.Word.WordMargin
 OfficeIMO.Word.WordMargins
-OfficeIMO.Word.WordMargins.Bottom.get -> int?
+OfficeIMO.Word.WordMargins.Bottom.get -> OfficeIMO.OfficeLength?
 OfficeIMO.Word.WordMargins.Bottom.set -> void
-OfficeIMO.Word.WordMargins.BottomCentimeters.get -> double?
-OfficeIMO.Word.WordMargins.BottomCentimeters.set -> void
-OfficeIMO.Word.WordMargins.FooterDistance.get -> uint
+OfficeIMO.Word.WordMargins.FooterDistance.get -> OfficeIMO.OfficeLength?
 OfficeIMO.Word.WordMargins.FooterDistance.set -> void
-OfficeIMO.Word.WordMargins.Gutter.get -> uint
+OfficeIMO.Word.WordMargins.Gutter.get -> OfficeIMO.OfficeLength?
 OfficeIMO.Word.WordMargins.Gutter.set -> void
-OfficeIMO.Word.WordMargins.HeaderDistance.get -> uint
+OfficeIMO.Word.WordMargins.HeaderDistance.get -> OfficeIMO.OfficeLength?
 OfficeIMO.Word.WordMargins.HeaderDistance.set -> void
-OfficeIMO.Word.WordMargins.Left.get -> uint
+OfficeIMO.Word.WordMargins.Left.get -> OfficeIMO.OfficeLength?
 OfficeIMO.Word.WordMargins.Left.set -> void
-OfficeIMO.Word.WordMargins.LeftCentimeters.get -> double?
-OfficeIMO.Word.WordMargins.LeftCentimeters.set -> void
-OfficeIMO.Word.WordMargins.Right.get -> uint
+OfficeIMO.Word.WordMargins.Right.get -> OfficeIMO.OfficeLength?
 OfficeIMO.Word.WordMargins.Right.set -> void
-OfficeIMO.Word.WordMargins.RightCentimeters.get -> double?
-OfficeIMO.Word.WordMargins.RightCentimeters.set -> void
-OfficeIMO.Word.WordMargins.Top.get -> int?
+OfficeIMO.Word.WordMargins.Top.get -> OfficeIMO.OfficeLength?
 OfficeIMO.Word.WordMargins.Top.set -> void
-OfficeIMO.Word.WordMargins.TopCentimeters.get -> double?
-OfficeIMO.Word.WordMargins.TopCentimeters.set -> void
 OfficeIMO.Word.WordMargins.Type.get -> OfficeIMO.Word.WordMargin?
 OfficeIMO.Word.WordMargins.Type.set -> void
 OfficeIMO.Word.WordMargins.WordMargins(OfficeIMO.Word.WordDocument! wordDocument, OfficeIMO.Word.WordSection! wordSection) -> void
@@ -2932,19 +2924,19 @@ OfficeIMO.Word.WordPageSize.Statement = 3 -> OfficeIMO.Word.WordPageSize
 OfficeIMO.Word.WordPageSize.Tabloid = 10 -> OfficeIMO.Word.WordPageSize
 OfficeIMO.Word.WordPageSize.Unknown = 0 -> OfficeIMO.Word.WordPageSize
 OfficeIMO.Word.WordPageSizeDefinition
-OfficeIMO.Word.WordPageSizeDefinition.HeightTwips.get -> uint
+OfficeIMO.Word.WordPageSizeDefinition.Height.get -> OfficeIMO.OfficeLength
 OfficeIMO.Word.WordPageSizeDefinition.PaperCode.get -> ushort
-OfficeIMO.Word.WordPageSizeDefinition.WidthTwips.get -> uint
+OfficeIMO.Word.WordPageSizeDefinition.Width.get -> OfficeIMO.OfficeLength
 OfficeIMO.Word.WordPageSizes
 OfficeIMO.Word.WordPageSizes.Code.get -> ushort?
 OfficeIMO.Word.WordPageSizes.Code.set -> void
-OfficeIMO.Word.WordPageSizes.Height.get -> uint?
+OfficeIMO.Word.WordPageSizes.Height.get -> OfficeIMO.OfficeLength?
 OfficeIMO.Word.WordPageSizes.Height.set -> void
 OfficeIMO.Word.WordPageSizes.Orientation.get -> OfficeIMO.OfficePageOrientation
 OfficeIMO.Word.WordPageSizes.Orientation.set -> void
 OfficeIMO.Word.WordPageSizes.PageSize.get -> OfficeIMO.Word.WordPageSize?
 OfficeIMO.Word.WordPageSizes.PageSize.set -> void
-OfficeIMO.Word.WordPageSizes.Width.get -> uint?
+OfficeIMO.Word.WordPageSizes.Width.get -> OfficeIMO.OfficeLength?
 OfficeIMO.Word.WordPageSizes.Width.set -> void
 OfficeIMO.Word.WordPageSizes.WordPageSizes(OfficeIMO.Word.WordDocument! wordDocument, OfficeIMO.Word.WordSection! wordSection) -> void
 OfficeIMO.Word.WordPaperMetric
@@ -3122,22 +3114,14 @@ OfficeIMO.Word.WordParagraph.Highlight.get -> OfficeIMO.Word.WordHighlightColor?
 OfficeIMO.Word.WordParagraph.Highlight.set -> void
 OfficeIMO.Word.WordParagraph.Hyperlink.get -> OfficeIMO.Word.WordHyperLink?
 OfficeIMO.Word.WordParagraph.Image.get -> OfficeIMO.Word.WordImage?
-OfficeIMO.Word.WordParagraph.IndentationAfter.get -> int?
+OfficeIMO.Word.WordParagraph.IndentationAfter.get -> OfficeIMO.OfficeLength?
 OfficeIMO.Word.WordParagraph.IndentationAfter.set -> void
-OfficeIMO.Word.WordParagraph.IndentationAfterPoints.get -> double?
-OfficeIMO.Word.WordParagraph.IndentationAfterPoints.set -> void
-OfficeIMO.Word.WordParagraph.IndentationBefore.get -> int?
+OfficeIMO.Word.WordParagraph.IndentationBefore.get -> OfficeIMO.OfficeLength?
 OfficeIMO.Word.WordParagraph.IndentationBefore.set -> void
-OfficeIMO.Word.WordParagraph.IndentationBeforePoints.get -> double?
-OfficeIMO.Word.WordParagraph.IndentationBeforePoints.set -> void
-OfficeIMO.Word.WordParagraph.IndentationFirstLine.get -> int?
+OfficeIMO.Word.WordParagraph.IndentationFirstLine.get -> OfficeIMO.OfficeLength?
 OfficeIMO.Word.WordParagraph.IndentationFirstLine.set -> void
-OfficeIMO.Word.WordParagraph.IndentationFirstLinePoints.get -> double?
-OfficeIMO.Word.WordParagraph.IndentationFirstLinePoints.set -> void
-OfficeIMO.Word.WordParagraph.IndentationHanging.get -> int?
+OfficeIMO.Word.WordParagraph.IndentationHanging.get -> OfficeIMO.OfficeLength?
 OfficeIMO.Word.WordParagraph.IndentationHanging.set -> void
-OfficeIMO.Word.WordParagraph.IndentationHangingPoints.get -> double?
-OfficeIMO.Word.WordParagraph.IndentationHangingPoints.set -> void
 OfficeIMO.Word.WordParagraph.IsBookmark.get -> bool
 OfficeIMO.Word.WordParagraph.IsBreak.get -> bool
 OfficeIMO.Word.WordParagraph.IsChart.get -> bool
@@ -3184,14 +3168,10 @@ OfficeIMO.Word.WordParagraph.Language.set -> void
 OfficeIMO.Word.WordParagraph.Line.get -> OfficeIMO.Word.WordLine?
 OfficeIMO.Word.WordParagraph.LineSpacing.get -> int?
 OfficeIMO.Word.WordParagraph.LineSpacing.set -> void
-OfficeIMO.Word.WordParagraph.LineSpacingAfter.get -> int?
+OfficeIMO.Word.WordParagraph.LineSpacingAfter.get -> OfficeIMO.OfficeLength?
 OfficeIMO.Word.WordParagraph.LineSpacingAfter.set -> void
-OfficeIMO.Word.WordParagraph.LineSpacingAfterPoints.get -> double?
-OfficeIMO.Word.WordParagraph.LineSpacingAfterPoints.set -> void
-OfficeIMO.Word.WordParagraph.LineSpacingBefore.get -> int?
+OfficeIMO.Word.WordParagraph.LineSpacingBefore.get -> OfficeIMO.OfficeLength?
 OfficeIMO.Word.WordParagraph.LineSpacingBefore.set -> void
-OfficeIMO.Word.WordParagraph.LineSpacingBeforePoints.get -> double?
-OfficeIMO.Word.WordParagraph.LineSpacingBeforePoints.set -> void
 OfficeIMO.Word.WordParagraph.LineSpacingPoints.get -> double?
 OfficeIMO.Word.WordParagraph.LineSpacingPoints.set -> void
 OfficeIMO.Word.WordParagraph.LineSpacingRule.get -> OfficeIMO.Word.WordLineSpacingRule?
@@ -4324,22 +4304,14 @@ OfficeIMO.Word.WordTableCell.HideMark.get -> bool
 OfficeIMO.Word.WordTableCell.HideMark.set -> void
 OfficeIMO.Word.WordTableCell.HorizontalMerge.get -> OfficeIMO.Word.WordCellMerge?
 OfficeIMO.Word.WordTableCell.HorizontalMerge.set -> void
-OfficeIMO.Word.WordTableCell.MarginBottomCentimeters.get -> double?
-OfficeIMO.Word.WordTableCell.MarginBottomCentimeters.set -> void
-OfficeIMO.Word.WordTableCell.MarginBottomWidth.get -> short?
-OfficeIMO.Word.WordTableCell.MarginBottomWidth.set -> void
-OfficeIMO.Word.WordTableCell.MarginLeftCentimeters.get -> double?
-OfficeIMO.Word.WordTableCell.MarginLeftCentimeters.set -> void
-OfficeIMO.Word.WordTableCell.MarginLeftWidth.get -> short?
-OfficeIMO.Word.WordTableCell.MarginLeftWidth.set -> void
-OfficeIMO.Word.WordTableCell.MarginRightCentimeters.get -> double?
-OfficeIMO.Word.WordTableCell.MarginRightCentimeters.set -> void
-OfficeIMO.Word.WordTableCell.MarginRightWidth.get -> short?
-OfficeIMO.Word.WordTableCell.MarginRightWidth.set -> void
-OfficeIMO.Word.WordTableCell.MarginTopCentimeters.get -> double?
-OfficeIMO.Word.WordTableCell.MarginTopCentimeters.set -> void
-OfficeIMO.Word.WordTableCell.MarginTopWidth.get -> short?
-OfficeIMO.Word.WordTableCell.MarginTopWidth.set -> void
+OfficeIMO.Word.WordTableCell.MarginBottom.get -> OfficeIMO.OfficeLength?
+OfficeIMO.Word.WordTableCell.MarginBottom.set -> void
+OfficeIMO.Word.WordTableCell.MarginLeft.get -> OfficeIMO.OfficeLength?
+OfficeIMO.Word.WordTableCell.MarginLeft.set -> void
+OfficeIMO.Word.WordTableCell.MarginRight.get -> OfficeIMO.OfficeLength?
+OfficeIMO.Word.WordTableCell.MarginRight.set -> void
+OfficeIMO.Word.WordTableCell.MarginTop.get -> OfficeIMO.OfficeLength?
+OfficeIMO.Word.WordTableCell.MarginTop.set -> void
 OfficeIMO.Word.WordTableCell.MergeHorizontally(int cellsCount, bool copyParagraphs = false) -> void
 OfficeIMO.Word.WordTableCell.MergeVertically(int cellsCount, bool copyParagraphs = false) -> void
 OfficeIMO.Word.WordTableCell.NestedTables.get -> System.Collections.Generic.List<OfficeIMO.Word.WordTable!>!
@@ -4589,11 +4561,11 @@ OfficeIMO.Word.WordTableRow.CellsCount.get -> int
 OfficeIMO.Word.WordTableRow.Equals(OfficeIMO.Word.WordTableRow? other) -> bool
 OfficeIMO.Word.WordTableRow.FirstCell.get -> OfficeIMO.Word.WordTableCell!
 OfficeIMO.Word.WordTableRow.GetCells(bool readOnly = false) -> System.Collections.Generic.List<OfficeIMO.Word.WordTableCell!>!
-OfficeIMO.Word.WordTableRow.Height.get -> int?
+OfficeIMO.Word.WordTableRow.Height.get -> OfficeIMO.OfficeLength?
 OfficeIMO.Word.WordTableRow.Height.set -> void
 OfficeIMO.Word.WordTableRow.LastCell.get -> OfficeIMO.Word.WordTableCell!
 OfficeIMO.Word.WordTableRow.MergeVertically(int cellIndex, int rowsCount, bool copyParagraphs = false) -> void
-OfficeIMO.Word.WordTableRow.MinimumHeight.get -> int?
+OfficeIMO.Word.WordTableRow.MinimumHeight.get -> OfficeIMO.OfficeLength?
 OfficeIMO.Word.WordTableRow.MinimumHeight.set -> void
 OfficeIMO.Word.WordTableRow.Parent.get -> OfficeIMO.Word.WordTable!
 OfficeIMO.Word.WordTableRow.Remove() -> void

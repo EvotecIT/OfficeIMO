@@ -26,11 +26,11 @@ namespace OfficeIMO.Examples.Word
                     var paragraph4 = document.AddParagraph();
                     paragraph4 = paragraph4.AddText("Justified heading with spacing and indentation");
                     paragraph4.SetAlignment(WordParagraphAlignment.Both);
-                    paragraph4.LineSpacingBeforePoints = 12;
-                    paragraph4.LineSpacingAfterPoints = 12;
+                    paragraph4.LineSpacingBefore = global::OfficeIMO.OfficeLength.Points(12D);
+                    paragraph4.LineSpacingAfter = global::OfficeIMO.OfficeLength.Points(12D);
                     paragraph4.LineSpacing = (int)(24 * 20);
-                    paragraph4.IndentationBefore = (int)(24 * 20);
-                    paragraph4.IndentationFirstLine = (int)(24 * 20);
+                    paragraph4.IndentationBefore = global::OfficeIMO.OfficeLength.Points(((int)(24 * 20)) / 20D);
+                    paragraph4.IndentationFirstLine = global::OfficeIMO.OfficeLength.Points(((int)(24 * 20)) / 20D);
                     paragraph4.SetStyle(WordParagraphStyles.Heading2);
                     var list5 = document.AddList(WordListStyle.Bulleted);
                     int level6 = 0;

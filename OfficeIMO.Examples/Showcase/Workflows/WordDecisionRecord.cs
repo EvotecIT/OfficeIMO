@@ -37,16 +37,16 @@ internal static class WordDecisionRecord {
         foreach (WordParagraph paragraph in document.Paragraphs) {
             paragraph.FontFamily = "Carlito";
             paragraph.FontSize = 11;
-            paragraph.LineSpacingAfterPoints = 7;
+            paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Points(7D);
             if (paragraph.Style == WordParagraphStyles.Heading1) {
                 paragraph.FontSize = 26;
                 paragraph.Bold = true;
-                paragraph.LineSpacingAfterPoints = 12;
+                paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Points(12D);
             } else if (paragraph.Style == WordParagraphStyles.Heading2) {
                 paragraph.FontSize = 15;
                 paragraph.Bold = true;
-                paragraph.LineSpacingBeforePoints = 12;
-                paragraph.LineSpacingAfterPoints = 6;
+                paragraph.LineSpacingBefore = global::OfficeIMO.OfficeLength.Points(12D);
+                paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Points(6D);
             }
         }
         foreach (WordTable styledTable in document.Tables) {
@@ -54,12 +54,12 @@ internal static class WordDecisionRecord {
             styledTable.SetColumnWidthsPercentage(30, 30, 40);
             foreach (var row in styledTable.Rows) {
                 foreach (var cell in row.Cells) {
-                    cell.MarginTopCentimeters = 0.10;
-                    cell.MarginBottomCentimeters = 0.10;
+                    cell.MarginTop = global::OfficeIMO.OfficeLength.Centimeters(0.1D);
+                    cell.MarginBottom = global::OfficeIMO.OfficeLength.Centimeters(0.1D);
                     foreach (var paragraph in cell.Paragraphs) {
                         paragraph.FontFamily = "Carlito";
                         paragraph.FontSize = 11;
-                        paragraph.LineSpacingAfterPoints = 3;
+                        paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Points(3D);
                     }
                 }
             }

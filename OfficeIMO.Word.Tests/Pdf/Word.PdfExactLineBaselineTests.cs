@@ -25,15 +25,15 @@ public partial class Word {
         table.Width = columns ? 2040 : 4800;
         WordTableCell cell = table.Rows[0].Cells[0];
         cell.WidthType = WordTableWidthUnit.Dxa; cell.Width = table.Width;
-        cell.MarginTopWidth = 0; cell.MarginBottomWidth = 0;
-        cell.MarginLeftWidth = 0; cell.MarginRightWidth = 0;
+        cell.MarginTop = global::OfficeIMO.OfficeLength.Zero; cell.MarginBottom = global::OfficeIMO.OfficeLength.Zero;
+        cell.MarginLeft = global::OfficeIMO.OfficeLength.Zero; cell.MarginRight = global::OfficeIMO.OfficeLength.Zero;
         WordParagraph paragraph = cell.Paragraphs[0];
         paragraph._paragraph.RemoveAllChildren<Run>();
         paragraph._paragraph.Append(TextLine("A", 48, true), TextLine("B", 48, true), TextLine("C", 48, false));
         paragraph.LineSpacingPoints = 6D;
         paragraph.LineSpacingRule = WordLineSpacingRule.Exact;
-        paragraph.LineSpacingBeforePoints = 0; paragraph.LineSpacingAfterPoints = 0;
-        paragraph.IndentationBeforePoints = -30;
+        paragraph.LineSpacingBefore = global::OfficeIMO.OfficeLength.Zero; paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
+        paragraph.IndentationBefore = global::OfficeIMO.OfficeLength.Points(-30);
         using WordDocument document = WordDocument.Load(new MemoryStream(nativeDoc ? source.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc }) : source.ToBytes()));
         byte[] bytes = document.ToPdf(new WordPdfExportOptions {
             IncludePageNumbers = false, ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic(),
@@ -70,7 +70,7 @@ public partial class Word {
             WordTable table = source.AddTable(1, 1);
             table.StyleDetails!.SetBordersForAllSides(WordBorderStyle.Nil, 0U, OfficeIMO.OfficeColor.Black);
             WordTableCell cell = table.Rows[0].Cells[0];
-            cell.MarginTopWidth = 0; cell.MarginBottomWidth = 0;
+            cell.MarginTop = global::OfficeIMO.OfficeLength.Zero; cell.MarginBottom = global::OfficeIMO.OfficeLength.Zero;
             paragraph = cell.Paragraphs[0];
         } else paragraph = source.AddParagraph();
         if (frame == "columns") source.Sections[0].ColumnCount = 2;
@@ -78,7 +78,7 @@ public partial class Word {
         paragraph._paragraph.Append(TextLine("A", 8, true), TextLine("B", 48, true), TextLine("C", 8, false));
         paragraph.LineSpacingPoints = height;
         paragraph.LineSpacingRule = WordLineSpacingRule.Exact;
-        paragraph.LineSpacingBeforePoints = 0; paragraph.LineSpacingAfterPoints = 0;
+        paragraph.LineSpacingBefore = global::OfficeIMO.OfficeLength.Zero; paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
         using WordDocument document = WordDocument.Load(new MemoryStream(nativeDoc ? source.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc }) : source.ToBytes()));
         using var pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions {
             IncludePageNumbers = false, ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic(),

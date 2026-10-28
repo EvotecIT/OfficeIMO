@@ -51,8 +51,8 @@ public partial class Word {
             WordTableCell cell = table.Rows[0].Cells[index];
             cell.Width = 1440;
             cell.WidthType = WordTableWidthUnit.Dxa;
-            cell.MarginLeftWidth = cell.MarginRightWidth = 108;
-            cell.MarginTopWidth = cell.MarginBottomWidth = 0;
+            cell.MarginLeft = cell.MarginRight = global::OfficeIMO.OfficeLength.Points(5.4D);
+            cell.MarginTop = cell.MarginBottom = global::OfficeIMO.OfficeLength.Zero;
             WordParagraph paragraph = cell.Paragraphs[0];
             paragraph.Text = index == 0 ? "Left" : "Right";
             ConfigurePartialColumnParagraph(paragraph);

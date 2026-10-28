@@ -655,7 +655,7 @@ public sealed class WordOdtNotesConversionTests {
         source.AddParagraph("Anchor").AddFootNote("Note paragraph");
         var noteParagraphs = source.FootNotes[0].Paragraphs;
         Assert.NotNull(noteParagraphs);
-        noteParagraphs![0].LineSpacingAfterPoints = 8;
+        noteParagraphs![0].LineSpacingAfter = global::OfficeIMO.OfficeLength.Points(8D);
 
         OdfConversionResult<OdtDocument> conversion = source.ToOpenDocumentResult();
         Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "note-body-formatting" &&

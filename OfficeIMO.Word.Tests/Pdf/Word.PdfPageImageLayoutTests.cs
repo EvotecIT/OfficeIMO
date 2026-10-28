@@ -14,8 +14,8 @@ public sealed class PdfPageImageLayoutTests {
     [InlineData(OfficeImageExportFormat.Svg)]
     public void WordPdfPageImagesUseThePdfPaginationAndPreserveEveryParagraph(OfficeImageExportFormat format) {
         using var word = WordDocument.Create();
-        word.Sections[0].PageSettings.Width = 6000;
-        word.Sections[0].PageSettings.Height = 6000;
+        word.Sections[0].PageSettings.Width = global::OfficeIMO.OfficeLength.Points(300D);
+        word.Sections[0].PageSettings.Height = global::OfficeIMO.OfficeLength.Points(300D);
         word.AddParagraph("Heading").SetStyle(WordParagraphStyles.Heading1);
         var table = word.AddTable(2, 1, WordTableStyle.TableGrid);
         table.Rows[0].Cells[0].Paragraphs[0].Text = "Table first row";

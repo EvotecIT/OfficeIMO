@@ -172,7 +172,7 @@ public class RtfWordTableImportDefaultsTests {
         using WordDocument mapped = source.ToWordDocument();
         mapped.AddTable(1, 1); // Existing public Word authoring default.
         WordTable callerStyled = mapped.AddTable(1, 1, WordTableStyle.TableGrid);
-        callerStyled.Rows[0].Cells[0].MarginLeftWidth = 180;
+        callerStyled.Rows[0].Cells[0].MarginLeft = global::OfficeIMO.OfficeLength.Points(9D);
         callerStyled.Rows[0].Cells[0].Borders.TopStyle = WordBorderStyle.Double;
         XElement[] tables = ReadPart(mapped.ToBytes(), "word/document.xml").Descendants(W + "tbl").ToArray();
 

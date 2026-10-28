@@ -119,10 +119,10 @@ public partial class PdfDocumentRasterVisualBaselineTests {
                 document.Settings.FontFamily = "Calibri";
                 document.Background.SetColorHex("EAF4FF");
                 WordSection section = document.Sections[0];
-                section.Margins.LeftCentimeters = 1.6;
-                section.Margins.RightCentimeters = 1.4;
-                section.Margins.TopCentimeters = 1.4;
-                section.Margins.BottomCentimeters = 1.6;
+                section.Margins.Left = global::OfficeIMO.OfficeLength.Centimeters(1.6D);
+                section.Margins.Right = global::OfficeIMO.OfficeLength.Centimeters(1.4D);
+                section.Margins.Top = global::OfficeIMO.OfficeLength.Centimeters(1.4D);
+                section.Margins.Bottom = global::OfficeIMO.OfficeLength.Centimeters(1.6D);
                 section.ColumnCount = 2;
                 section.ColumnsSpace = 540;
                 section.HasColumnSeparator = true;

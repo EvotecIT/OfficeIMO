@@ -38,8 +38,8 @@ public partial class Word {
             cell.WidthType = widthCase == 1 ? WordTableWidthUnit.Pct :
                 widthCase == 3 ? WordTableWidthUnit.Auto : WordTableWidthUnit.Dxa;
             cell.Width = widthCase == 1 ? 2500 : widthCase == 3 ? 0 : 2250;
-            cell.MarginLeftWidth = 0;
-            cell.MarginRightWidth = 0;
+            cell.MarginLeft = global::OfficeIMO.OfficeLength.Zero;
+            cell.MarginRight = global::OfficeIMO.OfficeLength.Zero;
             cell.Paragraphs[0].Text = column == 0 ? "L" : "R";
         }
         string originalXml = document._wordprocessingDocument.MainDocumentPart!.Document.OuterXml;
@@ -83,7 +83,7 @@ public partial class Word {
             WordTableCell cell = table.Rows[0].Cells[column];
             cell.WidthType = WordTableWidthUnit.Dxa;
             cell.Width = 2250;
-            cell.MarginLeftWidth = cell.MarginRightWidth = 0;
+            cell.MarginLeft = cell.MarginRight = global::OfficeIMO.OfficeLength.Zero;
             cell.Paragraphs[0].Text = column == 0 ? "L" : "R";
         }
         using var pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions {
@@ -130,7 +130,7 @@ public partial class Word {
             WordTableCell cell = table.Rows[0].Cells[column];
             cell.WidthType = WordTableWidthUnit.Dxa;
             cell.Width = 2250;
-            cell.MarginLeftWidth = cell.MarginRightWidth = (short)marginTwips;
+            cell.MarginLeft = cell.MarginRight = global::OfficeIMO.OfficeLength.Points(((short)marginTwips) / 20D);
             cell.Paragraphs[0].Text = column == 0 ? "L" : "R";
         }
         using var pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions {
@@ -181,7 +181,7 @@ public partial class Word {
             WordTableCell cell = table.Rows[0].Cells[column];
             cell.WidthType = WordTableWidthUnit.Dxa;
             cell.Width = 2250;
-            cell.MarginLeftWidth = cell.MarginRightWidth = 0;
+            cell.MarginLeft = cell.MarginRight = global::OfficeIMO.OfficeLength.Zero;
             cell.Paragraphs[0].Text = column == 0 ? "L" : "R";
             if (cellOverride) {
                 W.BorderValues overrideValue = borderSize == 0 ? W.BorderValues.Nil : W.BorderValues.Single;

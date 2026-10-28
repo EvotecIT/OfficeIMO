@@ -526,7 +526,7 @@ namespace OfficeIMO.Tests {
             try {
                 using var document = WordDocument.Create(filePath);
                 WordParagraph paragraph = document.AddParagraph("Styled");
-                paragraph.IndentationBeforePoints = 12.75D;
+                paragraph.IndentationBefore = global::OfficeIMO.OfficeLength.Points(12.75D);
                 using var imageStream = new MemoryStream(Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII="));
                 paragraph.AddImage(imageStream, "pixel.png", OfficeIMO.OfficeLength.Pixels(10), OfficeIMO.OfficeLength.Pixels(10));
                 Assert.Single(document.Images).Width = OfficeIMO.OfficeLength.Pixels(15.5D);
@@ -579,7 +579,7 @@ namespace OfficeIMO.Tests {
                 const string replyPath = "comment/0/reply/0";
 
                 body.PageBreakBefore = true;
-                body.IndentationBeforePoints = 18;
+                body.IndentationBefore = global::OfficeIMO.OfficeLength.Points(18D);
                 GoogleDocsSyncCheckpoint layoutChanged = GoogleDocsDiffPlanner.CreateCheckpoint(document);
                 Assert.NotEqual(baseline.ContentHashes[bodyPath], layoutChanged.ContentHashes[bodyPath]);
 

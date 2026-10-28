@@ -93,9 +93,9 @@ public partial class HtmlWordGapClosure {
             document.Paragraphs,
             paragraph => paragraph.Text == "Two");
 
-        Assert.Equal(150, one.LineSpacingBefore);
-        Assert.Null(one.LineSpacingAfter);
-        Assert.Null(two.LineSpacingBefore);
-        Assert.Equal(150, two.LineSpacingAfter);
+        Assert.Equal(150, checked((int?)(one.LineSpacingBefore?.ToTwips())));
+        Assert.Null(checked((int?)(one.LineSpacingAfter?.ToTwips())));
+        Assert.Null(checked((int?)(two.LineSpacingBefore?.ToTwips())));
+        Assert.Equal(150, checked((int?)(two.LineSpacingAfter?.ToTwips())));
     }
 }

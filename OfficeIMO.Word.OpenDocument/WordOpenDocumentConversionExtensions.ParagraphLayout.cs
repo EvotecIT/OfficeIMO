@@ -31,19 +31,19 @@ public static partial class WordOpenDocumentConversionExtensions {
         }
         target.BiDi = source.IsRightToLeft;
         if (source.IndentStart.HasValue) {
-            if (source.IndentStart.Value.TryToPoints(out double points)) target.IndentationBeforePoints = points; else unsupported++;
+            if (source.IndentStart.Value.TryToPoints(out double points)) target.IndentationBefore = global::OfficeIMO.OfficeLength.Points(points); else unsupported++;
         }
         if (source.IndentEnd.HasValue) {
-            if (source.IndentEnd.Value.TryToPoints(out double points)) target.IndentationAfterPoints = points; else unsupported++;
+            if (source.IndentEnd.Value.TryToPoints(out double points)) target.IndentationAfter = global::OfficeIMO.OfficeLength.Points(points); else unsupported++;
         }
         if (source.FirstLineIndent.HasValue) {
-            if (source.FirstLineIndent.Value.TryToPoints(out double points)) target.IndentationFirstLinePoints = points; else unsupported++;
+            if (source.FirstLineIndent.Value.TryToPoints(out double points)) target.IndentationFirstLine = global::OfficeIMO.OfficeLength.Points(points); else unsupported++;
         }
         if (source.SpaceAbove.HasValue) {
-            if (source.SpaceAbove.Value.TryToPoints(out double points)) target.LineSpacingBeforePoints = points; else unsupported++;
+            if (source.SpaceAbove.Value.TryToPoints(out double points)) target.LineSpacingBefore = global::OfficeIMO.OfficeLength.Points(points); else unsupported++;
         }
         if (source.SpaceBelow.HasValue) {
-            if (source.SpaceBelow.Value.TryToPoints(out double points)) target.LineSpacingAfterPoints = points; else unsupported++;
+            if (source.SpaceBelow.Value.TryToPoints(out double points)) target.LineSpacingAfter = global::OfficeIMO.OfficeLength.Points(points); else unsupported++;
         }
         unsupported += ApplyOdtLineHeight(source.LineHeight, target);
         if (source.BackgroundColor.HasValue) target.ShadingFillColorHex = source.BackgroundColor.Value.ToString();

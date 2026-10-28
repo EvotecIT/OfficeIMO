@@ -32,8 +32,8 @@ namespace OfficeIMO.Word.Pdf {
             var spacingInLines = ResolveNativeParagraphSpacingInLines(paragraph, styleDefaults, nativeDefaults);
             if (spacingInLines.Before.HasValue) {
                 style.SpacingBefore = spacingInLines.Before.Value;
-            } else if (paragraph.LineSpacingBeforePoints.HasValue) {
-                style.SpacingBefore = paragraph.LineSpacingBeforePoints.Value;
+            } else if (paragraph.LineSpacingBefore.HasValue) {
+                style.SpacingBefore = paragraph.LineSpacingBefore.Value.ToPoints();
             } else if (GetNativeSpacingBeforePoints(directSpacing, fontSize, lineHeight) is { } directSpacingBefore) {
                 style.SpacingBefore = directSpacingBefore;
             } else if (styleDefaults.SpacingBefore.HasValue) {
@@ -44,34 +44,34 @@ namespace OfficeIMO.Word.Pdf {
 
             if (spacingInLines.After.HasValue) {
                 style.SpacingAfter = spacingInLines.After.Value;
-            } else if (paragraph.LineSpacingAfterPoints.HasValue) {
-                style.SpacingAfter = paragraph.LineSpacingAfterPoints.Value;
+            } else if (paragraph.LineSpacingAfter.HasValue) {
+                style.SpacingAfter = paragraph.LineSpacingAfter.Value.ToPoints();
             } else if (GetNativeSpacingAfterPoints(directSpacing, fontSize, lineHeight) is { } directSpacingAfter) {
                 style.SpacingAfter = directSpacingAfter;
             } else if (styleDefaults.SpacingAfter.HasValue) {
                 style.SpacingAfter = styleDefaults.SpacingAfter.Value;
             }
 
-            if (paragraph.IndentationBeforePoints.HasValue) {
-                style.LeftIndent = paragraph.IndentationBeforePoints.Value;
+            if (paragraph.IndentationBefore.HasValue) {
+                style.LeftIndent = paragraph.IndentationBefore.Value.ToPoints();
             } else if (styleDefaults.LeftIndent.HasValue) {
                 style.LeftIndent = styleDefaults.LeftIndent.Value;
             }
 
-            if (paragraph.IndentationAfterPoints.HasValue) {
-                style.RightIndent = paragraph.IndentationAfterPoints.Value;
+            if (paragraph.IndentationAfter.HasValue) {
+                style.RightIndent = paragraph.IndentationAfter.Value.ToPoints();
             } else if (styleDefaults.RightIndent.HasValue) {
                 style.RightIndent = styleDefaults.RightIndent.Value;
             }
 
-            if (paragraph.IndentationFirstLinePoints.HasValue) {
-                style.FirstLineIndent = paragraph.IndentationFirstLinePoints.Value;
+            if (paragraph.IndentationFirstLine.HasValue) {
+                style.FirstLineIndent = paragraph.IndentationFirstLine.Value.ToPoints();
             } else if (styleDefaults.FirstLineIndent.HasValue) {
                 style.FirstLineIndent = styleDefaults.FirstLineIndent.Value;
             }
 
-            if (paragraph.IndentationHangingPoints.HasValue) {
-                double hangingIndent = paragraph.IndentationHangingPoints.Value;
+            if (paragraph.IndentationHanging.HasValue) {
+                double hangingIndent = paragraph.IndentationHanging.Value.ToPoints();
                 style.FirstLineIndent = -hangingIndent;
             }
 
@@ -80,7 +80,7 @@ namespace OfficeIMO.Word.Pdf {
                 style.DefaultTabStopWidth = nativeDefaults.DefaultTabStopWidth.Value;
             }
 
-            if (!spacingInLines.After.HasValue && !paragraph.LineSpacingAfterPoints.HasValue &&
+            if (!spacingInLines.After.HasValue && !paragraph.LineSpacingAfter.HasValue &&
                 GetNativeSpacingAfterPoints(directSpacing, fontSize, lineHeight) == null &&
                 !styleDefaults.SpacingAfter.HasValue) {
                 style.SpacingAfter = nativeDefaults.ParagraphSpacingAfter;
@@ -401,9 +401,9 @@ namespace OfficeIMO.Word.Pdf {
                 section.DifferentFirstPage ? section.ResolveFirstFooter() : null,
                 section.DifferentOddAndEvenPages ? section.ResolveEvenFooter() : null);
 
-            double baseTop = (section.Margins.Top ?? 0) / 20D;
-            if (section._document.Settings.GutterAtTop) baseTop += section.Margins.Gutter / 20D;
-            double baseBottom = (section.Margins.Bottom ?? 0) / 20D;
+            double baseTop = (checked((int?)(section.Margins.Top?.ToTwips())) ?? 0) / 20D;
+            if (section._document.Settings.GutterAtTop) baseTop += checked((uint)(section.Margins.Gutter.GetValueOrDefault().ToTwips())) / 20D;
+            double baseBottom = (checked((int?)(section.Margins.Bottom?.ToTwips())) ?? 0) / 20D;
             double availableBodyHeight = Math.Max(0D, GetNativePageSize(section, options).Height.ToPoints() - baseTop - baseBottom);
             double minimumBodyHeight = Math.Min(NativeMinimumBodyHeight, availableBodyHeight);
             double maximumExpansion = Math.Max(0D, availableBodyHeight - minimumBodyHeight);

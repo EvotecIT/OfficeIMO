@@ -54,7 +54,7 @@ public sealed class WordPaperHeaderSizingTests {
             Assert.True(spans.Any(span => span.Text.Contains(word)), word + ": widths=" + string.Join(",", saved.ColumnWidth) + " " + string.Join(" | ", spans.Select(span => $"{span.Text} @ {span.X},{span.Y} size={span.FontSize} width={span.Advance}")));
             PdfTextSpan span = Assert.Single(spans, span => span.Text.Contains(word));
             int column = Array.FindIndex(headers, header => header.Contains(word));
-            double left = document.Margins.Left / 20D + saved.ColumnWidth.Take(column).Sum() / 20D;
+            double left = checked((uint)(document.Margins.Left.GetValueOrDefault().ToTwips())) / 20D + saved.ColumnWidth.Take(column).Sum() / 20D;
             Assert.True(span.X >= left, word + " starts outside its column");
             var independentWord = Assert.Single(words, candidate => candidate.Text == word);
             Assert.True(independentWord.BoundingBox.Right <= left + saved.ColumnWidth[column] / 20D + .1D,

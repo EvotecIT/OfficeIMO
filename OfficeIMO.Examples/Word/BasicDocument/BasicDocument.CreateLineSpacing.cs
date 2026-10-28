@@ -13,12 +13,12 @@ namespace OfficeIMO.Examples.Word {
             string filePath = System.IO.Path.Combine(folderPath, "DocumentWithLineSpacing.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
                 var par00 = document.AddParagraph("My text");
-                par00.LineSpacingAfter = 0;
-                par00.LineSpacingBefore = 0;
+                par00.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
+                par00.LineSpacingBefore = global::OfficeIMO.OfficeLength.Zero;
 
                 var par01 = document.AddParagraph("My declaration");
-                par01.LineSpacingAfter = 0;
-                par01.LineSpacingBefore = 0;
+                par01.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
+                par01.LineSpacingBefore = global::OfficeIMO.OfficeLength.Zero;
 
                 var par02 = document.AddParagraph("My declaration");
                 par02.LineSpacing = 360;

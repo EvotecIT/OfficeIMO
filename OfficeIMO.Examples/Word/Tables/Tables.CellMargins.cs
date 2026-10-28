@@ -14,11 +14,11 @@ namespace OfficeIMO.Examples.Word {
 
                 var cell1 = table.Rows[0].Cells[1];
                 cell1.AddParagraph("Right margin 200 twips");
-                cell1.MarginRightWidth = 200;
+                cell1.MarginRight = global::OfficeIMO.OfficeLength.Points(10D);
 
                 var cell2 = table.Rows[1].Cells[0];
                 cell2.AddParagraph("Top margin 0.5 cm");
-                cell2.MarginTopCentimeters = 0.5;
+                cell2.MarginTop = global::OfficeIMO.OfficeLength.Centimeters(0.5D);
 
                 document.Save();
                 if (openWord) document.OpenInApplication();

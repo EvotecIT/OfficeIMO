@@ -13,7 +13,7 @@ namespace OfficeIMO.Tests {
             using var document = WordDocument.Create();
             var paragraph = document.AddParagraph("Border after existing paragraph formatting");
             paragraph.ShadingFillColor = Color.LightGray;
-            paragraph.LineSpacingAfterPoints = 12;
+            paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Points(12D);
             if (usePreset) {
                 paragraph.Borders.Type = WordBorder.Box;
                 paragraph.Borders.Type = WordBorder.Shadow;

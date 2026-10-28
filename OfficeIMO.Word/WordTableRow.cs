@@ -47,29 +47,35 @@ namespace OfficeIMO.Word {
         public int CellsCount => Cells.Count;
 
         /// <summary>
-        /// Gets the declared row height in twips, or sets an exact height. Null removes the height constraint.
+        /// Gets the declared row height as a physical length, or sets an exact height. Null removes the height constraint.
         /// </summary>
-        public int? Height {
+        public global::OfficeIMO.OfficeLength? Height {
             get {
                 var height = _tableRow.TableRowProperties?.OfType<TableRowHeight>().FirstOrDefault();
-                return height?.Val != null ? (int)height.Val.Value : null;
+                return height?.Val != null ? global::OfficeIMO.OfficeLength.Points(((int)height.Val.Value) / 20D) : null;
             }
-            set => SetRowHeight(value, HeightRuleValues.Exact);
+            set {
+                if (value.HasValue && value.Value < OfficeLength.Zero) throw new ArgumentOutOfRangeException(nameof(value), "Row height cannot be negative.");
+                var wordNativeValue = checked((int?)(value?.ToTwips()));
+                SetRowHeight(wordNativeValue, HeightRuleValues.Exact);
+            }
         }
 
         /// <summary>
-        /// Gets or sets the minimum row height in twips, allowing the row to grow to fit content.
+        /// Gets or sets the minimum row height as a physical length, allowing the row to grow to fit content.
         /// Setting a value replaces an exact height. Null removes a minimum constraint and preserves an exact height.
         /// </summary>
-        public int? MinimumHeight {
+        public global::OfficeIMO.OfficeLength? MinimumHeight {
             get {
                 var height = _tableRow.TableRowProperties?.OfType<TableRowHeight>().FirstOrDefault();
                 return height?.Val != null && height.HeightType?.Value == HeightRuleValues.AtLeast
-                    ? (int)height.Val.Value : null;
+                    ? global::OfficeIMO.OfficeLength.Points(((int)height.Val.Value) / 20D) : null;
             }
             set {
-                if (value == null && MinimumHeight == null) return;
-                SetRowHeight(value, HeightRuleValues.AtLeast);
+                if (value.HasValue && value.Value < OfficeLength.Zero) throw new ArgumentOutOfRangeException(nameof(value), "Row height cannot be negative.");
+                var wordNativeValue = checked((int?)(value?.ToTwips()));
+                if (wordNativeValue == null && MinimumHeight == null) return;
+                SetRowHeight(wordNativeValue, HeightRuleValues.AtLeast);
             }
         }
 

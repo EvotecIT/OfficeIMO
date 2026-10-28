@@ -66,7 +66,7 @@ public static partial class WordRtfConverterExtensions {
             RtfTableRow row = destination.AddRow();
             row.RepeatHeader = wordRow.RepeatHeaderRowAtTheTopOfEachPage;
             row.KeepTogether = !wordRow.AllowRowToBreakAcrossPages;
-            row.HeightTwips = wordRow.Height;
+            row.HeightTwips = checked((int?)(wordRow.Height?.ToTwips()));
             row.CellGapTwips = cellGap;
             row.LeftIndentTwips = tableLeftIndent;
             row.PaddingLeftTwips = tableLeftPadding;
@@ -128,10 +128,10 @@ public static partial class WordRtfConverterExtensions {
     }
 
     private static void CopyCellPadding(WordTableCell source, RtfTableCell destination) {
-        destination.PaddingTopTwips = source.MarginTopWidth;
-        destination.PaddingLeftTwips = source.MarginLeftWidth;
-        destination.PaddingBottomTwips = source.MarginBottomWidth;
-        destination.PaddingRightTwips = source.MarginRightWidth;
+        destination.PaddingTopTwips = checked((short?)(source.MarginTop?.ToTwips()));
+        destination.PaddingLeftTwips = checked((short?)(source.MarginLeft?.ToTwips()));
+        destination.PaddingBottomTwips = checked((short?)(source.MarginBottom?.ToTwips()));
+        destination.PaddingRightTwips = checked((short?)(source.MarginRight?.ToTwips()));
     }
 
     private static void CopyCellBorders(WordTableCell source, RtfTableCell destination, RtfDocument document) {
@@ -205,7 +205,7 @@ public static partial class WordRtfConverterExtensions {
             WordTableRow destinationRow = destination.Rows[rowIndex];
             destinationRow.RepeatHeaderRowAtTheTopOfEachPage = sourceRow.RepeatHeader;
             destinationRow.AllowRowToBreakAcrossPages = !sourceRow.KeepTogether;
-            destinationRow.Height = sourceRow.HeightTwips;
+            destinationRow.Height= ((sourceRow.HeightTwips) is { } wordLength11622 ? global::OfficeIMO.OfficeLength.Points((wordLength11622) / 20D) : (global::OfficeIMO.OfficeLength?)null);
             int previousBoundary = 0;
             for (int cellIndex = 0; cellIndex < sourceRow.Cells.Count && cellIndex < destinationRow.Cells.Count; cellIndex++) {
                 RtfTableCell sourceCell = sourceRow.Cells[cellIndex];
@@ -408,17 +408,17 @@ public static partial class WordRtfConverterExtensions {
 
     private static void ApplyCellPadding(RtfTableCell source, RtfTableRow row, WordTableCell destination) {
         if (TryToInt16(source.PaddingTopTwips ?? row.PaddingTopTwips ?? 0, out short top)) {
-            destination.MarginTopWidth = top;
+            destination.MarginTop = global::OfficeIMO.OfficeLength.Points((top) / 20D);
         }
         if (TryToInt16(source.PaddingBottomTwips ?? row.PaddingBottomTwips ?? 0, out short bottom)) {
-            destination.MarginBottomWidth = bottom;
+            destination.MarginBottom = global::OfficeIMO.OfficeLength.Points((bottom) / 20D);
         }
 
         // Omitted horizontal padding inherits the table gap; explicit cell values, including zero, override row values.
-        destination.MarginLeftWidth = TryToInt16(source.PaddingLeftTwips ?? row.PaddingLeftTwips, out short left)
-            ? left : (short?)null;
-        destination.MarginRightWidth = TryToInt16(source.PaddingRightTwips ?? row.PaddingRightTwips, out short right)
-            ? right : (short?)null;
+        destination.MarginLeft= ((TryToInt16(source.PaddingLeftTwips ?? row.PaddingLeftTwips, out short left)
+            ? left : (short?)null) is { } wordLength21241 ? global::OfficeIMO.OfficeLength.Points((wordLength21241) / 20D) : (global::OfficeIMO.OfficeLength?)null);
+        destination.MarginRight= ((TryToInt16(source.PaddingRightTwips ?? row.PaddingRightTwips, out short right)
+            ? right : (short?)null) is { } wordLength21391 ? global::OfficeIMO.OfficeLength.Points((wordLength21391) / 20D) : (global::OfficeIMO.OfficeLength?)null);
     }
 
     private static void ApplyCellBorders(RtfTableCell source, WordTableCell destination, RtfDocument document) {

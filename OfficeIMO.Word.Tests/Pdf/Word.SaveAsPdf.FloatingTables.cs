@@ -65,7 +65,7 @@ public partial class Word {
         for (int page = 0; page < 2; page++) {
             if (page > 0) document.AddPageBreak();
             var table = document.AddTable(1, 1);
-            table.Rows[0].Height = 1000;
+            table.Rows[0].Height = global::OfficeIMO.OfficeLength.Points(50D);
             table.Rows[0].Cells[0].Paragraphs[0].Text = page == 0 ? "odd" : "even";
             table._tableProperties!.TablePositionProperties = new TablePositionProperties {
                 HorizontalAnchor = HorizontalAnchorValues.Margin, VerticalAnchor = VerticalAnchorValues.Margin,
@@ -89,7 +89,7 @@ public partial class Word {
         table.LayoutMode = WordTableLayoutMode.Fixed;
         table.WidthType = WordTableWidthUnit.Dxa;
         table.Width = 6400;
-        table.Rows[0].Height = 900;
+        table.Rows[0].Height = global::OfficeIMO.OfficeLength.Points(45D);
         table.Rows[0].Cells[0].Paragraphs[0].Text = "Floating";
         table._tableProperties!.TablePositionProperties = new TablePositionProperties {
             HorizontalAnchor = HorizontalAnchorValues.Margin, VerticalAnchor = VerticalAnchorValues.Text,
@@ -116,7 +116,7 @@ public partial class Word {
         table.LayoutMode = WordTableLayoutMode.Fixed;
         table.WidthType = WordTableWidthUnit.Dxa;
         table.Width = 2400;
-        table.Rows[0].Height = 1600;
+        table.Rows[0].Height = global::OfficeIMO.OfficeLength.Points(80D);
         table.Rows[0].Cells[0].Paragraphs[0].Text = "Floating";
         table._tableProperties!.TablePositionProperties = new TablePositionProperties {
             HorizontalAnchor = HorizontalAnchorValues.Margin,

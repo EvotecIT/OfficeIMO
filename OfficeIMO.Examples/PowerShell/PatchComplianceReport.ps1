@@ -57,10 +57,10 @@ New-OfficeWord -Path $docxPath {
         WordTableCondition -FilterScript { $_.Status -eq 'Watch' } -BackgroundColor '#fff4d6'
     }
     $table | Get-OfficeWordTableCell | ForEach-Object {
-        $_.MarginTopCentimeters = 0.12
-        $_.MarginBottomCentimeters = 0.12
-        $_.MarginLeftCentimeters = 0.16
-        $_.MarginRightCentimeters = 0.16
+        $_.MarginTop = [OfficeIMO.OfficeLength]::Centimeters(0.12)
+        $_.MarginBottom = [OfficeIMO.OfficeLength]::Centimeters(0.12)
+        $_.MarginLeft = [OfficeIMO.OfficeLength]::Centimeters(0.16)
+        $_.MarginRight = [OfficeIMO.OfficeLength]::Centimeters(0.16)
     }
     WordParagraph {
         WordParagraphStyle -SpacingBeforePoints 14 -SpacingAfterPoints 12

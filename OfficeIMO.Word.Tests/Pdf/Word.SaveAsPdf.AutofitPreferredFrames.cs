@@ -17,7 +17,7 @@ public partial class Word {
         for (int column = 0; column < 2; column++) {
             WordTableCell cell = table.Rows[0].Cells[column];
             cell.WidthType = WordTableWidthUnit.Dxa; cell.Width = 3000;
-            cell.MarginLeftWidth = cell.MarginRightWidth = 0;
+            cell.MarginLeft = cell.MarginRight = global::OfficeIMO.OfficeLength.Zero;
             cell.Paragraphs[0].Text = column == 0 ? "A" : "B";
         }
         var configuredStyle = new OfficeIMO.Pdf.PdfTableStyle {
@@ -54,7 +54,7 @@ public partial class Word {
         for (int column = 0; column < 2; column++) {
             WordTableCell cell = table.Rows[0].Cells[column];
             cell.WidthType = WordTableWidthUnit.Dxa; cell.Width = 2250;
-            cell.MarginLeftWidth = cell.MarginRightWidth = 0;
+            cell.MarginLeft = cell.MarginRight = global::OfficeIMO.OfficeLength.Zero;
             cell.Paragraphs[0].Text = column == 0 ? "A" : "B";
             cell.Paragraphs[0].FontFamily = "Arial"; cell.Paragraphs[0].FontSize = 12;
         }

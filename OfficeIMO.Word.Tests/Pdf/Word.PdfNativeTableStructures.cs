@@ -143,12 +143,12 @@ public partial class Word {
             foreach (WordTableCell cell in row.Cells) {
                 cell.WidthType = WordTableWidthUnit.Dxa;
                 cell.Width = width / row.Cells.Count;
-                cell.MarginLeftWidth = 0;
-                cell.MarginRightWidth = 0;
+                cell.MarginLeft = global::OfficeIMO.OfficeLength.Zero;
+                cell.MarginRight = global::OfficeIMO.OfficeLength.Zero;
                 cell.Paragraphs[0].FontFamily = "Arial";
                 cell.Paragraphs[0].FontSize = 10;
-                cell.Paragraphs[0].LineSpacingBeforePoints = 0;
-                cell.Paragraphs[0].LineSpacingAfterPoints = 0;
+                cell.Paragraphs[0].LineSpacingBefore = global::OfficeIMO.OfficeLength.Zero;
+                cell.Paragraphs[0].LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
             }
         }
     }

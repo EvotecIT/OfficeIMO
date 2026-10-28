@@ -267,11 +267,11 @@ public sealed class WordPdfRunningPictureWrapTests {
         document.Settings.FontFamily = ManagedTextShapingTestAssets.FamilyName;
         document.AddHeadersAndFooters();
         WordSection section = document.Sections[0];
-        section.PageSettings.Width = 12240;
-        section.PageSettings.Height = 15840;
-        section.Margins.Left = section.Margins.Right = 1440;
-        section.Margins.Top = section.Margins.Bottom = 1920;
-        section.Margins.HeaderDistance = section.Margins.FooterDistance = 480;
+        section.PageSettings.Width = global::OfficeIMO.OfficeLength.Points(612D);
+        section.PageSettings.Height = global::OfficeIMO.OfficeLength.Points(792D);
+        section.Margins.Left = section.Margins.Right = global::OfficeIMO.OfficeLength.Points(72D);
+        section.Margins.Top = section.Margins.Bottom = global::OfficeIMO.OfficeLength.Points(96D);
+        section.Margins.HeaderDistance = section.Margins.FooterDistance = global::OfficeIMO.OfficeLength.Points(24D);
         section.Header.Default!._header!.RemoveAllChildren();
         section.Footer.Default!._footer!.RemoveAllChildren();
         WordHeaderFooter story = footer ? section.Footer.Default! : section.Header.Default!;
@@ -304,7 +304,7 @@ public sealed class WordPdfRunningPictureWrapTests {
         paragraph.FontSize = 12;
         paragraph.LineSpacingPoints = 15;
         paragraph.LineSpacingRule = WordLineSpacingRule.Exact;
-        paragraph.LineSpacingBeforePoints = paragraph.LineSpacingAfterPoints = 0;
+        paragraph.LineSpacingBefore = paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
     }
 
     private static WordPdfExportOptions Options() {

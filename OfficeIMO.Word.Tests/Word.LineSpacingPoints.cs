@@ -11,12 +11,12 @@ namespace OfficeIMO.Tests {
             using (WordDocument document = WordDocument.Create(filePath)) {
                 var p = document.AddParagraph("Twips based spacing");
                 p.LineSpacing = 360;
-                p.LineSpacingBefore = 200;
-                p.LineSpacingAfter = 240;
+                p.LineSpacingBefore = global::OfficeIMO.OfficeLength.Points(10D);
+                p.LineSpacingAfter = global::OfficeIMO.OfficeLength.Points(12D);
 
                 Assert.Equal(18, p.LineSpacingPoints);
-                Assert.Equal(10, p.LineSpacingBeforePoints);
-                Assert.Equal(12, p.LineSpacingAfterPoints);
+                Assert.Equal(10, p.LineSpacingBefore?.ToPoints());
+                Assert.Equal(12, p.LineSpacingAfter?.ToPoints());
 
                 document.Save();
             }
@@ -24,11 +24,11 @@ namespace OfficeIMO.Tests {
             using (WordDocument document = WordDocument.Load(filePath)) {
                 var p = document.Paragraphs[0];
                 Assert.Equal(18, p.LineSpacingPoints);
-                Assert.Equal(10, p.LineSpacingBeforePoints);
-                Assert.Equal(12, p.LineSpacingAfterPoints);
+                Assert.Equal(10, p.LineSpacingBefore?.ToPoints());
+                Assert.Equal(12, p.LineSpacingAfter?.ToPoints());
                 Assert.Equal(360, p.LineSpacing);
-                Assert.Equal(200, p.LineSpacingBefore);
-                Assert.Equal(240, p.LineSpacingAfter);
+                Assert.Equal(200, checked((int?)(p.LineSpacingBefore?.ToTwips())));
+                Assert.Equal(240, checked((int?)(p.LineSpacingAfter?.ToTwips())));
             }
         }
 
@@ -38,13 +38,13 @@ namespace OfficeIMO.Tests {
             using (WordDocument document = WordDocument.Create(filePath)) {
                 var p = document.AddParagraph("Points based spacing");
                 p.LineSpacingPoints = 18;
-                p.LineSpacingBeforePoints = 10;
-                p.LineSpacingAfterPoints = 12;
+                p.LineSpacingBefore = global::OfficeIMO.OfficeLength.Points(10D);
+                p.LineSpacingAfter = global::OfficeIMO.OfficeLength.Points(12D);
 
                 Assert.Equal(360, p.LineSpacing);
                 Assert.Equal(WordLineSpacingRule.Exact, p.LineSpacingRule);
-                Assert.Equal(200, p.LineSpacingBefore);
-                Assert.Equal(240, p.LineSpacingAfter);
+                Assert.Equal(200, checked((int?)(p.LineSpacingBefore?.ToTwips())));
+                Assert.Equal(240, checked((int?)(p.LineSpacingAfter?.ToTwips())));
 
                 document.Save();
             }
@@ -52,12 +52,12 @@ namespace OfficeIMO.Tests {
             using (WordDocument document = WordDocument.Load(filePath)) {
                 var p = document.Paragraphs[0];
                 Assert.Equal(18, p.LineSpacingPoints);
-                Assert.Equal(10, p.LineSpacingBeforePoints);
-                Assert.Equal(12, p.LineSpacingAfterPoints);
+                Assert.Equal(10, p.LineSpacingBefore?.ToPoints());
+                Assert.Equal(12, p.LineSpacingAfter?.ToPoints());
                 Assert.Equal(360, p.LineSpacing);
                 Assert.Equal(WordLineSpacingRule.Exact, p.LineSpacingRule);
-                Assert.Equal(200, p.LineSpacingBefore);
-                Assert.Equal(240, p.LineSpacingAfter);
+                Assert.Equal(200, checked((int?)(p.LineSpacingBefore?.ToTwips())));
+                Assert.Equal(240, checked((int?)(p.LineSpacingAfter?.ToTwips())));
             }
         }
 

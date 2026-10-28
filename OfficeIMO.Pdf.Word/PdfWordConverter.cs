@@ -747,8 +747,8 @@ namespace OfficeIMO.Pdf.Word {
                 return;
             }
 
-            paragraph.LineSpacingBeforePoints = 0D;
-            paragraph.LineSpacingAfterPoints = 0D;
+            paragraph.LineSpacingBefore = OfficeIMO.OfficeLength.Zero;
+            paragraph.LineSpacingAfter = OfficeIMO.OfficeLength.Zero;
         }
 
         private static bool IsBulletMarker(string marker) {

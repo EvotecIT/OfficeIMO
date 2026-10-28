@@ -219,11 +219,11 @@ namespace OfficeIMO.Word {
                 ListIndex = hasListMarker && listMarker.Info.Ordered ? listMarker.Index : null,
                 ListStyleName = paragraph.ListStyle?.ToString(),
                 Alignment = NormalizeOpenXmlEnumValue(paragraph._paragraphProperties?.Justification?.Val),
-                IndentStartPoints = paragraph.IndentationBeforePoints,
-                IndentEndPoints = paragraph.IndentationAfterPoints,
+                IndentStartPoints = paragraph.IndentationBefore?.ToPoints(),
+                IndentEndPoints = paragraph.IndentationAfter?.ToPoints(),
                 IndentFirstLinePoints = ResolveIndentFirstLinePoints(paragraph),
-                SpaceAbovePoints = paragraph.LineSpacingBeforePoints,
-                SpaceBelowPoints = paragraph.LineSpacingAfterPoints,
+                SpaceAbovePoints = paragraph.LineSpacingBefore?.ToPoints(),
+                SpaceBelowPoints = paragraph.LineSpacingAfter?.ToPoints(),
                 LineSpacingValue = paragraph.LineSpacing,
                 LineSpacingRule = NormalizeOpenXmlEnumValue(paragraph.LineSpacingRule),
                 ShadingFillColorHex = NormalizeColorHex(paragraph.ShadingFillColorHex),
@@ -558,12 +558,12 @@ namespace OfficeIMO.Word {
         }
 
         private static double? ResolveIndentFirstLinePoints(WordParagraph paragraph) {
-            if (paragraph.IndentationFirstLinePoints.HasValue) {
-                return paragraph.IndentationFirstLinePoints.Value;
+            if (paragraph.IndentationFirstLine.HasValue) {
+                return paragraph.IndentationFirstLine.Value.ToPoints();
             }
 
-            if (paragraph.IndentationHangingPoints.HasValue) {
-                return -paragraph.IndentationHangingPoints.Value;
+            if (paragraph.IndentationHanging.HasValue) {
+                return -paragraph.IndentationHanging.Value.ToPoints();
             }
 
             return null;

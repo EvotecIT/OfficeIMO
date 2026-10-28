@@ -67,7 +67,7 @@ public partial class Html {
             Assert.Single(document.Tables).Rows[0].Cells[0].Paragraphs,
             candidate => candidate.Text == "Sized cell");
 
-        Assert.Equal(600, paragraph.IndentationBefore);
+        Assert.Equal(600, checked((int?)(paragraph.IndentationBefore?.ToTwips())));
     }
 
     [Fact]

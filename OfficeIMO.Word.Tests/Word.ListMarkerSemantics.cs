@@ -635,8 +635,8 @@ public sealed partial class WordListMarkerSemanticsTests {
     public void MarkerlessItemsKeepTheirIndentInSplitTableRows() {
         using WordDocument document = WordDocument.Create();
         WordSection section = document.Sections[0];
-        section.PageSettings.Width = 5000U;
-        section.PageSettings.Height = 3000U;
+        section.PageSettings.Width = global::OfficeIMO.OfficeLength.Points(250D);
+        section.PageSettings.Height = global::OfficeIMO.OfficeLength.Points(150D);
         section.SetMargins(WordMargin.Narrow);
         WordList list = document.AddCustomList();
         list.Numbering.AddLevel(new WordListLevel(WordListLevelKind.None));
@@ -670,8 +670,8 @@ public sealed partial class WordListMarkerSemanticsTests {
     public void MarkerlessSplitTableTextStaysBeforeNonTextContent(bool useImage) {
         using WordDocument document = WordDocument.Create();
         WordSection section = document.Sections[0];
-        section.PageSettings.Width = 5000U;
-        section.PageSettings.Height = 3000U;
+        section.PageSettings.Width = global::OfficeIMO.OfficeLength.Points(250D);
+        section.PageSettings.Height = global::OfficeIMO.OfficeLength.Points(150D);
         section.SetMargins(WordMargin.Narrow);
         WordList list = document.AddCustomList();
         list.Numbering.AddLevel(new WordListLevel(WordListLevelKind.None));

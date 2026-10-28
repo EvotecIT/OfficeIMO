@@ -299,11 +299,11 @@ public sealed partial class IWorkBoundaryTests {
         var cells = reopened.Tables[0].Rows[0].Cells;
         Assert.Contains("Styled", cells[0].Paragraphs.Select(paragraph => paragraph.Text));
         Assert.All(cells[0].Paragraphs, paragraph => {
-            Assert.Equal(expectedBefore, paragraph.LineSpacingBeforePoints);
-            Assert.Equal(expectedAfter, paragraph.LineSpacingAfterPoints);
+            Assert.Equal(expectedBefore, paragraph.LineSpacingBefore?.ToPoints());
+            Assert.Equal(expectedAfter, paragraph.LineSpacingAfter?.ToPoints());
         });
-        Assert.Equal(12d, cells[1].Paragraphs[0].LineSpacingBeforePoints);
-        Assert.Equal(8d, cells[1].Paragraphs[0].LineSpacingAfterPoints);
+        Assert.Equal(12d, cells[1].Paragraphs[0].LineSpacingBefore?.ToPoints());
+        Assert.Equal(8d, cells[1].Paragraphs[0].LineSpacingAfter?.ToPoints());
     }
 
     [Theory]

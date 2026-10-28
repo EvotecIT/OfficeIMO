@@ -25,7 +25,7 @@ public partial class Word {
             paragraph._paragraph.Append(TextLine(((char)('A' + index)).ToString(), 10, index + 1 < count));
         paragraph.FontFamily = "Arial"; paragraph.FontSize = 10;
         paragraph.LineSpacing = 480; paragraph.LineSpacingRule = WordLineSpacingRule.Auto;
-        paragraph.LineSpacingBeforePoints = 0; paragraph.LineSpacingAfterPoints = 0;
+        paragraph.LineSpacingBefore = global::OfficeIMO.OfficeLength.Zero; paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
         paragraph.AvoidWidowAndOrphanOverride = false;
         paragraph._paragraph.ParagraphProperties!.KeepLines = new KeepLines { Val = keep };
         paragraph._paragraph.ParagraphProperties.ParagraphMarkRunProperties = new ParagraphMarkRunProperties(

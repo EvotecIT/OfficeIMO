@@ -34,7 +34,7 @@ public partial class Word {
         source.CompatibilitySettings.CompatibilityMode = WordCompatibilityMode.Word2013;
         source.Sections[0].ColumnCount = partial ? 1 : 2;
         source.Sections[0].ColumnsSpace = 240;
-        source.Sections[0].Margins.HeaderDistance = source.Sections[0].Margins.FooterDistance = 720;
+        source.Sections[0].Margins.HeaderDistance = source.Sections[0].Margins.FooterDistance = global::OfficeIMO.OfficeLength.Points(36D);
         if (header) SetColumnStory(source.HeaderDefaultOrCreate);
         if (footer) SetColumnStory(source.FooterDefaultOrCreate);
         if (partial) {
@@ -42,7 +42,7 @@ public partial class Word {
             preceding.FontSize = 12;
             preceding.LineSpacingPoints = 12;
             preceding.LineSpacingRule = WordLineSpacingRule.Exact;
-            preceding.LineSpacingBeforePoints = preceding.LineSpacingAfterPoints = 0;
+            preceding.LineSpacingBefore = preceding.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
             WordSection columns = source.AddSection(WordSectionBreakType.Continuous);
             columns.ColumnCount = 2;
             columns.ColumnsSpace = 240;
@@ -52,7 +52,7 @@ public partial class Word {
         paragraph._paragraph.Append(TextLine("A", 12, true), TextLine("B", 12, false));
         paragraph.LineSpacingPoints = height;
         paragraph.LineSpacingRule = WordLineSpacingRule.Exact;
-        paragraph.LineSpacingBeforePoints = paragraph.LineSpacingAfterPoints = 0;
+        paragraph.LineSpacingBefore = paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
         paragraph._paragraph.ParagraphProperties!.WidowControl = new W.WidowControl { Val = widowControl };
         using WordDocument document = WordDocument.Load(new MemoryStream(source.ToBytes()));
         string before = document._wordprocessingDocument.MainDocumentPart!.Document.OuterXml;
@@ -86,18 +86,18 @@ public partial class Word {
         source.CompatibilitySettings.CompatibilityMode = WordCompatibilityMode.Word2013;
         source.Sections[0].ColumnCount = 2;
         source.Sections[0].ColumnsSpace = 240;
-        source.Sections[0].Margins.FooterDistance = 720;
+        source.Sections[0].Margins.FooterDistance = global::OfficeIMO.OfficeLength.Points(36D);
         SetColumnStory(source.FooterDefaultOrCreate);
         WordParagraph tall = source.AddParagraph();
         tall._paragraph.Append(TextLine("A", 12, false));
         tall.LineSpacingPoints = 100;
         tall.LineSpacingRule = WordLineSpacingRule.Exact;
-        tall.LineSpacingBeforePoints = tall.LineSpacingAfterPoints = 0;
+        tall.LineSpacingBefore = tall.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
         WordParagraph ordinary = source.AddParagraph();
         foreach (char letter in "BCDEFGHIJK") ordinary._paragraph.Append(TextLine(letter.ToString(), 12, letter != 'K'));
         ordinary.LineSpacingPoints = 12;
         ordinary.LineSpacingRule = WordLineSpacingRule.Exact;
-        ordinary.LineSpacingBeforePoints = ordinary.LineSpacingAfterPoints = 0;
+        ordinary.LineSpacingBefore = ordinary.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
         ordinary._paragraph.ParagraphProperties!.WidowControl = new W.WidowControl { Val = false };
         if (balanced) {
             source.AddSection(WordSectionBreakType.Continuous).ColumnCount = 1;
@@ -105,7 +105,7 @@ public partial class Word {
             after._paragraph.Append(TextLine("Z", 12, false));
             after.LineSpacingPoints = 12;
             after.LineSpacingRule = WordLineSpacingRule.Exact;
-            after.LineSpacingBeforePoints = after.LineSpacingAfterPoints = 0;
+            after.LineSpacingBefore = after.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
         }
         using WordDocument document = WordDocument.Load(new MemoryStream(source.ToBytes()));
         using var pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions {
@@ -131,7 +131,7 @@ public partial class Word {
             WordParagraph blank = story.AddParagraph();
             blank.LineSpacingPoints = 32;
             blank.LineSpacingRule = WordLineSpacingRule.Exact;
-            blank.LineSpacingBeforePoints = blank.LineSpacingAfterPoints = 0;
+            blank.LineSpacingBefore = blank.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
         }
     }
 }

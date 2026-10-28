@@ -43,7 +43,7 @@ public partial class Word {
             WordTableCell cell = table.Rows[0].Cells[0];
             cell.WidthType = WordTableWidthUnit.Dxa;
             cell.Width = 3600;
-            cell.MarginLeftWidth = 0; cell.MarginRightWidth = 0;
+            cell.MarginLeft = global::OfficeIMO.OfficeLength.Zero; cell.MarginRight = global::OfficeIMO.OfficeLength.Zero;
             cell.Paragraphs[0].Text = marker;
         }
     }

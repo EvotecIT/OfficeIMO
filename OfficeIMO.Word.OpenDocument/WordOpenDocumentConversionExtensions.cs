@@ -790,12 +790,12 @@ public static partial class WordOpenDocumentConversionExtensions {
 
     private static int ApplyOdtPageLayout(OdtPageLayout source, WordSection target) {
         int unsupported = 0;
-        if (source.Width.TryToPoints(out double width)) target.PageSettings.Width = checked((uint)Math.Round(width * 20D)); else unsupported++;
-        if (source.Height.TryToPoints(out double height)) target.PageSettings.Height = checked((uint)Math.Round(height * 20D)); else unsupported++;
-        if (source.MarginTop.TryToPoints(out double top)) target.Margins.Top = checked((int)Math.Round(top * 20D)); else unsupported++;
-        if (source.MarginBottom.TryToPoints(out double bottom)) target.Margins.Bottom = checked((int)Math.Round(bottom * 20D)); else unsupported++;
-        if (source.MarginLeft.TryToPoints(out double left)) target.Margins.Left = checked((uint)Math.Round(left * 20D)); else unsupported++;
-        if (source.MarginRight.TryToPoints(out double right)) target.Margins.Right = checked((uint)Math.Round(right * 20D)); else unsupported++;
+        if (source.Width.TryToPoints(out double width)) target.PageSettings.Width = global::OfficeIMO.OfficeLength.Points((checked((uint)Math.Round(width * 20D))) / 20D); else unsupported++;
+        if (source.Height.TryToPoints(out double height)) target.PageSettings.Height = global::OfficeIMO.OfficeLength.Points((checked((uint)Math.Round(height * 20D))) / 20D); else unsupported++;
+        if (source.MarginTop.TryToPoints(out double top)) target.Margins.Top = global::OfficeIMO.OfficeLength.Points((checked((int)Math.Round(top * 20D))) / 20D); else unsupported++;
+        if (source.MarginBottom.TryToPoints(out double bottom)) target.Margins.Bottom = global::OfficeIMO.OfficeLength.Points((checked((int)Math.Round(bottom * 20D))) / 20D); else unsupported++;
+        if (source.MarginLeft.TryToPoints(out double left)) target.Margins.Left = global::OfficeIMO.OfficeLength.Points((checked((uint)Math.Round(left * 20D))) / 20D); else unsupported++;
+        if (source.MarginRight.TryToPoints(out double right)) target.Margins.Right = global::OfficeIMO.OfficeLength.Points((checked((uint)Math.Round(right * 20D))) / 20D); else unsupported++;
         return unsupported;
     }
 

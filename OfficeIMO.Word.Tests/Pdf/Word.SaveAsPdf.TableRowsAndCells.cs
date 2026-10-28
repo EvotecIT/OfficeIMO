@@ -20,7 +20,7 @@ public partial class Word {
 
         using (WordDocument document = WordDocument.Create(docPath)) {
             WordTable table = document.AddTable(1, 1);
-            table.Rows[0].Height = 1600;
+            table.Rows[0].Height = global::OfficeIMO.OfficeLength.Points(80D);
             table.Rows[0].Cells[0].Paragraphs[0].Text = "TallRow";
             document.AddParagraph("AfterTall");
 
@@ -180,11 +180,11 @@ public partial class Word {
 
         using (WordDocument document = WordDocument.Create(docPath)) {
             WordTable table = document.AddTable(3, 1);
-            table.Rows[0].Height = 400;
+            table.Rows[0].Height = global::OfficeIMO.OfficeLength.Points(20D);
             table.Rows[0].Cells[0].Paragraphs[0].Text = "ShortA";
-            table.Rows[1].Height = 1200;
+            table.Rows[1].Height = global::OfficeIMO.OfficeLength.Points(60D);
             table.Rows[1].Cells[0].Paragraphs[0].Text = "TallB";
-            table.Rows[2].Height = 400;
+            table.Rows[2].Height = global::OfficeIMO.OfficeLength.Points(20D);
             table.Rows[2].Cells[0].Paragraphs[0].Text = "ShortC";
 
             document.Save();
@@ -226,7 +226,7 @@ public partial class Word {
             });
 
             WordParagraph intro = document.AddParagraph("ParagraphTableChainIntro");
-            intro.LineSpacingAfterPoints = 100;
+            intro.LineSpacingAfter = global::OfficeIMO.OfficeLength.Points(100D);
             document.AddParagraph("ParagraphTableChainLead").SetStyleId(styleId);
             WordTable table = document.AddTable(3, 1);
             table._tableProperties!.TableStyle?.Remove();
@@ -350,8 +350,8 @@ public partial class Word {
             WordTable table = document.AddTable(2, 1);
             table.WidthType = WordTableWidthUnit.Dxa;
             table.Width = 2200;
-            if (heightRule == HeightRuleValues.AtLeast) table.Rows[0].MinimumHeight = 360;
-            else table.Rows[0].Height = 360;
+            if (heightRule == HeightRuleValues.AtLeast) table.Rows[0].MinimumHeight = global::OfficeIMO.OfficeLength.Points(18D);
+            else table.Rows[0].Height = global::OfficeIMO.OfficeLength.Points(18D);
             table.Rows[0].Cells[0].Width = 2200;
             table.Rows[0].Cells[0].WidthType = WordTableWidthUnit.Dxa;
             // Keep enough wrapped lines to exceed the minimum height under font substitution too.
@@ -566,11 +566,11 @@ public partial class Word {
 
             if (includeSpacingParagraph) {
                 WordParagraph blank = document.AddParagraph();
-                blank.LineSpacingAfterPoints = 6;
+                blank.LineSpacingAfter = global::OfficeIMO.OfficeLength.Points(6D);
             }
 
             WordParagraph after = document.AddParagraph(afterMarker);
-            after.LineSpacingAfterPoints = 0;
+            after.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
 
             document.Save();
             document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
@@ -609,7 +609,7 @@ public partial class Word {
             cell.Paragraphs[0].Text = tableMarker + " Alpha Beta Gamma Delta Epsilon";
 
             WordParagraph after = document.AddParagraph(afterMarker);
-            after.LineSpacingAfterPoints = 0;
+            after.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
 
             document.Save();
             document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
@@ -692,7 +692,7 @@ public partial class Word {
 
             WordParagraph paragraph = cell.Paragraphs[0];
             paragraph.Text = firstMarker + " " + secondMarker;
-            paragraph.LineSpacingAfterPoints = 0D;
+            paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
             paragraph.LineSpacingPoints = lineSpacingPoints;
             paragraph.LineSpacingRule = WordLineSpacingRule.Exact;
 
@@ -743,7 +743,7 @@ public partial class Word {
             paragraph.AddText(firstMarker).SetCharacterStyleId(styleId);
             paragraph.AddBreak();
             paragraph.AddText(secondMarker).SetCharacterStyleId(styleId);
-            paragraph.LineSpacingAfterPoints = 0D;
+            paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
             paragraph.LineSpacingPoints = 18D;
             paragraph.LineSpacingRule = WordLineSpacingRule.Exact;
 
@@ -901,7 +901,7 @@ public partial class Word {
             table._tableProperties!.TableStyle = new TableStyle { Val = styleId };
             table.ConditionalFormattingFirstColumn = true;
             foreach (WordTableRow row in table.Rows) {
-                row.Height = 1200;
+                row.Height = global::OfficeIMO.OfficeLength.Points(60D);
                 row._tableRow.TableRowProperties!.GetFirstChild<TableRowHeight>()!.HeightType = HeightRuleValues.Exact;
                 foreach (WordTableCell cell in row.Cells) {
                     cell.Width = 1800;
@@ -1121,7 +1121,7 @@ public partial class Word {
             table.Rows[0].Cells[0].Paragraphs[0].Text = "PlainCellIndent";
             WordParagraph indented = table.Rows[1].Cells[0].Paragraphs[0];
             indented.Text = "IndentedCellIndent";
-            indented.IndentationBeforePoints = 42D;
+            indented.IndentationBefore = global::OfficeIMO.OfficeLength.Points(42D);
 
             document.Save();
             document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
@@ -1159,12 +1159,12 @@ public partial class Word {
             table.Rows[0].Cells[0].Paragraphs[0].Text = "P0";
             WordParagraph negative = table.Rows[1].Cells[0].Paragraphs[0];
             negative.Text = "N0";
-            negative.IndentationBeforePoints = -30D;
-            negative.IndentationAfterPoints = -30D;
+            negative.IndentationBefore = global::OfficeIMO.OfficeLength.Points(-30D);
+            negative.IndentationAfter = global::OfficeIMO.OfficeLength.Points(-30D);
 
             WordParagraph hanging = table.Rows[2].Cells[0].Paragraphs[0];
             hanging.Text = "H0 a b c d e f g h i j k l m";
-            hanging.IndentationHangingPoints = 36D;
+            hanging.IndentationHanging = global::OfficeIMO.OfficeLength.Points(36D);
 
             document.Save();
             document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
@@ -1446,10 +1446,10 @@ public partial class Word {
             table.Rows[0].Cells[0].WidthType = WordTableWidthUnit.Dxa;
             WordTableCell cell = table.Rows[0].Cells[0];
             cell.Paragraphs[0].Text = firstMarker;
-            cell.Paragraphs[0].LineSpacingAfterPoints = firstSpacingAfter;
+            cell.Paragraphs[0].LineSpacingAfter = global::OfficeIMO.OfficeLength.Points(firstSpacingAfter);
             WordParagraph second = cell.AddParagraph(secondMarker);
-            second.LineSpacingBeforePoints = secondSpacingBefore;
-            second.LineSpacingAfterPoints = 0;
+            second.LineSpacingBefore = global::OfficeIMO.OfficeLength.Points(secondSpacingBefore);
+            second.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
 
             document.Save();
             document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
@@ -1493,12 +1493,12 @@ public partial class Word {
             cell.Width = 3200;
             cell.WidthType = WordTableWidthUnit.Dxa;
             cell.Paragraphs[0].AddText(firstMarker).SetCharacterStyleId(styleId);
-            cell.Paragraphs[0].LineSpacingAfterPoints = 0D;
+            cell.Paragraphs[0].LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
             WordParagraph second = cell.AddParagraph(string.Empty);
             second._paragraph.ParagraphProperties ??= new ParagraphProperties();
             second._paragraph.ParagraphProperties.Append(new SpacingBetweenLines { BeforeLines = 100 });
             second.AddText(secondMarker).SetCharacterStyleId(styleId);
-            second.LineSpacingAfterPoints = 0D;
+            second.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
 
             document.Save();
             document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
@@ -1778,7 +1778,7 @@ public partial class Word {
         using (WordDocument document = WordDocument.Create(docPath)) {
             WordTable table = document.AddTable(2, 2);
             foreach (WordTableRow row in table.Rows) {
-                row.Height = 1100;
+                row.Height = global::OfficeIMO.OfficeLength.Points(55D);
                 foreach (WordTableCell cell in row.Cells) {
                     cell.Width = 1440;
                     cell.WidthType = WordTableWidthUnit.Dxa;

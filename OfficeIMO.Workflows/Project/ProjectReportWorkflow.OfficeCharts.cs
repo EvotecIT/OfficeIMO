@@ -17,7 +17,7 @@ public static partial class ProjectReportWorkflow {
             token.ThrowIfCancellationRequested();
             var paragraph = document.AddParagraph();
             paragraph.PageBreakBefore = index++ > 0;
-            paragraph.LineSpacingBeforePoints = paragraph.LineSpacingAfterPoints = 0;
+            paragraph.LineSpacingBefore = paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
             double scale = Math.Min((view.PageWidth - 2 * view.PageMargin) / image.Width,
                 (view.PageHeight - 2 * view.PageMargin - 20) / image.Height);
             using var stream = new MemoryStream(image.Bytes);

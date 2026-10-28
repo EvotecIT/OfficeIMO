@@ -765,10 +765,10 @@ public partial class Word {
     [Fact]
     public void SaveAsPdf_OfficeIMOEngine_Reserves_Body_Clearance_For_Multiline_Footer_Margins() {
         using WordDocument document = WordDocument.Create(Path.Combine(_directoryWithFiles, "PdfNativeMultilineFooterMarginExpansion.docx"));
-        document.Sections[0].Margins.Top = 600;
-        document.Sections[0].Margins.Bottom = 600;
-        document.Sections[0].Margins.Left = 600;
-        document.Sections[0].Margins.Right = 600;
+        document.Sections[0].Margins.Top = global::OfficeIMO.OfficeLength.Points(30D);
+        document.Sections[0].Margins.Bottom = global::OfficeIMO.OfficeLength.Points(30D);
+        document.Sections[0].Margins.Left = global::OfficeIMO.OfficeLength.Points(30D);
+        document.Sections[0].Margins.Right = global::OfficeIMO.OfficeLength.Points(30D);
         document.AddHeadersAndFooters();
         WordFooter footer = RequireSectionFooter(document, 0, HeaderFooterValues.Default);
         footer.AddParagraph("ClearanceFooterOne").FontSize = 9;

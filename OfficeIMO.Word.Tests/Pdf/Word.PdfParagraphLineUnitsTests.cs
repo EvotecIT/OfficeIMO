@@ -84,7 +84,7 @@ public partial class Word {
         WordParagraph[] paragraphs = spaced.Paragraphs.ToArray();
         for (int index = 0; index < paragraphs.Length; index++) {
             if (grid) paragraphs[index]._paragraph.ParagraphProperties!.SpacingBetweenLines!.BeforeLines = 100;
-            else paragraphs[index].LineSpacingBeforePoints = 30;
+            else paragraphs[index].LineSpacingBefore = global::OfficeIMO.OfficeLength.Points(30D);
             if (route == "explicit-break" && index > 0) {
                 paragraphs[index]._paragraph.ParagraphProperties!.Append(new PageBreakBefore());
                 plain.Paragraphs[index]._paragraph.ParagraphProperties!.Append(new PageBreakBefore());
@@ -177,7 +177,7 @@ public partial class Word {
             paragraph.FontSize = 11;
             paragraph.FontFamily = "Arial";
             paragraph.LineSpacing = line; paragraph.LineSpacingRule = rule;
-            paragraph.LineSpacingBeforePoints = 0; paragraph.LineSpacingAfterPoints = 0;
+            paragraph.LineSpacingBefore = global::OfficeIMO.OfficeLength.Zero; paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
         }
         return source;
     }

@@ -16,11 +16,11 @@ public partial class Word {
         var first = source.AddParagraph("First");
         first.LineSpacing = value;
         first.LineSpacingRule = rule;
-        first.LineSpacingAfter = 160;
+        first.LineSpacingAfter = global::OfficeIMO.OfficeLength.Points(8D);
         var second = source.AddParagraph("Second");
         second.LineSpacing = value;
         second.LineSpacingRule = rule;
-        second.LineSpacingAfter = 160;
+        second.LineSpacingAfter = global::OfficeIMO.OfficeLength.Points(8D);
         byte[] bytes = source.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc });
         byte[] document = ReadCompoundStream(bytes, "WordDocument");
         byte[] table = ReadCompoundStream(bytes, "1Table");
@@ -37,7 +37,7 @@ public partial class Word {
         Assert.All(paragraphs, p => {
             Assert.Equal(value, p.LineSpacing);
             Assert.Equal(rule, p.LineSpacingRule);
-            Assert.Equal(160, p.LineSpacingAfter);
+            Assert.Equal(160, checked((int?)(p.LineSpacingAfter?.ToTwips())));
         });
     }
 

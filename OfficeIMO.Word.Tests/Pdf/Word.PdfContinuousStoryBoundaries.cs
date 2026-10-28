@@ -52,8 +52,8 @@ public partial class Word {
         }
         SetInheritedRunningControlStyle(source.AddParagraph("S1"));
         WordSection later = source.AddSection(WordSectionBreakType.Continuous);
-        if (footerDistance) later.Margins.FooterDistance += 720;
-        else later.Margins.HeaderDistance += 720;
+        if (footerDistance) later.Margins.FooterDistance+= global::OfficeIMO.OfficeLength.Points(36D);
+        else later.Margins.HeaderDistance+= global::OfficeIMO.OfficeLength.Points(36D);
         SetInheritedRunningControlStyle(source.AddParagraph("S2"));
         // The public story convenience API can create an empty opposite part.
         // This control specifically has no authored story on the changed edge.
@@ -71,8 +71,8 @@ public partial class Word {
     [InlineData(true)]
     public void SaveAsPdf_ContinuousInheritedStoryPreservesChangedEdgeDistance(bool footer) {
         using WordDocument source = CreateInheritedRunningStoryControl(footer, "default", "continuous");
-        source.Sections[0].Margins.HeaderDistance = source.Sections[0].Margins.FooterDistance = 360;
-        source.Sections[1].Margins.HeaderDistance = source.Sections[1].Margins.FooterDistance = 1080;
+        source.Sections[0].Margins.HeaderDistance = source.Sections[0].Margins.FooterDistance = global::OfficeIMO.OfficeLength.Points(18D);
+        source.Sections[1].Margins.HeaderDistance = source.Sections[1].Margins.FooterDistance = global::OfficeIMO.OfficeLength.Points(54D);
         source.Paragraphs.Single(p => p.Text == "S2A").PageBreakBefore = true;
         using var pdf = PdfPigDocument.Open(source.ToPdf(EmptyRunningOptions()).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         Assert.Equal(2, pdf.NumberOfPages);

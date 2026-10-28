@@ -41,8 +41,8 @@ public sealed class WordNativeCompressionAdmissionTests {
             WordTableCell cell = table.Rows[0].Cells[0];
             cell.Width = int.Parse(twips, CultureInfo.InvariantCulture);
             cell.WidthType = WordTableWidthUnit.Dxa;
-            cell.MarginLeftWidth = 0;
-            cell.MarginRightWidth = 0;
+            cell.MarginLeft = global::OfficeIMO.OfficeLength.Zero;
+            cell.MarginRight = global::OfficeIMO.OfficeLength.Zero;
             target = cell.Paragraphs[0];
         } else {
             target = document.AddParagraph();

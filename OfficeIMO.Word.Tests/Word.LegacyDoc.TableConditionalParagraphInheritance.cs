@@ -46,7 +46,7 @@ public partial class Word {
         Assert.Equal("Inherited", paragraph.Text);
         Assert.Equal(420, paragraph.LineSpacing);
         Assert.Equal(WordLineSpacingRule.Auto, paragraph.LineSpacingRule);
-        Assert.Equal(4, paragraph.LineSpacingAfterPoints);
+        Assert.Equal(4, paragraph.LineSpacingAfter?.ToPoints());
         Assert.Equal(JustificationValues.Center, paragraph._paragraph.ParagraphProperties!.Justification!.Val!.Value);
     }
 }

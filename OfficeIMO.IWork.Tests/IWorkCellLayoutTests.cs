@@ -96,10 +96,10 @@ public sealed partial class IWorkBoundaryTests {
             result.Value.Save(saved); saved.Position = 0;
             using var reopened = OfficeIMO.Word.WordDocument.Load(saved);
             Assert.All(reopened.Tables[0].Rows[0].Cells, cell => {
-                Assert.Equal((short)80, cell.MarginLeftWidth);
-                Assert.Equal((short)80, cell.MarginTopWidth);
-                Assert.Equal((short)80, cell.MarginRightWidth);
-                Assert.Equal((short)80, cell.MarginBottomWidth);
+                Assert.Equal((short)80, checked((short?)(cell.MarginLeft?.ToTwips())));
+                Assert.Equal((short)80, checked((short?)(cell.MarginTop?.ToTwips())));
+                Assert.Equal((short)80, checked((short?)(cell.MarginRight?.ToTwips())));
+                Assert.Equal((short)80, checked((short?)(cell.MarginBottom?.ToTwips())));
                 Assert.Equal(OfficeIMO.Word.WordTableVerticalAlignment.Center, cell.VerticalAlignment);
             });
         } else if (kind == IWorkDocumentKind.Numbers) {
@@ -188,7 +188,7 @@ public sealed partial class IWorkBoundaryTests {
             Assert.Equal(!partial, result.IsVisualFallback);
             Assert.Equal(native, result.Projection.Tables[0].GetCell(1, 1)!.Padding!.LeftPoints);
             if (partial) {
-                Assert.Equal((short)3, result.Value.Tables[0].Rows[0].Cells[0].MarginLeftWidth);
+                Assert.Equal((short)3, checked((short?)(result.Value.Tables[0].Rows[0].Cells[0].MarginLeft?.ToTwips())));
                 Assert.Contains(result.Report.Diagnostics, diagnostic => diagnostic.Code == "IWORK_PAGES_DOCX_PRECISION");
             }
         } else {

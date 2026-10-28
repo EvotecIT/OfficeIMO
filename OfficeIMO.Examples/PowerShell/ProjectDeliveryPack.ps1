@@ -121,8 +121,8 @@ WordNew -Path $docx {
     $table.RepeatHeaderRowAtTheTopOfEachPage = $true
     foreach ($tableRow in $table.Rows) { $tableRow.AllowRowToBreakAcrossPages = $false }
     $table | Get-OfficeWordTableCell | ForEach-Object {
-        $_.MarginTopCentimeters=0.12; $_.MarginBottomCentimeters=0.12
-        $_.MarginLeftCentimeters=0.16; $_.MarginRightCentimeters=0.16
+        $_.MarginTop = [OfficeIMO.OfficeLength]::Centimeters(0.12); $_.MarginBottom = [OfficeIMO.OfficeLength]::Centimeters(0.12)
+        $_.MarginLeft = [OfficeIMO.OfficeLength]::Centimeters(0.16); $_.MarginRight = [OfficeIMO.OfficeLength]::Centimeters(0.16)
     }
     WordParagraph -Text "${sampleNotice}Due today is on track; overdue means an incomplete milestone due before the snapshot date. Update the CSV and regenerate this review after changes. Record the review decision in the editable Word copy."
 }

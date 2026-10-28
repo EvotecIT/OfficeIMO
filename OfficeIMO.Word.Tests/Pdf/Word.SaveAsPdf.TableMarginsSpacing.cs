@@ -61,8 +61,8 @@ public partial class Word {
             WordTable padded = document.AddTable(1, 1);
             ConfigureMarginTable(padded, "WideCellPad");
             padded.StyleDetails!.MarginDefaultLeftWidth = 0;
-            padded.Rows[0].Cells[0].MarginLeftWidth = 1000;
-            padded.Rows[0].Cells[0].MarginTopWidth = 320;
+            padded.Rows[0].Cells[0].MarginLeft = global::OfficeIMO.OfficeLength.Points(50D);
+            padded.Rows[0].Cells[0].MarginTop = global::OfficeIMO.OfficeLength.Points(16D);
 
             document.Save();
             document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
@@ -90,12 +90,12 @@ public partial class Word {
             WordTable table = document.AddTable(1, 2);
             WordParagraph plain = table.Rows[0].Cells[0].Paragraphs[0];
             plain.Text = "NoBefore";
-            plain.LineSpacingBeforePoints = 0D;
-            plain.LineSpacingAfterPoints = 0D;
+            plain.LineSpacingBefore = global::OfficeIMO.OfficeLength.Zero;
+            plain.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
             WordParagraph spaced = table.Rows[0].Cells[1].Paragraphs[0];
             spaced.Text = "FiveBefore";
-            spaced.LineSpacingBeforePoints = 5D;
-            spaced.LineSpacingAfterPoints = 5D;
+            spaced.LineSpacingBefore = global::OfficeIMO.OfficeLength.Points(5D);
+            spaced.LineSpacingAfter = global::OfficeIMO.OfficeLength.Points(5D);
             document.Save();
             document.SaveAsPdf(pdfPath, new WordPdfExportOptions());
         }
@@ -117,8 +117,8 @@ public partial class Word {
                 WordTable table = document.AddTable(2, 1);
                 WordParagraph first = table.Rows[0].Cells[0].Paragraphs[0];
                 first.Text = "FirstRow";
-                first.LineSpacingBeforePoints = 5D;
-                first.LineSpacingAfterPoints = variant == 0 ? 0D : 5D;
+                first.LineSpacingBefore = global::OfficeIMO.OfficeLength.Points(5D);
+                first.LineSpacingAfter = global::OfficeIMO.OfficeLength.Points(variant == 0 ? 0D : 5D);
                 table.Rows[1].Cells[0].Paragraphs[0].Text = "SecondRow";
                 document.Save();
                 document.SaveAsPdf(pdfPath, new WordPdfExportOptions());

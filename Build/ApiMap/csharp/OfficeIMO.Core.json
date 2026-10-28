@@ -808,6 +808,11 @@
       "phase": "B",
       "applied": "phase-b-applied",
       "reason": "The native conversion corpus uses the canonical font-family-substitution diagnostic constant."
+    },
+    {
+      "change": "Close full-solution consumers of the unified API",
+      "reason": "The shared managed-font fixture requires the internal text-element enumerator in OfficeIMO.Tool.Tests; an explicit test friend keeps that plumbing internal.",
+      "applied": "phase-b-applied"
     }
   ],
   "applicationStatus": "Phase A applied and validated on the supported macOS targets. Phase B and Tier 2 entries retain their status; Windows .NET Framework validation remains pending.",

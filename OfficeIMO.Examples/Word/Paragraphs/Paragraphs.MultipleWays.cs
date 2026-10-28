@@ -54,14 +54,14 @@ internal static partial class Paragraphs {
             paragraph = document.AddParagraph("8th This text should be colored.");
             paragraph.Bold = true;
             paragraph.ColorHex = "4F48E2";
-            paragraph.IndentationAfter = 1400;
+            paragraph.IndentationAfter = global::OfficeIMO.OfficeLength.Points(70D);
 
 
             paragraph = document.AddParagraph("This is very long line that we will use to show indentation that will work across multiple lines and more and more and even more than that. One, two, three, don't worry baby.");
             paragraph.Bold = true;
             paragraph.ColorHex = "#FF0000";
-            paragraph.IndentationBefore = 720;
-            paragraph.IndentationFirstLine = 1400;
+            paragraph.IndentationBefore = global::OfficeIMO.OfficeLength.Points(36D);
+            paragraph.IndentationFirstLine = global::OfficeIMO.OfficeLength.Points(70D);
 
 
             paragraph = document.AddParagraph("9th This text should be colored and Arial.");
@@ -75,7 +75,7 @@ internal static partial class Paragraphs {
             paragraph.ColorHex = "4F48E2";
             paragraph.FontFamily = "Tahoma";
             paragraph.FontSize = 20;
-            paragraph.LineSpacingBefore = 300;
+            paragraph.LineSpacingBefore = global::OfficeIMO.OfficeLength.Points(15D);
 
             paragraph = document.AddParagraph("12th This text should be colored and Tahoma and text direction changed");
             paragraph.Bold = true;
@@ -88,7 +88,7 @@ internal static partial class Paragraphs {
             paragraph.Bold = true;
             paragraph.ColorHex = "4F48E2";
             paragraph.FontFamily = "Tahoma";
-            paragraph.LineSpacingAfter = 720;
+            paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Points(36D);
 
             paragraph = document.AddParagraph("Spacing Test 2");
             paragraph.Bold = true;

@@ -42,8 +42,8 @@ public static partial class WordIWorkConverter {
         for (int row = 1; row <= source.RowCount; row++) {
             cancellationToken.ThrowIfCancellationRequested();
             if (rowHeights[row - 1] is int height) {
-                if (source.AutoResizeRows == true) rows[row - 1].MinimumHeight = height;
-                else rows[row - 1].Height = height;
+                if (source.AutoResizeRows == true) rows[row - 1].MinimumHeight = global::OfficeIMO.OfficeLength.Points((height) / 20D);
+                else rows[row - 1].Height = global::OfficeIMO.OfficeLength.Points((height) / 20D);
             }
         }
         for (int row = 1; row <= source.RowCount; row++) {
@@ -61,10 +61,10 @@ public static partial class WordIWorkConverter {
                 WordTableCell target = targetCells[column - 1];
                 ApplyTableBorders(target, borders, hasBorderDeclarations);
                 if (padding != null) {
-                    target.MarginLeftWidth = checked((short)ToSignedTwips(padding.LeftPoints));
-                    target.MarginTopWidth = checked((short)ToSignedTwips(padding.TopPoints));
-                    target.MarginRightWidth = checked((short)ToSignedTwips(padding.RightPoints));
-                    target.MarginBottomWidth = checked((short)ToSignedTwips(padding.BottomPoints));
+                    target.MarginLeft = global::OfficeIMO.OfficeLength.Points((checked((short)ToSignedTwips(padding.LeftPoints))) / 20D);
+                    target.MarginTop = global::OfficeIMO.OfficeLength.Points((checked((short)ToSignedTwips(padding.TopPoints))) / 20D);
+                    target.MarginRight = global::OfficeIMO.OfficeLength.Points((checked((short)ToSignedTwips(padding.RightPoints))) / 20D);
+                    target.MarginBottom = global::OfficeIMO.OfficeLength.Points((checked((short)ToSignedTwips(padding.BottomPoints))) / 20D);
                 }
                 if (vertical.HasValue) target.VerticalAlignment = vertical.Value switch {
                     IWorkCellVerticalAlignment.Top => WordTableVerticalAlignment.Top,

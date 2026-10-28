@@ -38,10 +38,10 @@ public partial class HtmlWordGapClosure {
             document.Paragraphs,
             candidate => candidate.Text.Contains("Logical spacing", StringComparison.Ordinal));
 
-        Assert.Equal(expectedBefore, paragraph.IndentationBefore);
-        Assert.Equal(expectedAfter, paragraph.IndentationAfter);
-        Assert.Equal(60, paragraph.LineSpacingBefore);
-        Assert.Equal(90, paragraph.LineSpacingAfter);
+        Assert.Equal(expectedBefore, checked((int?)(paragraph.IndentationBefore?.ToTwips())));
+        Assert.Equal(expectedAfter, checked((int?)(paragraph.IndentationAfter?.ToTwips())));
+        Assert.Equal(60, checked((int?)(paragraph.LineSpacingBefore?.ToTwips())));
+        Assert.Equal(90, checked((int?)(paragraph.LineSpacingAfter?.ToTwips())));
         Assert.DoesNotContain(
             conversion.Report.Diagnostics,
             diagnostic => diagnostic.Code == "unsupported-css-declaration" &&
@@ -59,8 +59,8 @@ public partial class HtmlWordGapClosure {
         WordParagraph physicalLast = Assert.Single(document.Paragraphs, paragraph => paragraph.Text == "Physical last");
         WordParagraph logicalLast = Assert.Single(document.Paragraphs, paragraph => paragraph.Text == "Logical last");
 
-        Assert.Equal(450, physicalLast.IndentationBefore);
-        Assert.Equal(150, logicalLast.IndentationBefore);
+        Assert.Equal(450, checked((int?)(physicalLast.IndentationBefore?.ToTwips())));
+        Assert.Equal(150, checked((int?)(logicalLast.IndentationBefore?.ToTwips())));
     }
 
     [Fact]
@@ -74,10 +74,10 @@ public partial class HtmlWordGapClosure {
         WordParagraph logicalLast = Assert.Single(document.Paragraphs, paragraph => paragraph.Text == "Logical last");
         WordParagraph physicalLast = Assert.Single(document.Paragraphs, paragraph => paragraph.Text == "Physical last");
 
-        Assert.Equal(150, logicalLast.IndentationBefore);
-        Assert.Equal(300, logicalLast.LineSpacingBefore);
-        Assert.Equal(450, physicalLast.IndentationBefore);
-        Assert.Equal(600, physicalLast.LineSpacingBefore);
+        Assert.Equal(150, checked((int?)(logicalLast.IndentationBefore?.ToTwips())));
+        Assert.Equal(300, checked((int?)(logicalLast.LineSpacingBefore?.ToTwips())));
+        Assert.Equal(450, checked((int?)(physicalLast.IndentationBefore?.ToTwips())));
+        Assert.Equal(600, checked((int?)(physicalLast.LineSpacingBefore?.ToTwips())));
     }
 
     [Fact]
@@ -98,10 +98,10 @@ public partial class HtmlWordGapClosure {
         WordParagraph sourceOrder = Assert.Single(document.Paragraphs, paragraph => paragraph.Text == "Source order");
         WordParagraph specificity = Assert.Single(document.Paragraphs, paragraph => paragraph.Text == "Specificity");
 
-        Assert.Equal(450, sourceOrder.IndentationBefore);
-        Assert.Equal(150, sourceOrder.IndentationAfter);
-        Assert.Equal(450, specificity.IndentationBefore);
-        Assert.Equal(150, specificity.IndentationAfter);
+        Assert.Equal(450, checked((int?)(sourceOrder.IndentationBefore?.ToTwips())));
+        Assert.Equal(150, checked((int?)(sourceOrder.IndentationAfter?.ToTwips())));
+        Assert.Equal(450, checked((int?)(specificity.IndentationBefore?.ToTwips())));
+        Assert.Equal(150, checked((int?)(specificity.IndentationAfter?.ToTwips())));
     }
 
     [Fact]
@@ -129,10 +129,10 @@ public partial class HtmlWordGapClosure {
 
         using WordDocument document = HtmlConversionDocument.Parse(html).ToWord();
 
-        Assert.Equal(450, Assert.Single(document.Paragraphs, paragraph => paragraph.Text == "Important physical").IndentationBefore);
-        Assert.Equal(150, Assert.Single(document.Paragraphs, paragraph => paragraph.Text == "Important logical").IndentationBefore);
-        Assert.Equal(450, Assert.Single(document.Paragraphs, paragraph => paragraph.Text == "Important physical last").IndentationBefore);
-        Assert.Equal(450, Assert.Single(document.Paragraphs, paragraph => paragraph.Text == "Important padding").IndentationBefore);
+        Assert.Equal(450, checked((int?)(Assert.Single(document.Paragraphs, paragraph => paragraph.Text == "Important physical").IndentationBefore?.ToTwips())));
+        Assert.Equal(150, checked((int?)(Assert.Single(document.Paragraphs, paragraph => paragraph.Text == "Important logical").IndentationBefore?.ToTwips())));
+        Assert.Equal(450, checked((int?)(Assert.Single(document.Paragraphs, paragraph => paragraph.Text == "Important physical last").IndentationBefore?.ToTwips())));
+        Assert.Equal(450, checked((int?)(Assert.Single(document.Paragraphs, paragraph => paragraph.Text == "Important padding").IndentationBefore?.ToTwips())));
     }
 
     [Fact]
@@ -144,8 +144,8 @@ public partial class HtmlWordGapClosure {
         using WordDocument document = HtmlConversionDocument.Parse(html).ToWord();
         WordParagraph paragraph = Assert.Single(document.Paragraphs, candidate => candidate.Text == "Invalid pair");
 
-        Assert.Equal(450, paragraph.IndentationBefore);
-        Assert.Null(paragraph.IndentationAfter);
+        Assert.Equal(450, checked((int?)(paragraph.IndentationBefore?.ToTwips())));
+        Assert.Null(checked((int?)(paragraph.IndentationAfter?.ToTwips())));
     }
 
     [Fact]
@@ -165,10 +165,10 @@ public partial class HtmlWordGapClosure {
         WordParagraph paragraph = Assert.Single(document.Paragraphs, candidate => candidate.Text == "CSS direction");
         WordParagraph ownDir = Assert.Single(document.Paragraphs, candidate => candidate.Text == "Own dir");
 
-        Assert.Equal(150, paragraph.IndentationBefore);
-        Assert.Null(paragraph.IndentationAfter);
-        Assert.Null(ownDir.IndentationBefore);
-        Assert.Equal(150, ownDir.IndentationAfter);
+        Assert.Equal(150, checked((int?)(paragraph.IndentationBefore?.ToTwips())));
+        Assert.Null(checked((int?)(paragraph.IndentationAfter?.ToTwips())));
+        Assert.Null(checked((int?)(ownDir.IndentationBefore?.ToTwips())));
+        Assert.Equal(150, checked((int?)(ownDir.IndentationAfter?.ToTwips())));
     }
 
     [Fact]
@@ -181,8 +181,8 @@ public partial class HtmlWordGapClosure {
         WordParagraph paragraph = Assert.Single(document.Paragraphs, candidate => candidate.Text == "Important direction");
 
         Assert.True(paragraph.BiDi);
-        Assert.Null(paragraph.IndentationBefore);
-        Assert.Equal(150, paragraph.IndentationAfter);
+        Assert.Null(checked((int?)(paragraph.IndentationBefore?.ToTwips())));
+        Assert.Equal(150, checked((int?)(paragraph.IndentationAfter?.ToTwips())));
     }
 
     [Fact]
@@ -199,11 +199,11 @@ public partial class HtmlWordGapClosure {
         WordParagraph inherited = Assert.Single(document.Paragraphs, paragraph => paragraph.Text == "Inherited");
 
         Assert.False(initial.BiDi);
-        Assert.Equal(150, initial.IndentationBefore);
-        Assert.Null(initial.IndentationAfter);
+        Assert.Equal(150, checked((int?)(initial.IndentationBefore?.ToTwips())));
+        Assert.Null(checked((int?)(initial.IndentationAfter?.ToTwips())));
         Assert.True(inherited.BiDi);
-        Assert.Null(inherited.IndentationBefore);
-        Assert.Equal(150, inherited.IndentationAfter);
+        Assert.Null(checked((int?)(inherited.IndentationBefore?.ToTwips())));
+        Assert.Equal(150, checked((int?)(inherited.IndentationAfter?.ToTwips())));
     }
 
     [Fact]
@@ -226,8 +226,8 @@ public partial class HtmlWordGapClosure {
         Assert.Equal(WordBorderStyle.Single, first.Borders.LeftStyle);
         Assert.Equal(WordBorderStyle.Single, second.Borders.RightStyle);
         Assert.Equal("123456", first.Borders.LeftColorHex);
-        Assert.Equal(120, first.IndentationBefore);
-        Assert.Equal(120, second.IndentationAfter);
+        Assert.Equal(120, checked((int?)(first.IndentationBefore?.ToTwips())));
+        Assert.Equal(120, checked((int?)(second.IndentationAfter?.ToTwips())));
     }
 
     [Fact]
@@ -276,9 +276,9 @@ public partial class HtmlWordGapClosure {
         using WordDocument document = HtmlConversionDocument.Parse(html).ToWord();
         WordParagraph paragraph = Assert.Single(document.Paragraphs, candidate => candidate.Text == "Quoted spacing");
 
-        Assert.Equal(180, paragraph.IndentationBefore);
-        Assert.Equal(105, paragraph.LineSpacingBefore);
-        Assert.Equal(105, paragraph.LineSpacingAfter);
+        Assert.Equal(180, checked((int?)(paragraph.IndentationBefore?.ToTwips())));
+        Assert.Equal(105, checked((int?)(paragraph.LineSpacingBefore?.ToTwips())));
+        Assert.Equal(105, checked((int?)(paragraph.LineSpacingAfter?.ToTwips())));
     }
 
     [Fact]

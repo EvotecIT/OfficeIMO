@@ -42,9 +42,9 @@ public partial class Word {
             paragraph.Text = row == 0 ? "DefaultInset" : "ExplicitZero";
             paragraph.FontFamily = "Arial";
             paragraph.FontSize = 12;
-            paragraph.LineSpacingBeforePoints = paragraph.LineSpacingAfterPoints = 0;
+            paragraph.LineSpacingBefore = paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
         }
-        table.Rows[1].Cells[0].MarginLeftWidth = 0;
+        table.Rows[1].Cells[0].MarginLeft = global::OfficeIMO.OfficeLength.Zero;
         using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions { IncludePageNumbers = false }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         var words = pdf.GetPage(1).GetWords().ToArray();
         double defaultX = Assert.Single(words, word => word.Text == "DefaultInset").Letters[0].StartBaseLine.X;
@@ -59,23 +59,23 @@ public partial class Word {
         table.ConditionalFormattingFirstRow = false;
         foreach (WordTableRow row in table.Rows) {
             WordTableCell cell = row.Cells[0];
-            cell.MarginTopWidth = 0;
-            cell.MarginBottomWidth = 0;
+            cell.MarginTop = global::OfficeIMO.OfficeLength.Zero;
+            cell.MarginBottom = global::OfficeIMO.OfficeLength.Zero;
             WordParagraph paragraph = cell.Paragraphs[0];
             paragraph.FontFamily = "Arial";
             paragraph.FontSize = 12;
-            paragraph.LineSpacingBeforePoints = paragraph.LineSpacingAfterPoints = 0;
+            paragraph.LineSpacingBefore = paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
             paragraph.LineSpacing = 240;
         }
         table.Rows[0].Cells[0].Paragraphs[0].Text = "TopMarker";
         table.Rows[2].Cells[0].Paragraphs[0].Text = "BottomMarker";
         WordTableCell middle = table.Rows[1].Cells[0];
-        middle.MarginTopWidth = top;
-        middle.MarginBottomWidth = bottom;
+        middle.MarginTop = global::OfficeIMO.OfficeLength.Points((top) / 20D);
+        middle.MarginBottom = global::OfficeIMO.OfficeLength.Points((bottom) / 20D);
         for (int index = 0; index < paragraphs; index++) {
             WordParagraph paragraph = index == 0 ? middle.Paragraphs[0] : middle.AddParagraph();
             paragraph.FontFamily = "Arial";
-            paragraph.LineSpacingBeforePoints = paragraph.LineSpacingAfterPoints = 0;
+            paragraph.LineSpacingBefore = paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
             paragraph.LineSpacing = 240;
             paragraph._paragraph.RemoveAllChildren<W.Run>();
             paragraph._paragraph.ParagraphProperties!.ParagraphMarkRunProperties = new W.ParagraphMarkRunProperties(

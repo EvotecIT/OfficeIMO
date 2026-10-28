@@ -125,12 +125,12 @@ public partial class Word {
         for (int row = 0; row < rowCount; row++) {
             WordTableCell cell = table.Rows[row].Cells[0];
             cell.Width = 4000; cell.WidthType = WordTableWidthUnit.Dxa;
-            cell.MarginTopWidth = 0; cell.MarginBottomWidth = 0; cell.MarginLeftWidth = 0; cell.MarginRightWidth = 0;
+            cell.MarginTop = global::OfficeIMO.OfficeLength.Zero; cell.MarginBottom = global::OfficeIMO.OfficeLength.Zero; cell.MarginLeft = global::OfficeIMO.OfficeLength.Zero; cell.MarginRight = global::OfficeIMO.OfficeLength.Zero;
             WordParagraph paragraph = cell.Paragraphs[0];
             paragraph.Text = string.Join("\n", Enumerable.Range(1, 3).Select(line => $"Row{row + 1:D2}Line{line:D3}"));
             paragraph.FontFamily = "Arial"; paragraph.FontSize = 12;
             paragraph.LineSpacing = 400; paragraph.LineSpacingRule = WordLineSpacingRule.Exact;
-            paragraph.LineSpacingBeforePoints = 0; paragraph.LineSpacingAfterPoints = 0;
+            paragraph.LineSpacingBefore = global::OfficeIMO.OfficeLength.Zero; paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
             paragraph.KeepLinesTogetherOverride = false; paragraph.KeepWithNextOverride = false;
             paragraph.AvoidWidowAndOrphanOverride = false;
         }

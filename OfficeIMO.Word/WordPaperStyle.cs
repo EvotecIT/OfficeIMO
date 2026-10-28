@@ -49,8 +49,8 @@ public sealed partial class WordPaperStyle {
             paragraph.FontSize = level == 1 ? 18 : level == 2 ? 14 : level == 3 ? 11 : 10;
             paragraph.ColorHex = Ink;
             paragraph.Bold = true;
-            paragraph.LineSpacingBeforePoints = level == 1 ? 16 : level == 2 ? 12 : 8;
-            paragraph.LineSpacingAfterPoints = level == 1 ? 8 : level == 2 ? 6 : 4;
+            paragraph.LineSpacingBefore = global::OfficeIMO.OfficeLength.Points(level == 1 ? 16 : level == 2 ? 12 : 8);
+            paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Points(level == 1 ? 8 : level == 2 ? 6 : 4);
             (paragraph._paragraph.ParagraphProperties ??= new ParagraphProperties()).KeepNext = new KeepNext();
         }
     }
@@ -87,20 +87,20 @@ public sealed partial class WordPaperStyle {
         if (cell == null) throw new ArgumentNullException(nameof(cell));
         cell.ShadingFillColorHex = tint;
         cell.VerticalAlignment = WordTableVerticalAlignment.Center;
-        cell.MarginTopWidth = 150;
-        cell.MarginBottomWidth = 150;
-        cell.MarginLeftWidth = 170;
-        cell.MarginRightWidth = 170;
+        cell.MarginTop = global::OfficeIMO.OfficeLength.Points(7.5D);
+        cell.MarginBottom = global::OfficeIMO.OfficeLength.Points(7.5D);
+        cell.MarginLeft = global::OfficeIMO.OfficeLength.Points(8.5D);
+        cell.MarginRight = global::OfficeIMO.OfficeLength.Points(8.5D);
         cell.Borders.TopStyle = WordBorderStyle.Single;
         cell.Borders.TopColorHex = tone;
         cell.Borders.TopSize = 20;
         WordParagraph caption = cell.AddParagraph(label.ToUpperInvariant(), true);
         Format(caption, 8, Muted, true);
-        caption.LineSpacingAfterPoints = 2;
+        caption.LineSpacingAfter = global::OfficeIMO.OfficeLength.Points(2D);
         WordParagraph content = cell.AddParagraph(value);
         Format(content, 11, Ink, true);
-        content.LineSpacingBeforePoints = 0;
-        content.LineSpacingAfterPoints = 0;
+        content.LineSpacingBefore = global::OfficeIMO.OfficeLength.Zero;
+        content.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
     }
 
     /// <summary>Formats an empty, unpadded cell used as a gutter between cards.</summary>
@@ -109,10 +109,10 @@ public sealed partial class WordPaperStyle {
     public void ApplySpacerCell(WordTableCell cell, string background = "FFFFFF") {
         if (cell == null) throw new ArgumentNullException(nameof(cell));
         cell.ShadingFillColorHex = background;
-        cell.MarginTopWidth = 0;
-        cell.MarginBottomWidth = 0;
-        cell.MarginLeftWidth = 0;
-        cell.MarginRightWidth = 0;
+        cell.MarginTop = global::OfficeIMO.OfficeLength.Zero;
+        cell.MarginBottom = global::OfficeIMO.OfficeLength.Zero;
+        cell.MarginLeft = global::OfficeIMO.OfficeLength.Zero;
+        cell.MarginRight = global::OfficeIMO.OfficeLength.Zero;
         cell.AddParagraph(string.Empty, true);
     }
 
@@ -120,23 +120,23 @@ public sealed partial class WordPaperStyle {
     public void AddCover(WordDocument document, string eyebrow, string title, string subtitle) {
         WordParagraph label = document.AddParagraph(eyebrow.ToUpperInvariant());
         Format(label, 10, Accent, true);
-        label.LineSpacingBeforePoints = 16;
-        label.LineSpacingAfterPoints = 18;
+        label.LineSpacingBefore = global::OfficeIMO.OfficeLength.Points(16D);
+        label.LineSpacingAfter = global::OfficeIMO.OfficeLength.Points(18D);
         WordParagraph heading = document.AddParagraph(title);
         Format(heading, 28, Ink, true);
         heading.FontFamily = DisplayFontFamily;
-        heading.LineSpacingAfterPoints = 12;
+        heading.LineSpacingAfter = global::OfficeIMO.OfficeLength.Points(12D);
         WordParagraph description = document.AddParagraph(subtitle);
         Format(description, 13, Muted);
-        description.LineSpacingAfterPoints = 24;
+        description.LineSpacingAfter = global::OfficeIMO.OfficeLength.Points(24D);
     }
 
     /// <summary>Adds a small muted source or coverage note separated from preceding content.</summary>
     public WordParagraph AddNote(WordDocument document, string text) {
         WordParagraph paragraph = document.AddParagraph(text);
         Format(paragraph, 9, Muted);
-        paragraph.LineSpacingBeforePoints = 12;
-        paragraph.LineSpacingAfterPoints = 12;
+        paragraph.LineSpacingBefore = global::OfficeIMO.OfficeLength.Points(12D);
+        paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Points(12D);
         return paragraph;
     }
 
@@ -150,8 +150,8 @@ public sealed partial class WordPaperStyle {
         paragraph.Borders.LeftStyle = WordBorderStyle.Single;
         paragraph.Borders.LeftSize = 24;
         paragraph.Borders.LeftColorHex = tone;
-        paragraph.LineSpacingBeforePoints = 10;
-        paragraph.LineSpacingAfterPoints = 12;
+        paragraph.LineSpacingBefore = global::OfficeIMO.OfficeLength.Points(10D);
+        paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Points(12D);
         return paragraph;
     }
 

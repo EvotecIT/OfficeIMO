@@ -1824,9 +1824,9 @@ Describe 'Word DSL surface' {
             $styledParagraph = $document.Paragraphs | Where-Object Text -EQ 'Executive Summary' | Select-Object -First 1
             $styledParagraph.Style.ToString() | Should -Be 'Heading2'
             $styledParagraph.ParagraphAlignment.ToString() | Should -Be 'Center'
-            $styledParagraph.LineSpacingBeforePoints | Should -Be 6
-            $styledParagraph.LineSpacingAfterPoints | Should -Be 12
-            $styledParagraph.IndentationBeforePoints | Should -Be 18
+            $styledParagraph.LineSpacingBefore.ToPoints() | Should -Be 6
+            $styledParagraph.LineSpacingAfter.ToPoints() | Should -Be 12
+            $styledParagraph.IndentationBefore.ToPoints() | Should -Be 18
             $styledParagraph.KeepWithNext | Should -BeTrue
 
             $styledText = $document.Paragraphs |

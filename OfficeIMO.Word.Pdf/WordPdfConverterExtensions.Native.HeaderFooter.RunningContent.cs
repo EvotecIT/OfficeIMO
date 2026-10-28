@@ -96,7 +96,7 @@ public static partial class WordPdfConverterExtensions {
             // Retain the bounded simple-story export for obviously oversized
             // ordinary stories. Its expansion clamp preserves a usable body;
             // bounded running flow cannot create continuation pages for them.
-            double distance = (isFooter ? section.Margins.FooterDistance : section.Margins.HeaderDistance) / 20D;
+            double distance = (isFooter ? checked((uint)(section.Margins.FooterDistance.GetValueOrDefault().ToTwips())) : checked((uint)(section.Margins.HeaderDistance.GetValueOrDefault().ToTwips()))) / 20D;
             ordinaryStoriesSupported &= minimumHeight + distance < GetNativePageSize(section, options).Height.ToPoints();
         }
         return hasNumberedParagraph || (hasParagraph && ordinaryStoriesSupported);
@@ -134,7 +134,7 @@ public static partial class WordPdfConverterExtensions {
         WordPdfExportOptions? options, NativeFontMap fontMap,
         IReadOnlyDictionary<WordParagraph, (int Level, string Marker)> listMarkers, NativeDocumentDefaults defaults) {
         if (UsesNativeRunningHeader(section, options)) {
-            double distance = section.Margins.HeaderDistance / 20D;
+            double distance = checked((uint)(section.Margins.HeaderDistance.GetValueOrDefault().ToTwips())) / 20D;
             page.Header(header => {
                 if (section.ResolveDefaultHeader() != null)
                     header.Content(CreateNativeRunningStory(section.ResolveDefaultHeader(), section, options, fontMap, listMarkers, defaults, false), distance);
@@ -151,7 +151,7 @@ public static partial class WordPdfConverterExtensions {
                 page.Options.AllowRunningContentTextFallback(isHeader: true);
         } else ConfigureNativeImplicitRunningStories(page, section, options, fontMap, listMarkers, defaults, isFooter: false);
         if (UsesNativeRunningFooter(section, options)) {
-            double distance = section.Margins.FooterDistance / 20D;
+            double distance = checked((uint)(section.Margins.FooterDistance.GetValueOrDefault().ToTwips())) / 20D;
             page.Footer(footer => {
                 if (section.ResolveDefaultFooter() != null)
                     footer.Content(CreateNativeRunningStory(section.ResolveDefaultFooter(), section, options, fontMap, listMarkers, defaults, true), distance);

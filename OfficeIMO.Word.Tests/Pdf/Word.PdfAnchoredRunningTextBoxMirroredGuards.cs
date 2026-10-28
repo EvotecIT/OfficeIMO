@@ -22,8 +22,8 @@ public partial class Word {
         foreach (WordDocument source in new[] { document, control }) {
             source.Settings.MirrorMargins = true;
             WordSection selectingSection = source.Sections[1];
-            selectingSection.Margins.Left = 1440;
-            selectingSection.Margins.Right = authoredRightMargin;
+            selectingSection.Margins.Left = global::OfficeIMO.OfficeLength.Points(72D);
+            selectingSection.Margins.Right = global::OfficeIMO.OfficeLength.Points((authoredRightMargin) / 20D);
         }
         string[] before = AnchoredRunningStoryXml(document);
         string[] controlBefore = AnchoredRunningStoryXml(control);

@@ -44,8 +44,8 @@ public partial class Word {
         using WordDocument document = WordDocument.Create();
         WordTable table = CreateBorderFrameControl(document, 3, 2, 120);
         foreach (WordTableRow row in table.Rows) {
-            if (minimum) row.MinimumHeight = height;
-            else row.Height = height;
+            if (minimum) row.MinimumHeight = global::OfficeIMO.OfficeLength.Points((height) / 20D);
+            else row.Height = global::OfficeIMO.OfficeLength.Points((height) / 20D);
         }
         using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdf(BorderFramePdfOptions()).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         var words = pdf.GetPage(1).GetWords().ToArray();
@@ -119,7 +119,7 @@ public partial class Word {
         document.Sections[0].ColumnsSpace = 720;
         WordTable table = CreateBorderFrameControl(document, 40, 2, 120);
         for (int row = 0; row < 40; row++) {
-            if (exact) table.Rows[row].Height = 480;
+            if (exact) table.Rows[row].Height = global::OfficeIMO.OfficeLength.Points(24D);
             for (int column = 0; column < 2; column++)
                 table.Rows[row].Cells[column].Paragraphs[0].Text = $"M{row * 2 + column}";
         }
@@ -149,7 +149,7 @@ public partial class Word {
             document.Sections[0].ColumnsSpace = 720;
         }
         WordTable table = CreateBorderFrameControl(document, 40, 2, 120);
-        if (exact) foreach (WordTableRow row in table.Rows) row.Height = 480;
+        if (exact) foreach (WordTableRow row in table.Rows) row.Height = global::OfficeIMO.OfficeLength.Points(24D);
         table.Rows[0].RepeatHeaderRowAtTheTopOfEachPage = repeatHeader;
         using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdf(BorderFramePdfOptions()).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         double initial = pdf.GetPage(1).GetWords().Single(word => word.Text == "Frame0" && word.BoundingBox.Left < 306D).Letters[0].StartBaseLine.Y;
@@ -171,9 +171,9 @@ public partial class Word {
         WordTable table = CreateBorderFrameControl(document, 3, 2, 120);
         table.StyleDetails!.MarginDefaultBottomWidth = 80;
         foreach (WordTableRow row in table.Rows) {
-            row.Height = 960;
-            foreach (WordTableCell cell in row.Cells) cell.MarginBottomWidth = bottom;
-            if (inheritOne) row.Cells[0].MarginBottomWidth = null;
+            row.Height = global::OfficeIMO.OfficeLength.Points(48D);
+            foreach (WordTableCell cell in row.Cells) cell.MarginBottom = global::OfficeIMO.OfficeLength.Points((bottom) / 20D);
+            if (inheritOne) row.Cells[0].MarginBottom= null;
         }
         if (merge) for (int row = 0; row < 3; row++) table.MergeCells(row, 0, 1, 2, copyParagraphs: false);
         using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdf(BorderFramePdfOptions()).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
@@ -190,7 +190,7 @@ public partial class Word {
         using WordDocument document = WordDocument.Create();
         WordTable table = CreateBorderFrameControl(document, 40, 2, 120);
         table.Rows[0].RepeatHeaderRowAtTheTopOfEachPage = true;
-        if (exact) foreach (WordTableRow row in table.Rows) row.Height = 480;
+        if (exact) foreach (WordTableRow row in table.Rows) row.Height = global::OfficeIMO.OfficeLength.Points(24D);
         using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdf(BorderFramePdfOptions()).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         Assert.Equal(2, pdf.NumberOfPages);
         double? header = null;
@@ -251,12 +251,12 @@ public partial class Word {
             for (int column = 0; column < columns; column++) {
                 WordTableCell cell = table.Rows[row].Cells[column];
                 cell.Width = 2400; cell.WidthType = WordTableWidthUnit.Dxa;
-                cell.MarginLeftWidth = cell.MarginRightWidth = 108;
-                cell.MarginTopWidth = cell.MarginBottomWidth = 0;
+                cell.MarginLeft = cell.MarginRight = global::OfficeIMO.OfficeLength.Points(5.4D);
+                cell.MarginTop = cell.MarginBottom = global::OfficeIMO.OfficeLength.Zero;
                 WordParagraph paragraph = cell.Paragraphs[0];
                 paragraph.Text = $"Frame{row * columns + column}";
                 paragraph.FontFamily = "Arial"; paragraph.FontSize = 12;
-                paragraph.LineSpacingBeforePoints = paragraph.LineSpacingAfterPoints = 0;
+                paragraph.LineSpacingBefore = paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
                 paragraph.LineSpacingRule = WordLineSpacingRule.Auto; paragraph.LineSpacing = 240;
             }
         table.GridColumnWidth = Enumerable.Repeat(2400, columns).ToList();

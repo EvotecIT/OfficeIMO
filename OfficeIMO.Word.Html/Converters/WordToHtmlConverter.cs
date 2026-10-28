@@ -880,7 +880,7 @@ namespace OfficeIMO.Word.Html {
 
                 int level = para.Style.HasValue ? WordHeadingStyleMapper.GetLevelForHeadingStyle(para.Style.Value) : 0;
                 bool isBlockQuote = (!string.IsNullOrEmpty(para.StyleId) && (string.Equals(para.StyleId, "Quote", StringComparison.OrdinalIgnoreCase) || string.Equals(para.StyleId, "IntenseQuote", StringComparison.OrdinalIgnoreCase)))
-                    || (para.IndentationBefore.HasValue && para.IndentationBefore.Value > 0);
+                    || (para.IndentationBefore.HasValue && checked((int)(para.IndentationBefore.Value.ToTwips())) > 0);
                 var element = CreateOutputElement(htmlDoc, isBlockQuote ? "blockquote" : (level > 0 ? $"h{level}" : "p"));
                 if (isBlockQuote && TryGetBlockquoteCiteAttribute(para, out var blockquoteCite)) {
                     SetOutputAttribute(element, "cite", blockquoteCite, "Paragraph:cite");
@@ -909,24 +909,24 @@ namespace OfficeIMO.Word.Html {
                     pStyles.AddRange(pBorderCss);
                 }
                 if (options.IncludeParagraphIndentationStyles) {
-                    if (para.IndentationBefore.HasValue && para.IndentationBefore.Value != 0) {
-                        pStyles.Add($"margin-left:{FormatTwips(para.IndentationBefore.Value)}");
+                    if (para.IndentationBefore.HasValue && checked((int)(para.IndentationBefore.Value.ToTwips())) != 0) {
+                        pStyles.Add($"margin-left:{FormatTwips(checked((int)(para.IndentationBefore.Value.ToTwips())))}");
                     }
-                    if (para.IndentationAfter.HasValue && para.IndentationAfter.Value != 0) {
-                        pStyles.Add($"margin-right:{FormatTwips(para.IndentationAfter.Value)}");
+                    if (para.IndentationAfter.HasValue && checked((int)(para.IndentationAfter.Value.ToTwips())) != 0) {
+                        pStyles.Add($"margin-right:{FormatTwips(checked((int)(para.IndentationAfter.Value.ToTwips())))}");
                     }
-                    if (para.IndentationFirstLine.HasValue && para.IndentationFirstLine.Value != 0) {
-                        pStyles.Add($"text-indent:{FormatTwips(para.IndentationFirstLine.Value)}");
-                    } else if (para.IndentationHanging.HasValue && para.IndentationHanging.Value != 0) {
-                        pStyles.Add($"text-indent:{FormatTwips(-para.IndentationHanging.Value)}");
+                    if (para.IndentationFirstLine.HasValue && checked((int)(para.IndentationFirstLine.Value.ToTwips())) != 0) {
+                        pStyles.Add($"text-indent:{FormatTwips(checked((int)(para.IndentationFirstLine.Value.ToTwips())))}");
+                    } else if (para.IndentationHanging.HasValue && checked((int)(para.IndentationHanging.Value.ToTwips())) != 0) {
+                        pStyles.Add($"text-indent:{FormatTwips(-checked((int)(para.IndentationHanging.Value.ToTwips())))}");
                     }
                 }
                 if (options.IncludeParagraphSpacingStyles) {
-                    if (para.LineSpacingBefore.HasValue && para.LineSpacingBefore.Value != 0) {
-                        pStyles.Add($"margin-top:{FormatTwips(para.LineSpacingBefore.Value)}");
+                    if (para.LineSpacingBefore.HasValue && checked((int)(para.LineSpacingBefore.Value.ToTwips())) != 0) {
+                        pStyles.Add($"margin-top:{FormatTwips(checked((int)(para.LineSpacingBefore.Value.ToTwips())))}");
                     }
-                    if (para.LineSpacingAfter.HasValue && para.LineSpacingAfter.Value != 0) {
-                        pStyles.Add($"margin-bottom:{FormatTwips(para.LineSpacingAfter.Value)}");
+                    if (para.LineSpacingAfter.HasValue && checked((int)(para.LineSpacingAfter.Value.ToTwips())) != 0) {
+                        pStyles.Add($"margin-bottom:{FormatTwips(checked((int)(para.LineSpacingAfter.Value.ToTwips())))}");
                     }
                     if (para.LineSpacing.HasValue && para.LineSpacing.Value != 0) {
                         var rule = para.LineSpacingRule;

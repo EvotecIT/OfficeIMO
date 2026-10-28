@@ -75,8 +75,8 @@ public partial class WordImage {
         W.Settings? settings = _document._wordprocessingDocument.MainDocumentPart?.DocumentSettingsPart?.Settings;
         if (margins?.Gutter?.Value > 0 || settings?.GetFirstChild<W.MirrorMargins>() is { } mirrored && mirrored.Val?.Value != false)
             throw InvalidPhysicalCropAnchor();
-        double first = horizontal ? section.Margins.Left : section.Margins.Top ?? 0D;
-        double last = horizontal ? section.Margins.Right : section.Margins.Bottom ?? 0D;
+        double first = horizontal ? checked((uint)(section.Margins.Left.GetValueOrDefault().ToTwips())) : checked((int?)(section.Margins.Top?.ToTwips())) ?? 0D;
+        double last = horizontal ? checked((uint)(section.Margins.Right.GetValueOrDefault().ToTwips())) : checked((int?)(section.Margins.Bottom?.ToTwips())) ?? 0D;
         if (reference == "column" && horizontal) {
             W.Columns? columns = section._sectionProperties.GetFirstChild<W.Columns>();
             if (columns?.ColumnCount?.Value > 1 || columns?.ChildElements.Count > 1) throw InvalidPhysicalCropAnchor();

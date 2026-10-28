@@ -60,7 +60,7 @@ public sealed class ProjectReportWorkflowTests {
         var names = tables.SelectMany(t => t.RowItems.Skip(1)).Select(r => r.Cells[1].Text).ToArray();
         // Main report rows and supplemental status rows both retain every full name.
         foreach (var task in project.Tasks) Assert.Equal(2, names.Count(n => n == task.Name));
-        Assert.All(tables, table => Assert.True(table.TopPoints + table.HeightPoints <= view.PageHeight - view.PageMargin));
+        Assert.All(tables, table => Assert.True(table.Top.ToPoints() + table.Height.ToPoints() <= view.PageHeight - view.PageMargin));
         Assert.Empty(copy.ValidateDocument());
     }
 

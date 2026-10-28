@@ -111,7 +111,7 @@ public partial class Word {
             WordParagraph paragraph = target.AddParagraph(text);
             paragraph.LineSpacingPoints = 12;
             paragraph.LineSpacingRule = WordLineSpacingRule.Exact;
-            paragraph.LineSpacingBeforePoints = paragraph.LineSpacingAfterPoints = 0;
+            paragraph.LineSpacingBefore = paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
             return paragraph;
         }
     }

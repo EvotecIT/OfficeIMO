@@ -32,13 +32,13 @@ public sealed partial class IWorkBoundaryTests {
             WordTable target = Assert.Single(reopened.Tables);
             foreach (var expected in defaults) {
                 var cell = target.Rows[expected.Row - 1].Cells[expected.Column - 1];
-                Assert.Equal((short)(expected.Padding * 20), cell.MarginBottomWidth);
+                Assert.Equal((short)(expected.Padding * 20), checked((short?)(cell.MarginBottom?.ToTwips())));
                 Assert.Equal(expected.Vertical == IWorkCellVerticalAlignment.Middle ? WordTableVerticalAlignment.Center : WordTableVerticalAlignment.Bottom,
                     cell.VerticalAlignment);
             }
             Assert.Equal(new[] { 800, 680, 680, 640 }, target.RowHeight);
-            Assert.Equal((short)40, target.Rows[0].Cells[0].MarginLeftWidth);
-            Assert.Equal((short)0, target.Rows[0].Cells[0].MarginBottomWidth);
+            Assert.Equal((short)40, checked((short?)(target.Rows[0].Cells[0].MarginLeft?.ToTwips())));
+            Assert.Equal((short)0, checked((short?)(target.Rows[0].Cells[0].MarginBottom?.ToTwips())));
             Assert.Equal(WordTableVerticalAlignment.Bottom, target.Rows[0].Cells[0].VerticalAlignment);
             Assert.Equal(WordTableVerticalAlignment.Top, target.Rows[0].Cells[1].VerticalAlignment);
             Assert.Empty(reopened.ValidateDocument());

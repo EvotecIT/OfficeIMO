@@ -17,7 +17,7 @@ public sealed class PdfForegroundImageOrderTests {
         try {
             File.WriteAllBytes(path, OfficeRasterImageEncoder.Encode(new OfficeRasterImage(20, 20, OfficeColor.Blue), OfficeImageExportFormat.Png));
             using WordDocument word = WordDocument.Create();
-            word.Sections[0].PageSettings.Width = 6000; word.Sections[0].PageSettings.Height = 6000;
+            word.Sections[0].PageSettings.Width = global::OfficeIMO.OfficeLength.Points(300D); word.Sections[0].PageSettings.Height = global::OfficeIMO.OfficeLength.Points(300D);
             if (columns) { word.Sections[0].ColumnCount = 2; word.Sections[0].ColumnsSpace = 120; }
             var paragraph = word.AddParagraph("Anchor text");
             if (!controlFirst) AddImage(paragraph.AddText("red"), OfficeColor.Red, 10, 10);
@@ -52,8 +52,8 @@ public sealed class PdfForegroundImageOrderTests {
     [InlineData(true, true, 10U, 10U)]
     public void ForegroundStackingUsesZOrderAcrossParagraphsAndColumns(bool sameParagraph, bool columns, uint firstOrder, uint secondOrder) {
         using WordDocument word = WordDocument.Create();
-        word.Sections[0].PageSettings.Width = 6000;
-        word.Sections[0].PageSettings.Height = 6000;
+        word.Sections[0].PageSettings.Width = global::OfficeIMO.OfficeLength.Points(300D);
+        word.Sections[0].PageSettings.Height = global::OfficeIMO.OfficeLength.Points(300D);
         if (columns) { word.Sections[0].ColumnCount = 2; word.Sections[0].ColumnsSpace = 120; }
         var first = word.AddParagraph("First anchor");
         AddImage(first, OfficeColor.Red, firstOrder, 10);

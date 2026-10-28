@@ -34,8 +34,8 @@ public partial class Word {
         foreach (WordParagraph paragraph in new[] { ordinary, special }) {
             ConfigureAsymmetricBorderParagraph(paragraph);
             ConfigureMatchingParagraphBorders(paragraph, "box");
-            paragraph.IndentationBeforePoints = 0;
-            paragraph.IndentationHangingPoints = 0;
+            paragraph.IndentationBefore = global::OfficeIMO.OfficeLength.Zero;
+            paragraph.IndentationHanging = global::OfficeIMO.OfficeLength.Zero;
         }
         using var pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions {
             IncludePageNumbers = false, FontFamily = "Helvetica"
@@ -236,11 +236,11 @@ public partial class Word {
         }
         WordParagraph middle = paragraphs[1];
         switch (variant) {
-            case "first-line": middle.IndentationFirstLinePoints = 18; break;
-            case "hanging": middle.IndentationHangingPoints = 18; break;
+            case "first-line": middle.IndentationFirstLine = global::OfficeIMO.OfficeLength.Points(18D); break;
+            case "hanging": middle.IndentationHanging = global::OfficeIMO.OfficeLength.Points(18D); break;
             case "font": middle.FontFamily = "Times New Roman"; break;
-            case "left": middle.IndentationBeforePoints = 18; break;
-            case "right": middle.IndentationAfterPoints = 18; break;
+            case "left": middle.IndentationBefore = global::OfficeIMO.OfficeLength.Points(18D); break;
+            case "right": middle.IndentationAfter = global::OfficeIMO.OfficeLength.Points(18D); break;
             case "between-space": middle._paragraph.ParagraphProperties!.ParagraphBorders!.BetweenBorder!.Space = 0; break;
             case "frame":
             case "auto-color":

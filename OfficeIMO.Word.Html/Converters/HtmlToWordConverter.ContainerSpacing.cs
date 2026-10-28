@@ -18,10 +18,10 @@ namespace OfficeIMO.Word.Html {
             int horizontalEnd = (box.MarginRight ?? 0) + (box.PaddingRight ?? 0);
             foreach (WordParagraph paragraph in DistinctPhysicalParagraphs(paragraphs)) {
                 if (horizontalStart != 0) {
-                    paragraph.IndentationBefore = (paragraph.IndentationBefore ?? 0) + horizontalStart;
+                    paragraph.IndentationBefore = global::OfficeIMO.OfficeLength.Points(((checked((int?)(paragraph.IndentationBefore?.ToTwips())) ?? 0) + horizontalStart) / 20D);
                 }
                 if (horizontalEnd != 0) {
-                    paragraph.IndentationAfter = (paragraph.IndentationAfter ?? 0) + horizontalEnd;
+                    paragraph.IndentationAfter = global::OfficeIMO.OfficeLength.Points(((checked((int?)(paragraph.IndentationAfter?.ToTwips())) ?? 0) + horizontalEnd) / 20D);
                 }
             }
 
@@ -80,7 +80,7 @@ namespace OfficeIMO.Word.Html {
                 WordParagraph? paragraph = paragraphs.FirstOrDefault(
                     candidate => ReferenceEquals(candidate._paragraph, first));
                 if (paragraph != null) {
-                    paragraph.LineSpacingBefore = (paragraph.LineSpacingBefore ?? 0) + verticalStart;
+                    paragraph.LineSpacingBefore = global::OfficeIMO.OfficeLength.Points(((checked((int?)(paragraph.LineSpacingBefore?.ToTwips())) ?? 0) + verticalStart) / 20D);
                 } else {
                     WordTable? table = tables.FirstOrDefault(
                         candidate => ReferenceEquals(candidate._table, first));
@@ -96,7 +96,7 @@ namespace OfficeIMO.Word.Html {
                 WordParagraph? paragraph = paragraphs.FirstOrDefault(
                     candidate => ReferenceEquals(candidate._paragraph, last));
                 if (paragraph != null) {
-                    paragraph.LineSpacingAfter = (paragraph.LineSpacingAfter ?? 0) + verticalEnd;
+                    paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Points(((checked((int?)(paragraph.LineSpacingAfter?.ToTwips())) ?? 0) + verticalEnd) / 20D);
                 } else {
                     WordTable? table = tables.FirstOrDefault(
                         candidate => ReferenceEquals(candidate._table, last));

@@ -52,8 +52,8 @@ public partial class Word {
         paragraph._paragraph.Append(TextLine("A", 12, true), TextLine("B", 12, true), TextLine("C", 12, false));
         paragraph.LineSpacing = 276;
         paragraph.LineSpacingRule = WordLineSpacingRule.Auto;
-        paragraph.LineSpacingBeforePoints = 0;
-        paragraph.LineSpacingAfterPoints = 0;
+        paragraph.LineSpacingBefore = global::OfficeIMO.OfficeLength.Zero;
+        paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
         using WordDocument document = WordDocument.Load(new MemoryStream(nativeDoc ? source.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc }) : source.ToBytes()));
         var options = new PdfCreateOptions { DefaultFont = PdfStandardFont.Helvetica };
         options.EmbedStandardFont(PdfStandardFont.Helvetica,

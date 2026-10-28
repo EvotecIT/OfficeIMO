@@ -256,7 +256,7 @@ public partial class Word {
             WordParagraph paragraph = list.AddItem(text);
             paragraph.FontFamily = "Arial"; paragraph.FontSize = 11;
             paragraph.LineSpacing = 240; paragraph.LineSpacingRule = WordLineSpacingRule.Auto;
-            paragraph.LineSpacingBeforePoints = 0; paragraph.LineSpacingAfterPoints = 0;
+            paragraph.LineSpacingBefore = global::OfficeIMO.OfficeLength.Zero; paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
         }
         if (table) {
             WordParagraph[] paragraphs = source.Paragraphs.ToArray();

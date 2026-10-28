@@ -33,7 +33,7 @@ public partial class Word {
                 var paragraph = document.AddParagraph(string.Join("\n", Enumerable.Range(1, count).Select(index => prefix + index.ToString("D3"))));
                 paragraph.FontFamily = "Arial"; paragraph.FontSize = 12;
                 paragraph.LineSpacing = 400; paragraph.LineSpacingRule = WordLineSpacingRule.Exact;
-                paragraph.LineSpacingBeforePoints = 0; paragraph.LineSpacingAfterPoints = 0;
+                paragraph.LineSpacingBefore = global::OfficeIMO.OfficeLength.Zero; paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
                 paragraph.AvoidWidowAndOrphanOverride = false;
             }
         }
@@ -212,8 +212,8 @@ public partial class Word {
                 paragraph.FontSize = 12;
                 paragraph.LineSpacing = 400;
                 paragraph.LineSpacingRule = WordLineSpacingRule.Exact;
-                paragraph.LineSpacingBeforePoints = 0;
-                paragraph.LineSpacingAfterPoints = 0;
+                paragraph.LineSpacingBefore = global::OfficeIMO.OfficeLength.Zero;
+                paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
             }
 
             document.Save();
@@ -266,8 +266,8 @@ public partial class Word {
                 paragraph.FontSize = 12;
                 paragraph.LineSpacing = 400;
                 paragraph.LineSpacingRule = WordLineSpacingRule.Exact;
-                paragraph.LineSpacingBeforePoints = 0;
-                paragraph.LineSpacingAfterPoints = 0;
+                paragraph.LineSpacingBefore = global::OfficeIMO.OfficeLength.Zero;
+                paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
             }
 
             document.Save();

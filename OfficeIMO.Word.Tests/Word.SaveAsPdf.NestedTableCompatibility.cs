@@ -53,7 +53,7 @@ public partial class Word {
         WordTable outer = document.AddTable(1, 1, WordTableStyle.TableGrid);
         ConfigureNestedLayoutTable(outer, 6000, 6000);
         WordTableCell parent = outer.Rows[0].Cells[0];
-        parent.MarginLeftWidth = parent.MarginRightWidth = 180;
+        parent.MarginLeft = parent.MarginRight = global::OfficeIMO.OfficeLength.Points(9D);
         ConfigureNestedLayoutParagraph(parent.Paragraphs[0], "FRAMEANCHOR");
         WordTable inner = parent.AddTable(1, 2, WordTableStyle.TableGrid);
         ConfigureNestedLayoutTable(inner, 2000 + 4 * childMarginTwips,
@@ -61,7 +61,7 @@ public partial class Word {
         inner._tableProperties!.TableIndentation = new W.TableIndentation { Width = 0, Type = W.TableWidthUnitValues.Dxa };
         if (separateBorders)
             inner._tableProperties.TableCellSpacing = new W.TableCellSpacing { Width = "60", Type = W.TableWidthUnitValues.Dxa };
-        foreach (WordTableCell cell in inner.Rows[0].Cells) cell.MarginLeftWidth = cell.MarginRightWidth = childMarginTwips;
+        foreach (WordTableCell cell in inner.Rows[0].Cells) cell.MarginLeft = cell.MarginRight = global::OfficeIMO.OfficeLength.Points((childMarginTwips) / 20D);
         ConfigureNestedLayoutParagraph(inner.Rows[0].Cells[0].Paragraphs[0], "X");
         ConfigureNestedLayoutParagraph(inner.Rows[0].Cells[1].Paragraphs[0], "Y");
         Assert.Empty(document.ValidateDocument());
@@ -99,7 +99,7 @@ public partial class Word {
         WordTable outer = document.AddTable(1, 1, WordTableStyle.TableGrid);
         ConfigureNestedLayoutTable(outer, 4320, 4320);
         WordTableCell parent = outer.Rows[0].Cells[0];
-        parent.MarginLeftWidth = parent.MarginRightWidth = 180;
+        parent.MarginLeft = parent.MarginRight = global::OfficeIMO.OfficeLength.Points(9D);
         ConfigureNestedLayoutParagraph(parent.Paragraphs[0], "FRAMEANCHOR");
         WordTable inner = parent.AddTable(2, 2, WordTableStyle.TableGrid);
         ConfigureNestedLayoutTable(inner, 3000, 900, 2100);
@@ -115,7 +115,7 @@ public partial class Word {
             new W.InsideHorizontalBorder { Val = W.BorderValues.Single, Size = 8U },
             new W.InsideVerticalBorder { Val = W.BorderValues.Single, Size = 8U });
         foreach (WordTableRow row in inner.Rows)
-            foreach (WordTableCell cell in row.Cells) cell.MarginLeftWidth = cell.MarginRightWidth = 40;
+            foreach (WordTableCell cell in row.Cells) cell.MarginLeft = cell.MarginRight = global::OfficeIMO.OfficeLength.Points(2D);
         ConfigureNestedLayoutParagraph(inner.Rows[0].Cells[0].Paragraphs[0], "X");
         ConfigureNestedLayoutParagraph(inner.Rows[1].Cells[0].Paragraphs[0], "Y");
         ConfigureNestedLayoutParagraph(inner.Rows[0].Cells[1].Paragraphs[0], "R1 A characteristically detailed description.");
@@ -156,7 +156,7 @@ public partial class Word {
         WordTable outer = document.AddTable(1, 1, WordTableStyle.TableGrid);
         ConfigureNestedLayoutTable(outer, parentWidthTwips, parentWidthTwips);
         WordTableCell parent = outer.Rows[0].Cells[0];
-        parent.MarginLeftWidth = parent.MarginRightWidth = parentMarginTwips;
+        parent.MarginLeft = parent.MarginRight = global::OfficeIMO.OfficeLength.Points((parentMarginTwips) / 20D);
         ConfigureNestedLayoutParagraph(parent.Paragraphs[0], "FRAMEANCHOR");
         WordTable inner = parent.AddTable(1, 2, WordTableStyle.TableGrid);
         ConfigureNestedLayoutTable(inner, declaredWidthTwips, 900, 2100);
@@ -170,7 +170,7 @@ public partial class Word {
             new W.InsideHorizontalBorder { Val = W.BorderValues.Single, Size = borderSizeEighthsOfPoint },
             new W.InsideVerticalBorder { Val = W.BorderValues.Single, Size = borderSizeEighthsOfPoint });
         if (percentage) { inner.WidthType = WordTableWidthUnit.Pct; inner.Width = percentageFiftieths; }
-        foreach (WordTableCell cell in inner.Rows[0].Cells) cell.MarginLeftWidth = cell.MarginRightWidth = 40;
+        foreach (WordTableCell cell in inner.Rows[0].Cells) cell.MarginLeft = cell.MarginRight = global::OfficeIMO.OfficeLength.Points(2D);
         ConfigureNestedLayoutParagraph(inner.Rows[0].Cells[0].Paragraphs[0], "LEFT");
         ConfigureNestedLayoutParagraph(inner.Rows[0].Cells[1].Paragraphs[0], "RIGHT");
         Assert.Empty(document.ValidateDocument());
@@ -197,7 +197,7 @@ public partial class Word {
         WordTable outer = document.AddTable(1, 1, WordTableStyle.TableGrid);
         ConfigureNestedLayoutTable(outer, 6000, 6000);
         WordTableCell parent = outer.Rows[0].Cells[0];
-        parent.MarginLeftWidth = parent.MarginRightWidth = 180;
+        parent.MarginLeft = parent.MarginRight = global::OfficeIMO.OfficeLength.Points(9D);
         ConfigureNestedLayoutParagraph(parent.Paragraphs[0], "FRAMEANCHOR");
         WordTable inner = parent.AddTable(1, 2, WordTableStyle.TableGrid);
         ConfigureNestedLayoutTable(inner, 3000, 900, 2100);
@@ -207,7 +207,7 @@ public partial class Word {
             inner.Width = 2500;
         }
         foreach (WordTableCell cell in inner.Rows[0].Cells)
-            cell.MarginLeftWidth = cell.MarginRightWidth = childMarginTwips;
+            cell.MarginLeft = cell.MarginRight = global::OfficeIMO.OfficeLength.Points((childMarginTwips) / 20D);
         ConfigureNestedLayoutParagraph(inner.Rows[0].Cells[0].Paragraphs[0], "LEFT");
         ConfigureNestedLayoutParagraph(inner.Rows[0].Cells[1].Paragraphs[0], "RIGHT");
         Assert.Empty(document.ValidateDocument());

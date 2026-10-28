@@ -10,10 +10,10 @@ namespace OfficeIMO.Tests {
             string html = "<p style=\"margin:10pt 20pt\">Test</p>";
             var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWord(new WordHtmlImportOptions());
             var paragraph = doc.Paragraphs[0];
-            Assert.Equal(10d, paragraph.LineSpacingBeforePoints);
-            Assert.Equal(10d, paragraph.LineSpacingAfterPoints);
-            Assert.Equal(20d, paragraph.IndentationBeforePoints);
-            Assert.Equal(20d, paragraph.IndentationAfterPoints);
+            Assert.Equal(10d, paragraph.LineSpacingBefore?.ToPoints());
+            Assert.Equal(10d, paragraph.LineSpacingAfter?.ToPoints());
+            Assert.Equal(20d, paragraph.IndentationBefore?.ToPoints());
+            Assert.Equal(20d, paragraph.IndentationAfter?.ToPoints());
         }
 
         [Fact]

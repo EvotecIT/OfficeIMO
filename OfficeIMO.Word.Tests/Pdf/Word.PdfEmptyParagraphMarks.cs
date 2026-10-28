@@ -67,7 +67,7 @@ public partial class Word {
                 blank._paragraph.ParagraphProperties.ParagraphMarkRunProperties = new W.ParagraphMarkRunProperties(
                     new W.Vanish { Val = kind == "hidden-mark" });
             }
-            if (spacingAfter > 0D) blank.LineSpacingAfterPoints = spacingAfter;
+            if (spacingAfter > 0D) blank.LineSpacingAfter = global::OfficeIMO.OfficeLength.Points(spacingAfter);
         }
         if (cell == null) source.AddParagraph("B"); else cell.AddParagraph("B");
         using WordDocument document = WordDocument.Load(new MemoryStream(source.ToBytes(nativeDoc ? WordFileFormat.Doc : WordFileFormat.Docx)));

@@ -175,9 +175,9 @@ internal sealed class OfficeMarkupWordExporter {
             double? width = image.Width, height = image.Height;
             if (!width.HasValue && !height.HasValue) {
                 var section = context.CurrentSection ?? context.Document.Sections.FirstOrDefault();
-                double pageWidth = (double?)section?.PageSettings.Width ?? WordPageSizes.Letter.WidthTwips;
-                double leftMargin = (double?)section?.Margins.Left ?? 1440;
-                double rightMargin = (double?)section?.Margins.Right ?? 1440;
+                double pageWidth = (double?)section?.PageSettings.Width?.ToTwips() ?? checked((uint)(WordPageSizes.Letter.Width.ToTwips()));
+                double leftMargin = (double?)section?.Margins.Left?.ToTwips() ?? 1440;
+                double rightMargin = (double?)section?.Margins.Right?.ToTwips() ?? 1440;
                 double scale = Math.Min(1, Math.Max(1, (pageWidth - leftMargin - rightMargin) / 15) / info.Width);
                 width = info.Width * scale;
                 height = info.Height * scale;

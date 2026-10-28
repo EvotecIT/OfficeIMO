@@ -25,13 +25,13 @@ public sealed class WordPdfTableParagraphLineBoxTests {
         for (int row = 0; row < 2; row++) {
             WordTableCell cell = table.Rows[row].Cells[0];
             cell.WidthType = WordTableWidthUnit.Dxa; cell.Width = 2000;
-            cell.MarginTopWidth = 0; cell.MarginBottomWidth = 0;
+            cell.MarginTop = global::OfficeIMO.OfficeLength.Zero; cell.MarginBottom = global::OfficeIMO.OfficeLength.Zero;
             WordParagraph paragraph = cell.Paragraphs[0];
             paragraph.Text = row == 0 ? "A" : "B";
             paragraph.FontSize = 8;
             paragraph.FontFamily = "Arial";
-            paragraph.LineSpacingBeforePoints = 0;
-            paragraph.LineSpacingAfterPoints = 0;
+            paragraph.LineSpacingBefore = global::OfficeIMO.OfficeLength.Zero;
+            paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
             paragraph.LineSpacingPoints = 10;
             paragraph.LineSpacingRule = WordLineSpacingRule.Exact;
         }

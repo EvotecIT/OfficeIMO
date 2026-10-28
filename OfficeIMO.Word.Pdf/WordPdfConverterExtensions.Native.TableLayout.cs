@@ -515,10 +515,10 @@ namespace OfficeIMO.Word.Pdf {
         }
 
         private static PdfCore.PdfCellPadding? CreateNativeTableCellPadding(WordTableCell cell) {
-            double? top = cell.MarginTopWidth.HasValue ? ConvertNativeTwipsToPoints(cell.MarginTopWidth.Value) : null;
-            double? bottom = cell.MarginBottomWidth.HasValue ? ConvertNativeTwipsToPoints(cell.MarginBottomWidth.Value) : null;
-            double? left = cell.MarginLeftWidth.HasValue ? ConvertNativeTwipsToPoints(cell.MarginLeftWidth.Value) : null;
-            double? right = cell.MarginRightWidth.HasValue ? ConvertNativeTwipsToPoints(cell.MarginRightWidth.Value) : null;
+            double? top = cell.MarginTop.HasValue ? ConvertNativeTwipsToPoints(checked((short)(cell.MarginTop.Value.ToTwips()))) : null;
+            double? bottom = cell.MarginBottom.HasValue ? ConvertNativeTwipsToPoints(checked((short)(cell.MarginBottom.Value.ToTwips()))) : null;
+            double? left = cell.MarginLeft.HasValue ? ConvertNativeTwipsToPoints(checked((short)(cell.MarginLeft.Value.ToTwips()))) : null;
+            double? right = cell.MarginRight.HasValue ? ConvertNativeTwipsToPoints(checked((short)(cell.MarginRight.Value.ToTwips()))) : null;
             if (!top.HasValue && !bottom.HasValue && !left.HasValue && !right.HasValue) {
                 return null;
             }
@@ -594,8 +594,8 @@ namespace OfficeIMO.Word.Pdf {
             foreach (WordTableRow row in table.Rows) {
                 W.TableRowHeight? rowHeight = row._tableRow.TableRowProperties?.Elements<W.TableRowHeight>().FirstOrDefault();
                 bool isExact = rowHeight?.HeightType?.Value == W.HeightRuleValues.Exact;
-                double? height = row.Height.HasValue && row.Height.Value > 0 && isExact == exact
-                    ? ConvertNativeTwipsToPoints(row.Height.Value)
+                double? height = row.Height.HasValue && checked((int)(row.Height.Value.ToTwips())) > 0 && isExact == exact
+                    ? ConvertNativeTwipsToPoints(checked((int)(row.Height.Value.ToTwips())))
                     : null;
                 heights.Add(height);
                 hasHeight |= height.HasValue;

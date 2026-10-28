@@ -244,10 +244,10 @@ namespace OfficeIMO.Tests {
             foreach (WordSection section in document.Sections) {
                 section.PageOrientation = OfficePageOrientation.Landscape;
                 section.PageSettings.PageSize = WordPageSize.Letter;
-                section.Margins.Top = 1440;
-                section.Margins.Right = 1200;
-                section.Margins.Bottom = 720;
-                section.Margins.Left = 1080;
+                section.Margins.Top = global::OfficeIMO.OfficeLength.Points(72D);
+                section.Margins.Right = global::OfficeIMO.OfficeLength.Points(60D);
+                section.Margins.Bottom = global::OfficeIMO.OfficeLength.Points(36D);
+                section.Margins.Left = global::OfficeIMO.OfficeLength.Points(54D);
             }
 
             string withoutMetadata = document.ConvertToHtmlWithEvidence(new WordHtmlExportOptions {

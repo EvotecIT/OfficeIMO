@@ -128,11 +128,11 @@ public partial class Word {
             WordParagraph paragraph = story.Paragraphs.First();
             paragraph.SetStyleId("Normal");
             paragraph.ContextualSpacing = true;
-            paragraph.LineSpacingAfterPoints = 24D;
+            paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Points(24D);
             WordParagraph next = story.AddParagraph("NEXT");
             next.SetStyleId("Normal");
             next.ContextualSpacing = true;
-            next.LineSpacingBeforePoints = next.LineSpacingAfterPoints = 0D;
+            next.LineSpacingBefore = next.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
         }
         string[] before = AnchoredRunningStoryXml(document);
         string[] controlBefore = AnchoredRunningStoryXml(control);
@@ -241,9 +241,9 @@ public partial class Word {
     private static WordDocument CreateAnchoredRunningTextBoxControl(bool includeTextBox) {
         using WordDocument source = WordDocument.Create();
         source.Sections[0].PageSettings.PageSize = WordPageSize.Letter;
-        source.Sections[0].Margins.Top = source.Sections[0].Margins.Bottom = 1440;
-        source.Sections[0].Margins.Left = source.Sections[0].Margins.Right = 1440;
-        source.Sections[0].Margins.HeaderDistance = source.Sections[0].Margins.FooterDistance = 720;
+        source.Sections[0].Margins.Top = source.Sections[0].Margins.Bottom = global::OfficeIMO.OfficeLength.Points(72D);
+        source.Sections[0].Margins.Left = source.Sections[0].Margins.Right = global::OfficeIMO.OfficeLength.Points(72D);
+        source.Sections[0].Margins.HeaderDistance = source.Sections[0].Margins.FooterDistance = global::OfficeIMO.OfficeLength.Points(36D);
         source.HeaderDefaultOrCreate.AddParagraph("COUNT ").AddField(WordFieldType.SectionPages);
         SetInheritedRunningControlStyle(source.AddParagraph("S1"));
         WordSection later = source.AddSection();

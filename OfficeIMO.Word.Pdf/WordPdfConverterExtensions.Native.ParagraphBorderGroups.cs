@@ -68,8 +68,8 @@ public static partial class WordPdfConverterExtensions {
         NativeParagraphStyleDefaults neighborDefaults = GetNativeParagraphStyleDefaults(neighbor);
         return ResolveNativeParagraphBorderGroupLeft(paragraph, currentDefaults) ==
                 ResolveNativeParagraphBorderGroupLeft(neighbor, neighborDefaults) &&
-            (paragraph.IndentationAfterPoints ?? currentDefaults.RightIndent ?? 0D) ==
-                (neighbor.IndentationAfterPoints ?? neighborDefaults.RightIndent ?? 0D);
+            (paragraph.IndentationAfter?.ToPoints() ?? currentDefaults.RightIndent ?? 0D) ==
+                (neighbor.IndentationAfter?.ToPoints() ?? neighborDefaults.RightIndent ?? 0D);
     }
 
     private static bool HasNativeParagraphBorderFlowBreak(WordParagraph paragraph) =>
@@ -87,9 +87,9 @@ public static partial class WordPdfConverterExtensions {
         !source.Descendants<W.TextBoxContent>().Any() && WordDocumentTraversal.GetListInfo(paragraph) == null;
 
     private static double ResolveNativeParagraphBorderGroupLeft(WordParagraph paragraph, NativeParagraphStyleDefaults defaults) {
-        double firstLine = paragraph.IndentationHangingPoints is { } hanging ? -hanging :
-            paragraph.IndentationFirstLinePoints ?? defaults.FirstLineIndent ?? 0D;
-        return (paragraph.IndentationBeforePoints ?? defaults.LeftIndent ?? 0D) + Math.Min(firstLine, 0D);
+        double firstLine = paragraph.IndentationHanging?.ToPoints() is { } hanging ? -hanging :
+            paragraph.IndentationFirstLine?.ToPoints() ?? defaults.FirstLineIndent ?? 0D;
+        return (paragraph.IndentationBefore?.ToPoints() ?? defaults.LeftIndent ?? 0D) + Math.Min(firstLine, 0D);
     }
 
     private static bool NativeParagraphBordersMatch(NativeParagraphBorderSide first, NativeParagraphBorderSide second) {

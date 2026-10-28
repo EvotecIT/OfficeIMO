@@ -33,7 +33,7 @@ public static partial class WordPdfConverterExtensions {
                 }
                 before.PageBreakBeforeOverride = false;
                 before.KeepWithNextOverride = false;
-                before.LineSpacingAfterPoints = 0;
+                before.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
                 RenderNativeParagraph(pdf, before, marker, getMarker, System.Array.Empty<int>(), footnoteNumbersById,
                     options, headingDestinations, nativeDefaults, nativeFontMap, null);
                 marker = null;
@@ -56,7 +56,7 @@ public static partial class WordPdfConverterExtensions {
                 options?.DiagnosedBarTabElements.Add(after._paragraph);
             }
             after.PageBreakBeforeOverride = false;
-            after.LineSpacingBeforePoints = 0;
+            after.LineSpacingBefore = global::OfficeIMO.OfficeLength.Zero;
             W.ParagraphProperties properties = after._paragraph!.ParagraphProperties ??= new W.ParagraphProperties();
             W.Indentation indentation = properties.GetFirstChild<W.Indentation>() ?? new W.Indentation();
             if (indentation.Parent == null) properties.AddChild(indentation, true);

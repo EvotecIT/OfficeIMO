@@ -21,10 +21,10 @@ public static partial class ProjectReportWorkflow {
         var document = WordDocument.Create();
         try {
             document.PageOrientation = view.PageWidth >= view.PageHeight ? OfficePageOrientation.Landscape : OfficePageOrientation.Portrait;
-            document.PageSettings.Width = checked((uint)Math.Round(view.PageWidth * 20));
-            document.PageSettings.Height = checked((uint)Math.Round(view.PageHeight * 20));
-            document.Margins.Left = document.Margins.Right = checked((uint)Math.Round(view.PageMargin * 20));
-            document.Margins.Top = document.Margins.Bottom = checked((int)Math.Round(view.PageMargin * 20));
+            document.PageSettings.Width = global::OfficeIMO.OfficeLength.Points((checked((uint)Math.Round(view.PageWidth * 20))) / 20D);
+            document.PageSettings.Height = global::OfficeIMO.OfficeLength.Points((checked((uint)Math.Round(view.PageHeight * 20))) / 20D);
+            document.Margins.Left = document.Margins.Right = global::OfficeIMO.OfficeLength.Points((checked((uint)Math.Round(view.PageMargin * 20))) / 20D);
+            document.Margins.Top = document.Margins.Bottom = global::OfficeIMO.OfficeLength.Points((checked((int)Math.Round(view.PageMargin * 20))) / 20D);
             if (options.IncludeCharts && view.Kind != ProjectViewKind.Table) AddWordCharts(document, view, options, cancellationToken);
             if (!options.IncludeDataTables && view.Kind != ProjectViewKind.Table) return document;
             var title = document.AddParagraph(view.Title); title.Bold = true; title.FontSize = 20; title.FontFamily = "Arial"; title.ColorHex = "183047";
@@ -32,7 +32,7 @@ public static partial class ProjectReportWorkflow {
                 cancellationToken.ThrowIfCancellationRequested();
                 var heading = document.AddParagraph(part.Title); heading.FontFamily = "Arial"; heading.FontSize = 13;
                 heading.Bold = true; heading.ColorHex = "183047"; heading.KeepWithNext = true;
-                heading.LineSpacingBeforePoints = 10; heading.LineSpacingAfterPoints = 6;
+                heading.LineSpacingBefore = global::OfficeIMO.OfficeLength.Points(10D); heading.LineSpacingAfter = global::OfficeIMO.OfficeLength.Points(6D);
                 var table = document.AddTable(part.Rows.Length + 1, part.Headers.Length, WordTableStyle.TableGrid);
                 table.SetColumnWidthsPercentage(ColumnWeights(part.Headers));
                 table.StyleDetails!.SetBordersForAllSides(WordBorderStyle.Single, 4, OfficeColor.ParseHex("#E3EAF0"));
@@ -44,8 +44,8 @@ public static partial class ProjectReportWorkflow {
                     for (int c = 0; c < cells.Count; c++) {
                         var cell = cells[c];
                         cell.ShadingFillColorHex = r == 0 ? "183047" : r % 2 == 1 ? "F4F7FA" : "FFFFFF";
-                        cell.MarginTopWidth = cell.MarginBottomWidth = 80;
-                        cell.MarginLeftWidth = cell.MarginRightWidth = 120;
+                        cell.MarginTop = cell.MarginBottom = global::OfficeIMO.OfficeLength.Points(4D);
+                        cell.MarginLeft = cell.MarginRight = global::OfficeIMO.OfficeLength.Points(6D);
                         var paragraph = cell.Paragraphs[0];
                         paragraph.Text = r == 0 ? part.Headers[c] : part.Rows[r - 1][c]; paragraph.Bold = r == 0;
                         paragraph.FontSize = 11; paragraph.FontFamily = "Arial"; paragraph.ColorHex = r == 0 ? "FFFFFF" : "183047";

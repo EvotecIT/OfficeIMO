@@ -23,7 +23,7 @@ public partial class Word {
         table.LayoutMode = WordTableLayoutMode.AutoFit;
         table._tableProperties!.TableWidth = new W.TableWidth { Type = W.TableWidthUnitValues.Auto, Width = "0" };
         table.GridColumnWidth = new List<int> { 0 };
-        table.Rows[0].Height = 2400;
+        table.Rows[0].Height = global::OfficeIMO.OfficeLength.Points(120D);
         WordTableCell cell = table.Rows[0].Cells[0];
         cell.WidthType = WordTableWidthUnit.Auto; cell.Width = 0;
         cell.TextDirection = direction;
@@ -50,7 +50,7 @@ public partial class Word {
     public void SaveAsPdf_CellDirectionPreservesTextAndSource(WordTextDirection direction, int verticalSign) {
         using WordDocument document = WordDocument.Create();
         WordTable table = CreateBorderFrameControl(document, 1, 1, 0);
-        table.Rows[0].Height = 2400;
+        table.Rows[0].Height = global::OfficeIMO.OfficeLength.Points(120D);
         table.Rows[0].Cells[0].TextDirection = direction;
         table.Rows[0].Cells[0].Paragraphs[0].Text = "ABCD";
         using WordDocument imported = WordDocument.Load(new MemoryStream(document.ToBytes()));
@@ -94,7 +94,7 @@ public partial class Word {
     public void SaveAsPdf_UprightTurnedCellPicturePaintsAboveOverlappingFollowingText(WordTextDirection direction, bool pictureAbove) {
         using WordDocument document = WordDocument.Create();
         WordTable table = CreateBorderFrameControl(document, 1, 1, 0);
-        table.Rows[0].Height = 2400;
+        table.Rows[0].Height = global::OfficeIMO.OfficeLength.Points(120D);
         WordTableCell cell = table.Rows[0].Cells[0];
         cell.TextDirection = direction;
         WordParagraph paragraph = cell.Paragraphs[0];
@@ -139,7 +139,7 @@ public partial class Word {
             new W.ParagraphMarkRunProperties(new W.FontSize { Val = (markSize * 2).ToString(System.Globalization.CultureInfo.InvariantCulture) });
         WordParagraph after = document.AddParagraph("After");
         after.FontSize = 12;
-        after.LineSpacingBeforePoints = after.LineSpacingAfterPoints = 0;
+        after.LineSpacingBefore = after.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
         using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdf(BorderFramePdfOptions()).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         return Assert.Single(Assert.Single(pdf.GetPages()).GetWords(), word => word.Text == "After")
             .Letters[0].StartBaseLine.Y;
@@ -148,7 +148,7 @@ public partial class Word {
     private static (double Width, double Height, double Top) CellDirectionImageBounds(WordTextDirection direction, WordParagraphAlignment alignment) {
         using WordDocument document = WordDocument.Create();
         WordTable table = CreateBorderFrameControl(document, 1, 1, 0);
-        table.Rows[0].Height = 2400;
+        table.Rows[0].Height = global::OfficeIMO.OfficeLength.Points(120D);
         WordTableCell cell = table.Rows[0].Cells[0];
         cell.TextDirection = direction;
         WordParagraph paragraph = cell.Paragraphs[0];

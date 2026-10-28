@@ -56,7 +56,7 @@ public partial class Word {
         paragraph._paragraph.Append(new Run(new RunProperties(new FontSize { Val = (size * 2).ToString() },
             new RunFonts { Ascii = "Arial", HighAnsi = "Arial" }), new Text("A"), new Break(), new Text("B"), new Break(), new Text("C")));
         paragraph.LineSpacing = line; paragraph.LineSpacingRule = rule;
-        paragraph.LineSpacingBeforePoints = 0; paragraph.LineSpacingAfterPoints = 0;
+        paragraph.LineSpacingBefore = global::OfficeIMO.OfficeLength.Zero; paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
         if (route == "disabled") paragraph._paragraph.ParagraphProperties!.Append(new SnapToGrid { Val = false });
         if (route is "style-disabled" or "direct-enabled") {
             Styles styles = source._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;

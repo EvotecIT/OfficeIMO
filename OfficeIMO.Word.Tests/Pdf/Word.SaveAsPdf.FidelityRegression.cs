@@ -203,8 +203,8 @@ public partial class Word {
                     new RightBorder { Val = BorderValues.Nil },
                     new InsideHorizontalBorder { Val = BorderValues.Nil },
                     new InsideVerticalBorder { Val = BorderValues.Single });
-                table.Rows[0].Height = 650;
-                table.Rows[1].Height = 850;
+                table.Rows[0].Height = global::OfficeIMO.OfficeLength.Points(32.5D);
+                table.Rows[1].Height = global::OfficeIMO.OfficeLength.Points(42.5D);
                 table.Rows[0].Cells[0].Paragraphs[0].Text = "Merged";
                 table.Rows[0].Cells[0].MergeVertically(1);
                 table.Rows[0].Cells[1].Paragraphs[0].Text = "Upper";

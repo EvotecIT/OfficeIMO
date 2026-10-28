@@ -16,7 +16,7 @@ public partial class HtmlWordGapClosure {
         using WordDocument document = result.Value;
         WordImage drawing = Assert.Single(document.Images);
         WordSection section = document.Sections[0];
-        double contentWidth = (section.PageSettings.Width!.Value - section.Margins.Left - section.Margins.Right) / 15D;
+        double contentWidth = (checked((uint?)(section.PageSettings.Width?.ToTwips()))!.Value - checked((uint)(section.Margins.Left.GetValueOrDefault().ToTwips())) - checked((uint)(section.Margins.Right.GetValueOrDefault().ToTwips()))) / 15D;
 
         Assert.Equal(contentWidth, (drawing.Width?.ToPixels())!.Value, precision: 2);
         Assert.Equal(contentWidth * 600D / 1600D, (drawing.Height?.ToPixels())!.Value, precision: 2);

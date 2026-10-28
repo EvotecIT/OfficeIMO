@@ -437,8 +437,8 @@ namespace OfficeIMO.Tests {
             WordParagraph heading = document.AddParagraph(string.Join(" ", Enumerable.Repeat("Native declared heading formatting", 12)))
                 .SetStyle(WordParagraphStyles.Heading1);
             heading.FontSize = 30;
-            heading.LineSpacingBeforePoints = 12D;
-            heading.LineSpacingAfterPoints = 3D;
+            heading.LineSpacingBefore = global::OfficeIMO.OfficeLength.Points(12D);
+            heading.LineSpacingAfter = global::OfficeIMO.OfficeLength.Points(3D);
             heading.LineSpacingPoints = 36D;
             heading.LineSpacingRule = WordLineSpacingRule.Exact;
             using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions { IncludePageNumbers = false }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));

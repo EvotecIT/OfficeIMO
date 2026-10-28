@@ -124,8 +124,8 @@ p.SpacingAfter = 200;
 
 ```csharp
 var p = document.AddParagraph("Indented paragraph");
-p.IndentationFirstLine = 720;   // 720 twips = 0.5 inch
-p.IndentationBefore = 360;      // left indent
+p.IndentationFirstLine = OfficeIMO.OfficeLength.Inches(0.5);
+p.IndentationBefore = OfficeIMO.OfficeLength.Points(18);
 ```
 
 ## Heading Styles

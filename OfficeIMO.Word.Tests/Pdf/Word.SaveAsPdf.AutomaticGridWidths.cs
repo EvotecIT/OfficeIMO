@@ -76,9 +76,9 @@ public partial class Word {
         cell.WrapText = false;
         WordParagraph paragraph = cell.Paragraphs[0];
         paragraph.Text = new string('W', 40);
-        if (indent == "left") paragraph.IndentationBeforePoints = 36;
-        else if (indent == "right") paragraph.IndentationAfterPoints = 36;
-        else paragraph.IndentationFirstLinePoints = 36;
+        if (indent == "left") paragraph.IndentationBefore = global::OfficeIMO.OfficeLength.Points(36D);
+        else if (indent == "right") paragraph.IndentationAfter = global::OfficeIMO.OfficeLength.Points(36D);
+        else paragraph.IndentationFirstLine = global::OfficeIMO.OfficeLength.Points(36D);
 
         using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions { IncludePageNumbers = false }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         var letters = pdf.GetPage(1).Letters;
@@ -177,7 +177,7 @@ public partial class Word {
         WordParagraph paragraph = numbered ? cell.AddList(WordListStyle.Numbered).AddItem(string.Empty) : cell.Paragraphs[0];
         paragraph.Text = "東京\n東京\n東京";
         paragraph.FontFamily = "Arial"; paragraph.FontSize = 12;
-        paragraph.LineSpacingBeforePoints = 0; paragraph.LineSpacingAfterPoints = 0;
+        paragraph.LineSpacingBefore = global::OfficeIMO.OfficeLength.Zero; paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
         paragraph.LineSpacingRule = WordLineSpacingRule.Auto; paragraph.LineSpacing = spacing;
         using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions {
             IncludePageNumbers = false, PdfOptions = CreateAutomaticGridFallbackFontOptions(),
@@ -208,11 +208,11 @@ public partial class Word {
         for (int column = 0; column < gridTwips.Length; column++) {
             WordTableCell cell = table.Rows[0].Cells[column];
             cell.Width = gridTwips[column]; cell.WidthType = WordTableWidthUnit.Dxa;
-            cell.MarginLeftWidth = 108; cell.MarginRightWidth = 108;
-            cell.MarginTopWidth = 0; cell.MarginBottomWidth = 0;
+            cell.MarginLeft = global::OfficeIMO.OfficeLength.Points(5.4D); cell.MarginRight = global::OfficeIMO.OfficeLength.Points(5.4D);
+            cell.MarginTop = global::OfficeIMO.OfficeLength.Zero; cell.MarginBottom = global::OfficeIMO.OfficeLength.Zero;
             var paragraph = cell.Paragraphs[0];
             paragraph.FontFamily = "Arial"; paragraph.FontSize = 12;
-            paragraph.LineSpacingBeforePoints = 0; paragraph.LineSpacingAfterPoints = 0;
+            paragraph.LineSpacingBefore = global::OfficeIMO.OfficeLength.Zero; paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
             paragraph.LineSpacingRule = WordLineSpacingRule.Auto; paragraph.LineSpacing = 240;
         }
         table.GridColumnWidth = gridTwips.ToList();

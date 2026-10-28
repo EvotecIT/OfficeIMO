@@ -152,9 +152,9 @@ public sealed class MermaidDocumentTests {
         var png = Convert.FromBase64String(image.Source.Substring(image.Source.IndexOf(',') + 1));
         Assert.Equal(png, picture.GetImageBytes());
         Assert.True(OfficeImageReader.TryValidateContent(png, null, out var info));
-        Assert.Equal(info.Width / (double)info.Height, picture.WidthInches / picture.HeightInches, precision: 4);
+        Assert.Equal(info.Width / (double)info.Height, picture.Width.ToInches() / picture.Height.ToInches(), precision: 4);
         var caption = Assert.Single(presentation.Slides.SelectMany(slide => slide.TextBoxes), text => text.Text == "Request approval");
-        Assert.True(caption.TopInches >= picture.TopInches + picture.HeightInches);
+        Assert.True(caption.Top.ToInches() >= picture.Top.ToInches() + picture.Height.ToInches());
         using var stream = new MemoryStream();
         presentation.Save(stream);
         stream.Position = 0;
@@ -173,9 +173,9 @@ public sealed class MermaidDocumentTests {
         });
         using var presentation = markup.ToPowerPointDocument();
         var caption = Assert.Single(presentation.Slides.SelectMany(slide => slide.TextBoxes), text => text.Text == "Request approval");
-        Assert.Equal(3, caption.LeftInches, precision: 4);
-        Assert.Equal(3.12, caption.TopInches, precision: 4);
-        Assert.Equal(4, caption.WidthInches, precision: 4);
+        Assert.Equal(3, caption.Left.ToInches(), precision: 4);
+        Assert.Equal(3.12, caption.Top.ToInches(), precision: 4);
+        Assert.Equal(4, caption.Width.ToInches(), precision: 4);
     }
 
     [Theory]
@@ -228,8 +228,8 @@ public sealed class MermaidDocumentTests {
     private static void AssertWordImageFitsContent(OfficeIMO.Word.WordDocument document) {
         var image = Assert.Single(document.Images);
         var section = document.Sections.First();
-        double available = ((double)section.PageSettings.Width!.Value - (double)section.Margins.Left - (double)section.Margins.Right) / 15;
-        Assert.InRange(image.Width!.Value, 1, available + 0.001);
+        double available = ((double)checked((uint?)(section.PageSettings.Width?.ToTwips()))!.Value - (double)checked((uint)(section.Margins.Left.GetValueOrDefault().ToTwips())) - (double)checked((uint)(section.Margins.Right.GetValueOrDefault().ToTwips()))) / 15;
+        Assert.InRange(image.Width!.Value.ToPixels(), 1, available + 0.001);
     }
 
     [Fact]

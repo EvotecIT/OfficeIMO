@@ -38,7 +38,7 @@ public partial class Word {
         var body = Assert.Single(words, word => word.Text == "BODY");
         W.TabStop rightTab = Assert.Single(document._wordprocessingDocument.MainDocumentPart!
             .HeaderParts.Single().Header.Descendants<W.TabStop>(), tab => tab.Val?.Value == W.TabStopValues.Right);
-        double rightTabAnchor = document.Sections[0].Margins.Left / 20D + rightTab.Position!.Value / 20D;
+        double rightTabAnchor = checked((uint)(document.Sections[0].Margins.Left.GetValueOrDefault().ToTwips())) / 20D + rightTab.Position!.Value / 20D;
         // A right tab aligns the final advance, which is independent of the
         // selected face's ink overhang and the width of its preceding words.
         Assert.InRange(Math.Abs(titleEnd.Letters.Last().EndBaseLine.X - rightTabAnchor), 0D, .3D);

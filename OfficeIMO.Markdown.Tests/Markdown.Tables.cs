@@ -64,10 +64,10 @@ Narrative body text.
             Assert.Equal("FEDCBA", table.Rows[0].Cells[0].ShadingFillColorHex);
             Assert.Equal("123456", table.Rows[0].Cells[0].Borders.TopColorHex);
             Assert.Equal(10U, table.Rows[0].Cells[0].Borders.TopSize);
-            Assert.Equal((short?)180, table.Rows[0].Cells[0].MarginLeftWidth);
-            Assert.Equal((short?)180, table.Rows[0].Cells[0].MarginRightWidth);
-            Assert.Equal((short?)80, table.Rows[0].Cells[0].MarginTopWidth);
-            Assert.Equal((short?)80, table.Rows[0].Cells[0].MarginBottomWidth);
+            Assert.Equal((short?)180, checked((short?)(table.Rows[0].Cells[0].MarginLeft?.ToTwips())));
+            Assert.Equal((short?)180, checked((short?)(table.Rows[0].Cells[0].MarginRight?.ToTwips())));
+            Assert.Equal((short?)80, checked((short?)(table.Rows[0].Cells[0].MarginTop?.ToTwips())));
+            Assert.Equal((short?)80, checked((short?)(table.Rows[0].Cells[0].MarginBottom?.ToTwips())));
             Assert.Contains(table.Rows[0].Cells[0].Paragraphs.SelectMany(p => p.GetRuns()), run => string.Equals(run.ColorHex, "010203", System.StringComparison.OrdinalIgnoreCase));
             Assert.Equal("F0F9FF", table.Rows[2].Cells[0].ShadingFillColorHex);
         }

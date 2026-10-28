@@ -49,10 +49,10 @@ public partial class Word {
         WordTableCell cell = table.Rows[0].Cells[0]; cell.WidthType = WordTableWidthUnit.Dxa; cell.Width = 9360;
         WordParagraph alpha = cell.AddParagraph("ALPHA", removeExistingParagraphs: true);
         alpha.FontSize = 16; alpha.ParagraphAlignment = WordParagraphAlignment.Right;
-        alpha.LineSpacingAfterPoints = 80; HideJoinMark(alpha, true);
+        alpha.LineSpacingAfter = global::OfficeIMO.OfficeLength.Points(80D); HideJoinMark(alpha, true);
         WordParagraph beta = cell.AddParagraph("BETA"); beta.FontSize = 8;
         beta._run!.Append(new W.Break(), new W.Text("TAIL"), new W.Break(), new W.Text("END"));
-        beta.LineSpacingBeforePoints = 80; beta.LineSpacingAfterPoints = 20;
+        beta.LineSpacingBefore = global::OfficeIMO.OfficeLength.Points(80D); beta.LineSpacingAfter = global::OfficeIMO.OfficeLength.Points(20D);
         cell.AddParagraph("SECOND");
         using WordDocument document = WordDocument.Load(new MemoryStream(source.ToBytes(nativeDoc ? WordFileFormat.Doc : WordFileFormat.Docx)));
         using var pdf = OpenJoinedParagraphPdf(document);
@@ -177,12 +177,12 @@ public partial class Word {
         table._tableProperties!.TableStyle = null;
         table.Rows[0].Cells[0].AddParagraph("DEFAULT", removeExistingParagraphs: true);
         WordTableCell second = table.Rows[0].Cells[1]; second.AddParagraph("ZERO", removeExistingParagraphs: true);
-        second.MarginLeftWidth = 0;
+        second.MarginLeft = global::OfficeIMO.OfficeLength.Zero;
         using WordDocument restored = WordDocument.Load(new MemoryStream(source.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc })));
         WordTableCell first = restored.Tables[0].Rows[0].Cells[0]; second = restored.Tables[0].Rows[0].Cells[1];
-        Assert.Equal((short)60, first.MarginTopWidth);
-        Assert.Equal((short)108, first.MarginLeftWidth); Assert.Equal((short)108, first.MarginRightWidth);
-        Assert.Equal((short)0, second.MarginLeftWidth); Assert.Equal((short)108, second.MarginRightWidth);
+        Assert.Equal((short)60, checked((short?)(first.MarginTop?.ToTwips())));
+        Assert.Equal((short)108, checked((short?)(first.MarginLeft?.ToTwips()))); Assert.Equal((short)108, checked((short?)(first.MarginRight?.ToTwips())));
+        Assert.Equal((short)0, checked((short?)(second.MarginLeft?.ToTwips()))); Assert.Equal((short)108, checked((short?)(second.MarginRight?.ToTwips())));
     }
 
     [Theory]
@@ -231,7 +231,7 @@ public partial class Word {
         table._tableProperties!.TableStyle = null;
         table.Rows[0].Cells[0].AddParagraph("MARGIN", removeExistingParagraphs: true);
         table.Rows[0].Cells[1].AddParagraph("ZERO", removeExistingParagraphs: true);
-        table.Rows[0].Cells[1].MarginLeftWidth = 0;
+        table.Rows[0].Cells[1].MarginLeft = global::OfficeIMO.OfficeLength.Zero;
         using WordDocument document = WordDocument.Load(new MemoryStream(source.ToBytes(nativeDoc ? WordFileFormat.Doc : WordFileFormat.Docx)));
         var options = new WordPdfExportOptions { IncludePageNumbers = false };
         if (configuredPdf) options.PdfOptions = new PdfCreateOptions { DefaultTableStyle = new PdfTableStyle { CellPaddingLeft = 20D } };
@@ -265,8 +265,8 @@ public partial class Word {
         Assert.Equal(before, source._wordprocessingDocument.MainDocumentPart.Document.OuterXml);
         if (nativeDoc) {
             WordTableCell cell = document.Tables[0].Rows[0].Cells[0];
-            Assert.Equal((short)240, cell.MarginLeftWidth); Assert.Equal((short)180, cell.MarginRightWidth);
-            Assert.Equal((short)60, cell.MarginTopWidth);
+            Assert.Equal((short)240, checked((short?)(cell.MarginLeft?.ToTwips()))); Assert.Equal((short)180, checked((short?)(cell.MarginRight?.ToTwips())));
+            Assert.Equal((short)60, checked((short?)(cell.MarginTop?.ToTwips())));
         }
         var options = new WordPdfExportOptions { IncludePageNumbers = false };
         if (configuredPdf) options.PdfOptions = new PdfCreateOptions { DefaultTableStyle = new PdfTableStyle { CellPaddingLeft = 20D } };

@@ -1290,7 +1290,7 @@ namespace OfficeIMO.Tests {
         public void Test_WordToHtml_Blockquote() {
             using var doc = WordDocument.Create();
             var p = doc.AddParagraph("Quoted text");
-            p.IndentationBefore = 720;
+            p.IndentationBefore = global::OfficeIMO.OfficeLength.Points(36D);
 
             string html = doc.ToHtml();
 
@@ -1477,12 +1477,12 @@ namespace OfficeIMO.Tests {
         public void Test_WordToHtml_ParagraphSpacingAndIndentationStyles() {
             using var doc = WordDocument.Create();
             var p = doc.AddParagraph("Spacing");
-            p.LineSpacingBefore = 240;
-            p.LineSpacingAfter = 480;
+            p.LineSpacingBefore = global::OfficeIMO.OfficeLength.Points(12D);
+            p.LineSpacingAfter = global::OfficeIMO.OfficeLength.Points(24D);
             p.LineSpacing = 360;
             p.LineSpacingRule = WordLineSpacingRule.Auto;
-            p.IndentationAfter = 720;
-            p.IndentationFirstLine = 360;
+            p.IndentationAfter = global::OfficeIMO.OfficeLength.Points(36D);
+            p.IndentationFirstLine = global::OfficeIMO.OfficeLength.Points(18D);
 
             string html = doc.ToHtml(new WordHtmlExportOptions {
                 IncludeParagraphSpacingStyles = true,
@@ -1503,10 +1503,10 @@ namespace OfficeIMO.Tests {
             var second = doc.AddSection(WordSectionBreakType.NextPage);
             second.PageOrientation = OfficePageOrientation.Landscape;
             second.PageSettings.PageSize = WordPageSize.Letter;
-            second.Margins.Top = 1440;
-            second.Margins.Bottom = 720;
-            second.Margins.Left = 1080;
-            second.Margins.Right = 1080;
+            second.Margins.Top = global::OfficeIMO.OfficeLength.Points(72D);
+            second.Margins.Bottom = global::OfficeIMO.OfficeLength.Points(36D);
+            second.Margins.Left = global::OfficeIMO.OfficeLength.Points(54D);
+            second.Margins.Right = global::OfficeIMO.OfficeLength.Points(54D);
             second.AddParagraph("Second section");
 
             string defaultHtml = doc.ToHtml();
@@ -1554,10 +1554,10 @@ namespace OfficeIMO.Tests {
             var second = doc.AddSection(WordSectionBreakType.NextPage);
             second.PageSettings.PageSize = WordPageSize.Letter;
             second.PageOrientation = OfficePageOrientation.Landscape;
-            second.Margins.Top = 1440;
-            second.Margins.Bottom = 720;
-            second.Margins.Left = 1080;
-            second.Margins.Right = 1200;
+            second.Margins.Top = global::OfficeIMO.OfficeLength.Points(72D);
+            second.Margins.Bottom = global::OfficeIMO.OfficeLength.Points(36D);
+            second.Margins.Left = global::OfficeIMO.OfficeLength.Points(54D);
+            second.Margins.Right = global::OfficeIMO.OfficeLength.Points(60D);
             second.AddParagraph("Second section");
 
             string html = doc.ToHtml(new WordHtmlExportOptions { IncludeSectionMetadata = true });
@@ -1574,15 +1574,15 @@ namespace OfficeIMO.Tests {
             var roundTripSecond = roundTrip.Sections[1];
             Assert.Equal(OfficePageOrientation.Landscape, roundTripSecond.PageOrientation);
             Assert.Equal(WordPageSize.Letter, roundTripSecond.PageSettings.PageSize);
-            Assert.Equal(1440, roundTripSecond.Margins.Top);
-            Assert.Equal(720, roundTripSecond.Margins.Bottom);
-            Assert.Equal(1080U, roundTripSecond.Margins.Left);
-            Assert.Equal(1200U, roundTripSecond.Margins.Right);
+            Assert.Equal(1440, checked((int?)(roundTripSecond.Margins.Top?.ToTwips())));
+            Assert.Equal(720, checked((int?)(roundTripSecond.Margins.Bottom?.ToTwips())));
+            Assert.Equal(1080U, checked((uint)(roundTripSecond.Margins.Left.GetValueOrDefault().ToTwips())));
+            Assert.Equal(1200U, checked((uint)(roundTripSecond.Margins.Right.GetValueOrDefault().ToTwips())));
             var paragraph = Assert.Single(roundTripSecond.Paragraphs, paragraph => string.Equals(paragraph.Text, "Second section", StringComparison.Ordinal));
-            Assert.Null(paragraph.IndentationBefore);
-            Assert.Null(paragraph.IndentationAfter);
-            Assert.Null(paragraph.LineSpacingBefore);
-            Assert.Null(paragraph.LineSpacingAfter);
+            Assert.Null(checked((int?)(paragraph.IndentationBefore?.ToTwips())));
+            Assert.Null(checked((int?)(paragraph.IndentationAfter?.ToTwips())));
+            Assert.Null(checked((int?)(paragraph.LineSpacingBefore?.ToTwips())));
+            Assert.Null(checked((int?)(paragraph.LineSpacingAfter?.ToTwips())));
             Assert.DoesNotContain(conversion.Report.Diagnostics, diagnostic => diagnostic.Code.StartsWith("unsupported-css-", StringComparison.OrdinalIgnoreCase));
         }
     }

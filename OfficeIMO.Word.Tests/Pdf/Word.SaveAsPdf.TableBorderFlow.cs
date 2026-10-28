@@ -38,12 +38,12 @@ public partial class Word {
         table.StyleDetails!.SetBordersForAllSides(WordBorderStyle.Single, 4U, OfficeIMO.OfficeColor.Black);
         for (int row = 0; row < 2; row++) {
             WordTableCell cell = table.Rows[row].Cells[0];
-            cell.MarginTopWidth = cell.MarginBottomWidth = 0;
+            cell.MarginTop = cell.MarginBottom = global::OfficeIMO.OfficeLength.Zero;
             WordParagraph paragraph = cell.Paragraphs[0];
             paragraph.Text = $"BorderFirst{row}\nBorderNext{row}";
             paragraph.FontFamily = "Arial";
             paragraph.FontSize = 12;
-            paragraph.LineSpacingBeforePoints = paragraph.LineSpacingAfterPoints = 0;
+            paragraph.LineSpacingBefore = paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
             paragraph.LineSpacingRule = WordLineSpacingRule.Auto;
             paragraph.LineSpacing = 240;
         }
@@ -65,14 +65,14 @@ public partial class Word {
         table.ConditionalFormattingFirstRow = false;
         table.StyleDetails!.SetBordersForAllSides(border, size, OfficeIMO.OfficeColor.Black);
         WordTableCell cell = table.Rows[0].Cells[0];
-        cell.MarginTopWidth = cell.MarginBottomWidth = 0;
+        cell.MarginTop = cell.MarginBottom = global::OfficeIMO.OfficeLength.Zero;
         WordParagraph first = cell.Paragraphs[0];
         first.Text = "BorderFlowFirst";
         WordParagraph after = document.AddParagraph("BorderFlowAfter");
         foreach (WordParagraph paragraph in new[] { first, after }) {
             paragraph.FontFamily = "Arial";
             paragraph.FontSize = 12;
-            paragraph.LineSpacingBeforePoints = paragraph.LineSpacingAfterPoints = 0;
+            paragraph.LineSpacingBefore = paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
             paragraph.LineSpacingRule = WordLineSpacingRule.Auto;
             paragraph.LineSpacing = 240;
         }

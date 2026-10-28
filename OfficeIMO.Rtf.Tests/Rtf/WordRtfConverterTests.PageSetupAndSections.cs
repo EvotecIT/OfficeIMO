@@ -13,15 +13,15 @@ public partial class WordRtfConverterTests {
     public void Word_To_Rtf_Bridge_Carries_PageSetup_Headers_And_Footers() {
         using WordDocument word = WordDocument.Create();
         word.PageOrientation = OfficePageOrientation.Landscape;
-        word.PageSettings.Width = 16838U;
-        word.PageSettings.Height = 11906U;
-        word.Margins.Left = 1440U;
-        word.Margins.Right = 720U;
-        word.Margins.Top = 1080;
-        word.Margins.Bottom = 1080;
-        word.Margins.Gutter = 180U;
-        word.Margins.HeaderDistance = 360U;
-        word.Margins.FooterDistance = 540U;
+        word.PageSettings.Width = global::OfficeIMO.OfficeLength.Points(841.9D);
+        word.PageSettings.Height = global::OfficeIMO.OfficeLength.Points(595.3D);
+        word.Margins.Left = global::OfficeIMO.OfficeLength.Points(72D);
+        word.Margins.Right = global::OfficeIMO.OfficeLength.Points(36D);
+        word.Margins.Top = global::OfficeIMO.OfficeLength.Points(54D);
+        word.Margins.Bottom = global::OfficeIMO.OfficeLength.Points(54D);
+        word.Margins.Gutter = global::OfficeIMO.OfficeLength.Points(9D);
+        word.Margins.HeaderDistance = global::OfficeIMO.OfficeLength.Points(18D);
+        word.Margins.FooterDistance = global::OfficeIMO.OfficeLength.Points(27D);
         word.RtlGutter = true;
         word.Settings.MirrorMargins = true;
         word.AddPageNumbering(5, WordNumberFormat.LowerRoman);

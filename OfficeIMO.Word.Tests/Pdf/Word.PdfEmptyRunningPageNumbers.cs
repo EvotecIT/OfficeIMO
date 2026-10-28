@@ -25,7 +25,7 @@ public partial class Word {
             }
             WordParagraph body = document.AddParagraph("A");
             body.LineSpacing = 240; body.LineSpacingRule = WordLineSpacingRule.Exact;
-            body.LineSpacingBeforePoints = body.LineSpacingAfterPoints = 0;
+            body.LineSpacingBefore = body.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
             if (index < 2) body.AddBreak(WordBreakType.Page);
         }
         WordPdfExportOptions options = EmptyRunningOptions();
@@ -82,7 +82,7 @@ public partial class Word {
         for (int index = 0; index < 3; index++) {
             WordParagraph body = source.AddParagraph("A");
             body.LineSpacing = 240; body.LineSpacingRule = WordLineSpacingRule.Exact;
-            body.LineSpacingBeforePoints = body.LineSpacingAfterPoints = 0;
+            body.LineSpacingBefore = body.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
             body.KeepLinesTogether = false; body.AvoidWidowAndOrphan = false;
             for (int line = 1; line < (index == variant ? targetLines : 1); line++) body.AddBreak().AddText("A");
             if (index < 2) body.AddBreak(WordBreakType.Page);
@@ -126,7 +126,7 @@ public partial class Word {
             if (index != emptyVariant) stories[index].AddParagraph("STORY" + index);
             WordParagraph body = document.AddParagraph("A");
             body.LineSpacing = 240; body.LineSpacingRule = WordLineSpacingRule.Exact;
-            body.LineSpacingBeforePoints = body.LineSpacingAfterPoints = 0;
+            body.LineSpacingBefore = body.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
             if (index < 2) body.AddBreak(WordBreakType.Page);
         }
         WordPdfExportOptions options = EmptyRunningOptions();

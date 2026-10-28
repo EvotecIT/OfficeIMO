@@ -16,7 +16,7 @@ public class HtmlNativeTableWidths {
         using WordDocument reopened = WordDocument.Load(saved);
         WordTable table = Assert.Single(reopened.Tables);
         WordSection section = reopened.Sections[0];
-        int textWidth = (int)section.PageSettings.Width!.Value - (int)section.Margins.Left - (int)section.Margins.Right;
+        int textWidth = (int)checked((uint?)(section.PageSettings.Width?.ToTwips()))!.Value - (int)checked((uint)(section.Margins.Left.GetValueOrDefault().ToTwips())) - (int)checked((uint)(section.Margins.Right.GetValueOrDefault().ToTwips()));
         Assert.InRange(table.GridColumnWidth.Sum(), 1, textWidth);
         Assert.Equal(5, table.Rows[0].Cells.Count);
         Assert.Contains("Fifth column is visible", table.Rows[0].Cells[4].Paragraphs.Select(p => p.Text));
@@ -69,9 +69,9 @@ public class HtmlNativeTableWidths {
         using WordDocument word = WordDocument.Create();
         word.AddParagraph("First section");
         WordSection target = word.AddSection();
-        target.PageSettings.Width = 7000;
-        target.Margins.Left = 1000;
-        target.Margins.Right = 1000;
+        target.PageSettings.Width = global::OfficeIMO.OfficeLength.Points(350D);
+        target.Margins.Left = global::OfficeIMO.OfficeLength.Points(50D);
+        target.Margins.Right = global::OfficeIMO.OfficeLength.Points(50D);
         HtmlConversionDocument html = HtmlConversionDocument.Parse("<ul><li><table " + attributes + ">" + FiveColumns + "</table></li></ul>");
         if (scope == "header") word.AddHtmlToHeader(html);
         else if (scope == "footer") word.AddHtmlToFooter(html);
@@ -96,15 +96,15 @@ public class HtmlNativeTableWidths {
     public void HtmlToWord_SharedStoryTableUsesTheSelectedLayoutSection(bool footer, int percent, int expectedWidth, bool inherited) {
         using WordDocument word = WordDocument.Create();
         WordSection first = word.Sections[0];
-        first.PageSettings.Width = 12000;
-        first.Margins.Left = 1500;
-        first.Margins.Right = 1500;
+        first.PageSettings.Width = global::OfficeIMO.OfficeLength.Points(600D);
+        first.Margins.Left = global::OfficeIMO.OfficeLength.Points(75D);
+        first.Margins.Right = global::OfficeIMO.OfficeLength.Points(75D);
         if (footer) first.GetOrCreateFooter(WordHeaderFooterType.Default).AddParagraph("Shared footer");
         else first.GetOrCreateHeader(WordHeaderFooterType.Default).AddParagraph("Shared header");
         WordSection last = word.AddSection();
-        last.PageSettings.Width = 7000;
-        last.Margins.Left = 1000;
-        last.Margins.Right = 1000;
+        last.PageSettings.Width = global::OfficeIMO.OfficeLength.Points(350D);
+        last.Margins.Left = global::OfficeIMO.OfficeLength.Points(50D);
+        last.Margins.Right = global::OfficeIMO.OfficeLength.Points(50D);
         if (footer) {
             var reference = first._sectionProperties.GetFirstChild<DocumentFormat.OpenXml.Wordprocessing.FooterReference>()!;
             last._sectionProperties.RemoveAllChildren<DocumentFormat.OpenXml.Wordprocessing.FooterReference>();
@@ -132,16 +132,16 @@ public class HtmlNativeTableWidths {
     public void HtmlToWord_MovedPercentageTableUsesItsCurrentBodySection() {
         using WordDocument word = WordDocument.Create();
         WordSection first = word.Sections[0];
-        first.PageSettings.Width = 7000;
-        first.Margins.Left = 1000;
-        first.Margins.Right = 1000;
+        first.PageSettings.Width = global::OfficeIMO.OfficeLength.Points(350D);
+        first.Margins.Left = global::OfficeIMO.OfficeLength.Points(50D);
+        first.Margins.Right = global::OfficeIMO.OfficeLength.Points(50D);
         word.AddHtmlToBody(HtmlConversionDocument.Parse("<table style='width:100%'>" + FiveColumns + "</table>"));
         WordTable table = Assert.Single(word.Tables);
         Assert.Equal(5000, table.GridColumnWidth.Sum());
         WordSection last = word.AddSection();
-        last.PageSettings.Width = 12000;
-        last.Margins.Left = 1500;
-        last.Margins.Right = 1500;
+        last.PageSettings.Width = global::OfficeIMO.OfficeLength.Points(600D);
+        last.Margins.Left = global::OfficeIMO.OfficeLength.Points(75D);
+        last.Margins.Right = global::OfficeIMO.OfficeLength.Points(75D);
         WordParagraph anchor = word.AddParagraph("Second section anchor");
         table.Remove();
         word.InsertTableAfter(anchor, table);

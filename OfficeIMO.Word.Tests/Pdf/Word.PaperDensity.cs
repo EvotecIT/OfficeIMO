@@ -19,8 +19,8 @@ public sealed class WordPaperDensityTests {
         Assert.Equal((short)vertical, table.StyleDetails.MarginDefaultBottomWidth);
         Assert.Equal((short)horizontal, table.StyleDetails.MarginDefaultLeftWidth);
         Assert.Equal((short)horizontal, table.StyleDetails.MarginDefaultRightWidth);
-        Assert.Equal(spacing, table.Rows[1].Cells[1].Paragraphs[0].LineSpacingAfterPoints);
-        Assert.Equal(spacing, table.Rows[1].Cells[1].Paragraphs[0].LineSpacingBeforePoints);
+        Assert.Equal(spacing, table.Rows[1].Cells[1].Paragraphs[0].LineSpacingAfter?.ToPoints());
+        Assert.Equal(spacing, table.Rows[1].Cells[1].Paragraphs[0].LineSpacingBefore?.ToPoints());
         if (compact) {
             Assert.Equal(11, table.Rows[1].Cells[1].Paragraphs[0].LineSpacingPoints);
             Assert.Equal(WordLineSpacingRule.Exact, table.Rows[1].Cells[1].Paragraphs[0].LineSpacingRule);

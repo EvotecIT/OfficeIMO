@@ -25,7 +25,7 @@ public partial class Word {
     [InlineData(200D, true, true, true)]
     public void SaveAsPdf_ExactFirstLinesRetainRunningStoriesWhenTheyOverflow(double height, bool header, bool footer, bool prefix) {
         using WordDocument source = WordDocument.Create();
-        source.Sections[0].Margins.HeaderDistance = source.Sections[0].Margins.FooterDistance = 720;
+        source.Sections[0].Margins.HeaderDistance = source.Sections[0].Margins.FooterDistance = global::OfficeIMO.OfficeLength.Points(36D);
         if (header) SetStory(source.HeaderDefaultOrCreate);
         if (footer) SetStory(source.FooterDefaultOrCreate);
         if (prefix) {
@@ -33,14 +33,14 @@ public partial class Word {
             preceding.FontSize = 12;
             preceding.LineSpacingPoints = 12;
             preceding.LineSpacingRule = WordLineSpacingRule.Exact;
-            preceding.LineSpacingBeforePoints = preceding.LineSpacingAfterPoints = 0;
+            preceding.LineSpacingBefore = preceding.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
         }
         WordParagraph paragraph = source.AddParagraph();
         paragraph._paragraph.RemoveAllChildren<W.Run>();
         paragraph._paragraph.Append(TextLine("A", 12, true), TextLine("B", 12, false));
         paragraph.LineSpacingPoints = height;
         paragraph.LineSpacingRule = WordLineSpacingRule.Exact;
-        paragraph.LineSpacingBeforePoints = paragraph.LineSpacingAfterPoints = 0;
+        paragraph.LineSpacingBefore = paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
         using WordDocument document = WordDocument.Load(new MemoryStream(source.ToBytes()));
         using var pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions {
             IncludePageNumbers = false, ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic(),
@@ -61,7 +61,7 @@ public partial class Word {
                 WordParagraph blank = story.AddParagraph();
                 blank.LineSpacingPoints = 32;
                 blank.LineSpacingRule = WordLineSpacingRule.Exact;
-                blank.LineSpacingBeforePoints = blank.LineSpacingAfterPoints = 0;
+                blank.LineSpacingBefore = blank.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
             }
         }
     }

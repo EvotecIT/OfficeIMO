@@ -3769,11 +3769,11 @@ namespace OfficeIMO.Tests {
             document.BuiltinDocumentProperties.Title = "Google Docs Paragraph Layout";
 
             var paragraph = document.AddParagraph("Indented paragraph");
-            paragraph.IndentationBeforePoints = 24;
-            paragraph.IndentationAfterPoints = 12;
-            paragraph.IndentationFirstLinePoints = 18;
-            paragraph.LineSpacingBeforePoints = 6;
-            paragraph.LineSpacingAfterPoints = 9;
+            paragraph.IndentationBefore = global::OfficeIMO.OfficeLength.Points(24D);
+            paragraph.IndentationAfter = global::OfficeIMO.OfficeLength.Points(12D);
+            paragraph.IndentationFirstLine = global::OfficeIMO.OfficeLength.Points(18D);
+            paragraph.LineSpacingBefore = global::OfficeIMO.OfficeLength.Points(6D);
+            paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Points(9D);
 
             return document;
         }
@@ -3831,12 +3831,12 @@ namespace OfficeIMO.Tests {
             var section = document.Sections[0];
             section.PageSettings.PageSize = WordPageSize.A5;
             section.PageOrientation = OfficePageOrientation.Landscape;
-            section.Margins.Top = 720;
-            section.Margins.Bottom = 900;
-            section.Margins.Left = 1080U;
-            section.Margins.Right = 1260U;
-            section.Margins.HeaderDistance = 360U;
-            section.Margins.FooterDistance = 540U;
+            section.Margins.Top = global::OfficeIMO.OfficeLength.Points(36D);
+            section.Margins.Bottom = global::OfficeIMO.OfficeLength.Points(45D);
+            section.Margins.Left = global::OfficeIMO.OfficeLength.Points(54D);
+            section.Margins.Right = global::OfficeIMO.OfficeLength.Points(63D);
+            section.Margins.HeaderDistance = global::OfficeIMO.OfficeLength.Points(18D);
+            section.Margins.FooterDistance = global::OfficeIMO.OfficeLength.Points(27D);
             section.DifferentFirstPage = true;
             section.PageNumberType.Start = 3;
 

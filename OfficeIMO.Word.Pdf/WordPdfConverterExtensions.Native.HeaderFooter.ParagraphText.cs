@@ -91,10 +91,10 @@ namespace OfficeIMO.Word.Pdf {
             WordDocumentTraversal.ListInfo info) {
             NativeParagraphStyleDefaults styleDefaults = GetNativeParagraphStyleDefaults(paragraph);
             bool useParagraphStyleIndent = ShouldApplyNativeListParagraphStyleIndent(paragraph);
-            double textOffset = paragraph.IndentationBeforePoints ??
+            double textOffset = paragraph.IndentationBefore?.ToPoints() ??
                 (useParagraphStyleIndent ? styleDefaults.LeftIndent : null) ??
                 ConvertNativeTwipsToPoints(info.LeftIndentTwips ?? ((info.Level + 1) * 720)) ?? 0D;
-            double hangingIndent = paragraph.IndentationHangingPoints ??
+            double hangingIndent = paragraph.IndentationHanging?.ToPoints() ??
                 (useParagraphStyleIndent ? GetNativeStyleHangingIndent(styleDefaults) : null) ??
                 ConvertNativeTwipsToPoints(info.HangingIndentTwips ?? 360) ?? 0D;
             double markerOffset = Math.Max(0D, textOffset - Math.Max(0D, hangingIndent));

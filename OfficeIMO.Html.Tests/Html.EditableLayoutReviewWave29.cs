@@ -65,8 +65,8 @@ public sealed class HtmlEditableLayoutReviewWave29Tests {
         using WordDocument word = result.Value;
 
         double widthTwips = orientation == OfficePageOrientation.Landscape
-            ? WordPageSizes.A5.HeightTwips
-            : WordPageSizes.A5.WidthTwips;
+            ? checked((uint)(WordPageSizes.A5.Height.ToTwips()))
+            : checked((uint)(WordPageSizes.A5.Width.ToTwips()));
         double pageWidth = widthTwips / 1440D * HtmlRenderOptions.CssPixelsPerInch;
         int expectedOffset = (int)Math.Round((pageWidth - 48D - 96D) * 9525D);
         Assert.Equal(expectedOffset, Assert.Single(word.TextBoxes).HorizontalPositionOffset);

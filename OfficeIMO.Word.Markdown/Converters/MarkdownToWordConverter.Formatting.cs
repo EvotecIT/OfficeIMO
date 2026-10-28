@@ -17,7 +17,7 @@ namespace OfficeIMO.Word.Markdown {
 
         private static void ApplyBlockParagraphFormatting(WordParagraph paragraph, int quoteDepth, Omd.MarkdownColumnAlignment alignment) {
             if (quoteDepth > 0) {
-                paragraph.IndentationBefore = IndentTwipsPerLevel * quoteDepth;
+                paragraph.IndentationBefore = global::OfficeIMO.OfficeLength.Points((IndentTwipsPerLevel * quoteDepth) / 20D);
             }
 
             ApplyAlignment(alignment, paragraph);
@@ -112,10 +112,10 @@ namespace OfficeIMO.Word.Markdown {
                 bool header = hasHeaderRow && rowIndex == 0;
                 bool stripe = !header && tableStyle.UseRowStripes && rowIndex % 2 == 0;
                 foreach (var cell in table.Rows[rowIndex].Cells) {
-                    cell.MarginLeftWidth = horizontalPadding;
-                    cell.MarginRightWidth = horizontalPadding;
-                    cell.MarginTopWidth = verticalPadding;
-                    cell.MarginBottomWidth = verticalPadding;
+                    cell.MarginLeft = global::OfficeIMO.OfficeLength.Points((horizontalPadding) / 20D);
+                    cell.MarginRight = global::OfficeIMO.OfficeLength.Points((horizontalPadding) / 20D);
+                    cell.MarginTop = global::OfficeIMO.OfficeLength.Points((verticalPadding) / 20D);
+                    cell.MarginBottom = global::OfficeIMO.OfficeLength.Points((verticalPadding) / 20D);
                     cell.Borders.TopStyle = borderStyle;
                     cell.Borders.BottomStyle = borderStyle;
                     cell.Borders.LeftStyle = borderStyle;

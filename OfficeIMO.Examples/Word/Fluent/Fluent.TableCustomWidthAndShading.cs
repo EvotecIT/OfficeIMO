@@ -30,7 +30,7 @@ namespace OfficeIMO.Examples.Word
                         row.Cells[2 - 1].Width = (int)(144 * 20);
                     }
 
-                    table1.Rows[1 - 1].Height = (int)(36 * 20);
+                    table1.Rows[1 - 1].Height = global::OfficeIMO.OfficeLength.Points(((int)(36 * 20)) / 20D);
                     {
                         (table1.Rows[1 - 1].Cells[1 - 1]).Paragraphs[0].ParagraphAlignment = WordParagraphAlignment.Center;
                         (table1.Rows[1 - 1].Cells[1 - 1]).ShadingFillColorHex = "ff0000";

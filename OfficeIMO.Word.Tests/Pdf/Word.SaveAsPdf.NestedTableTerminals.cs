@@ -49,7 +49,7 @@ public partial class Word {
         terminalView.LineSpacing = checked((int)(lineHeight * 20D));
         if (kind == NestedTableTerminalKind.FormattedStructural) {
             terminalView.LineSpacing = checked((int)(2D * lineHeight * 20D));
-            terminalView.LineSpacingAfterPoints = 6D;
+            terminalView.LineSpacingAfter = global::OfficeIMO.OfficeLength.Points(6D);
         }
         // The structural paragraph has paragraph properties but no empty run
         // carriers. Content children represent an independently preserved boundary.

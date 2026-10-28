@@ -74,79 +74,47 @@ namespace OfficeIMO.Word {
             }
         }
         /// <summary>
-        /// Gets or sets the indentation before the paragraph in twips (1/20 of a point).
+        /// Gets or sets the indentation before the paragraph as a physical length.
         /// </summary>
-        public int? IndentationBefore {
+        public global::OfficeIMO.OfficeLength? IndentationBefore {
             get {
                 if (_paragraphProperties != null && _paragraphProperties.Indentation != null) {
                     if (!string.IsNullOrEmpty(_paragraphProperties.Indentation.Left)) {
                         if (int.TryParse(_paragraphProperties.Indentation.Left, out var left)) {
-                            return left;
+                            return global::OfficeIMO.OfficeLength.Points((left) / 20D);
                         }
                     }
                 }
                 return null;
             }
             set {
+                var wordNativeValue = checked((int?)(value?.ToTwips()));
                 var props = _paragraph.ParagraphProperties ??= new ParagraphProperties();
                 var indentation = props.Indentation ?? new Indentation();
-                indentation.Left = value.HasValue ? new StringValue(value.Value.ToString(System.Globalization.CultureInfo.InvariantCulture)) : null;
+                indentation.Left = wordNativeValue.HasValue ? new StringValue(wordNativeValue.Value.ToString(System.Globalization.CultureInfo.InvariantCulture)) : null;
                 props.Indentation = indentation;
             }
         }
-
         /// <summary>
-        /// Gets or sets the indentation before in points.
+        /// Gets or sets the indentation after the paragraph as a physical length.
         /// </summary>
-        public double? IndentationBeforePoints {
-            get {
-                if (IndentationBefore != null) {
-                    return Helpers.ConvertTwipsToPoints(IndentationBefore.Value);
-                }
-                return null;
-            }
-            set {
-                if (value != null) {
-                    IndentationBefore = Helpers.ConvertPointsToTwips(value.Value);
-                }
-            }
-        }
-        /// <summary>
-        /// Gets or sets the indentation after the paragraph in twips (1/20 of a point).
-        /// </summary>
-        public int? IndentationAfter {
+        public global::OfficeIMO.OfficeLength? IndentationAfter {
             get {
                 if (_paragraphProperties != null && _paragraphProperties.Indentation != null) {
                     if (!string.IsNullOrEmpty(_paragraphProperties.Indentation.Right)) {
                         if (int.TryParse(_paragraphProperties.Indentation.Right, out var right)) {
-                            return right;
+                            return global::OfficeIMO.OfficeLength.Points((right) / 20D);
                         }
                     }
                 }
                 return null;
             }
             set {
+                var wordNativeValue = checked((int?)(value?.ToTwips()));
                 var props = _paragraph.ParagraphProperties ??= new ParagraphProperties();
                 var indentation = props.Indentation ?? new Indentation();
-                indentation.Right = value.HasValue ? new StringValue(value.Value.ToString(System.Globalization.CultureInfo.InvariantCulture)) : null;
+                indentation.Right = wordNativeValue.HasValue ? new StringValue(wordNativeValue.Value.ToString(System.Globalization.CultureInfo.InvariantCulture)) : null;
                 props.Indentation = indentation;
-            }
-        }
-
-        /// <summary>
-        /// Gets or sets the indentation after in points.
-        /// </summary>
-        public double? IndentationAfterPoints {
-            get {
-                if (IndentationAfter != null) {
-                    return Helpers.ConvertTwipsToPoints(IndentationAfter.Value);
-                }
-                return null;
-            }
-            set {
-                if (value != null) {
-                    IndentationAfter = Helpers.ConvertPointsToTwips(value.Value);
-                }
             }
         }
 
@@ -222,79 +190,47 @@ namespace OfficeIMO.Word {
             }
         }
         /// <summary>
-        /// Gets or sets the first line indentation in twips (1/20 of a point).
+        /// Gets or sets the first line indentation as a physical length.
         /// </summary>
-        public int? IndentationFirstLine {
+        public global::OfficeIMO.OfficeLength? IndentationFirstLine {
             get {
                 if (_paragraphProperties != null && _paragraphProperties.Indentation != null) {
                     if (!string.IsNullOrEmpty(_paragraphProperties.Indentation.FirstLine)) {
                         if (int.TryParse(_paragraphProperties.Indentation.FirstLine, out var firstLine)) {
-                            return firstLine;
+                            return global::OfficeIMO.OfficeLength.Points((firstLine) / 20D);
                         }
                     }
                 }
                 return null;
             }
             set {
+                var wordNativeValue = checked((int?)(value?.ToTwips()));
                 var props = _paragraph.ParagraphProperties ??= new ParagraphProperties();
                 var indentation = props.Indentation ?? new Indentation();
-                indentation.FirstLine = value.HasValue ? new StringValue(value.Value.ToString(System.Globalization.CultureInfo.InvariantCulture)) : null;
+                indentation.FirstLine = wordNativeValue.HasValue ? new StringValue(wordNativeValue.Value.ToString(System.Globalization.CultureInfo.InvariantCulture)) : null;
                 props.Indentation = indentation;
             }
         }
-
         /// <summary>
-        /// Gets or sets the first line indentation in points.
+        /// Gets or sets the hanging indentation as a physical length.
         /// </summary>
-        public double? IndentationFirstLinePoints {
-            get {
-                if (IndentationFirstLine != null) {
-                    return Helpers.ConvertTwipsToPoints(IndentationFirstLine.Value);
-                }
-                return null;
-            }
-            set {
-                if (value != null) {
-                    IndentationFirstLine = Helpers.ConvertPointsToTwips(value.Value);
-                }
-            }
-        }
-        /// <summary>
-        /// Gets or sets the hanging indentation in twips (1/20 of a point).
-        /// </summary>
-        public int? IndentationHanging {
+        public global::OfficeIMO.OfficeLength? IndentationHanging {
             get {
                 if (_paragraphProperties != null && _paragraphProperties.Indentation != null) {
                     if (!string.IsNullOrEmpty(_paragraphProperties.Indentation.Hanging)) {
                         if (int.TryParse(_paragraphProperties.Indentation.Hanging, out var hanging)) {
-                            return hanging;
+                            return global::OfficeIMO.OfficeLength.Points((hanging) / 20D);
                         }
                     }
                 }
                 return null;
             }
             set {
+                var wordNativeValue = checked((int?)(value?.ToTwips()));
                 var props = _paragraph.ParagraphProperties ??= new ParagraphProperties();
                 var indentation = props.Indentation ?? new Indentation();
-                indentation.Hanging = value.HasValue ? new StringValue(value.Value.ToString(System.Globalization.CultureInfo.InvariantCulture)) : null;
+                indentation.Hanging = wordNativeValue.HasValue ? new StringValue(wordNativeValue.Value.ToString(System.Globalization.CultureInfo.InvariantCulture)) : null;
                 props.Indentation = indentation;
-            }
-        }
-
-        /// <summary>
-        /// Gets or sets the hanging indentation in points.
-        /// </summary>
-        public double? IndentationHangingPoints {
-            get {
-                if (IndentationHanging != null) {
-                    return Helpers.ConvertTwipsToPoints(IndentationHanging.Value);
-                }
-                return null;
-            }
-            set {
-                if (value != null) {
-                    IndentationHanging = Helpers.ConvertPointsToTwips(value.Value);
-                }
             }
         }
         /// <summary>
@@ -410,79 +346,47 @@ namespace OfficeIMO.Word {
             }
         }
         /// <summary>
-        /// Gets or sets the spacing before the paragraph in twips (1/20 of a point).
+        /// Gets or sets the spacing before the paragraph as a physical length.
         /// </summary>
-        public int? LineSpacingBefore {
+        public global::OfficeIMO.OfficeLength? LineSpacingBefore {
             get {
                 if (_paragraphProperties != null && _paragraphProperties.SpacingBetweenLines != null) {
                     if (!string.IsNullOrEmpty(_paragraphProperties.SpacingBetweenLines.Before)) {
                         if (int.TryParse(_paragraphProperties.SpacingBetweenLines.Before, out var before)) {
-                            return before;
+                            return global::OfficeIMO.OfficeLength.Points((before) / 20D);
                         }
                     }
                 }
                 return null;
             }
             set {
+                var wordNativeValue = checked((int?)(value?.ToTwips()));
                 var props = _paragraph.ParagraphProperties ??= new ParagraphProperties();
                 var spacing = props.SpacingBetweenLines ?? new SpacingBetweenLines();
-                spacing.Before = value?.ToString();
+                spacing.Before = wordNativeValue?.ToString();
                 props.SpacingBetweenLines = spacing;
             }
         }
-
         /// <summary>
-        /// Gets or sets the line spacing before in points.
+        /// Gets or sets the spacing after the paragraph as a physical length.
         /// </summary>
-        public double? LineSpacingBeforePoints {
-            get {
-                if (LineSpacingBefore != null) {
-                    return Helpers.ConvertTwipsToPoints(LineSpacingBefore.Value);
-                }
-                return null;
-            }
-            set {
-                if (value != null) {
-                    LineSpacingBefore = Helpers.ConvertPointsToTwips(value.Value);
-                }
-            }
-        }
-        /// <summary>
-        /// Gets or sets the spacing after the paragraph in twips (1/20 of a point).
-        /// </summary>
-        public int? LineSpacingAfter {
+        public global::OfficeIMO.OfficeLength? LineSpacingAfter {
             get {
                 if (_paragraphProperties != null && _paragraphProperties.SpacingBetweenLines != null) {
                     if (!string.IsNullOrEmpty(_paragraphProperties.SpacingBetweenLines.After)) {
                         if (int.TryParse(_paragraphProperties.SpacingBetweenLines.After, out var after)) {
-                            return after;
+                            return global::OfficeIMO.OfficeLength.Points((after) / 20D);
                         }
                     }
                 }
                 return null;
             }
             set {
+                var wordNativeValue = checked((int?)(value?.ToTwips()));
                 var props = _paragraph.ParagraphProperties ??= new ParagraphProperties();
                 var spacing = props.SpacingBetweenLines ?? new SpacingBetweenLines();
-                spacing.After = value?.ToString();
+                spacing.After = wordNativeValue?.ToString();
                 props.SpacingBetweenLines = spacing;
-            }
-        }
-
-        /// <summary>
-        /// Gets or sets the line spacing after in points.
-        /// </summary>
-        public double? LineSpacingAfterPoints {
-            get {
-                if (LineSpacingAfter != null) {
-                    return Helpers.ConvertTwipsToPoints(LineSpacingAfter.Value);
-                }
-                return null;
-            }
-            set {
-                if (value != null) {
-                    LineSpacingAfter = Helpers.ConvertPointsToTwips(value.Value);
-                }
             }
         }
 

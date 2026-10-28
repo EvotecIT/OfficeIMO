@@ -29,7 +29,7 @@ namespace OfficeIMO.Tests {
 
             Assert.Equal("HtmlDefinitionTerm", doc.Paragraphs[0].StyleId);
             Assert.Equal("HtmlDefinitionDescription", doc.Paragraphs[1].StyleId);
-            Assert.Equal(720, doc.Paragraphs[1].IndentationBefore);
+            Assert.Equal(720, checked((int?)(doc.Paragraphs[1].IndentationBefore?.ToTwips())));
 
             using MemoryStream packageStream = new System.IO.MemoryStream(doc.ToBytes());
             packageStream.Position = 0;

@@ -238,9 +238,9 @@ namespace OfficeIMO.Word {
                 var section = ResolveOwningSection();
                 if (section != null) {
                     var page = section.PageSettings;
-                    var width = (int)(page.Width ?? WordPageSizes.A4.WidthTwips);
-                    var left = (int)section.Margins.Left;
-                    var right = (int)section.Margins.Right;
+                    var width = (int)(checked((uint?)(page.Width?.ToTwips())) ?? checked((uint)(WordPageSizes.A4.Width.ToTwips())));
+                    var left = (int)checked((uint)(section.Margins.Left.GetValueOrDefault().ToTwips()));
+                    var right = (int)checked((uint)(section.Margins.Right.GetValueOrDefault().ToTwips()));
                     int content = Math.Max(0, width - left - right);
                     return content > 0 ? content : 9000; // fallback ~6.25"
                 }
@@ -561,13 +561,13 @@ namespace OfficeIMO.Word {
             get {
                 var listReturn = new List<int>();
                 for (int rowIndex = 0; rowIndex < this.Rows.Count; rowIndex++) {
-                    listReturn.Add(this.Rows[rowIndex].Height ?? 0);
+                    listReturn.Add(checked((int?)(this.Rows[rowIndex].Height?.ToTwips())) ?? 0);
                 }
                 return listReturn;
             }
             set {
                 for (int rowIndex = 0; rowIndex < value.Count; rowIndex++) {
-                    this.Rows[rowIndex].Height = value[rowIndex];
+                    this.Rows[rowIndex].Height = global::OfficeIMO.OfficeLength.Points((value[rowIndex]) / 20D);
                 }
             }
 

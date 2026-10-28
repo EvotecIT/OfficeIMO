@@ -69,7 +69,7 @@ public partial class Word {
     [InlineData(true, 24)]
     public void SaveAsPdf_JoinedParagraphSpacingAndBookmarksPreserveFrameSeparators(bool bookmark, int spacingAfter) {
         using WordDocument source = CreateParagraphBorderGroupFrameDocument(WordCompatibilityMode.Word2013, 13, 3);
-        source.Paragraphs[1].LineSpacingAfterPoints = spacingAfter;
+        source.Paragraphs[1].LineSpacingAfter = global::OfficeIMO.OfficeLength.Points(spacingAfter);
         if (bookmark) {
             W.Paragraph paragraph = source.Paragraphs.First(p => p.Text.StartsWith("Second", StringComparison.Ordinal))._paragraph;
             paragraph.InsertAt(new W.BookmarkStart { Id = "1", Name = "SecondParagraph" }, 1);

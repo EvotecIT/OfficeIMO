@@ -27,7 +27,7 @@ public partial class Word {
             WordParagraph after = document.AddParagraph("AfterContinuous");
             after.FontFamily = "Arial"; after.FontSize = 12;
             after.LineSpacing = 400; after.LineSpacingRule = WordLineSpacingRule.Exact;
-            after.LineSpacingBeforePoints = 0; after.LineSpacingAfterPoints = 0;
+            after.LineSpacingBefore = global::OfficeIMO.OfficeLength.Zero; after.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
             after.KeepLinesTogetherOverride = false; after.KeepWithNextOverride = false;
             after.AvoidWidowAndOrphanOverride = false;
             source = document.ToBytes(format);

@@ -26,8 +26,8 @@ namespace OfficeIMO.Examples.Word {
                 section0Header.AddParagraph("Section 0 - In header");
                 section0.SetMargins(WordMargin.Normal);
 
-                Console.WriteLine(document.Sections[0].Margins.Left);
-                Console.WriteLine(document.Sections[0].Margins.Right);
+                Console.WriteLine(checked((uint)(document.Sections[0].Margins.Left.GetValueOrDefault().ToTwips())));
+                Console.WriteLine(checked((uint)(document.Sections[0].Margins.Right.GetValueOrDefault().ToTwips())));
 
                 Console.WriteLine(document.Sections[0].Margins.Type);
 
@@ -78,11 +78,11 @@ namespace OfficeIMO.Examples.Word {
                 section1.AddParagraph("Test");
                 section1Header.AddWatermark(WordWatermarkStyle.Text, "Draft");
 
-                Console.WriteLine(document.Sections[0].Margins.Left);
-                Console.WriteLine(document.Sections[0].Margins.Right);
+                Console.WriteLine(checked((uint)(document.Sections[0].Margins.Left.GetValueOrDefault().ToTwips())));
+                Console.WriteLine(checked((uint)(document.Sections[0].Margins.Right.GetValueOrDefault().ToTwips())));
 
-                Console.WriteLine(document.Sections[1].Margins.Left);
-                Console.WriteLine(document.Sections[1].Margins.Right);
+                Console.WriteLine(checked((uint)(document.Sections[1].Margins.Left.GetValueOrDefault().ToTwips())));
+                Console.WriteLine(checked((uint)(document.Sections[1].Margins.Right.GetValueOrDefault().ToTwips())));
 
                 Console.WriteLine(document.Sections[1].Margins.Type);
 

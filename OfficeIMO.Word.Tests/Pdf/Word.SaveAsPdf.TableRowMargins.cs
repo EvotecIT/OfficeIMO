@@ -15,10 +15,10 @@ public partial class Word {
         WordTable table = CreateBorderFrameControl(document, 2, 2, 0);
         table.StyleDetails!.CellSpacing = 0;
         foreach (WordTableRow row in table.Rows) {
-            if (minimum) row.MinimumHeight = 2400;
-            else row.Height = 2400;
-            row.Cells[0].MarginTopWidth = 120;
-            row.Cells[1].MarginBottomWidth = 180;
+            if (minimum) row.MinimumHeight = global::OfficeIMO.OfficeLength.Points(120D);
+            else row.Height = global::OfficeIMO.OfficeLength.Points(120D);
+            row.Cells[0].MarginTop = global::OfficeIMO.OfficeLength.Points(6D);
+            row.Cells[1].MarginBottom = global::OfficeIMO.OfficeLength.Points(9D);
         }
         using var pdf = PdfPigDocument.Open(document.ToPdf(BorderFramePdfOptions()).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         var words = pdf.GetPage(1).GetWords().ToArray();
@@ -38,12 +38,12 @@ public partial class Word {
         using WordDocument document = WordDocument.Create();
         WordTable table = CreateBorderFrameControl(document, 1, 2, 0);
         WordTableRow row = table.Rows[0];
-        if (minimum) row.MinimumHeight = 2400;
-        else row.Height = 2400;
-        row.Cells[0].MarginTopWidth = 120;
-        row.Cells[0].MarginBottomWidth = 0;
-        row.Cells[1].MarginTopWidth = 0;
-        row.Cells[1].MarginBottomWidth = 180;
+        if (minimum) row.MinimumHeight = global::OfficeIMO.OfficeLength.Points(120D);
+        else row.Height = global::OfficeIMO.OfficeLength.Points(120D);
+        row.Cells[0].MarginTop = global::OfficeIMO.OfficeLength.Points(6D);
+        row.Cells[0].MarginBottom = global::OfficeIMO.OfficeLength.Zero;
+        row.Cells[1].MarginTop = global::OfficeIMO.OfficeLength.Zero;
+        row.Cells[1].MarginBottom = global::OfficeIMO.OfficeLength.Points(9D);
         foreach (WordTableCell cell in row.Cells) cell.VerticalAlignment = alignment;
         using WordDocument imported = WordDocument.Load(new MemoryStream(document.ToBytes()));
         string xml = imported._wordprocessingDocument.MainDocumentPart!.Document.OuterXml;
@@ -68,12 +68,12 @@ public partial class Word {
         using WordDocument document = WordDocument.Create();
         WordTable table = CreateBorderFrameControl(document, 2, 2, 0);
         foreach (WordTableRow row in table.Rows) {
-            if (minimum) row.MinimumHeight = 2400;
-            else row.Height = 2400;
-            row.Cells[0].MarginTopWidth = marginMode == 0 ? (short)0 : (short)120;
-            row.Cells[0].MarginBottomWidth = marginMode == 1 ? (short)180 : (short)0;
-            row.Cells[1].MarginTopWidth = 0;
-            row.Cells[1].MarginBottomWidth = marginMode == 2 ? (short)180 : (short)0;
+            if (minimum) row.MinimumHeight = global::OfficeIMO.OfficeLength.Points(120D);
+            else row.Height = global::OfficeIMO.OfficeLength.Points(120D);
+            row.Cells[0].MarginTop = global::OfficeIMO.OfficeLength.Points((marginMode == 0 ? (short)0 : (short)120) / 20D);
+            row.Cells[0].MarginBottom = global::OfficeIMO.OfficeLength.Points((marginMode == 1 ? (short)180 : (short)0) / 20D);
+            row.Cells[1].MarginTop = global::OfficeIMO.OfficeLength.Zero;
+            row.Cells[1].MarginBottom = global::OfficeIMO.OfficeLength.Points((marginMode == 2 ? (short)180 : (short)0) / 20D);
         }
 
         using WordDocument imported = WordDocument.Load(new MemoryStream(document.ToBytes()));
@@ -102,11 +102,11 @@ public partial class Word {
         using WordDocument document = WordDocument.Create();
         WordTable table = CreateBorderFrameControl(document, 3, 2, 0);
         foreach (WordTableRow row in table.Rows) {
-            if (minimum) row.MinimumHeight = 2400;
-            else row.Height = 2400;
+            if (minimum) row.MinimumHeight = global::OfficeIMO.OfficeLength.Points(120D);
+            else row.Height = global::OfficeIMO.OfficeLength.Points(120D);
             foreach (WordTableCell cell in row.Cells) {
-                cell.MarginTopWidth = 120;
-                cell.MarginBottomWidth = conditional ? null : (short)0;
+                cell.MarginTop = global::OfficeIMO.OfficeLength.Points(6D);
+                cell.MarginBottom= conditional ? null : global::OfficeIMO.OfficeLength.Points(((short)0) / 20D);
             }
         }
         if (conditional) {
@@ -118,9 +118,9 @@ public partial class Word {
                     }) { Type = W.StyleValues.Table, StyleId = "ContinuationPadding" });
             table._tableProperties!.TableStyle = new W.TableStyle { Val = "ContinuationPadding" };
             table.ConditionalFormattingFirstColumn = true;
-            if (clear) table.Rows[1].Cells[0].MarginBottomWidth = 0;
+            if (clear) table.Rows[1].Cells[0].MarginBottom = global::OfficeIMO.OfficeLength.Zero;
         } else {
-            table.Rows[1].Cells[0].MarginBottomWidth = 180;
+            table.Rows[1].Cells[0].MarginBottom = global::OfficeIMO.OfficeLength.Points(9D);
         }
         table.MergeCells(0, 0, 2, 1);
         using WordDocument imported = WordDocument.Load(new MemoryStream(document.ToBytes()));
@@ -140,8 +140,8 @@ public partial class Word {
     public void SaveAsPdf_SpacedVerticalMergeContinuationIncludesBottomMargin(short bottom, double advance) {
         using WordDocument document = WordDocument.Create();
         WordTable table = CreateBorderFrameControl(document, 3, 2, 120);
-        foreach (WordTableRow row in table.Rows) row.Height = 960;
-        table.Rows[1].Cells[0].MarginBottomWidth = bottom;
+        foreach (WordTableRow row in table.Rows) row.Height = global::OfficeIMO.OfficeLength.Points(48D);
+        table.Rows[1].Cells[0].MarginBottom = global::OfficeIMO.OfficeLength.Points((bottom) / 20D);
         table.MergeCells(0, 0, 2, 1);
         using WordDocument imported = WordDocument.Load(new MemoryStream(document.ToBytes()));
         using PdfPigDocument pdf = PdfPigDocument.Open(imported.ToPdf(BorderFramePdfOptions()).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));

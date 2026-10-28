@@ -148,8 +148,8 @@ public partial class Word {
         using WordDocument document = CreateAnchoredRunningTextBoxControl(includeTextBox: true);
         document.Settings.MirrorMargins = true;
         WordSection selectingSection = document.Sections[1];
-        selectingSection.Margins.Left = 1440;
-        selectingSection.Margins.Right = 2880;
+        selectingSection.Margins.Left = global::OfficeIMO.OfficeLength.Points(72D);
+        selectingSection.Margins.Right = global::OfficeIMO.OfficeLength.Points(144D);
         // This section's first header is on visible page 2. The unswapped 72pt
         // text origin clears the centered box; the actual 144pt origin does not.
         // Preserve the warned flow until admission uses the effective page frame.

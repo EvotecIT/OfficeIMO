@@ -43,8 +43,8 @@ public partial class Word {
                 paragraph.Text = text[row, column];
                 paragraph.FontFamily = "Courier New";
                 paragraph.FontSize = 12;
-                paragraph.LineSpacingBeforePoints = 0;
-                paragraph.LineSpacingAfterPoints = 0;
+                paragraph.LineSpacingBefore = global::OfficeIMO.OfficeLength.Zero;
+                paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
             }
         }
         using var pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions {

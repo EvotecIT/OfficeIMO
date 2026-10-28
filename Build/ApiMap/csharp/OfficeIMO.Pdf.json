@@ -3348,6 +3348,11 @@
       "phase": "B",
       "applied": "phase-b-applied",
       "reason": "Physical image-to-PDF page geometry uses explicit lengths, retaining zero margin and the 14,400-point maximum default. Validate EMU signs before materialization; convert to points only at layout calculations. Workflows, OCR and saved-artifact tests use typed lengths."
+    },
+    {
+      "change": "Close full-solution consumers of the unified API",
+      "reason": "The XPS comparison and AI executable example use PdfDocument.ExportImages with options, caller-ordered selectors, byte payloads, metadata inspection and shared diagnostics. Loaded PDF documents are disposed.",
+      "applied": "phase-b-applied"
     }
   ],
   "applicationStatus": "Phase A applied and validated on the supported macOS targets. Phase B and Tier 2 entries retain their status; Windows .NET Framework validation remains pending.",

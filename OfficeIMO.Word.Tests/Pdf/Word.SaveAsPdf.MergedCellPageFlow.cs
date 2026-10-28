@@ -24,10 +24,10 @@ public partial class Word {
         for (int row = 0; row < 3; row++) {
             table.Rows[row].Cells[1].Paragraphs[0].Text = $"Neighbour{row}";
             foreach (WordTableCell cell in table.Rows[row].Cells) {
-                cell.MarginTopWidth = cell.MarginBottomWidth = 0;
+                cell.MarginTop = cell.MarginBottom = global::OfficeIMO.OfficeLength.Zero;
                 foreach (WordParagraph paragraph in cell.Paragraphs) {
                     paragraph.FontFamily = "Arial"; paragraph.FontSize = 12;
-                    paragraph.LineSpacingBeforePoints = paragraph.LineSpacingAfterPoints = 0;
+                    paragraph.LineSpacingBefore = paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
                     paragraph.LineSpacingRule = WordLineSpacingRule.Exact; paragraph.LineSpacing = 400;
                     paragraph.KeepLinesTogetherOverride = false; paragraph.KeepWithNextOverride = false;
                     paragraph.AvoidWidowAndOrphanOverride = false;
@@ -62,7 +62,7 @@ public partial class Word {
         for (int row = 0; row < 3; row++) {
             for (int column = 0; column < 2; column++) {
                 WordTableCell cell = table.Rows[row].Cells[column];
-                cell.MarginTopWidth = cell.MarginBottomWidth = 0;
+                cell.MarginTop = cell.MarginBottom = global::OfficeIMO.OfficeLength.Zero;
                 cell.Paragraphs[0].Text = column == 0 ? $"SpanToken{row * paragraphsPerRow + 1}" : $"Neighbour{row}";
                 if (column == 0)
                     for (int paragraph = 1; paragraph < paragraphsPerRow; paragraph++)
@@ -70,7 +70,7 @@ public partial class Word {
                 foreach (WordParagraph paragraph in cell.Paragraphs) {
                     paragraph.FontFamily = "Arial";
                     paragraph.FontSize = 12;
-                    paragraph.LineSpacingBeforePoints = paragraph.LineSpacingAfterPoints = 0;
+                    paragraph.LineSpacingBefore = paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
                     paragraph.LineSpacingRule = WordLineSpacingRule.Auto;
                     paragraph.LineSpacing = 240;
                 }

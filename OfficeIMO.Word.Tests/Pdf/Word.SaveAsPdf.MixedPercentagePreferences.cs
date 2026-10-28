@@ -28,8 +28,8 @@ public partial class Word {
                 WordTableCell cell = table.Rows[row].Cells[column];
                 cell.Paragraphs[0].Text = column == 0 ? "SA SA SA SA SA SA SA SA" : "SB SB SB SB";
                 ConfigurePartialColumnParagraph(cell.Paragraphs[0]);
-                cell.MarginLeftWidth = 108; cell.MarginRightWidth = 108;
-                cell.MarginTopWidth = 0; cell.MarginBottomWidth = 0;
+                cell.MarginLeft = global::OfficeIMO.OfficeLength.Points(5.4D); cell.MarginRight = global::OfficeIMO.OfficeLength.Points(5.4D);
+                cell.MarginTop = global::OfficeIMO.OfficeLength.Zero; cell.MarginBottom = global::OfficeIMO.OfficeLength.Zero;
                 bool percentage = (row == column) == percentageFirst;
                 cell._tableCellProperties!.TableCellWidth = new W.TableCellWidth {
                     Type = percentage ? W.TableWidthUnitValues.Pct : W.TableWidthUnitValues.Dxa,
@@ -98,7 +98,7 @@ public partial class Word {
         for (int column = 0; column < 3; column++) {
             WordTableCell cell = table.Rows[0].Cells[column];
             cell.Paragraphs[0].Text = ((char)('A' + column)).ToString();
-            cell.MarginLeftWidth = cell.MarginRightWidth = 54;
+            cell.MarginLeft = cell.MarginRight = global::OfficeIMO.OfficeLength.Points(2.7D);
             cell.WidthType = column == 0 ? WordTableWidthUnit.Pct : column == 1 ? WordTableWidthUnit.Dxa : WordTableWidthUnit.Auto;
             cell.Width = column == 0 ? percentage : column == 1 ? 1440 : 0;
         }
@@ -118,7 +118,7 @@ public partial class Word {
         for (int column = 0; column < 2; column++) {
             WordTableCell cell = table.Rows[0].Cells[column];
             cell.Paragraphs[0].Text = column == 0 ? "SA" : "SB";
-            cell.MarginLeftWidth = cell.MarginRightWidth = 54;
+            cell.MarginLeft = cell.MarginRight = global::OfficeIMO.OfficeLength.Points(2.7D);
             cell.WidthType = WordTableWidthUnit.Pct; cell.Width = 2500;
         }
         var fonts = new OfficeIMO.Pdf.PdfCreateOptions();
@@ -148,7 +148,7 @@ public partial class Word {
         table.GridColumnWidth = new List<int> { 2000 };
         for (int row = 0; row < 2; row++) {
             WordTableCell cell = table.Rows[row].Cells[0];
-            cell.MarginLeftWidth = cell.MarginRightWidth = 54;
+            cell.MarginLeft = cell.MarginRight = global::OfficeIMO.OfficeLength.Points(2.7D);
             cell.WidthType = row == 0 ? WordTableWidthUnit.Pct : cachedType;
             cell.Width = row == 0 ? percentage : 0;
             cell.Paragraphs[0].Text = "Alpha Bravo Charlie";

@@ -41,7 +41,7 @@ public partial class Word {
         foreach (var row in table.Rows) {
             var cell = row.Cells[0];
             cell.Width = 4000; cell.WidthType = WordTableWidthUnit.Dxa;
-            cell.MarginTopWidth = 0; cell.MarginBottomWidth = 0;
+            cell.MarginTop = global::OfficeIMO.OfficeLength.Zero; cell.MarginBottom = global::OfficeIMO.OfficeLength.Zero;
         }
     }
 
@@ -69,14 +69,14 @@ public partial class Word {
         table.StyleDetails!.SetBordersForAllSides(style, size, OfficeIMO.OfficeColor.Black);
         for (int row = 0; row < 2; row++) {
             var cell = table.Rows[row].Cells[0];
-            cell.MarginTopWidth = marginTwips;
-            cell.MarginBottomWidth = marginTwips;
+            cell.MarginTop = global::OfficeIMO.OfficeLength.Points((marginTwips) / 20D);
+            cell.MarginBottom = global::OfficeIMO.OfficeLength.Points((marginTwips) / 20D);
             var paragraph = cell.Paragraphs[0];
             paragraph.Text = $"RowMarker{row}";
             paragraph.FontFamily = "Arial";
             paragraph.FontSize = 12;
-            paragraph.LineSpacingBeforePoints = 0;
-            paragraph.LineSpacingAfterPoints = 0;
+            paragraph.LineSpacingBefore = global::OfficeIMO.OfficeLength.Zero;
+            paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
             paragraph.LineSpacingRule = WordLineSpacingRule.Auto;
             paragraph.LineSpacing = 240;
         }

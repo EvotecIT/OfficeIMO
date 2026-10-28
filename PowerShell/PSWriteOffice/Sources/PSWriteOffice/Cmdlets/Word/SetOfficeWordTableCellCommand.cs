@@ -126,10 +126,10 @@ public sealed class SetOfficeWordTableCellCommand : PSCmdlet
         ValidateMargin(MarginRightCentimeters, nameof(MarginRightCentimeters));
 
         if (MyInvocation.BoundParameters.ContainsKey(nameof(Text))) Cell.AddParagraph(Text ?? string.Empty, removeExistingParagraphs: true);
-        if (MyInvocation.BoundParameters.ContainsKey(nameof(MarginTopCentimeters))) Cell.MarginTopCentimeters = MarginTopCentimeters;
-        if (MyInvocation.BoundParameters.ContainsKey(nameof(MarginBottomCentimeters))) Cell.MarginBottomCentimeters = MarginBottomCentimeters;
-        if (MyInvocation.BoundParameters.ContainsKey(nameof(MarginLeftCentimeters))) Cell.MarginLeftCentimeters = MarginLeftCentimeters;
-        if (MyInvocation.BoundParameters.ContainsKey(nameof(MarginRightCentimeters))) Cell.MarginRightCentimeters = MarginRightCentimeters;
+        if (MyInvocation.BoundParameters.ContainsKey(nameof(MarginTopCentimeters))) Cell.MarginTop= ((MarginTopCentimeters) is { } wordLength6025 ? global::OfficeIMO.OfficeLength.Centimeters(wordLength6025) : (global::OfficeIMO.OfficeLength?)null);
+        if (MyInvocation.BoundParameters.ContainsKey(nameof(MarginBottomCentimeters))) Cell.MarginBottom= ((MarginBottomCentimeters) is { } wordLength6165 ? global::OfficeIMO.OfficeLength.Centimeters(wordLength6165) : (global::OfficeIMO.OfficeLength?)null);
+        if (MyInvocation.BoundParameters.ContainsKey(nameof(MarginLeftCentimeters))) Cell.MarginLeft= ((MarginLeftCentimeters) is { } wordLength6304 ? global::OfficeIMO.OfficeLength.Centimeters(wordLength6304) : (global::OfficeIMO.OfficeLength?)null);
+        if (MyInvocation.BoundParameters.ContainsKey(nameof(MarginRightCentimeters))) Cell.MarginRight= ((MarginRightCentimeters) is { } wordLength6443 ? global::OfficeIMO.OfficeLength.Centimeters(wordLength6443) : (global::OfficeIMO.OfficeLength?)null);
         if (MyInvocation.BoundParameters.ContainsKey(nameof(ShadingFillColor))) Cell.ShadingFillColorHex = ShadingFillColor ?? string.Empty;
         if (MyInvocation.BoundParameters.ContainsKey(nameof(ShadingPattern))) Cell.ShadingPattern = ShadingPattern;
         if (MyInvocation.BoundParameters.ContainsKey(nameof(Width))) Cell.Width = Width;

@@ -37,7 +37,7 @@ code
 
             Assert.Equal(WordParagraphStyles.Heading1, doc.Paragraphs[0].Style);
             var quoteParagraph = doc.Paragraphs.First(p => p.Text.Contains("Quote line"));
-            Assert.True(quoteParagraph.IndentationBefore > 0);
+            Assert.True(checked((int?)(quoteParagraph.IndentationBefore?.ToTwips())) > 0);
 
             var codeParagraph = doc.Paragraphs.First(p => p.Text.Contains("code"));
             // New Markdown engine does not assign a language-specific style to code blocks.

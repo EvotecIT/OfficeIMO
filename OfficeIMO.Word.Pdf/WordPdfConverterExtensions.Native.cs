@@ -462,8 +462,8 @@ namespace OfficeIMO.Word.Pdf {
 
         private static bool NativeSectionHeaderFooterReferencesEquivalent(WordSection first, WordSection second) =>
             first.DifferentFirstPage == second.DifferentFirstPage &&
-            (!HasNativeSectionStory(first, isFooter: false) || NativeDoubleEquals(first.Margins.HeaderDistance, second.Margins.HeaderDistance)) &&
-            (!HasNativeSectionStory(first, isFooter: true) || NativeDoubleEquals(first.Margins.FooterDistance, second.Margins.FooterDistance)) &&
+            (!HasNativeSectionStory(first, isFooter: false) || NativeDoubleEquals(checked((uint)(first.Margins.HeaderDistance.GetValueOrDefault().ToTwips())), checked((uint)(second.Margins.HeaderDistance.GetValueOrDefault().ToTwips())))) &&
+            (!HasNativeSectionStory(first, isFooter: true) || NativeDoubleEquals(checked((uint)(first.Margins.FooterDistance.GetValueOrDefault().ToTwips())), checked((uint)(second.Margins.FooterDistance.GetValueOrDefault().ToTwips())))) &&
             ReferenceEquals(first.ResolveDefaultHeader()?._header, second.ResolveDefaultHeader()?._header) &&
             ReferenceEquals(first.ResolveDefaultFooter()?._footer, second.ResolveDefaultFooter()?._footer) &&
             (!first.DifferentFirstPage ||

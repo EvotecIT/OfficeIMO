@@ -170,7 +170,7 @@ public sealed class WordPdfWrappedPictureFlowContractTests {
         int lines = (int)Math.Floor(fillerHeight / Line);
         WordParagraph? last = null;
         for (int index = 0; index < lines; index++) Configure(last = word.AddParagraph(), "FILL" + index);
-        if (last != null) last.LineSpacingAfterPoints = fillerHeight - lines * Line;
+        if (last != null) last.LineSpacingAfter = global::OfficeIMO.OfficeLength.Points(fillerHeight - lines * Line);
         var anchor = word.AddParagraph();
         Configure(anchor, "ANCHOR WORD TWO");
         anchor.KeepWithNext = true;
@@ -184,10 +184,10 @@ public sealed class WordPdfWrappedPictureFlowContractTests {
         var word = WordDocument.Create();
         word.Settings.FontFamily = ManagedTextShapingTestAssets.FamilyName;
         var section = word.Sections[0];
-        section.PageSettings.Width = 4800; section.PageSettings.Height = 6000;
-        section.Margins.Left = section.Margins.Right = 600;
-        section.Margins.Top = section.Margins.Bottom = 600;
-        section.Margins.HeaderDistance = section.Margins.FooterDistance = 360;
+        section.PageSettings.Width = global::OfficeIMO.OfficeLength.Points(240D); section.PageSettings.Height = global::OfficeIMO.OfficeLength.Points(300D);
+        section.Margins.Left = section.Margins.Right = global::OfficeIMO.OfficeLength.Points(30D);
+        section.Margins.Top = section.Margins.Bottom = global::OfficeIMO.OfficeLength.Points(30D);
+        section.Margins.HeaderDistance = section.Margins.FooterDistance = global::OfficeIMO.OfficeLength.Points(18D);
         return word;
     }
 
@@ -197,7 +197,7 @@ public sealed class WordPdfWrappedPictureFlowContractTests {
         paragraph.FontSize = 12;
         paragraph.LineSpacingPoints = Line;
         paragraph.LineSpacingRule = WordLineSpacingRule.Exact;
-        paragraph.LineSpacingBeforePoints = paragraph.LineSpacingAfterPoints = 0D;
+        paragraph.LineSpacingBefore = paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
         paragraph.AvoidWidowAndOrphan = false;
     }
 

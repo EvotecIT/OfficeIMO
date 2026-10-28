@@ -19,8 +19,8 @@ public sealed partial class IWorkBoundaryTests {
         Assert.Equal(new[] { 560, 540, 560, 560 }, table.RowHeight);
         for (int row = 0; row < table.Rows.Count; row++) {
             var cells = table.Rows[row].Cells;
-            Assert.All(cells, cell => Assert.Equal((short)80, cell.MarginBottomWidth));
-            Assert.Equal(source.GetRowHeight(row + 1), (table.Rows[row].Height!.Value + 80) / 20d);
+            Assert.All(cells, cell => Assert.Equal((short)80, checked((short?)(cell.MarginBottom?.ToTwips()))));
+            Assert.Equal(source.GetRowHeight(row + 1), (checked((int?)(table.Rows[row].Height?.ToTwips()))!.Value + 80) / 20d);
         }
         Assert.Empty(reopened.ValidateDocument());
     }
@@ -40,9 +40,9 @@ public sealed partial class IWorkBoundaryTests {
         using var saved = new MemoryStream(); result.Value.Save(saved); saved.Position = 0;
         using var reopened = WordDocument.Load(saved);
         var table = Assert.Single(reopened.Tables);
-        Assert.Equal(expected, table.Rows[0].Height);
-        if (rowCount == 2) Assert.Equal(400, table.Rows[1].Height);
-        Assert.Equal((short)140, table.Rows[0].Cells[0].MarginTopWidth);
+        Assert.Equal(OfficeIMO.OfficeLength.Points(expected / 20D), table.Rows[0].Height);
+        if (rowCount == 2) Assert.Equal(OfficeIMO.OfficeLength.Points(20), table.Rows[1].Height);
+        Assert.Equal((short)140, checked((short?)(table.Rows[0].Cells[0].MarginTop?.ToTwips())));
         Assert.Empty(reopened.ValidateDocument());
     }
 
@@ -55,8 +55,8 @@ public sealed partial class IWorkBoundaryTests {
         using var saved = new MemoryStream(); result.Value.Save(saved); saved.Position = 0;
         using var reopened = WordDocument.Load(saved);
         var row = Assert.Single(reopened.Tables).Rows[0];
-        Assert.Equal(2, row.Height); // Physical 3 twips, less the serialized 1-twip bottom padding.
-        Assert.All(row.Cells, cell => Assert.Equal((short)1, cell.MarginBottomWidth));
+        Assert.Equal(OfficeIMO.OfficeLength.Points(0.1), row.Height); // Physical 3 twips, less the serialized 1-twip bottom padding.
+        Assert.All(row.Cells, cell => Assert.Equal((short)1, checked((short?)(cell.MarginBottom?.ToTwips()))));
     }
 
     [Fact]
@@ -69,7 +69,7 @@ public sealed partial class IWorkBoundaryTests {
         using var reopened = WordDocument.Load(saved);
         Assert.Equal(new[] { 240, 240 }, Assert.Single(reopened.Tables).RowHeight);
         Assert.Equal(WordCellMerge.Continue, reopened.Tables[0].Rows[1].Cells[0].VerticalMerge);
-        Assert.Equal((short)160, reopened.Tables[0].Rows[1].Cells[0].MarginBottomWidth);
+        Assert.Equal((short)160, checked((short?)(reopened.Tables[0].Rows[1].Cells[0].MarginBottom?.ToTwips())));
         Assert.Empty(reopened.ValidateDocument());
     }
 
@@ -80,7 +80,7 @@ public sealed partial class IWorkBoundaryTests {
             conversionOptions: new IWorkConversionOptions { Mode = IWorkConversionMode.EditableOnly });
         using var saved = new MemoryStream(); result.Value.Save(saved); saved.Position = 0;
         using var reopened = WordDocument.Load(saved);
-        Assert.Equal(31_680, Assert.Single(reopened.Tables).Rows[0].Height);
+        Assert.Equal(OfficeIMO.OfficeLength.Points(1584), Assert.Single(reopened.Tables).Rows[0].Height);
         Assert.Empty(reopened.ValidateDocument());
     }
 

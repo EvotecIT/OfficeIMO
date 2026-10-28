@@ -17,8 +17,8 @@ public sealed class WordAllSeverityBatch16SecurityTests {
             new TopMargin { Width = "not-a-number" },
             new BottomMargin { Width = "999999999999" });
 
-        Assert.Null(cell.MarginTopWidth);
-        Assert.Null(cell.MarginBottomWidth);
+        Assert.Null(checked((short?)(cell.MarginTop?.ToTwips())));
+        Assert.Null(checked((short?)(cell.MarginBottom?.ToTwips())));
     }
 
     [Fact]

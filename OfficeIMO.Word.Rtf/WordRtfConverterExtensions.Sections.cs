@@ -40,8 +40,8 @@ public static partial class WordRtfConverterExtensions {
     }
 
     private static void CopyPageSetup(WordSection source, RtfSection destination, RtfDocument document) {
-        int? width = ToInt32(source.PageSettings.Width);
-        int? height = ToInt32(source.PageSettings.Height);
+        int? width = ToInt32(checked((uint?)(source.PageSettings.Width?.ToTwips())));
+        int? height = ToInt32(checked((uint?)(source.PageSettings.Height?.ToTwips())));
         if (width.HasValue && height.HasValue) {
             destination.PageSetup.SetPaperSize(width.Value, height.Value);
         } else {
@@ -50,14 +50,14 @@ public static partial class WordRtfConverterExtensions {
         }
 
         destination.PageSetup.SetMargins(
-            ToInt32(source.Margins.Left),
-            ToInt32(source.Margins.Right),
-            source.Margins.Top,
-            source.Margins.Bottom);
-        destination.PageSetup.SetGutter(ToInt32(source.Margins.Gutter), source.RtlGutter);
+            ToInt32(checked((uint)(source.Margins.Left.GetValueOrDefault().ToTwips()))),
+            ToInt32(checked((uint)(source.Margins.Right.GetValueOrDefault().ToTwips()))),
+            checked((int?)(source.Margins.Top?.ToTwips())),
+            checked((int?)(source.Margins.Bottom?.ToTwips())));
+        destination.PageSetup.SetGutter(ToInt32(checked((uint)(source.Margins.Gutter.GetValueOrDefault().ToTwips()))), source.RtlGutter);
         destination.PageSetup.SetHeaderFooterDistance(
-            ToInt32(source.Margins.HeaderDistance),
-            ToInt32(source.Margins.FooterDistance));
+            ToInt32(checked((uint)(source.Margins.HeaderDistance.GetValueOrDefault().ToTwips()))),
+            ToInt32(checked((uint)(source.Margins.FooterDistance.GetValueOrDefault().ToTwips()))));
         destination.PageSetup.SetLandscape(source.PageOrientation == OfficePageOrientation.Landscape);
         destination.PageSetup.SetDifferentFirstPageHeaderFooter(source.DifferentFirstPage);
         CopyPageNumbering(source._sectionProperties.GetFirstChild<PageNumberType>(), destination.PageSetup);
@@ -112,39 +112,39 @@ public static partial class WordRtfConverterExtensions {
             destination.PageOrientation = pageSetup.Landscape ? OfficePageOrientation.Landscape : OfficePageOrientation.Portrait;
 
         if (pageSetup.PaperWidthTwips.HasValue) {
-            destination.PageSettings.Width = ToUInt32Value(pageSetup.PaperWidthTwips.Value);
+            destination.PageSettings.Width= ((ToUInt32Value(pageSetup.PaperWidthTwips.Value)) is { } wordLength6282 ? global::OfficeIMO.OfficeLength.Points((wordLength6282) / 20D) : (global::OfficeIMO.OfficeLength?)null);
         }
 
         if (pageSetup.PaperHeightTwips.HasValue) {
-            destination.PageSettings.Height = ToUInt32Value(pageSetup.PaperHeightTwips.Value);
+            destination.PageSettings.Height= ((ToUInt32Value(pageSetup.PaperHeightTwips.Value)) is { } wordLength6438 ? global::OfficeIMO.OfficeLength.Points((wordLength6438) / 20D) : (global::OfficeIMO.OfficeLength?)null);
         }
 
         if (pageSetup.MarginLeftTwips.HasValue) {
-            destination.Margins.Left = ToUInt32Value(pageSetup.MarginLeftTwips.Value);
+            destination.Margins.Left = global::OfficeIMO.OfficeLength.Points((ToUInt32Value(pageSetup.MarginLeftTwips.Value)) / 20D);
         }
 
         if (pageSetup.MarginRightTwips.HasValue) {
-            destination.Margins.Right = ToUInt32Value(pageSetup.MarginRightTwips.Value);
+            destination.Margins.Right = global::OfficeIMO.OfficeLength.Points((ToUInt32Value(pageSetup.MarginRightTwips.Value)) / 20D);
         }
 
         if (pageSetup.MarginTopTwips.HasValue) {
-            destination.Margins.Top = pageSetup.MarginTopTwips.Value;
+            destination.Margins.Top= ((pageSetup.MarginTopTwips.Value) is { } wordLength6884 ? global::OfficeIMO.OfficeLength.Points((wordLength6884) / 20D) : (global::OfficeIMO.OfficeLength?)null);
         }
 
         if (pageSetup.MarginBottomTwips.HasValue) {
-            destination.Margins.Bottom = pageSetup.MarginBottomTwips.Value;
+            destination.Margins.Bottom= ((pageSetup.MarginBottomTwips.Value) is { } wordLength7020 ? global::OfficeIMO.OfficeLength.Points((wordLength7020) / 20D) : (global::OfficeIMO.OfficeLength?)null);
         }
 
         if (pageSetup.GutterWidthTwips.HasValue) {
-            destination.Margins.Gutter = ToUInt32Value(pageSetup.GutterWidthTwips.Value);
+            destination.Margins.Gutter = global::OfficeIMO.OfficeLength.Points((ToUInt32Value(pageSetup.GutterWidthTwips.Value)) / 20D);
         }
 
         if (pageSetup.HeaderDistanceTwips.HasValue) {
-            destination.Margins.HeaderDistance = ToUInt32Value(pageSetup.HeaderDistanceTwips.Value);
+            destination.Margins.HeaderDistance = global::OfficeIMO.OfficeLength.Points((ToUInt32Value(pageSetup.HeaderDistanceTwips.Value)) / 20D);
         }
 
         if (pageSetup.FooterDistanceTwips.HasValue) {
-            destination.Margins.FooterDistance = ToUInt32Value(pageSetup.FooterDistanceTwips.Value);
+            destination.Margins.FooterDistance = global::OfficeIMO.OfficeLength.Points((ToUInt32Value(pageSetup.FooterDistanceTwips.Value)) / 20D);
         }
 
         ApplyFirstPageHeaderFooterSelection(destination, pageSetup.DifferentFirstPageHeaderFooter);

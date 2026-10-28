@@ -195,7 +195,7 @@ public partial class Word {
                 (run.RunProperties ??= new RunProperties()).FontSize = new FontSize { Val = "64" };
             }
         }
-        paragraph.LineSpacingBeforePoints = 0; paragraph.LineSpacingAfterPoints = 0;
+        paragraph.LineSpacingBefore = global::OfficeIMO.OfficeLength.Zero; paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
         if (ruleOnly && route is "body" or "clear-points") {
             paragraph.LineSpacingRule = route == "clear-points" ? WordLineSpacingRule.AtLeast : WordLineSpacingRule.Auto;
             if (route == "clear-points") { paragraph.LineSpacingPoints = 18; paragraph.LineSpacingPoints = null; }

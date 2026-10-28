@@ -1151,10 +1151,10 @@ namespace OfficeIMO.Word.Pdf {
         }
 
         private static bool HasNativeHeadingDeclaredSpacingBefore(WordParagraph paragraph, NativeParagraphStyleDefaults styleDefaults) =>
-            paragraph.LineSpacingBeforePoints.HasValue || styleDefaults.SpacingBefore.HasValue;
+            paragraph.LineSpacingBefore.HasValue || styleDefaults.SpacingBefore.HasValue;
 
         private static bool HasNativeHeadingDeclaredSpacingAfter(WordParagraph paragraph, NativeParagraphStyleDefaults styleDefaults) =>
-            paragraph.LineSpacingAfterPoints.HasValue || styleDefaults.SpacingAfter.HasValue;
+            paragraph.LineSpacingAfter.HasValue || styleDefaults.SpacingAfter.HasValue;
 
         private static void AddNativeRun(
             PdfCore.PdfParagraphBuilder builder,

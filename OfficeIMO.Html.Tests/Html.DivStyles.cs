@@ -21,7 +21,7 @@ namespace OfficeIMO.Tests {
             var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWord(new WordHtmlImportOptions());
             var paragraph = doc.Paragraphs[0];
 
-            Assert.Equal(30d, paragraph.IndentationBeforePoints);
+            Assert.Equal(30d, paragraph.IndentationBefore?.ToPoints());
         }
     }
 }

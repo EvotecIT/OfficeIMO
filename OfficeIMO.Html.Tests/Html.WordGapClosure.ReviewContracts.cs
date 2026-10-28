@@ -124,10 +124,10 @@ public partial class HtmlWordGapClosure {
         WordParagraph ltr = Assert.Single(document.Paragraphs, paragraph => paragraph.Text == "LTR start");
         WordParagraph rtl = Assert.Single(document.Paragraphs, paragraph => paragraph.Text == "RTL start");
 
-        Assert.Equal(-150, ltr.IndentationBefore);
-        Assert.Null(ltr.IndentationAfter);
-        Assert.Null(rtl.IndentationBefore);
-        Assert.Equal(-180, rtl.IndentationAfter);
+        Assert.Equal(-150, checked((int?)(ltr.IndentationBefore?.ToTwips())));
+        Assert.Null(checked((int?)(ltr.IndentationAfter?.ToTwips())));
+        Assert.Null(checked((int?)(rtl.IndentationBefore?.ToTwips())));
+        Assert.Equal(-180, checked((int?)(rtl.IndentationAfter?.ToTwips())));
     }
 
     [Fact]
@@ -247,8 +247,8 @@ public partial class HtmlWordGapClosure {
         Assert.Equal("ABCDEF", paragraph.ShadingFillColorHex);
         Assert.Equal(WordBorderStyle.Single, paragraph.Borders.TopStyle);
         Assert.Equal("123456", paragraph.Borders.TopColorHex);
-        Assert.Equal(60, paragraph.IndentationBefore);
-        Assert.Equal(60, paragraph.IndentationAfter);
+        Assert.Equal(60, checked((int?)(paragraph.IndentationBefore?.ToTwips())));
+        Assert.Equal(60, checked((int?)(paragraph.IndentationAfter?.ToTwips())));
     }
 
     [Fact]
@@ -336,8 +336,8 @@ public partial class HtmlWordGapClosure {
             document.Paragraphs,
             candidate => candidate.Text == "Inherited padding");
 
-        Assert.Equal(300, paragraph.IndentationBefore);
-        Assert.Null(paragraph.IndentationAfter);
+        Assert.Equal(300, checked((int?)(paragraph.IndentationBefore?.ToTwips())));
+        Assert.Null(checked((int?)(paragraph.IndentationAfter?.ToTwips())));
     }
 
     [Fact]
@@ -356,9 +356,9 @@ public partial class HtmlWordGapClosure {
             candidate => candidate.Text == "Negative pair");
         CssStyleMapper.CssProperties negativeMargin = CssStyleMapper.ParseStyles("margin:-5px");
 
-        Assert.Equal(300, longhand.IndentationBefore);
-        Assert.Equal(300, pair.LineSpacingBefore);
-        Assert.Null(pair.LineSpacingAfter);
+        Assert.Equal(300, checked((int?)(longhand.IndentationBefore?.ToTwips())));
+        Assert.Equal(300, checked((int?)(pair.LineSpacingBefore?.ToTwips())));
+        Assert.Null(checked((int?)(pair.LineSpacingAfter?.ToTwips())));
         Assert.Equal(-75, negativeMargin.MarginLeft);
     }
 
@@ -374,8 +374,8 @@ public partial class HtmlWordGapClosure {
         Assert.Equal("ABCDEF", paragraph.ShadingFillColorHex);
         Assert.Equal(WordBorderStyle.Single, paragraph.Borders.TopStyle);
         Assert.Equal("123456", paragraph.Borders.TopColorHex);
-        Assert.Equal(60, paragraph.IndentationBefore);
-        Assert.Equal(60, paragraph.IndentationAfter);
+        Assert.Equal(60, checked((int?)(paragraph.IndentationBefore?.ToTwips())));
+        Assert.Equal(60, checked((int?)(paragraph.IndentationAfter?.ToTwips())));
     }
 
     [Fact]
@@ -452,15 +452,15 @@ public partial class HtmlWordGapClosure {
         WordParagraph logical = Assert.Single(document.Paragraphs, paragraph => paragraph.Text == "Logical reset");
         WordParagraph shorthand = Assert.Single(document.Paragraphs, paragraph => paragraph.Text == "Shorthand reset");
 
-        Assert.Null(physical.IndentationBefore);
-        Assert.Null(physical.IndentationAfter);
-        Assert.Null(logical.IndentationBefore);
-        Assert.Null(logical.LineSpacingBefore);
-        Assert.Null(logical.LineSpacingAfter);
-        Assert.Null(shorthand.IndentationBefore);
-        Assert.Null(shorthand.IndentationAfter);
-        Assert.Null(shorthand.LineSpacingBefore);
-        Assert.Null(shorthand.LineSpacingAfter);
+        Assert.Null(checked((int?)(physical.IndentationBefore?.ToTwips())));
+        Assert.Null(checked((int?)(physical.IndentationAfter?.ToTwips())));
+        Assert.Null(checked((int?)(logical.IndentationBefore?.ToTwips())));
+        Assert.Null(checked((int?)(logical.LineSpacingBefore?.ToTwips())));
+        Assert.Null(checked((int?)(logical.LineSpacingAfter?.ToTwips())));
+        Assert.Null(checked((int?)(shorthand.IndentationBefore?.ToTwips())));
+        Assert.Null(checked((int?)(shorthand.IndentationAfter?.ToTwips())));
+        Assert.Null(checked((int?)(shorthand.LineSpacingBefore?.ToTwips())));
+        Assert.Null(checked((int?)(shorthand.LineSpacingAfter?.ToTwips())));
     }
 
     [Fact]

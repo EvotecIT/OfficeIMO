@@ -127,7 +127,7 @@ namespace OfficeIMO.Tests {
                 });
 
                 WordParagraph intro = document.AddParagraph("IntroMarker");
-                intro.LineSpacingAfterPoints = 70;
+                intro.LineSpacingAfter = global::OfficeIMO.OfficeLength.Points(70D);
                 document.AddParagraph("InheritedKeepLabel").SetStyleId(styleId);
                 document.AddParagraph("FollowingBody");
 
@@ -168,7 +168,7 @@ namespace OfficeIMO.Tests {
                 });
 
                 WordParagraph intro = document.AddParagraph("ChainIntro");
-                intro.LineSpacingAfterPoints = 100;
+                intro.LineSpacingAfter = global::OfficeIMO.OfficeLength.Points(100D);
                 document.AddParagraph("ChainLead").SetStyleId(styleId);
                 document.AddParagraph("ChainBridge").SetStyleId(styleId);
                 document.AddParagraph("ChainTarget");
@@ -285,7 +285,7 @@ namespace OfficeIMO.Tests {
         public void SaveAsPdf_EmptyParagraphSpacingCountsDiscardedPagesAgainstLimit() {
             using WordDocument document = WordDocument.Create();
             WordParagraph blank = document.AddParagraph(string.Empty);
-            blank.LineSpacingBeforePoints = 100_000D;
+            blank.LineSpacingBefore = global::OfficeIMO.OfficeLength.Points(100000D);
             document.AddParagraph("After spacing");
 
             Assert.Throws<InvalidDataException>(() => document.ConvertToPdfWithEvidence(
@@ -492,7 +492,7 @@ namespace OfficeIMO.Tests {
                 paragraph.Borders.BottomColorHex = "336699";
                 paragraph.Borders.BottomSize = 12;
                 paragraph.Borders.BottomSpace = 3;
-                paragraph.LineSpacingAfterPoints = 8;
+                paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Points(8D);
 
                 document.AddParagraph("After native bottom border");
 
@@ -530,7 +530,7 @@ namespace OfficeIMO.Tests {
                 paragraph.Borders.TopColorHex = "008000";
                 paragraph.Borders.TopSize = 16;
                 paragraph.Borders.TopSpace = 4;
-                paragraph.LineSpacingBeforePoints = 8;
+                paragraph.LineSpacingBefore = global::OfficeIMO.OfficeLength.Points(8D);
 
                 document.Save();
                 document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
@@ -602,7 +602,7 @@ namespace OfficeIMO.Tests {
                 tight.Borders.LeftColorHex = "444444";
                 tight.Borders.LeftSize = 8;
                 tight.Borders.LeftSpace = 0;
-                tight.LineSpacingAfterPoints = 4;
+                tight.LineSpacingAfter = global::OfficeIMO.OfficeLength.Points(4D);
 
                 WordParagraph wide = document.AddParagraph("WideSpace");
                 wide.Borders.LeftStyle = WordBorderStyle.Single;
@@ -1843,7 +1843,7 @@ namespace OfficeIMO.Tests {
                 paragraph.AddText("CharExactFirst").SetCharacterStyleId(styleId);
                 paragraph.AddBreak();
                 paragraph.AddText("CharExactSecond").SetCharacterStyleId(styleId);
-                paragraph.LineSpacingAfterPoints = 0;
+                paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
                 paragraph.LineSpacingPoints = 18;
                 paragraph.LineSpacingRule = WordLineSpacingRule.Exact;
 
@@ -1913,11 +1913,11 @@ namespace OfficeIMO.Tests {
                 });
 
                 WordParagraph before = document.AddParagraph("LineUnitBefore");
-                before.LineSpacingAfterPoints = 0;
+                before.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
                 WordParagraph styled = document.AddParagraph("LineUnitStyled");
                 styled.SetStyleId(styleId);
                 WordParagraph after = document.AddParagraph("LineUnitAfter");
-                after.LineSpacingAfterPoints = 0;
+                after.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
 
                 document.Save();
                 document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
@@ -1999,8 +1999,8 @@ namespace OfficeIMO.Tests {
         public void SaveAsPdf_OfficeIMOEngine_Maps_Paragraph_Hanging_Indent() {
             using WordDocument document = WordDocument.Create(Path.Combine(_directoryWithFiles, "PdfNativeHangingIndentStyle.docx"));
             WordParagraph paragraph = document.AddParagraph("Native hanging paragraph");
-            paragraph.IndentationBeforePoints = 72;
-            paragraph.IndentationHangingPoints = 36;
+            paragraph.IndentationBefore = global::OfficeIMO.OfficeLength.Points(72D);
+            paragraph.IndentationHanging = global::OfficeIMO.OfficeLength.Points(36D);
 
             MethodInfo method = typeof(WordPdfConverterExtensions).GetMethod("CreateNativeParagraphStyle", BindingFlags.NonPublic | BindingFlags.Static, binder: null, new[] { typeof(WordParagraph) }, modifiers: null)!;
             PdfParagraphStyle style = Assert.IsType<PdfParagraphStyle>(method.Invoke(null, new object[] { paragraph }));
@@ -2016,11 +2016,11 @@ namespace OfficeIMO.Tests {
 
             using (WordDocument document = WordDocument.Create(docPath)) {
                 WordParagraph normal = document.AddParagraph("NormalIndentMarker alpha beta gamma delta epsilon zeta eta theta iota kappa lambda mu nu xi omicron pi rho sigma tau");
-                normal.LineSpacingAfterPoints = 0;
+                normal.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
                 WordParagraph extended = document.AddParagraph("NegativeIndentMarker alpha beta gamma delta epsilon zeta eta theta iota kappa lambda mu nu xi omicron pi rho sigma tau");
-                extended.IndentationBeforePoints = -18;
-                extended.IndentationAfterPoints = -30;
-                extended.LineSpacingAfterPoints = 0;
+                extended.IndentationBefore = global::OfficeIMO.OfficeLength.Points(-18);
+                extended.IndentationAfter = global::OfficeIMO.OfficeLength.Points(-30);
+                extended.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
 
                 document.Save();
                 document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
@@ -2046,7 +2046,7 @@ namespace OfficeIMO.Tests {
 
             using (WordDocument document = WordDocument.Create(docPath)) {
                 WordParagraph paragraph = document.AddParagraph("HangingOnly alpha beta gamma delta epsilon zeta eta theta iota kappa lambda mu");
-                paragraph.IndentationHangingPoints = 36;
+                paragraph.IndentationHanging = global::OfficeIMO.OfficeLength.Points(36D);
 
                 document.Save();
                 document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
@@ -2080,9 +2080,9 @@ namespace OfficeIMO.Tests {
 
             using (WordDocument document = WordDocument.Create(docPath)) {
                 WordParagraph paragraph = document.AddParagraph("HangingStart alpha beta gamma delta epsilon zeta eta theta iota kappa lambda mu");
-                paragraph.IndentationBeforePoints = 72;
-                paragraph.IndentationHangingPoints = 36;
-                paragraph.LineSpacingAfterPoints = 0;
+                paragraph.IndentationBefore = global::OfficeIMO.OfficeLength.Points(72D);
+                paragraph.IndentationHanging = global::OfficeIMO.OfficeLength.Points(36D);
+                paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
 
                 document.Save();
                 document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
@@ -2113,18 +2113,18 @@ namespace OfficeIMO.Tests {
 
             using (WordDocument document = WordDocument.Create(docPath)) {
                 WordParagraph before = document.AddParagraph(beforeMarker);
-                before.LineSpacingAfterPoints = 0;
+                before.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
 
                 if (includeBlankParagraph) {
                     WordParagraph blank = document.AddParagraph();
-                    blank.LineSpacingBeforePoints = blankSpacingBefore;
-                    blank.LineSpacingAfterPoints = 0;
+                    blank.LineSpacingBefore = global::OfficeIMO.OfficeLength.Points(blankSpacingBefore);
+                    blank.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
                     blank._paragraph.ParagraphProperties!.ParagraphMarkRunProperties =
                         new ParagraphMarkRunProperties(new FontSize { Val = "40" });
                 }
 
                 WordParagraph after = document.AddParagraph(afterMarker);
-                after.LineSpacingAfterPoints = 0;
+                after.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
 
                 document.Save();
                 document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
@@ -2150,10 +2150,10 @@ namespace OfficeIMO.Tests {
 
             using (WordDocument document = WordDocument.Create(docPath)) {
                 WordParagraph first = document.AddParagraph(firstMarker);
-                first.LineSpacingAfterPoints = 30;
+                first.LineSpacingAfter = global::OfficeIMO.OfficeLength.Points(30D);
                 WordParagraph second = document.AddParagraph(secondMarker);
-                second.LineSpacingBeforePoints = secondSpacingBefore;
-                second.LineSpacingAfterPoints = 0;
+                second.LineSpacingBefore = global::OfficeIMO.OfficeLength.Points(secondSpacingBefore);
+                second.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
 
                 document.Save();
                 document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
@@ -2205,7 +2205,7 @@ namespace OfficeIMO.Tests {
                 first.SetStyleId(contextualStyleId);
                 WordParagraph second = document.AddParagraph(secondMarker);
                 second.SetStyleId(sameStyle ? contextualStyleId : otherStyleId);
-                second.LineSpacingAfterPoints = 0;
+                second.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
 
                 document.Save();
                 document.SaveAsPdf(pdfPath, new WordPdfExportOptions {

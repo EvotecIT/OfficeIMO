@@ -13,9 +13,9 @@ namespace OfficeIMO.Word.Pdf {
                 if (options.Orientation == null) {
                     return size;
                 }
-            } else if (section.PageSettings.Width > 0 && section.PageSettings.Height > 0) {
+            } else if (checked((uint?)(section.PageSettings.Width?.ToTwips())) > 0 && checked((uint?)(section.PageSettings.Height?.ToTwips())) > 0) {
                 size = new PdfCore.PdfPageSize(
-                    OfficeIMO.OfficeLength.Points(section.PageSettings.Width.GetValueOrDefault() / 20D),                    OfficeIMO.OfficeLength.Points(section.PageSettings.Height.GetValueOrDefault() / 20D));
+                    OfficeIMO.OfficeLength.Points(checked((uint?)(section.PageSettings.Width?.ToTwips())).GetValueOrDefault() / 20D),                    OfficeIMO.OfficeLength.Points(checked((uint?)(section.PageSettings.Height?.ToTwips())).GetValueOrDefault() / 20D));
                 // The stored physical dimensions already describe the page, even when
                 // the optional orientation flag is absent. Only an export override
                 // should normalize these dimensions into another orientation.
@@ -44,7 +44,7 @@ namespace OfficeIMO.Word.Pdf {
 
         private static PdfCore.PdfPageSize MapNativePageSize(WordPageSize pageSize) =>
             WordPageSizes.GetDefinition(pageSize) is { } definition
-                ? new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(definition.WidthTwips / 20D),OfficeIMO.OfficeLength.Points(definition.HeightTwips / 20D))
+                ? new PdfCore.PdfPageSize(OfficeIMO.OfficeLength.Points(checked((uint)(definition.Width.ToTwips())) / 20D),OfficeIMO.OfficeLength.Points(checked((uint)(definition.Height.ToTwips())) / 20D))
                 : PdfCore.PdfPageSizes.A4;
 
         private static PdfCore.PdfPageMargins GetNativeMargins(WordSection section, WordPdfExportOptions? options) {
@@ -56,11 +56,11 @@ namespace OfficeIMO.Word.Pdf {
                 return options.Margins.Value;
             }
 
-            double left = section.Margins.Left / 20D;
-            double top = (section.Margins.Top ?? 0) / 20D + headerFooterMarginExpansion.Header;
-            double right = section.Margins.Right / 20D;
-            double bottom = (section.Margins.Bottom ?? 0) / 20D + headerFooterMarginExpansion.Footer;
-            double gutter = section.Margins.Gutter / 20D;
+            double left = checked((uint)(section.Margins.Left.GetValueOrDefault().ToTwips())) / 20D;
+            double top = (checked((int?)(section.Margins.Top?.ToTwips())) ?? 0) / 20D + headerFooterMarginExpansion.Header;
+            double right = checked((uint)(section.Margins.Right.GetValueOrDefault().ToTwips())) / 20D;
+            double bottom = (checked((int?)(section.Margins.Bottom?.ToTwips())) ?? 0) / 20D + headerFooterMarginExpansion.Footer;
+            double gutter = checked((uint)(section.Margins.Gutter.GetValueOrDefault().ToTwips())) / 20D;
             if (section._document.Settings.GutterAtTop) top += gutter;
             else if (section.RtlGutter) right += gutter;
             else left += gutter;

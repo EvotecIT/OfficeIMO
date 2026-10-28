@@ -208,19 +208,19 @@ namespace OfficeIMO.Word {
 
         private static void ApplyLegacyDocTableCellMargins(WordTableCell cell, LegacyDocTableCellMargins margins) {
             if (margins.TopTwips != null) {
-                cell.MarginTopWidth = checked((short)margins.TopTwips.Value);
+                cell.MarginTop = global::OfficeIMO.OfficeLength.Points((checked((short)margins.TopTwips.Value)) / 20D);
             }
 
             if (margins.RightTwips != null) {
-                cell.MarginRightWidth = checked((short)margins.RightTwips.Value);
+                cell.MarginRight = global::OfficeIMO.OfficeLength.Points((checked((short)margins.RightTwips.Value)) / 20D);
             }
 
             if (margins.BottomTwips != null) {
-                cell.MarginBottomWidth = checked((short)margins.BottomTwips.Value);
+                cell.MarginBottom = global::OfficeIMO.OfficeLength.Points((checked((short)margins.BottomTwips.Value)) / 20D);
             }
 
             if (margins.LeftTwips != null) {
-                cell.MarginLeftWidth = checked((short)margins.LeftTwips.Value);
+                cell.MarginLeft = global::OfficeIMO.OfficeLength.Points((checked((short)margins.LeftTwips.Value)) / 20D);
             }
         }
 

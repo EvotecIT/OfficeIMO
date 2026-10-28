@@ -140,8 +140,8 @@ public partial class Word {
         using WordDocument document = WordDocument.Create();
         var page = document.Sections[0]._sectionProperties.GetFirstChild<DocumentFormat.OpenXml.Wordprocessing.PageSize>()!;
         page.Width = 14400U;
-        document.Sections[0].Margins.Left = 1080U;
-        document.Sections[0].Margins.Right = 1080U;
+        document.Sections[0].Margins.Left = global::OfficeIMO.OfficeLength.Points(54D);
+        document.Sections[0].Margins.Right = global::OfficeIMO.OfficeLength.Points(54D);
         using var pixels = new MemoryStream(CreatePhysicalCropTestImage());
         var image = document.AddParagraph().AddImage(pixels, "crop.png", OfficeIMO.OfficeLength.Pixels(360), OfficeIMO.OfficeLength.Pixels(240));
         image.WrapText = WordImageTextWrapping.InFrontOfText;

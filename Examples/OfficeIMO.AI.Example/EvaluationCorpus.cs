@@ -16,11 +16,12 @@ internal static class EvaluationCorpus {
         byte[] table = PdfDocument.Create(builder => builder.Content(content => content.H1("Stock count").Table(new[] {
             new[] { "Item", "Quantity", "Unit price" }, new[] { "Pencil", "12", "1.50" }, new[] { "Notebook", "7", "4.25" }
         })), fontOptions).ToBytes();
-        OfficeImageExportResult tableImage = PdfDocument.Load(new MemoryStream(table)).ExportImages(OfficeImageExportFormat.Png,
-            new PdfImageExportOptions { TargetDpi = 120, MaximumOutputCount = 1, MaximumRasterPixels = 5_000_000 }).Single();
-        byte[] scan = tableImage.Bytes;
+        using var tableDocument = PdfDocument.Load(new MemoryStream(table));
+        byte[] scan = tableDocument.ExportImages(new PdfImageExportOptions {
+            Format = OfficeImageExportFormat.Png, TargetDpi = 120, MaximumOutputCount = 1, MaximumRasterPixels = 5_000_000
+        }).Single();
         byte[] scannedPdf = PdfDocument.Create(builder => builder.Content(content => content.Image(scan, 400, 566)), fontOptions).ToBytes();
-        PdfDocument rotated = PdfDocument.Load(new MemoryStream(scannedPdf));
+        using PdfDocument rotated = PdfDocument.Load(new MemoryStream(scannedPdf));
         rotated.Pages.Rotate(90, 1);
         byte[] mixed = PdfDocument.Create(builder => builder.Content(content => content.Text("Dispatch note: shipment BOX-204.")
             .PageBreak().Image(scan, 400, 566)), fontOptions).ToBytes();

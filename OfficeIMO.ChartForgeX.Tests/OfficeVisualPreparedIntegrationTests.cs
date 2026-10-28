@@ -52,8 +52,8 @@ namespace OfficeIMO.ChartForgeX.Tests
 
                 using (var document = WordDocument.Load(wordPath)) {
                     var image = Assert.Single(document.Images);
-                    Assert.Equal(160D / 0.75D, image.Width!.Value, 6);
-                    Assert.Equal(100D / 0.75D, image.Height!.Value, 6);
+                    Assert.Equal(160D / 0.75D, image.Width!.Value.ToPixels(), 6);
+                    Assert.Equal(100D / 0.75D, image.Height!.Value.ToPixels(), 6);
                     Assert.Equal(description, image.Description);
                     Assert.Equal("Service load", image.Title);
                 }
@@ -68,8 +68,8 @@ namespace OfficeIMO.ChartForgeX.Tests
                 }
                 using (var document = PowerPointDocument.Load(presentationPath)) {
                     var picture = Assert.Single(document.Slides[0].Pictures);
-                    Assert.Equal(160D, picture.WidthPoints, 6);
-                    Assert.Equal(100D, picture.HeightPoints, 6);
+                    Assert.Equal(160D, picture.Width.ToPoints(), 6);
+                    Assert.Equal(100D, picture.Height.ToPoints(), 6);
                     Assert.Equal(description, picture.Description);
                     Assert.Equal("Service load", picture.Title);
                 }

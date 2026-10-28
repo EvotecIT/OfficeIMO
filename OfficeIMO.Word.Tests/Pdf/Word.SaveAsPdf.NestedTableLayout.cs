@@ -283,8 +283,8 @@ public partial class Word {
         WordTable outer = document.AddTable(1, 1, WordTableStyle.TableGrid);
         ConfigureNestedLayoutTable(outer, 6000, 6000);
         WordTableCell parent = outer.Rows[0].Cells[0];
-        parent.MarginLeftWidth = parentPaddingTwips;
-        parent.MarginRightWidth = parentPaddingTwips;
+        parent.MarginLeft = global::OfficeIMO.OfficeLength.Points((parentPaddingTwips) / 20D);
+        parent.MarginRight = global::OfficeIMO.OfficeLength.Points((parentPaddingTwips) / 20D);
         ConfigureNestedLayoutParagraph(parent.Paragraphs[0], "AHEAD");
         WordTable inner = parent.AddTable(1, 2, WordTableStyle.TableGrid);
         ConfigureNestedLayoutTable(inner, 6000, 3000, 3000);
@@ -324,7 +324,7 @@ public partial class Word {
                 WordTableCell cell = row.Cells[index];
                 cell.WidthType = WordTableWidthUnit.Dxa;
                 cell.Width = columns[index];
-                cell.MarginTopWidth = cell.MarginBottomWidth = cell.MarginLeftWidth = cell.MarginRightWidth = 0;
+                cell.MarginTop = cell.MarginBottom = cell.MarginLeft = cell.MarginRight = global::OfficeIMO.OfficeLength.Zero;
             }
         }
     }
@@ -333,7 +333,7 @@ public partial class Word {
         paragraph.Text = text;
         paragraph.FontFamily = "Arial";
         paragraph.FontSize = 10;
-        paragraph.LineSpacingBeforePoints = paragraph.LineSpacingAfterPoints = 0;
+        paragraph.LineSpacingBefore = paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
         paragraph.LineSpacing = 240;
         paragraph.LineSpacingRule = WordLineSpacingRule.Exact;
         paragraph.KeepLinesTogetherOverride = paragraph.KeepWithNextOverride = false;

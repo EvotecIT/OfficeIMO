@@ -78,9 +78,9 @@ public sealed partial class OfficeVisualIntegrationTests {
             }
             using (var document = WordDocument.Load(wordPath)) {
                 var image = Assert.Single(document.Images);
-                Assert.Equal(Math.Min(600D, available), image.Width!.Value * .75D, 3);
+                Assert.Equal(Math.Min(600D, available), image.Width!.Value.ToPoints(), 3);
                 Assert.Equal("Two measured requests.", image.Description);
-                Assert.Equal(2D, image.Width.Value / image.Height!.Value, 3);
+                Assert.Equal(2D, image.Width.Value.ToPoints() / image.Height!.Value.ToPoints(), 3);
             }
             string excelPath = Path.Combine(folder, "fit.xlsx");
             int rangeWidth, rangeHeight;
@@ -104,9 +104,9 @@ public sealed partial class OfficeVisualIntegrationTests {
             }
             using (var presentation = PowerPointDocument.Load(slidesPath)) {
                 var picture = Assert.Single(presentation.Slides[0].Pictures);
-                Assert.Equal(200D, picture.WidthPoints, 3);
-                Assert.Equal(100D, picture.HeightPoints, 3);
-                Assert.Equal(86D, picture.LeftPoints, 3);
+                Assert.Equal(200D, picture.Width.ToPoints(), 3);
+                Assert.Equal(100D, picture.Height.ToPoints(), 3);
+                Assert.Equal(86D, picture.Left.ToPoints(), 3);
                 Assert.Equal("Two measured requests.", picture.Description);
             }
             var pdfOptions = new PdfCreateOptions { CompressContentStreams = false };

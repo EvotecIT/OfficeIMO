@@ -15,12 +15,12 @@ public partial class Word {
         using WordDocument document = WordDocument.Create();
         document.AddHeadersAndFooters();
         WordSection section = document.Sections[0];
-        section.PageSettings.Width = 12240;
-        section.PageSettings.Height = 15840;
-        section.Margins.Top = 1440;
-        section.Margins.Bottom = 1440;
-        section.Margins.Left = section.Margins.Right = 1440;
-        section.Margins.HeaderDistance = section.Margins.FooterDistance = 720;
+        section.PageSettings.Width = global::OfficeIMO.OfficeLength.Points(612D);
+        section.PageSettings.Height = global::OfficeIMO.OfficeLength.Points(792D);
+        section.Margins.Top = global::OfficeIMO.OfficeLength.Points(72D);
+        section.Margins.Bottom = global::OfficeIMO.OfficeLength.Points(72D);
+        section.Margins.Left = section.Margins.Right = global::OfficeIMO.OfficeLength.Points(72D);
+        section.Margins.HeaderDistance = section.Margins.FooterDistance = global::OfficeIMO.OfficeLength.Points(36D);
         WordHeaderFooter story = footer ? section.Footer.Default! : section.Header.Default!;
         if (footer) section.Footer.Default!._footer!.RemoveAllChildren();
         else section.Header.Default!._header!.RemoveAllChildren();
@@ -28,7 +28,7 @@ public partial class Word {
         var body = document.AddParagraph(string.Join("\n", Enumerable.Repeat("BodyMarker", 25)));
         body.FontFamily = "Arial";
         body.FontSize = 12;
-        body.LineSpacingBeforePoints = body.LineSpacingAfterPoints = 0;
+        body.LineSpacingBefore = body.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
         body.LineSpacing = 240;
 
         byte[] bytes = document.ToPdf(new WordPdfExportOptions { IncludePageNumbers = false }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
@@ -56,11 +56,11 @@ public partial class Word {
         document.DifferentFirstPage = true;
         document.DifferentOddAndEvenPages = true;
         WordSection section = document.Sections[0];
-        section.PageSettings.Width = 12240;
-        section.PageSettings.Height = 15840;
-        section.Margins.Top = section.Margins.Bottom = 1440;
-        section.Margins.Left = section.Margins.Right = 1440;
-        section.Margins.HeaderDistance = 720;
+        section.PageSettings.Width = global::OfficeIMO.OfficeLength.Points(612D);
+        section.PageSettings.Height = global::OfficeIMO.OfficeLength.Points(792D);
+        section.Margins.Top = section.Margins.Bottom = global::OfficeIMO.OfficeLength.Points(72D);
+        section.Margins.Left = section.Margins.Right = global::OfficeIMO.OfficeLength.Points(72D);
+        section.Margins.HeaderDistance = global::OfficeIMO.OfficeLength.Points(36D);
         WordHeader[] headers = { section.Header.First!, section.Header.Even!, section.Header.Default! };
         double[] heights = { 48D, 96D, 416D };
         for (int index = 0; index < headers.Length; index++) {
@@ -70,7 +70,7 @@ public partial class Word {
             paragraph.PageBreakBefore = index > 0;
             paragraph.FontFamily = "Arial";
             paragraph.FontSize = 12;
-            paragraph.LineSpacingBeforePoints = paragraph.LineSpacingAfterPoints = 0;
+            paragraph.LineSpacingBefore = paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
         }
         byte[] bytes = document.ToPdf(new WordPdfExportOptions { IncludePageNumbers = false }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         using PdfPigDocument pdf = PdfPigDocument.Open(bytes);
@@ -108,7 +108,7 @@ public partial class Word {
     private static void AddRunningGeometryPicture(WordParagraph paragraph, double width, double height) {
         byte[] png = OfficeRasterImageEncoder.Encode(new OfficeRasterImage(8, 8, OfficeColor.Black), OfficeImageExportFormat.Png);
         using var image = new MemoryStream(png);
-        paragraph.LineSpacingBeforePoints = paragraph.LineSpacingAfterPoints = 0;
+        paragraph.LineSpacingBefore = paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
         paragraph.AddImage(image, "running-picture.png", OfficeIMO.OfficeLength.Pixels(width), OfficeIMO.OfficeLength.Pixels(height));
     }
 }

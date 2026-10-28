@@ -238,8 +238,8 @@ namespace OfficeIMO.Word {
                 var pageSize = WordPageSizes.Letter;
                 // Clone to avoid sharing instances between sections.
                 PageSize pageSizeClone = new PageSize() {
-                    Width = pageSize.WidthTwips,
-                    Height = pageSize.HeightTwips,
+                    Width = checked((uint)(pageSize.Width.ToTwips())),
+                    Height = checked((uint)(pageSize.Height.ToTwips())),
                     Code = pageSize.PaperCode
                 };
 

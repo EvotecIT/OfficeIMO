@@ -871,7 +871,7 @@ public partial class WordRtfConverterTests {
         table.Width = 4250;
         table.Rows[0].RepeatHeaderRowAtTheTopOfEachPage = true;
         table.Rows[0].AllowRowToBreakAcrossPages = false;
-        table.Rows[0].Height = 640;
+        table.Rows[0].Height = global::OfficeIMO.OfficeLength.Points(32D);
         table.Rows[0].Cells[0].HorizontalMerge = WordCellMerge.Restart;
         table.Rows[0].Cells[1].HorizontalMerge = WordCellMerge.Continue;
         table.Rows[0].Cells[0].VerticalMerge = WordCellMerge.Restart;
@@ -886,10 +886,10 @@ public partial class WordRtfConverterTests {
         table.Rows[0].Cells[0].ShadingFillColorHex = "E6F2FF";
         table.Rows[0].Cells[0].ShadingPattern = WordShadingPattern.Percent37;
         table.Rows[0].Cells[0]._tableCellProperties!.Shading!.Color = "00AA55";
-        table.Rows[0].Cells[0].MarginTopWidth = 120;
-        table.Rows[0].Cells[0].MarginLeftWidth = 180;
-        table.Rows[0].Cells[0].MarginBottomWidth = 240;
-        table.Rows[0].Cells[0].MarginRightWidth = 300;
+        table.Rows[0].Cells[0].MarginTop = global::OfficeIMO.OfficeLength.Points(6D);
+        table.Rows[0].Cells[0].MarginLeft = global::OfficeIMO.OfficeLength.Points(9D);
+        table.Rows[0].Cells[0].MarginBottom = global::OfficeIMO.OfficeLength.Points(12D);
+        table.Rows[0].Cells[0].MarginRight = global::OfficeIMO.OfficeLength.Points(15D);
         table.Rows[0].Cells[0].Borders.TopStyle = WordBorderStyle.Single;
         table.Rows[0].Cells[0].Borders.TopSize = 12U;
         table.Rows[0].Cells[0].Borders.TopColorHex = "4472C4";
@@ -977,7 +977,7 @@ public partial class WordRtfConverterTests {
         Assert.Equal(4250, roundTripTable.Width);
         Assert.True(roundTripTable.Rows[0].RepeatHeaderRowAtTheTopOfEachPage);
         Assert.False(roundTripTable.Rows[0].AllowRowToBreakAcrossPages);
-        Assert.Equal(640, roundTripTable.Rows[0].Height);
+        Assert.Equal(640, checked((int?)(roundTripTable.Rows[0].Height?.ToTwips())));
         Assert.Equal(WordCellMerge.Restart, roundTripTable.Rows[0].Cells[0].HorizontalMerge);
         Assert.Equal(WordCellMerge.Continue, roundTripTable.Rows[0].Cells[1].HorizontalMerge);
         Assert.Equal(WordCellMerge.Restart, roundTripTable.Rows[0].Cells[0].VerticalMerge);
@@ -992,10 +992,10 @@ public partial class WordRtfConverterTests {
         Assert.Equal("E6F2FF", roundTripTable.Rows[0].Cells[0].ShadingFillColorHex);
         Assert.Equal("00AA55", roundTripTable.Rows[0].Cells[0]._tableCellProperties?.Shading?.Color?.Value);
         Assert.Equal(WordShadingPattern.Percent37, roundTripTable.Rows[0].Cells[0].ShadingPattern);
-        Assert.Equal((short?)120, roundTripTable.Rows[0].Cells[0].MarginTopWidth);
-        Assert.Equal((short?)180, roundTripTable.Rows[0].Cells[0].MarginLeftWidth);
-        Assert.Equal((short?)240, roundTripTable.Rows[0].Cells[0].MarginBottomWidth);
-        Assert.Equal((short?)300, roundTripTable.Rows[0].Cells[0].MarginRightWidth);
+        Assert.Equal((short?)120, checked((short?)(roundTripTable.Rows[0].Cells[0].MarginTop?.ToTwips())));
+        Assert.Equal((short?)180, checked((short?)(roundTripTable.Rows[0].Cells[0].MarginLeft?.ToTwips())));
+        Assert.Equal((short?)240, checked((short?)(roundTripTable.Rows[0].Cells[0].MarginBottom?.ToTwips())));
+        Assert.Equal((short?)300, checked((short?)(roundTripTable.Rows[0].Cells[0].MarginRight?.ToTwips())));
         Assert.Equal(WordBorderStyle.Single, roundTripTable.Rows[0].Cells[0].Borders.TopStyle);
         Assert.Equal(12U, roundTripTable.Rows[0].Cells[0].Borders.TopSize);
         Assert.Equal("4472C4", roundTripTable.Rows[0].Cells[0].Borders.TopColorHex);

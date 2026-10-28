@@ -110,9 +110,9 @@ namespace OfficeIMO.Tests {
             using (var doc = WordDocument.Load(filePath)) {
                 // Compute expected EMUs from page size (Letter) and Normal margins
                 var sect = doc.Sections.First();
-                double widthTwips = sect.PageSettings.Width.GetValueOrDefault(); // twips
-                double leftTwips = sect.Margins.Left!;
-                double rightTwips = sect.Margins.Right!;
+                double widthTwips = checked((uint?)(sect.PageSettings.Width?.ToTwips())).GetValueOrDefault(); // twips
+                double leftTwips = checked((uint)(sect.Margins.Left.GetValueOrDefault().ToTwips()))!;
+                double rightTwips = checked((uint)(sect.Margins.Right.GetValueOrDefault().ToTwips()))!;
                 double contentInches = (widthTwips - leftTwips - rightTwips) / 1440.0;
                 long expectedCx = (long)System.Math.Round(contentInches * 914400); // EMUs
                 long expectedCy = (long)System.Math.Round((240.0 / 96.0) * 914400); // 240px -> inches -> EMUs

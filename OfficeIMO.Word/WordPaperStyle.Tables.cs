@@ -47,8 +47,8 @@ public sealed partial class WordPaperStyle {
                     paragraph.FontSizePoints = header ? 9 : TableFontSizePoints;
                     paragraph.Bold = header;
                     paragraph.ColorHex = header ? Muted : Ink;
-                    paragraph.LineSpacingBeforePoints = TableParagraphSpacingPoints;
-                    paragraph.LineSpacingAfterPoints = TableParagraphSpacingPoints;
+                    paragraph.LineSpacingBefore = global::OfficeIMO.OfficeLength.Points(TableParagraphSpacingPoints);
+                    paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Points(TableParagraphSpacingPoints);
                     if (TableLineSpacingPoints.HasValue) {
                         paragraph.LineSpacingRule = WordLineSpacingRule.Exact;
                         paragraph.LineSpacingPoints = TableLineSpacingPoints.Value;

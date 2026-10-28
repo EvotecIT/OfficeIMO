@@ -156,7 +156,7 @@ public partial class Word {
             section.Append(new W.Columns { ColumnCount = 2, EqualWidth = true, Space = "720" });
         }
         var first = document.AddParagraph("A");
-        if (!wide) first.LineSpacingAfterPoints = 610D;
+        if (!wide) first.LineSpacingAfter = global::OfficeIMO.OfficeLength.Points(610D);
         var p = document.AddParagraph();
         p._paragraph.ParagraphProperties = wide
             ? new W.ParagraphProperties(new W.SpacingBetweenLines { Line = "1600", LineRule = W.LineSpacingRuleValues.AtLeast })
@@ -173,11 +173,11 @@ public partial class Word {
         Action<UglyToad.PdfPig.Content.Page>? inspect = null) {
         using WordDocument document = WordDocument.Create();
         SetObjectMarkNormalStyle(document);
-        document.AddParagraph("A").LineSpacingAfterPoints = neighborSpacing;
+        document.AddParagraph("A").LineSpacingAfter = global::OfficeIMO.OfficeLength.Points(neighborSpacing);
         if (kind != "none") {
             void AddBlank() {
                 WordParagraph blank = document.AddParagraph();
-                if (spacedBlank) { blank.LineSpacingBeforePoints = 20D; blank.LineSpacingAfterPoints = 20D; }
+                if (spacedBlank) { blank.LineSpacingBefore = global::OfficeIMO.OfficeLength.Points(20D); blank.LineSpacingAfter = global::OfficeIMO.OfficeLength.Points(20D); }
             }
             if (blankBefore) AddBlank();
             WordParagraph p = document.AddParagraph();
@@ -190,8 +190,8 @@ public partial class Word {
                     });
                     p.SetStyleId("ObjectSpacing");
                 } else {
-                    p.LineSpacingBeforePoints = 20;
-                    p.LineSpacingAfterPoints = 20;
+                    p.LineSpacingBefore = global::OfficeIMO.OfficeLength.Points(20D);
+                    p.LineSpacingAfter = global::OfficeIMO.OfficeLength.Points(20D);
                 }
             }
             if (minimumHeight > 0D) {
@@ -240,7 +240,7 @@ public partial class Word {
             }
             if (followingBlank) AddBlank();
         }
-        document.AddParagraph("B").LineSpacingBeforePoints = neighborSpacing;
+        document.AddParagraph("B").LineSpacingBefore = global::OfficeIMO.OfficeLength.Points(neighborSpacing);
         using var pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions {
             IncludePageNumbers = false, ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic()
         }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));

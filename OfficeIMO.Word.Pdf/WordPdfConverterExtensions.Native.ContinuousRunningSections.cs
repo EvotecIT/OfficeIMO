@@ -46,8 +46,8 @@ public static partial class WordPdfConverterExtensions {
         // running edges fixed. First/even variants and numbering stay outside
         // this source profile.
         return ReferenceEquals(previous.ResolveDefaultFooter()?._footer, current.ResolveDefaultFooter()?._footer) &&
-            NativeDoubleEquals(previous.Margins.HeaderDistance, current.Margins.HeaderDistance) &&
-            NativeDoubleEquals(previous.Margins.FooterDistance, current.Margins.FooterDistance);
+            NativeDoubleEquals(checked((uint)(previous.Margins.HeaderDistance.GetValueOrDefault().ToTwips())), checked((uint)(current.Margins.HeaderDistance.GetValueOrDefault().ToTwips()))) &&
+            NativeDoubleEquals(checked((uint)(previous.Margins.FooterDistance.GetValueOrDefault().ToTwips())), checked((uint)(current.Margins.FooterDistance.GetValueOrDefault().ToTwips())));
     }
 
     private static bool IsNativePlainContinuousRunningStory(WordHeaderFooter? story) =>

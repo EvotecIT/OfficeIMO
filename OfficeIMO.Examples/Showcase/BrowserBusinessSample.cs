@@ -46,8 +46,8 @@ internal static class BrowserBusinessSample {
             paragraph.FontSize = size;
             paragraph.Bold = bold;
             paragraph.Color = OfficeIMO.OfficeColor.FromRgb(15, 23, 42);
-            paragraph.LineSpacingBeforePoints = size == 16 ? 14 : 3;
-            paragraph.LineSpacingAfterPoints = size == 26 ? 10 : 6;
+            paragraph.LineSpacingBefore = global::OfficeIMO.OfficeLength.Points(size == 16 ? 14 : 3);
+            paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Points(size == 26 ? 10 : 6);
         }
 
         void Table(string[,] values) {
@@ -59,10 +59,10 @@ internal static class BrowserBusinessSample {
                     paragraph.FontFamily = "Carlito";
                     paragraph.FontSize = 11;
                     paragraph.Bold = row == 0;
-                    paragraph.LineSpacingBeforePoints = 3;
-                    paragraph.LineSpacingAfterPoints = 3;
-                    table.Rows[row].Cells[column].MarginTopCentimeters = 0.08;
-                    table.Rows[row].Cells[column].MarginBottomCentimeters = 0.08;
+                    paragraph.LineSpacingBefore = global::OfficeIMO.OfficeLength.Points(3D);
+                    paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Points(3D);
+                    table.Rows[row].Cells[column].MarginTop = global::OfficeIMO.OfficeLength.Centimeters(0.08D);
+                    table.Rows[row].Cells[column].MarginBottom = global::OfficeIMO.OfficeLength.Centimeters(0.08D);
                     if (row == 0) {
                         table.Rows[row].Cells[column].ShadingFillColorHex = "E8EEF8";
                     }

@@ -105,7 +105,7 @@ public partial class Word {
                 WordParagraph first = document.AddParagraph("FirstShaded");
                 WordParagraph second = document.AddParagraph("SecondShaded");
                 ConfigurePartialColumnParagraph(first); ConfigurePartialColumnParagraph(second);
-                first.LineSpacingAfterPoints = 8; second.LineSpacingBeforePoints = 12; second.LineSpacingAfterPoints = 6;
+                first.LineSpacingAfter = global::OfficeIMO.OfficeLength.Points(8D); second.LineSpacingBefore = global::OfficeIMO.OfficeLength.Points(12D); second.LineSpacingAfter = global::OfficeIMO.OfficeLength.Points(6D);
                 if (shaded) first.ShadingFillColorHex = second.ShadingFillColorHex = "00FFFF";
                 ConfigurePartialColumnParagraph(document.AddParagraph("AfterShading"));
                 source = document.ToBytes(format);
@@ -140,8 +140,8 @@ public partial class Word {
                 ConfigurePartialColumnParagraph(document.AddParagraph("Before"));
                 WordParagraph paragraph = document.AddParagraph("IndentedFirst\nIndentedSecond");
                 ConfigurePartialColumnParagraph(paragraph);
-                paragraph.IndentationBeforePoints = 12; paragraph.IndentationFirstLinePoints = 6;
-                paragraph.LineSpacingBeforePoints = 12; paragraph.LineSpacingAfterPoints = 8;
+                paragraph.IndentationBefore = global::OfficeIMO.OfficeLength.Points(12D); paragraph.IndentationFirstLine = global::OfficeIMO.OfficeLength.Points(6D);
+                paragraph.LineSpacingBefore = global::OfficeIMO.OfficeLength.Points(12D); paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Points(8D);
                 if (shaded) paragraph.ShadingFillColorHex = "00FFFF";
                 ConfigurePartialColumnParagraph(document.AddParagraph("After"));
                 source = document.ToBytes(format);

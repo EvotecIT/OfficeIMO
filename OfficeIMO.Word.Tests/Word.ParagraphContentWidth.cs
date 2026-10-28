@@ -10,16 +10,16 @@ public sealed class WordParagraphContentWidthTests {
         using var document = WordDocument.Create();
         SetPage(document.Sections[0], 12000);
         WordParagraph first = document.AddParagraph("First section");
-        first.IndentationBeforePoints = 20;
-        first.IndentationAfterPoints = 10;
-        first.IndentationFirstLinePoints = 15;
+        first.IndentationBefore = global::OfficeIMO.OfficeLength.Points(20D);
+        first.IndentationAfter = global::OfficeIMO.OfficeLength.Points(10D);
+        first.IndentationFirstLine = global::OfficeIMO.OfficeLength.Points(15D);
         WordSection second = document.AddSection();
         SetPage(second, 18000);
         WordParagraph last = document.AddParagraph("Second section");
 
         Assert.Equal(455D, first.GetContentWidthPoints());
         Assert.Equal(800D, last.GetContentWidthPoints());
-        second.Margins.Gutter = 1000;
+        second.Margins.Gutter = global::OfficeIMO.OfficeLength.Points(50D);
         Assert.Equal(750D, last.GetContentWidthPoints());
         document.Settings.GutterAtTop = true;
         Assert.Equal(800D, last.GetContentWidthPoints());
@@ -30,10 +30,10 @@ public sealed class WordParagraphContentWidthTests {
         using var document = WordDocument.Create();
         SetPage(document.Sections[0], 12000);
         WordParagraph paragraph = document.AddParagraph("Hanging paragraph");
-        paragraph.IndentationBeforePoints = 30;
-        paragraph.IndentationAfterPoints = 10;
-        paragraph.IndentationHangingPoints = 15;
-        paragraph.IndentationFirstLinePoints = 25;
+        paragraph.IndentationBefore = global::OfficeIMO.OfficeLength.Points(30D);
+        paragraph.IndentationAfter = global::OfficeIMO.OfficeLength.Points(10D);
+        paragraph.IndentationHanging = global::OfficeIMO.OfficeLength.Points(15D);
+        paragraph.IndentationFirstLine = global::OfficeIMO.OfficeLength.Points(25D);
 
         Assert.Equal(460D, paragraph.GetContentWidthPoints());
     }
@@ -63,12 +63,12 @@ public sealed class WordParagraphContentWidthTests {
         WordTable table = document.AddTable(1, 2);
         table.GridColumnWidth = new List<int> { 2400, 4800 };
         WordTableCell cell = table.Rows[0].Cells[0];
-        cell.MarginLeftWidth = 200;
-        cell.MarginRightWidth = 200;
+        cell.MarginLeft = global::OfficeIMO.OfficeLength.Points(10D);
+        cell.MarginRight = global::OfficeIMO.OfficeLength.Points(10D);
         WordParagraph paragraph = cell.AddParagraph("Cell content");
         double initialWidth = paragraph.GetContentWidthPoints();
         Assert.InRange(initialWidth, 90D, 110D);
-        paragraph.IndentationBeforePoints = 10;
+        paragraph.IndentationBefore = global::OfficeIMO.OfficeLength.Points(10D);
         Assert.Equal(initialWidth - 10D, paragraph.GetContentWidthPoints());
 
         if (gridSpan) {
@@ -95,8 +95,8 @@ public sealed class WordParagraphContentWidthTests {
             WordTable table = document.AddTable(1, 1);
             table.GridColumnWidth = new List<int> { 7200 };
             WordTableCell cell = table.Rows[0].Cells[0];
-            cell.MarginLeftWidth = 200;
-            cell.MarginRightWidth = 200;
+            cell.MarginLeft = global::OfficeIMO.OfficeLength.Points(10D);
+            cell.MarginRight = global::OfficeIMO.OfficeLength.Points(10D);
             paragraph = cell.AddParagraph("Cell chart");
         } else {
             paragraph = document.AddParagraph("Second section chart");
@@ -129,7 +129,7 @@ public sealed class WordParagraphContentWidthTests {
         SetPage(second, 12000);
         Assert.Equal(500D, paragraph.GetContentWidthPoints());
 
-        second.PageSettings.Width = 18000;
+        second.PageSettings.Width = global::OfficeIMO.OfficeLength.Points(900D);
         InvalidOperationException error = Assert.Throws<InvalidOperationException>(() => paragraph.GetContentWidthPoints());
         Assert.Contains("explicit drawing dimensions", error.Message);
     }
@@ -139,14 +139,14 @@ public sealed class WordParagraphContentWidthTests {
         using var document = WordDocument.Create();
         SetPage(document.Sections[0], 12000);
         WordParagraph paragraph = document.AddParagraph("No usable space");
-        paragraph.IndentationBeforePoints = 500;
+        paragraph.IndentationBefore = global::OfficeIMO.OfficeLength.Points(500D);
         Assert.Throws<InvalidOperationException>(() => paragraph.GetContentWidthPoints());
     }
 
     private static void SetPage(WordSection section, uint widthTwips) {
-        section.PageSettings.Width = widthTwips;
-        section.Margins.Left = 1000;
-        section.Margins.Right = 1000;
-        section.Margins.Gutter = 0;
+        section.PageSettings.Width = global::OfficeIMO.OfficeLength.Points((widthTwips) / 20D);
+        section.Margins.Left = global::OfficeIMO.OfficeLength.Points(50D);
+        section.Margins.Right = global::OfficeIMO.OfficeLength.Points(50D);
+        section.Margins.Gutter = global::OfficeIMO.OfficeLength.Zero;
     }
 }

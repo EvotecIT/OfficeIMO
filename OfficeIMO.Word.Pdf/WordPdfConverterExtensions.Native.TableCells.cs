@@ -395,29 +395,29 @@ namespace OfficeIMO.Word.Pdf {
 
         private static (double Left, double Right, double FirstLine) ResolveNativeTableCellParagraphIndentation(WordParagraph paragraph, NativeTableStyleDefaults tableStyleDefaults, bool listItem) {
             NativeParagraphStyleDefaults styleDefaults = GetNativeParagraphStyleDefaults(paragraph);
-            double leftIndent = paragraph.IndentationBeforePoints ?? styleDefaults.LeftIndent ?? tableStyleDefaults.ParagraphLeftIndent ?? 0D;
-            double rightIndent = paragraph.IndentationAfterPoints ?? styleDefaults.RightIndent ?? tableStyleDefaults.ParagraphRightIndent ?? 0D;
-            double firstLineIndent = paragraph.IndentationFirstLinePoints ?? styleDefaults.FirstLineIndent ?? tableStyleDefaults.ParagraphFirstLineIndent ?? 0D;
+            double leftIndent = paragraph.IndentationBefore?.ToPoints() ?? styleDefaults.LeftIndent ?? tableStyleDefaults.ParagraphLeftIndent ?? 0D;
+            double rightIndent = paragraph.IndentationAfter?.ToPoints() ?? styleDefaults.RightIndent ?? tableStyleDefaults.ParagraphRightIndent ?? 0D;
+            double firstLineIndent = paragraph.IndentationFirstLine?.ToPoints() ?? styleDefaults.FirstLineIndent ?? tableStyleDefaults.ParagraphFirstLineIndent ?? 0D;
             WordDocumentTraversal.ListInfo? listInfo = listItem ? WordDocumentTraversal.GetListInfo(paragraph) : null;
             if (listInfo != null) {
                 bool useParagraphStyleIndent = ShouldApplyNativeListParagraphStyleIndent(paragraph);
-                leftIndent = paragraph.IndentationBeforePoints ??
+                leftIndent = paragraph.IndentationBefore?.ToPoints() ??
                     (useParagraphStyleIndent ? styleDefaults.LeftIndent : null) ??
                     ConvertNativeTwipsToPoints(listInfo.Value.LeftIndentTwips ?? ((listInfo.Value.Level + 1) * 720)) ?? leftIndent;
-                double hangingIndent = paragraph.IndentationHangingPoints ??
+                double hangingIndent = paragraph.IndentationHanging?.ToPoints() ??
                     (useParagraphStyleIndent ? GetNativeStyleHangingIndent(styleDefaults) : null) ??
                     ConvertNativeTwipsToPoints(listInfo.Value.HangingIndentTwips ?? 360) ?? 0D;
-                firstLineIndent = paragraph.IndentationHangingPoints.HasValue
+                firstLineIndent = paragraph.IndentationHanging.HasValue
                     ? -hangingIndent
-                    : paragraph.IndentationFirstLinePoints ??
+                    : paragraph.IndentationFirstLine?.ToPoints() ??
                         (useParagraphStyleIndent ? styleDefaults.FirstLineIndent : null) ?? -hangingIndent;
             }
             leftIndent = NormalizeNativeTableCellIndent(leftIndent);
             rightIndent = NormalizeNativeTableCellIndent(rightIndent);
             firstLineIndent = double.IsNaN(firstLineIndent) || double.IsInfinity(firstLineIndent) ? 0D : firstLineIndent;
 
-            if (paragraph.IndentationHangingPoints.HasValue) {
-                double hangingIndent = paragraph.IndentationHangingPoints.Value;
+            if (paragraph.IndentationHanging.HasValue) {
+                double hangingIndent = paragraph.IndentationHanging.Value.ToPoints();
                 firstLineIndent = -hangingIndent;
             }
 
@@ -452,7 +452,7 @@ namespace OfficeIMO.Word.Pdf {
                 styleDefaults,
                 nativeFontMap);
             W.SpacingBetweenLines? directSpacing = paragraph._paragraph?.ParagraphProperties?.GetFirstChild<W.SpacingBetweenLines>();
-            double spacingBefore = ResolveNativeParagraphSpacingInLines(paragraph, styleDefaults, nativeDefaults, tableStyleDefaults).Before ?? paragraph.LineSpacingBeforePoints ??
+            double spacingBefore = ResolveNativeParagraphSpacingInLines(paragraph, styleDefaults, nativeDefaults, tableStyleDefaults).Before ?? paragraph.LineSpacingBefore?.ToPoints() ??
                 GetNativeSpacingBeforePoints(directSpacing, fontSize, lineHeight) ??
                 styleDefaults.SpacingBefore ??
                 tableStyleDefaults.ParagraphSpacingBefore ??
@@ -478,7 +478,7 @@ namespace OfficeIMO.Word.Pdf {
                 styleDefaults,
                 nativeFontMap);
             W.SpacingBetweenLines? directSpacing = paragraph._paragraph?.ParagraphProperties?.GetFirstChild<W.SpacingBetweenLines>();
-            double spacingAfter = ResolveNativeParagraphSpacingInLines(paragraph, styleDefaults, nativeDefaults, tableStyleDefaults).After ?? paragraph.LineSpacingAfterPoints ??
+            double spacingAfter = ResolveNativeParagraphSpacingInLines(paragraph, styleDefaults, nativeDefaults, tableStyleDefaults).After ?? paragraph.LineSpacingAfter?.ToPoints() ??
                 GetNativeSpacingAfterPoints(directSpacing, fontSize, lineHeight) ??
                 styleDefaults.SpacingAfter ??
                 tableStyleDefaults.ParagraphSpacingAfter ??

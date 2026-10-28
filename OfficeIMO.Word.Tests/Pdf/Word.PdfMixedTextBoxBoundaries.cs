@@ -99,11 +99,11 @@ public partial class Word {
         double Measure(double spacing) {
             using WordDocument document = CreateJoinedParagraphDocument();
             WordParagraph paragraph = document.AddParagraph("PREFIX");
-            paragraph.LineSpacingBeforePoints = before ? spacing : 0D;
-            paragraph.LineSpacingAfterPoints = before ? 0D : spacing;
+            paragraph.LineSpacingBefore = global::OfficeIMO.OfficeLength.Points(before ? spacing : 0D);
+            paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Points(before ? 0D : spacing);
             paragraph.AddTextBox("BOX", WordImageTextWrapping.Square);
             paragraph.AddText("SUFFIX");
-            document.AddParagraph("AFTER").LineSpacingBeforePoints = 0D;
+            document.AddParagraph("AFTER").LineSpacingBefore = global::OfficeIMO.OfficeLength.Zero;
             var pdf = OfficeIMO.Pdf.PdfReadDocument.Open(document.ToPdf(new WordPdfExportOptions { IncludePageNumbers = false }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
             return Assert.Single(pdf.Pages.SelectMany(page => page.GetTextSpans()),
                 span => span.Text.Contains(before ? "PREFIX" : "AFTER")).Y;

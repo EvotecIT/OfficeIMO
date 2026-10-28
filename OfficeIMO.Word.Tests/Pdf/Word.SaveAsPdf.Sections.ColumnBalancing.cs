@@ -46,8 +46,8 @@ public partial class Word {
                 paragraph.FontSize = 12;
                 paragraph.LineSpacing = 400;
                 paragraph.LineSpacingRule = WordLineSpacingRule.Exact;
-                paragraph.LineSpacingBeforePoints = 0;
-                paragraph.LineSpacingAfterPoints = 0;
+                paragraph.LineSpacingBefore = global::OfficeIMO.OfficeLength.Zero;
+                paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
                 paragraph.AvoidWidowAndOrphanOverride = false;
             }
         }

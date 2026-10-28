@@ -22,9 +22,9 @@ public sealed class PdfShapeGroupTests {
     public void BehindTextGroupsFollowMirroredMarginsAndRetainPageRelativePositions(bool marginRelative, int startNumber) {
         using WordDocument word = WordDocument.Create();
         var section = word.Sections[0];
-        section.PageSettings.Width = 6000; section.PageSettings.Height = 6000;
-        section.Margins.Left = 800; section.Margins.Right = 1400;
-        section.Margins.Top = section.Margins.Bottom = 800;
+        section.PageSettings.Width = global::OfficeIMO.OfficeLength.Points(300D); section.PageSettings.Height = global::OfficeIMO.OfficeLength.Points(300D);
+        section.Margins.Left = global::OfficeIMO.OfficeLength.Points(40D); section.Margins.Right = global::OfficeIMO.OfficeLength.Points(70D);
+        section.Margins.Top = section.Margins.Bottom = global::OfficeIMO.OfficeLength.Points(40D);
         section.AddPageNumbering(startNumber);
         word.Settings.MirrorMargins = true;
         word.AddParagraph("First");
@@ -133,8 +133,8 @@ public sealed class PdfShapeGroupTests {
     [InlineData(true, true)]
     public void ParagraphRelativeGroupFollowsAnchorAfterPaginationAndCoexistsWithImage(bool columns, bool heading) {
         using WordDocument word = WordDocument.Create();
-        word.Sections[0].PageSettings.Width = 6000;
-        word.Sections[0].PageSettings.Height = 6000;
+        word.Sections[0].PageSettings.Width = global::OfficeIMO.OfficeLength.Points(300D);
+        word.Sections[0].PageSettings.Height = global::OfficeIMO.OfficeLength.Points(300D);
         if (columns) { word.Sections[0].ColumnCount = 2; word.Sections[0].ColumnsSpace = 120; }
         for (int i = 0; i < (columns ? 40 : 20); i++) word.AddParagraph("Filler " + i).FontSize = 12;
         var paragraph = word.AddParagraph();
@@ -393,7 +393,7 @@ public sealed class PdfShapeGroupTests {
         table.LayoutMode = WordTableLayoutMode.Fixed;
         table.WidthType = WordTableWidthUnit.Dxa;
         table.Width = 6400;
-        table.Rows[0].Height = 900;
+        table.Rows[0].Height = global::OfficeIMO.OfficeLength.Points(45D);
         table.Rows[0].Cells[0].Paragraphs[0].Text = "Floating";
         table._tableProperties!.TablePositionProperties = new W.TablePositionProperties {
             HorizontalAnchor = W.HorizontalAnchorValues.Margin, VerticalAnchor = W.VerticalAnchorValues.Text,

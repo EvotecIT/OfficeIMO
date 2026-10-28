@@ -55,6 +55,10 @@ internal static class EvaluationLayoutCorpus {
 
     private static EvaluationCase Case(string id, string extension, byte[] source, OfficeAiRequest request, bool images, EvaluationGold gold) =>
         new(id, extension, source, request, images, "Independent layout/reserve gold; inspect source and citations", gold) { Split = "heldout" };
-    private static byte[] Raster(byte[] pdf) => PdfDocument.Load(new MemoryStream(pdf)).ExportImages(OfficeImageExportFormat.Png,
-        new PdfImageExportOptions { TargetDpi = 120, MaximumOutputCount = 1, MaximumRasterPixels = 5_000_000 }).Single().Bytes;
+    private static byte[] Raster(byte[] pdf) {
+        using var document = PdfDocument.Load(new MemoryStream(pdf));
+        return document.ExportImages(new PdfImageExportOptions {
+            Format = OfficeImageExportFormat.Png, TargetDpi = 120, MaximumOutputCount = 1, MaximumRasterPixels = 5_000_000
+        }).Single();
+    }
 }

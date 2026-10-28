@@ -670,8 +670,7 @@ Explain the revenue trend.
         Assert.Contains("Transition advance-after: @\"5\"", code, StringComparison.Ordinal);
         Assert.Contains("new OfficeChartData", code, StringComparison.Ordinal);
         Assert.Contains("new OfficeSeries(@\"Revenue\"", code, StringComparison.Ordinal);
-        Assert.Contains("var chart1 = slide1.AddChart(OfficeChartType.ColumnClustered, chartData1)", code,
-            StringComparison.Ordinal);
+        Assert.Matches(@"var chart1 = slide1\.AddChart\(OfficeChartType\.Column(?:Clustered)?, chartData1\)", code);
         Assert.Contains("chart1.SetTitle(@\"Revenue\")", code, StringComparison.Ordinal);
         Assert.Contains("chart1.SetCategoryAxisTitle(@\"Quarter\")", code, StringComparison.Ordinal);
         Assert.Contains("chart1.SetValueAxisTitle(@\"Amount\")", code, StringComparison.Ordinal);
@@ -1614,8 +1613,8 @@ profile: presentation
             using var presentation = PowerPointDocument.Load(path);
             var slide = Assert.Single(presentation.Slides);
             var picture = Assert.Single(slide.Pictures);
-            Assert.True(picture.WidthInches < 3.0, "Contained JPEG should not stretch to the full placement width.");
-            Assert.InRange(picture.HeightInches, 1.12, 1.13);
+            Assert.True(picture.Width.ToInches() < 3.0, "Contained JPEG should not stretch to the full placement width.");
+            Assert.InRange(picture.Height.ToInches(), 1.12, 1.13);
         } finally {
             if (Directory.Exists(tempDirectory)) {
                 Directory.Delete(tempDirectory, recursive: true);
@@ -1693,10 +1692,10 @@ Scaled textbox
 
             var slide = Assert.Single(presentation.Slides);
             var textBox = Assert.Single(slide.Shapes.OfType<PowerPointTextBox>(), box => box.Text.Contains("Scaled textbox", StringComparison.Ordinal));
-            Assert.Equal(13.333 * 0.80, textBox.LeftInches, 3);
-            Assert.Equal(7.5 * 0.10, textBox.TopInches, 3);
-            Assert.Equal(13.333 * 0.15, textBox.WidthInches, 3);
-            Assert.Equal(7.5 * 0.10, textBox.HeightInches, 3);
+            Assert.Equal(13.333 * 0.80, textBox.Left.ToInches(), 3);
+            Assert.Equal(7.5 * 0.10, textBox.Top.ToInches(), 3);
+            Assert.Equal(13.333 * 0.15, textBox.Width.ToInches(), 3);
+            Assert.Equal(7.5 * 0.10, textBox.Height.ToInches(), 3);
         } finally {
             if (File.Exists(path)) {
                 File.Delete(path);

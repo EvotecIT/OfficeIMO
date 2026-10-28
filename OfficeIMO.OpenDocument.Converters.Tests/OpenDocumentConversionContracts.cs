@@ -68,11 +68,11 @@ public sealed class OpenDocumentConversionContracts {
         using WordDocument source = WordDocument.Create();
         WordParagraph paragraph = source.AddParagraph("Styled text");
         paragraph.ParagraphAlignment = WordParagraphAlignment.Center;
-        paragraph.IndentationBeforePoints = 18;
-        paragraph.IndentationAfterPoints = 9;
-        paragraph.IndentationFirstLinePoints = 12;
-        paragraph.LineSpacingBeforePoints = 6;
-        paragraph.LineSpacingAfterPoints = 8;
+        paragraph.IndentationBefore = global::OfficeIMO.OfficeLength.Points(18D);
+        paragraph.IndentationAfter = global::OfficeIMO.OfficeLength.Points(9D);
+        paragraph.IndentationFirstLine = global::OfficeIMO.OfficeLength.Points(12D);
+        paragraph.LineSpacingBefore = global::OfficeIMO.OfficeLength.Points(6D);
+        paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Points(8D);
         paragraph.ShadingFillColorHex = "EAF2F8";
         paragraph.Bold = true;
         paragraph.Italic = true;

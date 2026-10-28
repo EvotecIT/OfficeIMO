@@ -66,10 +66,10 @@ public partial class Word {
     private static WordDocument CreateEndnoteCapacityDocument(int continuedSeparatorAdvance, int paragraphCount, out string[] tokens) {
         using WordDocument source = CreateEndnoteContinuationDocument(15);
         WordSection section = source.Sections[0];
-        section.PageSettings.Width = 8000;
-        section.PageSettings.Height = 10000;
-        section.Margins.Top = section.Margins.Bottom = 800;
-        section.Margins.Left = section.Margins.Right = 800U;
+        section.PageSettings.Width = global::OfficeIMO.OfficeLength.Points(400D);
+        section.PageSettings.Height = global::OfficeIMO.OfficeLength.Points(500D);
+        section.Margins.Top = section.Margins.Bottom = global::OfficeIMO.OfficeLength.Points(40D);
+        section.Margins.Left = section.Margins.Right = global::OfficeIMO.OfficeLength.Points(40D);
         WordParagraph reference = source.AddParagraph("CAPACITYBODYREFERENCE");
         tokens = AddEndnoteContinuationBody(reference, "ENCAPACITY", paragraphCount);
         reference._paragraph.ParagraphProperties = (W.ParagraphProperties)EndnoteContinuationParagraph(string.Empty).ParagraphProperties!.CloneNode(true);

@@ -1031,9 +1031,9 @@ namespace OfficeIMO.Tests {
 
             var img = Assert.Single(doc.Images);
             var section = doc.Sections.Last();
-            var contentWidthTwips = (section.PageSettings.Width ?? WordPageSizes.A4.WidthTwips)
-                - section.Margins.Left
-                - section.Margins.Right;
+            var contentWidthTwips = (checked((uint?)(section.PageSettings.Width?.ToTwips())) ?? checked((uint)(WordPageSizes.A4.Width.ToTwips())))
+                - checked((uint)(section.Margins.Left.GetValueOrDefault().ToTwips()))
+                - checked((uint)(section.Margins.Right.GetValueOrDefault().ToTwips()));
             var expectedWidthPixels = contentWidthTwips / 15D * 0.5D;
             Assert.NotNull(img.Width);
             Assert.InRange(img.Width!.Value.ToPixels(), expectedWidthPixels - 0.5D, expectedWidthPixels + 0.5D);

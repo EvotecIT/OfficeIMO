@@ -77,8 +77,8 @@ public sealed partial class OfficeVisualIntegrationTests {
                     var image = Assert.Single(presentation.Slides[index].Pictures);
                     Assert.Equal(expected[index].GetPlacementBytes(), image.GetImageBytes());
                     Assert.Equal(expected[index].AlternativeText, image.Description);
-                    Assert.Equal(300D, image.WidthPoints, 6);
-                    Assert.Equal(180D, image.HeightPoints, 6);
+                    Assert.Equal(300D, image.Width.ToPoints(), 6);
+                    Assert.Equal(180D, image.Height.ToPoints(), 6);
                 }
             }
         } finally {

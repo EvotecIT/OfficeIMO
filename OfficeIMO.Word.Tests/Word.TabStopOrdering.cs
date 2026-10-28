@@ -10,7 +10,7 @@ public class WordTabStopOrderingTests {
         using var document = WordDocument.Create();
         var paragraph = document.AddParagraph("A\tB");
         paragraph.ParagraphAlignment = WordParagraphAlignment.Center;
-        paragraph.LineSpacingAfterPoints = 12;
+        paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Points(12D);
         paragraph.AddTabStop(360, WordTabAlignment.Left);
         paragraph.AddTabStop(1440, WordTabAlignment.Decimal);
         Assert.Empty(document.ValidateDocument());
@@ -21,7 +21,7 @@ public class WordTabStopOrderingTests {
         Assert.Equal(2, restored.TabStops.Count);
         restored.ClearTabStops().AddTabStop(720, WordTabAlignment.Right);
         Assert.Equal(720, Assert.Single(restored.TabStops).Position);
-        Assert.Equal(12d, restored.LineSpacingAfterPoints);
+        Assert.Equal(12d, restored.LineSpacingAfter?.ToPoints());
         Assert.Equal(WordParagraphAlignment.Center, restored.ParagraphAlignment);
         Assert.Empty(reopened.ValidateDocument());
     }

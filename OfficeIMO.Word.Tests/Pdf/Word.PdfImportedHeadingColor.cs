@@ -105,11 +105,11 @@ public sealed class WordPdfImportedHeadingColorTests {
         document.Settings.FontFamily = ManagedTextShapingTestAssets.FamilyName;
         W.Styles styles = document.OpenXmlDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
         WordSection section = document.Sections[0];
-        section.PageSettings.Width = 4800;
-        section.PageSettings.Height = 6000;
-        section.Margins.Left = section.Margins.Right = 600;
-        section.Margins.Top = section.Margins.Bottom = 600;
-        section.Margins.HeaderDistance = section.Margins.FooterDistance = 300;
+        section.PageSettings.Width = global::OfficeIMO.OfficeLength.Points(240D);
+        section.PageSettings.Height = global::OfficeIMO.OfficeLength.Points(300D);
+        section.Margins.Left = section.Margins.Right = global::OfficeIMO.OfficeLength.Points(30D);
+        section.Margins.Top = section.Margins.Bottom = global::OfficeIMO.OfficeLength.Points(30D);
+        section.Margins.HeaderDistance = section.Margins.FooterDistance = global::OfficeIMO.OfficeLength.Points(15D);
         var runDefaults = new W.RunPropertiesBaseStyle(
             new W.RunFonts { Ascii = ManagedTextShapingTestAssets.FamilyName, HighAnsi = ManagedTextShapingTestAssets.FamilyName });
         if (defaultColor != null) runDefaults.Append(new W.Color { Val = defaultColor });

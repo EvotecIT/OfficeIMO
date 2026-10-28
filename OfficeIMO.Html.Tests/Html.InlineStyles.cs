@@ -11,8 +11,8 @@ namespace OfficeIMO.Tests {
             var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWord(new WordHtmlImportOptions());
             var paragraph = doc.Paragraphs[0];
             Assert.Equal(OfficeIMO.Word.WordParagraphAlignment.Right, paragraph.ParagraphAlignment);
-            Assert.Equal(18d, paragraph.IndentationBeforePoints);
-            Assert.Equal(7.5d, paragraph.LineSpacingBeforePoints);
+            Assert.Equal(18d, paragraph.IndentationBefore?.ToPoints());
+            Assert.Equal(7.5d, paragraph.LineSpacingBefore?.ToPoints());
             var run = paragraph.GetRuns().First();
             Assert.Equal(24, run.FontSize);
             Assert.Equal("123456", run.ColorHex);
@@ -23,8 +23,8 @@ namespace OfficeIMO.Tests {
             string html = "<p style=\"text-indent:18pt\">Indented</p>";
             var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWord(new WordHtmlImportOptions());
             var paragraph = doc.Paragraphs[0];
-            Assert.Equal(18d, paragraph.IndentationFirstLinePoints);
-            Assert.Null(paragraph.IndentationHangingPoints);
+            Assert.Equal(18d, paragraph.IndentationFirstLine?.ToPoints());
+            Assert.Null(paragraph.IndentationHanging?.ToPoints());
         }
 
         [Fact]
@@ -32,8 +32,8 @@ namespace OfficeIMO.Tests {
             string html = "<p style=\"text-indent:-12pt\">Hanging</p>";
             var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWord(new WordHtmlImportOptions());
             var paragraph = doc.Paragraphs[0];
-            Assert.Equal(12d, paragraph.IndentationHangingPoints);
-            Assert.Null(paragraph.IndentationFirstLinePoints);
+            Assert.Equal(12d, paragraph.IndentationHanging?.ToPoints());
+            Assert.Null(paragraph.IndentationFirstLine?.ToPoints());
         }
 
         [Fact]
@@ -41,8 +41,8 @@ namespace OfficeIMO.Tests {
             string html = "<p style=\"padding:12pt 0 0 6pt\">Padded</p>";
             var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWord(new WordHtmlImportOptions());
             var paragraph = doc.Paragraphs[0];
-            Assert.Equal(6d, paragraph.IndentationBeforePoints);
-            Assert.Equal(12d, paragraph.LineSpacingBeforePoints);
+            Assert.Equal(6d, paragraph.IndentationBefore?.ToPoints());
+            Assert.Equal(12d, paragraph.LineSpacingBefore?.ToPoints());
         }
 
         [Fact]
@@ -121,7 +121,7 @@ namespace OfficeIMO.Tests {
             var run = paragraph.GetRuns().First();
 
             Assert.Equal("123456", run.ColorHex);
-            Assert.Null(paragraph.IndentationBeforePoints);
+            Assert.Null(paragraph.IndentationBefore?.ToPoints());
         }
     }
 }

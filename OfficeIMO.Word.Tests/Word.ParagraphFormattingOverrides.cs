@@ -75,12 +75,12 @@ public partial class Word {
         WordParagraph paragraph = document.AddParagraph("Reset overrides");
         SetParagraphOverrides(paragraph, false);
         paragraph.OutlineLevel = 4;
-        paragraph.LineSpacingAfterPoints = 14;
+        paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Points(14D);
         SetParagraphOverrides(paragraph, null);
         paragraph.OutlineLevel = null;
         AssertParagraphOverrides(paragraph, null);
         Assert.Null(paragraph.OutlineLevel);
-        Assert.Equal(14, paragraph.LineSpacingAfterPoints);
+        Assert.Equal(14, paragraph.LineSpacingAfter?.ToPoints());
         Assert.Empty(new OpenXmlValidator().Validate(paragraph._paragraph.ParagraphProperties!));
     }
 

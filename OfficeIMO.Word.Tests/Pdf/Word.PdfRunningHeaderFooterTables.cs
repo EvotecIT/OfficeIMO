@@ -15,7 +15,7 @@ public partial class Word {
         table.GridColumnWidth = new List<int> { 2400 };
         WordTableCell cell = table.Rows[0].Cells[0];
         cell.WidthType = WordTableWidthUnit.Dxa; cell.Width = 2400; cell.TextDirection = direction;
-        table.Rows[0].Height = (int)(height * 20);
+        table.Rows[0].Height = global::OfficeIMO.OfficeLength.Points(((int)(height * 20)) / 20D);
         WordParagraph paragraph = cell.Paragraphs[0];
         paragraph.Text = text; paragraph.FontFamily = "Arial"; paragraph.FontSize = 12;
         story.AddParagraph();
@@ -34,8 +34,8 @@ public partial class Word {
     public void RunningHeaderFooterTablePreservesBordersDirectionAndDocumentSource(bool footer, bool up, bool nativeDoc) {
         using WordDocument source = CreateJoinedParagraphDocument();
         source.AddParagraph("BODY");
-        source.Sections[0].Margins.HeaderDistance = 360;
-        source.Sections[0].Margins.FooterDistance = 360;
+        source.Sections[0].Margins.HeaderDistance = global::OfficeIMO.OfficeLength.Points(18D);
+        source.Sections[0].Margins.FooterDistance = global::OfficeIMO.OfficeLength.Points(18D);
         WordHeaderFooter story = footer ? source.FooterDefaultOrCreate : source.HeaderDefaultOrCreate;
         CreateRunningStoryTable(story, "HEADER", 120,
             up ? WordTextDirection.BottomToTopLeftToRight : WordTextDirection.TopToBottomRightToLeft);
@@ -68,8 +68,8 @@ public partial class Word {
     [InlineData(true)]
     public void RunningHeaderFooterVariantsCalculateFieldsInsideTables(bool footer) {
         using WordDocument document = CreateJoinedParagraphDocument();
-        document.Sections[0].Margins.HeaderDistance = 360;
-        document.Sections[0].Margins.FooterDistance = 360;
+        document.Sections[0].Margins.HeaderDistance = global::OfficeIMO.OfficeLength.Points(18D);
+        document.Sections[0].Margins.FooterDistance = global::OfficeIMO.OfficeLength.Points(18D);
         WordHeaderFooter[] stories = footer
             ? new WordHeaderFooter[] { document.FooterFirstOrCreate, document.FooterEvenOrCreate, document.FooterDefaultOrCreate }
             : new WordHeaderFooter[] { document.HeaderFirstOrCreate, document.HeaderEvenOrCreate, document.HeaderDefaultOrCreate };

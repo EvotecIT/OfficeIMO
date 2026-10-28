@@ -26,17 +26,17 @@ public partial class Word {
         cell.Width = widthType == WordTableWidthUnit.Pct ? 5000 : 3000;
         cell.WidthType = widthType;
         cell.WrapText = false;
-        cell.MarginLeftWidth = 108;
-        cell.MarginRightWidth = 108;
-        cell.MarginTopWidth = 0;
-        cell.MarginBottomWidth = 0;
+        cell.MarginLeft = global::OfficeIMO.OfficeLength.Points(5.4D);
+        cell.MarginRight = global::OfficeIMO.OfficeLength.Points(5.4D);
+        cell.MarginTop = global::OfficeIMO.OfficeLength.Zero;
+        cell.MarginBottom = global::OfficeIMO.OfficeLength.Zero;
         WordParagraph paragraph = cell.Paragraphs[0];
         const string text = "Start Alpha Beta Gamma Delta Epsilon Zeta Eta Theta";
         paragraph.Text = text;
         paragraph.FontFamily = "Arial";
         paragraph.FontSize = 12;
-        paragraph.LineSpacingBeforePoints = 0;
-        paragraph.LineSpacingAfterPoints = 0;
+        paragraph.LineSpacingBefore = global::OfficeIMO.OfficeLength.Zero;
+        paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
         paragraph.LineSpacingRule = WordLineSpacingRule.Auto;
         paragraph.LineSpacing = 240;
 
@@ -82,16 +82,16 @@ public partial class Word {
             cell.Width = cellWidthType == WordTableWidthUnit.Dxa ? gridWidth : 0;
             cell.WidthType = cellWidthType;
             cell.WrapText = wrap;
-            cell.MarginLeftWidth = 108;
-            cell.MarginRightWidth = 108;
-            cell.MarginTopWidth = 0;
-            cell.MarginBottomWidth = 0;
+            cell.MarginLeft = global::OfficeIMO.OfficeLength.Points(5.4D);
+            cell.MarginRight = global::OfficeIMO.OfficeLength.Points(5.4D);
+            cell.MarginTop = global::OfficeIMO.OfficeLength.Zero;
+            cell.MarginBottom = global::OfficeIMO.OfficeLength.Zero;
             WordParagraph paragraph = cell.Paragraphs[0];
             paragraph.Text = column == 0 ? text : "Short";
             paragraph.FontFamily = "Arial";
             paragraph.FontSize = 12;
-            paragraph.LineSpacingBeforePoints = 0;
-            paragraph.LineSpacingAfterPoints = 0;
+            paragraph.LineSpacingBefore = global::OfficeIMO.OfficeLength.Zero;
+            paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
             paragraph.LineSpacingRule = WordLineSpacingRule.Auto;
             paragraph.LineSpacing = 240;
         }

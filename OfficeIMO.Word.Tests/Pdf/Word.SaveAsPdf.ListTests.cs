@@ -140,8 +140,8 @@ namespace OfficeIMO.Tests {
 
                 bulletList.AddItem("RegularIndentMarker");
                 WordParagraph wideIndent = bulletList.AddItem("WideIndentMarker");
-                wideIndent.IndentationBeforePoints = 72;
-                wideIndent.IndentationHangingPoints = 36;
+                wideIndent.IndentationBefore = global::OfficeIMO.OfficeLength.Points(72D);
+                wideIndent.IndentationHanging = global::OfficeIMO.OfficeLength.Points(36D);
 
                 document.Save();
                 document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
@@ -243,7 +243,7 @@ namespace OfficeIMO.Tests {
                 });
 
                 WordParagraph intro = document.AddParagraph("ListChainIntro");
-                intro.LineSpacingAfterPoints = 120;
+                intro.LineSpacingAfter = global::OfficeIMO.OfficeLength.Points(120D);
 
                 WordList bulletList = document.AddList(WordListStyle.Bulleted);
                 bulletList.AddItem("ListChainFirst").SetStyleId(styleId);
@@ -293,7 +293,7 @@ namespace OfficeIMO.Tests {
                 });
 
                 WordParagraph intro = document.AddParagraph("ParagraphListChainIntro");
-                intro.LineSpacingAfterPoints = 120;
+                intro.LineSpacingAfter = global::OfficeIMO.OfficeLength.Points(120D);
                 document.AddParagraph("ParagraphListChainLead").SetStyleId(styleId);
 
                 WordList bulletList = document.AddList(WordListStyle.Bulleted);
@@ -464,7 +464,7 @@ namespace OfficeIMO.Tests {
                 item.AddText(firstMarker).SetCharacterStyleId(styleId);
                 item.AddBreak();
                 item.AddText(secondMarker).SetCharacterStyleId(styleId);
-                item.LineSpacingAfterPoints = 0D;
+                item.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
                 item.LineSpacingPoints = 18D;
                 item.LineSpacingRule = WordLineSpacingRule.Exact;
 

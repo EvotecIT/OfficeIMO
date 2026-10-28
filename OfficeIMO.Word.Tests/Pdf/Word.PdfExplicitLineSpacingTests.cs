@@ -47,7 +47,7 @@ public partial class Word {
         foreach (var paragraph in new[] { first, blank, last }) {
             paragraph.LineSpacingPoints = 20;
             paragraph.LineSpacingRule = WordLineSpacingRule.AtLeast;
-            paragraph.LineSpacingBeforePoints = 0; paragraph.LineSpacingAfterPoints = 0;
+            paragraph.LineSpacingBefore = global::OfficeIMO.OfficeLength.Zero; paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
             foreach (Run run in paragraph._paragraph.Descendants<Run>())
                 (run.RunProperties ??= new RunProperties()).FontSize = new FontSize { Val = "16" };
         }
@@ -87,7 +87,7 @@ public partial class Word {
         foreach (var paragraph in new[] { first, blank, last }) {
             paragraph.LineSpacingPoints = 20;
             paragraph.LineSpacingRule = exact ? WordLineSpacingRule.Exact : WordLineSpacingRule.AtLeast;
-            paragraph.LineSpacingBeforePoints = 0; paragraph.LineSpacingAfterPoints = 0;
+            paragraph.LineSpacingBefore = global::OfficeIMO.OfficeLength.Zero; paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
             foreach (Run run in paragraph._paragraph.Descendants<Run>())
                 (run.RunProperties ??= new RunProperties()).FontSize = new FontSize { Val = "16" };
         }
@@ -211,7 +211,7 @@ public partial class Word {
         }
         paragraph.LineSpacing = rule == WordLineSpacingRule.Auto ? 240 : (int)(expected * 20);
         paragraph.LineSpacingRule = rule;
-        paragraph.LineSpacingBeforePoints = 0; paragraph.LineSpacingAfterPoints = 0;
+        paragraph.LineSpacingBefore = global::OfficeIMO.OfficeLength.Zero; paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
         string original = source._wordprocessingDocument.MainDocumentPart!.Document.OuterXml;
         using WordDocument document = WordDocument.Load(new MemoryStream(nativeDoc ? source.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc }) : source.ToBytes()));
         var options = new PdfCreateOptions { DefaultFont = PdfStandardFont.Helvetica };
@@ -235,6 +235,6 @@ public partial class Word {
             new Run(new RunProperties(new FontSize { Val = "64" }), new Break()),
             new Run(new RunProperties(new FontSize { Val = "16" }), new Text(last)));
         paragraph.LineSpacingPoints = 20; paragraph.LineSpacingRule = rule;
-        paragraph.LineSpacingBeforePoints = 0; paragraph.LineSpacingAfterPoints = 0;
+        paragraph.LineSpacingBefore = global::OfficeIMO.OfficeLength.Zero; paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
     }
 }

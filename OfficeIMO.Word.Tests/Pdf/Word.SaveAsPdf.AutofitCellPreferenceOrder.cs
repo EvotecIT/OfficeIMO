@@ -134,13 +134,13 @@ public partial class Word {
                 WordTableCell cell = table.Rows[row].Cells[column];
                 cell.Width = 1600;
                 cell.WidthType = WordTableWidthUnit.Dxa;
-                cell.MarginLeftWidth = cell.MarginRightWidth = 0;
-                cell.MarginTopWidth = cell.MarginBottomWidth = 0;
+                cell.MarginLeft = cell.MarginRight = global::OfficeIMO.OfficeLength.Zero;
+                cell.MarginTop = cell.MarginBottom = global::OfficeIMO.OfficeLength.Zero;
                 WordParagraph paragraph = cell.Paragraphs[0];
                 paragraph.Text = (row == 0 ? "M" : "P") + column;
                 paragraph.FontFamily = "Arial";
                 paragraph.FontSize = 12;
-                paragraph.LineSpacingBeforePoints = paragraph.LineSpacingAfterPoints = 0;
+                paragraph.LineSpacingBefore = paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
                 paragraph.LineSpacingRule = WordLineSpacingRule.Auto;
                 paragraph.LineSpacing = 240;
             }

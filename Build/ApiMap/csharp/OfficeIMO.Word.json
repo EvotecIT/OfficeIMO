@@ -2890,65 +2890,65 @@
       "old": "OfficeIMO.Word.WordMargins.BottomCentimeters",
       "kind": "property",
       "action": "merge",
-      "new": "OfficeIMO.Word.WordMargins.Bottom : OfficeLength",
+      "new": "OfficeIMO.Word.WordMargins.Bottom : OfficeLength?",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.Word/WordMargins.cs",
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "One typed physical-length property replaces native twips and points/centimeters twins. DOCX values round to native twips at write time. Section/page sizes, paragraph indentation/before-after spacing, cell padding and row heights preserve native defaults and null behavior; all C# consumers are migrated and PowerShell parameter names remain unchanged. Proportional Auto line spacing is separate."
     },
     {
       "old": "OfficeIMO.Word.WordMargins.LeftCentimeters",
       "kind": "property",
       "action": "merge",
-      "new": "OfficeIMO.Word.WordMargins.Left : OfficeLength",
+      "new": "OfficeIMO.Word.WordMargins.Left : OfficeLength?",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.Word/WordMargins.cs",
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "One typed physical-length property replaces native twips and points/centimeters twins. DOCX values round to native twips at write time. Section/page sizes, paragraph indentation/before-after spacing, cell padding and row heights preserve native defaults and null behavior; all C# consumers are migrated and PowerShell parameter names remain unchanged. Proportional Auto line spacing is separate."
     },
     {
       "old": "OfficeIMO.Word.WordMargins.RightCentimeters",
       "kind": "property",
       "action": "merge",
-      "new": "OfficeIMO.Word.WordMargins.Right : OfficeLength",
+      "new": "OfficeIMO.Word.WordMargins.Right : OfficeLength?",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.Word/WordMargins.cs",
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "One typed physical-length property replaces native twips and points/centimeters twins. DOCX values round to native twips at write time. Section/page sizes, paragraph indentation/before-after spacing, cell padding and row heights preserve native defaults and null behavior; all C# consumers are migrated and PowerShell parameter names remain unchanged. Proportional Auto line spacing is separate."
     },
     {
       "old": "OfficeIMO.Word.WordMargins.TopCentimeters",
       "kind": "property",
       "action": "merge",
-      "new": "OfficeIMO.Word.WordMargins.Top : OfficeLength",
+      "new": "OfficeIMO.Word.WordMargins.Top : OfficeLength?",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.Word/WordMargins.cs",
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "One typed physical-length property replaces native twips and points/centimeters twins. DOCX values round to native twips at write time. Section/page sizes, paragraph indentation/before-after spacing, cell padding and row heights preserve native defaults and null behavior; all C# consumers are migrated and PowerShell parameter names remain unchanged. Proportional Auto line spacing is separate."
     },
     {
       "old": "OfficeIMO.Word.WordPageSizeDefinition.HeightTwips",
@@ -2960,11 +2960,11 @@
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "One typed physical-length property replaces native twips and points/centimeters twins. DOCX values round to native twips at write time. Section/page sizes, paragraph indentation/before-after spacing, cell padding and row heights preserve native defaults and null behavior; all C# consumers are migrated and PowerShell parameter names remain unchanged. Proportional Auto line spacing is separate."
     },
     {
       "old": "OfficeIMO.Word.WordPageSizeDefinition.WidthTwips",
@@ -2976,11 +2976,11 @@
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "One typed physical-length property replaces native twips and points/centimeters twins. DOCX values round to native twips at write time. Section/page sizes, paragraph indentation/before-after spacing, cell padding and row heights preserve native defaults and null behavior; all C# consumers are migrated and PowerShell parameter names remain unchanged. Proportional Auto line spacing is separate."
     },
     {
       "old": "OfficeIMO.Word.WordPaperStyle.TableFontSizePoints",
@@ -3050,65 +3050,65 @@
       "old": "OfficeIMO.Word.WordParagraph.IndentationAfterPoints",
       "kind": "property",
       "action": "merge",
-      "new": "OfficeIMO.Word.WordParagraph.IndentationAfter : OfficeLength",
+      "new": "OfficeIMO.Word.WordParagraph.IndentationAfter : OfficeLength?",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.Word/WordParagraph.ParagraphProperties.cs",
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "One typed physical-length property replaces native twips and points/centimeters twins. DOCX values round to native twips at write time. Section/page sizes, paragraph indentation/before-after spacing, cell padding and row heights preserve native defaults and null behavior; all C# consumers are migrated and PowerShell parameter names remain unchanged. Proportional Auto line spacing is separate."
     },
     {
       "old": "OfficeIMO.Word.WordParagraph.IndentationBeforePoints",
       "kind": "property",
       "action": "merge",
-      "new": "OfficeIMO.Word.WordParagraph.IndentationBefore : OfficeLength",
+      "new": "OfficeIMO.Word.WordParagraph.IndentationBefore : OfficeLength?",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.Word/WordParagraph.ParagraphProperties.cs",
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "One typed physical-length property replaces native twips and points/centimeters twins. DOCX values round to native twips at write time. Section/page sizes, paragraph indentation/before-after spacing, cell padding and row heights preserve native defaults and null behavior; all C# consumers are migrated and PowerShell parameter names remain unchanged. Proportional Auto line spacing is separate."
     },
     {
       "old": "OfficeIMO.Word.WordParagraph.IndentationFirstLinePoints",
       "kind": "property",
       "action": "merge",
-      "new": "OfficeIMO.Word.WordParagraph.IndentationFirstLine : OfficeLength",
+      "new": "OfficeIMO.Word.WordParagraph.IndentationFirstLine : OfficeLength?",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.Word/WordParagraph.ParagraphProperties.cs",
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "One typed physical-length property replaces native twips and points/centimeters twins. DOCX values round to native twips at write time. Section/page sizes, paragraph indentation/before-after spacing, cell padding and row heights preserve native defaults and null behavior; all C# consumers are migrated and PowerShell parameter names remain unchanged. Proportional Auto line spacing is separate."
     },
     {
       "old": "OfficeIMO.Word.WordParagraph.IndentationHangingPoints",
       "kind": "property",
       "action": "merge",
-      "new": "OfficeIMO.Word.WordParagraph.IndentationHanging : OfficeLength",
+      "new": "OfficeIMO.Word.WordParagraph.IndentationHanging : OfficeLength?",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.Word/WordParagraph.ParagraphProperties.cs",
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "One typed physical-length property replaces native twips and points/centimeters twins. DOCX values round to native twips at write time. Section/page sizes, paragraph indentation/before-after spacing, cell padding and row heights preserve native defaults and null behavior; all C# consumers are migrated and PowerShell parameter names remain unchanged. Proportional Auto line spacing is separate."
     },
     {
       "old": "OfficeIMO.Word.WordParagraph.KerningMinimumFontSizePoints",
@@ -3130,33 +3130,33 @@
       "old": "OfficeIMO.Word.WordParagraph.LineSpacingAfterPoints",
       "kind": "property",
       "action": "merge",
-      "new": "OfficeIMO.Word.WordParagraph.LineSpacingAfter : OfficeLength",
+      "new": "OfficeIMO.Word.WordParagraph.LineSpacingAfter : OfficeLength?",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.Word/WordParagraph.ParagraphProperties.cs",
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "One typed physical-length property replaces native twips and points/centimeters twins. DOCX values round to native twips at write time. Section/page sizes, paragraph indentation/before-after spacing, cell padding and row heights preserve native defaults and null behavior; all C# consumers are migrated and PowerShell parameter names remain unchanged. Proportional Auto line spacing is separate."
     },
     {
       "old": "OfficeIMO.Word.WordParagraph.LineSpacingBeforePoints",
       "kind": "property",
       "action": "merge",
-      "new": "OfficeIMO.Word.WordParagraph.LineSpacingBefore : OfficeLength",
+      "new": "OfficeIMO.Word.WordParagraph.LineSpacingBefore : OfficeLength?",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.Word/WordParagraph.ParagraphProperties.cs",
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "One typed physical-length property replaces native twips and points/centimeters twins. DOCX values round to native twips at write time. Section/page sizes, paragraph indentation/before-after spacing, cell padding and row heights preserve native defaults and null behavior; all C# consumers are migrated and PowerShell parameter names remain unchanged. Proportional Auto line spacing is separate."
     },
     {
       "old": "OfficeIMO.Word.WordParagraph.LineSpacingPoints",
@@ -3594,65 +3594,65 @@
       "old": "OfficeIMO.Word.WordTableCell.MarginBottomCentimeters",
       "kind": "property",
       "action": "merge",
-      "new": "OfficeIMO.Word.WordTableCell.MarginBottom : OfficeLength",
+      "new": "OfficeIMO.Word.WordTableCell.MarginBottom : OfficeLength?",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.Word/WordTableCell.cs",
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "One typed physical-length property replaces native twips and points/centimeters twins. DOCX values round to native twips at write time. Section/page sizes, paragraph indentation/before-after spacing, cell padding and row heights preserve native defaults and null behavior; all C# consumers are migrated and PowerShell parameter names remain unchanged. Proportional Auto line spacing is separate."
     },
     {
       "old": "OfficeIMO.Word.WordTableCell.MarginLeftCentimeters",
       "kind": "property",
       "action": "merge",
-      "new": "OfficeIMO.Word.WordTableCell.MarginLeft : OfficeLength",
+      "new": "OfficeIMO.Word.WordTableCell.MarginLeft : OfficeLength?",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.Word/WordTableCell.cs",
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "One typed physical-length property replaces native twips and points/centimeters twins. DOCX values round to native twips at write time. Section/page sizes, paragraph indentation/before-after spacing, cell padding and row heights preserve native defaults and null behavior; all C# consumers are migrated and PowerShell parameter names remain unchanged. Proportional Auto line spacing is separate."
     },
     {
       "old": "OfficeIMO.Word.WordTableCell.MarginRightCentimeters",
       "kind": "property",
       "action": "merge",
-      "new": "OfficeIMO.Word.WordTableCell.MarginRight : OfficeLength",
+      "new": "OfficeIMO.Word.WordTableCell.MarginRight : OfficeLength?",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.Word/WordTableCell.cs",
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "One typed physical-length property replaces native twips and points/centimeters twins. DOCX values round to native twips at write time. Section/page sizes, paragraph indentation/before-after spacing, cell padding and row heights preserve native defaults and null behavior; all C# consumers are migrated and PowerShell parameter names remain unchanged. Proportional Auto line spacing is separate."
     },
     {
       "old": "OfficeIMO.Word.WordTableCell.MarginTopCentimeters",
       "kind": "property",
       "action": "merge",
-      "new": "OfficeIMO.Word.WordTableCell.MarginTop : OfficeLength",
+      "new": "OfficeIMO.Word.WordTableCell.MarginTop : OfficeLength?",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.Word/WordTableCell.cs",
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "One typed physical-length property replaces native twips and points/centimeters twins. DOCX values round to native twips at write time. Section/page sizes, paragraph indentation/before-after spacing, cell padding and row heights preserve native defaults and null behavior; all C# consumers are migrated and PowerShell parameter names remain unchanged. Proportional Auto line spacing is separate."
     },
     {
       "old": "OfficeIMO.Word.WordTableStyleDetails.CellSpacingCentimeters",
@@ -3825,11 +3825,11 @@
       "notes": "Raw twips (or 1/1000 for crop) int?; the *Points/*Centimeters twin property merges into this one.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "One typed physical-length property replaces native twips and points/centimeters twins. DOCX values round to native twips at write time. Section/page sizes, paragraph indentation/before-after spacing, cell padding and row heights preserve native defaults and null behavior; all C# consumers are migrated and PowerShell parameter names remain unchanged. Proportional Auto line spacing is separate."
     },
     {
       "old": "OfficeIMO.Word.WordParagraph.IndentationAfter",
@@ -3842,11 +3842,11 @@
       "notes": "Raw twips (or 1/1000 for crop) int?; the *Points/*Centimeters twin property merges into this one.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "One typed physical-length property replaces native twips and points/centimeters twins. DOCX values round to native twips at write time. Section/page sizes, paragraph indentation/before-after spacing, cell padding and row heights preserve native defaults and null behavior; all C# consumers are migrated and PowerShell parameter names remain unchanged. Proportional Auto line spacing is separate."
     },
     {
       "old": "OfficeIMO.Word.WordParagraph.IndentationFirstLine",
@@ -3859,11 +3859,11 @@
       "notes": "Raw twips (or 1/1000 for crop) int?; the *Points/*Centimeters twin property merges into this one.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "One typed physical-length property replaces native twips and points/centimeters twins. DOCX values round to native twips at write time. Section/page sizes, paragraph indentation/before-after spacing, cell padding and row heights preserve native defaults and null behavior; all C# consumers are migrated and PowerShell parameter names remain unchanged. Proportional Auto line spacing is separate."
     },
     {
       "old": "OfficeIMO.Word.WordParagraph.IndentationHanging",
@@ -3876,11 +3876,11 @@
       "notes": "Raw twips (or 1/1000 for crop) int?; the *Points/*Centimeters twin property merges into this one.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "One typed physical-length property replaces native twips and points/centimeters twins. DOCX values round to native twips at write time. Section/page sizes, paragraph indentation/before-after spacing, cell padding and row heights preserve native defaults and null behavior; all C# consumers are migrated and PowerShell parameter names remain unchanged. Proportional Auto line spacing is separate."
     },
     {
       "old": "OfficeIMO.Word.WordParagraph.LineSpacing",
@@ -3910,11 +3910,11 @@
       "notes": "Raw twips (or 1/1000 for crop) int?; the *Points/*Centimeters twin property merges into this one.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "One typed physical-length property replaces native twips and points/centimeters twins. DOCX values round to native twips at write time. Section/page sizes, paragraph indentation/before-after spacing, cell padding and row heights preserve native defaults and null behavior; all C# consumers are migrated and PowerShell parameter names remain unchanged. Proportional Auto line spacing is separate."
     },
     {
       "old": "OfficeIMO.Word.WordParagraph.LineSpacingAfter",
@@ -3927,11 +3927,11 @@
       "notes": "Raw twips (or 1/1000 for crop) int?; the *Points/*Centimeters twin property merges into this one.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "One typed physical-length property replaces native twips and points/centimeters twins. DOCX values round to native twips at write time. Section/page sizes, paragraph indentation/before-after spacing, cell padding and row heights preserve native defaults and null behavior; all C# consumers are migrated and PowerShell parameter names remain unchanged. Proportional Auto line spacing is separate."
     },
     {
       "old": "OfficeIMO.Word.WordMargins.Left",
@@ -3944,11 +3944,11 @@
       "notes": "Raw twips (or 1/1000 for crop) uint; the *Points/*Centimeters twin property merges into this one.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "One typed physical-length property replaces native twips and points/centimeters twins. DOCX values round to native twips at write time. Section/page sizes, paragraph indentation/before-after spacing, cell padding and row heights preserve native defaults and null behavior; all C# consumers are migrated and PowerShell parameter names remain unchanged. Proportional Auto line spacing is separate."
     },
     {
       "old": "OfficeIMO.Word.WordMargins.Right",
@@ -3961,11 +3961,11 @@
       "notes": "Raw twips (or 1/1000 for crop) uint; the *Points/*Centimeters twin property merges into this one.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "One typed physical-length property replaces native twips and points/centimeters twins. DOCX values round to native twips at write time. Section/page sizes, paragraph indentation/before-after spacing, cell padding and row heights preserve native defaults and null behavior; all C# consumers are migrated and PowerShell parameter names remain unchanged. Proportional Auto line spacing is separate."
     },
     {
       "old": "OfficeIMO.Word.WordMargins.Top",
@@ -3978,11 +3978,11 @@
       "notes": "Raw twips (or 1/1000 for crop) int?; the *Points/*Centimeters twin property merges into this one.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "One typed physical-length property replaces native twips and points/centimeters twins. DOCX values round to native twips at write time. Section/page sizes, paragraph indentation/before-after spacing, cell padding and row heights preserve native defaults and null behavior; all C# consumers are migrated and PowerShell parameter names remain unchanged. Proportional Auto line spacing is separate."
     },
     {
       "old": "OfficeIMO.Word.WordMargins.Bottom",
@@ -3995,11 +3995,11 @@
       "notes": "Raw twips (or 1/1000 for crop) int?; the *Points/*Centimeters twin property merges into this one.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "One typed physical-length property replaces native twips and points/centimeters twins. DOCX values round to native twips at write time. Section/page sizes, paragraph indentation/before-after spacing, cell padding and row heights preserve native defaults and null behavior; all C# consumers are migrated and PowerShell parameter names remain unchanged. Proportional Auto line spacing is separate."
     },
     {
       "old": "OfficeIMO.Word.WordMargins.HeaderDistance",
@@ -4012,11 +4012,11 @@
       "notes": "Raw twips (or 1/1000 for crop) uint; the *Points/*Centimeters twin property merges into this one.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "One typed physical-length property replaces native twips and points/centimeters twins. DOCX values round to native twips at write time. Section/page sizes, paragraph indentation/before-after spacing, cell padding and row heights preserve native defaults and null behavior; all C# consumers are migrated and PowerShell parameter names remain unchanged. Proportional Auto line spacing is separate."
     },
     {
       "old": "OfficeIMO.Word.WordMargins.FooterDistance",
@@ -4029,11 +4029,11 @@
       "notes": "Raw twips (or 1/1000 for crop) uint; the *Points/*Centimeters twin property merges into this one.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "One typed physical-length property replaces native twips and points/centimeters twins. DOCX values round to native twips at write time. Section/page sizes, paragraph indentation/before-after spacing, cell padding and row heights preserve native defaults and null behavior; all C# consumers are migrated and PowerShell parameter names remain unchanged. Proportional Auto line spacing is separate."
     },
     {
       "old": "OfficeIMO.Word.WordMargins.Gutter",
@@ -4046,11 +4046,11 @@
       "notes": "Raw twips (or 1/1000 for crop) uint; the *Points/*Centimeters twin property merges into this one.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "One typed physical-length property replaces native twips and points/centimeters twins. DOCX values round to native twips at write time. Section/page sizes, paragraph indentation/before-after spacing, cell padding and row heights preserve native defaults and null behavior; all C# consumers are migrated and PowerShell parameter names remain unchanged. Proportional Auto line spacing is separate."
     },
     {
       "old": "OfficeIMO.Word.WordTableCell.MarginTopWidth",
@@ -4063,11 +4063,11 @@
       "notes": "Raw twips (or 1/1000 for crop) short?; the *Points/*Centimeters twin property merges into this one.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "One typed physical-length property replaces native twips and points/centimeters twins. DOCX values round to native twips at write time. Section/page sizes, paragraph indentation/before-after spacing, cell padding and row heights preserve native defaults and null behavior; all C# consumers are migrated and PowerShell parameter names remain unchanged. Proportional Auto line spacing is separate."
     },
     {
       "old": "OfficeIMO.Word.WordTableCell.MarginBottomWidth",
@@ -4080,11 +4080,11 @@
       "notes": "Raw twips (or 1/1000 for crop) short?; the *Points/*Centimeters twin property merges into this one.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "One typed physical-length property replaces native twips and points/centimeters twins. DOCX values round to native twips at write time. Section/page sizes, paragraph indentation/before-after spacing, cell padding and row heights preserve native defaults and null behavior; all C# consumers are migrated and PowerShell parameter names remain unchanged. Proportional Auto line spacing is separate."
     },
     {
       "old": "OfficeIMO.Word.WordTableCell.MarginLeftWidth",
@@ -4097,11 +4097,11 @@
       "notes": "Raw twips (or 1/1000 for crop) short?; the *Points/*Centimeters twin property merges into this one.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "One typed physical-length property replaces native twips and points/centimeters twins. DOCX values round to native twips at write time. Section/page sizes, paragraph indentation/before-after spacing, cell padding and row heights preserve native defaults and null behavior; all C# consumers are migrated and PowerShell parameter names remain unchanged. Proportional Auto line spacing is separate."
     },
     {
       "old": "OfficeIMO.Word.WordTableCell.MarginRightWidth",
@@ -4114,11 +4114,11 @@
       "notes": "Raw twips (or 1/1000 for crop) short?; the *Points/*Centimeters twin property merges into this one.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "One typed physical-length property replaces native twips and points/centimeters twins. DOCX values round to native twips at write time. Section/page sizes, paragraph indentation/before-after spacing, cell padding and row heights preserve native defaults and null behavior; all C# consumers are migrated and PowerShell parameter names remain unchanged. Proportional Auto line spacing is separate."
     },
     {
       "old": "OfficeIMO.Word.WordImage.CropTop",
@@ -4335,11 +4335,11 @@
       "notes": "Raw twips (or 1/1000 for crop) uint?; the *Points/*Centimeters twin property merges into this one.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "One typed physical-length property replaces native twips and points/centimeters twins. DOCX values round to native twips at write time. Section/page sizes, paragraph indentation/before-after spacing, cell padding and row heights preserve native defaults and null behavior; all C# consumers are migrated and PowerShell parameter names remain unchanged. Proportional Auto line spacing is separate."
     },
     {
       "old": "OfficeIMO.Word.WordPageSizes.Height",
@@ -4352,11 +4352,11 @@
       "notes": "Raw twips (or 1/1000 for crop) uint?; the *Points/*Centimeters twin property merges into this one.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "One typed physical-length property replaces native twips and points/centimeters twins. DOCX values round to native twips at write time. Section/page sizes, paragraph indentation/before-after spacing, cell padding and row heights preserve native defaults and null behavior; all C# consumers are migrated and PowerShell parameter names remain unchanged. Proportional Auto line spacing is separate."
     },
     {
       "old": "OfficeIMO.Word.Legacy.LegacyWordImportOptions",
@@ -5995,6 +5995,38 @@
       "phase": "B",
       "applied": "phase-b-applied",
       "notes": "Generated by SurfaceAnalysis from the compiled surface, README/guide/example references and exposed-model closure. All partial declarations are internal; cross-assembly implementation access uses InternalsVisibleTo."
+    },
+    {
+      "old": "OfficeIMO.Word.WordTableRow.Height",
+      "kind": "property",
+      "action": "change",
+      "new": "OfficeIMO.Word.WordTableRow.Height : OfficeLength?",
+      "reason": "Row dimensions use the shared physical length type; exact and minimum constraints retain their DOCX rules.",
+      "file": "OfficeIMO.Word/WordTableRow.cs",
+      "category": "units",
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "implementation": {
+        "phase": "B",
+        "status": "applied"
+      },
+      "note": "Additional geometry identified while migrating the native model. Null clears the matching constraint; negative heights remain invalid."
+    },
+    {
+      "old": "OfficeIMO.Word.WordTableRow.MinimumHeight",
+      "kind": "property",
+      "action": "change",
+      "new": "OfficeIMO.Word.WordTableRow.MinimumHeight : OfficeLength?",
+      "reason": "Row dimensions use the shared physical length type; exact and minimum constraints retain their DOCX rules.",
+      "file": "OfficeIMO.Word/WordTableRow.cs",
+      "category": "units",
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "implementation": {
+        "phase": "B",
+        "status": "applied"
+      },
+      "note": "Additional geometry identified while migrating the native model. Null clears the matching constraint; negative heights remain invalid."
     }
   ],
   "packageMoves": [
@@ -6481,6 +6513,30 @@
       "phase": "B",
       "applied": "phase-b-applied",
       "reason": "The created-object AddComment contract already rejects a nonexistent range. Full-suite validation exposed this stale no-op assertion; the behavioral test now covers the current error and subsequent table editing."
+    },
+    {
+      "old": "Nullable calls to removed paragraph point setters and left/right centimeter margin setters",
+      "new": "Canonical OfficeLength properties with preserved caller no-op behavior for null inputs",
+      "action": "migrate-consumer",
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "reason": "Removed twins previously ignored null; nullable consumers retain that behavior. Canonical nullable setters clear direct native attributes, and centimeter cell-margin callers retain clearing behavior. Unsigned page/margin lengths reject negatives before mutating XML; signed paragraph/top/bottom offsets remain supported."
+    },
+    {
+      "change": "Word physical geometry consumer closure",
+      "reason": "Mechanical C# and PowerShell property accesses use typed lengths. PowerShell parameter and alias names are unchanged. Package README and authored website examples use the canonical properties; generated showcase sources follow their generators.",
+      "applied": "phase-b-applied"
+    },
+    {
+      "change": "Word geometry uses exact shared physical unit conversion",
+      "reason": "The removed centimeter helpers approximated one centimeter as 567 twips and rounded getters to two decimals. OfficeLength uses exact EMUs and native midpoint-away-from-zero twip rounding. For example, 3.01 cm now stores 1706 twips instead of 1707; C# margin assertions check native values and a one-twip physical tolerance.",
+      "applied": "phase-b-applied"
+    },
+    {
+      "change": "Close full-solution consumers of the unified API",
+      "reason": "Visual-bridge and IWork assertion consumers read canonical OfficeLength properties in the relevant physical units.",
+      "applied": "phase-b-applied",
+      "note": "Removed obsolete commented native-margin assignments from the touched centimeter example."
     }
   ],
   "applicationStatus": "Phase A applied and validated on the supported macOS targets. Phase B and Tier 2 entries retain their status; Windows .NET Framework validation remains pending.",

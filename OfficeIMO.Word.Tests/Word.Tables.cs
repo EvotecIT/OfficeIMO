@@ -142,7 +142,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "TableParentAccessors.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
                 WordTable table = document.AddTable(1, 1);
-                table.Rows[0].Height = 400;
+                table.Rows[0].Height = global::OfficeIMO.OfficeLength.Points(20D);
 
                 var row = table.Rows[0];
                 Assert.Same(table, row.Parent);
@@ -150,7 +150,7 @@ namespace OfficeIMO.Tests {
                 var cell = row.Cells[0];
                 Assert.Same(row, cell.Parent);
                 Assert.Same(table, cell.ParentTable);
-                Assert.Equal(row.Height, cell.Parent.Height);
+                Assert.Equal(checked((int?)(row.Height?.ToTwips())), checked((int?)(cell.Parent.Height?.ToTwips())));
 
                 document.Save();
             }
@@ -1342,16 +1342,16 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "TableRowHeightAutoFit.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
                 WordTable table = document.AddTable(2, 2);
-                table.Rows[0].Height = 500;
-                table.Rows[1].Height = 300;
+                table.Rows[0].Height = global::OfficeIMO.OfficeLength.Points(25D);
+                table.Rows[1].Height = global::OfficeIMO.OfficeLength.Points(15D);
                 table.AutoFitToWindow();
                 document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
                 WordTable table = document.Tables[0];
-                Assert.Equal(500, table.Rows[0].Height);
-                Assert.Equal(300, table.Rows[1].Height);
+                Assert.Equal(500, checked((int?)(table.Rows[0].Height?.ToTwips())));
+                Assert.Equal(300, checked((int?)(table.Rows[1].Height?.ToTwips())));
             }
         }
 

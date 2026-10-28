@@ -208,10 +208,10 @@ namespace OfficeIMO.Word.Pdf {
             double numberingHangingIndent = ConvertNativeTwipsToPoints(info.HangingIndentTwips ?? 360) ??
                 defaultHangingIndent;
             bool useParagraphStyleIndent = ShouldApplyNativeListParagraphStyleIndent(paragraph);
-            double textIndent = paragraph.IndentationBeforePoints ??
+            double textIndent = paragraph.IndentationBefore?.ToPoints() ??
                 (useParagraphStyleIndent ? styleDefaults.LeftIndent : null) ??
                 numberingTextIndent;
-            double hangingIndent = paragraph.IndentationHangingPoints ??
+            double hangingIndent = paragraph.IndentationHanging?.ToPoints() ??
                 (useParagraphStyleIndent ? GetNativeStyleHangingIndent(styleDefaults) : null) ??
                 numberingHangingIndent;
             double markerIndent = Math.Max(0D, textIndent - hangingIndent);
@@ -245,8 +245,8 @@ namespace OfficeIMO.Word.Pdf {
             var spacingInLines = ResolveNativeParagraphSpacingInLines(paragraph, styleDefaults, nativeDefaults);
             if (spacingInLines.Before.HasValue) {
                 style.SpacingBefore = spacingInLines.Before.Value;
-            } else if (paragraph.LineSpacingBeforePoints.HasValue) {
-                style.SpacingBefore = paragraph.LineSpacingBeforePoints.Value;
+            } else if (paragraph.LineSpacingBefore.HasValue) {
+                style.SpacingBefore = paragraph.LineSpacingBefore.Value.ToPoints();
             } else if (GetNativeSpacingBeforePoints(directSpacing, fontSize, lineHeight) is { } directSpacingBefore) {
                 style.SpacingBefore = directSpacingBefore;
             } else if (styleDefaults.SpacingBefore.HasValue) {
@@ -258,8 +258,8 @@ namespace OfficeIMO.Word.Pdf {
             if (spacingInLines.After.HasValue) {
                 style.SpacingAfter = spacingInLines.After.Value;
                 itemSpacingDeclared = true;
-            } else if (paragraph.LineSpacingAfterPoints.HasValue) {
-                style.SpacingAfter = paragraph.LineSpacingAfterPoints.Value;
+            } else if (paragraph.LineSpacingAfter.HasValue) {
+                style.SpacingAfter = paragraph.LineSpacingAfter.Value.ToPoints();
                 itemSpacingDeclared = true;
             } else if (GetNativeSpacingAfterPoints(directSpacing, fontSize, lineHeight) is { } directSpacingAfter) {
                 style.SpacingAfter = directSpacingAfter;
@@ -328,15 +328,15 @@ namespace OfficeIMO.Word.Pdf {
 
             NativeParagraphStyleDefaults styleDefaults = GetNativeParagraphStyleDefaults(paragraph);
             bool useParagraphStyleIndent = ShouldApplyNativeListParagraphStyleIndent(paragraph);
-            style.LeftIndent = paragraph.IndentationBeforePoints ??
+            style.LeftIndent = paragraph.IndentationBefore?.ToPoints() ??
                 (useParagraphStyleIndent ? styleDefaults.LeftIndent : null) ??
                 ConvertNativeTwipsToPoints(info.Value.LeftIndentTwips ?? ((info.Value.Level + 1) * 720)) ?? 0D;
-            double hangingIndent = paragraph.IndentationHangingPoints ??
+            double hangingIndent = paragraph.IndentationHanging?.ToPoints() ??
                 (useParagraphStyleIndent ? GetNativeStyleHangingIndent(styleDefaults) : null) ??
                 ConvertNativeTwipsToPoints(info.Value.HangingIndentTwips ?? 360) ?? 0D;
-            style.FirstLineIndent = paragraph.IndentationHangingPoints.HasValue
+            style.FirstLineIndent = paragraph.IndentationHanging.HasValue
                 ? -hangingIndent
-                : paragraph.IndentationFirstLinePoints ??
+                : paragraph.IndentationFirstLine?.ToPoints() ??
                     (useParagraphStyleIndent ? styleDefaults.FirstLineIndent : null) ?? -hangingIndent;
             // Rebase against the resolved continuation frame, after numbering
             // indentation has replaced the paragraph style's provisional value.

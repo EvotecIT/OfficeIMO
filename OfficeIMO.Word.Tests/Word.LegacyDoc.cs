@@ -152,7 +152,7 @@ namespace OfficeIMO.Tests {
             Assert.True(result.HasDocument);
             WordTable table = Assert.Single(result.Document.Tables);
             WordTableRow row = Assert.Single(table.Rows);
-            Assert.Equal(720, row.Height);
+            Assert.Equal(720, checked((int?)(row.Height?.ToTwips())));
             TableRowHeight rowHeight = Assert.Single(row._tableRow.TableRowProperties!.Elements<TableRowHeight>());
             Assert.Equal(expectExactHeight ? HeightRuleValues.Exact : HeightRuleValues.AtLeast, rowHeight.HeightType!.Value);
         }
@@ -300,14 +300,14 @@ namespace OfficeIMO.Tests {
             Assert.True(result.HasDocument);
             WordTable table = Assert.Single(result.Document.Tables);
             WordTableRow row = Assert.Single(table.Rows);
-            Assert.Equal((short)120, row.Cells[0].MarginTopWidth);
-            Assert.Null(row.Cells[0].MarginLeftWidth);
-            Assert.Equal((short)160, row.Cells[0].MarginBottomWidth);
-            Assert.Null(row.Cells[0].MarginRightWidth);
-            Assert.Equal((short)120, row.Cells[1].MarginTopWidth);
-            Assert.Equal((short)240, row.Cells[1].MarginLeftWidth);
-            Assert.Equal((short)160, row.Cells[1].MarginBottomWidth);
-            Assert.Equal((short)300, row.Cells[1].MarginRightWidth);
+            Assert.Equal((short)120, checked((short?)(row.Cells[0].MarginTop?.ToTwips())));
+            Assert.Null(checked((short?)(row.Cells[0].MarginLeft?.ToTwips())));
+            Assert.Equal((short)160, checked((short?)(row.Cells[0].MarginBottom?.ToTwips())));
+            Assert.Null(checked((short?)(row.Cells[0].MarginRight?.ToTwips())));
+            Assert.Equal((short)120, checked((short?)(row.Cells[1].MarginTop?.ToTwips())));
+            Assert.Equal((short)240, checked((short?)(row.Cells[1].MarginLeft?.ToTwips())));
+            Assert.Equal((short)160, checked((short?)(row.Cells[1].MarginBottom?.ToTwips())));
+            Assert.Equal((short)300, checked((short?)(row.Cells[1].MarginRight?.ToTwips())));
         }
 
         [Fact]
@@ -475,12 +475,12 @@ namespace OfficeIMO.Tests {
             WordParagraph secondCellParagraph = table.Rows[0].Cells[1].Paragraphs[0];
             Assert.Equal("A1", firstCellParagraph.Text);
             Assert.Equal(WordParagraphAlignment.Center, firstCellParagraph.ParagraphAlignment);
-            Assert.Equal(120, firstCellParagraph.LineSpacingAfter);
-            Assert.Equal(360, firstCellParagraph.IndentationBefore);
+            Assert.Equal(120, checked((int?)(firstCellParagraph.LineSpacingAfter?.ToTwips())));
+            Assert.Equal(360, checked((int?)(firstCellParagraph.IndentationBefore?.ToTwips())));
             Assert.Equal("B1", secondCellParagraph.Text);
             Assert.Null(secondCellParagraph.ParagraphAlignment);
-            Assert.Null(secondCellParagraph.LineSpacingAfter);
-            Assert.Null(secondCellParagraph.IndentationBefore);
+            Assert.Null(checked((int?)(secondCellParagraph.LineSpacingAfter?.ToTwips())));
+            Assert.Null(checked((int?)(secondCellParagraph.IndentationBefore?.ToTwips())));
         }
 
         [Fact]
@@ -780,19 +780,19 @@ namespace OfficeIMO.Tests {
             WordParagraph[] paragraphs = result.Document.Paragraphs.ToArray();
             Assert.Equal(3, paragraphs.Length);
             Assert.Equal("plain", paragraphs[0].Text);
-            Assert.Null(paragraphs[0].LineSpacingBefore);
-            Assert.Null(paragraphs[0].IndentationBefore);
+            Assert.Null(checked((int?)(paragraphs[0].LineSpacingBefore?.ToTwips())));
+            Assert.Null(checked((int?)(paragraphs[0].IndentationBefore?.ToTwips())));
             Assert.Equal("formatted", paragraphs[1].Text);
-            Assert.Equal(240, paragraphs[1].LineSpacingBefore);
-            Assert.Equal(120, paragraphs[1].LineSpacingAfter);
+            Assert.Equal(240, checked((int?)(paragraphs[1].LineSpacingBefore?.ToTwips())));
+            Assert.Equal(120, checked((int?)(paragraphs[1].LineSpacingAfter?.ToTwips())));
             Assert.Equal(360, paragraphs[1].LineSpacing);
-            Assert.Equal(720, paragraphs[1].IndentationBefore);
-            Assert.Equal(360, paragraphs[1].IndentationAfter);
-            Assert.Equal(240, paragraphs[1].IndentationFirstLine);
+            Assert.Equal(720, checked((int?)(paragraphs[1].IndentationBefore?.ToTwips())));
+            Assert.Equal(360, checked((int?)(paragraphs[1].IndentationAfter?.ToTwips())));
+            Assert.Equal(240, checked((int?)(paragraphs[1].IndentationFirstLine?.ToTwips())));
             Assert.Equal("hanging", paragraphs[2].Text);
-            Assert.Equal(720, paragraphs[2].IndentationBefore);
-            Assert.Equal(360, paragraphs[2].IndentationHanging);
-            Assert.Null(paragraphs[2].IndentationFirstLine);
+            Assert.Equal(720, checked((int?)(paragraphs[2].IndentationBefore?.ToTwips())));
+            Assert.Equal(360, checked((int?)(paragraphs[2].IndentationHanging?.ToTwips())));
+            Assert.Null(checked((int?)(paragraphs[2].IndentationFirstLine?.ToTwips())));
         }
 
         [Fact]
@@ -2426,22 +2426,22 @@ namespace OfficeIMO.Tests {
 
         private static void AssertHeaderFooterParagraphFormatting(WordParagraph paragraph, WordParagraphAlignment expectedAlignment) {
             Assert.Equal(expectedAlignment, paragraph.ParagraphAlignment);
-            Assert.Equal(240, paragraph.LineSpacingBefore);
-            Assert.Equal(120, paragraph.LineSpacingAfter);
+            Assert.Equal(240, checked((int?)(paragraph.LineSpacingBefore?.ToTwips())));
+            Assert.Equal(120, checked((int?)(paragraph.LineSpacingAfter?.ToTwips())));
             Assert.Equal(360, paragraph.LineSpacing);
-            Assert.Equal(720, paragraph.IndentationBefore);
-            Assert.Equal(360, paragraph.IndentationAfter);
-            Assert.Equal(240, paragraph.IndentationFirstLine);
+            Assert.Equal(720, checked((int?)(paragraph.IndentationBefore?.ToTwips())));
+            Assert.Equal(360, checked((int?)(paragraph.IndentationAfter?.ToTwips())));
+            Assert.Equal(240, checked((int?)(paragraph.IndentationFirstLine?.ToTwips())));
         }
 
         private static void ApplyNoteParagraphFormatting(WordParagraph paragraph, WordParagraphAlignment alignment) {
             paragraph.ParagraphAlignment = alignment;
-            paragraph.LineSpacingBefore = 240;
-            paragraph.LineSpacingAfter = 120;
+            paragraph.LineSpacingBefore = global::OfficeIMO.OfficeLength.Points(12D);
+            paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Points(6D);
             paragraph.LineSpacing = 360;
-            paragraph.IndentationBefore = 720;
-            paragraph.IndentationAfter = 360;
-            paragraph.IndentationFirstLine = 240;
+            paragraph.IndentationBefore = global::OfficeIMO.OfficeLength.Points(36D);
+            paragraph.IndentationAfter = global::OfficeIMO.OfficeLength.Points(18D);
+            paragraph.IndentationFirstLine = global::OfficeIMO.OfficeLength.Points(12D);
         }
 
         private static void AssertNoteParagraphFormatting(IReadOnlyList<WordParagraph> paragraphs, string expectedText, WordParagraphAlignment expectedAlignment) {
@@ -2568,12 +2568,12 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("Portrait section", Assert.Single(document.Sections[0].Paragraphs).Text);
                 Assert.Equal("Landscape section", Assert.Single(document.Sections[1].Paragraphs).Text);
                 Assert.Equal(OfficePageOrientation.Landscape, document.Sections[1].PageOrientation);
-                Assert.Equal((uint)15840, document.Sections[1].PageSettings.Width);
-                Assert.Equal((uint)12240, document.Sections[1].PageSettings.Height);
-                Assert.Equal(720, document.Sections[1].Margins.Top);
-                Assert.Equal((uint)720, document.Sections[1].Margins.Right);
-                Assert.Equal(720, document.Sections[1].Margins.Bottom);
-                Assert.Equal((uint)720, document.Sections[1].Margins.Left);
+                Assert.Equal((uint)15840, checked((uint?)(document.Sections[1].PageSettings.Width?.ToTwips())));
+                Assert.Equal((uint)12240, checked((uint?)(document.Sections[1].PageSettings.Height?.ToTwips())));
+                Assert.Equal(720, checked((int?)(document.Sections[1].Margins.Top?.ToTwips())));
+                Assert.Equal((uint)720, checked((uint)(document.Sections[1].Margins.Right.GetValueOrDefault().ToTwips())));
+                Assert.Equal(720, checked((int?)(document.Sections[1].Margins.Bottom?.ToTwips())));
+                Assert.Equal((uint)720, checked((uint)(document.Sections[1].Margins.Left.GetValueOrDefault().ToTwips())));
 
                 document.Save(docPath);
 
@@ -2583,12 +2583,12 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("Portrait section", Assert.Single(reloaded.Sections[0].Paragraphs).Text);
                 Assert.Equal("Landscape section", Assert.Single(reloaded.Sections[1].Paragraphs).Text);
                 Assert.Equal(OfficePageOrientation.Landscape, reloaded.Sections[1].PageOrientation);
-                Assert.Equal((uint)15840, reloaded.Sections[1].PageSettings.Width);
-                Assert.Equal((uint)12240, reloaded.Sections[1].PageSettings.Height);
-                Assert.Equal(720, reloaded.Sections[1].Margins.Top);
-                Assert.Equal((uint)720, reloaded.Sections[1].Margins.Right);
-                Assert.Equal(720, reloaded.Sections[1].Margins.Bottom);
-                Assert.Equal((uint)720, reloaded.Sections[1].Margins.Left);
+                Assert.Equal((uint)15840, checked((uint?)(reloaded.Sections[1].PageSettings.Width?.ToTwips())));
+                Assert.Equal((uint)12240, checked((uint?)(reloaded.Sections[1].PageSettings.Height?.ToTwips())));
+                Assert.Equal(720, checked((int?)(reloaded.Sections[1].Margins.Top?.ToTwips())));
+                Assert.Equal((uint)720, checked((uint)(reloaded.Sections[1].Margins.Right.GetValueOrDefault().ToTwips())));
+                Assert.Equal(720, checked((int?)(reloaded.Sections[1].Margins.Bottom?.ToTwips())));
+                Assert.Equal((uint)720, checked((uint)(reloaded.Sections[1].Margins.Left.GetValueOrDefault().ToTwips())));
             } finally {
                 DeleteIfExists(docPath);
             }
@@ -4934,21 +4934,21 @@ namespace OfficeIMO.Tests {
                     WordSection section = document.Sections[0];
                     WordParagraph header = section.GetOrCreateHeader(WordHeaderFooterType.Default).AddParagraph("Formatted header");
                     header.ParagraphAlignment = WordParagraphAlignment.Center;
-                    header.LineSpacingBefore = 240;
-                    header.LineSpacingAfter = 120;
+                    header.LineSpacingBefore = global::OfficeIMO.OfficeLength.Points(12D);
+                    header.LineSpacingAfter = global::OfficeIMO.OfficeLength.Points(6D);
                     header.LineSpacing = 360;
-                    header.IndentationBefore = 720;
-                    header.IndentationAfter = 360;
-                    header.IndentationFirstLine = 240;
+                    header.IndentationBefore = global::OfficeIMO.OfficeLength.Points(36D);
+                    header.IndentationAfter = global::OfficeIMO.OfficeLength.Points(18D);
+                    header.IndentationFirstLine = global::OfficeIMO.OfficeLength.Points(12D);
 
                     WordParagraph footer = section.GetOrCreateFooter(WordHeaderFooterType.Default).AddParagraph("Formatted footer");
                     footer.ParagraphAlignment = WordParagraphAlignment.Right;
-                    footer.LineSpacingBefore = 240;
-                    footer.LineSpacingAfter = 120;
+                    footer.LineSpacingBefore = global::OfficeIMO.OfficeLength.Points(12D);
+                    footer.LineSpacingAfter = global::OfficeIMO.OfficeLength.Points(6D);
                     footer.LineSpacing = 360;
-                    footer.IndentationBefore = 720;
-                    footer.IndentationAfter = 360;
-                    footer.IndentationFirstLine = 240;
+                    footer.IndentationBefore = global::OfficeIMO.OfficeLength.Points(36D);
+                    footer.IndentationAfter = global::OfficeIMO.OfficeLength.Points(18D);
+                    footer.IndentationFirstLine = global::OfficeIMO.OfficeLength.Points(12D);
 
                     document.Save(docPath);
                 }
@@ -6412,15 +6412,15 @@ namespace OfficeIMO.Tests {
                 using (WordDocument document = WordDocument.Create()) {
                     document.AddParagraph("plain");
                     WordParagraph formatted = document.AddParagraph("formatted");
-                    formatted.LineSpacingBefore = 240;
-                    formatted.LineSpacingAfter = 120;
+                    formatted.LineSpacingBefore = global::OfficeIMO.OfficeLength.Points(12D);
+                    formatted.LineSpacingAfter = global::OfficeIMO.OfficeLength.Points(6D);
                     formatted.LineSpacing = 360;
-                    formatted.IndentationBefore = 720;
-                    formatted.IndentationAfter = 360;
-                    formatted.IndentationFirstLine = 240;
+                    formatted.IndentationBefore = global::OfficeIMO.OfficeLength.Points(36D);
+                    formatted.IndentationAfter = global::OfficeIMO.OfficeLength.Points(18D);
+                    formatted.IndentationFirstLine = global::OfficeIMO.OfficeLength.Points(12D);
                     WordParagraph hanging = document.AddParagraph("hanging");
-                    hanging.IndentationBefore = 720;
-                    hanging.IndentationHanging = 360;
+                    hanging.IndentationBefore = global::OfficeIMO.OfficeLength.Points(36D);
+                    hanging.IndentationHanging = global::OfficeIMO.OfficeLength.Points(18D);
 
                     document.Save(docPath);
                 }
@@ -6431,19 +6431,19 @@ namespace OfficeIMO.Tests {
                 WordParagraph[] paragraphs = reloaded.Paragraphs.ToArray();
                 Assert.Equal(3, paragraphs.Length);
                 Assert.Equal("plain", paragraphs[0].Text);
-                Assert.Null(paragraphs[0].LineSpacingBefore);
-                Assert.Null(paragraphs[0].IndentationBefore);
+                Assert.Null(checked((int?)(paragraphs[0].LineSpacingBefore?.ToTwips())));
+                Assert.Null(checked((int?)(paragraphs[0].IndentationBefore?.ToTwips())));
                 Assert.Equal("formatted", paragraphs[1].Text);
-                Assert.Equal(240, paragraphs[1].LineSpacingBefore);
-                Assert.Equal(120, paragraphs[1].LineSpacingAfter);
+                Assert.Equal(240, checked((int?)(paragraphs[1].LineSpacingBefore?.ToTwips())));
+                Assert.Equal(120, checked((int?)(paragraphs[1].LineSpacingAfter?.ToTwips())));
                 Assert.Equal(360, paragraphs[1].LineSpacing);
-                Assert.Equal(720, paragraphs[1].IndentationBefore);
-                Assert.Equal(360, paragraphs[1].IndentationAfter);
-                Assert.Equal(240, paragraphs[1].IndentationFirstLine);
+                Assert.Equal(720, checked((int?)(paragraphs[1].IndentationBefore?.ToTwips())));
+                Assert.Equal(360, checked((int?)(paragraphs[1].IndentationAfter?.ToTwips())));
+                Assert.Equal(240, checked((int?)(paragraphs[1].IndentationFirstLine?.ToTwips())));
                 Assert.Equal("hanging", paragraphs[2].Text);
-                Assert.Equal(720, paragraphs[2].IndentationBefore);
-                Assert.Equal(360, paragraphs[2].IndentationHanging);
-                Assert.Null(paragraphs[2].IndentationFirstLine);
+                Assert.Equal(720, checked((int?)(paragraphs[2].IndentationBefore?.ToTwips())));
+                Assert.Equal(360, checked((int?)(paragraphs[2].IndentationHanging?.ToTwips())));
+                Assert.Null(checked((int?)(paragraphs[2].IndentationFirstLine?.ToTwips())));
             } finally {
                 DeleteIfExists(docPath);
             }
@@ -8106,8 +8106,8 @@ namespace OfficeIMO.Tests {
                     WordTable table = document.AddTable(1, 2);
                     WordParagraph formatted = table.Rows[0].Cells[0].AddParagraph("Centered", removeExistingParagraphs: true);
                     formatted.ParagraphAlignment = WordParagraphAlignment.Center;
-                    formatted.LineSpacingAfter = 120;
-                    formatted.IndentationBefore = 360;
+                    formatted.LineSpacingAfter = global::OfficeIMO.OfficeLength.Points(6D);
+                    formatted.IndentationBefore = global::OfficeIMO.OfficeLength.Points(18D);
                     table.Rows[0].Cells[1].AddParagraph("Plain", removeExistingParagraphs: true);
 
                     document.Save(docPath);
@@ -8121,11 +8121,11 @@ namespace OfficeIMO.Tests {
                 WordParagraph plainCellParagraph = reloadedTable.Rows[0].Cells[1].Paragraphs[0];
                 Assert.Equal("Centered", formattedCellParagraph.Text);
                 Assert.Equal(WordParagraphAlignment.Center, formattedCellParagraph.ParagraphAlignment);
-                Assert.Equal(120, formattedCellParagraph.LineSpacingAfter);
-                Assert.Equal(360, formattedCellParagraph.IndentationBefore);
+                Assert.Equal(120, checked((int?)(formattedCellParagraph.LineSpacingAfter?.ToTwips())));
+                Assert.Equal(360, checked((int?)(formattedCellParagraph.IndentationBefore?.ToTwips())));
                 Assert.Equal("Plain", plainCellParagraph.Text);
                 Assert.Null(plainCellParagraph.ParagraphAlignment);
-                Assert.Equal(0, plainCellParagraph.LineSpacingAfter);
+                Assert.Equal(0, checked((int?)(plainCellParagraph.LineSpacingAfter?.ToTwips())));
             } finally {
                 DeleteIfExists(docPath);
             }
@@ -8254,7 +8254,7 @@ namespace OfficeIMO.Tests {
             try {
                 using (WordDocument document = WordDocument.Create()) {
                     WordTable table = document.AddTable(1, 2);
-                    table.Rows[0].Height = 720;
+                    table.Rows[0].Height = global::OfficeIMO.OfficeLength.Points(36D);
                     table.Rows[0].Cells[0].AddParagraph("Short", removeExistingParagraphs: true);
                     table.Rows[0].Cells[1].AddParagraph("Row", removeExistingParagraphs: true);
 
@@ -8271,7 +8271,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 WordTable reloadedTable = Assert.Single(reloaded.Tables);
                 WordTableRow row = Assert.Single(reloadedTable.Rows);
-                Assert.Equal(720, row.Height);
+                Assert.Equal(720, checked((int?)(row.Height?.ToTwips())));
                 TableRowHeight rowHeight = Assert.Single(row._tableRow.TableRowProperties!.Elements<TableRowHeight>());
                 Assert.Equal(HeightRuleValues.Exact, rowHeight.HeightType!.Value);
                 Assert.Equal("Short", row.Cells[0].Paragraphs[0].Text);
@@ -8288,7 +8288,7 @@ namespace OfficeIMO.Tests {
             try {
                 using (WordDocument document = WordDocument.Create()) {
                     WordTable table = document.AddTable(1, 1);
-                    table.Rows[0].Height = 720;
+                    table.Rows[0].Height = global::OfficeIMO.OfficeLength.Points(36D);
                     TableRowHeight rowHeight = Assert.Single(table.Rows[0]._tableRow.TableRowProperties!.Elements<TableRowHeight>());
                     rowHeight.HeightType = HeightRuleValues.Auto;
                     table.Rows[0].Cells[0].AddParagraph("Auto height", removeExistingParagraphs: true);
@@ -8306,7 +8306,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 WordTable reloadedTable = Assert.Single(reloaded.Tables);
                 WordTableRow row = Assert.Single(reloadedTable.Rows);
-                Assert.Null(row.Height);
+                Assert.Null(checked((int?)(row.Height?.ToTwips())));
                 Assert.Equal("Auto height", row.Cells[0].Paragraphs[0].Text);
             } finally {
                 DeleteIfExists(docPath);
@@ -8781,11 +8781,11 @@ namespace OfficeIMO.Tests {
                 using (WordDocument document = WordDocument.Create()) {
                     WordTable table = document.AddTable(1, 2);
                     table.Rows[0].Cells[0].AddParagraph("Default sides", removeExistingParagraphs: true);
-                    table.Rows[0].Cells[0].MarginTopWidth = 120;
-                    table.Rows[0].Cells[0].MarginBottomWidth = 160;
+                    table.Rows[0].Cells[0].MarginTop = global::OfficeIMO.OfficeLength.Points(6D);
+                    table.Rows[0].Cells[0].MarginBottom = global::OfficeIMO.OfficeLength.Points(8D);
                     table.Rows[0].Cells[1].AddParagraph("Specific sides", removeExistingParagraphs: true);
-                    table.Rows[0].Cells[1].MarginLeftWidth = 240;
-                    table.Rows[0].Cells[1].MarginRightWidth = 300;
+                    table.Rows[0].Cells[1].MarginLeft = global::OfficeIMO.OfficeLength.Points(12D);
+                    table.Rows[0].Cells[1].MarginRight = global::OfficeIMO.OfficeLength.Points(15D);
 
                     document.Save(docPath);
                 }
@@ -8801,15 +8801,15 @@ namespace OfficeIMO.Tests {
                 WordTable reloadedTable = Assert.Single(reloaded.Tables);
                 WordTableRow row = Assert.Single(reloadedTable.Rows);
                 Assert.Equal("Default sides", row.Cells[0].Paragraphs[0].Text);
-                Assert.Equal((short)120, row.Cells[0].MarginTopWidth);
-                Assert.Equal((short)108, row.Cells[0].MarginLeftWidth);
-                Assert.Equal((short)160, row.Cells[0].MarginBottomWidth);
-                Assert.Equal((short)108, row.Cells[0].MarginRightWidth);
+                Assert.Equal((short)120, checked((short?)(row.Cells[0].MarginTop?.ToTwips())));
+                Assert.Equal((short)108, checked((short?)(row.Cells[0].MarginLeft?.ToTwips())));
+                Assert.Equal((short)160, checked((short?)(row.Cells[0].MarginBottom?.ToTwips())));
+                Assert.Equal((short)108, checked((short?)(row.Cells[0].MarginRight?.ToTwips())));
                 Assert.Equal("Specific sides", row.Cells[1].Paragraphs[0].Text);
-                Assert.Equal((short)0, row.Cells[1].MarginTopWidth);
-                Assert.Equal((short)240, row.Cells[1].MarginLeftWidth);
-                Assert.Equal((short)0, row.Cells[1].MarginBottomWidth);
-                Assert.Equal((short)300, row.Cells[1].MarginRightWidth);
+                Assert.Equal((short)0, checked((short?)(row.Cells[1].MarginTop?.ToTwips())));
+                Assert.Equal((short)240, checked((short?)(row.Cells[1].MarginLeft?.ToTwips())));
+                Assert.Equal((short)0, checked((short?)(row.Cells[1].MarginBottom?.ToTwips())));
+                Assert.Equal((short)300, checked((short?)(row.Cells[1].MarginRight?.ToTwips())));
             } finally {
                 DeleteIfExists(docPath);
             }
@@ -8828,7 +8828,7 @@ namespace OfficeIMO.Tests {
                     table.StyleDetails.MarginDefaultRightWidth = 300;
                     table.Rows[0].Cells[0].AddParagraph("Defaults", removeExistingParagraphs: true);
                     table.Rows[0].Cells[1].AddParagraph("Override", removeExistingParagraphs: true);
-                    table.Rows[0].Cells[1].MarginLeftWidth = 240;
+                    table.Rows[0].Cells[1].MarginLeft = global::OfficeIMO.OfficeLength.Points(12D);
 
                     document.Save(docPath);
                 }
@@ -8847,15 +8847,15 @@ namespace OfficeIMO.Tests {
                 WordTable reloadedTable = Assert.Single(reloaded.Tables);
                 WordTableRow row = Assert.Single(reloadedTable.Rows);
                 Assert.Equal("Defaults", row.Cells[0].Paragraphs[0].Text);
-                Assert.Equal((short)120, row.Cells[0].MarginTopWidth);
-                Assert.Equal((short)180, row.Cells[0].MarginLeftWidth);
-                Assert.Equal((short)160, row.Cells[0].MarginBottomWidth);
-                Assert.Equal((short)300, row.Cells[0].MarginRightWidth);
+                Assert.Equal((short)120, checked((short?)(row.Cells[0].MarginTop?.ToTwips())));
+                Assert.Equal((short)180, checked((short?)(row.Cells[0].MarginLeft?.ToTwips())));
+                Assert.Equal((short)160, checked((short?)(row.Cells[0].MarginBottom?.ToTwips())));
+                Assert.Equal((short)300, checked((short?)(row.Cells[0].MarginRight?.ToTwips())));
                 Assert.Equal("Override", row.Cells[1].Paragraphs[0].Text);
-                Assert.Equal((short)120, row.Cells[1].MarginTopWidth);
-                Assert.Equal((short)240, row.Cells[1].MarginLeftWidth);
-                Assert.Equal((short)160, row.Cells[1].MarginBottomWidth);
-                Assert.Equal((short)300, row.Cells[1].MarginRightWidth);
+                Assert.Equal((short)120, checked((short?)(row.Cells[1].MarginTop?.ToTwips())));
+                Assert.Equal((short)240, checked((short?)(row.Cells[1].MarginLeft?.ToTwips())));
+                Assert.Equal((short)160, checked((short?)(row.Cells[1].MarginBottom?.ToTwips())));
+                Assert.Equal((short)300, checked((short?)(row.Cells[1].MarginRight?.ToTwips())));
             } finally {
                 DeleteIfExists(docPath);
             }
@@ -8916,7 +8916,7 @@ namespace OfficeIMO.Tests {
                     styledTable._tableProperties!.TableStyle = new TableStyle { Val = styleId };
                     styledTable.Rows[0].Cells[0].AddParagraph("Styled defaults", removeExistingParagraphs: true);
                     styledTable.Rows[0].Cells[1].AddParagraph("Styled override", removeExistingParagraphs: true);
-                    styledTable.Rows[0].Cells[1].MarginLeftWidth = 240;
+                    styledTable.Rows[0].Cells[1].MarginLeft = global::OfficeIMO.OfficeLength.Points(12D);
 
                     WordTable directSpacingTable = document.AddTable(1, 1, WordTableStyle.TableNormal);
                     directSpacingTable._tableProperties!.TableStyle = new TableStyle { Val = styleId };
@@ -8946,24 +8946,24 @@ namespace OfficeIMO.Tests {
                 Assert.Equal((short)240, styledReloaded.StyleDetails!.CellSpacing);
                 WordTableRow styledRow = Assert.Single(styledReloaded.Rows);
                 Assert.Equal("Styled defaults", styledRow.Cells[0].Paragraphs[0].Text);
-                Assert.Equal((short)120, styledRow.Cells[0].MarginTopWidth);
-                Assert.Equal((short)180, styledRow.Cells[0].MarginLeftWidth);
-                Assert.Equal((short)160, styledRow.Cells[0].MarginBottomWidth);
-                Assert.Equal((short)300, styledRow.Cells[0].MarginRightWidth);
+                Assert.Equal((short)120, checked((short?)(styledRow.Cells[0].MarginTop?.ToTwips())));
+                Assert.Equal((short)180, checked((short?)(styledRow.Cells[0].MarginLeft?.ToTwips())));
+                Assert.Equal((short)160, checked((short?)(styledRow.Cells[0].MarginBottom?.ToTwips())));
+                Assert.Equal((short)300, checked((short?)(styledRow.Cells[0].MarginRight?.ToTwips())));
                 Assert.Equal("Styled override", styledRow.Cells[1].Paragraphs[0].Text);
-                Assert.Equal((short)120, styledRow.Cells[1].MarginTopWidth);
-                Assert.Equal((short)240, styledRow.Cells[1].MarginLeftWidth);
-                Assert.Equal((short)160, styledRow.Cells[1].MarginBottomWidth);
-                Assert.Equal((short)300, styledRow.Cells[1].MarginRightWidth);
+                Assert.Equal((short)120, checked((short?)(styledRow.Cells[1].MarginTop?.ToTwips())));
+                Assert.Equal((short)240, checked((short?)(styledRow.Cells[1].MarginLeft?.ToTwips())));
+                Assert.Equal((short)160, checked((short?)(styledRow.Cells[1].MarginBottom?.ToTwips())));
+                Assert.Equal((short)300, checked((short?)(styledRow.Cells[1].MarginRight?.ToTwips())));
 
                 WordTable directSpacingReloaded = reloaded.Tables[1];
                 Assert.Equal((short)80, directSpacingReloaded.StyleDetails!.CellSpacing);
                 WordTableRow directRow = Assert.Single(directSpacingReloaded.Rows);
                 Assert.Equal("Direct spacing", directRow.Cells[0].Paragraphs[0].Text);
-                Assert.Equal((short)120, directRow.Cells[0].MarginTopWidth);
-                Assert.Equal((short)180, directRow.Cells[0].MarginLeftWidth);
-                Assert.Equal((short)160, directRow.Cells[0].MarginBottomWidth);
-                Assert.Equal((short)300, directRow.Cells[0].MarginRightWidth);
+                Assert.Equal((short)120, checked((short?)(directRow.Cells[0].MarginTop?.ToTwips())));
+                Assert.Equal((short)180, checked((short?)(directRow.Cells[0].MarginLeft?.ToTwips())));
+                Assert.Equal((short)160, checked((short?)(directRow.Cells[0].MarginBottom?.ToTwips())));
+                Assert.Equal((short)300, checked((short?)(directRow.Cells[0].MarginRight?.ToTwips())));
             } finally {
                 DeleteIfExists(docPath);
             }
@@ -9335,7 +9335,7 @@ namespace OfficeIMO.Tests {
                     table.Rows[0].Cells[0].AddParagraph("A1", removeExistingParagraphs: true);
                     table.Rows[0].Cells[1].AddParagraph("B1", removeExistingParagraphs: true);
                     table.Rows[0].Cells[1].VerticalAlignment = WordTableVerticalAlignment.Center;
-                    table.Rows[0].Cells[1].MarginLeftWidth = 360;
+                    table.Rows[0].Cells[1].MarginLeft = global::OfficeIMO.OfficeLength.Points(18D);
                     table.Rows[1].Cells[0].AddParagraph("A2", removeExistingParagraphs: true);
                     table.Rows[1].Cells[1].AddParagraph("B2", removeExistingParagraphs: true);
 
@@ -9353,14 +9353,14 @@ namespace OfficeIMO.Tests {
                 Assert.True(firstStyledCell.FitText);
                 Assert.False(firstStyledCell.WrapText);
                 Assert.True(firstStyledCell.HideMark);
-                Assert.Equal((short)120, firstStyledCell.MarginTopWidth);
-                Assert.Equal((short)180, firstStyledCell.MarginLeftWidth);
+                Assert.Equal((short)120, checked((short?)(firstStyledCell.MarginTop?.ToTwips())));
+                Assert.Equal((short)180, checked((short?)(firstStyledCell.MarginLeft?.ToTwips())));
 
                 WordTableCell directOverrideCell = reloadedTable.Rows[0].Cells[1];
                 Assert.Equal("B1", directOverrideCell.Paragraphs[0].Text);
                 Assert.Equal(WordTableVerticalAlignment.Center, directOverrideCell.VerticalAlignment);
-                Assert.Equal((short)120, directOverrideCell.MarginTopWidth);
-                Assert.Equal((short)360, directOverrideCell.MarginLeftWidth);
+                Assert.Equal((short)120, checked((short?)(directOverrideCell.MarginTop?.ToTwips())));
+                Assert.Equal((short)360, checked((short?)(directOverrideCell.MarginLeft?.ToTwips())));
 
                 WordTableCell untouchedCell = reloadedTable.Rows[1].Cells[0];
                 Assert.Equal("A2", untouchedCell.Paragraphs[0].Text);
@@ -9369,8 +9369,8 @@ namespace OfficeIMO.Tests {
                 Assert.False(untouchedCell.FitText);
                 Assert.True(untouchedCell.WrapText);
                 Assert.False(untouchedCell.HideMark);
-                Assert.Equal((short)0, untouchedCell.MarginTopWidth);
-                Assert.Equal((short)108, untouchedCell.MarginLeftWidth);
+                Assert.Equal((short)0, checked((short?)(untouchedCell.MarginTop?.ToTwips())));
+                Assert.Equal((short)108, checked((short?)(untouchedCell.MarginLeft?.ToTwips())));
             } finally {
                 DeleteIfExists(docPath);
             }
@@ -9521,7 +9521,7 @@ namespace OfficeIMO.Tests {
                     table.Rows[0].Cells[0].AddParagraph("A1", removeExistingParagraphs: true);
                     WordParagraph directOverride = table.Rows[0].Cells[1].AddParagraph("B1", removeExistingParagraphs: true);
                     directOverride.ParagraphAlignment = WordParagraphAlignment.Right;
-                    directOverride.LineSpacingAfter = 240;
+                    directOverride.LineSpacingAfter = global::OfficeIMO.OfficeLength.Points(12D);
                     table.Rows[1].Cells[0].AddParagraph("A2", removeExistingParagraphs: true);
                     table.Rows[1].Cells[1].AddParagraph("B2", removeExistingParagraphs: true);
 
@@ -9535,20 +9535,20 @@ namespace OfficeIMO.Tests {
                 WordParagraph firstStyled = reloadedTable.Rows[0].Cells[0].Paragraphs[0];
                 Assert.Equal("A1", firstStyled.Text);
                 Assert.Equal(WordParagraphAlignment.Center, firstStyled.ParagraphAlignment);
-                Assert.Equal(120, firstStyled.LineSpacingAfter);
-                Assert.Equal(360, firstStyled.IndentationBefore);
+                Assert.Equal(120, checked((int?)(firstStyled.LineSpacingAfter?.ToTwips())));
+                Assert.Equal(360, checked((int?)(firstStyled.IndentationBefore?.ToTwips())));
 
                 WordParagraph directStyled = reloadedTable.Rows[0].Cells[1].Paragraphs[0];
                 Assert.Equal("B1", directStyled.Text);
                 Assert.Equal(WordParagraphAlignment.Right, directStyled.ParagraphAlignment);
-                Assert.Equal(240, directStyled.LineSpacingAfter);
-                Assert.Equal(360, directStyled.IndentationBefore);
+                Assert.Equal(240, checked((int?)(directStyled.LineSpacingAfter?.ToTwips())));
+                Assert.Equal(360, checked((int?)(directStyled.IndentationBefore?.ToTwips())));
 
                 WordParagraph unstyled = reloadedTable.Rows[1].Cells[0].Paragraphs[0];
                 Assert.Equal("A2", unstyled.Text);
                 Assert.Null(unstyled.ParagraphAlignment);
-                Assert.Null(unstyled.LineSpacingAfter);
-                Assert.Null(unstyled.IndentationBefore);
+                Assert.Null(checked((int?)(unstyled.LineSpacingAfter?.ToTwips())));
+                Assert.Null(checked((int?)(unstyled.IndentationBefore?.ToTwips())));
             } finally {
                 DeleteIfExists(docPath);
             }
@@ -9890,11 +9890,11 @@ namespace OfficeIMO.Tests {
                 WordTable reloadedTable = Assert.Single(reloaded.Tables);
                 Assert.Equal(2, reloadedTable.Rows.Count);
                 Assert.Equal("Styled header", reloadedTable.Rows[0].Cells[0].Paragraphs[0].Text);
-                Assert.Equal(720, reloadedTable.Rows[0].Height);
+                Assert.Equal(720, checked((int?)(reloadedTable.Rows[0].Height?.ToTwips())));
                 Assert.True(reloadedTable.Rows[0].RepeatHeaderRowAtTheTopOfEachPage);
                 Assert.False(reloadedTable.Rows[0].AllowRowToBreakAcrossPages);
                 Assert.Equal("Styled body", reloadedTable.Rows[1].Cells[0].Paragraphs[0].Text);
-                Assert.Null(reloadedTable.Rows[1].Height);
+                Assert.Null(checked((int?)(reloadedTable.Rows[1].Height?.ToTwips())));
                 Assert.False(reloadedTable.Rows[1].RepeatHeaderRowAtTheTopOfEachPage);
                 Assert.True(reloadedTable.Rows[1].AllowRowToBreakAcrossPages);
             } finally {
@@ -9955,11 +9955,11 @@ namespace OfficeIMO.Tests {
                 WordTable reloadedTable = Assert.Single(reloaded.Tables);
                 Assert.Equal(2, reloadedTable.Rows.Count);
                 Assert.Equal("Inherited header", reloadedTable.Rows[0].Cells[0].Paragraphs[0].Text);
-                Assert.Equal(720, reloadedTable.Rows[0].Height);
+                Assert.Equal(720, checked((int?)(reloadedTable.Rows[0].Height?.ToTwips())));
                 Assert.True(reloadedTable.Rows[0].RepeatHeaderRowAtTheTopOfEachPage);
                 Assert.False(reloadedTable.Rows[0].AllowRowToBreakAcrossPages);
                 Assert.Equal("Inherited body", reloadedTable.Rows[1].Cells[0].Paragraphs[0].Text);
-                Assert.Null(reloadedTable.Rows[1].Height);
+                Assert.Null(checked((int?)(reloadedTable.Rows[1].Height?.ToTwips())));
                 Assert.False(reloadedTable.Rows[1].RepeatHeaderRowAtTheTopOfEachPage);
                 Assert.True(reloadedTable.Rows[1].AllowRowToBreakAcrossPages);
             } finally {
@@ -10053,7 +10053,7 @@ namespace OfficeIMO.Tests {
                     table.Rows[0].Cells[0].AddParagraph("Inherited", removeExistingParagraphs: true);
                     WordParagraph directOverride = table.Rows[0].Cells[1].AddParagraph("Direct", removeExistingParagraphs: true);
                     directOverride.ParagraphAlignment = WordParagraphAlignment.Right;
-                    directOverride.LineSpacingAfter = 240;
+                    directOverride.LineSpacingAfter = global::OfficeIMO.OfficeLength.Points(12D);
 
                     document.Save(docPath);
                 }
@@ -10066,14 +10066,14 @@ namespace OfficeIMO.Tests {
                 WordParagraph inheritedParagraph = row.Cells[0].Paragraphs[0];
                 Assert.Equal("Inherited", inheritedParagraph.Text);
                 Assert.Equal(WordParagraphAlignment.Center, inheritedParagraph.ParagraphAlignment);
-                Assert.Equal(120, inheritedParagraph.LineSpacingAfter);
-                Assert.Equal(360, inheritedParagraph.IndentationBefore);
+                Assert.Equal(120, checked((int?)(inheritedParagraph.LineSpacingAfter?.ToTwips())));
+                Assert.Equal(360, checked((int?)(inheritedParagraph.IndentationBefore?.ToTwips())));
 
                 WordParagraph directParagraph = row.Cells[1].Paragraphs[0];
                 Assert.Equal("Direct", directParagraph.Text);
                 Assert.Equal(WordParagraphAlignment.Right, directParagraph.ParagraphAlignment);
-                Assert.Equal(240, directParagraph.LineSpacingAfter);
-                Assert.Equal(360, directParagraph.IndentationBefore);
+                Assert.Equal(240, checked((int?)(directParagraph.LineSpacingAfter?.ToTwips())));
+                Assert.Equal(360, checked((int?)(directParagraph.IndentationBefore?.ToTwips())));
             } finally {
                 DeleteIfExists(docPath);
             }
@@ -11383,9 +11383,9 @@ namespace OfficeIMO.Tests {
                     document.PageSettings.PageSize = WordPageSize.Letter;
                     document.PageOrientation = OfficePageOrientation.Landscape;
                     document.Sections[0].SetMargins(WordMargin.Narrow);
-                    document.Margins.HeaderDistance = (DocumentFormat.OpenXml.UInt32Value)540U;
-                    document.Margins.FooterDistance = (DocumentFormat.OpenXml.UInt32Value)900U;
-                    document.Margins.Gutter = (DocumentFormat.OpenXml.UInt32Value)360U;
+                    document.Margins.HeaderDistance = global::OfficeIMO.OfficeLength.Points(((DocumentFormat.OpenXml.UInt32Value)540U) / 20D);
+                    document.Margins.FooterDistance = global::OfficeIMO.OfficeLength.Points(((DocumentFormat.OpenXml.UInt32Value)900U) / 20D);
+                    document.Margins.Gutter = global::OfficeIMO.OfficeLength.Points(((DocumentFormat.OpenXml.UInt32Value)360U) / 20D);
 
                     document.Save(docPath);
                 }
@@ -11395,15 +11395,15 @@ namespace OfficeIMO.Tests {
                 Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 Assert.Equal("Landscape section", Assert.Single(reloaded.Paragraphs).Text);
                 Assert.Equal(OfficePageOrientation.Landscape, reloaded.PageOrientation);
-                Assert.Equal((uint)15840, reloaded.PageSettings.Width);
-                Assert.Equal((uint)12240, reloaded.PageSettings.Height);
-                Assert.Equal(720, reloaded.Margins.Top);
-                Assert.Equal((uint)720, reloaded.Margins.Right);
-                Assert.Equal(720, reloaded.Margins.Bottom);
-                Assert.Equal((uint)720, reloaded.Margins.Left);
-                Assert.Equal((uint)540, reloaded.Margins.HeaderDistance);
-                Assert.Equal((uint)900, reloaded.Margins.FooterDistance);
-                Assert.Equal((uint)360, reloaded.Margins.Gutter);
+                Assert.Equal((uint)15840, checked((uint?)(reloaded.PageSettings.Width?.ToTwips())));
+                Assert.Equal((uint)12240, checked((uint?)(reloaded.PageSettings.Height?.ToTwips())));
+                Assert.Equal(720, checked((int?)(reloaded.Margins.Top?.ToTwips())));
+                Assert.Equal((uint)720, checked((uint)(reloaded.Margins.Right.GetValueOrDefault().ToTwips())));
+                Assert.Equal(720, checked((int?)(reloaded.Margins.Bottom?.ToTwips())));
+                Assert.Equal((uint)720, checked((uint)(reloaded.Margins.Left.GetValueOrDefault().ToTwips())));
+                Assert.Equal((uint)540, checked((uint)(reloaded.Margins.HeaderDistance.GetValueOrDefault().ToTwips())));
+                Assert.Equal((uint)900, checked((uint)(reloaded.Margins.FooterDistance.GetValueOrDefault().ToTwips())));
+                Assert.Equal((uint)360, checked((uint)(reloaded.Margins.Gutter.GetValueOrDefault().ToTwips())));
             } finally {
                 DeleteIfExists(docPath);
             }
@@ -11432,12 +11432,12 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("Portrait section", Assert.Single(reloaded.Sections[0].Paragraphs).Text);
                 Assert.Equal("Landscape section", Assert.Single(reloaded.Sections[1].Paragraphs).Text);
                 Assert.Equal(OfficePageOrientation.Landscape, reloaded.Sections[1].PageOrientation);
-                Assert.Equal((uint)15840, reloaded.Sections[1].PageSettings.Width);
-                Assert.Equal((uint)12240, reloaded.Sections[1].PageSettings.Height);
-                Assert.Equal(720, reloaded.Sections[1].Margins.Top);
-                Assert.Equal((uint)720, reloaded.Sections[1].Margins.Right);
-                Assert.Equal(720, reloaded.Sections[1].Margins.Bottom);
-                Assert.Equal((uint)720, reloaded.Sections[1].Margins.Left);
+                Assert.Equal((uint)15840, checked((uint?)(reloaded.Sections[1].PageSettings.Width?.ToTwips())));
+                Assert.Equal((uint)12240, checked((uint?)(reloaded.Sections[1].PageSettings.Height?.ToTwips())));
+                Assert.Equal(720, checked((int?)(reloaded.Sections[1].Margins.Top?.ToTwips())));
+                Assert.Equal((uint)720, checked((uint)(reloaded.Sections[1].Margins.Right.GetValueOrDefault().ToTwips())));
+                Assert.Equal(720, checked((int?)(reloaded.Sections[1].Margins.Bottom?.ToTwips())));
+                Assert.Equal((uint)720, checked((uint)(reloaded.Sections[1].Margins.Left.GetValueOrDefault().ToTwips())));
             } finally {
                 DeleteIfExists(docPath);
             }
@@ -11567,12 +11567,12 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("Controlled section end", Assert.Single(reloaded.Sections[0].Paragraphs).Text);
                 Assert.Equal("Default section", Assert.Single(reloaded.Sections[1].Paragraphs).Text);
                 Assert.Equal(OfficePageOrientation.Landscape, reloaded.Sections[0].PageOrientation);
-                Assert.Equal((uint)15840, reloaded.Sections[0].PageSettings.Width);
-                Assert.Equal((uint)12240, reloaded.Sections[0].PageSettings.Height);
-                Assert.Equal(720, reloaded.Sections[0].Margins.Top);
-                Assert.Equal((uint)720, reloaded.Sections[0].Margins.Right);
-                Assert.Equal(720, reloaded.Sections[0].Margins.Bottom);
-                Assert.Equal((uint)720, reloaded.Sections[0].Margins.Left);
+                Assert.Equal((uint)15840, checked((uint?)(reloaded.Sections[0].PageSettings.Width?.ToTwips())));
+                Assert.Equal((uint)12240, checked((uint?)(reloaded.Sections[0].PageSettings.Height?.ToTwips())));
+                Assert.Equal(720, checked((int?)(reloaded.Sections[0].Margins.Top?.ToTwips())));
+                Assert.Equal((uint)720, checked((uint)(reloaded.Sections[0].Margins.Right.GetValueOrDefault().ToTwips())));
+                Assert.Equal(720, checked((int?)(reloaded.Sections[0].Margins.Bottom?.ToTwips())));
+                Assert.Equal((uint)720, checked((uint)(reloaded.Sections[0].Margins.Left.GetValueOrDefault().ToTwips())));
                 Assert.Empty(reloaded._wordprocessingDocument!.MainDocumentPart!.Document.Body!.Descendants<SdtBlock>());
             } finally {
                 DeleteIfExists(docPath);
@@ -11608,12 +11608,12 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("B1", row.Cells[1].Paragraphs[0].Text);
                 Assert.Equal("Landscape after table", Assert.Single(reloaded.Sections[1].Paragraphs).Text);
                 Assert.Equal(OfficePageOrientation.Landscape, reloaded.Sections[1].PageOrientation);
-                Assert.Equal((uint)15840, reloaded.Sections[1].PageSettings.Width);
-                Assert.Equal((uint)12240, reloaded.Sections[1].PageSettings.Height);
-                Assert.Equal(720, reloaded.Sections[1].Margins.Top);
-                Assert.Equal((uint)720, reloaded.Sections[1].Margins.Right);
-                Assert.Equal(720, reloaded.Sections[1].Margins.Bottom);
-                Assert.Equal((uint)720, reloaded.Sections[1].Margins.Left);
+                Assert.Equal((uint)15840, checked((uint?)(reloaded.Sections[1].PageSettings.Width?.ToTwips())));
+                Assert.Equal((uint)12240, checked((uint?)(reloaded.Sections[1].PageSettings.Height?.ToTwips())));
+                Assert.Equal(720, checked((int?)(reloaded.Sections[1].Margins.Top?.ToTwips())));
+                Assert.Equal((uint)720, checked((uint)(reloaded.Sections[1].Margins.Right.GetValueOrDefault().ToTwips())));
+                Assert.Equal(720, checked((int?)(reloaded.Sections[1].Margins.Bottom?.ToTwips())));
+                Assert.Equal((uint)720, checked((uint)(reloaded.Sections[1].Margins.Left.GetValueOrDefault().ToTwips())));
             } finally {
                 DeleteIfExists(docPath);
             }
@@ -11717,12 +11717,12 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("B1", row.Cells[1].Paragraphs[0].Text);
                 Assert.Equal("Landscape after rich table", Assert.Single(reloaded.Sections[1].Paragraphs).Text);
                 Assert.Equal(OfficePageOrientation.Landscape, reloaded.Sections[1].PageOrientation);
-                Assert.Equal((uint)15840, reloaded.Sections[1].PageSettings.Width);
-                Assert.Equal((uint)12240, reloaded.Sections[1].PageSettings.Height);
-                Assert.Equal(720, reloaded.Sections[1].Margins.Top);
-                Assert.Equal((uint)720, reloaded.Sections[1].Margins.Right);
-                Assert.Equal(720, reloaded.Sections[1].Margins.Bottom);
-                Assert.Equal((uint)720, reloaded.Sections[1].Margins.Left);
+                Assert.Equal((uint)15840, checked((uint?)(reloaded.Sections[1].PageSettings.Width?.ToTwips())));
+                Assert.Equal((uint)12240, checked((uint?)(reloaded.Sections[1].PageSettings.Height?.ToTwips())));
+                Assert.Equal(720, checked((int?)(reloaded.Sections[1].Margins.Top?.ToTwips())));
+                Assert.Equal((uint)720, checked((uint)(reloaded.Sections[1].Margins.Right.GetValueOrDefault().ToTwips())));
+                Assert.Equal(720, checked((int?)(reloaded.Sections[1].Margins.Bottom?.ToTwips())));
+                Assert.Equal((uint)720, checked((uint)(reloaded.Sections[1].Margins.Left.GetValueOrDefault().ToTwips())));
             } finally {
                 DeleteIfExists(docPath);
             }

@@ -9888,6 +9888,12 @@
       "phase": "B",
       "applied": "phase-b-applied",
       "reason": "The native grouped-text corpus scales OfficeLength dimensions by dimensionless ratios; it no longer multiplies two lengths after the geometry migration."
+    },
+    {
+      "change": "Close full-solution consumers of the unified API",
+      "reason": "Markup, Mermaid, visual-artifact and workflow test consumers use canonical shape and image lengths instead of removed unit twins.",
+      "applied": "phase-b-applied",
+      "note": "The generated C# assertion accepts either supported name of the shared clustered-column enum value while retaining chart construction and semantic-option checks."
     }
   ],
   "applicationStatus": "Phase A applied and validated on the supported macOS targets. Phase B and Tier 2 entries retain their status; Windows .NET Framework validation remains pending.",

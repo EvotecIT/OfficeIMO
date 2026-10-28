@@ -48,10 +48,10 @@ public sealed partial class IWorkBoundaryTests {
         WordImage preview = Assert.Single(result.Value.Images);
 
         Assert.True(result.IsVisualFallback);
-        Assert.Equal(16840U, section.PageSettings.Width.GetValueOrDefault());
-        Assert.Equal(11900U, section.PageSettings.Height.GetValueOrDefault());
-        Assert.Equal(1080U, section.Margins.Left);
-        Assert.Equal(1080U, section.Margins.Right);
+        Assert.Equal(16840U, checked((uint?)(section.PageSettings.Width?.ToTwips())).GetValueOrDefault());
+        Assert.Equal(11900U, checked((uint?)(section.PageSettings.Height?.ToTwips())).GetValueOrDefault());
+        Assert.Equal(1080U, checked((uint)(section.Margins.Left.GetValueOrDefault().ToTwips())));
+        Assert.Equal(1080U, checked((uint)(section.Margins.Right.GetValueOrDefault().ToTwips())));
         Assert.InRange((preview.Width?.ToPixels()).GetValueOrDefault(), 1d, 734d);
         Assert.InRange((preview.Height?.ToPixels()).GetValueOrDefault(), 1d, 523d);
 
@@ -59,7 +59,7 @@ public sealed partial class IWorkBoundaryTests {
         result.Value.Save(saved);
         saved.Position = 0;
         using WordDocument reopened = WordDocument.Load(saved);
-        Assert.Equal(16840U, Assert.Single(reopened.Sections).PageSettings.Width.GetValueOrDefault());
+        Assert.Equal(OfficeIMO.OfficeLength.Points(842), Assert.Single(reopened.Sections).PageSettings.Width);
         // The one-pixel preview uses a one-point minimum frame, expressed as pixels by WordImage.
         WordImage savedPreview = Assert.Single(reopened.Images);
         Assert.Equal(96d / 72d, (savedPreview.Width?.ToPixels())!.Value, precision: 8);

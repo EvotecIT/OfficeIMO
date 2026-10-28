@@ -32,7 +32,7 @@ public partial class Word {
             table.StyleDetails!.SetBordersForAllSides(WordBorderStyle.Nil, 0U, OfficeIMO.OfficeColor.Black);
             table.LayoutMode=WordTableLayoutMode.Fixed; table.Width=4000; table.WidthType=WordTableWidthUnit.Dxa;
             WordTableCell cell=table.Rows[0].Cells[0]; cell.Width=4000; cell.WidthType=WordTableWidthUnit.Dxa;
-            cell.MarginTopWidth=0; cell.MarginBottomWidth=0; cell.MarginLeftWidth=0; cell.MarginRightWidth=0;
+            cell.MarginTop=global::OfficeIMO.OfficeLength.Zero; cell.MarginBottom=global::OfficeIMO.OfficeLength.Zero; cell.MarginLeft=global::OfficeIMO.OfficeLength.Zero; cell.MarginRight=global::OfficeIMO.OfficeLength.Zero;
             WordParagraph paragraph=cell.Paragraphs[0];
             paragraph.Text=string.Join("\n", Enumerable.Range(1, lines).Select(index => $"Cell{index:D3}"));
             ConfigurePartialColumnParagraph(paragraph); paragraph.KeepLinesTogetherOverride=keepTogether;
@@ -75,7 +75,7 @@ public partial class Word {
     private static void ConfigurePartialColumnParagraph(WordParagraph paragraph) {
         paragraph.FontFamily="Arial"; paragraph.FontSize=12;
         paragraph.LineSpacing=400; paragraph.LineSpacingRule=WordLineSpacingRule.Exact;
-        paragraph.LineSpacingBeforePoints=0; paragraph.LineSpacingAfterPoints=0;
+        paragraph.LineSpacingBefore=global::OfficeIMO.OfficeLength.Zero; paragraph.LineSpacingAfter=global::OfficeIMO.OfficeLength.Zero;
         paragraph.KeepLinesTogetherOverride=false; paragraph.KeepWithNextOverride=false; paragraph.AvoidWidowAndOrphanOverride=false;
     }
 }

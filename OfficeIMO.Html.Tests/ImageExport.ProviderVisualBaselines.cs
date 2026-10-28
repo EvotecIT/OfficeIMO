@@ -40,8 +40,8 @@ public sealed class ImageExportProviderVisualBaselineTests {
     private static byte[] RenderWord() {
         using var stream = new MemoryStream();
         using WordDocument document = WordDocument.Create(stream);
-        document.PageSettings.Width = 7200;
-        document.PageSettings.Height = 4320;
+        document.PageSettings.Width = global::OfficeIMO.OfficeLength.Points(360D);
+        document.PageSettings.Height = global::OfficeIMO.OfficeLength.Points(216D);
         document.Margins.Type = WordMargin.Narrow;
         document.AddParagraph("Quarterly delivery brief")
             .SetFontSize(22)

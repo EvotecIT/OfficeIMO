@@ -53,7 +53,7 @@ internal static class RealWorldWorkflowShowcase {
 
         WordParagraph decision = document.AddParagraph("Decision requested: approve the delivery notes so the improvement backlog can start next sprint.");
         decision.ShadingFillColorHex = "EAF1FB";
-        decision.LineSpacingBeforePoints = 8;
+        decision.LineSpacingBefore = global::OfficeIMO.OfficeLength.Points(8D);
         decision.Borders.LeftStyle = WordBorderStyle.Single;
         decision.Borders.LeftColorHex = "235FB4";
         decision.Borders.LeftSize = 24;
@@ -94,8 +94,8 @@ internal static class RealWorldWorkflowShowcase {
         heading.FontSize = size;
         heading.Bold = true;
         heading.SetColorHex("17365D");
-        heading.LineSpacingBeforePoints = before;
-        heading.LineSpacingAfterPoints = 5;
+        heading.LineSpacingBefore = global::OfficeIMO.OfficeLength.Points(before);
+        heading.LineSpacingAfter = global::OfficeIMO.OfficeLength.Points(5D);
         return heading;
     }
 
@@ -114,8 +114,8 @@ internal static class RealWorldWorkflowShowcase {
         for (int i = 0; i < kpis.Length; i++) {
             WordTableCell cell = strip.Rows[0].Cells[i];
             cell.ShadingFillColorHex = "EAF1FB";
-            cell.MarginTopCentimeters = 0.1;
-            cell.MarginBottomCentimeters = 0.1;
+            cell.MarginTop = global::OfficeIMO.OfficeLength.Centimeters(0.1D);
+            cell.MarginBottom = global::OfficeIMO.OfficeLength.Centimeters(0.1D);
             cell.Paragraphs[0].Text = kpis[i].Value;
             cell.Paragraphs[0].FontSize = 22;
             cell.Paragraphs[0].Bold = true;
@@ -131,8 +131,8 @@ internal static class RealWorldWorkflowShowcase {
         for (int row = 0; row < rows.Length; row++) {
             for (int column = 0; column < widths.Length; column++) {
                 WordTableCell cell = grid.Rows[row].Cells[column];
-                cell.MarginTopCentimeters = 0.12;
-                cell.MarginBottomCentimeters = 0.12;
+                cell.MarginTop = global::OfficeIMO.OfficeLength.Centimeters(0.12D);
+                cell.MarginBottom = global::OfficeIMO.OfficeLength.Centimeters(0.12D);
                 cell.Paragraphs[0].Text = rows[row][column];
                 if (row == 0) {
                     cell.ShadingFillColorHex = "17365D";

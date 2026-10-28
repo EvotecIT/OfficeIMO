@@ -46,7 +46,7 @@ public sealed class WordAllSeverityBatch13SecurityTests {
     public void MarkdownConversionCapsBlockquoteDepth() {
         using WordDocument document = WordDocument.Create();
         WordParagraph paragraph = document.AddParagraph("bounded");
-        paragraph.IndentationBefore = int.MaxValue;
+        paragraph.IndentationBefore = global::OfficeIMO.OfficeLength.Points((int.MaxValue) / 20D);
 
         string markdown = ((document.ToMarkdown().ToMarkdown()));
 

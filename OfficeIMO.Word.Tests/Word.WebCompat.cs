@@ -106,8 +106,8 @@ namespace OfficeIMO.Tests {
             WordTable nested = host.AddTable(1, 1);
             nested.WidthType = WordTableWidthUnit.Dxa;
             nested.Width = 2400;
-            host.MarginTopWidth = top.HasValue ? checked((short)top.Value) : null;
-            host.MarginBottomWidth = bottom.HasValue ? checked((short)bottom.Value) : null;
+            host.MarginTop= top.HasValue ? global::OfficeIMO.OfficeLength.Points((checked((short)top.Value)) / 20D) : null;
+            host.MarginBottom= bottom.HasValue ? global::OfficeIMO.OfficeLength.Points((checked((short)bottom.Value)) / 20D) : null;
 
             document.NormalizeTablesForOnline();
             using var saved = new MemoryStream();

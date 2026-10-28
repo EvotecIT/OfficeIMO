@@ -4,10 +4,10 @@ namespace OfficeIMO.Word.Html {
             string? style = element.GetAttribute("style");
             if (string.IsNullOrWhiteSpace(style) || style!.IndexOf("padding", StringComparison.OrdinalIgnoreCase) < 0) return;
             CssStyleMapper.CssProperties parsed = ParseElementBoxStyles(element);
-            if (parsed.PaddingTop.HasValue) cell.MarginTopWidth = NormalizeTableCellPadding(parsed.PaddingTop.Value, "top");
-            if (parsed.PaddingRight.HasValue) cell.MarginRightWidth = NormalizeTableCellPadding(parsed.PaddingRight.Value, "right");
-            if (parsed.PaddingBottom.HasValue) cell.MarginBottomWidth = NormalizeTableCellPadding(parsed.PaddingBottom.Value, "bottom");
-            if (parsed.PaddingLeft.HasValue) cell.MarginLeftWidth = NormalizeTableCellPadding(parsed.PaddingLeft.Value, "left");
+            if (parsed.PaddingTop.HasValue) cell.MarginTop = global::OfficeIMO.OfficeLength.Points((NormalizeTableCellPadding(parsed.PaddingTop.Value, "top")) / 20D);
+            if (parsed.PaddingRight.HasValue) cell.MarginRight = global::OfficeIMO.OfficeLength.Points((NormalizeTableCellPadding(parsed.PaddingRight.Value, "right")) / 20D);
+            if (parsed.PaddingBottom.HasValue) cell.MarginBottom = global::OfficeIMO.OfficeLength.Points((NormalizeTableCellPadding(parsed.PaddingBottom.Value, "bottom")) / 20D);
+            if (parsed.PaddingLeft.HasValue) cell.MarginLeft = global::OfficeIMO.OfficeLength.Points((NormalizeTableCellPadding(parsed.PaddingLeft.Value, "left")) / 20D);
         }
 
         private short NormalizeTableCellPadding(int twips, string side) {

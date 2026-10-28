@@ -78,8 +78,8 @@ New-OfficeWord -Path $docx {
     }
     $table = WordTable -InputObject $reviewRows -Style GridTable4Accent1 -Layout AutoFitToWindow -PassThru
     $table | Get-OfficeWordTableCell | ForEach-Object {
-        $_.MarginTopCentimeters = 0.14; $_.MarginBottomCentimeters = 0.14
-        $_.MarginLeftCentimeters = 0.16; $_.MarginRightCentimeters = 0.16
+        $_.MarginTop = [OfficeIMO.OfficeLength]::Centimeters(0.14); $_.MarginBottom = [OfficeIMO.OfficeLength]::Centimeters(0.14)
+        $_.MarginLeft = [OfficeIMO.OfficeLength]::Centimeters(0.16); $_.MarginRight = [OfficeIMO.OfficeLength]::Centimeters(0.16)
     }
     WordParagraph {
         WordParagraphStyle -SpacingBeforePoints 16 -SpacingAfterPoints 8 -KeepWithNext $true

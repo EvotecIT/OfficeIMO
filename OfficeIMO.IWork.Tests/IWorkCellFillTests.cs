@@ -63,10 +63,10 @@ public sealed partial class IWorkBoundaryTests {
                 Assert.Equal(inset.GetProperty("top").GetDouble(), padding.TopPoints);
                 Assert.Equal(inset.GetProperty("right").GetDouble(), padding.RightPoints);
                 Assert.Equal(inset.GetProperty("bottom").GetDouble(), padding.BottomPoints);
-                Assert.Equal((short)(padding.LeftPoints * 20), target.MarginLeftWidth);
-                Assert.Equal((short)(padding.TopPoints * 20), target.MarginTopWidth);
-                Assert.Equal((short)(padding.RightPoints * 20), target.MarginRightWidth);
-                Assert.Equal((short)(padding.BottomPoints * 20), target.MarginBottomWidth);
+                Assert.Equal((short)(padding.LeftPoints * 20), checked((short?)(target.MarginLeft?.ToTwips())));
+                Assert.Equal((short)(padding.TopPoints * 20), checked((short?)(target.MarginTop?.ToTwips())));
+                Assert.Equal((short)(padding.RightPoints * 20), checked((short?)(target.MarginRight?.ToTwips())));
+                Assert.Equal((short)(padding.BottomPoints * 20), checked((short?)(target.MarginBottom?.ToTwips())));
                 Assert.Equal("middle", cell.GetProperty("verticalAlignment").GetString());
                 Assert.Equal(IWorkCellVerticalAlignment.Middle, source.VerticalAlignment);
                 Assert.Equal(OfficeIMO.Word.WordTableVerticalAlignment.Center, target.VerticalAlignment);

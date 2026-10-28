@@ -17,8 +17,8 @@ public partial class Word {
         WordTable table = CreateBorderFrameControl(source, 1, 3, spacing);
         table._tableProperties!.TableStyle = null;
         table.StyleDetails!.CellSpacing = spacing;
-        table.Rows[0].Height = 2400;
-        table.Rows[0].Cells[2].MarginTopWidth = 120;
+        table.Rows[0].Height = global::OfficeIMO.OfficeLength.Points(120D);
+        table.Rows[0].Cells[2].MarginTop = global::OfficeIMO.OfficeLength.Points(6D);
         WordPdfExportOptions options = BorderFramePdfOptions();
         options.PdfOptions = new OfficeIMO.Pdf.PdfCreateOptions {
             DefaultTableStyle = new OfficeIMO.Pdf.PdfTableStyle { CornerRadius = 8D }
@@ -62,11 +62,11 @@ public partial class Word {
         WordTable table = CreateBorderFrameControl(source, 1, 2, spacing);
         table.StyleDetails!.CellSpacing = spacing;
         WordTableRow row = table.Rows[0];
-        if (heightRule == 1) row.Height = 2400;
-        if (heightRule == 2) row.MinimumHeight = 2400;
+        if (heightRule == 1) row.Height = global::OfficeIMO.OfficeLength.Points(120D);
+        if (heightRule == 2) row.MinimumHeight = global::OfficeIMO.OfficeLength.Points(120D);
         short margin = spacing == 0 ? (short)120 : (short)40;
-        row.Cells[reverse ? 0 : 1].MarginTopWidth = margin;
-        row.Cells[reverse ? 1 : 0].MarginBottomWidth = 180;
+        row.Cells[reverse ? 0 : 1].MarginTop = global::OfficeIMO.OfficeLength.Points((margin) / 20D);
+        row.Cells[reverse ? 1 : 0].MarginBottom = global::OfficeIMO.OfficeLength.Points(9D);
 
         using WordDocument imported = WordDocument.Load(new MemoryStream(source.ToBytes()));
         string xml = imported._wordprocessingDocument.MainDocumentPart!.Document.OuterXml;

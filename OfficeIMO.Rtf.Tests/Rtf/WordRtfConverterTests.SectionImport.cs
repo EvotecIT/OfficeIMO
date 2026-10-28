@@ -41,15 +41,15 @@ public partial class WordRtfConverterTests {
         using WordDocument word = rtfDocument.ToWordDocument();
 
         Assert.Equal(OfficePageOrientation.Landscape, word.PageOrientation);
-        Assert.Equal(16838U, word.PageSettings.Width);
-        Assert.Equal(11906U, word.PageSettings.Height);
-        Assert.Equal(1440U, word.Margins.Left);
-        Assert.Equal(720U, word.Margins.Right);
-        Assert.Equal(1080, word.Margins.Top);
-        Assert.Equal(1080, word.Margins.Bottom);
-        Assert.Equal(180U, word.Margins.Gutter);
-        Assert.Equal(360U, word.Margins.HeaderDistance);
-        Assert.Equal(540U, word.Margins.FooterDistance);
+        Assert.Equal(16838U, checked((uint?)(word.PageSettings.Width?.ToTwips())));
+        Assert.Equal(11906U, checked((uint?)(word.PageSettings.Height?.ToTwips())));
+        Assert.Equal(1440U, checked((uint)(word.Margins.Left.GetValueOrDefault().ToTwips())));
+        Assert.Equal(720U, checked((uint)(word.Margins.Right.GetValueOrDefault().ToTwips())));
+        Assert.Equal(1080, checked((int?)(word.Margins.Top?.ToTwips())));
+        Assert.Equal(1080, checked((int?)(word.Margins.Bottom?.ToTwips())));
+        Assert.Equal(180U, checked((uint)(word.Margins.Gutter.GetValueOrDefault().ToTwips())));
+        Assert.Equal(360U, checked((uint)(word.Margins.HeaderDistance.GetValueOrDefault().ToTwips())));
+        Assert.Equal(540U, checked((uint)(word.Margins.FooterDistance.GetValueOrDefault().ToTwips())));
         Assert.True(word.RtlGutter);
         Assert.Equal(5, word.PageNumberType.Start?.Value);
         Assert.Equal(NumberFormatValues.LowerRoman, word.PageNumberType.Format?.Value);
@@ -101,13 +101,13 @@ public partial class WordRtfConverterTests {
 
         WordSection first = word.Sections[0];
         first.PageOrientation = OfficePageOrientation.Landscape;
-        first.PageSettings.Width = 16838U;
-        first.PageSettings.Height = 11906U;
-        first.Margins.Left = 1440U;
-        first.Margins.Right = 720U;
-        first.Margins.Gutter = 240U;
-        first.Margins.HeaderDistance = 300U;
-        first.Margins.FooterDistance = 420U;
+        first.PageSettings.Width = global::OfficeIMO.OfficeLength.Points(841.9D);
+        first.PageSettings.Height = global::OfficeIMO.OfficeLength.Points(595.3D);
+        first.Margins.Left = global::OfficeIMO.OfficeLength.Points(72D);
+        first.Margins.Right = global::OfficeIMO.OfficeLength.Points(36D);
+        first.Margins.Gutter = global::OfficeIMO.OfficeLength.Points(12D);
+        first.Margins.HeaderDistance = global::OfficeIMO.OfficeLength.Points(15D);
+        first.Margins.FooterDistance = global::OfficeIMO.OfficeLength.Points(21D);
         first.RtlGutter = true;
         first.AddPageNumbering(3, WordNumberFormat.UpperRoman);
         first.Borders.LeftStyle = WordBorderStyle.Dotted;
@@ -276,11 +276,11 @@ public partial class WordRtfConverterTests {
 
         Assert.Equal(2, word.Sections.Count);
         Assert.True(word.Sections[0].PageOrientation == OfficePageOrientation.Landscape);
-        Assert.Equal(16838U, word.Sections[0].PageSettings.Width);
-        Assert.Equal(1440U, word.Sections[0].Margins.Left);
-        Assert.Equal(240U, word.Sections[0].Margins.Gutter);
-        Assert.Equal(300U, word.Sections[0].Margins.HeaderDistance);
-        Assert.Equal(420U, word.Sections[0].Margins.FooterDistance);
+        Assert.Equal(16838U, checked((uint?)(word.Sections[0].PageSettings.Width?.ToTwips())));
+        Assert.Equal(1440U, checked((uint)(word.Sections[0].Margins.Left.GetValueOrDefault().ToTwips())));
+        Assert.Equal(240U, checked((uint)(word.Sections[0].Margins.Gutter.GetValueOrDefault().ToTwips())));
+        Assert.Equal(300U, checked((uint)(word.Sections[0].Margins.HeaderDistance.GetValueOrDefault().ToTwips())));
+        Assert.Equal(420U, checked((uint)(word.Sections[0].Margins.FooterDistance.GetValueOrDefault().ToTwips())));
         Assert.True(word.Sections[0].RtlGutter);
         Assert.Equal(3, word.Sections[0].PageNumberType.Start?.Value);
         Assert.Equal(NumberFormatValues.UpperRoman, word.Sections[0].PageNumberType.Format?.Value);

@@ -34,7 +34,7 @@ public sealed partial class IWorkBoundaryTests {
                 int number = row.GetProperty("row").GetInt32();
                 double height = row.GetProperty("heightPoints").GetDouble();
                 Assert.Equal(height, table.GetRowHeight(number));
-                Assert.Equal((int)Math.Round(height * 20), reopened.Tables[position].Rows[number - 1].MinimumHeight);
+                Assert.Equal((int)Math.Round(height * 20), checked((int?)(reopened.Tables[position].Rows[number - 1].MinimumHeight?.ToTwips())));
             }
         }
         Assert.DoesNotContain(result.Report.Diagnostics, diagnostic => diagnostic.Code == "IWORK_TABLE_ROW_SIZING_UNSUPPORTED");
@@ -64,7 +64,7 @@ public sealed partial class IWorkBoundaryTests {
         saved.Position = 0;
         using var reopened = OfficeIMO.Word.WordDocument.Load(saved);
         Assert.Equal(new[] { 405, 200, 600 }, reopened.Tables[0].RowHeight);
-        Assert.Equal(autoResize ? 405 : (int?)null, reopened.Tables[0].Rows[0].MinimumHeight);
+        Assert.Equal(autoResize ? 405 : (int?)null, checked((int?)(reopened.Tables[0].Rows[0].MinimumHeight?.ToTwips())));
         saved.Position = 0;
         using var zip = new ZipArchive(saved, ZipArchiveMode.Read, leaveOpen: true);
         using Stream xml = zip.GetEntry("word/document.xml")!.Open();
