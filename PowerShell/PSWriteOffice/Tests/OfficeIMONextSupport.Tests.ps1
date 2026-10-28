@@ -18,15 +18,15 @@ Describe 'Expanded OfficeIMO support' {
         $detection = Get-OfficeDocumentDetection -Path $asciiDocPath
         $detection.GetType().FullName | Should -Be 'OfficeIMO.Reader.ReaderDetectionResult'
 
-        $structured = Get-OfficeDocumentStructured -Path $asciiDocPath
+        $structured = Read-OfficeDocument -As Structure -Path $asciiDocPath
         $structured.GetType().FullName | Should -Be 'OfficeIMO.Reader.OfficeDocumentStructuredExtractionResult'
         $structured.Records.Count | Should -BeGreaterThan 0
 
-        $hierarchy = Get-OfficeDocumentHierarchy -Path $asciiDocPath
+        $hierarchy = Read-OfficeDocument -As Hierarchy -Path $asciiDocPath
         $hierarchy.GetType().FullName | Should -Be 'OfficeIMO.Reader.ReaderChunkHierarchyResult'
         $hierarchy.Chunks.Count | Should -BeGreaterThan 0
 
-        $batch = @(@($asciiDocPath, $latexPath) | Get-OfficeDocumentBatch)
+        $batch = @(@($asciiDocPath, $latexPath) | Read-OfficeDocument)
         $batch | Should -HaveCount 2
         $batch[0].GetType().FullName | Should -Be 'OfficeIMO.Reader.OfficeDocumentReadResult'
 

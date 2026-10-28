@@ -14,7 +14,6 @@ namespace PSWriteOffice.Cmdlets.Reader;
 ///   <para>Lists built-in and modular Reader handlers, including adapters such as PDF, RTF, HTML, CSV, JSON, XML, YAML, ZIP, EPUB, and Visio when available.</para>
 /// </example>
 [Cmdlet(VerbsCommon.Get, "OfficeDocumentCapability")]
-[Alias("Get-OfficeReaderCapability")]
 [OutputType(typeof(ReaderHandlerCapability), typeof(ReaderCapabilityManifest))]
 public sealed class GetOfficeDocumentCapabilityCommand : OfficeDocumentReaderCommandBase
 {
@@ -22,21 +21,15 @@ public sealed class GetOfficeDocumentCapabilityCommand : OfficeDocumentReaderCom
     [Parameter]
     public SwitchParameter Manifest { get; set; }
 
-    /// <summary>Exclude built-in Reader capabilities.</summary>
+    /// <summary>Return handlers supplied by OfficeIMO or registered by a caller.</summary>
     [Parameter]
-    public SwitchParameter ExcludeBuiltIn { get; set; }
-
-    /// <summary>Exclude custom or modular Reader capabilities.</summary>
-    [Parameter]
-    public SwitchParameter ExcludeCustom { get; set; }
+    public ReaderHandlerOrigin? Origin { get; set; }
 
     /// <inheritdoc />
     protected override void ProcessRecord()
     {
-        var includeBuiltIn = !ExcludeBuiltIn.IsPresent;
-        var includeCustom = !ExcludeCustom.IsPresent;
         var capabilities = EffectiveReader.GetCapabilities()
-            .Where(capability => capability.Origin == ReaderHandlerOrigin.OfficeIMO ? includeBuiltIn : includeCustom)
+            .Where(capability => !Origin.HasValue || capability.Origin == Origin.Value)
             .ToArray();
 
         if (Manifest.IsPresent)

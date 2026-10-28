@@ -139,7 +139,7 @@ public sealed class WorkflowContractCmdletTests {
                     $rejected = $false
                     try { Get-OfficeEpub -Path 'Env:/PATH' -ErrorAction Stop } catch { $rejected = $_.Exception.Message -like '*filesystem*' }
                     if (-not $rejected) { throw 'Non-filesystem provider was accepted' }
-                    foreach ($command in 'Get-OfficeCsv', 'Import-OfficeCsv', 'Get-OfficeDocumentBatch') {
+                    foreach ($command in 'Get-OfficeCsv', 'Import-OfficeCsv', 'Read-OfficeDocument') {
                         $rejected = $false
                         try { & $command -Path 'Env:/*' -ErrorAction Stop } catch { $rejected = $_.Exception.Message -like '*filesystem*' }
                         if (-not $rejected) { throw "$command accepted a non-filesystem discovery provider" }

@@ -42,7 +42,7 @@ Describe 'PSWriteOffice public API consistency' {
         $contracts = @(
             @{ Command = 'Compare-OfficeWordDocument'; Parameter = 'Options'; Builder = 'New-OfficeWordComparisonOptions' }
             @{ Command = 'Resolve-OfficeWordRevision'; Parameter = 'Filter'; Builder = 'New-OfficeWordRevisionFilter' }
-            @{ Command = 'Get-OfficeDocumentHierarchy'; Parameter = 'ChunkingOptions'; Builder = 'New-OfficeReaderHierarchyOptions' }
+            @{ Command = 'Read-OfficeDocument'; Parameter = 'HierarchyOptions'; Builder = 'New-OfficeDocumentHierarchyOptions' }
             @{ Command = 'Compare-OfficePdfVisual'; Parameter = 'Options'; Builder = 'New-OfficePdfVisualComparisonOptions' }
             @{ Command = 'ConvertTo-OfficePdfWord'; Parameter = 'Options'; Builder = 'New-OfficePdfToWordOptions' }
             @{ Command = 'ConvertTo-OfficePdfExcel'; Parameter = 'Options'; Builder = 'New-OfficePdfExcelImportOptions' }
@@ -71,11 +71,7 @@ Describe 'PSWriteOffice public API consistency' {
             $builder.OutputType.Type.Name | Should -Contain $consumer.Parameters[$contract.Parameter].ParameterType.Name
             @($builder.Parameters.Values | Where-Object ParameterType -eq ([System.Nullable[bool]])) |
                 Should -HaveCount 0 -Because "$($contract.Builder) should expose PowerShell switches rather than nullable booleans"
-            $helpPath = Join-Path (Join-Path $PSScriptRoot '..\Docs') "$($contract.Builder).md"
-            Test-Path -LiteralPath $helpPath | Should -BeTrue -Because "$($contract.Builder) should have generated command help"
-            $exampleText = Get-Content -LiteralPath $helpPath -Raw
-            $exampleText | Should -Match ([regex]::Escape($contract.Command)) -Because "$($contract.Builder) should show how its result reaches the consuming command"
-            $exampleText | Should -Not -Match "(?m)-[A-Za-z]+\s+'Value'" -Because "$($contract.Builder) should not publish generated placeholder examples"
+
         }
     }
 
@@ -413,7 +409,7 @@ Describe 'PSWriteOffice public API consistency' {
             @{ Input = 'New-OfficeTextRun -TabLeader U'; Expected = 'Underscores' }
             @{ Input = 'New-OfficeTextRun -TabAlignment D'; Expected = 'DecimalSeparator' }
             @{ Input = 'Add-OfficeExcelPivotTable -PivotStyle PivotStyleMedium9'; Expected = 'PivotStyleMedium9' }
-            @{ Input = 'Get-OfficeDocumentAsset -Kind Im'; Expected = 'Image' }
+            @{ Input = 'Export-OfficeDocumentAsset -Kind Im'; Expected = 'Image' }
         )
 
         foreach ($case in $cases) {

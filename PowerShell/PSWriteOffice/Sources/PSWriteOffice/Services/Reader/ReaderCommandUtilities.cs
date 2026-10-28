@@ -19,21 +19,6 @@ internal static class ReaderCommandUtilities
         => OfficeFileCommandUtilities.ResolvePath(cmdlet, path);
 
 
-    internal static IReadOnlyList<string> ResolvePaths(PSCmdlet cmdlet, string path)
-    {
-        try
-        {
-            var resolved = OfficeFileCommandUtilities.ResolveWildcardPaths(cmdlet, path);
-            return resolved.Count > 0
-                ? resolved.ToArray()
-                : new[] { ResolvePath(cmdlet, path) };
-        }
-        catch (ItemNotFoundException)
-        {
-            return new[] { ResolvePath(cmdlet, path) };
-        }
-    }
-
     internal static OfficeDocumentReaderBuilder CreateBuilder(ReaderAllOptions? options = null)
     {
         return new OfficeDocumentReaderBuilder()
@@ -238,30 +223,7 @@ internal static class ReaderCommandUtilities
         .Select(static value => value.StartsWith(".", StringComparison.Ordinal) ? value : "." + value)
         .ToArray();
 
-    internal static ReaderFolderOptions BuildFolderOptions(bool recurse, int? maxFiles, long? maxTotalBytes, string[]? extension)
-    {
-        var options = new ReaderFolderOptions
-        {
-            Recurse = recurse
-        };
 
-        if (maxFiles.HasValue)
-        {
-            options.MaxFiles = maxFiles.Value;
-        }
-
-        if (maxTotalBytes.HasValue)
-        {
-            options.MaxTotalBytes = maxTotalBytes.Value;
-        }
-
-        if (extension != null && extension.Length > 0)
-        {
-            options.Extensions = NormalizeSourceExtensions(extension);
-        }
-
-        return options;
-    }
 }
 
 internal sealed class ReaderCommandConfiguration
