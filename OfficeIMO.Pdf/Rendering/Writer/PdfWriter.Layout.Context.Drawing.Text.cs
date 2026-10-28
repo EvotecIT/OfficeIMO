@@ -218,7 +218,9 @@ internal static partial class PdfWriter {
             double scale = actualWidth > 0D && advance > 0D ? advance / actualWidth : 1D;
             // Apply glyph and decoration alpha inside transformed paint, independently
             // of run backgrounds and the containing transparency group.
-            string? foregroundState = EnsureGraphicsState(foregroundColor.A / 255D, 1D);
+            bool syntheticBold = line.Lines[0].Any(segment => currentOpts.NeedsSyntheticBold(segment.Font, segment.NamedFont));
+            bool groupWeight = syntheticBold && foregroundColor.A < 255;
+            string? foregroundState = groupWeight ? null : EnsureGraphicsState(foregroundColor.A / 255D, 1D);
             string? decorationState = run.Underline || run.Strike
                 ? EnsureGraphicsState(1D, (decorationColor ?? foregroundColor).A / 255D)
                 : null;
@@ -228,7 +230,9 @@ internal static partial class PdfWriter {
                     currentPage!.Annotations, x + (clipX - x) / scale, clipY, clipWidth / scale,
                     clipHeight, x, Math.Max(0.001D, actualWidth), suppressActualText: _suppressCanvasActualTextChildren,
                     foregroundGraphicsState: foregroundState, decorationGraphicsState: decorationState,
-                    clipToFrame: clipToFrame, fontPage: currentPage);
+                    clipToFrame: clipToFrame, fontPage: currentPage,
+                    foregroundGroup: groupWeight ? paint => RenderEffectGroup(OfficeTransform.Identity,
+                        foregroundColor.A / 255D, paint) : null);
             }
             if (Math.Abs(scale - 1D) > 0.000001D) {
                 RenderOpaqueEffectGroupInline(new OfficeTransform(scale, 0D, 0D, 1D, x * (1D - scale), 0D), Paint);

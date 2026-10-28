@@ -188,7 +188,7 @@ internal static partial class PdfWriter {
         PdfCreateOptions pageOptions) {
         var content = new ContentStreamBuilder(sb)
             .BeginText()
-            .Font(PdfSyntaxEscaper.Name(fontResource), fontSize, pageOptions.NeedsSyntheticOblique(font));
+            .Font(PdfSyntaxEscaper.Name(fontResource), fontSize, pageOptions.NeedsSyntheticOblique(font), syntheticBold: pageOptions.NeedsSyntheticBold(font));
         if (Math.Abs(textRise) > 0.0001D) {
             content.TextRise(textRise);
         }

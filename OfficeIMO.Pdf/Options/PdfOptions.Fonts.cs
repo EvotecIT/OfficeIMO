@@ -320,7 +320,7 @@ public sealed partial class PdfCreateOptions {
 
         return string.Join("|", _embeddedFonts
             .OrderBy(font => font.Key)
-            .Select(font => ((int)font.Key).ToString(CultureInfo.InvariantCulture) + ":" + (font.Value.FontName ?? string.Empty) + ":" + font.Value.DataSnapshot.Length.ToString(CultureInfo.InvariantCulture) + ":" + (font.Value.SyntheticOblique ? "1" : "0")));
+            .Select(font => ((int)font.Key).ToString(CultureInfo.InvariantCulture) + ":" + (font.Value.FontName ?? string.Empty) + ":" + font.Value.DataSnapshot.Length.ToString(CultureInfo.InvariantCulture) + ":" + (font.Value.SyntheticOblique ? "1" : "0") + ":" + (font.Value.SyntheticBold ? "1" : "0")));
     }
 
     /// <summary>
@@ -369,9 +369,9 @@ public sealed partial class PdfCreateOptions {
         byte[] regular) {
         PdfStandardFont normalizedFamily = PdfStandardFontMapper.GetFontFamily(baseFontFamily);
         EmbedStandardFontSnapshot(normalizedFamily, regular, BuildFontFamilyFaceName(familyName, "Regular"));
-        EmbedStandardFontSnapshot(PdfStandardFontMapper.GetStyledFont(normalizedFamily, bold: true, italic: false), regular, BuildFontFamilyFaceName(familyName, "Bold"));
+        EmbedStandardFontSnapshot(PdfStandardFontMapper.GetStyledFont(normalizedFamily, bold: true, italic: false), regular, BuildFontFamilyFaceName(familyName, "Bold"), syntheticBold: true);
         EmbedStandardFontSnapshot(PdfStandardFontMapper.GetStyledFont(normalizedFamily, bold: false, italic: true), regular, BuildFontFamilyFaceName(familyName, "Italic"), syntheticOblique: true);
-        EmbedStandardFontSnapshot(PdfStandardFontMapper.GetStyledFont(normalizedFamily, bold: true, italic: true), regular, BuildFontFamilyFaceName(familyName, "BoldItalic"), syntheticOblique: true);
+        EmbedStandardFontSnapshot(PdfStandardFontMapper.GetStyledFont(normalizedFamily, bold: true, italic: true), regular, BuildFontFamilyFaceName(familyName, "BoldItalic"), syntheticOblique: true, syntheticBold: true);
         (_fallbackOwnedFontFamilies ??= new HashSet<PdfStandardFont>()).Add(normalizedFamily);
         return this;
     }
@@ -388,6 +388,7 @@ public sealed partial class PdfCreateOptions {
             string face = style == 0 ? "Regular" : style == 1 ? "Bold" : style == 2 ? "Italic" : "BoldItalic";
             if (embedded.FontName != BuildFontFamilyFaceName(candidate.FontName, face)
                 || embedded.SyntheticOblique != ((style & 2) != 0)
+                || embedded.SyntheticBold != ((style & 1) != 0)
                 || (!ReferenceEquals(embedded.DataSnapshot, candidate.DataSnapshot)
                     && !embedded.DataSnapshot.SequenceEqual(candidate.DataSnapshot))) return false;
             found = true;
@@ -404,9 +405,9 @@ public sealed partial class PdfCreateOptions {
         byte[]? boldItalic) {
         PdfStandardFont normalizedFamily = PdfStandardFontMapper.GetFontFamily(baseFontFamily);
         EmbedStandardFontSnapshot(normalizedFamily, regular, BuildFontFamilyFaceName(familyName, "Regular"));
-        EmbedStandardFontSnapshot(PdfStandardFontMapper.GetStyledFont(normalizedFamily, bold: true, italic: false), bold ?? regular, BuildFontFamilyFaceName(familyName, "Bold"));
+        EmbedStandardFontSnapshot(PdfStandardFontMapper.GetStyledFont(normalizedFamily, bold: true, italic: false), bold ?? regular, BuildFontFamilyFaceName(familyName, "Bold"), syntheticBold: bold == null);
         EmbedStandardFontSnapshot(PdfStandardFontMapper.GetStyledFont(normalizedFamily, bold: false, italic: true), italic ?? regular, BuildFontFamilyFaceName(familyName, "Italic"), syntheticOblique: italic == null);
-        EmbedStandardFontSnapshot(PdfStandardFontMapper.GetStyledFont(normalizedFamily, bold: true, italic: true), boldItalic ?? bold ?? italic ?? regular, BuildFontFamilyFaceName(familyName, "BoldItalic"), syntheticOblique: boldItalic == null && (bold != null || italic == null));
+        EmbedStandardFontSnapshot(PdfStandardFontMapper.GetStyledFont(normalizedFamily, bold: true, italic: true), boldItalic ?? bold ?? italic ?? regular, BuildFontFamilyFaceName(familyName, "BoldItalic"), syntheticOblique: boldItalic == null && (bold != null || italic == null), syntheticBold: boldItalic == null && bold == null);
         return this;
     }
 

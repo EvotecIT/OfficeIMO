@@ -294,10 +294,10 @@ public sealed partial class PdfCreateOptions {
     public PdfCreateOptions EmbedStandardFont(PdfStandardFont font, byte[] data, string? fontName = null) =>
         EmbedStandardFontCore(font, data, fontName, cloneData: true);
 
-    internal PdfCreateOptions EmbedStandardFontSnapshot(PdfStandardFont font, byte[] data, string? fontName = null, bool syntheticOblique = false) =>
-        EmbedStandardFontCore(font, data, fontName, cloneData: false, syntheticOblique);
+    internal PdfCreateOptions EmbedStandardFontSnapshot(PdfStandardFont font, byte[] data, string? fontName = null, bool syntheticOblique = false, bool syntheticBold = false) =>
+        EmbedStandardFontCore(font, data, fontName, cloneData: false, syntheticOblique, syntheticBold);
 
-    private PdfCreateOptions EmbedStandardFontCore(PdfStandardFont font, byte[] data, string? fontName, bool cloneData, bool syntheticOblique = false) {
+    private PdfCreateOptions EmbedStandardFontCore(PdfStandardFont font, byte[] data, string? fontName, bool cloneData, bool syntheticOblique = false, bool syntheticBold = false) {
         Guard.StandardFont(font, nameof(font), "PDF embedded font mapping must target one of the supported standard PDF font slots.");
         Guard.NotNull(data, nameof(data));
         if (data.Length == 0) {
@@ -314,11 +314,11 @@ public sealed partial class PdfCreateOptions {
         if (_embeddedFonts != null &&
             _embeddedFonts.TryGetValue(font, out PdfEmbeddedFont? existingFont) &&
             EmbeddedFontMatches(existingFont, data, normalizedFontName) &&
-            existingFont.SyntheticOblique == syntheticOblique) {
+            existingFont.SyntheticOblique == syntheticOblique && existingFont.SyntheticBold == syntheticBold) {
             return this;
         }
 
-        var embeddedFont = new PdfEmbeddedFont(font, data, normalizedFontName, cloneData, syntheticOblique);
+        var embeddedFont = new PdfEmbeddedFont(font, data, normalizedFontName, cloneData, syntheticOblique, syntheticBold);
         (_embeddedFonts ??= new System.Collections.Generic.Dictionary<PdfStandardFont, PdfEmbeddedFont>())[font] = embeddedFont;
         _embeddedFontPrograms?.Remove(font);
         _embeddedOpenTypeCffFontPrograms?.Remove(font);

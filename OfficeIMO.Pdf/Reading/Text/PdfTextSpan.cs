@@ -83,9 +83,10 @@ public sealed partial class PdfTextSpan {
     internal double VisibleStrokePadding { get; private set; }
     internal void SetVisibleStrokePadding(double padding) => VisibleStrokePadding = padding;
     // Visible glyph-outline stroke of modes 1, 2, 5 and 6: paint (with opacity) and page-space line width.
-    internal (OfficeColor Color, double Width, IReadOnlyList<double>? DashPattern, double DashOffset)? OutlineStroke { get; private set; }
-    internal void SetOutlineStroke(OfficeColor color, double width, IReadOnlyList<double>? dashPattern, double dashOffset) =>
-        OutlineStroke = (color, width, dashPattern, dashOffset);
+    internal (OfficeColor Color, double Width, IReadOnlyList<double>? DashPattern, double DashOffset, OfficeStrokeLineCap Cap, OfficeStrokeLineJoin Join, double MiterLimit)? OutlineStroke { get; private set; }
+    internal void SetOutlineStroke(OfficeColor color, double width, IReadOnlyList<double>? dashPattern, double dashOffset, OfficeStrokeLineCap cap = OfficeStrokeLineCap.Butt,
+        OfficeStrokeLineJoin join = OfficeStrokeLineJoin.Miter, double miterLimit = 10D) =>
+        OutlineStroke = (color, width, dashPattern, dashOffset, cap, join, miterLimit);
     internal void MarkAdditionalVisiblePaint() => HasAdditionalVisiblePaint = true;
     internal void MarkUnresolvedPaint() => HasUnresolvedPaint = true;
     internal bool CanRestamp { get; }

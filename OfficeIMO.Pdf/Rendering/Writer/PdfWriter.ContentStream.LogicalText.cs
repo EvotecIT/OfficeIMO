@@ -9,7 +9,7 @@ internal sealed partial class ContentStreamBuilder {
     // The PDF line matrix no longer equals the tracked line origin: a repositioning was
     // folded into a TJ adjustment, so later relative moves must restate the text matrix.
     private bool _isolatedText;
-    private readonly Stack<(double Scale, double Leading, double WordSpacing, double CharacterSpacing, bool SyntheticOblique)> _textStates = new();
+    private readonly Stack<(double Scale, double Leading, double WordSpacing, double CharacterSpacing, bool SyntheticOblique, bool SyntheticBold, PdfColor PaintFillColor)> _textStates = new();
 
     // Text-state cache, valid only inside the current text object while every byte appended
     // since the builder's last write is marked-content syntax.

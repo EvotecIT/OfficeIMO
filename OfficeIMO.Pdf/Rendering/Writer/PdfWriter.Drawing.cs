@@ -997,7 +997,7 @@ internal static partial class PdfWriter {
         PdfStandardFont font = ResolveFontFromResourceName(fontRes, ChooseNormal(opts.DefaultFont));
         new ContentStreamBuilder(sb)
             .BeginText()
-            .Font(fontRes, fontSize, opts.NeedsSyntheticOblique(font))
+            .Font(fontRes, fontSize, opts.NeedsSyntheticOblique(font), syntheticBold: opts.NeedsSyntheticBold(font))
             .FillColor(effective ?? PdfColor.Black)
             .TextMatrix(x, y)
             .ShowText(EncodeTextShowCommand(text, font, opts), fontSize)

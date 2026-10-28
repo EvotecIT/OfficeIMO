@@ -12,7 +12,7 @@ internal sealed partial class ContentStreamBuilder {
     }
 
     public ContentStreamBuilder SaveState() {
-        _textStates.Push((_textScale, _textLeading, _textWordSpacing, _textCharacterSpacing, _syntheticOblique));
+        _textStates.Push((_textScale, _textLeading, _textWordSpacing, _textCharacterSpacing, _syntheticOblique, _syntheticBold, _paintFillColor));
         InvalidateTextStateCache();
         _sb.Append("q\n");
         return this;
@@ -24,6 +24,8 @@ internal sealed partial class ContentStreamBuilder {
             _textScale = state.Scale; _textLeading = state.Leading; _textWordSpacing = state.WordSpacing;
             _textCharacterSpacing = state.CharacterSpacing;
             _syntheticOblique = state.SyntheticOblique;
+            _syntheticBold = state.SyntheticBold;
+            _paintFillColor = state.PaintFillColor;
         }
         InvalidateTextStateCache();
         _sb.Append("Q\n");
@@ -46,7 +48,9 @@ internal sealed partial class ContentStreamBuilder {
 
     public ContentStreamBuilder FillColor(PdfColor color) {
         if (SyncTextState() && _fillColor.HasValue && _fillColor.Value.Equals(color)) return this;
+        _paintFillColor = color;
         _sb.Append(F(color.R)).Append(' ').Append(F(color.G)).Append(' ').Append(F(color.B)).Append(" rg\n");
+        if (_syntheticBold) StrokeColor(color);
         if (_inText) {
             _fillColor = color;
             OwnWrite();
@@ -56,7 +60,9 @@ internal sealed partial class ContentStreamBuilder {
 
     public ContentStreamBuilder FillGray(double gray) {
         _fillColor = null;
+        _paintFillColor = new PdfColor(gray, gray, gray);
         _sb.Append(F(gray)).Append(" g\n");
+        if (_syntheticBold) StrokeColor(_paintFillColor);
         return this;
     }
 
@@ -228,6 +234,8 @@ internal sealed partial class ContentStreamBuilder {
     }
 
     public ContentStreamBuilder BeginText() {
+        _textObjectStart = _sb.Length;
+        _textEntryFillColor = _paintFillColor;
         ResetTrackedTextMatrix();
         InvalidateTextStateCache();
         _showEnd = -1;
@@ -242,13 +250,20 @@ internal sealed partial class ContentStreamBuilder {
         _showEnd = -1;
         InvalidateTextStateCache();
         _sb.Append("ET\n");
+        if (_syntheticWeightScope) {
+            _sb.Append("Q\n");
+            _paintFillColor = _textEntryFillColor;
+            _syntheticWeightScope = false;
+        }
+        _syntheticBold = false;
         return this;
     }
 
-    public ContentStreamBuilder Font(string resourceName, double size, bool syntheticOblique = false, bool preserveLogicalPrecision = false) {
+    public ContentStreamBuilder Font(string resourceName, double size, bool syntheticOblique = false, bool preserveLogicalPrecision = false, bool syntheticBold = false) {
         Guard.NotNullOrWhiteSpace(resourceName, nameof(resourceName));
-        if (SyncTextState() && _syntheticOblique == syntheticOblique && _fontSize == size &&
+        if (SyncTextState() && _syntheticOblique == syntheticOblique && _syntheticBold == syntheticBold && _fontSize == size &&
             _fontPrecise == preserveLogicalPrecision && string.Equals(_fontResource, resourceName, StringComparison.Ordinal)) return this;
+        ApplySyntheticWeight(size, syntheticBold);
         _sb.Append('/').Append(resourceName).Append(' ');
         if (preserveLogicalPrecision) _sb.Append(MatrixNumber(size));
         else _sb.Append(F(size));

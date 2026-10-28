@@ -20,7 +20,7 @@ internal static partial class PdfWriter {
             AppendMarkedContentBegin(sb, structureType, markedContentId);
             var content = new ContentStreamBuilder(sb)
                 .BeginText()
-                .Font(fontRes, fontSize, currentOpts.NeedsSyntheticOblique(ResolveFontFromResourceName(fontRes, ChooseNormal(currentOpts.DefaultFont)), namedFont))
+                .Font(fontRes, fontSize, currentOpts.NeedsSyntheticOblique(ResolveFontFromResourceName(fontRes, ChooseNormal(currentOpts.DefaultFont)), namedFont), syntheticBold: currentOpts.NeedsSyntheticBold(ResolveFontFromResourceName(fontRes, ChooseNormal(currentOpts.DefaultFont)), namedFont))
                 .TextLeading(lineHeight);
             var lineFont = ResolveFontFromResourceName(fontRes, ChooseNormal(currentOpts.DefaultFont));
             double yStart2 = startY;

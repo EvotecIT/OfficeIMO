@@ -799,10 +799,12 @@ internal static partial class PdfWriter {
 
             if (markInfo) AssignStructParentIndex(page, ref nextStructParentIndex);
 
-            string pageBackgroundContent = BuildPageBackground(page, pageOpts, pageBackgroundShapeContent, textWatermark, watermarkFontAlias, pageFontResources, textWatermarkGraphicsStateName, pageBorder, pageBorderGraphicsStateName, markInfo);
             PdfPrintColorTransform? pageColorTransform = pageOpts.ConvertVectorColorsToPdfXPrintCondition
                 ? GetPrintColorTransform(pageOpts)
                 : null;
+            string? textWatermarkXObject = CreateTextWatermarkGroup(objects, pageOpts, textWatermark,
+                watermarkFontAlias, pageFontResources, fontResources, xobjects, pageColorTransform, cancellationToken);
+            string pageBackgroundContent = BuildPageBackground(page, pageOpts, pageBackgroundShapeContent, textWatermark, watermarkFontAlias, pageFontResources, textWatermarkGraphicsStateName, pageBorder, pageBorderGraphicsStateName, markInfo, textWatermarkXObject);
             bool flattenVisualAnnotations = opts.FlattenVisualAnnotations;
 
             byte[] contentBytes;
@@ -1611,7 +1613,7 @@ internal static partial class PdfWriter {
         return false;
     }
 
-    private static string BuildPageBackground(LayoutResult.Page page, PdfCreateOptions options, string pageBackgroundShapeContent, PdfTextWatermark? watermark, string? watermarkFontAlias, System.Collections.Generic.IReadOnlyDictionary<PdfStandardFont, string> fontResources, string? textWatermarkGraphicsStateName, PdfPageBorder? pageBorder, string? pageBorderGraphicsStateName, bool markDecorativeArtifacts) {
+    private static string BuildPageBackground(LayoutResult.Page page, PdfCreateOptions options, string pageBackgroundShapeContent, PdfTextWatermark? watermark, string? watermarkFontAlias, System.Collections.Generic.IReadOnlyDictionary<PdfStandardFont, string> fontResources, string? textWatermarkGraphicsStateName, PdfPageBorder? pageBorder, string? pageBorderGraphicsStateName, bool markDecorativeArtifacts, string? textWatermarkXObject) {
         var sb = new StringBuilder();
         if (options.BackgroundColor.HasValue) {
             var backgroundColor = new StringBuilder();
@@ -1634,7 +1636,13 @@ internal static partial class PdfWriter {
 
         if (watermark != null && watermark.Opacity > 0D && !string.IsNullOrEmpty(watermarkFontAlias)) {
             var watermarkContent = new StringBuilder();
-            AppendTextWatermark(watermarkContent, options, watermark, watermarkFontAlias!, fontResources, textWatermarkGraphicsStateName);
+            if (textWatermarkXObject != null) {
+                var content = new ContentStreamBuilder(watermarkContent).SaveState();
+                if (!string.IsNullOrEmpty(textWatermarkGraphicsStateName)) content.GraphicsState(textWatermarkGraphicsStateName!);
+                content.XObject(textWatermarkXObject).RestoreState();
+            } else {
+                AppendTextWatermark(watermarkContent, options, watermark, watermarkFontAlias!, fontResources, textWatermarkGraphicsStateName);
+            }
             sb.Append(WrapArtifactContent(watermarkContent.ToString(), markDecorativeArtifacts));
         }
 
@@ -1835,101 +1843,6 @@ internal static partial class PdfWriter {
             RotationAngle = watermark.RotationAngle,
             GraphicsStateName = stateName
         });
-    }
-
-    private static void EnsureTextWatermarkFontResources(PdfTextWatermark watermark, PdfCreateOptions options, Func<PdfStandardFont, string, string> ensureFontResource) {
-        PdfStandardFont baseFont = ChooseNormal(watermark.Font);
-        PdfStandardFont normalFont = ChooseNormal(options.DefaultFont);
-        System.Collections.Generic.IReadOnlyList<PdfTextRun> runs = BuildTextWatermarkRuns(watermark, options);
-        foreach (PdfTextRun run in runs) {
-            PdfStandardFont runFont = ResolvePageTextRunFont(run, baseFont);
-            ensureFontResource(runFont, GetStandardFontResourceName(runFont, normalFont));
-        }
-    }
-
-    private static void AppendTextWatermark(StringBuilder sb, PdfCreateOptions options, PdfTextWatermark watermark, string fontAlias, System.Collections.Generic.IReadOnlyDictionary<PdfStandardFont, string> fontResources, string? graphicsStateName) {
-        PdfStandardFont baseFont = ChooseNormal(watermark.Font);
-        System.Collections.Generic.IReadOnlyList<PdfTextRun> runs = BuildTextWatermarkRuns(watermark, options);
-        double textWidth = MeasureTextWatermarkRuns(runs, baseFont, watermark.FontSize, options);
-        double angle = watermark.RotationAngle * System.Math.PI / 180D;
-        double cos = System.Math.Cos(angle);
-        double sin = System.Math.Sin(angle);
-        double centerX = options.PageWidth / 2D;
-        double centerY = options.PageHeight / 2D;
-        double originX = centerX - cos * textWidth / 2D + sin * watermark.FontSize / 2D;
-        double originY = centerY - sin * textWidth / 2D - cos * watermark.FontSize / 2D;
-
-        var content = new ContentStreamBuilder(sb)
-            .SaveState();
-        if (!string.IsNullOrEmpty(graphicsStateName)) {
-            content.GraphicsState(graphicsStateName!);
-        }
-
-        content
-            .BeginText()
-            .Font(fontAlias, watermark.FontSize, options.NeedsSyntheticOblique(baseFont))
-            .FillColor(watermark.Color)
-            .TextMatrix(cos, sin, -sin, cos, originX, originY);
-        // Keep logical replacement inside the text object so redaction of the
-        // watermark removes the visible glyphs and their extraction text together.
-        sb.Append("/Span << /ActualText ").Append(PdfSyntaxEscaper.TextString(watermark.Text)).Append(" >> BDC\n");
-        foreach (PdfTextRun run in runs) {
-            string text = run.Text ?? string.Empty;
-            if (text.Length == 0) {
-                continue;
-            }
-
-            PdfStandardFont runFont = ResolvePageTextRunFont(run, baseFont);
-            string runFontResource = ResolvePageTextFontResource(fontResources, runFont);
-            double runFontSize = run.FontSize ?? watermark.FontSize;
-            content
-                .Font(runFontResource, runFontSize, options.NeedsSyntheticOblique(runFont))
-                .ShowText(EncodeTextShowCommand(text, runFont, options), runFontSize, suppressActualText: true);
-        }
-
-        sb.Append("EMC\n");
-        content.EndText();
-        content.RestoreState();
-    }
-
-    private static System.Collections.Generic.IReadOnlyList<PdfTextRun> BuildTextWatermarkRuns(PdfTextWatermark watermark, PdfCreateOptions options) {
-        PdfStandardFont baseFont = ChooseNormal(watermark.Font);
-        var run = new PdfTextRun(
-            watermark.Text,
-            bold: watermark.Bold,
-            underline: false,
-            color: watermark.Color,
-            italic: watermark.Italic,
-            strike: false,
-            fontSize: watermark.FontSize,
-            font: baseFont);
-        return NormalizeFallbackRuns(new[] { run }, baseFont, options);
-    }
-
-    private static double MeasureTextWatermarkRuns(System.Collections.Generic.IReadOnlyList<PdfTextRun> runs, PdfStandardFont baseFont, double fontSize, PdfCreateOptions options) {
-        double width = 0D;
-        foreach (PdfTextRun run in runs) {
-            width += MeasureRichText(run.Text ?? string.Empty, ResolvePageTextRunFont(run, baseFont), run.FontSize ?? fontSize, run.Baseline, options);
-        }
-
-        return width;
-    }
-
-    private static PdfStandardFont GetTextWatermarkFont(PdfTextWatermark watermark) {
-        PdfStandardFont normal = ChooseNormal(watermark.Font);
-        if (watermark.Bold && watermark.Italic) {
-            return ChooseBoldItalic(normal);
-        }
-
-        if (watermark.Bold) {
-            return ChooseBold(normal);
-        }
-
-        if (watermark.Italic) {
-            return ChooseItalic(normal);
-        }
-
-        return normal;
     }
 
     private static List<PageNumberInfo> BuildPageNumberInfos(IReadOnlyList<LayoutResult.Page> pages) {

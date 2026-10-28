@@ -82,6 +82,15 @@ internal static partial class PdfWriter {
                         baseline + offsetY - point.Y);
                 }
                 yield return (contours, false);
+                if (options.NeedsSyntheticBold(segment.Font, segment.NamedFont)) {
+                    // Match native fill-and-stroke glyph paint through the shared
+                    // stroke owner. Ink diagnostics must include the added weight.
+                    var paths = contours.Select(points => new OfficeFlattenedPathContour(points, true)).ToArray();
+                    yield return (OfficeStrokeGeometry.Create(paths, ContentStreamBuilder.SyntheticBoldStrokeWidth(size),
+                        OfficeStrokeLineCap.Butt, OfficeStrokeLineJoin.Round, 10D, null, 0D, 4D,
+                        double.NegativeInfinity, double.NegativeInfinity, double.PositiveInfinity, double.PositiveInfinity,
+                        cancellationToken), false);
+                }
             }
             cursor += GetRichGlyphAdvance(segment, text, command, index, options);
         }

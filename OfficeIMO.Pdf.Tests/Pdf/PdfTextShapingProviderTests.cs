@@ -135,8 +135,10 @@ public class PdfTextShapingProviderTests {
         Assert.Throws<InvalidOperationException>(() => report.RequireNoLoss());
     }
 
-    [Fact]
-    public void VerticalProviderWithBaselineRelativeOffsetsAlignsInkBeforePdfClipping() {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void VerticalProviderWithBaselineRelativeOffsetsAlignsInkBeforePdfClipping(bool bold) {
         TypographyEvidenceCase evidence = Assert.Single(TypographyEvidenceCorpus.Cases,
             item => item.Direction == OfficeTextDirection.TopToBottom);
         byte[] fontData = LoadTypographyFont(evidence);
@@ -150,7 +152,7 @@ public class PdfTextShapingProviderTests {
         var drawing = new OfficeDrawing(120D, 180D)
             .AddFont(evidence.Family, fontData)
             .AddVerticalText(evidence.Text, 20D, 10D, 80D, 160D,
-                new OfficeFontInfo(evidence.Family, 20D));
+                new OfficeFontInfo(evidence.Family, 20D, bold ? OfficeFontStyle.Bold : OfficeFontStyle.Regular));
         var report = new PdfConversionReport();
         var options = new PdfCreateOptions {
                 CompressContentStreams = false, PageWidth = 120D, PageHeight = 180D,

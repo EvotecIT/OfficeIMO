@@ -135,7 +135,7 @@ internal static partial class PdfWriter {
         }
     }
 
-    private static void WriteRichParagraph(StringBuilder sb, RichParagraphBlock block, System.Collections.Generic.List<System.Collections.Generic.List<RichSeg>> lines, System.Collections.Generic.List<double> lineHeights, PdfCreateOptions opts, double startY, double fontSize, double defaultLeading, System.Collections.Generic.List<LinkAnnotation> annots, double? xOverride = null, double? widthOverride = null, double? firstLineXOverride = null, double? firstLineWidthOverride = null, string? structureType = null, int? markedContentId = null, LayoutResult.Page? structurePage = null, System.Collections.Generic.IReadOnlyList<PdfAlign?>? lineAlignments = null, System.Collections.Generic.IReadOnlyList<double>? lineXOffsets = null, System.Collections.Generic.IReadOnlyList<double>? lineWidths = null, bool suppressActualText = false, System.Collections.Generic.IReadOnlyList<double>? lineTopGaps = null, PdfStandardFont? baselineFont = null, string? foregroundGraphicsState = null, string? decorationGraphicsState = null, bool captureInlineForms = true, bool hasFollowingParagraphLines = false, LayoutResult.Page? fontPage = null, double paragraphSpacingAfter = 0D, TableCellContentFrame? barClipFrame = null, double paragraphSpacingBefore = 0D) {
+    private static void WriteRichParagraph(StringBuilder sb, RichParagraphBlock block, System.Collections.Generic.List<System.Collections.Generic.List<RichSeg>> lines, System.Collections.Generic.List<double> lineHeights, PdfCreateOptions opts, double startY, double fontSize, double defaultLeading, System.Collections.Generic.List<LinkAnnotation> annots, double? xOverride = null, double? widthOverride = null, double? firstLineXOverride = null, double? firstLineWidthOverride = null, string? structureType = null, int? markedContentId = null, LayoutResult.Page? structurePage = null, System.Collections.Generic.IReadOnlyList<PdfAlign?>? lineAlignments = null, System.Collections.Generic.IReadOnlyList<double>? lineXOffsets = null, System.Collections.Generic.IReadOnlyList<double>? lineWidths = null, bool suppressActualText = false, System.Collections.Generic.IReadOnlyList<double>? lineTopGaps = null, PdfStandardFont? baselineFont = null, string? foregroundGraphicsState = null, string? decorationGraphicsState = null, bool captureInlineForms = true, bool hasFollowingParagraphLines = false, LayoutResult.Page? fontPage = null, double paragraphSpacingAfter = 0D, TableCellContentFrame? barClipFrame = null, double paragraphSpacingBefore = 0D, Action<Action>? foregroundGroup = null) {
         List<List<RichSeg>> logicalRows = lines;
         RichPaintRows? paintRows = ExpandRichPaintRows(lines, lineHeights, defaultLeading,
             xOverride ?? opts.MarginLeft, widthOverride ?? opts.PageWidth - opts.MarginLeft - opts.MarginRight,
@@ -276,6 +276,7 @@ internal static partial class PdfWriter {
             AppendArtifactEnd(sb, markedContentId.HasValue);
         }
 
+        int foregroundStart = sb.Length;
         // Drawing foreground alpha belongs to glyph paint, independently of run
         // backgrounds and the decoration paint emitted after the text object.
         if (foregroundGraphicsState != null) {
@@ -321,6 +322,7 @@ internal static partial class PdfWriter {
                 double runFontSize = EffectiveRichFontSize(s.FontSize, s.Baseline);
                 double textRise = TextRiseForBaseline(s.FontSize, s.Baseline) + s.LineAlignmentRise;
                 bool syntheticOblique = opts.NeedsSyntheticOblique(s.Font, s.NamedFont);
+                bool syntheticBold = opts.NeedsSyntheticBold(s.Font, s.NamedFont);
                 bool inlineSeparator = s.InlineElement != null && s.InlineElement is not PdfInlineFormWidget && s.LeadingSpace;
                 string? inlineLeader = inlineSeparator && s.LeadingTabLeader != PdfTabLeaderStyle.None
                     ? BuildTabLeaderText(s.LeadingAdvance + (s.LeadingSpaceIsExpandable ? wordSpacing * s.LeadingSpaceCount : 0D), s, opts)
@@ -332,7 +334,7 @@ internal static partial class PdfWriter {
                     // glyph needs a Tf resource. Its separator may own that glyph.
                     if (s.InlineElement != null && fontPage != null)
                         MarkPageRichTextFont(fontPage, opts, s.Font, s.NamedFont);
-                    content.Font(fontRes, runFontSize, syntheticOblique);
+                    content.Font(fontRes, runFontSize, syntheticOblique, syntheticBold: syntheticBold);
                     if (Math.Abs(textRise - currentTextRise) > 0.0001) {
                         content.TextRise(textRise);
                         currentTextRise = textRise;
@@ -356,6 +358,7 @@ internal static partial class PdfWriter {
                         pdfWordSpacing,
                         fontRes,
                         syntheticOblique,
+                        syntheticBold,
                         runFontSize,
                         textRise,
                         color ?? PdfColor.Black,
@@ -508,7 +511,7 @@ internal static partial class PdfWriter {
                         .TextLeading(defaultLeading)
                         .TextMatrix(lineXOrigin + xCursor, lineY)
                         .WordSpacing(pdfWordSpacing)
-                        .Font(fontRes, runFontSize, syntheticOblique);
+                        .Font(fontRes, runFontSize, syntheticOblique, syntheticBold: syntheticBold);
                     if (Math.Abs(textRise) > 0.0001) {
                         content.TextRise(textRise);
                     }
@@ -574,7 +577,7 @@ internal static partial class PdfWriter {
                 string separatorFontResource = GetFontResourceName(last.Font, last.NamedFont, ChooseNormal(opts.DefaultFont));
                 double separatorFontSize = EffectiveRichFontSize(last.FontSize, last.Baseline);
                 double separatorTextRise = TextRiseForBaseline(last.FontSize, last.Baseline) + last.LineAlignmentRise;
-                content.Font(separatorFontResource, separatorFontSize, opts.NeedsSyntheticOblique(last.Font, last.NamedFont));
+                content.Font(separatorFontResource, separatorFontSize, opts.NeedsSyntheticOblique(last.Font, last.NamedFont), syntheticBold: opts.NeedsSyntheticBold(last.Font, last.NamedFont));
                 if (Math.Abs(separatorTextRise - currentTextRise) > 0.0001) {
                     content.TextRise(separatorTextRise);
                     currentTextRise = separatorTextRise;
@@ -598,6 +601,12 @@ internal static partial class PdfWriter {
         if (optionalBreakText) EndOptionalBreakText(sb, block, logicalRows, opts, xOrigin, startY, widthUsed, fontSize);
         if (foregroundGraphicsState != null) {
             new ContentStreamBuilder(sb).RestoreState();
+        }
+
+        if (foregroundGroup != null && sb.Length > foregroundStart) {
+            string paint = sb.ToString(foregroundStart, sb.Length - foregroundStart);
+            sb.Length = foregroundStart;
+            foregroundGroup(() => sb.Append(paint));
         }
 
         bool hasDecorationState = decorationGraphicsState != null && (underlines != null || strikes != null);
@@ -669,6 +678,7 @@ internal static partial class PdfWriter {
         double wordSpacing,
         string fontRes,
         bool syntheticOblique,
+        bool syntheticBold,
         double fontSize,
         double textRise,
         PdfColor fillColor,
@@ -707,7 +717,7 @@ internal static partial class PdfWriter {
             .TextLeading(defaultLeading)
             .TextMatrix(x, y)
             .WordSpacing(wordSpacing)
-            .Font(fontRes, fontSize, syntheticOblique)
+            .Font(fontRes, fontSize, syntheticOblique, syntheticBold: syntheticBold)
             .FillColor(fillColor);
         if (Math.Abs(textRise) > 0.0001) {
             content.TextRise(textRise);
