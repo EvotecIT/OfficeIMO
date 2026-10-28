@@ -13,6 +13,12 @@ exposed model data retain their contracts. Public constructors, value-type membe
 and immutable `With...` copies that return the same model type also survive the
 signature closure.
 
+The unified document lifecycle and source conversion forms also remain public,
+including their async and out-report overloads. A synchronous example does not
+make its required async counterpart a visibility candidate. This retention rule
+applies to document members, domain extension methods and the front-door converter;
+it does not retain static file-converter helpers by name alone.
+
 Build the selected packages for `net10.0` before analysis, then run:
 
 ```sh

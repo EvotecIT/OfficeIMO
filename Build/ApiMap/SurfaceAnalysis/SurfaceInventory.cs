@@ -66,6 +66,8 @@ internal static class SurfaceInventory {
                 Follow(type);
             }
             foreach (var member in PublicMembers(type)) {
+                if (IsUnifiedDocumentContract(member))
+                    KeepMember(member, "Unified document lifecycle or conversion contract");
                 bool constructor = member is IMethodSymbol { MethodKind: MethodKind.Constructor };
                 var evidence = constructor ? docs.FindConstruction(type.Name) : docs.Find(member.Name);
                 bool extension = member is IMethodSymbol { IsExtensionMethod: true };
@@ -140,6 +142,28 @@ internal static class SurfaceInventory {
         "OfficeIMO.Word.WordDocument" or "OfficeIMO.Excel.ExcelDocument" or
         "OfficeIMO.PowerPoint.PowerPointDocument" or "OfficeIMO.Pdf.PdfDocument" or
         "OfficeIMO.Markdown.MarkdownDocument";
+
+    // Required lifecycle and conversion overloads remain public even when an example
+    // demonstrates only the synchronous form. Static file-converter helpers do not
+    // acquire a public contract merely because their names resemble these methods.
+    private static bool IsUnifiedDocumentContract(ISymbol symbol) {
+        if (symbol is not IMethodSymbol method) return false;
+        string name = method.Name.EndsWith("Async", StringComparison.Ordinal)
+            ? method.Name[..^5] : method.Name;
+        if (IsDocumentOwner(method.ContainingType)
+            && name is "Create" or "Load" or "Save" or "Inspect") return true;
+        if (method.ContainingType.ToDisplayString() == "OfficeIMO.OfficeConverter"
+            && name is "Convert" or "ConvertDirectory" or "Analyze") return true;
+        bool instanceDocument = !method.IsStatic && IsDocumentOwner(method.ContainingType);
+        bool domainExtension = method.IsExtensionMethod && method.Parameters.Length > 0
+            && method.Parameters[0].Type.ContainingNamespace.ToDisplayString()
+                .StartsWith("OfficeIMO", StringComparison.Ordinal);
+        if (!instanceDocument && !domainExtension) return false;
+        string? target = name.StartsWith("SaveAs", StringComparison.Ordinal) ? name[6..]
+            : name.StartsWith("To", StringComparison.Ordinal) ? name[2..] : null;
+        return target is "Word" or "Excel" or "PowerPoint" or "Pdf" or "Html" or
+            "Markdown" or "Image" or "Images";
+    }
 
     private static string Id(ISymbol symbol) => symbol.GetDocumentationCommentId() ?? symbol.ToDisplayString();
     private static SurfaceReference Reference(ISymbol symbol, string source, IReadOnlyList<string>? evidence) => new(Id(symbol), source, evidence ?? []);

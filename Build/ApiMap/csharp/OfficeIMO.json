@@ -429,6 +429,17 @@
       "files": [
         "OfficeIMO.Visio/OfficeIMO.Visio.csproj"
       ]
+    },
+    {
+      "change": "Retain the unified lifecycle and conversion families during public-surface analysis",
+      "reason": "The required async and out-report overloads remain public even when documentation demonstrates only a synchronous form. Signature closure retains their options and result models. Static file-converter helpers are still reviewed independently.",
+      "files": [
+        "Build/ApiMap/SurfaceAnalysis/SurfaceInventory.cs",
+        "Build/ApiMap/SurfaceAnalysis/README.md"
+      ],
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "validation": "The existing inventory tool builds without warnings and runs against all seven selected packages. The async Analyze contract is retained while the unrelated report-cleanup candidate remains in the review list."
     }
   ],
   "applicationStatus": "Phase A applied and validated on the supported macOS targets. Phase B and Tier 2 entries retain their status; Windows .NET Framework validation remains pending.",
