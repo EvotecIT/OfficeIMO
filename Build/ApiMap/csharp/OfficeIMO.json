@@ -402,6 +402,14 @@
       "phase": "B",
       "applied": "phase-b-applied",
       "reason": "The native conversion corpus uses source.ToPdf(options, out report) for Word/Excel/PowerPoint/HTML and preserves unified diagnostics. The public disposable PDF loader accepts a path; fixture output uses SaveAsPdf. Tier2 adapter result APIs remain until M4."
+    },
+    {
+      "old": "OfficeIMO.Examples/Visio/QueryAndSelection.cs dereferenced VisioConnector.To without checking unresolved endpoints",
+      "new": "The filter skips unresolved target endpoints before inspecting target shape data",
+      "action": "fix-consumer",
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "reason": "Normal example compilation exposed a nullable dereference warning while validating migrated consumers. Resolved connectors retain the same selection behavior."
     }
   ],
   "applicationStatus": "Phase A applied and validated on the supported macOS targets. Phase B and Tier 2 entries retain their status; Windows .NET Framework validation remains pending.",
