@@ -18,17 +18,17 @@ namespace OfficeIMO.PowerPoint {
                 return false;
             }
 
-            if (ApplySeriesByIndex(plotArea.Elements<C.BarChart>(), seriesIndex, apply)) return true;
-            if (ApplySeriesByIndex(plotArea.Elements<C.LineChart>(), seriesIndex, apply)) return true;
-            if (ApplySeriesByIndex(plotArea.Elements<C.AreaChart>(), seriesIndex, apply)) return true;
-            if (ApplySeriesByIndex(plotArea.Elements<C.PieChart>(), seriesIndex, apply)) return true;
-            if (ApplySeriesByIndex(plotArea.Elements<C.DoughnutChart>(), seriesIndex, apply)) return true;
-            if (ApplySeriesByIndex(plotArea.Elements<C.ScatterChart>(), seriesIndex, apply)) return true;
-            if (ApplySeriesByIndex(plotArea.Elements<C.RadarChart>(), seriesIndex, apply)) return true;
-            if (ApplySeriesByIndex(plotArea.Elements<C.BubbleChart>(), seriesIndex, apply)) return true;
-
-            return false;
+            // Public indices span the complete chart, including mixed chart groups.
+            OpenXmlCompositeElement? series = SeriesAt(plotArea, seriesIndex);
+            if (series == null) return false;
+            apply(series);
+            return true;
         }
+
+        private static OpenXmlCompositeElement? SeriesAt(C.PlotArea plotArea, int seriesIndex) =>
+            seriesIndex < 0 ? null : plotArea.ChildElements.OfType<OpenXmlCompositeElement>()
+                .SelectMany(group => group.ChildElements.OfType<OpenXmlCompositeElement>())
+                .Where(IsSeriesElement).OrderBy(GetSeriesIndex).Skip(seriesIndex).FirstOrDefault();
 
         private bool ApplySeriesByName(string seriesName, bool ignoreCase, Action<OpenXmlCompositeElement> apply) {
             C.Chart chart = GetChart();
@@ -56,11 +56,12 @@ namespace OfficeIMO.PowerPoint {
                 return false;
             }
 
-            if (ApplySeriesMarkerByIndex(plotArea.Elements<C.LineChart>(), seriesIndex, apply)) return true;
-            if (ApplySeriesMarkerByIndex(plotArea.Elements<C.ScatterChart>(), seriesIndex, apply)) return true;
-            if (ApplySeriesMarkerByIndex(plotArea.Elements<C.RadarChart>(), seriesIndex, apply)) return true;
-
-            return false;
+            OpenXmlCompositeElement? series = SeriesAt(plotArea, seriesIndex);
+            if (series is not C.LineChartSeries and not C.ScatterChartSeries and not C.RadarChartSeries) return false;
+            C.Marker marker = series.GetFirstChild<C.Marker>() ?? new C.Marker();
+            apply(marker);
+            if (marker.Parent == null) InsertSeriesMarker(series, marker);
+            return true;
         }
 
         private bool ApplySeriesMarkerByName(string seriesName, bool ignoreCase, Action<C.Marker> apply) {
@@ -73,30 +74,6 @@ namespace OfficeIMO.PowerPoint {
             if (ApplySeriesMarkerByName(plotArea.Elements<C.LineChart>(), seriesName, ignoreCase, apply)) return true;
             if (ApplySeriesMarkerByName(plotArea.Elements<C.ScatterChart>(), seriesName, ignoreCase, apply)) return true;
             if (ApplySeriesMarkerByName(plotArea.Elements<C.RadarChart>(), seriesName, ignoreCase, apply)) return true;
-
-            return false;
-        }
-
-        private static bool ApplySeriesMarkerByIndex<TChart>(IEnumerable<TChart> charts, int seriesIndex, Action<C.Marker> apply) where TChart : OpenXmlCompositeElement {
-            foreach (TChart chart in charts) {
-                List<OpenXmlCompositeElement> series = chart.ChildElements
-                    .OfType<OpenXmlCompositeElement>()
-                    .Where(IsSeriesElement)
-                    .OrderBy(GetSeriesIndex)
-                    .ToList();
-
-                if (seriesIndex < 0 || seriesIndex >= series.Count) {
-                    continue;
-                }
-
-                OpenXmlCompositeElement seriesElement = series[seriesIndex];
-                C.Marker marker = seriesElement.GetFirstChild<C.Marker>() ?? new C.Marker();
-                apply(marker);
-                if (marker.Parent == null) {
-                    InsertSeriesMarker(seriesElement, marker);
-                }
-                return true;
-            }
 
             return false;
         }
@@ -115,26 +92,6 @@ namespace OfficeIMO.PowerPoint {
                         return true;
                     }
                 }
-            }
-
-            return false;
-        }
-
-        private static bool ApplySeriesByIndex<TChart>(IEnumerable<TChart> charts, int seriesIndex,
-            Action<OpenXmlCompositeElement> apply) where TChart : OpenXmlCompositeElement {
-            foreach (TChart chart in charts) {
-                List<OpenXmlCompositeElement> series = chart.ChildElements
-                    .OfType<OpenXmlCompositeElement>()
-                    .Where(IsSeriesElement)
-                    .OrderBy(GetSeriesIndex)
-                    .ToList();
-
-                if (seriesIndex < 0 || seriesIndex >= series.Count) {
-                    continue;
-                }
-
-                apply(series[seriesIndex]);
-                return true;
             }
 
             return false;

@@ -14,14 +14,21 @@ namespace OfficeIMO.PowerPoint {
             if (document == null) throw new ArgumentNullException(nameof(document));
             if (content == null) throw new ArgumentNullException(nameof(content));
             var context = new PowerPointLayoutContext(document, theme ?? document.LayoutTheme);
-            bool isFirst = content.IsFirst ?? document.Slides.Count == 0;
-            PowerPointLayout layout = Resolve(context, content, isFirst, content.IsLast ?? false);
-            var slides = new List<PowerPointSlide>();
-            foreach (PowerPointLayoutSlide part in Expand(context, content, layout)) {
-                slides.Add(Render(context, part));
+            int originalCount = document.Slides.Count;
+            Action rollback = context.Deck.CaptureRollback();
+            try {
+                bool isFirst = content.IsFirst ?? originalCount == 0;
+                PowerPointLayout layout = Resolve(context, content, isFirst, content.IsLast ?? false);
+                var slides = new List<PowerPointSlide>();
+                foreach (PowerPointLayoutSlide part in Expand(context, content, layout)) {
+                    slides.Add(Render(context, part));
+                }
+                return slides;
+            } catch (Exception error) when (error is not OutOfMemoryException and not StackOverflowException) {
+                while (document.Slides.Count > originalCount) document.RemoveSlide(document.Slides.Count - 1);
+                rollback();
+                throw;
             }
-
-            return slides;
         }
 
         // ------------------------------------------------------------------ selection

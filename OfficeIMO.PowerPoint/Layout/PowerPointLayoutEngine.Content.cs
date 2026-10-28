@@ -557,10 +557,17 @@ namespace OfficeIMO.PowerPoint {
             }
 
             // Series follow the theme accents in order; lines are drawn at 2 pt.
-            bool line = chart.Kind is OfficeChartKind.Line or OfficeChartKind.LineStacked or OfficeChartKind.Scatter or OfficeChartKind.Radar;
             for (int i = 0; i < chart.Data.Series.Count && i < 6; i++) {
+                OfficeChartSeries series = chart.Data.Series[i];
+                // The shared writer owns explicit colours, fills and outline visibility.
+                if (series.Color.HasValue || series.SeriesStyle != null) continue;
+                OfficeChartKind kind = series.RenderKind ?? chart.Kind;
+                bool line = kind is OfficeChartKind.Line or OfficeChartKind.LineStacked or OfficeChartKind.LineStacked100
+                    or OfficeChartKind.Scatter or OfficeChartKind.Radar;
                 string accent = context.Theme.Accent(i + 1);
-                if (line) result.SetSeriesLineColor(i, accent, 2D);
+                if (line) {
+                    if (series.ConnectLine) result.SetSeriesLineColor(i, accent, series.StrokeWidth ?? 2D);
+                }
                 else result.SetSeriesFillColor(i, accent);
             }
 

@@ -51,6 +51,22 @@ namespace OfficeIMO.PowerPoint {
 
         internal string? EffectiveFooterText => FooterText ?? DeckTitle;
 
+        /// <summary>Captures composition state so a failed logical slide cannot affect subsequent layouts.</summary>
+        internal Action CaptureRollback() {
+            string? title = DeckTitle, section = CurrentSection;
+            int sections = SectionCount, diagnosticCount = Diagnostics.Count;
+            var onceCodes = new HashSet<string>(_onceCodes, StringComparer.Ordinal);
+            return () => {
+                DeckTitle = title;
+                CurrentSection = section;
+                SectionCount = sections;
+                Diagnostics.RemoveRange(diagnosticCount, Diagnostics.Count - diagnosticCount);
+                DiagnosticSlides.RemoveRange(diagnosticCount, DiagnosticSlides.Count - diagnosticCount);
+                _onceCodes.Clear();
+                _onceCodes.UnionWith(onceCodes);
+            };
+        }
+
         internal void Report(string code, OfficeDiagnosticSeverity severity, string message, string? location = null,
             bool oncePerDeck = false) {
             if (oncePerDeck && !_onceCodes.Add(code)) return;
