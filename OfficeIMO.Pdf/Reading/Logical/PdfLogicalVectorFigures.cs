@@ -33,19 +33,24 @@ internal sealed class PdfLogicalVectorFigure {
     internal byte[]? RenderPng(double scale) => _render(scale);
 }
 
-internal static class PdfLogicalVectorFigureAnalysis {
+internal static partial class PdfLogicalVectorFigureAnalysis {
     private const int MinimumPrimitives = 6;
     private const int MaximumPrimitives = 20_000;
 
     private readonly struct Box {
-        internal Box(double left, double top, double right, double bottom, bool filled) {
+        internal Box(double left, double top, double right, double bottom, bool filled, bool stroked, bool rectangle, double paintOrder) {
             Left = left; Top = top; Right = right; Bottom = bottom; Filled = filled;
+            Stroked = stroked; Rectangle = rectangle;
+            PaintOrder = paintOrder;
         }
         internal double Left { get; }
         internal double Top { get; }
         internal double Right { get; }
         internal double Bottom { get; }
         internal bool Filled { get; }
+        internal bool Stroked { get; }
+        internal bool Rectangle { get; }
+        internal double PaintOrder { get; }
         internal bool Touches(Box other, double gap) =>
             Left - gap <= other.Right && other.Left - gap <= Right && Top - gap <= other.Bottom && other.Top - gap <= Bottom;
     }
@@ -75,6 +80,7 @@ internal static class PdfLogicalVectorFigureAnalysis {
             .ToArray();
 
         var boxes = new List<Box>();
+        var tableEvidence = new List<Box>();
         foreach (PdfPageVisualPrimitive primitive in primitives) {
             cancellationToken.ThrowIfCancellationRequested();
             if (primitive.Kind is not (PdfPageVisualPrimitiveKind.Rectangle or PdfPageVisualPrimitiveKind.Path or PdfPageVisualPrimitiveKind.Line)) continue;
@@ -92,11 +98,14 @@ internal static class PdfLogicalVectorFigureAnalysis {
             double area = (right - left) * (bottom - top);
             // Page backgrounds and page-wide rules frame content rather than draw a figure.
             if (area >= pageArea * 0.5D || right - left >= pageWidth * 0.9D) continue;
+            var box = new Box(left, top, right, bottom, filled, stroked,
+                primitive.Kind == PdfPageVisualPrimitiveKind.Rectangle, primitive.PaintOrder);
+            tableEvidence.Add(box);
             double centerX = (left + right) / 2D, centerY = (top + bottom) / 2D;
             if (tableBounds.Any(bounds => centerX >= bounds.Left - 4D && centerX <= bounds.Right + 4D && centerY >= bounds.Top - 4D && centerY <= bounds.Bottom + 4D)) continue;
-            boxes.Add(new Box(left, top, right, bottom, filled));
+            boxes.Add(box);
         }
-        if (boxes.Count < MinimumPrimitives || boxes.Count > 3000) return Array.Empty<PdfLogicalVectorFigure>();
+        if (boxes.Count < MinimumPrimitives || tableEvidence.Count > 3000) return Array.Empty<PdfLogicalVectorFigure>();
 
         // Group primitives that touch or nearly touch.
         int[] parent = Enumerable.Range(0, boxes.Count).ToArray();
@@ -112,6 +121,9 @@ internal static class PdfLogicalVectorFigureAnalysis {
         foreach (IGrouping<int, int> group in Enumerable.Range(0, boxes.Count).GroupBy(index => Find(parent, index))) {
             Box[] members = group.Select(index => boxes[index]).ToArray();
             if (members.Length < MinimumPrimitives) continue;
+            // Cell paint and connected rulings are table evidence even when the
+            // text detector recovered only part of the grid. Keep its text editable.
+            if (IsRuledCellGrid(members, tableEvidence, cancellationToken)) continue;
             double left = members.Min(static box => box.Left), top = members.Min(static box => box.Top);
             double right = members.Max(static box => box.Right), bottom = members.Max(static box => box.Bottom);
             if (right - left < 60D || bottom - top < 40D) continue;
