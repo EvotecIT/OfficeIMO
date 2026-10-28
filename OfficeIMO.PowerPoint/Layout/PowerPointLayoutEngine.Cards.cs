@@ -11,16 +11,29 @@ namespace OfficeIMO.PowerPoint {
             PowerPointLayoutTheme theme = context.Theme;
             List<PowerPointLayoutCard> cards = slide.Items<PowerPointLayoutCard>().ToList();
             if (cards.Count == 0) return;
+            if (cards.Count > 6) throw new ArgumentException("A custom card grid supports at most six cards. Use content slides for automatic continuations.", nameof(slide));
             List<int[]> rows = CardRows(cards.Count, grid.IsNarrow);
             double rowHeight = rows.Count == 1 ? zone.Height : (zone.Height - TileGap) / 2D;
             PowerPointTextStyleSpec heading = context.Style(PowerPointTextRole.Heading);
             PowerPointTextStyleSpec eyebrow = context.Style(PowerPointTextRole.Eyebrow);
+            // Admit every row before writing the first shape. Custom regions
+            // call this renderer directly and cannot create continuation slides.
+            var measurements = new List<CardRowMetrics>();
+            int measuredOffset = 0;
+            foreach (int[] spans in rows) {
+                var tiles = Tiles(grid, spans, false, spans.Length);
+                var rowCards = cards.Skip(measuredOffset).Take(tiles.Count).ToList();
+                CardRowMetrics metrics = MeasureCardRow(context, rowCards, tiles, rowHeight, slide.CardBodySize);
+                if (!metrics.Fits) throw new ArgumentException("The cards do not fit in the selected region at their minimum text sizes. Use fewer cards, a larger region or content slides with automatic continuations.", nameof(slide));
+                measurements.Add(metrics);
+                measuredOffset += rowCards.Count;
+            }
             int index = 0;
             for (int r = 0; r < rows.Count; r++) {
                 List<(double X, double Width)> tiles = Tiles(grid, rows[r], false, rows[r].Length);
                 double y = zone.Y + r * (rowHeight + TileGap);
                 List<PowerPointLayoutCard> rowCards = cards.Skip(index).Take(tiles.Count).ToList();
-                CardRowMetrics metrics = MeasureCardRow(context, rowCards, tiles, rowHeight, slide.CardBodySize);
+                CardRowMetrics metrics = measurements[r];
 
                 for (int i = 0; i < rowCards.Count; i++) {
                     PowerPointLayoutCard card = rowCards[i];

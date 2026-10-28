@@ -174,6 +174,12 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private static PowerPointSlide AddNativeSlide(PowerPointLayoutContext context, PowerPointLayout layout) {
+            PowerPointSlideLayoutInfo? selected = SelectNativeLayout(context, layout);
+            return selected.HasValue ? context.Document.AddSlide(selected.Value.MasterIndex, selected.Value.LayoutIndex) : context.Document.AddSlide();
+        }
+
+        /// <summary>One layout selection owns both preflight geometry and physical slide creation.</summary>
+        private static PowerPointSlideLayoutInfo? SelectNativeLayout(PowerPointLayoutContext context, PowerPointLayout layout, bool reportMissing = true) {
             string name;
             PowerPointSlideLayoutType[] types;
             switch (layout) {
@@ -203,7 +209,7 @@ namespace OfficeIMO.PowerPoint {
                 if (match < 0) match = layouts.FindIndex(l => l.Type == type);
             }
 
-            if (match < 0 && !context.Document.OwnsLayoutTheme) {
+            if (reportMissing && match < 0 && !context.Document.OwnsLayoutTheme) {
                 context.Deck.Report(PowerPointLayoutDiagnosticCodes.TemplateLayoutMissing, OfficeDiagnosticSeverity.Information,
                     "The template has no layout for " + layout + "; its title-only layout is used instead.", oncePerDeck: true);
             }
@@ -211,12 +217,12 @@ namespace OfficeIMO.PowerPoint {
             if (match < 0) match = layouts.FindIndex(l => l.Type == PowerPointSlideLayoutType.TitleOnly);
             if (match < 0) match = layouts.FindIndex(l => l.Type == PowerPointSlideLayoutType.Blank);
             if (match < 0) {
-                context.Deck.Report(PowerPointLayoutDiagnosticCodes.TemplateLayoutMissing, OfficeDiagnosticSeverity.Information,
+                if (reportMissing) context.Deck.Report(PowerPointLayoutDiagnosticCodes.TemplateLayoutMissing, OfficeDiagnosticSeverity.Information,
                     "The presentation has no layout for " + layout + "; the first layout was used.", oncePerDeck: true);
-                return document.AddSlide();
+                return layouts.Count == 0 ? (PowerPointSlideLayoutInfo?)null : layouts[0];
             }
 
-            return document.AddSlide(layouts[match].MasterIndex, layouts[match].LayoutIndex);
+            return layouts[match];
         }
     }
 }

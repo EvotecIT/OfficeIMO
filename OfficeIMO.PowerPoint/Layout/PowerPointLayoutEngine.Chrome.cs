@@ -65,6 +65,7 @@ namespace OfficeIMO.PowerPoint {
         }
 
         internal static HeaderGeometry MeasureHeader(PowerPointLayoutContext context, PowerPointLayoutSlide slide) {
+            if (TemplateTitleBounds(context, slide) is PowerPointLayoutBox titleBox) return MeasureTemplateHeader(context, slide, titleBox);
             FitTitle(context, slide);
             PowerPointLayoutGrid grid = context.Grid;
             PowerPointTextStyleSpec title = context.Style(PowerPointTextRole.Title);
@@ -89,6 +90,41 @@ namespace OfficeIMO.PowerPoint {
             header.Bottom = bottom;
             header.ContentRow = Math.Max(4, Math.Min(8, grid.FirstRowBelow(bottom, HeaderGap)));
             return header;
+        }
+
+        /// <summary>Reads the selected layout's authored title frame without creating a provisional slide.</summary>
+        private static PowerPointLayoutBox? TemplateTitleBounds(PowerPointLayoutContext context, PowerPointLayoutSlide slide) {
+            if (context.Document.OwnsLayoutTheme) return null;
+            int master, layout;
+            if (slide.TemplateLayout != null) {
+                master = slide.TemplateLayout.MasterIndex;
+                layout = slide.TemplateLayout.LayoutIndex;
+            } else {
+                PowerPointSlideLayoutInfo? selected = SelectNativeLayout(context, slide.Layout, reportMissing: false);
+                if (!selected.HasValue) return null;
+                master = selected.Value.MasterIndex;
+                layout = selected.Value.LayoutIndex;
+            }
+            PowerPointTextBox? title = context.Document.GetLayoutPlaceholderTextBox(master, layout, PowerPointPlaceholderType.Title);
+            return title != null && title.TryGetBoundsPoints(out double left, out double top, out double width, out double height)
+                ? PowerPointLayoutBox.FromPoints(left, top, width, height) : (PowerPointLayoutBox?)null;
+        }
+
+        private static HeaderGeometry MeasureTemplateHeader(PowerPointLayoutContext context, PowerPointLayoutSlide slide, PowerPointLayoutBox titleBox) {
+            double bottom = titleBox.BottomPoints;
+            double subtitleY = 0D;
+            if (!string.IsNullOrWhiteSpace(slide.Subtitle)) {
+                subtitleY = bottom + 6D;
+                bottom = subtitleY + context.Height(slide.Subtitle!, context.Style(PowerPointTextRole.Subtitle), titleBox.WidthPoints) + 4D;
+            }
+            return new HeaderGeometry {
+                TitleY = titleBox.TopPoints,
+                TitleSize = context.Style(PowerPointTextRole.Title).Size,
+                TitleLines = 1,
+                SubtitleY = subtitleY,
+                Bottom = bottom,
+                ContentRow = Math.Max(1, Math.Min(PowerPointLayoutGrid.Rows - 3, context.Grid.FirstRowBelow(bottom, 12D)))
+            };
         }
 
         internal static string? Eyebrow(PowerPointLayoutContext context, PowerPointLayoutSlide slide, HeaderGeometry? header) {
@@ -147,7 +183,7 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         private static HeaderGeometry RenderTemplateHeader(PowerPointLayoutContext context, PowerPointLayoutWriter writer,
             PowerPointLayoutSlide slide, PowerPointLayoutBox titleBox) {
-            PowerPointLayoutGrid grid = context.Grid;
+            HeaderGeometry header = MeasureTemplateHeader(context, slide, titleBox);
             var title = new PowerPointLayoutRect(titleBox.LeftPoints, titleBox.TopPoints, titleBox.WidthPoints, titleBox.HeightPoints);
             string? eyebrow = Eyebrow(context, slide, null);
             PowerPointTextStyleSpec eyebrowStyle = context.Style(PowerPointTextRole.Eyebrow);
@@ -184,21 +220,11 @@ namespace OfficeIMO.PowerPoint {
                 element.TextBody?.Descendants<DocumentFormat.OpenXml.Drawing.ParagraphProperties>().ToList().ForEach(p => p.Remove());
             }
 
-            double bottom = title.Bottom;
             if (!string.IsNullOrWhiteSpace(slide.Subtitle)) {
-                PowerPointTextStyleSpec subtitle = context.Style(PowerPointTextRole.Subtitle);
-                double height = context.Height(slide.Subtitle!, subtitle, title.Width) + 4D;
-                writer.Text("Subtitle", new PowerPointLayoutRect(title.X, bottom + 6D, title.Width, height), context.Paragraph(slide.Subtitle!, PowerPointTextRole.Subtitle));
-                bottom += 6D + height;
+                writer.Text("Subtitle", new PowerPointLayoutRect(title.X, header.SubtitleY, title.Width, header.Bottom - header.SubtitleY),
+                    context.Paragraph(slide.Subtitle!, PowerPointTextRole.Subtitle));
             }
-
-            return new HeaderGeometry {
-                TitleY = title.Y,
-                TitleSize = context.Style(PowerPointTextRole.Title).Size,
-                TitleLines = 1,
-                Bottom = bottom,
-                ContentRow = Math.Max(1, Math.Min(PowerPointLayoutGrid.Rows - 3, grid.FirstRowBelow(bottom, 12D)))
-            };
+            return header;
         }
 
         /// <summary>Footer text and slide number in native footer placeholders.</summary>

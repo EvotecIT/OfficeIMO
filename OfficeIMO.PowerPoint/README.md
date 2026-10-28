@@ -705,7 +705,9 @@ Cards reduce grid density before shrinking headings below 16pt or body text belo
 12pt. An oversized card continues at measured body-line and bullet boundaries,
 repeating its heading and logical card number. An unbreakable word or heading
 that cannot fit at the minimum size raises an argument error without appending
-partial slides.
+partial slides. Custom `PowerPointSlideCompositionContext.AddCardGrid` regions
+accept at most six cards and reject content that does not fit before adding any
+card shapes; use content slides when automatic continuation is needed.
 
 `PowerPointLayoutKpi.FromDelta` formats a signed change and chooses its arrow.
 With the `%` unit, `0.12` means `+12%`. Set `GoodDirection` to `Down` for metrics
