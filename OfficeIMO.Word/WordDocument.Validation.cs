@@ -71,6 +71,8 @@ namespace OfficeIMO.Word {
             _tableOfContentUpdateQueued = true;
         }
 
+        internal bool IsTableOfContentUpdateQueued => _tableOfContentUpdateQueued;
+
         internal void ResetTableOfContentUpdateQueue() {
             _tableOfContentUpdateQueued = false;
         }

@@ -73,6 +73,7 @@ namespace OfficeIMO.Word {
         private static bool TryEvaluatePageRef(
             WordDocument document,
             WordFieldInventory.ParsedFieldInstruction parsed,
+            WordLayoutPagination? layout,
             out string? value,
             out WordFieldUpdateStatus status,
             out string message) {
@@ -102,7 +103,13 @@ namespace OfficeIMO.Word {
                 return false;
             }
 
-            int? page = EstimatePageForBodyField(document, bookmarkStart);
+            int? page = null;
+            if (layout != null && layout.TryGetBookmarkPage(bookmarkStart.Name?.Value ?? bookmarkName!, out int laidOutPage)) {
+                page = laidOutPage;
+            }
+
+            bool fromLayout = page != null;
+            page ??= EstimatePageForBodyField(document, bookmarkStart);
             if (page == null) {
                 message = $"Bookmark {bookmarkName} could not be matched to a body paragraph.";
                 return false;
@@ -116,11 +123,12 @@ namespace OfficeIMO.Word {
 
             value = pageText;
             status = WordFieldUpdateStatus.Updated;
+            string source = fromLayout ? "OfficeIMO page layout" : "OfficeIMO page-break order";
             message = usedNumericPicture
-                ? $"Updated from OfficeIMO page-break order for bookmark {bookmarkName} with numeric picture formatting."
+                ? $"Updated from {source} for bookmark {bookmarkName} with numeric picture formatting."
                 : parsed.FormatSwitches.Any(fieldFormat => fieldFormat != WordFieldFormat.Mergeformat && fieldFormat != WordFieldFormat.CharFormat)
-                ? $"Updated from OfficeIMO page-break order for bookmark {bookmarkName} with deterministic number formatting."
-                : $"Updated from OfficeIMO page-break order for bookmark {bookmarkName}.";
+                ? $"Updated from {source} for bookmark {bookmarkName} with deterministic number formatting."
+                : $"Updated from {source} for bookmark {bookmarkName}.";
             return true;
         }
 

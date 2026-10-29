@@ -10,12 +10,20 @@ namespace OfficeIMO.Word {
             MainDocumentPart mainPart = document._wordprocessingDocument.MainDocumentPart
                 ?? throw new InvalidOperationException("MainDocumentPart is missing.");
 
-            int totalPages = options.DateTimeFieldsOnly ? 0 : EstimateTotalPages(document);
+            var state = new FieldEvaluationState();
+            if (!options.DateTimeFieldsOnly && options.UpdateTablesOfContents) {
+                RegenerateTablesOfContents(document, state);
+            }
+
+            if (!options.DateTimeFieldsOnly && options.UseLayoutPagination) {
+                state.Layout = WordLayoutPagination.Create(document);
+            }
+
+            int totalPages = options.DateTimeFieldsOnly ? 0 : state.Layout?.PageCount ?? EstimateTotalPages(document);
             DateTime updateDateTime = options.CurrentDateTime ?? DateTime.Now;
             WordFieldEvaluationReason dateTimeEvaluationReason = options.CurrentDateTime.HasValue
                 ? WordFieldEvaluationReason.CallerProvidedDateTime
                 : WordFieldEvaluationReason.RuntimeClock;
-            var state = new FieldEvaluationState();
             var results = new List<WordFieldUpdateResult>();
             var replacedContainingFields = new List<MutableFieldCandidate>();
             List<MutableFieldCandidate> candidates = EnumerateFields(mainPart).OrderBy(field => field.Sequence).ToList();
@@ -33,6 +41,16 @@ namespace OfficeIMO.Word {
                         continue;
                     }
                 }
+                if (IsInsideRegeneratedTableOfContents(candidate, state)) {
+                    WordFieldType? fieldType = WordFieldInventory.ParseInstruction(candidate.InstructionText).FieldType;
+                    if (fieldType == WordFieldType.TOC) {
+                        results.Add(candidate.ToResult(fieldType, WordFieldUpdateStatus.Updated, null,
+                            "Table of contents was regenerated from the document headings; its page numbers are PAGEREF fields.",
+                            WordFieldEvaluationReason.TableOfContentsRegenerated));
+                        continue;
+                    }
+                }
+
                 if (IsNestedInsideReplacedField(candidate, replacedContainingFields)) {
                     results.Add(candidate.ToResult(
                         WordFieldInventory.ParseInstruction(candidate.InstructionText).FieldType,
@@ -110,6 +128,8 @@ namespace OfficeIMO.Word {
             SetResultText(candidate, value!);
             WordFieldEvaluationReason reason = parsed.FieldType is WordFieldType.Date or WordFieldType.Time
                 ? dateTimeEvaluationReason
+                : state.Layout != null && parsed.FieldType is WordFieldType.PageRef or WordFieldType.NumPages
+                ? WordFieldEvaluationReason.LayoutPagination
                 : WordFieldEvaluationReason.Default;
             return candidate.ToResult(parsed.FieldType, WordFieldUpdateStatus.Updated, value, message, reason);
         }
@@ -199,7 +219,7 @@ namespace OfficeIMO.Word {
                 case WordFieldType.Ref:
                     return TryEvaluateRef(document, candidate, parsed, out value, out status, out message);
                 case WordFieldType.PageRef:
-                    return TryEvaluatePageRef(document, parsed, out value, out status, out message);
+                    return TryEvaluatePageRef(document, parsed, state.Layout, out value, out status, out message);
                 case WordFieldType.Formula:
                     return TryEvaluateFormula(candidate, parsed, out value, out status, out message);
                 case WordFieldType.Seq:
@@ -213,7 +233,7 @@ namespace OfficeIMO.Word {
                 case WordFieldType.NumWords:
                     return TryFormatIntegerField(document.Statistics.Words, parsed, "Updated from OfficeIMO document statistics Words.", out value, out status, out message);
                 case WordFieldType.NumPages:
-                    return TryFormatIntegerField(totalPages, parsed, "Updated from OfficeIMO page-break count.", out value, out status, out message);
+                    return TryFormatIntegerField(totalPages, parsed, state.Layout != null ? "Updated from OfficeIMO page layout." : "Updated from OfficeIMO page-break count.", out value, out status, out message);
                 case WordFieldType.RevNum:
                     return TrySetTextValue(document.BuiltinDocumentProperties.Revision, parsed, "Updated from built-in document property Revision.", out value, out status, out message);
                 case WordFieldType.Section:
@@ -1355,6 +1375,10 @@ namespace OfficeIMO.Word {
             internal Dictionary<string, string> SequenceHeadingResetKeys { get; } = new(StringComparer.OrdinalIgnoreCase);
 
             internal Dictionary<string, ListNumSequenceState> ListNumSequences { get; } = new(StringComparer.OrdinalIgnoreCase);
+
+            internal WordLayoutPagination? Layout { get; set; }
+
+            internal HashSet<SdtBlock> RegeneratedTablesOfContents { get; } = new();
         }
     }
 }
