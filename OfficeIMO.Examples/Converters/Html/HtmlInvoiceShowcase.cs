@@ -87,7 +87,7 @@ namespace OfficeIMO.Examples.Html {
                   body{margin:0;font:11px/1.35 Arial,sans-serif;color:#24324a;background:#fff}
                   main{background:#fff}
                   header,.party-grid,.totals{display:flex;justify-content:space-between;gap:24px}
-                  .brand{color:#155eef;letter-spacing:.08em}.status{background:#e8f7ee;color:#176b3a;padding:5px 10px;border-radius:12px}
+                  .brand{color:#155eef;letter-spacing:.08em}.status{display:inline-block;margin-bottom:8px;background:#e8f7ee;color:#176b3a;padding:5px 10px;border-radius:12px}
                   table{width:100%;border-collapse:collapse;table-layout:fixed;margin-top:14px}thead{display:table-header-group}th{background:#eef3fb;text-align:left}
                   th,td{padding:6px;border:1px solid #d8dfeb;vertical-align:top;overflow-wrap:anywhere}th:first-child,td:first-child{width:58%}.amount{text-align:right;white-space:nowrap}
                   .totals{break-inside:avoid;justify-content:flex-end;margin-top:14px}.total-card{width:230px;border-top:2px solid #155eef;padding-top:8px}
