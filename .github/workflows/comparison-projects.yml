@@ -89,6 +89,7 @@ jobs:
       - uses: actions/setup-dotnet@v6
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
+          global-json-file: global.json
       - name: Validate optional control revision
         if: inputs.control_source_ref != ''
         shell: pwsh
@@ -106,6 +107,11 @@ jobs:
           ref: ${{ inputs.control_source_ref }}
           path: Ignore/StaticQualificationControl
           persist-credentials: false
+      - name: Setup control revision SDK
+        if: inputs.suite == 'html-static' && inputs.control_source_ref != ''
+        uses: actions/setup-dotnet@v6
+        with:
+          global-json-file: Ignore/StaticQualificationControl/global.json
       - name: Install multilingual fixture fonts
         if: runner.os == 'Linux'
         run: |
