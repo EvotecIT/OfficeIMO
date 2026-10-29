@@ -103,6 +103,69 @@ namespace OfficeIMO.Tests {
             Assert.Equal(6, threadedIds.Distinct().Count());
         }
 
+        [Fact]
+        public void Test_CopyWorksheetFrom_PackageModeDropsSlicerFramesAndRemapsCompatShapeIds() {
+            using MemoryStream sourceStream = CreateRelatedPartCopySource();
+            using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(sourceStream, true)) {
+                DrawingsPart drawingsPart = spreadsheet.WorkbookPart!.WorksheetParts.Single().DrawingsPart!;
+                string anchors = "<mc:AlternateContent xmlns:mc=\"http://schemas.openxmlformats.org/markup-compatibility/2006\">"
+                    + "<mc:Choice xmlns:sle15=\"http://schemas.microsoft.com/office/drawing/2012/slicer\" Requires=\"sle15\">"
+                    + RelatedPartCopyFrameAnchor("10", "Region", "http://schemas.microsoft.com/office/drawing/2010/slicer")
+                    + "</mc:Choice><mc:Fallback/></mc:AlternateContent>"
+                    + RelatedPartCopyFrameAnchor("11", "Timeline", "http://schemas.microsoft.com/office/drawing/2012/timeslicer")
+                    + "<xdr:twoCellAnchor xmlns:xdr=\"http://schemas.openxmlformats.org/drawingml/2006/spreadsheetDrawing\" xmlns:a=\"http://schemas.openxmlformats.org/drawingml/2006/main\">"
+                    + "<xdr:from><xdr:col>8</xdr:col><xdr:colOff>0</xdr:colOff><xdr:row>0</xdr:row><xdr:rowOff>0</xdr:rowOff></xdr:from>"
+                    + "<xdr:to><xdr:col>9</xdr:col><xdr:colOff>0</xdr:colOff><xdr:row>1</xdr:row><xdr:rowOff>0</xdr:rowOff></xdr:to>"
+                    + "<xdr:sp macro=\"\" textlink=\"\"><xdr:nvSpPr><xdr:cNvPr id=\"12\" name=\"Linked shape\">"
+                    + "<a:extLst><a:ext uri=\"{63B3BB69-23CF-44E3-9099-C40C66FF867C}\">"
+                    + "<a14:compatExt xmlns:a14=\"http://schemas.microsoft.com/office/drawing/2010/main\" spid=\"_x0000_s1025\"/>"
+                    + "</a:ext></a:extLst></xdr:cNvPr><xdr:cNvSpPr/></xdr:nvSpPr><xdr:spPr/></xdr:sp><xdr:clientData/></xdr:twoCellAnchor>";
+                string drawingXml = Regex.Replace(ReadPartText(drawingsPart), @"</(\w+:)?wsDr>\s*$", _ => anchors + _.Value);
+                using var replacement = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(drawingXml));
+                drawingsPart.FeedData(replacement);
+            }
+
+            sourceStream.Position = 0;
+            using var targetStream = new MemoryStream();
+            using (var sourceDocument = ExcelDocument.Load(sourceStream, new ExcelLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly }))
+            using (var targetDocument = ExcelDocument.Create(targetStream)) {
+                targetDocument.AddWorksheet("Existing").SetComment("A1", "Existing note", "Target Author");
+                targetDocument.CopyWorksheetFrom(sourceDocument, "Report", "Copy", ExcelSheetNameValidationMode.Strict, new ExcelWorksheetCopyOptions {
+                    CopyMode = ExcelWorksheetCopyMode.Package
+                });
+                targetDocument.Save();
+            }
+
+            targetStream.Position = 0;
+            using (var reopened = ExcelDocument.Load(targetStream, new ExcelLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly })) {
+                AssertCopiedRelatedFeatures(reopened, "Copy");
+                Assert.Empty(reopened.ValidateOpenXml());
+            }
+
+            targetStream.Position = 0;
+            using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(targetStream, false)) {
+                WorkbookPart workbookPart = spreadsheet.WorkbookPart!;
+                Sheet sheet = workbookPart.Workbook.Sheets!.Elements<Sheet>().Single(_ => _.Name == "Copy");
+                var worksheetPart = (WorksheetPart)workbookPart.GetPartById(sheet.Id!.Value!);
+                string drawingXml = ReadPartText(worksheetPart.DrawingsPart!);
+                Assert.DoesNotContain("drawing/2010/slicer", drawingXml);
+                Assert.DoesNotContain("drawing/2012/timeslicer", drawingXml);
+
+                string vmlShapeId = Regex.Match(ReadPartText(Assert.Single(worksheetPart.VmlDrawingParts)), @"_x0000_s\d+").Value;
+                Assert.NotEqual("_x0000_s1025", vmlShapeId);
+                Assert.Contains("spid=\"" + vmlShapeId + "\"", drawingXml);
+            }
+        }
+
+        private static string RelatedPartCopyFrameAnchor(string id, string name, string graphicDataUri) {
+            return "<xdr:twoCellAnchor xmlns:xdr=\"http://schemas.openxmlformats.org/drawingml/2006/spreadsheetDrawing\" xmlns:a=\"http://schemas.openxmlformats.org/drawingml/2006/main\">"
+                + "<xdr:from><xdr:col>8</xdr:col><xdr:colOff>0</xdr:colOff><xdr:row>2</xdr:row><xdr:rowOff>0</xdr:rowOff></xdr:from>"
+                + "<xdr:to><xdr:col>10</xdr:col><xdr:colOff>0</xdr:colOff><xdr:row>8</xdr:row><xdr:rowOff>0</xdr:rowOff></xdr:to>"
+                + "<xdr:graphicFrame macro=\"\"><xdr:nvGraphicFramePr><xdr:cNvPr id=\"" + id + "\" name=\"" + name + "\"/><xdr:cNvGraphicFramePr/></xdr:nvGraphicFramePr>"
+                + "<xdr:xfrm><a:off x=\"0\" y=\"0\"/><a:ext cx=\"0\" cy=\"0\"/></xdr:xfrm>"
+                + "<a:graphic><a:graphicData uri=\"" + graphicDataUri + "\"/></a:graphic></xdr:graphicFrame><xdr:clientData/></xdr:twoCellAnchor>";
+        }
+
         private MemoryStream CreateRelatedPartCopySource() {
             var stream = new MemoryStream();
             using (var document = ExcelDocument.Create(stream)) {

@@ -84,8 +84,89 @@ namespace OfficeIMO.Excel {
             }
 
             CopyWorksheetHyperlinkRelationships(sourcePart, copiedPart, worksheet);
-            RenumberCopiedVmlShapeIds(copiedPart);
+            RemoveCopiedSlicerAndTimelineFrames(copiedPart);
+            IReadOnlyDictionary<VmlDrawingPart, Dictionary<int, int>> shapeBlockMaps = RenumberCopiedVmlShapeIds(copiedPart);
+            RemapCopiedDrawingVmlShapeReferences(copiedPart, worksheet, shapeBlockMaps);
             RemapCopiedThreadedComments(sourceDocument, copiedPart);
+        }
+
+        /// <summary>
+        /// Removes drawing anchors for slicers and timelines, together with any
+        /// <c>mc:AlternateContent</c> wrapper, because the copy does not carry the
+        /// slicer and timeline parts those frames point to.
+        /// </summary>
+        private static void RemoveCopiedSlicerAndTimelineFrames(WorksheetPart copiedPart) {
+            DocumentFormat.OpenXml.Drawing.Spreadsheet.WorksheetDrawing? drawing = copiedPart.DrawingsPart?.WorksheetDrawing;
+            if (drawing == null) {
+                return;
+            }
+
+            bool changed = false;
+            foreach (OpenXmlElement anchor in drawing.ChildElements.ToList()) {
+                // Match by name: frames inside mc:AlternateContent may be unknown elements rather than typed GraphicData.
+                bool isSlicerOrTimeline = anchor.Descendants<OpenXmlElement>()
+                    .Where(_ => string.Equals(_.LocalName, "graphicData", StringComparison.Ordinal))
+                    .Select(_ => _.GetAttributes().FirstOrDefault(_ => string.Equals(_.LocalName, "uri", StringComparison.Ordinal)).Value)
+                    .Any(_ => string.Equals(_, SlicerGraphicDataUri, StringComparison.OrdinalIgnoreCase)
+                        || string.Equals(_, TimelineGraphicDataUri, StringComparison.OrdinalIgnoreCase));
+                if (isSlicerOrTimeline) {
+                    anchor.Remove();
+                    changed = true;
+                }
+            }
+
+            if (changed) {
+                drawing.Save();
+            }
+        }
+
+        /// <summary>
+        /// Keeps drawing shapes that point at legacy VML shapes (<c>a14:compatExt spid</c>)
+        /// in step with the renumbered VML shape ids.
+        /// </summary>
+        private static void RemapCopiedDrawingVmlShapeReferences(
+            WorksheetPart copiedPart,
+            Worksheet worksheet,
+            IReadOnlyDictionary<VmlDrawingPart, Dictionary<int, int>> shapeBlockMaps) {
+            DocumentFormat.OpenXml.Drawing.Spreadsheet.WorksheetDrawing? drawing = copiedPart.DrawingsPart?.WorksheetDrawing;
+            string? legacyDrawingId = worksheet.GetFirstChild<LegacyDrawing>()?.Id?.Value;
+            if (drawing == null
+                || string.IsNullOrWhiteSpace(legacyDrawingId)
+                || TryGetRelatedPart(copiedPart, legacyDrawingId!) is not VmlDrawingPart vmlPart
+                || !shapeBlockMaps.TryGetValue(vmlPart, out Dictionary<int, int>? blockMap)
+                || blockMap.Count == 0) {
+                return;
+            }
+
+            bool changed = false;
+            foreach (OpenXmlElement element in drawing.Descendants<OpenXmlElement>()) {
+                foreach (OpenXmlAttribute attribute in element.GetAttributes()) {
+                    if (!string.Equals(attribute.LocalName, "spid", StringComparison.Ordinal) || attribute.Value == null) {
+                        continue;
+                    }
+
+                    Match match = VmlShapeIdPattern.Match(attribute.Value);
+                    if (!match.Success
+                        || match.Index != 0
+                        || match.Length != attribute.Value.Length
+                        || !int.TryParse(match.Groups[1].Value, NumberStyles.None, CultureInfo.InvariantCulture, out int shapeId)
+                        || !blockMap.TryGetValue(shapeId / VmlShapeIdBlockSize, out int targetBlock)) {
+                        continue;
+                    }
+
+                    int targetShapeId = (targetBlock * VmlShapeIdBlockSize) + (shapeId % VmlShapeIdBlockSize);
+                    element.SetAttribute(new OpenXmlAttribute(
+                        attribute.Prefix,
+                        attribute.LocalName,
+                        attribute.NamespaceUri,
+                        "_x0000_s" + targetShapeId.ToString(CultureInfo.InvariantCulture)));
+                    changed = true;
+                }
+            }
+
+            if (changed) {
+                drawing.Save();
+            }
         }
 
         private static string? CloneWorksheetRelatedPart<TPart>(
@@ -145,12 +226,14 @@ namespace OfficeIMO.Excel {
         /// Moves each copied VML drawing onto shape-id blocks no other VML drawing in this
         /// workbook uses, so comment and header/footer shapes keep workbook-unique ids.
         /// </summary>
-        private void RenumberCopiedVmlShapeIds(WorksheetPart copiedPart) {
+        private IReadOnlyDictionary<VmlDrawingPart, Dictionary<int, int>> RenumberCopiedVmlShapeIds(WorksheetPart copiedPart) {
+            var blockMaps = new Dictionary<VmlDrawingPart, Dictionary<int, int>>();
             foreach (VmlDrawingPart vmlPart in copiedPart.VmlDrawingParts.ToList()) {
                 string text = ReadVmlText(vmlPart);
                 HashSet<int> usedBlocks = CollectUsedVmlShapeBlocks(vmlPart);
                 int nextBlock = usedBlocks.Count == 0 ? 1 : usedBlocks.Max() + 1;
                 var blockMap = new Dictionary<int, int>();
+                blockMaps[vmlPart] = blockMap;
                 int MapBlock(int sourceBlock) {
                     if (!blockMap.TryGetValue(sourceBlock, out int targetBlock)) {
                         targetBlock = nextBlock++;
@@ -196,6 +279,8 @@ namespace OfficeIMO.Excel {
                 byte[] bytes = VmlByteTransparentEncoding.GetBytes(renumbered);
                 stream.Write(bytes, 0, bytes.Length);
             }
+
+            return blockMaps;
         }
 
         private HashSet<int> CollectUsedVmlShapeBlocks(VmlDrawingPart excludedPart) {
