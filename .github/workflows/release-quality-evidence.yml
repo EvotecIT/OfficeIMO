@@ -3,6 +3,7 @@ name: Release quality evidence
 on:
   pull_request:
     paths:
+      - '.github/workflows/ci-coverage.yml'
       - "OfficeIMO.Core/**"
       - "OfficeIMO.Word/**"
       - "OfficeIMO.Excel/**"
@@ -19,20 +20,6 @@ on:
   push:
     branches:
       - master
-    paths:
-      - "OfficeIMO.Core/**"
-      - "OfficeIMO.Word/**"
-      - "OfficeIMO.Excel/**"
-      - "OfficeIMO.PowerPoint/**"
-      - "OfficeIMO.Html/**"
-      - "OfficeIMO.OneNote/**"
-      - "OfficeIMO.Visio/**"
-      - "OfficeIMO.Drawing.Benchmarks/**"
-      - "Assets/Images/Others/**"
-      - "OfficeIMO.Examples/Images/**"
-      - "Build/Benchmarks/release-quality-images.benchmark.ps1"
-      - "Build/Benchmarks/Run-ReleaseQualityImageEvidence.ps1"
-      - ".github/workflows/release-quality-evidence.yml"
   workflow_dispatch:
     inputs:
       reference_ref:
@@ -43,8 +30,17 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && format('pr-{0}', github.event.pull_request.number) || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
+  coverage:
+    uses: ./.github/workflows/ci-coverage.yml
+
   raster-evidence:
+    needs: coverage
+    if: needs.coverage.outputs.build == 'true'
     name: ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     strategy:
@@ -149,3 +145,22 @@ jobs:
           name: release-quality-reference-${{ matrix.os }}
           path: artifacts/reference-evidence
           if-no-files-found: warn
+
+  ci-validation:
+    name: CI validation
+    if: always()
+    runs-on: ubuntu-latest
+    needs: [coverage, raster-evidence]
+    steps:
+      - name: Require coverage and validation
+        env:
+          RESULTS: ${{ toJSON(needs) }}
+        run: |
+          python3 - <<'PY'
+          import json, os, sys
+          results = json.loads(os.environ['RESULTS'])
+          failed = [k for k, v in results.items() if v['result'] not in ('success', 'skipped')]
+          failed += ['coverage'] if results['coverage']['result'] != 'success' else []
+          print(json.dumps(results, indent=2))
+          sys.exit(bool(failed))
+          PY

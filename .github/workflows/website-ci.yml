@@ -7,8 +7,8 @@ on:
   workflow_dispatch:
 
 concurrency:
-  group: website-ci-${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && format('pr-{0}', github.event.pull_request.number) || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 permissions:
   actions: read
@@ -32,7 +32,7 @@ jobs:
   website-build:
     needs: changes
     if: needs.changes.outputs.selected == 'true'
-    uses: EvotecIT/PSPublishModule/.github/workflows/powerforge-website-ci.yml@396e00acba04dcaae4c3c95433338f4df65fbc01
+    uses: EvotecIT/PSPublishModule/.github/workflows/powerforge-website-ci.yml@9d7ff674528e837ea295a2a23d2fbc6856fd0e3a
     with:
       website_root: Website
       authenticate_public_github_data: true
@@ -42,5 +42,5 @@ jobs:
       dotnet_version: "10.0.114"
       dotnet_workloads: wasm-tools
       powerforge_repository: EvotecIT/PSPublishModule
-      powerforge_ref: 396e00acba04dcaae4c3c95433338f4df65fbc01
+      powerforge_ref: 9d7ff674528e837ea295a2a23d2fbc6856fd0e3a
       report_artifact_name: powerforge-website-reports

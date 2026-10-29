@@ -1,0 +1,88 @@
+name: Select CI coverage
+
+on:
+  workflow_call:
+    outputs:
+      build:
+        description: Whether the PR contains build or test inputs
+        value: ${{ jobs.changes.outputs.build }}
+      force_full:
+        description: Inputs outside the existing project selector require full coverage
+        value: ${{ jobs.changes.outputs.force_full }}
+
+permissions:
+  contents: read
+
+jobs:
+  changes:
+    name: Detect build and test inputs
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      build: ${{ steps.select.outputs.build }}
+      force_full: ${{ steps.select.outputs.force_full }}
+    steps:
+      - uses: actions/checkout@v7
+        if: github.event_name == 'pull_request'
+        with:
+          persist-credentials: false
+      - name: Fetch the PR base
+        if: github.event_name == 'pull_request'
+        env:
+          PR_BASE: ${{ github.event.pull_request.base.sha }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          auth=$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 | tr -d '\n')
+          GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=http.https://github.com/.extraheader \
+            GIT_CONFIG_VALUE_0="AUTHORIZATION: basic $auth" \
+            git fetch --no-tags --depth=1 origin "$PR_BASE"
+      - name: Classify the complete PR diff
+        id: select
+        env:
+          PR_BASE: ${{ github.event.pull_request.base.sha }}
+          FULL_CI: ${{ contains(github.event.pull_request.labels.*.name, 'full-ci') }}
+        run: |
+          python3 - <<'PY'
+          import fnmatch, importlib.util, os, subprocess
+          from pathlib import Path
+
+          build, force_full = True, False
+          changed = []
+          if os.environ['GITHUB_EVENT_NAME'] == 'pull_request':
+              # Compare the synthetic merge with its base, including old and new
+              # paths of renames. No API pagination or changed-file limit.
+              changed = subprocess.check_output([
+                  'git', 'diff', '--no-renames', '--name-only', '-z',
+                  os.environ['PR_BASE'], 'HEAD']).decode().split('\0')[:-1]
+              spec = importlib.util.spec_from_file_location('ci_select', 'Build/Ci/select.py')
+              selector = importlib.util.module_from_spec(spec)
+              spec.loader.exec_module(selector)
+              _, linked = selector.project_graph(Path.cwd(), selector.tracked(Path.cwd()))
+
+              def consumed(path):
+                  parts = path.lower().split('/')
+                  return (any('test' in part or part in ('fixtures', 'schema', 'schemas', 'generated') for part in parts[:-1])
+                          or path.startswith(('Website/Apps/', 'Website/data/', 'Website/static/data/', 'OfficeIMO.SharedSource/'))
+                          or (path.startswith(('Docs/', 'docs/')) and subprocess.run(
+                              ['git', 'grep', '-I', '-l', '-F', '--', path, 'HEAD', '--', 'Build', '*Tests*'],
+                              stdout=subprocess.DEVNULL, check=False).returncode == 0)
+                          or any(fnmatch.fnmatchcase(path, pattern) for pattern in linked))
+
+              def prose(path):
+                  if consumed(path):
+                      return False
+                  return (path.startswith('Website/')
+                          or (path.startswith(('Docs/', 'docs/')) and path.endswith(('.md', '.png', '.jpg', '.svg')))
+                          or (path.endswith('.md') and '/' not in path)
+                          or (path.endswith('.md') and Path(path).name.lower() in ('readme.md', 'support.md', 'compatibility.md')))
+
+              build = os.environ['FULL_CI'] == 'true' or not changed or not all(map(prose, changed))
+              # Build/Ci/select.py intentionally routes most Website/prose to
+              # their own lanes. Executable apps, generated contracts, schemas
+              # and linked Markdown still need the managed test graph.
+              force_full = any(consumed(p) and (p.startswith(('Website/', 'Docs/', 'docs/')) or p.endswith('.md')) for p in changed)
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as output:
+              output.write(f'build={str(build).lower()}\nforce_full={str(force_full).lower()}\n')
+          with open(os.environ['GITHUB_STEP_SUMMARY'], 'a') as summary:
+              summary.write(f'Build/test inputs: **{build}**. Full graph override: **{force_full}**. Changed paths: {len(changed)}.\n')
+          PY

@@ -3,6 +3,7 @@ name: Security and provenance evidence
 on:
   pull_request:
     paths:
+      - '.github/workflows/ci-coverage.yml'
       - '.github/workflows/security-provenance-evidence.yml'
       - 'global.json'
       - 'Directory.Build.props'
@@ -17,6 +18,8 @@ on:
       - 'OfficeIMO.Provenance.Benchmarks/**'
       - 'OfficeIMO.Security/**'
       - 'OfficeIMO.Security.Benchmarks/**'
+  push:
+    branches: [master]
   workflow_dispatch:
 
 permissions:
@@ -26,15 +29,24 @@ env:
   DOTNET_VERSION: 10.0.114
   BUILD_CONFIGURATION: Release
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && format('pr-{0}', github.event.pull_request.number) || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
+  coverage:
+    uses: ./.github/workflows/ci-coverage.yml
+
   evidence:
+    needs: coverage
+    if: needs.coverage.outputs.build == 'true'
     name: ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     timeout-minutes: 20
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
+        os: ${{ fromJSON(github.event_name == 'pull_request' && '["ubuntu-latest","windows-latest"]' || '["ubuntu-latest","windows-latest","macos-latest"]') }}
 
     steps:
       - name: Checkout code
@@ -79,3 +91,22 @@ jobs:
           name: security-provenance-evidence-${{ runner.os }}
           path: .benchmark-artifacts/security-evidence/${{ runner.os }}/*.json
           if-no-files-found: warn
+
+  ci-validation:
+    name: CI validation
+    if: always()
+    runs-on: ubuntu-latest
+    needs: [coverage, evidence]
+    steps:
+      - name: Require coverage and validation
+        env:
+          RESULTS: ${{ toJSON(needs) }}
+        run: |
+          python3 - <<'PY'
+          import json, os, sys
+          results = json.loads(os.environ['RESULTS'])
+          failed = [k for k, v in results.items() if v['result'] not in ('success', 'skipped')]
+          failed += ['coverage'] if results['coverage']['result'] != 'success' else []
+          print(json.dumps(results, indent=2))
+          sys.exit(bool(failed))
+          PY
