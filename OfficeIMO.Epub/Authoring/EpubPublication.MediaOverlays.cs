@@ -63,9 +63,17 @@ public sealed partial class EpubPublication {
             .Where(item => item.Element.Attribute("id") != null)
             .ToDictionary(item => (string)item.Element.Attribute("id")!, item => (item.Element, item.Index), StringComparer.Ordinal);
         var audioPaths = new Dictionary<string, string>(StringComparer.Ordinal);
-        var sequence = new XElement(Smil + "seq", new XAttribute(Ops + "textref", RelativeHref(containerPath, contentPath)));
+        string contentHref = RelativeHref(containerPath, contentPath);
+        long referenceCharacters = 0;
+        void ReserveReference(long characters) {
+            if (characters > _maximumEntryBytes - referenceCharacters)
+                throw new InvalidDataException("Media overlay references exceed the retained entry-byte limit.");
+            referenceCharacters += characters;
+        }
+        ReserveReference(contentHref.Length);
+        var sequence = new XElement(Smil + "seq", new XAttribute(Ops + "textref", contentHref));
         var nodes = PrepareOverlayNodes(overlay, body, targets.ToDictionary(item => item.Key, item => item.Value.Element, StringComparer.Ordinal),
-            sequence, containerPath, contentPath, cancellationToken);
+            sequence, contentHref, ReserveReference, cancellationToken);
         int previousIndex = -1;
         int cueIndex = 0;
         XElement? previousTarget = null;
@@ -92,9 +100,12 @@ public sealed partial class EpubPublication {
             try { ticks = checked(ticks + (cue.ClipEnd.Ticks - cue.ClipBegin.Ticks)); }
             catch (OverflowException) { throw new ArgumentException("Overlay duration exceeds TimeSpan.", nameof(overlay)); }
             node.Parallel.SetAttributeValue("id", "cue" + (cueIndex++).ToString(CultureInfo.InvariantCulture));
+            string escapedId = Uri.EscapeDataString(cue.ElementId);
+            string audioHref = RelativeHref(containerPath, audioPath);
+            ReserveReference((long)contentHref.Length + 1 + escapedId.Length + audioHref.Length);
             node.Parallel.Add(
-                new XElement(Smil + "text", new XAttribute("src", RelativeHref(containerPath, contentPath) + "#" + Uri.EscapeDataString(cue.ElementId))),
-                new XElement(Smil + "audio", new XAttribute("src", RelativeHref(containerPath, audioPath)),
+                new XElement(Smil + "text", new XAttribute("src", contentHref + "#" + escapedId)),
+                new XElement(Smil + "audio", new XAttribute("src", audioHref),
                     new XAttribute("clipBegin", EpubSmilClock.Format(cue.ClipBegin)), new XAttribute("clipEnd", EpubSmilClock.Format(cue.ClipEnd))));
             previousIndex = target.Index; previousTarget = target.Element;
         }
