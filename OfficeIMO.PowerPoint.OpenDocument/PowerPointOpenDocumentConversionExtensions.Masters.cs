@@ -8,14 +8,18 @@ using P = DocumentFormat.OpenXml.Presentation;
 namespace OfficeIMO.PowerPoint.OpenDocument;
 
 public static partial class PowerPointOpenDocumentConversionExtensions {
-    private static readonly Lazy<HashSet<string>> DefaultPowerPointLayoutXml = new(() => {
-        using PowerPointDocument baseline = PowerPointDocument.Create(new MemoryStream(),
-            new PowerPointCreateOptions());
-        return new HashSet<string>(baseline.OpenXmlDocument.PresentationPart!.SlideMasterParts
-            .SelectMany(master => master.SlideLayoutParts)
-            .Select(layout => layout.SlideLayout?.OuterXml)
+    private static HashSet<string> ReadGeneratedPowerPointDefaults(
+        Func<PowerPointDocument, IEnumerable<string?>> read) {
+        using PowerPointDocument authored = PowerPointDocument.Create();
+        using PowerPointDocument imported = PowerPointDocument.CreateForImport();
+        return new HashSet<string>(read(authored).Concat(read(imported))
             .Where(xml => xml != null).Select(xml => xml!), StringComparer.Ordinal);
-    });
+    }
+
+    private static readonly Lazy<HashSet<string>> DefaultPowerPointLayoutXml = new(() =>
+        ReadGeneratedPowerPointDefaults(baseline => baseline.OpenXmlDocument.PresentationPart!.SlideMasterParts
+            .SelectMany(master => master.SlideLayoutParts)
+            .Select(layout => layout.SlideLayout?.OuterXml)));
 
     private static readonly Lazy<string?> DefaultPowerPointNotesMasterXml = new(() => {
         using PowerPointDocument baseline = PowerPointDocument.Create(new MemoryStream(),
@@ -91,11 +95,10 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
         return baseline.OpenXmlDocument.PresentationPart?.ViewPropertiesPart?.ViewProperties?.OuterXml;
     });
 
-    private static readonly Lazy<string> DefaultPowerPointRootSettings = new(() => {
-        using PowerPointDocument baseline = PowerPointDocument.Create(new MemoryStream(),
-            new PowerPointCreateOptions());
-        return PowerPointRootSettingsSignature(baseline.OpenXmlDocument.PresentationPart?.Presentation);
-    });
+    private static readonly Lazy<HashSet<string>> DefaultPowerPointRootSettings = new(() =>
+        ReadGeneratedPowerPointDefaults(baseline => new[] {
+            PowerPointRootSettingsSignature(baseline.OpenXmlDocument.PresentationPart?.Presentation)
+        }));
 
     private static string PowerPointRootSettingsSignature(P.Presentation? root) => root == null
         ? string.Empty
@@ -115,7 +118,7 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
               .Select(child => child.OuterXml));
 
     private static int CountUnmappedPowerPointRootSettings(PresentationPart? presentation) =>
-        PowerPointRootSettingsSignature(presentation?.Presentation) == DefaultPowerPointRootSettings.Value ? 0 : 1;
+        DefaultPowerPointRootSettings.Value.Contains(PowerPointRootSettingsSignature(presentation?.Presentation)) ? 0 : 1;
 
     private static readonly Lazy<HashSet<string>> DefaultPowerPointMasterColorMaps = new(() => {
         using PowerPointDocument baseline = PowerPointDocument.Create(new MemoryStream(),
@@ -124,31 +127,23 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
             .Select(master => master.SlideMaster?.ColorMap?.OuterXml ?? string.Empty), StringComparer.Ordinal);
     });
 
-    private static readonly Lazy<HashSet<string>> DefaultPowerPointMasterTextStyles = new(() => {
-        using PowerPointDocument baseline = PowerPointDocument.Create(new MemoryStream(),
-            new PowerPointCreateOptions());
-        return new HashSet<string>(baseline.OpenXmlDocument.PresentationPart!.SlideMasterParts
-            .Select(master => master.SlideMaster?.TextStyles?.OuterXml ?? string.Empty), StringComparer.Ordinal);
-    });
+    private static readonly Lazy<HashSet<string>> DefaultPowerPointMasterTextStyles = new(() =>
+        ReadGeneratedPowerPointDefaults(baseline => baseline.OpenXmlDocument.PresentationPart!.SlideMasterParts
+            .Select(master => master.SlideMaster?.TextStyles?.OuterXml ?? string.Empty)));
 
-    private static readonly Lazy<HashSet<string>> DefaultPowerPointMasterMetadata = new(() => {
-        using PowerPointDocument baseline = PowerPointDocument.Create(new MemoryStream(),
-            new PowerPointCreateOptions());
-        return new HashSet<string>(baseline.OpenXmlDocument.PresentationPart!.SlideMasterParts
-            .Select(master => MasterMetadataSignature(master.SlideMaster)), StringComparer.Ordinal);
-    });
+    private static readonly Lazy<HashSet<string>> DefaultPowerPointMasterMetadata = new(() =>
+        ReadGeneratedPowerPointDefaults(baseline => baseline.OpenXmlDocument.PresentationPart!.SlideMasterParts
+            .Select(master => MasterMetadataSignature(master.SlideMaster))));
 
-    private static readonly Lazy<HashSet<string>> DefaultPowerPointThemes = new(() => {
-        using PowerPointDocument baseline = PowerPointDocument.Create(new MemoryStream(),
-            new PowerPointCreateOptions());
-        PresentationPart? presentation = baseline.OpenXmlDocument.PresentationPart;
-        return new HashSet<string>(new[] { presentation?.ThemePart?.Theme?.OuterXml }
-            .Concat(presentation?.SlideMasterParts.Select(master => master.ThemePart?.Theme?.OuterXml)
-                ?? Enumerable.Empty<string?>())
-            .Concat(new[] { presentation?.NotesMasterPart?.ThemePart?.Theme?.OuterXml,
-                presentation?.HandoutMasterPart?.ThemePart?.Theme?.OuterXml })
-            .Where(xml => xml != null).Select(xml => xml!), StringComparer.Ordinal);
-    });
+    private static readonly Lazy<HashSet<string>> DefaultPowerPointThemes = new(() =>
+        ReadGeneratedPowerPointDefaults(baseline => {
+            PresentationPart? presentation = baseline.OpenXmlDocument.PresentationPart;
+            return new[] { presentation?.ThemePart?.Theme?.OuterXml }
+                .Concat(presentation?.SlideMasterParts.Select(master => master.ThemePart?.Theme?.OuterXml)
+                    ?? Enumerable.Empty<string?>())
+                .Concat(new[] { presentation?.NotesMasterPart?.ThemePart?.Theme?.OuterXml,
+                    presentation?.HandoutMasterPart?.ThemePart?.Theme?.OuterXml });
+        }));
 
     private static int CountUnmappedPowerPointThemes(PresentationPart? presentation) {
         if (presentation == null) return 0;

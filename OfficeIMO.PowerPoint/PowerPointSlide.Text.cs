@@ -9,13 +9,16 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public PowerPointTextBox AddTitle(string text, OfficeLength? left = null, OfficeLength? top = null,
             OfficeLength? width = null, OfficeLength? height = null) {
-            long nativeLeft = (left ?? OfficeLength.Emus(838200L)).ToEmus();
-            long nativeTop = (top ?? OfficeLength.Emus(365125L)).ToEmus();
-            long nativeWidth = (width ?? OfficeLength.Emus(7772400L)).ToEmus();
-            long nativeHeight = (height ?? OfficeLength.Emus(1470025L)).ToEmus();
-            if (text == null) {
-                throw new ArgumentNullException(nameof(text));
-            }
+            if (text == null) throw new ArgumentNullException(nameof(text));
+            if (!left.HasValue && !top.HasValue && !width.HasValue && !height.HasValue)
+                return AddAuthoringTitle(text);
+            PowerPointLayoutBox defaults = left.HasValue && top.HasValue && width.HasValue && height.HasValue
+                ? new PowerPointLayoutBox(left.Value, top.Value, width.Value, height.Value) : GetAuthoringTitleBounds(text);
+            long nativeLeft = (left ?? defaults.Left).ToEmus();
+            long nativeTop = (top ?? defaults.Top).ToEmus();
+            long nativeWidth = (width ?? defaults.Width).ToEmus();
+            long nativeHeight = (height ?? defaults.Height).ToEmus();
+            PreflightTitleReflow(top ?? defaults.Top, height ?? defaults.Height);
 
             string name = GenerateUniqueName("Title");
             Shape shape = new(
@@ -39,6 +42,7 @@ namespace OfficeIMO.PowerPoint {
             ShapeTree tree = data.ShapeTree ??= new ShapeTree();
             tree.AppendChild(shape);
             PowerPointTextBox textBox = TrackShape(new PowerPointTextBox(shape, _slidePart));
+            ReflowAuthoringContent();
             return textBox;
         }
 

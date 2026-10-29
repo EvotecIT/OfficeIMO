@@ -124,7 +124,7 @@ namespace OfficeIMO.PowerPoint {
             return null;
         }
 
-        private SlideLayoutPart GetSlideLayoutPart(int masterIndex, int layoutIndex) {
+        internal SlideLayoutPart GetSlideLayoutPart(int masterIndex, int layoutIndex) {
             SlideMasterPart masterPart = GetSlideMasterPart(masterIndex);
             SlideLayoutPart[] layouts = masterPart.SlideLayoutParts.ToArray();
             if (layoutIndex < 0 || layoutIndex >= layouts.Length) {

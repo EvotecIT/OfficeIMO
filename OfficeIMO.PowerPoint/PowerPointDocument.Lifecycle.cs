@@ -135,10 +135,17 @@ namespace OfficeIMO.PowerPoint {
             return CreateInternal(filePath: null, stream, resolved);
         }
 
+        /// <summary>Creates neutral native scaffolding without authoring theme defaults over imported appearance.</summary>
+        internal static PowerPointDocument CreateForImport(Stream? sourceStream = null) {
+            if (sourceStream != null) OfficeDocumentLifecycle.EnsureAssociatedDestination(sourceStream, nameof(sourceStream));
+            return CreateInternal(filePath: null, sourceStream, new PowerPointCreateOptions(), applyTheme: false);
+        }
+
         private static PowerPointDocument CreateInternal(
             string? filePath,
             Stream? sourceStream,
-            PowerPointCreateOptions options) {
+            PowerPointCreateOptions options,
+            bool applyTheme = true) {
             if (options.PersistenceMode == DocumentPersistenceMode.SaveOnDispose &&
                 string.IsNullOrEmpty(filePath) && sourceStream == null) {
                 throw new ArgumentException("SaveOnDispose requires an associated file path or writable stream.", nameof(options));
@@ -149,6 +156,7 @@ namespace OfficeIMO.PowerPoint {
                 copy._filePath = filePath ?? string.Empty;
                 copy._sourceStream = sourceStream;
                 copy._persistenceMode = options.PersistenceMode;
+                if (options.Theme != null) copy.ApplyLayoutTheme(options.Theme);
                 return copy;
             }
             var packageStream = new MemoryStream(StreamBufferSize);
@@ -160,6 +168,7 @@ namespace OfficeIMO.PowerPoint {
                     _sourceStream = sourceStream,
                     _persistenceMode = options.PersistenceMode
                 };
+                if (applyTheme) presentation.ApplyLayoutTheme(options.Theme ?? OfficeTheme.Default);
                 presentation.PresentationRoot.Save();
                 presentation._document?.Save();
                 return presentation;

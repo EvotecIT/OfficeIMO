@@ -57,6 +57,43 @@ presentation.Save();
 `Create(...)` starts with zero slides, and each `AddSlide()` call creates exactly one. This keeps creation and
 editing deterministic; there is no hidden placeholder slide to reuse.
 
+### Creation themes and automatic content frames
+
+New presentations use `OfficeTheme.Default`. Choose a theme during creation:
+
+```csharp
+using OfficeIMO;
+using OfficeIMO.PowerPoint;
+
+var metrics = new[] { new MetricRow("Q1", 120D), new MetricRow("Q2", 145D) };
+using var presentation = PowerPointDocument.Create(new PowerPointCreateOptions {
+    Theme = OfficeTheme.Classic
+});
+var slide = presentation.AddSlide();
+slide.AddTitle("Quarterly revenue");
+var chart = slide.AddChart(OfficeChartType.Column, metrics, nameof(MetricRow.Quarter), nameof(MetricRow.Revenue));
+var table = slide.AddTable(metrics, new OfficeTableOptions());
+chart.SetTitle("Revenue");
+table.GetCell(1, 0).Text = "First quarter";
+
+record MetricRow(string Quarter, double Revenue);
+```
+
+The title and omitted chart/table bounds use the theme's measured layout grid.
+One body object uses the content frame below the header; two use the engine's
+content columns. Adding the title after the body objects updates their frames.
+Returned chart and table objects remain attached and editable.
+
+Automatic placement supports one title and two body objects per slide. Use another
+slide or explicit geometry for additional content. Supplying any position or size
+keeps that object out of automatic reflow; omitted components still use the content
+frame. Changing a returned object's bounds also ends its automatic reflow.
+
+A template retains its native theme and layouts when `Theme` is omitted. Supplying
+`Theme` explicitly applies that theme to the copied presentation. Loading a file
+preserves its style; imported content uses neutral scaffolding. Explicit image
+frames keep their supplied bounds.
+
 For a deck from an untrusted source, use the bounded load profile:
 
 ```csharp
@@ -862,7 +899,7 @@ static OfficeProvenanceReport InspectUploadedPowerPoint(byte[] packageBytes) =>
 ## Dependency footprint
 
 - **External:** Open XML SDK for `.pptx` package mechanics. Microsoft BCL compatibility packages are used on older targets.
-- **OfficeIMO:** `OfficeIMO.Core` and `OfficeIMO.Pdf`. The presentation model, composition system, inspection, encryption workflow, PDF layout, and PNG/JPEG/TIFF/WebP/SVG export are first-party.
+- **OfficeIMO:** `OfficeIMO.Core` supplies shared themes, units and chart contracts. PDF and page-image export live in `OfficeIMO.PowerPoint.Pdf`; the presentation model does not depend on the PDF engine.
 - **Security:** Open XML, legacy binary, and VBA signature carriers are inspected and signed-presentation mutations fail safely without a cryptographic dependency. OPC and VBA creation and cryptographic validation accept an explicit `IOfficeSecurityProvider`; `OfficeIMO.Security` is not pulled transitively.
 
 See the [complete OfficeIMO package map](../README.md) for related formats and conversion paths.

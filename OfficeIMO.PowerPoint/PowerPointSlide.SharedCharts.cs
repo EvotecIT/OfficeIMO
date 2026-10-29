@@ -13,20 +13,25 @@ namespace OfficeIMO.PowerPoint {
         /// per-series combo kinds, and primary or secondary value axes where the selected families are compatible.
         /// </summary>
         public PowerPointChart AddChart(OfficeChartType chartKind, OfficeChartData data, OfficeChartOptions? options) {
+            if (data == null) throw new ArgumentNullException(nameof(data));
             var placement = options as PowerPointChartOptions;
-            long nativeLeft = (placement?.Left ?? OfficeLength.Emus(0L)).ToEmus();
-            long nativeTop = (placement?.Top ?? OfficeLength.Emus(0L)).ToEmus();
-            long nativeWidth = (options?.Width ?? OfficeLength.Emus(5486400L)).ToEmus();
-            long nativeHeight = (options?.Height ?? OfficeLength.Emus(3200400L)).ToEmus();
+            bool automatic = placement?.Left == null && placement?.Top == null && options?.Width == null && options?.Height == null;
+            PowerPointLayoutBox defaults = placement?.Left is OfficeLength x && placement?.Top is OfficeLength y &&
+                options?.Width is OfficeLength w && options?.Height is OfficeLength h
+                ? new PowerPointLayoutBox(x, y, w, h) : GetAuthoringContentBounds(automatic);
+            long nativeLeft = (placement?.Left ?? defaults.Left).ToEmus();
+            long nativeTop = (placement?.Top ?? defaults.Top).ToEmus();
+            long nativeWidth = (options?.Width ?? defaults.Width).ToEmus();
+            long nativeHeight = (options?.Height ?? defaults.Height).ToEmus();
             if (nativeWidth <= 0) throw new ArgumentOutOfRangeException(nameof(options), "Chart width must be positive.");
             if (nativeHeight <= 0) throw new ArgumentOutOfRangeException(nameof(options), "Chart height must be positive.");
-            if (data == null) throw new ArgumentNullException(nameof(data));
             byte[] workbookBytes = OfficeOpenXmlChartWriter.BuildWorkbook(data, chartKind);
             PowerPointChart chart = AddChartInternal(workbookBytes, (chartPart, embeddedRelId) =>
                 OfficeOpenXmlChartWriter.PopulateSharedChart(chartPart, embeddedRelId, data, chartKind),
                 nativeLeft, nativeTop, nativeWidth, nativeHeight);
             if (options?.Title != null) chart.SetTitle(options.Title);
             ApplyChartAccessibility(chart, data, chartKind, placement?.Accessibility);
+            if (automatic) AttachAuthoringContent(chart);
             return chart;
         }
 

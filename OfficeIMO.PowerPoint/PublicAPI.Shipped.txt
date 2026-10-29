@@ -4574,3 +4574,5 @@ static OfficeIMO.PowerPoint.PowerPointUnits.ToCentimeters(long emus) -> double
 static OfficeIMO.PowerPoint.PowerPointUnits.ToInches(long emus) -> double
 static OfficeIMO.PowerPoint.PowerPointUnits.ToMillimeters(long emus) -> double
 static OfficeIMO.PowerPoint.PowerPointUnits.ToPoints(long emus) -> double
+OfficeIMO.PowerPoint.PowerPointCreateOptions.Theme.get -> OfficeIMO.OfficeTheme?
+OfficeIMO.PowerPoint.PowerPointCreateOptions.Theme.set -> void

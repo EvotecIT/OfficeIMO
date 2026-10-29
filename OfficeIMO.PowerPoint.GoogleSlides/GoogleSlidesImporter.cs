@@ -65,7 +65,7 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
             TranslationReport report,
             CancellationToken cancellationToken) {
             var stream = new MemoryStream();
-            PowerPointDocument presentation = PowerPointDocument.Create(stream);
+            PowerPointDocument presentation = PowerPointDocument.CreateForImport(stream);
             try {
                 if (source.PageSize?.Width != null && source.PageSize.Height != null) presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(ToPoints(source.PageSize.Width)),OfficeIMO.OfficeLength.Points(ToPoints(source.PageSize.Height)));
                 foreach (GoogleSlidesApiPage sourceSlide in source.Slides) {

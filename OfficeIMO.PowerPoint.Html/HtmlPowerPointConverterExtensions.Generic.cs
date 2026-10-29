@@ -498,7 +498,7 @@ public static partial class HtmlPowerPointConverterExtensions {
                 }
 
                 if (region.BoxShadowLayerCount > 0) {
-                    textBox.SetShadow("000000", blurPoints: 4D, distancePoints: 2D, angleDegrees: 45D, transparencyPercent: 45);
+                    textBox.SetShadow("000000", blur: OfficeLength.Points(4D), distance: OfficeLength.Points(2D), angleDegrees: 45D, transparencyPercent: 45);
                     AddImportDiagnostic(result, HtmlEditableLayoutDiagnosticCodes.EffectUnsupported,
                         region.BoxShadowLayerCount > 1
                             ? "PowerPoint approximated the first editable CSS shadow and omitted additional shadow layers."

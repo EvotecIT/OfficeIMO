@@ -10258,6 +10258,41 @@
       "file": "OfficeIMO.PowerPoint/PowerPointShape.Effects.cs",
       "applied": "phase-b-applied",
       "note": "Defaults remain shadow4pt/3pt, glow4pt, reflection4pt/2pt. Signed duplication offsets remain supported. Six unit-specific duplicate twins are removed. Owner build0warnings/errors and14nativeartifactcases pass net10.0."
+    },
+    {
+      "phase": "B",
+      "change": "Creation Theme and canonical default placement for ordinary PowerPoint typed authoring",
+      "reason": "Use the shared layout engine with OfficeLength boundaries. Preserve template/load appearance and neutral import construction. Native chart and table handles stay attached.",
+      "applied": "phase-b-applied",
+      "files": [
+        "OfficeIMO.PowerPoint/PowerPointLifecycleOptions.cs",
+        "OfficeIMO.PowerPoint/PowerPointDocument.LayoutTheme.cs",
+        "OfficeIMO.PowerPoint/PowerPointSlide.AuthoringLayout.cs",
+        "OfficeIMO.PowerPoint/Layout/PowerPointLayoutEngine.Authoring.cs"
+      ],
+      "note": "One automatic title and two automatic body objects use measured content frames; explicit bounds remain authoritative. Template title type/index, inherited geometry and paragraph-mark formatting survive. Incompatible stored frames fall back to an in-page grid. Failed explicit-title insertion is preflighted before mutation. Dark default-table body text stays readable without direct cell formatting. Owner builds have zero warnings/errors; 50 native cases pass on net10.0, six import/export adapters compile, and Modern/Classic/Dark rendered samples were inspected. Other framework/AOT/full-suite gates remain separate."
+    },
+    {
+      "phase": "B",
+      "action": "internalize",
+      "old": "Private PowerPoint chart/layout access restricted to individual partial classes",
+      "new": "Assembly-only chart/layout access shared with the canonical measured layout engine",
+      "reason": "Keep cross-component native chart and placeholder plumbing off the public API.",
+      "files": [
+        "OfficeIMO.PowerPoint/PowerPointChart.cs",
+        "OfficeIMO.PowerPoint/PowerPointDocument.Layouts.cs",
+        "OfficeIMO.PowerPoint/PowerPointSlide.PlaceholderBounds.cs"
+      ],
+      "applied": "phase-b-applied"
+    },
+    {
+      "phase": "B",
+      "action": "change",
+      "old": "HTML editable shadow import passes blurPoints/distancePoints to PowerPointShape.SetShadow",
+      "new": "HTML editable shadow import passes OfficeLength.Points(4) and OfficeLength.Points(2)",
+      "reason": "Preserve the existing CSS-shadow approximation through the physical-length API.",
+      "file": "OfficeIMO.PowerPoint.Html/HtmlPowerPointConverterExtensions.Generic.cs",
+      "applied": "phase-b-applied"
     }
   ],
   "applicationStatus": "Phase A applied and validated on the supported macOS targets. Phase B and Tier 2 entries retain their status; Windows .NET Framework validation remains pending.",

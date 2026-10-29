@@ -740,7 +740,7 @@ public static partial class PdfPowerPointConverterExtensions {
     private sealed class PresentationConstructionScope : IDisposable {
         private bool _ownsPresentation = true;
 
-        internal PptCore.PowerPointDocument Value { get; } = PptCore.PowerPointDocument.Create();
+        internal PptCore.PowerPointDocument Value { get; } = PptCore.PowerPointDocument.CreateForImport();
 
         internal PdfPowerPointConversionResult Release(PdfPowerPointConversionResult result) {
             _ownsPresentation = false;

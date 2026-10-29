@@ -15,14 +15,17 @@ namespace OfficeIMO.PowerPoint {
         private const long MaximumObjectTableCells = 100_000L;
         /// <summary>
         ///     Adds a table with the specified rows, columns and physical bounds.
-        ///     Omitted coordinates start at zero; the default size is 5,000,000 by 3,000,000 EMUs.
+        ///     Omitted geometry uses the canonical content frame below the title.
         /// </summary>
         public PowerPointTable AddTable(int rows, int columns, OfficeLength? left = null, OfficeLength? top = null, OfficeLength? width = null,
             OfficeLength? height = null) {
-            long nativeLeft = (left ?? OfficeLength.Emus(0L)).ToEmus();
-            long nativeTop = (top ?? OfficeLength.Emus(0L)).ToEmus();
-            long nativeWidth = (width ?? OfficeLength.Emus(5000000L)).ToEmus();
-            long nativeHeight = (height ?? OfficeLength.Emus(3000000L)).ToEmus();
+            bool automatic = !left.HasValue && !top.HasValue && !width.HasValue && !height.HasValue;
+            PowerPointLayoutBox defaults = left.HasValue && top.HasValue && width.HasValue && height.HasValue
+                ? new PowerPointLayoutBox(left.Value, top.Value, width.Value, height.Value) : GetAuthoringContentBounds(automatic);
+            long nativeLeft = (left ?? defaults.Left).ToEmus();
+            long nativeTop = (top ?? defaults.Top).ToEmus();
+            long nativeWidth = (width ?? defaults.Width).ToEmus();
+            long nativeHeight = (height ?? defaults.Height).ToEmus();
             if (rows <= 0) {
                 throw new ArgumentOutOfRangeException(nameof(rows));
             }
@@ -99,6 +102,7 @@ namespace OfficeIMO.PowerPoint {
             tbl.SetColumnWidthsEvenly();
             tbl.SetRowHeightsEvenly();
             TrackShape(tbl);
+            if (automatic) AttachAuthoringContent(tbl);
             return tbl;
         }
 
@@ -337,7 +341,7 @@ namespace OfficeIMO.PowerPoint {
                 rowIndex++;
             }
 
-            ApplyColumnWidths(table, (width ?? OfficeLength.Emus(5000000L)).ToEmus(), columnList);
+            ApplyColumnWidths(table, table.Width.ToEmus(), columnList);
             return table;
         }
 

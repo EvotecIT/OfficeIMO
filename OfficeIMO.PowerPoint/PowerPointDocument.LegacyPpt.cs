@@ -99,7 +99,7 @@ namespace OfficeIMO.PowerPoint {
             if (legacy == null) throw new ArgumentNullException(nameof(legacy));
             cancellationToken.ThrowIfCancellationRequested();
             ValidateLegacyContentSecurity(legacy, loadOptions);
-            using PowerPointDocument projected = Create();
+            using PowerPointDocument projected = CreateForImport();
             ApplyLegacyDocumentSettings(projected, legacy);
             var soundContext = new LegacyPptSoundProjectionContext(legacy);
             var deferredInteractions =

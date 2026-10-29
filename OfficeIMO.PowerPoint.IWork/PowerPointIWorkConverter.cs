@@ -64,7 +64,7 @@ public static partial class PowerPointIWorkConverter {
 
         if (!editable) settings.ValidateVisualPreview(preview);
 
-        PowerPointDocument presentation = PowerPointDocument.Create();
+        PowerPointDocument presentation = PowerPointDocument.CreateForImport();
         try {
             IWorkCanvasSize? sourceSlideSize = projection.SlideSize;
             bool useSourceSlideSize = sourceSlideSize != null

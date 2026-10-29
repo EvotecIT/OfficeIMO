@@ -7,6 +7,9 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>Optional template copied into a new presentation.</summary>
         public string? Template { get; set; }
 
+        /// <summary>Theme for a new deck. Null uses OfficeTheme.Default; a template keeps its styling unless a theme is explicitly supplied.</summary>
+        public OfficeTheme? Theme { get; set; }
+
     }
 
     /// <summary>Controls access, persistence, and package behavior when loading a PowerPoint presentation.</summary>

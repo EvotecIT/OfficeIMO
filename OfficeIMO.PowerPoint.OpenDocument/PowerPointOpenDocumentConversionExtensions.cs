@@ -305,7 +305,7 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
         PowerPointOpenDocumentConversionOptions? options = null) {
         if (source == null) throw new ArgumentNullException(nameof(source));
         PowerPointOpenDocumentConversionOptions effective = NormalizeOptions(options);
-        PowerPointDocument target = PowerPointDocument.Create();
+        PowerPointDocument target = PowerPointDocument.CreateForImport();
         var report = new OdfConversionReport("ODP", "PPTX");
         CultureInfo textCaseCulture = OdfTextCultureResolver.Resolve(source.Metadata.Language);
         CopyOdpMetadata(source, target, report);
