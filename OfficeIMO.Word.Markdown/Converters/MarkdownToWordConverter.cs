@@ -76,6 +76,41 @@ namespace OfficeIMO.Word.Markdown {
                     alignment: Omd.MarkdownColumnAlignment.None);
             }
 
+            AddSpaceAfterBodyTables(document);
+        }
+
+        private const string SpaceAfterTableTwips = "200";
+
+        /// <summary>
+        /// Word puts no space between a table and the paragraph after it, so the text sits flush against
+        /// the last row. Give body paragraphs that directly follow a table at least a 10pt gap.
+        /// </summary>
+        private static void AddSpaceAfterBodyTables(WordDocument document) {
+            var body = document._wordprocessingDocument?.MainDocumentPart?.Document?.Body;
+            if (body == null) {
+                return;
+            }
+
+            foreach (var table in body.Elements<Table>().ToList()) {
+                if (table.NextSibling() is not Paragraph paragraph) {
+                    continue;
+                }
+
+                var properties = paragraph.ParagraphProperties;
+                string? styleId = properties?.ParagraphStyleId?.Val?.Value;
+                if (styleId != null && styleId.StartsWith("Heading", StringComparison.OrdinalIgnoreCase)) {
+                    continue;
+                }
+                if (properties?.SpacingBetweenLines?.BeforeLines != null ||
+                    (int.TryParse(properties?.SpacingBetweenLines?.Before?.Value, out int before) &&
+                     before >= int.Parse(SpaceAfterTableTwips, System.Globalization.CultureInfo.InvariantCulture))) {
+                    continue;
+                }
+
+                properties ??= paragraph.PrependChild(new ParagraphProperties());
+                properties.SpacingBetweenLines ??= new SpacingBetweenLines();
+                properties.SpacingBetweenLines.Before = SpaceAfterTableTwips;
+            }
         }
 
         /// <summary>
