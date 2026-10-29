@@ -64,7 +64,7 @@ public static partial class WordPdfConverterExtensions {
         // Word spacing values can combine with the section line grid into an
         // effectively unbounded number of empty column frames. Reject such
         // geometry before the PDF writer begins advancing through them.
-        if (!double.IsFinite(spacingBefore) || spacingBefore > 1_000_000D)
+        if (double.IsNaN(spacingBefore) || double.IsInfinity(spacingBefore) || spacingBefore > 1_000_000D)
             throw new InvalidDataException("Initial paragraph spacing exceeds the supported PDF layout range.");
         // Initial document spacing is authored content. Reserve it explicitly
         // so normal page/column breaks continue to suppress spacing at the top.
