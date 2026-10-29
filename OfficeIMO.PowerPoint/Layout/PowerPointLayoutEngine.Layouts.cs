@@ -435,10 +435,16 @@ namespace OfficeIMO.PowerPoint {
             double total = rowCount * tileHeight + (rowCount - 1) * TileGap;
             double y0 = zone.Y + Math.Max(0D, (zone.Height - total) / 2D - 10D);
             PowerPointTextStyleSpec heading = context.Style(PowerPointTextRole.Heading);
+            // Logo artwork is usually drawn for light paper. On a dark slide the tiles become light cards so dark
+            // marks stay legible in every renderer, without rewriting the customer's artwork.
+            bool darkSlide = PowerPointLayoutTheme.Luminance(theme.Background) < 0.2D;
+            string tileFill = darkSlide ? PowerPointLayoutTheme.Blend("FFFFFF", theme.Ink, 0.93D) : theme.Background;
+            string? tileOutline = darkSlide ? null : theme.Hairline;
+            string nameColor = darkSlide ? PowerPointLayoutTheme.Muted(theme.Ink, tileFill, 0.72D) : theme.TextMuted;
             for (int i = 0; i < logos.Count; i++) {
                 int row = i / perRow, column = i % perRow;
                 var tile = new PowerPointLayoutRect(grid.X(1 + column * span), y0 + row * (tileHeight + TileGap), grid.W(span), tileHeight);
-                writer.Rect("Logo Tile", tile, theme.Background, outline: theme.Hairline, outlineWidth: 1D);
+                writer.Rect("Logo Tile", tile, tileFill, outline: tileOutline, outlineWidth: 1D);
                 PowerPointLayoutCard logo = logos[i];
                 if (!string.IsNullOrWhiteSpace(logo.Image) && System.IO.File.Exists(logo.Image)) {
                     var max = new PowerPointLayoutRect(tile.X + tile.Width * 0.19D, tile.Y + tile.Height * 0.28D, tile.Width * 0.62D, tile.Height * 0.44D);
@@ -454,7 +460,7 @@ namespace OfficeIMO.PowerPoint {
                     double width = tile.Width - 24D;
                     while (size - 1D >= 11D && (PowerPointTextMeasure.LongestWord(logo.Title, size, theme.HeadingFont, true) > width ||
                                                 context.Lines(logo.Title, heading, width, size) > 2)) size -= 1D;
-                    writer.Text("Logo Name", tile.Inset(12D, 8D, 12D, 8D), context.Paragraph(logo.Title, PowerPointTextRole.Heading, theme.TextMuted, size, "ctr"),
+                    writer.Text("Logo Name", tile.Inset(12D, 8D, 12D, 8D), context.Paragraph(logo.Title, PowerPointTextRole.Heading, nameColor, size, "ctr"),
                         anchor: "ctr");
                 }
             }
