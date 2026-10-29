@@ -64,7 +64,8 @@ jobs:
                   return (any('test' in part or part in ('fixtures', 'schema', 'schemas', 'generated') for part in parts[:-1])
                           or path.startswith(('Website/Apps/', 'Website/data/', 'Website/static/data/', 'OfficeIMO.SharedSource/'))
                           or (path.startswith(('Docs/', 'docs/')) and subprocess.run(
-                              ['git', 'grep', '-I', '-l', '-F', '--', path, 'HEAD', '--', 'Build', '*Tests*'],
+                              ['git', 'grep', '-I', '-l', '-F', '-e', path, '-e', Path(path).name,
+                               'HEAD', '--', 'Build', '*Tests*'],
                               stdout=subprocess.DEVNULL, check=False).returncode == 0)
                           or any(fnmatch.fnmatchcase(path, pattern) for pattern in linked))
 
