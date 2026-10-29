@@ -67,9 +67,20 @@ public sealed partial class EpubPublication {
     }
 
     private IEnumerable<XNode> ParseAuthoringFragment(string xhtml) {
-        using (var reader = XmlReader.Create(new StringReader("<div xmlns='" + Html.NamespaceName + "' xmlns:epub='" + Ops.NamespaceName + "'>" + xhtml + "</div>"),
+        string wrapped = "<div xmlns='" + Html.NamespaceName + "' xmlns:epub='" + Ops.NamespaceName + "'>" + xhtml + "</div>";
+        using (var depthReader = XmlReader.Create(new StringReader(wrapped),
+            new XmlReaderSettings { DtdProcessing = DtdProcessing.Prohibit, XmlResolver = null, MaxCharactersInDocument = _maximumEntryBytes }))
+            RequireAuthoringDepth(depthReader, CancellationToken.None);
+        using (var reader = XmlReader.Create(new StringReader(wrapped),
             new XmlReaderSettings { DtdProcessing = DtdProcessing.Prohibit, XmlResolver = null, MaxCharactersInDocument = _maximumEntryBytes }))
             return XElement.Load(reader, LoadOptions.PreserveWhitespace).Nodes().ToArray();
+    }
+
+    private static void RequireAuthoringDepth(XmlReader reader, CancellationToken token) {
+        while (reader.Read()) {
+            token.ThrowIfCancellationRequested();
+            if (reader.Depth > 256) throw new InvalidDataException("Authored XHTML nesting exceeds 256 levels.");
+        }
     }
 
     private XDocument EditableXhtml(string manifestId) {
