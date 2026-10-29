@@ -32,7 +32,7 @@ param(
     [ValidateSet('Corpus', 'Validate')]
     [string] $Operation = 'Corpus',
 
-    [ValidateSet('Blank', 'BlankPages', 'Text', 'TextLong', 'TextBlank', 'Rectangle', 'Image', 'Newsletter', 'TableLabel')]
+    [ValidateSet('Blank', 'BlankPages', 'Text', 'TextLong', 'TextBlank', 'Rectangle', 'Image', 'Newsletter', 'TableLabel', 'Brochure', 'MultipleMasters', 'TwoPageMaster')]
     [string] $Case = 'Blank',
 
     [string] $InputPath,

@@ -202,20 +202,27 @@ also qualify modern page geometry, story recovery and borderless text/table
 frames. The opt-in producer script and fixture hashes are retained with the
 tests. No external program is required by normal builds or runtime conversions.
 
-Nine additional [native comparison controls](../OfficeIMO.Publisher.Tests/Fixtures/NativeComparison)
+Twelve additional [native comparison controls](../OfficeIMO.Publisher.Tests/Fixtures/NativeComparison)
 cover blank and mixed-content pages, changed-length text, a rectangle, embedded
-pictures, a linked two-page newsletter and a custom-size multilingual table/label.
+pictures, a linked two-page newsletter, a custom-size multilingual table/label,
+a two-sided landscape brochure and distinct single-page and paired masters.
 Each retains a Publisher-authored PUB, native reference PDF and hashed contract
 with physical page IDs, master relationships and authored expectations. These
 controls qualify physical-page order including empty pages, selected geometry,
-complete stories, native catalog-backed chains, table cells, image pixels and
-PDF page counts. They do not qualify native frame breaks or broad pixel fidelity.
+complete stories, native catalog-backed chains, table cells, image pixels,
+brochure panel geometry and PDF page sizes/counts. Master controls qualify the
+distinct definitions and assignments, definition-local frame geometry, and
+applied marker origins measured from native PDF text spans. Those selected
+origins agree within 0.1 point horizontally and 1 point in baseline position;
+the baseline allowance accounts for the qualified difference in font metrics.
+Each native and OfficeIMO PDF page contains only its assigned master's markers.
+These controls do not qualify native frame breaks or broad pixel fidelity.
 The multilingual PDF check uses explicit Unicode font configuration; default
 standard-font output is a separate contract. Native page enumeration also has
 instruction and decompiler evidence for the qualified Publisher build. Its
 serialized role-boundary interpretation is corroborated by these controls and
-the original corpus; additional producer and master-page configurations remain
-qualification work.
+the original corpus; other producer builds and nested master inheritance remain
+unassessed.
 
 The default resource limits are 64 MiB input, 4 million source/projected text
 characters, 1 million inspected records, 250,000 source/projected items,

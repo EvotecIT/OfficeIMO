@@ -40,16 +40,35 @@ They distinguish blank document pages from utility and master definitions. Text 
 TextLong use identical page geometry, frame geometry and Arial formatting; their
 only authored difference is the text. Newsletter adds a two-page linked story
 and a picture. TableLabel adds a custom page size, styled 2-by-2 table, picture
-and Polish/Greek characters. Omitting `-Case` selects all nine controls.
+and Polish/Greek characters. Brochure adds two 792-by-612-point landscape sides,
+each with three 264-point panels, explicit text frames and panel markers.
+MultipleMasters applies two single-page masters in A/B/A order across three
+physical pages. TwoPageMaster retains the default first-page master and applies
+the distinct members of a native two-page master to the next left and right
+pages. Distinct marker text and geometry identify each master in the reference
+PDF. Omitting `-Case` selects all twelve controls.
 
 Each case has a PUB, a Publisher-exported PDF and JSON that separates its authored
 contract from the observed native page/shape inventory. The root manifest records
-the case contracts and file hashes. Text fonts, margins and object colors are
-explicit; other native publication defaults remain recorded as defaults. Producer
+the case contracts and file hashes. Master controls also record authored
+assignment IDs and the observed shapes on each native master definition. Text
+fonts, margins and object colors are explicit; other native publication defaults
+remain recorded as defaults. Producer
 metadata records the Publisher executable version, PowerShell version, culture
 and Arial font-file hash when available. Native file bytes can vary between runs;
 hashes identify a particular produced reference rather than promise deterministic
 Publisher serialization.
+
+Master definition geometry uses that master's local coordinate system. Applied
+marker placement on physical pages is checked separately against text origins
+in the native reference PDF; local definition coordinates do not establish
+their applied positions.
+
+The master controls use unique single-character abbreviations. On the qualified
+Publisher 16.0 build, the paired-master abbreviation `P` succeeds and `TP` returns
+an invalid-argument error; the API documentation does not specify a maximum
+abbreviation length. The producer keeps that observed constraint within its
+synthetic controls.
 
 The shared [native operation controller](../../Build/Publisher/Invoke-NativePublisherOperation.ps1)
 also validates an OfficeIMO-written candidate:

@@ -1,0 +1,489 @@
+{
+  "schema": "officeimo.publisher.native-case.v1",
+  "case": "Brochure",
+  "status": "Produced",
+  "license": "MIT",
+  "producer": {
+    "name": "Microsoft Publisher",
+    "version": "16.0",
+    "executableVersion": "16.0.20527.20088",
+    "powershell": "7.6.9",
+    "culture": "pl-PL",
+    "textFont": {
+      "family": "Arial",
+      "file": "arial.ttf",
+      "sha256": "b3658eadae55e682b5f69eb64c439c1ecc8f196c0bb8d4756d145d13bc86476a"
+    },
+    "appearance": "Explicit frame fonts, margins and object colors; untouched native publication defaults.",
+    "automationSecurity": 3
+  },
+  "expected": {
+    "pages": 2,
+    "widthPoints": 792,
+    "heightPoints": 612,
+    "text": [
+      "Side 1, panel 1",
+      "Side 1, panel 1. This independent brochure panel uses explicit Arial text and a fixed 228-point column. Its placement distinguishes the outside and inside of a three-panel publication.",
+      "Side 1, panel 2",
+      "Side 1, panel 2. This independent brochure panel uses explicit Arial text and a fixed 228-point column. Its placement distinguishes the outside and inside of a three-panel publication.",
+      "Side 1, panel 3",
+      "Side 1, panel 3. This independent brochure panel uses explicit Arial text and a fixed 228-point column. Its placement distinguishes the outside and inside of a three-panel publication.",
+      "Side 2, panel 1",
+      "Side 2, panel 1. This independent brochure panel uses explicit Arial text and a fixed 228-point column. Its placement distinguishes the outside and inside of a three-panel publication.",
+      "Side 2, panel 2",
+      "Side 2, panel 2. This independent brochure panel uses explicit Arial text and a fixed 228-point column. Its placement distinguishes the outside and inside of a three-panel publication.",
+      "Side 2, panel 3",
+      "Side 2, panel 3. This independent brochure panel uses explicit Arial text and a fixed 228-point column. Its placement distinguishes the outside and inside of a three-panel publication."
+    ],
+    "shapes": [
+      {
+        "name": "BrochureSide1Panel1Title",
+        "kind": "TextFrame",
+        "left": 18.0,
+        "top": 36.0,
+        "width": 228.0,
+        "height": 36.0,
+        "font": "Arial",
+        "size": 18.0
+      },
+      {
+        "name": "BrochureSide1Panel1Body",
+        "kind": "TextFrame",
+        "left": 18.0,
+        "top": 96.0,
+        "width": 228.0,
+        "height": 420.0,
+        "font": "Arial",
+        "size": 12.0
+      },
+      {
+        "name": "BrochureSide1Panel1Marker",
+        "kind": "Rectangle",
+        "pageIndex": 1,
+        "left": 18,
+        "top": 78,
+        "width": 228,
+        "height": 6
+      },
+      {
+        "name": "BrochureSide1Panel2Title",
+        "kind": "TextFrame",
+        "left": 282.0,
+        "top": 36.0,
+        "width": 228.0,
+        "height": 36.0,
+        "font": "Arial",
+        "size": 18.0
+      },
+      {
+        "name": "BrochureSide1Panel2Body",
+        "kind": "TextFrame",
+        "left": 282.0,
+        "top": 96.0,
+        "width": 228.0,
+        "height": 420.0,
+        "font": "Arial",
+        "size": 12.0
+      },
+      {
+        "name": "BrochureSide1Panel2Marker",
+        "kind": "Rectangle",
+        "pageIndex": 1,
+        "left": 282,
+        "top": 78,
+        "width": 228,
+        "height": 6
+      },
+      {
+        "name": "BrochureSide1Panel3Title",
+        "kind": "TextFrame",
+        "left": 546.0,
+        "top": 36.0,
+        "width": 228.0,
+        "height": 36.0,
+        "font": "Arial",
+        "size": 18.0
+      },
+      {
+        "name": "BrochureSide1Panel3Body",
+        "kind": "TextFrame",
+        "left": 546.0,
+        "top": 96.0,
+        "width": 228.0,
+        "height": 420.0,
+        "font": "Arial",
+        "size": 12.0
+      },
+      {
+        "name": "BrochureSide1Panel3Marker",
+        "kind": "Rectangle",
+        "pageIndex": 1,
+        "left": 546,
+        "top": 78,
+        "width": 228,
+        "height": 6
+      },
+      {
+        "name": "BrochureSide2Panel1Title",
+        "kind": "TextFrame",
+        "left": 18.0,
+        "top": 36.0,
+        "width": 228.0,
+        "height": 36.0,
+        "font": "Arial",
+        "size": 18.0
+      },
+      {
+        "name": "BrochureSide2Panel1Body",
+        "kind": "TextFrame",
+        "left": 18.0,
+        "top": 96.0,
+        "width": 228.0,
+        "height": 420.0,
+        "font": "Arial",
+        "size": 12.0
+      },
+      {
+        "name": "BrochureSide2Panel1Marker",
+        "kind": "Rectangle",
+        "pageIndex": 2,
+        "left": 18,
+        "top": 78,
+        "width": 228,
+        "height": 6
+      },
+      {
+        "name": "BrochureSide2Panel2Title",
+        "kind": "TextFrame",
+        "left": 282.0,
+        "top": 36.0,
+        "width": 228.0,
+        "height": 36.0,
+        "font": "Arial",
+        "size": 18.0
+      },
+      {
+        "name": "BrochureSide2Panel2Body",
+        "kind": "TextFrame",
+        "left": 282.0,
+        "top": 96.0,
+        "width": 228.0,
+        "height": 420.0,
+        "font": "Arial",
+        "size": 12.0
+      },
+      {
+        "name": "BrochureSide2Panel2Marker",
+        "kind": "Rectangle",
+        "pageIndex": 2,
+        "left": 282,
+        "top": 78,
+        "width": 228,
+        "height": 6
+      },
+      {
+        "name": "BrochureSide2Panel3Title",
+        "kind": "TextFrame",
+        "left": 546.0,
+        "top": 36.0,
+        "width": 228.0,
+        "height": 36.0,
+        "font": "Arial",
+        "size": 18.0
+      },
+      {
+        "name": "BrochureSide2Panel3Body",
+        "kind": "TextFrame",
+        "left": 546.0,
+        "top": 96.0,
+        "width": 228.0,
+        "height": 420.0,
+        "font": "Arial",
+        "size": 12.0
+      },
+      {
+        "name": "BrochureSide2Panel3Marker",
+        "kind": "Rectangle",
+        "pageIndex": 2,
+        "left": 546,
+        "top": 78,
+        "width": 228,
+        "height": 6
+      }
+    ],
+    "masterAssignments": [],
+    "panelWidthPoints": 264
+  },
+  "nativePages": [
+    {
+      "index": 1,
+      "pageId": 33554698,
+      "pageIndex": 1,
+      "pageNumber": "1",
+      "pageType": 2,
+      "name": "Page Title",
+      "masterStatus": "Observed",
+      "master": {
+        "pageId": 33554695,
+        "name": "Master Page A"
+      },
+      "masterErrorHResult": null,
+      "shapes": [
+        {
+          "name": "BrochureSide1Panel1Title",
+          "type": 17,
+          "left": 18.0,
+          "top": 36.0,
+          "width": 228.0,
+          "height": 36.0,
+          "text": "Side 1, panel 1\r",
+          "font": "",
+          "nextLink": false,
+          "previousLink": false
+        },
+        {
+          "name": "BrochureSide1Panel1Body",
+          "type": 17,
+          "left": 18.0,
+          "top": 96.0,
+          "width": 228.0,
+          "height": 420.0,
+          "text": "Side 1, panel 1. This independent brochure panel uses explicit Arial text and a fixed 228-point column. Its placement distinguishes the outside and inside of a three-panel publication.\r",
+          "font": "",
+          "nextLink": false,
+          "previousLink": false
+        },
+        {
+          "name": "BrochureSide1Panel1Marker",
+          "type": 1,
+          "left": 18.0,
+          "top": 78.0,
+          "width": 228.0,
+          "height": 6.0,
+          "text": "\r",
+          "font": "Calibri",
+          "nextLink": false,
+          "previousLink": false
+        },
+        {
+          "name": "BrochureSide1Panel2Title",
+          "type": 17,
+          "left": 282.0,
+          "top": 36.0,
+          "width": 228.0,
+          "height": 36.0,
+          "text": "Side 1, panel 2\r",
+          "font": "",
+          "nextLink": false,
+          "previousLink": false
+        },
+        {
+          "name": "BrochureSide1Panel2Body",
+          "type": 17,
+          "left": 282.0,
+          "top": 96.0,
+          "width": 228.0,
+          "height": 420.0,
+          "text": "Side 1, panel 2. This independent brochure panel uses explicit Arial text and a fixed 228-point column. Its placement distinguishes the outside and inside of a three-panel publication.\r",
+          "font": "",
+          "nextLink": false,
+          "previousLink": false
+        },
+        {
+          "name": "BrochureSide1Panel2Marker",
+          "type": 1,
+          "left": 282.0,
+          "top": 78.0,
+          "width": 228.0,
+          "height": 6.0,
+          "text": "\r",
+          "font": "Calibri",
+          "nextLink": false,
+          "previousLink": false
+        },
+        {
+          "name": "BrochureSide1Panel3Title",
+          "type": 17,
+          "left": 546.0,
+          "top": 36.0,
+          "width": 228.0,
+          "height": 36.0,
+          "text": "Side 1, panel 3\r",
+          "font": "",
+          "nextLink": false,
+          "previousLink": false
+        },
+        {
+          "name": "BrochureSide1Panel3Body",
+          "type": 17,
+          "left": 546.0,
+          "top": 96.0,
+          "width": 228.0,
+          "height": 420.0,
+          "text": "Side 1, panel 3. This independent brochure panel uses explicit Arial text and a fixed 228-point column. Its placement distinguishes the outside and inside of a three-panel publication.\r",
+          "font": "",
+          "nextLink": false,
+          "previousLink": false
+        },
+        {
+          "name": "BrochureSide1Panel3Marker",
+          "type": 1,
+          "left": 546.0,
+          "top": 78.0,
+          "width": 228.0,
+          "height": 6.0,
+          "text": "\r",
+          "font": "Calibri",
+          "nextLink": false,
+          "previousLink": false
+        }
+      ]
+    },
+    {
+      "index": 2,
+      "pageId": 33554725,
+      "pageIndex": 2,
+      "pageNumber": "2",
+      "pageType": 1,
+      "name": "Page Title",
+      "masterStatus": "Observed",
+      "master": {
+        "pageId": 33554695,
+        "name": "Master Page A"
+      },
+      "masterErrorHResult": null,
+      "shapes": [
+        {
+          "name": "BrochureSide2Panel1Title",
+          "type": 17,
+          "left": 18.0,
+          "top": 36.0,
+          "width": 228.0,
+          "height": 36.0,
+          "text": "Side 2, panel 1\r",
+          "font": "",
+          "nextLink": false,
+          "previousLink": false
+        },
+        {
+          "name": "BrochureSide2Panel1Body",
+          "type": 17,
+          "left": 18.0,
+          "top": 96.0,
+          "width": 228.0,
+          "height": 420.0,
+          "text": "Side 2, panel 1. This independent brochure panel uses explicit Arial text and a fixed 228-point column. Its placement distinguishes the outside and inside of a three-panel publication.\r",
+          "font": "",
+          "nextLink": false,
+          "previousLink": false
+        },
+        {
+          "name": "BrochureSide2Panel1Marker",
+          "type": 1,
+          "left": 18.0,
+          "top": 78.0,
+          "width": 228.0,
+          "height": 6.0,
+          "text": "\r",
+          "font": "Calibri",
+          "nextLink": false,
+          "previousLink": false
+        },
+        {
+          "name": "BrochureSide2Panel2Title",
+          "type": 17,
+          "left": 282.0,
+          "top": 36.0,
+          "width": 228.0,
+          "height": 36.0,
+          "text": "Side 2, panel 2\r",
+          "font": "",
+          "nextLink": false,
+          "previousLink": false
+        },
+        {
+          "name": "BrochureSide2Panel2Body",
+          "type": 17,
+          "left": 282.0,
+          "top": 96.0,
+          "width": 228.0,
+          "height": 420.0,
+          "text": "Side 2, panel 2. This independent brochure panel uses explicit Arial text and a fixed 228-point column. Its placement distinguishes the outside and inside of a three-panel publication.\r",
+          "font": "",
+          "nextLink": false,
+          "previousLink": false
+        },
+        {
+          "name": "BrochureSide2Panel2Marker",
+          "type": 1,
+          "left": 282.0,
+          "top": 78.0,
+          "width": 228.0,
+          "height": 6.0,
+          "text": "\r",
+          "font": "Calibri",
+          "nextLink": false,
+          "previousLink": false
+        },
+        {
+          "name": "BrochureSide2Panel3Title",
+          "type": 17,
+          "left": 546.0,
+          "top": 36.0,
+          "width": 228.0,
+          "height": 36.0,
+          "text": "Side 2, panel 3\r",
+          "font": "",
+          "nextLink": false,
+          "previousLink": false
+        },
+        {
+          "name": "BrochureSide2Panel3Body",
+          "type": 17,
+          "left": 546.0,
+          "top": 96.0,
+          "width": 228.0,
+          "height": 420.0,
+          "text": "Side 2, panel 3. This independent brochure panel uses explicit Arial text and a fixed 228-point column. Its placement distinguishes the outside and inside of a three-panel publication.\r",
+          "font": "",
+          "nextLink": false,
+          "previousLink": false
+        },
+        {
+          "name": "BrochureSide2Panel3Marker",
+          "type": 1,
+          "left": 546.0,
+          "top": 78.0,
+          "width": 228.0,
+          "height": 6.0,
+          "text": "\r",
+          "font": "Calibri",
+          "nextLink": false,
+          "previousLink": false
+        }
+      ]
+    }
+  ],
+  "nativeMasterPages": [
+    {
+      "index": 1,
+      "pageId": 33554695,
+      "pageIndex": 1,
+      "pageType": 4,
+      "name": "Master Page A",
+      "isTwoPageMaster": false,
+      "shapeCount": 0,
+      "shapes": []
+    }
+  ],
+  "files": {
+    "publication": {
+      "name": "native-brochure.pub",
+      "sha256": "e03caf81438e198d459f4b4a69c2a953b22fe9b2fcb1ff21f24b694e000707c0"
+    },
+    "reference": {
+      "name": "native-brochure.pdf",
+      "sha256": "e4f7c21c3de61488411b0c0bb66b77d2505ddb9f90d877538209347e5416ef4c"
+    }
+  }
+}

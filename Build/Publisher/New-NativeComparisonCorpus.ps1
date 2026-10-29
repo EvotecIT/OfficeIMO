@@ -13,6 +13,8 @@ Empty task-owned directory for publications, PDF references, contracts and run r
 .PARAMETER Case
 Cases to produce. Text and TextLong differ only in their text length; Blank, Rectangle
 and Image isolate the smallest native structures needed by a template-free writer.
+Brochure has two landscape sides with three panels each. MultipleMasters and
+TwoPageMaster exercise explicit native single-page and paired master assignments.
 .PARAMETER TimeoutSeconds
 Maximum elapsed time per case, including application startup, save and shutdown.
 .EXAMPLE
@@ -31,8 +33,8 @@ param(
     [Parameter(Mandatory)]
     [string] $OutputDirectory,
 
-    [ValidateSet('Blank', 'BlankPages', 'Text', 'TextLong', 'TextBlank', 'Rectangle', 'Image', 'Newsletter', 'TableLabel')]
-    [string[]] $Case = @('Blank', 'BlankPages', 'Text', 'TextLong', 'TextBlank', 'Rectangle', 'Image', 'Newsletter', 'TableLabel'),
+    [ValidateSet('Blank', 'BlankPages', 'Text', 'TextLong', 'TextBlank', 'Rectangle', 'Image', 'Newsletter', 'TableLabel', 'Brochure', 'MultipleMasters', 'TwoPageMaster')]
+    [string[]] $Case = @('Blank', 'BlankPages', 'Text', 'TextLong', 'TextBlank', 'Rectangle', 'Image', 'Newsletter', 'TableLabel', 'Brochure', 'MultipleMasters', 'TwoPageMaster'),
 
     [ValidateRange(10, 600)]
     [int] $TimeoutSeconds = 90

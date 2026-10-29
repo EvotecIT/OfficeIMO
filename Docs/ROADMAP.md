@@ -873,7 +873,6 @@ native oracle or unresolved writer holds its dependent criteria and stays visibl
 
 #### PUB00 — Native writer feasibility and comparison corpus
 
-- [ ] Extend the [native comparison corpus](../OfficeIMO.Publisher.Tests/Fixtures/NativeComparison) with independently authored brochures and multiple/two-page master configurations. Retain producer version, effective fonts, native structure, hashes and reference PDFs; keep native-produced controls, synthetic mutations and independent-reader evidence distinct.
 - [ ] Identify the minimum modern-generation stream/storage graph, record relationships, text/style indexes and required metadata using controlled native differences and the existing reader. Reuse the shared compound writer; do not copy a seed publication or hide opaque seed streams inside a new writer.
 - [ ] Create a minimal PUB from scratch with one page, styled text, a shape and an embedded image. Open the exact bytes in Microsoft Publisher without repair before native resave; verify page geometry, content, native resave/reopen and PDF export independently. Keep any unaccepted candidate internal to the opt-in feasibility tooling.
 

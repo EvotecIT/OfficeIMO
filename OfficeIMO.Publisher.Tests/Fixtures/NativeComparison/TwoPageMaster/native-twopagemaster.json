@@ -1,0 +1,277 @@
+{
+  "schema": "officeimo.publisher.native-case.v1",
+  "case": "TwoPageMaster",
+  "status": "Produced",
+  "license": "MIT",
+  "producer": {
+    "name": "Microsoft Publisher",
+    "version": "16.0",
+    "executableVersion": "16.0.20527.20088",
+    "powershell": "7.6.9",
+    "culture": "pl-PL",
+    "textFont": {
+      "family": "Arial",
+      "file": "arial.ttf",
+      "sha256": "b3658eadae55e682b5f69eb64c439c1ecc8f196c0bb8d4756d145d13bc86476a"
+    },
+    "appearance": "Explicit frame fonts, margins and object colors; untouched native publication defaults.",
+    "automationSecurity": 3
+  },
+  "expected": {
+    "pages": 3,
+    "widthPoints": 612,
+    "heightPoints": 792,
+    "text": [
+      "Default master",
+      "Paired master left",
+      "Paired master right",
+      "TwoPageMaster page 1",
+      "TwoPageMaster page 2",
+      "TwoPageMaster page 3"
+    ],
+    "shapes": [
+      {
+        "name": "DefaultMasterMarker",
+        "kind": "TextFrame",
+        "left": 18.0,
+        "top": 24.0,
+        "width": 252.0,
+        "height": 24.0,
+        "font": "Arial",
+        "size": 10.0
+      },
+      {
+        "name": "LeftMasterMarker",
+        "kind": "TextFrame",
+        "left": 18.0,
+        "top": 24.0,
+        "width": 252.0,
+        "height": 24.0,
+        "font": "Arial",
+        "size": 10.0
+      },
+      {
+        "name": "RightMasterMarker",
+        "kind": "TextFrame",
+        "left": 342.0,
+        "top": 24.0,
+        "width": 252.0,
+        "height": 24.0,
+        "font": "Arial",
+        "size": 10.0
+      },
+      {
+        "name": "PageIdentity1",
+        "kind": "TextFrame",
+        "left": 72.0,
+        "top": 96.0,
+        "width": 468.0,
+        "height": 48.0,
+        "font": "Arial",
+        "size": 16.0
+      },
+      {
+        "name": "PageIdentity2",
+        "kind": "TextFrame",
+        "left": 72.0,
+        "top": 96.0,
+        "width": 468.0,
+        "height": 48.0,
+        "font": "Arial",
+        "size": 16.0
+      },
+      {
+        "name": "PageIdentity3",
+        "kind": "TextFrame",
+        "left": 72.0,
+        "top": 96.0,
+        "width": 468.0,
+        "height": 48.0,
+        "font": "Arial",
+        "size": 16.0
+      }
+    ],
+    "masterAssignments": [
+      {
+        "pageIndex": 1,
+        "masterPageId": 33554695
+      },
+      {
+        "pageIndex": 2,
+        "masterPageId": 33554731
+      },
+      {
+        "pageIndex": 3,
+        "masterPageId": 33554735
+      }
+    ],
+    "panelWidthPoints": null
+  },
+  "nativePages": [
+    {
+      "index": 1,
+      "pageId": 33554698,
+      "pageIndex": 1,
+      "pageNumber": "1",
+      "pageType": 2,
+      "name": "Page Title",
+      "masterStatus": "Observed",
+      "master": {
+        "pageId": 33554695,
+        "name": "Master Page A"
+      },
+      "masterErrorHResult": null,
+      "shapes": [
+        {
+          "name": "PageIdentity1",
+          "type": 17,
+          "left": 72.0,
+          "top": 96.0,
+          "width": 468.0,
+          "height": 48.0,
+          "text": "TwoPageMaster page 1\r",
+          "font": "",
+          "nextLink": false,
+          "previousLink": false
+        }
+      ]
+    },
+    {
+      "index": 2,
+      "pageId": 33554725,
+      "pageIndex": 2,
+      "pageNumber": "2",
+      "pageType": 1,
+      "name": "Page Title",
+      "masterStatus": "Observed",
+      "master": {
+        "pageId": 33554731,
+        "name": "Comparison Two-Page Master"
+      },
+      "masterErrorHResult": null,
+      "shapes": [
+        {
+          "name": "PageIdentity2",
+          "type": 17,
+          "left": 72.0,
+          "top": 96.0,
+          "width": 468.0,
+          "height": 48.0,
+          "text": "TwoPageMaster page 2\r",
+          "font": "",
+          "nextLink": false,
+          "previousLink": false
+        }
+      ]
+    },
+    {
+      "index": 3,
+      "pageId": 33554728,
+      "pageIndex": 3,
+      "pageNumber": "3",
+      "pageType": 2,
+      "name": "Page Title",
+      "masterStatus": "Observed",
+      "master": {
+        "pageId": 33554735,
+        "name": "Comparison Two-Page Master"
+      },
+      "masterErrorHResult": null,
+      "shapes": [
+        {
+          "name": "PageIdentity3",
+          "type": 17,
+          "left": 72.0,
+          "top": 96.0,
+          "width": 468.0,
+          "height": 48.0,
+          "text": "TwoPageMaster page 3\r",
+          "font": "",
+          "nextLink": false,
+          "previousLink": false
+        }
+      ]
+    }
+  ],
+  "nativeMasterPages": [
+    {
+      "index": 1,
+      "pageId": 33554695,
+      "pageIndex": 1,
+      "pageType": 4,
+      "name": "Master Page A",
+      "isTwoPageMaster": false,
+      "shapeCount": 1,
+      "shapes": [
+        {
+          "name": "DefaultMasterMarker",
+          "type": 17,
+          "left": 18.0,
+          "top": 24.0,
+          "width": 252.0,
+          "height": 24.0,
+          "text": "Default master\r",
+          "font": "",
+          "nextLink": false,
+          "previousLink": false
+        }
+      ]
+    },
+    {
+      "index": 2,
+      "pageId": 33554731,
+      "pageIndex": 2,
+      "pageType": 4,
+      "name": "Comparison Two-Page Master",
+      "isTwoPageMaster": true,
+      "shapeCount": 1,
+      "shapes": [
+        {
+          "name": "LeftMasterMarker",
+          "type": 17,
+          "left": 18.0,
+          "top": 24.0,
+          "width": 252.0,
+          "height": 24.0,
+          "text": "Paired master left\r",
+          "font": "",
+          "nextLink": false,
+          "previousLink": false
+        }
+      ]
+    },
+    {
+      "index": 3,
+      "pageId": 33554735,
+      "pageIndex": 3,
+      "pageType": 4,
+      "name": "Comparison Two-Page Master",
+      "isTwoPageMaster": true,
+      "shapeCount": 1,
+      "shapes": [
+        {
+          "name": "RightMasterMarker",
+          "type": 17,
+          "left": 342.0,
+          "top": 24.0,
+          "width": 252.0,
+          "height": 24.0,
+          "text": "Paired master right\r",
+          "font": "",
+          "nextLink": false,
+          "previousLink": false
+        }
+      ]
+    }
+  ],
+  "files": {
+    "publication": {
+      "name": "native-twopagemaster.pub",
+      "sha256": "76748d733c050f351fac09b7ec1741c87ef5dcc3d876cba7d8e3d30571c4c7c8"
+    },
+    "reference": {
+      "name": "native-twopagemaster.pdf",
+      "sha256": "b6b063db814f5bc7b218ff98a8ec1bfa798b7b7336b3bc65d28654b06c177601"
+    }
+  }
+}

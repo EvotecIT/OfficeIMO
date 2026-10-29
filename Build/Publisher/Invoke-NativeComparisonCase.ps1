@@ -17,7 +17,7 @@ param(
     [string] $InputPath,
 
     [Parameter(Mandatory)]
-    [ValidateSet('Blank', 'BlankPages', 'Text', 'TextLong', 'TextBlank', 'Rectangle', 'Image', 'Newsletter', 'TableLabel')]
+    [ValidateSet('Blank', 'BlankPages', 'Text', 'TextLong', 'TextBlank', 'Rectangle', 'Image', 'Newsletter', 'TableLabel', 'Brochure', 'MultipleMasters', 'TwoPageMaster')]
     [string] $Case,
 
     [Parameter(Mandatory)]
@@ -103,7 +103,12 @@ $pageCount = 1
 if ($Case -eq 'TableLabel') {
     $width = 288
     $height = 216
+} elseif ($Case -eq 'Brochure') {
+    $width = 792
+    $height = 612
 }
+$layout = $null
+. (Join-Path $PSScriptRoot 'Add-NativeComparisonLayout.ps1')
 
 function Set-NativePhase {
     param([string] $Value)
@@ -169,43 +174,50 @@ function Register-NativeWindowIdentity {
     return $true
 }
 
+function Get-NativeShapeInventory {
+    # Read the same supported shape fields on physical and master pages, so
+    # master markers have independent native geometry and text observations.
+    param($Page)
+    $nativeShapes = [Collections.Generic.List[object]]::new()
+    for ($shapeIndex = 1; $shapeIndex -le $Page.Shapes.Count; $shapeIndex++) {
+        $shape = $Page.Shapes.Item($shapeIndex)
+        $objects.Add($shape)
+        $text = $null
+        $font = $null
+        $nextLink = $false
+        $previousLink = $false
+        if ($shape.HasTextFrame -eq -1) {
+            $frame = $shape.TextFrame
+            $range = $frame.TextRange
+            $objects.Add($frame)
+            $objects.Add($range)
+            $text = [string]$range.Text
+            $font = [string]$range.Font.Name
+            $nextLink = $frame.HasNextLink -eq -1
+            $previousLink = $frame.HasPreviousLink -eq -1
+        }
+        $nativeShapes.Add([pscustomobject]@{
+            name = [string]$shape.Name
+            type = [int]$shape.Type
+            left = [double]$shape.Left
+            top = [double]$shape.Top
+            width = [double]$shape.Width
+            height = [double]$shape.Height
+            text = $text
+            font = $font
+            nextLink = $nextLink
+            previousLink = $previousLink
+        })
+    }
+    return $nativeShapes.ToArray()
+}
+
 function Get-NativeInventory {
     param($Publication)
     $nativePages = [Collections.Generic.List[object]]::new()
     for ($pageIndex = 1; $pageIndex -le $Publication.Pages.Count; $pageIndex++) {
         $currentPage = $Publication.Pages.Item($pageIndex)
         $objects.Add($currentPage)
-        $nativeShapes = [Collections.Generic.List[object]]::new()
-        for ($shapeIndex = 1; $shapeIndex -le $currentPage.Shapes.Count; $shapeIndex++) {
-            $shape = $currentPage.Shapes.Item($shapeIndex)
-            $objects.Add($shape)
-            $text = $null
-            $font = $null
-            $nextLink = $false
-            $previousLink = $false
-            if ($shape.HasTextFrame -eq -1) {
-                $frame = $shape.TextFrame
-                $range = $frame.TextRange
-                $objects.Add($frame)
-                $objects.Add($range)
-                $text = [string]$range.Text
-                $font = [string]$range.Font.Name
-                $nextLink = $frame.HasNextLink -eq -1
-                $previousLink = $frame.HasPreviousLink -eq -1
-            }
-            $nativeShapes.Add([pscustomobject]@{
-                name = [string]$shape.Name
-                type = [int]$shape.Type
-                left = [double]$shape.Left
-                top = [double]$shape.Top
-                width = [double]$shape.Width
-                height = [double]$shape.Height
-                text = $text
-                font = $font
-                nextLink = $nextLink
-                previousLink = $previousLink
-            })
-        }
         $masterInfo = $null
         $masterStatus = 'None'
         $masterError = $null
@@ -230,7 +242,7 @@ function Get-NativeInventory {
             masterStatus = $masterStatus
             master = $masterInfo
             masterErrorHResult = $masterError
-            shapes = $nativeShapes.ToArray()
+            shapes = @(Get-NativeShapeInventory $currentPage)
         })
     }
     $nativeMasters = [Collections.Generic.List[object]]::new()
@@ -247,6 +259,7 @@ function Get-NativeInventory {
             name = [string]$masterPage.Name
             isTwoPageMaster = [bool]$masterPage.IsTwoPageMaster
             shapeCount = [int]$masterPage.Shapes.Count
+            shapes = @(Get-NativeShapeInventory $masterPage)
         })
     }
     return [pscustomobject]@{
@@ -493,11 +506,23 @@ try {
             $objects.Add($image)
             $expectedShapes.Add([pscustomobject]@{ name = 'LabelImage'; kind = 'Image'; left = 216; top = 72; width = 54; height = 54 })
         }
+        { $_ -in @('Brochure', 'MultipleMasters', 'TwoPageMaster') } {
+            $layout = Add-NativeComparisonLayout -Case $Case -Document $document -FirstPage $page
+            $pageCount = $layout.pages
+        }
     }
     if ($document.Pages.Count -ne $pageCount) {
         throw ('Native page count differs from the declared contract: ' + $document.Pages.Count)
     }
     $inventory = Get-NativeInventory $document
+    if ($null -ne $layout) {
+        foreach ($assignment in $layout.masterAssignments) {
+            $observed = $inventory.pages[$assignment.pageIndex - 1]
+            if ($observed.masterStatus -ne 'Observed' -or $observed.master.pageId -ne $assignment.masterPageId) {
+                throw ('Publisher did not retain the declared master assignment for physical page ' + $assignment.pageIndex)
+            }
+        }
+    }
     $phase = 'SaveCorpusCase'
     $document.SaveAs($publication)
     $document.ExportAsFixedFormat(2, $reference)
@@ -540,6 +565,10 @@ try {
             reference = [ordered]@{ name = [IO.Path]::GetFileName($reference); sha256 = (Get-FileHash -LiteralPath $reference -Algorithm SHA256).Hash.ToLowerInvariant() }
         }
     }
+    if ($null -ne $layout) {
+        $contract.expected.masterAssignments = $layout.masterAssignments
+        $contract.expected.panelWidthPoints = $layout.panelWidthPoints
+    }
     $sourceImage = Join-Path $output ($stem + '.png')
     if (Test-Path -LiteralPath $sourceImage) {
         $contract.files.sourceImage = [ordered]@{ name = [IO.Path]::GetFileName($sourceImage); sha256 = (Get-FileHash -LiteralPath $sourceImage -Algorithm SHA256).Hash.ToLowerInvariant() }
@@ -555,6 +584,10 @@ try {
         phase = $phase
         message = $_.Exception.Message
         hresult = $_.Exception.HResult
+        exceptionType = $_.Exception.GetType().FullName
+        errorId = $_.FullyQualifiedErrorId
+        position = $_.InvocationInfo.PositionMessage
+        scriptStackTrace = $_.ScriptStackTrace
         nativeProcessIdentified = $nativeVerified
     }
     Write-NewNativeJson -Path $failurePath -Value $failure -Depth 5

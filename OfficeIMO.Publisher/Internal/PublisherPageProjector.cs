@@ -16,6 +16,10 @@ internal sealed partial class PublisherPageProjector {
     internal PublisherPageProjector(PublisherContents source, PublisherQuillText text, PublisherEscherData escher, PublisherParseContext context) {
         _source = source; _text = text; _escher = escher; _context = context;
         _pages = source.Pages.ToDictionary(page => page.Id);
+        foreach (PublisherSourcePage page in source.Pages.Where(page => page.IsMaster && page.NativeLayout.HasValue
+            && page.NativeLayout.Value is not (0 or 1 or 3)))
+            _context.Add("PUB_MASTER_COORDINATE_ORIGIN_UNASSESSED", "An unassessed master-page layout uses the centered page coordinate origin.",
+                OfficeConversionLossKind.Unassessed, "Contents/page/" + page.Id);
     }
     internal PublisherDocument Project() {
         var scenes = new Dictionary<uint, OfficeDrawing>();
@@ -36,7 +40,7 @@ internal sealed partial class PublisherPageProjector {
             if (!owner.HasValue) continue;
             tableShapes.TryGetValue(native.Chunk.Id, out PublisherEscherShape? shape);
             ProjectTable(native, native.Value(0x27), shape,
-                shape?.Bounds.HasValue == true ? FrameBounds(shape, _source.Width, _source.Height) : default, owner.Value, null);
+                shape?.Bounds.HasValue == true ? FrameBounds(shape) : default, owner.Value, null);
         }
         PrepareTextFrames();
         var pageFrames = new Dictionary<uint, List<PublisherTextFrame>>();
@@ -63,7 +67,12 @@ internal sealed partial class PublisherPageProjector {
             if (page.Master.HasValue && page.Master.Value != 0) {
                 if (_pages.TryGetValue(page.Master.Value, out PublisherSourcePage? master) && master.IsMaster) {
                     _context.AccountProjection(scenes[master.Id]);
-                    drawing.AddDrawingForClippedRendering(scenes[master.Id], 0, 0, null);
+                    // Definition coordinates and an applied master's page basis
+                    // differ for the left and right members of a paired master.
+                    var targetOrigin = PageOrigin(page);
+                    var masterOrigin = PageOrigin(master);
+                    drawing.AddDrawingForClippedRendering(scenes[master.Id],
+                        targetOrigin.X - masterOrigin.X, targetOrigin.Y - masterOrigin.Y, null);
                 }
                 else _context.Add("PUB_MASTER_REFERENCE_UNRESOLVED", "A declared master page could not be applied.", OfficeConversionLossKind.Omission, "Contents/page/" + page.Id);
             }
@@ -117,7 +126,7 @@ internal sealed partial class PublisherPageProjector {
         if (!shape.Bounds.HasValue) {
             _context.Add("PUB_OBJECT_ANCHOR_UNRESOLVED", "A publication object has no resolved native anchor.", OfficeConversionLossKind.Omission, PublisherEscherReader.ShapeLocation(shape.Id)); return;
         }
-        FrameRectangle bounds = FrameBounds(shape, page.Width, page.Height);
+        FrameRectangle bounds = FrameBounds(shape);
         double x = bounds.X, y = bounds.Y, width = bounds.Width, height = bounds.Height;
         double rotation = shape.Transform.RotationDegrees.GetValueOrDefault();
         double geometryWidth = width, geometryHeight = height;

@@ -30,7 +30,7 @@ internal sealed partial class PublisherPageProjector {
                         OfficeConversionLossKind.Omission, PublisherEscherReader.ShapeLocation(frame.Chunk.Id));
                     continue;
                 }
-                FrameRectangle bounds = FrameBounds(shape, _source.Width, _source.Height);
+                FrameRectangle bounds = FrameBounds(shape);
                 uint columns = shape.Property(0x8C) ?? 1;
                 if (columns == 0 || columns > 256 || columns > _context.Options.Limits.MaxItems)
                     throw new InvalidDataException("Publisher text column count is outside the supported resource bounds.");
@@ -120,16 +120,6 @@ internal sealed partial class PublisherPageProjector {
         return block.Value.Value == 0 ? null : block.Value.Value;
     }
 
-    private static FrameRectangle FrameBounds(PublisherEscherShape shape, double pageWidth, double pageHeight) {
-        PublisherNativeRectangle native = shape.Bounds!.Value.Unrotated(shape.Transform.RotationDegrees.GetValueOrDefault());
-        var mapped = shape.LayoutTransform.TransformRectangleBounds(Math.Min(native.X1, native.X2), Math.Min(native.Y1, native.Y2),
-            Math.Abs(native.X2 - native.X1), Math.Abs(native.Y2 - native.Y1));
-        double x = mapped.Left / 12700 + pageWidth / 2, y = mapped.Top / 12700 + pageHeight / 2;
-        double width = (mapped.Right - mapped.Left) / 12700, height = (mapped.Bottom - mapped.Top) / 12700;
-        return new FrameRectangle(x, y, width, height);
-    }
-
-    private readonly record struct FrameRectangle(double X, double Y, double Width, double Height);
     private sealed record PreparedTextFrame(PublisherTextFrame Model, IReadOnlyList<PreparedTextRegion> Regions);
     private sealed record PreparedTextRegion(IReadOnlyList<OfficeRichTextParagraph> Paragraphs, double X, double Y, double Width, double Height);
 }

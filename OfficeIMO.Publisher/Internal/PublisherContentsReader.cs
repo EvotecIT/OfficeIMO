@@ -73,7 +73,8 @@ internal sealed partial class PublisherContentsReader {
             string name = nameField.HasValue && nameField.Value.Type == 0xC0
                 ? _data.Utf16(nameField.Value.Offset + 4, nameField.Value.Length - 4).TrimEnd('\0') : string.Empty;
             if (result.Pages.Count >= _context.Options.MaximumPages) throw new InvalidDataException("Publisher page limit exceeded.");
-            var page = new PublisherSourcePage(pageId, name, Field(fields, 0x0D)?.Value, Field(fields, 0x0A)?.Value, isMaster);
+            var page = new PublisherSourcePage(pageId, name, Field(fields, 0x0D)?.Value, Field(fields, 0x0A)?.Value,
+                isMaster, Field(fields, 0x10)?.Value);
             result.Pages.Add(page);
             PublisherBlock? shapes = Field(fields, 2);
             if (shapes.HasValue) {
@@ -160,14 +161,16 @@ internal sealed class PublisherContentChunk {
 }
 
 internal sealed class PublisherSourcePage {
-    internal PublisherSourcePage(uint id, string name, uint? master, uint? background, bool isMaster = false) {
-        Id = id; Name = name; Master = master; Background = background; IsMaster = isMaster;
+    internal PublisherSourcePage(uint id, string name, uint? master, uint? background, bool isMaster = false, uint? nativeLayout = null) {
+        Id = id; Name = name; Master = master; Background = background; IsMaster = isMaster; NativeLayout = nativeLayout;
     }
     internal uint Id { get; }
     internal string Name { get; }
     internal uint? Master { get; }
     internal uint? Background { get; }
     internal bool IsMaster { get; }
+    /// <summary>Native page layout code, including the left and right members of a paired master.</summary>
+    internal uint? NativeLayout { get; }
 }
 
 internal sealed class PublisherSourceShape {
