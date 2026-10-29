@@ -5,11 +5,19 @@ namespace OfficeIMO.Drawing;
 // Shared by nested canvases and image decoders. Remember the operation's limit so
 // sampling buffers admitted by a canvas use the same ceiling as decoded images.
 internal sealed class OfficeRasterTransformedTextBudget {
+    private const long MaximumEffectTextPlanningVisits = 100_000L;
     internal long Pixels;
     internal long IntermediatePixels;
+    private long _effectTextPlanningVisits;
     private long _maximumRasterPixels = long.MaxValue;
     private long? _remainingPaintPixels;
     private long _remainingPaintCrossings;
+
+    internal void ChargeEffectTextPlanningVisit() {
+        if (_effectTextPlanningVisits >= MaximumEffectTextPlanningVisits)
+            throw new NotSupportedException("Effect text planning exceeds the cumulative visit limit.");
+        _effectTextPlanningVisits++;
+    }
 
     internal void LimitPaintWork(long outputPixels) {
         // Count actual clipped raster work, preserving the native SVG reader's grammar.
