@@ -17,7 +17,10 @@ public sealed class OfficeBatchReportCollector : IProgress<OfficeBatchItemReport
         if (item == null) throw new ArgumentNullException(nameof(item));
         lock (_gate) {
             _reported++;
-            if (item.Skipped) _skipped++;
+            if (item.Skipped) {
+                _skipped++;
+                if (item.SkippedReason is OfficeBatchOutputSelection.OutputExists or OfficeBatchOutputSelection.UpToDate) _selected++;
+            }
             else {
                 _selected++;
                 if (item.Status == OfficeBatchItemStatus.Completed) { _completed++; if (item.Reused) _reused++; }

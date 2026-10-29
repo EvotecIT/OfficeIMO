@@ -98,8 +98,8 @@ public static class OfficeBatchReportSerializer {
         bytes = 0;
         // Reject a single huge string before the JSON writer requests a correspondingly huge encoding buffer.
         if (maximum < 1 || item.InputPath == null || item.Summary == null || item.Diagnostics == null ||
-            item.InputPath.Length > maximum || item.OutputPath?.Length > maximum || item.Summary.Length > maximum) return false;
-        long characters = item.InputPath.Length + (long)(item.OutputPath?.Length ?? 0) + item.Summary.Length;
+            item.InputPath.Length > maximum || item.OutputPath?.Length > maximum || item.Summary.Length > maximum || item.SkippedReason?.Length > maximum) return false;
+        long characters = item.InputPath.Length + (long)(item.OutputPath?.Length ?? 0) + item.Summary.Length + (item.SkippedReason?.Length ?? 0);
         foreach (var diagnostic in item.Diagnostics) {
             if (diagnostic == null) return false;
             characters += diagnostic.Code.Length + (long)diagnostic.Message.Length + (diagnostic.Location?.Length ?? 0) + (diagnostic.Format?.Length ?? 0);

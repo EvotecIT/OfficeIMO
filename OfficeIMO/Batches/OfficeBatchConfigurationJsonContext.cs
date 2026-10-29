@@ -19,6 +19,10 @@ internal partial class OfficeBatchPdfSettingsJsonContext : JsonSerializerContext
 // Checkpoints capture the established scalar/native-renderer contract. New callback-rich
 // import routes remain available in ordinary batches until their provider identity is durable.
 internal sealed record OfficeBatchRendererSettings {
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public OfficeDocumentFormat? SourceFormat { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? SourceExtension { get; init; }
     public OfficeIMO.Word.WordLoadOptions? WordLoad { get; init; }
     public OfficeIMO.Excel.ExcelLoadOptions? ExcelLoad { get; init; }
     public OfficeIMO.PowerPoint.PowerPointLoadOptions? PowerPointLoad { get; init; }
@@ -42,6 +46,7 @@ internal sealed record OfficeBatchRendererSettings {
     public PdfToHtmlOptions? PdfHtml { get; init; }
     public PdfTextImportOptions? PlainText { get; init; }
     internal static OfficeBatchRendererSettings Capture(OfficeConversionOptions options) => new() {
+        SourceFormat = options.SourceFormat, SourceExtension = options.SourceExtension,
         WordLoad = options.WordLoad, ExcelLoad = options.ExcelLoad, PowerPointLoad = options.PowerPointLoad,
         WordSave = options.WordSave, ExcelSave = options.ExcelSave, PowerPointSave = options.PowerPointSave,
         FailOnLoss = options.FailOnLoss, CompressPdfOutput = options.CompressPdfOutput, CompatibilityMode = options.CompatibilityMode,

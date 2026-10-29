@@ -33,6 +33,9 @@ public sealed partial class OfficeConversionOptions {
         if (OfficeConverter.FormatForExtension(route.TargetExtension) != OfficeDocumentFormat.Excel) copy.ExcelSave = null;
         if (OfficeConverter.FormatForExtension(route.TargetExtension) != OfficeDocumentFormat.PowerPoint) copy.PowerPointSave = null;
         if (id is not ("email-pdf" or "epub-pdf" or "reader-visio-pdf")) { copy.Reader = null; copy.ReaderPdf = null; copy.ReaderPipeline = null; }
+        if (id != "email-pdf") copy.ReaderEmail = null;
+        if (id != "epub-pdf") copy.ReaderEpub = null;
+        if (id != "reader-visio-pdf") copy.ReaderVisio = null;
         if (OfficeConverter.IsBuiltinRoute(id)) copy.RegisteredSettings = null;
         return copy;
     }

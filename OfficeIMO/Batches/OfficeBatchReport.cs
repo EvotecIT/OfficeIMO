@@ -21,6 +21,9 @@ public sealed record OfficeBatchSummary(long Selected, long Completed, long Reus
 /// <summary>One conversion outcome. Skipped inputs have no conversion status or output.</summary>
 public sealed record OfficeBatchItemReport(string InputPath, string? OutputPath, OfficeBatchItemStatus? Status,
     bool Reused, string Summary, IReadOnlyList<OfficeDiagnostic> Diagnostics, bool Skipped = false) {
+    /// <summary>OutputExists or UpToDate when an eligible input was intentionally skipped; null for unselected inputs.</summary>
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    public string? SkippedReason { get; init; }
     /// <summary>Completed stages, when the conversion produced a report.</summary>
     [System.Text.Json.Serialization.JsonConverter(typeof(OfficeBatchConversionReportConverter))]
     public OfficeConversionReport? Report { get; init; }

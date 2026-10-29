@@ -44,7 +44,8 @@ public static partial class OfficeConverter {
         if (OfficeIMO.Internal.OfficePathIdentity.AreEquivalent(inputPath, outputPath))
             throw new ArgumentException("The source and destination must be different files.", nameof(destination));
         settings.ResourceDirectory = Path.GetDirectoryName(inputPath);
-        settings.SourceName = Path.GetFileName(inputPath);
+        settings.ResourceSourcePath = inputPath;
+        settings.SourceName = ConversionSourceName(inputPath, settings);
         settings.TargetName = Path.GetFileName(outputPath);
         if (sourceOverride == null && Directory.Exists(inputPath)) sourceOverride = CaptureDirectoryInput(inputPath, settings);
         if (sourceOverride?.SourcePublicationGuard is { } sourceGuard)
@@ -76,22 +77,7 @@ public static partial class OfficeConverter {
             await CheckStagingAsync(settings.PublicationGuard, Path.GetDirectoryName(outputPath)!, cancellationToken).ConfigureAwait(false);
             await CheckAssetsAsync(assets, settings, inputPath, outputPath, cancellationToken).ConfigureAwait(false);
             await assets.CompleteAsync((asset, token) => PublishAssetAsync(asset, settings, token)).ConfigureAwait(false);
-            string directory = Path.GetDirectoryName(outputPath)!;
-            await CheckStagingAsync(settings.PublicationGuard, directory, cancellationToken).ConfigureAwait(false);
-            Directory.CreateDirectory(directory);
-            await CheckStagingAsync(settings.PublicationGuard, directory, cancellationToken).ConfigureAwait(false);
-            string stage = Path.Combine(directory, "." + Path.GetFileName(outputPath) + "." + Guid.NewGuid().ToString("N") + ".tmp");
-            try {
-                using (var stream = new FileStream(stage, FileMode.CreateNew, FileAccess.Write, FileShare.None)) {
-                    output.Position = 0;
-                    await output.CopyToAsync(stream, 81920, cancellationToken).ConfigureAwait(false);
-                    stream.Flush(flushToDisk: true);
-                }
-                outputPath = await OfficeFilePublisher.PublishAsync(stage, outputPath, settings.FileConflictPolicy,
-                    settings.PublicationGuard, cancellationToken).ConfigureAwait(false);
-            } finally {
-                if (File.Exists(stage)) File.Delete(stage);
-            }
+            outputPath = await PublishConvertedOutputAsync(output, outputPath, settings, cancellationToken).ConfigureAwait(false);
         } catch (Exception error) when (error is not OperationCanceledException and not OutOfMemoryException and not StackOverflowException) {
             throw OfficeConversionFailures.Output(report, error);
         }
@@ -105,14 +91,21 @@ public static partial class OfficeConverter {
 
     /// <summary>Converts streams with bounded capture and output. A seekable source is read from its beginning and restored.</summary>
     public static async Task<OfficeConversionReport> ConvertAsync(Stream source, OfficeDocumentFormat sourceFormat,
-        Stream destination, OfficeDocumentFormat target, OfficeConversionOptions? options = null, CancellationToken cancellationToken = default) {
+        Stream destination, OfficeDocumentFormat target, OfficeConversionOptions? options = null, CancellationToken cancellationToken = default) =>
+        await ConvertStreamAsync(source, sourceFormat, destination, target, options, null, cancellationToken).ConfigureAwait(false);
+
+    private static async Task<OfficeConversionReport> ConvertStreamAsync(Stream source, OfficeDocumentFormat sourceFormat,
+        Stream destination, OfficeDocumentFormat target, OfficeConversionOptions? options, string? outputPath, CancellationToken cancellationToken) {
         if (source == null) throw new ArgumentNullException(nameof(source)); if (destination == null) throw new ArgumentNullException(nameof(destination));
         if (!source.CanRead || !destination.CanWrite) throw new ArgumentException("Readable input and writable output streams are required.");
         if (ReferenceEquals(source, destination)) throw new ArgumentException("Input and output streams must be different.");
+        if (source is FileStream inputFile && destination is FileStream outputFile && IsSameFile(inputFile, outputFile))
+            throw new ArgumentException("The source and destination must be different files.", nameof(destination));
         using var assets = new OfficeConversionAssets(cancellationToken);
         var timer = Stopwatch.StartNew();
         OfficeConversionOptions settings = (options ?? new()).Snapshot();
-        settings.SourceName ??= "source" + DefaultExtension(sourceFormat);
+        settings.SourceName ??= "source" + (settings.SourceExtension ?? DefaultExtension(settings.SourceFormat ?? sourceFormat));
+        settings.SourceName = ConversionSourceName(settings.SourceName, settings);
         settings.TargetName ??= "output" + DefaultExtension(target);
         if (FormatForExtension(Path.GetExtension(settings.SourceName)) != sourceFormat || FormatForExtension(Path.GetExtension(settings.TargetName)) != target)
             throw new ArgumentException("Stream filenames must agree with the supplied source and target formats.");
@@ -125,7 +118,8 @@ public static partial class OfficeConverter {
             if (settings.FailOnLoss) report.ThrowIfLoss();
             cancellationToken.ThrowIfCancellationRequested();
             await OfficeConversionFailures.RunAsync(report, async () => {
-                await CheckAssetsAsync(assets, settings, null, null, cancellationToken).ConfigureAwait(false);
+                await CheckAssetsAsync(assets, settings, settings.ResourceSourcePath, outputPath, cancellationToken,
+                    source as FileStream, destination as FileStream).ConfigureAwait(false);
                 await assets.CompleteAsync((asset, token) => PublishAssetAsync(asset, settings, token)).ConfigureAwait(false);
                 output.Position = 0;
                 await output.CopyToAsync(destination, 81920, cancellationToken).ConfigureAwait(false);
@@ -142,18 +136,27 @@ public static partial class OfficeConverter {
     public static async Task<OfficeConversionReport> AnalyzeAsync(string source, string destination, OfficeConversionOptions? options = null,
         CancellationToken cancellationToken = default) {
         OfficeConversionOptions settings = (options ?? new()).Snapshot();
-        settings.SourceName = Path.GetFileName(source); settings.TargetName = Path.GetFileName(destination);
+        if (string.IsNullOrWhiteSpace(source)) throw new ArgumentException("A source file is required.", nameof(source));
+        if (string.IsNullOrWhiteSpace(destination)) throw new ArgumentException("A destination file is required.", nameof(destination));
+        string inputPath = Path.GetFullPath(source);
+        settings.SourceName = ConversionSourceName(inputPath, settings); settings.TargetName = Path.GetFileName(destination);
+        settings.ResourceDirectory = Path.GetDirectoryName(inputPath);
+        settings.ResourceSourcePath = inputPath;
         settings.FailOnLoss = false;
-        using var input = File.OpenRead(source);
+        using var input = OfficeConversionInputReader.OpenLocalRead(inputPath);
         using var assets = new OfficeConversionAssets(cancellationToken);
         using OfficeBoundedMemoryStream captured = await CaptureAsync(input, settings.MaximumInputBytes, cancellationToken).ConfigureAwait(false);
         using var output = new OfficeBoundedMemoryStream(settings.MaximumOutputBytes);
+        OfficeConversionReport report;
         if (IsNativePair(settings)) {
             _ = SelectRoute(settings);
             if (settings.OutputProfile != OfficeConversionProfile.Faithful) throw new ArgumentException("Native Office conversion supports the Faithful output profile.");
-            return await ConvertNativeAsync(captured, output, settings, cancellationToken, analyzeOnly: true).ConfigureAwait(false);
+            report = await ConvertNativeAsync(captured, output, settings, cancellationToken, analyzeOnly: true).ConfigureAwait(false);
+        } else {
+            report = await ConvertCapturedAsync(captured, output, settings, cancellationToken).ConfigureAwait(false);
         }
-        return await ConvertCapturedAsync(captured, output, settings, cancellationToken).ConfigureAwait(false);
+        return new OfficeConversionReport(inputPath, report.Target, itemsWritten: report.ItemsWritten,
+            elapsed: report.Elapsed, diagnostics: report.Diagnostics);
     }
 
     private static async Task<byte[]> ComputeSourceHashAsync(Stream source, long limit, CancellationToken token) {
@@ -190,6 +193,7 @@ public static partial class OfficeConverter {
         OfficeDocumentFormat.Pdf => ".pdf", OfficeDocumentFormat.Markdown => ".md", OfficeDocumentFormat.Html => ".html",
         OfficeDocumentFormat.Rtf => ".rtf", OfficeDocumentFormat.Xps => ".xps", OfficeDocumentFormat.Publisher => ".pub",
         OfficeDocumentFormat.Text => ".txt", OfficeDocumentFormat.Email => ".eml", OfficeDocumentFormat.Epub => ".epub",
+        OfficeDocumentFormat.Csv => ".csv", OfficeDocumentFormat.Json => ".json", OfficeDocumentFormat.Xml => ".xml",
         OfficeDocumentFormat.Visio => ".vsdx", _ => throw new NotSupportedException("The format requires an explicit physical filename and registered route.")
     };
 

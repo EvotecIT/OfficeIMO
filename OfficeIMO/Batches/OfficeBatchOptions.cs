@@ -23,6 +23,12 @@ public sealed partial record OfficeBatchOptions {
     public OfficeConversionProfile OutputProfile { get; set; } = OfficeConversionProfile.Faithful;
     /// <summary>File publication behavior. Durable checkpoint execution requires Fail.</summary>
     public OfficePublicationPolicy ConflictPolicy { get; set; } = OfficePublicationPolicy.Fail;
+    /// <summary>Skip eligible inputs whose regular-file destination already exists, without claiming checkpoint reuse.</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+    public bool SkipExistingOutputs { get; set; }
+    /// <summary>Skip regular-file inputs whose regular-file output has a strictly newer UTC modification time.</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+    public bool SkipUpToDate { get; set; }
     /// <summary>Whether directory discovery includes descendants.</summary>
     public bool Recursive { get; set; } = true;
     /// <summary>Optional source-extension filter, including leading dots.</summary>

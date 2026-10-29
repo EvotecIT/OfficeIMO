@@ -45,6 +45,10 @@ public sealed partial class OfficeConversionOptions {
     public string? RouteId { get; set; }
     /// <summary>Physical source filename for stream conversion; its extension distinguishes native format variants.</summary>
     public string? SourceName { get; set; }
+    /// <summary>Optional source format override. Matching native filename variants are retained; other extensions use the format's default codec.</summary>
+    public OfficeDocumentFormat? SourceFormat { get; set; }
+    /// <summary>Optional exact source codec extension, such as .md for Markdown stored in a .txt file. Source identity and resource paths remain unchanged.</summary>
+    public string? SourceExtension { get; set; }
     /// <summary>Physical target filename for stream conversion; its extension distinguishes native format variants.</summary>
     public string? TargetName { get; set; }
     /// <summary>Runtime source password. Saved jobs never contain password values.</summary>
@@ -128,6 +132,7 @@ public sealed partial class OfficeConversionOptions {
     internal IReadOnlyDictionary<string, byte[]>? ResourceSnapshots { get; set; }
 
     internal string? ResourceDirectory { get; set; }
+    internal string? ResourceSourcePath { get; set; }
 
     /// <summary>Creates an independent copy of the format settings and conversion policies.</summary>
     public OfficeConversionOptions Clone() => Snapshot();
@@ -138,6 +143,11 @@ public sealed partial class OfficeConversionOptions {
         if (!OfficeRuntimeCompatibility.IsDefined(FileConflictPolicy) || !OfficeRuntimeCompatibility.IsDefined(CompatibilityMode) || !OfficeRuntimeCompatibility.IsDefined(OutputProfile))
             throw new ArgumentException("Choose a supported publication and compatibility policy.");
         var copy = (OfficeConversionOptions)MemberwiseClone();
+        if (SourceFormat is { } sourceFormat && (sourceFormat == OfficeDocumentFormat.Unknown || !OfficeRuntimeCompatibility.IsDefined(sourceFormat)))
+            throw new ArgumentException("Choose a supported source format override.", nameof(SourceFormat));
+        copy.SourceExtension = OfficeConverter.NormalizeSourceExtension(SourceExtension);
+        if (SourceFormat.HasValue && copy.SourceExtension != null && OfficeConverter.FormatForExtension(copy.SourceExtension) != SourceFormat.Value)
+            throw new ArgumentException("SourceFormat and SourceExtension must name the same source family.");
         copy.Word = Word?.Clone(); copy.Excel = Excel?.Clone(); copy.PowerPoint = PowerPoint?.Clone();
         copy.HtmlLoad = HtmlLoad?.Clone();
         copy.Reader = Reader == null ? null : DocumentReaderEngine.NormalizeOptions(Reader);

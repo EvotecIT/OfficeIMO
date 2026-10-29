@@ -10,6 +10,9 @@ namespace OfficeIMO;
 // Saved definitions retain the existing portable settings boundary. Native renderer
 // instances, callbacks and credentials remain execution-only rather than silently disappearing.
 internal sealed class OfficeBatchPortableSettings {
+    public OfficeDocumentFormat? SourceFormat { get; set; }
+    public string? SourceExtension { get; set; }
+    public OfficeIMO.Word.Pdf.WordPdfExportOptions? Word { get; set; }
     public bool FailOnLoss { get; set; }
     public bool WordFailOnLoss { get; set; }
     public bool CompressPdfOutput { get; set; }
@@ -22,19 +25,24 @@ internal sealed class OfficeBatchPortableSettings {
     public string? TextEncoding { get; set; }
     public int TabSize { get; set; } = 8;
 
-    internal OfficeConversionOptions CreateOptions() => new() {
-        FailOnLoss = FailOnLoss, WordLoad = WordFailOnLoss ? new OfficeIMO.Word.WordLoadOptions { FailOnLoss = true } : null, CompressPdfOutput = CompressPdfOutput,
+    internal OfficeConversionOptions CreateOptions() => new OfficeConversionOptions {
+        SourceFormat = SourceFormat, SourceExtension = SourceExtension,
+        FailOnLoss = FailOnLoss, Word = CaptureWord(Word), WordLoad = WordFailOnLoss ? new OfficeIMO.Word.WordLoadOptions { FailOnLoss = true } : null, CompressPdfOutput = CompressPdfOutput,
         PdfLoad = PageRanges == null ? null : new PdfLoadOptions { PageSelection = PdfPageSelection.Parse(PageRanges) },
         PdfWord = WordMode == null ? null : new WordPdfImportOptions { Mode = WordMode.Value, Dpi = RasterDpi ?? 144D },
         PdfPowerPoint = PowerPointMode == null ? null : new PowerPointPdfImportOptions { Mode = PowerPointMode.Value, Dpi = RasterDpi ?? 144D },
         Excel = WorksheetLayout == null ? null : new ExcelPdfExportOptions { WorksheetLayout = WorksheetLayout.Value },
         PdfHtml = HtmlProfile == null ? null : new PdfToHtmlOptions { Profile = HtmlProfile.Value },
         PlainText = TextEncoding == null && TabSize == 8 ? null : new PdfTextImportOptions { EncodingName = TextEncoding, TabSize = TabSize }
-    };
+    }.Clone();
 
     internal static OfficeBatchPortableSettings Capture(OfficeConversionOptions options) {
         if (options == null) throw new ArgumentNullException(nameof(options));
+        if (options.SourceFormat is { } format && (format == OfficeDocumentFormat.Unknown || !OfficeIMO.Internal.OfficeRuntimeCompatibility.IsDefined(format)))
+            throw new ArgumentException("Choose a supported source format override.", nameof(options));
         var result = new OfficeBatchPortableSettings {
+            SourceFormat = options.SourceFormat, SourceExtension = OfficeConverter.NormalizeSourceExtension(options.SourceExtension),
+            Word = CaptureWord(options.Word),
             FailOnLoss = options.FailOnLoss, WordFailOnLoss = options.WordLoad?.FailOnLoss == true, CompressPdfOutput = options.CompressPdfOutput, PageRanges = options.PdfLoad?.PageSelection?.ToString(),
             WordMode = options.PdfWord?.Mode, PowerPointMode = options.PdfPowerPoint?.Mode,
             RasterDpi = options.PdfWord?.Dpi ?? options.PdfPowerPoint?.Dpi,
@@ -43,7 +51,7 @@ internal sealed class OfficeBatchPortableSettings {
         };
         if (result.TextEncoding?.Length > 128) throw new InvalidDataException("Text encoding names cannot exceed 128 characters.");
         OfficeConversionOptions baseline = result.CreateOptions();
-        if (options.SourcePassword != null || options.Word != null || options.PowerPoint != null || options.Html != null ||
+        if (options.SourcePassword != null || options.PowerPoint != null || options.Html != null ||
             options.Markdown != null || options.ExcelLoad != null || options.PowerPointLoad != null ||
             options.WordSave != null || options.ExcelSave != null || options.PowerPointSave != null || options.RegisteredSettings != null ||
             options.Reader != null || options.ReaderPdf != null || options.ReaderEmail != null || options.ReaderEpub != null || options.ReaderVisio != null ||
@@ -61,6 +69,13 @@ internal sealed class OfficeBatchPortableSettings {
             !Same(options.PdfLoad, baseline.PdfLoad, OfficeBatchConfigurationJsonContext.Default.PdfLoadOptions))
             throw new NotSupportedException("Advanced native settings cannot be captured by this saved-batch version.");
         return result;
+    }
+
+    private static OfficeIMO.Word.Pdf.WordPdfExportOptions? CaptureWord(OfficeIMO.Word.Pdf.WordPdfExportOptions? options) {
+        if (options == null) return null;
+        if (options.PdfOptions != null || options.DateTimeFieldUpdateOptions != null)
+            throw new NotSupportedException("Saved Word PDF settings support renderer properties and resource policies. Low-level PDF configuration and live field updates remain execution-only.");
+        return options.Clone();
     }
     private static bool Same<T>(T? value, T? baseline, System.Text.Json.Serialization.Metadata.JsonTypeInfo<T> type) where T : class, new() =>
         JsonSerializer.Serialize(value ?? new T(), type) == JsonSerializer.Serialize(baseline ?? new T(), type);

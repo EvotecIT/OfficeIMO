@@ -141,7 +141,7 @@ public static partial class OfficeConverter {
             case "html-pdf": {
                 HtmlConversionDocumentOptions sourceOptions = settings.HtmlLoad ?? new();
                 if (sourceOptions.BaseUri == null && settings.ResourceDirectory != null)
-                    sourceOptions.BaseUri = new Uri(Path.Combine(settings.ResourceDirectory, settings.SourceName!));
+                    sourceOptions.BaseUri = new Uri(settings.ResourceSourcePath ?? Path.Combine(settings.ResourceDirectory, settings.SourceName!));
                 if (settings.ResourceDirectory != null && settings.HtmlLoad == null) sourceOptions.ResourceUrlPolicy = OfficeHtmlResourceResolver.CreateResourcePolicy();
                 var document = await HtmlConversionDocument.LoadAsync(input, sourceOptions, cancellationToken: token).ConfigureAwait(false);
                 if (id == "html-docx") {
@@ -153,7 +153,7 @@ public static partial class OfficeConverter {
                     result = await document.SaveAsMarkdownAsync(output, options, token).ConfigureAwait(false);
                 } else {
                     HtmlToPdfOptions? rendering = settings.ResourceDirectory == null ? settings.Html
-                        : OfficeHtmlResourceResolver.CreateOptions(Path.Combine(settings.ResourceDirectory, settings.SourceName!),
+                        : OfficeHtmlResourceResolver.CreateOptions(settings.ResourceSourcePath ?? Path.Combine(settings.ResourceDirectory, settings.SourceName!),
                             Math.Max(0L, settings.MaximumInputBytes - input.Length), settings.ResourceSnapshots, settings.Html);
                     PdfDocumentConversionResult converted = await document.ConvertToPdfWithEvidenceAsync(rendering, token).ConfigureAwait(false);
                     using PdfDocument model = converted.Value;

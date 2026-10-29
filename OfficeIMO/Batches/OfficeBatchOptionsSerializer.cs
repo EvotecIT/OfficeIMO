@@ -19,6 +19,9 @@ internal static class OfficeBatchOptionsSerializer {
         DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
         UnmappedMemberHandling = JsonUnmappedMemberHandling.Disallow, MaxDepth = 32,
         Converters = {
+            new OfficeBatchPageSizeConverter(),
+            new OfficeBatchPageMarginsConverter(),
+            new JsonStringEnumConverter<OfficeDocumentFormat>(allowIntegerValues: false),
             new JsonStringEnumConverter<OfficeConversionProfile>(allowIntegerValues: false),
             new JsonStringEnumConverter<OfficePublicationPolicy>(allowIntegerValues: false),
             new JsonStringEnumConverter<WordPdfImportMode>(allowIntegerValues: false),

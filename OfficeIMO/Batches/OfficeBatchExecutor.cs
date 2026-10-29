@@ -52,24 +52,30 @@ internal static partial class OfficeBatchExecutor {
                     if (settings.CheckpointDirectory == null) {
                         try {
                             EnsureNoLinks(input); EnsureNoLinks(output);
-                            OfficeConversionExecutionResult result = await runner.RunAsync(new OfficeConversionExecutionRequest {
-                                InputPath = input, OutputPath = output,
-                                ConversionRouteId = route.Id, ConversionOptions = settings.ConversionOptions.ForRoute(route),
-                                OutputProfile = settings.OutputProfile, ConflictPolicy = settings.ConflictPolicy,
-                                PublicationGuard = new DirectBatchPublicationGuard(outputPhysicalRoot, publicationGuard),
-                                Limits = new OfficeOperationLimits { MaximumInputBytes = settings.MaximumInputBytes, MaximumOutputBytes = settings.MaximumOutputBytes,
-                                    MaximumXmlCharactersInPart = settings.MaximumXmlCharactersInPart }
-                            }, cancellationToken: token).ConfigureAwait(false);
-                            item = new(input, result.OutputPath, result.Status, false, result.Summary, result.Diagnostics) { Report = result.Report };
+                            ValidateSelectedInput(runner, settings, route, input);
+                            OfficeBatchItemReport? skip = OfficeBatchOutputSelection.ObserveSkip(input, output, settings.SkipExistingOutputs, settings.SkipUpToDate);
+                            if (skip != null) item = skip;
+                            else {
+                                OfficeConversionExecutionResult result = await runner.RunAsync(new OfficeConversionExecutionRequest {
+                                    InputPath = input, OutputPath = output,
+                                    ConversionRouteId = route.Id, ConversionOptions = settings.ConversionOptions.ForRoute(route),
+                                    OutputProfile = settings.OutputProfile, ConflictPolicy = settings.ConflictPolicy,
+                                    PublicationGuard = new DirectBatchPublicationGuard(outputPhysicalRoot, publicationGuard),
+                                    Limits = new OfficeOperationLimits { MaximumInputBytes = settings.MaximumInputBytes, MaximumOutputBytes = settings.MaximumOutputBytes,
+                                        MaximumXmlCharactersInPart = settings.MaximumXmlCharactersInPart }
+                                }, cancellationToken: token).ConfigureAwait(false);
+                                item = new(input, result.OutputPath, result.Status, false, result.Summary, result.Diagnostics) { Report = result.Report };
+                            }
                         } catch (Exception error) when (error is not OutOfMemoryException and not StackOverflowException and not OperationCanceledException) {
                             item = new(input, null, OfficeBatchItemStatus.Failed, false, error.Message, []);
                         }
                     } else {
                         string key = Hash(OfficePathIdentity.GetPathIdentityKey(input));
                         string receiptPath = Path.Combine(settings.CheckpointDirectory, "items", key.Substring(0, 2), key + ".json");
-                        item = await RunItemAsync(runner, settings, configuration, route.Id, input, output, receiptPath, token, publicationGuard).ConfigureAwait(false);
+                        item = await RunItemAsync(runner, settings, configuration, route, input, output, receiptPath, token, publicationGuard).ConfigureAwait(false);
                     }
-                    if (item.Status == OfficeBatchItemStatus.Completed) {
+                    if (item.Skipped) Interlocked.Increment(ref skipped);
+                    else if (item.Status == OfficeBatchItemStatus.Completed) {
                         Interlocked.Increment(ref completed);
                         if (item.Reused) Interlocked.Increment(ref reused);
                     } else if (item.Status == OfficeBatchItemStatus.Cancelled) cancelled = true;
@@ -102,15 +108,19 @@ internal static partial class OfficeBatchExecutor {
         }
     }
 
-    private static async Task<OfficeBatchItemReport> RunItemAsync(IOfficeConversionExecutor runner, OfficeBatchOptions settings, string configuration, string routeId,
+    private static async Task<OfficeBatchItemReport> RunItemAsync(IOfficeConversionExecutor runner, OfficeBatchOptions settings, string configuration, OfficeConversionExecutionRoute route,
         string input, string output, string receiptPath, CancellationToken token, IOfficePublicationGuard? publicationGuard) {
         string? inputHash = null;
         string? stagingPath = null;
         bool pendingRecorded = false;
+        string routeId = route.Id;
         try {
             if (OfficeConverter.FindExecutionRoute(routeId)?.Checkpointable != true)
                 throw new NotSupportedException("Registered conversion routes require an ordinary batch without checkpoints; their runtime configuration cannot be fingerprinted.");
             EnsureNoLinks(input); EnsureNoLinks(output);
+            ValidateSelectedInput(runner, settings, route, input);
+            if (OfficeBatchOutputSelection.ObserveSkip(input, output, settings.SkipExistingOutputs, settings.SkipUpToDate) is { } skip)
+                return skip;
             string sourceRoot = settings.InputDirectory ?? Path.GetDirectoryName(input)!;
             inputHash = await HashFileAsync(input, sourceRoot, settings.MaximumInputBytes, token).ConfigureAwait(false);
             string? resourceRoot = GetResourceRoot(settings, routeId, input);

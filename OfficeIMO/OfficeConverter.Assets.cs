@@ -4,11 +4,13 @@ namespace OfficeIMO;
 
 public static partial class OfficeConverter {
     private static async Task CheckAssetsAsync(OfficeConversionAssets assets, OfficeConversionOptions settings,
-        string? source, string? output, CancellationToken token) {
+        string? source, string? output, CancellationToken token, FileStream? sourceStream = null, FileStream? outputStream = null) {
         if (assets.Pending.Count == 0) return;
         foreach (OfficeConversionAssets.Asset asset in assets.Pending) {
             if ((source != null && OfficePathIdentity.AreEquivalent(source, asset.TargetPath))
-                || (output != null && OfficePathIdentity.AreEquivalent(output, asset.TargetPath)))
+                || (output != null && OfficePathIdentity.AreEquivalent(output, asset.TargetPath))
+                || (sourceStream != null && IsSameFile(sourceStream, asset.TargetPath))
+                || (outputStream != null && IsSameFile(outputStream, asset.TargetPath)))
                 throw new IOException("A conversion sidecar cannot replace the source or main destination.");
             await CheckStagingAsync(settings.PublicationGuard, Path.GetDirectoryName(asset.TargetPath)!, token).ConfigureAwait(false);
             if (settings.PublicationGuard != null && !await settings.PublicationGuard.CanPublishAsync(asset.TargetPath, false, token).ConfigureAwait(false))
