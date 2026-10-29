@@ -125,7 +125,7 @@ permissions:
 env:
   DOTNET_VERSION: |
     8.0.426
-    10.0.113
+    10.0.114
   BUILD_CONFIGURATION: Release
   PROOF_PATH: artifacts/pdf-compliance-proof
   VERAPDF_VERSION: 1.30.2
