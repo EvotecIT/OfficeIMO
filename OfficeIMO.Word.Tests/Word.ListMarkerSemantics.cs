@@ -20,7 +20,7 @@ public sealed partial class WordListMarkerSemanticsTests {
         Assert.Equal(2, items.Length);
         Assert.All(items, paragraph => Assert.False(WordDocumentTraversal.GetListInfo(paragraph)!.Value.Ordered));
         Assert.All(WordDocumentTraversal.BuildListMarkers(document).Values, marker => Assert.Equal("•", marker.Marker));
-        Assert.Equal("- Test\n- Test", (document.ToMarkdown()).ToMarkdown().Trim());
+        Assert.Equal("- Test\n- Test", document.ToMarkdown().ToMarkdown().Replace("\r\n", "\n").Trim());
 
         WordDocumentVisualInfo snapshot = document.CreateVisualSnapshot();
         string text = string.Concat(snapshot.TextSpans.Select(span => span.Text));
