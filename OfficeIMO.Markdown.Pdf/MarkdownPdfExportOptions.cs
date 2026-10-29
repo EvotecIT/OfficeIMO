@@ -42,6 +42,12 @@ public sealed class MarkdownPdfExportOptions {
         }
     }
 
+    /// <summary>
+    /// When true (the default), pages get a "Page N of M" footer. It applies when <see cref="PdfOptions"/> is not set;
+    /// supplied PDF options keep their own header and footer settings. Set to false for documents without page numbers.
+    /// </summary>
+    public bool ShowPageNumbers { get; set; } = true;
+
     /// <summary>When true, supported image references are rendered. Resource access is still governed by <see cref="ResourcePolicy"/>.</summary>
     public bool IncludeImages { get; set; } = true;
 

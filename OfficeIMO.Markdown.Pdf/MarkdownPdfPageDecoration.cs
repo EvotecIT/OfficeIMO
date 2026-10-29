@@ -135,7 +135,9 @@ public sealed class MarkdownPdfPageDecoration {
     }
 
     private static IEnumerable<PdfCore.PdfPageBackgroundShape> CreateReportBackgroundShapes(PdfCore.PdfCreateOptions options) {
-        yield return PdfCore.PdfPageBackgroundShape.TopBand(
+        // The band frames the title area of the first page. Continuation pages start with body content at the
+        // top margin, where a repeated band would cut through code blocks, figures and tables.
+        PdfCore.PdfPageBackgroundShape band = PdfCore.PdfPageBackgroundShape.TopBand(
             options.PageWidth,
             options.PageHeight,
             110,
@@ -148,13 +150,15 @@ public sealed class MarkdownPdfPageDecoration {
             fillOpacity: 0.58,
             strokeOpacity: 0.45,
             fillGradient: HorizontalGradient(PdfCore.PdfColor.FromRgb(239, 246, 255), PdfCore.PdfColor.White));
+        band.FirstPageOnly = true;
+        yield return band;
 
         // Only the header band remains: side bands and ornaments sat behind body text and code,
         // and filled blocks such as quotes cut visible holes into them.
     }
 
     private static IEnumerable<PdfCore.PdfPageBackgroundShape> CreateTechnicalDocumentBackgroundShapes(PdfCore.PdfCreateOptions options) {
-        yield return PdfCore.PdfPageBackgroundShape.TopBand(
+        PdfCore.PdfPageBackgroundShape band = PdfCore.PdfPageBackgroundShape.TopBand(
             options.PageWidth,
             options.PageHeight,
             78,
@@ -167,6 +171,8 @@ public sealed class MarkdownPdfPageDecoration {
             fillOpacity: 0.82,
             strokeOpacity: 0.55,
             fillGradient: HorizontalGradient(PdfCore.PdfColor.FromRgb(248, 250, 252), PdfCore.PdfColor.White));
+        band.FirstPageOnly = true;
+        yield return band;
 
         yield return PdfCore.PdfPageBackgroundShape.LeftBand(
             options.PageWidth,

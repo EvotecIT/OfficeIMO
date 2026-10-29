@@ -25,6 +25,11 @@ public static partial class MarkdownPdfConverterExtensions {
         // The writer embeds theme fallback fonts for standard slots unless the resource policy forbids installed fonts.
         if (!options.ResourcePolicy.AllowSystemFontEmbedding) pdfOptions.EmbedDefaultFonts = false;
 
+        // Caller-supplied PDF options own the page furniture, including fonts that may not cover the footer text.
+        if (options.ShowPageNumbers && options.PdfOptions == null) {
+            pdfOptions.ShowPageNumbers = true;
+        }
+
         if (options.CreateOutlineFromHeadings) {
             pdfOptions.CreateOutlineFromHeadings = true;
         }

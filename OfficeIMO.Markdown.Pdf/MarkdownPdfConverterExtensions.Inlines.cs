@@ -85,8 +85,10 @@ public static partial class MarkdownPdfConverterExtensions {
                 ApplyStyle(builder, style.With(italic: true)).Text("[Image: " + (image.PlainAlt.Length == 0 ? image.Src : image.PlainAlt) + "]");
                 break;
             case ImageLinkInline imageLink:
+                // A linked inline image, such as a status badge, keeps its link and reads as its alternative text.
                 style.Anchors?.ReportInlineImageAsText(imageLink.ImageUrl);
-                ApplyStyle(builder, style.With(italic: true)).Text("[Image: " + (imageLink.PlainAlt.Length == 0 ? imageLink.ImageUrl : imageLink.PlainAlt) + "]");
+                AppendLinkInline(builder, new LinkInline(imageLink.PlainAlt.Length == 0 ? imageLink.LinkUrl : imageLink.PlainAlt,
+                    imageLink.LinkUrl, imageLink.LinkTitle), style);
                 break;
             case HardBreakInline:
                 builder.LineBreak();
