@@ -18,7 +18,7 @@ public sealed partial class EpubPublication {
         XElement position = RequireRestructurablePosition(source);
         string sourcePath = RequireLocalPath(source);
         using (var depthReader = XmlReader.Create(new MemoryStream(_entries[sourcePath], false),
-            new XmlReaderSettings { DtdProcessing = DtdProcessing.Prohibit, XmlResolver = null, MaxCharactersInDocument = _maximumEntryBytes }))
+            new XmlReaderSettings { DtdProcessing = DtdProcessing.Ignore, XmlResolver = null, MaxCharactersInDocument = _maximumEntryBytes }))
             RequireAuthoringDepth(depthReader, cancellationToken);
         XDocument first = EditableXhtml(manifestId);
         EpubContentIdentifiers.Collect(first.Root!, sourcePath, true, cancellationToken);
