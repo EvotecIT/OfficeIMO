@@ -266,6 +266,17 @@ require an external rendering engine.
 
 ## Per-column row mapping
 
+Automatic `reader.RowsAs<T>()` also supports positional records. Column names and
+aliases bind to public properties, then their matching constructor parameters.
+Getter-only record properties and record structs use the same constructor plan.
+An explicit public parameterless constructor retains its existing path. Plain
+value models without public constructors use default construction and assignments.
+Constructor-bound models require every mandatory constructor column.
+Optional parameters use their declared defaults. Constructor validation runs once;
+its assigned values are retained. Ambiguous constructors require a caller factory.
+Culture, custom conversion and redacted mapping errors apply to constructor values
+as they do to mutable properties. Async and ordered parallel reads use the same plan.
+
 `RowMapper<T>` in `OfficeIMO.Data` provides explicit assignments for any
 `DbDataReader`. CSV and Excel use this shared mapper. `FromColumns` tries aliases
 in the supplied order; required missing columns and ambiguous duplicate matches

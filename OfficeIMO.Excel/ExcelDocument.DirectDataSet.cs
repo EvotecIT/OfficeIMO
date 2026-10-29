@@ -470,7 +470,8 @@ namespace OfficeIMO.Excel {
             string tableName,
             bool includeHeaders,
             ExcelTableStyle tableStyle,
-            bool includeAutoFilter) {
+            bool includeAutoFilter,
+            IReadOnlyList<string> columnNames) {
             if (sheet == null) throw new ArgumentNullException(nameof(sheet));
             if (!ReferenceEquals(sheet.Document, this)) {
                 return false;
@@ -495,6 +496,7 @@ namespace OfficeIMO.Excel {
                 includeHeaders,
                 tableStyle,
                 includeAutoFilter,
+                columnNames,
                 _dateTimeOffsetWriteStrategy,
                 CancellationToken.None);
             _directDataSetSaveCandidate = new DirectDataSetSaveCandidate(

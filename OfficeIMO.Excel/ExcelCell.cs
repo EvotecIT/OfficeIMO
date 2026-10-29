@@ -628,7 +628,7 @@ namespace OfficeIMO.Excel {
     /// <summary>
     /// Lightweight object model wrapper for an Excel table.
     /// </summary>
-    public sealed class ExcelTable {
+    public sealed partial class ExcelTable {
         internal ExcelTable(ExcelSheet sheet, string nameOrRange) {
             Sheet = sheet ?? throw new ArgumentNullException(nameof(sheet));
             NameOrRange = string.IsNullOrWhiteSpace(nameOrRange) ? throw new ArgumentNullException(nameof(nameOrRange)) : nameOrRange;

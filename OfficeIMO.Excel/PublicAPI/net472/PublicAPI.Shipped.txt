@@ -3770,6 +3770,7 @@ OfficeIMO.Excel.ExcelTable.NameOrRange.get -> string!
 OfficeIMO.Excel.ExcelTable.Range.get -> string?
 OfficeIMO.Excel.ExcelTable.Rename(string! newName, OfficeIMO.Excel.ExcelTableNameValidationMode validationMode = OfficeIMO.Excel.ExcelTableNameValidationMode.Strict) -> OfficeIMO.Excel.ExcelTable!
 OfficeIMO.Excel.ExcelTable.Resize(string! newRange) -> OfficeIMO.Excel.ExcelTable!
+OfficeIMO.Excel.ExcelTable.RowsAs<T>(OfficeIMO.Excel.ExcelReaderOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Collections.Generic.IEnumerable<T>!
 OfficeIMO.Excel.ExcelTable.SetSchema(System.Collections.Generic.IReadOnlyList<string!>! columnNames, string? newRange = null) -> OfficeIMO.Excel.ExcelTable!
 OfficeIMO.Excel.ExcelTable.SetStyle(OfficeIMO.Excel.ExcelTableStyle style, bool? showFirstColumn = null, bool? showLastColumn = null, bool? showRowStripes = null, bool? showColumnStripes = null) -> OfficeIMO.Excel.ExcelTable!
 OfficeIMO.Excel.ExcelTable.SetTotals(System.Collections.Generic.IDictionary<string!, OfficeIMO.Excel.ExcelTableTotalsFunction>! byHeader) -> OfficeIMO.Excel.ExcelTable!

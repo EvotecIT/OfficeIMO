@@ -6255,6 +6255,31 @@
         "OfficeIMO.Markup.Excel/OfficeMarkupExcelExporter.cs"
       ],
       "validation": "Current normal library targets and twelve isolated net472 paths compile. Focused tests include saved native geometry/colors and transparent-marker SVG output. Module .NET and Pester suites pass. Runtime Windows qualification and final whole-phase gates remain separate."
+    },
+    {
+      "change": "Read positional records from worksheets and native ExcelTable.RowsAs<T>()",
+      "reason": "Automatic sheet projections no longer require a parameterless constructor. Table reads use the native column schema, retain headerless first rows and exclude totals and unrelated cells. They reuse the shared mapper and preserve conversion options, cancellation and workbook ownership. Headerless typed and DataTable authoring retain their projected member names in native table columns; supplied column metadata is independent of a visible header row. Deferred direct-save promotion preserves the finalized native column schema through save and materialization, and dictionary-backed values retain their original lookup keys when names change. Deferred materialization, including its DataTable fallback, retains the same native schema without changing public headerless insertion semantics.",
+      "files": [
+        "OfficeIMO.Excel/ExcelSheet.ReadBridge.cs",
+        "OfficeIMO.Excel/ExcelSheet.ReadBridge.Parallel.cs",
+        "OfficeIMO.Excel/ExcelCell.cs",
+        "OfficeIMO.Excel/ExcelTable.Read.cs",
+        "OfficeIMO.Excel.Tests/Excel.TableRecordReading.cs",
+        "OfficeIMO.Excel.AotSmoke/RecordReadSmoke.cs",
+        "OfficeIMO.Excel.AotSmoke/Program.cs",
+        "OfficeIMO.Excel/README.md",
+        "OfficeIMO.Excel/ExcelObjectTableProjection.cs",
+        "OfficeIMO.Excel/ExcelSheet.TypedTables.cs",
+        "OfficeIMO.Excel/ExcelSheet.Tables.cs",
+        "OfficeIMO.Excel/ExcelDocument.DirectDataSet.cs",
+        "OfficeIMO.Excel/ExcelDocument.DirectDataSet.Models.cs",
+        "OfficeIMO.Excel/ExcelDocument.DirectDataSet.TableModel.cs",
+        "OfficeIMO.Excel/ExcelSheet.DataTable.Tables.cs",
+        "OfficeIMO.Excel/ExcelDocument.DirectDataSet.Materialization.cs",
+        "OfficeIMO.Excel/ExcelDocument.DirectDataSet.TableModel.AutoFit.cs"
+      ],
+      "phase": "B",
+      "applied": "phase-b-applied"
     }
   ],
   "applicationStatus": "Phase A applied and validated on the supported macOS targets. Phase B and Tier 2 entries retain their status; Windows .NET Framework validation remains pending.",

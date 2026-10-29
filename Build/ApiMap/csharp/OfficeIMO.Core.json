@@ -863,6 +863,22 @@
       ],
       "reason": "Remove the fluent image surface while retaining format renderers, Core execution/persistence, streaming, deadlines, limits and diagnostic evidence.",
       "qualification": "Static preparation only. Parent applies and qualifies every maintained target; no build or test was run."
+    },
+    {
+      "change": "Map positional records through the shared automatic row plan",
+      "reason": "Automatic reader, async, parallel and CSV projections bind an unambiguous public constructor after the existing property and alias resolution. Constructor values use the same conversions, culture, formats and redaction policy; mutable models retain the parameterless path. Explicit assignment maps keep their existing construction contract. Constructor metadata is preserved for trimming and NativeAOT. Getter-only constructor properties and record-struct primary constructors participate in the same plan; explicit public parameterless construction and plain mutable structs retain their paths. Missing mandatory constructor columns reject a constructor-bound value model instead of bypassing its validation through implicit default construction.",
+      "files": [
+        "OfficeIMO.Core/Data/AutomaticRowMappingPlan.cs",
+        "OfficeIMO.Core/Data/AutomaticRowMappingPlan.Constructors.cs",
+        "OfficeIMO.Core/Data/RowMapping.cs",
+        "OfficeIMO.Core/Data/RowMapping.Async.cs",
+        "OfficeIMO.Core/Data/ParallelRowMapping.cs",
+        "OfficeIMO.CSV/CsvMappingExtensions.cs",
+        "OfficeIMO.Shared.Tests/RowMapping.RecordConstructors.cs",
+        "OfficeIMO.Core/README.md"
+      ],
+      "phase": "B",
+      "applied": "phase-b-applied"
     }
   ],
   "applicationStatus": "Phase A applied and validated on the supported macOS targets. Phase B and Tier 2 entries retain their status; Windows .NET Framework validation remains pending.",

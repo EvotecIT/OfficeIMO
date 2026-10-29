@@ -26,8 +26,9 @@ public partial class ExcelSheet {
             for (int field = 0; field < schema.Headers.Length; field++) CellValue(row, column + field, schema.Headers[field]);
             range = ExcelA1.CellReference(row, column) + ":" + ExcelA1.CellReference(row, column + schema.Headers.Length - 1);
         }
-        var table = AddTable(range, headers, options?.Name, excelOptions?.Style ?? ExcelTableStyle.TableStyleMedium2,
-            excelOptions?.IncludeAutoFilter ?? true);
+        var table = new ExcelTable(this, AddTableAndGetName(range, headers, options?.Name ?? "Table",
+            excelOptions?.Style ?? ExcelTableStyle.TableStyleMedium2,
+            excelOptions?.IncludeAutoFilter ?? true, headerNames: projection.ColumnNames));
         ApplyTableAlignments(table, options);
         return table;
     }
@@ -48,8 +49,10 @@ public partial class ExcelSheet {
             throw new ArgumentException("The data table is empty or exceeds the native worksheet bounds.", nameof(data));
         InsertDataTable(data, row, column, headers);
         string range = ExcelA1.CellReference(row, column) + ":" + ExcelA1.CellReference(row + count - 1, column + data.Columns.Count - 1);
-        var table = AddTable(range, headers, options?.Name ?? data.TableName, (options as ExcelTableOptions)?.Style ?? ExcelTableStyle.TableStyleMedium2,
-            (options as ExcelTableOptions)?.IncludeAutoFilter ?? true);
+        var table = new ExcelTable(this, AddTableAndGetName(range, headers, options?.Name ?? data.TableName,
+            (options as ExcelTableOptions)?.Style ?? ExcelTableStyle.TableStyleMedium2,
+            (options as ExcelTableOptions)?.IncludeAutoFilter ?? true,
+            headerNames: data.Columns.Cast<DataColumn>().Select(field => field.ColumnName).ToArray()));
         ApplyTableAlignments(table, options);
         return table;
     }

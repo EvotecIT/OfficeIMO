@@ -8,6 +8,7 @@ string path = Path.Combine(Path.GetTempPath(), "OfficeIMO-AotSmoke-" + Guid.NewG
 try
 {
     XmlTableSmoke.Run();
+    RecordReadSmoke.Run();
     using (var asyncRows = new MemoryStream())
     {
         using (ExcelWorkbookWriter writer = ExcelDocument.CreateWriter(asyncRows, leaveOpen: true))

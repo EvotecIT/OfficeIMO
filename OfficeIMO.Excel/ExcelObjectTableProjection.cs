@@ -18,6 +18,7 @@ internal sealed partial class ExcelObjectTableProjection {
     private readonly int _startColumn;
     private int _currentRow;
     private string? _lastRange;
+    internal IReadOnlyList<string> ColumnNames { get; private set; } = Array.Empty<string>();
     internal static bool HasTableProjection(OfficeTableOptions? options) => options != null &&
         (options.Include.Count != 0 || options.Exclude.Count != 0 || options.Order.Count != 0 ||
          options.HeaderRenames.Count != 0 || options.Formatters.Count != 0 || options.HeaderTransform != null);
@@ -79,6 +80,7 @@ internal sealed partial class ExcelObjectTableProjection {
             if (projection.Rows.Count == 0) return _lastRange;
             IReadOnlyList<string> paths = projection.Columns;
             var headers = BuildTransformedHeaders(paths, options);
+            ColumnNames = headers;
 
             var rowValues = new List<object?[]>(projection.Rows.Count);
             int dataRows = 0;
@@ -237,6 +239,7 @@ internal sealed partial class ExcelObjectTableProjection {
             var directRows = MaterializeSimpleRowsFromProperties(typePlan, rows, out var columnTypes);
             int tableEndRow = startRow + rows.Count + HeaderRows - 1;
             string[] headers = typePlan.Headers;
+            ColumnNames = headers;
             string range = BuildRange(startRow, tableEndRow, headers.Length);
             if (_startColumn == 1 && startRow == 1 && Sheet.TryInsertRowsAsDeferredDirectSave("AddTable", headers, columnTypes, directRows, startRow, includeHeaders: _includeHeaders, range: range)) {
                 _currentRow = tableEndRow + 1;

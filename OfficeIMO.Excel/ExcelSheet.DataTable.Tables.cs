@@ -102,12 +102,10 @@ namespace OfficeIMO.Excel {
                 return string.Empty;
             }
 
-            string[]? headerNames = null;
-            if (includeHeaders) {
-                headerNames = new string[columnCount];
-                for (int i = 0; i < headerNames.Length; i++) {
-                    headerNames[i] = source.GetColumnName(i);
-                }
+            // Native table columns remain named when their worksheet header row is hidden.
+            var headerNames = new string[columnCount];
+            for (int i = 0; i < headerNames.Length; i++) {
+                headerNames[i] = source.GetColumnName(i);
             }
 
             AddTableAndGetName(

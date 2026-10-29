@@ -924,8 +924,14 @@ List<RowModel> mappedRows = sheet.RowsAs<RowModel>(map => map
     .FromColumn<string>("Status", static (row, value) => { row.Status = value; return row; }))
     .ToList();
 
-// Constructor-bound models use an explicit factory and do not require T : new().
-List<ImmutableRow> immutableRows = sheet.RowsAs(factory: row => new ImmutableRow(
+// Positional records bind their public constructor through the same column mapping.
+List<ImmutableRow> immutableRows = sheet.RowsAs<ImmutableRow>().ToList();
+
+// A named table reads its own data rows, without headers or totals.
+List<ImmutableRow> tableRows = sheet.Table("Sales").RowsAs<ImmutableRow>().ToList();
+
+// Use a factory when construction needs additional application logic.
+List<ImmutableRow> customRows = sheet.RowsAs(factory: row => new ImmutableRow(
     row.GetString(row.GetOrdinal("Name")),
     row.GetString(row.GetOrdinal("Status"))))
     .ToList();

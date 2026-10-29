@@ -273,6 +273,9 @@ namespace OfficeIMO.Excel {
                             style: sheetModel.TableStyle,
                             includeAutoFilter: sheetModel.IncludeAutoFilter,
                             ct: cancellationToken);
+                        if (!sheetModel.IncludeHeaders && tableRange.Length > 0) {
+                            sheet.SetTableSchema(tableRange, sheetModel.Table.CreateColumnNameArray());
+                        }
                     }
 
                     if (tableRange.Length > 0) {

@@ -230,6 +230,7 @@ namespace OfficeIMO.Excel {
                 bool includeHeaders,
                 ExcelTableStyle tableStyle,
                 bool includeAutoFilter,
+                IReadOnlyList<string> columnNames,
                 Func<DateTimeOffset, DateTime> dateTimeOffsetWriteStrategy,
                 CancellationToken ct) {
                 var sheets = new DirectDataSetSheetModel[Sheets.Count];
@@ -247,7 +248,7 @@ namespace OfficeIMO.Excel {
                         continue;
                     }
 
-                    var table = includeHeaders ? sheet.Table : sheet.Table.WithGeneratedColumnNames();
+                    var table = sheet.Table.WithColumnNames(columnNames);
                     double[]? columnWidths = sheet.ColumnWidths;
                     if (sheet.AutoFitColumns && !ReferenceEquals(table, sheet.Table)) {
                         columnWidths = table.CalculateColumnWidths(includeHeaders, dateTimeOffsetWriteStrategy, ct);
