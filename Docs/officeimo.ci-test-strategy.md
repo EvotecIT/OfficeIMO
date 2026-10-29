@@ -2,6 +2,35 @@
 
 This note records the current cleanup direction for OfficeIMO tests and build warnings. It is meant for maintainers working on CI, test placement, or warning policy.
 
+## Dependency graph submission
+
+`.github/workflows/dependency-submission.yml` restores explicit project sets
+through PowerForge's shared dependency-submission action. Each native runner
+exports only resolved asset graphs and a project-path index. Linux jobs import
+those run-scoped artifacts, rebasing copied restore paths without changing package
+identities or dependency edges. GitHub's submission action supports Linux and
+Windows runners, so Apple graphs are submitted from Linux.
+
+Pull requests validate restores and artifact import with read-only permissions;
+they do not upload dependency snapshots. Default-branch pushes and manual runs
+submit snapshots with distinct Linux, Windows and Apple correlators. Submission
+consumes artifacts from the same workflow run, without a cross-run privileged
+handoff.
+
+The Windows profile restores the normal solution, including its Windows-only
+targets. Linux also restores the browser converter after installing `wasm-tools`.
+The Apple profile installs `wasm-tools` and `ios` before restoring the solution and
+the retained `OfficeIMO.Studio.iOS` project. These are dependency restores, without
+signing, native application launch or package publication. Projects and runtime
+variants outside those explicit sets are not claimed as restored coverage.
+
+For a transition from GitHub's generated automatic submission, keep the
+dependency graph and Dependabot enabled. First verify all three restore profiles
+and their default-branch snapshots, including Apple and browser dependencies.
+Then disable only automatic dependency submission in repository security settings
+so the generated job no longer duplicates the controlled route. Do not exclude
+platform projects merely to make the generated Ubuntu restore succeed.
+
 ## Current Shape
 
 The solution has domain projects such as `OfficeIMO.Word.Tests`, `OfficeIMO.Excel.Tests`, `OfficeIMO.PowerPoint.Tests`, `OfficeIMO.Visio.Tests`, `OfficeIMO.Rtf.Tests`, `OfficeIMO.Html.Tests`, `OfficeIMO.Reader.Tests`, `OfficeIMO.Pdf.Tests`, `OfficeIMO.Markdown.Tests`, `OfficeIMO.Drawing.Tests`, `OfficeIMO.Markup.Tests`, `OfficeIMO.GoogleWorkspace.Tests`, `OfficeIMO.CSV.Tests`, `OfficeIMO.VerifyTests`, and `OfficeIMO.MarkdownRenderer.Wpf.Tests`. Repo-wide contracts that intentionally span product areas live in `OfficeIMO.Shared.Tests`, and shared fixtures/helpers live under `OfficeIMO.TestAssets`.

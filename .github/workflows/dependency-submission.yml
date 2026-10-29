@@ -1,0 +1,117 @@
+name: Controlled NuGet dependency graph
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/dependency-submission.yml'
+      - '**/*.csproj'
+      - '**/*.props'
+      - '**/*.targets'
+      - '**/*.sln'
+      - '**/*.slnx'
+      - '**/packages.lock.json'
+      - '**/global.json'
+      - '**/NuGet.Config'
+  push:
+    branches: [master]
+    paths:
+      - '.github/workflows/dependency-submission.yml'
+      - '**/*.csproj'
+      - '**/*.props'
+      - '**/*.targets'
+      - '**/*.sln'
+      - '**/*.slnx'
+      - '**/packages.lock.json'
+      - '**/global.json'
+      - '**/NuGet.Config'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: dependency-submission-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  restore:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - profile: linux
+            runner: ubuntu-latest
+            projects: '["OfficeIMO.sln", "Website/Apps/OfficeIMO.Web.Converter/OfficeIMO.Web.Converter.csproj"]'
+            workloads: wasm-tools
+          - profile: windows
+            runner: windows-latest
+            projects: '["OfficeIMO.sln"]'
+            workloads: ''
+          - profile: apple
+            runner: macos-latest
+            projects: '["OfficeIMO.sln", "OfficeIMO.Studio.iOS/OfficeIMO.Studio.iOS.csproj"]'
+            workloads: 'wasm-tools ios'
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: EvotecIT/PSPublishModule/.github/actions/dotnet-dependency-submission@f5fc8c03f540e9ca9c24b11b56457f5106ad6d65
+        id: graphs
+        with:
+          projects-json: ${{ matrix.projects }}
+          workloads: ${{ matrix.workloads }}
+      - uses: actions/upload-artifact@v7
+        with:
+          name: nuget-graphs-${{ matrix.profile }}
+          path: ${{ steps.graphs.outputs.graphs-path }}
+          if-no-files-found: error
+          include-hidden-files: true
+          retention-days: 1
+
+  validate-transport:
+    if: github.event_name == 'pull_request'
+    needs: restore
+    strategy:
+      fail-fast: false
+      matrix:
+        profile: [linux, windows, apple]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          name: nuget-graphs-${{ matrix.profile }}
+          path: ${{ runner.temp }}/native-graphs
+      - uses: EvotecIT/PSPublishModule/.github/actions/dotnet-dependency-submission@f5fc8c03f540e9ca9c24b11b56457f5106ad6d65
+        with:
+          mode: submit
+          graph-artifact: ${{ runner.temp }}/native-graphs
+          submit: 'false'
+
+  submit:
+    if: github.ref == format('refs/heads/{0}', github.event.repository.default_branch) && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+    needs: restore
+    permissions:
+      contents: write
+    strategy:
+      fail-fast: false
+      matrix:
+        profile: [linux, windows, apple]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@v8
+        with:
+          name: nuget-graphs-${{ matrix.profile }}
+          path: ${{ runner.temp }}/native-graphs
+      - uses: EvotecIT/PSPublishModule/.github/actions/dotnet-dependency-submission@f5fc8c03f540e9ca9c24b11b56457f5106ad6d65
+        with:
+          mode: submit
+          graph-artifact: ${{ runner.temp }}/native-graphs
+          correlator: officeimo-${{ matrix.profile }}
+          submit: 'true'
