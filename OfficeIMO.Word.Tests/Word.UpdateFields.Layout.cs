@@ -97,6 +97,18 @@ namespace OfficeIMO.Tests {
             Assert.True(document.Settings.UpdateFieldsOnOpen);
         }
 
+        [Fact]
+        public void Test_UpdateFieldsKeepsUpdateFieldsOnOpenSetAfterTableOfContents() {
+            using WordDocument document = WordDocument.Create();
+            document.AddTableOfContent();
+            document.AddParagraph("Kept heading").Style = WordParagraphStyles.Heading1;
+            document.Settings.UpdateFieldsOnOpen = true;
+
+            document.UpdateFields(new WordFieldUpdateOptions { UpdateTablesOfContents = true });
+
+            Assert.True(document.Settings.UpdateFieldsOnOpen);
+        }
+
         private static Dictionary<string, int> ReadTocEntryPages(SdtBlock block) {
             var pages = new Dictionary<string, int>();
             foreach (Hyperlink hyperlink in block.Descendants<Hyperlink>().Where(_ => !string.IsNullOrEmpty(_.Anchor?.Value))) {

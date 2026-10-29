@@ -116,8 +116,10 @@ namespace OfficeIMO.Word {
                     continue;
                 }
 
-                Paragraph? next = bookmark.ElementsAfter().OfType<Paragraph>().FirstOrDefault() ??
-                    bookmark.ElementsAfter().SelectMany(_ => _.Descendants<Paragraph>()).FirstOrDefault();
+                // The first paragraph in document order: a following paragraph, or the first one inside a following table.
+                Paragraph? next = bookmark.ElementsAfter()
+                    .Select(_ => _ as Paragraph ?? _.Descendants<Paragraph>().FirstOrDefault())
+                    .FirstOrDefault(_ => _ != null);
                 if (next == null) {
                     continue;
                 }

@@ -80,6 +80,10 @@ namespace OfficeIMO.Word {
         /// </summary>
         internal bool TableOfContentEnabledUpdateFieldsOnOpen => _tableOfContentEnabledUpdateFieldsOnOpen;
 
+        internal void ReleaseTableOfContentUpdateFieldsOnOpen() {
+            _tableOfContentEnabledUpdateFieldsOnOpen = false;
+        }
+
         internal void ResetTableOfContentUpdateQueue() {
             _tableOfContentUpdateQueued = false;
             _tableOfContentEnabledUpdateFieldsOnOpen = false;
