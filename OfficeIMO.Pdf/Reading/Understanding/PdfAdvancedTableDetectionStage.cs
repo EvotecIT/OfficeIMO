@@ -30,8 +30,26 @@ internal sealed class PdfAdvancedTableDetectionStage : IPdfTableDetectionStage {
             context.ConsumeWork,
             context.ThrowIfCancellationRequested);
         IReadOnlyList<PdfTableRuling> rulings = context.Page.GetTableRulings(context);
-        if (tables.Count == 0 && rulings.Count > 0)
-            tables.AddRange(TableDetector.RecoverClosedRulingTables(nativeLines, rulings, context));
+        if (rulings.Count > 0) {
+            // A page can hold a text-aligned table and a separate ruled grid, so the grids are recovered on every
+            // ruled page. A closed grid also replaces a text table it covers when alignment stopped early (rows
+            // with an empty last cell end a text band), because the grid shows where the table really ends.
+            List<PdfStructuredTable> textTables = tables.ToList();
+            foreach (PdfStructuredTable ruled in TableDetector.RecoverClosedRulingTables(nativeLines, rulings, context)) {
+                context.ConsumeWork();
+                List<PdfStructuredTable> covered = textTables.Where(existing => TablesOverlap(existing, ruled)).ToList();
+                if (covered.Count == 0) {
+                    tables.Add(ruled);
+                } else if (covered.All(existing => existing.Rows.Count < ruled.Rows.Count &&
+                                                   existing.Columns.Count <= ruled.Columns.Count)) {
+                    foreach (PdfStructuredTable existing in covered) {
+                        tables.Remove(existing);
+                        textTables.Remove(existing);
+                    }
+                    tables.Add(ruled);
+                }
+            }
+        }
         result.Capacity = tables.Count;
         foreach (PdfStructuredTable table in tables) {
             context.ConsumeWork();
@@ -113,6 +131,16 @@ internal sealed class PdfAdvancedTableDetectionStage : IPdfTableDetectionStage {
                 context.ConsumeWork,
                 context.ThrowIfCancellationRequested));
         }
+    }
+
+    private static bool TablesOverlap(PdfStructuredTable first, PdfStructuredTable second) {
+        if (first.Columns.Count == 0 || second.Columns.Count == 0) return false;
+        double firstTop = Math.Max(first.YTop, first.YBottom), firstBottom = Math.Min(first.YTop, first.YBottom);
+        double secondTop = Math.Max(second.YTop, second.YBottom), secondBottom = Math.Min(second.YTop, second.YBottom);
+        bool vertical = firstBottom <= secondTop && secondBottom <= firstTop;
+        bool horizontal = first.Columns[0].From <= second.Columns[second.Columns.Count - 1].To &&
+            second.Columns[0].From <= first.Columns[first.Columns.Count - 1].To;
+        return vertical && horizontal;
     }
 
     private static void AddOcrCandidates(

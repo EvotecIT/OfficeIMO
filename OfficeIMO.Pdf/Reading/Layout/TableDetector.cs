@@ -108,6 +108,7 @@ internal static partial class TableDetector {
         }
         RecoverTablesWithPeripheralRowText(tables, pageLines, consumeWork, cancellationCheck);
         MergeStackedTablePieces(tables, pageLines, consumeWork, cancellationCheck);
+        AttachPrecedingBodyRows(tables, pageLines, consumeWork, cancellationCheck);
         AttachDetachedHeaderRows(tables, pageLines, consumeWork, cancellationCheck);
         AbsorbWrappedRows(tables, pageLines, consumeWork, cancellationCheck);
         SplitColumnsAtAlignedChannels(tables, cancellationCheck);

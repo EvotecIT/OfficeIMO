@@ -160,7 +160,8 @@ internal static partial class TableDetector {
                 lineSplitOverrides);
             if (table != null &&
                 (table.Rows.Count >= 3 || HasStrongTwoRowEvidence(table, groupLines)) &&
-                HasValidatedRows(table, groupLines)) {
+                HasValidatedRows(table, groupLines) &&
+                !HasCrossingColumnText(groupLines, effectiveSplits, lineSplitOverrides)) {
                 result.Add(table);
                 claimedBandIndexes.UnionWith(splitBandIndexes);
                 claimedBandIndexes.UnionWith(includedBridgeBandIndexes);
@@ -169,6 +170,63 @@ internal static partial class TableDetector {
             k = end + 1;
         }
         return result;
+    }
+
+    /// <summary>
+    /// True when text assigned to one column runs past the start of text assigned to the next column on another row.
+    /// Real columns are separated by a vertical channel; a chart title above its legend, set beside a side panel
+    /// heading, only looks like a two-column header. Rows holding a single cell (a spanning title) are ignored.
+    /// </summary>
+    private static bool HasCrossingColumnText(
+        List<TextLayoutEngine.TextLine> lines,
+        List<double> splits,
+        Dictionary<TextLayoutEngine.TextLine, List<double>>? lineSplitOverrides) {
+        if (splits.Count == 0) return false;
+        int columnCount = splits.Count + 1;
+        var lefts = new double[columnCount];
+        var rights = new double[columnCount];
+        for (int index = 0; index < columnCount; index++) {
+            lefts[index] = double.MaxValue;
+            rights[index] = double.MinValue;
+        }
+        double fontSize = 0D;
+        foreach (TextLayoutEngine.TextLine line in lines) {
+            List<double> lineSplits = lineSplitOverrides is not null &&
+                                      lineSplitOverrides.TryGetValue(line, out List<double>? splitOverride)
+                ? splitOverride
+                : splits;
+            if (lineSplits.Count != splits.Count) continue;
+            var lineLefts = new double[columnCount];
+            var lineRights = new double[columnCount];
+            var populated = new bool[columnCount];
+            foreach (PdfTextSpan span in line.Spans) {
+                if (string.IsNullOrWhiteSpace(span.Text)) continue;
+                int column = 0;
+                while (column < lineSplits.Count && span.X >= lineSplits[column]) column++;
+                double right = span.X + Math.Max(0D, span.Advance);
+                if (!populated[column]) {
+                    lineLefts[column] = span.X;
+                    lineRights[column] = right;
+                    populated[column] = true;
+                } else {
+                    lineLefts[column] = Math.Min(lineLefts[column], span.X);
+                    lineRights[column] = Math.Max(lineRights[column], right);
+                }
+                fontSize = Math.Max(fontSize, span.FontSize);
+            }
+            if (populated.Count(static value => value) < 2) continue;
+            for (int column = 0; column < columnCount; column++) {
+                if (!populated[column]) continue;
+                lefts[column] = Math.Min(lefts[column], lineLefts[column]);
+                rights[column] = Math.Max(rights[column], lineRights[column]);
+            }
+        }
+        double tolerance = Math.Max(2D, fontSize * 0.5D);
+        for (int column = 0; column + 1 < columnCount; column++) {
+            if (rights[column] == double.MinValue || lefts[column + 1] == double.MaxValue) continue;
+            if (rights[column] > lefts[column + 1] + tolerance) return true;
+        }
+        return false;
     }
 
     private enum InterveningBandDecision {
