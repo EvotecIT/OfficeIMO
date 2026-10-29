@@ -43,16 +43,28 @@ public partial class HtmlOfficeAdapters {
         Assert.Contains("123.45", html, StringComparison.Ordinal);
         Assert.Contains("data-officeimo-value-kind=\"number\" data-officeimo-value=\"123.45\"", html, StringComparison.Ordinal);
         Assert.Contains("--officeimo-accent", html, StringComparison.Ordinal);
-        Assert.Contains("officeimo-formulas", html, StringComparison.Ordinal);
+        // The formula travels with its cell; the formula inventory is opt-in.
+        Assert.DoesNotContain("officeimo-formulas", html, StringComparison.Ordinal);
+        Assert.Contains("data-officeimo-value-kind=\"formula\"", html, StringComparison.Ordinal);
         Assert.Contains("SUM(B2:B4)", html, StringComparison.Ordinal);
+        Assert.Contains("<figure class=\"officeimo-chart\"", html, StringComparison.Ordinal);
         Assert.Contains("Reviewed with finance", html, StringComparison.Ordinal);
         Assert.Contains("Revenue Trend", html, StringComparison.Ordinal);
         Assert.Contains("officeimo-chart-data", html, StringComparison.Ordinal);
         Assert.Contains(">South</th>", html, StringComparison.Ordinal);
         Assert.Contains(">Amount</th>", html, StringComparison.Ordinal);
         Assert.Contains("Inline status marker", html, StringComparison.Ordinal);
-        Assert.Contains("Offset: 9, 11", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("Offset: 9, 11", html, StringComparison.Ordinal);
         Assert.Contains("data:image/png;base64", html, StringComparison.Ordinal);
+
+        string diagnosticHtml = workbook.ToHtml(new ExcelHtmlSaveOptions {
+            Profile = OfficeHtmlConversionProfile.ExcelSemanticTables,
+            IncludeFormulaInventory = true,
+            IncludeObjectMetadata = true
+        });
+        Assert.Contains("officeimo-formulas", diagnosticHtml, StringComparison.Ordinal);
+        Assert.Contains("Offset: 9, 11", diagnosticHtml, StringComparison.Ordinal);
+        Assert.Contains("Type: ColumnClustered", diagnosticHtml, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -197,8 +209,7 @@ public partial class HtmlOfficeAdapters {
             Theme = OfficeVisualThemeKind.Report
         });
 
-        Assert.Contains("Cell: 1, 5", html, StringComparison.Ordinal);
-        Assert.Contains("Size: 280x180", html, StringComparison.Ordinal);
+        Assert.Contains("data-officeimo-row=\"1\" data-officeimo-column=\"5\" data-officeimo-width=\"280\" data-officeimo-height=\"180\"", html, StringComparison.Ordinal);
         HtmlToExcelResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(
             html,
             HtmlConversionDocumentOptions.CreateTrustedProfile()).ToExcelDocumentResult();

@@ -122,6 +122,22 @@ public sealed class ExcelHtmlSaveOptions {
     /// </summary>
     public bool IncludePivotInventory { get; set; } = true;
 
+    /// <summary>
+    /// Applies worksheet presentation to semantic tables: cell fills, table-style header fills,
+    /// conditional fills and data bars, number formats and spreadsheet alignment. Defaults to true.
+    /// When false, cells keep their raw text and only font styling is emitted.
+    /// </summary>
+    public bool ApplyCellPresentation { get; set; } = true;
+
+    /// <summary>Renders worksheet charts as inline SVG in semantic tables, with the chart data in a collapsible table. Defaults to true.</summary>
+    public bool RenderCharts { get; set; } = true;
+
+    /// <summary>Appends a formula inventory (formula text, cached values and dependencies) after each worksheet. Defaults to false.</summary>
+    public bool IncludeFormulaInventory { get; set; }
+
+    /// <summary>Shows object metadata such as chart type, series counts, anchor cells and pixel sizes as visible text. Defaults to false; the data attributes are always written.</summary>
+    public bool IncludeObjectMetadata { get; set; }
+
     /// <summary>Creates an independent settings snapshot for one export operation.</summary>
     public ExcelHtmlSaveOptions Clone() => new() {
         ExportProfile = ExportProfile,
@@ -133,7 +149,11 @@ public sealed class ExcelHtmlSaveOptions {
         EmptyCellText = EmptyCellText,
         HeaderMode = HeaderMode,
         VisualOptions = VisualOptions,
-        IncludePivotInventory = IncludePivotInventory
+        IncludePivotInventory = IncludePivotInventory,
+        ApplyCellPresentation = ApplyCellPresentation,
+        RenderCharts = RenderCharts,
+        IncludeFormulaInventory = IncludeFormulaInventory,
+        IncludeObjectMetadata = IncludeObjectMetadata
     };
 
     internal void Validate() {

@@ -70,13 +70,13 @@ public static partial class ExcelHtmlConverterExtensions {
         body.Append("<main class=\"officeimo-document\"");
         OfficeHtmlSemanticEnvelope.AppendRootAttributes(body, "excel", options.Profile.ToString());
         body.Append('>');
-        body.Append("<h1>").Append(OfficeHtmlText.Escape(GetTitle(options, "Excel Workbook"))).Append("</h1>");
+        body.Append("<h1>").Append(OfficeHtmlText.Escape(GetWorkbookTitle(workbook, options, "Excel Workbook"))).Append("</h1>");
         foreach (ExcelSheet sheet in workbook.Sheets) {
             AppendSheetTable(body, sheet, options, diagnostics);
         }
 
         body.Append("</main>");
-        return Wrap(body.ToString(), options, GetTitle(options, "Excel Workbook"));
+        return Wrap(body.ToString(), options, GetWorkbookTitle(workbook, options, "Excel Workbook"));
     }
 
     private static string ConvertSheetSemantic(ExcelSheet sheet, ExcelHtmlSaveOptions options, IList<HtmlDiagnostic> diagnostics) {
@@ -94,7 +94,7 @@ public static partial class ExcelHtmlConverterExtensions {
         body.Append("<main class=\"officeimo-document\"");
         OfficeHtmlSemanticEnvelope.AppendRootAttributes(body, "excel", options.Profile.ToString());
         body.Append('>');
-        body.Append("<h1>").Append(OfficeHtmlText.Escape(GetTitle(options, "Excel Visual Review"))).Append("</h1>");
+        body.Append("<h1>").Append(OfficeHtmlText.Escape(GetWorkbookTitle(workbook, options, "Excel Visual Review"))).Append("</h1>");
         ExcelWorkbookImageExportOptions visualOptions = ResolveWorkbookVisualOptions(options.VisualOptions);
         Dictionary<string, ExcelSheet> sheetsByName = workbook.Sheets.ToDictionary(sheet => sheet.Name, StringComparer.OrdinalIgnoreCase);
         var reportedTableSheets = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -110,7 +110,7 @@ public static partial class ExcelHtmlConverterExtensions {
         }
 
         body.Append("</main>");
-        return Wrap(body.ToString(), options, GetTitle(options, "Excel Visual Review"));
+        return Wrap(body.ToString(), options, GetWorkbookTitle(workbook, options, "Excel Visual Review"));
     }
 
     private static string ConvertSheetVisual(ExcelSheet sheet, ExcelHtmlSaveOptions options, IList<HtmlDiagnostic> diagnostics) {
@@ -158,6 +158,28 @@ public static partial class ExcelHtmlConverterExtensions {
         if (maxColumns > 0 && (long)maxRows * maxColumns > options.MaxCellsPerSheet) {
             maxRows = Math.Min(maxRows, Math.Max(1, options.MaxCellsPerSheet / maxColumns));
         }
+        if (options.ApplyCellPresentation && maxRows == rowCount) {
+            // Rows below the data that hold neither values nor formatting stretch the used range and
+            // show as an empty grid. Formatted empty cells stay, so templates keep their styling.
+            while (maxRows > 1) {
+                int lastRow = firstRow + maxRows - 1;
+                if (mergedRanges.Any(range => range.StartRow <= lastRow && range.EndRow >= lastRow)
+                    || !IsBlankBand(sheet, lastRow, firstColumn, 1, maxColumns)) break;
+                maxRows--;
+                rowCount--;
+            }
+        }
+
+        if (options.ApplyCellPresentation && maxColumns == columnCount) {
+            while (maxColumns > 1) {
+                int lastColumn = firstColumn + maxColumns - 1;
+                if (mergedRanges.Any(range => range.StartColumn <= lastColumn && range.EndColumn >= lastColumn)
+                    || !IsBlankBand(sheet, firstRow, lastColumn, maxRows, 1)) break;
+                maxColumns--;
+                columnCount--;
+            }
+        }
+
         ExcelMergeExportMap mergeMap = BuildMergeExportMap(mergedRanges, firstRow, firstColumn, maxRows, maxColumns);
         if (rowCount == 0 || columnCount == 0 || maxRows == 0 || maxColumns == 0 || (!SheetHasUsedCells(sheet, firstRow, firstColumn, maxRows, maxColumns) && mergeMap.Count == 0)) {
             body.Append(isEmptyDefaultRange
@@ -175,6 +197,22 @@ public static partial class ExcelHtmlConverterExtensions {
             body.Append("<thead>");
         } else {
             body.Append("<tbody>");
+        }
+
+        SemanticCellPresentation? presentation = options.ApplyCellPresentation
+            ? SemanticCellPresentation.TryCreate(sheet, firstRow, firstColumn, maxRows, maxColumns)
+            : null;
+        // A first row that the sheet itself styles (a filled band or a merged title) keeps that
+        // look; a plain first row keeps the theme's header band.
+        bool firstRowIsStyledBySheet = false;
+        if (presentation != null && firstRowIsHeader) {
+            ExcelMergeExportRowCursor probe = mergeMap.CreateRowCursor();
+            probe.MoveToRow(firstRow);
+            for (int column = 0; column < maxColumns && !firstRowIsStyledBySheet; column++) {
+                int cellColumn = firstColumn + column;
+                firstRowIsStyledBySheet = probe.TryGetOrigin(cellColumn, out _)
+                    || (presentation.TryGetCell(firstRow, cellColumn, out ExcelVisualCell probeCell) && ResolveCellFillHex(probeCell.Style) != null);
+            }
         }
 
         ExcelMergeExportRowCursor mergeCursor = mergeMap.CreateRowCursor();
@@ -195,7 +233,25 @@ public static partial class ExcelHtmlConverterExtensions {
 
                 bool hasSnapshot = sheet.TryGetCellValueSnapshot(cellRow, cellColumn, out ExcelNativeCellValueInfo? snapshot) && snapshot != null;
                 string cellText = ReadCellText(sheet, cellRow, cellColumn, options.EmptyCellText);
-                ExcelCellStyleInfo cellStyle = sheet.GetCellStyle(cellRow, cellColumn);
+                ExcelCellStyleInfo cellStyle;
+                string? boxCss = null;
+                bool suppressFontColor = false;
+                if (presentation != null && presentation.TryGetCell(cellRow, cellColumn, out ExcelVisualCell visualCell)) {
+                    cellStyle = visualCell.Style;
+                    if (!string.IsNullOrEmpty(visualCell.Text)) cellText = visualCell.Text;
+                    if (visualCell.ValueKind == ExcelVisualCellValueKind.Boolean) {
+                        cellText = cellText is "1" or "true" or "True" ? "TRUE" : cellText is "0" or "false" or "False" ? "FALSE" : cellText;
+                    }
+                    presentation.TryGetDataBar(cellRow, cellColumn, out ExcelVisualConditionalDataBar dataBar);
+                    boxCss = CreateCellBoxCss(cellStyle, visualCell.ValueKind, dataBar);
+                    bool hasFill = ResolveCellFillHex(cellStyle) != null;
+                    suppressFontColor = IsInvisibleOnPage(cellStyle, hasFill);
+                    // An unfilled first-row cell keeps the sheet's own look instead of the theme's header band,
+                    // so a worksheet title row does not turn into a grey bar.
+                    if (tag == "th" && !hasFill && firstRowIsStyledBySheet) boxCss = boxCss == null ? "background-color:transparent" : boxCss + ";background-color:transparent";
+                } else {
+                    cellStyle = sheet.GetCellStyle(cellRow, cellColumn);
+                }
                 IReadOnlyList<ExcelRichTextRun> richTextRuns = sheet.GetRichText(cellRow, cellColumn);
                 body.Append('<').Append(tag)
                     .Append(" data-officeimo-cell=\"")
@@ -209,7 +265,7 @@ public static partial class ExcelHtmlConverterExtensions {
                     body.Append(" scope=\"col\"");
                 }
 
-                bool splitCellDecorations = AppendExcelTextStyleAttributes(body, cellStyle, includeDecorations: richTextRuns.Count == 0);
+                bool splitCellDecorations = AppendExcelTextStyleAttributes(body, cellStyle, includeDecorations: richTextRuns.Count == 0, boxCss, suppressFontColor);
 
                 if (hasSnapshot) {
                     ExcelNativeCellValueInfo cellSnapshot = snapshot!;
@@ -295,6 +351,17 @@ public static partial class ExcelHtmlConverterExtensions {
         }
     }
 
+    private static bool IsBlankBand(ExcelSheet sheet, int firstRow, int firstColumn, int rowCount, int columnCount) {
+        if (SheetHasUsedCells(sheet, firstRow, firstColumn, rowCount, columnCount)) return false;
+        for (int row = 0; row < rowCount; row++) {
+            for (int column = 0; column < columnCount; column++) {
+                if (sheet.GetCellStyle(firstRow + row, firstColumn + column).StyleIndex != 0U) return false;
+            }
+        }
+
+        return true;
+    }
+
     private static bool SheetHasUsedCells(ExcelSheet sheet, int firstRow, int firstColumn, int rowCount, int columnCount) {
         for (int row = 0; row < rowCount; row++) {
             for (int column = 0; column < columnCount; column++) {
@@ -309,10 +376,10 @@ public static partial class ExcelHtmlConverterExtensions {
 
     private static void AppendSheetFeatureInventory(StringBuilder body, ExcelSheet sheet, ExportedRowWindow? rowWindow,
         ExcelHtmlSaveOptions options, IList<HtmlDiagnostic> diagnostics) {
-        AppendFormulaInventory(body, FilterFormulas(sheet.GetFormulaCells(), rowWindow));
+        if (options.IncludeFormulaInventory) AppendFormulaInventory(body, FilterFormulas(sheet.GetFormulaCells(), rowWindow));
         AppendCommentInventory(body, FilterComments(sheet.GetComments(), rowWindow));
-        AppendChartInventory(body, FilterCharts(sheet.Charts, rowWindow), diagnostics);
-        AppendImageInventory(body, FilterImages(sheet.Images, rowWindow), diagnostics);
+        AppendChartInventory(body, FilterCharts(sheet.Charts, rowWindow), options, diagnostics);
+        AppendImageInventory(body, FilterImages(sheet.Images, rowWindow), options.IncludeObjectMetadata, diagnostics);
         if (options.IncludePivotInventory) AppendPivotInventory(body, sheet.GetPivotTables(), diagnostics);
     }
 
@@ -436,7 +503,7 @@ public static partial class ExcelHtmlConverterExtensions {
     }
 
     private static void AppendChartInventory(StringBuilder body, IEnumerable<ExcelChart> charts,
-        IList<HtmlDiagnostic> diagnostics) {
+        ExcelHtmlSaveOptions options, IList<HtmlDiagnostic> diagnostics) {
         List<ExcelChart> chartList = charts.ToList();
         if (chartList.Count == 0) {
             return;
@@ -460,12 +527,20 @@ public static partial class ExcelHtmlConverterExtensions {
                 AppendDataAttribute(body, "data-officeimo-height", snapshot.HeightPixels);
             }
 
-            body.Append("><span class=\"officeimo-feature-label\">")
+            body.Append('>');
+            bool renderedChart = options.RenderCharts && AppendChartSvg(body, chart, label, diagnostics);
+            // The drawn chart shows its own title; the label stays in the markup for round trips.
+            body.Append(renderedChart ? "<span class=\"officeimo-feature-label\" hidden>" : "<span class=\"officeimo-feature-label\">")
                 .Append(OfficeHtmlText.Escape(label))
-                .Append("</span><div class=\"officeimo-feature-meta\">Type: ")
-                .Append(OfficeHtmlText.Escape(chart.ChartType.ToString()))
-                .Append("</div>");
-            if (hasSnapshot) {
+                .Append("</span>");
+
+            if (options.IncludeObjectMetadata) {
+                body.Append("<div class=\"officeimo-feature-meta\">Type: ")
+                    .Append(OfficeHtmlText.Escape(chart.ChartType.ToString()))
+                    .Append("</div>");
+            }
+
+            if (hasSnapshot && options.IncludeObjectMetadata) {
                 body.Append("<div class=\"officeimo-feature-meta\">Series: ")
                     .Append(snapshot.Data.Series.Count.ToString(CultureInfo.InvariantCulture))
                     .Append("; Categories: ")
@@ -479,7 +554,13 @@ public static partial class ExcelHtmlConverterExtensions {
                     .Append("x")
                     .Append(snapshot.HeightPixels.ToString(CultureInfo.InvariantCulture))
                     .Append("</div>");
+            }
+
+            if (hasSnapshot) {
+                // A rendered chart keeps its data available without competing with the picture.
+                if (renderedChart) body.Append("<details class=\"officeimo-chart-details\"><summary>Chart data</summary>");
                 AppendChartDataTable(body, snapshot);
+                if (renderedChart) body.Append("</details>");
             } else {
                 diagnostics.Add(new HtmlDiagnostic(
                     "OfficeIMO.Excel.Html",
@@ -495,6 +576,67 @@ public static partial class ExcelHtmlConverterExtensions {
         }
 
         body.Append("</ul></section>");
+    }
+
+    private static bool AppendChartSvg(StringBuilder body, ExcelChart chart, string label, IList<HtmlDiagnostic> diagnostics) {
+        string svg;
+        try {
+            svg = chart.ToSvg();
+        } catch (Exception exception) when (exception is InvalidOperationException or NotSupportedException or ArgumentException) {
+            diagnostics.Add(new HtmlDiagnostic(
+                "OfficeIMO.Excel.Html",
+                HtmlConversionDiagnosticCodes.ContentOmitted,
+                "Chart '" + label + "' could not be drawn; its data table is shown instead.",
+                HtmlDiagnosticSeverity.Warning,
+                "excel:chart:" + chart.DrawingOrder.ToString(CultureInfo.InvariantCulture),
+                lossKind: OfficeConversionLossKind.Approximation));
+            return false;
+        }
+
+        if (string.IsNullOrWhiteSpace(svg)) return false;
+        // The output position is unique within one document and keeps the ids deterministic.
+        int sequence = body.Length;
+        body.Append("<figure class=\"officeimo-chart\" style=\"margin:8px 0;max-width:100%;overflow-x:auto\" role=\"img\" aria-label=\"")
+            .Append(OfficeHtmlText.EscapeAttribute(label))
+            .Append("\">")
+            .Append(NamespaceSvgIds(AddGenericFontFallbacks(StripXmlDeclaration(svg)), "officeimo-chart-" + sequence.ToString(CultureInfo.InvariantCulture) + "-"))
+            .Append("</figure>");
+        return true;
+    }
+
+    /// <summary>
+    /// Office faces such as Aptos are often missing on the viewing machine; without a generic
+    /// family the browser falls back to a serif. Give single-family SVG text a sans-serif chain.
+    /// </summary>
+    private static string AddGenericFontFallbacks(string svg) =>
+        System.Text.RegularExpressions.Regex.Replace(svg, "font-family=(['\"])(?<family>[^'\",]+)\\1", match => {
+            string family = match.Groups["family"].Value.Trim();
+            string? chain = GetGenericFontFallback(family);
+            if (chain == null) return match.Value;
+            string quote = match.Groups[1].Value;
+            return "font-family=" + quote + family + ", " + chain + quote;
+        });
+
+    /// <summary>The generic fallback chain to append after an Office font name, or null for a generic family.</summary>
+    private static string? GetGenericFontFallback(string family) {
+        string lower = family.Trim().Trim('\'', '"').ToLowerInvariant();
+        if (lower is "serif" or "sans-serif" or "monospace" or "cursive" or "fantasy" or "system-ui" || lower.StartsWith("var(", StringComparison.Ordinal)) return null;
+        if (lower.Contains("mono") || lower.Contains("courier") || lower.Contains("consolas")) return "monospace";
+        if (lower.Contains("times") || lower.Contains("georgia") || lower.Contains("cambria") || lower.Contains("garamond")) return "serif";
+        return lower.Contains("arial") ? "sans-serif" : "Arial, sans-serif";
+    }
+
+    private static string CssFontFamily(string family) {
+        string quoted = OfficeHtmlText.QuoteCssString(family);
+        string? fallback = GetGenericFontFallback(family);
+        return fallback == null ? quoted : quoted + "," + fallback;
+    }
+
+    private static string StripXmlDeclaration(string svg) {
+        string trimmed = svg.TrimStart();
+        if (!trimmed.StartsWith("<?xml", StringComparison.Ordinal)) return trimmed;
+        int end = trimmed.IndexOf("?>", StringComparison.Ordinal);
+        return end < 0 ? trimmed : trimmed.Substring(end + 2).TrimStart();
     }
 
     private static void AppendChartDataTable(StringBuilder body, ExcelChartInfo snapshot) {
@@ -541,7 +683,7 @@ public static partial class ExcelHtmlConverterExtensions {
     }
 
     private static void AppendImageInventory(StringBuilder body, IEnumerable<ExcelImage> images,
-        IList<HtmlDiagnostic> diagnostics) {
+        bool includeMetadata, IList<HtmlDiagnostic> diagnostics) {
         List<ExcelImage> imageList = images.ToList();
         if (imageList.Count == 0) {
             return;
@@ -589,7 +731,8 @@ public static partial class ExcelHtmlConverterExtensions {
 
             body.Append("><span class=\"officeimo-feature-label\">")
                 .Append(OfficeHtmlText.Escape(label))
-                .Append("</span><div class=\"officeimo-feature-meta\">Cell: ")
+                .Append("</span>");
+            if (includeMetadata) body.Append("<div class=\"officeimo-feature-meta\">Cell: ")
                 .Append(image.RowIndex.ToString(CultureInfo.InvariantCulture))
                 .Append(", ")
                 .Append(image.ColumnIndex.ToString(CultureInfo.InvariantCulture))
@@ -673,7 +816,7 @@ public static partial class ExcelHtmlConverterExtensions {
 
     private static void AppendSvgResult(StringBuilder body, OfficeImageExportResult result, string idPrefix,
         IList<HtmlDiagnostic> diagnostics) {
-        string svg = NamespaceSvgIds(Encoding.UTF8.GetString(result.Bytes), idPrefix);
+        string svg = NamespaceSvgIds(AddGenericFontFallbacks(Encoding.UTF8.GetString(result.Bytes)), idPrefix);
         body.Append("<section class=\"officeimo-sheet\" data-officeimo-source-anchor=\"")
             .Append(OfficeHtmlText.EscapeAttribute(result.Source))
             .Append("\">");
@@ -811,6 +954,20 @@ public static partial class ExcelHtmlConverterExtensions {
             "officeimo-html officeimo-excel-html",
             output.BodyClass);
         return OfficeHtmlDocumentShell.WrapBody(body, output);
+    }
+
+    private static string GetWorkbookTitle(ExcelDocument workbook, ExcelHtmlSaveOptions options, string fallback) {
+        if (!string.IsNullOrWhiteSpace(options.Title)) return options.Title!;
+        string? title = null;
+        try {
+            title = workbook.BuiltinDocumentProperties?.Title;
+        } catch (InvalidOperationException) {
+        }
+
+        if (!string.IsNullOrWhiteSpace(title)) return title!.Trim();
+        string? path = workbook.FilePath;
+        string? name = string.IsNullOrWhiteSpace(path) ? null : System.IO.Path.GetFileNameWithoutExtension(path);
+        return string.IsNullOrWhiteSpace(name) ? fallback : name!;
     }
 
     private static string GetTitle(ExcelHtmlSaveOptions options, string fallback) {
