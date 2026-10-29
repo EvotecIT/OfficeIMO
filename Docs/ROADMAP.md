@@ -857,15 +857,56 @@ Current native lifecycle and rendering boundaries: [OfficeIMO.Xps support matrix
 ### Publisher publication recovery
 
 Current native decoding, public API and evidence boundaries are owned by the
-[Publisher support contract](../OfficeIMO.Publisher/SUPPORT.md). Keep one native
-codec and shared drawing projection; PDF and Reader surfaces remain
-thin consumers. Native `.pub` authoring is outside the read-and-convert product.
+[Publisher support contract](../OfficeIMO.Publisher/SUPPORT.md). The product target
+is a complete native read, edit, create and save lifecycle, with PDF/SVG rendering
+and semantic extraction from the same typed publication model. Keep
+generation-specific codecs in `OfficeIMO.Publisher`, reuse shared compound
+storage, OfficeArt, text layout and drawing engines, and keep PDF, Reader,
+PowerShell and other hosts thin. No external application is a runtime engine.
 
-- [ ] Qualify native frame breaks, column balancing and tight/through picture wrapping; complete style-library metadata, numbering sequences, additional tab alignments/leaders, drop caps and dynamic-field display against independently produced publications.
-- [ ] Extend unsupported native preset geometries, advanced path commands and separate paint groups, device-pixel guide operands and limousine scaling, remaining non-solid fills, individual table styling, picture recoloring and extended color controls, and background/master inheritance with precise per-feature loss reporting.
-- [ ] Qualify later Publisher producers and native Publisher PDF/SVG comparisons across brochures, newsletters, labels, custom page sizes and multilingual fonts. Keep producer fixtures, independent-reader evidence and pixel fidelity distinct.
-- [ ] Add separately qualified Publisher 97/98 and 2000 native decoders without routing them through text salvage or weakening current resource limits.
-- [ ] Qualify remaining host routes and extend semantic Reader output with native links and cached-field metadata, carrying source recovery losses into every downstream artifact and keeping native active content inert.
+Follow the milestones below in order, with independent corpus and rendering work
+continuing while native writing is investigated. Qualify reading, source
+preservation, typed editing, template-free creation, native save/reopen and visual
+conversion separately for each declared generation. An OfficeIMO round trip,
+seed-file modification or PDF export does not establish native creation. A missing
+native oracle or unresolved writer holds its dependent criteria and stays visible.
+
+#### PUB00 — Native writer feasibility and comparison corpus
+
+- [ ] Extend the [native comparison corpus](../OfficeIMO.Publisher.Tests/Fixtures/NativeComparison) with independently authored brochures and multiple/two-page master configurations. Retain producer version, effective fonts, native structure, hashes and reference PDFs; keep native-produced controls, synthetic mutations and independent-reader evidence distinct.
+- [ ] Identify the minimum modern-generation stream/storage graph, record relationships, text/style indexes and required metadata using controlled native differences and the existing reader. Reuse the shared compound writer; do not copy a seed publication or hide opaque seed streams inside a new writer.
+- [ ] Create a minimal PUB from scratch with one page, styled text, a shape and an embedded image. Open the exact bytes in Microsoft Publisher without repair before native resave; verify page geometry, content, native resave/reopen and PDF export independently. Keep any unaccepted candidate internal to the opt-in feasibility tooling.
+
+#### PUB01 — Editable publication model
+
+- [ ] Evolve the existing model into the canonical editable owner for pages, masters, stories, linked frames, styles, tables, shapes and assets. Define units, identifiers, ownership and supported mutations; preserve complete stories and overflow. Generate the drawing scene from that model so edits reach every export without competing source and drawing state.
+- [ ] Retain native provenance and records needed for safe save-back. Specify supported edits, unknown-record preservation and strict rejection of changes whose effects cannot be preserved. Keep public APIs usable without native record knowledge; migrate existing examples and consumers when an intentional API change is necessary.
+
+#### PUB02 — Qualified reading and rendering
+
+- [ ] Qualify native frame breaks, column balancing and tight/through picture wrapping; complete style-library metadata, numbering sequences, additional tab alignments/leaders, drop caps and cached dynamic-field display against independently produced publications.
+- [ ] Extend unsupported native preset geometries, advanced path commands and separate paint groups, device-pixel guide operands and limousine scaling, remaining non-solid fills, individual table styling, picture recoloring and extended color controls, and background/master inheritance with precise per-feature loss reporting. Resolve WMF/EMF projection through the existing shared image owner and an explicitly qualified dependency boundary.
+- [ ] Compare OfficeIMO PDF/SVG output with native Publisher references across the corpus. Record content recovery, object geometry, text flow and visible appearance separately, including later producers, transformed groups, image crops, tables and multilingual fonts. Keep exact native-layout claims limited to the evidence that qualifies them.
+
+#### PUB03 — Native editing and safe save-back
+
+- [ ] Load a supported modern publication, change text of different lengths, formatting, frame placement, images, tables and page/master relationships, then write a separate valid PUB through the owning codec. Verify every supported edit in Microsoft Publisher and through native resave/reopen; preserve provably unaffected content and reject unsafe unsupported edits explicitly.
+- [ ] Provide bounded path, byte and stream saves with operation-level preservation reports, cancellation and validated destination publication. Preserve caller-owned streams and existing destinations on pre-publication failures. Keep macros, linked resources and embedded objects inert; qualify their opaque preservation separately from editable content.
+
+#### PUB04 — Template-free native authoring
+
+- [ ] Create useful newsletters, brochures, flyers and labels through ordinary public APIs: page sizes, masters, styled and linked text, columns, tables, shapes and embedded images. Save and reopen native files without a seed publication, COM, LibreOffice or another runtime document engine.
+- [ ] Exercise the same authored model through native save, SVG and PDF. Qualify each example in Microsoft Publisher, including opening before repair/resave, native editing and subsequent saves. Expand supported effects only with corresponding native records, model behavior and independent evidence.
+
+#### PUB05 — Earlier generations and preservation boundaries
+
+- [ ] Implement separately qualified Publisher 97/98 and 2000 lifecycle codecs, including reading, editable mapping, template-free creation and native save/reopen for their declared profiles. Do not route these generations through text salvage or infer their support from modern-generation fixtures.
+- [ ] Qualify generation conversion, producer variations, protected/unsupported profiles and operation-specific preservation policies. Reject unavailable operations without weakening resource limits or silently discarding source features; report conversion losses at the native owner and retain them downstream.
+
+#### PUB06 — Product surfaces and lifecycle qualification
+
+- [ ] Expose coherent create/open/edit/save/inspect/export workflows in .NET and thin PSWriteOffice commands, then register executable CLI/workflow and applicable Studio routes. Extend semantic Reader output with native links and cached-field metadata while keeping active content inert and carrying native losses into every artifact.
+- [ ] Qualify packaged consumers, representative native and rendered artifacts, supported frameworks/platforms, cancellation, resource limits and save-failure behavior. Update executable examples, the generated capability/operation sources and the owning support matrices only for implemented and qualified behavior; preserve explicit profile and operation limits.
 
 ### Future integration decisions
 

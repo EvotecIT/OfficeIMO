@@ -13,6 +13,7 @@ internal static class PublisherNativeReader {
             throw new NotSupportedException("The earlier Publisher 97/98 or 2000 Contents generation is not decoded. Its shared signature does not establish the exact producer release.");
         if (contents.U8(2) != 0x2C) throw new NotSupportedException("Unsupported Publisher native version marker.");
         PublisherContents publication = new PublisherContentsReader(contents, context).Read();
+        PublisherTextFrameCatalogReader.Read(contents, publication, context);
         PublisherQuillText text = new PublisherQuillTextReader(Required(compound, "Quill/QuillSub/CONTENTS"), context).Read(publication.Palette);
         PublisherEscherData escher = new PublisherEscherReader(Required(compound, "Escher/EscherStm"), Optional(compound, "Escher/EscherDelayStm"), context).Read();
         context.Add("PUB_NATIVE_FIELDS_UNASSESSED", "This bounded native recovery does not establish field-level fidelity for every publication record, auxiliary stream, or embedded object.",

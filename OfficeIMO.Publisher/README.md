@@ -70,8 +70,10 @@ cumulative native vertex, guide and command work and copied shape/mask commands
 as well as drawing elements.
 
 Each page's `TextFrames` exposes native frame identifiers, story links, order,
-column settings and wrap-object references. Linked stories follow their native
-links across frames and pages. Columns and rectangular wrap exclusions use the
+column settings and wrap-object references. Linked stories follow explicit frame
+links or complete native story/frame catalog bindings across frames and pages.
+Catalog counts, object references and consecutive ordinals must agree; shape
+ordinals alone do not establish a chain. Columns and rectangular wrap exclusions use the
 shared managed text engine; tight outlines and native break positions can differ.
 `TextStart` and `TextLength` identify the assigned range in `PublisherTextStory.Text`,
 including paragraph separators. These ranges describe recovered layout, rather

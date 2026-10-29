@@ -193,7 +193,7 @@ public sealed class ReaderPublisherTableTests {
         byte[] original = Fixture(); PublisherDocument baseline = PublisherDocument.Load(original);
         PublisherPage firstPage = baseline.Pages[0], master = Assert.Single(baseline.MasterPages);
         byte[] input = PublisherTableFixture.CopyToObject(original, firstPage.TextFrames[0].Id);
-        input = PublisherTableFixture.NamePage(input, firstPage.Id, "Second master");
+        input = PublisherTableFixture.PromoteToMaster(input, firstPage.Id, "Second master");
         input = PublisherTableFixture.MoveToMaster(input, baseline.Pages[1].Id, master.Id);
         PublisherDocument native = PublisherDocument.Load(input);
         Assert.Equal(2, native.MasterPages.Count);

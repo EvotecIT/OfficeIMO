@@ -43,25 +43,37 @@ internal sealed partial class PublisherContentsReader {
         if (width == 0 || height == 0 || width > int.MaxValue || height > int.MaxValue) throw new InvalidDataException("Invalid Publisher page dimensions.");
         var result = new PublisherContents(width / 12700D, height / 12700D, chunks);
         PublisherBlock pageList = Field(document, 2) ?? throw new InvalidDataException("Publisher page order is missing.");
+        PublisherBlock[] pageReferences = _blocks.Children(pageList).ToArray();
+        uint total = (Field(document, 1) ?? throw new InvalidDataException("Publisher page-reference count is missing.")).Value;
+        uint special = (Field(document, 0x2C) ?? throw new InvalidDataException("Publisher special-page boundary is missing.")).Value;
+        uint masters = (Field(document, 0x2D) ?? throw new InvalidDataException("Publisher master-page boundary is missing.")).Value;
+        // DpgMaster and DpgSpecial delimit the physical interval in the ordered
+        // reference array: [masters, total - special], inclusive. Object counts
+        // do not identify physical pages: an empty page has no count record.
+        if (total != pageReferences.Length || special == 0 || special > total || masters > total - special)
+            throw new InvalidDataException("Publisher page-role boundaries disagree with its reference array.");
+        uint lastPhysical = total - special;
         var seenPages = new HashSet<uint>();
-        foreach (PublisherBlock reference in _blocks.Children(pageList)) {
-            if (reference.Type != 0x70) continue;
+        for (int index = 0; index < pageReferences.Length; index++) {
+            PublisherBlock reference = pageReferences[index];
+            if (reference.Type != 0x70) throw new InvalidDataException("Publisher page reference has an unsupported encoding.");
             uint pageId = reference.Value;
             if (!seenPages.Add(pageId)) throw new InvalidDataException("Duplicate Publisher page reference.");
             if (!chunks.TryGetValue(pageId, out PublisherContentChunk? pageChunk))
                 throw new InvalidDataException("Publisher page reference does not resolve to a page descriptor.");
-            // Empty reference slots also occur in the native page list.
-            if (pageChunk.Kind == 0x59) continue;
+            bool isMaster = index < masters;
+            bool isPhysical = index >= masters && index <= lastPhysical;
+            // Reserved empty slots can occur among utility references, but a
+            // printable or master slot must resolve to an actual page.
+            if (pageChunk.Kind == 0x59 && !isMaster && !isPhysical) continue;
             if (pageChunk.Kind != 0x43) throw new InvalidDataException("Publisher page reference has an invalid descriptor kind.");
+            if (!isMaster && !isPhysical) continue;
             var fields = _blocks.Chunk(pageChunk.Offset, pageChunk.End);
             PublisherBlock? nameField = Field(fields, 0x0E);
             string name = nameField.HasValue && nameField.Value.Type == 0xC0
                 ? _data.Utf16(nameField.Value.Offset + 4, nameField.Value.Length - 4).TrimEnd('\0') : string.Empty;
-            // Printable pages carry a content-count field; named definitions
-            // are masters. Remaining unnamed definitions are utility pages.
-            if (string.IsNullOrEmpty(name) && !Field(fields, 1).HasValue) continue;
             if (result.Pages.Count >= _context.Options.MaximumPages) throw new InvalidDataException("Publisher page limit exceeded.");
-            var page = new PublisherSourcePage(pageId, name, Field(fields, 0x0D)?.Value, Field(fields, 0x0A)?.Value);
+            var page = new PublisherSourcePage(pageId, name, Field(fields, 0x0D)?.Value, Field(fields, 0x0A)?.Value, isMaster);
             result.Pages.Add(page);
             PublisherBlock? shapes = Field(fields, 2);
             if (shapes.HasValue) {
@@ -126,7 +138,7 @@ internal sealed partial class PublisherContentsReader {
     }
 }
 
-internal sealed class PublisherContents {
+internal sealed partial class PublisherContents {
     internal PublisherContents(double width, double height, Dictionary<uint, PublisherContentChunk> chunks) { Width = width; Height = height; Chunks = chunks; }
     internal double Width { get; }
     internal double Height { get; }
@@ -148,12 +160,14 @@ internal sealed class PublisherContentChunk {
 }
 
 internal sealed class PublisherSourcePage {
-    internal PublisherSourcePage(uint id, string name, uint? master, uint? background) { Id = id; Name = name; Master = master; Background = background; }
+    internal PublisherSourcePage(uint id, string name, uint? master, uint? background, bool isMaster = false) {
+        Id = id; Name = name; Master = master; Background = background; IsMaster = isMaster;
+    }
     internal uint Id { get; }
     internal string Name { get; }
     internal uint? Master { get; }
     internal uint? Background { get; }
-    internal bool IsMaster => !string.IsNullOrEmpty(Name);
+    internal bool IsMaster { get; }
 }
 
 internal sealed class PublisherSourceShape {

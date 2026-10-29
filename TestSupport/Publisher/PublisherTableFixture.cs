@@ -142,6 +142,32 @@ internal static class PublisherTableFixture {
         streams["Contents"] = RebuildContents(contents, new Dictionary<uint, byte[]> { [pageId] = page });
     });
 
+    internal static byte[] PromoteToMaster(byte[] publication, uint pageId, string name) =>
+        Rewrite(NamePage(publication, pageId, name), streams => {
+            byte[] contents = streams["Contents"];
+            Block[] document = Chunk(contents, ChunkOffset(contents, 256));
+            Block references = document.Single(field => field.Id == 2);
+            Block masterBoundary = document.Single(field => field.Id == 0x2D);
+            uint masters = ReadScalar(contents, masterBoundary);
+            uint total = ReadScalar(contents, document.Single(field => field.Id == 1));
+            uint special = ReadScalar(contents, document.Single(field => field.Id == 0x2C));
+            Block[] pages = Children(contents, references);
+            Assert.All(pages, page => Assert.Equal((byte)0x70, page.Type));
+            int sourceIndex = Array.FindIndex(pages, page => ReadScalar(contents, page) == pageId);
+            Assert.True(sourceIndex >= masters && sourceIndex <= total - special);
+            Assert.True(total - special > masters, "The synthetic publication must retain a physical page.");
+            byte[][] encoded = pages.Select(page => contents.Skip(page.Offset - 2).Take(page.Length + 2).ToArray()).ToArray();
+            var reordered = encoded.ToList();
+            reordered.RemoveAt(sourceIndex);
+            reordered.Insert(checked((int)masters), encoded[sourceIndex]);
+            int target = references.Offset + 4;
+            foreach (byte[] page in reordered) { page.CopyTo(contents, target); target += page.Length; }
+            WriteScalar(contents, masterBoundary, masters + 1);
+        });
+
+    private static uint ReadScalar(byte[] bytes, Block field) => field.Length == 2
+        ? BitConverter.ToUInt16(bytes, field.Offset) : BitConverter.ToUInt32(bytes, field.Offset);
+
     private static byte[] RewriteShapeList(byte[] bytes, uint pageId, byte[] reference, bool remove) {
         Block[] fields = Chunk(bytes, ChunkOffset(bytes, pageId));
         Block? list = fields.Where(field => field.Id == 2).Select(field => (Block?)field).SingleOrDefault();

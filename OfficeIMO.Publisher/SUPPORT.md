@@ -25,9 +25,9 @@ references do not report missing images.
 
 | Content | Current behavior | Limit |
 | --- | --- | --- |
-| Document pages | Native order, physical size and page clipping | Utility/reference definitions are excluded |
+| Document pages | Native order, physical size and page clipping, including empty physical pages | Master and utility roles follow the ordered native reference array and its role boundaries; malformed boundaries are rejected |
 | Master pages | Recovered definitions applied to referring pages | Missing references report omission; nested master inheritance is unassessed |
-| Text | UTF-16 stories, styled paragraphs, referenced native style values, reciprocal frame links and ordinals, sequential columns, continuation and overflow reporting | Shared measurement approximates native frame breaks and column balancing; style names and auxiliary inheritance metadata are not exposed as an editable style library |
+| Text | UTF-16 stories, styled paragraphs, referenced native style values, explicit reciprocal links or complete native story/frame catalog bindings, sequential columns, continuation and overflow reporting | Shared measurement approximates native frame breaks and column balancing; style names and auxiliary inheritance metadata are not exposed as an editable style library |
 | Lists and tabs | Native Unicode bullet labels, qualified Symbol/Wingdings marker normalization, hanging indentation, text position and declared left tabs | Numbering sequences, additional tab alignments/leaders and drop caps are unassessed; undeclared tab stops use the shared 36-point interval |
 | Tables | `PublisherPage.Tables` exposes native tracks, spans, styled paragraphs, text and placement; master tables remain on their owner | Unavailable frame geometry retains the grid and mapped text with `HasPlacement = false`; unresolved text mappings use `HasTextMapping = false`; individual cell borders, fills and padding are unassessed |
 | Shapes | Rectangles, rounded rectangles, ellipses, diamonds, triangles and lines; solid paints and basic shadows | Other geometries and unsupported fill types report approximation; compound and non-solid strokes remain unassessed |
@@ -71,9 +71,13 @@ visual placement is incomplete.
 `PublisherPage.TextFrames` records recovered frame geometry and links. Assigned
 UTF-16 ranges refer to normalized `PublisherTextStory.Text`; they are derived
 from managed measurement, not claimed as native cached break positions. Later
-empty frames have zero-length ranges. Native chains are checked for reciprocal
-links, matching story ownership, consecutive ordinals, cycles and disconnected
-frames. Ambiguous unlinked roots report omission instead of guessed ordering.
+empty frames have zero-length ranges. Explicit native chains are checked for
+reciprocal links, matching story ownership, consecutive ordinals, cycles and
+disconnected frames. When explicit links are absent, complete native catalog
+bindings can establish a chain only when their declared frame count, object
+identities and consecutive ordinals agree with the source frames. Contradictory
+catalog evidence is rejected. Without complete catalog evidence, ambiguous
+unlinked roots report omission instead of guessed ordering.
 A missing printable frame stops subsequent assignment for that story. Frame
 `X`, `Y`, `Width` and `Height` describe its unrotated rectangle; `PageTransform`
 maps frame-local points into page-local points after object and ancestor-group
@@ -197,6 +201,21 @@ do not establish pixel fidelity. A Publisher-authored fixture and reference PDF
 also qualify modern page geometry, story recovery and borderless text/table
 frames. The opt-in producer script and fixture hashes are retained with the
 tests. No external program is required by normal builds or runtime conversions.
+
+Nine additional [native comparison controls](../OfficeIMO.Publisher.Tests/Fixtures/NativeComparison)
+cover blank and mixed-content pages, changed-length text, a rectangle, embedded
+pictures, a linked two-page newsletter and a custom-size multilingual table/label.
+Each retains a Publisher-authored PUB, native reference PDF and hashed contract
+with physical page IDs, master relationships and authored expectations. These
+controls qualify physical-page order including empty pages, selected geometry,
+complete stories, native catalog-backed chains, table cells, image pixels and
+PDF page counts. They do not qualify native frame breaks or broad pixel fidelity.
+The multilingual PDF check uses explicit Unicode font configuration; default
+standard-font output is a separate contract. Native page enumeration also has
+instruction and decompiler evidence for the qualified Publisher build. Its
+serialized role-boundary interpretation is corroborated by these controls and
+the original corpus; additional producer and master-page configurations remain
+qualification work.
 
 The default resource limits are 64 MiB input, 4 million source/projected text
 characters, 1 million inspected records, 250,000 source/projected items,

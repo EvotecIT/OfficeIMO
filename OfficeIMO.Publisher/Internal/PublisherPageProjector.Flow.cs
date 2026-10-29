@@ -13,9 +13,13 @@ internal sealed partial class PublisherPageProjector {
             _context.Record();
             if (!_text.Stories.TryGetValue(references.Key, out PublisherTextStory? story)) continue;
             PublisherSourceShape[] frames = OrderFrames(references.ToArray());
+            bool catalogLinks = _source.CatalogFrameChains.ContainsKey(story.Id);
             var flow = new OfficeRichTextFlow(story.Paragraphs, _context.AccountTextLayout);
             bool unavailable = false;
-            foreach (PublisherSourceShape frame in frames) {
+            for (int frameIndex = 0; frameIndex < frames.Length; frameIndex++) {
+                PublisherSourceShape frame = frames[frameIndex];
+                uint? previous = catalogLinks ? frameIndex == 0 ? null : frames[frameIndex - 1].Chunk.Id : PreviousFrame(frame);
+                uint? next = catalogLinks ? frameIndex + 1 == frames.Length ? null : frames[frameIndex + 1].Chunk.Id : NextFrame(frame);
                 _context.Record();
                 uint? owner = Owner(frame.Chunk.Id, 0);
                 if (!owner.HasValue || !artwork.TryGetValue(frame.Chunk.Id, out PublisherEscherShape? shape)
@@ -56,11 +60,11 @@ internal sealed partial class PublisherPageProjector {
                     "Native text insets and column gaps consume the frame. Its text continues into the next linked frame when available.",
                     OfficeConversionLossKind.Omission, PublisherEscherReader.ShapeLocation(frame.Chunk.Id));
                 int? end = unavailable ? null : flow.HasRemaining ? Math.Min(flow.CharacterPosition, story.Text.Length) : story.Text.Length;
-                bool overflow = !NextFrame(frame).HasValue && flow.HasRemaining;
+                bool overflow = !next.HasValue && flow.HasRemaining;
                 if (overflow) _context.Add("PUB_TEXT_FRAME_OVERFLOW",
                     "Shared managed measurement leaves story content beyond the final frame. TextStories retains the complete text; output font metrics can change the assigned range.",
                     OfficeConversionLossKind.Omission, PublisherEscherReader.ShapeLocation(frame.Chunk.Id));
-                var model = new PublisherTextFrame(frame.Chunk.Id, story.Id, owner.Value, PreviousFrame(frame), NextFrame(frame),
+                var model = new PublisherTextFrame(frame.Chunk.Id, story.Id, owner.Value, previous, next,
                     frame.Value(0x28) ?? 0, bounds.X, bounds.Y, bounds.Width, bounds.Height,
                     (int)columns, gap, start, end - start, overflow, frame.WrapObjects,
                     OfficeTransform.Translate(bounds.X, bounds.Y).Then(PageTransform(shape, bounds)));
@@ -68,7 +72,7 @@ internal sealed partial class PublisherPageProjector {
                 if (!unavailable) _usedStories.Add(story.Id);
             }
             if (frames.Length > 1) _context.Add("PUB_LINKED_TEXT_LAYOUT_APPROXIMATED",
-                "Text follows native frame links using shared managed measurement. Source paragraph styles survive continuation; native font metrics, column balancing and frame break positions can differ.",
+                "Text follows the recovered native story-frame chain using shared managed measurement. Source paragraph styles survive continuation; native font metrics, column balancing and frame break positions can differ.",
                 OfficeConversionLossKind.Approximation, "Quill/story/" + story.Id);
         }
     }
@@ -82,6 +86,8 @@ internal sealed partial class PublisherPageProjector {
             if (next.HasValue && (!byId.TryGetValue(next.Value, out PublisherSourceShape? after)
                 || PreviousFrame(after) != frame.Chunk.Id)) throw new InvalidDataException("Publisher next text-frame link is unresolved or not reciprocal.");
         }
+        if (_source.CatalogFrameChains.TryGetValue(frames[0].Value(0x27)!.Value, out uint[]? catalogOrder))
+            return catalogOrder.Select(id => byId[id]).ToArray();
         PublisherSourceShape[] roots = frames.Where(frame => !PreviousFrame(frame).HasValue).ToArray();
         if (roots.Length == 0) throw new InvalidDataException("Cyclic Publisher text-frame chain.");
         if (roots.Length != 1) {
