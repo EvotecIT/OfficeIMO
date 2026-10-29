@@ -1526,7 +1526,7 @@ public class PdfDocumentWorkflowTests {
                 .Table(new[] { new[] { "Canvas table" } }, 10, 84, 120, 42, new PdfTableStyle {
                     Caption = "Canvas caption \u273f"
                 }))
-            .TextField("Person.Name", width: 120, height: 20, value: "Field \u2603");
+            .TextField("Person.Name", width: global::OfficeIMO.OfficeLength.Points(120), height: global::OfficeIMO.OfficeLength.Points(20), value: "Field \u2603");
 
         IReadOnlyList<PdfTextEncodingDiagnostic> diagnostics = document.AnalyzeTextEncoding();
 
@@ -1699,7 +1699,7 @@ public class PdfDocumentWorkflowTests {
                     PdfTableCell.WithFormFields(
                         "Table form",
                         new[] {
-                            PdfTableCellFormField.TextField("Table.DueDate", "Due \u2603", width: 120, height: 18)
+                            PdfTableCellFormField.TextField("Table.DueDate", "Due \u2603", width: global::OfficeIMO.OfficeLength.Points(120), height: global::OfficeIMO.OfficeLength.Points(18))
                         })
                 }
             });
@@ -1857,7 +1857,7 @@ public class PdfDocumentWorkflowTests {
     private static byte[] BuildSimpleFormPdf() {
         return PdfDocument.Create()
             .H1("Form")
-            .TextField("Person.Name", width: 180, height: 24, value: "Original")
+            .TextField("Person.Name", width: global::OfficeIMO.OfficeLength.Points(180), height: global::OfficeIMO.OfficeLength.Points(24), value: "Original")
             .ToBytes();
     }
 }

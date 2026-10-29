@@ -897,7 +897,7 @@ public partial class PdfFormFillerTests {
                 CompressContentStreams = false
             })
             .UseFontFamily("OfficeIMO Fill Font", fontPath)
-            .TextField("Office.City", value: value, width: 180, height: style?.IsMultiline == true ? 48 : 24, style: style)
+            .TextField("Office.City", value: value, width: global::OfficeIMO.OfficeLength.Points(180), height: global::OfficeIMO.OfficeLength.Points(style?.IsMultiline == true ? 48 : 24), style: style)
             .ToBytes();
     }
 

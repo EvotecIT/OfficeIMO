@@ -548,9 +548,9 @@ namespace OfficeIMO.Word.Pdf {
                 formFields.Add(PdfCore.PdfTableCellFormField.TextField(
                     GetNativeContentControlFieldName(formField, formFields.Count, "WordTableDatePicker"),
                     GetNativeDatePickerValue(formField),
-                    width: 150D,
-                    height: 20D,
-                    fontSize: 10D));
+                    width: global::OfficeIMO.OfficeLength.Points(150D),
+                    height: global::OfficeIMO.OfficeLength.Points(20D),
+                    fontSize: global::OfficeIMO.OfficeLength.Points(10D)));
                 return;
             }
 

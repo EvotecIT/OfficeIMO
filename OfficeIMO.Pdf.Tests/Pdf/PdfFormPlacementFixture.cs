@@ -9,7 +9,7 @@ internal static class PdfFormPlacementFixture {
         if (kind == "choice") {
             content.ChoiceField("Value", new[] { "HgjQ", "QgjH" }, "HgjQ", width: 180, height: 18, fontSize: 14);
         } else {
-            content.TextField("Value", width: 180, height: 18, value: "HgjQ", fontSize: 14,
+            content.TextField("Value", width: global::OfficeIMO.OfficeLength.Points(180), height: global::OfficeIMO.OfficeLength.Points(18), value: "HgjQ", fontSize: global::OfficeIMO.OfficeLength.Points(14),
                 style: new PdfFormFieldStyle { IsComb = kind == "comb", MaxLength = kind == "comb" ? 4 : null });
         }
     })).ToBytes();

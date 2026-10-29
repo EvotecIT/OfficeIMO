@@ -15,8 +15,8 @@ public class PdfDocumentCanvasTests {
     public void CanvasFormDataExportOmitsNoExportFields() {
         byte[] bytes = PdfDocument.Create()
             .Canvas(canvas => canvas
-                .TextField("enabled", "included", 20D, 20D, 120D, 20D)
-                .TextField("disabled", "excluded", 20D, 50D, 120D, 20D, style: new PdfFormFieldStyle { IsNoExport = true }))
+                .TextField("enabled", "included", global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(120D), global::OfficeIMO.OfficeLength.Points(20D))
+                .TextField("disabled", "excluded", global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(50D), global::OfficeIMO.OfficeLength.Points(120D), global::OfficeIMO.OfficeLength.Points(20D), style: new PdfFormFieldStyle { IsNoExport = true }))
             .ToBytes();
 
         PdfFormDataSet data = PdfDocument.Load(bytes).Forms.ExportData();
@@ -33,7 +33,7 @@ public class PdfDocumentCanvasTests {
         };
         byte[] bytes = PdfDocument.Create()
             .Canvas(canvas => canvas
-                .TextField("ContactName", "Ada", 20D, 30D, 160D, 24D, style: textStyle)
+                .TextField("ContactName", "Ada", global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(30D), global::OfficeIMO.OfficeLength.Points(160D), global::OfficeIMO.OfficeLength.Points(24D), style: textStyle)
                 .CheckBox("ContactAccept", true, 20D, 70D, 16D, 16D)
                 .ChoiceField("ContactCountry", new[] { "Poland", "Germany" }, new[] { "Poland" }, 20D, 105D, 160D, 24D)
                 .RadioButton("ContactMethod", "Email", false, 20D, 145D, 16D, 16D)
@@ -149,7 +149,7 @@ public class PdfDocumentCanvasTests {
     public void CanvasFormFields_RejectPeriodsInPartialFieldNames() {
         var canvas = new PdfPageCanvas();
 
-        Assert.Throws<ArgumentException>(() => canvas.TextField("user.email", "Ada", 20D, 20D, 120D, 24D));
+        Assert.Throws<ArgumentException>(() => canvas.TextField("user.email", "Ada", global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(120D), global::OfficeIMO.OfficeLength.Points(24D)));
         Assert.Throws<ArgumentException>(() => canvas.CheckBox("user.accepted", true, 20D, 20D, 14D, 14D));
         Assert.Throws<ArgumentException>(() => canvas.ChoiceField("user.country", new[] { "Poland" }, new[] { "Poland" }, 20D, 20D, 120D, 24D));
         Assert.Throws<ArgumentException>(() => canvas.RadioButton("user.method", "Email", true, 20D, 20D, 14D, 14D));
@@ -418,7 +418,7 @@ public class PdfDocumentCanvasTests {
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions { CompressContentStreams = false })
             .TaggedPdfCatalogMarkers()
             .Canvas(canvas => canvas.Structure(PdfCanvasStructureRole.Section, section => section
-                .TextField("ContactName", "Ada", 10D, 10D, 100D, 20D)))
+                .TextField("ContactName", "Ada", global::OfficeIMO.OfficeLength.Points(10D), global::OfficeIMO.OfficeLength.Points(10D), global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(20D))))
             .ToBytes();
 
         PdfTaggedContentInfo tagged = Assert.IsType<PdfTaggedContentInfo>(PdfInspector.Inspect(bytes).TaggedContent);
@@ -545,7 +545,7 @@ public class PdfDocumentCanvasTests {
                 .HighlightAnnotation("Decorative highlight", 10D, 60D, 100D, 20D)
                 .Outline("Decorative outline", 1, 10D)
                 .Structure(PdfCanvasStructureRole.Paragraph, nested => nested
-                    .TextField("DecorativeField", "Value", 10D, 85D, 100D, 20D))))
+                    .TextField("DecorativeField", "Value", global::OfficeIMO.OfficeLength.Points(10D), global::OfficeIMO.OfficeLength.Points(85D), global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(20D)))))
             .ToBytes();
 
         PdfDocumentInfo info = PdfInspector.Inspect(bytes);
@@ -1473,7 +1473,7 @@ public class PdfDocumentCanvasTests {
                     "Assets",
                     new[] { new PdfTableCellImage(CreateMinimalRgbPng(), 12, 12) },
                     checkBoxes: new[] { new PdfTableCellCheckBox("Canvas.Approved", isChecked: true, size: 10) },
-                    formFields: new[] { PdfTableCellFormField.TextField("Canvas.Owner", "Ada", width: 44, height: 12, fontSize: 8) })
+                    formFields: new[] { PdfTableCellFormField.TextField("Canvas.Owner", "Ada", width: global::OfficeIMO.OfficeLength.Points(44), height: global::OfficeIMO.OfficeLength.Points(12), fontSize: global::OfficeIMO.OfficeLength.Points(8)) })
             }
         };
 
@@ -1505,7 +1505,7 @@ public class PdfDocumentCanvasTests {
                     "Assets",
                     new[] { new PdfTableCellImage(CreateMinimalRgbPng(), 12, 12) },
                     checkBoxes: new[] { new PdfTableCellCheckBox("Canvas.Rotated", isChecked: true, size: 10) },
-                    formFields: new[] { PdfTableCellFormField.TextField("Canvas.RotatedOwner", "Ada", width: 44, height: 12, fontSize: 8) })
+                    formFields: new[] { PdfTableCellFormField.TextField("Canvas.RotatedOwner", "Ada", width: global::OfficeIMO.OfficeLength.Points(44), height: global::OfficeIMO.OfficeLength.Points(12), fontSize: global::OfficeIMO.OfficeLength.Points(8)) })
             }
         };
 
@@ -1573,14 +1573,14 @@ public class PdfDocumentCanvasTests {
             20D,
             50D,
             30D,
-            clipped => clipped.TextField("Partial", "Ada", 50D, 10D, 40D, 20D))).ToBytes());
+            clipped => clipped.TextField("Partial", "Ada", global::OfficeIMO.OfficeLength.Points(50D), global::OfficeIMO.OfficeLength.Points(10D), global::OfficeIMO.OfficeLength.Points(40D), global::OfficeIMO.OfficeLength.Points(20D)))).ToBytes());
 
         byte[] contained = PdfDocument.Create().Canvas(canvas => canvas.Clip(
             20D,
             20D,
             80D,
             40D,
-            clipped => clipped.TextField("Contained", "Ada", 30D, 30D, 40D, 20D))).ToBytes();
+            clipped => clipped.TextField("Contained", "Ada", global::OfficeIMO.OfficeLength.Points(30D), global::OfficeIMO.OfficeLength.Points(30D), global::OfficeIMO.OfficeLength.Points(40D), global::OfficeIMO.OfficeLength.Points(20D)))).ToBytes();
         Assert.Single(PdfInspector.Inspect(contained).FormFields);
 
         OfficeClipPath triangle = OfficeClipPath.Path(
@@ -1602,7 +1602,7 @@ public class PdfDocumentCanvasTests {
             20D,
             OfficeClipPath.Empty(),
             clipped => clipped
-                .TextField("HiddenText", "Ada", 20D, 20D, 80D, 20D)
+                .TextField("HiddenText", "Ada", global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(80D), global::OfficeIMO.OfficeLength.Points(20D))
                 .CheckBox("HiddenCheck", true, 20D, 50D, 12D, 12D)))
             .ToBytes();
 
@@ -2083,14 +2083,14 @@ public class PdfDocumentCanvasTests {
     public void CanvasEffect_RejectsInteractiveFieldsInNontrivialEffects() {
         Assert.Throws<ArgumentException>(() => PdfDocument.Create().Canvas(canvas =>
             canvas.Effect(OfficeTransform.RotateDegrees(45D), 0.5D, nested =>
-                nested.TextField("Name", "Ada", 10D, 10D, 80D, 20D))));
+                nested.TextField("Name", "Ada", global::OfficeIMO.OfficeLength.Points(10D), global::OfficeIMO.OfficeLength.Points(10D), global::OfficeIMO.OfficeLength.Points(80D), global::OfficeIMO.OfficeLength.Points(20D)))));
         Assert.Throws<ArgumentException>(() => PdfDocument.Create().Canvas(canvas =>
             canvas.WithBlendMode(OfficeBlendMode.Multiply, nested =>
-                nested.TextField("Name", "Ada", 10D, 10D, 80D, 20D))));
+                nested.TextField("Name", "Ada", global::OfficeIMO.OfficeLength.Points(10D), global::OfficeIMO.OfficeLength.Points(10D), global::OfficeIMO.OfficeLength.Points(80D), global::OfficeIMO.OfficeLength.Points(20D)))));
 
         byte[] identityBytes = PdfDocument.Create().Canvas(canvas =>
             canvas.Effect(OfficeTransform.Identity, 1D, nested =>
-                nested.TextField("Name", "Ada", 10D, 10D, 80D, 20D))).ToBytes();
+                nested.TextField("Name", "Ada", global::OfficeIMO.OfficeLength.Points(10D), global::OfficeIMO.OfficeLength.Points(10D), global::OfficeIMO.OfficeLength.Points(80D), global::OfficeIMO.OfficeLength.Points(20D)))).ToBytes();
         Assert.Single(PdfInspector.Inspect(identityBytes).FormFields);
     }
 

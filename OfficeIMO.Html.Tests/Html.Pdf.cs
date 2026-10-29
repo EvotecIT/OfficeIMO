@@ -1561,7 +1561,7 @@ public sealed class HtmlPdfTests {
     [Fact]
     public void Pdf_ToHtmlResult_ReportsIncludedFormWidgetsAsStaticApproximations() {
         byte[] pdf = PdfCore.PdfDocument.Create()
-            .TextField("Approval", width: 120, value: "Ready")
+            .TextField("Approval", width: global::OfficeIMO.OfficeLength.Points(120), value: "Ready")
             .ToBytes();
 
         PdfHtmlConversionResult result = PdfCore.PdfDocumentReadResult.Load(pdf)
@@ -1630,9 +1630,9 @@ public sealed class HtmlPdfTests {
                 MarginTop = 36,
                 MarginBottom = 36
             })
-            .TextField("FirstPageField", width: 120, value: "first")
+            .TextField("FirstPageField", width: global::OfficeIMO.OfficeLength.Points(120), value: "first")
             .PageBreak()
-            .TextField("SecondPageField", width: 120, value: "second")
+            .TextField("SecondPageField", width: global::OfficeIMO.OfficeLength.Points(120), value: "second")
             .ToBytes();
         var options = new PdfToHtmlOptions {
             Profile = PdfHtmlProfile.PositionedReview,

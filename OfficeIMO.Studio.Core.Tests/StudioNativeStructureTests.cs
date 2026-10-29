@@ -193,7 +193,7 @@ public sealed class StudioNativeStructureTests : IDisposable {
     public async Task Flattening_draws_the_form_into_its_pages() {
         string path = Path.Combine(_root, "form.pdf");
         File.WriteAllBytes(path, PdfDocument.Create(document => document.Content(content => content.Canvas(canvas => {
-            canvas.TextField("Name", "Alex", 72, 72, 200, 24);
+            canvas.TextField("Name", "Alex", global::OfficeIMO.OfficeLength.Points(72), global::OfficeIMO.OfficeLength.Points(72), global::OfficeIMO.OfficeLength.Points(200), global::OfficeIMO.OfficeLength.Points(24));
             canvas.CheckBox("Subscribe", true, 72, 120, 16, 16);
         }))).ToBytes());
         using StudioNativeDocument document = await StudioNativeDocument.OpenAsync(path, null, default);

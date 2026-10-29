@@ -75,7 +75,7 @@ public sealed class PdfGeneratedAccessibilityTests {
     public void WidgetDescriptionsCoverCombinedFieldsAndSeparateRadioWidgets() {
         var style = new PdfFormFieldStyle { AlternateName = "Accessible control" };
         byte[] bytes = PdfDocument.Create(TaggedOptions()).Canvas(canvas => canvas
-            .TextField("name", "", 20, 20, 100, 20, style: style)
+            .TextField("name", "", global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(100), global::OfficeIMO.OfficeLength.Points(20), style: style)
             .CheckBox("reviewed", false, 20, 50, 20, 20, style: style)
             .ChoiceField("region", new[] { "North", "South" }, new[] { "North" }, 20, 80, 100, 20, style: style)
             .RadioButton("delivery", "Email", true, 20, 110, 20, 20, style: style)).ToBytes();

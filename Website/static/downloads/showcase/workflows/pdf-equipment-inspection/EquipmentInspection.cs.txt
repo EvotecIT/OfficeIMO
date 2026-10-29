@@ -12,11 +12,11 @@ internal static class EquipmentInspection {
             .Paragraph(p => p.Text("Record the inspection before returning equipment to the shared pool. This sample is not a safety certification."))
             .H2("Asset and inspector", PdfAlign.Left, navy)
             .Paragraph(p => p.Bold("Asset identifier"))
-            .TextField("asset-id", width: 280, value: "NW-LT-042")
+            .TextField("asset-id", width: global::OfficeIMO.OfficeLength.Points(280), value: "NW-LT-042")
             .Paragraph(p => p.Bold("Inspector"))
-            .TextField("inspector", width: 280)
+            .TextField("inspector", width: global::OfficeIMO.OfficeLength.Points(280))
             .Paragraph(p => p.Bold("Inspection date (YYYY-MM-DD)"))
-            .TextField("inspection-date", width: 180)
+            .TextField("inspection-date", width: global::OfficeIMO.OfficeLength.Points(180))
             .H2("Record the checks", PdfAlign.Left, navy)
             .Paragraph(p => p.Text("Casing and connectors checked"))
             .CheckBox("casing-checked")
@@ -28,7 +28,7 @@ internal static class EquipmentInspection {
             .ChoiceField("disposition", new[] { "Awaiting inspection", "Return to pool", "Repair required", "Retire from use" },
                 value: "Awaiting inspection", width: 280)
             .Paragraph(p => p.Bold("Follow-up note"))
-            .TextField("follow-up", width: 450, height: 38)),
+            .TextField("follow-up", width: global::OfficeIMO.OfficeLength.Points(450), height: global::OfficeIMO.OfficeLength.Points(38))),
             new PdfCreateOptions { DefaultFontSize = 10 })
             .Meta(title: "Equipment inspection", author: "OfficeIMO");
         template.Save(Path.Combine(folder, "example.pdf"));

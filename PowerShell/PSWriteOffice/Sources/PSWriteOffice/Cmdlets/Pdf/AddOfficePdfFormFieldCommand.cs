@@ -95,7 +95,7 @@ public sealed class AddOfficePdfFormFieldCommand : PSCmdlet
                     content.RadioButtonGroup(Name, Options, Value, align: Align);
                     break;
                 default:
-                    content.TextField(Name, Width, Height, Value ?? string.Empty, Align);
+                    content.TextField(Name, global::OfficeIMO.OfficeLength.Points(Width), global::OfficeIMO.OfficeLength.Points(Height), Value ?? string.Empty, Align);
                     break;
             }
         });

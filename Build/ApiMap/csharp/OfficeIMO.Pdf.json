@@ -2859,6 +2859,54 @@
       "phase": "B",
       "applied": "phase-b-applied",
       "note": "PdfPageRenderResult.Format uses the same shared enum. All in-repository source consumers are migrated; numeric PNG/SVG values and output behavior are unchanged. No alias or hidden duplicate Format property."
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfContentBuilder.TextField(... double geometry ...)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Pdf.PdfContentBuilder.TextField(... OfficeLength geometry ...)",
+      "reason": "Require explicit physical units for width, height, fontSize, spacingBefore, spacingAfter. Omitted defaults preserve native point dimensions.",
+      "file": "OfficeIMO.Pdf/Compose/PdfContentBuilder.cs",
+      "category": "geometry",
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "note": "Mixed-unit saved-widget geometry, omitted defaults and the shared choice-field model pass the net10.0 native regression suite. Framework and AOT qualification remain part of the final gates."
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfPageCanvas.TextField(... double geometry ...)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Pdf.PdfPageCanvas.TextField(... OfficeLength geometry ...)",
+      "reason": "Require explicit physical units for x, y, width, height, fontSize. Omitted defaults preserve native point dimensions.",
+      "file": "OfficeIMO.Pdf/Model/PdfPageCanvas.Forms.cs",
+      "category": "geometry",
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "note": "Mixed-unit saved-widget geometry, omitted defaults and the shared choice-field model pass the net10.0 native regression suite. Framework and AOT qualification remain part of the final gates."
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfTableCellFormField.TextField(... double geometry ...)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Pdf.PdfTableCellFormField.TextField(... OfficeLength geometry ...)",
+      "reason": "Require explicit physical units for width, height, fontSize. Omitted defaults preserve native point dimensions.",
+      "file": "OfficeIMO.Pdf/Model/PdfTableCellFormField.cs",
+      "category": "geometry",
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "note": "Mixed-unit saved-widget geometry, omitted defaults and the shared choice-field model pass the net10.0 native regression suite. Framework and AOT qualification remain part of the final gates."
+    },
+    {
+      "old": "OfficeIMO.Pdf.PdfTableCellFormField.Width / Height / FontSize : double",
+      "kind": "property",
+      "action": "change",
+      "new": "OfficeIMO.Pdf.PdfTableCellFormField.Width / Height / FontSize : OfficeLength",
+      "reason": "Keep the TextField public model consistent; the shared choice-field model and clone/render paths convert at the point boundary.",
+      "file": "OfficeIMO.Pdf/Model/PdfTableCellFormField.cs",
+      "category": "geometry",
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "note": "Mixed-unit saved-widget geometry, omitted defaults and the shared choice-field model pass the net10.0 native regression suite. Framework and AOT qualification remain part of the final gates."
     }
   ],
   "packageMoves": [
@@ -3415,6 +3463,27 @@
         "OfficeIMO.Pdf/Rendering/Writer/PdfWriter.ContentStream.cs",
         "OfficeIMO.Pdf.Tests/Pdf/PdfDrawingInteropTests.cs"
       ]
+    },
+    {
+      "phase": "B",
+      "change": "Add typed PDF flow tables and PdfTableOptions",
+      "new": "PdfContentBuilder.Table<T>(IEnumerable<T> rows); Table<T>(IEnumerable<T> rows, OfficeTableOptions? options); PdfTableOptions adds Align, Style and bounded Projection controls",
+      "reason": "Expose shared typed data projection through the PDF flow receiver using Core ObjectFlattener and OfficeTableOptions.",
+      "files": [
+        "OfficeIMO.Pdf/Compose/PdfContentBuilder.TypedTables.cs",
+        "OfficeIMO.Pdf/Options/PdfTableOptions.cs"
+      ],
+      "applied": "phase-b-applied",
+      "note": "Shared bounded projection enumerates input once. Common ordering preserves an explicit whitelist; expanded cells use the canonical formatter/null policy. Specific one-argument native string[] and PdfTableCell[] overloads prevent reflection of array metadata. Typed-table and saved-widget suite: 13 passed on net10.0."
+    },
+    {
+      "phase": "B",
+      "action": "add",
+      "new": "PdfContentBuilder.Table(IEnumerable<string[]> rows); Table(IEnumerable<PdfTableCell[]> rows)",
+      "reason": "Keep ordinary native array rows on their existing text/cell table owner when generic typed projection is available.",
+      "file": "OfficeIMO.Pdf/Compose/PdfContentBuilder.cs",
+      "applied": "phase-b-applied",
+      "note": "More specific one-argument overloads preserve actual cells; existing alignment/style overloads keep their behavior. Native array regression passes on net10.0."
     }
   ],
   "applicationStatus": "Phase A applied and validated on the supported macOS targets. Phase B and Tier 2 entries retain their status; Windows .NET Framework validation remains pending.",
@@ -3424,5 +3493,8 @@
     "frameworks": "No framework is dropped in 3.6. Original library TFMs and Windows net472 conditions remain; the front door and both Workflows projects support the full set. Modern-only engines stay conditional.",
     "packageDirection": "Word.Pdf and PowerPoint.Pdf export native documents. Reverse reconstruction is Pdf.Word and Pdf.PowerPoint; Excel reconstruction is Pdf.Excel. Word page images live in Word.Pdf.",
     "surface": "Markdown syntax nodes are exempt from the format prefix. OfficeColor/OfficeColorRole use the root OfficeIMO namespace. Authoring, units, image-builder consolidation, visibility baselines and AOT smoke acceptance are Phase B."
-  }
+  },
+  "additions": [
+    "PdfContentBuilder.Table<T>(IEnumerable<T> rows); Table<T>(IEnumerable<T> rows, OfficeTableOptions? options); PdfTableOptions adds Align, Style and bounded Projection controls"
+  ]
 }

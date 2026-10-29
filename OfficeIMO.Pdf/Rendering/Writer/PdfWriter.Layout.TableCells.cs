@@ -600,7 +600,7 @@ internal static partial class PdfWriter {
                 height += TableCellCheckBoxGap;
             }
 
-            height += cell.FormFields[index].Height;
+            height += cell.FormFields[index].Height.ToPoints();
             objectCount++;
         }
 
@@ -646,7 +646,7 @@ internal static partial class PdfWriter {
         }
 
         for (int index = 0; index < cell.FormFields.Count; index++) {
-            width = System.Math.Max(width, cell.FormFields[index].Width);
+            width = System.Math.Max(width, cell.FormFields[index].Width.ToPoints());
         }
 
         return width;

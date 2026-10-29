@@ -1370,8 +1370,8 @@ public class PdfReadLimitTests {
     [Fact]
     public void FormFieldCountAndDepthBudgetsStopFieldTreeTraversal() {
         byte[] twoFields = PdfDocument.Create()
-            .TextField("First", width: 100, height: 20)
-            .TextField("Second", width: 100, height: 20)
+            .TextField("First", width: global::OfficeIMO.OfficeLength.Points(100), height: global::OfficeIMO.OfficeLength.Points(20))
+            .TextField("Second", width: global::OfficeIMO.OfficeLength.Points(100), height: global::OfficeIMO.OfficeLength.Points(20))
             .ToBytes();
         byte[] nestedFields = BuildNestedFormFieldPdf();
 

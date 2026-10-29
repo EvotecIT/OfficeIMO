@@ -2125,8 +2125,8 @@
     {
       "id": "pdf-equipment-inspection-source",
       "path": "/downloads/showcase/workflows/pdf-equipment-inspection/EquipmentInspection.cs.txt",
-      "bytes": 2705,
-      "sha256": "d099dd72bae15f01d1c0785770860ce301994abc2f82e0c613d6dbf5a627a8b5",
+      "bytes": 2900,
+      "sha256": "121c14d159bf281f1b5323d3e0e763d525b80e26ab74b86f0b2960ed8616b99b",
       "generator": "Copy the generating C# source from the repository",
       "evidence": "Complete C# source for the walkthrough example."
     },
@@ -3037,8 +3037,8 @@
     {
       "id": "pdf-maintenance-job-card-source",
       "path": "/downloads/showcase/workflows/pdf-maintenance-job-card/MaintenanceJobCard.cs.txt",
-      "bytes": 2208,
-      "sha256": "3f9abfe04c50c126d025fca3f1841805790f7fc7fa4143f89d9ed2c3d50063e8",
+      "bytes": 2481,
+      "sha256": "5bcf8d2857c25e95d4ed29cef8fba74d58421c747594d3114d9f3842fb031443",
       "generator": "Copy the generating C# source from the repository",
       "evidence": "Complete C# source for the walkthrough example."
     },

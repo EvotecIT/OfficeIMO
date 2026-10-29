@@ -12,7 +12,7 @@ public class PdfFormCreationTests {
         byte[] pdf = PdfDocument.Create()
             .Meta(title: "Generated form")
             .Paragraph(p => p.Text("Generated field:"))
-            .TextField("Person.Name", width: 180, height: 24, value: "Ada Lovelace", spacingAfter: 12)
+            .TextField("Person.Name", width: global::OfficeIMO.OfficeLength.Points(180), height: global::OfficeIMO.OfficeLength.Points(24), value: "Ada Lovelace", spacingAfter: global::OfficeIMO.OfficeLength.Points(12))
             .ToBytes();
 
         string raw = PdfTestContentText.ReadDecoded(pdf);
@@ -40,7 +40,7 @@ public class PdfFormCreationTests {
     [Fact]
     public void TextField_CanBeFilledAndFlattened() {
         byte[] pdf = PdfDocument.Create()
-            .TextField("Person.Name", width: 180, height: 24, value: "Original")
+            .TextField("Person.Name", width: global::OfficeIMO.OfficeLength.Points(180), height: global::OfficeIMO.OfficeLength.Points(24), value: "Original")
             .ToBytes();
 
         byte[] flattened = PdfFormFiller.FillAndFlattenFields(pdf, new Dictionary<string, string> {
@@ -58,7 +58,7 @@ public class PdfFormCreationTests {
     [Fact]
     public void TaggedTextField_CanBeFlattenedWithoutDanglingStructureReferences() {
         byte[] pdf = PdfDocument.Create(new PdfCreateOptions().EnableTaggedPdfCatalogMarkers())
-            .TextField("Person.Name", width: 180, height: 24, value: "Ada Lovelace")
+            .TextField("Person.Name", width: global::OfficeIMO.OfficeLength.Points(180), height: global::OfficeIMO.OfficeLength.Points(24), value: "Ada Lovelace")
             .ToBytes();
 
         byte[] flattened = PdfFormFiller.FlattenFields(pdf);
@@ -77,7 +77,7 @@ public class PdfFormCreationTests {
                 AcroFormDefaultTextAlignment = PdfFormFieldTextAlignment.Center
             })
             .AcroFormDefaultTextAlignment(PdfFormFieldTextAlignment.Right)
-            .TextField("Person.Name", width: 180, height: 24, value: "Ada")
+            .TextField("Person.Name", width: global::OfficeIMO.OfficeLength.Points(180), height: global::OfficeIMO.OfficeLength.Points(24), value: "Ada")
             .ToBytes();
 
         string raw = PdfTestContentText.ReadDecoded(pdf);
@@ -200,7 +200,7 @@ public class PdfFormCreationTests {
                     PdfTableCell.WithFormFields(
                         "Table form fields",
                         new[] {
-                            PdfTableCellFormField.TextField("Table.DueDate", "2026-05-31", width: 140, height: 18),
+                            PdfTableCellFormField.TextField("Table.DueDate", "2026-05-31", width: global::OfficeIMO.OfficeLength.Points(140), height: global::OfficeIMO.OfficeLength.Points(18)),
                             PdfTableCellFormField.ChoiceField("Table.Country", new[] { "Poland", "Germany" }, value: "Germany", width: 140, height: 18)
                         })
                 }
@@ -552,7 +552,7 @@ public class PdfFormCreationTests {
         byte[] pdf = PdfDocument.Create(new PdfCreateOptions {
                 CompressContentStreams = false
             })
-            .TextField("Comb.Code", value: "AB12", width: 80, height: 22, style: style)
+            .TextField("Comb.Code", value: "AB12", width: global::OfficeIMO.OfficeLength.Points(80), height: global::OfficeIMO.OfficeLength.Points(22), style: style)
             .ToBytes();
 
         string raw = PdfTestContentText.ReadDecoded(pdf);
@@ -579,7 +579,7 @@ public class PdfFormCreationTests {
         };
 
         byte[] pdf = PdfDocument.Create()
-            .TextField("TextFlags.Secret", value: "Ada", height: 36, style: style)
+            .TextField("TextFlags.Secret", value: "Ada", height: global::OfficeIMO.OfficeLength.Points(36), style: style)
             .ChoiceField("TextFlags.Country", new[] { "Poland", "Germany" }, value: "Poland", style: style)
             .CheckBox("TextFlags.Accept", isChecked: true, style: style)
             .ToBytes();
@@ -625,8 +625,8 @@ public class PdfFormCreationTests {
             .TextField(
                 "Notes",
                 value: "Alpha Beta",
-                width: 50,
-                height: 48,
+                width: global::OfficeIMO.OfficeLength.Points(50),
+                height: global::OfficeIMO.OfficeLength.Points(48),
                 style: new PdfFormFieldStyle { IsMultiline = true })
             .ToBytes();
 
@@ -927,14 +927,14 @@ public class PdfFormCreationTests {
             })
             .Compose(document => document.Page(page => page.Content(content => {
                 content.Item(item => item
-                    .TextField("Item.Name", width: 120, height: 20, value: "Ada", spacingAfter: 8)
+                    .TextField("Item.Name", width: global::OfficeIMO.OfficeLength.Points(120), height: global::OfficeIMO.OfficeLength.Points(20), value: "Ada", spacingAfter: global::OfficeIMO.OfficeLength.Points(8))
                     .Element(element => element.Content(nested => nested.CheckBox("Element.Accept", isChecked: true, size: 14, spacingAfter: 10))));
 
                 content.Row(row => row
                     .Gap(24)
                     .PercentColumn(50, column => column
                         .Paragraph(p => p.Text("Left column"))
-                        .TextField("Left.Email", width: 120, height: 20, value: "left@example.com", spacingAfter: 8)
+                        .TextField("Left.Email", width: global::OfficeIMO.OfficeLength.Points(120), height: global::OfficeIMO.OfficeLength.Points(20), value: "left@example.com", spacingAfter: global::OfficeIMO.OfficeLength.Points(8))
                         .ChoiceField("Left.Country", new[] { "Poland", "Germany" }, value: "Poland", width: 120, height: 20))
                     .PercentColumn(50, column => column
                         .Paragraph(p => p.Text("Right column"))
@@ -983,8 +983,8 @@ public class PdfFormCreationTests {
     [Fact]
     public void GeneratedFields_ValidateFlowGeometry() {
         Assert.Throws<ArgumentException>(() => PdfDocument.Create().TextField(" "));
-        Assert.Throws<ArgumentOutOfRangeException>(() => PdfDocument.Create().TextField("Name", width: 0));
-        Assert.Throws<ArgumentOutOfRangeException>(() => PdfDocument.Create().TextField("Name", height: -1));
+        Assert.Throws<ArgumentOutOfRangeException>(() => PdfDocument.Create().TextField("Name", width: global::OfficeIMO.OfficeLength.Points(0)));
+        Assert.Throws<ArgumentOutOfRangeException>(() => PdfDocument.Create().TextField("Name", height: global::OfficeIMO.OfficeLength.Points(-1)));
         Assert.Throws<ArgumentException>(() => PdfDocument.Create().TextField("Name", align: PdfAlign.Justify));
         Assert.Throws<ArgumentException>(() => PdfDocument.Create().CheckBox(" "));
         Assert.Throws<ArgumentOutOfRangeException>(() => PdfDocument.Create().CheckBox("AcceptTerms", size: 0));

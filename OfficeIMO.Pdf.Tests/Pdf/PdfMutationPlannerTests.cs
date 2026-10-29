@@ -246,7 +246,7 @@ public class PdfMutationPlannerTests {
     [Fact]
     public void TryFill_AppendsEncryptedFormRevisionWithOwnerAuthorization() {
         byte[] source = PdfDocument.Create(new PdfCreateOptions().SetEncryption("open", "owner"))
-            .TextField("Name", width: 180, height: 24, value: "Ada")
+            .TextField("Name", width: global::OfficeIMO.OfficeLength.Points(180), height: global::OfficeIMO.OfficeLength.Points(24), value: "Ada")
             .ToBytes();
         var ownerOptions = new PdfLoadOptions { Password = "owner" };
         var values = new Dictionary<string, string> { ["Name"] = "Grace" };

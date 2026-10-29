@@ -569,7 +569,7 @@ internal static partial class HtmlPdfRenderedConverter {
                 appearanceStyle.TextColor = (field.PlaceholderTextColor.A == 0 ? (global::OfficeIMO.OfficeColor?)null : field.PlaceholderTextColor) ?? global::OfficeIMO.OfficeColor.Black;
                 canvas.TextFieldWithInitialAppearance(field.Name, field.Value, field.Placeholder, x, y, width, height, fontSize, style, appearanceStyle);
             } else {
-                canvas.TextField(field.Name, field.Value, x, y, width, height, fontSize, style);
+                canvas.TextField(field.Name, field.Value, global::OfficeIMO.OfficeLength.Points(x), global::OfficeIMO.OfficeLength.Points(y), global::OfficeIMO.OfficeLength.Points(width), global::OfficeIMO.OfficeLength.Points(height), global::OfficeIMO.OfficeLength.Points(fontSize), style);
             }
             if (!field.IsPassword && !string.IsNullOrWhiteSpace(field.Value)) {
                 canvas.SearchableText(field.Value, x, y + Math.Min(height, fontSize), logicalOrder: field.SemanticSourceOrder);

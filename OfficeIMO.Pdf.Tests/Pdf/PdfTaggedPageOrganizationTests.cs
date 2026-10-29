@@ -75,7 +75,7 @@ public sealed partial class PdfTaggedPageOrganizationTests {
 
     [Fact]
     public void CopyingAFormPageClonesItsFieldOwnershipAndDeletionPrunesOnlyTheRemovedWidgets() {
-        var source = PdfDocument.Create().TextField("First", 120, 24, "First value").PageBreak().TextField("Second", 120, 24, "Second value");
+        var source = PdfDocument.Create().TextField("First", global::OfficeIMO.OfficeLength.Points(120), global::OfficeIMO.OfficeLength.Points(24), "First value").PageBreak().TextField("Second", global::OfficeIMO.OfficeLength.Points(120), global::OfficeIMO.OfficeLength.Points(24), "Second value");
         PdfDocument copied = source.Pages.Duplicate(1); var fields = copied.Inspect().FormFields;
         Assert.Equal(3, fields.Count); Assert.Equal(3, fields.Select(field => field.Name).Distinct().Count());
         Assert.Equal(new[] { 1, 2, 3 }, fields.SelectMany(field => field.Widgets).Select(widget => widget.PageNumber!.Value).OrderBy(page => page));

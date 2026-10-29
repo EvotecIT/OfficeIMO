@@ -56,7 +56,7 @@ public sealed class NewOfficePdfTableCellFieldCommand : PSCmdlet
     {
         var field = ParameterSetName == ParameterSetChoice
             ? PdfTableCellFormField.ChoiceField(Name, Option, Value, Width, Height, FontSize, !ListBox.IsPresent)
-            : PdfTableCellFormField.TextField(Name, Value, Width, Height, FontSize);
+            : PdfTableCellFormField.TextField(Name, Value, global::OfficeIMO.OfficeLength.Points(Width), global::OfficeIMO.OfficeLength.Points(Height), global::OfficeIMO.OfficeLength.Points(FontSize));
         WriteObject(field);
     }
 }

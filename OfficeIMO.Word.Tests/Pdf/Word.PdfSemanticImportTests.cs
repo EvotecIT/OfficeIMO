@@ -180,7 +180,7 @@ public partial class Word {
             .Image(PdfPngTestImages.CreateRgbPng(1, 1), 24, 24, alternativeText: "Semantic import pixel")
             .PageBreak()
             .H1("Second Page")
-            .TextField("Approval", width: 120, value: "Ready")
+            .TextField("Approval", width: global::OfficeIMO.OfficeLength.Points(120), value: "Ready")
             .ToBytes();
         var options = new WordPdfImportOptions();
 

@@ -117,13 +117,15 @@ public sealed partial class PdfContentBuilder {
     public PdfContentBuilder RichNumbered(System.Collections.Generic.IEnumerable<PdfListItem> items, PdfAlign align = PdfAlign.Left, global::OfficeIMO.OfficeColor? color = null, int startNumber = 1, PdfListStyle? style = null) { _doc.RichNumbered(items, align, color, startNumber, style); return this; }
     /// <summary>Adds a simple text table.</summary>
     /// <param name="rows">Sequence of row arrays.</param>
-    /// <param name="align">Table alignment.</param>
-    /// <param name="style">Optional table styling.</param>
+    public PdfContentBuilder Table(System.Collections.Generic.IEnumerable<string[]> rows) { _doc.Table(rows, PdfAlign.Left, null); return this; }
+
+    /// <summary>Adds native text rows with explicit placement and styling.</summary>
     public PdfContentBuilder Table(System.Collections.Generic.IEnumerable<string[]> rows, PdfAlign align = PdfAlign.Left, PdfTableStyle? style = null) { _doc.Table(rows, align, style); return this; }
     /// <summary>Adds a table with explicit cells, including optional column spans.</summary>
     /// <param name="rows">Sequence of rows made from explicit table cells.</param>
-    /// <param name="align">Table alignment.</param>
-    /// <param name="style">Optional table styling.</param>
+    public PdfContentBuilder Table(System.Collections.Generic.IEnumerable<PdfTableCell[]> rows) { _doc.Table(rows, PdfAlign.Left, null); return this; }
+
+    /// <summary>Adds native cell rows with explicit placement and styling.</summary>
     public PdfContentBuilder Table(System.Collections.Generic.IEnumerable<PdfTableCell[]> rows, PdfAlign align = PdfAlign.Left, PdfTableStyle? style = null) { _doc.Table(rows, align, style); return this; }
     /// <summary>Adds a simple text table and attaches link URIs to specific cells.</summary>
     /// <param name="rows">Sequence of row arrays.</param>
@@ -150,7 +152,7 @@ public sealed partial class PdfContentBuilder {
     /// <summary>Adds a named bookmark at the current flow position.</summary>
     public PdfContentBuilder Bookmark(string name) { _doc.Bookmark(name); return this; }
     /// <summary>Adds a simple AcroForm text field at the current flow position.</summary>
-    public PdfContentBuilder TextField(string name, double width = 180, double height = 22, string value = "", PdfAlign align = PdfAlign.Left, double fontSize = 10, double spacingBefore = 0, double spacingAfter = 6, PdfFormFieldStyle? style = null) { _doc.TextField(name, width, height, value, align, fontSize, spacingBefore, spacingAfter, style); return this; }
+    public PdfContentBuilder TextField(string name, OfficeLength? width = null, OfficeLength? height = null, string value = "", PdfAlign align = PdfAlign.Left, OfficeLength? fontSize = null, OfficeLength? spacingBefore = null, OfficeLength? spacingAfter = null, PdfFormFieldStyle? style = null) { _doc.TextField(name, width, height, value, align, fontSize, spacingBefore, spacingAfter, style); return this; }
     /// <summary>Adds a simple AcroForm check box at the current flow position.</summary>
     public PdfContentBuilder CheckBox(string name, bool isChecked = false, double size = 14, PdfAlign align = PdfAlign.Left, double spacingBefore = 0, double spacingAfter = 6, string checkedValueName = "Yes", PdfFormFieldStyle? style = null) { _doc.CheckBox(name, isChecked, size, align, spacingBefore, spacingAfter, checkedValueName, style); return this; }
     /// <summary>Adds a simple AcroForm choice field at the current flow position.</summary>

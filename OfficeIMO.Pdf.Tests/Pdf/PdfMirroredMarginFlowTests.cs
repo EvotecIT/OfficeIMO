@@ -137,7 +137,7 @@ public sealed class PdfMirroredMarginFlowTests {
         var document = PdfDocument.Create(builder => builder.Content(content => {
             content.Text("Seed").Spacer(130);
             switch (kind) {
-                case "text": content.TextField("Field", width: 80); break;
+                case "text": content.TextField("Field", width: global::OfficeIMO.OfficeLength.Points(80)); break;
                 case "checkbox": content.CheckBox("Field"); break;
                 case "choice": content.ChoiceField("Field", new[] { "A" }, width: 80); break;
                 case "radio": content.RadioButtonGroup("Field", new[] { "A" }); break;

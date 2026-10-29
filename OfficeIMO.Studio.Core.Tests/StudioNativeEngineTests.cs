@@ -231,7 +231,7 @@ public sealed class StudioNativeEngineTests : IDisposable {
     private string CreateFormPdf() {
         string path = Path.Combine(_root, "form.pdf");
         File.WriteAllBytes(path, PdfDocument.Create(document => document.Content(content => content.Canvas(canvas => {
-            canvas.TextField("Name", null, 72, 72, 200, 24);
+            canvas.TextField("Name", null, global::OfficeIMO.OfficeLength.Points(72), global::OfficeIMO.OfficeLength.Points(72), global::OfficeIMO.OfficeLength.Points(200), global::OfficeIMO.OfficeLength.Points(24));
             canvas.CheckBox("Subscribe", false, 72, 120, 16, 16);
             canvas.RadioButton("Plan", "Basic", true, 72, 160, 16, 16);
             canvas.RadioButton("Plan", "Pro", false, 120, 160, 16, 16);

@@ -98,7 +98,7 @@ public sealed class PdfColumnFrameRegressionTests {
     [Fact]
     public void Columns_FixedFieldSkipsUnusedPartialColumnsUntilItFits() {
         byte[] bytes = PdfDocument.Create(Options()).Paragraph(p => p.Text(Lines("Prelude", 9)), style: Paragraph())
-            .Columns(content => content.TextField("TallField", width: 100, height: 120, spacingAfter: 0),
+            .Columns(content => content.TextField("TallField", width: global::OfficeIMO.OfficeLength.Points(100), height: global::OfficeIMO.OfficeLength.Points(120), spacingAfter: global::OfficeIMO.OfficeLength.Points(0)),
                 new PdfMultiColumnOptions { Gap = 20, BalanceLastPage = false }).ToBytes();
         var widget = Assert.Single(PdfInspector.Inspect(bytes).FormFieldsByName["TallField"].Widgets);
         Assert.Equal(2, widget.PageNumber);
@@ -123,7 +123,7 @@ public sealed class PdfColumnFrameRegressionTests {
         byte[] bytes = PdfDocument.Create(Options()).Columns(content => {
             content.Paragraph(p => p.Text("Prelude"), style: Paragraph());
             content.Spacer(220);
-            content.TextField("WideField", width: 200, height: 80, spacingAfter: 0);
+            content.TextField("WideField", width: global::OfficeIMO.OfficeLength.Points(200), height: global::OfficeIMO.OfficeLength.Points(80), spacingAfter: global::OfficeIMO.OfficeLength.Points(0));
         }, Unequal()).ToBytes();
         var widget = Assert.Single(PdfInspector.Inspect(bytes).FormFieldsByName["WideField"].Widgets);
         Assert.Equal(2, widget.PageNumber);
@@ -197,7 +197,7 @@ public sealed class PdfColumnFrameRegressionTests {
     public void Columns_FixedObjectCannotRetryPastAContainerMaximumWidth() {
         var options = Options(); options.MaxGeneratedPages = 2;
         var document = PdfDocument.Create(options).Columns(content => content.Panel(panel =>
-            panel.TextField("Impossible", width: 80, height: 20),
+            panel.TextField("Impossible", width: global::OfficeIMO.OfficeLength.Points(80), height: global::OfficeIMO.OfficeLength.Points(20)),
             new PdfPanelStyle { MaxWidth = 60, PaddingX = 0, PaddingY = 0, SpacingBefore = 0, SpacingAfter = 0 }), Unequal());
         Assert.Throws<ArgumentException>(() => document.ToBytes());
     }

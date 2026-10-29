@@ -902,7 +902,7 @@ public sealed class ReaderPdfModularTests {
                 DefaultFontSize = 10
             })
             .Paragraph(p => p.Text("Reader PDF form metadata."))
-            .TextField("Contact.Email", value: "info@example.com", width: 180, height: 24)
+            .TextField("Contact.Email", value: "info@example.com", width: global::OfficeIMO.OfficeLength.Points(180), height: global::OfficeIMO.OfficeLength.Points(24))
             .ChoiceField("Contact.Country", new[] { "PL", "DE" }, value: "PL", width: 180, height: 24)
             .ToBytes();
 
@@ -1387,7 +1387,7 @@ public sealed class ReaderPdfModularTests {
                 DefaultFontSize = 10
             })
             .Paragraph(p => p.Text("Reader PDF form marker."))
-            .TextField("Contact.Email", value: "info@example.com", width: 180, height: 24)
+            .TextField("Contact.Email", value: "info@example.com", width: global::OfficeIMO.OfficeLength.Points(180), height: global::OfficeIMO.OfficeLength.Points(24))
             .ChoiceField("Contact.Country", new[] { "PL", "DE" }, value: "PL", width: 180, height: 24)
             .ToBytes();
         using var stream = new MemoryStream(pdf, writable: false);

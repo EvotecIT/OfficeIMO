@@ -29,11 +29,14 @@ public sealed partial class PdfPageCanvas {
     }
 
     /// <summary>Adds an interactive text field at fixed top-left page coordinates.</summary>
-    public PdfPageCanvas TextField(string name, string? value, double x, double y, double width, double height, double fontSize = 10D, PdfFormFieldStyle? style = null) {
-        ValidateFormFieldBox(name, x, y, width, height);
-        Guard.Positive(fontSize, nameof(fontSize));
+    public PdfPageCanvas TextField(string name, string? value, OfficeLength x, OfficeLength y, OfficeLength width, OfficeLength height, OfficeLength? fontSize = null, PdfFormFieldStyle? style = null) {
+        double xPoints = x.ToPoints(), yPoints = y.ToPoints();
+        double widthPoints = width.ToPoints(), heightPoints = height.ToPoints();
+        double fontSizePoints = (fontSize ?? OfficeLength.Points(10)).ToPoints();
+        ValidateFormFieldBox(name, xPoints, yPoints, widthPoints, heightPoints);
+        Guard.Positive(fontSizePoints, nameof(fontSize));
         string resolvedValue = value ?? string.Empty;
-        _items.Add(PdfCanvasFormFieldItem.Text(name, resolvedValue, resolvedValue, x, y, width, height, fontSize, style, style));
+        _items.Add(PdfCanvasFormFieldItem.Text(name, resolvedValue, resolvedValue, xPoints, yPoints, widthPoints, heightPoints, fontSizePoints, style, style));
         return this;
     }
 

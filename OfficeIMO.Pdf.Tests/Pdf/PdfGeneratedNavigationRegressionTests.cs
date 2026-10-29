@@ -53,7 +53,7 @@ public sealed class PdfGeneratedNavigationRegressionTests {
             .Clip(20, 20, 20, 20, clipped => {
                 if (kind == "image") clipped.Image(image, 100, 100, 20, 20, alternativeText: "Hidden image");
                 else if (kind == "radio") clipped.RadioButton("hidden", "Yes", true, 100, 100, 20, 20, style: style);
-                else clipped.TextField("hidden", "", 100, 100, 20, 20, style: style);
+                else clipped.TextField("hidden", "", global::OfficeIMO.OfficeLength.Points(100), global::OfficeIMO.OfficeLength.Points(100), global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(20), style: style);
             }))
             .Paragraph(p => p.Text("Visible target ").LinkToBookmark("Return", "target"));
 
@@ -76,7 +76,7 @@ public sealed class PdfGeneratedNavigationRegressionTests {
         byte[] bytes = PdfDocument.Create(StrictOptions()).Meta(title: "Clipped sibling target").Bookmark("target")
             .Canvas(canvas => canvas.Clip(20, 20, 80, 80, clipped => {
                 if (hidden == "image" || hidden == "mixed") clipped.Image(image, 120, 120, 20, 20, alternativeText: "Clipped figure");
-                if (hidden == "field" || hidden == "mixed") clipped.TextField("hidden", "", 120, 150, 20, 20, style: style);
+                if (hidden == "field" || hidden == "mixed") clipped.TextField("hidden", "", global::OfficeIMO.OfficeLength.Points(120), global::OfficeIMO.OfficeLength.Points(150), global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(20), style: style);
                 if (hidden == "radio") clipped.RadioButton("hidden", "Yes", true, 120, 120, 20, 20, style: style);
                 if (visible == "text") clipped.Text("Visible sibling", 25, 25, 60, 20);
                 else if (visible == "image") clipped.Image(image, 25, 25, 20, 20, alternativeText: "Visible sibling");

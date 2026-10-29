@@ -617,7 +617,7 @@ public class PdfPermissionPolicyTests {
             AllowedPermissions = PdfStandardPermissions.None
         };
         return PdfDocument.Create(new PdfCreateOptions().SetEncryption(encryption))
-            .TextField("Name", width: 180, height: 24, value: value)
+            .TextField("Name", width: global::OfficeIMO.OfficeLength.Points(180), height: global::OfficeIMO.OfficeLength.Points(24), value: value)
             .ToBytes();
     }
 

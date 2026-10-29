@@ -170,7 +170,7 @@ public sealed class PowerPointPdfEditableDefaultContracts {
     public void DefaultEditableImportTreatsOmittedInteractiveContentAsLoss() {
         byte[] pdf = PdfCore.PdfDocument.Create()
             .H1("Approval")
-            .TextField("Decision", width: 140, value: "Ready")
+            .TextField("Decision", width: global::OfficeIMO.OfficeLength.Points(140), value: "Ready")
             .ToBytes();
 
         PdfPowerPointConversionResult result = PdfCore.PdfDocument.Load(pdf)

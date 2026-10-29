@@ -289,11 +289,11 @@ public partial class PdfInspectorTests {
                 MarginTop = 36,
                 MarginBottom = 36
             })
-            .TextField("First.Page", width: 120, height: 20, value: "one")
+            .TextField("First.Page", width: global::OfficeIMO.OfficeLength.Points(120), height: global::OfficeIMO.OfficeLength.Points(20), value: "one")
             .PageBreak()
-            .TextField("Second.Page", width: 120, height: 20, value: "two")
+            .TextField("Second.Page", width: global::OfficeIMO.OfficeLength.Points(120), height: global::OfficeIMO.OfficeLength.Points(20), value: "two")
             .PageBreak()
-            .TextField("Third.Page", width: 120, height: 20, value: "three")
+            .TextField("Third.Page", width: global::OfficeIMO.OfficeLength.Points(120), height: global::OfficeIMO.OfficeLength.Points(20), value: "three")
             .ToBytes();
 
         PdfDocumentInfo info = PdfInspector.InspectPageRanges(pdf, PdfPageRange.ParseMany("2,1,2"));

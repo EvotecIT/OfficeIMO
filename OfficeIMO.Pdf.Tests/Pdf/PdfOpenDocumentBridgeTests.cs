@@ -32,7 +32,7 @@ public sealed class PdfOpenDocumentBridgeTests {
     [Fact]
     public void PdfToOdt_ReportsLostFormInteractivityThroughTheCombinedLossGate() {
         byte[] source = PdfCore.PdfDocument.Create()
-            .TextField("Approval", width: 120, value: "Ready")
+            .TextField("Approval", width: global::OfficeIMO.OfficeLength.Points(120), value: "Ready")
             .ToBytes();
         PdfCore.PdfDocument pdf = PdfCore.PdfDocument.Load(source);
 

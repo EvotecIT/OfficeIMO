@@ -997,7 +997,9 @@ OfficeIMO.Pdf.PdfContentBuilder.Section(string! title, System.Action<OfficeIMO.P
 OfficeIMO.Pdf.PdfContentBuilder.Semantic(OfficeIMO.Pdf.PdfSemanticRole role, System.Action<OfficeIMO.Pdf.PdfContentBuilder!>! build, string? alternativeText = null) -> OfficeIMO.Pdf.PdfContentBuilder!
 OfficeIMO.Pdf.PdfContentBuilder.Shape(OfficeIMO.Drawing.OfficeShape! shape, OfficeIMO.Pdf.PdfAlign? align = null, double? spacingBefore = null, double? spacingAfter = null, OfficeIMO.Pdf.PdfDrawingStyle? style = null, string? linkUri = null, string? linkContents = null) -> OfficeIMO.Pdf.PdfContentBuilder!
 OfficeIMO.Pdf.PdfContentBuilder.Spacer(double height) -> OfficeIMO.Pdf.PdfContentBuilder!
+OfficeIMO.Pdf.PdfContentBuilder.Table(System.Collections.Generic.IEnumerable<OfficeIMO.Pdf.PdfTableCell![]!>! rows) -> OfficeIMO.Pdf.PdfContentBuilder!
 OfficeIMO.Pdf.PdfContentBuilder.Table(System.Collections.Generic.IEnumerable<OfficeIMO.Pdf.PdfTableCell![]!>! rows, OfficeIMO.Pdf.PdfAlign align = OfficeIMO.Pdf.PdfAlign.Left, OfficeIMO.Pdf.PdfTableStyle? style = null) -> OfficeIMO.Pdf.PdfContentBuilder!
+OfficeIMO.Pdf.PdfContentBuilder.Table(System.Collections.Generic.IEnumerable<string![]!>! rows) -> OfficeIMO.Pdf.PdfContentBuilder!
 OfficeIMO.Pdf.PdfContentBuilder.Table(System.Collections.Generic.IEnumerable<string![]!>! rows, OfficeIMO.Pdf.PdfAlign align = OfficeIMO.Pdf.PdfAlign.Left, OfficeIMO.Pdf.PdfTableStyle? style = null) -> OfficeIMO.Pdf.PdfContentBuilder!
 OfficeIMO.Pdf.PdfContentBuilder.TableDeferred(System.Func<System.Collections.Generic.IEnumerable<OfficeIMO.Pdf.PdfTableCell![]!>!>! rowFactory, int batchSize = 256, OfficeIMO.Pdf.PdfAlign align = OfficeIMO.Pdf.PdfAlign.Left, OfficeIMO.Pdf.PdfTableStyle? style = null) -> OfficeIMO.Pdf.PdfContentBuilder!
 OfficeIMO.Pdf.PdfContentBuilder.TableDeferred(System.Func<System.Collections.Generic.IEnumerable<string![]!>!>! rowFactory, int batchSize = 256, OfficeIMO.Pdf.PdfAlign align = OfficeIMO.Pdf.PdfAlign.Left, OfficeIMO.Pdf.PdfTableStyle? style = null) -> OfficeIMO.Pdf.PdfContentBuilder!
@@ -1005,7 +1007,7 @@ OfficeIMO.Pdf.PdfContentBuilder.TableOfContents(OfficeIMO.Pdf.PdfTableOfContents
 OfficeIMO.Pdf.PdfContentBuilder.TableWithLinks(System.Collections.Generic.IEnumerable<string![]!>! rows, System.Collections.Generic.Dictionary<(int Row, int Col), string!>! links, OfficeIMO.Pdf.PdfAlign align = OfficeIMO.Pdf.PdfAlign.Left, OfficeIMO.Pdf.PdfTableStyle? style = null) -> OfficeIMO.Pdf.PdfContentBuilder!
 OfficeIMO.Pdf.PdfContentBuilder.Text(string! text, OfficeIMO.Pdf.PdfAlign align = OfficeIMO.Pdf.PdfAlign.Left, OfficeIMO.OfficeColor? color = null, OfficeIMO.Pdf.PdfParagraphStyle? style = null) -> OfficeIMO.Pdf.PdfContentBuilder!
 OfficeIMO.Pdf.PdfContentBuilder.TextAnnotation(string! contents, double width = 18, double height = 18, OfficeIMO.Pdf.PdfAlign? align = null, double? spacingBefore = null, double? spacingAfter = null, OfficeIMO.Pdf.PdfTextAnnotationIcon icon = OfficeIMO.Pdf.PdfTextAnnotationIcon.Comment, OfficeIMO.OfficeColor? color = null, bool open = false) -> OfficeIMO.Pdf.PdfContentBuilder!
-OfficeIMO.Pdf.PdfContentBuilder.TextField(string! name, double width = 180, double height = 22, string! value = "", OfficeIMO.Pdf.PdfAlign align = OfficeIMO.Pdf.PdfAlign.Left, double fontSize = 10, double spacingBefore = 0, double spacingAfter = 6, OfficeIMO.Pdf.PdfFormFieldStyle? style = null) -> OfficeIMO.Pdf.PdfContentBuilder!
+OfficeIMO.Pdf.PdfContentBuilder.TextField(string! name, OfficeIMO.OfficeLength? width = null, OfficeIMO.OfficeLength? height = null, string! value = "", OfficeIMO.Pdf.PdfAlign align = OfficeIMO.Pdf.PdfAlign.Left, OfficeIMO.OfficeLength? fontSize = null, OfficeIMO.OfficeLength? spacingBefore = null, OfficeIMO.OfficeLength? spacingAfter = null, OfficeIMO.Pdf.PdfFormFieldStyle? style = null) -> OfficeIMO.Pdf.PdfContentBuilder!
 OfficeIMO.Pdf.PdfConversionFidelityStatus
 OfficeIMO.Pdf.PdfConversionFidelityStatus.Degraded = 2 -> OfficeIMO.Pdf.PdfConversionFidelityStatus
 OfficeIMO.Pdf.PdfConversionFidelityStatus.Faithful = 0 -> OfficeIMO.Pdf.PdfConversionFidelityStatus
@@ -5296,7 +5298,7 @@ OfficeIMO.Pdf.PdfPageCanvas.TextBox(System.Collections.Generic.IEnumerable<Offic
 OfficeIMO.Pdf.PdfPageCanvas.TextBox(string! text, double x, double y, double width, double height, OfficeIMO.Pdf.PdfCanvasTextBoxStyle? style = null, double rotationAngle = 0) -> OfficeIMO.Pdf.PdfPageCanvas!
 OfficeIMO.Pdf.PdfPageCanvas.TextBox(string! text, double x, double y, double width, double height, OfficeIMO.Pdf.PdfCanvasTextBoxStyle? style, System.Action<OfficeIMO.Pdf.PdfLayoutDiagnostic!>? diagnosticHandler) -> OfficeIMO.Pdf.PdfPageCanvas!
 OfficeIMO.Pdf.PdfPageCanvas.TextBox(string! text, double x, double y, double width, double height, OfficeIMO.Pdf.PdfCanvasTextBoxStyle? style, double rotationAngle, System.Action<OfficeIMO.Pdf.PdfLayoutDiagnostic!>? diagnosticHandler) -> OfficeIMO.Pdf.PdfPageCanvas!
-OfficeIMO.Pdf.PdfPageCanvas.TextField(string! name, string? value, double x, double y, double width, double height, double fontSize = 10, OfficeIMO.Pdf.PdfFormFieldStyle? style = null) -> OfficeIMO.Pdf.PdfPageCanvas!
+OfficeIMO.Pdf.PdfPageCanvas.TextField(string! name, string? value, OfficeIMO.OfficeLength x, OfficeIMO.OfficeLength y, OfficeIMO.OfficeLength width, OfficeIMO.OfficeLength height, OfficeIMO.OfficeLength? fontSize = null, OfficeIMO.Pdf.PdfFormFieldStyle? style = null) -> OfficeIMO.Pdf.PdfPageCanvas!
 OfficeIMO.Pdf.PdfPageCanvas.WithBlendMode(OfficeIMO.Drawing.OfficeBlendMode blendMode, System.Action<OfficeIMO.Pdf.PdfPageCanvas!>! build) -> OfficeIMO.Pdf.PdfPageCanvas!
 OfficeIMO.Pdf.PdfPageChange
 OfficeIMO.Pdf.PdfPageChange.ActualPageNumber.get -> int?
@@ -7547,8 +7549,8 @@ OfficeIMO.Pdf.PdfTableCellCheckBox.PdfTableCellCheckBox(string! name, bool isChe
 OfficeIMO.Pdf.PdfTableCellCheckBox.Size.get -> double
 OfficeIMO.Pdf.PdfTableCellCheckBox.Style.get -> OfficeIMO.Pdf.PdfFormFieldStyle!
 OfficeIMO.Pdf.PdfTableCellFormField
-OfficeIMO.Pdf.PdfTableCellFormField.FontSize.get -> double
-OfficeIMO.Pdf.PdfTableCellFormField.Height.get -> double
+OfficeIMO.Pdf.PdfTableCellFormField.FontSize.get -> OfficeIMO.OfficeLength
+OfficeIMO.Pdf.PdfTableCellFormField.Height.get -> OfficeIMO.OfficeLength
 OfficeIMO.Pdf.PdfTableCellFormField.IsComboBox.get -> bool
 OfficeIMO.Pdf.PdfTableCellFormField.Kind.get -> OfficeIMO.Pdf.PdfTableCellFormFieldKind
 OfficeIMO.Pdf.PdfTableCellFormField.Name.get -> string!
@@ -7556,7 +7558,7 @@ OfficeIMO.Pdf.PdfTableCellFormField.Options.get -> System.Collections.Generic.IR
 OfficeIMO.Pdf.PdfTableCellFormField.Style.get -> OfficeIMO.Pdf.PdfFormFieldStyle!
 OfficeIMO.Pdf.PdfTableCellFormField.Value.get -> string!
 OfficeIMO.Pdf.PdfTableCellFormField.Values.get -> System.Collections.Generic.IReadOnlyList<string!>!
-OfficeIMO.Pdf.PdfTableCellFormField.Width.get -> double
+OfficeIMO.Pdf.PdfTableCellFormField.Width.get -> OfficeIMO.OfficeLength
 OfficeIMO.Pdf.PdfTableCellFormFieldKind
 OfficeIMO.Pdf.PdfTableCellFormFieldKind.Choice = 1 -> OfficeIMO.Pdf.PdfTableCellFormFieldKind
 OfficeIMO.Pdf.PdfTableCellFormFieldKind.Text = 0 -> OfficeIMO.Pdf.PdfTableCellFormFieldKind
@@ -8870,7 +8872,7 @@ static OfficeIMO.Pdf.PdfTableCell.WithFormFields(string? text, System.Collection
 static OfficeIMO.Pdf.PdfTableCell.WithImages(System.Collections.Generic.IEnumerable<OfficeIMO.Pdf.PdfTextRun!>! runs, System.Collections.Generic.IEnumerable<OfficeIMO.Pdf.PdfTableCellImage!>! images, int columnSpan = 1, string? linkUri = null, string? linkContents = null, int rowSpan = 1, System.Collections.Generic.IEnumerable<OfficeIMO.Pdf.PdfTableCellCheckBox!>? checkBoxes = null, System.Collections.Generic.IEnumerable<OfficeIMO.Pdf.PdfTableCellFormField!>? formFields = null, string? linkDestinationName = null) -> OfficeIMO.Pdf.PdfTableCell!
 static OfficeIMO.Pdf.PdfTableCell.WithImages(string? text, System.Collections.Generic.IEnumerable<OfficeIMO.Pdf.PdfTableCellImage!>! images, int columnSpan = 1, string? linkUri = null, string? linkContents = null, int rowSpan = 1, System.Collections.Generic.IEnumerable<OfficeIMO.Pdf.PdfTableCellCheckBox!>? checkBoxes = null, System.Collections.Generic.IEnumerable<OfficeIMO.Pdf.PdfTableCellFormField!>? formFields = null, string? linkDestinationName = null) -> OfficeIMO.Pdf.PdfTableCell!
 static OfficeIMO.Pdf.PdfTableCellFormField.ChoiceField(string! name, System.Collections.Generic.IEnumerable<string!>! options, string? value = null, double width = 120, double height = 18, double fontSize = 10, bool isComboBox = true, OfficeIMO.Pdf.PdfFormFieldStyle? style = null) -> OfficeIMO.Pdf.PdfTableCellFormField!
-static OfficeIMO.Pdf.PdfTableCellFormField.TextField(string! name, string? value = null, double width = 120, double height = 18, double fontSize = 10, OfficeIMO.Pdf.PdfFormFieldStyle? style = null) -> OfficeIMO.Pdf.PdfTableCellFormField!
+static OfficeIMO.Pdf.PdfTableCellFormField.TextField(string! name, string? value = null, OfficeIMO.OfficeLength? width = null, OfficeIMO.OfficeLength? height = null, OfficeIMO.OfficeLength? fontSize = null, OfficeIMO.Pdf.PdfFormFieldStyle? style = null) -> OfficeIMO.Pdf.PdfTableCellFormField!
 static OfficeIMO.Pdf.PdfTableStyles.CanonicalWordStyleNames.get -> System.Collections.Generic.IReadOnlyList<string!>!
 static OfficeIMO.Pdf.PdfTableStyles.Compact() -> OfficeIMO.Pdf.PdfTableStyle!
 static OfficeIMO.Pdf.PdfTableStyles.FromWordTableStyle(string! styleName) -> OfficeIMO.Pdf.PdfTableStyle!
@@ -8919,3 +8921,13 @@ static OfficeIMO.Pdf.PdfXIdentification.PdfX1A2003() -> OfficeIMO.Pdf.PdfXIdenti
 static OfficeIMO.Pdf.PdfXIdentification.PdfX4() -> OfficeIMO.Pdf.PdfXIdentification!
 static OfficeIMO.Pdf.PdfXProductionMetadata.CreateNow() -> OfficeIMO.Pdf.PdfXProductionMetadata!
 virtual OfficeIMO.Pdf.PdfTextHyphenationCallback.Invoke(string! token) -> System.Collections.Generic.IReadOnlyList<int>!
+OfficeIMO.Pdf.PdfContentBuilder.Table<T>(System.Collections.Generic.IEnumerable<T>! rows) -> OfficeIMO.Pdf.PdfContentBuilder!
+OfficeIMO.Pdf.PdfContentBuilder.Table<T>(System.Collections.Generic.IEnumerable<T>! rows, OfficeIMO.OfficeTableOptions? options) -> OfficeIMO.Pdf.PdfContentBuilder!
+OfficeIMO.Pdf.PdfTableOptions
+OfficeIMO.Pdf.PdfTableOptions.PdfTableOptions() -> void
+OfficeIMO.Pdf.PdfTableOptions.Align.get -> OfficeIMO.Pdf.PdfAlign
+OfficeIMO.Pdf.PdfTableOptions.Align.set -> void
+OfficeIMO.Pdf.PdfTableOptions.Style.get -> OfficeIMO.Pdf.PdfTableStyle?
+OfficeIMO.Pdf.PdfTableOptions.Style.set -> void
+OfficeIMO.Pdf.PdfTableOptions.Projection.get -> OfficeIMO.Data.ObjectFlattenerOptions?
+OfficeIMO.Pdf.PdfTableOptions.Projection.set -> void

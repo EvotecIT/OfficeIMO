@@ -120,7 +120,7 @@ internal static partial class PdfWriter {
                 yCursor -= TableCellCheckBoxGap;
             }
 
-            double width = System.Math.Min(formField.Width, innerWidth);
+            double width = System.Math.Min(formField.Width.ToPoints(), innerWidth);
             double x = align switch {
                 PdfColumnAlign.Center => textX + (innerWidth - width) / 2D,
                 PdfColumnAlign.Right => textX + innerWidth - width,
@@ -129,20 +129,20 @@ internal static partial class PdfWriter {
 
             page.FormFields.Add(new FormFieldAnnotation {
                 X1 = x,
-                Y1 = yCursor - formField.Height,
+                Y1 = yCursor - formField.Height.ToPoints(),
                 X2 = x + width,
                 Y2 = yCursor,
                 Kind = formField.Kind == PdfTableCellFormFieldKind.Text ? FormFieldAnnotationKind.Text : FormFieldAnnotationKind.Choice,
                 Name = formField.Name,
                 Value = formField.Value,
                 Values = formField.Values,
-                FontSize = formField.FontSize,
+                FontSize = formField.FontSize.ToPoints(),
                 Options = formField.Options,
                 IsComboBox = formField.IsComboBox,
                 AllowsMultipleSelection = false,
                 Style = formField.Style
             });
-            yCursor -= formField.Height;
+            yCursor -= formField.Height.ToPoints();
             objectCount++;
         }
     }

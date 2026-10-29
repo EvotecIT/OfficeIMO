@@ -126,7 +126,7 @@ public sealed class PdfFormOcrReviewTests {
             OwnerPassword = "owner", AllowedPermissions = PdfStandardPermissions.CopyContents
         };
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions().SetEncryption(encryption))
-            .TextField("Name", width: 180, height: 24).ToBytes();
+            .TextField("Name", width: global::OfficeIMO.OfficeLength.Points(180), height: global::OfficeIMO.OfficeLength.Points(24)).ToBytes();
         var source = PdfDocument.Load(bytes, new PdfLoadOptions { Password = password });
         var widget = source.Inspect().FormFieldsByName["Name"].Widgets.Single();
         var bounds = source.GetPageLayouts()[0].MapUserSpaceRectangleToVisual(widget.X1, widget.Y1, widget.X2, widget.Y2);

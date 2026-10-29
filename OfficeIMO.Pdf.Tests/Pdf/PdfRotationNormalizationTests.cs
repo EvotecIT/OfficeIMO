@@ -188,7 +188,7 @@ public sealed class PdfRotationNormalizationTests {
     [InlineData(90)] [InlineData(180)] [InlineData(270)]
     public void FormValuesStatesAndEditingSurviveNormalization(int rotation) {
         PdfDocument source = PdfDocument.Create().TaggedPdfCatalogMarkers()
-            .TextField("Person.Name", width: 180, height: 24, value: "Ada")
+            .TextField("Person.Name", width: global::OfficeIMO.OfficeLength.Points(180), height: global::OfficeIMO.OfficeLength.Points(24), value: "Ada")
             .CheckBox("Accept", isChecked: true, size: 16).Pages.RotateBy(rotation);
         PdfDocument normalized = source.Pages.NormalizeRotation();
         Assert.True(normalized.Inspect().HasTaggedContent);

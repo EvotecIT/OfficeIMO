@@ -2788,7 +2788,7 @@ public partial class PdfFontFamilyTests {
                 CompressContentStreams = false
             })
             .RegisterEmbeddedFontFallbacks(fallbackSet)
-            .TextField("Office.City", value: "Łódź Zażółć", width: 180, height: 24)
+            .TextField("Office.City", value: "Łódź Zażółć", width: global::OfficeIMO.OfficeLength.Points(180), height: global::OfficeIMO.OfficeLength.Points(24))
             .ToBytes();
 
         string raw = Encoding.ASCII.GetString(bytes);

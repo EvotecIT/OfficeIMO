@@ -658,7 +658,7 @@ public class PdfComplianceGateTests {
                 .Link("Visit the OfficeIMO project", "https://officeimo.net/", contents: "OfficeIMO project website"))
             .Image(CreateOnePixelPng(), 12, 12, alternativeText: "Decorative sample pixel")
             .TextAnnotation("Accessibility review note", width: 18, height: 18)
-            .TextField("Contact.Email", value: "reader@example.com", width: 180, height: 24, style: accessibleFieldStyle)
+            .TextField("Contact.Email", value: "reader@example.com", width: global::OfficeIMO.OfficeLength.Points(180), height: global::OfficeIMO.OfficeLength.Points(24), style: accessibleFieldStyle)
             .CheckBox("Contact.Updates", isChecked: true, size: 16, style: accessibleCheckBoxStyle);
     }
 
