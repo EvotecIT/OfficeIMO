@@ -492,8 +492,13 @@ namespace OfficeIMO.PowerPoint {
                     double width = tile.Width - 24D;
                     while (size - 1D >= 11D && (PowerPointTextMeasure.LongestWord(logo.Title, size, theme.HeadingFont, true) > width ||
                                                 context.Lines(logo.Title, heading, width, size) > 2)) size -= 1D;
-                    writer.Text("Logo Name", tile.Inset(12D, 8D, 12D, 8D), context.Paragraph(logo.Title, PowerPointTextRole.Heading, nameColor, size, "ctr"),
-                        anchor: "ctr");
+                    var lines = new List<PowerPointLayoutParagraph> { context.Paragraph(logo.Title, PowerPointTextRole.Heading, nameColor, size, "ctr") };
+                    if (!string.IsNullOrWhiteSpace(logo.Text)) {
+                        PowerPointLayoutParagraph caption = context.Paragraph(logo.Text!, PowerPointTextRole.Caption, nameColor, align: "ctr");
+                        caption.SpaceBefore = 2D;
+                        lines.Add(caption);
+                    }
+                    writer.Text("Logo Name", tile.Inset(12D, 8D, 12D, 8D), lines, anchor: "ctr");
                 }
             }
         }
