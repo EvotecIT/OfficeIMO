@@ -232,13 +232,32 @@ namespace OfficeIMO.PowerPoint {
             PowerPointLayoutTheme theme = context.Theme;
             List<PowerPointLayoutStep> steps = slide.Items<PowerPointLayoutStep>().ToList();
             if (steps.Count == 0) return;
-            int perRow = grid.IsNarrow ? 3 : 5;
+            // Four steps stay on one row on 4:3 too; a 2 + 2 split leaves each row too short for its text.
+            int perRow = grid.IsNarrow ? 4 : 5;
             List<List<PowerPointLayoutStep>> rows = steps.Count <= perRow ? new List<List<PowerPointLayoutStep>> { steps } : Balance(steps, 2);
             const double d = 40D;
             PowerPointTextStyleSpec heading = context.Style(PowerPointTextRole.Heading);
             PowerPointTextStyleSpec small = context.Style(PowerPointTextRole.BodySmall);
             double rowHeight = rows.Count == 1 ? grid.H(6) : (zone.Height - TileGap) / 2D;
             double top = rows.Count == 1 ? grid.Y(zone.Height > 250D ? 2 : 1) : zone.Y;
+            // Step text ends above the takeaway rule (or the zone): on a narrow slide the body steps down in size
+            // to its minimum before it would run into the takeaway.
+            double textLimit = full && rows.Count == 1 && !string.IsNullOrWhiteSpace(TakeawayOf(slide))
+                ? context.Grid.Y(11) - 22D : zone.Bottom;
+            double bodySize = small.Size;
+            double StepNeed(PowerPointLayoutStep step, double width, double size) {
+                double titleSize = context.WordFitSize(step.Title, heading, width);
+                double need = context.Height(step.Title, heading, width, titleSize);
+                if (!string.IsNullOrWhiteSpace(step.Text)) need += 8D + context.Height(step.Text!, small, width, size);
+                return need;
+            }
+            if (rows.Count == 1) {
+                int[] firstSpans = steps.Count switch { 1 => new[] { 6 }, 2 => new[] { 6, 6 }, 3 => new[] { 4, 4, 4 }, _ => new[] { 3, 3, 3, 3 } };
+                List<(double X, double Width)> firstTiles = Tiles(grid, firstSpans, steps.Count == 5, steps.Count);
+                double available = textLimit - (top + d + 22D);
+                while (bodySize - 1D >= small.Minimum &&
+                       steps.Select((step, i) => StepNeed(step, firstTiles[i].Width - 8D, bodySize)).Max() > available) bodySize -= 1D;
+            }
             int index = 0;
             for (int r = 0; r < rows.Count; r++) {
                 List<PowerPointLayoutStep> row = rows[r];
@@ -264,12 +283,13 @@ namespace OfficeIMO.PowerPoint {
                     double titleHeight = context.Height(step.Title, heading, textWidth, titleSize);
                     var paragraphs = new List<PowerPointLayoutParagraph> { context.Paragraph(step.Title, PowerPointTextRole.Heading, size: titleSize) };
                     if (!string.IsNullOrWhiteSpace(step.Text)) {
-                        PowerPointLayoutParagraph text = context.Paragraph(step.Text!, PowerPointTextRole.BodySmall);
+                        PowerPointLayoutParagraph text = context.Paragraph(step.Text!, PowerPointTextRole.BodySmall, size: bodySize);
                         text.SpaceBefore = 8D;
                         paragraphs.Add(text);
                     }
 
                     double height = Math.Max(titleHeight + 8D, rowHeight - d - 22D);
+                    if (rows.Count == 1) height = Math.Max(titleHeight + 8D, Math.Min(height, textLimit - (y0 + d + 22D)));
                     writer.Text("Step Text", new PowerPointLayoutRect(x, y0 + d + 22D, textWidth, height), paragraphs);
                     index++;
                 }
@@ -428,10 +448,11 @@ namespace OfficeIMO.PowerPoint {
             PowerPointLayoutTheme theme = context.Theme;
             List<PowerPointLayoutCard> logos = slide.Items<PowerPointLayoutCard>().ToList();
             if (logos.Count == 0) return;
-            int perRow = grid.IsNarrow ? 3 : logos.Count <= 4 ? logos.Count : logos.Count <= 8 ? 4 : 6;
+            int perRow = grid.IsNarrow ? (logos.Count <= 6 ? 3 : 4) : logos.Count <= 4 ? logos.Count : logos.Count <= 8 ? 4 : 6;
             int span = 12 / Math.Max(1, perRow == 5 ? 4 : perRow);
-            const double tileHeight = 96D;
             int rowCount = (int)Math.Ceiling(logos.Count / (double)perRow);
+            // Tiles shrink when the rows would otherwise run into the footer (three rows on 4:3).
+            double tileHeight = Math.Min(96D, (zone.Height - (rowCount - 1) * TileGap) / rowCount);
             double total = rowCount * tileHeight + (rowCount - 1) * TileGap;
             double y0 = zone.Y + Math.Max(0D, (zone.Height - total) / 2D - 10D);
             PowerPointTextStyleSpec heading = context.Style(PowerPointTextRole.Heading);
