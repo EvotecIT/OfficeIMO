@@ -45,19 +45,19 @@ namespace OfficeIMO.PowerPoint {
                     writer.Text("Card Number", new PowerPointLayoutRect(x + 20D, y + 23D, w - 40D, eyebrow.Size * eyebrow.LineHeight + 2D),
                         context.Paragraph(number.ToString("00", CultureInfo.InvariantCulture), PowerPointTextRole.Eyebrow, theme.TextMuted));
                     double inner = w - 40D;
+                    // The heading slot is shared by the row and bottom-anchored, so a heading that wraps in one renderer
+                    // and not in another still ends on the same line, directly above a body that starts on a shared line.
+                    double headingTop = y + metrics.TextOffset + metrics.Lift;
+                    writer.Text("Card Title", new PowerPointLayoutRect(x + 20D, headingTop, inner, metrics.TitleHeight),
+                        context.Paragraph(card.Title, PowerPointTextRole.Heading, size: metrics.TitleSize), anchor: "b");
                     var paragraphs = new List<PowerPointLayoutParagraph>();
-                    PowerPointLayoutParagraph title = context.Paragraph(card.Title, PowerPointTextRole.Heading, size: metrics.TitleSize);
-                    title.SpaceAfter = Math.Max(0D, metrics.TitleHeight - CardTextHeight(context, card.Title, heading, inner, metrics.TitleSize));
-                    paragraphs.Add(title);
                     if (!string.IsNullOrWhiteSpace(card.Text)) {
-                        PowerPointLayoutParagraph text = context.Paragraph(card.Text!, PowerPointTextRole.BodySmall, size: metrics.BodySize);
-                        text.SpaceBefore = 8D;
-                        paragraphs.Add(text);
+                        paragraphs.Add(context.Paragraph(card.Text!, PowerPointTextRole.BodySmall, size: metrics.BodySize));
                     }
 
                     for (int k = 0; k < card.Items.Count; k++) {
                         PowerPointLayoutParagraph item = context.Paragraph(card.Items[k], PowerPointTextRole.BodySmall, theme.Text, metrics.BodySize);
-                        item.SpaceBefore = k == 0 ? 10D : 3D;
+                        item.SpaceBefore = k == 0 ? (paragraphs.Count == 0 ? 0D : 10D) : 3D;
                         item.Bullet = "–";
                         item.BulletColor = accent;
                         item.MarginLeft = 16D;
@@ -70,11 +70,12 @@ namespace OfficeIMO.PowerPoint {
                         RenderImage(context, writer, new PowerPointLayoutImage(card.Image!, card.Title),
                             new PowerPointLayoutRect(x + 20D, imageTop, inner, metrics.ImageHeight), cover: false);
                     }
-                    // Every heading starts on the same row baseline. A short body
-                    // must not pull its heading down, nor a long one above the index.
-                    writer.Text("Card Text", new PowerPointLayoutRect(x + 20D, y + metrics.TextOffset,
-                        inner, metrics.AvailableHeight), paragraphs);
 
+                    if (paragraphs.Count > 0) {
+                        double bodyTop = headingTop + metrics.TitleHeight + CardBodyGap;
+                        writer.Text("Card Text", new PowerPointLayoutRect(x + 20D, bodyTop, inner,
+                            Math.Max(0D, y + rowHeight - 20D - bodyTop)), paragraphs);
+                    }
                 }
 
                 index += rowCards.Count;
@@ -90,6 +91,9 @@ namespace OfficeIMO.PowerPoint {
             _ => new List<int[]> { new[] { 4, 4, 4 }, new[] { 4, 4, 4 } }
         };
 
+        /// <summary>Gap between the heading slot and the first body line.</summary>
+        private const double CardBodyGap = 8D;
+
         private sealed class CardRowMetrics {
             internal double TitleSize;
             internal double TitleHeight;
@@ -98,6 +102,10 @@ namespace OfficeIMO.PowerPoint {
             internal double TextOffset;
             internal double AvailableHeight;
             internal double Height;
+
+            /// <summary>How far the heading slot sits below its minimum position (the row's content group is lowered
+            /// towards the card bottom, up to about two fifths of the card, so tall cards are not empty at the bottom).</summary>
+            internal double Lift;
             internal bool WidthFits;
             internal bool Fits => WidthFits && Height <= AvailableHeight + 0.01D;
         }
@@ -129,11 +137,11 @@ namespace OfficeIMO.PowerPoint {
                 bool wrapped = false;
                 if (!string.IsNullOrWhiteSpace(card.Text)) {
                     double textHeight = CardTextHeight(context, card.Text!, small, width, metrics.BodySize);
-                    height += 8D + textHeight;
+                    height += CardBodyGap + textHeight;
                     wrapped |= textHeight > lineHeight + 0.01D;
                 }
                 if (card.Items.Count > 0) {
-                    height += 10D + 3D * (card.Items.Count - 1);
+                    height += (string.IsNullOrWhiteSpace(card.Text) ? CardBodyGap : 10D) + 3D * (card.Items.Count - 1);
                     foreach (string item in card.Items) {
                         double itemHeight = CardTextHeight(context, item, small, width - 16D, metrics.BodySize);
                         height += itemHeight;
@@ -158,6 +166,10 @@ namespace OfficeIMO.PowerPoint {
                 metrics.BodySize -= 1D;
                 metrics.Height = Height();
                 metrics.WidthFits = WidthFits();
+            }
+            if (metrics.ImageHeight <= 0D) {
+                double slack = Math.Max(0D, metrics.AvailableHeight - metrics.Height);
+                metrics.Lift = Math.Min(slack, Math.Max(0D, rowHeight * 0.4D - metrics.TextOffset));
             }
             return metrics;
         }

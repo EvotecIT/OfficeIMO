@@ -18,6 +18,11 @@ public sealed class PowerPointLayoutCardTests {
         double[] headings = Titles.Take(4).Select(title => Assert.Single(spans, span => span.Text == title).Y).ToArray();
 
         Assert.InRange(headings.Max() - headings.Min(), 0D, 0.1D);
+        // Bodies start on one shared line below the shared heading slot, whatever each heading's wrapping.
+        double[] bodies = saved.Slides[0].TextBoxes.Where(box => box.Name?.StartsWith("Card Text", StringComparison.Ordinal) == true)
+            .Select(box => box.TopPoints).ToArray();
+        Assert.Equal(4, bodies.Length);
+        Assert.InRange(bodies.Max() - bodies.Min(), 0D, 0.01D);
         Assert.DoesNotContain(snapshot.Diagnostics, diagnostic => diagnostic.Code == "powerpoint-text-overflow" &&
             diagnostic.Source?.IndexOf("Card Text", StringComparison.Ordinal) >= 0);
         Assert.Empty(saved.ValidateDocument());
@@ -64,7 +69,7 @@ public sealed class PowerPointLayoutCardTests {
         Assert.True(saved.Slides.Count > 1, "A single oversized card must continue before it leaves its panel.");
         foreach (string line in lines) Assert.Equal(1, saved.Slides.SelectMany(s => s.TextBoxes).Count(b => b.Text.Contains(line, StringComparison.Ordinal)));
         foreach (PowerPointSlide slide in saved.Slides) {
-            var frame = Assert.Single(slide.TextBoxes, box => box.Text.StartsWith("Review", StringComparison.Ordinal));
+            var frame = Assert.Single(slide.TextBoxes, box => box.Name?.StartsWith("Card Text", StringComparison.Ordinal) == true);
             var panel = Assert.Single(slide.Shapes, shape => shape.Name != null && System.Text.RegularExpressions.Regex.IsMatch(shape.Name, @"^Card \d+$"));
             Assert.True(frame.TopPoints + frame.HeightPoints <= panel.TopPoints + panel.HeightPoints + 0.1D);
             Assert.DoesNotContain(slide.CreateVisualSnapshot().Diagnostics, d => d.Code == "powerpoint-text-overflow" && d.Source?.Contains("Card Text", StringComparison.Ordinal) == true);
@@ -107,8 +112,9 @@ public sealed class PowerPointLayoutCardTests {
         }
         foreach (PowerPointSlide slide in saved.Slides) {
             var frame = Assert.Single(slide.TextBoxes, box => box.Name?.StartsWith("Card Text", StringComparison.Ordinal) == true);
+            var heading = Assert.Single(slide.TextBoxes, box => box.Name?.StartsWith("Card Title", StringComparison.Ordinal) == true);
             var number = Assert.Single(slide.TextBoxes, box => box.Name?.StartsWith("Card Number", StringComparison.Ordinal) == true);
-            Assert.Equal(frame.Text.StartsWith("Review", StringComparison.Ordinal) ? "01" : "02", number.Text);
+            Assert.Equal(heading.Text == "Review" ? "01" : "02", number.Text);
             var panel = Assert.Single(slide.Shapes, shape => shape.Name != null && System.Text.RegularExpressions.Regex.IsMatch(shape.Name, @"^Card \d+$"));
             Assert.True(frame.TopPoints + frame.HeightPoints <= panel.TopPoints + panel.HeightPoints + 0.1D);
             Assert.DoesNotContain(slide.CreateVisualSnapshot().Diagnostics, d => d.Code == "powerpoint-text-overflow" && d.Source?.Contains("Card Text", StringComparison.Ordinal) == true);
