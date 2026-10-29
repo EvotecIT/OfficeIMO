@@ -203,8 +203,13 @@ namespace OfficeIMO.Tests {
             Assert.Equal(1U, copied.LocalSheetId?.Value);
         }
 
-        [Fact]
-        public void Test_PackageWorksheetCopyIgnoresMalformedStyledRows() {
+        [Theory]
+        [InlineData("row-index")]
+        [InlineData("row-style")]
+        [InlineData("column-index")]
+        [InlineData("column-style")]
+        [InlineData("cell-style")]
+        public void Test_PackageWorksheetCopyIgnoresMalformedStyledRows(string malformedKind) {
             string sourcePath = Path.Combine(_directoryWithFiles, "SecurityBatch08.MalformedRowSource.xlsx");
             string targetPath = Path.Combine(_directoryWithFiles, "SecurityBatch08.MalformedRowTarget.xlsx");
 
@@ -217,10 +222,22 @@ namespace OfficeIMO.Tests {
 
             using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(sourcePath, true)) {
                 Worksheet worksheet = spreadsheet.WorkbookPart!.WorksheetParts.Single().Worksheet;
-                Row malformed = new Row();
-                malformed.SetAttribute(new OpenXmlAttribute(string.Empty, "r", string.Empty, "not-a-row"));
-                malformed.SetAttribute(new OpenXmlAttribute(string.Empty, "s", string.Empty, "not-a-style"));
-                worksheet.GetFirstChild<SheetData>()!.Append(malformed);
+                if (malformedKind.StartsWith("row", StringComparison.Ordinal)) {
+                    Row malformed = new Row();
+                    malformed.SetAttribute(new OpenXmlAttribute(string.Empty, "r", string.Empty,
+                        malformedKind == "row-index" ? "not-a-row" : "2"));
+                    malformed.SetAttribute(new OpenXmlAttribute(string.Empty, "s", string.Empty, "not-a-style"));
+                    worksheet.GetFirstChild<SheetData>()!.Append(malformed);
+                } else if (malformedKind.StartsWith("column", StringComparison.Ordinal)) {
+                    var malformed = new Column { Min = 2U, Max = 2U, Style = 0U };
+                    malformed.SetAttribute(new OpenXmlAttribute(string.Empty,
+                        malformedKind == "column-index" ? "min" : "style", string.Empty, "invalid"));
+                    worksheet.InsertBefore(new Columns(malformed), worksheet.GetFirstChild<SheetData>()!);
+                } else {
+                    var malformed = new Cell { CellReference = "B2", CellValue = new CellValue("2") };
+                    malformed.SetAttribute(new OpenXmlAttribute(string.Empty, "s", string.Empty, "not-a-style"));
+                    worksheet.GetFirstChild<SheetData>()!.Append(new Row(malformed) { RowIndex = 2U });
+                }
                 worksheet.Save();
             }
 
@@ -230,6 +247,8 @@ namespace OfficeIMO.Tests {
                 CopyMode = ExcelWorksheetCopyMode.Package
             });
             Assert.Equal("Imported", copied.Name);
+            Assert.Equal("safe", copied.CellAt(1, 1).GetValue<string>());
+            Assert.True(copied.CellAt(1, 1).GetStyle().Bold);
         }
 
         [Fact]
