@@ -4,6 +4,15 @@ using Xunit;
 namespace OfficeIMO.Tests;
 
 public partial class Html {
+    [Fact]
+    public void CommentMaskingSkipsPathologicalUrlTextInsideAComment() {
+        string css = "/*url(" + new string(' ', 2_048) + "*/ a {background:url(icon.png)}";
+        string rewritten = HtmlResourcePipeline.RewriteCssResourceUrls(css,
+            (value, _) => value == "icon.png" ? "new.png" : value);
+
+        Assert.Equal(css.Replace("url(icon.png)", "url(\"new.png\")"), rewritten);
+    }
+
     [Theory]
     [InlineData("url(images/*literal/icon.png)")]
     [InlineData("u\\72 l(images/*literal/icon.png)")]
