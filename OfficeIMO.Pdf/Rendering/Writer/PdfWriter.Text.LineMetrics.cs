@@ -124,7 +124,9 @@ internal static partial class PdfWriter {
         double bodyAscent = 0D;
         double inlineAscent = 0D;
         double descent = 0D;
+        double smallestTextSize = double.MaxValue;
         foreach (RichSeg segment in segments) {
+            if (segment.InlineElement == null && segment.Text.Length > 0) smallestTextSize = Math.Min(smallestTextSize, segment.FontSize);
             // Empty separators move the baseline only when they paint a tab leader.
             if (segment.Text.Length == 0 && (segment.LeadingSpace || segment.LeadingIsTab) && segment.InlineElement == null &&
                 !HasPaintedRichTabLeader(segment, options)) continue;
@@ -156,7 +158,13 @@ internal static partial class PdfWriter {
             ascent = Math.Max(inlineAscent, ascent - bodyAscent * (1D - Math.Min(1D, spacing.Value / natural)));
         else if (spacing?.FontLineBoxMultiplier != null && spacing.Rule == PdfLineSpacingRule.AtLeast)
             ascent = Math.Max(ascent, spacing.Value - descent);
-        return ascent == 0D ? fallbackAscent : ascent;
+        if (ascent == 0D) return fallbackAscent;
+        // A line set only in a smaller-ascent face, such as inline code in a table cell, keeps the paragraph
+        // font's baseline as CSS line boxes do with their strut, so it lines up with neighbouring text.
+        // Only text at the paragraph size takes the strut; deliberately smaller text keeps its own line box.
+        if (spacing == null && bodyAscent > 0D && inlineAscent == 0D && bodyAscent < fallbackAscent &&
+            smallestTextSize >= fontSize * 0.85D && smallestTextSize != double.MaxValue) ascent = Math.Max(ascent, fallbackAscent);
+        return ascent;
     }
 
     private static void GetRichRunLineMetrics(PdfStandardFont font, PdfNamedFontFace? namedFont,

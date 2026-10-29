@@ -14,11 +14,21 @@ internal static partial class PdfStamper {
         string? glyphHex = null,
         double? textWidth = null) {
         double fontSize = options.FontSize;
-        double x = options.X ?? (watermarkDefaults ? (pageWidth - (textWidth ?? PdfWriter.EstimateSimpleTextWidth(text, options.Font, fontSize))) / 2.0 : 36);
+        double width = textWidth ?? PdfWriter.EstimateSimpleTextWidth(text, options.Font, fontSize);
         double y = options.Y ?? (watermarkDefaults ? pageHeight / 2.0 : 36);
         double radians = options.RotationDegrees * Math.PI / 180.0;
         double cos = Math.Cos(radians);
         double sin = Math.Sin(radians);
+        double x;
+        if (options.Align == PdfAlign.Left) {
+            x = options.X ?? (watermarkDefaults ? (pageWidth - width) / 2.0 : 36);
+        } else {
+            // The anchor is the text's centre or end; the origin moves back along the text direction.
+            double anchorX = options.X ?? (options.Align == PdfAlign.Center ? pageWidth / 2.0 : pageWidth - 36);
+            double offset = options.Align == PdfAlign.Center ? width / 2.0 : width;
+            x = anchorX - offset * cos;
+            y -= offset * sin;
+        }
 
         var sb = new StringBuilder();
         new ContentStreamBuilder(sb)

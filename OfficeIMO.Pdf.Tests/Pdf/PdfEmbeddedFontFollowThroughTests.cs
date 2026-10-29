@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text.RegularExpressions;
 using OfficeIMO.Pdf;
 using Xunit;
@@ -28,6 +29,37 @@ public class PdfEmbeddedFontFollowThroughTests {
             Assert.DoesNotMatch(new Regex(@"/BaseFont\s*/Helvetica\b"), PdfTestContentText.ReadDecoded(bytes));
         }
         Assert.Contains("Marta Nowak", PdfReadDocument.Open(recordBytes).ExtractText(), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void FieldsFilledTogetherShareOneSubsetTaggedFont() {
+        if (!DefaultBodyFontInstalled()) return;
+        PdfDocument template = PdfDocument.Create(pdf => pdf.Content(content => {
+            content.TextField("first", width: 200);
+            content.TextField("second", width: 200);
+            content.TextField("third", width: 200);
+        }), new PdfCreateOptions { EmbedDefaultFonts = true });
+
+        byte[] bytes = template.Forms.Fill(new Dictionary<string, string> {
+            ["first"] = "Marta Nowak", ["second"] = "Quality review", ["third"] = "Zebra crossing" }).ToBytes();
+        string raw = PdfTestContentText.ReadDecoded(bytes);
+
+        MatchCollection fontFiles = Regex.Matches(raw, @"/FontFile2");
+        Assert.True(fontFiles.Count <= 3, "Expected the filled values to share one embedded appearance font.");
+        Assert.DoesNotMatch(new Regex(@"/BaseFont\s*/Aptos(?![-\w+])"), raw);
+    }
+
+    [Theory]
+    [InlineData(PdfAlign.Left)]
+    [InlineData(PdfAlign.Center)]
+    [InlineData(PdfAlign.Right)]
+    public void StampAlignmentAnchorsTheTextAtX(PdfAlign align) {
+        PdfDocument source = PdfDocument.Create(pdf => pdf.Content(content => content.Paragraph(p => p.Text("Body"))));
+        byte[] bytes = source.Stamp.Text("Page 1 of 1", new PdfTextStampOptions { X = 300, Y = 36, Align = align, EmbedFont = false }).ToBytes();
+
+        PdfTextSpan span = PdfReadDocument.Open(bytes).Pages[0].GetTextSpans().First(item => item.Text.Contains("Page"));
+        double expected = align == PdfAlign.Left ? span.X : align == PdfAlign.Center ? span.X + span.Advance / 2 : span.X + span.Advance;
+        Assert.InRange(expected, 299, 301);
     }
 
     [Fact]
