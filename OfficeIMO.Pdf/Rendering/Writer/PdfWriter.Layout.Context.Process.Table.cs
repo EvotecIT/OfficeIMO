@@ -104,7 +104,7 @@ internal static partial class PdfWriter {
             if (captionText != null) {
                 var captionFontForWrap = ChooseNormal(currentOpts.DefaultFont);
                 captionRuns = new[] { PdfTextRun.Normal(captionText, style.CaptionColor, captionSize) };
-                var captionWrap = WrapRichRunsCore(captionRuns, tableWidth, captionSize, captionFontForWrap, captionLeading, null, DefaultParagraphTabStopWidth, currentOpts);
+                var captionWrap = WrapRichRunsCore(captionRuns, tableWidth, captionSize, captionFontForWrap, captionLeading, null, DefaultParagraphTabStopWidth, currentOpts, cancellationToken: cancellationToken);
                 captionLines = captionWrap.Lines;
                 captionLineHeights = captionWrap.LineHeights;
                 captionHeight = MeasureRichLinesHeight(captionLineHeights, captionLines.Count, captionLeading);
@@ -138,7 +138,7 @@ internal static partial class PdfWriter {
                     logicalBottomBoundary ? rowHeights[rowHeights.Length - 1] : double.PositiveInfinity, colPixel[0], colPixel[colPixel.Length - 1]);
                 if (captionRuns != null && rowIndex == 0 && startLine == 0) {
                     var wrap = WrapRichRunsCore(captionRuns, tableWidth, captionSize, ChooseNormal(currentOpts.DefaultFont), captionLeading,
-                        null, DefaultParagraphTabStopWidth, currentOpts);
+                        null, DefaultParagraphTabStopWidth, currentOpts, cancellationToken: cancellationToken);
                     captionLines = wrap.Lines;
                     captionLineHeights = wrap.LineHeights;
                     captionHeight = MeasureRichLinesHeight(captionLineHeights, captionLines.Count, captionLeading);

@@ -6,11 +6,12 @@ internal static partial class PdfWriter {
         IEnumerable<PdfTextRun> runs, double maxWidthPts, double fontSize, PdfStandardFont baseFont,
         double lineHeight, double? firstLineWidthPts, double tabStopWidth, PdfOptions? options,
         PdfHeadingStyle? style, PdfAlign alignment,
-        Func<int, double, double, double, RichTextRowFrame>? rowLayout = null) {
+        Func<int, double, double, double, RichTextRowFrame>? rowLayout = null,
+        System.Threading.CancellationToken cancellationToken = default) {
         var wrapped = WrapRichRunsCoreWithFirstLineOrigin(runs, maxWidthPts, fontSize, baseFont, lineHeight,
             firstLineWidthPts, null, tabStopWidth, options, style?.TabStops.ToArray(), lineSpacing: style?.LineSpacing,
             wordJustificationMode: style?.UseWordJustificationSpacing == true && alignment == PdfAlign.Justify ? style.JustificationMode : null,
-            rowLayout: rowLayout);
+            rowLayout: rowLayout, cancellationToken: cancellationToken);
         for (int lineIndex = 0; lineIndex < wrapped.Lines.Count; lineIndex++) {
             List<RichSeg> line = wrapped.Lines[lineIndex];
             var policy = new RichLineJustificationPolicy(style?.JustificationMode ?? PdfJustificationMode.Words,

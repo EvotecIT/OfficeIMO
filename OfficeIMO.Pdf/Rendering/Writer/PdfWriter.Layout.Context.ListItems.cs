@@ -63,7 +63,7 @@ internal static partial class PdfWriter {
                     textWidth = width - textOffset - rightInset;
                     var remainingRuns = firstSegment ? runs : BuildTextRunsFromWrappedLines(lines, lineIndex, lines.Count - lineIndex);
                     (lines, lineHeights) = WrapRichRunsWithSpacing(remainingRuns, textWidth, size, listFont, leading, null,
-                        DefaultParagraphTabStopWidth, currentOpts, lineSpacing);
+                        DefaultParagraphTabStopWidth, currentOpts, lineSpacing, cancellationToken: cancellationToken);
                     lineIndex = 0;
                     wrappedWidth = width;
                 }

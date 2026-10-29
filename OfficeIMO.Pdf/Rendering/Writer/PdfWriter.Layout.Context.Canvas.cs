@@ -404,7 +404,7 @@ internal static partial class PdfWriter {
             var block = new RichParagraphBlock(item.Runs, item.Align, item.DefaultColor);
             var wrap = item.PreservePositionedText
                 ? CreatePositionedTextLine(item.Runs, size, leading, currentOpts, item.PositionedFontMetricScale)
-                : WrapRichRunsCore(item.Runs, item.Width, size, ChooseNormal(currentOpts.DefaultFont), leading, null, DefaultParagraphTabStopWidth, currentOpts);
+                : WrapRichRunsCore(item.Runs, item.Width, size, ChooseNormal(currentOpts.DefaultFont), leading, null, DefaultParagraphTabStopWidth, currentOpts, cancellationToken: cancellationToken);
             if (wrap.Lines.Count == 0) {
                 return;
             }
@@ -501,7 +501,7 @@ internal static partial class PdfWriter {
             double textHeight = item.Height - paddingTop - paddingBottom;
             double textTopY = topY - paddingTop;
             double textBottomY = bottomY + paddingBottom;
-            var prepared = PrepareCanvasTextBoxText(item.Runs, item.Width, style, currentOpts);
+            var prepared = PrepareCanvasTextBoxText(item.Runs, item.Width, style, currentOpts, cancellationToken);
             double textWidth = prepared.TextWidth;
             double size = prepared.FontSize;
             double leading = prepared.Leading;

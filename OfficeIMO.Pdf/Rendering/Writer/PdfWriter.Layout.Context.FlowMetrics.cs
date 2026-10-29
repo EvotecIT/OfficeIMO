@@ -131,7 +131,7 @@ internal static partial class PdfWriter {
             var wrap = HasParagraphPictures(paragraphStyle) || HasPictureExclusions
                 ? WrapPictureParagraph(paragraph, frameX, frameWidth, fontSize,
                     y - (suppressSpacingBefore ? 0D : ResolveTopLevelSpacingBefore(spacingBefore)))
-                : WrapRichRunsCoreWithFirstLineOrigin(paragraph.Runs, textFrame.Width, fontSize, ChooseNormal(currentOpts.DefaultFont), leading, textFrame.FirstLineWidth, textFrame.FirstLineX - textFrame.X, GetParagraphTabStopWidth(paragraphStyle), currentOpts, paragraphStyle?.TabStops.ToArray(), lineSpacing: paragraphStyle?.LineSpacing, textWhitespaceMode: paragraphStyle?.TextWhitespaceMode, wordJustificationMode: paragraphStyle?.UseWordJustificationSpacing == true && paragraph.Align == PdfAlign.Justify ? paragraphStyle.JustificationMode : null);
+                : WrapRichRunsCoreWithFirstLineOrigin(paragraph.Runs, textFrame.Width, fontSize, ChooseNormal(currentOpts.DefaultFont), leading, textFrame.FirstLineWidth, textFrame.FirstLineX - textFrame.X, GetParagraphTabStopWidth(paragraphStyle), currentOpts, paragraphStyle?.TabStops.ToArray(), lineSpacing: paragraphStyle?.LineSpacing, textWhitespaceMode: paragraphStyle?.TextWhitespaceMode, wordJustificationMode: paragraphStyle?.UseWordJustificationSpacing == true && paragraph.Align == PdfAlign.Justify ? paragraphStyle.JustificationMode : null, cancellationToken: cancellationToken);
             if (wrap.LineHeights.Count == 0) {
                 return (spacingBefore, PdfKeepTogetherOverflowBehavior.Reject);
             }
@@ -336,7 +336,7 @@ internal static partial class PdfWriter {
             double spacingBefore = ResolveTopLevelSpacingBefore(GetParagraphSpacingBefore(paragraphStyle));
             double spacingAfter = GetParagraphSpacingAfter(paragraphStyle, leading);
             var textFrame = GetParagraphTextFrame(paragraphStyle, frameX, frameWidth);
-            var wrap = WrapRichRunsCoreWithFirstLineOrigin(paragraph.Runs, textFrame.Width, fontSize, ChooseNormal(currentOpts.DefaultFont), leading, textFrame.FirstLineWidth, textFrame.FirstLineX - textFrame.X, GetParagraphTabStopWidth(paragraphStyle), currentOpts, paragraphStyle?.TabStops.ToArray(), lineSpacing: paragraphStyle?.LineSpacing, textWhitespaceMode: paragraphStyle?.TextWhitespaceMode, wordJustificationMode: paragraphStyle?.UseWordJustificationSpacing == true && paragraph.Align == PdfAlign.Justify ? paragraphStyle.JustificationMode : null);
+            var wrap = WrapRichRunsCoreWithFirstLineOrigin(paragraph.Runs, textFrame.Width, fontSize, ChooseNormal(currentOpts.DefaultFont), leading, textFrame.FirstLineWidth, textFrame.FirstLineX - textFrame.X, GetParagraphTabStopWidth(paragraphStyle), currentOpts, paragraphStyle?.TabStops.ToArray(), lineSpacing: paragraphStyle?.LineSpacing, textWhitespaceMode: paragraphStyle?.TextWhitespaceMode, wordJustificationMode: paragraphStyle?.UseWordJustificationSpacing == true && paragraph.Align == PdfAlign.Justify ? paragraphStyle.JustificationMode : null, cancellationToken: cancellationToken);
             return spacingBefore + wrap.LineHeights.Sum() + spacingAfter;
         }
 
@@ -675,7 +675,7 @@ internal static partial class PdfWriter {
                 double captionSize = style.CaptionFontSize ?? fontSize;
                 double captionLeading = captionSize * 1.25D;
                 var captionRuns = new[] { PdfTextRun.Normal(style.Caption!, style.CaptionColor, captionSize) };
-                var captionWrap = WrapRichRunsCore(captionRuns, columnLayout.Width, captionSize, ChooseNormal(currentOpts.DefaultFont), captionLeading, null, DefaultParagraphTabStopWidth, currentOpts);
+                var captionWrap = WrapRichRunsCore(captionRuns, columnLayout.Width, captionSize, ChooseNormal(currentOpts.DefaultFont), captionLeading, null, DefaultParagraphTabStopWidth, currentOpts, cancellationToken: cancellationToken);
                 captionHeight = MeasureRichLinesHeight(captionWrap.LineHeights, captionWrap.Lines.Count, captionLeading) + style.CaptionSpacingAfter;
             }
 
