@@ -60,8 +60,22 @@ namespace OfficeIMO.Word {
             fonts1.Append(font1);
             fonts1.Append(font2);
             fonts1.Append(font3);
+            // The default theme uses Aptos. Describing it as a variable-pitch sans (swiss) face
+            // gives consumers without Aptos the information they need to substitute a sans font.
+            fonts1.Append(CreateSansFontTableEntry("Aptos"));
+            fonts1.Append(CreateSansFontTableEntry("Aptos Display"));
 
             fontTablePart1.Fonts = fonts1;
+        }
+
+        private static Font CreateSansFontTableEntry(string name) {
+            Font font = new Font() { Name = name };
+            font.Append(new Panose1Number() { Val = "020B0004020202020204" });
+            font.Append(new FontCharSet() { Val = "00" });
+            font.Append(new FontFamily() { Val = FontFamilyValues.Swiss });
+            font.Append(new Pitch() { Val = FontPitchValues.Variable });
+            font.Append(new FontSignature() { UnicodeSignature0 = "20000287", UnicodeSignature1 = "00000003", UnicodeSignature2 = "00000000", UnicodeSignature3 = "00000000", CodePageSignature0 = "0000019F", CodePageSignature1 = "00000000" });
+            return font;
         }
     }
 }

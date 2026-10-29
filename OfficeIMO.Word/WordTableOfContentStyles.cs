@@ -12,11 +12,25 @@ namespace OfficeIMO.Word {
         private const int EntryIndentTwips = 220;
         private const int EntryLevels = 9;
 
-        internal static IEnumerable<Style> Create() {
+        // Letter text width (8.5in less two 1in margins), just inside the right margin.
+        private const int DefaultRightTabTwips = 9350;
+
+        internal static IEnumerable<Style> Create(int rightTabTwips = DefaultRightTabTwips) {
             yield return CreateHeading();
             for (int level = 1; level <= EntryLevels; level++) {
-                yield return CreateEntry(level);
+                yield return CreateEntry(level, rightTabTwips);
             }
+        }
+
+        /// <summary>Right edge of the first section's text column, so page numbers align with the margin.</summary>
+        private static int ResolveRightTabTwips(StyleDefinitionsPart? part) {
+            var sectionProperties = (part?.OpenXmlPackage as WordprocessingDocument)?.MainDocumentPart?.Document?.Body?
+                .Descendants<SectionProperties>().FirstOrDefault();
+            uint? width = sectionProperties?.GetFirstChild<PageSize>()?.Width?.Value;
+            PageMargin? margin = sectionProperties?.GetFirstChild<PageMargin>();
+            if (width == null || margin == null) return DefaultRightTabTwips;
+            long text = (long)width.Value - (margin.Left?.Value ?? 1440U) - (margin.Right?.Value ?? 1440U) - 10;
+            return text > 1440 && text < 31680 ? (int)text : DefaultRightTabTwips;
         }
 
         /// <summary>Adds any missing TOC style to a style part, leaving existing definitions untouched.</summary>
@@ -27,7 +41,7 @@ namespace OfficeIMO.Word {
                 styles.Elements<Style>().Select(style => style.StyleId?.Value).Where(id => id != null).Cast<string>(),
                 StringComparer.OrdinalIgnoreCase);
             bool changed = false;
-            foreach (Style style in Create()) {
+            foreach (Style style in Create(ResolveRightTabTwips(part))) {
                 if (existing.Add(style.StyleId!.Value!)) {
                     styles.Append(style);
                     changed = true;
@@ -52,8 +66,15 @@ namespace OfficeIMO.Word {
             };
         }
 
-        private static Style CreateEntry(int level) {
+        private static Style CreateEntry(int level, int rightTabTwips) {
+            // Entries end in a dot-leader right tab, so stored entries read as a finished TOC
+            // even in viewers that do not regenerate the field.
             var paragraphProperties = new StyleParagraphProperties(
+                new Tabs(new TabStop {
+                    Val = TabStopValues.Right,
+                    Leader = TabStopLeaderCharValues.Dot,
+                    Position = rightTabTwips
+                }),
                 new SpacingBetweenLines { After = "100" });
             if (level > 1) {
                 paragraphProperties.Append(new Indentation { Left = ((level - 1) * EntryIndentTwips).ToString(System.Globalization.CultureInfo.InvariantCulture) });
