@@ -126,7 +126,11 @@ internal sealed partial class HtmlCssPageRuleSet {
             contexts.Add(new MarginStyleContext(page, marginStyle, position, content));
         }
         cancellationToken.ThrowIfCancellationRequested();
-        return _marginStyleContexts[key] = contexts.ToArray();
+        IReadOnlyList<MarginStyleContext> result = contexts.ToArray();
+        // Discovery can visit every declared page name even when no page uses it.
+        // Keep repeated-page reuse without retaining a cascade for every name.
+        if (_marginStyleContexts.Count < 16) _marginStyleContexts[key] = result;
+        return result;
     }
 
     private static IEnumerable<HtmlGeneratedStyleDeclaration> MatchDeclarations(
