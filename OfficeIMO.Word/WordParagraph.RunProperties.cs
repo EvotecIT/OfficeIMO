@@ -11,7 +11,7 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Gets or sets a value indicating whether the run is bold.
+        /// Gets or sets a value indicating whether the run is bold. Setting false explicitly overrides inherited bold.
         /// </summary>
         public bool Bold {
             get {
@@ -26,18 +26,8 @@ namespace OfficeIMO.Word {
                 } else {
                     runProperties = VerifyRunProperties();
                 }
-                if (value == true) {
-                    runProperties.Bold = new Bold();
-                    runProperties.BoldComplexScript = new BoldComplexScript();
-                } else {
-                    if (runProperties.BoldComplexScript != null) {
-                        runProperties.BoldComplexScript.Remove();
-                    }
-
-                    if (runProperties.Bold != null) {
-                        runProperties.Bold.Remove();
-                    }
-                }
+                runProperties.Bold = new Bold { Val = value };
+                runProperties.BoldComplexScript = new BoldComplexScript { Val = value };
             }
         }
 

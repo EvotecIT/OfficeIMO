@@ -267,6 +267,15 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>Replaces only the creation-owned table style in a document-specific catalog clone.</summary>
+        private static void ReplaceCreationTableStyle(Styles styles, OfficeTheme theme) {
+            foreach (Style existing in styles.Elements<Style>().Where(style =>
+                string.Equals(style.StyleId?.Value, WordThemeDefaults.TableStyleId, StringComparison.OrdinalIgnoreCase)).ToList()) {
+                existing.Remove();
+            }
+            styles.Append(WordThemeDefaults.CreateTableStyle(theme));
+        }
+
         // Generates content of styleDefinitionsPart1.
         private static void GenerateStyleDefinitionsPart1Content(StyleDefinitionsPart styleDefinitionsPart1) {
             Styles styles1 = (Styles)BuiltInStyleDefinitions.Value.CloneNode(true);

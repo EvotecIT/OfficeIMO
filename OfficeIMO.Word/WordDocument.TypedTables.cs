@@ -12,8 +12,9 @@ public partial class WordDocument {
         var data = ObjectDataHelpers.ProjectTypedTable(rows, headers, options: options);
         int rowCount = checked(data.Rows.Count + (headers ? 1 : 0));
         if (rowCount == 0) throw new ArgumentException("A headerless table requires at least one row.", nameof(rows));
-        var table = AddTable(rowCount, data.Headers.Length, WordTableStyle.TableGrid);
+        var table = AddTable(rowCount, data.Headers.Length);
         table.Title = options?.Name;
+        table.ConditionalFormattingFirstRow = headers;
         int offset = headers ? 1 : 0;
         if (headers) {
             table.Rows[0].RepeatHeaderRowAtTheTopOfEachPage = true;
@@ -32,8 +33,9 @@ public partial class WordDocument {
         ObjectDataHelpers.ValidateTableAlignments(options);
         int rows = values.GetLength(0), columns = values.GetLength(1);
         if (rows == 0 || columns == 0) throw new ArgumentException("A table matrix requires at least one row and column.", nameof(values));
-        var table = AddTable(rows, columns, WordTableStyle.TableGrid);
+        var table = AddTable(rows, columns);
         table.Title = options?.Name;
+        table.ConditionalFormattingFirstRow = options?.IncludeHeaders ?? true;
         table.Rows[0].RepeatHeaderRowAtTheTopOfEachPage = options?.IncludeHeaders ?? true;
         for (int row = 0; row < rows; row++)
             for (int column = 0; column < columns; column++)
@@ -41,6 +43,10 @@ public partial class WordDocument {
         ApplyTableAlignments(table, options);
         return table;
     }
+
+    /// <summary>Adds existing array rows as table cells. The first row is the header when headers are enabled.</summary>
+    public WordTable AddTable(IEnumerable<string[]> rows, OfficeTableOptions? options = null) =>
+        AddTable((IEnumerable<IReadOnlyList<string>>)rows, options);
 
     /// <summary>Adds existing rows of text. The first row is the header when headers are enabled.</summary>
     public WordTable AddTable(IEnumerable<IReadOnlyList<string>> rows, OfficeTableOptions? options = null) {

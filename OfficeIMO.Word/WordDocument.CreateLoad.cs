@@ -93,9 +93,9 @@ namespace OfficeIMO.Word {
             if (resolved.Template != null) {
                 WordDocument copied = CreateFromTemplate(resolved.Template);
                 copied._persistenceMode = resolved.PersistenceMode;
-                return copied;
+                return ApplyTemplateCreationTheme(copied, resolved.Theme);
             }
-            return CreateInternal(filePath: null, stream: null, resolved.DocumentType.ToOpenXml(), resolved.PersistenceMode);
+            return CreateInternal(filePath: null, stream: null, resolved.DocumentType.ToOpenXml(), resolved.PersistenceMode, resolved.Theme ?? OfficeTheme.Default);
         }
 
         /// <summary>Creates a Word document associated with a path that is written on explicit save.</summary>
@@ -108,10 +108,10 @@ namespace OfficeIMO.Word {
                 WordDocument copied = CreateFromTemplate(resolved.Template);
                 copied.FilePath = filePath;
                 copied._persistenceMode = resolved.PersistenceMode;
-                return copied;
+                return ApplyTemplateCreationTheme(copied, resolved.Theme);
             }
             var documentType = GetDocumentType(filePath);
-            var word = CreateInternal(filePath, null, documentType, resolved.PersistenceMode);
+            var word = CreateInternal(filePath, null, documentType, resolved.PersistenceMode, resolved.Theme ?? OfficeTheme.Default);
             return word;
         }
 
@@ -164,7 +164,7 @@ namespace OfficeIMO.Word {
             }
         }
 
-        private static WordDocument CreateInternal(string? filePath, Stream? stream, WordprocessingDocumentType documentType, DocumentPersistenceMode persistenceMode) {
+        private static WordDocument CreateInternal(string? filePath, Stream? stream, WordprocessingDocumentType documentType, DocumentPersistenceMode persistenceMode, OfficeTheme? theme) {
             byte[] templateBytes = GetDefaultPackageBytes(documentType);
             var packageStream = new MemoryStream(templateBytes.Length + 4096);
             packageStream.Write(templateBytes, 0, templateBytes.Length);
@@ -196,7 +196,13 @@ namespace OfficeIMO.Word {
             word.InitializeSdtIdState();
             ApplyCurrentStyleRegistrations(wordDocument.MainDocumentPart!.StyleDefinitionsPart);
             InitializeNewDocumentFacade(word);
-            return word;
+            try {
+                if (theme != null) word.ApplyCreationTheme(theme);
+                return word;
+            } catch {
+                word.Dispose();
+                throw;
+            }
         }
 
         private static byte[] GetDefaultPackageBytes(WordprocessingDocumentType documentType) => documentType switch {
@@ -333,9 +339,9 @@ namespace OfficeIMO.Word {
                 WordDocument copied = CreateFromTemplate(resolved.Template);
                 copied.OriginalStream = stream;
                 copied._persistenceMode = resolved.PersistenceMode;
-                return copied;
+                return ApplyTemplateCreationTheme(copied, resolved.Theme);
             }
-            var word = CreateInternal(null, stream, resolved.DocumentType.ToOpenXml(), resolved.PersistenceMode);
+            var word = CreateInternal(null, stream, resolved.DocumentType.ToOpenXml(), resolved.PersistenceMode, resolved.Theme ?? OfficeTheme.Default);
             return word;
         }
 

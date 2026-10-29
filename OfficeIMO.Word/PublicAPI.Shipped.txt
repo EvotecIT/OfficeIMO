@@ -1140,6 +1140,8 @@ OfficeIMO.Word.WordCreateOptions.DocumentType.get -> OfficeIMO.Word.WordDocument
 OfficeIMO.Word.WordCreateOptions.DocumentType.set -> void
 OfficeIMO.Word.WordCreateOptions.Template.get -> string?
 OfficeIMO.Word.WordCreateOptions.Template.set -> void
+OfficeIMO.Word.WordCreateOptions.Theme.get -> OfficeIMO.OfficeTheme?
+OfficeIMO.Word.WordCreateOptions.Theme.set -> void
 OfficeIMO.Word.WordCreateOptions.WordCreateOptions() -> void
 OfficeIMO.Word.WordCrossReference
 OfficeIMO.Word.WordCrossReference.WordCrossReference() -> void
@@ -1250,7 +1252,8 @@ OfficeIMO.Word.WordDocument.AddSmartArt(OfficeIMO.Word.WordSmartArtType type) ->
 OfficeIMO.Word.WordDocument.AddStructuredDocumentTag(string! text, string? alias = null, string? tag = null) -> OfficeIMO.Word.WordStructuredDocumentTag!
 OfficeIMO.Word.WordDocument.AddTable(System.Collections.Generic.IEnumerable<System.Collections.Generic.IReadOnlyList<string!>!>! rows, OfficeIMO.OfficeTableOptions? options = null) -> OfficeIMO.Word.WordTable!
 OfficeIMO.Word.WordDocument.AddTable(System.Collections.Generic.IEnumerable<object?>! items, OfficeIMO.Word.WordTableStyle style, bool includeHeader = true, OfficeIMO.Word.WordTableLayoutMode? layout = null) -> OfficeIMO.Word.WordTable!
-OfficeIMO.Word.WordDocument.AddTable(int rows, int columns, OfficeIMO.Word.WordTableStyle tableStyle = OfficeIMO.Word.WordTableStyle.TableGrid) -> OfficeIMO.Word.WordTable!
+OfficeIMO.Word.WordDocument.AddTable(System.Collections.Generic.IEnumerable<string![]!>! rows, OfficeIMO.OfficeTableOptions? options = null) -> OfficeIMO.Word.WordTable!
+OfficeIMO.Word.WordDocument.AddTable(int rows, int columns, OfficeIMO.Word.WordTableStyle tableStyle = OfficeIMO.Word.WordTableStyle.OfficeIMOModern) -> OfficeIMO.Word.WordTable!
 OfficeIMO.Word.WordDocument.AddTable(object?[,]! values, OfficeIMO.OfficeTableOptions? options = null) -> OfficeIMO.Word.WordTable!
 OfficeIMO.Word.WordDocument.AddTable<T>(System.Collections.Generic.IEnumerable<T>! rows, OfficeIMO.OfficeTableOptions? options = null) -> OfficeIMO.Word.WordTable!
 OfficeIMO.Word.WordDocument.AddTableOfContent(OfficeIMO.Word.WordTableOfContentsStyle tableOfContentStyle = OfficeIMO.Word.WordTableOfContentsStyle.Template1, int minLevel = 1, int maxLevel = 3, string? title = null, bool insertAtTop = false) -> OfficeIMO.Word.WordTableOfContent!
@@ -1283,7 +1286,7 @@ OfficeIMO.Word.WordDocument.ConvertRevisionsToMarkup() -> void
 OfficeIMO.Word.WordDocument.CoverPage.get -> OfficeIMO.Word.WordCoverPage?
 OfficeIMO.Word.WordDocument.CoverPageProperties.get -> OfficeIMO.Word.WordCoverPageProperties!
 OfficeIMO.Word.WordDocument.CreateNumberingDefinition() -> OfficeIMO.Word.WordListNumbering!
-OfficeIMO.Word.WordDocument.CreateTable(int rows, int columns, OfficeIMO.Word.WordTableStyle tableStyle = OfficeIMO.Word.WordTableStyle.TableGrid) -> OfficeIMO.Word.WordTable!
+OfficeIMO.Word.WordDocument.CreateTable(int rows, int columns, OfficeIMO.Word.WordTableStyle tableStyle = OfficeIMO.Word.WordTableStyle.OfficeIMOModern) -> OfficeIMO.Word.WordTable!
 OfficeIMO.Word.WordDocument.CustomDocumentProperties.get -> System.Collections.Generic.Dictionary<string!, OfficeIMO.Word.WordCustomProperty!>!
 OfficeIMO.Word.WordDocument.DatePickers.get -> System.Collections.Generic.List<OfficeIMO.Word.WordDatePicker!>!
 OfficeIMO.Word.WordDocument.DifferentFirstPage.get -> bool
@@ -4673,6 +4676,7 @@ OfficeIMO.Word.WordTableStyle.ListTable7ColorfulAccent3 = 101 -> OfficeIMO.Word.
 OfficeIMO.Word.WordTableStyle.ListTable7ColorfulAccent4 = 102 -> OfficeIMO.Word.WordTableStyle
 OfficeIMO.Word.WordTableStyle.ListTable7ColorfulAccent5 = 103 -> OfficeIMO.Word.WordTableStyle
 OfficeIMO.Word.WordTableStyle.ListTable7ColorfulAccent6 = 104 -> OfficeIMO.Word.WordTableStyle
+OfficeIMO.Word.WordTableStyle.OfficeIMOModern = 105 -> OfficeIMO.Word.WordTableStyle
 OfficeIMO.Word.WordTableStyle.PlainTable1 = 2 -> OfficeIMO.Word.WordTableStyle
 OfficeIMO.Word.WordTableStyle.PlainTable2 = 3 -> OfficeIMO.Word.WordTableStyle
 OfficeIMO.Word.WordTableStyle.PlainTable3 = 4 -> OfficeIMO.Word.WordTableStyle
@@ -5128,7 +5132,7 @@ static OfficeIMO.Word.WordShape.AddRoundedRectangle(OfficeIMO.Word.WordParagraph
 static OfficeIMO.Word.WordSignatureValidationReport.From(OfficeIMO.Word.WordSignatureInfo! signatureInfo) -> OfficeIMO.Word.WordSignatureValidationReport!
 static OfficeIMO.Word.WordSigningCapabilities.MacroProject.get -> OfficeIMO.Word.WordSigningCapability!
 static OfficeIMO.Word.WordSigningCapabilities.Package.get -> OfficeIMO.Word.WordSigningCapability!
-static OfficeIMO.Word.WordTable.Create(OfficeIMO.Word.WordDocument! document, int rows, int columns, OfficeIMO.Word.WordTableStyle tableStyle = OfficeIMO.Word.WordTableStyle.TableGrid) -> OfficeIMO.Word.WordTable!
+static OfficeIMO.Word.WordTable.Create(OfficeIMO.Word.WordDocument! document, int rows, int columns, OfficeIMO.Word.WordTableStyle tableStyle = OfficeIMO.Word.WordTableStyle.OfficeIMOModern) -> OfficeIMO.Word.WordTable!
 static OfficeIMO.Word.WordTableCell.operator !=(OfficeIMO.Word.WordTableCell? left, OfficeIMO.Word.WordTableCell? right) -> bool
 static OfficeIMO.Word.WordTableCell.operator ==(OfficeIMO.Word.WordTableCell? left, OfficeIMO.Word.WordTableCell? right) -> bool
 static OfficeIMO.Word.WordTableRow.operator !=(OfficeIMO.Word.WordTableRow? left, OfficeIMO.Word.WordTableRow? right) -> bool

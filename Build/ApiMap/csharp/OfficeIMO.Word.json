@@ -251,7 +251,8 @@
     "WordDocument.AddTable<T>(IEnumerable<T> rows, OfficeTableOptions options = null) : WordTable",
     "WordDocument.AddChart<T>(OfficeChartType type, IEnumerable<T> data, Func<T, object> category, params OfficeSeries[] series) : WordChart and the nameof() overload",
     "WordDocument.AddCallout(...) and WordDocument.AddCodeBlock(...) (from the fluent layer)",
-    "WordDocument.ApplyTheme(OfficeTheme theme) and WordCreateOptions.Theme"
+    "WordDocument.ApplyTheme(OfficeTheme theme)",
+    "WordCreateOptions.Theme"
   ],
   "internalizeCandidates": [
     {
@@ -6684,6 +6685,30 @@
       "file": "OfficeIMO.Word/WordLineSpacing.cs",
       "applied": "phase-b-applied",
       "note": "The C# property writes and clears the native pair atomically. Internal raw evidence supports native codecs and loss diagnostics. PSWriteOffice retains LineSpacingPoints/LineSpacingRule, mapping existing behavior through friend-only native plumbing until its command migration. PDF-to-Word image scaffolds retain distinct one-twip and one-point heights."
+    },
+    {
+      "phase": "B",
+      "action": "change",
+      "old": "WordCreateOptions without an explicit theme; typed/matrix/text tables forcing TableGrid",
+      "new": "WordCreateOptions.Theme selects per-document shared theme defaults; native table creation defaults to WordTableStyle.OfficeIMOModern",
+      "reason": "New documents and typed tables use the selected visual identity while loaded documents and unspecified template themes retain their authored content.",
+      "files": [
+        "OfficeIMO.Word/WordDocument.CreationTheme.cs",
+        "OfficeIMO.Word/Parts/WordDocument.Parts.Theme.OfficeTheme.cs",
+        "OfficeIMO.Word/WordThemeDefaults.cs",
+        "OfficeIMO.Word/WordDocument.TypedTables.cs"
+      ],
+      "applied": "phase-b-applied",
+      "note": "Each document owns its cloned native table/font/palette definitions. Unspecified template themes and ordinary loads retain native styling; import scaffolds stay neutral. Explicit false bold/alignment and headerless tables override the Modern header defaults. Dark screen themes retain readable text on a light Word page. Native creation/spacing/array-row suite: 43 passed on net10.0. Public ApplyTheme remains separate."
+    },
+    {
+      "phase": "B",
+      "action": "add",
+      "new": "WordDocument.AddTable(IEnumerable<string[]> rows, OfficeTableOptions? options = null)",
+      "reason": "Keep ordinary native string-array rows on the text-table owner when generic typed projection overloads are present.",
+      "file": "OfficeIMO.Word/WordDocument.TypedTables.cs",
+      "applied": "phase-b-applied",
+      "note": "The more specific overload preserves row cells rather than projecting Array metadata. Saved native table rows are covered in the net10.0 creation suite."
     }
   ],
   "applicationStatus": "Phase A applied and validated on the supported macOS targets. Phase B and Tier 2 entries retain their status; Windows .NET Framework validation remains pending.",
