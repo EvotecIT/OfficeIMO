@@ -26,7 +26,7 @@ Supports A1 addresses or row/column coordinates for DSL-style composition.
 
 ### EXAMPLE 1
 ```powershell
-PS> ExcelSheet 'Data' { Set-OfficeExcelCell -Address 'A1' -Value 'Region'; Set-OfficeExcelCell -Row 1 -Column 2 -Value 'Revenue' }
+PS> ExcelSheet 'Data' { Set-OfficeExcelCell -Address 'ExcelA1' -Value 'Region'; Set-OfficeExcelCell -Row 1 -Column 2 -Value 'Revenue' }
 ```
 
 Writes two headers in the first row.
@@ -41,7 +41,7 @@ Uses the worksheet pipeline target without an active DSL scope.
 ## PARAMETERS
 
 ### -Address
-A1-style cell address (e.g., A1, C5).
+A1-style cell address (e.g., ExcelA1, C5).
 
 ```yaml
 Type: String

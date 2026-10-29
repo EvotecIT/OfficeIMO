@@ -34,7 +34,7 @@ Stores the formula in cell C2.
 ## PARAMETERS
 
 ### -Address
-A1-style cell address (e.g., A1, C5).
+A1-style cell address (e.g., ExcelA1, C5).
 
 ```yaml
 Type: String

@@ -293,7 +293,7 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 
 ## OUTPUTS
 
-- `OfficeIMO.Excel.Pdf.PdfTablesToExcelOptions`
+- `OfficeIMO.Pdf.Excel.ExcelPdfImportOptions`
 
 ## RELATED LINKS
 

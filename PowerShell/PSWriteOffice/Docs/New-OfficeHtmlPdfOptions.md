@@ -11,7 +11,7 @@ Creates typed HTML rendering options for Export-OfficeDocumentPdf.
 ## SYNTAX
 ### __AllParameterSets
 ```powershell
-New-OfficeHtmlPdfOptions [-Options <HtmlToPdfOptions>] [-PdfOptions <PdfOptions>] [-FontFamily <string>] [-Margin <Double>] [-IncludeLocalResources] [-InteractiveFormControls <Boolean>] [<CommonParameters>]
+New-OfficeHtmlPdfOptions [-Options <HtmlToPdfOptions>] [-PdfOptions <PdfCreateOptions>] [-FontFamily <string>] [-Margin <Double>] [-IncludeLocalResources] [-InteractiveFormControls <Boolean>] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -22,7 +22,7 @@ Creates typed HTML rendering options for Export-OfficeDocumentPdf.
 ### EXAMPLE 1
 ```powershell
 PS> $options = New-OfficeHtmlPdfOptions -FontFamily Arial -IncludeLocalResources
-Export-OfficeDocumentPdf -InputPath .\Report.html -Path .\Report.pdf -HtmlOptions $options
+Export-OfficeDocumentPdf -InputPath .\Report.html -Path .\Report.pdf -MarkdownHtmlExportOptions $options
 ```
 
 
@@ -112,7 +112,7 @@ Accept wildcard characters: False
 Underlying PDF writer settings, cloned before use.
 
 ```yaml
-Type: PdfOptions
+Type: PdfCreateOptions
 Parameter Sets: __AllParameterSets
 Aliases: None
 Possible values:

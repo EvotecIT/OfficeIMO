@@ -7,5 +7,5 @@ MarkdownNew -Path $source {
     MarkdownList -Items 'Archive the evidence', 'Notify the service owner'
 }
 
-Get-OfficeDocumentChunk -Path $source -MaxChars 300 -MaxInputBytes 1048576 -MaxTableRows 50 |
+Read-OfficeDocument -As Chunks -Path $source -MaximumChunkCharacters 300 -MaximumInputBytes 1048576 -MaximumTableRows 50 |
     Select-Object SourcePath, Kind, HeadingPath, Text

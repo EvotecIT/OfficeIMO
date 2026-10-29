@@ -4,25 +4,25 @@ Module Name: PSWriteOffice
 online version: https://github.com/EvotecIT/OfficeIMO
 schema: 2.0.0
 ---
-# New-OfficeReaderHierarchyOptions
+# New-OfficeDocumentHierarchyOptions
 ## SYNOPSIS
-Creates discoverable token and hierarchy settings for Get-OfficeDocumentHierarchy.
+Creates discoverable token and hierarchy settings for Read-OfficeDocument -As Hierarchy.
 
 ## SYNTAX
 ### __AllParameterSets
 ```powershell
-New-OfficeReaderHierarchyOptions [-MaxTokens <Int32>] [-OverlapTokens <Int32>] [-MaxInputChunks <Int32>] [-MaxOutputChunks <Int32>] [-MaxHierarchyDepth <Int32>] [-MaxContextCharacters <Int32>] [-PreferMarkdown] [-IncludeContextInText] [<CommonParameters>]
+New-OfficeDocumentHierarchyOptions [-MaximumTokens <Int32>] [-OverlapTokens <Int32>] [-MaximumInputChunks <Int32>] [-MaximumOutputChunks <Int32>] [-MaximumHierarchyDepth <Int32>] [-MaximumContextCharacters <Int32>] [-PreferMarkdown] [-IncludeContextInText] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
-Creates discoverable token and hierarchy settings for Get-OfficeDocumentHierarchy.
+Creates discoverable token and hierarchy settings for Read-OfficeDocument -As Hierarchy.
 
 ## EXAMPLES
 
 ### EXAMPLE 1
 ```powershell
-PS> $options = New-OfficeReaderHierarchyOptions -MaxTokens 500 -OverlapTokens 50 -IncludeContextInText
-Get-OfficeDocumentHierarchy -Path .\handbook.pdf -ChunkingOptions $options
+PS> $options = New-OfficeDocumentHierarchyOptions -MaximumTokens 500 -OverlapTokens 50 -IncludeContextInText
+Read-OfficeDocument -As Hierarchy -Path .\handbook.pdf -HierarchyOptions $options
 ```
 
 
@@ -44,7 +44,7 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -MaxContextCharacters
+### -MaximumContextCharacters
 Maximum heading-context characters retained.
 
 ```yaml
@@ -60,7 +60,7 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -MaxHierarchyDepth
+### -MaximumHierarchyDepth
 Maximum heading hierarchy depth.
 
 ```yaml
@@ -76,7 +76,7 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -MaxInputChunks
+### -MaximumInputChunks
 Maximum source chunks accepted.
 
 ```yaml
@@ -92,7 +92,7 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -MaxOutputChunks
+### -MaximumOutputChunks
 Maximum chunks returned.
 
 ```yaml
@@ -108,7 +108,7 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -MaxTokens
+### -MaximumTokens
 Maximum tokens per output chunk.
 
 ```yaml

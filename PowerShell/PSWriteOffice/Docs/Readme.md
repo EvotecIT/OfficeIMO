@@ -667,6 +667,9 @@ Saves a portable conversion job for Studio, the command-line tool and PowerShell
 ### [Export-OfficeCsv](Export-OfficeCsv.md)
 Exports objects or a CSV document to a CSV file.
 
+### [Export-OfficeDocumentAsset](Export-OfficeDocumentAsset.md)
+Writes document media, tables or visuals using the native Reader materializers.
+
 ### [Export-OfficeDocumentPdf](Export-OfficeDocumentPdf.md)
 Exports Word, Excel, PowerPoint, HTML, Markdown, RTF, and literal text documents to PDF.
 
@@ -769,41 +772,11 @@ Lists conversion contracts from the installed OfficeIMO catalog and their availa
 ### [Get-OfficeCsv](Get-OfficeCsv.md)
 Loads a CSV document from disk or parses CSV text.
 
-### [Get-OfficeDocument](Get-OfficeDocument.md)
-Reads a supported file into the OfficeIMO shared document read result envelope.
-
-### [Get-OfficeDocumentAsset](Get-OfficeDocumentAsset.md)
-Reads or materializes embedded assets discovered by OfficeIMO.Reader from a supported document.
-
-### [Get-OfficeDocumentBatch](Get-OfficeDocumentBatch.md)
-Reads supported files and folders with adjustable concurrency and limits.
-
 ### [Get-OfficeDocumentCapability](Get-OfficeDocumentCapability.md)
 Lists OfficeIMO.Reader capabilities registered in the current PSWriteOffice process.
 
-### [Get-OfficeDocumentChunk](Get-OfficeDocumentChunk.md)
-Reads supported Office, PDF, Markdown, RTF, HTML, CSV, JSON, XML, YAML, ZIP, EPUB, Visio, and text files into normalized OfficeIMO.Reader chunks.
-
-### [Get-OfficeDocumentDetection](Get-OfficeDocumentDetection.md)
-Detects a document kind from extension and bounded content evidence.
-
-### [Get-OfficeDocumentHierarchy](Get-OfficeDocumentHierarchy.md)
-Creates bounded token-aware chunks and a deterministic document hierarchy.
-
-### [Get-OfficeDocumentIngest](Get-OfficeDocumentIngest.md)
-Reads a folder into an OfficeIMO.Reader ingestion summary.
-
-### [Get-OfficeDocumentPageMarkdown](Get-OfficeDocumentPageMarkdown.md)
-Projects Reader pages into citation-friendly Markdown.
-
-### [Get-OfficeDocumentStructured](Get-OfficeDocumentStructured.md)
-Extracts a bounded schema-friendly view of a supported document.
-
-### [Get-OfficeDocumentTable](Get-OfficeDocumentTable.md)
-Reads structured tables discovered by OfficeIMO.Reader from a supported document.
-
-### [Get-OfficeDocumentVisual](Get-OfficeDocumentVisual.md)
-Reads visual payloads discovered by OfficeIMO.Reader from a supported document.
+### [Get-OfficeDocumentInfo](Get-OfficeDocumentInfo.md)
+Inspects format, native counts and encryption without changing a source or reopening a live document.
 
 ### [Get-OfficeEmail](Get-OfficeEmail.md)
 Reads a native EML, EMLX, MSG, or TNEF artifact with bounded diagnostics.
@@ -1216,8 +1189,14 @@ Creates an in-memory Confluence Cloud session.
 ### [New-OfficeConversionOptions](New-OfficeConversionOptions.md)
 Creates discoverable renderer and reconstruction settings for general conversion jobs.
 
+### [New-OfficeDocumentHierarchyOptions](New-OfficeDocumentHierarchyOptions.md)
+Creates discoverable token and hierarchy settings for Read-OfficeDocument -As Hierarchy.
+
 ### [New-OfficeDocumentReader](New-OfficeDocumentReader.md)
-Creates an immutable fully configured OfficeIMO document reader.
+Creates an immutable document reader with common policies, format options and optional OCR.
+
+### [New-OfficeDocumentReaderOptions](New-OfficeDocumentReaderOptions.md)
+Creates common read, detection, package and folder policies for document readers.
 
 ### [New-OfficeEmailMailboxReaderOptions](New-OfficeEmailMailboxReaderOptions.md)
 Creates bounded mbox reader settings through ordinary PowerShell parameters.
@@ -1276,6 +1255,9 @@ Creates a Markdown document using a DSL scriptblock.
 ### [New-OfficeMarkdownPdfOptions](New-OfficeMarkdownPdfOptions.md)
 Creates discoverable Markdown-to-PDF conversion options for Export-OfficeDocumentPdf.
 
+### [New-OfficeOcrOptions](New-OfficeOcrOptions.md)
+Creates optional OCR settings without starting a provider or downloading language data.
+
 ### [New-OfficeOpenDocument](New-OfficeOpenDocument.md)
 Creates a native ODT, ODS, ODP, or ODG document.
 
@@ -1330,9 +1312,6 @@ Creates discoverable PowerPoint-to-PDF conversion options for Export-OfficeDocum
 ### [New-OfficeProject](New-OfficeProject.md)
 Creates a live project with an optional standard working calendar.
 
-### [New-OfficeReaderHierarchyOptions](New-OfficeReaderHierarchyOptions.md)
-Creates discoverable token and hierarchy settings for Get-OfficeDocumentHierarchy.
-
 ### [New-OfficeRtf](New-OfficeRtf.md)
 Creates an RTF document with plain paragraph content.
 
@@ -1386,6 +1365,9 @@ Protects a Word document with a password.
 
 ### [Publish-OfficeConfluencePage](Publish-OfficeConfluencePage.md)
 Plans, creates, or updates a Confluence Cloud page.
+
+### [Read-OfficeDocument](Read-OfficeDocument.md)
+Reads supported documents once and projects text, structure or ingestion views.
 
 ### [Read-OfficePdf](Read-OfficePdf.md)
 Reads a PDF into OfficeIMO.Pdf's canonical structured document model.

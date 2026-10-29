@@ -11,12 +11,12 @@ Reads a PDF into OfficeIMO.Pdf's canonical structured document model.
 ## SYNTAX
 ### Path (Default)
 ```powershell
-Read-OfficePdf [-Path] <string> [-Options <PdfReadOptions>] [-Profile <PdfReadProfile>] [-PageRange <string>] [-Password <string>] [-IgnorePermissionRestrictions] [<CommonParameters>]
+Read-OfficePdf [-Path] <string> [-Options <PdfLoadOptions>] [-Profile <PdfReadProfile>] [-PageRange <string>] [-Password <string>] [-IgnorePermissionRestrictions] [<CommonParameters>]
 ```
 
 ### Document
 ```powershell
-Read-OfficePdf -Document <PdfDocument> [-Options <PdfReadOptions>] [-Profile <PdfReadProfile>] [-PageRange <string>] [<CommonParameters>]
+Read-OfficePdf -Document <PdfDocument> [-Options <PdfLoadOptions>] [-Profile <PdfReadProfile>] [-PageRange <string>] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -73,7 +73,7 @@ Accept wildcard characters: False
 Advanced structured-read settings. Friendly parameters override the corresponding setting when explicitly supplied.
 
 ```yaml
-Type: PdfReadOptions
+Type: PdfLoadOptions
 Parameter Sets: Path, Document
 Aliases: None
 Possible values:

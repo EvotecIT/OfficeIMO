@@ -11,16 +11,16 @@ Parses Markdown text or files into a Markdown document model.
 ## SYNTAX
 ### Path (Default)
 ```powershell
-Get-OfficeMarkdown [-Path] <string> [-Options <MarkdownReaderOptions>] [-Profile <MarkdownDialectProfile>] [-BaseUri <string>] [-MaxInputCharacters <Int32>] [-NormalizeInput <MarkdownInputNormalizationPreset>] [-DisallowFileUrls <Boolean>] [-AllowDataUrls <Boolean>] [-AllowMailtoUrls <Boolean>] [-AllowProtocolRelativeUrls <Boolean>] [-RestrictUrlSchemes <Boolean>] [-AllowedUrlScheme <string[]>] [<CommonParameters>]
+Get-OfficeMarkdown [-Path] <string> [-Options <MarkdownLoadOptions>] [-Profile <MarkdownDialectProfile>] [-BaseUri <string>] [-MaxInputCharacters <Int32>] [-NormalizeInput <MarkdownInputNormalizationPreset>] [-DisallowFileUrls <Boolean>] [-AllowDataUrls <Boolean>] [-AllowMailtoUrls <Boolean>] [-AllowProtocolRelativeUrls <Boolean>] [-RestrictUrlSchemes <Boolean>] [-AllowedUrlScheme <string[]>] [<CommonParameters>]
 ```
 
 ### Text
 ```powershell
-Get-OfficeMarkdown -Text <string> [-Options <MarkdownReaderOptions>] [-Profile <MarkdownDialectProfile>] [-BaseUri <string>] [-MaxInputCharacters <Int32>] [-NormalizeInput <MarkdownInputNormalizationPreset>] [-DisallowFileUrls <Boolean>] [-AllowDataUrls <Boolean>] [-AllowMailtoUrls <Boolean>] [-AllowProtocolRelativeUrls <Boolean>] [-RestrictUrlSchemes <Boolean>] [-AllowedUrlScheme <string[]>] [<CommonParameters>]
+Get-OfficeMarkdown -Text <string> [-Options <MarkdownLoadOptions>] [-Profile <MarkdownDialectProfile>] [-BaseUri <string>] [-MaxInputCharacters <Int32>] [-NormalizeInput <MarkdownInputNormalizationPreset>] [-DisallowFileUrls <Boolean>] [-AllowDataUrls <Boolean>] [-AllowMailtoUrls <Boolean>] [-AllowProtocolRelativeUrls <Boolean>] [-RestrictUrlSchemes <Boolean>] [-AllowedUrlScheme <string[]>] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
-Returns an MarkdownDoc for inspection or further rendering.
+Returns an MarkdownDocument for inspection or further rendering.
 
 ## EXAMPLES
 
@@ -172,7 +172,7 @@ Accept wildcard characters: False
 Optional reader options.
 
 ```yaml
-Type: MarkdownReaderOptions
+Type: MarkdownLoadOptions
 Parameter Sets: Path, Text
 Aliases: ReaderOptions
 Possible values:
@@ -257,7 +257,7 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 
 ## OUTPUTS
 
-- `OfficeIMO.Markdown.MarkdownDoc`
+- `OfficeIMO.Markdown.MarkdownDocument`
 
 ## RELATED LINKS
 

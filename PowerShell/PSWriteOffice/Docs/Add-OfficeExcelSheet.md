@@ -26,7 +26,7 @@ Creates the sheet when missing, pushes it onto the DSL stack, and executes the n
 
 ### EXAMPLE 1
 ```powershell
-PS> New-OfficeExcel -Path .\report.xlsx { Add-OfficeExcelSheet -Name 'Data' { ExcelCell -Address 'A1' -Value 'Region' } }
+PS> New-OfficeExcel -Path .\report.xlsx { Add-OfficeExcelSheet -Name 'Data' { ExcelCell -Address 'ExcelA1' -Value 'Region' } }
 ```
 
 Creates a workbook with a worksheet named Data and writes the header “Region”.
@@ -34,7 +34,7 @@ Creates a workbook with a worksheet named Data and writes the header “Region�
 ### EXAMPLE 2
 ```powershell
 PS> $sheet = $workbook | Add-OfficeExcelSheet -Name 'Data' -PassThru
-$sheet | Set-OfficeExcelCell -Address A1 -Value 'Region'
+$sheet | Set-OfficeExcelCell -Address ExcelA1 -Value 'Region'
 ```
 
 Returns the worksheet so subsequent commands can target it directly.

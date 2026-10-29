@@ -50,7 +50,7 @@ Accept wildcard characters: False
 ```
 
 ### -ConfigureRendering
-The callback receives a PdfOptions instance. Page geometry, margins, and encryption remain controlled by the stamping operation.
+The callback receives a PdfCreateOptions instance. Page geometry, margins, and encryption remain controlled by the stamping operation.
 
 ```yaml
 Type: ScriptBlock

@@ -11,7 +11,7 @@ Creates discoverable Excel-to-PDF conversion options for Export-OfficeDocumentPd
 ## SYNTAX
 ### __AllParameterSets
 ```powershell
-New-OfficeExcelPdfOptions [-PdfOptions <PdfOptions>] [-FontFamily <string>] [-PageSize <PageSize>] [-MarginLeft <Double>] [-MarginTop <Double>] [-MarginRight <Double>] [-MarginBottom <Double>] [-WorksheetLayout <ExcelPdfWorksheetLayoutMode>] [-SheetName <string[]>] [-RespectWorkbookSheetVisibility] [-UseWorksheetPrintAreas] [-UseWorksheetPageSetup] [-UseWorksheetPrintTitleRows] [-UseWorksheetPageBreaks] [-UseWorksheetHeadersAndFooters] [-UseWorksheetHeaderFooterImages] [-UseWorksheetCellStyles] [-UseWorksheetHyperlinks] [-UseWorksheetImages] [-UseWorksheetCharts] [-ChartStyle <OfficeChartStyle>] [-ChartLayout <OfficeChartLayout>] [-UseWorksheetMergedCells] [-UseWorksheetColumnWidths] [-UseWorksheetRowHeights] [-RespectWorksheetHiddenRowsAndColumns] [-IncludeSheetHeadings] [-HeaderRowCount <Int32>] [-MaxRowsPerSheet <Int32>] [-UseBoundedWorksheetRead] [-EmptyCellText <string>] [-AllowSystemFontEmbedding] [-AllowDocumentFontEmbedding] [<CommonParameters>]
+New-OfficeExcelPdfOptions [-PdfOptions <PdfCreateOptions>] [-FontFamily <string>] [-PageSize <PdfPageSize>] [-MarginLeft <Double>] [-MarginTop <Double>] [-MarginRight <Double>] [-MarginBottom <Double>] [-WorksheetLayout <ExcelPdfWorksheetLayoutMode>] [-SheetName <string[]>] [-RespectWorkbookSheetVisibility] [-UseWorksheetPrintAreas] [-UseWorksheetPageSetup] [-UseWorksheetPrintTitleRows] [-UseWorksheetPageBreaks] [-UseWorksheetHeadersAndFooters] [-UseWorksheetHeaderFooterImages] [-UseWorksheetCellStyles] [-UseWorksheetHyperlinks] [-UseWorksheetImages] [-UseWorksheetCharts] [-ChartStyle <OfficeChartStyle>] [-ChartLayout <OfficeChartLayout>] [-UseWorksheetMergedCells] [-UseWorksheetColumnWidths] [-UseWorksheetRowHeights] [-RespectWorksheetHiddenRowsAndColumns] [-IncludeSheetHeadings] [-HeaderRowCount <Int32>] [-MaxRowsPerSheet <Int32>] [-UseBoundedWorksheetRead] [-EmptyCellText <string>] [-AllowSystemFontEmbedding] [-AllowDocumentFontEmbedding] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -240,7 +240,7 @@ Accept wildcard characters: False
 PDF page size.
 
 ```yaml
-Type: PageSize
+Type: PdfPageSize
 Parameter Sets: __AllParameterSets
 Aliases: None
 Possible values:
@@ -256,7 +256,7 @@ Accept wildcard characters: False
 Underlying low-level OfficeIMO PDF options.
 
 ```yaml
-Type: PdfOptions
+Type: PdfCreateOptions
 Parameter Sets: __AllParameterSets
 Aliases: None
 Possible values:
@@ -565,7 +565,7 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 
 ## OUTPUTS
 
-- `OfficeIMO.Excel.Pdf.ExcelToPdfOptions`
+- `OfficeIMO.Excel.Pdf.ExcelPdfExportOptions`
 
 ## RELATED LINKS
 

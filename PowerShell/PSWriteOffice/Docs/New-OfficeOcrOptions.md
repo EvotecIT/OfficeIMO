@@ -4,32 +4,80 @@ Module Name: PSWriteOffice
 online version: https://github.com/EvotecIT/OfficeIMO
 schema: 2.0.0
 ---
-# Get-OfficeDocumentBatch
+# New-OfficeOcrOptions
 ## SYNOPSIS
-Reads supported files and folders with adjustable concurrency and limits.
+Creates optional OCR settings without starting a provider or downloading language data.
 
 ## SYNTAX
 ### __AllParameterSets
 ```powershell
-Get-OfficeDocumentBatch [-Path] <string[]> [-Recurse] [-Extension <string[]>] [-MaxDocuments <Int32>] [-NoDocumentLimit] [-MaxDegreeOfParallelism <Int32>] [-MaxStoreItems <Int32>] [-AllStoreItems] [-IncludePageLocations] [-ContinueOnError] [<CommonParameters>]
+New-OfficeOcrOptions [-Provider <IOcrEngine>] [-ExecutionOptions <OfficeDocumentOcrExecutionOptions>] [-RecognitionOptions <PdfOcrMergeOptions>] [-MinimumConfidence <Double>] [-Options <TesseractOcrSessionOptions>] [-Language <TesseractOcrLanguage[]>] [-TesseractLanguageExpression <string>] [-TesseractPath <string>] [-TessdataDirectory <string>] [-NoLanguageDownload] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
-Reads supported files and folders with adjustable concurrency and limits.
+Creates optional OCR settings without starting a provider or downloading language data.
 
 ## EXAMPLES
 
 ### EXAMPLE 1
 ```powershell
-PS> Get-OfficeDocumentBatch -Path .\Reports -Recurse -MaxDegreeOfParallelism 4 -ContinueOnError
+$ocr = New-OfficeOcrOptions -Language English,Polish -NoLanguageDownload
+Read-OfficeDocument ./scan.png -As Text -OcrOptions $ocr
 ```
 
-PSWriteOffice discovers registered formats and reports individual read failures without requiring .NET option objects.
 
 ## PARAMETERS
 
-### -AllStoreItems
-Project every matching item from each email store.
+### -ExecutionOptions
+Bounded recognition and enrichment policy for document views.
+
+```yaml
+Type: OfficeDocumentOcrExecutionOptions
+Parameter Sets: __AllParameterSets
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Language
+Friendly OCR languages. Supply more than one value to recognize multilingual content.
+
+```yaml
+Type: TesseractOcrLanguage[]
+Parameter Sets: __AllParameterSets
+Aliases: None
+Possible values: English, Polish, Arabic, ChineseSimplified, ChineseTraditional, Czech, Danish, Dutch, Finnish, French, German, Greek, Hebrew, Hindi, Hungarian, Italian, Japanese, Korean, Norwegian, Portuguese, Romanian, Russian, Slovak, Spanish, Swedish, Turkish, Ukrainian, Vietnamese
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -MinimumConfidence
+Minimum confidence accepted into an editable OCR review.
+
+```yaml
+Type: Double
+Parameter Sets: __AllParameterSets
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -NoLanguageDownload
+Do not download checksum-pinned curated language data when a requested language is missing.
 
 ```yaml
 Type: SwitchParameter
@@ -44,11 +92,11 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -ContinueOnError
-Report individual read errors and continue processing other documents.
+### -Options
+Advanced OfficeIMO OCR options. Convenience parameters override matching values.
 
 ```yaml
-Type: SwitchParameter
+Type: TesseractOcrSessionOptions
 Parameter Sets: __AllParameterSets
 Aliases: None
 Possible values:
@@ -60,27 +108,11 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -Extension
-Optional extensions to include. Registered Reader formats are used automatically when omitted.
+### -Provider
+Optional engine-neutral OCR provider.
 
 ```yaml
-Type: String[]
-Parameter Sets: __AllParameterSets
-Aliases: Extensions
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -IncludePageLocations
-Compute Word and RTF page locations when supported.
-
-```yaml
-Type: SwitchParameter
+Type: IOcrEngine
 Parameter Sets: __AllParameterSets
 Aliases: None
 Possible values:
@@ -92,11 +124,11 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -MaxDegreeOfParallelism
-Maximum document reads in flight.
+### -RecognitionOptions
+Layout, confidence and resource policy for original image or PDF reviews.
 
 ```yaml
-Type: Int32
+Type: PdfOcrMergeOptions
 Parameter Sets: __AllParameterSets
 Aliases: None
 Possible values:
@@ -108,11 +140,11 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -MaxDocuments
-Maximum documents accepted in one batch. The default is 500.
+### -TessdataDirectory
+Explicit directory containing Tesseract trained-data files.
 
 ```yaml
-Type: Int32
+Type: String
 Parameter Sets: __AllParameterSets
 Aliases: None
 Possible values:
@@ -124,11 +156,11 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -MaxStoreItems
-Maximum PST, OST, OLM, or EMLX items projected from each store. The default is 1,000.
+### -TesseractLanguageExpression
+Advanced raw Tesseract expression for caller-installed custom trained-data models.
 
 ```yaml
-Type: Int32
+Type: String
 Parameter Sets: __AllParameterSets
 Aliases: None
 Possible values:
@@ -140,43 +172,11 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -NoDocumentLimit
-Remove the document-count ceiling.
+### -TesseractPath
+Explicit Tesseract executable path. By default OfficeIMO securely discovers an installed runtime.
 
 ```yaml
-Type: SwitchParameter
-Parameter Sets: __AllParameterSets
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -Path
-File, directory, or wildcard paths to read.
-
-```yaml
-Type: String[]
-Parameter Sets: __AllParameterSets
-Aliases: FullName, FilePath
-Possible values:
-
-Required: True
-Position: 0
-Default value: None
-Accept pipeline input: True (ByValue, ByPropertyName)
-Accept wildcard characters: False
-```
-
-### -Recurse
-Search subdirectories when a path names a directory.
-
-```yaml
-Type: SwitchParameter
+Type: String
 Parameter Sets: __AllParameterSets
 Aliases: None
 Possible values:
@@ -193,11 +193,11 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 
 ## INPUTS
 
-- `System.String[]`
+- `None`
 
 ## OUTPUTS
 
-- `OfficeIMO.Reader.OfficeDocumentReadResult`
+- `PSWriteOffice.Models.Reader.OfficeOcrOptions`: Optional OCR provider and existing native policies used by document reads and OCR reviews.
 
 ## RELATED LINKS
 

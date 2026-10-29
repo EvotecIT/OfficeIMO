@@ -16,7 +16,7 @@ Add-OfficeMarkdownQuote [-Text] <string> [-PassThru] [<CommonParameters>]
 
 ### Document
 ```powershell
-Add-OfficeMarkdownQuote [-Text] <string> -Document <MarkdownDoc> [-PassThru] [<CommonParameters>]
+Add-OfficeMarkdownQuote [-Text] <string> -Document <MarkdownDocument> [-PassThru] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -41,7 +41,7 @@ Appends a quote block to the current Markdown document.
 Markdown document to update outside the DSL context.
 
 ```yaml
-Type: MarkdownDoc
+Type: MarkdownDocument
 Parameter Sets: Document
 Aliases: None
 Possible values:
@@ -90,11 +90,11 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 
 ## INPUTS
 
-- `OfficeIMO.Markdown.MarkdownDoc`
+- `OfficeIMO.Markdown.MarkdownDocument`
 
 ## OUTPUTS
 
-- `OfficeIMO.Markdown.MarkdownDoc`
+- `OfficeIMO.Markdown.MarkdownDocument`
 
 ## RELATED LINKS
 

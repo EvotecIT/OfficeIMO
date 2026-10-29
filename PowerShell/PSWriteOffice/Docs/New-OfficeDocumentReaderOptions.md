@@ -4,33 +4,71 @@ Module Name: PSWriteOffice
 online version: https://github.com/EvotecIT/OfficeIMO
 schema: 2.0.0
 ---
-# Get-OfficeDocument
+# New-OfficeDocumentReaderOptions
 ## SYNOPSIS
-Reads a supported file into the OfficeIMO shared document read result envelope.
+Creates common read, detection, package and folder policies for document readers.
 
 ## SYNTAX
 ### __AllParameterSets
 ```powershell
-Get-OfficeDocument [-Path] <string> [-AsJson] [-Indented] [-MaxInputBytes <Int64>] [-OpenXmlMaxCharactersInPart <Int64>] [-MaxChars <Int32>] [-MaxTableRows <Int32>] [-ExcludeWordFootnotes] [-ExcludePowerPointNotes] [-NoExcelHeaders] [-ExcelChunkRows <Int32>] [-ExcelSheetName <string>] [-ExcelA1Range <string>] [-NoMarkdownHeadingChunks] [-NoHashes] [-IncludePageLocations] [-MaxStoreItems <Int32>] [-AllStoreItems] [-Reader <OfficeDocumentReader>] [<CommonParameters>]
+New-OfficeDocumentReaderOptions [-Projection <ReaderProjection>] [-DetectionMode <ReaderDetectionMode>] [-MaximumDetectionProbeBytes <Int32>] [-MaximumDetectionContainerEntries <Int32>] [-MaximumPartUncompressedBytes <Int64>] [-MaximumTotalUncompressedBytes <Int64>] [-MaximumImageAssets <Int32>] [-MaximumImageAssetBytes <Int64>] [-MaximumTotalImageAssetBytes <Int64>] [-MaximumImagePlacementsPerRelationship <Int32>] [-MaximumTraversalEntries <Int32>] [-FollowSymlink] [-NoDeterministicOrder] [-Encoding <Encoding>] [-FailOnInvalidTextBytes] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
-Use -AsJson for a deterministic serialized payload suitable for indexing or API handoff.
+Creates common read, detection, package and folder policies for document readers.
 
 ## EXAMPLES
 
 ### EXAMPLE 1
 ```powershell
-PS> $json = Get-OfficeDocument -Path .\Report.pdf -AsJson -Indented
-$json | Set-Content -Path .\Report.reader.json
+Read-OfficeDocument ./Report.docx -As Text -Options (New-OfficeDocumentReaderOptions -Projection TextAndMetadata)
 ```
 
-Reads a supported document and stores the normalized Reader result for indexing or diagnostics.
+
+### EXAMPLE 2
+```powershell
+$options = New-OfficeDocumentReaderOptions -DetectionMode PreferContent -MaximumTraversalEntries 50000
+$reader = New-OfficeDocumentReader -Options $options
+Read-OfficeDocument ./Reports -Recurse -Reader $reader
+```
+
 
 ## PARAMETERS
 
-### -AllStoreItems
-Project every matching item from an email store.
+### -DetectionMode
+How extension and content evidence select the format handler.
+
+```yaml
+Type: ReaderDetectionMode
+Parameter Sets: __AllParameterSets
+Aliases: None
+Possible values: ExtensionOnly, ContentWhenUnknown, PreferContent
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Encoding
+Text encoding for sources without a byte-order mark.
+
+```yaml
+Type: Encoding
+Parameter Sets: __AllParameterSets
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -FailOnInvalidTextBytes
+Reject invalid byte sequences instead of replacing them.
 
 ```yaml
 Type: SwitchParameter
@@ -45,8 +83,8 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -AsJson
-Return the read result as JSON.
+### -FollowSymlink
+Follow links and junctions during folder traversal. Native format admission rules still apply.
 
 ```yaml
 Type: SwitchParameter
@@ -61,24 +99,8 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -ExcelA1Range
-Optional Excel A1 range to read.
-
-```yaml
-Type: String
-Parameter Sets: __AllParameterSets
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -ExcelChunkRows
-Excel rows per emitted worksheet chunk.
+### -MaximumDetectionContainerEntries
+Maximum archive entries inspected during format detection.
 
 ```yaml
 Type: Int32
@@ -93,89 +115,8 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -ExcelSheetName
-Optional Excel sheet name to read.
-
-```yaml
-Type: String
-Parameter Sets: __AllParameterSets
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -ExcludePowerPointNotes
-Exclude PowerPoint speaker notes.
-
-```yaml
-Type: SwitchParameter
-Parameter Sets: __AllParameterSets
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -ExcludeWordFootnotes
-Exclude Word footnotes.
-
-```yaml
-Type: SwitchParameter
-Parameter Sets: __AllParameterSets
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -IncludePageLocations
-Compute Word page locations and reconstruct RTF pages from explicit page and section breaks.
-PDF and logical-container formats expose their native page-like locations without this switch.
-
-```yaml
-Type: SwitchParameter
-Parameter Sets: __AllParameterSets
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -Indented
-Indent JSON output.
-
-```yaml
-Type: SwitchParameter
-Parameter Sets: __AllParameterSets
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -MaxChars
-Maximum emitted chunk characters.
+### -MaximumDetectionProbeBytes
+Maximum prefix bytes inspected during content detection.
 
 ```yaml
 Type: Int32
@@ -190,8 +131,8 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -MaxInputBytes
-Maximum input size in bytes.
+### -MaximumImageAssetBytes
+Maximum bytes retained for one Office image asset.
 
 ```yaml
 Type: Int64
@@ -206,8 +147,8 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -MaxStoreItems
-Maximum PST, OST, OLM, or EMLX items projected from the store. The default is 1,000.
+### -MaximumImageAssets
+Maximum retained Office image assets; zero retains none.
 
 ```yaml
 Type: Int32
@@ -222,8 +163,8 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -MaxTableRows
-Maximum table rows per emitted table chunk.
+### -MaximumImagePlacementsPerRelationship
+Maximum placements retained for one Office image relationship.
 
 ```yaml
 Type: Int32
@@ -238,56 +179,8 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -NoExcelHeaders
-Treat the first Excel row as data instead of headers.
-
-```yaml
-Type: SwitchParameter
-Parameter Sets: __AllParameterSets
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -NoHashes
-Disable source and chunk hash computation.
-
-```yaml
-Type: SwitchParameter
-Parameter Sets: __AllParameterSets
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -NoMarkdownHeadingChunks
-Do not split Markdown by headings.
-
-```yaml
-Type: SwitchParameter
-Parameter Sets: __AllParameterSets
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -OpenXmlMaxCharactersInPart
-OpenXML maximum characters per part.
+### -MaximumPartUncompressedBytes
+Maximum uncompressed bytes in one Office package part.
 
 ```yaml
 Type: Int64
@@ -302,30 +195,78 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -Path
-File path to read.
+### -MaximumTotalImageAssetBytes
+Maximum combined retained Office image payload bytes.
 
 ```yaml
-Type: String
-Parameter Sets: __AllParameterSets
-Aliases: FilePath, FullName, LiteralPath
-Possible values:
-
-Required: True
-Position: 0
-Default value: None
-Accept pipeline input: True (ByValue, ByPropertyName)
-Accept wildcard characters: False
-```
-
-### -Reader
-Optional immutable OfficeIMO reader with caller-configured handlers and processors.
-
-```yaml
-Type: OfficeDocumentReader
+Type: Int64
 Parameter Sets: __AllParameterSets
 Aliases: None
 Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -MaximumTotalUncompressedBytes
+Maximum combined uncompressed bytes in an Office package.
+
+```yaml
+Type: Int64
+Parameter Sets: __AllParameterSets
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -MaximumTraversalEntries
+Maximum raw file-system entries inspected before filtering.
+
+```yaml
+Type: Int32
+Parameter Sets: __AllParameterSets
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -NoDeterministicOrder
+Do not sort folder traversal results.
+
+```yaml
+Type: SwitchParameter
+Parameter Sets: __AllParameterSets
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Projection
+Derived representations to retain.
+
+```yaml
+Type: ReaderProjection
+Parameter Sets: __AllParameterSets
+Aliases: None
+Possible values: Full, TextAndMetadata
 
 Required: False
 Position: named
@@ -339,12 +280,11 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 
 ## INPUTS
 
-- `System.String`
+- `None`
 
 ## OUTPUTS
 
-- `OfficeIMO.Reader.OfficeDocumentReadResult`
-- `System.String`
+- `OfficeIMO.Reader.ReaderOptions`
 
 ## RELATED LINKS
 

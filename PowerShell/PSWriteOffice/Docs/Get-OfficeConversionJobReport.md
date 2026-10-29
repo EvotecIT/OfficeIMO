@@ -15,7 +15,7 @@ Get-OfficeConversionJobReport [-Path] <string> [<CommonParameters>]
 ```
 
 ## DESCRIPTION
-Requires PowerShell 7.4 or newer. Reports describe an earlier attempt; checkpoint receipts and current source/output validation determine whether artifacts can be reused.
+Reports describe an earlier attempt; checkpoint receipts and current source/output validation determine whether artifacts can be reused.
 
 ## EXAMPLES
 
@@ -53,7 +53,7 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 
 ## OUTPUTS
 
-- `OfficeIMO.Workflows.OfficeConversionJobRunReport`
+- `OfficeIMO.OfficeBatchReport`
 
 ## RELATED LINKS
 

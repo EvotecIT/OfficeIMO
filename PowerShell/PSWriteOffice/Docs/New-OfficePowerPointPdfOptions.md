@@ -11,7 +11,7 @@ Creates discoverable PowerPoint-to-PDF conversion options for Export-OfficeDocum
 ## SYNTAX
 ### __AllParameterSets
 ```powershell
-New-OfficePowerPointPdfOptions [-PdfOptions <PdfOptions>] [-FontFamily <string>] [-IncludePictures] [-IncludeAutoShapes] [-IncludeTextBoxes] [-IncludeSlideBackgrounds] [-IncludeTables] [-IncludeCharts] [-IncludeSmartArt] [-IncludeHiddenSlides] [-PageLayout <PowerPointPdfPageLayout>] [-HandoutSlidesPerPage <Int32>] [-IncludeSpeakerNotes] [-MaxGroupShapeDepth <Int32>] [-PictureFit <OfficeImageFit>] [-WarnOnPictureAspectRatioDistortion] [-ChartStyle <OfficeChartStyle>] [-ChartLayout <OfficeChartLayout>] [-AllowSystemFontEmbedding] [-AllowDocumentFontEmbedding] [<CommonParameters>]
+New-OfficePowerPointPdfOptions [-PdfOptions <PdfCreateOptions>] [-FontFamily <string>] [-IncludePictures] [-IncludeAutoShapes] [-IncludeTextBoxes] [-IncludeSlideBackgrounds] [-IncludeTables] [-IncludeCharts] [-IncludeSmartArt] [-IncludeHiddenSlides] [-PageLayout <PowerPointPdfPageLayout>] [-HandoutSlidesPerPage <Int32>] [-IncludeSpeakerNotes] [-MaxGroupShapeDepth <Int32>] [-PictureFit <OfficeImageFit>] [-WarnOnPictureAspectRatioDistortion] [-ChartStyle <OfficeChartStyle>] [-ChartLayout <OfficeChartLayout>] [-AllowSystemFontEmbedding] [-AllowDocumentFontEmbedding] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -304,7 +304,7 @@ Accept wildcard characters: False
 Underlying low-level OfficeIMO PDF options.
 
 ```yaml
-Type: PdfOptions
+Type: PdfCreateOptions
 Parameter Sets: __AllParameterSets
 Aliases: None
 Possible values:
@@ -357,7 +357,7 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 
 ## OUTPUTS
 
-- `OfficeIMO.PowerPoint.Pdf.PowerPointToPdfOptions`
+- `OfficeIMO.PowerPoint.Pdf.PowerPointPdfExportOptions`
 
 ## RELATED LINKS
 

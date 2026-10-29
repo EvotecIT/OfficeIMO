@@ -26,15 +26,15 @@ Adds or replaces a comment (note) on a worksheet cell.
 
 ### EXAMPLE 1
 ```powershell
-PS> ExcelSheet 'Data' { Add-OfficeExcelComment -Address 'A1' -Text 'Review this cell' }
+PS> ExcelSheet 'Data' { Add-OfficeExcelComment -Address 'ExcelA1' -Text 'Review this cell' }
 ```
 
-Creates a cell comment at A1.
+Creates a cell comment at ExcelA1.
 
 ## PARAMETERS
 
 ### -Address
-A1-style cell address (e.g., A1, C5).
+A1-style cell address (e.g., ExcelA1, C5).
 
 ```yaml
 Type: String

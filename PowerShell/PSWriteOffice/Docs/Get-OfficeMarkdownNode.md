@@ -11,17 +11,17 @@ Gets the OfficeIMO.Markdown object tree from Markdown content.
 ## SYNTAX
 ### Document
 ```powershell
-Get-OfficeMarkdownNode -Document <MarkdownDoc> [-Options <MarkdownReaderOptions>] [-Profile <MarkdownDialectProfile>] [-BaseUri <string>] [-MaxInputCharacters <Int32>] [-NormalizeInput <MarkdownInputNormalizationPreset>] [-DisallowFileUrls <Boolean>] [-AllowDataUrls <Boolean>] [-AllowMailtoUrls <Boolean>] [-AllowProtocolRelativeUrls <Boolean>] [-RestrictUrlSchemes <Boolean>] [-AllowedUrlScheme <string[]>] [-NodeType <string>] [-MaxDepth <int>] [-CaseSensitive] [-Raw] [<CommonParameters>]
+Get-OfficeMarkdownNode -Document <MarkdownDocument> [-Options <MarkdownLoadOptions>] [-Profile <MarkdownDialectProfile>] [-BaseUri <string>] [-MaxInputCharacters <Int32>] [-NormalizeInput <MarkdownInputNormalizationPreset>] [-DisallowFileUrls <Boolean>] [-AllowDataUrls <Boolean>] [-AllowMailtoUrls <Boolean>] [-AllowProtocolRelativeUrls <Boolean>] [-RestrictUrlSchemes <Boolean>] [-AllowedUrlScheme <string[]>] [-NodeType <string>] [-MaxDepth <int>] [-CaseSensitive] [-Raw] [<CommonParameters>]
 ```
 
 ### Path
 ```powershell
-Get-OfficeMarkdownNode [-Path] <string> [-Options <MarkdownReaderOptions>] [-Profile <MarkdownDialectProfile>] [-BaseUri <string>] [-MaxInputCharacters <Int32>] [-NormalizeInput <MarkdownInputNormalizationPreset>] [-DisallowFileUrls <Boolean>] [-AllowDataUrls <Boolean>] [-AllowMailtoUrls <Boolean>] [-AllowProtocolRelativeUrls <Boolean>] [-RestrictUrlSchemes <Boolean>] [-AllowedUrlScheme <string[]>] [-NodeType <string>] [-MaxDepth <int>] [-CaseSensitive] [-Raw] [<CommonParameters>]
+Get-OfficeMarkdownNode [-Path] <string> [-Options <MarkdownLoadOptions>] [-Profile <MarkdownDialectProfile>] [-BaseUri <string>] [-MaxInputCharacters <Int32>] [-NormalizeInput <MarkdownInputNormalizationPreset>] [-DisallowFileUrls <Boolean>] [-AllowDataUrls <Boolean>] [-AllowMailtoUrls <Boolean>] [-AllowProtocolRelativeUrls <Boolean>] [-RestrictUrlSchemes <Boolean>] [-AllowedUrlScheme <string[]>] [-NodeType <string>] [-MaxDepth <int>] [-CaseSensitive] [-Raw] [<CommonParameters>]
 ```
 
 ### Text
 ```powershell
-Get-OfficeMarkdownNode -Text <string> [-Options <MarkdownReaderOptions>] [-Profile <MarkdownDialectProfile>] [-BaseUri <string>] [-MaxInputCharacters <Int32>] [-NormalizeInput <MarkdownInputNormalizationPreset>] [-DisallowFileUrls <Boolean>] [-AllowDataUrls <Boolean>] [-AllowMailtoUrls <Boolean>] [-AllowProtocolRelativeUrls <Boolean>] [-RestrictUrlSchemes <Boolean>] [-AllowedUrlScheme <string[]>] [-NodeType <string>] [-MaxDepth <int>] [-CaseSensitive] [-Raw] [<CommonParameters>]
+Get-OfficeMarkdownNode -Text <string> [-Options <MarkdownLoadOptions>] [-Profile <MarkdownDialectProfile>] [-BaseUri <string>] [-MaxInputCharacters <Int32>] [-NormalizeInput <MarkdownInputNormalizationPreset>] [-DisallowFileUrls <Boolean>] [-AllowDataUrls <Boolean>] [-AllowMailtoUrls <Boolean>] [-AllowProtocolRelativeUrls <Boolean>] [-RestrictUrlSchemes <Boolean>] [-AllowedUrlScheme <string[]>] [-NodeType <string>] [-MaxDepth <int>] [-CaseSensitive] [-Raw] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -161,7 +161,7 @@ Accept wildcard characters: False
 Markdown document to inspect.
 
 ```yaml
-Type: MarkdownDoc
+Type: MarkdownDocument
 Parameter Sets: Document
 Aliases: None
 Possible values:
@@ -241,7 +241,7 @@ Accept wildcard characters: False
 Optional reader options used when parsing path or text input.
 
 ```yaml
-Type: MarkdownReaderOptions
+Type: MarkdownLoadOptions
 Parameter Sets: Document, Path, Text
 Aliases: ReaderOptions
 Possible values:
@@ -338,7 +338,7 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 
 ## INPUTS
 
-- `OfficeIMO.Markdown.MarkdownDoc`
+- `OfficeIMO.Markdown.MarkdownDocument`
 - `System.String`
 
 ## OUTPUTS

@@ -11,7 +11,7 @@ Creates a Markdown document using a DSL scriptblock.
 ## SYNTAX
 ### __AllParameterSets
 ```powershell
-New-OfficeMarkdown [-Path] <string> [[-Content] <scriptblock>] [-PassThru] [-NoSave] [-WriteOptions <MarkdownWriteOptions>] [-WriteProfile <OfficeMarkdownWriteProfile>] [-ImageRenderingMode <MarkdownImageRenderingMode>] [-LineEnding <string>] [-UnorderedListMarker <string>] [-WhatIf] [-Confirm] [<CommonParameters>]
+New-OfficeMarkdown [-Path] <string> [[-Content] <scriptblock>] [-PassThru] [-NoSave] [-WriteOptions <MarkdownSaveOptions>] [-WriteProfile <OfficeMarkdownWriteProfile>] [-ImageRenderingMode <MarkdownImageRenderingMode>] [-LineEnding <string>] [-UnorderedListMarker <string>] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -156,7 +156,7 @@ Accept wildcard characters: False
 Optional Markdown writer options.
 
 ```yaml
-Type: MarkdownWriteOptions
+Type: MarkdownSaveOptions
 Parameter Sets: __AllParameterSets
 Aliases: None
 Possible values:
@@ -194,7 +194,7 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 ## OUTPUTS
 
 - `System.IO.FileInfo`
-- `OfficeIMO.Markdown.MarkdownDoc`
+- `OfficeIMO.Markdown.MarkdownDocument`
 
 ## RELATED LINKS
 

@@ -11,7 +11,7 @@ Saves a Markdown document without changing its lifetime.
 ## SYNTAX
 ### __AllParameterSets
 ```powershell
-Save-OfficeMarkdown [-Document] <MarkdownDoc> [-Path] <string> [-WriteOptions <MarkdownWriteOptions>] [-WriteProfile <OfficeMarkdownWriteProfile>] [-ImageRenderingMode <MarkdownImageRenderingMode>] [-LineEnding <string>] [-UnorderedListMarker <string>] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
+Save-OfficeMarkdown [-Document] <MarkdownDocument> [-Path] <string> [-WriteOptions <MarkdownSaveOptions>] [-WriteProfile <OfficeMarkdownWriteProfile>] [-ImageRenderingMode <MarkdownImageRenderingMode>] [-LineEnding <string>] [-UnorderedListMarker <string>] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -32,7 +32,7 @@ Writes the Markdown artifact and keeps the document available for further change
 Markdown document to save.
 
 ```yaml
-Type: MarkdownDoc
+Type: MarkdownDocument
 Parameter Sets: __AllParameterSets
 Aliases: None
 Possible values:
@@ -128,7 +128,7 @@ Accept wildcard characters: False
 Optional Markdown writer options.
 
 ```yaml
-Type: MarkdownWriteOptions
+Type: MarkdownSaveOptions
 Parameter Sets: __AllParameterSets
 Aliases: None
 Possible values:
@@ -161,11 +161,11 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 
 ## INPUTS
 
-- `OfficeIMO.Markdown.MarkdownDoc`
+- `OfficeIMO.Markdown.MarkdownDocument`
 
 ## OUTPUTS
 
-- `OfficeIMO.Markdown.MarkdownDoc`
+- `OfficeIMO.Markdown.MarkdownDocument`
 
 ## RELATED LINKS
 

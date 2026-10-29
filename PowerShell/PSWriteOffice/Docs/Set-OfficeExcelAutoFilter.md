@@ -210,7 +210,7 @@ Accept wildcard characters: False
 ```
 
 ### -Range
-Optional A1 AutoFilter range to create or replace before applying the condition.
+Optional ExcelA1 AutoFilter range to create or replace before applying the condition.
 
 ```yaml
 Type: String

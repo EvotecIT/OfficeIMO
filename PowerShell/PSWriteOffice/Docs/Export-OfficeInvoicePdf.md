@@ -11,7 +11,7 @@ Creates a visible PDF and embedded invoice XML from the same captured model.
 ## SYNTAX
 ### __AllParameterSets
 ```powershell
-Export-OfficeInvoicePdf [-Path] <string> -Invoice <Invoice> [-SpecificationRelease <InvoiceSpecificationRelease>] [-Profile <InvoiceProfile>] [-PdfOptions <PdfOptions>] [-Force] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
+Export-OfficeInvoicePdf [-Path] <string> -Invoice <Invoice> [-SpecificationRelease <InvoiceSpecificationRelease>] [-Profile <InvoiceProfile>] [-PdfOptions <PdfCreateOptions>] [-Force] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -95,7 +95,7 @@ Accept wildcard characters: False
 Optional existing PDF rendering options.
 
 ```yaml
-Type: PdfOptions
+Type: PdfCreateOptions
 Parameter Sets: __AllParameterSets
 Aliases: None
 Possible values:

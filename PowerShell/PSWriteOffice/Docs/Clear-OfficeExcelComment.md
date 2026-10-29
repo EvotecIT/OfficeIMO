@@ -41,7 +41,7 @@ Removes matching comments and saves the workbook.
 ## PARAMETERS
 
 ### -Address
-A1 cell address to match.
+ExcelA1 cell address to match.
 
 ```yaml
 Type: String
@@ -137,7 +137,7 @@ Accept wildcard characters: False
 ```
 
 ### -Range
-A1 cell or range to match.
+ExcelA1 cell or range to match.
 
 ```yaml
 Type: String

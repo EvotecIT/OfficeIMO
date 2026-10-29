@@ -16,7 +16,7 @@ ConvertFrom-OfficeLatexMarkdown [-Path] <string> [-OutputPath <string>] [-Option
 
 ### Document
 ```powershell
-ConvertFrom-OfficeLatexMarkdown -Document <MarkdownDoc> [-OutputPath <string>] [-Options <MarkdownToLatexOptions>] [-FailOnLoss] [-WhatIf] [-Confirm] [<CommonParameters>]
+ConvertFrom-OfficeLatexMarkdown -Document <MarkdownDocument> [-OutputPath <string>] [-Options <MarkdownToLatexOptions>] [-FailOnLoss] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -42,7 +42,7 @@ ConvertFrom-OfficeLatexMarkdown -Document 'Value'
 Markdown document to convert.
 
 ```yaml
-Type: MarkdownDoc
+Type: MarkdownDocument
 Parameter Sets: Document
 Aliases: None
 Possible values:
@@ -123,7 +123,7 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 
 ## INPUTS
 
-- `OfficeIMO.Markdown.MarkdownDoc`
+- `OfficeIMO.Markdown.MarkdownDocument`
 
 ## OUTPUTS
 

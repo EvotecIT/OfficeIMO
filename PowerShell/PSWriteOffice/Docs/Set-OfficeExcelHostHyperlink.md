@@ -34,7 +34,7 @@ Creates a hyperlink that displays learn.microsoft.com.
 ## PARAMETERS
 
 ### -Address
-A1-style cell address (e.g., A1, C5).
+A1-style cell address (e.g., ExcelA1, C5).
 
 ```yaml
 Type: String

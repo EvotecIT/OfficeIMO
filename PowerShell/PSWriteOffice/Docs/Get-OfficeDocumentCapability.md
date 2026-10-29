@@ -11,7 +11,7 @@ Lists OfficeIMO.Reader capabilities registered in the current PSWriteOffice proc
 ## SYNTAX
 ### __AllParameterSets
 ```powershell
-Get-OfficeDocumentCapability [-Manifest] [-ExcludeBuiltIn] [-ExcludeCustom] [-Reader <OfficeDocumentReader>] [<CommonParameters>]
+Get-OfficeDocumentCapability [-Manifest] [-Origin <ReaderHandlerOrigin>] [-Reader <OfficeDocumentReader>] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -29,38 +29,6 @@ Lists built-in and modular Reader handlers, including adapters such as PDF, RTF,
 
 ## PARAMETERS
 
-### -ExcludeBuiltIn
-Exclude built-in Reader capabilities.
-
-```yaml
-Type: SwitchParameter
-Parameter Sets: __AllParameterSets
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -ExcludeCustom
-Exclude custom or modular Reader capabilities.
-
-```yaml
-Type: SwitchParameter
-Parameter Sets: __AllParameterSets
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
 ### -Manifest
 Return the capability manifest envelope instead of individual handlers.
 
@@ -69,6 +37,22 @@ Type: SwitchParameter
 Parameter Sets: __AllParameterSets
 Aliases: None
 Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Origin
+Return handlers supplied by OfficeIMO or registered by a caller.
+
+```yaml
+Type: ReaderHandlerOrigin
+Parameter Sets: __AllParameterSets
+Aliases: None
+Possible values: Custom, OfficeIMO
 
 Required: False
 Position: named

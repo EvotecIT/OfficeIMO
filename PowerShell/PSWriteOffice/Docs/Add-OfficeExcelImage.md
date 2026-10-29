@@ -53,12 +53,12 @@ Uses Excel's two-cell anchor so the picture moves and resizes with the cells in 
 PS> ExcelSheet 'Data' { Add-OfficeExcelImage -Row 1 -Column 1 -Url 'https://example.org/logo.png' -WidthPixels 96 -HeightPixels 32 -RotationDegrees 12 }
 ```
 
-Downloads, sizes, rotates, and anchors the image to cell A1.
+Downloads, sizes, rotates, and anchors the image to cell ExcelA1.
 
 ## PARAMETERS
 
 ### -Address
-A1-style cell address (e.g., A1, C5).
+A1-style cell address (e.g., ExcelA1, C5).
 
 ```yaml
 Type: String

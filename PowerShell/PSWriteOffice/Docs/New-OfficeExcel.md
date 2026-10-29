@@ -21,16 +21,16 @@ Runs the provided script block inside an ExcelSheet/ExcelCell DSL context and sa
 
 ### EXAMPLE 1
 ```powershell
-PS> New-OfficeExcel -Path .\report.xlsx { ExcelSheet 'Data' { ExcelCell -Address 'A1' -Value 'Region' } }
+PS> New-OfficeExcel -Path .\report.xlsx { ExcelSheet 'Data' { ExcelCell -Address 'ExcelA1' -Value 'Region' } }
 ```
 
-Creates report.xlsx and writes “Region” into cell A1 on the Data worksheet.
+Creates report.xlsx and writes “Region” into cell ExcelA1 on the Data worksheet.
 
 ### EXAMPLE 2
 ```powershell
 PS> $workbook = New-OfficeExcel -Path .\report.xlsx -NoSave
 $sheet = $workbook | Add-OfficeExcelSheet -Name 'Data' -PassThru
-$sheet | Set-OfficeExcelCell -Address A1 -Value 'Region'
+$sheet | Set-OfficeExcelCell -Address ExcelA1 -Value 'Region'
 $workbook | Save-OfficeExcel
 $workbook | Close-OfficeExcel
 ```
