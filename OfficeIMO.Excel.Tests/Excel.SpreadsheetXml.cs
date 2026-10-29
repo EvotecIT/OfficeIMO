@@ -178,6 +178,20 @@ public sealed class ExcelSpreadsheetXmlTests {
         Assert.Throws<XmlException>(() => ExcelDocument.ImportSpreadsheetXml(Encoding.UTF8.GetBytes("<!DOCTYPE Workbook [<!ENTITY x SYSTEM 'file:///does-not-exist'>]><Workbook xmlns='" + Ss + "'>&x;</Workbook>")));
     }
 
+    [Fact]
+    public void Defined_name_limit_and_case_insensitive_scope_uniqueness_apply_during_import() {
+        byte[] source = Workbook("<Names><NamedRange ss:Name='Rate' ss:RefersTo='=1'/></Names>" +
+            "<Worksheet ss:Name='Data'><Names><NamedRange ss:Name='Rate' ss:RefersTo='=2'/></Names></Worksheet>");
+        using var document = ExcelDocument.ImportSpreadsheetXml(source, new() { MaxNames = 2 }).Value;
+        Assert.Equal(2, document.OpenXmlDocument.WorkbookPart!.Workbook.DefinedNames!.ChildElements.Count);
+        Assert.Throws<InvalidDataException>(() => ExcelDocument.ImportSpreadsheetXml(source, new() { MaxNames = 1 }));
+        Assert.Throws<ArgumentOutOfRangeException>(() => ExcelDocument.ImportSpreadsheetXml(source, new() { MaxNames = 0 }));
+
+        byte[] duplicate = Workbook("<Names><NamedRange ss:Name='Rate' ss:RefersTo='=1'/>" +
+            "<NamedRange ss:Name='rate' ss:RefersTo='=2'/></Names><Worksheet ss:Name='Data'/>");
+        Assert.Throws<InvalidDataException>(() => ExcelDocument.ImportSpreadsheetXml(duplicate));
+    }
+
     [Theory]
     [InlineData("SUM(R[-2]C:R[-1]C)", "SUM(D2:D3)")]
     [InlineData("'Other sheet'!R1C1+RC[-1]", "'Other sheet'!$A$1+C4")]

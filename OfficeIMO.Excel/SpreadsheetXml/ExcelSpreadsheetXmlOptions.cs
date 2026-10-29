@@ -14,6 +14,8 @@ public sealed class ExcelSpreadsheetXmlOptions {
     public int MaxWorksheets { get; set; } = 256;
     /// <summary>Maximum style definitions. Default: 4096.</summary>
     public int MaxStyles { get; set; } = 4096;
+    /// <summary>Maximum defined names imported across all scopes. Default: 10,000.</summary>
+    public int MaxNames { get; set; } = 10_000;
     /// <summary>Maximum XML elements admitted before materialization, including unsupported content. Default: 1,000,000.</summary>
     public int MaxXmlElements { get; set; } = 1_000_000;
     /// <summary>Maximum XML nesting depth. Default: 64.</summary>
@@ -25,7 +27,7 @@ public sealed class ExcelSpreadsheetXmlOptions {
     public CancellationToken CancellationToken { get; set; }
 
     internal ExcelSpreadsheetXmlOptions Snapshot() {
-        if (MaxInputBytes < 1 || MaxOutputBytes < 1 || MaxCells < 1 || MaxWorksheets < 1 || MaxStyles < 1 || MaxXmlElements < 1 || MaxXmlDepth < 1)
+        if (MaxInputBytes < 1 || MaxOutputBytes < 1 || MaxCells < 1 || MaxWorksheets < 1 || MaxStyles < 1 || MaxNames < 1 || MaxXmlElements < 1 || MaxXmlDepth < 1)
             throw new ArgumentOutOfRangeException(nameof(ExcelSpreadsheetXmlOptions), "All XML Spreadsheet limits must be positive.");
         if (DefaultFontMaximumDigitWidthPixels is double digit && (double.IsNaN(digit) || double.IsInfinity(digit) || digit < 1 || digit > 4096))
             throw new ArgumentOutOfRangeException(nameof(DefaultFontMaximumDigitWidthPixels));
