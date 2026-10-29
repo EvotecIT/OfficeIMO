@@ -223,7 +223,7 @@ namespace OfficeIMO.Tests {
             }
 
             using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
-                WorksheetPart wsPart = spreadsheet.WorkbookPart!.WorksheetParts.Last();
+                WorksheetPart wsPart = GetWorksheetPartByName(spreadsheet, "Data");
                 DataValidation dv = wsPart.Worksheet.Descendants<DataValidation>().First();
                 Assert.Equal(DataValidationValues.List, dv.Type!.Value);
                 Assert.Equal("=StatusOptions", dv.GetFirstChild<Formula1>()!.Text);
@@ -249,7 +249,7 @@ namespace OfficeIMO.Tests {
             }
 
             using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
-                WorksheetPart wsPart = spreadsheet.WorkbookPart!.WorksheetParts.Last();
+                WorksheetPart wsPart = GetWorksheetPartByName(spreadsheet, "Data");
                 DataValidation dv = wsPart.Worksheet.Descendants<DataValidation>().First();
                 Assert.Equal(DataValidationValues.List, dv.Type!.Value);
                 Assert.Equal("='Options'!A1:A3", dv.GetFirstChild<Formula1>()!.Text);

@@ -312,7 +312,7 @@ namespace OfficeIMO.Tests {
             }
 
             using (var ss = SpreadsheetDocument.Open(filePath, false)) {
-                var worksheet = ss.WorkbookPart!.WorksheetParts.First().Worksheet;
+                var worksheet = Excel.GetWorksheetPartByName(ss, "Index").Worksheet;
                 var headerCells = worksheet.Descendants<Cell>()
                     .Where(cell => cell.CellReference?.Value == "A3" || cell.CellReference?.Value == "B3")
                     .ToList();
@@ -334,7 +334,7 @@ namespace OfficeIMO.Tests {
             }
 
             using (var ss = SpreadsheetDocument.Open(filePath, false)) {
-                var worksheet = ss.WorkbookPart!.WorksheetParts.First().Worksheet;
+                var worksheet = Excel.GetWorksheetPartByName(ss, "Index").Worksheet;
                 var headerCells = worksheet.Descendants<Cell>()
                     .Where(cell => cell.CellReference?.Value == "A3" || cell.CellReference?.Value == "B3")
                     .ToList();

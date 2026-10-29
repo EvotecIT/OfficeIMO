@@ -15,7 +15,7 @@ namespace OfficeIMO.Tests {
     public partial class Excel {
         private const int DefaultChartFontSize = 1100;
 
-        private static WorksheetPart GetWorksheetPartByName(SpreadsheetDocument spreadsheet, string sheetName) {
+        internal static WorksheetPart GetWorksheetPartByName(SpreadsheetDocument spreadsheet, string sheetName) {
             var workbookPart = spreadsheet.WorkbookPart!;
             var sheet = workbookPart.Workbook.Sheets!
                 .OfType<Sheet>()

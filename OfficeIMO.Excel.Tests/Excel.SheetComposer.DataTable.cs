@@ -61,7 +61,7 @@ namespace OfficeIMO.Tests {
                 }
 
                 using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
-                    WorksheetPart membersPart = spreadsheet.WorkbookPart!.WorksheetParts.ElementAt(1);
+                    WorksheetPart membersPart = Excel.GetWorksheetPartByName(spreadsheet, "Members");
                     TableDefinitionPart tablePart = Assert.Single(membersPart.TableDefinitionParts);
                     TableStyleInfo style = Assert.IsType<TableStyleInfo>(tablePart.Table!.TableStyleInfo);
                     Assert.Equal("TableStyleMedium2", style.Name?.Value);
