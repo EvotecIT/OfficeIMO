@@ -6,9 +6,9 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
             int formulaSheetIndex,
             out byte[] tokens) {
             tokens = Array.Empty<byte>();
-            // A concrete qualified area already owns its entire sheet scope;
-            // splitting its colon would bind an unqualified endpoint to this sheet.
-            if (TryEncodeSheetQualifiedReference(formulaText, allowArea: true, nameIndex, out tokens)) return true;
+            // A concrete reference owns its entire scope. Recognize terminal
+            // operands before splitting range, union, or intersection operators.
+            if (TryEncodeReferenceOperand(formulaText, nameIndex, formulaSheetIndex, out tokens)) return true;
             if (TryGetParenthesizedInnerText(formulaText, out string? innerText)
                 && TryEncodeReferenceOperator(innerText!, nameIndex, formulaSheetIndex, out byte[] innerTokens)) {
                 tokens = ShouldPreserveReferenceParentheses(innerTokens)
@@ -41,21 +41,7 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
             LegacyXlsFormulaNameIndex nameIndex,
             int formulaSheetIndex,
             out byte[] tokens) {
-            tokens = Array.Empty<byte>();
-            text = text.Trim();
-            if (TryGetParenthesizedInnerText(text, out string? innerText)
-                && TryEncodeReferenceOperator(innerText!, nameIndex, formulaSheetIndex, out byte[] innerTokens)) {
-                tokens = ShouldPreserveReferenceParentheses(innerTokens)
-                    ? AppendToken(innerTokens, 0x15)
-                    : innerTokens;
-                return true;
-            }
-
-            if (TryEncodeReferenceOperator(text, nameIndex, formulaSheetIndex, out tokens)) {
-                return true;
-            }
-
-            return TryEncodeReferenceOperand(text, nameIndex, formulaSheetIndex, out tokens);
+            return TryEncodeReferenceOperator(text.Trim(), nameIndex, formulaSheetIndex, out tokens);
         }
 
         private static bool TryEncodeReferenceOperand(

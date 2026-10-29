@@ -3771,6 +3771,15 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyXls_FormulaEncoder_HandlesNestedReferenceUnions() {
+            string formula = "(A1)";
+            for (int index = 0; index < 32; index++) formula = "(" + formula + ",B1)";
+
+            Assert.True(LegacyXlsFormulaEncoder.TryEncode(formula, out byte[] tokens, out string? reason), reason);
+            Assert.NotEmpty(tokens);
+        }
+
+        [Fact]
         public void LegacyXls_NativeSave_BlocksFutureFunctionAliasesBeforeWriting() {
             AssertNativeXlsSaveNotSupported("future-function aliases", (document, sheet) => {
                 sheet.CellValue(1, 1, "North");
