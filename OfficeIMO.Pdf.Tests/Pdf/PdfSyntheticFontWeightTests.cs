@@ -158,8 +158,8 @@ public sealed class PdfSyntheticFontWeightTests {
         OfficeRasterImage actual = OfficeDrawingRasterRenderer.Render(drawing, 4D, OfficeColor.White);
         Assert.True(CountInk(actual) > 0);
         if (join == OfficeStrokeLineJoin.Round) {
-            string miterContent = content.ToString().Replace("1 j", "0 j", StringComparison.Ordinal)
-                .Replace("2 M", "10 M", StringComparison.Ordinal);
+            string miterContent = content.ToString().Replace("1 j", "0 j")
+                .Replace("2 M", "10 M");
             OfficeRasterImage miter = OfficeDrawingRasterRenderer.Render(
                 PdfReadDocument.Open(NativePage(miterContent)).Pages[0].ToDrawing(), 4D, OfficeColor.White);
             // Acute corners in A and V must keep their rounded outline instead

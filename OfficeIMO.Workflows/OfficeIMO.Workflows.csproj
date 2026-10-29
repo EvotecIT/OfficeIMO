@@ -67,6 +67,11 @@
     <ProjectReference Include="..\OfficeIMO.Word.Pdf\OfficeIMO.Word.Pdf.csproj" />
   </ItemGroup>
 
+  <ItemGroup Condition="'$(TargetFramework)' == 'net472'">
+    <Reference Include="System.IO.Compression" />
+    <Reference Include="System.IO.Compression.FileSystem" />
+  </ItemGroup>
+
   <ItemGroup>
     <InternalsVisibleTo Include="OfficeIMO.Workflows.Tests" />
     <InternalsVisibleTo Include="OfficeIMO.Workflows.IWork" />

@@ -43,7 +43,7 @@ public sealed class LatexConversionRegressionTests {
 
         Assert.True(Assert.Single(document.Headings).IsStarred);
         Assert.Contains(result.Report.Diagnostics, diagnostic => diagnostic.Code == "LATEXMD212" &&
-            diagnostic.Message.Contains("unnumbered", StringComparison.Ordinal));
+            diagnostic.Message.IndexOf("unnumbered", StringComparison.Ordinal) >= 0);
         Assert.Equal(1, Assert.Single(result.Value.Blocks.OfType<HeadingBlock>()).Level);
     }
 
@@ -142,7 +142,7 @@ public sealed class LatexConversionRegressionTests {
         Assert.DoesNotContain(result.Value.Blocks.OfType<ParagraphBlock>(),
             static paragraph => paragraph.Inlines.Nodes.OfType<HtmlRawInline>().Any());
         Assert.Contains(result.Value.Blocks.OfType<ParagraphBlock>(),
-            static paragraph => paragraph.Inlines.Nodes.OfType<MarkdownTextRun>().Any(text => text.Text.Contains("Body.", StringComparison.Ordinal)));
+            static paragraph => paragraph.Inlines.Nodes.OfType<MarkdownTextRun>().Any(text => text.Text.IndexOf("Body.", StringComparison.Ordinal) >= 0));
     }
 
     [Fact]
@@ -160,7 +160,7 @@ public sealed class LatexConversionRegressionTests {
         Assert.Equal(2, result.Report.Diagnostics.Count(static diagnostic =>
             diagnostic.Code == "LATEXMD298" && diagnostic.Outcome == LatexMarkdownConversionOutcome.SourceFallback));
         Assert.Equal(2, result.Value.Blocks.OfType<CodeBlock>().Count(static block =>
-            block.Content.Contains("\\centering", StringComparison.Ordinal)));
+            block.Content.IndexOf("\\centering", StringComparison.Ordinal) >= 0));
     }
 
     [Fact]

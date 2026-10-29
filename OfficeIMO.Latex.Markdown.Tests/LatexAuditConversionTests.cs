@@ -202,7 +202,7 @@ public sealed class LatexAuditConversionTests {
         Assert.Contains("Actual", markdown, StringComparison.Ordinal);
         Assert.Contains("PRIVATE", document.ToLatex(), StringComparison.Ordinal);
         Assert.Contains(result.Report.Diagnostics, static diagnostic => diagnostic.Outcome == LatexMarkdownConversionOutcome.SourceFallback);
-        if (source.Contains("\\begin{comment}", StringComparison.Ordinal)) {
+        if (source.IndexOf("\\begin{comment}", StringComparison.Ordinal) >= 0) {
             Assert.Contains(result.Report.Diagnostics, static diagnostic => diagnostic.Feature == "comment-environment" && diagnostic.Outcome == LatexMarkdownConversionOutcome.Omitted);
         }
         Assert.DoesNotContain("PRIVATE", PdfDocument.Load(new System.IO.MemoryStream(document.ToPdfDocumentResult().Value.ToBytes())).ExtractText(), StringComparison.Ordinal);

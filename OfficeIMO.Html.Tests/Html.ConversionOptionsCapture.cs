@@ -3,6 +3,7 @@ using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 using OfficeIMO.Html;
+using OfficeIMO.Internal;
 using OfficeIMO.Html.Pdf;
 using Xunit;
 
@@ -27,7 +28,7 @@ public sealed class HtmlConversionOptionsCaptureTests {
         HtmlConversionDocument source = HtmlConversionDocument.Parse(
             "<link rel='stylesheet' href='https://example.test/missing.css'><p>Retained body</p>");
         using var destination = new MemoryStream();
-        destination.Write(new byte[] { 1, 2, 3 });
+        destination.Write(new byte[] { 1, 2, 3 }, 0, 3);
         Task operation = save ? source.SaveAsPdfAsync(destination, options, cancellation.Token) : ConvertAndDispose();
         try {
             await entered.Task.WaitAsync(cancellation.Token);
