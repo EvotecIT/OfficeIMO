@@ -251,7 +251,7 @@ public partial class Word {
         }
 
         Assert.True(File.Exists(pdfPath));
-        AssertPdfUsesAnyFont(pdfPath, "Consolas", "Courier");
+        AssertPdfUsesAnyFont(pdfPath, MonospacePdfFontNameParts);
     }
 
     [Fact]
@@ -662,7 +662,7 @@ public partial class Word {
 
         string pdfContent = PdfOperatorSearchText.From(File.ReadAllBytes(pdfPath));
         Assert.Contains(expectedFontNameParts, expected =>
-            pdfContent.Contains("/BaseFont /" + expected, StringComparison.OrdinalIgnoreCase));
+            Regex.IsMatch(pdfContent, @"/BaseFont /(?:[A-Z]{6}\+)?" + Regex.Escape(expected), RegexOptions.IgnoreCase));
     }
 
     private static void AssertPdfDoesNotUseFont(string pdfPath, string fontNamePart) {

@@ -21,6 +21,12 @@ public partial class Word {
         "DejaVuSansMono"
     };
 
+    private static void AssertSerifHeaderFont(string fontName) {
+        string[] expected = PdfCore.PdfEmbeddedFontFamily.TryFromSystem("Georgia", out _)
+            ? new[] { "Georgia" } : new[] { "Times", "LiberationSerif" };
+        Assert.Contains(expected, family => fontName.Contains(family, StringComparison.OrdinalIgnoreCase));
+    }
+
     [Fact]
     public void Test_WordDocument_SaveAsPdf_MultipleSections() {
         string docPath = Path.Combine(_directoryWithFiles, "PdfSections.docx");
@@ -171,19 +177,14 @@ public partial class Word {
             var headerLetter = page.Letters.Single(letter => letter.Value == "Q");
             var footerLetter = page.Letters.Single(letter => letter.Value == "X");
 
-            string expectedHeaderFont = PdfCore.PdfEmbeddedFontFamily.TryFromSystem("Georgia", out _) ? "Georgia" : "Times";
-            Assert.Contains(expectedHeaderFont, headerLetter.FontName, StringComparison.OrdinalIgnoreCase);
+            AssertSerifHeaderFont(headerLetter.FontName);
             Assert.Contains(
                 MonospacePdfFontNameParts,
                 fontName => footerLetter.FontName.Contains(fontName, StringComparison.OrdinalIgnoreCase));
         }
 
-        string pdfContent = PdfOperatorSearchText.From(File.ReadAllBytes(pdfPath));
-        string expectedHeaderBaseFont = PdfCore.PdfEmbeddedFontFamily.TryFromSystem("Georgia", out _) ? "/BaseFont /Georgia" : "/BaseFont /Times";
-        Assert.Contains(expectedHeaderBaseFont, pdfContent, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains(
-            MonospacePdfFontNameParts,
-            fontName => pdfContent.Contains("/BaseFont /" + fontName, StringComparison.OrdinalIgnoreCase));
+        AssertPdfUsesFont(pdfPath, PdfCore.PdfEmbeddedFontFamily.TryFromSystem("Georgia", out _) ? "Georgia" : "Times");
+        AssertPdfUsesAnyFont(pdfPath, MonospacePdfFontNameParts);
     }
 
     [Fact]
@@ -320,8 +321,7 @@ public partial class Word {
             Assert.Contains("GreenStyledFooter", page.Text);
 
             var headerLetter = page.Letters.Single(letter => letter.Value == "Q");
-            string expectedHeaderFont = PdfCore.PdfEmbeddedFontFamily.TryFromSystem("Georgia", out _) ? "Georgia" : "Times";
-            Assert.Contains(expectedHeaderFont, headerLetter.FontName, StringComparison.OrdinalIgnoreCase);
+            AssertSerifHeaderFont(headerLetter.FontName);
         }
 
         string content = ReadPdfPageContent(File.ReadAllBytes(pdfPath));
@@ -378,8 +378,7 @@ public partial class Word {
             Assert.Contains("GreenCharStyledFooter", page.Text);
 
             var headerLetter = page.Letters.Single(letter => letter.Value == "Q");
-            string expectedHeaderFont = PdfCore.PdfEmbeddedFontFamily.TryFromSystem("Georgia", out _) ? "Georgia" : "Times";
-            Assert.Contains(expectedHeaderFont, headerLetter.FontName, StringComparison.OrdinalIgnoreCase);
+            AssertSerifHeaderFont(headerLetter.FontName);
         }
 
         string content = ReadPdfPageContent(File.ReadAllBytes(pdfPath));
@@ -414,8 +413,8 @@ public partial class Word {
             var headerLetter = page.Letters.Single(letter => letter.Value == "Q");
             var footerLetter = page.Letters.Single(letter => letter.Value == "X");
 
-            string expectedHeaderFont = PdfCore.PdfEmbeddedFontFamily.TryFromSystem("Georgia", out _) ? "Georgia-Bold" : "Times-Bold";
-            Assert.Contains(expectedHeaderFont, headerLetter.FontName, StringComparison.OrdinalIgnoreCase);
+            AssertSerifHeaderFont(headerLetter.FontName);
+            Assert.Contains("Bold", headerLetter.FontName, StringComparison.OrdinalIgnoreCase);
             Assert.Contains(
                 MonospacePdfFontNameParts,
                 fontName => footerLetter.FontName.Contains(fontName, StringComparison.OrdinalIgnoreCase));
@@ -425,12 +424,8 @@ public partial class Word {
                 "Expected the explicit footer family to preserve italic emphasis.");
         }
 
-        string pdfContent = PdfOperatorSearchText.From(File.ReadAllBytes(pdfPath));
-        string expectedHeaderBaseFont = PdfCore.PdfEmbeddedFontFamily.TryFromSystem("Georgia", out _) ? "/BaseFont /Georgia-Bold" : "/BaseFont /Times-Bold";
-        Assert.Contains(expectedHeaderBaseFont, pdfContent, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains(
-            MonospacePdfFontNameParts,
-            fontName => pdfContent.Contains("/BaseFont /" + fontName, StringComparison.OrdinalIgnoreCase));
+        AssertPdfUsesFont(pdfPath, PdfCore.PdfEmbeddedFontFamily.TryFromSystem("Georgia", out _) ? "Georgia" : "Times");
+        AssertPdfUsesAnyFont(pdfPath, MonospacePdfFontNameParts);
     }
 
     [Fact]

@@ -13,7 +13,7 @@ namespace OfficeIMO.Tests {
 
             string markdown = doc.ToMarkdown(new WordMarkdownExportOptions()).ToMarkdown();
 
-            Assert.Equal("```csharp\nConsole.WriteLine(\"Hello\");\n```\n", markdown);
+            Assert.Equal(string.Join(Environment.NewLine, "```csharp", "Console.WriteLine(\"Hello\");", "```", ""), markdown);
         }
 
         [Fact]
@@ -25,7 +25,7 @@ namespace OfficeIMO.Tests {
             var options = new WordMarkdownExportOptions { FontFamily = codeFont };
             string markdown = doc.ToMarkdown(options).ToMarkdown();
 
-            Assert.Equal("```java\nSystem.out.println(\"Hello\");\n```\n", markdown);
+            Assert.Equal(string.Join(Environment.NewLine, "```java", "System.out.println(\"Hello\");", "```", ""), markdown);
         }
 
         [Fact]

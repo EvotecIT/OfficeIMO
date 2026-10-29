@@ -335,10 +335,11 @@ namespace OfficeIMO.Tests {
                             }
                         }
                         break;
-                    case ".pdf":
+                    case ".pdf": {
                         byte[] pdf = File.ReadAllBytes(path);
-                        PdfCore.PdfDocument parsed =
-                            PdfCore.PdfDocument.Load(new System.IO.MemoryStream(pdf));
+                        using PdfCore.PdfDocument parsed =
+                            PdfCore.PdfDocument.Load(new System.IO.MemoryStream(pdf),
+                                new PdfCore.PdfLoadOptions { ParsingMode = PdfCore.PdfParsingMode.Strict });
                         if (parsed.Pages.Count < 1) {
                             issue = "PDF page tree is empty: " + path;
                             return false;
@@ -350,7 +351,7 @@ namespace OfficeIMO.Tests {
                             return false;
                         }
                         IReadOnlyList<PdfCore.PdfPageRenderResult> rendered =
-                            PdfCore.PdfDocument.Load(new System.IO.MemoryStream(pdf)).Render.Pages(options:
+                            parsed.Render.Pages(options:
                                 new PdfCore.PdfPageRenderOptions {
                                     Dpi = 72D,
                                     Format = PdfCore.PdfPageRenderFormat.Png,
@@ -376,6 +377,7 @@ namespace OfficeIMO.Tests {
                             }
                         }
                         break;
+                    }
                     default:
                         issue = "Unsupported desktop validation output extension: " + extension;
                         return false;

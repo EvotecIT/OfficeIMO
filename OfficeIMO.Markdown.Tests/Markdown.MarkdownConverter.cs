@@ -71,7 +71,7 @@ namespace OfficeIMO.Tests {
             Assert.Contains(report.Diagnostics, finding => finding.Code == OfficeDiagnosticCodes.HtmlBlockAsText
                 && finding.LossKind == OfficeConversionLossKind.Approximation);
             string roundTrip = doc.ToMarkdown(new WordMarkdownExportOptions()).ToMarkdown();
-            Assert.Equal(md + "\n", roundTrip);
+            Assert.Equal(md + Environment.NewLine, roundTrip);
         }
 
         [Fact]

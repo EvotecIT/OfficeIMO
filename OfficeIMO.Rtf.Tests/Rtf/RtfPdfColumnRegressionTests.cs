@@ -76,6 +76,7 @@ public class RtfPdfColumnRegressionTests {
     [Fact]
     public void ContinuousColumnsFlowOnTheCurrentPageAndReturnToSingleColumn() {
         RtfDocument document = RtfDocument.Create();
+        document.PageSetup.SetMargins(1440, 1440, 1440, 1440);
         document.AddSection().AddParagraph("Full width before");
         RtfSection columns = document.AddSection(RtfSectionBreakKind.Continuous);
         columns.ColumnCount = 2;

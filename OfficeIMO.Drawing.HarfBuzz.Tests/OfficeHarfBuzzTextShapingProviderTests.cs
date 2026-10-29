@@ -153,8 +153,14 @@ public sealed class OfficeHarfBuzzTextShapingProviderTests {
             .ReportDiagnosticsTo(report, "Japanese vertical glyphs");
         byte[] pdf = PdfDocument.Create(document => document.Content(content => content.Canvas(
             canvas => canvas.Drawing(drawing, 0D, 0D, 120D, 180D))), options).ToBytes();
+        string? evidencePath = Environment.GetEnvironmentVariable("OFFICEIMO_VERTICAL_PDF_EVIDENCE");
+        if (!string.IsNullOrEmpty(evidencePath)) File.WriteAllBytes(evidencePath, pdf);
         string raw = System.Text.Encoding.ASCII.GetString(pdf);
-        MatchCollection positions = Regex.Matches(raw,
+        string visibleText = string.Join("\n", Regex.Matches(raw, @"(?s)\bBT\b(?<body>.*?)\bET\b")
+            .Cast<Match>()
+            .Select(block => block.Groups["body"].Value)
+            .Where(body => !Regex.IsMatch(body, @"\b3\s+Tr\b")));
+        MatchCollection positions = Regex.Matches(visibleText,
             @"(?m)^1 0 0 1 (-?[0-9.]+) (-?[0-9.]+) Tm\r?\n<([0-9A-F]{4})> Tj$");
         Assert.Equal(vertical.Length, positions.Count);
 
@@ -182,8 +188,6 @@ public sealed class OfficeHarfBuzzTextShapingProviderTests {
         Assert.DoesNotContain(report.FidelityDiagnostics, diagnostic =>
             diagnostic.Code == "vertical-text-stacked-fallback");
         report.RequireNoLoss();
-        string? evidencePath = Environment.GetEnvironmentVariable("OFFICEIMO_VERTICAL_PDF_EVIDENCE");
-        if (!string.IsNullOrEmpty(evidencePath)) File.WriteAllBytes(evidencePath, pdf);
     }
 
     [Fact]
