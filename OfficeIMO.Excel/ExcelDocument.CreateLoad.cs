@@ -420,8 +420,10 @@ namespace OfficeIMO.Excel {
                 throw new NotSupportedException("SaveOnDispose is not supported for imported XLSB workbooks. Use an explicit Save operation.");
             }
 
-            XlsbWorkbook workbook = XlsbWorkbookReader.Load(bytes, importOptions);
-            ExcelDocument document = XlsbWorkbookProjector.ToExcelDocument(workbook, importOptions?.CancellationToken ?? default);
+            XlsbImportOptions effectiveOptions = importOptions ?? new XlsbImportOptions();
+            XlsbWorkbook workbook = XlsbWorkbookReader.Load(bytes, effectiveOptions);
+            ExcelDocument document = XlsbWorkbookProjector.ToExcelDocument(workbook,
+                effectiveOptions.CancellationToken, effectiveOptions.MaxCells);
             if (readOnly) {
                 document = ReopenProjectedWorkbookReadOnly(document);
             }
