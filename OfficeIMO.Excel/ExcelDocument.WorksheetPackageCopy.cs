@@ -119,7 +119,7 @@ namespace OfficeIMO.Excel {
                     [sourceSheet.Name] = targetSheet.Name
                 };
                 if (rewriteCopiedReferences) {
-                    RewriteCopiedWorksheetReferences(copiedPart, sheetNameMap, tableNameMap);
+                    RewriteCopiedWorksheetReferences(copiedPart, sheetNameMap, tableNameMap, targetSheet.Name);
                 }
 
                 if (externalReferenceMap.Count > 0) {

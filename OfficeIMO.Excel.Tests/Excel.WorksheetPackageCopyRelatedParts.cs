@@ -157,6 +157,114 @@ namespace OfficeIMO.Tests {
             }
         }
 
+        [Fact]
+        public void Test_CopyWorksheetFrom_PackageModeRemapsChartTableAndDefinedNameReferences() {
+            using MemoryStream sourceStream = CreateRelatedPartCopySource();
+            using (var source = ExcelDocument.Load(sourceStream)) {
+                source["Report"].AddTable("A1:B3", true, "SalesTable", ExcelTableStyle.TableStyleMedium2);
+                source.Save();
+            }
+            sourceStream.Position = 0;
+            using (SpreadsheetDocument source = SpreadsheetDocument.Open(sourceStream, true)) {
+                WorkbookPart workbook = source.WorkbookPart!;
+                workbook.Workbook.DefinedNames = new DefinedNames(new DefinedName { Name = "ChartOnlyName", Text = "Report!$A$2:$A$3" });
+                var formulas = workbook.WorksheetParts.Single().DrawingsPart!.ChartParts.Single().ChartSpace!.Descendants<C.Formula>().ToList();
+                formulas[0].Text = "[0]!ChartOnlyName";
+                formulas[1].Text = "SalesTable[Sales]";
+                workbook.Workbook.Save();
+                workbook.WorksheetParts.Single().DrawingsPart!.ChartParts.Single().ChartSpace!.Save();
+            }
+            sourceStream.Position = 0;
+            using var targetStream = new MemoryStream();
+            using (var source = ExcelDocument.Load(sourceStream, new ExcelLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly }))
+            using (var target = ExcelDocument.Create(targetStream)) {
+                var existing = target.AddWorksheet("Existing");
+                existing.CellValue(1, 1, "Sales");
+                existing.CellValue(2, 1, 1);
+                existing.AddTable("A1:A2", true, "SalesTable", ExcelTableStyle.TableStyleMedium2);
+                target.CopyWorksheetFrom(source, "Report", "Copy", ExcelSheetNameValidationMode.Strict,
+                    new ExcelWorksheetCopyOptions { CopyMode = ExcelWorksheetCopyMode.Package });
+                target.Save();
+            }
+            targetStream.Position = 0;
+            using var result = SpreadsheetDocument.Open(targetStream, false);
+            WorkbookPart resultWorkbook = result.WorkbookPart!;
+            Sheet copy = resultWorkbook.Workbook.Sheets!.Elements<Sheet>().Single(x => x.Name == "Copy");
+            var part = (WorksheetPart)resultWorkbook.GetPartById(copy.Id!.Value!);
+            string copiedTable = Assert.Single(part.TableDefinitionParts).Table!.Name!.Value!;
+            Assert.NotEqual("SalesTable", copiedTable);
+            var copiedFormulas = part.DrawingsPart!.ChartParts.Single().ChartSpace!.Descendants<C.Formula>().Select(x => x.Text).ToList();
+            Assert.Contains("'Copy'!ChartOnlyName", copiedFormulas);
+            Assert.Contains(copiedTable + "[Sales]", copiedFormulas);
+            Assert.Contains(resultWorkbook.Workbook.DefinedNames!.Elements<DefinedName>(), x => x.Name == "ChartOnlyName" && x.Text!.Contains("Copy"));
+        }
+
+        [Fact]
+        public void Test_CopyWorksheetFrom_PackageModeRemapsChartExternalWorkbookIndexes() {
+            string sourcePath = Path.Combine(_directoryWithFiles, "ChartExternalSource.xlsx");
+            string targetPath = Path.Combine(_directoryWithFiles, "ChartExternalTarget.xlsx");
+            using (var source = ExcelDocument.Create(sourcePath)) {
+                var sheet = source.AddWorksheet("Report");
+                sheet.CellValue(1, 1, "Value");
+                sheet.CellValue(2, 1, "Category");
+                sheet.CellValue(1, 2, "Series");
+                sheet.CellValue(2, 2, 1);
+                sheet.AddChartFromRange("A1:B2", 4, 1);
+                source.Save();
+            }
+            using (var target = ExcelDocument.Create(targetPath)) {
+                target.AddWorksheet("Existing");
+                target.Save();
+            }
+            AddExternalWorkbookReference(sourcePath);
+            AddExternalWorkbookReference(targetPath);
+            using (SpreadsheetDocument source = SpreadsheetDocument.Open(sourcePath, true)) {
+                ChartPart chart = source.WorkbookPart!.WorksheetParts.Single().DrawingsPart!.ChartParts.Single();
+                chart.ChartSpace!.Descendants<C.Formula>().First().Text = "[1]Sheet1!$A$1:$A$2";
+                chart.ChartSpace.Save();
+            }
+            using (var source = ExcelDocument.Load(sourcePath, new ExcelLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly }))
+            using (var target = ExcelDocument.Load(targetPath)) {
+                target.CopyWorksheetFrom(source, "Report", "Copy", ExcelSheetNameValidationMode.Strict,
+                    new ExcelWorksheetCopyOptions { CopyMode = ExcelWorksheetCopyMode.Package, CopyExternalWorkbookReferences = true });
+                target.Save();
+            }
+            using (SpreadsheetDocument result = SpreadsheetDocument.Open(targetPath, false)) {
+                WorkbookPart workbook = result.WorkbookPart!;
+                Sheet copy = workbook.Workbook.Sheets!.Elements<Sheet>().Single(x => x.Name == "Copy");
+                var part = (WorksheetPart)workbook.GetPartById(copy.Id!.Value!);
+                Assert.Contains(part.DrawingsPart!.ChartParts.Single().ChartSpace!.Descendants<C.Formula>(), x => x.Text == "[2]Sheet1!$A$1:$A$2");
+            }
+            File.Delete(sourcePath);
+            File.Delete(targetPath);
+        }
+
+        [Fact]
+        public void Test_CopyWorksheetPreservesChartSheetScopedName() {
+            using MemoryStream stream = CreateRelatedPartCopySource();
+            using (SpreadsheetDocument source = SpreadsheetDocument.Open(stream, true)) {
+                WorkbookPart workbook = source.WorkbookPart!;
+                workbook.Workbook.DefinedNames = new DefinedNames(new DefinedName { Name = "ChartLocal", LocalSheetId = 0U, Text = "Report!$A$2:$A$3" });
+                var chart = workbook.WorksheetParts.Single().DrawingsPart!.ChartParts.Single();
+                chart.ChartSpace!.Descendants<C.Formula>().First().Text = "Report!ChartLocal";
+                chart.ChartSpace.Save();
+                workbook.Workbook.Save();
+            }
+            stream.Position = 0;
+            using (var document = ExcelDocument.Load(stream)) {
+                document.CopyWorksheet("Report", "Copy");
+                document.Save();
+            }
+            stream.Position = 0;
+            using SpreadsheetDocument result = SpreadsheetDocument.Open(stream, false);
+            WorkbookPart resultWorkbook = result.WorkbookPart!;
+            Assert.Contains(resultWorkbook.Workbook.DefinedNames!.Elements<DefinedName>(),
+                x => x.Name == "ChartLocal" && x.LocalSheetId?.Value == 1U && x.Text!.Contains("Copy"));
+            Sheet copy = resultWorkbook.Workbook.Sheets!.Elements<Sheet>().Single(x => x.Name == "Copy");
+            var part = (WorksheetPart)resultWorkbook.GetPartById(copy.Id!.Value!);
+            Assert.Contains(part.DrawingsPart!.ChartParts.Single().ChartSpace!.Descendants<C.Formula>(), x => x.Text!.Contains("Copy") && x.Text.Contains("ChartLocal"));
+        }
+
         private static string RelatedPartCopyFrameAnchor(string id, string name, string graphicDataUri) {
             return "<xdr:twoCellAnchor xmlns:xdr=\"http://schemas.openxmlformats.org/drawingml/2006/spreadsheetDrawing\" xmlns:a=\"http://schemas.openxmlformats.org/drawingml/2006/main\">"
                 + "<xdr:from><xdr:col>8</xdr:col><xdr:colOff>0</xdr:colOff><xdr:row>2</xdr:row><xdr:rowOff>0</xdr:rowOff></xdr:from>"

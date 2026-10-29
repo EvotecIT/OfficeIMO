@@ -37,7 +37,12 @@ namespace OfficeIMO.Excel {
                 limits.MaxInCellImageBytes,
                 limits.MaxTotalInCellImageBytes);
             sourceSheet.PreflightInCellImages(inCellImageContext);
-            return CopyWorksheetWithinWorkbook(sourceSheet, newSheetName, validationMode).Sheet;
+            PreflightReferencedDefinedNamesFromSource(this, new[] { sourceSheet },
+                new DefinedNameCopyBudget(limits.MaxDefinedNames, limits.MaxDefinedNameCharacters));
+            WorksheetPackageCopyResult result = CopyWorksheetWithinWorkbook(sourceSheet, newSheetName, validationMode);
+            var sheetMap = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase) { [sourceSheet.Name] = result.Sheet.Name };
+            CopyReferencedDefinedNamesFromSource(this, result.Sheet, sheetMap, result.TableNameMap);
+            return result.Sheet;
         }
 
         private WorksheetPackageCopyResult CopyWorksheetWithinWorkbook(ExcelSheet sourceSheet, string newSheetName, ExcelSheetNameValidationMode validationMode) {
@@ -54,9 +59,9 @@ namespace OfficeIMO.Excel {
                 CopyRelationshipBackedWorksheetFeatures(this, sourceSheet, copiedPart);
                 RemoveUnsupportedRelationshipBackedWorksheetFeatures(copiedPart.Worksheet);
                 Dictionary<string, string> tableNameMap = CopyWorksheetTables(sourcePart, copiedPart, rewriteCopiedTableReferences: true);
-                RewriteCopiedChartSheetReferences(copiedPart, new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase) {
+                RewriteCopiedChartReferences(copiedPart, new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase) {
                     [sourceSheet.Name] = validatedName
-                });
+                }, tableNameMap, targetSheetName: validatedName);
                 copiedPart.Worksheet.Save();
 
                 Sheet sheet = AppendWorksheetElement(copiedPart, validatedName);
@@ -562,6 +567,8 @@ namespace OfficeIMO.Excel {
             foreach (OfficeFormula formula in worksheetPart.Worksheet!.Descendants<OfficeFormula>()) {
                 formula.Text = RewriteExternalWorkbookReferenceIndexes(formula.Text, externalReferenceMap);
             }
+
+            RewriteCopiedChartReferences(worksheetPart, externalReferenceMap: externalReferenceMap);
 
             foreach (TableDefinitionPart tablePart in worksheetPart.TableDefinitionParts) {
                 if (tablePart.Table == null) {
