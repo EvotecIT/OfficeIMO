@@ -144,12 +144,8 @@ public sealed partial class OfficeWorkflowOutputRecoveryStore {
                 try {
                     bool acquired = true;
                     foreach (string target in GetCommitTargets(directory)) {
-                        string claimPath = OfficeFileCommitClaim.CreatePath(target);
-                        if (!entries.Contains(claimPath, StringComparer.Ordinal)) continue;
-                        try {
-                            if (OperatingSystem.IsWindows()) ReclaimInactiveWindowsClaim(claimPath);
-                            claims.Add(OfficeFileCommitClaim.Acquire(target));
-                        }
+                        if (!entries.Contains(OfficeFileCommitClaim.CreatePath(target), StringComparer.Ordinal)) continue;
+                        try { claims.Add(OfficeFileCommitClaim.Acquire(target)); }
                         catch (Exception error) when (error is IOException or UnauthorizedAccessException) {
                             acquired = false;
                             break;
@@ -169,15 +165,6 @@ public sealed partial class OfficeWorkflowOutputRecoveryStore {
             File.Delete(Path.Combine(directory, ".lease"));
             Directory.Delete(directory, recursive: false);
         }
-    }
-
-    private static void ReclaimInactiveWindowsClaim(string claimPath) {
-        EnsureRegularFile(claimPath);
-        // An active writer owns the pathname with FileShare.None. Open with delete
-        // sharing so an abandoned pathname can be unlinked while our handle keeps
-        // a new writer from acquiring it until the deletion completes.
-        using var inactive = new FileStream(claimPath, FileMode.Open, FileAccess.Read, FileShare.Delete);
-        File.Delete(claimPath);
     }
 
     private static bool IsIncompleteFile(string path) {
