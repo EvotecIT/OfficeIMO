@@ -879,6 +879,20 @@
       ],
       "phase": "B",
       "applied": "phase-b-applied"
+    },
+    {
+      "old": "OfficeVbaProject.AddRegisteredReference returns void",
+      "new": "OfficeVbaProject.AddRegisteredReference returns OfficeVbaReference",
+      "action": "change",
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "reason": "Add methods expose the created object. A repeated type-library identity returns its existing reference without changing native project bytes, name, path or edit state.",
+      "files": [
+        "OfficeIMO.Core/Documents/Vba/OfficeVbaProject.cs",
+        "OfficeIMO.Security.Tests/OfficeVbaProjectTests.cs",
+        "OfficeIMO.Security.Tests/OfficeVbaIdentityBoundaryTests.cs",
+        "OfficeIMO.Core/README.md"
+      ]
     }
   ],
   "applicationStatus": "Phase A applied and validated on the supported macOS targets. Phase B and Tier 2 entries retain their status; Windows .NET Framework validation remains pending.",
@@ -1493,6 +1507,21 @@
         "source": "SurfaceAnalysis",
         "membersHiddenWithType": 14
       }
+    },
+    {
+      "type": "OfficeIMO.ContentSafety.OfficeContentSafetyBuilder",
+      "file": [
+        "OfficeIMO.Core/ContentSafety/OfficeContentSafetyBuilder.cs"
+      ],
+      "why": "No documentation reference or exposed model signature; format-owned inspection collects findings through this implementation type.",
+      "applied": "phase-b-applied",
+      "analysis": {
+        "id": "T:OfficeIMO.ContentSafety.OfficeContentSafetyBuilder",
+        "kind": "type",
+        "source": "SurfaceAnalysis",
+        "membersHiddenWithType": 8
+      },
+      "note": "Keep options, findings, reports and format inspection APIs public. Existing friend assemblies provide format and test access; no new friend declarations are required."
     }
   ]
 }

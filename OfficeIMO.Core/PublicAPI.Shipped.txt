@@ -43,14 +43,6 @@ OfficeIMO.ContentSafety.OfficeContentInstructionAnalysis
 OfficeIMO.ContentSafety.OfficeContentInstructionAnalysis.IsComplete.get -> bool
 OfficeIMO.ContentSafety.OfficeContentInstructionAnalysis.Signals.get -> System.Collections.Generic.IReadOnlyList<string!>!
 OfficeIMO.ContentSafety.OfficeContentInstructionDetector
-OfficeIMO.ContentSafety.OfficeContentSafetyBuilder
-OfficeIMO.ContentSafety.OfficeContentSafetyBuilder.Add(OfficeIMO.ContentSafety.OfficeContentConcealmentKind kind, OfficeIMO.ContentSafety.OfficeContentSafetyRisk risk, string! location, string! evidence, string? text, OfficeIMO.ContentSafety.OfficeContentCleanupCapability cleanupCapability = OfficeIMO.ContentSafety.OfficeContentCleanupCapability.ReportOnly, bool inspectTextIntegrityEvidence = true) -> OfficeIMO.ContentSafety.OfficeContentSafetyFinding!
-OfficeIMO.ContentSafety.OfficeContentSafetyBuilder.AddDiagnostic(string! diagnostic) -> void
-OfficeIMO.ContentSafety.OfficeContentSafetyBuilder.Build() -> OfficeIMO.ContentSafety.OfficeContentSafetyReport!
-OfficeIMO.ContentSafety.OfficeContentSafetyBuilder.InspectVisibleText(string! location, string? text, OfficeIMO.ContentSafety.OfficeContentCleanupCapability cleanupCapability = OfficeIMO.ContentSafety.OfficeContentCleanupCapability.ReportOnly) -> System.Collections.Generic.IReadOnlyList<OfficeIMO.ContentSafety.OfficeContentSafetyFinding!>!
-OfficeIMO.ContentSafety.OfficeContentSafetyBuilder.OfficeContentSafetyBuilder(string! format, OfficeIMO.ContentSafety.OfficeContentSafetyOptions? options = null) -> void
-OfficeIMO.ContentSafety.OfficeContentSafetyBuilder.OfficeContentSafetyBuilder(string! format, OfficeIMO.ContentSafety.OfficeContentSafetyOptions? options, System.Threading.CancellationToken cancellationToken) -> void
-OfficeIMO.ContentSafety.OfficeContentSafetyBuilder.Options.get -> OfficeIMO.ContentSafety.OfficeContentSafetyOptions!
 OfficeIMO.ContentSafety.OfficeContentSafetyFinding
 OfficeIMO.ContentSafety.OfficeContentSafetyFinding.CleanupCapability.get -> OfficeIMO.ContentSafety.OfficeContentCleanupCapability
 OfficeIMO.ContentSafety.OfficeContentSafetyFinding.ContentHash.get -> string!
@@ -4820,7 +4812,7 @@ OfficeIMO.OfficeVbaModuleKind.Standard = 0 -> OfficeIMO.OfficeVbaModuleKind
 OfficeIMO.OfficeVbaProject
 OfficeIMO.OfficeVbaProject.AddDocumentModule(string! name, string! source, System.Guid baseClassId) -> OfficeIMO.OfficeVbaModule!
 OfficeIMO.OfficeVbaProject.AddModule(string! name, string! source, OfficeIMO.OfficeVbaModuleKind kind = OfficeIMO.OfficeVbaModuleKind.Standard) -> OfficeIMO.OfficeVbaModule!
-OfficeIMO.OfficeVbaProject.AddRegisteredReference(string! name, System.Guid typeLibraryId, int majorVersion = 1, int minorVersion = 0, string! path = "") -> void
+OfficeIMO.OfficeVbaProject.AddRegisteredReference(string! name, System.Guid typeLibraryId, int majorVersion = 1, int minorVersion = 0, string! path = "") -> OfficeIMO.OfficeVbaReference!
 OfficeIMO.OfficeVbaProject.CodePage.get -> int
 OfficeIMO.OfficeVbaProject.DeleteModule(string! name) -> void
 OfficeIMO.OfficeVbaProject.ExportSources(string! directory) -> void
@@ -7198,7 +7190,6 @@ override OfficeIMO.OfficeLength.ToString() -> string!
 override OfficeIMO.Spreadsheet.SpreadsheetRangeReference.ToString() -> string!
 static OfficeIMO.ContentSafety.OfficeContentInstructionDetector.Analyze(string! text, int maxCharacters = 1000000, int maxDecodedCharacters = 32768, int maxEncodedCandidates = 32) -> OfficeIMO.ContentSafety.OfficeContentInstructionAnalysis!
 static OfficeIMO.ContentSafety.OfficeContentInstructionDetector.Detect(string! text) -> System.Collections.Generic.IReadOnlyList<string!>!
-static OfficeIMO.ContentSafety.OfficeContentSafetyBuilder.ResolveSelection(OfficeIMO.ContentSafety.OfficeContentSafetyReport! report, OfficeIMO.ContentSafety.OfficeContentCleanupSelection! selection) -> System.Collections.Generic.IReadOnlyList<OfficeIMO.ContentSafety.OfficeContentSafetyFinding!>!
 static OfficeIMO.Data.DataReaderAsyncMappingExtensions.RowsAsAsync<T>(this System.Data.Common.DbDataReader! reader, System.Action<OfficeIMO.Data.RowMapper<T>!>! configure, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Collections.Generic.IAsyncEnumerable<T>!
 static OfficeIMO.Data.DataReaderAsyncMappingExtensions.RowsAsAsync<T>(this System.Data.Common.DbDataReader! reader, System.Func<System.Data.IDataRecord!, T>! factory, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Collections.Generic.IAsyncEnumerable<T>!
 static OfficeIMO.Data.DataReaderAsyncMappingExtensions.RowsAsAsync<T>(this System.Data.Common.DbDataReader! reader, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Collections.Generic.IAsyncEnumerable<T>!

@@ -172,7 +172,8 @@ public sealed class OfficeVbaProjectTests {
         project.AddModule("Counter", "Public Count As Long\r\n", OfficeVbaModuleKind.Class);
         project.AddDocumentModule("ThisWorkbook", "Option Explicit\r\n", new Guid("00020819-0000-0000-C000-000000000046"));
         Guid library = new("2DF8D04C-5BFA-101B-BDE5-00AA0044DE52");
-        project.AddRegisteredReference("Office", library, 2, 8);
+        OfficeVbaReference reference = project.AddRegisteredReference("Office", library, 2, 8);
+        Assert.Same(reference, Assert.Single(project.References));
         OfficeVbaWriteResult initial = project.Write();
         OfficeVbaProject loaded = OfficeVbaProject.Load(initial.GetBytes());
         Assert.Equal("Automation", loaded.Name);
@@ -184,7 +185,7 @@ public sealed class OfficeVbaProjectTests {
         loaded.RenameModule("Helpers", "Tools");
         loaded.SetModuleSource("Tools", "Public Function Value() As Long\r\nValue = 73\r\nEnd Function\r\n");
         loaded.DeleteModule("Counter");
-        loaded.AddRegisteredReference("Office", library, 2, 8);
+        Assert.Same(loaded.References[0], loaded.AddRegisteredReference("Office", library, 2, 8));
         Assert.Single(loaded.References);
         OfficeVbaProject changed = OfficeVbaProject.Load(loaded.Write().GetBytes());
         Assert.Equal(new[] { "Tools", "ThisWorkbook" }, changed.Modules.Select(module => module.Name));

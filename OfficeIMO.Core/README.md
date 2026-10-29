@@ -190,8 +190,9 @@ var project = OfficeVbaProject.Create("Automation");
 project.AddModule("Helpers",
     "Public Function Value() As Long\r\nValue = 42\r\nEnd Function\r\n");
 project.AddModule("Counter", "Public Count As Long\r\n", OfficeVbaModuleKind.Class);
-project.AddRegisteredReference("Office",
+OfficeVbaReference office = project.AddRegisteredReference("Office",
     new Guid("2DF8D04C-5BFA-101B-BDE5-00AA0044DE52"), 2, 8);
+Console.WriteLine(office.Name);
 File.WriteAllBytes("vbaProject.bin", project.Write().GetBytes());
 
 var loaded = OfficeVbaProject.Load(File.ReadAllBytes("vbaProject.bin"));
