@@ -62,8 +62,8 @@ public partial class Word {
         using WordDocument reopened = WordDocument.Load(new MemoryStream(document.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc })));
         WordParagraph restored = Assert.Single(Assert.Single(reopened.Tables).Rows[0].Cells[0].Paragraphs);
         Assert.Equal(directOverride ? 120 : 0, checked((int?)(restored.LineSpacingAfter?.ToTwips())));
-        Assert.Equal(240, restored.LineSpacing);
-        Assert.Equal(WordLineSpacingRule.Auto, restored.LineSpacingRule);
+        Assert.Equal(240, restored.NativeLineSpacingValue);
+        Assert.Equal(WordLineSpacingRule.Auto, restored.NativeLineSpacingRule);
     }
 
     private static string ReadNativeTableSpacingStory(byte[] bytes) {
@@ -109,14 +109,13 @@ public partial class Word {
         paragraph._paragraph.ParagraphProperties.ParagraphStyleId = new ParagraphStyleId { Val = inheritedParagraph ? "DerivedCell" : "CellSpacing" };
         if (directOverride) {
             paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Points(6D);
-            paragraph.LineSpacing = 360;
-            paragraph.LineSpacingRule = WordLineSpacingRule.Auto;
+            paragraph.LineSpacing = global::OfficeIMO.Word.WordLineSpacing.Multiple((360) / 240D);
         }
         using WordDocument reopened = WordDocument.Load(new MemoryStream(document.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc })));
         WordParagraph restored = Assert.Single(Assert.Single(reopened.Tables).Rows[0].Cells[0].Paragraphs);
         Assert.Equal(directOverride ? 120 : 240, checked((int?)(restored.LineSpacingAfter?.ToTwips())));
-        Assert.Equal(directOverride ? 360 : 480, restored.LineSpacing);
-        Assert.Equal(WordLineSpacingRule.Auto, restored.LineSpacingRule);
+        Assert.Equal(directOverride ? 360 : 480, restored.NativeLineSpacingValue);
+        Assert.Equal(WordLineSpacingRule.Auto, restored.NativeLineSpacingRule);
         Assert.Equal(inheritedParagraph ? "LegacyDocDerivedCell" : "LegacyDocCellSpacing", restored.StyleId);
     }
 

@@ -479,8 +479,7 @@ public static partial class WordIWorkConverter {
         if (style.SpaceBeforePoints.HasValue) if ((style.SpaceBeforePoints) is { } wordLength30658) { paragraph.LineSpacingBefore = global::OfficeIMO.OfficeLength.Points(wordLength30658); }
         if (style.SpaceAfterPoints.HasValue) if ((style.SpaceAfterPoints) is { } wordLength30763) { paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Points(wordLength30763); }
         if (style.LineSpacingMultiplier is double multiplier) {
-            paragraph.LineSpacingRule = WordLineSpacingRule.Auto;
-            paragraph.LineSpacing = checked((int)Math.Round(multiplier * 240d, MidpointRounding.AwayFromZero));
+            paragraph.LineSpacing = WordLineSpacing.Multiple(multiplier);
         }
         if (style.TabStops != null) {
             paragraph.ClearTabStops();

@@ -26,8 +26,8 @@ public static partial class WordRtfConverterExtensions {
         SpacingBetweenLines? spacing = source._paragraphProperties?.SpacingBetweenLines;
         destination.SpaceBeforeAuto = spacing?.BeforeAutoSpacing?.Value;
         destination.SpaceAfterAuto = spacing?.AfterAutoSpacing?.Value;
-        destination.LineSpacingTwips = ToRtfLineSpacingValue(source.LineSpacing, source.LineSpacingRule.ToOpenXml());
-        destination.LineSpacingMultiple = ToRtfLineSpacingMultiple(source.LineSpacing, source.LineSpacingRule.ToOpenXml());
+        destination.LineSpacingTwips = ToRtfLineSpacingValue(source.NativeLineSpacingValue, spacing?.LineRule?.Value);
+        destination.LineSpacingMultiple = ToRtfLineSpacingMultiple(source.NativeLineSpacingValue, spacing?.LineRule?.Value);
         destination.Direction = source.BiDi ? RtfTextDirection.RightToLeft : null;
     }
 
@@ -93,10 +93,10 @@ public static partial class WordRtfConverterExtensions {
         }
 
         int? lineSpacing = ToWordLineSpacingValue(source.LineSpacingTwips, source.LineSpacingMultiple);
-        if (lineSpacing.HasValue) destination.LineSpacing = lineSpacing.Value;
+        if (lineSpacing.HasValue) destination.NativeLineSpacingValue = lineSpacing.Value;
         LineSpacingRuleValues? lineSpacingRule = ToWordLineSpacingRule(source.LineSpacingTwips, source.LineSpacingMultiple);
         if (lineSpacingRule.HasValue) {
-            destination.LineSpacingRule = lineSpacingRule.Value.ToOfficeEnum();
+            destination.NativeLineSpacingRule = lineSpacingRule.Value.ToOfficeEnum();
         }
 
         if (source.WidowControl.HasValue) {

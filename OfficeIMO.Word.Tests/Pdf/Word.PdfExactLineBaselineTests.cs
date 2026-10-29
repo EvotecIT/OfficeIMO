@@ -30,8 +30,7 @@ public partial class Word {
         WordParagraph paragraph = cell.Paragraphs[0];
         paragraph._paragraph.RemoveAllChildren<Run>();
         paragraph._paragraph.Append(TextLine("A", 48, true), TextLine("B", 48, true), TextLine("C", 48, false));
-        paragraph.LineSpacingPoints = 6D;
-        paragraph.LineSpacingRule = WordLineSpacingRule.Exact;
+        paragraph.LineSpacing = global::OfficeIMO.Word.WordLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(6D));
         paragraph.LineSpacingBefore = global::OfficeIMO.OfficeLength.Zero; paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
         paragraph.IndentationBefore = global::OfficeIMO.OfficeLength.Points(-30);
         using WordDocument document = WordDocument.Load(new MemoryStream(nativeDoc ? source.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc }) : source.ToBytes()));
@@ -76,8 +75,7 @@ public partial class Word {
         if (frame == "columns") source.Sections[0].ColumnCount = 2;
         paragraph._paragraph.RemoveAllChildren<Run>();
         paragraph._paragraph.Append(TextLine("A", 8, true), TextLine("B", 48, true), TextLine("C", 8, false));
-        paragraph.LineSpacingPoints = height;
-        paragraph.LineSpacingRule = WordLineSpacingRule.Exact;
+        paragraph.LineSpacing = global::OfficeIMO.Word.WordLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(height));
         paragraph.LineSpacingBefore = global::OfficeIMO.OfficeLength.Zero; paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
         using WordDocument document = WordDocument.Load(new MemoryStream(nativeDoc ? source.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc }) : source.ToBytes()));
         using var pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions {

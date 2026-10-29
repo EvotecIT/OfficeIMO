@@ -175,8 +175,7 @@ public partial class Word {
         cell.TextDirection = direction;
         WordParagraph paragraph = cell.Paragraphs[0];
         paragraph.Text = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-        paragraph.LineSpacingRule = WordLineSpacingRule.Exact;
-        paragraph.LineSpacing = 300;
+        paragraph.LineSpacing = global::OfficeIMO.Word.WordLineSpacing.Exact(global::OfficeIMO.OfficeLength.Emus(checked((long)(300) * 635)));
         using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdf(BorderFramePdfOptions()).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         // The 109.2-point content frame retains the partially visible eighth 15-point column.
         var page = Assert.Single(pdf.GetPages());

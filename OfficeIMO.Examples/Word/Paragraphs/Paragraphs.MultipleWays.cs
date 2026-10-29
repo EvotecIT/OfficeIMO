@@ -101,7 +101,7 @@ internal static partial class Paragraphs {
             paragraph.ColorHex = "4F48E2";
             paragraph.FontFamily = "Tahoma";
             paragraph.ParagraphAlignment = WordParagraphAlignment.Center;
-            paragraph.LineSpacing = 1500;
+            paragraph.LineSpacing = global::OfficeIMO.Word.WordLineSpacing.Multiple(6.25);
 
             Console.WriteLine("Found paragraphs in document: " + document.Paragraphs.Count);
 

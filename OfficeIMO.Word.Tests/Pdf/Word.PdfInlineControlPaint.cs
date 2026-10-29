@@ -22,8 +22,7 @@ public sealed partial class WordPdfInlineContentControlTests {
         using WordDocument source = CreateDocument(false, out WordParagraph paragraph);
         using WordDocument reference = CreateDocument(false, out WordParagraph referenceParagraph);
         foreach (WordParagraph target in new[] { paragraph, referenceParagraph }) {
-            target.LineSpacingPoints = 30;
-            target.LineSpacingRule = WordLineSpacingRule.Exact;
+            target.LineSpacing = global::OfficeIMO.Word.WordLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(30));
             target._paragraph.ParagraphProperties!.TextAlignment = new W.TextAlignment {
                 Val = new VerticalTextAlignmentValues(alignment)
             };

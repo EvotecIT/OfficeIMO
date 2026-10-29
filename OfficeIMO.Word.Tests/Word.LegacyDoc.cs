@@ -785,7 +785,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal("formatted", paragraphs[1].Text);
             Assert.Equal(240, checked((int?)(paragraphs[1].LineSpacingBefore?.ToTwips())));
             Assert.Equal(120, checked((int?)(paragraphs[1].LineSpacingAfter?.ToTwips())));
-            Assert.Equal(360, paragraphs[1].LineSpacing);
+            Assert.Equal(360, paragraphs[1].NativeLineSpacingValue);
             Assert.Equal(720, checked((int?)(paragraphs[1].IndentationBefore?.ToTwips())));
             Assert.Equal(360, checked((int?)(paragraphs[1].IndentationAfter?.ToTwips())));
             Assert.Equal(240, checked((int?)(paragraphs[1].IndentationFirstLine?.ToTwips())));
@@ -2428,7 +2428,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal(expectedAlignment, paragraph.ParagraphAlignment);
             Assert.Equal(240, checked((int?)(paragraph.LineSpacingBefore?.ToTwips())));
             Assert.Equal(120, checked((int?)(paragraph.LineSpacingAfter?.ToTwips())));
-            Assert.Equal(360, paragraph.LineSpacing);
+            Assert.Equal(360, paragraph.NativeLineSpacingValue);
             Assert.Equal(720, checked((int?)(paragraph.IndentationBefore?.ToTwips())));
             Assert.Equal(360, checked((int?)(paragraph.IndentationAfter?.ToTwips())));
             Assert.Equal(240, checked((int?)(paragraph.IndentationFirstLine?.ToTwips())));
@@ -2438,7 +2438,7 @@ namespace OfficeIMO.Tests {
             paragraph.ParagraphAlignment = alignment;
             paragraph.LineSpacingBefore = global::OfficeIMO.OfficeLength.Points(12D);
             paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Points(6D);
-            paragraph.LineSpacing = 360;
+            paragraph.LineSpacing = global::OfficeIMO.Word.WordLineSpacing.Multiple(1.5);
             paragraph.IndentationBefore = global::OfficeIMO.OfficeLength.Points(36D);
             paragraph.IndentationAfter = global::OfficeIMO.OfficeLength.Points(18D);
             paragraph.IndentationFirstLine = global::OfficeIMO.OfficeLength.Points(12D);
@@ -4936,7 +4936,7 @@ namespace OfficeIMO.Tests {
                     header.ParagraphAlignment = WordParagraphAlignment.Center;
                     header.LineSpacingBefore = global::OfficeIMO.OfficeLength.Points(12D);
                     header.LineSpacingAfter = global::OfficeIMO.OfficeLength.Points(6D);
-                    header.LineSpacing = 360;
+                    header.LineSpacing = global::OfficeIMO.Word.WordLineSpacing.Multiple(1.5);
                     header.IndentationBefore = global::OfficeIMO.OfficeLength.Points(36D);
                     header.IndentationAfter = global::OfficeIMO.OfficeLength.Points(18D);
                     header.IndentationFirstLine = global::OfficeIMO.OfficeLength.Points(12D);
@@ -4945,7 +4945,7 @@ namespace OfficeIMO.Tests {
                     footer.ParagraphAlignment = WordParagraphAlignment.Right;
                     footer.LineSpacingBefore = global::OfficeIMO.OfficeLength.Points(12D);
                     footer.LineSpacingAfter = global::OfficeIMO.OfficeLength.Points(6D);
-                    footer.LineSpacing = 360;
+                    footer.LineSpacing = global::OfficeIMO.Word.WordLineSpacing.Multiple(1.5);
                     footer.IndentationBefore = global::OfficeIMO.OfficeLength.Points(36D);
                     footer.IndentationAfter = global::OfficeIMO.OfficeLength.Points(18D);
                     footer.IndentationFirstLine = global::OfficeIMO.OfficeLength.Points(12D);
@@ -6414,7 +6414,7 @@ namespace OfficeIMO.Tests {
                     WordParagraph formatted = document.AddParagraph("formatted");
                     formatted.LineSpacingBefore = global::OfficeIMO.OfficeLength.Points(12D);
                     formatted.LineSpacingAfter = global::OfficeIMO.OfficeLength.Points(6D);
-                    formatted.LineSpacing = 360;
+                    formatted.LineSpacing = global::OfficeIMO.Word.WordLineSpacing.Multiple(1.5);
                     formatted.IndentationBefore = global::OfficeIMO.OfficeLength.Points(36D);
                     formatted.IndentationAfter = global::OfficeIMO.OfficeLength.Points(18D);
                     formatted.IndentationFirstLine = global::OfficeIMO.OfficeLength.Points(12D);
@@ -6436,7 +6436,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("formatted", paragraphs[1].Text);
                 Assert.Equal(240, checked((int?)(paragraphs[1].LineSpacingBefore?.ToTwips())));
                 Assert.Equal(120, checked((int?)(paragraphs[1].LineSpacingAfter?.ToTwips())));
-                Assert.Equal(360, paragraphs[1].LineSpacing);
+                Assert.Equal(360, paragraphs[1].NativeLineSpacingValue);
                 Assert.Equal(720, checked((int?)(paragraphs[1].IndentationBefore?.ToTwips())));
                 Assert.Equal(360, checked((int?)(paragraphs[1].IndentationAfter?.ToTwips())));
                 Assert.Equal(240, checked((int?)(paragraphs[1].IndentationFirstLine?.ToTwips())));

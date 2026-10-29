@@ -58,13 +58,11 @@ public static partial class WordOpenDocumentConversionExtensions {
             && double.TryParse(lexical.Substring(0, lexical.Length - 1), NumberStyles.Float,
                 CultureInfo.InvariantCulture, out double percentage)
             && percentage > 0D && percentage <= int.MaxValue * 100D / 240D) {
-            target.LineSpacingRule = WordLineSpacingRule.Auto;
-            target.LineSpacing = checked((int)Math.Round(percentage * 240D / 100D, MidpointRounding.AwayFromZero));
+            target.LineSpacing = WordLineSpacing.Multiple(percentage / 100D);
             return 0;
         }
         if (lineHeight.Value.TryToPoints(out double points) && points >= 0D) {
-            target.LineSpacingRule = WordLineSpacingRule.Exact;
-            target.LineSpacingPoints = points;
+            target.LineSpacing = WordLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(points));
             return 0;
         }
         return 1;
@@ -72,15 +70,13 @@ public static partial class WordOpenDocumentConversionExtensions {
 
     private static bool TryMapWordLineHeight(WordParagraphInfo source, out OdfLength lineHeight) {
         lineHeight = default;
-        if (!source.LineSpacingValue.HasValue || source.LineSpacingValue.Value < 0) return false;
-        if (source.LineSpacingRule == null
-            || string.Equals(source.LineSpacingRule, "auto", StringComparison.OrdinalIgnoreCase)) {
-            double percentage = source.LineSpacingValue.Value * 100D / 240D;
-            lineHeight = OdfLength.Parse(percentage.ToString("0.###", CultureInfo.InvariantCulture) + "%");
+        if (source.LineSpacing is not WordLineSpacing spacing) return false;
+        if (spacing.MultipleValue is double multiple) {
+            lineHeight = OdfLength.Parse((multiple * 100D).ToString("0.###", CultureInfo.InvariantCulture) + "%");
             return true;
         }
-        if (string.Equals(source.LineSpacingRule, "exact", StringComparison.OrdinalIgnoreCase)) {
-            lineHeight = OdfLength.Points(source.LineSpacingValue.Value / 20D);
+        if (spacing.Rule == WordLineSpacingRule.Exact && spacing.Height.HasValue) {
+            lineHeight = OdfLength.Points(spacing.Height.Value.ToPoints());
             return true;
         }
         return false;

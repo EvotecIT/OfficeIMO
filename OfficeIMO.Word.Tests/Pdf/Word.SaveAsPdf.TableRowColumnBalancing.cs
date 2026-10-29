@@ -26,7 +26,7 @@ public partial class Word {
             document.AddSection(WordSectionBreakType.Continuous).ColumnCount = 1;
             WordParagraph after = document.AddParagraph("AfterContinuous");
             after.FontFamily = "Arial"; after.FontSize = global::OfficeIMO.OfficeLength.Points(12);
-            after.LineSpacing = 400; after.LineSpacingRule = WordLineSpacingRule.Exact;
+            after.LineSpacing = global::OfficeIMO.Word.WordLineSpacing.Exact(global::OfficeIMO.OfficeLength.Emus(checked((long)(400) * 635)));
             after.LineSpacingBefore = global::OfficeIMO.OfficeLength.Zero; after.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
             after.KeepLinesTogetherOverride = false; after.KeepWithNextOverride = false;
             after.AvoidWidowAndOrphanOverride = false;

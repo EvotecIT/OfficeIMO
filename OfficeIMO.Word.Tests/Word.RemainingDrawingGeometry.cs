@@ -122,8 +122,7 @@ public partial class Word {
         using var output = new MemoryStream();
         using (var document = WordDocument.Create()) {
             var paragraph = document.AddParagraph("Mixed quantity");
-            paragraph.LineSpacingRule = rule;
-            paragraph.LineSpacing = value;
+            paragraph.LineSpacing = (rule) switch { global::OfficeIMO.Word.WordLineSpacingRule.Exact => global::OfficeIMO.Word.WordLineSpacing.Exact(global::OfficeIMO.OfficeLength.Emus(checked((long)(value) * 635))), global::OfficeIMO.Word.WordLineSpacingRule.AtLeast => global::OfficeIMO.Word.WordLineSpacing.AtLeast(global::OfficeIMO.OfficeLength.Emus(checked((long)(value) * 635))), _ => global::OfficeIMO.Word.WordLineSpacing.Multiple((value) / 240D) };
             var percentage = document.AddTable(1, 1);
             percentage.SetWidthPercentage(37);
             var automatic = document.AddTable(1, 1);

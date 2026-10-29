@@ -74,7 +74,7 @@ public partial class Word {
 
     private static void ConfigurePartialColumnParagraph(WordParagraph paragraph) {
         paragraph.FontFamily="Arial"; paragraph.FontSize=global::OfficeIMO.OfficeLength.Points(12);
-        paragraph.LineSpacing=400; paragraph.LineSpacingRule=WordLineSpacingRule.Exact;
+        paragraph.LineSpacing = global::OfficeIMO.Word.WordLineSpacing.Exact(global::OfficeIMO.OfficeLength.Emus(checked((long)(400) * 635)));
         paragraph.LineSpacingBefore=global::OfficeIMO.OfficeLength.Zero; paragraph.LineSpacingAfter=global::OfficeIMO.OfficeLength.Zero;
         paragraph.KeepLinesTogetherOverride=false; paragraph.KeepWithNextOverride=false; paragraph.AvoidWidowAndOrphanOverride=false;
     }

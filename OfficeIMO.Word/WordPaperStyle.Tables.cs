@@ -50,8 +50,7 @@ public sealed partial class WordPaperStyle {
                     paragraph.LineSpacingBefore = global::OfficeIMO.OfficeLength.Points(TableParagraphSpacingPoints);
                     paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Points(TableParagraphSpacingPoints);
                     if (TableLineSpacingPoints.HasValue) {
-                        paragraph.LineSpacingRule = WordLineSpacingRule.Exact;
-                        paragraph.LineSpacingPoints = TableLineSpacingPoints.Value;
+                        paragraph.LineSpacing = WordLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(TableLineSpacingPoints.Value));
                     }
                     paragraph.ParagraphAlignment = numericColumns.Contains(column) ? WordParagraphAlignment.Right : WordParagraphAlignment.Left;
                     if (!header && numericColumns.Contains(column)) {

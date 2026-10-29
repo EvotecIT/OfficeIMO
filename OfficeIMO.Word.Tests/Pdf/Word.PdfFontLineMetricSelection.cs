@@ -50,8 +50,7 @@ public partial class Word {
         if (frame == "columns") source.Sections[0].ColumnCount = 2;
         paragraph._paragraph.RemoveAllChildren<Run>();
         paragraph._paragraph.Append(TextLine("A", 12, true), TextLine("B", 12, true), TextLine("C", 12, false));
-        paragraph.LineSpacing = 276;
-        paragraph.LineSpacingRule = WordLineSpacingRule.Auto;
+        paragraph.LineSpacing = global::OfficeIMO.Word.WordLineSpacing.Multiple((276) / 240D);
         paragraph.LineSpacingBefore = global::OfficeIMO.OfficeLength.Zero;
         paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
         using WordDocument document = WordDocument.Load(new MemoryStream(nativeDoc ? source.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc }) : source.ToBytes()));

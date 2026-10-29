@@ -115,10 +115,21 @@ public sealed class SetOfficeWordParagraphStyleCommand : PSCmdlet
         if (IsBound(nameof(IndentationAfterPoints)) && IndentationAfterPoints.HasValue) paragraph.IndentationAfter = global::OfficeIMO.OfficeLength.Points(IndentationAfterPoints.Value);
         if (IsBound(nameof(IndentationFirstLinePoints)) && IndentationFirstLinePoints.HasValue) paragraph.IndentationFirstLine = global::OfficeIMO.OfficeLength.Points(IndentationFirstLinePoints.Value);
         if (IsBound(nameof(IndentationHangingPoints)) && IndentationHangingPoints.HasValue) paragraph.IndentationHanging = global::OfficeIMO.OfficeLength.Points(IndentationHangingPoints.Value);
-        if (IsBound(nameof(LineSpacingPoints))) paragraph.LineSpacingPoints = LineSpacingPoints;
+        if (IsBound(nameof(LineSpacingPoints)))
+        {
+            if (LineSpacingPoints.HasValue)
+            {
+                paragraph.NativeLineSpacingValue = Helpers.ConvertPointsToTwips(LineSpacingPoints.Value);
+                paragraph.NativeLineSpacingRule ??= WordLineSpacingRule.Exact;
+            }
+            else
+            {
+                paragraph.NativeLineSpacingValue = null;
+            }
+        }
         if (IsBound(nameof(SpacingBeforePoints)) && SpacingBeforePoints.HasValue) paragraph.LineSpacingBefore = global::OfficeIMO.OfficeLength.Points(SpacingBeforePoints.Value);
         if (IsBound(nameof(SpacingAfterPoints)) && SpacingAfterPoints.HasValue) paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Points(SpacingAfterPoints.Value);
-        if (LineSpacingRule.HasValue) paragraph.LineSpacingRule = LineSpacingRule.Value;
+        if (LineSpacingRule.HasValue) paragraph.NativeLineSpacingRule = LineSpacingRule.Value;
         if (IsBound(nameof(PageBreakBefore))) paragraph.PageBreakBefore = PageBreakBefore ?? false;
         if (IsBound(nameof(KeepWithNext))) paragraph.KeepWithNext = KeepWithNext ?? false;
         if (IsBound(nameof(KeepLinesTogether))) paragraph.KeepLinesTogether = KeepLinesTogether ?? false;

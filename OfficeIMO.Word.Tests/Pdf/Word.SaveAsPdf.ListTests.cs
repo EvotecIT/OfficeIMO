@@ -465,8 +465,7 @@ namespace OfficeIMO.Tests {
                 item.AddBreak();
                 item.AddText(secondMarker).SetCharacterStyleId(styleId);
                 item.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
-                item.LineSpacingPoints = 18D;
-                item.LineSpacingRule = WordLineSpacingRule.Exact;
+                item.LineSpacing = global::OfficeIMO.Word.WordLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(18D));
 
                 document.Save();
                 document.SaveAsPdf(pdfPath, new WordPdfExportOptions {

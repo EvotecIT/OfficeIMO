@@ -422,26 +422,12 @@ namespace OfficeIMO.Word.Pdf {
         private static double? GetNativeTableStyleParagraphLineHeight(
             W.SpacingBetweenLines spacing,
             params string?[] fontFamilies) {
-            if (spacing.LineRule?.Value != W.LineSpacingRuleValues.Auto) {
-                return null;
-            }
-
-            if (!double.TryParse(spacing.Line?.Value, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out double line) ||
-                line <= 0D ||
-                double.IsNaN(line) ||
-                double.IsInfinity(line)) {
-                return null;
-            }
-
-            return Math.Max(0.01D, ResolveNativeWordSingleLineHeight(fontFamilies) * (line / 240D));
+            if (WordLineSpacing.Read(spacing)?.MultipleValue is not double multiple || multiple <= 0D) return null;
+            return Math.Max(0.01D, ResolveNativeWordSingleLineHeight(fontFamilies) * multiple);
         }
 
         private static double? GetNativeTableStyleParagraphLineSpacingPoints(W.SpacingBetweenLines spacing) {
-            if (spacing.LineRule?.Value == W.LineSpacingRuleValues.Auto) {
-                return null;
-            }
-
-            return ConvertNativeTwipsToPoints(spacing.Line?.Value);
+            return WordLineSpacing.Read(spacing)?.Height?.ToPoints();
         }
 
         private static IReadOnlyList<W.Style> GetNativeTableStyleChain(WordDocument document, string? styleId) {

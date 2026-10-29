@@ -122,7 +122,7 @@ public sealed class WordPdfLatinFontFallbackTests {
         var blank = document.AddParagraph();
         var last = document.AddParagraph("B");
         foreach (WordParagraph paragraph in new[] { first, blank, last }) {
-            paragraph.LineSpacingPoints = 20; paragraph.LineSpacingRule = WordLineSpacingRule.AtLeast;
+            paragraph.LineSpacing = global::OfficeIMO.Word.WordLineSpacing.AtLeast(global::OfficeIMO.OfficeLength.Points(20));
             paragraph.LineSpacingBefore = global::OfficeIMO.OfficeLength.Zero; paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
             foreach (Run run in paragraph._paragraph.Descendants<Run>())
                 (run.RunProperties ??= new RunProperties()).FontSize = new FontSize { Val = "16" };
@@ -206,7 +206,7 @@ public sealed class WordPdfLatinFontFallbackTests {
         if (blank) document.AddParagraph();
         document.AddParagraph("B");
         foreach (WordParagraph paragraph in document.Paragraphs) {
-            paragraph.LineSpacing = 240; paragraph.LineSpacingRule = WordLineSpacingRule.Auto;
+            paragraph.LineSpacing = global::OfficeIMO.Word.WordLineSpacing.Multiple((240) / 240D);
             paragraph.LineSpacingBefore = global::OfficeIMO.OfficeLength.Zero; paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
         }
         var options = new PdfCreateOptions { DefaultFont = PdfStandardFont.Helvetica };

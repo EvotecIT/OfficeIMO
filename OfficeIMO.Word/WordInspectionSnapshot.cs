@@ -154,9 +154,11 @@ namespace OfficeIMO.Word {
         /// <summary>Gets spacing below the paragraph in points.</summary>
         public double? SpaceBelowPoints { get; internal set; }
         /// <summary>Gets the raw Word line-spacing value.</summary>
-        public int? LineSpacingValue { get; internal set; }
+        internal int? LineSpacingValue { get; set; }
         /// <summary>Gets the authored line-spacing rule.</summary>
-        public string? LineSpacingRule { get; internal set; }
+        internal string? LineSpacingRule { get; set; }
+        /// <summary>Gets directly authored spacing in line multiples or physical height.</summary>
+        public WordLineSpacing? LineSpacing { get; internal set; }
         /// <summary>Gets the authored OOXML paragraph-shading fill token, typically an RGB hex value but possibly the automatic-color keyword.</summary>
         public string? ShadingFillColorHex { get; internal set; }
         /// <summary>Paragraph shading pattern, when explicitly authored.</summary>

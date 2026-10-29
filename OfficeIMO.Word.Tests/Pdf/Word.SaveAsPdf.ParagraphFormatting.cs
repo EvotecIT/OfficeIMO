@@ -1590,11 +1590,10 @@ namespace OfficeIMO.Tests {
             using WordDocument document = WordDocument.Create(Path.Combine(_directoryWithFiles, "PdfNativeExplicitParagraphStyle.docx"));
             WordParagraph exactParagraph = document.AddParagraph("Native exact line spacing");
             exactParagraph.FontSize = global::OfficeIMO.OfficeLength.Points(12);
-            exactParagraph.LineSpacingPoints = 24;
+            exactParagraph.LineSpacing = global::OfficeIMO.Word.WordLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(24));
 
             WordParagraph autoParagraph = document.AddParagraph("Native auto line spacing");
-            autoParagraph.LineSpacing = 276;
-            autoParagraph.LineSpacingRule = WordLineSpacingRule.Auto;
+            autoParagraph.LineSpacing = global::OfficeIMO.Word.WordLineSpacing.Multiple((276) / 240D);
 
             MethodInfo method = typeof(WordPdfConverterExtensions).GetMethod("CreateNativeParagraphStyle", BindingFlags.NonPublic | BindingFlags.Static, binder: null, new[] { typeof(WordParagraph) }, modifiers: null)!;
             PdfParagraphStyle exactStyle = Assert.IsType<PdfParagraphStyle>(method.Invoke(null, new object[] { exactParagraph }));
@@ -1609,8 +1608,7 @@ namespace OfficeIMO.Tests {
             using WordDocument document = WordDocument.Create(Path.Combine(_directoryWithFiles, "PdfNativeFontMetricLineSpacing.docx"));
             WordParagraph paragraph = document.AddParagraph("Serif line spacing");
             paragraph.FontFamily = "Times New Roman";
-            paragraph.LineSpacing = 240;
-            paragraph.LineSpacingRule = WordLineSpacingRule.Auto;
+            paragraph.LineSpacing = global::OfficeIMO.Word.WordLineSpacing.Multiple((240) / 240D);
 
             Type converterType = typeof(WordPdfConverterExtensions);
             Type nativeFontMapType = converterType.GetNestedType("NativeFontMap", BindingFlags.NonPublic)!;
@@ -1686,8 +1684,7 @@ namespace OfficeIMO.Tests {
                     "PdfNativeRangeScopedMetricLineSpacing.docx"));
             WordParagraph paragraph = document.AddParagraph("A");
             paragraph.FontFamily = "Scoped Metric";
-            paragraph.LineSpacing = 240;
-            paragraph.LineSpacingRule = WordLineSpacingRule.Auto;
+            paragraph.LineSpacing = global::OfficeIMO.Word.WordLineSpacing.Multiple((240) / 240D);
 
             var onlyA = new OfficeIMO.Drawing.OfficeFontUnicodeRangeSet(new[] {
                 new OfficeIMO.Drawing.OfficeFontUnicodeRange('A', 'A')
@@ -1750,8 +1747,7 @@ namespace OfficeIMO.Tests {
             using WordDocument document = WordDocument.Create(Path.Combine(_directoryWithFiles, "PdfNativeAtLeastParagraphStyle.docx"));
             WordParagraph directParagraph = document.AddParagraph("Native at least line spacing");
             directParagraph.FontSize = global::OfficeIMO.OfficeLength.Points(24);
-            directParagraph.LineSpacingPoints = 6;
-            directParagraph.LineSpacingRule = WordLineSpacingRule.AtLeast;
+            directParagraph.LineSpacing = global::OfficeIMO.Word.WordLineSpacing.AtLeast(global::OfficeIMO.OfficeLength.Points(6));
 
             const string styleId = "AtLeastLineSpacingStyle";
             Styles styles = document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
@@ -1789,15 +1785,13 @@ namespace OfficeIMO.Tests {
             using (WordDocument document = WordDocument.Create(docPath)) {
                 WordParagraph exact = document.AddParagraph("ExactSmallFirst");
                 exact.FontSize = global::OfficeIMO.OfficeLength.Points(24);
-                exact.LineSpacingPoints = 6;
-                exact.LineSpacingRule = WordLineSpacingRule.Exact;
+                exact.LineSpacing = global::OfficeIMO.Word.WordLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(6));
                 exact.AddBreak();
                 exact.AddText("ExactSmallSecond").FontSize = global::OfficeIMO.OfficeLength.Points(24);
 
                 WordParagraph atLeast = document.AddParagraph("AtLeastFirst");
                 atLeast.FontSize = global::OfficeIMO.OfficeLength.Points(24);
-                atLeast.LineSpacingPoints = 6;
-                atLeast.LineSpacingRule = WordLineSpacingRule.AtLeast;
+                atLeast.LineSpacing = global::OfficeIMO.Word.WordLineSpacing.AtLeast(global::OfficeIMO.OfficeLength.Points(6));
                 atLeast.AddBreak();
                 atLeast.AddText("AtLeastSecond").FontSize = global::OfficeIMO.OfficeLength.Points(24);
 
@@ -1844,8 +1838,7 @@ namespace OfficeIMO.Tests {
                 paragraph.AddBreak();
                 paragraph.AddText("CharExactSecond").SetCharacterStyleId(styleId);
                 paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
-                paragraph.LineSpacingPoints = 18;
-                paragraph.LineSpacingRule = WordLineSpacingRule.Exact;
+                paragraph.LineSpacing = global::OfficeIMO.Word.WordLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(18));
 
                 document.Save();
                 document.SaveAsPdf(pdfPath, new WordPdfExportOptions {

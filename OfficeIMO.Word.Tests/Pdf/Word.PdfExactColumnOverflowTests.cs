@@ -40,8 +40,7 @@ public partial class Word {
         if (partial) {
             WordParagraph preceding = source.AddParagraph("P");
             preceding.FontSize = global::OfficeIMO.OfficeLength.Points(12);
-            preceding.LineSpacingPoints = 12;
-            preceding.LineSpacingRule = WordLineSpacingRule.Exact;
+            preceding.LineSpacing = global::OfficeIMO.Word.WordLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(12));
             preceding.LineSpacingBefore = preceding.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
             WordSection columns = source.AddSection(WordSectionBreakType.Continuous);
             columns.ColumnCount = 2;
@@ -50,8 +49,7 @@ public partial class Word {
         WordParagraph paragraph = source.AddParagraph();
         paragraph._paragraph.RemoveAllChildren<W.Run>();
         paragraph._paragraph.Append(TextLine("A", 12, true), TextLine("B", 12, false));
-        paragraph.LineSpacingPoints = height;
-        paragraph.LineSpacingRule = WordLineSpacingRule.Exact;
+        paragraph.LineSpacing = global::OfficeIMO.Word.WordLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(height));
         paragraph.LineSpacingBefore = paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
         paragraph._paragraph.ParagraphProperties!.WidowControl = new W.WidowControl { Val = widowControl };
         using WordDocument document = WordDocument.Load(new MemoryStream(source.ToBytes()));
@@ -90,21 +88,18 @@ public partial class Word {
         SetColumnStory(source.FooterDefaultOrCreate);
         WordParagraph tall = source.AddParagraph();
         tall._paragraph.Append(TextLine("A", 12, false));
-        tall.LineSpacingPoints = 100;
-        tall.LineSpacingRule = WordLineSpacingRule.Exact;
+        tall.LineSpacing = global::OfficeIMO.Word.WordLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(100));
         tall.LineSpacingBefore = tall.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
         WordParagraph ordinary = source.AddParagraph();
         foreach (char letter in "BCDEFGHIJK") ordinary._paragraph.Append(TextLine(letter.ToString(), 12, letter != 'K'));
-        ordinary.LineSpacingPoints = 12;
-        ordinary.LineSpacingRule = WordLineSpacingRule.Exact;
+        ordinary.LineSpacing = global::OfficeIMO.Word.WordLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(12));
         ordinary.LineSpacingBefore = ordinary.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
         ordinary._paragraph.ParagraphProperties!.WidowControl = new W.WidowControl { Val = false };
         if (balanced) {
             source.AddSection(WordSectionBreakType.Continuous).ColumnCount = 1;
             WordParagraph after = source.AddParagraph();
             after._paragraph.Append(TextLine("Z", 12, false));
-            after.LineSpacingPoints = 12;
-            after.LineSpacingRule = WordLineSpacingRule.Exact;
+            after.LineSpacing = global::OfficeIMO.Word.WordLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(12));
             after.LineSpacingBefore = after.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
         }
         using WordDocument document = WordDocument.Load(new MemoryStream(source.ToBytes()));
@@ -129,8 +124,7 @@ public partial class Word {
     private static void SetColumnStory(WordHeaderFooter story) {
         for (int index = 0; index < 3; index++) {
             WordParagraph blank = story.AddParagraph();
-            blank.LineSpacingPoints = 32;
-            blank.LineSpacingRule = WordLineSpacingRule.Exact;
+            blank.LineSpacing = global::OfficeIMO.Word.WordLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(32));
             blank.LineSpacingBefore = blank.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
         }
     }

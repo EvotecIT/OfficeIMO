@@ -224,8 +224,10 @@ namespace OfficeIMO.Word {
                 IndentFirstLinePoints = ResolveIndentFirstLinePoints(paragraph),
                 SpaceAbovePoints = paragraph.LineSpacingBefore?.ToPoints(),
                 SpaceBelowPoints = paragraph.LineSpacingAfter?.ToPoints(),
-                LineSpacingValue = paragraph.LineSpacing,
-                LineSpacingRule = NormalizeOpenXmlEnumValue(paragraph.LineSpacingRule),
+                LineSpacing = paragraph.LineSpacing,
+                LineSpacingValue = paragraph.NativeLineSpacingValue,
+                LineSpacingRule = paragraph.NativeLineSpacingRule?.ToString()
+                    ?? paragraph._paragraph.ParagraphProperties?.SpacingBetweenLines?.LineRule?.InnerText,
                 ShadingFillColorHex = NormalizeColorHex(paragraph.ShadingFillColorHex),
                 ShadingPattern = paragraph.ShadingPattern,
                 LeftBorder = BuildParagraphBorderSnapshot(

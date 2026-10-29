@@ -257,7 +257,7 @@ public partial class Word {
                 paragraph.Text = $"Frame{row * columns + column}";
                 paragraph.FontFamily = "Arial"; paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(12);
                 paragraph.LineSpacingBefore = paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
-                paragraph.LineSpacingRule = WordLineSpacingRule.Auto; paragraph.LineSpacing = 240;
+                paragraph.LineSpacing = global::OfficeIMO.Word.WordLineSpacing.Multiple((240) / 240D);
             }
         table.GridColumnWidth = Enumerable.Repeat(2400, columns).ToList();
         return table;

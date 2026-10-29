@@ -107,8 +107,7 @@ public sealed partial class IWorkBoundaryTests {
             .First(declaration => declaration.TryGetProperty("relativeMultiplier", out _))
             .GetProperty("relativeMultiplier").GetDouble();
         Assert.Contains(result.Projection.Body.Paragraphs, paragraph => paragraph.Style.LineSpacingMultiplier == expected);
-        Assert.Contains(result.Value.Paragraphs, paragraph => paragraph.LineSpacingRule == OfficeIMO.Word.WordLineSpacingRule.Auto
-            && paragraph.LineSpacing == 276);
+        Assert.Contains(result.Value.Paragraphs, paragraph => paragraph.LineSpacing == global::OfficeIMO.Word.WordLineSpacing.Multiple(1.15));
         Assert.Contains(result.Projection.Body.Paragraphs, paragraph => paragraph.Style.TabStops?.Any(tab => tab.PositionPoints == 18
             && tab.Alignment == IWorkTabAlignment.Left) == true);
         Assert.Contains(result.Value.Paragraphs, paragraph => paragraph.TabStops.Any(tab => tab.Position == 360

@@ -108,8 +108,7 @@ public partial class Word {
             bodySource.ParagraphProperties!.RemoveAllChildren<W.SpacingBetweenLines>();
             bodySource.ParagraphProperties.ParagraphStyleId = new W.ParagraphStyleId { Val = "UpwardBody" };
         } else {
-            body.LineSpacingPoints = 6;
-            body.LineSpacingRule = WordLineSpacingRule.Exact;
+            body.LineSpacing = global::OfficeIMO.Word.WordLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(6));
         }
         string[] before = AnchoredRunningStoryXml(document);
         string stylesBefore = main.StyleDefinitionsPart!.Styles!.OuterXml;

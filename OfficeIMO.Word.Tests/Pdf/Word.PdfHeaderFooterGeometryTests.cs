@@ -29,7 +29,7 @@ public partial class Word {
         body.FontFamily = "Arial";
         body.FontSize = global::OfficeIMO.OfficeLength.Points(12);
         body.LineSpacingBefore = body.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
-        body.LineSpacing = 240;
+        body.LineSpacing = global::OfficeIMO.Word.WordLineSpacing.Multiple(1);
 
         byte[] bytes = document.ToPdf(new WordPdfExportOptions { IncludePageNumbers = false }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         using PdfPigDocument pdf = PdfPigDocument.Open(bytes);

@@ -928,15 +928,12 @@ namespace OfficeIMO.Word.Html {
                     if (para.LineSpacingAfter.HasValue && checked((int)(para.LineSpacingAfter.Value.ToTwips())) != 0) {
                         pStyles.Add($"margin-bottom:{FormatTwips(checked((int)(para.LineSpacingAfter.Value.ToTwips())))}");
                     }
-                    if (para.LineSpacing.HasValue && para.LineSpacing.Value != 0) {
-                        var rule = para.LineSpacingRule;
-                        if (rule == null || rule == WordLineSpacingRule.Auto) {
-                            var multiple = para.LineSpacing.Value / 240.0;
-                            if (multiple > 0) {
-                                pStyles.Add($"line-height:{FormatNumber(multiple)}");
-                            }
-                        } else {
-                            pStyles.Add($"line-height:{FormatTwips(para.LineSpacing.Value)}");
+                    if (para.LineSpacing is WordLineSpacing lineSpacing) {
+                        if (lineSpacing.MultipleValue is double multiple && multiple > 0) {
+                            pStyles.Add($"line-height:{FormatNumber(multiple)}");
+                        } else if (lineSpacing.Height is global::OfficeIMO.OfficeLength height && height != global::OfficeIMO.OfficeLength.Zero) {
+                            // CSS has no minimum line-height mode; retain the existing approximation.
+                            pStyles.Add($"line-height:{FormatTwips(checked((int)height.ToTwips()))}");
                         }
                     }
                 }

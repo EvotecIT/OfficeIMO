@@ -109,8 +109,7 @@ public partial class Word {
         }
         static WordParagraph AddLine(WordDocument target, string text) {
             WordParagraph paragraph = target.AddParagraph(text);
-            paragraph.LineSpacingPoints = 12;
-            paragraph.LineSpacingRule = WordLineSpacingRule.Exact;
+            paragraph.LineSpacing = global::OfficeIMO.Word.WordLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(12));
             paragraph.LineSpacingBefore = paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
             return paragraph;
         }

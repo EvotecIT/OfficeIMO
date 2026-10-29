@@ -3793,8 +3793,7 @@ namespace OfficeIMO.Tests {
             document.BuiltinDocumentProperties.Title = "Google Docs Auto Line Spacing";
 
             var paragraph = document.AddParagraph("Auto spaced paragraph");
-            paragraph.LineSpacing = 360;
-            paragraph.LineSpacingRule = WordLineSpacingRule.Auto;
+            paragraph.LineSpacing = global::OfficeIMO.Word.WordLineSpacing.Multiple((360) / 240D);
 
             return document;
         }
@@ -3862,8 +3861,7 @@ namespace OfficeIMO.Tests {
             document.BuiltinDocumentProperties.Title = "Google Docs Exact Line Spacing";
 
             var paragraph = document.AddParagraph("Exact spaced paragraph");
-            paragraph.LineSpacing = 360;
-            paragraph.LineSpacingRule = WordLineSpacingRule.Exact;
+            paragraph.LineSpacing = global::OfficeIMO.Word.WordLineSpacing.Exact(global::OfficeIMO.OfficeLength.Emus(checked((long)(360) * 635)));
 
             return document;
         }
@@ -3873,8 +3871,7 @@ namespace OfficeIMO.Tests {
             document.BuiltinDocumentProperties.Title = "Google Docs AtLeast Line Spacing";
 
             var paragraph = document.AddParagraph("AtLeast spaced paragraph");
-            paragraph.LineSpacing = 360;
-            paragraph.LineSpacingRule = WordLineSpacingRule.AtLeast;
+            paragraph.LineSpacing = global::OfficeIMO.Word.WordLineSpacing.AtLeast(global::OfficeIMO.OfficeLength.Emus(checked((long)(360) * 635)));
 
             return document;
         }

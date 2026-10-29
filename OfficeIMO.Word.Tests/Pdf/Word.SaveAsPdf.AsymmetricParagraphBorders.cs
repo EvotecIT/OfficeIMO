@@ -84,8 +84,7 @@ public partial class Word {
     private static void ConfigureAsymmetricBorderParagraph(WordParagraph paragraph) {
         paragraph.FontFamily = "Arial";
         paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(12);
-        paragraph.LineSpacingPoints = 16;
-        paragraph.LineSpacingRule = WordLineSpacingRule.Exact;
+        paragraph.LineSpacing = global::OfficeIMO.Word.WordLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(16));
         paragraph.LineSpacingBefore = paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
     }
 }

@@ -161,24 +161,8 @@ namespace OfficeIMO.Word.Pdf {
             W.SpacingBetweenLines? spacing,
             string? fontFamily,
             NativeFontMap? nativeFontMap = null) {
-            if (spacing?.Line == null) {
-                return null;
-            }
-
-            if (!double.TryParse(spacing.Line.Value, NumberStyles.Float, CultureInfo.InvariantCulture, out double line) ||
-                line <= 0D ||
-                double.IsNaN(line) ||
-                double.IsInfinity(line)) {
-                return null;
-            }
-
-            if (spacing.LineRule?.Value == W.LineSpacingRuleValues.Auto) {
-                return Math.Max(
-                    0.01D,
-                    ResolveNativeWordSingleLineHeight(nativeFontMap, fontFamily) * (line / 240D));
-            }
-
-            return null;
+            if (WordLineSpacing.Read(spacing)?.MultipleValue is not double multiple || multiple <= 0D) return null;
+            return Math.Max(0.01D, ResolveNativeWordSingleLineHeight(nativeFontMap, fontFamily) * multiple);
         }
 
         private static bool IsNativeSpacingBeforeDeclared(W.SpacingBetweenLines? spacing) =>

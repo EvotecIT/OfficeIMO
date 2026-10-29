@@ -32,7 +32,7 @@ public partial class Word {
             void AddLines(string prefix, int count) {
                 var paragraph = document.AddParagraph(string.Join("\n", Enumerable.Range(1, count).Select(index => prefix + index.ToString("D3"))));
                 paragraph.FontFamily = "Arial"; paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(12);
-                paragraph.LineSpacing = 400; paragraph.LineSpacingRule = WordLineSpacingRule.Exact;
+                paragraph.LineSpacing = global::OfficeIMO.Word.WordLineSpacing.Exact(global::OfficeIMO.OfficeLength.Emus(checked((long)(400) * 635)));
                 paragraph.LineSpacingBefore = global::OfficeIMO.OfficeLength.Zero; paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
                 paragraph.AvoidWidowAndOrphanOverride = false;
             }
@@ -210,8 +210,7 @@ public partial class Word {
             WordParagraph body = document.AddParagraph("ColumnKeepBody\nSecond body line\nThird body line");
             foreach (WordParagraph paragraph in new[] { prelude, heading, body }) {
                 paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(12);
-                paragraph.LineSpacing = 400;
-                paragraph.LineSpacingRule = WordLineSpacingRule.Exact;
+                paragraph.LineSpacing = global::OfficeIMO.Word.WordLineSpacing.Exact(global::OfficeIMO.OfficeLength.Emus(checked((long)(400) * 635)));
                 paragraph.LineSpacingBefore = global::OfficeIMO.OfficeLength.Zero;
                 paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
             }
@@ -264,8 +263,7 @@ public partial class Word {
             WordParagraph body = document.AddParagraph("StyledColumnKeepBody\nSecond body line\nThird body line");
             foreach (WordParagraph paragraph in new[] { prelude, heading, body }) {
                 paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(12);
-                paragraph.LineSpacing = 400;
-                paragraph.LineSpacingRule = WordLineSpacingRule.Exact;
+                paragraph.LineSpacing = global::OfficeIMO.Word.WordLineSpacing.Exact(global::OfficeIMO.OfficeLength.Emus(checked((long)(400) * 635)));
                 paragraph.LineSpacingBefore = global::OfficeIMO.OfficeLength.Zero;
                 paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
             }

@@ -141,8 +141,7 @@ public partial class Word {
                 paragraph.FontFamily = "Arial";
                 paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(12);
                 paragraph.LineSpacingBefore = paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
-                paragraph.LineSpacingRule = WordLineSpacingRule.Auto;
-                paragraph.LineSpacing = 240;
+                paragraph.LineSpacing = global::OfficeIMO.Word.WordLineSpacing.Multiple((240) / 240D);
             }
         table.GridColumnWidth = new List<int> { 1600, 1600 };
         return table;

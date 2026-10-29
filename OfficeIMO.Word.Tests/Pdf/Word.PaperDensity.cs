@@ -22,10 +22,10 @@ public sealed class WordPaperDensityTests {
         Assert.Equal(spacing, table.Rows[1].Cells[1].Paragraphs[0].LineSpacingAfter?.ToPoints());
         Assert.Equal(spacing, table.Rows[1].Cells[1].Paragraphs[0].LineSpacingBefore?.ToPoints());
         if (compact) {
-            Assert.Equal(11, table.Rows[1].Cells[1].Paragraphs[0].LineSpacingPoints);
-            Assert.Equal(WordLineSpacingRule.Exact, table.Rows[1].Cells[1].Paragraphs[0].LineSpacingRule);
+            Assert.Equal(11, table.Rows[1].Cells[1].Paragraphs[0].LineSpacing?.Height?.ToPoints());
+            Assert.Equal(WordLineSpacingRule.Exact, table.Rows[1].Cells[1].Paragraphs[0].NativeLineSpacingRule);
         } else {
-            Assert.Null(table.Rows[1].Cells[1].Paragraphs[0].LineSpacingPoints);
+            Assert.Null(table.Rows[1].Cells[1].Paragraphs[0].LineSpacing?.Height?.ToPoints());
         }
     }
 }

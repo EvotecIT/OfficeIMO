@@ -439,8 +439,7 @@ namespace OfficeIMO.Tests {
             heading.FontSize = global::OfficeIMO.OfficeLength.Points(30);
             heading.LineSpacingBefore = global::OfficeIMO.OfficeLength.Points(12D);
             heading.LineSpacingAfter = global::OfficeIMO.OfficeLength.Points(3D);
-            heading.LineSpacingPoints = 36D;
-            heading.LineSpacingRule = WordLineSpacingRule.Exact;
+            heading.LineSpacing = global::OfficeIMO.Word.WordLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(36D));
             using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions { IncludePageNumbers = false }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
             var letters = pdf.GetPage(1).Letters;
             Assert.All(letters, letter => Assert.Equal(30D, letter.FontSize, 3));

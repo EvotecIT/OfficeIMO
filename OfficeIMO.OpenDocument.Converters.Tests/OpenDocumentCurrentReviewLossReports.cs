@@ -229,8 +229,8 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
 
         Assert.Equal("Start", converted.Alignment);
         Assert.True(converted.IsRightToLeft);
-        Assert.Equal(480, converted.LineSpacingValue);
-        Assert.Equal("Auto", converted.LineSpacingRule);
+        Assert.Equal(global::OfficeIMO.Word.WordLineSpacing.Multiple(2), converted.LineSpacing);
+        Assert.Equal(WordLineSpacingRule.Auto, converted.LineSpacing?.Rule);
         Assert.Equal("Liberation Sans", Assert.Single(converted.Runs).FontFamily);
         Assert.DoesNotContain(conversion.Report.Mappings, mapping =>
             mapping.Feature is "writing-mode" or "relative-measurements"
@@ -301,8 +301,7 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
         using WordDocument source = WordDocument.Create();
         WordParagraph paragraph = source.AddParagraph("Logical layout");
         paragraph.BiDi = true;
-        paragraph.LineSpacingRule = WordLineSpacingRule.Auto;
-        paragraph.LineSpacing = 360;
+        paragraph.LineSpacing = global::OfficeIMO.Word.WordLineSpacing.Multiple((360) / 240D);
 
         OdfConversionResult<OdtDocument> conversion = source.ToOpenDocumentResult();
         OdtParagraph converted = Assert.Single(conversion.Value.Paragraphs);

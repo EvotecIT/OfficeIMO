@@ -3163,17 +3163,17 @@
       "old": "OfficeIMO.Word.WordParagraph.LineSpacingPoints",
       "kind": "property",
       "action": "merge",
-      "new": "OfficeIMO.Word.WordParagraph.LineSpacing : OfficeLength",
-      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "new": "OfficeIMO.Word.WordParagraph.LineSpacing : WordLineSpacing?",
+      "reason": "Automatic spacing is a line multiple; exact and minimum heights are OfficeLength values. WordLineSpacing represents the native interpretation and value together.",
       "file": "OfficeIMO.Word/WordParagraph.ParagraphProperties.cs",
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Multiple(double) writes native240ths of a line; Exact(OfficeLength) and AtLeast(OfficeLength) write twips. Null clears both native line attributes and retains other spacing. Malformed or future native declarations remain preserved when read. Every adapter and consumer is migrated; native qualification is pending. Word owner build0warnings/errors and15nativeDOCXcases pass on net10.0; adapter/module/other-framework gates remain part of the phase validation."
     },
     {
       "old": "OfficeIMO.Word.WordParagraphSnapshot.IndentEndPoints",
@@ -3903,18 +3903,18 @@
       "old": "OfficeIMO.Word.WordParagraph.LineSpacing",
       "kind": "property",
       "action": "change",
-      "new": "OfficeIMO.Word.WordParagraph.LineSpacing : OfficeLength?",
-      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "new": "OfficeIMO.Word.WordParagraph.LineSpacing : WordLineSpacing?",
+      "reason": "Automatic spacing is a line multiple; exact and minimum heights are OfficeLength values. WordLineSpacing represents the native interpretation and value together.",
       "file": "OfficeIMO.Word/WordParagraph.ParagraphProperties.cs",
       "category": "units",
       "notes": "Raw twips (or 1/1000 for crop) int?; the *Points/*Centimeters twin property merges into this one.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Multiple(double) writes native240ths of a line; Exact(OfficeLength) and AtLeast(OfficeLength) write twips. Null clears both native line attributes and retains other spacing. Malformed or future native declarations remain preserved when read. Every adapter and consumer is migrated; native qualification is pending. Word owner build0warnings/errors and15nativeDOCXcases pass on net10.0; adapter/module/other-framework gates remain part of the phase validation."
     },
     {
       "old": "OfficeIMO.Word.WordParagraph.LineSpacingBefore",
@@ -6674,6 +6674,16 @@
         "OfficeIMO.Word/WordDrawingLayoutSnapshot.cs",
         "OfficeIMO.Word.Tests/Word.RemainingDrawingGeometry.cs"
       ]
+    },
+    {
+      "phase": "B",
+      "action": "merge",
+      "old": "WordParagraph.LineSpacingRule; WordParagraphInfo.LineSpacingValue/LineSpacingRule",
+      "new": "WordLineSpacing.Rule read-only; WordParagraphInfo.LineSpacing; existing PowerShell parameters retain their command contract",
+      "reason": "Prevent contradictory raw value/rule assignments and retain relative line multiples separately from physical heights.",
+      "file": "OfficeIMO.Word/WordLineSpacing.cs",
+      "applied": "phase-b-applied",
+      "note": "The C# property writes and clears the native pair atomically. Internal raw evidence supports native codecs and loss diagnostics. PSWriteOffice retains LineSpacingPoints/LineSpacingRule, mapping existing behavior through friend-only native plumbing until its command migration. PDF-to-Word image scaffolds retain distinct one-twip and one-point heights."
     }
   ],
   "applicationStatus": "Phase A applied and validated on the supported macOS targets. Phase B and Tier 2 entries retain their status; Windows .NET Framework validation remains pending.",

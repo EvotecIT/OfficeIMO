@@ -180,7 +180,8 @@ public static partial class LegacyWordImporter {
         paragraph.PageBreakBefore = source.PageBreakBefore;
         paragraph.KeepWithNext = source.KeepWithNext;
         paragraph.KeepLinesTogether = source.KeepLinesTogether;
-        paragraph.LineSpacingPoints = source.LineSpacingPoints;
+        paragraph.LineSpacing = source.LineSpacingPoints.HasValue
+            ? WordLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(source.LineSpacingPoints.Value)) : null;
         if ((source.SpacingBeforePoints) is { } wordLength11132) { paragraph.LineSpacingBefore = global::OfficeIMO.OfficeLength.Points(wordLength11132); }
         if ((source.SpacingAfterPoints) is { } wordLength11203) { paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Points(wordLength11203); }
         if (!string.IsNullOrWhiteSpace(source.StyleName)) {

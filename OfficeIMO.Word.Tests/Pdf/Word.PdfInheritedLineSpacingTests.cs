@@ -197,10 +197,10 @@ public partial class Word {
         }
         paragraph.LineSpacingBefore = global::OfficeIMO.OfficeLength.Zero; paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
         if (ruleOnly && route is "body" or "clear-points") {
-            paragraph.LineSpacingRule = route == "clear-points" ? WordLineSpacingRule.AtLeast : WordLineSpacingRule.Auto;
-            if (route == "clear-points") { paragraph.LineSpacingPoints = 18; paragraph.LineSpacingPoints = null; }
+            paragraph.NativeLineSpacingRule = route == "clear-points" ? WordLineSpacingRule.AtLeast : WordLineSpacingRule.Auto;
+            if (route == "clear-points") { paragraph.NativeLineSpacingValue = 360; paragraph.NativeLineSpacingValue = null; }
         }
-        if (directSpacing || omitRule) { paragraph.LineSpacing = lineSpacing; paragraph.LineSpacingRule = omitRule ? null : rule; }
+        if (directSpacing || omitRule) { paragraph.NativeLineSpacingValue = lineSpacing; paragraph.NativeLineSpacingRule = omitRule ? null : rule; }
         string originalStyles = styles.OuterXml;
         byte[] documentBytes = nativeDoc ? source.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc }) : source.ToBytes();
         Assert.Equal(originalStyles, styles.OuterXml);

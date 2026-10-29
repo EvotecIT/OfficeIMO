@@ -24,7 +24,7 @@ public partial class Word {
         list.Numbering.AddLevel(level);
         var paragraph = list.AddItem("B");
         paragraph.FontFamily = family; paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(8);
-        paragraph.LineSpacingPoints = 30; paragraph.LineSpacingRule = WordLineSpacingRule.Exact;
+        paragraph.LineSpacing = global::OfficeIMO.Word.WordLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(30));
         paragraph._paragraph.ParagraphProperties!.TextAlignment = new TextAlignment { Val = new VerticalTextAlignmentValues(alignment) };
         var options = new PdfCreateOptions();
         options.RegisterNamedFontFamily(new PdfEmbeddedFontFamily(family, ManagedTextShapingTestAssets.CreateFontWithDeviceMetrics()));
@@ -126,8 +126,7 @@ public partial class Word {
         if (route == "direct") properties.TextAlignment = new TextAlignment { Val = value };
         else if (route == "override") properties.TextAlignment = new TextAlignment { Val = VerticalTextAlignmentValues.Baseline };
         // A direct spacing declaration must not erase alignment inherited from elsewhere.
-        paragraph.LineSpacingPoints = 40;
-        paragraph.LineSpacingRule = lineSpacingRule;
+        paragraph.LineSpacing = (lineSpacingRule) switch { global::OfficeIMO.Word.WordLineSpacingRule.Exact => global::OfficeIMO.Word.WordLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(40)), global::OfficeIMO.Word.WordLineSpacingRule.AtLeast => global::OfficeIMO.Word.WordLineSpacing.AtLeast(global::OfficeIMO.OfficeLength.Points(40)), _ => global::OfficeIMO.Word.WordLineSpacing.Multiple((40) / 12D) };
         using WordDocument document = WordDocument.Load(new MemoryStream(nativeDoc ? source.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc }) : source.ToBytes()));
         var options = new PdfCreateOptions();
         options.RegisterNamedFontFamily(new PdfEmbeddedFontFamily(family, ManagedTextShapingTestAssets.CreateFontWithDeviceMetrics()));

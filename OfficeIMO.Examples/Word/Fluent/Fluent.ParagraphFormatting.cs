@@ -28,7 +28,7 @@ namespace OfficeIMO.Examples.Word
                     paragraph4.SetAlignment(WordParagraphAlignment.Both);
                     paragraph4.LineSpacingBefore = global::OfficeIMO.OfficeLength.Points(12D);
                     paragraph4.LineSpacingAfter = global::OfficeIMO.OfficeLength.Points(12D);
-                    paragraph4.LineSpacing = (int)(24 * 20);
+                    paragraph4.LineSpacing = global::OfficeIMO.Word.WordLineSpacing.Multiple(2);
                     paragraph4.IndentationBefore = global::OfficeIMO.OfficeLength.Points(((int)(24 * 20)) / 20D);
                     paragraph4.IndentationFirstLine = global::OfficeIMO.OfficeLength.Points(((int)(24 * 20)) / 20D);
                     paragraph4.SetStyle(WordParagraphStyles.Heading2);

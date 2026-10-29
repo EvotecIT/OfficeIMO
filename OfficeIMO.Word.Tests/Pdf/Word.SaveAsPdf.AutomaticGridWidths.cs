@@ -146,8 +146,7 @@ public partial class Word {
         using WordDocument document = WordDocument.Create();
         WordParagraph paragraph = CreateAutomaticWidthControl(document, 2400).Rows[0].Cells[0].Paragraphs[0];
         paragraph.Text = "A " + string.Concat(Enumerable.Repeat("東京", 24));
-        paragraph.LineSpacingRule = minimumSpacing ? WordLineSpacingRule.AtLeast : WordLineSpacingRule.Auto;
-        paragraph.LineSpacing = 240;
+        paragraph.LineSpacing = minimumSpacing ? WordLineSpacing.AtLeast(OfficeLength.Points(12)) : WordLineSpacing.Multiple(1);
         var options = CreateAutomaticGridFallbackFontOptions();
         using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions {
             IncludePageNumbers = false, PdfOptions = options,
@@ -178,7 +177,7 @@ public partial class Word {
         paragraph.Text = "東京\n東京\n東京";
         paragraph.FontFamily = "Arial"; paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(12);
         paragraph.LineSpacingBefore = global::OfficeIMO.OfficeLength.Zero; paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
-        paragraph.LineSpacingRule = WordLineSpacingRule.Auto; paragraph.LineSpacing = spacing;
+        paragraph.LineSpacing = global::OfficeIMO.Word.WordLineSpacing.Multiple((spacing) / 240D);
         using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions {
             IncludePageNumbers = false, PdfOptions = CreateAutomaticGridFallbackFontOptions(),
             ResourcePolicy = OfficeIMO.Pdf.PdfResourcePolicy.CreatePortableDeterministic()
@@ -213,7 +212,7 @@ public partial class Word {
             var paragraph = cell.Paragraphs[0];
             paragraph.FontFamily = "Arial"; paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(12);
             paragraph.LineSpacingBefore = global::OfficeIMO.OfficeLength.Zero; paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
-            paragraph.LineSpacingRule = WordLineSpacingRule.Auto; paragraph.LineSpacing = 240;
+            paragraph.LineSpacing = global::OfficeIMO.Word.WordLineSpacing.Multiple((240) / 240D);
         }
         table.GridColumnWidth = gridTwips.ToList();
         return table;

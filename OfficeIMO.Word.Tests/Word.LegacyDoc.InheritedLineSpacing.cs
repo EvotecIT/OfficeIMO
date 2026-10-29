@@ -91,11 +91,11 @@ public partial class Word {
             normal.StyleParagraphProperties ??= new StyleParagraphProperties();
             normal.StyleParagraphProperties.SpacingBetweenLines = new SpacingBetweenLines { LineRule = LineSpacingRuleValues.Auto };
         } else if (!route.StartsWith("table-", StringComparison.Ordinal) || route == "table-value") {
-            target.LineSpacingRule = route == "clear-points" ? WordLineSpacingRule.AtLeast : WordLineSpacingRule.Auto;
+            target.NativeLineSpacingRule = route == "clear-points" ? WordLineSpacingRule.AtLeast : WordLineSpacingRule.Auto;
             if (route == "clear-points") {
-                target.LineSpacingPoints = 18; target.LineSpacingPoints = null;
-                Assert.Null(target.LineSpacing);
-                Assert.Equal(WordLineSpacingRule.AtLeast, target.LineSpacingRule);
+                target.NativeLineSpacingValue = 360; target.NativeLineSpacingValue = null;
+                Assert.Null(target.NativeLineSpacingValue);
+                Assert.Equal(WordLineSpacingRule.AtLeast, target.NativeLineSpacingRule);
                 Assert.Null(target._paragraph.ParagraphProperties!.SpacingBetweenLines!.Line);
             }
         }

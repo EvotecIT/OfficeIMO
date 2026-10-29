@@ -260,10 +260,11 @@ namespace OfficeIMO.Word.Html {
             }
 
             if (parsed.LineHeight.HasValue) {
-                paragraph.LineSpacing = parsed.LineHeight.Value;
-                if (parsed.LineHeightRule.HasValue) {
-                    paragraph.LineSpacingRule = parsed.LineHeightRule.Value.ToOfficeEnum();
-                }
+                // CSS parsing is native-shaped; use the Word owner to interpret its units.
+                paragraph.LineSpacing = WordLineSpacing.Read(new DocumentFormat.OpenXml.Wordprocessing.SpacingBetweenLines {
+                    Line = parsed.LineHeight.Value.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                    LineRule = parsed.LineHeightRule
+                });
             }
 
             if (TryParseFontSize(GetInlinePropertyValue(declaration, styleAttribute, "font-size"), out int fontSize)) {

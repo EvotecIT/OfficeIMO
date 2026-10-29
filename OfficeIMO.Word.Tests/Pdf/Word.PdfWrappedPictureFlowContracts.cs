@@ -195,8 +195,7 @@ public sealed class WordPdfWrappedPictureFlowContractTests {
         paragraph.Text = text;
         paragraph.FontFamily = ManagedTextShapingTestAssets.FamilyName;
         paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(12);
-        paragraph.LineSpacingPoints = Line;
-        paragraph.LineSpacingRule = WordLineSpacingRule.Exact;
+        paragraph.LineSpacing = global::OfficeIMO.Word.WordLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(Line));
         paragraph.LineSpacingBefore = paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
         paragraph.AvoidWidowAndOrphan = false;
     }

@@ -2395,6 +2395,12 @@ OfficeIMO.Word.WordLine.ColorHex.set -> void
 OfficeIMO.Word.WordLine.Remove() -> void
 OfficeIMO.Word.WordLine.StrokeWeight.get -> OfficeIMO.OfficeLength
 OfficeIMO.Word.WordLine.StrokeWeight.set -> void
+OfficeIMO.Word.WordLineSpacing
+OfficeIMO.Word.WordLineSpacing.Equals(OfficeIMO.Word.WordLineSpacing other) -> bool
+OfficeIMO.Word.WordLineSpacing.Height.get -> OfficeIMO.OfficeLength?
+OfficeIMO.Word.WordLineSpacing.MultipleValue.get -> double?
+OfficeIMO.Word.WordLineSpacing.Rule.get -> OfficeIMO.Word.WordLineSpacingRule
+OfficeIMO.Word.WordLineSpacing.WordLineSpacing() -> void
 OfficeIMO.Word.WordLineSpacingRule
 OfficeIMO.Word.WordLineSpacingRule.AtLeast = 2 -> OfficeIMO.Word.WordLineSpacingRule
 OfficeIMO.Word.WordLineSpacingRule.Auto = 0 -> OfficeIMO.Word.WordLineSpacingRule
@@ -3164,16 +3170,12 @@ OfficeIMO.Word.WordParagraph.KerningMinimumFontSize.set -> void
 OfficeIMO.Word.WordParagraph.Language.get -> string?
 OfficeIMO.Word.WordParagraph.Language.set -> void
 OfficeIMO.Word.WordParagraph.Line.get -> OfficeIMO.Word.WordLine?
-OfficeIMO.Word.WordParagraph.LineSpacing.get -> int?
+OfficeIMO.Word.WordParagraph.LineSpacing.get -> OfficeIMO.Word.WordLineSpacing?
 OfficeIMO.Word.WordParagraph.LineSpacing.set -> void
 OfficeIMO.Word.WordParagraph.LineSpacingAfter.get -> OfficeIMO.OfficeLength?
 OfficeIMO.Word.WordParagraph.LineSpacingAfter.set -> void
 OfficeIMO.Word.WordParagraph.LineSpacingBefore.get -> OfficeIMO.OfficeLength?
 OfficeIMO.Word.WordParagraph.LineSpacingBefore.set -> void
-OfficeIMO.Word.WordParagraph.LineSpacingPoints.get -> double?
-OfficeIMO.Word.WordParagraph.LineSpacingPoints.set -> void
-OfficeIMO.Word.WordParagraph.LineSpacingRule.get -> OfficeIMO.Word.WordLineSpacingRule?
-OfficeIMO.Word.WordParagraph.LineSpacingRule.set -> void
 OfficeIMO.Word.WordParagraph.ListItemLevel.get -> int?
 OfficeIMO.Word.WordParagraph.ListItemLevel.set -> void
 OfficeIMO.Word.WordParagraph.ListStyle.get -> OfficeIMO.Word.WordListStyle?
@@ -3381,8 +3383,7 @@ OfficeIMO.Word.WordParagraphInfo.IsRightToLeft.get -> bool
 OfficeIMO.Word.WordParagraphInfo.KeepLinesTogether.get -> bool
 OfficeIMO.Word.WordParagraphInfo.KeepWithNext.get -> bool
 OfficeIMO.Word.WordParagraphInfo.LeftBorder.get -> OfficeIMO.Word.WordParagraphBorderInfo?
-OfficeIMO.Word.WordParagraphInfo.LineSpacingRule.get -> string?
-OfficeIMO.Word.WordParagraphInfo.LineSpacingValue.get -> int?
+OfficeIMO.Word.WordParagraphInfo.LineSpacing.get -> OfficeIMO.Word.WordLineSpacing?
 OfficeIMO.Word.WordParagraphInfo.ListIndex.get -> int?
 OfficeIMO.Word.WordParagraphInfo.ListLevel.get -> int?
 OfficeIMO.Word.WordParagraphInfo.ListMarker.get -> string?
@@ -4961,6 +4962,8 @@ const OfficeIMO.Word.WordLoadOptions.DefaultMaxInputBytes = 536870912 -> long
 const OfficeIMO.Word.WordPackageSigningOptions.Sha256HashAlgorithm = "http://www.w3.org/2001/04/xmlenc#sha256" -> string!
 override OfficeIMO.Word.LegacyDoc.Diagnostics.LegacyDocImportDiagnostic.ToString() -> string!
 override OfficeIMO.Word.WordImageShapeStyle.ToString() -> string!
+override OfficeIMO.Word.WordLineSpacing.Equals(object? obj) -> bool
+override OfficeIMO.Word.WordLineSpacing.GetHashCode() -> int
 override OfficeIMO.Word.WordParagraph.Equals(object? obj) -> bool
 override OfficeIMO.Word.WordParagraph.GetHashCode() -> int
 override OfficeIMO.Word.WordTabStop.Equals(object? obj) -> bool
@@ -5044,6 +5047,11 @@ static OfficeIMO.Word.WordHyperLink.AddHyperLink(OfficeIMO.Word.WordParagraph! p
 static OfficeIMO.Word.WordHyperLink.CreateFormattedHyperlink(OfficeIMO.Word.WordHyperLink! reference, string! newText, System.Uri! newUri) -> OfficeIMO.Word.WordHyperLink!
 static OfficeIMO.Word.WordHyperLink.DuplicateHyperlink(OfficeIMO.Word.WordHyperLink! reference) -> OfficeIMO.Word.WordHyperLink!
 static OfficeIMO.Word.WordImageShapeStyle.FromString(string! styleString) -> OfficeIMO.Word.WordImageShapeStyle!
+static OfficeIMO.Word.WordLineSpacing.AtLeast(OfficeIMO.OfficeLength height) -> OfficeIMO.Word.WordLineSpacing
+static OfficeIMO.Word.WordLineSpacing.Exact(OfficeIMO.OfficeLength height) -> OfficeIMO.Word.WordLineSpacing
+static OfficeIMO.Word.WordLineSpacing.Multiple(double value) -> OfficeIMO.Word.WordLineSpacing
+static OfficeIMO.Word.WordLineSpacing.operator !=(OfficeIMO.Word.WordLineSpacing left, OfficeIMO.Word.WordLineSpacing right) -> bool
+static OfficeIMO.Word.WordLineSpacing.operator ==(OfficeIMO.Word.WordLineSpacing left, OfficeIMO.Word.WordLineSpacing right) -> bool
 static OfficeIMO.Word.WordList.AddCustomBulletList(OfficeIMO.Word.WordDocument! document, OfficeIMO.Word.WordBulletSymbol symbol, string! fontName, OfficeIMO.OfficeColor? color = null, string? colorHex = null, OfficeIMO.OfficeLength? fontSize = null) -> OfficeIMO.Word.WordList!
 static OfficeIMO.Word.WordList.AddCustomBulletList(OfficeIMO.Word.WordDocument! document, OfficeIMO.Word.WordListLevelKind kind, string! fontName, OfficeIMO.OfficeColor? color = null, string? colorHex = null, OfficeIMO.OfficeLength? fontSize = null) -> OfficeIMO.Word.WordList!
 static OfficeIMO.Word.WordList.AddCustomBulletList(OfficeIMO.Word.WordDocument! document, char symbol, string! fontName, string? colorHex, OfficeIMO.OfficeLength? fontSize = null) -> OfficeIMO.Word.WordList!

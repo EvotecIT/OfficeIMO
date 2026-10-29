@@ -44,8 +44,7 @@ public partial class Word {
                 WordParagraph paragraph = document.AddParagraph(text);
                 paragraph.FontFamily = "Arial";
                 paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(12);
-                paragraph.LineSpacing = 400;
-                paragraph.LineSpacingRule = WordLineSpacingRule.Exact;
+                paragraph.LineSpacing = global::OfficeIMO.Word.WordLineSpacing.Exact(global::OfficeIMO.OfficeLength.Emus(checked((long)(400) * 635)));
                 paragraph.LineSpacingBefore = global::OfficeIMO.OfficeLength.Zero;
                 paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
                 paragraph.AvoidWidowAndOrphanOverride = false;

@@ -21,8 +21,7 @@ namespace OfficeIMO.Examples.Word {
                 par01.LineSpacingBefore = global::OfficeIMO.OfficeLength.Zero;
 
                 var par02 = document.AddParagraph("My declaration");
-                par02.LineSpacing = 360;
-                par02.LineSpacingRule = WordLineSpacingRule.Exact;
+                par02.LineSpacing = global::OfficeIMO.Word.WordLineSpacing.Exact(global::OfficeIMO.OfficeLength.Emus(checked((long)(360) * 635)));
 
                 document.Save();
                 if (openWord) document.OpenInApplication();

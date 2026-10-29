@@ -28,7 +28,7 @@ public partial class Word {
         (double Baseline, int Lines) Render(bool configure) {
             using WordDocument document = CreateEmptyRunningStoryDocument("implicit", footer);
             WordParagraph body = document.AddParagraph("A");
-            body.LineSpacing = footer ? 364 : 240; body.LineSpacingRule = WordLineSpacingRule.Exact;
+            body.LineSpacing = global::OfficeIMO.Word.WordLineSpacing.Exact(global::OfficeIMO.OfficeLength.Emus(checked((long)(footer ? 364 : 240) * 635)));
             body.LineSpacingBefore = body.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
             body.KeepLinesTogether = false; body.AvoidWidowAndOrphan = false;
             if (footer) for (int index = 1; index < 40; index++) body.AddBreak().AddText("A");
@@ -73,7 +73,7 @@ public partial class Word {
         for (int index = 0; index < stories.Length; index++) {
             if (index != emptyVariant) stories[index].AddParagraph("STORY" + index);
             WordParagraph body = document.AddParagraph("A");
-            body.LineSpacing = 240; body.LineSpacingRule = WordLineSpacingRule.Exact;
+            body.LineSpacing = global::OfficeIMO.Word.WordLineSpacing.Exact(global::OfficeIMO.OfficeLength.Emus(checked((long)(240) * 635)));
             body.LineSpacingBefore = body.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
             if (index < 2) body.AddBreak(WordBreakType.Page);
         }
@@ -140,7 +140,7 @@ public partial class Word {
                 Type = W.StyleValues.Paragraph, StyleId = "IndependentBody"
             });
             WordParagraph body = document.AddParagraph("A");
-            body.LineSpacing = footer ? 364 : 240; body.LineSpacingRule = WordLineSpacingRule.Exact;
+            body.LineSpacing = global::OfficeIMO.Word.WordLineSpacing.Exact(global::OfficeIMO.OfficeLength.Emus(checked((long)(footer ? 364 : 240) * 635)));
             body.LineSpacingBefore = body.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
             body.KeepLinesTogether = false; body.AvoidWidowAndOrphan = false;
             body._paragraph.ParagraphProperties!.ParagraphStyleId = new W.ParagraphStyleId { Val = "IndependentBody" };
@@ -179,7 +179,7 @@ public partial class Word {
         }
         WordParagraph body = document.AddParagraph("A");
         body.Hidden = false;
-        body.LineSpacing = 240; body.LineSpacingRule = WordLineSpacingRule.Exact;
+        body.LineSpacing = global::OfficeIMO.Word.WordLineSpacing.Exact(global::OfficeIMO.OfficeLength.Emus(checked((long)(240) * 635)));
         body.LineSpacingBefore = body.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
         body._paragraph.ParagraphProperties!.ParagraphMarkRunProperties =
             new W.ParagraphMarkRunProperties(new W.Vanish { Val = false });
@@ -205,7 +205,7 @@ public partial class Word {
         }
         spacing.Before = "400";
         WordParagraph body = document.AddParagraph("A");
-        body.LineSpacing = 240; body.LineSpacingRule = WordLineSpacingRule.Exact;
+        body.LineSpacing = global::OfficeIMO.Word.WordLineSpacing.Exact(global::OfficeIMO.OfficeLength.Emus(checked((long)(240) * 635)));
         body.LineSpacingBefore = body.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
 
         using var pdf = PdfPigDocument.Open(document.ToPdf(EmptyRunningOptions()).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
@@ -221,7 +221,7 @@ public partial class Word {
     public void SaveAsPdf_EmptyRunningFooterReservesItsBodyFrame(string kind, int expectedFirstPageLines) {
         using WordDocument document = CreateEmptyRunningStoryDocument(kind, footer: true);
         WordParagraph body = document.AddParagraph("A");
-        body.LineSpacing = 364; body.LineSpacingRule = WordLineSpacingRule.Exact;
+        body.LineSpacing = global::OfficeIMO.Word.WordLineSpacing.Exact(global::OfficeIMO.OfficeLength.Emus(checked((long)(364) * 635)));
         body.LineSpacingBefore = body.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
         body.KeepLinesTogether = false; body.AvoidWidowAndOrphan = false;
         for (int index = 1; index < 40; index++) body.AddBreak().AddText("A");
@@ -247,7 +247,7 @@ public partial class Word {
         }
         for (int index = 0; index < 3; index++) {
             WordParagraph body = source.AddParagraph("A");
-            body.LineSpacing = 240; body.LineSpacingRule = WordLineSpacingRule.Exact;
+            body.LineSpacing = global::OfficeIMO.Word.WordLineSpacing.Exact(global::OfficeIMO.OfficeLength.Emus(checked((long)(240) * 635)));
             body.LineSpacingBefore = body.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
             if (index < 2) body.AddBreak(WordBreakType.Page);
         }
@@ -269,7 +269,7 @@ public partial class Word {
         using WordDocument document = CreateEmptyRunningStoryDocument(kind, footer: false);
         document.Sections[0].Margins.HeaderDistance = global::OfficeIMO.OfficeLength.Points(((uint)distance) / 20D);
         WordParagraph body = document.AddParagraph("A");
-        body.LineSpacing = 240; body.LineSpacingRule = WordLineSpacingRule.Exact;
+        body.LineSpacing = global::OfficeIMO.Word.WordLineSpacing.Exact(global::OfficeIMO.OfficeLength.Emus(checked((long)(240) * 635)));
         body.LineSpacingBefore = body.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
         string before = document._wordprocessingDocument.MainDocumentPart!.HeaderParts.FirstOrDefault()?.Header.OuterXml ?? "";
         using var pdf = PdfPigDocument.Open(document.ToPdf(EmptyRunningOptions()).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));

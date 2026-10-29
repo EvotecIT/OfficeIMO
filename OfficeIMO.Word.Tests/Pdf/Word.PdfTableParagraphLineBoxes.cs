@@ -32,8 +32,7 @@ public sealed class WordPdfTableParagraphLineBoxTests {
             paragraph.FontFamily = "Arial";
             paragraph.LineSpacingBefore = global::OfficeIMO.OfficeLength.Zero;
             paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
-            paragraph.LineSpacingPoints = 10;
-            paragraph.LineSpacingRule = WordLineSpacingRule.Exact;
+            paragraph.LineSpacing = global::OfficeIMO.Word.WordLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(10));
         }
         using var pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions {
             IncludePageNumbers = false, ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic()

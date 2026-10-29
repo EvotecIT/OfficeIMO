@@ -21,8 +21,8 @@ namespace OfficeIMO.Tests {
             string html = "<p style=\"line-height:1.5\">Line</p>";
             var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWord(new WordHtmlImportOptions());
             var paragraph = doc.Paragraphs[0];
-            Assert.Equal(360, paragraph.LineSpacing);
-            Assert.Equal(OfficeIMO.Word.WordLineSpacingRule.Auto, paragraph.LineSpacingRule);
+            Assert.Equal(360, paragraph.NativeLineSpacingValue);
+            Assert.Equal(OfficeIMO.Word.WordLineSpacingRule.Auto, paragraph.NativeLineSpacingRule);
         }
 
         [Fact]

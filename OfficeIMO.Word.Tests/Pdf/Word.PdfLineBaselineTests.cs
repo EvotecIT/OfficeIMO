@@ -25,7 +25,7 @@ public partial class Word {
         paragraph._paragraph.RemoveAllChildren<Run>();
         paragraph._paragraph.Append(new Run(new RunProperties(new RunFonts { Ascii = "TallFallback", HighAnsi = "TallFallback" })),
             TextLine("A", 24, true), TextLine("B", 24, true), TextLine("C", 24, false));
-        paragraph.LineSpacing = 240; paragraph.LineSpacingRule = WordLineSpacingRule.Auto;
+        paragraph.LineSpacing = global::OfficeIMO.Word.WordLineSpacing.Multiple((240) / 240D);
         paragraph.LineSpacingBefore = global::OfficeIMO.OfficeLength.Zero; paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
         using WordDocument document = WordDocument.Load(new MemoryStream(nativeDoc ? source.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc }) : source.ToBytes()));
         var options = new PdfCreateOptions();
@@ -65,8 +65,7 @@ public partial class Word {
         if (frame == "columns") source.Sections[0].ColumnCount = 2;
         paragraph._paragraph.RemoveAllChildren<Run>();
         paragraph._paragraph.Append(TextLine("A", 8, true), TextLine("B", 32, true), TextLine("C", 8, false));
-        paragraph.LineSpacing = minimum ? 400 : 240;
-        paragraph.LineSpacingRule = minimum ? WordLineSpacingRule.AtLeast : WordLineSpacingRule.Auto;
+        paragraph.LineSpacing = minimum ? WordLineSpacing.AtLeast(OfficeLength.Points(20)) : WordLineSpacing.Multiple(1);
         paragraph.LineSpacingBefore = global::OfficeIMO.OfficeLength.Zero; paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
         using WordDocument document = WordDocument.Load(new MemoryStream(nativeDoc ? source.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc }) : source.ToBytes()));
         var options = new PdfCreateOptions { DefaultFont = PdfStandardFont.Helvetica };

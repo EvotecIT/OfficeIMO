@@ -158,8 +158,7 @@ public class RtfParagraphLayoutTests {
         paragraph.KeepLinesTogether = true;
         paragraph.LineSpacingBefore = global::OfficeIMO.OfficeLength.Points(6D);
         paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Points(12D);
-        paragraph.LineSpacing = 360;
-        paragraph.LineSpacingRule = WordLineSpacingRule.Exact;
+        paragraph.LineSpacing = global::OfficeIMO.Word.WordLineSpacing.Exact(global::OfficeIMO.OfficeLength.Emus(checked((long)(360) * 635)));
         paragraph._paragraph.ParagraphProperties ??= new ParagraphProperties();
         paragraph._paragraph.ParagraphProperties.SpacingBetweenLines ??= new SpacingBetweenLines();
         paragraph._paragraph.ParagraphProperties.SpacingBetweenLines.BeforeAutoSpacing = true;
@@ -225,8 +224,8 @@ public class RtfParagraphLayoutTests {
         Assert.Equal(240, checked((int?)(roundTripParagraph.LineSpacingAfter?.ToTwips())));
         Assert.True(roundTripParagraph._paragraphProperties?.SpacingBetweenLines?.BeforeAutoSpacing?.Value ?? false);
         Assert.False(roundTripParagraph._paragraphProperties?.SpacingBetweenLines?.AfterAutoSpacing?.Value ?? true);
-        Assert.Equal(360, roundTripParagraph.LineSpacing);
-        Assert.Equal(WordLineSpacingRule.Exact, roundTripParagraph.LineSpacingRule);
+        Assert.Equal(360, roundTripParagraph.NativeLineSpacingValue);
+        Assert.Equal(WordLineSpacingRule.Exact, roundTripParagraph.NativeLineSpacingRule);
     }
 
     [Fact]
@@ -258,8 +257,8 @@ public class RtfParagraphLayoutTests {
         Assert.Equal(300, checked((int?)(paragraph.LineSpacingAfter?.ToTwips())));
         Assert.False(paragraph._paragraphProperties?.SpacingBetweenLines?.BeforeAutoSpacing?.Value ?? true);
         Assert.True(paragraph._paragraphProperties?.SpacingBetweenLines?.AfterAutoSpacing?.Value ?? false);
-        Assert.Equal(480, paragraph.LineSpacing);
-        Assert.Equal(WordLineSpacingRule.Auto, paragraph.LineSpacingRule);
+        Assert.Equal(480, paragraph.NativeLineSpacingValue);
+        Assert.Equal(WordLineSpacingRule.Auto, paragraph.NativeLineSpacingRule);
     }
 
     [Fact]

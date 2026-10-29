@@ -693,8 +693,7 @@ public partial class Word {
             WordParagraph paragraph = cell.Paragraphs[0];
             paragraph.Text = firstMarker + " " + secondMarker;
             paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
-            paragraph.LineSpacingPoints = lineSpacingPoints;
-            paragraph.LineSpacingRule = WordLineSpacingRule.Exact;
+            paragraph.LineSpacing = global::OfficeIMO.Word.WordLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(lineSpacingPoints));
 
             document.Save();
             document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
@@ -744,8 +743,7 @@ public partial class Word {
             paragraph.AddBreak();
             paragraph.AddText(secondMarker).SetCharacterStyleId(styleId);
             paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
-            paragraph.LineSpacingPoints = 18D;
-            paragraph.LineSpacingRule = WordLineSpacingRule.Exact;
+            paragraph.LineSpacing = global::OfficeIMO.Word.WordLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(18D));
 
             document.Save();
             document.SaveAsPdf(pdfPath, new WordPdfExportOptions {

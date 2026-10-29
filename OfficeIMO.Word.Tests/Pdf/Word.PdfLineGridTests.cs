@@ -55,7 +55,7 @@ public partial class Word {
         paragraph._paragraph.RemoveAllChildren<Run>();
         paragraph._paragraph.Append(new Run(new RunProperties(new FontSize { Val = (size * 2).ToString() },
             new RunFonts { Ascii = "Arial", HighAnsi = "Arial" }), new Text("A"), new Break(), new Text("B"), new Break(), new Text("C")));
-        paragraph.LineSpacing = line; paragraph.LineSpacingRule = rule;
+        paragraph.LineSpacing = (rule) switch { global::OfficeIMO.Word.WordLineSpacingRule.Exact => global::OfficeIMO.Word.WordLineSpacing.Exact(global::OfficeIMO.OfficeLength.Emus(checked((long)(line) * 635))), global::OfficeIMO.Word.WordLineSpacingRule.AtLeast => global::OfficeIMO.Word.WordLineSpacing.AtLeast(global::OfficeIMO.OfficeLength.Emus(checked((long)(line) * 635))), _ => global::OfficeIMO.Word.WordLineSpacing.Multiple((line) / 240D) };
         paragraph.LineSpacingBefore = global::OfficeIMO.OfficeLength.Zero; paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
         if (route == "disabled") paragraph._paragraph.ParagraphProperties!.Append(new SnapToGrid { Val = false });
         if (route is "style-disabled" or "direct-enabled") {

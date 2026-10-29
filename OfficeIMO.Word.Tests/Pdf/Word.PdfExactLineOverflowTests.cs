@@ -31,15 +31,13 @@ public partial class Word {
         if (prefix) {
             WordParagraph preceding = source.AddParagraph("P");
             preceding.FontSize = global::OfficeIMO.OfficeLength.Points(12);
-            preceding.LineSpacingPoints = 12;
-            preceding.LineSpacingRule = WordLineSpacingRule.Exact;
+            preceding.LineSpacing = global::OfficeIMO.Word.WordLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(12));
             preceding.LineSpacingBefore = preceding.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
         }
         WordParagraph paragraph = source.AddParagraph();
         paragraph._paragraph.RemoveAllChildren<W.Run>();
         paragraph._paragraph.Append(TextLine("A", 12, true), TextLine("B", 12, false));
-        paragraph.LineSpacingPoints = height;
-        paragraph.LineSpacingRule = WordLineSpacingRule.Exact;
+        paragraph.LineSpacing = global::OfficeIMO.Word.WordLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(height));
         paragraph.LineSpacingBefore = paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
         using WordDocument document = WordDocument.Load(new MemoryStream(source.ToBytes()));
         using var pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions {
@@ -59,8 +57,7 @@ public partial class Word {
         static void SetStory(WordHeaderFooter story) {
             for (int index = 0; index < 3; index++) {
                 WordParagraph blank = story.AddParagraph();
-                blank.LineSpacingPoints = 32;
-                blank.LineSpacingRule = WordLineSpacingRule.Exact;
+                blank.LineSpacing = global::OfficeIMO.Word.WordLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(32));
                 blank.LineSpacingBefore = blank.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
             }
         }

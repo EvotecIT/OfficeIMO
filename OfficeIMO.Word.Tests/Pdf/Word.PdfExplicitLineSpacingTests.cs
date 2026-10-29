@@ -45,8 +45,7 @@ public partial class Word {
         var blank = source.AddParagraph();
         var last = source.AddParagraph("B");
         foreach (var paragraph in new[] { first, blank, last }) {
-            paragraph.LineSpacingPoints = 20;
-            paragraph.LineSpacingRule = WordLineSpacingRule.AtLeast;
+            paragraph.LineSpacing = global::OfficeIMO.Word.WordLineSpacing.AtLeast(global::OfficeIMO.OfficeLength.Points(20));
             paragraph.LineSpacingBefore = global::OfficeIMO.OfficeLength.Zero; paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
             foreach (Run run in paragraph._paragraph.Descendants<Run>())
                 (run.RunProperties ??= new RunProperties()).FontSize = new FontSize { Val = "16" };
@@ -85,8 +84,7 @@ public partial class Word {
         var blank = cell == null ? source.AddParagraph() : cell.AddParagraph();
         var last = cell == null ? source.AddParagraph("B") : cell.AddParagraph("B");
         foreach (var paragraph in new[] { first, blank, last }) {
-            paragraph.LineSpacingPoints = 20;
-            paragraph.LineSpacingRule = exact ? WordLineSpacingRule.Exact : WordLineSpacingRule.AtLeast;
+            paragraph.LineSpacing = exact ? WordLineSpacing.Exact(OfficeLength.Points(20)) : WordLineSpacing.AtLeast(OfficeLength.Points(20));
             paragraph.LineSpacingBefore = global::OfficeIMO.OfficeLength.Zero; paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
             foreach (Run run in paragraph._paragraph.Descendants<Run>())
                 (run.RunProperties ??= new RunProperties()).FontSize = new FontSize { Val = "16" };
@@ -113,10 +111,10 @@ public partial class Word {
         var paragraph = source.AddParagraph("A\nB");
         foreach (Run run in paragraph._paragraph.Descendants<Run>())
             (run.RunProperties ??= new RunProperties()).FontSize = new FontSize { Val = "16" };
-        paragraph.LineSpacingPoints = 0; paragraph.LineSpacingRule = WordLineSpacingRule.AtLeast;
+        paragraph.LineSpacing = global::OfficeIMO.Word.WordLineSpacing.AtLeast(global::OfficeIMO.OfficeLength.Points(0));
         using WordDocument document = WordDocument.Load(new MemoryStream(nativeDoc ? source.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc }) : source.ToBytes()));
-        Assert.Equal(0, document.Paragraphs[0].LineSpacing);
-        Assert.Equal(WordLineSpacingRule.AtLeast, document.Paragraphs[0].LineSpacingRule);
+        Assert.Equal(0, document.Paragraphs[0].NativeLineSpacingValue);
+        Assert.Equal(WordLineSpacingRule.AtLeast, document.Paragraphs[0].NativeLineSpacingRule);
         var options = new PdfCreateOptions { DefaultFont = PdfStandardFont.Helvetica };
         options.EmbedStandardFont(PdfStandardFont.Helvetica,
             ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs(Enumerable.Range(32, 95).ToArray()), "OfficeIMO-Portable-Regular");
@@ -209,8 +207,7 @@ public partial class Word {
             (run.RunProperties ??= new RunProperties()).FontSize = new FontSize { Val = "16" };
             run.RunProperties.RunFonts = new RunFonts { Ascii = "Arial", HighAnsi = "Arial" };
         }
-        paragraph.LineSpacing = rule == WordLineSpacingRule.Auto ? 240 : (int)(expected * 20);
-        paragraph.LineSpacingRule = rule;
+        paragraph.LineSpacing = (rule) switch { global::OfficeIMO.Word.WordLineSpacingRule.Exact => global::OfficeIMO.Word.WordLineSpacing.Exact(global::OfficeIMO.OfficeLength.Emus(checked((long)(rule == WordLineSpacingRule.Auto ? 240 : (int)(expected * 20)) * 635))), global::OfficeIMO.Word.WordLineSpacingRule.AtLeast => global::OfficeIMO.Word.WordLineSpacing.AtLeast(global::OfficeIMO.OfficeLength.Emus(checked((long)(rule == WordLineSpacingRule.Auto ? 240 : (int)(expected * 20)) * 635))), _ => global::OfficeIMO.Word.WordLineSpacing.Multiple((rule == WordLineSpacingRule.Auto ? 240 : (int)(expected * 20)) / 240D) };
         paragraph.LineSpacingBefore = global::OfficeIMO.OfficeLength.Zero; paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
         string original = source._wordprocessingDocument.MainDocumentPart!.Document.OuterXml;
         using WordDocument document = WordDocument.Load(new MemoryStream(nativeDoc ? source.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc }) : source.ToBytes()));
@@ -234,7 +231,7 @@ public partial class Word {
             new Run(new RunProperties(new FontSize { Val = "16" }), new Text(first), new Break()),
             new Run(new RunProperties(new FontSize { Val = "64" }), new Break()),
             new Run(new RunProperties(new FontSize { Val = "16" }), new Text(last)));
-        paragraph.LineSpacingPoints = 20; paragraph.LineSpacingRule = rule;
+        paragraph.LineSpacing = (rule) switch { global::OfficeIMO.Word.WordLineSpacingRule.Exact => global::OfficeIMO.Word.WordLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(20)), global::OfficeIMO.Word.WordLineSpacingRule.AtLeast => global::OfficeIMO.Word.WordLineSpacing.AtLeast(global::OfficeIMO.OfficeLength.Points(20)), _ => global::OfficeIMO.Word.WordLineSpacing.Multiple((20) / 12D) };
         paragraph.LineSpacingBefore = global::OfficeIMO.OfficeLength.Zero; paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
     }
 }

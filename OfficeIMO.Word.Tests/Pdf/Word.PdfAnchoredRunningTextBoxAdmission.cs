@@ -24,8 +24,7 @@ public partial class Word {
         inner.Text = "small";
         inner.FontSize = global::OfficeIMO.OfficeLength.Points(6);
         inner.AddText("LARGE").FontSize = global::OfficeIMO.OfficeLength.Points(24);
-        inner.LineSpacingPoints = 6;
-        inner.LineSpacingRule = WordLineSpacingRule.Exact;
+        inner.LineSpacing = global::OfficeIMO.Word.WordLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(6));
         // Short advances fit; the larger run's actual line ink crosses the inner clip.
         string[] before = AnchoredRunningStoryXml(document);
         var result = document.ConvertToPdfWithEvidence(EmptyRunningOptions());
@@ -231,8 +230,7 @@ public partial class Word {
         inner.Text = "SMALL";
         inner.FontFamily = "Arial";
         inner.FontSize = global::OfficeIMO.OfficeLength.Points(6);
-        inner.LineSpacingPoints = 144;
-        inner.LineSpacingRule = rule;
+        inner.LineSpacing = (rule) switch { global::OfficeIMO.Word.WordLineSpacingRule.Exact => global::OfficeIMO.Word.WordLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(144)), global::OfficeIMO.Word.WordLineSpacingRule.AtLeast => global::OfficeIMO.Word.WordLineSpacing.AtLeast(global::OfficeIMO.OfficeLength.Points(144)), _ => global::OfficeIMO.Word.WordLineSpacing.Multiple((144) / 12D) };
         // The unchanged 129.6pt frame has 122.4pt after vertical insets.
         // A 144pt authored advance cannot pass canonical canvas line-box fit.
         string[] before = AnchoredRunningStoryXml(document);

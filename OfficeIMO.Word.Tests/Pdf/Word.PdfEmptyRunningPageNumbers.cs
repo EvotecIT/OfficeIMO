@@ -24,7 +24,7 @@ public partial class Word {
                 field.AddText(" S").AddField(WordFieldType.SectionPages);
             }
             WordParagraph body = document.AddParagraph("A");
-            body.LineSpacing = 240; body.LineSpacingRule = WordLineSpacingRule.Exact;
+            body.LineSpacing = global::OfficeIMO.Word.WordLineSpacing.Exact(global::OfficeIMO.OfficeLength.Emus(checked((long)(240) * 635)));
             body.LineSpacingBefore = body.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
             if (index < 2) body.AddBreak(WordBreakType.Page);
         }
@@ -81,7 +81,7 @@ public partial class Word {
         int targetLines = absent ? 60 : 40;
         for (int index = 0; index < 3; index++) {
             WordParagraph body = source.AddParagraph("A");
-            body.LineSpacing = 240; body.LineSpacingRule = WordLineSpacingRule.Exact;
+            body.LineSpacing = global::OfficeIMO.Word.WordLineSpacing.Exact(global::OfficeIMO.OfficeLength.Emus(checked((long)(240) * 635)));
             body.LineSpacingBefore = body.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
             body.KeepLinesTogether = false; body.AvoidWidowAndOrphan = false;
             for (int line = 1; line < (index == variant ? targetLines : 1); line++) body.AddBreak().AddText("A");
@@ -125,7 +125,7 @@ public partial class Word {
         for (int index = 0; index < 3; index++) {
             if (index != emptyVariant) stories[index].AddParagraph("STORY" + index);
             WordParagraph body = document.AddParagraph("A");
-            body.LineSpacing = 240; body.LineSpacingRule = WordLineSpacingRule.Exact;
+            body.LineSpacing = global::OfficeIMO.Word.WordLineSpacing.Exact(global::OfficeIMO.OfficeLength.Emus(checked((long)(240) * 635)));
             body.LineSpacingBefore = body.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
             if (index < 2) body.AddBreak(WordBreakType.Page);
         }

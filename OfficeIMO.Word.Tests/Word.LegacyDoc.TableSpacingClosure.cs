@@ -50,7 +50,7 @@ public partial class Word {
         table.Rows[0].Cells[0].Paragraphs[0].Text = "Fallback";
         using WordDocument restored = WordDocument.Load(new MemoryStream(document.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc })));
         WordTableCell cell = Assert.Single(restored.Tables).Rows[0].Cells[0];
-        Assert.Equal(240, Assert.Single(cell.Paragraphs).LineSpacing);
+        Assert.Equal(240, Assert.Single(cell.Paragraphs).NativeLineSpacingValue);
         Assert.Equal(0, checked((int?)(cell.Paragraphs[0].LineSpacingAfter?.ToTwips())));
         Assert.Equal(WordBorderStyle.Single, cell.Borders.TopStyle);
     }
@@ -81,7 +81,7 @@ public partial class Word {
         WordTableCell cell = Assert.Single(restored.Tables).Rows[0].Cells[0];
         WordParagraph paragraph = Assert.Single(cell.Paragraphs);
         Assert.Equal(180, checked((int?)(paragraph.LineSpacingAfter?.ToTwips())));
-        Assert.Equal(360, paragraph.LineSpacing);
+        Assert.Equal(360, paragraph.NativeLineSpacingValue);
         Assert.True(paragraph.Bold);
         Assert.Equal(WordBorderStyle.Double, cell.Borders.TopStyle);
         Assert.Equal("FF0000", cell.Borders.TopColorHex);

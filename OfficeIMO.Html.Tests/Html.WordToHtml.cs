@@ -1479,8 +1479,7 @@ namespace OfficeIMO.Tests {
             var p = doc.AddParagraph("Spacing");
             p.LineSpacingBefore = global::OfficeIMO.OfficeLength.Points(12D);
             p.LineSpacingAfter = global::OfficeIMO.OfficeLength.Points(24D);
-            p.LineSpacing = 360;
-            p.LineSpacingRule = WordLineSpacingRule.Auto;
+            p.LineSpacing = global::OfficeIMO.Word.WordLineSpacing.Multiple((360) / 240D);
             p.IndentationAfter = global::OfficeIMO.OfficeLength.Points(36D);
             p.IndentationFirstLine = global::OfficeIMO.OfficeLength.Points(18D);
 

@@ -65,7 +65,7 @@ public partial class Word {
             paragraph.FontFamily = "Arial";
             paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(12);
             paragraph.LineSpacingBefore = paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
-            paragraph.LineSpacing = 240;
+            paragraph.LineSpacing = global::OfficeIMO.Word.WordLineSpacing.Multiple(1);
         }
         table.Rows[0].Cells[0].Paragraphs[0].Text = "TopMarker";
         table.Rows[2].Cells[0].Paragraphs[0].Text = "BottomMarker";
@@ -76,7 +76,7 @@ public partial class Word {
             WordParagraph paragraph = index == 0 ? middle.Paragraphs[0] : middle.AddParagraph();
             paragraph.FontFamily = "Arial";
             paragraph.LineSpacingBefore = paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
-            paragraph.LineSpacing = 240;
+            paragraph.LineSpacing = global::OfficeIMO.Word.WordLineSpacing.Multiple(1);
             paragraph._paragraph.RemoveAllChildren<W.Run>();
             paragraph._paragraph.ParagraphProperties!.ParagraphMarkRunProperties = new W.ParagraphMarkRunProperties(
                 new W.RunFonts { Ascii = "Arial", HighAnsi = "Arial" },

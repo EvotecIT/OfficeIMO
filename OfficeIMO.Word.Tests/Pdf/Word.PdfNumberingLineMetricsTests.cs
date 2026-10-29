@@ -79,7 +79,7 @@ public partial class Word {
     public void SaveAsPdf_HalfSpacingRaisesTheBaselineByHalfTheBodyFontAscent(bool numbered) {
         using WordDocument full = CreateNumberingMetricDocument(20D, WordListLevelSuffix.Tab, grid: false, wrapped: true);
         using WordDocument half = CreateNumberingMetricDocument(20D, WordListLevelSuffix.Tab, grid: false, wrapped: true);
-        half.Paragraphs[0].LineSpacing = 120;
+        half.Paragraphs[0].LineSpacing = global::OfficeIMO.Word.WordLineSpacing.Multiple(0.5);
         if (!numbered) {
             full.Paragraphs[0]._paragraph.ParagraphProperties!.RemoveAllChildren<NumberingProperties>();
             half.Paragraphs[0]._paragraph.ParagraphProperties!.RemoveAllChildren<NumberingProperties>();
@@ -95,7 +95,7 @@ public partial class Word {
     [InlineData(WordListLevelSuffix.Tab)]
     public void SaveAsPdf_MultipleSpacingScalesBodyMetricsBelowALargeNumberingLabel(WordListLevelSuffix suffix) {
         using WordDocument source = CreateNumberingMetricDocument(20D, suffix, grid: false, wrapped: true);
-        source.Paragraphs[0].LineSpacing = 360;
+        source.Paragraphs[0].LineSpacing = global::OfficeIMO.Word.WordLineSpacing.Multiple(1.5);
         var letters = ReadNumberingMetricLetters(source);
         Assert.Equal(24.75D, letters[0].StartBaseLine.Y - letters[1].StartBaseLine.Y, 3);
         Assert.Equal(24.75D, letters[1].StartBaseLine.Y - letters[2].StartBaseLine.Y, 3);
@@ -255,7 +255,7 @@ public partial class Word {
         foreach (string text in wrapped ? new[] { "A\nB\nC" } : new[] { "A", "B", "C" }) {
             WordParagraph paragraph = list.AddItem(text);
             paragraph.FontFamily = "Arial"; paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(11);
-            paragraph.LineSpacing = 240; paragraph.LineSpacingRule = WordLineSpacingRule.Auto;
+            paragraph.LineSpacing = global::OfficeIMO.Word.WordLineSpacing.Multiple((240) / 240D);
             paragraph.LineSpacingBefore = global::OfficeIMO.OfficeLength.Zero; paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
         }
         if (table) {

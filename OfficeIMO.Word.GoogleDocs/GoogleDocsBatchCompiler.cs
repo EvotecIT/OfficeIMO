@@ -105,7 +105,7 @@ namespace OfficeIMO.Word.GoogleDocs {
 
                         if (paragraph.LineSpacingValue.HasValue
                             && CanMapLineSpacing(paragraph)
-                            && !string.Equals(paragraph.LineSpacingRule, "Auto", StringComparison.OrdinalIgnoreCase)) {
+                            && paragraph.LineSpacing?.Rule != WordLineSpacingRule.Auto) {
                             report.Add(
                                 TranslationSeverity.Info,
                                 "ParagraphStyles",
@@ -410,17 +410,11 @@ namespace OfficeIMO.Word.GoogleDocs {
         }
 
         private static double? ResolveLineSpacingPercent(WordParagraphInfo paragraph) {
-            if (!paragraph.LineSpacingValue.HasValue || paragraph.LineSpacingValue.Value <= 0) {
-                return null;
-            }
-
-            if (string.Equals(paragraph.LineSpacingRule, "Auto", StringComparison.OrdinalIgnoreCase)
-                || string.Equals(paragraph.LineSpacingRule, "Exact", StringComparison.OrdinalIgnoreCase)
-                || string.Equals(paragraph.LineSpacingRule, "AtLeast", StringComparison.OrdinalIgnoreCase)) {
-                return Math.Round((paragraph.LineSpacingValue.Value / 240d) * 100d, 2, MidpointRounding.AwayFromZero);
-            }
-
-            return null;
+            if (paragraph.LineSpacing is not WordLineSpacing spacing) return null;
+            // Google Docs has only percentages. Preserve the established 12pt reference-line
+            // approximation for physical heights and its existing flattening diagnostic.
+            double multiple = spacing.MultipleValue ?? (spacing.Height!.Value.ToPoints() / 12d);
+            return multiple > 0 ? Math.Round(multiple * 100d, 2, MidpointRounding.AwayFromZero) : null;
         }
 
         private static GoogleDocsParagraph ConvertParagraph(

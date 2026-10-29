@@ -37,8 +37,7 @@ public partial class Word {
         paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(12);
         paragraph.LineSpacingBefore = global::OfficeIMO.OfficeLength.Zero;
         paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
-        paragraph.LineSpacingRule = WordLineSpacingRule.Auto;
-        paragraph.LineSpacing = 240;
+        paragraph.LineSpacing = global::OfficeIMO.Word.WordLineSpacing.Multiple((240) / 240D);
 
         using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions { IncludePageNumbers = false }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         Assert.Equal(1, pdf.NumberOfPages);
@@ -92,8 +91,7 @@ public partial class Word {
             paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(12);
             paragraph.LineSpacingBefore = global::OfficeIMO.OfficeLength.Zero;
             paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
-            paragraph.LineSpacingRule = WordLineSpacingRule.Auto;
-            paragraph.LineSpacing = 240;
+            paragraph.LineSpacing = global::OfficeIMO.Word.WordLineSpacing.Multiple((240) / 240D);
         }
 
         using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions { IncludePageNumbers = false }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));

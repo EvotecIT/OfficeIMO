@@ -40,15 +40,15 @@ public partial class Word {
         foreach ((WordTableCell Cell, string Text) item in new[] {
             (inner.Rows[0].Cells[0], "TERMINALLEFT"), (inner.Rows[0].Cells[1], "TERMINALRIGHT") }) {
             ConfigureNestedLayoutParagraph(item.Cell.Paragraphs[0], item.Text);
-            item.Cell.Paragraphs[0].LineSpacing = checked((int)(lineHeight * 20D));
+            item.Cell.Paragraphs[0].LineSpacing = global::OfficeIMO.Word.WordLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(lineHeight));
         }
 
         W.Paragraph terminal = Assert.Single(parent._tableCell.Elements<W.Paragraph>());
         var terminalView = new WordParagraph(document, terminal);
         ConfigureNestedLayoutParagraph(terminalView, kind == NestedTableTerminalKind.Visible ? "VISIBLETAIL" : string.Empty);
-        terminalView.LineSpacing = checked((int)(lineHeight * 20D));
+        terminalView.LineSpacing = global::OfficeIMO.Word.WordLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(lineHeight));
         if (kind == NestedTableTerminalKind.FormattedStructural) {
-            terminalView.LineSpacing = checked((int)(2D * lineHeight * 20D));
+            terminalView.LineSpacing = global::OfficeIMO.Word.WordLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(2D * lineHeight));
             terminalView.LineSpacingAfter = global::OfficeIMO.OfficeLength.Points(6D);
         }
         // The structural paragraph has paragraph properties but no empty run
@@ -61,7 +61,7 @@ public partial class Word {
 
         WordParagraph after = document.AddParagraph();
         ConfigureNestedLayoutParagraph(after, "TERMINALAFTER");
-        after.LineSpacing = checked((int)(lineHeight * 20D));
+        after.LineSpacing = global::OfficeIMO.Word.WordLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(lineHeight));
         if (noteKind != 0) {
             OpenXmlCompositeElement note = AddRichNoteFixture(document, endnote: noteKind == 2);
             note.RemoveAllChildren();

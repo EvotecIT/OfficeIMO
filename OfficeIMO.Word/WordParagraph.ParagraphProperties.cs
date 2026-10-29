@@ -281,70 +281,57 @@ namespace OfficeIMO.Word {
             ReadParagraphOnOff(paragraph.ParagraphProperties?.PageBreakBefore);
 
         /// <summary>
-        /// Gets or sets the rule used to calculate line spacing for the paragraph.
+        /// Gets or sets directly authored line spacing as a multiplier, exact height, or minimum height.
+        /// Null removes both line attributes, retaining before/after and other spacing attributes.
         /// </summary>
-        public WordLineSpacingRule? LineSpacingRule {
-            get {
-                if (_paragraphProperties != null && _paragraphProperties.SpacingBetweenLines != null) {
-                    if (_paragraphProperties.SpacingBetweenLines.LineRule != null) {
-                        return _paragraphProperties.SpacingBetweenLines.LineRule.Value.ToOfficeEnum();
-                    }
-                }
-                return null;
-            }
+        /// <remarks>
+        /// This reads direct formatting, not effective style inheritance. Missing, incomplete or
+        /// unsupported native declarations return null and remain unchanged until explicitly replaced.
+        /// An omitted rule with a numeric line value uses automatic line multiples.
+        /// </remarks>
+        public WordLineSpacing? LineSpacing {
+            get => WordLineSpacing.Read(_paragraph.ParagraphProperties?.SpacingBetweenLines);
             set {
-                var props = _paragraph.ParagraphProperties ??= new ParagraphProperties();
-                var spacing = props.SpacingBetweenLines ?? new SpacingBetweenLines();
-                spacing.LineRule = value?.ToOpenXml();
-                props.SpacingBetweenLines = spacing;
-            }
-        }
-        /// <summary>
-        /// Gets or sets the authored line-spacing value. Automatic spacing uses
-        /// 240ths of a line; exact and minimum spacing use twips (1/20 of a point).
-        /// </summary>
-        public int? LineSpacing {
-            get {
-                if (_paragraphProperties != null && _paragraphProperties.SpacingBetweenLines != null) {
-                    if (!string.IsNullOrEmpty(_paragraphProperties.SpacingBetweenLines.Line)) {
-                        if (int.TryParse(_paragraphProperties.SpacingBetweenLines.Line, out var line)) {
-                            return line;
-                        }
-                    }
+                if (!value.HasValue) {
+                    var existing = _paragraph.ParagraphProperties?.SpacingBetweenLines;
+                    if (existing != null) { existing.Line = null; existing.LineRule = null; }
+                    return;
                 }
-                return null;
-            }
-            set {
+                // Validate and quantize before changing the document.
+                string line = value.Value.ToNativeValue().ToString(System.Globalization.CultureInfo.InvariantCulture);
                 var props = _paragraph.ParagraphProperties ??= new ParagraphProperties();
-                var spacing = props.SpacingBetweenLines ?? new SpacingBetweenLines();
-                spacing.Line = value.HasValue
-                    ? new StringValue(value.Value.ToString(System.Globalization.CultureInfo.InvariantCulture))
-                    : null;
-                props.SpacingBetweenLines = spacing;
+                var spacing = props.SpacingBetweenLines ??= new SpacingBetweenLines();
+                spacing.Line = line;
+                spacing.LineRule = value.Value.Rule.ToOpenXml();
             }
         }
 
-        /// <summary>
-        /// Gets or sets the authored line-spacing value converted from twips to points.
-        /// Setting a point value selects exact spacing when no rule is declared.
-        /// With automatic spacing, use <see cref="LineSpacing"/> for the line multiplier.
-        /// </summary>
-        public double? LineSpacingPoints {
-            get {
-                if (LineSpacing != null) {
-                    return Helpers.ConvertTwipsToPoints(LineSpacing.Value);
-                }
-                return null;
-            }
+        // Native declaration access is intentionally internal. Codecs and native fixtures must
+        // retain rule-only/value-only declarations rather than synthesize effective formatting.
+        internal int? NativeLineSpacingValue {
+            get => int.TryParse(_paragraph.ParagraphProperties?.SpacingBetweenLines?.Line?.Value,
+                System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture,
+                out int line) ? line : null;
             set {
-                if (value != null) {
-                    LineSpacing = Helpers.ConvertPointsToTwips(value.Value);
-                    LineSpacingRule ??= WordLineSpacingRule.Exact;
-                } else {
-                    LineSpacing = null;
-                }
+                var props = _paragraph.ParagraphProperties ??= new ParagraphProperties();
+                var spacing = props.SpacingBetweenLines ??= new SpacingBetweenLines();
+                spacing.Line = value?.ToString(System.Globalization.CultureInfo.InvariantCulture);
             }
         }
+
+        internal WordLineSpacingRule? NativeLineSpacingRule {
+            get {
+                string? rule = _paragraph.ParagraphProperties?.SpacingBetweenLines?.LineRule?.InnerText;
+                return rule == "auto" ? WordLineSpacingRule.Auto : rule == "exact" ? WordLineSpacingRule.Exact
+                    : rule == "atLeast" ? WordLineSpacingRule.AtLeast : null;
+            }
+            set {
+                var props = _paragraph.ParagraphProperties ??= new ParagraphProperties();
+                var spacing = props.SpacingBetweenLines ??= new SpacingBetweenLines();
+                spacing.LineRule = value?.ToOpenXml();
+            }
+        }
+
         /// <summary>
         /// Gets or sets the spacing before the paragraph as a physical length.
         /// </summary>
