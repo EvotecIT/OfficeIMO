@@ -6,9 +6,15 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
             int formulaSheetIndex,
             out byte[] tokens) {
             tokens = Array.Empty<byte>();
-            // A concrete reference owns its entire scope. Recognize terminal
-            // operands before splitting range, union, or intersection operators.
-            if (TryEncodeReferenceOperand(formulaText, nameIndex, formulaSheetIndex, out tokens)) return true;
+            // A qualified area owns its entire sheet scope. Recognize simple
+            // terminals here, while unqualified ranges retain their explicit
+            // range operator and surrounding parentheses in the token stream.
+            if (TryEncodeSheetQualifiedReference(formulaText, allowArea: true, nameIndex, out tokens)) return true;
+            if (TryParseCellReference(formulaText, out FormulaReference cell)) {
+                tokens = BuildCellReferenceToken(cell);
+                return true;
+            }
+            if (TryEncodeDefinedName(formulaText, nameIndex, formulaSheetIndex, out tokens)) return true;
             if (TryGetParenthesizedInnerText(formulaText, out string? innerText)
                 && TryEncodeReferenceOperator(innerText!, nameIndex, formulaSheetIndex, out byte[] innerTokens)) {
                 tokens = ShouldPreserveReferenceParentheses(innerTokens)
@@ -41,7 +47,11 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
             LegacyXlsFormulaNameIndex nameIndex,
             int formulaSheetIndex,
             out byte[] tokens) {
-            return TryEncodeReferenceOperator(text.Trim(), nameIndex, formulaSheetIndex, out tokens);
+            text = text.Trim();
+            if (TryEncodeReferenceOperator(text, nameIndex, formulaSheetIndex, out tokens)) return true;
+            // Whole-row and whole-column areas are terminal operands when a
+            // surrounding union or intersection owns the operator split.
+            return TryEncodeReferenceOperand(text, nameIndex, formulaSheetIndex, out tokens);
         }
 
         private static bool TryEncodeReferenceOperand(
