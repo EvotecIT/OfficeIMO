@@ -46,6 +46,7 @@ article.markdown-body tbody tr:nth-child(2n) { background: var(--office-table-ba
 article.markdown-body code { font-family: var(--office-font-mono, ui-monospace, Menlo, Consolas, monospace); font-size: .9em; background: var(--office-surface, #f6f8fb); border: 1px solid var(--office-rule, #dce2ea); padding: .05em .3em; border-radius: 3px; }
 article.markdown-body pre { font-family: var(--office-font-mono, ui-monospace, Menlo, Consolas, monospace); font-size: .9em; line-height: 1.45; background: var(--office-surface, #f6f8fb); border: 1px solid var(--office-rule, #dce2ea); padding: 10px 12px; border-radius: 4px; overflow: auto; }
 article.markdown-body pre code { background: none; border: 0; padding: 0; border-radius: 0; font-size: inherit; }
+article.markdown-body td code { white-space: nowrap; }
 article.markdown-body blockquote { color: var(--office-muted, #5b6575); border-left: 3px solid var(--office-rule, #dce2ea); padding: 0 1em; margin: 0 0 var(--office-paragraph-after, 8pt); }
 article.markdown-body blockquote.callout { color: inherit; border-left-color: var(--office-accent-1, #3f64d7); background: var(--office-accent-1-tint, #ecf0fb); padding: .5em 1em; }
 article.markdown-body blockquote.callout.warning { border-left-color: var(--office-warning, #865500); background: var(--office-warning-fill, #f0ebe0); }
@@ -72,6 +73,8 @@ article.markdown-body h6:hover .heading-anchor { opacity: .8; }
 /* Collapsible TOC details */
 details.md-toc { margin: .5rem 0 1rem 0; }
 details.md-toc > summary { cursor: pointer; font-weight: 600; margin-bottom: .5rem; }
+/* Printed pages carry their number in the bottom margin */
+@page { @bottom-right { content: ""Page "" counter(page) "" of "" counter(pages); font-family: var(--office-font-body, Aptos, Calibri, Carlito, ""Helvetica Neue"", Arial, sans-serif); font-size: 8pt; color: var(--office-muted, #5b6575); } }
 ";
 
     // Compact, chat-friendly styling. Intentionally avoids large page margins and keeps typography tighter.
@@ -315,6 +318,12 @@ details.md-toc > summary { cursor: pointer; font-weight: 600; margin-bottom: .5r
 
     // Additional CSS shared across styles for enhanced TOC/ScrollSpy. Scoped by ScopeCss() via explicit selectors.
     internal const string CommonExtraCss = @"
+/* Printed pages: headings and lead-in paragraphs stay with what follows, and short blocks are not split */
+@media print {
+  article.markdown-body h1, article.markdown-body h2, article.markdown-body h3, article.markdown-body h4, article.markdown-body h5, article.markdown-body h6 { break-after: avoid; }
+  article.markdown-body p + pre, article.markdown-body p + ul, article.markdown-body p + ol, article.markdown-body p + table, article.markdown-body p + figure, article.markdown-body li > pre { break-before: avoid; }
+  article.markdown-body pre, article.markdown-body tr, article.markdown-body figure, article.markdown-body blockquote, article.markdown-body img { break-inside: avoid; }
+}
 /* Enhanced TOC */
 article.markdown-body nav.md-toc { font-size: .95rem; line-height: 1.45; background: #f6f8fa; border: 1px solid #d0d7de; border-radius: 8px; padding: 10px 12px; margin: .5rem 0 1rem 0; }
 article.markdown-body nav.md-toc .toc-title { font-weight: 600; margin: 0 0 .25rem 0; font-size: 1rem; }
