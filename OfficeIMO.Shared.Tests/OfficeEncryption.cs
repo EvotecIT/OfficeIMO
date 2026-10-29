@@ -12,7 +12,7 @@ using Xunit;
 
 namespace OfficeIMO.Shared.Tests {
     public class OfficeEncryptionTests : IDisposable {
-        private readonly string _root = Directory.CreateTempSubdirectory("officeimo-encryption-test-").FullName;
+        private readonly string _root = Directory.CreateDirectory(Path.Combine(Path.GetTempPath(), "officeimo-encryption-test-" + Guid.NewGuid().ToString("N"))).FullName;
         public void Dispose() => Directory.Delete(_root, recursive: true);
         private const string Password = "OfficeIMO-Secret-123";
 
