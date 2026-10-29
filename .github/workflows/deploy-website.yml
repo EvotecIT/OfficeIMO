@@ -91,7 +91,7 @@ jobs:
       dotnet_version: "10.0.113"
       dotnet_workloads: wasm-tools
       powerforge_repository: EvotecIT/PSPublishModule
-      powerforge_ref: 17b2a0c5df4daff93a78c44566b4b825347d6fee
+      powerforge_ref: c6bc0643f5dc7f45bcc70cffdfc54e9b66d616d3
     secrets:
       indexnow_key: ${{ secrets.INDEXNOW_KEY }}
       cloudflare_api_token: ${{ secrets.CLOUDFLARE_API_TOKEN }}
