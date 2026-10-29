@@ -2967,7 +2967,7 @@ public sealed partial class PdfReadPage {
         if (acroForm != null && ResolveObject(acroForm.Items.TryGetValue("NeedAppearances", out PdfObject? needAppearances) ? needAppearances : null) is PdfBoolean { Value: true } &&
             PdfFormFiller.IsVariableTextWidget(_objects, annotation) &&
             PdfFormFiller.TryCreateTransientWidgetAppearance(_objects, annotation, acroForm, out stream,
-                _limits.MaxDecodedStreamBytes, cancellationToken)) {
+                _limits.MaxDecodedStreamBytes, _limits.MaxDecodedTextCharacters, cancellationToken)) {
             synthesized = true;
             return true;
         }
@@ -2981,7 +2981,7 @@ public sealed partial class PdfReadPage {
         if (isWidget) {
             synthesized = !annotation.Items.ContainsKey("AP") &&
                 PdfFormFiller.TryCreateTransientWidgetAppearance(_objects, annotation, acroForm, out stream,
-                    _limits.MaxDecodedStreamBytes, cancellationToken);
+                    _limits.MaxDecodedStreamBytes, _limits.MaxDecodedTextCharacters, cancellationToken);
             return synthesized;
         }
 

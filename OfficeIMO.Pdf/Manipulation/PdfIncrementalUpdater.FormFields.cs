@@ -120,6 +120,7 @@ internal static partial class PdfIncrementalUpdater {
                 ref nextObjectNumber,
                 ref helveticaFontObjectNumber,
                 readOptions?.Limits.MaxDecodedStreamBytes ?? PdfReadLimits.DefaultMaxDecodedStreamBytes,
+                readOptions?.Limits.MaxDecodedTextCharacters ?? PdfReadLimits.DefaultMaxDecodedTextCharacters,
                 cancellationToken);
         }
 
@@ -292,6 +293,7 @@ internal static partial class PdfIncrementalUpdater {
         ref int nextObjectNumber,
         ref int helveticaFontObjectNumber,
         int maximumDecodedBytes,
+        int maximumVisibleTextCharacters,
         CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
         int? objectNumber = null;
@@ -338,7 +340,8 @@ internal static partial class PdfIncrementalUpdater {
                     field.Items.TryGetValue("V", out PdfObject? selectedValue);
                     PdfArray? indices = field.Items.TryGetValue("I", out PdfObject? i) ? ResolveObject(objects, i) as PdfArray : null;
                     int top = field.Get<PdfNumber>("TI") is PdfNumber number && number.Value >= 0 && number.Value <= int.MaxValue ? (int)number.Value : 0;
-                    choiceAppearance = PdfFormFiller.ReadChoiceAppearanceData(objects, fieldOptions, ResolveObject(objects, selectedValue), indices, top, fieldFlags, cancellationToken);
+                    choiceAppearance = PdfFormFiller.ReadChoiceAppearanceData(objects, fieldOptions, ResolveObject(objects, selectedValue), indices, top, fieldFlags,
+                        maximumVisibleTextCharacters, cancellationToken);
                 }
                 SetIncrementalTextWidgetAppearances(objects, field, preparedValue.AppearanceValue, fieldFlags, fieldQuadding, fieldMaxLength,
                     defaultResources, defaultAppearance, preparedValue.ForceMultilineAppearance, changedObjectNumbers, new HashSet<int>(),
@@ -360,7 +363,7 @@ internal static partial class PdfIncrementalUpdater {
 
             UpdateFormField(objects, kids.Items[i], kidsContainerObjectNumber, fullName, fieldType, fieldFlags, fieldQuadding, fieldMaxLength,
                 defaultResources, defaultAppearance, fieldOptions, fieldValues, remaining, changedObjectNumbers, options, visited,
-                ref nextObjectNumber, ref helveticaFontObjectNumber, maximumDecodedBytes, cancellationToken);
+                ref nextObjectNumber, ref helveticaFontObjectNumber, maximumDecodedBytes, maximumVisibleTextCharacters, cancellationToken);
         }
     }
 

@@ -166,7 +166,8 @@ internal static partial class PdfFormFiller {
             return CreateRichTextAppearanceStream(richAppearanceRuns, width, height, effectiveStyle, fontSize);
         }
 
-        string displayValue = choiceAppearance?.VisibleText(height, fontSize) ?? PdfAcroFormDictionaryBuilder.GetTextFieldAppearanceDisplayValue(value, effectiveStyle);
+        string displayValue = choiceAppearance?.VisibleText(height, fontSize, cancellationToken) ??
+            PdfAcroFormDictionaryBuilder.GetTextFieldAppearanceDisplayValue(value, effectiveStyle);
         string diagnosticSource = CreateTextAppearanceDiagnosticSource(fieldName);
         TextAppearanceFontPlan? fontPlan = preparedFontPlan;
         bool hasEmbeddedAppearanceFont = preparedFontPlan is not null ||

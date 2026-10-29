@@ -15,7 +15,8 @@ internal static partial class PdfFormFiller {
         Dictionary<int, PdfIndirectObject> objects,
         PdfDictionary widget,
         PdfDictionary? acroForm,
-        out PdfStream stream, int maximumDecodedBytes = 256 * 1024 * 1024, CancellationToken cancellationToken = default) {
+        out PdfStream stream, int maximumDecodedBytes = 256 * 1024 * 1024,
+        int maximumVisibleTextCharacters = PdfReadLimits.DefaultMaxDecodedTextCharacters, CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
         stream = null!;
         if (!IsWidget(widget) || !TryReadRect(widget, out double width, out double height) || !(width > 0D) || !(height > 0D)) return false;
@@ -66,7 +67,7 @@ internal static partial class PdfFormFiller {
                     if (fieldType == "Ch" && (fieldFlags & ComboChoiceFlag) == 0 && choiceOptions != null) {
                         if (!TryBuildTransientChoiceAppearance(objects, defaultAppearance, defaultResources, width, height,
                                 choiceOptions, value, choiceIndices, choiceTopIndex ?? 0, fieldFlags, style,
-                                out content, out resources, maximumDecodedBytes, cancellationToken)) return false;
+                                out content, out resources, maximumDecodedBytes, maximumVisibleTextCharacters, cancellationToken)) return false;
                         break;
                     }
                     string text = ReadDisplayedFieldText(objects, value);
