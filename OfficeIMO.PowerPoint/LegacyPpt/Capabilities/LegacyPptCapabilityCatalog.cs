@@ -79,7 +79,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Capabilities {
                     LegacyPptCapabilityState.Native,
                     LegacyPptCapabilityState.Preserved,
                     LegacyPptCapabilityState.Native,
-                    "StyleTextPropAtom runs, TextRulerAtom records, and five-level base master styles project alignment, margins, first-line indentation, default and explicit tabs, line and paragraph spacing, level, font alignment, RTL direction, East Asian breaking, Latin word wrapping, and hanging punctuation natively. Fresh slide and master text writes those fields, and supported imported shape, ruler, and master-style edits append preservation-aware records. Later-version fields without an exact mapping remain preserved for unrelated edits and are explicitly loss-blocked when changed."),
+                    "StyleTextPropAtom runs, TextRulerAtom records, and five-level base master styles project alignment, margins, first-line indentation, default and explicit tabs, line and paragraph spacing, level, font alignment, RTL direction, East Asian breaking, Latin word wrapping, and hanging punctuation natively. DrawingML projections support 32 explicit tab stops; longer binary rulers retain all entries and report the projection limit. Fresh slide and master text writes those fields, and supported imported shape, ruler, and master-style edits append preservation-aware records. Later-version fields without an exact mapping remain preserved for unrelated edits and are explicitly loss-blocked when changed."),
                 new LegacyPptCapability(LegacyPptFeature.BulletsAndNumbering,
                     "Text", "Bullet glyphs, pictures, numbering, and levels.",
                     LegacyPptRepresentability.Native,

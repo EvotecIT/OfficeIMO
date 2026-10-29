@@ -273,7 +273,7 @@ agenda.AddBullets(new[] { "Intro", "KPIs", "Next steps" });
 
 ### Custom paragraph tab stops
 
-`SetTabStops` replaces the paragraph's explicit stops and `TabStops` reads them back. Positions use points; alignment can be left, center, right, or decimal. Passing an empty sequence removes local stops while leaving inherited defaults unchanged.
+`SetTabStops` replaces up to 32 explicit stops and `TabStops` reads them back. Positions use points; alignment can be left, center, right, or decimal. Passing an empty sequence removes local stops while leaving inherited defaults unchanged. Binary PowerPoint rulers with more stops retain all source entries; their editable projection uses the first 32 and reports the approximation.
 
 ```csharp
 var paragraph = slide.AddTextBox("Label\t12.50").Paragraphs[0];
