@@ -145,20 +145,26 @@ internal static partial class HtmlPdfRenderedConverter {
         renderOptions.FallbackTextMeasurement = CreateFallbackTextMeasurement(options, measurementOptions);
         renderOptions.FallbackTextFaceMetrics = CreateFallbackTextFaceMetrics(options, measurementOptions);
         if (preserveHtmlResourcePolicy) return new PreparedPdfRequest(request.WithOptions(renderOptions), renderOptions);
+        // Retained requests carry prepared callbacks. Restore their package callback
+        // before admitting local files under this operation's current host policy.
+        if (renderOptions.SynchronousResourceResolver?.Target is LocalFileResourceLoader previousLocal)
+            renderOptions.SynchronousResourceResolver = previousLocal.PackageResolver;
         // Prepared requests retain archive callbacks across option snapshots. Recheck
         // current permissions for synchronous reads just as for asynchronous reads below.
         if (!options.ResourcePolicy.AllowEmbeddedPackageResources)
             renderOptions.SynchronousResourceResolver = null;
-        if (options.ResourcePolicy.AllowLocalFileAccess) {
+        HtmlRenderResourceResolver? hostResolver = renderOptions.ResourceResolver;
+        if (hostResolver?.Target is LocalFileResourceLoader) hostResolver = null;
+        if (hostResolver != null && hostResolver == options.EmbeddedPackageConfiguredResourceResolver) {
+            hostResolver = options.EmbeddedPackageHostResourceResolver;
+        }
+        renderOptions.ResourceResolver = hostResolver;
+        if (options.ResourcePolicy.AllowLocalFileAccess && hostResolver == null) {
             // A host that allows local file access expects file: images, stylesheets and fonts next to
             // the document to load, in synchronous and asynchronous saves alike.
             HtmlRenderSynchronousResourceResolver? packageResolver = renderOptions.SynchronousResourceResolver;
             long maximumBytes = renderOptions.MaxResourceBytes;
-            renderOptions.SynchronousResourceResolver = (HtmlRenderResourceRequest resource, CancellationToken token,
-                out HtmlResolvedResource? resolved) => {
-                if (packageResolver != null && packageResolver(resource, token, out resolved)) return true;
-                return TryReadLocalFileResource(resource, maximumBytes, token, out resolved);
-            };
+            renderOptions.SynchronousResourceResolver = new LocalFileResourceLoader(packageResolver, null, maximumBytes).ResolveSynchronously;
         }
         HtmlRenderResourceResolver? embeddedPackageResolver = options.EmbeddedPackageResourceResolver;
         HtmlUrlPolicy hostResourceUrlPolicy = (options.EmbeddedPackageHostResourceUrlPolicy ?? renderOptions.GetResourceUrlPolicy()).Clone();
@@ -172,10 +178,6 @@ internal static partial class HtmlPdfRenderedConverter {
             allowDataUrls: options.ResourcePolicy.AllowDataUris,
             allowFileUrls: options.ResourcePolicy.AllowLocalFileAccess ||
                 embeddedPackageResolver != null && options.ResourcePolicy.AllowEmbeddedPackageResources);
-        HtmlRenderResourceResolver? hostResolver = renderOptions.ResourceResolver;
-        if (hostResolver != null && hostResolver == options.EmbeddedPackageConfiguredResourceResolver) {
-            hostResolver = options.EmbeddedPackageHostResourceResolver;
-        }
         if (embeddedPackageResolver != null || hostResolver != null) {
             renderOptions.ResourceResolver = async (request, cancellationToken) => {
                 if (embeddedPackageResolver != null && options.ResourcePolicy.AllowEmbeddedPackageResources) {
@@ -194,17 +196,12 @@ internal static partial class HtmlPdfRenderedConverter {
                     : null;
             };
         }
-        if (options.ResourcePolicy.AllowLocalFileAccess) {
+        // A configured host resolver owns admission, including a null rejection. Never
+        // retry that rejection through the unrestricted built-in local-file loader.
+        if (options.ResourcePolicy.AllowLocalFileAccess && hostResolver == null) {
             HtmlRenderResourceResolver? configuredResolver = renderOptions.ResourceResolver;
             long maximumBytes = renderOptions.MaxResourceBytes;
-            renderOptions.ResourceResolver = async (resource, cancellationToken) => {
-                if (configuredResolver != null) {
-                    HtmlResolvedResource? configured = await configuredResolver(resource, cancellationToken).ConfigureAwait(false);
-                    if (configured != null) return configured;
-                }
-
-                return TryReadLocalFileResource(resource, maximumBytes, cancellationToken, out HtmlResolvedResource? local) ? local : null;
-            };
+            renderOptions.ResourceResolver = new LocalFileResourceLoader(null, configuredResolver, maximumBytes).ResolveAsync;
         }
         return new PreparedPdfRequest(request.WithOptions(renderOptions), renderOptions);
     }
