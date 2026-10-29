@@ -96,8 +96,11 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>Optional caption below the content.</summary>
         public string? Caption { get; set; }
 
+        /// <summary>Set by the layout when a long table switches to compact rows to stay on fewer slides.</summary>
+        internal bool Dense { get; set; }
+
         internal PowerPointLayoutTable WithRows(IReadOnlyList<IReadOnlyList<string>> rows) =>
-            new(Headers, rows) { IncludeHeaders = IncludeHeaders, MaximumRows = MaximumRows, NoSplit = NoSplit, Caption = Caption };
+            new(Headers, rows) { IncludeHeaders = IncludeHeaders, MaximumRows = MaximumRows, NoSplit = NoSplit, Caption = Caption, Dense = Dense };
     }
 
     /// <summary>An editable chart backed by shared chart data.</summary>

@@ -280,6 +280,10 @@ namespace OfficeIMO.PowerPoint {
             internal double HeaderSize { get; set; }
             internal double RowHeight { get; set; }
             internal double HeaderHeight { get; set; }
+
+            /// <summary>Top and bottom cell padding of body and header rows.</summary>
+            internal double RowPad { get; set; }
+            internal double HeaderPad { get; set; }
             internal double[] Widths { get; set; } = Array.Empty<double>();
             internal bool[] Numeric { get; set; } = Array.Empty<bool>();
         }
@@ -292,12 +296,18 @@ namespace OfficeIMO.PowerPoint {
             PowerPointTextStyleSpec body = context.Style(PowerPointTextRole.TableBody);
             PowerPointTextStyleSpec header = context.Style(PowerPointTextRole.TableHeader);
             double pad = context.Theme.TableCellPadding;
+            // Compact rows: two points smaller (not below the minimum) and half the vertical padding, the density
+            // of a reference table, used when it keeps a long table on fewer slides.
+            double size = bodySize ?? body.Size;
+            if (table.Dense) size = Math.Min(size, Math.Max(body.Minimum, body.Size - 2D));
             var metrics = new TableMetrics {
-                BodySize = bodySize ?? body.Size,
-                HeaderSize = Math.Min(header.Size, (bodySize ?? body.Size) - 1D)
+                BodySize = size,
+                HeaderSize = Math.Min(header.Size, size - 1D),
+                RowPad = table.Dense ? pad * 0.5D + 1D : pad + 2D,
+                HeaderPad = table.Dense ? pad * 0.5D + 2D : pad + 3D
             };
-            metrics.RowHeight = metrics.BodySize * body.LineHeight + 2D * (pad + 2D);
-            metrics.HeaderHeight = table.IncludeHeaders ? metrics.HeaderSize * header.LineHeight + 2D * (pad + 3D) : 0D;
+            metrics.RowHeight = metrics.BodySize * body.LineHeight + 2D * metrics.RowPad;
+            metrics.HeaderHeight = table.IncludeHeaders ? metrics.HeaderSize * header.LineHeight + 2D * metrics.HeaderPad : 0D;
             int columns = table.Headers.Count;
             var natural = new double[columns];
             metrics.Numeric = new bool[columns];
@@ -377,6 +387,36 @@ namespace OfficeIMO.PowerPoint {
             PowerPointLayoutSlide probe = Continuation(context, slide, 2, 3);
             int limit = table.MaximumRows ?? Math.Min(first, TableCapacity(context, probe, metrics, false));
             int pages = (int)Math.Ceiling(table.Rows.Count / (double)limit);
+            PowerPointLayoutTable source = table;
+            if (!table.MaximumRows.HasValue && !table.Dense) {
+                // A long reference table reads better on fewer, fuller slides: switch to compact rows when that
+                // saves a slide.
+                PowerPointLayoutTable dense = table.WithRows(table.Rows);
+                dense.Dense = true;
+                TableMetrics compact = MeasureTable(context, dense, width, metrics.BodySize < context.Style(PowerPointTextRole.TableBody).Size ? metrics.BodySize : null);
+                List<int> denseUnits = table.Rows.Select(row => RowUnits(context, compact, row)).ToList();
+                int denseFirst = TableCapacity(context, slide, compact, lede != null);
+                if (denseUnits.Sum() <= denseFirst && table.Rows.Count <= denseFirst) {
+                    PowerPointLayoutSlide whole = slide.CloneHeader();
+                    whole.Subtitle = slide.Subtitle;
+                    whole.Notes = slide.Notes;
+                    whole.Layout = slide.Layout;
+                    whole.SourceNote = slide.SourceNote;
+                    foreach (PowerPointLayoutBlock block in slide.Blocks) whole.Blocks.Add(ReferenceEquals(block, table) ? dense : block);
+                    yield return whole;
+                    yield break;
+                }
+
+                int denseLimit = Math.Min(denseFirst, TableCapacity(context, probe, compact, false));
+                int densePages = (int)Math.Ceiling(table.Rows.Count / (double)denseLimit);
+                if (densePages < pages) {
+                    table = dense;
+                    metrics = compact;
+                    units = denseUnits;
+                    limit = denseLimit;
+                    pages = densePages;
+                }
+            }
             List<List<int>> chunks;
             while (true) {
                 chunks = Balance(Enumerable.Range(0, table.Rows.Count).ToList(), pages);
@@ -397,7 +437,7 @@ namespace OfficeIMO.PowerPoint {
                 part.TableRange = (rows[0] + 1, rows[rows.Count - 1] + 1, table.Rows.Count);
                 PowerPointLayoutTable pageTable = table.WithRows(rows.Select(i => table.Rows[i]).ToList());
                 foreach (PowerPointLayoutBlock block in slide.Blocks.Where(b => b.IsContentBlock && !ReferenceEquals(b, lede))) {
-                    part.Blocks.Add(ReferenceEquals(block, table) ? pageTable : block);
+                    part.Blocks.Add(ReferenceEquals(block, source) ? pageTable : block);
                 }
 
                 part.SourceNote = slide.SourceNote;
@@ -413,6 +453,7 @@ namespace OfficeIMO.PowerPoint {
             PowerPointLayoutTheme theme = context.Theme;
             TableMetrics metrics = MeasureTable(context, table, box.Width,
                 table.Headers.Count > (context.Grid.IsNarrow ? 6 : 8) ? context.Style(PowerPointTextRole.TableBody).Minimum : null);
+            double rowPad = metrics.RowPad, headerPad = metrics.HeaderPad;
             double pad = theme.TableCellPadding;
             bool tintedHeader = PowerPointLayoutTheme.Contrast(theme.TableHeaderFill, theme.Background) < 1.6D;
             string hairline = Emu(Math.Max(0.25D, theme.TableBorderWidth));
@@ -448,7 +489,7 @@ namespace OfficeIMO.PowerPoint {
             if (table.IncludeHeaders) {
                 xml.Append("<a:tr h=\"").Append(Emu(metrics.HeaderHeight)).Append("\">");
                 for (int c = 0; c < table.Headers.Count; c++) {
-                    xml.Append(Cell(table.Headers[c], true, c, theme.TableHeaderFill, pad + 3D, tintedHeader ? theme.Accent1 : theme.TableHeaderFill,
+                    xml.Append(Cell(table.Headers[c], true, c, theme.TableHeaderFill, headerPad, tintedHeader ? theme.Accent1 : theme.TableHeaderFill,
                         tintedHeader ? Emu(1D) : "0"));
                 }
                 xml.Append("</a:tr>");
@@ -460,7 +501,7 @@ namespace OfficeIMO.PowerPoint {
                 string? fill = theme.TableBanding && r % 2 == 1 ? theme.Surface : null;
                 xml.Append("<a:tr h=\"").Append(Emu(height)).Append("\">");
                 for (int c = 0; c < table.Headers.Count; c++) {
-                    xml.Append(Cell(c < row.Count ? row[c] ?? string.Empty : string.Empty, false, c, fill, pad + 2D, theme.Hairline, hairline));
+                    xml.Append(Cell(c < row.Count ? row[c] ?? string.Empty : string.Empty, false, c, fill, rowPad, theme.Hairline, hairline));
                 }
                 xml.Append("</a:tr>");
             }
