@@ -23,7 +23,7 @@ permissions:
   contents: read
 
 env:
-  DOTNET_VERSION: 10.0.113
+  DOTNET_VERSION: 10.0.114
   BUILD_CONFIGURATION: Release
 
 jobs:
