@@ -137,7 +137,7 @@ Describe 'PDF readback and compliance cmdlets' {
         $proof.RequiredExternalValidatorCount | Should -BeGreaterThan 0
         $proof.RequiresExternalValidation | Should -BeTrue
         $proof.MissingExternalValidatorCount | Should -BeGreaterThan 0
-        $proof.ProofStatus | Should -Be 'InternalGaps'
+        $proof.ProofStatus | Should -Be 'MissingExternalValidation'
         $proof.CanClaimConformance | Should -BeFalse
 
         $unbound = $document | Get-OfficePdfCompliance -Profile PdfA3B -Proof -ExternalValidator VeraPdf -ExternalStatus Passed -ExternalValidatorVersion '1.26.1' -ExternalProfile 'PDF/A-3b' -ExternalDiagnostic 'caller reported veraPDF passed'

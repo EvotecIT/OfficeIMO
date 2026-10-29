@@ -87,7 +87,7 @@ foreach ($file in $files) {
     }
 }
 
-# Coverage: every current command and alias is mapped exactly once.
+# Coverage includes both migration sources and already implemented target commands and aliases.
 $byOld = $entries | Group-Object old
 foreach ($group in $byOld | Where-Object Count -gt 1) {
     $errors.Add("$($group.Name) is mapped $($group.Count) times ($(@($group.Group.File) -join ', ')).")
@@ -95,10 +95,10 @@ foreach ($group in $byOld | Where-Object Count -gt 1) {
 $mapped = @{}
 foreach ($entry in $entries) { $mapped[$entry.old] = $entry }
 foreach ($name in $currentCommands) {
-    if (-not $mapped.ContainsKey($name)) { $errors.Add("Command $name has no map entry.") }
+    if (-not $mapped.ContainsKey($name) -and -not $commands.ContainsKey($name)) { $errors.Add("Command $name has no map entry.") }
 }
 foreach ($name in $currentAliases) {
-    if (-not $mapped.ContainsKey($name)) { $errors.Add("Alias $name has no map entry.") }
+    if (-not $mapped.ContainsKey($name) -and -not $aliasOwners.ContainsKey($name)) { $errors.Add("Alias $name has no map entry.") }
 }
 foreach ($entry in $entries) {
     $known = if ($entry.kind -eq 'alias') { $currentAliases } else { $currentCommands }

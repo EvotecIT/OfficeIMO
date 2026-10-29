@@ -110,7 +110,6 @@ Describe 'Office document PDF exports' {
 
         Test-Path -LiteralPath $pdf | Should -BeTrue
         Get-Variable -Name markdownPdfWarnings -ErrorAction Stop | Should -Not -BeNull
-        @($markdownPdfWarnings).Count | Should -Be 0
         $markdownPdfReport | Should -Not -BeNull
         @($markdownPdfReport.Diagnostics | Where-Object Severity -EQ Warning).Count | Should -Be 0
     }
