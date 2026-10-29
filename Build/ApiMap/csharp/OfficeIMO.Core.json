@@ -902,6 +902,33 @@
       "files": [
         "OfficeIMO.Core/OfficeChartOptions.cs"
       ]
+    },
+    {
+      "phase": "B",
+      "action": "change",
+      "old": "ObjectFlattener ExpandRows raw collection cells; explicit projection columns bypassing common Order",
+      "new": "Shared lazy per-element formatting/null policy and common ordering of selected explicit columns",
+      "reason": "Typed tables in Excel, PowerPoint and PDF apply each formatter once to its actual cell value and respect common table ordering.",
+      "file": "OfficeIMO.Core/Data/ObjectFlattener.cs",
+      "applied": "phase-b-applied",
+      "note": "Expanded elements use the shared formatting/null policy once per cell. Explicit column ordering retains its selection whitelist even when filters select no columns. PDF native projection regressions and Word creation/spacing regressions pass on net10.0; full framework/AOT gates remain separate."
+    },
+    {
+      "phase": "B",
+      "action": "change",
+      "old": "OfficeTheme chart/table tokens and five hand-authored built-in theme definitions",
+      "new": "OfficeTheme text styles, paragraph spacing, rules, surfaces, page/footer settings and extended chart/table tokens; generated built-ins from Build/Visual/themes.json",
+      "reason": "Creation options and native table/layout defaults share the full immutable visual identity instead of format-local constants.",
+      "files": [
+        "OfficeIMO.Core/Themes/OfficeTheme.cs",
+        "OfficeIMO.Core/Themes/OfficeThemeChartStyle.cs",
+        "OfficeIMO.Core/Themes/OfficeThemeTableStyle.cs",
+        "OfficeIMO.Core/Themes/OfficeTheme.BuiltIns.Generated.cs",
+        "OfficeIMO.Core/Themes/generate_theme_builtins.py",
+        "Build/Visual/themes.json"
+      ],
+      "applied": "phase-b-applied",
+      "note": "Keep existing seven-component construction and normalized color semantics. Generated nullable source and all four shipped baselines build cleanly. Word native theme/table and PDF projection suites pass on net10.0; remaining format, AOT and framework gates are separate."
     }
   ],
   "applicationStatus": "Phase A applied and validated on the supported macOS targets. Phase B and Tier 2 entries retain their status; Windows .NET Framework validation remains pending.",

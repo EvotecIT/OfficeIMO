@@ -4714,30 +4714,47 @@ OfficeIMO.OfficeTableOptions.Order.get -> System.Collections.Generic.List<string
 OfficeIMO.OfficeTheme
 OfficeIMO.OfficeTheme.ChartStyle.get -> OfficeIMO.OfficeThemeChartStyle!
 OfficeIMO.OfficeTheme.Fonts.get -> OfficeIMO.OfficeThemeFonts!
+OfficeIMO.OfficeTheme.Footer.get -> OfficeIMO.OfficeThemeFooter!
+OfficeIMO.OfficeTheme.IsDark.get -> bool
 OfficeIMO.OfficeTheme.Name.get -> string!
 OfficeIMO.OfficeTheme.OfficeTheme(string! name, OfficeIMO.OfficeThemePalette! palette, OfficeIMO.OfficeThemeFonts! fonts, OfficeIMO.OfficeThemeTypeScale! typeScale, OfficeIMO.OfficeThemeTableStyle! tableStyle, OfficeIMO.OfficeThemeChartStyle! chartStyle, OfficeIMO.OfficeThemeSpacing! spacing) -> void
+OfficeIMO.OfficeTheme.OfficeTheme(string! name, OfficeIMO.OfficeThemePalette! palette, OfficeIMO.OfficeThemeFonts! fonts, OfficeIMO.OfficeThemeTypeScale! typeScale, OfficeIMO.OfficeThemeTableStyle! tableStyle, OfficeIMO.OfficeThemeChartStyle! chartStyle, OfficeIMO.OfficeThemeSpacing! spacing, OfficeIMO.OfficeThemeTextStyle! textStyle, OfficeIMO.OfficeThemeSurfaces! surfaces, OfficeIMO.OfficeThemePage! page, OfficeIMO.OfficeThemeFooter! footer) -> void
+OfficeIMO.OfficeTheme.Page.get -> OfficeIMO.OfficeThemePage!
 OfficeIMO.OfficeTheme.Palette.get -> OfficeIMO.OfficeThemePalette!
 OfficeIMO.OfficeTheme.Spacing.get -> OfficeIMO.OfficeThemeSpacing!
+OfficeIMO.OfficeTheme.Surfaces.get -> OfficeIMO.OfficeThemeSurfaces!
 OfficeIMO.OfficeTheme.TableStyle.get -> OfficeIMO.OfficeThemeTableStyle!
+OfficeIMO.OfficeTheme.TextStyle.get -> OfficeIMO.OfficeThemeTextStyle!
 OfficeIMO.OfficeTheme.TypeScale.get -> OfficeIMO.OfficeThemeTypeScale!
 OfficeIMO.OfficeTheme.WithChartStyle(OfficeIMO.OfficeThemeChartStyle! chartStyle) -> OfficeIMO.OfficeTheme!
 OfficeIMO.OfficeTheme.WithFonts(OfficeIMO.OfficeThemeFonts! fonts) -> OfficeIMO.OfficeTheme!
+OfficeIMO.OfficeTheme.WithFooter(OfficeIMO.OfficeThemeFooter! footer) -> OfficeIMO.OfficeTheme!
 OfficeIMO.OfficeTheme.WithName(string! name) -> OfficeIMO.OfficeTheme!
+OfficeIMO.OfficeTheme.WithPage(OfficeIMO.OfficeThemePage! page) -> OfficeIMO.OfficeTheme!
 OfficeIMO.OfficeTheme.WithPalette(OfficeIMO.OfficeThemePalette! palette) -> OfficeIMO.OfficeTheme!
 OfficeIMO.OfficeTheme.WithSpacing(OfficeIMO.OfficeThemeSpacing! spacing) -> OfficeIMO.OfficeTheme!
+OfficeIMO.OfficeTheme.WithSurfaces(OfficeIMO.OfficeThemeSurfaces! surfaces) -> OfficeIMO.OfficeTheme!
 OfficeIMO.OfficeTheme.WithTableStyle(OfficeIMO.OfficeThemeTableStyle! tableStyle) -> OfficeIMO.OfficeTheme!
+OfficeIMO.OfficeTheme.WithTextStyle(OfficeIMO.OfficeThemeTextStyle! textStyle) -> OfficeIMO.OfficeTheme!
 OfficeIMO.OfficeTheme.WithTypeScale(OfficeIMO.OfficeThemeTypeScale! typeScale) -> OfficeIMO.OfficeTheme!
 OfficeIMO.OfficeThemeChartStyle
 OfficeIMO.OfficeThemeChartStyle.AxisFont.get -> OfficeIMO.OfficeThemeFont!
 OfficeIMO.OfficeThemeChartStyle.AxisFontSize.get -> OfficeIMO.OfficeLength
+OfficeIMO.OfficeThemeChartStyle.AxisLineColor.get -> OfficeIMO.OfficeColor
+OfficeIMO.OfficeThemeChartStyle.AxisTextColor.get -> OfficeIMO.OfficeColor
+OfficeIMO.OfficeThemeChartStyle.BarGapPercent.get -> int
 OfficeIMO.OfficeThemeChartStyle.GridlineColor.get -> OfficeIMO.OfficeColor
+OfficeIMO.OfficeThemeChartStyle.GridlineWidth.get -> OfficeIMO.OfficeLength
+OfficeIMO.OfficeThemeChartStyle.LineWidth.get -> OfficeIMO.OfficeLength
+OfficeIMO.OfficeThemeChartStyle.Markers.get -> OfficeIMO.Drawing.OfficeChartMarkerShape
 OfficeIMO.OfficeThemeChartStyle.OfficeThemeChartStyle(System.Collections.Generic.IReadOnlyList<OfficeIMO.OfficeColor>! seriesPalette, OfficeIMO.OfficeThemeFont! axisFont, OfficeIMO.OfficeThemeFont! titleFont, OfficeIMO.OfficeLength axisFontSize, OfficeIMO.OfficeLength titleFontSize, OfficeIMO.OfficeColor gridlineColor, bool showDataLabels, bool showLegend) -> void
+OfficeIMO.OfficeThemeChartStyle.OfficeThemeChartStyle(System.Collections.Generic.IReadOnlyList<OfficeIMO.OfficeColor>! seriesPalette, OfficeIMO.OfficeThemeFont! axisFont, OfficeIMO.OfficeThemeFont! titleFont, OfficeIMO.OfficeLength axisFontSize, OfficeIMO.OfficeLength titleFontSize, OfficeIMO.OfficeColor gridlineColor, bool showDataLabels, bool showLegend, OfficeIMO.OfficeColor axisLineColor, OfficeIMO.OfficeColor axisTextColor, OfficeIMO.OfficeLength gridlineWidth, OfficeIMO.OfficeLength lineWidth, int barGapPercent, OfficeIMO.Drawing.OfficeChartMarkerShape markers) -> void
 OfficeIMO.OfficeThemeChartStyle.SeriesPalette.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.OfficeColor>!
 OfficeIMO.OfficeThemeChartStyle.ShowDataLabels.get -> bool
 OfficeIMO.OfficeThemeChartStyle.ShowLegend.get -> bool
 OfficeIMO.OfficeThemeChartStyle.TitleFont.get -> OfficeIMO.OfficeThemeFont!
 OfficeIMO.OfficeThemeChartStyle.TitleFontSize.get -> OfficeIMO.OfficeLength
-OfficeIMO.OfficeThemeChartStyle.With(System.Collections.Generic.IReadOnlyList<OfficeIMO.OfficeColor>? seriesPalette = null, OfficeIMO.OfficeThemeFont? axisFont = null, OfficeIMO.OfficeThemeFont? titleFont = null, OfficeIMO.OfficeLength? axisFontSize = null, OfficeIMO.OfficeLength? titleFontSize = null, OfficeIMO.OfficeColor? gridlineColor = null, bool? showDataLabels = null, bool? showLegend = null) -> OfficeIMO.OfficeThemeChartStyle!
+OfficeIMO.OfficeThemeChartStyle.With(System.Collections.Generic.IReadOnlyList<OfficeIMO.OfficeColor>? seriesPalette = null, OfficeIMO.OfficeThemeFont? axisFont = null, OfficeIMO.OfficeThemeFont? titleFont = null, OfficeIMO.OfficeLength? axisFontSize = null, OfficeIMO.OfficeLength? titleFontSize = null, OfficeIMO.OfficeColor? gridlineColor = null, bool? showDataLabels = null, bool? showLegend = null, OfficeIMO.OfficeColor? axisLineColor = null, OfficeIMO.OfficeColor? axisTextColor = null, OfficeIMO.OfficeLength? gridlineWidth = null, OfficeIMO.OfficeLength? lineWidth = null, int? barGapPercent = null, OfficeIMO.Drawing.OfficeChartMarkerShape? markers = null) -> OfficeIMO.OfficeThemeChartStyle!
 OfficeIMO.OfficeThemeFont
 OfficeIMO.OfficeThemeFont.Fallbacks.get -> System.Collections.Generic.IReadOnlyList<string!>!
 OfficeIMO.OfficeThemeFont.Family.get -> string!
@@ -4748,6 +4765,19 @@ OfficeIMO.OfficeThemeFonts.Body.get -> OfficeIMO.OfficeThemeFont!
 OfficeIMO.OfficeThemeFonts.Heading.get -> OfficeIMO.OfficeThemeFont!
 OfficeIMO.OfficeThemeFonts.OfficeThemeFonts(OfficeIMO.OfficeThemeFont! heading, OfficeIMO.OfficeThemeFont! body) -> void
 OfficeIMO.OfficeThemeFonts.With(OfficeIMO.OfficeThemeFont? heading = null, OfficeIMO.OfficeThemeFont? body = null) -> OfficeIMO.OfficeThemeFonts!
+OfficeIMO.OfficeThemeFooter
+OfficeIMO.OfficeThemeFooter.Color.get -> OfficeIMO.OfficeColor
+OfficeIMO.OfficeThemeFooter.FontSize.get -> OfficeIMO.OfficeLength
+OfficeIMO.OfficeThemeFooter.OfficeThemeFooter(OfficeIMO.OfficeLength fontSize, OfficeIMO.OfficeColor color, OfficeIMO.OfficeThemeRule! rule) -> void
+OfficeIMO.OfficeThemeFooter.Rule.get -> OfficeIMO.OfficeThemeRule!
+OfficeIMO.OfficeThemeFooter.With(OfficeIMO.OfficeLength? fontSize = null, OfficeIMO.OfficeColor? color = null, OfficeIMO.OfficeThemeRule? rule = null) -> OfficeIMO.OfficeThemeFooter!
+OfficeIMO.OfficeThemePage
+OfficeIMO.OfficeThemePage.MarginBottom.get -> OfficeIMO.OfficeLength
+OfficeIMO.OfficeThemePage.MarginLeft.get -> OfficeIMO.OfficeLength
+OfficeIMO.OfficeThemePage.MarginRight.get -> OfficeIMO.OfficeLength
+OfficeIMO.OfficeThemePage.MarginTop.get -> OfficeIMO.OfficeLength
+OfficeIMO.OfficeThemePage.OfficeThemePage(OfficeIMO.OfficeLength marginTop, OfficeIMO.OfficeLength marginRight, OfficeIMO.OfficeLength marginBottom, OfficeIMO.OfficeLength marginLeft) -> void
+OfficeIMO.OfficeThemePage.With(OfficeIMO.OfficeLength? marginTop = null, OfficeIMO.OfficeLength? marginRight = null, OfficeIMO.OfficeLength? marginBottom = null, OfficeIMO.OfficeLength? marginLeft = null) -> OfficeIMO.OfficeThemePage!
 OfficeIMO.OfficeThemePalette
 OfficeIMO.OfficeThemePalette.Accent1.get -> OfficeIMO.OfficeColor
 OfficeIMO.OfficeThemePalette.Accent2.get -> OfficeIMO.OfficeColor
@@ -4763,6 +4793,17 @@ OfficeIMO.OfficeThemePalette.Text.get -> OfficeIMO.OfficeColor
 OfficeIMO.OfficeThemePalette.TextMuted.get -> OfficeIMO.OfficeColor
 OfficeIMO.OfficeThemePalette.Warning.get -> OfficeIMO.OfficeColor
 OfficeIMO.OfficeThemePalette.With(OfficeIMO.OfficeColor? background = null, OfficeIMO.OfficeColor? text = null, OfficeIMO.OfficeColor? textMuted = null, OfficeIMO.OfficeColor? accent1 = null, OfficeIMO.OfficeColor? accent2 = null, OfficeIMO.OfficeColor? accent3 = null, OfficeIMO.OfficeColor? accent4 = null, OfficeIMO.OfficeColor? accent5 = null, OfficeIMO.OfficeColor? accent6 = null, OfficeIMO.OfficeColor? success = null, OfficeIMO.OfficeColor? warning = null, OfficeIMO.OfficeColor? danger = null) -> OfficeIMO.OfficeThemePalette!
+OfficeIMO.OfficeThemeParagraphSpacing
+OfficeIMO.OfficeThemeParagraphSpacing.After.get -> OfficeIMO.OfficeLength
+OfficeIMO.OfficeThemeParagraphSpacing.Before.get -> OfficeIMO.OfficeLength
+OfficeIMO.OfficeThemeParagraphSpacing.OfficeThemeParagraphSpacing(OfficeIMO.OfficeLength before, OfficeIMO.OfficeLength after) -> void
+OfficeIMO.OfficeThemeParagraphSpacing.With(OfficeIMO.OfficeLength? before = null, OfficeIMO.OfficeLength? after = null) -> OfficeIMO.OfficeThemeParagraphSpacing!
+OfficeIMO.OfficeThemeRule
+OfficeIMO.OfficeThemeRule.Color.get -> OfficeIMO.OfficeColor
+OfficeIMO.OfficeThemeRule.IsVisible.get -> bool
+OfficeIMO.OfficeThemeRule.OfficeThemeRule(OfficeIMO.OfficeColor color, OfficeIMO.OfficeLength width) -> void
+OfficeIMO.OfficeThemeRule.Width.get -> OfficeIMO.OfficeLength
+OfficeIMO.OfficeThemeRule.With(OfficeIMO.OfficeColor? color = null, OfficeIMO.OfficeLength? width = null) -> OfficeIMO.OfficeThemeRule!
 OfficeIMO.OfficeThemeSpacing
 OfficeIMO.OfficeThemeSpacing.ListIndent.get -> OfficeIMO.OfficeLength
 OfficeIMO.OfficeThemeSpacing.OfficeThemeSpacing(OfficeIMO.OfficeLength paragraphBefore, OfficeIMO.OfficeLength paragraphAfter, OfficeIMO.OfficeLength listIndent, OfficeIMO.OfficeLength slideMarginTop, OfficeIMO.OfficeLength slideMarginRight, OfficeIMO.OfficeLength slideMarginBottom, OfficeIMO.OfficeLength slideMarginLeft) -> void
@@ -4773,16 +4814,49 @@ OfficeIMO.OfficeThemeSpacing.SlideMarginLeft.get -> OfficeIMO.OfficeLength
 OfficeIMO.OfficeThemeSpacing.SlideMarginRight.get -> OfficeIMO.OfficeLength
 OfficeIMO.OfficeThemeSpacing.SlideMarginTop.get -> OfficeIMO.OfficeLength
 OfficeIMO.OfficeThemeSpacing.With(OfficeIMO.OfficeLength? paragraphBefore = null, OfficeIMO.OfficeLength? paragraphAfter = null, OfficeIMO.OfficeLength? listIndent = null, OfficeIMO.OfficeLength? slideMarginTop = null, OfficeIMO.OfficeLength? slideMarginRight = null, OfficeIMO.OfficeLength? slideMarginBottom = null, OfficeIMO.OfficeLength? slideMarginLeft = null) -> OfficeIMO.OfficeThemeSpacing!
+OfficeIMO.OfficeThemeSurfaces
+OfficeIMO.OfficeThemeSurfaces.Accent1Tint.get -> OfficeIMO.OfficeColor
+OfficeIMO.OfficeThemeSurfaces.DangerFill.get -> OfficeIMO.OfficeColor
+OfficeIMO.OfficeThemeSurfaces.OfficeThemeSurfaces(OfficeIMO.OfficeColor surface, OfficeIMO.OfficeColor rule, OfficeIMO.OfficeColor accent1Tint, OfficeIMO.OfficeColor successFill, OfficeIMO.OfficeColor warningFill, OfficeIMO.OfficeColor dangerFill) -> void
+OfficeIMO.OfficeThemeSurfaces.Rule.get -> OfficeIMO.OfficeColor
+OfficeIMO.OfficeThemeSurfaces.SuccessFill.get -> OfficeIMO.OfficeColor
+OfficeIMO.OfficeThemeSurfaces.Surface.get -> OfficeIMO.OfficeColor
+OfficeIMO.OfficeThemeSurfaces.WarningFill.get -> OfficeIMO.OfficeColor
+OfficeIMO.OfficeThemeSurfaces.With(OfficeIMO.OfficeColor? surface = null, OfficeIMO.OfficeColor? rule = null, OfficeIMO.OfficeColor? accent1Tint = null, OfficeIMO.OfficeColor? successFill = null, OfficeIMO.OfficeColor? warningFill = null, OfficeIMO.OfficeColor? dangerFill = null) -> OfficeIMO.OfficeThemeSurfaces!
+OfficeIMO.OfficeThemeTableBorderMode
+OfficeIMO.OfficeThemeTableBorderMode.Grid = 1 -> OfficeIMO.OfficeThemeTableBorderMode
+OfficeIMO.OfficeThemeTableBorderMode.Horizontal = 0 -> OfficeIMO.OfficeThemeTableBorderMode
+OfficeIMO.OfficeThemeTableBorderMode.None = 2 -> OfficeIMO.OfficeThemeTableBorderMode
 OfficeIMO.OfficeThemeTableStyle
 OfficeIMO.OfficeThemeTableStyle.BandFill.get -> OfficeIMO.OfficeColor
 OfficeIMO.OfficeThemeTableStyle.Banding.get -> bool
 OfficeIMO.OfficeThemeTableStyle.BorderColor.get -> OfficeIMO.OfficeColor
+OfficeIMO.OfficeThemeTableStyle.BorderMode.get -> OfficeIMO.OfficeThemeTableBorderMode
 OfficeIMO.OfficeThemeTableStyle.BorderWidth.get -> OfficeIMO.OfficeLength
 OfficeIMO.OfficeThemeTableStyle.CellPadding.get -> OfficeIMO.OfficeLength
+OfficeIMO.OfficeThemeTableStyle.HeaderBold.get -> bool
 OfficeIMO.OfficeThemeTableStyle.HeaderFill.get -> OfficeIMO.OfficeColor
+OfficeIMO.OfficeThemeTableStyle.HeaderRule.get -> OfficeIMO.OfficeThemeRule!
 OfficeIMO.OfficeThemeTableStyle.HeaderText.get -> OfficeIMO.OfficeColor
+OfficeIMO.OfficeThemeTableStyle.NumberAlignment.get -> OfficeIMO.OfficeAlignment
 OfficeIMO.OfficeThemeTableStyle.OfficeThemeTableStyle(OfficeIMO.OfficeColor headerFill, OfficeIMO.OfficeColor headerText, bool banding, OfficeIMO.OfficeColor bandFill, OfficeIMO.OfficeColor borderColor, OfficeIMO.OfficeLength borderWidth, OfficeIMO.OfficeLength cellPadding) -> void
-OfficeIMO.OfficeThemeTableStyle.With(OfficeIMO.OfficeColor? headerFill = null, OfficeIMO.OfficeColor? headerText = null, bool? banding = null, OfficeIMO.OfficeColor? bandFill = null, OfficeIMO.OfficeColor? borderColor = null, OfficeIMO.OfficeLength? borderWidth = null, OfficeIMO.OfficeLength? cellPadding = null) -> OfficeIMO.OfficeThemeTableStyle!
+OfficeIMO.OfficeThemeTableStyle.OfficeThemeTableStyle(OfficeIMO.OfficeColor headerFill, OfficeIMO.OfficeColor headerText, bool banding, OfficeIMO.OfficeColor bandFill, OfficeIMO.OfficeColor borderColor, OfficeIMO.OfficeLength borderWidth, OfficeIMO.OfficeLength cellPadding, OfficeIMO.OfficeThemeTableBorderMode borderMode, OfficeIMO.OfficeThemeRule! headerRule, bool headerBold, OfficeIMO.OfficeAlignment numberAlignment) -> void
+OfficeIMO.OfficeThemeTableStyle.With(OfficeIMO.OfficeColor? headerFill = null, OfficeIMO.OfficeColor? headerText = null, bool? banding = null, OfficeIMO.OfficeColor? bandFill = null, OfficeIMO.OfficeColor? borderColor = null, OfficeIMO.OfficeLength? borderWidth = null, OfficeIMO.OfficeLength? cellPadding = null, OfficeIMO.OfficeThemeTableBorderMode? borderMode = null, OfficeIMO.OfficeThemeRule? headerRule = null, bool? headerBold = null, OfficeIMO.OfficeAlignment? numberAlignment = null) -> OfficeIMO.OfficeThemeTableStyle!
+OfficeIMO.OfficeThemeTextStyle
+OfficeIMO.OfficeThemeTextStyle.GetHeadingSpacing(int level) -> OfficeIMO.OfficeThemeParagraphSpacing!
+OfficeIMO.OfficeThemeTextStyle.Heading1Spacing.get -> OfficeIMO.OfficeThemeParagraphSpacing!
+OfficeIMO.OfficeThemeTextStyle.Heading2Spacing.get -> OfficeIMO.OfficeThemeParagraphSpacing!
+OfficeIMO.OfficeThemeTextStyle.Heading3Spacing.get -> OfficeIMO.OfficeThemeParagraphSpacing!
+OfficeIMO.OfficeThemeTextStyle.HeadingBold.get -> bool
+OfficeIMO.OfficeThemeTextStyle.HeadingColor.get -> OfficeIMO.OfficeColor
+OfficeIMO.OfficeThemeTextStyle.LineSpacing.get -> double
+OfficeIMO.OfficeThemeTextStyle.LinkColor.get -> OfficeIMO.OfficeColor
+OfficeIMO.OfficeThemeTextStyle.OfficeThemeTextStyle(double lineSpacing, OfficeIMO.OfficeColor titleColor, OfficeIMO.OfficeColor subtitleColor, OfficeIMO.OfficeColor headingColor, OfficeIMO.OfficeColor linkColor, bool headingBold, OfficeIMO.OfficeThemeRule! titleRule, OfficeIMO.OfficeThemeParagraphSpacing! titleSpacing, OfficeIMO.OfficeThemeParagraphSpacing! heading1Spacing, OfficeIMO.OfficeThemeParagraphSpacing! heading2Spacing, OfficeIMO.OfficeThemeParagraphSpacing! heading3Spacing) -> void
+OfficeIMO.OfficeThemeTextStyle.SubtitleColor.get -> OfficeIMO.OfficeColor
+OfficeIMO.OfficeThemeTextStyle.TitleColor.get -> OfficeIMO.OfficeColor
+OfficeIMO.OfficeThemeTextStyle.TitleRule.get -> OfficeIMO.OfficeThemeRule!
+OfficeIMO.OfficeThemeTextStyle.TitleSpacing.get -> OfficeIMO.OfficeThemeParagraphSpacing!
+OfficeIMO.OfficeThemeTextStyle.With(double? lineSpacing = null, OfficeIMO.OfficeColor? titleColor = null, OfficeIMO.OfficeColor? subtitleColor = null, OfficeIMO.OfficeColor? headingColor = null, OfficeIMO.OfficeColor? linkColor = null, bool? headingBold = null, OfficeIMO.OfficeThemeRule? titleRule = null, OfficeIMO.OfficeThemeParagraphSpacing? titleSpacing = null, OfficeIMO.OfficeThemeParagraphSpacing? heading1Spacing = null, OfficeIMO.OfficeThemeParagraphSpacing? heading2Spacing = null, OfficeIMO.OfficeThemeParagraphSpacing? heading3Spacing = null) -> OfficeIMO.OfficeThemeTextStyle!
 OfficeIMO.OfficeThemeTypeScale
 OfficeIMO.OfficeThemeTypeScale.Body.get -> OfficeIMO.OfficeLength
 OfficeIMO.OfficeThemeTypeScale.Caption.get -> OfficeIMO.OfficeLength
@@ -7914,6 +7988,8 @@ static OfficeIMO.OfficeTheme.Dark.get -> OfficeIMO.OfficeTheme!
 static OfficeIMO.OfficeTheme.Default.get -> OfficeIMO.OfficeTheme!
 static OfficeIMO.OfficeTheme.Minimal.get -> OfficeIMO.OfficeTheme!
 static OfficeIMO.OfficeTheme.Modern.get -> OfficeIMO.OfficeTheme!
+static OfficeIMO.OfficeThemeRule.None.get -> OfficeIMO.OfficeThemeRule!
+static OfficeIMO.OfficeThemeSurfaces.FromPalette(OfficeIMO.OfficeThemePalette! palette, OfficeIMO.OfficeColor surface, OfficeIMO.OfficeColor rule) -> OfficeIMO.OfficeThemeSurfaces!
 static OfficeIMO.OfficeVbaProject.Create(string! name = "VBAProject", int codePage = 1252) -> OfficeIMO.OfficeVbaProject!
 static OfficeIMO.OfficeVbaProject.Load(byte[]! projectBytes, OfficeIMO.OfficeVbaReadOptions? options = null) -> OfficeIMO.OfficeVbaProject!
 static OfficeIMO.Provenance.OfficeProvenanceAssessment.AssessFile(string! filePath, OfficeIMO.Provenance.OfficeProvenanceReport! structural, OfficeIMO.Provenance.OfficeProvenanceAssessmentOptions? options = null, OfficeIMO.Provenance.IOfficeProvenanceVerifier? verifier = null, System.Collections.Generic.IEnumerable<OfficeIMO.Provenance.IOfficeProvenanceSignalDetector!>? signalDetectors = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> OfficeIMO.Provenance.OfficeProvenanceAssessmentReport!

@@ -9,11 +9,15 @@ internal static partial class ObjectDataHelpers {
     /// <summary>Selects columns before enforcing native bounds or reading their values.</summary>
     internal static string[] SelectTableColumns(IEnumerable<string> names, OfficeTableOptions? options) {
         if (options == null) return names.ToArray();
+        return OrderTableColumns(names.Where(name => (options.Include.Count == 0 || options.Include.Contains(name))
+            && !options.Exclude.Contains(name)), options);
+    }
+
+    private static string[] OrderTableColumns(IEnumerable<string> names, OfficeTableOptions options) {
         var order = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
         foreach (string name in options.Order)
             if (!order.ContainsKey(name)) order.Add(name, order.Count);
-        return names.Where(name => (options.Include.Count == 0 || options.Include.Contains(name)) && !options.Exclude.Contains(name))
-            .OrderBy(name => order.TryGetValue(name, out int index) ? index : int.MaxValue).ToArray();
+        return names.OrderBy(name => order.TryGetValue(name, out int index) ? index : int.MaxValue).ToArray();
     }
 
     internal static string GetTableHeader(string name, OfficeTableOptions? options) =>
@@ -28,7 +32,11 @@ internal static partial class ObjectDataHelpers {
         if (options == null) return;
         if (options.Include.Count != 0) target.IncludeProperties = options.Include.ToArray();
         target.ExcludeProperties = target.ExcludeProperties.Concat(options.Exclude).Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
-        if (options.Order.Count != 0) target.PinnedFirst = options.Order.Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
+        if (options.Order.Count != 0) {
+            target.PinnedFirst = options.Order.Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
+            if (target.Columns != null && target.Columns.Length > 0)
+                target.Columns = OrderTableColumns(target.Columns, options);
+        }
         foreach (var entry in options.Formatters) target.Formatters[entry.Key] = value => entry.Value(value);
         target.TableOptions = options;
     }

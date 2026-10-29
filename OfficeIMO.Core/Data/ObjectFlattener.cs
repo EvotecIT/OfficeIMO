@@ -627,8 +627,20 @@ namespace OfficeIMO.Data {
                 var joined = JoinCollectionValues(path, enumerable, opts.CollectionJoinWith, opts.MaxCollectionItems);
                 return ApplyFormatting(path, joined, opts);
             }
-            // ExpandRows handled in SheetBuilder
-            return enumerable;
+            return opts.CollectionMode == CollectionMode.ExpandRows
+                ? FormatExpandedCollection(path, enumerable, opts) : enumerable;
+        }
+
+        // Hosts expand this lazy sequence into rows. Format each selected element
+        // once here, alongside scalar/joined values, before a host appends its table.
+        private static IEnumerable<object?> FormatExpandedCollection(string path, IEnumerable source, ObjectFlattenerOptions options) {
+            int count = 0;
+            foreach (object? value in source) {
+                if (count++ >= options.MaxCollectionItems)
+                    throw new InvalidDataException($"The collection at '{path}' exceeds the {options.MaxCollectionItems}-item flattening limit.");
+                yield return ApplyFormatting(path, value, options);
+            }
+            if (count == 0) yield return ApplyFormatting(path, null, options);
         }
 
         private static string JoinCollectionValues(string path, IEnumerable enumerable, string separator, int maximumItems) {
