@@ -296,15 +296,15 @@ namespace OfficeIMO.PowerPoint {
             PowerPointTextStyleSpec body = context.Style(PowerPointTextRole.TableBody);
             PowerPointTextStyleSpec header = context.Style(PowerPointTextRole.TableHeader);
             double pad = context.Theme.TableCellPadding;
-            // Compact rows: two points smaller (not below the minimum) and half the vertical padding, the density
+            // Compact rows: two points smaller (not below the minimum) and a quarter of the vertical padding, the density
             // of a reference table, used when it keeps a long table on fewer slides.
             double size = bodySize ?? body.Size;
             if (table.Dense) size = Math.Min(size, Math.Max(body.Minimum, body.Size - 2D));
             var metrics = new TableMetrics {
                 BodySize = size,
                 HeaderSize = Math.Min(header.Size, size - 1D),
-                RowPad = table.Dense ? pad * 0.5D + 1D : pad + 2D,
-                HeaderPad = table.Dense ? pad * 0.5D + 2D : pad + 3D
+                RowPad = table.Dense ? pad * 0.25D + 1.5D : pad + 2D,
+                HeaderPad = table.Dense ? pad * 0.5D + 1.5D : pad + 3D
             };
             metrics.RowHeight = metrics.BodySize * body.LineHeight + 2D * metrics.RowPad;
             metrics.HeaderHeight = table.IncludeHeaders ? metrics.HeaderSize * header.LineHeight + 2D * metrics.HeaderPad : 0D;
