@@ -2,12 +2,12 @@
   "package": "OfficeIMO.Word",
   "status": "M0 change map, generated from the OfficeIMO 3.5.3 net8.0 build (b7d2cf5137) by reflection plus source lookup. Signatures are reflection renderings: default values are unquoted and \"CancellationToken cancellationToken = null\" means \"= default\".",
   "summary": {
-    "changes": 353,
+    "changes": 354,
     "byAction": {
-      "change": 145,
-      "internalize": 40,
+      "change": 136,
+      "internalize": 41,
       "keep": 1,
-      "merge": 125,
+      "merge": 134,
       "move": 1,
       "remove": 26,
       "rename": 15
@@ -20,7 +20,7 @@
       "options": 4,
       "package": 1,
       "units": 146,
-      "visibility": 40
+      "visibility": 41
     },
     "packageMoves": 3
   },
@@ -261,32 +261,313 @@
         "OfficeIMO.Word/WordHelpers.Converters.cs",
         "OfficeIMO.Word/WordHelpers.HeadersAndFooters.cs"
       ],
-      "why": "Helper type; used by tests and by WordHelpers.Converters/HeadersAndFooters partials.",
+      "why": "WordHelpers was already internalized in an earlier commit. Do not reapply the historical helper change.",
       "applied": "phase-b-applied",
       "analysis": {
         "id": "T:OfficeIMO.Word.WordHelpers",
         "kind": "type",
         "source": "SurfaceAnalysis",
         "membersHiddenWithType": 2
-      }
+      },
+      "reviewDisposition": "already-internal",
+      "currentTypes": [
+        {
+          "type": "OfficeIMO.Word.WordHelpers",
+          "assembly": "OfficeIMO.Word",
+          "visibility": "Abstract, Sealed, BeforeFieldInit"
+        }
+      ],
+      "evidence": [
+        "OfficeIMO.Word/WordHelpers.HeadersAndFooters.cs",
+        "OfficeIMO.Word/WordHelpers.Converters.cs"
+      ],
+      "reviewStatus": "scratch-only reviewed retention; no source visibility change"
     },
     {
       "type": "OfficeIMO.Word.WordDocumentSnapshot (+ 19 Word*Snapshot types)",
       "file": [
         "OfficeIMO.Word/WordInspectionSnapshot.cs"
       ],
-      "why": "Inspection snapshot consumed by Reader.Word, Word.GoogleDocs and Word.OpenDocument. Either internal with InternalsVisibleTo, or public read-only models renamed *Info per the naming rule."
+      "why": "WordDocumentSnapshot is now WordDocumentInfo. Retain the public Inspect result and all current inspection model types; the old snapshot name is absent.",
+      "reviewDisposition": "renamed-public-contract",
+      "currentTypes": [
+        {
+          "type": "OfficeIMO.Word.WordDocumentInfo",
+          "assembly": "OfficeIMO.Word",
+          "visibility": "Public, Sealed, BeforeFieldInit"
+        },
+        {
+          "type": "OfficeIMO.Word.WordSectionInfo",
+          "assembly": "OfficeIMO.Word",
+          "visibility": "Public, Sealed, BeforeFieldInit"
+        },
+        {
+          "type": "OfficeIMO.Word.WordParagraphInfo",
+          "assembly": "OfficeIMO.Word",
+          "visibility": "Public, Sealed, BeforeFieldInit"
+        },
+        {
+          "type": "OfficeIMO.Word.WordInlineFieldInfo",
+          "assembly": "OfficeIMO.Word",
+          "visibility": "Public, Sealed, BeforeFieldInit"
+        },
+        {
+          "type": "OfficeIMO.Word.WordRunInfo",
+          "assembly": "OfficeIMO.Word",
+          "visibility": "Public, Sealed, BeforeFieldInit"
+        },
+        {
+          "type": "OfficeIMO.Word.WordFootnoteInfo",
+          "assembly": "OfficeIMO.Word",
+          "visibility": "Public, Sealed, BeforeFieldInit"
+        },
+        {
+          "type": "OfficeIMO.Word.WordEndnoteInfo",
+          "assembly": "OfficeIMO.Word",
+          "visibility": "Public, Sealed, BeforeFieldInit"
+        },
+        {
+          "type": "OfficeIMO.Word.WordInlineImageInfo",
+          "assembly": "OfficeIMO.Word",
+          "visibility": "Public, Sealed, BeforeFieldInit"
+        },
+        {
+          "type": "OfficeIMO.Word.WordHeaderFooterInfo",
+          "assembly": "OfficeIMO.Word",
+          "visibility": "Public, Sealed, BeforeFieldInit"
+        },
+        {
+          "type": "OfficeIMO.Word.WordTableInfo",
+          "assembly": "OfficeIMO.Word",
+          "visibility": "Public, Sealed, BeforeFieldInit"
+        },
+        {
+          "type": "OfficeIMO.Word.WordTableRowInfo",
+          "assembly": "OfficeIMO.Word",
+          "visibility": "Public, Sealed, BeforeFieldInit"
+        },
+        {
+          "type": "OfficeIMO.Word.WordTableCellInfo",
+          "assembly": "OfficeIMO.Word",
+          "visibility": "Public, Sealed, BeforeFieldInit"
+        },
+        {
+          "type": "OfficeIMO.Word.WordTableCellBorderInfo",
+          "assembly": "OfficeIMO.Word",
+          "visibility": "Public, Sealed, BeforeFieldInit"
+        },
+        {
+          "type": "OfficeIMO.Word.WordParagraphBorderInfo",
+          "assembly": "OfficeIMO.Word",
+          "visibility": "Public, Sealed, BeforeFieldInit"
+        },
+        {
+          "type": "OfficeIMO.Word.WordTabStopInfo",
+          "assembly": "OfficeIMO.Word",
+          "visibility": "Public, Sealed, BeforeFieldInit"
+        }
+      ],
+      "evidence": [
+        "OfficeIMO.Word/WordInspectionSnapshot.cs",
+        "OfficeIMO.Word/WordDocument.Inspection.cs"
+      ],
+      "reviewStatus": "scratch-only reviewed retention; no source visibility change"
     },
     {
       "type": "OfficeIMO.Word.WordDocumentVisualSnapshot",
       "file": [
         "OfficeIMO.Word/Imaging/WordDocumentVisualSnapshot.cs"
       ],
-      "why": "Exposes OfficeIMO.Pdf.PdfTextSpan in its public surface, which keeps the PDF engine in Word's public contract."
+      "why": "WordDocumentVisualSnapshot is now OfficeIMO.Word.WordDocumentVisualInfo in OfficeIMO.Word.Pdf. Its PDF text span contract belongs to the adapter; no PDF engine exposure remains in the Word engine from this type.",
+      "reviewDisposition": "moved-renamed-public-contract",
+      "currentTypes": [
+        {
+          "type": "OfficeIMO.Word.WordDocumentVisualInfo",
+          "assembly": "OfficeIMO.Word.Pdf",
+          "visibility": "Public, Sealed, BeforeFieldInit"
+        }
+      ],
+      "evidence": [
+        "OfficeIMO.Word.Pdf/Imaging/WordDocumentVisualInfo.cs",
+        "OfficeIMO.Word.Pdf/Imaging/WordDocument.Imaging.cs"
+      ],
+      "reviewStatus": "scratch-only reviewed retention; no source visibility change"
     },
     {
       "type": "OfficeIMO.Word.LegacyDoc.* / OfficeIMO.Word.Legacy.* model types",
-      "why": "33 public legacy model types without the Word prefix."
+      "why": "Retain all 33 exact public LegacyDoc/Legacy namespace types listed here. They include the documented LegacyWordImporter, load/options/report and immutable recovered-content model contract; a missing Word prefix is not implementation-plumbing evidence.",
+      "reviewDisposition": "retained-public-contract",
+      "currentTypes": [
+        {
+          "type": "OfficeIMO.Word.LegacyDoc.LegacyDocImportOptions",
+          "assembly": "OfficeIMO.Word",
+          "visibility": "Public, Sealed, BeforeFieldInit"
+        },
+        {
+          "type": "OfficeIMO.Word.LegacyDoc.LegacyDocImportReport",
+          "assembly": "OfficeIMO.Word",
+          "visibility": "Public, Sealed, BeforeFieldInit"
+        },
+        {
+          "type": "OfficeIMO.Word.LegacyDoc.LegacyDocImportSummary",
+          "assembly": "OfficeIMO.Word",
+          "visibility": "Public, Sealed, BeforeFieldInit"
+        },
+        {
+          "type": "OfficeIMO.Word.LegacyDoc.LegacyDocLoadResult",
+          "assembly": "OfficeIMO.Word",
+          "visibility": "Public, Sealed, BeforeFieldInit"
+        },
+        {
+          "type": "OfficeIMO.Word.LegacyDoc.Model.LegacyDocCompoundFeature",
+          "assembly": "OfficeIMO.Word",
+          "visibility": "Public, Sealed, BeforeFieldInit"
+        },
+        {
+          "type": "OfficeIMO.Word.LegacyDoc.Model.LegacyDocCompoundFeatureKind",
+          "assembly": "OfficeIMO.Word",
+          "visibility": "Public, Sealed"
+        },
+        {
+          "type": "OfficeIMO.Word.LegacyDoc.Model.LegacyDocDocument",
+          "assembly": "OfficeIMO.Word",
+          "visibility": "Public, Sealed, BeforeFieldInit"
+        },
+        {
+          "type": "OfficeIMO.Word.LegacyDoc.Model.LegacyDocPreservedFeature",
+          "assembly": "OfficeIMO.Word",
+          "visibility": "Public, Sealed, BeforeFieldInit"
+        },
+        {
+          "type": "OfficeIMO.Word.LegacyDoc.Model.LegacyDocPreservedFeatureKind",
+          "assembly": "OfficeIMO.Word",
+          "visibility": "Public, Sealed"
+        },
+        {
+          "type": "OfficeIMO.Word.LegacyDoc.Model.LegacyDocUnsupportedFeature",
+          "assembly": "OfficeIMO.Word",
+          "visibility": "Public, Sealed, BeforeFieldInit"
+        },
+        {
+          "type": "OfficeIMO.Word.LegacyDoc.Model.LegacyDocUnsupportedFeatureKind",
+          "assembly": "OfficeIMO.Word",
+          "visibility": "Public, Sealed"
+        },
+        {
+          "type": "OfficeIMO.Word.LegacyDoc.Diagnostics.LegacyDocDiagnosticSeverity",
+          "assembly": "OfficeIMO.Word",
+          "visibility": "Public, Sealed"
+        },
+        {
+          "type": "OfficeIMO.Word.LegacyDoc.Diagnostics.LegacyDocImportDiagnostic",
+          "assembly": "OfficeIMO.Word",
+          "visibility": "Public, Sealed, BeforeFieldInit"
+        },
+        {
+          "type": "OfficeIMO.Word.Legacy.LegacyWordFormat",
+          "assembly": "OfficeIMO.Word",
+          "visibility": "Public, Sealed"
+        },
+        {
+          "type": "OfficeIMO.Word.Legacy.LegacyWordNoteKind",
+          "assembly": "OfficeIMO.Word",
+          "visibility": "Public, Sealed"
+        },
+        {
+          "type": "OfficeIMO.Word.Legacy.LegacyWordRunContent",
+          "assembly": "OfficeIMO.Word",
+          "visibility": "Public, Sealed, BeforeFieldInit"
+        },
+        {
+          "type": "OfficeIMO.Word.Legacy.LegacyWordImageContent",
+          "assembly": "OfficeIMO.Word",
+          "visibility": "Public, Sealed, BeforeFieldInit"
+        },
+        {
+          "type": "OfficeIMO.Word.Legacy.LegacyWordStyleContent",
+          "assembly": "OfficeIMO.Word",
+          "visibility": "Public, Sealed, BeforeFieldInit"
+        },
+        {
+          "type": "OfficeIMO.Word.Legacy.LegacyWordParagraphContent",
+          "assembly": "OfficeIMO.Word",
+          "visibility": "Public, Sealed, BeforeFieldInit"
+        },
+        {
+          "type": "OfficeIMO.Word.Legacy.LegacyWordNoteContent",
+          "assembly": "OfficeIMO.Word",
+          "visibility": "Public, Sealed, BeforeFieldInit"
+        },
+        {
+          "type": "OfficeIMO.Word.Legacy.LegacyWordResourceReference",
+          "assembly": "OfficeIMO.Word",
+          "visibility": "Public, Sealed, BeforeFieldInit"
+        },
+        {
+          "type": "OfficeIMO.Word.Legacy.LegacyWordContent",
+          "assembly": "OfficeIMO.Word",
+          "visibility": "Public, Sealed, BeforeFieldInit"
+        },
+        {
+          "type": "OfficeIMO.Word.Legacy.LegacyWordDetection",
+          "assembly": "OfficeIMO.Word",
+          "visibility": "Public, Sealed, BeforeFieldInit"
+        },
+        {
+          "type": "OfficeIMO.Word.Legacy.LegacyWordImportOptions",
+          "assembly": "OfficeIMO.Word",
+          "visibility": "Public, Sealed, BeforeFieldInit"
+        },
+        {
+          "type": "OfficeIMO.Word.Legacy.LegacyWordImportResult",
+          "assembly": "OfficeIMO.Word",
+          "visibility": "Public, Sealed, BeforeFieldInit"
+        },
+        {
+          "type": "OfficeIMO.Word.Legacy.LegacyWordImporter",
+          "assembly": "OfficeIMO.Word",
+          "visibility": "Public, Abstract, Sealed, BeforeFieldInit"
+        },
+        {
+          "type": "OfficeIMO.Word.Legacy.LegacyWordBlockContent",
+          "assembly": "OfficeIMO.Word",
+          "visibility": "Public, Abstract, BeforeFieldInit"
+        },
+        {
+          "type": "OfficeIMO.Word.Legacy.LegacyWordTableContent",
+          "assembly": "OfficeIMO.Word",
+          "visibility": "Public, Sealed, BeforeFieldInit"
+        },
+        {
+          "type": "OfficeIMO.Word.Legacy.LegacyWordTableRowContent",
+          "assembly": "OfficeIMO.Word",
+          "visibility": "Public, Sealed, BeforeFieldInit"
+        },
+        {
+          "type": "OfficeIMO.Word.Legacy.LegacyWordTableCellContent",
+          "assembly": "OfficeIMO.Word",
+          "visibility": "Public, Sealed, BeforeFieldInit"
+        },
+        {
+          "type": "OfficeIMO.Word.Legacy.LegacyWordHeaderFooterOccurrence",
+          "assembly": "OfficeIMO.Word",
+          "visibility": "Public, Sealed"
+        },
+        {
+          "type": "OfficeIMO.Word.Legacy.LegacyWordHeaderFooterContent",
+          "assembly": "OfficeIMO.Word",
+          "visibility": "Public, Sealed, BeforeFieldInit"
+        },
+        {
+          "type": "OfficeIMO.Word.Legacy.LegacyWordSectionContent",
+          "assembly": "OfficeIMO.Word",
+          "visibility": "Public, Sealed, BeforeFieldInit"
+        }
+      ],
+      "evidence": [
+        "OfficeIMO.Word/README.md"
+      ],
+      "reviewStatus": "scratch-only reviewed retention; no source visibility change"
     },
     {
       "type": "OfficeIMO.Word.WordImage attachment constructors",
@@ -513,6 +794,19 @@
         "kind": "type",
         "source": "SurfaceAnalysis",
         "membersHiddenWithType": 1
+      }
+    },
+    {
+      "type": "OfficeIMO.Word.WordColorNameResolver",
+      "file": [
+        "OfficeIMO.Word/WordColorNameResolver.cs"
+      ],
+      "why": "Unused color-name reflection helper, with no README/guide/example use, exposed model root or in-repository consumer. The canonical public color model remains OfficeColor. No conversion-route implementation is duplicated or reintroduced.",
+      "applied": "phase-b-proposed",
+      "analysis": {
+        "id": "T:OfficeIMO.Word.WordColorNameResolver",
+        "source": "SurfaceAnalysis existing theme-layout inventory",
+        "membersHiddenWithType": 2
       }
     }
   ],
@@ -6061,6 +6355,24 @@
       "phase": "B",
       "applied": "phase-b-applied",
       "note": "Nullable OfficeLength replaces signed int twips without aliases. Checked midpoint-away-from-zero twip rounding occurs before XML mutation; null, zero, malformed-value reads, layout defaults and native DOC limits are preserved. DOC/RTF boundaries, PDF/paragraph layout, inspection, PowerShell wiring and in-repository callers are migrated. Execution proof is recorded separately."
+    },
+    {
+      "old": "OfficeIMO.Word.WordColorNameResolver",
+      "kind": "type",
+      "action": "internalize",
+      "new": null,
+      "replacement": "Use OfficeIMO.OfficeColor for the public color model. This unused helper has no in-repository callers.",
+      "reason": "Unused color-name reflection helper, with no README/guide/example use, exposed model root or in-repository consumer. The canonical public color model remains OfficeColor. No conversion-route implementation is duplicated or reintroduced.",
+      "file": "OfficeIMO.Word/WordColorNameResolver.cs",
+      "category": "visibility",
+      "phase": "B",
+      "applied": "phase-b-proposed",
+      "analysis": {
+        "id": "T:OfficeIMO.Word.WordColorNameResolver",
+        "source": "SurfaceAnalysis existing theme-layout inventory",
+        "membersHiddenWithType": 2
+      },
+      "note": "Scratch-only candidate. Change one accessibility token; no consumer edits, wrappers, friends, dependency or target-framework changes. Compiler/API-analyzer validation remains pending."
     }
   ],
   "packageMoves": [

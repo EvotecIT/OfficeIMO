@@ -861,8 +861,6 @@ OfficeIMO.Word.WordCitationField
 OfficeIMO.Word.WordCitationField.SourceTag.get -> string?
 OfficeIMO.Word.WordCitationField.SourceTag.set -> void
 OfficeIMO.Word.WordCitationField.WordCitationField() -> void
-OfficeIMO.Word.WordColorNameResolver
-OfficeIMO.Word.WordColorNameResolver.WordColorNameResolver() -> void
 OfficeIMO.Word.WordComboBox
 OfficeIMO.Word.WordComboBox.Alias.get -> string?
 OfficeIMO.Word.WordComboBox.Items.get -> System.Collections.Generic.IReadOnlyList<string!>!
@@ -4987,7 +4985,6 @@ static OfficeIMO.Word.LegacyDoc.Model.LegacyDocDocument.Load(byte[]! bytes, Offi
 static OfficeIMO.Word.LegacyDoc.Model.LegacyDocDocument.Load(string! path, OfficeIMO.Word.LegacyDoc.LegacyDocImportOptions? options = null) -> OfficeIMO.Word.LegacyDoc.Model.LegacyDocDocument!
 static OfficeIMO.Word.WordBookmark.AddBookmark(OfficeIMO.Word.WordParagraph! paragraph, string! bookmarkName) -> OfficeIMO.Word.WordBookmark!
 static OfficeIMO.Word.WordCellComment.CanPreserveText(string! text) -> bool
-static OfficeIMO.Word.WordColorNameResolver.GetColorName(OfficeIMO.OfficeColor color) -> string!
 static OfficeIMO.Word.WordComment.Create(OfficeIMO.Word.WordDocument! document, string! author, string! initials, string! comment, OfficeIMO.Word.WordComment? parent = null) -> OfficeIMO.Word.WordComment!
 static OfficeIMO.Word.WordComment.GetAllComments(OfficeIMO.Word.WordDocument! document) -> System.Collections.Generic.List<OfficeIMO.Word.WordComment!>!
 static OfficeIMO.Word.WordComparisonOptions.Default.get -> OfficeIMO.Word.WordComparisonOptions!

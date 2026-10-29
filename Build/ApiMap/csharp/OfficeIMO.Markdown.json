@@ -211,15 +211,429 @@
     {
       "type": "OfficeIMO.Markdown.MarkdownNative* (MarkdownNativeDocument and ~45 *Snapshot/*Field types)",
       "file": "OfficeIMO.Markdown/Native/",
-      "why": "Native-renderer interchange model; consumed by OfficeIMO.MarkdownRenderer (+IntelligenceX). Keep public only if it is a documented renderer contract, else InternalsVisibleTo."
+      "why": "Retain the exact public MarkdownNative model family, including current *Info names. MarkdownNativeDocument.Parse/ToMarkdown is a documented user contract, and native renderer interchange and extension models remain public. The internal snapshot factory is already hidden.",
+      "reviewDisposition": "retained-public-renderer-contract",
+      "currentTypes": [
+        {
+          "type": "OfficeIMO.Markdown.MarkdownNativeAbbreviationDefinitionField",
+          "assembly": "OfficeIMO.Markdown",
+          "visibility": "Public, Sealed, BeforeFieldInit"
+        },
+        {
+          "type": "OfficeIMO.Markdown.MarkdownNativeBlockId",
+          "assembly": "OfficeIMO.Markdown",
+          "visibility": "Abstract, Sealed, BeforeFieldInit"
+        },
+        {
+          "type": "OfficeIMO.Markdown.MarkdownNativeBlockKind",
+          "assembly": "OfficeIMO.Markdown",
+          "visibility": "Public, Sealed"
+        },
+        {
+          "type": "OfficeIMO.Markdown.MarkdownNativeBlock",
+          "assembly": "OfficeIMO.Markdown",
+          "visibility": "Public, Abstract, BeforeFieldInit"
+        },
+        {
+          "type": "OfficeIMO.Markdown.MarkdownNativeParagraphBlock",
+          "assembly": "OfficeIMO.Markdown",
+          "visibility": "Public, Sealed, BeforeFieldInit"
+        },
+        {
+          "type": "OfficeIMO.Markdown.MarkdownNativeCodeBlock",
+          "assembly": "OfficeIMO.Markdown",
+          "visibility": "Public, Sealed, BeforeFieldInit"
+        },
+        {
+          "type": "OfficeIMO.Markdown.MarkdownNativeThematicBreakBlock",
+          "assembly": "OfficeIMO.Markdown",
+          "visibility": "Public, Sealed, BeforeFieldInit"
+        },
+        {
+          "type": "OfficeIMO.Markdown.MarkdownNativeVisualBlock",
+          "assembly": "OfficeIMO.Markdown",
+          "visibility": "Public, Sealed, BeforeFieldInit"
+        },
+        {
+          "type": "OfficeIMO.Markdown.MarkdownNativeTableBlock",
+          "assembly": "OfficeIMO.Markdown",
+          "visibility": "Public, Sealed, BeforeFieldInit"
+        },
+        {
+          "type": "OfficeIMO.Markdown.MarkdownNativeTableRow",
+          "assembly": "OfficeIMO.Markdown",
+          "visibility": "Public, Sealed, BeforeFieldInit"
+        },
+        {
+          "type": "OfficeIMO.Markdown.MarkdownNativeTablePipe",
+          "assembly": "OfficeIMO.Markdown",
+          "visibility": "Public, Sealed, BeforeFieldInit"
+        },
+        {
+          "type": "OfficeIMO.Markdown.MarkdownNativeTableAlignmentCell",
+          "assembly": "OfficeIMO.Markdown",
+          "visibility": "Public, Sealed, BeforeFieldInit"
+        },
+        {
+          "type": "OfficeIMO.Markdown.MarkdownNativeTableCell",
+          "assembly": "OfficeIMO.Markdown",
+          "visibility": "Public, Sealed, BeforeFieldInit"
+        },
+        {
+          "type": "OfficeIMO.Markdown.MarkdownNativeOtherBlock",
+          "assembly": "OfficeIMO.Markdown",
+          "visibility": "Public, Sealed, BeforeFieldInit"
+        },
+        {
+          "type": "OfficeIMO.Markdown.MarkdownNativeBlockSourceField",
+          "assembly": "OfficeIMO.Markdown",
+          "visibility": "Public, Sealed, BeforeFieldInit"
+        },
+        {
+          "type": "OfficeIMO.Markdown.MarkdownNativeQuoteBlock",
+          "assembly": "OfficeIMO.Markdown",
+          "visibility": "Public, Sealed, BeforeFieldInit"
+        },
+        {
+          "type": "OfficeIMO.Markdown.MarkdownNativeCalloutBlock",
+          "assembly": "OfficeIMO.Markdown",
+          "visibility": "Public, Sealed, BeforeFieldInit"
+        },
+        {
+          "type": "OfficeIMO.Markdown.MarkdownNativeCustomContainerBlock",
+          "assembly": "OfficeIMO.Markdown",
+          "visibility": "Public, Sealed, BeforeFieldInit"
+        },
+        {
+          "type": "OfficeIMO.Markdown.MarkdownNativeDetailsBlock",
+          "assembly": "OfficeIMO.Markdown",
+          "visibility": "Public, Sealed, BeforeFieldInit"
+        },
+        {
+          "type": "OfficeIMO.Markdown.MarkdownNativeFootnoteDefinitionBlock",
+          "assembly": "OfficeIMO.Markdown",
+          "visibility": "Public, Sealed, BeforeFieldInit"
+        },
+        {
+          "type": "OfficeIMO.Markdown.MarkdownNativeContainerSourceSpans",
+          "assembly": "OfficeIMO.Markdown",
+          "visibility": "Abstract, Sealed, BeforeFieldInit"
+        },
+        {
+          "type": "OfficeIMO.Markdown.MarkdownNativeHeadingBlock",
+          "assembly": "OfficeIMO.Markdown",
+          "visibility": "Public, Sealed, BeforeFieldInit"
+        },
+        {
+          "type": "OfficeIMO.Markdown.MarkdownNativeListBlock",
+          "assembly": "OfficeIMO.Markdown",
+          "visibility": "Public, Sealed, BeforeFieldInit"
+        },
+        {
+          "type": "OfficeIMO.Markdown.MarkdownNativeListItem",
+          "assembly": "OfficeIMO.Markdown",
+          "visibility": "Public, Sealed, BeforeFieldInit"
+        },
+        {
+          "type": "OfficeIMO.Markdown.MarkdownNativeListItemParagraph",
+          "assembly": "OfficeIMO.Markdown",
+          "visibility": "Public, Sealed, BeforeFieldInit"
+        },
+        {
+          "type": "OfficeIMO.Markdown.MarkdownNativeListItemId",
+          "assembly": "OfficeIMO.Markdown",
+          "visibility": "Abstract, Sealed, BeforeFieldInit"
+        },
+        {
+          "type": "OfficeIMO.Markdown.MarkdownNativeImageBlock",
+          "assembly": "OfficeIMO.Markdown",
+          "visibility": "Public, Sealed, BeforeFieldInit"
+        },
+        {
+          "type": "OfficeIMO.Markdown.MarkdownNativeFrontMatterBlock",
+          "assembly": "OfficeIMO.Markdown",
+          "visibility": "Public, Sealed, BeforeFieldInit"
+        },
+        {
+          "type": "OfficeIMO.Markdown.MarkdownNativeHtmlBlock",
+          "assembly": "OfficeIMO.Markdown",
+          "visibility": "Public, Sealed, BeforeFieldInit"
+        },
+        {
+          "type": "OfficeIMO.Markdown.MarkdownNativeDefinitionListBlock",
+          "assembly": "OfficeIMO.Markdown",
+          "visibility": "Public, Sealed, BeforeFieldInit"
+        },
+        {
+          "type": "OfficeIMO.Markdown.MarkdownNativeDefinitionListGroup",
+          "assembly": "OfficeIMO.Markdown",
+          "visibility": "Public, Sealed, BeforeFieldInit"
+        },
+        {
+          "type": "OfficeIMO.Markdown.MarkdownNativeDefinitionListTerm",
+          "assembly": "OfficeIMO.Markdown",
+          "visibility": "Public, Sealed, BeforeFieldInit"
+        },
+        {
+          "type": "OfficeIMO.Markdown.MarkdownNativeDefinitionListDefinition",
+          "assembly": "OfficeIMO.Markdown",
+          "visibility": "Public, Sealed, BeforeFieldInit"
+        },
+        {
+          "type": "OfficeIMO.Markdown.MarkdownNativeDiagnosticSeverity",
+          "assembly": "OfficeIMO.Markdown",
+          "visibility": "Public, Sealed"
+        },
+        {
+          "type": "OfficeIMO.Markdown.MarkdownNativeDiagnostic",
+          "assembly": "OfficeIMO.Markdown",
+          "visibility": "Public, Sealed, BeforeFieldInit"
+        },
+        {
+          "type": "OfficeIMO.Markdown.MarkdownNativeDocument",
+          "assembly": "OfficeIMO.Markdown",
+          "visibility": "Public, Sealed, BeforeFieldInit"
+        },
+        {
+          "type": "OfficeIMO.Markdown.MarkdownNativeDocumentSourceKind",
+          "assembly": "OfficeIMO.Markdown",
+          "visibility": "Public, Sealed"
+        },
+        {
+          "type": "OfficeIMO.Markdown.MarkdownNativeFenceInfoSourceSpans",
+          "assembly": "OfficeIMO.Markdown",
+          "visibility": "Abstract, Sealed, BeforeFieldInit"
+        },
+        {
+          "type": "OfficeIMO.Markdown.MarkdownNativeInlineId",
+          "assembly": "OfficeIMO.Markdown",
+          "visibility": "Abstract, Sealed, BeforeFieldInit"
+        },
+        {
+          "type": "OfficeIMO.Markdown.MarkdownNativeInlineKind",
+          "assembly": "OfficeIMO.Markdown",
+          "visibility": "Public, Sealed"
+        },
+        {
+          "type": "OfficeIMO.Markdown.MarkdownNativeInlineMetadata",
+          "assembly": "OfficeIMO.Markdown",
+          "visibility": "Public, Sealed, BeforeFieldInit"
+        },
+        {
+          "type": "OfficeIMO.Markdown.MarkdownNativeInline",
+          "assembly": "OfficeIMO.Markdown",
+          "visibility": "Public, Sealed, BeforeFieldInit"
+        },
+        {
+          "type": "OfficeIMO.Markdown.MarkdownNativeInlineProjection",
+          "assembly": "OfficeIMO.Markdown",
+          "visibility": "Abstract, Sealed, BeforeFieldInit"
+        },
+        {
+          "type": "OfficeIMO.Markdown.MarkdownNativeProjectionFactory",
+          "assembly": "OfficeIMO.Markdown",
+          "visibility": "Abstract, Sealed, BeforeFieldInit"
+        },
+        {
+          "type": "OfficeIMO.Markdown.MarkdownNativeReferenceLinkDefinitionField",
+          "assembly": "OfficeIMO.Markdown",
+          "visibility": "Public, Sealed, BeforeFieldInit"
+        },
+        {
+          "type": "OfficeIMO.Markdown.MarkdownNativeSnapshotFactory",
+          "assembly": "OfficeIMO.Markdown",
+          "visibility": "Abstract, Sealed, BeforeFieldInit"
+        },
+        {
+          "type": "OfficeIMO.Markdown.MarkdownNativeDocumentInfo",
+          "assembly": "OfficeIMO.Markdown",
+          "visibility": "Public, Sealed, BeforeFieldInit"
+        },
+        {
+          "type": "OfficeIMO.Markdown.MarkdownNativeSourceTriviaInfo",
+          "assembly": "OfficeIMO.Markdown",
+          "visibility": "Public, Sealed, BeforeFieldInit"
+        },
+        {
+          "type": "OfficeIMO.Markdown.MarkdownNativeReferenceLinkDefinitionInfo",
+          "assembly": "OfficeIMO.Markdown",
+          "visibility": "Public, Sealed, BeforeFieldInit"
+        },
+        {
+          "type": "OfficeIMO.Markdown.MarkdownNativeReferenceLinkDefinitionFieldInfo",
+          "assembly": "OfficeIMO.Markdown",
+          "visibility": "Public, Sealed, BeforeFieldInit"
+        },
+        {
+          "type": "OfficeIMO.Markdown.MarkdownNativeAbbreviationDefinitionInfo",
+          "assembly": "OfficeIMO.Markdown",
+          "visibility": "Public, Sealed, BeforeFieldInit"
+        },
+        {
+          "type": "OfficeIMO.Markdown.MarkdownNativeAbbreviationDefinitionFieldInfo",
+          "assembly": "OfficeIMO.Markdown",
+          "visibility": "Public, Sealed, BeforeFieldInit"
+        },
+        {
+          "type": "OfficeIMO.Markdown.MarkdownNativeBlockInfo",
+          "assembly": "OfficeIMO.Markdown",
+          "visibility": "Public, Sealed, BeforeFieldInit"
+        },
+        {
+          "type": "OfficeIMO.Markdown.MarkdownNativeBlockSourceFieldInfo",
+          "assembly": "OfficeIMO.Markdown",
+          "visibility": "Public, Sealed, BeforeFieldInit"
+        },
+        {
+          "type": "OfficeIMO.Markdown.MarkdownNativeDefinitionListGroupInfo",
+          "assembly": "OfficeIMO.Markdown",
+          "visibility": "Public, Sealed, BeforeFieldInit"
+        },
+        {
+          "type": "OfficeIMO.Markdown.MarkdownNativeDefinitionListTermInfo",
+          "assembly": "OfficeIMO.Markdown",
+          "visibility": "Public, Sealed, BeforeFieldInit"
+        },
+        {
+          "type": "OfficeIMO.Markdown.MarkdownNativeDefinitionListDefinitionInfo",
+          "assembly": "OfficeIMO.Markdown",
+          "visibility": "Public, Sealed, BeforeFieldInit"
+        },
+        {
+          "type": "OfficeIMO.Markdown.MarkdownNativeInlineInfo",
+          "assembly": "OfficeIMO.Markdown",
+          "visibility": "Public, Sealed, BeforeFieldInit"
+        },
+        {
+          "type": "OfficeIMO.Markdown.MarkdownNativeInlineMetadataInfo",
+          "assembly": "OfficeIMO.Markdown",
+          "visibility": "Public, Sealed, BeforeFieldInit"
+        },
+        {
+          "type": "OfficeIMO.Markdown.MarkdownNativeListItemInfo",
+          "assembly": "OfficeIMO.Markdown",
+          "visibility": "Public, Sealed, BeforeFieldInit"
+        },
+        {
+          "type": "OfficeIMO.Markdown.MarkdownNativeListItemParagraphInfo",
+          "assembly": "OfficeIMO.Markdown",
+          "visibility": "Public, Sealed, BeforeFieldInit"
+        },
+        {
+          "type": "OfficeIMO.Markdown.MarkdownNativeTableRowInfo",
+          "assembly": "OfficeIMO.Markdown",
+          "visibility": "Public, Sealed, BeforeFieldInit"
+        },
+        {
+          "type": "OfficeIMO.Markdown.MarkdownNativeTableCellInfo",
+          "assembly": "OfficeIMO.Markdown",
+          "visibility": "Public, Sealed, BeforeFieldInit"
+        },
+        {
+          "type": "OfficeIMO.Markdown.MarkdownNativeSourceSpanInfo",
+          "assembly": "OfficeIMO.Markdown",
+          "visibility": "Public, Sealed, BeforeFieldInit"
+        },
+        {
+          "type": "OfficeIMO.Markdown.MarkdownNativeDiagnosticInfo",
+          "assembly": "OfficeIMO.Markdown",
+          "visibility": "Public, Sealed, BeforeFieldInit"
+        },
+        {
+          "type": "OfficeIMO.Markdown.MarkdownNativeSourceEdit",
+          "assembly": "OfficeIMO.Markdown",
+          "visibility": "Public, Sealed, BeforeFieldInit"
+        },
+        {
+          "type": "OfficeIMO.Markdown.MarkdownNativeSourceTriviaKind",
+          "assembly": "OfficeIMO.Markdown",
+          "visibility": "Public, Sealed"
+        },
+        {
+          "type": "OfficeIMO.Markdown.MarkdownNativeSourceTrivia",
+          "assembly": "OfficeIMO.Markdown",
+          "visibility": "Public, Sealed, BeforeFieldInit"
+        },
+        {
+          "type": "OfficeIMO.Markdown.MarkdownNativeVisualPayload",
+          "assembly": "OfficeIMO.Markdown",
+          "visibility": "Public, Sealed, BeforeFieldInit"
+        },
+        {
+          "type": "OfficeIMO.Markdown.MarkdownNativeVisualPayloadFormat",
+          "assembly": "OfficeIMO.Markdown",
+          "visibility": "Public, Sealed"
+        }
+      ],
+      "evidence": [
+        "OfficeIMO.Markdown/README.md",
+        "OfficeIMO.MarkdownRenderer/README.md",
+        "OfficeIMO.MarkdownRenderer.SamplePlugin/SampleMarkdownRenderer.cs"
+      ],
+      "reviewStatus": "scratch-only reviewed retention; no source visibility change"
     },
     {
       "type": "OfficeIMO.Markdown.MarkdownIntelligenceX* transforms",
-      "why": "Product-specific (IntelligenceX) transforms in the core Markdown package."
+      "why": "The exact two public transform implementations implement IMarkdownDocumentTransform and occur in MarkdownTranscriptPreparation output and renderer migration. Their material external construction/type-identity boundary is uncertain; leave both public instead of turning the product-specific name into a visibility decision.",
+      "reviewDisposition": "retained-uncertain-public-extension-boundary",
+      "currentTypes": [
+        {
+          "type": "OfficeIMO.Markdown.MarkdownIntelligenceXCachedToolEvidenceMarkerTransform",
+          "assembly": "OfficeIMO.Markdown",
+          "visibility": "Public, Sealed, BeforeFieldInit"
+        },
+        {
+          "type": "OfficeIMO.Markdown.MarkdownIntelligenceXLegacyToolHeadingTransform",
+          "assembly": "OfficeIMO.Markdown",
+          "visibility": "Public, Sealed, BeforeFieldInit"
+        }
+      ],
+      "evidence": [
+        "OfficeIMO.Markdown/Utilities/MarkdownTranscriptPreparation.cs",
+        "OfficeIMO.MarkdownRenderer/MarkdownRendererIntelligenceXLegacyMigration.cs"
+      ],
+      "reviewStatus": "scratch-only reviewed retention; no source visibility change"
     },
     {
       "type": "OfficeIMO.Markdown.HtmlAssetMerger / HtmlAsset / HtmlAssetKind / CssDelivery / AssetMode",
-      "why": "HTML rendering plumbing exposed publicly without the Markdown prefix."
+      "why": "The original unprefixed assets are now MarkdownHtmlAssetMerger, MarkdownHtmlAsset, MarkdownHtmlAssetKind, MarkdownCssDelivery and MarkdownAssetMode. Retain the rendering/configuration contract exercised by the fragment/style example; the prefix migration is already done.",
+      "reviewDisposition": "renamed-public-contract",
+      "currentTypes": [
+        {
+          "type": "OfficeIMO.Markdown.MarkdownAssetMode",
+          "assembly": "OfficeIMO.Markdown",
+          "visibility": "Public, Sealed"
+        },
+        {
+          "type": "OfficeIMO.Markdown.MarkdownCssDelivery",
+          "assembly": "OfficeIMO.Markdown",
+          "visibility": "Public, Sealed"
+        },
+        {
+          "type": "OfficeIMO.Markdown.MarkdownHtmlAsset",
+          "assembly": "OfficeIMO.Markdown",
+          "visibility": "Public, Sealed, BeforeFieldInit"
+        },
+        {
+          "type": "OfficeIMO.Markdown.MarkdownHtmlAssetKind",
+          "assembly": "OfficeIMO.Markdown",
+          "visibility": "Public, Sealed"
+        },
+        {
+          "type": "OfficeIMO.Markdown.MarkdownHtmlAssetMerger",
+          "assembly": "OfficeIMO.Markdown",
+          "visibility": "Public, Abstract, Sealed, BeforeFieldInit"
+        }
+      ],
+      "evidence": [
+        "OfficeIMO.Markdown/Utilities/HtmlAssetMerger.cs",
+        "OfficeIMO.Markdown/Utilities/HtmlAsset.cs",
+        "OfficeIMO.Markdown/Utilities/HtmlAssetKind.cs",
+        "OfficeIMO.Markdown/Options/CssDelivery.cs",
+        "OfficeIMO.Markdown/Options/AssetMode.cs",
+        "OfficeIMO.Examples/Markdown/Markdown03_Html_FragmentsAndStyles.cs"
+      ],
+      "reviewStatus": "scratch-only reviewed retention; no source visibility change"
     },
     {
       "type": "OfficeIMO.Markdown.MarkdownBlankLines",
@@ -458,7 +872,7 @@
       "file": [
         "OfficeIMO.Markdown/Utilities/MarkdownTranscriptPreparation.cs"
       ],
-      "why": "No documentation reference or exposed model signature",
+      "why": "Retained documented transcript factory and external renderer plug-in contract. Existing public APIs stay public; no plug-in friend access.",
       "applied": "phase-b-retained-public",
       "analysis": {
         "id": "T:OfficeIMO.Markdown.MarkdownTranscriptPreparation",
@@ -466,7 +880,8 @@
         "source": "SurfaceAnalysis",
         "membersHiddenWithType": 8
       },
-      "notes": "The public factory or plug-in contract is documented by OfficeIMO.Word.Markdown/README.md. Documentation indexing now includes cross-package READMEs and the supported plug-in example."
+      "notes": "The public factory or plug-in contract is documented by OfficeIMO.Word.Markdown/README.md. Documentation indexing now includes cross-package READMEs and the supported plug-in example.",
+      "reviewDisposition": "retained-public-factory-or-plugin-contract"
     },
     {
       "type": "OfficeIMO.Markdown.MarkdownTranscriptTransportMarkers",
@@ -487,7 +902,7 @@
       "file": [
         "OfficeIMO.Markdown/Visuals/MarkdownVisualElement.cs"
       ],
-      "why": "No documentation reference or exposed model signature",
+      "why": "Retained documented transcript factory and external renderer plug-in contract. Existing public APIs stay public; no plug-in friend access.",
       "applied": "phase-b-retained-public",
       "analysis": {
         "id": "T:OfficeIMO.Markdown.MarkdownVisualElementContract",
@@ -495,7 +910,8 @@
         "source": "SurfaceAnalysis",
         "membersHiddenWithType": 17
       },
-      "notes": "The public factory or plug-in contract is documented by OfficeIMO.MarkdownRenderer.SamplePlugin/SampleMarkdownRenderer.cs. Documentation indexing now includes cross-package READMEs and the supported plug-in example."
+      "notes": "The public factory or plug-in contract is documented by OfficeIMO.MarkdownRenderer.SamplePlugin/SampleMarkdownRenderer.cs. Documentation indexing now includes cross-package READMEs and the supported plug-in example.",
+      "reviewDisposition": "retained-public-factory-or-plugin-contract"
     }
   ],
   "frameworks": {
