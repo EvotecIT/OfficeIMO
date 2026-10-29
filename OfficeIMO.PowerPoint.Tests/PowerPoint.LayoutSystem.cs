@@ -369,16 +369,17 @@ namespace OfficeIMO.Tests {
                 ?? throw new InvalidOperationException("Chart space missing.");
             Assert.NotNull(space.GetFirstChild<DocumentFormat.OpenXml.Drawing.Charts.ShapeProperties>()?.GetFirstChild<A.NoFill>());
 
-            var labels = chart.GetChart().Descendants<DocumentFormat.OpenXml.Drawing.Charts.DataLabel>().ToList();
-            if (chart.GetChart().Descendants<DocumentFormat.OpenXml.Drawing.Charts.ShowPercent>().Any(p => p.Val?.Value == true) ||
-                chart.GetChart().Descendants<DocumentFormat.OpenXml.Drawing.Charts.ShowValue>().Any(v => v.Val?.Value == true)) {
-                Assert.Equal(4, labels.Count);
-                foreach (var label in labels) {
-                    int index = (int)label.Index!.Val!.Value;
-                    string fill = presentation.LayoutTheme.Accent(index % 6 + 1);
-                    string color = label.Descendants<A.RgbColorModelHex>().Last().Val!.Value!;
-                    Assert.True(PowerPointLayoutTheme.Contrast(color, fill) >= 4.5D || color == presentation.LayoutTheme.Text);
-                }
+            // Every slice carries its share. One label colour serves all slices (per-slice label formatting does
+            // not survive every renderer), so it must reach large-text contrast (3:1 at 14 pt bold) on each slice.
+            var dataLabels = chart.GetChart().Descendants<DocumentFormat.OpenXml.Drawing.Charts.DataLabels>().ToList();
+            Assert.Contains(dataLabels, l => l.GetFirstChild<DocumentFormat.OpenXml.Drawing.Charts.ShowPercent>()?.Val?.Value == true);
+            Assert.Empty(chart.GetChart().Descendants<DocumentFormat.OpenXml.Drawing.Charts.DataLabel>());
+            var run = dataLabels.SelectMany(l => l.Descendants<A.DefaultRunProperties>()).First();
+            Assert.Equal(1400, run.FontSize!.Value);
+            string color = run.Descendants<A.RgbColorModelHex>().Last().Val!.Value!;
+            for (int index = 0; index < 4; index++) {
+                Assert.True(PowerPointLayoutTheme.Contrast(color, presentation.LayoutTheme.Accent(index + 1)) >= 3D,
+                    "Slice " + index + " label contrast is below 3:1.");
             }
 
             Assert.Empty(presentation.ValidateDocument());

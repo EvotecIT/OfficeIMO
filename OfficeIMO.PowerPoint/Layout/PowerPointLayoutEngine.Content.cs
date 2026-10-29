@@ -554,7 +554,12 @@ namespace OfficeIMO.PowerPoint {
             // The chart sits on the slide surface: no chart-area fill or frame.
             result.SetChartAreaStyle(noFill: true, noLine: true);
             if (chart.Kind is OfficeChartKind.Pie or OfficeChartKind.Doughnut) {
-                ContrastSliceLabels(context, result, chart);
+                // Readers get the share on each slice; the legend names the slices.
+                result.SetDataLabels(showValue: false, showPercent: true);
+                result.SetDataLabelNumberFormat("0%");
+                result.SetDataLabelTextStyle(fontSizePoints: SliceLabelSize, bold: true, color: SliceLabelColor(context, chart));
+                result.SetLegend(OfficeChartLegendPosition.Bottom);
+                result.SetLegendTextStyle(fontSizePoints: ChartTextSize, color: context.Theme.TextMuted);
                 return;
             }
 
@@ -573,6 +578,8 @@ namespace OfficeIMO.PowerPoint {
                 else result.SetSeriesFillColor(i, accent);
             }
 
+            StyleCategoryChart(context, result, chart);
+
             // One series needs no legend; several get theirs at the top, under the title.
             DocumentFormat.OpenXml.Drawing.Charts.Legend? legend = result.GetChart().GetFirstChild<DocumentFormat.OpenXml.Drawing.Charts.Legend>();
             if (chart.Data.Series.Count <= 1) {
@@ -580,24 +587,143 @@ namespace OfficeIMO.PowerPoint {
                 result.Save();
             } else {
                 result.SetLegend(OfficeChartLegendPosition.Top);
+                result.SetLegendTextStyle(fontSizePoints: ChartTextSize, color: context.Theme.TextMuted);
             }
         }
 
+        /// <summary>Axis and label text on layout charts (powerpoint-layouts.json, charts.axisText).</summary>
+        private const double ChartTextSize = 11D;
+
         /// <summary>
-        ///     Pie and doughnut labels sit on their slice: each takes white or the theme text colour, whichever reads
-        ///     on that slice's accent fill.
+        ///     The layout chart look for category charts: 11 pt muted axis text, hairline value gridlines on a rounded
+        ///     scale of four or five steps, value labels when one series has few points, and straight lines with
+        ///     open markers.
         /// </summary>
-        private static void ContrastSliceLabels(PowerPointLayoutContext context, PowerPointChart result, PowerPointLayoutChart chart) {
-            bool labelled = result.GetChart().Descendants<DocumentFormat.OpenXml.Drawing.Charts.DataLabels>().Any(labels =>
-                labels.GetFirstChild<DocumentFormat.OpenXml.Drawing.Charts.ShowValue>()?.Val?.Value == true ||
-                labels.GetFirstChild<DocumentFormat.OpenXml.Drawing.Charts.ShowPercent>()?.Val?.Value == true);
-            if (!labelled || chart.Data.Series.Count == 0) return;
-            int points = chart.Data.Categories.Count;
-            for (int i = 0; i < points; i++) {
-                string fill = context.Theme.Accent(i % 6 + 1);
-                string color = PowerPointLayoutTheme.Contrast("FFFFFF", fill) >= 4.5D ? "FFFFFF" : context.Theme.Text;
-                result.SetSeriesDataLabelTextStyleForPoint(0, i, color: color);
+        private static void StyleCategoryChart(PowerPointLayoutContext context, PowerPointChart result, PowerPointLayoutChart chart) {
+            if (chart.Kind is OfficeChartKind.Scatter or OfficeChartKind.Bubble or OfficeChartKind.Radar) return;
+            PowerPointLayoutTheme theme = context.Theme;
+            result.SetCategoryAxisLabelTextStyle(fontSizePoints: ChartTextSize, color: theme.TextMuted);
+            result.SetValueAxisLabelTextStyle(fontSizePoints: ChartTextSize, color: theme.TextMuted);
+            result.SetValueAxisGridlines(showMajor: true, showMinor: false, lineColor: theme.Hairline, lineWidthPoints: 0.75D);
+
+            bool secondary = chart.Data.Series.Any(series => series.AxisGroup == OfficeChartAxisGroup.Secondary);
+            bool stacked100 = chart.Kind is OfficeChartKind.ColumnStacked100 or OfficeChartKind.BarStacked100 or
+                OfficeChartKind.LineStacked100 or OfficeChartKind.AreaStacked100;
+            bool single = chart.Data.Series.Count == 1 && chart.Data.Categories.Count <= 8 && !stacked100;
+            if (!secondary && !stacked100 && NiceScale(chart, single) is (double minimum, double maximum, double step)) {
+                result.SetValueAxisScale(minimum, maximum, step);
             }
+
+            for (int i = 0; i < chart.Data.Series.Count && i < 6; i++) {
+                OfficeChartSeries series = chart.Data.Series[i];
+                OfficeChartKind kind = series.RenderKind ?? chart.Kind;
+                if (kind is OfficeChartKind.Line or OfficeChartKind.LineStacked or OfficeChartKind.LineStacked100) {
+                    if (series.Color == null && series.SeriesStyle == null) {
+                        string accent = theme.Accent(i + 1);
+                        if (series.ShowMarkers || single) result.SetSeriesMarker(i, OfficeChartMarkerShape.Circle, 6, theme.Background, accent, 1.5D);
+                    }
+                }
+            }
+
+            StraightLines(result);
+
+            if (single) {
+                OfficeChartKind kind = chart.Data.Series[0].RenderKind ?? chart.Kind;
+                bool line = kind is OfficeChartKind.Line or OfficeChartKind.LineStacked;
+                bool area = kind is OfficeChartKind.Area or OfficeChartKind.AreaStacked;
+                if (!area) {
+                    result.SetDataLabels(showValue: true);
+                    result.SetDataLabelPosition(line ? OfficeChartDataLabelPosition.Top : OfficeChartDataLabelPosition.OutsideEnd);
+                    result.SetDataLabelTextStyle(fontSizePoints: ChartTextSize, bold: true, color: theme.Text);
+                }
+            }
+        }
+
+        /// <summary>Writes explicit unsmoothed lines, so no renderer curves a series between its points.</summary>
+        private static void StraightLines(PowerPointChart result) {
+            bool changed = false;
+            foreach (var series in result.GetChart().Descendants<DocumentFormat.OpenXml.Drawing.Charts.LineChartSeries>().ToList()) {
+                DocumentFormat.OpenXml.Drawing.Charts.Smooth? smooth = series.GetFirstChild<DocumentFormat.OpenXml.Drawing.Charts.Smooth>();
+                if (smooth != null) {
+                    if (smooth.Val?.Value == false) continue;
+                    smooth.Val = false;
+                } else {
+                    smooth = new DocumentFormat.OpenXml.Drawing.Charts.Smooth { Val = false };
+                    DocumentFormat.OpenXml.OpenXmlElement? extensions = series.ChildElements.FirstOrDefault(child => child.LocalName == "extLst");
+                    if (extensions != null) series.InsertBefore(smooth, extensions);
+                    else series.Append(smooth);
+                }
+                changed = true;
+            }
+            if (changed) result.Save();
+        }
+
+        /// <summary>
+        ///     A value axis of four to six round steps. Bars and columns start at zero; a line whose values sit far
+        ///     from zero gets a band around its data so the trend is readable. Headroom keeps value labels inside.
+        /// </summary>
+        internal static (double Minimum, double Maximum, double Step)? NiceScale(PowerPointLayoutChart chart, bool labelled) {
+            bool stacked = chart.Kind is OfficeChartKind.ColumnStacked or OfficeChartKind.BarStacked or OfficeChartKind.LineStacked or
+                OfficeChartKind.AreaStacked;
+            var values = new List<double>();
+            if (stacked) {
+                for (int c = 0; c < chart.Data.Categories.Count; c++) {
+                    double positive = 0D, negative = 0D;
+                    foreach (OfficeChartSeries series in chart.Data.Series) {
+                        if (c >= series.Values.Count || double.IsNaN(series.Values[c])) continue;
+                        if (series.Values[c] >= 0D) positive += series.Values[c]; else negative += series.Values[c];
+                    }
+                    values.Add(positive);
+                    values.Add(negative);
+                }
+            } else {
+                values.AddRange(chart.Data.Series.SelectMany(series => series.Values).Where(value => !double.IsNaN(value) && !double.IsInfinity(value)));
+            }
+
+            if (values.Count == 0) return null;
+            double min = values.Min(), max = values.Max();
+            if (max <= min && max == 0D) return null;
+            bool line = chart.Kind is OfficeChartKind.Line or OfficeChartKind.LineStacked;
+            double headroom = labelled ? 1.12D : 1.04D;
+            if (line && min > 0D && min >= max * 0.5D) {
+                double span = Math.Max(max - min, max * 0.05D);
+                double step = NiceStep(span * 1.6D / 4D);
+                double low = Math.Max(0D, Math.Floor((min - span * 0.3D) / step) * step);
+                double high = Math.Ceiling((max + span * (labelled ? 0.25D : 0.1D)) / step) * step;
+                return (low, high, step);
+            }
+
+            double lowEnd = Math.Min(0D, min);
+            double highEnd = Math.Max(0D, max);
+            double unit = NiceStep((highEnd * headroom - lowEnd * headroom) / 4D);
+            if (unit <= 0D) return null;
+            double minimum = lowEnd < 0D ? Math.Floor(lowEnd * headroom / unit) * unit : 0D;
+            double maximum = highEnd > 0D ? Math.Ceiling(highEnd * headroom / unit) * unit : 0D;
+            if (maximum <= minimum) return null;
+            return (minimum, maximum, unit);
+        }
+
+        private static double NiceStep(double raw) {
+            if (raw <= 0D || double.IsNaN(raw) || double.IsInfinity(raw)) return 0D;
+            double magnitude = Math.Pow(10D, Math.Floor(Math.Log10(raw)));
+            double fraction = raw / magnitude;
+            double nice = fraction <= 1D ? 1D : fraction <= 2D ? 2D : fraction <= 2.5D ? 2.5D : fraction <= 5D ? 5D : 10D;
+            return nice * magnitude;
+        }
+
+        /// <summary>Slice labels are large text (14 pt bold), so 3:1 against every slice is readable.</summary>
+        private const double SliceLabelSize = 14D;
+
+        /// <summary>
+        ///     One label colour for every slice (a per-slice colour is not portable across renderers): white or the
+        ///     theme ink, whichever keeps the better worst-case contrast over the slice accents in use.
+        /// </summary>
+        private static string SliceLabelColor(PowerPointLayoutContext context, PowerPointLayoutChart chart) {
+            int points = Math.Max(1, Math.Min(6, chart.Data.Categories.Count));
+            string[] fills = Enumerable.Range(1, points).Select(context.Theme.Accent).ToArray();
+            double white = fills.Min(fill => PowerPointLayoutTheme.Contrast("FFFFFF", fill));
+            double ink = fills.Min(fill => PowerPointLayoutTheme.Contrast(context.Theme.Ink, fill));
+            return white >= ink ? "FFFFFF" : context.Theme.Ink;
         }
 
         /// <summary>Pictures keep their aspect ratio: contained in the box (top-left) or cover-cropped around the focal point.</summary>
