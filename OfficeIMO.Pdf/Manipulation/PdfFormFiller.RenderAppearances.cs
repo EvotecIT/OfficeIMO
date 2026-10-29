@@ -76,14 +76,14 @@ internal static partial class PdfFormFiller {
                         text = lookup.ResolveDisplayValue(text) ?? text;
                     }
                     if (!TryBuildTransientTextAppearance(objects, defaultAppearance, defaultResources, width, height,
-                            text, style, out content, out resources, maximumDecodedBytes, cancellationToken)) return false;
+                            text, style, out content, out resources, maximumDecodedBytes, maximumVisibleTextCharacters, cancellationToken)) return false;
                     break;
                 case "Btn":
                     if ((fieldFlags & PushButtonFlag) != 0) {
                         string caption = characteristics == null ? string.Empty : TryReadText(objects, characteristics, "CA") ?? string.Empty;
                         style.TextAlignment = PdfFormFieldTextAlignment.Center;
                         if (!TryBuildTransientTextAppearance(objects, defaultAppearance, defaultResources, width, height,
-                                caption, style, out content, out resources, maximumDecodedBytes, cancellationToken)) return false;
+                                caption, style, out content, out resources, maximumDecodedBytes, maximumVisibleTextCharacters, cancellationToken)) return false;
                         break;
                     }
                     string? state = TryReadName(objects, widget, "AS") ?? (value as PdfName)?.Name;

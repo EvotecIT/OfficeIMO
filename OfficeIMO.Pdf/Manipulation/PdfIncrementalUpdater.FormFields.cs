@@ -345,7 +345,7 @@ internal static partial class PdfIncrementalUpdater {
                 }
                 SetIncrementalTextWidgetAppearances(objects, field, preparedValue.AppearanceValue, fieldFlags, fieldQuadding, fieldMaxLength,
                     defaultResources, defaultAppearance, preparedValue.ForceMultilineAppearance, changedObjectNumbers, new HashSet<int>(),
-                    ref nextObjectNumber, ref helveticaFontObjectNumber, choiceAppearance, maximumDecodedBytes, cancellationToken);
+                    ref nextObjectNumber, ref helveticaFontObjectNumber, choiceAppearance, maximumDecodedBytes, maximumVisibleTextCharacters, cancellationToken);
             }
 
             remaining.Remove(fullName);
@@ -384,6 +384,7 @@ internal static partial class PdfIncrementalUpdater {
         ref int helveticaFontObjectNumber,
         PdfFormFiller.ChoiceAppearanceData? choiceAppearance,
         int maximumDecodedBytes,
+        int maximumMeasurementCharacters,
         CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
         int fieldFlags = ReadFieldFlags(objects, field, inheritedFlags);
@@ -404,7 +405,7 @@ internal static partial class PdfIncrementalUpdater {
             objects[appearanceObjectNumber] = new PdfIndirectObject(
                 appearanceObjectNumber,
                 0,
-                CreateIncrementalTextAppearanceStream(objects, defaultResources, widgetAppearanceResources, widgetPageResources, defaultAppearance, value, width, height, style, fontSize, ref nextObjectNumber, ref helveticaFontObjectNumber, choiceAppearance, maximumDecodedBytes, cancellationToken));
+                CreateIncrementalTextAppearanceStream(objects, defaultResources, widgetAppearanceResources, widgetPageResources, defaultAppearance, value, width, height, style, fontSize, ref nextObjectNumber, ref helveticaFontObjectNumber, choiceAppearance, maximumDecodedBytes, maximumMeasurementCharacters, cancellationToken));
 
             var appearance = new PdfDictionary();
             appearance.Items["N"] = new PdfReference(appearanceObjectNumber, 0);
@@ -430,7 +431,7 @@ internal static partial class PdfIncrementalUpdater {
             if (ResolveObject(objects, kidObject) is PdfDictionary kid) {
                 SetIncrementalTextWidgetAppearances(objects, kid, value, fieldFlags, fieldQuadding, fieldMaxLength, defaultResources,
                     defaultAppearance, forceMultilineAppearance, changedObjectNumbers, visited, ref nextObjectNumber,
-                    ref helveticaFontObjectNumber, choiceAppearance, maximumDecodedBytes, cancellationToken);
+                    ref helveticaFontObjectNumber, choiceAppearance, maximumDecodedBytes, maximumMeasurementCharacters, cancellationToken);
                 if (kidObjectNumber.HasValue) {
                     changedObjectNumbers.Add(kidObjectNumber.Value);
                 }
@@ -524,7 +525,8 @@ internal static partial class PdfIncrementalUpdater {
         PdfFormFieldStyle style,
         double fontSize,
         ref int nextObjectNumber,
-        ref int helveticaFontObjectNumber, PdfFormFiller.ChoiceAppearanceData? choiceAppearance, int maximumDecodedBytes, CancellationToken cancellationToken) {
+        ref int helveticaFontObjectNumber, PdfFormFiller.ChoiceAppearanceData? choiceAppearance, int maximumDecodedBytes,
+        int maximumMeasurementCharacters, CancellationToken cancellationToken) {
         string fontResourceName = IncrementalDefaultAppearanceFontName;
         PdfDictionary resources;
         if (!TryCreateIncrementalDefaultAppearanceFontResources(objects, defaultAppearance, out fontResourceName, out resources, inheritedDefaultResources, widgetAppearanceResources, widgetPageResources)) {
@@ -534,7 +536,7 @@ internal static partial class PdfIncrementalUpdater {
 
         string effectiveAppearance = "/" + fontResourceName + " " + fontSize.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture) + " Tf";
         return PdfFormFiller.CreateUpdatedTextWidgetAppearance(objects, resources, widgetAppearanceResources, widgetPageResources, effectiveAppearance, value,
-            width, height, style, fontSize, choiceAppearance, ref nextObjectNumber, maximumDecodedBytes, cancellationToken);
+            width, height, style, fontSize, choiceAppearance, ref nextObjectNumber, maximumDecodedBytes, maximumMeasurementCharacters, cancellationToken);
     }
 
     private static PdfStream CreateIncrementalButtonAppearanceStream(double width, double height, bool selected, bool isRadioButton, PdfFormFieldStyle? style = null) {
