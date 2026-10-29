@@ -276,7 +276,13 @@ public partial class PdfDocumentRasterVisualBaselineTests {
                 summary.SetInternalLink(5, 2, "Details!A1", display: "Open Details");
                 summary.Cell(6, 1, "Visual image");
                 summary.Cell(6, 3, "logo above grid");
-                summary.AddImage(6, 2, logoBytes, "image/png", width: OfficeIMO.OfficeLength.Pixels(64), height: OfficeIMO.OfficeLength.Pixels(28), name: "Summary Logo", altText: "Summary visual proof");
+                summary.AddImage(6, 2, logoBytes, new OfficeIMO.Excel.ExcelImageOptions {
+                    ContentType = "image/png",
+                    Width = OfficeIMO.OfficeLength.Pixels(64),
+                    Height = OfficeIMO.OfficeLength.Pixels(28),
+                    Name = "Summary Logo",
+                    Description = "Summary visual proof"
+                });
                 summary.Cell(8, 1, "HiddenRowValue");
                 summary.Cell(10, 1, "Month");
                 summary.Cell(10, 2, "Actual");

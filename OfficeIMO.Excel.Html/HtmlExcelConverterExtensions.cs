@@ -346,11 +346,27 @@ public static partial class HtmlExcelConverterExtensions {
         } else if (IsAbsoluteImageAnchor(item)) {
             AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.ContentApproximated,
                 "Image inventory item '" + (name.Length == 0 ? "Image" : name) + "' used an absolute anchor without semantic x/y coordinates and was restored to its fallback cell anchor.", lossKind: OfficeConversionLossKind.Approximation);
-            importedImage = sheet.AddImage(row, column, bytes, contentType, width, height, offsetX, offsetY, name: name.Length == 0 ? null : name, altText: description.Length == 0 ? null : description);
+            importedImage = sheet.AddImage(row, column, bytes, new OfficeIMO.Excel.ExcelImageOptions {
+                ContentType = contentType,
+                Width = width,
+                Height = height,
+                OffsetX = offsetX,
+                OffsetY = offsetY,
+                Name = name.Length == 0 ? null : name,
+                Description = description.Length == 0 ? null : description
+            });
         } else if (IsTwoCellImageAnchor(item)) {
             importedImage = AddTwoCellImage(item, sheet, result, budget, bytes, contentType, row, column, width, height, offsetX, offsetY, name, description);
         } else {
-            importedImage = sheet.AddImage(row, column, bytes, contentType, width, height, offsetX, offsetY, name: name.Length == 0 ? null : name, altText: description.Length == 0 ? null : description);
+            importedImage = sheet.AddImage(row, column, bytes, new OfficeIMO.Excel.ExcelImageOptions {
+                ContentType = contentType,
+                Width = width,
+                Height = height,
+                OffsetX = offsetX,
+                OffsetY = offsetY,
+                Name = name.Length == 0 ? null : name,
+                Description = description.Length == 0 ? null : description
+            });
         }
 
         ApplyImageTransforms(item, importedImage, budget, result);
@@ -401,22 +417,27 @@ public static partial class HtmlExcelConverterExtensions {
                 AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.ContentApproximated,
                     "Image inventory item '" + (name.Length == 0 ? "Image" : name) + "' exceeded MaxTableCells for its two-cell anchor and was restored to its fallback cell anchor.",
                     lossKind: OfficeConversionLossKind.Approximation);
-                return sheet.AddImage(row, column, bytes, contentType, width, height, offsetX, offsetY,
-                    name: name.Length == 0 ? null : name,
-                    altText: description.Length == 0 ? null : description);
+                return sheet.AddImage(row, column, bytes, new OfficeIMO.Excel.ExcelImageOptions {
+                    ContentType = contentType,
+                    Width = width,
+                    Height = height,
+                    OffsetX = offsetX,
+                    OffsetY = offsetY,
+                    Name = name.Length == 0 ? null : name,
+                    Description = description.Length == 0 ? null : description
+                });
             }
             OfficeLength endOffsetX = ReadImageLength(item, "to-offset-x", TryReadDoubleAttribute(item, "data-officeimo-to-offset-x", out double endOffsetXPixels) ? endOffsetXPixels : 0D, false, budget, result);
             OfficeLength endOffsetY = ReadImageLength(item, "to-offset-y", TryReadDoubleAttribute(item, "data-officeimo-to-offset-y", out double endOffsetYPixels) ? endOffsetYPixels : 0D, false, budget, result);
-            ExcelImage importedImage = sheet.AddImageToRange(
-                BuildRangeReference(row, column, endRow, endColumn),
-                bytes,
-                contentType,
-                offsetX,
-                offsetY,
-                endOffsetX,
-                endOffsetY,
-                name: name.Length == 0 ? null : name,
-                altText: description.Length == 0 ? null : description);
+            ExcelImage importedImage = sheet.AddImage(BuildRangeReference(row, column, endRow, endColumn), bytes, new OfficeIMO.Excel.ExcelImageOptions {
+                ContentType = contentType,
+                OffsetX = offsetX,
+                OffsetY = offsetY,
+                EndOffsetX = endOffsetX,
+                EndOffsetY = endOffsetY,
+                Name = name.Length == 0 ? null : name,
+                Description = description.Length == 0 ? null : description
+            });
             if (toRow <= row || toColumn <= column) {
                 importedImage.SetNativeTwoCellEndingMarker(toRow, toColumn, endOffsetX, endOffsetY);
             }
@@ -426,7 +447,15 @@ public static partial class HtmlExcelConverterExtensions {
 
         AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.ContentApproximated,
             "Image inventory item '" + (name.Length == 0 ? "Image" : name) + "' used a two-cell anchor without semantic ending marker coordinates and was restored to its fallback cell anchor.", lossKind: OfficeConversionLossKind.Approximation);
-        return sheet.AddImage(row, column, bytes, contentType, width, height, offsetX, offsetY, name: name.Length == 0 ? null : name, altText: description.Length == 0 ? null : description);
+        return sheet.AddImage(row, column, bytes, new OfficeIMO.Excel.ExcelImageOptions {
+            ContentType = contentType,
+            Width = width,
+            Height = height,
+            OffsetX = offsetX,
+            OffsetY = offsetY,
+            Name = name.Length == 0 ? null : name,
+            Description = description.Length == 0 ? null : description
+        });
     }
 
     private static void ImportChart(IElement item, ExcelSheet sheet, HtmlToExcelResult result, HtmlImportBudget budget, string range, ref int chartIndex) {

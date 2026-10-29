@@ -24,7 +24,7 @@ namespace OfficeIMO.Tests {
             format.BaseColumnWidth = baseWidth;
             format.DefaultColumnWidth = storedWidth.HasValue ? new DocumentFormat.OpenXml.DoubleValue(storedWidth.Value) : null;
 
-            ExcelImage image = sheet.AddImageToRange("A1:C2", OfficePngWriter.Encode(new OfficeRasterImage(2, 2, OfficeColor.SteelBlue)));
+            ExcelImage image = sheet.AddImage("A1:C2", OfficePngWriter.Encode(new OfficeRasterImage(2, 2, OfficeColor.SteelBlue)));
             Assert.Equal(expectedPixels, image.Width.ToPixels());
             Assert.Equal((double)expectedPixels, sheet.Range("A1:C2").CreateVisualSnapshot().Columns.Sum(column => column.Width));
             byte[] package = document.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xlsx });
@@ -76,7 +76,7 @@ namespace OfficeIMO.Tests {
             sheet.CellValue(1, 2, "Value");
             sheet.CellValue(2, 1, "Only");
             sheet.CellValue(2, 2, 1);
-            ExcelImage image = sheet.AddImageToRange("A1:A2", OfficePngWriter.Encode(new OfficeRasterImage(2, 2, OfficeColor.SteelBlue)));
+            ExcelImage image = sheet.AddImage("A1:A2", OfficePngWriter.Encode(new OfficeRasterImage(2, 2, OfficeColor.SteelBlue)));
             ExcelChart chart = sheet.AddChartFromRange("A1:B2", row: 1, column: 3);
             ReplaceChartAnchorWithTwoCell(document,
                 new Xdr.FromMarker(new Xdr.ColumnId("0"), new Xdr.ColumnOffset("0"), new Xdr.RowId("0"), new Xdr.RowOffset("0")),

@@ -54,7 +54,10 @@ namespace OfficeIMO.Examples.Excel
             const string logoUrl = "https://evotec.pl/wp-content/uploads/2015/05/Logo-evotec-012.png";
             await overview.HeaderLogoFromUrlAsync(logoUrl, OfficeIMO.Excel.ExcelHeaderFooterPosition.Center, OfficeLength.Points(120), OfficeLength.Points(40), leftText: "Page &P of &N");
             // Also place the logo inside the sheet (first page) via URL
-            await overview.AddImageFromUrlAsync(row: 1, column: 6, url: logoUrl, width: OfficeIMO.OfficeLength.Pixels(120), height: OfficeIMO.OfficeLength.Pixels(40));
+            await overview.AddImageAsync(1, 6, new System.Uri(logoUrl), new OfficeIMO.Excel.ExcelImageOptions {
+                Width = OfficeIMO.OfficeLength.Pixels(120),
+                Height = OfficeIMO.OfficeLength.Pixels(40)
+            });
             int totalWarnings = rows.Sum(x => x.WarningCount);
             int totalErrors = rows.Sum(x => x.ErrorCount);
             int atRisk = rows.Count(x => x.Status.Equals("Error", StringComparison.OrdinalIgnoreCase) || x.WarningCount > 0);
@@ -164,7 +167,10 @@ namespace OfficeIMO.Examples.Excel
             // Header logo on the Right, page number on Left (complements Index/Overview)
             await s.HeaderLogoFromUrlAsync("https://evotec.pl/wp-content/uploads/2015/05/Logo-evotec-012.png", OfficeIMO.Excel.ExcelHeaderFooterPosition.Right, OfficeLength.Points(96), OfficeLength.Points(32), leftText: "Page &P of &N");
             // Optional: embed the Evotec logo on each detail sheet near the title
-            await s.AddImageFromUrlAsync(row: 1, column: 5, url: "https://evotec.pl/wp-content/uploads/2015/05/Logo-evotec-012.png", width: OfficeIMO.OfficeLength.Pixels(100), height: OfficeIMO.OfficeLength.Pixels(34));
+            await s.AddImageAsync(1, 5, new System.Uri("https://evotec.pl/wp-content/uploads/2015/05/Logo-evotec-012.png"), new OfficeIMO.Excel.ExcelImageOptions {
+                Width = OfficeIMO.OfficeLength.Pixels(100),
+                Height = OfficeIMO.OfficeLength.Pixels(34)
+            });
             // Legend per domain (reusable SectionLegend)
             {
                 var pal = ReportStatusColors.Create(OfficeTheme.Default);

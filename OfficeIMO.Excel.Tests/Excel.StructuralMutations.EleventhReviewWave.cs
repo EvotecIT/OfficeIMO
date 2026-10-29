@@ -124,7 +124,11 @@ namespace OfficeIMO.Tests {
                 using (var document = ExcelDocument.Create(path)) {
                     ExcelSheet sheet = document.AddSheet("Data");
                     sheet.CellValue(1, 1, "Move");
-                    sheet.AddImage(1, 1, imageBytes, "image/png", width: OfficeIMO.OfficeLength.Pixels(16), height: OfficeIMO.OfficeLength.Pixels(16));
+                    sheet.AddImage(1, 1, imageBytes, new OfficeIMO.Excel.ExcelImageOptions {
+                        ContentType = "image/png",
+                        Width = OfficeIMO.OfficeLength.Pixels(16),
+                        Height = OfficeIMO.OfficeLength.Pixels(16)
+                    });
                     document.Save();
                 }
                 using (SpreadsheetDocument package = SpreadsheetDocument.Open(path, true)) {

@@ -781,7 +781,13 @@ namespace OfficeIMO.Tests {
                 sheet.SetHyperlink("A9", "https://example.com/help", "Help");
                 sheet.SetInternalLink(11, 1, "'Region Template'!A1", "Back to top");
                 sheet.SetComment("A10", "Template note", author: "Template");
-                sheet.AddImage(10, 3, png, "image/png", width: OfficeIMO.OfficeLength.Pixels(18), height: OfficeIMO.OfficeLength.Pixels(14), name: "Static Logo", altText: "Static template logo");
+                sheet.AddImage(10, 3, png, new OfficeIMO.Excel.ExcelImageOptions {
+                    ContentType = "image/png",
+                    Width = OfficeIMO.OfficeLength.Pixels(18),
+                    Height = OfficeIMO.OfficeLength.Pixels(14),
+                    Name = "Static Logo",
+                    Description = "Static template logo"
+                });
                 var chart = sheet.AddChartFromRange("A6:B7", row: 12, column: 4, width: OfficeLength.Pixels(320), height: OfficeLength.Pixels(180), type: OfficeChartType.ColumnClustered, hasHeaders: true, title: "Regional total");
                 chart.ApplyStylePreset(ExcelChartStylePreset.Default);
 

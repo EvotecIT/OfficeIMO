@@ -243,8 +243,13 @@ namespace OfficeIMO.Tests
             using (var document = ExcelDocument.Create(filePath)) {
                 var sheet = document.AddSheet("Images");
 
-                var image = sheet.AddImage(1, 1, png, "image/png", width: OfficeIMO.OfficeLength.Pixels(12), height: OfficeIMO.OfficeLength.Pixels(10),
-                    name: "Logo", altText: "Company logo");
+                var image = sheet.AddImage(1, 1, png, new OfficeIMO.Excel.ExcelImageOptions {
+                    ContentType = "image/png",
+                    Width = OfficeIMO.OfficeLength.Pixels(12),
+                    Height = OfficeIMO.OfficeLength.Pixels(10),
+                    Name = "Logo",
+                    Description = "Company logo"
+                });
                 image.SetAltText("Updated company logo", "Logo title")
                     .LockAspectRatio(false)
                     .SetSize(OfficeLength.Pixels(24), OfficeLength.Pixels(18));

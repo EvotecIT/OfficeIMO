@@ -327,7 +327,12 @@ namespace OfficeIMO.Tests {
 
             using (var document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddSheet("Images");
-                sheet.AddImage(1, 1, image, "image/png", width: OfficeIMO.OfficeLength.Pixels(16), height: OfficeIMO.OfficeLength.Pixels(16), name: "Absolute image");
+                sheet.AddImage(1, 1, image, new OfficeIMO.Excel.ExcelImageOptions {
+                    ContentType = "image/png",
+                    Width = OfficeIMO.OfficeLength.Pixels(16),
+                    Height = OfficeIMO.OfficeLength.Pixels(16),
+                    Name = "Absolute image"
+                });
                 document.Save();
             }
 
@@ -358,7 +363,11 @@ namespace OfficeIMO.Tests {
 
             using var document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddSheet("Images");
-            ExcelImage imageRecord = sheet.AddImage(1, 1, image, "image/png", width: OfficeIMO.OfficeLength.Pixels(16), height: OfficeIMO.OfficeLength.Pixels(16));
+            ExcelImage imageRecord = sheet.AddImage(1, 1, image, new OfficeIMO.Excel.ExcelImageOptions {
+                ContentType = "image/png",
+                Width = OfficeIMO.OfficeLength.Pixels(16),
+                Height = OfficeIMO.OfficeLength.Pixels(16)
+            });
 
             Assert.Throws<ArgumentOutOfRangeException>(() => imageRecord.MoveTo(ExcelA1.MaxRows + 1, 1));
             Assert.Throws<ArgumentOutOfRangeException>(() => imageRecord.MoveTo(1, ExcelA1.MaxColumns + 1));
@@ -371,7 +380,12 @@ namespace OfficeIMO.Tests {
 
             using (var document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddSheet("Images");
-                sheet.AddImage(1, 1, image, "image/png", width: OfficeIMO.OfficeLength.Pixels(16), height: OfficeIMO.OfficeLength.Pixels(16), name: "Resizable image");
+                sheet.AddImage(1, 1, image, new OfficeIMO.Excel.ExcelImageOptions {
+                    ContentType = "image/png",
+                    Width = OfficeIMO.OfficeLength.Pixels(16),
+                    Height = OfficeIMO.OfficeLength.Pixels(16),
+                    Name = "Resizable image"
+                });
                 document.Save();
             }
 

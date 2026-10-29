@@ -160,7 +160,16 @@ namespace OfficeIMO.Excel {
         }
 
         internal bool TryAddToSheet(ExcelSheet sheet, int row, int column) {
-            sheet.AddImage(row, column, _bytes, ContentType, Width, Height, OffsetX, OffsetY, Name, AltText, LockAspectRatio);
+            sheet.AddImage(row, column, _bytes, new OfficeIMO.Excel.ExcelImageOptions {
+                ContentType = ContentType,
+                Width = Width,
+                Height = Height,
+                OffsetX = OffsetX,
+                OffsetY = OffsetY,
+                Name = Name,
+                Description = AltText,
+                LockAspectRatio = LockAspectRatio
+            });
             return true;
         }
 

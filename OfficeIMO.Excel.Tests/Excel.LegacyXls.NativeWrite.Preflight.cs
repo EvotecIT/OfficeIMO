@@ -1850,7 +1850,11 @@ namespace OfficeIMO.Tests {
         public void LegacyXls_NativeSave_BlocksWorksheetImagesBeforeWriting() {
             AssertNativeXlsSaveNotSupported("drawings, images, or charts", (document, sheet) => {
                 sheet.CellValue(1, 1, "Worksheet image");
-                sheet.AddImage(2, 1, new byte[] { 0x89, 0x50, 0x4E, 0x47 }, "image/png", width: OfficeIMO.OfficeLength.Pixels(24), height: OfficeIMO.OfficeLength.Pixels(16));
+                sheet.AddImage(2, 1, new byte[] { 0x89, 0x50, 0x4E, 0x47 }, new OfficeIMO.Excel.ExcelImageOptions {
+                    ContentType = "image/png",
+                    Width = OfficeIMO.OfficeLength.Pixels(24),
+                    Height = OfficeIMO.OfficeLength.Pixels(16)
+                });
             });
         }
 

@@ -21,8 +21,12 @@ public sealed class ExcelPictureHyperlinkTests {
         ExcelSheet sheet = document.AddSheet("Pictures");
         byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(2, 2, OfficeColor.SteelBlue));
         ExcelImage original = twoCellAnchor
-            ? sheet.AddImageToRange("A1:B2", png, "image/png")
-            : sheet.AddImage(1, 1, png, "image/png", OfficeIMO.OfficeLength.Pixels(32), OfficeIMO.OfficeLength.Pixels(16));
+            ? sheet.AddImage("A1:B2", png, new OfficeIMO.Excel.ExcelImageOptions { ContentType = "image/png" })
+            : sheet.AddImage(1, 1, png, new OfficeIMO.Excel.ExcelImageOptions {
+                ContentType = "image/png",
+                Width = OfficeIMO.OfficeLength.Pixels(32),
+                Height = OfficeIMO.OfficeLength.Pixels(16)
+            });
         var target = new Uri("../photos/control.png?item=1&view=full", UriKind.Relative);
         original.HyperlinkUri = target;
 
@@ -64,8 +68,16 @@ public sealed class ExcelPictureHyperlinkTests {
         using var document = ExcelDocument.Create();
         ExcelSheet sheet = document.AddSheet("Pictures");
         byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(2, 2, OfficeColor.SteelBlue));
-        ExcelImage first = sheet.AddImage(2, 1, png, "image/png", OfficeIMO.OfficeLength.Pixels(32), OfficeIMO.OfficeLength.Pixels(16));
-        ExcelImage second = sheet.AddImage(4, 1, png, "image/png", OfficeIMO.OfficeLength.Pixels(32), OfficeIMO.OfficeLength.Pixels(16));
+        ExcelImage first = sheet.AddImage(2, 1, png, new OfficeIMO.Excel.ExcelImageOptions {
+            ContentType = "image/png",
+            Width = OfficeIMO.OfficeLength.Pixels(32),
+            Height = OfficeIMO.OfficeLength.Pixels(16)
+        });
+        ExcelImage second = sheet.AddImage(4, 1, png, new OfficeIMO.Excel.ExcelImageOptions {
+            ContentType = "image/png",
+            Width = OfficeIMO.OfficeLength.Pixels(32),
+            Height = OfficeIMO.OfficeLength.Pixels(16)
+        });
         var shared = new Uri("https://example.org/shared?item=1&view=full");
         first.HyperlinkUri = shared;
         second.HyperlinkUri = shared;
@@ -101,7 +113,11 @@ public sealed class ExcelPictureHyperlinkTests {
         using var document = ExcelDocument.Create();
         ExcelSheet sheet = document.AddSheet("Pictures");
         byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(2, 2, OfficeColor.Red));
-        ExcelImage image = sheet.AddImage(1, 1, png, "image/png", OfficeIMO.OfficeLength.Pixels(32), OfficeIMO.OfficeLength.Pixels(16));
+        ExcelImage image = sheet.AddImage(1, 1, png, new OfficeIMO.Excel.ExcelImageOptions {
+            ContentType = "image/png",
+            Width = OfficeIMO.OfficeLength.Pixels(32),
+            Height = OfficeIMO.OfficeLength.Pixels(16)
+        });
         image.HyperlinkUri = new Uri("https://example.org/shared");
         DrawingsPart drawing = document._spreadSheetDocument.WorkbookPart!.WorksheetParts.Single().DrawingsPart!;
         Xdr.NonVisualDrawingProperties properties = drawing.WorksheetDrawing!.Descendants<Xdr.NonVisualDrawingProperties>().Single();
@@ -121,7 +137,11 @@ public sealed class ExcelPictureHyperlinkTests {
         using var document = ExcelDocument.Create();
         ExcelSheet sheet = document.AddSheet("Pictures");
         byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(2, 2, OfficeColor.Blue));
-        ExcelImage original = sheet.AddImage(1, 1, png, "image/png", OfficeIMO.OfficeLength.Pixels(32), OfficeIMO.OfficeLength.Pixels(16));
+        ExcelImage original = sheet.AddImage(1, 1, png, new OfficeIMO.Excel.ExcelImageOptions {
+            ContentType = "image/png",
+            Width = OfficeIMO.OfficeLength.Pixels(32),
+            Height = OfficeIMO.OfficeLength.Pixels(16)
+        });
         var target = new Uri("https://example.org/current");
         original.HyperlinkUri = target;
         using var stream = new MemoryStream();
@@ -155,7 +175,11 @@ public sealed class ExcelPictureHyperlinkTests {
         using var document = ExcelDocument.Create();
         ExcelSheet sheet = document.AddSheet("Pictures");
         byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(2, 2, OfficeColor.Blue));
-        ExcelImage image = sheet.AddImage(1, 1, png, "image/png", OfficeIMO.OfficeLength.Pixels(32), OfficeIMO.OfficeLength.Pixels(16));
+        ExcelImage image = sheet.AddImage(1, 1, png, new OfficeIMO.Excel.ExcelImageOptions {
+            ContentType = "image/png",
+            Width = OfficeIMO.OfficeLength.Pixels(32),
+            Height = OfficeIMO.OfficeLength.Pixels(16)
+        });
         image.HyperlinkUri = new Uri("https://example.org/old");
         document.RemoveWorksheet("Pictures");
         document.AddSheet("Pictures");
@@ -168,8 +192,16 @@ public sealed class ExcelPictureHyperlinkTests {
         using var document = ExcelDocument.Create();
         ExcelSheet sheet = document.AddSheet("Pictures");
         byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(2, 2, OfficeColor.Blue));
-        ExcelImage first = sheet.AddImage(1, 1, png, "image/png", OfficeIMO.OfficeLength.Pixels(32), OfficeIMO.OfficeLength.Pixels(16));
-        ExcelImage second = sheet.AddImage(4, 1, png, "image/png", OfficeIMO.OfficeLength.Pixels(32), OfficeIMO.OfficeLength.Pixels(16));
+        ExcelImage first = sheet.AddImage(1, 1, png, new OfficeIMO.Excel.ExcelImageOptions {
+            ContentType = "image/png",
+            Width = OfficeIMO.OfficeLength.Pixels(32),
+            Height = OfficeIMO.OfficeLength.Pixels(16)
+        });
+        ExcelImage second = sheet.AddImage(4, 1, png, new OfficeIMO.Excel.ExcelImageOptions {
+            ContentType = "image/png",
+            Width = OfficeIMO.OfficeLength.Pixels(32),
+            Height = OfficeIMO.OfficeLength.Pixels(16)
+        });
         first.HyperlinkUri = new Uri("https://example.org/photos#first");
         second.HyperlinkUri = new Uri("https://example.org/photos#second");
         using var artifact = new System.IO.MemoryStream(document.ToBytes());
@@ -188,8 +220,16 @@ public sealed class ExcelPictureHyperlinkTests {
         template.CellValue(1, 1, "Region {{Name}}");
         byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(2, 2, OfficeColor.Blue));
         var target = new Uri("https://example.org/template#photo");
-        ExcelImage first = template.AddImage(3, 1, png, "image/png", OfficeIMO.OfficeLength.Pixels(32), OfficeIMO.OfficeLength.Pixels(16));
-        ExcelImage second = template.AddImage(5, 1, png, "image/png", OfficeIMO.OfficeLength.Pixels(32), OfficeIMO.OfficeLength.Pixels(16));
+        ExcelImage first = template.AddImage(3, 1, png, new OfficeIMO.Excel.ExcelImageOptions {
+            ContentType = "image/png",
+            Width = OfficeIMO.OfficeLength.Pixels(32),
+            Height = OfficeIMO.OfficeLength.Pixels(16)
+        });
+        ExcelImage second = template.AddImage(5, 1, png, new OfficeIMO.Excel.ExcelImageOptions {
+            ContentType = "image/png",
+            Width = OfficeIMO.OfficeLength.Pixels(32),
+            Height = OfficeIMO.OfficeLength.Pixels(16)
+        });
         first.HyperlinkUri = target;
         second.HyperlinkUri = target;
         DrawingsPart drawing = document._spreadSheetDocument.WorkbookPart!.WorksheetParts.Single().DrawingsPart!;
@@ -237,8 +277,16 @@ public sealed class ExcelPictureHyperlinkTests {
         ExcelSheet template = original.AddSheet("Template");
         template.CellValue(1, 1, "Region {{Name}}");
         var target = new Uri("https://example.org/template#photo");
-        template.AddImage(3, 1, blue, "image/png", OfficeIMO.OfficeLength.Pixels(32), OfficeIMO.OfficeLength.Pixels(16)).HyperlinkUri = target;
-        template.AddImage(5, 1, red, "image/png", OfficeIMO.OfficeLength.Pixels(32), OfficeIMO.OfficeLength.Pixels(16)).HyperlinkUri = target;
+        template.AddImage(3, 1, blue, new OfficeIMO.Excel.ExcelImageOptions {
+            ContentType = "image/png",
+            Width = OfficeIMO.OfficeLength.Pixels(32),
+            Height = OfficeIMO.OfficeLength.Pixels(16)
+        }).HyperlinkUri = target;
+        template.AddImage(5, 1, red, new OfficeIMO.Excel.ExcelImageOptions {
+            ContentType = "image/png",
+            Width = OfficeIMO.OfficeLength.Pixels(32),
+            Height = OfficeIMO.OfficeLength.Pixels(16)
+        }).HyperlinkUri = target;
         using var serialized = new System.IO.MemoryStream(original.ToBytes());
         using var edited = new MemoryStream();
         serialized.CopyTo(edited);

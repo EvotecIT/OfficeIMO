@@ -148,15 +148,14 @@ namespace OfficeIMO.Tests {
         public void Test_RangeMutations_CopyPreservesImageMetadataAndTwoCellGeometry() {
             using var document = ExcelDocument.Create();
             ExcelSheet sheet = document.AddSheet("Data");
-            ExcelImage source = sheet.AddImageToRange(
-                "A1:B2",
-                TinyPng,
-                name: "Logo",
-                altText: "Accessible logo",
-                title: "Brand",
-                lockAspectRatio: false,
-                placement: ExcelImagePlacement.MoveOnly,
-                rotationDegrees: 12.5);
+            ExcelImage source = sheet.AddImage("A1:B2", TinyPng, new OfficeIMO.Excel.ExcelImageOptions {
+                Name = "Logo",
+                Description = "Accessible logo",
+                Title = "Brand",
+                LockAspectRatio = false,
+                Placement = ExcelImagePlacement.MoveOnly,
+                RotationDegrees = 12.5
+            });
             source.SetCropRatio(0.1, 0.2, 0.05, 0.15).SetFlip(true, false);
 
             sheet.CopyRange("A1:B2", "D4");

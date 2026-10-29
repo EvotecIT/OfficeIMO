@@ -30,7 +30,14 @@ public partial class HtmlOfficeAdapters {
         sheet.CellFormula(5, 2, "SUM(B2:B4)");
         sheet.SetComment(2, 2, "Reviewed with finance", "OfficeIMO");
         sheet.AddChartFromRange("A1:B4", row: 1, column: 5, width: OfficeLength.Pixels(280), height: OfficeLength.Pixels(180), type: OfficeChartType.ColumnClustered, title: "Revenue Trend");
-        sheet.AddImage(7, 1, OnePixelPng, width: OfficeIMO.OfficeLength.Pixels(48), height: OfficeIMO.OfficeLength.Pixels(48), offsetX: OfficeIMO.OfficeLength.Pixels(9), offsetY: OfficeIMO.OfficeLength.Pixels(11), name: "Status Logo", altText: "Inline status marker");
+        sheet.AddImage(7, 1, OnePixelPng, new OfficeIMO.Excel.ExcelImageOptions {
+            Width = OfficeIMO.OfficeLength.Pixels(48),
+            Height = OfficeIMO.OfficeLength.Pixels(48),
+            OffsetX = OfficeIMO.OfficeLength.Pixels(9),
+            OffsetY = OfficeIMO.OfficeLength.Pixels(11),
+            Name = "Status Logo",
+            Description = "Inline status marker"
+        });
 
         string html = workbook.ToHtml(new ExcelHtmlSaveOptions {
             Profile = OfficeHtmlConversionProfile.ExcelSemanticTables,
@@ -67,7 +74,12 @@ public partial class HtmlOfficeAdapters {
         sheet.CellValue(3, 2, 18);
         sheet.SetComment(2, 2, "Visual comment proof", "OfficeIMO");
         sheet.AddChartFromRange("A1:B3", row: 1, column: 4, width: OfficeLength.Pixels(240), height: OfficeLength.Pixels(150), type: OfficeChartType.ColumnClustered, title: "Visual Chart");
-        sheet.AddImage(3, 3, OnePixelPng, width: OfficeIMO.OfficeLength.Pixels(36), height: OfficeIMO.OfficeLength.Pixels(36), name: "Visual Logo", altText: "Visual image marker");
+        sheet.AddImage(3, 3, OnePixelPng, new OfficeIMO.Excel.ExcelImageOptions {
+            Width = OfficeIMO.OfficeLength.Pixels(36),
+            Height = OfficeIMO.OfficeLength.Pixels(36),
+            Name = "Visual Logo",
+            Description = "Visual image marker"
+        });
 
         string html = workbook.ToHtml(new ExcelHtmlSaveOptions {
             Profile = OfficeHtmlConversionProfile.ExcelVisualReview
@@ -119,7 +131,12 @@ public partial class HtmlOfficeAdapters {
         sheet.CellFormula(4, 2, "SUM(B2:B3)");
         sheet.SetComment(2, 2, "Gallery comment", "OfficeIMO");
         sheet.AddChartFromRange("A1:B3", row: 1, column: 4, width: OfficeLength.Pixels(240), height: OfficeLength.Pixels(150), type: OfficeChartType.ColumnClustered, title: "Gallery Chart");
-        sheet.AddImage(6, 1, OnePixelPng, width: OfficeIMO.OfficeLength.Pixels(36), height: OfficeIMO.OfficeLength.Pixels(36), name: "Gallery Logo", altText: "Gallery image");
+        sheet.AddImage(6, 1, OnePixelPng, new OfficeIMO.Excel.ExcelImageOptions {
+            Width = OfficeIMO.OfficeLength.Pixels(36),
+            Height = OfficeIMO.OfficeLength.Pixels(36),
+            Name = "Gallery Logo",
+            Description = "Gallery image"
+        });
 
         string directory = Path.Combine(Path.GetTempPath(), "OfficeIMO.HtmlOfficeAdapters", Guid.NewGuid().ToString("N"));
         HtmlCapabilityGalleryManifest manifest = workbook.SaveHtmlCapabilityGallery(directory, new ExcelHtmlCapabilityGalleryOptions {
@@ -190,7 +207,14 @@ public partial class HtmlOfficeAdapters {
         sheet.CellFormula(5, 2, "SUM(B2:B4)");
         sheet.SetComment(2, 2, "Reviewed with finance", "OfficeIMO");
         sheet.AddChartFromRange("A1:B4", row: 1, column: 5, width: OfficeLength.Pixels(280), height: OfficeLength.Pixels(180), type: OfficeChartType.ColumnClustered, title: "Revenue Trend");
-        sheet.AddImage(7, 1, OnePixelPng, width: OfficeIMO.OfficeLength.Pixels(48), height: OfficeIMO.OfficeLength.Pixels(48), offsetX: OfficeIMO.OfficeLength.Pixels(9), offsetY: OfficeIMO.OfficeLength.Pixels(11), name: "Status Logo", altText: "Inline status marker");
+        sheet.AddImage(7, 1, OnePixelPng, new OfficeIMO.Excel.ExcelImageOptions {
+            Width = OfficeIMO.OfficeLength.Pixels(48),
+            Height = OfficeIMO.OfficeLength.Pixels(48),
+            OffsetX = OfficeIMO.OfficeLength.Pixels(9),
+            OffsetY = OfficeIMO.OfficeLength.Pixels(11),
+            Name = "Status Logo",
+            Description = "Inline status marker"
+        });
 
         string html = workbook.ToHtml(new ExcelHtmlSaveOptions {
             Profile = OfficeHtmlConversionProfile.ExcelSemanticTables,
@@ -258,7 +282,12 @@ public partial class HtmlOfficeAdapters {
         sheet.CellValue(3, 1, "B");
         sheet.CellValue(3, 2, 20);
         sheet.AddChartFromRange("A1:B3", row: 1, column: 4, width: OfficeLength.Pixels(240), height: OfficeLength.Pixels(140), type: OfficeChartType.ColumnClustered, title: "Layer base");
-        ExcelImage image = sheet.AddImageAbsolute(OfficeIMO.OfficeLength.Pixels(33), OfficeIMO.OfficeLength.Pixels(44), OnePixelPng, width: OfficeIMO.OfficeLength.Pixels(52), height: OfficeIMO.OfficeLength.Pixels(48), name: "Layer image", altText: "Absolute layer");
+        ExcelImage image = sheet.AddImage(OfficeIMO.OfficeLength.Pixels(33), OfficeIMO.OfficeLength.Pixels(44), OnePixelPng, new OfficeIMO.Excel.ExcelImageOptions {
+            Width = OfficeIMO.OfficeLength.Pixels(52),
+            Height = OfficeIMO.OfficeLength.Pixels(48),
+            Name = "Layer image",
+            Description = "Absolute layer"
+        });
         image.SetRotation(17.5).SetFlip(horizontal: true, vertical: true).SetCropRatio(0.125D, 0.25D, 0.0625D, 0.1875D);
 
         string html = workbook.ToHtml(new ExcelHtmlSaveOptions {
@@ -300,7 +329,10 @@ public partial class HtmlOfficeAdapters {
         using ExcelDocument workbook = ExcelDocument.Create(new MemoryStream());
         ExcelSheet sheet = workbook.AddSheet("Drawings");
         sheet.CellValue(1, 1, "Seed");
-        sheet.AddImageAbsolute(OfficeIMO.OfficeLength.Pixels(10), OfficeIMO.OfficeLength.Pixels(10), OnePixelPng, width: OfficeIMO.OfficeLength.Pixels(40), height: OfficeIMO.OfficeLength.Pixels(30))
+        sheet.AddImage(OfficeIMO.OfficeLength.Pixels(10), OfficeIMO.OfficeLength.Pixels(10), OnePixelPng, new OfficeIMO.Excel.ExcelImageOptions {
+            Width = OfficeIMO.OfficeLength.Pixels(40),
+            Height = OfficeIMO.OfficeLength.Pixels(30)
+        })
             .SetCropRatio(0.1D, 0D, 0.1D, 0D);
         string html = workbook.ToHtml(new ExcelHtmlSaveOptions {
             Profile = OfficeHtmlConversionProfile.ExcelSemanticTables
@@ -325,7 +357,15 @@ public partial class HtmlOfficeAdapters {
         using ExcelDocument workbook = ExcelDocument.Create(new MemoryStream());
         ExcelSheet sheet = workbook.AddSheet("Anchors");
         sheet.CellValue(1, 1, "Seed");
-        ExcelImage image = sheet.AddImageToRange("B2:D5", OnePixelPng, "image/png", offsetX: OfficeIMO.OfficeLength.Pixels(7), offsetY: OfficeIMO.OfficeLength.Pixels(8), endOffsetX: OfficeIMO.OfficeLength.Pixels(9), endOffsetY: OfficeIMO.OfficeLength.Pixels(10), name: "Range image", altText: "Two-cell anchor");
+        ExcelImage image = sheet.AddImage("B2:D5", OnePixelPng, new OfficeIMO.Excel.ExcelImageOptions {
+            ContentType = "image/png",
+            OffsetX = OfficeIMO.OfficeLength.Pixels(7),
+            OffsetY = OfficeIMO.OfficeLength.Pixels(8),
+            EndOffsetX = OfficeIMO.OfficeLength.Pixels(9),
+            EndOffsetY = OfficeIMO.OfficeLength.Pixels(10),
+            Name = "Range image",
+            Description = "Two-cell anchor"
+        });
         image.SetRotation(12.5D).SetFlip(horizontal: true, vertical: false);
 
         string html = workbook.ToHtml(new ExcelHtmlSaveOptions {
@@ -362,7 +402,7 @@ public partial class HtmlOfficeAdapters {
         using ExcelDocument workbook = ExcelDocument.Create(new MemoryStream());
         ExcelSheet sheet = workbook.AddSheet("SameCellAnchor");
         sheet.CellValue(1, 1, "Seed");
-        sheet.AddImageToRange("B2:B2", OnePixelPng, "image/png", name: "Same-cell image", altText: "Same-cell anchor")
+        sheet.AddImage("B2:B2", OnePixelPng, new OfficeIMO.Excel.ExcelImageOptions { ContentType = "image/png", Name = "Same-cell image", Description = "Same-cell anchor" })
             .SetTwoCellEndingMarker(2, 2, OfficeIMO.OfficeLength.Pixels(3), OfficeIMO.OfficeLength.Pixels(4));
 
         string html = workbook.ToHtml(new ExcelHtmlSaveOptions {
@@ -647,15 +687,30 @@ public partial class HtmlOfficeAdapters {
         sheet.CellFormula(2, 2, "1+1");
         sheet.SetComment(2, 1, "Visible comment", "OfficeIMO");
         sheet.AddChartFromRange("A1:B2", row: 2, column: 4, width: OfficeLength.Pixels(160), height: OfficeLength.Pixels(90), type: OfficeChartType.ColumnClustered, title: "Visible Chart");
-        sheet.AddImage(2, 3, OnePixelPng, width: OfficeIMO.OfficeLength.Pixels(24), height: OfficeIMO.OfficeLength.Pixels(24), name: "Visible Image", altText: "Visible image");
+        sheet.AddImage(2, 3, OnePixelPng, new OfficeIMO.Excel.ExcelImageOptions {
+            Width = OfficeIMO.OfficeLength.Pixels(24),
+            Height = OfficeIMO.OfficeLength.Pixels(24),
+            Name = "Visible Image",
+            Description = "Visible image"
+        });
         sheet.CellValue(4, 1, "Truncated");
         sheet.CellFormula(4, 2, "99+1");
         sheet.CellValue(5, 1, "Also truncated");
         sheet.CellValue(5, 2, 25);
         sheet.SetComment(4, 1, "Truncated comment", "OfficeIMO");
         sheet.AddChartFromRange("A4:B5", row: 4, column: 4, width: OfficeLength.Pixels(160), height: OfficeLength.Pixels(90), type: OfficeChartType.ColumnClustered, title: "Truncated Chart");
-        sheet.AddImage(4, 3, OnePixelPng, width: OfficeIMO.OfficeLength.Pixels(24), height: OfficeIMO.OfficeLength.Pixels(24), name: "Truncated Image", altText: "Truncated image");
-        sheet.AddImageAbsolute(OfficeIMO.OfficeLength.Pixels(0), OfficeIMO.OfficeLength.Pixels(2000), OnePixelPng, width: OfficeIMO.OfficeLength.Pixels(24), height: OfficeIMO.OfficeLength.Pixels(24), name: "Truncated Absolute Image", altText: "Truncated absolute image");
+        sheet.AddImage(4, 3, OnePixelPng, new OfficeIMO.Excel.ExcelImageOptions {
+            Width = OfficeIMO.OfficeLength.Pixels(24),
+            Height = OfficeIMO.OfficeLength.Pixels(24),
+            Name = "Truncated Image",
+            Description = "Truncated image"
+        });
+        sheet.AddImage(OfficeIMO.OfficeLength.Pixels(0), OfficeIMO.OfficeLength.Pixels(2000), OnePixelPng, new OfficeIMO.Excel.ExcelImageOptions {
+            Width = OfficeIMO.OfficeLength.Pixels(24),
+            Height = OfficeIMO.OfficeLength.Pixels(24),
+            Name = "Truncated Absolute Image",
+            Description = "Truncated absolute image"
+        });
 
         string html = workbook.ToHtml(new ExcelHtmlSaveOptions {
             Profile = OfficeHtmlConversionProfile.ExcelSemanticTables,

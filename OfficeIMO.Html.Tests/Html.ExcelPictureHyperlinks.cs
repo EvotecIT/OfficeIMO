@@ -35,7 +35,11 @@ public sealed class HtmlExcelPictureHyperlinkTests {
         using var source = ExcelDocument.Create();
         ExcelSheet sheet = source.AddSheet("Pictures");
         byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(2, 2, OfficeColor.Red));
-        ExcelImage sourceImage = sheet.AddImage(2, 1, png, "image/png", OfficeIMO.OfficeLength.Pixels(32), OfficeIMO.OfficeLength.Pixels(16));
+        ExcelImage sourceImage = sheet.AddImage(2, 1, png, new OfficeIMO.Excel.ExcelImageOptions {
+            ContentType = "image/png",
+            Width = OfficeIMO.OfficeLength.Pixels(32),
+            Height = OfficeIMO.OfficeLength.Pixels(16)
+        });
         var target = new Uri("https://example.org/photo?item=1&view=full");
         sourceImage.HyperlinkUri = target;
         string html = source.ToHtml();
@@ -60,7 +64,11 @@ public sealed class HtmlExcelPictureHyperlinkTests {
         ExcelSheet sheet = document.AddSheet("Pictures");
         sheet.Cell(1, 1, "Photo");
         byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(2, 2, OfficeColor.Red));
-        sheet.AddImage(1, 1, png, "image/png", OfficeIMO.OfficeLength.Pixels(32), OfficeIMO.OfficeLength.Pixels(16)).HyperlinkUri = new Uri(target, UriKind.RelativeOrAbsolute);
+        sheet.AddImage(1, 1, png, new OfficeIMO.Excel.ExcelImageOptions {
+            ContentType = "image/png",
+            Width = OfficeIMO.OfficeLength.Pixels(32),
+            Height = OfficeIMO.OfficeLength.Pixels(16)
+        }).HyperlinkUri = new Uri(target, UriKind.RelativeOrAbsolute);
         var result = sheet.ToHtmlResult(new ExcelHtmlSaveOptions { ExportProfile = ExcelHtmlExportProfile.VisualReview });
         var parsed = System.Xml.Linq.XElement.Parse(result.Value.Substring(result.Value.IndexOf("<svg"), result.Value.IndexOf("</svg>") + 6 - result.Value.IndexOf("<svg")));
         var links = parsed.Descendants().Where(element => element.Name.LocalName == "a").ToArray();

@@ -65,7 +65,7 @@ namespace OfficeIMO.Tests {
             using var document = ExcelDocument.Create(new MemoryStream());
             ExcelSheet sheet = document.AddSheet("Images");
             sheet.CellValue(1, 1, "source");
-            sheet.AddImage(1, 1, TinyPng, name: "Logo");
+            sheet.AddImage(1, 1, TinyPng, new OfficeIMO.Excel.ExcelImageOptions { Name = "Logo" });
 
             if (transpose) sheet.TransposeRange("A1", "B2");
             else sheet.CopyRange("A1", "B2");

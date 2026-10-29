@@ -261,7 +261,11 @@ namespace OfficeIMO.Tests {
 
                 // Add a tiny 1x1 PNG as drawing
                 var png = Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNgYAAAAAMAASsJTYQAAAAASUVORK5CYII=");
-                s.AddImage(1, 1, png, "image/png", width: OfficeIMO.OfficeLength.Pixels(1), height: OfficeIMO.OfficeLength.Pixels(1));
+                s.AddImage(1, 1, png, new OfficeIMO.Excel.ExcelImageOptions {
+                    ContentType = "image/png",
+                    Width = OfficeIMO.OfficeLength.Pixels(1),
+                    Height = OfficeIMO.OfficeLength.Pixels(1)
+                });
 
                 // Preflight should not remove valid references
                 doc.PreflightWorkbook();

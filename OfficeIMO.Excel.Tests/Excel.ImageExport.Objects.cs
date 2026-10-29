@@ -1353,7 +1353,12 @@ namespace OfficeIMO.Tests {
                 sheet.CellValue(1, 1, "Layer order");
                 sheet.CellValue(2, 2, "Overlap");
                 if (imageFirst) {
-                    sheet.AddImage(2, 2, redBadge, "image/png", width: OfficeIMO.OfficeLength.Pixels(120), height: OfficeIMO.OfficeLength.Pixels(48), name: "Red badge");
+                    sheet.AddImage(2, 2, redBadge, new OfficeIMO.Excel.ExcelImageOptions {
+                        ContentType = "image/png",
+                        Width = OfficeIMO.OfficeLength.Pixels(120),
+                        Height = OfficeIMO.OfficeLength.Pixels(48),
+                        Name = "Red badge"
+                    });
                 }
 
                 document.Save();
@@ -1363,7 +1368,12 @@ namespace OfficeIMO.Tests {
             if (!imageFirst) {
                 using ExcelDocument document = ExcelDocument.Load(filePath);
                 ExcelSheet sheet = document.Sheets.Single();
-                sheet.AddImage(2, 2, redBadge, "image/png", width: OfficeIMO.OfficeLength.Pixels(120), height: OfficeIMO.OfficeLength.Pixels(48), name: "Red badge");
+                sheet.AddImage(2, 2, redBadge, new OfficeIMO.Excel.ExcelImageOptions {
+                    ContentType = "image/png",
+                    Width = OfficeIMO.OfficeLength.Pixels(120),
+                    Height = OfficeIMO.OfficeLength.Pixels(48),
+                    Name = "Red badge"
+                });
                 document.Save();
             }
 

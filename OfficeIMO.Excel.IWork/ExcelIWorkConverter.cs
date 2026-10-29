@@ -272,8 +272,13 @@ public static partial class ExcelIWorkConverter {
                 ExcelSheet sheet = document.AddSheet("Preview");
                 IWorkPreviewAsset visualPreview = preview!;
                 (int width, int height) = PreviewSize(visualPreview);
-                sheet.AddImage(1, 1, visualPreview.GetBytes(), visualPreview.MediaType, OfficeIMO.OfficeLength.Pixels(width), OfficeIMO.OfficeLength.Pixels(height),
-                    name: "Numbers visual fallback", altText: "Visual fallback from the source Numbers package");
+                sheet.AddImage(1, 1, visualPreview.GetBytes(), new OfficeIMO.Excel.ExcelImageOptions {
+                    ContentType = visualPreview.MediaType,
+                    Width = OfficeIMO.OfficeLength.Pixels(width),
+                    Height = OfficeIMO.OfficeLength.Pixels(height),
+                    Name = "Numbers visual fallback",
+                    Description = "Visual fallback from the source Numbers package"
+                });
             }
 
             destinationDiagnostics = destinationDiagnostics.Concat(worksheetMappings

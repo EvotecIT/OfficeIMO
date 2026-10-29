@@ -4413,6 +4413,30 @@ namespace PSWriteOffice.Tests {
         $oneCellAnchor.SelectSingleNode(".//*[local-name()='xfrm']").GetAttribute('rot') | Should -Be '720000'
     }
 
+    It 'keeps a single-cell image Range as a two-cell anchor' {
+        $path = Join-Path $TestDrive 'DslExcelSingleCellRangeImages.xlsx'
+        $imagePath = New-TestOfficeImageFile -Directory $TestDrive
+        $imageUrl = [System.Uri]::new($imagePath).AbsoluteUri
+
+        New-OfficeExcel -Path $path {
+            Add-OfficeExcelSheet -Name 'Images' -Content {
+                Add-OfficeExcelImage -Range B2 -Path $imagePath -Name 'LocalRange' -Placement MoveOnly -EndOffsetXPixels 3 -EndOffsetYPixels 5
+                Add-OfficeExcelImageFromUrl -Range D4 -Url $imageUrl -Name 'UrlRange' -Placement FreeFloating -EndOffsetXPixels 3 -EndOffsetYPixels 5
+            }
+        } | Out-Null
+
+        $drawingXml = Get-ZipXmlDocumentLocal -Path $path -Entry 'xl/drawings/drawing1.xml'
+        $anchors = $drawingXml.SelectNodes("/*[local-name()='wsDr']/*[local-name()='twoCellAnchor']")
+        $anchors.Count | Should -Be 2
+        $anchors[0].GetAttribute('editAs') | Should -Be 'oneCell'
+        $anchors[1].GetAttribute('editAs') | Should -Be 'absolute'
+        foreach ($anchor in $anchors) {
+            $anchor.SelectSingleNode("*[local-name()='to']/*[local-name()='colOff']").InnerText | Should -Be '28575'
+            $anchor.SelectSingleNode("*[local-name()='to']/*[local-name()='rowOff']").InnerText | Should -Be '47625'
+        }
+        $drawingXml.SelectNodes("/*[local-name()='wsDr']/*[local-name()='oneCellAnchor']").Count | Should -Be 0
+    }
+
     It 'supports internal link helpers for summary sheets' {
         $path = Join-Path $TestDrive 'DslExcelInternalLinks.xlsx'
         $rows = @(

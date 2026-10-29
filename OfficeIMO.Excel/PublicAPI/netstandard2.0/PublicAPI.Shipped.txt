@@ -1756,6 +1756,42 @@ OfficeIMO.Excel.ExcelImageExportOptions.SplitByManualPageBreaks.get -> bool
 OfficeIMO.Excel.ExcelImageExportOptions.SplitByManualPageBreaks.set -> void
 OfficeIMO.Excel.ExcelImageExportOptions.UsePrintArea.get -> bool
 OfficeIMO.Excel.ExcelImageExportOptions.UsePrintArea.set -> void
+OfficeIMO.Excel.ExcelImageOptions
+OfficeIMO.Excel.ExcelImageOptions.ContentType.get -> string!
+OfficeIMO.Excel.ExcelImageOptions.ContentType.set -> void
+OfficeIMO.Excel.ExcelImageOptions.Deduplicate.get -> bool
+OfficeIMO.Excel.ExcelImageOptions.Deduplicate.set -> void
+OfficeIMO.Excel.ExcelImageOptions.Description.get -> string?
+OfficeIMO.Excel.ExcelImageOptions.Description.set -> void
+OfficeIMO.Excel.ExcelImageOptions.EndOffsetX.get -> OfficeIMO.OfficeLength
+OfficeIMO.Excel.ExcelImageOptions.EndOffsetX.set -> void
+OfficeIMO.Excel.ExcelImageOptions.EndOffsetY.get -> OfficeIMO.OfficeLength
+OfficeIMO.Excel.ExcelImageOptions.EndOffsetY.set -> void
+OfficeIMO.Excel.ExcelImageOptions.ExcelImageOptions() -> void
+OfficeIMO.Excel.ExcelImageOptions.Height.get -> OfficeIMO.OfficeLength?
+OfficeIMO.Excel.ExcelImageOptions.Height.set -> void
+OfficeIMO.Excel.ExcelImageOptions.LeaveOpen.get -> bool
+OfficeIMO.Excel.ExcelImageOptions.LeaveOpen.set -> void
+OfficeIMO.Excel.ExcelImageOptions.LockAspectRatio.get -> bool
+OfficeIMO.Excel.ExcelImageOptions.LockAspectRatio.set -> void
+OfficeIMO.Excel.ExcelImageOptions.Name.get -> string?
+OfficeIMO.Excel.ExcelImageOptions.Name.set -> void
+OfficeIMO.Excel.ExcelImageOptions.OffsetX.get -> OfficeIMO.OfficeLength
+OfficeIMO.Excel.ExcelImageOptions.OffsetX.set -> void
+OfficeIMO.Excel.ExcelImageOptions.OffsetY.get -> OfficeIMO.OfficeLength
+OfficeIMO.Excel.ExcelImageOptions.OffsetY.set -> void
+OfficeIMO.Excel.ExcelImageOptions.Placement.get -> OfficeIMO.Excel.ExcelImagePlacement
+OfficeIMO.Excel.ExcelImageOptions.Placement.set -> void
+OfficeIMO.Excel.ExcelImageOptions.RemoteImageOptions.get -> OfficeIMO.Drawing.OfficeRemoteImageLoadOptions?
+OfficeIMO.Excel.ExcelImageOptions.RemoteImageOptions.set -> void
+OfficeIMO.Excel.ExcelImageOptions.RotationDegrees.get -> double
+OfficeIMO.Excel.ExcelImageOptions.RotationDegrees.set -> void
+OfficeIMO.Excel.ExcelImageOptions.ScalePercent.get -> double?
+OfficeIMO.Excel.ExcelImageOptions.ScalePercent.set -> void
+OfficeIMO.Excel.ExcelImageOptions.Title.get -> string?
+OfficeIMO.Excel.ExcelImageOptions.Title.set -> void
+OfficeIMO.Excel.ExcelImageOptions.Width.get -> OfficeIMO.OfficeLength?
+OfficeIMO.Excel.ExcelImageOptions.Width.set -> void
 OfficeIMO.Excel.ExcelImagePlacement
 OfficeIMO.Excel.ExcelImagePlacement.FreeFloating = 2 -> OfficeIMO.Excel.ExcelImagePlacement
 OfficeIMO.Excel.ExcelImagePlacement.MoveAndSize = 0 -> OfficeIMO.Excel.ExcelImagePlacement
@@ -2798,9 +2834,12 @@ OfficeIMO.Excel.ExcelRefreshOnOpenResult.ConnectionCount.get -> int
 OfficeIMO.Excel.ExcelRefreshOnOpenResult.Enabled.get -> bool
 OfficeIMO.Excel.ExcelRefreshOnOpenResult.PivotCacheCount.get -> int
 OfficeIMO.Excel.ExcelReportBuilder
-OfficeIMO.Excel.ExcelReportBuilder.AddImage(int row, int column, byte[]! bytes, string! contentType = "image/png", OfficeIMO.OfficeLength? width = null, OfficeIMO.OfficeLength? height = null, OfficeIMO.OfficeLength offsetX = default(OfficeIMO.OfficeLength), OfficeIMO.OfficeLength offsetY = default(OfficeIMO.OfficeLength)) -> OfficeIMO.Excel.ExcelImage!
-OfficeIMO.Excel.ExcelReportBuilder.AddImageFromUrlAsync(int row, int column, string! url, OfficeIMO.Drawing.OfficeRemoteImageLoadOptions! remoteImageOptions, OfficeIMO.OfficeLength? width = null, OfficeIMO.OfficeLength? height = null, OfficeIMO.OfficeLength offsetX = default(OfficeIMO.OfficeLength), OfficeIMO.OfficeLength offsetY = default(OfficeIMO.OfficeLength), System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<OfficeIMO.Excel.ExcelImage!>!
-OfficeIMO.Excel.ExcelReportBuilder.AddImageFromUrlAsync(int row, int column, string! url, OfficeIMO.OfficeLength? width = null, OfficeIMO.OfficeLength? height = null, OfficeIMO.OfficeLength offsetX = default(OfficeIMO.OfficeLength), OfficeIMO.OfficeLength offsetY = default(OfficeIMO.OfficeLength), System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<OfficeIMO.Excel.ExcelImage!>!
+OfficeIMO.Excel.ExcelReportBuilder.AddImage(int row, int column, System.IO.Stream! stream, OfficeIMO.Excel.ExcelImageOptions? options = null) -> OfficeIMO.Excel.ExcelImage!
+OfficeIMO.Excel.ExcelReportBuilder.AddImage(int row, int column, byte[]! imageBytes, OfficeIMO.Excel.ExcelImageOptions? options = null) -> OfficeIMO.Excel.ExcelImage!
+OfficeIMO.Excel.ExcelReportBuilder.AddImage(int row, int column, string! path, OfficeIMO.Excel.ExcelImageOptions? options = null) -> OfficeIMO.Excel.ExcelImage!
+OfficeIMO.Excel.ExcelReportBuilder.AddImageAsync(int row, int column, System.IO.Stream! stream, OfficeIMO.Excel.ExcelImageOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<OfficeIMO.Excel.ExcelImage!>!
+OfficeIMO.Excel.ExcelReportBuilder.AddImageAsync(int row, int column, System.Uri! uri, OfficeIMO.Excel.ExcelImageOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<OfficeIMO.Excel.ExcelImage!>!
+OfficeIMO.Excel.ExcelReportBuilder.AddImageAsync(int row, int column, string! path, OfficeIMO.Excel.ExcelImageOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<OfficeIMO.Excel.ExcelImage!>!
 OfficeIMO.Excel.ExcelReportBuilder.AddTable(System.Data.DataTable! table, string? title = null, System.Action<OfficeIMO.Data.ObjectFlattenerOptions!>? configure = null, OfficeIMO.Excel.ExcelTableStyle style = OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium9, bool autoFilter = true, bool freezeHeaderRow = true, System.Action<OfficeIMO.Excel.ExcelTableVisualOptions!>? visuals = null) -> OfficeIMO.Excel.ExcelTable!
 OfficeIMO.Excel.ExcelReportBuilder.AddTable<T>(System.Collections.Generic.IEnumerable<T>! items, string? title = null, System.Action<OfficeIMO.Data.ObjectFlattenerOptions!>? configure = null, OfficeIMO.Excel.ExcelTableStyle style = OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium9, bool autoFilter = true, bool freezeHeaderRow = true, System.Action<OfficeIMO.Excel.ExcelTableVisualOptions!>? visuals = null) -> OfficeIMO.Excel.ExcelTable!
 OfficeIMO.Excel.ExcelReportBuilder.AdvanceRows(int rows) -> OfficeIMO.Excel.ExcelReportBuilder!
@@ -3042,17 +3081,24 @@ OfficeIMO.Excel.ExcelSheet.AddDashboardChart(OfficeIMO.Excel.ExcelDashboardChart
 OfficeIMO.Excel.ExcelSheet.AddFunnelChart(System.Collections.Generic.IEnumerable<string!>! categories, System.Collections.Generic.IEnumerable<double>! values, int row, int column, string! title = "Funnel", bool sortDescending = true, OfficeIMO.OfficeLength? width = null, OfficeIMO.OfficeLength? height = null) -> OfficeIMO.Excel.ExcelChart!
 OfficeIMO.Excel.ExcelSheet.AddHistogramChart(System.Collections.Generic.IEnumerable<double>! values, int row, int column, string! title = "Histogram", int? binCount = null, double? binWidth = null, OfficeIMO.OfficeLength? width = null, OfficeIMO.OfficeLength? height = null) -> OfficeIMO.Excel.ExcelChart!
 OfficeIMO.Excel.ExcelSheet.AddIgnoredErrorRegion(System.Collections.Generic.IEnumerable<string!>! ranges, OfficeIMO.Excel.ExcelIgnoredErrorKind errors) -> OfficeIMO.Excel.ExcelIgnoredErrorRegionInfo!
-OfficeIMO.Excel.ExcelSheet.AddImage(int row, int column, byte[]! imageBytes, string! contentType = "image/png", OfficeIMO.OfficeLength? width = null, OfficeIMO.OfficeLength? height = null, OfficeIMO.OfficeLength offsetX = default(OfficeIMO.OfficeLength), OfficeIMO.OfficeLength offsetY = default(OfficeIMO.OfficeLength), string? name = null, string? altText = null, bool lockAspectRatio = true) -> OfficeIMO.Excel.ExcelImage!
-OfficeIMO.Excel.ExcelSheet.AddImageAbsolute(OfficeIMO.OfficeLength x, OfficeIMO.OfficeLength y, byte[]! imageBytes, string! contentType = "image/png", OfficeIMO.OfficeLength? width = null, OfficeIMO.OfficeLength? height = null, string? name = null, string? altText = null, string? title = null, bool lockAspectRatio = true, double rotationDegrees = 0) -> OfficeIMO.Excel.ExcelImage!
-OfficeIMO.Excel.ExcelSheet.AddImageFromFile(int row, int column, string! path, OfficeIMO.OfficeLength? width = null, OfficeIMO.OfficeLength? height = null, double? scalePercent = null, OfficeIMO.OfficeLength offsetX = default(OfficeIMO.OfficeLength), OfficeIMO.OfficeLength offsetY = default(OfficeIMO.OfficeLength), string? name = null, string? altText = null, string? title = null, bool lockAspectRatio = true, double rotationDegrees = 0) -> OfficeIMO.Excel.ExcelImage!
-OfficeIMO.Excel.ExcelSheet.AddImageFromFileToRange(string! range, string! path, OfficeIMO.OfficeLength offsetX = default(OfficeIMO.OfficeLength), OfficeIMO.OfficeLength offsetY = default(OfficeIMO.OfficeLength), OfficeIMO.OfficeLength endOffsetX = default(OfficeIMO.OfficeLength), OfficeIMO.OfficeLength endOffsetY = default(OfficeIMO.OfficeLength), string? name = null, string? altText = null, string? title = null, bool lockAspectRatio = true, OfficeIMO.Excel.ExcelImagePlacement placement = OfficeIMO.Excel.ExcelImagePlacement.MoveAndSize, double rotationDegrees = 0) -> OfficeIMO.Excel.ExcelImage!
-OfficeIMO.Excel.ExcelSheet.AddImageFromUrlAsync(int row, int column, string! url, OfficeIMO.OfficeLength? width = null, OfficeIMO.OfficeLength? height = null, double? scalePercent = null, OfficeIMO.OfficeLength offsetX = default(OfficeIMO.OfficeLength), OfficeIMO.OfficeLength offsetY = default(OfficeIMO.OfficeLength), string? name = null, string? altText = null, string? title = null, bool lockAspectRatio = true, double rotationDegrees = 0, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<OfficeIMO.Excel.ExcelImage!>!
-OfficeIMO.Excel.ExcelSheet.AddImageFromUrlAsync(int row, int column, string! url, double scalePercent, OfficeIMO.OfficeLength offsetX = default(OfficeIMO.OfficeLength), OfficeIMO.OfficeLength offsetY = default(OfficeIMO.OfficeLength), string? name = null, string? altText = null, string? title = null, bool lockAspectRatio = true, double rotationDegrees = 0, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<OfficeIMO.Excel.ExcelImage!>!
-OfficeIMO.Excel.ExcelSheet.AddImageFromUrlScaledAsync(int row, int column, string! url, double scalePercent, OfficeIMO.Drawing.OfficeRemoteImageLoadOptions! remoteImageOptions, OfficeIMO.OfficeLength offsetX = default(OfficeIMO.OfficeLength), OfficeIMO.OfficeLength offsetY = default(OfficeIMO.OfficeLength), string? name = null, string? altText = null, string? title = null, bool lockAspectRatio = true, double rotationDegrees = 0, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<OfficeIMO.Excel.ExcelImage!>!
-OfficeIMO.Excel.ExcelSheet.AddImageFromUrlToRangeAsync(string! range, string! url, OfficeIMO.Drawing.OfficeRemoteImageLoadOptions! remoteImageOptions, OfficeIMO.OfficeLength offsetX = default(OfficeIMO.OfficeLength), OfficeIMO.OfficeLength offsetY = default(OfficeIMO.OfficeLength), OfficeIMO.OfficeLength endOffsetX = default(OfficeIMO.OfficeLength), OfficeIMO.OfficeLength endOffsetY = default(OfficeIMO.OfficeLength), string? name = null, string? altText = null, string? title = null, bool lockAspectRatio = true, OfficeIMO.Excel.ExcelImagePlacement placement = OfficeIMO.Excel.ExcelImagePlacement.MoveAndSize, double rotationDegrees = 0, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<OfficeIMO.Excel.ExcelImage!>!
-OfficeIMO.Excel.ExcelSheet.AddImageFromUrlToRangeAsync(string! range, string! url, OfficeIMO.OfficeLength offsetX = default(OfficeIMO.OfficeLength), OfficeIMO.OfficeLength offsetY = default(OfficeIMO.OfficeLength), OfficeIMO.OfficeLength endOffsetX = default(OfficeIMO.OfficeLength), OfficeIMO.OfficeLength endOffsetY = default(OfficeIMO.OfficeLength), string? name = null, string? altText = null, string? title = null, bool lockAspectRatio = true, OfficeIMO.Excel.ExcelImagePlacement placement = OfficeIMO.Excel.ExcelImagePlacement.MoveAndSize, double rotationDegrees = 0, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<OfficeIMO.Excel.ExcelImage!>!
-OfficeIMO.Excel.ExcelSheet.AddImageFromUrlWithOptionsAsync(int row, int column, string! url, OfficeIMO.Drawing.OfficeRemoteImageLoadOptions! remoteImageOptions, OfficeIMO.OfficeLength? width = null, OfficeIMO.OfficeLength? height = null, OfficeIMO.OfficeLength offsetX = default(OfficeIMO.OfficeLength), OfficeIMO.OfficeLength offsetY = default(OfficeIMO.OfficeLength), string? name = null, string? altText = null, bool lockAspectRatio = true, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<OfficeIMO.Excel.ExcelImage!>!
-OfficeIMO.Excel.ExcelSheet.AddImageToRange(string! range, byte[]! imageBytes, string! contentType = "image/png", OfficeIMO.OfficeLength offsetX = default(OfficeIMO.OfficeLength), OfficeIMO.OfficeLength offsetY = default(OfficeIMO.OfficeLength), OfficeIMO.OfficeLength endOffsetX = default(OfficeIMO.OfficeLength), OfficeIMO.OfficeLength endOffsetY = default(OfficeIMO.OfficeLength), string? name = null, string? altText = null, string? title = null, bool lockAspectRatio = true, OfficeIMO.Excel.ExcelImagePlacement placement = OfficeIMO.Excel.ExcelImagePlacement.MoveAndSize, double rotationDegrees = 0) -> OfficeIMO.Excel.ExcelImage!
+OfficeIMO.Excel.ExcelSheet.AddImage(OfficeIMO.OfficeLength x, OfficeIMO.OfficeLength y, System.IO.Stream! stream, OfficeIMO.Excel.ExcelImageOptions? options = null) -> OfficeIMO.Excel.ExcelImage!
+OfficeIMO.Excel.ExcelSheet.AddImage(OfficeIMO.OfficeLength x, OfficeIMO.OfficeLength y, byte[]! imageBytes, OfficeIMO.Excel.ExcelImageOptions? options = null) -> OfficeIMO.Excel.ExcelImage!
+OfficeIMO.Excel.ExcelSheet.AddImage(OfficeIMO.OfficeLength x, OfficeIMO.OfficeLength y, string! path, OfficeIMO.Excel.ExcelImageOptions? options = null) -> OfficeIMO.Excel.ExcelImage!
+OfficeIMO.Excel.ExcelSheet.AddImage(int row, int column, System.IO.Stream! stream, OfficeIMO.Excel.ExcelImageOptions? options = null) -> OfficeIMO.Excel.ExcelImage!
+OfficeIMO.Excel.ExcelSheet.AddImage(int row, int column, byte[]! imageBytes, OfficeIMO.Excel.ExcelImageOptions? options = null) -> OfficeIMO.Excel.ExcelImage!
+OfficeIMO.Excel.ExcelSheet.AddImage(int row, int column, string! path, OfficeIMO.Excel.ExcelImageOptions? options = null) -> OfficeIMO.Excel.ExcelImage!
+OfficeIMO.Excel.ExcelSheet.AddImage(string! cellOrRange, System.IO.Stream! stream, OfficeIMO.Excel.ExcelImageOptions? options = null) -> OfficeIMO.Excel.ExcelImage!
+OfficeIMO.Excel.ExcelSheet.AddImage(string! cellOrRange, byte[]! imageBytes, OfficeIMO.Excel.ExcelImageOptions? options = null) -> OfficeIMO.Excel.ExcelImage!
+OfficeIMO.Excel.ExcelSheet.AddImage(string! cellOrRange, string! path, OfficeIMO.Excel.ExcelImageOptions? options = null) -> OfficeIMO.Excel.ExcelImage!
+OfficeIMO.Excel.ExcelSheet.AddImageAsync(OfficeIMO.OfficeLength x, OfficeIMO.OfficeLength y, System.IO.Stream! stream, OfficeIMO.Excel.ExcelImageOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<OfficeIMO.Excel.ExcelImage!>!
+OfficeIMO.Excel.ExcelSheet.AddImageAsync(OfficeIMO.OfficeLength x, OfficeIMO.OfficeLength y, System.Uri! uri, OfficeIMO.Excel.ExcelImageOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<OfficeIMO.Excel.ExcelImage!>!
+OfficeIMO.Excel.ExcelSheet.AddImageAsync(OfficeIMO.OfficeLength x, OfficeIMO.OfficeLength y, string! path, OfficeIMO.Excel.ExcelImageOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<OfficeIMO.Excel.ExcelImage!>!
+OfficeIMO.Excel.ExcelSheet.AddImageAsync(int row, int column, System.IO.Stream! stream, OfficeIMO.Excel.ExcelImageOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<OfficeIMO.Excel.ExcelImage!>!
+OfficeIMO.Excel.ExcelSheet.AddImageAsync(int row, int column, System.Uri! uri, OfficeIMO.Excel.ExcelImageOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<OfficeIMO.Excel.ExcelImage!>!
+OfficeIMO.Excel.ExcelSheet.AddImageAsync(int row, int column, string! path, OfficeIMO.Excel.ExcelImageOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<OfficeIMO.Excel.ExcelImage!>!
+OfficeIMO.Excel.ExcelSheet.AddImageAsync(string! cellOrRange, System.IO.Stream! stream, OfficeIMO.Excel.ExcelImageOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<OfficeIMO.Excel.ExcelImage!>!
+OfficeIMO.Excel.ExcelSheet.AddImageAsync(string! cellOrRange, System.Uri! uri, OfficeIMO.Excel.ExcelImageOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<OfficeIMO.Excel.ExcelImage!>!
+OfficeIMO.Excel.ExcelSheet.AddImageAsync(string! cellOrRange, string! path, OfficeIMO.Excel.ExcelImageOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<OfficeIMO.Excel.ExcelImage!>!
 OfficeIMO.Excel.ExcelSheet.AddKpiScorecardChart(string! dataRangeA1, int row, int column, string! title = "KPI Scorecard", OfficeIMO.OfficeLength? width = null, OfficeIMO.OfficeLength? height = null, bool hasHeaders = true, bool includeCachedData = true) -> OfficeIMO.Excel.ExcelChart!
 OfficeIMO.Excel.ExcelSheet.AddManualColumnPageBreak(int column, bool save = true) -> OfficeIMO.Excel.ExcelPageBreak!
 OfficeIMO.Excel.ExcelSheet.AddManualRowPageBreak(int row, bool save = true) -> OfficeIMO.Excel.ExcelPageBreak!

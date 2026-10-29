@@ -12,14 +12,12 @@ namespace OfficeIMO.Tests {
         public void ExcelRange_ImageExportKeepsAnchorsInsideTallRequestedRanges() {
             using ExcelDocument document = ExcelDocument.Create(new MemoryStream());
             ExcelSheet sheet = document.AddSheet("TallRange");
-            sheet.AddImage(
-                15000,
-                1,
-                CreateSolidPng(8, 8, OfficeColor.FromRgb(37, 99, 235)),
-                "image/png",
-                width: OfficeIMO.OfficeLength.Pixels(8),
-                height: OfficeIMO.OfficeLength.Pixels(8),
-                name: "DeepAnchor");
+            sheet.AddImage(15000, 1, CreateSolidPng(8, 8, OfficeColor.FromRgb(37, 99, 235)), new OfficeIMO.Excel.ExcelImageOptions {
+                ContentType = "image/png",
+                Width = OfficeIMO.OfficeLength.Pixels(8),
+                Height = OfficeIMO.OfficeLength.Pixels(8),
+                Name = "DeepAnchor"
+            });
 
             ExcelRangeVisualInfo snapshot = sheet.Range("A1:A20000").CreateVisualSnapshot(
                 new ExcelImageExportOptions { ShowGridlines = false });
@@ -97,14 +95,12 @@ namespace OfficeIMO.Tests {
         public void ExcelRange_ImageExportKeepsNearbyAnchorsThatOverlapThroughNegativeOffsets() {
             using ExcelDocument document = ExcelDocument.Create(new MemoryStream());
             ExcelSheet sheet = document.AddSheet("NegativeOffset");
-            sheet.AddImage(
-                1,
-                2,
-                CreateSolidPng(8, 8, OfficeColor.FromRgb(37, 99, 235)),
-                width: OfficeIMO.OfficeLength.Pixels(64),
-                height: OfficeIMO.OfficeLength.Pixels(8),
-                offsetX: OfficeIMO.OfficeLength.Pixels(-50),
-                name: "Overlap");
+            sheet.AddImage(1, 2, CreateSolidPng(8, 8, OfficeColor.FromRgb(37, 99, 235)), new OfficeIMO.Excel.ExcelImageOptions {
+                Width = OfficeIMO.OfficeLength.Pixels(64),
+                Height = OfficeIMO.OfficeLength.Pixels(8),
+                OffsetX = OfficeIMO.OfficeLength.Pixels(-50),
+                Name = "Overlap"
+            });
 
             ExcelRangeVisualInfo snapshot = sheet.Range("A1:A1").CreateVisualSnapshot(
                 new ExcelImageExportOptions { ShowGridlines = false });

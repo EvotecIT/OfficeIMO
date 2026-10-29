@@ -3,8 +3,6 @@ using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.Drawing;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
 using A = DocumentFormat.OpenXml.Drawing;
 using Xdr = DocumentFormat.OpenXml.Drawing.Spreadsheet;
 
@@ -35,23 +33,10 @@ namespace OfficeIMO.Excel {
             return Images.FirstOrDefault(image => string.Equals(image.Name, name, StringComparison.OrdinalIgnoreCase));
         }
 
-        /// <summary>
-        /// Adds an image anchored to the specified cell and returns a wrapper for setting metadata and sizing.
-        /// </summary>
-        /// <param name="row">1-based row index.</param>
-        /// <param name="column">1-based column index.</param>
-        /// <param name="imageBytes">Image bytes.</param>
-        /// <param name="contentType">Content type, e.g. image/png or image/jpeg.</param>
-        /// <param name="width">Width as a document length.</param>
-        /// <param name="height">Height as a document length.</param>
-        /// <param name="offsetX">Optional X offset from cell origin as a document length.</param>
-        /// <param name="offsetY">Optional Y offset from cell origin as a document length.</param>
-        /// <param name="name">Optional drawing name.</param>
-        /// <param name="altText">Optional alternative text description.</param>
-        /// <param name="lockAspectRatio">Whether Excel should keep the picture aspect ratio locked.</param>
-        public ExcelImage AddImage(int row, int column, byte[] imageBytes, string contentType = "image/png",
+        // Writes a native one-cell anchor; source loading and options live in the authoring partials.
+        private ExcelImage AddCellImageCore(int row, int column, byte[] imageBytes, string contentType = "image/png",
             OfficeLength? width = null, OfficeLength? height = null, OfficeLength offsetX = default, OfficeLength offsetY = default,
-            string? name = null, string? altText = null, bool lockAspectRatio = true) {
+            string? name = null, string? altText = null, bool lockAspectRatio = true, bool deduplicate = false) {
             if (imageBytes == null || imageBytes.Length == 0) throw new ArgumentException("Image bytes are required.", nameof(imageBytes));
             if (row <= 0 || column <= 0) throw new ArgumentOutOfRangeException("Row and column are 1-based and must be positive.");
             OfficeLength resolvedWidth = width ?? OfficeLength.Pixels(96);
@@ -74,9 +59,7 @@ namespace OfficeIMO.Excel {
                 }
 
                 // Add the image part
-                PartTypeInfo type = ToImagePartType(contentType);
-                var imagePart = drawingPart.AddImagePart(type);
-                using (var s = new MemoryStream(imageBytes)) imagePart.FeedData(s);
+                var imagePart = GetImagePart(drawingPart, imageBytes, contentType, deduplicate);
                 string imgRelId = drawingPart.GetIdOfPart(imagePart);
 
                 // Build a OneCellAnchor: FromMarker + Extent + Picture + ClientData
@@ -123,27 +106,6 @@ namespace OfficeIMO.Excel {
             });
 
             return image!;
-        }
-
-        /// <summary>
-        /// Asynchronously downloads an image with an explicit remote-network policy and returns its wrapper.
-        /// </summary>
-        public Task<ExcelImage> AddImageFromUrlWithOptionsAsync(
-            int row,
-            int column,
-            string url,
-            OfficeRemoteImageLoadOptions remoteImageOptions,
-            OfficeLength? width = null,
-            OfficeLength? height = null,
-            OfficeLength offsetX = default,
-            OfficeLength offsetY = default,
-            string? name = null,
-            string? altText = null,
-            bool lockAspectRatio = true,
-            CancellationToken cancellationToken = default) {
-            if (remoteImageOptions == null) throw new ArgumentNullException(nameof(remoteImageOptions));
-            return AddImageFromUrlPlacementCoreAsync(row, column, url, remoteImageOptions, width, height, null,
-                offsetX, offsetY, name, altText, null, lockAspectRatio, 0, cancellationToken);
         }
 
         private static long PxToEmu(int px) => (long)Math.Round(px * 9525.0);

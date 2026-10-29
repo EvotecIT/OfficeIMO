@@ -680,8 +680,12 @@ namespace OfficeIMO.Tests
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddSheet("Images");
                 sheet.CellValue(1, 1, "Image");
-                sheet.AddImage(2, 1, CreateFeatureReportGif(), "image/gif",
-                    width: OfficeIMO.OfficeLength.Pixels(12), height: OfficeIMO.OfficeLength.Pixels(12), name: "GifLogo");
+                sheet.AddImage(2, 1, CreateFeatureReportGif(), new OfficeIMO.Excel.ExcelImageOptions {
+                    ContentType = "image/gif",
+                    Width = OfficeIMO.OfficeLength.Pixels(12),
+                    Height = OfficeIMO.OfficeLength.Pixels(12),
+                    Name = "GifLogo"
+                });
                 document.Save();
             }
 

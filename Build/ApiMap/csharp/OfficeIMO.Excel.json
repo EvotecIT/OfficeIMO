@@ -1576,9 +1576,9 @@
       "old": "OfficeIMO.Excel.Fluent.SheetComposer.ImageAt(int row, int column, byte[] bytes, string contentType = image/png, int widthPixels = 96, int heightPixels = 32, int offsetXPixels = 0, int offsetYPixels = 0)",
       "kind": "method",
       "action": "change",
-      "new": "OfficeIMO.Excel.ExcelReportBuilder.AddImage(... OfficeLength? width = null, OfficeLength? height = null, OfficeLength offsetX = default, OfficeLength offsetY = default ...)",
+      "new": "OfficeIMO.Excel.ExcelReportBuilder.AddImage(int row, int column, byte[] imageBytes, ExcelImageOptions? options = null) : ExcelImage",
       "reason": "One verb per concept: AddImage everywhere. Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
-      "file": "OfficeIMO.Excel/Fluent/SheetComposer.Images.cs",
+      "file": "OfficeIMO.Excel/Report/ExcelReportBuilder.Images.cs",
       "category": "authoring",
       "notes": "Also (units): change -> OfficeIMO.Excel.Fluent.SheetComposer.ImageAt(... OfficeLength ...)",
       "implementation": {
@@ -1587,15 +1587,15 @@
       },
       "phase": "B",
       "applied": "phase-b-applied",
-      "note": "The native report builder forwards OfficeLength image geometry directly to the sheet and returns the attached ExcelImage (Task<ExcelImage> for asynchronous downloads). ImageAt and ImageFromUrlAtAsync are replaced without aliases."
+      "note": "Report insertion forwards to worksheet source/options overloads and returns its attached image. Existing PowerShell Range parameters retain explicit two-cell behavior even for a single cell."
     },
     {
       "old": "OfficeIMO.Excel.Fluent.SheetComposer.ImageFromUrlAtAsync(int row, int column, string url, int widthPixels = 96, int heightPixels = 32, int offsetXPixels = 0, int offsetYPixels = 0, CancellationToken cancellationToken = null)",
       "kind": "method",
       "action": "change",
-      "new": "OfficeIMO.Excel.ExcelReportBuilder.AddImageFromUrlAsync(... OfficeLength? width = null, OfficeLength? height = null, OfficeLength offsetX = default, OfficeLength offsetY = default ...)",
+      "new": "OfficeIMO.Excel.ExcelReportBuilder.AddImageAsync(int row, int column, Uri uri, ExcelImageOptions? options = null, CancellationToken cancellationToken = default) : Task<ExcelImage>",
       "reason": "One verb per concept: AddImage everywhere. Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
-      "file": "OfficeIMO.Excel/Fluent/SheetComposer.Images.cs",
+      "file": "OfficeIMO.Excel/Report/ExcelReportBuilder.Images.cs",
       "category": "authoring",
       "notes": "Also (units): change -> OfficeIMO.Excel.Fluent.SheetComposer.ImageFromUrlAtAsync(... OfficeLength ...)",
       "implementation": {
@@ -1604,15 +1604,15 @@
       },
       "phase": "B",
       "applied": "phase-b-applied",
-      "note": "The native report builder forwards OfficeLength image geometry directly to the sheet and returns the attached ExcelImage (Task<ExcelImage> for asynchronous downloads). ImageAt and ImageFromUrlAtAsync are replaced without aliases."
+      "note": "Report insertion forwards to worksheet source/options overloads and returns its attached image. Existing PowerShell Range parameters retain explicit two-cell behavior even for a single cell."
     },
     {
       "old": "OfficeIMO.Excel.Fluent.SheetComposer.ImageFromUrlAtAsync(int row, int column, string url, OfficeRemoteImageLoadOptions remoteImageOptions, int widthPixels = 96, int heightPixels = 32, int offsetXPixels = 0, int offsetYPixels = 0, CancellationToken cancellationToken = null)",
       "kind": "method",
       "action": "change",
-      "new": "OfficeIMO.Excel.ExcelReportBuilder.AddImageFromUrlAsync(... OfficeLength? width = null, OfficeLength? height = null, OfficeLength offsetX = default, OfficeLength offsetY = default ...)",
+      "new": "OfficeIMO.Excel.ExcelReportBuilder.AddImageAsync(int row, int column, Uri uri, ExcelImageOptions? options = null, CancellationToken cancellationToken = default) : Task<ExcelImage>",
       "reason": "One verb per concept: AddImage everywhere. Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
-      "file": "OfficeIMO.Excel/Fluent/SheetComposer.Images.cs",
+      "file": "OfficeIMO.Excel/Report/ExcelReportBuilder.Images.cs",
       "category": "authoring",
       "notes": "Also (units): change -> OfficeIMO.Excel.Fluent.SheetComposer.ImageFromUrlAtAsync(... OfficeLength ...)",
       "implementation": {
@@ -1621,7 +1621,7 @@
       },
       "phase": "B",
       "applied": "phase-b-applied",
-      "note": "The native report builder forwards OfficeLength image geometry directly to the sheet and returns the attached ExcelImage (Task<ExcelImage> for asynchronous downloads). ImageAt and ImageFromUrlAtAsync are replaced without aliases."
+      "note": "Report insertion forwards to worksheet source/options overloads and returns its attached image. Existing PowerShell Range parameters retain explicit two-cell behavior even for a single cell."
     },
     {
       "old": "OfficeIMO.Excel.Fluent.SheetComposer.Callout(string kind, string title, string body, int widthColumns = 8)",
@@ -1894,239 +1894,239 @@
       "old": "OfficeIMO.Excel.ExcelSheet.AddImage(int row, int column, byte[] imageBytes, string contentType = image/png, int widthPixels = 96, int heightPixels = 32, int offsetXPixels = 0, int offsetYPixels = 0, string name = null, string altText = null, bool lockAspectRatio = True)",
       "kind": "method",
       "action": "change",
-      "new": "OfficeIMO.Excel.ExcelSheet.AddImage(int row, int column, byte[] image, OfficeLength? width = null, OfficeLength? height = null, ExcelImageOptions options = null) : ExcelImage",
+      "new": "ExcelSheet.AddImage(anchor, path | Stream | byte[], ExcelImageOptions? options = null) : ExcelImage; ExcelSheet.AddImageAsync(anchor, path | Stream | Uri, ExcelImageOptions? options = null, CancellationToken cancellationToken = default) : Task<ExcelImage>; anchor = (row, column) | cellOrRange | (OfficeLength x, OfficeLength y)",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.Excel/ExcelSheet.Images.cs",
       "category": "authoring",
       "notes": "Also (units): change -> OfficeIMO.Excel.ExcelSheet.AddImage(... OfficeLength ...)",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "Image geometry is migrated to OfficeLength in the existing cell, range, absolute, file and remote placement paths. The proposed single source/options authoring overload family remains pending; this row is not complete."
+      "applied": "phase-b-applied",
+      "note": "All source families share ExcelImageOptions. Cell/range/absolute anchors retain native geometry, signed marker offsets, exact bytes and metadata. Streams retain position and default ownership; URI loading is asynchronous through the existing remote policy owner. Separate parts remain the default; optional exact-type/byte deduplication retains independent pictures. Native Add-contract13 and related image/range516 cases pass on net10.0; remaining framework/module gates belong to the phase validation."
     },
     {
       "old": "OfficeIMO.Excel.ExcelSheet.AddImageFromUrlAtAsync(int row, int column, string url, int widthPixels = 96, int heightPixels = 32, int offsetXPixels = 0, int offsetYPixels = 0, CancellationToken cancellationToken = null)",
       "kind": "method",
       "action": "merge",
-      "new": "OfficeIMO.Excel.ExcelSheet.AddImage(string cellOrRange | (int row, int column), path | Stream | byte[] | Uri, ExcelImageOptions options = null) : ExcelImage",
+      "new": "ExcelSheet.AddImage(anchor, path | Stream | byte[], ExcelImageOptions? options = null) : ExcelImage; ExcelSheet.AddImageAsync(anchor, path | Stream | Uri, ExcelImageOptions? options = null, CancellationToken cancellationToken = default) : Task<ExcelImage>; anchor = (row, column) | cellOrRange | (OfficeLength x, OfficeLength y)",
       "reason": "One verb per concept: AddImage everywhere.",
       "file": "OfficeIMO.Excel/ExcelSheet.Images.cs",
       "category": "authoring",
       "notes": "12 AddImage* variants differ by source, anchor and scaling; sizes become OfficeLength. Also (units): change -> OfficeIMO.Excel.ExcelSheet.AddImageFromUrlAtAsync(... OfficeLength ...)",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "Image geometry is migrated to OfficeLength in the existing cell, range, absolute, file and remote placement paths. The proposed single source/options authoring overload family remains pending; this row is not complete."
+      "applied": "phase-b-applied",
+      "note": "All source families share ExcelImageOptions. Cell/range/absolute anchors retain native geometry, signed marker offsets, exact bytes and metadata. Streams retain position and default ownership; URI loading is asynchronous through the existing remote policy owner. Separate parts remain the default; optional exact-type/byte deduplication retains independent pictures. Native Add-contract13 and related image/range516 cases pass on net10.0; remaining framework/module gates belong to the phase validation."
     },
     {
       "old": "OfficeIMO.Excel.ExcelSheet.AddImageFromUrlAtAsync(int row, int column, string url, OfficeRemoteImageLoadOptions remoteImageOptions, int widthPixels = 96, int heightPixels = 32, int offsetXPixels = 0, int offsetYPixels = 0, CancellationToken cancellationToken = null)",
       "kind": "method",
       "action": "merge",
-      "new": "OfficeIMO.Excel.ExcelSheet.AddImage(string cellOrRange | (int row, int column), path | Stream | byte[] | Uri, ExcelImageOptions options = null) : ExcelImage",
+      "new": "ExcelSheet.AddImage(anchor, path | Stream | byte[], ExcelImageOptions? options = null) : ExcelImage; ExcelSheet.AddImageAsync(anchor, path | Stream | Uri, ExcelImageOptions? options = null, CancellationToken cancellationToken = default) : Task<ExcelImage>; anchor = (row, column) | cellOrRange | (OfficeLength x, OfficeLength y)",
       "reason": "One verb per concept: AddImage everywhere.",
       "file": "OfficeIMO.Excel/ExcelSheet.Images.cs",
       "category": "authoring",
       "notes": "12 AddImage* variants differ by source, anchor and scaling; sizes become OfficeLength. Also (units): change -> OfficeIMO.Excel.ExcelSheet.AddImageFromUrlAtAsync(... OfficeLength ...)",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "Image geometry is migrated to OfficeLength in the existing cell, range, absolute, file and remote placement paths. The proposed single source/options authoring overload family remains pending; this row is not complete."
+      "applied": "phase-b-applied",
+      "note": "All source families share ExcelImageOptions. Cell/range/absolute anchors retain native geometry, signed marker offsets, exact bytes and metadata. Streams retain position and default ownership; URI loading is asynchronous through the existing remote policy owner. Separate parts remain the default; optional exact-type/byte deduplication retains independent pictures. Native Add-contract13 and related image/range516 cases pass on net10.0; remaining framework/module gates belong to the phase validation."
     },
     {
       "old": "OfficeIMO.Excel.ExcelSheet.AddImageFromUrlAsync(int row, int column, string url, int widthPixels = 96, int heightPixels = 32, int offsetXPixels = 0, int offsetYPixels = 0, string name = null, string altText = null, bool lockAspectRatio = True, CancellationToken cancellationToken = null)",
       "kind": "method",
       "action": "merge",
-      "new": "OfficeIMO.Excel.ExcelSheet.AddImage(string cellOrRange | (int row, int column), path | Stream | byte[] | Uri, ExcelImageOptions options = null) : ExcelImage",
+      "new": "ExcelSheet.AddImage(anchor, path | Stream | byte[], ExcelImageOptions? options = null) : ExcelImage; ExcelSheet.AddImageAsync(anchor, path | Stream | Uri, ExcelImageOptions? options = null, CancellationToken cancellationToken = default) : Task<ExcelImage>; anchor = (row, column) | cellOrRange | (OfficeLength x, OfficeLength y)",
       "reason": "One verb per concept: AddImage everywhere.",
       "file": "OfficeIMO.Excel/ExcelSheet.Images.Placement.cs, OfficeIMO.Excel/ExcelSheet.Images.cs",
       "category": "authoring",
       "notes": "12 AddImage* variants differ by source, anchor and scaling; sizes become OfficeLength. Also (units): change -> OfficeIMO.Excel.ExcelSheet.AddImageFromUrlAsync(... OfficeLength ...)",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "Image geometry is migrated to OfficeLength in the existing cell, range, absolute, file and remote placement paths. The proposed single source/options authoring overload family remains pending; this row is not complete."
+      "applied": "phase-b-applied",
+      "note": "All source families share ExcelImageOptions. Cell/range/absolute anchors retain native geometry, signed marker offsets, exact bytes and metadata. Streams retain position and default ownership; URI loading is asynchronous through the existing remote policy owner. Separate parts remain the default; optional exact-type/byte deduplication retains independent pictures. Native Add-contract13 and related image/range516 cases pass on net10.0; remaining framework/module gates belong to the phase validation."
     },
     {
       "old": "OfficeIMO.Excel.ExcelSheet.AddImageFromUrlWithOptionsAsync(int row, int column, string url, OfficeRemoteImageLoadOptions remoteImageOptions, int widthPixels = 96, int heightPixels = 32, int offsetXPixels = 0, int offsetYPixels = 0, string name = null, string altText = null, bool lockAspectRatio = True, CancellationToken cancellationToken = null)",
       "kind": "method",
       "action": "merge",
-      "new": "OfficeIMO.Excel.ExcelSheet.AddImage(string cellOrRange | (int row, int column), path | Stream | byte[] | Uri, ExcelImageOptions options = null) : ExcelImage",
+      "new": "ExcelSheet.AddImage(anchor, path | Stream | byte[], ExcelImageOptions? options = null) : ExcelImage; ExcelSheet.AddImageAsync(anchor, path | Stream | Uri, ExcelImageOptions? options = null, CancellationToken cancellationToken = default) : Task<ExcelImage>; anchor = (row, column) | cellOrRange | (OfficeLength x, OfficeLength y)",
       "reason": "One verb per concept: AddImage everywhere.",
       "file": "OfficeIMO.Excel/ExcelSheet.Images.cs",
       "category": "authoring",
       "notes": "12 AddImage* variants differ by source, anchor and scaling; sizes become OfficeLength. Also (units): change -> OfficeIMO.Excel.ExcelSheet.AddImageFromUrlWithOptionsAsync(... OfficeLength ...)",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "Image geometry is migrated to OfficeLength in the existing cell, range, absolute, file and remote placement paths. The proposed single source/options authoring overload family remains pending; this row is not complete."
+      "applied": "phase-b-applied",
+      "note": "All source families share ExcelImageOptions. Cell/range/absolute anchors retain native geometry, signed marker offsets, exact bytes and metadata. Streams retain position and default ownership; URI loading is asynchronous through the existing remote policy owner. Separate parts remain the default; optional exact-type/byte deduplication retains independent pictures. Native Add-contract13 and related image/range516 cases pass on net10.0; remaining framework/module gates belong to the phase validation."
     },
     {
       "old": "OfficeIMO.Excel.ExcelSheet.AddImageFromFile(int row, int column, string path, int? widthPixels = null, int? heightPixels = null, double? scalePercent = null, int offsetXPixels = 0, int offsetYPixels = 0, string name = null, string altText = null, string title = null, bool lockAspectRatio = True, double rotationDegrees = 0)",
       "kind": "method",
       "action": "merge",
-      "new": "OfficeIMO.Excel.ExcelSheet.AddImage(string cellOrRange | (int row, int column), path | Stream | byte[] | Uri, ExcelImageOptions options = null) : ExcelImage",
+      "new": "ExcelSheet.AddImage(anchor, path | Stream | byte[], ExcelImageOptions? options = null) : ExcelImage; ExcelSheet.AddImageAsync(anchor, path | Stream | Uri, ExcelImageOptions? options = null, CancellationToken cancellationToken = default) : Task<ExcelImage>; anchor = (row, column) | cellOrRange | (OfficeLength x, OfficeLength y)",
       "reason": "One verb per concept: AddImage everywhere.",
       "file": "OfficeIMO.Excel/ExcelSheet.Images.Placement.cs",
       "category": "authoring",
       "notes": "12 AddImage* variants differ by source, anchor and scaling; sizes become OfficeLength. Also (units): change -> OfficeIMO.Excel.ExcelSheet.AddImageFromFile(... OfficeLength ...)",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "Image geometry is migrated to OfficeLength in the existing cell, range, absolute, file and remote placement paths. The proposed single source/options authoring overload family remains pending; this row is not complete."
+      "applied": "phase-b-applied",
+      "note": "All source families share ExcelImageOptions. Cell/range/absolute anchors retain native geometry, signed marker offsets, exact bytes and metadata. Streams retain position and default ownership; URI loading is asynchronous through the existing remote policy owner. Separate parts remain the default; optional exact-type/byte deduplication retains independent pictures. Native Add-contract13 and related image/range516 cases pass on net10.0; remaining framework/module gates belong to the phase validation."
     },
     {
       "old": "OfficeIMO.Excel.ExcelSheet.AddImageFromUrlAsync(int row, int column, string url, int? widthPixels, int? heightPixels, double? scalePercent = null, int offsetXPixels = 0, int offsetYPixels = 0, string name = null, string altText = null, string title = null, bool lockAspectRatio = True, double rotationDegrees = 0, CancellationToken cancellationToken = null)",
       "kind": "method",
       "action": "merge",
-      "new": "OfficeIMO.Excel.ExcelSheet.AddImage(string cellOrRange | (int row, int column), path | Stream | byte[] | Uri, ExcelImageOptions options = null) : ExcelImage",
+      "new": "ExcelSheet.AddImage(anchor, path | Stream | byte[], ExcelImageOptions? options = null) : ExcelImage; ExcelSheet.AddImageAsync(anchor, path | Stream | Uri, ExcelImageOptions? options = null, CancellationToken cancellationToken = default) : Task<ExcelImage>; anchor = (row, column) | cellOrRange | (OfficeLength x, OfficeLength y)",
       "reason": "One verb per concept: AddImage everywhere.",
       "file": "OfficeIMO.Excel/ExcelSheet.Images.Placement.cs, OfficeIMO.Excel/ExcelSheet.Images.cs",
       "category": "authoring",
       "notes": "12 AddImage* variants differ by source, anchor and scaling; sizes become OfficeLength. Also (units): change -> OfficeIMO.Excel.ExcelSheet.AddImageFromUrlAsync(... OfficeLength ...)",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "Image geometry is migrated to OfficeLength in the existing cell, range, absolute, file and remote placement paths. The proposed single source/options authoring overload family remains pending; this row is not complete."
+      "applied": "phase-b-applied",
+      "note": "All source families share ExcelImageOptions. Cell/range/absolute anchors retain native geometry, signed marker offsets, exact bytes and metadata. Streams retain position and default ownership; URI loading is asynchronous through the existing remote policy owner. Separate parts remain the default; optional exact-type/byte deduplication retains independent pictures. Native Add-contract13 and related image/range516 cases pass on net10.0; remaining framework/module gates belong to the phase validation."
     },
     {
       "old": "OfficeIMO.Excel.ExcelSheet.AddImageFromUrlScaledAsync(int row, int column, string url, double scalePercent, OfficeRemoteImageLoadOptions remoteImageOptions, int offsetXPixels = 0, int offsetYPixels = 0, string name = null, string altText = null, string title = null, bool lockAspectRatio = True, double rotationDegrees = 0, CancellationToken cancellationToken = null)",
       "kind": "method",
       "action": "merge",
-      "new": "OfficeIMO.Excel.ExcelSheet.AddImage(string cellOrRange | (int row, int column), path | Stream | byte[] | Uri, ExcelImageOptions options = null) : ExcelImage",
+      "new": "ExcelSheet.AddImage(anchor, path | Stream | byte[], ExcelImageOptions? options = null) : ExcelImage; ExcelSheet.AddImageAsync(anchor, path | Stream | Uri, ExcelImageOptions? options = null, CancellationToken cancellationToken = default) : Task<ExcelImage>; anchor = (row, column) | cellOrRange | (OfficeLength x, OfficeLength y)",
       "reason": "One verb per concept: AddImage everywhere.",
       "file": "OfficeIMO.Excel/ExcelSheet.Images.Placement.cs",
       "category": "authoring",
       "notes": "12 AddImage* variants differ by source, anchor and scaling; sizes become OfficeLength. Also (units): change -> OfficeIMO.Excel.ExcelSheet.AddImageFromUrlScaledAsync(... OfficeLength ...)",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "Image geometry is migrated to OfficeLength in the existing cell, range, absolute, file and remote placement paths. The proposed single source/options authoring overload family remains pending; this row is not complete."
+      "applied": "phase-b-applied",
+      "note": "All source families share ExcelImageOptions. Cell/range/absolute anchors retain native geometry, signed marker offsets, exact bytes and metadata. Streams retain position and default ownership; URI loading is asynchronous through the existing remote policy owner. Separate parts remain the default; optional exact-type/byte deduplication retains independent pictures. Native Add-contract13 and related image/range516 cases pass on net10.0; remaining framework/module gates belong to the phase validation."
     },
     {
       "old": "OfficeIMO.Excel.ExcelSheet.AddImageFromUrlAsync(int row, int column, string url, double scalePercent, int offsetXPixels = 0, int offsetYPixels = 0, string name = null, string altText = null, string title = null, bool lockAspectRatio = True, double rotationDegrees = 0, CancellationToken cancellationToken = null)",
       "kind": "method",
       "action": "merge",
-      "new": "OfficeIMO.Excel.ExcelSheet.AddImage(string cellOrRange | (int row, int column), path | Stream | byte[] | Uri, ExcelImageOptions options = null) : ExcelImage",
+      "new": "ExcelSheet.AddImage(anchor, path | Stream | byte[], ExcelImageOptions? options = null) : ExcelImage; ExcelSheet.AddImageAsync(anchor, path | Stream | Uri, ExcelImageOptions? options = null, CancellationToken cancellationToken = default) : Task<ExcelImage>; anchor = (row, column) | cellOrRange | (OfficeLength x, OfficeLength y)",
       "reason": "One verb per concept: AddImage everywhere.",
       "file": "OfficeIMO.Excel/ExcelSheet.Images.Placement.cs, OfficeIMO.Excel/ExcelSheet.Images.cs",
       "category": "authoring",
       "notes": "12 AddImage* variants differ by source, anchor and scaling; sizes become OfficeLength. Also (units): change -> OfficeIMO.Excel.ExcelSheet.AddImageFromUrlAsync(... OfficeLength ...)",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "Image geometry is migrated to OfficeLength in the existing cell, range, absolute, file and remote placement paths. The proposed single source/options authoring overload family remains pending; this row is not complete."
+      "applied": "phase-b-applied",
+      "note": "All source families share ExcelImageOptions. Cell/range/absolute anchors retain native geometry, signed marker offsets, exact bytes and metadata. Streams retain position and default ownership; URI loading is asynchronous through the existing remote policy owner. Separate parts remain the default; optional exact-type/byte deduplication retains independent pictures. Native Add-contract13 and related image/range516 cases pass on net10.0; remaining framework/module gates belong to the phase validation."
     },
     {
       "old": "OfficeIMO.Excel.ExcelSheet.AddImageToRange(string range, byte[] imageBytes, string contentType = image/png, int offsetXPixels = 0, int offsetYPixels = 0, int endOffsetXPixels = 0, int endOffsetYPixels = 0, string name = null, string altText = null, string title = null, bool lockAspectRatio = True, ExcelImagePlacement placement = MoveAndSize, double rotationDegrees = 0)",
       "kind": "method",
       "action": "merge",
-      "new": "OfficeIMO.Excel.ExcelSheet.AddImage(string cellOrRange | (int row, int column), path | Stream | byte[] | Uri, ExcelImageOptions options = null) : ExcelImage",
+      "new": "ExcelSheet.AddImage(anchor, path | Stream | byte[], ExcelImageOptions? options = null) : ExcelImage; ExcelSheet.AddImageAsync(anchor, path | Stream | Uri, ExcelImageOptions? options = null, CancellationToken cancellationToken = default) : Task<ExcelImage>; anchor = (row, column) | cellOrRange | (OfficeLength x, OfficeLength y)",
       "reason": "One verb per concept: AddImage everywhere.",
       "file": "OfficeIMO.Excel/ExcelSheet.Images.Placement.cs",
       "category": "authoring",
       "notes": "12 AddImage* variants differ by source, anchor and scaling; sizes become OfficeLength. Also (units): change -> OfficeIMO.Excel.ExcelSheet.AddImageToRange(... OfficeLength ...)",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "Image geometry is migrated to OfficeLength in the existing cell, range, absolute, file and remote placement paths. The proposed single source/options authoring overload family remains pending; this row is not complete."
+      "applied": "phase-b-applied",
+      "note": "All source families share ExcelImageOptions. Cell/range/absolute anchors retain native geometry, signed marker offsets, exact bytes and metadata. Streams retain position and default ownership; URI loading is asynchronous through the existing remote policy owner. Separate parts remain the default; optional exact-type/byte deduplication retains independent pictures. Native Add-contract13 and related image/range516 cases pass on net10.0; remaining framework/module gates belong to the phase validation."
     },
     {
       "old": "OfficeIMO.Excel.ExcelSheet.AddImageAbsolute(int xPixels, int yPixels, byte[] imageBytes, string contentType = image/png, int widthPixels = 96, int heightPixels = 32, string name = null, string altText = null, string title = null, bool lockAspectRatio = True, double rotationDegrees = 0)",
       "kind": "method",
       "action": "merge",
-      "new": "OfficeIMO.Excel.ExcelSheet.AddImage(string cellOrRange | (int row, int column), path | Stream | byte[] | Uri, ExcelImageOptions options = null) : ExcelImage",
+      "new": "ExcelSheet.AddImage(anchor, path | Stream | byte[], ExcelImageOptions? options = null) : ExcelImage; ExcelSheet.AddImageAsync(anchor, path | Stream | Uri, ExcelImageOptions? options = null, CancellationToken cancellationToken = default) : Task<ExcelImage>; anchor = (row, column) | cellOrRange | (OfficeLength x, OfficeLength y)",
       "reason": "One verb per concept: AddImage everywhere.",
       "file": "OfficeIMO.Excel/ExcelSheet.Images.Placement.cs",
       "category": "authoring",
       "notes": "12 AddImage* variants differ by source, anchor and scaling; sizes become OfficeLength. Also (units): change -> OfficeIMO.Excel.ExcelSheet.AddImageAbsolute(... OfficeLength ...)",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "Image geometry is migrated to OfficeLength in the existing cell, range, absolute, file and remote placement paths. The proposed single source/options authoring overload family remains pending; this row is not complete."
+      "applied": "phase-b-applied",
+      "note": "All source families share ExcelImageOptions. Cell/range/absolute anchors retain native geometry, signed marker offsets, exact bytes and metadata. Streams retain position and default ownership; URI loading is asynchronous through the existing remote policy owner. Separate parts remain the default; optional exact-type/byte deduplication retains independent pictures. Native Add-contract13 and related image/range516 cases pass on net10.0; remaining framework/module gates belong to the phase validation."
     },
     {
       "old": "OfficeIMO.Excel.ExcelSheet.AddImageFromFileToRange(string range, string path, int offsetXPixels = 0, int offsetYPixels = 0, int endOffsetXPixels = 0, int endOffsetYPixels = 0, string name = null, string altText = null, string title = null, bool lockAspectRatio = True, ExcelImagePlacement placement = MoveAndSize, double rotationDegrees = 0)",
       "kind": "method",
       "action": "merge",
-      "new": "OfficeIMO.Excel.ExcelSheet.AddImage(string cellOrRange | (int row, int column), path | Stream | byte[] | Uri, ExcelImageOptions options = null) : ExcelImage",
+      "new": "ExcelSheet.AddImage(anchor, path | Stream | byte[], ExcelImageOptions? options = null) : ExcelImage; ExcelSheet.AddImageAsync(anchor, path | Stream | Uri, ExcelImageOptions? options = null, CancellationToken cancellationToken = default) : Task<ExcelImage>; anchor = (row, column) | cellOrRange | (OfficeLength x, OfficeLength y)",
       "reason": "One verb per concept: AddImage everywhere.",
       "file": "OfficeIMO.Excel/ExcelSheet.Images.Placement.cs",
       "category": "authoring",
       "notes": "12 AddImage* variants differ by source, anchor and scaling; sizes become OfficeLength. Also (units): change -> OfficeIMO.Excel.ExcelSheet.AddImageFromFileToRange(... OfficeLength ...)",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "Image geometry is migrated to OfficeLength in the existing cell, range, absolute, file and remote placement paths. The proposed single source/options authoring overload family remains pending; this row is not complete."
+      "applied": "phase-b-applied",
+      "note": "All source families share ExcelImageOptions. Cell/range/absolute anchors retain native geometry, signed marker offsets, exact bytes and metadata. Streams retain position and default ownership; URI loading is asynchronous through the existing remote policy owner. Separate parts remain the default; optional exact-type/byte deduplication retains independent pictures. Native Add-contract13 and related image/range516 cases pass on net10.0; remaining framework/module gates belong to the phase validation."
     },
     {
       "old": "OfficeIMO.Excel.ExcelSheet.AddImageFromUrlToRangeAsync(string range, string url, int offsetXPixels = 0, int offsetYPixels = 0, int endOffsetXPixels = 0, int endOffsetYPixels = 0, string name = null, string altText = null, string title = null, bool lockAspectRatio = True, ExcelImagePlacement placement = MoveAndSize, double rotationDegrees = 0, CancellationToken cancellationToken = null)",
       "kind": "method",
       "action": "merge",
-      "new": "OfficeIMO.Excel.ExcelSheet.AddImage(string cellOrRange | (int row, int column), path | Stream | byte[] | Uri, ExcelImageOptions options = null) : ExcelImage",
+      "new": "ExcelSheet.AddImage(anchor, path | Stream | byte[], ExcelImageOptions? options = null) : ExcelImage; ExcelSheet.AddImageAsync(anchor, path | Stream | Uri, ExcelImageOptions? options = null, CancellationToken cancellationToken = default) : Task<ExcelImage>; anchor = (row, column) | cellOrRange | (OfficeLength x, OfficeLength y)",
       "reason": "One verb per concept: AddImage everywhere.",
       "file": "OfficeIMO.Excel/ExcelSheet.Images.Placement.cs",
       "category": "authoring",
       "notes": "12 AddImage* variants differ by source, anchor and scaling; sizes become OfficeLength. Also (units): change -> OfficeIMO.Excel.ExcelSheet.AddImageFromUrlToRangeAsync(... OfficeLength ...)",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "Image geometry is migrated to OfficeLength in the existing cell, range, absolute, file and remote placement paths. The proposed single source/options authoring overload family remains pending; this row is not complete."
+      "applied": "phase-b-applied",
+      "note": "All source families share ExcelImageOptions. Cell/range/absolute anchors retain native geometry, signed marker offsets, exact bytes and metadata. Streams retain position and default ownership; URI loading is asynchronous through the existing remote policy owner. Separate parts remain the default; optional exact-type/byte deduplication retains independent pictures. Native Add-contract13 and related image/range516 cases pass on net10.0; remaining framework/module gates belong to the phase validation."
     },
     {
       "old": "OfficeIMO.Excel.ExcelSheet.AddImageFromUrlToRangeAsync(string range, string url, OfficeRemoteImageLoadOptions remoteImageOptions, int offsetXPixels = 0, int offsetYPixels = 0, int endOffsetXPixels = 0, int endOffsetYPixels = 0, string name = null, string altText = null, string title = null, bool lockAspectRatio = True, ExcelImagePlacement placement = MoveAndSize, double rotationDegrees = 0, CancellationToken cancellationToken = null)",
       "kind": "method",
       "action": "merge",
-      "new": "OfficeIMO.Excel.ExcelSheet.AddImage(string cellOrRange | (int row, int column), path | Stream | byte[] | Uri, ExcelImageOptions options = null) : ExcelImage",
+      "new": "ExcelSheet.AddImage(anchor, path | Stream | byte[], ExcelImageOptions? options = null) : ExcelImage; ExcelSheet.AddImageAsync(anchor, path | Stream | Uri, ExcelImageOptions? options = null, CancellationToken cancellationToken = default) : Task<ExcelImage>; anchor = (row, column) | cellOrRange | (OfficeLength x, OfficeLength y)",
       "reason": "One verb per concept: AddImage everywhere.",
       "file": "OfficeIMO.Excel/ExcelSheet.Images.Placement.cs",
       "category": "authoring",
       "notes": "12 AddImage* variants differ by source, anchor and scaling; sizes become OfficeLength. Also (units): change -> OfficeIMO.Excel.ExcelSheet.AddImageFromUrlToRangeAsync(... OfficeLength ...)",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "Image geometry is migrated to OfficeLength in the existing cell, range, absolute, file and remote placement paths. The proposed single source/options authoring overload family remains pending; this row is not complete."
+      "applied": "phase-b-applied",
+      "note": "All source families share ExcelImageOptions. Cell/range/absolute anchors retain native geometry, signed marker offsets, exact bytes and metadata. Streams retain position and default ownership; URI loading is asynchronous through the existing remote policy owner. Separate parts remain the default; optional exact-type/byte deduplication retains independent pictures. Native Add-contract13 and related image/range516 cases pass on net10.0; remaining framework/module gates belong to the phase validation."
     },
     {
       "old": "OfficeIMO.Excel.ExcelSheet.InsertObjects<T>(IEnumerable<T> items, bool includeHeaders = True, int startRow = 1)",
@@ -6291,6 +6291,16 @@
         "OfficeIMO.Excel/ExcelSheet.SharedCharts.cs",
         "OfficeIMO.Excel/ExcelSheet.TypedCharts.cs"
       ]
+    },
+    {
+      "phase": "B",
+      "action": "change",
+      "old": "Excel image source variants and report forwards",
+      "new": "ExcelImageOptions with typed dimensions/offsets, source ownership, native metadata, network policy and optional per-drawing exact payload deduplication",
+      "reason": "One image authoring grammar retains the existing anchor and input behaviors without public source-specific aliases.",
+      "file": "OfficeIMO.Excel/ExcelImageOptions.cs",
+      "applied": "phase-b-applied",
+      "note": "Copied/transposed native images use private native writers and preserve signed offsets, crop, flip and hyperlink relationships.13newnativecasesand516relatedcases pass net10.0. Compiled PowerShell names/parameters/aliases remain unchanged; single-cell Range is normalized to an explicit same-cell range before forwarding."
     }
   ],
   "applicationStatus": "Phase A applied and validated on the supported macOS targets. Phase B and Tier 2 entries retain their status; Windows .NET Framework validation remains pending.",

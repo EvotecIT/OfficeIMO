@@ -20,9 +20,12 @@ public partial class Excel {
         using var output = new MemoryStream();
         using (var document = ExcelDocument.Create()) {
             var sheet = document.AddSheet("Images");
-            ExcelImage image = sheet.Report().AddImage(2, 3, bytes,
-                width: OfficeLength.Emus(9526), height: OfficeLength.Emus(19051),
-                offsetX: OfficeLength.Emus(-1), offsetY: OfficeLength.Emus(17));
+            ExcelImage image = sheet.Report().AddImage(2, 3, bytes, new OfficeIMO.Excel.ExcelImageOptions {
+                Width = OfficeLength.Emus(9526),
+                Height = OfficeLength.Emus(19051),
+                OffsetX = OfficeLength.Emus(-1),
+                OffsetY = OfficeLength.Emus(17)
+            });
             Assert.Equal(OfficeLength.Emus(9526), image.Width);
             Assert.Equal(OfficeLength.Emus(-1), image.OffsetX);
             image.Name = "Measured image";
@@ -46,7 +49,7 @@ public partial class Excel {
         byte[] bytes = File.ReadAllBytes(Path.Combine(_directoryWithImages, "EvotecLogo.png"));
         using var document = ExcelDocument.Create();
         var sheet = document.AddSheet("Images");
-        var image = sheet.AddImageToRange("A1:B2", bytes);
+        var image = sheet.AddImage("A1:B2", bytes);
         image.SetTwoCellEndingMarker(3, 4, OfficeLength.Emus(1), OfficeLength.Emus(2));
         Assert.Throws<ArgumentOutOfRangeException>(() => image.SetTwoCellEndingMarker(5, 6, OfficeLength.Emus(-1)));
         Assert.Throws<ArgumentOutOfRangeException>(() => image.SetTwoCellEndingMarker(5, 6, toOffsetY: OfficeLength.Emus(-1)));
@@ -72,9 +75,12 @@ public partial class Excel {
             var policy = new OfficeRemoteImageLoadOptions { AllowPrivateNetworkAddresses = true };
             string url = $"http://127.0.0.1:{port}/logo.png";
             ExcelImage image = reportImage
-                ? await sheet.Report().AddImageFromUrlAsync(1, 1, url, policy,
-                    width: OfficeLength.Emus(9526), height: OfficeLength.Emus(19051), cancellationToken: timeout.Token)
-                : await sheet.AddImageFromUrlWithOptionsAsync(1, 1, url, policy, cancellationToken: timeout.Token);
+                ? await sheet.Report().AddImageAsync(1, 1, new System.Uri(url), new OfficeIMO.Excel.ExcelImageOptions {
+                    RemoteImageOptions = policy,
+                    Width = OfficeLength.Emus(9526),
+                    Height = OfficeLength.Emus(19051)
+                }, cancellationToken: timeout.Token)
+                : await sheet.AddImageAsync(1, 1, new System.Uri(url), new OfficeIMO.Excel.ExcelImageOptions { RemoteImageOptions = policy }, cancellationToken: timeout.Token);
             Assert.Equal(reportImage ? OfficeLength.Emus(9526) : OfficeLength.Pixels(info.Width), image.Width);
             Assert.Equal(reportImage ? OfficeLength.Emus(19051) : OfficeLength.Pixels(info.Height), image.Height);
             image.Name = "Remote handle";
@@ -99,8 +105,7 @@ public partial class Excel {
         using (var original = ExcelDocument.Create()) {
             var sheet = original.AddSheet("Copy images");
             sheet.CellValue(1, 1, "Seed");
-            sheet.AddImageToRange("A1:B3", bytes,
-                endOffsetX: OfficeLength.Emus(-1), endOffsetY: OfficeLength.Emus(-2));
+            sheet.AddImage("A1:B3", bytes, new OfficeIMO.Excel.ExcelImageOptions { EndOffsetX = OfficeLength.Emus(-1), EndOffsetY = OfficeLength.Emus(-2) });
             original.Save(source);
         }
         source.Position = 0;

@@ -148,8 +148,11 @@ namespace OfficeIMO.Tests {
             var range = new ExcelChartDataRange("Report", 1, 1, 1, 1, hasHeaderRow: false);
             ExcelChart chart = sheet.AddChart(range, 4, 1, OfficeLength.Pixels(300), OfficeLength.Pixels(180), title: "Before title");
             byte[] imageBytes = File.ReadAllBytes(Path.Combine(RepositoryTestPaths.Find(), "Assets", "OfficeIMO.png"));
-            ExcelImage image = sheet.AddImage(12, 1, imageBytes,
-                "image/png", width: OfficeIMO.OfficeLength.Pixels(20), height: OfficeIMO.OfficeLength.Pixels(20));
+            ExcelImage image = sheet.AddImage(12, 1, imageBytes, new OfficeIMO.Excel.ExcelImageOptions {
+                ContentType = "image/png",
+                Width = OfficeIMO.OfficeLength.Pixels(20),
+                Height = OfficeIMO.OfficeLength.Pixels(20)
+            });
             image.Title = "Before image";
             return (chart, image);
         }

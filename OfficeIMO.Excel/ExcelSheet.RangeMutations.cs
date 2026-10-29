@@ -427,7 +427,7 @@ namespace OfficeIMO.Excel {
                     if (toRow > ExcelA1.MaxRows || toColumn > ExcelA1.MaxColumns) {
                         throw new InvalidOperationException("Copied image anchor exceeds worksheet limits.");
                     }
-                    copy = AddImageToRange(
+                    copy = AddRangeImageCore(
                         ExcelA1.CellReference(targetRow, targetColumn) + ":" + ExcelA1.CellReference(targetRow, targetColumn),
                         image.Bytes!,
                         image.ContentType,
@@ -448,7 +448,7 @@ namespace OfficeIMO.Excel {
                         transpose ? image.Height : image.Width,
                         transpose ? image.Width : image.Height);
                 } else {
-                    copy = AddImage(
+                    copy = AddCellImageCore(
                         targetRow,
                         targetColumn,
                         image.Bytes!,

@@ -156,8 +156,18 @@ public partial class Excel {
             sheet.Cell(3, 2, "Inside");
             sheet.Cell(3, 3, 10);
             sheet.Cell(10, 1, "OutsideData");
-            sheet.AddImage(3, 2, imageBytes, "image/png", width: OfficeIMO.OfficeLength.Pixels(12), height: OfficeIMO.OfficeLength.Pixels(12), name: "Inside image");
-            sheet.AddImage(10, 1, imageBytes, "image/png", width: OfficeIMO.OfficeLength.Pixels(12), height: OfficeIMO.OfficeLength.Pixels(12), name: "Outside image");
+            sheet.AddImage(3, 2, imageBytes, new OfficeIMO.Excel.ExcelImageOptions {
+                ContentType = "image/png",
+                Width = OfficeIMO.OfficeLength.Pixels(12),
+                Height = OfficeIMO.OfficeLength.Pixels(12),
+                Name = "Inside image"
+            });
+            sheet.AddImage(10, 1, imageBytes, new OfficeIMO.Excel.ExcelImageOptions {
+                ContentType = "image/png",
+                Width = OfficeIMO.OfficeLength.Pixels(12),
+                Height = OfficeIMO.OfficeLength.Pixels(12),
+                Name = "Outside image"
+            });
             sheet.AddChartFromRange("B2:C3", row: 3, column: 2, width: OfficeLength.Pixels(220), height: OfficeLength.Pixels(120), type: OfficeChartType.ColumnClustered, title: "Inside Chart");
             sheet.AddChartFromRange("B2:C3", row: 10, column: 1, width: OfficeLength.Pixels(220), height: OfficeLength.Pixels(120), type: OfficeChartType.ColumnClustered, title: "Outside Chart");
             document.SetPrintArea(sheet, "B2:C3");

@@ -66,18 +66,16 @@ public static partial class OfficeVisualPlacementExtensions {
         OfficeLength offsetY = default) {
         if (sheet == null) throw new ArgumentNullException(nameof(sheet));
         if (conversion == null) throw new ArgumentNullException(nameof(conversion));
-        ExcelImage image = sheet.AddImage(
-            row,
-            column,
-            conversion.GetPlacementBytes(),
-            conversion.PlacementMediaType,
-            OfficeLength.Points(conversion.WidthPoints),
-            OfficeLength.Points(conversion.HeightPoints),
-            offsetX,
-            offsetY,
-            name: null,
-            altText: conversion.AlternativeText,
-            lockAspectRatio: true);
+        ExcelImage image = sheet.AddImage(row, column, conversion.GetPlacementBytes(), new OfficeIMO.Excel.ExcelImageOptions {
+            ContentType = conversion.PlacementMediaType,
+            Width = OfficeLength.Points(conversion.WidthPoints),
+            Height = OfficeLength.Points(conversion.HeightPoints),
+            OffsetX = offsetX,
+            OffsetY = offsetY,
+            Name = null,
+            Description = conversion.AlternativeText,
+            LockAspectRatio = true
+        });
         if (!conversion.IsDecorative) image.Title = ResolveTitle(conversion);
         return image;
     }

@@ -19,7 +19,11 @@ public partial class Excel {
             sheet.CellValue(row, 2, "Row" + row);
             sheet.SetRowHeight(row, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(30)));
         }
-        sheet.AddImage(1, 1, CreateMinimalRgbPng(), "image/png", width: OfficeIMO.OfficeLength.Pixels(800), height: OfficeIMO.OfficeLength.Pixels(16));
+        sheet.AddImage(1, 1, CreateMinimalRgbPng(), new OfficeIMO.Excel.ExcelImageOptions {
+            ContentType = "image/png",
+            Width = OfficeIMO.OfficeLength.Pixels(800),
+            Height = OfficeIMO.OfficeLength.Pixels(16)
+        });
         sheet.SetPageSetup(fitToWidth: 1, fitToHeight: 0);
         workbook.Save();
         using var pdf = PdfPigDocument.Open(workbook.ToPdf(new ExcelPdfExportOptions {

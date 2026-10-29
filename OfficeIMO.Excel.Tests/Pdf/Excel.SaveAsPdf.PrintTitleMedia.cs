@@ -17,7 +17,11 @@ public partial class Excel {
             sheet.Cell(1, column, "Column" + column);
             sheet.SetColumnWidth(column, ExcelColumnWidth.Characters(10D));
         }
-        sheet.AddImage(2, anchorColumn, CreateMinimalRgbPng(), "image/png", width: OfficeIMO.OfficeLength.Pixels(24), height: OfficeIMO.OfficeLength.Pixels(16));
+        sheet.AddImage(2, anchorColumn, CreateMinimalRgbPng(), new OfficeIMO.Excel.ExcelImageOptions {
+            ContentType = "image/png",
+            Width = OfficeIMO.OfficeLength.Pixels(24),
+            Height = OfficeIMO.OfficeLength.Pixels(16)
+        });
         sheet.AddChart(new ExcelChartData(new[] { "One", "Two" }, new[] { new ExcelChartSeries("Values", new double[] { 1, 2 }) }),
             3, anchorColumn, width: OfficeLength.Pixels(120), height: OfficeLength.Pixels(80), title: "RetainedChart");
         document.SetPrintArea(sheet, "A1:F4");
@@ -47,8 +51,16 @@ public partial class Excel {
         for (int column = 1; column <= 15; column++) sheet.SetColumnWidth(column, ExcelColumnWidth.Characters(10D));
         sheet.Cell(1, 1, "Title"); sheet.Cell(1, 12, "FinalBody");
         // M lies directly after the body; O additionally includes the real empty N column.
-        sheet.AddImage(2, 13, CreateMinimalRgbPng(), "image/png", width: OfficeIMO.OfficeLength.Pixels(24), height: OfficeIMO.OfficeLength.Pixels(16));
-        sheet.AddImage(2, 15, CreateMinimalRgbPng(), "image/png", width: OfficeIMO.OfficeLength.Pixels(24), height: OfficeIMO.OfficeLength.Pixels(16));
+        sheet.AddImage(2, 13, CreateMinimalRgbPng(), new OfficeIMO.Excel.ExcelImageOptions {
+            ContentType = "image/png",
+            Width = OfficeIMO.OfficeLength.Pixels(24),
+            Height = OfficeIMO.OfficeLength.Pixels(16)
+        });
+        sheet.AddImage(2, 15, CreateMinimalRgbPng(), new OfficeIMO.Excel.ExcelImageOptions {
+            ContentType = "image/png",
+            Width = OfficeIMO.OfficeLength.Pixels(24),
+            Height = OfficeIMO.OfficeLength.Pixels(16)
+        });
         document.SetPrintTitles(sheet, firstRow: null, lastRow: null, firstCol: 1, lastCol: 1);
         sheet.AddManualColumnPageBreak(10);
 

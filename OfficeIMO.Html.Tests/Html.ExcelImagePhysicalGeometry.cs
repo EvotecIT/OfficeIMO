@@ -13,7 +13,7 @@ public partial class HtmlOfficeAdapters {
         using var workbook = ExcelDocument.Create();
         var sheet = workbook.AddSheet("Fallback image");
         sheet.CellValue(1, 1, "Seed");
-        sheet.AddImageAbsolute(OfficeLength.Pixels(12), OfficeLength.Pixels(7), OnePixelPng);
+        sheet.AddImage(OfficeLength.Pixels(12), OfficeLength.Pixels(7), OnePixelPng);
         string html = workbook.ToHtml(new ExcelHtmlSaveOptions { Profile = OfficeHtmlConversionProfile.ExcelSemanticTables });
         html = html.Replace("data-officeimo-x-emu=\"114300\"", "data-officeimo-x-emu=\"9223372036854775807\"", StringComparison.Ordinal)
             .Replace("data-officeimo-y-emu=\"66675\"", "data-officeimo-y-emu=\"-9223372036854775808\"", StringComparison.Ordinal);
@@ -32,8 +32,10 @@ public partial class HtmlOfficeAdapters {
         using (var workbook = ExcelDocument.Create()) {
             var sheet = workbook.AddSheet("Absolute image");
             sheet.CellValue(1, 1, "Seed");
-            sheet.AddImageAbsolute(OfficeLength.Zero, OfficeLength.Zero, OnePixelPng,
-                width: OfficeLength.Emus(9526), height: OfficeLength.Emus(19051));
+            sheet.AddImage(OfficeLength.Zero, OfficeLength.Zero, OnePixelPng, new OfficeIMO.Excel.ExcelImageOptions {
+                Width = OfficeLength.Emus(9526),
+                Height = OfficeLength.Emus(19051)
+            });
             workbook.Save(source);
         }
         source.Position = 0;
@@ -66,8 +68,7 @@ public partial class HtmlOfficeAdapters {
         using (var workbook = ExcelDocument.Create()) {
             var sheet = workbook.AddSheet("Native markers");
             sheet.CellValue(1, 1, "Seed");
-            sheet.AddImageToRange("B2:B2", OnePixelPng,
-                offsetX: OfficeLength.Pixels(-2), offsetY: OfficeLength.Pixels(-3))
+            sheet.AddImage("B2:B2", OnePixelPng, new OfficeIMO.Excel.ExcelImageOptions { OffsetX = OfficeLength.Pixels(-2), OffsetY = OfficeLength.Pixels(-3) })
                 .SetTwoCellEndingMarker(2, 2);
             workbook.Save(source);
         }

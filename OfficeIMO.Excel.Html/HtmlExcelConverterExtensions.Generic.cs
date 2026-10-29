@@ -289,14 +289,12 @@ public static partial class HtmlExcelConverterExtensions {
                     double imageHeight = NormalizeEditableLayoutGeometry(
                         image.Height, maximumGeometry, 1D, maximumGeometry,
                         budget, result, "editable layout picture height");
-                    ExcelImage nativeImage = sheet.AddImageAbsolute(
-                        OfficeIMO.OfficeLength.Pixels(imageLeft),
-                        OfficeIMO.OfficeLength.Pixels(imageTop),
-                        bytes,
-                        contentType,
-                        OfficeIMO.OfficeLength.Pixels(imageWidth),
-                        OfficeIMO.OfficeLength.Pixels(imageHeight),
-                        altText: image.AlternativeText);
+                    ExcelImage nativeImage = sheet.AddImage(OfficeIMO.OfficeLength.Pixels(imageLeft), OfficeIMO.OfficeLength.Pixels(imageTop), bytes, new OfficeIMO.Excel.ExcelImageOptions {
+                        ContentType = contentType,
+                        Width = OfficeIMO.OfficeLength.Pixels(imageWidth),
+                        Height = OfficeIMO.OfficeLength.Pixels(imageHeight),
+                        Description = image.AlternativeText
+                    });
                     if (image.Opacity < 0.999D) {
                         nativeImage.TransparencyPercent = (int)Math.Round((1D - image.Opacity) * 100D);
                     }
@@ -517,9 +515,13 @@ public static partial class HtmlExcelConverterExtensions {
         if (row > ExcelA1.MaxRows) return;
         double width = ReadGenericImageDimension(resource.WidthPixels, "width", 160, budget, result);
         double height = ReadGenericImageDimension(resource.HeightPixels, "height", 90, budget, result);
-        ExcelImage importedImage = sheet.AddImage(row, 1, bytes, contentType, OfficeIMO.OfficeLength.Pixels(width), OfficeIMO.OfficeLength.Pixels(height),
-            name: null,
-            altText: string.IsNullOrWhiteSpace(resource.AlternateText) ? null : resource.AlternateText);
+        ExcelImage importedImage = sheet.AddImage(row, 1, bytes, new OfficeIMO.Excel.ExcelImageOptions {
+            ContentType = contentType,
+            Width = OfficeIMO.OfficeLength.Pixels(width),
+            Height = OfficeIMO.OfficeLength.Pixels(height),
+            Name = null,
+            Description = string.IsNullOrWhiteSpace(resource.AlternateText) ? null : resource.AlternateText
+        });
         ApplyImageHyperlink(importedImage, resource.Hyperlink, result);
         result.Images++;
         imageReservation.Commit();

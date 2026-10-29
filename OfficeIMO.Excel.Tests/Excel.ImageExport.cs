@@ -484,7 +484,12 @@ namespace OfficeIMO.Tests {
             sheet.SetColumnWidth(3, ExcelColumnWidth.Characters(12));
             sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(28)));
             sheet.CellValue(1, 1, "Plain text stops before image overlay");
-            sheet.AddImage(1, 2, CreateSolidOpaquePng(24, 18, OfficeColor.FromRgb(37, 99, 235)), "image/png", width: OfficeIMO.OfficeLength.Pixels(24), height: OfficeIMO.OfficeLength.Pixels(18), name: "Overlay");
+            sheet.AddImage(1, 2, CreateSolidOpaquePng(24, 18, OfficeColor.FromRgb(37, 99, 235)), new OfficeIMO.Excel.ExcelImageOptions {
+                ContentType = "image/png",
+                Width = OfficeIMO.OfficeLength.Pixels(24),
+                Height = OfficeIMO.OfficeLength.Pixels(18),
+                Name = "Overlay"
+            });
 
             ExcelRange range = sheet.Range("A1:C1");
             ExcelImageExportOptions options = new() { ShowGridlines = false };
@@ -544,7 +549,12 @@ namespace OfficeIMO.Tests {
             sheet.SetColumnWidth(2, ExcelColumnWidth.Characters(16));
             sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(28)));
             sheet.CellValue(1, 1, "Text hidden by image should not spill");
-            sheet.AddImage(1, 1, CreateSolidOpaquePng(48, 18, OfficeColor.FromRgb(37, 99, 235)), "image/png", width: OfficeIMO.OfficeLength.Pixels(48), height: OfficeIMO.OfficeLength.Pixels(18), name: "SourceOverlay");
+            sheet.AddImage(1, 1, CreateSolidOpaquePng(48, 18, OfficeColor.FromRgb(37, 99, 235)), new OfficeIMO.Excel.ExcelImageOptions {
+                ContentType = "image/png",
+                Width = OfficeIMO.OfficeLength.Pixels(48),
+                Height = OfficeIMO.OfficeLength.Pixels(18),
+                Name = "SourceOverlay"
+            });
 
             ExcelRange range = sheet.Range("A1:B1");
             ExcelImageExportOptions options = new() { ShowGridlines = false };
@@ -568,7 +578,12 @@ namespace OfficeIMO.Tests {
             sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(18));
             sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(24)));
             sheet.CellValue(1, 1, "Covered anchor text should not show fragments");
-            sheet.AddImage(1, 1, CreateSolidOpaquePng(120, 32, OfficeColor.FromRgb(37, 99, 235)), "image/png", width: OfficeIMO.OfficeLength.Pixels(120), height: OfficeIMO.OfficeLength.Pixels(32), name: "AnchorOverlay");
+            sheet.AddImage(1, 1, CreateSolidOpaquePng(120, 32, OfficeColor.FromRgb(37, 99, 235)), new OfficeIMO.Excel.ExcelImageOptions {
+                ContentType = "image/png",
+                Width = OfficeIMO.OfficeLength.Pixels(120),
+                Height = OfficeIMO.OfficeLength.Pixels(32),
+                Name = "AnchorOverlay"
+            });
 
             ExcelRange range = sheet.Range("A1:A1");
             ExcelImageExportOptions options = new() { ShowGridlines = false };
@@ -591,7 +606,12 @@ namespace OfficeIMO.Tests {
             sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(18));
             sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(24)));
             sheet.CellValue(1, 1, "Visible through transparency");
-            sheet.AddImage(1, 1, CreateSolidPng(120, 32, OfficeColor.Transparent), "image/png", width: OfficeIMO.OfficeLength.Pixels(120), height: OfficeIMO.OfficeLength.Pixels(32), name: "TransparentOverlay");
+            sheet.AddImage(1, 1, CreateSolidPng(120, 32, OfficeColor.Transparent), new OfficeIMO.Excel.ExcelImageOptions {
+                ContentType = "image/png",
+                Width = OfficeIMO.OfficeLength.Pixels(120),
+                Height = OfficeIMO.OfficeLength.Pixels(32),
+                Name = "TransparentOverlay"
+            });
 
             ExcelRange range = sheet.Range("A1:A1");
             ExcelImageExportOptions options = new() { ShowGridlines = false };
@@ -2194,7 +2214,12 @@ namespace OfficeIMO.Tests {
             sheet.CellValue(1, 1, "Name");
             sheet.CellValue(2, 1, "Logo");
             byte[] badge = CreateSolidPng(12, 10, OfficeColor.FromRgb(220, 38, 38));
-            sheet.AddImage(2, 2, badge, "image/png", width: OfficeIMO.OfficeLength.Pixels(12), height: OfficeIMO.OfficeLength.Pixels(10), name: "Badge");
+            sheet.AddImage(2, 2, badge, new OfficeIMO.Excel.ExcelImageOptions {
+                ContentType = "image/png",
+                Width = OfficeIMO.OfficeLength.Pixels(12),
+                Height = OfficeIMO.OfficeLength.Pixels(10),
+                Name = "Badge"
+            });
 
             ExcelRange range = sheet.Range("A1:C4");
             ExcelRangeVisualInfo snapshot = range.CreateVisualSnapshot();
@@ -2222,8 +2247,18 @@ namespace OfficeIMO.Tests {
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddSheet("Images");
             byte[] image = CreateSolidPng(12, 10, OfficeColor.FromRgb(37, 99, 235));
-            sheet.AddImage(1, 1, image, "image/png", width: OfficeIMO.OfficeLength.Pixels(12), height: OfficeIMO.OfficeLength.Pixels(10), name: "First");
-            sheet.AddImage(2, 1, image, "image/png", width: OfficeIMO.OfficeLength.Pixels(12), height: OfficeIMO.OfficeLength.Pixels(10), name: "Second");
+            sheet.AddImage(1, 1, image, new OfficeIMO.Excel.ExcelImageOptions {
+                ContentType = "image/png",
+                Width = OfficeIMO.OfficeLength.Pixels(12),
+                Height = OfficeIMO.OfficeLength.Pixels(10),
+                Name = "First"
+            });
+            sheet.AddImage(2, 1, image, new OfficeIMO.Excel.ExcelImageOptions {
+                ContentType = "image/png",
+                Width = OfficeIMO.OfficeLength.Pixels(12),
+                Height = OfficeIMO.OfficeLength.Pixels(10),
+                Name = "Second"
+            });
             var options = new ExcelImageExportOptions {
                 MaximumTotalEncodedBytes = 1,
                 MaximumTotalSourceImageBytes = image.LongLength
@@ -2283,7 +2318,12 @@ namespace OfficeIMO.Tests {
             sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(28)));
             sheet.CellValue(1, 2, "Visible");
             byte[] banner = CreateSolidPng(96, 24, OfficeColor.FromRgb(220, 38, 38));
-            sheet.AddImage(1, 1, banner, "image/png", width: OfficeIMO.OfficeLength.Pixels(96), height: OfficeIMO.OfficeLength.Pixels(24), name: "WideBanner");
+            sheet.AddImage(1, 1, banner, new OfficeIMO.Excel.ExcelImageOptions {
+                ContentType = "image/png",
+                Width = OfficeIMO.OfficeLength.Pixels(96),
+                Height = OfficeIMO.OfficeLength.Pixels(24),
+                Name = "WideBanner"
+            });
 
             ExcelRange range = sheet.Range("B1:B1");
             ExcelRangeVisualInfo snapshot = range.CreateVisualSnapshot(new ExcelImageExportOptions { ShowGridlines = false });
@@ -2605,7 +2645,12 @@ namespace OfficeIMO.Tests {
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddSheet("Jpeg");
             sheet.CellValue(1, 1, "Photo");
-            sheet.AddImage(1, 2, CreateMinimalJpegHeader(), "image/jpeg", width: OfficeIMO.OfficeLength.Pixels(16), height: OfficeIMO.OfficeLength.Pixels(12), name: "PhotoJpeg");
+            sheet.AddImage(1, 2, CreateMinimalJpegHeader(), new OfficeIMO.Excel.ExcelImageOptions {
+                ContentType = "image/jpeg",
+                Width = OfficeIMO.OfficeLength.Pixels(16),
+                Height = OfficeIMO.OfficeLength.Pixels(12),
+                Name = "PhotoJpeg"
+            });
 
             ExcelRange range = sheet.Range("A1:C3");
             ExcelRangeVisualInfo snapshot = range.CreateVisualSnapshot();
@@ -2629,7 +2674,12 @@ namespace OfficeIMO.Tests {
             ExcelSheet sheet = document.AddSheet("Bitmap");
             sheet.CellValue(1, 1, "Bitmap");
             OfficeColor color = OfficeColor.FromRgb(18, 52, 86);
-            sheet.AddImage(1, 2, CreateBmp24(2, 2, new[] { color, color, color, color }), "image/bmp", width: OfficeIMO.OfficeLength.Pixels(24), height: OfficeIMO.OfficeLength.Pixels(18), name: "BitmapOverlay");
+            sheet.AddImage(1, 2, CreateBmp24(2, 2, new[] { color, color, color, color }), new OfficeIMO.Excel.ExcelImageOptions {
+                ContentType = "image/bmp",
+                Width = OfficeIMO.OfficeLength.Pixels(24),
+                Height = OfficeIMO.OfficeLength.Pixels(18),
+                Name = "BitmapOverlay"
+            });
 
             ExcelRange range = sheet.Range("A1:C3");
             ExcelRangeVisualInfo snapshot = range.CreateVisualSnapshot();
@@ -2657,7 +2707,12 @@ namespace OfficeIMO.Tests {
             ExcelSheet sheet = document.AddSheet("TopDownBitmap");
             sheet.CellValue(1, 1, "Top-down bitmap");
             OfficeColor color = OfficeColor.FromRgb(24, 96, 144);
-            sheet.AddImage(1, 2, CreateBmp24(2, 2, new[] { color, color, color, color }, topDown: true), "image/bmp", width: OfficeIMO.OfficeLength.Pixels(24), height: OfficeIMO.OfficeLength.Pixels(18), name: "TopDownBitmapOverlay");
+            sheet.AddImage(1, 2, CreateBmp24(2, 2, new[] { color, color, color, color }, topDown: true), new OfficeIMO.Excel.ExcelImageOptions {
+                ContentType = "image/bmp",
+                Width = OfficeIMO.OfficeLength.Pixels(24),
+                Height = OfficeIMO.OfficeLength.Pixels(18),
+                Name = "TopDownBitmapOverlay"
+            });
 
             ExcelRange range = sheet.Range("A1:C3");
             ExcelRangeVisualInfo snapshot = range.CreateVisualSnapshot();
@@ -2684,7 +2739,12 @@ namespace OfficeIMO.Tests {
                 OfficeColor.FromRgba(255, 0, 0, 128), OfficeColor.FromRgba(255, 0, 0, 128),
                 OfficeColor.FromRgba(255, 0, 0, 128), OfficeColor.FromRgba(255, 0, 0, 128)
             });
-            sheet.AddImage(1, 2, bmp, "image/bmp", width: OfficeIMO.OfficeLength.Pixels(24), height: OfficeIMO.OfficeLength.Pixels(18), name: "BitmapAlphaOverlay");
+            sheet.AddImage(1, 2, bmp, new OfficeIMO.Excel.ExcelImageOptions {
+                ContentType = "image/bmp",
+                Width = OfficeIMO.OfficeLength.Pixels(24),
+                Height = OfficeIMO.OfficeLength.Pixels(18),
+                Name = "BitmapAlphaOverlay"
+            });
 
             ExcelRange range = sheet.Range("A1:C3");
             ExcelRangeVisualInfo snapshot = range.CreateVisualSnapshot();
@@ -2711,7 +2771,12 @@ namespace OfficeIMO.Tests {
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddSheet("Gif");
             sheet.CellValue(1, 1, "GIF");
-            sheet.AddImage(1, 2, CreateSinglePixelGif(), "image/gif", width: OfficeIMO.OfficeLength.Pixels(24), height: OfficeIMO.OfficeLength.Pixels(18), name: "GifOverlay");
+            sheet.AddImage(1, 2, CreateSinglePixelGif(), new OfficeIMO.Excel.ExcelImageOptions {
+                ContentType = "image/gif",
+                Width = OfficeIMO.OfficeLength.Pixels(24),
+                Height = OfficeIMO.OfficeLength.Pixels(18),
+                Name = "GifOverlay"
+            });
 
             ExcelRange range = sheet.Range("A1:C3");
             ExcelRangeVisualInfo snapshot = range.CreateVisualSnapshot();
@@ -2739,7 +2804,12 @@ namespace OfficeIMO.Tests {
             ExcelSheet sheet = document.AddSheet("WorksheetBitmap");
             sheet.CellValue(1, 1, "Used cell");
             OfficeColor color = OfficeColor.FromRgb(18, 52, 86);
-            sheet.AddImage(10, 5, CreateBmp24(2, 2, new[] { color, color, color, color }), "image/bmp", width: OfficeIMO.OfficeLength.Pixels(24), height: OfficeIMO.OfficeLength.Pixels(18), name: "BitmapOutsideUsedCell");
+            sheet.AddImage(10, 5, CreateBmp24(2, 2, new[] { color, color, color, color }), new OfficeIMO.Excel.ExcelImageOptions {
+                ContentType = "image/bmp",
+                Width = OfficeIMO.OfficeLength.Pixels(24),
+                Height = OfficeIMO.OfficeLength.Pixels(18),
+                Name = "BitmapOutsideUsedCell"
+            });
 
             OfficeImageExportResult png = sheet.ExportImage(OfficeImageExportFormat.Png, new ExcelImageExportOptions { ShowGridlines = false });
 
@@ -2756,7 +2826,12 @@ namespace OfficeIMO.Tests {
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddSheet("WorksheetPng");
             sheet.CellValue(1, 1, "Used cell");
-            sheet.AddImage(10, 5, CreateTruncatedPngHeader(4, 3), "image/png", width: OfficeIMO.OfficeLength.Pixels(24), height: OfficeIMO.OfficeLength.Pixels(18), name: "TruncatedPngOutsideUsedCell");
+            sheet.AddImage(10, 5, CreateTruncatedPngHeader(4, 3), new OfficeIMO.Excel.ExcelImageOptions {
+                ContentType = "image/png",
+                Width = OfficeIMO.OfficeLength.Pixels(24),
+                Height = OfficeIMO.OfficeLength.Pixels(18),
+                Name = "TruncatedPngOutsideUsedCell"
+            });
 
             OfficeImageExportResult png = sheet.ExportImage(OfficeImageExportFormat.Png, new ExcelImageExportOptions { ShowGridlines = false });
 
@@ -2771,7 +2846,12 @@ namespace OfficeIMO.Tests {
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddSheet("UnknownImage");
             sheet.CellValue(1, 1, "Image");
-            sheet.AddImage(1, 2, new byte[] { 1, 2, 3, 4, 5, 6 }, "image/bmp", width: OfficeIMO.OfficeLength.Pixels(16), height: OfficeIMO.OfficeLength.Pixels(12), name: "MysteryBitmap");
+            sheet.AddImage(1, 2, new byte[] { 1, 2, 3, 4, 5, 6 }, new OfficeIMO.Excel.ExcelImageOptions {
+                ContentType = "image/bmp",
+                Width = OfficeIMO.OfficeLength.Pixels(16),
+                Height = OfficeIMO.OfficeLength.Pixels(12),
+                Name = "MysteryBitmap"
+            });
 
             ExcelRange range = sheet.Range("A1:C3");
             ExcelRangeVisualInfo snapshot = range.CreateVisualSnapshot();
@@ -2803,14 +2883,12 @@ namespace OfficeIMO.Tests {
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddSheet("CallerCodec");
             sheet.CellValue(1, 1, "Used cell");
-            sheet.AddImage(
-                10,
-                5,
-                new byte[] { 1, 2, 3, 4 },
-                "image/tiff",
-                width: OfficeIMO.OfficeLength.Pixels(24),
-                height: OfficeIMO.OfficeLength.Pixels(18),
-                name: "CustomOutsideUsedCell");
+            sheet.AddImage(10, 5, new byte[] { 1, 2, 3, 4 }, new OfficeIMO.Excel.ExcelImageOptions {
+                ContentType = "image/tiff",
+                Width = OfficeIMO.OfficeLength.Pixels(24),
+                Height = OfficeIMO.OfficeLength.Pixels(18),
+                Name = "CustomOutsideUsedCell"
+            });
             var codec = new SolidImageCodec(OfficeColor.FromRgb(18, 86, 140));
             var options = new ExcelImageExportOptions {
                 ShowGridlines = false,

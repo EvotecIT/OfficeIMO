@@ -43,14 +43,12 @@ namespace OfficeIMO.Tests {
             sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(18));
             sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(24)));
             sheet.CellValue(1, 1, "Covered anchor text should not show fragments");
-            sheet.AddImage(
-                1,
-                1,
-                CreateSolidOpaquePng(120, 32, OfficeColor.FromRgb(37, 99, 235)),
-                "image/png",
-                width: OfficeIMO.OfficeLength.Pixels(120),
-                height: OfficeIMO.OfficeLength.Pixels(32),
-                name: "AnchorOverlay");
+            sheet.AddImage(1, 1, CreateSolidOpaquePng(120, 32, OfficeColor.FromRgb(37, 99, 235)), new OfficeIMO.Excel.ExcelImageOptions {
+                ContentType = "image/png",
+                Width = OfficeIMO.OfficeLength.Pixels(120),
+                Height = OfficeIMO.OfficeLength.Pixels(32),
+                Name = "AnchorOverlay"
+            });
 
             OfficeImageExportPolicyException exception = Assert.Throws<OfficeImageExportPolicyException>(() =>
                 sheet.Range("A1:A1").ExportImage(
