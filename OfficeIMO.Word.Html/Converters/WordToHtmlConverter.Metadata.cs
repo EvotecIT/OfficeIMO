@@ -14,7 +14,7 @@ namespace OfficeIMO.Word.Html {
             if (!options.EmitDocumentShell) {
                 if (options.IncludeDefaultCss) {
                     var fragmentStyle = CreateOutputElement(htmlDoc, "style");
-                    SetMetadataText(htmlDoc, fragmentStyle, WordHtmlResources.GetDefaultCss(options.Theme, options.UseSharedDocumentShell), "DocumentMetadata:default-css");
+                    SetMetadataText(htmlDoc, fragmentStyle, WordHtmlResources.GetDefaultCss(options.Theme, options.UseSharedDocumentShell) + GetDocumentFontCss(document, options), "DocumentMetadata:default-css");
                     head.AppendChild(fragmentStyle);
                 }
                 return;
@@ -38,7 +38,8 @@ namespace OfficeIMO.Word.Html {
             var title = CreateOutputElement(htmlDoc, "title");
             var titleText = !string.IsNullOrWhiteSpace(options.Title)
                 ? options.Title!
-                : string.IsNullOrEmpty(props?.Title) ? "Document" : props!.Title!;
+                : !string.IsNullOrEmpty(props?.Title) ? props!.Title!
+                : GetFirstHeadingText(document) ?? "Document";
             SetMetadataText(htmlDoc, title, titleText, "DocumentMetadata:title");
             head.AppendChild(title);
 
@@ -80,7 +81,7 @@ namespace OfficeIMO.Word.Html {
 
             if (options.IncludeDefaultCss) {
                 var style = CreateOutputElement(htmlDoc, "style");
-                SetMetadataText(htmlDoc, style, WordHtmlResources.GetDefaultCss(options.Theme, options.UseSharedDocumentShell), "DocumentMetadata:default-css");
+                SetMetadataText(htmlDoc, style, WordHtmlResources.GetDefaultCss(options.Theme, options.UseSharedDocumentShell) + GetDocumentFontCss(document, options), "DocumentMetadata:default-css");
                 head.AppendChild(style);
             }
         }

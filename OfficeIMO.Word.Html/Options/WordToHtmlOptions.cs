@@ -33,7 +33,7 @@ namespace OfficeIMO.Word.Html {
                 IncludeParagraphIndentationStyles = true,
                 IncludeTableColumnGroups = true,
                 IncludeDrawingReviewMetadata = true,
-                TrackedChangePolicy = WordTrackedChangeExportPolicy.Final,
+                TrackedChangePolicy = WordTrackedChangeExportPolicy.Markup,
                 FieldPolicy = WordFieldExportPolicy.VisibleResult
             };
 
@@ -82,7 +82,7 @@ namespace OfficeIMO.Word.Html {
                 IncludeSectionMetadata = true,
                 IncludeTableColumnGroups = true,
                 IncludeDrawingReviewMetadata = true,
-                TrackedChangePolicy = WordTrackedChangeExportPolicy.Final,
+                TrackedChangePolicy = WordTrackedChangeExportPolicy.Markup,
                 FieldPolicy = WordFieldExportPolicy.VisibleResultWithReviewMetadata
             };
 
@@ -143,8 +143,8 @@ namespace OfficeIMO.Word.Html {
         /// <summary>Newline sequence used between generated document-shell constructs.</summary>
         public string NewLine { get => DocumentOutput.NewLine; set => DocumentOutput.NewLine = value; }
 
-        /// <summary>Tracked-change view projected into static HTML. Defaults to the final document view.</summary>
-        public WordTrackedChangeExportPolicy TrackedChangePolicy { get; set; } = WordTrackedChangeExportPolicy.Final;
+        /// <summary>Tracked-change view projected into static HTML. Defaults to markup, matching the PDF export, so insertions and deletions stay visible.</summary>
+        public WordTrackedChangeExportPolicy TrackedChangePolicy { get; set; } = WordTrackedChangeExportPolicy.Markup;
 
         /// <summary>Field representation used by the static HTML export.</summary>
         public WordFieldExportPolicy FieldPolicy { get; set; } = WordFieldExportPolicy.VisibleResult;

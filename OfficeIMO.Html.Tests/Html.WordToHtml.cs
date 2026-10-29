@@ -35,7 +35,10 @@ namespace OfficeIMO.Tests {
             doc.AddParagraph("Comment target").AddComment("Reviewer", "R", "Review note");
             doc.AddParagraph("Author: ").AddField(WordFieldType.Author);
 
-            HtmlTextConversionResult result = doc.ConvertToHtmlWithEvidence();
+            // The final view projects revisions into plain text; markup is the default.
+            HtmlTextConversionResult result = doc.ConvertToHtmlWithEvidence(new WordHtmlExportOptions {
+                TrackedChangePolicy = WordTrackedChangeExportPolicy.Final
+            });
 
             Assert.True(result.Succeeded);
             Assert.True(result.HasLoss);
@@ -57,10 +60,12 @@ namespace OfficeIMO.Tests {
                 .AddInsertedText("revision", "Reviewer");
 
             HtmlTextConversionResult excluded = document.ConvertToHtmlWithEvidence(new WordHtmlExportOptions {
-                ExportHeadersAndFooters = false
+                ExportHeadersAndFooters = false,
+                TrackedChangePolicy = WordTrackedChangeExportPolicy.Final
             });
             HtmlTextConversionResult included = document.ConvertToHtmlWithEvidence(new WordHtmlExportOptions {
-                ExportHeadersAndFooters = true
+                ExportHeadersAndFooters = true,
+                TrackedChangePolicy = WordTrackedChangeExportPolicy.Final
             });
 
             Assert.DoesNotContain(excluded.Report.Diagnostics, diagnostic =>
@@ -1302,11 +1307,34 @@ namespace OfficeIMO.Tests {
             using var doc = WordDocument.Create();
             var p = doc.AddParagraph("Quoted text");
             p.IndentationBefore = 720;
+            p.Borders.LeftStyle = WordBorderStyle.Single;
 
             string html = doc.ToHtml();
 
-            Assert.Contains("<blockquote>", html, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("<blockquote", html, StringComparison.OrdinalIgnoreCase);
             Assert.Contains("Quoted text", html, StringComparison.OrdinalIgnoreCase);
+        }
+
+        [Fact]
+        public void Test_WordToHtml_IndentedParagraphsAndHeadingsStayParagraphsWithMargins() {
+            using var doc = WordDocument.Create();
+            var heading = doc.AddParagraph("Monthly review");
+            heading.Style = WordParagraphStyles.Heading1;
+            heading.IndentationBefore = 480;
+            heading.IndentationAfter = 480;
+            var body = doc.AddParagraph("Indented body");
+            body.IndentationBefore = 720;
+            var boxed = doc.AddParagraph("Boxed note");
+            boxed.IndentationBefore = 480;
+            boxed.IndentationAfter = 480;
+            boxed.Borders.TopStyle = WordBorderStyle.Single;
+
+            string html = doc.ToHtml();
+
+            Assert.DoesNotContain("<blockquote", html, StringComparison.OrdinalIgnoreCase);
+            Assert.Matches("(?is)<h1[^>]*margin-left:24pt[^>]*>Monthly review</h1>", html);
+            Assert.Matches("(?is)<p[^>]*margin-left:36pt[^>]*>Indented body</p>", html);
+            Assert.Matches("(?is)<p[^>]*margin-right:24pt[^>]*>Boxed note</p>", html);
         }
 
         [Fact]

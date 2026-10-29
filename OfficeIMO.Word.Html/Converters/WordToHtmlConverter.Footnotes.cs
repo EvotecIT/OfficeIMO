@@ -85,6 +85,37 @@ namespace OfficeIMO.Word.Html {
             return string.Equals(characterStyleId, HtmlSemanticStyleIds.BlockquoteCite, StringComparison.OrdinalIgnoreCase);
         }
 
+        /// <summary>
+        /// A paragraph is a quotation when its style says so, when it was imported from an HTML
+        /// blockquote, or when it has the quotation shape: a left indent with only a left rule
+        /// and no fill. Other indented paragraphs, including headings, stay paragraphs with margins.
+        /// </summary>
+        private static bool IsBlockQuoteParagraph(WordParagraph paragraph, int headingLevel) {
+            string? styleId = paragraph.StyleId;
+            if (!string.IsNullOrEmpty(styleId) &&
+                (string.Equals(styleId, "Quote", StringComparison.OrdinalIgnoreCase) ||
+                 string.Equals(styleId, "IntenseQuote", StringComparison.OrdinalIgnoreCase))) {
+                return true;
+            }
+
+            if (HtmlSemanticMetadata.IsMarkedBlockquote(paragraph)) {
+                return true;
+            }
+
+            // An imported blockquote citation is stored as a cite-reference note and survives a save.
+            if (paragraph.IndentationBefore > 0 && headingLevel == 0 && TryGetBlockquoteCiteAttribute(paragraph, out _)) {
+                return true;
+            }
+
+            if (headingLevel > 0 || !(paragraph.IndentationBefore > 0) || paragraph.IndentationAfter > 0) {
+                return false;
+            }
+
+            var borders = paragraph.Borders;
+            return borders.LeftStyle != null && borders.TopStyle == null && borders.RightStyle == null &&
+                borders.BottomStyle == null && string.IsNullOrEmpty(paragraph.ShadingFillColorHex);
+        }
+
         private static bool TryGetBlockquoteCiteAttribute(WordParagraph paragraph, out string cite) {
             if (HtmlSemanticMetadata.TryGetBlockquoteCite(paragraph, out cite)) {
                 return true;

@@ -146,6 +146,25 @@ namespace OfficeIMO.Word.Html {
                 return null;
             }
 
+            // A fixed Word width is a share of the page's text column. Expressing it as a share of
+            // the HTML body keeps the table's proportions instead of pinning it to a narrow pixel width.
+            string? GetTopLevelTableWidthCss(WordTable table) {
+                var type = table.WidthType?.ToOpenXml();
+                if (type != TableWidthUnitValues.Dxa || table.Width == null || table.Width.Value <= 0) {
+                    return GetWidthCss(type, table.Width);
+                }
+
+                WordSection? section = table.Document.Sections.FirstOrDefault();
+                double pageWidth = section?.PageSettings.Width ?? 12240U;
+                double textWidth = pageWidth - (section?.Margins.Left ?? 1440U) - (section?.Margins.Right ?? 1440U);
+                if (textWidth <= 0) {
+                    return GetWidthCss(type, table.Width);
+                }
+
+                double percent = Math.Min(100D, table.Width.Value * 100D / textWidth);
+                return $"{FormatCssNumber(percent)}%";
+            }
+
             string? GetTableCellSpacingCss(WordTable table) {
                 var cellSpacing = table.StyleDetails?.CellSpacing;
                 if (cellSpacing == null || cellSpacing.Value <= 0) {
