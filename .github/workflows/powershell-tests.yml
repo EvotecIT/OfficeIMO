@@ -230,6 +230,9 @@ jobs:
     name: CI validation
     if: always()
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ${{ github.workspace }}
     needs: [coverage, changes, test-windows-ps5, test-windows-ps7, packaged-alc-conflict, test-ubuntu, test-macos]
     steps:
       - name: Require selection and selected jobs
