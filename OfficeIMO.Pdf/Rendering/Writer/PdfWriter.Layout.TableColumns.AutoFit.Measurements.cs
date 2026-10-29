@@ -15,6 +15,25 @@ internal static partial class PdfWriter {
         public bool ContainsUppercaseDelimitedCodeText { get; }
     }
 
+    // Longest inline code token, in ems of the row font, that sets a column minimum on its own.
+    private const double AutoFitMaximumCodeTokenEms = 20D;
+    private const int AutoFitWholeCodeRunCharacters = 16;
+    private static readonly char[] AutoFitCodeRunSplitChars = { ' ', '\n', '\t' };
+
+    // A short code value stays on one line; longer code wraps only at its spaces.
+    private static IEnumerable<string> GetAutoFitCodeRunTokens(string text) {
+        string trimmed = (text ?? string.Empty).Trim();
+        if (trimmed.Length == 0) yield break;
+        if (trimmed.Length <= AutoFitWholeCodeRunCharacters && trimmed.IndexOf('\n') < 0) {
+            yield return trimmed;
+            yield break;
+        }
+
+        foreach (string token in trimmed.Split(AutoFitCodeRunSplitChars, StringSplitOptions.RemoveEmptyEntries)) {
+            yield return token;
+        }
+    }
+
     private sealed class AutoFitTableMeasurements {
         internal AutoFitTableMeasurements(
             AutoFitColumnProfile[] profiles,
@@ -307,16 +326,26 @@ internal static partial class PdfWriter {
 
                 // Runs in their own face, such as inline code in a monospace font, are wider than the
                 // row font suggests; their words set the column minimum so they do not break mid-word.
+                // Code identifiers such as "search.maxResults" and short code values such as "Lumen site"
+                // stay whole: they are kept apart from the generic token cap below.
+                double codeTokenWidth = 0D;
                 for (int runIndex = 0; runIndex < cell.Runs.Count; runIndex++) {
                     PdfTextRun run = cell.Runs[runIndex];
                     if (!run.Font.HasValue && !run.FontSize.HasValue) continue;
                     PdfStandardFont runFont = run.Font ?? rowStandardFont;
                     if (run.Bold) runFont = ChooseBold(runFont);
                     double runSize = run.FontSize ?? rowSize;
+                    if (PdfStandardFontMapper.GetFontFamily(runFont) == PdfStandardFont.Courier) {
+                        foreach (string codeToken in GetAutoFitCodeRunTokens(run.Text)) {
+                            codeTokenWidth = Math.Max(codeTokenWidth, EstimateSimpleTextWidthForOptions(codeToken, runFont, runSize, options));
+                        }
+                        continue;
+                    }
                     foreach (string runToken in GetAutoFitMinimumWidthTokens(run.Text, splitCamelCase: splitMinimumCamelCase)) {
                         tokenWidth = Math.Max(tokenWidth, EstimateSimpleTextWidthForOptions(runToken, runFont, runSize, options));
                     }
                 }
+                codeTokenWidth = Math.Min(codeTokenWidth, rowSize * AutoFitMaximumCodeTokenEms);
 
                 bool qualifiedIdentifierText = textProfile.IsQualifiedIdentifier;
                 bool singleLetterNumericDelimitedCode = textProfile.IsSingleLetterNumericDelimitedCode;
@@ -383,7 +412,7 @@ internal static partial class PdfWriter {
                         maximumTokenWidth = Math.Max(maximumTokenWidth, shortCamelCaseText ? tokenWidth : rowSize * 6.5D);
                     }
                 }
-                requestedWidth = Math.Max(1D, System.Math.Max(Math.Min(tokenWidth, maximumTokenWidth), MeasureTableCellObjectWidth(cell)) + horizontalPadding);
+                requestedWidth = Math.Max(1D, System.Math.Max(Math.Max(Math.Min(tokenWidth, maximumTokenWidth), codeTokenWidth), MeasureTableCellObjectWidth(cell)) + horizontalPadding);
                 requestedPerColumn = requestedWidth / cell.ColumnSpan;
                 for (int columnIndex = cell.Column; columnIndex < cell.Column + cell.ColumnSpan && columnIndex < cols; columnIndex++) {
                     if (requestedPerColumn > minimumWidths[columnIndex]) {

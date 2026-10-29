@@ -426,6 +426,12 @@ internal static partial class PdfWriter {
 
             if (block is ContainerBlock container) {
                 PdfPanelStyle style = ResolveContainerStyle(container);
+                // A panel kept together, such as a short code listing, arrives whole: what keeps with it must
+                // fit beside all of it, not only its first line, or a lead-in is stranded above an empty gap.
+                if (style.KeepTogether && MeasureWholeBlockHeight(container, frameX, frameWidth, fontSize) is double whole &&
+                    whole <= GetMaximumBlockContinuationHeight() + .001D) {
+                    return whole;
+                }
                 var containerFrame = ResolveContainerFrame(container, style, frameX, frameWidth, fontSize);
                 double contentWidth = containerFrame.ContentWidth;
                 if (contentWidth <= 0.001D) {

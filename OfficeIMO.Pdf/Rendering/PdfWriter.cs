@@ -597,7 +597,7 @@ internal static partial class PdfWriter {
             if (pageBorder != null && pageBorder.Opacity > 0D && pageBorder.Opacity < 1D) {
                 pageBorderGraphicsStateName = EnsureHeaderFooterGraphicsState(page, 1D, pageBorder.Opacity);
             }
-            string pageBackgroundShapeContent = BuildPageBackgroundShapes(page, pageOpts.PageBackgroundShapeSnapshots);
+            string pageBackgroundShapeContent = BuildPageBackgroundShapes(page, pageOpts.PageBackgroundShapeSnapshots, pageIndex == 0);
             void EnsurePageNamedFontResource(PdfNamedFontFace font) {
                 pageNamedFontResources[font] = font.ResourceName;
                 EnsureNamedFont(font, pageOpts);
@@ -1769,13 +1769,14 @@ internal static partial class PdfWriter {
         return result;
     }
 
-    private static string BuildPageBackgroundShapes(LayoutResult.Page page, System.Collections.Generic.IReadOnlyList<PdfPageBackgroundShape> shapes) {
+    private static string BuildPageBackgroundShapes(LayoutResult.Page page, System.Collections.Generic.IReadOnlyList<PdfPageBackgroundShape> shapes, bool isFirstPage) {
         if (shapes.Count == 0) {
             return string.Empty;
         }
 
         var sb = new StringBuilder();
         foreach (PdfPageBackgroundShape backgroundShape in shapes) {
+            if (backgroundShape.FirstPageOnly && !isFirstPage) continue;
             OfficeIMO.Drawing.OfficeShape shape = backgroundShape.Shape;
             DrawHeaderFooterShapeGeometryAt(sb, page, shape, backgroundShape.X, backgroundShape.Y);
         }
