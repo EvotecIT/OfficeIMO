@@ -75,8 +75,8 @@ public class ImageAndTextBoxTests : VerifyTestBase {
         var textBox = document.AddTextBox("Hello from textbox", WordImageTextWrapping.Through);
         textBox.AutoFit = WordTextBoxAutoFitType.ShrinkTextOnOverflow;
         textBox.HorizontalPositionRelativeFrom = WordHorizontalRelativePosition.Page;
-        textBox.HorizontalPositionOffsetCentimeters = 2;
-        textBox.VerticalPositionOffsetCentimeters = 3;
+        textBox.HorizontalPositionOffset = OfficeLength.Centimeters(2);
+        textBox.VerticalPositionOffset = OfficeLength.Centimeters(3);
 
         await DoTest(document);
     }
@@ -90,7 +90,7 @@ public class ImageAndTextBoxTests : VerifyTestBase {
         var textBox = defaultHeader.AddTextBox("Header textbox", WordImageTextWrapping.Square);
         textBox.AutoFit = WordTextBoxAutoFitType.ResizeShapeToFitText;
         textBox.HorizontalAlignment = WordTextBoxHorizontalAlignment.Right;
-        textBox.VerticalPositionOffsetCentimeters = 1.5;
+        textBox.VerticalPositionOffset = OfficeLength.Centimeters(1.5);
         textBox.Paragraphs[0].AddHyperLink(" link", new Uri("https://officeimo.example/header"), addStyle: true);
 
         await DoTest(document);

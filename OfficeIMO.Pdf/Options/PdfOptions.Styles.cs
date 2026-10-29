@@ -23,7 +23,7 @@ public sealed partial class PdfCreateOptions {
         }
     }
     /// <summary>Default text color for blocks when none is specified.</summary>
-    public PdfColor? DefaultTextColor { get; set; }
+    public global::OfficeIMO.OfficeColor? DefaultTextColor { get; set; }
     /// <summary>Default paragraph style applied when a paragraph does not specify its own style.</summary>
     public PdfParagraphStyle? DefaultParagraphStyle {
         get => _defaultParagraphStyle?.Clone();

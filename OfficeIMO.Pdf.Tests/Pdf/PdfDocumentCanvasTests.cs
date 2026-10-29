@@ -700,7 +700,7 @@ public class PdfDocumentCanvasTests {
                 MarginBottom = 24,
                 CompressContentStreams = false
             })
-            .Canvas(canvas => canvas.Text("CanvasTitle", 24, 20, 120, 24, fontSize: 12, color: PdfColor.FromRgb(20, 90, 160)))
+            .Canvas(canvas => canvas.Text("CanvasTitle", 24, 20, 120, 24, fontSize: 12, color: global::OfficeIMO.OfficeColor.FromRgb(20, 90, 160)))
             .Paragraph(paragraph => paragraph.Text("FlowAfterCanvas"))
             .ToBytes();
 
@@ -745,8 +745,8 @@ public class PdfDocumentCanvasTests {
     [Fact]
     public void CanvasShape_RendersRectangleAtFixedTopLeftCoordinates() {
         var shape = OfficeShape.Rectangle(60, 20);
-        shape.FillColor = PdfColor.FromRgb(230, 245, 255).ToOfficeColor();
-        shape.StrokeColor = PdfColor.FromRgb(15, 98, 160).ToOfficeColor();
+        shape.FillColor = global::OfficeIMO.OfficeColor.FromRgb(230, 245, 255);
+        shape.StrokeColor = global::OfficeIMO.OfficeColor.FromRgb(15, 98, 160);
         shape.StrokeWidth = 1.25D;
 
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
@@ -797,8 +797,8 @@ public class PdfDocumentCanvasTests {
     [Fact]
     public void CanvasShape_WithRotation_RendersUsingSharedShapeTransform() {
         var shape = OfficeShape.Rectangle(40, 20);
-        shape.FillColor = PdfColor.FromRgb(230, 245, 255).ToOfficeColor();
-        shape.StrokeColor = PdfColor.FromRgb(15, 98, 160).ToOfficeColor();
+        shape.FillColor = global::OfficeIMO.OfficeColor.FromRgb(230, 245, 255);
+        shape.StrokeColor = global::OfficeIMO.OfficeColor.FromRgb(15, 98, 160);
         shape.StrokeWidth = 1D;
 
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
@@ -818,11 +818,11 @@ public class PdfDocumentCanvasTests {
     [Fact]
     public void Shape_AllowsHorizontalAndVerticalLineBounds() {
         OfficeShape horizontalLine = OfficeShape.Line(0, 0, 80, 0);
-        horizontalLine.StrokeColor = PdfColor.FromRgb(15, 98, 160).ToOfficeColor();
+        horizontalLine.StrokeColor = global::OfficeIMO.OfficeColor.FromRgb(15, 98, 160);
         horizontalLine.StrokeWidth = 2D;
 
         OfficeShape verticalLine = OfficeShape.Line(0, 0, 0, 50);
-        verticalLine.StrokeColor = PdfColor.FromRgb(15, 98, 160).ToOfficeColor();
+        verticalLine.StrokeColor = global::OfficeIMO.OfficeColor.FromRgb(15, 98, 160);
         verticalLine.StrokeWidth = 2D;
 
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
@@ -845,8 +845,8 @@ public class PdfDocumentCanvasTests {
     public void CanvasDrawing_RendersSharedVectorSceneInsideFixedFrame() {
         var drawing = new OfficeDrawing(50, 20);
         var shape = OfficeShape.Rectangle(20, 10);
-        shape.FillColor = PdfColor.FromRgb(230, 245, 255).ToOfficeColor();
-        shape.StrokeColor = PdfColor.FromRgb(15, 98, 160).ToOfficeColor();
+        shape.FillColor = global::OfficeIMO.OfficeColor.FromRgb(230, 245, 255);
+        shape.StrokeColor = global::OfficeIMO.OfficeColor.FromRgb(15, 98, 160);
         shape.StrokeWidth = 1D;
         drawing.AddShape(shape, 5, 5);
         drawing.AddText(
@@ -856,7 +856,7 @@ public class PdfDocumentCanvasTests {
             36,
             10,
             new OfficeFontInfo("Aptos", 6D, OfficeFontStyle.Bold),
-            PdfColor.FromRgb(31, 78, 121).ToOfficeColor(),
+            global::OfficeIMO.OfficeColor.FromRgb(31, 78, 121),
             OfficeTextAlignment.Center);
 
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
@@ -992,7 +992,7 @@ public class PdfDocumentCanvasTests {
                 104,
                 16,
                 new OfficeFontInfo("Aptos", 10D, OfficeFontStyle.Bold),
-                PdfColor.FromRgb(31, 78, 121).ToOfficeColor(),
+                global::OfficeIMO.OfficeColor.FromRgb(31, 78, 121),
                 OfficeTextAlignment.Center);
 
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
@@ -1072,8 +1072,8 @@ public class PdfDocumentCanvasTests {
     [Fact]
     public void CanvasImage_RendersBeforeFollowingShapeInCanvasOrder() {
         var shape = OfficeShape.Rectangle(70, 35);
-        shape.FillColor = PdfColor.FromRgb(255, 255, 255).ToOfficeColor();
-        shape.StrokeColor = PdfColor.FromRgb(15, 98, 160).ToOfficeColor();
+        shape.FillColor = global::OfficeIMO.OfficeColor.FromRgb(255, 255, 255);
+        shape.StrokeColor = global::OfficeIMO.OfficeColor.FromRgb(15, 98, 160);
         shape.StrokeWidth = 1D;
 
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
@@ -1103,13 +1103,13 @@ public class PdfDocumentCanvasTests {
                 CompressContentStreams = false
             })
             .Canvas(canvas => canvas.TextBox("Premium text box", 30, 40, 140, 50, new PdfCanvasTextBoxStyle {
-                Background = PdfColor.FromRgb(245, 250, 255),
-                BorderColor = PdfColor.FromRgb(24, 96, 160),
+                Background = global::OfficeIMO.OfficeColor.FromRgb(245, 250, 255),
+                BorderColor = global::OfficeIMO.OfficeColor.FromRgb(24, 96, 160),
                 BorderWidth = 1.5D,
                 PaddingX = 8D,
                 PaddingY = 6D,
                 FontSize = 10D,
-                TextColor = PdfColor.FromRgb(20, 40, 70),
+                TextColor = global::OfficeIMO.OfficeColor.FromRgb(20, 40, 70),
                 Align = PdfAlign.Center
             }))
             .ToBytes();
@@ -1279,8 +1279,8 @@ public class PdfDocumentCanvasTests {
     [Fact]
     public void CanvasTextBox_RendersBackgroundBeforeTextAndFollowingShape() {
         var shape = OfficeShape.Rectangle(25, 20);
-        shape.FillColor = PdfColor.FromRgb(255, 255, 255).ToOfficeColor();
-        shape.StrokeColor = PdfColor.FromRgb(30, 64, 175).ToOfficeColor();
+        shape.FillColor = global::OfficeIMO.OfficeColor.FromRgb(255, 255, 255);
+        shape.StrokeColor = global::OfficeIMO.OfficeColor.FromRgb(30, 64, 175);
         shape.StrokeWidth = 1D;
 
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
@@ -1290,8 +1290,8 @@ public class PdfDocumentCanvasTests {
             })
             .Canvas(canvas => canvas
                 .TextBox("Layered", 30, 40, 120, 42, new PdfCanvasTextBoxStyle {
-                    Background = PdfColor.FromRgb(250, 250, 250),
-                    BorderColor = PdfColor.FromRgb(75, 85, 99),
+                    Background = global::OfficeIMO.OfficeColor.FromRgb(250, 250, 250),
+                    BorderColor = global::OfficeIMO.OfficeColor.FromRgb(75, 85, 99),
                     BorderWidth = 1D,
                     FontSize = 10D
                 })
@@ -1315,8 +1315,8 @@ public class PdfDocumentCanvasTests {
             RowStripeFill = null,
             ColumnWidthPoints = new System.Collections.Generic.List<double?> { 70D, 50D },
             RowMinHeights = new System.Collections.Generic.List<double?> { 24D, 36D },
-            CellFills = new System.Collections.Generic.Dictionary<(int Row, int Column), PdfColor> {
-                [(1, 1)] = PdfColor.FromRgb(230, 245, 255)
+            CellFills = new System.Collections.Generic.Dictionary<(int Row, int Column), global::OfficeIMO.OfficeColor> {
+                [(1, 1)] = global::OfficeIMO.OfficeColor.FromRgb(230, 245, 255)
             },
             CellPaddings = new System.Collections.Generic.Dictionary<(int Row, int Column), PdfCellPadding> {
                 [(1, 1)] = new PdfCellPadding { Left = 8D, Right = 8D, Top = 4D, Bottom = 4D }
@@ -1785,7 +1785,7 @@ public class PdfDocumentCanvasTests {
                 new[] { PdfTableCell.TextCell("Bottom") }
             }, 30, 30, 120, 60, new PdfTableStyle {
                 HeaderRowCount = 0,
-                RowStripeFill = PdfColor.FromRgb(220, 235, 250),
+                RowStripeFill = global::OfficeIMO.OfficeColor.FromRgb(220, 235, 250),
                 ColumnWidthPoints = new System.Collections.Generic.List<double?> { 60D, 60D },
                 RowMinHeights = new System.Collections.Generic.List<double?> { 30D, 30D }
             }))
@@ -1806,8 +1806,8 @@ public class PdfDocumentCanvasTests {
                 CompressContentStreams = false
             })
             .Canvas(canvas => canvas.TextBox("Rotated box", 30, 40, 120, 42, new PdfCanvasTextBoxStyle {
-                Background = PdfColor.FromRgb(250, 250, 250),
-                BorderColor = PdfColor.FromRgb(75, 85, 99),
+                Background = global::OfficeIMO.OfficeColor.FromRgb(250, 250, 250),
+                BorderColor = global::OfficeIMO.OfficeColor.FromRgb(75, 85, 99),
                 BorderWidth = 1D,
                 FontSize = 10D
             }, rotationAngle: 90D))

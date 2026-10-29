@@ -22,23 +22,23 @@ public partial class PdfDocumentVisualQualityTests {
                 height: 24,
                 align: PdfAlign.Right,
                 icon: PdfTextAnnotationIcon.Key,
-                color: new PdfColor(1D, 0D, 0D),
+                color: global::OfficeIMO.OfficeColor.FromNormalizedRgb(1D, 0D, 0D),
                 open: true)
             .FreeTextAnnotation(
                 "Flow free text wraps across several words for reviewers",
                 width: 140,
                 height: 44,
-                borderColor: new PdfColor(0.2D, 0.4D, 0.8D),
-                fillColor: new PdfColor(0.95D, 0.98D, 1D),
+                borderColor: global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.2D, 0.4D, 0.8D),
+                fillColor: global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.95D, 0.98D, 1D),
                 textAlign: PdfAlign.Center,
                 padding: 4D,
                 lineHeight: 11D)
-            .HighlightAnnotation("Flow highlight", width: 120, height: 12, color: new PdfColor(1D, 0.9D, 0.1D))
+            .HighlightAnnotation("Flow highlight", width: 120, height: 12, color: global::OfficeIMO.OfficeColor.FromNormalizedRgb(1D, 0.9D, 0.1D))
             .Canvas(canvas => canvas
                 .Text("Canvas text", 72, 120, 120, 28)
-                .TextAnnotation("Canvas note", 200, 120, 20, 20, PdfTextAnnotationIcon.Help, new PdfColor(0D, 0.5D, 1D))
-                .FreeTextAnnotation("Canvas free text wraps as a right aligned reviewer callout", 72, 170, 150, 48, borderColor: new PdfColor(0.2D, 0.4D, 0.8D), fillColor: new PdfColor(0.95D, 0.98D, 1D), textAlign: PdfAlign.Right, padding: 5D, lineHeight: 12D)
-                .HighlightAnnotation("Canvas highlight", 72, 220, 120, 14, new PdfColor(1D, 0.9D, 0.1D)))
+                .TextAnnotation("Canvas note", 200, 120, 20, 20, PdfTextAnnotationIcon.Help, global::OfficeIMO.OfficeColor.FromNormalizedRgb(0D, 0.5D, 1D))
+                .FreeTextAnnotation("Canvas free text wraps as a right aligned reviewer callout", 72, 170, 150, 48, borderColor: global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.2D, 0.4D, 0.8D), fillColor: global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.95D, 0.98D, 1D), textAlign: PdfAlign.Right, padding: 5D, lineHeight: 12D)
+                .HighlightAnnotation("Canvas highlight", 72, 220, 120, 14, global::OfficeIMO.OfficeColor.FromNormalizedRgb(1D, 0.9D, 0.1D)))
             .ToBytes();
 
         string pdf = PdfTestContentText.ReadDecoded(bytes);
@@ -129,12 +129,12 @@ public partial class PdfDocumentVisualQualityTests {
                 "Flattened reviewer note wraps into form content",
                 width: 140,
                 height: 44,
-                borderColor: new PdfColor(0.2D, 0.4D, 0.8D),
-                fillColor: new PdfColor(0.95D, 0.98D, 1D),
+                borderColor: global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.2D, 0.4D, 0.8D),
+                fillColor: global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.95D, 0.98D, 1D),
                 textAlign: PdfAlign.Center,
                 padding: 4D,
                 lineHeight: 11D)
-            .HighlightAnnotation("Flattened highlight", width: 120, height: 14, color: new PdfColor(1D, 0.9D, 0.1D))
+            .HighlightAnnotation("Flattened highlight", width: 120, height: 14, color: global::OfficeIMO.OfficeColor.FromNormalizedRgb(1D, 0.9D, 0.1D))
             .ToBytes();
 
         string pdf = PdfTestContentText.ReadDecoded(bytes);
@@ -167,12 +167,12 @@ public partial class PdfDocumentVisualQualityTests {
                 "Existing free text appearance",
                 width: 150,
                 height: 44,
-                borderColor: new PdfColor(0.2D, 0.4D, 0.8D),
-                fillColor: new PdfColor(0.95D, 0.98D, 1D),
+                borderColor: global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.2D, 0.4D, 0.8D),
+                fillColor: global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.95D, 0.98D, 1D),
                 textAlign: PdfAlign.Center,
                 padding: 4D,
                 lineHeight: 11D)
-            .HighlightAnnotation("Existing highlight appearance", width: 120, height: 14, color: new PdfColor(1D, 0.9D, 0.1D))
+            .HighlightAnnotation("Existing highlight appearance", width: 120, height: 14, color: global::OfficeIMO.OfficeColor.FromNormalizedRgb(1D, 0.9D, 0.1D))
             .ToBytes();
 
         PdfDocumentInfo before = PdfInspector.Inspect(annotated);
@@ -211,8 +211,8 @@ public partial class PdfDocumentVisualQualityTests {
                 "State dictionary appearance",
                 width: 150,
                 height: 44,
-                borderColor: new PdfColor(0.2D, 0.4D, 0.8D),
-                fillColor: new PdfColor(0.95D, 0.98D, 1D))
+                borderColor: global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.2D, 0.4D, 0.8D),
+                fillColor: global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.95D, 0.98D, 1D))
             .ToBytes();
 
         annotated = ConvertFirstNormalAppearanceToStateDictionary(annotated);
@@ -475,9 +475,9 @@ public partial class PdfDocumentVisualQualityTests {
         Assert.Null(annotation.RichContentsPlainText);
         Assert.Equal(15D, annotation.EffectiveFontSize);
         Assert.NotNull(annotation.EffectiveTextColor);
-        Assert.Equal(0.2D, annotation.EffectiveTextColor.Value.R, 3);
-        Assert.Equal(0.4D, annotation.EffectiveTextColor.Value.G, 3);
-        Assert.Equal(0.6D, annotation.EffectiveTextColor.Value.B, 3);
+        Assert.Equal(0.2D, annotation.EffectiveTextColor.Value.ToNormalizedRgb().R, 3);
+        Assert.Equal(0.4D, annotation.EffectiveTextColor.Value.ToNormalizedRgb().G, 3);
+        Assert.Equal(0.6D, annotation.EffectiveTextColor.Value.ToNormalizedRgb().B, 3);
         Assert.Equal(PdfAlign.Right, annotation.EffectiveTextAlign);
     }
 
@@ -491,9 +491,9 @@ public partial class PdfDocumentVisualQualityTests {
         Assert.Equal("Rich text\nsecond & line", annotation.RichContentsPlainText);
         Assert.Equal(13D, annotation.EffectiveFontSize);
         Assert.NotNull(annotation.EffectiveTextColor);
-        Assert.Equal(0.4D, annotation.EffectiveTextColor.Value.R, 3);
-        Assert.Equal(0D, annotation.EffectiveTextColor.Value.G, 3);
-        Assert.Equal(0.4D, annotation.EffectiveTextColor.Value.B, 3);
+        Assert.Equal(0.4D, annotation.EffectiveTextColor.Value.ToNormalizedRgb().R, 3);
+        Assert.Equal(0D, annotation.EffectiveTextColor.Value.ToNormalizedRgb().G, 3);
+        Assert.Equal(0.4D, annotation.EffectiveTextColor.Value.ToNormalizedRgb().B, 3);
         Assert.Null(annotation.EffectiveTextAlign);
     }
 

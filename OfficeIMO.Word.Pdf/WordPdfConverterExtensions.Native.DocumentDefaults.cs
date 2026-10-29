@@ -118,7 +118,7 @@ namespace OfficeIMO.Word.Pdf {
                 .Value;
         }
 
-        private static OfficeIMO.Pdf.PdfColor? ResolveNativeInheritedRunColor(
+        private static global::OfficeIMO.OfficeColor? ResolveNativeInheritedRunColor(
             NativeCharacterStyleDefaults characterStyle,
             NativeParagraphStyleDefaults paragraphStyle,
             NativeTableRunStyleDefaults tableStyle,

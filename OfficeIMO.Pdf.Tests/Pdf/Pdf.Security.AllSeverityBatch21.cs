@@ -72,7 +72,7 @@ public class PdfAllSeverityBatch21Tests {
             typeof(string),
             typeof(bool),
             typeof(bool),
-            typeof(PdfColor?),
+            typeof(global::OfficeIMO.OfficeColor?),
             typeof(bool),
             typeof(bool),
             typeof(double?),
@@ -82,7 +82,7 @@ public class PdfAllSeverityBatch21Tests {
             typeof(PdfTextBaseline),
             typeof(string),
             typeof(PdfTabLeaderStyle),
-            typeof(PdfColor?),
+            typeof(global::OfficeIMO.OfficeColor?),
             typeof(string)
         }));
     }

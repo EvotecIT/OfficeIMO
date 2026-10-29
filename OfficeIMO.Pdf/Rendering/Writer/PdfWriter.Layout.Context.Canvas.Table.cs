@@ -305,7 +305,7 @@ internal static partial class PdfWriter {
         }
 
         private void DrawCanvasTableRowBackground(PdfTableStyle style, int rowIndex, bool rowIsHeader, bool rowIsFooter, double x, double y, double[] columnWidths, double columnGap, bool[] skipColumns, double height) {
-            PdfColor? fill = rowIsHeader
+            global::OfficeIMO.OfficeColor? fill = rowIsHeader
                 ? style.HeaderFill
                 : rowIsFooter
                     ? style.FooterFill
@@ -316,7 +316,7 @@ internal static partial class PdfWriter {
         }
 
         private void DrawCanvasTableCellBackground(PdfTableStyle style, int rowIndex, int columnIndex, bool rowIsHeader, bool rowIsFooter, double x, double y, double width, double height) {
-            PdfColor? fill = null;
+            global::OfficeIMO.OfficeColor? fill = null;
             if (style.BodyColumnFills != null &&
                 !rowIsHeader &&
                 !rowIsFooter &&
@@ -324,7 +324,7 @@ internal static partial class PdfWriter {
                 fill = style.BodyColumnFills[columnIndex];
             }
 
-            if (style.CellFills != null && style.CellFills.TryGetValue((rowIndex, columnIndex), out PdfColor cellFill)) {
+            if (style.CellFills != null && style.CellFills.TryGetValue((rowIndex, columnIndex), out global::OfficeIMO.OfficeColor cellFill)) {
                 fill = cellFill;
             }
 
@@ -338,7 +338,7 @@ internal static partial class PdfWriter {
             TableCellContentFrame contentFrame = GetTableCellContentFrame(cell, cellX, cellTop, cellWidth, cellHeight);
             if (cell.TextRotation != 0) {
                 PdfColumnAlign orientedAlign = GetTableCellAlignment(style, rowIndex, columnIndex, cell.Text);
-                PdfColor? orientedColor = rowIsHeader ? style.HeaderTextColor : rowIsFooter ? style.FooterTextColor : style.TextColor;
+                global::OfficeIMO.OfficeColor? orientedColor = rowIsHeader ? style.HeaderTextColor : rowIsFooter ? style.FooterTextColor : style.TextColor;
                 var orientedParagraph = new RichParagraphBlock(StripRunLinksWhenCellLinked(cell.Runs, cell.LinkUri, cell.LinkDestinationName), MapTableCellAlignment(orientedAlign), orientedColor);
                 string orientedRole = rowIsHeader ? "TH" : "TD";
                 int? orientedId = RegisterTextStructureElement(orientedRole, _canvasStructureParentElement, rowIsHeader ? "Column" : string.Empty, cell.ColumnSpan, cell.RowSpan);
@@ -402,7 +402,7 @@ internal static partial class PdfWriter {
             }
 
             PdfColumnAlign align = GetTableCellAlignment(style, rowIndex, columnIndex, cell.Text);
-            PdfColor? textColor = rowIsHeader ? style.HeaderTextColor : rowIsFooter ? style.FooterTextColor : style.TextColor;
+            global::OfficeIMO.OfficeColor? textColor = rowIsHeader ? style.HeaderTextColor : rowIsFooter ? style.FooterTextColor : style.TextColor;
             var paragraph = new RichParagraphBlock(StripRunLinksWhenCellLinked(cell.Runs, linkUri, linkDestinationName), MapTableCellAlignment(align), textColor);
             TableCellContentFrame inkClip = GetTableCellInkClipFrame(style, rowIndex, columnIndex, cellX, cellTop, cellWidth, cellHeight);
             if (cell.Viewport == null)
@@ -496,7 +496,7 @@ internal static partial class PdfWriter {
         }
 
         private void DrawCanvasTableGrid(TableBlock table, PdfTableStyle style, int columns, int rows, double x, double topY, double height, double cornerRadius, double[] columnWidths, double[] rowHeights, double columnGap, double rowGap, System.Collections.Generic.IReadOnlyList<TableCellLayout>[] cellLayoutsByRow) {
-            PdfColor color = style.BorderColor!.Value;
+            global::OfficeIMO.OfficeColor color = style.BorderColor!.Value;
             double width = style.BorderWidth;
             double tableWidth = GetTableCellWidth(columnWidths, 0, columns, columnGap);
             DrawRoundedRowRect(sb, color, width, x, topY - height, tableWidth, height, cornerRadius, true, true, true, true, true);

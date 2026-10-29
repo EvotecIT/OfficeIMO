@@ -124,7 +124,7 @@ namespace OfficeIMO.Tests.Pdf {
                 Gap = 18,
                 SpacingBefore = 7,
                 SpacingAfter = 9,
-                ColumnSeparatorColor = new PdfColor(0.12, 0.34, 0.56),
+                ColumnSeparatorColor = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.12, 0.34, 0.56),
                 ColumnSeparatorWidth = 1.25,
                 KeepTogether = true,
                 KeepWithNext = true
@@ -142,7 +142,7 @@ namespace OfficeIMO.Tests.Pdf {
             style.Gap = 4;
             style.SpacingBefore = 1;
             style.SpacingAfter = 2;
-            style.ColumnSeparatorColor = PdfColor.Black;
+            style.ColumnSeparatorColor = global::OfficeIMO.OfficeColor.Black;
             style.ColumnSeparatorWidth = 0.5;
             style.KeepTogether = false;
             style.KeepWithNext = false;
@@ -154,7 +154,7 @@ namespace OfficeIMO.Tests.Pdf {
             Assert.Equal(18, row.Style!.Gap);
             Assert.Equal(7, row.Style.SpacingBefore);
             Assert.Equal(9, row.Style.SpacingAfter);
-            Assert.Equal(new PdfColor(0.12, 0.34, 0.56), row.Style.ColumnSeparatorColor);
+            Assert.Equal(global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.12, 0.34, 0.56), row.Style.ColumnSeparatorColor);
             Assert.Equal(1.25, row.Style.ColumnSeparatorWidth);
             Assert.True(row.Style.KeepTogether);
             Assert.True(row.Style.KeepWithNext);
@@ -241,7 +241,7 @@ namespace OfficeIMO.Tests.Pdf {
                         page.Content(content =>
                             content.Row(row => row
                                 .Gap(20)
-                                .ColumnSeparator(new PdfColor(0.12, 0.34, 0.56), 1.25)
+                                .ColumnSeparator(global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.12, 0.34, 0.56), 1.25)
                                 .PercentColumn(50, column => column.Paragraph(paragraph => paragraph.Text("LeftSeparatorMarker")))
                                 .PercentColumn(50, column => column.Paragraph(paragraph => paragraph.Text("RightSeparatorMarker")))))))
                 .ToBytes();
@@ -501,7 +501,7 @@ namespace OfficeIMO.Tests.Pdf {
             var style = new PdfListStyle {
                 FontSize = 12,
                 LeftIndent = 10,
-                Color = PdfColor.FromRgb(55, 65, 81)
+                Color = global::OfficeIMO.OfficeColor.FromRgb(55, 65, 81)
             };
 
             doc.Compose(compose =>
@@ -538,8 +538,8 @@ namespace OfficeIMO.Tests.Pdf {
                             row.PercentColumn(100, column => column.PanelParagraph(
                                 paragraph => paragraph.Bold("Callout").Text(": stable panel in a column"),
                                 new PdfPanelStyle {
-                                    Background = PdfColor.FromRgb(248, 250, 252),
-                                    BorderColor = PdfColor.FromRgb(183, 194, 207),
+                                    Background = global::OfficeIMO.OfficeColor.FromRgb(248, 250, 252),
+                                    BorderColor = global::OfficeIMO.OfficeColor.FromRgb(183, 194, 207),
                                     PaddingX = 8,
                                     PaddingY = 6,
                                     KeepTogether = true
@@ -550,7 +550,7 @@ namespace OfficeIMO.Tests.Pdf {
             var panel = Assert.IsType<ContainerBlock>(Assert.Single(row.Columns[0].Blocks));
 
             Assert.True(panel.Style!.KeepTogether);
-            Assert.Equal(PdfColor.FromRgb(248, 250, 252), panel.Style.Background);
+            Assert.Equal(global::OfficeIMO.OfficeColor.FromRgb(248, 250, 252), panel.Style.Background);
             Assert.Contains(Assert.IsType<RichParagraphBlock>(Assert.Single(panel.Blocks)).Runs, run => run.Bold);
         }
 

@@ -17,12 +17,12 @@ namespace OfficeIMO.Tests.Pdf {
             };
             var doc = PdfDocument.Create(options)
                 .Header(header => header.Text(text => text
-                    .Run(PdfTextRun.Bolded("Rich header ", PdfColor.FromRgb(255, 0, 0), fontSize: 14, backgroundColor: PdfColor.FromRgb(255, 255, 0)))
-                    .CurrentPage(PdfTextRun.Italicized(string.Empty, PdfColor.FromRgb(0, 0, 255), fontSize: 11))
+                    .Run(PdfTextRun.Bolded("Rich header ", global::OfficeIMO.OfficeColor.FromRgb(255, 0, 0), fontSize: 14, backgroundColor: global::OfficeIMO.OfficeColor.FromRgb(255, 255, 0)))
+                    .CurrentPage(PdfTextRun.Italicized(string.Empty, global::OfficeIMO.OfficeColor.FromRgb(0, 0, 255), fontSize: 11))
                     .Text("/")
-                    .TotalPages(PdfTextRun.Underlined(string.Empty, PdfColor.FromRgb(0, 128, 0), fontSize: 11))))
+                    .TotalPages(PdfTextRun.Underlined(string.Empty, global::OfficeIMO.OfficeColor.FromRgb(0, 128, 0), fontSize: 11))))
                 .Footer(footer => footer.Text(text => text
-                    .Run(PdfTextRun.Strikethrough("Rich footer ", PdfColor.FromRgb(128, 0, 128), fontSize: 9))
+                    .Run(PdfTextRun.Strikethrough("Rich footer ", global::OfficeIMO.OfficeColor.FromRgb(128, 0, 128), fontSize: 9))
                     .CurrentPage(PdfTextRun.Superscript(string.Empty, fontSize: 9))))
                 .Paragraph(p => p.Text("Body content."));
 

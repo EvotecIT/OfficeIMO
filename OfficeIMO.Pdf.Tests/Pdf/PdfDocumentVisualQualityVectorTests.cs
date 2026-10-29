@@ -27,9 +27,9 @@ public partial class PdfDocumentVisualQualityTests {
                 width: 100,
                 height: 36,
                 cornerRadius: 8,
-                strokeColor: PdfColor.FromRgb(26, 51, 77),
+                strokeColor: global::OfficeIMO.OfficeColor.FromRgb(26, 51, 77),
                 strokeWidth: 2,
-                fillColor: PdfColor.FromRgb(204, 179, 153),
+                fillColor: global::OfficeIMO.OfficeColor.FromRgb(204, 179, 153),
                 align: PdfAlign.Center,
                 spacingBefore: 4,
                 spacingAfter: 6)
@@ -61,7 +61,7 @@ public partial class PdfDocumentVisualQualityTests {
                 y1: 0,
                 x2: 100,
                 y2: 40,
-                strokeColor: PdfColor.FromRgb(51, 102, 153),
+                strokeColor: global::OfficeIMO.OfficeColor.FromRgb(51, 102, 153),
                 strokeWidth: 2,
                 align: PdfAlign.Center,
                 spacingBefore: 4,
@@ -92,7 +92,7 @@ public partial class PdfDocumentVisualQualityTests {
                 y1: 0,
                 x2: 100,
                 y2: 0,
-                strokeColor: PdfColor.FromRgb(51, 102, 153),
+                strokeColor: global::OfficeIMO.OfficeColor.FromRgb(51, 102, 153),
                 strokeWidth: 3,
                 align: PdfAlign.Center,
                 spacingBefore: 4,
@@ -574,7 +574,7 @@ public partial class PdfDocumentVisualQualityTests {
             .Rectangle(
                 width: 90,
                 height: 24,
-                strokeColor: PdfColor.FromRgb(51, 102, 153),
+                strokeColor: global::OfficeIMO.OfficeColor.FromRgb(51, 102, 153),
                 strokeWidth: 2,
                 align: PdfAlign.Left,
                 strokeDashStyle: OfficeStrokeDashStyle.DashDot)

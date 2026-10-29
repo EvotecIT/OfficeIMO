@@ -32,7 +32,7 @@ internal static partial class PdfWriter {
 
         /// <summary>Paints the same resolved marker runs in both ordinary and row-column lists.</summary>
         private bool WriteListMarkerFallback(ListMarkerFallbackLayout? marker, double x, double width,
-            double baseline, double size, double leading, PdfAlign align, PdfColor? color, int? markedContentId) {
+            double baseline, double size, double leading, PdfAlign align, global::OfficeIMO.OfficeColor? color, int? markedContentId) {
             if (marker == null) return false;
             WriteRichParagraph(sb, new RichParagraphBlock(marker.Runs, align, color), marker.Lines,
                 marker.Heights, currentOpts, baseline, size, leading, currentPage!.Annotations, x, width,

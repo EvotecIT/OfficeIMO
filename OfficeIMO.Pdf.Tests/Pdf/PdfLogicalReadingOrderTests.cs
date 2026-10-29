@@ -243,9 +243,9 @@ public sealed class PdfLogicalReadingOrderTests {
     public void CanonicalText_PreservesBlocksOmittedByATableProjection() {
         var style = new PdfTableStyle {
             HeaderRowCount = 1,
-            CellFills = new Dictionary<(int Row, int Column), PdfColor> {
-                [(1, 0)] = new PdfColor(0.86D, 0.92D, 0.99D),
-                [(3, 0)] = new PdfColor(0.99D, 0.95D, 0.78D)
+            CellFills = new Dictionary<(int Row, int Column), global::OfficeIMO.OfficeColor> {
+                [(1, 0)] = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.86D, 0.92D, 0.99D),
+                [(3, 0)] = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.99D, 0.95D, 0.78D)
             },
             CellAlignments = new Dictionary<(int Row, int Column), PdfColumnAlign> {
                 [(1, 0)] = PdfColumnAlign.Center,

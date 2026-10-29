@@ -856,7 +856,7 @@ internal static partial class PdfRedactionApplier {
         return Math.Abs(left - right) < 0.0001D;
     }
 
-    private static PdfStream BuildRedactionContentStream(PdfRedactionArea[] areas, PdfColor fillColor) {
+    private static PdfStream BuildRedactionContentStream(PdfRedactionArea[] areas, global::OfficeIMO.OfficeColor fillColor) {
         var builder = new StringBuilder();
         var content = new ContentStreamBuilder(builder)
             .SaveState()

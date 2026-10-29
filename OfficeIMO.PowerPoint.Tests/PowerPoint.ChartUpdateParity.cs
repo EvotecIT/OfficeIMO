@@ -96,7 +96,7 @@ namespace OfficeIMO.Tests {
                 using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
                     PowerPointSlide slide = presentation.AddSlide();
                     PowerPointChart chart = slide.AddLineChart(initialData);
-                    chart.SetSeriesTrendline(0, OfficeChartTrendlineType.Linear, lineColor: "ED7D31", lineWidthPoints: 1.25)
+                    chart.SetSeriesTrendline(0, OfficeChartTrendlineType.Linear, lineColor: "ED7D31", lineWidth: OfficeLength.Points(1.25))
                         .UpdateData(updatedData);
                     presentation.Save();
                 }

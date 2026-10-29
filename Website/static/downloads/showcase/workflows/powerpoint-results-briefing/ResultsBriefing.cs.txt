@@ -13,7 +13,7 @@ internal static class ResultsBriefing {
         var data = new OfficeChartData(new[] { "Week 1", "Week 2", "Week 3", "Week 4" },
             new[] { new OfficeSeries("Baseline", new double[] { 8, 8, 8, 8 }),
                 new OfficeSeries("Pilot", new double[] { 7.4, 6.2, 5.1, 4.6 }) });
-        results.AddChart(OfficeChartType.ColumnClustered,data,global::OfficeIMO.OfficeLength.Centimeters(1.5),global::OfficeIMO.OfficeLength.Centimeters(5),global::OfficeIMO.OfficeLength.Centimeters(30),global::OfficeIMO.OfficeLength.Centimeters(11))
+        results.AddChart(OfficeChartType.ColumnClustered, data, new OfficeIMO.PowerPoint.PowerPointChartOptions { Left = global::OfficeIMO.OfficeLength.Centimeters(1.5), Top = global::OfficeIMO.OfficeLength.Centimeters(5), Width = global::OfficeIMO.OfficeLength.Centimeters(30), Height = global::OfficeIMO.OfficeLength.Centimeters(11) })
             .SetTitle("First response by week").SetLegend(OfficeChartLegendPosition.Bottom)
             .SetDataLabels(showValue: true).SetValueAxisTitle("Hours");
         results.Notes.Text = "These are synthetic figures. Explain sample size and measurement rules before drawing a conclusion from real data. Compare the same response-time definition across weeks.";

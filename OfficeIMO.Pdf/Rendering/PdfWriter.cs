@@ -776,7 +776,7 @@ internal static partial class PdfWriter {
                         StringBuilder target = img.IsForeground ? foregroundImages : sbImgs;
                         AppendPageImageDraw(target, img);
                         if (img.DebugBox) {
-                            DrawRowRect(target, new PdfColor(1D, 0D, 1D), 0.6D, img.X, img.Y, img.W, img.H, markInfo);
+                            DrawRowRect(target, global::OfficeIMO.OfficeColor.FromNormalizedRgb(1D, 0D, 1D), 0.6D, img.X, img.Y, img.W, img.H, markInfo);
                         }
                     }
 

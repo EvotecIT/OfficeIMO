@@ -5,7 +5,7 @@ namespace OfficeIMO.PowerPoint.Pdf;
 public static partial class PowerPointPdfConverterExtensions {
     private static void RenderSpeakerNotes(PdfCore.PdfPageCanvas canvas, string notes,
         double x, double y, double width, double height, double fontSize,
-        PdfCore.PdfColor color, int slideNumber, PowerPointPdfExportOptions options) {
+        global::OfficeIMO.OfficeColor color, int slideNumber, PowerPointPdfExportOptions options) {
         var style = new PdfCore.PdfCanvasTextBoxStyle {
             Background = null,
             BorderColor = null,

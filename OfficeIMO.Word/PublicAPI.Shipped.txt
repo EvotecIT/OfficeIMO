@@ -818,6 +818,10 @@ OfficeIMO.Word.WordChartLegend.Overlay.set -> void
 OfficeIMO.Word.WordChartLegend.Position.get -> OfficeIMO.Drawing.OfficeChartLegendPosition
 OfficeIMO.Word.WordChartLegend.Position.set -> void
 OfficeIMO.Word.WordChartLegend.Remove() -> void
+OfficeIMO.Word.WordChartOptions
+OfficeIMO.Word.WordChartOptions.RoundedCorners.get -> bool
+OfficeIMO.Word.WordChartOptions.RoundedCorners.set -> void
+OfficeIMO.Word.WordChartOptions.WordChartOptions() -> void
 OfficeIMO.Word.WordChartSeries
 OfficeIMO.Word.WordChartSeries.Chart.get -> OfficeIMO.Word.WordChart?
 OfficeIMO.Word.WordChartSeries.Color.get -> OfficeIMO.OfficeColor?
@@ -1189,9 +1193,12 @@ OfficeIMO.Word.WordDocument.AddBookmark(string! bookmarkName) -> OfficeIMO.Word.
 OfficeIMO.Word.WordDocument.AddBreak(OfficeIMO.Word.WordBreakType? breakType = null) -> OfficeIMO.Word.WordParagraph!
 OfficeIMO.Word.WordDocument.AddCallout(OfficeIMO.OfficeCalloutKind kind, string! title, string! body, OfficeIMO.OfficeTheme? theme = null) -> OfficeIMO.Word.WordParagraph!
 OfficeIMO.Word.WordDocument.AddCellComments(System.Collections.Generic.IEnumerable<OfficeIMO.Word.WordCellComment!>! comments, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Collections.Generic.IReadOnlyList<OfficeIMO.Word.WordComment!>!
-OfficeIMO.Word.WordDocument.AddChart(OfficeIMO.OfficeChartType chartKind, OfficeIMO.Drawing.OfficeChartData! data, string! title = "", bool roundedCorners = false, OfficeIMO.OfficeLength? width = null, OfficeIMO.OfficeLength? height = null) -> OfficeIMO.Word.WordChart!
+OfficeIMO.Word.WordDocument.AddChart(OfficeIMO.OfficeChartType chartKind, OfficeIMO.Drawing.OfficeChartData! data) -> OfficeIMO.Word.WordChart!
+OfficeIMO.Word.WordDocument.AddChart(OfficeIMO.OfficeChartType chartKind, OfficeIMO.Drawing.OfficeChartData! data, OfficeIMO.OfficeChartOptions? options) -> OfficeIMO.Word.WordChart!
 OfficeIMO.Word.WordDocument.AddChart(string! title = "", bool roundedCorners = false, OfficeIMO.OfficeLength? width = null, OfficeIMO.OfficeLength? height = null) -> OfficeIMO.Word.WordChart!
+OfficeIMO.Word.WordDocument.AddChart<T, TCategory>(OfficeIMO.OfficeChartType type, System.Collections.Generic.IEnumerable<T>! data, System.Func<T, TCategory>! category, OfficeIMO.OfficeChartOptions? options, params OfficeIMO.OfficeSeries![]! series) -> OfficeIMO.Word.WordChart!
 OfficeIMO.Word.WordDocument.AddChart<T, TCategory>(OfficeIMO.OfficeChartType type, System.Collections.Generic.IEnumerable<T>! data, System.Func<T, TCategory>! category, params OfficeIMO.OfficeSeries![]! series) -> OfficeIMO.Word.WordChart!
+OfficeIMO.Word.WordDocument.AddChart<T>(OfficeIMO.OfficeChartType type, System.Collections.Generic.IEnumerable<T>! data, string! category, OfficeIMO.OfficeChartOptions? options, params string![]! series) -> OfficeIMO.Word.WordChart!
 OfficeIMO.Word.WordDocument.AddChart<T>(OfficeIMO.OfficeChartType type, System.Collections.Generic.IEnumerable<T>! data, string! category, params string![]! series) -> OfficeIMO.Word.WordChart!
 OfficeIMO.Word.WordDocument.AddCitation(string! sourceTag) -> OfficeIMO.Word.WordField!
 OfficeIMO.Word.WordDocument.AddCodeBlock(string! code, string? language = null) -> OfficeIMO.Word.WordParagraph!
@@ -1214,6 +1221,7 @@ OfficeIMO.Word.WordDocument.AddField(OfficeIMO.Word.WordFieldCode! fieldCode, Of
 OfficeIMO.Word.WordDocument.AddField(OfficeIMO.Word.WordFieldType wordFieldType, OfficeIMO.Word.WordFieldFormat? wordFieldFormat = null, string? customFormat = null, bool advanced = false, System.Collections.Generic.List<string!>? parameters = null) -> OfficeIMO.Word.WordField!
 OfficeIMO.Word.WordDocument.AddFootnoteProperties(OfficeIMO.Word.WordNumberFormat? numberingFormat = null, OfficeIMO.Word.WordFootnotePosition? position = null, OfficeIMO.Word.WordNoteNumberRestart? restartNumbering = null, int? startNumber = null) -> OfficeIMO.Word.WordFootnoteSettings!
 OfficeIMO.Word.WordDocument.AddHeadersAndFooters() -> (OfficeIMO.Word.WordHeader! Header, OfficeIMO.Word.WordFooter! Footer)
+OfficeIMO.Word.WordDocument.AddHeading(string! text, int level = 1) -> OfficeIMO.Word.WordParagraph!
 OfficeIMO.Word.WordDocument.AddHorizontalLine(OfficeIMO.Word.WordBorderStyle? lineType = null, OfficeIMO.OfficeColor? color = null, uint size = 12, uint space = 1) -> OfficeIMO.Word.WordParagraph!
 OfficeIMO.Word.WordDocument.AddHyperLink(string! text, System.Uri! uri, bool addStyle = false, string! tooltip = "", bool history = true) -> OfficeIMO.Word.WordHyperLink!
 OfficeIMO.Word.WordDocument.AddHyperLink(string! text, string! anchor, bool addStyle = false, string! tooltip = "", bool history = true) -> OfficeIMO.Word.WordHyperLink!
@@ -1552,9 +1560,9 @@ OfficeIMO.Word.WordDocumentVariables.WordDocumentVariables(OfficeIMO.Word.WordDo
 OfficeIMO.Word.WordDrawingLayoutInfo
 OfficeIMO.Word.WordDrawingLayoutInfo.AllowOverlap.get -> bool
 OfficeIMO.Word.WordDrawingLayoutInfo.BehindDocument.get -> bool
-OfficeIMO.Word.WordDrawingLayoutInfo.HeightPoints.get -> double
+OfficeIMO.Word.WordDrawingLayoutInfo.Height.get -> OfficeIMO.OfficeLength
 OfficeIMO.Word.WordDrawingLayoutInfo.HorizontalAlignment.get -> string?
-OfficeIMO.Word.WordDrawingLayoutInfo.HorizontalOffsetPoints.get -> double?
+OfficeIMO.Word.WordDrawingLayoutInfo.HorizontalOffset.get -> OfficeIMO.OfficeLength?
 OfficeIMO.Word.WordDrawingLayoutInfo.HorizontalRelativeFrom.get -> string?
 OfficeIMO.Word.WordDrawingLayoutInfo.IsGroup.get -> bool
 OfficeIMO.Word.WordDrawingLayoutInfo.LayoutInCell.get -> bool
@@ -1563,9 +1571,9 @@ OfficeIMO.Word.WordDrawingLayoutInfo.Placement.get -> OfficeIMO.Word.WordDrawing
 OfficeIMO.Word.WordDrawingLayoutInfo.RelativeHeight.get -> uint
 OfficeIMO.Word.WordDrawingLayoutInfo.UsesSimplePosition.get -> bool
 OfficeIMO.Word.WordDrawingLayoutInfo.VerticalAlignment.get -> string?
-OfficeIMO.Word.WordDrawingLayoutInfo.VerticalOffsetPoints.get -> double?
+OfficeIMO.Word.WordDrawingLayoutInfo.VerticalOffset.get -> OfficeIMO.OfficeLength?
 OfficeIMO.Word.WordDrawingLayoutInfo.VerticalRelativeFrom.get -> string?
-OfficeIMO.Word.WordDrawingLayoutInfo.WidthPoints.get -> double
+OfficeIMO.Word.WordDrawingLayoutInfo.Width.get -> OfficeIMO.OfficeLength
 OfficeIMO.Word.WordDrawingLayoutInfo.Wrap.get -> OfficeIMO.Word.WordDrawingWrapKind
 OfficeIMO.Word.WordDrawingPlacementKind
 OfficeIMO.Word.WordDrawingPlacementKind.Anchored = 1 -> OfficeIMO.Word.WordDrawingPlacementKind
@@ -2987,7 +2995,8 @@ OfficeIMO.Word.WordPaperText
 OfficeIMO.Word.WordParagraph
 OfficeIMO.Word.WordParagraph.AddBookmark(string! bookmarkName) -> OfficeIMO.Word.WordBookmark!
 OfficeIMO.Word.WordParagraph.AddBreak(OfficeIMO.Word.WordBreakType? breakType = null) -> OfficeIMO.Word.WordParagraph!
-OfficeIMO.Word.WordParagraph.AddChart(OfficeIMO.OfficeChartType chartKind, OfficeIMO.Drawing.OfficeChartData! data, string! title = "", bool roundedCorners = false, OfficeIMO.OfficeLength? width = null, OfficeIMO.OfficeLength? height = null) -> OfficeIMO.Word.WordChart!
+OfficeIMO.Word.WordParagraph.AddChart(OfficeIMO.OfficeChartType chartKind, OfficeIMO.Drawing.OfficeChartData! data) -> OfficeIMO.Word.WordChart!
+OfficeIMO.Word.WordParagraph.AddChart(OfficeIMO.OfficeChartType chartKind, OfficeIMO.Drawing.OfficeChartData! data, OfficeIMO.OfficeChartOptions? options) -> OfficeIMO.Word.WordChart!
 OfficeIMO.Word.WordParagraph.AddChart(string! title = "", bool roundedCorners = false, OfficeIMO.OfficeLength? width = null, OfficeIMO.OfficeLength? height = null) -> OfficeIMO.Word.WordChart!
 OfficeIMO.Word.WordParagraph.AddCheckBox(bool isChecked = false, string? alias = null, string? tag = null) -> OfficeIMO.Word.WordCheckBox!
 OfficeIMO.Word.WordParagraph.AddCitation(string! sourceTag) -> OfficeIMO.Word.WordField!
@@ -3030,7 +3039,7 @@ OfficeIMO.Word.WordParagraph.AddShape(OfficeIMO.Word.WordShapeType shapeType, Of
 OfficeIMO.Word.WordParagraph.AddShapeDrawing(OfficeIMO.Word.WordShapeType shapeType, OfficeIMO.OfficeLength width, OfficeIMO.OfficeLength height) -> OfficeIMO.Word.WordShape!
 OfficeIMO.Word.WordParagraph.AddShapeDrawing(OfficeIMO.Word.WordShapeType shapeType, OfficeIMO.OfficeLength width, OfficeIMO.OfficeLength height, OfficeIMO.OfficeLength left, OfficeIMO.OfficeLength top) -> OfficeIMO.Word.WordShape!
 OfficeIMO.Word.WordParagraph.AddShapeGroup(System.Collections.Generic.IEnumerable<OfficeIMO.Word.WordShapeGroupItem!>! items) -> OfficeIMO.Word.WordShapeGroup!
-OfficeIMO.Word.WordParagraph.AddShapeGroup(System.Collections.Generic.IEnumerable<OfficeIMO.Word.WordShapeGroupItem!>! items, double leftPt, double topPt) -> OfficeIMO.Word.WordShapeGroup!
+OfficeIMO.Word.WordParagraph.AddShapeGroup(System.Collections.Generic.IEnumerable<OfficeIMO.Word.WordShapeGroupItem!>! items, OfficeIMO.OfficeLength left, OfficeIMO.OfficeLength top) -> OfficeIMO.Word.WordShapeGroup!
 OfficeIMO.Word.WordParagraph.AddSmartArt(OfficeIMO.Word.WordSmartArtType type) -> OfficeIMO.Word.WordSmartArt!
 OfficeIMO.Word.WordParagraph.AddStructuredDocumentTag(string! text = "", string? alias = null, string? tag = null) -> OfficeIMO.Word.WordStructuredDocumentTag!
 OfficeIMO.Word.WordParagraph.AddTab() -> OfficeIMO.Word.WordParagraph!
@@ -3919,14 +3928,14 @@ OfficeIMO.Word.WordShapeGroup.TryGetLayoutSnapshot(out OfficeIMO.Word.WordDrawin
 OfficeIMO.Word.WordShapeGroupItem
 OfficeIMO.Word.WordShapeGroupItem.FillColorHex.get -> string?
 OfficeIMO.Word.WordShapeGroupItem.FillColorHex.set -> void
-OfficeIMO.Word.WordShapeGroupItem.HeightPt.get -> double
-OfficeIMO.Word.WordShapeGroupItem.LeftPt.get -> double
+OfficeIMO.Word.WordShapeGroupItem.Height.get -> OfficeIMO.OfficeLength
+OfficeIMO.Word.WordShapeGroupItem.Left.get -> OfficeIMO.OfficeLength
 OfficeIMO.Word.WordShapeGroupItem.ShapeType.get -> OfficeIMO.Word.WordShapeType
 OfficeIMO.Word.WordShapeGroupItem.StrokeColorHex.get -> string?
 OfficeIMO.Word.WordShapeGroupItem.StrokeColorHex.set -> void
-OfficeIMO.Word.WordShapeGroupItem.TopPt.get -> double
-OfficeIMO.Word.WordShapeGroupItem.WidthPt.get -> double
-OfficeIMO.Word.WordShapeGroupItem.WordShapeGroupItem(OfficeIMO.Word.WordShapeType shapeType, double leftPt, double topPt, double widthPt, double heightPt) -> void
+OfficeIMO.Word.WordShapeGroupItem.Top.get -> OfficeIMO.OfficeLength
+OfficeIMO.Word.WordShapeGroupItem.Width.get -> OfficeIMO.OfficeLength
+OfficeIMO.Word.WordShapeGroupItem.WordShapeGroupItem(OfficeIMO.Word.WordShapeType shapeType, OfficeIMO.OfficeLength left, OfficeIMO.OfficeLength top, OfficeIMO.OfficeLength width, OfficeIMO.OfficeLength height) -> void
 OfficeIMO.Word.WordShapeType
 OfficeIMO.Word.WordShapeType.Can = 21 -> OfficeIMO.Word.WordShapeType
 OfficeIMO.Word.WordShapeType.Chevron = 10 -> OfficeIMO.Word.WordShapeType
@@ -4788,16 +4797,12 @@ OfficeIMO.Word.WordTextBox.Description.set -> void
 OfficeIMO.Word.WordTextBox.Elements.get -> System.Collections.Generic.List<OfficeIMO.Word.WordElement!>!
 OfficeIMO.Word.WordTextBox.FillColorHex.get -> string!
 OfficeIMO.Word.WordTextBox.FillColorHex.set -> void
-OfficeIMO.Word.WordTextBox.Height.get -> long
+OfficeIMO.Word.WordTextBox.Height.get -> OfficeIMO.OfficeLength
 OfficeIMO.Word.WordTextBox.Height.set -> void
-OfficeIMO.Word.WordTextBox.HeightCentimeters.get -> double
-OfficeIMO.Word.WordTextBox.HeightCentimeters.set -> void
 OfficeIMO.Word.WordTextBox.HorizontalAlignment.get -> OfficeIMO.Word.WordTextBoxHorizontalAlignment
 OfficeIMO.Word.WordTextBox.HorizontalAlignment.set -> void
-OfficeIMO.Word.WordTextBox.HorizontalPositionOffset.get -> int?
+OfficeIMO.Word.WordTextBox.HorizontalPositionOffset.get -> OfficeIMO.OfficeLength?
 OfficeIMO.Word.WordTextBox.HorizontalPositionOffset.set -> void
-OfficeIMO.Word.WordTextBox.HorizontalPositionOffsetCentimeters.get -> double?
-OfficeIMO.Word.WordTextBox.HorizontalPositionOffsetCentimeters.set -> void
 OfficeIMO.Word.WordTextBox.HorizontalPositionRelativeFrom.get -> OfficeIMO.Word.WordHorizontalRelativePosition?
 OfficeIMO.Word.WordTextBox.HorizontalPositionRelativeFrom.set -> void
 OfficeIMO.Word.WordTextBox.Paragraphs.get -> System.Collections.Generic.List<OfficeIMO.Word.WordParagraph!>!
@@ -4808,16 +4813,12 @@ OfficeIMO.Word.WordTextBox.RelativeWidthPercentage.set -> void
 OfficeIMO.Word.WordTextBox.Remove() -> void
 OfficeIMO.Word.WordTextBox.SizeRelativeHorizontally.get -> OfficeIMO.Word.WordTextBoxHorizontalSizeReference?
 OfficeIMO.Word.WordTextBox.SizeRelativeHorizontally.set -> void
-OfficeIMO.Word.WordTextBox.VerticalPositionOffset.get -> int?
+OfficeIMO.Word.WordTextBox.VerticalPositionOffset.get -> OfficeIMO.OfficeLength?
 OfficeIMO.Word.WordTextBox.VerticalPositionOffset.set -> void
-OfficeIMO.Word.WordTextBox.VerticalPositionOffsetCentimeters.get -> double?
-OfficeIMO.Word.WordTextBox.VerticalPositionOffsetCentimeters.set -> void
 OfficeIMO.Word.WordTextBox.VerticalPositionRelativeFrom.get -> OfficeIMO.Word.WordVerticalRelativePosition
 OfficeIMO.Word.WordTextBox.VerticalPositionRelativeFrom.set -> void
-OfficeIMO.Word.WordTextBox.Width.get -> long
+OfficeIMO.Word.WordTextBox.Width.get -> OfficeIMO.OfficeLength
 OfficeIMO.Word.WordTextBox.Width.set -> void
-OfficeIMO.Word.WordTextBox.WidthCentimeters.get -> double
-OfficeIMO.Word.WordTextBox.WidthCentimeters.set -> void
 OfficeIMO.Word.WordTextBox.WordTextBox(OfficeIMO.Word.WordDocument! wordDocument, OfficeIMO.Word.WordHeaderFooter! wordHeaderFooter, string! text, OfficeIMO.Word.WordImageTextWrapping wrapTextImage) -> void
 OfficeIMO.Word.WordTextBox.WordTextBox(OfficeIMO.Word.WordDocument! wordDocument, OfficeIMO.Word.WordParagraph! paragraph, string! text, OfficeIMO.Word.WordImageTextWrapping wrapTextImage) -> void
 OfficeIMO.Word.WordTextBox.WordTextBox(OfficeIMO.Word.WordDocument! wordDocument, string! text, OfficeIMO.Word.WordImageTextWrapping wrapTextImage) -> void
@@ -5130,4 +5131,3 @@ static OfficeIMO.Word.WordTemplatePreflightReport.FromInspection(OfficeIMO.Word.
 static OfficeIMO.Word.WordXmlExtensions.AddParagraphFromXml(this OfficeIMO.Word.WordDocument! document, string! xml) -> OfficeIMO.Word.WordParagraph!
 static OfficeIMO.Word.WordXmlExtensions.ToXml(this OfficeIMO.Word.WordParagraph! paragraph) -> string!
 static StringExtensions.FindAndReplace(this string! str, string! oldValue, string! newValue, System.StringComparison comparisonType, ref int count) -> string!
-OfficeIMO.Word.WordDocument.AddHeading(string! text, int level = 1) -> OfficeIMO.Word.WordParagraph!

@@ -25,8 +25,8 @@ internal static partial class PdfWriter {
             PdfStandardFont markerFont = prepared.MarkerFont;
             PdfNamedFontFace? markerNamedFont = prepared.MarkerNamedFont;
             double markerSize = prepared.MarkerSize;
-            PdfColor? color = prepared.Block.Color ?? prepared.Style?.Color;
-            PdfColor? markerColor = prepared.Style?.MarkerColor ?? color;
+            global::OfficeIMO.OfficeColor? color = prepared.Block.Color ?? prepared.Style?.Color;
+            global::OfficeIMO.OfficeColor? markerColor = prepared.Style?.MarkerColor ?? color;
             var markerPlacement = GetListMarkerPlacement(prepared, preparedItem);
             double markerX = currentOpts.MarginLeft + markerPlacement.X;
             double markerWidth = markerPlacement.Width;

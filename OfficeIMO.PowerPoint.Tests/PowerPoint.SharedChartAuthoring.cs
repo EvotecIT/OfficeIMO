@@ -25,7 +25,7 @@ namespace OfficeIMO.Tests {
             double[]? xValues = kind == OfficeChartType.Scatter ? new[] { 1d } : null;
             var chart = presentation.AddSlide().AddChart(kind, new OfficeChartData(new[] { "A" }, new[] {
                 new OfficeSeries("Values", new[] { 2d }, xValues) }));
-            chart.SetSeriesMarker(0, OfficeChartMarkerShape.Diamond, size: 9);
+            chart.SetSeriesMarker(0, OfficeChartMarkerShape.Diamond, size: OfficeLength.Points(9));
 
             chart.UpdateData(new OfficeChartData(new[] { "A" }, new[] {
                 new OfficeSeries("Values", new[] { 3d }, xValues) }));
@@ -46,10 +46,10 @@ namespace OfficeIMO.Tests {
                     foreach (OfficeChartType kind in kinds) {
                         PowerPointSlide slide = presentation.AddSlide();
                         OfficeChartData data = CreateData(kind);
-                        PowerPointChart chart = slide.AddChart(kind,data,global::OfficeIMO.OfficeLength.Centimeters(1.5),global::OfficeIMO.OfficeLength.Centimeters(1.5),global::OfficeIMO.OfficeLength.Centimeters(22.4),global::OfficeIMO.OfficeLength.Centimeters(10.5),                            new PowerPointChartAccessibilityOptions {
+                        PowerPointChart chart = slide.AddChart(kind, data, new OfficeIMO.PowerPoint.PowerPointChartOptions { Left = global::OfficeIMO.OfficeLength.Centimeters(1.5), Top = global::OfficeIMO.OfficeLength.Centimeters(1.5), Width = global::OfficeIMO.OfficeLength.Centimeters(22.4), Height = global::OfficeIMO.OfficeLength.Centimeters(10.5), Accessibility = new PowerPointChartAccessibilityOptions {
                                 Name = kind + " Shared Chart",
                                 AlternativeText = kind + " performance chart"
-                            });
+                            } });
                         Assert.Contains("Data summary:", chart.AltText);
                         Assert.True(chart.TryGetOfficeSnapshot(out OfficeChartSnapshot snapshot), kind.ToString());
                         Assert.Equal(kind, snapshot.ChartKind);
@@ -100,9 +100,9 @@ namespace OfficeIMO.Tests {
             try {
                 using (PowerPointDocument presentation = PowerPointDocument.Create(output)) {
                     PowerPointSlide slide = presentation.AddSlide();
-                    PowerPointChart chart = slide.AddChart(OfficeChartType.ColumnClustered,data,                        global::OfficeIMO.OfficeLength.Centimeters(1.5),global::OfficeIMO.OfficeLength.Centimeters(1.5),global::OfficeIMO.OfficeLength.Centimeters(22),global::OfficeIMO.OfficeLength.Centimeters(10),new PowerPointChartAccessibilityOptions {
+                    PowerPointChart chart = slide.AddChart(OfficeChartType.ColumnClustered, data, new OfficeIMO.PowerPoint.PowerPointChartOptions { Left = global::OfficeIMO.OfficeLength.Centimeters(1.5), Top = global::OfficeIMO.OfficeLength.Centimeters(1.5), Width = global::OfficeIMO.OfficeLength.Centimeters(22), Height = global::OfficeIMO.OfficeLength.Centimeters(10), Accessibility = new PowerPointChartAccessibilityOptions {
                             AlternativeText = "Revenue columns with margin line on a secondary axis"
-                        });
+                        } });
                     Assert.True(chart.TryGetOfficeSnapshot(out OfficeChartSnapshot snapshot));
                     Assert.Equal(2, snapshot.Data.Series.Count);
                     Assert.Equal(OfficeChartType.ColumnClustered, snapshot.Data.Series[0].RenderKind);
@@ -492,9 +492,7 @@ namespace OfficeIMO.Tests {
         public void GeneratedChartSummaryCarriesAccessibilityMarker() {
             using var stream = new MemoryStream();
             using PowerPointDocument presentation = PowerPointDocument.Create(stream, new PowerPointCreateOptions());
-            PowerPointChart chart = presentation.AddSlide().AddChart(
-                OfficeChartType.ColumnClustered, CreateData(OfficeChartType.ColumnClustered),
-                accessibility: new PowerPointChartAccessibilityOptions());
+            PowerPointChart chart = presentation.AddSlide().AddChart(OfficeChartType.ColumnClustered, CreateData(OfficeChartType.ColumnClustered), new OfficeIMO.PowerPoint.PowerPointChartOptions { Accessibility = new PowerPointChartAccessibilityOptions() });
 
             Assert.StartsWith("Data summary:", chart.AltText, StringComparison.Ordinal);
             PowerPointAccessibilityReport report = presentation.InspectAccessibility();
@@ -551,7 +549,7 @@ namespace OfficeIMO.Tests {
                          OfficeChartType.BarStacked100
                      }) {
                 PowerPointSlide slide = presentation.AddSlide();
-                slide.AddChart(kind,CreateData(kind),global::OfficeIMO.OfficeLength.Points(30),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(300),global::OfficeIMO.OfficeLength.Points(170),                    new PowerPointChartAccessibilityOptions { AlternativeText = kind + " export proof" });
+                slide.AddChart(kind, CreateData(kind), new OfficeIMO.PowerPoint.PowerPointChartOptions { Left = global::OfficeIMO.OfficeLength.Points(30), Top = global::OfficeIMO.OfficeLength.Points(20), Width = global::OfficeIMO.OfficeLength.Points(300), Height = global::OfficeIMO.OfficeLength.Points(170), Accessibility = new PowerPointChartAccessibilityOptions { AlternativeText = kind + " export proof" } });
                 OfficeImageExportResult png = slide.ExportImage(OfficeImageExportFormat.Png);
                 OfficeImageExportResult svg = slide.ExportImage(OfficeImageExportFormat.Svg);
                 Assert.True(png.Bytes.Length > 100);
@@ -561,7 +559,7 @@ namespace OfficeIMO.Tests {
                 Assert.DoesNotContain(svg.Diagnostics, diagnostic => diagnostic.Severity == OfficeImageExportDiagnosticSeverity.Error);
             }
             PowerPointSlide comboSlide = presentation.AddSlide();
-            comboSlide.AddChart(OfficeChartType.ColumnClustered,CreateComboData(),global::OfficeIMO.OfficeLength.Points(30),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(300),global::OfficeIMO.OfficeLength.Points(170),                new PowerPointChartAccessibilityOptions { AlternativeText = "Combo export proof" });
+            comboSlide.AddChart(OfficeChartType.ColumnClustered, CreateComboData(), new OfficeIMO.PowerPoint.PowerPointChartOptions { Left = global::OfficeIMO.OfficeLength.Points(30), Top = global::OfficeIMO.OfficeLength.Points(20), Width = global::OfficeIMO.OfficeLength.Points(300), Height = global::OfficeIMO.OfficeLength.Points(170), Accessibility = new PowerPointChartAccessibilityOptions { AlternativeText = "Combo export proof" } });
             OfficeImageExportResult comboPng = comboSlide.ExportImage(OfficeImageExportFormat.Png);
             OfficeImageExportResult comboSvg = comboSlide.ExportImage(OfficeImageExportFormat.Svg);
             Assert.DoesNotContain(comboPng.Diagnostics,

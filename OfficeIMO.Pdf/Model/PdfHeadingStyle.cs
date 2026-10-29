@@ -51,7 +51,7 @@ public sealed class PdfHeadingStyle {
     }
 
     /// <summary>Heading text color. A heading block color overrides this value.</summary>
-    public PdfColor? Color { get; set; }
+    public global::OfficeIMO.OfficeColor? Color { get; set; }
 
     /// <summary>Heading font slot. When null the writer uses the document default font family.</summary>
     public PdfStandardFont? Font { get; set; }

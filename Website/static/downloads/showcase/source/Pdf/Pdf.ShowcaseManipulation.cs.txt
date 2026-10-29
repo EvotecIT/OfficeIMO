@@ -12,7 +12,7 @@ namespace OfficeIMO.Examples.Pdf {
             string extractedTextPath = Path.Combine(folderPath, "Pdf.Showcase.Manipulation.ExtractedText.txt");
 
             PdfDocument.Create(pdf => pdf.Content(content => content
-                .H1("Source A", PdfAlign.Left, PdfColor.FromRgb(15, 23, 42))
+                .H1("Source A", PdfAlign.Left, global::OfficeIMO.OfficeColor.FromRgb(15, 23, 42))
                 .Paragraph(p => p.Text("This page is created first, then merged with Source B through the fluent PdfDocument API."))
                 .Table(new[] {
                     new[] { "Capability", "Status", "Notes" },
@@ -21,12 +21,12 @@ namespace OfficeIMO.Examples.Pdf {
                     new[] { "Extract", "Ready", "Page ranges and reordered pages" }
                 }, style: UtilityTableStyle())
                 .PageBreak()
-                .H1("Source A - details", PdfAlign.Left, PdfColor.FromRgb(15, 23, 42))
+                .H1("Source A - details", PdfAlign.Left, global::OfficeIMO.OfficeColor.FromRgb(15, 23, 42))
                 .PanelParagraph(
                     p => p.Bold("Page two is extracted later. ").Text("This proves the example is not just visual; it also exercises read/rewrite operations."),
                     new PdfPanelStyle {
-                        Background = PdfColor.FromRgb(248, 250, 252),
-                        BorderColor = PdfColor.FromRgb(148, 163, 184),
+                        Background = global::OfficeIMO.OfficeColor.FromRgb(248, 250, 252),
+                        BorderColor = global::OfficeIMO.OfficeColor.FromRgb(148, 163, 184),
                         BorderWidth = 0.7,
                         PaddingX = 10,
                         PaddingY = 8
@@ -35,7 +35,7 @@ namespace OfficeIMO.Examples.Pdf {
                 .Save(sourceAPath);
 
             PdfDocument.Create(pdf => pdf.Content(content => content
-                .H1("Source B", PdfAlign.Left, PdfColor.FromRgb(15, 23, 42))
+                .H1("Source B", PdfAlign.Left, global::OfficeIMO.OfficeColor.FromRgb(15, 23, 42))
                 .Paragraph(p => p.Text("A second input document is merged into the final pack, then a stamp is applied to the combined output."))
                 .Bullets(new[] {
                     "Merge reads source pages and rewrites a new document.",
@@ -64,7 +64,7 @@ namespace OfficeIMO.Examples.Pdf {
                     Y = 30,
                     Font = PdfStandardFont.HelveticaBold,
                     FontSize = 11,
-                    Color = PdfColor.FromRgb(14, 116, 144)
+                    Color = global::OfficeIMO.OfficeColor.FromRgb(14, 116, 144)
                 });
             stamped.Save(stampedPath);
             File.WriteAllText(extractedTextPath, stamped.Read().Text);
@@ -78,7 +78,7 @@ namespace OfficeIMO.Examples.Pdf {
             return new PdfCreateOptions {
                 DefaultFont = PdfStandardFont.Helvetica,
                 DefaultFontSize = 10,
-                DefaultTextColor = PdfColor.FromRgb(31, 41, 55),
+                DefaultTextColor = global::OfficeIMO.OfficeColor.FromRgb(31, 41, 55),
                 HeaderFont = PdfStandardFont.Helvetica,
                 HeaderFontSize = 8,
                 HeaderFormat = header,
@@ -95,10 +95,10 @@ namespace OfficeIMO.Examples.Pdf {
 
         private static PdfTableStyle UtilityTableStyle() {
             return new PdfTableStyle {
-                HeaderFill = PdfColor.FromRgb(15, 23, 42),
-                HeaderTextColor = PdfColor.White,
-                RowStripeFill = PdfColor.FromRgb(248, 250, 252),
-                BorderColor = PdfColor.FromRgb(203, 213, 225),
+                HeaderFill = global::OfficeIMO.OfficeColor.FromRgb(15, 23, 42),
+                HeaderTextColor = global::OfficeIMO.OfficeColor.White,
+                RowStripeFill = global::OfficeIMO.OfficeColor.FromRgb(248, 250, 252),
+                BorderColor = global::OfficeIMO.OfficeColor.FromRgb(203, 213, 225),
                 BorderWidth = 0.5,
                 CellPaddingX = 7,
                 CellPaddingY = 5,

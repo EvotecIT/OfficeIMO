@@ -17,7 +17,7 @@ internal static partial class PdfWriter {
         public RichSeg Segment { get; set; } = null!;
         public double X { get; set; }
         public double Baseline { get; set; }
-        public PdfColor? DefaultColor { get; set; }
+        public global::OfficeIMO.OfficeColor? DefaultColor { get; set; }
     }
 
     private static FormFieldAnnotation CreateInlineFormAnnotation(PdfInlineFormField field,
@@ -41,7 +41,7 @@ internal static partial class PdfWriter {
     }
 
     private static void CaptureInlineFormText(LayoutResult.Page page, RichSeg segment,
-        double x, double baseline, PdfColor? defaultColor, PdfCreateOptions options,
+        double x, double baseline, global::OfficeIMO.OfficeColor? defaultColor, PdfCreateOptions options,
         int? parentElementIndex, double leadingAdvance) {
         double size = EffectiveRichFontSize(segment.FontSize, segment.Baseline);
         double rise = TextRiseForBaseline(segment.FontSize, segment.Baseline) + segment.LineAlignmentRise;

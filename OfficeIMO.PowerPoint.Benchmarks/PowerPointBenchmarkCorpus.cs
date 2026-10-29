@@ -130,6 +130,6 @@ internal static class PowerPointBenchmarkCorpus {
                     15D + index, 20D + index, 26D + index, 32D + index
                 })
             });
-        slide.AddChart(OfficeChartType.BarClustered,data,            global::OfficeIMO.OfficeLength.Points(390),global::OfficeIMO.OfficeLength.Points(214),global::OfficeIMO.OfficeLength.Points(500),global::OfficeIMO.OfficeLength.Points(260));
+        slide.AddChart(OfficeChartType.BarClustered, data, new OfficeIMO.PowerPoint.PowerPointChartOptions { Left = global::OfficeIMO.OfficeLength.Points(390), Top = global::OfficeIMO.OfficeLength.Points(214), Width = global::OfficeIMO.OfficeLength.Points(500), Height = global::OfficeIMO.OfficeLength.Points(260) });
     }
 }

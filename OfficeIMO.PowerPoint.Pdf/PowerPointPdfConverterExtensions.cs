@@ -44,13 +44,13 @@ public static partial class PowerPointPdfConverterExtensions {
                     slideHeight, options);
                 canvas.Text("Slide " + item.Number.ToString(CultureInfo.InvariantCulture), margin,
                     margin + slideHeight + 18D, availableWidth, 18D, fontSize: 10D,
-                    color: PdfCore.PdfColor.FromRgb(80, 86, 96));
+                    color: global::OfficeIMO.OfficeColor.FromRgb(80, 86, 96));
                 string notes = string.Empty;
                 if (options.IncludeSpeakerNotes) item.Slide.Notes.TryGetText(out notes);
                 RenderSpeakerNotes(canvas, string.IsNullOrWhiteSpace(notes) ? "No speaker notes." : notes,
                     margin, margin + slideHeight + 48D, availableWidth,
                     Math.Max(36D, pageHeight - margin * 2D - slideHeight - 48D), 12D,
-                    PdfCore.PdfColor.FromRgb(35, 42, 52), item.Number, options);
+                    global::OfficeIMO.OfficeColor.FromRgb(35, 42, 52), item.Number, options);
             });
         }
     }
@@ -100,7 +100,7 @@ public static partial class PowerPointPdfConverterExtensions {
                       Environment.NewLine + notes;
                 RenderSpeakerNotes(canvas, noteText, margin + thumbColumnWidth + gutter, top,
                     pageWidth - margin * 2D - thumbColumnWidth - gutter, rowHeight,
-                    9D, PdfCore.PdfColor.FromRgb(55, 62, 72), slides[index].Number, options);
+                    9D, global::OfficeIMO.OfficeColor.FromRgb(55, 62, 72), slides[index].Number, options);
             }
             return;
         }
@@ -125,11 +125,11 @@ public static partial class PowerPointPdfConverterExtensions {
                 left + (cellWidth - thumbWidth) / 2D, top, thumbWidth, thumbHeight, options);
             canvas.Text("Slide " + slides[index].Number.ToString(CultureInfo.InvariantCulture),
                 left, top + thumbHeight + 2D, cellWidth, labelHeight, fontSize: 8D,
-                color: PdfCore.PdfColor.FromRgb(80, 86, 96), align: PdfCore.PdfAlign.Center);
+                color: global::OfficeIMO.OfficeColor.FromRgb(80, 86, 96), align: PdfCore.PdfAlign.Center);
             if (notesHeight > 0D && slides[index].Slide.Notes.TryGetText(out string notes) &&
                 !string.IsNullOrWhiteSpace(notes)) {
                 RenderSpeakerNotes(canvas, notes, left, top + thumbHeight + labelHeight + 2D, cellWidth, notesHeight,
-                    7D, PdfCore.PdfColor.FromRgb(55, 62, 72), slides[index].Number, options);
+                    7D, global::OfficeIMO.OfficeColor.FromRgb(55, 62, 72), slides[index].Number, options);
             }
         }
     }
@@ -554,9 +554,9 @@ public static partial class PowerPointPdfConverterExtensions {
         return OfficeLinearGradient.FromAngle(start.Value, end.Value, angleDegrees);
     }
 
-    private static PdfCore.PdfColor? ParsePdfColor(string? value) {
+    private static global::OfficeIMO.OfficeColor? ParsePdfColor(string? value) {
         OfficeColor? color = ParseOfficeColor(value);
-        return color.HasValue ? PdfCore.PdfColor.FromOfficeColorOrNull(color.Value) : null;
+        return color.HasValue ? (color.Value.A == 0 ? (global::OfficeIMO.OfficeColor?)null : color.Value) : null;
     }
 
     private static OfficeColor? ParseOfficeColor(string? value) {

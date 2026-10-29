@@ -10,7 +10,7 @@ namespace OfficeIMO.Examples.Pdf {
             var options = new PdfCreateOptions {
                 DefaultFont = PdfStandardFont.Helvetica,
                 DefaultFontSize = 10.5,
-                DefaultTextColor = PdfColor.FromRgb(24, 31, 42),
+                DefaultTextColor = global::OfficeIMO.OfficeColor.FromRgb(24, 31, 42),
                 HeaderFont = PdfStandardFont.Helvetica,
                 HeaderFontSize = 8,
                 HeaderFormat = "OfficeIMO.Pdf showcase - business statement",
@@ -29,19 +29,19 @@ namespace OfficeIMO.Examples.Pdf {
                     document.Page(page => {
                         page.Margin(54, 54, 54, 58);
                         page.Content(content => {
-                            content.Item(item => item.H1("Statement #4048", PdfAlign.Left, PdfColor.FromRgb(15, 23, 42)));
+                            content.Item(item => item.H1("Statement #4048", PdfAlign.Left, global::OfficeIMO.OfficeColor.FromRgb(15, 23, 42)));
                             content.Item(item => item.Paragraph(p => p.Text("Issue date: 23/12/2025").Text("   Due date: 06/01/2026"), style: TightParagraph()));
                             content.Item(item => item.Shape(CreateBrandRule(), PdfAlign.Right, spacingBefore: 6, spacingAfter: 22));
                             content.Row(row => {
                                 row.Gap(58)
                                     .PercentColumn(50, column => {
                                         column.Paragraph(p => p.Bold("From"), style: LabelParagraph());
-                                        column.HR(1.2, PdfColor.FromRgb(15, 23, 42), spacingBefore: 0, spacingAfter: 8);
+                                        column.HR(1.2, global::OfficeIMO.OfficeColor.FromRgb(15, 23, 42), spacingBefore: 0, spacingAfter: 8);
                                         column.Paragraph(p => p.Text("Syllabae Representative\nOvum picem\nPrinceps avem distant, Linteum amicitia\nofficium21@aut statum.com\n881-306-3914"), style: AddressParagraph());
                                     })
                                     .PercentColumn(50, column => {
                                         column.Paragraph(p => p.Bold("For"), style: LabelParagraph());
-                                        column.HR(1.2, PdfColor.FromRgb(15, 23, 42), spacingBefore: 0, spacingAfter: 8);
+                                        column.HR(1.2, global::OfficeIMO.OfficeColor.FromRgb(15, 23, 42), spacingBefore: 0, spacingAfter: 8);
                                         column.Paragraph(p => p.Text("Ceciderit Original\nAurum currunt\nSolis multum platea, Cocus fuge fluvio\nsubsisto93@celeritate.com\n839-621-9110"), style: AddressParagraph());
                                     });
                             });
@@ -56,13 +56,13 @@ namespace OfficeIMO.Examples.Pdf {
                                         column.PanelParagraph(
                                             p => p.Bold("Payment note: ").Text("This is a generic document sample. The layout is built from headings, paragraphs, rows, tables, and cell styles rather than an invoice-specific API."),
                                             new PdfPanelStyle {
-                                                Background = PdfColor.FromRgb(247, 250, 252),
-                                                BorderColor = PdfColor.FromRgb(211, 219, 229),
+                                                Background = global::OfficeIMO.OfficeColor.FromRgb(247, 250, 252),
+                                                BorderColor = global::OfficeIMO.OfficeColor.FromRgb(211, 219, 229),
                                                 BorderWidth = 0.6,
                                                 PaddingX = 9,
                                                 PaddingY = 8
                                             },
-                                            defaultColor: PdfColor.FromRgb(51, 65, 85));
+                                            defaultColor: global::OfficeIMO.OfficeColor.FromRgb(51, 65, 85));
                                     })
                                     .PercentColumn(42, column => {
                                         column.Table(CreateTotalsRows(), style: TotalsStyle());
@@ -155,10 +155,10 @@ namespace OfficeIMO.Examples.Pdf {
                 BorderColor = null,
                 BorderWidth = 0,
                 HeaderFill = null,
-                HeaderTextColor = PdfColor.FromRgb(15, 23, 42),
-                HeaderSeparatorColor = PdfColor.FromRgb(15, 23, 42),
+                HeaderTextColor = global::OfficeIMO.OfficeColor.FromRgb(15, 23, 42),
+                HeaderSeparatorColor = global::OfficeIMO.OfficeColor.FromRgb(15, 23, 42),
                 HeaderSeparatorWidth = 1.2,
-                RowSeparatorColor = PdfColor.FromRgb(219, 226, 235),
+                RowSeparatorColor = global::OfficeIMO.OfficeColor.FromRgb(219, 226, 235),
                 RowSeparatorWidth = 0.55,
                 RowStripeFill = null,
                 CellPaddingX = 2,
@@ -181,12 +181,12 @@ namespace OfficeIMO.Examples.Pdf {
 
         private static PdfTableStyle TotalsStyle() {
             return new PdfTableStyle {
-                BorderColor = PdfColor.FromRgb(203, 213, 225),
+                BorderColor = global::OfficeIMO.OfficeColor.FromRgb(203, 213, 225),
                 BorderWidth = 0.4,
-                HeaderFill = PdfColor.FromRgb(15, 23, 42),
-                HeaderTextColor = PdfColor.White,
+                HeaderFill = global::OfficeIMO.OfficeColor.FromRgb(15, 23, 42),
+                HeaderTextColor = global::OfficeIMO.OfficeColor.White,
                 HeaderRowCount = 1,
-                RowStripeFill = PdfColor.FromRgb(248, 250, 252),
+                RowStripeFill = global::OfficeIMO.OfficeColor.FromRgb(248, 250, 252),
                 CellPaddingX = 8,
                 CellPaddingY = 6,
                 HeaderFontSize = 10,

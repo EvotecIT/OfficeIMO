@@ -26,7 +26,7 @@ public partial class PdfDocumentVisualQualityTests {
             .DefaultTextStyle(style => style
                 .Font(PdfStandardFont.Helvetica)
                 .FontSize(16)
-                .Color(PdfColor.FromRgb(10, 20, 30)))
+                .Color(global::OfficeIMO.OfficeColor.FromRgb(10, 20, 30)))
             .Paragraph(p => p.Text("FluentTextStyle"))
             .ToBytes();
 
@@ -47,7 +47,7 @@ public partial class PdfDocumentVisualQualityTests {
         var style = new PdfTextStyle {
             Font = PdfStandardFont.Helvetica,
             FontSize = 16,
-            Color = PdfColor.FromRgb(10, 20, 30)
+            Color = global::OfficeIMO.OfficeColor.FromRgb(10, 20, 30)
         };
 
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
@@ -63,7 +63,7 @@ public partial class PdfDocumentVisualQualityTests {
             .ToBytes();
 
         style.FontSize = 8;
-        style.Color = PdfColor.Black;
+        style.Color = global::OfficeIMO.OfficeColor.Black;
 
         using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
         var page = pdf.GetPage(1);
@@ -83,7 +83,7 @@ public partial class PdfDocumentVisualQualityTests {
             FontSize = 12,
             LineHeight = 1,
             SpacingAfter = 24,
-            Color = PdfColor.FromRgb(10, 20, 30)
+            Color = global::OfficeIMO.OfficeColor.FromRgb(10, 20, 30)
         };
 
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
@@ -103,7 +103,7 @@ public partial class PdfDocumentVisualQualityTests {
 
         style.FontSize = 30;
         style.SpacingAfter = 0;
-        style.Color = PdfColor.Black;
+        style.Color = global::OfficeIMO.OfficeColor.Black;
 
         using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
         var page = pdf.GetPage(1);
@@ -419,8 +419,8 @@ public partial class PdfDocumentVisualQualityTests {
     [Fact]
     public void PdfDocument_DefaultPanelStyleAppliesToFollowingPanelsAndSnapshotsInput() {
         var style = new PdfPanelStyle {
-            Background = PdfColor.FromRgb(240, 248, 255),
-            BorderColor = PdfColor.FromRgb(20, 40, 60),
+            Background = global::OfficeIMO.OfficeColor.FromRgb(240, 248, 255),
+            BorderColor = global::OfficeIMO.OfficeColor.FromRgb(20, 40, 60),
             BorderWidth = 0.8,
             PaddingX = 14,
             PaddingY = 8,
@@ -450,7 +450,7 @@ public partial class PdfDocumentVisualQualityTests {
         style.PaddingX = 2;
         style.MaxWidth = 300;
         style.Align = PdfAlign.Right;
-        style.Background = PdfColor.Black;
+        style.Background = global::OfficeIMO.OfficeColor.Black;
 
         using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
         var page = pdf.GetPage(1);
@@ -469,7 +469,7 @@ public partial class PdfDocumentVisualQualityTests {
         const double fontSize = 10;
         var style = new PdfHorizontalRuleStyle {
             Thickness = 2,
-            Color = PdfColor.FromRgb(10, 20, 30),
+            Color = global::OfficeIMO.OfficeColor.FromRgb(10, 20, 30),
             SpacingBefore = 3,
             SpacingAfter = 15
         };
@@ -490,7 +490,7 @@ public partial class PdfDocumentVisualQualityTests {
             .ToBytes();
 
         style.Thickness = 7;
-        style.Color = PdfColor.FromRgb(200, 10, 10);
+        style.Color = global::OfficeIMO.OfficeColor.FromRgb(200, 10, 10);
         style.SpacingAfter = 0;
 
         using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
@@ -510,7 +510,7 @@ public partial class PdfDocumentVisualQualityTests {
     public void RowColumnHorizontalRule_UsesDefaultHorizontalRuleStyleWhenStyleIsNotProvided() {
         var style = new PdfHorizontalRuleStyle {
             Thickness = 1.5,
-            Color = PdfColor.FromRgb(10, 20, 30),
+            Color = global::OfficeIMO.OfficeColor.FromRgb(10, 20, 30),
             SpacingBefore = 4,
             SpacingAfter = 14
         };
@@ -546,7 +546,7 @@ public partial class PdfDocumentVisualQualityTests {
         var textStyle = new PdfTextStyle {
             Font = PdfStandardFont.Helvetica,
             FontSize = 16,
-            Color = PdfColor.FromRgb(10, 20, 30)
+            Color = global::OfficeIMO.OfficeColor.FromRgb(10, 20, 30)
         };
         var paragraphStyle = new PdfParagraphStyle {
             FirstLineIndent = 24,
@@ -579,13 +579,13 @@ public partial class PdfDocumentVisualQualityTests {
             });
 
         textStyle.FontSize = 8;
-        textStyle.Color = PdfColor.Black;
+        textStyle.Color = global::OfficeIMO.OfficeColor.Black;
         paragraphStyle.FirstLineIndent = 0;
         tableStyle.CellPaddingX = 0;
         theme.TextStyle = new PdfTextStyle {
             Font = PdfStandardFont.Helvetica,
             FontSize = 8,
-            Color = PdfColor.Black
+            Color = global::OfficeIMO.OfficeColor.Black
         };
 
         byte[] bytes = doc.ToBytes();
@@ -615,7 +615,7 @@ public partial class PdfDocumentVisualQualityTests {
         theme.TextStyle = new PdfTextStyle {
             Font = PdfStandardFont.Courier,
             FontSize = 7,
-            Color = PdfColor.Black
+            Color = global::OfficeIMO.OfficeColor.Black
         };
         theme.ParagraphStyle = new PdfParagraphStyle {
             LineHeight = 2,
@@ -627,7 +627,7 @@ public partial class PdfDocumentVisualQualityTests {
 
         Assert.Equal(PdfStandardFont.Helvetica, options.DefaultFont);
         Assert.Equal(11, options.DefaultFontSize);
-        Assert.Equal(PdfColor.FromRgb(31, 41, 55), options.DefaultTextColor);
+        Assert.Equal(global::OfficeIMO.OfficeColor.FromRgb(31, 41, 55), options.DefaultTextColor);
         Assert.Equal(1.15, options.DefaultParagraphStyle!.LineHeight);
         Assert.Equal(8, options.DefaultParagraphStyle.SpacingAfter);
         Assert.True(options.DefaultParagraphStyle.WidowControl);
@@ -658,7 +658,7 @@ public partial class PdfDocumentVisualQualityTests {
         PdfCreateOptions compact = new PdfCreateOptions().ApplyTheme(PdfTheme.Compact());
         PdfCreateOptions report = new PdfCreateOptions().ApplyTheme(PdfTheme.Report());
 
-        Assert.Equal(PdfColor.FromRgb(15, 23, 42), technical.DefaultTableStyle!.HeaderFill);
+        Assert.Equal(global::OfficeIMO.OfficeColor.FromRgb(15, 23, 42), technical.DefaultTableStyle!.HeaderFill);
         Assert.Equal(9.75, technical.DefaultTableStyle.FontSize);
         Assert.Equal(1.2, technical.DefaultTableStyle.LineHeight);
         Assert.True(technical.DefaultTableStyle.AutoFitColumns);
@@ -671,11 +671,11 @@ public partial class PdfDocumentVisualQualityTests {
         Assert.Equal(9, compact.DefaultTableStyle!.FontSize);
         Assert.Equal(14, compact.DefaultRowStyle!.Gap);
 
-        Assert.Equal(PdfColor.FromRgb(30, 64, 175), report.DefaultTableStyle!.HeaderFill);
-        Assert.Equal(PdfColor.FromRgb(239, 246, 255), report.DefaultTableStyle.RowStripeFill);
+        Assert.Equal(global::OfficeIMO.OfficeColor.FromRgb(30, 64, 175), report.DefaultTableStyle!.HeaderFill);
+        Assert.Equal(global::OfficeIMO.OfficeColor.FromRgb(239, 246, 255), report.DefaultTableStyle.RowStripeFill);
         Assert.Equal(9.25, report.DefaultTableStyle.FontSize);
         Assert.Equal(21, report.DefaultHeadingStyles!.Level1!.FontSize);
-        Assert.Equal(PdfColor.FromRgb(30, 64, 175), report.DefaultHeadingStyles.Level2!.Color);
+        Assert.Equal(global::OfficeIMO.OfficeColor.FromRgb(30, 64, 175), report.DefaultHeadingStyles.Level2!.Color);
         Assert.Equal(10, report.DefaultPanelStyle!.SpacingAfter);
     }
 
@@ -778,7 +778,7 @@ public partial class PdfDocumentVisualQualityTests {
                 TextStyle = new PdfTextStyle {
                     Font = PdfStandardFont.Helvetica,
                     FontSize = 16,
-                    Color = PdfColor.FromRgb(10, 20, 30)
+                    Color = global::OfficeIMO.OfficeColor.FromRgb(10, 20, 30)
                 },
                 ParagraphStyle = new PdfParagraphStyle {
                     FirstLineIndent = 24,

@@ -28,7 +28,7 @@ public partial class PdfDocumentVisualQualityTests {
     public void OptionalBreaksKeepCharacterJustificationCombiningClustersAcrossRuns() {
         PdfCreateOptions options = JustificationPolicyOptions().UseFontFamily(new PdfEmbeddedFontFamily("Cluster Identifier Font",
             ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs(' ', 'A', 'B', 'C', 0x0301)));
-        PdfTextRun[] Runs(string prefix) => new[] { new PdfTextRun(prefix), new PdfTextRun("\u0301C ", color: new PdfColor(1, 0, 0)) };
+        PdfTextRun[] Runs(string prefix) => new[] { new PdfTextRun(prefix), new PdfTextRun("\u0301C ", color: global::OfficeIMO.OfficeColor.FromNormalizedRgb(1, 0, 0)) };
         byte[] control = RenderJustificationPolicyRuns(options, Runs("AB"), distributed: true);
         byte[] actual = RenderJustificationPolicyRuns(options, Runs("A\u200BB"), distributed: true);
 

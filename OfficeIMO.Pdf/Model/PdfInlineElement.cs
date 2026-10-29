@@ -118,10 +118,10 @@ public sealed class PdfInlineBox : PdfInlineElement {
             null, 0D, null, rule.BaselineOffset, flexibleWidth: true) { SourceRule = rule };
 
     /// <summary>Optional fill color.</summary>
-    public PdfColor? Background { get; }
+    public global::OfficeIMO.OfficeColor? Background { get; }
 
     /// <summary>Optional border color.</summary>
-    public PdfColor? BorderColor { get; }
+    public global::OfficeIMO.OfficeColor? BorderColor { get; }
 
     /// <summary>Border width in points.</summary>
     public double BorderWidth { get; }
@@ -130,14 +130,14 @@ public sealed class PdfInlineBox : PdfInlineElement {
     public PdfInlineBox(
         double width,
         double height,
-        PdfColor? background = null,
-        PdfColor? borderColor = null,
+        global::OfficeIMO.OfficeColor? background = null,
+        global::OfficeIMO.OfficeColor? borderColor = null,
         double borderWidth = 0.5D,
         string? alternativeText = null,
         double baselineOffset = 0D)
         : this(width, height, background, borderColor, borderWidth, alternativeText, baselineOffset, flexibleWidth: false) { }
 
-    private PdfInlineBox(double width, double height, PdfColor? background, PdfColor? borderColor,
+    private PdfInlineBox(double width, double height, global::OfficeIMO.OfficeColor? background, global::OfficeIMO.OfficeColor? borderColor,
         double borderWidth, string? alternativeText, double baselineOffset, bool flexibleWidth)
         : base(width, height, baselineOffset, alternativeText, flexibleWidth) {
         if (borderWidth < 0D || double.IsNaN(borderWidth) || double.IsInfinity(borderWidth)) {

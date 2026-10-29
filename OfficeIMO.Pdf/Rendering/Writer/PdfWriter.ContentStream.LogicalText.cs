@@ -17,7 +17,7 @@ internal sealed partial class ContentStreamBuilder {
     private string? _fontResource;
     private double _fontSize;
     private bool _fontPrecise;
-    private PdfColor? _fillColor;
+    private global::OfficeIMO.OfficeColor? _fillColor;
     private int _ownedLength = -1;
 
     // The last text-show operator this builder wrote. While it is still the tail of the

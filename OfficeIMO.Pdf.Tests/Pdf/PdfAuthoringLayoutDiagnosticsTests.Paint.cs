@@ -15,8 +15,8 @@ public sealed partial class PdfAuthoringLayoutDiagnosticsTests {
     [InlineData("canvas", true)]
     public void InlineBorderOverhangUsesPaintInsteadOfItsLayoutAdvance(string frame, bool border) {
         var report = new PdfConversionReport();
-        var box = new PdfInlineBox(120, 8, background: PdfColor.Black,
-            borderColor: border ? PdfColor.Black : null, borderWidth: 2);
+        var box = new PdfInlineBox(120, 8, background: global::OfficeIMO.OfficeColor.Black,
+            borderColor: border ? global::OfficeIMO.OfficeColor.Black : null, borderWidth: 2);
         var cell = new PdfTableCell(new[] { PdfTextRun.Inline(box) });
         PdfTableStyle style = CreateTableStyle(18);
         style.ClipTextToCellBounds = true;
@@ -114,7 +114,7 @@ public sealed partial class PdfAuthoringLayoutDiagnosticsTests {
         var report = new PdfConversionReport();
         byte[] bytes = PdfDocument.Create(CreateOptions(report)).Canvas(canvas => canvas.Effect(
             new OfficeTransform(scale, 0, 0, scale, 0, 0), opacity, effect => effect.TextBox(
-                new[] { PdfTextRun.Inline(new PdfInlineBox(120, 8, borderColor: PdfColor.Black, borderWidth: 2)) },
+                new[] { PdfTextRun.Inline(new PdfInlineBox(120, 8, borderColor: global::OfficeIMO.OfficeColor.Black, borderWidth: 2)) },
                 24, 24, 120, 18, new PdfCanvasTextBoxStyle { FontSize = 9, PaddingX = 0, PaddingY = 0 }))).ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         Assert.NotEmpty(bytes);
         Assert.Equal(expected, report.Warnings.Any(warning => warning.Code == "canvas-text-box-paint-clipped"));
@@ -148,8 +148,8 @@ public sealed partial class PdfAuthoringLayoutDiagnosticsTests {
             }.EmbedStandardFont(PdfStandardFont.Helvetica, font, "Diagnostic subset probe");
             if (diagnose) options.ReportDiagnosticsTo(report, "SubsetProbe");
             var runs = new[] { PdfTextRun.Normal("ABC"), PdfTextRun.Tab(PdfTabLeaderStyle.Dots),
-                PdfTextRun.Normal("Z", backgroundColor: PdfColor.Gray),
-                PdfTextRun.Inline(new PdfInlineBox(120, 8, borderColor: PdfColor.Black, borderWidth: 2)) };
+                PdfTextRun.Normal("Z", backgroundColor: global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.5D, 0.5D, 0.5D)),
+                PdfTextRun.Inline(new PdfInlineBox(120, 8, borderColor: global::OfficeIMO.OfficeColor.Black, borderWidth: 2)) };
             if (frame == "annotation") return PdfDocument.Create(options).Canvas(canvas =>
                 canvas.FreeTextAnnotation("ABC\nZ", 24, 24, 120, 10, fontSize: 9, padding: 0)).ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
             if (frame == "textbox") return PdfDocument.Create(options).Canvas(canvas => canvas.TextBox(runs, 24, 24, 120, 18,
@@ -169,8 +169,8 @@ public sealed partial class PdfAuthoringLayoutDiagnosticsTests {
         var report = new PdfConversionReport();
         PdfDocument document = PdfDocument.Create(CreateOptions(report));
         if (column) document.Row(row => row.PercentColumn(100, content => content.Paragraph(paragraph =>
-            paragraph.BackgroundColor(PdfColor.Gray).Text("Preserved"))));
-        else document.Paragraph(paragraph => paragraph.BackgroundColor(PdfColor.Gray).Text("Preserved"));
+            paragraph.BackgroundColor(global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.5D, 0.5D, 0.5D)).Text("Preserved"))));
+        else document.Paragraph(paragraph => paragraph.BackgroundColor(global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.5D, 0.5D, 0.5D)).Text("Preserved"));
         using PdfPigDocument pdf = PdfPigDocument.Open(document.ToBytes());
         Assert.Contains("Preserved", pdf.GetPage(1).Text);
         var warning = Assert.Single(report.Warnings, warning => warning.Code == "paragraph-paint-overflow");
@@ -189,7 +189,7 @@ public sealed partial class PdfAuthoringLayoutDiagnosticsTests {
         var report = new PdfConversionReport();
         var document = PdfDocument.Create(CreateOptions(report));
         var runs = inline
-            ? new[] { PdfTextRun.Inline(new PdfInlineBox(5.004D, 8, borderColor: PdfColor.Black, borderWidth: 2)) }
+            ? new[] { PdfTextRun.Inline(new PdfInlineBox(5.004D, 8, borderColor: global::OfficeIMO.OfficeColor.Black, borderWidth: 2)) }
             : new[] { PdfTextRun.Normal("T", fontSize: 9, font: PdfStandardFont.TimesItalic) };
         var style = new PdfParagraphStyle { RightIndent = 212D - 5.004D };
         if (column) document.Row(row => row.PercentColumn(100, content =>
@@ -222,7 +222,7 @@ public sealed partial class PdfAuthoringLayoutDiagnosticsTests {
             OfficePathCommand.LineTo(40, 12), OfficePathCommand.LineTo(20, 12), OfficePathCommand.Close()
         }, OfficeFillRule.EvenOdd);
         byte[] bytes = PdfDocument.Create(CreateOptions(report)).Canvas(canvas => canvas.Clip(24, 24, clip,
-            child => child.Text(new[] { PdfTextRun.Inline(new PdfInlineBox(120, 8, background: PdfColor.Black)) },
+            child => child.Text(new[] { PdfTextRun.Inline(new PdfInlineBox(120, 8, background: global::OfficeIMO.OfficeColor.Black)) },
                 24, 24, 120, 18))).ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         Assert.NotEmpty(bytes);
         Assert.Single(report.Warnings, warning => warning.Code == "canvas-text-canvas-clip-paint-clipped");
@@ -233,7 +233,7 @@ public sealed partial class PdfAuthoringLayoutDiagnosticsTests {
     public void FrameDoesNotClaimLossOfPaintAlreadyRemovedByAnAncestor() {
         var report = new PdfConversionReport();
         byte[] bytes = PdfDocument.Create(CreateOptions(report)).Canvas(canvas => canvas.Clip(24, 24, 30, 18,
-            child => child.Text(new[] { PdfTextRun.Inline(new PdfInlineBox(40, 8, background: PdfColor.Black, borderColor: PdfColor.Black, borderWidth: 2)) },
+            child => child.Text(new[] { PdfTextRun.Inline(new PdfInlineBox(40, 8, background: global::OfficeIMO.OfficeColor.Black, borderColor: global::OfficeIMO.OfficeColor.Black, borderWidth: 2)) },
                 24, 24, 40, 18))).ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         Assert.NotEmpty(bytes);
         Assert.Single(report.Warnings, warning => warning.Code == "canvas-text-canvas-clip-paint-clipped");

@@ -15,9 +15,9 @@ internal static partial class PdfStamper {
         result.Items["Font"] = new PdfNumber((int)options.Font);
         result.Items["Rotation"] = new PdfNumber(options.RotationDegrees);
         result.Items["Opacity"] = new PdfNumber(options.Opacity);
-        result.Items["R"] = new PdfNumber(options.Color.R);
-        result.Items["G"] = new PdfNumber(options.Color.G);
-        result.Items["B"] = new PdfNumber(options.Color.B);
+        result.Items["R"] = new PdfNumber(options.Color.ToNormalizedRgb().R);
+        result.Items["G"] = new PdfNumber(options.Color.ToNormalizedRgb().G);
+        result.Items["B"] = new PdfNumber(options.Color.ToNormalizedRgb().B);
         if (options.X is { } x) result.Items["X"] = new PdfNumber(x);
         if (options.Y is { } y) result.Items["Y"] = new PdfNumber(y);
         if (options.ImageBytes is { } image) {
@@ -53,7 +53,7 @@ internal static partial class PdfStamper {
                         Id = id, Text = settings.Get<PdfStringObj>("Text")?.Value ?? string.Empty,
                         Width = Number("Width"), Height = Number("Height"), FontSize = Number("FontSize"),
                         Font = (PdfStandardFont)(int)Number("Font"), RotationDegrees = Number("Rotation"),
-                        Opacity = Number("Opacity"), Color = new PdfColor(Number("R"), Number("G"), Number("B")),
+                        Opacity = Number("Opacity"), Color = global::OfficeIMO.OfficeColor.FromNormalizedRgb(Number("R"), Number("G"), Number("B")),
                         X = settings.Get<PdfNumber>("X")?.Value, Y = settings.Get<PdfNumber>("Y")?.Value,
                         BehindContent = stream.Dictionary.Get<PdfBoolean>("OfficeIMOWatermarkBehind")?.Value ?? false
                     };

@@ -10,8 +10,8 @@ using Xunit;
 namespace OfficeIMO.Tests.Pdf;
 
 public sealed class PdfInlineRuleTests {
-    private static readonly PdfColor RuleColor = new(.2D, .5D, .8D);
-    private static readonly PdfColor AdditionalColor = new(.8D, .2D, .4D);
+    private static readonly global::OfficeIMO.OfficeColor RuleColor = OfficeColor.FromNormalizedRgb(.2D, .5D, .8D);
+    private static readonly global::OfficeIMO.OfficeColor AdditionalColor = OfficeColor.FromNormalizedRgb(.8D, .2D, .4D);
 
     [Theory]
     [InlineData(100D, 40D)]
@@ -343,10 +343,10 @@ public sealed class PdfInlineRuleTests {
         return document.ToBytes();
     }
 
-    private static (double X, double Y, double Width, double Height)[] ReadBands(byte[] bytes, PdfColor? color = null) {
+    private static (double X, double Y, double Width, double Height)[] ReadBands(byte[] bytes, global::OfficeIMO.OfficeColor? color = null) {
         const string number = @"-?\d+(?:\.\d+)?";
-        PdfColor fill = color ?? RuleColor;
-        string fillCommand = string.Join(" ", new[] { fill.R, fill.G, fill.B }
+        global::OfficeIMO.OfficeColor fill = color ?? RuleColor;
+        string fillCommand = string.Join(" ", new[] { fill.ToNormalizedRgb().R, fill.ToNormalizedRgb().G, fill.ToNormalizedRgb().B }
             .Select(value => value.ToString("0.###", CultureInfo.InvariantCulture))) + " rg";
         string pattern = Regex.Escape(fillCommand) + @"\s+(?<x>" + number + @")\s+(?<y>" + number +
             @")\s+(?<w>" + number + @")\s+(?<h>" + number + @")\s+re\s+f";

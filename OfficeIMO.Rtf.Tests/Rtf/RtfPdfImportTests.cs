@@ -12,10 +12,10 @@ public class RtfPdfImportTests {
     public void PdfToRtf_PreservesLogicalRunColorSizeAndFontStyle() {
         byte[] pdf = PdfCore.PdfDocument.Create()
             .Paragraph(paragraph => paragraph
-                .Color(PdfCore.PdfColor.FromRgb(255, 0, 0))
+                .Color(global::OfficeIMO.OfficeColor.FromRgb(255, 0, 0))
                 .FontSize(14)
                 .Bold("Bold red")
-                .Color(PdfCore.PdfColor.FromRgb(0, 0, 255))
+                .Color(global::OfficeIMO.OfficeColor.FromRgb(0, 0, 255))
                 .FontSize(9)
                 .Italic(" italic blue"))
             .ToBytes();
@@ -50,9 +50,9 @@ public class RtfPdfImportTests {
         byte[] pdf = PdfCore.PdfDocument.Create()
             .Paragraph(paragraph => paragraph
                 .Text("\u2022 ")
-                .Color(PdfCore.PdfColor.FromRgb(255, 0, 0))
+                .Color(global::OfficeIMO.OfficeColor.FromRgb(255, 0, 0))
                 .Bold("Bold red")
-                .Color(PdfCore.PdfColor.FromRgb(0, 0, 255))
+                .Color(global::OfficeIMO.OfficeColor.FromRgb(0, 0, 255))
                 .Italic(" italic blue"))
             .ToBytes();
         PdfCore.PdfDocumentReadResult logical = LoadSemanticPdf(pdf);

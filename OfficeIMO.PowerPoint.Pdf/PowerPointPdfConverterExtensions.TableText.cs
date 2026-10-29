@@ -172,7 +172,7 @@ public static partial class PowerPointPdfConverterExtensions {
         _ => -1
     };
 
-    private static PdfCore.PdfColor? ReadRunColor(
+    private static global::OfficeIMO.OfficeColor? ReadRunColor(
         PptCore.PowerPointTableCell cell,
         IEnumerable<A.TextCharacterPropertiesType> sources) {
         A.ColorScheme? colorScheme = ResolveTableTextColorScheme(cell);
@@ -181,7 +181,7 @@ public static partial class PowerPointPdfConverterExtensions {
             if (fill == null) continue;
             A.SolidFill effectiveFill = ApplyTableTextColorMapping(cell, fill);
             OfficeIMO.OfficeColor? color = OfficeOpenXmlThemeColorResolver.ResolveColor(effectiveFill, colorScheme);
-            return color.HasValue ? PdfCore.PdfColor.FromOfficeColorOrNull(color.Value) : null;
+            return color.HasValue ? (color.Value.A == 0 ? (global::OfficeIMO.OfficeColor?)null : color.Value) : null;
         }
         return null;
     }

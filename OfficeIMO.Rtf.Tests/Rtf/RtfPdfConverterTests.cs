@@ -477,8 +477,8 @@ public class RtfPdfConverterTests {
         Assert.Equal(1, style.HeaderRowCount);
         Assert.Equal(1, style.RepeatHeaderRowCount);
         Assert.NotNull(style.CellFills);
-        Assert.Equal(PdfCore.PdfColor.FromRgb(0, 170, 85), style.CellFills![(0, 0)]);
-        Assert.Equal(PdfCore.PdfColor.FromRgb(230, 242, 255), style.CellFills[(0, 1)]);
+        Assert.Equal(global::OfficeIMO.OfficeColor.FromRgb(0, 170, 85), style.CellFills![(0, 0)]);
+        Assert.Equal(global::OfficeIMO.OfficeColor.FromRgb(230, 242, 255), style.CellFills[(0, 1)]);
         Assert.NotNull(style.CellVerticalAlignments);
         Assert.Equal(PdfCore.PdfCellVerticalAlign.Middle, style.CellVerticalAlignments![(0, 0)]);
         Assert.Equal(PdfCore.PdfCellVerticalAlign.Bottom, style.CellVerticalAlignments[(1, 0)]);
@@ -507,7 +507,7 @@ public class RtfPdfConverterTests {
         PdfCore.PdfCellBorder rowBorder = style.CellBorders[(0, 1)];
         Assert.True(rowBorder.Top);
         Assert.Equal(1, rowBorder.TopBorder!.Width);
-        Assert.Equal(PdfCore.PdfColor.FromRgb(68, 114, 196), rowBorder.TopBorder.Color);
+        Assert.Equal(global::OfficeIMO.OfficeColor.FromRgb(68, 114, 196), rowBorder.TopBorder.Color);
 
         string text = PdfCore.PdfReadDocument.Open(pdfDocument.ToBytes()).ExtractText();
         Assert.Contains("Styled", text, StringComparison.Ordinal);

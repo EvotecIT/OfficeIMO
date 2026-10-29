@@ -468,8 +468,8 @@ internal static partial class PdfWriter {
         return containerX;
     }
 
-    private static PdfColor? ToHeaderFooterPdfColor(OfficeColor? color) =>
-        color.HasValue ? PdfColor.FromOfficeColorOrNull(color.Value) : null;
+    private static global::OfficeIMO.OfficeColor? ToHeaderFooterPdfColor(OfficeColor? color) =>
+        color.HasValue ? (color.Value.A == 0 ? (global::OfficeIMO.OfficeColor?)null : color.Value) : null;
 
     private static string? EnsureHeaderFooterGraphicsState(LayoutResult.Page page, double fillOpacity, double strokeOpacity) {
         if (fillOpacity >= 1D && strokeOpacity >= 1D) {
@@ -503,7 +503,7 @@ internal static partial class PdfWriter {
         var shadow = shape.Shadow;
         if (shadow == null || shadow.Opacity <= 0D || shadow.Color.A == 0) return;
         double coreOpacity = shadow.Opacity * shadow.Color.A / 255D;
-        PdfColor shadowColor = PdfColor.FromRgb(shadow.Color.R, shadow.Color.G, shadow.Color.B);
+        global::OfficeIMO.OfficeColor shadowColor = global::OfficeIMO.OfficeColor.FromRgb(shadow.Color.R, shadow.Color.G, shadow.Color.B);
         double shadowX = xShape + shadow.OffsetX;
         double shadowBottomY = bottomY - shadow.OffsetY;
         ResolveShadowGeometry(shape, out bool hasFill, out bool hasStroke);
@@ -538,7 +538,7 @@ internal static partial class PdfWriter {
         StringBuilder sb,
         LayoutResult.Page page,
         OfficeShape shape,
-        PdfColor color,
+        global::OfficeIMO.OfficeColor color,
         double x,
         double bottomY,
         double strokeWidth,
@@ -598,7 +598,7 @@ internal static partial class PdfWriter {
                 DrawGradientShape(sb, shape, shadingName, xShape, bottomY);
             }
 
-            PdfColor? fillColor = shadingName == null ? ToHeaderFooterPdfColor(shape.FillColor) : null;
+            global::OfficeIMO.OfficeColor? fillColor = shadingName == null ? ToHeaderFooterPdfColor(shape.FillColor) : null;
             if (shape.Kind == OfficeShapeKind.Line) {
                 DrawLine(sb, ToHeaderFooterPdfColor(shape.StrokeColor), shape.StrokeWidth, shape.StrokeDashStyle, shape.StrokeLineCap, shape.StrokeLineJoin, shape.Points, xShape, bottomY, shape.Height);
             } else if (shape.Kind == OfficeShapeKind.RoundedRectangle) {

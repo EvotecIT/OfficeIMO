@@ -1,7 +1,7 @@
 namespace OfficeIMO.Pdf;
 
 internal static partial class PdfWriter {
-    private static void DrawRowFill(StringBuilder sb, PdfColor color, double x, double y, double w, double h, bool artifact = false) {
+    private static void DrawRowFill(StringBuilder sb, global::OfficeIMO.OfficeColor color, double x, double y, double w, double h, bool artifact = false) {
         AppendArtifactBegin(sb, artifact);
         new ContentStreamBuilder(sb)
             .SaveState()
@@ -12,7 +12,7 @@ internal static partial class PdfWriter {
         AppendArtifactEnd(sb, artifact);
     }
 
-    private static void DrawRowRect(StringBuilder sb, PdfColor color, double widthStroke, double x, double y, double w, double h, bool artifact = false) {
+    private static void DrawRowRect(StringBuilder sb, global::OfficeIMO.OfficeColor color, double widthStroke, double x, double y, double w, double h, bool artifact = false) {
         AppendArtifactBegin(sb, artifact);
         new ContentStreamBuilder(sb)
             .SaveState()
@@ -106,7 +106,7 @@ internal static partial class PdfWriter {
         return true;
     }
 
-    private static void DrawRectangle(StringBuilder sb, PdfColor? fillColor, PdfColor? strokeColor, double strokeWidth, OfficeIMO.Drawing.OfficeStrokeDashStyle strokeDashStyle, OfficeIMO.Drawing.OfficeStrokeLineCap? strokeLineCap, OfficeIMO.Drawing.OfficeStrokeLineJoin? strokeLineJoin, double x, double y, double w, double h) {
+    private static void DrawRectangle(StringBuilder sb, global::OfficeIMO.OfficeColor? fillColor, global::OfficeIMO.OfficeColor? strokeColor, double strokeWidth, OfficeIMO.Drawing.OfficeStrokeDashStyle strokeDashStyle, OfficeIMO.Drawing.OfficeStrokeLineCap? strokeLineCap, OfficeIMO.Drawing.OfficeStrokeLineJoin? strokeLineJoin, double x, double y, double w, double h) {
         if (!fillColor.HasValue && (!strokeColor.HasValue || strokeWidth <= 0)) {
             return;
         }
@@ -137,7 +137,7 @@ internal static partial class PdfWriter {
         content.RestoreState();
     }
 
-    private static void DrawLine(StringBuilder sb, PdfColor? strokeColor, double strokeWidth, OfficeIMO.Drawing.OfficeStrokeDashStyle strokeDashStyle, OfficeIMO.Drawing.OfficeStrokeLineCap? strokeLineCap, OfficeIMO.Drawing.OfficeStrokeLineJoin? strokeLineJoin, System.Collections.Generic.IReadOnlyList<OfficeIMO.Drawing.OfficePoint> points, double x, double y, double h) {
+    private static void DrawLine(StringBuilder sb, global::OfficeIMO.OfficeColor? strokeColor, double strokeWidth, OfficeIMO.Drawing.OfficeStrokeDashStyle strokeDashStyle, OfficeIMO.Drawing.OfficeStrokeLineCap? strokeLineCap, OfficeIMO.Drawing.OfficeStrokeLineJoin? strokeLineJoin, System.Collections.Generic.IReadOnlyList<OfficeIMO.Drawing.OfficePoint> points, double x, double y, double h) {
         if (points.Count != 2 || !strokeColor.HasValue || strokeWidth <= 0) {
             return;
         }
@@ -154,7 +154,7 @@ internal static partial class PdfWriter {
             .RestoreState();
     }
 
-    private static void DrawRoundedRectangle(StringBuilder sb, PdfColor? fillColor, PdfColor? strokeColor, double strokeWidth, OfficeIMO.Drawing.OfficeStrokeDashStyle strokeDashStyle, OfficeIMO.Drawing.OfficeStrokeLineCap? strokeLineCap, OfficeIMO.Drawing.OfficeStrokeLineJoin? strokeLineJoin, double x, double y, double w, double h, double cornerRadius) {
+    private static void DrawRoundedRectangle(StringBuilder sb, global::OfficeIMO.OfficeColor? fillColor, global::OfficeIMO.OfficeColor? strokeColor, double strokeWidth, OfficeIMO.Drawing.OfficeStrokeDashStyle strokeDashStyle, OfficeIMO.Drawing.OfficeStrokeLineCap? strokeLineCap, OfficeIMO.Drawing.OfficeStrokeLineJoin? strokeLineJoin, double x, double y, double w, double h, double cornerRadius) {
         if (cornerRadius <= 0) {
             DrawRectangle(sb, fillColor, strokeColor, strokeWidth, strokeDashStyle, strokeLineCap, strokeLineJoin, x, y, w, h);
             return;
@@ -194,7 +194,7 @@ internal static partial class PdfWriter {
     private static void DrawShapeShadowLayer(
         StringBuilder sb,
         OfficeIMO.Drawing.OfficeShape source,
-        PdfColor color,
+        global::OfficeIMO.OfficeColor color,
         double x,
         double bottomY,
         double strokeWidth,
@@ -208,23 +208,23 @@ internal static partial class PdfWriter {
             shape.StrokeDashStyle = OfficeIMO.Drawing.OfficeStrokeDashStyle.Solid;
             shape.SetStrokeDashArray(null);
             shape.ClipPath = null;
-            DrawTransformedShape(sb, shape, hasFill ? color : (PdfColor?)null, hasStroke ? color : (PdfColor?)null, null, x, bottomY);
+            DrawTransformedShape(sb, shape, hasFill ? color : (global::OfficeIMO.OfficeColor?)null, hasStroke ? color : (global::OfficeIMO.OfficeColor?)null, null, x, bottomY);
         } else if (shape.Kind == OfficeIMO.Drawing.OfficeShapeKind.Line) {
-            DrawLine(sb, hasStroke ? color : (PdfColor?)null, strokeWidth, OfficeIMO.Drawing.OfficeStrokeDashStyle.Solid, shape.StrokeLineCap, shape.StrokeLineJoin, shape.Points, x, bottomY, shape.Height);
+            DrawLine(sb, hasStroke ? color : (global::OfficeIMO.OfficeColor?)null, strokeWidth, OfficeIMO.Drawing.OfficeStrokeDashStyle.Solid, shape.StrokeLineCap, shape.StrokeLineJoin, shape.Points, x, bottomY, shape.Height);
         } else if (shape.Kind == OfficeIMO.Drawing.OfficeShapeKind.RoundedRectangle) {
-            DrawRoundedRectangle(sb, hasFill ? color : (PdfColor?)null, hasStroke ? color : (PdfColor?)null, strokeWidth, OfficeIMO.Drawing.OfficeStrokeDashStyle.Solid, shape.StrokeLineCap, shape.StrokeLineJoin, x, bottomY, shape.Width, shape.Height, shape.CornerRadius);
+            DrawRoundedRectangle(sb, hasFill ? color : (global::OfficeIMO.OfficeColor?)null, hasStroke ? color : (global::OfficeIMO.OfficeColor?)null, strokeWidth, OfficeIMO.Drawing.OfficeStrokeDashStyle.Solid, shape.StrokeLineCap, shape.StrokeLineJoin, x, bottomY, shape.Width, shape.Height, shape.CornerRadius);
         } else if (shape.Kind == OfficeIMO.Drawing.OfficeShapeKind.Rectangle) {
-            DrawRectangle(sb, hasFill ? color : (PdfColor?)null, hasStroke ? color : (PdfColor?)null, strokeWidth, OfficeIMO.Drawing.OfficeStrokeDashStyle.Solid, shape.StrokeLineCap, shape.StrokeLineJoin, x, bottomY, shape.Width, shape.Height);
+            DrawRectangle(sb, hasFill ? color : (global::OfficeIMO.OfficeColor?)null, hasStroke ? color : (global::OfficeIMO.OfficeColor?)null, strokeWidth, OfficeIMO.Drawing.OfficeStrokeDashStyle.Solid, shape.StrokeLineCap, shape.StrokeLineJoin, x, bottomY, shape.Width, shape.Height);
         } else if (shape.Kind == OfficeIMO.Drawing.OfficeShapeKind.Ellipse) {
-            DrawEllipse(sb, hasFill ? color : (PdfColor?)null, hasStroke ? color : (PdfColor?)null, strokeWidth, OfficeIMO.Drawing.OfficeStrokeDashStyle.Solid, shape.StrokeLineCap, shape.StrokeLineJoin, x, bottomY, shape.Width, shape.Height);
+            DrawEllipse(sb, hasFill ? color : (global::OfficeIMO.OfficeColor?)null, hasStroke ? color : (global::OfficeIMO.OfficeColor?)null, strokeWidth, OfficeIMO.Drawing.OfficeStrokeDashStyle.Solid, shape.StrokeLineCap, shape.StrokeLineJoin, x, bottomY, shape.Width, shape.Height);
         } else if (shape.Kind == OfficeIMO.Drawing.OfficeShapeKind.Polygon) {
-            DrawPolygon(sb, hasFill ? color : (PdfColor?)null, hasStroke ? color : (PdfColor?)null, strokeWidth, OfficeIMO.Drawing.OfficeStrokeDashStyle.Solid, shape.StrokeLineCap, shape.StrokeLineJoin, shape.Points, x, bottomY, shape.Height, shape.FillRule);
+            DrawPolygon(sb, hasFill ? color : (global::OfficeIMO.OfficeColor?)null, hasStroke ? color : (global::OfficeIMO.OfficeColor?)null, strokeWidth, OfficeIMO.Drawing.OfficeStrokeDashStyle.Solid, shape.StrokeLineCap, shape.StrokeLineJoin, shape.Points, x, bottomY, shape.Height, shape.FillRule);
         } else if (shape.Kind == OfficeIMO.Drawing.OfficeShapeKind.Path) {
-            DrawPath(sb, hasFill ? color : (PdfColor?)null, hasStroke ? color : (PdfColor?)null, strokeWidth, OfficeIMO.Drawing.OfficeStrokeDashStyle.Solid, shape.StrokeLineCap, shape.StrokeLineJoin, shape.PathCommands, x, bottomY, shape.Height, shape.FillRule);
+            DrawPath(sb, hasFill ? color : (global::OfficeIMO.OfficeColor?)null, hasStroke ? color : (global::OfficeIMO.OfficeColor?)null, strokeWidth, OfficeIMO.Drawing.OfficeStrokeDashStyle.Solid, shape.StrokeLineCap, shape.StrokeLineJoin, shape.PathCommands, x, bottomY, shape.Height, shape.FillRule);
         }
     }
 
-    private static void DrawEllipse(StringBuilder sb, PdfColor? fillColor, PdfColor? strokeColor, double strokeWidth, OfficeIMO.Drawing.OfficeStrokeDashStyle strokeDashStyle, OfficeIMO.Drawing.OfficeStrokeLineCap? strokeLineCap, OfficeIMO.Drawing.OfficeStrokeLineJoin? strokeLineJoin, double x, double y, double w, double h) {
+    private static void DrawEllipse(StringBuilder sb, global::OfficeIMO.OfficeColor? fillColor, global::OfficeIMO.OfficeColor? strokeColor, double strokeWidth, OfficeIMO.Drawing.OfficeStrokeDashStyle strokeDashStyle, OfficeIMO.Drawing.OfficeStrokeLineCap? strokeLineCap, OfficeIMO.Drawing.OfficeStrokeLineJoin? strokeLineJoin, double x, double y, double w, double h) {
         if (!fillColor.HasValue && (!strokeColor.HasValue || strokeWidth <= 0)) {
             return;
         }
@@ -248,7 +248,7 @@ internal static partial class PdfWriter {
         content.RestoreState();
     }
 
-    private static void DrawPolygon(StringBuilder sb, PdfColor? fillColor, PdfColor? strokeColor, double strokeWidth, OfficeIMO.Drawing.OfficeStrokeDashStyle strokeDashStyle, OfficeIMO.Drawing.OfficeStrokeLineCap? strokeLineCap, OfficeIMO.Drawing.OfficeStrokeLineJoin? strokeLineJoin, System.Collections.Generic.IReadOnlyList<OfficeIMO.Drawing.OfficePoint> points, double x, double y, double h, OfficeIMO.Drawing.OfficeFillRule fillRule) {
+    private static void DrawPolygon(StringBuilder sb, global::OfficeIMO.OfficeColor? fillColor, global::OfficeIMO.OfficeColor? strokeColor, double strokeWidth, OfficeIMO.Drawing.OfficeStrokeDashStyle strokeDashStyle, OfficeIMO.Drawing.OfficeStrokeLineCap? strokeLineCap, OfficeIMO.Drawing.OfficeStrokeLineJoin? strokeLineJoin, System.Collections.Generic.IReadOnlyList<OfficeIMO.Drawing.OfficePoint> points, double x, double y, double h, OfficeIMO.Drawing.OfficeFillRule fillRule) {
         if (points.Count < 3 || (!fillColor.HasValue && (!strokeColor.HasValue || strokeWidth <= 0))) {
             return;
         }
@@ -276,7 +276,7 @@ internal static partial class PdfWriter {
         content.RestoreState();
     }
 
-    private static void DrawPath(StringBuilder sb, PdfColor? fillColor, PdfColor? strokeColor, double strokeWidth, OfficeIMO.Drawing.OfficeStrokeDashStyle strokeDashStyle, OfficeIMO.Drawing.OfficeStrokeLineCap? strokeLineCap, OfficeIMO.Drawing.OfficeStrokeLineJoin? strokeLineJoin, System.Collections.Generic.IReadOnlyList<OfficeIMO.Drawing.OfficePathCommand> commands, double x, double y, double h, OfficeIMO.Drawing.OfficeFillRule fillRule) {
+    private static void DrawPath(StringBuilder sb, global::OfficeIMO.OfficeColor? fillColor, global::OfficeIMO.OfficeColor? strokeColor, double strokeWidth, OfficeIMO.Drawing.OfficeStrokeDashStyle strokeDashStyle, OfficeIMO.Drawing.OfficeStrokeLineCap? strokeLineCap, OfficeIMO.Drawing.OfficeStrokeLineJoin? strokeLineJoin, System.Collections.Generic.IReadOnlyList<OfficeIMO.Drawing.OfficePathCommand> commands, double x, double y, double h, OfficeIMO.Drawing.OfficeFillRule fillRule) {
         if (commands.Count == 0 || (!fillColor.HasValue && (!strokeColor.HasValue || strokeWidth <= 0))) {
             return;
         }
@@ -426,7 +426,7 @@ internal static partial class PdfWriter {
         content.RestoreState();
     }
 
-    private static void DrawTransformedShape(StringBuilder sb, OfficeIMO.Drawing.OfficeShape shape, PdfColor? fillColor, PdfColor? strokeColor, string? shadingName, double x, double y) {
+    private static void DrawTransformedShape(StringBuilder sb, OfficeIMO.Drawing.OfficeShape shape, global::OfficeIMO.OfficeColor? fillColor, global::OfficeIMO.OfficeColor? strokeColor, string? shadingName, double x, double y) {
         bool stroke = strokeColor.HasValue && shape.StrokeWidth > 0;
         bool gradient = !string.IsNullOrEmpty(shadingName) && shape.Kind != OfficeIMO.Drawing.OfficeShapeKind.Line;
         if (!shape.Transform.HasValue || (!fillColor.HasValue && !gradient && !stroke) || (shape.Kind == OfficeIMO.Drawing.OfficeShapeKind.Line && !stroke)) {
@@ -729,7 +729,7 @@ internal static partial class PdfWriter {
         }
     }
 
-    private static void DrawVLine(StringBuilder sb, PdfColor color, double widthStroke, double x, double yTop, double yBottom, bool artifact = false) {
+    private static void DrawVLine(StringBuilder sb, global::OfficeIMO.OfficeColor color, double widthStroke, double x, double yTop, double yBottom, bool artifact = false) {
         AppendArtifactBegin(sb, artifact);
         new ContentStreamBuilder(sb)
             .SaveState()
@@ -742,7 +742,7 @@ internal static partial class PdfWriter {
         AppendArtifactEnd(sb, artifact);
     }
 
-    private static void DrawHLine(StringBuilder sb, PdfColor color, double widthStroke, double x1, double x2, double y, bool artifact = false) {
+    private static void DrawHLine(StringBuilder sb, global::OfficeIMO.OfficeColor color, double widthStroke, double x1, double x2, double y, bool artifact = false) {
         AppendArtifactBegin(sb, artifact);
         new ContentStreamBuilder(sb)
             .SaveState()
@@ -933,7 +933,7 @@ internal static partial class PdfWriter {
         }
     }
 
-    private static void DrawStyledHLine(StringBuilder sb, PdfColor color, double widthStroke, OfficeIMO.Drawing.OfficeStrokeDashStyle dashStyle, double x1, double x2, double y, bool artifact = false) {
+    private static void DrawStyledHLine(StringBuilder sb, global::OfficeIMO.OfficeColor color, double widthStroke, OfficeIMO.Drawing.OfficeStrokeDashStyle dashStyle, double x1, double x2, double y, bool artifact = false) {
         AppendArtifactBegin(sb, artifact);
         ContentStreamBuilder content = new ContentStreamBuilder(sb)
             .SaveState()
@@ -948,7 +948,7 @@ internal static partial class PdfWriter {
         AppendArtifactEnd(sb, artifact);
     }
 
-    private static void DrawStyledLine(StringBuilder sb, PdfColor color, double widthStroke, OfficeIMO.Drawing.OfficeStrokeDashStyle dashStyle, double x1, double y1, double x2, double y2, bool artifact = false) {
+    private static void DrawStyledLine(StringBuilder sb, global::OfficeIMO.OfficeColor color, double widthStroke, OfficeIMO.Drawing.OfficeStrokeDashStyle dashStyle, double x1, double y1, double x2, double y2, bool artifact = false) {
         AppendArtifactBegin(sb, artifact);
         ContentStreamBuilder content = new ContentStreamBuilder(sb)
             .SaveState()
@@ -965,7 +965,7 @@ internal static partial class PdfWriter {
 
     private static double GetDoubleBorderGap(double widthStroke) => PdfCellBorderSide.DoubleTrackGap(widthStroke);
 
-    private static void DrawStyledVLine(StringBuilder sb, PdfColor color, double widthStroke, OfficeIMO.Drawing.OfficeStrokeDashStyle dashStyle, double x, double yTop, double yBottom, bool artifact = false) {
+    private static void DrawStyledVLine(StringBuilder sb, global::OfficeIMO.OfficeColor color, double widthStroke, OfficeIMO.Drawing.OfficeStrokeDashStyle dashStyle, double x, double yTop, double yBottom, bool artifact = false) {
         AppendArtifactBegin(sb, artifact);
         ContentStreamBuilder content = new ContentStreamBuilder(sb)
             .SaveState()
@@ -992,19 +992,19 @@ internal static partial class PdfWriter {
         }
     }
 
-    private static void WriteCell(StringBuilder sb, string fontRes, double fontSize, double x, double y, string text, PdfColor? color, PdfCreateOptions opts) {
+    private static void WriteCell(StringBuilder sb, string fontRes, double fontSize, double x, double y, string text, global::OfficeIMO.OfficeColor? color, PdfCreateOptions opts) {
         var effective = color ?? opts.DefaultTextColor;
         PdfStandardFont font = ResolveFontFromResourceName(fontRes, ChooseNormal(opts.DefaultFont));
         new ContentStreamBuilder(sb)
             .BeginText()
             .Font(fontRes, fontSize, opts.NeedsSyntheticOblique(font))
-            .FillColor(effective ?? PdfColor.Black)
+            .FillColor(effective ?? global::OfficeIMO.OfficeColor.Black)
             .TextMatrix(x, y)
             .ShowText(EncodeTextShowCommand(text, font, opts), fontSize)
             .EndText();
     }
 
-    private static void WriteClippedCell(StringBuilder sb, string fontRes, double fontSize, double x, double y, string text, PdfColor? color, PdfCreateOptions opts, double clipX, double clipY, double clipWidth, double clipHeight) {
+    private static void WriteClippedCell(StringBuilder sb, string fontRes, double fontSize, double x, double y, string text, global::OfficeIMO.OfficeColor? color, PdfCreateOptions opts, double clipX, double clipY, double clipWidth, double clipHeight) {
         new ContentStreamBuilder(sb)
             .SaveState()
             .Rectangle(clipX, clipY, clipWidth, clipHeight)

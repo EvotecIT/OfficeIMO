@@ -34,10 +34,10 @@ internal partial class HtmlToWordConverter {
             long nativeWidth = ToBoundedAnchorSize(region.Width, emusPerCssPixel, out bool widthSimplified);
             long nativeHeight = ToBoundedAnchorSize(region.Height, emusPerCssPixel, out bool heightSimplified);
             int containerWidthTwips = ToBoundedContainerWidth(region.Width, out bool containerWidthSimplified);
-            textBox.HorizontalPositionOffset = horizontalOffset;
-            textBox.VerticalPositionOffset = verticalOffset;
-            textBox.Width = nativeWidth;
-            textBox.Height = nativeHeight;
+            textBox.HorizontalPositionOffset = OfficeLength.Emus(horizontalOffset);
+            textBox.VerticalPositionOffset = OfficeLength.Emus(verticalOffset);
+            textBox.Width = OfficeLength.Emus(nativeWidth);
+            textBox.Height = OfficeLength.Emus(nativeHeight);
             textBox.AutoFit = WordTextBoxAutoFitType.NoAutoFit;
             textBox.RelativeWidthPercentage = 0;
             textBox.RelativeHeightPercentage = 0;

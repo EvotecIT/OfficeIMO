@@ -96,9 +96,9 @@ internal static partial class PdfWriter {
         if (!style.Background.HasValue && !(style.BorderColor.HasValue && style.BorderWidth > 0D)) return null;
         OfficeShape shape = style.CornerRadius > 0D
             ? OfficeShape.RoundedRectangle(width, height, style.CornerRadius) : OfficeShape.Rectangle(width, height);
-        shape.FillColor = style.Background?.ToOfficeColor();
+        shape.FillColor = style.Background;
         shape.FillOpacity = style.Background.HasValue ? style.BackgroundOpacity : null;
-        shape.StrokeColor = style.BorderWidth > 0D ? style.BorderColor?.ToOfficeColor() : null;
+        shape.StrokeColor = style.BorderWidth > 0D ? style.BorderColor : null;
         shape.StrokeWidth = style.BorderWidth;
         shape.StrokeDashStyle = style.BorderDashStyle;
         shape.StrokeLineCap = style.BorderLineCap;

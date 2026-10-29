@@ -72,7 +72,7 @@ public class PowerPointSharedChartSeriesQualificationTests {
         using var presentation = PowerPointDocument.Create(new MemoryStream());
         var chart = presentation.AddSlide().AddChart(OfficeChartType.Radar, new OfficeChartData(new[] { "A" }, new[] {
             new OfficeSeries("Values", new[] { 2d }) }));
-        chart.SetSeriesMarker(0, OfficeChartMarkerShape.Diamond, size: 9);
+        chart.SetSeriesMarker(0, OfficeChartMarkerShape.Diamond, size: OfficeLength.Points(9));
 
         chart.UpdateData(new OfficeChartData(new[] { "A" }, new[] {
             new OfficeSeries("Values", new[] { 3d }) }));

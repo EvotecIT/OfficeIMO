@@ -245,7 +245,7 @@ internal static class PdfRowColumnBuilder
             : (PdfAlign)Enum.Parse(typeof(PdfAlign), Convert.ToString(value, CultureInfo.InvariantCulture) ?? "Left", ignoreCase: true);
     }
 
-    private static PdfColor? GetColor(object specification, params string[] names)
+    private static global::OfficeIMO.OfficeColor? GetColor(object specification, params string[] names)
     {
         return PdfCommandUtilities.ParseColor(GetString(specification, names));
     }

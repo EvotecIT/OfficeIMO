@@ -3393,7 +3393,7 @@ public partial class PdfPageImageRendererTests {
     [Fact]
     public void RenderPage_ProjectsFilledAndStrokedRectanglesFromGeneratedPdf() {
         byte[] pdf = PdfDocument.Create()
-            .Rectangle(120, 40, strokeColor: PdfColor.FromRgb(0, 64, 128), strokeWidth: 2, fillColor: PdfColor.FromRgb(204, 238, 255))
+            .Rectangle(120, 40, strokeColor: global::OfficeIMO.OfficeColor.FromRgb(0, 64, 128), strokeWidth: 2, fillColor: global::OfficeIMO.OfficeColor.FromRgb(204, 238, 255))
             .ToBytes();
 
         OfficeDrawing drawing = PdfPageImageRenderer.RenderPage(pdf);
@@ -4388,7 +4388,7 @@ public partial class PdfPageImageRendererTests {
                 0,
                 0,
                 30,
-                strokeColor: PdfColor.FromRgb(16, 96, 48),
+                strokeColor: global::OfficeIMO.OfficeColor.FromRgb(16, 96, 48),
                 strokeWidth: 3,
                 strokeDashStyle: OfficeStrokeDashStyle.Dash,
                 strokeLineCap: OfficeStrokeLineCap.Square,

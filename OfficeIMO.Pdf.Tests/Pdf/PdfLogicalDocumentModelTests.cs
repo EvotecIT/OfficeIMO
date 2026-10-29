@@ -268,10 +268,10 @@ public partial class PdfDocumentReadResultTests {
     public void LogicalTextBlocks_PreservePositionedRunStyleSpans() {
         byte[] pdf = PdfDocument.Create()
             .Paragraph(paragraph => paragraph
-                .Color(PdfColor.FromRgb(255, 0, 0))
+                .Color(global::OfficeIMO.OfficeColor.FromRgb(255, 0, 0))
                 .Font(PdfStandardFont.Helvetica)
                 .Text("Red")
-                .Color(PdfColor.FromRgb(0, 0, 255))
+                .Color(global::OfficeIMO.OfficeColor.FromRgb(0, 0, 255))
                 .Font(PdfStandardFont.Courier)
                 .Text("Blue"))
             .ToBytes();

@@ -132,13 +132,14 @@ namespace OfficeIMO.PowerPoint {
 
         private static PowerPointChart AddStoryChart(PowerPointSlide slide, PowerPointChartStoryContent content,
             PowerPointLayoutBox bounds) {
-            return slide.AddChart(content.ChartKind, content.SharedData, bounds.Left, bounds.Top,
-                bounds.Width, bounds.Height, new PowerPointChartAccessibilityOptions {
+            return slide.AddChart(content.ChartKind, content.SharedData, new PowerPointChartOptions {
+                Left = bounds.Left, Top = bounds.Top, Width = bounds.Width, Height = bounds.Height,
+                Accessibility = new PowerPointChartAccessibilityOptions {
                     Name = "Chart Story",
                     AlternativeText = content.AlternativeText ?? "Editable chart story",
                     DataSummary = content.DataSummary,
                     IncludeDataSummaryInAlternativeText = true
-                });
+                } });
         }
 
         private static void AddComparisonColumns(PowerPointSlide slide, PowerPointDesignTheme theme,

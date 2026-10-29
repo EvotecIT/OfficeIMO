@@ -2,7 +2,7 @@ namespace OfficeIMO.Pdf;
 
 public sealed partial class PdfDocument {
     /// <summary>Adds one paragraph inside a decorated panel.</summary>
-    internal PdfDocument PanelParagraph(System.Action<PdfParagraphBuilder> compose, PdfPanelStyle? style = null, PdfAlign align = PdfAlign.Left, PdfColor? defaultColor = null) {
+    internal PdfDocument PanelParagraph(System.Action<PdfParagraphBuilder> compose, PdfPanelStyle? style = null, PdfAlign align = PdfAlign.Left, global::OfficeIMO.OfficeColor? defaultColor = null) {
         Guard.NotNull(compose, nameof(compose));
         return Panel(content => content.Paragraph(compose, align, defaultColor), style);
     }

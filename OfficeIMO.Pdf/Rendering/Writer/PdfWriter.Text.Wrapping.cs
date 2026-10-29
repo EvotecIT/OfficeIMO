@@ -66,7 +66,7 @@ internal static partial class PdfWriter {
         bool pendingLeadingIsOrdinarySpace = false;
         bool oversizedWordContinuation = false;
         OfficeIMO.Drawing.OfficeTextDecorationStyle pendingLeadingUnderlineStyle = OfficeIMO.Drawing.OfficeTextDecorationStyle.None;
-        PdfColor? pendingLeadingDecorationColor = null;
+        global::OfficeIMO.OfficeColor? pendingLeadingDecorationColor = null;
         double pendingLeadingDecorationFontSize = 0;
         double pendingLeadingDecorationTextRise = 0;
         bool pendingLeadingIsExpandable = true;
@@ -93,11 +93,11 @@ internal static partial class PdfWriter {
         double currentLineInlineDescent = 0;
         bool currentRunIsInline = false;
         bool currentLineHasInline = false;
-        PdfColor? currentRunDecorationColor = null;
+        global::OfficeIMO.OfficeColor? currentRunDecorationColor = null;
         OfficeTextFeatureSettings currentRunFeatureSettings = OfficeTextFeatureSettings.Default;
         double currentRunHorizontalTextScaling = 100D, currentRunCharacterSpacing = 0D;
         OfficeIMO.Drawing.OfficeTextDecorationStyle currentRunUnderlineStyle = OfficeIMO.Drawing.OfficeTextDecorationStyle.None;
-        PdfColor? currentRunUnderlineColor = null;
+        global::OfficeIMO.OfficeColor? currentRunUnderlineColor = null;
         double currentRunDecorationFontSize = 0;
         double currentRunDecorationTextRise = 0;
         var currentFrame = ResolveCurrentFrame(0, completedHeight, CurrentFrameFitHeight(lineHeight, includeCurrentRun: false), 0, true, out _);
@@ -1158,8 +1158,8 @@ internal static partial class PdfWriter {
             bool strike,
             OfficeIMO.Drawing.OfficeTextDecorationStyle underlineStyle,
             OfficeIMO.Drawing.OfficeTextDecorationStyle strikeStyle,
-            PdfColor? color,
-            PdfColor? backgroundColor,
+            global::OfficeIMO.OfficeColor? color,
+            global::OfficeIMO.OfficeColor? backgroundColor,
             string? uri,
             string? destinationName,
             string? contents,
@@ -1198,8 +1198,8 @@ internal static partial class PdfWriter {
             bool strike,
             OfficeIMO.Drawing.OfficeTextDecorationStyle underlineStyle,
             OfficeIMO.Drawing.OfficeTextDecorationStyle strikeStyle,
-            PdfColor? color,
-            PdfColor? backgroundColor,
+            global::OfficeIMO.OfficeColor? color,
+            global::OfficeIMO.OfficeColor? backgroundColor,
             string? uri,
             string? destinationName,
             string? contents,
@@ -1236,8 +1236,8 @@ internal static partial class PdfWriter {
             bool strike,
             OfficeIMO.Drawing.OfficeTextDecorationStyle underlineStyle,
             OfficeIMO.Drawing.OfficeTextDecorationStyle strikeStyle,
-            PdfColor? color,
-            PdfColor? backgroundColor,
+            global::OfficeIMO.OfficeColor? color,
+            global::OfficeIMO.OfficeColor? backgroundColor,
             string? uri,
             string? destinationName,
             string? contents,
@@ -1475,8 +1475,8 @@ internal static partial class PdfWriter {
             bool strike,
             OfficeIMO.Drawing.OfficeTextDecorationStyle underlineStyle,
             OfficeIMO.Drawing.OfficeTextDecorationStyle strikeStyle,
-            PdfColor? color,
-            PdfColor? backgroundColor,
+            global::OfficeIMO.OfficeColor? color,
+            global::OfficeIMO.OfficeColor? backgroundColor,
             string? uri,
             string? destinationName,
             string? contents,

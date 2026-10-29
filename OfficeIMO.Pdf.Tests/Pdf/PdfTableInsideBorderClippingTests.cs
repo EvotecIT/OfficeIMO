@@ -15,9 +15,9 @@ public sealed partial class PdfTableCellViewportTests {
             style.PreservePartialCellLines = true;
             style.CellVerticalPaddingFromBorderInterior = true;
             style.CellPaddingBottom = hidden ? 24D : 0D;
-            style.BorderFrame = new PdfTableBorderFrame { Border = new PdfCellBorder { Color = PdfColor.Black, Width = 4D } };
+            style.BorderFrame = new PdfTableBorderFrame { Border = new PdfCellBorder { Color = global::OfficeIMO.OfficeColor.Black, Width = 4D } };
             style.CellBorders = new Dictionary<(int, int), PdfCellBorder> {
-                [(0, 0)] = new PdfCellBorder { Color = PdfColor.Black, Width = 4D, PaintInsideFrame = true }
+                [(0, 0)] = new PdfCellBorder { Color = global::OfficeIMO.OfficeColor.Black, Width = 4D, PaintInsideFrame = true }
             };
         });
         using var hidden = PdfPigDocument.Open(Create(true));
@@ -42,7 +42,7 @@ public sealed partial class PdfTableCellViewportTests {
             style.ClipTextToCellBounds = true;
             style.PreservePartialCellLines = true;
             style.CellBorders = new Dictionary<(int, int), PdfCellBorder> {
-                [(0, 0)] = new PdfCellBorder { Color = PdfColor.Black, Width = 4D, PaintInsideFrame = true }
+                [(0, 0)] = new PdfCellBorder { Color = global::OfficeIMO.OfficeColor.Black, Width = 4D, PaintInsideFrame = true }
             };
             if (rotation == 0) style.CellPaddingTop = hidden ? 20D : 16D;
             else if (rotation < 0) style.CellPaddingRight = hidden ? 96D : 92D;

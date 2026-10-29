@@ -61,7 +61,7 @@ public sealed class PdfTabStop {
     }
 
     /// <summary>Stroke color for a bar rule. The default is black; other alignments do not use it.</summary>
-    public PdfColor BarColor { get; set; } = PdfColor.Black;
+    public global::OfficeIMO.OfficeColor BarColor { get; set; } = global::OfficeIMO.OfficeColor.Black;
 
     /// <summary>Leader drawn across a text tab gap. Bar rules do not use a leader.</summary>
     public PdfTabLeaderStyle Leader { get; set; }

@@ -33,7 +33,7 @@ public sealed class PdfCellIcon {
     }
 
     /// <summary>Icon fill color.</summary>
-    public PdfColor Color { get; set; } = PdfColor.Black;
+    public global::OfficeIMO.OfficeColor Color { get; set; } = global::OfficeIMO.OfficeColor.Black;
 
     /// <summary>Icon size in points.</summary>
     public double Size {

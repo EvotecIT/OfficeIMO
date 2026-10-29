@@ -108,7 +108,7 @@ public partial class PdfDocumentVisualQualityTests {
         for (int row = 0; row < 2; row++)
             for (int column = 0; column < 2; column++)
                 style.CellBorders[(row, column)] = new PdfCellBorder {
-                    Color = PdfColor.FromRgb(255, 0, 0), Width = 2, LineStyle = lineStyle
+                    Color = global::OfficeIMO.OfficeColor.FromRgb(255, 0, 0), Width = 2, LineStyle = lineStyle
                 };
         string[][] rows = { new[] { "gypA", "gypB" }, new[] { "gypC", "gypD" } };
         if (surface == "fragment") {

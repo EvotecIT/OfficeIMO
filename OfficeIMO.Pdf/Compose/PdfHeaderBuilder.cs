@@ -14,7 +14,7 @@ public sealed partial class PdfHeaderBuilder {
     /// <summary>Sets header alignment to the right.</summary>
     public PdfHeaderBuilder AlignRight() { _opts.HeaderAlign = PdfAlign.Right; return this; }
     /// <summary>Sets header text color.</summary>
-    public PdfHeaderBuilder Color(PdfColor color) { _opts.HeaderTextColor = color; return this; }
+    public PdfHeaderBuilder Color(global::OfficeIMO.OfficeColor color) { _opts.HeaderTextColor = color; return this; }
     /// <summary>Sets header font.</summary>
     public PdfHeaderBuilder Font(PdfStandardFont font) { _opts.HeaderFont = font; _opts.HeaderFontFamily = null; return this; }
     /// <summary>Uses a registered named font family for header text.</summary>

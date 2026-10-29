@@ -23,10 +23,10 @@ public partial class PdfDocumentVisualQualityTests {
                 new[] { "Signal", "Evidence" },
                 new[] { "DMARC", "Body text must stay readable after a white header." }
             }, style: new PdfTableStyle {
-                HeaderFill = PdfColor.FromRgb(32, 76, 120),
-                HeaderTextColor = PdfColor.White,
+                HeaderFill = global::OfficeIMO.OfficeColor.FromRgb(32, 76, 120),
+                HeaderTextColor = global::OfficeIMO.OfficeColor.White,
                 TextColor = null,
-                RowStripeFill = PdfColor.FromRgb(248, 250, 252)
+                RowStripeFill = global::OfficeIMO.OfficeColor.FromRgb(248, 250, 252)
             })
             .ToBytes();
 

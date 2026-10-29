@@ -39,7 +39,7 @@ internal static partial class PdfWriter {
             double markerX = (originX ?? currentOpts.MarginLeft) + unit.FrameX + placement.X;
             double baseline = AdjustRichLineBaseline(FirstTextBaselineFromTop(ChooseNormal(currentOpts.DefaultFont), unit.Size, top),
                 unit.Line!, currentOpts, unit.Size);
-            PdfColor? color = prepared.Style?.MarkerColor ?? prepared.Block.Color ?? prepared.Style?.Color;
+            global::OfficeIMO.OfficeColor? color = prepared.Style?.MarkerColor ?? prepared.Block.Color ?? prepared.Style?.Color;
             int? markedContentId = RegisterTextStructureElement("Lbl");
             if (WriteListMarkerFallback(item.MarkerFallback, markerX, placement.Width, baseline, prepared.MarkerSize,
                     prepared.Leading, placement.Align, color, markedContentId)) return;

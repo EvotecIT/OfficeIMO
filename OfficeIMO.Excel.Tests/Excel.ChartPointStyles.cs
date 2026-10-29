@@ -18,7 +18,7 @@ public sealed class ExcelChartPointStylesTests {
         });
         using ExcelDocument document = ExcelDocument.Create();
         ExcelSheet sheet = document.AddSheet("Markers");
-        ExcelChart chart = sheet.AddChart(OfficeChartType.Line, data, 1, 4);
+        ExcelChart chart = sheet.AddChart(OfficeChartType.Line, data, new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 4 });
         ChartPart part = Assert.Single(sheet.WorksheetPart.DrawingsPart!.ChartParts);
         C.LineChartSeries nativeSeries = Assert.Single(part.ChartSpace!.Descendants<C.LineChartSeries>());
         nativeSeries.InsertBefore(new C.DataPoint(new C.Index { Val = 0U },
@@ -49,7 +49,7 @@ public sealed class ExcelChartPointStylesTests {
                 renderKind: OfficeChartType.ColumnClustered)
         });
         using ExcelDocument document = ExcelDocument.Create();
-        document.AddSheet("Shared").AddChart(OfficeChartType.ColumnClustered, data, row: 1, column: 4);
+        document.AddSheet("Shared").AddChart(OfficeChartType.ColumnClustered, data, new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 4 });
 
         using SpreadsheetDocument package = SpreadsheetDocument.Open(new MemoryStream(document.ToBytes()), false);
         ChartPart part = Assert.Single(package.WorkbookPart!.WorksheetParts
@@ -75,8 +75,7 @@ public sealed class ExcelChartPointStylesTests {
         var series = new OfficeSeries("Status", new[] { 3d, 2d, 1d })
             .WithPointStyles(new OfficeChartPointStyle?[] { new(showOutline: true), new(noFill: true, outlineColor: OfficeColor.Black), hatch });
         using ExcelDocument authored = ExcelDocument.Create();
-        authored.AddSheet("Results").AddChart(kind,
-            new OfficeChartData(new[] { "Pass", "Unknown", "Fail" }, new[] { series }), 1, 1);
+        authored.AddSheet("Results").AddChart(kind, new OfficeChartData(new[] { "Pass", "Unknown", "Fail" }, new[] { series }), new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 1 });
         using var bytes = new MemoryStream(authored.ToBytes());
         using ExcelDocument reopened = ExcelDocument.Load(bytes);
         Assert.Empty(reopened.ValidateDocument());
@@ -115,8 +114,7 @@ public sealed class ExcelChartPointStylesTests {
                 new(fillColor: OfficeColor.Parse("#2244AA"))
             });
         using ExcelDocument document = ExcelDocument.Create();
-        document.AddSheet("Results").AddChart(OfficeChartType.Pie,
-            new OfficeChartData(new[] { "A", "B", "C", "D" }, new[] { series }), 1, 1);
+        document.AddSheet("Results").AddChart(OfficeChartType.Pie, new OfficeChartData(new[] { "A", "B", "C", "D" }, new[] { series }), new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 1 });
         Assert.Empty(document.ValidateDocument());
 
         using var package = SpreadsheetDocument.Open(new MemoryStream(document.ToBytes()), false);

@@ -76,7 +76,7 @@ public sealed class PdfInlineFormPaintTests {
     public void InlineControlBackgroundRequiresStaticParagraphPaint(bool checkBox) {
         var style = new PdfFormFieldStyle { BackgroundColor = null, BorderColor = null, BorderWidth = 0 };
         var highlighted = PdfTextRun.Normal("CACHE", fontSize: 10,
-            backgroundColor: PdfColor.FromRgb(255, 255, 0));
+            backgroundColor: global::OfficeIMO.OfficeColor.FromRgb(255, 255, 0));
         var field = new PdfInlineFormField(checkBox
             ? PdfCanvasFormFieldItem.CheckBox("Background", true, "Yes", "Yes", 0, 0, 10, 10, style)
             : PdfCanvasFormFieldItem.Text("Background", "CACHE", "CACHE", 0, 0, 1, 10, 10, style, style));

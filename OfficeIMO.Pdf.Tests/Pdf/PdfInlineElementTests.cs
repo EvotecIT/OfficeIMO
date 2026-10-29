@@ -10,7 +10,7 @@ public class PdfInlineElementTests {
     [InlineData(false)]
     [InlineData(true)]
     public void TableRowShrinkingReservesFixedInlineWidth(bool canvas) {
-        PdfColor fill = new PdfColor(.2D, .5D, .8D);
+        global::OfficeIMO.OfficeColor fill = global::OfficeIMO.OfficeColor.FromNormalizedRgb(.2D, .5D, .8D);
         PdfTableCell cell = new PdfTableCell(new[] {
             PdfTextRun.Inline(new PdfInlineBox(30, 10, background: fill)),
             PdfTextRun.Normal("ABCDE")
@@ -51,8 +51,8 @@ public class PdfInlineElementTests {
                 .InlineBox(
                     18,
                     12,
-                    background: new PdfColor(0.2D, 0.7D, 0.3D),
-                    borderColor: PdfColor.Black,
+                    background: global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.2D, 0.7D, 0.3D),
+                    borderColor: global::OfficeIMO.OfficeColor.Black,
                     borderWidth: 1D,
                     alternativeText: "Inline status box")
                 .Text(" after"))
@@ -85,7 +85,7 @@ public class PdfInlineElementTests {
             .Paragraph(paragraph => paragraph.Text("Prior flow marker"))
             .Paragraph(paragraph => paragraph
                 .Text("Tall inline start ")
-                .InlineBox(20, 34, background: new PdfColor(0.8D, 0.8D, 0.8D))
+                .InlineBox(20, 34, background: global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.8D, 0.8D, 0.8D))
                 .Text(" end"))
             .Paragraph(paragraph => paragraph.Text("Following flow marker"))
             .ToBytes();
@@ -135,7 +135,7 @@ public class PdfInlineElementTests {
 
     [Fact]
     public void RichParagraph_CentersInlineElementUsingItsWidth() {
-        var fill = new PdfColor(0.13D, 0.57D, 0.91D);
+        var fill = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.13D, 0.57D, 0.91D);
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = 240,
                 MarginLeft = 20,
@@ -152,7 +152,7 @@ public class PdfInlineElementTests {
 
     [Fact]
     public void RichParagraph_LeadingTabAdvancesInlineElementToNextTabStop() {
-        var fill = new PdfColor(0.17D, 0.61D, 0.83D);
+        var fill = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.17D, 0.61D, 0.83D);
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = 240,
                 MarginLeft = 20,
@@ -172,7 +172,7 @@ public class PdfInlineElementTests {
     [Fact]
     public void RichParagraph_CollapsedSpaceRetainsTabBeforeInlineElement() {
         const double margin = 20D, stop = 72D;
-        var fill = new PdfColor(0.17D, 0.61D, 0.83D);
+        var fill = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.17D, 0.61D, 0.83D);
         var style = new PdfParagraphStyle { TextWhitespaceMode = PdfTextWhitespaceMode.Collapse, SpacingAfter = 0D };
         style.AddTabStop(stop, leader: PdfTabLeaderStyle.Dots);
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
@@ -194,7 +194,7 @@ public class PdfInlineElementTests {
     [Fact]
     public void TableShrinkToFit_PreservesInlineElementRuns() {
         const string longValue = "ThisIdentifierShouldShrinkToFit";
-        var fill = new PdfColor(0.19D, 0.63D, 0.87D);
+        var fill = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.19D, 0.63D, 0.87D);
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
                 CompressContentStreams = false
             })
@@ -226,8 +226,8 @@ public class PdfInlineElementTests {
         Assert.True(FindFilledBoxX(raw, fill, 12, 10) > 0D);
     }
 
-    private static double FindFilledBoxX(string raw, PdfColor fill, double width, double height) {
-        string color = string.Join(" ", new[] { fill.R, fill.G, fill.B }.Select(value => value.ToString("0.###", CultureInfo.InvariantCulture))) + " rg";
+    private static double FindFilledBoxX(string raw, global::OfficeIMO.OfficeColor fill, double width, double height) {
+        string color = string.Join(" ", new[] { fill.ToNormalizedRgb().R, fill.ToNormalizedRgb().G, fill.ToNormalizedRgb().B }.Select(value => value.ToString("0.###", CultureInfo.InvariantCulture))) + " rg";
         string pattern = Regex.Escape(color) + @"\s+(?<x>-?\d+(?:\.\d+)?)\s+-?\d+(?:\.\d+)?\s+" +
             Regex.Escape(width.ToString("0.###", CultureInfo.InvariantCulture)) + @"\s+" +
             Regex.Escape(height.ToString("0.###", CultureInfo.InvariantCulture)) + @"\s+re\s+f";

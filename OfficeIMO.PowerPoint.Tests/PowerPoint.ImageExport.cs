@@ -690,9 +690,9 @@ namespace OfficeIMO.Tests {
             slide.AddTextBox("FILTERED TEXT",global::OfficeIMO.OfficeLength.Points(48),global::OfficeIMO.OfficeLength.Points(12),global::OfficeIMO.OfficeLength.Points(100),global::OfficeIMO.OfficeLength.Points(24));
             PowerPointTable table = slide.AddTable(1,1,global::OfficeIMO.OfficeLength.Points(12),global::OfficeIMO.OfficeLength.Points(44),global::OfficeIMO.OfficeLength.Points(120),global::OfficeIMO.OfficeLength.Points(30));
             table.GetCell(0, 0).Text = "FILTERED TABLE";
-            slide.AddChart(OfficeChartType.ColumnClustered,                new OfficeChartData(new[] { "FILTERED CATEGORY" }, new[] {
+            slide.AddChart(OfficeChartType.ColumnClustered, new OfficeChartData(new[] { "FILTERED CATEGORY" }, new[] {
                     new OfficeSeries("FILTERED CHART", new[] { 42D })
-                }),global::OfficeIMO.OfficeLength.Points(150),global::OfficeIMO.OfficeLength.Points(44),global::OfficeIMO.OfficeLength.Points(120),global::OfficeIMO.OfficeLength.Points(80));
+                }), new OfficeIMO.PowerPoint.PowerPointChartOptions { Left = global::OfficeIMO.OfficeLength.Points(150), Top = global::OfficeIMO.OfficeLength.Points(44), Width = global::OfficeIMO.OfficeLength.Points(120), Height = global::OfficeIMO.OfficeLength.Points(80) });
 
             OfficeImageExportResult result = Assert.Single(presentation.ExportImages(
                 OfficeImageExportFormat.Svg, new PowerPointImageExportOptions {

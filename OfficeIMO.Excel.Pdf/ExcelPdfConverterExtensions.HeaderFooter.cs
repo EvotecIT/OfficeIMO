@@ -276,7 +276,7 @@ namespace OfficeIMO.Excel.Pdf {
 
                         break;
                     case 'K':
-                        if (TryReadHeaderFooterColor(text, i + 1, out PdfCore.PdfColor color, out int colorEndIndex)) {
+                        if (TryReadHeaderFooterColor(text, i + 1, out global::OfficeIMO.OfficeColor color, out int colorEndIndex)) {
                             ApplyHeaderFooterStyleToken(style, hasVisibleContent, ref unsupportedFormatting, ref canApplyLineStyle, s => s.Color = color);
                             i = colorEndIndex;
                         } else {
@@ -504,7 +504,7 @@ namespace OfficeIMO.Excel.Pdf {
             return double.TryParse(token, NumberStyles.Integer, CultureInfo.InvariantCulture, out fontSize) && fontSize > 0D;
         }
 
-        private static bool TryReadHeaderFooterColor(string text, int startIndex, out PdfCore.PdfColor color, out int endIndex) {
+        private static bool TryReadHeaderFooterColor(string text, int startIndex, out global::OfficeIMO.OfficeColor color, out int endIndex) {
             color = default;
             endIndex = startIndex;
             if (startIndex + 6 > text.Length) {
@@ -520,7 +520,7 @@ namespace OfficeIMO.Excel.Pdf {
             byte red = byte.Parse(text.Substring(startIndex, 2), NumberStyles.HexNumber, CultureInfo.InvariantCulture);
             byte green = byte.Parse(text.Substring(startIndex + 2, 2), NumberStyles.HexNumber, CultureInfo.InvariantCulture);
             byte blue = byte.Parse(text.Substring(startIndex + 4, 2), NumberStyles.HexNumber, CultureInfo.InvariantCulture);
-            color = PdfCore.PdfColor.FromRgb(red, green, blue);
+            color = global::OfficeIMO.OfficeColor.FromRgb(red, green, blue);
             endIndex = startIndex + 5;
             return true;
         }

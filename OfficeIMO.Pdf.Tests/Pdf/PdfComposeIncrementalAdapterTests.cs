@@ -14,7 +14,7 @@ public class PdfDocumentBuilderIncrementalAdapterTests {
         document.Compose(compose => compose.Settings(settings => {
             settings.PageSize = new PdfPageSize(OfficeIMO.OfficeLength.Points(300),OfficeIMO.OfficeLength.Points(400));
             settings.Margins = PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(24));
-            settings.BackgroundColor = PdfColor.FromRgb(240, 248, 255);
+            settings.BackgroundColor = global::OfficeIMO.OfficeColor.FromRgb(240, 248, 255);
         }));
         document.Compose(compose => compose.Content(content => content
             .Paragraph(paragraph => paragraph.Text("IncrementalAdapterMarker"))));

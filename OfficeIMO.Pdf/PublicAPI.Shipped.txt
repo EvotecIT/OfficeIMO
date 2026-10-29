@@ -107,7 +107,7 @@ OfficeIMO.Pdf.PdfAnnotation.DefaultAppearance.get -> string?
 OfficeIMO.Pdf.PdfAnnotation.DefaultStyle.get -> string?
 OfficeIMO.Pdf.PdfAnnotation.EffectiveFontSize.get -> double?
 OfficeIMO.Pdf.PdfAnnotation.EffectiveTextAlign.get -> OfficeIMO.Pdf.PdfAlign?
-OfficeIMO.Pdf.PdfAnnotation.EffectiveTextColor.get -> OfficeIMO.Pdf.PdfColor?
+OfficeIMO.Pdf.PdfAnnotation.EffectiveTextColor.get -> OfficeIMO.OfficeColor?
 OfficeIMO.Pdf.PdfAnnotation.Flags.get -> int?
 OfficeIMO.Pdf.PdfAnnotation.HasAction.get -> bool
 OfficeIMO.Pdf.PdfAnnotation.HasAdditionalActions.get -> bool
@@ -486,7 +486,7 @@ OfficeIMO.Pdf.PdfBatesNumberer
 OfficeIMO.Pdf.PdfBatesNumberingOptions
 OfficeIMO.Pdf.PdfBatesNumberingOptions.CancellationToken.get -> System.Threading.CancellationToken
 OfficeIMO.Pdf.PdfBatesNumberingOptions.CancellationToken.set -> void
-OfficeIMO.Pdf.PdfBatesNumberingOptions.Color.get -> OfficeIMO.Pdf.PdfColor
+OfficeIMO.Pdf.PdfBatesNumberingOptions.Color.get -> OfficeIMO.OfficeColor
 OfficeIMO.Pdf.PdfBatesNumberingOptions.Color.set -> void
 OfficeIMO.Pdf.PdfBatesNumberingOptions.Font.get -> OfficeIMO.Pdf.PdfStandardFont
 OfficeIMO.Pdf.PdfBatesNumberingOptions.Font.set -> void
@@ -655,11 +655,11 @@ OfficeIMO.Pdf.PdfCanvasTableHeaderScope.Row = 0 -> OfficeIMO.Pdf.PdfCanvasTableH
 OfficeIMO.Pdf.PdfCanvasTextBoxStyle
 OfficeIMO.Pdf.PdfCanvasTextBoxStyle.Align.get -> OfficeIMO.Pdf.PdfAlign
 OfficeIMO.Pdf.PdfCanvasTextBoxStyle.Align.set -> void
-OfficeIMO.Pdf.PdfCanvasTextBoxStyle.Background.get -> OfficeIMO.Pdf.PdfColor?
+OfficeIMO.Pdf.PdfCanvasTextBoxStyle.Background.get -> OfficeIMO.OfficeColor?
 OfficeIMO.Pdf.PdfCanvasTextBoxStyle.Background.set -> void
 OfficeIMO.Pdf.PdfCanvasTextBoxStyle.BackgroundOpacity.get -> double?
 OfficeIMO.Pdf.PdfCanvasTextBoxStyle.BackgroundOpacity.set -> void
-OfficeIMO.Pdf.PdfCanvasTextBoxStyle.BorderColor.get -> OfficeIMO.Pdf.PdfColor?
+OfficeIMO.Pdf.PdfCanvasTextBoxStyle.BorderColor.get -> OfficeIMO.OfficeColor?
 OfficeIMO.Pdf.PdfCanvasTextBoxStyle.BorderColor.set -> void
 OfficeIMO.Pdf.PdfCanvasTextBoxStyle.BorderDashStyle.get -> OfficeIMO.Drawing.OfficeStrokeDashStyle
 OfficeIMO.Pdf.PdfCanvasTextBoxStyle.BorderDashStyle.set -> void
@@ -691,7 +691,7 @@ OfficeIMO.Pdf.PdfCanvasTextBoxStyle.PaddingX.set -> void
 OfficeIMO.Pdf.PdfCanvasTextBoxStyle.PaddingY.get -> double
 OfficeIMO.Pdf.PdfCanvasTextBoxStyle.PaddingY.set -> void
 OfficeIMO.Pdf.PdfCanvasTextBoxStyle.PdfCanvasTextBoxStyle() -> void
-OfficeIMO.Pdf.PdfCanvasTextBoxStyle.TextColor.get -> OfficeIMO.Pdf.PdfColor?
+OfficeIMO.Pdf.PdfCanvasTextBoxStyle.TextColor.get -> OfficeIMO.OfficeColor?
 OfficeIMO.Pdf.PdfCanvasTextBoxStyle.TextColor.set -> void
 OfficeIMO.Pdf.PdfCanvasTextBoxStyle.VerticalAlign.get -> OfficeIMO.Pdf.PdfVerticalAlign
 OfficeIMO.Pdf.PdfCanvasTextBoxStyle.VerticalAlign.set -> void
@@ -732,7 +732,7 @@ OfficeIMO.Pdf.PdfCellBorder.Bottom.set -> void
 OfficeIMO.Pdf.PdfCellBorder.BottomBorder.get -> OfficeIMO.Pdf.PdfCellBorderSide?
 OfficeIMO.Pdf.PdfCellBorder.BottomBorder.set -> void
 OfficeIMO.Pdf.PdfCellBorder.Clone() -> OfficeIMO.Pdf.PdfCellBorder!
-OfficeIMO.Pdf.PdfCellBorder.Color.get -> OfficeIMO.Pdf.PdfColor?
+OfficeIMO.Pdf.PdfCellBorder.Color.get -> OfficeIMO.OfficeColor?
 OfficeIMO.Pdf.PdfCellBorder.Color.set -> void
 OfficeIMO.Pdf.PdfCellBorder.DashStyle.get -> OfficeIMO.Drawing.OfficeStrokeDashStyle
 OfficeIMO.Pdf.PdfCellBorder.DashStyle.set -> void
@@ -774,7 +774,7 @@ OfficeIMO.Pdf.PdfCellBorderLineStyle.Standard = 0 -> OfficeIMO.Pdf.PdfCellBorder
 OfficeIMO.Pdf.PdfCellBorderLineStyle.TwoLine = 1 -> OfficeIMO.Pdf.PdfCellBorderLineStyle
 OfficeIMO.Pdf.PdfCellBorderSide
 OfficeIMO.Pdf.PdfCellBorderSide.Clone() -> OfficeIMO.Pdf.PdfCellBorderSide!
-OfficeIMO.Pdf.PdfCellBorderSide.Color.get -> OfficeIMO.Pdf.PdfColor?
+OfficeIMO.Pdf.PdfCellBorderSide.Color.get -> OfficeIMO.OfficeColor?
 OfficeIMO.Pdf.PdfCellBorderSide.Color.set -> void
 OfficeIMO.Pdf.PdfCellBorderSide.DashStyle.get -> OfficeIMO.Drawing.OfficeStrokeDashStyle
 OfficeIMO.Pdf.PdfCellBorderSide.DashStyle.set -> void
@@ -785,7 +785,7 @@ OfficeIMO.Pdf.PdfCellBorderSide.Width.get -> double
 OfficeIMO.Pdf.PdfCellBorderSide.Width.set -> void
 OfficeIMO.Pdf.PdfCellDataBar
 OfficeIMO.Pdf.PdfCellDataBar.Clone() -> OfficeIMO.Pdf.PdfCellDataBar!
-OfficeIMO.Pdf.PdfCellDataBar.Color.get -> OfficeIMO.Pdf.PdfColor
+OfficeIMO.Pdf.PdfCellDataBar.Color.get -> OfficeIMO.OfficeColor
 OfficeIMO.Pdf.PdfCellDataBar.Color.set -> void
 OfficeIMO.Pdf.PdfCellDataBar.PdfCellDataBar() -> void
 OfficeIMO.Pdf.PdfCellDataBar.Ratio.get -> double
@@ -794,7 +794,7 @@ OfficeIMO.Pdf.PdfCellDataBar.StartRatio.get -> double
 OfficeIMO.Pdf.PdfCellDataBar.StartRatio.set -> void
 OfficeIMO.Pdf.PdfCellIcon
 OfficeIMO.Pdf.PdfCellIcon.Clone() -> OfficeIMO.Pdf.PdfCellIcon!
-OfficeIMO.Pdf.PdfCellIcon.Color.get -> OfficeIMO.Pdf.PdfColor
+OfficeIMO.Pdf.PdfCellIcon.Color.get -> OfficeIMO.OfficeColor
 OfficeIMO.Pdf.PdfCellIcon.Color.set -> void
 OfficeIMO.Pdf.PdfCellIcon.HorizontalAlignment.get -> OfficeIMO.Pdf.PdfColumnAlign?
 OfficeIMO.Pdf.PdfCellIcon.HorizontalAlignment.set -> void
@@ -857,13 +857,6 @@ OfficeIMO.Pdf.PdfCmsSignatureCryptographyProvider
 OfficeIMO.Pdf.PdfCmsSignatureCryptographyProvider.Name.get -> string!
 OfficeIMO.Pdf.PdfCmsSignatureCryptographyProvider.PdfCmsSignatureCryptographyProvider(OfficeIMO.Security.IOfficeSecurityProvider! securityProvider, OfficeIMO.Security.CmsVerificationOptions? options = null) -> void
 OfficeIMO.Pdf.PdfCmsSignatureCryptographyProvider.Verify(OfficeIMO.Pdf.PdfSignatureCryptographyInput! input) -> OfficeIMO.Pdf.PdfSignatureCryptographicResult!
-OfficeIMO.Pdf.PdfColor
-OfficeIMO.Pdf.PdfColor.B.get -> double
-OfficeIMO.Pdf.PdfColor.G.get -> double
-OfficeIMO.Pdf.PdfColor.PdfColor() -> void
-OfficeIMO.Pdf.PdfColor.PdfColor(double r, double g, double b) -> void
-OfficeIMO.Pdf.PdfColor.R.get -> double
-OfficeIMO.Pdf.PdfColor.ToOfficeColor(byte alpha = 255) -> OfficeIMO.OfficeColor
 OfficeIMO.Pdf.PdfColumnAlign
 OfficeIMO.Pdf.PdfColumnAlign.Center = 1 -> OfficeIMO.Pdf.PdfColumnAlign
 OfficeIMO.Pdf.PdfColumnAlign.Left = 0 -> OfficeIMO.Pdf.PdfColumnAlign
@@ -951,7 +944,7 @@ OfficeIMO.Pdf.PdfComplianceRequirementStatus.Satisfied = 0 -> OfficeIMO.Pdf.PdfC
 OfficeIMO.Pdf.PdfComplianceRequirementStatus.Unsupported = 2 -> OfficeIMO.Pdf.PdfComplianceRequirementStatus
 OfficeIMO.Pdf.PdfContentBuilder
 OfficeIMO.Pdf.PdfContentBuilder.Bookmark(string! name) -> OfficeIMO.Pdf.PdfContentBuilder!
-OfficeIMO.Pdf.PdfContentBuilder.Bullets(System.Collections.Generic.IEnumerable<string!>! items, OfficeIMO.Pdf.PdfAlign align = OfficeIMO.Pdf.PdfAlign.Left, OfficeIMO.Pdf.PdfColor? color = null, OfficeIMO.Pdf.PdfListStyle? style = null) -> OfficeIMO.Pdf.PdfContentBuilder!
+OfficeIMO.Pdf.PdfContentBuilder.Bullets(System.Collections.Generic.IEnumerable<string!>! items, OfficeIMO.Pdf.PdfAlign align = OfficeIMO.Pdf.PdfAlign.Left, OfficeIMO.OfficeColor? color = null, OfficeIMO.Pdf.PdfListStyle? style = null) -> OfficeIMO.Pdf.PdfContentBuilder!
 OfficeIMO.Pdf.PdfContentBuilder.Canvas(System.Action<OfficeIMO.Pdf.PdfPageCanvas!>! build) -> OfficeIMO.Pdf.PdfContentBuilder!
 OfficeIMO.Pdf.PdfContentBuilder.CheckBox(string! name, bool isChecked = false, double size = 14, OfficeIMO.Pdf.PdfAlign align = OfficeIMO.Pdf.PdfAlign.Left, double spacingBefore = 0, double spacingAfter = 6, string! checkedValueName = "Yes", OfficeIMO.Pdf.PdfFormFieldStyle? style = null) -> OfficeIMO.Pdf.PdfContentBuilder!
 OfficeIMO.Pdf.PdfContentBuilder.ChoiceField(string! name, System.Collections.Generic.IEnumerable<string!>! options, string? value = null, double width = 180, double height = 22, OfficeIMO.Pdf.PdfAlign align = OfficeIMO.Pdf.PdfAlign.Left, double fontSize = 10, double spacingBefore = 0, double spacingAfter = 6, bool isComboBox = true, OfficeIMO.Pdf.PdfFormFieldStyle? style = null) -> OfficeIMO.Pdf.PdfContentBuilder!
@@ -964,18 +957,18 @@ OfficeIMO.Pdf.PdfContentBuilder.Deferred(System.Func<OfficeIMO.Pdf.PdfFlowContex
 OfficeIMO.Pdf.PdfContentBuilder.DefineFootnote(System.Action<OfficeIMO.Pdf.PdfContentBuilder!>! build, OfficeIMO.Pdf.PdfFootnoteOptions? options = null) -> OfficeIMO.Pdf.PdfFootnoteDefinition!
 OfficeIMO.Pdf.PdfContentBuilder.Drawing(OfficeIMO.Drawing.OfficeDrawing! drawing, OfficeIMO.Pdf.PdfAlign? align = null, double? spacingBefore = null, double? spacingAfter = null, OfficeIMO.Pdf.PdfDrawingStyle? style = null, string? linkUri = null, string? linkContents = null) -> OfficeIMO.Pdf.PdfContentBuilder!
 OfficeIMO.Pdf.PdfContentBuilder.Element(System.Action<OfficeIMO.Pdf.PdfElementBuilder!>! build) -> OfficeIMO.Pdf.PdfContentBuilder!
-OfficeIMO.Pdf.PdfContentBuilder.Ellipse(double width, double height, OfficeIMO.Pdf.PdfColor? strokeColor = null, double strokeWidth = 1, OfficeIMO.Pdf.PdfColor? fillColor = null, OfficeIMO.Pdf.PdfAlign? align = null, double? spacingBefore = null, double? spacingAfter = null, OfficeIMO.Drawing.OfficeStrokeDashStyle strokeDashStyle = OfficeIMO.Drawing.OfficeStrokeDashStyle.Solid, OfficeIMO.Drawing.OfficeStrokeLineCap? strokeLineCap = null, OfficeIMO.Drawing.OfficeStrokeLineJoin? strokeLineJoin = null, OfficeIMO.Pdf.PdfDrawingStyle? style = null, string? linkUri = null, string? linkContents = null) -> OfficeIMO.Pdf.PdfContentBuilder!
+OfficeIMO.Pdf.PdfContentBuilder.Ellipse(double width, double height, OfficeIMO.OfficeColor? strokeColor = null, double strokeWidth = 1, OfficeIMO.OfficeColor? fillColor = null, OfficeIMO.Pdf.PdfAlign? align = null, double? spacingBefore = null, double? spacingAfter = null, OfficeIMO.Drawing.OfficeStrokeDashStyle strokeDashStyle = OfficeIMO.Drawing.OfficeStrokeDashStyle.Solid, OfficeIMO.Drawing.OfficeStrokeLineCap? strokeLineCap = null, OfficeIMO.Drawing.OfficeStrokeLineJoin? strokeLineJoin = null, OfficeIMO.Pdf.PdfDrawingStyle? style = null, string? linkUri = null, string? linkContents = null) -> OfficeIMO.Pdf.PdfContentBuilder!
 OfficeIMO.Pdf.PdfContentBuilder.Flow(System.Action<OfficeIMO.Pdf.PdfContentBuilder!>! build, OfficeIMO.Pdf.PdfFlowOptions? options = null, OfficeIMO.Pdf.PdfLayoutPositionCapture? capture = null) -> OfficeIMO.Pdf.PdfContentBuilder!
-OfficeIMO.Pdf.PdfContentBuilder.FreeTextAnnotation(string! contents, double width, double height, OfficeIMO.Pdf.PdfAlign? align = null, double? spacingBefore = null, double? spacingAfter = null, double fontSize = 10, OfficeIMO.Pdf.PdfColor? textColor = null, OfficeIMO.Pdf.PdfColor? borderColor = null, double borderWidth = 1, OfficeIMO.Pdf.PdfColor? fillColor = null, OfficeIMO.Pdf.PdfAlign textAlign = OfficeIMO.Pdf.PdfAlign.Left, double padding = 3, double? lineHeight = null) -> OfficeIMO.Pdf.PdfContentBuilder!
-OfficeIMO.Pdf.PdfContentBuilder.H1(string! text, OfficeIMO.Pdf.PdfAlign align, OfficeIMO.Pdf.PdfColor? color = null, string? linkUri = null, OfficeIMO.Pdf.PdfHeadingStyle? style = null, string? linkContents = null, string? linkDestinationName = null) -> OfficeIMO.Pdf.PdfContentBuilder!
+OfficeIMO.Pdf.PdfContentBuilder.FreeTextAnnotation(string! contents, double width, double height, OfficeIMO.Pdf.PdfAlign? align = null, double? spacingBefore = null, double? spacingAfter = null, double fontSize = 10, OfficeIMO.OfficeColor? textColor = null, OfficeIMO.OfficeColor? borderColor = null, double borderWidth = 1, OfficeIMO.OfficeColor? fillColor = null, OfficeIMO.Pdf.PdfAlign textAlign = OfficeIMO.Pdf.PdfAlign.Left, double padding = 3, double? lineHeight = null) -> OfficeIMO.Pdf.PdfContentBuilder!
+OfficeIMO.Pdf.PdfContentBuilder.H1(string! text, OfficeIMO.Pdf.PdfAlign align, OfficeIMO.OfficeColor? color = null, string? linkUri = null, OfficeIMO.Pdf.PdfHeadingStyle? style = null, string? linkContents = null, string? linkDestinationName = null) -> OfficeIMO.Pdf.PdfContentBuilder!
 OfficeIMO.Pdf.PdfContentBuilder.H1(string! text, OfficeIMO.Pdf.PdfHeadingStyle? style = null, string? linkUri = null, string? linkContents = null, string? linkDestinationName = null) -> OfficeIMO.Pdf.PdfContentBuilder!
-OfficeIMO.Pdf.PdfContentBuilder.H2(string! text, OfficeIMO.Pdf.PdfAlign align, OfficeIMO.Pdf.PdfColor? color = null, string? linkUri = null, OfficeIMO.Pdf.PdfHeadingStyle? style = null, string? linkContents = null, string? linkDestinationName = null) -> OfficeIMO.Pdf.PdfContentBuilder!
+OfficeIMO.Pdf.PdfContentBuilder.H2(string! text, OfficeIMO.Pdf.PdfAlign align, OfficeIMO.OfficeColor? color = null, string? linkUri = null, OfficeIMO.Pdf.PdfHeadingStyle? style = null, string? linkContents = null, string? linkDestinationName = null) -> OfficeIMO.Pdf.PdfContentBuilder!
 OfficeIMO.Pdf.PdfContentBuilder.H2(string! text, OfficeIMO.Pdf.PdfHeadingStyle? style = null, string? linkUri = null, string? linkContents = null, string? linkDestinationName = null) -> OfficeIMO.Pdf.PdfContentBuilder!
-OfficeIMO.Pdf.PdfContentBuilder.H3(string! text, OfficeIMO.Pdf.PdfAlign align, OfficeIMO.Pdf.PdfColor? color = null, string? linkUri = null, OfficeIMO.Pdf.PdfHeadingStyle? style = null, string? linkContents = null, string? linkDestinationName = null) -> OfficeIMO.Pdf.PdfContentBuilder!
+OfficeIMO.Pdf.PdfContentBuilder.H3(string! text, OfficeIMO.Pdf.PdfAlign align, OfficeIMO.OfficeColor? color = null, string? linkUri = null, OfficeIMO.Pdf.PdfHeadingStyle? style = null, string? linkContents = null, string? linkDestinationName = null) -> OfficeIMO.Pdf.PdfContentBuilder!
 OfficeIMO.Pdf.PdfContentBuilder.H3(string! text, OfficeIMO.Pdf.PdfHeadingStyle? style = null, string? linkUri = null, string? linkContents = null, string? linkDestinationName = null) -> OfficeIMO.Pdf.PdfContentBuilder!
-OfficeIMO.Pdf.PdfContentBuilder.HR(double? thickness = null, OfficeIMO.Pdf.PdfColor? color = null, double? spacingBefore = null, double? spacingAfter = null, OfficeIMO.Pdf.PdfHorizontalRuleStyle? style = null) -> OfficeIMO.Pdf.PdfContentBuilder!
-OfficeIMO.Pdf.PdfContentBuilder.Heading(int level, string! text, OfficeIMO.Pdf.PdfAlign align = OfficeIMO.Pdf.PdfAlign.Left, OfficeIMO.Pdf.PdfColor? color = null, string? linkUri = null, OfficeIMO.Pdf.PdfHeadingStyle? style = null, string? linkContents = null, string? linkDestinationName = null) -> OfficeIMO.Pdf.PdfContentBuilder!
-OfficeIMO.Pdf.PdfContentBuilder.HighlightAnnotation(string! contents, double width, double height, OfficeIMO.Pdf.PdfAlign? align = null, double? spacingBefore = null, double? spacingAfter = null, OfficeIMO.Pdf.PdfColor? color = null) -> OfficeIMO.Pdf.PdfContentBuilder!
+OfficeIMO.Pdf.PdfContentBuilder.HR(double? thickness = null, OfficeIMO.OfficeColor? color = null, double? spacingBefore = null, double? spacingAfter = null, OfficeIMO.Pdf.PdfHorizontalRuleStyle? style = null) -> OfficeIMO.Pdf.PdfContentBuilder!
+OfficeIMO.Pdf.PdfContentBuilder.Heading(int level, string! text, OfficeIMO.Pdf.PdfAlign align = OfficeIMO.Pdf.PdfAlign.Left, OfficeIMO.OfficeColor? color = null, string? linkUri = null, OfficeIMO.Pdf.PdfHeadingStyle? style = null, string? linkContents = null, string? linkDestinationName = null) -> OfficeIMO.Pdf.PdfContentBuilder!
+OfficeIMO.Pdf.PdfContentBuilder.HighlightAnnotation(string! contents, double width, double height, OfficeIMO.Pdf.PdfAlign? align = null, double? spacingBefore = null, double? spacingAfter = null, OfficeIMO.OfficeColor? color = null) -> OfficeIMO.Pdf.PdfContentBuilder!
 OfficeIMO.Pdf.PdfContentBuilder.Image(byte[]! jpegBytes, double width, double height, OfficeIMO.Pdf.PdfAlign? align = null, OfficeIMO.Drawing.OfficeClipPath? clipPath = null, OfficeIMO.Drawing.OfficeImageFit? fit = null, double? spacingBefore = null, double? spacingAfter = null, OfficeIMO.Pdf.PdfImageStyle? style = null, string? linkUri = null, string? linkContents = null) -> OfficeIMO.Pdf.PdfContentBuilder!
 OfficeIMO.Pdf.PdfContentBuilder.Image(byte[]! jpegBytes, double width, double height, OfficeIMO.Pdf.PdfAlign? align, OfficeIMO.Drawing.OfficeClipPath? clipPath, OfficeIMO.Drawing.OfficeImageFit? fit, double? spacingBefore, double? spacingAfter, OfficeIMO.Pdf.PdfImageStyle? style, string? linkUri, string? linkContents, string? alternativeText) -> OfficeIMO.Pdf.PdfContentBuilder!
 OfficeIMO.Pdf.PdfContentBuilder.Image(byte[]! jpegBytes, double width, double height, string? alternativeText) -> OfficeIMO.Pdf.PdfContentBuilder!
@@ -984,21 +977,21 @@ OfficeIMO.Pdf.PdfContentBuilder.Item(System.Action<OfficeIMO.Pdf.PdfContentBuild
 OfficeIMO.Pdf.PdfContentBuilder.KeyValueTable(System.Collections.Generic.IEnumerable<OfficeIMO.Pdf.PdfKeyValueRow!>! rows, OfficeIMO.Pdf.PdfAlign align = OfficeIMO.Pdf.PdfAlign.Left, OfficeIMO.Pdf.PdfTableStyle? style = null, bool includeHeader = false, string! keyHeader = "Key", string! valueHeader = "Value") -> OfficeIMO.Pdf.PdfContentBuilder!
 OfficeIMO.Pdf.PdfContentBuilder.KeyValueTable(System.Collections.Generic.IEnumerable<System.Collections.Generic.KeyValuePair<string!, string?>>! rows, OfficeIMO.Pdf.PdfAlign align = OfficeIMO.Pdf.PdfAlign.Left, OfficeIMO.Pdf.PdfTableStyle? style = null, bool includeHeader = false, string! keyHeader = "Key", string! valueHeader = "Value") -> OfficeIMO.Pdf.PdfContentBuilder!
 OfficeIMO.Pdf.PdfContentBuilder.Layer(string! name, System.Action<OfficeIMO.Pdf.PdfContentBuilder!>! build, OfficeIMO.Pdf.PdfLayerOptions? options = null) -> OfficeIMO.Pdf.PdfContentBuilder!
-OfficeIMO.Pdf.PdfContentBuilder.Line(double x1, double y1, double x2, double y2, OfficeIMO.Pdf.PdfColor? strokeColor = null, double strokeWidth = 1, OfficeIMO.Pdf.PdfAlign? align = null, double? spacingBefore = null, double? spacingAfter = null, OfficeIMO.Drawing.OfficeStrokeDashStyle strokeDashStyle = OfficeIMO.Drawing.OfficeStrokeDashStyle.Solid, OfficeIMO.Drawing.OfficeStrokeLineCap? strokeLineCap = null, OfficeIMO.Drawing.OfficeStrokeLineJoin? strokeLineJoin = null, OfficeIMO.Pdf.PdfDrawingStyle? style = null, string? linkUri = null, string? linkContents = null) -> OfficeIMO.Pdf.PdfContentBuilder!
+OfficeIMO.Pdf.PdfContentBuilder.Line(double x1, double y1, double x2, double y2, OfficeIMO.OfficeColor? strokeColor = null, double strokeWidth = 1, OfficeIMO.Pdf.PdfAlign? align = null, double? spacingBefore = null, double? spacingAfter = null, OfficeIMO.Drawing.OfficeStrokeDashStyle strokeDashStyle = OfficeIMO.Drawing.OfficeStrokeDashStyle.Solid, OfficeIMO.Drawing.OfficeStrokeLineCap? strokeLineCap = null, OfficeIMO.Drawing.OfficeStrokeLineJoin? strokeLineJoin = null, OfficeIMO.Pdf.PdfDrawingStyle? style = null, string? linkUri = null, string? linkContents = null) -> OfficeIMO.Pdf.PdfContentBuilder!
 OfficeIMO.Pdf.PdfContentBuilder.MultiSelectChoiceField(string! name, System.Collections.Generic.IEnumerable<string!>! options, System.Collections.Generic.IEnumerable<string!>? values = null, double width = 180, double height = 72, OfficeIMO.Pdf.PdfAlign align = OfficeIMO.Pdf.PdfAlign.Left, double fontSize = 10, double spacingBefore = 0, double spacingAfter = 6, OfficeIMO.Pdf.PdfFormFieldStyle? style = null) -> OfficeIMO.Pdf.PdfContentBuilder!
-OfficeIMO.Pdf.PdfContentBuilder.Numbered(System.Collections.Generic.IEnumerable<string!>! items, OfficeIMO.Pdf.PdfAlign align = OfficeIMO.Pdf.PdfAlign.Left, OfficeIMO.Pdf.PdfColor? color = null, int startNumber = 1, OfficeIMO.Pdf.PdfListStyle? style = null) -> OfficeIMO.Pdf.PdfContentBuilder!
+OfficeIMO.Pdf.PdfContentBuilder.Numbered(System.Collections.Generic.IEnumerable<string!>! items, OfficeIMO.Pdf.PdfAlign align = OfficeIMO.Pdf.PdfAlign.Left, OfficeIMO.OfficeColor? color = null, int startNumber = 1, OfficeIMO.Pdf.PdfListStyle? style = null) -> OfficeIMO.Pdf.PdfContentBuilder!
 OfficeIMO.Pdf.PdfContentBuilder.PageBreak() -> OfficeIMO.Pdf.PdfContentBuilder!
 OfficeIMO.Pdf.PdfContentBuilder.PageBreak(bool preserveEmptyPage) -> OfficeIMO.Pdf.PdfContentBuilder!
 OfficeIMO.Pdf.PdfContentBuilder.Panel(System.Action<OfficeIMO.Pdf.PdfContentBuilder!>! build, OfficeIMO.Pdf.PdfPanelStyle? style = null) -> OfficeIMO.Pdf.PdfContentBuilder!
-OfficeIMO.Pdf.PdfContentBuilder.PanelParagraph(System.Action<OfficeIMO.Pdf.PdfParagraphBuilder!>! build, OfficeIMO.Pdf.PdfPanelStyle? style = null, OfficeIMO.Pdf.PdfAlign align = OfficeIMO.Pdf.PdfAlign.Left, OfficeIMO.Pdf.PdfColor? defaultColor = null) -> OfficeIMO.Pdf.PdfContentBuilder!
-OfficeIMO.Pdf.PdfContentBuilder.Paragraph(System.Action<OfficeIMO.Pdf.PdfParagraphBuilder!>! build, OfficeIMO.Pdf.PdfAlign align = OfficeIMO.Pdf.PdfAlign.Left, OfficeIMO.Pdf.PdfColor? defaultColor = null, OfficeIMO.Pdf.PdfParagraphStyle? style = null) -> OfficeIMO.Pdf.PdfContentBuilder!
-OfficeIMO.Pdf.PdfContentBuilder.Path(System.Collections.Generic.IEnumerable<OfficeIMO.Drawing.OfficePathCommand>! commands, OfficeIMO.Pdf.PdfColor? strokeColor = null, double strokeWidth = 1, OfficeIMO.Pdf.PdfColor? fillColor = null, OfficeIMO.Pdf.PdfAlign? align = null, double? spacingBefore = null, double? spacingAfter = null, OfficeIMO.Drawing.OfficeStrokeDashStyle strokeDashStyle = OfficeIMO.Drawing.OfficeStrokeDashStyle.Solid, OfficeIMO.Drawing.OfficeStrokeLineCap? strokeLineCap = null, OfficeIMO.Drawing.OfficeStrokeLineJoin? strokeLineJoin = null, OfficeIMO.Pdf.PdfDrawingStyle? style = null, string? linkUri = null, string? linkContents = null) -> OfficeIMO.Pdf.PdfContentBuilder!
-OfficeIMO.Pdf.PdfContentBuilder.Polygon(System.Collections.Generic.IEnumerable<OfficeIMO.Drawing.OfficePoint>! points, OfficeIMO.Pdf.PdfColor? strokeColor = null, double strokeWidth = 1, OfficeIMO.Pdf.PdfColor? fillColor = null, OfficeIMO.Pdf.PdfAlign? align = null, double? spacingBefore = null, double? spacingAfter = null, OfficeIMO.Drawing.OfficeStrokeDashStyle strokeDashStyle = OfficeIMO.Drawing.OfficeStrokeDashStyle.Solid, OfficeIMO.Drawing.OfficeStrokeLineCap? strokeLineCap = null, OfficeIMO.Drawing.OfficeStrokeLineJoin? strokeLineJoin = null, OfficeIMO.Pdf.PdfDrawingStyle? style = null, string? linkUri = null, string? linkContents = null) -> OfficeIMO.Pdf.PdfContentBuilder!
+OfficeIMO.Pdf.PdfContentBuilder.PanelParagraph(System.Action<OfficeIMO.Pdf.PdfParagraphBuilder!>! build, OfficeIMO.Pdf.PdfPanelStyle? style = null, OfficeIMO.Pdf.PdfAlign align = OfficeIMO.Pdf.PdfAlign.Left, OfficeIMO.OfficeColor? defaultColor = null) -> OfficeIMO.Pdf.PdfContentBuilder!
+OfficeIMO.Pdf.PdfContentBuilder.Paragraph(System.Action<OfficeIMO.Pdf.PdfParagraphBuilder!>! build, OfficeIMO.Pdf.PdfAlign align = OfficeIMO.Pdf.PdfAlign.Left, OfficeIMO.OfficeColor? defaultColor = null, OfficeIMO.Pdf.PdfParagraphStyle? style = null) -> OfficeIMO.Pdf.PdfContentBuilder!
+OfficeIMO.Pdf.PdfContentBuilder.Path(System.Collections.Generic.IEnumerable<OfficeIMO.Drawing.OfficePathCommand>! commands, OfficeIMO.OfficeColor? strokeColor = null, double strokeWidth = 1, OfficeIMO.OfficeColor? fillColor = null, OfficeIMO.Pdf.PdfAlign? align = null, double? spacingBefore = null, double? spacingAfter = null, OfficeIMO.Drawing.OfficeStrokeDashStyle strokeDashStyle = OfficeIMO.Drawing.OfficeStrokeDashStyle.Solid, OfficeIMO.Drawing.OfficeStrokeLineCap? strokeLineCap = null, OfficeIMO.Drawing.OfficeStrokeLineJoin? strokeLineJoin = null, OfficeIMO.Pdf.PdfDrawingStyle? style = null, string? linkUri = null, string? linkContents = null) -> OfficeIMO.Pdf.PdfContentBuilder!
+OfficeIMO.Pdf.PdfContentBuilder.Polygon(System.Collections.Generic.IEnumerable<OfficeIMO.Drawing.OfficePoint>! points, OfficeIMO.OfficeColor? strokeColor = null, double strokeWidth = 1, OfficeIMO.OfficeColor? fillColor = null, OfficeIMO.Pdf.PdfAlign? align = null, double? spacingBefore = null, double? spacingAfter = null, OfficeIMO.Drawing.OfficeStrokeDashStyle strokeDashStyle = OfficeIMO.Drawing.OfficeStrokeDashStyle.Solid, OfficeIMO.Drawing.OfficeStrokeLineCap? strokeLineCap = null, OfficeIMO.Drawing.OfficeStrokeLineJoin? strokeLineJoin = null, OfficeIMO.Pdf.PdfDrawingStyle? style = null, string? linkUri = null, string? linkContents = null) -> OfficeIMO.Pdf.PdfContentBuilder!
 OfficeIMO.Pdf.PdfContentBuilder.RadioButtonGroup(string! name, System.Collections.Generic.IEnumerable<string!>! options, string? value = null, double size = 14, double gap = 6, OfficeIMO.Pdf.PdfAlign align = OfficeIMO.Pdf.PdfAlign.Left, double spacingBefore = 0, double spacingAfter = 6, OfficeIMO.Pdf.PdfFormFieldStyle? style = null) -> OfficeIMO.Pdf.PdfContentBuilder!
-OfficeIMO.Pdf.PdfContentBuilder.Rectangle(double width, double height, OfficeIMO.Pdf.PdfColor? strokeColor = null, double strokeWidth = 1, OfficeIMO.Pdf.PdfColor? fillColor = null, OfficeIMO.Pdf.PdfAlign? align = null, double? spacingBefore = null, double? spacingAfter = null, OfficeIMO.Drawing.OfficeStrokeDashStyle strokeDashStyle = OfficeIMO.Drawing.OfficeStrokeDashStyle.Solid, OfficeIMO.Drawing.OfficeStrokeLineCap? strokeLineCap = null, OfficeIMO.Drawing.OfficeStrokeLineJoin? strokeLineJoin = null, OfficeIMO.Pdf.PdfDrawingStyle? style = null, string? linkUri = null, string? linkContents = null) -> OfficeIMO.Pdf.PdfContentBuilder!
-OfficeIMO.Pdf.PdfContentBuilder.RichBullets(System.Collections.Generic.IEnumerable<OfficeIMO.Pdf.PdfListItem!>! items, OfficeIMO.Pdf.PdfAlign align = OfficeIMO.Pdf.PdfAlign.Left, OfficeIMO.Pdf.PdfColor? color = null, OfficeIMO.Pdf.PdfListStyle? style = null) -> OfficeIMO.Pdf.PdfContentBuilder!
-OfficeIMO.Pdf.PdfContentBuilder.RichNumbered(System.Collections.Generic.IEnumerable<OfficeIMO.Pdf.PdfListItem!>! items, OfficeIMO.Pdf.PdfAlign align = OfficeIMO.Pdf.PdfAlign.Left, OfficeIMO.Pdf.PdfColor? color = null, int startNumber = 1, OfficeIMO.Pdf.PdfListStyle? style = null) -> OfficeIMO.Pdf.PdfContentBuilder!
-OfficeIMO.Pdf.PdfContentBuilder.RoundedRectangle(double width, double height, double cornerRadius, OfficeIMO.Pdf.PdfColor? strokeColor = null, double strokeWidth = 1, OfficeIMO.Pdf.PdfColor? fillColor = null, OfficeIMO.Pdf.PdfAlign? align = null, double? spacingBefore = null, double? spacingAfter = null, OfficeIMO.Drawing.OfficeStrokeDashStyle strokeDashStyle = OfficeIMO.Drawing.OfficeStrokeDashStyle.Solid, OfficeIMO.Drawing.OfficeStrokeLineCap? strokeLineCap = null, OfficeIMO.Drawing.OfficeStrokeLineJoin? strokeLineJoin = null, OfficeIMO.Pdf.PdfDrawingStyle? style = null, string? linkUri = null, string? linkContents = null) -> OfficeIMO.Pdf.PdfContentBuilder!
+OfficeIMO.Pdf.PdfContentBuilder.Rectangle(double width, double height, OfficeIMO.OfficeColor? strokeColor = null, double strokeWidth = 1, OfficeIMO.OfficeColor? fillColor = null, OfficeIMO.Pdf.PdfAlign? align = null, double? spacingBefore = null, double? spacingAfter = null, OfficeIMO.Drawing.OfficeStrokeDashStyle strokeDashStyle = OfficeIMO.Drawing.OfficeStrokeDashStyle.Solid, OfficeIMO.Drawing.OfficeStrokeLineCap? strokeLineCap = null, OfficeIMO.Drawing.OfficeStrokeLineJoin? strokeLineJoin = null, OfficeIMO.Pdf.PdfDrawingStyle? style = null, string? linkUri = null, string? linkContents = null) -> OfficeIMO.Pdf.PdfContentBuilder!
+OfficeIMO.Pdf.PdfContentBuilder.RichBullets(System.Collections.Generic.IEnumerable<OfficeIMO.Pdf.PdfListItem!>! items, OfficeIMO.Pdf.PdfAlign align = OfficeIMO.Pdf.PdfAlign.Left, OfficeIMO.OfficeColor? color = null, OfficeIMO.Pdf.PdfListStyle? style = null) -> OfficeIMO.Pdf.PdfContentBuilder!
+OfficeIMO.Pdf.PdfContentBuilder.RichNumbered(System.Collections.Generic.IEnumerable<OfficeIMO.Pdf.PdfListItem!>! items, OfficeIMO.Pdf.PdfAlign align = OfficeIMO.Pdf.PdfAlign.Left, OfficeIMO.OfficeColor? color = null, int startNumber = 1, OfficeIMO.Pdf.PdfListStyle? style = null) -> OfficeIMO.Pdf.PdfContentBuilder!
+OfficeIMO.Pdf.PdfContentBuilder.RoundedRectangle(double width, double height, double cornerRadius, OfficeIMO.OfficeColor? strokeColor = null, double strokeWidth = 1, OfficeIMO.OfficeColor? fillColor = null, OfficeIMO.Pdf.PdfAlign? align = null, double? spacingBefore = null, double? spacingAfter = null, OfficeIMO.Drawing.OfficeStrokeDashStyle strokeDashStyle = OfficeIMO.Drawing.OfficeStrokeDashStyle.Solid, OfficeIMO.Drawing.OfficeStrokeLineCap? strokeLineCap = null, OfficeIMO.Drawing.OfficeStrokeLineJoin? strokeLineJoin = null, OfficeIMO.Pdf.PdfDrawingStyle? style = null, string? linkUri = null, string? linkContents = null) -> OfficeIMO.Pdf.PdfContentBuilder!
 OfficeIMO.Pdf.PdfContentBuilder.Row(System.Action<OfficeIMO.Pdf.PdfRowBuilder!>! build) -> OfficeIMO.Pdf.PdfContentBuilder!
 OfficeIMO.Pdf.PdfContentBuilder.Section(string! title, System.Action<OfficeIMO.Pdf.PdfContentBuilder!>! build, OfficeIMO.Pdf.PdfSectionOptions? options = null) -> OfficeIMO.Pdf.PdfContentBuilder!
 OfficeIMO.Pdf.PdfContentBuilder.Semantic(OfficeIMO.Pdf.PdfSemanticRole role, System.Action<OfficeIMO.Pdf.PdfContentBuilder!>! build, string? alternativeText = null) -> OfficeIMO.Pdf.PdfContentBuilder!
@@ -1010,8 +1003,8 @@ OfficeIMO.Pdf.PdfContentBuilder.TableDeferred(System.Func<System.Collections.Gen
 OfficeIMO.Pdf.PdfContentBuilder.TableDeferred(System.Func<System.Collections.Generic.IEnumerable<string![]!>!>! rowFactory, int batchSize = 256, OfficeIMO.Pdf.PdfAlign align = OfficeIMO.Pdf.PdfAlign.Left, OfficeIMO.Pdf.PdfTableStyle? style = null) -> OfficeIMO.Pdf.PdfContentBuilder!
 OfficeIMO.Pdf.PdfContentBuilder.TableOfContents(OfficeIMO.Pdf.PdfTableOfContentsOptions? options = null) -> OfficeIMO.Pdf.PdfContentBuilder!
 OfficeIMO.Pdf.PdfContentBuilder.TableWithLinks(System.Collections.Generic.IEnumerable<string![]!>! rows, System.Collections.Generic.Dictionary<(int Row, int Col), string!>! links, OfficeIMO.Pdf.PdfAlign align = OfficeIMO.Pdf.PdfAlign.Left, OfficeIMO.Pdf.PdfTableStyle? style = null) -> OfficeIMO.Pdf.PdfContentBuilder!
-OfficeIMO.Pdf.PdfContentBuilder.Text(string! text, OfficeIMO.Pdf.PdfAlign align = OfficeIMO.Pdf.PdfAlign.Left, OfficeIMO.Pdf.PdfColor? color = null, OfficeIMO.Pdf.PdfParagraphStyle? style = null) -> OfficeIMO.Pdf.PdfContentBuilder!
-OfficeIMO.Pdf.PdfContentBuilder.TextAnnotation(string! contents, double width = 18, double height = 18, OfficeIMO.Pdf.PdfAlign? align = null, double? spacingBefore = null, double? spacingAfter = null, OfficeIMO.Pdf.PdfTextAnnotationIcon icon = OfficeIMO.Pdf.PdfTextAnnotationIcon.Comment, OfficeIMO.Pdf.PdfColor? color = null, bool open = false) -> OfficeIMO.Pdf.PdfContentBuilder!
+OfficeIMO.Pdf.PdfContentBuilder.Text(string! text, OfficeIMO.Pdf.PdfAlign align = OfficeIMO.Pdf.PdfAlign.Left, OfficeIMO.OfficeColor? color = null, OfficeIMO.Pdf.PdfParagraphStyle? style = null) -> OfficeIMO.Pdf.PdfContentBuilder!
+OfficeIMO.Pdf.PdfContentBuilder.TextAnnotation(string! contents, double width = 18, double height = 18, OfficeIMO.Pdf.PdfAlign? align = null, double? spacingBefore = null, double? spacingAfter = null, OfficeIMO.Pdf.PdfTextAnnotationIcon icon = OfficeIMO.Pdf.PdfTextAnnotationIcon.Comment, OfficeIMO.OfficeColor? color = null, bool open = false) -> OfficeIMO.Pdf.PdfContentBuilder!
 OfficeIMO.Pdf.PdfContentBuilder.TextField(string! name, double width = 180, double height = 22, string! value = "", OfficeIMO.Pdf.PdfAlign align = OfficeIMO.Pdf.PdfAlign.Left, double fontSize = 10, double spacingBefore = 0, double spacingAfter = 6, OfficeIMO.Pdf.PdfFormFieldStyle? style = null) -> OfficeIMO.Pdf.PdfContentBuilder!
 OfficeIMO.Pdf.PdfConversionFidelityStatus
 OfficeIMO.Pdf.PdfConversionFidelityStatus.Degraded = 2 -> OfficeIMO.Pdf.PdfConversionFidelityStatus
@@ -1170,11 +1163,7 @@ OfficeIMO.Pdf.PdfConversionProofReport.ThrowIfFailed() -> void
 OfficeIMO.Pdf.PdfConversionProofReport.WarningSummary.get -> OfficeIMO.Pdf.PdfConversionReportSummary!
 OfficeIMO.Pdf.PdfConversionReport
 OfficeIMO.Pdf.PdfConversionReport.Add(OfficeIMO.Pdf.PdfConversionWarning! warning) -> void
-OfficeIMO.Pdf.PdfConversionReport.AddFontDiagnostics(System.Collections.Generic.IEnumerable<OfficeIMO.Pdf.PdfFontEmbeddingDiagnostic!>! diagnostics, string! converter = "OfficeIMO.Pdf") -> void
 OfficeIMO.Pdf.PdfConversionReport.AddRange(System.Collections.Generic.IEnumerable<OfficeIMO.Pdf.PdfConversionWarning!>! warnings) -> void
-OfficeIMO.Pdf.PdfConversionReport.AddTextDiagnostics(System.Collections.Generic.IEnumerable<OfficeIMO.Pdf.PdfTextEncodingDiagnostic!>! diagnostics, string! converter = "OfficeIMO.Pdf") -> void
-OfficeIMO.Pdf.PdfConversionReport.AddTextFallbackPlanDiagnostics(OfficeIMO.Pdf.PdfTextFallbackPlan! plan, string! converter = "OfficeIMO.Pdf") -> void
-OfficeIMO.Pdf.PdfConversionReport.AddTextShapingDiagnostics(System.Collections.Generic.IEnumerable<OfficeIMO.Pdf.PdfTextShapingDiagnostic!>! diagnostics, string! converter = "OfficeIMO.Pdf") -> void
 OfficeIMO.Pdf.PdfConversionReport.Clear() -> void
 OfficeIMO.Pdf.PdfConversionReport.FidelityDiagnostics.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.OfficeConversionFidelityDiagnostic!>!
 OfficeIMO.Pdf.PdfConversionReport.FidelityStatus.get -> OfficeIMO.Pdf.PdfConversionFidelityStatus
@@ -1225,7 +1214,7 @@ OfficeIMO.Pdf.PdfCreateOptions.AddFacturXInvoiceXml(byte[]! ciiXml, string? conf
 OfficeIMO.Pdf.PdfCreateOptions.AddFacturXInvoiceXmlFile(string! ciiXmlPath, string? conformanceLevel = null, string! version = "1.0", OfficeIMO.Pdf.PdfAssociatedFileRelationship relationship = OfficeIMO.Pdf.PdfAssociatedFileRelationship.Data, string? description = "Factur-X/ZUGFeRD invoice XML") -> OfficeIMO.Pdf.PdfCreateOptions!
 OfficeIMO.Pdf.PdfCreateOptions.AddPageLabelRange(int startPageNumber, OfficeIMO.Pdf.PdfPageNumberStyle style, int startNumber = 1, string? prefix = null) -> OfficeIMO.Pdf.PdfCreateOptions!
 OfficeIMO.Pdf.PdfCreateOptions.ApplyTheme(OfficeIMO.Pdf.PdfTheme! theme) -> OfficeIMO.Pdf.PdfCreateOptions!
-OfficeIMO.Pdf.PdfCreateOptions.BackgroundColor.get -> OfficeIMO.Pdf.PdfColor?
+OfficeIMO.Pdf.PdfCreateOptions.BackgroundColor.get -> OfficeIMO.OfficeColor?
 OfficeIMO.Pdf.PdfCreateOptions.BackgroundColor.set -> void
 OfficeIMO.Pdf.PdfCreateOptions.BlackPreservationMode.get -> OfficeIMO.Pdf.PdfBlackPreservationMode
 OfficeIMO.Pdf.PdfCreateOptions.BlackPreservationMode.set -> void
@@ -1293,7 +1282,7 @@ OfficeIMO.Pdf.PdfCreateOptions.DefaultRowStyle.get -> OfficeIMO.Pdf.PdfRowStyle?
 OfficeIMO.Pdf.PdfCreateOptions.DefaultRowStyle.set -> void
 OfficeIMO.Pdf.PdfCreateOptions.DefaultTableStyle.get -> OfficeIMO.Pdf.PdfTableStyle?
 OfficeIMO.Pdf.PdfCreateOptions.DefaultTableStyle.set -> void
-OfficeIMO.Pdf.PdfCreateOptions.DefaultTextColor.get -> OfficeIMO.Pdf.PdfColor?
+OfficeIMO.Pdf.PdfCreateOptions.DefaultTextColor.get -> OfficeIMO.OfficeColor?
 OfficeIMO.Pdf.PdfCreateOptions.DefaultTextColor.set -> void
 OfficeIMO.Pdf.PdfCreateOptions.DifferentFirstPageHeaderFooter.get -> bool
 OfficeIMO.Pdf.PdfCreateOptions.DifferentFirstPageHeaderFooter.set -> void
@@ -1351,7 +1340,7 @@ OfficeIMO.Pdf.PdfCreateOptions.FooterOffsetY.get -> double
 OfficeIMO.Pdf.PdfCreateOptions.FooterOffsetY.set -> void
 OfficeIMO.Pdf.PdfCreateOptions.FooterSegments.get -> System.Collections.Generic.List<OfficeIMO.Pdf.PdfFooterSegment!>?
 OfficeIMO.Pdf.PdfCreateOptions.FooterSegments.set -> void
-OfficeIMO.Pdf.PdfCreateOptions.FooterTextColor.get -> OfficeIMO.Pdf.PdfColor?
+OfficeIMO.Pdf.PdfCreateOptions.FooterTextColor.get -> OfficeIMO.OfficeColor?
 OfficeIMO.Pdf.PdfCreateOptions.FooterTextColor.set -> void
 OfficeIMO.Pdf.PdfCreateOptions.HasEmbeddedStandardFontFamily(OfficeIMO.Pdf.PdfStandardFont font) -> bool
 OfficeIMO.Pdf.PdfCreateOptions.HasExplicitDefaultFont.get -> bool
@@ -1371,7 +1360,7 @@ OfficeIMO.Pdf.PdfCreateOptions.HeaderFormat.get -> string!
 OfficeIMO.Pdf.PdfCreateOptions.HeaderFormat.set -> void
 OfficeIMO.Pdf.PdfCreateOptions.HeaderOffsetY.get -> double
 OfficeIMO.Pdf.PdfCreateOptions.HeaderOffsetY.set -> void
-OfficeIMO.Pdf.PdfCreateOptions.HeaderTextColor.get -> OfficeIMO.Pdf.PdfColor?
+OfficeIMO.Pdf.PdfCreateOptions.HeaderTextColor.get -> OfficeIMO.OfficeColor?
 OfficeIMO.Pdf.PdfCreateOptions.HeaderTextColor.set -> void
 OfficeIMO.Pdf.PdfCreateOptions.ImageOptimization.get -> OfficeIMO.Pdf.PdfImageOptimizationOptions?
 OfficeIMO.Pdf.PdfCreateOptions.ImageOptimization.set -> void
@@ -1451,7 +1440,7 @@ OfficeIMO.Pdf.PdfCreateOptions.PdfXProductionMetadata.get -> OfficeIMO.Pdf.PdfXP
 OfficeIMO.Pdf.PdfCreateOptions.PdfXProductionMetadata.set -> void
 OfficeIMO.Pdf.PdfCreateOptions.PdfXRenderingIntent.get -> OfficeIMO.Drawing.OfficeIccRenderingIntent
 OfficeIMO.Pdf.PdfCreateOptions.PdfXRenderingIntent.set -> void
-OfficeIMO.Pdf.PdfCreateOptions.PdfXTransparencyBackground.get -> OfficeIMO.Pdf.PdfColor
+OfficeIMO.Pdf.PdfCreateOptions.PdfXTransparencyBackground.get -> OfficeIMO.OfficeColor
 OfficeIMO.Pdf.PdfCreateOptions.PdfXTransparencyBackground.set -> void
 OfficeIMO.Pdf.PdfCreateOptions.Portfolio.get -> OfficeIMO.Pdf.PdfPortfolioOptions?
 OfficeIMO.Pdf.PdfCreateOptions.Portfolio.set -> void
@@ -2702,8 +2691,8 @@ OfficeIMO.Pdf.PdfElectronicInvoiceMetadata.Version.get -> string!
 OfficeIMO.Pdf.PdfElectronicInvoiceMetadata.Version.set -> void
 OfficeIMO.Pdf.PdfElementBuilder
 OfficeIMO.Pdf.PdfElementBuilder.Align(OfficeIMO.Pdf.PdfAlign align) -> OfficeIMO.Pdf.PdfElementBuilder!
-OfficeIMO.Pdf.PdfElementBuilder.Background(OfficeIMO.Pdf.PdfColor color) -> OfficeIMO.Pdf.PdfElementBuilder!
-OfficeIMO.Pdf.PdfElementBuilder.Border(OfficeIMO.Pdf.PdfColor color, double width = 1) -> OfficeIMO.Pdf.PdfElementBuilder!
+OfficeIMO.Pdf.PdfElementBuilder.Background(OfficeIMO.OfficeColor color) -> OfficeIMO.Pdf.PdfElementBuilder!
+OfficeIMO.Pdf.PdfElementBuilder.Border(OfficeIMO.OfficeColor color, double width = 1) -> OfficeIMO.Pdf.PdfElementBuilder!
 OfficeIMO.Pdf.PdfElementBuilder.Content(System.Action<OfficeIMO.Pdf.PdfContentBuilder!>! build) -> OfficeIMO.Pdf.PdfElementBuilder!
 OfficeIMO.Pdf.PdfElementBuilder.KeepTogether(bool value = true) -> OfficeIMO.Pdf.PdfElementBuilder!
 OfficeIMO.Pdf.PdfElementBuilder.KeepWithNext(bool value = true) -> OfficeIMO.Pdf.PdfElementBuilder!
@@ -3078,7 +3067,7 @@ OfficeIMO.Pdf.PdfFooterBuilder
 OfficeIMO.Pdf.PdfFooterBuilder.AlignCenter() -> OfficeIMO.Pdf.PdfFooterBuilder!
 OfficeIMO.Pdf.PdfFooterBuilder.AlignLeft() -> OfficeIMO.Pdf.PdfFooterBuilder!
 OfficeIMO.Pdf.PdfFooterBuilder.AlignRight() -> OfficeIMO.Pdf.PdfFooterBuilder!
-OfficeIMO.Pdf.PdfFooterBuilder.Color(OfficeIMO.Pdf.PdfColor color) -> OfficeIMO.Pdf.PdfFooterBuilder!
+OfficeIMO.Pdf.PdfFooterBuilder.Color(OfficeIMO.OfficeColor color) -> OfficeIMO.Pdf.PdfFooterBuilder!
 OfficeIMO.Pdf.PdfFooterBuilder.Content(System.Action<OfficeIMO.Pdf.PdfContentBuilder!>! build, double distanceFromEdge, double bodyGap = 0) -> OfficeIMO.Pdf.PdfFooterBuilder!
 OfficeIMO.Pdf.PdfFooterBuilder.Content(System.Func<OfficeIMO.Pdf.PdfRunningContentContext!, System.Action<OfficeIMO.Pdf.PdfContentBuilder!>!>! build, double distanceFromEdge, double bodyGap = 0) -> OfficeIMO.Pdf.PdfFooterBuilder!
 OfficeIMO.Pdf.PdfFooterBuilder.EvenPagesContent(System.Action<OfficeIMO.Pdf.PdfContentBuilder!>! build, double distanceFromEdge, double bodyGap = 0) -> OfficeIMO.Pdf.PdfFooterBuilder!
@@ -3302,9 +3291,9 @@ OfficeIMO.Pdf.PdfFormFieldOption.PdfFormFieldOption(string! exportValue, string!
 OfficeIMO.Pdf.PdfFormFieldStyle
 OfficeIMO.Pdf.PdfFormFieldStyle.AlternateName.get -> string?
 OfficeIMO.Pdf.PdfFormFieldStyle.AlternateName.set -> void
-OfficeIMO.Pdf.PdfFormFieldStyle.BackgroundColor.get -> OfficeIMO.Pdf.PdfColor?
+OfficeIMO.Pdf.PdfFormFieldStyle.BackgroundColor.get -> OfficeIMO.OfficeColor?
 OfficeIMO.Pdf.PdfFormFieldStyle.BackgroundColor.set -> void
-OfficeIMO.Pdf.PdfFormFieldStyle.BorderColor.get -> OfficeIMO.Pdf.PdfColor?
+OfficeIMO.Pdf.PdfFormFieldStyle.BorderColor.get -> OfficeIMO.OfficeColor?
 OfficeIMO.Pdf.PdfFormFieldStyle.BorderColor.set -> void
 OfficeIMO.Pdf.PdfFormFieldStyle.BorderDashPattern.get -> System.Collections.Generic.IReadOnlyList<double>?
 OfficeIMO.Pdf.PdfFormFieldStyle.BorderDashPattern.set -> void
@@ -3341,14 +3330,14 @@ OfficeIMO.Pdf.PdfFormFieldStyle.IsSortedChoice.get -> bool
 OfficeIMO.Pdf.PdfFormFieldStyle.IsSortedChoice.set -> void
 OfficeIMO.Pdf.PdfFormFieldStyle.MappingName.get -> string?
 OfficeIMO.Pdf.PdfFormFieldStyle.MappingName.set -> void
-OfficeIMO.Pdf.PdfFormFieldStyle.MarkColor.get -> OfficeIMO.Pdf.PdfColor
+OfficeIMO.Pdf.PdfFormFieldStyle.MarkColor.get -> OfficeIMO.OfficeColor
 OfficeIMO.Pdf.PdfFormFieldStyle.MarkColor.set -> void
 OfficeIMO.Pdf.PdfFormFieldStyle.MaxLength.get -> int?
 OfficeIMO.Pdf.PdfFormFieldStyle.MaxLength.set -> void
 OfficeIMO.Pdf.PdfFormFieldStyle.PdfFormFieldStyle() -> void
 OfficeIMO.Pdf.PdfFormFieldStyle.TextAlignment.get -> OfficeIMO.Pdf.PdfFormFieldTextAlignment?
 OfficeIMO.Pdf.PdfFormFieldStyle.TextAlignment.set -> void
-OfficeIMO.Pdf.PdfFormFieldStyle.TextColor.get -> OfficeIMO.Pdf.PdfColor
+OfficeIMO.Pdf.PdfFormFieldStyle.TextColor.get -> OfficeIMO.OfficeColor
 OfficeIMO.Pdf.PdfFormFieldStyle.TextColor.set -> void
 OfficeIMO.Pdf.PdfFormFieldTextAlignment
 OfficeIMO.Pdf.PdfFormFieldTextAlignment.Center = 2 -> OfficeIMO.Pdf.PdfFormFieldTextAlignment
@@ -3447,7 +3436,7 @@ OfficeIMO.Pdf.PdfHeaderBuilder
 OfficeIMO.Pdf.PdfHeaderBuilder.AlignCenter() -> OfficeIMO.Pdf.PdfHeaderBuilder!
 OfficeIMO.Pdf.PdfHeaderBuilder.AlignLeft() -> OfficeIMO.Pdf.PdfHeaderBuilder!
 OfficeIMO.Pdf.PdfHeaderBuilder.AlignRight() -> OfficeIMO.Pdf.PdfHeaderBuilder!
-OfficeIMO.Pdf.PdfHeaderBuilder.Color(OfficeIMO.Pdf.PdfColor color) -> OfficeIMO.Pdf.PdfHeaderBuilder!
+OfficeIMO.Pdf.PdfHeaderBuilder.Color(OfficeIMO.OfficeColor color) -> OfficeIMO.Pdf.PdfHeaderBuilder!
 OfficeIMO.Pdf.PdfHeaderBuilder.Content(System.Action<OfficeIMO.Pdf.PdfContentBuilder!>! build, double distanceFromEdge, double bodyGap = 0) -> OfficeIMO.Pdf.PdfHeaderBuilder!
 OfficeIMO.Pdf.PdfHeaderBuilder.Content(System.Func<OfficeIMO.Pdf.PdfRunningContentContext!, System.Action<OfficeIMO.Pdf.PdfContentBuilder!>!>! build, double distanceFromEdge, double bodyGap = 0) -> OfficeIMO.Pdf.PdfHeaderBuilder!
 OfficeIMO.Pdf.PdfHeaderBuilder.EvenPagesContent(System.Action<OfficeIMO.Pdf.PdfContentBuilder!>! build, double distanceFromEdge, double bodyGap = 0) -> OfficeIMO.Pdf.PdfHeaderBuilder!
@@ -3522,7 +3511,7 @@ OfficeIMO.Pdf.PdfHeadingStyle.Bold.get -> bool
 OfficeIMO.Pdf.PdfHeadingStyle.Bold.set -> void
 OfficeIMO.Pdf.PdfHeadingStyle.ClearTabStops() -> void
 OfficeIMO.Pdf.PdfHeadingStyle.Clone() -> OfficeIMO.Pdf.PdfHeadingStyle!
-OfficeIMO.Pdf.PdfHeadingStyle.Color.get -> OfficeIMO.Pdf.PdfColor?
+OfficeIMO.Pdf.PdfHeadingStyle.Color.get -> OfficeIMO.OfficeColor?
 OfficeIMO.Pdf.PdfHeadingStyle.Color.set -> void
 OfficeIMO.Pdf.PdfHeadingStyle.Font.get -> OfficeIMO.Pdf.PdfStandardFont?
 OfficeIMO.Pdf.PdfHeadingStyle.Font.set -> void
@@ -3553,7 +3542,7 @@ OfficeIMO.Pdf.PdfHeadingStyles.Level3.set -> void
 OfficeIMO.Pdf.PdfHeadingStyles.PdfHeadingStyles() -> void
 OfficeIMO.Pdf.PdfHorizontalRuleStyle
 OfficeIMO.Pdf.PdfHorizontalRuleStyle.Clone() -> OfficeIMO.Pdf.PdfHorizontalRuleStyle!
-OfficeIMO.Pdf.PdfHorizontalRuleStyle.Color.get -> OfficeIMO.Pdf.PdfColor
+OfficeIMO.Pdf.PdfHorizontalRuleStyle.Color.get -> OfficeIMO.OfficeColor
 OfficeIMO.Pdf.PdfHorizontalRuleStyle.Color.set -> void
 OfficeIMO.Pdf.PdfHorizontalRuleStyle.KeepWithNext.get -> bool
 OfficeIMO.Pdf.PdfHorizontalRuleStyle.KeepWithNext.set -> void
@@ -3802,10 +3791,10 @@ OfficeIMO.Pdf.PdfInferenceEvidence.Contribution.get -> double
 OfficeIMO.Pdf.PdfInferenceEvidence.Message.get -> string!
 OfficeIMO.Pdf.PdfInferenceEvidence.PdfInferenceEvidence(string! code, string! message, double contribution) -> void
 OfficeIMO.Pdf.PdfInlineBox
-OfficeIMO.Pdf.PdfInlineBox.Background.get -> OfficeIMO.Pdf.PdfColor?
-OfficeIMO.Pdf.PdfInlineBox.BorderColor.get -> OfficeIMO.Pdf.PdfColor?
+OfficeIMO.Pdf.PdfInlineBox.Background.get -> OfficeIMO.OfficeColor?
+OfficeIMO.Pdf.PdfInlineBox.BorderColor.get -> OfficeIMO.OfficeColor?
 OfficeIMO.Pdf.PdfInlineBox.BorderWidth.get -> double
-OfficeIMO.Pdf.PdfInlineBox.PdfInlineBox(double width, double height, OfficeIMO.Pdf.PdfColor? background = null, OfficeIMO.Pdf.PdfColor? borderColor = null, double borderWidth = 0.5, string? alternativeText = null, double baselineOffset = 0) -> void
+OfficeIMO.Pdf.PdfInlineBox.PdfInlineBox(double width, double height, OfficeIMO.OfficeColor? background = null, OfficeIMO.OfficeColor? borderColor = null, double borderWidth = 0.5, string? alternativeText = null, double baselineOffset = 0) -> void
 OfficeIMO.Pdf.PdfInlineElement
 OfficeIMO.Pdf.PdfInlineElement.AlternativeText.get -> string?
 OfficeIMO.Pdf.PdfInlineElement.BaselineOffset.get -> double
@@ -3816,9 +3805,9 @@ OfficeIMO.Pdf.PdfInlineImage.Fit.get -> OfficeIMO.Drawing.OfficeImageFit
 OfficeIMO.Pdf.PdfInlineImage.PdfInlineImage(byte[]! imageBytes, double width, double height, OfficeIMO.Pdf.PdfImageStyle! style, double baselineOffset) -> void
 OfficeIMO.Pdf.PdfInlineImage.PdfInlineImage(byte[]! imageBytes, double width, double height, string? alternativeText = null, OfficeIMO.Drawing.OfficeImageFit fit = OfficeIMO.Drawing.OfficeImageFit.Contain, double baselineOffset = 0) -> void
 OfficeIMO.Pdf.PdfInlineRule
-OfficeIMO.Pdf.PdfInlineRule.Color.get -> OfficeIMO.Pdf.PdfColor
+OfficeIMO.Pdf.PdfInlineRule.Color.get -> OfficeIMO.OfficeColor
 OfficeIMO.Pdf.PdfInlineRule.MaximumWidth.get -> double?
-OfficeIMO.Pdf.PdfInlineRule.PdfInlineRule(double height, OfficeIMO.Pdf.PdfColor color, double? maximumWidth = null, double baselineOffset = 0) -> void
+OfficeIMO.Pdf.PdfInlineRule.PdfInlineRule(double height, OfficeIMO.OfficeColor color, double? maximumWidth = null, double baselineOffset = 0) -> void
 OfficeIMO.Pdf.PdfInspectionReadResult
 OfficeIMO.Pdf.PdfInspectionReadResult.CompletedAllSelectedPages.get -> bool
 OfficeIMO.Pdf.PdfInspectionReadResult.Document.get -> OfficeIMO.Pdf.PdfDocumentReadResult!
@@ -4055,7 +4044,7 @@ OfficeIMO.Pdf.PdfListNumbering.UpperAlpha = 7 -> OfficeIMO.Pdf.PdfListNumbering
 OfficeIMO.Pdf.PdfListNumbering.UpperRoman = 5 -> OfficeIMO.Pdf.PdfListNumbering
 OfficeIMO.Pdf.PdfListStyle
 OfficeIMO.Pdf.PdfListStyle.Clone() -> OfficeIMO.Pdf.PdfListStyle!
-OfficeIMO.Pdf.PdfListStyle.Color.get -> OfficeIMO.Pdf.PdfColor?
+OfficeIMO.Pdf.PdfListStyle.Color.get -> OfficeIMO.OfficeColor?
 OfficeIMO.Pdf.PdfListStyle.Color.set -> void
 OfficeIMO.Pdf.PdfListStyle.FontSize.get -> double?
 OfficeIMO.Pdf.PdfListStyle.FontSize.set -> void
@@ -4075,7 +4064,7 @@ OfficeIMO.Pdf.PdfListStyle.MarkerAlign.get -> OfficeIMO.Pdf.PdfAlign?
 OfficeIMO.Pdf.PdfListStyle.MarkerAlign.set -> void
 OfficeIMO.Pdf.PdfListStyle.MarkerBold.get -> bool
 OfficeIMO.Pdf.PdfListStyle.MarkerBold.set -> void
-OfficeIMO.Pdf.PdfListStyle.MarkerColor.get -> OfficeIMO.Pdf.PdfColor?
+OfficeIMO.Pdf.PdfListStyle.MarkerColor.get -> OfficeIMO.OfficeColor?
 OfficeIMO.Pdf.PdfListStyle.MarkerColor.set -> void
 OfficeIMO.Pdf.PdfListStyle.MarkerFont.get -> OfficeIMO.Pdf.PdfStandardFont?
 OfficeIMO.Pdf.PdfListStyle.MarkerFont.set -> void
@@ -4740,7 +4729,7 @@ OfficeIMO.Pdf.PdfMultiColumnOptions.Gap.set -> void
 OfficeIMO.Pdf.PdfMultiColumnOptions.HonorKeepWithNextWhenBalancing.get -> bool
 OfficeIMO.Pdf.PdfMultiColumnOptions.HonorKeepWithNextWhenBalancing.set -> void
 OfficeIMO.Pdf.PdfMultiColumnOptions.PdfMultiColumnOptions() -> void
-OfficeIMO.Pdf.PdfMultiColumnOptions.SeparatorColor.get -> OfficeIMO.Pdf.PdfColor?
+OfficeIMO.Pdf.PdfMultiColumnOptions.SeparatorColor.get -> OfficeIMO.OfficeColor?
 OfficeIMO.Pdf.PdfMultiColumnOptions.SeparatorColor.set -> void
 OfficeIMO.Pdf.PdfMultiColumnOptions.SeparatorWidth.get -> double
 OfficeIMO.Pdf.PdfMultiColumnOptions.SeparatorWidth.set -> void
@@ -5165,7 +5154,7 @@ OfficeIMO.Pdf.PdfPageBackgroundShape.Y.get -> double
 OfficeIMO.Pdf.PdfPageBackgroundShape.Y.set -> void
 OfficeIMO.Pdf.PdfPageBorder
 OfficeIMO.Pdf.PdfPageBorder.Clone() -> OfficeIMO.Pdf.PdfPageBorder!
-OfficeIMO.Pdf.PdfPageBorder.Color.get -> OfficeIMO.Pdf.PdfColor
+OfficeIMO.Pdf.PdfPageBorder.Color.get -> OfficeIMO.OfficeColor
 OfficeIMO.Pdf.PdfPageBorder.Color.set -> void
 OfficeIMO.Pdf.PdfPageBorder.DashStyle.get -> OfficeIMO.Drawing.OfficeStrokeDashStyle
 OfficeIMO.Pdf.PdfPageBorder.DashStyle.set -> void
@@ -5191,18 +5180,18 @@ OfficeIMO.Pdf.PdfPageBox.Right.get -> double
 OfficeIMO.Pdf.PdfPageBox.Top.get -> double
 OfficeIMO.Pdf.PdfPageBox.Width.get -> double
 OfficeIMO.Pdf.PdfPageBuilder
-OfficeIMO.Pdf.PdfPageBuilder.Background(OfficeIMO.Pdf.PdfColor? color) -> OfficeIMO.Pdf.PdfPageBuilder!
-OfficeIMO.Pdf.PdfPageBuilder.BackgroundBottomBand(double height, OfficeIMO.Pdf.PdfColor? fill = null, double insetX = 0, double offsetY = 0, double cornerRadius = 0, OfficeIMO.Pdf.PdfColor? stroke = null, double strokeWidth = 0, double? fillOpacity = null, double? strokeOpacity = null, OfficeIMO.Drawing.OfficeLinearGradient? fillGradient = null) -> OfficeIMO.Pdf.PdfPageBuilder!
-OfficeIMO.Pdf.PdfPageBuilder.BackgroundEllipse(double x, double y, double width, double height, OfficeIMO.Pdf.PdfColor? fill = null, OfficeIMO.Pdf.PdfColor? stroke = null, double strokeWidth = 0, double? fillOpacity = null, double? strokeOpacity = null, OfficeIMO.Drawing.OfficeLinearGradient? fillGradient = null) -> OfficeIMO.Pdf.PdfPageBuilder!
+OfficeIMO.Pdf.PdfPageBuilder.Background(OfficeIMO.OfficeColor? color) -> OfficeIMO.Pdf.PdfPageBuilder!
+OfficeIMO.Pdf.PdfPageBuilder.BackgroundBottomBand(double height, OfficeIMO.OfficeColor? fill = null, double insetX = 0, double offsetY = 0, double cornerRadius = 0, OfficeIMO.OfficeColor? stroke = null, double strokeWidth = 0, double? fillOpacity = null, double? strokeOpacity = null, OfficeIMO.Drawing.OfficeLinearGradient? fillGradient = null) -> OfficeIMO.Pdf.PdfPageBuilder!
+OfficeIMO.Pdf.PdfPageBuilder.BackgroundEllipse(double x, double y, double width, double height, OfficeIMO.OfficeColor? fill = null, OfficeIMO.OfficeColor? stroke = null, double strokeWidth = 0, double? fillOpacity = null, double? strokeOpacity = null, OfficeIMO.Drawing.OfficeLinearGradient? fillGradient = null) -> OfficeIMO.Pdf.PdfPageBuilder!
 OfficeIMO.Pdf.PdfPageBuilder.BackgroundImage(OfficeIMO.Pdf.PdfPageBackgroundImage? image) -> OfficeIMO.Pdf.PdfPageBuilder!
 OfficeIMO.Pdf.PdfPageBuilder.BackgroundImage(byte[]! imageBytes, OfficeIMO.Drawing.OfficeImageFit fit = OfficeIMO.Drawing.OfficeImageFit.Cover, double? opacity = null) -> OfficeIMO.Pdf.PdfPageBuilder!
-OfficeIMO.Pdf.PdfPageBuilder.BackgroundLeftBand(double width, OfficeIMO.Pdf.PdfColor? fill = null, double insetY = 0, double offsetX = 0, double cornerRadius = 0, OfficeIMO.Pdf.PdfColor? stroke = null, double strokeWidth = 0, double? fillOpacity = null, double? strokeOpacity = null, OfficeIMO.Drawing.OfficeLinearGradient? fillGradient = null) -> OfficeIMO.Pdf.PdfPageBuilder!
-OfficeIMO.Pdf.PdfPageBuilder.BackgroundRectangle(double x, double y, double width, double height, OfficeIMO.Pdf.PdfColor? fill = null, OfficeIMO.Pdf.PdfColor? stroke = null, double strokeWidth = 0, double? fillOpacity = null, double? strokeOpacity = null, OfficeIMO.Drawing.OfficeLinearGradient? fillGradient = null) -> OfficeIMO.Pdf.PdfPageBuilder!
-OfficeIMO.Pdf.PdfPageBuilder.BackgroundRightBand(double width, OfficeIMO.Pdf.PdfColor? fill = null, double insetY = 0, double offsetX = 0, double cornerRadius = 0, OfficeIMO.Pdf.PdfColor? stroke = null, double strokeWidth = 0, double? fillOpacity = null, double? strokeOpacity = null, OfficeIMO.Drawing.OfficeLinearGradient? fillGradient = null) -> OfficeIMO.Pdf.PdfPageBuilder!
-OfficeIMO.Pdf.PdfPageBuilder.BackgroundRoundedRectangle(double x, double y, double width, double height, double cornerRadius, OfficeIMO.Pdf.PdfColor? fill = null, OfficeIMO.Pdf.PdfColor? stroke = null, double strokeWidth = 0, double? fillOpacity = null, double? strokeOpacity = null, OfficeIMO.Drawing.OfficeLinearGradient? fillGradient = null) -> OfficeIMO.Pdf.PdfPageBuilder!
+OfficeIMO.Pdf.PdfPageBuilder.BackgroundLeftBand(double width, OfficeIMO.OfficeColor? fill = null, double insetY = 0, double offsetX = 0, double cornerRadius = 0, OfficeIMO.OfficeColor? stroke = null, double strokeWidth = 0, double? fillOpacity = null, double? strokeOpacity = null, OfficeIMO.Drawing.OfficeLinearGradient? fillGradient = null) -> OfficeIMO.Pdf.PdfPageBuilder!
+OfficeIMO.Pdf.PdfPageBuilder.BackgroundRectangle(double x, double y, double width, double height, OfficeIMO.OfficeColor? fill = null, OfficeIMO.OfficeColor? stroke = null, double strokeWidth = 0, double? fillOpacity = null, double? strokeOpacity = null, OfficeIMO.Drawing.OfficeLinearGradient? fillGradient = null) -> OfficeIMO.Pdf.PdfPageBuilder!
+OfficeIMO.Pdf.PdfPageBuilder.BackgroundRightBand(double width, OfficeIMO.OfficeColor? fill = null, double insetY = 0, double offsetX = 0, double cornerRadius = 0, OfficeIMO.OfficeColor? stroke = null, double strokeWidth = 0, double? fillOpacity = null, double? strokeOpacity = null, OfficeIMO.Drawing.OfficeLinearGradient? fillGradient = null) -> OfficeIMO.Pdf.PdfPageBuilder!
+OfficeIMO.Pdf.PdfPageBuilder.BackgroundRoundedRectangle(double x, double y, double width, double height, double cornerRadius, OfficeIMO.OfficeColor? fill = null, OfficeIMO.OfficeColor? stroke = null, double strokeWidth = 0, double? fillOpacity = null, double? strokeOpacity = null, OfficeIMO.Drawing.OfficeLinearGradient? fillGradient = null) -> OfficeIMO.Pdf.PdfPageBuilder!
 OfficeIMO.Pdf.PdfPageBuilder.BackgroundShape(OfficeIMO.Pdf.PdfPageBackgroundShape! shape) -> OfficeIMO.Pdf.PdfPageBuilder!
 OfficeIMO.Pdf.PdfPageBuilder.BackgroundShapes(System.Collections.Generic.IEnumerable<OfficeIMO.Pdf.PdfPageBackgroundShape!>? shapes) -> OfficeIMO.Pdf.PdfPageBuilder!
-OfficeIMO.Pdf.PdfPageBuilder.BackgroundTopBand(double height, OfficeIMO.Pdf.PdfColor? fill = null, double insetX = 0, double offsetY = 0, double cornerRadius = 0, OfficeIMO.Pdf.PdfColor? stroke = null, double strokeWidth = 0, double? fillOpacity = null, double? strokeOpacity = null, OfficeIMO.Drawing.OfficeLinearGradient? fillGradient = null) -> OfficeIMO.Pdf.PdfPageBuilder!
+OfficeIMO.Pdf.PdfPageBuilder.BackgroundTopBand(double height, OfficeIMO.OfficeColor? fill = null, double insetX = 0, double offsetY = 0, double cornerRadius = 0, OfficeIMO.OfficeColor? stroke = null, double strokeWidth = 0, double? fillOpacity = null, double? strokeOpacity = null, OfficeIMO.Drawing.OfficeLinearGradient? fillGradient = null) -> OfficeIMO.Pdf.PdfPageBuilder!
 OfficeIMO.Pdf.PdfPageBuilder.Canvas(System.Action<OfficeIMO.Pdf.PdfPageCanvas!>! build) -> OfficeIMO.Pdf.PdfPageBuilder!
 OfficeIMO.Pdf.PdfPageBuilder.ClearBackgroundShapes() -> OfficeIMO.Pdf.PdfPageBuilder!
 OfficeIMO.Pdf.PdfPageBuilder.Content(System.Action<OfficeIMO.Pdf.PdfContentBuilder!>! build) -> OfficeIMO.Pdf.PdfPageBuilder!
@@ -5221,11 +5210,11 @@ OfficeIMO.Pdf.PdfPageBuilder.DefaultTextStyle(System.Action<OfficeIMO.Pdf.PdfTex
 OfficeIMO.Pdf.PdfPageBuilder.EvenPagesImageWatermark(OfficeIMO.Pdf.PdfImageWatermark? watermark) -> OfficeIMO.Pdf.PdfPageBuilder!
 OfficeIMO.Pdf.PdfPageBuilder.EvenPagesImageWatermark(byte[]! imageBytes, double width, double height, double? opacity = null, double? rotationAngle = null) -> OfficeIMO.Pdf.PdfPageBuilder!
 OfficeIMO.Pdf.PdfPageBuilder.EvenPagesWatermark(OfficeIMO.Pdf.PdfTextWatermark? watermark) -> OfficeIMO.Pdf.PdfPageBuilder!
-OfficeIMO.Pdf.PdfPageBuilder.EvenPagesWatermark(string! text, double? fontSize = null, OfficeIMO.Pdf.PdfColor? color = null, double? opacity = null, double? rotationAngle = null, OfficeIMO.Pdf.PdfStandardFont? font = null, bool bold = true, bool italic = false) -> OfficeIMO.Pdf.PdfPageBuilder!
+OfficeIMO.Pdf.PdfPageBuilder.EvenPagesWatermark(string! text, double? fontSize = null, OfficeIMO.OfficeColor? color = null, double? opacity = null, double? rotationAngle = null, OfficeIMO.Pdf.PdfStandardFont? font = null, bool bold = true, bool italic = false) -> OfficeIMO.Pdf.PdfPageBuilder!
 OfficeIMO.Pdf.PdfPageBuilder.FirstPageImageWatermark(OfficeIMO.Pdf.PdfImageWatermark? watermark) -> OfficeIMO.Pdf.PdfPageBuilder!
 OfficeIMO.Pdf.PdfPageBuilder.FirstPageImageWatermark(byte[]! imageBytes, double width, double height, double? opacity = null, double? rotationAngle = null) -> OfficeIMO.Pdf.PdfPageBuilder!
 OfficeIMO.Pdf.PdfPageBuilder.FirstPageWatermark(OfficeIMO.Pdf.PdfTextWatermark? watermark) -> OfficeIMO.Pdf.PdfPageBuilder!
-OfficeIMO.Pdf.PdfPageBuilder.FirstPageWatermark(string! text, double? fontSize = null, OfficeIMO.Pdf.PdfColor? color = null, double? opacity = null, double? rotationAngle = null, OfficeIMO.Pdf.PdfStandardFont? font = null, bool bold = true, bool italic = false) -> OfficeIMO.Pdf.PdfPageBuilder!
+OfficeIMO.Pdf.PdfPageBuilder.FirstPageWatermark(string! text, double? fontSize = null, OfficeIMO.OfficeColor? color = null, double? opacity = null, double? rotationAngle = null, OfficeIMO.Pdf.PdfStandardFont? font = null, bool bold = true, bool italic = false) -> OfficeIMO.Pdf.PdfPageBuilder!
 OfficeIMO.Pdf.PdfPageBuilder.Footer(System.Action<OfficeIMO.Pdf.PdfFooterBuilder!>! build) -> OfficeIMO.Pdf.PdfPageBuilder!
 OfficeIMO.Pdf.PdfPageBuilder.Header(System.Action<OfficeIMO.Pdf.PdfHeaderBuilder!>! build) -> OfficeIMO.Pdf.PdfPageBuilder!
 OfficeIMO.Pdf.PdfPageBuilder.ImageWatermark(OfficeIMO.Pdf.PdfImageWatermark? watermark) -> OfficeIMO.Pdf.PdfPageBuilder!
@@ -5236,7 +5225,7 @@ OfficeIMO.Pdf.PdfPageBuilder.Margin(double all) -> OfficeIMO.Pdf.PdfPageBuilder!
 OfficeIMO.Pdf.PdfPageBuilder.Margin(double left, double top, double right, double bottom) -> OfficeIMO.Pdf.PdfPageBuilder!
 OfficeIMO.Pdf.PdfPageBuilder.MirrorMargins(bool enabled = true) -> OfficeIMO.Pdf.PdfPageBuilder!
 OfficeIMO.Pdf.PdfPageBuilder.Orientation(OfficeIMO.OfficePageOrientation orientation) -> OfficeIMO.Pdf.PdfPageBuilder!
-OfficeIMO.Pdf.PdfPageBuilder.PageBorder(OfficeIMO.Pdf.PdfColor? color = null, double? width = null, double? inset = null, double? opacity = null, OfficeIMO.Drawing.OfficeStrokeDashStyle dashStyle = OfficeIMO.Drawing.OfficeStrokeDashStyle.Solid) -> OfficeIMO.Pdf.PdfPageBuilder!
+OfficeIMO.Pdf.PdfPageBuilder.PageBorder(OfficeIMO.OfficeColor? color = null, double? width = null, double? inset = null, double? opacity = null, OfficeIMO.Drawing.OfficeStrokeDashStyle dashStyle = OfficeIMO.Drawing.OfficeStrokeDashStyle.Solid) -> OfficeIMO.Pdf.PdfPageBuilder!
 OfficeIMO.Pdf.PdfPageBuilder.PageBorder(OfficeIMO.Pdf.PdfPageBorder? border) -> OfficeIMO.Pdf.PdfPageBuilder!
 OfficeIMO.Pdf.PdfPageBuilder.PageNumberStart(int start) -> OfficeIMO.Pdf.PdfPageBuilder!
 OfficeIMO.Pdf.PdfPageBuilder.PageNumberStyle(OfficeIMO.Pdf.PdfPageNumberStyle style) -> OfficeIMO.Pdf.PdfPageBuilder!
@@ -5263,7 +5252,7 @@ OfficeIMO.Pdf.PdfPageBuilder.UseFontFamily(string! familyName, byte[]! regular, 
 OfficeIMO.Pdf.PdfPageBuilder.UseFontFamily(string! familyName, string! regularPath, string? boldPath = null, string? italicPath = null, string? boldItalicPath = null) -> OfficeIMO.Pdf.PdfPageBuilder!
 OfficeIMO.Pdf.PdfPageBuilder.UseTextFallbacks(OfficeIMO.Pdf.PdfTextFallbackFeatures features = OfficeIMO.Pdf.PdfTextFallbackFeatures.Default) -> OfficeIMO.Pdf.PdfPageBuilder!
 OfficeIMO.Pdf.PdfPageBuilder.Watermark(OfficeIMO.Pdf.PdfTextWatermark? watermark) -> OfficeIMO.Pdf.PdfPageBuilder!
-OfficeIMO.Pdf.PdfPageBuilder.Watermark(string! text, double? fontSize = null, OfficeIMO.Pdf.PdfColor? color = null, double? opacity = null, double? rotationAngle = null, OfficeIMO.Pdf.PdfStandardFont? font = null, bool bold = true, bool italic = false) -> OfficeIMO.Pdf.PdfPageBuilder!
+OfficeIMO.Pdf.PdfPageBuilder.Watermark(string! text, double? fontSize = null, OfficeIMO.OfficeColor? color = null, double? opacity = null, double? rotationAngle = null, OfficeIMO.Pdf.PdfStandardFont? font = null, bool bold = true, bool italic = false) -> OfficeIMO.Pdf.PdfPageBuilder!
 OfficeIMO.Pdf.PdfPageCanvas
 OfficeIMO.Pdf.PdfPageCanvas.ActualText(string! text, System.Action<OfficeIMO.Pdf.PdfPageCanvas!>! build) -> OfficeIMO.Pdf.PdfPageCanvas!
 OfficeIMO.Pdf.PdfPageCanvas.ActualText(string! text, double x, double y, System.Action<OfficeIMO.Pdf.PdfPageCanvas!>! build) -> OfficeIMO.Pdf.PdfPageCanvas!
@@ -5279,8 +5268,8 @@ OfficeIMO.Pdf.PdfPageCanvas.Drawing(OfficeIMO.Drawing.OfficeDrawing! drawing, do
 OfficeIMO.Pdf.PdfPageCanvas.Effect(OfficeIMO.Drawing.OfficeTransform transform, double opacity, OfficeIMO.Drawing.OfficeBlendMode blendMode, System.Action<OfficeIMO.Pdf.PdfPageCanvas!>! build) -> OfficeIMO.Pdf.PdfPageCanvas!
 OfficeIMO.Pdf.PdfPageCanvas.Effect(OfficeIMO.Drawing.OfficeTransform transform, double opacity, System.Action<OfficeIMO.Pdf.PdfPageCanvas!>! build) -> OfficeIMO.Pdf.PdfPageCanvas!
 OfficeIMO.Pdf.PdfPageCanvas.Figure(string! alternativeText, System.Action<OfficeIMO.Pdf.PdfPageCanvas!>! build) -> OfficeIMO.Pdf.PdfPageCanvas!
-OfficeIMO.Pdf.PdfPageCanvas.FreeTextAnnotation(string! contents, double x, double y, double width, double height, double fontSize = 10, OfficeIMO.Pdf.PdfColor? textColor = null, OfficeIMO.Pdf.PdfColor? borderColor = null, double borderWidth = 1, OfficeIMO.Pdf.PdfColor? fillColor = null, OfficeIMO.Pdf.PdfAlign textAlign = OfficeIMO.Pdf.PdfAlign.Left, double padding = 3, double? lineHeight = null) -> OfficeIMO.Pdf.PdfPageCanvas!
-OfficeIMO.Pdf.PdfPageCanvas.HighlightAnnotation(string! contents, double x, double y, double width, double height, OfficeIMO.Pdf.PdfColor? color = null) -> OfficeIMO.Pdf.PdfPageCanvas!
+OfficeIMO.Pdf.PdfPageCanvas.FreeTextAnnotation(string! contents, double x, double y, double width, double height, double fontSize = 10, OfficeIMO.OfficeColor? textColor = null, OfficeIMO.OfficeColor? borderColor = null, double borderWidth = 1, OfficeIMO.OfficeColor? fillColor = null, OfficeIMO.Pdf.PdfAlign textAlign = OfficeIMO.Pdf.PdfAlign.Left, double padding = 3, double? lineHeight = null) -> OfficeIMO.Pdf.PdfPageCanvas!
+OfficeIMO.Pdf.PdfPageCanvas.HighlightAnnotation(string! contents, double x, double y, double width, double height, OfficeIMO.OfficeColor? color = null) -> OfficeIMO.Pdf.PdfPageCanvas!
 OfficeIMO.Pdf.PdfPageCanvas.Image(byte[]! imageBytes, double x, double y, double width, double height, OfficeIMO.Pdf.PdfImageStyle? style = null, string? linkUri = null, string? linkContents = null, string? alternativeText = null, double rotationAngle = 0, bool horizontalFlip = false, bool verticalFlip = false) -> OfficeIMO.Pdf.PdfPageCanvas!
 OfficeIMO.Pdf.PdfPageCanvas.Image(byte[]! imageBytes, double x, double y, double width, double height, OfficeIMO.Pdf.PdfImageStyle? style, string? linkUri, string? linkContents, string? alternativeText, double rotationAngle) -> OfficeIMO.Pdf.PdfPageCanvas!
 OfficeIMO.Pdf.PdfPageCanvas.LinkToNamedDestination(string! destinationName, double x, double y, double width, double height, string? contents = null) -> OfficeIMO.Pdf.PdfPageCanvas!
@@ -5297,10 +5286,10 @@ OfficeIMO.Pdf.PdfPageCanvas.Table(System.Collections.Generic.IEnumerable<OfficeI
 OfficeIMO.Pdf.PdfPageCanvas.Table(System.Collections.Generic.IEnumerable<string![]!>! rows, double x, double y, double width, double height, OfficeIMO.Pdf.PdfTableStyle? style = null, double rotationAngle = 0) -> OfficeIMO.Pdf.PdfPageCanvas!
 OfficeIMO.Pdf.PdfPageCanvas.Table(System.Collections.Generic.IEnumerable<string![]!>! rows, double x, double y, double width, double height, OfficeIMO.Pdf.PdfTableStyle? style, System.Action<OfficeIMO.Pdf.PdfLayoutDiagnostic!>? diagnosticHandler) -> OfficeIMO.Pdf.PdfPageCanvas!
 OfficeIMO.Pdf.PdfPageCanvas.Table(System.Collections.Generic.IEnumerable<string![]!>! rows, double x, double y, double width, double height, OfficeIMO.Pdf.PdfTableStyle? style, double rotationAngle, System.Action<OfficeIMO.Pdf.PdfLayoutDiagnostic!>? diagnosticHandler) -> OfficeIMO.Pdf.PdfPageCanvas!
-OfficeIMO.Pdf.PdfPageCanvas.Text(System.Collections.Generic.IEnumerable<OfficeIMO.Pdf.PdfTextRun!>! runs, OfficeIMO.Pdf.PdfCanvasTextStructureRole structureRole, double x, double y, double width, double height, OfficeIMO.Pdf.PdfColor? defaultColor = null, OfficeIMO.Pdf.PdfAlign align = OfficeIMO.Pdf.PdfAlign.Left, double? fontSize = null, double? lineHeight = null) -> OfficeIMO.Pdf.PdfPageCanvas!
-OfficeIMO.Pdf.PdfPageCanvas.Text(System.Collections.Generic.IEnumerable<OfficeIMO.Pdf.PdfTextRun!>! runs, double x, double y, double width, double height, OfficeIMO.Pdf.PdfColor? defaultColor = null, OfficeIMO.Pdf.PdfAlign align = OfficeIMO.Pdf.PdfAlign.Left, double? fontSize = null, double? lineHeight = null) -> OfficeIMO.Pdf.PdfPageCanvas!
-OfficeIMO.Pdf.PdfPageCanvas.Text(string! text, double x, double y, double width, double height, double? fontSize = null, OfficeIMO.Pdf.PdfColor? color = null, OfficeIMO.Pdf.PdfAlign align = OfficeIMO.Pdf.PdfAlign.Left, OfficeIMO.Pdf.PdfStandardFont? font = null) -> OfficeIMO.Pdf.PdfPageCanvas!
-OfficeIMO.Pdf.PdfPageCanvas.TextAnnotation(string! contents, double x, double y, double width = 18, double height = 18, OfficeIMO.Pdf.PdfTextAnnotationIcon icon = OfficeIMO.Pdf.PdfTextAnnotationIcon.Comment, OfficeIMO.Pdf.PdfColor? color = null, bool open = false) -> OfficeIMO.Pdf.PdfPageCanvas!
+OfficeIMO.Pdf.PdfPageCanvas.Text(System.Collections.Generic.IEnumerable<OfficeIMO.Pdf.PdfTextRun!>! runs, OfficeIMO.Pdf.PdfCanvasTextStructureRole structureRole, double x, double y, double width, double height, OfficeIMO.OfficeColor? defaultColor = null, OfficeIMO.Pdf.PdfAlign align = OfficeIMO.Pdf.PdfAlign.Left, double? fontSize = null, double? lineHeight = null) -> OfficeIMO.Pdf.PdfPageCanvas!
+OfficeIMO.Pdf.PdfPageCanvas.Text(System.Collections.Generic.IEnumerable<OfficeIMO.Pdf.PdfTextRun!>! runs, double x, double y, double width, double height, OfficeIMO.OfficeColor? defaultColor = null, OfficeIMO.Pdf.PdfAlign align = OfficeIMO.Pdf.PdfAlign.Left, double? fontSize = null, double? lineHeight = null) -> OfficeIMO.Pdf.PdfPageCanvas!
+OfficeIMO.Pdf.PdfPageCanvas.Text(string! text, double x, double y, double width, double height, double? fontSize = null, OfficeIMO.OfficeColor? color = null, OfficeIMO.Pdf.PdfAlign align = OfficeIMO.Pdf.PdfAlign.Left, OfficeIMO.Pdf.PdfStandardFont? font = null) -> OfficeIMO.Pdf.PdfPageCanvas!
+OfficeIMO.Pdf.PdfPageCanvas.TextAnnotation(string! contents, double x, double y, double width = 18, double height = 18, OfficeIMO.Pdf.PdfTextAnnotationIcon icon = OfficeIMO.Pdf.PdfTextAnnotationIcon.Comment, OfficeIMO.OfficeColor? color = null, bool open = false) -> OfficeIMO.Pdf.PdfPageCanvas!
 OfficeIMO.Pdf.PdfPageCanvas.TextBox(System.Collections.Generic.IEnumerable<OfficeIMO.Pdf.PdfTextRun!>! runs, double x, double y, double width, double height, OfficeIMO.Pdf.PdfCanvasTextBoxStyle? style = null, double rotationAngle = 0) -> OfficeIMO.Pdf.PdfPageCanvas!
 OfficeIMO.Pdf.PdfPageCanvas.TextBox(System.Collections.Generic.IEnumerable<OfficeIMO.Pdf.PdfTextRun!>! runs, double x, double y, double width, double height, OfficeIMO.Pdf.PdfCanvasTextBoxStyle? style, System.Action<OfficeIMO.Pdf.PdfLayoutDiagnostic!>? diagnosticHandler) -> OfficeIMO.Pdf.PdfPageCanvas!
 OfficeIMO.Pdf.PdfPageCanvas.TextBox(System.Collections.Generic.IEnumerable<OfficeIMO.Pdf.PdfTextRun!>! runs, double x, double y, double width, double height, OfficeIMO.Pdf.PdfCanvasTextBoxStyle? style, double rotationAngle, System.Action<OfficeIMO.Pdf.PdfLayoutDiagnostic!>? diagnosticHandler) -> OfficeIMO.Pdf.PdfPageCanvas!
@@ -5654,7 +5643,7 @@ OfficeIMO.Pdf.PdfPageTransition.Scale.get -> double?
 OfficeIMO.Pdf.PdfPageTransition.Style.get -> string?
 OfficeIMO.Pdf.PdfPanelBorder
 OfficeIMO.Pdf.PdfPanelBorder.Clone() -> OfficeIMO.Pdf.PdfPanelBorder!
-OfficeIMO.Pdf.PdfPanelBorder.Color.get -> OfficeIMO.Pdf.PdfColor?
+OfficeIMO.Pdf.PdfPanelBorder.Color.get -> OfficeIMO.OfficeColor?
 OfficeIMO.Pdf.PdfPanelBorder.Color.set -> void
 OfficeIMO.Pdf.PdfPanelBorder.Offset.get -> double
 OfficeIMO.Pdf.PdfPanelBorder.Offset.set -> void
@@ -5664,9 +5653,9 @@ OfficeIMO.Pdf.PdfPanelBorder.Width.set -> void
 OfficeIMO.Pdf.PdfPanelStyle
 OfficeIMO.Pdf.PdfPanelStyle.Align.get -> OfficeIMO.Pdf.PdfAlign
 OfficeIMO.Pdf.PdfPanelStyle.Align.set -> void
-OfficeIMO.Pdf.PdfPanelStyle.Background.get -> OfficeIMO.Pdf.PdfColor?
+OfficeIMO.Pdf.PdfPanelStyle.Background.get -> OfficeIMO.OfficeColor?
 OfficeIMO.Pdf.PdfPanelStyle.Background.set -> void
-OfficeIMO.Pdf.PdfPanelStyle.BorderColor.get -> OfficeIMO.Pdf.PdfColor?
+OfficeIMO.Pdf.PdfPanelStyle.BorderColor.get -> OfficeIMO.OfficeColor?
 OfficeIMO.Pdf.PdfPanelStyle.BorderColor.set -> void
 OfficeIMO.Pdf.PdfPanelStyle.BorderWidth.get -> double
 OfficeIMO.Pdf.PdfPanelStyle.BorderWidth.set -> void
@@ -5702,13 +5691,13 @@ OfficeIMO.Pdf.PdfPanelStyle.TopBorder.get -> OfficeIMO.Pdf.PdfPanelBorder?
 OfficeIMO.Pdf.PdfPanelStyle.TopBorder.set -> void
 OfficeIMO.Pdf.PdfParagraphBuilder
 OfficeIMO.Pdf.PdfParagraphBuilder.Align.get -> OfficeIMO.Pdf.PdfAlign
-OfficeIMO.Pdf.PdfParagraphBuilder.BackgroundColor(OfficeIMO.Pdf.PdfColor color) -> OfficeIMO.Pdf.PdfParagraphBuilder!
+OfficeIMO.Pdf.PdfParagraphBuilder.BackgroundColor(OfficeIMO.OfficeColor color) -> OfficeIMO.Pdf.PdfParagraphBuilder!
 OfficeIMO.Pdf.PdfParagraphBuilder.Baseline(OfficeIMO.Pdf.PdfTextBaseline baseline) -> OfficeIMO.Pdf.PdfParagraphBuilder!
 OfficeIMO.Pdf.PdfParagraphBuilder.Bold(bool enable = true) -> OfficeIMO.Pdf.PdfParagraphBuilder!
-OfficeIMO.Pdf.PdfParagraphBuilder.Bold(string! text, OfficeIMO.Pdf.PdfColor? color = null) -> OfficeIMO.Pdf.PdfParagraphBuilder!
+OfficeIMO.Pdf.PdfParagraphBuilder.Bold(string! text, OfficeIMO.OfficeColor? color = null) -> OfficeIMO.Pdf.PdfParagraphBuilder!
 OfficeIMO.Pdf.PdfParagraphBuilder.CharacterSpacing(double points) -> OfficeIMO.Pdf.PdfParagraphBuilder!
-OfficeIMO.Pdf.PdfParagraphBuilder.Color(OfficeIMO.Pdf.PdfColor color) -> OfficeIMO.Pdf.PdfParagraphBuilder!
-OfficeIMO.Pdf.PdfParagraphBuilder.DefaultColor.get -> OfficeIMO.Pdf.PdfColor?
+OfficeIMO.Pdf.PdfParagraphBuilder.Color(OfficeIMO.OfficeColor color) -> OfficeIMO.Pdf.PdfParagraphBuilder!
+OfficeIMO.Pdf.PdfParagraphBuilder.DefaultColor.get -> OfficeIMO.OfficeColor?
 OfficeIMO.Pdf.PdfParagraphBuilder.FallbackText(OfficeIMO.Pdf.PdfEmbeddedFontFallbackSet! fallbackSet, string! text, string! source = "") -> OfficeIMO.Pdf.PdfParagraphBuilder!
 OfficeIMO.Pdf.PdfParagraphBuilder.FeatureSettings(OfficeIMO.Drawing.OfficeTextFeatureSettings! settings) -> OfficeIMO.Pdf.PdfParagraphBuilder!
 OfficeIMO.Pdf.PdfParagraphBuilder.Font(OfficeIMO.Pdf.PdfStandardFont font) -> OfficeIMO.Pdf.PdfParagraphBuilder!
@@ -5716,14 +5705,14 @@ OfficeIMO.Pdf.PdfParagraphBuilder.FontFamily(string! familyName) -> OfficeIMO.Pd
 OfficeIMO.Pdf.PdfParagraphBuilder.FontSize(double fontSize) -> OfficeIMO.Pdf.PdfParagraphBuilder!
 OfficeIMO.Pdf.PdfParagraphBuilder.HorizontalTextScaling(double percentage) -> OfficeIMO.Pdf.PdfParagraphBuilder!
 OfficeIMO.Pdf.PdfParagraphBuilder.Inline(OfficeIMO.Pdf.PdfInlineElement! element) -> OfficeIMO.Pdf.PdfParagraphBuilder!
-OfficeIMO.Pdf.PdfParagraphBuilder.InlineBox(double width, double height, OfficeIMO.Pdf.PdfColor? background = null, OfficeIMO.Pdf.PdfColor? borderColor = null, double borderWidth = 0.5, string? alternativeText = null, double baselineOffset = 0) -> OfficeIMO.Pdf.PdfParagraphBuilder!
+OfficeIMO.Pdf.PdfParagraphBuilder.InlineBox(double width, double height, OfficeIMO.OfficeColor? background = null, OfficeIMO.OfficeColor? borderColor = null, double borderWidth = 0.5, string? alternativeText = null, double baselineOffset = 0) -> OfficeIMO.Pdf.PdfParagraphBuilder!
 OfficeIMO.Pdf.PdfParagraphBuilder.InlineImage(byte[]! imageBytes, double width, double height, string? alternativeText = null, OfficeIMO.Drawing.OfficeImageFit fit = OfficeIMO.Drawing.OfficeImageFit.Contain, double baselineOffset = 0) -> OfficeIMO.Pdf.PdfParagraphBuilder!
 OfficeIMO.Pdf.PdfParagraphBuilder.Italic(bool enable = true) -> OfficeIMO.Pdf.PdfParagraphBuilder!
-OfficeIMO.Pdf.PdfParagraphBuilder.Italic(string! text, OfficeIMO.Pdf.PdfColor? color = null) -> OfficeIMO.Pdf.PdfParagraphBuilder!
+OfficeIMO.Pdf.PdfParagraphBuilder.Italic(string! text, OfficeIMO.OfficeColor? color = null) -> OfficeIMO.Pdf.PdfParagraphBuilder!
 OfficeIMO.Pdf.PdfParagraphBuilder.LineBreak() -> OfficeIMO.Pdf.PdfParagraphBuilder!
-OfficeIMO.Pdf.PdfParagraphBuilder.Link(string! text, string! uri, OfficeIMO.Pdf.PdfColor? color = null, bool underline = true, string? contents = null) -> OfficeIMO.Pdf.PdfParagraphBuilder!
-OfficeIMO.Pdf.PdfParagraphBuilder.LinkToBookmark(string! text, string! bookmarkName, OfficeIMO.Pdf.PdfColor? color = null, bool underline = true, string? contents = null) -> OfficeIMO.Pdf.PdfParagraphBuilder!
-OfficeIMO.Pdf.PdfParagraphBuilder.PdfParagraphBuilder(OfficeIMO.Pdf.PdfAlign align, OfficeIMO.Pdf.PdfColor? defaultColor) -> void
+OfficeIMO.Pdf.PdfParagraphBuilder.Link(string! text, string! uri, OfficeIMO.OfficeColor? color = null, bool underline = true, string? contents = null) -> OfficeIMO.Pdf.PdfParagraphBuilder!
+OfficeIMO.Pdf.PdfParagraphBuilder.LinkToBookmark(string! text, string! bookmarkName, OfficeIMO.OfficeColor? color = null, bool underline = true, string? contents = null) -> OfficeIMO.Pdf.PdfParagraphBuilder!
+OfficeIMO.Pdf.PdfParagraphBuilder.PdfParagraphBuilder(OfficeIMO.Pdf.PdfAlign align, OfficeIMO.OfficeColor? defaultColor) -> void
 OfficeIMO.Pdf.PdfParagraphBuilder.ResetBackgroundColor() -> OfficeIMO.Pdf.PdfParagraphBuilder!
 OfficeIMO.Pdf.PdfParagraphBuilder.ResetColor() -> OfficeIMO.Pdf.PdfParagraphBuilder!
 OfficeIMO.Pdf.PdfParagraphBuilder.ResetFeatureSettings() -> OfficeIMO.Pdf.PdfParagraphBuilder!
@@ -5732,19 +5721,19 @@ OfficeIMO.Pdf.PdfParagraphBuilder.ResetFontSize() -> OfficeIMO.Pdf.PdfParagraphB
 OfficeIMO.Pdf.PdfParagraphBuilder.Runs(System.Collections.Generic.IEnumerable<OfficeIMO.Pdf.PdfTextRun!>! runs) -> OfficeIMO.Pdf.PdfParagraphBuilder!
 OfficeIMO.Pdf.PdfParagraphBuilder.Strike(OfficeIMO.Drawing.OfficeTextDecorationStyle style) -> OfficeIMO.Pdf.PdfParagraphBuilder!
 OfficeIMO.Pdf.PdfParagraphBuilder.Strike(bool enable = true) -> OfficeIMO.Pdf.PdfParagraphBuilder!
-OfficeIMO.Pdf.PdfParagraphBuilder.Strikethrough(string! text, OfficeIMO.Drawing.OfficeTextDecorationStyle style, OfficeIMO.Pdf.PdfColor? color = null) -> OfficeIMO.Pdf.PdfParagraphBuilder!
-OfficeIMO.Pdf.PdfParagraphBuilder.Strikethrough(string! text, OfficeIMO.Pdf.PdfColor? color = null) -> OfficeIMO.Pdf.PdfParagraphBuilder!
+OfficeIMO.Pdf.PdfParagraphBuilder.Strikethrough(string! text, OfficeIMO.Drawing.OfficeTextDecorationStyle style, OfficeIMO.OfficeColor? color = null) -> OfficeIMO.Pdf.PdfParagraphBuilder!
+OfficeIMO.Pdf.PdfParagraphBuilder.Strikethrough(string! text, OfficeIMO.OfficeColor? color = null) -> OfficeIMO.Pdf.PdfParagraphBuilder!
 OfficeIMO.Pdf.PdfParagraphBuilder.Subscript(bool enable = true) -> OfficeIMO.Pdf.PdfParagraphBuilder!
-OfficeIMO.Pdf.PdfParagraphBuilder.Subscript(string! text, OfficeIMO.Pdf.PdfColor? color = null) -> OfficeIMO.Pdf.PdfParagraphBuilder!
+OfficeIMO.Pdf.PdfParagraphBuilder.Subscript(string! text, OfficeIMO.OfficeColor? color = null) -> OfficeIMO.Pdf.PdfParagraphBuilder!
 OfficeIMO.Pdf.PdfParagraphBuilder.Superscript(bool enable = true) -> OfficeIMO.Pdf.PdfParagraphBuilder!
-OfficeIMO.Pdf.PdfParagraphBuilder.Superscript(string! text, OfficeIMO.Pdf.PdfColor? color = null) -> OfficeIMO.Pdf.PdfParagraphBuilder!
+OfficeIMO.Pdf.PdfParagraphBuilder.Superscript(string! text, OfficeIMO.OfficeColor? color = null) -> OfficeIMO.Pdf.PdfParagraphBuilder!
 OfficeIMO.Pdf.PdfParagraphBuilder.Tab(OfficeIMO.Pdf.PdfTabLeaderStyle leader = OfficeIMO.Pdf.PdfTabLeaderStyle.None, OfficeIMO.Pdf.PdfTabAlignment alignment = OfficeIMO.Pdf.PdfTabAlignment.Left) -> OfficeIMO.Pdf.PdfParagraphBuilder!
 OfficeIMO.Pdf.PdfParagraphBuilder.Tab(OfficeIMO.Pdf.PdfTabLeaderStyle leader) -> OfficeIMO.Pdf.PdfParagraphBuilder!
 OfficeIMO.Pdf.PdfParagraphBuilder.Text(string! text) -> OfficeIMO.Pdf.PdfParagraphBuilder!
 OfficeIMO.Pdf.PdfParagraphBuilder.Underline(OfficeIMO.Drawing.OfficeTextDecorationStyle style) -> OfficeIMO.Pdf.PdfParagraphBuilder!
 OfficeIMO.Pdf.PdfParagraphBuilder.Underline(bool enable = true) -> OfficeIMO.Pdf.PdfParagraphBuilder!
-OfficeIMO.Pdf.PdfParagraphBuilder.Underlined(string! text, OfficeIMO.Drawing.OfficeTextDecorationStyle style, OfficeIMO.Pdf.PdfColor? color = null) -> OfficeIMO.Pdf.PdfParagraphBuilder!
-OfficeIMO.Pdf.PdfParagraphBuilder.Underlined(string! text, OfficeIMO.Pdf.PdfColor? color = null) -> OfficeIMO.Pdf.PdfParagraphBuilder!
+OfficeIMO.Pdf.PdfParagraphBuilder.Underlined(string! text, OfficeIMO.Drawing.OfficeTextDecorationStyle style, OfficeIMO.OfficeColor? color = null) -> OfficeIMO.Pdf.PdfParagraphBuilder!
+OfficeIMO.Pdf.PdfParagraphBuilder.Underlined(string! text, OfficeIMO.OfficeColor? color = null) -> OfficeIMO.Pdf.PdfParagraphBuilder!
 OfficeIMO.Pdf.PdfParagraphStyle
 OfficeIMO.Pdf.PdfParagraphStyle.AddTabStop(double position, OfficeIMO.Pdf.PdfTabAlignment alignment = OfficeIMO.Pdf.PdfTabAlignment.Left, OfficeIMO.Pdf.PdfTabLeaderStyle leader = OfficeIMO.Pdf.PdfTabLeaderStyle.None) -> OfficeIMO.Pdf.PdfTabStop!
 OfficeIMO.Pdf.PdfParagraphStyle.ClearTabStops() -> void
@@ -6328,7 +6317,7 @@ OfficeIMO.Pdf.PdfRedactionApplyOptions.CancellationToken.get -> System.Threading
 OfficeIMO.Pdf.PdfRedactionApplyOptions.CancellationToken.set -> void
 OfficeIMO.Pdf.PdfRedactionApplyOptions.CleanupScope.get -> OfficeIMO.Pdf.PdfRedactionCleanupScope
 OfficeIMO.Pdf.PdfRedactionApplyOptions.CleanupScope.set -> void
-OfficeIMO.Pdf.PdfRedactionApplyOptions.FillColor.get -> OfficeIMO.Pdf.PdfColor
+OfficeIMO.Pdf.PdfRedactionApplyOptions.FillColor.get -> OfficeIMO.OfficeColor
 OfficeIMO.Pdf.PdfRedactionApplyOptions.FillColor.set -> void
 OfficeIMO.Pdf.PdfRedactionApplyOptions.ImageDecoder.get -> OfficeIMO.Pdf.IPdfRedactionImageDecoder?
 OfficeIMO.Pdf.PdfRedactionApplyOptions.ImageDecoder.set -> void
@@ -6551,7 +6540,7 @@ OfficeIMO.Pdf.PdfRedactionVerificationReport.ThrowIfFailed() -> void
 OfficeIMO.Pdf.PdfRegionText
 OfficeIMO.Pdf.PdfRegionText.BaselineX.get -> double
 OfficeIMO.Pdf.PdfRegionText.BaselineY.get -> double
-OfficeIMO.Pdf.PdfRegionText.Color.get -> OfficeIMO.Pdf.PdfColor
+OfficeIMO.Pdf.PdfRegionText.Color.get -> OfficeIMO.OfficeColor
 OfficeIMO.Pdf.PdfRegionText.FontSize.get -> double
 OfficeIMO.Pdf.PdfRegionText.RotationDegrees.get -> double
 OfficeIMO.Pdf.PdfRegionText.SourceFont.get -> string?
@@ -6850,7 +6839,7 @@ OfficeIMO.Pdf.PdfRewritePreservationReport.ThrowIfFailed() -> void
 OfficeIMO.Pdf.PdfRowBuilder
 OfficeIMO.Pdf.PdfRowBuilder.AutoColumn(System.Action<OfficeIMO.Pdf.PdfContentBuilder!>! build, double minimum = 0, double? maximum = null) -> OfficeIMO.Pdf.PdfRowBuilder!
 OfficeIMO.Pdf.PdfRowBuilder.Column(OfficeIMO.Pdf.PdfColumnWidth width, System.Action<OfficeIMO.Pdf.PdfContentBuilder!>! build) -> OfficeIMO.Pdf.PdfRowBuilder!
-OfficeIMO.Pdf.PdfRowBuilder.ColumnSeparator(OfficeIMO.Pdf.PdfColor color, double width = 0.5) -> OfficeIMO.Pdf.PdfRowBuilder!
+OfficeIMO.Pdf.PdfRowBuilder.ColumnSeparator(OfficeIMO.OfficeColor color, double width = 0.5) -> OfficeIMO.Pdf.PdfRowBuilder!
 OfficeIMO.Pdf.PdfRowBuilder.FixedColumn(double points, System.Action<OfficeIMO.Pdf.PdfContentBuilder!>! build) -> OfficeIMO.Pdf.PdfRowBuilder!
 OfficeIMO.Pdf.PdfRowBuilder.Gap(double points) -> OfficeIMO.Pdf.PdfRowBuilder!
 OfficeIMO.Pdf.PdfRowBuilder.PercentColumn(double percent, System.Action<OfficeIMO.Pdf.PdfContentBuilder!>! build) -> OfficeIMO.Pdf.PdfRowBuilder!
@@ -6858,7 +6847,7 @@ OfficeIMO.Pdf.PdfRowBuilder.RelativeColumn(System.Action<OfficeIMO.Pdf.PdfConten
 OfficeIMO.Pdf.PdfRowBuilder.Style(OfficeIMO.Pdf.PdfRowStyle! style) -> OfficeIMO.Pdf.PdfRowBuilder!
 OfficeIMO.Pdf.PdfRowStyle
 OfficeIMO.Pdf.PdfRowStyle.Clone() -> OfficeIMO.Pdf.PdfRowStyle!
-OfficeIMO.Pdf.PdfRowStyle.ColumnSeparatorColor.get -> OfficeIMO.Pdf.PdfColor?
+OfficeIMO.Pdf.PdfRowStyle.ColumnSeparatorColor.get -> OfficeIMO.OfficeColor?
 OfficeIMO.Pdf.PdfRowStyle.ColumnSeparatorColor.set -> void
 OfficeIMO.Pdf.PdfRowStyle.ColumnSeparatorWidth.get -> double
 OfficeIMO.Pdf.PdfRowStyle.ColumnSeparatorWidth.set -> void
@@ -7237,7 +7226,7 @@ OfficeIMO.Pdf.PdfStampAnnotationOptions.Contents.get -> string?
 OfficeIMO.Pdf.PdfStampAnnotationOptions.Contents.set -> void
 OfficeIMO.Pdf.PdfStampAnnotationOptions.ExecutionPreference.get -> OfficeIMO.Pdf.PdfMutationExecutionPreference
 OfficeIMO.Pdf.PdfStampAnnotationOptions.ExecutionPreference.set -> void
-OfficeIMO.Pdf.PdfStampAnnotationOptions.FillColor.get -> OfficeIMO.Pdf.PdfColor?
+OfficeIMO.Pdf.PdfStampAnnotationOptions.FillColor.get -> OfficeIMO.OfficeColor?
 OfficeIMO.Pdf.PdfStampAnnotationOptions.FillColor.set -> void
 OfficeIMO.Pdf.PdfStampAnnotationOptions.Flags.get -> int
 OfficeIMO.Pdf.PdfStampAnnotationOptions.Flags.set -> void
@@ -7254,7 +7243,7 @@ OfficeIMO.Pdf.PdfStampAnnotationOptions.PageNumber.set -> void
 OfficeIMO.Pdf.PdfStampAnnotationOptions.PdfStampAnnotationOptions() -> void
 OfficeIMO.Pdf.PdfStampAnnotationOptions.StampName.get -> string!
 OfficeIMO.Pdf.PdfStampAnnotationOptions.StampName.set -> void
-OfficeIMO.Pdf.PdfStampAnnotationOptions.StrokeColor.get -> OfficeIMO.Pdf.PdfColor
+OfficeIMO.Pdf.PdfStampAnnotationOptions.StrokeColor.get -> OfficeIMO.OfficeColor
 OfficeIMO.Pdf.PdfStampAnnotationOptions.StrokeColor.set -> void
 OfficeIMO.Pdf.PdfStampAnnotationOptions.Title.get -> string?
 OfficeIMO.Pdf.PdfStampAnnotationOptions.Title.set -> void
@@ -7514,7 +7503,7 @@ OfficeIMO.Pdf.PdfTabLeaderStyle.Underscores = 3 -> OfficeIMO.Pdf.PdfTabLeaderSty
 OfficeIMO.Pdf.PdfTabStop
 OfficeIMO.Pdf.PdfTabStop.Alignment.get -> OfficeIMO.Pdf.PdfTabAlignment
 OfficeIMO.Pdf.PdfTabStop.Alignment.set -> void
-OfficeIMO.Pdf.PdfTabStop.BarColor.get -> OfficeIMO.Pdf.PdfColor
+OfficeIMO.Pdf.PdfTabStop.BarColor.get -> OfficeIMO.OfficeColor
 OfficeIMO.Pdf.PdfTabStop.BarColor.set -> void
 OfficeIMO.Pdf.PdfTabStop.BarWidth.get -> double
 OfficeIMO.Pdf.PdfTabStop.BarWidth.set -> void
@@ -7666,9 +7655,9 @@ OfficeIMO.Pdf.PdfTableStyle.AlternativeText.get -> string?
 OfficeIMO.Pdf.PdfTableStyle.AlternativeText.set -> void
 OfficeIMO.Pdf.PdfTableStyle.AutoFitColumns.get -> bool
 OfficeIMO.Pdf.PdfTableStyle.AutoFitColumns.set -> void
-OfficeIMO.Pdf.PdfTableStyle.BodyColumnFills.get -> System.Collections.Generic.List<OfficeIMO.Pdf.PdfColor?>?
+OfficeIMO.Pdf.PdfTableStyle.BodyColumnFills.get -> System.Collections.Generic.List<OfficeIMO.OfficeColor?>?
 OfficeIMO.Pdf.PdfTableStyle.BodyColumnFills.set -> void
-OfficeIMO.Pdf.PdfTableStyle.BorderColor.get -> OfficeIMO.Pdf.PdfColor?
+OfficeIMO.Pdf.PdfTableStyle.BorderColor.get -> OfficeIMO.OfficeColor?
 OfficeIMO.Pdf.PdfTableStyle.BorderColor.set -> void
 OfficeIMO.Pdf.PdfTableStyle.BorderWidth.get -> double
 OfficeIMO.Pdf.PdfTableStyle.BorderWidth.set -> void
@@ -7676,7 +7665,7 @@ OfficeIMO.Pdf.PdfTableStyle.Caption.get -> string?
 OfficeIMO.Pdf.PdfTableStyle.Caption.set -> void
 OfficeIMO.Pdf.PdfTableStyle.CaptionAlign.get -> OfficeIMO.Pdf.PdfAlign
 OfficeIMO.Pdf.PdfTableStyle.CaptionAlign.set -> void
-OfficeIMO.Pdf.PdfTableStyle.CaptionColor.get -> OfficeIMO.Pdf.PdfColor?
+OfficeIMO.Pdf.PdfTableStyle.CaptionColor.get -> OfficeIMO.OfficeColor?
 OfficeIMO.Pdf.PdfTableStyle.CaptionColor.set -> void
 OfficeIMO.Pdf.PdfTableStyle.CaptionFontSize.get -> double?
 OfficeIMO.Pdf.PdfTableStyle.CaptionFontSize.set -> void
@@ -7688,7 +7677,7 @@ OfficeIMO.Pdf.PdfTableStyle.CellBorders.get -> System.Collections.Generic.Dictio
 OfficeIMO.Pdf.PdfTableStyle.CellBorders.set -> void
 OfficeIMO.Pdf.PdfTableStyle.CellDataBars.get -> System.Collections.Generic.Dictionary<(int Row, int Column), OfficeIMO.Pdf.PdfCellDataBar!>?
 OfficeIMO.Pdf.PdfTableStyle.CellDataBars.set -> void
-OfficeIMO.Pdf.PdfTableStyle.CellFills.get -> System.Collections.Generic.Dictionary<(int Row, int Column), OfficeIMO.Pdf.PdfColor>?
+OfficeIMO.Pdf.PdfTableStyle.CellFills.get -> System.Collections.Generic.Dictionary<(int Row, int Column), OfficeIMO.OfficeColor>?
 OfficeIMO.Pdf.PdfTableStyle.CellFills.set -> void
 OfficeIMO.Pdf.PdfTableStyle.CellIcons.get -> System.Collections.Generic.Dictionary<(int Row, int Column), OfficeIMO.Pdf.PdfCellIcon!>?
 OfficeIMO.Pdf.PdfTableStyle.CellIcons.set -> void
@@ -7729,31 +7718,31 @@ OfficeIMO.Pdf.PdfTableStyle.FontSize.get -> double?
 OfficeIMO.Pdf.PdfTableStyle.FontSize.set -> void
 OfficeIMO.Pdf.PdfTableStyle.FooterBold.get -> bool
 OfficeIMO.Pdf.PdfTableStyle.FooterBold.set -> void
-OfficeIMO.Pdf.PdfTableStyle.FooterFill.get -> OfficeIMO.Pdf.PdfColor?
+OfficeIMO.Pdf.PdfTableStyle.FooterFill.get -> OfficeIMO.OfficeColor?
 OfficeIMO.Pdf.PdfTableStyle.FooterFill.set -> void
 OfficeIMO.Pdf.PdfTableStyle.FooterFontSize.get -> double?
 OfficeIMO.Pdf.PdfTableStyle.FooterFontSize.set -> void
 OfficeIMO.Pdf.PdfTableStyle.FooterRowCount.get -> int
 OfficeIMO.Pdf.PdfTableStyle.FooterRowCount.set -> void
-OfficeIMO.Pdf.PdfTableStyle.FooterSeparatorColor.get -> OfficeIMO.Pdf.PdfColor?
+OfficeIMO.Pdf.PdfTableStyle.FooterSeparatorColor.get -> OfficeIMO.OfficeColor?
 OfficeIMO.Pdf.PdfTableStyle.FooterSeparatorColor.set -> void
 OfficeIMO.Pdf.PdfTableStyle.FooterSeparatorWidth.get -> double
 OfficeIMO.Pdf.PdfTableStyle.FooterSeparatorWidth.set -> void
-OfficeIMO.Pdf.PdfTableStyle.FooterTextColor.get -> OfficeIMO.Pdf.PdfColor?
+OfficeIMO.Pdf.PdfTableStyle.FooterTextColor.get -> OfficeIMO.OfficeColor?
 OfficeIMO.Pdf.PdfTableStyle.FooterTextColor.set -> void
 OfficeIMO.Pdf.PdfTableStyle.HeaderBold.get -> bool
 OfficeIMO.Pdf.PdfTableStyle.HeaderBold.set -> void
-OfficeIMO.Pdf.PdfTableStyle.HeaderFill.get -> OfficeIMO.Pdf.PdfColor?
+OfficeIMO.Pdf.PdfTableStyle.HeaderFill.get -> OfficeIMO.OfficeColor?
 OfficeIMO.Pdf.PdfTableStyle.HeaderFill.set -> void
 OfficeIMO.Pdf.PdfTableStyle.HeaderFontSize.get -> double?
 OfficeIMO.Pdf.PdfTableStyle.HeaderFontSize.set -> void
 OfficeIMO.Pdf.PdfTableStyle.HeaderRowCount.get -> int
 OfficeIMO.Pdf.PdfTableStyle.HeaderRowCount.set -> void
-OfficeIMO.Pdf.PdfTableStyle.HeaderSeparatorColor.get -> OfficeIMO.Pdf.PdfColor?
+OfficeIMO.Pdf.PdfTableStyle.HeaderSeparatorColor.get -> OfficeIMO.OfficeColor?
 OfficeIMO.Pdf.PdfTableStyle.HeaderSeparatorColor.set -> void
 OfficeIMO.Pdf.PdfTableStyle.HeaderSeparatorWidth.get -> double
 OfficeIMO.Pdf.PdfTableStyle.HeaderSeparatorWidth.set -> void
-OfficeIMO.Pdf.PdfTableStyle.HeaderTextColor.get -> OfficeIMO.Pdf.PdfColor?
+OfficeIMO.Pdf.PdfTableStyle.HeaderTextColor.get -> OfficeIMO.OfficeColor?
 OfficeIMO.Pdf.PdfTableStyle.HeaderTextColor.set -> void
 OfficeIMO.Pdf.PdfTableStyle.HorizontalOffset.get -> double
 OfficeIMO.Pdf.PdfTableStyle.HorizontalOffset.set -> void
@@ -7794,11 +7783,11 @@ OfficeIMO.Pdf.PdfTableStyle.RowBaselineOffset.get -> double
 OfficeIMO.Pdf.PdfTableStyle.RowBaselineOffset.set -> void
 OfficeIMO.Pdf.PdfTableStyle.RowMinHeights.get -> System.Collections.Generic.List<double?>?
 OfficeIMO.Pdf.PdfTableStyle.RowMinHeights.set -> void
-OfficeIMO.Pdf.PdfTableStyle.RowSeparatorColor.get -> OfficeIMO.Pdf.PdfColor?
+OfficeIMO.Pdf.PdfTableStyle.RowSeparatorColor.get -> OfficeIMO.OfficeColor?
 OfficeIMO.Pdf.PdfTableStyle.RowSeparatorColor.set -> void
 OfficeIMO.Pdf.PdfTableStyle.RowSeparatorWidth.get -> double
 OfficeIMO.Pdf.PdfTableStyle.RowSeparatorWidth.set -> void
-OfficeIMO.Pdf.PdfTableStyle.RowStripeFill.get -> OfficeIMO.Pdf.PdfColor?
+OfficeIMO.Pdf.PdfTableStyle.RowStripeFill.get -> OfficeIMO.OfficeColor?
 OfficeIMO.Pdf.PdfTableStyle.RowStripeFill.set -> void
 OfficeIMO.Pdf.PdfTableStyle.ShrinkTextToFit.get -> bool
 OfficeIMO.Pdf.PdfTableStyle.ShrinkTextToFit.set -> void
@@ -7806,7 +7795,7 @@ OfficeIMO.Pdf.PdfTableStyle.SpacingAfter.get -> double
 OfficeIMO.Pdf.PdfTableStyle.SpacingAfter.set -> void
 OfficeIMO.Pdf.PdfTableStyle.SpacingBefore.get -> double
 OfficeIMO.Pdf.PdfTableStyle.SpacingBefore.set -> void
-OfficeIMO.Pdf.PdfTableStyle.TextColor.get -> OfficeIMO.Pdf.PdfColor?
+OfficeIMO.Pdf.PdfTableStyle.TextColor.get -> OfficeIMO.OfficeColor?
 OfficeIMO.Pdf.PdfTableStyle.TextColor.set -> void
 OfficeIMO.Pdf.PdfTableStyle.VerticalAlignments.get -> System.Collections.Generic.List<OfficeIMO.Pdf.PdfCellVerticalAlign>?
 OfficeIMO.Pdf.PdfTableStyle.VerticalAlignments.set -> void
@@ -7881,7 +7870,7 @@ OfficeIMO.Pdf.PdfTextDecodingSource.WinAnsiFallback = 4 -> OfficeIMO.Pdf.PdfText
 OfficeIMO.Pdf.PdfTextEditOptions
 OfficeIMO.Pdf.PdfTextEditOptions.AllowTextRenderingMode3.get -> bool
 OfficeIMO.Pdf.PdfTextEditOptions.AllowTextRenderingMode3.set -> void
-OfficeIMO.Pdf.PdfTextEditOptions.Color.get -> OfficeIMO.Pdf.PdfColor?
+OfficeIMO.Pdf.PdfTextEditOptions.Color.get -> OfficeIMO.OfficeColor?
 OfficeIMO.Pdf.PdfTextEditOptions.Color.set -> void
 OfficeIMO.Pdf.PdfTextEditOptions.Font.get -> OfficeIMO.Pdf.PdfStandardFont?
 OfficeIMO.Pdf.PdfTextEditOptions.Font.set -> void
@@ -7998,7 +7987,7 @@ OfficeIMO.Pdf.PdfTextLayoutOptions.PdfTextLayoutOptions() -> void
 OfficeIMO.Pdf.PdfTextLayoutOptions.ReadingDirection.get -> OfficeIMO.Pdf.PdfReadingDirection
 OfficeIMO.Pdf.PdfTextLayoutOptions.ReadingDirection.set -> void
 OfficeIMO.Pdf.PdfTextMatch
-OfficeIMO.Pdf.PdfTextMatch.Color.get -> OfficeIMO.Pdf.PdfColor
+OfficeIMO.Pdf.PdfTextMatch.Color.get -> OfficeIMO.OfficeColor
 OfficeIMO.Pdf.PdfTextMatch.FontSize.get -> double
 OfficeIMO.Pdf.PdfTextMatch.Height.get -> double
 OfficeIMO.Pdf.PdfTextMatch.IsTextRenderingMode3.get -> bool
@@ -8017,12 +8006,12 @@ OfficeIMO.Pdf.PdfTextRegionWidthPolicy.PreserveFontSize = 0 -> OfficeIMO.Pdf.Pdf
 OfficeIMO.Pdf.PdfTextRegionWidthPolicy.RejectOverflow = 1 -> OfficeIMO.Pdf.PdfTextRegionWidthPolicy
 OfficeIMO.Pdf.PdfTextRegionWidthPolicy.ShrinkToFit = 2 -> OfficeIMO.Pdf.PdfTextRegionWidthPolicy
 OfficeIMO.Pdf.PdfTextRun
-OfficeIMO.Pdf.PdfTextRun.BackgroundColor.get -> OfficeIMO.Pdf.PdfColor?
+OfficeIMO.Pdf.PdfTextRun.BackgroundColor.get -> OfficeIMO.OfficeColor?
 OfficeIMO.Pdf.PdfTextRun.Baseline.get -> OfficeIMO.Pdf.PdfTextBaseline
 OfficeIMO.Pdf.PdfTextRun.Bold.get -> bool
 OfficeIMO.Pdf.PdfTextRun.CharacterSpacing.get -> double
-OfficeIMO.Pdf.PdfTextRun.Color.get -> OfficeIMO.Pdf.PdfColor?
-OfficeIMO.Pdf.PdfTextRun.DecorationColor.get -> OfficeIMO.Pdf.PdfColor?
+OfficeIMO.Pdf.PdfTextRun.Color.get -> OfficeIMO.OfficeColor?
+OfficeIMO.Pdf.PdfTextRun.DecorationColor.get -> OfficeIMO.OfficeColor?
 OfficeIMO.Pdf.PdfTextRun.FeatureSettings.get -> OfficeIMO.Drawing.OfficeTextFeatureSettings!
 OfficeIMO.Pdf.PdfTextRun.Font.get -> OfficeIMO.Pdf.PdfStandardFont?
 OfficeIMO.Pdf.PdfTextRun.FontFamily.get -> string?
@@ -8034,10 +8023,10 @@ OfficeIMO.Pdf.PdfTextRun.Italic.get -> bool
 OfficeIMO.Pdf.PdfTextRun.LinkContents.get -> string?
 OfficeIMO.Pdf.PdfTextRun.LinkDestinationName.get -> string?
 OfficeIMO.Pdf.PdfTextRun.LinkUri.get -> string?
-OfficeIMO.Pdf.PdfTextRun.PdfTextRun(string! text, bool bold = false, bool underline = false, OfficeIMO.Pdf.PdfColor? color = null, bool italic = false, bool strike = false, double? fontSize = null, OfficeIMO.Pdf.PdfStandardFont? font = null, string? linkUri = null, string? linkContents = null, OfficeIMO.Pdf.PdfTextBaseline baseline = OfficeIMO.Pdf.PdfTextBaseline.Normal, string? linkDestinationName = null, OfficeIMO.Pdf.PdfTabLeaderStyle tabLeader = OfficeIMO.Pdf.PdfTabLeaderStyle.None, OfficeIMO.Pdf.PdfTabAlignment tabAlignment = OfficeIMO.Pdf.PdfTabAlignment.Left, OfficeIMO.Pdf.PdfColor? backgroundColor = null, string? fontFamily = null, OfficeIMO.Drawing.OfficeTextDecorationStyle underlineStyle = OfficeIMO.Drawing.OfficeTextDecorationStyle.None, OfficeIMO.Drawing.OfficeTextDecorationStyle strikeStyle = OfficeIMO.Drawing.OfficeTextDecorationStyle.None, OfficeIMO.Pdf.PdfColor? decorationColor = null) -> void
-OfficeIMO.Pdf.PdfTextRun.PdfTextRun(string! text, bool bold, bool underline, OfficeIMO.Pdf.PdfColor? color, bool italic, bool strike, double? fontSize, OfficeIMO.Pdf.PdfStandardFont? font, string? linkUri, string? linkContents, OfficeIMO.Pdf.PdfTextBaseline baseline, string? linkDestinationName, OfficeIMO.Pdf.PdfTabLeaderStyle tabLeader, OfficeIMO.Pdf.PdfColor? backgroundColor, string? fontFamily) -> void
-OfficeIMO.Pdf.PdfTextRun.PdfTextRun(string! text, bool bold, bool underline, OfficeIMO.Pdf.PdfColor? color, bool italic, bool strike, double? fontSize, OfficeIMO.Pdf.PdfStandardFont? font, string? linkUri, string? linkContents, OfficeIMO.Pdf.PdfTextBaseline baseline, string? linkDestinationName, OfficeIMO.Pdf.PdfTabLeaderStyle tabLeader, OfficeIMO.Pdf.PdfTabAlignment tabAlignment, OfficeIMO.Pdf.PdfColor? backgroundColor, string? fontFamily) -> void
-OfficeIMO.Pdf.PdfTextRun.PdfTextRun(string! text, bool bold, bool underline, OfficeIMO.Pdf.PdfColor? color, bool italic, bool strike, double? fontSize, OfficeIMO.Pdf.PdfStandardFont? font, string? linkUri, string? linkContents, OfficeIMO.Pdf.PdfTextBaseline baseline, string? linkDestinationName, OfficeIMO.Pdf.PdfTabLeaderStyle tabLeader, OfficeIMO.Pdf.PdfTabAlignment tabAlignment, OfficeIMO.Pdf.PdfColor? backgroundColor, string? fontFamily, OfficeIMO.Drawing.OfficeTextDecorationStyle underlineStyle, OfficeIMO.Drawing.OfficeTextDecorationStyle strikeStyle) -> void
+OfficeIMO.Pdf.PdfTextRun.PdfTextRun(string! text, bool bold = false, bool underline = false, OfficeIMO.OfficeColor? color = null, bool italic = false, bool strike = false, double? fontSize = null, OfficeIMO.Pdf.PdfStandardFont? font = null, string? linkUri = null, string? linkContents = null, OfficeIMO.Pdf.PdfTextBaseline baseline = OfficeIMO.Pdf.PdfTextBaseline.Normal, string? linkDestinationName = null, OfficeIMO.Pdf.PdfTabLeaderStyle tabLeader = OfficeIMO.Pdf.PdfTabLeaderStyle.None, OfficeIMO.Pdf.PdfTabAlignment tabAlignment = OfficeIMO.Pdf.PdfTabAlignment.Left, OfficeIMO.OfficeColor? backgroundColor = null, string? fontFamily = null, OfficeIMO.Drawing.OfficeTextDecorationStyle underlineStyle = OfficeIMO.Drawing.OfficeTextDecorationStyle.None, OfficeIMO.Drawing.OfficeTextDecorationStyle strikeStyle = OfficeIMO.Drawing.OfficeTextDecorationStyle.None, OfficeIMO.OfficeColor? decorationColor = null) -> void
+OfficeIMO.Pdf.PdfTextRun.PdfTextRun(string! text, bool bold, bool underline, OfficeIMO.OfficeColor? color, bool italic, bool strike, double? fontSize, OfficeIMO.Pdf.PdfStandardFont? font, string? linkUri, string? linkContents, OfficeIMO.Pdf.PdfTextBaseline baseline, string? linkDestinationName, OfficeIMO.Pdf.PdfTabLeaderStyle tabLeader, OfficeIMO.OfficeColor? backgroundColor, string? fontFamily) -> void
+OfficeIMO.Pdf.PdfTextRun.PdfTextRun(string! text, bool bold, bool underline, OfficeIMO.OfficeColor? color, bool italic, bool strike, double? fontSize, OfficeIMO.Pdf.PdfStandardFont? font, string? linkUri, string? linkContents, OfficeIMO.Pdf.PdfTextBaseline baseline, string? linkDestinationName, OfficeIMO.Pdf.PdfTabLeaderStyle tabLeader, OfficeIMO.Pdf.PdfTabAlignment tabAlignment, OfficeIMO.OfficeColor? backgroundColor, string? fontFamily) -> void
+OfficeIMO.Pdf.PdfTextRun.PdfTextRun(string! text, bool bold, bool underline, OfficeIMO.OfficeColor? color, bool italic, bool strike, double? fontSize, OfficeIMO.Pdf.PdfStandardFont? font, string? linkUri, string? linkContents, OfficeIMO.Pdf.PdfTextBaseline baseline, string? linkDestinationName, OfficeIMO.Pdf.PdfTabLeaderStyle tabLeader, OfficeIMO.Pdf.PdfTabAlignment tabAlignment, OfficeIMO.OfficeColor? backgroundColor, string? fontFamily, OfficeIMO.Drawing.OfficeTextDecorationStyle underlineStyle, OfficeIMO.Drawing.OfficeTextDecorationStyle strikeStyle) -> void
 OfficeIMO.Pdf.PdfTextRun.Strike.get -> bool
 OfficeIMO.Pdf.PdfTextRun.StrikeStyle.get -> OfficeIMO.Drawing.OfficeTextDecorationStyle
 OfficeIMO.Pdf.PdfTextRun.TabAlignment.get -> OfficeIMO.Pdf.PdfTabAlignment
@@ -8102,7 +8091,7 @@ OfficeIMO.Pdf.PdfTextStampOptions.BehindContent.get -> bool
 OfficeIMO.Pdf.PdfTextStampOptions.BehindContent.set -> void
 OfficeIMO.Pdf.PdfTextStampOptions.CancellationToken.get -> System.Threading.CancellationToken
 OfficeIMO.Pdf.PdfTextStampOptions.CancellationToken.set -> void
-OfficeIMO.Pdf.PdfTextStampOptions.Color.get -> OfficeIMO.Pdf.PdfColor
+OfficeIMO.Pdf.PdfTextStampOptions.Color.get -> OfficeIMO.OfficeColor
 OfficeIMO.Pdf.PdfTextStampOptions.Color.set -> void
 OfficeIMO.Pdf.PdfTextStampOptions.Font.get -> OfficeIMO.Pdf.PdfStandardFont
 OfficeIMO.Pdf.PdfTextStampOptions.Font.set -> void
@@ -8122,7 +8111,7 @@ OfficeIMO.Pdf.PdfTextStampOptions.Y.get -> double?
 OfficeIMO.Pdf.PdfTextStampOptions.Y.set -> void
 OfficeIMO.Pdf.PdfTextStyle
 OfficeIMO.Pdf.PdfTextStyle.Clone() -> OfficeIMO.Pdf.PdfTextStyle!
-OfficeIMO.Pdf.PdfTextStyle.Color.get -> OfficeIMO.Pdf.PdfColor?
+OfficeIMO.Pdf.PdfTextStyle.Color.get -> OfficeIMO.OfficeColor?
 OfficeIMO.Pdf.PdfTextStyle.Color.set -> void
 OfficeIMO.Pdf.PdfTextStyle.Font.get -> OfficeIMO.Pdf.PdfStandardFont
 OfficeIMO.Pdf.PdfTextStyle.Font.set -> void
@@ -8130,7 +8119,7 @@ OfficeIMO.Pdf.PdfTextStyle.FontSize.get -> double
 OfficeIMO.Pdf.PdfTextStyle.FontSize.set -> void
 OfficeIMO.Pdf.PdfTextStyle.PdfTextStyle() -> void
 OfficeIMO.Pdf.PdfTextStyleBuilder
-OfficeIMO.Pdf.PdfTextStyleBuilder.Color(OfficeIMO.Pdf.PdfColor color) -> OfficeIMO.Pdf.PdfTextStyleBuilder!
+OfficeIMO.Pdf.PdfTextStyleBuilder.Color(OfficeIMO.OfficeColor color) -> OfficeIMO.Pdf.PdfTextStyleBuilder!
 OfficeIMO.Pdf.PdfTextStyleBuilder.Font(OfficeIMO.Pdf.PdfStandardFont font) -> OfficeIMO.Pdf.PdfTextStyleBuilder!
 OfficeIMO.Pdf.PdfTextStyleBuilder.FontFamily(OfficeIMO.Pdf.PdfEmbeddedFontFamily! fontFamily) -> OfficeIMO.Pdf.PdfTextStyleBuilder!
 OfficeIMO.Pdf.PdfTextStyleBuilder.FontFamily(string! familyName, byte[]! regular, byte[]? bold = null, byte[]? italic = null, byte[]? boldItalic = null) -> OfficeIMO.Pdf.PdfTextStyleBuilder!
@@ -8140,7 +8129,7 @@ OfficeIMO.Pdf.PdfTextWatermark
 OfficeIMO.Pdf.PdfTextWatermark.Bold.get -> bool
 OfficeIMO.Pdf.PdfTextWatermark.Bold.set -> void
 OfficeIMO.Pdf.PdfTextWatermark.Clone() -> OfficeIMO.Pdf.PdfTextWatermark!
-OfficeIMO.Pdf.PdfTextWatermark.Color.get -> OfficeIMO.Pdf.PdfColor
+OfficeIMO.Pdf.PdfTextWatermark.Color.get -> OfficeIMO.OfficeColor
 OfficeIMO.Pdf.PdfTextWatermark.Color.set -> void
 OfficeIMO.Pdf.PdfTextWatermark.Font.get -> OfficeIMO.Pdf.PdfStandardFont
 OfficeIMO.Pdf.PdfTextWatermark.Font.set -> void
@@ -8446,9 +8435,9 @@ OfficeIMO.Pdf.PdfViewerPreferencesOptions.ViewArea.set -> void
 OfficeIMO.Pdf.PdfViewerPreferencesOptions.ViewClip.get -> OfficeIMO.Pdf.PdfPageBoundaryBox?
 OfficeIMO.Pdf.PdfViewerPreferencesOptions.ViewClip.set -> void
 OfficeIMO.Pdf.PdfVisibleSignatureAppearanceOptions
-OfficeIMO.Pdf.PdfVisibleSignatureAppearanceOptions.BackgroundColor.get -> OfficeIMO.Pdf.PdfColor
+OfficeIMO.Pdf.PdfVisibleSignatureAppearanceOptions.BackgroundColor.get -> OfficeIMO.OfficeColor
 OfficeIMO.Pdf.PdfVisibleSignatureAppearanceOptions.BackgroundColor.set -> void
-OfficeIMO.Pdf.PdfVisibleSignatureAppearanceOptions.BorderColor.get -> OfficeIMO.Pdf.PdfColor
+OfficeIMO.Pdf.PdfVisibleSignatureAppearanceOptions.BorderColor.get -> OfficeIMO.OfficeColor
 OfficeIMO.Pdf.PdfVisibleSignatureAppearanceOptions.BorderColor.set -> void
 OfficeIMO.Pdf.PdfVisibleSignatureAppearanceOptions.Font.get -> OfficeIMO.Pdf.PdfEmbeddedFont?
 OfficeIMO.Pdf.PdfVisibleSignatureAppearanceOptions.Font.set -> void
@@ -8475,7 +8464,7 @@ OfficeIMO.Pdf.PdfVisibleSignatureAppearanceOptions.ShowText.get -> bool
 OfficeIMO.Pdf.PdfVisibleSignatureAppearanceOptions.ShowText.set -> void
 OfficeIMO.Pdf.PdfVisibleSignatureAppearanceOptions.Text.get -> string?
 OfficeIMO.Pdf.PdfVisibleSignatureAppearanceOptions.Text.set -> void
-OfficeIMO.Pdf.PdfVisibleSignatureAppearanceOptions.TextColor.get -> OfficeIMO.Pdf.PdfColor
+OfficeIMO.Pdf.PdfVisibleSignatureAppearanceOptions.TextColor.get -> OfficeIMO.OfficeColor
 OfficeIMO.Pdf.PdfVisibleSignatureAppearanceOptions.TextColor.set -> void
 OfficeIMO.Pdf.PdfVisibleSignatureAppearanceOptions.Width.get -> double
 OfficeIMO.Pdf.PdfVisibleSignatureAppearanceOptions.Width.set -> void
@@ -8553,7 +8542,7 @@ OfficeIMO.Pdf.PdfWatermarkOptions.BehindContent.set -> void
 OfficeIMO.Pdf.PdfWatermarkOptions.CancellationToken.get -> System.Threading.CancellationToken
 OfficeIMO.Pdf.PdfWatermarkOptions.CancellationToken.set -> void
 OfficeIMO.Pdf.PdfWatermarkOptions.Clone() -> OfficeIMO.Pdf.PdfWatermarkOptions!
-OfficeIMO.Pdf.PdfWatermarkOptions.Color.get -> OfficeIMO.Pdf.PdfColor
+OfficeIMO.Pdf.PdfWatermarkOptions.Color.get -> OfficeIMO.OfficeColor
 OfficeIMO.Pdf.PdfWatermarkOptions.Color.set -> void
 OfficeIMO.Pdf.PdfWatermarkOptions.Font.get -> OfficeIMO.Pdf.PdfStandardFont
 OfficeIMO.Pdf.PdfWatermarkOptions.Font.set -> void
@@ -8679,14 +8668,6 @@ static OfficeIMO.Pdf.PdfBytesResult.FromSuccess(byte[]! bytes) -> OfficeIMO.Pdf.
 static OfficeIMO.Pdf.PdfCiiInvoiceDocument.Load(System.IO.Stream! stream) -> OfficeIMO.Pdf.PdfCiiInvoiceDocument!
 static OfficeIMO.Pdf.PdfCiiInvoiceDocument.Load(byte[]! xml) -> OfficeIMO.Pdf.PdfCiiInvoiceDocument!
 static OfficeIMO.Pdf.PdfCiiInvoiceDocument.Load(string! path) -> OfficeIMO.Pdf.PdfCiiInvoiceDocument!
-static OfficeIMO.Pdf.PdfColor.Black.get -> OfficeIMO.Pdf.PdfColor
-static OfficeIMO.Pdf.PdfColor.FromOfficeColor(OfficeIMO.OfficeColor color) -> OfficeIMO.Pdf.PdfColor
-static OfficeIMO.Pdf.PdfColor.FromOfficeColorOrNull(OfficeIMO.OfficeColor color) -> OfficeIMO.Pdf.PdfColor?
-static OfficeIMO.Pdf.PdfColor.FromRgb(byte r, byte g, byte b) -> OfficeIMO.Pdf.PdfColor
-static OfficeIMO.Pdf.PdfColor.Gray.get -> OfficeIMO.Pdf.PdfColor
-static OfficeIMO.Pdf.PdfColor.LightGray.get -> OfficeIMO.Pdf.PdfColor
-static OfficeIMO.Pdf.PdfColor.White.get -> OfficeIMO.Pdf.PdfColor
-static OfficeIMO.Pdf.PdfColor.implicit operator OfficeIMO.Pdf.PdfColor(OfficeIMO.OfficeColor color) -> OfficeIMO.Pdf.PdfColor
 static OfficeIMO.Pdf.PdfColumnWidth.Auto(double minimum = 0, double? maximum = null) -> OfficeIMO.Pdf.PdfColumnWidth
 static OfficeIMO.Pdf.PdfColumnWidth.Fixed(double points) -> OfficeIMO.Pdf.PdfColumnWidth
 static OfficeIMO.Pdf.PdfColumnWidth.Percent(double percent) -> OfficeIMO.Pdf.PdfColumnWidth
@@ -8791,13 +8772,13 @@ static OfficeIMO.Pdf.PdfPageAttributeEdit.ResetCrop(OfficeIMO.Pdf.PdfPageSelecti
 static OfficeIMO.Pdf.PdfPageAttributeEdit.RotateBy(int degrees, OfficeIMO.Pdf.PdfPageSelection? selection = null) -> OfficeIMO.Pdf.PdfPageAttributeEdit!
 static OfficeIMO.Pdf.PdfPageAttributeEdit.SetBox(OfficeIMO.Pdf.PdfPageBoundaryBox box, double left, double bottom, double right, double top, OfficeIMO.Pdf.PdfPageSelection? selection = null) -> OfficeIMO.Pdf.PdfPageAttributeEdit!
 static OfficeIMO.Pdf.PdfPageAttributeEdit.SetRotation(int degrees, OfficeIMO.Pdf.PdfPageSelection? selection = null) -> OfficeIMO.Pdf.PdfPageAttributeEdit!
-static OfficeIMO.Pdf.PdfPageBackgroundShape.BottomBand(double pageWidth, double pageHeight, double height, OfficeIMO.Pdf.PdfColor? fill = null, double insetX = 0, double offsetY = 0, double cornerRadius = 0, OfficeIMO.Pdf.PdfColor? stroke = null, double strokeWidth = 0, double? fillOpacity = null, double? strokeOpacity = null, OfficeIMO.Drawing.OfficeLinearGradient? fillGradient = null) -> OfficeIMO.Pdf.PdfPageBackgroundShape!
-static OfficeIMO.Pdf.PdfPageBackgroundShape.Ellipse(double x, double y, double width, double height, OfficeIMO.Pdf.PdfColor? fill = null, OfficeIMO.Pdf.PdfColor? stroke = null, double strokeWidth = 0, double? fillOpacity = null, double? strokeOpacity = null, OfficeIMO.Drawing.OfficeLinearGradient? fillGradient = null) -> OfficeIMO.Pdf.PdfPageBackgroundShape!
-static OfficeIMO.Pdf.PdfPageBackgroundShape.LeftBand(double pageWidth, double pageHeight, double width, OfficeIMO.Pdf.PdfColor? fill = null, double insetY = 0, double offsetX = 0, double cornerRadius = 0, OfficeIMO.Pdf.PdfColor? stroke = null, double strokeWidth = 0, double? fillOpacity = null, double? strokeOpacity = null, OfficeIMO.Drawing.OfficeLinearGradient? fillGradient = null) -> OfficeIMO.Pdf.PdfPageBackgroundShape!
-static OfficeIMO.Pdf.PdfPageBackgroundShape.Rectangle(double x, double y, double width, double height, OfficeIMO.Pdf.PdfColor? fill = null, OfficeIMO.Pdf.PdfColor? stroke = null, double strokeWidth = 0, double? fillOpacity = null, double? strokeOpacity = null, OfficeIMO.Drawing.OfficeLinearGradient? fillGradient = null) -> OfficeIMO.Pdf.PdfPageBackgroundShape!
-static OfficeIMO.Pdf.PdfPageBackgroundShape.RightBand(double pageWidth, double pageHeight, double width, OfficeIMO.Pdf.PdfColor? fill = null, double insetY = 0, double offsetX = 0, double cornerRadius = 0, OfficeIMO.Pdf.PdfColor? stroke = null, double strokeWidth = 0, double? fillOpacity = null, double? strokeOpacity = null, OfficeIMO.Drawing.OfficeLinearGradient? fillGradient = null) -> OfficeIMO.Pdf.PdfPageBackgroundShape!
-static OfficeIMO.Pdf.PdfPageBackgroundShape.RoundedRectangle(double x, double y, double width, double height, double cornerRadius, OfficeIMO.Pdf.PdfColor? fill = null, OfficeIMO.Pdf.PdfColor? stroke = null, double strokeWidth = 0, double? fillOpacity = null, double? strokeOpacity = null, OfficeIMO.Drawing.OfficeLinearGradient? fillGradient = null) -> OfficeIMO.Pdf.PdfPageBackgroundShape!
-static OfficeIMO.Pdf.PdfPageBackgroundShape.TopBand(double pageWidth, double pageHeight, double height, OfficeIMO.Pdf.PdfColor? fill = null, double insetX = 0, double offsetY = 0, double cornerRadius = 0, OfficeIMO.Pdf.PdfColor? stroke = null, double strokeWidth = 0, double? fillOpacity = null, double? strokeOpacity = null, OfficeIMO.Drawing.OfficeLinearGradient? fillGradient = null) -> OfficeIMO.Pdf.PdfPageBackgroundShape!
+static OfficeIMO.Pdf.PdfPageBackgroundShape.BottomBand(double pageWidth, double pageHeight, double height, OfficeIMO.OfficeColor? fill = null, double insetX = 0, double offsetY = 0, double cornerRadius = 0, OfficeIMO.OfficeColor? stroke = null, double strokeWidth = 0, double? fillOpacity = null, double? strokeOpacity = null, OfficeIMO.Drawing.OfficeLinearGradient? fillGradient = null) -> OfficeIMO.Pdf.PdfPageBackgroundShape!
+static OfficeIMO.Pdf.PdfPageBackgroundShape.Ellipse(double x, double y, double width, double height, OfficeIMO.OfficeColor? fill = null, OfficeIMO.OfficeColor? stroke = null, double strokeWidth = 0, double? fillOpacity = null, double? strokeOpacity = null, OfficeIMO.Drawing.OfficeLinearGradient? fillGradient = null) -> OfficeIMO.Pdf.PdfPageBackgroundShape!
+static OfficeIMO.Pdf.PdfPageBackgroundShape.LeftBand(double pageWidth, double pageHeight, double width, OfficeIMO.OfficeColor? fill = null, double insetY = 0, double offsetX = 0, double cornerRadius = 0, OfficeIMO.OfficeColor? stroke = null, double strokeWidth = 0, double? fillOpacity = null, double? strokeOpacity = null, OfficeIMO.Drawing.OfficeLinearGradient? fillGradient = null) -> OfficeIMO.Pdf.PdfPageBackgroundShape!
+static OfficeIMO.Pdf.PdfPageBackgroundShape.Rectangle(double x, double y, double width, double height, OfficeIMO.OfficeColor? fill = null, OfficeIMO.OfficeColor? stroke = null, double strokeWidth = 0, double? fillOpacity = null, double? strokeOpacity = null, OfficeIMO.Drawing.OfficeLinearGradient? fillGradient = null) -> OfficeIMO.Pdf.PdfPageBackgroundShape!
+static OfficeIMO.Pdf.PdfPageBackgroundShape.RightBand(double pageWidth, double pageHeight, double width, OfficeIMO.OfficeColor? fill = null, double insetY = 0, double offsetX = 0, double cornerRadius = 0, OfficeIMO.OfficeColor? stroke = null, double strokeWidth = 0, double? fillOpacity = null, double? strokeOpacity = null, OfficeIMO.Drawing.OfficeLinearGradient? fillGradient = null) -> OfficeIMO.Pdf.PdfPageBackgroundShape!
+static OfficeIMO.Pdf.PdfPageBackgroundShape.RoundedRectangle(double x, double y, double width, double height, double cornerRadius, OfficeIMO.OfficeColor? fill = null, OfficeIMO.OfficeColor? stroke = null, double strokeWidth = 0, double? fillOpacity = null, double? strokeOpacity = null, OfficeIMO.Drawing.OfficeLinearGradient? fillGradient = null) -> OfficeIMO.Pdf.PdfPageBackgroundShape!
+static OfficeIMO.Pdf.PdfPageBackgroundShape.TopBand(double pageWidth, double pageHeight, double height, OfficeIMO.OfficeColor? fill = null, double insetX = 0, double offsetY = 0, double cornerRadius = 0, OfficeIMO.OfficeColor? stroke = null, double strokeWidth = 0, double? fillOpacity = null, double? strokeOpacity = null, OfficeIMO.Drawing.OfficeLinearGradient? fillGradient = null) -> OfficeIMO.Pdf.PdfPageBackgroundShape!
 static OfficeIMO.Pdf.PdfPageInteractionMap.Create(byte[]! pdf, int pageNumber, OfficeIMO.Pdf.PdfPageInteractionOptions? options = null, OfficeIMO.Pdf.PdfLoadOptions? readOptions = null) -> OfficeIMO.Pdf.PdfPageInteractionMap!
 static OfficeIMO.Pdf.PdfPageInteractionMap.GetTextBreak(OfficeIMO.Pdf.PdfPageInteractionRegion! previous, OfficeIMO.Pdf.PdfPageInteractionRegion! next) -> OfficeIMO.Pdf.PdfTextBreak
 static OfficeIMO.Pdf.PdfPageInterleaver.Interleave(System.Collections.Generic.IEnumerable<OfficeIMO.Pdf.PdfInterleaveSource!>! sources, OfficeIMO.Pdf.PdfInterleaveOptions? options = null) -> OfficeIMO.Pdf.PdfInterleaveResult!
@@ -8907,23 +8888,23 @@ static OfficeIMO.Pdf.PdfTableStyles.TableGridLight() -> OfficeIMO.Pdf.PdfTableSt
 static OfficeIMO.Pdf.PdfTableStyles.TechnicalDocument() -> OfficeIMO.Pdf.PdfTableStyle!
 static OfficeIMO.Pdf.PdfTableStyles.TryFromWordTableStyle(string! styleName, out OfficeIMO.Pdf.PdfTableStyle? style) -> bool
 static OfficeIMO.Pdf.PdfTableStyles.TryGetCanonicalWordStyleName(string! styleName, out string? canonicalStyleName) -> bool
-static OfficeIMO.Pdf.PdfTextRun.BoldItalic(string! text, OfficeIMO.Pdf.PdfColor? color = null, double? fontSize = null, OfficeIMO.Pdf.PdfColor? backgroundColor = null, OfficeIMO.Pdf.PdfStandardFont? font = null, string? fontFamily = null) -> OfficeIMO.Pdf.PdfTextRun!
-static OfficeIMO.Pdf.PdfTextRun.BoldUnderlined(string! text, OfficeIMO.Pdf.PdfColor? color = null, double? fontSize = null, OfficeIMO.Pdf.PdfColor? backgroundColor = null, OfficeIMO.Pdf.PdfStandardFont? font = null, string? fontFamily = null) -> OfficeIMO.Pdf.PdfTextRun!
-static OfficeIMO.Pdf.PdfTextRun.Bolded(string! text, OfficeIMO.Pdf.PdfColor? color = null, double? fontSize = null, OfficeIMO.Pdf.PdfColor? backgroundColor = null, OfficeIMO.Pdf.PdfStandardFont? font = null, string? fontFamily = null) -> OfficeIMO.Pdf.PdfTextRun!
+static OfficeIMO.Pdf.PdfTextRun.BoldItalic(string! text, OfficeIMO.OfficeColor? color = null, double? fontSize = null, OfficeIMO.OfficeColor? backgroundColor = null, OfficeIMO.Pdf.PdfStandardFont? font = null, string? fontFamily = null) -> OfficeIMO.Pdf.PdfTextRun!
+static OfficeIMO.Pdf.PdfTextRun.BoldUnderlined(string! text, OfficeIMO.OfficeColor? color = null, double? fontSize = null, OfficeIMO.OfficeColor? backgroundColor = null, OfficeIMO.Pdf.PdfStandardFont? font = null, string? fontFamily = null) -> OfficeIMO.Pdf.PdfTextRun!
+static OfficeIMO.Pdf.PdfTextRun.Bolded(string! text, OfficeIMO.OfficeColor? color = null, double? fontSize = null, OfficeIMO.OfficeColor? backgroundColor = null, OfficeIMO.Pdf.PdfStandardFont? font = null, string? fontFamily = null) -> OfficeIMO.Pdf.PdfTextRun!
 static OfficeIMO.Pdf.PdfTextRun.Inline(OfficeIMO.Pdf.PdfInlineElement! element) -> OfficeIMO.Pdf.PdfTextRun!
-static OfficeIMO.Pdf.PdfTextRun.Italicized(string! text, OfficeIMO.Pdf.PdfColor? color = null, double? fontSize = null, OfficeIMO.Pdf.PdfColor? backgroundColor = null, OfficeIMO.Pdf.PdfStandardFont? font = null, string? fontFamily = null) -> OfficeIMO.Pdf.PdfTextRun!
+static OfficeIMO.Pdf.PdfTextRun.Italicized(string! text, OfficeIMO.OfficeColor? color = null, double? fontSize = null, OfficeIMO.OfficeColor? backgroundColor = null, OfficeIMO.Pdf.PdfStandardFont? font = null, string? fontFamily = null) -> OfficeIMO.Pdf.PdfTextRun!
 static OfficeIMO.Pdf.PdfTextRun.LineBreak() -> OfficeIMO.Pdf.PdfTextRun!
-static OfficeIMO.Pdf.PdfTextRun.Link(string! text, string! uri, OfficeIMO.Pdf.PdfColor? color = null, bool underline = true, string? contents = null, OfficeIMO.Pdf.PdfTextBaseline baseline = OfficeIMO.Pdf.PdfTextBaseline.Normal, double? fontSize = null, OfficeIMO.Pdf.PdfColor? backgroundColor = null, OfficeIMO.Pdf.PdfStandardFont? font = null, string? fontFamily = null, OfficeIMO.Drawing.OfficeTextDecorationStyle underlineStyle = OfficeIMO.Drawing.OfficeTextDecorationStyle.None, OfficeIMO.Drawing.OfficeTextDecorationStyle strikeStyle = OfficeIMO.Drawing.OfficeTextDecorationStyle.None) -> OfficeIMO.Pdf.PdfTextRun!
-static OfficeIMO.Pdf.PdfTextRun.Link(string! text, string! uri, OfficeIMO.Pdf.PdfColor? color, bool underline, string? contents, OfficeIMO.Pdf.PdfTextBaseline baseline, double? fontSize, OfficeIMO.Pdf.PdfColor? backgroundColor, OfficeIMO.Pdf.PdfStandardFont? font, string? fontFamily) -> OfficeIMO.Pdf.PdfTextRun!
-static OfficeIMO.Pdf.PdfTextRun.LinkToBookmark(string! text, string! bookmarkName, OfficeIMO.Pdf.PdfColor? color = null, bool underline = true, string? contents = null, OfficeIMO.Pdf.PdfTextBaseline baseline = OfficeIMO.Pdf.PdfTextBaseline.Normal, double? fontSize = null, OfficeIMO.Pdf.PdfColor? backgroundColor = null, OfficeIMO.Pdf.PdfStandardFont? font = null, string? fontFamily = null, OfficeIMO.Drawing.OfficeTextDecorationStyle underlineStyle = OfficeIMO.Drawing.OfficeTextDecorationStyle.None, OfficeIMO.Drawing.OfficeTextDecorationStyle strikeStyle = OfficeIMO.Drawing.OfficeTextDecorationStyle.None) -> OfficeIMO.Pdf.PdfTextRun!
-static OfficeIMO.Pdf.PdfTextRun.LinkToBookmark(string! text, string! bookmarkName, OfficeIMO.Pdf.PdfColor? color, bool underline, string? contents, OfficeIMO.Pdf.PdfTextBaseline baseline, double? fontSize, OfficeIMO.Pdf.PdfColor? backgroundColor, OfficeIMO.Pdf.PdfStandardFont? font, string? fontFamily) -> OfficeIMO.Pdf.PdfTextRun!
-static OfficeIMO.Pdf.PdfTextRun.Normal(string! text, OfficeIMO.Pdf.PdfColor? color = null, double? fontSize = null, OfficeIMO.Pdf.PdfColor? backgroundColor = null, OfficeIMO.Pdf.PdfStandardFont? font = null, string? fontFamily = null) -> OfficeIMO.Pdf.PdfTextRun!
-static OfficeIMO.Pdf.PdfTextRun.Strikethrough(string! text, OfficeIMO.Pdf.PdfColor? color = null, double? fontSize = null, OfficeIMO.Pdf.PdfColor? backgroundColor = null, OfficeIMO.Pdf.PdfStandardFont? font = null, string? fontFamily = null) -> OfficeIMO.Pdf.PdfTextRun!
-static OfficeIMO.Pdf.PdfTextRun.Subscript(string! text, OfficeIMO.Pdf.PdfColor? color = null, double? fontSize = null, OfficeIMO.Pdf.PdfColor? backgroundColor = null, OfficeIMO.Pdf.PdfStandardFont? font = null, string? fontFamily = null) -> OfficeIMO.Pdf.PdfTextRun!
-static OfficeIMO.Pdf.PdfTextRun.Superscript(string! text, OfficeIMO.Pdf.PdfColor? color = null, double? fontSize = null, OfficeIMO.Pdf.PdfColor? backgroundColor = null, OfficeIMO.Pdf.PdfStandardFont? font = null, string? fontFamily = null) -> OfficeIMO.Pdf.PdfTextRun!
+static OfficeIMO.Pdf.PdfTextRun.Link(string! text, string! uri, OfficeIMO.OfficeColor? color = null, bool underline = true, string? contents = null, OfficeIMO.Pdf.PdfTextBaseline baseline = OfficeIMO.Pdf.PdfTextBaseline.Normal, double? fontSize = null, OfficeIMO.OfficeColor? backgroundColor = null, OfficeIMO.Pdf.PdfStandardFont? font = null, string? fontFamily = null, OfficeIMO.Drawing.OfficeTextDecorationStyle underlineStyle = OfficeIMO.Drawing.OfficeTextDecorationStyle.None, OfficeIMO.Drawing.OfficeTextDecorationStyle strikeStyle = OfficeIMO.Drawing.OfficeTextDecorationStyle.None) -> OfficeIMO.Pdf.PdfTextRun!
+static OfficeIMO.Pdf.PdfTextRun.Link(string! text, string! uri, OfficeIMO.OfficeColor? color, bool underline, string? contents, OfficeIMO.Pdf.PdfTextBaseline baseline, double? fontSize, OfficeIMO.OfficeColor? backgroundColor, OfficeIMO.Pdf.PdfStandardFont? font, string? fontFamily) -> OfficeIMO.Pdf.PdfTextRun!
+static OfficeIMO.Pdf.PdfTextRun.LinkToBookmark(string! text, string! bookmarkName, OfficeIMO.OfficeColor? color = null, bool underline = true, string? contents = null, OfficeIMO.Pdf.PdfTextBaseline baseline = OfficeIMO.Pdf.PdfTextBaseline.Normal, double? fontSize = null, OfficeIMO.OfficeColor? backgroundColor = null, OfficeIMO.Pdf.PdfStandardFont? font = null, string? fontFamily = null, OfficeIMO.Drawing.OfficeTextDecorationStyle underlineStyle = OfficeIMO.Drawing.OfficeTextDecorationStyle.None, OfficeIMO.Drawing.OfficeTextDecorationStyle strikeStyle = OfficeIMO.Drawing.OfficeTextDecorationStyle.None) -> OfficeIMO.Pdf.PdfTextRun!
+static OfficeIMO.Pdf.PdfTextRun.LinkToBookmark(string! text, string! bookmarkName, OfficeIMO.OfficeColor? color, bool underline, string? contents, OfficeIMO.Pdf.PdfTextBaseline baseline, double? fontSize, OfficeIMO.OfficeColor? backgroundColor, OfficeIMO.Pdf.PdfStandardFont? font, string? fontFamily) -> OfficeIMO.Pdf.PdfTextRun!
+static OfficeIMO.Pdf.PdfTextRun.Normal(string! text, OfficeIMO.OfficeColor? color = null, double? fontSize = null, OfficeIMO.OfficeColor? backgroundColor = null, OfficeIMO.Pdf.PdfStandardFont? font = null, string? fontFamily = null) -> OfficeIMO.Pdf.PdfTextRun!
+static OfficeIMO.Pdf.PdfTextRun.Strikethrough(string! text, OfficeIMO.OfficeColor? color = null, double? fontSize = null, OfficeIMO.OfficeColor? backgroundColor = null, OfficeIMO.Pdf.PdfStandardFont? font = null, string? fontFamily = null) -> OfficeIMO.Pdf.PdfTextRun!
+static OfficeIMO.Pdf.PdfTextRun.Subscript(string! text, OfficeIMO.OfficeColor? color = null, double? fontSize = null, OfficeIMO.OfficeColor? backgroundColor = null, OfficeIMO.Pdf.PdfStandardFont? font = null, string? fontFamily = null) -> OfficeIMO.Pdf.PdfTextRun!
+static OfficeIMO.Pdf.PdfTextRun.Superscript(string! text, OfficeIMO.OfficeColor? color = null, double? fontSize = null, OfficeIMO.OfficeColor? backgroundColor = null, OfficeIMO.Pdf.PdfStandardFont? font = null, string? fontFamily = null) -> OfficeIMO.Pdf.PdfTextRun!
 static OfficeIMO.Pdf.PdfTextRun.Tab(OfficeIMO.Pdf.PdfTabLeaderStyle leader = OfficeIMO.Pdf.PdfTabLeaderStyle.None, OfficeIMO.Pdf.PdfTabAlignment alignment = OfficeIMO.Pdf.PdfTabAlignment.Left) -> OfficeIMO.Pdf.PdfTextRun!
 static OfficeIMO.Pdf.PdfTextRun.Tab(OfficeIMO.Pdf.PdfTabLeaderStyle leader) -> OfficeIMO.Pdf.PdfTextRun!
-static OfficeIMO.Pdf.PdfTextRun.Underlined(string! text, OfficeIMO.Pdf.PdfColor? color = null, double? fontSize = null, OfficeIMO.Pdf.PdfColor? backgroundColor = null, OfficeIMO.Pdf.PdfStandardFont? font = null, string? fontFamily = null) -> OfficeIMO.Pdf.PdfTextRun!
+static OfficeIMO.Pdf.PdfTextRun.Underlined(string! text, OfficeIMO.OfficeColor? color = null, double? fontSize = null, OfficeIMO.OfficeColor? backgroundColor = null, OfficeIMO.Pdf.PdfStandardFont? font = null, string? fontFamily = null) -> OfficeIMO.Pdf.PdfTextRun!
 static OfficeIMO.Pdf.PdfTheme.Compact() -> OfficeIMO.Pdf.PdfTheme!
 static OfficeIMO.Pdf.PdfTheme.Report() -> OfficeIMO.Pdf.PdfTheme!
 static OfficeIMO.Pdf.PdfTheme.TechnicalDocument() -> OfficeIMO.Pdf.PdfTheme!

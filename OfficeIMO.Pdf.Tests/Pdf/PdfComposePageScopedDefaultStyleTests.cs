@@ -56,7 +56,7 @@ namespace OfficeIMO.Tests.Pdf {
             var style = new PdfTextStyle {
                 Font = PdfStandardFont.Helvetica,
                 FontSize = 16,
-                Color = PdfColor.FromRgb(10, 20, 30)
+                Color = global::OfficeIMO.OfficeColor.FromRgb(10, 20, 30)
             };
             var doc = PdfDocument.Create();
 
@@ -70,7 +70,7 @@ namespace OfficeIMO.Tests.Pdf {
                 });
 
                 style.FontSize = 8;
-                style.Color = PdfColor.Black;
+                style.Color = global::OfficeIMO.OfficeColor.Black;
 
                 c.Page(page => {
                     page.Margin(30);
@@ -96,7 +96,7 @@ namespace OfficeIMO.Tests.Pdf {
         public void ComposePage_DefaultHeadingStyleAppliesOnlyToThatPageAndSnapshotsInput() {
             var style = new PdfHeadingStyle {
                 FontSize = 13,
-                Color = PdfColor.FromRgb(10, 20, 30)
+                Color = global::OfficeIMO.OfficeColor.FromRgb(10, 20, 30)
             };
             var doc = PdfDocument.Create(new PdfCreateOptions {
                 DefaultFont = PdfStandardFont.Helvetica,
@@ -113,7 +113,7 @@ namespace OfficeIMO.Tests.Pdf {
                 });
 
                 style.FontSize = 30;
-                style.Color = PdfColor.Black;
+                style.Color = global::OfficeIMO.OfficeColor.Black;
 
                 c.Page(page => {
                     page.Margin(30);
@@ -142,7 +142,7 @@ namespace OfficeIMO.Tests.Pdf {
             var style = new PdfListStyle {
                 FontSize = 13,
                 LeftIndent = 14,
-                Color = PdfColor.FromRgb(10, 20, 30)
+                Color = global::OfficeIMO.OfficeColor.FromRgb(10, 20, 30)
             };
             var doc = PdfDocument.Create(new PdfCreateOptions {
                 DefaultFont = PdfStandardFont.Helvetica,
@@ -160,7 +160,7 @@ namespace OfficeIMO.Tests.Pdf {
 
                 style.FontSize = 30;
                 style.LeftIndent = 0;
-                style.Color = PdfColor.Black;
+                style.Color = global::OfficeIMO.OfficeColor.Black;
 
                 c.Page(page => {
                     page.Margin(30);
@@ -194,7 +194,7 @@ namespace OfficeIMO.Tests.Pdf {
                 PaddingX = 16,
                 MaxWidth = 180,
                 Align = PdfAlign.Center,
-                Background = PdfColor.FromRgb(240, 248, 255)
+                Background = global::OfficeIMO.OfficeColor.FromRgb(240, 248, 255)
             };
             var doc = PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = 360,
@@ -215,7 +215,7 @@ namespace OfficeIMO.Tests.Pdf {
                 style.PaddingX = 2;
                 style.MaxWidth = 300;
                 style.Align = PdfAlign.Right;
-                style.Background = PdfColor.Black;
+                style.Background = global::OfficeIMO.OfficeColor.Black;
 
                 c.Page(page => {
                     page.Margin(30);
@@ -241,7 +241,7 @@ namespace OfficeIMO.Tests.Pdf {
         public void ComposePage_DefaultHorizontalRuleStyleAppliesOnlyToThatPageAndSnapshotsInput() {
             var style = new PdfHorizontalRuleStyle {
                 Thickness = 2,
-                Color = PdfColor.FromRgb(10, 20, 30),
+                Color = global::OfficeIMO.OfficeColor.FromRgb(10, 20, 30),
                 SpacingBefore = 3,
                 SpacingAfter = 16
             };
@@ -264,7 +264,7 @@ namespace OfficeIMO.Tests.Pdf {
                 });
 
                 style.Thickness = 6;
-                style.Color = PdfColor.FromRgb(200, 10, 10);
+                style.Color = global::OfficeIMO.OfficeColor.FromRgb(200, 10, 10);
                 style.SpacingAfter = 0;
 
                 c.Page(page => {
@@ -395,7 +395,7 @@ namespace OfficeIMO.Tests.Pdf {
             var textStyle = new PdfTextStyle {
                 Font = PdfStandardFont.Helvetica,
                 FontSize = 16,
-                Color = PdfColor.FromRgb(10, 20, 30)
+                Color = global::OfficeIMO.OfficeColor.FromRgb(10, 20, 30)
             };
             var tableStyle = PdfTableStyles.Minimal();
             tableStyle.CellPaddingX = 22;

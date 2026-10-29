@@ -52,19 +52,19 @@ public sealed class PdfVisibleSignatureAppearanceOptions {
     }
 
     /// <summary>Appearance background color.</summary>
-    public PdfColor BackgroundColor { get; set; } = PdfColor.White;
+    public global::OfficeIMO.OfficeColor BackgroundColor { get; set; } = global::OfficeIMO.OfficeColor.White;
 
     /// <summary>Whether the background rectangle is filled. Defaults to true for compatibility.</summary>
     public bool ShowBackground { get; set; } = true;
 
     /// <summary>Appearance border color.</summary>
-    public PdfColor BorderColor { get; set; } = PdfColor.Gray;
+    public global::OfficeIMO.OfficeColor BorderColor { get; set; } = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.5D, 0.5D, 0.5D);
 
     /// <summary>Whether the border rectangle is stroked. Defaults to true for compatibility.</summary>
     public bool ShowBorder { get; set; } = true;
 
     /// <summary>Appearance text color.</summary>
-    public PdfColor TextColor { get; set; } = PdfColor.Black;
+    public global::OfficeIMO.OfficeColor TextColor { get; set; } = global::OfficeIMO.OfficeColor.Black;
 
     /// <summary>
     /// Optional raster image drawn behind the appearance text. The supplied bytes are defensively copied

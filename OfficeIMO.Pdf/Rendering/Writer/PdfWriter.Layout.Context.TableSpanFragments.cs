@@ -17,7 +17,7 @@ internal static partial class PdfWriter {
             // Paint every deferred fill before any adjacent span's content or borders.
             foreach (TableSpanCellFlow span in flow.ActiveCells) {
                 if (span.Height <= .001D || completedRow >= 0 && span.EndRow != completedRow + 1 ||
-                    style.CellFills?.TryGetValue((span.Row, span.Cell.Column), out PdfColor fill) != true) continue;
+                    style.CellFills?.TryGetValue((span.Row, span.Cell.Column), out global::OfficeIMO.OfficeColor fill) != true) continue;
                 cancellationToken.ThrowIfCancellationRequested();
                 TableCellLayout cell = span.Cell;
                 double x = tableX;
@@ -67,7 +67,7 @@ internal static partial class PdfWriter {
                     }
                     if (span.FirstFragmentRow == row && row > 0) {
                         bool headerBefore = row - 1 < style.HeaderRowCount;
-                        PdfColor? separator = headerBefore ? style.HeaderSeparatorColor ?? style.RowSeparatorColor : style.RowSeparatorColor;
+                        global::OfficeIMO.OfficeColor? separator = headerBefore ? style.HeaderSeparatorColor ?? style.RowSeparatorColor : style.RowSeparatorColor;
                         double separatorWidth = headerBefore && style.HeaderSeparatorWidth > 0D ? style.HeaderSeparatorWidth : style.RowSeparatorWidth;
                         if (separator.HasValue && separatorWidth > 0D) DrawHLine(sb, separator.Value, separatorWidth, x, x + width, span.Top, emitGeneratedStructure);
                     }

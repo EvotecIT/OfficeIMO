@@ -176,7 +176,7 @@ public class PdfFloatingTablePaginationRegressionTests {
         using var pdf = Pig.Open(PdfDocument.Create(Options()).Table(new[] { new[] { "floating" } }, style: style)
             .Paragraph(p => {
                 p.Text("\t");
-                if (inline) p.Inline(new PdfInlineBox(50, 20, background: PdfColor.Black));
+                if (inline) p.Inline(new PdfInlineBox(50, 20, background: global::OfficeIMO.OfficeColor.Black));
                 p.Text("following");
             }, style: paragraphStyle).ToBytes());
         var following = pdf.GetPage(1).GetWords().Single(w => w.Text == "following");
@@ -188,7 +188,7 @@ public class PdfFloatingTablePaginationRegressionTests {
         var style = Floating(); style.Position = new PdfTablePosition(verticalOffset: 25);
         using var pdf = Pig.Open(PdfDocument.Create(Options()).Table(new[] { new[] { "floating" } }, style: style)
             .Panel(panel => panel.Paragraph(p => p.Text("one\ntwo\nthree\nfour\nfive")),
-                new PdfPanelStyle { Background = PdfColor.Black, KeepTogether = false }).ToBytes());
+                new PdfPanelStyle { Background = global::OfficeIMO.OfficeColor.Black, KeepTogether = false }).ToBytes());
         Assert.True(pdf.GetPage(1).GetWords().Single(w => w.Text == "one").BoundingBox.Top <= 356);
     }
 

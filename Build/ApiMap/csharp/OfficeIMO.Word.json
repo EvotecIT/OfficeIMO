@@ -1306,7 +1306,7 @@
       "old": "OfficeIMO.Word.WordDocument.AddChart(OfficeChartKind chartKind, OfficeChartData data, string title = , bool roundedCorners = False, int width = 600, int height = 600)",
       "kind": "method",
       "action": "change",
-      "new": "OfficeIMO.Word.WordDocument.AddChart(OfficeChartType type, ...) : WordChart",
+      "new": "OfficeIMO.Word.WordDocument.AddChart(OfficeChartType chartKind, OfficeChartData data, OfficeChartOptions options)",
       "reason": "Shared OfficeChartType and typed AddChart entry point; width/height become OfficeLength.",
       "file": "OfficeIMO.Word/WordDocument.SharedCharts.cs",
       "category": "authoring",
@@ -1317,7 +1317,7 @@
       },
       "phase": "B",
       "applied": "phase-b-applied",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "note": "Shared data entry points use chart type, data, then options in every format. Shared title/OfficeLength dimensions accept format options for native placement and frame/accessibility. The two-argument overload keeps format defaults."
     },
     {
       "old": "OfficeIMO.Word.WordParagraph.AddChart(string title = , bool roundedCorners = False, int width = 600, int height = 600)",
@@ -1357,7 +1357,7 @@
       "old": "OfficeIMO.Word.WordParagraph.AddChart(OfficeChartKind chartKind, OfficeChartData data, string title = , bool roundedCorners = False, int width = 600, int height = 600)",
       "kind": "method",
       "action": "change",
-      "new": "OfficeIMO.Word.WordParagraph.AddChart(OfficeChartType type, ...) : WordChart",
+      "new": "OfficeIMO.Word.WordDocument.AddChart(OfficeChartType chartKind, OfficeChartData data, OfficeChartOptions options)",
       "reason": "Shared OfficeChartType and typed AddChart entry point; width/height become OfficeLength.",
       "file": "OfficeIMO.Word/WordParagraph.SharedCharts.cs",
       "category": "authoring",
@@ -1368,7 +1368,7 @@
       },
       "phase": "B",
       "applied": "phase-b-applied",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "note": "Shared data entry points use chart type, data, then options in every format. Shared title/OfficeLength dimensions accept format options for native placement and frame/accessibility. The two-argument overload keeps format defaults."
     },
     {
       "old": "OfficeIMO.Word.WordSection.AddImageVml(string filePathImage, double? width = null, double? height = null)",
@@ -2389,8 +2389,8 @@
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical textbox/group geometry uses OfficeLength with native EMU precision. Percentage sizing and null-placement behavior retain their distinct native semantics."
     },
     {
       "old": "OfficeIMO.Word.WordSection.AddShape(WordShapeType shapeType, double widthPt, double heightPt, OfficeColor fillColor, OfficeColor strokeColor, double strokeWeightPt = 1, double arcSize = 0.25)",
@@ -2697,7 +2697,7 @@
       "old": "OfficeIMO.Word.WordDrawingLayoutSnapshot.HeightPoints",
       "kind": "property",
       "action": "merge",
-      "new": "OfficeIMO.Word.WordDrawingLayoutSnapshot.Height : OfficeLength",
+      "new": "OfficeIMO.Word.WordDrawingLayoutInfo.Height : OfficeLength",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.Word/WordDrawingLayoutSnapshot.cs",
       "category": "units",
@@ -2706,14 +2706,14 @@
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "The current public snapshot model is WordDrawingLayoutInfo. Its public dimensions and offsets retain native EMUs as OfficeLength; internal point projections remain conversion/comparison plumbing."
     },
     {
       "old": "OfficeIMO.Word.WordDrawingLayoutSnapshot.HorizontalOffsetPoints",
       "kind": "property",
       "action": "merge",
-      "new": "OfficeIMO.Word.WordDrawingLayoutSnapshot.HorizontalOffset : OfficeLength",
+      "new": "OfficeIMO.Word.WordDrawingLayoutInfo.HorizontalOffset : OfficeLength?",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.Word/WordDrawingLayoutSnapshot.cs",
       "category": "units",
@@ -2722,14 +2722,14 @@
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "The current public snapshot model is WordDrawingLayoutInfo. Its public dimensions and offsets retain native EMUs as OfficeLength; internal point projections remain conversion/comparison plumbing."
     },
     {
       "old": "OfficeIMO.Word.WordDrawingLayoutSnapshot.VerticalOffsetPoints",
       "kind": "property",
       "action": "merge",
-      "new": "OfficeIMO.Word.WordDrawingLayoutSnapshot.VerticalOffset : OfficeLength",
+      "new": "OfficeIMO.Word.WordDrawingLayoutInfo.VerticalOffset : OfficeLength?",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.Word/WordDrawingLayoutSnapshot.cs",
       "category": "units",
@@ -2738,14 +2738,14 @@
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "The current public snapshot model is WordDrawingLayoutInfo. Its public dimensions and offsets retain native EMUs as OfficeLength; internal point projections remain conversion/comparison plumbing."
     },
     {
       "old": "OfficeIMO.Word.WordDrawingLayoutSnapshot.WidthPoints",
       "kind": "property",
       "action": "merge",
-      "new": "OfficeIMO.Word.WordDrawingLayoutSnapshot.Width : OfficeLength",
+      "new": "OfficeIMO.Word.WordDrawingLayoutInfo.Width : OfficeLength",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.Word/WordDrawingLayoutSnapshot.cs",
       "category": "units",
@@ -2754,8 +2754,8 @@
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "The current public snapshot model is WordDrawingLayoutInfo. Its public dimensions and offsets retain native EMUs as OfficeLength; internal point projections remain conversion/comparison plumbing."
     },
     {
       "old": "OfficeIMO.Word.WordImage.CropBottomCentimeters",
@@ -3531,7 +3531,7 @@
       "old": "OfficeIMO.Word.WordShapeGroupItem.HeightPt",
       "kind": "property",
       "action": "change",
-      "new": "OfficeIMO.Word.WordShapeGroupItem.HeightPt : OfficeLength",
+      "new": "OfficeIMO.Word.WordShapeGroupItem.Height : OfficeLength",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.Word/WordShapeGroup.cs",
       "category": "units",
@@ -3540,14 +3540,14 @@
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical textbox/group geometry uses OfficeLength with native EMU precision. Percentage sizing and null-placement behavior retain their distinct native semantics."
     },
     {
       "old": "OfficeIMO.Word.WordShapeGroupItem.LeftPt",
       "kind": "property",
       "action": "change",
-      "new": "OfficeIMO.Word.WordShapeGroupItem.LeftPt : OfficeLength",
+      "new": "OfficeIMO.Word.WordShapeGroupItem.Left : OfficeLength",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.Word/WordShapeGroup.cs",
       "category": "units",
@@ -3556,14 +3556,14 @@
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical textbox/group geometry uses OfficeLength with native EMU precision. Percentage sizing and null-placement behavior retain their distinct native semantics."
     },
     {
       "old": "OfficeIMO.Word.WordShapeGroupItem.TopPt",
       "kind": "property",
       "action": "change",
-      "new": "OfficeIMO.Word.WordShapeGroupItem.TopPt : OfficeLength",
+      "new": "OfficeIMO.Word.WordShapeGroupItem.Top : OfficeLength",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.Word/WordShapeGroup.cs",
       "category": "units",
@@ -3572,14 +3572,14 @@
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical textbox/group geometry uses OfficeLength with native EMU precision. Percentage sizing and null-placement behavior retain their distinct native semantics."
     },
     {
       "old": "OfficeIMO.Word.WordShapeGroupItem.WidthPt",
       "kind": "property",
       "action": "change",
-      "new": "OfficeIMO.Word.WordShapeGroupItem.WidthPt : OfficeLength",
+      "new": "OfficeIMO.Word.WordShapeGroupItem.Width : OfficeLength",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.Word/WordShapeGroup.cs",
       "category": "units",
@@ -3588,8 +3588,8 @@
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical textbox/group geometry uses OfficeLength with native EMU precision. Percentage sizing and null-placement behavior retain their distinct native semantics."
     },
     {
       "old": "OfficeIMO.Word.WordTabStopSnapshot.PositionPoints",
@@ -3780,14 +3780,14 @@
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical textbox/group geometry uses OfficeLength with native EMU precision. Percentage sizing and null-placement behavior retain their distinct native semantics."
     },
     {
       "old": "OfficeIMO.Word.WordTextBox.HorizontalPositionOffsetCentimeters",
       "kind": "property",
       "action": "merge",
-      "new": "OfficeIMO.Word.WordTextBox.HorizontalPositionOffset : OfficeLength",
+      "new": "OfficeIMO.Word.WordTextBox.HorizontalPositionOffset : OfficeLength?",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.Word/WordTextBox.cs",
       "category": "units",
@@ -3796,14 +3796,14 @@
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical textbox/group geometry uses OfficeLength with native EMU precision. Percentage sizing and null-placement behavior retain their distinct native semantics."
     },
     {
       "old": "OfficeIMO.Word.WordTextBox.VerticalPositionOffsetCentimeters",
       "kind": "property",
       "action": "merge",
-      "new": "OfficeIMO.Word.WordTextBox.VerticalPositionOffset : OfficeLength",
+      "new": "OfficeIMO.Word.WordTextBox.VerticalPositionOffset : OfficeLength?",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.Word/WordTextBox.cs",
       "category": "units",
@@ -3812,8 +3812,8 @@
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical textbox/group geometry uses OfficeLength with native EMU precision. Percentage sizing and null-placement behavior retain their distinct native semantics."
     },
     {
       "old": "OfficeIMO.Word.WordTextBox.WidthCentimeters",
@@ -3828,8 +3828,8 @@
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical textbox/group geometry uses OfficeLength with native EMU precision. Percentage sizing and null-placement behavior retain their distinct native semantics."
     },
     {
       "old": "OfficeIMO.Word.WordParagraph.IndentationBefore",
@@ -4287,8 +4287,8 @@
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical textbox/group geometry uses OfficeLength with native EMU precision. Percentage sizing and null-placement behavior retain their distinct native semantics."
     },
     {
       "old": "OfficeIMO.Word.WordTextBox.HorizontalPositionOffset",
@@ -4304,14 +4304,14 @@
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical textbox/group geometry uses OfficeLength with native EMU precision. Percentage sizing and null-placement behavior retain their distinct native semantics."
     },
     {
       "old": "OfficeIMO.Word.WordTextBox.Width",
       "kind": "property",
       "action": "change",
-      "new": "OfficeIMO.Word.WordTextBox.Width : OfficeLength?",
+      "new": "OfficeIMO.Word.WordTextBox.Width : OfficeLength",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.Word/WordTextBox.cs",
       "category": "units",
@@ -4321,14 +4321,14 @@
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical textbox/group geometry uses OfficeLength with native EMU precision. Percentage sizing and null-placement behavior retain their distinct native semantics."
     },
     {
       "old": "OfficeIMO.Word.WordTextBox.Height",
       "kind": "property",
       "action": "change",
-      "new": "OfficeIMO.Word.WordTextBox.Height : OfficeLength?",
+      "new": "OfficeIMO.Word.WordTextBox.Height : OfficeLength",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.Word/WordTextBox.cs",
       "category": "units",
@@ -4338,8 +4338,8 @@
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical textbox/group geometry uses OfficeLength with native EMU precision. Percentage sizing and null-placement behavior retain their distinct native semantics."
     },
     {
       "old": "OfficeIMO.Word.WordPageSizes.Width",
@@ -6650,6 +6650,29 @@
         "OfficeIMO.Word.Tests/Word.Shapes.PhysicalGeometry.cs",
         "OfficeIMO.Word/WordParagraph.DrawingMedia.cs",
         "OfficeIMO.Word/WordSection.cs"
+      ]
+    },
+    {
+      "change": "Align chart type/data/options order across Word, Excel and PowerPoint",
+      "reason": "OfficeChartOptions owns the shared title and physical dimensions. Format options retain Word rounded corners, Excel one-based row/column anchors and PowerPoint position/accessibility. Typed and nameof projections accept options without duplicating data projection or chart rendering. Format defaults and editable native series are preserved.",
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "files": [
+        "OfficeIMO.Word/WordChartOptions.cs",
+        "OfficeIMO.Word/WordDocument.SharedCharts.cs",
+        "OfficeIMO.Word/WordDocument.TypedCharts.cs",
+        "OfficeIMO.Word/WordParagraph.SharedCharts.cs"
+      ]
+    },
+    {
+      "change": "Use OfficeLength for WordShapeGroupItem construction and public WordDrawingLayoutInfo frames/offsets",
+      "reason": "Inspection retains whole native EMUs; shape groups avoid converting through floating point points. Internal point projections serve conversion/comparison plumbing only. Relative textbox sizing remains separate.",
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "files": [
+        "OfficeIMO.Word/WordShapeGroup.cs",
+        "OfficeIMO.Word/WordDrawingLayoutSnapshot.cs",
+        "OfficeIMO.Word.Tests/Word.RemainingDrawingGeometry.cs"
       ]
     }
   ],

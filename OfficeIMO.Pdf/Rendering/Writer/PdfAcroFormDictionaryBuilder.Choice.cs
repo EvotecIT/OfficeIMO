@@ -26,7 +26,7 @@ internal static partial class PdfAcroFormDictionaryBuilder {
             if (selected.Contains(index)) {
                 content.Append("0.153 0.392 0.8 rg 2 ").Append(Format(bottom)).Append(' ')
                     .Append(Format(Math.Max(0D, width - 4D))).Append(' ').Append(Format(rowHeight)).Append(" re f\n");
-                textStyle.TextColor = PdfColor.White;
+                textStyle.TextColor = global::OfficeIMO.OfficeColor.White;
             }
             double baseline = bottom + Math.Max(2D, (rowHeight - fontSize) / 2D + fontSize * 0.2D);
             appendRow(content, index, baseline, textStyle);

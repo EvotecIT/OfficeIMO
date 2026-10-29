@@ -18,9 +18,9 @@ namespace OfficeIMO.Word.Pdf {
                 if (fillEnabled) {
                     string? fillColor = GetNativeVmlStyleValue(element, shapeType, "fill", "color", "fillcolor");
                     bool explicitNoFill = IsNativeVmlNoColor(fillColor);
-                    PdfCore.PdfColor? fill = explicitNoFill ? null : ParseNativeColor(NormalizeNativeVmlColor(fillColor));
+                    global::OfficeIMO.OfficeColor? fill = explicitNoFill ? null : ParseNativeColor(NormalizeNativeVmlColor(fillColor));
                     if (!explicitNoFill) {
-                        shape.FillColor = (fill ?? PdfCore.PdfColor.White).ToOfficeColor();
+                        shape.FillColor = (fill ?? global::OfficeIMO.OfficeColor.White);
                     }
 
                     if (!explicitNoFill && TryGetNativeVmlGradientFill(fillElement, fill, out OfficeLinearGradient? gradient)) {
@@ -46,7 +46,7 @@ namespace OfficeIMO.Word.Pdf {
                 return;
             }
 
-            shape.StrokeColor = (ParseNativeColor(strokeColor) ?? PdfCore.PdfColor.Black).ToOfficeColor();
+            shape.StrokeColor = (ParseNativeColor(strokeColor) ?? global::OfficeIMO.OfficeColor.Black);
             // VML defaults to a one-pixel stroke, which is 0.75 PDF points.
             shape.StrokeWidth = ParseNativeVmlStrokeWeight(GetNativeVmlStyleValue(element, shapeType, "stroke", "weight", "strokeweight")) ?? 0.75D;
             shape.StrokeDashStyle = MapNativeVmlStrokeDashStyle(GetNativeOpenXmlAttribute(strokeElement ?? element, "dashstyle"));
@@ -121,10 +121,10 @@ namespace OfficeIMO.Word.Pdf {
                 return;
             }
 
-            PdfCore.PdfColor shadowColor = ParseNativeColor(NormalizeNativeVmlColor(GetNativeOpenXmlAttribute(shadowElement, "color"))) ?? PdfCore.PdfColor.Black;
+            global::OfficeIMO.OfficeColor shadowColor = ParseNativeColor(NormalizeNativeVmlColor(GetNativeOpenXmlAttribute(shadowElement, "color"))) ?? global::OfficeIMO.OfficeColor.Black;
             double opacity = ParseNativeVmlOpacity(GetNativeOpenXmlAttribute(shadowElement, "opacity")) ?? 0.5D;
             (double offsetX, double offsetY) = ParseNativeVmlOffset(GetNativeOpenXmlAttribute(shadowElement, "offset")) ?? (2D, 2D);
-            shape.Shadow = new OfficeShadow(shadowColor.ToOfficeColor(), opacity, offsetX, offsetY);
+            shape.Shadow = new OfficeShadow(shadowColor, opacity, offsetX, offsetY);
         }
 
         private static (double X, double Y)? ParseNativeVmlOffset(string? value) {
@@ -208,7 +208,7 @@ namespace OfficeIMO.Word.Pdf {
                 : GetNativeOpenXmlAttribute(element, "flip");
         }
 
-        private static bool TryGetNativeVmlGradientFill(OpenXmlElement? fillElement, PdfCore.PdfColor? startFill, out OfficeLinearGradient? gradient) {
+        private static bool TryGetNativeVmlGradientFill(OpenXmlElement? fillElement, global::OfficeIMO.OfficeColor? startFill, out OfficeLinearGradient? gradient) {
             gradient = null;
             if (fillElement == null) {
                 return false;
@@ -221,9 +221,9 @@ namespace OfficeIMO.Word.Pdf {
             }
 
             string? color2Value = NormalizeNativeVmlColor(GetNativeOpenXmlAttribute(fillElement, "color2"));
-            TryGetNativeVmlGradientStopColors(fillElement, out PdfCore.PdfColor? stopStartFill, out PdfCore.PdfColor? stopEndFill);
-            PdfCore.PdfColor? gradientStartFill = startFill ?? stopStartFill;
-            PdfCore.PdfColor? endFill = ParseNativeColor(color2Value);
+            TryGetNativeVmlGradientStopColors(fillElement, out global::OfficeIMO.OfficeColor? stopStartFill, out global::OfficeIMO.OfficeColor? stopEndFill);
+            global::OfficeIMO.OfficeColor? gradientStartFill = startFill ?? stopStartFill;
+            global::OfficeIMO.OfficeColor? endFill = ParseNativeColor(color2Value);
             if (!endFill.HasValue) {
                 endFill = stopEndFill;
             }
@@ -233,13 +233,13 @@ namespace OfficeIMO.Word.Pdf {
             }
 
             gradient = CreateNativeVmlLinearGradient(
-                gradientStartFill.Value.ToOfficeColor(),
-                endFill.Value.ToOfficeColor(),
+                gradientStartFill.Value,
+                endFill.Value,
                 GetNativeOpenXmlAttribute(fillElement, "angle"));
             return true;
         }
 
-        private static bool TryGetNativeVmlGradientStopColors(OpenXmlElement fillElement, out PdfCore.PdfColor? startFill, out PdfCore.PdfColor? endFill) {
+        private static bool TryGetNativeVmlGradientStopColors(OpenXmlElement fillElement, out global::OfficeIMO.OfficeColor? startFill, out global::OfficeIMO.OfficeColor? endFill) {
             startFill = null;
             endFill = null;
             string? colors = GetNativeOpenXmlAttribute(fillElement, "colors");
@@ -247,7 +247,7 @@ namespace OfficeIMO.Word.Pdf {
                 return false;
             }
 
-            var stops = new List<(double Offset, PdfCore.PdfColor Color)>();
+            var stops = new List<(double Offset, global::OfficeIMO.OfficeColor Color)>();
             foreach (string entry in colors!.Split(new[] { ';' }, StringSplitOptions.RemoveEmptyEntries)) {
                 Match match = Regex.Match(entry.Trim(), "^(" + NativeVmlNumberPattern + "(?:%|f)?)\\s+(.+)$", RegexOptions.IgnoreCase);
                 if (!match.Success) {
@@ -267,7 +267,7 @@ namespace OfficeIMO.Word.Pdf {
                 }
 
                 string? colorValue = NormalizeNativeVmlColor(match.Groups[2].Value);
-                PdfCore.PdfColor? color = ParseNativeColor(colorValue);
+                global::OfficeIMO.OfficeColor? color = ParseNativeColor(colorValue);
                 if (!color.HasValue) {
                     continue;
                 }

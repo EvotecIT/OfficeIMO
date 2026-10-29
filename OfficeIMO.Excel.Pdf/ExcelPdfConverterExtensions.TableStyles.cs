@@ -29,7 +29,7 @@ namespace OfficeIMO.Excel.Pdf {
 
             ApplyFitToHeight(tableStyle, options, pageSetup, rowIndexes, rowHeights);
 
-            Dictionary<(int Row, int Column), PdfCore.PdfColor>? cellFills = CreateCellFills(styles, conditionalFills, cellReferences, structuredTables, rowIndexes, columnOffset, exportedColumns);
+            Dictionary<(int Row, int Column), global::OfficeIMO.OfficeColor>? cellFills = CreateCellFills(styles, conditionalFills, cellReferences, structuredTables, rowIndexes, columnOffset, exportedColumns);
             if (cellFills != null) {
                 tableStyle.CellFills = cellFills;
             }
@@ -76,9 +76,9 @@ namespace OfficeIMO.Excel.Pdf {
             return new PdfCore.PdfTableStyle {
                 CellPaddingX = 4,
                 CellPaddingY = 3,
-                HeaderFill = PdfCore.PdfColor.FromRgb(230, 238, 247),
-                HeaderTextColor = PdfCore.PdfColor.FromRgb(31, 78, 121),
-                RowStripeFill = PdfCore.PdfColor.FromRgb(248, 250, 252)
+                HeaderFill = global::OfficeIMO.OfficeColor.FromRgb(230, 238, 247),
+                HeaderTextColor = global::OfficeIMO.OfficeColor.FromRgb(31, 78, 121),
+                RowStripeFill = global::OfficeIMO.OfficeColor.FromRgb(248, 250, 252)
             };
         }
 
@@ -233,13 +233,13 @@ namespace OfficeIMO.Excel.Pdf {
             return hyperlinks[row, column];
         }
 
-        private static Dictionary<(int Row, int Column), PdfCore.PdfColor>? CreateCellFills(ExcelCellStyleInfo?[,]? styles, ConditionalFillData? conditionalFills, string?[,]? cellReferences, IReadOnlyList<StructuredTableVisualData> structuredTables, IReadOnlyList<int> rowIndexes, int columnOffset = 0, int exportedColumns = 0) {
+        private static Dictionary<(int Row, int Column), global::OfficeIMO.OfficeColor>? CreateCellFills(ExcelCellStyleInfo?[,]? styles, ConditionalFillData? conditionalFills, string?[,]? cellReferences, IReadOnlyList<StructuredTableVisualData> structuredTables, IReadOnlyList<int> rowIndexes, int columnOffset = 0, int exportedColumns = 0) {
             if (styles == null && conditionalFills == null && structuredTables.Count == 0) {
                 return null;
             }
 
             int columnEnd = exportedColumns > 0 ? columnOffset + exportedColumns : int.MaxValue;
-            Dictionary<(int Row, int Column), PdfCore.PdfColor>? fills = null;
+            Dictionary<(int Row, int Column), global::OfficeIMO.OfficeColor>? fills = null;
             if (cellReferences != null && structuredTables.Count > 0) {
                 int columns = Math.Min(columnEnd, cellReferences.GetLength(1));
                 for (int localRow = 0; localRow < rowIndexes.Count; localRow++) {
@@ -250,9 +250,9 @@ namespace OfficeIMO.Excel.Pdf {
 
                     for (int column = columnOffset; column < columns; column++) {
                         StructuredTableCellVisual? tableVisual = GetStructuredTableCellVisual(structuredTables, cellReferences, row, column);
-                        PdfCore.PdfColor? fill = ToPdfColor(tableVisual?.Fill);
+                        global::OfficeIMO.OfficeColor? fill = ToPdfColor(tableVisual?.Fill);
                         if (fill.HasValue) {
-                            fills ??= new Dictionary<(int Row, int Column), PdfCore.PdfColor>();
+                            fills ??= new Dictionary<(int Row, int Column), global::OfficeIMO.OfficeColor>();
                             fills[(localRow, column - columnOffset)] = fill.Value;
                         }
                     }
@@ -268,9 +268,9 @@ namespace OfficeIMO.Excel.Pdf {
                     }
 
                     for (int column = columnOffset; column < columns; column++) {
-                        PdfCore.PdfColor? fill = ToPdfColor(styles[row, column]?.FillColorHex);
+                        global::OfficeIMO.OfficeColor? fill = ToPdfColor(styles[row, column]?.FillColorHex);
                         if (fill.HasValue) {
-                            fills ??= new Dictionary<(int Row, int Column), PdfCore.PdfColor>();
+                            fills ??= new Dictionary<(int Row, int Column), global::OfficeIMO.OfficeColor>();
                             fills[(localRow, column - columnOffset)] = fill.Value;
                         }
                     }
@@ -286,9 +286,9 @@ namespace OfficeIMO.Excel.Pdf {
                         continue;
                     }
 
-                    PdfCore.PdfColor? fill = ToPdfColor(conditionalFill.Value);
+                    global::OfficeIMO.OfficeColor? fill = ToPdfColor(conditionalFill.Value);
                     if (fill.HasValue) {
-                        fills ??= new Dictionary<(int Row, int Column), PdfCore.PdfColor>();
+                        fills ??= new Dictionary<(int Row, int Column), global::OfficeIMO.OfficeColor>();
                         fills[(localRow, conditionalFill.Key.Column - columnOffset)] = fill.Value;
                     }
                 }
@@ -312,7 +312,7 @@ namespace OfficeIMO.Excel.Pdf {
                     continue;
                 }
 
-                PdfCore.PdfColor? fill = ToPdfColor(conditionalDataBar.Value.Color);
+                global::OfficeIMO.OfficeColor? fill = ToPdfColor(conditionalDataBar.Value.Color);
                 if (fill.HasValue) {
                     dataBars ??= new Dictionary<(int Row, int Column), PdfCore.PdfCellDataBar>();
                     dataBars[(localRow, conditionalDataBar.Key.Column - columnOffset)] = new PdfCore.PdfCellDataBar {
@@ -446,7 +446,7 @@ namespace OfficeIMO.Excel.Pdf {
 
                     for (int column = columnOffset; column < columns; column++) {
                         StructuredTableCellVisual? tableVisual = GetStructuredTableCellVisual(structuredTables, cellReferences, row, column);
-                        PdfCore.PdfColor? color = ToPdfColor(tableVisual?.Border);
+                        global::OfficeIMO.OfficeColor? color = ToPdfColor(tableVisual?.Border);
                         if (color.HasValue) {
                             borders ??= new Dictionary<(int Row, int Column), PdfCore.PdfCellBorder>();
                             borders[(localRow, column - columnOffset)] = new PdfCore.PdfCellBorder {
@@ -564,7 +564,7 @@ namespace OfficeIMO.Excel.Pdf {
             }
 
             return new PdfCore.PdfCellBorderSide {
-                Color = ToPdfColor(side.ColorArgb) ?? PdfCore.PdfColor.FromRgb(0, 0, 0),
+                Color = ToPdfColor(side.ColorArgb) ?? global::OfficeIMO.OfficeColor.FromRgb(0, 0, 0),
                 Width = width,
                 DashStyle = ToPdfBorderDashStyle(side.Style),
                 LineStyle = ToPdfBorderLineStyle(side.Style)
@@ -624,7 +624,7 @@ namespace OfficeIMO.Excel.Pdf {
                 : PdfCore.PdfCellBorderLineStyle.Standard;
         }
 
-        private static PdfCore.PdfColor? ToPdfColor(string? hex) {
+        private static global::OfficeIMO.OfficeColor? ToPdfColor(string? hex) {
             if (string.IsNullOrWhiteSpace(hex)) {
                 return null;
             }
@@ -645,7 +645,7 @@ namespace OfficeIMO.Excel.Pdf {
                 return null;
             }
 
-            return PdfCore.PdfColor.FromRgb(r, g, b);
+            return global::OfficeIMO.OfficeColor.FromRgb(r, g, b);
         }
 
     }

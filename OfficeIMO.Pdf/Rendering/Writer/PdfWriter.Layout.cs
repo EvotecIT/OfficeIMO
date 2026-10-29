@@ -15,7 +15,7 @@ internal static partial class PdfWriter {
         public double ColumnWidth;
     }
     private sealed class ColPar : ColItem { public RichParagraphBlock Block = null!; public System.Collections.Generic.List<System.Collections.Generic.List<RichSeg>> Lines = null!; public System.Collections.Generic.List<double> Heights = null!; public double Leading; public double Size; public double XOffset; public double TextWidth; public double FirstLineXOffset; public double FirstLineTextWidth; public ColPar() { Kind = "P"; } }
-    private sealed class ColHead : ColItem { public HeadingBlock Block = null!; public System.Collections.Generic.IReadOnlyList<PdfTextRun> Runs = null!; public System.Collections.Generic.List<System.Collections.Generic.List<RichSeg>> Lines = null!; public System.Collections.Generic.List<double> Heights = null!; public double Leading; public double Size; public double SpacingBefore; public double SpacingAfter; public bool Bold; public bool ApplySpacingBeforeAtTop; public bool KeepWithNext; public PdfColor? Color; public ColHead() { Kind = "H"; } }
+    private sealed class ColHead : ColItem { public HeadingBlock Block = null!; public System.Collections.Generic.IReadOnlyList<PdfTextRun> Runs = null!; public System.Collections.Generic.List<System.Collections.Generic.List<RichSeg>> Lines = null!; public System.Collections.Generic.List<double> Heights = null!; public double Leading; public double Size; public double SpacingBefore; public double SpacingAfter; public bool Bold; public bool ApplySpacingBeforeAtTop; public bool KeepWithNext; public global::OfficeIMO.OfficeColor? Color; public ColHead() { Kind = "H"; } }
     private sealed class ColRule : ColItem { public HorizontalRuleBlock Block = null!; public ColRule() { Kind = "R"; } }
     private sealed class ColImg : ColItem { public ImageBlock Block = null!; public PdfImageStyle Style = null!; public double Width; public double Height; public ColImg() { Kind = "I"; } }
     private sealed class ColShape : ColItem { public ShapeBlock Block = null!; public ColShape() { Kind = "S"; } }
@@ -35,14 +35,14 @@ internal static partial class PdfWriter {
         public PdfNamedFontFace? MarkerNamedFont;
         public OfficeTextFeatureSettings? MarkerFeatureSettings;
         public double MarkerSize;
-        public PdfColor? MarkerColor;
+        public global::OfficeIMO.OfficeColor? MarkerColor;
         public double MarkerXOffset;
         public double MarkerWidth;
         public PdfAlign MarkerAlign;
         public double TextXOffset;
         public double TextWidth;
         public PdfAlign TextAlign;
-        public PdfColor? Color;
+        public global::OfficeIMO.OfficeColor? Color;
         public double Leading;
         public double Size;
         public double SpacingBefore;

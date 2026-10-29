@@ -85,6 +85,6 @@ public sealed class HtmlEditableLayoutReviewWave27Tests {
         WordTextBox textBox = Assert.Single(reopened.TextBoxes);
 
         Assert.Equal(WordTextBoxAutoFitType.NoAutoFit, textBox.AutoFit);
-        Assert.Equal(171450L, textBox.Height);
+        Assert.Equal(171450L, textBox.Height.ToEmus());
     }
 }

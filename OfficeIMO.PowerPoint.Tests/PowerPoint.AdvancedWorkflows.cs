@@ -992,10 +992,9 @@ namespace OfficeIMO.Tests {
                 PowerPointDocument.Create();
             presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(640),OfficeIMO.OfficeLength.Points(360));
             PowerPointSlide slide = presentation.AddSlide();
-            PowerPointChart chart = slide.AddChart(
-                OfficeChartType.ColumnClustered,                new OfficeChartData(new[] { "Q1", "Q2" }, new[] {
+            PowerPointChart chart = slide.AddChart(OfficeChartType.ColumnClustered, new OfficeChartData(new[] { "Q1", "Q2" }, new[] {
                     new OfficeSeries("Actual", new[] { 10D, 20D })
-                }),global::OfficeIMO.OfficeLength.Points(40),global::OfficeIMO.OfficeLength.Points(40),global::OfficeIMO.OfficeLength.Points(560),global::OfficeIMO.OfficeLength.Points(280));
+                }), new OfficeIMO.PowerPoint.PowerPointChartOptions { Left = global::OfficeIMO.OfficeLength.Points(40), Top = global::OfficeIMO.OfficeLength.Points(40), Width = global::OfficeIMO.OfficeLength.Points(560), Height = global::OfficeIMO.OfficeLength.Points(280) });
             chart.SetLegendTextStyle(fontName: "Arial")
                 .SetCategoryAxisLabelTextStyle(fontName: "Georgia")
                 .SetValueAxisLabelTextStyle(fontName: "Arial");

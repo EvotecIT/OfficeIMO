@@ -28,7 +28,7 @@ internal static partial class PdfWriter {
         if (textWidth > 0D && TryGetPageTextVerticalBounds(runs, footerFont, opts.FooterFontSize, opts, y, out double textBottom, out double textTop)) {
             ReportHeaderFooterBounds(opts, "Footer", "text", x, textBottom, textWidth, textTop - textBottom);
         }
-        PdfColor? footerColor = opts.FooterTextColor;
+        global::OfficeIMO.OfficeColor? footerColor = opts.FooterTextColor;
         var sb = new StringBuilder();
         AppendPageTextRuns(sb, runs, footerFont, footerFontResource, fontResources, namedFontResources, opts.FooterFontSize, footerColor, x, y, opts, textWidth, opts.FooterAlign);
         return sb.ToString();
@@ -59,7 +59,7 @@ internal static partial class PdfWriter {
         if (textWidth > 0D && TryGetPageTextVerticalBounds(runs, headerFont, opts.HeaderFontSize, opts, y, out double textBottom, out double textTop)) {
             ReportHeaderFooterBounds(opts, "Header", "text", x, textBottom, textWidth, textTop - textBottom);
         }
-        PdfColor? headerColor = opts.HeaderTextColor;
+        global::OfficeIMO.OfficeColor? headerColor = opts.HeaderTextColor;
 
         var sb = new StringBuilder();
         AppendPageTextRuns(sb, runs, headerFont, headerFontResource, fontResources, namedFontResources, opts.HeaderFontSize, headerColor, x, y, opts, textWidth, opts.HeaderAlign);
@@ -172,7 +172,7 @@ internal static partial class PdfWriter {
         System.Collections.Generic.IReadOnlyDictionary<PdfStandardFont, string> fontResources,
         System.Collections.Generic.IReadOnlyDictionary<PdfNamedFontFace, string> namedFontResources,
         double fontSize,
-        PdfColor? color,
+        global::OfficeIMO.OfficeColor? color,
         double offset,
         bool isHeader) {
         double y = isHeader ? opts.PageHeight - opts.MarginTop + offset : opts.MarginBottom - offset;
@@ -206,7 +206,7 @@ internal static partial class PdfWriter {
         System.Collections.Generic.IReadOnlyDictionary<PdfStandardFont, string> fontResources,
         System.Collections.Generic.IReadOnlyDictionary<PdfNamedFontFace, string> namedFontResources,
         double fontSize,
-        PdfColor? color,
+        global::OfficeIMO.OfficeColor? color,
         double offset,
         bool isHeader) {
         double y = isHeader ? opts.PageHeight - opts.MarginTop + offset : opts.MarginBottom - offset;
@@ -231,7 +231,7 @@ internal static partial class PdfWriter {
         int documentPages,
         PdfStandardFont font,
         double fontSize,
-        PdfColor? color,
+        global::OfficeIMO.OfficeColor? color,
         bool isHeader) {
         double contentLeft = opts.MarginLeft;
         double contentWidth = opts.PageWidth - opts.MarginLeft - opts.MarginRight;

@@ -9,7 +9,7 @@ namespace OfficeIMO.Examples.Pdf {
             var options = new PdfCreateOptions {
                 DefaultFont = PdfStandardFont.Helvetica,
                 DefaultFontSize = 10,
-                DefaultTextColor = PdfColor.FromRgb(31, 41, 55),
+                DefaultTextColor = global::OfficeIMO.OfficeColor.FromRgb(31, 41, 55),
                 HeaderFont = PdfStandardFont.Helvetica,
                 HeaderFontSize = 8,
                 FooterFont = PdfStandardFont.Helvetica,
@@ -23,7 +23,7 @@ namespace OfficeIMO.Examples.Pdf {
                     page.DefaultTextStyle(x => x
                         .Font(PdfStandardFont.Helvetica)
                         .FontSize(10)
-                        .Color(PdfColor.FromRgb(31, 41, 55)));
+                        .Color(global::OfficeIMO.OfficeColor.FromRgb(31, 41, 55)));
                     page.Header(h => h.AlignLeft().Text("OfficeIMO.Pdf compose DSL gate"));
 
                     page.Content(c => c
@@ -36,8 +36,8 @@ namespace OfficeIMO.Examples.Pdf {
                                     .LineBreak()
                                     .Text("Page settings, composed content, explicit page breaks, header/footer tokens, and rich text inside composed items."),
                                 new PdfPanelStyle {
-                                    Background = PdfColor.FromRgb(248, 250, 252),
-                                    BorderColor = PdfColor.FromRgb(183, 194, 207),
+                                    Background = global::OfficeIMO.OfficeColor.FromRgb(248, 250, 252),
+                                    BorderColor = global::OfficeIMO.OfficeColor.FromRgb(183, 194, 207),
                                     PaddingX = 9,
                                     PaddingY = 7
                                 });
@@ -48,19 +48,19 @@ namespace OfficeIMO.Examples.Pdf {
                                 "Compose uses the same document engine as fluent blocks.",
                                 "Visual gates should cover both public authoring styles.",
                                 "Footer page totals must remain correct after explicit breaks."
-                            }, color: PdfColor.FromRgb(55, 65, 81));
-                            column.Item().HR(0.8, PdfColor.FromRgb(183, 194, 207), 8, 8);
+                            }, color: global::OfficeIMO.OfficeColor.FromRgb(55, 65, 81));
+                            column.Item().HR(0.8, global::OfficeIMO.OfficeColor.FromRgb(183, 194, 207), 8, 8);
                             column.Item().Paragraph(p => p
                                 .Text("Status: ")
                                 .Bold("ready for wrapper experiments ")
-                                .Color(PdfColor.FromRgb(20, 90, 180)).Text("once visual quality keeps improving."));
+                                .Color(global::OfficeIMO.OfficeColor.FromRgb(20, 90, 180)).Text("once visual quality keeps improving."));
                             column.Item().PageBreak();
 
                             column.Item().H2("Color Sections");
-                            column.Item().Paragraph(p => p.Color(PdfColor.FromRgb(185, 28, 28)).Text("Critical items should remain readable when colored inline."));
-                            column.Item().Paragraph(p => p.Color(PdfColor.FromRgb(22, 101, 52)).Text("Healthy items should use calm green without overpowering the page."));
-                            column.Item().Paragraph(p => p.Color(PdfColor.FromRgb(20, 90, 180)).Text("Informational items should keep good contrast on white backgrounds."));
-                            column.Item().Paragraph(p => p.Text("End of compose DSL sample."), PdfAlign.Right, PdfColor.FromRgb(80, 80, 80));
+                            column.Item().Paragraph(p => p.Color(global::OfficeIMO.OfficeColor.FromRgb(185, 28, 28)).Text("Critical items should remain readable when colored inline."));
+                            column.Item().Paragraph(p => p.Color(global::OfficeIMO.OfficeColor.FromRgb(22, 101, 52)).Text("Healthy items should use calm green without overpowering the page."));
+                            column.Item().Paragraph(p => p.Color(global::OfficeIMO.OfficeColor.FromRgb(20, 90, 180)).Text("Informational items should keep good contrast on white backgrounds."));
+                            column.Item().Paragraph(p => p.Text("End of compose DSL sample."), PdfAlign.Right, global::OfficeIMO.OfficeColor.FromRgb(80, 80, 80));
                         }));
 
                     page.Footer(f => f.AlignCenter().Text(t => t

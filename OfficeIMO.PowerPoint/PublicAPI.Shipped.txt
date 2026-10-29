@@ -1385,107 +1385,107 @@ OfficeIMO.PowerPoint.PowerPointChart.SaveDataSummary(string! filePath) -> Office
 OfficeIMO.PowerPoint.PowerPointChart.SetAccessibility(string! alternativeText, string? dataSummary = null, bool includeDataSummary = true) -> OfficeIMO.PowerPoint.PowerPointChart!
 OfficeIMO.PowerPoint.PowerPointChart.SetBubbleSizing(uint scalePercent, OfficeIMO.Drawing.OfficeChartBubbleSizeMode sizeMode) -> OfficeIMO.PowerPoint.PowerPointChart!
 OfficeIMO.PowerPoint.PowerPointChart.SetCategoryAxisCrossing(OfficeIMO.Drawing.OfficeChartAxisCrossingPosition crosses, double? crossesAt = null) -> OfficeIMO.PowerPoint.PowerPointChart!
-OfficeIMO.PowerPoint.PowerPointChart.SetCategoryAxisGridlines(bool showMajor = true, bool showMinor = false, string? lineColor = null, double? lineWidthPoints = null) -> OfficeIMO.PowerPoint.PowerPointChart!
+OfficeIMO.PowerPoint.PowerPointChart.SetCategoryAxisGridlines(bool showMajor = true, bool showMinor = false, string? lineColor = null, OfficeIMO.OfficeLength? lineWidth = null) -> OfficeIMO.PowerPoint.PowerPointChart!
 OfficeIMO.PowerPoint.PowerPointChart.SetCategoryAxisLabelRotation(double rotationDegrees) -> OfficeIMO.PowerPoint.PowerPointChart!
-OfficeIMO.PowerPoint.PowerPointChart.SetCategoryAxisLabelTextStyle(double? fontSizePoints = null, bool? bold = null, bool? italic = null, string? color = null, string? fontName = null) -> OfficeIMO.PowerPoint.PowerPointChart!
+OfficeIMO.PowerPoint.PowerPointChart.SetCategoryAxisLabelTextStyle(OfficeIMO.OfficeLength? fontSize = null, bool? bold = null, bool? italic = null, string? color = null, string? fontName = null) -> OfficeIMO.PowerPoint.PowerPointChart!
 OfficeIMO.PowerPoint.PowerPointChart.SetCategoryAxisNumberFormat(string! formatCode, bool sourceLinked = false) -> OfficeIMO.PowerPoint.PowerPointChart!
 OfficeIMO.PowerPoint.PowerPointChart.SetCategoryAxisReverseOrder(bool reverseOrder = true) -> OfficeIMO.PowerPoint.PowerPointChart!
 OfficeIMO.PowerPoint.PowerPointChart.SetCategoryAxisTickLabelPosition(OfficeIMO.Drawing.OfficeChartAxisTickLabelPosition position) -> OfficeIMO.PowerPoint.PowerPointChart!
 OfficeIMO.PowerPoint.PowerPointChart.SetCategoryAxisTitle(string! title) -> OfficeIMO.PowerPoint.PowerPointChart!
-OfficeIMO.PowerPoint.PowerPointChart.SetCategoryAxisTitleTextStyle(double? fontSizePoints = null, bool? bold = null, bool? italic = null, string? color = null, string? fontName = null) -> OfficeIMO.PowerPoint.PowerPointChart!
-OfficeIMO.PowerPoint.PowerPointChart.SetChartAreaStyle(string? fillColor = null, string? lineColor = null, double? lineWidthPoints = null, bool noFill = false, bool noLine = false) -> OfficeIMO.PowerPoint.PowerPointChart!
-OfficeIMO.PowerPoint.PowerPointChart.SetDataLabelCallouts(bool enabled = true, OfficeIMO.Drawing.OfficeChartDataLabelPosition? position = null, string? lineColor = null, double? lineWidthPoints = null) -> OfficeIMO.PowerPoint.PowerPointChart!
-OfficeIMO.PowerPoint.PowerPointChart.SetDataLabelLeaderLines(bool showLeaderLines = true, string? lineColor = null, double? lineWidthPoints = null) -> OfficeIMO.PowerPoint.PowerPointChart!
+OfficeIMO.PowerPoint.PowerPointChart.SetCategoryAxisTitleTextStyle(OfficeIMO.OfficeLength? fontSize = null, bool? bold = null, bool? italic = null, string? color = null, string? fontName = null) -> OfficeIMO.PowerPoint.PowerPointChart!
+OfficeIMO.PowerPoint.PowerPointChart.SetChartAreaStyle(string? fillColor = null, string? lineColor = null, OfficeIMO.OfficeLength? lineWidth = null, bool noFill = false, bool noLine = false) -> OfficeIMO.PowerPoint.PowerPointChart!
+OfficeIMO.PowerPoint.PowerPointChart.SetDataLabelCallouts(bool enabled = true, OfficeIMO.Drawing.OfficeChartDataLabelPosition? position = null, string? lineColor = null, OfficeIMO.OfficeLength? lineWidth = null) -> OfficeIMO.PowerPoint.PowerPointChart!
+OfficeIMO.PowerPoint.PowerPointChart.SetDataLabelLeaderLines(bool showLeaderLines = true, string? lineColor = null, OfficeIMO.OfficeLength? lineWidth = null) -> OfficeIMO.PowerPoint.PowerPointChart!
 OfficeIMO.PowerPoint.PowerPointChart.SetDataLabelNumberFormat(string! formatCode, bool sourceLinked = false) -> OfficeIMO.PowerPoint.PowerPointChart!
 OfficeIMO.PowerPoint.PowerPointChart.SetDataLabelPosition(OfficeIMO.Drawing.OfficeChartDataLabelPosition position) -> OfficeIMO.PowerPoint.PowerPointChart!
 OfficeIMO.PowerPoint.PowerPointChart.SetDataLabelSeparator(string? separator) -> OfficeIMO.PowerPoint.PowerPointChart!
-OfficeIMO.PowerPoint.PowerPointChart.SetDataLabelShapeStyle(string? fillColor = null, string? lineColor = null, double? lineWidthPoints = null, bool noFill = false, bool noLine = false) -> OfficeIMO.PowerPoint.PowerPointChart!
+OfficeIMO.PowerPoint.PowerPointChart.SetDataLabelShapeStyle(string? fillColor = null, string? lineColor = null, OfficeIMO.OfficeLength? lineWidth = null, bool noFill = false, bool noLine = false) -> OfficeIMO.PowerPoint.PowerPointChart!
 OfficeIMO.PowerPoint.PowerPointChart.SetDataLabelTemplate(OfficeIMO.PowerPoint.PowerPointChartDataLabelTemplate! template) -> OfficeIMO.PowerPoint.PowerPointChart!
-OfficeIMO.PowerPoint.PowerPointChart.SetDataLabelTextStyle(double? fontSizePoints = null, bool? bold = null, bool? italic = null, string? color = null, string? fontName = null) -> OfficeIMO.PowerPoint.PowerPointChart!
+OfficeIMO.PowerPoint.PowerPointChart.SetDataLabelTextStyle(OfficeIMO.OfficeLength? fontSize = null, bool? bold = null, bool? italic = null, string? color = null, string? fontName = null) -> OfficeIMO.PowerPoint.PowerPointChart!
 OfficeIMO.PowerPoint.PowerPointChart.SetDataLabels(bool showValue = true, bool showCategoryName = false, bool showSeriesName = false, bool showLegendKey = false, bool showPercent = false) -> OfficeIMO.PowerPoint.PowerPointChart!
 OfficeIMO.PowerPoint.PowerPointChart.SetDataPointStyle(int seriesIndex, uint pointIndex, OfficeIMO.Drawing.OfficeChartPointStyle? style) -> OfficeIMO.PowerPoint.PowerPointChart!
 OfficeIMO.PowerPoint.PowerPointChart.SetLegend(OfficeIMO.Drawing.OfficeChartLegendPosition position, bool overlay = false) -> OfficeIMO.PowerPoint.PowerPointChart!
-OfficeIMO.PowerPoint.PowerPointChart.SetLegendTextStyle(double? fontSizePoints = null, bool? bold = null, bool? italic = null, string? color = null, string? fontName = null) -> OfficeIMO.PowerPoint.PowerPointChart!
+OfficeIMO.PowerPoint.PowerPointChart.SetLegendTextStyle(OfficeIMO.OfficeLength? fontSize = null, bool? bold = null, bool? italic = null, string? color = null, string? fontName = null) -> OfficeIMO.PowerPoint.PowerPointChart!
 OfficeIMO.PowerPoint.PowerPointChart.SetLineChartGrouping(OfficeIMO.PowerPoint.PowerPointChartGrouping grouping) -> OfficeIMO.PowerPoint.PowerPointChart!
-OfficeIMO.PowerPoint.PowerPointChart.SetPlotAreaStyle(string? fillColor = null, string? lineColor = null, double? lineWidthPoints = null, bool noFill = false, bool noLine = false) -> OfficeIMO.PowerPoint.PowerPointChart!
+OfficeIMO.PowerPoint.PowerPointChart.SetPlotAreaStyle(string? fillColor = null, string? lineColor = null, OfficeIMO.OfficeLength? lineWidth = null, bool noFill = false, bool noLine = false) -> OfficeIMO.PowerPoint.PowerPointChart!
 OfficeIMO.PowerPoint.PowerPointChart.SetRadialLayout(OfficeIMO.Drawing.OfficeChartRadialLayout! layout) -> OfficeIMO.PowerPoint.PowerPointChart!
 OfficeIMO.PowerPoint.PowerPointChart.SetScatterXAxisCrossing(OfficeIMO.Drawing.OfficeChartAxisCrossingPosition? crosses = null, double? crossesAt = null) -> OfficeIMO.PowerPoint.PowerPointChart!
 OfficeIMO.PowerPoint.PowerPointChart.SetScatterXAxisDisplayUnits(OfficeIMO.Drawing.OfficeChartDisplayUnit unit, bool showLabel = true) -> OfficeIMO.PowerPoint.PowerPointChart!
 OfficeIMO.PowerPoint.PowerPointChart.SetScatterXAxisDisplayUnits(OfficeIMO.Drawing.OfficeChartDisplayUnit unit, string! labelText, bool showLabel = true) -> OfficeIMO.PowerPoint.PowerPointChart!
 OfficeIMO.PowerPoint.PowerPointChart.SetScatterXAxisDisplayUnits(double customUnit, bool showLabel = true) -> OfficeIMO.PowerPoint.PowerPointChart!
 OfficeIMO.PowerPoint.PowerPointChart.SetScatterXAxisDisplayUnits(double customUnit, string! labelText, bool showLabel = true) -> OfficeIMO.PowerPoint.PowerPointChart!
-OfficeIMO.PowerPoint.PowerPointChart.SetScatterXAxisGridlines(bool showMajor = true, bool showMinor = false, string? lineColor = null, double? lineWidthPoints = null) -> OfficeIMO.PowerPoint.PowerPointChart!
+OfficeIMO.PowerPoint.PowerPointChart.SetScatterXAxisGridlines(bool showMajor = true, bool showMinor = false, string? lineColor = null, OfficeIMO.OfficeLength? lineWidth = null) -> OfficeIMO.PowerPoint.PowerPointChart!
 OfficeIMO.PowerPoint.PowerPointChart.SetScatterXAxisLabelRotation(double rotationDegrees) -> OfficeIMO.PowerPoint.PowerPointChart!
-OfficeIMO.PowerPoint.PowerPointChart.SetScatterXAxisLabelTextStyle(double? fontSizePoints = null, bool? bold = null, bool? italic = null, string? color = null, string? fontName = null) -> OfficeIMO.PowerPoint.PowerPointChart!
+OfficeIMO.PowerPoint.PowerPointChart.SetScatterXAxisLabelTextStyle(OfficeIMO.OfficeLength? fontSize = null, bool? bold = null, bool? italic = null, string? color = null, string? fontName = null) -> OfficeIMO.PowerPoint.PowerPointChart!
 OfficeIMO.PowerPoint.PowerPointChart.SetScatterXAxisNumberFormat(string! formatCode, bool sourceLinked = false) -> OfficeIMO.PowerPoint.PowerPointChart!
 OfficeIMO.PowerPoint.PowerPointChart.SetScatterXAxisScale(double? minimum = null, double? maximum = null, double? majorUnit = null, double? minorUnit = null, bool? reverseOrder = null, bool? logScale = null, double? logBase = null) -> OfficeIMO.PowerPoint.PowerPointChart!
 OfficeIMO.PowerPoint.PowerPointChart.SetScatterXAxisTickLabelPosition(OfficeIMO.Drawing.OfficeChartAxisTickLabelPosition position) -> OfficeIMO.PowerPoint.PowerPointChart!
 OfficeIMO.PowerPoint.PowerPointChart.SetScatterXAxisTitle(string! title) -> OfficeIMO.PowerPoint.PowerPointChart!
-OfficeIMO.PowerPoint.PowerPointChart.SetScatterXAxisTitleTextStyle(double? fontSizePoints = null, bool? bold = null, bool? italic = null, string? color = null, string? fontName = null) -> OfficeIMO.PowerPoint.PowerPointChart!
+OfficeIMO.PowerPoint.PowerPointChart.SetScatterXAxisTitleTextStyle(OfficeIMO.OfficeLength? fontSize = null, bool? bold = null, bool? italic = null, string? color = null, string? fontName = null) -> OfficeIMO.PowerPoint.PowerPointChart!
 OfficeIMO.PowerPoint.PowerPointChart.SetScatterYAxisCrossing(OfficeIMO.Drawing.OfficeChartAxisCrossingPosition? crosses = null, double? crossesAt = null) -> OfficeIMO.PowerPoint.PowerPointChart!
 OfficeIMO.PowerPoint.PowerPointChart.SetScatterYAxisDisplayUnits(OfficeIMO.Drawing.OfficeChartDisplayUnit unit, bool showLabel = true) -> OfficeIMO.PowerPoint.PowerPointChart!
 OfficeIMO.PowerPoint.PowerPointChart.SetScatterYAxisDisplayUnits(OfficeIMO.Drawing.OfficeChartDisplayUnit unit, string! labelText, bool showLabel = true) -> OfficeIMO.PowerPoint.PowerPointChart!
 OfficeIMO.PowerPoint.PowerPointChart.SetScatterYAxisDisplayUnits(double customUnit, bool showLabel = true) -> OfficeIMO.PowerPoint.PowerPointChart!
 OfficeIMO.PowerPoint.PowerPointChart.SetScatterYAxisDisplayUnits(double customUnit, string! labelText, bool showLabel = true) -> OfficeIMO.PowerPoint.PowerPointChart!
-OfficeIMO.PowerPoint.PowerPointChart.SetScatterYAxisGridlines(bool showMajor = true, bool showMinor = false, string? lineColor = null, double? lineWidthPoints = null) -> OfficeIMO.PowerPoint.PowerPointChart!
+OfficeIMO.PowerPoint.PowerPointChart.SetScatterYAxisGridlines(bool showMajor = true, bool showMinor = false, string? lineColor = null, OfficeIMO.OfficeLength? lineWidth = null) -> OfficeIMO.PowerPoint.PowerPointChart!
 OfficeIMO.PowerPoint.PowerPointChart.SetScatterYAxisLabelRotation(double rotationDegrees) -> OfficeIMO.PowerPoint.PowerPointChart!
-OfficeIMO.PowerPoint.PowerPointChart.SetScatterYAxisLabelTextStyle(double? fontSizePoints = null, bool? bold = null, bool? italic = null, string? color = null, string? fontName = null) -> OfficeIMO.PowerPoint.PowerPointChart!
+OfficeIMO.PowerPoint.PowerPointChart.SetScatterYAxisLabelTextStyle(OfficeIMO.OfficeLength? fontSize = null, bool? bold = null, bool? italic = null, string? color = null, string? fontName = null) -> OfficeIMO.PowerPoint.PowerPointChart!
 OfficeIMO.PowerPoint.PowerPointChart.SetScatterYAxisNumberFormat(string! formatCode, bool sourceLinked = false) -> OfficeIMO.PowerPoint.PowerPointChart!
 OfficeIMO.PowerPoint.PowerPointChart.SetScatterYAxisScale(double? minimum = null, double? maximum = null, double? majorUnit = null, double? minorUnit = null, bool? reverseOrder = null, bool? logScale = null, double? logBase = null) -> OfficeIMO.PowerPoint.PowerPointChart!
 OfficeIMO.PowerPoint.PowerPointChart.SetScatterYAxisTickLabelPosition(OfficeIMO.Drawing.OfficeChartAxisTickLabelPosition position) -> OfficeIMO.PowerPoint.PowerPointChart!
 OfficeIMO.PowerPoint.PowerPointChart.SetScatterYAxisTitle(string! title) -> OfficeIMO.PowerPoint.PowerPointChart!
-OfficeIMO.PowerPoint.PowerPointChart.SetScatterYAxisTitleTextStyle(double? fontSizePoints = null, bool? bold = null, bool? italic = null, string? color = null, string? fontName = null) -> OfficeIMO.PowerPoint.PowerPointChart!
+OfficeIMO.PowerPoint.PowerPointChart.SetScatterYAxisTitleTextStyle(OfficeIMO.OfficeLength? fontSize = null, bool? bold = null, bool? italic = null, string? color = null, string? fontName = null) -> OfficeIMO.PowerPoint.PowerPointChart!
 OfficeIMO.PowerPoint.PowerPointChart.SetSecondaryValueAxis(OfficeIMO.Drawing.OfficeChartValueAxisLayout! layout) -> OfficeIMO.PowerPoint.PowerPointChart!
-OfficeIMO.PowerPoint.PowerPointChart.SetSeriesDataLabelCallouts(int seriesIndex, bool enabled = true, OfficeIMO.Drawing.OfficeChartDataLabelPosition? position = null, string? lineColor = null, double? lineWidthPoints = null) -> OfficeIMO.PowerPoint.PowerPointChart!
-OfficeIMO.PowerPoint.PowerPointChart.SetSeriesDataLabelCallouts(string! seriesName, bool enabled = true, OfficeIMO.Drawing.OfficeChartDataLabelPosition? position = null, string? lineColor = null, double? lineWidthPoints = null, bool ignoreCase = true) -> OfficeIMO.PowerPoint.PowerPointChart!
+OfficeIMO.PowerPoint.PowerPointChart.SetSeriesDataLabelCallouts(int seriesIndex, bool enabled = true, OfficeIMO.Drawing.OfficeChartDataLabelPosition? position = null, string? lineColor = null, OfficeIMO.OfficeLength? lineWidth = null) -> OfficeIMO.PowerPoint.PowerPointChart!
+OfficeIMO.PowerPoint.PowerPointChart.SetSeriesDataLabelCallouts(string! seriesName, bool enabled = true, OfficeIMO.Drawing.OfficeChartDataLabelPosition? position = null, string? lineColor = null, OfficeIMO.OfficeLength? lineWidth = null, bool ignoreCase = true) -> OfficeIMO.PowerPoint.PowerPointChart!
 OfficeIMO.PowerPoint.PowerPointChart.SetSeriesDataLabelCalloutsForPoint(int seriesIndex, int pointIndex, bool enabled = true, OfficeIMO.Drawing.OfficeChartDataLabelPosition? position = null) -> OfficeIMO.PowerPoint.PowerPointChart!
 OfficeIMO.PowerPoint.PowerPointChart.SetSeriesDataLabelCalloutsForPoint(string! seriesName, int pointIndex, bool enabled = true, OfficeIMO.Drawing.OfficeChartDataLabelPosition? position = null, bool ignoreCase = true) -> OfficeIMO.PowerPoint.PowerPointChart!
 OfficeIMO.PowerPoint.PowerPointChart.SetSeriesDataLabelForPoint(int seriesIndex, int pointIndex, bool? showValue = null, bool? showCategoryName = null, bool? showSeriesName = null, bool? showLegendKey = null, bool? showPercent = null, OfficeIMO.Drawing.OfficeChartDataLabelPosition? position = null, string? numberFormat = null, bool sourceLinked = false) -> OfficeIMO.PowerPoint.PowerPointChart!
 OfficeIMO.PowerPoint.PowerPointChart.SetSeriesDataLabelForPoint(string! seriesName, int pointIndex, bool? showValue = null, bool? showCategoryName = null, bool? showSeriesName = null, bool? showLegendKey = null, bool? showPercent = null, OfficeIMO.Drawing.OfficeChartDataLabelPosition? position = null, string? numberFormat = null, bool sourceLinked = false, bool ignoreCase = true) -> OfficeIMO.PowerPoint.PowerPointChart!
-OfficeIMO.PowerPoint.PowerPointChart.SetSeriesDataLabelLeaderLines(int seriesIndex, bool showLeaderLines = true, string? lineColor = null, double? lineWidthPoints = null) -> OfficeIMO.PowerPoint.PowerPointChart!
-OfficeIMO.PowerPoint.PowerPointChart.SetSeriesDataLabelLeaderLines(string! seriesName, bool showLeaderLines = true, string? lineColor = null, double? lineWidthPoints = null, bool ignoreCase = true) -> OfficeIMO.PowerPoint.PowerPointChart!
+OfficeIMO.PowerPoint.PowerPointChart.SetSeriesDataLabelLeaderLines(int seriesIndex, bool showLeaderLines = true, string? lineColor = null, OfficeIMO.OfficeLength? lineWidth = null) -> OfficeIMO.PowerPoint.PowerPointChart!
+OfficeIMO.PowerPoint.PowerPointChart.SetSeriesDataLabelLeaderLines(string! seriesName, bool showLeaderLines = true, string? lineColor = null, OfficeIMO.OfficeLength? lineWidth = null, bool ignoreCase = true) -> OfficeIMO.PowerPoint.PowerPointChart!
 OfficeIMO.PowerPoint.PowerPointChart.SetSeriesDataLabelSeparator(int seriesIndex, string? separator) -> OfficeIMO.PowerPoint.PowerPointChart!
 OfficeIMO.PowerPoint.PowerPointChart.SetSeriesDataLabelSeparator(string! seriesName, string? separator, bool ignoreCase = true) -> OfficeIMO.PowerPoint.PowerPointChart!
 OfficeIMO.PowerPoint.PowerPointChart.SetSeriesDataLabelSeparatorForPoint(int seriesIndex, int pointIndex, string? separator) -> OfficeIMO.PowerPoint.PowerPointChart!
 OfficeIMO.PowerPoint.PowerPointChart.SetSeriesDataLabelSeparatorForPoint(string! seriesName, int pointIndex, string? separator, bool ignoreCase = true) -> OfficeIMO.PowerPoint.PowerPointChart!
-OfficeIMO.PowerPoint.PowerPointChart.SetSeriesDataLabelShapeStyle(int seriesIndex, string? fillColor = null, string? lineColor = null, double? lineWidthPoints = null, bool noFill = false, bool noLine = false) -> OfficeIMO.PowerPoint.PowerPointChart!
-OfficeIMO.PowerPoint.PowerPointChart.SetSeriesDataLabelShapeStyle(string! seriesName, string? fillColor = null, string? lineColor = null, double? lineWidthPoints = null, bool noFill = false, bool noLine = false, bool ignoreCase = true) -> OfficeIMO.PowerPoint.PowerPointChart!
-OfficeIMO.PowerPoint.PowerPointChart.SetSeriesDataLabelShapeStyleForPoint(int seriesIndex, int pointIndex, string? fillColor = null, string? lineColor = null, double? lineWidthPoints = null, bool noFill = false, bool noLine = false) -> OfficeIMO.PowerPoint.PowerPointChart!
-OfficeIMO.PowerPoint.PowerPointChart.SetSeriesDataLabelShapeStyleForPoint(string! seriesName, int pointIndex, string? fillColor = null, string? lineColor = null, double? lineWidthPoints = null, bool noFill = false, bool noLine = false, bool ignoreCase = true) -> OfficeIMO.PowerPoint.PowerPointChart!
+OfficeIMO.PowerPoint.PowerPointChart.SetSeriesDataLabelShapeStyle(int seriesIndex, string? fillColor = null, string? lineColor = null, OfficeIMO.OfficeLength? lineWidth = null, bool noFill = false, bool noLine = false) -> OfficeIMO.PowerPoint.PowerPointChart!
+OfficeIMO.PowerPoint.PowerPointChart.SetSeriesDataLabelShapeStyle(string! seriesName, string? fillColor = null, string? lineColor = null, OfficeIMO.OfficeLength? lineWidth = null, bool noFill = false, bool noLine = false, bool ignoreCase = true) -> OfficeIMO.PowerPoint.PowerPointChart!
+OfficeIMO.PowerPoint.PowerPointChart.SetSeriesDataLabelShapeStyleForPoint(int seriesIndex, int pointIndex, string? fillColor = null, string? lineColor = null, OfficeIMO.OfficeLength? lineWidth = null, bool noFill = false, bool noLine = false) -> OfficeIMO.PowerPoint.PowerPointChart!
+OfficeIMO.PowerPoint.PowerPointChart.SetSeriesDataLabelShapeStyleForPoint(string! seriesName, int pointIndex, string? fillColor = null, string? lineColor = null, OfficeIMO.OfficeLength? lineWidth = null, bool noFill = false, bool noLine = false, bool ignoreCase = true) -> OfficeIMO.PowerPoint.PowerPointChart!
 OfficeIMO.PowerPoint.PowerPointChart.SetSeriesDataLabelTemplate(int seriesIndex, OfficeIMO.PowerPoint.PowerPointChartDataLabelTemplate! template) -> OfficeIMO.PowerPoint.PowerPointChart!
 OfficeIMO.PowerPoint.PowerPointChart.SetSeriesDataLabelTemplate(string! seriesName, OfficeIMO.PowerPoint.PowerPointChartDataLabelTemplate! template, bool ignoreCase = true) -> OfficeIMO.PowerPoint.PowerPointChart!
 OfficeIMO.PowerPoint.PowerPointChart.SetSeriesDataLabelTemplateForPoint(int seriesIndex, int pointIndex, OfficeIMO.PowerPoint.PowerPointChartDataLabelTemplate! template) -> OfficeIMO.PowerPoint.PowerPointChart!
 OfficeIMO.PowerPoint.PowerPointChart.SetSeriesDataLabelTemplateForPoint(string! seriesName, int pointIndex, OfficeIMO.PowerPoint.PowerPointChartDataLabelTemplate! template, bool ignoreCase = true) -> OfficeIMO.PowerPoint.PowerPointChart!
-OfficeIMO.PowerPoint.PowerPointChart.SetSeriesDataLabelTextStyle(int seriesIndex, double? fontSizePoints = null, bool? bold = null, bool? italic = null, string? color = null, string? fontName = null) -> OfficeIMO.PowerPoint.PowerPointChart!
-OfficeIMO.PowerPoint.PowerPointChart.SetSeriesDataLabelTextStyle(string! seriesName, double? fontSizePoints = null, bool? bold = null, bool? italic = null, string? color = null, string? fontName = null, bool ignoreCase = true) -> OfficeIMO.PowerPoint.PowerPointChart!
-OfficeIMO.PowerPoint.PowerPointChart.SetSeriesDataLabelTextStyleForPoint(int seriesIndex, int pointIndex, double? fontSizePoints = null, bool? bold = null, bool? italic = null, string? color = null, string? fontName = null) -> OfficeIMO.PowerPoint.PowerPointChart!
-OfficeIMO.PowerPoint.PowerPointChart.SetSeriesDataLabelTextStyleForPoint(string! seriesName, int pointIndex, double? fontSizePoints = null, bool? bold = null, bool? italic = null, string? color = null, string? fontName = null, bool ignoreCase = true) -> OfficeIMO.PowerPoint.PowerPointChart!
+OfficeIMO.PowerPoint.PowerPointChart.SetSeriesDataLabelTextStyle(int seriesIndex, OfficeIMO.OfficeLength? fontSize = null, bool? bold = null, bool? italic = null, string? color = null, string? fontName = null) -> OfficeIMO.PowerPoint.PowerPointChart!
+OfficeIMO.PowerPoint.PowerPointChart.SetSeriesDataLabelTextStyle(string! seriesName, OfficeIMO.OfficeLength? fontSize = null, bool? bold = null, bool? italic = null, string? color = null, string? fontName = null, bool ignoreCase = true) -> OfficeIMO.PowerPoint.PowerPointChart!
+OfficeIMO.PowerPoint.PowerPointChart.SetSeriesDataLabelTextStyleForPoint(int seriesIndex, int pointIndex, OfficeIMO.OfficeLength? fontSize = null, bool? bold = null, bool? italic = null, string? color = null, string? fontName = null) -> OfficeIMO.PowerPoint.PowerPointChart!
+OfficeIMO.PowerPoint.PowerPointChart.SetSeriesDataLabelTextStyleForPoint(string! seriesName, int pointIndex, OfficeIMO.OfficeLength? fontSize = null, bool? bold = null, bool? italic = null, string? color = null, string? fontName = null, bool ignoreCase = true) -> OfficeIMO.PowerPoint.PowerPointChart!
 OfficeIMO.PowerPoint.PowerPointChart.SetSeriesDataLabels(int seriesIndex, bool showValue = true, bool showCategoryName = false, bool showSeriesName = false, bool showLegendKey = false, bool showPercent = false, OfficeIMO.Drawing.OfficeChartDataLabelPosition? position = null, string? numberFormat = null, bool sourceLinked = false) -> OfficeIMO.PowerPoint.PowerPointChart!
 OfficeIMO.PowerPoint.PowerPointChart.SetSeriesDataLabels(string! seriesName, bool showValue = true, bool showCategoryName = false, bool showSeriesName = false, bool showLegendKey = false, bool showPercent = false, OfficeIMO.Drawing.OfficeChartDataLabelPosition? position = null, string? numberFormat = null, bool sourceLinked = false, bool ignoreCase = true) -> OfficeIMO.PowerPoint.PowerPointChart!
 OfficeIMO.PowerPoint.PowerPointChart.SetSeriesFillColor(int seriesIndex, string! color) -> OfficeIMO.PowerPoint.PowerPointChart!
 OfficeIMO.PowerPoint.PowerPointChart.SetSeriesFillColor(string! seriesName, string! color, bool ignoreCase = true) -> OfficeIMO.PowerPoint.PowerPointChart!
-OfficeIMO.PowerPoint.PowerPointChart.SetSeriesLineColor(int seriesIndex, string! color, double? widthPoints = null) -> OfficeIMO.PowerPoint.PowerPointChart!
-OfficeIMO.PowerPoint.PowerPointChart.SetSeriesLineColor(string! seriesName, string! color, double? widthPoints = null, bool ignoreCase = true) -> OfficeIMO.PowerPoint.PowerPointChart!
-OfficeIMO.PowerPoint.PowerPointChart.SetSeriesMarker(int seriesIndex, OfficeIMO.Drawing.OfficeChartMarkerShape style, int? size = null, string? fillColor = null, string? lineColor = null, double? lineWidthPoints = null) -> OfficeIMO.PowerPoint.PowerPointChart!
-OfficeIMO.PowerPoint.PowerPointChart.SetSeriesMarker(string! seriesName, OfficeIMO.Drawing.OfficeChartMarkerShape style, int? size = null, string? fillColor = null, string? lineColor = null, double? lineWidthPoints = null, bool ignoreCase = true) -> OfficeIMO.PowerPoint.PowerPointChart!
-OfficeIMO.PowerPoint.PowerPointChart.SetSeriesTrendline(int seriesIndex, OfficeIMO.Drawing.OfficeChartTrendlineType type, int? order = null, int? period = null, double? forward = null, double? backward = null, double? intercept = null, bool displayEquation = false, bool displayRSquared = false, string? lineColor = null, double? lineWidthPoints = null) -> OfficeIMO.PowerPoint.PowerPointChart!
-OfficeIMO.PowerPoint.PowerPointChart.SetSeriesTrendline(string! seriesName, OfficeIMO.Drawing.OfficeChartTrendlineType type, int? order = null, int? period = null, double? forward = null, double? backward = null, double? intercept = null, bool displayEquation = false, bool displayRSquared = false, string? lineColor = null, double? lineWidthPoints = null, bool ignoreCase = true) -> OfficeIMO.PowerPoint.PowerPointChart!
+OfficeIMO.PowerPoint.PowerPointChart.SetSeriesLineColor(int seriesIndex, string! color, OfficeIMO.OfficeLength? width = null) -> OfficeIMO.PowerPoint.PowerPointChart!
+OfficeIMO.PowerPoint.PowerPointChart.SetSeriesLineColor(string! seriesName, string! color, OfficeIMO.OfficeLength? width = null, bool ignoreCase = true) -> OfficeIMO.PowerPoint.PowerPointChart!
+OfficeIMO.PowerPoint.PowerPointChart.SetSeriesMarker(int seriesIndex, OfficeIMO.Drawing.OfficeChartMarkerShape style, OfficeIMO.OfficeLength? size = null, string? fillColor = null, string? lineColor = null, OfficeIMO.OfficeLength? lineWidth = null) -> OfficeIMO.PowerPoint.PowerPointChart!
+OfficeIMO.PowerPoint.PowerPointChart.SetSeriesMarker(string! seriesName, OfficeIMO.Drawing.OfficeChartMarkerShape style, OfficeIMO.OfficeLength? size = null, string? fillColor = null, string? lineColor = null, OfficeIMO.OfficeLength? lineWidth = null, bool ignoreCase = true) -> OfficeIMO.PowerPoint.PowerPointChart!
+OfficeIMO.PowerPoint.PowerPointChart.SetSeriesTrendline(int seriesIndex, OfficeIMO.Drawing.OfficeChartTrendlineType type, int? order = null, int? period = null, double? forward = null, double? backward = null, double? intercept = null, bool displayEquation = false, bool displayRSquared = false, string? lineColor = null, OfficeIMO.OfficeLength? lineWidth = null) -> OfficeIMO.PowerPoint.PowerPointChart!
+OfficeIMO.PowerPoint.PowerPointChart.SetSeriesTrendline(string! seriesName, OfficeIMO.Drawing.OfficeChartTrendlineType type, int? order = null, int? period = null, double? forward = null, double? backward = null, double? intercept = null, bool displayEquation = false, bool displayRSquared = false, string? lineColor = null, OfficeIMO.OfficeLength? lineWidth = null, bool ignoreCase = true) -> OfficeIMO.PowerPoint.PowerPointChart!
 OfficeIMO.PowerPoint.PowerPointChart.SetTitle(string! title) -> OfficeIMO.PowerPoint.PowerPointChart!
-OfficeIMO.PowerPoint.PowerPointChart.SetTitleTextStyle(double? fontSizePoints = null, bool? bold = null, bool? italic = null, string? color = null, string? fontName = null) -> OfficeIMO.PowerPoint.PowerPointChart!
+OfficeIMO.PowerPoint.PowerPointChart.SetTitleTextStyle(OfficeIMO.OfficeLength? fontSize = null, bool? bold = null, bool? italic = null, string? color = null, string? fontName = null) -> OfficeIMO.PowerPoint.PowerPointChart!
 OfficeIMO.PowerPoint.PowerPointChart.SetValueAxisCrossBetween(OfficeIMO.Drawing.OfficeChartAxisCrossBetween between) -> OfficeIMO.PowerPoint.PowerPointChart!
 OfficeIMO.PowerPoint.PowerPointChart.SetValueAxisCrossing(OfficeIMO.Drawing.OfficeChartAxisCrossingPosition crosses, double? crossesAt = null) -> OfficeIMO.PowerPoint.PowerPointChart!
 OfficeIMO.PowerPoint.PowerPointChart.SetValueAxisDisplayUnits(OfficeIMO.Drawing.OfficeChartDisplayUnit unit, bool showLabel = true) -> OfficeIMO.PowerPoint.PowerPointChart!
 OfficeIMO.PowerPoint.PowerPointChart.SetValueAxisDisplayUnits(OfficeIMO.Drawing.OfficeChartDisplayUnit unit, string! labelText, bool showLabel = true) -> OfficeIMO.PowerPoint.PowerPointChart!
 OfficeIMO.PowerPoint.PowerPointChart.SetValueAxisDisplayUnits(double customUnit, bool showLabel = true) -> OfficeIMO.PowerPoint.PowerPointChart!
 OfficeIMO.PowerPoint.PowerPointChart.SetValueAxisDisplayUnits(double customUnit, string! labelText, bool showLabel = true) -> OfficeIMO.PowerPoint.PowerPointChart!
-OfficeIMO.PowerPoint.PowerPointChart.SetValueAxisGridlines(bool showMajor = true, bool showMinor = false, string? lineColor = null, double? lineWidthPoints = null) -> OfficeIMO.PowerPoint.PowerPointChart!
+OfficeIMO.PowerPoint.PowerPointChart.SetValueAxisGridlines(bool showMajor = true, bool showMinor = false, string? lineColor = null, OfficeIMO.OfficeLength? lineWidth = null) -> OfficeIMO.PowerPoint.PowerPointChart!
 OfficeIMO.PowerPoint.PowerPointChart.SetValueAxisLabelRotation(double rotationDegrees) -> OfficeIMO.PowerPoint.PowerPointChart!
-OfficeIMO.PowerPoint.PowerPointChart.SetValueAxisLabelTextStyle(double? fontSizePoints = null, bool? bold = null, bool? italic = null, string? color = null, string? fontName = null) -> OfficeIMO.PowerPoint.PowerPointChart!
+OfficeIMO.PowerPoint.PowerPointChart.SetValueAxisLabelTextStyle(OfficeIMO.OfficeLength? fontSize = null, bool? bold = null, bool? italic = null, string? color = null, string? fontName = null) -> OfficeIMO.PowerPoint.PowerPointChart!
 OfficeIMO.PowerPoint.PowerPointChart.SetValueAxisNumberFormat(string! formatCode, bool sourceLinked = false) -> OfficeIMO.PowerPoint.PowerPointChart!
 OfficeIMO.PowerPoint.PowerPointChart.SetValueAxisScale(double? minimum = null, double? maximum = null, double? majorUnit = null, double? minorUnit = null, double? logBase = null, bool? reverseOrder = null, bool? logScale = null) -> OfficeIMO.PowerPoint.PowerPointChart!
 OfficeIMO.PowerPoint.PowerPointChart.SetValueAxisTickLabelPosition(OfficeIMO.Drawing.OfficeChartAxisTickLabelPosition position) -> OfficeIMO.PowerPoint.PowerPointChart!
 OfficeIMO.PowerPoint.PowerPointChart.SetValueAxisTitle(string! title) -> OfficeIMO.PowerPoint.PowerPointChart!
-OfficeIMO.PowerPoint.PowerPointChart.SetValueAxisTitleTextStyle(double? fontSizePoints = null, bool? bold = null, bool? italic = null, string? color = null, string? fontName = null) -> OfficeIMO.PowerPoint.PowerPointChart!
+OfficeIMO.PowerPoint.PowerPointChart.SetValueAxisTitleTextStyle(OfficeIMO.OfficeLength? fontSize = null, bool? bold = null, bool? italic = null, string? color = null, string? fontName = null) -> OfficeIMO.PowerPoint.PowerPointChart!
 OfficeIMO.PowerPoint.PowerPointChart.TryGetOfficeSnapshot(out OfficeIMO.Drawing.OfficeChartSnapshot! snapshot) -> bool
 OfficeIMO.PowerPoint.PowerPointChart.UpdateData(OfficeIMO.Drawing.OfficeChartData! data) -> OfficeIMO.PowerPoint.PowerPointChart!
 OfficeIMO.PowerPoint.PowerPointChart.UpdateImportedData(OfficeIMO.Drawing.OfficeChartData! data) -> OfficeIMO.PowerPoint.PowerPointChart!
@@ -1506,18 +1506,18 @@ OfficeIMO.PowerPoint.PowerPointChartDataLabelTemplate.FillColor.get -> string?
 OfficeIMO.PowerPoint.PowerPointChartDataLabelTemplate.FillColor.set -> void
 OfficeIMO.PowerPoint.PowerPointChartDataLabelTemplate.FontName.get -> string?
 OfficeIMO.PowerPoint.PowerPointChartDataLabelTemplate.FontName.set -> void
-OfficeIMO.PowerPoint.PowerPointChartDataLabelTemplate.FontSizePoints.get -> double?
-OfficeIMO.PowerPoint.PowerPointChartDataLabelTemplate.FontSizePoints.set -> void
+OfficeIMO.PowerPoint.PowerPointChartDataLabelTemplate.FontSize.get -> OfficeIMO.OfficeLength?
+OfficeIMO.PowerPoint.PowerPointChartDataLabelTemplate.FontSize.set -> void
 OfficeIMO.PowerPoint.PowerPointChartDataLabelTemplate.Italic.get -> bool?
 OfficeIMO.PowerPoint.PowerPointChartDataLabelTemplate.Italic.set -> void
 OfficeIMO.PowerPoint.PowerPointChartDataLabelTemplate.LeaderLineColor.get -> string?
 OfficeIMO.PowerPoint.PowerPointChartDataLabelTemplate.LeaderLineColor.set -> void
-OfficeIMO.PowerPoint.PowerPointChartDataLabelTemplate.LeaderLineWidthPoints.get -> double?
-OfficeIMO.PowerPoint.PowerPointChartDataLabelTemplate.LeaderLineWidthPoints.set -> void
+OfficeIMO.PowerPoint.PowerPointChartDataLabelTemplate.LeaderLineWidth.get -> OfficeIMO.OfficeLength?
+OfficeIMO.PowerPoint.PowerPointChartDataLabelTemplate.LeaderLineWidth.set -> void
 OfficeIMO.PowerPoint.PowerPointChartDataLabelTemplate.LineColor.get -> string?
 OfficeIMO.PowerPoint.PowerPointChartDataLabelTemplate.LineColor.set -> void
-OfficeIMO.PowerPoint.PowerPointChartDataLabelTemplate.LineWidthPoints.get -> double?
-OfficeIMO.PowerPoint.PowerPointChartDataLabelTemplate.LineWidthPoints.set -> void
+OfficeIMO.PowerPoint.PowerPointChartDataLabelTemplate.LineWidth.get -> OfficeIMO.OfficeLength?
+OfficeIMO.PowerPoint.PowerPointChartDataLabelTemplate.LineWidth.set -> void
 OfficeIMO.PowerPoint.PowerPointChartDataLabelTemplate.NoFill.get -> bool
 OfficeIMO.PowerPoint.PowerPointChartDataLabelTemplate.NoFill.set -> void
 OfficeIMO.PowerPoint.PowerPointChartDataLabelTemplate.NoLine.get -> bool
@@ -1549,6 +1549,14 @@ OfficeIMO.PowerPoint.PowerPointChartGrouping
 OfficeIMO.PowerPoint.PowerPointChartGrouping.PercentStacked = 0 -> OfficeIMO.PowerPoint.PowerPointChartGrouping
 OfficeIMO.PowerPoint.PowerPointChartGrouping.Stacked = 2 -> OfficeIMO.PowerPoint.PowerPointChartGrouping
 OfficeIMO.PowerPoint.PowerPointChartGrouping.Standard = 1 -> OfficeIMO.PowerPoint.PowerPointChartGrouping
+OfficeIMO.PowerPoint.PowerPointChartOptions
+OfficeIMO.PowerPoint.PowerPointChartOptions.Accessibility.get -> OfficeIMO.PowerPoint.PowerPointChartAccessibilityOptions?
+OfficeIMO.PowerPoint.PowerPointChartOptions.Accessibility.set -> void
+OfficeIMO.PowerPoint.PowerPointChartOptions.Left.get -> OfficeIMO.OfficeLength?
+OfficeIMO.PowerPoint.PowerPointChartOptions.Left.set -> void
+OfficeIMO.PowerPoint.PowerPointChartOptions.PowerPointChartOptions() -> void
+OfficeIMO.PowerPoint.PowerPointChartOptions.Top.get -> OfficeIMO.OfficeLength?
+OfficeIMO.PowerPoint.PowerPointChartOptions.Top.set -> void
 OfficeIMO.PowerPoint.PowerPointChartStoryContent
 OfficeIMO.PowerPoint.PowerPointChartStoryContent.AlternativeText.get -> string?
 OfficeIMO.PowerPoint.PowerPointChartStoryContent.AlternativeText.set -> void
@@ -3339,8 +3347,11 @@ OfficeIMO.PowerPoint.PowerPointSignedDocumentMutationException.Report.get -> Off
 OfficeIMO.PowerPoint.PowerPointSlide
 OfficeIMO.PowerPoint.PowerPointSlide.AddAudio(System.IO.Stream! audio, string! contentType, string! extension, OfficeIMO.OfficeLength? left = null, OfficeIMO.OfficeLength? top = null, OfficeIMO.OfficeLength? width = null, OfficeIMO.OfficeLength? height = null) -> OfficeIMO.PowerPoint.PowerPointMedia!
 OfficeIMO.PowerPoint.PowerPointSlide.AddAudio(string! audioPath, OfficeIMO.OfficeLength? left = null, OfficeIMO.OfficeLength? top = null, OfficeIMO.OfficeLength? width = null, OfficeIMO.OfficeLength? height = null) -> OfficeIMO.PowerPoint.PowerPointMedia!
-OfficeIMO.PowerPoint.PowerPointSlide.AddChart(OfficeIMO.OfficeChartType chartKind, OfficeIMO.Drawing.OfficeChartData! data, OfficeIMO.OfficeLength? left = null, OfficeIMO.OfficeLength? top = null, OfficeIMO.OfficeLength? width = null, OfficeIMO.OfficeLength? height = null, OfficeIMO.PowerPoint.PowerPointChartAccessibilityOptions? accessibility = null) -> OfficeIMO.PowerPoint.PowerPointChart!
+OfficeIMO.PowerPoint.PowerPointSlide.AddChart(OfficeIMO.OfficeChartType chartKind, OfficeIMO.Drawing.OfficeChartData! data) -> OfficeIMO.PowerPoint.PowerPointChart!
+OfficeIMO.PowerPoint.PowerPointSlide.AddChart(OfficeIMO.OfficeChartType chartKind, OfficeIMO.Drawing.OfficeChartData! data, OfficeIMO.OfficeChartOptions? options) -> OfficeIMO.PowerPoint.PowerPointChart!
+OfficeIMO.PowerPoint.PowerPointSlide.AddChart<T, TCategory>(OfficeIMO.OfficeChartType type, System.Collections.Generic.IEnumerable<T>! data, System.Func<T, TCategory>! category, OfficeIMO.OfficeChartOptions? options, params OfficeIMO.OfficeSeries![]! series) -> OfficeIMO.PowerPoint.PowerPointChart!
 OfficeIMO.PowerPoint.PowerPointSlide.AddChart<T, TCategory>(OfficeIMO.OfficeChartType type, System.Collections.Generic.IEnumerable<T>! data, System.Func<T, TCategory>! category, params OfficeIMO.OfficeSeries![]! series) -> OfficeIMO.PowerPoint.PowerPointChart!
+OfficeIMO.PowerPoint.PowerPointSlide.AddChart<T>(OfficeIMO.OfficeChartType type, System.Collections.Generic.IEnumerable<T>! data, string! category, OfficeIMO.OfficeChartOptions? options, params string![]! series) -> OfficeIMO.PowerPoint.PowerPointChart!
 OfficeIMO.PowerPoint.PowerPointSlide.AddChart<T>(OfficeIMO.OfficeChartType type, System.Collections.Generic.IEnumerable<T>! data, string! category, params string![]! series) -> OfficeIMO.PowerPoint.PowerPointChart!
 OfficeIMO.PowerPoint.PowerPointSlide.AddClassicAnimation(OfficeIMO.PowerPoint.PowerPointShape! shape, OfficeIMO.PowerPoint.PowerPointClassicAnimationEffect effect, OfficeIMO.PowerPoint.PowerPointClassicAnimationOptions? options = null) -> OfficeIMO.PowerPoint.PowerPointClassicAnimation!
 OfficeIMO.PowerPoint.PowerPointSlide.AddCommandAnimation(OfficeIMO.PowerPoint.PowerPointShape! shape, string! command, OfficeIMO.PowerPoint.PowerPointAnimationCommand type, OfficeIMO.PowerPoint.PowerPointTimelineOptions? options = null) -> OfficeIMO.PowerPoint.PowerPointTimelineAction!

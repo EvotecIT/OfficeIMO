@@ -5,7 +5,7 @@ namespace OfficeIMO.Studio.Features.Editor;
 internal sealed record PdfEditorProperties(
     string Text,
     string Author,
-    PdfColor Color,
+    global::OfficeIMO.OfficeColor Color,
     string StampName,
     string LinkUri,
     double FontSize,

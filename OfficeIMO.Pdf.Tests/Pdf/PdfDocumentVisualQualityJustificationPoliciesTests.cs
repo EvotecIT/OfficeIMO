@@ -45,7 +45,7 @@ public partial class PdfDocumentVisualQualityTests {
         byte[] font = ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs(' ', 'A', 'B', 0x0301);
         var options = JustificationPolicyOptions().UseFontFamily(new PdfEmbeddedFontFamily("Cluster Font",
             font));
-        PdfTextRun[] runs = splitRuns ? new[] { new PdfTextRun("A"), new PdfTextRun("\u0301B", color: new PdfColor(1, 0, 0)) }
+        PdfTextRun[] runs = splitRuns ? new[] { new PdfTextRun("A"), new PdfTextRun("\u0301B", color: global::OfficeIMO.OfficeColor.FromNormalizedRgb(1, 0, 0)) }
             : new[] { new PdfTextRun("A\u0301B") };
         byte[] controlBytes = RenderJustificationPolicyRuns(options, runs, distributed: false);
         byte[] actualBytes = RenderJustificationPolicyRuns(options, runs, distributed: true);
@@ -162,7 +162,7 @@ public partial class PdfDocumentVisualQualityTests {
     [Fact]
     public void CharacterJustificationRetainsInlineBoxGeometryWhileDistributingItsNeighbors() {
         byte[] bytes = PdfDocument.Create(JustificationPolicyOptions()).Paragraph(paragraph => paragraph.Runs(new[] {
-            new PdfTextRun("A"), PdfTextRun.Inline(new PdfInlineBox(20, 10, background: new PdfColor(0, 1, 0))), new PdfTextRun("B")
+            new PdfTextRun("A"), PdfTextRun.Inline(new PdfInlineBox(20, 10, background: global::OfficeIMO.OfficeColor.FromNormalizedRgb(0, 1, 0))), new PdfTextRun("B")
         }), PdfAlign.Justify, style: CharacterJustificationPolicy()).ToBytes();
         Letter[] letters = ReadJustificationPolicyLetters(bytes);
         Assert.Equal("AB", string.Concat(letters.Select(letter => letter.Value)));

@@ -170,7 +170,7 @@ public sealed class PdfConversionReport : IOfficeConversionReport {
     }
 
     /// <summary>Adds shared text encoding diagnostics as conversion warnings.</summary>
-    public void AddTextDiagnostics(IEnumerable<PdfTextEncodingDiagnostic> diagnostics, string converter = "OfficeIMO.Pdf") {
+    internal void AddTextDiagnostics(IEnumerable<PdfTextEncodingDiagnostic> diagnostics, string converter = "OfficeIMO.Pdf") {
         Guard.NotNull(diagnostics, nameof(diagnostics));
         foreach (PdfTextEncodingDiagnostic diagnostic in diagnostics) {
             Add(diagnostic.ToConversionWarning(converter));
@@ -178,13 +178,13 @@ public sealed class PdfConversionReport : IOfficeConversionReport {
     }
 
     /// <summary>Adds missing-glyph diagnostics from an embedded-font fallback plan as conversion warnings.</summary>
-    public void AddTextFallbackPlanDiagnostics(PdfTextFallbackPlan plan, string converter = "OfficeIMO.Pdf") {
+    internal void AddTextFallbackPlanDiagnostics(PdfTextFallbackPlan plan, string converter = "OfficeIMO.Pdf") {
         Guard.NotNull(plan, nameof(plan));
         AddTextDiagnostics(plan.Diagnostics, converter);
     }
 
     /// <summary>Adds shared text shaping diagnostics as conversion warnings.</summary>
-    public void AddTextShapingDiagnostics(IEnumerable<PdfTextShapingDiagnostic> diagnostics, string converter = "OfficeIMO.Pdf") {
+    internal void AddTextShapingDiagnostics(IEnumerable<PdfTextShapingDiagnostic> diagnostics, string converter = "OfficeIMO.Pdf") {
         Guard.NotNull(diagnostics, nameof(diagnostics));
         foreach (PdfTextShapingDiagnostic diagnostic in diagnostics) {
             Add(diagnostic.ToConversionWarning(converter));
@@ -192,7 +192,7 @@ public sealed class PdfConversionReport : IOfficeConversionReport {
     }
 
     /// <summary>Adds shared embedded-font diagnostics as conversion warnings.</summary>
-    public void AddFontDiagnostics(IEnumerable<PdfFontEmbeddingDiagnostic> diagnostics, string converter = "OfficeIMO.Pdf") {
+    internal void AddFontDiagnostics(IEnumerable<PdfFontEmbeddingDiagnostic> diagnostics, string converter = "OfficeIMO.Pdf") {
         Guard.NotNull(diagnostics, nameof(diagnostics));
         foreach (PdfFontEmbeddingDiagnostic diagnostic in diagnostics) {
             Add(diagnostic.ToConversionWarning(converter));

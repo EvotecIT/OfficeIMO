@@ -116,7 +116,7 @@ internal static partial class PdfWriter {
         double[] baselines,
         PdfStandardFont baseFont,
         double defaultFontSize,
-        PdfColor? defaultColor,
+        global::OfficeIMO.OfficeColor? defaultColor,
         double x,
         PdfCreateOptions options,
         double? lineBoxWidth,
@@ -150,8 +150,8 @@ internal static partial class PdfWriter {
                 double effectiveFontSize = EffectiveRichFontSize(requestedFontSize, run.Baseline);
                 double textRise = TextRiseForBaseline(requestedFontSize, run.Baseline);
                 double width = GetRichSegmentWidth(segments[runIndex]);
-                PdfColor runColor = ResolvePageTextColor(run.Color ?? defaultColor, options);
-                PdfColor decorationColor = ResolvePageTextColor(run.DecorationColor ?? run.Color ?? defaultColor, options);
+                global::OfficeIMO.OfficeColor runColor = ResolvePageTextColor(run.Color ?? defaultColor, options);
+                global::OfficeIMO.OfficeColor decorationColor = ResolvePageTextColor(run.DecorationColor ?? run.Color ?? defaultColor, options);
 
                 if (run.BackgroundColor.HasValue && width > 0D) {
                     double ascender = GetAscenderForOptions(runFont, namedFont, effectiveFontSize, options);
@@ -190,7 +190,7 @@ internal static partial class PdfWriter {
         }
     }
 
-    private static void AppendPageTextDecorationLine(StringBuilder sb, double x1, double x2, double y, double width, PdfColor color, OfficeIMO.Drawing.OfficeTextDecorationStyle style) {
+    private static void AppendPageTextDecorationLine(StringBuilder sb, double x1, double x2, double y, double width, global::OfficeIMO.OfficeColor color, OfficeIMO.Drawing.OfficeTextDecorationStyle style) {
         if (style == OfficeIMO.Drawing.OfficeTextDecorationStyle.None || x2 <= x1) {
             return;
         }

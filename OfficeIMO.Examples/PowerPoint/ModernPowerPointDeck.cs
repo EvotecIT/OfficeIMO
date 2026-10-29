@@ -272,16 +272,16 @@ namespace OfficeIMO.Examples.PowerPoint {
                     new OfficeSeries("Sales", new[] { 10d, 12d, 16d, 19d, 24d, 27d }),
                     new OfficeSeries("Profit", new[] { 4d, 5d, 7d, 9d, 11d, 13d })
                 });
-            PowerPointChart chart = slide.AddChart(OfficeChartType.ColumnClustered,data,global::OfficeIMO.OfficeLength.Centimeters(1.8),global::OfficeIMO.OfficeLength.Centimeters(3.7),global::OfficeIMO.OfficeLength.Centimeters(15.1),global::OfficeIMO.OfficeLength.Centimeters(8.5));
+            PowerPointChart chart = slide.AddChart(OfficeChartType.ColumnClustered, data, new OfficeIMO.PowerPoint.PowerPointChartOptions { Left = global::OfficeIMO.OfficeLength.Centimeters(1.8), Top = global::OfficeIMO.OfficeLength.Centimeters(3.7), Width = global::OfficeIMO.OfficeLength.Centimeters(15.1), Height = global::OfficeIMO.OfficeLength.Centimeters(8.5) });
             chart.SetTitle("Sales vs Profit")
                 .SetLegend(OfficeChartLegendPosition.Bottom)
                 .SetChartAreaStyle(fillColor: "FFFFFF", lineColor: "FFFFFF")
                 .SetPlotAreaStyle(fillColor: "FFFFFF", lineColor: "FFFFFF")
                 .SetSeriesFillColor("Sales", Teal)
                 .SetSeriesFillColor("Profit", Orange)
-                .SetValueAxisGridlines(showMajor: true, lineColor: "D8D5CC", lineWidthPoints: 0.75)
-                .SetValueAxisLabelTextStyle(fontSizePoints: 9, color: "534F49", fontName: "Aptos")
-                .SetCategoryAxisLabelTextStyle(fontSizePoints: 9, color: "534F49", fontName: "Aptos");
+                .SetValueAxisGridlines(showMajor: true, lineColor: "D8D5CC", lineWidth: OfficeLength.Points(0.75))
+                .SetValueAxisLabelTextStyle(fontSize: OfficeLength.Points(9), color: "534F49", fontName: "Aptos")
+                .SetCategoryAxisLabelTextStyle(fontSize: OfficeLength.Points(9), color: "534F49", fontName: "Aptos");
 
             PowerPointAutoShape takeawayCard = AddPanel(slide, 18.5, 3.1, 11.4, 3.6, "Takeaway Card");
             takeawayCard.FillColor = Linen;
@@ -320,7 +320,7 @@ namespace OfficeIMO.Examples.PowerPoint {
             OfficeChartData data = new(
                 new[] { "Direct", "Partner", "Online", "Events" },
                 new[] { new OfficeSeries("Share", new[] { 42d, 27d, 22d, 9d }) });
-            PowerPointChart chart = slide.AddChart(OfficeChartType.Doughnut,data,global::OfficeIMO.OfficeLength.Centimeters(2.2),global::OfficeIMO.OfficeLength.Centimeters(3.9),global::OfficeIMO.OfficeLength.Centimeters(13.4),global::OfficeIMO.OfficeLength.Centimeters(7.8));
+            PowerPointChart chart = slide.AddChart(OfficeChartType.Doughnut, data, new OfficeIMO.PowerPoint.PowerPointChartOptions { Left = global::OfficeIMO.OfficeLength.Centimeters(2.2), Top = global::OfficeIMO.OfficeLength.Centimeters(3.9), Width = global::OfficeIMO.OfficeLength.Centimeters(13.4), Height = global::OfficeIMO.OfficeLength.Centimeters(7.8) });
             chart.SetTitle("Revenue Share by Channel")
                 .SetLegend(OfficeChartLegendPosition.Bottom)
                 .SetDataLabels(showPercent: true)
@@ -362,18 +362,18 @@ namespace OfficeIMO.Examples.PowerPoint {
                     new OfficeSeries("Sales", new[] { 10d, 14d, 18d, 21d, 25d, 28d }),
                     new OfficeSeries("Profit", new[] { 4d, 6d, 8d, 10d, 12d, 14d })
                 });
-            PowerPointChart chart = slide.AddChart(OfficeChartType.Line,data,global::OfficeIMO.OfficeLength.Centimeters(2.8),global::OfficeIMO.OfficeLength.Centimeters(3.8),global::OfficeIMO.OfficeLength.Centimeters(19.5),global::OfficeIMO.OfficeLength.Centimeters(8.4));
+            PowerPointChart chart = slide.AddChart(OfficeChartType.Line, data, new OfficeIMO.PowerPoint.PowerPointChartOptions { Left = global::OfficeIMO.OfficeLength.Centimeters(2.8), Top = global::OfficeIMO.OfficeLength.Centimeters(3.8), Width = global::OfficeIMO.OfficeLength.Centimeters(19.5), Height = global::OfficeIMO.OfficeLength.Centimeters(8.4) });
             chart.SetTitle("Momentum Over Time")
                 .SetLegend(OfficeChartLegendPosition.Bottom)
                 .SetChartAreaStyle(fillColor: "FFFFFF", lineColor: "FFFFFF")
                 .SetPlotAreaStyle(fillColor: "FFFFFF", lineColor: "FFFFFF")
-                .SetSeriesLineColor("Sales", Teal, widthPoints: 2.75)
-                .SetSeriesLineColor("Profit", Orange, widthPoints: 2.75)
-                .SetSeriesMarker("Sales", OfficeChartMarkerShape.Diamond, size: 8, fillColor: Teal, lineColor: Teal)
-                .SetSeriesMarker("Profit", OfficeChartMarkerShape.Square, size: 8, fillColor: Orange, lineColor: Orange)
-                .SetValueAxisGridlines(showMajor: true, lineColor: "D8D5CC", lineWidthPoints: 0.75)
-                .SetValueAxisLabelTextStyle(fontSizePoints: 9, color: "534F49", fontName: "Aptos")
-                .SetCategoryAxisLabelTextStyle(fontSizePoints: 9, color: "534F49", fontName: "Aptos");
+                .SetSeriesLineColor("Sales", Teal, width: OfficeLength.Points(2.75))
+                .SetSeriesLineColor("Profit", Orange, width: OfficeLength.Points(2.75))
+                .SetSeriesMarker("Sales", OfficeChartMarkerShape.Diamond, size: OfficeLength.Points(8), fillColor: Teal, lineColor: Teal)
+                .SetSeriesMarker("Profit", OfficeChartMarkerShape.Square, size: OfficeLength.Points(8), fillColor: Orange, lineColor: Orange)
+                .SetValueAxisGridlines(showMajor: true, lineColor: "D8D5CC", lineWidth: OfficeLength.Points(0.75))
+                .SetValueAxisLabelTextStyle(fontSize: OfficeLength.Points(9), color: "534F49", fontName: "Aptos")
+                .SetCategoryAxisLabelTextStyle(fontSize: OfficeLength.Points(9), color: "534F49", fontName: "Aptos");
 
             PowerPointAutoShape callout = AddPanel(slide, 24.2, 4.8, 7.4, 5.9, "Observation Card");
             callout.FillColor = Linen;

@@ -12,7 +12,7 @@ namespace OfficeIMO.Tests.Pdf {
         [Fact]
         public void PageBackground_RendersBeforePageContent() {
             byte[] pdfBytes = PdfDocument.Create()
-                .Background(PdfColor.FromRgb(240, 248, 255))
+                .Background(global::OfficeIMO.OfficeColor.FromRgb(240, 248, 255))
                 .Paragraph(paragraph => paragraph.Text("DocBackgroundMarker"))
                 .ToBytes();
 
@@ -27,11 +27,11 @@ namespace OfficeIMO.Tests.Pdf {
         [Fact]
         public void PageBackground_CanBeOverriddenPerComposedPage() {
             byte[] pdfBytes = PdfDocument.Create(new PdfCreateOptions {
-                    BackgroundColor = PdfColor.White
+                    BackgroundColor = global::OfficeIMO.OfficeColor.White
                 })
                 .Page(page => page
                     .Size(300, 400)
-                    .Background(PdfColor.FromRgb(238, 242, 255))
+                    .Background(global::OfficeIMO.OfficeColor.FromRgb(238, 242, 255))
                     .Content(content => content.Item(item => item.Paragraph(paragraph => paragraph.Text("PageBackgroundMarker")))))
                 .ToBytes();
 

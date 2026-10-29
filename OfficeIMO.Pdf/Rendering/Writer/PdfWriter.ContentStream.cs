@@ -44,9 +44,9 @@ internal sealed partial class ContentStreamBuilder {
         return this;
     }
 
-    public ContentStreamBuilder FillColor(PdfColor color) {
+    public ContentStreamBuilder FillColor(global::OfficeIMO.OfficeColor color) {
         if (SyncTextState() && _fillColor.HasValue && _fillColor.Value.Equals(color)) return this;
-        _sb.Append(F(color.R)).Append(' ').Append(F(color.G)).Append(' ').Append(F(color.B)).Append(" rg\n");
+        _sb.Append(F(color.ToNormalizedRgb().R)).Append(' ').Append(F(color.ToNormalizedRgb().G)).Append(' ').Append(F(color.ToNormalizedRgb().B)).Append(" rg\n");
         if (_inText) {
             _fillColor = color;
             OwnWrite();
@@ -60,8 +60,8 @@ internal sealed partial class ContentStreamBuilder {
         return this;
     }
 
-    public ContentStreamBuilder StrokeColor(PdfColor color) {
-        _sb.Append(F(color.R)).Append(' ').Append(F(color.G)).Append(' ').Append(F(color.B)).Append(" RG\n");
+    public ContentStreamBuilder StrokeColor(global::OfficeIMO.OfficeColor color) {
+        _sb.Append(F(color.ToNormalizedRgb().R)).Append(' ').Append(F(color.ToNormalizedRgb().G)).Append(' ').Append(F(color.ToNormalizedRgb().B)).Append(" RG\n");
         return this;
     }
 

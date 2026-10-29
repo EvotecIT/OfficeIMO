@@ -70,8 +70,8 @@ public sealed class PowerPointChartSeriesPaintTests {
             : new OfficeSeries("Paint", new[] { 2d, 4d }, null, null, null, showMarkers: false);
         using var document = PowerPointDocument.Create();
         var chart = document.AddSlide().AddChart(kind, new OfficeChartData(new[] { "A", "B" }, new[] { series }));
-        if (byName) chart.SetSeriesLineColor("Paint", "FF0000", 3);
-        else chart.SetSeriesLineColor(0, "FF0000", 3);
+        if (byName) chart.SetSeriesLineColor("Paint", "FF0000", OfficeLength.Points(3));
+        else chart.SetSeriesLineColor(0, "FF0000", OfficeLength.Points(3));
         var properties = document.Slides[0].SlidePart.ChartParts.Single().ChartSpace!
             .Descendants<DocumentFormat.OpenXml.Drawing.Charts.ChartShapeProperties>().First();
         properties.RemoveAllChildren<DocumentFormat.OpenXml.Drawing.SolidFill>();

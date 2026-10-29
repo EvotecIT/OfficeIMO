@@ -24,8 +24,8 @@ namespace OfficeIMO.Examples.Pdf {
             var opts = new PdfCreateOptions { Debug = debug };
 
             var styleBase = new PdfTableStyle {
-                HeaderFill = PdfColor.LightGray,
-                BorderColor = PdfColor.FromRgb(210,210,210),
+                HeaderFill = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.9D, 0.9D, 0.9D),
+                BorderColor = global::OfficeIMO.OfficeColor.FromRgb(210,210,210),
                 BorderWidth = 0.5,
                 CellPaddingX = 6,
                 CellPaddingY = 13.5

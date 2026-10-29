@@ -50,7 +50,7 @@ internal static class PdfRuntimeCorpus {
                         new[] { "Amount", (number * 101.25D).ToString("0.00", CultureInfo.InvariantCulture), "Reviewed" }
                     });
                     content.Paragraph(text => text.Text("Validated page " + Number(number)));
-                    if (!textOnly) content.Rectangle(180, 24, fillColor: PdfColor.FromRgb(220, 240, 252))
+                    if (!textOnly) content.Rectangle(180, 24, fillColor: global::OfficeIMO.OfficeColor.FromRgb(220, 240, 252))
                         .Image(Image, 32, 32, alternativeText: "Deterministic runtime measurement image");
                 }));
             }

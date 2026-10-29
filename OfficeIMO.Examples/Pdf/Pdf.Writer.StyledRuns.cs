@@ -8,7 +8,7 @@ namespace OfficeIMO.Examples.Pdf {
             var options = new PdfCreateOptions {
                 DefaultFont = PdfStandardFont.Helvetica,
                 DefaultFontSize = 10,
-                DefaultTextColor = PdfColor.FromRgb(31, 41, 55),
+                DefaultTextColor = global::OfficeIMO.OfficeColor.FromRgb(31, 41, 55),
                 HeaderFont = PdfStandardFont.Helvetica,
                 HeaderFontSize = 8,
                 HeaderFormat = "OfficeIMO.Pdf styled runs",
@@ -22,15 +22,15 @@ namespace OfficeIMO.Examples.Pdf {
             };
 
             var doc = PdfDocument.Create(pdf => pdf.Content(content => content
-                .H1("Styled Runs", PdfAlign.Left, PdfColor.FromRgb(25, 55, 85))
+                .H1("Styled Runs", PdfAlign.Left, global::OfficeIMO.OfficeColor.FromRgb(25, 55, 85))
                 .Paragraph(p => p.Text("A compact visual sample for inline font style, color, underline, strike-through, and stateful run toggles."))
                 .PanelParagraph(
                     p => p
                         .Bold("Inline styles")
                         .Text(" should remain readable in normal business-report text, not only in synthetic text extraction checks."),
                     new PdfPanelStyle {
-                        Background = PdfColor.FromRgb(248, 250, 252),
-                        BorderColor = PdfColor.FromRgb(183, 194, 207),
+                        Background = global::OfficeIMO.OfficeColor.FromRgb(248, 250, 252),
+                        BorderColor = global::OfficeIMO.OfficeColor.FromRgb(183, 194, 207),
                         PaddingX = 9,
                         PaddingY = 7
                     })
@@ -41,16 +41,16 @@ namespace OfficeIMO.Examples.Pdf {
                     .Bold(true).Italic(true).Text("bold italic ").Italic(false).Bold(false)
                     .Underlined("underlined ")
                     .Strikethrough("obsolete ")
-                    .Color(PdfColor.FromRgb(80, 80, 80)).Text("and ")
-                    .Color(PdfColor.FromRgb(8, 28, 120)).Text("colors."),
+                    .Color(global::OfficeIMO.OfficeColor.FromRgb(80, 80, 80)).Text("and ")
+                    .Color(global::OfficeIMO.OfficeColor.FromRgb(8, 28, 120)).Text("colors."),
                     style: new PdfParagraphStyle { SpacingBefore = 14 })
                 .Paragraph(p => p
                     .Text("Underline respects color: ")
-                    .Underlined("red", PdfColor.FromRgb(200, 0, 0))
+                    .Underlined("red", global::OfficeIMO.OfficeColor.FromRgb(200, 0, 0))
                     .Text(", ")
-                    .Underlined("blue", PdfColor.FromRgb(20, 90, 180))
+                    .Underlined("blue", global::OfficeIMO.OfficeColor.FromRgb(20, 90, 180))
                     .Text(", and ")
-                    .Underlined("green", PdfColor.FromRgb(0, 128, 0))
+                    .Underlined("green", global::OfficeIMO.OfficeColor.FromRgb(0, 128, 0))
                     .Text("."))
                 .Paragraph(p => p
                     .Text("Decoration variants: ")
@@ -65,16 +65,16 @@ namespace OfficeIMO.Examples.Pdf {
                     .Superscript("2")
                     .Text("."))
                 .Paragraph(p => p.Runs(new[] {
-                    new PdfTextRun("stored casing", bold: true, color: PdfColor.FromRgb(112, 48, 160))
+                    new PdfTextRun("stored casing", bold: true, color: global::OfficeIMO.OfficeColor.FromRgb(112, 48, 160))
                         .WithTextCase(OfficeIMO.Drawing.OfficeTextCase.TitleCase)
                 }))
                 .Paragraph(p => p
                     .Text("Stateful color toggles: ")
-                    .Color(PdfColor.FromRgb(185, 28, 28)).Text("critical ")
-                    .Color(PdfColor.FromRgb(20, 90, 180)).Text("informational ")
-                    .Color(PdfColor.FromRgb(22, 101, 52)).Text("healthy ")
-                    .Color(PdfColor.FromRgb(31, 41, 55)).Text("normal."))
-                .Paragraph(p => p.Text("End of styled runs sample."), PdfAlign.Right, PdfColor.FromRgb(80, 80, 80))), options)
+                    .Color(global::OfficeIMO.OfficeColor.FromRgb(185, 28, 28)).Text("critical ")
+                    .Color(global::OfficeIMO.OfficeColor.FromRgb(20, 90, 180)).Text("informational ")
+                    .Color(global::OfficeIMO.OfficeColor.FromRgb(22, 101, 52)).Text("healthy ")
+                    .Color(global::OfficeIMO.OfficeColor.FromRgb(31, 41, 55)).Text("normal."))
+                .Paragraph(p => p.Text("End of styled runs sample."), PdfAlign.Right, global::OfficeIMO.OfficeColor.FromRgb(80, 80, 80))), options)
                 .Meta(title: "OfficeIMO.Pdf Styled Runs", author: "OfficeIMO");
             doc.Save(path);
             if (open) System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo { FileName = path, UseShellExecute = true });

@@ -18,7 +18,7 @@ public sealed class PowerPointChartPointStylesTests {
         var outline = new OfficeChartPointStyle(noFill: true, outlineColor: OfficeColor.Black,
             outlineWidth: 2, outlineJoin: OfficeStrokeLineJoin.Round);
         using PowerPointDocument authored = PowerPointDocument.Create();
-        authored.AddSlide().AddChart(OfficeChartType.Pie,            Data(OfficeChartType.Pie, new OfficeChartPointStyle?[] { outline, null, null }),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(600),global::OfficeIMO.OfficeLength.Points(320));
+        authored.AddSlide().AddChart(OfficeChartType.Pie, Data(OfficeChartType.Pie, new OfficeChartPointStyle?[] { outline, null, null }), new OfficeIMO.PowerPoint.PowerPointChartOptions { Left = global::OfficeIMO.OfficeLength.Points(20), Top = global::OfficeIMO.OfficeLength.Points(20), Width = global::OfficeIMO.OfficeLength.Points(600), Height = global::OfficeIMO.OfficeLength.Points(320) });
         using PowerPointDocument htmlReopened = OfficeIMO.Html.HtmlConversionDocument.Parse(authored.ToHtml())
             .ToPowerPointDocument();
         Assert.True(htmlReopened.Slides.Single().Charts.Single().TryGetOfficeSnapshot(out OfficeChartSnapshot snapshot));
@@ -56,7 +56,7 @@ public sealed class PowerPointChartPointStylesTests {
         var data = Data(OfficeChartType.ColumnClustered, new OfficeChartPointStyle?[] {
             new(outlineWidth: 2), null, null });
         using PowerPointDocument authored = PowerPointDocument.Create();
-        authored.AddSlide().AddChart(OfficeChartType.ColumnClustered,data,global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(600),global::OfficeIMO.OfficeLength.Points(320));
+        authored.AddSlide().AddChart(OfficeChartType.ColumnClustered, data, new OfficeIMO.PowerPoint.PowerPointChartOptions { Left = global::OfficeIMO.OfficeLength.Points(20), Top = global::OfficeIMO.OfficeLength.Points(20), Width = global::OfficeIMO.OfficeLength.Points(600), Height = global::OfficeIMO.OfficeLength.Points(320) });
         using var bytes = new MemoryStream(authored.ToBytes());
         using PowerPointDocument reopened = PowerPointDocument.Load(bytes);
         Assert.True(reopened.Slides.Single().Charts.Single().TryGetOfficeSnapshot(out OfficeChartSnapshot snapshot));
@@ -83,7 +83,7 @@ public sealed class PowerPointChartPointStylesTests {
         var pattern = new OfficeChartPointStyle(OfficeColor.White, hatch: hatch,
             hatchColor: OfficeColor.Parse("#7300A3"), outlineColor: OfficeColor.Black, outlineWidth: 1);
         using PowerPointDocument authored = PowerPointDocument.Create();
-        authored.AddSlide().AddChart(kind,Data(kind, new[] { null, outline, pattern }),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(600),global::OfficeIMO.OfficeLength.Points(320));
+        authored.AddSlide().AddChart(kind, Data(kind, new[] { null, outline, pattern }), new OfficeIMO.PowerPoint.PowerPointChartOptions { Left = global::OfficeIMO.OfficeLength.Points(20), Top = global::OfficeIMO.OfficeLength.Points(20), Width = global::OfficeIMO.OfficeLength.Points(600), Height = global::OfficeIMO.OfficeLength.Points(320) });
         using var bytes = new MemoryStream(authored.ToBytes());
         using PowerPointDocument reopened = PowerPointDocument.Load(bytes);
         PowerPointChart chart = reopened.Slides.Single().Charts.Single();
@@ -108,8 +108,8 @@ public sealed class PowerPointChartPointStylesTests {
     [InlineData(OfficeChartType.Bubble)]
     public void PointStyles_PreserveExplicitOutlineVisibilityWithoutColourOrWidth(OfficeChartType kind) {
         using PowerPointDocument authored = PowerPointDocument.Create();
-        authored.AddSlide().AddChart(kind,Data(kind, new OfficeChartPointStyle?[] {
-            new(showOutline: true), new(showOutline: false), null }),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(600),global::OfficeIMO.OfficeLength.Points(320));
+        authored.AddSlide().AddChart(kind, Data(kind, new OfficeChartPointStyle?[] {
+            new(showOutline: true), new(showOutline: false), null }), new OfficeIMO.PowerPoint.PowerPointChartOptions { Left = global::OfficeIMO.OfficeLength.Points(20), Top = global::OfficeIMO.OfficeLength.Points(20), Width = global::OfficeIMO.OfficeLength.Points(600), Height = global::OfficeIMO.OfficeLength.Points(320) });
         using var bytes = new MemoryStream(authored.ToBytes());
         using PowerPointDocument reopened = PowerPointDocument.Load(bytes);
         Assert.True(reopened.Slides.Single().Charts.Single().TryGetOfficeSnapshot(out OfficeChartSnapshot snapshot));
@@ -127,7 +127,7 @@ public sealed class PowerPointChartPointStylesTests {
             hatchColor: OfficeColor.Parse("#7300A3"), outlineColor: OfficeColor.Black, outlineWidth: 2);
         using PowerPointDocument presentation = PowerPointDocument.Create();
         presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(640),OfficeIMO.OfficeLength.Points(360));
-        presentation.AddSlide().AddChart(kind,Data(kind, new[] { null, null, hatch }),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(600),global::OfficeIMO.OfficeLength.Points(320));
+        presentation.AddSlide().AddChart(kind, Data(kind, new[] { null, null, hatch }), new OfficeIMO.PowerPoint.PowerPointChartOptions { Left = global::OfficeIMO.OfficeLength.Points(20), Top = global::OfficeIMO.OfficeLength.Points(20), Width = global::OfficeIMO.OfficeLength.Points(600), Height = global::OfficeIMO.OfficeLength.Points(320) });
         Assert.True(OfficePngReader.TryDecode(presentation.Slides.Single().ToImage(), out OfficeRasterImage? raster));
         int hatchPixels = 0;
         for (int y = 0; y < raster!.Height; y++)

@@ -32,10 +32,10 @@ public sealed class HtmlEditableLayoutVisualEvidenceTests {
             paragraph.Text.Contains("Editable positioned", StringComparison.Ordinal)));
         HtmlRenderMargins margins = new HtmlRenderOptions().Margins;
         Assert.Equal("DBEAFE", positionedWordBox.FillColorHex);
-        Assert.Equal((int)((32D + margins.Left) * 9525D), positionedWordBox.HorizontalPositionOffset);
-        Assert.Equal((int)((200D + margins.Top) * 9525D), positionedWordBox.VerticalPositionOffset);
-        Assert.Equal(240L * 9525L, positionedWordBox.Width);
-        Assert.Equal(72L * 9525L, positionedWordBox.Height);
+        Assert.Equal((int)((32D + margins.Left) * 9525D), positionedWordBox.HorizontalPositionOffset?.ToEmus());
+        Assert.Equal((int)((200D + margins.Top) * 9525D), positionedWordBox.VerticalPositionOffset?.ToEmus());
+        Assert.Equal(240L * 9525L, positionedWordBox.Width.ToEmus());
+        Assert.Equal(72L * 9525L, positionedWordBox.Height.ToEmus());
         byte[] wordPng = word.ToImage(new WordImageExportOptions { BackgroundColor = OfficeColor.White });
 
         HtmlToRtfResult rtfResult = source.ToRtfDocumentResult();

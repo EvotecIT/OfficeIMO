@@ -2,8 +2,8 @@ namespace OfficeIMO.Pdf;
 
 internal static partial class PdfWriter {
     private sealed partial class LayoutContext {
-        private static readonly PdfColor DebugFlowObjectBoxColor = new PdfColor(1D, 0D, 1D);
-        private static readonly PdfColor DebugCanvasItemBoxColor = new PdfColor(0D, 0.65D, 1D);
+        private static readonly global::OfficeIMO.OfficeColor DebugFlowObjectBoxColor = global::OfficeIMO.OfficeColor.FromNormalizedRgb(1D, 0D, 1D);
+        private static readonly global::OfficeIMO.OfficeColor DebugCanvasItemBoxColor = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0D, 0.65D, 1D);
 
         private void DrawDebugFlowObjectBox(double x, double bottomY, double boxWidth, double boxHeight) {
             if (currentOpts.Debug?.ShowFlowObjectBoxes == true) {

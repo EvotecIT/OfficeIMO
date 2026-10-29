@@ -205,7 +205,7 @@ public partial class RichParagraphWrappingTests {
                     tabLeader: PdfTabLeaderStyle.Underscores)
         };
         runs.Add(inline
-            ? PdfTextRun.Inline(new PdfInlineBox(10D, 10D, background: PdfColor.Black))
+            ? PdfTextRun.Inline(new PdfInlineBox(10D, 10D, background: global::OfficeIMO.OfficeColor.Black))
             : PdfTextRun.Normal("X", fontSize: 12D, font: PdfStandardFont.Helvetica));
         return PdfDocument.Create(TrailingTabOptions())
             .Paragraph(paragraph => paragraph.Runs(runs), style: style)

@@ -16,8 +16,7 @@ public sealed class ExcelChartRadialLayoutTests {
     [InlineData("9999999999999", "50")]
     public void RadialGeometry_MalformedNativeValuesFailTrySnapshot(string angle, string hole) {
         using ExcelDocument document = ExcelDocument.Create();
-        var chart = document.AddSheet("Results").AddChart(OfficeChartType.Doughnut,
-            new OfficeChartData(new[] { "A" }, new[] { new OfficeSeries("Status", new[] { 1d }) }), 1, 1);
+        var chart = document.AddSheet("Results").AddChart(OfficeChartType.Doughnut, new OfficeChartData(new[] { "A" }, new[] { new OfficeSeries("Status", new[] { 1d }) }), new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 1 });
         var part = document.OpenXmlDocument.WorkbookPart!.WorksheetParts.Single(p => p.DrawingsPart != null).DrawingsPart!.ChartParts.Single();
         chart.SetRadialLayout(OfficeChartRadialLayout.Default);
         var native = part.ChartSpace.Descendants<C.DoughnutChart>().Single();
@@ -30,8 +29,7 @@ public sealed class ExcelChartRadialLayoutTests {
     public void RadialGeometry_WorkbookPdfPreservesHoleSize() {
         int ColoredPixels(int hole) {
             using ExcelDocument document = ExcelDocument.Create();
-            document.AddSheet("Results").AddChart(OfficeChartType.Doughnut,
-                new OfficeChartData(new[] { "A" }, new[] { new OfficeSeries("Status", new[] { 1d }, null, color: OfficeColor.Parse("#FF0000")) }), 1, 1)
+            document.AddSheet("Results").AddChart(OfficeChartType.Doughnut, new OfficeChartData(new[] { "A" }, new[] { new OfficeSeries("Status", new[] { 1d }, null, color: OfficeColor.Parse("#FF0000")) }), new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 1 })
                 .SetRadialLayout(new OfficeChartRadialLayout(doughnutHolePercent: hole));
             byte[] pdf = document.ToPdf(new ExcelPdfExportOptions { IncludeSheetHeadings = false }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
             var pages = OfficeIMO.Pdf.PdfDocument.Load(new System.IO.MemoryStream(pdf)).Render.Pages(options:
@@ -58,7 +56,7 @@ public sealed class ExcelChartRadialLayoutTests {
     public void RadialGeometry_PersistsThroughReopenUpdateAndSnapshot(OfficeChartType kind) {
         var data = new OfficeChartData(new[] { "A", "B" }, new[] { new OfficeSeries("Status", new[] { 7d, 3d }) });
         using ExcelDocument authored = ExcelDocument.Create();
-        authored.AddSheet("Results").AddChart(kind, data, 1, 1).SetRadialLayout(new OfficeChartRadialLayout(135, 75));
+        authored.AddSheet("Results").AddChart(kind, data, new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 1 }).SetRadialLayout(new OfficeChartRadialLayout(135, 75));
         using var bytes = new MemoryStream(authored.ToBytes());
         using ExcelDocument reopened = ExcelDocument.Load(bytes);
         ExcelChart chart = reopened.Sheets.Single(sheet => sheet.Name == "Results").Charts.Single();

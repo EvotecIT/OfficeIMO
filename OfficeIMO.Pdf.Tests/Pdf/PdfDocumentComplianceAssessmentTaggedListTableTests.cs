@@ -245,7 +245,7 @@ public partial class PdfDocumentComplianceAssessmentTests {
         style.CellDataBars = new Dictionary<(int Row, int Column), PdfCellDataBar> {
             [(1, 1)] = new PdfCellDataBar {
                 Ratio = 0.75,
-                Color = PdfColor.FromRgb(34, 197, 94)
+                Color = global::OfficeIMO.OfficeColor.FromRgb(34, 197, 94)
             }
         };
 
@@ -272,7 +272,7 @@ public partial class PdfDocumentComplianceAssessmentTests {
         style.CellIcons = new Dictionary<(int Row, int Column), PdfCellIcon> {
             [(1, 1)] = new PdfCellIcon {
                 Kind = PdfCellIconKind.Circle,
-                Color = PdfColor.FromRgb(34, 197, 94)
+                Color = global::OfficeIMO.OfficeColor.FromRgb(34, 197, 94)
             }
         };
 
@@ -299,7 +299,7 @@ public partial class PdfDocumentComplianceAssessmentTests {
         style.CellIcons = new Dictionary<(int Row, int Column), PdfCellIcon> {
             [(1, 1)] = new PdfCellIcon {
                 Kind = PdfCellIconKind.TriangleUp,
-                Color = PdfColor.FromRgb(14, 165, 233)
+                Color = global::OfficeIMO.OfficeColor.FromRgb(14, 165, 233)
             }
         };
 

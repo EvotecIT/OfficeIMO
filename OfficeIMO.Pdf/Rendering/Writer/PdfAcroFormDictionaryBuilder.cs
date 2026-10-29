@@ -493,8 +493,8 @@ internal static partial class PdfAcroFormDictionaryBuilder {
         return content + "Q\n";
     }
 
-    internal static string FormatColor(PdfColor color) =>
-        Format(color.R) + " " + Format(color.G) + " " + Format(color.B);
+    internal static string FormatColor(global::OfficeIMO.OfficeColor color) =>
+        Format(color.ToNormalizedRgb().R) + " " + Format(color.ToNormalizedRgb().G) + " " + Format(color.ToNormalizedRgb().B);
 
     internal static string BuildRectangularBorderAppearanceContent(double width, double height, PdfFormFieldStyle style) {
         if (style.BorderColor == null || style.BorderWidth <= 0D) {
@@ -540,7 +540,7 @@ internal static partial class PdfAcroFormDictionaryBuilder {
             Format(left) + " " + Format(bottom + radius - control) + " " + Format(left + radius - control) + " " + Format(bottom) + " " + Format(left + radius) + " " + Format(bottom) + " c h ";
     }
 
-    internal static string BuildRectangularBorderAppearanceContent(double width, double height, PdfColor borderColor, double borderWidth, IReadOnlyList<double>? dashPattern, PdfFormFieldBorderStyle borderStyle) {
+    internal static string BuildRectangularBorderAppearanceContent(double width, double height, global::OfficeIMO.OfficeColor borderColor, double borderWidth, IReadOnlyList<double>? dashPattern, PdfFormFieldBorderStyle borderStyle) {
         if (borderWidth <= 0D) {
             return string.Empty;
         }
@@ -566,20 +566,20 @@ internal static partial class PdfAcroFormDictionaryBuilder {
         return BuildUnderlineBorderAppearanceContent(width, style.BorderColor.Value, style.BorderWidth);
     }
 
-    private static string BuildUnderlineBorderAppearanceContent(double width, PdfColor borderColor, double borderWidth) {
+    private static string BuildUnderlineBorderAppearanceContent(double width, global::OfficeIMO.OfficeColor borderColor, double borderWidth) {
         double y = Math.Max(0.5D, borderWidth * 0.5D);
         return BuildBorderStrokeOperators(borderColor, borderWidth, null) +
             "0 " + Format(y) + " m " + Format(width) + " " + Format(y) + " l S\n";
     }
 
-    private static string BuildBeveledOrInsetBorderAppearanceContent(double width, double height, PdfColor borderColor, double borderWidth, PdfFormFieldBorderStyle borderStyle) {
+    private static string BuildBeveledOrInsetBorderAppearanceContent(double width, double height, global::OfficeIMO.OfficeColor borderColor, double borderWidth, PdfFormFieldBorderStyle borderStyle) {
         double inset = Math.Max(0.5D, borderWidth * 0.5D);
         double right = Math.Max(inset, width - inset);
         double top = Math.Max(inset, height - inset);
-        PdfColor light = Lighten(borderColor);
-        PdfColor dark = Darken(borderColor);
-        PdfColor topLeft = borderStyle == PdfFormFieldBorderStyle.Inset ? dark : light;
-        PdfColor bottomRight = borderStyle == PdfFormFieldBorderStyle.Inset ? light : dark;
+        global::OfficeIMO.OfficeColor light = Lighten(borderColor);
+        global::OfficeIMO.OfficeColor dark = Darken(borderColor);
+        global::OfficeIMO.OfficeColor topLeft = borderStyle == PdfFormFieldBorderStyle.Inset ? dark : light;
+        global::OfficeIMO.OfficeColor bottomRight = borderStyle == PdfFormFieldBorderStyle.Inset ? light : dark;
 
         return BuildBorderStrokeOperators(topLeft, borderWidth, null) +
             Format(inset) + " " + Format(inset) + " m " +
@@ -591,11 +591,11 @@ internal static partial class PdfAcroFormDictionaryBuilder {
             Format(right) + " " + Format(top) + " l S\n";
     }
 
-    private static PdfColor Lighten(PdfColor color) => new PdfColor(Lighten(color.R), Lighten(color.G), Lighten(color.B));
+    private static global::OfficeIMO.OfficeColor Lighten(global::OfficeIMO.OfficeColor color) => global::OfficeIMO.OfficeColor.FromNormalizedRgb(Lighten(color.ToNormalizedRgb().R), Lighten(color.ToNormalizedRgb().G), Lighten(color.ToNormalizedRgb().B));
 
     private static double Lighten(double component) => component + (1D - component) * 0.55D;
 
-    private static PdfColor Darken(PdfColor color) => new PdfColor(color.R * 0.45D, color.G * 0.45D, color.B * 0.45D);
+    private static global::OfficeIMO.OfficeColor Darken(global::OfficeIMO.OfficeColor color) => global::OfficeIMO.OfficeColor.FromNormalizedRgb(color.ToNormalizedRgb().R * 0.45D, color.ToNormalizedRgb().G * 0.45D, color.ToNormalizedRgb().B * 0.45D);
 
     private static IReadOnlyList<double>? GetEffectiveBorderDashPattern(PdfFormFieldStyle style) {
         if (style.BorderDashPattern != null && style.BorderDashPattern.Count > 0) {
@@ -607,7 +607,7 @@ internal static partial class PdfAcroFormDictionaryBuilder {
             : null;
     }
 
-    internal static string BuildBorderStrokeOperators(PdfColor color, double borderWidth, IReadOnlyList<double>? dashPattern) {
+    internal static string BuildBorderStrokeOperators(global::OfficeIMO.OfficeColor color, double borderWidth, IReadOnlyList<double>? dashPattern) {
         string operators = FormatColor(color) + " RG " + Format(borderWidth) + " w ";
         if (dashPattern == null || dashPattern.Count == 0) {
             return operators;

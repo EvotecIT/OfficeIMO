@@ -89,12 +89,12 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void TableStyle_FillAndBorderCollectionsSnapshotAssignedValues() {
-        var columnFills = new List<PdfColor?> { PdfColor.Gray, PdfColor.LightGray };
-        var cellFills = new Dictionary<(int Row, int Column), PdfColor> {
-            [(1, 1)] = new PdfColor(0.1, 0.2, 0.3)
+        var columnFills = new List<global::OfficeIMO.OfficeColor?> { global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.5D, 0.5D, 0.5D), global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.9D, 0.9D, 0.9D) };
+        var cellFills = new Dictionary<(int Row, int Column), global::OfficeIMO.OfficeColor> {
+            [(1, 1)] = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.1, 0.2, 0.3)
         };
         var cellDataBar = new PdfCellDataBar {
-            Color = new PdfColor(0.2, 0.3, 0.4),
+            Color = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.2, 0.3, 0.4),
             Ratio = 0.25
         };
         var cellDataBars = new Dictionary<(int Row, int Column), PdfCellDataBar> {
@@ -102,7 +102,7 @@ public partial class PdfDocumentVisualQualityTests {
         };
         var cellIcon = new PdfCellIcon {
             Kind = PdfCellIconKind.Circle,
-            Color = new PdfColor(0.25, 0.35, 0.45),
+            Color = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.25, 0.35, 0.45),
             Size = 9,
             OffsetX = 1.25,
             OffsetY = -0.5
@@ -111,19 +111,19 @@ public partial class PdfDocumentVisualQualityTests {
             [(1, 1)] = cellIcon
         };
         var cellBorder = new PdfCellBorder {
-            Color = new PdfColor(0.4, 0.5, 0.6),
+            Color = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.4, 0.5, 0.6),
             Width = 1.25,
             DashStyle = OfficeStrokeDashStyle.Dash,
             LineStyle = PdfCellBorderLineStyle.TwoLine,
             Left = false,
             DiagonalUp = true,
             DiagonalUpBorder = new PdfCellBorderSide {
-                Color = new PdfColor(0.11, 0.22, 0.33),
+                Color = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.11, 0.22, 0.33),
                 Width = 1.75,
                 LineStyle = PdfCellBorderLineStyle.TwoLine
             },
             TopBorder = new PdfCellBorderSide {
-                Color = new PdfColor(0.7, 0.8, 0.9),
+                Color = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.7, 0.8, 0.9),
                 Width = 2.25,
                 DashStyle = OfficeStrokeDashStyle.Dot,
                 LineStyle = PdfCellBorderLineStyle.TwoLine
@@ -150,12 +150,12 @@ public partial class PdfDocumentVisualQualityTests {
         style.CellBorders = cellBorders;
         style.CellPaddings = cellPaddings;
 
-        columnFills[0] = PdfColor.White;
-        cellFills[(1, 1)] = PdfColor.Black;
+        columnFills[0] = global::OfficeIMO.OfficeColor.White;
+        cellFills[(1, 1)] = global::OfficeIMO.OfficeColor.Black;
         cellDataBar.Ratio = 0.75;
-        cellDataBar.Color = PdfColor.Black;
+        cellDataBar.Color = global::OfficeIMO.OfficeColor.Black;
         cellIcon.Kind = PdfCellIconKind.Diamond;
-        cellIcon.Color = PdfColor.Black;
+        cellIcon.Color = global::OfficeIMO.OfficeColor.Black;
         cellIcon.Size = 12;
         cellIcon.OffsetX = 3;
         cellIcon.OffsetY = 4;
@@ -164,7 +164,7 @@ public partial class PdfDocumentVisualQualityTests {
         cellBorder.Left = true;
         cellBorder.DiagonalUp = false;
         cellBorder.TopBorder = new PdfCellBorderSide {
-            Color = PdfColor.Black,
+            Color = global::OfficeIMO.OfficeColor.Black,
             Width = 5
         };
         cellPadding.Left = 30;
@@ -176,12 +176,12 @@ public partial class PdfDocumentVisualQualityTests {
         Assert.NotNull(style.CellIcons);
         Assert.NotNull(style.CellBorders);
         Assert.NotNull(style.CellPaddings);
-        Assert.Equal(PdfColor.Gray, style.BodyColumnFills![0]);
-        Assert.Equal(new PdfColor(0.1, 0.2, 0.3), style.CellFills![(1, 1)]);
-        Assert.Equal(new PdfColor(0.2, 0.3, 0.4), style.CellDataBars![(1, 1)].Color);
+        Assert.Equal(global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.5D, 0.5D, 0.5D), style.BodyColumnFills![0]);
+        Assert.Equal(global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.1, 0.2, 0.3), style.CellFills![(1, 1)]);
+        Assert.Equal(global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.2, 0.3, 0.4), style.CellDataBars![(1, 1)].Color);
         Assert.Equal(0.25, style.CellDataBars![(1, 1)].Ratio);
         Assert.Equal(PdfCellIconKind.Circle, style.CellIcons![(1, 1)].Kind);
-        Assert.Equal(new PdfColor(0.25, 0.35, 0.45), style.CellIcons![(1, 1)].Color);
+        Assert.Equal(global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.25, 0.35, 0.45), style.CellIcons![(1, 1)].Color);
         Assert.Equal(9, style.CellIcons![(1, 1)].Size);
         Assert.Equal(1.25, style.CellIcons![(1, 1)].OffsetX);
         Assert.Equal(-0.5, style.CellIcons![(1, 1)].OffsetY);
@@ -190,10 +190,10 @@ public partial class PdfDocumentVisualQualityTests {
         Assert.Equal(PdfCellBorderLineStyle.TwoLine, style.CellBorders![(1, 1)].LineStyle);
         Assert.False(style.CellBorders![(1, 1)].Left);
         Assert.True(style.CellBorders![(1, 1)].DiagonalUp);
-        Assert.Equal(new PdfColor(0.11, 0.22, 0.33), style.CellBorders![(1, 1)].DiagonalUpBorder!.Color);
+        Assert.Equal(global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.11, 0.22, 0.33), style.CellBorders![(1, 1)].DiagonalUpBorder!.Color);
         Assert.Equal(1.75, style.CellBorders![(1, 1)].DiagonalUpBorder!.Width);
         Assert.Equal(PdfCellBorderLineStyle.TwoLine, style.CellBorders![(1, 1)].DiagonalUpBorder!.LineStyle);
-        Assert.Equal(new PdfColor(0.7, 0.8, 0.9), style.CellBorders![(1, 1)].TopBorder!.Color);
+        Assert.Equal(global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.7, 0.8, 0.9), style.CellBorders![(1, 1)].TopBorder!.Color);
         Assert.Equal(2.25, style.CellBorders![(1, 1)].TopBorder!.Width);
         Assert.Equal(OfficeStrokeDashStyle.Dot, style.CellBorders![(1, 1)].TopBorder!.DashStyle);
         Assert.Equal(PdfCellBorderLineStyle.TwoLine, style.CellBorders![(1, 1)].TopBorder!.LineStyle);
@@ -227,14 +227,14 @@ public partial class PdfDocumentVisualQualityTests {
         };
         style.CellDataBars = new Dictionary<(int Row, int Column), PdfCellDataBar> {
             [(0, 0)] = new PdfCellDataBar {
-                Color = new PdfColor(0.2, 0.3, 0.4),
+                Color = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.2, 0.3, 0.4),
                 Ratio = 0.5
             }
         };
         style.CellIcons = new Dictionary<(int Row, int Column), PdfCellIcon> {
             [(0, 0)] = new PdfCellIcon {
                 Kind = PdfCellIconKind.Diamond,
-                Color = new PdfColor(0.2, 0.3, 0.4),
+                Color = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.2, 0.3, 0.4),
                 Size = 9,
                 OffsetX = 1.25,
                 OffsetY = -0.5
@@ -274,11 +274,11 @@ public partial class PdfDocumentVisualQualityTests {
         Assert.Equal(12, clone.CellPaddings![(0, 0)].Left);
         Assert.Equal(13, clone.CellPaddings![(0, 0)].Top);
         Assert.NotNull(clone.CellDataBars);
-        Assert.Equal(new PdfColor(0.2, 0.3, 0.4), clone.CellDataBars![(0, 0)].Color);
+        Assert.Equal(global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.2, 0.3, 0.4), clone.CellDataBars![(0, 0)].Color);
         Assert.Equal(0.5, clone.CellDataBars![(0, 0)].Ratio);
         Assert.NotNull(clone.CellIcons);
         Assert.Equal(PdfCellIconKind.Diamond, clone.CellIcons![(0, 0)].Kind);
-        Assert.Equal(new PdfColor(0.2, 0.3, 0.4), clone.CellIcons![(0, 0)].Color);
+        Assert.Equal(global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.2, 0.3, 0.4), clone.CellIcons![(0, 0)].Color);
         Assert.Equal(9, clone.CellIcons![(0, 0)].Size);
         Assert.Equal(1.25, clone.CellIcons![(0, 0)].OffsetX);
         Assert.Equal(-0.5, clone.CellIcons![(0, 0)].OffsetY);

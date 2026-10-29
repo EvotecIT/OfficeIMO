@@ -97,7 +97,7 @@ public sealed class PdfTextStampOptions {
     /// <summary>
     /// RGB text color.
     /// </summary>
-    public PdfColor Color { get; set; } = PdfColor.Gray;
+    public global::OfficeIMO.OfficeColor Color { get; set; } = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.5D, 0.5D, 0.5D);
 
     /// <summary>
     /// Text rotation in degrees around the text origin.

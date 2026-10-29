@@ -48,28 +48,28 @@ public sealed class PdfPageBackgroundShape {
     }
 
     /// <summary>Creates a rectangle background shape.</summary>
-    public static PdfPageBackgroundShape Rectangle(double x, double y, double width, double height, PdfColor? fill = null, PdfColor? stroke = null, double strokeWidth = 0D, double? fillOpacity = null, double? strokeOpacity = null, OfficeLinearGradient? fillGradient = null) {
+    public static PdfPageBackgroundShape Rectangle(double x, double y, double width, double height, global::OfficeIMO.OfficeColor? fill = null, global::OfficeIMO.OfficeColor? stroke = null, double strokeWidth = 0D, double? fillOpacity = null, double? strokeOpacity = null, OfficeLinearGradient? fillGradient = null) {
         var shape = OfficeShape.Rectangle(width, height);
         ApplyColors(shape, fill, stroke, strokeWidth, fillOpacity, strokeOpacity, fillGradient);
         return new PdfPageBackgroundShape(shape, x, y);
     }
 
     /// <summary>Creates a rounded rectangle background shape.</summary>
-    public static PdfPageBackgroundShape RoundedRectangle(double x, double y, double width, double height, double cornerRadius, PdfColor? fill = null, PdfColor? stroke = null, double strokeWidth = 0D, double? fillOpacity = null, double? strokeOpacity = null, OfficeLinearGradient? fillGradient = null) {
+    public static PdfPageBackgroundShape RoundedRectangle(double x, double y, double width, double height, double cornerRadius, global::OfficeIMO.OfficeColor? fill = null, global::OfficeIMO.OfficeColor? stroke = null, double strokeWidth = 0D, double? fillOpacity = null, double? strokeOpacity = null, OfficeLinearGradient? fillGradient = null) {
         var shape = OfficeShape.RoundedRectangle(width, height, cornerRadius);
         ApplyColors(shape, fill, stroke, strokeWidth, fillOpacity, strokeOpacity, fillGradient);
         return new PdfPageBackgroundShape(shape, x, y);
     }
 
     /// <summary>Creates an ellipse background shape.</summary>
-    public static PdfPageBackgroundShape Ellipse(double x, double y, double width, double height, PdfColor? fill = null, PdfColor? stroke = null, double strokeWidth = 0D, double? fillOpacity = null, double? strokeOpacity = null, OfficeLinearGradient? fillGradient = null) {
+    public static PdfPageBackgroundShape Ellipse(double x, double y, double width, double height, global::OfficeIMO.OfficeColor? fill = null, global::OfficeIMO.OfficeColor? stroke = null, double strokeWidth = 0D, double? fillOpacity = null, double? strokeOpacity = null, OfficeLinearGradient? fillGradient = null) {
         var shape = OfficeShape.Ellipse(width, height);
         ApplyColors(shape, fill, stroke, strokeWidth, fillOpacity, strokeOpacity, fillGradient);
         return new PdfPageBackgroundShape(shape, x, y);
     }
 
     /// <summary>Creates a full-width band anchored to the top of a page.</summary>
-    public static PdfPageBackgroundShape TopBand(double pageWidth, double pageHeight, double height, PdfColor? fill = null, double insetX = 0D, double offsetY = 0D, double cornerRadius = 0D, PdfColor? stroke = null, double strokeWidth = 0D, double? fillOpacity = null, double? strokeOpacity = null, OfficeLinearGradient? fillGradient = null) {
+    public static PdfPageBackgroundShape TopBand(double pageWidth, double pageHeight, double height, global::OfficeIMO.OfficeColor? fill = null, double insetX = 0D, double offsetY = 0D, double cornerRadius = 0D, global::OfficeIMO.OfficeColor? stroke = null, double strokeWidth = 0D, double? fillOpacity = null, double? strokeOpacity = null, OfficeLinearGradient? fillGradient = null) {
         ValidateBandPage(pageWidth, pageHeight);
         Guard.Positive(height, nameof(height));
         Guard.NonNegative(insetX, nameof(insetX));
@@ -84,7 +84,7 @@ public sealed class PdfPageBackgroundShape {
     }
 
     /// <summary>Creates a full-width band anchored to the bottom of a page.</summary>
-    public static PdfPageBackgroundShape BottomBand(double pageWidth, double pageHeight, double height, PdfColor? fill = null, double insetX = 0D, double offsetY = 0D, double cornerRadius = 0D, PdfColor? stroke = null, double strokeWidth = 0D, double? fillOpacity = null, double? strokeOpacity = null, OfficeLinearGradient? fillGradient = null) {
+    public static PdfPageBackgroundShape BottomBand(double pageWidth, double pageHeight, double height, global::OfficeIMO.OfficeColor? fill = null, double insetX = 0D, double offsetY = 0D, double cornerRadius = 0D, global::OfficeIMO.OfficeColor? stroke = null, double strokeWidth = 0D, double? fillOpacity = null, double? strokeOpacity = null, OfficeLinearGradient? fillGradient = null) {
         ValidateBandPage(pageWidth, pageHeight);
         Guard.Positive(height, nameof(height));
         Guard.NonNegative(insetX, nameof(insetX));
@@ -98,7 +98,7 @@ public sealed class PdfPageBackgroundShape {
     }
 
     /// <summary>Creates a full-height band anchored to the left side of a page.</summary>
-    public static PdfPageBackgroundShape LeftBand(double pageWidth, double pageHeight, double width, PdfColor? fill = null, double insetY = 0D, double offsetX = 0D, double cornerRadius = 0D, PdfColor? stroke = null, double strokeWidth = 0D, double? fillOpacity = null, double? strokeOpacity = null, OfficeLinearGradient? fillGradient = null) {
+    public static PdfPageBackgroundShape LeftBand(double pageWidth, double pageHeight, double width, global::OfficeIMO.OfficeColor? fill = null, double insetY = 0D, double offsetX = 0D, double cornerRadius = 0D, global::OfficeIMO.OfficeColor? stroke = null, double strokeWidth = 0D, double? fillOpacity = null, double? strokeOpacity = null, OfficeLinearGradient? fillGradient = null) {
         ValidateBandPage(pageWidth, pageHeight);
         Guard.Positive(width, nameof(width));
         Guard.NonNegative(insetY, nameof(insetY));
@@ -112,7 +112,7 @@ public sealed class PdfPageBackgroundShape {
     }
 
     /// <summary>Creates a full-height band anchored to the right side of a page.</summary>
-    public static PdfPageBackgroundShape RightBand(double pageWidth, double pageHeight, double width, PdfColor? fill = null, double insetY = 0D, double offsetX = 0D, double cornerRadius = 0D, PdfColor? stroke = null, double strokeWidth = 0D, double? fillOpacity = null, double? strokeOpacity = null, OfficeLinearGradient? fillGradient = null) {
+    public static PdfPageBackgroundShape RightBand(double pageWidth, double pageHeight, double width, global::OfficeIMO.OfficeColor? fill = null, double insetY = 0D, double offsetX = 0D, double cornerRadius = 0D, global::OfficeIMO.OfficeColor? stroke = null, double strokeWidth = 0D, double? fillOpacity = null, double? strokeOpacity = null, OfficeLinearGradient? fillGradient = null) {
         ValidateBandPage(pageWidth, pageHeight);
         Guard.Positive(width, nameof(width));
         Guard.NonNegative(insetY, nameof(insetY));
@@ -129,9 +129,9 @@ public sealed class PdfPageBackgroundShape {
     /// <summary>Creates a deep copy of this page background shape.</summary>
     public PdfPageBackgroundShape Clone() => new PdfPageBackgroundShape(_shape, X, Y);
 
-    private static void ApplyColors(OfficeShape shape, PdfColor? fill, PdfColor? stroke, double strokeWidth, double? fillOpacity, double? strokeOpacity, OfficeLinearGradient? fillGradient) {
+    private static void ApplyColors(OfficeShape shape, global::OfficeIMO.OfficeColor? fill, global::OfficeIMO.OfficeColor? stroke, double strokeWidth, double? fillOpacity, double? strokeOpacity, OfficeLinearGradient? fillGradient) {
         if (fill.HasValue) {
-            shape.FillColor = fill.Value.ToOfficeColor();
+            shape.FillColor = fill.Value;
         }
 
         if (fillGradient != null) {
@@ -145,7 +145,7 @@ public sealed class PdfPageBackgroundShape {
 
         if (stroke.HasValue) {
             Guard.Positive(strokeWidth, nameof(strokeWidth));
-            shape.StrokeColor = stroke.Value.ToOfficeColor();
+            shape.StrokeColor = stroke.Value;
             shape.StrokeWidth = strokeWidth;
         } else {
             Guard.NonNegative(strokeWidth, nameof(strokeWidth));

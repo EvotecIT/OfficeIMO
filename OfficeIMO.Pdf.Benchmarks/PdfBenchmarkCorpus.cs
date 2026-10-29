@@ -60,9 +60,9 @@ internal static class PdfBenchmarkCorpus {
                     .Rectangle(
                         180,
                         24,
-                        strokeColor: PdfColor.FromRgb(0, 64, 128),
+                        strokeColor: global::OfficeIMO.OfficeColor.FromRgb(0, 64, 128),
                         strokeWidth: 1.5,
-                        fillColor: PdfColor.FromRgb(220, 240, 252))
+                        fillColor: global::OfficeIMO.OfficeColor.FromRgb(220, 240, 252))
                     .Image(image, 32, 32, alternativeText: "Deterministic benchmark image");
                 if (page < PageCount) {
                     content.PageBreak();

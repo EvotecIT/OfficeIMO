@@ -137,7 +137,7 @@ public partial class Word {
             options.PdfOptions.FooterFont = PdfStandardFont.Courier;
             options.PdfOptions.FooterFontSize = 24D;
             options.PdfOptions.FooterAlign = PdfAlign.Left;
-            options.PdfOptions.FooterTextColor = PdfColor.FromRgb(255, 0, 0);
+            options.PdfOptions.FooterTextColor = global::OfficeIMO.OfficeColor.FromRgb(255, 0, 0);
         }
         using var withImplicit = PdfPigDocument.Open(document.ToPdf(options).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         W.HeaderFooterValues kind = emptyVariant == 0 ? W.HeaderFooterValues.First

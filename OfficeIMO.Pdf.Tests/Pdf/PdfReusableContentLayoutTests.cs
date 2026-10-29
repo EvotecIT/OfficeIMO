@@ -88,7 +88,7 @@ public sealed class PdfReusableContentLayoutTests {
         document.Content.Row(row => row.Gap(10)
             .RelativeColumn(column => column.Panel(panel => panel.Semantic(PdfSemanticRole.Section,
                 semantic => semantic.Component(new LinesComponent(), capture: capture)),
-                new PdfPanelStyle { PaddingX = 8, PaddingY = 5, Background = PdfColor.FromRgb(240, 245, 250) }))
+                new PdfPanelStyle { PaddingX = 8, PaddingY = 5, Background = global::OfficeIMO.OfficeColor.FromRgb(240, 245, 250) }))
             .RelativeColumn(column => column.Text("Adjacent")));
         byte[] bytes = document.ToBytes();
         using var parsed = PdfPigDocument.Open(bytes);

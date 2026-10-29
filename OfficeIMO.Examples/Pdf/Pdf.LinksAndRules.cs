@@ -23,16 +23,16 @@ namespace OfficeIMO.Examples.Pdf {
             };
 
             var tableStyle = new PdfTableStyle {
-                HeaderFill = PdfColor.FromRgb(32, 76, 120),
-                HeaderTextColor = PdfColor.White,
-                TextColor = PdfColor.FromRgb(31, 41, 55),
-                RowStripeFill = PdfColor.FromRgb(248, 250, 252),
-                BorderColor = PdfColor.FromRgb(210, 218, 226),
+                HeaderFill = global::OfficeIMO.OfficeColor.FromRgb(32, 76, 120),
+                HeaderTextColor = global::OfficeIMO.OfficeColor.White,
+                TextColor = global::OfficeIMO.OfficeColor.FromRgb(31, 41, 55),
+                RowStripeFill = global::OfficeIMO.OfficeColor.FromRgb(248, 250, 252),
+                BorderColor = global::OfficeIMO.OfficeColor.FromRgb(210, 218, 226),
                 BorderWidth = 0.5,
                 CellPaddingX = 6,
                 CellPaddingY = 5,
                 Caption = "Table 1. Linked resources",
-                CaptionColor = PdfColor.FromRgb(80, 90, 100),
+                CaptionColor = global::OfficeIMO.OfficeColor.FromRgb(80, 90, 100),
                 CaptionFontSize = 8.5,
                 CaptionSpacingAfter = 5,
                 SpacingBefore = 6,
@@ -40,30 +40,30 @@ namespace OfficeIMO.Examples.Pdf {
             };
 
             PdfDocument.Create(pdf => pdf.Content(content => content
-                .H1("Links & Rules Demo", PdfAlign.Left, PdfColor.FromRgb(25, 55, 85), linkUri: "https://github.com/EvotecIT/OfficeIMO")
+                .H1("Links & Rules Demo", PdfAlign.Left, global::OfficeIMO.OfficeColor.FromRgb(25, 55, 85), linkUri: "https://github.com/EvotecIT/OfficeIMO")
                 .Paragraph(p => p
                     .Text("Visit ")
-                    .Link("OfficeIMO GitHub", "https://github.com/EvotecIT/OfficeIMO", PdfColor.FromRgb(20, 90, 180))
+                    .Link("OfficeIMO GitHub", "https://github.com/EvotecIT/OfficeIMO", global::OfficeIMO.OfficeColor.FromRgb(20, 90, 180))
                     .Text(" and the ")
-                    .Link("project website", "https://officeimo.net/", PdfColor.FromRgb(20, 90, 180))
+                    .Link("project website", "https://officeimo.net/", global::OfficeIMO.OfficeColor.FromRgb(20, 90, 180))
                     .Text(" for more details."))
-                .HR(0.8, PdfColor.FromRgb(183, 194, 207), 8, 8)
+                .HR(0.8, global::OfficeIMO.OfficeColor.FromRgb(183, 194, 207), 8, 8)
                 .TableWithLinks(rows, links, PdfAlign.Left, tableStyle)
                 .PanelParagraph(
                     p => p
                         .Text("You can also place links ")
-                        .Link("inside panels", "https://officeimo.net/", PdfColor.FromRgb(20, 90, 180))
+                        .Link("inside panels", "https://officeimo.net/", global::OfficeIMO.OfficeColor.FromRgb(20, 90, 180))
                         .Text("."),
                     new PdfPanelStyle {
-                        Background = PdfColor.FromRgb(248, 250, 252),
-                        BorderColor = PdfColor.FromRgb(183, 194, 207),
+                        Background = global::OfficeIMO.OfficeColor.FromRgb(248, 250, 252),
+                        BorderColor = global::OfficeIMO.OfficeColor.FromRgb(183, 194, 207),
                         BorderWidth = 0.5,
                         PaddingX = 9,
                         PaddingY = 7
                     })), new PdfCreateOptions {
                     DefaultFont = PdfStandardFont.Helvetica,
                     DefaultFontSize = 10,
-                    DefaultTextColor = PdfColor.FromRgb(31, 41, 55),
+                    DefaultTextColor = global::OfficeIMO.OfficeColor.FromRgb(31, 41, 55),
                     HeaderFont = PdfStandardFont.Helvetica,
                     HeaderFontSize = 8,
                     HeaderFormat = "OfficeIMO.Pdf links and rules",

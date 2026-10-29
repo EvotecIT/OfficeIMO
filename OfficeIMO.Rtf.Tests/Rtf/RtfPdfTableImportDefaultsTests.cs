@@ -36,7 +36,7 @@ public class RtfPdfTableImportDefaultsTests {
         Assert.Equal(12D, table.Style.CellPaddings![(0, 0)].Left);
         PdfCore.PdfCellBorder border = table.Style.CellBorders![(0, 0)];
         Assert.True(border.Left);
-        Assert.Equal(PdfCore.PdfColor.FromRgb(255, 0, 0), border.LeftBorder!.Color);
+        Assert.Equal(global::OfficeIMO.OfficeColor.FromRgb(255, 0, 0), border.LeftBorder!.Color);
         Assert.True(border.LeftBorder.Width > 0D);
 
         using PdfPigDocument pdf = PdfPigDocument.Open(mapped.ToBytes());
@@ -50,7 +50,7 @@ public class RtfPdfTableImportDefaultsTests {
             DefaultFont = PdfCore.PdfStandardFont.Helvetica,
             DefaultFontSize = 12D,
             DefaultTableStyle = new PdfCore.PdfTableStyle {
-                BorderColor = PdfCore.PdfColor.FromRgb(0, 0, 255),
+                BorderColor = global::OfficeIMO.OfficeColor.FromRgb(0, 0, 255),
                 BorderWidth = 1D,
                 CellPaddingX = 7D,
                 CellPaddingY = 3D
@@ -60,7 +60,7 @@ public class RtfPdfTableImportDefaultsTests {
         options.PdfOptions = caller;
         PdfCore.PdfDocument mapped = ReadTable().ToPdf(options);
         PdfCore.TableBlock table = Assert.Single(mapped.Blocks.OfType<PdfCore.TableBlock>());
-        Assert.Equal(PdfCore.PdfColor.FromRgb(0, 0, 255), table.Style!.BorderColor);
+        Assert.Equal(global::OfficeIMO.OfficeColor.FromRgb(0, 0, 255), table.Style!.BorderColor);
         Assert.Equal(1D, table.Style.BorderWidth);
         Assert.Equal(7D, table.Style.CellPaddingX);
         Assert.Equal(3D, table.Style.CellPaddingY);

@@ -147,7 +147,7 @@ internal static partial class PdfAnnotationFlattener {
             : null;
     }
 
-    private static PdfColor? TryReadColor(Dictionary<int, PdfIndirectObject> objects, PdfDictionary dictionary, string key) {
+    private static global::OfficeIMO.OfficeColor? TryReadColor(Dictionary<int, PdfIndirectObject> objects, PdfDictionary dictionary, string key) {
         if (!dictionary.Items.TryGetValue(key, out var value) ||
             ResolveObject(objects, value) is not PdfArray color ||
             color.Items.Count < 3 ||
@@ -157,7 +157,7 @@ internal static partial class PdfAnnotationFlattener {
             return null;
         }
 
-        return new PdfColor(ClampColor(r.Value), ClampColor(g.Value), ClampColor(b.Value));
+        return global::OfficeIMO.OfficeColor.FromNormalizedRgb(ClampColor(r.Value), ClampColor(g.Value), ClampColor(b.Value));
     }
 
     private static double ClampColor(double value) {

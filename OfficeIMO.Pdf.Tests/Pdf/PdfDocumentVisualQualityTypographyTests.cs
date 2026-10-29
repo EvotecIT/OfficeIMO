@@ -261,7 +261,7 @@ public partial class PdfDocumentVisualQualityTests {
                     page.Content(content =>
                         content.Column(column =>
                             column.Item(item =>
-                                item.H2("ComposeHead", PdfAlign.Center, PdfColor.FromRgb(10, 20, 30)))))))
+                                item.H2("ComposeHead", PdfAlign.Center, global::OfficeIMO.OfficeColor.FromRgb(10, 20, 30)))))))
             .ToBytes();
 
         using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
@@ -295,7 +295,7 @@ public partial class PdfDocumentVisualQualityTests {
                     page.Content(content =>
                         content.Row(row =>
                             row.PercentColumn(100, column =>
-                                column.H3("ColumnHead", PdfAlign.Right, PdfColor.FromRgb(10, 20, 30)))))))
+                                column.H3("ColumnHead", PdfAlign.Right, global::OfficeIMO.OfficeColor.FromRgb(10, 20, 30)))))))
             .ToBytes();
 
         using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));

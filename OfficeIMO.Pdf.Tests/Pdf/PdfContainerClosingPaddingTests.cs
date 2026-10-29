@@ -38,7 +38,7 @@ namespace OfficeIMO.Tests.Pdf {
             var firstStyle = new PdfPanelStyle {
                 PaddingX = 0D, PaddingY = 0D, PaddingBottomOverride = padding,
                 SpacingBefore = 0D, SpacingAfter = 0D, BorderContinuesWithNext = true,
-                Background = PdfColor.FromRgb(255, 255, 0), BorderColor = PdfColor.Black
+                Background = global::OfficeIMO.OfficeColor.FromRgb(255, 255, 0), BorderColor = global::OfficeIMO.OfficeColor.Black
             };
             var nextStyle = new PdfPanelStyle {
                 PaddingX = 0D, PaddingY = 0D, SpacingBefore = 0D, SpacingAfter = 0D,

@@ -14,7 +14,7 @@ namespace OfficeIMO.Excel.Pdf {
         private static void AddWorksheetChart(PdfCore.PdfContentBuilder item, WorksheetChartExportData chart, string sheetName, ExcelPdfExportOptions options) {
             ExcelChartInfo snapshot = chart.Snapshot;
             if (string.IsNullOrWhiteSpace(snapshot.Title) && !string.IsNullOrWhiteSpace(snapshot.Name)) {
-                item.H2(snapshot.Name, PdfCore.PdfAlign.Left, PdfCore.PdfColor.FromRgb(31, 78, 121));
+                item.H2(snapshot.Name, PdfCore.PdfAlign.Left, global::OfficeIMO.OfficeColor.FromRgb(31, 78, 121));
             }
 
             bool useStyledRadialLegend = HasStyledRadialPoints(snapshot);
@@ -260,18 +260,18 @@ namespace OfficeIMO.Excel.Pdf {
                 HeaderFontSize = 8.5D,
                 CellPaddingX = 4D,
                 CellPaddingY = 2D,
-                BorderColor = PdfCore.PdfColor.FromRgb(203, 213, 225),
-                HeaderFill = PdfCore.PdfColor.FromRgb(239, 246, 255),
+                BorderColor = global::OfficeIMO.OfficeColor.FromRgb(203, 213, 225),
+                HeaderFill = global::OfficeIMO.OfficeColor.FromRgb(239, 246, 255),
                 ColumnWidthWeights = new List<double> { 0.7D, 1.3D },
                 AutoFitColumns = false,
                 MaxWidth = 300D,
                 SpacingAfter = 6D
             };
 
-            var fills = new Dictionary<(int Row, int Column), PdfCore.PdfColor>();
+            var fills = new Dictionary<(int Row, int Column), global::OfficeIMO.OfficeColor>();
             OfficeChartStyle paletteStyle = chartStyle ?? OfficeChartStyle.Default;
             for (int i = 0; i < colorCount; i++) {
-                fills[(i + 1, 0)] = PdfCore.PdfColor.FromOfficeColor(paletteStyle.GetSeriesColor(i));
+                fills[(i + 1, 0)] = paletteStyle.GetSeriesColor(i);
             }
             style.CellFills = fills;
             return style;

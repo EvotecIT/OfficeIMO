@@ -24,7 +24,7 @@ public sealed class PrintPreviewVisualTests {
             PdfDocument.Create(document => {
                 for (int number = 1; number <= 18; number++) {
                     int pageNumber = number;
-                    document.Page(page => page.Size(200, 300).Margin(12).Background(PdfColor.LightGray)
+                    document.Page(page => page.Size(200, 300).Margin(12).Background(global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.9D, 0.9D, 0.9D))
                         .DefaultTextStyle(style => style.FontSize(36)).Content(content => content.Item(item =>
                         item.Paragraph(text => text.Text("Page " + pageNumber)))));
                 }

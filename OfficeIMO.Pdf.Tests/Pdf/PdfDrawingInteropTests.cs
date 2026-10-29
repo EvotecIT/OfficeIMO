@@ -6,39 +6,48 @@ namespace OfficeIMO.Tests.Pdf;
 
 public class PdfDrawingInteropTests {
     [Fact]
-    public void PdfColor_ConvertsToAndFromOfficeColor() {
-        OfficeColor officeColor = OfficeColor.Parse("#336699CC");
+    public void OptionsClone_RetainsNormalizedColorsAlphaThemeRolesAndNullDefaults() {
+        OfficeColor precise = OfficeColor.FromNormalizedRgb(0.12345, 0.23456, 0.34567, alpha: 77);
+        var options = new PdfCreateOptions {
+            DefaultTextColor = precise,
+            HeaderTextColor = OfficeColor.Accent1,
+            FooterTextColor = OfficeColor.Transparent,
+            BackgroundColor = null,
+            DefaultTableStyle = new PdfTableStyle { HeaderFill = precise }
+        };
 
-        PdfColor pdfColor = PdfColor.FromOfficeColor(officeColor);
-        OfficeColor roundTrip = pdfColor.ToOfficeColor(officeColor.A);
+        PdfCreateOptions clone = options.Clone();
+        options.DefaultTextColor = OfficeColor.Red;
+        PdfTableStyle table = clone.DefaultTableStyle!;
+        table.HeaderFill = OfficeColor.Blue;
 
-        Assert.Equal(0x33 / 255.0, pdfColor.R, 6);
-        Assert.Equal(0x66 / 255.0, pdfColor.G, 6);
-        Assert.Equal(0x99 / 255.0, pdfColor.B, 6);
-        Assert.Equal(officeColor, roundTrip);
+        Assert.Equal(precise, clone.DefaultTextColor);
+        Assert.Equal((0.12345, 0.23456, 0.34567), clone.DefaultTextColor!.Value.ToNormalizedRgb());
+        Assert.Equal((byte)77, clone.DefaultTextColor.Value.A);
+        Assert.Equal(OfficeColor.Accent1, clone.HeaderTextColor);
+        Assert.Equal(OfficeColor.Transparent, clone.FooterTextColor);
+        Assert.Null(clone.BackgroundColor);
+        Assert.Equal(precise, clone.DefaultTableStyle!.HeaderFill);
     }
 
     [Fact]
-    public void PdfColor_FromOfficeColorOrNull_ReturnsNullForTransparentColor() {
-        Assert.Null(PdfColor.FromOfficeColorOrNull(OfficeColor.Transparent));
-        Assert.NotNull(PdfColor.FromOfficeColorOrNull(OfficeColor.FromRgba(10, 20, 30, 1)));
-    }
+    public void PdfDocument_WritesNormalizedRootColorWithoutByteProjection() {
+        OfficeColor precise = OfficeColor.FromNormalizedRgb(0.12345, 0.23456, 0.34567, alpha: 77);
+        var options = new PdfCreateOptions { DefaultTextColor = precise };
+        using var document = PdfDocument.Create(options);
+        document.Paragraph(p => p.Text("Precise normalized color"));
+        options.DefaultTextColor = OfficeColor.Red;
 
-    [Theory]
-    [InlineData(-0.001, 0, 0, "r")]
-    [InlineData(0, 1.001, 0, "g")]
-    [InlineData(0, 0, double.NaN, "b")]
-    [InlineData(double.PositiveInfinity, 0, 0, "r")]
-    public void PdfColor_RejectsInvalidRgbComponents(double r, double g, double b, string paramName) {
-        var exception = Assert.Throws<ArgumentOutOfRangeException>(() =>
-            new PdfColor(r, g, b));
+        byte[] saved = document.ToBytes();
+        string content = PdfTestContentText.ReadDecoded(saved);
 
-        Assert.Equal(paramName, exception.ParamName);
-        Assert.Contains("PDF color components must be finite values between 0 and 1.", exception.Message, StringComparison.Ordinal);
+        Assert.Contains("0.123 0.235 0.346 rg", content, StringComparison.Ordinal);
+        Assert.DoesNotContain("0.122 0.235 0.345 rg", content, StringComparison.Ordinal);
+        Assert.Single(PdfReadDocument.Open(saved).Pages);
     }
 
     [Fact]
-    public void PdfDocument_AcceptsOfficeColorThroughPdfColorConversion() {
+    public void PdfDocument_AcceptsByteRgbOfficeColor() {
         var doc = PdfDocument.Create();
         doc.Paragraph(p => p.Color(OfficeColor.CornflowerBlue).Text("Drawing color reuse"));
 

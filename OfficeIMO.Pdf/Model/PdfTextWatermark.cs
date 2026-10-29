@@ -43,7 +43,7 @@ public sealed class PdfTextWatermark {
     }
 
     /// <summary>Watermark fill color. Defaults to a neutral gray.</summary>
-    public PdfColor Color { get; set; } = PdfColor.FromRgb(148, 163, 184);
+    public global::OfficeIMO.OfficeColor Color { get; set; } = global::OfficeIMO.OfficeColor.FromRgb(148, 163, 184);
 
     /// <summary>Fill opacity from 0 to 1. Defaults to 0.12.</summary>
     public double Opacity {

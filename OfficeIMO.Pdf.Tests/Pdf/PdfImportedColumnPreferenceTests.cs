@@ -153,7 +153,7 @@ public class PdfImportedColumnPreferenceTests {
             minimumContentWidth = 60D;
             leftCell = new PdfTableCell(new[] {
                 PdfTextRun.Normal("A"),
-                PdfTextRun.Inline(new PdfInlineBox(minimumContentWidth, 8D, background: new PdfColor(.2D, .5D, .8D))),
+                PdfTextRun.Inline(new PdfInlineBox(minimumContentWidth, 8D, background: global::OfficeIMO.OfficeColor.FromNormalizedRgb(.2D, .5D, .8D))),
                 PdfTextRun.Normal("B")
             });
         } else {
@@ -216,7 +216,7 @@ public class PdfImportedColumnPreferenceTests {
         AutoFitColumnPreferredWidthPoints = new List<double?> { 45D, 105D },
         AutoFitCellPreferredWidthPoints = new Dictionary<(int Row, int Column), double> { [(0, 0)] = 45D, [(0, 1)] = 105D },
         ColumnMinWidthPoints = new List<double?> { 5D, 5D },
-        CellPaddingX = 2D, CellPaddingY = 0D, FontSize = 10D, BorderColor = PdfColor.Black, BorderWidth = .5D
+        CellPaddingX = 2D, CellPaddingY = 0D, FontSize = 10D, BorderColor = global::OfficeIMO.OfficeColor.Black, BorderWidth = .5D
     };
 
     private static PdfCreateOptions ConstrainedImportedPreferenceOptions() => new() {

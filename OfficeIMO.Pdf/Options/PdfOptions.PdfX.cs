@@ -6,7 +6,7 @@ public sealed partial class PdfCreateOptions {
     private bool _convertVectorColorsToPdfXPrintCondition;
     private bool _convertRasterImagesToPdfXPrintCondition;
     private bool _flattenRasterTransparencyForPdfX;
-    private PdfColor _pdfXTransparencyBackground = PdfColor.White;
+    private global::OfficeIMO.OfficeColor _pdfXTransparencyBackground = global::OfficeIMO.OfficeColor.White;
     private OfficeIccRenderingIntent _pdfXRenderingIntent = OfficeIccRenderingIntent.RelativeColorimetric;
     private PdfBlackPreservationMode _blackPreservationMode = PdfBlackPreservationMode.NeutralAxis;
     private PdfPrintProductionPageBoxes? _printProductionPageBoxes;
@@ -71,7 +71,7 @@ public sealed partial class PdfCreateOptions {
     }
 
     /// <summary>Background used when raster transparency is flattened for PDF/X-1a.</summary>
-    public PdfColor PdfXTransparencyBackground {
+    public global::OfficeIMO.OfficeColor PdfXTransparencyBackground {
         get => _pdfXTransparencyBackground;
         set => _pdfXTransparencyBackground = value;
     }
@@ -165,7 +165,7 @@ public sealed partial class PdfCreateOptions {
         ConvertVectorColorsToPdfXPrintCondition = true;
         ConvertRasterImagesToPdfXPrintCondition = true;
         FlattenRasterTransparencyForPdfX = profile == PdfComplianceProfile.PdfX1A2003;
-        PdfXTransparencyBackground = PdfColor.White;
+        PdfXTransparencyBackground = global::OfficeIMO.OfficeColor.White;
         PdfXRenderingIntent = OfficeIccRenderingIntent.RelativeColorimetric;
         BlackPreservationMode = PdfBlackPreservationMode.NeutralAxis;
         PrintProductionPageBoxes = PdfPrintProductionPageBoxes.FullBleed;

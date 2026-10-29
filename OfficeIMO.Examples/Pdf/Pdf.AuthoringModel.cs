@@ -16,8 +16,8 @@ namespace OfficeIMO.Examples.Pdf {
                 .Content(content => content
                     .Element(element => element
                         .Semantic(PdfSemanticRole.Article)
-                        .Background(PdfColor.FromRgb(248, 250, 252))
-                        .Border(PdfColor.FromRgb(148, 163, 184))
+                        .Background(global::OfficeIMO.OfficeColor.FromRgb(248, 250, 252))
+                        .Border(global::OfficeIMO.OfficeColor.FromRgb(148, 163, 184))
                         .Padding(vertical: 12, horizontal: 14)
                         .KeepTogether()
                         .Content(article => article

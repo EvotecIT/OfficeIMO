@@ -31,7 +31,7 @@ public sealed class PowerPointChartAutomaticAppearanceTests {
         PowerPointChart chart = presentation.Slides[number - 1].Charts.Single();
 
         Assert.True(chart.TryGetSnapshot(out PowerPointChartSnapshot snapshot, out string? reason), reason);
-        OfficeChartSnapshot office = PowerPointChartSnapshotMapper.ToOfficeSnapshot(snapshot, snapshot.WidthPoints, snapshot.HeightPoints);
+        OfficeChartSnapshot office = PowerPointChartSnapshotMapper.ToOfficeSnapshot(snapshot, snapshot.Width.ToPoints(), snapshot.Height.ToPoints());
 
         Assert.Equal(ReadReference().Single(chart => chart.Number == number).Fills, DrawnFills(office));
     }

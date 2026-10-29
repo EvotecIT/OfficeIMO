@@ -471,5 +471,5 @@ public sealed class WordChartPresentationQualificationTests {
         Assert.Equal(native, chart.ChartPart.ChartSpace.OuterXml);
     }
 
-    private static WordChart Create(WordDocument document, OfficeChartType kind) => document.AddChart(kind,        new OfficeChartData(new[] { "A", "B" }, new[] { new OfficeSeries("Values", new[] { 3d, 4d }) }),title: "Chart");
+    private static WordChart Create(WordDocument document, OfficeChartType kind) => document.AddChart(kind, new OfficeChartData(new[] { "A", "B" }, new[] { new OfficeSeries("Values", new[] { 3d, 4d }) }), new OfficeIMO.Word.WordChartOptions { Title = "Chart" });
 }

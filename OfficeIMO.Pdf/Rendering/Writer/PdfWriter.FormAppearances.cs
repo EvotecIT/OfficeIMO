@@ -348,7 +348,7 @@ internal static partial class PdfWriter {
         IReadOnlyList<RichSeg> line,
         double x,
         double y,
-        PdfColor defaultTextColor,
+        global::OfficeIMO.OfficeColor defaultTextColor,
         PdfCreateOptions formOptions,
         Func<PdfStandardFont, PdfCreateOptions, int> ensureFont,
         List<(string Name, int Id)> fontResources) {

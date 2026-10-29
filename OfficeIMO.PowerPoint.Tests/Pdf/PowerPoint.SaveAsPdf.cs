@@ -1421,10 +1421,10 @@ public partial class PowerPointSaveAsPdfTests {
         Assert.Equal(18D, style.HeaderFontSize);
 
         Assert.NotNull(style.CellFills);
-        PdfCore.PdfColor headerFill = style.CellFills![(0, 0)];
-        PdfCore.PdfColor bodyFill = style.CellFills[(1, 0)];
+        global::OfficeIMO.OfficeColor headerFill = style.CellFills![(0, 0)];
+        global::OfficeIMO.OfficeColor bodyFill = style.CellFills[(1, 0)];
         Assert.NotEqual(headerFill, bodyFill);
-        Assert.NotEqual(PdfCore.PdfColor.White, headerFill);
+        Assert.NotEqual(global::OfficeIMO.OfficeColor.White, headerFill);
 
         Assert.NotNull(style.CellBorders);
         PdfCore.PdfCellBorder headerBorder = style.CellBorders![(0, 0)];
@@ -1464,11 +1464,11 @@ public partial class PowerPointSaveAsPdfTests {
             CellPaddingX = 8D,
             CellPaddingY = 6D,
             BorderColor = null,
-            HeaderFill = PdfCore.PdfColor.FromRgb(10, 20, 30),
-            HeaderTextColor = PdfCore.PdfColor.FromRgb(240, 245, 250),
-            RowStripeFill = PdfCore.PdfColor.FromRgb(220, 235, 250),
-            CellFills = new Dictionary<(int Row, int Column), PdfCore.PdfColor> {
-                [(1, 1)] = PdfCore.PdfColor.FromRgb(200, 210, 220)
+            HeaderFill = global::OfficeIMO.OfficeColor.FromRgb(10, 20, 30),
+            HeaderTextColor = global::OfficeIMO.OfficeColor.FromRgb(240, 245, 250),
+            RowStripeFill = global::OfficeIMO.OfficeColor.FromRgb(220, 235, 250),
+            CellFills = new Dictionary<(int Row, int Column), global::OfficeIMO.OfficeColor> {
+                [(1, 1)] = global::OfficeIMO.OfficeColor.FromRgb(200, 210, 220)
             },
             FontSize = 12.5D,
             SpacingAfter = 11D
@@ -1489,8 +1489,8 @@ public partial class PowerPointSaveAsPdfTests {
         Assert.Equal(8D, style.CellPaddingX);
         Assert.Equal(6D, style.CellPaddingY);
         Assert.Null(style.BorderColor);
-        Assert.Equal(PdfCore.PdfColor.FromRgb(10, 20, 30), style.HeaderFill);
-        Assert.Equal(PdfCore.PdfColor.FromRgb(240, 245, 250), style.HeaderTextColor);
+        Assert.Equal(global::OfficeIMO.OfficeColor.FromRgb(10, 20, 30), style.HeaderFill);
+        Assert.Equal(global::OfficeIMO.OfficeColor.FromRgb(240, 245, 250), style.HeaderTextColor);
         Assert.Null(style.RowStripeFill);
         Assert.Equal(12.5D, style.FontSize);
         Assert.Equal(11D, style.SpacingAfter);
@@ -1502,12 +1502,12 @@ public partial class PowerPointSaveAsPdfTests {
         Assert.Equal(42D, style.RowMinHeights[1]);
         Assert.Equal(70D, tableItem.Height);
 
-        Assert.Equal(PdfCore.PdfColor.FromRgb(220, 235, 250), configuredStyle.RowStripeFill);
+        Assert.Equal(global::OfficeIMO.OfficeColor.FromRgb(220, 235, 250), configuredStyle.RowStripeFill);
         Assert.Null(configuredStyle.ColumnWidthPoints);
         Assert.Null(configuredStyle.RowMinHeights);
         Assert.NotNull(style.CellFills);
-        Assert.Equal(PdfCore.PdfColor.FromRgb(200, 210, 220), style.CellFills![(1, 1)]);
-        Assert.Equal(PdfCore.PdfColor.FromRgb(200, 210, 220), configuredStyle.CellFills![(1, 1)]);
+        Assert.Equal(global::OfficeIMO.OfficeColor.FromRgb(200, 210, 220), style.CellFills![(1, 1)]);
+        Assert.Equal(global::OfficeIMO.OfficeColor.FromRgb(200, 210, 220), configuredStyle.CellFills![(1, 1)]);
     }
 
     [Fact]

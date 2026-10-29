@@ -214,7 +214,7 @@ public sealed class PdfWhitespaceFlowTests {
     [Fact]
     public void AHighlightedSpaceRunKeepsItsOwnBackgroundBetweenUnhighlightedWords() {
         using var pdf = PdfPigDocument.Open(PdfDocument.Create(Options(PdfTextWhitespaceMode.Preserve)).Paragraph(p =>
-            p.Runs(new[] { PdfTextRun.Normal("ALPHA"), new PdfTextRun("   ", backgroundColor: new PdfColor(1D, 1D, 0D)),
+            p.Runs(new[] { PdfTextRun.Normal("ALPHA"), new PdfTextRun("   ", backgroundColor: global::OfficeIMO.OfficeColor.FromNormalizedRgb(1D, 1D, 0D)),
                 PdfTextRun.Normal("BETA") })).ToBytes());
         Assert.NotEmpty(pdf.GetPage(1).Paths);
     }

@@ -152,8 +152,8 @@ public partial class PdfDocumentVisualQualityTests {
         var invalidCellFill = PdfTableStyles.Minimal();
 
         var fillException = Assert.Throws<ArgumentException>(() =>
-            invalidCellFill.CellFills = new Dictionary<(int Row, int Column), PdfColor> {
-                [(-1, 0)] = PdfColor.Gray
+            invalidCellFill.CellFills = new Dictionary<(int Row, int Column), global::OfficeIMO.OfficeColor> {
+                [(-1, 0)] = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.5D, 0.5D, 0.5D)
             });
 
         Assert.Contains("Table cell fill coordinates cannot be negative.", fillException.Message, StringComparison.Ordinal);

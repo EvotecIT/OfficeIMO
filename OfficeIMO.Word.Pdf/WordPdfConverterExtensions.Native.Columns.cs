@@ -32,7 +32,7 @@ public static partial class WordPdfConverterExtensions {
             HonorKeepWithNextWhenBalancing = UsesModernNativeWordLayout(section._document),
             BalanceTableRowLines = UsesModernNativeWordLayout(section._document),
             FinalColumnSpacingAfter = GetNativeColumnSectionMarkHeight(section, elements, balanceColumns, nativeDefaults, nativeFontMap),
-            SeparatorColor = section.HasColumnSeparator ? PdfCore.PdfColor.Black : null,
+            SeparatorColor = section.HasColumnSeparator ? global::OfficeIMO.OfficeColor.Black : null,
             SeparatorWidth = section.HasColumnSeparator ? 0.5D : 0D
         };
         IReadOnlyList<WordSectionColumn> definitions = section.ColumnDefinitions;

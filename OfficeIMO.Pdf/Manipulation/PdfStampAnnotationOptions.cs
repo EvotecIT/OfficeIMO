@@ -37,10 +37,10 @@ public sealed class PdfStampAnnotationOptions {
     public int Flags { get; set; } = 4;
 
     /// <summary>Border and label color. The default is dark red.</summary>
-    public PdfColor StrokeColor { get; set; } = new PdfColor(0.7D, 0.05D, 0.05D);
+    public global::OfficeIMO.OfficeColor StrokeColor { get; set; } = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.7D, 0.05D, 0.05D);
 
     /// <summary>Optional appearance fill color.</summary>
-    public PdfColor? FillColor { get; set; }
+    public global::OfficeIMO.OfficeColor? FillColor { get; set; }
 
     /// <summary>Border width in PDF points.</summary>
     public double BorderWidth { get; set; } = 2D;

@@ -167,7 +167,7 @@ public sealed class PdfWatermarkWorkflowTests {
         Assert.Equal(original.Font, saved.Font);
         Assert.Equal(original.RotationDegrees, saved.RotationDegrees);
         Assert.Equal(original.Opacity, saved.Opacity);
-        Assert.Equal(original.Color.ToOfficeColor(), saved.Color.ToOfficeColor());
+        Assert.Equal(original.Color, saved.Color);
         Assert.True(saved.BehindContent);
         Assert.Equal(new[] { 2 }, saved.TargetPages!.Resolve(2));
         saved.Width = 100;
@@ -313,7 +313,7 @@ public sealed class PdfWatermarkWorkflowTests {
         settings.Text = "FIRST";
         var first = PdfDocument.Load(Source()).Stamp.Watermark(settings);
         settings.Text = "REVISED";
-        settings.Color = PdfColor.FromRgb(20, 200, 40);
+        settings.Color = global::OfficeIMO.OfficeColor.FromRgb(20, 200, 40);
         var revised = PdfDocument.Load(first.ToBytes()).Stamp.Watermark(settings);
         string text = revised.Read().Text;
         Assert.DoesNotContain("FIRST", text);
@@ -345,7 +345,7 @@ public sealed class PdfWatermarkWorkflowTests {
         var upper = Options(false);
         upper.Text = "UPPER";
         upper.Opacity = 1;
-        upper.Color = PdfColor.FromRgb(0, 0, 200);
+        upper.Color = global::OfficeIMO.OfficeColor.FromRgb(0, 0, 200);
         first = first.Stamp.Watermark(upper);
         var revised = first.Stamp.Watermark(settings);
         Assert.Equal(Render(first.ToBytes(), 2), Render(revised.ToBytes(), 2));
@@ -397,7 +397,7 @@ public sealed class PdfWatermarkWorkflowTests {
         options.RotationDegrees = 0D;
         byte[] initial = PdfDocument.Load(source).Stamp.Watermark(options).ToBytes();
         options.RotationDegrees = 70D;
-        options.Color = PdfColor.FromRgb(0, 0, 240);
+        options.Color = global::OfficeIMO.OfficeColor.FromRgb(0, 0, 240);
         byte[] changed = PdfDocument.Load(source).Stamp.Watermark(options).ToBytes();
         Assert.False(Render(initial, 2).SequenceEqual(Render(changed, 2)));
     }
@@ -405,7 +405,7 @@ public sealed class PdfWatermarkWorkflowTests {
     private static PdfWatermarkOptions Options(bool image) => new() {
         Text = "REVIEW", ImageBytes = image ? PdfPngTestImages.CreateRgbPng(240, 20, 20) : null,
         X = 100, Y = 160, Width = 160, Height = 60, FontSize = 24, RotationDegrees = 35,
-        Color = PdfColor.FromRgb(240, 20, 20), Opacity = 0.5, TargetPages = PdfPageSelector.Parse("2")
+        Color = global::OfficeIMO.OfficeColor.FromRgb(240, 20, 20), Opacity = 0.5, TargetPages = PdfPageSelector.Parse("2")
     };
 
     private static byte[] Source() => PdfDocument.Create(document => {

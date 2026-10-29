@@ -333,13 +333,13 @@ public class PdfFormCreationTests {
     [Fact]
     public void GeneratedFields_CanStyleAppearances() {
         var style = new PdfFormFieldStyle {
-            BackgroundColor = PdfColor.FromRgb(238, 242, 255),
-            BorderColor = PdfColor.FromRgb(30, 64, 175),
+            BackgroundColor = global::OfficeIMO.OfficeColor.FromRgb(238, 242, 255),
+            BorderColor = global::OfficeIMO.OfficeColor.FromRgb(30, 64, 175),
             BorderWidth = 2,
             CornerRadius = 5,
             BorderDashPattern = new[] { 6D, 2D },
-            TextColor = PdfColor.FromRgb(127, 29, 29),
-            MarkColor = PdfColor.FromRgb(22, 101, 52),
+            TextColor = global::OfficeIMO.OfficeColor.FromRgb(127, 29, 29),
+            MarkColor = global::OfficeIMO.OfficeColor.FromRgb(22, 101, 52),
             TextAlignment = PdfFormFieldTextAlignment.Center
         };
 
@@ -383,11 +383,11 @@ public class PdfFormCreationTests {
     [Fact]
     public void GeneratedFields_CanUseUnderlineBorderStyle() {
         var style = new PdfFormFieldStyle {
-            BackgroundColor = PdfColor.White,
-            BorderColor = PdfColor.FromRgb(30, 64, 175),
+            BackgroundColor = global::OfficeIMO.OfficeColor.White,
+            BorderColor = global::OfficeIMO.OfficeColor.FromRgb(30, 64, 175),
             BorderWidth = 2,
             BorderStyle = PdfFormFieldBorderStyle.Underline,
-            TextColor = PdfColor.Black
+            TextColor = global::OfficeIMO.OfficeColor.Black
         };
 
         byte[] pdf = PdfDocument.Create()
@@ -404,11 +404,11 @@ public class PdfFormCreationTests {
     [Fact]
     public void GeneratedFields_CanUseBeveledBorderStyle() {
         var style = new PdfFormFieldStyle {
-            BackgroundColor = PdfColor.White,
-            BorderColor = PdfColor.Black,
+            BackgroundColor = global::OfficeIMO.OfficeColor.White,
+            BorderColor = global::OfficeIMO.OfficeColor.Black,
             BorderWidth = 2,
             BorderStyle = PdfFormFieldBorderStyle.Beveled,
-            TextColor = PdfColor.Black
+            TextColor = global::OfficeIMO.OfficeColor.Black
         };
 
         byte[] pdf = PdfDocument.Create()

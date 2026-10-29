@@ -184,14 +184,14 @@ namespace OfficeIMO.Tests.Pdf {
             doc.Compose(c => {
                 c.Page(page => {
                     page.Header(header => header
-                        .Color(new PdfColor(0.1, 0.2, 0.3))
+                        .Color(global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.1, 0.2, 0.3))
                         .Text("Colored header"));
                     page.Footer(footer => footer
-                        .Color(new PdfColor(0.2, 0.3, 0.4))
+                        .Color(global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.2, 0.3, 0.4))
                         .Text(text => text.Text("Colored footer ").CurrentPage().Text("/").TotalPages()));
                     page.Content(content =>
                         content.Column(column =>
-                            column.Item().Paragraph(p => p.Color(new PdfColor(0.9, 0.1, 0.1)).Text("Colored body."))));
+                            column.Item().Paragraph(p => p.Color(global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.9, 0.1, 0.1)).Text("Colored body."))));
                 });
             });
 
@@ -223,7 +223,7 @@ namespace OfficeIMO.Tests.Pdf {
                         .Text(text => text.Text("Default footer ").CurrentPage().Text("/").TotalPages()));
                     page.Content(content =>
                         content.Column(column =>
-                            column.Item().Paragraph(p => p.Color(new PdfColor(0.1, 0.7, 0.2)).Text("Green body."))));
+                            column.Item().Paragraph(p => p.Color(global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.1, 0.7, 0.2)).Text("Green body."))));
                 });
             });
 
@@ -579,7 +579,7 @@ namespace OfficeIMO.Tests.Pdf {
                 .Header(header => header.Text(text => text.Run(PdfTextRun.Normal(
                     "HeaderBackgroundClip",
                     fontSize: 12,
-                    backgroundColor: PdfColor.FromRgb(255, 255, 0)))))
+                    backgroundColor: global::OfficeIMO.OfficeColor.FromRgb(255, 255, 0)))))
                 .Paragraph(paragraph => paragraph.Text("Header decoration diagnostic body"))
                 .ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
 

@@ -64,7 +64,7 @@ public partial class PdfDocumentComplianceAssessmentTests {
                 CompressContentStreams = false
             })
             .TaggedPdfCatalogMarkers()
-            .Background(PdfColor.White)
+            .Background(global::OfficeIMO.OfficeColor.White)
             .BackgroundImage(CreateMinimalRgbPng(), OfficeIMO.Drawing.OfficeImageFit.Stretch, opacity: 0.2)
             .ImageWatermark(CreateMinimalRgbPng(), 80, 40, opacity: 0.2)
             .Watermark("DRAFT", fontSize: 48, opacity: 0.18)
@@ -129,12 +129,12 @@ public partial class PdfDocumentComplianceAssessmentTests {
             })
             .TaggedPdfCatalogMarkers()
             .Paragraph(paragraph => paragraph.Text("Before top-level rule."))
-            .HR(thickness: 1.2, color: PdfColor.FromRgb(148, 163, 184), spacingBefore: 2, spacingAfter: 2)
+            .HR(thickness: 1.2, color: global::OfficeIMO.OfficeColor.FromRgb(148, 163, 184), spacingBefore: 2, spacingAfter: 2)
             .Paragraph(paragraph => paragraph.Text("After top-level rule."))
             .Compose(document => document.Page(page => page.Content(content => content.Row(row => row
                 .PercentColumn(100, column => column
                     .Paragraph(paragraph => paragraph.Text("Before row rule."))
-                    .HR(thickness: 0.8, color: PdfColor.FromRgb(203, 213, 225), spacingBefore: 2, spacingAfter: 2)
+                    .HR(thickness: 0.8, color: global::OfficeIMO.OfficeColor.FromRgb(203, 213, 225), spacingBefore: 2, spacingAfter: 2)
                     .Paragraph(paragraph => paragraph.Text("After row rule.")))))))
             .ToBytes();
 
@@ -148,26 +148,26 @@ public partial class PdfDocumentComplianceAssessmentTests {
     [Fact]
     public void TaggedDecorativeLayoutChromeEmitsArtifactMarkedContent() {
         var panelStyle = new PdfPanelStyle {
-            Background = PdfColor.FromRgb(248, 250, 252),
-            BorderColor = PdfColor.FromRgb(37, 99, 235),
+            Background = global::OfficeIMO.OfficeColor.FromRgb(248, 250, 252),
+            BorderColor = global::OfficeIMO.OfficeColor.FromRgb(37, 99, 235),
             BorderWidth = 0.8,
             PaddingX = 10,
             PaddingY = 8
         };
         PdfTableStyle tableStyle = PdfTableStyles.Minimal();
         tableStyle.HeaderRowCount = 1;
-        tableStyle.HeaderFill = PdfColor.FromRgb(229, 231, 235);
-        tableStyle.RowStripeFill = PdfColor.FromRgb(248, 250, 252);
-        tableStyle.BorderColor = PdfColor.FromRgb(148, 163, 184);
+        tableStyle.HeaderFill = global::OfficeIMO.OfficeColor.FromRgb(229, 231, 235);
+        tableStyle.RowStripeFill = global::OfficeIMO.OfficeColor.FromRgb(248, 250, 252);
+        tableStyle.BorderColor = global::OfficeIMO.OfficeColor.FromRgb(148, 163, 184);
         tableStyle.BorderWidth = 0.7;
-        tableStyle.RowSeparatorColor = PdfColor.FromRgb(203, 213, 225);
+        tableStyle.RowSeparatorColor = global::OfficeIMO.OfficeColor.FromRgb(203, 213, 225);
         tableStyle.RowSeparatorWidth = 0.5;
-        tableStyle.CellFills = new Dictionary<(int Row, int Column), PdfColor> {
-            [(1, 1)] = PdfColor.FromRgb(220, 252, 231)
+        tableStyle.CellFills = new Dictionary<(int Row, int Column), global::OfficeIMO.OfficeColor> {
+            [(1, 1)] = global::OfficeIMO.OfficeColor.FromRgb(220, 252, 231)
         };
         tableStyle.CellBorders = new Dictionary<(int Row, int Column), PdfCellBorder> {
             [(1, 1)] = new PdfCellBorder {
-                Color = PdfColor.FromRgb(22, 163, 74),
+                Color = global::OfficeIMO.OfficeColor.FromRgb(22, 163, 74),
                 Width = 0.8
             }
         };

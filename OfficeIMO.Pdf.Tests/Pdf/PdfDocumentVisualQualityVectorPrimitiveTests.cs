@@ -26,9 +26,9 @@ public partial class PdfDocumentVisualQualityTests {
             .Rectangle(
                 width: 100,
                 height: 36,
-                strokeColor: PdfColor.FromRgb(26, 51, 77),
+                strokeColor: global::OfficeIMO.OfficeColor.FromRgb(26, 51, 77),
                 strokeWidth: 2.5,
-                fillColor: PdfColor.FromRgb(204, 179, 153),
+                fillColor: global::OfficeIMO.OfficeColor.FromRgb(204, 179, 153),
                 align: PdfAlign.Center,
                 spacingBefore: 4,
                 spacingAfter: 6)

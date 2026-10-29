@@ -1856,8 +1856,8 @@ Describe 'Word DSL surface' {
         New-OfficeWord -Path $path {
             WordParagraph -Text 'Report callouts'
             $textBox = WordTextBox -Text 'Service posture is stable' -WidthCentimeters 7 -HeightCentimeters 2 -HorizontalOffsetCentimeters 1 -VerticalOffsetCentimeters 1 -HorizontalAlignment Center -AutoFitToTextSize -PassThru
-            $textBox.WidthCentimeters | Should -BeGreaterThan 6.9
-            $textBox.HeightCentimeters | Should -BeGreaterThan 1.9
+            $textBox.Width.ToCentimeters() | Should -BeGreaterThan 6.9
+            $textBox.Height.ToCentimeters() | Should -BeGreaterThan 1.9
             $textBox.AutoFitToTextSize | Should -BeTrue
         } | Out-Null
 
@@ -1866,8 +1866,8 @@ Describe 'Word DSL surface' {
             $textBoxes = @($document.TextBoxes)
             $textBoxes.Count | Should -Be 1
             $textBoxes[0].Paragraphs.Text -join "`n" | Should -Match 'Service posture is stable'
-            [Math]::Round($textBoxes[0].WidthCentimeters, 1) | Should -Be 7.0
-            [Math]::Round($textBoxes[0].HeightCentimeters, 1) | Should -Be 2.0
+            [Math]::Round($textBoxes[0].Width.ToCentimeters(), 1) | Should -Be 7.0
+            [Math]::Round($textBoxes[0].Height.ToCentimeters(), 1) | Should -Be 2.0
         } finally {
             $document.Dispose()
         }

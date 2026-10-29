@@ -37,7 +37,7 @@ public partial class PdfDocumentVisualQualityTests {
         style.CellBorders![(0, 0)] = MixedPairedBorder(right: true);
         style.CellBorders[(0, 1)] = new PdfCellBorder {
             Color = null, Top = false, Right = false, Bottom = false, Left = narrower,
-            LeftBorder = new PdfCellBorderSide { Color = PdfColor.FromRgb(0, 0, 255), Width = .25 }
+            LeftBorder = new PdfCellBorderSide { Color = global::OfficeIMO.OfficeColor.FromRgb(0, 0, 255), Width = .25 }
         };
         using var pdf = PdfPigDocument.Open(RenderMixedPairedTable("flow", style));
         var word = Assert.Single(pdf.GetPage(1).GetWords(), word => word.Text == "gypB");
@@ -73,7 +73,7 @@ public partial class PdfDocumentVisualQualityTests {
     public void TablePairedBorders_LaterRowFillKeepsBothVisibleTracks(string surface) {
         var style = MixedPairedBorderStyle();
         style.CellBorders![(0, 0)] = MixedPairedBorder(bottom: true);
-        style.CellFills = new Dictionary<(int, int), PdfColor> { [(1, 0)] = PdfColor.FromRgb(255, 230, 160) };
+        style.CellFills = new Dictionary<(int, int), global::OfficeIMO.OfficeColor> { [(1, 0)] = global::OfficeIMO.OfficeColor.FromRgb(255, 230, 160) };
         byte[] bytes = RenderMixedPairedTable(surface, style);
         var lines = PairedBorderLines(bytes);
         Assert.Equal(2, lines.Length);
@@ -106,7 +106,7 @@ public partial class PdfDocumentVisualQualityTests {
     }
 
     private static PdfCellBorder MixedPairedBorder(bool top = false, bool right = false, bool bottom = false) => new() {
-        Color = PdfColor.FromRgb(255, 0, 0), Width = 2, LineStyle = PdfCellBorderLineStyle.TwoLine,
+        Color = global::OfficeIMO.OfficeColor.FromRgb(255, 0, 0), Width = 2, LineStyle = PdfCellBorderLineStyle.TwoLine,
         Top = top, Right = right, Bottom = bottom, Left = false
     };
 
@@ -116,7 +116,7 @@ public partial class PdfDocumentVisualQualityTests {
         style.CornerRadius = 10;
         for (int row = 0; row < 2; row++)
             for (int column = 0; column < 2; column++) style.CellBorders![(row, column)] = new PdfCellBorder {
-                Color = PdfColor.FromRgb(255, 0, 0), Width = 2, LineStyle = PdfCellBorderLineStyle.TwoLine
+                Color = global::OfficeIMO.OfficeColor.FromRgb(255, 0, 0), Width = 2, LineStyle = PdfCellBorderLineStyle.TwoLine
             };
         OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(PdfPageImageRenderer.RenderPage(RenderMixedPairedTable("flow", style)));
         Assert.Equal(OfficeColor.Red, raster.GetPixel(126, 34));

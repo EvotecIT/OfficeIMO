@@ -26,7 +26,7 @@ public sealed class PdfNoteStructureTests {
     public void WholeCellLinkRetainsInlineChildren(bool column, bool described) {
         var cells = new[] { new[] { PdfTableCell.RichTextCell(new[] {
             PdfTextRun.Normal("Before "),
-            PdfTextRun.Inline(new PdfInlineBox(12, 10, background: PdfColor.Black,
+            PdfTextRun.Inline(new PdfInlineBox(12, 10, background: global::OfficeIMO.OfficeColor.Black,
                 alternativeText: described ? "Status" : null)),
             PdfTextRun.Normal(" after")
         }, linkUri: "https://example.test/cell") } };

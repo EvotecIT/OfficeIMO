@@ -37,7 +37,7 @@ public sealed class WordSharedChartAuthoringTests {
     [MemberData(nameof(SupportedKinds))]
     public void SharedChart_AuthorsReopensAndUpdatesNativeCachesAndEmbeddedWorkbook(OfficeChartType kind) {
         using WordDocument document = WordDocument.Create();
-        WordChart chart = document.AddChart(kind,Data(kind, 0),"Results",roundedCorners: true,width: OfficeIMO.OfficeLength.Pixels(360),height: OfficeIMO.OfficeLength.Pixels(180));
+        WordChart chart = document.AddChart(kind, Data(kind, 0), new OfficeIMO.Word.WordChartOptions { Title = "Results", RoundedCorners = true, Width = OfficeIMO.OfficeLength.Pixels(360), Height = OfficeIMO.OfficeLength.Pixels(180) });
         chart.Name = "Status chart";
         chart.AltText = "Status distribution";
         Assert.Empty(document.ValidateDocument());
@@ -157,7 +157,7 @@ public sealed class WordSharedChartAuthoringTests {
         using WordDocument document = WordDocument.Create();
         WordParagraph paragraph = document.AddParagraph("Introduction");
         int count = document.Paragraphs.Count;
-        Assert.Throws<ArgumentOutOfRangeException>(() => paragraph.AddChart(OfficeChartType.Pie,Data(OfficeChartType.Pie, 0),width: OfficeIMO.OfficeLength.Pixels(0)));
+        Assert.Throws<ArgumentOutOfRangeException>(() => paragraph.AddChart(OfficeChartType.Pie, Data(OfficeChartType.Pie, 0), new OfficeIMO.Word.WordChartOptions { Width = OfficeIMO.OfficeLength.Pixels(0) }));
         Assert.Equal(count, document.Paragraphs.Count);
         paragraph.AddChart(OfficeChartType.Pie,Data(OfficeChartType.Pie, 0));
         Assert.Single(document.Charts);

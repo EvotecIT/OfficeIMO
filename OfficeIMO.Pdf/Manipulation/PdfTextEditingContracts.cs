@@ -85,7 +85,7 @@ public sealed class PdfTextEditOptions {
     }
 
     /// <summary>Text color. Null preserves the detected color or uses black for new text.</summary>
-    public PdfColor? Color { get; set; }
+    public global::OfficeIMO.OfficeColor? Color { get; set; }
 
     /// <summary>Baseline rotation in degrees. Null preserves the detected rotation or uses zero for new text.</summary>
     public double? RotationDegrees {
@@ -136,7 +136,7 @@ public sealed class PdfTextEditOptions {
 
 /// <summary>Text and dominant style detected inside a page region.</summary>
 public sealed class PdfRegionText {
-    internal PdfRegionText(string text, IReadOnlyList<PdfTextSpan> spans, PdfStandardFont suggestedFont, string? sourceFont, double fontSize, PdfColor color, double rotationDegrees, double baselineX, double baselineY) {
+    internal PdfRegionText(string text, IReadOnlyList<PdfTextSpan> spans, PdfStandardFont suggestedFont, string? sourceFont, double fontSize, global::OfficeIMO.OfficeColor color, double rotationDegrees, double baselineX, double baselineY) {
         Text = text;
         Spans = new ReadOnlyCollection<PdfTextSpan>(spans.ToArray());
         SuggestedFont = suggestedFont;
@@ -159,7 +159,7 @@ public sealed class PdfRegionText {
     /// <summary>Dominant font size in points.</summary>
     public double FontSize { get; }
     /// <summary>Dominant text color.</summary>
-    public PdfColor Color { get; }
+    public global::OfficeIMO.OfficeColor Color { get; }
     /// <summary>Dominant baseline rotation in degrees.</summary>
     public double RotationDegrees { get; }
     /// <summary>Baseline X coordinate used for style-preserving replacement.</summary>
@@ -193,7 +193,7 @@ public sealed class PdfTextSearchOptions {
 
 /// <summary>One located text occurrence in PDF user space.</summary>
 public sealed class PdfTextMatch {
-    internal PdfTextMatch(int pageNumber, string text, double x, double y, double width, double height, double fontSize, PdfStandardFont suggestedFont, string? sourceFont, PdfColor color, double rotationDegrees, PdfSelectionQuad visualBounds, bool usesTextRenderingMode3 = false, IReadOnlyList<PdfSelectionQuad>? visualLineBounds = null) {
+    internal PdfTextMatch(int pageNumber, string text, double x, double y, double width, double height, double fontSize, PdfStandardFont suggestedFont, string? sourceFont, global::OfficeIMO.OfficeColor color, double rotationDegrees, PdfSelectionQuad visualBounds, bool usesTextRenderingMode3 = false, IReadOnlyList<PdfSelectionQuad>? visualLineBounds = null) {
         PageNumber = pageNumber; Text = text; X = x; Y = y; Width = width; Height = height; FontSize = fontSize; SuggestedFont = suggestedFont; SourceFont = sourceFont; Color = color; RotationDegrees = rotationDegrees;
         IsTextRenderingMode3 = usesTextRenderingMode3;
         VisualBounds = visualBounds;
@@ -219,7 +219,7 @@ public sealed class PdfTextMatch {
     /// <summary>Original PDF base-font name when available.</summary>
     public string? SourceFont { get; }
     /// <summary>Source text color.</summary>
-    public PdfColor Color { get; }
+    public global::OfficeIMO.OfficeColor Color { get; }
     /// <summary>Source baseline rotation.</summary>
     public double RotationDegrees { get; }
     /// <summary>True when the occurrence includes OCR-style text painted with rendering mode 3.</summary>

@@ -387,9 +387,9 @@ public sealed class WordPdfBarTabTests {
         ConfigureParagraph(middle, string.Empty);
         middle.AddTextBox("INNER", WordImageTextWrapping.Square);
         middle.AddShapeGroup(new[] {
-            new WordShapeGroupItem(WordShapeType.Rectangle, 0D, 0D, 16D, 8D) { FillColorHex = "00FF00" },
-            new WordShapeGroupItem(WordShapeType.Rectangle, 16D, 0D, 16D, 8D) { FillColorHex = "00FF00" }
-        }, 180D, 30D);
+            new WordShapeGroupItem(WordShapeType.Rectangle, OfficeLength.Points(0D), OfficeLength.Points(0D), OfficeLength.Points(16D), OfficeLength.Points(8D)) { FillColorHex = "00FF00" },
+            new WordShapeGroupItem(WordShapeType.Rectangle, OfficeLength.Points(16D), OfficeLength.Points(0D), OfficeLength.Points(16D), OfficeLength.Points(8D)) { FillColorHex = "00FF00" }
+        }, OfficeLength.Points(180D), OfficeLength.Points(30D));
         if (anchored) {
             var anchor = middle._paragraph.Descendants<DocumentFormat.OpenXml.Drawing.Wordprocessing.Anchor>()
                 .Single(candidate => candidate.Descendants<DocumentFormat.OpenXml.Drawing.GraphicData>()

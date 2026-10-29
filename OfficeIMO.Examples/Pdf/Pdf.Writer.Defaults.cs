@@ -8,7 +8,7 @@ namespace OfficeIMO.Examples.Pdf {
             var options = new PdfCreateOptions {
                 DefaultFont = PdfStandardFont.Helvetica,
                 DefaultFontSize = 10,
-                DefaultTextColor = PdfColor.FromRgb(31, 41, 55),
+                DefaultTextColor = global::OfficeIMO.OfficeColor.FromRgb(31, 41, 55),
                 HeaderFont = PdfStandardFont.Helvetica,
                 HeaderFontSize = 8,
                 HeaderFormat = "OfficeIMO.Pdf default styles",
@@ -30,13 +30,13 @@ namespace OfficeIMO.Examples.Pdf {
             };
 
             PdfDocument.Create(pdf => pdf.Content(content => content
-                .H1("Default Styles", PdfAlign.Left, PdfColor.FromRgb(25, 55, 85))
+                .H1("Default Styles", PdfAlign.Left, global::OfficeIMO.OfficeColor.FromRgb(25, 55, 85))
                 .Paragraph(p => p.Text("This sample uses document-level defaults for text color, headers, footers, and the light table preset."))
                 .PanelParagraph(
                     p => p.Text("The default table style should be good enough for a simple business report without every caller hand-tuning colors and padding."),
                     new PdfPanelStyle {
-                        Background = PdfColor.FromRgb(248, 250, 252),
-                        BorderColor = PdfColor.FromRgb(183, 194, 207),
+                        Background = global::OfficeIMO.OfficeColor.FromRgb(248, 250, 252),
+                        BorderColor = global::OfficeIMO.OfficeColor.FromRgb(183, 194, 207),
                         PaddingX = 9,
                         PaddingY = 7
                     })

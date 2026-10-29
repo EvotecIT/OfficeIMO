@@ -17,7 +17,7 @@ public partial class PdfStamperTests {
             Y = 620,
             FontSize = 18,
             RotationDegrees = 30,
-            Color = PdfColor.FromRgb(255, 0, 0)
+            Color = global::OfficeIMO.OfficeColor.FromRgb(255, 0, 0)
         });
 
         string stampContent = FindContentStreamContaining(stamped, "<56495355414C> Tj");

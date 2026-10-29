@@ -17,7 +17,7 @@ public partial class Word {
         using WordDocument document = CreateAnchoredRunningTextBoxControl(includeTextBox: true);
         WordTextBox box = document.Sections[1].Header!.First!.TextBoxes.Single();
         box.Anchor!.RemoveAllChildren<W14.RelativeHeight>();
-        box.Height = 571500L;
+        box.Height = OfficeLength.Emus(571500L);
         box.Anchor.Descendants<A.Transform2D>().Single().Extents!.Cy = 571500L;
         WordParagraph inner = box.Paragraphs.Single();
         foreach (W.Break lineBreak in inner._paragraph.Descendants<W.Break>().ToArray()) lineBreak.Remove();
@@ -181,7 +181,7 @@ public partial class Word {
         DW.Anchor anchor = document.Sections[1].Header!.First!.ChildElements
             .SelectMany(child => child.Descendants<DW.Anchor>()).Single();
         anchor.RemoveAllChildren<W14.RelativeHeight>();
-        textBox.Height = 571500L; // Authored 45pt frame, not 20% of the margin height.
+        textBox.Height = OfficeLength.Emus(571500L); // Authored 45pt frame, not 20% of the margin height.
         anchor.Descendants<A.Transform2D>().Single().Extents!.Cy = 571500L;
         WordParagraph inner = textBox.Paragraphs.Single();
         foreach (W.Break lineBreak in inner._paragraph.Descendants<W.Break>().ToArray()) lineBreak.Remove();

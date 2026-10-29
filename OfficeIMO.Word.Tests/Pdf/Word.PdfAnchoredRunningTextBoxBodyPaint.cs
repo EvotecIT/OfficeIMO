@@ -46,7 +46,7 @@ public partial class Word {
         run.Elements<W.Text>().First().Text += " ORDINARY HIGHLIGHTED BODY PAINT";
         WordTextBox box = document.Sections[1].Header!.First!.TextBoxes.Single();
         box.Anchor!.RemoveAllChildren<W14.RelativeHeight>();
-        box.Height = 571500L;
+        box.Height = OfficeLength.Emus(571500L);
         box.Anchor.Descendants<A.Transform2D>().Single().Extents!.Cy = 571500L;
         box.Anchor.VerticalPosition!.PositionOffset!.Text = "341630";
         foreach (W.Break lineBreak in box.Paragraphs.Single()._paragraph.Descendants<W.Break>().ToArray()) lineBreak.Remove();
@@ -130,7 +130,7 @@ public partial class Word {
         WordTextBox box = document.Sections[1].Header!.First!.TextBoxes.Single();
         box.Anchor!.RemoveAllChildren<W14.RelativeWidth>();
         box.Anchor.RemoveAllChildren<W14.RelativeHeight>();
-        box.Width = box.Height = 571500L;
+        box.Width = box.Height = OfficeLength.Emus(571500L);
         box.Anchor.Descendants<A.Transform2D>().Single().Extents!.Cx = 571500L;
         box.Anchor.Descendants<A.Transform2D>().Single().Extents!.Cy = 571500L;
         DW.HorizontalPosition position = box.Anchor.HorizontalPosition!;

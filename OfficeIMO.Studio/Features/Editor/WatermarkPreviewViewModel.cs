@@ -59,7 +59,7 @@ public sealed partial class WatermarkPreviewViewModel : ObservableObject, IDispo
         var options = value.Options?.Clone() ?? new PdfWatermarkOptions();
         _watermarkId = options.Id; _font = options.Font; _image = options.ImageBytes;
         Text = options.Text; UseImage = _image is not null;
-        var color = options.Color.ToOfficeColor();
+        var color = options.Color;
         Color = $"#{color.R:X2}{color.G:X2}{color.B:X2}";
         X = (decimal?)options.X; Y = (decimal?)options.Y;
         Width = (decimal)options.Width; Height = (decimal)options.Height; FontSize = (decimal)options.FontSize;
@@ -153,7 +153,7 @@ public sealed partial class WatermarkPreviewViewModel : ObservableObject, IDispo
                 X = X.HasValue ? (double)X.Value : null, Y = Y.HasValue ? (double)Y.Value : null,
                 Width = (double)Width, Height = (double)Height, FontSize = (double)FontSize,
                 RotationDegrees = (double)Rotation, Opacity = (double)Opacity / 100D,
-                Color = PdfColor.FromRgb(color.R, color.G, color.B), BehindContent = BehindContent,
+                Color = global::OfficeIMO.OfficeColor.FromRgb(color.R, color.G, color.B), BehindContent = BehindContent,
                 TargetPages = string.IsNullOrWhiteSpace(PageRange) ? null : PdfPageSelector.Parse(PageRange)
             };
             if (options.TargetPages is not null) {

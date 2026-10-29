@@ -44,7 +44,7 @@ rebuilding the invoice as low-level PDF primitives:
 
 ```csharp
 var layout = InvoicePdfLayoutOptions.ForCultures("en-GB");
-layout.Theme = InvoicePdfTheme.Modern(PdfColor.FromRgb(63, 92, 255));
+layout.Theme = InvoicePdfTheme.Modern(OfficeColor.FromRgb(63, 92, 255));
 layout.LogoBytes = File.ReadAllBytes("company-logo.png");
 layout.LogoAlternativeText = "Company logo";
 layout.Approvals.Add(new InvoicePdfApproval(
@@ -99,7 +99,7 @@ columns, and use a wider page when the selected columns need more space:
 
 ```csharp
 var layout = InvoicePdfLayoutOptions.ForCultures("pl-PL", "en-GB");
-layout.Theme = InvoicePdfTheme.Modern(PdfColor.FromRgb(63, 92, 255));
+layout.Theme = InvoicePdfTheme.Modern(OfficeColor.FromRgb(63, 92, 255));
 layout.LineColumns.Clear();
 foreach (var column in new[] {
     InvoicePdfLineColumn.Item, InvoicePdfLineColumn.Quantity,

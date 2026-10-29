@@ -37,8 +37,8 @@ public partial class PdfDocumentVisualQualityTests {
         PdfTableStyle style = Style();
         style.MinRowHeight = 30;
         style.BorderWidth = 2;
-        style.BorderColor = new PdfColor(.61, .21, .11);
-        style.CellFills = new() { [(0, 0)] = new PdfColor(.31, .41, .51) };
+        style.BorderColor = global::OfficeIMO.OfficeColor.FromNormalizedRgb(.61, .21, .11);
+        style.CellFills = new() { [(0, 0)] = global::OfficeIMO.OfficeColor.FromNormalizedRgb(.31, .41, .51) };
         PdfDocument document = PdfDocument.Create(Options(200));
         AddTable(document, new[] {
             new[] { PdfTableCell.Merge("Alpha", rowSpan: 2), PdfTableCell.TextCell("Ready") },
@@ -60,10 +60,10 @@ public partial class PdfDocumentVisualQualityTests {
         style.MinRowHeight = 30;
         style.BorderColor = null;
         style.CellBorders = new() { [(0, 0)] = new PdfCellBorder {
-            Color = new PdfColor(.61, .21, .11), Width = 4,
+            Color = global::OfficeIMO.OfficeColor.FromNormalizedRgb(.61, .21, .11), Width = 4,
             Top = false, Bottom = false, Left = false, Right = true
         } };
-        style.CellFills = new() { [(0, 1)] = new PdfColor(.71, .81, .61) };
+        style.CellFills = new() { [(0, 1)] = global::OfficeIMO.OfficeColor.FromNormalizedRgb(.71, .81, .61) };
         PdfDocument document = PdfDocument.Create(Options(200));
         AddTable(document, new[] {
             new[] { mergedNeighbor ? PdfTableCell.Merge("Alpha", rowSpan: 2) : PdfTableCell.TextCell("Alpha"),

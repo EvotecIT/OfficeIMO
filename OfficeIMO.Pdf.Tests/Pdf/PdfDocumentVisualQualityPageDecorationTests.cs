@@ -16,7 +16,7 @@ public partial class PdfDocumentVisualQualityTests {
     [Fact]
     public void TextWatermark_RendersBehindContentWithOpacityAndRotation() {
         byte[] bytes = PdfDocument.Create()
-            .Watermark("DRAFT", fontSize: 48, color: PdfColor.FromRgb(120, 130, 150), opacity: 0.18, rotationAngle: -45)
+            .Watermark("DRAFT", fontSize: 48, color: global::OfficeIMO.OfficeColor.FromRgb(120, 130, 150), opacity: 0.18, rotationAngle: -45)
             .H1("Watermark proof")
             .Paragraph(p => p.Text("Body content stays readable above the watermark."))
             .ToBytes();

@@ -537,13 +537,13 @@ internal static partial class HtmlPdfRenderedConverter {
 
         var style = new PdfCore.PdfFormFieldStyle {
             LogicalOrder = field.SemanticSourceOrder,
-            BackgroundColor = field.BackgroundColor.HasValue ? PdfCore.PdfColor.FromOfficeColorOrNull(field.BackgroundColor.Value) : null,
-            BorderColor = field.BorderColor.HasValue ? PdfCore.PdfColor.FromOfficeColorOrNull(field.BorderColor.Value) : null,
+            BackgroundColor = field.BackgroundColor.HasValue ? (field.BackgroundColor.Value.A == 0 ? (global::OfficeIMO.OfficeColor?)null : field.BackgroundColor.Value) : null,
+            BorderColor = field.BorderColor.HasValue ? (field.BorderColor.Value.A == 0 ? (global::OfficeIMO.OfficeColor?)null : field.BorderColor.Value) : null,
             BorderWidth = field.BorderWidth * PointsPerCssPixel,
             BorderStyle = field.BorderStyle == "dashed" ? PdfCore.PdfFormFieldBorderStyle.Dashed : PdfCore.PdfFormFieldBorderStyle.Solid,
             CornerRadius = field.CornerRadius * PointsPerCssPixel,
-            TextColor = PdfCore.PdfColor.FromOfficeColorOrNull(field.TextColor) ?? PdfCore.PdfColor.Black,
-            MarkColor = PdfCore.PdfColor.FromOfficeColorOrNull(field.TextColor) ?? PdfCore.PdfColor.Black,
+            TextColor = (field.TextColor.A == 0 ? (global::OfficeIMO.OfficeColor?)null : field.TextColor) ?? global::OfficeIMO.OfficeColor.Black,
+            MarkColor = (field.TextColor.A == 0 ? (global::OfficeIMO.OfficeColor?)null : field.TextColor) ?? global::OfficeIMO.OfficeColor.Black,
             IsReadOnly = field.IsReadOnly,
             IsNoExport = field.IsDisabled || field.MappingName.Length == 0,
             IsRequired = field.IsRequired,
@@ -566,7 +566,7 @@ internal static partial class HtmlPdfRenderedConverter {
                 canvas.TextFieldWithInitialAppearance(field.Name, string.Empty, maskedValue, x, y, width, height, fontSize, style, style);
             } else if (field.Value.Length == 0 && field.Placeholder.Length > 0) {
                 PdfCore.PdfFormFieldStyle appearanceStyle = style.Clone();
-                appearanceStyle.TextColor = PdfCore.PdfColor.FromOfficeColorOrNull(field.PlaceholderTextColor) ?? PdfCore.PdfColor.Black;
+                appearanceStyle.TextColor = (field.PlaceholderTextColor.A == 0 ? (global::OfficeIMO.OfficeColor?)null : field.PlaceholderTextColor) ?? global::OfficeIMO.OfficeColor.Black;
                 canvas.TextFieldWithInitialAppearance(field.Name, field.Value, field.Placeholder, x, y, width, height, fontSize, style, appearanceStyle);
             } else {
                 canvas.TextField(field.Name, field.Value, x, y, width, height, fontSize, style);

@@ -15,8 +15,8 @@ namespace OfficeIMO.PowerPoint {
         ///     Sets chart area fill/line styling.
         /// </summary>
         public PowerPointChart SetChartAreaStyle(string? fillColor = null, string? lineColor = null,
-            double? lineWidthPoints = null, bool noFill = false, bool noLine = false) {
-            ValidateAreaStyle(fillColor, lineColor, lineWidthPoints, noFill, noLine);
+            OfficeLength? lineWidth = null, bool noFill = false, bool noLine = false) {
+            ValidateAreaStyle(fillColor, lineColor, lineWidth, noFill, noLine);
 
             ChartPart chartPart = GetChartPart();
             C.ChartSpace? chartSpace = chartPart.ChartSpace;
@@ -25,7 +25,7 @@ namespace OfficeIMO.PowerPoint {
             }
 
             C.ShapeProperties props = chartSpace.GetFirstChild<C.ShapeProperties>() ?? new C.ShapeProperties();
-            ApplyAreaStyle(props, fillColor, lineColor, lineWidthPoints, noFill, noLine);
+            ApplyAreaStyle(props, fillColor, lineColor, lineWidth, noFill, noLine);
             if (props.Parent == null) {
                 InsertChartSpaceShapeProperties(chartSpace, props);
             }
@@ -38,8 +38,8 @@ namespace OfficeIMO.PowerPoint {
         ///     Sets plot area fill/line styling.
         /// </summary>
         public PowerPointChart SetPlotAreaStyle(string? fillColor = null, string? lineColor = null,
-            double? lineWidthPoints = null, bool noFill = false, bool noLine = false) {
-            ValidateAreaStyle(fillColor, lineColor, lineWidthPoints, noFill, noLine);
+            OfficeLength? lineWidth = null, bool noFill = false, bool noLine = false) {
+            ValidateAreaStyle(fillColor, lineColor, lineWidth, noFill, noLine);
 
             C.Chart chart = GetChart();
             C.PlotArea? plotArea = chart.GetFirstChild<C.PlotArea>();
@@ -48,7 +48,7 @@ namespace OfficeIMO.PowerPoint {
             }
 
             C.ShapeProperties props = plotArea.GetFirstChild<C.ShapeProperties>() ?? new C.ShapeProperties();
-            ApplyAreaStyle(props, fillColor, lineColor, lineWidthPoints, noFill, noLine);
+            ApplyAreaStyle(props, fillColor, lineColor, lineWidth, noFill, noLine);
             if (props.Parent == null) {
                 InsertPlotAreaShapeProperties(plotArea, props);
             }
@@ -62,14 +62,14 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public PowerPointChart SetSeriesTrendline(int seriesIndex, OfficeChartTrendlineType type,
             int? order = null, int? period = null, double? forward = null, double? backward = null, double? intercept = null,
-            bool displayEquation = false, bool displayRSquared = false, string? lineColor = null, double? lineWidthPoints = null) {
+            bool displayEquation = false, bool displayRSquared = false, string? lineColor = null, OfficeLength? lineWidth = null) {
             if (seriesIndex < 0) {
                 throw new ArgumentOutOfRangeException(nameof(seriesIndex));
             }
-            ValidateTrendline(type, order, period, forward, backward, lineColor, lineWidthPoints);
+            ValidateTrendline(type, order, period, forward, backward, lineColor, lineWidth);
 
             bool applied = ApplySeriesByIndex(seriesIndex, series => {
-                ApplyTrendline(series, type, order, period, forward, backward, intercept, displayEquation, displayRSquared, lineColor, lineWidthPoints);
+                ApplyTrendline(series, type, order, period, forward, backward, intercept, displayEquation, displayRSquared, lineColor, lineWidth);
             });
 
             if (!applied) {
@@ -85,15 +85,15 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public PowerPointChart SetSeriesTrendline(string seriesName, OfficeChartTrendlineType type,
             int? order = null, int? period = null, double? forward = null, double? backward = null, double? intercept = null,
-            bool displayEquation = false, bool displayRSquared = false, string? lineColor = null, double? lineWidthPoints = null,
+            bool displayEquation = false, bool displayRSquared = false, string? lineColor = null, OfficeLength? lineWidth = null,
             bool ignoreCase = true) {
             if (seriesName == null) {
                 throw new ArgumentNullException(nameof(seriesName));
             }
-            ValidateTrendline(type, order, period, forward, backward, lineColor, lineWidthPoints);
+            ValidateTrendline(type, order, period, forward, backward, lineColor, lineWidth);
 
             bool applied = ApplySeriesByName(seriesName, ignoreCase, series => {
-                ApplyTrendline(series, type, order, period, forward, backward, intercept, displayEquation, displayRSquared, lineColor, lineWidthPoints);
+                ApplyTrendline(series, type, order, period, forward, backward, intercept, displayEquation, displayRSquared, lineColor, lineWidth);
             });
 
             if (!applied) {
@@ -448,7 +448,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Sets the line color for a chart series by index.
         /// </summary>
-        public PowerPointChart SetSeriesLineColor(int seriesIndex, string color, double? widthPoints = null) {
+        public PowerPointChart SetSeriesLineColor(int seriesIndex, string color, OfficeLength? width = null) {
             if (seriesIndex < 0) {
                 throw new ArgumentOutOfRangeException(nameof(seriesIndex));
             }
@@ -458,7 +458,7 @@ namespace OfficeIMO.PowerPoint {
 
             bool applied = ApplySeriesByIndex(seriesIndex, series => {
                 C.ChartShapeProperties props = EnsureChartShapeProperties(series);
-                ApplyLine(props, color, widthPoints);
+                ApplyLine(props, color, width);
                 OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartAutomaticColors.ClearAutomaticSeriesColor(series);
             });
 
@@ -473,7 +473,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Sets the line color for a chart series by name.
         /// </summary>
-        public PowerPointChart SetSeriesLineColor(string seriesName, string color, double? widthPoints = null, bool ignoreCase = true) {
+        public PowerPointChart SetSeriesLineColor(string seriesName, string color, OfficeLength? width = null, bool ignoreCase = true) {
             if (seriesName == null) {
                 throw new ArgumentNullException(nameof(seriesName));
             }
@@ -483,7 +483,7 @@ namespace OfficeIMO.PowerPoint {
 
             bool applied = ApplySeriesByName(seriesName, ignoreCase, series => {
                 C.ChartShapeProperties props = EnsureChartShapeProperties(series);
-                ApplyLine(props, color, widthPoints);
+                ApplyLine(props, color, width);
                 OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartAutomaticColors.ClearAutomaticSeriesColor(series);
             });
 
@@ -498,11 +498,11 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Sets the marker style for a chart series by index.
         /// </summary>
-        public PowerPointChart SetSeriesMarker(int seriesIndex, OfficeChartMarkerShape style, int? size = null, string? fillColor = null, string? lineColor = null, double? lineWidthPoints = null) {
+        public PowerPointChart SetSeriesMarker(int seriesIndex, OfficeChartMarkerShape style, OfficeLength? size = null, string? fillColor = null, string? lineColor = null, OfficeLength? lineWidth = null) {
             if (seriesIndex < 0) {
                 throw new ArgumentOutOfRangeException(nameof(seriesIndex));
             }
-            if (size is < 1 or > 72) {
+            if (size.HasValue && (size.Value < OfficeLength.Points(1) || size.Value > OfficeLength.Points(72))) {
                 throw new ArgumentOutOfRangeException(nameof(size), "Marker size must be between 1 and 72.");
             }
             if (fillColor != null && string.IsNullOrWhiteSpace(fillColor)) {
@@ -513,7 +513,7 @@ namespace OfficeIMO.PowerPoint {
             }
 
             bool applied = ApplySeriesMarkerByIndex(seriesIndex, marker => {
-                ApplyMarker(marker, style, size, fillColor, lineColor, lineWidthPoints);
+                ApplyMarker(marker, style, size, fillColor, lineColor, lineWidth);
             });
 
             if (!applied) {
@@ -527,11 +527,11 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Sets the marker style for a chart series by name.
         /// </summary>
-        public PowerPointChart SetSeriesMarker(string seriesName, OfficeChartMarkerShape style, int? size = null, string? fillColor = null, string? lineColor = null, double? lineWidthPoints = null, bool ignoreCase = true) {
+        public PowerPointChart SetSeriesMarker(string seriesName, OfficeChartMarkerShape style, OfficeLength? size = null, string? fillColor = null, string? lineColor = null, OfficeLength? lineWidth = null, bool ignoreCase = true) {
             if (seriesName == null) {
                 throw new ArgumentNullException(nameof(seriesName));
             }
-            if (size is < 1 or > 72) {
+            if (size.HasValue && (size.Value < OfficeLength.Points(1) || size.Value > OfficeLength.Points(72))) {
                 throw new ArgumentOutOfRangeException(nameof(size), "Marker size must be between 1 and 72.");
             }
             if (fillColor != null && string.IsNullOrWhiteSpace(fillColor)) {
@@ -542,7 +542,7 @@ namespace OfficeIMO.PowerPoint {
             }
 
             bool applied = ApplySeriesMarkerByName(seriesName, ignoreCase, marker => {
-                ApplyMarker(marker, style, size, fillColor, lineColor, lineWidthPoints);
+                ApplyMarker(marker, style, size, fillColor, lineColor, lineWidth);
             });
 
             if (!applied) {

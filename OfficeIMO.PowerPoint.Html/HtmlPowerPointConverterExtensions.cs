@@ -903,7 +903,7 @@ public static partial class HtmlPowerPointConverterExtensions {
                 return false;
             }
 
-            chart = slide.AddChart(OfficeChartType.Bubble,bubbleData,                global::OfficeIMO.OfficeLength.Points(left),global::OfficeIMO.OfficeLength.Points(top),global::OfficeIMO.OfficeLength.Points(width),global::OfficeIMO.OfficeLength.Points(height));
+            chart = slide.AddChart(OfficeChartType.Bubble, bubbleData, new OfficeIMO.PowerPoint.PowerPointChartOptions { Left = global::OfficeIMO.OfficeLength.Points(left), Top = global::OfficeIMO.OfficeLength.Points(top), Width = global::OfficeIMO.OfficeLength.Points(width), Height = global::OfficeIMO.OfficeLength.Points(height) });
             return true;
         }
 

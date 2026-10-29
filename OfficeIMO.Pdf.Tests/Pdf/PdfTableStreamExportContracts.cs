@@ -659,9 +659,9 @@ public class PdfTableStreamExportContracts {
             .Rectangle(
                 120,
                 40,
-                strokeColor: PdfColor.FromRgb(0, 64, 128),
+                strokeColor: global::OfficeIMO.OfficeColor.FromRgb(0, 64, 128),
                 strokeWidth: 2,
-                fillColor: PdfColor.FromRgb(204, 238, 255))
+                fillColor: global::OfficeIMO.OfficeColor.FromRgb(204, 238, 255))
             .ToBytes();
         PdfDocumentReadResult logical = PdfDocumentReadResult.Load(source);
 
@@ -1083,9 +1083,9 @@ public class PdfTableStreamExportContracts {
             .Rectangle(
                 120,
                 40,
-                strokeColor: PdfColor.FromRgb(0, 64, 128),
+                strokeColor: global::OfficeIMO.OfficeColor.FromRgb(0, 64, 128),
                 strokeWidth: 2,
-                fillColor: PdfColor.FromRgb(204, 238, 255))
+                fillColor: global::OfficeIMO.OfficeColor.FromRgb(204, 238, 255))
             .ToBytes();
         PdfDocumentReadResult logical = PdfDocumentReadResult.Load(source);
 

@@ -304,7 +304,7 @@ namespace OfficeIMO.Excel.Pdf {
         private static PdfCore.PdfTableCell CreatePdfCell(string text, ExcelCellStyleInfo? style, StructuredTableCellVisual? tableVisual, ExcelHyperlinkInfo? hyperlink, MergeSpan? span, IReadOnlyDictionary<string, string> sheetDestinations, IReadOnlyDictionary<string, string> cellDestinations, string sheetName, string? cellDestinationName, IReadOnlyList<WorksheetImageExportData>? cellImages, PdfCore.PdfStandardFont defaultFontFamily, double fontScale, bool preserveWorksheetNoWrap, string? formatColor) {
             int rowSpan = span?.RowSpan ?? 1;
             int columnSpan = span?.ColumnSpan ?? 1;
-            PdfCore.PdfColor? textColor = ToPdfColor(formatColor) ?? ToPdfColor(style?.FontColorHex) ?? ToPdfColor(tableVisual?.Text);
+            global::OfficeIMO.OfficeColor? textColor = ToPdfColor(formatColor) ?? ToPdfColor(style?.FontColorHex) ?? ToPdfColor(tableVisual?.Text);
             bool bold = style?.Bold == true || tableVisual?.Bold == true;
             string? linkUri = hyperlink?.IsExternal == true ? hyperlink.Target : null;
             string? linkDestinationName = TryGetInternalHyperlinkDestinationName(hyperlink, sheetName, sheetDestinations, cellDestinations, out string? destinationName)

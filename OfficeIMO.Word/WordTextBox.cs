@@ -189,63 +189,48 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Allows to set vertically position of the text box in twips (twentieths of a point)
+        /// Gets or sets the explicit vertical anchor offset as a physical length.
+        /// Setting an offset replaces vertical alignment. Null preserves the existing offset.
         /// </summary>
-        public int? VerticalPositionOffset {
+        public OfficeLength? VerticalPositionOffset {
             get {
-                var positionOffset = _anchor?.VerticalPosition?.PositionOffset?.Text;
-                return int.TryParse(positionOffset, out var parsed) ? parsed : null;
+                var text = _anchor?.VerticalPosition?.PositionOffset?.Text;
+                return long.TryParse(text, System.Globalization.NumberStyles.Integer,
+                    System.Globalization.CultureInfo.InvariantCulture, out long emus)
+                    ? OfficeLength.Emus(emus) : (OfficeLength?)null;
             }
             set {
+                // wp:posOffset is a signed 32-bit EMU value. Check before replacing alignment.
+                if (!value.HasValue) return;
+                int emus = checked((int)value.Value.ToEmus());
                 var anchor = _anchor;
-                var verticalPosition = anchor == null ? null : AddVerticalPosition(anchor, true);
-                if (verticalPosition != null && value.HasValue) {
-                    verticalPosition.PositionOffset ??= new PositionOffset();
-                    verticalPosition.PositionOffset.Text = value.Value.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                var position = anchor == null ? null : AddVerticalPosition(anchor, true);
+                if (position != null) {
+                    position.PositionOffset ??= new PositionOffset();
+                    position.PositionOffset.Text = emus.ToString(System.Globalization.CultureInfo.InvariantCulture);
                 }
             }
         }
 
         /// <summary>
-        /// Allows to set vertically position of the text box in twips (twentieths of a point)
-        /// Please remember that this property will remove alignment of the text box and instead use Absolute position
+        /// Gets or sets the explicit horizontal anchor offset as a physical length.
+        /// Setting an offset replaces horizontal alignment. Null preserves the existing offset.
         /// </summary>
-        public int? HorizontalPositionOffset {
+        public OfficeLength? HorizontalPositionOffset {
             get {
-                var positionOffset = _anchor?.HorizontalPosition?.PositionOffset?.Text;
-                return int.TryParse(positionOffset, out var parsed) ? parsed : null;
+                var text = _anchor?.HorizontalPosition?.PositionOffset?.Text;
+                return long.TryParse(text, System.Globalization.NumberStyles.Integer,
+                    System.Globalization.CultureInfo.InvariantCulture, out long emus)
+                    ? OfficeLength.Emus(emus) : (OfficeLength?)null;
             }
             set {
+                if (!value.HasValue) return;
+                int emus = checked((int)value.Value.ToEmus());
                 var anchor = _anchor;
-                var horizontalPosition = anchor == null ? null : AddHorizontalPosition(anchor, true);
-                if (horizontalPosition != null && value.HasValue) {
-                    horizontalPosition.PositionOffset ??= new PositionOffset();
-                    horizontalPosition.PositionOffset.Text = value.Value.ToString(System.Globalization.CultureInfo.InvariantCulture);
-                }
-            }
-        }
-
-        /// <summary>
-        /// Allows to set horizontally position of the text box in centimeters
-        /// </summary>
-        public double? HorizontalPositionOffsetCentimeters {
-            get => HorizontalPositionOffset.HasValue ? Helpers.ConvertEmusToCentimeters(HorizontalPositionOffset.Value) : null;
-            set {
-                if (value.HasValue) {
-                    HorizontalPositionOffset = Helpers.ConvertCentimetersToEmus(value.Value);
-                }
-            }
-        }
-
-        /// <summary>
-        /// Allows to set vertically position of the text box in centimeters
-        /// </summary>
-        public double? VerticalPositionOffsetCentimeters {
-            get => VerticalPositionOffset.HasValue ? Helpers.ConvertEmusToCentimeters(VerticalPositionOffset.Value) : null;
-
-            set {
-                if (value.HasValue) {
-                    VerticalPositionOffset = Helpers.ConvertCentimetersToEmus(value.Value);
+                var position = anchor == null ? null : AddHorizontalPosition(anchor, true);
+                if (position != null) {
+                    position.PositionOffset ??= new PositionOffset();
+                    position.PositionOffset.Text = emus.ToString(System.Globalization.CultureInfo.InvariantCulture);
                 }
             }
         }
@@ -412,24 +397,26 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Gets or sets the width of an anchored or inline text box in EMUs.
+        /// Gets or sets the physical frame width of an anchored or inline text box.
+        /// Relative sizing remains controlled by RelativeWidthPercentage.
         /// </summary>
-        public Int64 Width {
-            get => (_anchorExtent ?? _inline?.Extent)?.Cx?.Value ?? 0L;
+        public OfficeLength Width {
+            get => OfficeLength.Emus((_anchorExtent ?? _inline?.Extent)?.Cx?.Value ?? 0L);
             set {
                 Extent? extent = GetOrCreateDrawingExtent();
-                if (extent != null) extent.Cx = value;
+                if (extent != null) extent.Cx = value.ToEmus();
             }
         }
 
         /// <summary>
-        /// Gets or sets the height of an anchored or inline text box in EMUs.
+        /// Gets or sets the physical frame height of an anchored or inline text box.
+        /// Relative sizing remains controlled by RelativeHeightPercentage.
         /// </summary>
-        public Int64 Height {
-            get => (_anchorExtent ?? _inline?.Extent)?.Cy?.Value ?? 0L;
+        public OfficeLength Height {
+            get => OfficeLength.Emus((_anchorExtent ?? _inline?.Extent)?.Cy?.Value ?? 0L);
             set {
                 Extent? extent = GetOrCreateDrawingExtent();
-                if (extent != null) extent.Cy = value;
+                if (extent != null) extent.Cy = value.ToEmus();
             }
         }
 
@@ -462,32 +449,6 @@ namespace OfficeIMO.Word {
             get => _anchor?.RelativeHeight?.Value ?? 0U;
             set {
                 if (_anchor != null) _anchor.RelativeHeight = value;
-            }
-        }
-
-        /// <summary>
-        /// Width of the text box in centimeters
-        /// Sets the width of the text box in centimeters
-        /// Sets the relative width percentage to 0 as it seems to be required
-        /// </summary>
-        public double WidthCentimeters {
-            get => Helpers.ConvertEmusToCentimeters(Width);
-            set {
-                Width = Helpers.ConvertCentimetersToEmusInt64(value);
-                RelativeWidthPercentage = 0;
-            }
-        }
-
-        /// <summary>
-        /// Height of the text box in centimeters
-        /// Sets the height of the text box in centimeters
-        /// Sets the relative height percentage to 0 as it seems to be required
-        /// </summary>
-        public double HeightCentimeters {
-            get => Helpers.ConvertEmusToCentimeters(Height);
-            set {
-                Height = Helpers.ConvertCentimetersToEmusInt64(value);
-                RelativeHeightPercentage = 0;
             }
         }
 

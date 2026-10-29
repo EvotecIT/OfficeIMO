@@ -79,8 +79,7 @@ namespace OfficeIMO.Examples.PowerPoint {
                 new OfficeSeries("Q1", rows.Select(r => (double)r.Q1)),
                 new OfficeSeries("Q2", rows.Select(r => (double)r.Q2))
             });
-            PowerPointChart chart = dataSlide.AddChart(OfficeChartType.ColumnClustered, chartData,
-                rightColumn.Left, rightColumn.Top, rightColumn.Width, rightColumn.Height);
+            PowerPointChart chart = dataSlide.AddChart(OfficeChartType.ColumnClustered, chartData, new OfficeIMO.PowerPoint.PowerPointChartOptions { Left = rightColumn.Left, Top = rightColumn.Top, Width = rightColumn.Width, Height = rightColumn.Height });
             chart.SetTitle("Quarterly results");
 
             // Slide 4: notes

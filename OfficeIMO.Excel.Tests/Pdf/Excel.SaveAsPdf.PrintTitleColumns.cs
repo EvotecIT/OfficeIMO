@@ -114,8 +114,8 @@ public partial class Excel {
             Assert.Equal(2, table.Cells[0][0].ColumnSpan);
             PdfCore.PdfTextRun run = Assert.Single(table.Cells[0][0].Runs);
             Assert.True(run.Bold);
-            Assert.Equal(PdfCore.PdfColor.FromRgb(17, 34, 51), run.Color);
-            Assert.Equal(PdfCore.PdfColor.FromRgb(221, 238, 255), table.Style!.CellFills![(0, 0)]);
+            Assert.Equal(global::OfficeIMO.OfficeColor.FromRgb(17, 34, 51), run.Color);
+            Assert.Equal(global::OfficeIMO.OfficeColor.FromRgb(221, 238, 255), table.Style!.CellFills![(0, 0)]);
             Assert.Equal(2D, table.Style.ColumnWidthWeights![1] / table.Style.ColumnWidthWeights[0]);
         }
     }

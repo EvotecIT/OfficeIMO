@@ -11,7 +11,7 @@ public sealed class PdfPageBorder {
     private double _opacity = 1D;
 
     /// <summary>Border stroke color.</summary>
-    public PdfColor Color { get; set; } = PdfColor.FromRgb(203, 213, 225);
+    public global::OfficeIMO.OfficeColor Color { get; set; } = global::OfficeIMO.OfficeColor.FromRgb(203, 213, 225);
 
     /// <summary>Border stroke width in points.</summary>
     public double Width {

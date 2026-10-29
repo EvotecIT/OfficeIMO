@@ -41,7 +41,7 @@ public sealed class PowerPointPdfTableFidelityTests {
         Assert.True(item.Height > 40D);
         Assert.Equal(item.Height, style.RowMinHeights!.Sum(value => value!.Value), 5);
         Assert.True(item.Block.Cells[0][1].ShrinkTextToFit);
-        Assert.Equal(PdfCore.PdfColor.White, Assert.Single(item.Block.Cells[0][1].Runs).Color);
+        Assert.Equal(global::OfficeIMO.OfficeColor.White, Assert.Single(item.Block.Cells[0][1].Runs).Color);
         Assert.True(Assert.Single(item.Block.Cells[0][1].Runs).Bold);
         Assert.False(Assert.Single(item.Block.Cells[1][0].Runs).Bold);
         Assert.Equal("Helvetica", Assert.Single(item.Block.Cells[0][1].Runs).FontFamily);
@@ -93,7 +93,7 @@ public sealed class PowerPointPdfTableFidelityTests {
         var run = Assert.Single(mapped.Runs);
         Assert.False(run.Bold);
         Assert.Equal((double)fontSize, run.FontSize);
-        Assert.Equal(PdfCore.PdfColor.FromRgb(255, 0, 0), run.Color);
+        Assert.Equal(global::OfficeIMO.OfficeColor.FromRgb(255, 0, 0), run.Color);
         Assert.Equal(0D, item.Block.Style!.CellPaddings![(0, 0)].Left);
         Assert.Equal(10D, item.Block.Style.CellPaddings[(0, 0)].Bottom);
         Assert.True(item.Height > 24D);
@@ -130,7 +130,7 @@ public sealed class PowerPointPdfTableFidelityTests {
         Assert.True(item.Block.Cells[0][0].Runs[0].Bold);
         Assert.False(item.Block.Cells[0][0].Runs[1].Bold);
         Assert.NotEqual(28D, item.Block.Cells[0][0].Runs[1].FontSize);
-        Assert.NotEqual(PdfCore.PdfColor.FromRgb(255, 0, 0), item.Block.Cells[0][0].Runs[1].Color);
+        Assert.NotEqual(global::OfficeIMO.OfficeColor.FromRgb(255, 0, 0), item.Block.Cells[0][0].Runs[1].Color);
         conversion.ToBytes();
         Assert.DoesNotContain(conversion.Warnings, warning => warning.Code == "table-cell-overflow");
     }

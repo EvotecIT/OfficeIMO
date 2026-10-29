@@ -17,16 +17,16 @@ public class PdfFormFieldStyle {
     internal long? LogicalOrder { get; set; }
 
     /// <summary>Background fill color. Set to null for transparent field appearance streams.</summary>
-    public PdfColor? BackgroundColor { get; set; } = PdfColor.White;
+    public global::OfficeIMO.OfficeColor? BackgroundColor { get; set; } = global::OfficeIMO.OfficeColor.White;
 
     /// <summary>Border stroke color. Set to null for no border stroke.</summary>
-    public PdfColor? BorderColor { get; set; } = new PdfColor(0.75, 0.75, 0.75);
+    public global::OfficeIMO.OfficeColor? BorderColor { get; set; } = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.75, 0.75, 0.75);
 
     /// <summary>Text color for generated text and choice field appearance streams.</summary>
-    public PdfColor TextColor { get; set; } = PdfColor.Black;
+    public global::OfficeIMO.OfficeColor TextColor { get; set; } = global::OfficeIMO.OfficeColor.Black;
 
     /// <summary>Check mark or radio dot color for generated button field appearance streams.</summary>
-    public PdfColor MarkColor { get; set; } = PdfColor.Black;
+    public global::OfficeIMO.OfficeColor MarkColor { get; set; } = global::OfficeIMO.OfficeColor.Black;
 
     /// <summary>When true, generated AcroForm fields emit the common read-only field flag.</summary>
     public bool IsReadOnly { get; set; }

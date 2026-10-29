@@ -36,7 +36,7 @@ public sealed class ExcelTypedTableChartPreservationTests {
                     break;
                 case "Shared":
                     sheet.AddChart(OfficeChartType.Column, new OfficeChartData(new[] { "Northwind", "Contoso" },
-                        new[] { new OfficeSeries("Total", new[] { 12.5, 19.75 }) }), 1, 4);
+                        new[] { new OfficeSeries("Total", new[] { 12.5, 19.75 }) }), new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 4 });
                     break;
                 default:
                     ExcelChart chart = sheet.AddChart(new ExcelChartData(new[] { "Northwind", "Contoso" },

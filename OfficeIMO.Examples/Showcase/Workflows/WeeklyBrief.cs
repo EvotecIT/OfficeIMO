@@ -6,7 +6,7 @@ namespace OfficeIMO.Examples.Showcase.Workflows;
 /// <summary>Combines a decision panel, concise narrative, and action table in a weekly PDF brief.</summary>
 internal static class WeeklyBrief {
     internal static void Create(string folder) {
-        PdfColor navy = PdfColor.FromRgb(23, 54, 93);
+        global::OfficeIMO.OfficeColor navy = global::OfficeIMO.OfficeColor.FromRgb(23, 54, 93);
         string fonts = Path.Combine(AppContext.BaseDirectory, "Assets", "Fonts");
         var options = new PdfCreateOptions { DefaultFontSize = 11 }
             .UseFontFamily(new PdfEmbeddedFontFamily("Carlito",
@@ -19,8 +19,8 @@ internal static class WeeklyBrief {
             .PanelParagraph(p => p.Bold("Decision for this week\n").Text(
                 "Approve the second pilot group after the recovery exercise is complete."),
                 new PdfPanelStyle {
-                    Background = PdfColor.FromRgb(232, 246, 237),
-                    BorderColor = PdfColor.FromRgb(117, 170, 135), PaddingX = 12, PaddingY = 12
+                    Background = global::OfficeIMO.OfficeColor.FromRgb(232, 246, 237),
+                    BorderColor = global::OfficeIMO.OfficeColor.FromRgb(117, 170, 135), PaddingX = 12, PaddingY = 12
                 })
             .H2("Progress", PdfAlign.Left, navy)
             .Bullets(new[] {
@@ -37,8 +37,8 @@ internal static class WeeklyBrief {
                 new[] { "Close access issues", "Engineering", "Wednesday" },
                 new[] { "Review pilot expansion", "Product", "Friday" }
             }, style: new PdfTableStyle {
-                HeaderFill = navy, HeaderTextColor = PdfColor.White, HeaderRowCount = 1,
-                RowStripeFill = PdfColor.FromRgb(241, 245, 249), CellPaddingX = 8, CellPaddingY = 8
+                HeaderFill = navy, HeaderTextColor = global::OfficeIMO.OfficeColor.White, HeaderRowCount = 1,
+                RowStripeFill = global::OfficeIMO.OfficeColor.FromRgb(241, 245, 249), CellPaddingX = 8, CellPaddingY = 8
             })
             .Paragraph(p => p.Text("Prepared from sample data. Keep the brief focused on decisions and actions."))),
             options)

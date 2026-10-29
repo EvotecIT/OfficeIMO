@@ -156,8 +156,8 @@ public partial class Excel {
             CellPaddingX = 9,
             CellPaddingY = 7,
             BorderColor = null,
-            HeaderFill = PdfCore.PdfColor.FromRgb(10, 20, 30),
-            HeaderTextColor = PdfCore.PdfColor.FromRgb(240, 245, 250),
+            HeaderFill = global::OfficeIMO.OfficeColor.FromRgb(10, 20, 30),
+            HeaderTextColor = global::OfficeIMO.OfficeColor.FromRgb(240, 245, 250),
             RowStripeFill = null,
             FontSize = 10.5D,
             SpacingAfter = 12D
@@ -192,8 +192,8 @@ public partial class Excel {
         Assert.Equal(9, style.CellPaddingX);
         Assert.Equal(7, style.CellPaddingY);
         Assert.Null(style.BorderColor);
-        Assert.Equal(PdfCore.PdfColor.FromRgb(10, 20, 30), style.HeaderFill);
-        Assert.Equal(PdfCore.PdfColor.FromRgb(240, 245, 250), style.HeaderTextColor);
+        Assert.Equal(global::OfficeIMO.OfficeColor.FromRgb(10, 20, 30), style.HeaderFill);
+        Assert.Equal(global::OfficeIMO.OfficeColor.FromRgb(240, 245, 250), style.HeaderTextColor);
         Assert.Null(style.RowStripeFill);
         Assert.Equal(10.5D, style.FontSize);
         Assert.Equal(12D, style.SpacingAfter);
@@ -231,9 +231,9 @@ public partial class Excel {
 
         Assert.Equal(4D, style.CellPaddingX);
         Assert.Equal(3D, style.CellPaddingY);
-        Assert.Equal(PdfCore.PdfColor.FromRgb(230, 238, 247), style.HeaderFill);
-        Assert.Equal(PdfCore.PdfColor.FromRgb(31, 78, 121), style.HeaderTextColor);
-        Assert.Equal(PdfCore.PdfColor.FromRgb(248, 250, 252), style.RowStripeFill);
+        Assert.Equal(global::OfficeIMO.OfficeColor.FromRgb(230, 238, 247), style.HeaderFill);
+        Assert.Equal(global::OfficeIMO.OfficeColor.FromRgb(31, 78, 121), style.HeaderTextColor);
+        Assert.Equal(global::OfficeIMO.OfficeColor.FromRgb(248, 250, 252), style.RowStripeFill);
     }
 
     [Fact]

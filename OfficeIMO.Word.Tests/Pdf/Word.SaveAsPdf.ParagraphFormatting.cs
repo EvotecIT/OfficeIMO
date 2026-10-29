@@ -1089,15 +1089,15 @@ namespace OfficeIMO.Tests {
             Assert.True(run.Underline);
             Assert.Equal(OfficeTextDecorationStyle.Wavy, run.UnderlineStyle);
             Assert.Equal(OfficeTextDecorationStyle.Double, run.StrikeStyle);
-            Assert.Equal(PdfColor.FromRgb(192, 0, 0), run.Color);
-            Assert.Equal(PdfColor.FromRgb(255, 255, 0), run.BackgroundColor);
+            Assert.Equal(global::OfficeIMO.OfficeColor.FromRgb(192, 0, 0), run.Color);
+            Assert.Equal(global::OfficeIMO.OfficeColor.FromRgb(255, 255, 0), run.BackgroundColor);
             Assert.Equal(14D, run.FontSize);
             Assert.False(overrideRun.Bold);
             Assert.False(overrideRun.Italic);
             Assert.False(overrideRun.Underline);
             Assert.Equal(OfficeTextDecorationStyle.None, overrideRun.UnderlineStyle);
             Assert.Equal(OfficeTextDecorationStyle.None, overrideRun.StrikeStyle);
-            Assert.Equal(PdfColor.FromRgb(0, 0, 255), overrideRun.Color);
+            Assert.Equal(global::OfficeIMO.OfficeColor.FromRgb(0, 0, 255), overrideRun.Color);
             Assert.Equal(10D, overrideRun.FontSize);
         }
 

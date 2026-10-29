@@ -81,7 +81,7 @@ public sealed class PdfBatesNumberingOptions {
     public double FontSize { get; set; } = 10D;
 
     /// <summary>Text color.</summary>
-    public PdfColor Color { get; set; } = PdfColor.Black;
+    public global::OfficeIMO.OfficeColor Color { get; set; } = global::OfficeIMO.OfficeColor.Black;
 }
 
 /// <summary>One assigned Bates number in a batch report.</summary>

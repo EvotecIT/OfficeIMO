@@ -15,20 +15,20 @@ namespace OfficeIMO.Examples.Pdf {
             };
 
             var style = new PdfTableStyle {
-                HeaderFill = PdfColor.FromRgb(32, 76, 120),
-                HeaderTextColor = PdfColor.White,
-                TextColor = PdfColor.FromRgb(31, 41, 55),
-                FooterFill = PdfColor.FromRgb(232, 241, 248),
-                FooterTextColor = PdfColor.FromRgb(25, 55, 85),
-                RowStripeFill = PdfColor.FromRgb(248, 250, 252),
-                BorderColor = PdfColor.FromRgb(210, 218, 226),
+                HeaderFill = global::OfficeIMO.OfficeColor.FromRgb(32, 76, 120),
+                HeaderTextColor = global::OfficeIMO.OfficeColor.White,
+                TextColor = global::OfficeIMO.OfficeColor.FromRgb(31, 41, 55),
+                FooterFill = global::OfficeIMO.OfficeColor.FromRgb(232, 241, 248),
+                FooterTextColor = global::OfficeIMO.OfficeColor.FromRgb(25, 55, 85),
+                RowStripeFill = global::OfficeIMO.OfficeColor.FromRgb(248, 250, 252),
+                BorderColor = global::OfficeIMO.OfficeColor.FromRgb(210, 218, 226),
                 BorderWidth = 0.5,
                 CellPaddingX = 6,
                 CellPaddingY = 5,
                 HeaderRowCount = 1,
                 FooterRowCount = 1,
                 Caption = "Table 1. Example line items",
-                CaptionColor = PdfColor.FromRgb(80, 90, 100),
+                CaptionColor = global::OfficeIMO.OfficeColor.FromRgb(80, 90, 100),
                 CaptionFontSize = 8.5,
                 CaptionSpacingAfter = 5,
                 SpacingBefore = 6,
@@ -46,23 +46,23 @@ namespace OfficeIMO.Examples.Pdf {
             };
 
             PdfDocument.Create(pdf => pdf.Content(content => content
-                .H1("Lists and Tables", PdfAlign.Left, PdfColor.FromRgb(25, 55, 85))
+                .H1("Lists and Tables", PdfAlign.Left, global::OfficeIMO.OfficeColor.FromRgb(25, 55, 85))
                 .Paragraph(p => p.Text("A compact report sample for list rhythm, numeric alignment, footer rows, and wrapped table notes."))
                 .Bullets(new[] {
                     "Report-friendly list spacing",
                     "Right-aligned quantities and amounts",
                     "Footer row that remains visually distinct"
-                }, PdfAlign.Left, PdfColor.FromRgb(55, 65, 81))
+                }, PdfAlign.Left, global::OfficeIMO.OfficeColor.FromRgb(55, 65, 81))
                 .Numbered(new[] {
                     "Collect line items.",
                     "Render the table with stable column widths.",
                     "Review the generated PDF through the raster gate."
-                }, PdfAlign.Left, PdfColor.FromRgb(55, 65, 81))
+                }, PdfAlign.Left, global::OfficeIMO.OfficeColor.FromRgb(55, 65, 81))
                 .Table(rows, PdfAlign.Left, style)
-                .Paragraph(p => p.Text("End of lists and tables sample."), PdfAlign.Right, PdfColor.FromRgb(80, 80, 80))), new PdfCreateOptions {
+                .Paragraph(p => p.Text("End of lists and tables sample."), PdfAlign.Right, global::OfficeIMO.OfficeColor.FromRgb(80, 80, 80))), new PdfCreateOptions {
                     DefaultFont = PdfStandardFont.Helvetica,
                     DefaultFontSize = 10,
-                    DefaultTextColor = PdfColor.FromRgb(31, 41, 55),
+                    DefaultTextColor = global::OfficeIMO.OfficeColor.FromRgb(31, 41, 55),
                     HeaderFont = PdfStandardFont.Helvetica,
                     HeaderFontSize = 8,
                     HeaderFormat = "OfficeIMO.Pdf lists and tables",

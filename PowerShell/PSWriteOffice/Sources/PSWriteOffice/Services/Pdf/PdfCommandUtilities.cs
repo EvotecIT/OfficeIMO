@@ -324,7 +324,7 @@ internal static class PdfCommandUtilities
         return document.Security.Encrypt(options).ToDocument();
     }
 
-    internal static PdfColor? ParseColor(string? color)
+    internal static global::OfficeIMO.OfficeColor? ParseColor(string? color)
         => OfficeColorUtilities.ToPdfColor(color);
 
     internal static PdfPageSize ResolvePageSize(string? pageSize, double? width, double? height, bool landscape)

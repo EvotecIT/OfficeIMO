@@ -13,7 +13,7 @@ public sealed partial class PdfTableCellViewportTests {
         var left = new PdfTableCell(string.Empty).WithViewport(new PdfTableCellViewport(200, 24, 100, 24));
         var right = new PdfTableCell(string.Empty).WithViewport(new PdfTableCellViewport(200, 24, 100, 24, offsetX: 100));
         void Configure(PdfTableStyle style) => style.CellDataBars = new Dictionary<(int, int), PdfCellDataBar> {
-            [(0, 0)] = new PdfCellDataBar { Color = PdfColor.FromRgb(0, 255, 0), Ratio = 0.5 }
+            [(0, 0)] = new PdfCellDataBar { Color = global::OfficeIMO.OfficeColor.FromRgb(0, 255, 0), Ratio = 0.5 }
         };
         string first = PdfTestContentText.ReadDecoded(Render(mode, left, PdfCellVerticalAlign.Top, Configure));
         string second = PdfTestContentText.ReadDecoded(Render(mode, right, PdfCellVerticalAlign.Top, Configure));
@@ -28,7 +28,7 @@ public sealed partial class PdfTableCellViewportTests {
     public void Icon_alignment_can_differ_from_text_and_stays_in_the_original_fragment(string mode) {
         var left = new PdfTableCell("99").WithViewport(new PdfTableCellViewport(200, 24, 100, 24));
         var right = new PdfTableCell("99").WithViewport(new PdfTableCellViewport(200, 24, 100, 24, offsetX: 100));
-        var icon = new PdfCellIcon { Color = PdfColor.FromRgb(0, 255, 0), HorizontalAlignment = PdfColumnAlign.Left };
+        var icon = new PdfCellIcon { Color = global::OfficeIMO.OfficeColor.FromRgb(0, 255, 0), HorizontalAlignment = PdfColumnAlign.Left };
         void Configure(PdfTableStyle style) {
             style.CellAlignments = new Dictionary<(int, int), PdfColumnAlign> { [(0, 0)] = PdfColumnAlign.Right };
             style.CellIcons = new Dictionary<(int, int), PdfCellIcon> { [(0, 0)] = icon };
@@ -91,7 +91,7 @@ public sealed partial class PdfTableCellViewportTests {
         byte[] bytes = Render(mode, cell, PdfCellVerticalAlign.Top, style => {
             style.CornerRadius = rounded ? 4 : 0;
             style.CellBorders = new Dictionary<(int, int), PdfCellBorder> { [(0, 0)] = new PdfCellBorder {
-                Top = false, Right = false, Bottom = false, Left = false, DiagonalDown = true, Width = 1, Color = PdfColor.Black
+                Top = false, Right = false, Bottom = false, Left = false, DiagonalDown = true, Width = 1, Color = global::OfficeIMO.OfficeColor.Black
             } };
         });
         string content = PdfTestContentText.ReadDecoded(bytes);

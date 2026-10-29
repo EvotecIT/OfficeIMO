@@ -204,15 +204,15 @@ public partial class Word {
         Assert.True(topLeft.Right);
         Assert.True(topLeft.Bottom);
         Assert.True(topLeft.Left);
-        Assert.Equal(PdfCore.PdfColor.FromRgb(255, 0, 0), topLeft.TopBorder!.Color);
+        Assert.Equal(global::OfficeIMO.OfficeColor.FromRgb(255, 0, 0), topLeft.TopBorder!.Color);
         Assert.Equal(2D, topLeft.TopBorder.Width);
-        Assert.Equal(PdfCore.PdfColor.FromRgb(255, 255, 0), topLeft.RightBorder!.Color);
+        Assert.Equal(global::OfficeIMO.OfficeColor.FromRgb(255, 255, 0), topLeft.RightBorder!.Color);
         Assert.Equal(1.5D, topLeft.RightBorder.Width);
-        Assert.Equal(PdfCore.PdfColor.FromRgb(0, 128, 0), topLeft.BottomBorder!.Color);
+        Assert.Equal(global::OfficeIMO.OfficeColor.FromRgb(0, 128, 0), topLeft.BottomBorder!.Color);
         Assert.Equal(1D, topLeft.BottomBorder.Width);
 
         PdfCore.PdfCellBorder bottomRight = style.CellBorders[(1, 1)];
-        Assert.Equal(PdfCore.PdfColor.FromRgb(0, 0, 255), bottomRight.BottomBorder!.Color);
+        Assert.Equal(global::OfficeIMO.OfficeColor.FromRgb(0, 0, 255), bottomRight.BottomBorder!.Color);
         Assert.Equal(2.5D, bottomRight.BottomBorder.Width);
     }
 
@@ -238,8 +238,8 @@ public partial class Word {
         PdfCore.PdfTableStyle style = CreateNativeTableStyleForTest(table);
 
         Assert.Equal(1, style.HeaderRowCount);
-        Assert.Equal(PdfCore.PdfColor.FromRgb(17, 34, 51), style.HeaderFill);
-        Assert.Equal(PdfCore.PdfColor.FromRgb(255, 255, 255), style.HeaderTextColor);
+        Assert.Equal(global::OfficeIMO.OfficeColor.FromRgb(17, 34, 51), style.HeaderFill);
+        Assert.Equal(global::OfficeIMO.OfficeColor.FromRgb(255, 255, 255), style.HeaderTextColor);
         Assert.True(style.HeaderBold);
     }
 
@@ -265,8 +265,8 @@ public partial class Word {
         Assert.Equal(0, style.HeaderRowCount);
         Assert.Equal(0, style.RepeatHeaderRowCount);
         Assert.NotNull(style.CellFills);
-        Assert.Equal(PdfCore.PdfColor.FromRgb(17, 34, 51), style.CellFills![(0, 0)]);
-        Assert.Equal(PdfCore.PdfColor.FromRgb(17, 34, 51), style.CellFills[(0, 1)]);
+        Assert.Equal(global::OfficeIMO.OfficeColor.FromRgb(17, 34, 51), style.CellFills![(0, 0)]);
+        Assert.Equal(global::OfficeIMO.OfficeColor.FromRgb(17, 34, 51), style.CellFills[(0, 1)]);
     }
 
     [Fact]
@@ -291,8 +291,8 @@ public partial class Word {
         PdfCore.PdfTableStyle style = CreateNativeTableStyleForTest(table);
 
         Assert.Equal(1, style.FooterRowCount);
-        Assert.Equal(PdfCore.PdfColor.FromRgb(51, 102, 153), style.FooterFill);
-        Assert.Equal(PdfCore.PdfColor.FromRgb(255, 255, 255), style.FooterTextColor);
+        Assert.Equal(global::OfficeIMO.OfficeColor.FromRgb(51, 102, 153), style.FooterFill);
+        Assert.Equal(global::OfficeIMO.OfficeColor.FromRgb(255, 255, 255), style.FooterTextColor);
         Assert.True(style.FooterBold);
     }
 
@@ -327,7 +327,7 @@ public partial class Word {
         Assert.True(headerLeft.Bottom);
         Assert.True(headerRight.Bottom);
         Assert.False(headerLeft.Top);
-        Assert.Equal(PdfCore.PdfColor.FromRgb(17, 34, 51), headerLeft.BottomBorder!.Color);
+        Assert.Equal(global::OfficeIMO.OfficeColor.FromRgb(17, 34, 51), headerLeft.BottomBorder!.Color);
         Assert.Equal(2D, headerLeft.BottomBorder.Width);
 
         PdfCore.PdfCellBorder footerLeft = style.CellBorders![(2, 0)];
@@ -335,7 +335,7 @@ public partial class Word {
         Assert.True(footerLeft.Top);
         Assert.True(footerRight.Top);
         Assert.False(footerLeft.Bottom);
-        Assert.Equal(PdfCore.PdfColor.FromRgb(68, 85, 102), footerLeft.TopBorder!.Color);
+        Assert.Equal(global::OfficeIMO.OfficeColor.FromRgb(68, 85, 102), footerLeft.TopBorder!.Color);
         Assert.Equal(1.5D, footerLeft.TopBorder.Width);
         Assert.False(style.CellBorders!.ContainsKey((1, 0)));
     }
@@ -364,10 +364,10 @@ public partial class Word {
         PdfCore.PdfTableStyle style = CreateNativeTableStyleForTest(table);
 
         Assert.NotNull(style.CellFills);
-        Assert.Equal(PdfCore.PdfColor.FromRgb(204, 238, 255), style.CellFills![(0, 0)]);
-        Assert.Equal(PdfCore.PdfColor.FromRgb(204, 238, 255), style.CellFills![(1, 0)]);
-        Assert.Equal(PdfCore.PdfColor.FromRgb(255, 204, 153), style.CellFills![(0, 2)]);
-        Assert.Equal(PdfCore.PdfColor.FromRgb(255, 204, 153), style.CellFills![(1, 2)]);
+        Assert.Equal(global::OfficeIMO.OfficeColor.FromRgb(204, 238, 255), style.CellFills![(0, 0)]);
+        Assert.Equal(global::OfficeIMO.OfficeColor.FromRgb(204, 238, 255), style.CellFills![(1, 0)]);
+        Assert.Equal(global::OfficeIMO.OfficeColor.FromRgb(255, 204, 153), style.CellFills![(0, 2)]);
+        Assert.Equal(global::OfficeIMO.OfficeColor.FromRgb(255, 204, 153), style.CellFills![(1, 2)]);
         Assert.False(style.CellFills!.ContainsKey((0, 1)));
     }
 
@@ -399,11 +399,11 @@ public partial class Word {
         Assert.NotNull(style.CellBorders);
         Assert.True(style.CellBorders![(0, 0)].Right);
         Assert.True(style.CellBorders![(1, 0)].Right);
-        Assert.Equal(PdfCore.PdfColor.FromRgb(17, 34, 51), style.CellBorders![(0, 0)].RightBorder!.Color);
+        Assert.Equal(global::OfficeIMO.OfficeColor.FromRgb(17, 34, 51), style.CellBorders![(0, 0)].RightBorder!.Color);
         Assert.Equal(1D, style.CellBorders![(0, 0)].RightBorder!.Width);
         Assert.True(style.CellBorders![(0, 2)].Left);
         Assert.True(style.CellBorders![(1, 2)].Left);
-        Assert.Equal(PdfCore.PdfColor.FromRgb(68, 85, 102), style.CellBorders![(0, 2)].LeftBorder!.Color);
+        Assert.Equal(global::OfficeIMO.OfficeColor.FromRgb(68, 85, 102), style.CellBorders![(0, 2)].LeftBorder!.Color);
         Assert.Equal(1.5D, style.CellBorders![(0, 2)].LeftBorder!.Width);
         Assert.False(style.CellBorders!.ContainsKey((0, 1)));
     }
@@ -426,7 +426,7 @@ public partial class Word {
 
         PdfCore.PdfTableStyle style = CreateNativeTableStyleForTest(table);
 
-        Assert.Equal(PdfCore.PdfColor.FromRgb(153, 204, 255), style.RowStripeFill);
+        Assert.Equal(global::OfficeIMO.OfficeColor.FromRgb(153, 204, 255), style.RowStripeFill);
 
         table.ConditionalFormattingNoHorizontalBand = true;
         PdfCore.PdfTableStyle disabledStyle = CreateNativeTableStyleForTest(table);
@@ -454,9 +454,9 @@ public partial class Word {
 
         Assert.NotNull(style.BodyColumnFills);
         Assert.Null(style.BodyColumnFills![0]);
-        Assert.Equal(PdfCore.PdfColor.FromRgb(204, 153, 255), style.BodyColumnFills[1]);
+        Assert.Equal(global::OfficeIMO.OfficeColor.FromRgb(204, 153, 255), style.BodyColumnFills[1]);
         Assert.Null(style.BodyColumnFills[2]);
-        Assert.Equal(PdfCore.PdfColor.FromRgb(204, 153, 255), style.BodyColumnFills[3]);
+        Assert.Equal(global::OfficeIMO.OfficeColor.FromRgb(204, 153, 255), style.BodyColumnFills[3]);
 
         table.ConditionalFormattingNoVerticalBand = true;
         PdfCore.PdfTableStyle disabledStyle = CreateNativeTableStyleForTest(table);
@@ -494,11 +494,11 @@ public partial class Word {
         Assert.NotNull(style.CellBorders);
         Assert.True(style.CellBorders![(2, 0)].Top);
         Assert.True(style.CellBorders![(2, 0)].Bottom);
-        Assert.Equal(PdfCore.PdfColor.FromRgb(170, 0, 0), style.CellBorders![(2, 0)].TopBorder!.Color);
-        Assert.Equal(PdfCore.PdfColor.FromRgb(170, 0, 0), style.CellBorders![(2, 2)].BottomBorder!.Color);
+        Assert.Equal(global::OfficeIMO.OfficeColor.FromRgb(170, 0, 0), style.CellBorders![(2, 0)].TopBorder!.Color);
+        Assert.Equal(global::OfficeIMO.OfficeColor.FromRgb(170, 0, 0), style.CellBorders![(2, 2)].BottomBorder!.Color);
         Assert.True(style.CellBorders![(1, 1)].Left);
         Assert.True(style.CellBorders![(1, 1)].Right);
-        Assert.Equal(PdfCore.PdfColor.FromRgb(0, 68, 136), style.CellBorders![(1, 1)].LeftBorder!.Color);
+        Assert.Equal(global::OfficeIMO.OfficeColor.FromRgb(0, 68, 136), style.CellBorders![(1, 1)].LeftBorder!.Color);
         Assert.Equal(1.5D, style.CellBorders![(1, 1)].LeftBorder!.Width);
         Assert.False(style.CellBorders!.ContainsKey((0, 0)));
         Assert.False(style.CellBorders!.ContainsKey((1, 0)));
@@ -578,8 +578,8 @@ public partial class Word {
             CellPaddingX = 8D,
             CellPaddingY = 6D,
             BorderColor = null,
-            HeaderFill = PdfCore.PdfColor.FromRgb(10, 20, 30),
-            HeaderTextColor = PdfCore.PdfColor.FromRgb(240, 245, 250),
+            HeaderFill = global::OfficeIMO.OfficeColor.FromRgb(10, 20, 30),
+            HeaderTextColor = global::OfficeIMO.OfficeColor.FromRgb(240, 245, 250),
             RowStripeFill = null,
             FontSize = 12.5D,
             LineHeight = 1.4D,
@@ -598,8 +598,8 @@ public partial class Word {
         Assert.Equal(8D, style.CellPaddingX);
         Assert.Equal(6D, style.CellPaddingY);
         Assert.Null(style.BorderColor);
-        Assert.Equal(PdfCore.PdfColor.FromRgb(10, 20, 30), style.HeaderFill);
-        Assert.Equal(PdfCore.PdfColor.FromRgb(240, 245, 250), style.HeaderTextColor);
+        Assert.Equal(global::OfficeIMO.OfficeColor.FromRgb(10, 20, 30), style.HeaderFill);
+        Assert.Equal(global::OfficeIMO.OfficeColor.FromRgb(240, 245, 250), style.HeaderTextColor);
         Assert.Null(style.RowStripeFill);
         Assert.Equal(12.5D, style.FontSize);
         Assert.Equal(1.4D, style.LineHeight);
@@ -657,14 +657,14 @@ public partial class Word {
             PdfOptions = new PdfCore.PdfCreateOptions {
                 DefaultTableStyle = new PdfCore.PdfTableStyle {
                     BorderColor = null,
-                    HeaderFill = PdfCore.PdfColor.FromRgb(10, 20, 30),
+                    HeaderFill = global::OfficeIMO.OfficeColor.FromRgb(10, 20, 30),
                     FontSize = null,
                     LineHeight = null
                 }
             }
         });
 
-        Assert.Equal(PdfCore.PdfColor.Black, style.BorderColor);
+        Assert.Equal(global::OfficeIMO.OfficeColor.Black, style.BorderColor);
         Assert.Null(style.HeaderFill);
         Assert.False(style.HeaderBold);
         Assert.Equal(11D, style.FontSize);

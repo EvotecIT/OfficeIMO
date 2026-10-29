@@ -18,7 +18,7 @@ public partial class PdfDocumentVisualQualityTests {
         byte[] bytes = PdfDocument.Create()
             .Paragraph(p => p
                 .Text("Before ")
-                .Color(new PdfColor(1, 0, 0))
+                .Color(global::OfficeIMO.OfficeColor.FromNormalizedRgb(1, 0, 0))
                 .Text("Red")
                 .ResetColor()
                 .Text("After"))
@@ -76,7 +76,7 @@ public partial class PdfDocumentVisualQualityTests {
         byte[] bytes = PdfDocument.Create()
             .Paragraph(p => p
                 .Text("Before ")
-                .BackgroundColor(PdfColor.FromRgb(255, 255, 0))
+                .BackgroundColor(global::OfficeIMO.OfficeColor.FromRgb(255, 255, 0))
                 .Text("Marked")
                 .ResetBackgroundColor()
                 .Text("After"))
@@ -102,7 +102,7 @@ public partial class PdfDocumentVisualQualityTests {
         byte[] bytes = PdfDocument.Create()
             .Paragraph(p => p
                 .Text("Before ")
-                .BackgroundColor(PdfColor.FromRgb(255, 255, 0))
+                .BackgroundColor(global::OfficeIMO.OfficeColor.FromRgb(255, 255, 0))
                 .Text("Marked Words")
                 .ResetBackgroundColor()
                 .Text(" After"))
@@ -130,11 +130,11 @@ public partial class PdfDocumentVisualQualityTests {
                 new[] {
                     PdfTableCell.RichTextCell(new[] {
                         PdfTextRun.Normal("Plain "),
-                        new PdfTextRun("CellRed", color: PdfColor.FromRgb(255, 0, 0)),
+                        new PdfTextRun("CellRed", color: global::OfficeIMO.OfficeColor.FromRgb(255, 0, 0)),
                         PdfTextRun.Normal(" "),
                         PdfTextRun.Bolded("CellBold"),
                         PdfTextRun.Normal(" "),
-                        PdfTextRun.Normal("CellMarked", backgroundColor: PdfColor.FromRgb(255, 255, 0)),
+                        PdfTextRun.Normal("CellMarked", backgroundColor: global::OfficeIMO.OfficeColor.FromRgb(255, 255, 0)),
                         PdfTextRun.Normal(" "),
                         PdfTextRun.Normal("CellLarge", fontSize: 18)
                     })

@@ -76,10 +76,9 @@ var data = new OfficeChartData(
 
 var chartSlide = presentation.AddSlide();
 chartSlide.AddTitle("Revenue by quarter", OfficeIMO.OfficeLength.Centimeters(1.5), OfficeIMO.OfficeLength.Centimeters(1.2), OfficeIMO.OfficeLength.Centimeters(22), OfficeIMO.OfficeLength.Centimeters(1.4));
-chartSlide.AddChart(OfficeChartType.ColumnClustered, data, OfficeIMO.OfficeLength.Centimeters(1.5), OfficeIMO.OfficeLength.Centimeters(3.0), OfficeIMO.OfficeLength.Centimeters(22), OfficeIMO.OfficeLength.Centimeters(9),
-        new PowerPointChartAccessibilityOptions {
+chartSlide.AddChart(OfficeChartType.ColumnClustered, data, new OfficeIMO.PowerPoint.PowerPointChartOptions { Left = OfficeIMO.OfficeLength.Centimeters(1.5), Top = OfficeIMO.OfficeLength.Centimeters(3.0), Width = OfficeIMO.OfficeLength.Centimeters(22), Height = OfficeIMO.OfficeLength.Centimeters(9), Accessibility = new PowerPointChartAccessibilityOptions {
             AlternativeText = "Quarterly revenue increased from 3.2 to 4.9"
-        })
+        } })
     .SetTitle("2025 revenue")
     .SetLegend(OfficeChartLegendPosition.Bottom);
 

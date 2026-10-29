@@ -572,12 +572,12 @@ _Figure 1. Embedded from a relative Markdown path._
     [Fact]
     public void Markdown_SaveAsPdf_AppliesChecklistThemeColors() {
         MarkdownPdfStyle theme = MarkdownPdfStyle.Plain();
-        theme.ChecklistCheckedIconColor = PdfCore.PdfColor.FromRgb(255, 0, 0);
-        theme.ChecklistUncheckedIconColor = PdfCore.PdfColor.FromRgb(0, 0, 255);
-        theme.ChecklistCheckedTextColor = PdfCore.PdfColor.FromRgb(0, 128, 0);
-        theme.ChecklistUncheckedTextColor = PdfCore.PdfColor.FromRgb(255, 0, 255);
-        theme.ChecklistCheckedFillColor = PdfCore.PdfColor.FromRgb(255, 255, 204);
-        theme.ChecklistUncheckedFillColor = PdfCore.PdfColor.FromRgb(204, 238, 255);
+        theme.ChecklistCheckedIconColor = global::OfficeIMO.OfficeColor.FromRgb(255, 0, 0);
+        theme.ChecklistUncheckedIconColor = global::OfficeIMO.OfficeColor.FromRgb(0, 0, 255);
+        theme.ChecklistCheckedTextColor = global::OfficeIMO.OfficeColor.FromRgb(0, 128, 0);
+        theme.ChecklistUncheckedTextColor = global::OfficeIMO.OfficeColor.FromRgb(255, 0, 255);
+        theme.ChecklistCheckedFillColor = global::OfficeIMO.OfficeColor.FromRgb(255, 255, 204);
+        theme.ChecklistUncheckedFillColor = global::OfficeIMO.OfficeColor.FromRgb(204, 238, 255);
         var options = new MarkdownPdfExportOptions {
             Style = theme,
             PdfOptions = new PdfCore.PdfCreateOptions { CompressContentStreams = false }
@@ -620,18 +620,18 @@ _Figure 1. Embedded from a relative Markdown path._
         MarkdownPdfStyle pdfTheme = MarkdownPdfStyle.FromMarkdownTheme(sharedTheme);
 
         Assert.Equal("Report", pdfTheme.Name);
-        Assert.Equal(0, pdfTheme.DocumentHeaderTitleColor!.Value.R, 3);
-        Assert.Equal(1, pdfTheme.DocumentHeaderTitleColor!.Value.G, 3);
-        Assert.Equal(0, pdfTheme.DocumentHeaderTitleColor!.Value.B, 3);
-        Assert.Equal(1, pdfTheme.LinkColor!.Value.R, 3);
-        Assert.Equal(0, pdfTheme.LinkColor!.Value.G, 3);
-        Assert.Equal(0, pdfTheme.LinkColor!.Value.B, 3);
+        Assert.Equal(0, pdfTheme.DocumentHeaderTitleColor!.Value.ToNormalizedRgb().R, 3);
+        Assert.Equal(1, pdfTheme.DocumentHeaderTitleColor!.Value.ToNormalizedRgb().G, 3);
+        Assert.Equal(0, pdfTheme.DocumentHeaderTitleColor!.Value.ToNormalizedRgb().B, 3);
+        Assert.Equal(1, pdfTheme.LinkColor!.Value.ToNormalizedRgb().R, 3);
+        Assert.Equal(0, pdfTheme.LinkColor!.Value.ToNormalizedRgb().G, 3);
+        Assert.Equal(0, pdfTheme.LinkColor!.Value.ToNormalizedRgb().B, 3);
         Assert.Equal(1.25, pdfTheme.TableStyle!.BorderWidth);
         Assert.Equal(11, pdfTheme.TableStyle.CellPaddingX);
         Assert.Equal(7, pdfTheme.TableStyle.CellPaddingY);
-        Assert.Equal(1, pdfTheme.TableStyle.HeaderFill!.Value.R, 3);
-        Assert.Equal(1, pdfTheme.TableStyle.HeaderFill!.Value.G, 3);
-        Assert.Equal(0, pdfTheme.TableStyle.HeaderFill!.Value.B, 3);
+        Assert.Equal(1, pdfTheme.TableStyle.HeaderFill!.Value.ToNormalizedRgb().R, 3);
+        Assert.Equal(1, pdfTheme.TableStyle.HeaderFill!.Value.ToNormalizedRgb().G, 3);
+        Assert.Equal(0, pdfTheme.TableStyle.HeaderFill!.Value.ToNormalizedRgb().B, 3);
     }
 
     [Fact]
@@ -664,7 +664,7 @@ Markdown PDF should accept the same visual theme object as HTML and Word.
     [Fact]
     public void Markdown_SaveAsPdf_AppliesVisualThemeLinkStyleAcrossInlineSurfaces() {
         MarkdownPdfStyle theme = MarkdownPdfStyle.TechnicalDocument();
-        theme.LinkColor = PdfCore.PdfColor.FromRgb(128, 0, 128);
+        theme.LinkColor = global::OfficeIMO.OfficeColor.FromRgb(128, 0, 128);
         theme.UnderlineLinks = false;
         var options = new MarkdownPdfExportOptions {
             Style = theme,
@@ -935,14 +935,14 @@ Validation notes.
     [Fact]
     public void MarkdownPdfStyles_CloneLinkStyleOptions() {
         MarkdownPdfStyle theme = MarkdownPdfStyle.Report();
-        theme.LinkColor = PdfCore.PdfColor.FromRgb(12, 34, 56);
+        theme.LinkColor = global::OfficeIMO.OfficeColor.FromRgb(12, 34, 56);
         theme.UnderlineLinks = false;
 
         MarkdownPdfStyle clone = theme.Clone();
-        theme.LinkColor = PdfCore.PdfColor.FromRgb(90, 90, 90);
+        theme.LinkColor = global::OfficeIMO.OfficeColor.FromRgb(90, 90, 90);
         theme.UnderlineLinks = true;
 
-        Assert.Equal(PdfCore.PdfColor.FromRgb(12, 34, 56), clone.LinkColor);
+        Assert.Equal(global::OfficeIMO.OfficeColor.FromRgb(12, 34, 56), clone.LinkColor);
         Assert.False(clone.UnderlineLinks);
     }
 
@@ -1025,8 +1025,8 @@ Console.WriteLine("OfficeIMO");
         MarkdownPdfStyle theme = MarkdownPdfStyle.Plain();
         theme.CodeBlockLabelFontSize = 7;
         theme.CodeBlockFontSize = 11;
-        theme.CodeBlockLabelColor = PdfCore.PdfColor.FromRgb(255, 0, 0);
-        theme.CodeBlockTextColor = PdfCore.PdfColor.FromRgb(0, 128, 0);
+        theme.CodeBlockLabelColor = global::OfficeIMO.OfficeColor.FromRgb(255, 0, 0);
+        theme.CodeBlockTextColor = global::OfficeIMO.OfficeColor.FromRgb(0, 128, 0);
 
         var options = new MarkdownPdfExportOptions {
             Style = theme,
@@ -1206,9 +1206,9 @@ Markdown should stay semantic while the visual theme controls the page treatment
 
         MarkdownPdfStyle theme = MarkdownPdfStyle.WordLike();
         var decoration = new MarkdownPdfPageDecoration {
-            BackgroundColor = PdfCore.PdfColor.White,
+            BackgroundColor = global::OfficeIMO.OfficeColor.White,
             PageBorder = new PdfCore.PdfPageBorder {
-                Color = PdfCore.PdfColor.FromRgb(15, 118, 110),
+                Color = global::OfficeIMO.OfficeColor.FromRgb(15, 118, 110),
                 Width = 0.8,
                 Inset = 28,
                 Opacity = 0.5
@@ -1218,7 +1218,7 @@ Markdown should stay semantic while the visual theme controls the page treatment
             700,
             128,
             32,
-            fill: PdfCore.PdfColor.FromRgb(204, 251, 241),
+            fill: global::OfficeIMO.OfficeColor.FromRgb(204, 251, 241),
             fillOpacity: 0.44));
 
         theme.PageDecoration = decoration;
@@ -1274,9 +1274,9 @@ Explicit low-level PDF options should win over theme page decoration.
             Style = MarkdownPdfStyle.Report(),
             PdfOptions = new PdfCore.PdfCreateOptions {
                 CompressContentStreams = false,
-                BackgroundColor = PdfCore.PdfColor.White,
+                BackgroundColor = global::OfficeIMO.OfficeColor.White,
                 PageBorder = new PdfCore.PdfPageBorder {
-                    Color = PdfCore.PdfColor.Black,
+                    Color = global::OfficeIMO.OfficeColor.Black,
                     Width = 1,
                     Inset = 50,
                     Opacity = 1
@@ -1287,7 +1287,7 @@ Explicit low-level PDF options should win over theme page decoration.
                         12,
                         30,
                         30,
-                        fill: PdfCore.PdfColor.FromRgb(220, 252, 231))
+                        fill: global::OfficeIMO.OfficeColor.FromRgb(220, 252, 231))
                 }
             }
         };

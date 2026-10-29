@@ -159,9 +159,9 @@ namespace OfficeIMO.Tests {
                     chart.SetLegend(OfficeChartLegendPosition.Bottom);
                     chart.SetChartAreaStyle(fillColor: "FFFFFF", lineColor: "EFE8DA");
                     chart.SetPlotAreaStyle(fillColor: "FFFFFF", lineColor: "FFFFFF");
-                    chart.SetSeriesLineColor("Revenue", "156082", widthPoints: 2.5);
-                    chart.SetSeriesLineColor("Profit", "F26A3D", widthPoints: 2.5);
-                    chart.SetValueAxisGridlines(showMajor: true, lineColor: "D8D5CC", lineWidthPoints: 0.75);
+                    chart.SetSeriesLineColor("Revenue", "156082", width: OfficeLength.Points(2.5));
+                    chart.SetSeriesLineColor("Profit", "F26A3D", width: OfficeLength.Points(2.5));
+                    chart.SetValueAxisGridlines(showMajor: true, lineColor: "D8D5CC", lineWidth: OfficeLength.Points(0.75));
 
                     PowerPointTable table = dashboard.AddTable(rows: 3,columns: 2,                        styleName: presentation.TableStyles.First().Name,left: global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromCentimeters(16.8)),top: global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromCentimeters(1.5)),width: global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromCentimeters(7.0)),height: global::OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromCentimeters(3.8)),                        firstRow: true,bandedRows: true);
                     table.GetCell(0, 0).Text = "Metric";

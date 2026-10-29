@@ -2115,12 +2115,12 @@ public partial class PdfFontFamilyTests {
             "template",
             bold: true,
             underline: true,
-            color: PdfColor.FromRgb(1, 2, 3),
+            color: global::OfficeIMO.OfficeColor.FromRgb(1, 2, 3),
             italic: true,
             strike: true,
             fontSize: 14,
             baseline: PdfTextBaseline.Superscript,
-            backgroundColor: PdfColor.FromRgb(250, 240, 200));
+            backgroundColor: global::OfficeIMO.OfficeColor.FromRgb(250, 240, 200));
 
         PdfTextRun run = Assert.Single(plan.ToTextRuns(new[] { PdfStandardFont.Courier }, template));
 
@@ -2495,7 +2495,7 @@ public partial class PdfFontFamilyTests {
                 .Italic()
                 .Underline()
                 .FontSize(13)
-                .Color(PdfColor.FromRgb(10, 20, 30))
+                .Color(global::OfficeIMO.OfficeColor.FromRgb(10, 20, 30))
                 .FallbackText(fallbackSet, "Invoice Cafe", "word:paragraph[9]"))
             .ToBytes();
 
@@ -2726,8 +2726,8 @@ public partial class PdfFontFamilyTests {
                 width: 180,
                 height: 44,
                 fontSize: 11,
-                borderColor: PdfColor.Black,
-                fillColor: PdfColor.FromRgb(245, 248, 255))
+                borderColor: global::OfficeIMO.OfficeColor.Black,
+                fillColor: global::OfficeIMO.OfficeColor.FromRgb(245, 248, 255))
             .Paragraph(paragraph => paragraph.Text("Body"))
             .ToBytes();
 
@@ -2760,8 +2760,8 @@ public partial class PdfFontFamilyTests {
                 width: 180,
                 height: 44,
                 fontSize: 11,
-                borderColor: PdfColor.Black,
-                fillColor: PdfColor.FromRgb(245, 248, 255))
+                borderColor: global::OfficeIMO.OfficeColor.Black,
+                fillColor: global::OfficeIMO.OfficeColor.FromRgb(245, 248, 255))
             .Paragraph(paragraph => paragraph.Text("Body"))
             .ToBytes();
 

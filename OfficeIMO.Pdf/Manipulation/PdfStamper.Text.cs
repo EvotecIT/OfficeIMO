@@ -247,7 +247,7 @@ internal static partial class PdfStamper {
         if (options is null) {
             return new PdfTextStampOptions {
                 FontSize = 64,
-                Color = PdfColor.LightGray,
+                Color = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.9D, 0.9D, 0.9D),
                 RotationDegrees = -45,
                 Font = PdfStandardFont.HelveticaBold
             };

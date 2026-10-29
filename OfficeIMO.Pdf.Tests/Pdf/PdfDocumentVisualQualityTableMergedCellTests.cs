@@ -205,12 +205,12 @@ public partial class PdfDocumentVisualQualityTests {
         style.CellPaddingY = 4;
         style.MinRowHeight = 24;
         style.ColumnWidthPoints = new List<double?> { 50, 60, 70 };
-        style.CellFills = new Dictionary<(int Row, int Column), PdfColor> {
-            [(0, 0)] = new PdfColor(0.23, 0.34, 0.45)
+        style.CellFills = new Dictionary<(int Row, int Column), global::OfficeIMO.OfficeColor> {
+            [(0, 0)] = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.23, 0.34, 0.45)
         };
         style.CellBorders = new Dictionary<(int Row, int Column), PdfCellBorder> {
             [(0, 0)] = new PdfCellBorder {
-                Color = new PdfColor(0.63, 0.24, 0.14),
+                Color = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.63, 0.24, 0.14),
                 Width = 1.4
             }
         };
@@ -264,12 +264,12 @@ public partial class PdfDocumentVisualQualityTests {
         style.CellPaddingY = 4;
         style.MinRowHeight = 24;
         style.ColumnWidthPoints = new List<double?> { 45, 45, 45 };
-        style.CellFills = new Dictionary<(int Row, int Column), PdfColor> {
-            [(0, 0)] = new PdfColor(0.23, 0.34, 0.45)
+        style.CellFills = new Dictionary<(int Row, int Column), global::OfficeIMO.OfficeColor> {
+            [(0, 0)] = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.23, 0.34, 0.45)
         };
         style.CellBorders = new Dictionary<(int Row, int Column), PdfCellBorder> {
             [(0, 0)] = new PdfCellBorder {
-                Color = new PdfColor(0.63, 0.24, 0.14),
+                Color = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.63, 0.24, 0.14),
                 Width = 1.4
             }
         };
@@ -320,7 +320,7 @@ public partial class PdfDocumentVisualQualityTests {
         };
         var style = PdfTableStyles.Minimal();
         style.HeaderRowCount = 0;
-        style.BorderColor = new PdfColor(0.12, 0.34, 0.56);
+        style.BorderColor = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.12, 0.34, 0.56);
         style.BorderWidth = 0.6;
         style.RowSeparatorColor = null;
         style.HeaderFill = null;
@@ -365,7 +365,7 @@ public partial class PdfDocumentVisualQualityTests {
         };
         var style = PdfTableStyles.Minimal();
         style.HeaderRowCount = 0;
-        style.BorderColor = new PdfColor(0.12, 0.34, 0.56);
+        style.BorderColor = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.12, 0.34, 0.56);
         style.BorderWidth = 0.6;
         style.RowSeparatorColor = null;
         style.HeaderFill = null;

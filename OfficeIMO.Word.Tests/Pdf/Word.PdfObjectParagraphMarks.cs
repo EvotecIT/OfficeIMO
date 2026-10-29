@@ -210,8 +210,8 @@ public partial class Word {
             }
             if (kind.StartsWith("group", StringComparison.Ordinal)) {
                 p.AddShapeGroup(new[] {
-                    new WordShapeGroupItem(WordShapeType.Rectangle, 0, 0, 24, kind.EndsWith("short", StringComparison.Ordinal) ? 6 : 36) { FillColorHex = "00A060" },
-                    new WordShapeGroupItem(WordShapeType.Rectangle, 24, 0, 24, kind.EndsWith("short", StringComparison.Ordinal) ? 6 : 36) { FillColorHex = "00A060" }
+                    new WordShapeGroupItem(WordShapeType.Rectangle, OfficeLength.Points(0), OfficeLength.Points(0), OfficeLength.Points(24), OfficeLength.Points(kind.EndsWith("short", StringComparison.Ordinal) ? 6 : 36)) { FillColorHex = "00A060" },
+                    new WordShapeGroupItem(WordShapeType.Rectangle, OfficeLength.Points(24), OfficeLength.Points(0), OfficeLength.Points(24), OfficeLength.Points(kind.EndsWith("short", StringComparison.Ordinal) ? 6 : 36)) { FillColorHex = "00A060" }
                 });
             } else if (kind.StartsWith("shape-inline", StringComparison.Ordinal)) {
                 WordShape shape = WordShape.AddDrawingShape(p, WordShapeType.Rectangle, OfficeIMO.OfficeLength.Points(48), OfficeIMO.OfficeLength.Points(kind.EndsWith("short", StringComparison.Ordinal) ? 6 : 36));

@@ -10,8 +10,8 @@ namespace OfficeIMO.Word.Pdf {
 
         private static PdfCore.PdfPanelStyle? CreateNativeParagraphPanelStyle(WordParagraph paragraph, PdfCore.PdfParagraphStyle paragraphStyle) {
             NativeParagraphBorders borders = GetNativeEffectiveParagraphBorders(paragraph);
-            PdfCore.PdfColor? background = ParseNativeColor(GetNativeEffectiveParagraphShadingFill(paragraph));
-            (PdfCore.PdfColor? Color, double Width)? border = GetNativeUniformParagraphBorder(borders);
+            global::OfficeIMO.OfficeColor? background = ParseNativeColor(GetNativeEffectiveParagraphShadingFill(paragraph));
+            (global::OfficeIMO.OfficeColor? Color, double Width)? border = GetNativeUniformParagraphBorder(borders);
             bool renderAsRule = !background.HasValue && !HasNativeBorder(borders.Between.Style) &&
                 (HasNativeOnlyTopParagraphBorder(borders) || HasNativeOnlyBottomParagraphBorder(borders));
             if (renderAsRule) {
@@ -90,7 +90,7 @@ namespace OfficeIMO.Word.Pdf {
 
             return new PdfCore.PdfHorizontalRuleStyle {
                 Thickness = (borders.Bottom.Size ?? 4U) / 8D,
-                Color = ParseNativeColor(NormalizeNativeBorderColor(borders.Bottom.ColorHex)) ?? PdfCore.PdfColor.Black,
+                Color = ParseNativeColor(NormalizeNativeBorderColor(borders.Bottom.ColorHex)) ?? global::OfficeIMO.OfficeColor.Black,
                 SpacingBefore = paragraphStyle.SpacingBefore,
                 SpacingAfter = paragraphStyle.SpacingAfter ?? (borders.Bottom.Space ?? 6U),
                 KeepWithNext = paragraphStyle.KeepWithNext
@@ -105,7 +105,7 @@ namespace OfficeIMO.Word.Pdf {
 
             return new PdfCore.PdfHorizontalRuleStyle {
                 Thickness = (borders.Bottom.Size ?? 4U) / 8D,
-                Color = ParseNativeColor(NormalizeNativeBorderColor(borders.Bottom.ColorHex)) ?? PdfCore.PdfColor.Black,
+                Color = ParseNativeColor(NormalizeNativeBorderColor(borders.Bottom.ColorHex)) ?? global::OfficeIMO.OfficeColor.Black,
                 SpacingBefore = borders.Bottom.Space ?? 0D,
                 SpacingAfter = paragraphStyle.SpacingAfter ?? 6D,
                 KeepWithNext = paragraphStyle.KeepWithNext
@@ -120,14 +120,14 @@ namespace OfficeIMO.Word.Pdf {
 
             return new PdfCore.PdfHorizontalRuleStyle {
                 Thickness = (borders.Top.Size ?? 4U) / 8D,
-                Color = ParseNativeColor(NormalizeNativeBorderColor(borders.Top.ColorHex)) ?? PdfCore.PdfColor.Black,
+                Color = ParseNativeColor(NormalizeNativeBorderColor(borders.Top.ColorHex)) ?? global::OfficeIMO.OfficeColor.Black,
                 SpacingBefore = paragraphStyle.SpacingBefore,
                 SpacingAfter = borders.Top.Space ?? 0D,
                 KeepWithNext = true
             };
         }
 
-        private static (PdfCore.PdfColor? Color, double Width)? GetNativeUniformParagraphBorder(NativeParagraphBorders borders) {
+        private static (global::OfficeIMO.OfficeColor? Color, double Width)? GetNativeUniformParagraphBorder(NativeParagraphBorders borders) {
             if (!HasNativeBorder(borders.Top.Style) ||
                 !HasNativeBorder(borders.Bottom.Style) ||
                 !HasNativeBorder(borders.Left.Style) ||
@@ -155,7 +155,7 @@ namespace OfficeIMO.Word.Pdf {
                 return null;
             }
 
-            PdfCore.PdfColor color = ParseNativeColor(topColor) ?? PdfCore.PdfColor.Black;
+            global::OfficeIMO.OfficeColor color = ParseNativeColor(topColor) ?? global::OfficeIMO.OfficeColor.Black;
             return (color, topSize / 8D);
         }
 
@@ -178,7 +178,7 @@ namespace OfficeIMO.Word.Pdf {
             }
 
             return new PdfCore.PdfPanelBorder {
-                Color = ParseNativeColor(NormalizeNativeBorderColor(border.ColorHex)) ?? PdfCore.PdfColor.Black,
+                Color = ParseNativeColor(NormalizeNativeBorderColor(border.ColorHex)) ?? global::OfficeIMO.OfficeColor.Black,
                 Width = (border.Size ?? 4U) / 8D
             };
         }

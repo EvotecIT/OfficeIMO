@@ -114,7 +114,7 @@ public partial class PdfDocumentVisualQualityTests {
     private static void AddFragmentJustificationParagraph(PdfContentBuilder content, bool distributed) {
         string text = "Short break\n" + string.Join(" ", Enumerable.Range(0, 80).Select(index => "word" + index.ToString("D2", CultureInfo.InvariantCulture)));
         content.Paragraph(paragraph => paragraph.Runs(new[] { new PdfTextRun(text, underline: true,
-                backgroundColor: new PdfColor(1, 1, 0), linkUri: "https://example.test/fragment") }),
+                backgroundColor: global::OfficeIMO.OfficeColor.FromNormalizedRgb(1, 1, 0), linkUri: "https://example.test/fragment") }),
             PdfAlign.Justify, style: FragmentJustificationStyle(distributed));
     }
 

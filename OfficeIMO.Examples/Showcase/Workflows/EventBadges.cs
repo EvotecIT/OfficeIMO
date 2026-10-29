@@ -4,7 +4,7 @@ namespace OfficeIMO.Examples.Showcase.Workflows {
     /// <summary>Creates two small-format event badges as separate PDF pages suitable for individual printing.</summary>
     internal static class EventBadges {
         internal static void Create(string folder) {
-            var navy = PdfColor.FromRgb(23, 54, 93);
+            var navy = global::OfficeIMO.OfficeColor.FromRgb(23, 54, 93);
             PdfDocument.Create(pdf => pdf.Content(content => {
                 Badge("Maya Ellis", "FACILITATOR", "Service design");
                 content.PageBreak();
@@ -16,7 +16,7 @@ namespace OfficeIMO.Examples.Showcase.Workflows {
                         .H2(role, PdfAlign.Left, navy)
                         .Paragraph(p => p.Text(team))
                         .PanelParagraph(p => p.Text("14 OCT 2026  |  COPENHAGEN"),
-                            new PdfPanelStyle { Background = PdfColor.FromRgb(234, 241, 251), PaddingX = 10, PaddingY = 10 });
+                            new PdfPanelStyle { Background = global::OfficeIMO.OfficeColor.FromRgb(234, 241, 251), PaddingX = 10, PaddingY = 10 });
                 }
             }), new PdfCreateOptions { PageWidth = 340, PageHeight = 255, MarginLeft = 24, MarginRight = 24, MarginTop = 24, MarginBottom = 24, DefaultFontSize = 10 })
                 .Meta(title: "Workshop event badges", author: "OfficeIMO").Save(Path.Combine(folder, "example.pdf"));

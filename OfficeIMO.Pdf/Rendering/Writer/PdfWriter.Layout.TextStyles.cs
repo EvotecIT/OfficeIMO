@@ -103,7 +103,7 @@ internal static partial class PdfWriter {
         return GetHeadingBold(style) ? ChooseBold(normalFont) : normalFont;
     }
 
-    private static System.Collections.Generic.IReadOnlyList<PdfTextRun> CreateHeadingTextRuns(HeadingBlock heading, PdfHeadingStyle? style, PdfColor? color) =>
+    private static System.Collections.Generic.IReadOnlyList<PdfTextRun> CreateHeadingTextRuns(HeadingBlock heading, PdfHeadingStyle? style, global::OfficeIMO.OfficeColor? color) =>
         heading.Runs ?? System.Array.AsReadOnly(new[] {
             new PdfTextRun(
                 heading.Text,

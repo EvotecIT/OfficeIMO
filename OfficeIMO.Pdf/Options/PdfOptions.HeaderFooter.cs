@@ -56,7 +56,7 @@ public sealed partial class PdfCreateOptions {
         }
     }
     /// <summary>Header text color. When null, the current PDF fill color is preserved.</summary>
-    public PdfColor? HeaderTextColor { get; set; }
+    public global::OfficeIMO.OfficeColor? HeaderTextColor { get; set; }
     /// <summary>Header alignment.</summary>
     public PdfAlign HeaderAlign {
         get => _headerAlign;
@@ -109,7 +109,7 @@ public sealed partial class PdfCreateOptions {
         }
     }
     /// <summary>Footer text color. When null, the current PDF fill color is preserved.</summary>
-    public PdfColor? FooterTextColor { get; set; }
+    public global::OfficeIMO.OfficeColor? FooterTextColor { get; set; }
     /// <summary>Footer alignment.</summary>
     public PdfAlign FooterAlign {
         get => _footerAlign;

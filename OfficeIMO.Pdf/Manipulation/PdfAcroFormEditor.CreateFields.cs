@@ -354,7 +354,7 @@ internal static partial class PdfAcroFormEditor {
     private static bool IsEditableChoice(PdfFormFieldCreateOptions options) =>
         options.Style?.IsEditableChoice == true || (options.FieldFlags & FieldFlagEdit) != 0;
 
-    private static PdfArray CreateColorArray(PdfColor color) => CreateNumberArray(color.R, color.G, color.B);
+    private static PdfArray CreateColorArray(global::OfficeIMO.OfficeColor color) => CreateNumberArray(color.ToNormalizedRgb().R, color.ToNormalizedRgb().G, color.ToNormalizedRgb().B);
 
     private static PdfArray CreateNumberArray(params double[] values) {
         var array = new PdfArray();
@@ -362,11 +362,11 @@ internal static partial class PdfAcroFormEditor {
         return array;
     }
 
-    private static string BuildDefaultAppearance(string fontResourceName, double fontSize, PdfColor textColor) =>
+    private static string BuildDefaultAppearance(string fontResourceName, double fontSize, global::OfficeIMO.OfficeColor textColor) =>
         "/" + PdfSyntaxEscaper.Name(fontResourceName) + " " + fontSize.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture) + " Tf " +
-        textColor.R.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture) + " " +
-        textColor.G.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture) + " " +
-        textColor.B.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture) + " rg";
+        textColor.ToNormalizedRgb().R.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture) + " " +
+        textColor.ToNormalizedRgb().G.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture) + " " +
+        textColor.ToNormalizedRgb().B.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture) + " rg";
 
     private static string GetBorderStyleName(PdfFormFieldBorderStyle style) => style switch {
         PdfFormFieldBorderStyle.Dashed => "D",

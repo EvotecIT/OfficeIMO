@@ -40,7 +40,7 @@ public sealed class WordPdfTextFormattingTests {
         Assert.Equal(OfficeTextDecorationStyle.Dotted, run.UnderlineStyle);
         Assert.Equal(OfficeTextDecorationStyle.Double, run.StrikeStyle);
         Assert.Equal(PdfTextBaseline.Superscript, run.Baseline);
-        Assert.Equal(PdfColor.FromRgb(51, 102, 153), run.Color);
+        Assert.Equal(global::OfficeIMO.OfficeColor.FromRgb(51, 102, 153), run.Color);
         Assert.Equal(PdfStandardFont.Helvetica, run.Font);
         Assert.Null(run.FontFamily);
         Assert.Equal(14D, run.FontSize);

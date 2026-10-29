@@ -221,7 +221,7 @@ public sealed partial class PdfWorkspaceTests {
         var properties = new PdfEditorProperties(
             "Workspace note",
             "OfficeIMO Studio",
-            PdfColor.FromRgb(229, 72, 77),
+            global::OfficeIMO.OfficeColor.FromRgb(229, 72, 77),
             "Approved",
             "https://officeimo.com",
             14D);
@@ -521,7 +521,7 @@ public sealed partial class PdfWorkspaceTests {
         byte[] signed = preparation.Complete(new byte[] { 0x30, 0x01, 0x00 }).ToBytes();
         await File.WriteAllBytesAsync(source, signed);
         var gesture = new PdfEditorGesture(1, 40D, 50D, 60D, 70D, Array.Empty<PdfEditorVisualPoint>());
-        var properties = new PdfEditorProperties("Certified review", "Studio", PdfColor.FromRgb(220, 38, 38), "Approved", "https://officeimo.com", 12D);
+        var properties = new PdfEditorProperties("Certified review", "Studio", global::OfficeIMO.OfficeColor.FromRgb(220, 38, 38), "Approved", "https://officeimo.com", 12D);
 
         try {
             using PdfWorkspace workspace = await PdfWorkspace.OpenAsync(source, CancellationToken.None);
@@ -548,7 +548,7 @@ public sealed partial class PdfWorkspaceTests {
         PdfDocument.Create(compose => compose.Page(page => page.Content(content => content.Item(item =>
             item.Paragraph(paragraph => paragraph.Text("Keep this marker")))))).Save(source);
         var gesture = new PdfEditorGesture(1, 300D, 300D, 340D, 340D, Array.Empty<PdfEditorVisualPoint>());
-        var properties = new PdfEditorProperties(string.Empty, "Studio", PdfColor.Black, "Approved", "https://officeimo.com", 12D);
+        var properties = new PdfEditorProperties(string.Empty, "Studio", global::OfficeIMO.OfficeColor.Black, "Approved", "https://officeimo.com", 12D);
 
         try {
             using PdfWorkspace workspace = await PdfWorkspace.OpenAsync(source, CancellationToken.None);
@@ -576,7 +576,7 @@ public sealed partial class PdfWorkspaceTests {
         string source = Path.Combine(root, "source.pdf");
         CreateEditableSource(source);
         var gesture = new PdfEditorGesture(1, 40D, 50D, 180D, 100D, Array.Empty<PdfEditorVisualPoint>());
-        var properties = new PdfEditorProperties("Review", "Studio", PdfColor.Black, "Approved", "https://officeimo.com", 12D);
+        var properties = new PdfEditorProperties("Review", "Studio", global::OfficeIMO.OfficeColor.Black, "Approved", "https://officeimo.com", 12D);
 
         try {
             using PdfWorkspace workspace = await PdfWorkspace.OpenAsync(source, CancellationToken.None);

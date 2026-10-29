@@ -213,7 +213,7 @@ public sealed class PdfEditorCommandTests {
     private static PdfEditorProperties CreateProperties() => new(
         "Review annotation",
         "OfficeIMO Studio",
-        PdfColor.FromRgb(229, 72, 77),
+        global::OfficeIMO.OfficeColor.FromRgb(229, 72, 77),
         "Approved",
         "https://officeimo.com",
         14D);

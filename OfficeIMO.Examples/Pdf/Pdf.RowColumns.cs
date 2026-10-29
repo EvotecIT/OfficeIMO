@@ -9,7 +9,7 @@ namespace OfficeIMO.Examples.Pdf {
             var options = new PdfCreateOptions {
                 DefaultFont = PdfStandardFont.Helvetica,
                 DefaultFontSize = 10,
-                DefaultTextColor = PdfColor.FromRgb(31, 41, 55),
+                DefaultTextColor = global::OfficeIMO.OfficeColor.FromRgb(31, 41, 55),
                 HeaderFont = PdfStandardFont.Helvetica,
                 HeaderFontSize = 8,
                 HeaderFormat = "OfficeIMO.Pdf row columns",
@@ -38,17 +38,17 @@ namespace OfficeIMO.Examples.Pdf {
                                     .Bullets(new[] {
                                         "Gutters are first-class layout state.",
                                         "List markers stay inside the column frame."
-                                    }, color: PdfColor.FromRgb(55, 65, 81))
+                                    }, color: global::OfficeIMO.OfficeColor.FromRgb(55, 65, 81))
                                     .PanelParagraph(
                                         p => p.Bold("Callout: ").Text("column panels can hold emphasis without leaving the row flow."),
                                         new PdfPanelStyle {
-                                            Background = PdfColor.FromRgb(248, 250, 252),
-                                            BorderColor = PdfColor.FromRgb(183, 194, 207),
+                                            Background = global::OfficeIMO.OfficeColor.FromRgb(248, 250, 252),
+                                            BorderColor = global::OfficeIMO.OfficeColor.FromRgb(183, 194, 207),
                                             PaddingX = 7,
                                             PaddingY = 5,
                                             KeepTogether = true
                                         })
-                                    .RoundedRectangle(96, 5, 2.5, strokeColor: PdfColor.FromRgb(22, 101, 52), strokeWidth: 0, fillColor: PdfColor.FromRgb(22, 163, 74), spacingBefore: 8, spacingAfter: 8)
+                                    .RoundedRectangle(96, 5, 2.5, strokeColor: global::OfficeIMO.OfficeColor.FromRgb(22, 101, 52), strokeWidth: 0, fillColor: global::OfficeIMO.OfficeColor.FromRgb(22, 163, 74), spacingBefore: 8, spacingAfter: 8)
                                     .Paragraph(p => p
                                         .Bold("Ready: ")
                                         .Text("row gutters are part of the composition model instead of caller-managed whitespace.")));
@@ -63,16 +63,16 @@ namespace OfficeIMO.Examples.Pdf {
                                         "Compose column content.",
                                         "Render each list item independently.",
                                         "Compare the raster baseline."
-                                    }, color: PdfColor.FromRgb(55, 65, 81))
+                                    }, color: global::OfficeIMO.OfficeColor.FromRgb(55, 65, 81))
                                     .Table(new[] {
                                         new[] { "Metric", "Value" },
                                         new[] { "Sizing", "Relative" },
                                         new[] { "Panels", "Yes" }
                                     }, style: new PdfTableStyle {
-                                        HeaderFill = PdfColor.FromRgb(25, 55, 85),
-                                        HeaderTextColor = PdfColor.White,
-                                        RowStripeFill = PdfColor.FromRgb(248, 250, 252),
-                                        BorderColor = PdfColor.FromRgb(183, 194, 207),
+                                        HeaderFill = global::OfficeIMO.OfficeColor.FromRgb(25, 55, 85),
+                                        HeaderTextColor = global::OfficeIMO.OfficeColor.White,
+                                        RowStripeFill = global::OfficeIMO.OfficeColor.FromRgb(248, 250, 252),
+                                        BorderColor = global::OfficeIMO.OfficeColor.FromRgb(183, 194, 207),
                                         BorderWidth = 0.5,
                                         CellPaddingX = 4,
                                         CellPaddingY = 3,
@@ -83,13 +83,13 @@ namespace OfficeIMO.Examples.Pdf {
                                         Alignments = new System.Collections.Generic.List<PdfColumnAlign> { PdfColumnAlign.Left, PdfColumnAlign.Right },
                                         ColumnWidthWeights = new System.Collections.Generic.List<double> { 1.2, 0.8 }
                                     })
-                                    .HR(0.8, PdfColor.FromRgb(183, 194, 207), 8, 8)
+                                    .HR(0.8, global::OfficeIMO.OfficeColor.FromRgb(183, 194, 207), 8, 8)
                                     .Paragraph(p => p
                                         .Bold("Guarded: ")
                                         .Text("the Poppler baseline catches cramped columns and accidental gutter regressions.")));
                             });
                             content.Column(column => {
-                                column.Item().Paragraph(p => p.Text("End of row column sample."), PdfAlign.Right, PdfColor.FromRgb(80, 80, 80));
+                                column.Item().Paragraph(p => p.Text("End of row column sample."), PdfAlign.Right, global::OfficeIMO.OfficeColor.FromRgb(80, 80, 80));
                             });
                         });
                     });

@@ -40,7 +40,7 @@ public sealed class PdfRowStyle {
     }
 
     /// <summary>Optional vertical separator color drawn between row columns.</summary>
-    public PdfColor? ColumnSeparatorColor { get; set; }
+    public global::OfficeIMO.OfficeColor? ColumnSeparatorColor { get; set; }
 
     /// <summary>Vertical separator line width, in points. A non-positive width disables separator drawing.</summary>
     public double ColumnSeparatorWidth {

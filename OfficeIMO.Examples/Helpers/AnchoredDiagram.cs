@@ -5,8 +5,6 @@ using Color = OfficeIMO.OfficeColor;
 
 namespace OfficeIMO.Examples.Utils {
     internal static class AnchoredDiagram {
-        private static int PtToEmus(double pt) => (int)Math.Round(pt * 12700.0);
-        private static double PtToCm(double pt) => pt * 2.54 / 72.0;
 
         internal static void BuildGrid(
             WordDocument document,
@@ -51,10 +49,12 @@ namespace OfficeIMO.Examples.Utils {
                     tb.WrapText = WordImageTextWrapping.InFrontOfText;
                     tb.HorizontalPositionRelativeFrom = WordHorizontalRelativePosition.Page;
                     tb.VerticalPositionRelativeFrom = WordVerticalRelativePosition.Page;
-                    tb.HorizontalPositionOffset = PtToEmus(labelLeftPt);
-                    tb.VerticalPositionOffset = PtToEmus(labelTopPt);
-                    tb.WidthCentimeters = PtToCm(labelWpt);
-                    tb.HeightCentimeters = PtToCm(labelHpt);
+                    tb.HorizontalPositionOffset = OfficeLength.Points(labelLeftPt);
+                    tb.VerticalPositionOffset = OfficeLength.Points(labelTopPt);
+                    tb.Width = OfficeLength.Points(labelWpt);
+                    tb.RelativeWidthPercentage = 0;
+                    tb.Height = OfficeLength.Points(labelHpt);
+                    tb.RelativeHeightPercentage = 0;
                     var para = tb.Paragraphs.Count > 0 ? tb.Paragraphs[0] : document.AddParagraph("");
                     para.SetText(item.name)
                         .SetAlignment(WordParagraphAlignment.Center);
@@ -109,10 +109,12 @@ namespace OfficeIMO.Examples.Utils {
                 tb.WrapText = WordImageTextWrapping.InFrontOfText;
                 tb.HorizontalPositionRelativeFrom = WordHorizontalRelativePosition.Page;
                 tb.VerticalPositionRelativeFrom = WordVerticalRelativePosition.Page;
-                tb.HorizontalPositionOffset = PtToEmus(legendLeftPt);
-                tb.VerticalPositionOffset = PtToEmus(legendTopPt);
-                tb.WidthCentimeters = PtToCm(legendWpt);
-                tb.HeightCentimeters = PtToCm(legendHpt);
+                tb.HorizontalPositionOffset = OfficeLength.Points(legendLeftPt);
+                tb.VerticalPositionOffset = OfficeLength.Points(legendTopPt);
+                tb.Width = OfficeLength.Points(legendWpt);
+                tb.RelativeWidthPercentage = 0;
+                tb.Height = OfficeLength.Points(legendHpt);
+                tb.RelativeHeightPercentage = 0;
                 var para = tb.Paragraphs.Count > 0 ? tb.Paragraphs[0] : document.AddParagraph("");
                 para.SetText(legend)
                     .SetAlignment(WordParagraphAlignment.Center);

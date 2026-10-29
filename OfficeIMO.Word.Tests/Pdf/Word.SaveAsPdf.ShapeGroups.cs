@@ -31,9 +31,9 @@ public sealed class PdfShapeGroupTests {
         var paragraph = word.AddParagraph("Second");
         paragraph.PageBreakBeforeOverride = true;
         paragraph.AddShapeGroup(new[] {
-            new WordShapeGroupItem(WordShapeType.Rectangle, 0, 0, 24, 12) { FillColorHex = "FF0000" },
-            new WordShapeGroupItem(WordShapeType.Rectangle, 24, 0, 8, 12) { FillColorHex = "0000FF" }
-        }, 10, 60);
+            new WordShapeGroupItem(WordShapeType.Rectangle, OfficeLength.Points(0), OfficeLength.Points(0), OfficeLength.Points(24), OfficeLength.Points(12)) { FillColorHex = "FF0000" },
+            new WordShapeGroupItem(WordShapeType.Rectangle, OfficeLength.Points(24), OfficeLength.Points(0), OfficeLength.Points(8), OfficeLength.Points(12)) { FillColorHex = "0000FF" }
+        }, OfficeLength.Points(10), OfficeLength.Points(60));
         var anchor = paragraph._run!.Descendants<DW.Anchor>().Single();
         anchor.BehindDoc = true;
         anchor.RemoveAllChildren<DW.WrapSquare>();
@@ -94,8 +94,8 @@ public sealed class PdfShapeGroupTests {
         using WordDocument word = WordDocument.Create();
         var paragraph = word.AddParagraph();
         paragraph.AddShapeGroup(new[] {
-            new WordShapeGroupItem(WordShapeType.Rectangle, 0, 0, 36, 18) { FillColorHex = "FF0000" },
-            new WordShapeGroupItem(WordShapeType.Rectangle, 54, 18, 36, 18) { FillColorHex = "0000FF" }
+            new WordShapeGroupItem(WordShapeType.Rectangle, OfficeLength.Points(0), OfficeLength.Points(0), OfficeLength.Points(36), OfficeLength.Points(18)) { FillColorHex = "FF0000" },
+            new WordShapeGroupItem(WordShapeType.Rectangle, OfficeLength.Points(54), OfficeLength.Points(18), OfficeLength.Points(36), OfficeLength.Points(18)) { FillColorHex = "0000FF" }
         });
         var drawing = paragraph._run!.GetFirstChild<W.Drawing>()!;
         var group = drawing.Descendants<Wpg.WordprocessingGroup>().Single();
@@ -139,9 +139,9 @@ public sealed class PdfShapeGroupTests {
         for (int i = 0; i < (columns ? 40 : 20); i++) word.AddParagraph("Filler " + i).FontSize = global::OfficeIMO.OfficeLength.Points(12);
         var paragraph = word.AddParagraph();
         paragraph.AddShapeGroup(new[] {
-            new WordShapeGroupItem(WordShapeType.Rectangle, 0, 0, 24, 12) { FillColorHex = "FF0000" },
-            new WordShapeGroupItem(WordShapeType.Ellipse, 24, 0, 12, 12) { FillColorHex = "00FF00" }
-        }, 10, 0);
+            new WordShapeGroupItem(WordShapeType.Rectangle, OfficeLength.Points(0), OfficeLength.Points(0), OfficeLength.Points(24), OfficeLength.Points(12)) { FillColorHex = "FF0000" },
+            new WordShapeGroupItem(WordShapeType.Ellipse, OfficeLength.Points(24), OfficeLength.Points(0), OfficeLength.Points(12), OfficeLength.Points(12)) { FillColorHex = "00FF00" }
+        }, OfficeLength.Points(10), OfficeLength.Points(0));
         var anchor = paragraph._run!.Descendants<DW.Anchor>().Single();
         anchor.BehindDoc = true;
         anchor.RemoveAllChildren<DW.WrapSquare>();
@@ -194,8 +194,8 @@ public sealed class PdfShapeGroupTests {
         using WordDocument word = WordDocument.Create();
         var paragraph = word.AddParagraph("Visible text");
         paragraph.AddShapeGroup(new[] {
-            new WordShapeGroupItem(WordShapeType.Rectangle, 0, 0, 36, 18),
-            new WordShapeGroupItem(WordShapeType.Ellipse, 36, 0, 18, 18)
+            new WordShapeGroupItem(WordShapeType.Rectangle, OfficeLength.Points(0), OfficeLength.Points(0), OfficeLength.Points(36), OfficeLength.Points(18)),
+            new WordShapeGroupItem(WordShapeType.Ellipse, OfficeLength.Points(36), OfficeLength.Points(0), OfficeLength.Points(18), OfficeLength.Points(18))
         });
         var properties = paragraph._run!.Descendants<Wps.ShapeProperties>().First();
         properties.RemoveAllChildren<A.PresetGeometry>();
@@ -210,9 +210,9 @@ public sealed class PdfShapeGroupTests {
     public void SquareWrappedGroupRetainsItsChildrenAndReportsFlowApproximation() {
         using WordDocument word = WordDocument.Create();
         word.AddParagraph().AddShapeGroup(new[] {
-            new WordShapeGroupItem(WordShapeType.Rectangle, 0, 0, 36, 18) { FillColorHex = "FF0000" },
-            new WordShapeGroupItem(WordShapeType.Rectangle, 54, 0, 36, 18) { FillColorHex = "0000FF" }
-        }, 10, 10);
+            new WordShapeGroupItem(WordShapeType.Rectangle, OfficeLength.Points(0), OfficeLength.Points(0), OfficeLength.Points(36), OfficeLength.Points(18)) { FillColorHex = "FF0000" },
+            new WordShapeGroupItem(WordShapeType.Rectangle, OfficeLength.Points(54), OfficeLength.Points(0), OfficeLength.Points(36), OfficeLength.Points(18)) { FillColorHex = "0000FF" }
+        }, OfficeLength.Points(10), OfficeLength.Points(10));
         word.AddParagraph("Following text");
         var result = word.ConvertToPdfWithEvidence();
         var pdf = PdfCore.PdfDocument.Load(new System.IO.MemoryStream(result.Value.ToBytes()));
@@ -227,8 +227,8 @@ public sealed class PdfShapeGroupTests {
         using WordDocument word = WordDocument.Create();
         var paragraph = word.AddParagraph();
         paragraph.AddShapeGroup(new[] {
-            new WordShapeGroupItem(WordShapeType.Rectangle, 0, 0, 36, 18) { FillColorHex = "FF0000" },
-            new WordShapeGroupItem(WordShapeType.Rectangle, 0, 0, 36, 18) { StrokeColorHex = "0000FF" }
+            new WordShapeGroupItem(WordShapeType.Rectangle, OfficeLength.Points(0), OfficeLength.Points(0), OfficeLength.Points(36), OfficeLength.Points(18)) { FillColorHex = "FF0000" },
+            new WordShapeGroupItem(WordShapeType.Rectangle, OfficeLength.Points(0), OfficeLength.Points(0), OfficeLength.Points(36), OfficeLength.Points(18)) { StrokeColorHex = "0000FF" }
         });
         var properties = paragraph._run!.Descendants<Wps.ShapeProperties>().Last();
         properties.RemoveAllChildren<A.SolidFill>();
@@ -244,9 +244,9 @@ public sealed class PdfShapeGroupTests {
         foreach (var item in new[] { (Color: "00FF00", Z: 20U), (Color: "FF0000", Z: 10U) }) {
             var paragraph = word.AddParagraph("Anchor");
             paragraph.AddShapeGroup(new[] {
-                new WordShapeGroupItem(WordShapeType.Rectangle, 0, 0, 140, 36) { FillColorHex = item.Color },
-                new WordShapeGroupItem(WordShapeType.Rectangle, 140, 0, 10, 36) { FillColorHex = item.Color }
-            }, 60, 60);
+                new WordShapeGroupItem(WordShapeType.Rectangle, OfficeLength.Points(0), OfficeLength.Points(0), OfficeLength.Points(140), OfficeLength.Points(36)) { FillColorHex = item.Color },
+                new WordShapeGroupItem(WordShapeType.Rectangle, OfficeLength.Points(140), OfficeLength.Points(0), OfficeLength.Points(10), OfficeLength.Points(36)) { FillColorHex = item.Color }
+            }, OfficeLength.Points(60), OfficeLength.Points(60));
             var anchor = paragraph._run!.Descendants<DW.Anchor>().Single();
             anchor.BehindDoc = true;
             anchor.RelativeHeight = item.Z;
@@ -401,9 +401,9 @@ public sealed class PdfShapeGroupTests {
         };
         var paragraph = word.AddParagraph();
         paragraph.AddShapeGroup(new[] {
-            new WordShapeGroupItem(WordShapeType.Rectangle, 0, 0, 24, 12) { FillColorHex = "FF0000" },
-            new WordShapeGroupItem(WordShapeType.Ellipse, 24, 0, 12, 12) { FillColorHex = "00FF00" }
-        }, 10, 0);
+            new WordShapeGroupItem(WordShapeType.Rectangle, OfficeLength.Points(0), OfficeLength.Points(0), OfficeLength.Points(24), OfficeLength.Points(12)) { FillColorHex = "FF0000" },
+            new WordShapeGroupItem(WordShapeType.Ellipse, OfficeLength.Points(24), OfficeLength.Points(0), OfficeLength.Points(12), OfficeLength.Points(12)) { FillColorHex = "00FF00" }
+        }, OfficeLength.Points(10), OfficeLength.Points(0));
         var anchor = paragraph._run!.Descendants<DW.Anchor>().Single();
         anchor.BehindDoc = true;
         anchor.RemoveAllChildren<DW.WrapSquare>();
@@ -431,9 +431,9 @@ public sealed class PdfShapeGroupTests {
         using WordDocument word = WordDocument.Create();
         var paragraph = word.AddList(listStyle).AddItem("List anchor");
         paragraph.AddShapeGroup(new[] {
-            new WordShapeGroupItem(WordShapeType.Rectangle, 0, 0, 24, 12) { FillColorHex = "FF0000" },
-            new WordShapeGroupItem(WordShapeType.Ellipse, 24, 0, 12, 12) { FillColorHex = "00FF00" }
-        }, 10, 0);
+            new WordShapeGroupItem(WordShapeType.Rectangle, OfficeLength.Points(0), OfficeLength.Points(0), OfficeLength.Points(24), OfficeLength.Points(12)) { FillColorHex = "FF0000" },
+            new WordShapeGroupItem(WordShapeType.Ellipse, OfficeLength.Points(24), OfficeLength.Points(0), OfficeLength.Points(12), OfficeLength.Points(12)) { FillColorHex = "00FF00" }
+        }, OfficeLength.Points(10), OfficeLength.Points(0));
         var anchor = paragraph._run!.Descendants<DW.Anchor>().Single();
         anchor.BehindDoc = true;
         anchor.RemoveAllChildren<DW.WrapSquare>();

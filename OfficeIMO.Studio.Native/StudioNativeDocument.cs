@@ -340,7 +340,7 @@ internal sealed partial class StudioNativeDocument : IDisposable {
         if (request.LineEnd is { } ending && (tool != PdfEditorTool.Line || !LineEndings.Contains(ending)))
             throw new ArgumentException($"A line ends with {string.Join(", ", LineEndings)}; other markup has no line ending.", nameof(request));
         var properties = new PdfEditorProperties(request.Text ?? string.Empty, request.Author ?? string.Empty,
-            new PdfColor(color.Red, color.Green, color.Blue), stamp, linkUri, request.FontSize ?? 12D,
+            global::OfficeIMO.OfficeColor.FromNormalizedRgb(color.Red, color.Green, color.Blue), stamp, linkUri, request.FontSize ?? 12D,
             LinkPageNumber: request.LinkPage, StrokeWidth: width, Opacity: request.Opacity, LineEndEnding: request.LineEnd);
         return (tool, gesture, properties);
     }
@@ -387,7 +387,7 @@ internal sealed partial class StudioNativeDocument : IDisposable {
             return RunAsync(() => SetAnnotationBoundsAsync(update.ObjectNumber, bounds, cancellationToken), cancellationToken);
         }
         return RunAsync(() => _workspace.UpdateAnnotationAsync(update.ObjectNumber, update.Contents, update.Author,
-            update.Color is { } given ? new PdfColor(given.Red, given.Green, given.Blue) : null, cancellationToken), cancellationToken);
+            update.Color is { } given ? global::OfficeIMO.OfficeColor.FromNormalizedRgb(given.Red, given.Green, given.Blue) : null, cancellationToken), cancellationToken);
     }
 
     /// <summary>
@@ -402,7 +402,7 @@ internal sealed partial class StudioNativeDocument : IDisposable {
         // The editor maps a rectangle on the page as displayed into the page's own space, through its box and rotation.
         var gesture = new PdfEditorGesture(page, bounds.X, bounds.Y, bounds.X + bounds.Width, bounds.Y + bounds.Height, []);
         PdfPageRectangle target = PdfEditorCommandFactory.Create(_workspace.CreateDocumentSnapshot(), PdfEditorTool.Rectangle, gesture,
-            new PdfEditorProperties(string.Empty, string.Empty, PdfColor.Black, string.Empty, string.Empty, 12D)).Bounds;
+            new PdfEditorProperties(string.Empty, string.Empty, global::OfficeIMO.OfficeColor.Black, string.Empty, string.Empty, 12D)).Bounds;
         double left = Math.Min(current.X1, current.X2), bottom = Math.Min(current.Y1, current.Y2);
         double width = Math.Abs(current.X2 - current.X1), height = Math.Abs(current.Y2 - current.Y1);
         return Math.Abs(target.Width - width) < 0.5D && Math.Abs(target.Height - height) < 0.5D

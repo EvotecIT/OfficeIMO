@@ -60,13 +60,13 @@ public partial class PdfDocumentVisualQualityTests {
         style.CellSpacing = spacing;
         style.HeaderRowCount = header ? 1 : 0;
         style.FixedRowHeights = Enumerable.Repeat<double?>(20, rowCount).ToList();
-        style.CellFills = new Dictionary<(int, int), PdfColor> {
-            [(1, 0)] = PdfColor.FromRgb(255, 230, 160), [(1, 1)] = PdfColor.FromRgb(240, 240, 240)
+        style.CellFills = new Dictionary<(int, int), global::OfficeIMO.OfficeColor> {
+            [(1, 0)] = global::OfficeIMO.OfficeColor.FromRgb(255, 230, 160), [(1, 1)] = global::OfficeIMO.OfficeColor.FromRgb(240, 240, 240)
         };
         if (mode == "uniform") {
             for (int row = 0; row < rowCount; row++)
                 for (int column = 0; column < 2; column++) style.CellBorders![(row, column)] = new PdfCellBorder {
-                    Color = PdfColor.FromRgb(255, 0, 0), Width = 2, LineStyle = PdfCellBorderLineStyle.TwoLine
+                    Color = global::OfficeIMO.OfficeColor.FromRgb(255, 0, 0), Width = 2, LineStyle = PdfCellBorderLineStyle.TwoLine
                 };
         } else if (mode == "top-only") {
             style.CellBorders![(1, 0)] = MixedPairedBorder(top: true);

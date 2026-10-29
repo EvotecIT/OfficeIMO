@@ -12,8 +12,8 @@ public partial class PdfTableStyle {
     private System.Collections.Generic.List<double?>? _columnMinWidthPoints;
     private System.Collections.Generic.List<double?>? _columnMaxWidthPoints;
     private System.Collections.Generic.List<double>? _columnWidthWeights;
-    private System.Collections.Generic.List<PdfColor?>? _bodyColumnFills;
-    private System.Collections.Generic.Dictionary<(int Row, int Column), PdfColor>? _cellFills;
+    private System.Collections.Generic.List<global::OfficeIMO.OfficeColor?>? _bodyColumnFills;
+    private System.Collections.Generic.Dictionary<(int Row, int Column), global::OfficeIMO.OfficeColor>? _cellFills;
     private System.Collections.Generic.Dictionary<(int Row, int Column), PdfCellDataBar>? _cellDataBars;
     private System.Collections.Generic.Dictionary<(int Row, int Column), PdfCellIcon>? _cellIcons;
     private System.Collections.Generic.Dictionary<(int Row, int Column), PdfCellBorder>? _cellBorders;
@@ -56,7 +56,7 @@ public partial class PdfTableStyle {
     private double? _minimumShrinkFontSize;
 
     /// <summary>Color of the table borders and cell grid lines. Set to null to hide borders.</summary>
-    public PdfColor? BorderColor { get; set; } = new PdfColor(0.8, 0.8, 0.8);
+    public global::OfficeIMO.OfficeColor? BorderColor { get; set; } = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.8, 0.8, 0.8);
     /// <summary>
     /// Whether the table advances the vertical flow cursor. Set to false for a positioned table
     /// that overlays the following flow; the table is still drawn at the current cursor position.
@@ -134,13 +134,13 @@ public partial class PdfTableStyle {
         }
     }
     /// <summary>Background fill color for the header row. Set to null for no fill.</summary>
-    public PdfColor? HeaderFill { get; set; } = new PdfColor(0.95, 0.95, 0.95);
+    public global::OfficeIMO.OfficeColor? HeaderFill { get; set; } = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.95, 0.95, 0.95);
     /// <summary>Background fill color for footer rows. Set to null for no fill.</summary>
-    public PdfColor? FooterFill { get; set; } = new PdfColor(0.95, 0.95, 0.95);
+    public global::OfficeIMO.OfficeColor? FooterFill { get; set; } = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.95, 0.95, 0.95);
     /// <summary>Optional alternating row fill color (applied to every other body row). Set to null to disable.</summary>
-    public PdfColor? RowStripeFill { get; set; } = new PdfColor(0.98, 0.98, 0.98);
+    public global::OfficeIMO.OfficeColor? RowStripeFill { get; set; } = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.98, 0.98, 0.98);
     /// <summary>Optional horizontal separator color drawn at the bottom of each table row. Set to null or zero width to disable.</summary>
-    public PdfColor? RowSeparatorColor { get; set; }
+    public global::OfficeIMO.OfficeColor? RowSeparatorColor { get; set; }
     /// <summary>Stroke width, in points, for row separators.</summary>
     public double RowSeparatorWidth {
         get => _rowSeparatorWidth;
@@ -150,7 +150,7 @@ public partial class PdfTableStyle {
         }
     }
     /// <summary>Optional horizontal separator color used below header rows. Falls back to <see cref="RowSeparatorColor"/> when null.</summary>
-    public PdfColor? HeaderSeparatorColor { get; set; }
+    public global::OfficeIMO.OfficeColor? HeaderSeparatorColor { get; set; }
     /// <summary>Optional stroke width, in points, used below header rows. Falls back to <see cref="RowSeparatorWidth"/> when zero.</summary>
     public double HeaderSeparatorWidth {
         get => _headerSeparatorWidth;
@@ -160,7 +160,7 @@ public partial class PdfTableStyle {
         }
     }
     /// <summary>Optional horizontal separator color used above footer rows. Falls back to <see cref="RowSeparatorColor"/> when null.</summary>
-    public PdfColor? FooterSeparatorColor { get; set; }
+    public global::OfficeIMO.OfficeColor? FooterSeparatorColor { get; set; }
     /// <summary>Optional stroke width, in points, used above footer rows. Falls back to <see cref="RowSeparatorWidth"/> when zero.</summary>
     public double FooterSeparatorWidth {
         get => _footerSeparatorWidth;
@@ -170,12 +170,12 @@ public partial class PdfTableStyle {
         }
     }
     /// <summary>Optional per-column background fills for body rows. Null or missing entries use the row fill.</summary>
-    public System.Collections.Generic.List<PdfColor?>? BodyColumnFills {
+    public System.Collections.Generic.List<global::OfficeIMO.OfficeColor?>? BodyColumnFills {
         get => _bodyColumnFills;
-        set => _bodyColumnFills = value == null ? null : new System.Collections.Generic.List<PdfColor?>(value);
+        set => _bodyColumnFills = value == null ? null : new System.Collections.Generic.List<global::OfficeIMO.OfficeColor?>(value);
     }
     /// <summary>Optional absolute per-cell background fills keyed by zero-based row and column.</summary>
-    public System.Collections.Generic.Dictionary<(int Row, int Column), PdfColor>? CellFills {
+    public System.Collections.Generic.Dictionary<(int Row, int Column), global::OfficeIMO.OfficeColor>? CellFills {
         get => _cellFills;
         set {
             if (value != null) {
@@ -186,7 +186,7 @@ public partial class PdfTableStyle {
                 }
             }
 
-            _cellFills = value == null ? null : new System.Collections.Generic.Dictionary<(int Row, int Column), PdfColor>(value);
+            _cellFills = value == null ? null : new System.Collections.Generic.Dictionary<(int Row, int Column), global::OfficeIMO.OfficeColor>(value);
         }
     }
     /// <summary>Optional proportional bars drawn inside cells, behind cell text, keyed by zero-based row and column.</summary>
@@ -328,7 +328,7 @@ public partial class PdfTableStyle {
         }
     }
     /// <summary>Text color for body rows. When null the writer’s default text color is used.</summary>
-    public PdfColor? TextColor { get; set; }
+    public global::OfficeIMO.OfficeColor? TextColor { get; set; }
     /// <summary>Font size for body cells, in points. When null the document default font size is used.</summary>
     public double? FontSize {
         get => _fontSize;
@@ -346,7 +346,7 @@ public partial class PdfTableStyle {
         }
     }
     /// <summary>Text color for header cells. When null the writer’s default text color is used.</summary>
-    public PdfColor? HeaderTextColor { get; set; }
+    public global::OfficeIMO.OfficeColor? HeaderTextColor { get; set; }
     /// <summary>Font size for header cells, in points. When null the body table font size is used.</summary>
     public double? HeaderFontSize {
         get => _headerFontSize;
@@ -406,7 +406,7 @@ public partial class PdfTableStyle {
         }
     }
     /// <summary>Text color for footer cells. When null the writer’s default text color is used.</summary>
-    public PdfColor? FooterTextColor { get; set; }
+    public global::OfficeIMO.OfficeColor? FooterTextColor { get; set; }
     /// <summary>Font size for footer cells, in points. When null the body table font size is used.</summary>
     public double? FooterFontSize {
         get => _footerFontSize;
@@ -546,7 +546,7 @@ public partial class PdfTableStyle {
         }
     }
     /// <summary>Caption text color. When null the writer's default text color is used.</summary>
-    public PdfColor? CaptionColor { get; set; }
+    public global::OfficeIMO.OfficeColor? CaptionColor { get; set; }
     /// <summary>Caption font size in points. When null the document default font size is used.</summary>
     public double? CaptionFontSize {
         get => _captionFontSize;
@@ -763,10 +763,10 @@ public partial class PdfTableStyle {
             AllowRowBreakAcrossPages = AllowRowBreakAcrossPages,
             RowAllowBreakAcrossPages = RowAllowBreakAcrossPages
         };
-        if (BodyColumnFills != null) clone.BodyColumnFills = new System.Collections.Generic.List<PdfColor?>(BodyColumnFills);
+        if (BodyColumnFills != null) clone.BodyColumnFills = new System.Collections.Generic.List<global::OfficeIMO.OfficeColor?>(BodyColumnFills);
         if (AutoFitCellPreferredWidthPoints != null)
             clone.AutoFitCellPreferredWidthPoints = new System.Collections.Generic.Dictionary<(int Row, int Column), double>(AutoFitCellPreferredWidthPoints);
-        if (CellFills != null) clone.CellFills = new System.Collections.Generic.Dictionary<(int Row, int Column), PdfColor>(CellFills);
+        if (CellFills != null) clone.CellFills = new System.Collections.Generic.Dictionary<(int Row, int Column), global::OfficeIMO.OfficeColor>(CellFills);
         if (CellDataBars != null) {
             clone.CellDataBars = new System.Collections.Generic.Dictionary<(int Row, int Column), PdfCellDataBar>();
             foreach (var cellDataBar in CellDataBars) {

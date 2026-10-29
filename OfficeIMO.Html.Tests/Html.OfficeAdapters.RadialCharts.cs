@@ -14,8 +14,7 @@ public partial class HtmlOfficeAdapters {
     [InlineData(OfficeChartType.Doughnut)]
     public void ExcelHtml_RoundTripsRadialGeometry(OfficeChartType kind) {
         using ExcelDocument document = ExcelDocument.Create();
-        document.AddSheet("Results").AddChart(kind,
-            new OfficeChartData(new[] { "A", "B" }, new[] { new OfficeSeries("Status", new[] { 7d, 3d }) }), 1, 1)
+        document.AddSheet("Results").AddChart(kind, new OfficeChartData(new[] { "A", "B" }, new[] { new OfficeSeries("Status", new[] { 7d, 3d }) }), new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 1 })
             .SetRadialLayout(new OfficeChartRadialLayout(135, 75));
         using ExcelDocument restored = HtmlConversionDocument.Parse(document.ToHtml()).ToExcelDocument();
         var chart = restored.Sheets.SelectMany(s => s.Charts).Single();
@@ -29,7 +28,7 @@ public partial class HtmlOfficeAdapters {
     [InlineData(OfficeChartType.Doughnut)]
     public void PowerPointHtml_RoundTripsRadialGeometry(OfficeChartType kind) {
         using PowerPointDocument presentation = PowerPointDocument.Create();
-        presentation.AddSlide().AddChart(kind,            new OfficeChartData(new[] { "A", "B" }, new[] { new OfficeSeries("Status", new[] { 7d, 3d }) }),global::OfficeIMO.OfficeLength.Points(10),global::OfficeIMO.OfficeLength.Points(10),global::OfficeIMO.OfficeLength.Points(300),global::OfficeIMO.OfficeLength.Points(200))
+        presentation.AddSlide().AddChart(kind, new OfficeChartData(new[] { "A", "B" }, new[] { new OfficeSeries("Status", new[] { 7d, 3d }) }), new OfficeIMO.PowerPoint.PowerPointChartOptions { Left = global::OfficeIMO.OfficeLength.Points(10), Top = global::OfficeIMO.OfficeLength.Points(10), Width = global::OfficeIMO.OfficeLength.Points(300), Height = global::OfficeIMO.OfficeLength.Points(200) })
             .SetRadialLayout(new OfficeChartRadialLayout(135, 75));
         string html = presentation.ToHtml();
         using PowerPointDocument restored = HtmlConversionDocument.Parse(html).ToPowerPointDocument();
@@ -45,7 +44,7 @@ public partial class HtmlOfficeAdapters {
     [InlineData("invalid", "50")]
     public void PowerPointHtml_InvalidRadialMetadataOmitsChartWithDiagnostic(string angle, string hole) {
         using PowerPointDocument presentation = PowerPointDocument.Create();
-        presentation.AddSlide().AddChart(OfficeChartType.Doughnut,            new OfficeChartData(new[] { "A" }, new[] { new OfficeSeries("Status", new[] { 1d }) }),global::OfficeIMO.OfficeLength.Points(10),global::OfficeIMO.OfficeLength.Points(10),global::OfficeIMO.OfficeLength.Points(300),global::OfficeIMO.OfficeLength.Points(200))
+        presentation.AddSlide().AddChart(OfficeChartType.Doughnut, new OfficeChartData(new[] { "A" }, new[] { new OfficeSeries("Status", new[] { 1d }) }), new OfficeIMO.PowerPoint.PowerPointChartOptions { Left = global::OfficeIMO.OfficeLength.Points(10), Top = global::OfficeIMO.OfficeLength.Points(10), Width = global::OfficeIMO.OfficeLength.Points(300), Height = global::OfficeIMO.OfficeLength.Points(200) })
             .SetRadialLayout(new OfficeChartRadialLayout(90, 75));
         string html = presentation.ToHtml().Replace("data-officeimo-first-slice-angle=\"90\"", "data-officeimo-first-slice-angle=\"" + angle + "\"")
             .Replace("data-officeimo-doughnut-hole=\"75\"", "data-officeimo-doughnut-hole=\"" + hole + "\"");

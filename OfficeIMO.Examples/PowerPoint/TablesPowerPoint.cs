@@ -160,7 +160,7 @@ namespace OfficeIMO.Examples.PowerPoint {
                     new OfficeSeries("Q3", data.Select(d => (double)d.Q3)),
                     new OfficeSeries("Q4", data.Select(d => (double)d.Q4))
                 });
-            chartSlide.AddChart(OfficeChartType.ColumnClustered,chartData,global::OfficeIMO.OfficeLength.Centimeters(marginCm),global::OfficeIMO.OfficeLength.Centimeters(bodyTopCm),                global::OfficeIMO.OfficeLength.Centimeters(content.Width.ToCentimeters()),global::OfficeIMO.OfficeLength.Centimeters(bodyHeightCm));
+            chartSlide.AddChart(OfficeChartType.ColumnClustered, chartData, new OfficeIMO.PowerPoint.PowerPointChartOptions { Left = global::OfficeIMO.OfficeLength.Centimeters(marginCm), Top = global::OfficeIMO.OfficeLength.Centimeters(bodyTopCm), Width = global::OfficeIMO.OfficeLength.Centimeters(content.Width.ToCentimeters()), Height = global::OfficeIMO.OfficeLength.Centimeters(bodyHeightCm) });
             chartSlide.Notes.Text = "Chart and table share the same source data.";
 
             // Slide 6: table + chart side by side
@@ -191,7 +191,7 @@ namespace OfficeIMO.Examples.PowerPoint {
                 }
             }
 
-            comboSlide.AddChart(OfficeChartType.ColumnClustered,chartData,global::OfficeIMO.OfficeLength.Centimeters(rightColumn.Left.ToCentimeters()),                global::OfficeIMO.OfficeLength.Centimeters(rightColumn.Top.ToCentimeters()),global::OfficeIMO.OfficeLength.Centimeters(rightColumn.Width.ToCentimeters()),global::OfficeIMO.OfficeLength.Centimeters(rightColumn.Height.ToCentimeters()));
+            comboSlide.AddChart(OfficeChartType.ColumnClustered, chartData, new OfficeIMO.PowerPoint.PowerPointChartOptions { Left = global::OfficeIMO.OfficeLength.Centimeters(rightColumn.Left.ToCentimeters()), Top = global::OfficeIMO.OfficeLength.Centimeters(rightColumn.Top.ToCentimeters()), Width = global::OfficeIMO.OfficeLength.Centimeters(rightColumn.Width.ToCentimeters()), Height = global::OfficeIMO.OfficeLength.Centimeters(rightColumn.Height.ToCentimeters()) });
 
             // Slide 7: totals by quarter
             PowerPointSlide totalsSlide = presentation.AddSlide();
@@ -206,7 +206,7 @@ namespace OfficeIMO.Examples.PowerPoint {
             OfficeChartData totalsData = new(
                 quarterLabels,
                 new[] { new OfficeSeries("Total", totals.Select(t => (double)t)) });
-            totalsSlide.AddChart(OfficeChartType.ColumnClustered,totalsData,global::OfficeIMO.OfficeLength.Centimeters(marginCm),global::OfficeIMO.OfficeLength.Centimeters(bodyTopCm),                global::OfficeIMO.OfficeLength.Centimeters(content.Width.ToCentimeters()),global::OfficeIMO.OfficeLength.Centimeters(bodyHeightCm));
+            totalsSlide.AddChart(OfficeChartType.ColumnClustered, totalsData, new OfficeIMO.PowerPoint.PowerPointChartOptions { Left = global::OfficeIMO.OfficeLength.Centimeters(marginCm), Top = global::OfficeIMO.OfficeLength.Centimeters(bodyTopCm), Width = global::OfficeIMO.OfficeLength.Centimeters(content.Width.ToCentimeters()), Height = global::OfficeIMO.OfficeLength.Centimeters(bodyHeightCm) });
 
             // Slide 8: picture with caption
             PowerPointSlide imageSlide = presentation.AddSlide();

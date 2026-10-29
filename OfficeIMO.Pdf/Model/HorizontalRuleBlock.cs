@@ -7,7 +7,7 @@ internal sealed class HorizontalRuleBlock : IPdfBlock {
         Style = style?.Clone();
     }
 
-    public HorizontalRuleBlock(double thickness, PdfColor color, double spacingBefore, double spacingAfter)
+    public HorizontalRuleBlock(double thickness, global::OfficeIMO.OfficeColor color, double spacingBefore, double spacingAfter)
         : this(new PdfHorizontalRuleStyle {
             Thickness = thickness,
             Color = color,

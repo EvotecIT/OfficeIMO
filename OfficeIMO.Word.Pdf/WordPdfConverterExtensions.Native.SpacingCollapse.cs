@@ -57,12 +57,12 @@ namespace OfficeIMO.Word.Pdf {
             public void Bookmark(string name) => _inner.Bookmark(name);
             public void TableOfContents(PdfCore.PdfTableOfContentsOptions options) { _inner.TableOfContents(options); ResetSpacingCollapse(); }
 
-            public void HR(double? thickness = null, PdfCore.PdfColor? color = null, double? spacingBefore = null, double? spacingAfter = null, PdfCore.PdfHorizontalRuleStyle? style = null) {
+            public void HR(double? thickness = null, global::OfficeIMO.OfficeColor? color = null, double? spacingBefore = null, double? spacingAfter = null, PdfCore.PdfHorizontalRuleStyle? style = null) {
                 _inner.HR(thickness, color, spacingBefore, spacingAfter, style);
                 ResetSpacingCollapse();
             }
 
-            public void Paragraph(Action<PdfCore.PdfParagraphBuilder> build, PdfCore.PdfAlign align = PdfCore.PdfAlign.Left, PdfCore.PdfColor? defaultColor = null, PdfCore.PdfParagraphStyle? style = null) {
+            public void Paragraph(Action<PdfCore.PdfParagraphBuilder> build, PdfCore.PdfAlign align = PdfCore.PdfAlign.Left, global::OfficeIMO.OfficeColor? defaultColor = null, PdfCore.PdfParagraphStyle? style = null) {
                 PdfCore.PdfParagraphStyle? collapsedStyle = style;
                 if (style != null) {
                     collapsedStyle = style.Clone();
@@ -84,7 +84,7 @@ namespace OfficeIMO.Word.Pdf {
                 _pendingSpacingAfter = style?.SpacingAfter;
             }
 
-            public void PanelParagraph(Action<PdfCore.PdfParagraphBuilder> build, PdfCore.PdfPanelStyle? style = null, PdfCore.PdfAlign align = PdfCore.PdfAlign.Left, PdfCore.PdfColor? defaultColor = null, PdfCore.PdfParagraphStyle? paragraphStyle = null) {
+            public void PanelParagraph(Action<PdfCore.PdfParagraphBuilder> build, PdfCore.PdfPanelStyle? style = null, PdfCore.PdfAlign align = PdfCore.PdfAlign.Left, global::OfficeIMO.OfficeColor? defaultColor = null, PdfCore.PdfParagraphStyle? paragraphStyle = null) {
                 PdfCore.PdfPanelStyle? collapsedStyle = style;
                 if (style != null) {
                     collapsedStyle = style.Clone();
@@ -95,7 +95,7 @@ namespace OfficeIMO.Word.Pdf {
                 _pendingSpacingAfter = paragraphStyle?.SpacingAfter ?? style?.SpacingAfter;
             }
 
-            public void Heading(int level, string text, Action<PdfCore.PdfParagraphBuilder> build, PdfCore.PdfAlign align, PdfCore.PdfColor? color, PdfCore.PdfHeadingStyle? style) {
+            public void Heading(int level, string text, Action<PdfCore.PdfParagraphBuilder> build, PdfCore.PdfAlign align, global::OfficeIMO.OfficeColor? color, PdfCore.PdfHeadingStyle? style) {
                 PdfCore.PdfHeadingStyle? collapsedStyle = style;
                 if (style != null) {
                     collapsedStyle = style.Clone();
@@ -106,13 +106,13 @@ namespace OfficeIMO.Word.Pdf {
                 _pendingSpacingAfter = style?.SpacingAfter;
             }
 
-            public void RichNumbered(IEnumerable<PdfCore.PdfListItem> items, PdfCore.PdfAlign align, PdfCore.PdfColor? color, int startNumber, PdfCore.PdfListStyle? style) {
+            public void RichNumbered(IEnumerable<PdfCore.PdfListItem> items, PdfCore.PdfAlign align, global::OfficeIMO.OfficeColor? color, int startNumber, PdfCore.PdfListStyle? style) {
                 PdfCore.PdfListStyle? collapsedStyle = CollapseListStyle(style);
                 _inner.RichNumbered(items, align, color, startNumber, collapsedStyle);
                 _pendingSpacingAfter = style?.SpacingAfter;
             }
 
-            public void RichBullets(IEnumerable<PdfCore.PdfListItem> items, PdfCore.PdfAlign align, PdfCore.PdfColor? color, PdfCore.PdfListStyle? style) {
+            public void RichBullets(IEnumerable<PdfCore.PdfListItem> items, PdfCore.PdfAlign align, global::OfficeIMO.OfficeColor? color, PdfCore.PdfListStyle? style) {
                 PdfCore.PdfListStyle? collapsedStyle = CollapseListStyle(style);
                 _inner.RichBullets(items, align, color, collapsedStyle);
                 _pendingSpacingAfter = style?.SpacingAfter;

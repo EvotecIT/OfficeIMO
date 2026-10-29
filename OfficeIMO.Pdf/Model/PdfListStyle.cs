@@ -99,9 +99,9 @@ public sealed class PdfListStyle {
     }
 
     /// <summary>List marker and text color. A list block color overrides this value.</summary>
-    public PdfColor? Color { get; set; }
+    public global::OfficeIMO.OfficeColor? Color { get; set; }
     /// <summary>Optional list marker color. When null the marker uses the list block color or list text color.</summary>
-    public PdfColor? MarkerColor { get; set; }
+    public global::OfficeIMO.OfficeColor? MarkerColor { get; set; }
     /// <summary>Optional horizontal alignment of the marker inside the marker column. When null, bullets use left alignment and numbered lists use right alignment.</summary>
     public PdfAlign? MarkerAlign {
         get => _markerAlign;

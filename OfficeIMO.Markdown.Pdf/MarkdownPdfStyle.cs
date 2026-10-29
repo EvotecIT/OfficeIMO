@@ -19,29 +19,29 @@ public sealed partial class MarkdownPdfStyle {
     private PdfCore.PdfTableStyle? _frontMatterTableStyle;
     private double? _codeBlockFontSize;
     private double? _codeBlockLabelFontSize;
-    private PdfCore.PdfColor? _codeBlockTextColor;
-    private PdfCore.PdfColor? _codeBlockLabelColor;
+    private global::OfficeIMO.OfficeColor? _codeBlockTextColor;
+    private global::OfficeIMO.OfficeColor? _codeBlockLabelColor;
     private double? _semanticBlockFontSize;
     private double? _semanticBlockLabelFontSize;
-    private PdfCore.PdfColor? _semanticBlockTextColor;
-    private PdfCore.PdfColor? _semanticBlockLabelColor;
-    private PdfCore.PdfColor? _checklistCheckedIconColor;
-    private PdfCore.PdfColor? _checklistUncheckedIconColor;
-    private PdfCore.PdfColor? _checklistCheckedTextColor;
-    private PdfCore.PdfColor? _checklistUncheckedTextColor;
-    private PdfCore.PdfColor? _checklistCheckedFillColor;
-    private PdfCore.PdfColor? _checklistUncheckedFillColor;
+    private global::OfficeIMO.OfficeColor? _semanticBlockTextColor;
+    private global::OfficeIMO.OfficeColor? _semanticBlockLabelColor;
+    private global::OfficeIMO.OfficeColor? _checklistCheckedIconColor;
+    private global::OfficeIMO.OfficeColor? _checklistUncheckedIconColor;
+    private global::OfficeIMO.OfficeColor? _checklistCheckedTextColor;
+    private global::OfficeIMO.OfficeColor? _checklistUncheckedTextColor;
+    private global::OfficeIMO.OfficeColor? _checklistCheckedFillColor;
+    private global::OfficeIMO.OfficeColor? _checklistUncheckedFillColor;
     private double? _documentHeaderTitleFontSize;
     private double? _documentHeaderSubtitleFontSize;
     private double? _documentHeaderMetadataFontSize;
-    private PdfCore.PdfColor? _documentHeaderTitleColor;
-    private PdfCore.PdfColor? _documentHeaderSubtitleColor;
-    private PdfCore.PdfColor? _documentHeaderMetadataColor;
-    private PdfCore.PdfColor? _documentHeaderRuleColor;
-    private PdfCore.PdfColor? _tocTitleColor;
-    private PdfCore.PdfColor? _tocLinkColor;
-    private PdfCore.PdfColor? _tocTextColor;
-    private PdfCore.PdfColor? _linkColor;
+    private global::OfficeIMO.OfficeColor? _documentHeaderTitleColor;
+    private global::OfficeIMO.OfficeColor? _documentHeaderSubtitleColor;
+    private global::OfficeIMO.OfficeColor? _documentHeaderMetadataColor;
+    private global::OfficeIMO.OfficeColor? _documentHeaderRuleColor;
+    private global::OfficeIMO.OfficeColor? _tocTitleColor;
+    private global::OfficeIMO.OfficeColor? _tocLinkColor;
+    private global::OfficeIMO.OfficeColor? _tocTextColor;
+    private global::OfficeIMO.OfficeColor? _linkColor;
     private bool? _underlineLinks;
     private MarkdownPdfPageDecoration? _pageDecoration;
     private MarkdownPdfFigureStyle? _figureStyle;
@@ -128,13 +128,13 @@ public sealed partial class MarkdownPdfStyle {
     }
 
     /// <summary>Text color for fenced code block content.</summary>
-    public PdfCore.PdfColor? CodeBlockTextColor {
+    public global::OfficeIMO.OfficeColor? CodeBlockTextColor {
         get => _codeBlockTextColor;
         set => _codeBlockTextColor = value;
     }
 
     /// <summary>Text color for the optional fenced code language label.</summary>
-    public PdfCore.PdfColor? CodeBlockLabelColor {
+    public global::OfficeIMO.OfficeColor? CodeBlockLabelColor {
         get => _codeBlockLabelColor;
         set => _codeBlockLabelColor = value;
     }
@@ -152,49 +152,49 @@ public sealed partial class MarkdownPdfStyle {
     }
 
     /// <summary>Text color for semantic fenced block content.</summary>
-    public PdfCore.PdfColor? SemanticBlockTextColor {
+    public global::OfficeIMO.OfficeColor? SemanticBlockTextColor {
         get => _semanticBlockTextColor;
         set => _semanticBlockTextColor = value;
     }
 
     /// <summary>Text color for semantic fenced block labels.</summary>
-    public PdfCore.PdfColor? SemanticBlockLabelColor {
+    public global::OfficeIMO.OfficeColor? SemanticBlockLabelColor {
         get => _semanticBlockLabelColor;
         set => _semanticBlockLabelColor = value;
     }
 
     /// <summary>Icon color used for checked Markdown task-list items.</summary>
-    public PdfCore.PdfColor? ChecklistCheckedIconColor {
+    public global::OfficeIMO.OfficeColor? ChecklistCheckedIconColor {
         get => _checklistCheckedIconColor;
         set => _checklistCheckedIconColor = value;
     }
 
     /// <summary>Icon color used for unchecked Markdown task-list items.</summary>
-    public PdfCore.PdfColor? ChecklistUncheckedIconColor {
+    public global::OfficeIMO.OfficeColor? ChecklistUncheckedIconColor {
         get => _checklistUncheckedIconColor;
         set => _checklistUncheckedIconColor = value;
     }
 
     /// <summary>Text color used for checked Markdown task-list items.</summary>
-    public PdfCore.PdfColor? ChecklistCheckedTextColor {
+    public global::OfficeIMO.OfficeColor? ChecklistCheckedTextColor {
         get => _checklistCheckedTextColor;
         set => _checklistCheckedTextColor = value;
     }
 
     /// <summary>Text color used for unchecked Markdown task-list items.</summary>
-    public PdfCore.PdfColor? ChecklistUncheckedTextColor {
+    public global::OfficeIMO.OfficeColor? ChecklistUncheckedTextColor {
         get => _checklistUncheckedTextColor;
         set => _checklistUncheckedTextColor = value;
     }
 
     /// <summary>Optional row fill used for checked Markdown task-list items.</summary>
-    public PdfCore.PdfColor? ChecklistCheckedFillColor {
+    public global::OfficeIMO.OfficeColor? ChecklistCheckedFillColor {
         get => _checklistCheckedFillColor;
         set => _checklistCheckedFillColor = value;
     }
 
     /// <summary>Optional row fill used for unchecked Markdown task-list items.</summary>
-    public PdfCore.PdfColor? ChecklistUncheckedFillColor {
+    public global::OfficeIMO.OfficeColor? ChecklistUncheckedFillColor {
         get => _checklistUncheckedFillColor;
         set => _checklistUncheckedFillColor = value;
     }
@@ -218,49 +218,49 @@ public sealed partial class MarkdownPdfStyle {
     }
 
     /// <summary>Text color used for front matter title blocks.</summary>
-    public PdfCore.PdfColor? DocumentHeaderTitleColor {
+    public global::OfficeIMO.OfficeColor? DocumentHeaderTitleColor {
         get => _documentHeaderTitleColor;
         set => _documentHeaderTitleColor = value;
     }
 
     /// <summary>Text color used for front matter subtitles or descriptions.</summary>
-    public PdfCore.PdfColor? DocumentHeaderSubtitleColor {
+    public global::OfficeIMO.OfficeColor? DocumentHeaderSubtitleColor {
         get => _documentHeaderSubtitleColor;
         set => _documentHeaderSubtitleColor = value;
     }
 
     /// <summary>Text color used for front matter author/date/tags metadata lines.</summary>
-    public PdfCore.PdfColor? DocumentHeaderMetadataColor {
+    public global::OfficeIMO.OfficeColor? DocumentHeaderMetadataColor {
         get => _documentHeaderMetadataColor;
         set => _documentHeaderMetadataColor = value;
     }
 
     /// <summary>Rule color used below rendered front matter document headers.</summary>
-    public PdfCore.PdfColor? DocumentHeaderRuleColor {
+    public global::OfficeIMO.OfficeColor? DocumentHeaderRuleColor {
         get => _documentHeaderRuleColor;
         set => _documentHeaderRuleColor = value;
     }
 
     /// <summary>Title color used by generated Markdown table-of-contents blocks.</summary>
-    public PdfCore.PdfColor? TocTitleColor {
+    public global::OfficeIMO.OfficeColor? TocTitleColor {
         get => _tocTitleColor;
         set => _tocTitleColor = value;
     }
 
     /// <summary>Link color used by generated Markdown table-of-contents entries.</summary>
-    public PdfCore.PdfColor? TocLinkColor {
+    public global::OfficeIMO.OfficeColor? TocLinkColor {
         get => _tocLinkColor;
         set => _tocLinkColor = value;
     }
 
     /// <summary>Marker and secondary text color used by generated Markdown table-of-contents blocks.</summary>
-    public PdfCore.PdfColor? TocTextColor {
+    public global::OfficeIMO.OfficeColor? TocTextColor {
         get => _tocTextColor;
         set => _tocTextColor = value;
     }
 
     /// <summary>Text color used for ordinary Markdown links in paragraphs, lists, tables, panels, and definitions.</summary>
-    public PdfCore.PdfColor? LinkColor {
+    public global::OfficeIMO.OfficeColor? LinkColor {
         get => _linkColor;
         set => _linkColor = value;
     }
@@ -593,29 +593,29 @@ public sealed partial class MarkdownPdfStyle {
     internal PdfCore.PdfTableStyle FrontMatterTableStyleSnapshot => (_frontMatterTableStyle ?? PdfCore.PdfTableStyles.Minimal()).Clone();
     internal double CodeBlockFontSizeSnapshot => _codeBlockFontSize ?? 9.5;
     internal double CodeBlockLabelFontSizeSnapshot => _codeBlockLabelFontSize ?? 8;
-    internal PdfCore.PdfColor CodeBlockTextColorSnapshot => _codeBlockTextColor ?? Color(31, 41, 55);
-    internal PdfCore.PdfColor CodeBlockLabelColorSnapshot => _codeBlockLabelColor ?? Color(71, 85, 105);
+    internal global::OfficeIMO.OfficeColor CodeBlockTextColorSnapshot => _codeBlockTextColor ?? Color(31, 41, 55);
+    internal global::OfficeIMO.OfficeColor CodeBlockLabelColorSnapshot => _codeBlockLabelColor ?? Color(71, 85, 105);
     internal double SemanticBlockFontSizeSnapshot => _semanticBlockFontSize ?? CodeBlockFontSizeSnapshot;
     internal double SemanticBlockLabelFontSizeSnapshot => _semanticBlockLabelFontSize ?? CodeBlockLabelFontSizeSnapshot;
-    internal PdfCore.PdfColor SemanticBlockTextColorSnapshot => _semanticBlockTextColor ?? CodeBlockTextColorSnapshot;
-    internal PdfCore.PdfColor SemanticBlockLabelColorSnapshot => _semanticBlockLabelColor ?? CodeBlockLabelColorSnapshot;
-    internal PdfCore.PdfColor ChecklistCheckedIconColorSnapshot => _checklistCheckedIconColor ?? Plain()._checklistCheckedIconColor ?? Color(22, 163, 74);
-    internal PdfCore.PdfColor ChecklistUncheckedIconColorSnapshot => _checklistUncheckedIconColor ?? Plain()._checklistUncheckedIconColor ?? Color(100, 116, 139);
-    internal PdfCore.PdfColor ChecklistCheckedTextColorSnapshot => _checklistCheckedTextColor ?? Plain()._checklistCheckedTextColor ?? Color(71, 85, 105);
-    internal PdfCore.PdfColor ChecklistUncheckedTextColorSnapshot => _checklistUncheckedTextColor ?? Plain()._checklistUncheckedTextColor ?? Color(31, 41, 55);
-    internal PdfCore.PdfColor? ChecklistCheckedFillColorSnapshot => _checklistCheckedFillColor ?? Plain()._checklistCheckedFillColor;
-    internal PdfCore.PdfColor? ChecklistUncheckedFillColorSnapshot => _checklistUncheckedFillColor ?? Plain()._checklistUncheckedFillColor;
+    internal global::OfficeIMO.OfficeColor SemanticBlockTextColorSnapshot => _semanticBlockTextColor ?? CodeBlockTextColorSnapshot;
+    internal global::OfficeIMO.OfficeColor SemanticBlockLabelColorSnapshot => _semanticBlockLabelColor ?? CodeBlockLabelColorSnapshot;
+    internal global::OfficeIMO.OfficeColor ChecklistCheckedIconColorSnapshot => _checklistCheckedIconColor ?? Plain()._checklistCheckedIconColor ?? Color(22, 163, 74);
+    internal global::OfficeIMO.OfficeColor ChecklistUncheckedIconColorSnapshot => _checklistUncheckedIconColor ?? Plain()._checklistUncheckedIconColor ?? Color(100, 116, 139);
+    internal global::OfficeIMO.OfficeColor ChecklistCheckedTextColorSnapshot => _checklistCheckedTextColor ?? Plain()._checklistCheckedTextColor ?? Color(71, 85, 105);
+    internal global::OfficeIMO.OfficeColor ChecklistUncheckedTextColorSnapshot => _checklistUncheckedTextColor ?? Plain()._checklistUncheckedTextColor ?? Color(31, 41, 55);
+    internal global::OfficeIMO.OfficeColor? ChecklistCheckedFillColorSnapshot => _checklistCheckedFillColor ?? Plain()._checklistCheckedFillColor;
+    internal global::OfficeIMO.OfficeColor? ChecklistUncheckedFillColorSnapshot => _checklistUncheckedFillColor ?? Plain()._checklistUncheckedFillColor;
     internal double DocumentHeaderTitleFontSizeSnapshot => _documentHeaderTitleFontSize ?? Plain()._documentHeaderTitleFontSize ?? 25;
     internal double DocumentHeaderSubtitleFontSizeSnapshot => _documentHeaderSubtitleFontSize ?? Plain()._documentHeaderSubtitleFontSize ?? 12.5;
     internal double DocumentHeaderMetadataFontSizeSnapshot => _documentHeaderMetadataFontSize ?? Plain()._documentHeaderMetadataFontSize ?? 9.5;
-    internal PdfCore.PdfColor DocumentHeaderTitleColorSnapshot => _documentHeaderTitleColor ?? Plain()._documentHeaderTitleColor ?? Color(17, 24, 39);
-    internal PdfCore.PdfColor DocumentHeaderSubtitleColorSnapshot => _documentHeaderSubtitleColor ?? Plain()._documentHeaderSubtitleColor ?? Color(71, 85, 105);
-    internal PdfCore.PdfColor DocumentHeaderMetadataColorSnapshot => _documentHeaderMetadataColor ?? Plain()._documentHeaderMetadataColor ?? Color(100, 116, 139);
-    internal PdfCore.PdfColor DocumentHeaderRuleColorSnapshot => _documentHeaderRuleColor ?? Plain()._documentHeaderRuleColor ?? Color(203, 213, 225);
-    internal PdfCore.PdfColor TocTitleColorSnapshot => _tocTitleColor ?? Plain()._tocTitleColor ?? Color(17, 24, 39);
-    internal PdfCore.PdfColor TocLinkColorSnapshot => _tocLinkColor ?? Plain()._tocLinkColor ?? Color(37, 99, 235);
-    internal PdfCore.PdfColor TocTextColorSnapshot => _tocTextColor ?? Plain()._tocTextColor ?? Color(100, 116, 139);
-    internal PdfCore.PdfColor LinkColorSnapshot => _linkColor ?? _tocLinkColor ?? Plain()._linkColor ?? Color(37, 99, 235);
+    internal global::OfficeIMO.OfficeColor DocumentHeaderTitleColorSnapshot => _documentHeaderTitleColor ?? Plain()._documentHeaderTitleColor ?? Color(17, 24, 39);
+    internal global::OfficeIMO.OfficeColor DocumentHeaderSubtitleColorSnapshot => _documentHeaderSubtitleColor ?? Plain()._documentHeaderSubtitleColor ?? Color(71, 85, 105);
+    internal global::OfficeIMO.OfficeColor DocumentHeaderMetadataColorSnapshot => _documentHeaderMetadataColor ?? Plain()._documentHeaderMetadataColor ?? Color(100, 116, 139);
+    internal global::OfficeIMO.OfficeColor DocumentHeaderRuleColorSnapshot => _documentHeaderRuleColor ?? Plain()._documentHeaderRuleColor ?? Color(203, 213, 225);
+    internal global::OfficeIMO.OfficeColor TocTitleColorSnapshot => _tocTitleColor ?? Plain()._tocTitleColor ?? Color(17, 24, 39);
+    internal global::OfficeIMO.OfficeColor TocLinkColorSnapshot => _tocLinkColor ?? Plain()._tocLinkColor ?? Color(37, 99, 235);
+    internal global::OfficeIMO.OfficeColor TocTextColorSnapshot => _tocTextColor ?? Plain()._tocTextColor ?? Color(100, 116, 139);
+    internal global::OfficeIMO.OfficeColor LinkColorSnapshot => _linkColor ?? _tocLinkColor ?? Plain()._linkColor ?? Color(37, 99, 235);
     internal bool UnderlineLinksSnapshot => _underlineLinks ?? Plain()._underlineLinks ?? true;
     internal MarkdownPdfFigureStyle FigureStyleSnapshot => (_figureStyle ?? Plain()._figureStyle ?? MarkdownPdfFigureStyle.Plain()).Clone();
 

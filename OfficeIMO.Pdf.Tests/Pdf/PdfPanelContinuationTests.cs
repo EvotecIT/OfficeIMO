@@ -247,10 +247,10 @@ public class PdfPanelContinuationTests {
         };
         var style = new PdfPanelStyle {
             PaddingX = 0, PaddingY = 4, SpacingBefore = 0, SpacingAfter = 0, CornerRadius = radius,
-            LeftBorder = new PdfPanelBorder { Color = PdfColor.Black, Offset = 2 },
-            RightBorder = new PdfPanelBorder { Color = PdfColor.Black, Offset = 3 },
-            TopBorder = new PdfPanelBorder { Color = PdfColor.Black, Offset = -0.25 },
-            BottomBorder = new PdfPanelBorder { Color = PdfColor.Black, Offset = -0.25 }
+            LeftBorder = new PdfPanelBorder { Color = global::OfficeIMO.OfficeColor.Black, Offset = 2 },
+            RightBorder = new PdfPanelBorder { Color = global::OfficeIMO.OfficeColor.Black, Offset = 3 },
+            TopBorder = new PdfPanelBorder { Color = global::OfficeIMO.OfficeColor.Black, Offset = -0.25 },
+            BottomBorder = new PdfPanelBorder { Color = global::OfficeIMO.OfficeColor.Black, Offset = -0.25 }
         };
         byte[] bytes = PdfDocument.Create(options).Panel(panel => panel.Paragraph(p => p.Text("Marker")), style).ToBytes();
         using var pdf = UglyToad.PdfPig.PdfDocument.Open(bytes);
@@ -311,7 +311,7 @@ public class PdfPanelContinuationTests {
         };
         var panelStyle = new PdfPanelStyle {
             PaddingX = 0, PaddingY = 4, SpacingBefore = 0, SpacingAfter = 0,
-            BorderColor = PdfColor.Black, RepeatFragmentDecoration = repeat, FragmentBottomInset = inset
+            BorderColor = global::OfficeIMO.OfficeColor.Black, RepeatFragmentDecoration = repeat, FragmentBottomInset = inset
         };
         string text = string.Join("\n", Enumerable.Range(1, 23).Select(index => $"Marker{index:D3}"));
         void Compose(PdfContentBuilder content) => content.Panel(panel => panel.Paragraph(p => p.Text(text),

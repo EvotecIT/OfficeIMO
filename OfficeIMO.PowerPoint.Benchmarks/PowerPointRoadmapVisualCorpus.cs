@@ -429,8 +429,7 @@ internal static class PowerPointRoadmapVisualCorpus {
                 new OfficeSeries("Actual", new[] { 18D, 24D, 33D, 42D }),
                 new OfficeSeries("Target", new[] { 20D, 28D, 36D, 45D })
             });
-        PowerPointChart chart = slide.AddChart(
-            OfficeChartType.ColumnClustered,data,global::OfficeIMO.OfficeLength.Points(420),global::OfficeIMO.OfficeLength.Points(110),global::OfficeIMO.OfficeLength.Points(490),global::OfficeIMO.OfficeLength.Points(340));
+        PowerPointChart chart = slide.AddChart(OfficeChartType.ColumnClustered, data, new OfficeIMO.PowerPoint.PowerPointChartOptions { Left = global::OfficeIMO.OfficeLength.Points(420), Top = global::OfficeIMO.OfficeLength.Points(110), Width = global::OfficeIMO.OfficeLength.Points(490), Height = global::OfficeIMO.OfficeLength.Points(340) });
         chart.SetTitle("Quarterly trajectory")
             .SetTitleTextStyle(fontName: "Arial")
             .SetLegendTextStyle(fontName: "Arial")

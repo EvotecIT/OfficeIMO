@@ -19,7 +19,7 @@ public sealed class ExcelChartSecondaryAxisLayoutTests {
             new OfficeSeries("Count", new[] { 100d }),
             new OfficeSeries("Ratio", new[] { 1d }, null, null, null, true,
                 renderKind: OfficeChartType.Line, axisGroup: OfficeChartAxisGroup.Secondary)
-        }), 1, 1);
+        }), new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 1 });
         chart.SetSecondaryValueAxis(new OfficeChartValueAxisLayout().WithTitle("Ratio"));
         var title = sheet.WorksheetPart.DrawingsPart!.ChartParts.Single().ChartSpace!.Descendants<C.ValueAxis>()
             .Single(axis => axis.AxisPosition!.Val!.Value == C.AxisPositionValues.Right).GetFirstChild<C.Title>()!;
@@ -44,7 +44,7 @@ public sealed class ExcelChartSecondaryAxisLayoutTests {
             new OfficeSeries("Count", new[] { 100d }),
             new OfficeSeries("Ratio", new[] { 1d }, null, null, null, true,
                 renderKind: OfficeChartType.Line, axisGroup: OfficeChartAxisGroup.Secondary)
-        }), 1, 1);
+        }), new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 1 });
         var secondary = sheet.WorksheetPart.DrawingsPart!.ChartParts.Single().ChartSpace!.Descendants<C.ValueAxis>()
             .Single(axis => axis.AxisPosition!.Val!.Value == C.AxisPositionValues.Right);
         if (setting == "deleted") {
@@ -65,12 +65,11 @@ public sealed class ExcelChartSecondaryAxisLayoutTests {
     [Fact]
     public void SecondaryValueAxis_ReopenSnapshotPreservesIndependentSettings() {
         using var document = ExcelDocument.Create();
-        var chart = document.AddSheet("Results").AddChart(OfficeChartType.ColumnClustered,
-            new OfficeChartData(new[] { "A", "B" }, new[] {
+        var chart = document.AddSheet("Results").AddChart(OfficeChartType.ColumnClustered, new OfficeChartData(new[] { "A", "B" }, new[] {
                 new OfficeSeries("Volume", new[] { 100d, 150d }),
                 new OfficeSeries("Ratio", new[] { 1d, 2d }, null, null, null, true,
                     renderKind: OfficeChartType.Line, axisGroup: OfficeChartAxisGroup.Secondary)
-            }), 1, 1);
+            }), new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 1 });
         chart.SetValueAxisScale(minimum: 0, maximum: 200).SetValueAxisNumberFormat("0.0");
         chart.SetValueAxisScale(minimum: 0, maximum: 4, majorUnit: 1, axisGroup: OfficeChartAxisGroup.Secondary)
             .SetValueAxisNumberFormat("0%", false, OfficeChartAxisGroup.Secondary);
@@ -102,11 +101,10 @@ public sealed class ExcelChartSecondaryAxisLayoutTests {
         sheet.CellValue(2, 1, "North"); sheet.CellValue(2, 2, 100); sheet.CellValue(2, 3, .5);
         sheet.CellValue(3, 1, "South"); sheet.CellValue(3, 2, 200); sheet.CellValue(3, 3, .75);
         sheet.CellAt(2, 3).Percent(0); sheet.CellAt(3, 3).Percent(0);
-        var chart = sheet.AddChart(OfficeChartType.ColumnClustered,
-            new OfficeChartData(new[] { "North", "South" }, new[] {
+        var chart = sheet.AddChart(OfficeChartType.ColumnClustered, new OfficeChartData(new[] { "North", "South" }, new[] {
                 new OfficeSeries("Count", new[] { 100d, 200d }),
                 new OfficeSeries("Ratio", new[] { .5, .75 }, null, null, null, true,
-                    renderKind: OfficeChartType.Line, axisGroup: OfficeChartAxisGroup.Secondary) }), 1, 5);
+                    renderKind: OfficeChartType.Line, axisGroup: OfficeChartAxisGroup.Secondary) }), new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 5 });
         var native = sheet.WorksheetPart.DrawingsPart!.ChartParts.Single().ChartSpace!;
         var secondary = native.Descendants<C.ValueAxis>()
             .Single(axis => axis.AxisPosition!.Val!.Value == C.AxisPositionValues.Right);

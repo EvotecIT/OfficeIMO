@@ -162,7 +162,7 @@ public class PdfCanvasStampTests {
             HeaderFormat = "Rendering-options header",
             ShowPageNumbers = true,
             FooterFormat = "Rendering-options footer",
-            BackgroundColor = PdfColor.FromRgb(240, 240, 240)
+            BackgroundColor = global::OfficeIMO.OfficeColor.FromRgb(240, 240, 240)
         };
         var stampOptions = new PdfCanvasStampOptions().UseRenderingOptions(renderingOptions);
         PdfDocument target = PdfDocument.Create()

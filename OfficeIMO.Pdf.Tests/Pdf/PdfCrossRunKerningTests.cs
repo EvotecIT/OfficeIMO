@@ -53,8 +53,8 @@ public sealed class PdfCrossRunKerningTests {
         };
         if (hyphenate) options.SetTextHyphenation(Points); else options.SetTextLineBreaks(Points);
         byte[] bytes = PdfDocument.Create(options).Paragraph(p => p.Runs(new[] {
-            new PdfTextRun(new string('A', prefixLength), color: PdfColor.FromRgb(255, 0, 0)),
-            new PdfTextRun("BBBBBBBB", color: PdfColor.FromRgb(0, 0, 255))
+            new PdfTextRun(new string('A', prefixLength), color: global::OfficeIMO.OfficeColor.FromRgb(255, 0, 0)),
+            new PdfTextRun("BBBBBBBB", color: global::OfficeIMO.OfficeColor.FromRgb(0, 0, 255))
         })).ToBytes();
         using var pdf = PdfPigDocument.Open(bytes);
         var lines = pdf.GetPage(1).Letters.Where(letter => letter.Value != " ")
@@ -131,7 +131,7 @@ public sealed class PdfCrossRunKerningTests {
     [InlineData(25D, 50D, 1D, PdfAlign.Center)]
     public void SplitWordsUseTheSameLineBreaksAndAlignmentAsJoinedWords(double width, double scale, double spacing, PdfAlign align) {
         PdfTextRun Run(string text, bool blue = false) => new PdfTextRun(text, fontSize: 20D,
-            fontFamily: ManagedTextShapingTestAssets.FamilyName, color: blue ? PdfColor.FromRgb(0, 0, 255) : PdfColor.FromRgb(255, 0, 0))
+            fontFamily: ManagedTextShapingTestAssets.FamilyName, color: blue ? global::OfficeIMO.OfficeColor.FromRgb(0, 0, 255) : global::OfficeIMO.OfficeColor.FromRgb(255, 0, 0))
             .WithFeatureSettings(OfficeTextFeatureSettings.Default.With("kern", 1))
             .WithHorizontalTextScaling(scale).WithCharacterSpacing(spacing);
         Letter[] joined = Render(width, align, Run("A AVA"));
@@ -195,7 +195,7 @@ public sealed class PdfCrossRunKerningTests {
     public void LargePaintSplitWordsHaveBoundedCrossRunKerningWork(bool kern) {
         PdfTextRun[] runs = Enumerable.Range(0, 2048).Select(index => new PdfTextRun(index % 2 == 0 ? "A" : "V",
             fontSize: 20D, fontFamily: ManagedTextShapingTestAssets.FamilyName,
-            color: index % 2 == 0 ? PdfColor.FromRgb(255, 0, 0) : PdfColor.FromRgb(0, 0, 255))
+            color: index % 2 == 0 ? global::OfficeIMO.OfficeColor.FromRgb(255, 0, 0) : global::OfficeIMO.OfficeColor.FromRgb(0, 0, 255))
             .WithFeatureSettings(OfficeTextFeatureSettings.Default.With("kern", kern ? 1 : 0))).ToArray();
         if (kern) {
             var error = Assert.Throws<System.IO.InvalidDataException>(() => Create(30_000D, PdfAlign.Left, runs));

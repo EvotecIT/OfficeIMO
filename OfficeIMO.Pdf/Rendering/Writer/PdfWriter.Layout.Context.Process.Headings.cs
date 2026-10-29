@@ -12,7 +12,7 @@ internal static partial class PdfWriter {
             double spacingBefore = (y < frameStart - 0.001 || headingStyle?.ApplySpacingBeforeAtTop == true) ? headingStyle?.SpacingBefore ?? 0D : 0D;
             double spacingAfter = GetHeadingSpacingAfter(headingStyle, leading);
             var headingFont = GetHeadingFont(currentOpts, headingStyle);
-            PdfColor? headingColor = hb.Color ?? headingStyle?.Color;
+            global::OfficeIMO.OfficeColor? headingColor = hb.Color ?? headingStyle?.Color;
             System.Collections.Generic.IReadOnlyList<PdfTextRun> headingRuns = CreateHeadingTextRuns(hb, headingStyle, headingColor);
             bool pictureWrapping = HasAnchoredPictures(headingStyle?.AnchoredCanvas) || HasPictureExclusions;
             var (lines, lineHeights) = WrapHeadingForFrame(hb, headingRuns, headingStyle,

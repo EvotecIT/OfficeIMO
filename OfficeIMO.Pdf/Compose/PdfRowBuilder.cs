@@ -21,7 +21,7 @@ public sealed class PdfRowBuilder {
     }
 
     /// <summary>Draws a vertical separator line between columns in this row.</summary>
-    public PdfRowBuilder ColumnSeparator(PdfColor color, double width = 0.5D) {
+    public PdfRowBuilder ColumnSeparator(global::OfficeIMO.OfficeColor color, double width = 0.5D) {
         var style = _row.Style ?? new PdfRowStyle();
         style.ColumnSeparatorColor = color;
         style.ColumnSeparatorWidth = width;

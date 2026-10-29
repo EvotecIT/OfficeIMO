@@ -23,7 +23,7 @@ internal static partial class PdfWriter {
                     PdfHeadingStyle? headingStyle = ResolveHeadingStyle(hb2, currentOpts);
                     double size = GetHeadingFontSize(hb2, headingStyle);
                     double leading = GetHeadingLeading(headingStyle, size);
-                    PdfColor? headingColor = hb2.Color ?? headingStyle?.Color;
+                    global::OfficeIMO.OfficeColor? headingColor = hb2.Color ?? headingStyle?.Color;
                     System.Collections.Generic.IReadOnlyList<PdfTextRun> headingRuns = CreateHeadingTextRuns(hb2, headingStyle, headingColor);
                     var wrap = WrapRichHeadingRuns(headingRuns, columnWidth, size, ChooseNormal(currentOpts.DefaultFont), leading, null, DefaultParagraphTabStopWidth, currentOpts, headingStyle, hb2.Align);
                     items.Add(new ColHead {
@@ -55,7 +55,7 @@ internal static partial class PdfWriter {
                         topLevelSpacing: false);
                     int listGroupId = nextListGroupId++;
                     var listItems = new System.Collections.Generic.List<ColListItem>(prepared.Items.Count);
-                    PdfColor? listColor = list.Color ?? prepared.Style?.Color;
+                    global::OfficeIMO.OfficeColor? listColor = list.Color ?? prepared.Style?.Color;
                     for (int itemIndex = 0; itemIndex < prepared.Items.Count; itemIndex++) {
                         PreparedListItem preparedItem = prepared.Items[itemIndex];
                         PdfListItem item = preparedItem.Item;

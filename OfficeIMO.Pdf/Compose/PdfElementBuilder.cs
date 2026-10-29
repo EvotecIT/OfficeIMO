@@ -41,14 +41,14 @@ public sealed class PdfElementBuilder {
     }
 
     /// <summary>Sets the element background fill.</summary>
-    public PdfElementBuilder Background(PdfColor color) {
+    public PdfElementBuilder Background(global::OfficeIMO.OfficeColor color) {
         _style.Background = color;
         _hasLayoutDecoration = true;
         return this;
     }
 
     /// <summary>Sets a uniform border around the element.</summary>
-    public PdfElementBuilder Border(PdfColor color, double width = 1D) {
+    public PdfElementBuilder Border(global::OfficeIMO.OfficeColor color, double width = 1D) {
         _style.BorderColor = color;
         _style.BorderWidth = width;
         _hasLayoutDecoration = true;

@@ -44,7 +44,7 @@ public sealed class PdfWatermarkOptions {
     public PdfStandardFont Font { get; set; } = PdfStandardFont.HelveticaBold;
 
     /// <summary>Text color. Image pixels retain their own colors.</summary>
-    public PdfColor Color { get; set; } = PdfColor.Gray;
+    public global::OfficeIMO.OfficeColor Color { get; set; } = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.5D, 0.5D, 0.5D);
 
     /// <summary>Creates an independent copy, including any encoded image bytes.</summary>
     public PdfWatermarkOptions Clone() {

@@ -241,7 +241,7 @@ internal static partial class PdfWriter {
                 bool[] bodyColumnFillSkips = GetMergedCellContinuationSkipColumns(tbColumn, rowIndex, table.Columns);
                 double fillX = xTable;
                 for (int fillColumn = 0; fillColumn < table.Columns; fillColumn++) {
-                    PdfColor? fill = fillColumn < tableStyle.BodyColumnFills.Count ? tableStyle.BodyColumnFills[fillColumn] : null;
+                    global::OfficeIMO.OfficeColor? fill = fillColumn < tableStyle.BodyColumnFills.Count ? tableStyle.BodyColumnFills[fillColumn] : null;
                     if (fill.HasValue && (fillColumn >= bodyColumnFillSkips.Length || !bodyColumnFillSkips[fillColumn])) {
                         pageDirty = true;
                         DrawRowFill(sb, fill.Value, fillX, rowBottom, table.ColumnWidths[fillColumn], rowHeight, emitGeneratedStructure);
@@ -254,7 +254,7 @@ internal static partial class PdfWriter {
             if (tableStyle.CellFills != null && tableStyle.CellFills.Count > 0) {
                 double fillX = xTable;
                 for (int fillColumn = 0; fillColumn < table.Columns; fillColumn++) {
-                    if (!table.SpanFlow.Contains(rowIndex, fillColumn) && tableStyle.CellFills.TryGetValue((rowIndex, fillColumn), out PdfColor fill) &&
+                    if (!table.SpanFlow.Contains(rowIndex, fillColumn) && tableStyle.CellFills.TryGetValue((rowIndex, fillColumn), out global::OfficeIMO.OfficeColor fill) &&
                         TryGetTableCellLayoutAtColumn(cells, fillColumn, out TableCellLayout fillCell) &&
                         (fillColumn >= rowFillSkips.Length || !rowFillSkips[fillColumn])) {
                         int span = wholeRowSegment ? fillCell.ColumnSpan : 1;
@@ -361,7 +361,7 @@ internal static partial class PdfWriter {
             }
 
             if (renderAsFooter && rowIndex == table.FooterStartRowIndex) {
-                PdfColor? footerSeparatorColor = tableStyle.FooterSeparatorColor ?? tableStyle.RowSeparatorColor;
+                global::OfficeIMO.OfficeColor? footerSeparatorColor = tableStyle.FooterSeparatorColor ?? tableStyle.RowSeparatorColor;
                 double footerSeparatorWidth = tableStyle.FooterSeparatorWidth > 0 ? tableStyle.FooterSeparatorWidth : tableStyle.RowSeparatorWidth;
                 if (footerSeparatorColor is not null && footerSeparatorWidth > 0) {
                     pageDirty = true;
@@ -369,7 +369,7 @@ internal static partial class PdfWriter {
                 }
             }
 
-            PdfColor? separatorColor = renderAsHeader && tableStyle.HeaderSeparatorColor is not null ? tableStyle.HeaderSeparatorColor : tableStyle.RowSeparatorColor;
+            global::OfficeIMO.OfficeColor? separatorColor = renderAsHeader && tableStyle.HeaderSeparatorColor is not null ? tableStyle.HeaderSeparatorColor : tableStyle.RowSeparatorColor;
             double separatorWidth = renderAsHeader && tableStyle.HeaderSeparatorWidth > 0 ? tableStyle.HeaderSeparatorWidth : tableStyle.RowSeparatorWidth;
             if (separatorColor is not null && separatorWidth > 0) {
                 pageDirty = true;

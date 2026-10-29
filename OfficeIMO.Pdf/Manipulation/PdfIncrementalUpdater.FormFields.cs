@@ -671,11 +671,11 @@ internal static partial class PdfIncrementalUpdater {
         }
 
         if (ResolveDictionary(objects, widget.Items.TryGetValue("MK", out PdfObject? mkObject) ? mkObject : null) is PdfDictionary mk) {
-            if (TryReadColor(objects, mk, "BG", out PdfColor backgroundColor)) {
+            if (TryReadColor(objects, mk, "BG", out global::OfficeIMO.OfficeColor backgroundColor)) {
                 style.BackgroundColor = backgroundColor;
             }
 
-            if (TryReadColor(objects, mk, "BC", out PdfColor borderColor)) {
+            if (TryReadColor(objects, mk, "BC", out global::OfficeIMO.OfficeColor borderColor)) {
                 style.BorderColor = borderColor;
             }
         }
@@ -692,7 +692,7 @@ internal static partial class PdfIncrementalUpdater {
             style.BorderDashPattern = borderDashPattern;
         }
 
-        if (TryReadDefaultAppearanceTextColor(objects, widget, inheritedDefaultAppearance, out PdfColor textColor)) {
+        if (TryReadDefaultAppearanceTextColor(objects, widget, inheritedDefaultAppearance, out global::OfficeIMO.OfficeColor textColor)) {
             style.TextColor = textColor;
         }
 
@@ -859,8 +859,8 @@ internal static partial class PdfIncrementalUpdater {
         }
     }
 
-    private static bool TryReadColor(Dictionary<int, PdfIndirectObject> objects, PdfDictionary dictionary, string key, out PdfColor color) {
-        color = PdfColor.Black;
+    private static bool TryReadColor(Dictionary<int, PdfIndirectObject> objects, PdfDictionary dictionary, string key, out global::OfficeIMO.OfficeColor color) {
+        color = global::OfficeIMO.OfficeColor.Black;
         if (!dictionary.Items.TryGetValue(key, out PdfObject? colorObject) ||
             ResolveObject(objects, colorObject) is not PdfArray colorArray ||
             colorArray.Items.Count < 3 ||
@@ -870,7 +870,7 @@ internal static partial class PdfIncrementalUpdater {
             return false;
         }
 
-        color = new PdfColor(ClampColor(red.Value), ClampColor(green.Value), ClampColor(blue.Value));
+        color = global::OfficeIMO.OfficeColor.FromNormalizedRgb(ClampColor(red.Value), ClampColor(green.Value), ClampColor(blue.Value));
         return true;
     }
 
@@ -976,7 +976,7 @@ internal static partial class PdfIncrementalUpdater {
         return true;
     }
 
-    private static bool TryReadDefaultAppearanceTextColor(Dictionary<int, PdfIndirectObject> objects, PdfDictionary widget, string? inheritedDefaultAppearance, out PdfColor color) {
+    private static bool TryReadDefaultAppearanceTextColor(Dictionary<int, PdfIndirectObject> objects, PdfDictionary widget, string? inheritedDefaultAppearance, out global::OfficeIMO.OfficeColor color) {
         return PdfDefaultAppearanceParser.TryReadTextColor(TryReadText(objects, widget, "DA") ?? inheritedDefaultAppearance, out color);
     }
 

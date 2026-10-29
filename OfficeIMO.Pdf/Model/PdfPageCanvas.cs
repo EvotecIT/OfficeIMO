@@ -155,22 +155,22 @@ public sealed partial class PdfPageCanvas {
     }
 
     /// <summary>Adds text inside a fixed page rectangle using top-left page coordinates.</summary>
-    public PdfPageCanvas Text(string text, double x, double y, double width, double height, double? fontSize = null, PdfColor? color = null, PdfAlign align = PdfAlign.Left, PdfStandardFont? font = null) {
+    public PdfPageCanvas Text(string text, double x, double y, double width, double height, double? fontSize = null, global::OfficeIMO.OfficeColor? color = null, PdfAlign align = PdfAlign.Left, PdfStandardFont? font = null) {
         Guard.NotNull(text, nameof(text));
         return Text(new[] { PdfTextRun.Normal(text, color, fontSize, font: font) }, x, y, width, height, color, align, fontSize);
     }
 
     /// <summary>Adds rich text runs inside a fixed page rectangle using top-left page coordinates.</summary>
-    public PdfPageCanvas Text(IEnumerable<PdfTextRun> runs, double x, double y, double width, double height, PdfColor? defaultColor = null, PdfAlign align = PdfAlign.Left, double? fontSize = null, double? lineHeight = null) {
+    public PdfPageCanvas Text(IEnumerable<PdfTextRun> runs, double x, double y, double width, double height, global::OfficeIMO.OfficeColor? defaultColor = null, PdfAlign align = PdfAlign.Left, double? fontSize = null, double? lineHeight = null) {
         return AddText(runs, PdfCanvasTextStructureRole.Paragraph, x, y, width, height, defaultColor, align, fontSize, lineHeight);
     }
 
     /// <summary>Adds tagged rich text runs inside a fixed page rectangle using top-left page coordinates.</summary>
-    public PdfPageCanvas Text(IEnumerable<PdfTextRun> runs, PdfCanvasTextStructureRole structureRole, double x, double y, double width, double height, PdfColor? defaultColor = null, PdfAlign align = PdfAlign.Left, double? fontSize = null, double? lineHeight = null) {
+    public PdfPageCanvas Text(IEnumerable<PdfTextRun> runs, PdfCanvasTextStructureRole structureRole, double x, double y, double width, double height, global::OfficeIMO.OfficeColor? defaultColor = null, PdfAlign align = PdfAlign.Left, double? fontSize = null, double? lineHeight = null) {
         return AddText(runs, structureRole, x, y, width, height, defaultColor, align, fontSize, lineHeight);
     }
 
-    private PdfPageCanvas AddText(IEnumerable<PdfTextRun> runs, PdfCanvasTextStructureRole structureRole, double x, double y, double width, double height, PdfColor? defaultColor, PdfAlign align, double? fontSize, double? lineHeight) {
+    private PdfPageCanvas AddText(IEnumerable<PdfTextRun> runs, PdfCanvasTextStructureRole structureRole, double x, double y, double width, double height, global::OfficeIMO.OfficeColor? defaultColor, PdfAlign align, double? fontSize, double? lineHeight) {
         Guard.NotNull(runs, nameof(runs));
         if ((int)structureRole < (int)PdfCanvasTextStructureRole.Paragraph
             || (int)structureRole > (int)PdfCanvasTextStructureRole.Span) {
@@ -357,7 +357,7 @@ public sealed partial class PdfPageCanvas {
     }
 
     /// <summary>Adds a PDF text annotation at fixed top-left page coordinates.</summary>
-    public PdfPageCanvas TextAnnotation(string contents, double x, double y, double width = 18D, double height = 18D, PdfTextAnnotationIcon icon = PdfTextAnnotationIcon.Comment, PdfColor? color = null, bool open = false) {
+    public PdfPageCanvas TextAnnotation(string contents, double x, double y, double width = 18D, double height = 18D, PdfTextAnnotationIcon icon = PdfTextAnnotationIcon.Comment, global::OfficeIMO.OfficeColor? color = null, bool open = false) {
         Guard.NotNullOrWhiteSpace(contents, nameof(contents));
         ValidateCanvasCoordinate(x, nameof(x));
         ValidateCanvasCoordinate(y, nameof(y));
@@ -369,7 +369,7 @@ public sealed partial class PdfPageCanvas {
     }
 
     /// <summary>Adds a PDF free-text annotation at fixed top-left page coordinates.</summary>
-    public PdfPageCanvas FreeTextAnnotation(string contents, double x, double y, double width, double height, double fontSize = 10D, PdfColor? textColor = null, PdfColor? borderColor = null, double borderWidth = 1D, PdfColor? fillColor = null, PdfAlign textAlign = PdfAlign.Left, double padding = 3D, double? lineHeight = null) {
+    public PdfPageCanvas FreeTextAnnotation(string contents, double x, double y, double width, double height, double fontSize = 10D, global::OfficeIMO.OfficeColor? textColor = null, global::OfficeIMO.OfficeColor? borderColor = null, double borderWidth = 1D, global::OfficeIMO.OfficeColor? fillColor = null, PdfAlign textAlign = PdfAlign.Left, double padding = 3D, double? lineHeight = null) {
         Guard.NotNullOrWhiteSpace(contents, nameof(contents));
         ValidateCanvasCoordinate(x, nameof(x));
         ValidateCanvasCoordinate(y, nameof(y));
@@ -383,18 +383,18 @@ public sealed partial class PdfPageCanvas {
             Guard.Positive(lineHeight.Value, nameof(lineHeight));
         }
 
-        _items.Add(new PdfCanvasFreeTextAnnotationItem(contents, x, y, width, height, fontSize, textColor ?? PdfColor.Black, borderColor, borderWidth, fillColor, textAlign, padding, lineHeight));
+        _items.Add(new PdfCanvasFreeTextAnnotationItem(contents, x, y, width, height, fontSize, textColor ?? global::OfficeIMO.OfficeColor.Black, borderColor, borderWidth, fillColor, textAlign, padding, lineHeight));
         return this;
     }
 
     /// <summary>Adds a PDF highlight annotation rectangle at fixed top-left page coordinates.</summary>
-    public PdfPageCanvas HighlightAnnotation(string contents, double x, double y, double width, double height, PdfColor? color = null) {
+    public PdfPageCanvas HighlightAnnotation(string contents, double x, double y, double width, double height, global::OfficeIMO.OfficeColor? color = null) {
         Guard.NotNullOrWhiteSpace(contents, nameof(contents));
         ValidateCanvasCoordinate(x, nameof(x));
         ValidateCanvasCoordinate(y, nameof(y));
         Guard.Positive(width, nameof(width));
         Guard.Positive(height, nameof(height));
-        _items.Add(new PdfCanvasHighlightAnnotationItem(contents, x, y, width, height, color ?? new PdfColor(1D, 0.92D, 0.2D)));
+        _items.Add(new PdfCanvasHighlightAnnotationItem(contents, x, y, width, height, color ?? global::OfficeIMO.OfficeColor.FromNormalizedRgb(1D, 0.92D, 0.2D)));
         return this;
     }
 
@@ -719,7 +719,7 @@ internal sealed class PdfCanvasStructureItem : PdfCanvasItem {
 }
 
 internal sealed class PdfCanvasTextItem : PdfCanvasItem {
-    public PdfCanvasTextItem(IReadOnlyList<PdfTextRun> runs, double x, double y, double width, double height, PdfColor? defaultColor, PdfAlign align, double? fontSize, double? lineHeight, PdfCanvasTextStructureRole structureRole)
+    public PdfCanvasTextItem(IReadOnlyList<PdfTextRun> runs, double x, double y, double width, double height, global::OfficeIMO.OfficeColor? defaultColor, PdfAlign align, double? fontSize, double? lineHeight, PdfCanvasTextStructureRole structureRole)
         : base(x, y) {
         Runs = runs;
         Width = width;
@@ -734,7 +734,7 @@ internal sealed class PdfCanvasTextItem : PdfCanvasItem {
     public IReadOnlyList<PdfTextRun> Runs { get; }
     public double Width { get; }
     public double Height { get; }
-    public PdfColor? DefaultColor { get; }
+    public global::OfficeIMO.OfficeColor? DefaultColor { get; }
     public PdfAlign Align { get; }
     public double? FontSize { get; }
     public double? LineHeight { get; }
@@ -814,7 +814,7 @@ internal sealed class PdfCanvasImageItem : PdfCanvasItem {
 }
 
 internal sealed class PdfCanvasTextAnnotationItem : PdfCanvasItem {
-    public PdfCanvasTextAnnotationItem(string contents, double x, double y, double width, double height, PdfTextAnnotationIcon icon, PdfColor? color, bool open)
+    public PdfCanvasTextAnnotationItem(string contents, double x, double y, double width, double height, PdfTextAnnotationIcon icon, global::OfficeIMO.OfficeColor? color, bool open)
         : base(x, y) {
         Contents = contents;
         Width = width;
@@ -828,12 +828,12 @@ internal sealed class PdfCanvasTextAnnotationItem : PdfCanvasItem {
     public double Width { get; }
     public double Height { get; }
     public PdfTextAnnotationIcon Icon { get; }
-    public PdfColor? Color { get; }
+    public global::OfficeIMO.OfficeColor? Color { get; }
     public bool Open { get; }
 }
 
 internal sealed class PdfCanvasFreeTextAnnotationItem : PdfCanvasItem {
-    public PdfCanvasFreeTextAnnotationItem(string contents, double x, double y, double width, double height, double fontSize, PdfColor textColor, PdfColor? borderColor, double borderWidth, PdfColor? fillColor, PdfAlign textAlign, double padding, double? lineHeight)
+    public PdfCanvasFreeTextAnnotationItem(string contents, double x, double y, double width, double height, double fontSize, global::OfficeIMO.OfficeColor textColor, global::OfficeIMO.OfficeColor? borderColor, double borderWidth, global::OfficeIMO.OfficeColor? fillColor, PdfAlign textAlign, double padding, double? lineHeight)
         : base(x, y) {
         Contents = contents;
         Width = width;
@@ -852,17 +852,17 @@ internal sealed class PdfCanvasFreeTextAnnotationItem : PdfCanvasItem {
     public double Width { get; }
     public double Height { get; }
     public double FontSize { get; }
-    public PdfColor TextColor { get; }
-    public PdfColor? BorderColor { get; }
+    public global::OfficeIMO.OfficeColor TextColor { get; }
+    public global::OfficeIMO.OfficeColor? BorderColor { get; }
     public double BorderWidth { get; }
-    public PdfColor? FillColor { get; }
+    public global::OfficeIMO.OfficeColor? FillColor { get; }
     public PdfAlign TextAlign { get; }
     public double Padding { get; }
     public double? LineHeight { get; }
 }
 
 internal sealed class PdfCanvasHighlightAnnotationItem : PdfCanvasItem {
-    public PdfCanvasHighlightAnnotationItem(string contents, double x, double y, double width, double height, PdfColor color)
+    public PdfCanvasHighlightAnnotationItem(string contents, double x, double y, double width, double height, global::OfficeIMO.OfficeColor color)
         : base(x, y) {
         Contents = contents;
         Width = width;
@@ -873,7 +873,7 @@ internal sealed class PdfCanvasHighlightAnnotationItem : PdfCanvasItem {
     public string Contents { get; }
     public double Width { get; }
     public double Height { get; }
-    public PdfColor Color { get; }
+    public global::OfficeIMO.OfficeColor Color { get; }
 }
 
 internal sealed class PdfCanvasTableItem : PdfCanvasItem {

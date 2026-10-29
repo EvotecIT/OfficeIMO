@@ -38,7 +38,7 @@ namespace OfficeIMO.Examples.Word {
 
                 //textBox.HorizontalPositionOffset = 1901950;
 
-                textBox.HorizontalPositionOffsetCentimeters = 1.5;
+                textBox.HorizontalPositionOffset = OfficeLength.Centimeters(1.5);
 
                 Console.WriteLine("Alignment: " + textBox.HorizontalAlignment);
 
@@ -46,10 +46,10 @@ namespace OfficeIMO.Examples.Word {
 
                 //textBox.VerticalPositionOffset = 1901950;
 
-                textBox.VerticalPositionOffsetCentimeters = 5;
+                textBox.VerticalPositionOffset = OfficeLength.Centimeters(5);
 
                 Console.WriteLine("Vertical Position Offset: " + textBox.VerticalPositionOffset);
-                Console.WriteLine("Vertical Position Offset in CM: " + textBox.VerticalPositionOffsetCentimeters);
+                Console.WriteLine("Vertical Position Offset in CM: " + textBox.VerticalPositionOffset?.ToCentimeters());
 
                 Console.WriteLine("Count WordTextboxes (section 0): " + document.Sections[0].TextBoxes.Count);
 
@@ -61,7 +61,7 @@ namespace OfficeIMO.Examples.Word {
 
                 Console.WriteLine("Count WordTextboxes (document): " + document.TextBoxes.Count);
 
-                document.TextBoxes[1].VerticalPositionOffsetCentimeters = 15;
+                document.TextBoxes[1].VerticalPositionOffset = OfficeLength.Centimeters(15);
 
                 Console.WriteLine("Color Bottom Border: " + document.TextBoxes[1].Paragraphs[0].Borders.BottomColor);
 
@@ -75,8 +75,10 @@ namespace OfficeIMO.Examples.Word {
                 document.TextBoxes[1].RelativeWidthPercentage = 0;
                 document.TextBoxes[1].RelativeHeightPercentage = 0;
 
-                document.TextBoxes[1].WidthCentimeters = 7;
-                document.TextBoxes[1].HeightCentimeters = 2.5;
+                document.TextBoxes[1].Width = OfficeLength.Centimeters(7);
+                document.TextBoxes[1].RelativeWidthPercentage = 0;
+                document.TextBoxes[1].Height = OfficeLength.Centimeters(2.5);
+                document.TextBoxes[1].RelativeHeightPercentage = 0;
 
                 document.TextBoxes[0].Paragraphs[0].Borders.Type = WordBorder.None;
 

@@ -13,7 +13,7 @@ internal static class BrandedInvoice {
             InvoiceSyntax.Cii,
             InvoiceProfile.En16931);
         var layout = InvoicePdfLayoutOptions.ForCultures("en-GB");
-        layout.Theme = InvoicePdfTheme.Modern(PdfColor.FromRgb(63, 92, 255));
+        layout.Theme = InvoicePdfTheme.Modern(global::OfficeIMO.OfficeColor.FromRgb(63, 92, 255));
         layout.LogoBytes = File.ReadAllBytes(Path.Combine(
             AppContext.BaseDirectory,
             "Assets",

@@ -18,9 +18,9 @@ public partial class PdfDocumentVisualQualityTests {
         var style = PdfTableStyles.Minimal();
         style.HeaderFill = null;
         style.RowStripeFill = null;
-        style.BodyColumnFills = new List<PdfColor?> {
+        style.BodyColumnFills = new List<global::OfficeIMO.OfficeColor?> {
             null,
-            new PdfColor(0.11, 0.22, 0.33)
+            global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.11, 0.22, 0.33)
         };
 
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
@@ -50,9 +50,9 @@ public partial class PdfDocumentVisualQualityTests {
         var style = PdfTableStyles.Minimal();
         style.HeaderFill = null;
         style.RowStripeFill = null;
-        style.BodyColumnFills = new List<PdfColor?> {
+        style.BodyColumnFills = new List<global::OfficeIMO.OfficeColor?> {
             null,
-            new PdfColor(0.11, 0.22, 0.33)
+            global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.11, 0.22, 0.33)
         };
 
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
@@ -87,7 +87,7 @@ public partial class PdfDocumentVisualQualityTests {
         var style = PdfTableStyles.Minimal();
         style.HeaderRowCount = 2;
         style.HeaderFill = null;
-        style.RowStripeFill = new PdfColor(0.19, 0.29, 0.39);
+        style.RowStripeFill = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.19, 0.29, 0.39);
 
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = 320,
@@ -117,7 +117,7 @@ public partial class PdfDocumentVisualQualityTests {
         var style = PdfTableStyles.Minimal();
         style.HeaderRowCount = 2;
         style.HeaderFill = null;
-        style.RowStripeFill = new PdfColor(0.19, 0.29, 0.39);
+        style.RowStripeFill = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.19, 0.29, 0.39);
 
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = 320,
@@ -152,7 +152,7 @@ public partial class PdfDocumentVisualQualityTests {
         var style = PdfTableStyles.Minimal();
         style.HeaderRowCount = 1;
         style.HeaderFill = null;
-        style.RowStripeFill = new PdfColor(0.21, 0.31, 0.41);
+        style.RowStripeFill = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.21, 0.31, 0.41);
 
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = 320,
@@ -181,7 +181,7 @@ public partial class PdfDocumentVisualQualityTests {
         var style = PdfTableStyles.Minimal();
         style.HeaderRowCount = 1;
         style.HeaderFill = null;
-        style.RowStripeFill = new PdfColor(0.21, 0.31, 0.41);
+        style.RowStripeFill = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.21, 0.31, 0.41);
 
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = 320,
@@ -215,8 +215,8 @@ public partial class PdfDocumentVisualQualityTests {
         var style = PdfTableStyles.Minimal();
         style.HeaderFill = null;
         style.RowStripeFill = null;
-        style.CellFills = new Dictionary<(int Row, int Column), PdfColor> {
-            [(2, 1)] = new PdfColor(0.42, 0.18, 0.66)
+        style.CellFills = new Dictionary<(int Row, int Column), global::OfficeIMO.OfficeColor> {
+            [(2, 1)] = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.42, 0.18, 0.66)
         };
 
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
@@ -246,8 +246,8 @@ public partial class PdfDocumentVisualQualityTests {
         var style = PdfTableStyles.Minimal();
         style.HeaderFill = null;
         style.RowStripeFill = null;
-        style.CellFills = new Dictionary<(int Row, int Column), PdfColor> {
-            [(2, 1)] = new PdfColor(0.42, 0.18, 0.66)
+        style.CellFills = new Dictionary<(int Row, int Column), global::OfficeIMO.OfficeColor> {
+            [(2, 1)] = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.42, 0.18, 0.66)
         };
 
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
@@ -284,7 +284,7 @@ public partial class PdfDocumentVisualQualityTests {
         style.RowStripeFill = null;
         style.CellDataBars = new Dictionary<(int Row, int Column), PdfCellDataBar> {
             [(1, 1)] = new PdfCellDataBar {
-                Color = new PdfColor(0.12, 0.34, 0.56),
+                Color = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.12, 0.34, 0.56),
                 Ratio = 0.5
             }
         };
@@ -320,7 +320,7 @@ public partial class PdfDocumentVisualQualityTests {
         style.RowStripeFill = null;
         style.CellDataBars = new Dictionary<(int Row, int Column), PdfCellDataBar> {
             [(1, 1)] = new PdfCellDataBar {
-                Color = new PdfColor(0.12, 0.34, 0.56),
+                Color = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.12, 0.34, 0.56),
                 Ratio = 0.5
             }
         };
@@ -362,7 +362,7 @@ public partial class PdfDocumentVisualQualityTests {
         style.CellIcons = new Dictionary<(int Row, int Column), PdfCellIcon> {
             [(1, 1)] = new PdfCellIcon {
                 Kind = PdfCellIconKind.Circle,
-                Color = new PdfColor(0.12, 0.34, 0.56),
+                Color = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.12, 0.34, 0.56),
                 Size = 8
             }
         };
@@ -404,7 +404,7 @@ public partial class PdfDocumentVisualQualityTests {
         style.CellIcons = new Dictionary<(int Row, int Column), PdfCellIcon> {
             [(1, 1)] = new PdfCellIcon {
                 Kind = PdfCellIconKind.TriangleUp,
-                Color = new PdfColor(0.12, 0.34, 0.56),
+                Color = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.12, 0.34, 0.56),
                 Size = 8
             }
         };
@@ -448,19 +448,19 @@ public partial class PdfDocumentVisualQualityTests {
         var style = PdfTableStyles.Minimal();
         style.HeaderFill = null;
         style.RowStripeFill = null;
-        style.CellFills = new Dictionary<(int Row, int Column), PdfColor> {
-            [(0, 0)] = new PdfColor(0.42, 0.18, 0.66)
+        style.CellFills = new Dictionary<(int Row, int Column), global::OfficeIMO.OfficeColor> {
+            [(0, 0)] = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.42, 0.18, 0.66)
         };
         style.CellDataBars = new Dictionary<(int Row, int Column), PdfCellDataBar> {
             [(0, 0)] = new PdfCellDataBar {
-                Color = new PdfColor(0.12, 0.34, 0.56),
+                Color = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.12, 0.34, 0.56),
                 Ratio = 0.5
             }
         };
         style.CellIcons = new Dictionary<(int Row, int Column), PdfCellIcon> {
             [(0, 0)] = new PdfCellIcon {
                 Kind = PdfCellIconKind.TriangleUp,
-                Color = new PdfColor(0.75, 0.25, 0.1),
+                Color = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.75, 0.25, 0.1),
                 Size = 8
             }
         };

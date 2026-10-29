@@ -77,7 +77,7 @@ namespace OfficeIMO.Word.Pdf {
             }
 
             if (options?.DefaultTableBorders == true && style.BorderColor == null) {
-                style.BorderColor = PdfCore.PdfColor.LightGray;
+                style.BorderColor = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.9D, 0.9D, 0.9D);
                 if (style.BorderWidth <= 0D) {
                     style.BorderWidth = 0.5D;
                 }
@@ -188,8 +188,8 @@ namespace OfficeIMO.Word.Pdf {
             }
 
             var cellFills = style.CellFills == null
-                ? new Dictionary<(int Row, int Column), PdfCore.PdfColor>()
-                : new Dictionary<(int Row, int Column), PdfCore.PdfColor>(style.CellFills);
+                ? new Dictionary<(int Row, int Column), global::OfficeIMO.OfficeColor>()
+                : new Dictionary<(int Row, int Column), global::OfficeIMO.OfficeColor>(style.CellFills);
             int projectedRowCount = System.Math.Min(headerRowCount, layout.Rows.Count);
             for (int rowIndex = 0; rowIndex < projectedRowCount; rowIndex++) {
                 IReadOnlyList<WordTableCell> row = layout.Rows[rowIndex];
@@ -276,15 +276,15 @@ namespace OfficeIMO.Word.Pdf {
             }
         }
 
-        private static void ApplyNativeTableVerticalBandingFill(TableLayout layout, PdfCore.PdfTableStyle style, PdfCore.PdfColor fill) {
+        private static void ApplyNativeTableVerticalBandingFill(TableLayout layout, PdfCore.PdfTableStyle style, global::OfficeIMO.OfficeColor fill) {
             int columnCount = GetNativeTableColumnCount(layout);
             if (columnCount == 0) {
                 return;
             }
 
             var bodyColumnFills = style.BodyColumnFills == null
-                ? new List<PdfCore.PdfColor?>(new PdfCore.PdfColor?[columnCount])
-                : new List<PdfCore.PdfColor?>(style.BodyColumnFills);
+                ? new List<global::OfficeIMO.OfficeColor?>(new global::OfficeIMO.OfficeColor?[columnCount])
+                : new List<global::OfficeIMO.OfficeColor?>(style.BodyColumnFills);
             while (bodyColumnFills.Count < columnCount) {
                 bodyColumnFills.Add(null);
             }
@@ -297,10 +297,10 @@ namespace OfficeIMO.Word.Pdf {
         }
 
         private static void ApplyNativeTableConditionalColumnFills(WordTable table, TableLayout layout, NativeTableStyleDefaults tableStyleDefaults, PdfCore.PdfTableStyle style) {
-            Dictionary<(int Row, int Column), PdfCore.PdfColor>? cellFills = style.CellFills == null
+            Dictionary<(int Row, int Column), global::OfficeIMO.OfficeColor>? cellFills = style.CellFills == null
                 ? null
-                : new Dictionary<(int Row, int Column), PdfCore.PdfColor>(style.CellFills);
-            cellFills ??= new Dictionary<(int Row, int Column), PdfCore.PdfColor>();
+                : new Dictionary<(int Row, int Column), global::OfficeIMO.OfficeColor>(style.CellFills);
+            cellFills ??= new Dictionary<(int Row, int Column), global::OfficeIMO.OfficeColor>();
             int originalCount = cellFills.Count;
             ApplyNativeTableConditionalColumnFills(table, layout, tableStyleDefaults, cellFills);
             if (cellFills.Count != originalCount) {
@@ -308,16 +308,16 @@ namespace OfficeIMO.Word.Pdf {
             }
         }
 
-        private static void ApplyNativeTableConditionalColumnFills(WordTable table, TableLayout layout, NativeTableStyleDefaults tableStyleDefaults, Dictionary<(int Row, int Column), PdfCore.PdfColor> cellFills) {
+        private static void ApplyNativeTableConditionalColumnFills(WordTable table, TableLayout layout, NativeTableStyleDefaults tableStyleDefaults, Dictionary<(int Row, int Column), global::OfficeIMO.OfficeColor> cellFills) {
             int columnCount = GetNativeTableColumnCount(layout);
             if (columnCount == 0) {
                 return;
             }
 
-            PdfCore.PdfColor? firstColumnFill = table.ConditionalFormattingFirstColumn == true
+            global::OfficeIMO.OfficeColor? firstColumnFill = table.ConditionalFormattingFirstColumn == true
                 ? tableStyleDefaults.FirstColumnStyle.CellFill
                 : null;
-            PdfCore.PdfColor? lastColumnFill = table.ConditionalFormattingLastColumn == true
+            global::OfficeIMO.OfficeColor? lastColumnFill = table.ConditionalFormattingLastColumn == true
                 ? tableStyleDefaults.LastColumnStyle.CellFill
                 : null;
             if (!firstColumnFill.HasValue && !lastColumnFill.HasValue) {
@@ -471,7 +471,7 @@ namespace OfficeIMO.Word.Pdf {
             W.TableBorders? tableBorders = directBorders == null
                 ? tableStyleDefaults.Borders
                 : MergeNativeTableBorders(tableStyleDefaults.Borders, directBorders);
-            (PdfCore.PdfColor Color, double Width)? border = directBorders == null
+            (global::OfficeIMO.OfficeColor Color, double Width)? border = directBorders == null
                 ? tableStyleDefaults.TableBorder
                 : GetNativeUniformTableBorder(tableBorders);
             if (border != null) {
@@ -512,7 +512,7 @@ namespace OfficeIMO.Word.Pdf {
             }
         }
 
-        private static (PdfCore.PdfColor Color, double Width)? GetNativeUniformTableBorder(W.TableBorders? borders) {
+        private static (global::OfficeIMO.OfficeColor Color, double Width)? GetNativeUniformTableBorder(W.TableBorders? borders) {
             if (borders == null) {
                 return null;
             }
@@ -551,7 +551,7 @@ namespace OfficeIMO.Word.Pdf {
                 return null;
             }
 
-            return (ParseNativeColor(color) ?? PdfCore.PdfColor.Black, size / 8D);
+            return (ParseNativeColor(color) ?? global::OfficeIMO.OfficeColor.Black, size / 8D);
         }
 
         private static Dictionary<(int Row, int Column), PdfCore.PdfCellBorder>? CreateNativeTableBorderCellMap(WordTable table, W.TableBorders? borders) {

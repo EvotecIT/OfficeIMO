@@ -56,7 +56,7 @@ public sealed class PdfRichInlineLineHeightTests {
             MarginTop = 30, MarginBottom = 30, MarginLeft = 30, MarginRight = 30,
             CompressContentStreams = false };
         var text = new PdfTextRun("A", fontSize: 24, font: PdfStandardFont.Helvetica);
-        var box = PdfTextRun.Inline(new PdfInlineBox(20, 32, background: new PdfColor(.2, .5, .8), baselineOffset: -20));
+        var box = PdfTextRun.Inline(new PdfInlineBox(20, 32, background: global::OfficeIMO.OfficeColor.FromNormalizedRgb(.2, .5, .8), baselineOffset: -20));
         var runs = boxFirst ? new[] { box, text, new PdfTextRun("\nB", fontSize: 8) }
             : new[] { text, box, new PdfTextRun("\nB", fontSize: 8) };
         var style = new PdfParagraphStyle { FontSize = 8, LineSpacing = spacing ?? PdfLineSpacing.Multiple(1.4),

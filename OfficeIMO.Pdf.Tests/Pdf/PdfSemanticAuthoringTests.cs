@@ -72,8 +72,8 @@ public sealed class PdfSemanticAuthoringTests {
             })
             .Content(content => content.Element(element => element
                 .Semantic(PdfSemanticRole.BlockQuote)
-                .Background(new PdfColor(0.9D, 0.95D, 1D))
-                .Border(PdfColor.FromRgb(90, 100, 115))
+                .Background(global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.9D, 0.95D, 1D))
+                .Border(global::OfficeIMO.OfficeColor.FromRgb(90, 100, 115))
                 .Padding(8)
                 .Content(quote => quote.Text("Measured twice, rendered once.")))))
             .ToBytes();
@@ -102,7 +102,7 @@ public sealed class PdfSemanticAuthoringTests {
     [Fact]
     public void DecoratedElementCopiesReusableStylesBeforeCompositionContinues() {
         var style = new PdfPanelStyle {
-            Background = new PdfColor(0.1D, 0.2D, 0.3D),
+            Background = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.1D, 0.2D, 0.3D),
             PaddingX = 5D,
             PaddingY = 5D
         };
@@ -113,7 +113,7 @@ public sealed class PdfSemanticAuthoringTests {
                 .Style(style)
                 .Content(nested => nested.Text("Reusable style")))))
             .ToBytes();
-        style.Background = PdfColor.White;
+        style.Background = global::OfficeIMO.OfficeColor.White;
 
         Assert.Contains("0.1 0.2 0.3 rg", PdfEncoding.Latin1GetString(bytes), StringComparison.Ordinal);
     }
@@ -145,8 +145,8 @@ public sealed class PdfSemanticAuthoringTests {
                 options.CompressContentStreams = false;
             })
             .Content(content => content.Element(element => element
-                .Background(new PdfColor(0.9D, 0.95D, 1D))
-                .Border(PdfColor.FromRgb(90, 100, 115))
+                .Background(global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.9D, 0.95D, 1D))
+                .Border(global::OfficeIMO.OfficeColor.FromRgb(90, 100, 115))
                 .Padding(6)
                 .Content(nested => nested.Row(row => row
                     .RelativeColumn(column => {

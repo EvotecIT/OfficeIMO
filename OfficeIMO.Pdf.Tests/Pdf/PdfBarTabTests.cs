@@ -49,13 +49,13 @@ public sealed class PdfBarTabTests {
         style.SpacingAfter = 7;
         PdfTabStop stop = style.AddTabStop(42, PdfTabAlignment.Bar);
         stop.BarWidth = .14D;
-        stop.BarColor = PdfColor.FromRgb(0, 0, 255);
+        stop.BarColor = global::OfficeIMO.OfficeColor.FromRgb(0, 0, 255);
         var document = PdfDocument.Create(builder => builder.Content(content => content
             .Paragraph(_ => { }, style: style)
             .Paragraph(paragraph => paragraph.Text("TAIL"), style: ParagraphStyle())), Options());
         stop.Position = 99;
         stop.BarWidth = 3;
-        stop.BarColor = PdfColor.Black;
+        stop.BarColor = global::OfficeIMO.OfficeColor.Black;
         style.ClearTabStops();
         byte[] bytes = document.ToBytes();
 
@@ -291,13 +291,13 @@ public sealed class PdfBarTabTests {
     public void BarAlignmentIsParagraphOnlyAndAppearanceIsCloned() {
         Assert.Throws<ArgumentException>(() => PdfTextRun.Tab(alignment: PdfTabAlignment.Bar));
         Assert.Throws<ArgumentException>(() => new PdfTextRun("\t", tabAlignment: PdfTabAlignment.Bar));
-        var stop = new PdfTabStop(-12, PdfTabAlignment.Bar) { BarWidth = 2, BarColor = PdfColor.FromRgb(12, 34, 56) };
+        var stop = new PdfTabStop(-12, PdfTabAlignment.Bar) { BarWidth = 2, BarColor = global::OfficeIMO.OfficeColor.FromRgb(12, 34, 56) };
         PdfTabStop clone = stop.Clone();
         stop.BarWidth = 3;
         Assert.Equal(-12D, clone.Position);
         Assert.Equal(PdfTabAlignment.Bar, clone.Alignment);
         Assert.Equal(2D, clone.BarWidth);
-        Assert.Equal(PdfColor.FromRgb(12, 34, 56), clone.BarColor);
+        Assert.Equal(global::OfficeIMO.OfficeColor.FromRgb(12, 34, 56), clone.BarColor);
     }
 
     [Theory]

@@ -143,8 +143,8 @@ namespace OfficeIMO.Tests {
             using (WordDocument target = WordDocument.Create(targetPath)) {
                 target.AddParagraph().AddShapeDrawing(WordShapeType.Ellipse, OfficeIMO.OfficeLength.Points(100), OfficeIMO.OfficeLength.Points(50));
                 target.AddParagraph().AddShapeGroup(new[] {
-                    new WordShapeGroupItem(WordShapeType.Chevron, 0, 0, 60, 30),
-                    new WordShapeGroupItem(WordShapeType.Chevron, 48, 0, 60, 30)
+                    new WordShapeGroupItem(WordShapeType.Chevron, OfficeLength.Points(0), OfficeLength.Points(0), OfficeLength.Points(60), OfficeLength.Points(30)),
+                    new WordShapeGroupItem(WordShapeType.Chevron, OfficeLength.Points(48), OfficeLength.Points(0), OfficeLength.Points(60), OfficeLength.Points(30))
                 });
                 target.Save();
             }
@@ -153,8 +153,8 @@ namespace OfficeIMO.Tests {
         private static void CreateIdenticalShapeGroupDocument(string path) {
             using WordDocument document = WordDocument.Create(path);
             document.AddParagraph().AddShapeGroup(new[] {
-                new WordShapeGroupItem(WordShapeType.Chevron, 0, 0, 60, 30),
-                new WordShapeGroupItem(WordShapeType.Chevron, 48, 0, 60, 30)
+                new WordShapeGroupItem(WordShapeType.Chevron, OfficeLength.Points(0), OfficeLength.Points(0), OfficeLength.Points(60), OfficeLength.Points(30)),
+                new WordShapeGroupItem(WordShapeType.Chevron, OfficeLength.Points(48), OfficeLength.Points(0), OfficeLength.Points(60), OfficeLength.Points(30))
             });
             document.Save();
         }

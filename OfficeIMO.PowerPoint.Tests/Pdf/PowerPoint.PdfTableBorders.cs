@@ -37,7 +37,7 @@ public sealed class PowerPointPdfTableBorderTests {
         Assert.Null(style.BorderColor);
         Assert.Null(style.CellBorders![(0, 0)].RightBorder!.Color);
         Assert.Equal(0, style.CellBorders[(0, 0)].RightBorder!.Width);
-        Assert.Equal(PdfCore.PdfColor.FromRgb(255, 51, 51), style.CellBorders[(0, 0)].BottomBorder!.Color);
+        Assert.Equal(global::OfficeIMO.OfficeColor.FromRgb(255, 51, 51), style.CellBorders[(0, 0)].BottomBorder!.Color);
         Assert.Equal(3, style.CellBorders[(0, 0)].BottomBorder!.Width);
         string operators = PdfOperatorSearchText.From(document.ToBytes(new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         Assert.Contains("0 0 0 RG", operators, StringComparison.Ordinal);

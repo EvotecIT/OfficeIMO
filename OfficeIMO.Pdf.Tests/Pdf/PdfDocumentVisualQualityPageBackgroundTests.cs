@@ -16,7 +16,7 @@ public partial class PdfDocumentVisualQualityTests {
     [Fact]
     public void PageBorder_RendersAsPageDecorationWithOpacityAndDashStyle() {
         byte[] bytes = PdfDocument.Create()
-            .PageBorder(PdfColor.FromRgb(30, 64, 175), width: 2, inset: 30, opacity: 0.4, dashStyle: OfficeStrokeDashStyle.Dash)
+            .PageBorder(global::OfficeIMO.OfficeColor.FromRgb(30, 64, 175), width: 2, inset: 30, opacity: 0.4, dashStyle: OfficeStrokeDashStyle.Dash)
             .H1("Page border proof")
             .Paragraph(p => p.Text("Body content stays inside the reusable page frame."))
             .ToBytes();
@@ -57,7 +57,7 @@ public partial class PdfDocumentVisualQualityTests {
     public void PageBorder_ValidatesAndClonesOptions() {
         var options = new PdfCreateOptions {
             PageBorder = new PdfPageBorder {
-                Color = PdfColor.FromRgb(1, 2, 3),
+                Color = global::OfficeIMO.OfficeColor.FromRgb(1, 2, 3),
                 Width = 2,
                 Inset = 24,
                 Opacity = 0.75,
@@ -171,8 +171,8 @@ public partial class PdfDocumentVisualQualityTests {
     [Fact]
     public void BackgroundShape_RendersBehindContentWithOpacityAndVectorGeometry() {
         var shape = OfficeShape.RoundedRectangle(540, 86, 18);
-        shape.FillColor = PdfColor.FromRgb(234, 244, 255).ToOfficeColor();
-        shape.StrokeColor = PdfColor.FromRgb(96, 165, 250).ToOfficeColor();
+        shape.FillColor = global::OfficeIMO.OfficeColor.FromRgb(234, 244, 255);
+        shape.StrokeColor = global::OfficeIMO.OfficeColor.FromRgb(96, 165, 250);
         shape.StrokeWidth = 1.25;
         shape.FillOpacity = 0.34;
         shape.StrokeOpacity = 0.6;
@@ -219,7 +219,7 @@ public partial class PdfDocumentVisualQualityTests {
     [Fact]
     public void BackgroundShape_CanBeScopedAndClearedPerComposedPage() {
         byte[] bytes = PdfDocument.Create()
-            .BackgroundRectangle(36, 640, 540, 86, PdfColor.FromRgb(238, 242, 255))
+            .BackgroundRectangle(36, 640, 540, 86, global::OfficeIMO.OfficeColor.FromRgb(238, 242, 255))
             .Page(page => {
                 page.Content(content => content.Column(column => column.Item().Paragraph(p => p.Text("Decorated page"))));
             })
@@ -246,10 +246,10 @@ public partial class PdfDocumentVisualQualityTests {
                 MarginTop = 40,
                 MarginBottom = 40
             })
-            .BackgroundTopBand(50, PdfColor.FromRgb(238, 242, 255), insetX: 12, offsetY: 8, stroke: PdfColor.FromRgb(96, 165, 250), strokeWidth: 0.8, fillOpacity: 0.42, strokeOpacity: 0.7, fillGradient: OfficeLinearGradient.Horizontal(OfficeColor.LightBlue, OfficeColor.WhiteSmoke))
-            .BackgroundBottomBand(30, PdfColor.FromRgb(240, 253, 244), insetX: 20, offsetY: 10)
-            .BackgroundLeftBand(18, PdfColor.FromRgb(254, 249, 195), insetY: 24, offsetX: 6)
-            .BackgroundRightBand(22, PdfColor.FromRgb(255, 237, 213), insetY: 30, offsetX: 9)
+            .BackgroundTopBand(50, global::OfficeIMO.OfficeColor.FromRgb(238, 242, 255), insetX: 12, offsetY: 8, stroke: global::OfficeIMO.OfficeColor.FromRgb(96, 165, 250), strokeWidth: 0.8, fillOpacity: 0.42, strokeOpacity: 0.7, fillGradient: OfficeLinearGradient.Horizontal(OfficeColor.LightBlue, OfficeColor.WhiteSmoke))
+            .BackgroundBottomBand(30, global::OfficeIMO.OfficeColor.FromRgb(240, 253, 244), insetX: 20, offsetY: 10)
+            .BackgroundLeftBand(18, global::OfficeIMO.OfficeColor.FromRgb(254, 249, 195), insetY: 24, offsetX: 6)
+            .BackgroundRightBand(22, global::OfficeIMO.OfficeColor.FromRgb(255, 237, 213), insetY: 30, offsetX: 9)
             .Paragraph(p => p.Text("Anchored bands"))
             .ToBytes();
 
@@ -278,7 +278,7 @@ public partial class PdfDocumentVisualQualityTests {
             .Page(page => {
                 page.Size(300, 400);
                 page.Margin(30, 40, 30, 40);
-                page.BackgroundTopBand(50, PdfColor.FromRgb(238, 242, 255), insetX: 12, offsetY: 8);
+                page.BackgroundTopBand(50, global::OfficeIMO.OfficeColor.FromRgb(238, 242, 255), insetX: 12, offsetY: 8);
                 page.Content(content => content.Column(column => column.Item().Paragraph(p => p.Text("Scoped band"))));
             })
             .ToBytes();
@@ -290,7 +290,7 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void BackgroundShape_ValidatesAndClonesOptions() {
-        var shape = PdfPageBackgroundShape.Rectangle(12, 24, 120, 48, PdfColor.FromRgb(224, 242, 254), fillGradient: OfficeLinearGradient.Horizontal(OfficeColor.LightBlue, OfficeColor.WhiteSmoke));
+        var shape = PdfPageBackgroundShape.Rectangle(12, 24, 120, 48, global::OfficeIMO.OfficeColor.FromRgb(224, 242, 254), fillGradient: OfficeLinearGradient.Horizontal(OfficeColor.LightBlue, OfficeColor.WhiteSmoke));
         var options = new PdfCreateOptions {
             PageBackgroundShapes = new[] { shape }
         };
@@ -308,9 +308,9 @@ public partial class PdfDocumentVisualQualityTests {
         Assert.NotNull(stored.Shape.FillGradient);
         Assert.Throws<ArgumentNullException>(() => new PdfPageBackgroundShape(null!, 0, 0));
         Assert.Throws<ArgumentOutOfRangeException>(() => new PdfPageBackgroundShape(OfficeShape.Rectangle(10, 10), double.NaN, 0));
-        Assert.Throws<ArgumentOutOfRangeException>(() => PdfPageBackgroundShape.Rectangle(0, 0, 10, 10, stroke: PdfColor.Black, strokeWidth: 0));
-        Assert.Throws<ArgumentOutOfRangeException>(() => PdfPageBackgroundShape.Rectangle(0, 0, 10, 10, fill: PdfColor.Black, fillOpacity: 1.1));
-        Assert.Throws<ArgumentOutOfRangeException>(() => PdfPageBackgroundShape.Rectangle(0, 0, 10, 10, stroke: PdfColor.Black, strokeWidth: 1, strokeOpacity: double.NaN));
+        Assert.Throws<ArgumentOutOfRangeException>(() => PdfPageBackgroundShape.Rectangle(0, 0, 10, 10, stroke: global::OfficeIMO.OfficeColor.Black, strokeWidth: 0));
+        Assert.Throws<ArgumentOutOfRangeException>(() => PdfPageBackgroundShape.Rectangle(0, 0, 10, 10, fill: global::OfficeIMO.OfficeColor.Black, fillOpacity: 1.1));
+        Assert.Throws<ArgumentOutOfRangeException>(() => PdfPageBackgroundShape.Rectangle(0, 0, 10, 10, stroke: global::OfficeIMO.OfficeColor.Black, strokeWidth: 1, strokeOpacity: double.NaN));
         Assert.Throws<ArgumentException>(() => PdfPageBackgroundShape.TopBand(300, 400, 50, insetX: 160));
         Assert.Throws<ArgumentException>(() => PdfPageBackgroundShape.RightBand(300, 400, 80, offsetX: 240));
     }

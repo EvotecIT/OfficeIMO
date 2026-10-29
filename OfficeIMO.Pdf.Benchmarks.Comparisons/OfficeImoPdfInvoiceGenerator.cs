@@ -6,11 +6,11 @@ namespace OfficeIMO.Pdf.Benchmarks.Comparisons;
 
 /// <summary>Builds the comparison invoice directly from OfficeIMO.Pdf composition primitives.</summary>
 internal static class OfficeImoPdfInvoiceGenerator {
-    private static readonly PdfColor Navy = PdfColor.FromRgb(1, 21, 52);
-    private static readonly PdfColor Accent = PdfColor.FromRgb(63, 92, 255);
-    private static readonly PdfColor Surface = PdfColor.FromRgb(245, 248, 252);
-    private static readonly PdfColor Border = PdfColor.FromRgb(214, 223, 235);
-    private static readonly PdfColor Muted = PdfColor.FromRgb(82, 99, 122);
+    private static readonly global::OfficeIMO.OfficeColor Navy = global::OfficeIMO.OfficeColor.FromRgb(1, 21, 52);
+    private static readonly global::OfficeIMO.OfficeColor Accent = global::OfficeIMO.OfficeColor.FromRgb(63, 92, 255);
+    private static readonly global::OfficeIMO.OfficeColor Surface = global::OfficeIMO.OfficeColor.FromRgb(245, 248, 252);
+    private static readonly global::OfficeIMO.OfficeColor Border = global::OfficeIMO.OfficeColor.FromRgb(214, 223, 235);
+    private static readonly global::OfficeIMO.OfficeColor Muted = global::OfficeIMO.OfficeColor.FromRgb(82, 99, 122);
 
     internal static byte[] Generate(InvoiceComparisonScenario scenario) {
         Invoice invoice = scenario.Invoice;
@@ -138,12 +138,12 @@ internal static class OfficeImoPdfInvoiceGenerator {
     private static PdfTableStyle IdentityStyle() => new() {
         HeaderRowCount = 0, RowStripeFill = null, BorderColor = Border, BorderWidth = 0.7D,
         CornerRadius = 7D, CellPaddingX = 10D, CellPaddingY = 7D, FontSize = 9D, SpacingAfter = 14D,
-        BodyColumnFills = new List<PdfColor?> { Surface, null, Surface, null },
+        BodyColumnFills = new List<global::OfficeIMO.OfficeColor?> { Surface, null, Surface, null },
         ColumnWidthWeights = new List<double> { 1.1D, 1.4D, 1.4D, 2.1D }
     };
 
     private static PdfTableStyle LinesStyle() => new() {
-        HeaderRowCount = 1, HeaderFill = Navy, HeaderTextColor = PdfColor.White, HeaderFontSize = 9D,
+        HeaderRowCount = 1, HeaderFill = Navy, HeaderTextColor = global::OfficeIMO.OfficeColor.White, HeaderFontSize = 9D,
         FontSize = 9D, BorderColor = Border, BorderWidth = 0.5D, CornerRadius = 7D, RowStripeFill = Surface,
         CellPaddingX = 7D, CellPaddingY = 7D, SpacingAfter = 12D,
         ColumnWidthWeights = new List<double> { 3.7D, 1.15D, 1.55D, 1D, 1.6D },
@@ -151,7 +151,7 @@ internal static class OfficeImoPdfInvoiceGenerator {
     };
 
     private static PdfTableStyle TaxStyle() => new() {
-        HeaderRowCount = 1, HeaderFill = Navy, HeaderTextColor = PdfColor.White, HeaderFontSize = 8.5D,
+        HeaderRowCount = 1, HeaderFill = Navy, HeaderTextColor = global::OfficeIMO.OfficeColor.White, HeaderFontSize = 8.5D,
         FontSize = 8.5D, BorderColor = Border, BorderWidth = 0.5D, CornerRadius = 7D, RowStripeFill = Surface,
         CellPaddingX = 7D, CellPaddingY = 6D, SpacingAfter = 12D,
         ColumnWidthWeights = new List<double> { 1.2D, 1.5D, 1.4D, 2D },
@@ -160,7 +160,7 @@ internal static class OfficeImoPdfInvoiceGenerator {
 
     private static PdfTableStyle TotalsStyle() => new() {
         HeaderRowCount = 0, FontSize = 10D, BorderColor = Border, BorderWidth = 0.6D, CornerRadius = 7D,
-        FooterRowCount = 1, FooterFill = Accent, FooterTextColor = PdfColor.White, RowStripeFill = Surface,
+        FooterRowCount = 1, FooterFill = Accent, FooterTextColor = global::OfficeIMO.OfficeColor.White, RowStripeFill = Surface,
         CellPaddingX = 9D, CellPaddingY = 7D,
         Alignments = new List<PdfColumnAlign> { PdfColumnAlign.Left, PdfColumnAlign.Right }
     };

@@ -7,7 +7,7 @@ internal static partial class PdfWriter {
             TableCellTextLayout lines, int rowIndex, int sourceStartLine, int requestedLineCount,
             double cellX, double cellTop, double cellWidth, double cellHeight, double rowSize,
             double rowLeading, double runFontSizeScale, bool rowUsesBold, bool renderAsHeader,
-            bool wholeRowSegment, bool suppressCellObjects, PdfColor? textColor,
+            bool wholeRowSegment, bool suppressCellObjects, global::OfficeIMO.OfficeColor? textColor,
             int? rowStructureElementIndex, PageStructElement? rowStructureElement = null,
             int? fragmentRowSpan = null, bool includeNamedDestination = true, double? verticalOffsetOverride = null) {
             int c = cell.Column;

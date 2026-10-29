@@ -77,7 +77,7 @@ internal static partial class PdfWriter {
             DrawDebugCanvasItemBox(item.X, bottomY, item.Width, item.Height);
         }
 
-        private void AddTextAnnotation(double x, double bottomY, double boxWidth, double boxHeight, string contents, PdfTextAnnotationIcon icon, PdfColor? color, bool open) {
+        private void AddTextAnnotation(double x, double bottomY, double boxWidth, double boxHeight, string contents, PdfTextAnnotationIcon icon, global::OfficeIMO.OfficeColor? color, bool open) {
             currentPage!.TextAnnotations.Add(new TextAnnotation {
                 X1 = x,
                 Y1 = bottomY,
@@ -90,7 +90,7 @@ internal static partial class PdfWriter {
             });
         }
 
-        private void AddFreeTextAnnotation(double x, double bottomY, double boxWidth, double boxHeight, string contents, double fontSize, PdfColor textColor, PdfColor? borderColor, double borderWidth, PdfColor? fillColor, PdfAlign textAlign, double padding, double? lineHeight) {
+        private void AddFreeTextAnnotation(double x, double bottomY, double boxWidth, double boxHeight, string contents, double fontSize, global::OfficeIMO.OfficeColor textColor, global::OfficeIMO.OfficeColor? borderColor, double borderWidth, global::OfficeIMO.OfficeColor? fillColor, PdfAlign textAlign, double padding, double? lineHeight) {
             currentPage!.FreeTextAnnotations.Add(new FreeTextAnnotation {
                 X1 = x,
                 Y1 = bottomY,
@@ -108,7 +108,7 @@ internal static partial class PdfWriter {
             });
         }
 
-        private void AddHighlightAnnotation(double x, double bottomY, double boxWidth, double boxHeight, string contents, PdfColor color) {
+        private void AddHighlightAnnotation(double x, double bottomY, double boxWidth, double boxHeight, string contents, global::OfficeIMO.OfficeColor color) {
             currentPage!.HighlightAnnotations.Add(new HighlightAnnotation {
                 X1 = x,
                 Y1 = bottomY,

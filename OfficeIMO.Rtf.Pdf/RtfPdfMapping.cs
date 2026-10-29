@@ -3,7 +3,7 @@ using PdfCore = OfficeIMO.Pdf;
 namespace OfficeIMO.Rtf.Pdf;
 
 internal static class RtfPdfMapping {
-    private static readonly PdfCore.PdfColor DefaultBorderColor = PdfCore.PdfColor.FromRgb(0, 0, 0);
+    private static readonly global::OfficeIMO.OfficeColor DefaultBorderColor = global::OfficeIMO.OfficeColor.FromRgb(0, 0, 0);
 
     internal static PdfCore.PdfAlign ToPdfAlign(RtfTextAlignment alignment) {
         switch (alignment) {
@@ -29,9 +29,9 @@ internal static class RtfPdfMapping {
         }
     }
 
-    internal static PdfCore.PdfColor? ToPdfColor(RtfDocument document, int? oneBasedColorIndex) {
+    internal static global::OfficeIMO.OfficeColor? ToPdfColor(RtfDocument document, int? oneBasedColorIndex) {
         RtfColor? color = oneBasedColorIndex.HasValue ? document.GetColor(oneBasedColorIndex.Value) : null;
-        return color == null ? null : PdfCore.PdfColor.FromRgb(color.Red, color.Green, color.Blue);
+        return color == null ? null : global::OfficeIMO.OfficeColor.FromRgb(color.Red, color.Green, color.Blue);
     }
 
     internal static PdfCore.PdfPageNumberStyle ToPdfPageNumberStyle(RtfPageNumberFormat format) {
@@ -134,7 +134,7 @@ internal static class RtfPdfMapping {
             Inset = source.Space.HasValue && source.Space.Value >= 0 ? source.Space.Value : 36D
         };
 
-        PdfCore.PdfColor? color = ToPdfColor(document, source.ColorIndex);
+        global::OfficeIMO.OfficeColor? color = ToPdfColor(document, source.ColorIndex);
         if (color.HasValue) {
             border.Color = color.Value;
         }
@@ -156,7 +156,7 @@ internal static class RtfPdfMapping {
         style.HeaderRowCount = headerRowCount;
         style.RepeatHeaderRowCount = headerRowCount;
 
-        var fills = new Dictionary<(int Row, int Column), PdfCore.PdfColor>();
+        var fills = new Dictionary<(int Row, int Column), global::OfficeIMO.OfficeColor>();
         var paddings = new Dictionary<(int Row, int Column), PdfCore.PdfCellPadding>();
         var verticalAlignments = new Dictionary<(int Row, int Column), PdfCore.PdfCellVerticalAlign>();
         var borders = new Dictionary<(int Row, int Column), PdfCore.PdfCellBorder>();
@@ -173,7 +173,7 @@ internal static class RtfPdfMapping {
 
                 rowHasRenderableCells = true;
                 var key = (pdfRowIndex, cellIndex);
-                PdfCore.PdfColor? fill = ToPdfColor(document, cell.BackgroundColorIndex ?? row.BackgroundColorIndex);
+                global::OfficeIMO.OfficeColor? fill = ToPdfColor(document, cell.BackgroundColorIndex ?? row.BackgroundColorIndex);
                 if (fill.HasValue) {
                     fills[key] = fill.Value;
                 }

@@ -948,7 +948,7 @@
       "old": "OfficeIMO.PowerPoint.PowerPointSlide.AddChart(OfficeChartKind chartKind, OfficeChartData data, long left = 0, long top = 0, long width = 5486400, long height = 3200400, PowerPointChartAccessibilityOptions accessibility = null)",
       "kind": "method",
       "action": "change",
-      "new": "OfficeIMO.PowerPoint.PowerPointSlide.AddChart(OfficeChartType type, OfficeChartData data, OfficeLength left, OfficeLength top, OfficeLength width, OfficeLength height, ...) : PowerPointChart plus AddChart<T>(OfficeChartType, IEnumerable<T>, ...)",
+      "new": "OfficeIMO.PowerPoint.PowerPointSlide.AddChart(OfficeChartType chartKind, OfficeChartData data, OfficeChartOptions options)",
       "reason": "Shared OfficeChartType, typed AddChart, OfficeLength geometry (raw EMU defaults 5486400 x 3200400 today).",
       "file": "OfficeIMO.PowerPoint/PowerPointSlide.SharedCharts.cs",
       "category": "authoring",
@@ -959,7 +959,7 @@
       },
       "phase": "B",
       "applied": "phase-b-applied",
-      "note": "Slide image, title, text-box and shared-chart placement uses OfficeLength. Omitted bounds preserve native defaults; centimeter, inch and point twins are removed. Layout overloads forward typed bounds, and native drawing storage extracts EMUs only inside the owner. Legacy chart construction remains internal."
+      "note": "Shared data entry points use chart type, data, then options in every format. Shared title/OfficeLength dimensions accept format options for native placement and frame/accessibility. The two-argument overload keeps format defaults."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointTable.AddRow(int? index = null)",
@@ -5155,7 +5155,7 @@
       "old": "OfficeIMO.PowerPoint.PowerPointChart.SetCategoryAxisGridlines(bool showMajor = True, bool showMinor = False, string lineColor = null, double? lineWidthPoints = null)",
       "kind": "method",
       "action": "change",
-      "new": "OfficeIMO.PowerPoint.PowerPointChart.SetCategoryAxisGridlines(... OfficeLength ...)",
+      "new": "OfficeIMO.PowerPoint.PowerPointChart.SetCategoryAxisGridlines(bool showMajor = True, bool showMinor = False, string lineColor = null, OfficeLength? lineWidth = null)",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.PowerPoint/PowerPointChart.Axes.cs",
       "category": "units",
@@ -5165,14 +5165,14 @@
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical chart typography and outline widths use OfficeLength. Native font hundredth-points and whole-EMU outlines retain format precision; omitted values preserve existing styles."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointChart.SetCategoryAxisLabelTextStyle(double? fontSizePoints = null, bool? bold = null, bool? italic = null, string color = null, string fontName = null)",
       "kind": "method",
       "action": "change",
-      "new": "OfficeIMO.PowerPoint.PowerPointChart.SetCategoryAxisLabelTextStyle(... OfficeLength ...)",
+      "new": "OfficeIMO.PowerPoint.PowerPointChart.SetCategoryAxisLabelTextStyle(OfficeLength? fontSize = null, bool? bold = null, bool? italic = null, string color = null, string fontName = null)",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.PowerPoint/PowerPointChart.Axes.cs",
       "category": "units",
@@ -5182,14 +5182,14 @@
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical chart typography and outline widths use OfficeLength. Native font hundredth-points and whole-EMU outlines retain format precision; omitted values preserve existing styles."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointChart.SetCategoryAxisTitleTextStyle(double? fontSizePoints = null, bool? bold = null, bool? italic = null, string color = null, string fontName = null)",
       "kind": "method",
       "action": "change",
-      "new": "OfficeIMO.PowerPoint.PowerPointChart.SetCategoryAxisTitleTextStyle(... OfficeLength ...)",
+      "new": "OfficeIMO.PowerPoint.PowerPointChart.SetCategoryAxisTitleTextStyle(OfficeLength? fontSize = null, bool? bold = null, bool? italic = null, string color = null, string fontName = null)",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.PowerPoint/PowerPointChart.Axes.cs",
       "category": "units",
@@ -5199,14 +5199,14 @@
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical chart typography and outline widths use OfficeLength. Native font hundredth-points and whole-EMU outlines retain format precision; omitted values preserve existing styles."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointChart.SetChartAreaStyle(string fillColor = null, string lineColor = null, double? lineWidthPoints = null, bool noFill = False, bool noLine = False)",
       "kind": "method",
       "action": "change",
-      "new": "OfficeIMO.PowerPoint.PowerPointChart.SetChartAreaStyle(... OfficeLength ...)",
+      "new": "OfficeIMO.PowerPoint.PowerPointChart.SetChartAreaStyle(string fillColor = null, string lineColor = null, OfficeLength? lineWidth = null, bool noFill = False, bool noLine = False)",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.PowerPoint/PowerPointChart.SeriesAndAreas.cs",
       "category": "units",
@@ -5216,14 +5216,14 @@
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical chart typography and outline widths use OfficeLength. Native font hundredth-points and whole-EMU outlines retain format precision; omitted values preserve existing styles."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointChart.SetDataLabelCallouts(bool enabled = True, OfficeChartDataLabelPosition? position = null, string lineColor = null, double? lineWidthPoints = null)",
       "kind": "method",
       "action": "change",
-      "new": "OfficeIMO.PowerPoint.PowerPointChart.SetDataLabelCallouts(... OfficeLength ...)",
+      "new": "OfficeIMO.PowerPoint.PowerPointChart.SetDataLabelCallouts(bool enabled = True, OfficeChartDataLabelPosition? position = null, string lineColor = null, OfficeLength? lineWidth = null)",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.PowerPoint/PowerPointChart.DataLabels.cs",
       "category": "units",
@@ -5233,14 +5233,14 @@
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical chart typography and outline widths use OfficeLength. Native font hundredth-points and whole-EMU outlines retain format precision; omitted values preserve existing styles."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointChart.SetDataLabelLeaderLines(bool showLeaderLines = True, string lineColor = null, double? lineWidthPoints = null)",
       "kind": "method",
       "action": "change",
-      "new": "OfficeIMO.PowerPoint.PowerPointChart.SetDataLabelLeaderLines(... OfficeLength ...)",
+      "new": "OfficeIMO.PowerPoint.PowerPointChart.SetDataLabelLeaderLines(bool showLeaderLines = True, string lineColor = null, OfficeLength? lineWidth = null)",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.PowerPoint/PowerPointChart.DataLabels.cs",
       "category": "units",
@@ -5250,14 +5250,14 @@
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical chart typography and outline widths use OfficeLength. Native font hundredth-points and whole-EMU outlines retain format precision; omitted values preserve existing styles."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointChart.SetDataLabelShapeStyle(string fillColor = null, string lineColor = null, double? lineWidthPoints = null, bool noFill = False, bool noLine = False)",
       "kind": "method",
       "action": "change",
-      "new": "OfficeIMO.PowerPoint.PowerPointChart.SetDataLabelShapeStyle(... OfficeLength ...)",
+      "new": "OfficeIMO.PowerPoint.PowerPointChart.SetDataLabelShapeStyle(string fillColor = null, string lineColor = null, OfficeLength? lineWidth = null, bool noFill = False, bool noLine = False)",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.PowerPoint/PowerPointChart.DataLabels.cs",
       "category": "units",
@@ -5267,14 +5267,14 @@
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical chart typography and outline widths use OfficeLength. Native font hundredth-points and whole-EMU outlines retain format precision; omitted values preserve existing styles."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointChart.SetDataLabelTextStyle(double? fontSizePoints = null, bool? bold = null, bool? italic = null, string color = null, string fontName = null)",
       "kind": "method",
       "action": "change",
-      "new": "OfficeIMO.PowerPoint.PowerPointChart.SetDataLabelTextStyle(... OfficeLength ...)",
+      "new": "OfficeIMO.PowerPoint.PowerPointChart.SetDataLabelTextStyle(OfficeLength? fontSize = null, bool? bold = null, bool? italic = null, string color = null, string fontName = null)",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.PowerPoint/PowerPointChart.DataLabels.cs",
       "category": "units",
@@ -5284,14 +5284,14 @@
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical chart typography and outline widths use OfficeLength. Native font hundredth-points and whole-EMU outlines retain format precision; omitted values preserve existing styles."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointChart.SetLegendTextStyle(double? fontSizePoints = null, bool? bold = null, bool? italic = null, string color = null, string fontName = null)",
       "kind": "method",
       "action": "change",
-      "new": "OfficeIMO.PowerPoint.PowerPointChart.SetLegendTextStyle(... OfficeLength ...)",
+      "new": "OfficeIMO.PowerPoint.PowerPointChart.SetLegendTextStyle(OfficeLength? fontSize = null, bool? bold = null, bool? italic = null, string color = null, string fontName = null)",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.PowerPoint/PowerPointChart.cs",
       "category": "units",
@@ -5301,14 +5301,14 @@
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical chart typography and outline widths use OfficeLength. Native font hundredth-points and whole-EMU outlines retain format precision; omitted values preserve existing styles."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointChart.SetPlotAreaStyle(string fillColor = null, string lineColor = null, double? lineWidthPoints = null, bool noFill = False, bool noLine = False)",
       "kind": "method",
       "action": "change",
-      "new": "OfficeIMO.PowerPoint.PowerPointChart.SetPlotAreaStyle(... OfficeLength ...)",
+      "new": "OfficeIMO.PowerPoint.PowerPointChart.SetPlotAreaStyle(string fillColor = null, string lineColor = null, OfficeLength? lineWidth = null, bool noFill = False, bool noLine = False)",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.PowerPoint/PowerPointChart.SeriesAndAreas.cs",
       "category": "units",
@@ -5318,14 +5318,14 @@
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical chart typography and outline widths use OfficeLength. Native font hundredth-points and whole-EMU outlines retain format precision; omitted values preserve existing styles."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointChart.SetScatterXAxisGridlines(bool showMajor = True, bool showMinor = False, string lineColor = null, double? lineWidthPoints = null)",
       "kind": "method",
       "action": "change",
-      "new": "OfficeIMO.PowerPoint.PowerPointChart.SetScatterXAxisGridlines(... OfficeLength ...)",
+      "new": "OfficeIMO.PowerPoint.PowerPointChart.SetScatterXAxisGridlines(bool showMajor = True, bool showMinor = False, string lineColor = null, OfficeLength? lineWidth = null)",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.PowerPoint/PowerPointChart.Axes.cs",
       "category": "units",
@@ -5335,14 +5335,14 @@
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical chart typography and outline widths use OfficeLength. Native font hundredth-points and whole-EMU outlines retain format precision; omitted values preserve existing styles."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointChart.SetScatterXAxisLabelTextStyle(double? fontSizePoints = null, bool? bold = null, bool? italic = null, string color = null, string fontName = null)",
       "kind": "method",
       "action": "change",
-      "new": "OfficeIMO.PowerPoint.PowerPointChart.SetScatterXAxisLabelTextStyle(... OfficeLength ...)",
+      "new": "OfficeIMO.PowerPoint.PowerPointChart.SetScatterXAxisLabelTextStyle(OfficeLength? fontSize = null, bool? bold = null, bool? italic = null, string color = null, string fontName = null)",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.PowerPoint/PowerPointChart.Axes.cs",
       "category": "units",
@@ -5352,14 +5352,14 @@
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical chart typography and outline widths use OfficeLength. Native font hundredth-points and whole-EMU outlines retain format precision; omitted values preserve existing styles."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointChart.SetScatterXAxisTitleTextStyle(double? fontSizePoints = null, bool? bold = null, bool? italic = null, string color = null, string fontName = null)",
       "kind": "method",
       "action": "change",
-      "new": "OfficeIMO.PowerPoint.PowerPointChart.SetScatterXAxisTitleTextStyle(... OfficeLength ...)",
+      "new": "OfficeIMO.PowerPoint.PowerPointChart.SetScatterXAxisTitleTextStyle(OfficeLength? fontSize = null, bool? bold = null, bool? italic = null, string color = null, string fontName = null)",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.PowerPoint/PowerPointChart.Axes.cs",
       "category": "units",
@@ -5369,14 +5369,14 @@
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical chart typography and outline widths use OfficeLength. Native font hundredth-points and whole-EMU outlines retain format precision; omitted values preserve existing styles."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointChart.SetScatterYAxisGridlines(bool showMajor = True, bool showMinor = False, string lineColor = null, double? lineWidthPoints = null)",
       "kind": "method",
       "action": "change",
-      "new": "OfficeIMO.PowerPoint.PowerPointChart.SetScatterYAxisGridlines(... OfficeLength ...)",
+      "new": "OfficeIMO.PowerPoint.PowerPointChart.SetScatterYAxisGridlines(bool showMajor = True, bool showMinor = False, string lineColor = null, OfficeLength? lineWidth = null)",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.PowerPoint/PowerPointChart.Axes.cs",
       "category": "units",
@@ -5386,14 +5386,14 @@
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical chart typography and outline widths use OfficeLength. Native font hundredth-points and whole-EMU outlines retain format precision; omitted values preserve existing styles."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointChart.SetScatterYAxisLabelTextStyle(double? fontSizePoints = null, bool? bold = null, bool? italic = null, string color = null, string fontName = null)",
       "kind": "method",
       "action": "change",
-      "new": "OfficeIMO.PowerPoint.PowerPointChart.SetScatterYAxisLabelTextStyle(... OfficeLength ...)",
+      "new": "OfficeIMO.PowerPoint.PowerPointChart.SetScatterYAxisLabelTextStyle(OfficeLength? fontSize = null, bool? bold = null, bool? italic = null, string color = null, string fontName = null)",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.PowerPoint/PowerPointChart.Axes.cs",
       "category": "units",
@@ -5403,14 +5403,14 @@
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical chart typography and outline widths use OfficeLength. Native font hundredth-points and whole-EMU outlines retain format precision; omitted values preserve existing styles."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointChart.SetScatterYAxisTitleTextStyle(double? fontSizePoints = null, bool? bold = null, bool? italic = null, string color = null, string fontName = null)",
       "kind": "method",
       "action": "change",
-      "new": "OfficeIMO.PowerPoint.PowerPointChart.SetScatterYAxisTitleTextStyle(... OfficeLength ...)",
+      "new": "OfficeIMO.PowerPoint.PowerPointChart.SetScatterYAxisTitleTextStyle(OfficeLength? fontSize = null, bool? bold = null, bool? italic = null, string color = null, string fontName = null)",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.PowerPoint/PowerPointChart.Axes.cs",
       "category": "units",
@@ -5420,14 +5420,14 @@
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical chart typography and outline widths use OfficeLength. Native font hundredth-points and whole-EMU outlines retain format precision; omitted values preserve existing styles."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointChart.SetSeriesDataLabelCallouts(int seriesIndex, bool enabled = True, OfficeChartDataLabelPosition? position = null, string lineColor = null, double? lineWidthPoints = null)",
       "kind": "method",
       "action": "change",
-      "new": "OfficeIMO.PowerPoint.PowerPointChart.SetSeriesDataLabelCallouts(... OfficeLength ...)",
+      "new": "OfficeIMO.PowerPoint.PowerPointChart.SetSeriesDataLabelCallouts(int seriesIndex, bool enabled = True, OfficeChartDataLabelPosition? position = null, string lineColor = null, OfficeLength? lineWidth = null)",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.PowerPoint/PowerPointChart.DataLabels.Series.cs",
       "category": "units",
@@ -5437,14 +5437,14 @@
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical chart typography and outline widths use OfficeLength. Native font hundredth-points and whole-EMU outlines retain format precision; omitted values preserve existing styles."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointChart.SetSeriesDataLabelCallouts(string seriesName, bool enabled = True, OfficeChartDataLabelPosition? position = null, string lineColor = null, double? lineWidthPoints = null, bool ignoreCase = True)",
       "kind": "method",
       "action": "change",
-      "new": "OfficeIMO.PowerPoint.PowerPointChart.SetSeriesDataLabelCallouts(... OfficeLength ...)",
+      "new": "OfficeIMO.PowerPoint.PowerPointChart.SetSeriesDataLabelCallouts(string seriesName, bool enabled = True, OfficeChartDataLabelPosition? position = null, string lineColor = null, OfficeLength? lineWidth = null, bool ignoreCase = True)",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.PowerPoint/PowerPointChart.DataLabels.Series.cs",
       "category": "units",
@@ -5454,14 +5454,14 @@
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical chart typography and outline widths use OfficeLength. Native font hundredth-points and whole-EMU outlines retain format precision; omitted values preserve existing styles."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointChart.SetSeriesDataLabelLeaderLines(int seriesIndex, bool showLeaderLines = True, string lineColor = null, double? lineWidthPoints = null)",
       "kind": "method",
       "action": "change",
-      "new": "OfficeIMO.PowerPoint.PowerPointChart.SetSeriesDataLabelLeaderLines(... OfficeLength ...)",
+      "new": "OfficeIMO.PowerPoint.PowerPointChart.SetSeriesDataLabelLeaderLines(int seriesIndex, bool showLeaderLines = True, string lineColor = null, OfficeLength? lineWidth = null)",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.PowerPoint/PowerPointChart.DataLabels.Series.cs",
       "category": "units",
@@ -5471,14 +5471,14 @@
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical chart typography and outline widths use OfficeLength. Native font hundredth-points and whole-EMU outlines retain format precision; omitted values preserve existing styles."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointChart.SetSeriesDataLabelLeaderLines(string seriesName, bool showLeaderLines = True, string lineColor = null, double? lineWidthPoints = null, bool ignoreCase = True)",
       "kind": "method",
       "action": "change",
-      "new": "OfficeIMO.PowerPoint.PowerPointChart.SetSeriesDataLabelLeaderLines(... OfficeLength ...)",
+      "new": "OfficeIMO.PowerPoint.PowerPointChart.SetSeriesDataLabelLeaderLines(string seriesName, bool showLeaderLines = True, string lineColor = null, OfficeLength? lineWidth = null, bool ignoreCase = True)",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.PowerPoint/PowerPointChart.DataLabels.Series.cs",
       "category": "units",
@@ -5488,14 +5488,14 @@
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical chart typography and outline widths use OfficeLength. Native font hundredth-points and whole-EMU outlines retain format precision; omitted values preserve existing styles."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointChart.SetSeriesDataLabelShapeStyle(int seriesIndex, string fillColor = null, string lineColor = null, double? lineWidthPoints = null, bool noFill = False, bool noLine = False)",
       "kind": "method",
       "action": "change",
-      "new": "OfficeIMO.PowerPoint.PowerPointChart.SetSeriesDataLabelShapeStyle(... OfficeLength ...)",
+      "new": "OfficeIMO.PowerPoint.PowerPointChart.SetSeriesDataLabelShapeStyle(int seriesIndex, string fillColor = null, string lineColor = null, OfficeLength? lineWidth = null, bool noFill = False, bool noLine = False)",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.PowerPoint/PowerPointChart.DataLabels.Series.cs",
       "category": "units",
@@ -5505,14 +5505,14 @@
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical chart typography and outline widths use OfficeLength. Native font hundredth-points and whole-EMU outlines retain format precision; omitted values preserve existing styles."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointChart.SetSeriesDataLabelShapeStyle(string seriesName, string fillColor = null, string lineColor = null, double? lineWidthPoints = null, bool noFill = False, bool noLine = False, bool ignoreCase = True)",
       "kind": "method",
       "action": "change",
-      "new": "OfficeIMO.PowerPoint.PowerPointChart.SetSeriesDataLabelShapeStyle(... OfficeLength ...)",
+      "new": "OfficeIMO.PowerPoint.PowerPointChart.SetSeriesDataLabelShapeStyle(string seriesName, string fillColor = null, string lineColor = null, OfficeLength? lineWidth = null, bool noFill = False, bool noLine = False, bool ignoreCase = True)",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.PowerPoint/PowerPointChart.DataLabels.Series.cs",
       "category": "units",
@@ -5522,14 +5522,14 @@
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical chart typography and outline widths use OfficeLength. Native font hundredth-points and whole-EMU outlines retain format precision; omitted values preserve existing styles."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointChart.SetSeriesDataLabelShapeStyleForPoint(int seriesIndex, int pointIndex, string fillColor = null, string lineColor = null, double? lineWidthPoints = null, bool noFill = False, bool noLine = False)",
       "kind": "method",
       "action": "change",
-      "new": "OfficeIMO.PowerPoint.PowerPointChart.SetSeriesDataLabelShapeStyleForPoint(... OfficeLength ...)",
+      "new": "OfficeIMO.PowerPoint.PowerPointChart.SetSeriesDataLabelShapeStyleForPoint(int seriesIndex, int pointIndex, string fillColor = null, string lineColor = null, OfficeLength? lineWidth = null, bool noFill = False, bool noLine = False)",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.PowerPoint/PowerPointChart.DataLabels.Points.cs",
       "category": "units",
@@ -5539,14 +5539,14 @@
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical chart typography and outline widths use OfficeLength. Native font hundredth-points and whole-EMU outlines retain format precision; omitted values preserve existing styles."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointChart.SetSeriesDataLabelShapeStyleForPoint(string seriesName, int pointIndex, string fillColor = null, string lineColor = null, double? lineWidthPoints = null, bool noFill = False, bool noLine = False, bool ignoreCase = True)",
       "kind": "method",
       "action": "change",
-      "new": "OfficeIMO.PowerPoint.PowerPointChart.SetSeriesDataLabelShapeStyleForPoint(... OfficeLength ...)",
+      "new": "OfficeIMO.PowerPoint.PowerPointChart.SetSeriesDataLabelShapeStyleForPoint(string seriesName, int pointIndex, string fillColor = null, string lineColor = null, OfficeLength? lineWidth = null, bool noFill = False, bool noLine = False, bool ignoreCase = True)",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.PowerPoint/PowerPointChart.DataLabels.Points.cs",
       "category": "units",
@@ -5556,14 +5556,14 @@
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical chart typography and outline widths use OfficeLength. Native font hundredth-points and whole-EMU outlines retain format precision; omitted values preserve existing styles."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointChart.SetSeriesDataLabelTextStyle(int seriesIndex, double? fontSizePoints = null, bool? bold = null, bool? italic = null, string color = null, string fontName = null)",
       "kind": "method",
       "action": "change",
-      "new": "OfficeIMO.PowerPoint.PowerPointChart.SetSeriesDataLabelTextStyle(... OfficeLength ...)",
+      "new": "OfficeIMO.PowerPoint.PowerPointChart.SetSeriesDataLabelTextStyle(int seriesIndex, OfficeLength? fontSize = null, bool? bold = null, bool? italic = null, string color = null, string fontName = null)",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.PowerPoint/PowerPointChart.DataLabels.Series.cs",
       "category": "units",
@@ -5573,14 +5573,14 @@
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical chart typography and outline widths use OfficeLength. Native font hundredth-points and whole-EMU outlines retain format precision; omitted values preserve existing styles."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointChart.SetSeriesDataLabelTextStyle(string seriesName, double? fontSizePoints = null, bool? bold = null, bool? italic = null, string color = null, string fontName = null, bool ignoreCase = True)",
       "kind": "method",
       "action": "change",
-      "new": "OfficeIMO.PowerPoint.PowerPointChart.SetSeriesDataLabelTextStyle(... OfficeLength ...)",
+      "new": "OfficeIMO.PowerPoint.PowerPointChart.SetSeriesDataLabelTextStyle(string seriesName, OfficeLength? fontSize = null, bool? bold = null, bool? italic = null, string color = null, string fontName = null, bool ignoreCase = True)",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.PowerPoint/PowerPointChart.DataLabels.Series.cs",
       "category": "units",
@@ -5590,14 +5590,14 @@
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical chart typography and outline widths use OfficeLength. Native font hundredth-points and whole-EMU outlines retain format precision; omitted values preserve existing styles."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointChart.SetSeriesDataLabelTextStyleForPoint(int seriesIndex, int pointIndex, double? fontSizePoints = null, bool? bold = null, bool? italic = null, string color = null, string fontName = null)",
       "kind": "method",
       "action": "change",
-      "new": "OfficeIMO.PowerPoint.PowerPointChart.SetSeriesDataLabelTextStyleForPoint(... OfficeLength ...)",
+      "new": "OfficeIMO.PowerPoint.PowerPointChart.SetSeriesDataLabelTextStyleForPoint(int seriesIndex, int pointIndex, OfficeLength? fontSize = null, bool? bold = null, bool? italic = null, string color = null, string fontName = null)",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.PowerPoint/PowerPointChart.DataLabels.Points.cs",
       "category": "units",
@@ -5607,14 +5607,14 @@
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical chart typography and outline widths use OfficeLength. Native font hundredth-points and whole-EMU outlines retain format precision; omitted values preserve existing styles."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointChart.SetSeriesDataLabelTextStyleForPoint(string seriesName, int pointIndex, double? fontSizePoints = null, bool? bold = null, bool? italic = null, string color = null, string fontName = null, bool ignoreCase = True)",
       "kind": "method",
       "action": "change",
-      "new": "OfficeIMO.PowerPoint.PowerPointChart.SetSeriesDataLabelTextStyleForPoint(... OfficeLength ...)",
+      "new": "OfficeIMO.PowerPoint.PowerPointChart.SetSeriesDataLabelTextStyleForPoint(string seriesName, int pointIndex, OfficeLength? fontSize = null, bool? bold = null, bool? italic = null, string color = null, string fontName = null, bool ignoreCase = True)",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.PowerPoint/PowerPointChart.DataLabels.Points.cs",
       "category": "units",
@@ -5624,14 +5624,14 @@
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical chart typography and outline widths use OfficeLength. Native font hundredth-points and whole-EMU outlines retain format precision; omitted values preserve existing styles."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointChart.SetSeriesLineColor(int seriesIndex, string color, double? widthPoints = null)",
       "kind": "method",
       "action": "change",
-      "new": "OfficeIMO.PowerPoint.PowerPointChart.SetSeriesLineColor(... OfficeLength ...)",
+      "new": "OfficeIMO.PowerPoint.PowerPointChart.SetSeriesLineColor(int seriesIndex, string color, OfficeLength? width = null)",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.PowerPoint/PowerPointChart.SeriesAndAreas.cs",
       "category": "units",
@@ -5641,14 +5641,14 @@
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical chart typography and outline widths use OfficeLength. Native font hundredth-points and whole-EMU outlines retain format precision; omitted values preserve existing styles."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointChart.SetSeriesLineColor(string seriesName, string color, double? widthPoints = null, bool ignoreCase = True)",
       "kind": "method",
       "action": "change",
-      "new": "OfficeIMO.PowerPoint.PowerPointChart.SetSeriesLineColor(... OfficeLength ...)",
+      "new": "OfficeIMO.PowerPoint.PowerPointChart.SetSeriesLineColor(string seriesName, string color, OfficeLength? width = null, bool ignoreCase = True)",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.PowerPoint/PowerPointChart.SeriesAndAreas.cs",
       "category": "units",
@@ -5658,14 +5658,14 @@
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical chart typography and outline widths use OfficeLength. Native font hundredth-points and whole-EMU outlines retain format precision; omitted values preserve existing styles."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointChart.SetSeriesMarker(int seriesIndex, OfficeChartMarkerShape style, int? size = null, string fillColor = null, string lineColor = null, double? lineWidthPoints = null)",
       "kind": "method",
       "action": "change",
-      "new": "OfficeIMO.PowerPoint.PowerPointChart.SetSeriesMarker(... OfficeLength ...)",
+      "new": "OfficeIMO.PowerPoint.PowerPointChart.SetSeriesMarker(int seriesIndex, OfficeChartMarkerShape style, OfficeLength? size = null, string fillColor = null, string lineColor = null, OfficeLength? lineWidth = null)",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.PowerPoint/PowerPointChart.SeriesAndAreas.cs",
       "category": "units",
@@ -5675,14 +5675,14 @@
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical chart typography and outline widths use OfficeLength. Native font hundredth-points and whole-EMU outlines retain format precision; omitted values preserve existing styles."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointChart.SetSeriesMarker(string seriesName, OfficeChartMarkerShape style, int? size = null, string fillColor = null, string lineColor = null, double? lineWidthPoints = null, bool ignoreCase = True)",
       "kind": "method",
       "action": "change",
-      "new": "OfficeIMO.PowerPoint.PowerPointChart.SetSeriesMarker(... OfficeLength ...)",
+      "new": "OfficeIMO.PowerPoint.PowerPointChart.SetSeriesMarker(string seriesName, OfficeChartMarkerShape style, OfficeLength? size = null, string fillColor = null, string lineColor = null, OfficeLength? lineWidth = null, bool ignoreCase = True)",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.PowerPoint/PowerPointChart.SeriesAndAreas.cs",
       "category": "units",
@@ -5692,14 +5692,14 @@
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical chart typography and outline widths use OfficeLength. Native font hundredth-points and whole-EMU outlines retain format precision; omitted values preserve existing styles."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointChart.SetSeriesTrendline(int seriesIndex, OfficeChartTrendlineType type, int? order = null, int? period = null, double? forward = null, double? backward = null, double? intercept = null, bool displayEquation = False, bool displayRSquared = False, string lineColor = null, double? lineWidthPoints = null)",
       "kind": "method",
       "action": "change",
-      "new": "OfficeIMO.PowerPoint.PowerPointChart.SetSeriesTrendline(... OfficeLength ...)",
+      "new": "OfficeIMO.PowerPoint.PowerPointChart.SetSeriesTrendline(int seriesIndex, OfficeChartTrendlineType type, int? order = null, int? period = null, double? forward = null, double? backward = null, double? intercept = null, bool displayEquation = False, bool displayRSquared = False, string lineColor = null, OfficeLength? lineWidth = null)",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.PowerPoint/PowerPointChart.SeriesAndAreas.cs",
       "category": "units",
@@ -5709,14 +5709,14 @@
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical chart typography and outline widths use OfficeLength. Native font hundredth-points and whole-EMU outlines retain format precision; omitted values preserve existing styles."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointChart.SetSeriesTrendline(string seriesName, OfficeChartTrendlineType type, int? order = null, int? period = null, double? forward = null, double? backward = null, double? intercept = null, bool displayEquation = False, bool displayRSquared = False, string lineColor = null, double? lineWidthPoints = null, bool ignoreCase = True)",
       "kind": "method",
       "action": "change",
-      "new": "OfficeIMO.PowerPoint.PowerPointChart.SetSeriesTrendline(... OfficeLength ...)",
+      "new": "OfficeIMO.PowerPoint.PowerPointChart.SetSeriesTrendline(string seriesName, OfficeChartTrendlineType type, int? order = null, int? period = null, double? forward = null, double? backward = null, double? intercept = null, bool displayEquation = False, bool displayRSquared = False, string lineColor = null, OfficeLength? lineWidth = null, bool ignoreCase = True)",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.PowerPoint/PowerPointChart.SeriesAndAreas.cs",
       "category": "units",
@@ -5726,14 +5726,14 @@
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical chart typography and outline widths use OfficeLength. Native font hundredth-points and whole-EMU outlines retain format precision; omitted values preserve existing styles."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointChart.SetTitleTextStyle(double? fontSizePoints = null, bool? bold = null, bool? italic = null, string color = null, string fontName = null)",
       "kind": "method",
       "action": "change",
-      "new": "OfficeIMO.PowerPoint.PowerPointChart.SetTitleTextStyle(... OfficeLength ...)",
+      "new": "OfficeIMO.PowerPoint.PowerPointChart.SetTitleTextStyle(OfficeLength? fontSize = null, bool? bold = null, bool? italic = null, string color = null, string fontName = null)",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.PowerPoint/PowerPointChart.cs",
       "category": "units",
@@ -5743,14 +5743,14 @@
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical chart typography and outline widths use OfficeLength. Native font hundredth-points and whole-EMU outlines retain format precision; omitted values preserve existing styles."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointChart.SetValueAxisGridlines(bool showMajor = True, bool showMinor = False, string lineColor = null, double? lineWidthPoints = null)",
       "kind": "method",
       "action": "change",
-      "new": "OfficeIMO.PowerPoint.PowerPointChart.SetValueAxisGridlines(... OfficeLength ...)",
+      "new": "OfficeIMO.PowerPoint.PowerPointChart.SetValueAxisGridlines(bool showMajor = True, bool showMinor = False, string lineColor = null, OfficeLength? lineWidth = null)",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.PowerPoint/PowerPointChart.Axes.cs",
       "category": "units",
@@ -5760,14 +5760,14 @@
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical chart typography and outline widths use OfficeLength. Native font hundredth-points and whole-EMU outlines retain format precision; omitted values preserve existing styles."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointChart.SetValueAxisLabelTextStyle(double? fontSizePoints = null, bool? bold = null, bool? italic = null, string color = null, string fontName = null)",
       "kind": "method",
       "action": "change",
-      "new": "OfficeIMO.PowerPoint.PowerPointChart.SetValueAxisLabelTextStyle(... OfficeLength ...)",
+      "new": "OfficeIMO.PowerPoint.PowerPointChart.SetValueAxisLabelTextStyle(OfficeLength? fontSize = null, bool? bold = null, bool? italic = null, string color = null, string fontName = null)",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.PowerPoint/PowerPointChart.Axes.cs",
       "category": "units",
@@ -5777,14 +5777,14 @@
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical chart typography and outline widths use OfficeLength. Native font hundredth-points and whole-EMU outlines retain format precision; omitted values preserve existing styles."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointChart.SetValueAxisTitleTextStyle(double? fontSizePoints = null, bool? bold = null, bool? italic = null, string color = null, string fontName = null)",
       "kind": "method",
       "action": "change",
-      "new": "OfficeIMO.PowerPoint.PowerPointChart.SetValueAxisTitleTextStyle(... OfficeLength ...)",
+      "new": "OfficeIMO.PowerPoint.PowerPointChart.SetValueAxisTitleTextStyle(OfficeLength? fontSize = null, bool? bold = null, bool? italic = null, string color = null, string fontName = null)",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.PowerPoint/PowerPointChart.Axes.cs",
       "category": "units",
@@ -5794,8 +5794,8 @@
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical chart typography and outline widths use OfficeLength. Native font hundredth-points and whole-EMU outlines retain format precision; omitted values preserve existing styles."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointConnectionShape.Stroke(string color, double? widthPoints = null)",
@@ -7144,7 +7144,7 @@
       "old": "OfficeIMO.PowerPoint.PowerPointChartDataLabelTemplate.FontSizePoints",
       "kind": "property",
       "action": "merge",
-      "new": "OfficeIMO.PowerPoint.PowerPointChartDataLabelTemplate.FontSize : double (points)",
+      "new": "OfficeIMO.PowerPoint.PowerPointChartDataLabelTemplate.FontSize : OfficeLength?",
       "reason": "Parameter and property names never carry a unit suffix; font sizes stay numeric points.",
       "file": "OfficeIMO.PowerPoint/PowerPointChartDataLabelTemplate.cs",
       "category": "units",
@@ -7153,14 +7153,14 @@
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical label typography and outline width use typed lengths, preserving optional/no-op settings."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointChartDataLabelTemplate.LeaderLineWidthPoints",
       "kind": "property",
       "action": "merge",
-      "new": "OfficeIMO.PowerPoint.PowerPointChartDataLabelTemplate.LeaderLineWidth : OfficeLength",
+      "new": "OfficeIMO.PowerPoint.PowerPointChartDataLabelTemplate.LeaderLineWidth : OfficeLength?",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.PowerPoint/PowerPointChartDataLabelTemplate.cs",
       "category": "units",
@@ -7169,14 +7169,14 @@
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical label typography and outline width use typed lengths, preserving optional/no-op settings."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointChartDataLabelTemplate.LineWidthPoints",
       "kind": "property",
       "action": "merge",
-      "new": "OfficeIMO.PowerPoint.PowerPointChartDataLabelTemplate.LineWidth : OfficeLength",
+      "new": "OfficeIMO.PowerPoint.PowerPointChartDataLabelTemplate.LineWidth : OfficeLength?",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.PowerPoint/PowerPointChartDataLabelTemplate.cs",
       "category": "units",
@@ -7185,8 +7185,8 @@
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical label typography and outline width use typed lengths, preserving optional/no-op settings."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointDeckPreflightFinding.ResolvedFontSizePoints",
@@ -10199,6 +10199,54 @@
       "applied": "phase-b-applied",
       "files": [
         "OfficeIMO.Markup.Tests/OfficeMarkupParserTests.cs"
+      ]
+    },
+    {
+      "change": "Align chart type/data/options order across Word, Excel and PowerPoint",
+      "reason": "OfficeChartOptions owns the shared title and physical dimensions. Format options retain Word rounded corners, Excel one-based row/column anchors and PowerPoint position/accessibility. Typed and nameof projections accept options without duplicating data projection or chart rendering. Format defaults and editable native series are preserved.",
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "files": [
+        "OfficeIMO.PowerPoint/PowerPointChartOptions.cs",
+        "OfficeIMO.PowerPoint/PowerPointSlide.SharedCharts.cs",
+        "OfficeIMO.PowerPoint/PowerPointSlide.TypedCharts.cs"
+      ]
+    },
+    {
+      "change": "Use OfficeLength for physical chart marker sizes and native snapshot dimensions",
+      "reason": "Marker size is a physical whole-point length in DrawingML, with its existing 1..72-point interval and midpoint rounding. Chart snapshot dimensions retain native EMUs exactly. Internal renderer projections convert to points at their own boundary.",
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "files": [
+        "OfficeIMO.PowerPoint/PowerPointChart.cs",
+        "OfficeIMO.PowerPoint/PowerPointChart.Axes.cs",
+        "OfficeIMO.PowerPoint/PowerPointChart.AxisHelpers.cs",
+        "OfficeIMO.PowerPoint/PowerPointChart.DataLabels.cs",
+        "OfficeIMO.PowerPoint/PowerPointChart.DataLabels.Series.cs",
+        "OfficeIMO.PowerPoint/PowerPointChart.DataLabels.Points.cs",
+        "OfficeIMO.PowerPoint/PowerPointChart.DataLabelHelpers.cs",
+        "OfficeIMO.PowerPoint/PowerPointChart.SeriesAndAreas.cs",
+        "OfficeIMO.PowerPoint/PowerPointChart.ShapeStyleHelpers.cs",
+        "OfficeIMO.PowerPoint/PowerPointChartDataLabelTemplate.cs",
+        "OfficeIMO.PowerPoint/PowerPointChartSnapshot.cs",
+        "OfficeIMO.PowerPoint/PowerPointChart.Snapshot.cs",
+        "OfficeIMO.PowerPoint/PowerPointChart.SharedContract.cs",
+        "OfficeIMO.PowerPoint.Tests/PowerPoint.SharedChartAuthoring.cs",
+        "OfficeIMO.PowerPoint.Tests/PowerPoint.ChartLabelProjection.cs",
+        "OfficeIMO.PowerPoint.Tests/PowerPoint.ChartFormatting.cs",
+        "OfficeIMO.PowerPoint.Tests/PowerPoint.SharedChartSeriesQualification.cs",
+        "OfficeIMO.PowerPoint.Tests/PowerPoint.ChartUpdateParity.cs",
+        "OfficeIMO.PowerPoint.Tests/PowerPoint.ChartAutomaticAppearance.cs",
+        "OfficeIMO.PowerPoint.Tests/PowerPoint.ChartMarkers.cs",
+        "OfficeIMO.PowerPoint.Tests/PowerPoint.ChartAxisFormat.cs",
+        "OfficeIMO.PowerPoint.Tests/PowerPoint.ChartSeriesPaint.cs",
+        "OfficeIMO.PowerPoint.Tests/PowerPoint.SharedBubbleCharts.cs",
+        "OfficeIMO.PowerPoint.Tests/PowerPoint.ChartCreationParity.cs",
+        "OfficeIMO.PowerPoint.Tests/PowerPoint.FunctionalSmokeTests.cs",
+        "OfficeIMO.PowerPoint.Tests/PowerPoint.ChartSeriesStyle.cs",
+        "OfficeIMO.Examples/PowerPoint/ModernPowerPointDeck.cs",
+        "OfficeIMO.Markup.PowerPoint/OfficeMarkupPowerPointExporter.Charts.cs",
+        "OfficeIMO.PowerPoint.Tests/PowerPoint.ChartPhysicalLengths.cs"
       ]
     }
   ],

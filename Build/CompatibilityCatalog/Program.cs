@@ -232,12 +232,11 @@ static void GenerateConverterPowerPointSample(string outputPath) {
             new OfficeSeries("Documents", new[] { 120D, 185D, 240D, 318D }),
             new OfficeSeries("Reports", new[] { 42D, 68D, 96D, 132D })
         });
-    PowerPointChart chart = chartSlide.AddChart(
-        OfficeChartType.ColumnClustered,        chartData,        global::OfficeIMO.OfficeLength.Points(66),        global::OfficeIMO.OfficeLength.Points(128),        global::OfficeIMO.OfficeLength.Points(600),        global::OfficeIMO.OfficeLength.Points(310),        new PowerPointChartAccessibilityOptions {
+    PowerPointChart chart = chartSlide.AddChart(OfficeChartType.ColumnClustered, chartData, new OfficeIMO.PowerPoint.PowerPointChartOptions { Left = global::OfficeIMO.OfficeLength.Points(66), Top = global::OfficeIMO.OfficeLength.Points(128), Width = global::OfficeIMO.OfficeLength.Points(600), Height = global::OfficeIMO.OfficeLength.Points(310), Accessibility = new PowerPointChartAccessibilityOptions {
             Name = "Quarterly conversion volume",
             AlternativeText = "Document and report conversion volume increases from Q1 through Q4.",
             IncludeDataSummaryInAlternativeText = true
-        });
+        } });
     chart.SetTitle("Completed conversions");
     chart.SetLegend(OfficeChartLegendPosition.Bottom);
 

@@ -127,7 +127,7 @@ public partial class RichParagraphWrappingTests {
         var style = new PdfParagraphStyle { TextWhitespaceMode = whitespace, SpacingAfter = 0D };
         style.AddTabStop(180D);
         PdfTextRun content = inline
-            ? PdfTextRun.Inline(new PdfInlineBox(10D, 10D, background: PdfColor.Black))
+            ? PdfTextRun.Inline(new PdfInlineBox(10D, 10D, background: global::OfficeIMO.OfficeColor.Black))
             : PdfTextRun.Normal("VISIBLE", fontSize: 20D);
         byte[] bytes = PdfDocument.Create(TrailingTabInkOptions())
             .Paragraph(p => p.Runs(new[] { PdfTextRun.Normal("\t", fontSize: 24D), content }), style: style)

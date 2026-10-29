@@ -40,7 +40,7 @@ internal static partial class PdfWriter {
             double rowHeight = slice.Height;
             double rowBottom = y - rowHeight;
             if (!suppressCellObjects) spanFlow.AdmitRow(rowIndex, y, rowBottom, rowGapPx);
-            if (currentOpts.Debug?.ShowTableRowBoxes == true) { pageDirty = true; DrawRowRect(sb, new PdfColor(1, 0, 1), 0.6, xOrigin, rowBottom, tableWidth, rowHeight); }
+            if (currentOpts.Debug?.ShowTableRowBoxes == true) { pageDirty = true; DrawRowRect(sb, global::OfficeIMO.OfficeColor.FromNormalizedRgb(1, 0, 1), 0.6, xOrigin, rowBottom, tableWidth, rowHeight); }
             int bodyRowIndex = bodyRowOffset + rowIndex - headerRowCount;
             bool stripeBodyRow = bodyRowIndex >= 0 && bodyRowIndex % 2 == 1;
             bool[] rowFillSkips = GetRowSpanContinuationSkipColumns(tb, rowIndex, cols);
@@ -55,7 +55,7 @@ internal static partial class PdfWriter {
                 bool[] bodyColumnFillSkips = GetMergedCellContinuationSkipColumns(tb, rowIndex, cols);
                 double fillX = xOrigin;
                 for (int fillColumn = 0; fillColumn < cols; fillColumn++) {
-                    PdfColor? fill = fillColumn < style.BodyColumnFills.Count ? style.BodyColumnFills[fillColumn] : null;
+                    global::OfficeIMO.OfficeColor? fill = fillColumn < style.BodyColumnFills.Count ? style.BodyColumnFills[fillColumn] : null;
                     if (fill.HasValue && (fillColumn >= bodyColumnFillSkips.Length || !bodyColumnFillSkips[fillColumn])) {
                         pageDirty = true;
                         DrawRowFill(sb, fill.Value, fillX, rowBottom, colPixel[fillColumn], rowHeight, emitGeneratedStructure);
@@ -67,7 +67,7 @@ internal static partial class PdfWriter {
             if (style?.CellFills != null && style.CellFills.Count > 0) {
                 double fillX = xOrigin;
                 for (int fillColumn = 0; fillColumn < cols; fillColumn++) {
-                    if (!spanFlow.Contains(rowIndex, fillColumn) && style.CellFills.TryGetValue((rowIndex, fillColumn), out PdfColor fill) &&
+                    if (!spanFlow.Contains(rowIndex, fillColumn) && style.CellFills.TryGetValue((rowIndex, fillColumn), out global::OfficeIMO.OfficeColor fill) &&
                         TryGetTableCellLayoutAtColumn(cells, fillColumn, out TableCellLayout fillCell) &&
                         (fillColumn >= rowFillSkips.Length || !rowFillSkips[fillColumn])) {
                         pageDirty = true;
@@ -113,7 +113,7 @@ internal static partial class PdfWriter {
                 double x2 = xOrigin + tableWidth;
                 double baselineYDbg = y - padTop - GetAscenderForOptions(GetTableRowFont(currentOpts, rowUsesBold), rowSize, currentOpts);
                 pageDirty = true;
-                DrawHLine(sb, new PdfColor(0, 0.6, 0), 0.4, x1, x2, baselineYDbg);
+                DrawHLine(sb, global::OfficeIMO.OfficeColor.FromNormalizedRgb(0, 0.6, 0), 0.4, x1, x2, baselineYDbg);
             }
             double xi = xOrigin;
             double yRect = rowBottom;
@@ -157,21 +157,21 @@ internal static partial class PdfWriter {
                     }
 
                     if (currentOpts.Debug?.ShowTableColumnGuides == true)
-                        DrawVLine(sb, new PdfColor(0, 0, 1), Math.Max(0.3, style.BorderWidth), xi2, yTop, yBottom);
+                        DrawVLine(sb, global::OfficeIMO.OfficeColor.FromNormalizedRgb(0, 0, 1), Math.Max(0.3, style.BorderWidth), xi2, yTop, yBottom);
                     else
                         DrawVLine(sb, style.BorderColor.Value, style.BorderWidth, xi2, yTop, yBottom, emitGeneratedStructure);
                     xi2 += colGapPx;
                 }
             }
             if (style != null && renderAsFooter && rowIndex == footerStartRowIndex) {
-                PdfColor? footerSeparatorColor = style.FooterSeparatorColor ?? style.RowSeparatorColor;
+                global::OfficeIMO.OfficeColor? footerSeparatorColor = style.FooterSeparatorColor ?? style.RowSeparatorColor;
                 double footerSeparatorWidth = style.FooterSeparatorWidth > 0 ? style.FooterSeparatorWidth : style.RowSeparatorWidth;
                 if (footerSeparatorColor is not null && footerSeparatorWidth > 0) {
                     pageDirty = true;
                     DrawTableHorizontalLine(sb, footerSeparatorColor.Value, footerSeparatorWidth, xOrigin, colPixel, colGapPx, y, GetRowSpanBoundarySkipColumns(tb, rowIndex - 1, cols), emitGeneratedStructure);
                 }
             }
-            PdfColor? separatorColor = renderAsHeader && style?.HeaderSeparatorColor is not null ? style.HeaderSeparatorColor : style?.RowSeparatorColor;
+            global::OfficeIMO.OfficeColor? separatorColor = renderAsHeader && style?.HeaderSeparatorColor is not null ? style.HeaderSeparatorColor : style?.RowSeparatorColor;
             double separatorWidth = renderAsHeader && style?.HeaderSeparatorWidth > 0 ? style.HeaderSeparatorWidth : style?.RowSeparatorWidth ?? 0;
             if (separatorColor is not null && separatorWidth > 0) {
                 pageDirty = true;

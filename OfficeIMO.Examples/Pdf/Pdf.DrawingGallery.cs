@@ -8,7 +8,7 @@ namespace OfficeIMO.Examples.Pdf {
             string path = Path.Combine(folderPath, "Pdf.DrawingGallery.pdf");
 
             PdfDocument.Create(pdf => pdf.Content(content => content
-                .H1("Drawing Gallery", PdfAlign.Left, PdfColor.FromRgb(25, 55, 85))
+                .H1("Drawing Gallery", PdfAlign.Left, global::OfficeIMO.OfficeColor.FromRgb(25, 55, 85))
                 .Paragraph(p => p.Text("A visual baseline for shared OfficeIMO.Drawing vector descriptors rendered by the dependency-free PDF engine."))
                 .Drawing(CreateDrawingScene(), PdfAlign.Center, spacingBefore: 8, spacingAfter: 10)
                 .Paragraph(p => p
@@ -17,7 +17,7 @@ namespace OfficeIMO.Examples.Pdf {
                     .Text(", shadows, dashed strokes, line caps and joins, clipping paths, transforms, grouped scenes, and freeform paths."))), new PdfCreateOptions {
                     DefaultFont = PdfStandardFont.Helvetica,
                     DefaultFontSize = 10,
-                    DefaultTextColor = PdfColor.FromRgb(31, 41, 55),
+                    DefaultTextColor = global::OfficeIMO.OfficeColor.FromRgb(31, 41, 55),
                     HeaderFont = PdfStandardFont.Helvetica,
                     HeaderFontSize = 8,
                     HeaderFormat = "OfficeIMO.Drawing shared vector gate",

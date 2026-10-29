@@ -145,7 +145,7 @@ namespace OfficeIMO.PowerPoint {
                 return false;
             }
             snapshot = PowerPointChartSnapshotMapper.ToOfficeSnapshot(powerPointSnapshot,
-                powerPointSnapshot.WidthPoints, powerPointSnapshot.HeightPoints);
+                powerPointSnapshot.Width.ToPoints(), powerPointSnapshot.Height.ToPoints());
             if (GetChartPart().ChartSpace?.GetFirstChild<C.Chart>() is C.Chart nativeChart &&
                 OfficeOpenXmlChartSeriesReader.HasSuppressedOverMaximumDataLabels(nativeChart,
                     snapshot.Data.Series, snapshot.ChartKind)) {

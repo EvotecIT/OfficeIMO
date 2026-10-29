@@ -11,7 +11,7 @@ namespace OfficeIMO.Examples.Showcase.Workflows {
             Text(pipeline, "Synthetic snapshot / opportunity value in EUR thousands / not a revenue forecast", 1.5, 3, 30, 1.5, 17, "526179");
             var data = new OfficeChartData(new[] { "Qualified", "Discovery", "Proposal", "Negotiation" },
                 new[] { new OfficeSeries("Opportunity value", new double[] { 180, 145, 96, 52 }) });
-            pipeline.AddChart(OfficeChartType.ColumnClustered,data,global::OfficeIMO.OfficeLength.Centimeters(1.5),global::OfficeIMO.OfficeLength.Centimeters(5),global::OfficeIMO.OfficeLength.Centimeters(30),global::OfficeIMO.OfficeLength.Centimeters(11))
+            pipeline.AddChart(OfficeChartType.ColumnClustered, data, new OfficeIMO.PowerPoint.PowerPointChartOptions { Left = global::OfficeIMO.OfficeLength.Centimeters(1.5), Top = global::OfficeIMO.OfficeLength.Centimeters(5), Width = global::OfficeIMO.OfficeLength.Centimeters(30), Height = global::OfficeIMO.OfficeLength.Centimeters(11) })
                 .SetTitle("Open value by current stage").SetDataLabels(showValue: true).SetValueAxisTitle("EUR thousands");
             pipeline.Notes.Text = "Each opportunity appears in one current stage. Do not add stage percentages or describe this as contracted revenue. Values are synthetic.";
             var actions = deck.AddSlide();

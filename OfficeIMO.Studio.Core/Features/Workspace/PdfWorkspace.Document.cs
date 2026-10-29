@@ -77,7 +77,7 @@ internal sealed partial class PdfWorkspace {
                 void Draw(string? template, double y, PdfAlign align) {
                     if (string.IsNullOrWhiteSpace(template)) return;
                     canvas.Text(Expand(template), options.Margin, y, width, lineHeight, fontSize: options.FontSize,
-                        color: PdfColor.FromRgb(71, 84, 103), align: align);
+                        color: global::OfficeIMO.OfficeColor.FromRgb(71, 84, 103), align: align);
                 }
                 Draw(options.HeaderLeft, headerY, PdfAlign.Left);
                 Draw(options.HeaderCenter, headerY, PdfAlign.Center);

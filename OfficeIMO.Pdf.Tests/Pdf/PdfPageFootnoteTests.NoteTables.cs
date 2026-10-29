@@ -176,7 +176,7 @@ public partial class PdfPageFootnoteTests {
             panel.Text("PanelAfterTable", style: Style());
         }, new PdfPanelStyle {
             PaddingX = horizontalPadding, PaddingY = verticalPadding, SpacingBefore = 0, SpacingAfter = 0,
-            BorderColor = new PdfColor(.2D, .2D, .2D), BorderWidth = .5D
+            BorderColor = global::OfficeIMO.OfficeColor.FromNormalizedRgb(.2D, .2D, .2D), BorderWidth = .5D
         }));
         document.Content.Text("PreviousBody", style: Style()).Spacer(60);
         document.Content.Paragraph(paragraph => paragraph.Runs(new[] {
@@ -251,6 +251,6 @@ public partial class PdfPageFootnoteTests {
     private static PdfTableStyle NoteGridStyle() => new() {
         HeaderRowCount = 0, RepeatHeaderRowCount = 0, MinimumBodyRowsOnFirstPage = 0, MinimumBodyRowsOnLastPage = 0,
         FontSize = 8, LineHeight = 1.25D, CellPaddingX = 2, CellPaddingY = 1,
-        BorderColor = new PdfColor(.2D, .2D, .2D), BorderWidth = .5D, SpacingBefore = 0, SpacingAfter = 0
+        BorderColor = global::OfficeIMO.OfficeColor.FromNormalizedRgb(.2D, .2D, .2D), BorderWidth = .5D, SpacingBefore = 0, SpacingAfter = 0
     };
 }

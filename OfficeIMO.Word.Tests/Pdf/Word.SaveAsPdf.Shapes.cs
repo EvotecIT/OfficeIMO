@@ -408,7 +408,8 @@ namespace OfficeIMO.Tests {
             using (WordDocument document = WordDocument.Create(docPath)) {
                 document.AddParagraph("Before native text box");
                 WordTextBox textBox = document.AddTextBox("Native text box body");
-                textBox.WidthCentimeters = 7;
+                textBox.Width = OfficeLength.Centimeters(7);
+            textBox.RelativeWidthPercentage = 0;
                 textBox.HorizontalAlignment = WordTextBoxHorizontalAlignment.Center;
                 textBox.Paragraphs[0].Bold = true;
                 document.AddParagraph("After native text box");

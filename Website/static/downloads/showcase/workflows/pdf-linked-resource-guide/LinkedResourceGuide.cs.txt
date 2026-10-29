@@ -5,7 +5,7 @@ namespace OfficeIMO.Examples.Showcase.Workflows;
 /// <summary>Builds a PDF reading list with descriptive paragraph and table hyperlinks.</summary>
 internal static class LinkedResourceGuide {
     internal static void Create(string folder) {
-        PdfColor navy = PdfColor.FromRgb(23, 54, 93);
+        global::OfficeIMO.OfficeColor navy = global::OfficeIMO.OfficeColor.FromRgb(23, 54, 93);
         string repository = "https://github.com/EvotecIT/OfficeIMO";
         string[][] rows = {
             new[] { "Resource", "Use it for" },
@@ -26,8 +26,8 @@ internal static class LinkedResourceGuide {
                 .Text(" and choose a format close to your intended output. Keep the generated file alongside its input data."))
             .H2("Keep these references close", PdfAlign.Left, navy)
             .TableWithLinks(rows, links, style: new PdfTableStyle {
-                HeaderFill = navy, HeaderTextColor = PdfColor.White, HeaderRowCount = 1,
-                RowStripeFill = PdfColor.FromRgb(241, 245, 249), CellPaddingX = 9, CellPaddingY = 11
+                HeaderFill = navy, HeaderTextColor = global::OfficeIMO.OfficeColor.White, HeaderRowCount = 1,
+                RowStripeFill = global::OfficeIMO.OfficeColor.FromRgb(241, 245, 249), CellPaddingX = 9, CellPaddingY = 11
             })
             .H2("When reporting a problem", PdfAlign.Left, navy)
             .Bullets(new[] {

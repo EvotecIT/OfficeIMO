@@ -2183,7 +2183,7 @@
       "old": "OfficeIMO.Excel.ExcelSheet.AddChart(OfficeChartKind chartKind, OfficeChartData data, int row, int column, int widthPixels = 640, int heightPixels = 360, string title = null)",
       "kind": "method",
       "action": "change",
-      "new": "OfficeIMO.Excel.ExcelSheet.AddChart(OfficeChartType type, string rangeOrTable | IEnumerable<T> data, ..., OfficeLength? width = null, OfficeLength? height = null) : ExcelChart",
+      "new": "OfficeIMO.Excel.ExcelSheet.AddChart(OfficeChartType chartKind, OfficeChartData data, OfficeChartOptions options)",
       "reason": "Typed AddChart with the shared OfficeChartType; sizes in OfficeLength.",
       "file": "OfficeIMO.Excel/ExcelSheet.SharedCharts.cs",
       "category": "authoring",
@@ -2193,8 +2193,8 @@
         "status": "pending-phase-b"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Shared data entry points use chart type, data, then options in every format. Shared title/OfficeLength dimensions accept format options for native placement and frame/accessibility. The two-argument overload keeps format defaults."
     },
     {
       "old": "OfficeIMO.Excel.ExcelSheet.AddTable(string range, bool hasHeader, string name, ExcelTableStyle style)",
@@ -6280,6 +6280,17 @@
       ],
       "phase": "B",
       "applied": "phase-b-applied"
+    },
+    {
+      "change": "Align chart type/data/options order across Word, Excel and PowerPoint",
+      "reason": "OfficeChartOptions owns the shared title and physical dimensions. Format options retain Word rounded corners, Excel one-based row/column anchors and PowerPoint position/accessibility. Typed and nameof projections accept options without duplicating data projection or chart rendering. Format defaults and editable native series are preserved.",
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "files": [
+        "OfficeIMO.Excel/ExcelChartOptions.cs",
+        "OfficeIMO.Excel/ExcelSheet.SharedCharts.cs",
+        "OfficeIMO.Excel/ExcelSheet.TypedCharts.cs"
+      ]
     }
   ],
   "applicationStatus": "Phase A applied and validated on the supported macOS targets. Phase B and Tier 2 entries retain their status; Windows .NET Framework validation remains pending.",

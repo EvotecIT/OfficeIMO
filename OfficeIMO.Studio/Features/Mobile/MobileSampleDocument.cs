@@ -5,8 +5,8 @@ namespace OfficeIMO.Studio.Features.Mobile;
 /// <summary>A real, editable document for exploring the reader without importing a file.</summary>
 internal static class MobileSampleDocument {
     internal static void Save(string path) {
-        var ink = PdfColor.FromRgb(28, 43, 64);
-        var blue = PdfColor.FromRgb(47, 99, 233);
+        var ink = global::OfficeIMO.OfficeColor.FromRgb(28, 43, 64);
+        var blue = global::OfficeIMO.OfficeColor.FromRgb(47, 99, 233);
         var options = new PdfCreateOptions {
             DefaultFont = PdfStandardFont.Helvetica,
             DefaultFontSize = 14,

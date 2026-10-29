@@ -198,8 +198,8 @@ public static partial class MarkdownPdfConverterExtensions {
         }
 
         var cellFills = style.CellFills == null
-            ? new Dictionary<(int Row, int Column), PdfCore.PdfColor>()
-            : new Dictionary<(int Row, int Column), PdfCore.PdfColor>(style.CellFills);
+            ? new Dictionary<(int Row, int Column), global::OfficeIMO.OfficeColor>()
+            : new Dictionary<(int Row, int Column), global::OfficeIMO.OfficeColor>(style.CellFills);
 
         bool hasCellFills = cellFills.Count > 0;
         var activeRowSpans = new int[columnCount];
@@ -218,7 +218,7 @@ public static partial class MarkdownPdfConverterExtensions {
         }
     }
 
-    private static void ApplyMarkdownTableCellBackgrounds(Dictionary<(int Row, int Column), PdfCore.PdfColor> cellFills, IReadOnlyList<TableCell> cells, int pdfRowIndex, int columnCount, int[] activeRowSpans, ref bool hasCellFills) {
+    private static void ApplyMarkdownTableCellBackgrounds(Dictionary<(int Row, int Column), global::OfficeIMO.OfficeColor> cellFills, IReadOnlyList<TableCell> cells, int pdfRowIndex, int columnCount, int[] activeRowSpans, ref bool hasCellFills) {
         int meaningfulCount = GetMeaningfulCellCount(cells);
         int logicalColumn = 0;
         for (int cellIndex = 0; cellIndex < meaningfulCount; cellIndex++) {
@@ -236,7 +236,7 @@ public static partial class MarkdownPdfConverterExtensions {
                 continue;
             }
 
-            if (TryParseTableCellColor(cell.BackgroundColor, out PdfCore.PdfColor fill)) {
+            if (TryParseTableCellColor(cell.BackgroundColor, out global::OfficeIMO.OfficeColor fill)) {
                 cellFills[(pdfRowIndex, logicalColumn)] = fill;
                 hasCellFills = true;
             }
@@ -257,13 +257,13 @@ public static partial class MarkdownPdfConverterExtensions {
         }
     }
 
-    private static bool TryParseTableCellColor(string? value, out PdfCore.PdfColor color) {
+    private static bool TryParseTableCellColor(string? value, out global::OfficeIMO.OfficeColor color) {
         color = default;
         if (string.IsNullOrWhiteSpace(value) || !OfficeColor.TryParse(value, out OfficeColor officeColor)) {
             return false;
         }
 
-        PdfCore.PdfColor? pdfColor = PdfCore.PdfColor.FromOfficeColorOrNull(officeColor);
+        global::OfficeIMO.OfficeColor? pdfColor = (officeColor.A == 0 ? (global::OfficeIMO.OfficeColor?)null : officeColor);
         if (!pdfColor.HasValue) {
             return false;
         }
@@ -279,7 +279,7 @@ public static partial class MarkdownPdfConverterExtensions {
             underline: cell.Underline ? true : null,
             strike: cell.Strikethrough ? true : null);
 
-        if (TryParseTableCellColor(cell.TextColor, out PdfCore.PdfColor textColor)) {
+        if (TryParseTableCellColor(cell.TextColor, out global::OfficeIMO.OfficeColor textColor)) {
             style = style.With(color: textColor);
         }
 

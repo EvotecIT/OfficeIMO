@@ -94,7 +94,7 @@ public sealed class WordChartProjectionQualificationTests {
     [InlineData(true)]
     public void Snapshot_RejectsFormulaLinkedTitleWithoutCachedText(bool axisTitle) {
         using var document = WordDocument.Create();
-        var chart = document.AddChart(OfficeChartType.ColumnClustered,            new OfficeChartData(new[] { "A" }, new[] { new OfficeSeries("Values", new[] { 3d }) }),"Results");
+        var chart = document.AddChart(OfficeChartType.ColumnClustered, new OfficeChartData(new[] { "A" }, new[] { new OfficeSeries("Values", new[] { 3d }) }), new OfficeIMO.Word.WordChartOptions { Title = "Results" });
         if (axisTitle) chart.SetXAxisTitle("Units");
         C.Title title = axisTitle
             ? chart.ChartPart!.ChartSpace!.Descendants<C.CategoryAxis>().Single().GetFirstChild<C.Title>()!
@@ -195,8 +195,8 @@ public sealed class WordChartProjectionQualificationTests {
         using var document = WordDocument.Create();
         var kind = feature.StartsWith("radial", StringComparison.Ordinal) ? OfficeChartType.Pie :
             feature == "negative" || feature.StartsWith("bar", StringComparison.Ordinal) || feature == "seriesLines" ? OfficeChartType.ColumnClustered : OfficeChartType.Line;
-        var chart = document.AddChart(kind,new OfficeChartData(new[] { "A", "B" }, new[] {
-            new OfficeSeries("Values", new[] { 3d, feature is "negative" or "autoZeroNegative" ? -4d : 4d }) }),title: "Revenue");
+        var chart = document.AddChart(kind, new OfficeChartData(new[] { "A", "B" }, new[] {
+            new OfficeSeries("Values", new[] { 3d, feature is "negative" or "autoZeroNegative" ? -4d : 4d }) }), new OfficeIMO.Word.WordChartOptions { Title = "Revenue" });
         if (feature == "secondaryCategory") chart.SetData(kind, new OfficeChartData(new[] { "A", "B" }, new[] {
             new OfficeSeries("Values", new[] { 3d, -4d }),
             new OfficeSeries("Secondary", new[] { 1d, 2d }, null, null, null, true, renderKind: OfficeChartType.Line, axisGroup: OfficeChartAxisGroup.Secondary) }));

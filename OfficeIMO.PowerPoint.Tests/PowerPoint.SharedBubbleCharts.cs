@@ -35,10 +35,9 @@ namespace OfficeIMO.Tests {
                 new[] { 3D, 6D, 9D }, new[] { 12D, 24D, 36D }, new[] { 16D, 36D, 64D });
             try {
                 using (PowerPointDocument presentation = PowerPointDocument.Create(output)) {
-                    PowerPointChart chart = presentation.AddSlide().AddChart(
-                        OfficeChartType.Bubble,initial,global::OfficeIMO.OfficeLength.Points(36),global::OfficeIMO.OfficeLength.Points(30),global::OfficeIMO.OfficeLength.Points(420),global::OfficeIMO.OfficeLength.Points(250),                        new PowerPointChartAccessibilityOptions {
+                    PowerPointChart chart = presentation.AddSlide().AddChart(OfficeChartType.Bubble, initial, new OfficeIMO.PowerPoint.PowerPointChartOptions { Left = global::OfficeIMO.OfficeLength.Points(36), Top = global::OfficeIMO.OfficeLength.Points(30), Width = global::OfficeIMO.OfficeLength.Points(420), Height = global::OfficeIMO.OfficeLength.Points(250), Accessibility = new PowerPointChartAccessibilityOptions {
                             AlternativeText = "Portfolio position by return, risk, and investment"
-                        });
+                        } });
 
                     Assert.True(chart.TryGetOfficeSnapshot(out OfficeChartSnapshot authored));
                     Assert.Equal(OfficeChartType.Bubble, authored.ChartKind);
@@ -52,7 +51,7 @@ namespace OfficeIMO.Tests {
                         StringComparison.Ordinal);
 
                     chart.SetSeriesFillColor(0, "123456")
-                        .SetSeriesLineColor(0, "654321", widthPoints: 2.5D)
+                        .SetSeriesLineColor(0, "654321", width: OfficeLength.Points(2.5D))
                         .SetDataLabels(showValue: true)
                         .SetSeriesDataLabels(0, showValue: true, numberFormat: "0.0");
                     ChartPart authoredChartPart = presentation.Slides[0].SlidePart.ChartParts.Single();
@@ -281,7 +280,7 @@ namespace OfficeIMO.Tests {
             Assert.Null(bubble.Shape.StrokeColor);
             Assert.Equal(0D, bubble.Shape.StrokeWidth);
 
-            chart.SetSeriesLineColor(0, "445566", widthPoints: 1.25D);
+            chart.SetSeriesLineColor(0, "445566", width: OfficeLength.Points(1.25D));
             Assert.Null(outline.GetFirstChild<A.NoFill>());
             Assert.Equal("445566", outline.GetFirstChild<A.SolidFill>()!
                 .RgbColorModelHex!.Val!.Value);
@@ -314,8 +313,7 @@ namespace OfficeIMO.Tests {
                     new[] { 4D, 9D },
                     showInLegend: false)
             });
-            PowerPointChart chart = slide.AddChart(
-                OfficeChartType.Bubble,data,global::OfficeIMO.OfficeLength.Points(30),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(420),global::OfficeIMO.OfficeLength.Points(250));
+            PowerPointChart chart = slide.AddChart(OfficeChartType.Bubble, data, new OfficeIMO.PowerPoint.PowerPointChartOptions { Left = global::OfficeIMO.OfficeLength.Points(30), Top = global::OfficeIMO.OfficeLength.Points(20), Width = global::OfficeIMO.OfficeLength.Points(420), Height = global::OfficeIMO.OfficeLength.Points(250) });
             C.Delete nativeDelete = presentation.Slides[0].SlidePart.ChartParts
                 .Single().ChartSpace!.Descendants<C.LegendEntry>().Single()
                 .GetFirstChild<C.Delete>()!;
@@ -399,7 +397,7 @@ namespace OfficeIMO.Tests {
             Assert.True(chart.TryGetOfficeSnapshot(out _));
 
             chart.SetLegendTextStyle(
-                fontSizePoints: 10D, bold: true,
+                fontSize: OfficeLength.Points(10D), bold: true,
                 color: "445566", fontName: "Arial");
             Assert.False(chart.TryGetOfficeSnapshot(out _));
 
@@ -492,14 +490,14 @@ namespace OfficeIMO.Tests {
                 .Single(axis => axis.AxisId!.Val!.Value == axisIds[0]);
 
             chart.SetScatterXAxisTitleTextStyle(
-                fontSizePoints: 11D, bold: true,
+                fontSize: OfficeLength.Points(11D), bold: true,
                 color: "445566", fontName: "Arial");
             Assert.False(chart.TryGetOfficeSnapshot(out _));
             chart.ClearScatterXAxisTitleTextStyle();
             Assert.True(chart.TryGetOfficeSnapshot(out _));
 
             chart.SetScatterXAxisLabelTextStyle(
-                fontSizePoints: 9D, italic: true,
+                fontSize: OfficeLength.Points(9D), italic: true,
                 color: "778899", fontName: "Calibri");
             Assert.False(chart.TryGetOfficeSnapshot(out _));
             chart.ClearScatterXAxisLabelTextStyle();
@@ -652,7 +650,7 @@ namespace OfficeIMO.Tests {
 
             chart.SetTitle("Styled title")
                 .SetTitleTextStyle(
-                    fontSizePoints: 14D, bold: true,
+                    fontSize: OfficeLength.Points(14D), bold: true,
                     color: "445566", fontName: "Arial");
             Assert.False(chart.TryGetOfficeSnapshot(out _));
             chart.ClearTitleTextStyle();
@@ -681,7 +679,7 @@ namespace OfficeIMO.Tests {
 
             chart.SetPlotAreaStyle(
                 fillColor: "445566", lineColor: "778899",
-                lineWidthPoints: 1.5D);
+                lineWidth: OfficeLength.Points(1.5D));
             Assert.False(chart.TryGetOfficeSnapshot(out _));
         }
 
@@ -731,7 +729,7 @@ namespace OfficeIMO.Tests {
             using PowerPointDocument presentation = PowerPointDocument.Create(stream);
             presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(480),OfficeIMO.OfficeLength.Points(300));
             PowerPointSlide slide = presentation.AddSlide();
-            slide.AddChart(OfficeChartType.Bubble,                CreateBubbleData(
+            slide.AddChart(OfficeChartType.Bubble, CreateBubbleData(
                     new[] { 1D, 2D, 3D },
                     new[] { 2D, 5D, 4D },
                     new[] { 4D, 25D, 9D },
@@ -739,7 +737,7 @@ namespace OfficeIMO.Tests {
                         OfficeColor.Parse("#D62828"),
                         OfficeColor.Parse("#2A9D8F"),
                         OfficeColor.Parse("#F4A261")
-                    }),                global::OfficeIMO.OfficeLength.Points(30),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(420),global::OfficeIMO.OfficeLength.Points(250));
+                    }), new OfficeIMO.PowerPoint.PowerPointChartOptions { Left = global::OfficeIMO.OfficeLength.Points(30), Top = global::OfficeIMO.OfficeLength.Points(20), Width = global::OfficeIMO.OfficeLength.Points(420), Height = global::OfficeIMO.OfficeLength.Points(250) });
 
             OfficeImageExportResult png = slide.ExportImage(OfficeImageExportFormat.Png);
             OfficeImageExportResult svg = slide.ExportImage(OfficeImageExportFormat.Svg);
@@ -801,14 +799,14 @@ namespace OfficeIMO.Tests {
             using PowerPointDocument presentation =
                 PowerPointDocument.Create(new MemoryStream());
             PowerPointSlide slide = presentation.AddSlide();
-            slide.AddChart(OfficeChartType.Bubble,                CreateBubbleData(
+            slide.AddChart(OfficeChartType.Bubble, CreateBubbleData(
                     new[] { 1D, 2D },
                     new[] { 2D, 4D },
                     new[] { 0D, 9D },
                     new OfficeColor?[] {
                         OfficeColor.Parse("#D62828"),
                         OfficeColor.Parse("#2A9D8F")
-                    }),                global::OfficeIMO.OfficeLength.Points(30),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(420),global::OfficeIMO.OfficeLength.Points(250));
+                    }), new OfficeIMO.PowerPoint.PowerPointChartOptions { Left = global::OfficeIMO.OfficeLength.Points(30), Top = global::OfficeIMO.OfficeLength.Points(20), Width = global::OfficeIMO.OfficeLength.Points(420), Height = global::OfficeIMO.OfficeLength.Points(250) });
 
             string svg = System.Text.Encoding.UTF8.GetString(
                 slide.ExportImage(OfficeImageExportFormat.Svg).Bytes);
@@ -1384,7 +1382,7 @@ namespace OfficeIMO.Tests {
             outline.RemoveAllChildren<A.SolidFill>();
             outline.Append(new A.GradientFill());
 
-            chart.SetSeriesLineColor(0, "445566", widthPoints: 1.25D);
+            chart.SetSeriesLineColor(0, "445566", width: OfficeLength.Points(1.25D));
 
             Assert.Null(outline.GetFirstChild<A.GradientFill>());
             Assert.Equal("445566",
@@ -1393,7 +1391,7 @@ namespace OfficeIMO.Tests {
 
             outline.RemoveAllChildren<A.SolidFill>();
             outline.Append(new A.PatternFill());
-            chart.SetSeriesLineColor(0, "778899", widthPoints: 1.5D);
+            chart.SetSeriesLineColor(0, "778899", width: OfficeLength.Points(1.5D));
 
             Assert.Null(outline.GetFirstChild<A.PatternFill>());
             Assert.Equal("778899",
@@ -1404,7 +1402,7 @@ namespace OfficeIMO.Tests {
                 Val = A.PresetLineDashValues.Dash
             });
             chart.SetSeriesLineColor(
-                0, "AABBCC", widthPoints: 2D);
+                0, "AABBCC", width: OfficeLength.Points(2D));
 
             List<OpenXmlElement> outlineChildren =
                 outline.ChildElements.ToList();

@@ -175,7 +175,7 @@ internal sealed partial class StudioNativeDocument {
             Opacity = Bounded(edit.Opacity ?? 0.35D, 0.05D, 1D, "opacity"), RotationDegrees = Bounded(edit.Rotation ?? -35D, -180D, 180D, "angle"),
             BehindContent = edit.BehindContent
         };
-        if (edit.Color is { } color) options.Color = PdfColor.FromRgb(Channel(color.Red), Channel(color.Green), Channel(color.Blue));
+        if (edit.Color is { } color) options.Color = global::OfficeIMO.OfficeColor.FromRgb(Channel(color.Red), Channel(color.Green), Channel(color.Blue));
         int[] pages = edit.Pages is { Count: > 0 } chosen ? RequirePages(chosen) : Enumerable.Range(1, _workspace.Pages.Count).ToArray();
         if (edit.Pages is { Count: > 0 }) options.TargetPages = PdfPageSelector.Parse(RangeOf(pages)!);
         PdfWatermarkPreview prepared = await _workspace.PrepareWatermarkAsync(options, pages[0], cancellationToken).ConfigureAwait(false);

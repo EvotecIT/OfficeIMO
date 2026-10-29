@@ -41,14 +41,14 @@ public partial class Word {
                     else if (setting == "family") options.PdfOptions.FooterFontFamily = "Arial";
                     else if (setting == "size") options.PdfOptions.FooterFontSize = 24D;
                     else if (setting == "offset") options.PdfOptions.FooterOffsetY = 45D;
-                    else options.PdfOptions.FooterTextColor = PdfColor.FromRgb(255, 0, 0);
+                    else options.PdfOptions.FooterTextColor = global::OfficeIMO.OfficeColor.FromRgb(255, 0, 0);
                 } else {
                     if (setting == "alignment") options.PdfOptions.HeaderAlign = PdfAlign.Right;
                     else if (setting == "font") options.PdfOptions.HeaderFont = PdfStandardFont.Courier;
                     else if (setting == "family") options.PdfOptions.HeaderFontFamily = "Arial";
                     else if (setting == "size") options.PdfOptions.HeaderFontSize = 24D;
                     else if (setting == "offset") options.PdfOptions.HeaderOffsetY = 45D;
-                    else options.PdfOptions.HeaderTextColor = PdfColor.FromRgb(255, 0, 0);
+                    else options.PdfOptions.HeaderTextColor = global::OfficeIMO.OfficeColor.FromRgb(255, 0, 0);
                 }
             }
             using var pdf = PdfPigDocument.Open(document.ToPdf(options).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));

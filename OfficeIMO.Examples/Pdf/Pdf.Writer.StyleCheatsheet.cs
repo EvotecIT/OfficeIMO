@@ -7,12 +7,12 @@ namespace OfficeIMO.Examples.Pdf {
             string path = Path.Combine(folderPath, "Pdf.StyleCheatsheet.pdf");
 
             var doc = PdfDocument.Create(pdf => pdf.Content(content => content
-                .H1("Style Cheatsheet", PdfAlign.Left, PdfColor.FromRgb(25, 55, 85))
+                .H1("Style Cheatsheet", PdfAlign.Left, global::OfficeIMO.OfficeColor.FromRgb(25, 55, 85))
                 .PanelParagraph(
                     p => p.Text("A compact visual sample for rich text, color, underline, and alignment behavior."),
                     new PdfPanelStyle {
-                        Background = PdfColor.FromRgb(248, 250, 252),
-                        BorderColor = PdfColor.FromRgb(183, 194, 207),
+                        Background = global::OfficeIMO.OfficeColor.FromRgb(248, 250, 252),
+                        BorderColor = global::OfficeIMO.OfficeColor.FromRgb(183, 194, 207),
                         PaddingX = 9,
                         PaddingY = 7
                     })
@@ -24,9 +24,9 @@ namespace OfficeIMO.Examples.Pdf {
                     .Underlined("Underline "))
                 .Paragraph(p => p
                     .Text("Colors: ")
-                    .Color(PdfColor.FromRgb(200,0,0)).Text("Red ")
-                    .Color(PdfColor.FromRgb(20,90,180)).Text("Blue ")
-                    .Color(PdfColor.FromRgb(0,128,0)).Text("Green"))
+                    .Color(global::OfficeIMO.OfficeColor.FromRgb(200,0,0)).Text("Red ")
+                    .Color(global::OfficeIMO.OfficeColor.FromRgb(20,90,180)).Text("Blue ")
+                    .Color(global::OfficeIMO.OfficeColor.FromRgb(0,128,0)).Text("Green"))
                 .Paragraph(p => p
                     .Text("Combinations: ")
                     .Bold("Bold ")
@@ -41,12 +41,12 @@ namespace OfficeIMO.Examples.Pdf {
                     .Italic(false).Text("italic off ")
                     .Underline(true).Text("ul on ")
                     .Underline(false).Text("ul off"))
-                .HR(0.8, PdfColor.FromRgb(183, 194, 207), 8, 8)
+                .HR(0.8, global::OfficeIMO.OfficeColor.FromRgb(183, 194, 207), 8, 8)
                 .Paragraph(p => p.Text("Center aligned line"), PdfAlign.Center)
                 .Paragraph(p => p.Text("Right aligned line"), PdfAlign.Right)), new PdfCreateOptions {
                     DefaultFont = PdfStandardFont.Helvetica,
                     DefaultFontSize = 10,
-                    DefaultTextColor = PdfColor.FromRgb(31, 41, 55),
+                    DefaultTextColor = global::OfficeIMO.OfficeColor.FromRgb(31, 41, 55),
                     HeaderFont = PdfStandardFont.Helvetica,
                     HeaderFontSize = 8,
                     HeaderFormat = "OfficeIMO.Pdf style cheatsheet",

@@ -90,7 +90,7 @@ internal static partial class PdfWriter {
                     .Rectangle(frameX, frameTopY - text.Height, text.Width, text.Height)
                     .ClipPath()
                     .EndPath()
-                    .FillColor(ToPdfColor(paintColor) ?? PdfColor.Black)
+                    .FillColor(ToPdfColor(paintColor) ?? global::OfficeIMO.OfficeColor.Black)
                     .BeginText()
                     .Font(fontResource, size, currentOpts.NeedsSyntheticOblique(font, namedFont));
                 for (int index = 0; index < glyphRun.Glyphs.Count; index++) {

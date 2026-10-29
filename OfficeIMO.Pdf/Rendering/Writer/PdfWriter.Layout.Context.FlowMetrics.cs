@@ -320,7 +320,7 @@ internal static partial class PdfWriter {
                 ? headingStyle?.SpacingBefore ?? 0D
                 : 0D;
             double spacingAfter = GetHeadingSpacingAfter(headingStyle, headingLeading);
-            PdfColor? headingColor = heading.Color ?? headingStyle?.Color;
+            global::OfficeIMO.OfficeColor? headingColor = heading.Color ?? headingStyle?.Color;
             System.Collections.Generic.IReadOnlyList<PdfTextRun> headingRuns = CreateHeadingTextRuns(heading, headingStyle, headingColor);
             var wrap = WrapHeadingForFrame(heading, headingRuns, headingStyle, frameX, frameWidth,
                 headingSize, headingLeading, y - spacingBefore);

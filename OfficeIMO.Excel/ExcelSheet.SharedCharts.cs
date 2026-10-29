@@ -5,16 +5,20 @@ using OfficeIMO.Drawing;
 
 namespace OfficeIMO.Excel {
     public partial class ExcelSheet {
+        /// <summary>Adds an editable native chart with the format's default title, size and placement.</summary>
+        public ExcelChart AddChart(OfficeChartType chartKind, OfficeChartData data) =>
+            AddChart(chartKind, data, null);
+
         /// <summary>
         /// Adds a native Excel chart from the shared OfficeIMO chart contract, including per-series combo kinds
         /// and primary or secondary axis assignments.
         /// </summary>
-        public ExcelChart AddChart(OfficeChartType chartKind, OfficeChartData data, int row, int column,
-            OfficeLength? width = null, OfficeLength? height = null, string? title = null) {
+        public ExcelChart AddChart(OfficeChartType chartKind, OfficeChartData data, OfficeChartOptions? options) {
             if (data == null) throw new ArgumentNullException(nameof(data));
             ExcelChartData excelData = ToExcelChartData(data, chartKind);
-            ExcelChart chart = AddChart(excelData, row, column, width, height,
-                chartKind, title);
+            var placement = options as ExcelChartOptions;
+            ExcelChart chart = AddChart(excelData, placement?.Row ?? 1, placement?.Column ?? 1,
+                options?.Width, options?.Height, chartKind, options?.Title);
             chart.ApplyAuthoredSeriesStyles(excelData.Series,
                 data.Series.Select(series => series.ShowInLegend).ToList());
             chart.ApplySharedPointStyles(data.Series);

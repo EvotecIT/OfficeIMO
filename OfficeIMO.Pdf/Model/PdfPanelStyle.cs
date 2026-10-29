@@ -47,9 +47,9 @@ public class PdfPanelStyle {
     internal double BottomPadding => PaddingBottomOverride ?? PaddingY;
 
     /// <summary>Background fill color. Set to null for no fill.</summary>
-    public PdfColor? Background { get; set; }
+    public global::OfficeIMO.OfficeColor? Background { get; set; }
     /// <summary>Border color. Set to null for no border.</summary>
-    public PdfColor? BorderColor { get; set; }
+    public global::OfficeIMO.OfficeColor? BorderColor { get; set; }
     /// <summary>Border stroke width in points.</summary>
     public double BorderWidth {
         get => _borderWidth;

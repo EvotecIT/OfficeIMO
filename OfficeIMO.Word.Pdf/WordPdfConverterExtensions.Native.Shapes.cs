@@ -180,9 +180,9 @@ namespace OfficeIMO.Word.Pdf {
                 } else if (TryGetNativeDrawingSolidFillColor(shapeProperties, out OfficeColor drawingFill, themeColors)) {
                     nativeShape.FillColor = drawingFill;
                 } else {
-                    PdfCore.PdfColor? fill = ParseNativeColor(wordShape.FillColorHex);
+                    global::OfficeIMO.OfficeColor? fill = ParseNativeColor(wordShape.FillColorHex);
                     if (fill.HasValue) {
-                        nativeShape.FillColor = fill.Value.ToOfficeColor();
+                        nativeShape.FillColor = fill.Value;
                     }
                 }
 
@@ -206,8 +206,11 @@ namespace OfficeIMO.Word.Pdf {
                 return;
             }
 
-            PdfCore.PdfColor? stroke = hasDrawingStrokeColor ? PdfCore.PdfColor.FromOfficeColor(drawingStroke) : ParseNativeColor(wordShape.StrokeColorHex);
-            nativeShape.StrokeColor = (stroke ?? PdfCore.PdfColor.Black).ToOfficeColor();
+            global::OfficeIMO.OfficeColor? stroke = hasDrawingStrokeColor ? drawingStroke : ParseNativeColor(wordShape.StrokeColorHex);
+            OfficeColor strokeColor = stroke ?? OfficeColor.Black;
+            // This native shape carries stroke alpha separately for running-canvas admission.
+            var strokeRgb = strokeColor.ToNormalizedRgb();
+            nativeShape.StrokeColor = OfficeColor.FromNormalizedRgb(strokeRgb.R, strokeRgb.G, strokeRgb.B);
             // Transfer the shared resolver's completed alpha once alongside RGB.
             // Running text-box admission also relies on this separate-opacity contract.
             if (hasDrawingStrokeColor) nativeShape.StrokeOpacity = drawingStroke.A / 255D;

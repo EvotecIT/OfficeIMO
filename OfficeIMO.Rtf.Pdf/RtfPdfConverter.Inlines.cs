@@ -205,8 +205,8 @@ internal static partial class RtfPdfConverter {
             return;
         }
 
-        PdfCore.PdfColor? foreground = RtfPdfMapping.ToPdfColor(document, run.ForegroundColorIndex);
-        PdfCore.PdfColor? background = RtfPdfMapping.ToPdfColor(document, run.HighlightColorIndex)
+        global::OfficeIMO.OfficeColor? foreground = RtfPdfMapping.ToPdfColor(document, run.ForegroundColorIndex);
+        global::OfficeIMO.OfficeColor? background = RtfPdfMapping.ToPdfColor(document, run.HighlightColorIndex)
             ?? RtfPdfMapping.ToPdfColor(document, run.CharacterBackgroundColorIndex);
         PdfCore.PdfStandardFont? font = state.ResolveFont(run.FontId, run.Bold, run.Italic);
         string? linkUri = run.Hyperlink?.ToString() ?? inheritedLinkUri;

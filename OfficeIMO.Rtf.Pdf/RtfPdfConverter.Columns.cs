@@ -61,7 +61,7 @@ internal static partial class RtfPdfConverter {
         var columns = new PdfCore.PdfMultiColumnOptions {
             ColumnCount = count,
             Gap = RtfPdfMapping.TwipsToPoints(section.ColumnSpaceTwips ?? 720),
-            SeparatorColor = section.ColumnSeparator ? new PdfCore.PdfColor(0, 0, 0) : null,
+            SeparatorColor = section.ColumnSeparator ? global::OfficeIMO.OfficeColor.FromNormalizedRgb(0, 0, 0) : null,
             SeparatorWidth = section.ColumnSeparator ? 0.5 : 0
         };
         pdf.Columns(_ => {

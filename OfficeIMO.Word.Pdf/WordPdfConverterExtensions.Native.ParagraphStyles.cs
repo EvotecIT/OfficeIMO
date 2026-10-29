@@ -365,14 +365,14 @@ namespace OfficeIMO.Word.Pdf {
             return GetNativeTableOfContentsHeadingLevel(paragraph);
         }
 
-        private static PdfCore.PdfColor? GetNativeHeadingColor(int headingLevel, PdfCore.PdfColor? explicitColor) {
+        private static global::OfficeIMO.OfficeColor? GetNativeHeadingColor(int headingLevel, global::OfficeIMO.OfficeColor? explicitColor) {
             if (explicitColor.HasValue || headingLevel <= 0) {
                 return explicitColor;
             }
 
             // Imported headings with no source color use ordinary automatic text color.
             // Declared run, style and document-default colors remain owned by run resolution.
-            return PdfCore.PdfColor.Black;
+            return global::OfficeIMO.OfficeColor.Black;
         }
 
 
@@ -577,7 +577,7 @@ namespace OfficeIMO.Word.Pdf {
             return options?.Keywords ?? properties.Keywords;
         }
 
-        private static PdfCore.PdfColor? ParseNativeColor(string? hex) {
+        private static global::OfficeIMO.OfficeColor? ParseNativeColor(string? hex) {
             if (hex == null || string.IsNullOrWhiteSpace(hex) || hex.Equals("auto", StringComparison.OrdinalIgnoreCase)) {
                 return null;
             }
@@ -593,10 +593,10 @@ namespace OfficeIMO.Word.Pdf {
                 return null;
             }
 
-            return PdfCore.PdfColor.FromOfficeColor(color);
+            return color;
         }
 
-        private static PdfCore.PdfColor? MapNativeHighlight(W.HighlightColorValues? highlight) =>
+        private static global::OfficeIMO.OfficeColor? MapNativeHighlight(W.HighlightColorValues? highlight) =>
             ParseNativeColor(WordRunFormatting.GetHighlightColorHex(highlight));
     }
 }

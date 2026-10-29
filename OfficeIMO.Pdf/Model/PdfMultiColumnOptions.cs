@@ -65,7 +65,7 @@ public sealed class PdfMultiColumnOptions {
         }
     }
     /// <summary>Optional separator color between columns.</summary>
-    public PdfColor? SeparatorColor { get; set; }
+    public global::OfficeIMO.OfficeColor? SeparatorColor { get; set; }
     /// <summary>Separator width in points.</summary>
     public double SeparatorWidth {
         get => _separatorWidth;

@@ -34,9 +34,9 @@ namespace OfficeIMO.Tests.Pdf {
             options.RegisterNamedFontFamily(new PdfEmbeddedFontFamily(ManagedTextShapingTestAssets.FamilyName, font));
             PdfTextRun[] runs = Enumerable.Range(0, 5).Select(index => new PdfTextRun(new string('A', 50),
                 fontFamily: ManagedTextShapingTestAssets.FamilyName,
-                color: index % 2 == 0 ? PdfColor.Black : PdfColor.FromRgb(0, 0, 255))).Concat(new[] {
+                color: index % 2 == 0 ? global::OfficeIMO.OfficeColor.Black : global::OfficeIMO.OfficeColor.FromRgb(0, 0, 255))).Concat(new[] {
                     new PdfTextRun("B", fontFamily: ManagedTextShapingTestAssets.FamilyName, underline: true,
-                        backgroundColor: PdfColor.FromRgb(255, 255, 0))
+                        backgroundColor: global::OfficeIMO.OfficeColor.FromRgb(255, 255, 0))
                 }).ToArray();
             return PdfDocument.Create(options).Paragraph(p => p.Runs(runs)).ToBytes();
         }

@@ -218,7 +218,7 @@ public partial class PdfDocumentComplianceAssessmentTests {
             })
             .TaggedPdfCatalogMarkers()
             .Paragraph(paragraph => paragraph
-                .BackgroundColor(PdfColor.FromRgb(255, 255, 0))
+                .BackgroundColor(global::OfficeIMO.OfficeColor.FromRgb(255, 255, 0))
                 .Text("Highlighted text"))
             .ToBytes();
 

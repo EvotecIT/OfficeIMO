@@ -101,7 +101,7 @@ public sealed class ConvertToOfficePdfRedactedCommand : PSCmdlet
 
         var options = new PdfRedactionApplyOptions
         {
-            FillColor = PdfCommandUtilities.ParseColor(FillColor) ?? PdfColor.Black,
+            FillColor = PdfCommandUtilities.ParseColor(FillColor) ?? global::OfficeIMO.OfficeColor.Black,
             PaintUnmatchedAreas = !OnlyPaintMatches.IsPresent
         };
 

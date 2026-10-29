@@ -8,7 +8,7 @@ internal static class ProjectCharter {
     internal static void Create(string folder) {
         using WordDocument document = WordDocument.Create(Path.Combine(folder, "example.docx"));
         document.Settings.FontFamily = "Carlito";
-        document.Settings.FontSize = 11;
+        document.Settings.FontSize = global::OfficeIMO.OfficeLength.Points(11);
         document.BuiltinDocumentProperties.Title = "Project charter";
         document.AddParagraph("Project charter").Style = WordParagraphStyles.Heading1;
         document.AddParagraph("NORTHWIND / CUSTOMER PORTAL / VERSION 1.0");
@@ -40,14 +40,14 @@ internal static class ProjectCharter {
         document.AddParagraph("At least 90% of pilot requests reach the right team without manual reassignment.");
         foreach (WordParagraph paragraph in document.Paragraphs) {
             paragraph.FontFamily = "Carlito";
-            paragraph.FontSize = 11;
+            paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(11);
             paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Points(7D);
             if (paragraph.Style == WordParagraphStyles.Heading1) {
-                paragraph.FontSize = 26;
+                paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(26);
                 paragraph.Bold = true;
                 paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Points(12D);
             } else if (paragraph.Style == WordParagraphStyles.Heading2) {
-                paragraph.FontSize = 15;
+                paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(15);
                 paragraph.Bold = true;
                 paragraph.LineSpacingBefore = global::OfficeIMO.OfficeLength.Points(12D);
                 paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Points(6D);
@@ -62,7 +62,7 @@ internal static class ProjectCharter {
                     cell.MarginBottom = global::OfficeIMO.OfficeLength.Centimeters(0.1D);
                     foreach (var paragraph in cell.Paragraphs) {
                         paragraph.FontFamily = "Carlito";
-                        paragraph.FontSize = 11;
+                        paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(11);
                         paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Points(3D);
                     }
                 }

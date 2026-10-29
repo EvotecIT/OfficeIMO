@@ -18,7 +18,7 @@ public partial class PdfStamperTests {
             X = 72,
             Y = 700,
             FontSize = 16,
-            Color = PdfColor.Black
+            Color = global::OfficeIMO.OfficeColor.Black
         });
 
         using var pdf = PdfPigDocument.Open(new MemoryStream(stamped));

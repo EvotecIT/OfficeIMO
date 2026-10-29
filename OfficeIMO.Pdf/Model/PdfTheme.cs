@@ -79,16 +79,16 @@ public sealed class PdfTheme {
     /// Creates a generic Word-like document theme with neutral typography, readable paragraph rhythm, heading hierarchy, lists, tables, and flow-object spacing.
     /// </summary>
     public static PdfTheme WordLike() {
-        PdfColor bodyText = PdfColor.FromRgb(31, 41, 55);
-        PdfColor headingText = PdfColor.FromRgb(17, 24, 39);
-        PdfColor ruleColor = PdfColor.FromRgb(203, 213, 225);
+        global::OfficeIMO.OfficeColor bodyText = global::OfficeIMO.OfficeColor.FromRgb(31, 41, 55);
+        global::OfficeIMO.OfficeColor headingText = global::OfficeIMO.OfficeColor.FromRgb(17, 24, 39);
+        global::OfficeIMO.OfficeColor ruleColor = global::OfficeIMO.OfficeColor.FromRgb(203, 213, 225);
 
         var tableStyle = PdfTableStyles.ListTable1Light();
         tableStyle.TextColor = bodyText;
         tableStyle.HeaderTextColor = headingText;
         tableStyle.CellPaddingX = 5;
         tableStyle.CellPaddingY = 5;
-        tableStyle.RowSeparatorColor = PdfColor.FromRgb(226, 232, 240);
+        tableStyle.RowSeparatorColor = global::OfficeIMO.OfficeColor.FromRgb(226, 232, 240);
         tableStyle.HeaderSeparatorColor = headingText;
         tableStyle.FooterSeparatorColor = headingText;
         tableStyle.FooterSeparatorWidth = 0.8;
@@ -141,7 +141,7 @@ public sealed class PdfTheme {
             },
             TableStyle = tableStyle,
             PdfPanelStyle = new PdfPanelStyle {
-                Background = PdfColor.FromRgb(248, 250, 252),
+                Background = global::OfficeIMO.OfficeColor.FromRgb(248, 250, 252),
                 BorderColor = ruleColor,
                 BorderWidth = 0.6,
                 PaddingX = 8,
@@ -199,7 +199,7 @@ public sealed class PdfTheme {
     /// </summary>
     public static PdfTheme Compact() {
         PdfTheme theme = WordLike();
-        PdfColor bodyText = Color(31, 41, 55);
+        global::OfficeIMO.OfficeColor bodyText = Color(31, 41, 55);
         theme.TextStyle = new PdfTextStyle {
             Font = PdfStandardFont.Helvetica,
             FontSize = 10,
@@ -248,8 +248,8 @@ public sealed class PdfTheme {
     /// </summary>
     public static PdfTheme Report() {
         PdfTheme theme = WordLike();
-        PdfColor headingText = Color(30, 41, 59);
-        PdfColor accent = Color(30, 64, 175);
+        global::OfficeIMO.OfficeColor headingText = Color(30, 41, 59);
+        global::OfficeIMO.OfficeColor accent = Color(30, 64, 175);
         theme.TextStyle = new PdfTextStyle {
             Font = PdfStandardFont.Helvetica,
             FontSize = 10.5,
@@ -357,5 +357,5 @@ public sealed class PdfTheme {
         }
     }
 
-    private static PdfColor Color(byte red, byte green, byte blue) => PdfColor.FromRgb(red, green, blue);
+    private static global::OfficeIMO.OfficeColor Color(byte red, byte green, byte blue) => global::OfficeIMO.OfficeColor.FromRgb(red, green, blue);
 }

@@ -77,7 +77,7 @@ public class PdfDocumentBulletListTests {
             SpacingBefore = 4,
             SpacingAfter = 9,
             ItemSpacing = 5,
-            Color = PdfColor.FromRgb(10, 20, 30)
+            Color = global::OfficeIMO.OfficeColor.FromRgb(10, 20, 30)
         };
 
         var bulletBlock = new BulletListBlock(new[] { "A" }, PdfAlign.Left, null, style);
@@ -85,7 +85,7 @@ public class PdfDocumentBulletListTests {
 
         style.FontSize = 20;
         style.LeftIndent = 0;
-        style.Color = PdfColor.Black;
+        style.Color = global::OfficeIMO.OfficeColor.Black;
 
         Assert.Equal(13, bulletBlock.Style!.FontSize);
         Assert.Equal(1.2, bulletBlock.Style.LineHeight);
@@ -94,7 +94,7 @@ public class PdfDocumentBulletListTests {
         Assert.Equal(4, bulletBlock.Style.SpacingBefore);
         Assert.Equal(9, bulletBlock.Style.SpacingAfter);
         Assert.Equal(5, bulletBlock.Style.ItemSpacing);
-        Assert.Equal(PdfColor.FromRgb(10, 20, 30), bulletBlock.Style.Color);
+        Assert.Equal(global::OfficeIMO.OfficeColor.FromRgb(10, 20, 30), bulletBlock.Style.Color);
         Assert.Equal(13, numberedBlock.Style!.FontSize);
     }
 
@@ -103,7 +103,7 @@ public class PdfDocumentBulletListTests {
         var style = new PdfListStyle {
             FontSize = 13,
             LeftIndent = 14,
-            Color = PdfColor.FromRgb(10, 20, 30)
+            Color = global::OfficeIMO.OfficeColor.FromRgb(10, 20, 30)
         };
         var options = new PdfCreateOptions {
             DefaultListStyle = style
@@ -111,7 +111,7 @@ public class PdfDocumentBulletListTests {
 
         style.FontSize = 20;
         style.LeftIndent = 0;
-        style.Color = PdfColor.Black;
+        style.Color = global::OfficeIMO.OfficeColor.Black;
 
         PdfListStyle readback = options.DefaultListStyle!;
         readback.FontSize = 8;
@@ -120,7 +120,7 @@ public class PdfDocumentBulletListTests {
 
         Assert.Equal(13, options.DefaultListStyle!.FontSize);
         Assert.Equal(14, options.DefaultListStyle.LeftIndent);
-        Assert.Equal(PdfColor.FromRgb(10, 20, 30), options.DefaultListStyle.Color);
+        Assert.Equal(global::OfficeIMO.OfficeColor.FromRgb(10, 20, 30), options.DefaultListStyle.Color);
         Assert.Equal(13, clone.DefaultListStyle!.FontSize);
     }
 
@@ -211,9 +211,9 @@ public class PdfDocumentBulletListTests {
                     PdfTextRun.Normal("Plain "),
                     PdfTextRun.Bolded("Bold"),
                     PdfTextRun.Normal(" "),
-                    PdfTextRun.Normal("Red", PdfColor.FromRgb(255, 0, 0)),
+                    PdfTextRun.Normal("Red", global::OfficeIMO.OfficeColor.FromRgb(255, 0, 0)),
                     PdfTextRun.Normal(" "),
-                    PdfTextRun.Normal("Marked", backgroundColor: PdfColor.FromRgb(255, 255, 0)),
+                    PdfTextRun.Normal("Marked", backgroundColor: global::OfficeIMO.OfficeColor.FromRgb(255, 255, 0)),
                     PdfTextRun.Normal(" "),
                     PdfTextRun.Link("Linked", linkUri, contents: "Rich list metadata")
                 })
@@ -386,7 +386,7 @@ public class PdfDocumentBulletListTests {
     [Fact]
     public void Bullets_ApplyCustomColorToGlyphs() {
         var doc = PdfDocument.Create();
-        var color = new PdfColor(0.2, 0.4, 0.6);
+        var color = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.2, 0.4, 0.6);
         doc.Bullets(new[] { "Colored bullet" }, PdfAlign.Left, color);
 
         var bytes = doc.ToBytes();
@@ -399,7 +399,7 @@ public class PdfDocumentBulletListTests {
     [Fact]
     public void Numbered_ApplyCustomColorToMarkers() {
         var doc = PdfDocument.Create();
-        var color = new PdfColor(0.2, 0.4, 0.6);
+        var color = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.2, 0.4, 0.6);
         doc.Numbered(new[] { "Colored marker" }, PdfAlign.Left, color);
 
         var bytes = doc.ToBytes();
@@ -429,7 +429,7 @@ public class PdfDocumentBulletListTests {
             MarkerGap = 10,
             SpacingBefore = 8,
             SpacingAfter = 18,
-            Color = PdfColor.FromRgb(10, 20, 30)
+            Color = global::OfficeIMO.OfficeColor.FromRgb(10, 20, 30)
         };
 
         byte[] bytes = PdfDocument.Create(options)
@@ -445,7 +445,7 @@ public class PdfDocumentBulletListTests {
 
         style.FontSize = 20;
         style.LeftIndent = 0;
-        style.Color = PdfColor.Black;
+        style.Color = global::OfficeIMO.OfficeColor.Black;
 
         using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
         var page = pdf.GetPage(1);

@@ -60,8 +60,8 @@ public class PdfContainerAndColumnTests {
                 content.H2("Container title");
                 content.Paragraph(paragraph => paragraph.Text("Container body"));
             }, new PdfPanelStyle {
-                Background = new PdfColor(0.9D, 0.95D, 1D),
-                BorderColor = new PdfColor(0.1D, 0.2D, 0.4D),
+                Background = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.9D, 0.95D, 1D),
+                BorderColor = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.1D, 0.2D, 0.4D),
                 BorderWidth = 1.5D,
                 PaddingX = 12D,
                 PaddingY = 10D,
@@ -97,8 +97,8 @@ public class PdfContainerAndColumnTests {
                 content.Paragraph(paragraph => paragraph.Text("Decorated fragment line " + marker));
             }
         }, new PdfPanelStyle {
-            Background = new PdfColor(0.9D, 0.95D, 1D),
-            BorderColor = new PdfColor(0.1D, 0.2D, 0.4D),
+            Background = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.9D, 0.95D, 1D),
+            BorderColor = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.1D, 0.2D, 0.4D),
             BorderWidth = 1.5D,
             PaddingX = 8D,
             PaddingY = 6D,
@@ -123,7 +123,7 @@ public class PdfContainerAndColumnTests {
                 .Text("Before break")
                 .PageBreak()
                 .Text("After break"), new PdfPanelStyle {
-                    Background = new PdfColor(0.9D, 0.95D, 1D),
+                    Background = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.9D, 0.95D, 1D),
                     PaddingX = 6D,
                     PaddingY = 6D
                 })

@@ -21,14 +21,14 @@ public static partial class WordPdfConverterExtensions {
         // at its 600-dpi layout device). Both marks clamp at the real remaining
         // line frame; the continuation mark has no short-rule maximum.
         double? maximum = mark is W.SeparatorMark ? 2D * 72D : null;
-        var rule = new PdfCore.PdfInlineRule(band.Thickness, metricStyle.Color ?? PdfCore.PdfColor.Black,
+        var rule = new PdfCore.PdfInlineRule(band.Thickness, metricStyle.Color ?? global::OfficeIMO.OfficeColor.Black,
             maximumWidth: maximum, baselineOffset: band.Position - band.Thickness);
         if (metricStyle.Underline) {
             PdfCore.PdfWriter.TextDecorationMeasurement? underline = fonts?.MeasureUnderline(metricStyle,
                 NativeLayoutDevicePointsPerPixel);
             if (metricStyle.UnderlineStyle == OfficeTextDecorationStyle.Single && underline != null) {
                 rule = rule.WithAdditionalBand(underline.Thickness,
-                    metricStyle.DecorationColor ?? metricStyle.Color ?? PdfCore.PdfColor.Black,
+                    metricStyle.DecorationColor ?? metricStyle.Color ?? global::OfficeIMO.OfficeColor.Black,
                     underline.Position - underline.Thickness);
             } else {
                 notes?.ReportSeparatorDecorationOmission("The separator's underline pattern or font underline metrics are outside the qualified rule profile.");

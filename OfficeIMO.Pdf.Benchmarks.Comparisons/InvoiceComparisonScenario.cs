@@ -89,7 +89,7 @@ internal sealed class InvoiceComparisonScenario {
 
     private static InvoicePdfLayoutOptions CreateLayout(byte[] logo, DateTime? issueDate = null) {
         var layout = InvoicePdfLayoutOptions.ForCultures("en-GB");
-        layout.Theme = InvoicePdfTheme.Modern(PdfColor.FromRgb(63, 92, 255));
+        layout.Theme = InvoicePdfTheme.Modern(global::OfficeIMO.OfficeColor.FromRgb(63, 92, 255));
         layout.LogoBytes = logo;
         layout.LogoAlternativeText = "Evotec";
         DateTime approvalDate = issueDate ?? new DateTime(2026, 9, 17);

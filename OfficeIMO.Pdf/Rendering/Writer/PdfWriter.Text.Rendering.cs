@@ -154,16 +154,16 @@ internal static partial class PdfWriter {
         fontPage ??= structurePage;
         double widthContent = opts.PageWidth - opts.MarginLeft - opts.MarginRight;
         double widthUsed = widthOverride ?? widthContent;
-        System.Collections.Generic.List<(double X1, double X2, double Y, PdfColor Color, OfficeIMO.Drawing.OfficeTextDecorationStyle Style)>? underlines = null;
-        System.Collections.Generic.List<(double X1, double X2, double Y, PdfColor Color, OfficeIMO.Drawing.OfficeTextDecorationStyle Style)>? strikes = null;
-        System.Collections.Generic.List<(double X, double Y, double Width, double Height, PdfColor Color)>? backgrounds = null;
+        System.Collections.Generic.List<(double X1, double X2, double Y, global::OfficeIMO.OfficeColor Color, OfficeIMO.Drawing.OfficeTextDecorationStyle Style)>? underlines = null;
+        System.Collections.Generic.List<(double X1, double X2, double Y, global::OfficeIMO.OfficeColor Color, OfficeIMO.Drawing.OfficeTextDecorationStyle Style)>? strikes = null;
+        System.Collections.Generic.List<(double X, double Y, double Width, double Height, global::OfficeIMO.OfficeColor Color)>? backgrounds = null;
 
-        void AddBackground(double x, double y, double width, double height, PdfColor color) {
+        void AddBackground(double x, double y, double width, double height, global::OfficeIMO.OfficeColor color) {
             if (width <= 0.001D || height <= 0.001D) {
                 return;
             }
 
-            backgrounds ??= new System.Collections.Generic.List<(double X, double Y, double Width, double Height, PdfColor Color)>();
+            backgrounds ??= new System.Collections.Generic.List<(double X, double Y, double Width, double Height, global::OfficeIMO.OfficeColor Color)>();
             if (backgrounds.Count > 0) {
                 var previous = backgrounds[backgrounds.Count - 1];
                 if (previous.Color.Equals(color) &&
@@ -340,7 +340,7 @@ internal static partial class PdfWriter {
                 }
 
                 var color = s.Color ?? block.DefaultColor ?? opts.DefaultTextColor;
-                content.FillColor(color ?? PdfColor.Black);
+                content.FillColor(color ?? global::OfficeIMO.OfficeColor.Black);
                 bool hasLinkTarget = !string.IsNullOrEmpty(s.Uri) || !string.IsNullOrEmpty(s.DestinationName);
                 if (paintsPageText && (!hasLinkTarget || s.LeadingSpace)) {
                     EnsureTextMarkedContentOpen(
@@ -358,7 +358,7 @@ internal static partial class PdfWriter {
                         syntheticOblique,
                         runFontSize,
                         textRise,
-                        color ?? PdfColor.Black,
+                        color ?? global::OfficeIMO.OfficeColor.Black,
                         hasLinkTarget && s.LeadingSpace && s.LeadingTabLeader == PdfTabLeaderStyle.None && s.InlineElement == null);
                 }
 
@@ -372,9 +372,9 @@ internal static partial class PdfWriter {
                         content.TextMatrix(lineXOrigin + xCursor, lineY);
                     }
                     if (s.LeadingUnderlineStyle != OfficeIMO.Drawing.OfficeTextDecorationStyle.None && s.LeadingTabLeader == PdfTabLeaderStyle.None && s.LeadingSpaceIsExpandable) {
-                        PdfColor underlineColor = s.LeadingDecorationColor ?? block.DefaultColor ?? opts.DefaultTextColor ?? PdfColor.Black;
+                        global::OfficeIMO.OfficeColor underlineColor = s.LeadingDecorationColor ?? block.DefaultColor ?? opts.DefaultTextColor ?? global::OfficeIMO.OfficeColor.Black;
                         double underlineY = lineY + s.LeadingDecorationTextRise - s.LeadingDecorationFontSize * 0.15;
-                        (underlines ??= new System.Collections.Generic.List<(double X1, double X2, double Y, PdfColor Color, OfficeIMO.Drawing.OfficeTextDecorationStyle Style)>())
+                        (underlines ??= new System.Collections.Generic.List<(double X1, double X2, double Y, global::OfficeIMO.OfficeColor Color, OfficeIMO.Drawing.OfficeTextDecorationStyle Style)>())
                             .Add((lineXOrigin + xCursor, lineXOrigin + xCursor + gap, underlineY, underlineColor, s.LeadingUnderlineStyle));
                     }
 
@@ -514,7 +514,7 @@ internal static partial class PdfWriter {
                     }
 
                     content
-                        .FillColor(color ?? PdfColor.Black)
+                        .FillColor(color ?? global::OfficeIMO.OfficeColor.Black)
                         .ShowText(textCommand, runFontSize, textRise, suppressActualText);
                     ResetRichTextSpacing(content, s.HorizontalTextScaling, s.CharacterSpacing, pdfWordSpacing);
                     content.EndText();
@@ -537,9 +537,9 @@ internal static partial class PdfWriter {
                 double baselineY = lineY + textRise;
 
                 if (s.Underline) {
-                    var ulColor = (s.DecorationColor ?? s.Color ?? block.DefaultColor ?? opts.DefaultTextColor) ?? PdfColor.Black;
+                    var ulColor = (s.DecorationColor ?? s.Color ?? block.DefaultColor ?? opts.DefaultTextColor) ?? global::OfficeIMO.OfficeColor.Black;
                     double yLine = baselineY - runFontSize * 0.15;
-                    underlines ??= new System.Collections.Generic.List<(double X1, double X2, double Y, PdfColor Color, OfficeIMO.Drawing.OfficeTextDecorationStyle Style)>();
+                    underlines ??= new System.Collections.Generic.List<(double X1, double X2, double Y, global::OfficeIMO.OfficeColor Color, OfficeIMO.Drawing.OfficeTextDecorationStyle Style)>();
                     if (s.UnderlineStyle == OfficeIMO.Drawing.OfficeTextDecorationStyle.Words) {
                         VisitRichWordDecorationAdvances(s, textCommand, opts,
                             (start, end) => underlines.Add((lineXOrigin + segmentStartX + start,
@@ -549,9 +549,9 @@ internal static partial class PdfWriter {
                     }
                 }
                 if (s.Strike) {
-                    var stColor = (s.DecorationColor ?? s.Color ?? block.DefaultColor ?? opts.DefaultTextColor) ?? PdfColor.Black;
+                    var stColor = (s.DecorationColor ?? s.Color ?? block.DefaultColor ?? opts.DefaultTextColor) ?? global::OfficeIMO.OfficeColor.Black;
                     double yLine = baselineY + runFontSize * 0.32;
-                    (strikes ??= new System.Collections.Generic.List<(double X1, double X2, double Y, PdfColor Color, OfficeIMO.Drawing.OfficeTextDecorationStyle Style)>())
+                    (strikes ??= new System.Collections.Generic.List<(double X1, double X2, double Y, global::OfficeIMO.OfficeColor Color, OfficeIMO.Drawing.OfficeTextDecorationStyle Style)>())
                         .Add((lineXOrigin + segmentStartX, lineXOrigin + segmentStartX + wSeg, yLine, stColor, s.StrikeStyle));
                 }
                 if (hasLinkTarget) {
@@ -671,7 +671,7 @@ internal static partial class PdfWriter {
         bool syntheticOblique,
         double fontSize,
         double textRise,
-        PdfColor fillColor,
+        global::OfficeIMO.OfficeColor fillColor,
         bool isLinkLeadingWhitespace) {
         if (textMarkedContentOpen ||
             structurePage == null ||

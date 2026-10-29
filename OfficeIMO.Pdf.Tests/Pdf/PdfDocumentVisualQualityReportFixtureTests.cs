@@ -50,11 +50,11 @@ public partial class PdfDocumentVisualQualityTests {
                                     .PanelParagraph(
                                         p => p.Bold("LeftPanel").Text(": spacing remains visible after the list."),
                                         new PdfPanelStyle {
-                                            BorderColor = PdfColor.FromRgb(191, 191, 191),
+                                            BorderColor = global::OfficeIMO.OfficeColor.FromRgb(191, 191, 191),
                                             BorderWidth = 0.5,
                                             PaddingX = 6,
                                             PaddingY = 5,
-                                            Background = PdfColor.FromRgb(248, 250, 252)
+                                            Background = global::OfficeIMO.OfficeColor.FromRgb(248, 250, 252)
                                         }))
                                 .PercentColumn(50, column => column
                                     .H2("RightFlow")
@@ -66,11 +66,11 @@ public partial class PdfDocumentVisualQualityTests {
                                     .PanelParagraph(
                                         p => p.Bold("RightPanel").Text(": the final note avoids cramped text."),
                                         new PdfPanelStyle {
-                                            BorderColor = PdfColor.FromRgb(191, 191, 191),
+                                            BorderColor = global::OfficeIMO.OfficeColor.FromRgb(191, 191, 191),
                                             BorderWidth = 0.5,
                                             PaddingX = 6,
                                             PaddingY = 5,
-                                            Background = PdfColor.FromRgb(248, 250, 252)
+                                            Background = global::OfficeIMO.OfficeColor.FromRgb(248, 250, 252)
                                         }))))))
             .ToBytes();
 
@@ -174,8 +174,8 @@ public partial class PdfDocumentVisualQualityTests {
             LineHeight = 1.25
         };
         var panelStyle = new PdfPanelStyle {
-            Background = PdfColor.FromRgb(248, 250, 252),
-            BorderColor = PdfColor.FromRgb(191, 191, 191),
+            Background = global::OfficeIMO.OfficeColor.FromRgb(248, 250, 252),
+            BorderColor = global::OfficeIMO.OfficeColor.FromRgb(191, 191, 191),
             BorderWidth = 0.5,
             PaddingX = 8,
             PaddingY = 6,
@@ -297,7 +297,7 @@ public partial class PdfDocumentVisualQualityTests {
         style.ColumnWidthWeights = new List<double> { 0.45, 4.2, 1.15, 0.8, 1.2 };
         style.ColumnMinWidthPoints = new List<double?> { 22, 185, 62, 34, 68 };
         style.FooterRowCount = 1;
-        style.FooterSeparatorColor = PdfColor.Black;
+        style.FooterSeparatorColor = global::OfficeIMO.OfficeColor.Black;
         style.FooterSeparatorWidth = 0.9;
         style.SpacingBefore = 8;
         style.SpacingAfter = 10;

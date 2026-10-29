@@ -70,7 +70,7 @@ public sealed class PowerPointChartLabelProjectionTests {
         var chart = presentation.AddSlide().AddChart(OfficeChartType.Pie,
             new OfficeChartData(new[] { "A" }, new[] { new OfficeSeries("Values", new[] { 3d }) }))
             .SetDataLabels(showValue: true)
-            .SetDataLabelTextStyle(fontSizePoints: 9, bold: false, italic: false,
+            .SetDataLabelTextStyle(fontSize: OfficeLength.Points(9), bold: false, italic: false,
                 color: "172033", fontName: "Aptos");
         Assert.True(chart.TryGetOfficeSnapshot(out OfficeChartSnapshot snapshot));
         Assert.Equal(9D, snapshot.Layout.DataLabelFontSize);
@@ -95,7 +95,7 @@ public sealed class PowerPointChartLabelProjectionTests {
         PowerPointChart chart = presentation.AddSlide().AddChart(OfficeChartType.Pie,
             new OfficeChartData(new[] { "A" }, new[] { new OfficeSeries("Values", new[] { 3d }) }))
             .SetDataLabels(showValue: true)
-            .SetDataLabelTextStyle(fontSizePoints: 9, bold: false,
+            .SetDataLabelTextStyle(fontSize: OfficeLength.Points(9), bold: false,
                 italic: overrideItalic ? false : null, color: "172033", fontName: "Aptos");
         ChartStylePart stylePart = presentation.Slides.Single().SlidePart.ChartParts.Single()
             .GetPartsOfType<ChartStylePart>().Single();

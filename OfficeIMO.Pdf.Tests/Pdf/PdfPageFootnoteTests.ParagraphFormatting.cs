@@ -44,7 +44,7 @@ public partial class PdfPageFootnoteTests {
         PdfCreateOptions options = Options();
         options.PageHeight = 200;
         var panelStyle = new PdfPanelStyle {
-            Background = PdfColor.FromRgb(255, 255, 0), BorderColor = PdfColor.Black,
+            Background = global::OfficeIMO.OfficeColor.FromRgb(255, 255, 0), BorderColor = global::OfficeIMO.OfficeColor.Black,
             PaddingX = 6, PaddingY = 4, SpacingBefore = 0, SpacingAfter = 0,
             RepeatFragmentDecoration = repeat, FragmentBottomInset = inset
         };

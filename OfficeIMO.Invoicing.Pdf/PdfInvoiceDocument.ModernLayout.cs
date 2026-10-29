@@ -59,7 +59,7 @@ public sealed partial class PdfInvoiceDocument {
             CellPaddingY = 7D,
             FontSize = 9D,
             SpacingAfter = 14D,
-            BodyColumnFills = new List<PdfColor?> { theme.Surface, null, theme.Surface, null },
+            BodyColumnFills = new List<global::OfficeIMO.OfficeColor?> { theme.Surface, null, theme.Surface, null },
             ColumnWidthWeights = new List<double> { 1.1D, 1.4D, 1.4D, 2.1D }
         });
 
@@ -88,7 +88,7 @@ public sealed partial class PdfInvoiceDocument {
         content.Table(LineRows(), style: new PdfTableStyle {
             HeaderRowCount = 1,
             HeaderFill = theme.Text,
-            HeaderTextColor = PdfColor.White,
+            HeaderTextColor = global::OfficeIMO.OfficeColor.White,
             HeaderFontSize = 9D,
             FontSize = 9D,
             BorderColor = theme.Border,
@@ -151,7 +151,7 @@ public sealed partial class PdfInvoiceDocument {
                     CornerRadius = theme.CornerRadius,
                     FooterRowCount = 1,
                     FooterFill = theme.Accent,
-                    FooterTextColor = PdfColor.White,
+                    FooterTextColor = global::OfficeIMO.OfficeColor.White,
                     RowStripeFill = theme.Surface,
                     CellPaddingX = 9D,
                     CellPaddingY = 7D,
@@ -195,7 +195,7 @@ public sealed partial class PdfInvoiceDocument {
     private static PdfTableStyle ModernFinancialTableStyle(InvoicePdfTheme theme, bool hasHeader) => new PdfTableStyle {
         HeaderRowCount = hasHeader ? 1 : 0,
         HeaderFill = theme.Text,
-        HeaderTextColor = PdfColor.White,
+        HeaderTextColor = global::OfficeIMO.OfficeColor.White,
         HeaderFontSize = 8.5D,
         FontSize = 8.5D,
         BorderColor = theme.Border,

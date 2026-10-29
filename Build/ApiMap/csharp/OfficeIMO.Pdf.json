@@ -578,6 +578,34 @@
         "source": "SurfaceAnalysis",
         "membersHiddenWithType": 4
       }
+    },
+    {
+      "member": "OfficeIMO.Pdf.PdfConversionReport.AddTextDiagnostics",
+      "file": "OfficeIMO.Pdf/Model/PdfConversionReport.cs",
+      "reason": "Generated surface analysis identifies undocumented implementation plumbing. Documented table projection options, conversion reports and diagnostic models stay public. All real assembly consumers already have existing friend access.",
+      "phase": "B",
+      "applied": "phase-b-applied"
+    },
+    {
+      "member": "OfficeIMO.Pdf.PdfConversionReport.AddTextFallbackPlanDiagnostics",
+      "file": "OfficeIMO.Pdf/Model/PdfConversionReport.cs",
+      "reason": "Generated surface analysis identifies undocumented implementation plumbing. Documented table projection options, conversion reports and diagnostic models stay public. All real assembly consumers already have existing friend access.",
+      "phase": "B",
+      "applied": "phase-b-applied"
+    },
+    {
+      "member": "OfficeIMO.Pdf.PdfConversionReport.AddTextShapingDiagnostics",
+      "file": "OfficeIMO.Pdf/Model/PdfConversionReport.cs",
+      "reason": "Generated surface analysis identifies undocumented implementation plumbing. Documented table projection options, conversion reports and diagnostic models stay public. All real assembly consumers already have existing friend access.",
+      "phase": "B",
+      "applied": "phase-b-applied"
+    },
+    {
+      "member": "OfficeIMO.Pdf.PdfConversionReport.AddFontDiagnostics",
+      "file": "OfficeIMO.Pdf/Model/PdfConversionReport.cs",
+      "reason": "Generated surface analysis identifies undocumented implementation plumbing. Documented table projection options, conversion reports and diagnostic models stay public. All real assembly consumers already have existing friend access.",
+      "phase": "B",
+      "applied": "phase-b-applied"
     }
   ],
   "frameworks": {
@@ -1539,14 +1567,14 @@
       "old": "OfficeIMO.Pdf.PdfColor",
       "kind": "type",
       "action": "merge",
-      "new": "OfficeIMO.Drawing.OfficeColor",
+      "new": "OfficeIMO.OfficeColor",
       "reason": "OfficeColor is the only public color type.",
       "file": "OfficeIMO.Pdf/Enums/PdfColor.cs",
       "category": "naming",
       "notes": "159 PDF members take PdfColor; PdfColor.FromOfficeColor already exists.",
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "OfficeColor is in the root OfficeIMO namespace. Replacing PdfColor in public authoring signatures is part of the Phase B surface migration. The approved design uses the existing OfficeDocumentFormat enum, root OfficeIMO shared types and source.ToTarget forms; no static From factories are added.",
+      "applied": "phase-b-applied",
+      "note": "PDF public authoring colors use root OfficeColor. Normalized channel literals and native PDF output use the shared lossless normalized RGB bridge, with byte factories for byte inputs. Clone snapshots retain alpha and theme identity; existing 0.5 gray and 0.9 light-gray defaults keep their normalized values. Theme roles must be resolved before literal serialization.",
       "supersededM0Target": "OfficeIMO.Drawing.OfficeColor"
     },
     {
@@ -3377,6 +3405,16 @@
       "phase": "B",
       "applied": "phase-b-applied",
       "notes": "The pinned comparison-only PdfPecker package keeps its own PdfOptions type; two accidental OfficeIMO-style options renames are corrected without a package/version change. Existing benchmark crypto advisory warnings remain outside this change."
+    },
+    {
+      "change": "Use normalized OfficeColor channels at PDF native serialization boundaries and migrate every PDF color consumer",
+      "reason": "Byte RGB components and retained normalized PDF components have different ranges. Annotation stamp colors, form appearances, print transforms and redaction image bytes read normalized channels explicitly. Legacy PdfColor factory-only tests are removed with the replaced type.",
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "files": [
+        "OfficeIMO.Pdf/Rendering/Writer/PdfWriter.ContentStream.cs",
+        "OfficeIMO.Pdf.Tests/Pdf/PdfDrawingInteropTests.cs"
+      ]
     }
   ],
   "applicationStatus": "Phase A applied and validated on the supported macOS targets. Phase B and Tier 2 entries retain their status; Windows .NET Framework validation remains pending.",

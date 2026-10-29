@@ -8,7 +8,7 @@ internal static class MixedOrientationReport {
     internal static void Create(string folder) {
         using WordDocument document = WordDocument.Create(Path.Combine(folder, "example.docx"));
         document.Settings.FontFamily = "Carlito";
-        document.Settings.FontSize = 11;
+        document.Settings.FontSize = global::OfficeIMO.OfficeLength.Points(11);
         document.AddParagraph("Supplier evaluation").Style = WordParagraphStyles.Heading1;
         document.AddParagraph("NORTHWIND / PROCUREMENT / ILLUSTRATIVE OPTIONS");
         document.AddParagraph("Decision to make").Style = WordParagraphStyles.Heading2;
@@ -42,7 +42,7 @@ internal static class MixedOrientationReport {
         }
         foreach (var paragraph in document.Paragraphs) {
             paragraph.FontFamily = "Carlito";
-            paragraph.FontSize = paragraph.Style == WordParagraphStyles.Heading1 ? 26 : paragraph.Style == WordParagraphStyles.Heading2 ? 15 : 11;
+            paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(paragraph.Style == WordParagraphStyles.Heading1 ? 26 : paragraph.Style == WordParagraphStyles.Heading2 ? 15 : 11);
             paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Points(9D);
         }
         document.Save();

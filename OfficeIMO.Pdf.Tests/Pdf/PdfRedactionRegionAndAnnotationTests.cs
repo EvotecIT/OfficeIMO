@@ -78,7 +78,7 @@ public sealed class PdfRedactionRegionAndAnnotationTests {
     [Fact]
     public void ExactPolygonFailsClosedForPartiallyIntersectedVectorPath() {
         PdfDocument source = PdfDocument.Create()
-            .Rectangle(180, 80, fillColor: new PdfColor(0D, 0D, 1D))
+            .Rectangle(180, 80, fillColor: global::OfficeIMO.OfficeColor.FromNormalizedRgb(0D, 0D, 1D))
             .Paragraph(paragraph => paragraph.Text("vector safety"));
         PdfReadPage page = PdfReadDocument.Open(source.ToBytes()).Pages[0];
         PdfPageVisualPrimitive rectangle = Assert.Single(page.GetIdentityVisualPrimitives(), static primitive => primitive.Kind == PdfPageVisualPrimitiveKind.Rectangle);

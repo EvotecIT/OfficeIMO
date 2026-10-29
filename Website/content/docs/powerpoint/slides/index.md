@@ -110,13 +110,7 @@ var chartData = new OfficeChartData(
         new OfficeSeries("Q4", rows.Select(r => (double)r.Q4))
     });
 
-chartSlide.AddChart(
-    OfficeChartType.ColumnClustered,
-    chartData,
-    OfficeIMO.OfficeLength.Centimeters(content.Left.ToCentimeters()),
-    OfficeIMO.OfficeLength.Centimeters(content.Top.ToCentimeters() + 2.0),
-    OfficeIMO.OfficeLength.Centimeters(content.Width.ToCentimeters()),
-    OfficeIMO.OfficeLength.Centimeters(4.8));
+chartSlide.AddChart(OfficeChartType.ColumnClustered, chartData, new OfficeIMO.PowerPoint.PowerPointChartOptions { Left = OfficeIMO.OfficeLength.Centimeters(content.Left.ToCentimeters()), Top = OfficeIMO.OfficeLength.Centimeters(content.Top.ToCentimeters() + 2.0), Width = OfficeIMO.OfficeLength.Centimeters(content.Width.ToCentimeters()), Height = OfficeIMO.OfficeLength.Centimeters(4.8) });
 chartSlide.Notes.Text = "Chart and table share the same source data.";
 ```
 
@@ -133,13 +127,7 @@ var bubbleData = new OfficeChartData(
             bubbleSizes: new[] { 9D, 36D, 16D })
     });
 
-chartSlide.AddChart(
-    OfficeChartType.Bubble,
-    bubbleData,
-    OfficeIMO.OfficeLength.Centimeters(content.Left.ToCentimeters()),
-    OfficeIMO.OfficeLength.Centimeters(content.Top.ToCentimeters() + 2.0),
-    OfficeIMO.OfficeLength.Centimeters(content.Width.ToCentimeters()),
-    OfficeIMO.OfficeLength.Centimeters(4.8));
+chartSlide.AddChart(OfficeChartType.Bubble, bubbleData, new OfficeIMO.PowerPoint.PowerPointChartOptions { Left = OfficeIMO.OfficeLength.Centimeters(content.Left.ToCentimeters()), Top = OfficeIMO.OfficeLength.Centimeters(content.Top.ToCentimeters() + 2.0), Width = OfficeIMO.OfficeLength.Centimeters(content.Width.ToCentimeters()), Height = OfficeIMO.OfficeLength.Centimeters(4.8) });
 ```
 
 Bubble sizes must be finite and non-negative, with one size for every X/Y point. The chart remains editable in PowerPoint, and `UpdateData(...)` refreshes both cached chart values and the embedded workbook.

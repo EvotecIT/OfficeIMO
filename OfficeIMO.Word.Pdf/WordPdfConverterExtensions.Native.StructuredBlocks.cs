@@ -388,7 +388,7 @@ namespace OfficeIMO.Word.Pdf {
                 pdfWatermark.RotationAngle = watermark.Rotation.Value;
             }
 
-            PdfCore.PdfColor? color = ParseNativeWatermarkColor(watermark.ColorHex);
+            global::OfficeIMO.OfficeColor? color = ParseNativeWatermarkColor(watermark.ColorHex);
             if (color.HasValue) {
                 pdfWatermark.Color = color.Value;
             }
@@ -489,20 +489,20 @@ namespace OfficeIMO.Word.Pdf {
             return derived > 2D ? derived : fontSize;
         }
 
-        private static PdfCore.PdfColor? ParseNativeWatermarkColor(string? color) {
-            PdfCore.PdfColor? parsed = ParseNativeColor(color);
+        private static global::OfficeIMO.OfficeColor? ParseNativeWatermarkColor(string? color) {
+            global::OfficeIMO.OfficeColor? parsed = ParseNativeColor(color);
             if (parsed != null || string.IsNullOrWhiteSpace(color)) {
                 return parsed;
             }
 
             string value = color!.Trim();
-            if (value.Equals("silver", StringComparison.OrdinalIgnoreCase)) return PdfCore.PdfColor.FromRgb(192, 192, 192);
-            if (value.Equals("gray", StringComparison.OrdinalIgnoreCase) || value.Equals("grey", StringComparison.OrdinalIgnoreCase)) return PdfCore.PdfColor.Gray;
-            if (value.Equals("black", StringComparison.OrdinalIgnoreCase)) return PdfCore.PdfColor.Black;
-            if (value.Equals("white", StringComparison.OrdinalIgnoreCase)) return PdfCore.PdfColor.White;
-            if (value.Equals("red", StringComparison.OrdinalIgnoreCase)) return PdfCore.PdfColor.FromRgb(255, 0, 0);
-            if (value.Equals("green", StringComparison.OrdinalIgnoreCase)) return PdfCore.PdfColor.FromRgb(0, 128, 0);
-            if (value.Equals("blue", StringComparison.OrdinalIgnoreCase)) return PdfCore.PdfColor.FromRgb(0, 0, 255);
+            if (value.Equals("silver", StringComparison.OrdinalIgnoreCase)) return global::OfficeIMO.OfficeColor.FromRgb(192, 192, 192);
+            if (value.Equals("gray", StringComparison.OrdinalIgnoreCase) || value.Equals("grey", StringComparison.OrdinalIgnoreCase)) return global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.5D, 0.5D, 0.5D);
+            if (value.Equals("black", StringComparison.OrdinalIgnoreCase)) return global::OfficeIMO.OfficeColor.Black;
+            if (value.Equals("white", StringComparison.OrdinalIgnoreCase)) return global::OfficeIMO.OfficeColor.White;
+            if (value.Equals("red", StringComparison.OrdinalIgnoreCase)) return global::OfficeIMO.OfficeColor.FromRgb(255, 0, 0);
+            if (value.Equals("green", StringComparison.OrdinalIgnoreCase)) return global::OfficeIMO.OfficeColor.FromRgb(0, 128, 0);
+            if (value.Equals("blue", StringComparison.OrdinalIgnoreCase)) return global::OfficeIMO.OfficeColor.FromRgb(0, 0, 255);
 
             return null;
         }

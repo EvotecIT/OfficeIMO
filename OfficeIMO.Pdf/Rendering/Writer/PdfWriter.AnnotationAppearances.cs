@@ -14,7 +14,7 @@ internal static partial class PdfWriter {
         Guard.NotNull(pageOptions, nameof(pageOptions));
         Guard.NotNull(ensureFont, nameof(ensureFont));
 
-        PdfColor resolvedTextColor = annotation.TextColor;
+        global::OfficeIMO.OfficeColor resolvedTextColor = annotation.TextColor;
         double effectiveLineHeight = annotation.LineHeight ?? annotation.FontSize * 1.2D;
         double availableWidth = Math.Max(0D, width - annotation.Padding * 2D);
         double availableHeight = Math.Max(0D, height - annotation.Padding * 2D);
@@ -131,7 +131,7 @@ internal static partial class PdfWriter {
         IReadOnlyList<RichSeg> line,
         double x,
         double y,
-        PdfColor defaultTextColor,
+        global::OfficeIMO.OfficeColor defaultTextColor,
         PdfCreateOptions pageOptions,
         Func<PdfStandardFont, PdfCreateOptions, int> ensureFont,
         List<(string Name, int Id)> fontResources) {
@@ -184,7 +184,7 @@ internal static partial class PdfWriter {
         double y,
         string text,
         PdfStandardFont font,
-        PdfColor color,
+        global::OfficeIMO.OfficeColor color,
         PdfCreateOptions pageOptions) {
         var content = new ContentStreamBuilder(sb)
             .BeginText()
@@ -223,8 +223,8 @@ internal static partial class PdfWriter {
         };
     }
 
-    private static string FormatAppearanceColor(PdfColor color) =>
-        FormatAppearanceNumber(color.R) + " " + FormatAppearanceNumber(color.G) + " " + FormatAppearanceNumber(color.B);
+    private static string FormatAppearanceColor(global::OfficeIMO.OfficeColor color) =>
+        FormatAppearanceNumber(color.ToNormalizedRgb().R) + " " + FormatAppearanceNumber(color.ToNormalizedRgb().G) + " " + FormatAppearanceNumber(color.ToNormalizedRgb().B);
 
     private static string FormatAppearanceNumber(double value) =>
         value.ToString("0.###", CultureInfo.InvariantCulture);

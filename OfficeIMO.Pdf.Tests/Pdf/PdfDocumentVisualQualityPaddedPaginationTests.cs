@@ -131,8 +131,8 @@ public partial class PdfDocumentVisualQualityTests {
     public void NestedPaddedHeadingPreservesTextLinksAndOneHeadingTag(double pageWidth, double pageHeight) {
         var options = new PdfCreateOptions { PageWidth = pageWidth, PageHeight = pageHeight, MarginLeft = 25, MarginRight = 25, MarginTop = 25, MarginBottom = 25, DefaultFontSize = 10 };
         string heading = string.Join(" ", Enumerable.Repeat("Heading text", 24)) + " FINAL-MARKER";
-        var outer = new PdfPanelStyle { PaddingY = 12, PaddingX = 8, KeepTogether = false, SpacingAfter = 0, Background = PdfColor.FromRgb(235, 240, 248) };
-        var inner = new PdfPanelStyle { PaddingY = 8, PaddingX = 5, KeepTogether = false, SpacingAfter = 0, BorderColor = PdfColor.FromRgb(60, 90, 140) };
+        var outer = new PdfPanelStyle { PaddingY = 12, PaddingX = 8, KeepTogether = false, SpacingAfter = 0, Background = global::OfficeIMO.OfficeColor.FromRgb(235, 240, 248) };
+        var inner = new PdfPanelStyle { PaddingY = 8, PaddingX = 5, KeepTogether = false, SpacingAfter = 0, BorderColor = global::OfficeIMO.OfficeColor.FromRgb(60, 90, 140) };
         byte[] bytes = PdfDocument.Create(options).TaggedPdfCatalogMarkers().Panel(panel => panel
             .Paragraph(p => p.Text("Outer lead"), style: new PdfParagraphStyle { SpacingAfter = 0 })
             .Panel(nested => nested

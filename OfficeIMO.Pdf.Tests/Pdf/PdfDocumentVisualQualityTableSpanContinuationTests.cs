@@ -20,7 +20,7 @@ public partial class PdfDocumentVisualQualityTests {
         style.BorderColor = null;
         style.RowSeparatorColor = null;
         style.HeaderFill = null;
-        style.RowStripeFill = new PdfColor(0.21, 0.31, 0.41);
+        style.RowStripeFill = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.21, 0.31, 0.41);
         style.CellPaddingX = 4;
         style.CellPaddingY = 4;
         style.MinRowHeight = 24;
@@ -56,7 +56,7 @@ public partial class PdfDocumentVisualQualityTests {
         style.BorderColor = null;
         style.RowSeparatorColor = null;
         style.HeaderFill = null;
-        style.RowStripeFill = new PdfColor(0.21, 0.31, 0.41);
+        style.RowStripeFill = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.21, 0.31, 0.41);
         style.CellPaddingX = 4;
         style.CellPaddingY = 4;
         style.MinRowHeight = 24;
@@ -102,8 +102,8 @@ public partial class PdfDocumentVisualQualityTests {
         style.CellPaddingY = 4;
         style.MinRowHeight = 24;
         style.ColumnWidthPoints = new List<double?> { 60, 70, 70 };
-        style.BodyColumnFills = new List<PdfColor?> {
-            new PdfColor(0.11, 0.22, 0.33)
+        style.BodyColumnFills = new List<global::OfficeIMO.OfficeColor?> {
+            global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.11, 0.22, 0.33)
         };
 
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
@@ -144,8 +144,8 @@ public partial class PdfDocumentVisualQualityTests {
         style.CellPaddingY = 4;
         style.MinRowHeight = 24;
         style.ColumnWidthPoints = new List<double?> { 45, 45, 45 };
-        style.BodyColumnFills = new List<PdfColor?> {
-            new PdfColor(0.11, 0.22, 0.33)
+        style.BodyColumnFills = new List<global::OfficeIMO.OfficeColor?> {
+            global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.11, 0.22, 0.33)
         };
 
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
@@ -191,9 +191,9 @@ public partial class PdfDocumentVisualQualityTests {
         style.CellPaddingY = 4;
         style.MinRowHeight = 24;
         style.ColumnWidthPoints = new List<double?> { 60, 70, 70 };
-        style.BodyColumnFills = new List<PdfColor?> {
+        style.BodyColumnFills = new List<global::OfficeIMO.OfficeColor?> {
             null,
-            new PdfColor(0.11, 0.22, 0.33)
+            global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.11, 0.22, 0.33)
         };
 
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
@@ -230,9 +230,9 @@ public partial class PdfDocumentVisualQualityTests {
         style.CellPaddingY = 4;
         style.MinRowHeight = 24;
         style.ColumnWidthPoints = new List<double?> { 45, 45, 45 };
-        style.BodyColumnFills = new List<PdfColor?> {
+        style.BodyColumnFills = new List<global::OfficeIMO.OfficeColor?> {
             null,
-            new PdfColor(0.11, 0.22, 0.33)
+            global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.11, 0.22, 0.33)
         };
 
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
@@ -269,7 +269,7 @@ public partial class PdfDocumentVisualQualityTests {
         style.BorderColor = null;
         style.HeaderFill = null;
         style.RowStripeFill = null;
-        style.RowSeparatorColor = new PdfColor(0.12, 0.34, 0.56);
+        style.RowSeparatorColor = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.12, 0.34, 0.56);
         style.RowSeparatorWidth = 0.6;
         style.CellPaddingX = 4;
         style.CellPaddingY = 4;
@@ -307,7 +307,7 @@ public partial class PdfDocumentVisualQualityTests {
         style.BorderColor = null;
         style.HeaderFill = null;
         style.RowStripeFill = null;
-        style.RowSeparatorColor = new PdfColor(0.12, 0.34, 0.56);
+        style.RowSeparatorColor = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.12, 0.34, 0.56);
         style.RowSeparatorWidth = 0.6;
         style.CellPaddingX = 4;
         style.CellPaddingY = 4;
@@ -347,7 +347,7 @@ public partial class PdfDocumentVisualQualityTests {
     public void Table_RowSpanSkipsInternalBorderLineAcrossMergedCell() {
         var style = PdfTableStyles.Minimal();
         style.HeaderRowCount = 0;
-        style.BorderColor = new PdfColor(0.12, 0.34, 0.56);
+        style.BorderColor = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.12, 0.34, 0.56);
         style.BorderWidth = 0.6;
         style.RowSeparatorColor = null;
         style.HeaderFill = null;
@@ -390,7 +390,7 @@ public partial class PdfDocumentVisualQualityTests {
     public void RowColumnTable_RowSpanSkipsInternalBorderLineAcrossMergedCell() {
         var style = PdfTableStyles.Minimal();
         style.HeaderRowCount = 0;
-        style.BorderColor = new PdfColor(0.12, 0.34, 0.56);
+        style.BorderColor = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.12, 0.34, 0.56);
         style.BorderWidth = 0.6;
         style.RowSeparatorColor = null;
         style.HeaderFill = null;

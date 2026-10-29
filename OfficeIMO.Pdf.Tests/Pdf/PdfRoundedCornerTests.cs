@@ -10,26 +10,26 @@ public class PdfRoundedCornerTests {
     private static List<PdfTableCell[]> Callout() => new() {
         new[] {
             new PdfTableCell(new[] {
-                new PdfTextRun("Callout title", bold: true, color: new PdfColor(0.1, 0.1, 0.1), fontSize: 11),
-                new PdfTextRun("\n", color: new PdfColor(0.1, 0.1, 0.1), fontSize: 5),
-                new PdfTextRun("Body with ", color: new PdfColor(0.2, 0.2, 0.2), fontSize: 10),
-                new PdfTextRun("bold", bold: true, color: new PdfColor(0.2, 0.2, 0.2), fontSize: 10),
-                new PdfTextRun(" and a ", color: new PdfColor(0.2, 0.2, 0.2), fontSize: 10),
-                new PdfTextRun("link", color: new PdfColor(0.1, 0.4, 0.7), fontSize: 10, linkUri: "https://example.com"),
-                new PdfTextRun(".", color: new PdfColor(0.2, 0.2, 0.2), fontSize: 10),
+                new PdfTextRun("Callout title", bold: true, color: global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.1, 0.1, 0.1), fontSize: 11),
+                new PdfTextRun("\n", color: global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.1, 0.1, 0.1), fontSize: 5),
+                new PdfTextRun("Body with ", color: global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.2, 0.2, 0.2), fontSize: 10),
+                new PdfTextRun("bold", bold: true, color: global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.2, 0.2, 0.2), fontSize: 10),
+                new PdfTextRun(" and a ", color: global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.2, 0.2, 0.2), fontSize: 10),
+                new PdfTextRun("link", color: global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.1, 0.4, 0.7), fontSize: 10, linkUri: "https://example.com"),
+                new PdfTextRun(".", color: global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.2, 0.2, 0.2), fontSize: 10),
             }),
         },
     };
 
     private static PdfTableStyle CalloutStyle(double radius) => new() {
         HeaderRowCount = 0,
-        BorderColor = new PdfColor(0.85, 0.85, 0.85),
+        BorderColor = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.85, 0.85, 0.85),
         BorderWidth = 1,
         RowSeparatorWidth = 0,
         CornerRadius = radius,
-        CellFills = new Dictionary<(int, int), PdfColor> { [(0, 0)] = new PdfColor(0.95, 0.97, 0.99) },
+        CellFills = new Dictionary<(int, int), global::OfficeIMO.OfficeColor> { [(0, 0)] = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.95, 0.97, 0.99) },
         CellBorders = new Dictionary<(int, int), PdfCellBorder> {
-            [(0, 0)] = new PdfCellBorder { LeftBorder = new PdfCellBorderSide { Color = new PdfColor(0.13, 0.47, 0.71), Width = 4 } },
+            [(0, 0)] = new PdfCellBorder { LeftBorder = new PdfCellBorderSide { Color = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.13, 0.47, 0.71), Width = 4 } },
         },
     };
 
@@ -64,8 +64,8 @@ public class PdfRoundedCornerTests {
                 content.H2("Panel title");
                 content.Paragraph(p => p.Text("Panel body"));
             }, new PdfPanelStyle {
-                Background = new PdfColor(0.95, 0.97, 0.99),
-                BorderColor = new PdfColor(0.2, 0.3, 0.4),
+                Background = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.95, 0.97, 0.99),
+                BorderColor = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.2, 0.3, 0.4),
                 BorderWidth = 1,
                 CornerRadius = 8,
                 PaddingX = 12,
@@ -126,7 +126,7 @@ public class PdfRoundedCornerTests {
         style.CornerRadius = 8;
         style.CellBorders = new Dictionary<(int, int), PdfCellBorder> {
             [(0, 0)] = new PdfCellBorder {
-                Color = PdfColor.FromRgb(68, 85, 102),
+                Color = global::OfficeIMO.OfficeColor.FromRgb(68, 85, 102),
                 Width = 1,
                 DashStyle = OfficeStrokeDashStyle.Dash,
                 LineStyle = PdfCellBorderLineStyle.TwoLine,
@@ -154,7 +154,7 @@ public class PdfRoundedCornerTests {
         style.RowStripeFill = null;
         style.CornerRadius = 8;
         style.CellBorders = new Dictionary<(int, int), PdfCellBorder> {
-            [(0, 1)] = new PdfCellBorder { Color = PdfColor.FromRgb(68, 85, 102), Width = 1 }
+            [(0, 1)] = new PdfCellBorder { Color = global::OfficeIMO.OfficeColor.FromRgb(68, 85, 102), Width = 1 }
         };
 
         string raw = PdfTestContentText.ReadDecoded(PdfDocument.Create(new PdfCreateOptions { CompressContentStreams = false })
@@ -182,7 +182,7 @@ public class PdfRoundedCornerTests {
         style.CellPaddingY = 0;
         style.ColumnWidthPoints = new List<double?> { 60, 60 };
         style.FixedRowHeights = new List<double?> { 30, 30 };
-        style.CellFills = new Dictionary<(int, int), PdfColor> { [(0, 0)] = PdfColor.FromRgb(255, 0, 0) };
+        style.CellFills = new Dictionary<(int, int), global::OfficeIMO.OfficeColor> { [(0, 0)] = global::OfficeIMO.OfficeColor.FromRgb(255, 0, 0) };
 
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = 160,
@@ -225,16 +225,16 @@ public class PdfRoundedCornerTests {
         static PdfTableStyle CreateStyle(double radius) {
             PdfTableStyle style = PdfTableStyles.Minimal();
             style.HeaderRowCount = 0;
-            style.BorderColor = PdfColor.FromRgb(68, 85, 102);
+            style.BorderColor = global::OfficeIMO.OfficeColor.FromRgb(68, 85, 102);
             style.BorderWidth = 1;
             style.CornerRadius = radius;
             style.CellPaddingX = 0;
             style.CellPaddingY = 0;
             style.ColumnWidthPoints = new List<double?> { 60, 60 };
             style.FixedRowHeights = new List<double?> { 20, 40 };
-            style.CellFills = new Dictionary<(int, int), PdfColor> { [(0, 0)] = PdfColor.FromRgb(220, 235, 250) };
+            style.CellFills = new Dictionary<(int, int), global::OfficeIMO.OfficeColor> { [(0, 0)] = global::OfficeIMO.OfficeColor.FromRgb(220, 235, 250) };
             style.CellBorders = new Dictionary<(int, int), PdfCellBorder> {
-                [(0, 0)] = new PdfCellBorder { Color = PdfColor.FromRgb(24, 119, 181), Width = 3 }
+                [(0, 0)] = new PdfCellBorder { Color = global::OfficeIMO.OfficeColor.FromRgb(24, 119, 181), Width = 3 }
             };
             return style;
         }

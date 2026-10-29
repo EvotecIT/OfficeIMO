@@ -17,11 +17,11 @@ namespace OfficeIMO.Tests {
             using (WordDocument document = WordDocument.Create(filePath)) {
                 WordParagraph paragraph = document.AddParagraph();
                 WordShapeGroup group = paragraph.AddShapeGroup(new[] {
-                    new WordShapeGroupItem(WordShapeType.Rectangle, 0, 0, 72, 36) {
+                    new WordShapeGroupItem(WordShapeType.Rectangle, OfficeLength.Points(0), OfficeLength.Points(0), OfficeLength.Points(72), OfficeLength.Points(36)) {
                         FillColorHex = "#336699",
                         StrokeColorHex = "112233"
                     },
-                    new WordShapeGroupItem(WordShapeType.Ellipse, 90, 18, 54, 54) {
+                    new WordShapeGroupItem(WordShapeType.Ellipse, OfficeLength.Points(90), OfficeLength.Points(18), OfficeLength.Points(54), OfficeLength.Points(54)) {
                         FillColorHex = "F0A000"
                     }
                 });
@@ -33,8 +33,8 @@ namespace OfficeIMO.Tests {
                 Assert.NotNull(layout);
                 Assert.Equal(WordDrawingPlacementKind.Inline, layout.Placement);
                 Assert.True(layout.IsGroup);
-                Assert.Equal(144D, layout.WidthPoints, 6);
-                Assert.Equal(72D, layout.HeightPoints, 6);
+                Assert.Equal(144D, layout.Width.ToPoints(), 6);
+                Assert.Equal(72D, layout.Height.ToPoints(), 6);
                 document.Save();
             }
 
@@ -56,15 +56,15 @@ namespace OfficeIMO.Tests {
             string filePath = System.IO.Path.Combine(_directoryWithFiles, "ShapeGroup.Anchored.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
                 WordShapeGroup group = document.AddParagraph().AddShapeGroup(new[] {
-                    new WordShapeGroupItem(WordShapeType.Chevron, 0, 0, 80, 40),
-                    new WordShapeGroupItem(WordShapeType.Chevron, 72, 0, 80, 40),
-                    new WordShapeGroupItem(WordShapeType.Chevron, 144, 0, 80, 40)
-                }, 24, 48);
+                    new WordShapeGroupItem(WordShapeType.Chevron, OfficeLength.Points(0), OfficeLength.Points(0), OfficeLength.Points(80), OfficeLength.Points(40)),
+                    new WordShapeGroupItem(WordShapeType.Chevron, OfficeLength.Points(72), OfficeLength.Points(0), OfficeLength.Points(80), OfficeLength.Points(40)),
+                    new WordShapeGroupItem(WordShapeType.Chevron, OfficeLength.Points(144), OfficeLength.Points(0), OfficeLength.Points(80), OfficeLength.Points(40))
+                }, OfficeLength.Points(24), OfficeLength.Points(48));
                 Assert.True(group.TryGetLayoutSnapshot(out WordDrawingLayoutInfo? layout));
                 Assert.NotNull(layout);
                 Assert.Equal(WordDrawingPlacementKind.Anchored, layout.Placement);
-                Assert.Equal(24D, layout.HorizontalOffsetPoints!.Value, 6);
-                Assert.Equal(48D, layout.VerticalOffsetPoints!.Value, 6);
+                Assert.Equal(24D, layout.HorizontalOffset!.Value.ToPoints(), 6);
+                Assert.Equal(48D, layout.VerticalOffset!.Value.ToPoints(), 6);
                 Assert.Equal(WordDrawingWrapKind.Square, layout.Wrap);
                 Assert.True(layout.IsGroup);
                 document.Save();
@@ -76,7 +76,7 @@ namespace OfficeIMO.Tests {
             Assert.True(imported.TryGetLayoutSnapshot(out WordDrawingLayoutInfo? persisted));
             Assert.NotNull(persisted);
             Assert.Equal(WordDrawingPlacementKind.Anchored, persisted.Placement);
-            Assert.Equal(224D, persisted.WidthPoints, 6);
+            Assert.Equal(224D, persisted.Width.ToPoints(), 6);
             Assert.Empty(new OpenXmlValidator(FileFormatVersions.Office2010)
                 .Validate(reloaded._wordprocessingDocument));
         }
@@ -92,8 +92,8 @@ namespace OfficeIMO.Tests {
 
             using (WordDocument document = WordDocument.Load(filePath)) {
                 document.AddParagraph().AddShapeGroup(new[] {
-                    new WordShapeGroupItem(WordShapeType.Rectangle, 0, 0, 20, 20),
-                    new WordShapeGroupItem(WordShapeType.Ellipse, 30, 0, 20, 20),
+                    new WordShapeGroupItem(WordShapeType.Rectangle, OfficeLength.Points(0), OfficeLength.Points(0), OfficeLength.Points(20), OfficeLength.Points(20)),
+                    new WordShapeGroupItem(WordShapeType.Ellipse, OfficeLength.Points(30), OfficeLength.Points(0), OfficeLength.Points(20), OfficeLength.Points(20)),
                 });
                 WordShape.AddDrawingShape(document.AddParagraph(), WordShapeType.Diamond, OfficeIMO.OfficeLength.Points(30), OfficeIMO.OfficeLength.Points(30));
                 WordShape.AddDrawingShapeAnchored(document.AddParagraph(), WordShapeType.Chevron, OfficeIMO.OfficeLength.Points(30), OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(10), OfficeIMO.OfficeLength.Points(10));

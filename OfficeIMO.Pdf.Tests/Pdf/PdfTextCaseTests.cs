@@ -144,9 +144,9 @@ public class PdfTextCaseTests {
     [Fact]
     public void PreTypographyTabAlignedConstructorRemainsBinaryDiscoverable() {
         ConstructorInfo? constructor = typeof(PdfTextRun).GetConstructor(new[] {
-            typeof(string), typeof(bool), typeof(bool), typeof(PdfColor?), typeof(bool), typeof(bool),
+            typeof(string), typeof(bool), typeof(bool), typeof(global::OfficeIMO.OfficeColor?), typeof(bool), typeof(bool),
             typeof(double?), typeof(PdfStandardFont?), typeof(string), typeof(string), typeof(PdfTextBaseline),
-            typeof(string), typeof(PdfTabLeaderStyle), typeof(PdfTabAlignment), typeof(PdfColor?), typeof(string)
+            typeof(string), typeof(PdfTabLeaderStyle), typeof(PdfTabAlignment), typeof(global::OfficeIMO.OfficeColor?), typeof(string)
         });
 
         Assert.NotNull(constructor);
@@ -155,8 +155,8 @@ public class PdfTextCaseTests {
     [Fact]
     public void PreTypographyLinkFactoriesRemainBinaryDiscoverable() {
         Type[] parameters = {
-            typeof(string), typeof(string), typeof(PdfColor?), typeof(bool), typeof(string),
-            typeof(PdfTextBaseline), typeof(double?), typeof(PdfColor?), typeof(PdfStandardFont?), typeof(string)
+            typeof(string), typeof(string), typeof(global::OfficeIMO.OfficeColor?), typeof(bool), typeof(string),
+            typeof(PdfTextBaseline), typeof(double?), typeof(global::OfficeIMO.OfficeColor?), typeof(PdfStandardFont?), typeof(string)
         };
 
         Assert.NotNull(typeof(PdfTextRun).GetMethod(nameof(PdfTextRun.Link), parameters));
@@ -166,12 +166,12 @@ public class PdfTextCaseTests {
     [Fact]
     public void WithTextCasePreservesImmutableRunFormatting() {
         PdfTextRun source = new("Styled", bold: true,
-            color: PdfColor.FromRgb(51, 102, 153), italic: true,
+            color: global::OfficeIMO.OfficeColor.FromRgb(51, 102, 153), italic: true,
             fontSize: 14, baseline: PdfTextBaseline.Superscript,
-            backgroundColor: PdfColor.FromRgb(240, 240, 240), fontFamily: "Aptos",
+            backgroundColor: global::OfficeIMO.OfficeColor.FromRgb(240, 240, 240), fontFamily: "Aptos",
             underlineStyle: OfficeTextDecorationStyle.Dashed,
             strikeStyle: OfficeTextDecorationStyle.Double,
-            decorationColor: PdfColor.FromRgb(200, 10, 20));
+            decorationColor: global::OfficeIMO.OfficeColor.FromRgb(200, 10, 20));
 
         PdfTextRun actual = source.WithTextCase(OfficeTextCase.ToggleCase);
 
@@ -194,10 +194,10 @@ public class PdfTextCaseTests {
     public void PdfWriterEmitsNativeDecorationPatterns() {
         PdfTextRun run = new(
             "Decorated",
-            color: PdfColor.FromRgb(10, 20, 30),
+            color: global::OfficeIMO.OfficeColor.FromRgb(10, 20, 30),
             underlineStyle: OfficeTextDecorationStyle.Dashed,
             strikeStyle: OfficeTextDecorationStyle.Double,
-            decorationColor: PdfColor.FromRgb(255, 0, 0));
+            decorationColor: global::OfficeIMO.OfficeColor.FromRgb(255, 0, 0));
 
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions { CompressContentStreams = false })
             .Header(header => header.Text(text => text.Run(run)))

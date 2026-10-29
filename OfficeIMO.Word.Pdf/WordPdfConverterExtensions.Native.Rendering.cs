@@ -226,7 +226,7 @@ namespace OfficeIMO.Word.Pdf {
 
             RecordNativeParagraphBarTabDiagnostics(paragraph, options, "body paragraph");
             PdfCore.PdfAlign align = ResolveNativeParagraphAlign(paragraph);
-            PdfCore.PdfColor? defaultColor = ResolveNativeParagraphDefaultColor(paragraph);
+            global::OfficeIMO.OfficeColor? defaultColor = ResolveNativeParagraphDefaultColor(paragraph);
             int headingLevel = nativeDefaults.NoteContentSection != null ? 0 : GetHeadingLevel(paragraph);
             string headingText = !needsAnchorLine && headingLevel > 0 && marker == null
                 ? GetNativeHeadingText(renderContent, runs, paragraph, nativeFontMap, hasEquationContent)
@@ -236,7 +236,7 @@ namespace OfficeIMO.Word.Pdf {
             bool renderHeading = !string.IsNullOrWhiteSpace(headingText);
             if (!renderHeading && RenderNativeDocumentStartSpacing(pdf, paragraph, style.SpacingBefore))
                 style.SpacingBefore = 0D;
-            PdfCore.PdfColor? headingColor = GetNativeHeadingColor(headingLevel, defaultColor);
+            global::OfficeIMO.OfficeColor? headingColor = GetNativeHeadingColor(headingLevel, defaultColor);
             PdfCore.PdfHorizontalRuleStyle? topBorderRuleStyle = marker == null ? CreateNativeTopBorderRuleStyle(paragraph, style) : null;
             PdfCore.PdfParagraphStyle paragraphStyle = topBorderRuleStyle == null ? style : style.Clone();
             if (topBorderRuleStyle != null) {
@@ -401,7 +401,7 @@ namespace OfficeIMO.Word.Pdf {
             }
         }
 
-        private static void RenderNativeRepeatingSections(INativePdfFlow pdf, IReadOnlyList<W.SdtRun> repeatingSectionControls, PdfCore.PdfAlign align, PdfCore.PdfColor? color) {
+        private static void RenderNativeRepeatingSections(INativePdfFlow pdf, IReadOnlyList<W.SdtRun> repeatingSectionControls, PdfCore.PdfAlign align, global::OfficeIMO.OfficeColor? color) {
             foreach (W.SdtRun repeatingSection in repeatingSectionControls) {
                 foreach (string itemText in GetNativeRepeatingSectionItems(repeatingSection)) {
                     if (string.IsNullOrWhiteSpace(itemText)) {
@@ -978,7 +978,7 @@ namespace OfficeIMO.Word.Pdf {
         private static PdfCore.PdfPanelStyle CreateNativeTextBoxPanelStyle(WordTextBox textBox) {
             var style = new PdfCore.PdfPanelStyle {
                 Background = ParseNativeColor(textBox.FillColorHex),
-                BorderColor = PdfCore.PdfColor.Black,
+                BorderColor = global::OfficeIMO.OfficeColor.Black,
                 BorderWidth = 0.75D,
                 PaddingX = 6D,
                 PaddingY = 4D,
@@ -986,7 +986,7 @@ namespace OfficeIMO.Word.Pdf {
                 Align = MapNativeTextBoxBoxAlign(textBox.HorizontalAlignment)
             };
 
-            double maxWidth = ConvertNativeEmusToPoints(textBox.Width);
+            double maxWidth = textBox.Width.ToPoints();
             if (maxWidth > 0D) {
                 style.MaxWidth = maxWidth;
             }
@@ -1006,7 +1006,7 @@ namespace OfficeIMO.Word.Pdf {
             }
         }
 
-        private static void RenderNativeHeading(INativePdfFlow pdf, int level, string text, Action<PdfCore.PdfParagraphBuilder> build, PdfCore.PdfAlign align, PdfCore.PdfColor? color, WordParagraph paragraph, PdfCore.PdfParagraphStyle paragraphStyle, NativeDocumentDefaults nativeDefaults, NativeFontMap nativeFontMap) {
+        private static void RenderNativeHeading(INativePdfFlow pdf, int level, string text, Action<PdfCore.PdfParagraphBuilder> build, PdfCore.PdfAlign align, global::OfficeIMO.OfficeColor? color, WordParagraph paragraph, PdfCore.PdfParagraphStyle paragraphStyle, NativeDocumentDefaults nativeDefaults, NativeFontMap nativeFontMap) {
             PdfCore.PdfHeadingStyle style = CreateNativeWordHeadingStyle(level, paragraph, paragraphStyle, nativeDefaults, nativeFontMap);
             string normalizedText = NormalizeNativeDirectText(text);
             if (string.IsNullOrWhiteSpace(normalizedText)) {
@@ -1273,7 +1273,7 @@ namespace OfficeIMO.Word.Pdf {
         private static W.RunProperties? GetNativeRunProperties(WordParagraph paragraph) =>
             paragraph.IsHyperLink ? paragraph.Hyperlink?._runProperties : paragraph._runProperties;
 
-        private static PdfCore.PdfColor? ResolveNativeParagraphDefaultColor(WordParagraph paragraph) {
+        private static global::OfficeIMO.OfficeColor? ResolveNativeParagraphDefaultColor(WordParagraph paragraph) {
             string? paragraphMarkColor = paragraph._paragraph?
                 .ParagraphProperties?
                 .ParagraphMarkRunProperties?
@@ -1330,7 +1330,7 @@ namespace OfficeIMO.Word.Pdf {
             return null;
         }
 
-        private static bool TryGetNativeRunColor(W.RunProperties? runProperties, out PdfCore.PdfColor? color) {
+        private static bool TryGetNativeRunColor(W.RunProperties? runProperties, out global::OfficeIMO.OfficeColor? color) {
             W.Color? value = runProperties?.GetFirstChild<W.Color>();
             if (value == null) {
                 color = null;

@@ -113,8 +113,8 @@ public class PowerPointPdfTableImportTests {
                         210,
                         120,
                         36,
-                        fill: PdfCore.PdfColor.FromRgb(219, 234, 254),
-                        stroke: PdfCore.PdfColor.FromRgb(37, 99, 235),
+                        fill: global::OfficeIMO.OfficeColor.FromRgb(219, 234, 254),
+                        stroke: global::OfficeIMO.OfficeColor.FromRgb(37, 99, 235),
                         strokeWidth: 1)
                 }
             })
@@ -148,8 +148,8 @@ public class PowerPointPdfTableImportTests {
                         210,
                         120,
                         36,
-                        fill: PdfCore.PdfColor.FromRgb(219, 234, 254),
-                        stroke: PdfCore.PdfColor.FromRgb(37, 99, 235),
+                        fill: global::OfficeIMO.OfficeColor.FromRgb(219, 234, 254),
+                        stroke: global::OfficeIMO.OfficeColor.FromRgb(37, 99, 235),
                         strokeWidth: 1)
                 }
             })

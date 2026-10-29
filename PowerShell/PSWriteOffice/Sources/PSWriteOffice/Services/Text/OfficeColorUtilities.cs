@@ -86,7 +86,7 @@ internal static class OfficeColorUtilities
     internal static bool IsNone(string? color)
         => string.Equals(color?.Trim(), "None", StringComparison.OrdinalIgnoreCase);
 
-    internal static PdfColor? ToPdfColor(string? color, string parameterName = "Color")
+    internal static global::OfficeIMO.OfficeColor? ToPdfColor(string? color, string parameterName = "Color")
     {
         if (string.IsNullOrWhiteSpace(color))
         {
@@ -103,6 +103,6 @@ internal static class OfficeColorUtilities
             throw new PSArgumentException(exception.Message, parameterName);
         }
 
-        return PdfColor.FromRgb(parsed.R, parsed.G, parsed.B);
+        return global::OfficeIMO.OfficeColor.FromRgb(parsed.R, parsed.G, parsed.B);
     }
 }

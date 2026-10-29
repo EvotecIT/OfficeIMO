@@ -18,7 +18,7 @@ public sealed class PdfHorizontalRuleStyle {
     }
 
     /// <summary>Rule stroke color.</summary>
-    public PdfColor Color { get; set; } = PdfColor.Gray;
+    public global::OfficeIMO.OfficeColor Color { get; set; } = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.5D, 0.5D, 0.5D);
 
     /// <summary>Vertical space before the rule in the surrounding document flow, in points.</summary>
     public double SpacingBefore {

@@ -148,7 +148,7 @@ public sealed class AddOfficePowerPointChartCommand : PSWriteOffice.Cmdlets.Offi
                 new[] { "Q1", "Q2", "Q3" },
                 new[] { new OfficeSeries("Series 1", new[] { 12d, 18d, 14d }) });
 
-        return slide.AddChart(kind,data,global::OfficeIMO.OfficeLength.Points(X),global::OfficeIMO.OfficeLength.Points(Y),global::OfficeIMO.OfficeLength.Points(Width),global::OfficeIMO.OfficeLength.Points(Height));
+        return slide.AddChart(kind, data, new OfficeIMO.PowerPoint.PowerPointChartOptions { Left = global::OfficeIMO.OfficeLength.Points(X), Top = global::OfficeIMO.OfficeLength.Points(Y), Width = global::OfficeIMO.OfficeLength.Points(Width), Height = global::OfficeIMO.OfficeLength.Points(Height) });
     }
 
     private PowerPointChart AddCategoricalChart(PowerPointSlide slide) {
@@ -164,7 +164,7 @@ public sealed class AddOfficePowerPointChartCommand : PSWriteOffice.Cmdlets.Offi
             throw new PSArgumentException("Pie and Doughnut charts support only one series property.", nameof(SeriesProperty));
         }
 
-        return slide.AddChart(GetOfficeChartKind(Type),BuildChartData(),global::OfficeIMO.OfficeLength.Points(X),global::OfficeIMO.OfficeLength.Points(Y),global::OfficeIMO.OfficeLength.Points(Width),global::OfficeIMO.OfficeLength.Points(Height));
+        return slide.AddChart(GetOfficeChartKind(Type), BuildChartData(), new PowerPointChartOptions { Left = global::OfficeIMO.OfficeLength.Points(X), Top = global::OfficeIMO.OfficeLength.Points(Y), Width = global::OfficeIMO.OfficeLength.Points(Width), Height = global::OfficeIMO.OfficeLength.Points(Height) });
     }
 
     private PowerPointChart AddScatterChart(PowerPointSlide slide) {
@@ -176,7 +176,7 @@ public sealed class AddOfficePowerPointChartCommand : PSWriteOffice.Cmdlets.Offi
             throw new PSArgumentException("Provide at least one -YProperty.", nameof(YProperty));
         }
 
-        return slide.AddChart(OfficeChartType.Scatter,BuildScatterChartData(),global::OfficeIMO.OfficeLength.Points(X),global::OfficeIMO.OfficeLength.Points(Y),global::OfficeIMO.OfficeLength.Points(Width),global::OfficeIMO.OfficeLength.Points(Height));
+        return slide.AddChart(OfficeChartType.Scatter, BuildScatterChartData(), new OfficeIMO.PowerPoint.PowerPointChartOptions { Left = global::OfficeIMO.OfficeLength.Points(X), Top = global::OfficeIMO.OfficeLength.Points(Y), Width = global::OfficeIMO.OfficeLength.Points(Width), Height = global::OfficeIMO.OfficeLength.Points(Height) });
     }
 
     private OfficeChartData BuildChartData() {

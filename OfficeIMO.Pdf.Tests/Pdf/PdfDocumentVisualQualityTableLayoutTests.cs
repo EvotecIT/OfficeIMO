@@ -292,7 +292,7 @@ public partial class PdfDocumentVisualQualityTests {
         style.HeaderRowCount = 0;
         style.Caption = "SignalCaption";
         style.CaptionAlign = PdfAlign.Right;
-        style.CaptionColor = PdfColor.FromRgb(80, 90, 100);
+        style.CaptionColor = global::OfficeIMO.OfficeColor.FromRgb(80, 90, 100);
         style.CaptionFontSize = 8;
         style.CaptionSpacingAfter = 10;
 
@@ -334,7 +334,7 @@ public partial class PdfDocumentVisualQualityTests {
         style.HeaderRowCount = 0;
         style.Caption = "SignalCaption";
         style.CaptionAlign = PdfAlign.Right;
-        style.CaptionColor = PdfColor.FromRgb(80, 90, 100);
+        style.CaptionColor = global::OfficeIMO.OfficeColor.FromRgb(80, 90, 100);
         style.CaptionFontSize = 8;
         style.CaptionSpacingAfter = 10;
 

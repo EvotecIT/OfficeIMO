@@ -26,7 +26,7 @@ public sealed class PdfTextStyle {
     }
 
     /// <summary>Default text color. When null, the writer default is used.</summary>
-    public PdfColor? Color { get; set; }
+    public global::OfficeIMO.OfficeColor? Color { get; set; }
 
     /// <summary>Creates a deep copy of this text style.</summary>
     public PdfTextStyle Clone() {

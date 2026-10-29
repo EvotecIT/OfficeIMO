@@ -271,8 +271,8 @@ public sealed class PowerPointPdfTextFormattingTests {
             Assert.Equal("Theme Minor", run.FontFamily);
             // Local text formatting overrides table regions; the master is a
             // fallback when an active table region supplies no text color.
-            Assert.Equal(useTableStyle && colorSource == "master" ? PdfCore.PdfColor.White
-                : PdfCore.PdfColor.FromRgb(18, 52, 86), run.Color);
+            Assert.Equal(useTableStyle && colorSource == "master" ? global::OfficeIMO.OfficeColor.White
+                : global::OfficeIMO.OfficeColor.FromRgb(18, 52, 86), run.Color);
         });
     }
 

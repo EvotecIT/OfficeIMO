@@ -59,7 +59,7 @@ public class PdfNestedTableCellFlowTests {
         nestedStyle.PreserveWidth = nestedStyle.AllowWidthBeyondFrame = true;
         nestedStyle.BorderFrame = new PdfTableBorderFrame {
             Spacing = 6D, HorizontalInset = .5D,
-            Border = new PdfCellBorder { Color = PdfColor.Black, Width = 1D }
+            Border = new PdfCellBorder { Color = global::OfficeIMO.OfficeColor.Black, Width = 1D }
         };
         var nested = new TableBlock(new[] { new[] { new PdfTableCell("Left"), new PdfTableCell("Right") } },
             PdfAlign.Left, nestedStyle);
@@ -131,7 +131,7 @@ public class PdfNestedTableCellFlowTests {
         nestedStyle.PreserveWidth = nestedStyle.AllowWidthBeyondFrame = true;
         nestedStyle.BorderFrame = new PdfTableBorderFrame {
             Spacing = spacing, HorizontalInset = .5D,
-            Border = new PdfCellBorder { Color = PdfColor.Black, Width = 1D }
+            Border = new PdfCellBorder { Color = global::OfficeIMO.OfficeColor.Black, Width = 1D }
         };
         var nested = new TableBlock(new[] { new[] { new PdfTableCell("L"), new PdfTableCell("R") } },
             PdfAlign.Left, nestedStyle);
@@ -373,7 +373,7 @@ public class PdfNestedTableCellFlowTests {
 
     private static PdfTableStyle Style() => new() {
         FontSize = 8D, LineHeight = 1D, CellPaddingX = 2D, CellPaddingY = 2D,
-        BorderColor = PdfColor.Black, BorderWidth = .5D, HeaderRowCount = 0,
+        BorderColor = global::OfficeIMO.OfficeColor.Black, BorderWidth = .5D, HeaderRowCount = 0,
         AllowRowBreakAcrossPages = true, SpacingBefore = 0D, SpacingAfter = 0D
     };
 

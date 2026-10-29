@@ -15,8 +15,8 @@ namespace OfficeIMO.Word.Pdf {
             double? FontSize,
             PdfCore.PdfStandardFont? Font,
             string? FontFamily,
-            PdfCore.PdfColor? Color,
-            PdfCore.PdfColor? BackgroundColor) {
+            global::OfficeIMO.OfficeColor? Color,
+            global::OfficeIMO.OfficeColor? BackgroundColor) {
             public bool SmallCaps { get; init; }
             public NativeTextSpacing TextSpacing { get; init; }
             public NativeTextSpacing ListMarkerTextSpacing { get; init; }
@@ -127,10 +127,10 @@ namespace OfficeIMO.Word.Pdf {
             PdfCore.PdfStandardFont? font = ResolveNativeTextRunFont(paragraph, characterStyleDefaults, styleDefaults, tableRunStyleDefaults, resolvedNativeDefaults, nativeFontMap);
             string? fontFamily = ResolveNativeTextRunFontFamily(paragraph, characterStyleDefaults, styleDefaults, tableRunStyleDefaults, resolvedNativeDefaults, nativeFontMap);
 
-            PdfCore.PdfColor? color = TryGetNativeRunColor(runProperties, out PdfCore.PdfColor? directColor)
+            global::OfficeIMO.OfficeColor? color = TryGetNativeRunColor(runProperties, out global::OfficeIMO.OfficeColor? directColor)
                 ? directColor
                 : ResolveNativeInheritedRunColor(characterStyleDefaults, styleDefaults, tableRunStyleDefaults, resolvedNativeDefaults);
-            PdfCore.PdfColor? background = MapNativeHighlight(
+            global::OfficeIMO.OfficeColor? background = MapNativeHighlight(
                 WordRunFormatting.ResolveRunHighlight(paragraph, tableRunStyleDefaults.Highlight));
             background ??= ParseNativeColor(WordRunFormatting.ResolveRunShadingFillColorHex(paragraph));
 

@@ -881,6 +881,7 @@ For scatter and bubble charts, a series' `RenderKind` must match the chart kind
 or be omitted.
 
 ```csharp
+using OfficeIMO;
 using OfficeIMO.Drawing;
 using OfficeIMO.Word;
 
@@ -892,7 +893,11 @@ var data = new OfficeChartData(new[] { "Pass", "Could not evaluate", "Fail" }, n
         new OfficeChartPointStyle(fillColor: OfficeColor.Parse("#C00000"))
     })
 });
-WordChart chart = document.AddChart(OfficeChartType.Doughnut, data, "Status", width: OfficeLength.Pixels(360), height: OfficeLength.Pixels(240));
+WordChart chart = document.AddChart(OfficeChartType.Doughnut, data, new OfficeChartOptions {
+    Title = "Status",
+    Width = OfficeLength.Pixels(360),
+    Height = OfficeLength.Pixels(240)
+});
 chart.Name = "Status distribution";
 chart.SetRadialLayout(new OfficeChartRadialLayout(firstSliceAngleDegrees: 90, doughnutHolePercent: 70));
 chart.AltText = "Eight passed, two could not be evaluated, and one failed.";

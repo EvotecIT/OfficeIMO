@@ -36,14 +36,7 @@ namespace OfficeIMO.Tests {
 
             using (var document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddSheet("Shared");
-                sheet.AddChart(
-                    OfficeChartType.ColumnClustered,
-                    sharedData,
-                    row: 1,
-                    column: 5,
-                    width: OfficeLength.Pixels(640),
-                    height: OfficeLength.Pixels(360),
-                    title: "Shared performance");
+                sheet.AddChart(OfficeChartType.ColumnClustered, sharedData, new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 5, Width = OfficeLength.Pixels(640), Height = OfficeLength.Pixels(360), Title = "Shared performance" });
                 document.Save();
             }
 
@@ -99,8 +92,7 @@ namespace OfficeIMO.Tests {
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddSheet("Shared");
-                sheet.AddChart(OfficeChartType.BarClustered, sharedData,
-                    row: 1, column: 5, title: "Horizontal secondary");
+                sheet.AddChart(OfficeChartType.BarClustered, sharedData, new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 5, Title = "Horizontal secondary" });
                 document.Save();
             }
 
@@ -121,8 +113,7 @@ namespace OfficeIMO.Tests {
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddSheet("Shared");
-                sheet.AddChart(OfficeChartType.Scatter, sharedData,
-                    row: 1, column: 5, title: "Explicit X values");
+                sheet.AddChart(OfficeChartType.Scatter, sharedData, new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 5, Title = "Explicit X values" });
                 document.Save();
             }
 
@@ -143,7 +134,7 @@ namespace OfficeIMO.Tests {
             });
 
             Assert.Throws<NotSupportedException>(() =>
-                sheet.AddChart(OfficeChartType.Bubble, data, row: 1, column: 5));
+                sheet.AddChart(OfficeChartType.Bubble, data, new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 5 }));
             Assert.Empty(sheet.Charts);
             Assert.Single(document.Sheets);
         }
@@ -164,7 +155,7 @@ namespace OfficeIMO.Tests {
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddSheet("Shared");
-                sheet.AddChart(OfficeChartType.Line, sharedData, row: 1, column: 5);
+                sheet.AddChart(OfficeChartType.Line, sharedData, new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 5 });
                 document.Save();
             }
 
@@ -209,8 +200,7 @@ namespace OfficeIMO.Tests {
             });
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                document.AddSheet("Shared").AddChart(OfficeChartType.Line, sharedData,
-                    row: 1, column: 5);
+                document.AddSheet("Shared").AddChart(OfficeChartType.Line, sharedData, new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 5 });
                 document.Save();
             }
 
@@ -239,8 +229,7 @@ namespace OfficeIMO.Tests {
             });
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                document.AddSheet("Shared").AddChart(OfficeChartType.ColumnClustered, sharedData,
-                    row: 1, column: 5);
+                document.AddSheet("Shared").AddChart(OfficeChartType.ColumnClustered, sharedData, new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 5 });
                 document.Save();
             }
 

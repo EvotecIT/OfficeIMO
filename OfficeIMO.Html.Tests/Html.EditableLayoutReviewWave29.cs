@@ -69,7 +69,7 @@ public sealed class HtmlEditableLayoutReviewWave29Tests {
             : checked((uint)(WordPageSizes.A5.Width.ToTwips()));
         double pageWidth = widthTwips / 1440D * HtmlRenderOptions.CssPixelsPerInch;
         int expectedOffset = (int)Math.Round((pageWidth - 48D - 96D) * 9525D);
-        Assert.Equal(expectedOffset, Assert.Single(word.TextBoxes).HorizontalPositionOffset);
+        Assert.Equal(expectedOffset, Assert.Single(word.TextBoxes).HorizontalPositionOffset?.ToEmus());
     }
 
     [Fact]

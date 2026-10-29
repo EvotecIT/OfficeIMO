@@ -351,7 +351,8 @@ public sealed partial class WordListMarkerSemanticsTests {
             level.OpenXmlElement.AppendChild(new NumberingSymbolRunProperties());
         markerProperties.Append(new Bold(), new FontSize { Val = "36" });
         WordTextBox box = document.AddTextBox("TextBoxNine");
-        box.WidthCentimeters = 12D;
+        box.Width = OfficeLength.Centimeters(12D);
+        box.RelativeWidthPercentage = 0;
         box.Content!.Append(new Paragraph(new Run(new Text("TextBoxTen"))));
         AttachToList(box.Paragraphs[0], list.NumberId);
         AttachToList(box.Paragraphs[1], list.NumberId);
@@ -482,7 +483,8 @@ public sealed partial class WordListMarkerSemanticsTests {
         markerlessList.Numbering.AddLevel(new WordListLevel(WordListLevelKind.None));
         markerlessList.Numbering.Levels[0].IndentationLeft= global::OfficeIMO.OfficeLength.Points(108D);
         WordTextBox box = document.AddTextBox("PlainBox");
-        box.WidthCentimeters = 12D;
+        box.Width = OfficeLength.Centimeters(12D);
+        box.RelativeWidthPercentage = 0;
         box.Content!.Append(new Paragraph(new Run(new Text("BulletBox"))));
         box.Content.Append(new Paragraph(new Run(new Text("UnmarkedBox"))));
         AttachToList(box.Paragraphs[1], bulletList.NumberId);

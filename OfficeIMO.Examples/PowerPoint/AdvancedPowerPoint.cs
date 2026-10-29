@@ -114,8 +114,7 @@ namespace OfficeIMO.Examples.PowerPoint {
                     new OfficeSeries("Current", kpis.Select(k => (double)k.Current)),
                     new OfficeSeries("Target", kpis.Select(k => (double)k.Target))
                 });
-            PowerPointChart chart = slide4.AddChart(
-                OfficeChartType.ColumnClustered,chartData,                global::OfficeIMO.OfficeLength.Centimeters(bodyBox.Left.ToCentimeters()),                global::OfficeIMO.OfficeLength.Centimeters(bodyBox.Top.ToCentimeters()),                global::OfficeIMO.OfficeLength.Centimeters(bodyBox.Width.ToCentimeters()),                global::OfficeIMO.OfficeLength.Centimeters(bodyBox.Height.ToCentimeters()));
+            PowerPointChart chart = slide4.AddChart(OfficeChartType.ColumnClustered, chartData, new OfficeIMO.PowerPoint.PowerPointChartOptions { Left = global::OfficeIMO.OfficeLength.Centimeters(bodyBox.Left.ToCentimeters()), Top = global::OfficeIMO.OfficeLength.Centimeters(bodyBox.Top.ToCentimeters()), Width = global::OfficeIMO.OfficeLength.Centimeters(bodyBox.Width.ToCentimeters()), Height = global::OfficeIMO.OfficeLength.Centimeters(bodyBox.Height.ToCentimeters()) });
             chart.SetTitle("Current vs Target")
                 .SetLegend(OfficeChartLegendPosition.Right)
                 .SetDataLabels(showValue: true)

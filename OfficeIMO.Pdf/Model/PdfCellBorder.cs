@@ -13,7 +13,7 @@ public sealed class PdfCellBorder {
     private PdfCellBorderSide? _diagonalDownBorder;
 
     /// <summary>Border color. Set to null or use a zero width to suppress the border.</summary>
-    public PdfColor? Color { get; set; } = new PdfColor(0.8, 0.8, 0.8);
+    public global::OfficeIMO.OfficeColor? Color { get; set; } = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.8, 0.8, 0.8);
 
     /// <summary>Border stroke width in points.</summary>
     public double Width {

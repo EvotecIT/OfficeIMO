@@ -10,7 +10,7 @@ namespace OfficeIMO.Examples.Pdf {
             var options = new PdfCreateOptions {
                 DefaultFont = PdfStandardFont.Helvetica,
                 DefaultFontSize = 9.5,
-                DefaultTextColor = PdfColor.FromRgb(30, 41, 59),
+                DefaultTextColor = global::OfficeIMO.OfficeColor.FromRgb(30, 41, 59),
                 HeaderFont = PdfStandardFont.Helvetica,
                 HeaderFontSize = 8,
                 HeaderFormat = "Northwind Support - Q3 operations review (sample data)",
@@ -30,16 +30,16 @@ namespace OfficeIMO.Examples.Pdf {
                         page.Size(PdfPageSizes.A4).Landscape().Margin(42, 38, 42, 42);
                         page.DefaultParagraphStyle(new PdfParagraphStyle { LineHeight = 1.18, SpacingAfter = 5 });
                         page.Content(content => {
-                            content.Item(item => item.H1("Quarterly operations dashboard", PdfAlign.Left, PdfColor.FromRgb(15, 23, 42)));
+                            content.Item(item => item.H1("Quarterly operations dashboard", PdfAlign.Left, global::OfficeIMO.OfficeColor.FromRgb(15, 23, 42)));
                             content.Item(item => item.Paragraph(p => p.Text("Service levels, resolved volume and the decisions needed for Q4."), style: new PdfParagraphStyle { SpacingAfter = 10 }));
 
                             // Four KPI panels share the row width.
                             content.Row(row => {
                                 row.Gap(14)
-                                    .PercentColumn(25, column => column.PanelParagraph(p => p.FontSize(22).Bold("94.2%").FontSize(9.5).Text("\nSLA attainment (target 92%)"), MetricPanel(PdfColor.FromRgb(236, 253, 245), PdfColor.FromRgb(22, 163, 74)), PdfAlign.Left, PdfColor.FromRgb(22, 101, 52)))
-                                    .PercentColumn(25, column => column.PanelParagraph(p => p.FontSize(22).Bold("1.8 h").FontSize(9.5).Text("\nMean first response"), MetricPanel(PdfColor.FromRgb(239, 246, 255), PdfColor.FromRgb(37, 99, 235)), PdfAlign.Left, PdfColor.FromRgb(30, 64, 175)))
-                                    .PercentColumn(25, column => column.PanelParagraph(p => p.FontSize(22).Bold("37").FontSize(9.5).Text("\nOpen escalations"), MetricPanel(PdfColor.FromRgb(255, 251, 235), PdfColor.FromRgb(217, 119, 6)), PdfAlign.Left, PdfColor.FromRgb(146, 64, 14)))
-                                    .PercentColumn(25, column => column.PanelParagraph(p => p.FontSize(22).Bold("0").FontSize(9.5).Text("\nCritical blockers"), MetricPanel(PdfColor.FromRgb(248, 250, 252), PdfColor.FromRgb(100, 116, 139)), PdfAlign.Left, PdfColor.FromRgb(51, 65, 85)));
+                                    .PercentColumn(25, column => column.PanelParagraph(p => p.FontSize(22).Bold("94.2%").FontSize(9.5).Text("\nSLA attainment (target 92%)"), MetricPanel(global::OfficeIMO.OfficeColor.FromRgb(236, 253, 245), global::OfficeIMO.OfficeColor.FromRgb(22, 163, 74)), PdfAlign.Left, global::OfficeIMO.OfficeColor.FromRgb(22, 101, 52)))
+                                    .PercentColumn(25, column => column.PanelParagraph(p => p.FontSize(22).Bold("1.8 h").FontSize(9.5).Text("\nMean first response"), MetricPanel(global::OfficeIMO.OfficeColor.FromRgb(239, 246, 255), global::OfficeIMO.OfficeColor.FromRgb(37, 99, 235)), PdfAlign.Left, global::OfficeIMO.OfficeColor.FromRgb(30, 64, 175)))
+                                    .PercentColumn(25, column => column.PanelParagraph(p => p.FontSize(22).Bold("37").FontSize(9.5).Text("\nOpen escalations"), MetricPanel(global::OfficeIMO.OfficeColor.FromRgb(255, 251, 235), global::OfficeIMO.OfficeColor.FromRgb(217, 119, 6)), PdfAlign.Left, global::OfficeIMO.OfficeColor.FromRgb(146, 64, 14)))
+                                    .PercentColumn(25, column => column.PanelParagraph(p => p.FontSize(22).Bold("0").FontSize(9.5).Text("\nCritical blockers"), MetricPanel(global::OfficeIMO.OfficeColor.FromRgb(248, 250, 252), global::OfficeIMO.OfficeColor.FromRgb(100, 116, 139)), PdfAlign.Left, global::OfficeIMO.OfficeColor.FromRgb(51, 65, 85)));
                             });
 
                             content.Spacer(12);
@@ -57,8 +57,8 @@ namespace OfficeIMO.Examples.Pdf {
                                         column.PanelParagraph(
                                             p => p.Text("SLA attainment finished above the 92% target in all three months while resolved volume grew 15%. Integrations is the only service line below target, and its response time is the main driver."),
                                             new PdfPanelStyle {
-                                                Background = PdfColor.FromRgb(248, 250, 252),
-                                                BorderColor = PdfColor.FromRgb(203, 213, 225),
+                                                Background = global::OfficeIMO.OfficeColor.FromRgb(248, 250, 252),
+                                                BorderColor = global::OfficeIMO.OfficeColor.FromRgb(203, 213, 225),
                                                 BorderWidth = 0.7,
                                                 PaddingX = 10,
                                                 PaddingY = 8
@@ -88,7 +88,7 @@ namespace OfficeIMO.Examples.Pdf {
             }
         }
 
-        private static PdfPanelStyle MetricPanel(PdfColor background, PdfColor border) {
+        private static PdfPanelStyle MetricPanel(global::OfficeIMO.OfficeColor background, global::OfficeIMO.OfficeColor border) {
             return new PdfPanelStyle {
                 Background = background,
                 BorderColor = border,
@@ -165,12 +165,12 @@ namespace OfficeIMO.Examples.Pdf {
 
         private static PdfTableStyle ServiceTableStyle() {
             return new PdfTableStyle {
-                HeaderFill = PdfColor.FromRgb(15, 23, 42),
-                HeaderTextColor = PdfColor.White,
-                RowStripeFill = PdfColor.FromRgb(248, 250, 252),
-                BorderColor = PdfColor.FromRgb(203, 213, 225),
+                HeaderFill = global::OfficeIMO.OfficeColor.FromRgb(15, 23, 42),
+                HeaderTextColor = global::OfficeIMO.OfficeColor.White,
+                RowStripeFill = global::OfficeIMO.OfficeColor.FromRgb(248, 250, 252),
+                BorderColor = global::OfficeIMO.OfficeColor.FromRgb(203, 213, 225),
                 BorderWidth = 0.4,
-                RowSeparatorColor = PdfColor.FromRgb(226, 232, 240),
+                RowSeparatorColor = global::OfficeIMO.OfficeColor.FromRgb(226, 232, 240),
                 RowSeparatorWidth = 0.45,
                 CellPaddingX = 7,
                 CellPaddingY = 5,
@@ -190,10 +190,10 @@ namespace OfficeIMO.Examples.Pdf {
 
         private static PdfTableStyle DecisionTableStyle() {
             return new PdfTableStyle {
-                HeaderFill = PdfColor.FromRgb(30, 64, 175),
-                HeaderTextColor = PdfColor.White,
-                RowStripeFill = PdfColor.FromRgb(239, 246, 255),
-                BorderColor = PdfColor.FromRgb(191, 219, 254),
+                HeaderFill = global::OfficeIMO.OfficeColor.FromRgb(30, 64, 175),
+                HeaderTextColor = global::OfficeIMO.OfficeColor.White,
+                RowStripeFill = global::OfficeIMO.OfficeColor.FromRgb(239, 246, 255),
+                BorderColor = global::OfficeIMO.OfficeColor.FromRgb(191, 219, 254),
                 BorderWidth = 0.45,
                 CellPaddingX = 7,
                 CellPaddingY = 5,

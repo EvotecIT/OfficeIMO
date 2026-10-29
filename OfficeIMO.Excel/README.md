@@ -949,6 +949,24 @@ public sealed record ImmutableRow(string Name, string Status);
 Chart placement, marker sizes, font sizes and line widths use `OfficeLength`, as do
 print margins and header/footer image sizes. For example:
 
+Use the shared chart contract for typed rows, selectors or `nameof` columns.
+`OfficeChartOptions` controls the title and physical size. Use `ExcelChartOptions`
+when the chart also needs a worksheet row and column; these anchors are one-based.
+
+```csharp
+using OfficeIMO;
+using OfficeIMO.Excel;
+
+var trend = new[] { new RevenueTrend("First", 12.5m), new RevenueTrend("Next", 19.75m) };
+ExcelChart trendChart = sheet.AddChart(OfficeChartType.Column, trend,
+    nameof(RevenueTrend.Week), new ExcelChartOptions {
+        Title = "Weekly revenue", Row = 2, Column = 5,
+        Width = OfficeLength.Centimeters(16), Height = OfficeLength.Centimeters(9)
+    }, nameof(RevenueTrend.Revenue));
+
+record RevenueTrend(string Week, decimal Revenue);
+```
+
 ```csharp
 sheet.SetMargins(OfficeLength.Inches(0.7), OfficeLength.Inches(0.7),
     OfficeLength.Inches(0.75), OfficeLength.Inches(0.75));

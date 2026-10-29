@@ -414,7 +414,7 @@ public partial class PdfDocumentVisualQualityTests {
         style.AutoFitColumns = true;
         style.PreferredWidth = 160;
         style.PreserveWidth = true;
-        style.HeaderFill = new PdfColor(0.17, 0.27, 0.37);
+        style.HeaderFill = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.17, 0.27, 0.37);
         style.BorderColor = null;
 
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
@@ -444,7 +444,7 @@ public partial class PdfDocumentVisualQualityTests {
         style.PreferredWidth = 80;
         style.MaxWidth = 150;
         style.PreserveWidth = true;
-        style.HeaderFill = new PdfColor(0.18, 0.28, 0.38);
+        style.HeaderFill = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.18, 0.28, 0.38);
         style.BorderColor = null;
 
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions {

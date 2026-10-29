@@ -23,7 +23,7 @@ public class RtfColorSlotRegressionTests {
         using WordDocument word = document.ToWordDocument();
         Assert.Contains(word.Paragraphs, run => run.Text == "Blue" && run.ColorHex == "0000FF");
         PdfCore.RichParagraphBlock pdfParagraph = Assert.IsType<PdfCore.RichParagraphBlock>(Assert.Single(document.ToPdf().Blocks));
-        Assert.Equal(PdfCore.PdfColor.FromRgb(0, 0, 255), pdfParagraph.Runs.Last().Color);
+        Assert.Equal(global::OfficeIMO.OfficeColor.FromRgb(0, 0, 255), pdfParagraph.Runs.Last().Color);
         RtfDocument reopened = RtfDocument.Read(document.ToRtf()).Document;
         Assert.Equal("#0000FF", reopened.GetColor(reopened.Paragraphs[0].Runs[1].ForegroundColorIndex!.Value)!.ToString());
     }

@@ -25,7 +25,7 @@ public sealed class PdfCanvasTextBoxStyle {
     internal PdfLineSpacing? LineSpacing { get; set; }
 
     /// <summary>Background fill color. Set to null for a transparent text box.</summary>
-    public PdfColor? Background { get; set; } = PdfColor.White;
+    public global::OfficeIMO.OfficeColor? Background { get; set; } = global::OfficeIMO.OfficeColor.White;
 
     /// <summary>Optional background fill opacity from 0 (transparent) to 1 (opaque).</summary>
     public double? BackgroundOpacity {
@@ -37,7 +37,7 @@ public sealed class PdfCanvasTextBoxStyle {
     }
 
     /// <summary>Border color. Set to null for no border.</summary>
-    public PdfColor? BorderColor { get; set; } = PdfColor.Gray;
+    public global::OfficeIMO.OfficeColor? BorderColor { get; set; } = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.5D, 0.5D, 0.5D);
 
     /// <summary>Border stroke width in points.</summary>
     public double BorderWidth {
@@ -129,7 +129,7 @@ public sealed class PdfCanvasTextBoxStyle {
     internal double EffectivePaddingBottom => PaddingBottom ?? PaddingY;
 
     /// <summary>Default foreground color for text runs that do not specify a color.</summary>
-    public PdfColor? TextColor { get; set; }
+    public global::OfficeIMO.OfficeColor? TextColor { get; set; }
 
     /// <summary>Text alignment inside the text box.</summary>
     public PdfAlign Align {

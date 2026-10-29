@@ -70,10 +70,10 @@ namespace OfficeIMO.Excel.Pdf {
             _ => PdfCore.PdfCellIconKind.Circle
         };
 
-        private static PdfCore.PdfColor GetLegacyConditionalIconColor(OfficeConditionalIconKind kind) => kind switch {
-            OfficeConditionalIconKind.GreenCheck or OfficeConditionalIconKind.GreenCircle or OfficeConditionalIconKind.GreenUpArrow or OfficeConditionalIconKind.GreenFlag or OfficeConditionalIconKind.RatingFive or OfficeConditionalIconKind.QuarterFull => PdfCore.PdfColor.FromRgb(99, 155, 71),
-            OfficeConditionalIconKind.RedCross or OfficeConditionalIconKind.RedCircle or OfficeConditionalIconKind.RedDownArrow or OfficeConditionalIconKind.RedFlag or OfficeConditionalIconKind.RatingOne or OfficeConditionalIconKind.QuarterEmpty => PdfCore.PdfColor.FromRgb(192, 80, 77),
-            _ => PdfCore.PdfColor.FromRgb(255, 192, 0)
+        private static global::OfficeIMO.OfficeColor GetLegacyConditionalIconColor(OfficeConditionalIconKind kind) => kind switch {
+            OfficeConditionalIconKind.GreenCheck or OfficeConditionalIconKind.GreenCircle or OfficeConditionalIconKind.GreenUpArrow or OfficeConditionalIconKind.GreenFlag or OfficeConditionalIconKind.RatingFive or OfficeConditionalIconKind.QuarterFull => global::OfficeIMO.OfficeColor.FromRgb(99, 155, 71),
+            OfficeConditionalIconKind.RedCross or OfficeConditionalIconKind.RedCircle or OfficeConditionalIconKind.RedDownArrow or OfficeConditionalIconKind.RedFlag or OfficeConditionalIconKind.RatingOne or OfficeConditionalIconKind.QuarterEmpty => global::OfficeIMO.OfficeColor.FromRgb(192, 80, 77),
+            _ => global::OfficeIMO.OfficeColor.FromRgb(255, 192, 0)
         };
     }
 }

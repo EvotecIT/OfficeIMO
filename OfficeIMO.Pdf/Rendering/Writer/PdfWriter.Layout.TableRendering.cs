@@ -370,7 +370,7 @@ internal static partial class PdfWriter {
         return skipColumns;
     }
 
-    private static void DrawTableHorizontalLine(StringBuilder sb, PdfColor color, double width, double xOrigin, double[] columnWidths, double columnGap, double y, bool[] skipColumns, bool artifact = false) {
+    private static void DrawTableHorizontalLine(StringBuilder sb, global::OfficeIMO.OfficeColor color, double width, double xOrigin, double[] columnWidths, double columnGap, double y, bool[] skipColumns, bool artifact = false) {
         if (columnWidths.Length == 0) {
             return;
         }
@@ -412,7 +412,7 @@ internal static partial class PdfWriter {
         }
     }
 
-    private static void DrawTableRowFill(StringBuilder sb, PdfColor color, double xOrigin, double[] columnWidths, double columnGap, double y, double height, bool[] skipColumns, bool artifact = false) {
+    private static void DrawTableRowFill(StringBuilder sb, global::OfficeIMO.OfficeColor color, double xOrigin, double[] columnWidths, double columnGap, double y, double height, bool[] skipColumns, bool artifact = false) {
         if (columnWidths.Length == 0) {
             return;
         }
@@ -608,7 +608,7 @@ internal static partial class PdfWriter {
         AppendArtifactEnd(sb, artifact);
     }
 
-    private static void DrawCheckBoxIcon(ContentStreamBuilder content, PdfColor color, double x, double y, double size, bool selected) {
+    private static void DrawCheckBoxIcon(ContentStreamBuilder content, global::OfficeIMO.OfficeColor color, double x, double y, double size, bool selected) {
         double strokeWidth = Math.Max(0.75D, size * 0.085D);
         double inset = strokeWidth / 2D;
         content.StrokeColor(color)

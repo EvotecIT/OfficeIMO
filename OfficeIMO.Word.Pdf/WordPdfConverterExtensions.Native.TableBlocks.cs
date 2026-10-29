@@ -23,7 +23,7 @@ namespace OfficeIMO.Word.Pdf {
             bool usesAutoFitLayout = ShouldUseNativeAutoFitTableLayout(
                 table._table.GetFirstChild<W.TableProperties>(), tableStyleDefaults);
             var rows = new List<PdfCore.PdfTableCell[]>();
-            var cellFills = new Dictionary<(int Row, int Column), PdfCore.PdfColor>();
+            var cellFills = new Dictionary<(int Row, int Column), global::OfficeIMO.OfficeColor>();
             var directCellBorders = new Dictionary<(int Row, int Column), WordTableCellBorder>();
             var cellPaddings = new Dictionary<(int Row, int Column), PdfCore.PdfCellPadding>();
             var cellAlignments = new Dictionary<(int Row, int Column), PdfCore.PdfColumnAlign>();
@@ -101,7 +101,7 @@ namespace OfficeIMO.Word.Pdf {
                             nativeDefaults, cellStyleDefaults, nativeFontMap)
                     });
 
-                    PdfCore.PdfColor? fill =
+                    global::OfficeIMO.OfficeColor? fill =
                         ParseNativeColor(cell.ShadingFillColorHex) ??
                         cellStyleDefaults.CellFill;
                     if (fill.HasValue) {

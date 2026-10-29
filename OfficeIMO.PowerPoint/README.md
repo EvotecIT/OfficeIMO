@@ -374,6 +374,8 @@ Use `cell.SetBorders(PowerPointTableCellBorders.Bottom, "FF0000", 3)` to set sel
 ### Charts from data
 
 ```csharp
+using OfficeIMO.PowerPoint;
+using OfficeIMO;
 using DocumentFormat.OpenXml.Drawing.Charts;
 using OfficeIMO.Drawing;
 
@@ -394,8 +396,7 @@ var chartData = new OfficeChartData(
 var slide = presentation.AddSlide();
 slide.AddTitle("Revenue and margin");
 
-slide.AddChart(OfficeChartType.ColumnClustered, chartData,
-left: OfficeIMO.OfficeLength.Centimeters(1.4), top: OfficeIMO.OfficeLength.Centimeters(3.0), width: OfficeIMO.OfficeLength.Centimeters(13.2), height: OfficeIMO.OfficeLength.Centimeters(8.0))
+slide.AddChart(OfficeChartType.ColumnClustered, chartData, new OfficeIMO.PowerPoint.PowerPointChartOptions { Left = OfficeIMO.OfficeLength.Centimeters(1.4), Top = OfficeIMO.OfficeLength.Centimeters(3.0), Width = OfficeIMO.OfficeLength.Centimeters(13.2), Height = OfficeIMO.OfficeLength.Centimeters(8.0) })
     .SetTitle("Quarterly performance")
     .SetCategoryAxisTitle("Quarter")
     .SetValueAxisTitle("Value")
@@ -420,6 +421,8 @@ tracks the exact chart appearance boundary.
 PDF export uses the native chart style unless `PowerPointPdfExportOptions.ChartStyle` supplies an override.
 
 ```csharp
+using OfficeIMO.PowerPoint;
+using OfficeIMO;
 using OfficeIMO.Drawing;
 
 var sharedData = new OfficeChartData(
@@ -434,12 +437,9 @@ var sharedData = new OfficeChartData(
             axisGroup: OfficeChartAxisGroup.Secondary)
     });
 
-PowerPointChart chart = slide.AddChart(
-    OfficeChartType.ColumnClustered, sharedData,
-left: OfficeIMO.OfficeLength.Centimeters(1.5), top: OfficeIMO.OfficeLength.Centimeters(3), width: OfficeIMO.OfficeLength.Centimeters(22), height: OfficeIMO.OfficeLength.Centimeters(9),
-    accessibility: new PowerPointChartAccessibilityOptions {
+PowerPointChart chart = slide.AddChart(OfficeChartType.ColumnClustered, sharedData, new OfficeIMO.PowerPoint.PowerPointChartOptions { Left = OfficeIMO.OfficeLength.Centimeters(1.5), Top = OfficeIMO.OfficeLength.Centimeters(3), Width = OfficeIMO.OfficeLength.Centimeters(22), Height = OfficeIMO.OfficeLength.Centimeters(9), Accessibility = new PowerPointChartAccessibilityOptions {
         AlternativeText = "Revenue columns with margin line on a secondary axis"
-    });
+    } });
 
 chart.SaveDataSummary("quarterly-chart.txt");
 ```
@@ -493,8 +493,7 @@ var mix = new OfficeChartData(
     new[] { "Services", "Licenses", "Support" },
     new[] { new OfficeSeries("Share", new[] { 55d, 30d, 15d }) });
 
-slide.AddChart(OfficeChartType.Doughnut, mix,
-left: OfficeIMO.OfficeLength.Centimeters(15.2), top: OfficeIMO.OfficeLength.Centimeters(3.0), width: OfficeIMO.OfficeLength.Centimeters(8.0), height: OfficeIMO.OfficeLength.Centimeters(8.0))
+slide.AddChart(OfficeChartType.Doughnut, mix, new OfficeIMO.PowerPoint.PowerPointChartOptions { Left = OfficeIMO.OfficeLength.Centimeters(15.2), Top = OfficeIMO.OfficeLength.Centimeters(3.0), Width = OfficeIMO.OfficeLength.Centimeters(8.0), Height = OfficeIMO.OfficeLength.Centimeters(8.0) })
     .SetTitle("Revenue mix")
     .SetLegend(OfficeChartLegendPosition.Right);
 ```
@@ -553,8 +552,7 @@ var segmentChart = new OfficeChartData(
         new OfficeSeries("Q4", segments.Select(row => (double)row.Q4))
     });
 
-dashboard.AddChart(OfficeChartType.Line, segmentChart,
-left: OfficeIMO.OfficeLength.Centimeters(12.2), top: OfficeIMO.OfficeLength.Centimeters(3.0), width: OfficeIMO.OfficeLength.Centimeters(12.0), height: OfficeIMO.OfficeLength.Centimeters(6.5))
+dashboard.AddChart(OfficeChartType.Line, segmentChart, new OfficeIMO.PowerPoint.PowerPointChartOptions { Left = OfficeIMO.OfficeLength.Centimeters(12.2), Top = OfficeIMO.OfficeLength.Centimeters(3.0), Width = OfficeIMO.OfficeLength.Centimeters(12.0), Height = OfficeIMO.OfficeLength.Centimeters(6.5) })
     .SetTitle("Segment trend")
     .SetLegend(OfficeChartLegendPosition.Bottom);
 

@@ -374,18 +374,18 @@ public sealed partial class IWorkBoundaryTests {
         Assert.False(result.IsVisualFallback);
         WordTextBox textBox = Assert.Single(result.Value.TextBoxes);
         Assert.Equal("Floating text", Assert.Single(textBox.Paragraphs).Text);
-        Assert.Equal(36 * 12700, textBox.HorizontalPositionOffset!.Value);
-        Assert.Equal(72 * 12700, textBox.VerticalPositionOffset!.Value);
-        Assert.Equal(216L * 12700L, textBox.Width);
-        Assert.Equal(108L * 12700L, textBox.Height);
+        Assert.Equal(36 * 12700, textBox.HorizontalPositionOffset!.Value.ToEmus());
+        Assert.Equal(72 * 12700, textBox.VerticalPositionOffset!.Value.ToEmus());
+        Assert.Equal(216L * 12700L, textBox.Width.ToEmus());
+        Assert.Equal(108L * 12700L, textBox.Height.ToEmus());
         using var bytes = new MemoryStream();
         result.Value.Save(bytes);
         bytes.Position = 0;
         using WordDocument reopened = WordDocument.Load(bytes);
         WordTextBox persisted = Assert.Single(reopened.TextBoxes);
         Assert.Equal("Floating text", Assert.Single(persisted.Paragraphs).Text);
-        Assert.Equal(36 * 12700, persisted.HorizontalPositionOffset!.Value);
-        Assert.Equal(216L * 12700L, persisted.Width);
+        Assert.Equal(36 * 12700, persisted.HorizontalPositionOffset!.Value.ToEmus());
+        Assert.Equal(216L * 12700L, persisted.Width.ToEmus());
     }
 
     [Fact]

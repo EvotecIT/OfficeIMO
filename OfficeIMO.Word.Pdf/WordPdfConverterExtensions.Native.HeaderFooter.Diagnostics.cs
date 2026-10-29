@@ -110,11 +110,11 @@ namespace OfficeIMO.Word.Pdf {
                 section.ResolveDefaultFooter(),
                 section.DifferentFirstPage ? section.ResolveFirstFooter() : null,
                 hasEvenPageStory ? section.ResolveEvenFooter() : null);
-            PdfCore.PdfColor? headerColor = ResolveNativeHeaderFooterColor(
+            global::OfficeIMO.OfficeColor? headerColor = ResolveNativeHeaderFooterColor(
                 section.ResolveDefaultHeader(),
                 section.DifferentFirstPage ? section.ResolveFirstHeader() : null,
                 hasEvenPageStory ? section.ResolveEvenHeader() : null);
-            PdfCore.PdfColor? footerColor = ResolveNativeHeaderFooterColor(
+            global::OfficeIMO.OfficeColor? footerColor = ResolveNativeHeaderFooterColor(
                 section.ResolveDefaultFooter(),
                 section.DifferentFirstPage ? section.ResolveFirstFooter() : null,
                 hasEvenPageStory ? section.ResolveEvenFooter() : null);

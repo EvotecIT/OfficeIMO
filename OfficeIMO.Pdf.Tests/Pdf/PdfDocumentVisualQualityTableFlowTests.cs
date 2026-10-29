@@ -599,8 +599,8 @@ public partial class PdfDocumentVisualQualityTests {
         };
         var style = PdfTableStyles.Minimal();
         style.FooterRowCount = 1;
-        style.FooterFill = PdfColor.FromRgb(230, 230, 230);
-        style.FooterTextColor = PdfColor.FromRgb(20, 20, 20);
+        style.FooterFill = global::OfficeIMO.OfficeColor.FromRgb(230, 230, 230);
+        style.FooterTextColor = global::OfficeIMO.OfficeColor.FromRgb(20, 20, 20);
 
         var rows = new List<string[]> {
             new[] { "Metric", "Value" }

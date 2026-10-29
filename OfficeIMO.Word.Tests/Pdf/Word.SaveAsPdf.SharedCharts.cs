@@ -127,7 +127,7 @@ public sealed class WordSharedChartPdfTests {
             new OfficeChartData(new[] { "A", "B" }, new[] { new OfficeSeries("Columns", new[] { 100d, 200d }),
                 new OfficeSeries("Ratio", new[] { 1d, 2d }, null, OfficeColor.Parse("#224466"), null, true,
                     renderKind: OfficeChartType.Line, axisGroup: OfficeChartAxisGroup.Secondary) });
-        document.AddChart(bubble ? OfficeChartType.Bubble : OfficeChartType.ColumnClustered,data,"Shared chart");
+        document.AddChart(bubble ? OfficeChartType.Bubble : OfficeChartType.ColumnClustered, data, new OfficeChartOptions { Title = "Shared chart" });
         var options = new WordPdfExportOptions { IncludePageNumbers = false };
         string path = Path.Combine(Path.GetTempPath(), "officeimo-shared-chart-" + Guid.NewGuid().ToString("N") + ".pdf");
         try {

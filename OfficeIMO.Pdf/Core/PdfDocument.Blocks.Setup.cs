@@ -21,13 +21,13 @@ public sealed partial class PdfDocument {
     }
 
     /// <summary>Adds a heading with its authored hierarchy level, from 1 through 9.</summary>
-    internal PdfDocument Heading(int level, string text, PdfAlign align = PdfAlign.Left, PdfColor? color = null, string? linkUri = null, PdfHeadingStyle? style = null, string? linkContents = null, string? linkDestinationName = null) {
+    internal PdfDocument Heading(int level, string text, PdfAlign align = PdfAlign.Left, global::OfficeIMO.OfficeColor? color = null, string? linkUri = null, PdfHeadingStyle? style = null, string? linkContents = null, string? linkDestinationName = null) {
         AddBlock(new HeadingBlock(level, text, align, color, linkUri, style, linkContents, linkDestinationName));
         return this;
     }
 
     // Adapters retain their run formatting without putting note markers in the outline title.
-    internal PdfDocument Heading(int level, string title, System.Action<PdfParagraphBuilder> build, PdfAlign align, PdfColor? color, PdfHeadingStyle? style) {
+    internal PdfDocument Heading(int level, string title, System.Action<PdfParagraphBuilder> build, PdfAlign align, global::OfficeIMO.OfficeColor? color, PdfHeadingStyle? style) {
         Guard.NotNull(build, nameof(build));
         var builder = new PdfParagraphBuilder(align, color);
         build(builder);
@@ -36,15 +36,15 @@ public sealed partial class PdfDocument {
     }
 
     /// <summary>Adds a level-1 heading.</summary>
-    internal PdfDocument H1(string text, PdfAlign align = PdfAlign.Left, PdfColor? color = null, string? linkUri = null, PdfHeadingStyle? style = null, string? linkContents = null, string? linkDestinationName = null) {
+    internal PdfDocument H1(string text, PdfAlign align = PdfAlign.Left, global::OfficeIMO.OfficeColor? color = null, string? linkUri = null, PdfHeadingStyle? style = null, string? linkContents = null, string? linkDestinationName = null) {
         return Heading(1, text, align, color, linkUri, style, linkContents, linkDestinationName);
     }
     /// <summary>Adds a level-2 heading.</summary>
-    internal PdfDocument H2(string text, PdfAlign align = PdfAlign.Left, PdfColor? color = null, string? linkUri = null, PdfHeadingStyle? style = null, string? linkContents = null, string? linkDestinationName = null) {
+    internal PdfDocument H2(string text, PdfAlign align = PdfAlign.Left, global::OfficeIMO.OfficeColor? color = null, string? linkUri = null, PdfHeadingStyle? style = null, string? linkContents = null, string? linkDestinationName = null) {
         return Heading(2, text, align, color, linkUri, style, linkContents, linkDestinationName);
     }
     /// <summary>Adds a level-3 heading.</summary>
-    internal PdfDocument H3(string text, PdfAlign align = PdfAlign.Left, PdfColor? color = null, string? linkUri = null, PdfHeadingStyle? style = null, string? linkContents = null, string? linkDestinationName = null) {
+    internal PdfDocument H3(string text, PdfAlign align = PdfAlign.Left, global::OfficeIMO.OfficeColor? color = null, string? linkUri = null, PdfHeadingStyle? style = null, string? linkContents = null, string? linkDestinationName = null) {
         return Heading(3, text, align, color, linkUri, style, linkContents, linkDestinationName);
     }
 
@@ -88,7 +88,7 @@ public sealed partial class PdfDocument {
     }
 
     /// <summary>Sets or clears the document-wide default page background color.</summary>
-    internal PdfDocument Background(PdfColor? color) {
+    internal PdfDocument Background(global::OfficeIMO.OfficeColor? color) {
         _options.BackgroundColor = color;
         return this;
     }
@@ -100,7 +100,7 @@ public sealed partial class PdfDocument {
     }
 
     /// <summary>Sets a document-wide default text watermark rendered behind page content.</summary>
-    internal PdfDocument Watermark(string text, double? fontSize = null, PdfColor? color = null, double? opacity = null, double? rotationAngle = null, PdfStandardFont? font = null, bool bold = true, bool italic = false) {
+    internal PdfDocument Watermark(string text, double? fontSize = null, global::OfficeIMO.OfficeColor? color = null, double? opacity = null, double? rotationAngle = null, PdfStandardFont? font = null, bool bold = true, bool italic = false) {
         var watermark = new PdfTextWatermark(text) {
             Bold = bold,
             Italic = italic
@@ -136,7 +136,7 @@ public sealed partial class PdfDocument {
     }
 
     /// <summary>Sets a document-wide default page border.</summary>
-    internal PdfDocument PageBorder(PdfColor? color = null, double? width = null, double? inset = null, double? opacity = null, OfficeStrokeDashStyle dashStyle = OfficeStrokeDashStyle.Solid) {
+    internal PdfDocument PageBorder(global::OfficeIMO.OfficeColor? color = null, double? width = null, double? inset = null, double? opacity = null, OfficeStrokeDashStyle dashStyle = OfficeStrokeDashStyle.Solid) {
         var border = new PdfPageBorder {
             DashStyle = dashStyle
         };
@@ -183,31 +183,31 @@ public sealed partial class PdfDocument {
     }
 
     /// <summary>Adds a document-wide default rectangle page background shape.</summary>
-    internal PdfDocument BackgroundRectangle(double x, double y, double width, double height, PdfColor? fill = null, PdfColor? stroke = null, double strokeWidth = 0D, double? fillOpacity = null, double? strokeOpacity = null, OfficeLinearGradient? fillGradient = null) =>
+    internal PdfDocument BackgroundRectangle(double x, double y, double width, double height, global::OfficeIMO.OfficeColor? fill = null, global::OfficeIMO.OfficeColor? stroke = null, double strokeWidth = 0D, double? fillOpacity = null, double? strokeOpacity = null, OfficeLinearGradient? fillGradient = null) =>
         BackgroundShape(PdfPageBackgroundShape.Rectangle(x, y, width, height, fill, stroke, strokeWidth, fillOpacity, strokeOpacity, fillGradient));
 
     /// <summary>Adds a document-wide default rounded rectangle page background shape.</summary>
-    internal PdfDocument BackgroundRoundedRectangle(double x, double y, double width, double height, double cornerRadius, PdfColor? fill = null, PdfColor? stroke = null, double strokeWidth = 0D, double? fillOpacity = null, double? strokeOpacity = null, OfficeLinearGradient? fillGradient = null) =>
+    internal PdfDocument BackgroundRoundedRectangle(double x, double y, double width, double height, double cornerRadius, global::OfficeIMO.OfficeColor? fill = null, global::OfficeIMO.OfficeColor? stroke = null, double strokeWidth = 0D, double? fillOpacity = null, double? strokeOpacity = null, OfficeLinearGradient? fillGradient = null) =>
         BackgroundShape(PdfPageBackgroundShape.RoundedRectangle(x, y, width, height, cornerRadius, fill, stroke, strokeWidth, fillOpacity, strokeOpacity, fillGradient));
 
     /// <summary>Adds a document-wide default ellipse page background shape.</summary>
-    internal PdfDocument BackgroundEllipse(double x, double y, double width, double height, PdfColor? fill = null, PdfColor? stroke = null, double strokeWidth = 0D, double? fillOpacity = null, double? strokeOpacity = null, OfficeLinearGradient? fillGradient = null) =>
+    internal PdfDocument BackgroundEllipse(double x, double y, double width, double height, global::OfficeIMO.OfficeColor? fill = null, global::OfficeIMO.OfficeColor? stroke = null, double strokeWidth = 0D, double? fillOpacity = null, double? strokeOpacity = null, OfficeLinearGradient? fillGradient = null) =>
         BackgroundShape(PdfPageBackgroundShape.Ellipse(x, y, width, height, fill, stroke, strokeWidth, fillOpacity, strokeOpacity, fillGradient));
 
     /// <summary>Adds a document-wide default top page background band using the current page size.</summary>
-    internal PdfDocument BackgroundTopBand(double height, PdfColor? fill = null, double insetX = 0D, double offsetY = 0D, double cornerRadius = 0D, PdfColor? stroke = null, double strokeWidth = 0D, double? fillOpacity = null, double? strokeOpacity = null, OfficeLinearGradient? fillGradient = null) =>
+    internal PdfDocument BackgroundTopBand(double height, global::OfficeIMO.OfficeColor? fill = null, double insetX = 0D, double offsetY = 0D, double cornerRadius = 0D, global::OfficeIMO.OfficeColor? stroke = null, double strokeWidth = 0D, double? fillOpacity = null, double? strokeOpacity = null, OfficeLinearGradient? fillGradient = null) =>
         BackgroundShape(PdfPageBackgroundShape.TopBand(_options.PageWidth, _options.PageHeight, height, fill, insetX, offsetY, cornerRadius, stroke, strokeWidth, fillOpacity, strokeOpacity, fillGradient));
 
     /// <summary>Adds a document-wide default bottom page background band using the current page size.</summary>
-    internal PdfDocument BackgroundBottomBand(double height, PdfColor? fill = null, double insetX = 0D, double offsetY = 0D, double cornerRadius = 0D, PdfColor? stroke = null, double strokeWidth = 0D, double? fillOpacity = null, double? strokeOpacity = null, OfficeLinearGradient? fillGradient = null) =>
+    internal PdfDocument BackgroundBottomBand(double height, global::OfficeIMO.OfficeColor? fill = null, double insetX = 0D, double offsetY = 0D, double cornerRadius = 0D, global::OfficeIMO.OfficeColor? stroke = null, double strokeWidth = 0D, double? fillOpacity = null, double? strokeOpacity = null, OfficeLinearGradient? fillGradient = null) =>
         BackgroundShape(PdfPageBackgroundShape.BottomBand(_options.PageWidth, _options.PageHeight, height, fill, insetX, offsetY, cornerRadius, stroke, strokeWidth, fillOpacity, strokeOpacity, fillGradient));
 
     /// <summary>Adds a document-wide default left page background band using the current page size.</summary>
-    internal PdfDocument BackgroundLeftBand(double width, PdfColor? fill = null, double insetY = 0D, double offsetX = 0D, double cornerRadius = 0D, PdfColor? stroke = null, double strokeWidth = 0D, double? fillOpacity = null, double? strokeOpacity = null, OfficeLinearGradient? fillGradient = null) =>
+    internal PdfDocument BackgroundLeftBand(double width, global::OfficeIMO.OfficeColor? fill = null, double insetY = 0D, double offsetX = 0D, double cornerRadius = 0D, global::OfficeIMO.OfficeColor? stroke = null, double strokeWidth = 0D, double? fillOpacity = null, double? strokeOpacity = null, OfficeLinearGradient? fillGradient = null) =>
         BackgroundShape(PdfPageBackgroundShape.LeftBand(_options.PageWidth, _options.PageHeight, width, fill, insetY, offsetX, cornerRadius, stroke, strokeWidth, fillOpacity, strokeOpacity, fillGradient));
 
     /// <summary>Adds a document-wide default right page background band using the current page size.</summary>
-    internal PdfDocument BackgroundRightBand(double width, PdfColor? fill = null, double insetY = 0D, double offsetX = 0D, double cornerRadius = 0D, PdfColor? stroke = null, double strokeWidth = 0D, double? fillOpacity = null, double? strokeOpacity = null, OfficeLinearGradient? fillGradient = null) =>
+    internal PdfDocument BackgroundRightBand(double width, global::OfficeIMO.OfficeColor? fill = null, double insetY = 0D, double offsetX = 0D, double cornerRadius = 0D, global::OfficeIMO.OfficeColor? stroke = null, double strokeWidth = 0D, double? fillOpacity = null, double? strokeOpacity = null, OfficeLinearGradient? fillGradient = null) =>
         BackgroundShape(PdfPageBackgroundShape.RightBand(_options.PageWidth, _options.PageHeight, width, fill, insetY, offsetX, cornerRadius, stroke, strokeWidth, fillOpacity, strokeOpacity, fillGradient));
 
     /// <summary>Sets the document-wide default page orientation to portrait.</summary>

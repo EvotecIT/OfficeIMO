@@ -387,10 +387,10 @@ public class PdfMergerTests {
                 "Merge review note",
                 width: 150,
                 height: 44,
-                borderColor: new PdfColor(0.2D, 0.4D, 0.8D),
-                fillColor: new PdfColor(0.95D, 0.98D, 1D),
+                borderColor: global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.2D, 0.4D, 0.8D),
+                fillColor: global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.95D, 0.98D, 1D),
                 textAlign: PdfAlign.Center)
-            .HighlightAnnotation("Merge highlight", width: 120, height: 14, color: new PdfColor(1D, 0.9D, 0.1D))
+            .HighlightAnnotation("Merge highlight", width: 120, height: 14, color: global::OfficeIMO.OfficeColor.FromNormalizedRgb(1D, 0.9D, 0.1D))
             .ToBytes();
     }
 

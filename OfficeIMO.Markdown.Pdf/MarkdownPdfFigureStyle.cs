@@ -9,8 +9,8 @@ public sealed class MarkdownPdfFigureStyle {
     private PdfCore.PdfPanelStyle? _panelStyle;
     private PdfCore.PdfImageStyle? _imageStyle;
     private PdfCore.PdfDrawingStyle? _drawingStyle;
-    private PdfCore.PdfColor? _captionColor;
-    private PdfCore.PdfColor? _placeholderColor;
+    private global::OfficeIMO.OfficeColor? _captionColor;
+    private global::OfficeIMO.OfficeColor? _placeholderColor;
     private double? _captionFontSize;
     private PdfCore.PdfAlign _captionAlign = PdfCore.PdfAlign.Center;
 
@@ -33,7 +33,7 @@ public sealed class MarkdownPdfFigureStyle {
     }
 
     /// <summary>Caption text color.</summary>
-    public PdfCore.PdfColor? CaptionColor {
+    public global::OfficeIMO.OfficeColor? CaptionColor {
         get => _captionColor;
         set => _captionColor = value;
     }
@@ -57,7 +57,7 @@ public sealed class MarkdownPdfFigureStyle {
     }
 
     /// <summary>Text color used by unresolved image and visual placeholders.</summary>
-    public PdfCore.PdfColor? PlaceholderColor {
+    public global::OfficeIMO.OfficeColor? PlaceholderColor {
         get => _placeholderColor;
         set => _placeholderColor = value;
     }
@@ -76,25 +76,25 @@ public sealed class MarkdownPdfFigureStyle {
     internal PdfCore.PdfPanelStyle? PanelStyleSnapshot => _panelStyle?.Clone();
     internal PdfCore.PdfImageStyle ImageStyleSnapshot => (_imageStyle ?? CreateDefaultImageStyle()).Clone();
     internal PdfCore.PdfDrawingStyle DrawingStyleSnapshot => (_drawingStyle ?? CreateDefaultDrawingStyle()).Clone();
-    internal PdfCore.PdfColor CaptionColorSnapshot => _captionColor ?? PdfCore.PdfColor.FromRgb(71, 85, 105);
+    internal global::OfficeIMO.OfficeColor CaptionColorSnapshot => _captionColor ?? global::OfficeIMO.OfficeColor.FromRgb(71, 85, 105);
     internal double CaptionFontSizeSnapshot => _captionFontSize ?? 9D;
     internal PdfCore.PdfAlign CaptionAlignSnapshot => _captionAlign;
-    internal PdfCore.PdfColor PlaceholderColorSnapshot => _placeholderColor ?? PdfCore.PdfColor.FromRgb(100, 116, 139);
+    internal global::OfficeIMO.OfficeColor PlaceholderColorSnapshot => _placeholderColor ?? global::OfficeIMO.OfficeColor.FromRgb(100, 116, 139);
 
     internal static MarkdownPdfFigureStyle Plain() => new MarkdownPdfFigureStyle {
         ImageStyle = CreateDefaultImageStyle(),
         DrawingStyle = CreateDefaultDrawingStyle(),
-        CaptionColor = PdfCore.PdfColor.FromRgb(71, 85, 105),
-        PlaceholderColor = PdfCore.PdfColor.FromRgb(100, 116, 139),
+        CaptionColor = global::OfficeIMO.OfficeColor.FromRgb(71, 85, 105),
+        PlaceholderColor = global::OfficeIMO.OfficeColor.FromRgb(100, 116, 139),
         CaptionFontSize = 9D,
         CaptionAlign = PdfCore.PdfAlign.Center
     };
 
     internal static MarkdownPdfFigureStyle Framed(
-        PdfCore.PdfColor background,
-        PdfCore.PdfColor border,
-        PdfCore.PdfColor caption,
-        PdfCore.PdfColor placeholder,
+        global::OfficeIMO.OfficeColor background,
+        global::OfficeIMO.OfficeColor border,
+        global::OfficeIMO.OfficeColor caption,
+        global::OfficeIMO.OfficeColor placeholder,
         double borderWidth = 0.5D) => new MarkdownPdfFigureStyle {
             PdfPanelStyle = new PdfCore.PdfPanelStyle {
                 Background = background,

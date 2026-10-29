@@ -75,7 +75,7 @@ public sealed partial class PdfInvoiceDocument {
             CornerRadius = theme.CornerRadius,
             CellPaddingX = 7D,
             CellPaddingY = 4D,
-            BodyColumnFills = new List<PdfColor?> { theme.Surface, null },
+            BodyColumnFills = new List<global::OfficeIMO.OfficeColor?> { theme.Surface, null },
             ColumnWidthWeights = new List<double> { 1D, 1D }
         };
         if (_layout.CompactDetails) { style.SpacingAfter = 4; style.CellPaddingY = 2; }

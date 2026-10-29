@@ -14,7 +14,7 @@ public sealed partial class PdfFooterBuilder {
     /// <summary>Sets footer alignment to the right.</summary>
     public PdfFooterBuilder AlignRight() { _opts.FooterAlign = PdfAlign.Right; return this; }
     /// <summary>Sets footer text color.</summary>
-    public PdfFooterBuilder Color(PdfColor color) { _opts.FooterTextColor = color; return this; }
+    public PdfFooterBuilder Color(global::OfficeIMO.OfficeColor color) { _opts.FooterTextColor = color; return this; }
     /// <summary>Sets footer font.</summary>
     public PdfFooterBuilder Font(PdfStandardFont font) { _opts.FooterFont = font; _opts.FooterFontFamily = null; return this; }
     /// <summary>Uses a registered named font family for footer text.</summary>

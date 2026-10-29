@@ -18,7 +18,7 @@ public sealed class PdfWordCompressionAdmissionTests {
     [InlineData("collapse")]
     public void NativeSpaceBudgetAdmitsTheWholeWordBeforeClippingOrFormattingSplits(string scenario) {
         PdfTextRun[] runs = scenario == "split-word"
-            ? new[] { new PdfTextRun("Alpha beta gam"), new PdfTextRun("ma", color: new PdfColor(1, 0, 0)) }
+            ? new[] { new PdfTextRun("Alpha beta gam"), new PdfTextRun("ma", color: global::OfficeIMO.OfficeColor.FromNormalizedRgb(1, 0, 0)) }
             : new[] { new PdfTextRun("Alpha beta gamma") };
         var whitespace = scenario == "collapse" ? PdfTextWhitespaceMode.Collapse : PdfTextWhitespaceMode.Preserve;
         List<Letter> control = Assert.Single(Lines(Render(runs, 300D, false, whitespace), "pdf-natural-" + scenario));
@@ -42,7 +42,7 @@ public sealed class PdfWordCompressionAdmissionTests {
         PdfTextWhitespaceMode whitespace = scenario == "collapse" ? PdfTextWhitespaceMode.Collapse : PdfTextWhitespaceMode.Preserve;
         string text = CandidateQualityPrefix + " it tail";
         PdfTextRun[] runs = scenario == "split-word"
-            ? new[] { new PdfTextRun(CandidateQualityPrefix + " i"), new PdfTextRun("t", color: new PdfColor(1, 0, 0)), new PdfTextRun(" tail") }
+            ? new[] { new PdfTextRun(CandidateQualityPrefix + " i"), new PdfTextRun("t", color: global::OfficeIMO.OfficeColor.FromNormalizedRgb(1, 0, 0)), new PdfTextRun(" tail") }
             : new[] { new PdfTextRun(scenario == "collapse" ? text.Replace(" ", "  ") : text) };
         var frames = CandidateQualityFrames(runs, whitespace, scenario);
         string prefix = CandidateQualityPrefix.Replace(" ", "");

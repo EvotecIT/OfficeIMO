@@ -25,8 +25,8 @@ namespace OfficeIMO.Examples.Pdf {
             PdfDocument.Create(pdf => pdf.Content(content => content
                 .H1("Lorem Ipsum — Panel Paragraph", PdfAlign.Center)
                 .PanelParagraph(p => p.Text(longText), new PdfPanelStyle {
-                    Background = new PdfColor(0.96, 0.96, 0.98),
-                    BorderColor = PdfColor.FromRgb(210, 210, 210),
+                    Background = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.96, 0.96, 0.98),
+                    BorderColor = global::OfficeIMO.OfficeColor.FromRgb(210, 210, 210),
                     BorderWidth = 0.5,
                     PaddingX = 8,
                     PaddingY = 6,

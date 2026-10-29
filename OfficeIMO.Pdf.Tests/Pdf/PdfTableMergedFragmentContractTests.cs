@@ -35,8 +35,8 @@ public partial class PdfDocumentVisualQualityTests {
         PdfTableStyle style = Style();
         style.MinRowHeight = 30;
         style.CornerRadius = 10;
-        style.CellFills = new() { [(0, 0)] = new PdfColor(.31, .41, .51) };
-        style.CellBorders = new() { [(0, 0)] = new PdfCellBorder { Color = new PdfColor(.61, .21, .11), Width = 2 } };
+        style.CellFills = new() { [(0, 0)] = global::OfficeIMO.OfficeColor.FromNormalizedRgb(.31, .41, .51) };
+        style.CellBorders = new() { [(0, 0)] = new PdfCellBorder { Color = global::OfficeIMO.OfficeColor.FromNormalizedRgb(.61, .21, .11), Width = 2 } };
         PdfDocument document = PdfDocument.Create(Options(200));
         AddTable(document, new[] {
             new[] { PdfTableCell.Merge("Alpha", rowSpan: 2), PdfTableCell.TextCell("Ready") },
@@ -62,7 +62,7 @@ public partial class PdfDocumentVisualQualityTests {
         PdfTableStyle style = Style();
         style.MinRowHeight = 60;
         style.CellBorders = new() { [(0, 0)] = new PdfCellBorder {
-            Color = new PdfColor(.61, .21, .11), Width = 2,
+            Color = global::OfficeIMO.OfficeColor.FromNormalizedRgb(.61, .21, .11), Width = 2,
             Top = false, Bottom = false, Left = false, Right = true,
             HiddenRightRowSegments = new() { hiddenRow }
         } };
@@ -118,7 +118,7 @@ public partial class PdfDocumentVisualQualityTests {
         style.LineHeight = 1;
         style.RowMinHeights = new() { null, 30 };
         style.CellBorders = new() { [(0, 0)] = new PdfCellBorder {
-            Color = new PdfColor(.61, .21, .11), Width = 2,
+            Color = global::OfficeIMO.OfficeColor.FromNormalizedRgb(.61, .21, .11), Width = 2,
             Top = false, Bottom = false, Left = false, Right = true,
             HiddenRightRowSegments = new() { 0 }
         } };

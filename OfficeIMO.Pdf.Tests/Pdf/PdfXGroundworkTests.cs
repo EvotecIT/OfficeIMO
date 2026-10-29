@@ -27,7 +27,7 @@ public class PdfXGroundworkTests {
                 "FOGRA51",
                 PdfTrappingStatus.False);
         options.CompressContentStreams = false;
-        options.BackgroundColor = PdfColor.Gray;
+        options.BackgroundColor = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.5D, 0.5D, 0.5D);
 
         byte[] pdf = PdfDocument.Create(options)
             .Meta(title: "PDF/X-4 groundwork", author: "OfficeIMO")
@@ -107,14 +107,14 @@ public class PdfXGroundworkTests {
                 "CMYK reviewer note",
                 width: 140,
                 height: 44,
-                textColor: new PdfColor(0.15D, 0.35D, 0.75D),
-                borderColor: new PdfColor(0.8D, 0.2D, 0.1D),
-                fillColor: new PdfColor(0.9D, 0.95D, 1D))
+                textColor: global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.15D, 0.35D, 0.75D),
+                borderColor: global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.8D, 0.2D, 0.1D),
+                fillColor: global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.9D, 0.95D, 1D))
             .HighlightAnnotation(
                 "CMYK highlight",
                 width: 120,
                 height: 14,
-                color: new PdfColor(1D, 0.9D, 0.1D))
+                color: global::OfficeIMO.OfficeColor.FromNormalizedRgb(1D, 0.9D, 0.1D))
             .ToBytes();
 
         PdfPrintProductionColorEvidence evidence = PdfReadDocument.Open(pdf).InspectPrintProductionColors();
@@ -394,7 +394,7 @@ public class PdfXGroundworkTests {
                 "FOGRA51");
         options.CompressContentStreams = false;
         options.ConvertVectorColorsToPdfXPrintCondition = false;
-        options.BackgroundColor = PdfColor.Gray;
+        options.BackgroundColor = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.5D, 0.5D, 0.5D);
 
         byte[] pdf = PdfDocument.Create(options)
             .Image(PdfPngTestImages.CreateRgbPng(12, 34, 56), 12, 12)

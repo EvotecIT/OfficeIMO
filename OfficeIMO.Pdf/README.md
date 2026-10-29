@@ -188,13 +188,13 @@ Use `PdfInlineRule` for a horizontal band that fills the space remaining on a ri
 ```csharp
 document.Content.Paragraph(paragraph => paragraph
     .Text("Signature: ")
-    .Inline(new PdfInlineRule(height: 0.5, color: PdfColor.Black,
+    .Inline(new PdfInlineRule(height: 0.5, color: OfficeColor.Black,
         baselineOffset: -2)));
 ```
 
 Height, `MaximumWidth` and `BaselineOffset` are in points. The baseline offset positions the bottom of the band relative to the text baseline; a negative value places it below that baseline. A null `MaximumWidth` fills the remaining line, while a positive value caps the width. Each layout resolves the width against its actual paragraph, table-cell or nested frame. The rule adds no intrinsic width during automatic table sizing, and text following a rule wraps normally if the rule consumes the rest of the line. A frame with no remaining width paints no band.
 
-Rules can also be composed inside footnote separator callbacks. For example, `new PdfInlineRule(0.5, PdfColor.Black, maximumWidth: 144)` draws a band up to two inches wide without extending beyond its line frame.
+Rules can also be composed inside footnote separator callbacks. For example, `new PdfInlineRule(0.5, OfficeColor.Black, maximumWidth: 144)` draws a band up to two inches wide without extending beyond its line frame.
 
 ## Literal text to PDF
 
@@ -317,7 +317,7 @@ Bar stops draw stationary vertical rules alongside the paragraph's lines:
 var style = new PdfParagraphStyle();
 PdfTabStop rule = style.AddTabStop(72, PdfTabAlignment.Bar);
 rule.BarWidth = 0.5;
-rule.BarColor = PdfColor.Black;
+rule.BarColor = OfficeColor.Black;
 ```
 
 Each rule spans its line's resolved height, including applied paragraph space before on the first line and space after on the last. Bars keep their paragraph origin through hanging indents, alignment and continuation. They leave glyph positions and positional tab selection unchanged. Paragraph and heading styles capture the rule's position, width and color; bar alignment is available on style declarations, while `PdfTextRun.Tab` accepts text alignments.
@@ -415,8 +415,8 @@ PdfDocument.Create(document => document
     .Settings(options => options.TaggedStructureMode = PdfTaggedStructureMode.CatalogMarkers)
     .Content(content => content.Element(element => element
         .Semantic(PdfSemanticRole.Article)
-        .Background(PdfColor.FromRgb(248, 250, 252))
-        .Border(PdfColor.FromRgb(148, 163, 184))
+        .Background(OfficeColor.FromRgb(248, 250, 252))
+        .Border(OfficeColor.FromRgb(148, 163, 184))
         .Padding(vertical: 10, horizontal: 12)
         .MaxWidth(420)
         .Align(PdfAlign.Center)
@@ -567,8 +567,8 @@ document.Content.Panel(panel => panel.Paragraph(p => p.Text("Content in a contin
         new PdfPanelStyle {
             RepeatFragmentDecoration = false,
             PaddingY = 4,
-            LeftBorder = new PdfPanelBorder { Color = PdfColor.Black, Offset = 2 },
-            RightBorder = new PdfPanelBorder { Color = PdfColor.Black, Offset = 2 }
+            LeftBorder = new PdfPanelBorder { Color = OfficeColor.Black, Offset = 2 },
+            RightBorder = new PdfPanelBorder { Color = OfficeColor.Black, Offset = 2 }
         });
 ```
 When columns start partway down a page, kept paragraphs, lists, panels and static
@@ -1046,7 +1046,7 @@ Generated headers and footers can combine literal text, visually styled runs, an
 PdfDocument.Create(pdf => pdf.Page(page => page
     .Header(header => header
         .Text(text => text
-            .Run(PdfTextRun.Bolded("Confidential ", PdfColor.FromRgb(180, 0, 0)))
+            .Run(PdfTextRun.Bolded("Confidential ", OfficeColor.FromRgb(180, 0, 0)))
             .Text("- page ")
             .CurrentPage(PdfTextRun.Italicized(string.Empty))
             .Text(" of ")
@@ -1274,8 +1274,8 @@ PdfDocument.Create(pdf => pdf.Content(content => content
         .TableOfContents()
         .Section("Summary", section => section
             .Element(element => element
-                .Background(PdfColor.FromRgb(248, 250, 252))
-                .Border(PdfColor.FromRgb(148, 163, 184))
+                .Background(OfficeColor.FromRgb(248, 250, 252))
+                .Border(OfficeColor.FromRgb(148, 163, 184))
                 .Padding(10)
                 .KeepTogether()
                 .Content(summary => summary
@@ -2363,11 +2363,11 @@ PdfDocument.Load("contract.pdf")
         X = 72,
         Y = 720,
         FontSize = 18,
-        Color = PdfColor.FromRgb(180, 30, 30)
+        Color = OfficeColor.FromRgb(180, 30, 30)
     })
     .Stamp.TextWatermark("CONFIDENTIAL", new PdfTextStampOptions {
         FontSize = 54,
-        Color = PdfColor.Gray,
+        Color = OfficeColor.Gray,
         RotationDegrees = -35
     })
     .Save("contract-reviewed.pdf");
@@ -2403,7 +2403,7 @@ var watermark = new PdfWatermarkOptions {
     Text = "DRAFT",
     RotationDegrees = -30,
     Opacity = 0.3,
-    Color = PdfColor.FromRgb(180, 30, 30),
+    Color = OfficeColor.FromRgb(180, 30, 30),
     TargetPages = PdfPageSelector.Parse("1")
 };
 PdfDocument.Load("contract.pdf").Stamp.Watermark(watermark).Save("contract-draft.pdf");
@@ -2502,7 +2502,7 @@ PdfRegionText current = document.Text.Inspect(region);
 Console.WriteLine($"{current.Text} ({current.SourceFont}, {current.FontSize} pt)");
 
 PdfTextEditResult edited = document.Text.Replace(region, "Approved", new PdfTextEditOptions {
-    Color = PdfColor.FromRgb(25, 110, 55),
+    Color = OfficeColor.FromRgb(25, 110, 55),
     RegionWidthPolicy = PdfTextRegionWidthPolicy.ShrinkToFit,
     MinimumFontSize = 8
 });

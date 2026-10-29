@@ -4,12 +4,12 @@ namespace OfficeIMO.Examples.Showcase.Workflows {
     /// <summary>Creates a fillable maintenance job card with named work, outcome and handover fields.</summary>
     internal static class MaintenanceJobCard {
         internal static void Create(string folder) {
-            var navy = PdfColor.FromRgb(23, 54, 93);
+            var navy = global::OfficeIMO.OfficeColor.FromRgb(23, 54, 93);
             PdfDocument.Create(pdf => pdf.Content(content => content
                 .H1("Maintenance job card", PdfAlign.Left, navy)
                 .Paragraph(p => p.Text("NORTHWIND / WORKPLACE OPERATIONS / DEMONSTRATION FORM"))
                 .PanelParagraph(p => p.Bold("Scope").Text("\nRecord authorised work and its result. This example does not define a safety procedure or authorise equipment operation."),
-                    new PdfPanelStyle { Background = PdfColor.FromRgb(234, 241, 251), PaddingX = 12, PaddingY = 10 })
+                    new PdfPanelStyle { Background = global::OfficeIMO.OfficeColor.FromRgb(234, 241, 251), PaddingX = 12, PaddingY = 10 })
                 .H2("Work order", PdfAlign.Left, navy)
                 .Paragraph(p => p.Bold("Reference / asset")).TextField("job-reference", width: 300, value: "WO-018 / ROOM-04")
                 .Paragraph(p => p.Bold("Assigned technician")).TextField("technician", width: 300)

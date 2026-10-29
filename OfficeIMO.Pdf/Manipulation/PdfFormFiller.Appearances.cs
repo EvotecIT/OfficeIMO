@@ -396,11 +396,11 @@ internal static partial class PdfFormFiller {
         }
 
         if (ResolveDictionary(objects, widget.Items.TryGetValue("MK", out var mkObject) ? mkObject : null) is PdfDictionary mk) {
-            if (TryReadColor(objects, mk, "BG", out PdfColor backgroundColor)) {
+            if (TryReadColor(objects, mk, "BG", out global::OfficeIMO.OfficeColor backgroundColor)) {
                 style.BackgroundColor = backgroundColor;
             }
 
-            if (TryReadColor(objects, mk, "BC", out PdfColor borderColor)) {
+            if (TryReadColor(objects, mk, "BC", out global::OfficeIMO.OfficeColor borderColor)) {
                 style.BorderColor = borderColor;
             }
         }
@@ -417,7 +417,7 @@ internal static partial class PdfFormFiller {
             style.BorderDashPattern = borderDashPattern;
         }
 
-        if (TryReadDefaultAppearanceTextColor(objects, widget, inheritedDefaultAppearance, out PdfColor textColor)) {
+        if (TryReadDefaultAppearanceTextColor(objects, widget, inheritedDefaultAppearance, out global::OfficeIMO.OfficeColor textColor)) {
             style.TextColor = textColor;
         }
 
@@ -490,7 +490,7 @@ internal static partial class PdfFormFiller {
         return true;
     }
 
-    private static bool TryReadColor(Dictionary<int, PdfIndirectObject> objects, PdfDictionary dictionary, string key, out PdfColor color) {
+    private static bool TryReadColor(Dictionary<int, PdfIndirectObject> objects, PdfDictionary dictionary, string key, out global::OfficeIMO.OfficeColor color) {
         color = default;
         if (!dictionary.Items.TryGetValue(key, out var colorObject) ||
             ResolveObject(objects, colorObject) is not PdfArray colorArray ||
@@ -504,7 +504,7 @@ internal static partial class PdfFormFiller {
             return false;
         }
 
-        color = new PdfColor(red.Value, green.Value, blue.Value);
+        color = global::OfficeIMO.OfficeColor.FromNormalizedRgb(red.Value, green.Value, blue.Value);
         return true;
     }
 
@@ -610,7 +610,7 @@ internal static partial class PdfFormFiller {
         return true;
     }
 
-    private static bool TryReadDefaultAppearanceTextColor(Dictionary<int, PdfIndirectObject> objects, PdfDictionary widget, string? inheritedDefaultAppearance, out PdfColor color) {
+    private static bool TryReadDefaultAppearanceTextColor(Dictionary<int, PdfIndirectObject> objects, PdfDictionary widget, string? inheritedDefaultAppearance, out global::OfficeIMO.OfficeColor color) {
         return PdfDefaultAppearanceParser.TryReadTextColor(TryReadText(objects, widget, "DA") ?? inheritedDefaultAppearance, out color);
     }
 

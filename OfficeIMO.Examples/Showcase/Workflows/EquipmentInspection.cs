@@ -5,7 +5,7 @@ namespace OfficeIMO.Examples.Showcase.Workflows;
 /// <summary>Creates an inspection form, fills a completed copy, and saves a permanent record.</summary>
 internal static class EquipmentInspection {
     internal static void Create(string folder) {
-        PdfColor navy = PdfColor.FromRgb(23, 54, 93);
+        global::OfficeIMO.OfficeColor navy = global::OfficeIMO.OfficeColor.FromRgb(23, 54, 93);
         PdfDocument template = PdfDocument.Create(pdf => pdf.Content(content => content
             .H1("Equipment inspection", PdfAlign.Left, navy)
             .Paragraph(p => p.Text("NORTHWIND / WORKPLACE OPERATIONS / FILLABLE CHECKLIST"))

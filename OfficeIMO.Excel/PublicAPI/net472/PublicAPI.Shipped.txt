@@ -535,6 +535,12 @@ OfficeIMO.Excel.ExcelChartInfo.ShowNegativeBubbles.get -> bool
 OfficeIMO.Excel.ExcelChartInfo.Style.get -> OfficeIMO.Drawing.OfficeChartStyle?
 OfficeIMO.Excel.ExcelChartInfo.Title.get -> string?
 OfficeIMO.Excel.ExcelChartInfo.Width.get -> OfficeIMO.OfficeLength
+OfficeIMO.Excel.ExcelChartOptions
+OfficeIMO.Excel.ExcelChartOptions.Column.get -> int
+OfficeIMO.Excel.ExcelChartOptions.Column.set -> void
+OfficeIMO.Excel.ExcelChartOptions.ExcelChartOptions() -> void
+OfficeIMO.Excel.ExcelChartOptions.Row.get -> int
+OfficeIMO.Excel.ExcelChartOptions.Row.set -> void
 OfficeIMO.Excel.ExcelChartPlacement
 OfficeIMO.Excel.ExcelChartPlacement.Column.get -> int
 OfficeIMO.Excel.ExcelChartPlacement.ExcelChartPlacement(int row, int column, OfficeIMO.OfficeLength width, OfficeIMO.OfficeLength height) -> void
@@ -2990,8 +2996,11 @@ OfficeIMO.Excel.ExcelSheet.AddAutoFilter(string! range, System.Collections.Gener
 OfficeIMO.Excel.ExcelSheet.AddBubbleChartFromRanges(System.Collections.Generic.IEnumerable<OfficeIMO.Excel.ExcelChartSeriesRange!>! seriesRanges, int row, int column, OfficeIMO.OfficeLength? width = null, OfficeIMO.OfficeLength? height = null, string? title = null) -> OfficeIMO.Excel.ExcelChart!
 OfficeIMO.Excel.ExcelSheet.AddChart(OfficeIMO.Excel.ExcelChartData! data, int row, int column, OfficeIMO.OfficeLength? width = null, OfficeIMO.OfficeLength? height = null, OfficeIMO.OfficeChartType type = OfficeIMO.OfficeChartType.Column, string? title = null) -> OfficeIMO.Excel.ExcelChart!
 OfficeIMO.Excel.ExcelSheet.AddChart(OfficeIMO.Excel.ExcelChartDataRange! dataRange, int row, int column, OfficeIMO.OfficeLength? width = null, OfficeIMO.OfficeLength? height = null, OfficeIMO.OfficeChartType type = OfficeIMO.OfficeChartType.Column, OfficeIMO.Excel.ExcelChartData? cachedData = null, string? title = null) -> OfficeIMO.Excel.ExcelChart!
-OfficeIMO.Excel.ExcelSheet.AddChart(OfficeIMO.OfficeChartType chartKind, OfficeIMO.Drawing.OfficeChartData! data, int row, int column, OfficeIMO.OfficeLength? width = null, OfficeIMO.OfficeLength? height = null, string? title = null) -> OfficeIMO.Excel.ExcelChart!
+OfficeIMO.Excel.ExcelSheet.AddChart(OfficeIMO.OfficeChartType chartKind, OfficeIMO.Drawing.OfficeChartData! data) -> OfficeIMO.Excel.ExcelChart!
+OfficeIMO.Excel.ExcelSheet.AddChart(OfficeIMO.OfficeChartType chartKind, OfficeIMO.Drawing.OfficeChartData! data, OfficeIMO.OfficeChartOptions? options) -> OfficeIMO.Excel.ExcelChart!
+OfficeIMO.Excel.ExcelSheet.AddChart<T, TCategory>(OfficeIMO.OfficeChartType type, System.Collections.Generic.IEnumerable<T>! data, System.Func<T, TCategory>! category, OfficeIMO.OfficeChartOptions? options, params OfficeIMO.OfficeSeries![]! series) -> OfficeIMO.Excel.ExcelChart!
 OfficeIMO.Excel.ExcelSheet.AddChart<T, TCategory>(OfficeIMO.OfficeChartType type, System.Collections.Generic.IEnumerable<T>! data, System.Func<T, TCategory>! category, params OfficeIMO.OfficeSeries![]! series) -> OfficeIMO.Excel.ExcelChart!
+OfficeIMO.Excel.ExcelSheet.AddChart<T>(OfficeIMO.OfficeChartType type, System.Collections.Generic.IEnumerable<T>! data, string! category, OfficeIMO.OfficeChartOptions? options, params string![]! series) -> OfficeIMO.Excel.ExcelChart!
 OfficeIMO.Excel.ExcelSheet.AddChart<T>(OfficeIMO.OfficeChartType type, System.Collections.Generic.IEnumerable<T>! data, string! category, params string![]! series) -> OfficeIMO.Excel.ExcelChart!
 OfficeIMO.Excel.ExcelSheet.AddChartFromRange(string! dataRangeA1, int row, int column, OfficeIMO.OfficeLength? width = null, OfficeIMO.OfficeLength? height = null, OfficeIMO.OfficeChartType type = OfficeIMO.OfficeChartType.Column, bool hasHeaders = true, string? title = null, bool includeCachedData = true) -> OfficeIMO.Excel.ExcelChart!
 OfficeIMO.Excel.ExcelSheet.AddChartFromTable(string! tableName, int row, int column, OfficeIMO.OfficeLength? width = null, OfficeIMO.OfficeLength? height = null, OfficeIMO.OfficeChartType type = OfficeIMO.OfficeChartType.Column, string? title = null, bool includeCachedData = true) -> OfficeIMO.Excel.ExcelChart!

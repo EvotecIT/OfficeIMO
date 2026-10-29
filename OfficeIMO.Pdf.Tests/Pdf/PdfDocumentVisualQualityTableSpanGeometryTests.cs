@@ -212,12 +212,12 @@ public partial class PdfDocumentVisualQualityTests {
         style.CellPaddingY = 4;
         style.MinRowHeight = 24;
         style.ColumnWidthPoints = new List<double?> { 60, 70, 70 };
-        style.CellFills = new Dictionary<(int Row, int Column), PdfColor> {
-            [(0, 0)] = new PdfColor(0.31, 0.41, 0.51)
+        style.CellFills = new Dictionary<(int Row, int Column), global::OfficeIMO.OfficeColor> {
+            [(0, 0)] = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.31, 0.41, 0.51)
         };
         style.CellBorders = new Dictionary<(int Row, int Column), PdfCellBorder> {
             [(0, 0)] = new PdfCellBorder {
-                Color = new PdfColor(0.61, 0.21, 0.11),
+                Color = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.61, 0.21, 0.11),
                 Width = 1.4
             }
         };
@@ -260,12 +260,12 @@ public partial class PdfDocumentVisualQualityTests {
         style.CellPaddingY = 4;
         style.MinRowHeight = 24;
         style.ColumnWidthPoints = new List<double?> { 45, 45, 45 };
-        style.CellFills = new Dictionary<(int Row, int Column), PdfColor> {
-            [(0, 0)] = new PdfColor(0.31, 0.41, 0.51)
+        style.CellFills = new Dictionary<(int Row, int Column), global::OfficeIMO.OfficeColor> {
+            [(0, 0)] = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.31, 0.41, 0.51)
         };
         style.CellBorders = new Dictionary<(int Row, int Column), PdfCellBorder> {
             [(0, 0)] = new PdfCellBorder {
-                Color = new PdfColor(0.61, 0.21, 0.11),
+                Color = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.61, 0.21, 0.11),
                 Width = 1.4
             }
         };
@@ -313,12 +313,12 @@ public partial class PdfDocumentVisualQualityTests {
         style.CellPaddingY = 4;
         style.MinRowHeight = 24;
         style.ColumnWidthPoints = new List<double?> { 60, 70, 70 };
-        style.CellFills = new Dictionary<(int Row, int Column), PdfColor> {
-            [(1, 0)] = new PdfColor(0.31, 0.41, 0.51)
+        style.CellFills = new Dictionary<(int Row, int Column), global::OfficeIMO.OfficeColor> {
+            [(1, 0)] = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.31, 0.41, 0.51)
         };
         style.CellBorders = new Dictionary<(int Row, int Column), PdfCellBorder> {
             [(1, 0)] = new PdfCellBorder {
-                Color = new PdfColor(0.61, 0.21, 0.11),
+                Color = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.61, 0.21, 0.11),
                 Width = 1.4
             }
         };
@@ -357,12 +357,12 @@ public partial class PdfDocumentVisualQualityTests {
         style.CellPaddingY = 4;
         style.MinRowHeight = 24;
         style.ColumnWidthPoints = new List<double?> { 45, 45, 45 };
-        style.CellFills = new Dictionary<(int Row, int Column), PdfColor> {
-            [(1, 0)] = new PdfColor(0.31, 0.41, 0.51)
+        style.CellFills = new Dictionary<(int Row, int Column), global::OfficeIMO.OfficeColor> {
+            [(1, 0)] = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.31, 0.41, 0.51)
         };
         style.CellBorders = new Dictionary<(int Row, int Column), PdfCellBorder> {
             [(1, 0)] = new PdfCellBorder {
-                Color = new PdfColor(0.61, 0.21, 0.11),
+                Color = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.61, 0.21, 0.11),
                 Width = 1.4
             }
         };
@@ -406,12 +406,12 @@ public partial class PdfDocumentVisualQualityTests {
         style.CellPaddingY = 4;
         style.MinRowHeight = 24;
         style.ColumnWidthPoints = new List<double?> { 60, 70, 70 };
-        style.CellFills = new Dictionary<(int Row, int Column), PdfColor> {
-            [(0, 1)] = new PdfColor(0.31, 0.41, 0.51)
+        style.CellFills = new Dictionary<(int Row, int Column), global::OfficeIMO.OfficeColor> {
+            [(0, 1)] = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.31, 0.41, 0.51)
         };
         style.CellBorders = new Dictionary<(int Row, int Column), PdfCellBorder> {
             [(0, 1)] = new PdfCellBorder {
-                Color = new PdfColor(0.61, 0.21, 0.11),
+                Color = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.61, 0.21, 0.11),
                 Width = 1.4
             }
         };
@@ -449,12 +449,12 @@ public partial class PdfDocumentVisualQualityTests {
         style.CellPaddingY = 4;
         style.MinRowHeight = 24;
         style.ColumnWidthPoints = new List<double?> { 45, 45, 45 };
-        style.CellFills = new Dictionary<(int Row, int Column), PdfColor> {
-            [(0, 1)] = new PdfColor(0.31, 0.41, 0.51)
+        style.CellFills = new Dictionary<(int Row, int Column), global::OfficeIMO.OfficeColor> {
+            [(0, 1)] = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.31, 0.41, 0.51)
         };
         style.CellBorders = new Dictionary<(int Row, int Column), PdfCellBorder> {
             [(0, 1)] = new PdfCellBorder {
-                Color = new PdfColor(0.61, 0.21, 0.11),
+                Color = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.61, 0.21, 0.11),
                 Width = 1.4
             }
         };

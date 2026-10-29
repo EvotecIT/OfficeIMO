@@ -605,11 +605,11 @@ public partial class Word {
                 IncludePageNumbers = false,
                 PdfOptions = new OfficeIMO.Pdf.PdfCreateOptions {
                     DefaultTableStyle = new OfficeIMO.Pdf.PdfTableStyle {
-                        BorderColor = OfficeIMO.Pdf.PdfColor.Black,
+                        BorderColor = global::OfficeIMO.OfficeColor.Black,
                         BorderWidth = 0.5D,
                         CellBorders = new Dictionary<(int Row, int Column), OfficeIMO.Pdf.PdfCellBorder> {
                             [(0, 0)] = new OfficeIMO.Pdf.PdfCellBorder {
-                                Color = OfficeIMO.Pdf.PdfColor.FromRgb(0, 0, 255),
+                                Color = global::OfficeIMO.OfficeColor.FromRgb(0, 0, 255),
                                 Width = 2D
                             }
                         }

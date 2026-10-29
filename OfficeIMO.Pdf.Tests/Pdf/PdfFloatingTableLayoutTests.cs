@@ -291,7 +291,7 @@ public class PdfFloatingTableLayoutTests {
     public void WideInlineElementMovesBelowFloat() {
         byte[] bytes = PdfDocument.Create(Options())
             .Table(new[] { new[] { "floating" } }, style: Floating())
-            .Paragraph(paragraph => paragraph.Inline(new PdfInlineBox(250, 20, background: PdfColor.Black)).Text("after"))
+            .Paragraph(paragraph => paragraph.Inline(new PdfInlineBox(250, 20, background: global::OfficeIMO.OfficeColor.Black)).Text("after"))
             .ToBytes();
         using var pdf = PdfPigDocument.Open(bytes);
         Assert.Single(pdf.GetPage(1).GetWords(), word => word.Text == "after");
@@ -358,7 +358,7 @@ public class PdfFloatingTableLayoutTests {
     public void LaterWideInlineContentDoesNotDisplaceEarlierTextLines() {
         using var pdf = PdfPigDocument.Open(PdfDocument.Create(Options()).Table(new[] { new[] { "floating" } }, style: Floating())
             .Paragraph(paragraph => paragraph.Text("early\nordinary\n")
-                .Inline(new PdfInlineBox(250, 70, background: PdfColor.Black)).Text("late")).ToBytes());
+                .Inline(new PdfInlineBox(250, 70, background: global::OfficeIMO.OfficeColor.Black)).Text("late")).ToBytes());
         var words = pdf.GetPage(1).GetWords().ToList();
         var early = words.Single(word => word.Text == "early");
         var ordinary = words.Single(word => word.Text == "ordinary");

@@ -810,13 +810,13 @@ public sealed class PdfRenderingProfileTests {
             string.Empty,
             bold: true,
             underline: true,
-            color: PdfColor.FromRgb(10, 20, 30),
+            color: global::OfficeIMO.OfficeColor.FromRgb(10, 20, 30),
             italic: true,
             strike: true,
             fontSize: 13,
             font: PdfStandardFont.Courier,
             baseline: PdfTextBaseline.Superscript,
-            backgroundColor: PdfColor.FromRgb(40, 50, 60),
+            backgroundColor: global::OfficeIMO.OfficeColor.FromRgb(40, 50, 60),
             fontFamily: "Scoped");
         IReadOnlyList<PdfTextRun> runs = plan.ToNamedTextRuns(
             planner.FontFamilyNames,

@@ -332,10 +332,10 @@ public static partial class WordIWorkConverter {
         if (source.Geometry is { } geometry) {
             textBox.HorizontalPositionRelativeFrom = WordHorizontalRelativePosition.Page;
             textBox.VerticalPositionRelativeFrom = WordVerticalRelativePosition.Page;
-            textBox.HorizontalPositionOffset = ToEmusInt32(geometry.LeftPoints);
-            textBox.VerticalPositionOffset = ToEmusInt32(geometry.TopPoints);
-            textBox.Width = ToEmusInt64(geometry.WidthPoints);
-            textBox.Height = ToEmusInt64(geometry.HeightPoints);
+            textBox.HorizontalPositionOffset = OfficeLength.Emus(ToEmusInt32(geometry.LeftPoints));
+            textBox.VerticalPositionOffset = OfficeLength.Emus(ToEmusInt32(geometry.TopPoints));
+            textBox.Width = OfficeLength.Emus(ToEmusInt64(geometry.WidthPoints));
+            textBox.Height = OfficeLength.Emus(ToEmusInt64(geometry.HeightPoints));
         }
         textBox.Description = source.AccessibilityDescription;
 

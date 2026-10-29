@@ -82,14 +82,14 @@ public class PdfInvoiceDocumentTests {
     [Fact]
     public void ModernPresentationCapturesThemeApprovalsAndLocalizedLabels() {
         Invoice invoice = InvoiceFixture.Create();
-        var theme = InvoicePdfTheme.Modern(PdfColor.FromRgb(63, 92, 255));
+        var theme = InvoicePdfTheme.Modern(global::OfficeIMO.OfficeColor.FromRgb(63, 92, 255));
         var layout = InvoicePdfLayoutOptions.ForCultures("pl-PL");
         layout.Theme = theme;
         layout.Approvals.Add(new InvoicePdfApproval("Prepared by", "Marta Nowak", "Finance", invoice.IssueDate));
         PdfInvoiceDocument snapshot = PdfInvoiceDocument.Create(invoice, Contract(), layout);
 
         byte[] first = snapshot.ToPresentationPdfBytes(Options());
-        theme.Accent = PdfColor.Black;
+        theme.Accent = global::OfficeIMO.OfficeColor.Black;
         theme.CornerRadius = 0D;
         layout.Theme = null;
         layout.Approvals.Clear();
@@ -115,7 +115,7 @@ public class PdfInvoiceDocumentTests {
             Account = existing.Account
         });
         var layout = InvoicePdfLayoutOptions.ForCultures("en-GB");
-        layout.Theme = InvoicePdfTheme.Modern(PdfColor.FromRgb(63, 92, 255));
+        layout.Theme = InvoicePdfTheme.Modern(global::OfficeIMO.OfficeColor.FromRgb(63, 92, 255));
 
         byte[] pdf = PdfInvoiceDocument.Create(invoice, Contract(), layout).ToPresentationPdfBytes(Options());
         string text = PdfDocument.Load(new System.IO.MemoryStream(pdf)).ExtractUnwrappedText();
@@ -127,7 +127,7 @@ public class PdfInvoiceDocumentTests {
     public void ModernPresentationPreservesLogoAspectRatioByDefault() {
         Invoice invoice = InvoiceFixture.Create();
         var layout = InvoicePdfLayoutOptions.ForCultures("en-GB");
-        layout.Theme = InvoicePdfTheme.Modern(PdfColor.FromRgb(63, 92, 255));
+        layout.Theme = InvoicePdfTheme.Modern(global::OfficeIMO.OfficeColor.FromRgb(63, 92, 255));
         layout.LogoBytes = Convert.FromBase64String(
             "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=");
         layout.LogoWidth = 150D;
@@ -147,7 +147,7 @@ public class PdfInvoiceDocumentTests {
     public void ModernPresentationKeepsFinancialBreakdownsAndTotalsVisible() {
         Invoice invoice = InvoiceFixture.Rich();
         var layout = InvoicePdfLayoutOptions.ForCultures("en-GB");
-        layout.Theme = InvoicePdfTheme.Modern(PdfColor.FromRgb(63, 92, 255));
+        layout.Theme = InvoicePdfTheme.Modern(global::OfficeIMO.OfficeColor.FromRgb(63, 92, 255));
 
         byte[] pdf = PdfInvoiceDocument.Create(invoice, Contract(), layout).ToPresentationPdfBytes(Options());
         string text = string.Join(" ", PdfDocument.Load(new System.IO.MemoryStream(pdf)).ExtractUnwrappedText().Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
@@ -167,7 +167,7 @@ public class PdfInvoiceDocumentTests {
         invoice.Seller.LegalInformation = string.Join(" ", Enumerable.Repeat("Long seller disclosure", 160)) + " FINAL-PARTY-MARKER";
         invoice.PaymentTerms = string.Join(" ", Enumerable.Repeat("Long payment term", 180)) + " FINAL-PAYMENT-MARKER";
         var layout = InvoicePdfLayoutOptions.ForCultures("en-GB");
-        layout.Theme = InvoicePdfTheme.Modern(PdfColor.FromRgb(63, 92, 255));
+        layout.Theme = InvoicePdfTheme.Modern(global::OfficeIMO.OfficeColor.FromRgb(63, 92, 255));
         layout.Approvals.Add(new InvoicePdfApproval("Approved by", "Marta Nowak",
             string.Join(" ", Enumerable.Repeat("Long approval role", 180)) + " FINAL-APPROVAL-MARKER", invoice.IssueDate));
 
@@ -188,7 +188,7 @@ public class PdfInvoiceDocumentTests {
         invoice.PaymentTerms = string.Join("\n", Enumerable.Repeat("TERM", 70)) +
             "\nFINAL-PAYMENT-TERMS-MARKER";
         var layout = InvoicePdfLayoutOptions.ForCultures("en-GB");
-        layout.Theme = InvoicePdfTheme.Modern(PdfColor.FromRgb(63, 92, 255));
+        layout.Theme = InvoicePdfTheme.Modern(global::OfficeIMO.OfficeColor.FromRgb(63, 92, 255));
 
         byte[] pdf = PdfInvoiceDocument.Create(invoice, Contract(), layout).ToPresentationPdfBytes(Options());
         PdfDocument document = PdfDocument.Load(new System.IO.MemoryStream(pdf));

@@ -75,7 +75,7 @@ public sealed partial class PdfStaticFormRecognizerTests {
         backdrop.StrokeColor = null;
         byte[] source = PdfDocument.Create(new PdfCreateOptions { PageWidth = 400D, PageHeight = 300D })
             .Canvas(canvas => canvas.Shape(backdrop, 10D, 20D)
-                .Text("Name:", 20D, 28D, 70D, 20D, color: PdfColor.FromRgb(0, 0, 0))
+                .Text("Name:", 20D, 28D, 70D, 20D, color: global::OfficeIMO.OfficeColor.FromRgb(0, 0, 0))
                 .Shape(Box(140D, 20D), 100D, 28D)).ToBytes();
 
         Assert.Empty(PdfDocument.Load(source).Forms.RecognizeStaticLayout().Proposals);

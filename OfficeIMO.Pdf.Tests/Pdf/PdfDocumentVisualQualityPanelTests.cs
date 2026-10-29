@@ -101,7 +101,7 @@ public partial class PdfDocumentVisualQualityTests {
             DefaultFontSize = 10
         };
         var style = new PdfPanelStyle {
-            Background = PdfColor.FromRgb(240, 248, 255),
+            Background = global::OfficeIMO.OfficeColor.FromRgb(240, 248, 255),
             PaddingX = 16,
             MaxWidth = 120,
             Align = PdfAlign.Center
@@ -375,8 +375,8 @@ public partial class PdfDocumentVisualQualityTests {
                     .HR()
                     .PanelParagraph(p => p.Bold("Nested note").Text(": still uses panel text rendering.")),
                 new PdfPanelStyle {
-                    Background = PdfColor.FromRgb(248, 250, 252),
-                    BorderColor = PdfColor.FromRgb(37, 99, 235),
+                    Background = global::OfficeIMO.OfficeColor.FromRgb(248, 250, 252),
+                    BorderColor = global::OfficeIMO.OfficeColor.FromRgb(37, 99, 235),
                     BorderWidth = 0.8,
                     PaddingX = 10,
                     PaddingY = 8
@@ -401,11 +401,11 @@ public partial class PdfDocumentVisualQualityTests {
         checklistStyle.CellIcons = new Dictionary<(int Row, int Column), PdfCellIcon> {
             [(0, 0)] = new PdfCellIcon {
                 Kind = PdfCellIconKind.CheckBoxChecked,
-                Color = PdfColor.FromRgb(22, 163, 74)
+                Color = global::OfficeIMO.OfficeColor.FromRgb(22, 163, 74)
             },
             [(1, 0)] = new PdfCellIcon {
                 Kind = PdfCellIconKind.CheckBoxUnchecked,
-                Color = PdfColor.FromRgb(100, 116, 139)
+                Color = global::OfficeIMO.OfficeColor.FromRgb(100, 116, 139)
             }
         };
 
@@ -433,8 +433,8 @@ public partial class PdfDocumentVisualQualityTests {
                     page.Content(content =>
                         content.Item(item =>
                             item.Element(element => element
-                                .Background(PdfColor.FromRgb(248, 250, 252))
-                                .Border(PdfColor.FromRgb(148, 163, 184))
+                                .Background(global::OfficeIMO.OfficeColor.FromRgb(248, 250, 252))
+                                .Border(global::OfficeIMO.OfficeColor.FromRgb(148, 163, 184))
                                 .Padding(vertical: 6, horizontal: 8)
                                 .MaxWidth(320)
                                 .Align(PdfAlign.Center)
@@ -488,8 +488,8 @@ public partial class PdfDocumentVisualQualityTests {
     [Fact]
     public void PanelParagraph_SnapshotsStyleBeforeRendering() {
         var style = new PdfPanelStyle {
-            Background = PdfColor.FromRgb(26, 51, 77),
-            BorderColor = PdfColor.FromRgb(40, 80, 120),
+            Background = global::OfficeIMO.OfficeColor.FromRgb(26, 51, 77),
+            BorderColor = global::OfficeIMO.OfficeColor.FromRgb(40, 80, 120),
             BorderWidth = 2,
             PaddingX = 7,
             PaddingY = 8,
@@ -503,8 +503,8 @@ public partial class PdfDocumentVisualQualityTests {
 
         var block = new ContainerBlock(Array.Empty<IPdfBlock>(), style);
 
-        style.Background = PdfColor.FromRgb(200, 10, 10);
-        style.BorderColor = PdfColor.FromRgb(220, 10, 10);
+        style.Background = global::OfficeIMO.OfficeColor.FromRgb(200, 10, 10);
+        style.BorderColor = global::OfficeIMO.OfficeColor.FromRgb(220, 10, 10);
         style.BorderWidth = 4;
         style.PaddingX = 20;
         style.PaddingY = 21;
@@ -515,8 +515,8 @@ public partial class PdfDocumentVisualQualityTests {
         style.KeepTogether = false;
         style.KeepWithNext = false;
 
-        Assert.Equal(PdfColor.FromRgb(26, 51, 77), block.Style!.Background);
-        Assert.Equal(PdfColor.FromRgb(40, 80, 120), block.Style.BorderColor);
+        Assert.Equal(global::OfficeIMO.OfficeColor.FromRgb(26, 51, 77), block.Style!.Background);
+        Assert.Equal(global::OfficeIMO.OfficeColor.FromRgb(40, 80, 120), block.Style.BorderColor);
         Assert.Equal(2, block.Style.BorderWidth);
         Assert.Equal(7, block.Style.PaddingX);
         Assert.Equal(8, block.Style.PaddingY);
@@ -528,8 +528,8 @@ public partial class PdfDocumentVisualQualityTests {
         Assert.True(block.Style.KeepWithNext);
 
         var renderStyle = new PdfPanelStyle {
-            Background = PdfColor.FromRgb(26, 51, 77),
-            BorderColor = PdfColor.FromRgb(40, 80, 120),
+            Background = global::OfficeIMO.OfficeColor.FromRgb(26, 51, 77),
+            BorderColor = global::OfficeIMO.OfficeColor.FromRgb(40, 80, 120),
             BorderWidth = 2,
             PaddingX = 7,
             PaddingY = 8,
@@ -549,8 +549,8 @@ public partial class PdfDocumentVisualQualityTests {
             })
             .PanelParagraph(p => p.Text("Stable panel"), renderStyle);
 
-        renderStyle.Background = PdfColor.FromRgb(200, 10, 10);
-        renderStyle.BorderColor = PdfColor.FromRgb(220, 10, 10);
+        renderStyle.Background = global::OfficeIMO.OfficeColor.FromRgb(200, 10, 10);
+        renderStyle.BorderColor = global::OfficeIMO.OfficeColor.FromRgb(220, 10, 10);
         renderStyle.BorderWidth = 4;
         renderStyle.PaddingX = 20;
         renderStyle.PaddingY = 21;

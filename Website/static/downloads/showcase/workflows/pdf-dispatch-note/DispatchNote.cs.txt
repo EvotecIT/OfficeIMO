@@ -6,11 +6,11 @@ namespace OfficeIMO.Examples.Showcase.Workflows;
 /// <summary>Creates a dispatch note with shipment details, item rows, and delivery instructions.</summary>
 internal static class DispatchNote {
     internal static void Create(string folder) {
-        PdfColor navy = PdfColor.FromRgb(23, 54, 93);
+        global::OfficeIMO.OfficeColor navy = global::OfficeIMO.OfficeColor.FromRgb(23, 54, 93);
         var tableStyle = new PdfTableStyle {
-            HeaderFill = navy, HeaderTextColor = PdfColor.White, HeaderRowCount = 1,
-            RowStripeFill = PdfColor.FromRgb(241, 245, 249),
-            BorderColor = PdfColor.FromRgb(203, 213, 225), BorderWidth = 0.5,
+            HeaderFill = navy, HeaderTextColor = global::OfficeIMO.OfficeColor.White, HeaderRowCount = 1,
+            RowStripeFill = global::OfficeIMO.OfficeColor.FromRgb(241, 245, 249),
+            BorderColor = global::OfficeIMO.OfficeColor.FromRgb(203, 213, 225), BorderWidth = 0.5,
             CellPaddingX = 8, CellPaddingY = 9, SpacingBefore = 10, SpacingAfter = 18
         };
         string[][] items = {
@@ -29,8 +29,8 @@ internal static class DispatchNote {
             .PanelParagraph(p => p.Bold("Receiving instructions\n").Text(
                 "Check all 13 cartons against this note. Record visible damage before accepting the shipment."),
                 new PdfPanelStyle {
-                    Background = PdfColor.FromRgb(232, 241, 251),
-                    BorderColor = PdfColor.FromRgb(165, 190, 225), PaddingX = 12, PaddingY = 12
+                    Background = global::OfficeIMO.OfficeColor.FromRgb(232, 241, 251),
+                    BorderColor = global::OfficeIMO.OfficeColor.FromRgb(165, 190, 225), PaddingX = 12, PaddingY = 12
                 })
             .H2("Receipt", PdfAlign.Left, navy)
             .Paragraph(p => p.Text("Received by: ____________________     Date: ____________________"))

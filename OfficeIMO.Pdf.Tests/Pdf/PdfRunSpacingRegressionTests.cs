@@ -122,7 +122,7 @@ public sealed class PdfRunSpacingRegressionTests {
         PdfCreateOptions options = Options();
         options.PageWidth = 100D; options.MarginLeft = options.MarginRight = 20D;
         var first = new PdfTextRun(scaled ? "XXXXXXXXXXX ALP" : "XXX ALP", fontSize: 12D);
-        var last = new PdfTextRun("HA", fontSize: 12D, color: PdfColor.FromRgb(0, 0, 255));
+        var last = new PdfTextRun("HA", fontSize: 12D, color: global::OfficeIMO.OfficeColor.FromRgb(0, 0, 255));
         if (scaled) {
             first = first.WithHorizontalTextScaling(50D);
             last = last.WithHorizontalTextScaling(50D).WithCharacterSpacing(1D);

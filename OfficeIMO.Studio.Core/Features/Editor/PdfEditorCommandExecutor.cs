@@ -255,5 +255,5 @@ internal static class PdfEditorCommandExecutor {
     private static double[] Rectangle(PdfPageRectangle bounds) =>
         new[] { bounds.Left, bounds.Bottom, bounds.Right, bounds.Top };
 
-    private static double[] Color(PdfColor color) => new[] { color.R, color.G, color.B };
+    private static double[] Color(global::OfficeIMO.OfficeColor color) => new[] { color.ToNormalizedRgb().R, color.ToNormalizedRgb().G, color.ToNormalizedRgb().B };
 }

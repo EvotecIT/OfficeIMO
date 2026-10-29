@@ -880,7 +880,7 @@ public partial class HtmlOfficeAdapters {
         var data = new OfficeChartData(new[] { "1.5", "2.5" }, new[] {
             new OfficeSeries("Forecast", new[] { 10D, 20D }, new[] { 1.5D, 2.5D })
         });
-        slide.AddChart(OfficeChartType.Scatter,data,global::OfficeIMO.OfficeLength.Points(72),global::OfficeIMO.OfficeLength.Points(96),global::OfficeIMO.OfficeLength.Points(240),global::OfficeIMO.OfficeLength.Points(140)).SetTitle("Scatter");
+        slide.AddChart(OfficeChartType.Scatter, data, new OfficeIMO.PowerPoint.PowerPointChartOptions { Left = global::OfficeIMO.OfficeLength.Points(72), Top = global::OfficeIMO.OfficeLength.Points(96), Width = global::OfficeIMO.OfficeLength.Points(240), Height = global::OfficeIMO.OfficeLength.Points(140) }).SetTitle("Scatter");
 
         string html = presentation.ToHtml(new PowerPointHtmlSaveOptions {
             Profile = OfficeHtmlConversionProfile.PowerPointSemanticSlides
@@ -927,7 +927,7 @@ public partial class HtmlOfficeAdapters {
                 markerOutlineWidth: null,
                 showMarkerOutline: false)
         });
-        slide.AddChart(OfficeChartType.Bubble,data,global::OfficeIMO.OfficeLength.Points(72),global::OfficeIMO.OfficeLength.Points(96),global::OfficeIMO.OfficeLength.Points(240),global::OfficeIMO.OfficeLength.Points(140))
+        slide.AddChart(OfficeChartType.Bubble, data, new OfficeIMO.PowerPoint.PowerPointChartOptions { Left = global::OfficeIMO.OfficeLength.Points(72), Top = global::OfficeIMO.OfficeLength.Points(96), Width = global::OfficeIMO.OfficeLength.Points(240), Height = global::OfficeIMO.OfficeLength.Points(140) })
             .SetTitle("Bubble")
             .SetBubbleSizing(145U, OfficeChartBubbleSizeMode.Width);
 
@@ -1027,7 +1027,7 @@ public partial class HtmlOfficeAdapters {
                 new[] { 10D, 20D },
                 new[] { 4D, 9D })
         });
-        slide.AddChart(OfficeChartType.Bubble,data,global::OfficeIMO.OfficeLength.Points(72),global::OfficeIMO.OfficeLength.Points(96),global::OfficeIMO.OfficeLength.Points(240),global::OfficeIMO.OfficeLength.Points(140));
+        slide.AddChart(OfficeChartType.Bubble, data, new OfficeIMO.PowerPoint.PowerPointChartOptions { Left = global::OfficeIMO.OfficeLength.Points(72), Top = global::OfficeIMO.OfficeLength.Points(96), Width = global::OfficeIMO.OfficeLength.Points(240), Height = global::OfficeIMO.OfficeLength.Points(140) });
         string html = presentation.ToHtml(new PowerPointHtmlSaveOptions {
             Profile = OfficeHtmlConversionProfile.PowerPointSemanticSlides
         }).Replace(" data-officeimo-x=\"1.5\"", string.Empty)
@@ -1050,7 +1050,7 @@ public partial class HtmlOfficeAdapters {
         var data = new OfficeChartData(new[] { "A", "B" }, new[] {
             new OfficeSeries("Actual", new[] { 10D, 20D })
         });
-        slide.AddChart(OfficeChartType.ColumnClustered,data,global::OfficeIMO.OfficeLength.Points(72),global::OfficeIMO.OfficeLength.Points(96),global::OfficeIMO.OfficeLength.Points(240),global::OfficeIMO.OfficeLength.Points(140)).SetTitle("Columns");
+        slide.AddChart(OfficeChartType.ColumnClustered, data, new OfficeIMO.PowerPoint.PowerPointChartOptions { Left = global::OfficeIMO.OfficeLength.Points(72), Top = global::OfficeIMO.OfficeLength.Points(96), Width = global::OfficeIMO.OfficeLength.Points(240), Height = global::OfficeIMO.OfficeLength.Points(140) }).SetTitle("Columns");
 
         string html = presentation.ToHtml(new PowerPointHtmlSaveOptions {
             Profile = OfficeHtmlConversionProfile.PowerPointSemanticSlides
@@ -1078,7 +1078,7 @@ public partial class HtmlOfficeAdapters {
             new OfficeSeries("Forecast", new[] { 10D, 20D, 30D }, new[] { 1D, 2D, 3D }),
             new OfficeSeries("Outliers", new[] { 40D, 50D }, new[] { 4D, 5D })
         });
-        slide.AddChart(OfficeChartType.Scatter,data,global::OfficeIMO.OfficeLength.Points(72),global::OfficeIMO.OfficeLength.Points(96),global::OfficeIMO.OfficeLength.Points(240),global::OfficeIMO.OfficeLength.Points(140)).SetTitle("Scatter");
+        slide.AddChart(OfficeChartType.Scatter, data, new OfficeIMO.PowerPoint.PowerPointChartOptions { Left = global::OfficeIMO.OfficeLength.Points(72), Top = global::OfficeIMO.OfficeLength.Points(96), Width = global::OfficeIMO.OfficeLength.Points(240), Height = global::OfficeIMO.OfficeLength.Points(140) }).SetTitle("Scatter");
 
         string html = presentation.ToHtml(new PowerPointHtmlSaveOptions {
             Profile = OfficeHtmlConversionProfile.PowerPointSemanticSlides
@@ -1112,7 +1112,7 @@ public partial class HtmlOfficeAdapters {
         OfficeChartData chartData = new(
             new[] { "Q1", "Q2", "Q3" },
             new[] { new OfficeSeries("Actual", new[] { 10D, 18D, 24D }) });
-        slide.AddChart(OfficeChartType.ColumnClustered,chartData,global::OfficeIMO.OfficeLength.Points(180),global::OfficeIMO.OfficeLength.Points(130),global::OfficeIMO.OfficeLength.Points(260),global::OfficeIMO.OfficeLength.Points(150)).SetTitle("Pipeline");
+        slide.AddChart(OfficeChartType.ColumnClustered, chartData, new OfficeIMO.PowerPoint.PowerPointChartOptions { Left = global::OfficeIMO.OfficeLength.Points(180), Top = global::OfficeIMO.OfficeLength.Points(130), Width = global::OfficeIMO.OfficeLength.Points(260), Height = global::OfficeIMO.OfficeLength.Points(150) }).SetTitle("Pipeline");
 
         string html = presentation.ToHtml(new PowerPointHtmlSaveOptions {
             Profile = OfficeHtmlConversionProfile.PowerPointSemanticSlides
@@ -1148,7 +1148,7 @@ public partial class HtmlOfficeAdapters {
         OfficeChartData chartData = new(
             new[] { "Q1", "Q2", "Q3" },
             new[] { new OfficeSeries("Actual", new[] { 8D, 13D, 21D }) });
-        slide.AddChart(type,chartData,global::OfficeIMO.OfficeLength.Points(180),global::OfficeIMO.OfficeLength.Points(180),global::OfficeIMO.OfficeLength.Points(260),global::OfficeIMO.OfficeLength.Points(150)).SetTitle("Positioned Pipeline");
+        slide.AddChart(type, chartData, new OfficeIMO.PowerPoint.PowerPointChartOptions { Left = global::OfficeIMO.OfficeLength.Points(180), Top = global::OfficeIMO.OfficeLength.Points(180), Width = global::OfficeIMO.OfficeLength.Points(260), Height = global::OfficeIMO.OfficeLength.Points(150) }).SetTitle("Positioned Pipeline");
 
         string html = presentation.ToHtml(new PowerPointHtmlSaveOptions {
             Profile = OfficeHtmlConversionProfile.PowerPointVisualReview
@@ -1182,7 +1182,7 @@ public partial class HtmlOfficeAdapters {
         OfficeChartData hiddenChartData = new(
             new[] { "Q1", "Q2" },
             new[] { new OfficeSeries("Hidden", new[] { 10D, 18D }) });
-        PowerPointChart hiddenChart = slide.AddChart(OfficeChartType.ColumnClustered,hiddenChartData,global::OfficeIMO.OfficeLength.Points(120),global::OfficeIMO.OfficeLength.Points(90),global::OfficeIMO.OfficeLength.Points(240),global::OfficeIMO.OfficeLength.Points(140));
+        PowerPointChart hiddenChart = slide.AddChart(OfficeChartType.ColumnClustered, hiddenChartData, new OfficeIMO.PowerPoint.PowerPointChartOptions { Left = global::OfficeIMO.OfficeLength.Points(120), Top = global::OfficeIMO.OfficeLength.Points(90), Width = global::OfficeIMO.OfficeLength.Points(240), Height = global::OfficeIMO.OfficeLength.Points(140) });
         hiddenChart.SetTitle("Hidden chart marker");
         hiddenChart.Hidden = true;
 
@@ -1278,7 +1278,7 @@ public partial class HtmlOfficeAdapters {
         OfficeChartData chartData = new(
             new[] { "Q1", "Q2", "Q3" },
             new[] { new OfficeSeries("Actual", new[] { 8D, 13D, 21D }) });
-        slide.AddChart(OfficeChartType.ColumnClustered,chartData,global::OfficeIMO.OfficeLength.Points(180),global::OfficeIMO.OfficeLength.Points(180),global::OfficeIMO.OfficeLength.Points(260),global::OfficeIMO.OfficeLength.Points(150)).SetTitle("Gallery Pipeline");
+        slide.AddChart(OfficeChartType.ColumnClustered, chartData, new OfficeIMO.PowerPoint.PowerPointChartOptions { Left = global::OfficeIMO.OfficeLength.Points(180), Top = global::OfficeIMO.OfficeLength.Points(180), Width = global::OfficeIMO.OfficeLength.Points(260), Height = global::OfficeIMO.OfficeLength.Points(150) }).SetTitle("Gallery Pipeline");
 
         string directory = Path.Combine(Path.GetTempPath(), "OfficeIMO.HtmlOfficeAdapters", Guid.NewGuid().ToString("N"));
         HtmlCapabilityGalleryManifest manifest = presentation.SaveHtmlCapabilityGallery(directory, new PowerPointHtmlCapabilityGalleryOptions {
@@ -1360,7 +1360,7 @@ public partial class HtmlOfficeAdapters {
         OfficeChartData chartData = new(
             new[] { "Q1", "Q2", "Q3" },
             new[] { new OfficeSeries("Actual", new[] { 10D, 18D, 24D }) });
-        slide.AddChart(OfficeChartType.ColumnClustered,chartData,global::OfficeIMO.OfficeLength.Points(180),global::OfficeIMO.OfficeLength.Points(130),global::OfficeIMO.OfficeLength.Points(260),global::OfficeIMO.OfficeLength.Points(150)).SetTitle("Pipeline");
+        slide.AddChart(OfficeChartType.ColumnClustered, chartData, new OfficeIMO.PowerPoint.PowerPointChartOptions { Left = global::OfficeIMO.OfficeLength.Points(180), Top = global::OfficeIMO.OfficeLength.Points(130), Width = global::OfficeIMO.OfficeLength.Points(260), Height = global::OfficeIMO.OfficeLength.Points(150) }).SetTitle("Pipeline");
 
         string html = presentation.ToHtml(new PowerPointHtmlSaveOptions {
             Profile = OfficeHtmlConversionProfile.PowerPointSemanticSlides
@@ -1509,7 +1509,7 @@ public partial class HtmlOfficeAdapters {
         OfficeChartData chartData = new(
             new[] { "Q1", "Q2" },
             new[] { new OfficeSeries("Actual", new[] { 10D, 18D }) });
-        PowerPointChart chart = slide.AddChart(OfficeChartType.ColumnClustered,chartData,global::OfficeIMO.OfficeLength.Points(120),global::OfficeIMO.OfficeLength.Points(90),global::OfficeIMO.OfficeLength.Points(240),global::OfficeIMO.OfficeLength.Points(140));
+        PowerPointChart chart = slide.AddChart(OfficeChartType.ColumnClustered, chartData, new OfficeIMO.PowerPoint.PowerPointChartOptions { Left = global::OfficeIMO.OfficeLength.Points(120), Top = global::OfficeIMO.OfficeLength.Points(90), Width = global::OfficeIMO.OfficeLength.Points(240), Height = global::OfficeIMO.OfficeLength.Points(140) });
         chart.SetTitle("Transform chart");
         chart.Rotation = 18.75D;
         chart.HorizontalFlip = true;
@@ -1628,7 +1628,7 @@ public partial class HtmlOfficeAdapters {
         OfficeChartData chartData = new(
             new[] { "Q1", "Q2" },
             new[] { new OfficeSeries("Actual", new[] { 10D, 12D }) });
-        slide.AddChart(OfficeChartType.Line,chartData,global::OfficeIMO.OfficeLength.Points(72),global::OfficeIMO.OfficeLength.Points(96),global::OfficeIMO.OfficeLength.Points(240),global::OfficeIMO.OfficeLength.Points(140)).SetTitle("Trend");
+        slide.AddChart(OfficeChartType.Line, chartData, new OfficeIMO.PowerPoint.PowerPointChartOptions { Left = global::OfficeIMO.OfficeLength.Points(72), Top = global::OfficeIMO.OfficeLength.Points(96), Width = global::OfficeIMO.OfficeLength.Points(240), Height = global::OfficeIMO.OfficeLength.Points(140) }).SetTitle("Trend");
 
         string html = presentation.ToHtml(new PowerPointHtmlSaveOptions {
             Profile = OfficeHtmlConversionProfile.PowerPointSemanticSlides

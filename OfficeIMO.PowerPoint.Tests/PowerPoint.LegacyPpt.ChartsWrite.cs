@@ -23,8 +23,7 @@ namespace OfficeIMO.Tests {
             byte[] bytes;
             using (PowerPointDocument source = PowerPointDocument.Create()) {
                 PowerPointSlide slide = source.AddSlide(PowerPointSlideLayoutType.Blank);
-                PowerPointChart chart = slide.AddChart(
-                    OfficeChartType.ColumnClustered,data,global::OfficeIMO.OfficeLength.Points(30D),global::OfficeIMO.OfficeLength.Points(20D),global::OfficeIMO.OfficeLength.Points(240D),global::OfficeIMO.OfficeLength.Points(150D));
+                PowerPointChart chart = slide.AddChart(OfficeChartType.ColumnClustered, data, new OfficeIMO.PowerPoint.PowerPointChartOptions { Left = global::OfficeIMO.OfficeLength.Points(30D), Top = global::OfficeIMO.OfficeLength.Points(20D), Width = global::OfficeIMO.OfficeLength.Points(240D), Height = global::OfficeIMO.OfficeLength.Points(150D) });
                 slide.AddClassicAnimation(chart, PowerPointClassicAnimationEffect.Fade,
                     new PowerPointClassicAnimationOptions { BuildType = buildType });
                 bytes = source.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt,
@@ -60,7 +59,7 @@ namespace OfficeIMO.Tests {
             byte[] bytes;
             using (PowerPointDocument source = PowerPointDocument.Create()) {
                 source.AddSlide(PowerPointSlideLayoutType.Blank)
-                    .AddChart(OfficeChartType.ColumnClustered,data,                        global::OfficeIMO.OfficeLength.Points(30D),global::OfficeIMO.OfficeLength.Points(20D),global::OfficeIMO.OfficeLength.Points(240D),global::OfficeIMO.OfficeLength.Points(150D))
+                    .AddChart(OfficeChartType.ColumnClustered, data, new OfficeIMO.PowerPoint.PowerPointChartOptions { Left = global::OfficeIMO.OfficeLength.Points(30D), Top = global::OfficeIMO.OfficeLength.Points(20D), Width = global::OfficeIMO.OfficeLength.Points(240D), Height = global::OfficeIMO.OfficeLength.Points(150D) })
                     .SetTitle("Quarterly revenue");
 
                 LegacyPptWritePreflightReport preflight = source

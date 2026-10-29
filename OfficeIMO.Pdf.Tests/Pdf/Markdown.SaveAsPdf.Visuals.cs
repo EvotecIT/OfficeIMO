@@ -85,10 +85,10 @@ public class MarkdownSaveAsPdfVisualTests {
         MarkdownPdfStyle pdfTheme = MarkdownPdfStyle.FromMarkdownTheme(sharedTheme);
         PdfCore.PdfTheme documentTheme = pdfTheme.DocumentTheme!;
 
-        Assert.Equal(PdfCore.PdfColor.FromRgb(0x65, 0x43, 0x21), documentTheme.TextStyle!.Color);
-        Assert.Equal(PdfCore.PdfColor.FromRgb(0x12, 0x34, 0x56), documentTheme.HeadingStyles!.Level1!.Color);
-        Assert.Equal(PdfCore.PdfColor.FromRgb(0x12, 0x34, 0x56), documentTheme.HeadingStyles.Level2!.Color);
-        Assert.Equal(PdfCore.PdfColor.FromRgb(0x12, 0x34, 0x56), documentTheme.HeadingStyles.Level3!.Color);
+        Assert.Equal(global::OfficeIMO.OfficeColor.FromRgb(0x65, 0x43, 0x21), documentTheme.TextStyle!.Color);
+        Assert.Equal(global::OfficeIMO.OfficeColor.FromRgb(0x12, 0x34, 0x56), documentTheme.HeadingStyles!.Level1!.Color);
+        Assert.Equal(global::OfficeIMO.OfficeColor.FromRgb(0x12, 0x34, 0x56), documentTheme.HeadingStyles.Level2!.Color);
+        Assert.Equal(global::OfficeIMO.OfficeColor.FromRgb(0x12, 0x34, 0x56), documentTheme.HeadingStyles.Level3!.Color);
     }
 
     [Fact]
@@ -98,7 +98,7 @@ public class MarkdownSaveAsPdfVisualTests {
 
         MarkdownPdfStyle pdfTheme = MarkdownPdfStyle.FromMarkdownTheme(sharedTheme);
 
-        Assert.Equal(PdfCore.PdfColor.FromRgb(0x11, 0x22, 0x33), pdfTheme.PageDecoration!.BackgroundColor);
+        Assert.Equal(global::OfficeIMO.OfficeColor.FromRgb(0x11, 0x22, 0x33), pdfTheme.PageDecoration!.BackgroundColor);
     }
 
     [Fact]
@@ -118,13 +118,13 @@ public class MarkdownSaveAsPdfVisualTests {
         var options = new MarkdownPdfExportOptions {
             Theme = sharedTheme,
             PdfOptions = new PdfCore.PdfCreateOptions {
-                BackgroundColor = PdfCore.PdfColor.FromRgb(0xaa, 0xbb, 0xcc)
+                BackgroundColor = global::OfficeIMO.OfficeColor.FromRgb(0xaa, 0xbb, 0xcc)
             }
         };
 
         PdfCore.PdfDocument pdf = OfficeIMO.Markdown.MarkdownDocument.Parse("# Themed").ToPdf(options);
 
-        Assert.Equal(PdfCore.PdfColor.FromRgb(0xaa, 0xbb, 0xcc), GetPdfOptions(pdf).BackgroundColor);
+        Assert.Equal(global::OfficeIMO.OfficeColor.FromRgb(0xaa, 0xbb, 0xcc), GetPdfOptions(pdf).BackgroundColor);
     }
 
     [Fact]
@@ -179,7 +179,7 @@ public class MarkdownSaveAsPdfVisualTests {
 """;
         MarkdownPdfStyle visualTheme = MarkdownPdfStyle.Plain();
         visualTheme.QuotePanelStyle = new PdfCore.PdfPanelStyle {
-            Background = PdfCore.PdfColor.FromRgb(0xff, 0, 0),
+            Background = global::OfficeIMO.OfficeColor.FromRgb(0xff, 0, 0),
             PaddingX = 8,
             PaddingY = 6
         };

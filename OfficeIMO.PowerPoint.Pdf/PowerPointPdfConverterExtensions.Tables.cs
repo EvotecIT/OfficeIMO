@@ -156,7 +156,7 @@ public static partial class PowerPointPdfConverterExtensions {
         style.RowStripeFill = table.BandedRows ? style.RowStripeFill : null;
         style.ColumnWidthPoints = CreateColumnWidths(table, table.Width.ToPoints());
         style.RowMinHeights = CreateRowHeights(table, table.Height.ToPoints());
-        Dictionary<(int Row, int Column), PdfCore.PdfColor>? cellFills = CreateTableCellFills(table, includePresentationTableStyle);
+        Dictionary<(int Row, int Column), global::OfficeIMO.OfficeColor>? cellFills = CreateTableCellFills(table, includePresentationTableStyle);
         if (cellFills != null) {
             style.CellFills = MergeTableCellMap(style.CellFills, cellFills);
         }
@@ -196,7 +196,7 @@ public static partial class PowerPointPdfConverterExtensions {
             HeaderFill = null,
             FooterFill = null,
             RowStripeFill = null,
-            TextColor = PdfCore.PdfColor.Black,
+            TextColor = global::OfficeIMO.OfficeColor.Black,
             HeaderBold = false,
             FooterBold = false,
             LineHeight = 1.2D
@@ -245,19 +245,19 @@ public static partial class PowerPointPdfConverterExtensions {
         return heights;
     }
 
-    private static Dictionary<(int Row, int Column), PdfCore.PdfColor>? CreateTableCellFills(PptCore.PowerPointTable table, bool includePresentationTableStyle) {
-        var fills = new Dictionary<(int Row, int Column), PdfCore.PdfColor>();
+    private static Dictionary<(int Row, int Column), global::OfficeIMO.OfficeColor>? CreateTableCellFills(PptCore.PowerPointTable table, bool includePresentationTableStyle) {
+        var fills = new Dictionary<(int Row, int Column), global::OfficeIMO.OfficeColor>();
         ForEachTableAnchorCell(table, (row, column, cell) => {
             if (includePresentationTableStyle) {
                 OfficeColor fill = PptCore.PowerPointSlideImageRenderer.ResolveTableCellFillColorForExport(table, row, column);
                 if (fill.A > 0) {
-                    fills[(row, column)] = PdfCore.PdfColor.FromOfficeColor(fill);
+                    fills[(row, column)] = fill;
                 }
 
                 return;
             }
 
-            PdfCore.PdfColor? directFill = ParsePdfColor(cell.FillColor);
+            global::OfficeIMO.OfficeColor? directFill = ParsePdfColor(cell.FillColor);
             if (directFill.HasValue) {
                 fills[(row, column)] = directFill.Value;
             }
@@ -315,7 +315,7 @@ public static partial class PowerPointPdfConverterExtensions {
                 return;
             }
 
-            PdfCore.PdfColor? directBorder = ParsePdfColor(cell.BorderColor);
+            global::OfficeIMO.OfficeColor? directBorder = ParsePdfColor(cell.BorderColor);
             if (directBorder.HasValue) {
                 borders[(row, column)] = new PdfCore.PdfCellBorder {
                     Color = directBorder.Value,
@@ -349,7 +349,7 @@ public static partial class PowerPointPdfConverterExtensions {
 
         OfficeBorderSide value = side.Value;
         return new PdfCore.PdfCellBorderSide {
-            Color = value.IsVisible ? PdfCore.PdfColor.FromOfficeColor(value.Color) : null,
+            Color = value.IsVisible ? value.Color : null,
             Width = value.Width,
             DashStyle = value.DashStyle,
             LineStyle = value.LineKind == OfficeBorderLineKind.Double

@@ -597,7 +597,7 @@ public partial class PdfDocumentVisualQualityTests {
             })
             .Paragraph(p => p
                 .Text("See ")
-                .LinkToBookmark("details", "Details", PdfColor.FromRgb(20, 90, 180), contents: "Jump to details")
+                .LinkToBookmark("details", "Details", global::OfficeIMO.OfficeColor.FromRgb(20, 90, 180), contents: "Jump to details")
                 .Text("."))
             .Spacer(20)
             .Bookmark("Details")

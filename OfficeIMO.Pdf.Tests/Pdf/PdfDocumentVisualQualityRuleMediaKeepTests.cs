@@ -25,7 +25,7 @@ public partial class PdfDocumentVisualQualityTests {
             })
             .HR(
                 thickness: 3,
-                color: PdfColor.FromRgb(26, 51, 77),
+                color: global::OfficeIMO.OfficeColor.FromRgb(26, 51, 77),
                 spacingBefore: 4,
                 spacingAfter: 6)
             .ToBytes();
@@ -52,7 +52,7 @@ public partial class PdfDocumentVisualQualityTests {
             })
             .HR(
                 thickness: 3,
-                color: PdfColor.FromRgb(26, 51, 77),
+                color: global::OfficeIMO.OfficeColor.FromRgb(26, 51, 77),
                 spacingBefore: 4,
                 spacingAfter: 6)
             .Paragraph(p => p.Text("Guarded rhythm stays below the rule."))
@@ -88,7 +88,7 @@ public partial class PdfDocumentVisualQualityTests {
                             row.PercentColumn(100, column => column
                                 .HR(
                                     thickness: 3,
-                                    color: PdfColor.FromRgb(26, 51, 77),
+                                    color: global::OfficeIMO.OfficeColor.FromRgb(26, 51, 77),
                                     spacingBefore: 4,
                                     spacingAfter: 6)
                                 .Paragraph(p => p.Text("Guarded rhythm stays below the rule.")))))))

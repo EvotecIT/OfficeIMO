@@ -8,7 +8,7 @@ public sealed class PdfPanelBorder {
     private double _offset;
 
     /// <summary>Border color. Set to null for no border on this side.</summary>
-    public PdfColor? Color { get; set; }
+    public global::OfficeIMO.OfficeColor? Color { get; set; }
 
     /// <summary>Border stroke width in points.</summary>
     public double Width {
