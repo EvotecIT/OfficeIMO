@@ -106,8 +106,9 @@ namespace OfficeIMO.Word {
             }
 
             int? page = null;
+            string? layoutLabel = null;
             if (layout != null) {
-                if (!layout.TryGetBookmarkPage(bookmarkStart.Name?.Value ?? bookmarkName!, out int laidOutPage)) {
+                if (!layout.TryGetBookmarkPage(bookmarkStart.Name?.Value ?? bookmarkName!, out int laidOutPage, out layoutLabel)) {
                     // A page-break estimate would contradict the laid out pages, so keep the existing result.
                     message = $"Bookmark {bookmarkName} could not be placed on a page by OfficeIMO layout; the PAGEREF result was left unchanged.";
                     return false;
@@ -127,6 +128,16 @@ namespace OfficeIMO.Word {
                 status = WordFieldUpdateStatus.Unsupported;
                 message = $"PAGEREF field format switch {unsupportedFormat} is not supported for deterministic page-reference refresh.";
                 return false;
+            }
+
+            if (fromLayout && string.IsNullOrWhiteSpace(parsed.NumericPictureSwitch)
+                && GetLastMeaningfulFormat(parsed.FormatSwitches) == null) {
+                if (layoutLabel == null) {
+                    status = WordFieldUpdateStatus.Unsupported;
+                    message = "The target section page-number format is not supported and the PAGEREF result was left unchanged.";
+                    return false;
+                }
+                pageText = layoutLabel;
             }
 
             value = pageText;

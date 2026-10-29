@@ -14,6 +14,34 @@ using W15 = DocumentFormat.OpenXml.Office2013.Word;
 namespace OfficeIMO.Tests {
     public partial class Word {
         [Fact]
+        public void Test_MergeRewritesOuterBookmarkOperandWithoutMovingNestedField() {
+            using WordDocument destination = WordDocument.Create();
+            using WordDocument source = WordDocument.Create();
+            destination.AddParagraph("Destination").AddBookmark("MyBookmark");
+            source.AddParagraph("Source").AddBookmark("MyBookmark");
+            var paragraph = new Paragraph(
+                new Run(new FieldChar { FieldCharType = FieldCharValues.Begin }),
+                new Run(new FieldCode(" REF MyBookmark ") { Space = SpaceProcessingModeValues.Preserve }),
+                new Run(new FieldChar { FieldCharType = FieldCharValues.Begin }),
+                new Run(new FieldCode(" DATE ") { Space = SpaceProcessingModeValues.Preserve }),
+                new Run(new FieldChar { FieldCharType = FieldCharValues.Separate }),
+                new Run(new Text("date")),
+                new Run(new FieldChar { FieldCharType = FieldCharValues.End }),
+                new Run(new FieldCode(" \\h ") { Space = SpaceProcessingModeValues.Preserve }),
+                new Run(new FieldChar { FieldCharType = FieldCharValues.Separate }),
+                new Run(new Text("old")),
+                new Run(new FieldChar { FieldCharType = FieldCharValues.End }));
+            source._document.Body!.InsertBefore(paragraph, source._document.Body.Elements<SectionProperties>().Last());
+            destination.AppendDocument(source);
+            Paragraph merged = destination._document.Body!.Elements<Paragraph>().Single(x => x.Descendants<FieldCode>().Count() == 3);
+            string[] codes = merged.Descendants<FieldCode>().Select(x => x.Text).ToArray();
+            string renamed = destination._document.Body.Descendants<BookmarkStart>().Last().Name!.Value!;
+            Assert.Contains(renamed, codes[0]);
+            Assert.Equal(" DATE ", codes[1]);
+            Assert.Equal(" \\h ", codes[2]);
+        }
+
+        [Fact]
         public void Test_MergePreservesNestedFieldOrderAndQuotedLiteral() {
             using WordDocument destination = WordDocument.Create();
             using WordDocument source = WordDocument.Create();
@@ -90,6 +118,19 @@ namespace OfficeIMO.Tests {
             Assert.NotEqual("MyBookmark", newName);
             string instruction = string.Concat(destination._document.Body.Descendants<FieldCode>().Select(x => x.Text));
             Assert.Contains(newName, instruction);
+        }
+
+        [Fact]
+        public void Test_MergeWithoutStoriesDoesNotCreateEmptyParts() {
+            using WordDocument destination = WordDocument.Create();
+            using WordDocument source = WordDocument.Create();
+            destination.AddParagraph("Destination");
+            source.AddParagraph("Source");
+            destination.AppendDocument(source);
+            destination.AppendDocument(source);
+            Assert.Empty(destination._wordprocessingDocument.MainDocumentPart!.HeaderParts);
+            Assert.Empty(destination._wordprocessingDocument.MainDocumentPart!.FooterParts);
+            AssertMergedDocumentIsValid(destination);
         }
 
         [Fact]

@@ -78,7 +78,7 @@ namespace OfficeIMO.Word {
 
             if (sourceSection != null && destinationBody.ChildElements.Any(x => x is not SectionProperties)) {
                 SectionProperties firstSourceSection = staging.Descendants<SectionProperties>().FirstOrDefault() ?? sourceSection;
-                PreventDestinationHeaderFooterInheritance(firstSourceSection);
+                PreventDestinationHeaderFooterInheritance(destinationBody, firstSourceSection);
             }
             PlaceContent(destinationBody, staging, sourceSection);
         }
@@ -168,16 +168,18 @@ namespace OfficeIMO.Word {
             }
         }
 
-        private void PreventDestinationHeaderFooterInheritance(SectionProperties firstSourceSection) {
+        private void PreventDestinationHeaderFooterInheritance(Body destinationBody, SectionProperties firstSourceSection) {
             foreach (HeaderFooterValues type in new[] { HeaderFooterValues.Default, HeaderFooterValues.Even, HeaderFooterValues.First }) {
-                if (!firstSourceSection.Elements<HeaderReference>().Any(x => x.Type?.Value == type)) {
+                if (destinationBody.Descendants<HeaderReference>().Any(x => x.Type?.Value == type)
+                    && !firstSourceSection.Elements<HeaderReference>().Any(x => x.Type?.Value == type)) {
                     HeaderPart header = _destinationMain.AddNewPart<HeaderPart>();
                     header.Header = new Header(new Paragraph());
                     var reference = new HeaderReference { Type = type, Id = _destinationMain.GetIdOfPart(header) };
                     OpenXmlElement? anchor = firstSourceSection.ChildElements.FirstOrDefault(x => x is not HeaderReference);
                     if (anchor == null) firstSourceSection.Append(reference); else firstSourceSection.InsertBefore(reference, anchor);
                 }
-                if (!firstSourceSection.Elements<FooterReference>().Any(x => x.Type?.Value == type)) {
+                if (destinationBody.Descendants<FooterReference>().Any(x => x.Type?.Value == type)
+                    && !firstSourceSection.Elements<FooterReference>().Any(x => x.Type?.Value == type)) {
                     FooterPart footer = _destinationMain.AddNewPart<FooterPart>();
                     footer.Footer = new Footer(new Paragraph());
                     var reference = new FooterReference { Type = type, Id = _destinationMain.GetIdOfPart(footer) };

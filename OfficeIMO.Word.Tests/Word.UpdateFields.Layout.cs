@@ -8,6 +8,84 @@ using Xunit;
 
 namespace OfficeIMO.Tests {
     public partial class Word {
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void Test_LockedTocPreservesNestedFieldsButUpdatesIndependentTitle(bool regenerate) {
+            using WordDocument document = WordDocument.Create();
+            document.AddTableOfContent();
+            document.AddParagraph("Heading").Style = WordParagraphStyles.Heading1;
+            document.UpdateFields(new WordFieldUpdateOptions { UpdateTablesOfContents = true });
+            SdtBlock block = document.TableOfContent!.SdtBlock;
+            block.Descendants<FieldChar>().First(x => x.FieldCharType?.Value == FieldCharValues.Begin).FieldLock = true;
+            var titleField = new SimpleField(new Run(new Text("old"))) { Instruction = "DATE" };
+            block.GetFirstChild<SdtContentBlock>()!.PrependChild(new Paragraph(titleField));
+            WordFieldUpdateReport report = document.UpdateFieldsAndGetReport(new WordFieldUpdateOptions {
+                UpdateTablesOfContents = regenerate, CurrentDateTime = new DateTime(2020, 2, 3)
+            });
+            Assert.Equal(WordFieldUpdateStatus.Updated, report.Results.Single(x => x.FieldType == WordFieldType.Date).Status);
+            Assert.Equal(WordFieldUpdateStatus.Skipped, report.Results.Single(x => x.FieldType == WordFieldType.TOC).Status);
+            var pageReferences = report.Results.Where(x => x.FieldType == WordFieldType.PageRef).ToList();
+            Assert.NotEmpty(pageReferences);
+            Assert.All(pageReferences, x => Assert.Equal(WordFieldUpdateStatus.Skipped, x.Status));
+            Assert.NotEqual("old", titleField.InnerText);
+        }
+
+        [Fact]
+        public void Test_UpdateFieldsLayoutUsesRestartedSectionPageNumbers() {
+            using WordDocument document = WordDocument.Create();
+            document.AddParagraph("First section");
+            var section = document.AddSection();
+            section.AddPageNumbering(10);
+            section.AddParagraph("Target").AddBookmark("RestartTarget");
+            section.AddParagraph("Reference").AddField(WordFieldType.PageRef, parameters: new List<string> { "RestartTarget" });
+            WordFieldUpdateReport report = document.UpdateFieldsAndGetReport(new WordFieldUpdateOptions { UseLayoutPagination = true });
+            Assert.Equal("10", report.Results.Single(x => x.FieldType == WordFieldType.PageRef).ResultText);
+        }
+
+        [Fact]
+        public void Test_UpdateFieldsLayoutUsesSectionNumberFormat() {
+            using WordDocument document = WordDocument.Create();
+            document.AddParagraph("First section");
+            var section = document.AddSection();
+            section.AddPageNumbering(10, WordNumberFormat.LowerRoman);
+            section.AddParagraph("Target").AddBookmark("RomanTarget");
+            section.AddParagraph("Reference").AddField(WordFieldType.PageRef, parameters: new List<string> { "RomanTarget" });
+            section.AddParagraph("Arabic override").AddField(WordFieldType.PageRef, WordFieldFormat.Arabic, parameters: new List<string> { "RomanTarget" });
+            WordFieldUpdateReport report = document.UpdateFieldsAndGetReport(new WordFieldUpdateOptions { UseLayoutPagination = true });
+            var references = report.Results.Where(x => x.FieldType == WordFieldType.PageRef).ToList();
+            Assert.Equal(new[] { "x", "10" }, references.Select(x => x.ResultText));
+        }
+
+        [Theory]
+        [InlineData(WordNumberFormat.Ordinal)]
+        [InlineData(WordNumberFormat.DecimalZero)]
+        public void Test_UpdateFieldsLayoutLeavesUnsupportedSectionNumberFormatUnchanged(WordNumberFormat format) {
+            using WordDocument document = WordDocument.Create();
+            document.AddParagraph("First section");
+            var section = document.AddSection();
+            section.AddPageNumbering(10, format);
+            section.AddParagraph("Target").AddBookmark("OrdinalTarget");
+            section.AddParagraph("Reference").AddField(WordFieldType.PageRef, parameters: new List<string> { "OrdinalTarget" });
+            WordFieldUpdateReport report = document.UpdateFieldsAndGetReport(new WordFieldUpdateOptions { UseLayoutPagination = true });
+            Assert.Equal(WordFieldUpdateStatus.Unsupported, report.Results.Single(x => x.FieldType == WordFieldType.PageRef).Status);
+        }
+
+        [Fact]
+        public void Test_LockedTocKeepsNestedFieldInSameRunAsEnd() {
+            using WordDocument document = WordDocument.Create();
+            Paragraph paragraph = document.AddParagraph()._paragraph;
+            paragraph.Append(new Run(new FieldChar { FieldCharType = FieldCharValues.Begin, FieldLock = true },
+                new FieldCode(" TOC "), new FieldChar { FieldCharType = FieldCharValues.Separate }));
+            paragraph.Append(new Run(new FieldChar { FieldCharType = FieldCharValues.Begin }, new FieldCode(" DATE "),
+                new FieldChar { FieldCharType = FieldCharValues.Separate }, new Text("old"),
+                new FieldChar { FieldCharType = FieldCharValues.End }, new FieldChar { FieldCharType = FieldCharValues.End }));
+            string before = paragraph.OuterXml;
+            WordFieldUpdateReport report = document.UpdateFieldsAndGetReport(new WordFieldUpdateOptions { CurrentDateTime = new DateTime(2020, 2, 3) });
+            Assert.Equal(WordFieldUpdateStatus.Skipped, report.Results.Single(x => x.FieldType == WordFieldType.Date).Status);
+            Assert.Equal(before, paragraph.OuterXml);
+        }
+
         [Fact]
         public void Test_UpdateFieldsLayoutDoesNotNormalizeOriginalTables() {
             using WordDocument document = WordDocument.Create();

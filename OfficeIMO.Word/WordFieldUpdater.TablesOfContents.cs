@@ -8,13 +8,11 @@ namespace OfficeIMO.Word {
                 return;
             }
 
-            var existingFields = EnumerateFields(document._wordprocessingDocument.MainDocumentPart!).ToList();
+            bool anyLocked = false;
             foreach (WordTableOfContent table in tables) {
-                bool locked = existingFields.Any(field => field.IsLocked
-                    && WordFieldInventory.ParseInstruction(field.InstructionText).FieldType == WordFieldType.TOC
-                    && field.AnchorElement.Ancestors<SdtBlock>().Contains(table.SdtBlock));
+                bool locked = state.LockedTocFields.Any(field => field.AnchorElement.Ancestors<SdtBlock>().Contains(table.SdtBlock));
                 if (locked) {
-                    state.LockedTablesOfContents.Add(table.SdtBlock);
+                    anyLocked = true;
                     continue;
                 }
                 table.RegenerateFieldResult();
@@ -23,11 +21,26 @@ namespace OfficeIMO.Word {
 
             // The entries are final, so an open-time rebuild that OfficeIMO turned on for these tables is no longer
             // needed. A setting the caller or the loaded file enabled is kept.
-            if (state.LockedTablesOfContents.Count == 0 && document.TableOfContentEnabledUpdateFieldsOnOpen) {
+            if (!anyLocked && document.TableOfContentEnabledUpdateFieldsOnOpen) {
                 document.Settings.UpdateFieldsOnOpen = false;
             }
 
-            if (state.LockedTablesOfContents.Count == 0) document.ResetTableOfContentUpdateQueue();
+            if (!anyLocked) document.ResetTableOfContentUpdateQueue();
+        }
+
+        private static bool IsLockedToc(MutableFieldCandidate field) => field.IsLocked
+            && WordFieldInventory.ParseInstruction(field.InstructionText).FieldType == WordFieldType.TOC;
+
+        private static bool IsInsideLockedToc(MutableFieldCandidate candidate, IEnumerable<MutableFieldCandidate> lockedFields) {
+            foreach (MutableFieldCandidate locked in lockedFields) {
+                if (!string.Equals(candidate.PartUri, locked.PartUri, StringComparison.Ordinal)) continue;
+                if (ReferenceEquals(candidate.AnchorElement, locked.AnchorElement)) return true;
+                if (locked.SimpleField != null && candidate.AnchorElement.Ancestors<SimpleField>().Contains(locked.SimpleField)) return true;
+                if (locked.EndRun != null && candidate.NestingLevel > locked.NestingLevel
+                    && candidate.AnchorElement.IsAfter(locked.AnchorElement)
+                    && (ReferenceEquals(candidate.AnchorElement, locked.EndRun) || candidate.AnchorElement.IsBefore(locked.EndRun))) return true;
+            }
+            return false;
         }
 
         private static bool IsInsideRegeneratedTableOfContents(MutableFieldCandidate candidate, FieldEvaluationState state) {

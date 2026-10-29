@@ -8,9 +8,9 @@ namespace OfficeIMO.Word {
     /// Page numbers of body bookmarks taken from OfficeIMO's own page layout (the native PDF layout engine).
     /// </summary>
     internal sealed class WordLayoutPagination {
-        private readonly Dictionary<string, int> _bookmarkPages;
+        private readonly Dictionary<string, (int Number, string? Label)> _bookmarkPages;
 
-        private WordLayoutPagination(Dictionary<string, int> bookmarkPages, int pageCount) {
+        private WordLayoutPagination(Dictionary<string, (int Number, string? Label)> bookmarkPages, int pageCount) {
             _bookmarkPages = bookmarkPages;
             PageCount = pageCount;
         }
@@ -18,8 +18,15 @@ namespace OfficeIMO.Word {
         /// <summary>Gets the number of laid out pages.</summary>
         internal int PageCount { get; }
 
-        internal bool TryGetBookmarkPage(string bookmarkName, out int pageNumber) {
-            return _bookmarkPages.TryGetValue(bookmarkName, out pageNumber);
+        internal bool TryGetBookmarkPage(string bookmarkName, out int pageNumber, out string? label) {
+            if (_bookmarkPages.TryGetValue(bookmarkName, out var page)) {
+                pageNumber = page.Number;
+                label = page.Label;
+                return true;
+            }
+            pageNumber = 0;
+            label = null;
+            return false;
         }
 
         /// <summary>
@@ -43,26 +50,31 @@ namespace OfficeIMO.Word {
 
             Body? body = clone._wordprocessingDocument.MainDocumentPart?.Document?.Body;
             if (body == null) {
-                return new WordLayoutPagination(new Dictionary<string, int>(StringComparer.Ordinal), 1);
+                return new WordLayoutPagination(new Dictionary<string, (int Number, string? Label)>(StringComparer.Ordinal), 1);
             }
 
             UnwrapTablesOfContents(body);
             MoveBookmarksIntoParagraphs(body);
 
-            PdfCore.PdfDocument pdf = clone.ToPdfDocument();
+            var pdfOptions = new PdfCore.PdfOptions {
+                IncludePageLabels = true,
+                IncludeLayoutPageNumberLabels = true
+            };
+            PdfCore.PdfDocument pdf = clone.ToPdfDocument(new WordToPdfOptions { PdfOptions = pdfOptions });
             PdfCore.PdfReadDocument read = pdf.GetReadDocument();
             IReadOnlyList<PdfCore.PdfPageLabel> labels = read.PageLabels;
 
             var pages = new Dictionary<string, int>(StringComparer.Ordinal);
             foreach (PdfCore.PdfNamedDestination destination in read.NamedDestinations) {
                 if (destination.PageNumber is int physicalPage && !pages.ContainsKey(destination.Name)) {
-                    pages.Add(destination.Name, GetDisplayedPageNumber(physicalPage, labels));
+                    pages.Add(destination.Name, physicalPage);
                 }
             }
 
             int pageCount = Math.Max(1, read.Pages.Count);
-            AddUnprojectedBookmarks(body, pages, GetDisplayedPageNumber(pageCount, labels));
-            return new WordLayoutPagination(pages, pageCount);
+            AddUnprojectedBookmarks(body, pages, pageCount);
+            var displayedPages = pages.ToDictionary(pair => pair.Key, pair => GetDisplayedPageNumber(pair.Value, labels), StringComparer.Ordinal);
+            return new WordLayoutPagination(displayedPages, pageCount);
         }
 
         /// <summary>
@@ -190,16 +202,25 @@ namespace OfficeIMO.Word {
             }
         }
 
-        private static int GetDisplayedPageNumber(int physicalPage, IReadOnlyList<PdfCore.PdfPageLabel> labels) {
+        private static (int Number, string? Label) GetDisplayedPageNumber(int physicalPage, IReadOnlyList<PdfCore.PdfPageLabel> labels) {
             PdfCore.PdfPageLabel? label = labels
                 .Where(_ => _.StartPageIndex <= physicalPage - 1)
                 .OrderByDescending(_ => _.StartPageIndex)
                 .FirstOrDefault();
             if (label == null) {
-                return physicalPage;
+                return (physicalPage, physicalPage.ToString(System.Globalization.CultureInfo.InvariantCulture));
             }
 
-            return (label.StartNumber ?? 1) + (physicalPage - 1 - label.StartPageIndex);
+            int number = (label.StartNumber ?? 1) + (physicalPage - 1 - label.StartPageIndex);
+            if (label.Prefix == PdfCore.PdfOptions.UnsupportedLayoutPageNumberPrefix) return (number, null);
+            PdfCore.PdfPageNumberStyle style = label.Style switch {
+                "r" => PdfCore.PdfPageNumberStyle.LowerRoman,
+                "R" => PdfCore.PdfPageNumberStyle.UpperRoman,
+                "a" => PdfCore.PdfPageNumberStyle.LowerLetter,
+                "A" => PdfCore.PdfPageNumberStyle.UpperLetter,
+                _ => PdfCore.PdfPageNumberStyle.Arabic
+            };
+            return (number, PdfCore.PdfPageNumberFormatter.Format(number, style));
         }
     }
 }

@@ -179,7 +179,7 @@ paragraph.OutlineLevel = 9; // Body text; heading levels 1-9 use values 0-8.
 
 `WordParagraphStyleDefinition` exposes the same controls without the `Override` suffix. `ContextualSpacing`, `SuppressLineNumbers`, `SuppressAutoHyphens`, and `MirrorIndents` are nullable on both paragraphs and style definitions. These values survive DOCX and supported native DOC saves, including explicit false values. Existing Boolean pagination properties keep their previous behavior; use the nullable properties when style inheritance matters.
 
-`OutlineLevel` returns directly authored formatting. Word fixes the effective outline level of paragraphs using built-in Heading1â€“Heading9 styles to the corresponding heading level, even if a different direct value is stored.
+`OutlineLevel` returns directly authored formatting. Word fixes the effective outline level of paragraphs using built-in Heading1–Heading9 styles to the corresponding heading level, even if a different direct value is stored.
 
 PDF conversion honors an explicit `PageBreakBeforeOverride = false` even when the paragraph's style starts paragraphs on a new page. Storing line-number suppression, hyphenation suppression, mirrored indentation, or outline levels does not establish PDF rendering support for those features; see the [Word PDF conversion contract](../OfficeIMO.Word.Pdf/README.md) and [native DOC limits](../Docs/officeimo.word.legacy-doc-compatibility.md).
 
@@ -201,7 +201,7 @@ page.Orientation = OfficePageOrientation.Landscape;
 WordPageSizeDefinition? definition = WordPageSizes.GetDefinition(WordPageSize.Tabloid);
 ```
 
-Presets include Letter, Legal, Statement, Executive, A3â€“A6, JIS B4/B5, Tabloid, C sheet, and number 9, number 10, DL, C5, C4, B5 and Monarch envelopes. `WordPageSize.B5` retains its established JIS dimensions of 182 Ã— 257 mm; `EnvelopeB5` measures 176 Ã— 250 mm. The shared `OfficePageSizes` catalog owns physical dimensions.
+Presets include Letter, Legal, Statement, Executive, A3–A6, JIS B4/B5, Tabloid, C sheet, and number 9, number 10, DL, C5, C4, B5 and Monarch envelopes. `WordPageSize.B5` retains its established JIS dimensions of 182 × 257 mm; `EnvelopeB5` measures 176 × 250 mm. The shared `OfficePageSizes` catalog owns physical dimensions.
 
 `Width` and `Height` expose custom dimensions in twips (1/20 point). Changing `Orientation` swaps those dimensions. The preset getter recognizes matching dimensions when a producer omits the optional printer code, with a one-twip tolerance for unit rounding. Native DOC retains physical dimensions and orientation; its imported page settings do not carry the DOCX printer code. PDF conversion preserves stored width and height, including a wide custom page without an orientation flag, and supports explicit export orientation overrides.
 
@@ -362,7 +362,7 @@ Use `table.Rows[0].MinimumHeight = 400` to set a 20-point minimum height that gr
 
 Table-level shading uses `table.StyleDetails.ShadingFillColorHex`, `ShadingColorHex` and `ShadingPattern`; the color properties also accept `OfficeColor` values. These settings read and write direct table formatting, including imported tables without a named style. For example, set `ShadingFillColorHex = "80C0FF"` for the fill and `ShadingPattern = WordShadingPattern.Clear`. With positive cell spacing, the table fill colors the gaps between cells. Set the fill to `"auto"` to clear inherited table fill, or set `ShadingFillColor` or `ShadingPattern` to null to remove direct shading and restore style inheritance. Clearing `ShadingColor` retains the fill and pattern. Cell shading remains independent through `table.Rows[row].Cells[column]`; table gap formatting does not replace cell-style colors.
 
-DOCX retains table-level shading. Native DOC saving accepts clear shading patterns and Word 97â€“2003 palette colors; it rejects visible table gap shading when cell spacing is positive. Zero spacing or an automatic gap fill addresses the spacing restriction; unsupported patterns and colors still require changes before saving as DOC. Cell fills retain their own direct, conditional and ordinary style precedence, including automatic fills that clear a lower-priority color.
+DOCX retains table-level shading. Native DOC saving accepts clear shading patterns and Word 97–2003 palette colors; it rejects visible table gap shading when cell spacing is positive. Zero spacing or an automatic gap fill addresses the spacing restriction; unsupported patterns and colors still require changes before saving as DOC. Cell fills retain their own direct, conditional and ordinary style precedence, including automatic fills that clear a lower-priority color.
 
 ### Headers and footers
 
@@ -509,7 +509,7 @@ Inside the DOCX, use `{{Customer.Name}}` for values and put block markers on the
 
 ```text
 {{#each Lines}}
-{{Description}} â€” {{Amount}}
+{{Description}} — {{Amount}}
 {{/each Lines}}
 ```
 
@@ -894,7 +894,7 @@ marker fill cannot replace an unresolved connecting-line colour in a static expo
 `RadialLayout` reads native pie rotation and doughnut hole size. `SetRadialLayout(...)`
 updates an existing two-dimensional pie or doughnut chart. These settings survive
 save/reopen, data updates, snapshots, managed images, PDF, and chart projections to Markdown.
-Rotation is clockwise from the top (0â€“360 degrees); hole size is 10â€“90 percent.
+Rotation is clockwise from the top (0–360 degrees); hole size is 10–90 percent.
 
 ## Native doughnut charts
 

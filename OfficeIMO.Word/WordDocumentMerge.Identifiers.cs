@@ -76,8 +76,7 @@ namespace OfficeIMO.Word {
         }
 
         private sealed class FieldInstructionGroup {
-            internal List<FieldCode> Codes { get; } = new();
-            internal bool HasNestedField { get; set; }
+            internal List<FieldCode?> Codes { get; } = new();
             internal bool InInstruction { get; set; } = true;
         }
 
@@ -86,7 +85,7 @@ namespace OfficeIMO.Word {
             foreach (OpenXmlElement element in root.Descendants()) {
                 if (element is FieldChar marker) {
                     if (marker.FieldCharType?.Value == FieldCharValues.Begin) {
-                        if (fields.Count > 0 && fields.Peek().InInstruction) fields.Peek().HasNestedField = true;
+                        if (fields.Count > 0 && fields.Peek().InInstruction) fields.Peek().Codes.Add(null);
                         fields.Push(new FieldInstructionGroup());
                     } else if (marker.FieldCharType?.Value == FieldCharValues.Separate && fields.Count > 0) {
                         RewriteFieldCodeRuns(fields.Peek(), nameMap);
@@ -102,12 +101,32 @@ namespace OfficeIMO.Word {
         }
 
         private static void RewriteFieldCodeRuns(FieldInstructionGroup field, Dictionary<string, string> nameMap) {
-            if (!field.InInstruction || field.HasNestedField || field.Codes.Count == 0) return;
-            string original = string.Concat(field.Codes.Select(x => x.Text));
+            if (!field.InInstruction || field.Codes.Count == 0) return;
+            const string nested = " \u0001 ";
+            string original = string.Concat(field.Codes.Select(x => x?.Text ?? nested));
             string rewritten = RenameBookmarkTokens(original, nameMap);
             if (string.Equals(original, rewritten, StringComparison.Ordinal)) return;
-            field.Codes[0].Text = rewritten;
-            for (int i = 1; i < field.Codes.Count; i++) field.Codes[i].Text = string.Empty;
+            int start = 0;
+            while (start < original.Length && start < rewritten.Length && original[start] == rewritten[start]) start++;
+            int suffix = 0;
+            while (suffix < original.Length - start && suffix < rewritten.Length - start
+                && original[original.Length - suffix - 1] == rewritten[rewritten.Length - suffix - 1]) suffix++;
+            int end = original.Length - suffix;
+            string replacement = rewritten.Substring(start, rewritten.Length - start - suffix);
+            int offset = 0;
+            bool inserted = false;
+            foreach (FieldCode? code in field.Codes) {
+                string text = code?.Text ?? nested;
+                int next = offset + text.Length;
+                if (code != null && ((end == start && !inserted && offset <= start && start <= next)
+                    || (next > start && offset < end))) {
+                    int localStart = Math.Max(start - offset, 0);
+                    int localEnd = Math.Min(end - offset, text.Length);
+                    code.Text = text.Substring(0, localStart) + (inserted ? string.Empty : replacement) + text.Substring(localEnd);
+                    inserted = true;
+                }
+                offset = next;
+            }
         }
 
         private static string RenameBookmarkTokens(string instruction, Dictionary<string, string> nameMap) {

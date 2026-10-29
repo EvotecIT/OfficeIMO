@@ -11,6 +11,7 @@ namespace OfficeIMO.Word {
                 ?? throw new InvalidOperationException("MainDocumentPart is missing.");
 
             var state = new FieldEvaluationState();
+            state.LockedTocFields.AddRange(EnumerateFields(mainPart).Where(IsLockedToc));
             if (!options.DateTimeFieldsOnly && options.UpdateTablesOfContents) {
                 RegenerateTablesOfContents(document, state);
             }
@@ -33,11 +34,6 @@ namespace OfficeIMO.Word {
             }
 
             foreach (MutableFieldCandidate candidate in SortFieldsForEvaluation(candidates)) {
-                if (candidate.AnchorElement.Ancestors<SdtBlock>().Any(state.LockedTablesOfContents.Contains)) {
-                    WordFieldType? lockedType = WordFieldInventory.ParseInstruction(candidate.InstructionText).FieldType;
-                    results.Add(candidate.ToResult(lockedType, WordFieldUpdateStatus.Skipped, null, "Field is inside a locked table of contents and was left unchanged."));
-                    continue;
-                }
                 if (options.DateTimeFieldsOnly) {
                     WordFieldType? fieldType = WordFieldInventory.ParseInstruction(candidate.InstructionText).FieldType;
                     if (fieldType is not (WordFieldType.Date or WordFieldType.Time)) {
@@ -66,6 +62,12 @@ namespace OfficeIMO.Word {
                     continue;
                 }
 
+                if (IsInsideLockedToc(candidate, state.LockedTocFields)) {
+                    WordFieldType? lockedType = WordFieldInventory.ParseInstruction(candidate.InstructionText).FieldType;
+                    results.Add(candidate.ToResult(lockedType, WordFieldUpdateStatus.Skipped, null, "Field is inside a locked table of contents and was left unchanged."));
+                    continue;
+                }
+
                 WordFieldUpdateResult result = UpdateField(
                     document, candidate, totalPages, state, updateDateTime, dateTimeEvaluationReason);
                 results.Add(result);
@@ -85,11 +87,12 @@ namespace OfficeIMO.Word {
 
             int totalPages = EstimateTotalPages(document);
             var state = new FieldEvaluationState();
+            state.LockedTocFields.AddRange(EnumerateFields(mainPart).Where(IsLockedToc));
             foreach (MutableFieldCandidate candidate in EnumerateFields(mainPart).OrderBy(field => field.Sequence)) {
                 WordFieldInventory.ParsedFieldInstruction parsed = WordFieldInventory.ParseInstruction(candidate.InstructionText);
                 if (parsed.Diagnostics.Count > 0 ||
                     parsed.FieldType is not (WordFieldType.Page or WordFieldType.NumPages) ||
-                    candidate.IsLocked) {
+                    candidate.IsLocked || IsInsideLockedToc(candidate, state.LockedTocFields)) {
                     continue;
                 }
 
@@ -1387,7 +1390,7 @@ namespace OfficeIMO.Word {
             internal WordLayoutPagination? Layout { get; set; }
 
             internal HashSet<SdtBlock> RegeneratedTablesOfContents { get; } = new();
-            internal HashSet<SdtBlock> LockedTablesOfContents { get; } = new();
+            internal List<MutableFieldCandidate> LockedTocFields { get; } = new();
         }
     }
 }
