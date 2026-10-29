@@ -5,6 +5,23 @@ using Xunit;
 namespace OfficeIMO.Tests;
 
 public partial class Html {
+    [Fact]
+    public void SelectorRewriteRejectsAggregateHashExpansionBeforeBuildingOutput() {
+        string source = string.Concat(Enumerable.Repeat("#old{color:red}", 40));
+        Assert.Throws<NotSupportedException>(() => HtmlCssIdSelectorRewriter.Rewrite(source,
+            new Dictionary<string, string> { ["old"] = new string('x', 100) }, CancellationToken.None,
+            maximumOutputCharacters: 1_000));
+    }
+
+    [Fact]
+    public void SelectorRewriteRejectsAggregateAttributeExpansionBeforeBuildingOutput() {
+        string source = string.Concat(Enumerable.Repeat("[name=old]{color:red}", 40));
+        Assert.Throws<NotSupportedException>(() => HtmlCssIdSelectorRewriter.Rewrite(source,
+            new Dictionary<string, string>(), CancellationToken.None,
+            (_, _, _, _) => HtmlCssAttributeSelectorEdit.Exact(new[] { "first", "second", "third" }),
+            maximumOutputCharacters: 1_000));
+    }
+
     [Theory]
     [InlineData("url(images/*literal/icon.png)")]
     [InlineData("\\75 rl(images/*literal/\\)icon.png)")]
