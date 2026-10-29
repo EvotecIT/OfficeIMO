@@ -157,6 +157,9 @@ namespace OfficeIMO.PowerPoint {
                 throw new ArgumentOutOfRangeException(nameof(heightEmus));
             }
 
+            EnsureEmuFitsInt(widthEmus, nameof(widthEmus));
+            EnsureEmuFitsInt(heightEmus, nameof(heightEmus));
+
             WidthEmus = widthEmus;
             HeightEmus = heightEmus;
             Type = type;

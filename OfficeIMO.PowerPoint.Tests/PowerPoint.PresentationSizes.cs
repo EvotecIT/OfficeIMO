@@ -49,8 +49,13 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
 
             using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                long width = presentation.SlideSize.WidthEmus;
+                long height = presentation.SlideSize.HeightEmus;
                 Assert.Throws<ArgumentOutOfRangeException>(() => presentation.SlideSize.WidthEmus = (long)int.MaxValue + 1);
                 Assert.Throws<ArgumentOutOfRangeException>(() => presentation.SlideSize.HeightEmus = (long)int.MinValue - 1);
+                Assert.Throws<ArgumentOutOfRangeException>(() => presentation.SlideSize.SetSizeEmus(914400, (long)int.MaxValue + 1));
+                Assert.Equal(width, presentation.SlideSize.WidthEmus);
+                Assert.Equal(height, presentation.SlideSize.HeightEmus);
             }
 
             File.Delete(filePath);
