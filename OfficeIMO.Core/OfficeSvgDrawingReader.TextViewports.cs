@@ -14,6 +14,20 @@ public static partial class OfficeSvgDrawingReader {
         try {
             double width = run.Width / run.GlyphScale;
             double height = run.FontSize * 1.25D;
+            // The measured ink bounds always include this authored frame. Reject
+            // impossible surfaces and reserve their minimum work before expanding
+            // any glyph outlines, including runs later found outside the viewport.
+            double minimumWidth = Math.Max(0D, width);
+            double minimumHeight = Math.Max(0D, height);
+            if (double.IsNaN(width) || double.IsInfinity(width) ||
+                double.IsNaN(height) || double.IsInfinity(height) ||
+                minimumWidth > maximumDimension || minimumHeight > maximumDimension ||
+                minimumWidth * minimumHeight > maximumPixels ||
+                !references.TryChargeIntermediateSurface(minimumWidth, minimumHeight)) {
+                unsupported++;
+                return;
+            }
+            double admittedPixels = minimumWidth * minimumHeight;
             var font = new OfficeFontInfo(run.Style.FontFamily, run.FontSize, run.Style.FontFace, run.Style.FontStyle);
             var measure = new OfficeRasterCanvas(new OfficeRasterImage(1, 1), font: null, fonts: drawing.Fonts,
                 cancellationToken: references.CancellationToken);
@@ -31,7 +45,7 @@ public static partial class OfficeSvgDrawingReader {
             double surfaceWidth = Math.Ceiling(bounds.Right) - left;
             double surfaceHeight = Math.Ceiling(bounds.Bottom) - top;
             if (!IsSupportedSvgViewport(surfaceWidth, surfaceHeight, maximumDimension, maximumPixels)
-                || !references.TryChargeIntermediateSurface(surfaceWidth, surfaceHeight)) {
+                || !references.TryChargeIntermediateSurfaceExpansion(surfaceWidth * surfaceHeight - admittedPixels)) {
                 unsupported++;
                 return;
             }
