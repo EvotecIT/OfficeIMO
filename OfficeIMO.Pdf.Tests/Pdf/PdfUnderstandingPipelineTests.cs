@@ -2256,19 +2256,19 @@ public partial class PdfUnderstandingPipelineTests {
         PdfDocumentReadResult result = PdfDocument.Load(CreateWrappedTaggedHeadingPdf()).Read();
         PdfLogicalPage page = Assert.Single(result.Pages);
 
-        Assert.Equal(2, page.Headings.Count);
+        // The two source lines form one wrapped heading.
+        PdfLogicalHeading heading = Assert.Single(page.Headings);
+        Assert.Equal("Wrapped tagged heading title", heading.Text);
+        Assert.Equal(new[] { "Wrapped tagged", "heading title" }, heading.Lines.Select(static line => line.Text));
         Assert.All(page.TextBlocks.Where(static block =>
                 block.Text is "Wrapped tagged" or "heading title"),
             static block => Assert.Equal(PdfLogicalElementKind.Heading, block.Kind));
-        Assert.All(page.Headings, static heading => {
-            Assert.Equal(2, heading.Level);
-            Assert.Contains(heading.Evidence, static evidence => evidence.Code == "semantic-tagged-pdf-role");
-        });
+        Assert.Equal(2, heading.Level);
+        Assert.Contains(heading.Evidence, static evidence => evidence.Code == "semantic-tagged-pdf-role");
         Assert.NotEmpty(result.Sections);
 
         string html = result.ToHtml(new PdfToHtmlOptions { Profile = PdfHtmlProfile.Semantic });
-        Assert.Contains("<h2>Wrapped tagged</h2>", html, StringComparison.Ordinal);
-        Assert.Contains("<h2>heading title</h2>", html, StringComparison.Ordinal);
+        Assert.Contains("<h2>Wrapped tagged heading title</h2>", html, StringComparison.Ordinal);
     }
 
     [Fact]

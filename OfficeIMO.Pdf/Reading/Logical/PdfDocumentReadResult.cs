@@ -1246,7 +1246,7 @@ public sealed partial class PdfDocumentReadResult {
             }
             IReadOnlyList<PdfLogicalTextBlock>? itemLines = item.Kind switch {
                 PdfLogicalReadingOrderKind.TextBlock => new[] { page.TextBlocks[item.SourceIndex] },
-                PdfLogicalReadingOrderKind.Heading => new[] { page.Headings[item.SourceIndex].Line },
+                PdfLogicalReadingOrderKind.Heading => page.Headings[item.SourceIndex].Lines,
                 PdfLogicalReadingOrderKind.Paragraph => page.Paragraphs[item.SourceIndex].Lines,
                 PdfLogicalReadingOrderKind.ListItem => page.ListItems[item.SourceIndex].Lines,
                 _ => null

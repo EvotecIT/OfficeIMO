@@ -569,7 +569,7 @@ namespace OfficeIMO.Pdf.Word {
             ImportNavigationMap navigation,
             double typographyScale) {
             WordParagraph paragraph = link == null
-                ? AddStyledParagraph(document, new[] { heading.Line }, options, typographyScale)
+                ? AddStyledParagraph(document, heading.Lines, options, typographyScale)
                 : AddHyperlinkParagraph(
                     document,
                     link,

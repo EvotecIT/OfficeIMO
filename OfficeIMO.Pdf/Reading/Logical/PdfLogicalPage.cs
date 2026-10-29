@@ -733,6 +733,7 @@ public sealed partial class PdfLogicalPage {
         Dictionary<(PdfLogicalElementKind Kind, long BaselineY, long XStart, string Text), Queue<PdfLogicalTextBlock>> textBlockLookup,
         LogicalTextBlockSourceIndex textBlockSourceIndex) {
         var result = new List<PdfLogicalHeading>(Math.Max(headings.Count, 4));
+        var resultSemantics = new List<PdfUnderstandingSemanticElement?>(Math.Max(headings.Count, 4));
         var represented = new HashSet<PdfLogicalTextBlock>();
         for (int i = 0; i < headings.Count; i++) {
             var heading = headings[i];
@@ -749,6 +750,7 @@ public sealed partial class PdfLogicalPage {
                     block,
                     semantic?.Confidence ?? 0.82D,
                     semantic?.Evidence));
+                resultSemantics.Add(semantic);
                 represented.Add(block);
             }
         }
@@ -767,8 +769,36 @@ public sealed partial class PdfLogicalPage {
                 block,
                 semantic?.Confidence ?? 0.65D,
                 semantic?.Evidence));
+            resultSemantics.Add(semantic);
         }
 
+        return JoinWrappedHeadingLines(result, resultSemantics);
+    }
+
+    /// <summary>
+    /// A heading region that wraps onto several lines ("Executive security" / "summary" beside a logo) is one
+    /// heading. Lines are joined when they come from the same semantic region and follow each other.
+    /// </summary>
+    private static System.Collections.ObjectModel.ReadOnlyCollection<PdfLogicalHeading> JoinWrappedHeadingLines(
+        List<PdfLogicalHeading> headings,
+        List<PdfUnderstandingSemanticElement?> semantics) {
+        if (headings.Count < 2 || semantics.Count != headings.Count) return headings.AsReadOnly();
+        var result = new List<PdfLogicalHeading>(headings.Count);
+        PdfUnderstandingSemanticElement? previousSemantic = null;
+        for (int index = 0; index < headings.Count; index++) {
+            PdfLogicalHeading heading = headings[index];
+            PdfUnderstandingSemanticElement? semantic = semantics[index];
+            if (result.Count > 0 && semantic is not null && ReferenceEquals(semantic, previousSemantic) &&
+                semantic.Region.Lines.Count > 1) {
+                PdfLogicalHeading previous = result[result.Count - 1];
+                if (previous.Level == heading.Level && previous.Line.BaselineY > heading.Line.BaselineY) {
+                    result[result.Count - 1] = previous.WithContinuation(heading);
+                    continue;
+                }
+            }
+            result.Add(heading);
+            previousSemantic = semantic;
+        }
         return result.AsReadOnly();
     }
 
@@ -791,6 +821,8 @@ public sealed partial class PdfLogicalPage {
         double[] sizes = semantic.Region.Lines.Select(static candidate => candidate.FontSize).OrderBy(static size => size).ToArray();
         double median = sizes[(sizes.Length - 1) / 2];
         double largest = sizes[sizes.Length - 1];
+        // A display title wrapped over a few lines keeps one size throughout.
+        if (sizes.Length <= 3 && largest - sizes[0] <= 0.5D) return true;
         return line.FontSize >= largest * 0.95D && line.FontSize >= median * 1.15D;
     }
 
