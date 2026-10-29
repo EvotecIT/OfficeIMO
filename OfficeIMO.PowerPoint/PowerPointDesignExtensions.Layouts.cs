@@ -68,6 +68,7 @@ namespace OfficeIMO.PowerPoint {
                 Title = title,
                 Subtitle = string.IsNullOrWhiteSpace(subtitle) || suffix != null ? null : subtitle,
                 Layout = layout,
+                FooterRightText = options.FooterRight,
                 TemplateLayout = options.TemplateLayout
             };
             // A section title becomes the eyebrow of the slides that follow it; the deck eyebrow fills in before the first section.

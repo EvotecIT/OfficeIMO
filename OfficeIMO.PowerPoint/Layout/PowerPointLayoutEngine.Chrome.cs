@@ -255,6 +255,7 @@ namespace OfficeIMO.PowerPoint {
             if (slide.NoSlideNumber || !context.Deck.ShowSlideNumber) number = false;
             PowerPointLayoutGrid grid = context.Grid;
             PowerPointTextStyleSpec footer = context.Style(PowerPointTextRole.Footer);
+            bool rightText = text && !string.IsNullOrWhiteSpace(slide.FooterRightText);
             string? footerText = context.Deck.EffectiveFooterText;
             if (text && !string.IsNullOrWhiteSpace(footerText)) {
                 string fitted = Ellipsize(footerText!, footer.Size, grid.W(8), context.Theme.BodyFont);
@@ -265,11 +266,21 @@ namespace OfficeIMO.PowerPoint {
                 InheritTemplatePlaceholder(context, writer, footerShape, PowerPointPlaceholderType.Footer);
             }
 
+            if (rightText) {
+                double width = grid.W(number ? 3 : 4);
+                string fitted = Ellipsize(slide.FooterRightText!, footer.Size, width, context.Theme.BodyFont);
+                PowerPointLayoutParagraph p = context.Paragraph(fitted, PowerPointTextRole.Footer, color);
+                p.Align = "r";
+                p.Runs[0].Alpha = alpha;
+                writer.Text("Footer Right", new PowerPointLayoutRect(grid.X(9), grid.FooterY, width,
+                    PowerPointLayoutGrid.FooterHeight), p, anchor: "b");
+            }
+
             if (number) {
                 int index = writer.Slide.OwnerPresentation?.Slides.Count ?? 1;
                 var run = new PowerPointLayoutRun(index.ToString(CultureInfo.InvariantCulture), footer, color: color) { Field = true, Alpha = alpha };
                 var p = new PowerPointLayoutParagraph(run) { Align = "r", LineHeight = footer.LineHeight };
-                PowerPointTextBox numberShape = writer.Text("Slide Number", new PowerPointLayoutRect(grid.X(9), grid.FooterY, grid.W(4), PowerPointLayoutGrid.FooterHeight), p,
+                PowerPointTextBox numberShape = writer.Text("Slide Number", new PowerPointLayoutRect(grid.X(rightText ? 12 : 9), grid.FooterY, grid.W(rightText ? 1 : 4), PowerPointLayoutGrid.FooterHeight), p,
                     anchor: "b", placeholder: "<p:ph type=\"sldNum\" sz=\"quarter\" idx=\"" + PowerPointLayoutMasterWriter.SlideNumberIndex + "\"/>");
                 InheritTemplatePlaceholder(context, writer, numberShape, PowerPointPlaceholderType.SlideNumber);
             }

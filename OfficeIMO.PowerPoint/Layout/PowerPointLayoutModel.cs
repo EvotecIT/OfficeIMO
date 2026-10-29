@@ -51,6 +51,8 @@ namespace OfficeIMO.PowerPoint {
         internal string? Notes { get; set; }
         internal bool NoFooter { get; set; }
         internal bool NoSlideNumber { get; set; }
+        /// <summary>Explicit metadata beside the slide number for this slide and its continuations.</summary>
+        internal string? FooterRightText { get; set; }
 
         /// <summary>Caption or source line under the content (caption style).</summary>
         internal string? SourceNote { get; set; }
@@ -93,6 +95,7 @@ namespace OfficeIMO.PowerPoint {
                 Layout = Layout,
                 NoFooter = NoFooter,
                 NoSlideNumber = NoSlideNumber,
+                FooterRightText = FooterRightText,
                 IsFirst = false,
                 IsLast = IsLast,
                 SelectionDeckSize = SelectionDeckSize,
