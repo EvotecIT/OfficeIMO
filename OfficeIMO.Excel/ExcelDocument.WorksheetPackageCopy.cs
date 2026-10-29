@@ -103,7 +103,8 @@ namespace OfficeIMO.Excel {
                 }
 
                 StripCopiedCellMetadataReferences(copiedPart.Worksheet);
-                RemoveRelationshipBackedWorksheetFeatures(copiedPart.Worksheet);
+                CopyRelationshipBackedWorksheetFeatures(sourceDocument, sourceSheet, copiedPart);
+                RemoveUnsupportedRelationshipBackedWorksheetFeatures(copiedPart.Worksheet);
                 IReadOnlyDictionary<int, int> externalReferenceMap = copyExternalWorkbookReferences
                     ? CopyExternalWorkbookReferencesFromSource(sourceDocument)
                     : new Dictionary<int, int>();
@@ -118,7 +119,7 @@ namespace OfficeIMO.Excel {
                     [sourceSheet.Name] = targetSheet.Name
                 };
                 if (rewriteCopiedReferences) {
-                    RewriteCopiedWorksheetReferences(copiedPart, sheetNameMap, tableNameMap);
+                    RewriteCopiedWorksheetReferences(copiedPart, sheetNameMap, tableNameMap, targetSheet.Name);
                 }
 
                 if (externalReferenceMap.Count > 0) {
