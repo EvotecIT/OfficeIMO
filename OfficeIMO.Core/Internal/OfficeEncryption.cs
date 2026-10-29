@@ -302,7 +302,8 @@ namespace OfficeIMO.Core.Internal {
                     secretKey,
                     hmacKeyIv);
 
-                hmacKeyTrimmed = GetIntegrityKey(descriptor, hmacKey);
+                hmacKeyTrimmed = GetIntegrityKey(descriptor, hmacKey,
+                    out bool hasValidPadding);
                 actualHmac = ComputeHmac(encryptedPackage, hmacKeyTrimmed, descriptor.KeyDataHashAlgorithm);
                 cancellationToken.ThrowIfCancellationRequested();
                 expectedHmacIv = GenerateIv(descriptor.KeyDataSaltValue, HmacValueBlockKey, descriptor.KeyDataHashAlgorithm);
@@ -311,9 +312,13 @@ namespace OfficeIMO.Core.Internal {
                     secretKey,
                     expectedHmacIv);
 
-                if (!ConstantTimeEquals(actualHmac, 0, expectedHmac, 0, actualHmac.Length)) {
+                bool hasValidHmac = ConstantTimeEquals(actualHmac, 0, expectedHmac,
+                    0, actualHmac.Length);
+                if (!hasValidPadding | !hasValidHmac) {
                     throw new CryptographicException("The encrypted package integrity check failed.");
                 }
+            } catch (CryptographicException) {
+                throw new CryptographicException("The encrypted package integrity check failed.");
             } finally {
                 Clear(hmacKeyIv, hmacKey, hmacKeyTrimmed, actualHmac, expectedHmacIv, expectedHmac);
             }
