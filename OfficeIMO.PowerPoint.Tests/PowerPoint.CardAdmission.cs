@@ -15,7 +15,7 @@ public sealed class PowerPointCardAdmissionTests {
     public void CustomCardRegionsRejectImpossibleContentWithoutLeavingPartialSlides(string boundary) {
         using var document = PowerPointPresentation.Create();
         PowerPointSlide original = document.AddSlide();
-        var cards = boundary == "Count" ? Enumerable.Range(1, 7).Select(i => new PowerPointCardContent("Card " + i)).ToArray()
+        var cards = boundary == "Count" ? Enumerable.Range(1, 9).Select(i => new PowerPointCardContent("Card " + i)).ToArray()
             : new[] { new PowerPointCardContent(boundary == "Heading" ? new string('W', 200) : "Review") {
                 Text = boundary == "Body" ? string.Join("\n", Enumerable.Range(1, 20).Select(i => "Evidence line " + i)) : "One line."
             } };

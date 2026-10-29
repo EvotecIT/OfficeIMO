@@ -6,14 +6,14 @@ using System.Linq;
 namespace OfficeIMO.PowerPoint {
     internal static partial class PowerPointLayoutEngine {
         internal static void DrawCards(PowerPointLayoutContext context, PowerPointLayoutWriter writer, PowerPointLayoutSlide slide,
-            PowerPointLayoutRect zone, bool full) {
+            PowerPointLayoutRect zone, bool full, int? maxColumns = null) {
             PowerPointLayoutGrid grid = PowerPointLayoutGrid.ForRegion(context.Grid, zone);
             PowerPointLayoutTheme theme = context.Theme;
             List<PowerPointLayoutCard> cards = slide.Items<PowerPointLayoutCard>().ToList();
             if (cards.Count == 0) return;
-            if (cards.Count > 6) throw new ArgumentException("A custom card grid supports at most six cards. Use content slides for automatic continuations.", nameof(slide));
-            List<int[]> rows = CardRows(cards.Count, grid.IsNarrow);
-            double rowHeight = rows.Count == 1 ? zone.Height : (zone.Height - TileGap) / 2D;
+            if (cards.Count > 8) throw new ArgumentException("A custom card grid supports at most eight cards. Use content slides for automatic continuations.", nameof(slide));
+            List<int[]> rows = CardRows(cards.Count, grid.IsNarrow, maxColumns);
+            double rowHeight = (zone.Height - (rows.Count - 1) * TileGap) / rows.Count;
             PowerPointTextStyleSpec heading = context.Style(PowerPointTextRole.Heading);
             PowerPointTextStyleSpec eyebrow = context.Style(PowerPointTextRole.Eyebrow);
             // Admit every row before writing the first shape. Custom regions
@@ -24,6 +24,9 @@ namespace OfficeIMO.PowerPoint {
                 var tiles = Tiles(grid, spans, false, spans.Length);
                 var rowCards = cards.Skip(measuredOffset).Take(tiles.Count).ToList();
                 CardRowMetrics metrics = MeasureCardRow(context, rowCards, tiles, rowHeight, slide.CardBodySize);
+                // Short rows tighten the card padding before a custom region rejects the grid (a content slide has
+                // already chosen its density with the same fallback).
+                if (!metrics.Fits) metrics = MeasureCardRow(context, rowCards, tiles, rowHeight, slide.CardBodySize, compact: true);
                 if (!metrics.Fits) throw new ArgumentException("The cards do not fit in the selected region at their minimum text sizes. Use fewer cards, a larger region or content slides with automatic continuations.", nameof(slide));
                 measurements.Add(metrics);
                 measuredOffset += rowCards.Count;
@@ -42,7 +45,7 @@ namespace OfficeIMO.PowerPoint {
                     writer.Rect("Card", new PowerPointLayoutRect(x, y, w, rowHeight), theme.Surface);
                     writer.Rect("Card Rule", new PowerPointLayoutRect(x, y, w, 3D), accent, explicitFill: card.Color);
                     int number = slide.CardStart + index + i;
-                    writer.Text("Card Number", new PowerPointLayoutRect(x + 20D, y + 23D, w - 40D, eyebrow.Size * eyebrow.LineHeight + 2D),
+                    writer.Text("Card Number", new PowerPointLayoutRect(x + 20D, y + metrics.NumberTop, w - 40D, eyebrow.Size * eyebrow.LineHeight + 2D),
                         context.Paragraph(number.ToString("00", CultureInfo.InvariantCulture), PowerPointTextRole.Eyebrow, theme.TextMuted));
                     double inner = w - 40D;
                     // The heading slot is shared by the row and bottom-anchored, so a heading that wraps in one renderer
@@ -66,7 +69,7 @@ namespace OfficeIMO.PowerPoint {
                     }
 
                     if (!string.IsNullOrWhiteSpace(card.Image)) {
-                        double imageTop = y + 23D + eyebrow.Size * eyebrow.LineHeight + 12D;
+                        double imageTop = y + metrics.NumberTop + eyebrow.Size * eyebrow.LineHeight + 12D;
                         RenderImage(context, writer, new PowerPointLayoutImage(card.Image!, card.Title),
                             new PowerPointLayoutRect(x + 20D, imageTop, inner, metrics.ImageHeight), cover: false);
                     }
@@ -74,12 +77,26 @@ namespace OfficeIMO.PowerPoint {
                     if (paragraphs.Count > 0) {
                         double bodyTop = headingTop + metrics.TitleHeight + CardBodyGap;
                         writer.Text("Card Text", new PowerPointLayoutRect(x + 20D, bodyTop, inner,
-                            Math.Max(0D, y + rowHeight - 20D - bodyTop)), paragraphs);
+                            Math.Max(0D, y + rowHeight - metrics.BottomPad - bodyTop)), paragraphs);
                     }
                 }
 
                 index += rowCards.Count;
             }
+        }
+
+        /// <summary>Card rows; a caller's column limit stacks the cards in rows of at most that many.</summary>
+        private static List<int[]> CardRows(int count, bool narrow, int? maxColumns) {
+            List<int[]> rows = CardRows(count, narrow);
+            if (!maxColumns.HasValue || maxColumns.Value < 1 || rows.All(row => row.Length <= maxColumns.Value)) return rows;
+            int columns = Math.Min(maxColumns.Value, 4);
+            int span = 12 / columns;
+            var limited = new List<int[]>();
+            for (int remaining = count; remaining > 0; remaining -= columns) {
+                limited.Add(Enumerable.Repeat(span, Math.Min(columns, remaining)).ToArray());
+            }
+
+            return limited;
         }
 
         private static List<int[]> CardRows(int count, bool narrow) => count switch {
@@ -88,7 +105,9 @@ namespace OfficeIMO.PowerPoint {
             3 => new List<int[]> { new[] { 4, 4, 4 } },
             4 => narrow ? new List<int[]> { new[] { 6, 6 }, new[] { 6, 6 } } : new List<int[]> { new[] { 3, 3, 3, 3 } },
             5 => new List<int[]> { new[] { 4, 4, 4 }, new[] { 6, 6 } },
-            _ => new List<int[]> { new[] { 4, 4, 4 }, new[] { 4, 4, 4 } }
+            6 => new List<int[]> { new[] { 4, 4, 4 }, new[] { 4, 4, 4 } },
+            7 => new List<int[]> { new[] { 3, 3, 3, 3 }, new[] { 4, 4, 4 } },
+            _ => new List<int[]> { new[] { 3, 3, 3, 3 }, new[] { 3, 3, 3, 3 } }
         };
 
         /// <summary>Gap between the heading slot and the first body line.</summary>
@@ -100,6 +119,10 @@ namespace OfficeIMO.PowerPoint {
             internal double BodySize;
             internal double ImageHeight;
             internal double TextOffset;
+
+            /// <summary>Top of the card number and the padding under the content (tighter in compact cards).</summary>
+            internal double NumberTop = 23D;
+            internal double BottomPad = 20D;
             internal double AvailableHeight;
             internal double Height;
 
@@ -118,7 +141,7 @@ namespace OfficeIMO.PowerPoint {
 
         /// <summary>One measurement owns admission, shared heading geometry and the rendered card frames.</summary>
         private static CardRowMetrics MeasureCardRow(PowerPointLayoutContext context, IReadOnlyList<PowerPointLayoutCard> cards,
-            IReadOnlyList<(double X, double Width)> tiles, double rowHeight, double? bodySize = null) {
+            IReadOnlyList<(double X, double Width)> tiles, double rowHeight, double? bodySize = null, bool compact = false) {
             PowerPointTextStyleSpec heading = context.Style(PowerPointTextRole.Heading);
             PowerPointTextStyleSpec small = context.Style(PowerPointTextRole.BodySmall);
             PowerPointTextStyleSpec eyebrow = context.Style(PowerPointTextRole.Eyebrow);
@@ -128,8 +151,13 @@ namespace OfficeIMO.PowerPoint {
                 ImageHeight = cards.Any(card => !string.IsNullOrWhiteSpace(card.Image)) ? Math.Min(90D, rowHeight * 0.24D) : 0D
             };
             metrics.TitleHeight = cards.Select((card, index) => CardTextHeight(context, card.Title, heading, tiles[index].Width - 40D, metrics.TitleSize)).Max();
-            metrics.TextOffset = 23D + eyebrow.Size * eyebrow.LineHeight + 16D + (metrics.ImageHeight > 0D ? metrics.ImageHeight + 12D : 0D);
-            metrics.AvailableHeight = Math.Max(0D, rowHeight - 20D - metrics.TextOffset);
+            if (compact) {
+                metrics.NumberTop = 14D;
+                metrics.BottomPad = 12D;
+            }
+            metrics.TextOffset = metrics.NumberTop + eyebrow.Size * eyebrow.LineHeight + (compact ? 8D : 16D) +
+                (metrics.ImageHeight > 0D ? metrics.ImageHeight + 12D : 0D);
+            metrics.AvailableHeight = Math.Max(0D, rowHeight - metrics.BottomPad - metrics.TextOffset);
             double Height() => cards.Select((card, index) => {
                 double width = tiles[index].Width - 40D;
                 double height = metrics.TitleHeight;
@@ -177,7 +205,9 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>Reduces card density before rendering when minimum-size content needs a continuation.</summary>
         private static int CardsPerSlide(PowerPointLayoutContext context, PowerPointLayoutSlide slide) {
             List<PowerPointLayoutCard> cards = slide.Items<PowerPointLayoutCard>().ToList();
-            int maximum = cards.Any(card => !string.IsNullOrWhiteSpace(card.Image)) ? 3 : 6;
+            // Short cards fill two rows of four on a wide slide before a second slide is used; the fit test
+            // below drops back to six or fewer when the text needs the room.
+            int maximum = cards.Any(card => !string.IsNullOrWhiteSpace(card.Image)) ? 3 : context.Grid.IsNarrow ? 6 : 8;
             if (cards.Count == 0) return maximum;
             PowerPointLayoutRect zone = ContentZone(context, MeasureHeader(context, slide));
             PowerPointLayoutGrid grid = PowerPointLayoutGrid.ForRegion(context.Grid, zone);
@@ -192,6 +222,7 @@ namespace OfficeIMO.PowerPoint {
                         List<(double X, double Width)> tiles = Tiles(grid, spans, false, spans.Length);
                         List<PowerPointLayoutCard> row = chunk.Skip(offset).Take(tiles.Count).ToList();
                         CardRowMetrics metrics = MeasureCardRow(context, row, tiles, rowHeight);
+                        if (!metrics.Fits) metrics = MeasureCardRow(context, row, tiles, rowHeight, compact: true);
                         if (!metrics.Fits) { fits = false; break; }
                         offset += row.Count;
                     }

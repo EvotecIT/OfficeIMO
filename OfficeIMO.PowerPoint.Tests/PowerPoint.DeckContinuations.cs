@@ -21,12 +21,12 @@ namespace OfficeIMO.Tests {
             PowerPointDeckPlan expanded = plan.WithContinuations();
             PowerPointDeckPlanSlideSummary[] summaries = expanded.DescribeSlides().ToArray();
 
-            Assert.Equal(8, summaries.Length);
-            // Continuations balance the items (never 5 + 5 + 2) and a process slide holds up to eight steps.
+            Assert.Equal(7, summaries.Length);
+            // Continuations balance the items (never 8 + 5) and a process or card slide holds up to eight items.
             Assert.Equal(new[] { 6, 6 }, summaries
                 .Where(summary => summary.Kind == PowerPointDeckPlanSlideKind.Process)
                 .Select(summary => summary.ContentItemCount));
-            Assert.Equal(new[] { 5, 4, 4 }, summaries
+            Assert.Equal(new[] { 7, 6 }, summaries
                 .Where(summary => summary.Kind == PowerPointDeckPlanSlideKind.CardGrid)
                 .Select(summary => summary.ContentItemCount));
             Assert.Equal(new[] { 3, 3, 3 }, summaries
@@ -34,7 +34,7 @@ namespace OfficeIMO.Tests {
                 .Select(summary => summary.ContentItemCount));
             Assert.Equal("Delivery", summaries[0].Title);
             Assert.Equal("Delivery (continued)", summaries[1].Title);
-            Assert.Equal("Portfolio (continued 2/3)", summaries[3].Title);
+            Assert.Equal("Portfolio (continued)", summaries[3].Title);
             Assert.DoesNotContain(expanded.ValidateSlides(), diagnostic =>
                 diagnostic.Severity == PowerPointDeckPlanDiagnosticSeverity.Error);
         }

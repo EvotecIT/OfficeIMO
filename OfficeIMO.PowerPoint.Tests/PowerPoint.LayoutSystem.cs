@@ -285,9 +285,9 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void PlanContinuations_SplitBalanced() {
             var plan = new PowerPointDeckPlan().AddCardGrid("Capabilities", null,
-                Enumerable.Range(1, 8).Select(i => new PowerPointCardContent("Card " + i, new[] { "Item" })));
+                Enumerable.Range(1, 10).Select(i => new PowerPointCardContent("Card " + i, new[] { "Item" })));
             PowerPointDeckPlan expanded = plan.WithContinuations();
-            Assert.Equal(new[] { 4, 4 }, expanded.Slides.Cast<PowerPointCardGridPlanSlide>().Select(s => s.Cards.Count).ToArray());
+            Assert.Equal(new[] { 5, 5 }, expanded.Slides.Cast<PowerPointCardGridPlanSlide>().Select(s => s.Cards.Count).ToArray());
             Assert.EndsWith("(continued)", expanded.Slides[1].Title, StringComparison.Ordinal);
         }
 
