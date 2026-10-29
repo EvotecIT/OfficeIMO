@@ -261,42 +261,42 @@
       "officeimo.ai": {
         "type": "Project",
         "dependencies": {
-          "OfficeIMO.Reader.Core": "[3.5.1, )"
+          "OfficeIMO.Reader.Core": "[3.5.3, )"
         }
       },
       "officeimo.ai.intelligencex": {
         "type": "Project",
         "dependencies": {
           "IntelligenceX": "[0.1.1, )",
-          "OfficeIMO.AI": "[3.5.1, )"
+          "OfficeIMO.AI": "[3.5.3, )"
         }
       },
       "officeimo.chm": {
         "type": "Project",
         "dependencies": {
-          "OfficeIMO.Core": "[3.5.1, )",
-          "OfficeIMO.Html": "[3.5.1, )"
+          "OfficeIMO.Core": "[3.5.3, )",
+          "OfficeIMO.Html": "[3.5.3, )"
         }
       },
       "officeimo.chm.epub": {
         "type": "Project",
         "dependencies": {
-          "OfficeIMO.Chm": "[3.5.1, )",
-          "OfficeIMO.Epub": "[3.5.1, )"
+          "OfficeIMO.Chm": "[3.5.3, )",
+          "OfficeIMO.Epub": "[3.5.3, )"
         }
       },
       "officeimo.chm.markdown": {
         "type": "Project",
         "dependencies": {
-          "OfficeIMO.Chm": "[3.5.1, )",
-          "OfficeIMO.Markdown.Html": "[3.5.1, )"
+          "OfficeIMO.Chm": "[3.5.3, )",
+          "OfficeIMO.Markdown.Html": "[3.5.3, )"
         }
       },
       "officeimo.chm.pdf": {
         "type": "Project",
         "dependencies": {
-          "OfficeIMO.Chm": "[3.5.1, )",
-          "OfficeIMO.Html.Pdf": "[3.5.1, )"
+          "OfficeIMO.Chm": "[3.5.3, )",
+          "OfficeIMO.Html.Pdf": "[3.5.3, )"
         }
       },
       "officeimo.core": {
@@ -305,77 +305,77 @@
       "officeimo.csv": {
         "type": "Project",
         "dependencies": {
-          "OfficeIMO.Core": "[3.5.1, )"
+          "OfficeIMO.Core": "[3.5.3, )"
         }
       },
       "officeimo.djvu": {
         "type": "Project",
         "dependencies": {
-          "OfficeIMO.Core": "[3.5.1, )"
+          "OfficeIMO.Core": "[3.5.3, )"
         }
       },
       "officeimo.djvu.pdf": {
         "type": "Project",
         "dependencies": {
-          "OfficeIMO.Core": "[3.5.1, )",
-          "OfficeIMO.DjVu": "[3.5.1, )",
-          "OfficeIMO.Pdf": "[3.5.1, )",
-          "OfficeIMO.Pdf.Ocr": "[3.5.1, )",
-          "OfficeIMO.Reader.DjVu": "[3.5.1, )",
-          "OfficeIMO.Reader.Ocr": "[3.5.1, )"
+          "OfficeIMO.Core": "[3.5.3, )",
+          "OfficeIMO.DjVu": "[3.5.3, )",
+          "OfficeIMO.Pdf": "[3.5.3, )",
+          "OfficeIMO.Pdf.Ocr": "[3.5.3, )",
+          "OfficeIMO.Reader.DjVu": "[3.5.3, )",
+          "OfficeIMO.Reader.Ocr": "[3.5.3, )"
         }
       },
       "officeimo.email": {
         "type": "Project",
         "dependencies": {
-          "OfficeIMO.Core": "[3.5.1, )",
-          "OfficeIMO.Rtf": "[3.5.1, )"
+          "OfficeIMO.Core": "[3.5.3, )",
+          "OfficeIMO.Rtf": "[3.5.3, )"
         }
       },
       "officeimo.email.html": {
         "type": "Project",
         "dependencies": {
-          "OfficeIMO.Email": "[3.5.1, )",
-          "OfficeIMO.Html": "[3.5.1, )",
-          "OfficeIMO.Html.Rtf": "[3.5.1, )"
+          "OfficeIMO.Email": "[3.5.3, )",
+          "OfficeIMO.Html": "[3.5.3, )",
+          "OfficeIMO.Html.Rtf": "[3.5.3, )"
         }
       },
       "officeimo.epub": {
         "type": "Project",
         "dependencies": {
-          "OfficeIMO.Core": "[3.5.1, )",
-          "OfficeIMO.Html": "[3.5.1, )"
+          "OfficeIMO.Core": "[3.5.3, )",
+          "OfficeIMO.Html": "[3.5.3, )"
         }
       },
       "officeimo.epub.image": {
         "type": "Project",
         "dependencies": {
-          "OfficeIMO.Core": "[3.5.1, )",
-          "OfficeIMO.Epub": "[3.5.1, )",
-          "OfficeIMO.Html": "[3.5.1, )"
+          "OfficeIMO.Core": "[3.5.3, )",
+          "OfficeIMO.Epub": "[3.5.3, )",
+          "OfficeIMO.Html": "[3.5.3, )"
         }
       },
       "officeimo.excel": {
         "type": "Project",
         "dependencies": {
           "DocumentFormat.OpenXml": "[3.5.1, 4.0.0)",
-          "OfficeIMO.Core": "[3.5.1, )"
+          "OfficeIMO.Core": "[3.5.3, )"
         }
       },
       "officeimo.excel.iwork": {
         "type": "Project",
         "dependencies": {
-          "OfficeIMO.Core": "[3.5.1, )",
-          "OfficeIMO.Excel": "[3.5.1, )",
-          "OfficeIMO.IWork": "[3.5.1, )"
+          "OfficeIMO.Core": "[3.5.3, )",
+          "OfficeIMO.Excel": "[3.5.3, )",
+          "OfficeIMO.IWork": "[3.5.3, )"
         }
       },
       "officeimo.excel.pdf": {
         "type": "Project",
         "dependencies": {
-          "OfficeIMO.Core": "[3.5.1, )",
-          "OfficeIMO.Excel": "[3.5.1, )",
-          "OfficeIMO.Pdf": "[3.5.1, )"
+          "OfficeIMO.Core": "[3.5.3, )",
+          "OfficeIMO.Excel": "[3.5.3, )",
+          "OfficeIMO.Pdf": "[3.5.3, )"
         }
       },
       "officeimo.html": {
@@ -383,17 +383,17 @@
         "dependencies": {
           "AngleSharp": "[1.8.3, )",
           "AngleSharp.Css": "[1.1.3, )",
-          "OfficeIMO.Core": "[3.5.1, )",
-          "OfficeIMO.Html.AngleSharp": "[3.5.1, )",
-          "OfficeIMO.Html.Core": "[3.5.1, )",
-          "OfficeIMO.Pdf": "[3.5.1, )"
+          "OfficeIMO.Core": "[3.5.3, )",
+          "OfficeIMO.Html.AngleSharp": "[3.5.3, )",
+          "OfficeIMO.Html.Core": "[3.5.3, )",
+          "OfficeIMO.Pdf": "[3.5.3, )"
         }
       },
       "officeimo.html.anglesharp": {
         "type": "Project",
         "dependencies": {
           "AngleSharp": "[1.8.3, )",
-          "OfficeIMO.Html.Core": "[3.5.1, )"
+          "OfficeIMO.Html.Core": "[3.5.3, )"
         }
       },
       "officeimo.html.core": {
@@ -402,17 +402,17 @@
       "officeimo.html.pdf": {
         "type": "Project",
         "dependencies": {
-          "OfficeIMO.Core": "[3.5.1, )",
-          "OfficeIMO.Html": "[3.5.1, )",
-          "OfficeIMO.Pdf": "[3.5.1, )"
+          "OfficeIMO.Core": "[3.5.3, )",
+          "OfficeIMO.Html": "[3.5.3, )",
+          "OfficeIMO.Pdf": "[3.5.3, )"
         }
       },
       "officeimo.html.rtf": {
         "type": "Project",
         "dependencies": {
-          "OfficeIMO.Core": "[3.5.1, )",
-          "OfficeIMO.Html": "[3.5.1, )",
-          "OfficeIMO.Rtf": "[3.5.1, )"
+          "OfficeIMO.Core": "[3.5.3, )",
+          "OfficeIMO.Html": "[3.5.3, )",
+          "OfficeIMO.Rtf": "[3.5.3, )"
         }
       },
       "officeimo.invoicing": {
@@ -421,42 +421,42 @@
       "officeimo.invoicing.pdf": {
         "type": "Project",
         "dependencies": {
-          "OfficeIMO.Core": "[3.5.1, )",
-          "OfficeIMO.Invoicing": "[3.5.1, )",
-          "OfficeIMO.Pdf": "[3.5.1, )"
+          "OfficeIMO.Core": "[3.5.3, )",
+          "OfficeIMO.Invoicing": "[3.5.3, )",
+          "OfficeIMO.Pdf": "[3.5.3, )"
         }
       },
       "officeimo.invoicing.validation": {
         "type": "Project",
         "dependencies": {
-          "OfficeIMO.Invoicing": "[3.5.1, )"
+          "OfficeIMO.Invoicing": "[3.5.3, )"
         }
       },
       "officeimo.iwork": {
         "type": "Project",
         "dependencies": {
-          "OfficeIMO.Core": "[3.5.1, )"
+          "OfficeIMO.Core": "[3.5.3, )"
         }
       },
       "officeimo.markdown": {
         "type": "Project",
         "dependencies": {
-          "OfficeIMO.Core": "[3.5.1, )"
+          "OfficeIMO.Core": "[3.5.3, )"
         }
       },
       "officeimo.markdown.html": {
         "type": "Project",
         "dependencies": {
-          "OfficeIMO.Html": "[3.5.1, )",
-          "OfficeIMO.Markdown": "[3.5.1, )"
+          "OfficeIMO.Html": "[3.5.3, )",
+          "OfficeIMO.Markdown": "[3.5.3, )"
         }
       },
       "officeimo.markdown.pdf": {
         "type": "Project",
         "dependencies": {
-          "OfficeIMO.Core": "[3.5.1, )",
-          "OfficeIMO.Markdown": "[3.5.1, )",
-          "OfficeIMO.Pdf": "[3.5.1, )"
+          "OfficeIMO.Core": "[3.5.3, )",
+          "OfficeIMO.Markdown": "[3.5.3, )",
+          "OfficeIMO.Pdf": "[3.5.3, )"
         }
       },
       "officeimo.ocr": {
@@ -465,91 +465,91 @@
       "officeimo.ocr.process": {
         "type": "Project",
         "dependencies": {
-          "OfficeIMO.Ocr": "[3.5.1, )"
+          "OfficeIMO.Ocr": "[3.5.3, )"
         }
       },
       "officeimo.ocr.tesseract": {
         "type": "Project",
         "dependencies": {
-          "OfficeIMO.Ocr": "[3.5.1, )",
-          "OfficeIMO.Ocr.Process": "[3.5.1, )"
+          "OfficeIMO.Ocr": "[3.5.3, )",
+          "OfficeIMO.Ocr.Process": "[3.5.3, )"
         }
       },
       "officeimo.opendocument": {
         "type": "Project",
         "dependencies": {
-          "OfficeIMO.Core": "[3.5.1, )"
+          "OfficeIMO.Core": "[3.5.3, )"
         }
       },
       "officeimo.opendocument.odg.pdf": {
         "type": "Project",
         "dependencies": {
-          "OfficeIMO.Core": "[3.5.1, )",
-          "OfficeIMO.OpenDocument": "[3.5.1, )",
-          "OfficeIMO.Pdf": "[3.5.1, )"
+          "OfficeIMO.Core": "[3.5.3, )",
+          "OfficeIMO.OpenDocument": "[3.5.3, )",
+          "OfficeIMO.Pdf": "[3.5.3, )"
         }
       },
       "officeimo.pdf": {
         "type": "Project",
         "dependencies": {
-          "OfficeIMO.Core": "[3.5.1, )"
+          "OfficeIMO.Core": "[3.5.3, )"
         }
       },
       "officeimo.pdf.ocr": {
         "type": "Project",
         "dependencies": {
-          "OfficeIMO.Core": "[3.5.1, )",
-          "OfficeIMO.Ocr": "[3.5.1, )",
-          "OfficeIMO.Pdf": "[3.5.1, )"
+          "OfficeIMO.Core": "[3.5.3, )",
+          "OfficeIMO.Ocr": "[3.5.3, )",
+          "OfficeIMO.Pdf": "[3.5.3, )"
         }
       },
       "officeimo.powerpoint": {
         "type": "Project",
         "dependencies": {
           "DocumentFormat.OpenXml": "[3.5.1, 4.0.0)",
-          "OfficeIMO.Core": "[3.5.1, )",
-          "OfficeIMO.Pdf": "[3.5.1, )"
+          "OfficeIMO.Core": "[3.5.3, )",
+          "OfficeIMO.Pdf": "[3.5.3, )"
         }
       },
       "officeimo.powerpoint.iwork": {
         "type": "Project",
         "dependencies": {
-          "OfficeIMO.Core": "[3.5.1, )",
-          "OfficeIMO.IWork": "[3.5.1, )",
-          "OfficeIMO.PowerPoint": "[3.5.1, )"
+          "OfficeIMO.Core": "[3.5.3, )",
+          "OfficeIMO.IWork": "[3.5.3, )",
+          "OfficeIMO.PowerPoint": "[3.5.3, )"
         }
       },
       "officeimo.powerpoint.pdf": {
         "type": "Project",
         "dependencies": {
-          "OfficeIMO.Core": "[3.5.1, )",
-          "OfficeIMO.Pdf": "[3.5.1, )",
-          "OfficeIMO.PowerPoint": "[3.5.1, )"
+          "OfficeIMO.Core": "[3.5.3, )",
+          "OfficeIMO.Pdf": "[3.5.3, )",
+          "OfficeIMO.PowerPoint": "[3.5.3, )"
         }
       },
       "officeimo.project": {
         "type": "Project",
         "dependencies": {
-          "OfficeIMO.Core": "[3.5.1, )"
+          "OfficeIMO.Core": "[3.5.3, )"
         }
       },
       "officeimo.provenance.c2pa": {
         "type": "Project",
         "dependencies": {
-          "OfficeIMO.Core": "[3.5.1, )"
+          "OfficeIMO.Core": "[3.5.3, )"
         }
       },
       "officeimo.publisher": {
         "type": "Project",
         "dependencies": {
-          "OfficeIMO.Core": "[3.5.1, )"
+          "OfficeIMO.Core": "[3.5.3, )"
         }
       },
       "officeimo.publisher.pdf": {
         "type": "Project",
         "dependencies": {
-          "OfficeIMO.Pdf": "[3.5.1, )",
-          "OfficeIMO.Publisher": "[3.5.1, )"
+          "OfficeIMO.Pdf": "[3.5.3, )",
+          "OfficeIMO.Publisher": "[3.5.3, )"
         }
       },
       "officeimo.reader.core": {
@@ -558,51 +558,51 @@
       "officeimo.reader.djvu": {
         "type": "Project",
         "dependencies": {
-          "OfficeIMO.DjVu": "[3.5.1, )",
-          "OfficeIMO.Reader.Core": "[3.5.1, )"
+          "OfficeIMO.DjVu": "[3.5.3, )",
+          "OfficeIMO.Reader.Core": "[3.5.3, )"
         }
       },
       "officeimo.reader.image": {
         "type": "Project",
         "dependencies": {
-          "OfficeIMO.Core": "[3.5.1, )",
-          "OfficeIMO.Reader.Core": "[3.5.1, )"
+          "OfficeIMO.Core": "[3.5.3, )",
+          "OfficeIMO.Reader.Core": "[3.5.3, )"
         }
       },
       "officeimo.reader.ocr": {
         "type": "Project",
         "dependencies": {
-          "OfficeIMO.Ocr": "[3.5.1, )",
-          "OfficeIMO.Reader.Core": "[3.5.1, )"
+          "OfficeIMO.Ocr": "[3.5.3, )",
+          "OfficeIMO.Reader.Core": "[3.5.3, )"
         }
       },
       "officeimo.reader.pdf": {
         "type": "Project",
         "dependencies": {
-          "OfficeIMO.Core": "[3.5.1, )",
-          "OfficeIMO.Pdf": "[3.5.1, )",
-          "OfficeIMO.Reader.Core": "[3.5.1, )"
+          "OfficeIMO.Core": "[3.5.3, )",
+          "OfficeIMO.Pdf": "[3.5.3, )",
+          "OfficeIMO.Reader.Core": "[3.5.3, )"
         }
       },
       "officeimo.rtf": {
         "type": "Project",
         "dependencies": {
-          "OfficeIMO.Core": "[3.5.1, )"
+          "OfficeIMO.Core": "[3.5.3, )"
         }
       },
       "officeimo.rtf.pdf": {
         "type": "Project",
         "dependencies": {
-          "OfficeIMO.Core": "[3.5.1, )",
-          "OfficeIMO.Pdf": "[3.5.1, )",
-          "OfficeIMO.Rtf": "[3.5.1, )"
+          "OfficeIMO.Core": "[3.5.3, )",
+          "OfficeIMO.Pdf": "[3.5.3, )",
+          "OfficeIMO.Rtf": "[3.5.3, )"
         }
       },
       "officeimo.security": {
         "type": "Project",
         "dependencies": {
           "BouncyCastle.Cryptography": "[2.7.0, 3.0.0)",
-          "OfficeIMO.Core": "[3.5.1, )",
+          "OfficeIMO.Core": "[3.5.3, )",
           "System.Security.Cryptography.Pkcs": "[10.0.13, )",
           "System.Security.Cryptography.Xml": "[10.0.13, )"
         }
@@ -611,126 +611,126 @@
         "type": "Project",
         "dependencies": {
           "CommunityToolkit.Mvvm": "[8.4.2, )",
-          "OfficeIMO.Core": "[3.5.1, )",
-          "OfficeIMO.Pdf": "[3.5.1, )",
-          "OfficeIMO.Reader.Pdf": "[3.5.1, )",
-          "OfficeIMO.Security": "[3.5.1, )",
-          "OfficeIMO.Workflows": "[3.5.1, )"
+          "OfficeIMO.Core": "[3.5.3, )",
+          "OfficeIMO.Pdf": "[3.5.3, )",
+          "OfficeIMO.Reader.Pdf": "[3.5.3, )",
+          "OfficeIMO.Security": "[3.5.3, )",
+          "OfficeIMO.Workflows": "[3.5.3, )"
         }
       },
       "officeimo.visio": {
         "type": "Project",
         "dependencies": {
-          "OfficeIMO.Core": "[3.5.1, )",
+          "OfficeIMO.Core": "[3.5.3, )",
           "System.IO.Packaging": "[10.0.8, )"
         }
       },
       "officeimo.visio.pdf": {
         "type": "Project",
         "dependencies": {
-          "OfficeIMO.Core": "[3.5.1, )",
-          "OfficeIMO.Pdf": "[3.5.1, )",
-          "OfficeIMO.Visio": "[3.5.1, )"
+          "OfficeIMO.Core": "[3.5.3, )",
+          "OfficeIMO.Pdf": "[3.5.3, )",
+          "OfficeIMO.Visio": "[3.5.3, )"
         }
       },
       "officeimo.word": {
         "type": "Project",
         "dependencies": {
           "DocumentFormat.OpenXml": "[3.5.1, 4.0.0)",
-          "OfficeIMO.Core": "[3.5.1, )",
-          "OfficeIMO.Pdf": "[3.5.1, )"
+          "OfficeIMO.Core": "[3.5.3, )",
+          "OfficeIMO.Pdf": "[3.5.3, )"
         }
       },
       "officeimo.word.html": {
         "type": "Project",
         "dependencies": {
           "DocumentFormat.OpenXml": "[3.5.1, 4.0.0)",
-          "OfficeIMO.Core": "[3.5.1, )",
-          "OfficeIMO.Html": "[3.5.1, )",
-          "OfficeIMO.Word": "[3.5.1, )"
+          "OfficeIMO.Core": "[3.5.3, )",
+          "OfficeIMO.Html": "[3.5.3, )",
+          "OfficeIMO.Word": "[3.5.3, )"
         }
       },
       "officeimo.word.iwork": {
         "type": "Project",
         "dependencies": {
-          "OfficeIMO.Core": "[3.5.1, )",
-          "OfficeIMO.IWork": "[3.5.1, )",
-          "OfficeIMO.Word": "[3.5.1, )"
+          "OfficeIMO.Core": "[3.5.3, )",
+          "OfficeIMO.IWork": "[3.5.3, )",
+          "OfficeIMO.Word": "[3.5.3, )"
         }
       },
       "officeimo.word.pdf": {
         "type": "Project",
         "dependencies": {
-          "OfficeIMO.Core": "[3.5.1, )",
-          "OfficeIMO.Pdf": "[3.5.1, )",
-          "OfficeIMO.Word": "[3.5.1, )"
+          "OfficeIMO.Core": "[3.5.3, )",
+          "OfficeIMO.Pdf": "[3.5.3, )",
+          "OfficeIMO.Word": "[3.5.3, )"
         }
       },
       "officeimo.workflows": {
         "type": "Project",
         "dependencies": {
-          "OfficeIMO.CSV": "[3.5.1, )",
-          "OfficeIMO.Chm.Epub": "[3.5.1, )",
-          "OfficeIMO.Chm.Markdown": "[3.5.1, )",
-          "OfficeIMO.Chm.Pdf": "[3.5.1, )",
-          "OfficeIMO.Core": "[3.5.1, )",
-          "OfficeIMO.DjVu.Pdf": "[3.5.1, )",
-          "OfficeIMO.Email.Html": "[3.5.1, )",
-          "OfficeIMO.Epub": "[3.5.1, )",
-          "OfficeIMO.Epub.Image": "[3.5.1, )",
-          "OfficeIMO.Excel": "[3.5.1, )",
-          "OfficeIMO.Excel.Pdf": "[3.5.1, )",
-          "OfficeIMO.Html": "[3.5.1, )",
-          "OfficeIMO.Html.Pdf": "[3.5.1, )",
-          "OfficeIMO.Invoicing": "[3.5.1, )",
-          "OfficeIMO.Invoicing.Pdf": "[3.5.1, )",
-          "OfficeIMO.Invoicing.Validation": "[3.5.1, )",
-          "OfficeIMO.Markdown": "[3.5.1, )",
-          "OfficeIMO.Markdown.Pdf": "[3.5.1, )",
-          "OfficeIMO.Ocr": "[3.5.1, )",
-          "OfficeIMO.OpenDocument": "[3.5.1, )",
-          "OfficeIMO.OpenDocument.Odg.Pdf": "[3.5.1, )",
-          "OfficeIMO.Pdf": "[3.5.1, )",
-          "OfficeIMO.Pdf.Ocr": "[3.5.1, )",
-          "OfficeIMO.PowerPoint": "[3.5.1, )",
-          "OfficeIMO.PowerPoint.Pdf": "[3.5.1, )",
-          "OfficeIMO.Project": "[3.5.1, )",
-          "OfficeIMO.Publisher.Pdf": "[3.5.1, )",
-          "OfficeIMO.Reader.Image": "[3.5.1, )",
-          "OfficeIMO.Reader.Ocr": "[3.5.1, )",
-          "OfficeIMO.Rtf.Pdf": "[3.5.1, )",
-          "OfficeIMO.Visio": "[3.5.1, )",
-          "OfficeIMO.Visio.Pdf": "[3.5.1, )",
-          "OfficeIMO.Word": "[3.5.1, )",
-          "OfficeIMO.Word.Html": "[3.5.1, )",
-          "OfficeIMO.Word.Pdf": "[3.5.1, )",
-          "OfficeIMO.Xps.Pdf": "[3.5.1, )"
+          "OfficeIMO.CSV": "[3.5.3, )",
+          "OfficeIMO.Chm.Epub": "[3.5.3, )",
+          "OfficeIMO.Chm.Markdown": "[3.5.3, )",
+          "OfficeIMO.Chm.Pdf": "[3.5.3, )",
+          "OfficeIMO.Core": "[3.5.3, )",
+          "OfficeIMO.DjVu.Pdf": "[3.5.3, )",
+          "OfficeIMO.Email.Html": "[3.5.3, )",
+          "OfficeIMO.Epub": "[3.5.3, )",
+          "OfficeIMO.Epub.Image": "[3.5.3, )",
+          "OfficeIMO.Excel": "[3.5.3, )",
+          "OfficeIMO.Excel.Pdf": "[3.5.3, )",
+          "OfficeIMO.Html": "[3.5.3, )",
+          "OfficeIMO.Html.Pdf": "[3.5.3, )",
+          "OfficeIMO.Invoicing": "[3.5.3, )",
+          "OfficeIMO.Invoicing.Pdf": "[3.5.3, )",
+          "OfficeIMO.Invoicing.Validation": "[3.5.3, )",
+          "OfficeIMO.Markdown": "[3.5.3, )",
+          "OfficeIMO.Markdown.Pdf": "[3.5.3, )",
+          "OfficeIMO.Ocr": "[3.5.3, )",
+          "OfficeIMO.OpenDocument": "[3.5.3, )",
+          "OfficeIMO.OpenDocument.Odg.Pdf": "[3.5.3, )",
+          "OfficeIMO.Pdf": "[3.5.3, )",
+          "OfficeIMO.Pdf.Ocr": "[3.5.3, )",
+          "OfficeIMO.PowerPoint": "[3.5.3, )",
+          "OfficeIMO.PowerPoint.Pdf": "[3.5.3, )",
+          "OfficeIMO.Project": "[3.5.3, )",
+          "OfficeIMO.Publisher.Pdf": "[3.5.3, )",
+          "OfficeIMO.Reader.Image": "[3.5.3, )",
+          "OfficeIMO.Reader.Ocr": "[3.5.3, )",
+          "OfficeIMO.Rtf.Pdf": "[3.5.3, )",
+          "OfficeIMO.Visio": "[3.5.3, )",
+          "OfficeIMO.Visio.Pdf": "[3.5.3, )",
+          "OfficeIMO.Word": "[3.5.3, )",
+          "OfficeIMO.Word.Html": "[3.5.3, )",
+          "OfficeIMO.Word.Pdf": "[3.5.3, )",
+          "OfficeIMO.Xps.Pdf": "[3.5.3, )"
         }
       },
       "officeimo.workflows.iwork": {
         "type": "Project",
         "dependencies": {
-          "OfficeIMO.Excel.IWork": "[3.5.1, )",
-          "OfficeIMO.Excel.Pdf": "[3.5.1, )",
-          "OfficeIMO.PowerPoint.IWork": "[3.5.1, )",
-          "OfficeIMO.PowerPoint.Pdf": "[3.5.1, )",
-          "OfficeIMO.Word.IWork": "[3.5.1, )",
-          "OfficeIMO.Word.Pdf": "[3.5.1, )",
-          "OfficeIMO.Workflows": "[3.5.1, )"
+          "OfficeIMO.Excel.IWork": "[3.5.3, )",
+          "OfficeIMO.Excel.Pdf": "[3.5.3, )",
+          "OfficeIMO.PowerPoint.IWork": "[3.5.3, )",
+          "OfficeIMO.PowerPoint.Pdf": "[3.5.3, )",
+          "OfficeIMO.Word.IWork": "[3.5.3, )",
+          "OfficeIMO.Word.Pdf": "[3.5.3, )",
+          "OfficeIMO.Workflows": "[3.5.3, )"
         }
       },
       "officeimo.xps": {
         "type": "Project",
         "dependencies": {
-          "OfficeIMO.Core": "[3.5.1, )"
+          "OfficeIMO.Core": "[3.5.3, )"
         }
       },
       "officeimo.xps.pdf": {
         "type": "Project",
         "dependencies": {
-          "OfficeIMO.Core": "[3.5.1, )",
-          "OfficeIMO.Pdf": "[3.5.1, )",
-          "OfficeIMO.Xps": "[3.5.1, )"
+          "OfficeIMO.Core": "[3.5.3, )",
+          "OfficeIMO.Pdf": "[3.5.3, )",
+          "OfficeIMO.Xps": "[3.5.3, )"
         }
       }
     },
