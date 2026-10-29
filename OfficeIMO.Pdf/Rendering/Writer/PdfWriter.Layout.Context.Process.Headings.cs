@@ -14,9 +14,18 @@ internal static partial class PdfWriter {
             var headingFont = GetHeadingFont(currentOpts, headingStyle);
             PdfColor? headingColor = hb.Color ?? headingStyle?.Color;
             System.Collections.Generic.IReadOnlyList<PdfTextRun> headingRuns = CreateHeadingTextRuns(hb, headingStyle, headingColor);
+            // Paragraph indents narrow the heading's text frame, so an indented heading lines up with its body.
+            double headingIndentLeft = Math.Max(0D, headingStyle?.LeftIndent ?? 0D);
+            double headingIndentRight = Math.Max(0D, headingStyle?.RightIndent ?? 0D);
+            if (headingIndentLeft + headingIndentRight > width - 36D) {
+                headingIndentLeft = 0D;
+                headingIndentRight = 0D;
+            }
+            double HeadingLeft() => currentOpts.MarginLeft + headingIndentLeft;
+            double HeadingWidth() => width - headingIndentLeft - headingIndentRight;
             bool pictureWrapping = HasAnchoredPictures(headingStyle?.AnchoredCanvas) || HasPictureExclusions;
             var (lines, lineHeights) = WrapHeadingForFrame(hb, headingRuns, headingStyle,
-                currentOpts.MarginLeft, width, size, leading, y - spacingBefore);
+                HeadingLeft(), HeadingWidth(), size, leading, y - spacingBefore);
             var lineGaps = lines.Select(line => line is RichLine row ? row.FragmentTopGap : 0D).ToList();
             double wrappedWidth = width;
             int lineIndex = 0;
@@ -47,7 +56,7 @@ internal static partial class PdfWriter {
                     double before = firstLogicalLine && headingStyle?.ApplySpacingBeforeAtTop == true
                         ? headingStyle.SpacingBefore : 0D;
                     (lines, lineHeights) = WrapHeadingForFrame(source, remainingRuns, remainingStyle,
-                        currentOpts.MarginLeft, width, size, leading, y - before);
+                        HeadingLeft(), HeadingWidth(), size, leading, y - before);
                     lineGaps = lines.Select(line => line is RichLine row ? row.FragmentTopGap : 0D).ToList();
                     lineIndex = 0;
                     wrappedWidth = width;
@@ -154,8 +163,8 @@ internal static partial class PdfWriter {
                 }
                 if (firstLogicalLine && currentOpts.CreateOutlineFromHeadings && currentPage!.Bookmarks.Count > 0)
                     currentPage.Bookmarks[currentPage.Bookmarks.Count - 1].StructureElement = logicalHeading ?? ResolveMarkedStructure(markedContentId);
-                AddHeadingLinkAnnotations(hb, sliceLines, headingFont, size, leading, currentOpts.MarginLeft, width, firstBaseline, linkStructElementIndex, sliceHeights);
-                WriteRichParagraph(sb, new RichParagraphBlock(headingRuns, hb.Align, headingColor), sliceLines, sliceHeights, currentOpts, firstBaseline, size, leading, currentPage!.Annotations, currentOpts.MarginLeft, width, structureType: markedStructureType, markedContentId: markedContentId, structurePage: currentPage, baselineFont: headingFont,
+                AddHeadingLinkAnnotations(hb, sliceLines, headingFont, size, leading, HeadingLeft(), HeadingWidth(), firstBaseline, linkStructElementIndex, sliceHeights);
+                WriteRichParagraph(sb, new RichParagraphBlock(headingRuns, hb.Align, headingColor), sliceLines, sliceHeights, currentOpts, firstBaseline, size, leading, currentPage!.Annotations, HeadingLeft(), HeadingWidth(), structureType: markedStructureType, markedContentId: markedContentId, structurePage: currentPage, baselineFont: headingFont,
                     paragraphSpacingAfter: lineIndex + take == lines.Count ? spacingAfter : 0D,
                     paragraphSpacingBefore: firstLogicalLine ? appliedSpacingBefore : 0D,
                     lineTopGaps: lineGaps.GetRange(lineIndex, take));

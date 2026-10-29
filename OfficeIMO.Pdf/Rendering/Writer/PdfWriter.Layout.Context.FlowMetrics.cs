@@ -322,7 +322,13 @@ internal static partial class PdfWriter {
             double spacingAfter = GetHeadingSpacingAfter(headingStyle, headingLeading);
             PdfColor? headingColor = heading.Color ?? headingStyle?.Color;
             System.Collections.Generic.IReadOnlyList<PdfTextRun> headingRuns = CreateHeadingTextRuns(heading, headingStyle, headingColor);
-            var wrap = WrapHeadingForFrame(heading, headingRuns, headingStyle, frameX, frameWidth,
+            double indentLeft = Math.Max(0D, headingStyle?.LeftIndent ?? 0D);
+            double indentRight = Math.Max(0D, headingStyle?.RightIndent ?? 0D);
+            if (indentLeft + indentRight > frameWidth - 36D) {
+                indentLeft = 0D;
+                indentRight = 0D;
+            }
+            var wrap = WrapHeadingForFrame(heading, headingRuns, headingStyle, frameX + indentLeft, frameWidth - indentLeft - indentRight,
                 headingSize, headingLeading, y - spacingBefore);
             return spacingBefore + MeasureRichLinesHeight(wrap.LineHeights, wrap.Lines.Count, headingLeading) + spacingAfter;
         }

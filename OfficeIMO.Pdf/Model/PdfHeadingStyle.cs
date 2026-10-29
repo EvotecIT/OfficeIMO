@@ -90,6 +90,12 @@ public sealed class PdfHeadingStyle {
     /// <summary>When true, the heading moves to the next page when it would otherwise be separated from the following paragraph.</summary>
     public bool KeepWithNext { get; set; } = true;
 
+    /// <summary>Imported paragraph left indent, in points, applied to the heading text frame.</summary>
+    internal double LeftIndent { get; set; }
+
+    /// <summary>Imported paragraph right indent, in points, applied to the heading text frame.</summary>
+    internal double RightIndent { get; set; }
+
     /// <summary>Retains the imported paragraph's native justified-line admission policy.</summary>
     internal bool UseWordJustificationSpacing { get; set; }
 
@@ -107,6 +113,8 @@ public sealed class PdfHeadingStyle {
         var clone = new PdfHeadingStyle {
             AnchoredCanvas = AnchoredCanvas,
             UseWordJustificationSpacing = UseWordJustificationSpacing,
+            LeftIndent = LeftIndent,
+            RightIndent = RightIndent,
             JustificationMode = JustificationMode,
             JustifyExplicitLineBreaks = JustifyExplicitLineBreaks,
             JustifyLastLine = JustifyLastLine,

@@ -1132,8 +1132,9 @@ namespace OfficeIMO.Word.Pdf {
                 style.SpacingAfter = paragraphStyle.SpacingAfter;
             }
 
-            // Headings currently use the containing margin as their text frame;
-            // retain the source origin rather than the paragraph's unused indent.
+            // A heading's paragraph indent narrows its text frame, so it lines up with indented body text.
+            style.LeftIndent = Math.Max(0D, paragraphStyle.LeftIndent + Math.Min(paragraphStyle.FirstLineIndent, 0D));
+            style.RightIndent = Math.Max(0D, paragraphStyle.RightIndent);
             foreach (PdfCore.PdfTabStop stop in ResolveNativeParagraphTabStops(paragraph, 0D, 0D)
                 .Where(stop => stop.Alignment == PdfCore.PdfTabAlignment.Bar))
                 style.TabStops.Add(stop);
