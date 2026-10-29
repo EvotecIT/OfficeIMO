@@ -19,10 +19,15 @@ internal static partial class OfficeStrokeGeometry {
         return double.IsInfinity(density) ? double.MaxValue : density;
     }
 
-    internal static IReadOnlyList<OfficeFlattenedPathContour> FlattenShape(OfficeShape shape, double pixelsPerUnit, bool boundCurveExpansion = false) {
+    internal static IReadOnlyList<OfficeFlattenedPathContour> FlattenShape(OfficeShape shape, double pixelsPerUnit, bool boundCurveExpansion = false) =>
+        FlattenShape(shape, pixelsPerUnit, int.MaxValue, boundCurveExpansion);
+
+    internal static IReadOnlyList<OfficeFlattenedPathContour> FlattenShape(OfficeShape shape, double pixelsPerUnit,
+        int maximumPoints, bool boundCurveExpansion = false) {
         if (shape.Kind == OfficeShapeKind.Path) return boundCurveExpansion
-            ? OfficePathFlattener.FlattenStrokeProjection(shape.PathCommands, pixelsPerUnit)
-            : OfficePathFlattener.Flatten(shape.PathCommands, 0D, 0D, 1D, pixelsPerUnit: pixelsPerUnit);
+            ? OfficePathFlattener.FlattenStrokeProjection(shape.PathCommands, pixelsPerUnit, maximumPoints)
+            : OfficePathFlattener.FlattenWithinPointLimit(shape.PathCommands, 0D, 0D, 1D, maximumPoints, pixelsPerUnit: pixelsPerUnit);
+        if (shape.Points.Count > maximumPoints) throw new InvalidOperationException("Shape projection exceeds the point limit.");
         IReadOnlyList<OfficePoint> points;
         bool closed = shape.Kind != OfficeShapeKind.Line;
         switch (shape.Kind) {
@@ -34,27 +39,51 @@ internal static partial class OfficeStrokeGeometry {
                 points = OfficeCurveFlattening.RoundedRectangle(0,0,shape.Width,shape.Height,shape.CornerRadius,shape.CornerRadius,pixelsPerUnit); break;
             default: points = new[] {new OfficePoint(0,0),new OfficePoint(shape.Width,0),new OfficePoint(shape.Width,shape.Height),new OfficePoint(0,shape.Height)}; break;
         }
+        if (points.Count > maximumPoints) throw new InvalidOperationException("Shape projection exceeds the point limit.");
         return new[] {new OfficeFlattenedPathContour(points,closed)};
     }
 
     internal static List<List<OfficePoint>> Create(IReadOnlyList<OfficeFlattenedPathContour> contours, double width,
         OfficeStrokeLineCap cap, OfficeStrokeLineJoin join, double miterLimit, IReadOnlyList<double>? dashPattern,
         double dashOffset, double pixelsPerUnit, double left, double top, double right, double bottom,
-        CancellationToken cancellationToken = default, bool reset = false) {
+        CancellationToken cancellationToken = default, bool reset = false) =>
+        Create(contours, width, cap, join, miterLimit, dashPattern, dashOffset, pixelsPerUnit,
+            left, top, right, bottom, null, cancellationToken, reset);
+
+    internal static List<List<OfficePoint>> Create(IReadOnlyList<OfficeFlattenedPathContour> contours, double width,
+        OfficeStrokeLineCap cap, OfficeStrokeLineJoin join, double miterLimit, IReadOnlyList<double>? dashPattern,
+        double dashOffset, double pixelsPerUnit, double left, double top, double right, double bottom,
+        Action<int>? chargePoints, CancellationToken cancellationToken = default, bool reset = false) {
         var outlines = new List<List<OfficePoint>>();
         if (!IsFinite(width) || width <= 0) return outlines;
         if (!IsFinite(miterLimit) || miterLimit < 1) miterLimit = 4;
         if (!IsFinite(pixelsPerUnit) || pixelsPerUnit <= 0) pixelsPerUnit = 1;
+        if (chargePoints == null) {
+            // Direct raster and gradient painters need admission too. A supplied
+            // operation budget can impose a tighter, shared projection limit.
+            int remainingPoints = 2_000_000;
+            chargePoints = points => {
+                if (points < 0 || points > remainingPoints)
+                    throw new NotSupportedException("Stroke projection exceeds the point limit.");
+                remainingPoints -= points;
+            };
+        }
+        chargePoints?.Invoke(dashPattern?.Count ?? 0);
+        if (dashPattern != null && (dashPattern.Count & 1) != 0) chargePoints?.Invoke(dashPattern.Count);
         IReadOnlyList<double> pattern = NormalizeRasterDashPattern(NormalizeDashPattern(dashPattern), .25 / pixelsPerUnit);
         double cycle = 0;
         foreach (double length in pattern) cycle = cycle > double.MaxValue - length ? double.MaxValue : cycle + length;
         foreach (OfficeFlattenedPathContour contour in contours) {
             cancellationToken.ThrowIfCancellationRequested();
+            chargePoints?.Invoke(contour.Points.Count);
             var points = new List<OfficePoint>(contour.Points);
-            if (contour.Closed && points.Count > 1 && !SameStrokePoint(points[0], points[points.Count - 1])) points.Add(points[0]);
-            foreach (List<OfficePoint> run in CollectStrokeRuns(points, width, miterLimit, pattern, cycle, dashOffset, reset, left, top, right, bottom, cancellationToken)) {
+            if (contour.Closed && points.Count > 1 && !SameStrokePoint(points[0], points[points.Count - 1])) {
+                chargePoints?.Invoke(1); points.Add(points[0]);
+            }
+            foreach (List<OfficePoint> run in CollectStrokeRuns(points, width, miterLimit, pattern, cycle, dashOffset, reset, left, top, right, bottom, cancellationToken,
+                chargePoints: chargePoints)) {
                 cancellationToken.ThrowIfCancellationRequested();
-                OfficeRasterStroker.AppendOutline(run, width, cap, join, miterLimit, pixelsPerUnit, outlines);
+                OfficeRasterStroker.AppendOutline(run, width, cap, join, miterLimit, pixelsPerUnit, outlines, chargePoints, cancellationToken);
             }
         }
         return outlines;
@@ -86,10 +115,11 @@ internal static partial class OfficeStrokeGeometry {
     }
     private static List<List<OfficePoint>> CollectStrokeRuns(IReadOnlyList<OfficePoint> points, double width,
         double miterLimit, IReadOnlyList<double> pattern, double cycle, double offset, bool reset, double left, double top, double right, double bottom, System.Threading.CancellationToken cancellationToken,
-        Dictionary<List<OfficePoint>, OfficePoint>? dotDirections = null, bool preserveVertices = false, bool? closed = null, HashSet<List<OfficePoint>>? closedRuns = null) {
+        Dictionary<List<OfficePoint>, OfficePoint>? dotDirections = null, bool preserveVertices = false, bool? closed = null, HashSet<List<OfficePoint>>? closedRuns = null,
+        Action<int>? chargePoints = null) {
         var runs = new List<List<OfficePoint>>();
         List<OfficePoint>? run = null;
-        if (points.Count == 1) { runs.Add(new List<OfficePoint>(points)); return runs; }
+        if (points.Count == 1) { chargePoints?.Invoke(1); runs.Add(new List<OfficePoint>(points)); return runs; }
         double phase = AdvancePatternPosition(0D, offset, cycle);
         bool complete = true;
         OfficePoint? pendingDegenerate = null;
@@ -101,9 +131,9 @@ internal static partial class OfficeStrokeGeometry {
             double length = Distance(start.X, start.Y, end.X, end.Y);
             if (!IsFinite(length)) { run = null; complete = false; continue; }
             if (preserveVertices ? length == 0D : length <= 1E-9D) {
-                if (cycle <= 0D) AppendStrokeRun(runs, ref run, start, end, preserveVertices);
+                if (cycle <= 0D) AppendStrokeRun(runs, ref run, start, end, preserveVertices, chargePoints);
                 else if (preserveVertices && TouchesPaintedDash(phase, pattern, cycle)) {
-                    if (run != null) AppendStrokeRun(runs, ref run, start, end, true);
+                    if (run != null) AppendStrokeRun(runs, ref run, start, end, true, chargePoints);
                     else pendingDegenerate = start;
                 }
                 continue;
@@ -117,7 +147,7 @@ internal static partial class OfficeStrokeGeometry {
             phase = AdvancePatternPosition(phase, leading, cycle);
             double visibleLength = Distance(start.X, start.Y, end.X, end.Y);
             if (cycle <= 0D) {
-                AppendStrokeRun(runs, ref run, start, end, preserveVertices);
+                AppendStrokeRun(runs, ref run, start, end, preserveVertices, chargePoints);
             } else {
                 double position = 0D, patternOffset = phase;
                 int index = 0;
@@ -129,6 +159,7 @@ internal static partial class OfficeStrokeGeometry {
                     if (remaining <= 0D) {
                         if (pattern[index] == 0D && (index & 1) == 0) {
                             var dot = new OfficePoint(start.X + (end.X - start.X) * (position / visibleLength), start.Y + (end.Y - start.Y) * (position / visibleLength));
+                            chargePoints?.Invoke(1);
                             var dotRun = new List<OfficePoint> { dot }; runs.Add(dotRun);
                             if (dotDirections != null) dotDirections[dotRun] = new OfficePoint((end.X - start.X) / visibleLength, (end.Y - start.Y) / visibleLength);
                         }
@@ -145,10 +176,12 @@ internal static partial class OfficeStrokeGeometry {
                         var a = position == 0D ? start : new OfficePoint(start.X + (end.X - start.X) * (position / visibleLength), start.Y + (end.Y - start.Y) * (position / visibleLength));
                         var b = next == visibleLength ? end : new OfficePoint(start.X + (end.X - start.X) * (next / visibleLength), start.Y + (end.Y - start.Y) * (next / visibleLength));
                         bool startsRun = run == null;
-                        AppendStrokeRun(runs, ref run, a, b, preserveVertices);
+                        AppendStrokeRun(runs, ref run, a, b, preserveVertices, chargePoints);
                         // Carry join metadata into a painted segment, without creating
                         // a zero-only run that would independently paint horizontal caps.
-                        if (startsRun && pendingDegenerate.HasValue && pendingDegenerate.Value.Equals(a)) run!.Insert(1, a);
+                        if (startsRun && pendingDegenerate.HasValue && pendingDegenerate.Value.Equals(a)) {
+                            chargePoints?.Invoke(1); run!.Insert(1, a);
+                        }
                         pendingDegenerate = null;
                     } else { run = null; pendingDegenerate = null; complete = false; }
                     phase = AdvancePatternPosition(phase, next - position, cycle);
@@ -164,6 +197,7 @@ internal static partial class OfficeStrokeGeometry {
         if (!reset && runs.Count > 1 && points.Count > 2 && (closed ?? SameStrokePoint(points[0], points[points.Count - 1]))) {
             List<OfficePoint> last = runs[runs.Count - 1], first = runs[0];
             if (preserveVertices ? last[last.Count - 1].Equals(first[0]) : SameStrokePoint(last[last.Count - 1], first[0])) {
+                chargePoints?.Invoke(first.Count - 1);
                 last.AddRange(first.GetRange(1, first.Count - 1)); runs.RemoveAt(0);
             }
         }
@@ -171,9 +205,12 @@ internal static partial class OfficeStrokeGeometry {
         return runs;
     }
 
-    private static void AppendStrokeRun(List<List<OfficePoint>> runs, ref List<OfficePoint>? run, OfficePoint start, OfficePoint end, bool exact = false) {
-        if (run == null || !(exact ? run[run.Count - 1].Equals(start) : SameStrokePoint(run[run.Count - 1], start))) { run = new List<OfficePoint> { start }; runs.Add(run); }
-        run.Add(end);
+    private static void AppendStrokeRun(List<List<OfficePoint>> runs, ref List<OfficePoint>? run, OfficePoint start, OfficePoint end, bool exact = false,
+        Action<int>? chargePoints = null) {
+        bool startsRun = run == null || !(exact ? run[run.Count - 1].Equals(start) : SameStrokePoint(run[run.Count - 1], start));
+        chargePoints?.Invoke(startsRun ? 2 : 1);
+        if (startsRun) { run = new List<OfficePoint> { start }; runs.Add(run); }
+        run!.Add(end);
     }
 
     private static bool SameStrokePoint(OfficePoint a, OfficePoint b) => Math.Abs(a.X - b.X) <= 1E-7D && Math.Abs(a.Y - b.Y) <= 1E-7D;

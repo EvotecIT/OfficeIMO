@@ -1,5 +1,14 @@
 # Upgrading OfficeIMO
 
+## Stroke geometry projection limits
+
+Raster and gradient stroke projection limits cumulative copied and generated
+points to two million per projection. Excessive expansion raises
+`NotSupportedException`; simplify the geometry or dash pattern before
+exporting it. PDF header/footer and link-bounds inspection uses a tighter
+65,536-point budget. An exhausted inspection records unassessed clipping or
+retains conservative clickable bounds while preserving native PDF paint.
+
 ## PDF content limits and redaction plans
 
 `PdfReadLimits.MaxContentNestingDepth` also bounds nested marked-content scopes

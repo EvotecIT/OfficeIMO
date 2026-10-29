@@ -30,12 +30,21 @@ internal static class OfficePathFlattener {
         int curveSegments = 0,
         double pixelsPerUnit = 1D) => FlattenCore(commands, offsetX, offsetY, scale, curveSegments, pixelsPerUnit, false);
 
+    internal static IReadOnlyList<OfficeFlattenedPathContour> FlattenWithinPointLimit(
+        IReadOnlyList<OfficePathCommand> commands, double offsetX, double offsetY, double scale,
+        int maximumPoints, int curveSegments = 0, double pixelsPerUnit = 1D) =>
+        FlattenCore(commands, offsetX, offsetY, scale, curveSegments, pixelsPerUnit, false, maximumPoints: maximumPoints);
+
     internal static IReadOnlyList<OfficeFlattenedPathContour> FlattenNativeStroke(IReadOnlyList<OfficePathCommand> commands,
         double pixelsPerUnit) => FlattenCore(commands, 0D, 0D, 1D, 0, pixelsPerUnit, true);
 
     /// <summary>Bounds adaptive curve expansion across a complete native stroke projection.</summary>
     internal static IReadOnlyList<OfficeFlattenedPathContour> FlattenStrokeProjection(
-        IReadOnlyList<OfficePathCommand> commands, double pixelsPerUnit) {
+        IReadOnlyList<OfficePathCommand> commands, double pixelsPerUnit) =>
+        FlattenStrokeProjection(commands, pixelsPerUnit, MaximumFlattenedPoints);
+
+    internal static IReadOnlyList<OfficeFlattenedPathContour> FlattenStrokeProjection(
+        IReadOnlyList<OfficePathCommand> commands, double pixelsPerUnit, int maximumPoints) {
         const int targetExpandedPoints = 65536;
         int curves = 0;
         foreach (OfficePathCommand command in commands)
@@ -44,12 +53,12 @@ internal static class OfficePathFlattener {
         // guard still rejects work beyond its hard limit. The target only limits
         // additional adaptive expansion, never collapses a curve to its endpoint.
         int cap = curves == 0 ? int.MaxValue : Math.Max(4, (targetExpandedPoints - Math.Min(commands.Count, targetExpandedPoints)) / curves);
-        return FlattenCore(commands, 0, 0, 1, 0, pixelsPerUnit, false, cap);
+        return FlattenCore(commands, 0, 0, 1, 0, pixelsPerUnit, false, cap, maximumPoints);
     }
 
     private static IReadOnlyList<OfficeFlattenedPathContour> FlattenCore(IReadOnlyList<OfficePathCommand> commands,
         double offsetX, double offsetY, double scale, int curveSegments, double pixelsPerUnit,
-        bool retainSinglePointClosedContours, int maximumCurveSegments = int.MaxValue) {
+        bool retainSinglePointClosedContours, int maximumCurveSegments = int.MaxValue, int maximumPoints = MaximumFlattenedPoints) {
         if (commands == null) {
             throw new ArgumentNullException(nameof(commands));
         }
@@ -57,6 +66,9 @@ internal static class OfficePathFlattener {
         if (curveSegments < 0) {
             throw new ArgumentOutOfRangeException(nameof(curveSegments), "Curve segment count must be non-negative; zero selects adaptive flattening.");
         }
+        maximumPoints = Math.Min(MaximumFlattenedPoints, maximumPoints);
+        if (maximumPoints <= 0 || commands.Count > maximumPoints)
+            throw new InvalidOperationException("Flattened path exceeds the point limit.");
 
         var contours = new List<OfficeFlattenedPathContour>();
         List<OfficePoint>? current = null;
@@ -111,7 +123,7 @@ internal static class OfficePathFlattener {
                     break;
             }
             pointCount += Math.Max(1, (current?.Count ?? 0) - previousCount);
-            if (pointCount > MaximumFlattenedPoints) throw new InvalidOperationException("Flattened path exceeds the point limit.");
+            if (pointCount > maximumPoints) throw new InvalidOperationException("Flattened path exceeds the point limit.");
         }
 
         AddOpenContour(contours, current);
