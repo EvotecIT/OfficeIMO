@@ -1918,7 +1918,8 @@ namespace OfficeIMO.Tests {
                 document.Save();
             }
 
-            using X509Certificate2 certificate = CreateSelfSignedSigningCertificate();
+            using X509Certificate2 certificate = CreateSelfSignedSigningCertificate(
+                fixtureKeys: X509KeyStorageFlags.Exportable | X509KeyStorageFlags.UserKeySet);
             AddCertificateToCurrentUserStore(certificate);
             try {
                 WordPackageSigningResult result = WordDocument.SignPackage(filePath, SecurityProvider,
@@ -2100,12 +2101,14 @@ namespace OfficeIMO.Tests {
             appPart.Properties.Save();
         }
 
-        private static X509Certificate2 CreateSelfSignedSigningCertificate(string subjectName = "CN=OfficeIMO Package Signing Test") {
+        private static X509Certificate2 CreateSelfSignedSigningCertificate(string subjectName = "CN=OfficeIMO Package Signing Test",
+            X509KeyStorageFlags fixtureKeys = X509KeyStorageFlags.Exportable | X509KeyStorageFlags.EphemeralKeySet) {
             using RSA rsa = RSA.Create(2048);
-            return CreateSelfSignedSigningCertificate(rsa, subjectName);
+            return CreateSelfSignedSigningCertificate(rsa, subjectName, fixtureKeys);
         }
 
-        private static X509Certificate2 CreateSelfSignedSigningCertificate(RSA rsa, string subjectName) {
+        private static X509Certificate2 CreateSelfSignedSigningCertificate(RSA rsa, string subjectName,
+            X509KeyStorageFlags fixtureKeys = X509KeyStorageFlags.Exportable | X509KeyStorageFlags.EphemeralKeySet) {
             var request = new CertificateRequest(
                 subjectName,
                 rsa,
@@ -2119,11 +2122,12 @@ namespace OfficeIMO.Tests {
                 DateTimeOffset.UtcNow.AddDays(1));
 
             byte[] exported = certificate.Export(X509ContentType.Pfx);
+            // Ordinary fixtures stay ephemeral; only the explicit store contract opts into a user key.
 #if NET9_0_OR_GREATER
-            return X509CertificateLoader.LoadPkcs12(exported, null, X509KeyStorageFlags.Exportable);
+            return X509CertificateLoader.LoadPkcs12(exported, null, fixtureKeys);
 #else
 #pragma warning disable SYSLIB0057 // X509CertificateLoader is unavailable before .NET 9.
-            return new X509Certificate2(exported, (string?)null, X509KeyStorageFlags.Exportable);
+            return new X509Certificate2(exported, (string?)null, fixtureKeys);
 #pragma warning restore SYSLIB0057
 #endif
         }

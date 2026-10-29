@@ -238,11 +238,13 @@ namespace OfficeIMO.Tests {
                 DateTimeOffset.UtcNow.AddMinutes(-5),
                 DateTimeOffset.UtcNow.AddDays(1));
             byte[] exported = created.Export(X509ContentType.Pfx);
+            // Synthetic fixtures need neither a loaded user profile nor persisted keys.
+            const X509KeyStorageFlags fixtureKeys = X509KeyStorageFlags.Exportable | X509KeyStorageFlags.EphemeralKeySet;
 #if NET9_0_OR_GREATER
-            return X509CertificateLoader.LoadPkcs12(exported, null, X509KeyStorageFlags.Exportable);
+            return X509CertificateLoader.LoadPkcs12(exported, null, fixtureKeys);
 #else
 #pragma warning disable SYSLIB0057 // X509CertificateLoader is unavailable before .NET 9.
-            return new X509Certificate2(exported, (string?)null, X509KeyStorageFlags.Exportable);
+            return new X509Certificate2(exported, (string?)null, fixtureKeys);
 #pragma warning restore SYSLIB0057
 #endif
         }
