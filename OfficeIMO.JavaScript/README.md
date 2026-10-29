@@ -197,7 +197,7 @@ const blob = await exportCanopy(capture, "xlsx", {
 | Canonical neutral tone | No override unless explicitly mapped in `tones`; cell styles override overlapping row-style properties |
 | Safe resolved links | Native XLSX relationships and PDF annotations; a hidden source URL column is not required |
 | Relative navigation links | Text columns export the captured visible label, including null-valued links, without inventing an absolute URL; raw numeric and datetime columns retain their typed-value policy |
-| History series | Exports the captured latest scalar, or an empty value when none exists; no sparkline or historical-series reconstruction |
+| History series | Raw captures export the captured latest scalar, or an empty value when none exists; display captures export the rendered cell text. No sparkline or historical-series reconstruction |
 | Unmapped row and cell tones | Preserves status text and typed values without inventing a style; explicit `tones` mappings still apply |
 | `recordCount` | Checked against enumeration and used for detail progress, independently of dataset `total` and live `matched` |
 | Captured grouping | Validated contiguous half-open ranges, typed group identities and declared numeric aggregates feed the existing grouped XLSX/PDF writers |
