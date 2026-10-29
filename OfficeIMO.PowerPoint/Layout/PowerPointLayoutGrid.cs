@@ -34,25 +34,27 @@ namespace OfficeIMO.PowerPoint {
     internal sealed class PowerPointLayoutGrid {
         internal const int Columns = 12;
         internal const int Rows = 12;
-        internal const double RowGutter = 12D;
         internal const double FooterOffsetFromBottom = 34D; // 506 pt on a 540 pt slide
         internal const double FooterHeight = 16D;
         internal const double LiveBottomOffset = 52D; // 488 pt on a 540 pt slide
 
+        // scale: the slide's size relative to the 960 x 540 pt reference (below 1 on a 720 x 405 pt slide), applied
+        // to gutters and the footer band so spacing keeps its proportion to the type.
         internal PowerPointLayoutGrid(double slideWidth, double slideHeight, double marginLeft, double marginRight,
-            double marginTop) {
+            double marginTop, double scale = 1D) {
             SlideWidth = slideWidth;
             SlideHeight = slideHeight;
             bool narrow = slideWidth / slideHeight < 1.5D;
-            Gutter = narrow ? 18D : 24D;
+            RowGutter = 12D * scale;
+            Gutter = (narrow ? 18D : 24D) * scale;
             // 4:3 keeps the reference 42 pt side margins (powerpoint-layouts.json, Screen4x3).
             MarginLeft = narrow ? Math.Min(marginLeft, 42D) : marginLeft;
             MarginRight = narrow ? Math.Min(marginRight, 42D) : marginRight;
             MarginTop = marginTop;
-            LiveBottom = slideHeight - LiveBottomOffset;
+            LiveBottom = slideHeight - LiveBottomOffset * scale;
             Column = (slideWidth - MarginLeft - MarginRight - (Columns - 1) * Gutter) / Columns;
             Row = (LiveBottom - MarginTop - (Rows - 1) * RowGutter) / Rows;
-            FooterY = slideHeight - FooterOffsetFromBottom;
+            FooterY = slideHeight - FooterOffsetFromBottom * scale;
             IsNarrow = narrow;
         }
 
@@ -60,6 +62,7 @@ namespace OfficeIMO.PowerPoint {
             SlideWidth = parent.SlideWidth;
             SlideHeight = parent.SlideHeight;
             Gutter = parent.Gutter;
+            RowGutter = parent.RowGutter;
             MarginLeft = region.X;
             MarginRight = parent.SlideWidth - region.Right;
             MarginTop = region.Y;
@@ -70,9 +73,10 @@ namespace OfficeIMO.PowerPoint {
             IsNarrow = parent.IsNarrow;
         }
 
-        private PowerPointLayoutGrid(double slideWidth, double slideHeight, PowerPointLayoutRect body, double top) {
+        private PowerPointLayoutGrid(double slideWidth, double slideHeight, PowerPointLayoutRect body, double top, double scale) {
             SlideWidth = slideWidth;
             SlideHeight = slideHeight;
+            RowGutter = 12D * scale;
             Gutter = Math.Max(8D, body.Width * 0.025D);
             MarginLeft = body.X;
             MarginRight = slideWidth - body.Right;
@@ -80,7 +84,7 @@ namespace OfficeIMO.PowerPoint {
             LiveBottom = body.Bottom;
             Column = (body.Width - (Columns - 1) * Gutter) / Columns;
             Row = Math.Max(8D, (LiveBottom - MarginTop - (Rows - 1) * RowGutter) / Rows);
-            FooterY = slideHeight - FooterOffsetFromBottom;
+            FooterY = slideHeight - FooterOffsetFromBottom * scale;
             IsNarrow = slideWidth / slideHeight < 1.5D;
         }
 
@@ -88,8 +92,8 @@ namespace OfficeIMO.PowerPoint {
         ///     The grid re-derived from a template's body placeholder: its left and right edges are the margins, the gutter
         ///     is 2.5 % of its width, the title top is the top margin and the body bottom ends the live area.
         /// </summary>
-        internal static PowerPointLayoutGrid ForTemplate(double slideWidth, double slideHeight, PowerPointLayoutRect body, double top) =>
-            new(slideWidth, slideHeight, body, top);
+        internal static PowerPointLayoutGrid ForTemplate(double slideWidth, double slideHeight, PowerPointLayoutRect body, double top,
+            double scale = 1D) => new(slideWidth, slideHeight, body, top, scale);
 
         /// <summary>
         ///     A 12-column grid over <paramref name="region" /> with the parent's gutter and row height, so a
@@ -100,12 +104,13 @@ namespace OfficeIMO.PowerPoint {
         internal static PowerPointLayoutGrid For(PowerPointPresentation presentation, PowerPointLayoutTheme theme) {
             PowerPointSlideSize size = presentation.SlideSize;
             return new PowerPointLayoutGrid(PowerPointUnits.ToPoints(size.WidthEmus), PowerPointUnits.ToPoints(size.HeightEmus),
-                theme.MarginLeft, theme.MarginRight, theme.MarginTop);
+                theme.MarginLeft, theme.MarginRight, theme.MarginTop, theme.Scale);
         }
 
         internal double SlideWidth { get; }
         internal double SlideHeight { get; }
         internal double Gutter { get; }
+        internal double RowGutter { get; }
         internal double MarginLeft { get; }
         internal double MarginRight { get; }
         internal double MarginTop { get; }

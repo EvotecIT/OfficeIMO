@@ -59,7 +59,7 @@ namespace OfficeIMO.PowerPoint {
     ///     from an <see cref="OfficeTheme" />.
     /// </summary>
     internal sealed class PowerPointLayoutTheme {
-        private readonly Dictionary<PowerPointTextRole, PowerPointTextStyleSpec> _styles = new();
+        private Dictionary<PowerPointTextRole, PowerPointTextStyleSpec> _styles = new();
 
         private PowerPointLayoutTheme(OfficeTheme theme) {
             Theme = theme;
@@ -145,18 +145,18 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>Text on an accent1 background.</summary>
         internal string OnAccent { get; }
 
-        internal string HeadingFont { get; }
-        internal string BodyFont { get; }
+        internal string HeadingFont { get; private set; }
+        internal string BodyFont { get; private set; }
         internal string TableHeaderFill { get; }
         internal string TableHeaderText { get; }
         internal bool TableBanding { get; }
         internal double TableBorderWidth { get; }
-        internal double TableCellPadding { get; }
-        internal double MarginLeft { get; }
-        internal double MarginRight { get; }
-        internal double MarginTop { get; }
-        internal double ListIndent { get; }
-        internal double ParagraphAfter { get; }
+        internal double TableCellPadding { get; private set; }
+        internal double MarginLeft { get; private set; }
+        internal double MarginRight { get; private set; }
+        internal double MarginTop { get; private set; }
+        internal double ListIndent { get; private set; }
+        internal double ParagraphAfter { get; private set; }
 
         internal PowerPointTextStyleSpec this[PowerPointTextRole role] => _styles[role];
 
@@ -170,6 +170,48 @@ namespace OfficeIMO.PowerPoint {
         };
 
         internal static PowerPointLayoutTheme From(OfficeTheme? theme) => new(theme ?? OfficeTheme.Default);
+
+        /// <summary>The same tokens measured with other font families (the fonts a template's theme part names).</summary>
+        internal PowerPointLayoutTheme WithFontFamilies(string? heading, string? body) {
+            if ((heading == null || heading == HeadingFont) && (body == null || body == BodyFont)) return this;
+            var copy = (PowerPointLayoutTheme)MemberwiseClone();
+            copy.HeadingFont = heading ?? HeadingFont;
+            copy.BodyFont = body ?? BodyFont;
+            return copy;
+        }
+
+        private const double ReadableFloor = 10D;
+
+        /// <summary>Size of the slide relative to the reference the type scale is designed for.</summary>
+        internal double Scale { get; private set; } = 1D;
+
+        /// <summary>
+        ///     The same tokens for a smaller slide: text sizes, minimums, margins and spacing scale by
+        ///     <paramref name="factor" />, with a 10 pt floor (the preflight's readable minimum) so text stays readable.
+        /// </summary>
+        internal PowerPointLayoutTheme Scaled(double factor) {
+            if (factor >= 0.97D || Math.Abs(factor - Scale) < 0.001D) return this;
+            var copy = (PowerPointLayoutTheme)MemberwiseClone();
+            double relative = factor / Scale;
+            copy._styles = new Dictionary<PowerPointTextRole, PowerPointTextStyleSpec>();
+            foreach (KeyValuePair<PowerPointTextRole, PowerPointTextStyleSpec> pair in _styles) {
+                PowerPointTextStyleSpec style = pair.Value;
+                double floor = Math.Min(style.Size, ReadableFloor);
+                double size = Math.Max(floor, RoundSize(style.Size * relative));
+                double minimum = Math.Min(size, Math.Max(floor, Math.Round(style.Minimum * relative)));
+                copy._styles[pair.Key] = new PowerPointTextStyleSpec(style.Role, style.HeadingFont, size, minimum, style.Bold,
+                    style.LineHeight, style.Color, style.Upper, style.Tracking);
+            }
+
+            copy.MarginLeft = MarginLeft * relative;
+            copy.MarginRight = MarginRight * relative;
+            copy.MarginTop = MarginTop * relative;
+            copy.ListIndent = ListIndent * relative;
+            copy.ParagraphAfter = ParagraphAfter * relative;
+            copy.TableCellPadding = TableCellPadding * relative;
+            copy.Scale = factor;
+            return copy;
+        }
 
         /// <summary>
         ///     Maps a designer theme onto the default theme: the brand accents and fonts replace the theme's, the

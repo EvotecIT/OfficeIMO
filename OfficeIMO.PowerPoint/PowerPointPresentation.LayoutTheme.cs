@@ -38,6 +38,14 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>Deck-level state of the layout system: section titles, numbering and footer text.</summary>
         internal PowerPointLayoutDeck LayoutDeck => _layoutDeck ??= new PowerPointLayoutDeck(this);
 
+        /// <summary>The Latin heading and body typefaces the first master's theme part names now.</summary>
+        internal (string? Heading, string? Body) ThemeFontFamilies() {
+            A.FontScheme? fonts = _presentationPart.SlideMasterParts.FirstOrDefault()?.ThemePart?.Theme?.ThemeElements?.FontScheme;
+            string? heading = fonts?.MajorFont?.LatinFont?.Typeface?.Value;
+            string? body = fonts?.MinorFont?.LatinFont?.Typeface?.Value;
+            return (string.IsNullOrWhiteSpace(heading) ? null : heading, string.IsNullOrWhiteSpace(body) ? null : body);
+        }
+
         private PowerPointLayoutTheme ReadLayoutTheme() {
             OfficeTheme theme = OfficeTheme.Default;
             SlideMasterPart? master = _presentationPart.SlideMasterParts.FirstOrDefault();

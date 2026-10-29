@@ -7,12 +7,25 @@ namespace OfficeIMO.PowerPoint {
     internal sealed class PowerPointLayoutContext {
         internal PowerPointLayoutContext(PowerPointPresentation document, PowerPointLayoutTheme theme) {
             Document = document;
-            Theme = theme;
+            Theme = theme.Scaled(SizeScale(document));
             Grid = (document.OwnsLayoutTheme ? null : TemplateGrid(document)) ?? PowerPointLayoutGrid.For(document, theme);
             Deck = document.LayoutDeck;
         }
 
         internal PowerPointPresentation Document { get; }
+
+        /// <summary>
+        ///     The slide size relative to the 960 x 540 pt reference (and 720 x 540 pt for 4:3). The type scale and
+        ///     spacing are designed for those sizes; a smaller slide, such as a 10 inch 720 x 405 pt template, scales
+        ///     them down so the same content keeps the same composition instead of overflowing.
+        /// </summary>
+        internal static double SizeScale(PowerPointPresentation document) {
+            PowerPointSlideSize size = document.SlideSize;
+            double width = PowerPointUnits.ToPoints(size.WidthEmus), height = PowerPointUnits.ToPoints(size.HeightEmus);
+            if (width <= 0D || height <= 0D) return 1D;
+            double referenceWidth = width / height < 1.5D ? 720D : 960D;
+            return Math.Min(1D, Math.Min(width / referenceWidth, height / 540D));
+        }
 
         /// <summary>Derives the grid from a loaded deck's or template's "Title and Content" body placeholder.</summary>
         private static PowerPointLayoutGrid? TemplateGrid(PowerPointPresentation document) {
@@ -45,7 +58,7 @@ namespace OfficeIMO.PowerPoint {
             if (body == null || body.Value.Width < 100D || body.Value.Height < 100D) return null;
             PowerPointSlideSize size = document.SlideSize;
             return PowerPointLayoutGrid.ForTemplate(PowerPointUnits.ToPoints(size.WidthEmus), PowerPointUnits.ToPoints(size.HeightEmus),
-                body.Value, Math.Max(12D, (titleBox?.Y ?? body.Value.Y - 100D) - 24D));
+                body.Value, Math.Max(12D, (titleBox?.Y ?? body.Value.Y - 100D) - 24D), SizeScale(document));
         }
         internal PowerPointLayoutTheme Theme { get; }
         internal PowerPointLayoutGrid Grid { get; }
