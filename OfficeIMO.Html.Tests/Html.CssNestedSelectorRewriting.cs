@@ -6,6 +6,19 @@ namespace OfficeIMO.Tests;
 
 public partial class Html {
     [Fact]
+    public void InvalidEscapeAfterIdentifierLeavesPrefixForSinglePassCssScanning() {
+        string identifier = new string('a', 8_192) + "\\\n";
+        int cursor = 0;
+        Assert.True(HtmlCssIdentifierParser.TryRead(identifier, ref cursor, out string parsed));
+        Assert.Equal(8_192, cursor);
+        Assert.Equal(new string('a', 8_192), parsed);
+
+        string css = ".chapter { --payload:" + identifier + "; color:red }";
+        Assert.Equal(css, HtmlCssIdSelectorRewriter.Rewrite(css,
+            new Dictionary<string, string>(), CancellationToken.None));
+    }
+
+    [Fact]
     public void SelectorRewriteRejectsAggregateHashExpansionBeforeBuildingOutput() {
         string source = string.Concat(Enumerable.Repeat("#old{color:red}", 40));
         Assert.Throws<NotSupportedException>(() => HtmlCssIdSelectorRewriter.Rewrite(source,
