@@ -1,23 +1,60 @@
 # OfficeIMO
 
+[![nuget version](https://img.shields.io/nuget/v/OfficeIMO)](https://www.nuget.org/packages/OfficeIMO)
+
+`OfficeIMO` is the one-reference package for documents in .NET: Word, Excel, PowerPoint, PDF and Markdown, the conversions between them, `OfficeConverter` for files and folders, and the document reader for search and AI ingestion. It runs without Microsoft Office.
+
 ```sh
 dotnet add package OfficeIMO
 ```
 
-Convert files through the format libraries and their adapters:
+Targets `netstandard2.0`, `net8.0` and `net10.0`, plus `net472` on Windows, so .NET Framework applications get the same conversion routes. To keep a dependency small, reference the individual [format packages](https://github.com/EvotecIT/OfficeIMO#packages) instead.
+
+## Create documents and save them as PDF
+
+```csharp
+using OfficeIMO;
+using OfficeIMO.Excel;
+using OfficeIMO.Excel.Pdf;
+using OfficeIMO.Word;
+using OfficeIMO.Word.Pdf;
+
+Sale[] sales = [new("North", 182_400m), new("South", 141_900m), new("West", 97_300m)];
+
+using (var report = WordDocument.Create("Sales.docx")) {
+    report.AddHeading("Quarterly sales", level: 1);
+    report.AddTable(sales);
+    report.AddChart(OfficeChartType.Column, sales, nameof(Sale.Region), nameof(Sale.Revenue));
+    report.Save();
+    report.SaveAsPdf("Sales.pdf");
+}
+
+using (var book = ExcelDocument.Create("Sales.xlsx", new ExcelCreateOptions { Theme = OfficeTheme.Modern })) {
+    book.AddSheet("Sales").AddTable(sales);
+    book.Save();
+    book.SaveAsPdf("Sales-workbook.pdf");
+}
+
+record Sale(string Region, decimal Revenue);
+```
+
+## Convert files
+
+`OfficeConverter.Convert` picks the route from the file extensions and returns an `OfficeConversionReport`:
 
 ```csharp
 using OfficeIMO;
 
-OfficeConversionReport report = OfficeConverter.Convert("Report.docx", "Report.pdf");
-report.ThrowIfLoss();
+OfficeConversionReport report = OfficeConverter.Convert("Sales.docx", "Sales.md",
+    new OfficeConversionOptions { FileConflictPolicy = OfficePublicationPolicy.Replace, FailOnLoss = false });
+foreach (OfficeDiagnostic diagnostic in report.Diagnostics) {
+    Console.WriteLine($"{diagnostic.Severity} {diagnostic.Code}: {diagnostic.Message}");
+}
 ```
 
-The front door and batch engine support .NET Standard 2.0, .NET 8 and .NET 10. Windows builds also target .NET Framework 4.7.2. Format and adapter packages keep their existing framework coverage.
+By default an existing output is not replaced; `FileConflictPolicy` changes that. `FailOnLoss = true` stops a conversion before it writes anything the target cannot carry. `OfficeConversionOptions.WordSave`, `ExcelSave` and `PowerPointSave` set native save options, such as passwords, on the output.
 
-`OfficeConversionOptions.WordSave`, `ExcelSave` and `PowerPointSave` control native destination settings, including passwords, for cross-format conversions as well as native saves. `FailOnLoss` rejects conversion loss before destination writes. If final publication fails, `OfficeConversionException.Report` retains the completed findings. Analysis leaves image and SVG sidecars unpublished; file conversion applies its publication guard and conflict policy to those assets too.
-
-Convert batches with the same options and report vocabulary:
+## Convert a folder
 
 ```csharp
 using OfficeIMO;
@@ -27,37 +64,44 @@ OfficeBatchReport batch = await OfficeConverter.ConvertAsync(
     outputDirectory: "Pdf",
     target: OfficeDocumentFormat.Pdf,
     new OfficeBatchOptions { MaxParallelism = 4, ResumeFrom = "Pdf/.officeimo-batch.json" });
-Console.WriteLine(batch.Succeeded);
+
+Console.WriteLine($"{batch.Summary.Completed} converted, {batch.Summary.Reused} already done, {batch.Summary.Failed} failed");
+foreach (OfficeBatchItemReport item in batch.Items) {
+    Console.WriteLine($"{item.Status} {item.InputPath} -> {item.OutputPath}");
+}
 ```
 
-Use the source model for in-memory conversion. Async conversions return the model and its completed report together:
+With `ResumeFrom`, a rerun reuses verified outputs from the checkpoint and converts only what is missing; `RetryFailed` retries recorded failures. The checkpoint format and saved options are the same on every framework.
+
+## Convert in memory
+
+`To{Format}()` returns the target document model; the async form returns the model and its report together:
 
 ```csharp
 using OfficeIMO;
 using OfficeIMO.Markdown;
+using OfficeIMO.Word;
 using OfficeIMO.Word.Markdown;
 
-using var source = MarkdownDocument.Parse("# Quarterly review");
-OfficeConversionResult<OfficeIMO.Word.WordDocument> converted = await source.ToWordAsync();
-using var word = converted.Value;
+using MarkdownDocument source = MarkdownDocument.Parse("# Quarterly review\n\n- Revenue up 12%\n- Two open risks");
+OfficeConversionResult<WordDocument> converted = await source.ToWordAsync();
+using WordDocument word = converted.Value;
 converted.Report.ThrowIfLoss();
-word.Save("review.docx");
+word.Save("Review.docx");
 ```
 
-Inspect native content or select provenance and signature reports without extracting content:
+## Inspect any document
 
 ```csharp
 using OfficeIMO;
-using OfficeIMO.Provenance;
 
-OfficeDocumentInfo info = OfficeDocument.Inspect("review.docx", new OfficeInspectOptions {
-    IncludeContent = false,
-    Provenance = new OfficeProvenanceOptions()
-});
+OfficeDocumentInfo info = OfficeDocument.Inspect("Review.docx", new OfficeInspectOptions { IncludeContent = false });
 Console.WriteLine(info.Source);
 ```
 
-`OfficeIMO.Workflows` and `OfficeIMO.Workflows.IWork` register their additional conversion routes with `OfficeConverter` through `RegisterConversions()`. The batch engine, checkpoint format and saved options remain the same on every supported framework.
+`OfficeIMO.Workflows` and `OfficeIMO.Workflows.IWork` add further routes, such as Apple iWork files, through `RegisterConversions()`.
+
+See the [repository README](https://github.com/EvotecIT/OfficeIMO#readme) for the package map and the [migration guide](https://github.com/EvotecIT/OfficeIMO/blob/master/MIGRATION.md) when upgrading.
 
 <!-- officeimo-operation-catalog:start -->
 ## Generated capability summary
