@@ -219,8 +219,12 @@ namespace OfficeIMO.Word {
                 return;
             }
 
+            // Write only when turning the setting on: the setter marks the value as the caller's.
             bool enabled = !this._document.Settings.UpdateFieldsOnOpen;
-            this._document.Settings.UpdateFieldsOnOpen = true;
+            if (enabled) {
+                this._document.Settings.UpdateFieldsOnOpen = true;
+            }
+
             this._document.NotifyTableOfContentUpdateQueued(enabled);
         }
 

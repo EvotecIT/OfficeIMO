@@ -56,30 +56,83 @@ namespace OfficeIMO.Word {
                 }
             }
 
-            // Bookmarks the layout does not project as destinations (for example a second bookmark in a paragraph,
-            // or one inside a table cell) take the page of their paragraph or of the closest preceding projected one.
-            int currentPage = 1;
+            int pageCount = Math.Max(1, read.Pages.Count);
+            AddUnprojectedBookmarks(body, pages, GetDisplayedPageNumber(pageCount, labels));
+            return new WordLayoutPagination(pages, pageCount);
+        }
+
+        /// <summary>
+        /// The layout does not record every bookmark as a destination: a second bookmark in a paragraph, or one in a
+        /// table cell, has none. Such a bookmark takes the page of its own paragraph when another bookmark there was
+        /// recorded, or a page that the recorded bookmarks before and after it pin down (both on the same page, or the
+        /// last page with none after it, or page 1 with none before it). Any other bookmark stays unplaced.
+        /// </summary>
+        private static void AddUnprojectedBookmarks(Body body, Dictionary<string, int> pages, int lastPage) {
+            var paragraphs = new List<(List<string> Names, int? Page)>();
             foreach (Paragraph paragraph in body.Descendants<Paragraph>()) {
                 List<string> names = paragraph.Descendants<BookmarkStart>()
                     .Select(_ => _.Name?.Value)
                     .OfType<string>()
                     .Where(_ => _.Length > 0)
                     .ToList();
+                if (names.Count == 0) {
+                    continue;
+                }
+
+                int? page = null;
                 foreach (string name in names) {
-                    if (pages.TryGetValue(name, out int page)) {
-                        currentPage = page;
+                    if (pages.TryGetValue(name, out int recorded)) {
+                        page = recorded;
                         break;
                     }
                 }
 
+                paragraphs.Add((names, page));
+            }
+
+            for (int index = 0; index < paragraphs.Count; index++) {
+                (List<string> names, int? page) = paragraphs[index];
+                page ??= GetBracketedPage(paragraphs, index, lastPage);
+                if (page == null) {
+                    continue;
+                }
+
                 foreach (string name in names) {
                     if (!pages.ContainsKey(name)) {
-                        pages.Add(name, currentPage);
+                        pages.Add(name, page.Value);
                     }
                 }
             }
+        }
 
-            return new WordLayoutPagination(pages, Math.Max(1, read.Pages.Count));
+        private static int? GetBracketedPage(List<(List<string> Names, int? Page)> paragraphs, int index, int lastPage) {
+            int? before = null;
+            for (int previous = index - 1; previous >= 0 && before == null; previous--) {
+                before = paragraphs[previous].Page;
+            }
+
+            int? after = null;
+            for (int next = index + 1; next < paragraphs.Count && after == null; next++) {
+                after = paragraphs[next].Page;
+            }
+
+            if (before != null && after != null) {
+                if (before == after) {
+                    return before;
+                }
+
+                return null;
+            }
+
+            if (before != null && before == lastPage) {
+                return before;
+            }
+
+            if (after != null && after == 1) {
+                return after;
+            }
+
+            return null;
         }
 
         /// <summary>

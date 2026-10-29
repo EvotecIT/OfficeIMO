@@ -109,6 +109,44 @@ namespace OfficeIMO.Tests {
             Assert.True(document.Settings.UpdateFieldsOnOpen);
         }
 
+        [Fact]
+        public void Test_UpdateFieldsClearsTableOfContentsUpdateOnOpenAfterSetLevels() {
+            using WordDocument document = WordDocument.Create();
+            WordTableOfContent toc = document.AddTableOfContent();
+            toc.SetLevels(1, 2);
+            document.AddParagraph("Heading").Style = WordParagraphStyles.Heading1;
+
+            document.UpdateFields(new WordFieldUpdateOptions { UpdateTablesOfContents = true });
+
+            Assert.False(document.Settings.UpdateFieldsOnOpen);
+        }
+
+        [Fact]
+        public void Test_UpdateFieldsPlacesTableCellBookmarksOnlyWhenLayoutPinsThePage() {
+            using WordDocument document = WordDocument.Create();
+            document.AddParagraph("Start").AddBookmark("StartTarget");
+            WordTable shortTable = document.AddTable(2, 2);
+            shortTable.Rows[1].Cells[0].Paragraphs[0].AddText("Short cell").AddBookmark("ShortCellTarget");
+            document.AddParagraph("Middle").AddBookmark("MiddleTarget");
+            WordTable longTable = document.AddTable(150, 1);
+            longTable.Rows[149].Cells[0].Paragraphs[0].AddText("Long cell").AddBookmark("LongCellTarget");
+            document.AddPageBreak();
+            document.AddParagraph("End").AddBookmark("EndTarget");
+            document.AddParagraph("Short ").AddField(WordFieldType.PageRef, parameters: new List<string> { "ShortCellTarget" });
+            document.AddParagraph("Long ").AddField(WordFieldType.PageRef, parameters: new List<string> { "LongCellTarget" });
+
+            WordFieldUpdateReport report = document.UpdateFieldsAndGetReport(new WordFieldUpdateOptions { UseLayoutPagination = true });
+
+            WordFieldUpdateResult shortCell = report.Results.Single(_ => _.InstructionText.Contains("ShortCellTarget"));
+            Assert.Equal(WordFieldUpdateStatus.Updated, shortCell.Status);
+            Assert.Equal("1", shortCell.ResultText);
+            Assert.Equal(WordFieldEvaluationBasis.LayoutPagination, shortCell.EvaluationBasis);
+
+            WordFieldUpdateResult longCell = report.Results.Single(_ => _.InstructionText.Contains("LongCellTarget"));
+            // The bookmarks around the long table are on different pages, so its cell bookmark has no reliable page.
+            Assert.Equal(WordFieldUpdateStatus.Skipped, longCell.Status);
+        }
+
         private static Dictionary<string, int> ReadTocEntryPages(SdtBlock block) {
             var pages = new Dictionary<string, int>();
             foreach (Hyperlink hyperlink in block.Descendants<Hyperlink>().Where(_ => !string.IsNullOrEmpty(_.Anchor?.Value))) {

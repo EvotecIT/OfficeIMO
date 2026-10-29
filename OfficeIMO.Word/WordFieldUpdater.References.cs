@@ -106,7 +106,13 @@ namespace OfficeIMO.Word {
             }
 
             int? page = null;
-            if (layout != null && layout.TryGetBookmarkPage(bookmarkStart.Name?.Value ?? bookmarkName!, out int laidOutPage)) {
+            if (layout != null) {
+                if (!layout.TryGetBookmarkPage(bookmarkStart.Name?.Value ?? bookmarkName!, out int laidOutPage)) {
+                    // A page-break estimate would contradict the laid out pages, so keep the existing result.
+                    message = $"Bookmark {bookmarkName} could not be placed on a page by OfficeIMO layout; the PAGEREF result was left unchanged.";
+                    return false;
+                }
+
                 page = laidOutPage;
             }
 
