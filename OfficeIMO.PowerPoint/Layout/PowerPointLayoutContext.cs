@@ -66,7 +66,30 @@ namespace OfficeIMO.PowerPoint {
         /// <remarks>Frame heights count lines at a slightly narrower measure, so a renderer whose glyphs run a few percent
         /// wider than the estimate still fits the text instead of clipping its last line.</remarks>
         internal double Height(string text, PowerPointTextStyleSpec style, double width, double? size = null) =>
-            Lines(text, style, width / 1.06D, size) * (size ?? style.Size) * style.LineHeight;
+            SafeLines(text, style, width, size) * (size ?? style.Size) * style.LineHeight;
+
+        /// <summary>Line count at the frame-safety measure used for every frame height.</summary>
+        internal int SafeLines(string text, PowerPointTextStyleSpec style, double width, double? size = null) =>
+            Lines(text, style, width / SafetyFactor, size);
+
+        /// <summary>Frames are measured this much narrower than drawn, so a wider renderer cannot add a line.</summary>
+        internal const double SafetyFactor = 1.06D;
+
+        /// <summary>
+        ///     Steps a display size down (at most <paramref name="maxStep" /> points) while the safe line count is
+        ///     larger than the drawn one. Text that sits on the edge of a line break otherwise gets a frame with a
+        ///     phantom line: one renderer fills it, another leaves an empty band under the text.
+        /// </summary>
+        internal double UnambiguousSize(string text, PowerPointTextStyleSpec style, double width, double size, double floor,
+            double maxStep = 6D) {
+            double resolved = size;
+            while (SafeLines(text, style, width, resolved) > Lines(text, style, width, resolved) &&
+                   resolved - 2D >= floor && size - (resolved - 2D) <= maxStep) {
+                resolved -= 2D;
+            }
+
+            return SafeLines(text, style, width, resolved) > Lines(text, style, width, resolved) ? size : resolved;
+        }
 
         /// <summary>The style size, reduced until the longest word fits <paramref name="width" />, so words never break.</summary>
         internal double WordFitSize(string text, PowerPointTextStyleSpec style, double width, double? floor = null) {

@@ -295,8 +295,11 @@ namespace OfficeIMO.PowerPoint {
             PowerPointLayoutRect box = grid.Box(2, 9, 4, 6);
             PowerPointTextStyleSpec style = context.Style(PowerPointTextRole.Quote);
             double size = style.Size;
-            while (size - 2D >= style.Minimum && context.Lines(text, style, box.Width, size) > 5) size -= 2D;
-            writer.Text("Quote", box, context.Paragraph(PowerPointTextMeasure.Balance(text, size, box.Width, theme.HeadingFont), PowerPointTextRole.Quote, size: size),
+            // The quote must end above the attribution rule at the safe line count, not just within five lines.
+            while (size - 2D >= style.Minimum && (context.SafeLines(text, style, box.Width, size) > 5 ||
+                                                  context.Height(text, style, box.Width, size) > box.Height)) size -= 2D;
+            double quoteWidth = PowerPointTextMeasure.BalancedWidth(text, size, box.Width, theme.HeadingFont, false, style.Tracking);
+            writer.Text("Quote", box.WithWidth(quoteWidth), context.Paragraph(text, PowerPointTextRole.Quote, size: size),
                 placeholder: "<p:ph type=\"title\"/>");
             if (string.IsNullOrWhiteSpace(attribution)) return;
             PowerPointLayoutRect attributionBox = grid.Box(2, 7, 10, 2);
@@ -342,7 +345,7 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private static StackItem WithGap(StackItem item, double gapAfter) =>
-            new(item.Name, item.Paragraph, item.Height, gapAfter, item.Placeholder);
+            new(item.Name, item.Paragraph, item.Height, gapAfter, item.Placeholder, item.Width);
 
         // ------------------------------------------------------------------ CaseStudy, Logos, Coverage
 
