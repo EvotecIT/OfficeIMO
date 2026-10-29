@@ -155,10 +155,12 @@ namespace OfficeIMO.PowerPoint {
         private static double MetricChangeHeight(PowerPointTextStyleSpec caption) =>
             (caption.Size + 1D) * caption.LineHeight + 2D;
 
-        private static void RenderTakeaway(PowerPointLayoutContext context, PowerPointLayoutWriter writer, string? takeaway) {
+        private static void RenderTakeaway(PowerPointLayoutContext context, PowerPointLayoutWriter writer, string? takeaway, double minimumTop = 0D) {
             if (string.IsNullOrWhiteSpace(takeaway)) return;
             PowerPointLayoutGrid grid = context.Grid;
             PowerPointLayoutRect box = grid.Box(1, 8, 11, 2);
+            // Content that needs the room above the default row pushes the takeaway down to the live-area bottom.
+            if (minimumTop > box.Y) box = new PowerPointLayoutRect(box.X, minimumTop, box.Width, Math.Max(grid.LiveBottom - minimumTop, box.Height * 0.6D));
             writer.Rect("Takeaway Rule", new PowerPointLayoutRect(box.X, box.Y - 14D, grid.W(12), 1D), context.Theme.Hairline);
             writer.Text("Takeaway", box, context.Paragraph(takeaway!, PowerPointTextRole.Lede));
         }
@@ -251,12 +253,15 @@ namespace OfficeIMO.PowerPoint {
                 if (!string.IsNullOrWhiteSpace(step.Text)) need += 8D + context.Height(step.Text!, small, width, size);
                 return need;
             }
+            double stepsBottom = 0D;
             if (rows.Count == 1) {
                 int[] firstSpans = steps.Count switch { 1 => new[] { 6 }, 2 => new[] { 6, 6 }, 3 => new[] { 4, 4, 4 }, _ => new[] { 3, 3, 3, 3 } };
                 List<(double X, double Width)> firstTiles = Tiles(grid, firstSpans, steps.Count == 5, steps.Count);
                 double available = textLimit - (top + d + 22D);
                 while (bodySize - 1D >= small.Minimum &&
                        steps.Select((step, i) => StepNeed(step, firstTiles[i].Width - 8D, bodySize)).Max() > available) bodySize -= 1D;
+                stepsBottom = top + d + 22D + steps.Select((step, i) => StepNeed(step, firstTiles[i].Width - 8D, bodySize)).Max();
+                if (stepsBottom > textLimit) textLimit = stepsBottom;
             }
             int index = 0;
             for (int r = 0; r < rows.Count; r++) {
@@ -264,6 +269,8 @@ namespace OfficeIMO.PowerPoint {
                 int[] spans = row.Count switch { 1 => new[] { 6 }, 2 => new[] { 6, 6 }, 3 => new[] { 4, 4, 4 }, _ => new[] { 3, 3, 3, 3 } };
                 List<(double X, double Width)> tiles = Tiles(grid, spans, row.Count == 5, row.Count);
                 double y0 = top + r * (rowHeight + TileGap);
+                // One title size per row: a long step title shrinks the row, not just itself.
+                double rowTitleSize = row.Select((item, i) => context.WordFitSize(item.Title, heading, tiles[i].Width - 8D)).Min();
                 for (int i = 0; i < row.Count; i++) {
                     PowerPointLayoutStep step = row[i];
                     (double x, double w) = tiles[i];
@@ -279,7 +286,7 @@ namespace OfficeIMO.PowerPoint {
                     PowerPointLayoutParagraph label = context.Paragraph(number, PowerPointTextRole.Heading, first ? theme.OnAccent : theme.Accent1, numberSize);
                     writer.Circle("Step Marker", new PowerPointLayoutRect(x, y0, d, d), first ? theme.Accent1 : theme.Background, theme.Accent1, 2D, label);
                     double textWidth = w - 8D;
-                    double titleSize = context.WordFitSize(step.Title, heading, textWidth);
+                    double titleSize = rowTitleSize;
                     double titleHeight = context.Height(step.Title, heading, textWidth, titleSize);
                     var paragraphs = new List<PowerPointLayoutParagraph> { context.Paragraph(step.Title, PowerPointTextRole.Heading, size: titleSize) };
                     if (!string.IsNullOrWhiteSpace(step.Text)) {
@@ -295,7 +302,7 @@ namespace OfficeIMO.PowerPoint {
                 }
             }
 
-            if (full && rows.Count == 1) RenderTakeaway(context, writer, TakeawayOf(slide));
+            if (full && rows.Count == 1) RenderTakeaway(context, writer, TakeawayOf(slide), stepsBottom > 0D ? stepsBottom + 22D : 0D);
         }
 
         // ------------------------------------------------------------------ Quote, ImageFull
@@ -524,36 +531,52 @@ namespace OfficeIMO.PowerPoint {
             }
 
             PowerPointLayoutRect list = new PowerPointLayoutRect(grid.X(9), zone.Y, grid.W(4), zone.Height);
-            bool truncated = locations.Count > 7;
-            List<PowerPointLayoutLocation> shown = truncated ? locations.Take(6).ToList() : locations;
-            if (truncated) {
-                context.Deck.Report(PowerPointLayoutDiagnosticCodes.LocationsTruncated, OfficeDiagnosticSeverity.Information,
-                    "The location list shows the first six of " + locations.Count + " locations; every pin stays numbered.", slide.Title);
-            }
-
             PowerPointTextStyleSpec heading = context.Style(PowerPointTextRole.Heading);
             PowerPointTextStyleSpec small = context.Style(PowerPointTextRole.BodySmall);
+            double nameSize = Math.Min(16D, heading.Size);
+            double textW = list.Width - 28D;
+            double ItemHeight(PowerPointLayoutLocation location) {
+                double h = context.Height(location.Name, heading, textW, nameSize);
+                if (!string.IsNullOrWhiteSpace(location.Detail)) h += 2D + context.Height(location.Detail!, small, textW);
+                return h;
+            }
+            // The list shows as many locations as fit the column (at most seven, or six and "and n more"); every
+            // pin stays numbered on the map.
+            const double moreHeight = 20D;
+            int count = Math.Min(locations.Count, 7);
+            while (count > 1) {
+                bool cut = count < locations.Count;
+                double need = locations.Take(count).Sum(location => ItemHeight(location) + 16D) + (cut ? moreHeight : 0D);
+                if (need <= list.Height && (!cut || count <= 6)) break;
+                count--;
+            }
+            bool truncated = count < locations.Count;
+            List<PowerPointLayoutLocation> shown = locations.Take(count).ToList();
+            if (truncated) {
+                context.Deck.Report(PowerPointLayoutDiagnosticCodes.LocationsTruncated, OfficeDiagnosticSeverity.Information,
+                    "The location list shows the first " + count + " of " + locations.Count + " locations; every pin stays numbered.", slide.Title);
+            }
+
             double y = list.Y;
             for (int i = 0; i < shown.Count; i++) {
-                double textX = list.X + 28D, textW = list.Width - 28D;
+                double textX = list.X + 28D;
                 writer.Text("Location Number", new PowerPointLayoutRect(list.X, y + 3D, 24D, 14D),
                     context.Paragraph((offset + i + 1).ToString("00", CultureInfo.InvariantCulture), PowerPointTextRole.Caption, theme.Accent1, bold: true));
-                var paragraphs = new List<PowerPointLayoutParagraph> { context.Paragraph(shown[i].Name, PowerPointTextRole.Heading, size: 16D) };
-                double h = context.Height(shown[i].Name, heading, textW, 16D);
+                var paragraphs = new List<PowerPointLayoutParagraph> { context.Paragraph(shown[i].Name, PowerPointTextRole.Heading, size: nameSize) };
                 if (!string.IsNullOrWhiteSpace(shown[i].Detail)) {
                     PowerPointLayoutParagraph detail = context.Paragraph(shown[i].Detail!, PowerPointTextRole.BodySmall);
                     detail.SpaceBefore = 2D;
                     paragraphs.Add(detail);
-                    h += 2D + Math.Min(2, context.Lines(shown[i].Detail!, small, textW)) * small.Size * small.LineHeight;
                 }
 
+                double h = ItemHeight(shown[i]);
                 writer.Text("Location", new PowerPointLayoutRect(textX, y, textW, h + 4D), paragraphs);
                 y += h + 16D;
             }
 
             if (truncated) {
                 writer.Text("More Locations", new PowerPointLayoutRect(list.X + 28D, y, list.Width - 28D, 20D),
-                    context.Paragraph("and " + (locations.Count - 6).ToString(CultureInfo.CurrentCulture) + " more", PowerPointTextRole.BodySmall));
+                    context.Paragraph("and " + (locations.Count - count).ToString(CultureInfo.CurrentCulture) + " more", PowerPointTextRole.BodySmall));
             }
         }
     }
