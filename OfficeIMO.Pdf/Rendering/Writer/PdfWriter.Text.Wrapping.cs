@@ -53,7 +53,7 @@ internal static partial class PdfWriter {
         double lineWidth = 0;
         double pendingLeadingAdvance = 0;
         int pendingLeadingSpaceCount = 0;
-        var pendingSpaceFragments = new List<PendingSpaceFragment>();
+        var pendingSpaceFragments = new PendingSpaceFragments();
         List<(List<RichSeg> Line, RichSeg Anchor, RichSeg? SpaceStyle)>? invisibleFootnoteAnchors = null;
         RichSeg? currentSpaceStyle = null;
         RichSeg? pendingTabSourceStyle = null;
@@ -160,11 +160,11 @@ internal static partial class PdfWriter {
         void AppendRetainedSpaceFragments(ref double advance, bool clipped = false) {
             if (pendingSpaceFragments.Count > 0 && pendingSpaceFragments[0].Style.LeadingIsTab) {
                 PendingSpaceFragment first = pendingSpaceFragments[0];
-                bool consumeAll = Math.Abs(advance - pendingSpaceFragments.Sum(fragment => fragment.Advance)) <= 0.001D;
+                bool consumeAll = Math.Abs(advance - pendingSpaceFragments.TotalAdvance) <= 0.001D;
                 double prefix = consumeAll ? first.Advance : Math.Min(first.Advance, advance);
                 // A preserved tab can be clipped at the line edge. Admit the
                 // source font only for the prefix that will actually paint here.
-                double followingSpaces = pendingSpaceFragments.Skip(1).Sum(fragment => fragment.Advance);
+                double followingSpaces = pendingSpaceFragments.TotalAdvance - first.Advance;
                 RichSeg prepared = PrepareRetainedTabFrame(first.Style.WithLeadingAdvance(prefix),
                     pendingBufferedTabFollowingWidth, pendingBufferedTabSpaceWidth,
                     field: pendingBufferedTabField, followingSpaces: followingSpaces,
@@ -501,7 +501,7 @@ internal static partial class PdfWriter {
                 pendingLeadingSpaceCount = preserveWhitespace ? pendingLeadingSpaceCount + 1 : 1;
                 if (preserveWhitespace && currentSpaceStyle != null) {
                     if (pendingSpaceFragments.Count > 0 && ReferenceEquals(pendingSpaceFragments[pendingSpaceFragments.Count - 1].Style, currentSpaceStyle))
-                        pendingSpaceFragments[pendingSpaceFragments.Count - 1].AddSpace();
+                        pendingSpaceFragments.AddSpaceToLast();
                     else pendingSpaceFragments.Add(new PendingSpaceFragment(currentSpaceStyle));
                 }
                 pendingLeadingUnderlineStyle = currentRunUnderlineStyle;

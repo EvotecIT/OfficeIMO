@@ -94,6 +94,7 @@ public static partial class OfficeDrawingRasterRenderer {
         canvas.PdfRasterConventions = options.PdfRasterConventions;
         canvas.SetCoordinateScale(scaleX / scale, scaleY / scale);
         if (options.TransformedTextBudget != null) canvas.ShareTransformedTextBudget(options.TransformedTextBudget);
+        else if (options.LimitRasterPaintWork) canvas.TransformedTextBudget.LimitPaintWork((long)width * height);
         canvas.ImageCache = options.ImageCache;
         IOfficeRasterImageCodec? imageCodec = options.ThrowOnImageDecodeFailure
             ? new RequiredImageCodec(options.ImageCodec, options.MaximumRasterPixels, options.CancellationToken)

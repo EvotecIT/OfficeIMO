@@ -13,6 +13,12 @@ Rotation normalization rejects destination coordinates or zoom operands that
 resolve to values other than numbers or `null`. Repair invalid destination
 operands before calling `Pages.NormalizeRotation`.
 
+SVG images normalized for PDF embedding have a cumulative raster-work limit:
+paint bounding boxes may visit at most 256 times the output pixel count, and
+contour crossings share a 512-million-work ceiling across nested renders.
+`TryPrepareImageBytes` returns `false` with a reason when the limit is exceeded;
+simplify excessive overdraw before embedding the image.
+
 Matched-glyph redaction includes clipping-only text in its search and reports
 unsupported clipping modes in the plan instead of silently omitting them.
 Check `PdfRedactionPlan.IsReviewable` and inspect `Findings` before applying

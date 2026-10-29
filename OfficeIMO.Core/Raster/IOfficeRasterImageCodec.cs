@@ -34,6 +34,8 @@ public sealed class OfficeDrawingRasterRenderOptions {
     /// </summary>
     internal bool PdfRasterConventions { get; set; }
     internal OfficeRasterTransformedTextBudget? TransformedTextBudget { get; set; }
+    /// <summary>Bounds cumulative paint work for untrusted SVG image normalization.</summary>
+    internal bool LimitRasterPaintWork { get; set; }
     /// <summary>Decoded and prefiltered images kept between renders of the same drawing.</summary>
     internal OfficeRasterImageCache? ImageCache { get; set; }
 }
