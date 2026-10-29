@@ -578,19 +578,25 @@ namespace OfficeIMO.PowerPoint {
         }
 
         internal static void RenderChart(PowerPointLayoutContext context, PowerPointLayoutWriter writer, PowerPointLayoutChart chart, PowerPointLayoutRect box) {
+            // The chart label sits left-aligned above the plot as slide text (charts.title.align = left). A native
+            // chart title is centred by every renderer, so the chart itself carries no title.
+            if (!string.IsNullOrWhiteSpace(chart.Title)) {
+                PowerPointTextStyleSpec caption = context.Style(PowerPointTextRole.Caption);
+                double size = caption.Size + 3D;
+                PowerPointLayoutParagraph label = context.Paragraph(chart.Title!, PowerPointTextRole.Caption, context.Theme.Text, size, bold: true);
+                double height = Math.Ceiling(context.Height(chart.Title!, caption, box.Width, size)) + 2D;
+                writer.Text("Chart Title", box.WithHeight(height), label);
+                double offset = height + 8D;
+                box = new PowerPointLayoutRect(box.X, box.Y + offset, box.Width, Math.Max(40D, box.Height - offset));
+            }
+
             PowerPointChart result = writer.Slide.AddChart(chart.Kind, chart.Data, PowerPointUnits.FromPoints(box.X), PowerPointUnits.FromPoints(box.Y),
                 PowerPointUnits.FromPoints(box.Width), PowerPointUnits.FromPoints(box.Height), new PowerPointChartAccessibilityOptions {
                     Name = "Chart",
                     AlternativeText = chart.AlternativeText ?? chart.Title ?? "Chart",
                     IncludeDataSummaryInAlternativeText = true
                 });
-            // The slide title carries the message; a chart keeps at most a short label-sized title.
-            if (!string.IsNullOrWhiteSpace(chart.Title)) {
-                result.SetTitle(chart.Title!);
-                result.SetTitleTextStyle(fontSizePoints: context.Style(PowerPointTextRole.Caption).Size + 3D, bold: true, color: context.Theme.Text);
-            } else {
-                result.ClearTitle();
-            }
+            result.ClearTitle();
 
             // The chart sits on the slide surface: no chart-area fill or frame.
             result.SetChartAreaStyle(noFill: true, noLine: true);
