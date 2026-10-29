@@ -159,7 +159,7 @@ internal static partial class PdfFormFiller {
         }
     }
 
-    private static PdfStream CreateTextAppearanceStream(Dictionary<int, PdfIndirectObject> objects, PdfDictionary? inheritedDefaultResources, PdfDictionary? widgetAppearanceResources, PdfDictionary? widgetPageResources, string value, double width, double height, PdfFormFieldStyle? style, string? defaultAppearance, double fontSize, PdfFormFillerOptions? options, string? fieldName, ref int nextObjectNumber, IReadOnlyList<PdfFreeTextRichTextRun>? richAppearanceRuns = null, TextAppearanceFontPlan? preparedFontPlan = null, ChoiceAppearanceData? choiceAppearance = null, int maximumDecodedBytes = PdfReadLimits.DefaultMaxDecodedStreamBytes, CancellationToken cancellationToken = default) {
+    private static PdfStream CreateTextAppearanceStream(Dictionary<int, PdfIndirectObject> objects, PdfDictionary? inheritedDefaultResources, PdfDictionary? widgetAppearanceResources, PdfDictionary? widgetPageResources, string value, double width, double height, PdfFormFieldStyle? style, string? defaultAppearance, double fontSize, PdfFormFillerOptions? options, string? fieldName, ref int nextObjectNumber, IReadOnlyList<PdfFreeTextRichTextRun>? richAppearanceRuns = null, TextAppearanceFontPlan? preparedFontPlan = null, ChoiceAppearanceData? choiceAppearance = null, bool addsObjects = true, int maximumDecodedBytes = PdfReadLimits.DefaultMaxDecodedStreamBytes, CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
         PdfFormFieldStyle effectiveStyle = style ?? new PdfFormFieldStyle();
         if (richAppearanceRuns != null && !effectiveStyle.IsPassword && !effectiveStyle.IsComb) {
@@ -175,7 +175,9 @@ internal static partial class PdfFormFiller {
         string? defaultAppearanceFontResourceName = null;
         PdfDictionary? defaultAppearanceFontResources = null;
         if (!hasEmbeddedAppearanceFont) {
-            hasEmbeddedAppearanceFont = TryCreateEmbeddedTextAppearanceFontPlan(options, displayValue, diagnosticSource, ref nextObjectNumber, out fontPlan, out string? configuredFontFailure);
+            hasEmbeddedAppearanceFont = TryCreateEmbeddedTextAppearanceFontPlan(options, displayValue, diagnosticSource, ref nextObjectNumber, out fontPlan, out string? configuredFontFailure) ||
+                addsObjects && TryCreateInstalledInheritedTextAppearanceFontPlan(objects, options, displayValue, diagnosticSource, ref nextObjectNumber, out fontPlan,
+                    inheritedDefaultResources, widgetAppearanceResources, widgetPageResources);
             if (!hasEmbeddedAppearanceFont) {
                 hasEmbeddedAppearanceFont = TryCreateFallbackTextAppearanceFontPlan(options, displayValue, diagnosticSource, ref nextObjectNumber, out fontPlan, out string? fallbackFontFailure);
                 if (!hasEmbeddedAppearanceFont &&
@@ -225,7 +227,7 @@ internal static partial class PdfFormFiller {
             ? fontPlan!.Resources
             : hasDefaultAppearanceSimpleFont
                 ? defaultAppearanceFontResources!
-                : CreateAppearanceResources();
+                : addsObjects ? CreateAppearanceResources(objects, ref nextObjectNumber) : CreateAppearanceResources();
         return new PdfStream(dictionary, PdfEncoding.Latin1GetBytes(content));
     }
 
@@ -269,7 +271,8 @@ internal static partial class PdfFormFiller {
         }
 
         string diagnosticSource = CreateTextAppearanceDiagnosticSource(fieldName);
-        bool hasEmbeddedAppearanceFont = TryCreateEmbeddedTextAppearanceFontPlan(appearanceOptions, displayValue, diagnosticSource, ref nextObjectNumber, out fontPlan, out string? configuredFontFailure);
+        bool hasEmbeddedAppearanceFont = TryCreateEmbeddedTextAppearanceFontPlan(appearanceOptions, displayValue, diagnosticSource, ref nextObjectNumber, out fontPlan, out string? configuredFontFailure) ||
+            TryCreateInstalledInheritedTextAppearanceFontPlan(objects, appearanceOptions, displayValue, diagnosticSource, ref nextObjectNumber, out fontPlan, defaultResources, pageResources);
         if (!hasEmbeddedAppearanceFont) {
             hasEmbeddedAppearanceFont = TryCreateFallbackTextAppearanceFontPlan(appearanceOptions, displayValue, diagnosticSource, ref nextObjectNumber, out fontPlan, out string? fallbackFontFailure);
             if (!hasEmbeddedAppearanceFont &&
@@ -649,6 +652,17 @@ internal static partial class PdfFormFiller {
         }
 
         return false;
+    }
+
+    // Saved appearances reference the font as an indirect object: viewers and validators expect font
+    // dictionaries in resources to be indirect, and some report broken cross-references otherwise.
+    private static PdfDictionary CreateAppearanceResources(Dictionary<int, PdfIndirectObject> objects, ref int nextObjectNumber) {
+        PdfDictionary resources = CreateAppearanceResources();
+        var fonts = (PdfDictionary)resources.Items["Font"];
+        int fontObjectNumber = nextObjectNumber++;
+        objects[fontObjectNumber] = new PdfIndirectObject(fontObjectNumber, 0, fonts.Items[DefaultAppearanceFontName]);
+        fonts.Items[DefaultAppearanceFontName] = new PdfReference(fontObjectNumber, 0);
+        return resources;
     }
 
     private static PdfDictionary CreateAppearanceResources() {
