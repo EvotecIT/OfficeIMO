@@ -412,8 +412,6 @@ namespace OfficeIMO.PowerPoint {
             List<PowerPointLayoutKpi> kpis = slide.Items<PowerPointLayoutKpi>().Take(3).ToList();
             if (kpis.Count == 0) return;
             PowerPointLayoutRect panel = new PowerPointLayoutRect(grid.X(9), zone.Y, grid.W(4), zone.Height);
-            writer.Rect("Results Panel", panel, theme.Surface);
-            writer.Rect("Results Rule", new PowerPointLayoutRect(panel.X, panel.Y, panel.Width, 3D), theme.Accent1);
             PowerPointTextStyleSpec value = context.Style(PowerPointTextRole.KpiValue);
             PowerPointTextStyleSpec label = context.Style(PowerPointTextRole.KpiLabel);
             PowerPointTextStyleSpec caption = context.Style(PowerPointTextRole.Caption);
@@ -422,7 +420,13 @@ namespace OfficeIMO.PowerPoint {
             double fit = (inner.Height - (kpis.Count - 1) * 26D) / kpis.Count - (4D + labelHeight + 6D + MetricChangeHeight(caption));
             double size = Math.Max(value.Minimum * 0.75D, Math.Min(PowerPointLayoutTheme.RoundSize(value.Size * 0.67D), Math.Floor(fit)));
             double itemHeight = size + 4D + labelHeight + 6D + MetricChangeHeight(caption);
-            double gap = kpis.Count > 1 ? (inner.Height - kpis.Count * itemHeight) / (kpis.Count - 1) : 0D;
+            // Results sit at a steady rhythm from the top; the panel ends after the last result instead of spreading
+            // two or three numbers over the whole column.
+            double gap = kpis.Count > 1 ? Math.Min(40D, (inner.Height - kpis.Count * itemHeight) / (kpis.Count - 1)) : 0D;
+            double used = 23D + kpis.Count * itemHeight + (kpis.Count - 1) * gap + 24D;
+            panel = panel.WithHeight(Math.Min(panel.Height, used));
+            writer.Rect("Results Panel", panel, theme.Surface);
+            writer.Rect("Results Rule", new PowerPointLayoutRect(panel.X, panel.Y, panel.Width, 3D), theme.Accent1);
             double ky = inner.Y;
             for (int i = 0; i < kpis.Count; i++) {
                 if (i > 0) writer.Rect("Results Divider", new PowerPointLayoutRect(inner.X, ky - Math.Min(12D, gap / 2D), inner.Width, 1D), theme.Hairline);
