@@ -18,8 +18,9 @@ public sealed partial class EpubPublication {
     // Stage every payload and the combined retention budget before committing any
     // document. This keeps cross-document semantic edits atomic without a ZIP round-trip.
     private void CommitContentEdits(IReadOnlyDictionary<string, XDocument> documents, CancellationToken token, bool validatePublication = false, Action<XElement>? packageEdit = null) {
-        var payloads = new Dictionary<string, byte[]>(StringComparer.Ordinal);
-        long delta = 0;
+        var edits = new List<(string Path, EpubManifestItem Item, XDocument Document)>(documents.Count);
+        var selectedPaths = new HashSet<string>(StringComparer.Ordinal);
+        long replacedBytes = 0;
         foreach (var pair in documents) {
             token.ThrowIfCancellationRequested();
             if (pair.Value == null) throw new ArgumentException("Content documents cannot be null.", nameof(documents));
@@ -28,14 +29,27 @@ public sealed partial class EpubPublication {
             EnsureResourceMutationAllowed(path);
             if (_encryption.Any(encryption => encryption.Path == path))
                 throw new NotSupportedException("Encrypted/obfuscated content cannot be edited.");
-            ValidateContent(pair.Value, item.MediaType);
-            HashSet<string> ids = EpubContentIdentifiers.Collect(pair.Value.Root!, path, true, token);
-            EpubContentIdentifiers.ValidateReferences(pair.Value.Root!, ids, path, token);
-            byte[] bytes = SerializeXml(pair.Value, _maximumEntryBytes);
-            if (payloads.ContainsKey(path)) throw new InvalidDataException("Content edits select the same resource through multiple manifest declarations.");
-            payloads.Add(path, bytes);
-            delta += bytes.LongLength - _entries[path].LongLength;
+            if (!selectedPaths.Add(path)) throw new InvalidDataException("Content edits select the same resource through multiple manifest declarations.");
+            replacedBytes += _entries[path].LongLength;
+            edits.Add((path, item, pair.Value));
         }
+        // Credit all selected old payloads before staging so dictionary order cannot
+        // reject a valid batch, then cap each serialization by the remaining space.
+        long maximumStagedBytes = _maximumRetainedBytes - (RetainedPayloadBytes - replacedBytes);
+        long stagedBytes = 0;
+        var payloads = new Dictionary<string, byte[]>(StringComparer.Ordinal);
+        foreach (var edit in edits) {
+            token.ThrowIfCancellationRequested();
+            ValidateContent(edit.Document, edit.Item.MediaType);
+            HashSet<string> ids = EpubContentIdentifiers.Collect(edit.Document.Root!, edit.Path, true, token);
+            EpubContentIdentifiers.ValidateReferences(edit.Document.Root!, ids, edit.Path, token);
+            long allowance = Math.Min(_maximumEntryBytes, maximumStagedBytes - stagedBytes);
+            if (allowance < 1) throw new InvalidDataException("Content edits exceed the publication's retained-byte limit.");
+            byte[] bytes = SerializeXml(edit.Document, allowance);
+            payloads.Add(edit.Path, bytes);
+            stagedBytes += bytes.LongLength;
+        }
+        long delta = stagedBytes - replacedBytes;
         var package = new XDocument(_package);
         packageEdit?.Invoke(package.Root!);
         EnsurePackageBudget(package, delta);
