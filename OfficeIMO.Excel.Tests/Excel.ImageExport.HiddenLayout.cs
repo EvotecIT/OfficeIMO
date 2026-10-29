@@ -172,11 +172,32 @@ namespace OfficeIMO.Tests {
             sheet.CellValue(1, 1, "Visible");
             sheet.SetColumnWidth(1, 8);
             sheet.SetColumnWidth(2, 8);
-            sheet.AddImage(1, 1, CreateSolidPng(70, 18, OfficeColor.FromRgb(37, 99, 235)), "image/png", widthPixels: 70, heightPixels: 18, offsetXPixels: 58, name: "OffsetLogo");
+            sheet.AddImage(1, 1, CreateSolidPng(80, 18, OfficeColor.FromRgb(37, 99, 235)), "image/png", widthPixels: 80, heightPixels: 18, offsetXPixels: 58, name: "OffsetLogo");
 
             OfficeImageExportResult result = sheet.ExportImage(OfficeImageExportFormat.Png, new ExcelWorksheetImageExportOptions { ShowGridlines = false });
 
             Assert.Equal("OffsetImage!A1:C1", result.Source);
+        }
+
+        [Theory]
+        [InlineData(32D, 12D)]
+        [InlineData(64D, 20D)]
+        [InlineData(128D, 40D)]
+        public void ExcelWorksheet_TwoCellImageUsedRangeFollowsExportGridMarkers(double columnWidth, double rowHeight) {
+            using ExcelDocument document = ExcelDocument.Create();
+            ExcelSheet sheet = document.AddWorksheet("GridImage");
+            sheet.CellValue(1, 1, "Only cell");
+            sheet.AddImageToRange("B2:C3", CreateSolidPng(2, 2, OfficeColor.SteelBlue));
+            var options = new ExcelWorksheetImageExportOptions {
+                ShowGridlines = false, DefaultColumnWidthPixels = columnWidth, DefaultRowHeightPixels = rowHeight
+            };
+
+            OfficeImageExportResult png = sheet.ExportImage(OfficeImageExportFormat.Png, options);
+            ExcelRangeVisualInfo snapshot = sheet.CreateVisualSnapshot(options);
+
+            Assert.Equal("GridImage!A1:C3", png.Source);
+            Assert.Equal("A1:C3", snapshot.Range);
+            Assert.Single(snapshot.Images);
         }
 
         [Fact]

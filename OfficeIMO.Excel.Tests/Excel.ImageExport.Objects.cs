@@ -429,8 +429,11 @@ namespace OfficeIMO.Tests {
                 diagnostic => diagnostic.Code == OfficeImageExportDiagnosticCodes.TextShapingFallback);
         }
 
-        [Fact]
-        public void ExcelWorksheet_ImageExportExpandsUsedRangeForDrawingShapes() {
+        [Theory]
+        [InlineData(32D, 12D)]
+        [InlineData(64D, 20D)]
+        [InlineData(128D, 40D)]
+        public void ExcelWorksheet_ImageExportExpandsUsedRangeForDrawingShapes(double columnWidth, double rowHeight) {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddWorksheet("ShapeOnly");
@@ -442,7 +445,7 @@ namespace OfficeIMO.Tests {
 
             using (ExcelDocument document = ExcelDocument.Load(filePath)) {
                 ExcelSheet sheet = document.Sheets.Single();
-                var options = new ExcelWorksheetImageExportOptions { ShowGridlines = false };
+                var options = new ExcelWorksheetImageExportOptions { ShowGridlines = false, DefaultColumnWidthPixels = columnWidth, DefaultRowHeightPixels = rowHeight };
                 ExcelRangeVisualInfo snapshot = sheet.CreateVisualSnapshot(options);
                 OfficeImageExportResult png = sheet.ExportImage(OfficeImageExportFormat.Png, options);
                 OfficeImageExportResult svg = sheet.ExportImage(OfficeImageExportFormat.Svg, options);
@@ -515,6 +518,9 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddWorksheet("AbsoluteShape");
+                // Keep the seven-pixel grid explicit; this test checks absolute-anchor translation.
+                var gridFont = document.WorkbookPartRoot.WorkbookStylesPart!.Stylesheet!.Fonts!.Elements<X.Font>().First();
+                gridFont.GetFirstChild<X.FontName>()!.Val = "OfficeIMO Missing Grid Font 28b06c8d";
                 sheet.SetColumnWidth(1, 8);
                 sheet.SetColumnWidth(2, 8);
                 sheet.SetRowHeight(1, 24);

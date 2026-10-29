@@ -566,7 +566,8 @@ namespace OfficeIMO.Excel {
                             ref firstRow,
                             ref firstColumn,
                             ref lastRow,
-                            ref lastColumn);
+                            ref lastColumn,
+                            image.ToColumnIndex, image.ToRowIndex, image.ToOffsetXPixels, image.ToOffsetYPixels);
                     }
                 }
             }
@@ -612,7 +613,8 @@ namespace OfficeIMO.Excel {
                             ref firstRow,
                             ref firstColumn,
                             ref lastRow,
-                            ref lastColumn);
+                            ref lastColumn,
+                            drawing.ToColumn, drawing.ToRow, drawing.ToOffsetXPixels, drawing.ToOffsetYPixels);
                     }
                 }
             }
@@ -650,15 +652,19 @@ namespace OfficeIMO.Excel {
             ref int firstRow,
             ref int firstColumn,
             ref int lastRow,
-            ref int lastColumn) {
+            ref int lastColumn,
+            int? toColumn = null,
+            int? toRow = null,
+            int toOffsetX = 0,
+            int toOffsetY = 0) {
             if (rowIndex <= 0 || columnIndex <= 0) {
                 return;
             }
 
             firstRow = Math.Min(firstRow, rowIndex);
             firstColumn = Math.Min(firstColumn, columnIndex);
-            lastRow = Math.Max(lastRow, ResolveLastVisualRow(rowIndex, heightPixels, rows, defaultRowsHidden, options));
-            lastColumn = Math.Max(lastColumn, ResolveLastVisualColumn(geometry, columnIndex, widthPixels, columns, options));
+            lastRow = Math.Max(lastRow, ResolveVisualMarkerLastRow(toRow, toOffsetY, rowIndex, heightPixels, rows, defaultRowsHidden, options));
+            lastColumn = Math.Max(lastColumn, ResolveVisualMarkerLastColumn(geometry, toColumn, toOffsetX, columnIndex, widthPixels, columns, options));
         }
 
         private static void ExpandAbsoluteVisualAnchor(ExcelWorksheetGeometryIndex geometry,
