@@ -8,12 +8,14 @@ This note records the current cleanup direction for OfficeIMO tests and build wa
 through PowerForge's shared dependency-submission action. Each native runner
 exports only resolved asset graphs and a project-path index. Linux jobs import
 those run-scoped artifacts, rebasing copied restore paths without changing package
-identities or dependency edges. GitHub's submission action supports Linux and
-Windows runners, so Apple graphs are submitted from Linux.
+identities or dependency edges. Read-only Linux jobs run a fixed, SHA-256-verified
+Component Detection release and prepare snapshot JSON from its per-manifest
+edges, preserving intermediate dependencies and manifest-specific scopes.
 
-Pull requests validate restores and artifact import with read-only permissions;
-they do not upload dependency snapshots. Default-branch pushes and manual runs
-submit snapshots with distinct Linux, Windows and Apple correlators. Submission
+Pull requests validate restores, artifact import and snapshot generation with
+read-only permissions. A separate write-enabled job uploads the prepared JSON
+only on default-branch pushes and manual runs, with distinct Linux, Windows and
+Apple correlators. The scanner does not run in that job. Submission
 consumes artifacts from the same workflow run, without a cross-run privileged
 handoff.
 

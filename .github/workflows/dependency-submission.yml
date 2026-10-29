@@ -60,7 +60,7 @@ jobs:
       - uses: actions/checkout@v7
         with:
           persist-credentials: false
-      - uses: EvotecIT/PSPublishModule/.github/actions/dotnet-dependency-submission@bbe3eeb86d14e6e59630045c3feea41a63454a87
+      - uses: EvotecIT/PSPublishModule/.github/actions/dotnet-dependency-submission@a6023269828941ea38d2f51a4905cfd2cc7f8457
         id: graphs
         with:
           projects-json: ${{ matrix.projects }}
@@ -74,8 +74,7 @@ jobs:
           include-hidden-files: true
           retention-days: 1
 
-  validate-transport:
-    if: github.event_name == 'pull_request'
+  scan:
     needs: restore
     strategy:
       fail-fast: false
@@ -88,15 +87,21 @@ jobs:
         with:
           name: nuget-graphs-${{ matrix.profile }}
           path: ${{ runner.temp }}/native-graphs
-      - uses: EvotecIT/PSPublishModule/.github/actions/dotnet-dependency-submission@bbe3eeb86d14e6e59630045c3feea41a63454a87
+      - uses: EvotecIT/PSPublishModule/.github/actions/dotnet-dependency-submission@a6023269828941ea38d2f51a4905cfd2cc7f8457
+        id: snapshot
         with:
-          mode: submit
+          mode: scan
           graph-artifact: ${{ runner.temp }}/native-graphs
-          submit: 'false'
+      - uses: actions/upload-artifact@v7
+        with:
+          name: nuget-snapshot-${{ matrix.profile }}
+          path: ${{ steps.snapshot.outputs.snapshot-path }}
+          if-no-files-found: error
+          retention-days: 1
 
   submit:
     if: github.ref == format('refs/heads/{0}', github.event.repository.default_branch) && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
-    needs: restore
+    needs: scan
     permissions:
       contents: write
     strategy:
@@ -106,16 +111,13 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v7
-        with:
-          persist-credentials: false
       - uses: actions/download-artifact@v8
         with:
-          name: nuget-graphs-${{ matrix.profile }}
-          path: ${{ runner.temp }}/native-graphs
-      - uses: EvotecIT/PSPublishModule/.github/actions/dotnet-dependency-submission@bbe3eeb86d14e6e59630045c3feea41a63454a87
+          name: nuget-snapshot-${{ matrix.profile }}
+          path: ${{ runner.temp }}/snapshot
+      - uses: EvotecIT/PSPublishModule/.github/actions/dotnet-dependency-submission@a6023269828941ea38d2f51a4905cfd2cc7f8457
         with:
           mode: submit
-          graph-artifact: ${{ runner.temp }}/native-graphs
+          snapshot-file: ${{ runner.temp }}/snapshot/snapshot.json
           correlator: officeimo-${{ matrix.profile }}
           submit: 'true'
