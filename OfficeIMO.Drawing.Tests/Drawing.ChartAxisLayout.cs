@@ -183,6 +183,27 @@ public class DrawingChartAxisLayoutTests {
         Assert.Contains("2.0", labels);
     }
 
+    [Theory]
+    [InlineData("1.5", "h", "12")]
+    [InlineData("32", "m", "2")]
+    [InlineData("32", "d", "1")]
+    public void OfficeChartDrawingRenderer_UsesCustomSingleLetterCategoryDateFormats(
+        string serial, string format, string expected) {
+        OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
+            "Single letter date format",
+            "Single letter date format",
+            OfficeChartKind.ColumnClustered,
+            new OfficeChartData(new[] { serial },
+                new[] { new OfficeChartSeries("Actual", new[] { 1200D }) }),
+            widthPoints: 320D,
+            heightPoints: 190D,
+            layout: new OfficeChartLayout(categoryAxisNumberFormat: format,
+                showLegend: false, showValueAxisLabels: false)));
+
+        Assert.Contains(expected, drawing.Elements.OfType<OfficeDrawingText>()
+            .Select(label => label.Text));
+    }
+
     [Fact]
     public void OfficeChartDrawingRenderer_ScatterAxesIgnoreSkippedPointPairs() {
         OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
