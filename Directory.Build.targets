@@ -12,8 +12,9 @@
     <TargetFrameworks>netstandard2.0</TargetFrameworks>
   </PropertyGroup>
 
-  <!-- Keep modern library builds under trimming and NativeAOT analysis. -->
-  <PropertyGroup Condition="('$(TargetFramework)' == 'net8.0' Or '$(TargetFramework)' == 'net10.0') And '$(IsTestProject)' != 'true' And '$(IsPackable)' != 'false' And '$(OutputType)' == 'Library'">
+  <!-- Keep modern OfficeIMO library builds under trimming and NativeAOT analysis.
+       Tool source checkouts nested by CI retain their own compatibility policy. -->
+  <PropertyGroup Condition="('$(TargetFramework)' == 'net8.0' Or '$(TargetFramework)' == 'net10.0') And '$(IsTestProject)' != 'true' And '$(IsPackable)' != 'false' And '$(OutputType)' == 'Library' And $([System.String]::Copy('$(MSBuildProjectName)').StartsWith('OfficeIMO'))">
     <IsAotCompatible>true</IsAotCompatible>
     <EnableTrimAnalyzer>true</EnableTrimAnalyzer>
     <EnableAotAnalyzer>true</EnableAotAnalyzer>
