@@ -226,11 +226,34 @@ namespace OfficeIMO.PowerPoint {
             accent = EnsureContrast(accent, palette.Background, 4.5D);
             OfficeColor accent2 = EnsureContrast(Color(design.Accent2Color, palette.Accent2), palette.Background, 3D);
             OfficeColor accent3 = EnsureContrast(Color(design.Accent3Color, palette.Accent3), palette.Background, 3D);
+            // Series and comparison columns are told apart by these accents. A brand accent that is only a shade of
+            // the primary keeps the theme's own accent instead, so two chart series never share one blue.
+            // A design that repeats the theme's own primary accent composes with the theme as it is.
+            if (accent.ToRgbHex() == palette.Accent1.ToRgbHex()) {
+                accent2 = palette.Accent2;
+                accent3 = palette.Accent3;
+            }
+            if (!Distinct(accent2, accent)) accent2 = Distinct(palette.Accent2, accent) ? palette.Accent2 : palette.Accent4;
+            if (!Distinct(accent3, accent) || !Distinct(accent3, accent2)) accent3 = palette.Accent3;
             palette = palette.With(accent1: accent, accent2: accent2, accent3: accent3);
             OfficeThemeFont heading = theme.Fonts.Heading.With(family: Font(design.HeadingFontName, theme.Fonts.Heading.Family));
             OfficeThemeFont body = theme.Fonts.Body.With(family: Font(design.BodyFontName, theme.Fonts.Body.Family));
             OfficeTheme mapped = theme.WithPalette(palette).WithFonts(new OfficeThemeFonts(heading, body));
             return new PowerPointLayoutTheme(mapped);
+        }
+
+        /// <summary>Whether two accents read as different series: a clear hue step or a clear lightness step.</summary>
+        internal static bool Distinct(OfficeColor a, OfficeColor b) {
+            static (double H, double L) HueLightness(OfficeColor c) {
+                double r = c.R / 255D, g = c.G / 255D, bl = c.B / 255D;
+                double max = Math.Max(r, Math.Max(g, bl)), min = Math.Min(r, Math.Min(g, bl)), d = max - min;
+                double h = d == 0D ? -1D : max == r ? 60D * (((g - bl) / d + 6D) % 6D) : max == g ? 60D * ((bl - r) / d + 2D) : 60D * ((r - g) / d + 4D);
+                return (h, (max + min) / 2D);
+            }
+            (double ha, double la) = HueLightness(a);
+            (double hb, double lb) = HueLightness(b);
+            double hue = ha < 0D || hb < 0D ? 180D : Math.Min(Math.Abs(ha - hb), 360D - Math.Abs(ha - hb));
+            return hue >= 40D || Math.Abs(la - lb) >= 0.25D;
         }
 
         private void Add(PowerPointTextRole role, bool headingFont, double size, double minimum, bool bold,
