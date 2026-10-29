@@ -157,7 +157,7 @@ namespace OfficeIMO.Data {
     /// <summary>
     /// Flattens objects to a dictionary of dotted-path keys to values suitable for table generation.
     /// </summary>
-    public partial class ObjectFlattener {
+    internal partial class ObjectFlattener {
         private static readonly ConcurrentDictionary<Type, ObjectFlattenerProperty[]> _propertyCache = new();
         private static readonly ConcurrentDictionary<CollectionMapAccessorKey, CollectionMapAccessors> _collectionMapAccessorCache = new();
         private static readonly ConcurrentDictionary<Type, FieldInfo[]> _valueTupleFieldCache = new();

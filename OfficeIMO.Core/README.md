@@ -79,6 +79,13 @@ including direction-dependent `Start` and `End`. `OfficeImageFormat` and
 `OfficePageOrientation` retain their existing Core definitions. A format's
 supported subset remains part of that format's contract.
 
+`OfficeChartOptions` carries a chart's title, width and height across Word, Excel
+and PowerPoint. Pass it after the chart type and data, or after the category
+selector in a typed chart call. `WordChartOptions` adds rounded corners,
+`ExcelChartOptions` adds the worksheet row and column, and
+`PowerPointChartOptions` adds slide placement and accessibility. Omitting options
+keeps each format's native drawing defaults.
+
 ## Conversion diagnostics
 
 `OfficeConversionReport` records a completed conversion's `Source`, `Target`,

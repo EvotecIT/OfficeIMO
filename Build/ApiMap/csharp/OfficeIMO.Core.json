@@ -893,6 +893,15 @@
         "OfficeIMO.Security.Tests/OfficeVbaIdentityBoundaryTests.cs",
         "OfficeIMO.Core/README.md"
       ]
+    },
+    {
+      "change": "Align chart type/data/options order across Word, Excel and PowerPoint",
+      "reason": "OfficeChartOptions owns the shared title and physical dimensions. Format options retain Word rounded corners, Excel one-based row/column anchors and PowerPoint position/accessibility. Typed and nameof projections accept options without duplicating data projection or chart rendering. Format defaults and editable native series are preserved.",
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "files": [
+        "OfficeIMO.Core/OfficeChartOptions.cs"
+      ]
     }
   ],
   "applicationStatus": "Phase A applied and validated on the supported macOS targets. Phase B and Tier 2 entries retain their status; Windows .NET Framework validation remains pending.",
@@ -1522,6 +1531,18 @@
         "membersHiddenWithType": 8
       },
       "note": "Keep options, findings, reports and format inspection APIs public. Existing friend assemblies provide format and test access; no new friend declarations are required."
+    },
+    {
+      "type": "OfficeIMO.Data.ObjectFlattener",
+      "id": "T:OfficeIMO.Data.ObjectFlattener",
+      "files": [
+        "OfficeIMO.Core/Data/ObjectFlattener.cs",
+        "OfficeIMO.Core/Data/ObjectFlattener.Rows.cs",
+        "OfficeIMO.Core/Data/ObjectFlattener.Dictionary.cs"
+      ],
+      "reason": "Generated surface analysis identifies undocumented implementation plumbing. Documented table projection options, conversion reports and diagnostic models stay public. All real assembly consumers already have existing friend access.",
+      "phase": "B",
+      "applied": "phase-b-applied"
     }
   ]
 }

@@ -147,11 +147,6 @@ OfficeIMO.Data.NullPolicy
 OfficeIMO.Data.NullPolicy.DefaultValue = 2 -> OfficeIMO.Data.NullPolicy
 OfficeIMO.Data.NullPolicy.EmptyString = 0 -> OfficeIMO.Data.NullPolicy
 OfficeIMO.Data.NullPolicy.NullLiteral = 1 -> OfficeIMO.Data.NullPolicy
-OfficeIMO.Data.ObjectFlattener
-OfficeIMO.Data.ObjectFlattener.Flatten<T>(T item, OfficeIMO.Data.ObjectFlattenerOptions! opts) -> System.Collections.Generic.Dictionary<string!, object?>!
-OfficeIMO.Data.ObjectFlattener.GetPaths(System.Type! type, OfficeIMO.Data.ObjectFlattenerOptions! opts) -> System.Collections.Generic.List<string!>!
-OfficeIMO.Data.ObjectFlattener.ObjectFlattener() -> void
-OfficeIMO.Data.ObjectFlattener.ResolvePaths(System.Collections.Generic.IEnumerable<string!>! paths, OfficeIMO.Data.ObjectFlattenerOptions! opts) -> System.Collections.Generic.List<string!>!
 OfficeIMO.Data.ObjectFlattenerOptions
 OfficeIMO.Data.ObjectFlattenerOptions.CollectionJoinWith.get -> string!
 OfficeIMO.Data.ObjectFlattenerOptions.CollectionJoinWith.set -> void
@@ -3732,6 +3727,14 @@ OfficeIMO.OfficeCapabilityRepresentability.Equivalent = 1 -> OfficeIMO.OfficeCap
 OfficeIMO.OfficeCapabilityRepresentability.Native = 0 -> OfficeIMO.OfficeCapabilityRepresentability
 OfficeIMO.OfficeCapabilityRepresentability.NotRepresentable = 4 -> OfficeIMO.OfficeCapabilityRepresentability
 OfficeIMO.OfficeCapabilityRepresentability.Opaque = 3 -> OfficeIMO.OfficeCapabilityRepresentability
+OfficeIMO.OfficeChartOptions
+OfficeIMO.OfficeChartOptions.Height.get -> OfficeIMO.OfficeLength?
+OfficeIMO.OfficeChartOptions.Height.set -> void
+OfficeIMO.OfficeChartOptions.OfficeChartOptions() -> void
+OfficeIMO.OfficeChartOptions.Title.get -> string?
+OfficeIMO.OfficeChartOptions.Title.set -> void
+OfficeIMO.OfficeChartOptions.Width.get -> OfficeIMO.OfficeLength?
+OfficeIMO.OfficeChartOptions.Width.set -> void
 OfficeIMO.OfficeChartType
 OfficeIMO.OfficeChartType.Area = 9 -> OfficeIMO.OfficeChartType
 OfficeIMO.OfficeChartType.Area3D = 24 -> OfficeIMO.OfficeChartType
