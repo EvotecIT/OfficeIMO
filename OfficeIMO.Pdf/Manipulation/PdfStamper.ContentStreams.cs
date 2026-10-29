@@ -10,9 +10,11 @@ internal static partial class PdfStamper {
         double pageWidth,
         double pageHeight,
         PdfTextStampOptions options,
-        bool watermarkDefaults) {
+        bool watermarkDefaults,
+        string? glyphHex = null,
+        double? textWidth = null) {
         double fontSize = options.FontSize;
-        double x = options.X ?? (watermarkDefaults ? (pageWidth - PdfWriter.EstimateSimpleTextWidth(text, options.Font, fontSize)) / 2.0 : 36);
+        double x = options.X ?? (watermarkDefaults ? (pageWidth - (textWidth ?? PdfWriter.EstimateSimpleTextWidth(text, options.Font, fontSize))) / 2.0 : 36);
         double y = options.Y ?? (watermarkDefaults ? pageHeight / 2.0 : 36);
         double radians = options.RotationDegrees * Math.PI / 180.0;
         double cos = Math.Cos(radians);
@@ -25,7 +27,7 @@ internal static partial class PdfStamper {
             .BeginText()
             .Font(fontResourceName, fontSize)
             .TextMatrix(cos, sin, -sin, cos, x, y)
-            .ShowHexText(EncodeWinAnsiHex(text))
+            .ShowHexText(glyphHex ?? EncodeWinAnsiHex(text))
             .EndText()
             .RestoreState();
 

@@ -115,6 +115,14 @@ public sealed class PdfTextStampOptions {
     /// </summary>
     public bool BehindContent { get; set; }
 
+    /// <summary>
+    /// When true (the default), the stamp text uses the installed font that backs <see cref="Font"/> in the default
+    /// theme, the same font documents created by OfficeIMO.Pdf use, embedded as a subset. When no such font is
+    /// installed, or it lacks a character of the text, the non-embedded standard font is written instead.
+    /// Set to false to always write the non-embedded standard font.
+    /// </summary>
+    public bool EmbedFont { get; set; } = PdfCreateOptions.EmbedDefaultFontsInitially;
+
     private static void ValidateOptionalFinite(double? value, string paramName, string message) {
         if (value.HasValue) {
             ValidateFinite(value.Value, paramName, message);

@@ -117,8 +117,31 @@ internal static partial class PdfWriter {
         return GetHeadingBold(style) ? "F2" : "F1";
     }
 
+    // A list's own style overrides the document default field by field: values it leaves unset, such as
+    // the theme's marker colour, still come from the default list style.
     private static PdfListStyle? ResolveListStyle(PdfListBlock block, PdfCreateOptions options) {
-        return block.Style ?? options.DefaultListStyleSnapshot;
+        PdfListStyle? defaults = options.DefaultListStyleSnapshot;
+        if (block.Style == null || defaults == null) return block.Style ?? defaults;
+        PdfListStyle style = block.Style.Clone();
+        style.FontSize ??= defaults.FontSize;
+        if (style.LineSpacing == null && style.LineHeight == null) {
+            style.LineSpacing = defaults.LineSpacing;
+            style.LineHeight = defaults.LineHeight;
+        }
+        style.MarkerGap ??= defaults.MarkerGap;
+        style.MarkerWidth ??= defaults.MarkerWidth;
+        style.SpacingAfter ??= defaults.SpacingAfter;
+        style.ItemSpacing ??= defaults.ItemSpacing;
+        style.Color ??= defaults.Color;
+        style.MarkerColor ??= defaults.MarkerColor;
+        style.MarkerAlign ??= defaults.MarkerAlign;
+        if (style.MarkerFont == null && style.MarkerFontFamily == null) {
+            style.MarkerFont = defaults.MarkerFont;
+            style.MarkerFontFamily = defaults.MarkerFontFamily;
+        }
+        style.MarkerFontSize ??= defaults.MarkerFontSize;
+        style.MarkerFeatureSettings ??= defaults.MarkerFeatureSettings;
+        return style;
     }
 
     private static double GetListFontSize(PdfListStyle? style, double defaultFontSize) {
