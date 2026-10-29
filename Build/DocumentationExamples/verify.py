@@ -1,12 +1,31 @@
 """Read the quick-start documents independently of OfficeIMO."""
 
 import argparse
+import posixpath
 from pathlib import Path
 from xml.etree import ElementTree as ET
 from zipfile import ZipFile
 
+RELATIONSHIP_ID = "{http://schemas.openxmlformats.org/officeDocument/2006/relationships}id"
+
+
+def related_part(archive: ZipFile, part: str, relationship_id: str, kind: str) -> str:
+    """Resolve one typed, internal package relationship from a generated example."""
+    relationships = posixpath.join(posixpath.dirname(part), "_rels", posixpath.basename(part) + ".rels")
+    root = ET.fromstring(archive.read(relationships))
+    matches = [node for node in root if node.get("Id") == relationship_id]
+    expected_type = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/" + kind
+    if len(matches) != 1 or matches[0].get("Type") != expected_type or matches[0].get("TargetMode", "Internal") != "Internal":
+        raise ValueError(f"Invalid {kind} relationship from {part}")
+    target = matches[0].get("Target", "")
+    resolved = posixpath.normpath(target.lstrip("/") if target.startswith("/") else posixpath.join(posixpath.dirname(part), target))
+    if not target or resolved == ".." or resolved.startswith("../") or resolved not in archive.namelist():
+        raise ValueError(f"Missing {kind} relationship target from {part}")
+    return resolved
+
 
 def verify(directory: Path) -> None:
+    """Check trusted quick-start output, including the relationships that attach its worksheet and table."""
     word_ns = {"w": "http://schemas.openxmlformats.org/wordprocessingml/2006/main"}
     with ZipFile(directory / "report.docx") as document:
         root = ET.fromstring(document.read("word/document.xml"))
@@ -20,7 +39,9 @@ def verify(directory: Path) -> None:
                 for row in table.findall("w:tr", word_ns)]
         if rows != [["Area", "Status"], ["Documents", "Generated"]]:
             raise ValueError(f"Unexpected Word table contents: {rows}")
-        if table.find("w:tr/w:trPr/w:tblHeader", word_ns) is None:
+        first_row = table.find("w:tr", word_ns)
+        header = first_row.find("w:trPr/w:tblHeader", word_ns) if first_row is not None else None
+        if header is None or header.get("{" + word_ns["w"] + "}val", "true").lower() not in {"true", "1", "on"}:
             raise ValueError("Word quick start does not repeat its header row")
 
     ns = {"s": "http://schemas.openxmlformats.org/spreadsheetml/2006/main"}
@@ -33,7 +54,8 @@ def verify(directory: Path) -> None:
         if "xl/sharedStrings.xml" in workbook.namelist():
             shared_root = ET.fromstring(workbook.read("xl/sharedStrings.xml"))
             shared = ["".join(item.itertext()) for item in shared_root]
-        sheet_root = ET.fromstring(workbook.read("xl/worksheets/sheet1.xml"))
+        sheet_path = related_part(workbook, "xl/workbook.xml", sheet.get(RELATIONSHIP_ID, ""), "worksheet")
+        sheet_root = ET.fromstring(workbook.read(sheet_path))
         values = {}
         for cell in sheet_root.findall("s:sheetData/s:row/s:c", ns):
             value = cell.findtext("s:v", default="", namespaces=ns)
@@ -44,8 +66,8 @@ def verify(directory: Path) -> None:
             values[cell.get("r")] = value
         if values != {"A1": "Name", "B1": "Value", "A2": "Alpha", "B2": "42"}:
             raise ValueError(f"Unexpected Excel cell contents: {values}")
-        tables = [ET.fromstring(workbook.read(name)) for name in workbook.namelist()
-                  if name.startswith("xl/tables/") and name.endswith(".xml")]
+        tables = [ET.fromstring(workbook.read(related_part(workbook, sheet_path, node.get(RELATIONSHIP_ID, ""), "table")))
+                  for node in sheet_root.findall("s:tableParts/s:tablePart", ns)]
         if not any(table.get("name") == "DataTable" and table.get("ref") == "A1:B2" for table in tables):
             raise ValueError("Excel quick start is missing the named DataTable over A1:B2")
 

@@ -33,7 +33,7 @@ jobs:
         uses: actions/checkout@v7
         with:
           repository: EvotecIT/PSPublishModule
-          ref: 3d0ad6f14e1f23be1e1cfe8f4257340baeadb790
+          ref: 95c9d689019f8c3cd87f42d4e37bda7d7ef14231
           path: .tools/powerforge-docs
           persist-credentials: false
       - uses: actions/setup-dotnet@v5
@@ -51,3 +51,4 @@ jobs:
           dotnet run --project "$GITHUB_WORKSPACE/Build/DocumentationExamples/Word/Word.csproj" -c Release -f net8.0
           dotnet run --project "$GITHUB_WORKSPACE/Build/DocumentationExamples/Excel/Excel.csproj" -c Release -f net8.0
           python3 "$GITHUB_WORKSPACE/Build/DocumentationExamples/verify.py" .
+          python3 -m unittest discover -s "$GITHUB_WORKSPACE/Build/DocumentationExamples" -p 'test_verify.py'
