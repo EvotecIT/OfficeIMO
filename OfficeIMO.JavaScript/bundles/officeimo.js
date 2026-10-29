@@ -1543,7 +1543,7 @@ _modules.set("56b2057461a668e8c90abd1fbf4f13ff93efd9854e590c82a195799f0f842c2a",
 return _exports;
 })();
 
-const _m18 = _modules.get("4d4856357f94ecbeea67d111ff5e97f916ccc6be6aaefde219d461c6ad10a8c5") ?? (() => {
+const _m18 = _modules.get("945379594834125fea38bc00f02ef077409dd15f6ed67279e63e89afe0bb944b") ?? (() => {
 
 
 
@@ -1621,7 +1621,16 @@ class OpcPackage {
         throw new OfficeIMOError("INVALID_STATE", "OPC package is finalized."); }
     reserve(uri, type) {
         this.open();
+        // OPC part names become ZIP entry names. Reject oversized and deeply nested
+        // names before collecting every ancestor prefix.
+        if (typeof uri === "string" && uri.length > 65536)
+            throw new OfficeIMOError("RESOURCE_LIMIT", "OPC part name exceeds the ZIP entry-name limit.");
         uri = partUri(uri);
+        let depth = 0;
+        for (let index = 0; index < uri.length; index++) {
+            if (uri[index] === "/" && ++depth > 64)
+                throw new OfficeIMOError("RESOURCE_LIMIT", "OPC part name exceeds the directory-depth limit.");
+        }
         if (/\/_rels(?:\/|$)/i.test(uri) || uri.toLowerCase() === "/[content_types].xml")
             throw new TypeError("Package metadata part names are reserved.");
         const key = uri.toLowerCase();
@@ -1793,7 +1802,7 @@ class OpcPackage {
     }
 }
 const _exports = Object.freeze({ partUri: _m19.partUri, relationshipPartUri: _m19.relationshipPartUri, relativePartTarget: _m19.relativePartTarget, corePropertiesXml: _m20.corePropertiesXml, appPropertiesXml: _m20.appPropertiesXml, relationshipsNamespace: relationshipsNamespace, officeRelationshipsNamespace: officeRelationshipsNamespace, contentTypesNamespace: contentTypesNamespace, relationshipTypes: relationshipTypes, ContentTypes: ContentTypes, OpcPackage: OpcPackage });
-_modules.set("4d4856357f94ecbeea67d111ff5e97f916ccc6be6aaefde219d461c6ad10a8c5", _exports);
+_modules.set("945379594834125fea38bc00f02ef077409dd15f6ed67279e63e89afe0bb944b", _exports);
 return _exports;
 })();
 
@@ -2471,7 +2480,7 @@ _modules.set("d56b24243cff6f3552a2f7b45521af4491494375ec76117e9ac1ebb047ce02da",
 return _exports;
 })();
 
-const _m33 = _modules.get("84c16159c55cf4c0af5d3c67510302694946ae99c6c685fc09314069ee3da5c5") ?? (() => {
+const _m33 = _modules.get("ca3fca4833cd76d665f440d64c55bae39f19c214ba25f519af0a8a9f03a06b03") ?? (() => {
 const { ChunkedTextSink } = _m3;
 
 const { escapeXml, xmlDeclaration } = _m17;
@@ -2580,11 +2589,11 @@ async function writeChartXml(chart, destination, policy, signal) {
     await text.close();
 }
 const _exports = Object.freeze({ chartNamespace: chartNamespace, chartContentType: chartContentType, chartAnchorXml: chartAnchorXml, writeChartXml: writeChartXml });
-_modules.set("84c16159c55cf4c0af5d3c67510302694946ae99c6c685fc09314069ee3da5c5", _exports);
+_modules.set("ca3fca4833cd76d665f440d64c55bae39f19c214ba25f519af0a8a9f03a06b03", _exports);
 return _exports;
 })();
 
-const _m32 = _modules.get("9d4496a1ff3d58ac0b9dcd7304e6861184df30700c344329157899639df7b5e4") ?? (() => {
+const _m32 = _modules.get("d2f1b3918d52946e9b19bc1d20230bbacdc8febe20fdd7d5c024d3c519c005e3") ?? (() => {
 const { cleanXml, escapeXml, escapeOoxmlAttribute, xmlDeclaration } = _m17;
 
 const { copyExportLink } = _m7;
@@ -2658,11 +2667,11 @@ function drawingXml(images, policy, charts = []) {
 }
 const drawingContentType = "application/vnd.openxmlformats-officedocument.drawing+xml";
 const _exports = Object.freeze({ copyDrawingAnchor: copyDrawingAnchor, cellPosition: cellPosition, copyHyperlink: copyHyperlink, copyImage: copyImage, hyperlinksXml: hyperlinksXml, drawingXml: drawingXml, drawingContentType: drawingContentType });
-_modules.set("9d4496a1ff3d58ac0b9dcd7304e6861184df30700c344329157899639df7b5e4", _exports);
+_modules.set("d2f1b3918d52946e9b19bc1d20230bbacdc8febe20fdd7d5c024d3c519c005e3", _exports);
 return _exports;
 })();
 
-const _m35 = _modules.get("4c91e257806f805b473340527db7ce3404c98ac27db0a775ff047dc3dded10cc") ?? (() => {
+const _m35 = _modules.get("575d9dc33f356c8de22ed0bac544c47c7779828bd281f6d0badc4abfb9d1b62c") ?? (() => {
 const { OfficeIMOError } = _m2;
 
 const { cellPosition } = _m32;
@@ -2763,7 +2772,7 @@ class MergeRegions {
         throw new RangeError("Merged ranges must stay within exported rows."); }
 }
 const _exports = Object.freeze({ MergeRegions: MergeRegions });
-_modules.set("4c91e257806f805b473340527db7ce3404c98ac27db0a775ff047dc3dded10cc", _exports);
+_modules.set("575d9dc33f356c8de22ed0bac544c47c7779828bd281f6d0badc4abfb9d1b62c", _exports);
 return _exports;
 })();
 
@@ -2804,7 +2813,7 @@ _modules.set("47efdc8f108b0e995accdd63fd1addea0e4de507010cbf0975417e7151636360",
 return _exports;
 })();
 
-const _m34 = _modules.get("23615ba776e7025e5e40cde325ad13799a7eeae6c88cb2ed74395222f91e6a81") ?? (() => {
+const _m34 = _modules.get("7b659cba1ac9c63d51016812f28ce1933fba77ce30ef1e55e8a5d19d521cef05") ?? (() => {
 const { ExportCell } = _m5;
 
 const { isDate } = _m6;
@@ -3001,7 +3010,7 @@ function printXml(options, policy) {
             (options.footer === undefined ? "" : '<oddFooter>' + escapeOoxmlAttribute("&C" + options.footer.replace(/&/g, "&&"), policy) + '</oddFooter>') + '</headerFooter>' : "");
 }
 const _exports = Object.freeze({ ComputedTotal: ComputedTotal, ReportLayout: ReportLayout, totalFormula: totalFormula, printXml: printXml });
-_modules.set("23615ba776e7025e5e40cde325ad13799a7eeae6c88cb2ed74395222f91e6a81", _exports);
+_modules.set("7b659cba1ac9c63d51016812f28ce1933fba77ce30ef1e55e8a5d19d521cef05", _exports);
 return _exports;
 })();
 
@@ -3083,7 +3092,7 @@ _modules.set("4892a7dafefc4d82567cd2bd4cc8da5470cee4dbf546e6473f782f44bd4bbe35",
 return _exports;
 })();
 
-const _m37 = _modules.get("736b2b2fc3489642263dbaf677544e8a270eea6b8efb0cc26c67346e66cab118") ?? (() => {
+const _m37 = _modules.get("6c97a544f6e8bb6e63c2e0faa1f34e4d82657729d78e9ec1c1084c9d9537844f") ?? (() => {
 const { cleanXml, escapeXml, escapeOoxmlAttribute } = _m17;
 
 const { cellPosition } = _m32;
@@ -3249,7 +3258,7 @@ class ConditionalFormats {
     }
 }
 const _exports = Object.freeze({ prepareConditionalFormats: prepareConditionalFormats, ConditionalFormats: ConditionalFormats });
-_modules.set("736b2b2fc3489642263dbaf677544e8a270eea6b8efb0cc26c67346e66cab118", _exports);
+_modules.set("6c97a544f6e8bb6e63c2e0faa1f34e4d82657729d78e9ec1c1084c9d9537844f", _exports);
 return _exports;
 })();
 
@@ -3357,7 +3366,7 @@ _modules.set("860c88d97ba76e8713c14d56967152e369d2f08f50ffada68827a9c220881c61",
 return _exports;
 })();
 
-const _m31 = _modules.get("454395d8f7815709eff7e17e49fbf1b8eb6193b33fa4f2db71aac1c1a657236b") ?? (() => {
+const _m31 = _modules.get("17132f08ccf9a2a21f5979f36e92718d43f6d617901b3be9a925f34acb543db4") ?? (() => {
 const { checkAbort, consumeRows, inputRows, pause, taskYieldDue } = _m4;
 
 const { ChunkedTextSink, BlobByteSink } = _m3;
@@ -4089,11 +4098,11 @@ class Worksheet {
     async discard(error) { this.failed = true; this.error = error; this.pending = []; this.pendingCharacters = 0; this.prepared = undefined; this.buffer = undefined; this.nativeCharts.length = 0; this.chartSources.length = 0; this.output.discard(); await this.entry?.discard(error); }
 }
 const _exports = Object.freeze({ Worksheet: Worksheet });
-_modules.set("454395d8f7815709eff7e17e49fbf1b8eb6193b33fa4f2db71aac1c1a657236b", _exports);
+_modules.set("17132f08ccf9a2a21f5979f36e92718d43f6d617901b3be9a925f34acb543db4", _exports);
 return _exports;
 })();
 
-const _m41 = _modules.get("7f1b6bb321e8055ba5269c0fe0933cf02f9a4ce269d3b8e4a64cc63d8398954a") ?? (() => {
+const _m41 = _modules.get("7a023a0d65b024b7f81c6767ffa79008f6f3d1296ebbefc9785fee32be35f24e") ?? (() => {
 const { escapeOoxmlAttribute, escapeXml, xmlDeclaration } = _m17;
 
 const { cellText, columnName } = _m27;
@@ -4136,7 +4145,7 @@ function tableXml(table, rowCount, policy, headerRow = 1, footer) {
         '" showColumnStripes="' + (options.bandedColumns ? 1 : 0) + '"/></table>';
 }
 const _exports = Object.freeze({ defineTable: defineTable, tableXml: tableXml });
-_modules.set("7f1b6bb321e8055ba5269c0fe0933cf02f9a4ce269d3b8e4a64cc63d8398954a", _exports);
+_modules.set("7a023a0d65b024b7f81c6767ffa79008f6f3d1296ebbefc9785fee32be35f24e", _exports);
 return _exports;
 })();
 
@@ -4363,7 +4372,7 @@ _modules.set("35db01801a6b2e3e0c5acd7493e56f04b5b41b1d57afa8be28b8358378ad6494",
 return _exports;
 })();
 
-const _m44 = _modules.get("6ff482aba6cf0b524cf20f6a4f8af16b842a49f36448b14e73beaf838885d219") ?? (() => {
+const _m44 = _modules.get("005db06e406ebe0472c57583b12f1e76b27c8f9e27a66ac69f27bfe8571bccdf") ?? (() => {
 const { checkAbort } = _m4;
 
 const { NotSupportedError, OfficeIMOError } = _m2;
@@ -4530,11 +4539,11 @@ function prepareChart(input, policy, availablePoints, availableText, signal, res
         points, textCharacters });
 }
 const _exports = Object.freeze({ prepareChart: prepareChart });
-_modules.set("6ff482aba6cf0b524cf20f6a4f8af16b842a49f36448b14e73beaf838885d219", _exports);
+_modules.set("005db06e406ebe0472c57583b12f1e76b27c8f9e27a66ac69f27bfe8571bccdf", _exports);
 return _exports;
 })();
 
-const _m22 = _modules.get("5efa30acfdd62288728014020dd33887b8458e82a821f28b48684b4ede2cba57") ?? (() => {
+const _m22 = _modules.get("20f3d9313ce819110d320fa74d3f0bd4afdd8c0d29f1f8737aaef025480676ce") ?? (() => {
 const { beginTask, checkAbort, pause, taskYieldDue } = _m4;
 
 const { OfficeIMOError } = _m2;
@@ -5015,7 +5024,7 @@ class Workbook {
     }
 }
 const _exports = Object.freeze({ Workbook: Workbook });
-_modules.set("5efa30acfdd62288728014020dd33887b8458e82a821f28b48684b4ede2cba57", _exports);
+_modules.set("20f3d9313ce819110d320fa74d3f0bd4afdd8c0d29f1f8737aaef025480676ce", _exports);
 return _exports;
 })();
 
@@ -5072,7 +5081,7 @@ _modules.set("a10003e971cd5ec2cee127bc9b029a0aa06fe3d50112838929d7a04a55e177c0",
 return _exports;
 })();
 
-const _m46 = _modules.get("232bc60be18b4056ca843542b704b0b972aaee15eb75a77cadc46268a7f73f83") ?? (() => {
+const _m46 = _modules.get("6cefde9fc9aeacd0531ac76ecd39b992320448931236dc112f63f57960c67f16") ?? (() => {
 const { withDestination } = _m3;
 
 const { copyColumns } = _m11;
@@ -5127,7 +5136,7 @@ async function writeXlsxTo(rows, destination, configuration) {
     });
 }
 const _exports = Object.freeze({ writeXlsx: writeXlsx, writeXlsxTo: writeXlsxTo });
-_modules.set("232bc60be18b4056ca843542b704b0b972aaee15eb75a77cadc46268a7f73f83", _exports);
+_modules.set("6cefde9fc9aeacd0531ac76ecd39b992320448931236dc112f63f57960c67f16", _exports);
 return _exports;
 })();
 
@@ -5224,7 +5233,7 @@ _modules.set("451f527f4bb2baa127fe9d7bf743d191de75adc0a74857cb6143f9702697d22b",
 return _exports;
 })();
 
-const _m48 = _modules.get("024c5ef9e659f66ebb241058f56d5dc18f7e23a8a6b5f32c104d5d323ac443e0") ?? (() => {
+const _m48 = _modules.get("7de6104337f9f8434386e7eda3a6043bd174a5043e2afaa0d980ea979f04b9ea") ?? (() => {
 const { groupedReportOperation } = _m8;
 
 const { checkAbort, withAbort } = _m4;
@@ -5397,14 +5406,14 @@ async function writeGroupedXlsxTo(report, destination, options) {
     return withDestination(destination, async (sink) => (await write(report, prepared, sink)).result);
 }
 const _exports = Object.freeze({ addGroupedXlsx: addGroupedXlsx, writeGroupedXlsx: writeGroupedXlsx, writeGroupedXlsxTo: writeGroupedXlsxTo });
-_modules.set("024c5ef9e659f66ebb241058f56d5dc18f7e23a8a6b5f32c104d5d323ac443e0", _exports);
+_modules.set("7de6104337f9f8434386e7eda3a6043bd174a5043e2afaa0d980ea979f04b9ea", _exports);
 return _exports;
 })();
 
-const _m21 = _modules.get("bb87644dc43e7d204c6d0b54a078bb86334627b47ecc7b1398a77e407b4512fa") ?? (() => {
+const _m21 = _modules.get("385385416464b8c1685ccdd1f048954f9dbd5c8c4086858c3fb87deed52ce745") ?? (() => {
 
 const _exports = Object.freeze({ Workbook: _m22.Workbook, writeXlsx: _m46.writeXlsx, writeXlsxTo: _m46.writeXlsxTo, writeGroupedXlsx: _m48.writeGroupedXlsx, writeGroupedXlsxTo: _m48.writeGroupedXlsxTo, addGroupedXlsx: _m48.addGroupedXlsx, createGroupedReport: _m8.createGroupedReport, Worksheet: _m31.Worksheet, Cell: _m27.Cell, FormulaCell: _m28.FormulaCell, StyleRegistry: _m24.StyleRegistry, NumberFormats: _m24.NumberFormats, saveBlob: _m1.saveBlob, ExportCell: _m5.ExportCell });
-_modules.set("bb87644dc43e7d204c6d0b54a078bb86334627b47ecc7b1398a77e407b4512fa", _exports);
+_modules.set("385385416464b8c1685ccdd1f048954f9dbd5c8c4086858c3fb87deed52ce745", _exports);
 return _exports;
 })();
 
@@ -11612,10 +11621,10 @@ _modules.set("027aafa08408056b10d7d717d63d1f7c0ee20ecfc68213aa66feacc75ec525fe",
 return _exports;
 })();
 
-const _m0 = _modules.get("50eb86fa3b5fd101165e1823ed1ae87c340e5e737bcc02c08bb3690ae602d2c0") ?? (() => {
+const _m0 = _modules.get("fbc518254f34f2d84d1e556a561c6e0bc0b41ba216509dc527e41aac211564ff") ?? (() => {
 
 const _exports = Object.freeze({ core: _m1, zip: _m14, xml: _m17, opc: _m18, xlsx: _m21, csv: _m50, pdf: _m54, Workbook: _m21.Workbook, Worksheet: _m21.Worksheet, Cell: _m21.Cell, FormulaCell: _m21.FormulaCell, StyleRegistry: _m21.StyleRegistry, NumberFormats: _m21.NumberFormats, writeXlsx: _m21.writeXlsx, writeXlsxTo: _m21.writeXlsxTo, writeCsv: _m50.writeCsv, writeCsvTo: _m50.writeCsvTo, createGroupedReport: _m8.createGroupedReport, writeGroupedXlsx: _m48.writeGroupedXlsx, writeGroupedXlsxTo: _m48.writeGroupedXlsxTo, addGroupedXlsx: _m48.addGroupedXlsx, writeGroupedPdf: _m83.writeGroupedPdf, writeGroupedPdfTo: _m83.writeGroupedPdfTo, pdfGroupedTable: _m83.pdfGroupedTable, writePdf: _m54.writePdf, writePdfTo: _m54.writePdfTo, writePdfDocument: _m54.writePdfDocument, writePdfDocumentTo: _m54.writePdfDocumentTo, pdfTable: _m54.pdfTable, PdfFont: _m54.PdfFont, preflightPdfText: _m54.preflightPdfText, OfficeIMOError: _m1.OfficeIMOError, NotSupportedError: _m1.NotSupportedError, detectFeatures: _m1.detectFeatures, saveBlob: _m1.saveBlob, ExportCell: _m1.ExportCell });
-_modules.set("50eb86fa3b5fd101165e1823ed1ae87c340e5e737bcc02c08bb3690ae602d2c0", _exports);
+_modules.set("fbc518254f34f2d84d1e556a561c6e0bc0b41ba216509dc527e41aac211564ff", _exports);
 return _exports;
 })();
 Object.assign(officeimo, _m0);

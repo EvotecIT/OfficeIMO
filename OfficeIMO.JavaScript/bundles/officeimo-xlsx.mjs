@@ -1059,7 +1059,16 @@ class OpcPackage {
         throw new OfficeIMOError("INVALID_STATE", "OPC package is finalized."); }
     reserve(uri, type) {
         this.open();
+        // OPC part names become ZIP entry names. Reject oversized and deeply nested
+        // names before collecting every ancestor prefix.
+        if (typeof uri === "string" && uri.length > 65536)
+            throw new OfficeIMOError("RESOURCE_LIMIT", "OPC part name exceeds the ZIP entry-name limit.");
         uri = partUri(uri);
+        let depth = 0;
+        for (let index = 0; index < uri.length; index++) {
+            if (uri[index] === "/" && ++depth > 64)
+                throw new OfficeIMOError("RESOURCE_LIMIT", "OPC part name exceeds the directory-depth limit.");
+        }
         if (/\/_rels(?:\/|$)/i.test(uri) || uri.toLowerCase() === "/[content_types].xml")
             throw new TypeError("Package metadata part names are reserved.");
         const key = uri.toLowerCase();
