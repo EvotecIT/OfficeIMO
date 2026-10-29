@@ -43,6 +43,29 @@ PSWriteOffice to that package version. The module uses the same versioned engine
 source. `Build/project.build.json` owns package selection, version bindings,
 and NuGet configuration.
 
+## README examples
+
+The Word and Excel quick starts are generated from the executable programs under
+`Build/DocumentationExamples`. Edit those source files, then refresh the marked
+README blocks with PowerForge:
+
+```powershell
+powerforge docs sync --config Build/docs-sync.json --apply
+powerforge docs sync --config Build/docs-sync.json
+```
+
+The check command returns a nonzero exit code when a block is stale. The
+documentation examples workflow runs the same check and executes both programs
+against their pinned published NuGet packages. Update
+`OfficeIMODocumentationPackageVersion` in the example projects when qualifying a
+new public version. Source synchronization and published-package compatibility
+are checked separately.
+
+To run an example locally, use `dotnet run --project
+Build/DocumentationExamples/Word/Word.csproj -c Release -f net8.0` or the matching
+Excel project. The programs write `report.docx` and `report.xlsx` into the current
+directory; choose a scratch working directory for validation.
+
 ## Coordinated publication
 
 Publication uses the local credential files configured in

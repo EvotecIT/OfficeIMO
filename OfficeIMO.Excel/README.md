@@ -33,6 +33,7 @@ dotnet add package OfficeIMO.Excel
 
 ## Quick start
 
+<!-- powerforge:code source="Build/DocumentationExamples/Excel/Program.cs" region="QuickStart" -->
 ```csharp
 using OfficeIMO.Excel;
 
@@ -48,6 +49,7 @@ sheet.AutoFitColumns();
 
 document.Save();
 ```
+<!-- /powerforge:code -->
 
 When a workbook comes from an untrusted source, pass the bounded load profile before parsing it:
 

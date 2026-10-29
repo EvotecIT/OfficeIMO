@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFrameworks>net8.0;net10.0</TargetFrameworks>
+    <IsPackable>false</IsPackable>
+    <OfficeIMODocumentationPackageVersion Condition="'$(OfficeIMODocumentationPackageVersion)' == ''">3.5.2</OfficeIMODocumentationPackageVersion>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="OfficeIMO.Word" Version="[$(OfficeIMODocumentationPackageVersion)]" />
+  </ItemGroup>
+</Project>
