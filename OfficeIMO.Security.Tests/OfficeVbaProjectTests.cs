@@ -1,6 +1,7 @@
 using System.IO;
 using System.Xml.Linq;
 using OfficeIMO;
+using OfficeIMO.Core.Internal;
 using OfficeIMO.Excel;
 using OfficeIMO.PowerPoint;
 using OfficeIMO.Word;
@@ -8,6 +9,50 @@ using OfficeIMO.Word;
 namespace OfficeIMO.Security.Tests;
 
 public sealed class OfficeVbaProjectTests {
+    [Fact]
+    public void SlashDelimitedDirectoryNameCannotBypassHostModuleClassification() {
+        var project = OfficeVbaProject.Create("Inventory", 65001);
+        project.AddDocumentModule("HostXPart", "", new Guid("00020819-0000-0000-C000-000000000046"));
+        Assert.True(OfficeCompoundFileReader.TryRead(project.Write().GetBytes(), out OfficeCompoundFile? compound, out _));
+        Assert.True(OfficeVbaCompression.TryDecompress(compound!.Streams["VBA/dir"], 1_000_000, out byte[] directory, out _));
+        byte[] oldName = Encoding.Unicode.GetBytes("HostXPart");
+        byte[] record = BitConverter.GetBytes((ushort)0x0047).Concat(BitConverter.GetBytes(oldName.Length)).Concat(oldName).ToArray();
+        int recordOffset = Enumerable.Range(0, directory.Length - record.Length + 1)
+            .Single(index => directory.AsSpan(index, record.Length).SequenceEqual(record));
+        Encoding.Unicode.GetBytes("Host/Part").CopyTo(directory, recordOffset + 6);
+        string declarations = Encoding.UTF8.GetString(compound.Streams["PROJECT"])
+            .Replace("Document=HostXPart/", "Document=Host/Part/", StringComparison.Ordinal);
+        byte[] crafted = OfficeCompoundFileWriter.Rewrite(compound, new Dictionary<string, byte[]> {
+            ["VBA/dir"] = OfficeVbaCompression.Compress(directory),
+            ["PROJECT"] = Encoding.UTF8.GetBytes(declarations)
+        });
+
+        var error = Assert.Throws<InvalidDataException>(() => OfficeVbaProject.Load(crafted));
+        Assert.Contains("module name", error.Message, StringComparison.OrdinalIgnoreCase);
+        using var presentation = PowerPointPresentation.Create();
+        Assert.Throws<InvalidDataException>(() => presentation.SetVbaProject(OfficeVbaProject.Load(crafted)));
+        Assert.Null(presentation.ReadVbaProject());
+    }
+
+    [Fact]
+    public void ProjectDeclarationsClassifyModulesUsingFirstMatchAndExactNames() {
+        var kinds = new OfficeVbaProjectText.ModuleKindLookup(
+            "DocClass=SheetCode/&H00000000\r" +
+            "BaseClass=Designer\n" +
+            "Document=ThisDocument/&H00000000\r\n" +
+            "DocModule=LegacyDocument\r\n" +
+            "BaseClass=SheetCode\r\n" +
+            "Document=Incomplete\r\n",
+            new[] { "SheetCode", "Designer", "ThisDocument", "LegacyDocument", "Incomplete", "Unlisted" });
+
+        Assert.Equal(OfficeVbaModuleKind.Document, kinds.Get("sheetcode", 0x0022));
+        Assert.Equal(OfficeVbaModuleKind.Designer, kinds.Get("DESIGNER", 0x0022));
+        Assert.Equal(OfficeVbaModuleKind.Document, kinds.Get("ThisDocument", 0x0021));
+        Assert.Equal(OfficeVbaModuleKind.Document, kinds.Get("LegacyDocument", 0x0021));
+        Assert.Equal(OfficeVbaModuleKind.Standard, kinds.Get("Incomplete", 0x0021));
+        Assert.Equal(OfficeVbaModuleKind.Class, kinds.Get("Unlisted", 0x0022));
+    }
+
     [Fact]
     public void DocumentAdaptersRejectForeignDocumentModulesBeforeAddingAProjectPart() {
         Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
