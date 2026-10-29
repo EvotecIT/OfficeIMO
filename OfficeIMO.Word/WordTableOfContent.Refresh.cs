@@ -17,23 +17,11 @@ namespace OfficeIMO.Word {
         /// </remarks>
         /// <returns>A report describing the generated entries and skipped headings.</returns>
         public WordTableOfContentRefreshReport RefreshEntries() {
-            if (_sdtBlock.SdtContentBlock == null) {
-                throw new InvalidOperationException("Table of contents content block is missing.");
-            }
-
             string instruction = GetTocInstruction();
             string noContentText = GetNoContentText();
-            string? tcEntryTypeFilter = GetTocEntryTypeFilter(instruction);
-            string? bookmarkScope = GetTocBookmarkScope(instruction);
             ISet<int> pageNumberSuppressedLevels = GetTocPageNumberSuppressedLevels(instruction);
             string pageNumberSeparator = GetTocPageNumberSeparator(instruction);
-            IReadOnlyDictionary<string, int> customStyleLevels = GetTocCustomStyleLevels(instruction);
-            TocSourceOptions sourceOptions = GetTocSourceOptions(instruction, customStyleLevels);
-            var headings = CollectHeadingEntries(tcEntryTypeFilter, customStyleLevels, bookmarkScope, sourceOptions).ToArray();
-            var included = headings
-                .Where(heading => !heading.ApplyLevelRange || (heading.Level >= MinLevel && heading.Level <= MaxLevel))
-                .ToArray();
-            int skipped = headings.Length - included.Length;
+            TocHeadingEntry[] included = CollectIncludedEntries(instruction, out int skipped);
 
             ReplaceContent(instruction, noContentText, included, pageNumberSuppressedLevels, pageNumberSeparator);
             QueueUpdateOnOpen(force: true);
@@ -42,6 +30,67 @@ namespace OfficeIMO.Word {
                 included.Select(heading => heading.ToPublicEntry()).ToArray(),
                 skipped,
                 "Estimated from explicit page breaks; Word may recalculate layout on open.");
+        }
+
+        /// <summary>
+        /// Rewrites the table as a complete TOC field whose result holds one hyperlinked entry per heading, with the
+        /// page number of each entry in a <c>PAGEREF</c> field, as Word writes it. Page numbers start as explicit-break
+        /// estimates; field update refreshes the <c>PAGEREF</c> fields.
+        /// </summary>
+        internal WordTableOfContentRefreshReport RegenerateFieldResult() {
+            string instruction = GetTocInstruction();
+            string noContentText = GetNoContentText();
+            ISet<int> pageNumberSuppressedLevels = GetTocPageNumberSuppressedLevels(instruction);
+            string pageNumberSeparator = GetTocPageNumberSeparator(instruction);
+            TocHeadingEntry[] included = CollectIncludedEntries(instruction, out int skipped);
+
+            ReplaceContentWithFieldResult(instruction, noContentText, included, pageNumberSuppressedLevels, pageNumberSeparator);
+
+            return new WordTableOfContentRefreshReport(
+                included.Select(_ => _.ToPublicEntry()).ToArray(),
+                skipped,
+                "Written as a TOC field result; page numbers are PAGEREF fields refreshed by field update.");
+        }
+
+        /// <summary>
+        /// Finds every table-of-contents content control in the document body, in document order.
+        /// </summary>
+        internal static IReadOnlyList<WordTableOfContent> GetTablesOfContents(WordDocument document) {
+            Body? body = document._wordprocessingDocument.MainDocumentPart?.Document?.Body;
+            var tables = new List<WordTableOfContent>();
+            if (body == null) {
+                return tables;
+            }
+
+            foreach (SdtBlock block in body.Descendants<SdtBlock>().ToList()) {
+                string? gallery = block.SdtProperties?.GetFirstChild<SdtContentDocPartObject>()?.GetFirstChild<DocPartGallery>()?.Val?.Value;
+                if (string.Equals(gallery, "Table of Contents", StringComparison.Ordinal)) {
+                    tables.Add(new WordTableOfContent(document, block, queueUpdateOnOpen: false));
+                }
+            }
+
+            if (tables.Count == 0 && document.TableOfContent is WordTableOfContent imported) {
+                tables.Add(imported);
+            }
+
+            return tables;
+        }
+
+        private TocHeadingEntry[] CollectIncludedEntries(string instruction, out int skipped) {
+            if (_sdtBlock.SdtContentBlock == null) {
+                throw new InvalidOperationException("Table of contents content block is missing.");
+            }
+
+            string? tcEntryTypeFilter = GetTocEntryTypeFilter(instruction);
+            string? bookmarkScope = GetTocBookmarkScope(instruction);
+            IReadOnlyDictionary<string, int> customStyleLevels = GetTocCustomStyleLevels(instruction);
+            TocSourceOptions sourceOptions = GetTocSourceOptions(instruction, customStyleLevels);
+            var headings = CollectHeadingEntries(tcEntryTypeFilter, customStyleLevels, bookmarkScope, sourceOptions).ToArray();
+            var included = headings
+                .Where(heading => !heading.ApplyLevelRange || (heading.Level >= MinLevel && heading.Level <= MaxLevel))
+                .ToArray();
+            skipped = headings.Length - included.Length;
+            return included;
         }
 
         private IReadOnlyList<TocHeadingEntry> CollectHeadingEntries(
@@ -323,6 +372,100 @@ namespace OfficeIMO.Word {
             }
         }
 
+        private void ReplaceContentWithFieldResult(string instruction, string noContentText, IReadOnlyList<TocHeadingEntry> entries, ISet<int> pageNumberSuppressedLevels, string pageNumberSeparator) {
+            SdtContentBlock content = _sdtBlock.SdtContentBlock
+                ?? throw new InvalidOperationException("Table of contents content block is missing.");
+
+            Paragraph titleParagraph = GetTitleParagraph() ?? CreateTitleParagraph("Table of Contents");
+            RemoveIfAttached(titleParagraph);
+            content.RemoveAllChildren();
+            content.Append(titleParagraph);
+
+            int? rightTabPosition = pageNumberSeparator == "\t" ? GetTextWidthTwips() : null;
+            var paragraphs = new List<Paragraph>();
+            foreach (TocHeadingEntry entry in entries) {
+                paragraphs.Add(CreateFieldEntryParagraph(entry, !pageNumberSuppressedLevels.Contains(entry.Level), pageNumberSeparator, rightTabPosition));
+            }
+
+            if (paragraphs.Count == 0) {
+                paragraphs.Add(new Paragraph(new Run(new Text(noContentText) { Space = SpaceProcessingModeValues.Preserve })));
+            }
+
+            Paragraph first = paragraphs[0];
+            OpenXmlElement? anchor = first.ParagraphProperties;
+            foreach (Run fieldStart in new[] {
+                         new Run(new FieldChar { FieldCharType = FieldCharValues.Begin }),
+                         new Run(new FieldCode(instruction) { Space = SpaceProcessingModeValues.Preserve }),
+                         new Run(new FieldChar { FieldCharType = FieldCharValues.Separate })
+                     }) {
+                anchor = anchor == null ? first.PrependChild(fieldStart) : first.InsertAfter(fieldStart, anchor);
+            }
+
+            paragraphs[paragraphs.Count - 1].Append(new Run(new FieldChar { FieldCharType = FieldCharValues.End }));
+            foreach (Paragraph paragraph in paragraphs) {
+                content.Append(paragraph);
+            }
+        }
+
+        private static Paragraph CreateFieldEntryParagraph(TocHeadingEntry entry, bool includePageNumber, string pageNumberSeparator, int? rightTabPosition) {
+            var properties = new ParagraphProperties(new ParagraphStyleId { Val = "TOC" + entry.Level.ToString(CultureInfo.InvariantCulture) });
+            if (includePageNumber && rightTabPosition != null) {
+                properties.Tabs = new Tabs(new TabStop {
+                    Val = TabStopValues.Right,
+                    Leader = TabStopLeaderCharValues.Dot,
+                    Position = rightTabPosition.Value
+                });
+            }
+
+            var hyperlink = new Hyperlink {
+                Anchor = entry.BookmarkName,
+                History = true
+            };
+            hyperlink.Append(new Run(new Text(entry.Text) { Space = SpaceProcessingModeValues.Preserve }));
+            if (includePageNumber) {
+                if (pageNumberSeparator == "\t") {
+                    hyperlink.Append(new Run(new TabChar()));
+                } else if (pageNumberSeparator.Length > 0) {
+                    hyperlink.Append(new Run(new Text(pageNumberSeparator) { Space = SpaceProcessingModeValues.Preserve }));
+                }
+
+                hyperlink.Append(new Run(new FieldChar { FieldCharType = FieldCharValues.Begin }));
+                hyperlink.Append(new Run(new FieldCode(" PAGEREF " + entry.BookmarkName + " \\h ") { Space = SpaceProcessingModeValues.Preserve }));
+                hyperlink.Append(new Run(new FieldChar { FieldCharType = FieldCharValues.Separate }));
+                hyperlink.Append(new Run(new Text(entry.PageNumber.ToString(CultureInfo.InvariantCulture))));
+                hyperlink.Append(new Run(new FieldChar { FieldCharType = FieldCharValues.End }));
+            }
+
+            return new Paragraph(properties, hyperlink);
+        }
+
+        /// <summary>
+        /// Gets the text width of the section that holds the table, for the right-aligned page number tab.
+        /// </summary>
+        private int GetTextWidthTwips() {
+            const int defaultTextWidth = 9360;
+            SectionProperties? section = _sdtBlock.ElementsAfter()
+                .OfType<Paragraph>()
+                .Select(_ => _.ParagraphProperties?.SectionProperties)
+                .FirstOrDefault(_ => _ != null)
+                ?? _sdtBlock.Ancestors<Body>().FirstOrDefault()?.Elements<SectionProperties>().LastOrDefault();
+            PageSize? size = section?.GetFirstChild<PageSize>();
+            PageMargin? margin = section?.GetFirstChild<PageMargin>();
+            if (size?.Width?.Value is not uint width) {
+                return defaultTextWidth;
+            }
+
+            long left = margin?.Left?.Value ?? 1440U;
+            long right = margin?.Right?.Value ?? 1440U;
+            long gutter = margin?.Gutter?.Value ?? 0U;
+            long textWidth = width - left - right - gutter;
+            if (textWidth > 0) {
+                return (int)textWidth;
+            }
+
+            return defaultTextWidth;
+        }
+
         private Paragraph? GetTitleParagraph() {
             SdtContentBlock? content = _sdtBlock.SdtContentBlock;
             if (content == null) {
@@ -566,16 +709,65 @@ namespace OfficeIMO.Word {
                 return (customLevel, false);
             }
 
-            if (string.IsNullOrWhiteSpace(styleId) || !sourceOptions.IncludeHeadingStyles) {
+            if (string.IsNullOrWhiteSpace(styleId)) {
                 return null;
             }
 
-            Match match = Regex.Match(styleId, "^Heading(?<level>[1-9])$", RegexOptions.IgnoreCase);
-            if (!match.Success || !int.TryParse(match.Groups["level"].Value, NumberStyles.None, CultureInfo.InvariantCulture, out int level)) {
+            if (sourceOptions.IncludeHeadingStyles) {
+                Match match = Regex.Match(styleId, "^Heading(?<level>[1-9])$", RegexOptions.IgnoreCase);
+                if (match.Success && int.TryParse(match.Groups["level"].Value, NumberStyles.None, CultureInfo.InvariantCulture, out int level)) {
+                    return (level, true);
+                }
+            }
+
+            return GetStyleHeadingLevel(paragraph, styleId!, sourceOptions);
+        }
+
+        /// <summary>
+        /// Resolves heading levels defined by the paragraph style: a heading style copied under a new name when documents
+        /// were merged (for example <c>heading 1_0</c>), or an outline level set in the style or the styles it is based on.
+        /// </summary>
+        private static (int Level, bool ApplyLevelRange)? GetStyleHeadingLevel(Paragraph paragraph, string styleId, TocSourceOptions sourceOptions) {
+            Styles? styles = paragraph.Ancestors<Document>().FirstOrDefault()?.MainDocumentPart?.StyleDefinitionsPart?.Styles;
+            if (styles == null) {
                 return null;
             }
 
-            return (level, true);
+            Style? FindStyle(string id) => styles.Elements<Style>()
+                .FirstOrDefault(_ => string.Equals(_.StyleId?.Value, id, StringComparison.OrdinalIgnoreCase));
+
+            Style? current = FindStyle(styleId);
+            if (current == null) {
+                return null;
+            }
+
+            if (sourceOptions.IncludeHeadingStyles && current.StyleName?.Val?.Value is string name) {
+                Match match = Regex.Match(name, "^heading (?<level>[1-9])(_[0-9]+)?$", RegexOptions.IgnoreCase);
+                if (match.Success && int.TryParse(match.Groups["level"].Value, NumberStyles.None, CultureInfo.InvariantCulture, out int level)) {
+                    return (level, true);
+                }
+            }
+
+            if (!sourceOptions.IncludeOutlineLevels) {
+                return null;
+            }
+
+            var visited = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            while (current != null && current.StyleId?.Value is string currentId && visited.Add(currentId)) {
+                int? outlineLevel = current.StyleParagraphProperties?.OutlineLevel?.Val?.Value;
+                if (outlineLevel != null) {
+                    if (outlineLevel >= 0 && outlineLevel <= 8) {
+                        return (outlineLevel.Value + 1, true);
+                    }
+
+                    return null;
+                }
+
+                string? basedOn = current.BasedOn?.Val?.Value;
+                current = basedOn == null ? null : FindStyle(basedOn);
+            }
+
+            return null;
         }
 
         private static TocSourceOptions GetTocSourceOptions(string instruction, IReadOnlyDictionary<string, int> customStyleLevels) {

@@ -77,6 +77,12 @@ public sealed partial class PdfCreateOptions {
     public bool IncludeXmpMetadata { get; set; }
     /// <summary>When true, generated PDFs include catalog page labels that match the configured page-number style and start number.</summary>
     public bool IncludePageLabels { get; set; }
+
+    // Internal layout consumers need the actual visible sequence, including section restarts.
+    internal bool IncludeLayoutPageNumberLabels { get; set; }
+    internal PdfPageNumberStyle? LayoutPageNumberStyle { get; set; }
+    internal bool LayoutPageNumberStyleUnsupported { get; set; }
+    internal const string UnsupportedLayoutPageNumberPrefix = "__officeimo_unsupported_number_style__";
     /// <summary>When true, generated FreeText and Highlight annotations are painted into page content instead of emitted as interactive annotations.</summary>
     public bool FlattenVisualAnnotations { get; set; }
     /// <summary>Optional catalog page-label prefix, for example "A-" or "Appendix ". Requires <see cref="IncludePageLabels"/> to be emitted.</summary>

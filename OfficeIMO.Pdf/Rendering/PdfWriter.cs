@@ -1290,6 +1290,21 @@ internal static partial class PdfWriter {
             if (pageLabelRanges.Count > 0) {
                 ValidatePageLabelRanges(pageLabelRanges, layout.Pages.Count);
                 pageLabelsId = AddObject(objects, PdfPageLabelDictionaryBuilder.BuildGeneratedPageLabelsDictionary(pageLabelRanges));
+            } else if (opts.IncludeLayoutPageNumberLabels && pageNumberInfos.Count > 0) {
+                var layoutLabels = new List<PdfPageLabelRange>();
+                for (int index = 0; index < pageNumberInfos.Count; index++) {
+                    int number = pageNumberInfos[index].PageNumber;
+                    PdfCreateOptions pageOptions = layout.Pages[index].Options;
+                    PdfPageNumberStyle style = pageOptions.LayoutPageNumberStyle ?? PdfPageNumberStyle.Arabic;
+                    bool unsupported = pageOptions.LayoutPageNumberStyleUnsupported;
+                    if (index == 0 || number != pageNumberInfos[index - 1].PageNumber + 1
+                        || style != (layout.Pages[index - 1].Options.LayoutPageNumberStyle ?? PdfPageNumberStyle.Arabic)
+                        || unsupported != layout.Pages[index - 1].Options.LayoutPageNumberStyleUnsupported) {
+                        layoutLabels.Add(new PdfPageLabelRange(index + 1, style, number,
+                            unsupported ? PdfCreateOptions.UnsupportedLayoutPageNumberPrefix : null));
+                    }
+                }
+                pageLabelsId = AddObject(objects, PdfPageLabelDictionaryBuilder.BuildGeneratedPageLabelsDictionary(layoutLabels));
             } else {
                 pageLabelsId = AddObject(objects, PdfPageLabelDictionaryBuilder.BuildGeneratedPageLabelsDictionary(
                     opts.PageNumberStyle,

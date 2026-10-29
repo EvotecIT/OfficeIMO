@@ -356,6 +356,14 @@ namespace OfficeIMO.Word {
             new WordDocumentStatistics(this);
             new WordCompatibilitySettings(this);
             //CustomDocumentProperties customDocumentProperties = new CustomDocumentProperties(this);
+            LoadSections();
+        }
+
+        /// <summary>
+        /// Builds the section model from the section properties in the document body.
+        /// </summary>
+        private void LoadSections() {
+            Sections.Clear();
             // add a section that's assigned to top of the document
             var wordSection = new WordSection(this, null!, null!);
 

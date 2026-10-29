@@ -49,6 +49,8 @@ namespace OfficeIMO.Word {
             } catch { }
         }
 
+        internal bool TableNormalizationRequired => _tableNormalizationRequired;
+
         internal void MarkTableNormalizationRequired() => _tableNormalizationRequired = true;
 
         private static bool IsCanonicalDefaultTable(Table table) {

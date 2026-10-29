@@ -10,12 +10,25 @@ namespace OfficeIMO.Word {
             MainDocumentPart mainPart = document._wordprocessingDocument.MainDocumentPart
                 ?? throw new InvalidOperationException("MainDocumentPart is missing.");
 
-            int totalPages = options.DateTimeFieldsOnly ? 0 : EstimateTotalPages(document);
+            if (!options.DateTimeFieldsOnly && options.UseLayoutPagination && options.LayoutPaginationProvider == null) {
+                throw new InvalidOperationException("Layout pagination requires OfficeIMO.Word.Pdf. Select its engine with WithPdfLayoutPagination() on the field update options.");
+            }
+
+            var state = new FieldEvaluationState();
+            state.LockedTocFields.AddRange(EnumerateFields(mainPart).Where(IsLockedToc));
+            if (!options.DateTimeFieldsOnly && options.UpdateTablesOfContents) {
+                RegenerateTablesOfContents(document, state);
+            }
+
+            if (!options.DateTimeFieldsOnly && options.UseLayoutPagination) {
+                state.Layout = options.LayoutPaginationProvider!(document);
+            }
+
+            int totalPages = options.DateTimeFieldsOnly ? 0 : state.Layout?.PageCount ?? EstimateTotalPages(document);
             DateTime updateDateTime = options.CurrentDateTime ?? DateTime.Now;
             WordFieldEvaluationReason dateTimeEvaluationReason = options.CurrentDateTime.HasValue
                 ? WordFieldEvaluationReason.CallerProvidedDateTime
                 : WordFieldEvaluationReason.RuntimeClock;
-            var state = new FieldEvaluationState();
             var results = new List<WordFieldUpdateResult>();
             var replacedContainingFields = new List<MutableFieldCandidate>();
             List<MutableFieldCandidate> candidates = EnumerateFields(mainPart).OrderBy(field => field.Sequence).ToList();
@@ -33,6 +46,16 @@ namespace OfficeIMO.Word {
                         continue;
                     }
                 }
+                if (IsInsideRegeneratedTableOfContents(candidate, state)) {
+                    WordFieldType? fieldType = WordFieldInventory.ParseInstruction(candidate.InstructionText).FieldType;
+                    if (fieldType == WordFieldType.TOC) {
+                        results.Add(candidate.ToResult(fieldType, WordFieldUpdateStatus.Updated, null,
+                            "Table of contents was regenerated from the document headings; its page numbers are PAGEREF fields.",
+                            WordFieldEvaluationReason.TableOfContentsRegenerated));
+                        continue;
+                    }
+                }
+
                 if (IsNestedInsideReplacedField(candidate, replacedContainingFields)) {
                     results.Add(candidate.ToResult(
                         WordFieldInventory.ParseInstruction(candidate.InstructionText).FieldType,
@@ -40,6 +63,12 @@ namespace OfficeIMO.Word {
                         null,
                         "Nested field was left unchanged because its containing field result was replaced.",
                         WordFieldEvaluationReason.ContainingResultReplaced));
+                    continue;
+                }
+
+                if (IsInsideLockedToc(candidate, state.LockedTocFields)) {
+                    WordFieldType? lockedType = WordFieldInventory.ParseInstruction(candidate.InstructionText).FieldType;
+                    results.Add(candidate.ToResult(lockedType, WordFieldUpdateStatus.Skipped, null, "Field is inside a locked table of contents and was left unchanged."));
                     continue;
                 }
 
@@ -62,15 +91,16 @@ namespace OfficeIMO.Word {
 
             int totalPages = EstimateTotalPages(document);
             var state = new FieldEvaluationState();
+            state.LockedTocFields.AddRange(EnumerateFields(mainPart).Where(IsLockedToc));
             foreach (MutableFieldCandidate candidate in EnumerateFields(mainPart).OrderBy(field => field.Sequence)) {
                 WordFieldInventory.ParsedFieldInstruction parsed = WordFieldInventory.ParseInstruction(candidate.InstructionText);
                 if (parsed.Diagnostics.Count > 0 ||
                     parsed.FieldType is not (WordFieldType.Page or WordFieldType.NumPages) ||
-                    candidate.IsLocked) {
+                    candidate.IsLocked || IsInsideLockedToc(candidate, state.LockedTocFields)) {
                     continue;
                 }
 
-                if (TryEvaluate(document, candidate, parsed, totalPages, state, DateTime.Now, out string? value, out WordFieldUpdateStatus status, out _) &&
+                if (TryEvaluate(document, candidate, parsed, totalPages, state, DateTime.Now, out string? value, out WordFieldUpdateStatus status, out _, out _) &&
                     status == WordFieldUpdateStatus.Updated) {
                     SetResultText(candidate, value!);
                 }
@@ -103,13 +133,15 @@ namespace OfficeIMO.Word {
                 return candidate.ToResult(parsed.FieldType, WordFieldUpdateStatus.Skipped, null, "Field is locked and was left unchanged.");
             }
 
-            if (!TryEvaluate(document, candidate, parsed, totalPages, state, updateDateTime, out string? value, out WordFieldUpdateStatus status, out string message)) {
+            if (!TryEvaluate(document, candidate, parsed, totalPages, state, updateDateTime, out string? value, out WordFieldUpdateStatus status, out string message, out bool usedLayout)) {
                 return candidate.ToResult(parsed.FieldType, status, null, message, GetFailedEvaluationReason(candidate, parsed.FieldType, status, message));
             }
 
             SetResultText(candidate, value!);
             WordFieldEvaluationReason reason = parsed.FieldType is WordFieldType.Date or WordFieldType.Time
                 ? dateTimeEvaluationReason
+                : usedLayout
+                ? WordFieldEvaluationReason.LayoutPagination
                 : WordFieldEvaluationReason.Default;
             return candidate.ToResult(parsed.FieldType, WordFieldUpdateStatus.Updated, value, message, reason);
         }
@@ -156,7 +188,9 @@ namespace OfficeIMO.Word {
             DateTime updateDateTime,
             out string? value,
             out WordFieldUpdateStatus status,
-            out string message) {
+            out string message,
+            out bool usedLayout) {
+            usedLayout = false;
             value = null;
             status = WordFieldUpdateStatus.Unsupported;
             message = $"Field type {parsed.FieldType} is not evaluated by OfficeIMO.";
@@ -199,7 +233,7 @@ namespace OfficeIMO.Word {
                 case WordFieldType.Ref:
                     return TryEvaluateRef(document, candidate, parsed, out value, out status, out message);
                 case WordFieldType.PageRef:
-                    return TryEvaluatePageRef(document, parsed, out value, out status, out message);
+                    return TryEvaluatePageRef(document, parsed, state.Layout, out value, out status, out message, out usedLayout);
                 case WordFieldType.Formula:
                     return TryEvaluateFormula(candidate, parsed, out value, out status, out message);
                 case WordFieldType.Seq:
@@ -213,7 +247,8 @@ namespace OfficeIMO.Word {
                 case WordFieldType.NumWords:
                     return TryFormatIntegerField(document.Statistics.Words, parsed, "Updated from OfficeIMO document statistics Words.", out value, out status, out message);
                 case WordFieldType.NumPages:
-                    return TryFormatIntegerField(totalPages, parsed, "Updated from OfficeIMO page-break count.", out value, out status, out message);
+                    usedLayout = state.Layout != null;
+                    return TryFormatIntegerField(totalPages, parsed, state.Layout != null ? "Updated from OfficeIMO page layout." : "Updated from OfficeIMO page-break count.", out value, out status, out message);
                 case WordFieldType.RevNum:
                     return TrySetTextValue(document.BuiltinDocumentProperties.Revision, parsed, "Updated from built-in document property Revision.", out value, out status, out message);
                 case WordFieldType.Section:
@@ -1355,6 +1390,11 @@ namespace OfficeIMO.Word {
             internal Dictionary<string, string> SequenceHeadingResetKeys { get; } = new(StringComparer.OrdinalIgnoreCase);
 
             internal Dictionary<string, ListNumSequenceState> ListNumSequences { get; } = new(StringComparer.OrdinalIgnoreCase);
+
+            internal WordLayoutPagination? Layout { get; set; }
+
+            internal HashSet<SdtBlock> RegeneratedTablesOfContents { get; } = new();
+            internal List<MutableFieldCandidate> LockedTocFields { get; } = new();
         }
     }
 }

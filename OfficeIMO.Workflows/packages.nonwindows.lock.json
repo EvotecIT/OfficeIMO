@@ -1679,11 +1679,6 @@
         "resolved": "10.0.8",
         "contentHash": "6Dzmgfpi7BdqgQ3g/6jZuJzgGspIFSEfSchY4ejTVkZTMOKRZRJiYp5/q0gIZ8H1+Eq8/sxJNnyWtzAHp6iTcQ=="
       },
-      "System.Text.Encoding.CodePages": {
-        "type": "Transitive",
-        "resolved": "10.0.9",
-        "contentHash": "F5U2mKPs5okLJbfIud5IMfkcGEe+73ye8/6MwWu84txhyUe7D7azXkFtMePUjirhYxOJ4boGCXpW5uZfgUA3Sw=="
-      },
       "YamlDotNet": {
         "type": "Transitive",
         "resolved": "18.0.0",
@@ -1827,8 +1822,7 @@
         "type": "Project",
         "dependencies": {
           "DocumentFormat.OpenXml": "[3.5.1, 4.0.0)",
-          "OfficeIMO.Core": "[3.5.3, )",
-          "System.Text.Encoding.CodePages": "[10.0.9, )"
+          "OfficeIMO.Core": "[3.5.3, )"
         }
       },
       "officeimo.excel.pdf": {
@@ -2394,47 +2388,11 @@
         }
       }
     },
-    "net8.0/linux-arm64": {
-      "System.Text.Encoding.CodePages": {
-        "type": "Transitive",
-        "resolved": "10.0.9",
-        "contentHash": "F5U2mKPs5okLJbfIud5IMfkcGEe+73ye8/6MwWu84txhyUe7D7azXkFtMePUjirhYxOJ4boGCXpW5uZfgUA3Sw=="
-      }
-    },
-    "net8.0/linux-x64": {
-      "System.Text.Encoding.CodePages": {
-        "type": "Transitive",
-        "resolved": "10.0.9",
-        "contentHash": "F5U2mKPs5okLJbfIud5IMfkcGEe+73ye8/6MwWu84txhyUe7D7azXkFtMePUjirhYxOJ4boGCXpW5uZfgUA3Sw=="
-      }
-    },
-    "net8.0/osx-arm64": {
-      "System.Text.Encoding.CodePages": {
-        "type": "Transitive",
-        "resolved": "10.0.9",
-        "contentHash": "F5U2mKPs5okLJbfIud5IMfkcGEe+73ye8/6MwWu84txhyUe7D7azXkFtMePUjirhYxOJ4boGCXpW5uZfgUA3Sw=="
-      }
-    },
-    "net8.0/osx-x64": {
-      "System.Text.Encoding.CodePages": {
-        "type": "Transitive",
-        "resolved": "10.0.9",
-        "contentHash": "F5U2mKPs5okLJbfIud5IMfkcGEe+73ye8/6MwWu84txhyUe7D7azXkFtMePUjirhYxOJ4boGCXpW5uZfgUA3Sw=="
-      }
-    },
-    "net8.0/win-arm64": {
-      "System.Text.Encoding.CodePages": {
-        "type": "Transitive",
-        "resolved": "10.0.9",
-        "contentHash": "F5U2mKPs5okLJbfIud5IMfkcGEe+73ye8/6MwWu84txhyUe7D7azXkFtMePUjirhYxOJ4boGCXpW5uZfgUA3Sw=="
-      }
-    },
-    "net8.0/win-x64": {
-      "System.Text.Encoding.CodePages": {
-        "type": "Transitive",
-        "resolved": "10.0.9",
-        "contentHash": "F5U2mKPs5okLJbfIud5IMfkcGEe+73ye8/6MwWu84txhyUe7D7azXkFtMePUjirhYxOJ4boGCXpW5uZfgUA3Sw=="
-      }
-    }
+    "net8.0/linux-arm64": {},
+    "net8.0/linux-x64": {},
+    "net8.0/osx-arm64": {},
+    "net8.0/osx-x64": {},
+    "net8.0/win-arm64": {},
+    "net8.0/win-x64": {}
   }
 }
