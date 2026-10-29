@@ -801,6 +801,7 @@ namespace OfficeIMO.Tests {
             int rowCount = ExcelSheet.CellValuePlainStringPromotionSharedStringCount + 3;
 
             using (var document = ExcelDocument.Create(new MemoryStream())) {
+                OfficeIMO.Tests.ExcelPackageWriterFixtures.WithoutOptionalTheme(document);
                 var sheet = document.AddWorksheet("Distinct");
                 for (int row = 1; row <= rowCount; row++) {
                     sheet.CellValue(row, 1, "Distinct " + row.ToString(CultureInfo.InvariantCulture));
@@ -1608,6 +1609,7 @@ namespace OfficeIMO.Tests {
         public void PerformanceReview_ExplicitStreamSave_UsesSimplePackageWriterWhenEligible() {
             using var memory = new MemoryStream();
             using var document = ExcelDocument.Create(new MemoryStream());
+            OfficeIMO.Tests.ExcelPackageWriterFixtures.WithoutOptionalTheme(document);
             var sheet = document.AddWorksheet("Data");
             sheet.CellValue(1, 1, "Name");
             sheet.CellValue(2, 1, "OfficeIMO");
@@ -1630,6 +1632,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "PerformanceReview.SimplePackageExplicitSave.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
+                OfficeIMO.Tests.ExcelPackageWriterFixtures.WithoutOptionalTheme(document);
                 var sheet = document.AddWorksheet("Data");
                 sheet.CellValue(1, 1, "Name");
                 sheet.CellValue(2, 1, "OfficeIMO");
@@ -1702,6 +1705,7 @@ namespace OfficeIMO.Tests {
         public void PerformanceReview_ExplicitStreamSave_UsesSimplePackageWriterForHyperlinks() {
             using var memory = new MemoryStream();
             using var document = ExcelDocument.Create(new MemoryStream());
+            OfficeIMO.Tests.ExcelPackageWriterFixtures.WithoutOptionalTheme(document);
             var sheet = document.AddWorksheet("Links");
             sheet.SetHyperlink(1, 1, "https://github.com/EvotecIT/OfficeIMO", "OfficeIMO");
             sheet.SetInternalLink(2, 1, "'Links'!A1", "Back");
@@ -1726,6 +1730,7 @@ namespace OfficeIMO.Tests {
         public void PerformanceReview_ExplicitStreamSave_UsesSimplePackageWriterForDefinedNames() {
             using var memory = new MemoryStream();
             using var document = ExcelDocument.Create(new MemoryStream());
+            OfficeIMO.Tests.ExcelPackageWriterFixtures.WithoutOptionalTheme(document);
             var sheet = document.AddWorksheet("Data");
             sheet.CellValue(1, 1, "Name");
             sheet.CellValue(2, 1, "OfficeIMO");
@@ -1750,6 +1755,7 @@ namespace OfficeIMO.Tests {
             const string plainValue = " Plain\r\ninline 東京 😀 &<> ";
             using var memory = new MemoryStream();
             using var document = ExcelDocument.Create(new MemoryStream());
+            OfficeIMO.Tests.ExcelPackageWriterFixtures.WithoutOptionalTheme(document);
             var sheet = document.AddWorksheet("Inline");
             var sheetData = sheet.WorksheetPart.Worksheet.GetFirstChild<SheetData>()!;
             var row = new Row { RowIndex = 1U };
@@ -1789,6 +1795,7 @@ namespace OfficeIMO.Tests {
         public void PerformanceReview_ExplicitStreamSave_UsesSimplePackageWriterForRichSharedStrings() {
             using var memory = new MemoryStream();
             using var document = ExcelDocument.Create(new MemoryStream());
+            OfficeIMO.Tests.ExcelPackageWriterFixtures.WithoutOptionalTheme(document);
             var sheet = document.AddWorksheet("Shared");
             var sheetData = sheet.WorksheetPart.Worksheet.GetFirstChild<SheetData>()!;
             sheetData.Append(new Row(
@@ -1831,6 +1838,7 @@ namespace OfficeIMO.Tests {
         public void PerformanceReview_ExplicitStreamSave_UsesSimplePackageWriterForRowMetadata() {
             using var memory = new MemoryStream();
             using var document = ExcelDocument.Create(new MemoryStream());
+            OfficeIMO.Tests.ExcelPackageWriterFixtures.WithoutOptionalTheme(document);
             var sheet = document.AddWorksheet("Rows");
             sheet.CellValue(1, 1, "Hidden");
             var row = sheet.WorksheetPart.Worksheet.GetFirstChild<SheetData>()!.Elements<Row>().First();
@@ -1861,6 +1869,7 @@ namespace OfficeIMO.Tests {
         public void PerformanceReview_ExplicitStreamSave_UsesSimplePackageWriterForPrintMetadata() {
             using var memory = new MemoryStream();
             using var document = ExcelDocument.Create(new MemoryStream());
+            OfficeIMO.Tests.ExcelPackageWriterFixtures.WithoutOptionalTheme(document);
             var sheet = document.AddWorksheet("Report");
             sheet.CellValue(1, 1, "Report");
             sheet.SetMargins(0.25D, 0.25D, 0.5D, 0.5D, 0.3D, 0.3D);
@@ -1894,6 +1903,7 @@ namespace OfficeIMO.Tests {
         public void PerformanceReview_ExplicitStreamSave_UsesSimplePackageWriterForWorksheetMetadata() {
             using var memory = new MemoryStream();
             using var document = ExcelDocument.Create(new MemoryStream());
+            OfficeIMO.Tests.ExcelPackageWriterFixtures.WithoutOptionalTheme(document);
             var sheet = document.AddWorksheet("Metadata");
             sheet.CellValue(1, 1, "Watched");
             var worksheet = sheet.WorksheetPart.Worksheet;
@@ -1920,6 +1930,7 @@ namespace OfficeIMO.Tests {
         public void PerformanceReview_ExplicitStreamSave_UsesSimplePackageWriterForHiddenSheets() {
             using var memory = new MemoryStream();
             using var document = ExcelDocument.Create(new MemoryStream());
+            OfficeIMO.Tests.ExcelPackageWriterFixtures.WithoutOptionalTheme(document);
             var visible = document.AddWorksheet("Visible");
             visible.CellValue(1, 1, "Shown");
             var hidden = document.AddWorksheet("Hidden");
@@ -1945,6 +1956,7 @@ namespace OfficeIMO.Tests {
         public void PerformanceReview_ExplicitStreamSave_UsesSimplePackageWriterForWorkbookMetadata() {
             using var memory = new MemoryStream();
             using var document = ExcelDocument.Create(new MemoryStream());
+            OfficeIMO.Tests.ExcelPackageWriterFixtures.WithoutOptionalTheme(document);
             var sheet = document.AddWorksheet("Data");
             sheet.CellValue(1, 1, "Value");
 
@@ -1984,6 +1996,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "PerformanceReview.SimplePackageRepeatedSave.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
+                OfficeIMO.Tests.ExcelPackageWriterFixtures.WithoutOptionalTheme(document);
                 var sheet = document.AddWorksheet("Data");
                 sheet.CellValue(1, 1, "Name");
                 sheet.CellValue(2, 1, "OfficeIMO");
@@ -2012,6 +2025,7 @@ namespace OfficeIMO.Tests {
         public void PerformanceReview_ExplicitStreamSave_UsesSimplePackageWriterForSimpleFormulas() {
             using var memory = new MemoryStream();
             using var document = ExcelDocument.Create(new MemoryStream());
+            OfficeIMO.Tests.ExcelPackageWriterFixtures.WithoutOptionalTheme(document);
             var sheet = document.AddWorksheet("Calc");
             sheet.CellValue(1, 1, 2d);
             sheet.CellValue(2, 1, 3d);
@@ -4374,6 +4388,7 @@ namespace OfficeIMO.Tests {
             };
 
             using (var document = ExcelDocument.Create(new MemoryStream())) {
+                OfficeIMO.Tests.ExcelPackageWriterFixtures.WithoutOptionalTheme(document);
                 var sheet = document.AddWorksheet("Data");
                 sheet.SetGridlinesVisible(false);
                 sheet.InsertObjects(rows,

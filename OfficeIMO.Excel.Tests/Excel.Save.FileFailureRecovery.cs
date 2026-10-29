@@ -96,6 +96,7 @@ namespace OfficeIMO.Tests {
                 retainedSheet.AddChart(chart, row: 4, column: 1, widthPixels: 300, heightPixels: 180,
                     type: ExcelChartType.ColumnClustered, title: "Retained chart");
             }
+            if (writer == "simple") OfficeIMO.Tests.ExcelPackageWriterFixtures.WithoutOptionalTheme(document);
             return document;
         }
     }

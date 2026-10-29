@@ -148,6 +148,7 @@ namespace OfficeIMO.Tests {
         public async Task BulkMutation_validated_fast_save_checks_encoded_output_before_destination_changes(bool asynchronous) {
             using var source = new MemoryStream();
             using var document = ExcelDocument.Create(source);
+            OfficeIMO.Tests.ExcelPackageWriterFixtures.WithoutOptionalTheme(document);
             ExcelSheet sheet = document.AddWorksheet("Validated");
             sheet.CellValue(1, 1, "First");
             using var valid = new MemoryStream();

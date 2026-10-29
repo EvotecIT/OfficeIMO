@@ -73,6 +73,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + extension);
             try {
                 using (ExcelDocument document = ExcelDocument.Create(filePath)) {
+                    OfficeIMO.Tests.ExcelPackageWriterFixtures.WithoutOptionalTheme(document);
                     document.AddWorksheet("Type").CellValue(1, 1, expectedType.ToString());
                     Assert.Equal(expectedType, document.OpenXmlDocument.DocumentType);
                     document.Save();

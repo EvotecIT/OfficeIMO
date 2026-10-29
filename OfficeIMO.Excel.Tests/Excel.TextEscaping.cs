@@ -83,6 +83,7 @@ public class ExcelTextEscapingTests {
         const string value = "Start\r\nMiddle\rEnd\nTab\tUnicode Łódź 😀 &<>";
         using var stream = new MemoryStream();
         using (var document = ExcelDocument.Create(new MemoryStream())) {
+            OfficeIMO.Tests.ExcelPackageWriterFixtures.WithoutOptionalTheme(document);
             var sheet = document.AddWorksheet("Text");
             sheet.CellValue(1, 1, value);
             sheet.CellValue(1, 2, "inline");
