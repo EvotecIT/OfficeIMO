@@ -6,6 +6,9 @@ public sealed partial class PdfReadPage {
         (double Width, double Height) size = GetVisualPageSize();
         int totalCount = 0;
         int unrepresentedCount = 0;
+        // Keep only scalar geometry; the parser's path command buffers are borrowed.
+        var tableStrokeSamples = GetRotationDegrees() is 90 or 270 && detectedTables.Count <= 128
+            ? new List<TableStrokeSample>() : null;
         var textOutputBudget = CreateTextOutputBudget();
         var visibilityBudget = new VisualGeometryBudget();
         var patternPaintCache = new Dictionary<PdfPageTilingPatternResource, bool>();
@@ -32,8 +35,14 @@ public sealed partial class PdfReadPage {
                             visibilityBudget,
                             patternPaintCache)) {
                         totalCount++;
-                        if (!IsRepresentedByDetectedTableBorder(primitive, detectedTables)) {
+                        bool inferredBorder = IsRepresentedByDetectedTableBorder(primitive, detectedTables);
+                        if (!inferredBorder) {
                             unrepresentedCount++;
+                        }
+                        if (tableStrokeSamples is not null) {
+                            if (tableStrokeSamples.Count < MaximumTableStrokeSamples) {
+                                tableStrokeSamples.Add(new TableStrokeSample(primitive, inferredBorder));
+                            } else tableStrokeSamples = null;
                         }
                     }
                 },
@@ -43,9 +52,13 @@ public sealed partial class PdfReadPage {
                 tilingPatternResourceCache: tilingPatternResourceCache,
                 textOutputBudget: textOutputBudget,
                 pageContentBudget: pageContentBudget,
-                invokedResourceNames: invokedResources);
+                invokedResourceNames: invokedResources,
+                contentOrderPrefix: PdfContentOrderKey.Root);
         }
 
+        if (tableStrokeSamples is not null) {
+            unrepresentedCount = CountWithPhysicalTableFrames(tableStrokeSamples, detectedTables, unrepresentedCount);
+        }
         return (totalCount, unrepresentedCount);
     }
 
