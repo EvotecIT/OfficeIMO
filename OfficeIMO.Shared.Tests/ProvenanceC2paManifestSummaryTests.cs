@@ -84,6 +84,34 @@ public sealed class ProvenanceC2paManifestSummaryTests {
         Assert.Equal(1L, ((Dictionary<object, object?>)map!)["a"]);
     }
 
+    [Fact]
+    public void CborReaderBoundsCollidingIntegerMapKeysWithoutRejectingOrdinaryMaps() {
+        byte[] colliding = Cbor(Map(Enumerable.Range(1, 600)
+            .Select(index => ((object)(((long)index << 32) | (uint)index), (object?)null)).ToArray()));
+        byte[] ordinary = Cbor(Map(Enumerable.Range(1, 600)
+            .Select(index => ((object)(long)index, (object?)null)).ToArray()));
+
+        Assert.False(OfficeCborReader.TryDecode(colliding, 0, colliding.Length,
+            out _, maximumItems: 1500));
+        Assert.True(OfficeCborReader.TryDecode(ordinary, 0, ordinary.Length,
+            out object? decoded, maximumItems: 1500));
+        Assert.Equal(600, ((Dictionary<object, object?>)decoded!).Count);
+    }
+
+    [Fact]
+    public void ManifestDescriptionSharesMapComparisonBudgetAcrossClaimedAssertions() {
+        string[] labels = Enumerable.Range(1, 5)
+            .Select(index => "c2pa.ingredient__" + index).ToArray();
+        byte[] collisionMap = Cbor(Map(Enumerable.Range(1, 500)
+            .Select(index => ((object)(((long)index << 32) | (uint)index), (object?)null)).ToArray()));
+        byte[][] assertions = labels.Select(label => Assertion(label, collisionMap)).ToArray();
+        byte[] store = Store(Manifest("active", null, Cbor(Map()), null,
+            assertionReferences: labels.Select(label => "self#jumbf=c2pa.assertions/" + label).ToArray(),
+            precedingAssertions: assertions));
+
+        Assert.Null(OfficeC2paManifestStore.TryDescribe(store, 0, store.Length));
+    }
+
     [Theory]
     [InlineData("assertions", "self#jumbf=c2pa.assertions/c2pa.actions.v2", true)]
     [InlineData("created_assertions", "self#jumbf=/c2pa/urn:uuid:active/c2pa.assertions/c2pa.actions.v2", true)]
@@ -308,6 +336,32 @@ public sealed class ProvenanceC2paManifestSummaryTests {
         Console.WriteLine($"C2PA template projection: 2000 actions/3000 templates, {store.Length} bytes, {timer.Elapsed.TotalMilliseconds:F2} ms.");
     }
 
+    [Fact]
+    [Trait("Category", "Performance")]
+    public void RelatedActionsReuseLongInheritedNamesAndAgentFields() {
+        string actionName = "c2pa.created" + new string(' ', 1024 * 1024);
+        string agentName = "Generator" + new string(' ', 1024 * 1024);
+        object?[] related = Enumerable.Range(0, 1000).Select(_ => (object?)Map()).ToArray();
+        byte[] assertion = Cbor(Map(("actions", new object?[] {
+            Map(("action", actionName), ("related", related)) }),
+            ("templates", new object?[] {
+                Map(("action", actionName), ("softwareAgent", agentName),
+                    ("digitalSourceType", TrainedAlgorithmicMedia)) })));
+        byte[] store = Store(Manifest("active", null, assertion, null));
+
+        var timer = System.Diagnostics.Stopwatch.StartNew();
+        OfficeC2paManifestSummary? summary = OfficeC2paManifestStore.TryDescribe(store, 0, store.Length);
+        timer.Stop();
+        Assert.NotNull(summary);
+        Assert.Equal(64, summary!.Actions.Count);
+        Assert.True(summary.DeclaresGenerativeAi);
+        Assert.All(summary.Actions, action => {
+            Assert.Equal("c2pa.created", action.Action);
+            Assert.Equal("Generator", action.SoftwareAgent);
+        });
+        Console.WriteLine($"C2PA inherited action projection: {store.Length} bytes, 1001 actions, {timer.Elapsed.TotalMilliseconds:F2} ms.");
+    }
+
     private static byte[] Store(params byte[][] manifests) =>
         Box("jumb", Join(Description("c2pa", "c2pa"), Join(manifests)));
 
@@ -398,6 +452,11 @@ public sealed class ProvenanceC2paManifestSummaryTests {
     private static void Head(List<byte> output, int major, ulong argument) {
         if (argument < 24) { output.Add((byte)(major << 5 | (int)argument)); return; }
         if (argument <= byte.MaxValue) { output.Add((byte)(major << 5 | 24)); output.Add((byte)argument); return; }
+        if (argument > uint.MaxValue) {
+            output.Add((byte)(major << 5 | 27));
+            for (int shift = 56; shift >= 0; shift -= 8) output.Add((byte)(argument >> shift));
+            return;
+        }
         if (argument > ushort.MaxValue) {
             output.Add((byte)(major << 5 | 26));
             for (int shift = 24; shift >= 0; shift -= 8) output.Add((byte)(argument >> shift));
