@@ -111,13 +111,17 @@ public sealed partial class PdfInvoiceDocument {
         void AddNonZero(InvoicePdfText label, decimal? amount) {
             if (amount.HasValue && amount.Value != 0M) summary.Add(new[] { Label(label), Money(amount.Value) });
         }
-        Add(InvoicePdfText.LineNetTotal, _amounts.Totals.LineNetTotal);
+        // The summary keeps to the rows that change the amount, so it fits beside the line items on the first
+        // page: the line total repeats the net total without allowances or charges, and nothing was prepaid.
+        if (_amounts.Totals.LineNetTotal != _amounts.Totals.TaxExclusiveTotal) {
+            Add(InvoicePdfText.LineNetTotal, _amounts.Totals.LineNetTotal);
+        }
         AddNonZero(InvoicePdfText.Allowances, _amounts.Totals.AllowanceTotal);
         AddNonZero(InvoicePdfText.Charges, _amounts.Totals.ChargeTotal);
         Add(InvoicePdfText.TotalExcludingVat, _amounts.Totals.TaxExclusiveTotal);
         Add(InvoicePdfText.VatTotal, _amounts.Totals.TaxTotal);
         Add(InvoicePdfText.TotalIncludingVat, _amounts.Totals.TaxInclusiveTotal);
-        Add(InvoicePdfText.Prepaid, _amounts.PrepaidAmount);
+        AddNonZero(InvoicePdfText.Prepaid, _amounts.PrepaidAmount);
         AddNonZero(InvoicePdfText.Rounding, _amounts.RoundingAmount);
         summary.Add(new[] { Label(InvoicePdfText.AmountDue), Money(_amounts.PayableAmount) });
 
@@ -154,7 +158,7 @@ public sealed partial class PdfInvoiceDocument {
                     FooterTextColor = PdfColor.White,
                     RowStripeFill = theme.Surface,
                     CellPaddingX = 9D,
-                    CellPaddingY = 7D,
+                    CellPaddingY = 5D,
                     CellAlignments = new Dictionary<(int Row, int Column), PdfColumnAlign> {
                         [(summary.Count - 1, 1)] = PdfColumnAlign.Right
                     },

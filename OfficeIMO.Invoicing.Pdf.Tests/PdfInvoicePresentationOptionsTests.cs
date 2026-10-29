@@ -79,8 +79,8 @@ public sealed class PdfInvoicePresentationOptionsTests {
     }
 
     [Theory]
-    [InlineData(InvoicePdfLineColumn.GrossPrice, "110 / 1 piece")]
-    [InlineData(InvoicePdfLineColumn.PriceDiscount, "10 / 1 piece")]
+    [InlineData(InvoicePdfLineColumn.GrossPrice, "110.00 EUR")]
+    [InlineData(InvoicePdfLineColumn.PriceDiscount, "10.00 EUR")]
     public void OptionalBusinessColumnsRetainTheirOwnValues(InvoicePdfLineColumn priceColumn, string price) {
         Invoice invoice = InvoiceFixture.Rich();
         invoice.Lines[0].SellerItemIdentifier = "SELLERKEY"; invoice.Lines[0].BuyerItemIdentifier = "BUYERKEY";

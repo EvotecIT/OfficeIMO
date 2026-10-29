@@ -32,7 +32,9 @@ public sealed partial class PdfInvoiceDocument {
         _ => throw new InvalidOperationException("Invoice column is undefined.")
     };
 
-    private string Price(decimal value, InvoiceLine line) => NumberText(value) + " / " + NumberText(line.PriceBaseQuantity) + " " + Unit(line.UnitCode, line.PriceBaseQuantity);
+    // A unit price reads as "145.00 EUR" per quantity unit, or "12.50 EUR / 10 pieces" when the price base is not one unit.
+    private string Price(decimal value, InvoiceLine line) => PriceText(value) + " " + _invoice.Currency +
+        (line.PriceBaseQuantity == 1M ? string.Empty : " / " + NumberText(line.PriceBaseQuantity) + " " + Unit(line.UnitCode, line.PriceBaseQuantity));
     private static InvoicePdfText ColumnLabel(InvoicePdfLineColumn column) => column switch {
         InvoicePdfLineColumn.Item => InvoicePdfText.Item,
         InvoicePdfLineColumn.Quantity => InvoicePdfText.Quantity,
