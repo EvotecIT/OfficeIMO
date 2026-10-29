@@ -26,6 +26,8 @@ namespace OfficeIMO.Word {
         /// Lays out a copy of the document and records the displayed page number of every body bookmark.
         /// </summary>
         internal static WordLayoutPagination Create(WordDocument document) {
+            // Saving normalizes table grids from the table and cell widths; the layout reads those grids.
+            document.NormalizeTablesForOnline();
             using var cloneStream = new MemoryStream();
             using (document._wordprocessingDocument.Clone(cloneStream, true)) {
             }

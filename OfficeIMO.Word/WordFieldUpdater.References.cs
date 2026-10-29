@@ -76,7 +76,9 @@ namespace OfficeIMO.Word {
             WordLayoutPagination? layout,
             out string? value,
             out WordFieldUpdateStatus status,
-            out string message) {
+            out string message,
+            out bool fromLayout) {
+            fromLayout = false;
             value = null;
             status = WordFieldUpdateStatus.Skipped;
 
@@ -108,7 +110,7 @@ namespace OfficeIMO.Word {
                 page = laidOutPage;
             }
 
-            bool fromLayout = page != null;
+            fromLayout = page != null;
             page ??= EstimatePageForBodyField(document, bookmarkStart);
             if (page == null) {
                 message = $"Bookmark {bookmarkName} could not be matched to a body paragraph.";

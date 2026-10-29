@@ -68,7 +68,7 @@ namespace OfficeIMO.Word {
                 WordDrawingIdAllocator.Reassign(_destination, root);
             }
 
-            ApplyImplicitDefaultStyles(new OpenXmlElement[] { staging }.Concat(notes).Concat(comments));
+            ApplyImplicitDefaultStyles(new OpenXmlElement[] { staging }.Concat(notes).Concat(comments).Concat(stories));
             RemapBookmarks(roots, identifiers);
             Dictionary<string, string> paragraphIds = RemapParagraphIds(roots, identifiers);
             ImportCommentExtensions(comments, paragraphIds);

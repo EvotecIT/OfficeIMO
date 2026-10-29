@@ -67,14 +67,22 @@ namespace OfficeIMO.Word {
         /// </summary>
         public WordCompatibilitySettings CompatibilitySettings { get; set; } = null!;
 
-        internal void NotifyTableOfContentUpdateQueued() {
+        internal void NotifyTableOfContentUpdateQueued(bool enabledUpdateFieldsOnOpen = false) {
             _tableOfContentUpdateQueued = true;
+            if (enabledUpdateFieldsOnOpen) {
+                _tableOfContentEnabledUpdateFieldsOnOpen = true;
+            }
         }
 
-        internal bool IsTableOfContentUpdateQueued => _tableOfContentUpdateQueued;
+        /// <summary>
+        /// Gets whether OfficeIMO itself turned on <c>UpdateFieldsOnOpen</c> to have Word rebuild a table of contents,
+        /// as opposed to the caller or the loaded file having set it.
+        /// </summary>
+        internal bool TableOfContentEnabledUpdateFieldsOnOpen => _tableOfContentEnabledUpdateFieldsOnOpen;
 
         internal void ResetTableOfContentUpdateQueue() {
             _tableOfContentUpdateQueued = false;
+            _tableOfContentEnabledUpdateFieldsOnOpen = false;
         }
 
         /// <summary>

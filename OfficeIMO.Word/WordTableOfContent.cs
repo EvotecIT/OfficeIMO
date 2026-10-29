@@ -219,8 +219,9 @@ namespace OfficeIMO.Word {
                 return;
             }
 
+            bool enabled = !this._document.Settings.UpdateFieldsOnOpen;
             this._document.Settings.UpdateFieldsOnOpen = true;
-            this._document.NotifyTableOfContentUpdateQueued();
+            this._document.NotifyTableOfContentUpdateQueued(enabled);
         }
 
         /// <summary>

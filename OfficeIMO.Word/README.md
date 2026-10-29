@@ -447,7 +447,7 @@ document.AddParagraph("Section 1.1").Style = WordParagraphStyles.Heading2;
 document.Paragraphs[0].AddField(WordFieldType.TOC);
 ```
 
-`UpdateFields()` refreshes deterministic fields and, by default, leaves tables of contents for Word to rebuild on open. To write final entries without Word, regenerate them and take page numbers from OfficeIMO's own page layout, the engine behind PDF conversion:
+`UpdateFields()` refreshes only the `PAGE` and `NUMPAGES` page counters. `UpdateFields(WordFieldUpdateOptions)` evaluates the full deterministic field subset, and by default leaves tables of contents for Word to rebuild on open. To write final entries without Word, regenerate them and take page numbers from OfficeIMO's own page layout, the engine behind PDF conversion:
 
 ```csharp
 document.UpdateFields(new WordFieldUpdateOptions {

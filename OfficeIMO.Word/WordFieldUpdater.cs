@@ -88,7 +88,7 @@ namespace OfficeIMO.Word {
                     continue;
                 }
 
-                if (TryEvaluate(document, candidate, parsed, totalPages, state, DateTime.Now, out string? value, out WordFieldUpdateStatus status, out _) &&
+                if (TryEvaluate(document, candidate, parsed, totalPages, state, DateTime.Now, out string? value, out WordFieldUpdateStatus status, out _, out _) &&
                     status == WordFieldUpdateStatus.Updated) {
                     SetResultText(candidate, value!);
                 }
@@ -121,14 +121,14 @@ namespace OfficeIMO.Word {
                 return candidate.ToResult(parsed.FieldType, WordFieldUpdateStatus.Skipped, null, "Field is locked and was left unchanged.");
             }
 
-            if (!TryEvaluate(document, candidate, parsed, totalPages, state, updateDateTime, out string? value, out WordFieldUpdateStatus status, out string message)) {
+            if (!TryEvaluate(document, candidate, parsed, totalPages, state, updateDateTime, out string? value, out WordFieldUpdateStatus status, out string message, out bool usedLayout)) {
                 return candidate.ToResult(parsed.FieldType, status, null, message, GetFailedEvaluationReason(candidate, parsed.FieldType, status, message));
             }
 
             SetResultText(candidate, value!);
             WordFieldEvaluationReason reason = parsed.FieldType is WordFieldType.Date or WordFieldType.Time
                 ? dateTimeEvaluationReason
-                : state.Layout != null && parsed.FieldType is WordFieldType.PageRef or WordFieldType.NumPages
+                : usedLayout
                 ? WordFieldEvaluationReason.LayoutPagination
                 : WordFieldEvaluationReason.Default;
             return candidate.ToResult(parsed.FieldType, WordFieldUpdateStatus.Updated, value, message, reason);
@@ -176,7 +176,9 @@ namespace OfficeIMO.Word {
             DateTime updateDateTime,
             out string? value,
             out WordFieldUpdateStatus status,
-            out string message) {
+            out string message,
+            out bool usedLayout) {
+            usedLayout = false;
             value = null;
             status = WordFieldUpdateStatus.Unsupported;
             message = $"Field type {parsed.FieldType} is not evaluated by OfficeIMO.";
@@ -219,7 +221,7 @@ namespace OfficeIMO.Word {
                 case WordFieldType.Ref:
                     return TryEvaluateRef(document, candidate, parsed, out value, out status, out message);
                 case WordFieldType.PageRef:
-                    return TryEvaluatePageRef(document, parsed, state.Layout, out value, out status, out message);
+                    return TryEvaluatePageRef(document, parsed, state.Layout, out value, out status, out message, out usedLayout);
                 case WordFieldType.Formula:
                     return TryEvaluateFormula(candidate, parsed, out value, out status, out message);
                 case WordFieldType.Seq:
@@ -233,6 +235,7 @@ namespace OfficeIMO.Word {
                 case WordFieldType.NumWords:
                     return TryFormatIntegerField(document.Statistics.Words, parsed, "Updated from OfficeIMO document statistics Words.", out value, out status, out message);
                 case WordFieldType.NumPages:
+                    usedLayout = state.Layout != null;
                     return TryFormatIntegerField(totalPages, parsed, state.Layout != null ? "Updated from OfficeIMO page layout." : "Updated from OfficeIMO page-break count.", out value, out status, out message);
                 case WordFieldType.RevNum:
                     return TrySetTextValue(document.BuiltinDocumentProperties.Revision, parsed, "Updated from built-in document property Revision.", out value, out status, out message);

@@ -13,11 +13,13 @@ namespace OfficeIMO.Word {
                 state.RegeneratedTablesOfContents.Add(table.SdtBlock);
             }
 
-            // The entries are final, so an open-time rebuild that OfficeIMO queued for these tables is no longer needed.
-            if (document.IsTableOfContentUpdateQueued) {
+            // The entries are final, so an open-time rebuild that OfficeIMO turned on for these tables is no longer
+            // needed. A setting the caller or the loaded file enabled is kept.
+            if (document.TableOfContentEnabledUpdateFieldsOnOpen) {
                 document.Settings.UpdateFieldsOnOpen = false;
-                document.ResetTableOfContentUpdateQueue();
             }
+
+            document.ResetTableOfContentUpdateQueue();
         }
 
         private static bool IsInsideRegeneratedTableOfContents(MutableFieldCandidate candidate, FieldEvaluationState state) {
