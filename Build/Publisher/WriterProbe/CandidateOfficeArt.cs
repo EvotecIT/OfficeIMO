@@ -23,8 +23,7 @@ internal static class CandidateOfficeArt {
         }));
         var groupRecords = new List<byte[]> { fdgg };
         if (image != null) groupRecords.Add(Art(31, 0xF001,
-            OfficeArtBlipStoreEntryWriter.CreateEmbedded(image,
-                image.Length >= 8 && image[0] == 0x89 && image[1] == 0x50 ? "image/png" : "image/jpeg")));
+            OfficeArtBlipStoreEntryWriter.CreateDelayed(image, ContentType(image), delayedStreamOffset: 0)));
         byte[] dgg = Art(15, 0xF000, groupRecords.ToArray());
         byte[] root = Art(15, 0xF004,
             Art(1, 0xF009, new byte[16]),
@@ -35,6 +34,12 @@ internal static class CandidateOfficeArt {
             Art(15, 0xF003, root, leaf));
         return Join(dgg, new byte[4], drawing);
     }
+
+    internal static byte[] CreateImageDelayStream(byte[]? image) => image == null ? Array.Empty<byte>()
+        : OfficeArtBlipStoreEntryWriter.CreateBlipRecord(image, ContentType(image));
+
+    private static string ContentType(byte[] image) =>
+        image.Length >= 8 && image[0] == 0x89 && image[1] == 0x50 ? "image/png" : "image/jpeg";
 
     private static byte[] Leaf(string kind, bool hasImage, uint nativeShapeId, uint shapeId, uint width, uint height) {
         var properties = new List<(ushort Id, uint Value)> {

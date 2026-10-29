@@ -107,8 +107,10 @@ candidate has a root group at SPID 1024; content shapes use SPID 1025. Saved
 shape/drawing counts, last shape ID and cluster values follow those generated
 objects. The next-SPID convention follows the native controls and existing PPT
 writer. No native property table or extra utility drawing is copied. Image
-candidates retain the shared embedded FBSE writer and existing picture shape
-type so that this common drawing-graph correction remains an isolated probe.
+candidates use the shared delayed FBSE and standalone BLIP writers, placing the
+image record in `EscherDelayStm` and preserving picture shape type 75. This
+matches the independently observed native storage layout and the independent
+reader's delayed image path. The common blank publication bytes are unchanged.
 
 The earlier named hypothesis commands and their exact source are retained in
 commit `a69b7b8b56`. Retained raw candidates and their native rejection records

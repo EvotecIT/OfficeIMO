@@ -30,7 +30,7 @@ internal static class CandidateWriter {
             new OfficeCompoundStream("Contents", Contents(kind, graph)),
             new OfficeCompoundStream("Quill/QuillSub/CONTENTS", QuillCandidate.Create(text)),
             new OfficeCompoundStream("Escher/EscherStm", CandidateOfficeArt.Create(kind, image, graph.ShapeId, WidthEmu, HeightEmu)),
-            new OfficeCompoundStream("Escher/EscherDelayStm", Array.Empty<byte>()),
+            new OfficeCompoundStream("Escher/EscherDelayStm", CandidateOfficeArt.CreateImageDelayStream(image)),
             new OfficeCompoundStream("\u0003Internal", InternalHeader()),
             new OfficeCompoundStream("\u0001CompObj", OfficeOleCompoundObjectWriter.Write(PublicationClassId,
                 "Microsoft Publisher 3.0", "MSPublisher.3", string.Empty))
