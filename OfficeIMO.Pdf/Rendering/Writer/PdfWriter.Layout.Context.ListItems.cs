@@ -3,7 +3,7 @@ namespace OfficeIMO.Pdf;
 internal static partial class PdfWriter {
     private sealed partial class LayoutContext {
         private PdfListNumbering ResolveListNumbering(PdfListBlock block) {
-            bool custom = block.RichItems.Any(item => item.Marker != null);
+            bool custom = block.HasCustomMarkers;
             if (!custom) return block.IsNumbered ? PdfListNumbering.DecimalNumbers : PdfListNumbering.Disc;
             if (currentOpts.FileVersion < PdfFileVersion.Pdf20) return PdfListNumbering.None;
             return block.IsNumbered ? PdfListNumbering.Ordered : PdfListNumbering.Unordered;

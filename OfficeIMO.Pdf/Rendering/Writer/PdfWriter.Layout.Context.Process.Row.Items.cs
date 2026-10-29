@@ -57,6 +57,7 @@ internal static partial class PdfWriter {
                     var listItems = new System.Collections.Generic.List<ColListItem>(prepared.Items.Count);
                     PdfColor? listColor = list.Color ?? prepared.Style?.Color;
                     for (int itemIndex = 0; itemIndex < prepared.Items.Count; itemIndex++) {
+                        cancellationToken.ThrowIfCancellationRequested();
                         PreparedListItem preparedItem = prepared.Items[itemIndex];
                         PdfListItem item = preparedItem.Item;
                         TableCellTextLayout layout = preparedItem.TextLayout;
