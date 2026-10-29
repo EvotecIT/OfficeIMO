@@ -28,4 +28,23 @@ public class MarkdownPdfPageFurnitureTests {
         Assert.Contains("search.maxResults", text, StringComparison.Ordinal);
         Assert.Contains("\"Lumen site\"", text, StringComparison.Ordinal);
     }
+
+    [Fact]
+    public void InlineImagesInRunningTextAreEmbedded() {
+        string folder = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "officeimo-inline-image-" + Guid.NewGuid().ToString("N"));
+        System.IO.Directory.CreateDirectory(folder);
+        try {
+            var image = new OfficeIMO.Drawing.OfficeRasterImage(20, 10, OfficeIMO.OfficeColor.FromRgb(37, 99, 235));
+            System.IO.File.WriteAllBytes(System.IO.Path.Combine(folder, "dot.png"), OfficeIMO.Drawing.OfficePngWriter.Encode(image));
+            var options = new MarkdownPdfExportOptions { BaseDirectory = folder, ResourcePolicy = PdfCore.PdfResourcePolicy.CreateTrustedHost() };
+            PdfCore.PdfDocumentConversionResult result = MarkdownDocument.Parse("Status ![ok](dot.png) is green.").ConvertToPdfWithEvidence(options);
+            string raw = PdfCore.PdfDocument.Load(new System.IO.MemoryStream(result.ToBytes())).Read().Text;
+
+            Assert.Contains("Status", raw, StringComparison.Ordinal);
+            Assert.DoesNotContain("[Image", raw, StringComparison.Ordinal);
+            Assert.DoesNotContain(result.Warnings, warning => warning.Code == "InlineImageAsText");
+        } finally {
+            System.IO.Directory.Delete(folder, recursive: true);
+        }
+    }
 }

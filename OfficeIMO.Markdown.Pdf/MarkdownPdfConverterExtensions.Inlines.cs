@@ -80,6 +80,10 @@ public static partial class MarkdownPdfConverterExtensions {
             case SubscriptSequenceInline subscriptSequence:
                 AppendInlines(builder, subscriptSequence.Inlines, style.With(baseline: PdfCore.PdfTextBaseline.Subscript));
                 break;
+            case ImageInline image when TryAppendInlineImage(builder, image.Src, image.PlainAlt, linkUrl: null, style):
+                break;
+            case ImageLinkInline imageLink when TryAppendInlineImage(builder, imageLink.ImageUrl, imageLink.PlainAlt, imageLink.LinkUrl, style):
+                break;
             case ImageInline image:
                 style.Anchors?.ReportInlineImageAsText(image.Src);
                 ApplyStyle(builder, style.With(italic: true)).Text("[Image: " + (image.PlainAlt.Length == 0 ? image.Src : image.PlainAlt) + "]");
@@ -108,6 +112,23 @@ public static partial class MarkdownPdfConverterExtensions {
                 ApplyStyle(builder, style).Text(textBuilder.ToString());
                 break;
         }
+    }
+
+    // An image inside a line of text, such as a status badge, is drawn at the height of the text around it.
+    // Links on such images keep their target through the following link text, so only unlinked images are drawn.
+    private static bool TryAppendInlineImage(PdfCore.PdfParagraphBuilder builder, string source, string altText, string? linkUrl, InlineStyle style) {
+        MarkdownPdfExportOptions? options = style.Anchors?.Options;
+        if (options == null || !options.IncludeImages || linkUrl != null) return false;
+        if (!TryReadImageBytes(source, options, out byte[] bytes, out _, out _, out _) ||
+            !PdfCore.PdfDocument.TryPrepareImageBytes(bytes, out byte[] prepared, out OfficeImageInfo? info, out _, out _) ||
+            info == null || info.Width <= 0 || info.Height <= 0) {
+            return false;
+        }
+
+        double height = (style.FontSize ?? 11D) * 1.15D;
+        double width = height * info.Width / info.Height;
+        builder.InlineImage(prepared, width, height, altText.Length == 0 ? null : altText, baselineOffset: -(style.FontSize ?? 11D) * 0.2D);
+        return true;
     }
 
     private static void AppendLinkInline(PdfCore.PdfParagraphBuilder builder, LinkInline link, InlineStyle style) {
