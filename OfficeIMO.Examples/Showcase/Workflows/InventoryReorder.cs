@@ -8,10 +8,10 @@ internal static class InventoryReorder {
     internal static void Create(string folder) {
         using ExcelDocument document = ExcelDocument.Create(Path.Combine(folder, "example.xlsx"));
         var sheet = document.AddWorksheet("Reorder");
-        // Widths sized to the content so the whole plan prints on one landscape page.
-        sheet.SetColumnWidth(1, 22);
-        for (int column = 2; column <= 6; column++) sheet.SetColumnWidth(column, 12);
-        sheet.SetColumnWidth(7, 14);
+        // Widths sized to the content so the whole plan prints on one page.
+        sheet.SetColumnWidth(1, 20);
+        for (int column = 2; column <= 6; column++) sheet.SetColumnWidth(column, 10);
+        sheet.SetColumnWidth(7, 13);
         sheet.MergeRange("A1:G1");
         sheet.Cell(1, 1, "Inventory replenishment plan");
         sheet.CellFontSize(1, 1, 20); sheet.CellBold(1, 1, true); sheet.CellFontColor(1, 1, "17365D");
