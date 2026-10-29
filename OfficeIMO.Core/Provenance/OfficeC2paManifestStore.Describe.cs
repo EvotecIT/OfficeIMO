@@ -12,15 +12,20 @@ internal static partial class OfficeC2paManifestStore {
     /// Reads what the active (last) manifest of a structurally valid store says. Never throws; returns null when the
     /// store or its claim cannot be read. Values are as written in the manifest and are not signature-verified.
     /// </summary>
-    internal static OfficeC2paManifestSummary? TryDescribe(byte[] data, int offset, int length) {
+    internal static OfficeC2paManifestSummary? TryDescribe(byte[] data, int offset, int length) =>
+        TryDescribe(data, offset, length, new OfficeCborMapComparisonBudget(OfficeCborMapComparisonBudget.DefaultLimit));
+
+    internal static OfficeC2paManifestSummary? TryDescribe(byte[] data, int offset, int length,
+        OfficeCborMapComparisonBudget comparisonBudget) {
         try {
-            return Describe(data, offset, length);
+            return Describe(data, offset, length, comparisonBudget);
         } catch (Exception error) when (error is FormatException or ArgumentException or IndexOutOfRangeException or OverflowException) {
             return null;
         }
     }
 
-    private static OfficeC2paManifestSummary? Describe(byte[] data, int offset, int length) {
+    private static OfficeC2paManifestSummary? Describe(byte[] data, int offset, int length,
+        OfficeCborMapComparisonBudget comparisonBudget) {
         if (data == null || offset < 0 || length <= 0 || offset > data.Length - length) return null;
         if (!TryOpenSuperbox(data, offset, length, out _, out string storeLabel, out int cursor, out int storeEnd) || storeLabel != "c2pa") return null;
 
@@ -41,8 +46,6 @@ internal static partial class OfficeC2paManifestStore {
             cursor += (int)boxLength;
         }
         if (activeOffset < 0) return null;
-
-        var comparisonBudget = new OfficeCborMapComparisonBudget(OfficeCborMapComparisonBudget.DefaultLimit);
 
         Dictionary<object, object?>? claim = null;
         var actions = new List<OfficeC2paAction>();

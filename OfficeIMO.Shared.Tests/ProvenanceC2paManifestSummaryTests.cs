@@ -1,5 +1,6 @@
 using System.Text;
 using OfficeIMO.Provenance;
+using OfficeIMO.Html;
 using Xunit;
 
 namespace OfficeIMO.Shared.Tests;
@@ -110,6 +111,22 @@ public sealed class ProvenanceC2paManifestSummaryTests {
             precedingAssertions: assertions));
 
         Assert.Null(OfficeC2paManifestStore.TryDescribe(store, 0, store.Length));
+    }
+
+    [Fact]
+    public void HtmlManifestCarriersShareOneCborComparisonBudget() {
+        byte[] collisionMap = Cbor(Map(Enumerable.Range(1, 500)
+            .Select(index => ((object)(((long)index << 32) | (uint)index), (object?)null)).ToArray()));
+        byte[] store = Store(Manifest("active", "Generator", collisionMap, null));
+        string carrier = "<script type='application/c2pa'>" + Convert.ToBase64String(store) + "</script>";
+
+        OfficeProvenanceReport report = HtmlProvenance.Inspect("<html><head>" + carrier + carrier + "</head><body></body></html>");
+
+        OfficeProvenanceEvidence[] evidence = report.Evidence.Where(item => item.Carrier == OfficeProvenanceCarrierKind.C2paManifest).ToArray();
+        Assert.Equal(2, evidence.Length);
+        Assert.All(evidence, item => Assert.True(item.IsStructurallyValid));
+        Assert.NotNull(evidence[0].Manifest);
+        Assert.Null(evidence[1].Manifest);
     }
 
     [Theory]
