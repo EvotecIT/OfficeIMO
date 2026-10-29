@@ -1,5 +1,12 @@
 # Upgrading OfficeIMO
 
+## XML Spreadsheet defined-name limit
+
+XML Spreadsheet import now admits at most 10,000 defined names by default. If
+you import a trusted workbook with more names, set
+`ExcelSpreadsheetXmlOptions.MaxNames` to the required positive limit. Imports
+that exceed the configured limit fail before the names are materialized.
+
 ## Stroke geometry projection limits
 
 Raster and gradient stroke projection limits cumulative copied and generated
