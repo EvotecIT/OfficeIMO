@@ -264,7 +264,7 @@ namespace OfficeIMO.Word.Html {
                 }
             }
             if (formatting.Marked) properties.AppendChild(new RunStyle { Val = HtmlSemanticStyleIds.MarkedText });
-            if (formatting.FontSize.HasValue) properties.AppendChild(new FontSize { Val = (formatting.FontSize.Value * 2).ToString(CultureInfo.InvariantCulture) });
+            if (formatting.FontSize.HasValue) properties.AppendChild(new FontSize { Val = ((int)Math.Round(formatting.FontSize.Value * 2d, MidpointRounding.AwayFromZero)).ToString(CultureInfo.InvariantCulture) });
             if (formatting.Caps == WordCapsStyle.SmallCaps) properties.AppendChild(new SmallCaps());
             if (formatting.Caps == WordCapsStyle.Caps) properties.AppendChild(new Caps());
             if (formatting.LetterSpacing.HasValue) properties.AppendChild(new Spacing { Val = formatting.LetterSpacing.Value });

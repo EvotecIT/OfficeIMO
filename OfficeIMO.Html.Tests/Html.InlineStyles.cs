@@ -14,7 +14,8 @@ namespace OfficeIMO.Tests {
             Assert.Equal(18d, paragraph.IndentationBeforePoints);
             Assert.Equal(7.5d, paragraph.LineSpacingBeforePoints);
             var run = paragraph.GetRuns().First();
-            Assert.Equal(24, run.FontSize);
+            // CSS pixels are 1/96 inch: 24px is 18pt.
+            Assert.Equal(18, run.FontSize);
             Assert.Equal("123456", run.ColorHex);
         }
 
@@ -73,11 +74,11 @@ namespace OfficeIMO.Tests {
             var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWord(new WordHtmlImportOptions());
             var runs = doc.Paragraphs[0].GetRuns().ToArray();
             Assert.Equal("FF0000", runs[0].ColorHex);
-            Assert.Equal(20, runs[0].FontSize);
+            Assert.Equal(15D, runs[0].FontSizePoints);
             Assert.Equal("FF0000", runs[1].ColorHex);
-            Assert.Equal(10, runs[1].FontSize);
+            Assert.Equal(7.5D, runs[1].FontSizePoints);
             Assert.Equal("FF0000", runs[2].ColorHex);
-            Assert.Equal(20, runs[2].FontSize);
+            Assert.Equal(15D, runs[2].FontSizePoints);
         }
 
         [Fact]
@@ -89,9 +90,9 @@ namespace OfficeIMO.Tests {
             var second = bodyRuns.Single(run => run.InnerText == "Two");
 
             Assert.Equal("123456", first.RunProperties!.Color!.Val!.Value);
-            Assert.Equal("44", first.RunProperties!.FontSize!.Val!.Value);
+            Assert.Equal("33", first.RunProperties!.FontSize!.Val!.Value);
             Assert.Equal("123456", second.RunProperties!.Color!.Val!.Value);
-            Assert.Equal("22", second.RunProperties!.FontSize!.Val!.Value);
+            Assert.Equal("17", second.RunProperties!.FontSize!.Val!.Value);
         }
 
         [Fact]
@@ -110,7 +111,7 @@ namespace OfficeIMO.Tests {
             var run = doc.Paragraphs[0].GetRuns().First();
 
             Assert.Equal("ABCDEF", run.ColorHex);
-            Assert.Equal(11, run.FontSize);
+            Assert.Equal(8.5D, run.FontSizePoints);
         }
 
         [Fact]
