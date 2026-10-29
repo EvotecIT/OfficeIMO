@@ -3,12 +3,14 @@
 This opt-in contributor tool inventories native publications and synthesizes
 small, template-free PUB candidates. It stays outside the normal solution and
 does not add a production API, runtime dependency or qualified writer profile.
-The native bytes are a hypothesis until Microsoft Publisher opens and resaves
+The native bytes remain a hypothesis until Microsoft Publisher opens and resaves
 them without repair and produces the expected reference output.
 
 Build with the repository's pinned SDK:
 
 ```powershell
+$env:MSBUILDDISABLENODEREUSE = '1'
+$env:DOTNET_CLI_USE_MSBUILD_SERVER = '0'
 dotnet build Build/Publisher/WriterProbe/WriterProbe.csproj -c Release
 ```
 
@@ -17,18 +19,13 @@ access the Publisher and shared compound codecs. Its separate output directory
 keeps it apart from the test assembly. It has no test-framework reference and
 requires no new production visibility hook.
 
-Invoke the built assembly with the input and an unused report filename:
+Invoke the built assembly with an input and unused output paths:
 
 ```powershell
 $probe = 'Build/Publisher/WriterProbe/bin/Release/net10.0/OfficeIMO.Publisher.Tests.dll'
 dotnet $probe inventory ./reference.pub ./reference.inventory.json
 dotnet $probe diff ./native-text.pub ./native-textlong.pub ./text-change.diff.json
 dotnet $probe create blank ./candidate-blank.pub
-dotnet $probe create-native-id blank ./candidate-blank-native-id.pub
-dotnet $probe create-native-header blank ./header-blank.pub
-dotnet $probe create-bootstrap blank ./bootstrap-blank.pub
-dotnet $probe create-native-schema blank ./schema-blank.pub
-dotnet $probe create-native-schema-roles blank ./schema-role-blank.pub
 dotnet $probe create text ./candidate-text.pub 'Template-free publication'
 dotnet $probe create shape ./candidate-shape.pub
 dotnet $probe create image ./candidate-image.pub ./picture.png
@@ -36,60 +33,66 @@ dotnet $probe render ./reference.pub ./managed-comparison
 ```
 
 Output parent directories must already exist. Existing outputs are never
-overwritten. Input is bounded to 64 MiB; probe text to 4,096 characters and
-images to 1 MiB. The inventory records compound metadata and hashes, known
-Contents fields, Quill directories, OfficeArt envelopes and a separate result
-from the OfficeIMO reader. Unknown encodings and incomplete decoding remain
-visible. Reports can contain complete recovered text: use synthetic fixtures.
+overwritten. Inventory input is bounded to 64 MiB; probe text to 4,096 characters
+and images to 1 MiB. Reports can contain complete recovered text: use synthetic
+fixtures.
 
-`diff` compares the same inventories by stream name, native chunk ID and Quill
-tag/ID. It separates changed payload identities and known field values from
-record relocation. Repeated fields retain occurrence indices. Opaque payloads
-remain opaque; matching inspected values do not establish semantic equivalence.
+`inventory` records compound metadata and hashes, known Contents fields, Quill
+directories, OfficeArt envelopes and a separate result from the OfficeIMO reader.
+Unknown encodings and incomplete decoding remain visible. `diff` compares these
+inventories by stream name, native chunk ID and Quill tag/ID. It separates changed
+payload identities and known field values from record relocation. Repeated fields
+retain occurrence indices. Opaque payloads remain opaque; matching inspected
+values do not establish semantic equivalence.
 
-Candidate creation never reads a PUB, copies an existing compound stream, or
-invokes Publisher. The minimal stream graph deliberately exposes unresolved
-native defaults rather than hiding them in an embedded seed. Its output is
-not a supported document-generation contract. Header defaults, document/page
-utility records, class metadata and auxiliary Quill structures require native
-qualification. Own-reader acceptance alone does not close that requirement.
+`create` never reads a PUB, copies an existing compound stream or invokes
+Publisher. It synthesizes a current experimental profile with identifiers from
+256, typed Contents header properties, a minimal class catalog, an explicit page
+role record and generated root CompObj identification. The canonical compound
+writer serializes a fresh directory model carrying the independently observed
+Publisher root and QuillSub storage class IDs. No source publication supplies
+that directory or its stream bytes. The generated directory includes an empty
+root `Objects` storage: the captured native preliminary version reader opens it
+before reaching format validation, including for a blank publication.
+The root `\u0003Internal` stream is encoded as a 12-byte typed header: version
+`0x00010000`, a zero reserved WORD, zero context flags at unaligned offset 6 and
+a zero following-byte count at offset 10. The preliminary native reader requires a complete
+12-byte read and that version. The reserved zeros follow the native writer's initialization;
+zero context flags describe this plain, inert candidate.
 
-`create` leaves the compound root class ID empty. `create-native-id` changes only
-that metadata to `00021201-0000-0000-00c0-000000000046`, the value independently
-observed in the retained Publisher-authored fixture. Keep both variants when
-checking whether that metadata changes native acceptance.
+The Quill envelope writes the native checked version values 4 and 7, byte
+`+0x0F` equal to 3, a first payload position of 512 and the truthful stream size
+at `+0x14`. Descriptors retain their generated payloads and point to their actual
+serialized positions. Text-format range endpoints follow the relocated text.
+The meaning of other observed header values and required auxiliary Quill records
+remain unqualified. No native text-style payload is copied.
 
-`create-native-header` is a separately named header/record-type hypothesis. It
-also synthesizes the observed Contents version, declared stream length, header
-marker, trailer scalar identifiers, directory field identifier, two-byte chunk
-kind and typed offset/parent descriptors. Page/object lists use the observed
-array type. It retains the small model and original identifier allocation; it
-does not copy auxiliary bootstrap records, styles or stream payloads from a
-publication. Those unresolved requirements still prevent a native support claim.
-
-`create-bootstrap` retains the header hypothesis, reserves directory slots
-0 through 255, allocates model records from 256 and updates their native
-references. It synthesizes the inert root CompObj identification through the
-shared OLE writer: observed user type `Microsoft Publisher 3.0`, clipboard format
-`MSPublisher.3`, the native class ID and an empty program ID. It does not copy a
-native CompObj stream or Quill style payload. This identifies the experiment;
-it does not establish that Publisher accepts the remaining record graph.
-
-`create-native-schema` adds a typed property chunk beginning at offset 44 and
-a minimal class catalog for the page, document and the selected shape kind.
-Lengths and document/catalog/trailer pointers are calculated from the generated
-records. The class descriptors spell out observed version and numeric traits;
+The minimal class descriptors spell out observed version and numeric traits;
 their behavioral meanings and the sufficiency of a subset catalog remain
-unqualified. The producer's 143-entry catalog and native text-style payloads
-are not copied. The relative identification filename is `WriterProbe.pub`.
+unqualified. The generated page graph has six ordered references: one master,
+one physical page and four utility pages, with `DpgMaster=1` and `DpgSpecial=5`.
+The recovered physical interval is `[1, 6-5]`. This satisfies the native special
+boundary range of 4 through 30 and provides the ordinary loader's reserved page
+at index `N-4`. The non-master pages reference the generated master. Optional
+auxiliary page records remain absent; the inspected validator permits their zero
+references, and this does not establish that the ordinary native loader needs no
+others. Document field `0x20` points to a generated Quill document (`0x5B`), with
+decoded references to empty `0x61` and `0x65` children and its observed options
+field. Those used classes receive explicit catalog descriptors. A successful
+managed read establishes only the managed
+reader result. Native open, native resave and content fidelity are separate
+qualification requirements.
 
-`create-native-schema-roles` adds the explicit document role fields to a new
-hypothesis: field 1 declares one ordered page reference, `0x2C` is 1 and `0x2D`
-is 0. The recovered physical interval is the single reference at index 0.
-This exercises the native role metadata contract rather than inferring pages
-from a content count or a publication-specific identifier. Native acceptance
-of a publication with this minimal page/master/utility graph remains unqualified.
-Earlier commands keep their original role omissions as negative controls.
+Document field 3 points to a generated print block (`0x4B`) containing zero
+printer profiles and an empty profile list. Those values meet the recovered
+structural count/list constraints. Optional printer settings and flags remain
+absent for native defaults; no device-specific printer payload is copied.
+Normal native decoding of this minimal print block remains unqualified.
+
+The earlier named hypothesis commands and their exact source are retained in
+commit `a69b7b8b56`. Retained raw candidates and their native rejection records
+remain negative controls; the current command does not reproduce those older
+variants.
 
 `render` creates a fresh output directory containing `managed.pdf`, per-page SVG
 and `managed.json` with normalized page, frame, story, table and diagnostic
@@ -99,5 +102,5 @@ against the separately authored native reference and its expected content.
 
 For each candidate retain its SHA-256, the native application version, native
 open/repair result, native resave result, exported reference PDF and inspection
-of the intended content. Keep these evidence classes separate from corpus
-files authored by Publisher and from managed record mutations.
+of the intended content. Keep these evidence classes separate from corpus files
+authored by Publisher.

@@ -11,8 +11,11 @@ namespace OfficeIMO.Publisher.WriterProbe;
 internal static class CandidateWriter {
     private const uint WidthEmu = 612 * 12700;
     private const uint HeightEmu = 792 * 12700;
+    private const uint DocumentId = 0x100;
+    internal static readonly Guid PublicationClassId = new("00021201-0000-0000-00c0-000000000046");
+    private static readonly Guid QuillSubClassId = new("08c8f6da-969d-11d1-8e02-00c04fb6fece");
 
-    internal static byte[] Create(string kind, string? value, Guid? rootClassId = null, bool nativeHeader = false, bool bootstrapMetadata = false, bool nativeSchema = false, bool pageRoles = false) {
+    internal static byte[] Create(string kind, string? value) {
         if (kind is not ("blank" or "text" or "shape" or "image")) throw new ArgumentException("Unknown candidate kind.");
         string? text = kind == "text" ? value ?? "Template-free Publisher writer probe\r" : null;
         if (text != null && !text.EndsWith('\r')) text += '\r';
@@ -23,62 +26,67 @@ internal static class CandidateWriter {
             if (new FileInfo(value).Length > 1024 * 1024) throw new ArgumentException("Probe images are limited to 1 MiB.");
             image = File.ReadAllBytes(value);
         }
-        uint baseId = bootstrapMetadata ? 0x100U : 0U;
+        NativePublicationGraph.Graph graph = NativePublicationGraph.Create(kind, DocumentId, WidthEmu, HeightEmu);
         var streams = new List<OfficeCompoundStream> {
-            new OfficeCompoundStream("Contents", Contents(kind, nativeHeader, baseId, nativeSchema, pageRoles)),
+            new OfficeCompoundStream("Contents", Contents(kind, graph)),
             new OfficeCompoundStream("Quill/QuillSub/CONTENTS", QuillCandidate.Create(text)),
-            new OfficeCompoundStream("Escher/EscherStm", OfficeArt(kind, image, baseId + 2)),
-            new OfficeCompoundStream("Escher/EscherDelayStm", Array.Empty<byte>())
+            new OfficeCompoundStream("Escher/EscherStm", OfficeArt(kind, image, graph.ShapeId)),
+            new OfficeCompoundStream("Escher/EscherDelayStm", Array.Empty<byte>()),
+            new OfficeCompoundStream("\u0003Internal", InternalHeader()),
+            new OfficeCompoundStream("\u0001CompObj", OfficeOleCompoundObjectWriter.Write(PublicationClassId,
+                "Microsoft Publisher 3.0", "MSPublisher.3", string.Empty))
         };
-        if (bootstrapMetadata) streams.Add(new OfficeCompoundStream("\u0001CompObj",
-            OfficeOleCompoundObjectWriter.Write(rootClassId ?? throw new ArgumentException("Bootstrap metadata requires its native class ID."),
-                "Microsoft Publisher 3.0", "MSPublisher.3", string.Empty)));
-        return OfficeCompoundFileWriter.Write(streams, rootClassId);
+        return WriteCompound(streams);
     }
 
-    private static byte[] Contents(string kind, bool nativeHeader, uint baseId, bool nativeSchema, bool pageRoles) {
-        bool hasShape = kind != "blank";
-        byte[] dimensions = Variable(0x12, 0x88, Scalar(1, 0x20, WidthEmu), Scalar(2, 0x20, HeightEmu));
-        byte[] pages = Variable(2, nativeHeader ? (byte)0xA0 : (byte)0x90, Scalar(0, 0x70, baseId + 1));
-        byte[] document = pageRoles
-            ? Chunk(Scalar(1, 0x20, 1), pages, dimensions,
-                ShortScalar(0x2C, 0x18, 1), ShortScalar(0x2D, 0x18, 0))
-            : Chunk(dimensions, pages);
-        var chunks = new List<(uint Kind, uint? Parent, byte[] Bytes)> {
-            (0x44, null, document),
-            (0x43, baseId, Chunk(Scalar(1, 0x20, hasShape ? 1U : 0U),
-                Variable(2, nativeHeader ? (byte)0xA0 : (byte)0x90, hasShape ? Scalar(0, 0x70, baseId + 2) : Array.Empty<byte>())))
+    private static byte[] InternalHeader() => Bytes(writer => {
+        writer.Write(0x00010000U); // Required version, checked after an exact 12-byte read.
+        writer.Write((ushort)0); // Reserved +4: zero in native writer initialization.
+        writer.Write(0U); // Context flags at unaligned +6: plain, inert publication.
+        writer.Write((ushort)0); // Following-byte count +10: zero for the plain header.
+    });
+
+    private static byte[] WriteCompound(IReadOnlyList<OfficeCompoundStream> streams) {
+        // Compose a fresh directory model so the canonical writer carries the
+        // observed nested storage identity. No publication is read as a seed.
+        var root = new OfficeCompoundFileEntry("Root Entry", string.Empty, 5, 0, classId: PublicationClassId);
+        var entries = new List<OfficeCompoundFileEntry> {
+            root,
+            // The preliminary native version reader opens this storage before
+            // validation, including when the publication has no embedded objects.
+            new("Objects", "Objects", 1, 0),
+            new("Quill", "Quill", 1, 0),
+            new("QuillSub", "Quill/QuillSub", 1, 0, classId: QuillSubClassId),
+            new("Escher", "Escher", 1, 0)
         };
-        if (hasShape) chunks.Add((kind == "image" ? 0x20U : 1U, baseId + 1,
-            kind == "text" ? Chunk(Scalar(0x27, 0x20, 1), Scalar(0x28, 0x20, 0)) : Chunk()));
-        byte[] header = nativeSchema ? NativeSchemaPrefix.Create(kind, baseId, 0, 0) : new byte[32];
+        entries.AddRange(streams.Select(stream => new OfficeCompoundFileEntry(
+            stream.Name.Split('/').Last(), stream.Name, 2, stream.Length)));
+        var generated = new OfficeCompoundFile(
+            streams.ToDictionary(stream => stream.Name, stream => stream.Bytes, StringComparer.OrdinalIgnoreCase), entries, root);
+        return OfficeCompoundFileWriter.Rewrite(generated, new Dictionary<string, byte[]>());
+    }
+
+    private static byte[] Contents(string kind, NativePublicationGraph.Graph graph) {
+        IReadOnlyList<NativePublicationGraph.NativeRecord> chunks = graph.Chunks;
+        byte[] header = NativeSchemaPrefix.Create(kind, DocumentId, 0, 0);
         var offsets = new List<int>();
         int offset = header.Length;
         foreach (var chunk in chunks) { offsets.Add(offset); offset += chunk.Bytes.Length; }
         int trailer = offset;
-        var slots = Enumerable.Range(0, checked((int)baseId)).Select(_ => Marker(0, 0x78)).ToList();
+        var slots = Enumerable.Range(0, (int)DocumentId).Select(_ => Marker(0, 0x78)).ToList();
         slots.AddRange(chunks.Select((chunk, index) =>
             Variable(0, 0x88,
-                nativeHeader ? ShortScalar(2, 0x18, checked((ushort)chunk.Kind)) : Scalar(2, 0x20, chunk.Kind),
-                Scalar(4, nativeHeader ? (byte)0xB8 : (byte)0x20, (uint)offsets[index]),
-                chunk.Parent.HasValue ? Scalar(5, nativeHeader ? (byte)0x68 : (byte)0x70, chunk.Parent.Value) : Array.Empty<byte>())));
-        byte[] directory = Variable(nativeHeader ? (byte)3 : (byte)1, 0x90, slots.ToArray());
+                ShortScalar(2, 0x18, checked((ushort)chunk.Kind)),
+                Scalar(4, 0xB8, (uint)offsets[index]),
+                chunk.Parent.HasValue ? Scalar(5, 0x68, chunk.Parent.Value) : Array.Empty<byte>())));
+        byte[] directory = Variable(3, 0x90, slots.ToArray());
         header[0] = 0xE8; header[1] = 0xAC; header[2] = 0x2C;
         BitConverter.GetBytes(trailer).CopyTo(header, 0x1A);
-        byte[] bytes = Join(header, Join(chunks.Select(chunk => chunk.Bytes).ToArray()), nativeHeader
-            ? Chunk(Scalar(1, 0x20, baseId + (uint)chunks.Count), Scalar(2, 0x20, baseId + (uint)chunks.Count - 1), directory)
-            : Chunk(Scalar(0, 0x20, 0), directory, Scalar(2, 0x20, 0)));
-        if (nativeSchema) {
-            byte[] prefix = NativeSchemaPrefix.Create(kind, baseId, bytes.Length, trailer);
-            if (prefix.Length != header.Length) throw new InvalidDataException("Native schema fixup changed its declared prefix size.");
-            prefix.CopyTo(bytes, 0);
-        } else if (nativeHeader) {
-            // These fields are independently observed in the controlled native
-            // publications. Auxiliary bootstrap records remain unresolved.
-            BitConverter.GetBytes(0x000A03E8U).CopyTo(bytes, 4);
-            BitConverter.GetBytes(bytes.Length).CopyTo(bytes, 8);
-            BitConverter.GetBytes(0x0100001AU).CopyTo(bytes, 12);
-        }
+        byte[] bytes = Join(header, Join(chunks.Select(chunk => chunk.Bytes).ToArray()),
+            Chunk(Scalar(1, 0x20, DocumentId + (uint)chunks.Count), Scalar(2, 0x20, DocumentId + (uint)chunks.Count - 1), directory));
+        byte[] prefix = NativeSchemaPrefix.Create(kind, DocumentId, bytes.Length, trailer);
+        if (prefix.Length != header.Length) throw new InvalidDataException("Native schema fixup changed its declared prefix size.");
+        prefix.CopyTo(bytes, 0);
         return bytes;
     }
 

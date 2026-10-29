@@ -93,6 +93,7 @@ internal static class NativeInventory {
                 status = "decoded-known-records", native.Width, native.Height, trailer,
                 header = Convert.ToHexString(bytes.AsSpan(0, Math.Min(32, bytes.Length))).ToLowerInvariant(),
                 headerProperties,
+                classCatalog = ClassCatalog(data, reader),
                 trailerFields = Blocks(data, reader, trailerFields, 0),
                 chunks = native.Chunks.Values.OrderBy(chunk => chunk.Id).Select(chunk => new {
                     chunk.Id, chunk.Kind, chunk.Offset, chunk.End, chunk.Parent,
@@ -102,6 +103,17 @@ internal static class NativeInventory {
                 }).ToArray(),
                 limitation = "Only block encodings understood by the existing decoder are interpreted. Unknown meanings remain unknown."
             };
+        } catch (Exception exception) when (exception is InvalidDataException or NotSupportedException or OverflowException) {
+            return new { status = "unresolved", error = exception.Message };
+        }
+    }
+
+    private static object ClassCatalog(PublisherBinaryData data, PublisherBlockReader reader) {
+        try {
+            uint pointer = data.U32(0x1E);
+            if (pointer == uint.MaxValue) return new { status = "absent" };
+            int offset = data.Offset(pointer);
+            return new { status = "decoded-known-envelopes", offset, blocks = Blocks(data, reader, reader.Chunk(offset), 0) };
         } catch (Exception exception) when (exception is InvalidDataException or NotSupportedException or OverflowException) {
             return new { status = "unresolved", error = exception.Message };
         }

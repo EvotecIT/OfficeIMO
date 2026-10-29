@@ -16,23 +16,22 @@ internal static class Program {
                 else Console.WriteLine(json);
                 return 0;
             }
-            if (args.Length is >= 3 and <= 4 && args[0] is "create" or "create-native-id" or "create-native-header" or "create-bootstrap" or "create-native-schema" or "create-native-schema-roles") {
-                Guid? rootClassId = args[0] != "create" ? new Guid("00021201-0000-0000-00c0-000000000046") : null;
-                bool pageRoles = args[0] == "create-native-schema-roles";
-                bool nativeSchema = args[0] == "create-native-schema" || pageRoles;
-                bool bootstrap = args[0] == "create-bootstrap" || nativeSchema;
-                bool nativeHeader = args[0] == "create-native-header" || bootstrap;
-                byte[] bytes = CandidateWriter.Create(args[1], args.Length == 4 ? args[3] : null, rootClassId, nativeHeader, bootstrap, nativeSchema, pageRoles);
+            if (args.Length is >= 3 and <= 4 && args[0] == "create") {
+                byte[] bytes = CandidateWriter.Create(args[1], args.Length == 4 ? args[3] : null);
                 WriteNew(args[2], bytes);
                 Console.WriteLine(JsonSerializer.Serialize(new {
                     schema = "officeimo.publisher.writer-probe.candidate.v1",
-                    profile = pageRoles ? "unqualified-native-header-properties-minimal-catalog-roles-v1"
-                        : nativeSchema ? "unqualified-native-header-properties-minimal-catalog-v1"
-                        : bootstrap ? "unqualified-native-bootstrap-metadata-v1"
-                        : nativeHeader ? "unqualified-native-header-and-field-types-v1" : "unqualified-contents-2c",
+                    profile = "unqualified-native-schema-print-block-v7",
                     hypothesis = args[0],
                     kind = args[1],
-                    rootClassId = rootClassId ?? Guid.Empty,
+                    rootClassId = CandidateWriter.PublicationClassId,
+                    pageGraph = new {
+                        orderedReferences = NativePublicationGraph.OrderedPageCount,
+                        dpgMaster = NativePublicationGraph.MasterPageCount,
+                        dpgSpecial = NativePublicationGraph.SpecialPageBoundary,
+                        firstPhysicalIndex = NativePublicationGraph.MasterPageCount,
+                        lastPhysicalIndex = NativePublicationGraph.OrderedPageCount - NativePublicationGraph.SpecialPageBoundary
+                    },
                     output = Path.GetFullPath(args[2]),
                     bytes = bytes.Length,
                     sha256 = NativeInventory.Hash(bytes),
@@ -52,7 +51,7 @@ internal static class Program {
                 else Console.WriteLine(json);
                 return 0;
             }
-            Console.Error.WriteLine("inventory <input.pub> [report.json]\ndiff <left.pub> <right.pub> [report.json]\ncreate|create-native-id|create-native-header|create-bootstrap|create-native-schema|create-native-schema-roles <blank|text|shape|image> <candidate.pub> [text-or-image-path]\nrender <input.pub> <unused-output-directory>");
+            Console.Error.WriteLine("inventory <input.pub> [report.json]\ndiff <left.pub> <right.pub> [report.json]\ncreate <blank|text|shape|image> <candidate.pub> [text-or-image-path]\nrender <input.pub> <unused-output-directory>");
             return 2;
         } catch (Exception exception) {
             Console.Error.WriteLine(exception.GetType().Name + ": " + exception.Message);

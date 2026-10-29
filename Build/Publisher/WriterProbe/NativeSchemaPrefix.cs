@@ -18,7 +18,11 @@ internal static class NativeSchemaPrefix {
     internal static byte[] Create(string kind, uint documentId, int streamLength, int trailerOffset) {
         var classes = new List<ClassDescriptor> {
             new(0x43, Marker6: true, Marker7: true, Trait9: 1, Trait12: 5),
-            new(0x44, Marker6: true, Marker7: true, Trait9: 1, Trait12: 5)
+            new(0x44, Marker6: true, Marker7: true, Trait9: 1, Trait12: 5),
+            new(0x4B, Marker6: false, Marker7: false, Trait9: 3, Trait12: 5),
+            new(0x5B, Marker6: false, Marker7: false, Trait9: null, Trait12: 5),
+            new(0x61, Marker6: true, Marker7: false, Trait9: 2, Trait12: 5),
+            new(0x65, Marker6: false, Marker7: false, Trait9: 2, Trait12: 5)
         };
         if (kind != "blank") classes.Add(kind == "image"
             ? new ClassDescriptor(0x20, Marker6: false, Marker7: false, Trait9: null, Trait12: 3)
