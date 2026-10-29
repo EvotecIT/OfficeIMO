@@ -72,7 +72,8 @@ internal sealed class PublisherEscherReader {
             if (!values.TryGetValue(0x6801, out id)) return null;
         }
         PublisherEscherRecord? anchor = Single(children, 0xF010), childAnchor = Single(children, 0xF00F), coordinates = Single(children, 0xF009);
-        var shape = new PublisherEscherShape(id, fsp.Initial >> 4, flags, properties, relativeToParent: space.HasValue) {
+        var shape = new PublisherEscherShape(id, fsp.Initial >> 4, flags, properties, relativeToParent: space.HasValue,
+            accountGradientStops: _context.AccountParsedGradientStops) {
             GroupTransform = (anchor != null ? space?.ClientTransform : space?.Transform) ?? OfficeTransform.Identity,
             LayoutTransform = (anchor != null ? space?.ClientLayoutTransform : space?.LayoutTransform) ?? OfficeTransform.Identity,
             HiddenByGroup = space?.Hidden ?? false
@@ -211,9 +212,10 @@ internal sealed class PublisherEscherData {
 }
 
 internal sealed class PublisherEscherShape {
-    internal PublisherEscherShape(uint id, int type, uint flags, IReadOnlyList<OfficeArtProperty> properties, bool relativeToParent = false) {
+    internal PublisherEscherShape(uint id, int type, uint flags, IReadOnlyList<OfficeArtProperty> properties,
+        bool relativeToParent = false, Action<int>? accountGradientStops = null) {
         Id = id; Type = type; Flags = flags; Properties = properties;
-        Style = OfficeArtShapeStyle.Decode(properties); Transform = OfficeArtShapeTransform.Decode(flags, properties, relativeToParent);
+        Style = OfficeArtShapeStyle.Decode(properties, accountGradientStops); Transform = OfficeArtShapeTransform.Decode(flags, properties, relativeToParent);
     }
     internal uint Id { get; }
     internal int Type { get; }
