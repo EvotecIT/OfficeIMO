@@ -3,8 +3,10 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text.Json;
+using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.Drawing;
+using OfficeIMO.OpenXml.Internal;
 using OfficeIMO.PowerPoint;
 using OfficeIMO.PowerPoint.Pdf;
 using OfficeIMO.Pdf;
@@ -45,6 +47,35 @@ public sealed class PowerPointChartAutomaticAppearanceTests {
         Assert.Equal(new OfficeChartMarkerShape?[] { OfficeChartMarkerShape.Diamond, OfficeChartMarkerShape.Square, OfficeChartMarkerShape.Triangle },
             snapshot.Data.Series.Select(series => series.SharedAppearance!.MarkerShape).ToArray());
         Assert.All(snapshot.Data.Series, series => Assert.Equal(7, series.SharedAppearance!.MarkerSize));
+    }
+
+    [Fact]
+    [Trait("Category", "Performance")]
+    public void AutomaticColorsProjectDensePlotSeriesWithoutRepeatedPlotScans() {
+        const int count = 1500;
+        var plot = new C.PlotArea();
+        var bars = new C.BarChart();
+        plot.Append(bars);
+        for (int index = 0; index < count; index++) {
+            bars.Append(new C.BarChartSeries(
+                new C.Index { Val = (uint)index },
+                new C.Order { Val = (uint)index },
+                new C.Values(new C.NumberLiteral(
+                    new C.PointCount { Val = 1U },
+                    new C.NumericPoint(new C.NumericValue("1")) { Index = 0U }))));
+        }
+
+        var timer = System.Diagnostics.Stopwatch.StartNew();
+        OfficeOpenXmlChartSeriesReader.Result? result = OfficeOpenXmlChartSeriesReader.ReadCategories(
+            bars.Elements<C.BarChartSeries>().Cast<OpenXmlCompositeElement>(),
+            OfficeChartKind.ColumnClustered, scheme: null, OfficeChartAxisGroup.Primary,
+            maximumPoints: count);
+        timer.Stop();
+
+        Assert.NotNull(result);
+        Assert.Equal(count, result!.Series.Count);
+        Assert.Equal((uint)(count - 1), result.Series[^1].SourceIndex);
+        Console.WriteLine($"Automatic chart colours: {count} plot series, {timer.Elapsed.TotalMilliseconds:F2} ms.");
     }
 
     [Fact]
