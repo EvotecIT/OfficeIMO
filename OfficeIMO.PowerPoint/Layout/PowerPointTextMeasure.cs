@@ -93,7 +93,8 @@ namespace OfficeIMO.PowerPoint {
             }
 
             if (Wrap(text, size, high, family, bold, tracking).Count != lines.Count) return width;
-            return Math.Min(width, high * 1.06D);
+            // The longest word keeps a wider allowance than the line: a renderer that cannot fit a word breaks it.
+            return Math.Min(width, Math.Max(high * 1.06D, LongestWord(text, size, family, bold) * 1.15D));
         }
     }
 }
