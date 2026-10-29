@@ -1419,11 +1419,11 @@ namespace OfficeIMO.Word.Html {
                     return marker switch {
                         "o" or "◦" => "circle",
                         "■" or "§" => "square",
-                        "-" => "'-'",
-                        "\u2013" => "'\\2013'",
-                        "\u2014" => "'\\2014'",
-                        "*" => "'*'",
-                        "+" => "'+'",
+                        "-" => QuoteCssListMarker("-"),
+                        "\u2013" => "'\\2013\\a0\\a0 '",
+                        "\u2014" => "'\\2014\\a0\\a0 '",
+                        "*" => QuoteCssListMarker("*"),
+                        "+" => QuoteCssListMarker("+"),
                         "•" or "·" or "●" or "∙" or "" or null or "" => "disc",
                         _ => QuoteCssListMarker(marker),
                     };
@@ -1441,7 +1441,8 @@ namespace OfficeIMO.Word.Html {
                     .Replace("\r", "\\d ")
                     .Replace("\n", "\\a ")
                     .Replace("\t", "\\9 ");
-                return $"'{escaped}'";
+                // A string marker has no gap of its own; two no-break spaces keep it off the text.
+                return $"'{escaped}\\a0\\a0 '";
             }
 
             string? GetListType(WordDocumentTraversal.ListInfo info, string marker) {

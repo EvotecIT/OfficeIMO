@@ -16,6 +16,20 @@ namespace OfficeIMO.Word.Html {
             string? bodyFont = ResolveStyleFont(document, "Normal");
             string? headingFont = ResolveStyleFont(document, "Heading1") ?? bodyFont;
             var css = new StringBuilder();
+            // The document shells style text through these custom properties with more specific
+            // selectors, so override the properties as well as the plain element rules.
+            if (!string.IsNullOrWhiteSpace(bodyFont) || !string.IsNullOrWhiteSpace(headingFont)) {
+                css.Append(":root{");
+                if (!string.IsNullOrWhiteSpace(bodyFont)) {
+                    string body = FontFamilyCss(bodyFont!);
+                    css.Append("--officeimo-font-body:").Append(body).Append(";--office-font-body:").Append(body).Append(';');
+                }
+                if (!string.IsNullOrWhiteSpace(headingFont)) {
+                    string heading = FontFamilyCss(headingFont!);
+                    css.Append("--officeimo-font-heading:").Append(heading).Append(";--office-font-heading:").Append(heading).Append(';');
+                }
+                css.Append('}');
+            }
             if (!string.IsNullOrWhiteSpace(bodyFont)) {
                 css.Append("body{font-family:").Append(FontFamilyCss(bodyFont!)).Append('}');
             }

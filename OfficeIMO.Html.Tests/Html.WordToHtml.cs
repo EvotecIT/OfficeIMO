@@ -932,7 +932,7 @@ namespace OfficeIMO.Tests {
 
             Assert.Contains("<ul", html, StringComparison.OrdinalIgnoreCase);
             Assert.DoesNotContain("type=\"disc\"", html, StringComparison.OrdinalIgnoreCase);
-            Assert.Contains("list-style-type:'-'", html, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("list-style-type:'-\\a0\\a0 '", html, StringComparison.OrdinalIgnoreCase);
         }
 
         [Fact]
@@ -949,8 +949,8 @@ namespace OfficeIMO.Tests {
 
             string html = doc.ToHtml(new WordHtmlExportOptions { IncludeListStyles = true });
 
-            Assert.Contains("list-style-type:'*'", html, StringComparison.OrdinalIgnoreCase);
-            Assert.Contains("list-style-type:'+'", html, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("list-style-type:'*\\a0\\a0 '", html, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("list-style-type:'+\\a0\\a0 '", html, StringComparison.OrdinalIgnoreCase);
         }
 
         [Fact]
@@ -965,8 +965,8 @@ namespace OfficeIMO.Tests {
 
             string html = doc.ToHtml(new WordHtmlExportOptions { IncludeListStyles = true });
 
-            Assert.Contains("list-style-type:'✓'", html, StringComparison.OrdinalIgnoreCase);
-            Assert.Contains("list-style-type:'◆'", html, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("list-style-type:'✓\\a0\\a0 '", html, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("list-style-type:'◆\\a0\\a0 '", html, StringComparison.OrdinalIgnoreCase);
             Assert.DoesNotContain("type=\"disc\"", html, StringComparison.OrdinalIgnoreCase);
         }
 
