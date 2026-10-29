@@ -27,6 +27,8 @@ class ArtifactVerificationTests(unittest.TestCase):
             "xl/tables/data.xml": '<table name="DataTable" ref="A1:B2"/>',
             "xl/tables/orphan.xml": '<table name="DataTable" ref="A1:B2"/>',
         }
+        self.word["_rels/.rels"] = self.relationship("main", "officeDocument", "word/document.xml")
+        self.excel["_rels/.rels"] = self.relationship("main", "officeDocument", "xl/workbook.xml")
 
     @staticmethod
     def relationship(identifier, kind, target):
@@ -43,6 +45,42 @@ class ArtifactVerificationTests(unittest.TestCase):
     def test_valid_nondefault_worksheet_and_table_paths(self):
         self.write_packages()
         verify(self.root)
+
+    def test_nondefault_main_parts_and_related_shared_strings(self):
+        self.word["content/report.xml"] = self.word.pop("word/document.xml")
+        self.word["_rels/.rels"] = self.relationship("main", "officeDocument", "content/report.xml")
+        self.excel = {name.replace("xl/", "content/", 1): value for name, value in self.excel.items()}
+        self.excel["_rels/.rels"] = self.relationship("main", "officeDocument", "content/workbook.xml")
+        self.excel["content/_rels/workbook.xml.rels"] = self.excel["content/_rels/workbook.xml.rels"].replace(
+            "</Relationships>", self.relationship("strings", "sharedStrings", "strings/values.xml").split(
+                ">", 1)[1].split("</Relationships>")[0] + "</Relationships>")
+        self.excel["content/strings/values.xml"] = '<sst xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><si><t>Name</t></si></sst>'
+        self.excel["content/worksheets/data.xml"] = self.excel["content/worksheets/data.xml"].replace(
+            '<c r="A1" t="inlineStr"><is><t>Name</t></is></c>', '<c r="A1" t="s"><v>0</v></c>')
+        self.write_packages()
+        verify(self.root)
+
+    def test_missing_or_invalid_root_relationship_is_rejected_for_both_formats(self):
+        for parts, target in ((self.word, "word/document.xml"), (self.excel, "xl/workbook.xml")):
+            original = parts["_rels/.rels"]
+            broken = (
+                None,
+                '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"/>',
+                self.relationship("main", "worksheet", target),
+                self.relationship("main", "officeDocument", "missing.xml"),
+                original.replace('Target="', 'TargetMode="External" Target="'),
+                original.replace('</Relationships>', original.split('>', 1)[1]),
+            )
+            for relationship in broken:
+                with self.subTest(target=target, relationship=relationship):
+                    if relationship is None:
+                        parts.pop("_rels/.rels", None)
+                    else:
+                        parts["_rels/.rels"] = relationship
+                    self.write_packages()
+                    with self.assertRaises((ValueError, KeyError)):
+                        verify(self.root)
+            parts["_rels/.rels"] = original
 
     def test_disabled_first_row_header_is_rejected(self):
         original = self.word["word/document.xml"]

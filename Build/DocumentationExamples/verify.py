@@ -9,12 +9,12 @@ from zipfile import ZipFile
 RELATIONSHIP_ID = "{http://schemas.openxmlformats.org/officeDocument/2006/relationships}id"
 
 
-def related_part(archive: ZipFile, part: str, relationship_id: str, kind: str) -> str:
+def related_part(archive: ZipFile, part: str, relationship_id: str | None, kind: str) -> str:
     """Resolve one typed, internal package relationship from a generated example."""
     relationships = posixpath.join(posixpath.dirname(part), "_rels", posixpath.basename(part) + ".rels")
     root = ET.fromstring(archive.read(relationships))
-    matches = [node for node in root if node.get("Id") == relationship_id]
     expected_type = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/" + kind
+    matches = [node for node in root if (node.get("Type") == expected_type if relationship_id is None else node.get("Id") == relationship_id)]
     if len(matches) != 1 or matches[0].get("Type") != expected_type or matches[0].get("TargetMode", "Internal") != "Internal":
         raise ValueError(f"Invalid {kind} relationship from {part}")
     target = matches[0].get("Target", "")
@@ -25,10 +25,11 @@ def related_part(archive: ZipFile, part: str, relationship_id: str, kind: str) -
 
 
 def verify(directory: Path) -> None:
-    """Check trusted quick-start output, including the relationships that attach its worksheet and table."""
+    """Check trusted quick-start output through its root, worksheet, string and table relationships."""
     word_ns = {"w": "http://schemas.openxmlformats.org/wordprocessingml/2006/main"}
     with ZipFile(directory / "report.docx") as document:
-        root = ET.fromstring(document.read("word/document.xml"))
+        main_part = related_part(document, "", None, "officeDocument")
+        root = ET.fromstring(document.read(main_part))
         text = [node.text for node in root.findall(".//w:t", word_ns)]
         if "Quarterly report" not in text or "Created with OfficeIMO.Word." not in text:
             raise ValueError("Word quick start is missing its report paragraphs")
@@ -46,18 +47,21 @@ def verify(directory: Path) -> None:
 
     ns = {"s": "http://schemas.openxmlformats.org/spreadsheetml/2006/main"}
     with ZipFile(directory / "report.xlsx") as workbook:
-        root = ET.fromstring(workbook.read("xl/workbook.xml"))
+        workbook_path = related_part(workbook, "", None, "officeDocument")
+        root = ET.fromstring(workbook.read(workbook_path))
         sheet = root.find("s:sheets/s:sheet", ns)
         if sheet is None or sheet.get("name") != "Data":
             raise ValueError("Excel quick start is missing the Data worksheet")
-        shared = []
-        if "xl/sharedStrings.xml" in workbook.namelist():
-            shared_root = ET.fromstring(workbook.read("xl/sharedStrings.xml"))
-            shared = ["".join(item.itertext()) for item in shared_root]
-        sheet_path = related_part(workbook, "xl/workbook.xml", sheet.get(RELATIONSHIP_ID, ""), "worksheet")
+        sheet_path = related_part(workbook, workbook_path, sheet.get(RELATIONSHIP_ID, ""), "worksheet")
         sheet_root = ET.fromstring(workbook.read(sheet_path))
+        cells = sheet_root.findall("s:sheetData/s:row/s:c", ns)
+        shared = []
+        if any(cell.get("t") == "s" for cell in cells):
+            shared_path = related_part(workbook, workbook_path, None, "sharedStrings")
+            shared_root = ET.fromstring(workbook.read(shared_path))
+            shared = ["".join(item.itertext()) for item in shared_root]
         values = {}
-        for cell in sheet_root.findall("s:sheetData/s:row/s:c", ns):
+        for cell in cells:
             value = cell.findtext("s:v", default="", namespaces=ns)
             if cell.get("t") == "s":
                 value = shared[int(value)]
