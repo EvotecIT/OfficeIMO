@@ -11,6 +11,9 @@ public sealed partial class PdfCreateOptions {
 
     internal long PageSizeConfigurationState => _pageSizeConfigurationVersion;
 
+    /// <summary>True when any page margin was set explicitly instead of coming from the theme.</summary>
+    internal bool HasExplicitMargins => _marginLeft.HasValue || _marginRight.HasValue || _marginTop.HasValue || _marginBottom.HasValue;
+
     private PdfPageParity? _pageStartParity;
     /// <summary>Uses the page number continuing the preceding group for start parity. Numbering restarts are applied after padding. Default is false, which uses the physical page index.</summary>
     public bool UseContinuingPageNumberForStartParity { get; set; }

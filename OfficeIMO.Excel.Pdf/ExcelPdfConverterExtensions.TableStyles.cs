@@ -207,8 +207,18 @@ namespace OfficeIMO.Excel.Pdf {
                 return ToPdfMargins(pageSetup.Margins);
             }
 
-            return PdfCore.PdfPageMargins.Normal;
+            if (options.PdfOptions?.HasExplicitMargins == true) {
+                return options.PdfOptions.Margins;
+            }
+
+            return ExcelNormalMargins;
         }
+
+        /// <summary>Excel's Normal margins: 0.7 in left and right, 0.75 in top and bottom.</summary>
+        private static readonly PdfCore.PdfPageMargins ExcelNormalMargins = PdfCore.PdfPageMargins.FromInches(0.7D, 0.75D, 0.7D, 0.75D);
+
+        /// <summary>Excel's Normal header and footer margin, in inches.</summary>
+        private const double ExcelNormalHeaderFooterMarginInches = 0.3D;
 
         private static ExcelCellStyleInfo? GetCellStyle(ExcelCellStyleInfo?[,]? styles, int row, int column) {
             if (styles == null || row >= styles.GetLength(0) || column >= styles.GetLength(1)) {
