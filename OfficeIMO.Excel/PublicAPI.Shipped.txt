@@ -899,6 +899,8 @@ OfficeIMO.Excel.ExcelCreateOptions.Template.get -> string?
 OfficeIMO.Excel.ExcelCreateOptions.Template.set -> void
 OfficeIMO.Excel.ExcelCreateOptions.TemplateStream.get -> System.IO.Stream?
 OfficeIMO.Excel.ExcelCreateOptions.TemplateStream.set -> void
+OfficeIMO.Excel.ExcelCreateOptions.Theme.get -> OfficeIMO.OfficeTheme?
+OfficeIMO.Excel.ExcelCreateOptions.Theme.set -> void
 OfficeIMO.Excel.ExcelCustomDocumentPropertyCollection
 OfficeIMO.Excel.ExcelCustomDocumentPropertyCollection.Add(System.Collections.Generic.KeyValuePair<string!, OfficeIMO.Excel.ExcelCustomProperty!> item) -> OfficeIMO.Excel.ExcelCustomProperty!
 OfficeIMO.Excel.ExcelCustomDocumentPropertyCollection.Add(string! key, OfficeIMO.Excel.ExcelCustomProperty! value) -> OfficeIMO.Excel.ExcelCustomProperty!
@@ -1140,14 +1142,14 @@ OfficeIMO.Excel.ExcelDocument.AddPivotTimeline(string! pivotTableName, string! s
 OfficeIMO.Excel.ExcelDocument.AddPivotTimelineCache(string! pivotTableName, string! sourceField, string? cacheName = null) -> OfficeIMO.Excel.ExcelPackagePartInfo!
 OfficeIMO.Excel.ExcelDocument.AddPowerQueryMetadata(OfficeIMO.Excel.ExcelPowerQueryMetadataOptions! options) -> OfficeIMO.Excel.ExcelPowerQueryMetadataResult!
 OfficeIMO.Excel.ExcelDocument.AddQueryBackedTable(OfficeIMO.Excel.ExcelQueryBackedTableOptions! options) -> OfficeIMO.Excel.ExcelQueryBackedTableInfo!
+OfficeIMO.Excel.ExcelDocument.AddSheet(string! worksheetName = "") -> OfficeIMO.Excel.ExcelSheet!
+OfficeIMO.Excel.ExcelDocument.AddSheet(string! worksheetName, OfficeIMO.Excel.ExcelSheetNameValidationMode validationMode) -> OfficeIMO.Excel.ExcelSheet!
+OfficeIMO.Excel.ExcelDocument.AddSheet(string! worksheetName, OfficeIMO.Excel.ExcelSheetNameValidationMode validationMode, System.Threading.CancellationToken cancellationToken) -> OfficeIMO.Excel.ExcelSheet!
 OfficeIMO.Excel.ExcelDocument.AddTableOfContents(string! sheetName = "TOC", bool placeFirst = true, bool withHyperlinks = true, bool includeNamedRanges = false, bool includeHiddenNamedRanges = false, System.Predicate<string!>? rangeNameFilter = null, bool styled = true) -> OfficeIMO.Excel.ExcelSheet!
 OfficeIMO.Excel.ExcelDocument.AddWorkbookConnectionMetadata(string! xml) -> OfficeIMO.Excel.ExcelPackagePartInfo!
 OfficeIMO.Excel.ExcelDocument.AddWorkbookMetadataPart(string! relationshipType, string! contentType, string! xml, string! targetExtension = "xml") -> OfficeIMO.Excel.ExcelPackagePartInfo!
 OfficeIMO.Excel.ExcelDocument.AddWorkbookSlicerCache(OfficeIMO.Excel.ExcelSlicerCacheOptions! options) -> OfficeIMO.Excel.ExcelPackagePartInfo!
 OfficeIMO.Excel.ExcelDocument.AddWorkbookTimelineCache(OfficeIMO.Excel.ExcelTimelineCacheOptions! options) -> OfficeIMO.Excel.ExcelPackagePartInfo!
-OfficeIMO.Excel.ExcelDocument.AddSheet(string! worksheetName = "") -> OfficeIMO.Excel.ExcelSheet!
-OfficeIMO.Excel.ExcelDocument.AddSheet(string! worksheetName, OfficeIMO.Excel.ExcelSheetNameValidationMode validationMode) -> OfficeIMO.Excel.ExcelSheet!
-OfficeIMO.Excel.ExcelDocument.AddSheet(string! worksheetName, OfficeIMO.Excel.ExcelSheetNameValidationMode validationMode, System.Threading.CancellationToken cancellationToken) -> OfficeIMO.Excel.ExcelSheet!
 OfficeIMO.Excel.ExcelDocument.AddWorksheetMetadataPart(OfficeIMO.Excel.ExcelSheet! sheet, string! relationshipType, string! contentType, string! xml, string! targetExtension = "xml") -> OfficeIMO.Excel.ExcelPackagePartInfo!
 OfficeIMO.Excel.ExcelDocument.AddWorksheetQueryTableMetadata(string! worksheetName, string! xml) -> OfficeIMO.Excel.ExcelPackagePartInfo!
 OfficeIMO.Excel.ExcelDocument.AnalyzeAccessibility() -> OfficeIMO.Excel.ExcelAccessibilityReport!
@@ -3611,8 +3613,8 @@ OfficeIMO.Excel.ExcelSlicerViewOptions.Caption.set -> void
 OfficeIMO.Excel.ExcelSlicerViewOptions.Column.get -> int
 OfficeIMO.Excel.ExcelSlicerViewOptions.Column.set -> void
 OfficeIMO.Excel.ExcelSlicerViewOptions.ExcelSlicerViewOptions() -> void
-OfficeIMO.Excel.ExcelSlicerViewOptions.HeightPixels.get -> int
-OfficeIMO.Excel.ExcelSlicerViewOptions.HeightPixels.set -> void
+OfficeIMO.Excel.ExcelSlicerViewOptions.Height.get -> OfficeIMO.OfficeLength
+OfficeIMO.Excel.ExcelSlicerViewOptions.Height.set -> void
 OfficeIMO.Excel.ExcelSlicerViewOptions.ItemColumns.get -> int
 OfficeIMO.Excel.ExcelSlicerViewOptions.ItemColumns.set -> void
 OfficeIMO.Excel.ExcelSlicerViewOptions.LockedPosition.get -> bool
@@ -3625,8 +3627,8 @@ OfficeIMO.Excel.ExcelSlicerViewOptions.ShowCaption.get -> bool
 OfficeIMO.Excel.ExcelSlicerViewOptions.ShowCaption.set -> void
 OfficeIMO.Excel.ExcelSlicerViewOptions.Style.get -> string!
 OfficeIMO.Excel.ExcelSlicerViewOptions.Style.set -> void
-OfficeIMO.Excel.ExcelSlicerViewOptions.WidthPixels.get -> int
-OfficeIMO.Excel.ExcelSlicerViewOptions.WidthPixels.set -> void
+OfficeIMO.Excel.ExcelSlicerViewOptions.Width.get -> OfficeIMO.OfficeLength
+OfficeIMO.Excel.ExcelSlicerViewOptions.Width.set -> void
 OfficeIMO.Excel.ExcelSparklineGroup
 OfficeIMO.Excel.ExcelSparklineGroup.Sheet.get -> OfficeIMO.Excel.ExcelSheet!
 OfficeIMO.Excel.ExcelSparklineGroup.Type.get -> OfficeIMO.Excel.ExcelSparklineType
@@ -3643,8 +3645,8 @@ OfficeIMO.Excel.ExcelSparklineType.Stacked = 2 -> OfficeIMO.Excel.ExcelSparkline
 OfficeIMO.Excel.ExcelSpreadsheetXmlOptions
 OfficeIMO.Excel.ExcelSpreadsheetXmlOptions.CancellationToken.get -> System.Threading.CancellationToken
 OfficeIMO.Excel.ExcelSpreadsheetXmlOptions.CancellationToken.set -> void
-OfficeIMO.Excel.ExcelSpreadsheetXmlOptions.DefaultFontMaximumDigitWidthPixels.get -> double?
-OfficeIMO.Excel.ExcelSpreadsheetXmlOptions.DefaultFontMaximumDigitWidthPixels.set -> void
+OfficeIMO.Excel.ExcelSpreadsheetXmlOptions.DefaultFontMaximumDigitWidth.get -> OfficeIMO.OfficeLength?
+OfficeIMO.Excel.ExcelSpreadsheetXmlOptions.DefaultFontMaximumDigitWidth.set -> void
 OfficeIMO.Excel.ExcelSpreadsheetXmlOptions.ExcelSpreadsheetXmlOptions() -> void
 OfficeIMO.Excel.ExcelSpreadsheetXmlOptions.MaxCells.get -> int
 OfficeIMO.Excel.ExcelSpreadsheetXmlOptions.MaxCells.set -> void
@@ -4057,8 +4059,8 @@ OfficeIMO.Excel.ExcelTimelineViewOptions.Caption.set -> void
 OfficeIMO.Excel.ExcelTimelineViewOptions.Column.get -> int
 OfficeIMO.Excel.ExcelTimelineViewOptions.Column.set -> void
 OfficeIMO.Excel.ExcelTimelineViewOptions.ExcelTimelineViewOptions() -> void
-OfficeIMO.Excel.ExcelTimelineViewOptions.HeightPixels.get -> int
-OfficeIMO.Excel.ExcelTimelineViewOptions.HeightPixels.set -> void
+OfficeIMO.Excel.ExcelTimelineViewOptions.Height.get -> OfficeIMO.OfficeLength
+OfficeIMO.Excel.ExcelTimelineViewOptions.Height.set -> void
 OfficeIMO.Excel.ExcelTimelineViewOptions.Level.get -> OfficeIMO.Excel.ExcelTimelineLevel
 OfficeIMO.Excel.ExcelTimelineViewOptions.Level.set -> void
 OfficeIMO.Excel.ExcelTimelineViewOptions.Name.get -> string?
@@ -4075,8 +4077,8 @@ OfficeIMO.Excel.ExcelTimelineViewOptions.ShowTimeLevel.get -> bool
 OfficeIMO.Excel.ExcelTimelineViewOptions.ShowTimeLevel.set -> void
 OfficeIMO.Excel.ExcelTimelineViewOptions.Style.get -> string!
 OfficeIMO.Excel.ExcelTimelineViewOptions.Style.set -> void
-OfficeIMO.Excel.ExcelTimelineViewOptions.WidthPixels.get -> int
-OfficeIMO.Excel.ExcelTimelineViewOptions.WidthPixels.set -> void
+OfficeIMO.Excel.ExcelTimelineViewOptions.Width.get -> OfficeIMO.OfficeLength
+OfficeIMO.Excel.ExcelTimelineViewOptions.Width.set -> void
 OfficeIMO.Excel.ExcelUnderlineStyle
 OfficeIMO.Excel.ExcelUnderlineStyle.Double = 1 -> OfficeIMO.Excel.ExcelUnderlineStyle
 OfficeIMO.Excel.ExcelUnderlineStyle.DoubleAccounting = 3 -> OfficeIMO.Excel.ExcelUnderlineStyle
@@ -7482,5 +7484,3 @@ static OfficeIMO.Excel.LegacyXls.Model.LegacyXlsWorkbook.Load(string! path, Offi
 static OfficeIMO.Excel.LegacyXls.Model.LegacyXlsWorksheetDimension.Empty.get -> OfficeIMO.Excel.LegacyXls.Model.LegacyXlsWorksheetDimension!
 virtual OfficeIMO.Excel.ExcelCustomFormulaFunction.Invoke(OfficeIMO.Excel.ExcelCustomFormulaFunctionContext! context, System.Collections.Generic.IReadOnlyList<OfficeIMO.Excel.ExcelFormulaValue>! arguments) -> OfficeIMO.Excel.ExcelFormulaValue?
 virtual OfficeIMO.Excel.ExcelTemplateValueFormatter.Invoke(object? value, System.IFormatProvider? provider) -> string!
-OfficeIMO.Excel.ExcelCreateOptions.Theme.get -> OfficeIMO.OfficeTheme?
-OfficeIMO.Excel.ExcelCreateOptions.Theme.set -> void

@@ -333,7 +333,7 @@ pixel-fidelity or complete XML Spreadsheet feature claim.
 Column dimensions in XML are points; Open XML stores font-dependent character
 widths. Installed default-font metrics drive the conversion. If that font is
 unavailable, the report identifies the seven-pixel approximation. Set
-`ExcelSpreadsheetXmlOptions.DefaultFontMaximumDigitWidthPixels` when the target
+`ExcelSpreadsheetXmlOptions.DefaultFontMaximumDigitWidth` when the target
 font's measured maximum digit width at 96 DPI is known. The native fixture
 cohort uses its observed eight-pixel width; that observation is not a universal
 font default.

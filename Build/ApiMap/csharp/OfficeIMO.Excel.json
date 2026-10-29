@@ -4582,11 +4582,11 @@
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Slicer and timeline extents use OfficeLength directly at the native EMU boundary; defaults and the one-pixel minimum remain. Optional measured XML Spreadsheet font metrics use a nullable length and retain the existing one-to-4096-pixel range and font fallback."
     },
     {
       "old": "OfficeIMO.Excel.ExcelSlicerViewOptions.WidthPixels",
@@ -4598,27 +4598,27 @@
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Slicer and timeline extents use OfficeLength directly at the native EMU boundary; defaults and the one-pixel minimum remain. Optional measured XML Spreadsheet font metrics use a nullable length and retain the existing one-to-4096-pixel range and font fallback."
     },
     {
       "old": "OfficeIMO.Excel.ExcelSpreadsheetXmlOptions.DefaultFontMaximumDigitWidthPixels",
       "kind": "property",
       "action": "merge",
-      "new": "OfficeIMO.Excel.ExcelSpreadsheetXmlOptions.DefaultFontMaximumDigitWidth : OfficeLength",
+      "new": "OfficeIMO.Excel.ExcelSpreadsheetXmlOptions.DefaultFontMaximumDigitWidth : OfficeLength?",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.Excel/SpreadsheetXml/ExcelSpreadsheetXmlOptions.cs",
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Slicer and timeline extents use OfficeLength directly at the native EMU boundary; defaults and the one-pixel minimum remain. Optional measured XML Spreadsheet font metrics use a nullable length and retain the existing one-to-4096-pixel range and font fallback."
     },
     {
       "old": "OfficeIMO.Excel.ExcelTemplateImage.HeightPixels",
@@ -4694,11 +4694,11 @@
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Slicer and timeline extents use OfficeLength directly at the native EMU boundary; defaults and the one-pixel minimum remain. Optional measured XML Spreadsheet font metrics use a nullable length and retain the existing one-to-4096-pixel range and font fallback."
     },
     {
       "old": "OfficeIMO.Excel.ExcelTimelineViewOptions.WidthPixels",
@@ -4710,11 +4710,11 @@
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Slicer and timeline extents use OfficeLength directly at the native EMU boundary; defaults and the one-pixel minimum remain. Optional measured XML Spreadsheet font metrics use a nullable length and retain the existing one-to-4096-pixel range and font fallback."
     },
     {
       "old": "OfficeIMO.Excel.ExcelDocumentConversionOptions",

@@ -14,14 +14,29 @@ public sealed class ExcelSpreadsheetXmlPreservationTests {
     [Fact]
     public void Native_Excel_geometry_comments_and_font_are_imported_and_reexported() {
         string path = Path.Combine(RepositoryTestPaths.Find(), "OfficeIMO.TestAssets", "Documents", "SpreadsheetXmlCorpus", "excel-geometry.xml");
-        using var document = ExcelDocument.ImportSpreadsheetXml(path, new() { DefaultFontMaximumDigitWidthPixels = 8 }).Value;
+        using var document = ExcelDocument.ImportSpreadsheetXml(path, new() { DefaultFontMaximumDigitWidth = OfficeIMO.OfficeLength.Points(6) }).Value;
         var part = document.OpenXmlDocument.WorkbookPart!.WorksheetParts.Single();
         Assert.Equal("C10:D11", part.Worksheet.GetFirstChild<MergeCells>()!.Elements<MergeCell>().Single().Reference!.Value);
         Assert.Equal("Native XML note", part.WorksheetCommentsPart!.Comments!.CommentList!.Elements<Comment>().Single().CommentText!.InnerText);
         Assert.Equal(new[] { 8d, 16d, 32d }, part.Worksheet.GetFirstChild<Columns>()!.Elements<Column>().Where(item => item.Min!.Value is >= 3 and <= 5).Select(item => item.Width!.Value));
-        var xml = XDocument.Parse(Encoding.UTF8.GetString(document.ExportSpreadsheetXml(new() { DefaultFontMaximumDigitWidthPixels = 8 }).Value));
+        var xml = XDocument.Parse(Encoding.UTF8.GetString(document.ExportSpreadsheetXml(new() { DefaultFontMaximumDigitWidth = OfficeIMO.OfficeLength.Pixels(8) }).Value));
         Assert.Equal(new[] { "48", "96", "192" }, xml.Descendants(Ss + "Column").Where(item => (int?)item.Attribute(Ss + "Index") is >= 3 and <= 5).Select(item => (string?)item.Attribute(Ss + "Width")));
         Assert.Empty(document.ValidateOpenXml());
+    }
+
+    [Theory]
+    [InlineData(-1L)]
+    [InlineData(0L)]
+    [InlineData(9524L)]
+    [InlineData(39014401L)]
+    public void MeasuredFontWidthRejectsOutOfRangePhysicalValuesBeforeReading(long emus) {
+        byte[] source = Xml("<Worksheet ss:Name='Data'><Table/></Worksheet>");
+        var options = new ExcelSpreadsheetXmlOptions {
+            DefaultFontMaximumDigitWidth = OfficeIMO.OfficeLength.Emus(emus)
+        };
+        var error = Assert.Throws<ArgumentOutOfRangeException>(() =>
+            ExcelDocument.ImportSpreadsheetXml(source, options));
+        Assert.Equal(nameof(ExcelSpreadsheetXmlOptions.DefaultFontMaximumDigitWidth), error.ParamName);
     }
 
     [Fact]
@@ -69,7 +84,7 @@ public sealed class ExcelSpreadsheetXmlPreservationTests {
     [InlineData("officeimo-preservation.xml")]
     public void Producer_and_consumer_controls_retain_supported_appearance_and_metadata(string fixture) {
         string path = Path.Combine(RepositoryTestPaths.Find(), "OfficeIMO.TestAssets", "Documents", "SpreadsheetXmlCorpus", fixture);
-        using var document = ExcelDocument.ImportSpreadsheetXml(path, new() { DefaultFontMaximumDigitWidthPixels = 8 }).Value;
+        using var document = ExcelDocument.ImportSpreadsheetXml(path, new() { DefaultFontMaximumDigitWidth = OfficeIMO.OfficeLength.Pixels(8) }).Value;
         var book = document.OpenXmlDocument.WorkbookPart!; var part = book.WorksheetParts.Single();
         var cell = part.Worksheet.Descendants<Cell>().Single(item => item.CellReference == "A1");
         var style = book.WorkbookStylesPart!.Stylesheet!.CellFormats!.Elements<CellFormat>().ElementAt((int)cell.StyleIndex!.Value);

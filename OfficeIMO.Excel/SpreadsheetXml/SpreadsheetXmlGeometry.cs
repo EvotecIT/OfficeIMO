@@ -67,7 +67,7 @@ internal static class SpreadsheetXmlGeometry {
     }
 
     private static double DigitWidth(WorksheetPart part, SpreadsheetXmlContext context) {
-        if (context.Options.DefaultFontMaximumDigitWidthPixels is double measured) return measured;
+        if (context.Options.DefaultFontMaximumDigitWidth is OfficeLength measured) return measured.ToPixels();
         double digit = ExcelColumnGeometry.GetMaximumDigitWidth(part, out bool resolved);
         if (!resolved) context.Approximate("Default font metrics are unavailable; column point conversion uses a seven-pixel digit width at 96 DPI.");
         return digit;

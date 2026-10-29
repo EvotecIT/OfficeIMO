@@ -132,6 +132,11 @@ namespace OfficeIMO.Tests
             Assert.Throws<ArgumentException>(() => document.AddPivotTimeline("SalesPivot", "Region", "Sales"));
             Assert.Throws<ArgumentException>(() => document.AddPivotSlicer("SalesPivot", "Region", "Sales", new ExcelSlicerViewOptions { Style = "Unsupported" }));
             Assert.Throws<ArgumentOutOfRangeException>(() => document.AddPivotSlicer("SalesPivot", "Region", "Sales", new ExcelSlicerViewOptions { Column = 16385 }));
+            Assert.Throws<ArgumentOutOfRangeException>(() => document.AddPivotSlicer("SalesPivot", "Region", "Sales",
+                new ExcelSlicerViewOptions { Width = OfficeIMO.OfficeLength.Emus(9524) }));
+            Assert.Throws<ArgumentOutOfRangeException>(() => document.AddPivotTimeline("SalesPivot", "Region", "Sales",
+                new ExcelTimelineViewOptions { Height = OfficeIMO.OfficeLength.Zero }));
+            Assert.Empty(document.GetPivotInteractions());
             document.AddPivotSlicer("SalesPivot", "Region", "Sales", new ExcelSlicerViewOptions { Name = "RegionFilter", Row = 5, Column = 6 });
             Xdr.OneCellAnchor anchor = Assert.Single(sheet.WorksheetPart.DrawingsPart!.WorksheetDrawing!.Elements<Xdr.OneCellAnchor>(), item => item.Descendants<Slicer>().Any());
             Assert.Equal("5", anchor.FromMarker!.ColumnId!.Text);

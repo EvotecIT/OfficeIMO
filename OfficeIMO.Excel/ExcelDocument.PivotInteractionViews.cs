@@ -30,7 +30,7 @@ namespace OfficeIMO.Excel {
             options ??= new ExcelSlicerViewOptions();
             ExcelPivotTableInfo pivot = ValidatePivotInteractionBinding(pivotTableName, sourceField);
             ExcelSheet targetSheet = ResolvePivotInteractionWorksheet(worksheetName);
-            ValidatePivotInteractionPlacement(options.Row, options.Column, options.WidthPixels, options.HeightPixels);
+            ValidatePivotInteractionPlacement(options.Row, options.Column, options.Width, options.Height);
             if (options.ItemColumns < 1 || options.ItemColumns > 20000) {
                 throw new ArgumentOutOfRangeException(nameof(options), "Slicer item columns must be between 1 and 20,000.");
             }
@@ -71,8 +71,8 @@ namespace OfficeIMO.Excel {
                     viewName,
                     options.Row,
                     options.Column,
-                    options.WidthPixels,
-                    options.HeightPixels,
+                    options.Width,
+                    options.Height,
                     timeline: false);
                 targetSheet.WorksheetPart.Worksheet!.Save();
                 MarkMetadataPartChanged();
@@ -97,7 +97,7 @@ namespace OfficeIMO.Excel {
             ExcelTimelineViewOptions? options = null) {
             options ??= new ExcelTimelineViewOptions();
             ExcelSheet targetSheet = ResolvePivotInteractionWorksheet(worksheetName);
-            ValidatePivotInteractionPlacement(options.Row, options.Column, options.WidthPixels, options.HeightPixels);
+            ValidatePivotInteractionPlacement(options.Row, options.Column, options.Width, options.Height);
             if (!Enum.IsDefined(typeof(ExcelTimelineLevel), options.Level)) {
                 throw new ArgumentOutOfRangeException(nameof(options), "Timeline level is invalid.");
             }
@@ -157,8 +157,8 @@ namespace OfficeIMO.Excel {
                     viewName,
                     options.Row,
                     options.Column,
-                    options.WidthPixels,
-                    options.HeightPixels,
+                    options.Width,
+                    options.Height,
                     timeline: true);
                 targetSheet.WorksheetPart.Worksheet!.Save();
                 MarkMetadataPartChanged();
@@ -303,10 +303,11 @@ namespace OfficeIMO.Excel {
                 ?? throw new ArgumentException($"Worksheet '{worksheetName}' was not found.", nameof(worksheetName));
         }
 
-        private static void ValidatePivotInteractionPlacement(int row, int column, int widthPixels, int heightPixels) {
+        private static void ValidatePivotInteractionPlacement(int row, int column, OfficeLength width, OfficeLength height) {
             if (row < 1 || row > 1_048_576) throw new ArgumentOutOfRangeException(nameof(row));
             if (column < 1 || column > 16_384) throw new ArgumentOutOfRangeException(nameof(column));
-            if (widthPixels < 1 || heightPixels < 1) throw new ArgumentOutOfRangeException(nameof(widthPixels));
+            if (width < OfficeLength.Pixels(1)) throw new ArgumentOutOfRangeException(nameof(width));
+            if (height < OfficeLength.Pixels(1)) throw new ArgumentOutOfRangeException(nameof(height));
         }
 
         private static string ValidateBuiltInInteractionStyle(string style, string prefix, int maximum) {
