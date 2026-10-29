@@ -50,8 +50,7 @@
         "dependencies": {
           "DocumentFormat.OpenXml": "[3.5.1, 4.0.0)",
           "Microsoft.Bcl.AsyncInterfaces": "[10.0.9, )",
-          "OfficeIMO.Core": "[3.5.3, )",
-          "OfficeIMO.Pdf": "[3.5.3, )"
+          "OfficeIMO.Core": "[3.5.3, )"
         }
       }
     },
@@ -155,8 +154,7 @@
         "dependencies": {
           "DocumentFormat.OpenXml": "[3.5.1, 4.0.0)",
           "Microsoft.Bcl.AsyncInterfaces": "[10.0.9, )",
-          "OfficeIMO.Core": "[3.5.3, )",
-          "OfficeIMO.Pdf": "[3.5.3, )"
+          "OfficeIMO.Core": "[3.5.3, )"
         }
       }
     },
@@ -207,8 +205,7 @@
         "type": "Project",
         "dependencies": {
           "DocumentFormat.OpenXml": "[3.5.1, 4.0.0)",
-          "OfficeIMO.Core": "[3.5.3, )",
-          "OfficeIMO.Pdf": "[3.5.3, )"
+          "OfficeIMO.Core": "[3.5.3, )"
         }
       }
     },
@@ -259,8 +256,7 @@
         "type": "Project",
         "dependencies": {
           "DocumentFormat.OpenXml": "[3.5.1, 4.0.0)",
-          "OfficeIMO.Core": "[3.5.3, )",
-          "OfficeIMO.Pdf": "[3.5.3, )"
+          "OfficeIMO.Core": "[3.5.3, )"
         }
       }
     },
