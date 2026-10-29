@@ -447,6 +447,44 @@ document.AddParagraph("Section 1.1").Style = WordParagraphStyles.Heading2;
 document.Paragraphs[0].AddField(WordFieldType.TOC);
 ```
 
+`UpdateFields()` refreshes only the `PAGE` and `NUMPAGES` page counters. `UpdateFields(WordFieldUpdateOptions)` evaluates the full deterministic field subset, and by default leaves tables of contents for Word to rebuild on open. To write final entries without Word, regenerate them and take page numbers from OfficeIMO's own page layout, the engine behind PDF conversion:
+
+```csharp
+document.UpdateFields(new WordFieldUpdateOptions {
+    UpdateTablesOfContents = true,
+    UseLayoutPagination = true
+});
+```
+
+Each table of contents becomes a complete TOC field with one hyperlinked entry per heading and a `PAGEREF` page number, and the document is no longer flagged to update fields on open. `UseLayoutPagination` lays out a copy of the document, so it costs about as much as a PDF conversion; without it, `PAGEREF` and `NUMPAGES` use explicit page and section breaks. Headings are paragraphs with `Heading1`-`Heading9` styles, heading styles copied by a merge (such as `heading 1_0`), or outline levels from the paragraph or its style.
+
+### Append documents
+
+`AppendDocument` copies another document's body together with the styles, lists, images, hyperlinks, headers, footers, footnotes, endnotes and comments it uses. List, note, comment, bookmark, drawing and content-control ids are renumbered, and bookmarks whose names already exist are renamed along with the hyperlinks and fields that target them.
+
+```csharp
+using var pack = WordDocument.Load("cover.docx");
+foreach (string brief in briefs) {
+    using var source = WordDocument.Load(brief);
+    pack.AppendDocument(source, new WordDocumentMergeOptions {
+        StyleMode = WordMergeStyleMode.KeepDifferentStyles
+    });
+}
+
+pack.UpdateFields(new WordFieldUpdateOptions { UpdateTablesOfContents = true, UseLayoutPagination = true });
+pack.Save("pack.docx");
+```
+
+`StyleMode` decides what happens when a source style matches a destination style by name (or id):
+
+- `UseDestinationStyles` (default) uses the destination definition and copies only styles the destination lacks.
+- `KeepDifferentStyles` shares matching styles without list references and copies styles with differing definitions or list references under a new id and name, such as `Heading1_0` / `heading 1_0`, repointing the appended paragraphs, runs, tables and lists to it. When the document defaults differ, the source's root paragraph styles take a copy of the source defaults, and paragraphs without a style name the source default style explicitly.
+
+`SectionMode` decides how page setup is kept:
+
+- `KeepSourceSections` (default) closes the destination's last section with a section break, so each part keeps its page size, margins, orientation, headers and footers.
+- `UseDestinationSections` continues the appended content in the destination's last section and drops the source section breaks.
+
 ### Plain DOCX templates
 
 Use ordinary `{{Name}}` placeholders when a Word-authored layout should bind directly to an application model. Scalar placeholders retain the formatting of the first template run, while repeated and conditional marker paragraphs can surround paragraphs, lists, or tables.

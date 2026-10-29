@@ -1,5 +1,13 @@
 # Upgrading OfficeIMO
 
+## Word document append
+
+`WordDocument.AppendDocument` now keeps the page setup of each document: the destination's final section properties become a section break before the appended content, which starts in its own section (a new page unless the source section says otherwise). To continue the appended content in the destination's section, as a workaround that moved the destination's closing `w:sectPr` did before, pass `new WordDocumentMergeOptions { SectionMode = WordMergeSectionMode.UseDestinationSections }`.
+
+Source styles now match destination styles by name before id, so a source style with a different id but the same name (for example a localized `Heading 1`) uses the destination style instead of being copied alongside it. Appended footnotes, endnotes and comments are copied with renumbered ids, and source bookmarks whose names already exist in the destination are renamed with a numeric suffix (`Intro` becomes `Intro_1`); hyperlinks and fields in the appended content follow the new name.
+
+`WordTableOfContent.RefreshEntries()` also includes paragraphs whose style, or a style it is based on, sets an outline level 1-9 when the TOC uses `\u` (as Word's default TOC does), and heading styles copied by a merge such as `heading 1_0`.
+
 ## JavaScript CanopyX pivot captures
 
 Pass explicit frozen `request.pivot` captures through the optional CanopyX export entry point. They retain their own precomputed numeric values, formats and row/column outlines. Do not supply ordinary grouping metadata, replacement outline callbacks, an Excel table or a recalculating footer for the same pivot. PDF/CSV preserve the complete static projection and report `PIVOT_OUTLINES_XLSX_ONLY`; XLSX retains the interactive outlines with summaries above and left of details. Ordinary record/grouped exports keep their existing behavior.

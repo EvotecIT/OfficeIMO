@@ -221,6 +221,8 @@ namespace OfficeIMO.Word {
                     settings.AddChild(updateFieldsOnOpen, true);
                 }
                 updateFieldsOnOpen.Val = value;
+                // An explicit write makes the value the caller's, so table-of-contents refresh no longer clears it.
+                _document.ReleaseTableOfContentUpdateFieldsOnOpen();
             }
         }
 
