@@ -54,9 +54,10 @@ internal static class NativePublicationGraph {
         chunks.Add(new NativeRecord(0x61, quillDocumentId, Chunk()));
         chunks.Add(new NativeRecord(0x65, quillDocumentId, Chunk()));
         // The normal native loader requires OhPrintBlock (document field 3).
-        // Its validator permits zero printer profiles and an empty profile list;
-        // optional printer settings and flags are left to native defaults.
-        chunks.Add(new NativeRecord(0x4B, documentId, Chunk(Scalar(1, 0x20, 0), Variable(2, 0x90))));
+        // Normal opening accesses row zero of Rgdnb. One empty typed OplDnb
+        // supplies that row; its fields use the native decoder's defaults.
+        chunks.Add(new NativeRecord(0x4B, documentId, Chunk(Scalar(1, 0x20, 1),
+            Variable(2, 0x90, Variable(0, 0x88)))));
         return new Graph(chunks, shapeId);
     }
 

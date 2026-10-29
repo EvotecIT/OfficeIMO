@@ -93,11 +93,13 @@ managed read establishes only the managed
 reader result. Native open, native resave and content fidelity are separate
 qualification requirements.
 
-Document field 3 points to a generated print block (`0x4B`) containing zero
-printer profiles and an empty profile list. Those values meet the recovered
-structural count/list constraints. Optional printer settings and flags remain
-absent for native defaults; no device-specific printer payload is copied.
-Normal native decoding of this minimal print block remains unqualified.
+Document field 3 points to a generated print block (`0x4B`) containing one empty
+typed `OplDnb` profile. The ordinary native open path accesses row zero of that
+array; an empty list is insufficient even when it passes structural validation.
+Profile fields remain absent for native defaults; the recovered entry validator
+accepts those defaults. Native materialization and use of that minimal row remain
+separate qualification requirements. No printer name, device-specific payload or
+DEVMODE data is copied.
 
 The drawing stream contains a calculated `F006` drawing-group record with one
 identifier cluster, followed by one `F002` drawing container. Even the blank
