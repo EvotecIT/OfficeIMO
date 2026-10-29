@@ -10850,7 +10850,7 @@
       "evidence":"OfficeIMO.PowerPoint.LegacyPpt::PowerPoint.Ppt.ParagraphFormatting::modern-to-legacy",
       "sourceCatalog":"OfficeIMO.PowerPoint.LegacyPpt",
       "extensions":[".potm",".potx",".ppam",".ppsm",".ppsx",".pptm",".pptx"],
-      "limitation":"StyleTextPropAtom runs, TextRulerAtom records, and five-level base master styles project alignment, margins, first-line indentation, default and explicit tabs, line and paragraph spacing, level, font alignment, RTL direction, East Asian breaking, Latin word wrapping, and hanging punctuation natively. Fresh slide and master text writes those fields, and supported imported shape, ruler, and master-style edits append preservation-aware records. Later-version fields without an exact mapping remain preserved for unrelated edits and are explicitly loss-blocked when changed."
+      "limitation":"StyleTextPropAtom runs, TextRulerAtom records, and five-level base master styles project alignment, margins, first-line indentation, default and explicit tabs, line and paragraph spacing, level, font alignment, RTL direction, East Asian breaking, Latin word wrapping, and hanging punctuation natively. DrawingML projections support 32 explicit tab stops; longer binary rulers retain all entries and report the projection limit. Fresh slide and master text writes those fields, and supported imported shape, ruler, and master-style edits append preservation-aware records. Later-version fields without an exact mapping remain preserved for unrelated edits and are explicitly loss-blocked when changed."
     },
     {
       "id":"legacy:OfficeIMO.PowerPoint.LegacyPpt:PowerPoint.Ppt.PictureCrop:modern-to-legacy",
@@ -11760,7 +11760,7 @@
       "evidence":"OfficeIMO.PowerPoint.LegacyPpt::PowerPoint.Ppt.ParagraphFormatting::new-legacy-write",
       "sourceCatalog":"OfficeIMO.PowerPoint.LegacyPpt",
       "extensions":[".pot",".pps",".ppt"],
-      "limitation":"StyleTextPropAtom runs, TextRulerAtom records, and five-level base master styles project alignment, margins, first-line indentation, default and explicit tabs, line and paragraph spacing, level, font alignment, RTL direction, East Asian breaking, Latin word wrapping, and hanging punctuation natively. Fresh slide and master text writes those fields, and supported imported shape, ruler, and master-style edits append preservation-aware records. Later-version fields without an exact mapping remain preserved for unrelated edits and are explicitly loss-blocked when changed."
+      "limitation":"StyleTextPropAtom runs, TextRulerAtom records, and five-level base master styles project alignment, margins, first-line indentation, default and explicit tabs, line and paragraph spacing, level, font alignment, RTL direction, East Asian breaking, Latin word wrapping, and hanging punctuation natively. DrawingML projections support 32 explicit tab stops; longer binary rulers retain all entries and report the projection limit. Fresh slide and master text writes those fields, and supported imported shape, ruler, and master-style edits append preservation-aware records. Later-version fields without an exact mapping remain preserved for unrelated edits and are explicitly loss-blocked when changed."
     },
     {
       "id":"legacy:OfficeIMO.PowerPoint.LegacyPpt:PowerPoint.Ppt.PictureCrop:new-legacy-write",
@@ -12544,7 +12544,7 @@
       "evidence":"OfficeIMO.PowerPoint.LegacyPpt::PowerPoint.Ppt.ParagraphFormatting::legacy-import",
       "sourceCatalog":"OfficeIMO.PowerPoint.LegacyPpt",
       "extensions":[".pot",".ppa",".pps",".ppt"],
-      "limitation":"StyleTextPropAtom runs, TextRulerAtom records, and five-level base master styles project alignment, margins, first-line indentation, default and explicit tabs, line and paragraph spacing, level, font alignment, RTL direction, East Asian breaking, Latin word wrapping, and hanging punctuation natively. Fresh slide and master text writes those fields, and supported imported shape, ruler, and master-style edits append preservation-aware records. Later-version fields without an exact mapping remain preserved for unrelated edits and are explicitly loss-blocked when changed."
+      "limitation":"StyleTextPropAtom runs, TextRulerAtom records, and five-level base master styles project alignment, margins, first-line indentation, default and explicit tabs, line and paragraph spacing, level, font alignment, RTL direction, East Asian breaking, Latin word wrapping, and hanging punctuation natively. DrawingML projections support 32 explicit tab stops; longer binary rulers retain all entries and report the projection limit. Fresh slide and master text writes those fields, and supported imported shape, ruler, and master-style edits append preservation-aware records. Later-version fields without an exact mapping remain preserved for unrelated edits and are explicitly loss-blocked when changed."
     },
     {
       "id":"legacy:OfficeIMO.PowerPoint.LegacyPpt:PowerPoint.Ppt.PictureCrop:legacy-import",
@@ -13328,7 +13328,7 @@
       "evidence":"OfficeIMO.PowerPoint.LegacyPpt::PowerPoint.Ppt.ParagraphFormatting::legacy-round-trip-edit",
       "sourceCatalog":"OfficeIMO.PowerPoint.LegacyPpt",
       "extensions":[".pot",".pps",".ppt"],
-      "limitation":"StyleTextPropAtom runs, TextRulerAtom records, and five-level base master styles project alignment, margins, first-line indentation, default and explicit tabs, line and paragraph spacing, level, font alignment, RTL direction, East Asian breaking, Latin word wrapping, and hanging punctuation natively. Fresh slide and master text writes those fields, and supported imported shape, ruler, and master-style edits append preservation-aware records. Later-version fields without an exact mapping remain preserved for unrelated edits and are explicitly loss-blocked when changed."
+      "limitation":"StyleTextPropAtom runs, TextRulerAtom records, and five-level base master styles project alignment, margins, first-line indentation, default and explicit tabs, line and paragraph spacing, level, font alignment, RTL direction, East Asian breaking, Latin word wrapping, and hanging punctuation natively. DrawingML projections support 32 explicit tab stops; longer binary rulers retain all entries and report the projection limit. Fresh slide and master text writes those fields, and supported imported shape, ruler, and master-style edits append preservation-aware records. Later-version fields without an exact mapping remain preserved for unrelated edits and are explicitly loss-blocked when changed."
     },
     {
       "id":"legacy:OfficeIMO.PowerPoint.LegacyPpt:PowerPoint.Ppt.PictureCrop:legacy-round-trip-edit",
@@ -14112,7 +14112,7 @@
       "evidence":"OfficeIMO.PowerPoint.LegacyPpt::PowerPoint.Ppt.ParagraphFormatting::legacy-round-trip-preserve",
       "sourceCatalog":"OfficeIMO.PowerPoint.LegacyPpt",
       "extensions":[".pot",".ppa",".pps",".ppt"],
-      "limitation":"StyleTextPropAtom runs, TextRulerAtom records, and five-level base master styles project alignment, margins, first-line indentation, default and explicit tabs, line and paragraph spacing, level, font alignment, RTL direction, East Asian breaking, Latin word wrapping, and hanging punctuation natively. Fresh slide and master text writes those fields, and supported imported shape, ruler, and master-style edits append preservation-aware records. Later-version fields without an exact mapping remain preserved for unrelated edits and are explicitly loss-blocked when changed."
+      "limitation":"StyleTextPropAtom runs, TextRulerAtom records, and five-level base master styles project alignment, margins, first-line indentation, default and explicit tabs, line and paragraph spacing, level, font alignment, RTL direction, East Asian breaking, Latin word wrapping, and hanging punctuation natively. DrawingML projections support 32 explicit tab stops; longer binary rulers retain all entries and report the projection limit. Fresh slide and master text writes those fields, and supported imported shape, ruler, and master-style edits append preservation-aware records. Later-version fields without an exact mapping remain preserved for unrelated edits and are explicitly loss-blocked when changed."
     },
     {
       "id":"legacy:OfficeIMO.PowerPoint.LegacyPpt:PowerPoint.Ppt.PictureCrop:legacy-round-trip-preserve",
@@ -14896,7 +14896,7 @@
       "evidence":"OfficeIMO.PowerPoint.LegacyPpt::PowerPoint.Ppt.ParagraphFormatting::legacy-to-modern",
       "sourceCatalog":"OfficeIMO.PowerPoint.LegacyPpt",
       "extensions":[".pot",".ppa",".pps",".ppt"],
-      "limitation":"StyleTextPropAtom runs, TextRulerAtom records, and five-level base master styles project alignment, margins, first-line indentation, default and explicit tabs, line and paragraph spacing, level, font alignment, RTL direction, East Asian breaking, Latin word wrapping, and hanging punctuation natively. Fresh slide and master text writes those fields, and supported imported shape, ruler, and master-style edits append preservation-aware records. Later-version fields without an exact mapping remain preserved for unrelated edits and are explicitly loss-blocked when changed."
+      "limitation":"StyleTextPropAtom runs, TextRulerAtom records, and five-level base master styles project alignment, margins, first-line indentation, default and explicit tabs, line and paragraph spacing, level, font alignment, RTL direction, East Asian breaking, Latin word wrapping, and hanging punctuation natively. DrawingML projections support 32 explicit tab stops; longer binary rulers retain all entries and report the projection limit. Fresh slide and master text writes those fields, and supported imported shape, ruler, and master-style edits append preservation-aware records. Later-version fields without an exact mapping remain preserved for unrelated edits and are explicitly loss-blocked when changed."
     },
     {
       "id":"legacy:OfficeIMO.PowerPoint.LegacyPpt:PowerPoint.Ppt.PictureCrop:legacy-to-modern",
