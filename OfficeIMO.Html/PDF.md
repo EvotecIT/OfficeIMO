@@ -229,7 +229,7 @@ Set `HtmlToPdfOptions.MathMlSourceModificationDate` when an archival profile req
 An emitted tagged Formula MathML supplement can satisfy PDF/A-4f's embedded-file
 requirement. For reproducible archival output, supply text and mathematical fonts
 explicitly, set `MathMlSourceModificationDate`, request the profile, and validate the
-exact saved PDF. See the [PDF compliance contract](../OfficeIMO.Pdf/README.md#generate-and-assess-validator-backed-pdfa)
+exact saved PDF. See the [PDF compliance contract](../Docs/officeimo.pdf-guide.md#generate-and-assess-validator-backed-pdfa)
 for saved-artifact checks and external validation requirements.
 
 The [math and archive qualification](../Build/Project/Evidence/2026-09-30/html-master-convergence/math-operator-print-20261020.json) records the selected

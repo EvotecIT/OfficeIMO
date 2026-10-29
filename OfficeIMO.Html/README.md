@@ -315,7 +315,7 @@ IReadOnlyList<OfficeImageExportResult> webpPages = source
     .Save("status-pages");
 ```
 
-HTML image export uses the PDF page scenes. SVG keeps proven PDF glyph contours and the logical source as accessibility labels, including admitted finite zero-advance text. See the [PDF image-export contract](../OfficeIMO.Pdf/README.md#export-pdf-pages-as-images) for the supported spans and text-fallback limits.
+HTML image export uses the PDF page scenes. SVG keeps proven PDF glyph contours and the logical source as accessibility labels, including admitted finite zero-advance text. See the [PDF image-export contract](../Docs/officeimo.pdf-guide.md#export-pdf-pages-as-images) for the supported spans and text-fallback limits.
 
 The default style mode keeps OfficeIMO's established document layout: an
 uninset body and Arial fallback. Select the bounded browser user-agent defaults
