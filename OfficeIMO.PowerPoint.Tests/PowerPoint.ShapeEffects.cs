@@ -16,10 +16,10 @@ namespace OfficeIMO.Tests {
                 using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
                     PowerPointSlide slide = presentation.AddSlide();
                     PowerPointAutoShape shadow = slide.AddRectangle(OfficeIMO.OfficeLength.Emus(0), OfficeIMO.OfficeLength.Emus(0), OfficeIMO.OfficeLength.Emus(4000), OfficeIMO.OfficeLength.Emus(2000), "ShadowRect");
-                    shadow.SetShadow("000000", blurPoints: 6, distancePoints: 5, angleDegrees: 270, transparencyPercent: 40);
+                    shadow.SetShadow("000000", blur: OfficeIMO.OfficeLength.Points(6), distance: OfficeIMO.OfficeLength.Points(5), angleDegrees: 270, transparencyPercent: 40);
 
                     PowerPointAutoShape clear = slide.AddRectangle(OfficeIMO.OfficeLength.Emus(0), OfficeIMO.OfficeLength.Emus(3000), OfficeIMO.OfficeLength.Emus(4000), OfficeIMO.OfficeLength.Emus(2000), "ClearRect");
-                    clear.SetShadow("FF0000", blurPoints: 4, distancePoints: 3, angleDegrees: 45, transparencyPercent: 20);
+                    clear.SetShadow("FF0000", blur: OfficeIMO.OfficeLength.Points(4), distance: OfficeIMO.OfficeLength.Points(3), angleDegrees: 45, transparencyPercent: 20);
                     clear.ClearShadow();
 
                     presentation.Save();
@@ -63,12 +63,12 @@ namespace OfficeIMO.Tests {
                 using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
                     PowerPointSlide slide = presentation.AddSlide();
                     PowerPointAutoShape glowShape = slide.AddRectangle(OfficeIMO.OfficeLength.Emus(0), OfficeIMO.OfficeLength.Emus(0), OfficeIMO.OfficeLength.Emus(4000), OfficeIMO.OfficeLength.Emus(2000), "GlowRect");
-                    glowShape.SetGlow("FF00FF", radiusPoints: 5, transparencyPercent: 25);
-                    glowShape.SetSoftEdges(3);
+                    glowShape.SetGlow("FF00FF", radius: OfficeIMO.OfficeLength.Points(5), transparencyPercent: 25);
+                    glowShape.SetSoftEdges(OfficeIMO.OfficeLength.Points(3));
 
                     PowerPointAutoShape clearShape = slide.AddRectangle(OfficeIMO.OfficeLength.Emus(0), OfficeIMO.OfficeLength.Emus(3000), OfficeIMO.OfficeLength.Emus(4000), OfficeIMO.OfficeLength.Emus(2000), "ClearEffectsRect");
-                    clearShape.SetGlow("00FF00", radiusPoints: 4, transparencyPercent: 10);
-                    clearShape.SetSoftEdges(2);
+                    clearShape.SetGlow("00FF00", radius: OfficeIMO.OfficeLength.Points(4), transparencyPercent: 10);
+                    clearShape.SetSoftEdges(OfficeIMO.OfficeLength.Points(2));
                     clearShape.ClearGlow();
                     clearShape.ClearSoftEdges();
 
@@ -115,10 +115,10 @@ namespace OfficeIMO.Tests {
                 using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
                     PowerPointSlide slide = presentation.AddSlide();
                     PowerPointAutoShape blurShape = slide.AddRectangle(OfficeIMO.OfficeLength.Emus(0), OfficeIMO.OfficeLength.Emus(0), OfficeIMO.OfficeLength.Emus(4000), OfficeIMO.OfficeLength.Emus(2000), "BlurRect");
-                    blurShape.SetBlur(5, grow: true);
+                    blurShape.SetBlur(OfficeIMO.OfficeLength.Points(5), grow: true);
 
                     PowerPointAutoShape reflectionShape = slide.AddRectangle(OfficeIMO.OfficeLength.Emus(0), OfficeIMO.OfficeLength.Emus(3000), OfficeIMO.OfficeLength.Emus(4000), OfficeIMO.OfficeLength.Emus(2000), "ReflectionRect");
-                    reflectionShape.SetReflection(blurPoints: 6, distancePoints: 4,
+                    reflectionShape.SetReflection(blur: OfficeIMO.OfficeLength.Points(6), distance: OfficeIMO.OfficeLength.Points(4),
                         directionDegrees: 270, fadeDirectionDegrees: 90,
                         startOpacityPercent: 60, endOpacityPercent: 0,
                         startPositionPercent: 0, endPositionPercent: 100,
@@ -169,10 +169,10 @@ namespace OfficeIMO.Tests {
                     PowerPointSlide slide = presentation.AddSlide();
                     PowerPointAutoShape shape = slide.AddRectangle(OfficeIMO.OfficeLength.Emus(0), OfficeIMO.OfficeLength.Emus(0), OfficeIMO.OfficeLength.Emus(4000), OfficeIMO.OfficeLength.Emus(2000), "StyledAfterEffects");
 
-                    shape.SetSoftEdges(2);
-                    shape.SetReflection(blurPoints: 2, distancePoints: 1, startOpacityPercent: 20);
-                    shape.SetShadow("000000", blurPoints: 6, distancePoints: 3, transparencyPercent: 55);
-                    shape.SetGlow("F26A3D", radiusPoints: 3, transparencyPercent: 30);
+                    shape.SetSoftEdges(OfficeIMO.OfficeLength.Points(2));
+                    shape.SetReflection(blur: OfficeIMO.OfficeLength.Points(2), distance: OfficeIMO.OfficeLength.Points(1), startOpacityPercent: 20);
+                    shape.SetShadow("000000", blur: OfficeIMO.OfficeLength.Points(6), distance: OfficeIMO.OfficeLength.Points(3), transparencyPercent: 55);
+                    shape.SetGlow("F26A3D", radius: OfficeIMO.OfficeLength.Points(3), transparencyPercent: 30);
                     shape.FillColor = "EFE8DA";
                     shape.FillTransparency = 8;
                     shape.OutlineColor = "6B6EA8";

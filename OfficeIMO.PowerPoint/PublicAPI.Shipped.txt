@@ -3158,10 +3158,7 @@ OfficeIMO.PowerPoint.PowerPointShape.Decorative.set -> void
 OfficeIMO.PowerPoint.PowerPointShape.Description.get -> string?
 OfficeIMO.PowerPoint.PowerPointShape.Description.set -> void
 OfficeIMO.PowerPoint.PowerPointShape.DrawingOrder.get -> int
-OfficeIMO.PowerPoint.PowerPointShape.Duplicate(long offsetX = 0, long offsetY = 0) -> OfficeIMO.PowerPoint.PowerPointShape!
-OfficeIMO.PowerPoint.PowerPointShape.DuplicateCm(double offsetXCm, double offsetYCm) -> OfficeIMO.PowerPoint.PowerPointShape!
-OfficeIMO.PowerPoint.PowerPointShape.DuplicateInches(double offsetXInches, double offsetYInches) -> OfficeIMO.PowerPoint.PowerPointShape!
-OfficeIMO.PowerPoint.PowerPointShape.DuplicatePoints(double offsetXPoints, double offsetYPoints) -> OfficeIMO.PowerPoint.PowerPointShape!
+OfficeIMO.PowerPoint.PowerPointShape.Duplicate(OfficeIMO.OfficeLength offsetX = default(OfficeIMO.OfficeLength), OfficeIMO.OfficeLength offsetY = default(OfficeIMO.OfficeLength)) -> OfficeIMO.PowerPoint.PowerPointShape!
 OfficeIMO.PowerPoint.PowerPointShape.FillColor.get -> string?
 OfficeIMO.PowerPoint.PowerPointShape.FillColor.set -> void
 OfficeIMO.PowerPoint.PowerPointShape.FillTransparency.get -> int?
@@ -3204,10 +3201,10 @@ OfficeIMO.PowerPoint.PowerPointShape.Rotation.set -> void
 OfficeIMO.PowerPoint.PowerPointShape.Scale(double scale, OfficeIMO.PowerPoint.PowerPointShapeAnchor anchor = OfficeIMO.PowerPoint.PowerPointShapeAnchor.Center) -> void
 OfficeIMO.PowerPoint.PowerPointShape.Scale(double scaleX, double scaleY, OfficeIMO.PowerPoint.PowerPointShapeAnchor anchor = OfficeIMO.PowerPoint.PowerPointShapeAnchor.Center) -> void
 OfficeIMO.PowerPoint.PowerPointShape.SendToBack() -> void
-OfficeIMO.PowerPoint.PowerPointShape.SetBlur(double radiusPoints, bool grow = false) -> void
+OfficeIMO.PowerPoint.PowerPointShape.SetBlur(OfficeIMO.OfficeLength radius, bool grow = false) -> void
 OfficeIMO.PowerPoint.PowerPointShape.SetClickSound(System.IO.Stream! audio, string! name, string! contentType = "audio/wav", string! extension = ".wav") -> void
 OfficeIMO.PowerPoint.PowerPointShape.SetClickStopsSound(bool value) -> void
-OfficeIMO.PowerPoint.PowerPointShape.SetGlow(string! color, double radiusPoints = 4, int transparencyPercent = 30) -> void
+OfficeIMO.PowerPoint.PowerPointShape.SetGlow(string! color, OfficeIMO.OfficeLength? radius = null, int transparencyPercent = 30) -> void
 OfficeIMO.PowerPoint.PowerPointShape.SetHyperlink(OfficeIMO.PowerPoint.PowerPointSlide! targetSlide, string? tooltip = null) -> void
 OfficeIMO.PowerPoint.PowerPointShape.SetHyperlink(System.Uri! uri, string? tooltip = null) -> void
 OfficeIMO.PowerPoint.PowerPointShape.SetLanguage(string! language) -> OfficeIMO.PowerPoint.PowerPointShape!
@@ -3215,10 +3212,10 @@ OfficeIMO.PowerPoint.PowerPointShape.SetLineEnds(OfficeIMO.Drawing.OfficeLineMar
 OfficeIMO.PowerPoint.PowerPointShape.SetMouseOverSound(System.IO.Stream! audio, string! name, string! contentType = "audio/wav", string! extension = ".wav") -> void
 OfficeIMO.PowerPoint.PowerPointShape.SetMouseOverStopsSound(bool value) -> void
 OfficeIMO.PowerPoint.PowerPointShape.SetPosition(OfficeIMO.OfficeLength left, OfficeIMO.OfficeLength top) -> void
-OfficeIMO.PowerPoint.PowerPointShape.SetReflection(double blurPoints = 4, double distancePoints = 2, double directionDegrees = 270, double fadeDirectionDegrees = 90, int startOpacityPercent = 50, int endOpacityPercent = 0, int startPositionPercent = 0, int endPositionPercent = 100, OfficeIMO.PowerPoint.PowerPointRectangleAlignment? alignment = null, bool rotateWithShape = false) -> void
-OfficeIMO.PowerPoint.PowerPointShape.SetShadow(string! color, double blurPoints = 4, double distancePoints = 3, double angleDegrees = 45, int transparencyPercent = 35, bool rotateWithShape = false) -> void
+OfficeIMO.PowerPoint.PowerPointShape.SetReflection(OfficeIMO.OfficeLength? blur = null, OfficeIMO.OfficeLength? distance = null, double directionDegrees = 270, double fadeDirectionDegrees = 90, int startOpacityPercent = 50, int endOpacityPercent = 0, int startPositionPercent = 0, int endPositionPercent = 100, OfficeIMO.PowerPoint.PowerPointRectangleAlignment? alignment = null, bool rotateWithShape = false) -> void
+OfficeIMO.PowerPoint.PowerPointShape.SetShadow(string! color, OfficeIMO.OfficeLength? blur = null, OfficeIMO.OfficeLength? distance = null, double angleDegrees = 45, int transparencyPercent = 35, bool rotateWithShape = false) -> void
 OfficeIMO.PowerPoint.PowerPointShape.SetSize(OfficeIMO.OfficeLength width, OfficeIMO.OfficeLength height) -> void
-OfficeIMO.PowerPoint.PowerPointShape.SetSoftEdges(double radiusPoints) -> void
+OfficeIMO.PowerPoint.PowerPointShape.SetSoftEdges(OfficeIMO.OfficeLength radius) -> void
 OfficeIMO.PowerPoint.PowerPointShape.ShapeContentType.get -> OfficeIMO.PowerPoint.PowerPointShapeContentType
 OfficeIMO.PowerPoint.PowerPointShape.ShapePlaceholderIndex.get -> uint?
 OfficeIMO.PowerPoint.PowerPointShape.ShapePlaceholderOrientation.get -> OfficeIMO.PowerPoint.PowerPointPlaceholderDirection?
@@ -3474,10 +3471,7 @@ OfficeIMO.PowerPoint.PowerPointSlide.DistributeShapesWithSpacingToSlideContent(S
 OfficeIMO.PowerPoint.PowerPointSlide.DistributeShapesWithSpacingToSlideContentCm(System.Collections.Generic.IEnumerable<OfficeIMO.PowerPoint.PowerPointShape!>! shapes, OfficeIMO.PowerPoint.PowerPointShapeDistribution distribution, double spacingCm, double marginCm, bool center = false) -> void
 OfficeIMO.PowerPoint.PowerPointSlide.DistributeShapesWithSpacingToSlideContentInches(System.Collections.Generic.IEnumerable<OfficeIMO.PowerPoint.PowerPointShape!>! shapes, OfficeIMO.PowerPoint.PowerPointShapeDistribution distribution, double spacingInches, double marginInches, bool center = false) -> void
 OfficeIMO.PowerPoint.PowerPointSlide.DistributeShapesWithSpacingToSlideContentPoints(System.Collections.Generic.IEnumerable<OfficeIMO.PowerPoint.PowerPointShape!>! shapes, OfficeIMO.PowerPoint.PowerPointShapeDistribution distribution, double spacingPoints, double marginPoints, bool center = false) -> void
-OfficeIMO.PowerPoint.PowerPointSlide.DuplicateShape(OfficeIMO.PowerPoint.PowerPointShape! shape, long offsetX = 0, long offsetY = 0) -> OfficeIMO.PowerPoint.PowerPointShape!
-OfficeIMO.PowerPoint.PowerPointSlide.DuplicateShapeCm(OfficeIMO.PowerPoint.PowerPointShape! shape, double offsetXCm, double offsetYCm) -> OfficeIMO.PowerPoint.PowerPointShape!
-OfficeIMO.PowerPoint.PowerPointSlide.DuplicateShapeInches(OfficeIMO.PowerPoint.PowerPointShape! shape, double offsetXInches, double offsetYInches) -> OfficeIMO.PowerPoint.PowerPointShape!
-OfficeIMO.PowerPoint.PowerPointSlide.DuplicateShapePoints(OfficeIMO.PowerPoint.PowerPointShape! shape, double offsetXPoints, double offsetYPoints) -> OfficeIMO.PowerPoint.PowerPointShape!
+OfficeIMO.PowerPoint.PowerPointSlide.DuplicateShape(OfficeIMO.PowerPoint.PowerPointShape! shape, OfficeIMO.OfficeLength offsetX = default(OfficeIMO.OfficeLength), OfficeIMO.OfficeLength offsetY = default(OfficeIMO.OfficeLength)) -> OfficeIMO.PowerPoint.PowerPointShape!
 OfficeIMO.PowerPoint.PowerPointSlide.EnumerateShapesDeep(System.Collections.Generic.IEnumerable<OfficeIMO.PowerPoint.PowerPointShape!>! shapes, bool includeHidden = false) -> System.Collections.Generic.IEnumerable<OfficeIMO.PowerPoint.PowerPointShape!>!
 OfficeIMO.PowerPoint.PowerPointSlide.ExportImage(OfficeIMO.Drawing.OfficeImageExportFormat format, OfficeIMO.PowerPoint.PowerPointImageExportOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> OfficeIMO.Drawing.OfficeImageExportResult!
 OfficeIMO.PowerPoint.PowerPointSlide.FitShapesToBounds(System.Collections.Generic.IEnumerable<OfficeIMO.PowerPoint.PowerPointShape!>! shapes, OfficeIMO.PowerPoint.PowerPointLayoutBox bounds, bool preserveAspect = false, bool center = false) -> void

@@ -97,7 +97,7 @@ namespace OfficeIMO.Examples.PowerPoint {
             card.FillColor = Teal;
             card.FillTransparency = 8;
             card.OutlineColor = Teal;
-            card.SetShadow("000000", blurPoints: 10, distancePoints: 4, angleDegrees: 90, transparencyPercent: 72);
+            card.SetShadow("000000", blur: OfficeIMO.OfficeLength.Points(10), distance: OfficeIMO.OfficeLength.Points(4), angleDegrees: 90, transparencyPercent: 72);
 
             PowerPointTextBox story = slide.AddTextBox(
                 "Themes, backgrounds, effects, editable charts, tables, notes, and transitions in one generated presentation.",                global::OfficeIMO.OfficeLength.Centimeters(2.1),global::OfficeIMO.OfficeLength.Centimeters(6.35),global::OfficeIMO.OfficeLength.Centimeters(14.4),global::OfficeIMO.OfficeLength.Centimeters(1.5));
@@ -109,13 +109,13 @@ namespace OfficeIMO.Examples.PowerPoint {
             glow.FillColor = Orange;
             glow.FillTransparency = 18;
             glow.OutlineColor = Orange;
-            glow.SetGlow(Orange, radiusPoints: 8, transparencyPercent: 28);
+            glow.SetGlow(Orange, radius: OfficeIMO.OfficeLength.Points(8), transparencyPercent: 28);
 
             PowerPointAutoShape pill = slide.AddRectangle(OfficeIMO.OfficeLength.Centimeters(22.2), OfficeIMO.OfficeLength.Centimeters(13.2), OfficeIMO.OfficeLength.Centimeters(8.8), OfficeIMO.OfficeLength.Centimeters(1.1), "Footer Pill");
             pill.FillColor = Linen;
             pill.FillTransparency = 0;
             pill.OutlineColor = Linen;
-            pill.SetSoftEdges(1.2);
+            pill.SetSoftEdges(OfficeIMO.OfficeLength.Points(1.2));
 
             PowerPointTextBox footer = slide.AddTextBox("Composable layout system",global::OfficeIMO.OfficeLength.Centimeters(22.7),global::OfficeIMO.OfficeLength.Centimeters(13.45),global::OfficeIMO.OfficeLength.Centimeters(7.8),global::OfficeIMO.OfficeLength.Centimeters(0.45));
             footer.FontSize = global::OfficeIMO.OfficeLength.Points(11);
@@ -264,7 +264,7 @@ namespace OfficeIMO.Examples.PowerPoint {
             AddSlideTitle(slide, "Monthly performance", "Column chart, KPI table, shape effects, and speaker notes.");
 
             PowerPointAutoShape chartPanel = AddPanel(slide, 1.3, 3.1, 16.2, 9.9, "Chart Surface");
-            chartPanel.SetShadow("000000", blurPoints: 7, distancePoints: 2, angleDegrees: 90, transparencyPercent: 84);
+            chartPanel.SetShadow("000000", blur: OfficeIMO.OfficeLength.Points(7), distance: OfficeIMO.OfficeLength.Points(2), angleDegrees: 90, transparencyPercent: 84);
 
             OfficeChartData data = new(
                 new[] { "Jan", "Feb", "Mar", "Apr", "May", "Jun" },
@@ -287,7 +287,7 @@ namespace OfficeIMO.Examples.PowerPoint {
             takeawayCard.FillColor = Linen;
             takeawayCard.OutlineColor = Orange;
             takeawayCard.OutlineWidthPoints = 1.4;
-            takeawayCard.SetReflection(blurPoints: 2, distancePoints: 1, startOpacityPercent: 15, endOpacityPercent: 0);
+            takeawayCard.SetReflection(blur: OfficeIMO.OfficeLength.Points(2), distance: OfficeIMO.OfficeLength.Points(1), startOpacityPercent: 15, endOpacityPercent: 0);
             AddLabel(slide, "Takeaway", 19.1, 3.55, 5.0, 0.55, Orange, 12, bold: true);
             AddBody(slide, "Sales nearly triple from January to June while profit expands at a steadier pace.", 19.1, 4.45, 9.8, 1.5, 18);
 
@@ -315,7 +315,7 @@ namespace OfficeIMO.Examples.PowerPoint {
 
             PowerPointAutoShape chartPanel = AddPanel(slide, 1.3, 3.0, 15.3, 10.0, "Channel Chart Panel");
             chartPanel.FillColor = "FFFFFF";
-            chartPanel.SetShadow("000000", blurPoints: 7, distancePoints: 2, angleDegrees: 90, transparencyPercent: 84);
+            chartPanel.SetShadow("000000", blur: OfficeIMO.OfficeLength.Points(7), distance: OfficeIMO.OfficeLength.Points(2), angleDegrees: 90, transparencyPercent: 84);
 
             OfficeChartData data = new(
                 new[] { "Direct", "Partner", "Online", "Events" },
@@ -354,7 +354,7 @@ namespace OfficeIMO.Examples.PowerPoint {
 
             PowerPointAutoShape chartPanel = AddPanel(slide, 2.2, 3.2, 20.7, 9.6, "Trend Chart Panel");
             chartPanel.FillColor = "FFFFFF";
-            chartPanel.SetShadow("000000", blurPoints: 7, distancePoints: 2, angleDegrees: 90, transparencyPercent: 84);
+            chartPanel.SetShadow("000000", blur: OfficeIMO.OfficeLength.Points(7), distance: OfficeIMO.OfficeLength.Points(2), angleDegrees: 90, transparencyPercent: 84);
 
             OfficeChartData data = new(
                 new[] { "Jan", "Feb", "Mar", "Apr", "May", "Jun" },
@@ -379,7 +379,7 @@ namespace OfficeIMO.Examples.PowerPoint {
             callout.FillColor = Linen;
             callout.OutlineColor = Indigo;
             callout.OutlineWidthPoints = 1.2;
-            callout.SetReflection(blurPoints: 2, distancePoints: 1, startOpacityPercent: 18, endOpacityPercent: 0);
+            callout.SetReflection(blur: OfficeIMO.OfficeLength.Points(2), distance: OfficeIMO.OfficeLength.Points(1), startOpacityPercent: 18, endOpacityPercent: 0);
             AddLabel(slide, "Observation", 25.0, 5.45, 5.5, 0.55, Indigo, 13, bold: true);
             AddBody(slide, "The slope stays healthy through Q2, which makes the line view easier to read than a scatter plot here.", 25.0, 6.6, 5.6, 3.0, 16);
 
@@ -391,7 +391,7 @@ namespace OfficeIMO.Examples.PowerPoint {
             PowerPointAutoShape card = AddPanel(slide, box.Left.ToCentimeters(), box.Top.ToCentimeters(), box.Width.ToCentimeters(), box.Height.ToCentimeters(), title + " Agenda Card");
             card.FillColor = "FFFFFF";
             card.OutlineColor = Linen;
-            card.SetShadow("000000", blurPoints: 5, distancePoints: 1, angleDegrees: 90, transparencyPercent: 88);
+            card.SetShadow("000000", blur: OfficeIMO.OfficeLength.Points(5), distance: OfficeIMO.OfficeLength.Points(1), angleDegrees: 90, transparencyPercent: 88);
 
             AddLabel(slide, number, box.Left.ToCentimeters() + 0.55, box.Top.ToCentimeters() + 0.36, 2.0, 0.8, Orange, 20, bold: true);
             AddLabel(slide, title, box.Left.ToCentimeters() + 2.25, box.Top.ToCentimeters() + 0.38, 6.5, 0.5, Ink, 14, bold: true);
@@ -547,7 +547,7 @@ namespace OfficeIMO.Examples.PowerPoint {
             panel.FillColor = "FFFFFF";
             panel.FillTransparency = 0;
             panel.OutlineColor = Linen;
-            panel.SetSoftEdges(0.9);
+            panel.SetSoftEdges(OfficeIMO.OfficeLength.Points(0.9));
             return panel;
         }
 

@@ -25,8 +25,8 @@ namespace OfficeIMO.Tests {
                 rectangle.OutlineDash = PowerPointLineDashStyle.DashDot;
                 rectangle.Rotation = 30D;
                 rectangle.HorizontalFlip = true;
-                rectangle.SetShadow("222222", blurPoints: 4D,
-                    distancePoints: 3D, angleDegrees: 45D,
+                rectangle.SetShadow("222222", blur: OfficeIMO.OfficeLength.Points(4D),
+                    distance: OfficeIMO.OfficeLength.Points(3D), angleDegrees: 45D,
                     transparencyPercent: 35);
 
                 PowerPointAutoShape chevron = slide.AddShape(
@@ -123,7 +123,7 @@ namespace OfficeIMO.Tests {
             using PowerPointDocument source = PowerPointDocument.Create();
             PowerPointAutoShape shape = source.AddSlide(PowerPointSlideLayoutType.Blank)
                 .AddShape(OfficePresetShapeType.Rectangle, OfficeIMO.OfficeLength.Points(24), OfficeIMO.OfficeLength.Points(24), OfficeIMO.OfficeLength.Points(120), OfficeIMO.OfficeLength.Points(70));
-            shape.SetShadow("222222", blurPoints: 1D, distancePoints: 1D,
+            shape.SetShadow("222222", blur: OfficeIMO.OfficeLength.Points(1D), distance: OfficeIMO.OfficeLength.Points(1D),
                 angleDegrees: 0D, transparencyPercent: 0);
             P.Shape element = Assert.IsType<P.Shape>(shape.Element);
             A.OuterShadow shadow = element.ShapeProperties!
@@ -379,7 +379,7 @@ namespace OfficeIMO.Tests {
                     PowerPointSlideLayoutType.Blank)
                 .AddShape(OfficePresetShapeType.Rectangle,
                     OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(100), OfficeIMO.OfficeLength.Points(60));
-            shape.SetGlow("4472C4", radiusPoints: 5D);
+            shape.SetGlow("4472C4", radius: OfficeIMO.OfficeLength.Points(5D));
 
             LegacyPptWritePreflightReport preflight = source
                 .AnalyzeLegacyPptWrite();
@@ -399,8 +399,8 @@ namespace OfficeIMO.Tests {
                     .AddShape(OfficePresetShapeType.Rectangle,
                         OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(120), OfficeIMO.OfficeLength.Points(70));
                 shape.Fill("4472C4").Stroke("203864", 2D);
-                shape.SetShadow("222222", blurPoints: 3D,
-                    distancePoints: 2D, angleDegrees: 90D,
+                shape.SetShadow("222222", blur: OfficeIMO.OfficeLength.Points(3D),
+                    distance: OfficeIMO.OfficeLength.Points(2D), angleDegrees: 90D,
                     transparencyPercent: 40);
                 sourceBytes = source.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }

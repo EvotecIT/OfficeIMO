@@ -282,7 +282,7 @@ namespace OfficeIMO.Tests {
             first.Name = first.MediaReferenceId!;
             string originalName = first.Name!;
             PowerPointMedia second = Assert.IsType<PowerPointMedia>(
-                first.Duplicate(offsetX: 1000000));
+                first.Duplicate(offsetX: OfficeIMO.OfficeLength.Emus(1000000)));
             Assert.Equal(first.MediaReferenceId,
                 second.MediaReferenceId);
 

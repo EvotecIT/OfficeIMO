@@ -2067,52 +2067,52 @@
       "old": "OfficeIMO.PowerPoint.PowerPointShape.DuplicateCm(double offsetXCm, double offsetYCm)",
       "kind": "method",
       "action": "merge",
-      "new": "OfficeIMO.PowerPoint.PowerPointShape.Duplicate(... OfficeLength ...)",
+      "new": "OfficeIMO.PowerPoint.PowerPointShape.Duplicate(OfficeLength offsetX = default, OfficeLength offsetY = default) : PowerPointShape",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.PowerPoint/PowerPointShape.cs",
       "category": "units",
       "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values. Also (units): change -> OfficeIMO.PowerPoint.PowerPointShape.DuplicateCm(... OfficeLength ...)",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical offsets, effect radii and shadow/reflection distances use OfficeLength; native EMUs are written directly. Omitted effect sizes retain existing defaults. Duplicate unit twins are removed and every in-repo caller is migrated. Owner build0warnings/errors and14nativeeffect/duplicatecases pass net10.0; remaining phase gates are pending."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointShape.DuplicateInches(double offsetXInches, double offsetYInches)",
       "kind": "method",
       "action": "merge",
-      "new": "OfficeIMO.PowerPoint.PowerPointShape.Duplicate(... OfficeLength ...)",
+      "new": "OfficeIMO.PowerPoint.PowerPointShape.Duplicate(OfficeLength offsetX = default, OfficeLength offsetY = default) : PowerPointShape",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.PowerPoint/PowerPointShape.cs",
       "category": "units",
       "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values. Also (units): change -> OfficeIMO.PowerPoint.PowerPointShape.DuplicateInches(... OfficeLength ...)",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical offsets, effect radii and shadow/reflection distances use OfficeLength; native EMUs are written directly. Omitted effect sizes retain existing defaults. Duplicate unit twins are removed and every in-repo caller is migrated. Owner build0warnings/errors and14nativeeffect/duplicatecases pass net10.0; remaining phase gates are pending."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointShape.DuplicatePoints(double offsetXPoints, double offsetYPoints)",
       "kind": "method",
       "action": "merge",
-      "new": "OfficeIMO.PowerPoint.PowerPointShape.Duplicate(... OfficeLength ...)",
+      "new": "OfficeIMO.PowerPoint.PowerPointShape.Duplicate(OfficeLength offsetX = default, OfficeLength offsetY = default) : PowerPointShape",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.PowerPoint/PowerPointShape.cs",
       "category": "units",
       "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values. Also (units): change -> OfficeIMO.PowerPoint.PowerPointShape.DuplicatePoints(... OfficeLength ...)",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical offsets, effect radii and shadow/reflection distances use OfficeLength; native EMUs are written directly. Omitted effect sizes retain existing defaults. Duplicate unit twins are removed and every in-repo caller is migrated. Owner build0warnings/errors and14nativeeffect/duplicatecases pass net10.0; remaining phase gates are pending."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointShape.MoveByCm(double offsetXCm, double offsetYCm)",
@@ -3264,52 +3264,52 @@
       "old": "OfficeIMO.PowerPoint.PowerPointSlide.DuplicateShapeCm(PowerPointShape shape, double offsetXCm, double offsetYCm)",
       "kind": "method",
       "action": "merge",
-      "new": "OfficeIMO.PowerPoint.PowerPointSlide.DuplicateShape(... OfficeLength ...)",
+      "new": "OfficeIMO.PowerPoint.PowerPointSlide.DuplicateShape(PowerPointShape shape, OfficeLength offsetX = default, OfficeLength offsetY = default) : PowerPointShape",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.PowerPoint/PowerPointSlide.Arrange.cs",
       "category": "units",
       "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values. Also (units): change -> OfficeIMO.PowerPoint.PowerPointSlide.DuplicateShapeCm(... OfficeLength ...)",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical offsets, effect radii and shadow/reflection distances use OfficeLength; native EMUs are written directly. Omitted effect sizes retain existing defaults. Duplicate unit twins are removed and every in-repo caller is migrated. Owner build0warnings/errors and14nativeeffect/duplicatecases pass net10.0; remaining phase gates are pending."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlide.DuplicateShapeInches(PowerPointShape shape, double offsetXInches, double offsetYInches)",
       "kind": "method",
       "action": "merge",
-      "new": "OfficeIMO.PowerPoint.PowerPointSlide.DuplicateShape(... OfficeLength ...)",
+      "new": "OfficeIMO.PowerPoint.PowerPointSlide.DuplicateShape(PowerPointShape shape, OfficeLength offsetX = default, OfficeLength offsetY = default) : PowerPointShape",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.PowerPoint/PowerPointSlide.Arrange.cs",
       "category": "units",
       "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values. Also (units): change -> OfficeIMO.PowerPoint.PowerPointSlide.DuplicateShapeInches(... OfficeLength ...)",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical offsets, effect radii and shadow/reflection distances use OfficeLength; native EMUs are written directly. Omitted effect sizes retain existing defaults. Duplicate unit twins are removed and every in-repo caller is migrated. Owner build0warnings/errors and14nativeeffect/duplicatecases pass net10.0; remaining phase gates are pending."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlide.DuplicateShapePoints(PowerPointShape shape, double offsetXPoints, double offsetYPoints)",
       "kind": "method",
       "action": "merge",
-      "new": "OfficeIMO.PowerPoint.PowerPointSlide.DuplicateShape(... OfficeLength ...)",
+      "new": "OfficeIMO.PowerPoint.PowerPointSlide.DuplicateShape(PowerPointShape shape, OfficeLength offsetX = default, OfficeLength offsetY = default) : PowerPointShape",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.PowerPoint/PowerPointSlide.Arrange.cs",
       "category": "units",
       "notes": "Unit-specific twin of the base method; the base method takes OfficeLength values. Also (units): change -> OfficeIMO.PowerPoint.PowerPointSlide.DuplicateShapePoints(... OfficeLength ...)",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical offsets, effect radii and shadow/reflection distances use OfficeLength; native EMUs are written directly. Omitted effect sizes retain existing defaults. Duplicate unit twins are removed and every in-repo caller is migrated. Owner build0warnings/errors and14nativeeffect/duplicatecases pass net10.0; remaining phase gates are pending."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlide.FitShapesToSlideContentCm(IEnumerable<PowerPointShape> shapes, double marginCm, bool preserveAspect = False, bool center = False)",
@@ -4541,18 +4541,18 @@
       "old": "OfficeIMO.PowerPoint.PowerPointShape.Duplicate(long offsetX = 0, long offsetY = 0)",
       "kind": "method",
       "action": "change",
-      "new": "OfficeIMO.PowerPoint.PowerPointShape.Duplicate(... OfficeLength left, OfficeLength top, OfficeLength width, OfficeLength height ...)",
+      "new": "OfficeIMO.PowerPoint.PowerPointShape.Duplicate(OfficeLength offsetX = default, OfficeLength offsetY = default) : PowerPointShape",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.PowerPoint/PowerPointShape.cs",
       "category": "units",
       "notes": "Raw EMU long geometry parameters with EMU defaults.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical offsets, effect radii and shadow/reflection distances use OfficeLength; native EMUs are written directly. Omitted effect sizes retain existing defaults. Duplicate unit twins are removed and every in-repo caller is migrated. Owner build0warnings/errors and14nativeeffect/duplicatecases pass net10.0; remaining phase gates are pending."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointShape.MoveBy(long offsetX, long offsetY)",
@@ -5070,18 +5070,18 @@
       "old": "OfficeIMO.PowerPoint.PowerPointSlide.DuplicateShape(PowerPointShape shape, long offsetX = 0, long offsetY = 0)",
       "kind": "method",
       "action": "change",
-      "new": "OfficeIMO.PowerPoint.PowerPointSlide.DuplicateShape(... OfficeLength left, OfficeLength top, OfficeLength width, OfficeLength height ...)",
+      "new": "OfficeIMO.PowerPoint.PowerPointSlide.DuplicateShape(PowerPointShape shape, OfficeLength offsetX = default, OfficeLength offsetY = default) : PowerPointShape",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.PowerPoint/PowerPointSlide.Arrange.cs",
       "category": "units",
       "notes": "Raw EMU long geometry parameters with EMU defaults.",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical offsets, effect radii and shadow/reflection distances use OfficeLength; native EMUs are written directly. Omitted effect sizes retain existing defaults. Duplicate unit twins are removed and every in-repo caller is migrated. Owner build0warnings/errors and14nativeeffect/duplicatecases pass net10.0; remaining phase gates are pending."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlide.ResizeShapes(IEnumerable<PowerPointShape> shapes, long? width, long? height)",
@@ -5905,86 +5905,86 @@
       "old": "OfficeIMO.PowerPoint.PowerPointShape.SetBlur(double radiusPoints, bool grow = False)",
       "kind": "method",
       "action": "change",
-      "new": "OfficeIMO.PowerPoint.PowerPointShape.SetBlur(... OfficeLength ...)",
+      "new": "PowerPointShape.SetBlur(... OfficeLength physical lengths ...)",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.PowerPoint/PowerPointShape.Effects.cs",
       "category": "units",
       "notes": "Numeric parameters with unit-suffixed names: radiusPoints",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical offsets, effect radii and shadow/reflection distances use OfficeLength; native EMUs are written directly. Omitted effect sizes retain existing defaults. Duplicate unit twins are removed and every in-repo caller is migrated. Owner build0warnings/errors and14nativeeffect/duplicatecases pass net10.0; remaining phase gates are pending."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointShape.SetGlow(string color, double radiusPoints = 4, int transparencyPercent = 30)",
       "kind": "method",
       "action": "change",
-      "new": "OfficeIMO.PowerPoint.PowerPointShape.SetGlow(... OfficeLength ...)",
+      "new": "PowerPointShape.SetGlow(... OfficeLength physical lengths ...)",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.PowerPoint/PowerPointShape.Effects.cs",
       "category": "units",
       "notes": "Numeric parameters with unit-suffixed names: radiusPoints",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical offsets, effect radii and shadow/reflection distances use OfficeLength; native EMUs are written directly. Omitted effect sizes retain existing defaults. Duplicate unit twins are removed and every in-repo caller is migrated. Owner build0warnings/errors and14nativeeffect/duplicatecases pass net10.0; remaining phase gates are pending."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointShape.SetReflection(double blurPoints = 4, double distancePoints = 2, double directionDegrees = 270, double fadeDirectionDegrees = 90, int startOpacityPercent = 50, int endOpacityPercent = 0, int startPositionPercent = 0, int endPositionPercent = 100, PowerPointRectangleAlignment? alignment = null, bool rotateWithShape = False)",
       "kind": "method",
       "action": "change",
-      "new": "OfficeIMO.PowerPoint.PowerPointShape.SetReflection(... OfficeLength ...)",
+      "new": "PowerPointShape.SetReflection(... OfficeLength physical lengths ...)",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.PowerPoint/PowerPointShape.Effects.cs",
       "category": "units",
       "notes": "Numeric parameters with unit-suffixed names: blurPoints, distancePoints",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical offsets, effect radii and shadow/reflection distances use OfficeLength; native EMUs are written directly. Omitted effect sizes retain existing defaults. Duplicate unit twins are removed and every in-repo caller is migrated. Owner build0warnings/errors and14nativeeffect/duplicatecases pass net10.0; remaining phase gates are pending."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointShape.SetShadow(string color, double blurPoints = 4, double distancePoints = 3, double angleDegrees = 45, int transparencyPercent = 35, bool rotateWithShape = False)",
       "kind": "method",
       "action": "change",
-      "new": "OfficeIMO.PowerPoint.PowerPointShape.SetShadow(... OfficeLength ...)",
+      "new": "PowerPointShape.SetShadow(... OfficeLength physical lengths ...)",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.PowerPoint/PowerPointShape.Effects.cs",
       "category": "units",
       "notes": "Numeric parameters with unit-suffixed names: blurPoints, distancePoints",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical offsets, effect radii and shadow/reflection distances use OfficeLength; native EMUs are written directly. Omitted effect sizes retain existing defaults. Duplicate unit twins are removed and every in-repo caller is migrated. Owner build0warnings/errors and14nativeeffect/duplicatecases pass net10.0; remaining phase gates are pending."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointShape.SetSoftEdges(double radiusPoints)",
       "kind": "method",
       "action": "change",
-      "new": "OfficeIMO.PowerPoint.PowerPointShape.SetSoftEdges(... OfficeLength ...)",
+      "new": "PowerPointShape.SetSoftEdges(... OfficeLength physical lengths ...)",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.PowerPoint/PowerPointShape.Effects.cs",
       "category": "units",
       "notes": "Numeric parameters with unit-suffixed names: radiusPoints",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical offsets, effect radii and shadow/reflection distances use OfficeLength; native EMUs are written directly. Omitted effect sizes retain existing defaults. Duplicate unit twins are removed and every in-repo caller is migrated. Owner build0warnings/errors and14nativeeffect/duplicatecases pass net10.0; remaining phase gates are pending."
     },
     {
       "old": "OfficeIMO.PowerPoint.PowerPointSlide.AddTableCm<T>(IEnumerable<T> data, Action<ObjectFlattenerOptions> configure, bool includeHeaders, double leftCm, double topCm, double widthCm, double heightCm)",
@@ -10248,6 +10248,16 @@
         "OfficeIMO.Markup.PowerPoint/OfficeMarkupPowerPointExporter.Charts.cs",
         "OfficeIMO.PowerPoint.Tests/PowerPoint.ChartPhysicalLengths.cs"
       ]
+    },
+    {
+      "phase": "B",
+      "old": "PowerPointShape.SetShadow/SetGlow/SetSoftEdges/SetBlur/SetReflection and Duplicate; PowerPointSlide.DuplicateShape raw physical values",
+      "new": "OfficeLength effect radii/distances and duplicate offsets; explicit OfficeLength? optional defaults preserve previous point sizes",
+      "action": "change",
+      "reason": "Every public physical quantity follows the shared length contract; dimensionless angles and opacity percentages retain their existing types.",
+      "file": "OfficeIMO.PowerPoint/PowerPointShape.Effects.cs",
+      "applied": "phase-b-applied",
+      "note": "Defaults remain shadow4pt/3pt, glow4pt, reflection4pt/2pt. Signed duplication offsets remain supported. Six unit-specific duplicate twins are removed. Owner build0warnings/errors and14nativeartifactcases pass net10.0."
     }
   ],
   "applicationStatus": "Phase A applied and validated on the supported macOS targets. Phase B and Tier 2 entries retain their status; Windows .NET Framework validation remains pending.",

@@ -22,7 +22,7 @@ namespace OfficeIMO.PowerPoint {
                     "Designer Supporting Band");
                 band.FillColor = theme.PanelColor;
                 band.OutlineColor = theme.PanelBorderColor;
-                band.SetShadow("000000", blurPoints: 4, distancePoints: 1, angleDegrees: 90, transparencyPercent: 88);
+                band.SetShadow("000000", blur: OfficeIMO.OfficeLength.Points(4), distance: OfficeIMO.OfficeLength.Points(1), angleDegrees: 90, transparencyPercent: 88);
                 AddText(slide, options.SupportingText!, 2.15, slideHeightCm - 2.8, slideWidthCm - 4.3, 0.9, 13,
                     theme.SecondaryTextColor, theme.BodyFontName);
             }
@@ -124,8 +124,8 @@ namespace OfficeIMO.PowerPoint {
                     panel.OutlineWidthPoints = 0.25;
                     break;
                 default:
-                    panel.SetShadow("000000", blurPoints: variant == PowerPointCardGridLayoutVariant.SoftTiles ? 3 : 5,
-                        distancePoints: variant == PowerPointCardGridLayoutVariant.SoftTiles ? 0.8 : 1.5,
+                    panel.SetShadow("000000", blur: OfficeIMO.OfficeLength.Points(variant == PowerPointCardGridLayoutVariant.SoftTiles ? 3 : 5),
+                        distance: OfficeIMO.OfficeLength.Points(variant == PowerPointCardGridLayoutVariant.SoftTiles ? 0.8 : 1.5),
                         angleDegrees: 90, transparencyPercent: 88);
                     break;
             }

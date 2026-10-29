@@ -126,7 +126,7 @@ namespace OfficeIMO.Tests {
                     hero.FillColor = "156082";
                     hero.FillTransparency = 8;
                     hero.OutlineColor = "156082";
-                    hero.SetShadow("000000", blurPoints: 10, distancePoints: 4, angleDegrees: 90, transparencyPercent: 70);
+                    hero.SetShadow("000000", blur: OfficeIMO.OfficeLength.Points(10), distance: OfficeIMO.OfficeLength.Points(4), angleDegrees: 90, transparencyPercent: 70);
 
                     PowerPointTextBox insight = cover.AddTextBox("A clean, generated deck with theme colors, font scheme, background, effects, chart, and table.",                        new PowerPointLayoutBox(OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromCentimeters(2.0)),OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromCentimeters(3.6)),                            OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromCentimeters(14.8)),OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromCentimeters(1.3))));
                     insight.FontSize = global::OfficeIMO.OfficeLength.Points(18);
@@ -136,7 +136,7 @@ namespace OfficeIMO.Tests {
                     accent.FillColor = "F26A3D";
                     accent.FillTransparency = 18;
                     accent.OutlineColor = "F26A3D";
-                    accent.SetGlow("F26A3D", radiusPoints: 8, transparencyPercent: 30);
+                    accent.SetGlow("F26A3D", radius: OfficeIMO.OfficeLength.Points(8), transparencyPercent: 30);
 
                     PowerPointSlide dashboard = presentation.AddSlide(PowerPointSlideLayoutType.Blank);
                     dashboard.SetBackgroundImage(backgroundPath);
@@ -146,7 +146,7 @@ namespace OfficeIMO.Tests {
                     panel.FillColor = "F8F5EF";
                     panel.FillTransparency = 3;
                     panel.OutlineColor = "EFE8DA";
-                    panel.SetSoftEdges(1.5);
+                    panel.SetSoftEdges(OfficeIMO.OfficeLength.Points(1.5));
 
                     PowerPointChartData data = new(
                         new[] { "Jan", "Feb", "Mar", "Apr" },
@@ -176,7 +176,7 @@ namespace OfficeIMO.Tests {
                     callout.FillTransparency = 0;
                     callout.OutlineColor = "6B6EA8";
                     callout.OutlineWidthPoints = 1.2;
-                    callout.SetReflection(blurPoints: 2, distancePoints: 1, startOpacityPercent: 20, endOpacityPercent: 0);
+                    callout.SetReflection(blur: OfficeIMO.OfficeLength.Points(2), distance: OfficeIMO.OfficeLength.Points(1), startOpacityPercent: 20, endOpacityPercent: 0);
 
                     PowerPointTextBox calloutText = dashboard.AddTextBox("Observation\nThe revenue trend stays healthy through Q2.",                        new PowerPointLayoutBox(OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromCentimeters(17.3)),OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromCentimeters(6.5)),                            OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromCentimeters(6.0)),OfficeIMO.OfficeLength.Emus(PowerPointUnits.FromCentimeters(2.2))));
                     calloutText.FontSize = global::OfficeIMO.OfficeLength.Points(16);

@@ -487,7 +487,7 @@ namespace OfficeIMO.Tests {
                 "Package");
 
             PowerPointOleObject duplicate = Assert.IsType<PowerPointOleObject>(
-                original.Duplicate(12700L, 12700L));
+                original.Duplicate(OfficeIMO.OfficeLength.Emus(12700L), OfficeIMO.OfficeLength.Emus(12700L)));
             Assert.Equal(2, slide.OleObjects.Count());
             Assert.Equal(originalStorage, duplicate.GetData());
             using (var replacement = new MemoryStream(duplicateStorage,
@@ -522,7 +522,7 @@ namespace OfficeIMO.Tests {
             PowerPointOleObject first = slide.AddOleObject(source,
                 "Package");
             PowerPointOleObject second = Assert.IsType<PowerPointOleObject>(
-                first.Duplicate(12700L, 12700L));
+                first.Duplicate(OfficeIMO.OfficeLength.Emus(12700L), OfficeIMO.OfficeLength.Emus(12700L)));
             P.OleObject firstDefinition = ((P.GraphicFrame)first.Element)
                 .Graphic!.GraphicData!.GetFirstChild<P.OleObject>()!;
             P.OleObject secondDefinition = ((P.GraphicFrame)second.Element)

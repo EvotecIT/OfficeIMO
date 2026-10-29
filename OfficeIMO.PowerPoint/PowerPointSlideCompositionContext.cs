@@ -244,7 +244,7 @@ namespace OfficeIMO.PowerPoint {
                 band.FillTransparency = _dark ? 55 : 0;
                 band.OutlineColor = _dark ? _theme.AccentLightColor : _theme.AccentColor;
                 band.OutlineWidthPoints = 0.45;
-                band.SetShadow("000000", blurPoints: 3, distancePoints: 0.8, angleDegrees: 90, transparencyPercent: 90);
+                band.SetShadow("000000", blur: OfficeIMO.OfficeLength.Points(3), distance: OfficeIMO.OfficeLength.Points(0.8), angleDegrees: 90, transparencyPercent: 90);
 
                 PowerPointDesignExtensions.AddMetrics(_slide, _theme, metricList, bounds.Left.ToCentimeters(), bounds.Top.ToCentimeters(),
                     bounds.Width.ToCentimeters(), bounds.Height.ToCentimeters());
@@ -297,7 +297,7 @@ namespace OfficeIMO.PowerPoint {
                 band.FillTransparency = _dark ? 60 : 0;
                 band.OutlineColor = _dark ? _theme.AccentLightColor : _theme.PanelBorderColor;
                 band.OutlineWidthPoints = 0.45;
-                band.SetShadow("000000", blurPoints: 3, distancePoints: 0.8, angleDegrees: 90, transparencyPercent: 90);
+                band.SetShadow("000000", blur: OfficeIMO.OfficeLength.Points(3), distance: OfficeIMO.OfficeLength.Points(0.8), angleDegrees: 90, transparencyPercent: 90);
 
                 PowerPointAutoShape rule = _slide.AddRectangle(bounds.Left, bounds.Top, OfficeIMO.OfficeLength.Centimeters(0.13), bounds.Height,
                     "Composer Callout Accent");
@@ -452,7 +452,7 @@ namespace OfficeIMO.PowerPoint {
                 tile.FillTransparency = _dark ? 55 : 8;
                 tile.OutlineColor = accent;
                 tile.OutlineWidthPoints = 0.45;
-                tile.SetShadow("000000", blurPoints: 2.8, distancePoints: 0.7, angleDegrees: 90, transparencyPercent: 90);
+                tile.SetShadow("000000", blur: OfficeIMO.OfficeLength.Points(2.8), distance: OfficeIMO.OfficeLength.Points(0.7), angleDegrees: 90, transparencyPercent: 90);
             }
 
             PowerPointDesignExtensions.AddMetrics(_slide, _theme, metrics, bounds.Left.ToCentimeters(), bounds.Top.ToCentimeters(),

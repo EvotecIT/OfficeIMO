@@ -158,7 +158,7 @@ namespace OfficeIMO.PowerPoint {
             panel.FillTransparency = 0;
             panel.OutlineColor = theme.AccentDarkColor;
             panel.OutlineWidthPoints = 0;
-            panel.SetShadow("000000", blurPoints: 5, distancePoints: 1.2, angleDegrees: 90, transparencyPercent: 86);
+            panel.SetShadow("000000", blur: OfficeIMO.OfficeLength.Points(5), distance: OfficeIMO.OfficeLength.Points(1.2), angleDegrees: 90, transparencyPercent: 86);
 
             PowerPointAutoShape wash = slide.AddShape(OfficePresetShapeType.Parallelogram, OfficeIMO.OfficeLength.Centimeters(bounds.Left.ToCentimeters() + bounds.Width.ToCentimeters() * 0.16),
                 bounds.Top, OfficeIMO.OfficeLength.Centimeters(bounds.Width.ToCentimeters() * 0.28), bounds.Height, "Coverage Map Wash");
@@ -282,7 +282,7 @@ namespace OfficeIMO.PowerPoint {
             panel.FillColor = theme.PanelColor;
             panel.OutlineColor = theme.PanelBorderColor;
             panel.OutlineWidthPoints = 0.45;
-            panel.SetShadow("000000", blurPoints: 2.5, distancePoints: 0.6, angleDegrees: 90, transparencyPercent: 92);
+            panel.SetShadow("000000", blur: OfficeIMO.OfficeLength.Points(2.5), distance: OfficeIMO.OfficeLength.Points(0.6), angleDegrees: 90, transparencyPercent: 92);
 
             string accent = section.AccentColor ?? GetAccent(theme, index);
             PowerPointAutoShape accentRule = slide.AddRectangle(box.Left, box.Top, OfficeIMO.OfficeLength.Centimeters(0.12), box.Height,
@@ -399,7 +399,7 @@ namespace OfficeIMO.PowerPoint {
                     metricBox.Width, metricBox.Height, "Case Study Visual Hero Metric Band");
                 metricBand.FillColor = theme.AccentColor;
                 metricBand.OutlineColor = theme.AccentColor;
-                metricBand.SetShadow("000000", blurPoints: 3, distancePoints: 0.8, angleDegrees: 90, transparencyPercent: 88);
+                metricBand.SetShadow("000000", blur: OfficeIMO.OfficeLength.Points(3), distance: OfficeIMO.OfficeLength.Points(0.8), angleDegrees: 90, transparencyPercent: 88);
                 AddMetrics(slide, theme, metrics, metricBox.Left.ToCentimeters() + 0.35, metricBox.Top.ToCentimeters() + 0.2,
                     metricBox.Width.ToCentimeters() - 0.7, metricBox.Height.ToCentimeters() - 0.3);
             }
@@ -419,7 +419,7 @@ namespace OfficeIMO.PowerPoint {
                     OfficeIMO.OfficeLength.Centimeters(slideWidthCm - 3.1), OfficeIMO.OfficeLength.Centimeters(1.2), "Logo Wall Supporting Band");
                 band.FillColor = theme.PanelColor;
                 band.OutlineColor = theme.PanelBorderColor;
-                band.SetShadow("000000", blurPoints: 3, distancePoints: 0.8, angleDegrees: 90, transparencyPercent: 90);
+                band.SetShadow("000000", blur: OfficeIMO.OfficeLength.Points(3), distance: OfficeIMO.OfficeLength.Points(0.8), angleDegrees: 90, transparencyPercent: 90);
                 AddText(slide, options.SupportingText!, 2.0, slideHeightCm - 2.25, slideWidthCm - 4.0, 0.45,
                     12, theme.SecondaryTextColor, theme.BodyFontName, bold: true);
             }
@@ -467,7 +467,7 @@ namespace OfficeIMO.PowerPoint {
             tile.FillColor = theme.PanelColor;
             tile.OutlineColor = theme.PanelBorderColor;
             tile.OutlineWidthPoints = 0.45;
-            tile.SetShadow("000000", blurPoints: 2.5, distancePoints: 0.6, angleDegrees: 90, transparencyPercent: 91);
+            tile.SetShadow("000000", blur: OfficeIMO.OfficeLength.Points(2.5), distance: OfficeIMO.OfficeLength.Points(0.6), angleDegrees: 90, transparencyPercent: 91);
 
             PowerPointAutoShape accentRule = slide.AddRectangle(box.Left, box.Top, box.Width, OfficeIMO.OfficeLength.Centimeters(0.08),
                 "Logo Wall Accent " + (index + 1));
@@ -501,7 +501,7 @@ namespace OfficeIMO.PowerPoint {
             frame.FillColor = theme.PanelColor;
             frame.OutlineColor = theme.PanelBorderColor;
             frame.OutlineWidthPoints = 0.45;
-            frame.SetShadow("000000", blurPoints: 4, distancePoints: 1.0, angleDegrees: 90, transparencyPercent: 88);
+            frame.SetShadow("000000", blur: OfficeIMO.OfficeLength.Points(4), distance: OfficeIMO.OfficeLength.Points(1.0), angleDegrees: 90, transparencyPercent: 88);
 
             if (!string.IsNullOrWhiteSpace(options.FeaturedImagePath) && File.Exists(options.FeaturedImagePath!)) {
                 AddPictureIfExists(slide, options.FeaturedImagePath!, bounds.Left.ToCentimeters() + 0.35, bounds.Top.ToCentimeters() + 0.35,
@@ -526,7 +526,7 @@ namespace OfficeIMO.PowerPoint {
                 document.FillColor = theme.BackgroundColor;
                 document.OutlineColor = theme.PanelBorderColor;
                 document.OutlineWidthPoints = 0.55;
-                document.SetShadow("000000", blurPoints: 2.5, distancePoints: 0.5, angleDegrees: 90, transparencyPercent: 92);
+                document.SetShadow("000000", blur: OfficeIMO.OfficeLength.Points(2.5), distance: OfficeIMO.OfficeLength.Points(0.5), angleDegrees: 90, transparencyPercent: 92);
 
                 PowerPointAutoShape documentHeader = slide.AddRectangle(OfficeIMO.OfficeLength.Centimeters(bounds.Left.ToCentimeters() + bounds.Width.ToCentimeters() * 0.29),
                     OfficeIMO.OfficeLength.Centimeters(bounds.Top.ToCentimeters() + 0.92), OfficeIMO.OfficeLength.Centimeters(bounds.Width.ToCentimeters() * 0.42), OfficeIMO.OfficeLength.Centimeters(0.08), "Logo Wall Certificate Header");
@@ -608,7 +608,7 @@ namespace OfficeIMO.PowerPoint {
                 bounds.Height, "Coverage Location Strip");
             band.FillColor = theme.PanelColor;
             band.OutlineColor = theme.PanelBorderColor;
-            band.SetShadow("000000", blurPoints: 3, distancePoints: 0.7, angleDegrees: 90, transparencyPercent: 91);
+            band.SetShadow("000000", blur: OfficeIMO.OfficeLength.Points(3), distance: OfficeIMO.OfficeLength.Points(0.7), angleDegrees: 90, transparencyPercent: 91);
 
             string text = string.Join(", ", locations.Take(12).Select(location => location.Name));
             AddText(slide, text, bounds.Left.ToCentimeters() + 0.55, bounds.Top.ToCentimeters() + 0.32, bounds.Width.ToCentimeters() - 1.1,

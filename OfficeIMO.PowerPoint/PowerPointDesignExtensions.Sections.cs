@@ -173,7 +173,7 @@ namespace OfficeIMO.PowerPoint {
                 panel.FillColor = theme.PanelColor;
                 panel.OutlineColor = theme.PanelBorderColor;
                 panel.OutlineWidthPoints = 0.45;
-                panel.SetShadow("000000", blurPoints: 3, distancePoints: 0.8, angleDegrees: 90, transparencyPercent: 90);
+                panel.SetShadow("000000", blur: OfficeIMO.OfficeLength.Points(3), distance: OfficeIMO.OfficeLength.Points(0.8), angleDegrees: 90, transparencyPercent: 90);
 
                 PowerPointAutoShape accent = slide.AddRectangle(box.Left, box.Top, OfficeIMO.OfficeLength.Centimeters(0.12), box.Height,
                     "Case Study Editorial Accent " + (i + 1));
@@ -199,7 +199,7 @@ namespace OfficeIMO.PowerPoint {
                     OfficeIMO.OfficeLength.Centimeters(visualWidth), OfficeIMO.OfficeLength.Centimeters(1.8), "Case Study Editorial Metric Band");
                 metricBand.FillColor = theme.AccentColor;
                 metricBand.OutlineColor = theme.AccentColor;
-                metricBand.SetShadow("000000", blurPoints: 3, distancePoints: 0.8, angleDegrees: 90, transparencyPercent: 88);
+                metricBand.SetShadow("000000", blur: OfficeIMO.OfficeLength.Points(3), distance: OfficeIMO.OfficeLength.Points(0.8), angleDegrees: 90, transparencyPercent: 88);
                 AddMetrics(slide, theme, metrics, visualLeft + 0.35, visualTop + visualHeight + 0.8,
                     visualWidth - 0.7, 1.35);
             }
@@ -216,7 +216,7 @@ namespace OfficeIMO.PowerPoint {
                 "Case Study Visual Band");
             band.FillColor = theme.AccentColor;
             band.OutlineColor = theme.AccentColor;
-            band.SetSoftEdges(1.1);
+            band.SetSoftEdges(OfficeIMO.OfficeLength.Points(1.1));
 
             PowerPointAutoShape wash = slide.AddShape(OfficePresetShapeType.Parallelogram, OfficeIMO.OfficeLength.Centimeters(8.0), OfficeIMO.OfficeLength.Centimeters(bandTop + 0.25),
                 OfficeIMO.OfficeLength.Centimeters(7.2), OfficeIMO.OfficeLength.Centimeters(bandHeight - 0.5), "Case Study Band Wash");

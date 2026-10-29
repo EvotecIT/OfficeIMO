@@ -195,8 +195,8 @@ namespace OfficeIMO.Tests {
                 fifth.HorizontalFlip = true;
                 fifth.OutlineColor = "203864";
                 fifth.OutlineWidthPoints = 2D;
-                fifth.SetShadow("222222", blurPoints: 2D,
-                    distancePoints: 2D, angleDegrees: 90D,
+                fifth.SetShadow("222222", blur: OfficeIMO.OfficeLength.Points(2D),
+                    distance: OfficeIMO.OfficeLength.Points(2D), angleDegrees: 90D,
                     transparencyPercent: 40);
                 PowerPointPicture sixth = AddImage(slide, image, 3500000);
                 sixth.RecolorColor = OfficeColor.Orange;

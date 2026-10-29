@@ -19,7 +19,7 @@ namespace OfficeIMO.Tests {
                 PowerPointSlide slide = presentation.AddSlide();
                 PowerPointAutoShape original = slide.AddRectangle(OfficeIMO.OfficeLength.Emus(1000), OfficeIMO.OfficeLength.Emus(2000), OfficeIMO.OfficeLength.Emus(3000), OfficeIMO.OfficeLength.Emus(4000));
 
-                PowerPointShape duplicate = slide.DuplicateShape(original, 500, 600);
+                PowerPointShape duplicate = slide.DuplicateShape(original, OfficeIMO.OfficeLength.Emus(500), OfficeIMO.OfficeLength.Emus(600));
 
                 Assert.Equal(2, slide.Shapes.Count);
                 Assert.Equal(original.Width.ToEmus(), duplicate.Width.ToEmus());
@@ -70,7 +70,7 @@ namespace OfficeIMO.Tests {
                 slide.AddRectangle(OfficeIMO.OfficeLength.Emus(1500), OfficeIMO.OfficeLength.Emus(0), OfficeIMO.OfficeLength.Emus(1000), OfficeIMO.OfficeLength.Emus(1000));
 
                 PowerPointGroupShape group = slide.GroupShapes(slide.Shapes);
-                PowerPointGroupShape duplicate = Assert.IsType<PowerPointGroupShape>(slide.DuplicateShape(group, 500, 500));
+                PowerPointGroupShape duplicate = Assert.IsType<PowerPointGroupShape>(slide.DuplicateShape(group, OfficeIMO.OfficeLength.Emus(500), OfficeIMO.OfficeLength.Emus(500)));
 
                 Assert.NotEqual(group.Name, duplicate.Name);
                 presentation.Save();
@@ -96,7 +96,7 @@ namespace OfficeIMO.Tests {
                 using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
                     PowerPointSlide slide = presentation.AddSlide();
                     PowerPointChart original = slide.AddChart();
-                    PowerPointChart duplicate = Assert.IsType<PowerPointChart>(slide.DuplicateShape(original, 250000, 0));
+                    PowerPointChart duplicate = Assert.IsType<PowerPointChart>(slide.DuplicateShape(original, OfficeIMO.OfficeLength.Emus(250000), OfficeIMO.OfficeLength.Emus(0)));
 
                     duplicate.UpdateData(new PowerPointChartData(
                         new[] { "Jan", "Feb" },

@@ -116,7 +116,7 @@ namespace OfficeIMO.Tests {
             using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
                 PowerPointSlide slide = presentation.AddSlide();
                 PowerPointPicture original = slide.AddImage(originalImage);
-                PowerPointPicture duplicate = Assert.IsType<PowerPointPicture>(slide.DuplicateShape(original, 250000, 0));
+                PowerPointPicture duplicate = Assert.IsType<PowerPointPicture>(slide.DuplicateShape(original, OfficeIMO.OfficeLength.Emus(250000), OfficeIMO.OfficeLength.Emus(0)));
 
                 using FileStream stream = new(replacementImage, FileMode.Open, FileAccess.Read);
                 original.UpdateImage(stream, OfficeImageFormat.Jpeg);

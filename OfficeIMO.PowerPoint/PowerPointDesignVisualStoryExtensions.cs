@@ -82,7 +82,7 @@ namespace OfficeIMO.PowerPoint {
                 OfficeIMO.OfficeLength.Centimeters(bounds.Width.ToCentimeters() + 0.16), OfficeIMO.OfficeLength.Centimeters(bounds.Height.ToCentimeters() + 0.16), "Screenshot Hero Frame");
             frame.FillColor = theme.AccentDarkColor;
             frame.OutlineColor = theme.AccentDarkColor;
-            frame.SetShadow("000000", blurPoints: 5, distancePoints: 1.5, angleDegrees: 90, transparencyPercent: 82);
+            frame.SetShadow("000000", blur: OfficeIMO.OfficeLength.Points(5), distance: OfficeIMO.OfficeLength.Points(1.5), angleDegrees: 90, transparencyPercent: 82);
             PowerPointPicture picture = slide.AddImage(image,bounds);
             AddImageAnnotations(slide, theme, image, picture, compact: true);
             AddStoryCaption(slide, theme, image.Caption, image.Provenance, 1.55, height - 1.65, width - 3.1);
@@ -242,7 +242,7 @@ namespace OfficeIMO.PowerPoint {
             panel.FillColor = theme.BackgroundColor;
             panel.OutlineColor = theme.AccentColor;
             panel.OutlineWidthPoints = 1.4;
-            panel.SetShadow("000000", blurPoints: 3, distancePoints: 0.8, angleDegrees: 90, transparencyPercent: 88);
+            panel.SetShadow("000000", blur: OfficeIMO.OfficeLength.Points(3), distance: OfficeIMO.OfficeLength.Points(0.8), angleDegrees: 90, transparencyPercent: 88);
             AddText(slide, node.Title, bounds.Left.ToCentimeters() + 0.25, bounds.Top.ToCentimeters() + 0.2,
                 bounds.Width.ToCentimeters() - 0.5, string.IsNullOrWhiteSpace(node.Body) ? bounds.Height.ToCentimeters() - 0.4 : 0.42,
                 10, theme.PrimaryTextColor, theme.HeadingFontName, bold: true);

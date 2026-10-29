@@ -54,7 +54,7 @@ namespace OfficeIMO.PowerPoint {
             frame.FillColor = theme.AccentDarkColor;
             frame.OutlineColor = theme.AccentDarkColor;
             frame.OutlineWidthPoints = 0;
-            frame.SetShadow("000000", blurPoints: 5, distancePoints: 1.5, angleDegrees: 90, transparencyPercent: 82);
+            frame.SetShadow("000000", blur: OfficeIMO.OfficeLength.Points(5), distance: OfficeIMO.OfficeLength.Points(1.5), angleDegrees: 90, transparencyPercent: 82);
 
             PowerPointVisualFrameVariant resolvedVariant = ResolveVisualPlaceholderVariant(variant, intent);
             if (!string.IsNullOrWhiteSpace(imagePath) && File.Exists(imagePath)) {

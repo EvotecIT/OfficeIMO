@@ -133,7 +133,7 @@ namespace OfficeIMO.Tests {
                     PowerPointAutoShape original = slide.AddRectangle(OfficeIMO.OfficeLength.Emus(1000), OfficeIMO.OfficeLength.Emus(2000), OfficeIMO.OfficeLength.Emus(3000), OfficeIMO.OfficeLength.Emus(4000));
                     original.Name = "Source Shape";
 
-                    PowerPointShape duplicate = original.Duplicate(offsetX: 500, offsetY: 600);
+                    PowerPointShape duplicate = original.Duplicate(OfficeIMO.OfficeLength.Emus(500), OfficeIMO.OfficeLength.Emus(600));
                     duplicate.Name = "Duplicated Shape";
 
                     Assert.Equal(2, slide.Shapes.Count);
