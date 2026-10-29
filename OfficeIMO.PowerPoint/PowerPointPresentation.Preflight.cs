@@ -97,11 +97,22 @@ namespace OfficeIMO.PowerPoint {
             }
         }
 
+        private static bool IsLineGeometry(PowerPointShape shape) {
+            if (shape.Element is DocumentFormat.OpenXml.Presentation.ConnectionShape) return true;
+            DocumentFormat.OpenXml.Drawing.PresetGeometry? geometry = shape.Element
+                .Descendants<DocumentFormat.OpenXml.Drawing.PresetGeometry>().FirstOrDefault();
+            DocumentFormat.OpenXml.Drawing.ShapeTypeValues? preset = geometry?.Preset?.Value;
+            return preset == DocumentFormat.OpenXml.Drawing.ShapeTypeValues.Line ||
+                   preset == DocumentFormat.OpenXml.Drawing.ShapeTypeValues.StraightConnector1;
+        }
+
         private static void InspectBounds(PowerPointShape shape, int shapeIndex, int slideIndex,
             PowerPointLayoutBox canvas, PowerPointDeckPreflightOptions options,
             IList<PowerPointDeckPreflightFinding> findings) {
             PowerPointLayoutBox bounds = shape.Bounds;
-            if (bounds.Width <= 0L || bounds.Height <= 0L) {
+            // A horizontal or vertical line has no extent across its direction; only a line without length is invalid.
+            bool line = IsLineGeometry(shape);
+            if (line ? bounds.Width <= 0L && bounds.Height <= 0L : bounds.Width <= 0L || bounds.Height <= 0L) {
                 findings.Add(CreateFinding(PowerPointDeckPreflightSeverity.Error, "layout-invalid-bounds",
                     "Shape has a non-positive width or height.", slideIndex, shapeIndex, shape, bounds));
                 return;
@@ -264,6 +275,7 @@ namespace OfficeIMO.PowerPoint {
             IList<PowerPointDeckPreflightFinding> findings) {
             try {
                 PowerPointSlideVisualInfo snapshot = slide.CreateVisualSnapshot();
+                bool spacingReported = false;
                 for (int index = 0; index < snapshot.Diagnostics.Count; index++) {
                     OfficeImageExportDiagnostic diagnostic = snapshot.Diagnostics[index];
                     PowerPointDeckPreflightSeverity severity = diagnostic.Severity switch {
@@ -271,6 +283,13 @@ namespace OfficeIMO.PowerPoint {
                         OfficeImageExportDiagnosticSeverity.Warning => PowerPointDeckPreflightSeverity.Warning,
                         _ => PowerPointDeckPreflightSeverity.Info
                     };
+                    // Tracking is kept in the file; only the preview approximates it. That says nothing about the
+                    // deck, so it is reported once per slide as information rather than once per text frame.
+                    if (diagnostic.Code == "powerpoint-character-spacing-approximated") {
+                        if (spacingReported) continue;
+                        spacingReported = true;
+                        severity = PowerPointDeckPreflightSeverity.Info;
+                    }
                     findings.Add(new PowerPointDeckPreflightFinding(severity,
                         "VisualSnapshot." + diagnostic.Code, diagnostic.Message, slideIndex,
                         shapeName: diagnostic.Source));
