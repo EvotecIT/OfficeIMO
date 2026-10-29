@@ -51,7 +51,7 @@ internal static partial class PdfFormFiller {
                     continue;
                 }
 
-                if (TryCreateEmbeddedTextAppearanceFontPlan(family, options, displayValue, diagnosticSource, ref nextObjectNumber, out fontPlan, out _)) {
+                if (TryCreateEmbeddedTextAppearanceFontPlan(family, options, displayValue, diagnosticSource, ref nextObjectNumber, out fontPlan, out _, shareWith: objects)) {
                     return true;
                 }
             }
@@ -99,13 +99,22 @@ internal static partial class PdfFormFiller {
         string diagnosticSource,
         ref int nextObjectNumber,
         out TextAppearanceFontPlan? fontPlan,
-        out string? failureMessage) {
+        out string? failureMessage,
+        Dictionary<int, PdfIndirectObject>? shareWith = null) {
         fontPlan = null;
         failureMessage = null;
 
+        // Fields filled in one operation share one embedded font: each field adds its glyphs to the same
+        // program and rewrites the same objects, so the last write covers every value.
+        SharedEmbeddedAppearanceFont? shared = null;
+        if (shareWith != null) {
+            Dictionary<string, SharedEmbeddedAppearanceFont> sharedFonts = SharedEmbeddedAppearanceFonts.GetOrCreateValue(shareWith);
+            sharedFonts.TryGetValue(family.FamilyName, out shared);
+        }
+
         EmbeddedTextAppearanceFontProgram fontProgram;
         try {
-            fontProgram = EmbeddedTextAppearanceFontProgram.Parse(family.RegularSnapshot, family.FamilyName);
+            fontProgram = shared?.Program ?? EmbeddedTextAppearanceFontProgram.Parse(family.RegularSnapshot, family.FamilyName);
         } catch (Exception exception) when (
             exception is NotSupportedException ||
             exception is ArgumentException ||
@@ -126,11 +135,16 @@ internal static partial class PdfFormFiller {
         }
         options?.AddFontDiagnostics(fontProgram.AnalyzeFullFontEmbedding(diagnosticSource));
 
-        int fontFileObjectNumber = nextObjectNumber++;
-        int descriptorObjectNumber = nextObjectNumber++;
-        int descendantFontObjectNumber = nextObjectNumber++;
-        int toUnicodeObjectNumber = nextObjectNumber++;
-        int type0FontObjectNumber = nextObjectNumber++;
+        if (shared == null) {
+            shared = new SharedEmbeddedAppearanceFont(fontProgram, nextObjectNumber);
+            nextObjectNumber += 5;
+            if (shareWith != null) SharedEmbeddedAppearanceFonts.GetOrCreateValue(shareWith)[family.FamilyName] = shared;
+        }
+        int fontFileObjectNumber = shared.FirstObjectNumber;
+        int descriptorObjectNumber = fontFileObjectNumber + 1;
+        int descendantFontObjectNumber = fontFileObjectNumber + 2;
+        int toUnicodeObjectNumber = fontFileObjectNumber + 3;
+        int type0FontObjectNumber = fontFileObjectNumber + 4;
 
         var appearanceFonts = new PdfDictionary();
         appearanceFonts.Items[DefaultAppearanceFontName] = new PdfReference(type0FontObjectNumber, 0);
@@ -153,6 +167,19 @@ internal static partial class PdfFormFiller {
                 toUnicodeObjectNumber,
                 type0FontObjectNumber));
         return true;
+    }
+
+    private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<Dictionary<int, PdfIndirectObject>, Dictionary<string, SharedEmbeddedAppearanceFont>> SharedEmbeddedAppearanceFonts =
+        new System.Runtime.CompilerServices.ConditionalWeakTable<Dictionary<int, PdfIndirectObject>, Dictionary<string, SharedEmbeddedAppearanceFont>>();
+
+    private sealed class SharedEmbeddedAppearanceFont {
+        internal SharedEmbeddedAppearanceFont(EmbeddedTextAppearanceFontProgram program, int firstObjectNumber) {
+            Program = program;
+            FirstObjectNumber = firstObjectNumber;
+        }
+
+        internal EmbeddedTextAppearanceFontProgram Program { get; }
+        internal int FirstObjectNumber { get; }
     }
 
     private static bool TryCreateEmbeddedTextSegmentEncoder(EmbeddedTextAppearanceFontProgram fontProgram, string displayValue, out string? encodedTextHex, out Func<string, string?>? encodeTextSegmentHex) {
@@ -330,6 +357,16 @@ internal static partial class PdfFormFiller {
         objects[descendantFontObjectNumber] = new PdfIndirectObject(descendantFontObjectNumber, 0, CreateCidFontType2Descendant(fontProgram, descriptorObjectNumber));
         objects[toUnicodeObjectNumber] = new PdfIndirectObject(toUnicodeObjectNumber, 0, CreateToUnicodeStream(fontProgram));
         objects[type0FontObjectNumber] = new PdfIndirectObject(type0FontObjectNumber, 0, CreateType0Font(fontProgram, descendantFontObjectNumber, toUnicodeObjectNumber));
+        ApplySubsetFontName(objects, PdfSubsetTag.Apply(fontProgram.FontName, fontProgram.GetUsedGlyphIds(), fontData),
+            descriptorObjectNumber, descendantFontObjectNumber, type0FontObjectNumber);
+    }
+
+    // An embedded subset is named with a subset tag, as PDF requires and archival validators check.
+    private static void ApplySubsetFontName(Dictionary<int, PdfIndirectObject> objects, string subsetName,
+        int descriptorObjectNumber, int descendantFontObjectNumber, int type0FontObjectNumber) {
+        if (objects[descriptorObjectNumber].Value is PdfDictionary descriptor) descriptor.Items["FontName"] = new PdfName(subsetName);
+        if (objects[descendantFontObjectNumber].Value is PdfDictionary descendant) descendant.Items["BaseFont"] = new PdfName(subsetName);
+        if (objects[type0FontObjectNumber].Value is PdfDictionary type0) type0.Items["BaseFont"] = new PdfName(subsetName);
     }
 
     private static void MaterializeEmbeddedTextAppearanceFont(
@@ -346,6 +383,8 @@ internal static partial class PdfFormFiller {
         objects[descendantFontObjectNumber] = new PdfIndirectObject(descendantFontObjectNumber, 0, CreateCidFontType0Descendant(fontProgram, descriptorObjectNumber));
         objects[toUnicodeObjectNumber] = new PdfIndirectObject(toUnicodeObjectNumber, 0, CreateToUnicodeStream(fontProgram));
         objects[type0FontObjectNumber] = new PdfIndirectObject(type0FontObjectNumber, 0, CreateType0Font(fontProgram, descendantFontObjectNumber, toUnicodeObjectNumber));
+        ApplySubsetFontName(objects, PdfSubsetTag.Apply(fontProgram.FontName, System.Array.Empty<int>(), fontData),
+            descriptorObjectNumber, descendantFontObjectNumber, type0FontObjectNumber);
     }
 
     private static PdfStream CreateEmbeddedFontFileStream(byte[] fontData) {
