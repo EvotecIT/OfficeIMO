@@ -22,8 +22,10 @@ internal static class PackedMhtmlContract {
             archive.Resources[0].ContentId != "logo")
             throw new InvalidOperationException("Packed MHTML root selection or CID decoding failed.");
         byte[] pdf = archive.ToPdfDocumentResult().ToBytes();
-        if (!PdfReadDocument.Open(pdf).ExtractText().Contains("Packed archive") ||
-            PdfReadDocument.Open(pdf).ExtractImages().Count(image => image.IsImageFile) != 1)
+        using var pdfInput = new MemoryStream(pdf);
+        using var inspected = PdfDocument.Load(pdfInput);
+        if (!inspected.ExtractText().Contains("Packed archive") ||
+            inspected.ExtractImages().Count(image => image.IsImageFile) != 1)
             throw new InvalidOperationException("Packed MHTML PDF lost text or its embedded image.");
     }
 }
