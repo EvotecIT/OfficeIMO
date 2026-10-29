@@ -239,8 +239,10 @@ namespace OfficeIMO.Tests {
             File.Delete(targetPath);
         }
 
-        [Fact]
-        public void Test_CopyWorksheetPreservesChartSheetScopedName() {
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void Test_CopyWorksheetPreservesChartSheetScopedName(bool useCopyFrom) {
             using MemoryStream stream = CreateRelatedPartCopySource();
             using (SpreadsheetDocument source = SpreadsheetDocument.Open(stream, true)) {
                 WorkbookPart workbook = source.WorkbookPart!;
@@ -252,7 +254,12 @@ namespace OfficeIMO.Tests {
             }
             stream.Position = 0;
             using (var document = ExcelDocument.Load(stream)) {
-                document.CopyWorksheet("Report", "Copy");
+                if (useCopyFrom) {
+                    document.CopyWorksheetFrom(document, "Report", "Copy", ExcelSheetNameValidationMode.Strict,
+                        new ExcelWorksheetCopyOptions { CopyMode = ExcelWorksheetCopyMode.Package });
+                } else {
+                    document.CopyWorksheet("Report", "Copy");
+                }
                 document.Save();
             }
             stream.Position = 0;

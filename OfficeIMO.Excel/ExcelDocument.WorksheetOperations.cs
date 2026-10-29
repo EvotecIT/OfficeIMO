@@ -108,7 +108,12 @@ namespace OfficeIMO.Excel {
                     options.MaxInCellImageBytes,
                     options.MaxTotalInCellImageBytes);
                 sourceSheet.PreflightInCellImages(inCellImageContext);
-                return CopyWorksheetWithinWorkbook(sourceSheet, newSheetName, validationMode).Sheet;
+                PreflightReferencedDefinedNamesFromSource(this, new[] { sourceSheet },
+                    new DefinedNameCopyBudget(options.MaxDefinedNames, options.MaxDefinedNameCharacters));
+                WorksheetPackageCopyResult result = CopyWorksheetWithinWorkbook(sourceSheet, newSheetName, validationMode);
+                var sheetMap = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase) { [sourceSheet.Name] = result.Sheet.Name };
+                CopyReferencedDefinedNamesFromSource(this, result.Sheet, sheetMap, result.TableNameMap);
+                return result.Sheet;
             }
 
             return options.CopyMode == ExcelWorksheetCopyMode.Values
