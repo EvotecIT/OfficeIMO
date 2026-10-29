@@ -96,6 +96,7 @@ public sealed class StudioAnnotationSelectionTests {
                 window.UpdateLayout(); await model.SelectedPage!.EnsureRenderedAsync(); window.UpdateLayout();
                 canvas = window.GetVisualDescendants().OfType<PdfPageCanvas>().First(control =>
                     control.Scene?.PageNumber == 1 && control.SelectionMode == PdfEditorSelectionMode.Annotations);
+                double pointerTolerance = canvas.Scene!.Drawing.Width / canvas.Bounds.Width;
                 window.MouseDown(At(100, 170), MouseButton.Left);
                 window.MouseMove(At(125, 160), RawInputModifiers.LeftMouseButton);
                 window.MouseUp(At(125, 160), MouseButton.Left);
@@ -105,8 +106,10 @@ public sealed class StudioAnnotationSelectionTests {
                 Assert.Null(model.ErrorMessage);
                 await model.SaveAsCommand.ExecuteAsync(null);
                 var moved = PdfDocument.Load(new System.IO.MemoryStream(File.ReadAllBytes(saved))).Inspect().Annotations.Where(item => item.Name is "square" or "circle").ToArray();
-                // Headless pointer delivery rounds device pixels; both members must receive the same translation.
-                Assert.InRange(moved.Single(item => item.Name == "square").X1, 84, 86);
+                // Dragging can snap within four page points of a nearby edge; pointer delivery also rounds pixels.
+                // Both members must still receive exactly the same translation.
+                Assert.InRange(moved.Single(item => item.Name == "square").X1,
+                    85 - 4 - pointerTolerance, 85 + 4 + pointerTolerance);
                 Assert.Equal(100, moved.Single(item => item.Name == "circle").X1 - moved.Single(item => item.Name == "square").X1, 7);
                 await model.UndoCommand.ExecuteAsync(null);
                 await model.SaveAsCommand.ExecuteAsync(null);

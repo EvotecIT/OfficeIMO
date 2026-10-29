@@ -18,6 +18,10 @@ public partial class Excel {
         // XLSB also applies this budget to decompressed parts. The prefix alone
         // exceeds the budget, so successful opening proves only remaining bytes are read.
         long inputBudget = workbook.Length * 2L;
+        if (format == ExcelFileFormat.Xlsb) {
+            using var package = new System.IO.Compression.ZipArchive(new MemoryStream(workbook));
+            inputBudget = Math.Max(inputBudget, package.Entries.Sum(entry => entry.Length));
+        }
         int prefixLength = checked((int)inputBudget + 17);
         byte[] prefixed = new byte[workbook.Length + prefixLength];
         Array.Copy(workbook, 0, prefixed, prefixLength, workbook.Length);

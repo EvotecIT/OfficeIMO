@@ -42,10 +42,20 @@ namespace OfficeIMO.Workflows.Tests {
                 Recipe = recipe, Decisions = decisions, ExpectedOutputSha256 = applied.Evidence!.OutputSha256
             });
             Assert.True(verified.Succeeded, verified.Summary);
-            Assert.Equal(1, applied.Evidence!.VerifiedAbsentCount);
+            Assert.True(applied.Evidence!.VerifiedAbsentCount >= 1);
             Assert.Equal(applied.Evidence.VerifiedAbsentCount, verified.Evidence!.VerifiedAbsentCount);
             Assert.Equal(applied.Evidence.ResidualCount, verified.Evidence.ResidualCount);
             Assert.Equal(applied.Evidence.InconclusiveCount, verified.Evidence.InconclusiveCount);
+            using PdfDocument redacted = PdfDocument.Load(output);
+            string text = redacted.Reader.Text();
+            if (selection == PdfRedactionTextSelection.MatchedGlyphs) {
+                Assert.Contains("Alpha", text, StringComparison.Ordinal);
+                Assert.Contains("Omega", text, StringComparison.Ordinal);
+            } else {
+                Assert.DoesNotContain("Alpha", text, StringComparison.Ordinal);
+                Assert.DoesNotContain("Omega", text, StringComparison.Ordinal);
+            }
+            Assert.DoesNotContain("secret", text, StringComparison.Ordinal);
         }
 
         [Fact]

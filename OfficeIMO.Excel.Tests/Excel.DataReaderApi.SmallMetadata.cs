@@ -41,7 +41,9 @@ public partial class Excel {
         string path = CreateCompactFastPathWorkbook();
         try {
             string xml = Encoding.UTF8.GetString(ReadZipEntry(path, "xl/workbook.xml"));
-            int rootStart = xml.IndexOf("<workbook", StringComparison.Ordinal);
+            int declarationEnd = xml.StartsWith("<?xml", StringComparison.Ordinal)
+                ? xml.IndexOf("?>", StringComparison.Ordinal) + 2 : 0;
+            int rootStart = xml.IndexOf('<', declarationEnd);
             xml = xml.Insert(rootStart, "<!DOCTYPE workbook [<!ENTITY name 'unexpected'>]>");
             ReplaceZipEntry(path, "xl/workbook.xml", Encoding.UTF8.GetBytes(xml));
             Assert.Throws<XlsxTabularFastPathNotSupportedException>(() =>

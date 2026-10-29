@@ -80,6 +80,8 @@ namespace OfficeIMO.Tests {
             using var document = ExcelDocument.Create(new MemoryStream());
             ExcelSheet sheet = document.AddWorksheet("Data");
             AddQueryTableRefreshSortState(document, sheet, "A5:C10");
+            // Isolate the semantic query-table scan from admission of the generated theme's unloaded XML.
+            _ = document.OpenXmlDocument.WorkbookPart?.ThemePart?.Theme;
 
             ExcelRowMutationPlan baseline = sheet.PlanInsertRows(5);
             ExcelRowMutationPlan bounded = sheet.PlanInsertRows(
