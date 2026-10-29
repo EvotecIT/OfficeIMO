@@ -256,6 +256,7 @@ namespace OfficeIMO.Tests {
             }
             sheet.WorksheetPart.Worksheet.Append(
                 new AutoFilter(sortState) { Reference = "A1:A64" });
+            _ = document.OpenXmlDocument.WorkbookPart?.ThemePart?.Theme;
             ExcelRowMutationPlan baseline = sheet.PlanInsertRows(65);
 
             ExcelRowMutationPlan exactBudget = sheet.PlanInsertRows(
@@ -284,6 +285,7 @@ namespace OfficeIMO.Tests {
                 });
             }
             sheetData.Append(row);
+            _ = document.OpenXmlDocument.WorkbookPart?.ThemePart?.Theme;
             ExcelRowMutationPlan baseline = sheet.PlanInsertRows(2);
 
             ExcelRowMutationPlan exactBudget = sheet.PlanInsertRows(

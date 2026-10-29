@@ -1,5 +1,6 @@
 using OfficeIMO.Excel;
 using OfficeIMO.Excel.Pdf;
+using OfficeIMO.Drawing;
 using PdfPigDocument = UglyToad.PdfPig.PdfDocument;
 using Xunit;
 
@@ -12,7 +13,7 @@ public partial class Excel {
     /// <summary>Registers a bundled font as the workbook default so column units and "####" decisions are deterministic.</summary>
     private static ExcelPdfExportOptions CreateDeterministicFontOptions() => new ExcelPdfExportOptions {
         PdfOptions = new OfficeIMO.Pdf.PdfCreateOptions().RegisterNamedFontFamily(new OfficeIMO.Pdf.PdfEmbeddedFontFamily(
-            "Calibri", OfficeIMO.TestAssets.PdfTestFontAssets.LoadBundledOpenTypeCffFont()))
+            OfficeTheme.Default.Fonts.Body.Family, OfficeIMO.TestAssets.PdfTestFontAssets.LoadBundledOpenTypeCffFont()))
     };
 
     private static string GetPageText(UglyToad.PdfPig.Content.Page page) =>

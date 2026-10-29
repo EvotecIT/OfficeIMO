@@ -75,6 +75,7 @@ namespace OfficeIMO.Tests {
             using (var connectionDocument = ExcelDocument.Create(new MemoryStream())) {
                 ExcelSheet sheet = connectionDocument.AddWorksheet("Data");
                 Parameter parameter = AttachCellBackedConnection(connectionDocument, sheet, "A1");
+                _ = connectionDocument.OpenXmlDocument.WorkbookPart?.ThemePart?.Theme;
                 var options = new ExcelMutationPlanOptions { MaximumScannedElements = 128 };
                 Assert.NotNull(sheet.PlanInsertColumns(2, options: options));
                 Parameters parameters = (Parameters)parameter.Parent!;
@@ -96,6 +97,7 @@ namespace OfficeIMO.Tests {
             using (var vmlDocument = ExcelDocument.Create(new MemoryStream())) {
                 ExcelSheet sheet = vmlDocument.AddWorksheet("Data");
                 sheet.SetComment(1, 1, "Comment", "Author");
+                _ = vmlDocument.OpenXmlDocument.WorkbookPart?.ThemePart?.Theme;
                 var options = new ExcelMutationPlanOptions { MaximumScannedElements = 128 };
                 Assert.NotNull(sheet.PlanInsertColumns(2, options: options));
                 VmlDrawingPart vmlPart = Assert.Single(sheet.WorksheetPart.VmlDrawingParts);

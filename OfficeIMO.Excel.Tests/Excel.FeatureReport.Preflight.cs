@@ -948,7 +948,9 @@ namespace OfficeIMO.Tests {
 
         private static void AddWorksheetInternalHyperlink(string filePath, string cellReference, string location) {
             using SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, true);
-            WorksheetPart worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+            WorkbookPart workbookPart = spreadsheet.WorkbookPart!;
+            X.Sheet firstSheet = workbookPart.Workbook.Sheets!.Elements<X.Sheet>().First();
+            WorksheetPart worksheetPart = (WorksheetPart)workbookPart.GetPartById(firstSheet.Id!.Value!);
             X.Hyperlinks hyperlinks = worksheetPart.Worksheet!.Elements<X.Hyperlinks>().FirstOrDefault()
                 ?? worksheetPart.Worksheet.AppendChild(new X.Hyperlinks());
             hyperlinks.Append(new X.Hyperlink {

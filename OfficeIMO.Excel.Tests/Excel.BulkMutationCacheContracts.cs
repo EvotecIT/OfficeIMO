@@ -47,7 +47,9 @@ namespace OfficeIMO.Tests {
                 Assert.False(applied.Bold);
             }
             using var saved = SpreadsheetDocument.Open(stream, false);
-            Cell cell = saved.WorkbookPart!.WorksheetParts.First().Worksheet.Descendants<Cell>()
+            WorkbookPart workbookPart = saved.WorkbookPart!;
+            Sheet valuesSheet = workbookPart.Workbook.Sheets!.Elements<Sheet>().Single(item => item.Name?.Value == "Values");
+            Cell cell = ((WorksheetPart)workbookPart.GetPartById(valuesSheet.Id!.Value!)).Worksheet.Descendants<Cell>()
                 .Single(item => item.CellReference?.Value == "A3");
             CellFormat format = saved.WorkbookPart.WorkbookStylesPart!.Stylesheet!.CellFormats!
                 .Elements<CellFormat>().ElementAt((int)cell.StyleIndex!.Value);
@@ -77,7 +79,9 @@ namespace OfficeIMO.Tests {
             Assert.Equal("Stable", saved.Sheets[0].CellAt(1, 1).GetValue<string>());
             Assert.NotEmpty(saved.Sheets[0].CellAt(2, 1).GetFormattedText());
             using var package = SpreadsheetDocument.Open(stream, false);
-            Cell cell = package.WorkbookPart!.WorksheetParts.First().Worksheet.Descendants<Cell>()
+            WorkbookPart workbookPart = package.WorkbookPart!;
+            Sheet valuesSheet = workbookPart.Workbook.Sheets!.Elements<Sheet>().Single(item => item.Name?.Value == "Values");
+            Cell cell = ((WorksheetPart)workbookPart.GetPartById(valuesSheet.Id!.Value!)).Worksheet.Descendants<Cell>()
                 .Single(item => item.CellReference?.Value == "A2");
             CellFormat format = package.WorkbookPart.WorkbookStylesPart!.Stylesheet!.CellFormats!
                 .Elements<CellFormat>().ElementAt((int)cell.StyleIndex!.Value);

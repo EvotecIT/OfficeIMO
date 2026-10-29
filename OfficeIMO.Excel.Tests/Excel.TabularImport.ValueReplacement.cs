@@ -193,7 +193,10 @@ namespace OfficeIMO.Tests {
             byte[] package = document.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xlsx });
 
             using var spreadsheet = SpreadsheetDocument.Open(new MemoryStream(package, writable: false), false);
-            var written = spreadsheet.WorkbookPart!.WorksheetParts.First().Worksheet.Descendants<Cell>().ToDictionary(cell => cell.CellReference!.Value!);
+            WorkbookPart workbookPart = spreadsheet.WorkbookPart!;
+            Sheet dataSheet = workbookPart.Workbook.Sheets!.Elements<Sheet>().Single(item => item.Name?.Value == "Data");
+            var written = ((WorksheetPart)workbookPart.GetPartById(dataSheet.Id!.Value!)).Worksheet
+                .Descendants<Cell>().ToDictionary(cell => cell.CellReference!.Value!);
             foreach (string reference in new[] { "A2", "B2" }) {
                 Assert.Null(written[reference].CellFormula);
                 Assert.Null(written[reference].InlineString);

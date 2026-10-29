@@ -72,6 +72,7 @@ namespace OfficeIMO.Tests {
                 });
             }
             sheet.WorksheetPart.Worksheet.Append(formatting);
+            _ = document.OpenXmlDocument.WorkbookPart?.ThemePart?.Theme;
             ExcelRowMutationPlan baseline = sheet.PlanDeleteRows(2, 2);
 
             ExcelRowMutationPlan exactBudget = sheet.PlanDeleteRows(

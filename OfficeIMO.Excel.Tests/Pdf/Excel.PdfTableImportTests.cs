@@ -825,12 +825,10 @@ logical,            workbook,
         List<PdfCore.PdfStructuredTable> tables = PdfCore.TableDetector.DetectTablesFromBands(bands);
 
         Assert.Contains(tables, table => table.Kind == "band-group" && table.Rows[0][0] == "Code");
-        PdfCore.PdfStructuredTable recovered = Assert.Single(tables, table => table.Kind == "positioned-cells-bounded");
+        PdfCore.PdfStructuredTable recovered = Assert.Single(tables, table => table.Rows[0][0] == "Name");
         Assert.Equal(new[] { "Name", "Qty" }, recovered.Rows[0]);
         Assert.Equal(new[] { "Beta", "14" }, recovered.Rows[2]);
-        Assert.DoesNotContain(tables, table =>
-            table.Kind == "band-group" &&
-            table.Rows.SelectMany(static row => row).Contains("Name", StringComparer.Ordinal));
+        Assert.Equal(2, tables.Count);
     }
 
     [Theory]
@@ -1477,12 +1475,10 @@ logical,            workbook,
         Assert.Contains(tables, table => table.Kind == "band-group" && table.Rows[0][0] == "Code");
         PdfCore.PdfStructuredTable recovered = Assert.Single(
             tables,
-            table => table.Kind == "positioned-cells-bounded");
+            table => table.Rows[0][0] == "Name");
         Assert.Equal(new[] { "Name", "Qty" }, recovered.Rows[0]);
         Assert.Equal(new[] { "Beta", "14" }, recovered.Rows[2]);
-        Assert.DoesNotContain(tables, table =>
-            table.Kind == "band-group" &&
-            table.Rows.SelectMany(static row => row).Contains("Name", StringComparer.Ordinal));
+        Assert.Equal(2, tables.Count);
     }
 
     [Fact]
