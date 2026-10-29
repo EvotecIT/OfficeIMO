@@ -10,6 +10,7 @@ namespace OfficeIMO.Excel {
 
         /// <summary>
         /// Copy worksheet XML directly, rewriting workbook-scoped references such as shared strings and styles.
+        /// Drawings, charts, legacy and threaded comments, header/footer VML and external hyperlinks are cloned with the sheet.
         /// </summary>
         Package = 1
     }

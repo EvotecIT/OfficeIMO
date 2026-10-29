@@ -114,7 +114,7 @@
         "dependencies": {
           "DocumentFormat.OpenXml": "[3.5.1, 4.0.0)",
           "Microsoft.Bcl.AsyncInterfaces": "[10.0.9, )",
-          "OfficeIMO.Core": "[3.5.1, )",
+          "OfficeIMO.Core": "[3.5.3, )",
           "System.Text.Encoding.CodePages": "[10.0.9, )",
           "System.Text.Json": "[10.0.7, 11.0.0)"
         }
@@ -122,7 +122,7 @@
       "officeimo.pdf": {
         "type": "Project",
         "dependencies": {
-          "OfficeIMO.Core": "[3.5.1, )"
+          "OfficeIMO.Core": "[3.5.3, )"
         }
       }
     },
@@ -263,7 +263,7 @@
         "dependencies": {
           "DocumentFormat.OpenXml": "[3.5.1, 4.0.0)",
           "Microsoft.Bcl.AsyncInterfaces": "[10.0.9, )",
-          "OfficeIMO.Core": "[3.5.1, )",
+          "OfficeIMO.Core": "[3.5.3, )",
           "System.Text.Encoding.CodePages": "[10.0.9, )",
           "System.Text.Json": "[10.0.7, 11.0.0)"
         }
@@ -271,7 +271,7 @@
       "officeimo.pdf": {
         "type": "Project",
         "dependencies": {
-          "OfficeIMO.Core": "[3.5.1, )"
+          "OfficeIMO.Core": "[3.5.3, )"
         }
       }
     },
@@ -284,9 +284,9 @@
     "net10.0": {
       "Microsoft.NET.ILLink.Tasks": {
         "type": "Direct",
-        "requested": "[10.0.13, )",
-        "resolved": "10.0.13",
-        "contentHash": "40yrBMsLEcjixBR4G+FiUaBPvxXIPSKJ2OgSrbOZcmSDBda4Sb0k7BWrfDpIvn3IvvDzwOL/tEPa6gDQfh6aRw=="
+        "requested": "[10.0.14, )",
+        "resolved": "10.0.14",
+        "contentHash": "YlTamXppEQls6DYWt7RdUuwWDb0lyw/vXCaGeQpLCpsLmfwGuCkOz/vIGgMTV7ECsJcavkCOkxZXv9s8rdAHkQ=="
       },
       "DocumentFormat.OpenXml": {
         "type": "Transitive",
@@ -316,13 +316,13 @@
         "type": "Project",
         "dependencies": {
           "DocumentFormat.OpenXml": "[3.5.1, 4.0.0)",
-          "OfficeIMO.Core": "[3.5.1, )"
+          "OfficeIMO.Core": "[3.5.3, )"
         }
       },
       "officeimo.pdf": {
         "type": "Project",
         "dependencies": {
-          "OfficeIMO.Core": "[3.5.1, )"
+          "OfficeIMO.Core": "[3.5.3, )"
         }
       }
     },
@@ -335,9 +335,9 @@
     "net8.0": {
       "Microsoft.NET.ILLink.Tasks": {
         "type": "Direct",
-        "requested": "[8.0.32, )",
-        "resolved": "8.0.32",
-        "contentHash": "FQXkG87JK9+SEbF6vRcWmevk0Pjqgehhz+9e1hHATDh7U8EvgmVQQcEUJTXj1IKi8VqLrdi/c1QHOpVjZcd9ng=="
+        "requested": "[8.0.33, )",
+        "resolved": "8.0.33",
+        "contentHash": "dG9SM/0/zOTIE1UvSrveD1iDyEJjThqPqSnreExgqQWSoGWvze0esDi0faRk3C44IO1kqCeEX6AeCxWmBOppfw=="
       },
       "DocumentFormat.OpenXml": {
         "type": "Transitive",
@@ -372,14 +372,14 @@
         "type": "Project",
         "dependencies": {
           "DocumentFormat.OpenXml": "[3.5.1, 4.0.0)",
-          "OfficeIMO.Core": "[3.5.1, )",
+          "OfficeIMO.Core": "[3.5.3, )",
           "System.Text.Encoding.CodePages": "[10.0.9, )"
         }
       },
       "officeimo.pdf": {
         "type": "Project",
         "dependencies": {
-          "OfficeIMO.Core": "[3.5.1, )"
+          "OfficeIMO.Core": "[3.5.3, )"
         }
       }
     },

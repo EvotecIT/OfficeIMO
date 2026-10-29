@@ -19,7 +19,7 @@ concurrency:
 env:
   DOTNET_VERSION: |
     8.0.426
-    10.0.113
+    10.0.114
   MSBUILDDISABLENODEREUSE: '1'
   DOTNET_CLI_USE_MSBUILD_SERVER: '0'
   BUILD_CONFIGURATION: 'Release'
@@ -386,7 +386,8 @@ jobs:
       - uses: actions/checkout@v7
       - uses: actions/setup-dotnet@v6
         with:
-          dotnet-version: ${{ env.DOTNET_VERSION }}
+          # Match the servicing SDK used to refresh both host-specific release locks.
+          dotnet-version: 10.0.114
       - uses: ./.github/actions/nuget-cache
       - name: Validate the Studio release restore graph
         shell: pwsh

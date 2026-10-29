@@ -32,6 +32,17 @@ Matched-glyph redaction includes clipping-only text in its search and reports
 unsupported clipping modes in the plan instead of silently omitting them.
 Check `PdfRedactionPlan.IsReviewable` and inspect `Findings` before applying
 the plan; a matching clipping-mode span requires a supported redaction strategy.
+## Excel worksheet copies keep drawings, comments and links
+
+`CopyWorksheet`, `CopyWorksheetFrom` with `ExcelWorksheetCopyMode.Package` and package-mode `MergeWorkbookFrom` now keep the copied sheet's images, charts, shapes, legacy and threaded comments, header/footer images, background picture and external hyperlinks. Earlier versions removed them. Copied threaded comments receive new ids, and the people they mention are added to the target workbook. Code that removed these features after copying, or that expected the copy to have none, should remove them explicitly with the sheet's comment, image and hyperlink APIs. See the [worksheet copy contract](OfficeIMO.Excel/COMPATIBILITY.md#workbook-capabilities).
+
+## Word document append
+
+`WordDocument.AppendDocument` now keeps the page setup of each document: the destination's final section properties become a section break before the appended content, which starts in its own section (a new page unless the source section says otherwise). To continue the appended content in the destination's section, as a workaround that moved the destination's closing `w:sectPr` did before, pass `new WordDocumentMergeOptions { SectionMode = WordMergeSectionMode.UseDestinationSections }`.
+
+Source styles now match destination styles by name before id, so a source style with a different id but the same name (for example a localized `Heading 1`) uses the destination style instead of being copied alongside it. Appended footnotes, endnotes and comments are copied with renumbered ids, and source bookmarks whose names already exist in the destination are renamed with a numeric suffix (`Intro` becomes `Intro_1`); hyperlinks and fields in the appended content follow the new name.
+
+`WordTableOfContent.RefreshEntries()` also includes paragraphs whose style, or a style it is based on, sets an outline level 1-9 when the TOC uses `\u` (as Word's default TOC does), and heading styles copied by a merge such as `heading 1_0`.
 
 ## JavaScript CanopyX pivot captures
 

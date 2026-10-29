@@ -8,7 +8,9 @@ namespace OfficeIMO.Word {
         NestedInstruction,
         ListNumberingProfileUnsupported,
         CallerProvidedDateTime,
-        RuntimeClock
+        RuntimeClock,
+        LayoutPagination,
+        TableOfContentsRegenerated
     }
 
     /// <summary>Describes the evidence OfficeIMO used to produce or defer a field result.</summary>
@@ -24,7 +26,9 @@ namespace OfficeIMO.Word {
         /// <summary>The result used the explicit update date/time supplied by the caller.</summary>
         CallerProvidedDateTime,
         /// <summary>The result used the host runtime clock because no update date/time was supplied by the caller.</summary>
-        RuntimeClock
+        RuntimeClock,
+        /// <summary>The page number came from OfficeIMO's own page layout of the document.</summary>
+        LayoutPagination
     }
 
     /// <summary>Describes how generated TOC, index, and caption-list page references were calculated.</summary>
@@ -53,6 +57,14 @@ namespace OfficeIMO.Word {
 
             if (status == WordFieldUpdateStatus.Updated && reason == WordFieldEvaluationReason.CallerProvidedDateTime) {
                 return WordFieldEvaluationBasis.CallerProvidedDateTime;
+            }
+
+            if (status == WordFieldUpdateStatus.Updated && reason == WordFieldEvaluationReason.LayoutPagination) {
+                return WordFieldEvaluationBasis.LayoutPagination;
+            }
+
+            if (status == WordFieldUpdateStatus.Updated && reason == WordFieldEvaluationReason.TableOfContentsRegenerated) {
+                return WordFieldEvaluationBasis.InvariantDocumentModel;
             }
 
             if (!isLocked && status == WordFieldUpdateStatus.Skipped && fieldType is WordFieldType.TOC or WordFieldType.Index) {
@@ -90,6 +102,8 @@ namespace OfficeIMO.Word {
             if (status == WordFieldUpdateStatus.Skipped) return "FieldSourceUnavailable";
             if (reason == WordFieldEvaluationReason.RuntimeClock) return "FieldUpdatedFromRuntimeClock";
             if (reason == WordFieldEvaluationReason.CallerProvidedDateTime) return "FieldUpdatedFromCallerDateTime";
+            if (reason == WordFieldEvaluationReason.LayoutPagination) return "FieldUpdatedFromLayout";
+            if (reason == WordFieldEvaluationReason.TableOfContentsRegenerated) return "FieldTableOfContentsRegenerated";
             return GetBasis(fieldType, status, isLocked, reason) == WordFieldEvaluationBasis.ExplicitBreakEstimate
                 ? "FieldUpdatedFromExplicitBreaks"
                 : "FieldUpdatedInvariant";
