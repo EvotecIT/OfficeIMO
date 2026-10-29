@@ -106,6 +106,7 @@
         <InternalsVisibleTo Include="OfficeIMO.PowerPoint.Pdf" />
     <InternalsVisibleTo Include="OfficeIMO.Pdf.PowerPoint" />
         <InternalsVisibleTo Include="OfficeIMO.PowerPoint.Html" />
+        <InternalsVisibleTo Include="OfficeIMO.PowerPoint.OpenDocument" />
         <InternalsVisibleTo Include="OfficeIMO.PowerPoint.GoogleSlides" />
         <InternalsVisibleTo Include="OfficeIMO.Markup.PowerPoint" />
         <InternalsVisibleTo Include="OfficeIMO.PowerPoint.IWork" />

@@ -99,7 +99,7 @@ namespace OfficeIMO.PowerPoint {
             if (legacy == null) throw new ArgumentNullException(nameof(legacy));
             cancellationToken.ThrowIfCancellationRequested();
             ValidateLegacyContentSecurity(legacy, loadOptions);
-            using PowerPointPresentation projected = Create();
+            using PowerPointPresentation projected = CreateForImport();
             ApplyLegacyDocumentSettings(projected, legacy);
             var soundContext = new LegacyPptSoundProjectionContext(legacy);
             var deferredInteractions =
@@ -250,6 +250,7 @@ namespace OfficeIMO.PowerPoint {
                         using var image = new MemoryStream(shape.Picture.ImageBytes, writable: false);
                         projectedShape = slide.AddPicture(image,
                             GetLegacyPicturePartType(shape.Picture.ContentType), left, top, width, height);
+                        projectedShape.Bounds = new PowerPointLayoutBox(left, top, width, height);
                     }
                     break;
                 case LegacyPptShapeKind.OleObject:

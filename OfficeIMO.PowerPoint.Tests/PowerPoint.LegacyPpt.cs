@@ -179,6 +179,9 @@ namespace OfficeIMO.Tests {
             PowerPointPicture picture = Assert.Single(slide.Pictures);
             Assert.Equal("image/png", picture.ContentType);
             Assert.Equal(expected, picture.GetImageBytes());
+            LegacyPptShape sourcePicture = Assert.Single(legacy.Slides[0].Shapes,
+                shape => shape.Kind == LegacyPptShapeKind.Picture);
+            AssertLegacyPictureBounds(sourcePicture, picture);
             Assert.Single(slide.SlidePart.ImageParts);
             Assert.Empty(presentation.ValidateDocument());
 
@@ -286,6 +289,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void NormalLoad_ProjectsSignedPictureCropAndPreservesBinaryExactly() {
+            LegacyPptPresentation source = LegacyPptPresentation.Load(CroppedPictureFixturePath);
             using PowerPointPresentation presentation = PowerPointPresentation.Load(
                 CroppedPictureFixturePath);
             PowerPointPicture[] pictures = Assert.Single(presentation.Slides).Pictures
@@ -293,6 +297,11 @@ namespace OfficeIMO.Tests {
                 .ToArray();
 
             Assert.Equal(2, pictures.Length);
+            LegacyPptShape[] sourcePictures = source.Slides[0].Shapes
+                .Where(shape => shape.Kind == LegacyPptShapeKind.Picture)
+                .OrderBy(shape => shape.Bounds.Left).ToArray();
+            for (int index = 0; index < pictures.Length; index++)
+                AssertLegacyPictureBounds(sourcePictures[index], pictures[index]);
             Assert.Equal(0.125D, pictures[0].CropLeftRatio, 5);
             Assert.Equal(0.24992D, pictures[0].CropTopRatio, 5);
             Assert.Equal(0.06245D, pictures[0].CropRightRatio, 5);
@@ -304,6 +313,13 @@ namespace OfficeIMO.Tests {
             Assert.True(presentation.AnalyzeLegacyPptWrite().CanWrite);
             Assert.Equal(File.ReadAllBytes(CroppedPictureFixturePath),
                 presentation.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt }));
+        }
+
+        private static void AssertLegacyPictureBounds(LegacyPptShape source, PowerPointPicture target) {
+            Assert.Equal(source.Bounds.Left / 8D, target.LeftPoints, 3);
+            Assert.Equal(source.Bounds.Top / 8D, target.TopPoints, 3);
+            Assert.Equal(source.Bounds.Width / 8D, target.WidthPoints, 3);
+            Assert.Equal(source.Bounds.Height / 8D, target.HeightPoints, 3);
         }
 
         [Fact]

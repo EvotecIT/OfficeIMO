@@ -305,7 +305,7 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
         PowerPointOpenDocumentConversionOptions? options = null) {
         if (source == null) throw new ArgumentNullException(nameof(source));
         PowerPointOpenDocumentConversionOptions effective = NormalizeOptions(options);
-        PowerPointPresentation target = PowerPointPresentation.Create();
+        PowerPointPresentation target = PowerPointPresentation.CreateForImport();
         var report = new OdfConversionReport("ODP", "PPTX");
         CultureInfo textCaseCulture = OdfTextCultureResolver.Resolve(source.Metadata.Language);
         CopyOdpMetadata(source, target, report);
@@ -410,6 +410,8 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
                         }
                         using var stream = new MemoryStream(imageBytes, writable: false);
                         PowerPointPicture converted = targetSlide.AddPicture(stream, imageInfo.Format, imageBounds);
+                        // Import retains the source frame, including intentional stretching.
+                        converted.Bounds = imageBounds;
                         converted.Name = image.Name;
                         unsupportedMeasurements += CopyShapeAppearance(image, converted, effective);
                         unsupportedImageCrop += ApplyOdpCrop(image, imageInfo, converted);

@@ -5,6 +5,8 @@ using A = DocumentFormat.OpenXml.Drawing;
 
 namespace OfficeIMO.PowerPoint {
     public partial class PowerPointParagraph {
+        internal const int MaximumTabStops = 32;
+
         /// <summary>Gets the paragraph's explicit tab stops in points.</summary>
         public IReadOnlyList<PowerPointTabStop> TabStops => Paragraph.ParagraphProperties?
             .GetFirstChild<A.TabStopList>()?.Elements<A.TabStop>()
@@ -12,11 +14,13 @@ namespace OfficeIMO.PowerPoint {
                 FromTabAlignment(tab.Alignment?.Value ?? A.TextTabAlignmentValues.Left))).ToArray()
             ?? Array.Empty<PowerPointTabStop>();
 
-        /// <summary>Replaces explicit tab stops. An empty sequence removes locally configured stops.</summary>
+        /// <summary>Replaces up to 32 explicit tab stops. An empty sequence removes locally configured stops.</summary>
         public PowerPointParagraph SetTabStops(IEnumerable<PowerPointTabStop> tabStops) {
             if (tabStops == null) throw new ArgumentNullException(nameof(tabStops));
             var list = new A.TabStopList();
             foreach (PowerPointTabStop tab in tabStops) {
+                if (list.ChildElements.Count == MaximumTabStops)
+                    throw new ArgumentException("DrawingML paragraphs support at most 32 explicit tab stops.", nameof(tabStops));
                 if (tab == null) throw new ArgumentException("Tab stops cannot contain null.", nameof(tabStops));
                 list.Append(new A.TabStop {
                     Position = checked((int)Math.Round(tab.PositionPoints * 12700d, MidpointRounding.AwayFromZero)),

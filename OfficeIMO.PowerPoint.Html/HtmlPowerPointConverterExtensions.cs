@@ -58,7 +58,7 @@ public static partial class HtmlPowerPointConverterExtensions {
         HtmlEditableLayoutProjection? editableLayout = null) {
         options.Limits.Validate();
         if (!Enum.IsDefined(typeof(HtmlImportMode), options.Mode)) throw new ArgumentOutOfRangeException(nameof(options.Mode));
-        PptCore.PowerPointPresentation presentation = PptCore.PowerPointPresentation.Create();
+        PptCore.PowerPointPresentation presentation = PptCore.PowerPointPresentation.CreateForImport();
         var result = new HtmlToPowerPointResult(presentation);
         if (initialDiagnostics != null) {
             foreach (HtmlDiagnostic diagnostic in initialDiagnostics) result.AddImportDiagnostic(diagnostic);

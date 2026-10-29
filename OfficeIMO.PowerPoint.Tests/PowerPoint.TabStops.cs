@@ -13,6 +13,8 @@ public class PowerPointTabStopsTests {
         var paragraph = presentation.AddSlide().AddTextBox("A\tB").Paragraphs.Single();
         paragraph.SetTabStops(new[] { new PowerPointTabStop(18), new PowerPointTabStop(72, PowerPointTabAlignment.Decimal) });
         Assert.Throws<ArgumentException>(() => paragraph.SetTabStops(new PowerPointTabStop[] { new(36), null! }));
+        Assert.Throws<ArgumentException>(() => paragraph.SetTabStops(
+            Enumerable.Range(1, 33).Select(index => new PowerPointTabStop(index))));
         Assert.Equal(new double[] { 18, 72 }, paragraph.TabStops.Select(t => t.PositionPoints));
         Assert.Empty(presentation.ValidateDocument());
         using var output = new MemoryStream();
@@ -23,6 +25,9 @@ public class PowerPointTabStopsTests {
         restored.SetTabStops(Array.Empty<PowerPointTabStop>());
         Assert.Empty(restored.TabStops);
         Assert.Equal("A\tB", restored.Text);
+        restored.SetTabStops(Enumerable.Range(1, 32).Select(index => new PowerPointTabStop(index)));
+        Assert.Equal(32, restored.TabStops.Count);
+        Assert.Empty(reopened.ValidateDocument());
         Assert.Throws<ArgumentOutOfRangeException>(() => new PowerPointTabStop(double.NaN));
         Assert.Throws<ArgumentOutOfRangeException>(() => new PowerPointTabStop(-1));
         Assert.Throws<ArgumentOutOfRangeException>(() => new PowerPointTabStop(18, (PowerPointTabAlignment)9));

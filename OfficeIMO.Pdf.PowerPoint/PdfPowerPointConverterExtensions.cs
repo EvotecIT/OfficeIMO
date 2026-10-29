@@ -476,7 +476,10 @@ public static partial class PdfPowerPointConverterExtensions {
                 presentation.SlideSize.WidthPoints,
                 presentation.SlideSize.HeightPoints);
             using var image = new MemoryStream(bytes, writable: false);
-            slide.AddPicturePoints(image, OfficeImageFormat.Png, placement.Left, placement.Top, placement.Width, placement.Height);
+            PptCore.PowerPointPicture picture = slide.AddPicturePoints(image, OfficeImageFormat.Png,
+                placement.Left, placement.Top, placement.Width, placement.Height);
+            picture.Bounds = PptCore.PowerPointLayoutBox.FromPoints(
+                placement.Left, placement.Top, placement.Width, placement.Height);
         } else {
             slide.AddTitle("PDF page " + page.PageNumber.ToString(CultureInfo.InvariantCulture));
             slide.AddTextBox("This page could not be rendered by the managed PDF renderer.");
@@ -817,7 +820,7 @@ public static partial class PdfPowerPointConverterExtensions {
     private sealed class PresentationConstructionScope : IDisposable {
         private bool _ownsPresentation = true;
 
-        internal PptCore.PowerPointPresentation Value { get; } = PptCore.PowerPointPresentation.Create();
+        internal PptCore.PowerPointPresentation Value { get; } = PptCore.PowerPointPresentation.CreateForImport();
 
         internal PdfPowerPointConversionResult Release(PdfPowerPointConversionResult result) {
             _ownsPresentation = false;

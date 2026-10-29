@@ -27,6 +27,7 @@ public sealed class PowerPointOdpImageCropTests {
             using var stream = new MemoryStream(bytes);
             PowerPointPicture picture = slide.AddPicture(stream, OfficeImageFormat.Png,
                 PowerPointLayoutBox.FromPoints(20, 30, width, 90));
+            picture.Bounds = PowerPointLayoutBox.FromPoints(20, 30, width, 90);
             picture.Crop(25, 12.5, 12.5, 12.5);
         }
 
@@ -138,7 +139,8 @@ public sealed class PowerPointOdpImageCropTests {
         using PowerPointPresentation source = PowerPointPresentation.Create();
         PowerPointSlide slide = source.AddSlide();
         using var stream = new MemoryStream(bytes);
-        slide.AddPicture(stream, OfficeImageFormat.Png, PowerPointLayoutBox.FromPoints(20, 30, 240, 90));
+        slide.AddPicture(stream, OfficeImageFormat.Png, PowerPointLayoutBox.FromPoints(20, 30, 240, 90))
+            .Bounds = PowerPointLayoutBox.FromPoints(20, 30, 240, 90);
         Picture raw = source.OpenXmlDocument.PresentationPart!.SlideParts.Single().Slide!.Descendants<Picture>().Single();
         raw.BlipFill!.SourceRectangle = new A.SourceRectangle();
         raw.BlipFill.SourceRectangle.SetAttribute(new DocumentFormat.OpenXml.OpenXmlAttribute("", "l", "", left));
@@ -159,7 +161,10 @@ public sealed class PowerPointOdpImageCropTests {
             "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"160\" height=\"80\"><rect width=\"160\" height=\"80\" fill=\"red\"/></svg>");
         using PowerPointPresentation source = PowerPointPresentation.Create();
         using var stream = new MemoryStream(bytes);
-        source.AddSlide().AddPicture(stream, OfficeImageFormat.Svg, PowerPointLayoutBox.FromPoints(20, 30, 240, 90)).Crop(25, 0, 0, 0);
+        PowerPointPicture picture = source.AddSlide().AddPicture(stream, OfficeImageFormat.Svg,
+            PowerPointLayoutBox.FromPoints(20, 30, 240, 90));
+        picture.Bounds = PowerPointLayoutBox.FromPoints(20, 30, 240, 90);
+        picture.Crop(25, 0, 0, 0);
         OdfConversionResult<OdpPresentation> conversion = source.ToOpenDocumentResult();
         OdpImage image = Assert.Single(conversion.Value.Slides[0].Shapes.OfType<OdpImage>());
         Assert.Null(image.Crop);

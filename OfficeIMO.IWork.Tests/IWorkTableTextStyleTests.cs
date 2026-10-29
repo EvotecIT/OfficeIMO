@@ -374,7 +374,7 @@ public sealed partial class IWorkBoundaryTests {
             using var reopened = OfficeIMO.PowerPoint.PowerPointPresentation.Load(saved);
             var table = reopened.Slides[0].Tables.Single();
             Assert.False(table.FirstRow); Assert.False(table.FirstColumn); Assert.False(table.LastRow); Assert.False(table.BandedRows);
-            Assert.Equal(richText ? "Styled" : "42", table.GetCell(0, 0).Text);
+            Assert.Equal(richText ? "Styled" + Environment.NewLine : "42", table.GetCell(0, 0).Text);
             Assert.All(table.GetCell(0, 0).Paragraphs.SelectMany(paragraph => paragraph.Runs), run => Assert.False(run.Bold));
         }
     }

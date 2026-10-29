@@ -601,7 +601,9 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
                 }
                 if (textBody.HasUnprojectedParagraphFormatting) {
                     AddDiagnostic("ppt-text-paragraph-partial", LegacyPptDiagnosticSeverity.Warning,
-                        "A text ruler field, unresolved bullet resource, or unsupported bullet size is preserved but not projected yet.",
+                        textBody.Ruler?.TabStops.Count > PowerPointParagraph.MaximumTabStops
+                            ? "The binary text ruler exceeds DrawingML's 32-tab limit. The first 32 stops are projected; all source stops remain preserved in the binary model."
+                            : "A text ruler field, unresolved bullet resource, or unsupported bullet size is preserved but not projected yet.",
                         textStyle?.Offset ?? textbox?.Offset);
                 }
                 if (textBody.HasUnprojectedCharacterFormatting) {

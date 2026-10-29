@@ -68,9 +68,14 @@ namespace OfficeIMO.Tests {
                 using LegacyPptLoadResult loaded = PowerPointPresentation
                     .LoadLegacyPptWithReport(path);
                 loaded.EnsureNoImportErrors();
-                Assert.False(loaded.HasConversionLoss,
-                    string.Join(Environment.NewLine, loaded.Diagnostics));
-                loaded.EnsureNoConversionLoss();
+                // LibreOffice adds legacy ruler fields that the importer preserves
+                // without projecting. Keep that approximation visible while requiring
+                // every authored semantic below and rejecting any other conversion loss.
+                Assert.All(loaded.FidelityDiagnostics.Where(diagnostic =>
+                    diagnostic.LossKind != OfficeConversionLossKind.None), diagnostic => {
+                    Assert.Equal("ppt-text-paragraph-partial", diagnostic.Code);
+                    Assert.Equal(OfficeConversionLossKind.Approximation, diagnostic.LossKind);
+                });
                 AssertRepresentativeSemantics(loaded.Document, marker);
             }
         }
@@ -93,8 +98,9 @@ namespace OfficeIMO.Tests {
                 .Fill("D9EAF7")
                 .Stroke("2563EB", 1.5D);
             using (var stream = new MemoryStream(image, writable: false)) {
-                first.AddPicture(stream, OfficeImageFormat.Png,
-                    3600000, 2700000, 1800000, 1200000);
+                PowerPointPicture picture = first.AddPicture(stream, OfficeImageFormat.Png,
+                    PowerPointLayoutBox.FromPoints(280, 210, 240, 90));
+                picture.Bounds = PowerPointLayoutBox.FromPoints(280, 210, 240, 90);
             }
             first.Notes.Text = "LibreOffice round-trip notes " + marker;
             first.Transition = PowerPointSlideTransition.Fade;
@@ -135,13 +141,20 @@ namespace OfficeIMO.Tests {
                 presentation.Slides[0].GetSpeakerNotesText());
             Assert.True(presentation.Slides.Sum(slide =>
                 slide.Pictures.Count()) >= 1);
+            PowerPointPicture picture = Assert.Single(presentation.Slides[0].Pictures);
+            Assert.InRange(picture.LeftPoints, 279.9, 280.1);
+            Assert.InRange(picture.TopPoints, 209.9, 210.1);
+            Assert.InRange(picture.WidthPoints, 239.9, 240.1);
+            Assert.InRange(picture.HeightPoints, 89.9, 90.1);
             PowerPointAutoShape rectangle = Assert.Single(
                 presentation.Slides[0].Shapes.OfType<PowerPointAutoShape>());
             Assert.Equal("D9EAF7", rectangle.FillColor, ignoreCase: true);
             Assert.Equal("2563EB", rectangle.OutlineColor, ignoreCase: true);
             Assert.Equal(PowerPointSlideTransition.Fade,
                 presentation.Slides[0].Transition);
-            Assert.Empty(presentation.ValidateDocument());
+            var errors = presentation.ValidateDocument();
+            Assert.True(errors.Count == 0, string.Join(Environment.NewLine,
+                errors.Select(error => error.PartUri + ": " + error.Description)));
         }
     }
 }
