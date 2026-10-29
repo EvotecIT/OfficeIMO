@@ -406,7 +406,7 @@ internal static partial class PdfWriter {
                         bool topRight = cellTouchesTop && cellTouchesRight;
                         bool bottomRight = cellTouchesBottom && cellTouchesRight;
                         bool bottomLeft = cellTouchesBottom && cellTouchesLeft;
-                        StringBuilder borderOutput = HasPairedCellBorder(cellBorder) || table.SpanFlow.HasDeferredFills(tableStyle)
+                        StringBuilder borderOutput = HasPairedCellBorder(cellBorder) || table.SpanFlow.HasDeferredFills
                             ? pairedBorders ??= new StringBuilder() : sb;
                         if (!cellBorder.HasHiddenSegments && (topLeft || topRight || bottomRight || bottomLeft)) {
                             DrawRoundedCellBorder(borderOutput, cellBorder, borderX, borderBottom, GetTableCellWidth(table.ColumnWidths, borderColumn, span, columnGap), borderHeight, cornerRadius, roundedOuterBorder, topLeft, topRight, bottomRight, bottomLeft, emitGeneratedStructure,
