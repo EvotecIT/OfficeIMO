@@ -440,6 +440,19 @@
       "phase": "B",
       "applied": "phase-b-applied",
       "validation": "The existing inventory tool builds without warnings and runs against all seven selected packages. The async Analyze contract is retained while the unrelated report-cleanup candidate remains in the review list."
+    },
+    {
+      "change": "Replace the final source extension in batch output names (CSHARP09)",
+      "reason": "Sales.docx produces Sales.pdf. Preflight and execution share the same physical destination calculation. Source-root-relative folders and explicit native target extensions are preserved; ordinary Fail/Replace/Rename publication remains with the canonical publisher. Durable destinations cannot be shared by distinct selected inputs. The naming rule participates in the checkpoint fingerprint, so old append-style plans are rejected without rewriting receipts or artifacts. Duplicate admission uses stable publication-entry identity even when staging creates a previously missing directory or final file.",
+      "files": [
+        "OfficeIMO/Batches/OfficeBatchExecutor.Planning.cs",
+        "OfficeIMO/Batches/OfficeBatchExecutor.cs",
+        "OfficeIMO/Batches/OfficeBatchExecutor.Configuration.cs",
+        "OfficeIMO/Batches/OfficeBatchOptions.cs"
+      ],
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "validation": "Current front-door source compiles against the existing native net10.0 dependency graph;78source-linkedbatch/nativecases pass, including two filesystem-transition regressions. Normal full graph, other frameworks and phase gates remain pending."
     }
   ],
   "applicationStatus": "Phase A applied and validated on the supported macOS targets. Phase B and Tier 2 entries retain their status; Windows .NET Framework validation remains pending.",

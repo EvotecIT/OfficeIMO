@@ -11,7 +11,8 @@ internal static partial class OfficeBatchExecutor {
         Converters = { new PdfConfigurationConverter() } };
     private static readonly OfficeBatchConfigurationJsonContext ConfigurationContext = new(ConfigurationJson);
 
-    private static string CaptureConfiguration(OfficeBatchOptions settings) => Hash(string.Join("\n", Schema,
+    // Append-style checkpoints do not describe the destinations derived by this naming rule.
+    private static string CaptureConfiguration(OfficeBatchOptions settings) => Hash(string.Join("\n", Schema, "replace-source-extension.v1",
         settings.InputDirectory == null ? "selected-files" : OfficePathIdentity.GetPathIdentityKey(settings.InputDirectory),
         OfficePathIdentity.GetPathIdentityKey(settings.OutputDirectory), settings.TargetExtension));
 

@@ -3,6 +3,13 @@ using OfficeIMO.Internal;
 namespace OfficeIMO;
 
 internal static partial class OfficeBatchExecutor {
+    /// <summary>Replaces the final source extension while preserving the selected relative directory.</summary>
+    private static string GetOutputPath(OfficeBatchOptions settings, string input) {
+        string relative = settings.InputDirectory == null ? Path.GetFileName(input)
+            : OfficeRuntimeCompatibility.GetRelativePath(settings.InputDirectory, input);
+        return Path.Combine(settings.OutputDirectory, Path.ChangeExtension(relative, settings.TargetExtension));
+    }
+
     /// <summary>Shares validation and discovery with execution, while never creating output or checkpoint state.</summary>
     internal static Task<OfficeBatchPlan> PlanAsync(IOfficeConversionExecutor runner, OfficeBatchOptions request,
         IProgress<OfficeBatchPlanItem>? progress, CancellationToken token) =>
@@ -28,7 +35,7 @@ internal static partial class OfficeBatchExecutor {
                 if (route == null) result.Skipped++;
                 else {
                     result.Selected++;
-                    output = Path.Combine(settings.OutputDirectory, (settings.InputDirectory == null ? Path.GetFileName(input) : OfficeRuntimeCompatibility.GetRelativePath(settings.InputDirectory, input)) + settings.TargetExtension);
+                    output = GetOutputPath(settings, input);
                     try {
                         EnsureNoLinks(input); EnsureNoLinks(output);
                         bool directoryPackage = Directory.Exists(input) && runner.SupportsDirectoryPackageInput(route.Id);
@@ -39,7 +46,7 @@ internal static partial class OfficeBatchExecutor {
                         _ = settings.ConversionOptions.ForRoute(route);
                         if (settings.CheckpointDirectory != null && !route.Checkpointable)
                             throw new NotSupportedException("Registered conversion routes require an ordinary batch without checkpoints.");
-                        bool duplicate = !destinations.Add(OfficePathIdentity.GetPathIdentityKey(output));
+                        bool duplicate = !destinations.Add(OfficePathIdentity.NormalizeDirectoryEntry(output));
                         bool collision = duplicate || File.Exists(output) || Directory.Exists(output);
                         if (collision) {
                             result.Collisions++;

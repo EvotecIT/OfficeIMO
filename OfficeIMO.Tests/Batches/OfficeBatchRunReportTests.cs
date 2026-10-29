@@ -113,7 +113,7 @@ public sealed class OfficeBatchRunReportTests {
         Assert.Equal(OfficeBatchRunState.Failed, first.State);
         Assert.Equal(1, first.Summary.Completed); Assert.Equal(1, first.Summary.Failed);
         byte[] firstReport = File.ReadAllBytes(scope.ReportPath);
-        string firstOutput = Path.Combine(scope.Output, "first.txt.pdf"); byte[] firstBytes = File.ReadAllBytes(firstOutput);
+        string firstOutput = Path.Combine(scope.Output, "first.pdf"); byte[] firstBytes = File.ReadAllBytes(firstOutput);
         File.WriteAllText(second, "Repaired second source"); scope.Job.RetryFailed = true;
         scope.Job.ReportPath = Path.Combine(scope.Root, "retry.json");
         OfficeBatchReport retried = await OfficeConverter.ConvertAsync(scope.Job);
@@ -121,7 +121,7 @@ public sealed class OfficeBatchRunReportTests {
         Assert.Equal(2, retried.Summary.Completed); Assert.Equal(1, retried.Summary.Reused); Assert.Equal(0, retried.Summary.Failed);
         Assert.NotEqual(first.RunId, retried.RunId); Assert.Equal(first.JobSha256, retried.JobSha256);
         Assert.Equal(firstReport, File.ReadAllBytes(scope.ReportPath)); Assert.Equal(firstBytes, File.ReadAllBytes(firstOutput));
-        using var pdf = OfficeIMO.Pdf.PdfDocument.Load(Path.Combine(scope.Output, "second.txt.pdf"));
+        using var pdf = OfficeIMO.Pdf.PdfDocument.Load(Path.Combine(scope.Output, "second.pdf"));
         Assert.Contains("Repaired second source", pdf.ExtractText());
     }
 

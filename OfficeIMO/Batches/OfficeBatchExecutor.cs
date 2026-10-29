@@ -34,6 +34,7 @@ internal static partial class OfficeBatchExecutor {
         long discovered = 0, selected = 0, completed = 0, reused = 0, failed = 0, skipped = 0;
         bool cancelled = false;
         string? failureSummary = null;
+        var destinations = new HashSet<string>(StringComparer.Ordinal);
         try {
             await OfficeRuntimeCompatibility.ForEachAsync(SelectInputs(settings, cancellationToken),
                 new ParallelOptions { MaxDegreeOfParallelism = settings.MaxParallelism, CancellationToken = cancellationToken }, async (input, token) => {
@@ -46,8 +47,7 @@ internal static partial class OfficeBatchExecutor {
                         return;
                     }
                     Interlocked.Increment(ref selected);
-                    string relative = settings.InputDirectory == null ? Path.GetFileName(input) : OfficeRuntimeCompatibility.GetRelativePath(settings.InputDirectory, input);
-                    string output = Path.Combine(settings.OutputDirectory, relative + settings.TargetExtension);
+                    string output = GetOutputPath(settings, input);
                     OfficeBatchItemReport item;
                     if (settings.CheckpointDirectory == null) {
                         try {
@@ -65,9 +65,16 @@ internal static partial class OfficeBatchExecutor {
                             item = new(input, null, OfficeBatchItemStatus.Failed, false, error.Message, []);
                         }
                     } else {
-                        string key = Hash(OfficePathIdentity.GetPathIdentityKey(input));
-                        string receiptPath = Path.Combine(settings.CheckpointDirectory, "items", key.Substring(0, 2), key + ".json");
-                        item = await RunItemAsync(runner, settings, configuration, route.Id, input, output, receiptPath, token, publicationGuard).ConfigureAwait(false);
+                        // Distinct sources must never reuse the same durable destination, even when their bytes match.
+                        bool duplicate;
+                        lock (destinations) duplicate = !destinations.Add(OfficePathIdentity.NormalizeDirectoryEntry(output));
+                        if (duplicate) item = new(input, output, OfficeBatchItemStatus.Failed, false,
+                            "The proposed output is shared by selected inputs.", []);
+                        else {
+                            string key = Hash(OfficePathIdentity.GetPathIdentityKey(input));
+                            string receiptPath = Path.Combine(settings.CheckpointDirectory, "items", key.Substring(0, 2), key + ".json");
+                            item = await RunItemAsync(runner, settings, configuration, route.Id, input, output, receiptPath, token, publicationGuard).ConfigureAwait(false);
+                        }
                     }
                     if (item.Status == OfficeBatchItemStatus.Completed) {
                         Interlocked.Increment(ref completed);

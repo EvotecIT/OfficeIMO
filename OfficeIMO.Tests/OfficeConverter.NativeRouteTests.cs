@@ -10,6 +10,9 @@ public sealed class OfficeConverterNativeRouteTests {
     [InlineData("source.docm", OfficeDocumentFormat.Word, ".docx")]
     [InlineData("source.xlsb", OfficeDocumentFormat.Excel, ".xlsx")]
     [InlineData("source.ppt", OfficeDocumentFormat.PowerPoint, ".pptx")]
+    [InlineData("source.docx", OfficeDocumentFormat.Word, ".docm")]
+    [InlineData("source.xlsx", OfficeDocumentFormat.Excel, ".xlsb")]
+    [InlineData("source.pptx", OfficeDocumentFormat.PowerPoint, ".pptm")]
     public async Task BatchSelectionReachesNativeVariantCodecs(string name, OfficeDocumentFormat format, string extension) {
         string root = Directory.CreateTempSubdirectory("officeimo-native-route-test-").FullName;
         try {
@@ -25,10 +28,16 @@ public sealed class OfficeConverterNativeRouteTests {
                     using (var document = PowerPointDocument.Create()) { document.AddSlide().AddTextBox("Native variant content"); document.Save(source); }
                     break;
             }
-            OfficeBatchReport report = await OfficeConverter.ConvertAsync([source], output, format);
+            byte[] original = File.ReadAllBytes(source);
+            var settings = new OfficeBatchOptions { InputPaths = [source], OutputDirectory = output, TargetExtension = extension };
+            OfficeBatchPlan plan = await OfficeConverter.PlanAsync(settings);
+            Assert.True(plan.CanRun);
+            Assert.Equal(Path.Combine(output, "source" + extension), Assert.Single(plan.Items).OutputPath);
+            OfficeBatchReport report = await OfficeConverter.ConvertAsync([source], output, format, settings);
             Assert.True(report.Succeeded, string.Join("; ", report.Items.Select(item => item.Summary)));
             string artifact = Assert.Single(report.Items).OutputPath!;
-            Assert.EndsWith(extension, artifact, StringComparison.Ordinal);
+            Assert.Equal(Path.Combine(output, "source" + extension), artifact);
+            Assert.Equal(original, File.ReadAllBytes(source));
             Assert.True(new FileInfo(artifact).Length > 0);
             switch (format) {
                 case OfficeDocumentFormat.Word:
