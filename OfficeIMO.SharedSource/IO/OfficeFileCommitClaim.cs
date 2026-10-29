@@ -12,12 +12,15 @@ namespace OfficeIMO.Core.Internal.IO {
 #endif
     /// <summary>Owns the exclusive coordination-file lifetime for completed file publication.</summary>
     internal sealed class OfficeFileCommitClaim : IDisposable {
+        private static readonly byte[] ClaimPrefix = Encoding.ASCII.GetBytes("OfficeIMO-commit-claim-v1:");
         private FileStream? _stream;
         private readonly string? _windowsClaimPath;
+        private readonly byte[]? _windowsClaimMarker;
 
-        private OfficeFileCommitClaim(FileStream stream, string? windowsClaimPath) {
+        private OfficeFileCommitClaim(FileStream stream, string? windowsClaimPath, byte[]? windowsClaimMarker) {
             _stream = stream;
             _windowsClaimPath = windowsClaimPath;
+            _windowsClaimMarker = windowsClaimMarker;
         }
 
         /// <summary>Acquires a destination claim with bounded Windows deletion-pending retries.</summary>
@@ -32,13 +35,22 @@ namespace OfficeIMO.Core.Internal.IO {
                         // would instead follow a claim symlink and delete its target on Windows.
                         ? new FileStream(claimPath, FileMode.CreateNew, FileAccess.ReadWrite, FileShare.None)
                         : OpenUnixClaim(claimPath);
-                    return new OfficeFileCommitClaim(stream, windows ? claimPath : null);
-                } catch (Exception exception) when (attempt < maximumRetries && windows && IsExistingClaimContention(exception, claimPath)
-                    && TryDeleteAbandonedWindowsClaim(claimPath)) {
-                    // The stale Windows claim was removed; retry the exclusive create.
+                    if (!windows) return new OfficeFileCommitClaim(stream, null, null);
+                    try {
+                        byte[] marker = new byte[ClaimPrefix.Length + 16];
+                        Buffer.BlockCopy(ClaimPrefix, 0, marker, 0, ClaimPrefix.Length);
+                        byte[] token = Guid.NewGuid().ToByteArray();
+                        Buffer.BlockCopy(token, 0, marker, ClaimPrefix.Length, token.Length);
+                        stream.Write(marker, 0, marker.Length);
+                        stream.Flush(true);
+                        return new OfficeFileCommitClaim(stream, claimPath, marker);
+                    } catch {
+                        stream.Dispose();
+                        throw;
+                    }
                 } catch (UnauthorizedAccessException exception) when (windows && attempt < maximumRetries &&
                     IsPossiblePendingDeletion(exception, claimPath)) {
-                    // DeleteFile leaves the pathname pending until the reclamation handle closes.
+                    // DeleteFile leaves the pathname pending until the disposing handle closes.
                     // During that interval CreateNew reports access denied and File.Exists may
                     // report false. Retry this ambiguous Windows error for a bounded interval;
                     // persistent ACL, read-only, and directory failures retain their exception.
@@ -87,31 +99,29 @@ namespace OfficeIMO.Core.Internal.IO {
             FileStream? stream = Interlocked.Exchange(ref _stream, null);
             if (stream == null) return;
             stream.Dispose();
-            if (_windowsClaimPath != null) {
+            if (_windowsClaimPath != null && _windowsClaimMarker != null) {
                 try {
-                    if (File.Exists(_windowsClaimPath)) File.Delete(_windowsClaimPath);
+                    using (var ownedClaim = new FileStream(_windowsClaimPath, FileMode.Open, FileAccess.Read, FileShare.Delete)) {
+                        if (HasClaimMarker(ownedClaim, _windowsClaimMarker)) File.Delete(_windowsClaimPath);
+                    }
                 } catch {
                     // Best-effort cleanup must not hide the publication failure.
                 }
             }
         }
 
-        private static bool TryDeleteAbandonedWindowsClaim(string claimPath) {
-            try {
-                using (var abandonedClaim = new FileStream(
-                           claimPath, FileMode.Open, FileAccess.Read, FileShare.Delete)) {
-                    File.Delete(claimPath);
-                }
-                return true;
-            } catch (FileNotFoundException) {
-                return true;
-            } catch (DirectoryNotFoundException) {
-                return true;
-            } catch (UnauthorizedAccessException) {
-                return false;
-            } catch (IOException) {
-                return false;
+        private static bool HasClaimMarker(FileStream stream, byte[] expected) {
+            if (stream.Length != expected.Length) return false;
+            var actual = new byte[expected.Length];
+            int read = 0;
+            while (read < expected.Length) {
+                int count = stream.Read(actual, read, expected.Length - read);
+                if (count == 0) return false;
+                read += count;
             }
+            for (int i = 0; i < expected.Length; i++)
+                if (actual[i] != expected[i]) return false;
+            return true;
         }
 
         /// <summary>Gets the exact coordination-file path used when committing a destination.</summary>
