@@ -38,13 +38,14 @@ public class MarkdownSaveAsPdfOptionsTests {
             }
         };
 
-        byte[] bytes = OfficeIMO.Markdown.MarkdownDocument.Parse("# Heading\n\nBody").ToPdf(options).ToBytes();
-        string raw = Encoding.ASCII.GetString(bytes);
-
-        Assert.True(
-            System.Text.RegularExpressions.Regex.IsMatch(raw, PdfTestContentText.BaseFontPattern("Georgia-Regular")) ||
-            raw.Contains("/BaseFont /Times-Roman", StringComparison.Ordinal),
-            "Expected Markdown font-family export to use an installed Georgia TrueType font or the mapped Times standard family.");
+        using PdfCore.PdfDocument document = OfficeIMO.Markdown.MarkdownDocument.Parse("# Heading\n\nBody").ToPdf(options);
+        // Georgia selects the logical serif family. The embedded face can be a
+        // theme serif fallback when Georgia is not installed on the host.
+        Assert.Equal(PdfCore.PdfStandardFont.TimesRoman, document.Options.DefaultFont);
+        using var rendered = PdfPigDocument.Open(document.ToBytes());
+        string text = rendered.GetPage(1).Text;
+        Assert.Contains("Heading", text, StringComparison.Ordinal);
+        Assert.Contains("Body", text, StringComparison.Ordinal);
     }
 
     [Fact]

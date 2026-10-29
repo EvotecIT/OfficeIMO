@@ -90,7 +90,7 @@ public partial class WordPdfPageFootnoteTests {
         string[] faces = rendered.GetPages().SelectMany(page => page.Letters).Select(letter => letter.FontName ?? string.Empty)
             .Distinct(StringComparer.Ordinal).OrderBy(name => name, StringComparer.Ordinal).ToArray();
         PdfConversionWarning[] substitutions = warnings.Where(warning =>
-            warning.Code is "font-family-substitution" or "font-family-substitution").ToArray();
+            warning.Code == "font-family-substitution").ToArray();
         IReadOnlyCollection<string> sourceFamilies = declaredSourceFontFamilies ?? new[] { "Arial" };
         foreach (PdfConversionWarning warning in substitutions) {
             _output.WriteLine("{0}: font degradation: code={1}; source={2}; loss={3}; {4}; details={5}",
@@ -100,14 +100,17 @@ public partial class WordPdfPageFootnoteTests {
         foreach (PdfConversionWarning warning in substitutions) {
             string sourceFamily = warning.Details["fontFamily"];
             Assert.Contains(sourceFamily, sourceFamilies);
-            Assert.Equal(warning.Code == "font-family-substitution" ? "font:" + sourceFamily : "word:font[" + sourceFamily + "]",
-                warning.Source);
+            // The shared resolver and the Word adapter use the same catalog code,
+            // with locations identifying their distinct source boundaries.
+            Assert.Contains(warning.Source, new[] { "font:" + sourceFamily, "word:font[" + sourceFamily + "]" });
             Assert.Equal(OfficeConversionLossKind.Approximation, warning.LossKind);
             Assert.Equal("FontUnavailable", warning.Details["substitutionReason"]);
             Assert.True(warning.Details.ContainsKey("fallbackSlot") || warning.Details.ContainsKey("resolvedFontFamily"));
-            if (warning.Code == "font-family-substitution") {
+            if (warning.Source == "font:" + sourceFamily) {
                 Assert.Equal("OfficeDocumentFonts", warning.Details["substitutionPolicy"]);
                 Assert.Equal("NotPerformed", warning.Details["fontMetricsVerification"]);
+            } else {
+                Assert.Equal("Helvetica", warning.Details["fallbackSlot"]);
             }
         }
         bool declaredArial = faces.All(face => face.IndexOf("Arial", StringComparison.OrdinalIgnoreCase) >= 0);
