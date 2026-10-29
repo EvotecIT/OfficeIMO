@@ -59,7 +59,7 @@ internal static partial class PdfWriter {
                 firstLineWidthOverride: firstLineFrame ? first.Width : null,
                 structureType: structureType, markedContentId: markedContentId, structurePage: currentPage,
                 hasFollowingParagraphLines: last.ParagraphLine + 1 < last.ParagraphLines, paragraphSpacingAfter: last.After,
-                paragraphSpacingBefore: first.Before);
+                paragraphSpacingBefore: first.Before, suppressInlineAccessibility: _suppressCanvasAccessibilityWrappers);
             pageDirty = true;
             top -= advance + last.After;
         }

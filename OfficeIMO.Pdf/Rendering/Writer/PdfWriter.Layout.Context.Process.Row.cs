@@ -269,7 +269,7 @@ internal static partial class PdfWriter {
                             WriteRichParagraph(sb, pblock, sliceLines, sliceHeights, currentOpts, FirstTextBaselineFromTop(paragraphFont, size, yCol), size, leading, currentPage!.Annotations, xCol + par.XOffset, par.TextWidth, start == 0 ? xCol + par.FirstLineXOffset : null, start == 0 ? par.FirstLineTextWidth : null, "P", markedContentId, currentPage,
                                 hasFollowingParagraphLines: start + take < lines.Count,
                                 paragraphSpacingAfter: start + take == lines.Count && spacingAfter <= remain - hsum ? spacingAfter : 0D,
-                                paragraphSpacingBefore: spacingBefore);
+                                paragraphSpacingBefore: spacingBefore, suppressInlineAccessibility: _suppressCanvasAccessibilityWrappers);
                             MarkRichFonts(pblock.Runs);
                             yCol -= hsum; remain -= hsum; consumed += hsum; line += take;
                             if (line >= lines.Count) { double space = spacingAfter; if (space <= remain) { yCol -= space; remain -= space; consumed += space; } idx++; line = 0; }
@@ -331,7 +331,7 @@ internal static partial class PdfWriter {
                             RecordFlowPlacement(yCol);
                             pageDirty = true;
                             WriteRichParagraph(sb, new RichParagraphBlock(ch.Runs, hb2.Align, ch.Color), lines, heights, currentOpts, firstBaseline, size, leading, currentPage!.Annotations, xCol, wCol, structureType: markedStructureType, markedContentId: markedContentId, structurePage: currentPage, baselineFont: headingFont, paragraphSpacingAfter: ch.SpacingAfter,
-                                paragraphSpacingBefore: spacingBefore);
+                                paragraphSpacingBefore: spacingBefore, suppressInlineAccessibility: _suppressCanvasAccessibilityWrappers);
                             MarkRichFonts(ch.Runs);
                             if (ch.Bold) {
                                 currentPage!.UsedBold = true;
@@ -452,7 +452,7 @@ internal static partial class PdfWriter {
                                 ? RegisterTextStructureElement("LBody", listItemElementIndex)
                                 : RegisterTextStructureElement("LBody", listItem.StructureElement);
                             WriteRichParagraph(sb, new RichParagraphBlock(listItem.Runs, listItem.TextAlign, listItem.Color), sliceLines, sliceHeights, currentOpts, baselineY, listItem.Size, leading, currentPage!.Annotations, xCol + listItem.TextXOffset, listItem.TextWidth, structureType: "LBody", markedContentId: bodyMarkedContentId, structurePage: currentPage,
-                                hasFollowingParagraphLines: line + take < lines.Count);
+                                hasFollowingParagraphLines: line + take < lines.Count, suppressInlineAccessibility: _suppressCanvasAccessibilityWrappers);
                             MarkRichFonts(listItem.Runs);
                             yCol -= hsum;
                             remain -= hsum;

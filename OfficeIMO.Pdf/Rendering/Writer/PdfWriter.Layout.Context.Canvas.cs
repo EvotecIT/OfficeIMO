@@ -460,7 +460,7 @@ internal static partial class PdfWriter {
                 markedContentId: markedContentId,
                 structurePage: _suppressCanvasStructureRegistration ? null : currentPage,
                 suppressActualText: _suppressCanvasActualTextChildren,
-                clipToFrame: !item.PreservePositionedText, fontPage: currentPage);
+                clipToFrame: !item.PreservePositionedText, fontPage: currentPage, suppressInlineAccessibility: _suppressCanvasAccessibilityWrappers);
             MarkRichFonts(item.Runs);
             DrawDebugCanvasItemBox(item.X, bottomY, width, item.Height);
             pageDirty = true;
@@ -551,7 +551,7 @@ internal static partial class PdfWriter {
                     markedContentId: markedContentId,
                     structurePage: _suppressCanvasStructureRegistration ? null : currentPage,
                     suppressActualText: _suppressCanvasActualTextChildren,
-                    baselineFont: baseFont, fontPage: currentPage);
+                    baselineFont: baseFont, fontPage: currentPage, suppressInlineAccessibility: _suppressCanvasAccessibilityWrappers);
                 MarkRichFonts(item.Runs);
                 if (rotated && annotations.Count > 0) {
                     RotateCanvasLinkAnnotations(annotations, item.X, bottomY, item.Width, item.Height, item.RotationAngle);

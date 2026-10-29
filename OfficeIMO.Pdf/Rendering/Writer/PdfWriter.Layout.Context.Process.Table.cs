@@ -352,7 +352,7 @@ internal static partial class PdfWriter {
                 MarkRichFonts(captionRuns);
                 if (style!.Position == null) RecordFlowPlacement(y);
                 else ResolveFloatingBookmarks(y);
-                WriteRichParagraph(sb, new RichParagraphBlock(captionRuns, style.CaptionAlign, style.CaptionColor), captionLines, captionLineHeights, currentOpts, FirstTextBaselineFromTop(captionFont, captionSize, y), captionSize, captionLeading, currentPage!.Annotations, xOrigin, tableWidth, structureType: "Caption", markedContentId: captionMarkedContentId, structurePage: currentPage);
+                WriteRichParagraph(sb, new RichParagraphBlock(captionRuns, style.CaptionAlign, style.CaptionColor), captionLines, captionLineHeights, currentOpts, FirstTextBaselineFromTop(captionFont, captionSize, y), captionSize, captionLeading, currentPage!.Annotations, xOrigin, tableWidth, structureType: "Caption", markedContentId: captionMarkedContentId, structurePage: currentPage, suppressInlineAccessibility: _suppressCanvasAccessibilityWrappers);
                 if (style.Position is { } captionPosition)
                     ReserveFloatingTable(captionPosition, xOrigin, y, tableWidth, captionHeight + style.CaptionSpacingAfter);
                 y -= captionHeight + style.CaptionSpacingAfter;

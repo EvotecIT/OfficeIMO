@@ -228,7 +228,7 @@ internal static partial class PdfWriter {
                     currentPage!.Annotations, x + (clipX - x) / scale, clipY, clipWidth / scale,
                     clipHeight, x, Math.Max(0.001D, actualWidth), suppressActualText: _suppressCanvasActualTextChildren,
                     foregroundGraphicsState: foregroundState, decorationGraphicsState: decorationState,
-                    clipToFrame: clipToFrame, fontPage: currentPage);
+                    clipToFrame: clipToFrame, fontPage: currentPage, suppressInlineAccessibility: _suppressCanvasAccessibilityWrappers);
             }
             if (Math.Abs(scale - 1D) > 0.000001D) {
                 RenderOpaqueEffectGroupInline(new OfficeTransform(scale, 0D, 0D, 1D, x * (1D - scale), 0D), Paint);

@@ -420,7 +420,7 @@ internal static partial class PdfWriter {
                     lineXOffsets: floatingLineOffsets?.GetRange(lineIndex, take), lineWidths: floatingLineWidths?.GetRange(lineIndex, take), lineTopGaps: floatingLineGaps?.GetRange(lineIndex, take),
                     hasFollowingParagraphLines: lineIndex + take < lines.Count,
                     paragraphSpacingAfter: lineIndex + take == lines.Count ? spacingAfter : 0D,
-                    paragraphSpacingBefore: segmentSpacingBefore);
+                    paragraphSpacingBefore: segmentSpacingBefore, suppressInlineAccessibility: _suppressCanvasAccessibilityWrappers);
                 y -= heightSum;
                 lineIndex += take;
                 runningAdmission = null;

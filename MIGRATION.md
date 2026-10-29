@@ -1,5 +1,23 @@
 # Upgrading OfficeIMO
 
+## PDF content limits and redaction plans
+
+`PdfReadLimits.MaxContentNestingDepth` also bounds nested marked-content scopes
+(`BMC` and `BDC`). `MaxContentOperands` also bounds the cumulative dash-array
+entries projected during one page operation, including nested forms. If you
+set custom limits, account for these operations as well as lexical operands
+and form nesting. Over-complex input raises `PdfReadLimitException`; simplify
+the input or adjust the relevant limit for a trusted workload.
+
+Rotation normalization rejects destination coordinates or zoom operands that
+resolve to values other than numbers or `null`. Repair invalid destination
+operands before calling `Pages.NormalizeRotation`.
+
+Matched-glyph redaction includes clipping-only text in its search and reports
+unsupported clipping modes in the plan instead of silently omitting them.
+Check `PdfRedactionPlan.IsReviewable` and inspect `Findings` before applying
+the plan; a matching clipping-mode span requires a supported redaction strategy.
+
 ## JavaScript CanopyX pivot captures
 
 Pass explicit frozen `request.pivot` captures through the optional CanopyX export entry point. They retain their own precomputed numeric values, formats and row/column outlines. Do not supply ordinary grouping metadata, replacement outline callbacks, an Excel table or a recalculating footer for the same pivot. PDF/CSV preserve the complete static projection and report `PIVOT_OUTLINES_XLSX_ONLY`; XLSX retains the interactive outlines with summaries above and left of details. Ordinary record/grouped exports keep their existing behavior.

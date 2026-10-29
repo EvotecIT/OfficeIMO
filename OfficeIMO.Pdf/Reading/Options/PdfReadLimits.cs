@@ -146,7 +146,7 @@ public sealed partial class PdfReadLimits {
     /// and maximum cumulative dash-array entries projected during one page operation, including nested forms. Default: 1,000,000.</summary>
     public int MaxContentOperands { get; init; } = DefaultMaxContentOperands;
 
-    /// <summary>Maximum nested lexical arrays/dictionaries or form XObjects while parsing page content. Default: 128.</summary>
+    /// <summary>Maximum nested lexical arrays/dictionaries, marked-content scopes, or form XObjects while parsing page content. Default: 128.</summary>
     public int MaxContentNestingDepth { get; init; } = DefaultMaxContentNestingDepth;
 
     /// <summary>Maximum Type 3 glyph programs invoked while rendering one page, including nested forms. Default: 1,000,000.</summary>
