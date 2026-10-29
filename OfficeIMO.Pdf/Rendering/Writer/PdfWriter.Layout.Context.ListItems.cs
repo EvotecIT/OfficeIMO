@@ -115,6 +115,8 @@ internal static partial class PdfWriter {
                 if (!noteSliceFits && !HasCurrentPageBodyContent())
                     throw new ArgumentException("The list reference and first footnote fragment exceed the available page body height.");
                 if (!noteSliceFits) { NewListFrame(); continue; }
+                if (take == 0 && !ShouldAdvanceForBlockHeight(firstLineHeight))
+                    throw new ArgumentException("List line height exceeds the available page content height.");
                 ReserveBalancedKeepNextTail(lineHeights, lineIndex, lines.Count, spacingAfter, available, blockList, blockIndex,
                     itemIndex == prepared.Items.Count - 1 && prepared.Style?.KeepWithNext == true, 1, ref take, ref heightSum);
                 if (take == 0) {

@@ -161,7 +161,7 @@ public sealed partial class PdfReadPage {
         AddPaintedGlyphMappings(drawing, registeredFonts, pageElements, paintedGlyphMaps, pageContentBudget, cancellationToken);
         IReadOnlyList<PdfPageDrawingEffectTransition> effects = GetGraphicsEffectTransitions(pageTransform, size.Height, pageContentBudget);
         var softMasks = new Dictionary<(PdfStream Group, PdfDictionary? ParentResources, OfficeSoftMaskMode Mode, OfficeColor Backdrop, Matrix2D Transform, double Width, double Height, OfficeIccRenderingIntent Intent), OfficeDrawingSoftMask>();
-        var activeSoftMasks = new HashSet<PdfStream>();
+        var activeSoftMasks = pageContentBudget.ActiveSoftMasks;
         ReplayDrawingElements(drawing, pageElements, actualTextScopes, (destination, source) => {
             cancellationToken.ThrowIfCancellationRequested();
             PdfPageDrawingElement element = source.WithEffect(
@@ -1146,6 +1146,7 @@ public sealed partial class PdfReadPage {
             patternBaseColorSpaces: patternBaseColorSpaces,
             maxNestingDepth: _limits.MaxContentNestingDepth,
             maxOperands: _limits.MaxContentOperands,
+            strokeDashProjectionConsumer: pageContentBudget.ChargeStrokeDashProjection,
             primitiveVisitor: currentPrimitiveVisitor,
             retainPrimitiveData: retainPrimitiveData,
             scaleStrokeWidthWithTransform: requireSupportedType3Content || scaleStrokeWidthWithTransform,

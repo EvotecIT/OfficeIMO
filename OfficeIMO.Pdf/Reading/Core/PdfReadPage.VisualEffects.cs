@@ -400,6 +400,7 @@ public sealed partial class PdfReadPage {
             patternBaseColorSpaces: patternBaseColorSpaces,
             maxNestingDepth: _limits.MaxContentNestingDepth,
             maxOperands: _limits.MaxContentOperands,
+            strokeDashProjectionConsumer: pageContentBudget.ChargeStrokeDashProjection,
             retainPrimitiveData: false,
             unsupportedShadingTransformVisitor: () => supported = false,
             unsupportedOperatorVisitor: _ => supported = false,
@@ -1006,6 +1007,7 @@ public sealed partial class PdfReadPage {
         var cacheKey = (resource.Group, resource.ParentResources, resource.Mode, resource.BackdropColor, pageTransform, width, height, renderingIntent);
         // Cached masks are shared without their transfer table, which is applied per graphics state.
         if (cache.TryGetValue(cacheKey, out OfficeDrawingSoftMask? existing)) return existing.WithTransferTable(resource.TransferTable);
+        active = pageContentBudget.ActiveSoftMasks;
         if (!active.Add(resource.Group)) {
             return OfficeDrawingSoftMask.CreateWithLuminosityStandard(
                 new OfficeDrawing(width, height),
@@ -1015,6 +1017,8 @@ public sealed partial class PdfReadPage {
                 transform: null).WithTransferTable(resource.TransferTable);
         }
         try {
+            if (active.Count > _limits.MaxContentNestingDepth)
+                throw PdfReadLimitException.Create(PdfReadLimitKind.ContentNestingDepth, _limits.MaxContentNestingDepth, active.Count);
             OfficeDrawing drawing = CreateFormDrawing(resource.Group, resource.ParentResources, width, height, pageTransform, renderingIntent, cache, active, textOutputBudget, pageContentBudget, type3GlyphBudget, invocationTextClippingBudget, patternTextClippingBudget, cancellationToken: cancellationToken);
             var mask = OfficeDrawingSoftMask.CreateWithLuminosityStandard(
                 drawing,

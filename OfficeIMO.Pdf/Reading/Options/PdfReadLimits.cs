@@ -142,7 +142,8 @@ public sealed partial class PdfReadLimits {
     /// <summary>Maximum aggregate calculator work for function shading during one page projection. Default: 512,000,000.</summary>
     public int MaxFunctionShadingEvaluationWork { get; init; } = 512_000_000;
 
-    /// <summary>Maximum operand values and dictionary keys parsed from one page or form content stream. Default: 1,000,000.</summary>
+    /// <summary>Maximum operand values and dictionary keys parsed from one page or form content stream,
+    /// and maximum cumulative dash-array entries projected during one page operation, including nested forms. Default: 1,000,000.</summary>
     public int MaxContentOperands { get; init; } = DefaultMaxContentOperands;
 
     /// <summary>Maximum nested lexical arrays/dictionaries or form XObjects while parsing page content. Default: 128.</summary>
