@@ -155,10 +155,15 @@ internal sealed partial class XpsDocumentModelProjection {
         using var sha = SHA256.Create();
         return BitConverter.ToString(sha.ComputeHash(payload)).Replace("-", string.Empty).ToLowerInvariant();
     }
-    private void Diagnostic(string code, string message, int? page = null) => _diagnostics.Add(new OfficeDocumentModelDiagnostic {
-        Code = code, Message = message, Source = "OfficeIMO.Xps", Category = OfficeDocumentModelDiagnosticCategory.Content,
-        IsRecoverable = true, Location = page.HasValue ? Location(page.Value, null, "fixed-page") : null
-    });
+    private void Diagnostic(string code, string message, int? page = null) {
+        // Diagnostics can contain authored URLs and repeat for each page occurrence.
+        // Charge their retained text against the same projection-wide budget as content.
+        _budget.Text(message.Length);
+        _diagnostics.Add(new OfficeDocumentModelDiagnostic {
+            Code = code, Message = message, Source = "OfficeIMO.Xps", Category = OfficeDocumentModelDiagnosticCategory.Content,
+            IsRecoverable = true, Location = page.HasValue ? Location(page.Value, null, "fixed-page") : null
+        });
+    }
     private static string Kind(XpsStructureKind kind) => kind switch {
         XpsStructureKind.Section => "section", XpsStructureKind.Paragraph => "paragraph", XpsStructureKind.Table => "table",
         XpsStructureKind.TableRowGroup => "table-row-group", XpsStructureKind.TableRow => "table-row", XpsStructureKind.TableCell => "table-cell",
