@@ -64,8 +64,18 @@ The Quill envelope writes the native checked version values 4 and 7, byte
 `+0x0F` equal to 3, a first payload position of 512 and the truthful stream size
 at `+0x14`. Descriptors retain their generated payloads and point to their actual
 serialized positions. Text-format range endpoints follow the relocated text.
-The meaning of other observed header values and required auxiliary Quill records
-remain unqualified. No native text-style payload is copied.
+The stream has at least 1,024 bytes when descriptors are present. Header
+`+0x0C` declares the total descriptor count; the single directory declares its
+own count separately. Both counts follow the actual generated records.
+
+The current Quill defaults are generated libraries: `INK ` version words
+`0x74/0x74`, an indexed `FONT` library with a generated Arial entry, one `STSH` name entry selecting
+the native built-in default and two paired empty character/paragraph OPLs in
+`STSH` ID1. Indexed body sizes, entry counts and offsets follow the serialized
+entries. The font entry supplies index zero used by native default character
+mapping. Auxiliary style ID2 is absent. These records follow the recovered
+loader contracts; native acceptance remains separate. No native text-style
+payload is copied.
 
 The minimal class descriptors spell out observed version and numeric traits;
 their behavioral meanings and the sufficiency of a subset catalog remain
