@@ -44,13 +44,18 @@ public sealed partial class EpubPublication {
             package.Root.Element(Opf + "manifest")!.Elements(Opf + "item").Attributes("href")));
         if (package.Root.DescendantsAndSelf().Attributes(XNamespace.Xml + "base").Any())
             throw new NotSupportedException("Resource renaming does not support XML base declarations.");
+        long stagedPackageCharacters = 0;
         for (int index = 0; index < proposedAttributes.Length; index++) {
             if (!packageReferences.Contains(proposedAttributes[index])) continue;
             string value = RewriteMovedReference(PackagePath, null, PackagePath, null, proposedAttributes[index].Value, oldPath, newPath);
             if (value == proposedAttributes[index].Value) continue;
+            if (value.Length > _maximumMetadataBytes - stagedPackageCharacters)
+                throw new InvalidDataException("Renamed package references exceed the metadata limit.");
+            stagedPackageCharacters += value.Length;
             proposedAttributes[index].Value = value;
             packageEdits.Add((originalAttributes[index], value));
         }
+        long stagedRetainedBytes = _retainedBytes;
         foreach (var group in manifest.Where(item => item.Reference.Kind == EpubReferenceKind.Container).GroupBy(RequireLocalPath, StringComparer.Ordinal)) {
             cancellationToken.ThrowIfCancellationRequested();
             string path = group.Key, destination = path == oldPath ? newPath : path;
@@ -59,6 +64,9 @@ public sealed partial class EpubPublication {
             if (!_entries.TryGetValue(path, out byte[]? payload)) throw new InvalidDataException("Resource is missing: " + path);
             byte[] rewritten = RewritePublicationResource(types[0], payload, path, destination, oldPath, newPath, cancellationToken);
             if (rewritten.LongLength > _maximumEntryBytes) throw new InvalidDataException("Renamed content exceeds its entry-byte limit.");
+            stagedRetainedBytes += rewritten.LongLength - payload.LongLength;
+            if (stagedRetainedBytes > _maximumRetainedBytes)
+                throw new InvalidDataException("Renamed resources exceed the retained-byte limit.");
             if (!ReferenceEquals(payload, rewritten)) EnsureResourceMutationAllowed(path);
             entries[destination] = rewritten;
         }
@@ -117,11 +125,12 @@ public sealed partial class EpubPublication {
             (mapped.Fragment == null ? string.Empty : "#" + Uri.EscapeDataString(mapped.Fragment));
     }
 
-    private static string RewriteMovedCss(string css, Func<string, string> rewrite, bool includeFragmentReferences = false) {
+    private string RewriteMovedCss(string css, Func<string, string> rewrite, bool includeFragmentReferences = false,
+        long? maximumOutputCharacters = null) {
         bool changed = false;
         string result = HtmlResourcePipeline.RewriteCssResourceUrls(css, (value, _) => {
             string replacement = rewrite(value); changed |= replacement != value; return replacement;
-        }, includeFragmentReferences);
+        }, includeFragmentReferences, Math.Min(_maximumEntryBytes, maximumOutputCharacters ?? _maximumEntryBytes));
         return changed ? result : css;
     }
 }

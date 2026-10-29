@@ -71,7 +71,7 @@ public sealed partial class EpubPublication {
                 token.ThrowIfCancellationRequested();
                 return kind == HtmlResourceKind.Stylesheet ? Import(value, path, depth) :
                     RewriteMovedReference(path, null, path, null, value, string.Empty, string.Empty, map);
-            }, includeFragmentReferences: true);
+            }, includeFragmentReferences: true, maximumOutputCharacters: _maximumEntryBytes);
         }
 
         string Import(string value, string path, int depth) {
