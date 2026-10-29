@@ -266,6 +266,80 @@ public sealed class PdfReverseConversionQualityTests {
         Assert.DoesNotContain(slides.SelectMany(static slide => slide.Descendants<A.LatinFont>()), font => font.Typeface?.Value?.Contains('-') == true);
     }
 
+    [Fact]
+    public void DashboardProseIsBodyTextAndChartLabelsFormNoTable() {
+        PdfLogicalPage page = Assert.Single(LoadFixture("Pdf.Showcase.Dashboard.pdf").Read().Pages);
+
+        // 11 pt prose beside 9 pt chart and table labels is the body size, not a heading tier.
+        Assert.DoesNotContain(page.Headings, heading => heading.Text.StartsWith("Service levels", StringComparison.Ordinal));
+        Assert.DoesNotContain(page.Headings, heading => heading.Text.Contains("main driver", StringComparison.Ordinal));
+        // The chart title, its legend and the side panel heading are not a two-column table.
+        Assert.DoesNotContain(page.Tables, table => table.Rows.Any(row => row.Any(cell => cell.Contains("Tickets resolved", StringComparison.Ordinal))));
+        Assert.Contains(page.Tables, table => table.Rows.Any(row => row.Contains("Service line")));
+    }
+
+    [Fact]
+    public void StatementSummaryBoxKeepsItsSubtotalRow() {
+        PdfDocumentReadResult result = LoadFixture("Pdf.Showcase.Statement.pdf").Read();
+        PdfLogicalTable summary = result.Pages.SelectMany(static page => page.Tables)
+            .Single(table => table.Rows.Any(row => row.Contains("Total")) && table.Columns.Count == 2);
+        Assert.Contains(summary.Rows, row => row.Contains("Subtotal"));
+        Assert.Contains(summary.Rows, row => row.Any(cell => cell.StartsWith("VAT", StringComparison.Ordinal)));
+    }
+
+    [Fact]
+    public void StatementWordTablesStaySeparateWithLightRulesAndRoomForFigures() {
+        using var output = new MemoryStream();
+        LoadFixture("Pdf.Showcase.Statement.pdf").SaveAsWord(output);
+        using WordprocessingDocument document = WordprocessingDocument.Open(new MemoryStream(output.ToArray()), false);
+        W.Body body = document.MainDocumentPart!.Document!.Body!;
+
+        // Word joins adjacent tables, so a paragraph keeps the From/For block apart from the products table.
+        DocumentFormat.OpenXml.OpenXmlElement[] blocks = body.Elements().ToArray();
+        for (int index = 1; index < blocks.Length; index++) {
+            Assert.False(blocks[index] is W.Table && blocks[index - 1] is W.Table);
+        }
+        W.Table products = body.Elements<W.Table>().First(table => table.InnerText.Contains("Unit price", StringComparison.Ordinal));
+        W.TopBorder? border = products.Descendants<W.TableBorders>().First().TopBorder;
+        Assert.Equal("C9CED6", border?.Color?.Value, StringComparer.OrdinalIgnoreCase);
+        // The "#" column holds "16" on one line: it gets at least the room of two digits and the cell margins.
+        int[] widths = products.Descendants<W.GridColumn>().Select(static column => int.Parse(column.Width!.Value!, CultureInfo.InvariantCulture)).ToArray();
+        Assert.True(widths[0] * 100 >= widths.Sum() * 5, string.Join(",", widths));
+        // Quantity and Total figures are right-aligned, and so are their headers.
+        W.TableRow header = products.Elements<W.TableRow>().First();
+        W.TableCell totalHeader = header.Elements<W.TableCell>().Last();
+        Assert.Equal(W.JustificationValues.Right, totalHeader.Descendants<W.Justification>().First().Val!.Value);
+    }
+
+    [Fact]
+    public void StatementPowerPointCellsHavePaddingAndRightAlignedAmounts() {
+        using var output = new MemoryStream();
+        LoadFixture("Pdf.Showcase.Statement.pdf").SaveAsPowerPoint(output);
+        using PresentationDocument presentation = PresentationDocument.Open(new MemoryStream(output.ToArray()), false);
+        A.Table table = presentation.PresentationPart!.SlideParts.SelectMany(static part => part.Slide!.Descendants<A.Table>())
+            .First(candidate => candidate.InnerText.Contains("Unit price", StringComparison.Ordinal));
+        A.TableCell[] row = table.Elements<A.TableRow>().ElementAt(1).Elements<A.TableCell>().ToArray();
+        // 4 pt of padding (50800 EMU) keeps the quantity apart from the total next to it.
+        Assert.All(row, cell => Assert.True(cell.TableCellProperties!.LeftMargin!.Value >= 50800));
+        Assert.Equal(A.TextAlignmentTypeValues.Right, row.Last().Descendants<A.ParagraphProperties>().First().Alignment!.Value);
+    }
+
+    [Fact]
+    public void WordBorderRectanglesRuleCompleteTablesWithoutPicturingThem() {
+        string path = Path.Combine(VisualBaselineTestSupport.GetTestsProjectRoot(), "Pdf", "ReferenceBaselines",
+            "microsoft-word-windows-word-business-delivery-summary.pdf");
+        PdfDocumentReadResult result = PdfDocument.Load(File.ReadAllBytes(path)).Read();
+
+        // Word paints cell borders as thin filled rectangles. The grid keeps rows whose right cell is empty.
+        PdfLogicalTable[] worksheets = result.Pages.SelectMany(static page => page.Tables)
+            .Where(table => table.Rows.Count > 0 && table.Rows[0].Contains("Delivery Worksheet")).ToArray();
+        Assert.NotEmpty(worksheets);
+        Assert.True(worksheets.Count(table => table.Rows.Any(row => row.Contains("Evidence and validation notes"))) >= 8);
+        Assert.Contains(result.Pages.SelectMany(static page => page.Tables), table => table.Rows.Any(row => row.Contains("Risk owner")));
+        // A table split by the page break is a table on both pages, not a picture.
+        Assert.All(result.Pages, page => Assert.Empty(page.VectorFigures));
+    }
+
     private static double[] ReadNumericCells(byte[] xlsx) {
         using SpreadsheetDocument workbook = SpreadsheetDocument.Open(new MemoryStream(xlsx), false);
         return workbook.WorkbookPart!.WorksheetParts

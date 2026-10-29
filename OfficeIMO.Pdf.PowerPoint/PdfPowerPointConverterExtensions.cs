@@ -660,7 +660,8 @@ public static partial class PdfPowerPointConverterExtensions {
 
         int rowOffset = headerRowIncluded ? 1 : 0;
         if (headerRowIncluded) {
-            WriteRow(table, 0, data.Columns, segment.ColumnStartIndex, data, alignNumericColumns: false, cancellationToken);
+            // A header sits over its figures, so it follows the column's numeric alignment.
+            WriteRow(table, 0, data.Columns, segment.ColumnStartIndex, data, options.AlignNumericColumns, cancellationToken);
         }
 
         for (int rowIndex = 0; rowIndex < segment.RowCount; rowIndex++) {
@@ -676,7 +677,24 @@ public static partial class PdfPowerPointConverterExtensions {
         }
 
         ApplySourceCellStyles(table, sourceTable, segment, headerRowIncluded, cancellationToken);
-        ApplyTableSizing(table, sourceTable, segment);
+        ApplyTableSizing(table, sourceTable, segment, data);
+        if (UsesNeutralGrid(options.TableStyle)) ApplyLightRules(table, cancellationToken);
+    }
+
+    // Light grey hairlines: the source rules are rarely black, and a black grid dominates the reconstructed slide.
+    private const string LightRuleColor = "C9CED6";
+    private const double LightRuleWidthPoints = 0.5D;
+
+    private static bool UsesNeutralGrid(PptCore.PowerPointTableStylePreset requested) =>
+        string.Equals(ResolveReconstructedTableStyle(requested).StyleId, NeutralGridTableStyleId, StringComparison.OrdinalIgnoreCase);
+
+    private static void ApplyLightRules(PptCore.PowerPointTable table, CancellationToken cancellationToken) {
+        for (int rowIndex = 0; rowIndex < table.Rows; rowIndex++) {
+            for (int columnIndex = 0; columnIndex < table.Columns; columnIndex++) {
+                cancellationToken.ThrowIfCancellationRequested();
+                table.GetCell(rowIndex, columnIndex).SetBorders(PptCore.PowerPointTableCellBorders.All, LightRuleColor, LightRuleWidthPoints);
+            }
+        }
     }
 
     // "No Style, Table Grid": thin rules and no theme fills, so reconstructed tables carry only the source styling.
@@ -733,14 +751,56 @@ public static partial class PdfPowerPointConverterExtensions {
     private static void ApplyTableSizing(
         PptCore.PowerPointTable table,
         PdfCore.PdfLogicalTable sourceTable,
-        TableSegment segment) {
+        TableSegment segment,
+        PdfCore.PdfLogicalTableData? data = null) {
         if (TryGetColumnWidthRatios(sourceTable, segment, out double[] ratios)) {
+            if (data != null) ratios = ApplyMinimumColumnWidths(table, ratios, data, segment);
             table.SetColumnWidthsByRatio(ratios);
         } else {
             table.SetColumnWidthsEvenly();
         }
 
         table.SetRowHeightsEvenly();
+    }
+
+    /// <summary>
+    /// A source column sized to its glyphs ("#" holding "10") is too narrow once the cell has padding, and its
+    /// figures wrap a digit per line. Each column keeps room for its longest word within the table frame.
+    /// </summary>
+    private static double[] ApplyMinimumColumnWidths(
+        PptCore.PowerPointTable table,
+        double[] ratios,
+        PdfCore.PdfLogicalTableData data,
+        TableSegment segment) {
+        const double CharacterWidthPoints = 5.5D;
+        const double PaddingPoints = 2D * EditableCellHorizontalPaddingPoints + 3D;
+        double frameWidth = 0D;
+        for (int columnIndex = 0; columnIndex < table.Columns; columnIndex++) frameWidth += table.GetColumnWidthPoints(columnIndex);
+        double ratioTotal = ratios.Sum();
+        if (frameWidth <= 0D || ratioTotal <= 0D || ratios.Length != table.Columns) return ratios;
+        var widths = new double[ratios.Length];
+        for (int columnIndex = 0; columnIndex < ratios.Length; columnIndex++) {
+            int sourceColumn = segment.ColumnStartIndex + columnIndex;
+            int longest = sourceColumn < data.Columns.Count ? LongestWord(data.Columns[sourceColumn]) : 0;
+            for (int rowIndex = 0; rowIndex < data.Rows.Count; rowIndex++) {
+                IReadOnlyList<string> row = data.Rows[rowIndex];
+                if (sourceColumn < row.Count) longest = Math.Max(longest, LongestWord(row[sourceColumn]));
+            }
+            double minimum = Math.Min(frameWidth * 0.3D, Math.Min(longest, 24) * CharacterWidthPoints + PaddingPoints);
+            widths[columnIndex] = Math.Max(ratios[columnIndex] / ratioTotal * frameWidth, minimum);
+        }
+        return widths;
+    }
+
+    private static int LongestWord(string? text) {
+        if (string.IsNullOrEmpty(text)) return 0;
+        int longest = 0, current = 0;
+        foreach (char value in text!) {
+            if (char.IsWhiteSpace(value)) { current = 0; continue; }
+            current++;
+            if (current > longest) longest = current;
+        }
+        return longest;
     }
 
     private static bool TryGetColumnWidthRatios(

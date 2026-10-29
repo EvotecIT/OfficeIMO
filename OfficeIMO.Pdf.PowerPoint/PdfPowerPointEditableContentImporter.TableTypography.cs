@@ -5,6 +5,9 @@ using PptCore = OfficeIMO.PowerPoint;
 namespace OfficeIMO.Pdf.PowerPoint;
 
 public static partial class PdfPowerPointConverterExtensions {
+    private const double EditableCellHorizontalPaddingPoints = 4D;
+    private const double EditableCellVerticalPaddingPoints = 1.5D;
+
     private static double ScaleEditableFontSize(double fontSize, double scale) =>
         Math.Min(4000D, Math.Max(1D, fontSize * scale));
 
@@ -27,10 +30,11 @@ public static partial class PdfPowerPointConverterExtensions {
                 cancellationToken.ThrowIfCancellationRequested();
                 PptCore.PowerPointTableCell cell = table.GetCell(rowIndex, columnIndex);
                 cell.FontSize = fontSize;
-                cell.PaddingLeftPoints = 0.5D;
-                cell.PaddingRightPoints = 0.5D;
-                cell.PaddingTopPoints = 0.25D;
-                cell.PaddingBottomPoints = 0.25D;
+                // Room on both sides keeps a right-aligned figure from touching the next column's text.
+                cell.PaddingLeftPoints = EditableCellHorizontalPaddingPoints;
+                cell.PaddingRightPoints = EditableCellHorizontalPaddingPoints;
+                cell.PaddingTopPoints = EditableCellVerticalPaddingPoints;
+                cell.PaddingBottomPoints = EditableCellVerticalPaddingPoints;
                 cell.VerticalAlignment = PptCore.PowerPointTextVerticalAlignment.Top;
                 cell.TextAutoFit = PptCore.PowerPointTextAutoFit.Normal;
             }
