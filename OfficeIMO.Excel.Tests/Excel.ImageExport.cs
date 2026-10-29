@@ -4315,7 +4315,7 @@ namespace OfficeIMO.Tests {
             second.CellValue(1, 1, "Two");
 
             IReadOnlyList<OfficeImageExportResult> results = document
-                .ToImages()
+                .ToImages(new ExcelWorkbookImageExportOptions { Fonts = OfficeIMO.TestAssets.PortableVisualFontAssets.CreateSpreadsheetFonts() })
                 .ForSheets("Second")
                 .WithoutGridlines()
                 .As(OfficeImageExportFormat.Svg)

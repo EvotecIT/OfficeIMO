@@ -39,8 +39,9 @@ public sealed class PdfSaveFailureEvidenceTests {
             });
             Assert.False(result.Succeeded);
             var evidence = Assert.IsType<OfficeWorkflowConversionEvidence>(result.ConversionEvidence);
-            Assert.Contains(evidence.FidelityDiagnostics, finding => finding.Code == "unsupported-text-glyph");
-            Assert.Contains(result.Diagnostics, finding => finding.Code == "unsupported-text-glyph");
+            string encodingCode = route == "odg-pdf" ? "missing-embedded-font-glyph" : "unsupported-text-glyph";
+            Assert.Contains(evidence.FidelityDiagnostics, finding => finding.Code == encodingCode);
+            Assert.Contains(result.Diagnostics, finding => finding.Code == encodingCode);
             Assert.Equal(source, File.ReadAllBytes(input));
             Assert.Equal(destination, File.ReadAllBytes(output));
             Assert.Empty(Directory.GetFiles(root, ".*.tmp"));
