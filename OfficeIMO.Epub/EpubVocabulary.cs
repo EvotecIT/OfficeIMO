@@ -56,4 +56,14 @@ internal static class EpubVocabulary {
         if (colon < 0) return PackageVocabulary + property;
         return prefixes.TryGetValue(property.Substring(0, colon), out string? vocabulary) ? vocabulary + property.Substring(colon + 1) : property;
     }
+
+    /// <summary>Compares a property with a known vocabulary term without allocating its expanded URI.</summary>
+    internal static bool Matches(IReadOnlyDictionary<string, string> prefixes, string property,
+        string vocabulary, string term) {
+        int colon = property.IndexOf(':');
+        if (colon < 0) return vocabulary == PackageVocabulary && property == term;
+        return prefixes.TryGetValue(property.Substring(0, colon), out string? mapped)
+            && mapped == vocabulary && property.Length - colon - 1 == term.Length
+            && string.CompareOrdinal(property, colon + 1, term, 0, term.Length) == 0;
+    }
 }

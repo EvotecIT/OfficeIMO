@@ -117,8 +117,13 @@ public sealed partial class EpubPublication {
         return TimeSpan.FromTicks(total);
     }
 
-    private static IEnumerable<XElement> OverlayDurations(XElement root) => root.Element(Opf + "metadata")!.Elements(Opf + "meta")
-        .Where(meta => EpubVocabulary.Expand(root, (string?)meta.Attribute("property") ?? string.Empty) == OverlayVocabulary + "duration");
+    private static IEnumerable<XElement> OverlayDurations(XElement root) {
+        IReadOnlyDictionary<string, string> prefixes = EpubVocabulary.ReadPrefixes((string?)root.Attribute("prefix") ?? string.Empty);
+        foreach (XElement meta in root.Element(Opf + "metadata")!.Elements(Opf + "meta")) {
+            if (EpubVocabulary.Matches(prefixes, (string?)meta.Attribute("property") ?? string.Empty,
+                OverlayVocabulary, "duration")) yield return meta;
+        }
+    }
     private static XElement DurationMetadata(TimeSpan duration, string? refines) => new XElement(Opf + "meta",
         new XAttribute("property", "media:duration"), refines == null ? null : new XAttribute("refines", refines), EpubSmilClock.Format(duration));
 }
