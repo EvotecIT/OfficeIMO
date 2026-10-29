@@ -646,6 +646,7 @@ namespace OfficeIMO.PowerPoint {
             result.SetCategoryAxisLabelTextStyle(fontSizePoints: ChartTextSize, color: theme.TextMuted);
             result.SetValueAxisLabelTextStyle(fontSizePoints: ChartTextSize, color: theme.TextMuted);
             result.SetValueAxisGridlines(showMajor: true, showMinor: false, lineColor: theme.Hairline, lineWidthPoints: 0.75D);
+            UniformAxisText(result);
 
             bool secondary = chart.Data.Series.Any(series => series.AxisGroup == OfficeChartAxisGroup.Secondary);
             bool stacked100 = chart.Kind is OfficeChartKind.ColumnStacked100 or OfficeChartKind.BarStacked100 or
@@ -678,6 +679,26 @@ namespace OfficeIMO.PowerPoint {
                     result.SetDataLabelTextStyle(fontSizePoints: ChartTextSize, bold: true, color: theme.Text);
                 }
             }
+        }
+
+        /// <summary>
+        ///     Secondary axes (combo charts) take the same axis text as the primary ones, so the chart keeps one axis
+        ///     text style and the shared chart renderer can draw it.
+        /// </summary>
+        private static void UniformAxisText(PowerPointChart result) {
+            var axes = result.GetChart().PlotArea?.ChildElements
+                .Where(axis => axis is DocumentFormat.OpenXml.Drawing.Charts.CategoryAxis or DocumentFormat.OpenXml.Drawing.Charts.ValueAxis)
+                .ToList();
+            if (axes == null || axes.Count <= 2) return;
+            DocumentFormat.OpenXml.OpenXmlElement? reference = axes[0].GetFirstChild<DocumentFormat.OpenXml.Drawing.Charts.TextProperties>();
+            if (reference == null) return;
+            foreach (DocumentFormat.OpenXml.OpenXmlElement axis in axes.Skip(1)) {
+                DocumentFormat.OpenXml.Drawing.Charts.TextProperties? text = axis.GetFirstChild<DocumentFormat.OpenXml.Drawing.Charts.TextProperties>();
+                if (text == null) continue;
+                text.InsertAfterSelf(reference.CloneNode(true));
+                text.Remove();
+            }
+            result.Save();
         }
 
         /// <summary>Writes explicit unsmoothed lines, so no renderer curves a series between its points.</summary>
