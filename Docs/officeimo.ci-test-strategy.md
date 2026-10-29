@@ -20,7 +20,9 @@ handoff.
 The Windows profile restores the normal solution, including its Windows-only
 targets. Linux also restores the browser converter after installing `wasm-tools`.
 The Apple profile installs `wasm-tools` and `ios` before restoring the solution and
-the retained `OfficeIMO.Studio.iOS` project. These are dependency restores, without
+the retained `OfficeIMO.Studio.iOS` project. It selects workload set `10.0.112`,
+which supplies the project's iOS `26.5` targeting pack for the SDK's `10.0.100`
+feature band. These are dependency restores, without
 signing, native application launch or package publication. Projects and runtime
 variants outside those explicit sets are not claimed as restored coverage.
 

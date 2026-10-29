@@ -43,25 +43,29 @@ jobs:
             runner: ubuntu-latest
             projects: '["OfficeIMO.sln", "Website/Apps/OfficeIMO.Web.Converter/OfficeIMO.Web.Converter.csproj"]'
             workloads: wasm-tools
+            workload-version: ''
           - profile: windows
             runner: windows-latest
             projects: '["OfficeIMO.sln"]'
             workloads: ''
+            workload-version: ''
           - profile: apple
             runner: macos-latest
             projects: '["OfficeIMO.sln", "OfficeIMO.Studio.iOS/OfficeIMO.Studio.iOS.csproj"]'
             workloads: 'wasm-tools ios'
+            workload-version: '10.0.112'
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v7
         with:
           persist-credentials: false
-      - uses: EvotecIT/PSPublishModule/.github/actions/dotnet-dependency-submission@ff63d69d383ceae49542c8ab4632e927be856c6d
+      - uses: EvotecIT/PSPublishModule/.github/actions/dotnet-dependency-submission@bbe3eeb86d14e6e59630045c3feea41a63454a87
         id: graphs
         with:
           projects-json: ${{ matrix.projects }}
           workloads: ${{ matrix.workloads }}
+          workload-version: ${{ matrix.workload-version }}
       - uses: actions/upload-artifact@v7
         with:
           name: nuget-graphs-${{ matrix.profile }}
@@ -84,7 +88,7 @@ jobs:
         with:
           name: nuget-graphs-${{ matrix.profile }}
           path: ${{ runner.temp }}/native-graphs
-      - uses: EvotecIT/PSPublishModule/.github/actions/dotnet-dependency-submission@ff63d69d383ceae49542c8ab4632e927be856c6d
+      - uses: EvotecIT/PSPublishModule/.github/actions/dotnet-dependency-submission@bbe3eeb86d14e6e59630045c3feea41a63454a87
         with:
           mode: submit
           graph-artifact: ${{ runner.temp }}/native-graphs
@@ -109,7 +113,7 @@ jobs:
         with:
           name: nuget-graphs-${{ matrix.profile }}
           path: ${{ runner.temp }}/native-graphs
-      - uses: EvotecIT/PSPublishModule/.github/actions/dotnet-dependency-submission@ff63d69d383ceae49542c8ab4632e927be856c6d
+      - uses: EvotecIT/PSPublishModule/.github/actions/dotnet-dependency-submission@bbe3eeb86d14e6e59630045c3feea41a63454a87
         with:
           mode: submit
           graph-artifact: ${{ runner.temp }}/native-graphs
