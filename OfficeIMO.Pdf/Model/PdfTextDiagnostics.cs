@@ -719,7 +719,7 @@ internal static partial class PdfTextDiagnostics {
             if (fontIndex < 0) {
                 FlushSegment(scalarStart);
                 int uncoveredElementEnd = scalarStart + Math.Max(coveredLength, index - scalarStart);
-                if (uncoveredElementEnd == index && scalar <= char.MaxValue && char.IsWhiteSpace((char)scalar)) {
+                if (scalar <= char.MaxValue && char.IsWhiteSpace((char)scalar)) {
                     index = uncoveredElementEnd;
                     continue;
                 }

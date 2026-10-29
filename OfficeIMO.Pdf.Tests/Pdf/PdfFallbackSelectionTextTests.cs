@@ -61,20 +61,6 @@ public class PdfFallbackSelectionTextTests {
     }
 
     [Fact]
-    public void PlanEmbeddedFontFallbackText_UncoveredWhitespaceLedElement_RejectsRunConversion() {
-        byte[] font = Font();
-        var candidate = Candidate("A and space", font, new OfficeFontUnicodeRange('A', 'A'), new OfficeFontUnicodeRange(' ', ' '));
-
-        PdfTextFallbackPlan plan = PdfTextDiagnostics.PlanEmbeddedFontFallbackText("A \u0301", new[] { candidate });
-
-        Assert.False(plan.IsFullyCovered);
-        PdfTextEncodingDiagnostic diagnostic = Assert.Single(plan.Diagnostics);
-        Assert.Equal("U+0301", diagnostic.CodePoint);
-        Assert.Equal(2, diagnostic.Index);
-        Assert.Throws<InvalidOperationException>(() => plan.ToTextRuns(new[] { PdfStandardFont.Helvetica }));
-    }
-
-    [Fact]
     public void PlanEmbeddedFontFallbackText_FirstScalarCovered_DiagnosesMissingCombiningMark() {
         byte[] font = Font();
         var first = Candidate("B", font, new OfficeFontUnicodeRange('B', 'B'));
@@ -84,6 +70,21 @@ public class PdfFallbackSelectionTextTests {
         Assert.Equal(1, diagnostic.Index);
         Assert.Equal("U+0301", diagnostic.CodePoint);
         Assert.Equal("\u0301", diagnostic.Text);
+    }
+
+    [Fact]
+    public void PlanEmbeddedFontFallbackText_AfterSkippedWhitespace_ReportsLaterMissingMark() {
+        byte[] font = Font();
+        var candidate = Candidate("Letters and space", font,
+            new OfficeFontUnicodeRange('A', 'B'), new OfficeFontUnicodeRange(' ', ' '));
+
+        PdfTextFallbackPlan plan = PdfTextDiagnostics.PlanEmbeddedFontFallbackText("A \u0301B\u0301", new[] { candidate });
+
+        PdfTextEncodingDiagnostic diagnostic = Assert.Single(plan.Diagnostics);
+        Assert.Equal("U+0301", diagnostic.CodePoint);
+        Assert.Equal(4, diagnostic.Index);
+        Assert.False(plan.IsFullyCovered);
+        Assert.Throws<InvalidOperationException>(() => plan.ToTextRuns(new[] { PdfStandardFont.Helvetica }));
     }
 
     [Fact]
