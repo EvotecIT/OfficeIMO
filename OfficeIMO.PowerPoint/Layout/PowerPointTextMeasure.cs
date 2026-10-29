@@ -14,7 +14,8 @@ namespace OfficeIMO.PowerPoint {
 
         private static readonly Dictionary<string, double> FamilyFactors = new(StringComparer.OrdinalIgnoreCase) {
             ["Aptos"] = 0.94D,
-            ["Aptos Display"] = 0.91D,
+            // Aptos Display is downloaded on demand; where it is missing, the fallback runs wider than the face.
+            ["Aptos Display"] = 0.96D,
             ["Calibri"] = 0.87D,
             ["Carlito"] = 0.87D,
             ["Arial"] = 0.99D,

@@ -97,6 +97,11 @@ namespace OfficeIMO.PowerPoint {
             }
         }
 
+        private static bool InheritsGeometry(PowerPointShape shape) =>
+            shape.Element is DocumentFormat.OpenXml.Presentation.Shape element &&
+            element.NonVisualShapeProperties?.ApplicationNonVisualDrawingProperties?.PlaceholderShape != null &&
+            element.ShapeProperties?.Transform2D == null;
+
         private static bool IsLineGeometry(PowerPointShape shape) {
             if (shape.Element is DocumentFormat.OpenXml.Presentation.ConnectionShape) return true;
             DocumentFormat.OpenXml.Drawing.PresetGeometry? geometry = shape.Element
@@ -110,6 +115,9 @@ namespace OfficeIMO.PowerPoint {
             PowerPointLayoutBox canvas, PowerPointDeckPreflightOptions options,
             IList<PowerPointDeckPreflightFinding> findings) {
             PowerPointLayoutBox bounds = shape.Bounds;
+            // A placeholder without its own transform takes its geometry from the layout or master; it has no
+            // slide-level bounds to check.
+            if (bounds.Width <= 0L && bounds.Height <= 0L && InheritsGeometry(shape)) return;
             // A horizontal or vertical line has no extent across its direction; only a line without length is invalid.
             bool line = IsLineGeometry(shape);
             if (line ? bounds.Width <= 0L && bounds.Height <= 0L : bounds.Width <= 0L || bounds.Height <= 0L) {

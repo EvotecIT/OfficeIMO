@@ -106,8 +106,12 @@ namespace OfficeIMO.PowerPoint {
                 layout = selected.Value.LayoutIndex;
             }
             PowerPointTextBox? title = context.Document.GetLayoutPlaceholderTextBox(master, layout, PowerPointPlaceholderType.Title);
-            return title != null && title.TryGetBoundsPoints(out double left, out double top, out double width, out double height)
-                ? PowerPointLayoutBox.FromPoints(left, top, width, height) : (PowerPointLayoutBox?)null;
+            if (title == null) return null;
+            if (title.TryGetBoundsPoints(out double left, out double top, out double width, out double height))
+                return PowerPointLayoutBox.FromPoints(left, top, width, height);
+            // A layout title without geometry inherits the master's, as PowerPoint draws it.
+            return context.MasterTitle is PowerPointLayoutRect inherited
+                ? PowerPointLayoutBox.FromPoints(inherited.X, inherited.Y, inherited.Width, inherited.Height) : (PowerPointLayoutBox?)null;
         }
 
         private static HeaderGeometry MeasureTemplateHeader(PowerPointLayoutContext context, PowerPointLayoutSlide slide, PowerPointLayoutBox titleBox) {
@@ -141,8 +145,8 @@ namespace OfficeIMO.PowerPoint {
         internal static HeaderGeometry RenderHeader(PowerPointLayoutContext context, PowerPointLayoutWriter writer,
             PowerPointLayoutSlide slide) {
             PowerPointLayoutGrid grid = context.Grid;
-            if (!context.Document.OwnsLayoutTheme &&
-                writer.Slide.GetLayoutPlaceholder(PowerPointPlaceholderType.Title)?.Bounds is PowerPointLayoutBox templateTitle) {
+            if (!context.Document.OwnsLayoutTheme && writer.Slide.GetLayoutPlaceholder(PowerPointPlaceholderType.Title) is { } placeholder &&
+                (placeholder.Bounds ?? TemplateTitleBounds(context, slide)) is PowerPointLayoutBox templateTitle) {
                 return RenderTemplateHeader(context, writer, slide, templateTitle);
             }
 

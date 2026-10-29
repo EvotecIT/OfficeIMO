@@ -28,7 +28,13 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>Derives the grid from a loaded deck's or template's "Title and Content" body placeholder.</summary>
-        private static PowerPointLayoutGrid? TemplateGrid(PowerPointPresentation document) {
+        /// <summary>
+        ///     The first master's title placeholder. A layout title without its own geometry inherits it, so every
+        ///     template slide gets the same header whether its layout repeats the position or not.
+        /// </summary>
+        internal PowerPointLayoutRect? MasterTitle { get; private set; }
+
+        private PowerPointLayoutGrid? TemplateGrid(PowerPointPresentation document) {
             DocumentFormat.OpenXml.Packaging.SlideMasterPart? master = document.OpenXmlDocument.PresentationPart?.SlideMasterParts.FirstOrDefault();
             if (master == null) return null;
             DocumentFormat.OpenXml.Packaging.SlideLayoutPart? layout = master.SlideLayoutParts.FirstOrDefault(l =>
@@ -55,6 +61,7 @@ namespace OfficeIMO.PowerPoint {
 
             PowerPointLayoutRect? body = Bounds(layout?.SlideLayout, false) ?? Bounds(master.SlideMaster, false);
             PowerPointLayoutRect? titleBox = Bounds(layout?.SlideLayout, true) ?? Bounds(master.SlideMaster, true);
+            MasterTitle = Bounds(master.SlideMaster, true);
             if (body == null || body.Value.Width < 100D || body.Value.Height < 100D) return null;
             PowerPointSlideSize size = document.SlideSize;
             return PowerPointLayoutGrid.ForTemplate(PowerPointUnits.ToPoints(size.WidthEmus), PowerPointUnits.ToPoints(size.HeightEmus),
