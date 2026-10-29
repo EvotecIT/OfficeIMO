@@ -33,6 +33,11 @@ namespace OfficeIMO.Word {
             }
 
             foreach (MutableFieldCandidate candidate in SortFieldsForEvaluation(candidates)) {
+                if (candidate.AnchorElement.Ancestors<SdtBlock>().Any(state.LockedTablesOfContents.Contains)) {
+                    WordFieldType? lockedType = WordFieldInventory.ParseInstruction(candidate.InstructionText).FieldType;
+                    results.Add(candidate.ToResult(lockedType, WordFieldUpdateStatus.Skipped, null, "Field is inside a locked table of contents and was left unchanged."));
+                    continue;
+                }
                 if (options.DateTimeFieldsOnly) {
                     WordFieldType? fieldType = WordFieldInventory.ParseInstruction(candidate.InstructionText).FieldType;
                     if (fieldType is not (WordFieldType.Date or WordFieldType.Time)) {
@@ -1382,6 +1387,7 @@ namespace OfficeIMO.Word {
             internal WordLayoutPagination? Layout { get; set; }
 
             internal HashSet<SdtBlock> RegeneratedTablesOfContents { get; } = new();
+            internal HashSet<SdtBlock> LockedTablesOfContents { get; } = new();
         }
     }
 }

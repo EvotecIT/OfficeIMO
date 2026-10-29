@@ -100,6 +100,12 @@ namespace OfficeIMO.Word {
                     return false;
                 }
 
+                // List ids are package-local and equal ids need not describe equal lists.
+                // Keep such styles separate unless list equivalence can be established.
+                if (source.Descendants<NumberingId>().Any() || destination.Descendants<NumberingId>().Any()) {
+                    return false;
+                }
+
                 if (!string.Equals(CanonicalizeStyle(source), CanonicalizeStyle(destination), StringComparison.Ordinal)) {
                     return false;
                 }

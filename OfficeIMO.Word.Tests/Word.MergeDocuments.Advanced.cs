@@ -14,6 +14,118 @@ using W15 = DocumentFormat.OpenXml.Office2013.Word;
 namespace OfficeIMO.Tests {
     public partial class Word {
         [Fact]
+        public void Test_MergePreservesNestedFieldOrderAndQuotedLiteral() {
+            using WordDocument destination = WordDocument.Create();
+            using WordDocument source = WordDocument.Create();
+            destination.AddParagraph("Destination").AddBookmark("MyBookmark");
+            source.AddParagraph("Source").AddBookmark("MyBookmark");
+            var paragraph = new Paragraph(
+                new Run(new FieldChar { FieldCharType = FieldCharValues.Begin }),
+                new Run(new FieldCode(" IF ") { Space = SpaceProcessingModeValues.Preserve }),
+                new Run(new FieldChar { FieldCharType = FieldCharValues.Begin }),
+                new Run(new FieldCode(" REF MyBookmark ") { Space = SpaceProcessingModeValues.Preserve }),
+                new Run(new FieldChar { FieldCharType = FieldCharValues.Separate }),
+                new Run(new Text("1")),
+                new Run(new FieldChar { FieldCharType = FieldCharValues.End }),
+                new Run(new FieldCode(" = 1 \"MyBookmark\" \"fallback\" ") { Space = SpaceProcessingModeValues.Preserve }),
+                new Run(new FieldChar { FieldCharType = FieldCharValues.Separate }),
+                new Run(new Text("result")),
+                new Run(new FieldChar { FieldCharType = FieldCharValues.End }));
+            source._document.Body!.InsertBefore(paragraph, source._document.Body.Elements<SectionProperties>().Last());
+            destination.AppendDocument(source);
+            Paragraph merged = destination._document.Body!.Elements<Paragraph>().Single(x => x.Descendants<FieldCode>().Count() == 3);
+            string[] codes = merged.Descendants<FieldCode>().Select(x => x.Text).ToArray();
+            string newName = destination._document.Body.Descendants<BookmarkStart>().Last().Name!.Value!;
+            Assert.Equal(" IF ", codes[0]);
+            Assert.Contains(newName, codes[1]);
+            Assert.Equal(" = 1 \"MyBookmark\" \"fallback\" ", codes[2]);
+        }
+
+        [Fact]
+        public void Test_MergeKeepDifferentStylesPreservesStyleBasedNumbering() {
+            string destinationPath = Path.Combine(_directoryWithFiles, "MergeNumberStyleBase.docx");
+            string sourcePath = Path.Combine(_directoryWithFiles, "MergeNumberStyleSource.docx");
+            CreateHeadingDocument(destinationPath, "Destination heading", "FF0000");
+            CreateHeadingDocument(sourcePath, "Source heading", "FF0000");
+            SetHeadingNumbering(destinationPath, NumberFormatValues.Decimal);
+            SetHeadingNumbering(sourcePath, NumberFormatValues.Bullet);
+            using (var destination = WordDocument.Load(destinationPath))
+            using (var source = WordDocument.Load(sourcePath)) {
+                destination.AppendDocument(source, new WordDocumentMergeOptions { StyleMode = WordMergeStyleMode.KeepDifferentStyles });
+                Assert.NotEqual(destination.Paragraphs.Single(x => x.Text == "Destination heading").StyleId,
+                    destination.Paragraphs.Single(x => x.Text == "Source heading").StyleId);
+            }
+        }
+
+        private static void SetHeadingNumbering(string path, NumberFormatValues format) {
+            using WordprocessingDocument package = WordprocessingDocument.Open(path, true);
+            MainDocumentPart main = package.MainDocumentPart!;
+            Style style = main.StyleDefinitionsPart!.Styles!.Elements<Style>().Single(x => x.StyleId == "Heading1");
+            style.StyleParagraphProperties ??= new StyleParagraphProperties();
+            style.StyleParagraphProperties.NumberingProperties = new NumberingProperties(new NumberingLevelReference { Val = 0 }, new NumberingId { Val = 1 });
+            main.StyleDefinitionsPart.Styles.Save();
+            NumberingDefinitionsPart part = main.NumberingDefinitionsPart ?? main.AddNewPart<NumberingDefinitionsPart>();
+            part.Numbering = new Numbering(
+                new AbstractNum(new Level(new StartNumberingValue { Val = 1 }, new NumberingFormat { Val = format }, new LevelText { Val = "%1." }) { LevelIndex = 0 }) { AbstractNumberId = 1 },
+                new NumberingInstance(new AbstractNumId { Val = 1 }) { NumberID = 1 });
+            part.Numbering.Save();
+        }
+
+        [Fact]
+        public void Test_MergeRewritesSplitBookmarkFieldInstructions() {
+            using WordDocument destination = WordDocument.Create();
+            using WordDocument source = WordDocument.Create();
+            destination.AddParagraph("Destination").AddBookmark("MyBookmark");
+            source.AddParagraph("Source").AddBookmark("MyBookmark");
+            var field = new Paragraph(
+                new Run(new FieldChar { FieldCharType = FieldCharValues.Begin }),
+                new Run(new FieldCode(" REF MyBook") { Space = SpaceProcessingModeValues.Preserve }),
+                new Run(new FieldCode("mark ") { Space = SpaceProcessingModeValues.Preserve }),
+                new Run(new FieldChar { FieldCharType = FieldCharValues.Separate }),
+                new Run(new Text("old result")),
+                new Run(new FieldChar { FieldCharType = FieldCharValues.End }));
+            source._document.Body!.InsertBefore(field, source._document.Body.Elements<SectionProperties>().Last());
+            destination.AppendDocument(source);
+            string newName = destination._document.Body!.Descendants<BookmarkStart>().Last().Name!.Value!;
+            Assert.NotEqual("MyBookmark", newName);
+            string instruction = string.Concat(destination._document.Body.Descendants<FieldCode>().Select(x => x.Text));
+            Assert.Contains(newName, instruction);
+        }
+
+        [Fact]
+        public void Test_MergeSourceWithoutHeaderDoesNotInheritDestinationHeader() {
+            using WordDocument destination = WordDocument.Create();
+            using WordDocument source = WordDocument.Create();
+            destination.AddParagraph("Destination");
+            source.AddParagraph("Source");
+            MainDocumentPart main = destination._wordprocessingDocument.MainDocumentPart!;
+            HeaderPart header = main.AddNewPart<HeaderPart>();
+            header.Header = new Header(new Paragraph(new Run(new Text("Destination header"))));
+            SectionProperties destinationSection = destination._document.Body!.Elements<SectionProperties>().Last();
+            destinationSection.PrependChild(new HeaderReference { Type = HeaderFooterValues.Default, Id = main.GetIdOfPart(header) });
+            destination.AppendDocument(source);
+            SectionProperties sourceSection = destination._document.Body!.Descendants<SectionProperties>().Skip(1).First();
+            Assert.True(sourceSection.Elements<HeaderReference>().Any(x => x.Type?.Value == HeaderFooterValues.Default), string.Join("\n", destination._document.Body.Descendants<SectionProperties>().Select(x => x.OuterXml)));
+            HeaderReference sourceHeader = Assert.Single(sourceSection.Elements<HeaderReference>(), x => x.Type?.Value == HeaderFooterValues.Default);
+            var copiedHeader = (HeaderPart)main.GetPartById(sourceHeader.Id!.Value!);
+            Assert.DoesNotContain("Destination header", copiedHeader.Header!.InnerText);
+            AssertMergedDocumentIsValid(destination);
+        }
+
+        [Fact]
+        public void Test_MergeAddsBoundaryWhenDestinationHasNoSectionProperties() {
+            using WordDocument destination = WordDocument.Create();
+            using WordDocument source = WordDocument.Create();
+            destination.AddParagraph("Destination");
+            source.AddParagraph("Source");
+            destination._document.Body!.Elements<SectionProperties>().Last().Remove();
+            source.Sections[0].PageOrientation = OfficePageOrientation.Landscape;
+            destination.AppendDocument(source);
+            Assert.NotNull(destination._document.Body!.Descendants<ParagraphProperties>().FirstOrDefault(x => x.SectionProperties != null));
+            Assert.Equal(2, destination.Sections.Count);
+        }
+
+        [Fact]
         public void Test_MergeKeepDifferentStylesCopiesClashingHeadingUnderNewId() {
             var destinationPath = Path.Combine(_directoryWithFiles, "MergeKeepDifferentBase.docx");
             var sourcePath = Path.Combine(_directoryWithFiles, "MergeKeepDifferentSource.docx");

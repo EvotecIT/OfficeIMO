@@ -41,6 +41,8 @@ namespace OfficeIMO.Word {
             if (_options.SectionMode == WordMergeSectionMode.UseDestinationSections) {
                 RemoveSectionBreaks(staging);
                 sourceSection = null;
+            } else {
+                sourceSection ??= new SectionProperties();
             }
 
             PlanStyles();
@@ -74,6 +76,10 @@ namespace OfficeIMO.Word {
             ImportCommentExtensions(comments, paragraphIds);
             MergeImportedNamespaces();
 
+            if (sourceSection != null && destinationBody.ChildElements.Any(x => x is not SectionProperties)) {
+                SectionProperties firstSourceSection = staging.Descendants<SectionProperties>().FirstOrDefault() ?? sourceSection;
+                PreventDestinationHeaderFooterInheritance(firstSourceSection);
+            }
             PlaceContent(destinationBody, staging, sourceSection);
         }
 
@@ -145,8 +151,8 @@ namespace OfficeIMO.Word {
 
             SectionProperties? closingSection = destinationSection;
             if (sourceSection != null) {
-                if (destinationSection != null && destinationHasContent) {
-                    AttachSectionBreak(destinationBody, destinationSection);
+                if (destinationHasContent) {
+                    AttachSectionBreak(destinationBody, destinationSection ?? new SectionProperties());
                 }
 
                 closingSection = sourceSection;
@@ -159,6 +165,25 @@ namespace OfficeIMO.Word {
 
             if (closingSection != null) {
                 destinationBody.Append(closingSection);
+            }
+        }
+
+        private void PreventDestinationHeaderFooterInheritance(SectionProperties firstSourceSection) {
+            foreach (HeaderFooterValues type in new[] { HeaderFooterValues.Default, HeaderFooterValues.Even, HeaderFooterValues.First }) {
+                if (!firstSourceSection.Elements<HeaderReference>().Any(x => x.Type?.Value == type)) {
+                    HeaderPart header = _destinationMain.AddNewPart<HeaderPart>();
+                    header.Header = new Header(new Paragraph());
+                    var reference = new HeaderReference { Type = type, Id = _destinationMain.GetIdOfPart(header) };
+                    OpenXmlElement? anchor = firstSourceSection.ChildElements.FirstOrDefault(x => x is not HeaderReference);
+                    if (anchor == null) firstSourceSection.Append(reference); else firstSourceSection.InsertBefore(reference, anchor);
+                }
+                if (!firstSourceSection.Elements<FooterReference>().Any(x => x.Type?.Value == type)) {
+                    FooterPart footer = _destinationMain.AddNewPart<FooterPart>();
+                    footer.Footer = new Footer(new Paragraph());
+                    var reference = new FooterReference { Type = type, Id = _destinationMain.GetIdOfPart(footer) };
+                    OpenXmlElement? anchor = firstSourceSection.ChildElements.FirstOrDefault(x => x is not HeaderReference && x is not FooterReference);
+                    if (anchor == null) firstSourceSection.Append(reference); else firstSourceSection.InsertBefore(reference, anchor);
+                }
             }
         }
 

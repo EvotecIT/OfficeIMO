@@ -71,27 +71,67 @@ namespace OfficeIMO.Word {
                     }
                 }
 
-                foreach (FieldCode fieldCode in root.Descendants<FieldCode>()) {
-                    fieldCode.Text = RenameBookmarkTokens(fieldCode.Text, nameMap);
+                RewriteComplexBookmarkInstructions(root, nameMap);
+            }
+        }
+
+        private sealed class FieldInstructionGroup {
+            internal List<FieldCode> Codes { get; } = new();
+            internal bool HasNestedField { get; set; }
+            internal bool InInstruction { get; set; } = true;
+        }
+
+        private static void RewriteComplexBookmarkInstructions(OpenXmlElement root, Dictionary<string, string> nameMap) {
+            var fields = new Stack<FieldInstructionGroup>();
+            foreach (OpenXmlElement element in root.Descendants()) {
+                if (element is FieldChar marker) {
+                    if (marker.FieldCharType?.Value == FieldCharValues.Begin) {
+                        if (fields.Count > 0 && fields.Peek().InInstruction) fields.Peek().HasNestedField = true;
+                        fields.Push(new FieldInstructionGroup());
+                    } else if (marker.FieldCharType?.Value == FieldCharValues.Separate && fields.Count > 0) {
+                        RewriteFieldCodeRuns(fields.Peek(), nameMap);
+                        fields.Peek().InInstruction = false;
+                    } else if (marker.FieldCharType?.Value == FieldCharValues.End && fields.Count > 0) {
+                        RewriteFieldCodeRuns(fields.Pop(), nameMap);
+                    }
+                } else if (element is FieldCode code) {
+                    if (fields.Count > 0 && fields.Peek().InInstruction) fields.Peek().Codes.Add(code);
+                    else if (fields.Count == 0) code.Text = RenameBookmarkTokens(code.Text, nameMap);
                 }
             }
         }
 
+        private static void RewriteFieldCodeRuns(FieldInstructionGroup field, Dictionary<string, string> nameMap) {
+            if (!field.InInstruction || field.HasNestedField || field.Codes.Count == 0) return;
+            string original = string.Concat(field.Codes.Select(x => x.Text));
+            string rewritten = RenameBookmarkTokens(original, nameMap);
+            if (string.Equals(original, rewritten, StringComparison.Ordinal)) return;
+            field.Codes[0].Text = rewritten;
+            for (int i = 1; i < field.Codes.Count; i++) field.Codes[i].Text = string.Empty;
+        }
+
         private static string RenameBookmarkTokens(string instruction, Dictionary<string, string> nameMap) {
-            return FieldInstructionToken.Replace(instruction, _ => {
-                string token = _.Value;
-                bool quoted = token.Length >= 2 && token[0] == '"' && token[token.Length - 1] == '"';
-                string bare = quoted ? token.Substring(1, token.Length - 2) : token;
-                if (!nameMap.TryGetValue(bare, out string? renamed)) {
-                    return token;
+            MatchCollection tokens = FieldInstructionToken.Matches(instruction);
+            if (tokens.Count < 2) return instruction;
+            string kind = tokens[0].Value;
+            int operand = -1;
+            if (string.Equals(kind, "REF", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(kind, "PAGEREF", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(kind, "NOTEREF", StringComparison.OrdinalIgnoreCase)) {
+                operand = 1;
+            } else if (string.Equals(kind, "HYPERLINK", StringComparison.OrdinalIgnoreCase)) {
+                for (int i = 1; i + 1 < tokens.Count; i++) {
+                    if (string.Equals(tokens[i].Value, @"\l", StringComparison.OrdinalIgnoreCase)) { operand = i + 1; break; }
                 }
-
-                if (quoted) {
-                    return "\"" + renamed + "\"";
-                }
-
-                return renamed;
-            });
+            }
+            if (operand < 0) return instruction;
+            Match match = tokens[operand];
+            string token = match.Value;
+            bool quoted = token.Length >= 2 && token[0] == '"' && token[token.Length - 1] == '"';
+            string bare = quoted ? token.Substring(1, token.Length - 2) : token;
+            if (!nameMap.TryGetValue(bare, out string? renamed)) return instruction;
+            string replacement = quoted ? "\"" + renamed + "\"" : renamed;
+            return instruction.Substring(0, match.Index) + replacement + instruction.Substring(match.Index + match.Length);
         }
 
         /// <summary>

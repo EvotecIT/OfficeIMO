@@ -29,7 +29,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// A source style that matches a destination style but has a different definition is copied under a new
         /// unique id and name (for example <c>Heading1_0</c> / <c>heading 1_0</c>), and the appended content is
-        /// repointed to the copy. Styles with identical definitions are shared.
+        /// repointed to the copy. Styles without list references are shared when their definitions match; styles with list references are copied.
         /// </summary>
         KeepDifferentStyles
     }

@@ -9,6 +9,32 @@ using Xunit;
 namespace OfficeIMO.Tests {
     public partial class Word {
         [Fact]
+        public void Test_UpdateFieldsLayoutDoesNotNormalizeOriginalTables() {
+            using WordDocument document = WordDocument.Create();
+            document.AddTable(1, 2);
+            Table table = document._document.Body!.Descendants<Table>().First();
+            table.GetFirstChild<TableGrid>()!.Elements<GridColumn>().First().Width = "3500";
+            string before = table.OuterXml;
+            document.UpdateFields(new WordFieldUpdateOptions { UseLayoutPagination = true });
+            Assert.Equal(before, table.OuterXml);
+        }
+
+        [Fact]
+        public void Test_UpdateFieldsDoesNotRegenerateLockedToc() {
+            using WordDocument document = WordDocument.Create();
+            document.AddTableOfContent();
+            document.AddParagraph("Heading").Style = WordParagraphStyles.Heading1;
+            document.UpdateFields(new WordFieldUpdateOptions { UpdateTablesOfContents = true });
+            SdtBlock block = document.TableOfContent!.SdtBlock;
+            FieldChar begin = block.Descendants<FieldChar>().First(x => x.FieldCharType?.Value == FieldCharValues.Begin);
+            begin.FieldLock = true;
+            string before = block.OuterXml;
+            WordFieldUpdateReport report = document.UpdateFieldsAndGetReport(new WordFieldUpdateOptions { UpdateTablesOfContents = true });
+            Assert.Equal(before, block.OuterXml);
+            Assert.Equal(WordFieldUpdateStatus.Skipped, report.Results.Single(x => x.FieldType == WordFieldType.TOC).Status);
+        }
+
+        [Fact]
         public void Test_UpdateFieldsRegeneratesTableOfContentsFromLayout() {
             string filePath = Path.Combine(_directoryWithFiles, "UpdateFieldsLayoutToc.docx");
             string? pageReference;
