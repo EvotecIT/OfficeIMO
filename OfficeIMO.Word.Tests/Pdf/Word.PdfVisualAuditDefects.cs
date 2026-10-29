@@ -45,6 +45,32 @@ public partial class Word {
         return document;
     }
 
+    [Theory]
+    [InlineData("ROMAN", "I", "II")]
+    [InlineData("Roman", "I", "II")]
+    [InlineData("roman", "i", "ii")]
+    [InlineData("MERGEFORMAT \\* ROMAN", "I", "II")]
+    [InlineData("CHARFORMAT \\* roman", "i", "ii")]
+    public void SaveAsPdf_PageNumberFieldsHonorNumericFormatAfterPresentationSwitches(string switches, string first, string second) {
+        using WordDocument document = WordDocument.Create();
+        document.AddParagraph("First page");
+        document.AddPageBreak();
+        document.AddParagraph("Second page");
+        document.AddHeadersAndFooters();
+        document.Footer!.Default.AddPageNumber(WordPageNumberStyle.Roman);
+        foreach (FieldCode field in document.Footer.Default._footer!.Descendants<FieldCode>()) {
+            field.Text = " PAGE \\* " + switches;
+        }
+
+        using PdfPigDocument pdf = OpenAuditPdf(document);
+        Assert.Equal(2, pdf.NumberOfPages);
+        foreach (var expected in new[] { (Page: 1, Text: first), (Page: 2, Text: second) }) {
+            var page = pdf.GetPage(expected.Page);
+            Assert.Contains(page.GetWords().Where(word => word.BoundingBox.Bottom < page.Height / 4D),
+                word => word.Text == expected.Text);
+        }
+    }
+
     [Fact]
     public void SaveAsPdf_ExplicitFinalViewRendersCurrentTextAndReportsOmittedRevisions() {
         using WordDocument document = CreateTrackedChangeDocument();

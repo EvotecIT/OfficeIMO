@@ -250,7 +250,7 @@ namespace OfficeIMO.Word.Pdf {
                 return PdfCore.PdfPageNumberStyle.LowerRoman;
             }
 
-            if (format == "Roman") {
+            if (format == "Roman" || format == "ROMAN") {
                 return PdfCore.PdfPageNumberStyle.UpperRoman;
             }
 
@@ -283,7 +283,11 @@ namespace OfficeIMO.Word.Pdf {
                 }
 
                 if (index > start) {
-                    return fieldCode.Substring(start, index - start);
+                    string format = fieldCode.Substring(start, index - start);
+                    if (!string.Equals(format, "MERGEFORMAT", StringComparison.OrdinalIgnoreCase)
+                        && !string.Equals(format, "CHARFORMAT", StringComparison.OrdinalIgnoreCase)) {
+                        return format;
+                    }
                 }
 
                 markerIndex = fieldCode.IndexOf(@"\*", markerIndex + 2, StringComparison.Ordinal);
