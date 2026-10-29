@@ -118,6 +118,25 @@ internal static partial class PdfWriter {
             void ReflowTableForCurrentFrame(int rowIndex = 0, int startLine = 0, bool paddingChanged = false) {
                 maxContentHeight = style.Position?.VerticalAnchor == PdfTableAnchor.Page ? currentOpts.PageHeight : GetFullPageContentHeight();
                 double newContentWidth = currentOpts.PageWidth - currentOpts.MarginLeft - currentOpts.MarginRight;
+                if (paddingChanged && rowIndex > 0 && startLine == 0 && activeColumnFlow == null &&
+                    Math.Abs(contentWidth - newContentWidth) <= 0.001D && spanFlow.ActiveCells.Count == 0 &&
+                    GetTableCellLayouts(tb, rowIndex, cols).All(cell => cell.RowSpan <= 1)) {
+                    // Border continuation changes only this row's top clearance. The wrapped
+                    // text and all other rows retain their measured widths and heights.
+                    double previousHeight = rowHeights[rowIndex];
+                    double refreshedHeight = MeasurePreparedTableRowSegmentHeight(tb, style, preparedRows,
+                        cols, colPixel, colGapPx, rowIndex, 0, rowLineCounts[rowIndex],
+                        suppressCellObjects: false, refreshHeight: true);
+                    rowHeights[rowIndex] = refreshedHeight;
+                    preparedRows.IntrinsicHeights[rowIndex] = refreshedHeight;
+                    remainingRowHeights[rowIndex] += refreshedHeight - previousHeight;
+                    tableContentHeight += refreshedHeight - previousHeight;
+                    tableCornerRadius = ResolveTableCornerRadius(style.CornerRadius, tableWidth,
+                        logicalTopBoundary ? rowHeights[0] : double.PositiveInfinity,
+                        logicalBottomBoundary ? rowHeights[rowHeights.Length - 1] : double.PositiveInfinity,
+                        colPixel[0], colPixel[colPixel.Length - 1]);
+                    return;
+                }
                 if (!paddingChanged && (activeColumnFlow == null || Math.Abs(contentWidth - newContentWidth) <= 0.001D)) return;
                 contentWidth = newContentWidth;
                 TableColumnLayout preparedColumns = ResolveTableColumnLayout(tb, currentOpts, style, cols, contentWidth, size, headerRowCount, footerStartRowIndex);
