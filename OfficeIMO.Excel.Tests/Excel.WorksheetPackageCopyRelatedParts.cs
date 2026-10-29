@@ -75,6 +75,116 @@ namespace OfficeIMO.Tests {
             }
         }
 
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void Test_PackageCopyPreservesAuthorsAndMentionsWhenPersonIdsCollide(bool merge) {
+            using MemoryStream sourceStream = CreateRelatedPartCopySource();
+            string askerId;
+            string answererId;
+            const string mentionedId = "{9FBA9D65-41EE-4D60-B2C5-C50955D1F198}";
+            using (var source = ExcelDocument.Load(sourceStream)) {
+                var persons = source._spreadSheetDocument.WorkbookPart!.WorkbookPersonParts.Single().PersonList!;
+                askerId = persons.Elements<Threaded.Person>().Single(x => x.DisplayName == "Asker").Id!.Value!;
+                answererId = persons.Elements<Threaded.Person>().Single(x => x.DisplayName == "Answerer").Id!.Value!;
+                persons.Append(new Threaded.Person { Id = mentionedId, DisplayName = "Mention-only person" });
+                persons.Save();
+                var comment = source["Report"].WorksheetPart.WorksheetThreadedCommentsParts.Single().ThreadedComments!
+                    .Elements<Threaded.ThreadedComment>().First();
+                comment.Append(new Threaded.ThreadedCommentMentions(new Threaded.Mention {
+                    MentionpersonId = mentionedId, MentionId = "{FDD20561-DB28-4F09-8680-2DB2FFB9F02A}", StartIndex = 0U, Length = 2U
+                }));
+                comment.Ancestors<Threaded.ThreadedComments>().Single().Save();
+                source.CopyWorksheet("Report", "Second");
+                source.Save();
+            }
+            sourceStream.Position = 0;
+            using var targetStream = new MemoryStream();
+            using (var source = ExcelDocument.Load(sourceStream, new ExcelLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly }))
+            using (var target = ExcelDocument.Create(targetStream)) {
+                ExcelSheet existing = target.AddWorksheet("Existing");
+                existing.AddThreadedComment("A1", "Existing 1", "Other person 1");
+                existing.AddThreadedComment("A2", "Existing 2", "Other person 2");
+                existing.AddThreadedComment("A3", "Existing 3", "Other person 3");
+                var targetPeople = target._spreadSheetDocument.WorkbookPart!.WorkbookPersonParts.Single().PersonList!;
+                var person1 = targetPeople.Elements<Threaded.Person>().Single(x => x.DisplayName == "Other person 1");
+                var person2 = targetPeople.Elements<Threaded.Person>().Single(x => x.DisplayName == "Other person 2");
+                var person3 = targetPeople.Elements<Threaded.Person>().Single(x => x.DisplayName == "Other person 3");
+                string original1 = person1.Id!.Value!, original2 = person2.Id!.Value!, original3 = person3.Id!.Value!;
+                person1.Id = askerId; person2.Id = answererId; person3.Id = mentionedId;
+                foreach (var comment in existing.WorksheetPart.WorksheetThreadedCommentsParts.Single().ThreadedComments!.Elements<Threaded.ThreadedComment>()) {
+                    if (comment.PersonId == original1) comment.PersonId = askerId;
+                    if (comment.PersonId == original2) comment.PersonId = answererId;
+                    if (comment.PersonId == original3) comment.PersonId = mentionedId;
+                }
+                if (merge) {
+                    target.MergeWorkbookFrom(source, new ExcelWorkbookMergeOptions {
+                        SheetNames = new[] { "Report", "Second" }, SheetNamePrefix = "Imported ", CopyMode = ExcelWorksheetCopyMode.Package
+                    });
+                } else {
+                    var options = new ExcelWorksheetCopyOptions { CopyMode = ExcelWorksheetCopyMode.Package };
+                    target.CopyWorksheetFrom(source, "Report", "Imported Report", ExcelSheetNameValidationMode.Strict, options);
+                    target.CopyWorksheetFrom(source, "Second", "Imported Second", ExcelSheetNameValidationMode.Strict, options);
+                }
+                target.Save();
+            }
+            targetStream.Position = 0;
+            using var reopened = ExcelDocument.Load(targetStream, new ExcelLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly });
+            Assert.Equal(new[] { "Other person 1", "Other person 2", "Other person 3" }, reopened["Existing"].GetThreadedComments().Select(x => x.Author));
+            foreach (string name in new[] { "Imported Report", "Imported Second" }) {
+                AssertCopiedRelatedFeatures(reopened, name);
+                var comments = reopened[name].GetThreadedComments();
+                Assert.Equal("Asker", comments.Single(x => x.ParentId == null).Author);
+                Assert.Equal("Answerer", comments.Single(x => x.ParentId != null).Author);
+                var part = reopened[name].WorksheetPart.WorksheetThreadedCommentsParts.Single();
+                var mention = Assert.Single(part.ThreadedComments!.Descendants<Threaded.Mention>());
+                var people = reopened._spreadSheetDocument.WorkbookPart!.WorkbookPersonParts.Single().PersonList!;
+                Assert.Equal("Mention-only person", people.Elements<Threaded.Person>().Single(x => x.Id == mention.MentionpersonId).DisplayName!.Value);
+            }
+            var firstComments = reopened["Imported Report"].GetThreadedComments();
+            var secondComments = reopened["Imported Second"].GetThreadedComments();
+            Assert.Equal(firstComments.Single(x => x.ParentId == null).PersonId, secondComments.Single(x => x.ParentId == null).PersonId);
+            Assert.Equal(firstComments.Single(x => x.ParentId != null).PersonId, secondComments.Single(x => x.ParentId != null).PersonId);
+            var firstMention = reopened["Imported Report"].WorksheetPart.WorksheetThreadedCommentsParts.Single().ThreadedComments!.Descendants<Threaded.Mention>().Single();
+            var secondMention = reopened["Imported Second"].WorksheetPart.WorksheetThreadedCommentsParts.Single().ThreadedComments!.Descendants<Threaded.Mention>().Single();
+            Assert.Equal(firstMention.MentionpersonId!.Value, secondMention.MentionpersonId!.Value);
+            var ids = reopened.Sheets.SelectMany(x => x.GetThreadedComments()).Select(x => x.Id).ToArray();
+            Assert.Equal(ids.Length, ids.Distinct().Count());
+            Assert.Empty(reopened.ValidateOpenXml());
+        }
+
+        [Fact]
+        public void Test_PackageCopyDoesNotAttributeUnknownSourcePersonToTarget() {
+            using MemoryStream sourceStream = CreateRelatedPartCopySource();
+            string missingId;
+            using (var sourcePackage = SpreadsheetDocument.Open(sourceStream, true)) {
+                var people = sourcePackage.WorkbookPart!.WorkbookPersonParts.Single().PersonList!;
+                var person = people.Elements<Threaded.Person>().Single(x => x.DisplayName == "Asker");
+                missingId = person.Id!.Value!;
+                person.Remove();
+                people.Save();
+            }
+            sourceStream.Position = 0;
+            using var targetStream = new MemoryStream();
+            using (var source = ExcelDocument.Load(sourceStream, new ExcelLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly }))
+            using (var target = ExcelDocument.Create(targetStream)) {
+                Assert.DoesNotContain(source._spreadSheetDocument.WorkbookPart!.WorkbookPersonParts.Single().PersonList!.Elements<Threaded.Person>(), x => x.Id == missingId);
+                Assert.Null(source["Report"].GetThreadedComments().Single(x => x.ParentId == null).Author);
+                var existing = target.AddWorksheet("Existing");
+                existing.AddThreadedComment("A1", "Existing", "Unrelated");
+                var person = target._spreadSheetDocument.WorkbookPart!.WorkbookPersonParts.Single().PersonList!.Elements<Threaded.Person>().Single();
+                person.Id = missingId;
+                existing.WorksheetPart.WorksheetThreadedCommentsParts.Single().ThreadedComments!.Elements<Threaded.ThreadedComment>().Single().PersonId = missingId;
+                target.CopyWorksheetFrom(source, "Report", "Imported", ExcelSheetNameValidationMode.Strict,
+                    new ExcelWorksheetCopyOptions { CopyMode = ExcelWorksheetCopyMode.Package });
+                target.Save();
+            }
+            targetStream.Position = 0;
+            using var reopened = ExcelDocument.Load(targetStream, new ExcelLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly });
+            Assert.Equal("Unrelated", Assert.Single(reopened["Existing"].GetThreadedComments()).Author);
+            Assert.Null(reopened["Imported"].GetThreadedComments().Single(x => x.ParentId == null).Author);
+        }
+
         [Fact]
         public void Test_CopyWorksheet_WithinWorkbookCarriesDrawingsCommentsAndHyperlinks() {
             using MemoryStream stream = CreateRelatedPartCopySource();

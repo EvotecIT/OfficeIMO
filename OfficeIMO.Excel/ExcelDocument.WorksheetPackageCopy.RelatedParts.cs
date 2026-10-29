@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Security.Cryptography;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
@@ -343,6 +344,17 @@ namespace OfficeIMO.Excel {
             var personIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             foreach (WorksheetThreadedCommentsPart part in commentParts) {
                 foreach (Threaded.ThreadedComment comment in part.ThreadedComments!.Elements<Threaded.ThreadedComment>()) {
+                    if (!string.IsNullOrWhiteSpace(comment.PersonId?.Value)) personIds.Add(comment.PersonId!.Value!);
+                    foreach (Threaded.Mention mention in comment.Descendants<Threaded.Mention>()) {
+                        if (!string.IsNullOrWhiteSpace(mention.MentionpersonId?.Value)) personIds.Add(mention.MentionpersonId!.Value!);
+                    }
+                }
+            }
+            IReadOnlyDictionary<string, string> personIdMap = ReferenceEquals(sourceDocument.WorkbookPartRoot, WorkbookPartRoot)
+                ? new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+                : CopyReferencedWorkbookPersons(sourceDocument.WorkbookPartRoot, personIds);
+            foreach (WorksheetThreadedCommentsPart part in commentParts) {
+                foreach (Threaded.ThreadedComment comment in part.ThreadedComments!.Elements<Threaded.ThreadedComment>()) {
                     if (comment.Id?.Value is string id && idMap.TryGetValue(id, out string? newId)) {
                         comment.Id = newId;
                     }
@@ -351,13 +363,12 @@ namespace OfficeIMO.Excel {
                         comment.ParentId = newParentId;
                     }
 
-                    if (!string.IsNullOrWhiteSpace(comment.PersonId?.Value)) {
-                        personIds.Add(comment.PersonId!.Value!);
+                    if (comment.PersonId?.Value is string personId && personIdMap.TryGetValue(personId, out string? newPersonId)) {
+                        comment.PersonId = newPersonId;
                     }
-
                     foreach (Threaded.Mention mention in comment.Descendants<Threaded.Mention>()) {
-                        if (!string.IsNullOrWhiteSpace(mention.MentionpersonId?.Value)) {
-                            personIds.Add(mention.MentionpersonId!.Value!);
+                        if (mention.MentionpersonId?.Value is string mentionedId && personIdMap.TryGetValue(mentionedId, out string? newMentionedId)) {
+                            mention.MentionpersonId = newMentionedId;
                         }
                     }
                 }
@@ -366,9 +377,6 @@ namespace OfficeIMO.Excel {
             }
 
             RemapLegacyThreadedCommentPlaceholders(copiedPart.WorksheetCommentsPart, idMap);
-            if (!ReferenceEquals(sourceDocument.WorkbookPartRoot, WorkbookPartRoot)) {
-                CopyReferencedWorkbookPersons(sourceDocument.WorkbookPartRoot, personIds);
-            }
         }
 
         private static void RemapLegacyThreadedCommentPlaceholders(WorksheetCommentsPart? commentsPart, IReadOnlyDictionary<string, string> idMap) {
@@ -404,44 +412,68 @@ namespace OfficeIMO.Excel {
             }
         }
 
-        private void CopyReferencedWorkbookPersons(WorkbookPart sourceWorkbookPart, IReadOnlyCollection<string> personIds) {
-            if (personIds.Count == 0) {
-                return;
-            }
+        private IReadOnlyDictionary<string, string> CopyReferencedWorkbookPersons(WorkbookPart sourceWorkbookPart, IReadOnlyCollection<string> personIds) {
+            var result = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            if (personIds.Count == 0) return result;
 
-            var existing = new HashSet<string>(
-                WorkbookPartRoot.WorkbookPersonParts
-                    .SelectMany(_ => _.PersonList?.Elements<Threaded.Person>() ?? Enumerable.Empty<Threaded.Person>())
-                    .Select(_ => _.Id?.Value)
-                    .Where(_ => !string.IsNullOrWhiteSpace(_))
-                    .Select(_ => _!),
-                StringComparer.OrdinalIgnoreCase);
+            var existing = new Dictionary<string, Threaded.Person>(StringComparer.OrdinalIgnoreCase);
+            foreach (Threaded.Person person in WorkbookPartRoot.WorkbookPersonParts
+                .SelectMany(_ => _.PersonList?.Elements<Threaded.Person>() ?? Enumerable.Empty<Threaded.Person>())) {
+                if (!string.IsNullOrWhiteSpace(person.Id?.Value) && !existing.ContainsKey(person.Id!.Value!)) existing.Add(person.Id.Value!, person);
+            }
             var sourcePersons = new Dictionary<string, Threaded.Person>(StringComparer.OrdinalIgnoreCase);
             foreach (Threaded.Person person in sourceWorkbookPart.WorkbookPersonParts
                 .SelectMany(_ => _.PersonList?.Elements<Threaded.Person>() ?? Enumerable.Empty<Threaded.Person>())) {
-                string? id = person.Id?.Value;
-                if (!string.IsNullOrWhiteSpace(id) && !sourcePersons.ContainsKey(id!)) {
-                    sourcePersons.Add(id!, person);
-                }
+                if (!string.IsNullOrWhiteSpace(person.Id?.Value) && !sourcePersons.ContainsKey(person.Id!.Value!)) sourcePersons.Add(person.Id.Value!, person);
             }
 
             Threaded.PersonList? targetList = null;
             foreach (string personId in personIds) {
-                if (existing.Contains(personId) || !sourcePersons.TryGetValue(personId, out Threaded.Person? sourcePerson)) {
-                    continue;
+                sourcePersons.TryGetValue(personId, out Threaded.Person? sourcePerson);
+                string targetId = personId;
+                if (existing.TryGetValue(personId, out Threaded.Person? targetPerson)) {
+                    if (sourcePerson != null && SamePerson(targetPerson, sourcePerson)) continue;
+                    // Derive the replacement from the original identity so later imports of the
+                    // same source person reuse it without conflating two people with the same name.
+                    int salt = 0;
+                    do {
+                        targetId = CreateCopiedPersonId(personId, sourcePerson?.OuterXml, salt++);
+                    } while (sourcePersons.ContainsKey(targetId)
+                        || (existing.TryGetValue(targetId, out targetPerson)
+                            && (sourcePerson == null || !SamePerson(targetPerson, sourcePerson))));
+                    result.Add(personId, targetId);
+                    if (existing.ContainsKey(targetId)) continue;
                 }
-
+                // An unresolved source reference stays unresolved, even if its original ID
+                // collided with a target person. Never invent an author for it.
+                if (sourcePerson == null) continue;
                 if (targetList == null) {
                     WorkbookPersonPart personPart = WorkbookPartRoot.WorkbookPersonParts.FirstOrDefault()
                         ?? WorkbookPartRoot.AddNewPart<WorkbookPersonPart>();
                     targetList = personPart.PersonList ??= new Threaded.PersonList();
                 }
-
-                targetList.Append(sourcePerson.CloneNode(true));
-                existing.Add(personId);
+                var copy = (Threaded.Person)sourcePerson.CloneNode(true);
+                copy.Id = targetId;
+                targetList.Append(copy);
+                existing.Add(targetId, copy);
             }
-
             targetList?.Save();
+            return result;
+        }
+
+        private static bool SamePerson(Threaded.Person target, Threaded.Person source) {
+            var normalized = (Threaded.Person)target.CloneNode(true);
+            normalized.Id = source.Id?.Value;
+            return string.Equals(normalized.OuterXml, source.OuterXml, StringComparison.Ordinal);
+        }
+
+        private static string CreateCopiedPersonId(string originalId, string? personXml, int salt) {
+            string input = "OfficeIMO copied person\n" + originalId.ToUpperInvariant() + "\n" + personXml + "\n" + salt.ToString(CultureInfo.InvariantCulture);
+            using SHA256 hash = SHA256.Create();
+            byte[] digest = hash.ComputeHash(Encoding.UTF8.GetBytes(input));
+            var guidBytes = new byte[16];
+            Array.Copy(digest, guidBytes, guidBytes.Length);
+            return "{" + new Guid(guidBytes).ToString().ToUpperInvariant() + "}";
         }
 
         /// <summary>
