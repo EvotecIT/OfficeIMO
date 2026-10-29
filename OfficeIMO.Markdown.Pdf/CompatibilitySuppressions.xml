@@ -105,4 +105,15 @@
     <Target>M:OfficeIMO.Markdown.Pdf.MarkdownPdfStyle.get_TocPanelStyle</Target>
     <IsBaselineSuppression>true</IsBaselineSuppression>
   </Suppression>
+  <!-- 3.6 unifies MarkdownReaderOptions with MarkdownLoadOptions. -->
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Markdown.Pdf.MarkdownPdfSemanticBlocks.CreateReaderOptions(OfficeIMO.Markdown.MarkdownReaderOptions.MarkdownDialectProfile)</Target>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.Markdown.Pdf.MarkdownPdfSemanticBlocks.ConfigureReaderOptions(OfficeIMO.Markdown.MarkdownReaderOptions)</Target>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
 </Suppressions>
