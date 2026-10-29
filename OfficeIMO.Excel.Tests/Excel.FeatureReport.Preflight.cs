@@ -793,7 +793,8 @@ namespace OfficeIMO.Tests {
 
                 string diagnostics = string.Join(Environment.NewLine,
                     report.GetCapabilityDiagnostics(ExcelPreflightCapability.ExportPdfReport));
-                Assert.Contains("PDF-unrendered pivot tables", diagnostics);
+                // The PDF exporter calculates a cache-backed pivot, so only the sparklines block it.
+                Assert.DoesNotContain("PDF-unrendered pivot tables", diagnostics);
                 Assert.Contains("PDF-unrendered sparklines", diagnostics);
             }
         }
