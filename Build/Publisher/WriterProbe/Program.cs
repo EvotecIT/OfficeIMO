@@ -21,7 +21,7 @@ internal static class Program {
                 WriteNew(args[2], bytes);
                 Console.WriteLine(JsonSerializer.Serialize(new {
                     schema = "officeimo.publisher.writer-probe.candidate.v1",
-                    profile = "unqualified-native-schema-quill-default-font-v9",
+                    profile = "unqualified-native-schema-drawing-group-v10",
                     hypothesis = args[0],
                     kind = args[1],
                     rootClassId = CandidateWriter.PublicationClassId,

@@ -99,6 +99,15 @@ structural count/list constraints. Optional printer settings and flags remain
 absent for native defaults; no device-specific printer payload is copied.
 Normal native decoding of this minimal print block remains unqualified.
 
+The drawing stream contains a calculated `F006` drawing-group record with one
+identifier cluster, followed by one `F002` drawing container. Even the blank
+candidate has a root group at SPID 1024; content shapes use SPID 1025. Saved
+shape/drawing counts, last shape ID and cluster values follow those generated
+objects. The next-SPID convention follows the native controls and existing PPT
+writer. No native property table or extra utility drawing is copied. Image
+candidates retain the shared embedded FBSE writer and existing picture shape
+type so that this common drawing-graph correction remains an isolated probe.
+
 The earlier named hypothesis commands and their exact source are retained in
 commit `a69b7b8b56`. Retained raw candidates and their native rejection records
 remain negative controls; the current command does not reproduce those older

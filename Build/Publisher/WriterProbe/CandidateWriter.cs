@@ -1,5 +1,4 @@
 using OfficeIMO.Core.Internal;
-using OfficeIMO.Drawing.Binary;
 using static OfficeIMO.Publisher.WriterProbe.NativeEncoding;
 
 namespace OfficeIMO.Publisher.WriterProbe;
@@ -30,7 +29,7 @@ internal static class CandidateWriter {
         var streams = new List<OfficeCompoundStream> {
             new OfficeCompoundStream("Contents", Contents(kind, graph)),
             new OfficeCompoundStream("Quill/QuillSub/CONTENTS", QuillCandidate.Create(text)),
-            new OfficeCompoundStream("Escher/EscherStm", OfficeArt(kind, image, graph.ShapeId)),
+            new OfficeCompoundStream("Escher/EscherStm", CandidateOfficeArt.Create(kind, image, graph.ShapeId, WidthEmu, HeightEmu)),
             new OfficeCompoundStream("Escher/EscherDelayStm", Array.Empty<byte>()),
             new OfficeCompoundStream("\u0003Internal", InternalHeader()),
             new OfficeCompoundStream("\u0001CompObj", OfficeOleCompoundObjectWriter.Write(PublicationClassId,
@@ -90,41 +89,4 @@ internal static class CandidateWriter {
         return bytes;
     }
 
-    private static byte[] OfficeArt(string kind, byte[]? image, uint nativeShapeId) {
-        if (kind == "blank") return Art(15, 0xF000);
-        var properties = new List<(ushort Id, uint Value)> {
-            (0x181, 0x0000FF), // Solid red in the common OfficeArt RGB encoding.
-            (0x1BF, 0x00100010),
-            (0x1FF, 0x00080000) // No line.
-        };
-        if (kind == "text") {
-            properties[1] = (0x1BF, 0x00100000); // Text frame has no fill.
-            properties.Add((0x81, 0)); properties.Add((0x82, 0));
-            properties.Add((0x83, 0)); properties.Add((0x84, 0));
-        }
-        if (image != null) properties.Add((0x4104, 1)); // Picture index carries the native BLIP-ID flag.
-        byte[] fopt = Bytes(writer => {
-            foreach (var property in properties.OrderBy(property => property.Id & 0x3FFF)) {
-                writer.Write(property.Id); writer.Write(property.Value);
-            }
-        });
-        uint Coord(double points, uint pageSize) => unchecked((uint)(int)(points * 12700 - pageSize / 2D));
-        byte[] shape = Art(15, 0xF004,
-            Art((ushort)(((kind == "image" ? 75 : 1) << 4) | 2), 0xF00A,
-                Bytes(writer => { writer.Write(1025U); writer.Write(0xA00U); })),
-            Art((ushort)((properties.Count << 4) | 3), 0xF00B, fopt),
-            Art(0, 0xF010, Client((0x2001, Coord(72, WidthEmu)), (0x2002, Coord(72, HeightEmu)),
-                (0x2003, Coord(360, WidthEmu)), (0x2004, Coord(180, HeightEmu)))),
-            Art(0, 0xF011, Client((0x6801, nativeShapeId))));
-        byte[] root = Art(15, 0xF004,
-            Art(1, 0xF009, new byte[16]),
-            Art(2, 0xF00A, Bytes(writer => { writer.Write(1024U); writer.Write(5U); })));
-        byte[] drawing = Art(15, 0xF002,
-            Art(16, 0xF008, Bytes(writer => { writer.Write(2U); writer.Write(1025U); })),
-            Art(15, 0xF003, root, shape));
-        byte[] dgg = image == null ? Art(15, 0xF000) : Art(15, 0xF000,
-            Art(31, 0xF001, OfficeArtBlipStoreEntryWriter.CreateEmbedded(image,
-                image.Length >= 8 && image[0] == 0x89 && image[1] == 0x50 ? "image/png" : "image/jpeg")));
-        return Join(dgg, new byte[4], drawing);
-    }
 }
