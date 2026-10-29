@@ -839,7 +839,12 @@ internal sealed partial class HtmlRenderStyleResolver {
             style.MarginBottom = 8D;
             style.MarginLeft = 8D;
         }
-        if (tag == "p" || tag == "pre" || tag == "blockquote" || tag == "figure" || tag == "ul" || tag == "ol"
+        if (tag == "p") {
+            // Paragraphs take the browser default of one em above and below; adjacent margins collapse, so
+            // HTML written for browsers keeps its spacing, such as the gap after an inline badge.
+            style.MarginTop = fontSize;
+            style.MarginBottom = fontSize;
+        } else if (tag == "pre" || tag == "blockquote" || tag == "figure" || tag == "ul" || tag == "ol"
             || tag == "table" && _options.UserAgentStyles == HtmlRenderUserAgentStyleMode.Document) {
             style.MarginBottom = fontSize;
         } else if (tag.Length == 2 && tag[0] == 'h' && tag[1] >= '1' && tag[1] <= '6') {
