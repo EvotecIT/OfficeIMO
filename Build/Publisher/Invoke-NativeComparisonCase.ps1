@@ -4,7 +4,9 @@ Creates one independent native Publisher comparison case.
 .DESCRIPTION
 Internal worker for New-NativeComparisonCorpus.ps1. Run the controller instead:
 it supplies the deadline and preserves uncertain processes on startup failures.
-All content is synthetic, fonts/colors are explicit, and macros stay disabled.
+Corpus content is synthetic, fonts/colors are explicit, and macros stay disabled.
+Candidate validation performs only its requested Inspect, Resave or Full stage;
+inventories are persisted before PDF exports and repair remains unassessed.
 #>
 [CmdletBinding()]
 param(
@@ -15,6 +17,9 @@ param(
     [string] $Operation = 'Corpus',
 
     [string] $InputPath,
+
+    [ValidateSet('Inspect', 'Resave', 'Full')]
+    [string] $Stage = 'Full',
 
     [Parameter(Mandatory)]
     [ValidateSet('Blank', 'BlankPages', 'Text', 'TextLong', 'TextBlank', 'Rectangle', 'Image', 'Newsletter', 'TableLabel', 'Brochure', 'MultipleMasters', 'TwoPageMaster')]
@@ -56,7 +61,8 @@ $failurePath = $diagnosticPrefix + '.failure.json'
 $cleanupPath = $diagnosticPrefix + '.cleanup.json'
 $reservedArtifacts = @($publication, $reference, $contractPath)
 if ($Operation -eq 'Validate') {
-    $reservedArtifacts = @('candidate-input.pub', 'native-initial.pdf', 'native-resaved.pub', 'native-resaved.pdf', 'native-validation.json') |
+    . (Join-Path $PSScriptRoot 'Get-NativeValidationArtifactNames.ps1')
+    $reservedArtifacts = Get-NativeValidationArtifactNames -Stage $Stage |
         ForEach-Object { Join-Path $output $_ }
 } elseif ($Case -in @('Image', 'Newsletter', 'TableLabel')) {
     $reservedArtifacts += Join-Path $output ($stem + '.png')
@@ -334,79 +340,145 @@ try {
         $null = Register-NativeWindowIdentity
     }
     if ($Operation -eq 'Validate') {
-        $phase = 'CaptureCandidate'
+        Set-NativePhase 'CaptureCandidate'
         $candidate = [IO.Path]::GetFullPath($InputPath)
         $candidateHash = (Get-FileHash -LiteralPath $candidate -Algorithm SHA256).Hash.ToLowerInvariant()
         $snapshot = Join-Path $output 'candidate-input.pub'
+        $initialInventoryPath = Join-Path $output 'native-initial-inventory.json'
         $initialPdf = Join-Path $output 'native-initial.pdf'
         $resaved = Join-Path $output 'native-resaved.pub'
+        $resavedInventoryPath = Join-Path $output 'native-resaved-inventory.json'
         $resavedPdf = Join-Path $output 'native-resaved.pdf'
         $validationPath = Join-Path $output 'native-validation.json'
-        foreach ($path in @($snapshot, $initialPdf, $resaved, $resavedPdf, $validationPath)) {
+        foreach ($path in $reservedArtifacts) {
             if (Test-Path -LiteralPath $path) {
                 throw ('Existing validation evidence is not overwritten: ' + $path)
             }
         }
+        $qualifiedOperations = [Collections.Generic.List[string]]::new()
+        $repairStatus = 'Unassessed: COM Open success does not expose whether native repair occurred.'
         [IO.File]::Copy($candidate, $snapshot, $false)
         if ((Get-FileHash -LiteralPath $snapshot -Algorithm SHA256).Hash.ToLowerInvariant() -ne $candidateHash) {
             throw 'The candidate changed while taking the qualification snapshot.'
         }
         $document.Close()
         $document = $null
-        $phase = 'OpenCandidateReadOnly'
+        Set-NativePhase 'OpenCandidateReadOnly'
         $document = $application.Open($snapshot, $true, $false)
-        $phase = 'InitialInventory'
+        Set-NativePhase 'InitialInventory'
         $initialInventory = Get-NativeInventory $document
         if (-not $initialInventory.readOnly) {
             throw 'Publisher did not open the initial candidate read-only.'
         }
-        $phase = 'InitialPdfExport'
-        $document.ExportAsFixedFormat(2, $initialPdf)
+        $qualifiedOperations.Add('ReadOnlyOpen')
+        $qualifiedOperations.Add('InitialInventory')
+        $producer = [ordered]@{
+            name = 'Microsoft Publisher'
+            version = [string]$application.Version
+            executableVersion = (Get-Item -LiteralPath $ownedProcess.Path).VersionInfo.FileVersion
+            automationSecurity = 3
+        }
+        # Persist the observed input before an export can crash the application.
+        # This is an observation receipt, not completion of the requested stage.
+        Write-NewNativeJson -Path $initialInventoryPath -Value ([ordered]@{
+            schema = 'officeimo.publisher.native-inventory.v1'
+            stage = $Stage
+            observation = 'Initial'
+            status = 'Observed'
+            candidateSha256 = $candidateHash
+            producer = $producer
+            qualifiedOperations = $qualifiedOperations.ToArray()
+            repairStatus = $repairStatus
+            inventory = $initialInventory
+        })
+        if ($Stage -eq 'Full') {
+            Set-NativePhase 'InitialPdfExport'
+            $document.ExportAsFixedFormat(2, $initialPdf)
+            $qualifiedOperations.Add('InitialPdfExport')
+        }
+        Set-NativePhase 'CloseInitialDocument'
         $document.Close()
         $document = $null
         if ((Get-FileHash -LiteralPath $snapshot -Algorithm SHA256).Hash.ToLowerInvariant() -ne $candidateHash) {
             throw 'The initial read-only observation changed the input snapshot.'
         }
-        # Only this task-owned snapshot is opened writable. The original candidate
-        # remains outside the native application's mutation path.
-        $phase = 'OpenSnapshotWritable'
-        $document = $application.Open($snapshot, $false, $false)
-        $phase = 'NativeResave'
-        $document.SaveAs($resaved)
-        $document.Close()
-        $document = $null
-        $phase = 'ReopenNativeResave'
-        $document = $application.Open($resaved, $true, $false)
-        $resavedInventory = Get-NativeInventory $document
-        $phase = 'ResavedPdfExport'
-        $document.ExportAsFixedFormat(2, $resavedPdf)
-        $producerVersion = [string]$application.Version
-        $executableVersion = (Get-Item -LiteralPath $ownedProcess.Path).VersionInfo.FileVersion
-        $document.Close()
-        $document = $null
+        $resavedInventory = $null
+        if ($Stage -ne 'Inspect') {
+            # Only this task-owned snapshot is opened writable. The original
+            # candidate remains outside the native application's mutation path.
+            Set-NativePhase 'OpenSnapshotWritable'
+            $document = $application.Open($snapshot, $false, $false)
+            Set-NativePhase 'NativeResave'
+            $document.SaveAs($resaved)
+            $qualifiedOperations.Add('NativeSaveAs')
+            Set-NativePhase 'CloseNativeResave'
+            $document.Close()
+            $document = $null
+            Set-NativePhase 'ReopenNativeResave'
+            $document = $application.Open($resaved, $true, $false)
+            Set-NativePhase 'ResavedInventory'
+            $resavedInventory = Get-NativeInventory $document
+            if (-not $resavedInventory.readOnly) {
+                throw 'Publisher did not reopen the native resave read-only.'
+            }
+            $qualifiedOperations.Add('ReadOnlyReopen')
+            $qualifiedOperations.Add('ResavedInventory')
+            Write-NewNativeJson -Path $resavedInventoryPath -Value ([ordered]@{
+                schema = 'officeimo.publisher.native-inventory.v1'
+                stage = $Stage
+                observation = 'Resaved'
+                status = 'Observed'
+                candidateSha256 = $candidateHash
+                producer = $producer
+                qualifiedOperations = $qualifiedOperations.ToArray()
+                repairStatus = $repairStatus
+                inventory = $resavedInventory
+            })
+            if ($Stage -eq 'Full') {
+                Set-NativePhase 'ResavedPdfExport'
+                $document.ExportAsFixedFormat(2, $resavedPdf)
+                $qualifiedOperations.Add('ResavedPdfExport')
+            }
+            Set-NativePhase 'CloseReopenedResave'
+            $document.Close()
+            $document = $null
+        }
         if ((Get-FileHash -LiteralPath $candidate -Algorithm SHA256).Hash.ToLowerInvariant() -ne $candidateHash) {
             throw 'The original candidate changed during qualification.'
         }
         $files = [Collections.Generic.List[object]]::new()
-        foreach ($path in @($snapshot, $initialPdf, $resaved, $resavedPdf)) {
+        foreach ($path in $reservedArtifacts) {
+            if ($path -eq $validationPath) {
+                continue
+            }
             if (-not (Test-Path -LiteralPath $path) -or (Get-Item -LiteralPath $path).Length -eq 0) {
                 throw ('Native qualification output is missing or empty: ' + $path)
             }
             $files.Add([pscustomobject]@{ name = [IO.Path]::GetFileName($path); sha256 = (Get-FileHash -LiteralPath $path -Algorithm SHA256).Hash.ToLowerInvariant() })
         }
+        $status = 'OpenedExportedResavedAndReopened'
+        if ($Stage -eq 'Inspect') {
+            $status = 'OpenedReadOnlyAndInventoried'
+        } elseif ($Stage -eq 'Resave') {
+            $status = 'OpenedResavedAndReopened'
+        }
         $report = [ordered]@{
             schema = 'officeimo.publisher.native-validation.v1'
-            status = 'OpenedExportedResavedAndReopened'
+            stage = $Stage
+            status = $status
+            stageCompleted = $true
+            qualifiedOperations = $qualifiedOperations.ToArray()
+            qualificationScope = 'Only the listed native operations are established. Native repair and rendering fidelity remain unassessed.'
             candidateSha256 = $candidateHash
             sourceUnchanged = $true
-            producer = [ordered]@{ name = 'Microsoft Publisher'; version = $producerVersion; executableVersion = $executableVersion; automationSecurity = 3 }
-            repairStatus = 'Unassessed: COM Open success does not expose whether native repair occurred.'
+            producer = $producer
+            repairStatus = $repairStatus
             initial = $initialInventory
             resaved = $resavedInventory
             files = $files.ToArray()
         }
         Write-NewNativeJson -Path $validationPath -Value $report
-        $phase = 'Shutdown'
+        Set-NativePhase 'Shutdown'
         return
     }
     $phase = 'AuthorCorpusCase'
@@ -589,6 +661,9 @@ try {
         position = $_.InvocationInfo.PositionMessage
         scriptStackTrace = $_.ScriptStackTrace
         nativeProcessIdentified = $nativeVerified
+    }
+    if ($Operation -eq 'Validate') {
+        $failure.stage = $Stage
     }
     Write-NewNativeJson -Path $failurePath -Value $failure -Depth 5
     [Console]::Error.WriteLine(('Native {0} failed during {1}: {2}' -f $Operation, $phase, $_.Exception.Message))

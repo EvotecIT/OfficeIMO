@@ -11,15 +11,22 @@ stopping a process by its name or start time alone.
 Task-owned directory for generated evidence. Existing evidence is never overwritten.
 .PARAMETER Operation
 Corpus produces one synthetic native case. Validate opens a byte-identical copy
-of InputPath read-only, inventories and exports it, then saves and reopens a separate PUB.
+of InputPath read-only and performs the selected Stage. Full remains the default:
+it inventories and exports the input, then saves, reopens and exports a separate PUB.
 .PARAMETER Case
 Synthetic case selected by New-NativeComparisonCorpus.ps1.
 .PARAMETER InputPath
 OfficeIMO-generated candidate to validate. Required for Validate.
+.PARAMETER Stage
+Inspect performs read-only open and inventory. Resave also saves and reopens a
+separate PUB without PDF export. Full performs both PDF exports as well. Partial
+stages establish only their listed operations; native repair remains unassessed.
 .PARAMETER TimeoutSeconds
 Bounded worker lifetime, including application startup and shutdown.
 .EXAMPLE
 ./Build/Publisher/Invoke-NativePublisherOperation.ps1 -Operation Validate -InputPath ./candidate.pub -OutputDirectory ./candidate-native
+.EXAMPLE
+./Build/Publisher/Invoke-NativePublisherOperation.ps1 -Operation Validate -Stage Inspect -InputPath ./candidate.pub -OutputDirectory ./candidate-inspect
 .OUTPUTS
 The native case or validation report. Native repair status remains unassessed
 unless an independent native UI observation supplies that evidence.
@@ -37,6 +44,9 @@ param(
 
     [string] $InputPath,
 
+    [ValidateSet('Inspect', 'Resave', 'Full')]
+    [string] $Stage = 'Full',
+
     [ValidateRange(10, 600)]
     [int] $TimeoutSeconds = 90
 )
@@ -53,7 +63,10 @@ if ($Operation -eq 'Validate') {
     if ([IO.Path]::GetExtension($InputPath) -ne '.pub') {
         throw 'Validate accepts a native .pub candidate only.'
     }
+} elseif ($Stage -ne 'Full') {
+    throw 'Inspect and Resave stages apply only to candidate validation.'
 }
+. (Join-Path $PSScriptRoot 'Get-NativeValidationArtifactNames.ps1')
 $output = [IO.Path]::GetFullPath($OutputDirectory)
 $runDirectory = Join-Path $output '.run'
 $key = $Operation + '-' + $Case
@@ -75,7 +88,7 @@ $diagnosticPaths = @(
     ($receiptPath + '.startup.json'),
     ($receiptPath + '.tmp')
 )
-$artifactNames = @('candidate-input.pub', 'native-initial.pdf', 'native-resaved.pub', 'native-resaved.pdf', 'native-validation.json')
+$artifactNames = @(Get-NativeValidationArtifactNames -Stage $Stage)
 if ($Operation -eq 'Corpus') {
     $stem = 'native-' + $Case.ToLowerInvariant()
     $artifactNames = @(($stem + '.pub'), ($stem + '.pdf'), ($stem + '.json'))
@@ -99,6 +112,9 @@ $reservation = [ordered]@{
     operation = $Operation
     case = $Case
     artifacts = $artifactNames
+}
+if ($Operation -eq 'Validate') {
+    $reservation.stage = $Stage
 }
 $reservationBytes = [Text.UTF8Encoding]::new($false).GetBytes(($reservation | ConvertTo-Json -Depth 4))
 $reservationStream = [IO.FileStream]::new($reservationPath, [IO.FileMode]::CreateNew, [IO.FileAccess]::Write, [IO.FileShare]::Read)
@@ -142,7 +158,7 @@ $argumentValues = @(
     '-ControllerStartTimeUtcTicks', $controllerStart.ToString([Globalization.CultureInfo]::InvariantCulture)
 )
 if ($Operation -eq 'Validate') {
-    $argumentValues += @('-InputPath', $InputPath)
+    $argumentValues += @('-InputPath', $InputPath, '-Stage', $Stage)
 }
 $arguments = ($argumentValues | ForEach-Object { ConvertTo-NativePublisherArgument $_ }) -join ' '
 $worker = $null
@@ -226,6 +242,9 @@ try {
         $reportName = 'native-validation.json'
     }
     $report = Get-Content -LiteralPath (Join-Path $output $reportName) -Raw | ConvertFrom-Json
+    if ($Operation -eq 'Validate' -and $report.stage -ne $Stage) {
+        throw 'The completed validation report does not match the requested stage.'
+    }
     $succeeded = $true
 } catch {
     $primaryError = $_
