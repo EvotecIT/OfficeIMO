@@ -65,11 +65,19 @@ class ArtifactVerificationTests(unittest.TestCase):
             original = parts["_rels/.rels"]
             broken = (
                 None,
+                original.replace(' Id="main"', ''),
+                original.replace('Id="main"', 'Id=""'),
+                original.replace('Id="main"', 'Id="1invalid"'),
+                original.replace('Id="main"', 'Id="prefix:name"'),
+                original.replace('Id="main"', 'Id="invalid name"'),
+                original.replace('http://schemas.openxmlformats.org/package/2006/relationships', 'urn:wrong'),
+                original.replace('<Relationship Id=', '<Other Id='),
                 '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"/>',
                 self.relationship("main", "worksheet", target),
                 self.relationship("main", "officeDocument", "missing.xml"),
                 original.replace('Target="', 'TargetMode="External" Target="'),
                 original.replace('</Relationships>', original.split('>', 1)[1]),
+                original.replace('</Relationships>', '<Relationship Id="main" Type="unrelated" Target="other.xml"/></Relationships>'),
             )
             for relationship in broken:
                 with self.subTest(target=target, relationship=relationship):
@@ -81,6 +89,23 @@ class ArtifactVerificationTests(unittest.TestCase):
                     with self.assertRaises((ValueError, KeyError)):
                         verify(self.root)
             parts["_rels/.rels"] = original
+
+    def test_type_selected_shared_strings_require_a_valid_unique_id(self):
+        self.excel["xl/worksheets/data.xml"] = self.excel["xl/worksheets/data.xml"].replace(
+            '<c r="A1" t="inlineStr"><is><t>Name</t></is></c>', '<c r="A1" t="s"><v>0</v></c>')
+        self.excel["xl/strings.xml"] = '<sst xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><si><t>Name</t></si></sst>'
+        original = self.excel["xl/_rels/workbook.xml.rels"]
+        for identifier in ('', ' Id=""', ' Id="1invalid"', ' Id="sheetData"'):
+            self.excel["xl/_rels/workbook.xml.rels"] = original.replace(
+                '</Relationships>', f'<Relationship{identifier} Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/sharedStrings" Target="strings.xml"/></Relationships>')
+            self.write_packages()
+            with self.subTest(identifier=identifier), self.assertRaisesRegex(ValueError, 'relationship'):
+                verify(self.root)
+
+    def test_valid_unicode_relationship_id(self):
+        self.word["_rels/.rels"] = self.word["_rels/.rels"].replace('Id="main"', 'Id="文書_é"')
+        self.write_packages()
+        verify(self.root)
 
     def test_disabled_first_row_header_is_rejected(self):
         original = self.word["word/document.xml"]

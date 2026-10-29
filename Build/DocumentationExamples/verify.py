@@ -7,6 +7,7 @@ from xml.etree import ElementTree as ET
 from zipfile import ZipFile
 
 RELATIONSHIP_ID = "{http://schemas.openxmlformats.org/officeDocument/2006/relationships}id"
+PACKAGE_RELATIONSHIPS = "{http://schemas.openxmlformats.org/package/2006/relationships}"
 
 
 def related_part(archive: ZipFile, part: str, relationship_id: str | None, kind: str) -> str:
@@ -14,9 +15,21 @@ def related_part(archive: ZipFile, part: str, relationship_id: str | None, kind:
     relationships = posixpath.join(posixpath.dirname(part), "_rels", posixpath.basename(part) + ".rels")
     root = ET.fromstring(archive.read(relationships))
     expected_type = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/" + kind
-    matches = [node for node in root if (node.get("Type") == expected_type if relationship_id is None else node.get("Id") == relationship_id)]
+    if root.tag != PACKAGE_RELATIONSHIPS + "Relationships":
+        raise ValueError(f"Invalid relationship collection from {part}")
+    matches = [node for node in root if node.tag == PACKAGE_RELATIONSHIPS + "Relationship"
+               and (node.get("Type") == expected_type if relationship_id is None else node.get("Id") == relationship_id)]
     if len(matches) != 1 or matches[0].get("Type") != expected_type or matches[0].get("TargetMode", "Internal") != "Internal":
         raise ValueError(f"Invalid {kind} relationship from {part}")
+    identifier = matches[0].get("Id", "")
+    # An XML parser checks the Name grammar, including Unicode; NCName also excludes colons.
+    try:
+        if not identifier or ":" in identifier or ET.fromstring(f"<{identifier}/>").tag != identifier:
+            raise ValueError(f"Invalid relationship ID from {part}")
+    except ET.ParseError as error:
+        raise ValueError(f"Invalid relationship ID from {part}") from error
+    if sum(node.get("Id") == identifier for node in root) != 1:
+        raise ValueError(f"Duplicate relationship ID from {part}")
     target = matches[0].get("Target", "")
     resolved = posixpath.normpath(target.lstrip("/") if target.startswith("/") else posixpath.join(posixpath.dirname(part), target))
     if not target or resolved == ".." or resolved.startswith("../") or resolved not in archive.namelist():
