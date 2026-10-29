@@ -864,6 +864,9 @@ public sealed partial class PdfReadPage {
             local.Add(resolvedTransition);
             transitions.Add(resolvedTransition);
         }
+        bool hasContentOrderKeys = contentOrderPrefix != null &&
+            local.All(static transition => transition.ContentOrderKey != null);
+        if (hasContentOrderKeys) SortGraphicsEffectTransitions(local);
 
         foreach (PdfPageXObjectInvocation invocation in PdfPageXObjectInvocationParser.Parse(
                      content,
@@ -900,7 +903,9 @@ public sealed partial class PdfReadPage {
                 activeForms.Remove(formStream);
                 continue;
             }
-            PdfPageDrawingEffect inherited = ResolveDrawingEffect(local, invocation.PaintOrder, initialEffect, formOrderPrefix);
+            PdfPageDrawingEffect inherited = hasContentOrderKeys && formOrderPrefix != null
+                ? ResolveDrawingEffectByContentOrder(local, formOrderPrefix, initialEffect)
+                : ResolveDrawingEffect(local, invocation.PaintOrder, initialEffect, formOrderPrefix);
             try {
                 PdfDictionary dictionary = formStream.Dictionary;
                 if (skipTransparencyGroupForms &&
@@ -965,6 +970,21 @@ public sealed partial class PdfReadPage {
             effect = transition.Effect;
         }
         return effect;
+    }
+
+    private static PdfPageDrawingEffect ResolveDrawingEffectByContentOrder(
+        List<PdfPageDrawingEffectTransition> transitions,
+        PdfContentOrderKey contentOrderKey,
+        PdfPageDrawingEffect initial) {
+        int low = 0;
+        int high = transitions.Count;
+        while (low < high) {
+            int middle = low + ((high - low) / 2);
+            if (transitions[middle].ContentOrderKey!.CompareTo(contentOrderKey) <= 0)
+                low = middle + 1;
+            else high = middle;
+        }
+        return low == 0 ? initial : transitions[low - 1].Effect;
     }
 
     private static void SortGraphicsEffectTransitions(List<PdfPageDrawingEffectTransition> transitions) {
