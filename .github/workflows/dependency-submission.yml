@@ -57,7 +57,7 @@ jobs:
       - uses: actions/checkout@v7
         with:
           persist-credentials: false
-      - uses: EvotecIT/PSPublishModule/.github/actions/dotnet-dependency-submission@f5fc8c03f540e9ca9c24b11b56457f5106ad6d65
+      - uses: EvotecIT/PSPublishModule/.github/actions/dotnet-dependency-submission@ff63d69d383ceae49542c8ab4632e927be856c6d
         id: graphs
         with:
           projects-json: ${{ matrix.projects }}
@@ -84,7 +84,7 @@ jobs:
         with:
           name: nuget-graphs-${{ matrix.profile }}
           path: ${{ runner.temp }}/native-graphs
-      - uses: EvotecIT/PSPublishModule/.github/actions/dotnet-dependency-submission@f5fc8c03f540e9ca9c24b11b56457f5106ad6d65
+      - uses: EvotecIT/PSPublishModule/.github/actions/dotnet-dependency-submission@ff63d69d383ceae49542c8ab4632e927be856c6d
         with:
           mode: submit
           graph-artifact: ${{ runner.temp }}/native-graphs
@@ -109,7 +109,7 @@ jobs:
         with:
           name: nuget-graphs-${{ matrix.profile }}
           path: ${{ runner.temp }}/native-graphs
-      - uses: EvotecIT/PSPublishModule/.github/actions/dotnet-dependency-submission@f5fc8c03f540e9ca9c24b11b56457f5106ad6d65
+      - uses: EvotecIT/PSPublishModule/.github/actions/dotnet-dependency-submission@ff63d69d383ceae49542c8ab4632e927be856c6d
         with:
           mode: submit
           graph-artifact: ${{ runner.temp }}/native-graphs
