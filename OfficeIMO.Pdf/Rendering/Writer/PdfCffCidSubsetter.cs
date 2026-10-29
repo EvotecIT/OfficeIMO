@@ -73,11 +73,19 @@ internal static class PdfCffCidSubsetter {
             DictEntry? fdSelectEntry = Find(top, TopDictOperatorFdSelect);
             if (fdArrayEntry == null || fdSelectEntry == null) return null;
             CffIndex fdArray = PdfCffCharStringSubsetter.ReadIndex(cff, fdArrayEntry.Value.Integer(0));
+            fdOfGlyph = ReadFdSelect(cff, fdSelectEntry.Value.Integer(0), charStrings.Count, fdArray.Count);
+            var usedFds = new bool[fdArray.Count];
+            foreach (int glyph in glyphs) usedFds[fdOfGlyph[glyph]] = true;
+            FontDictionary? unusedDictionary = null;
             for (int index = 0; index < fdArray.Count; index++) {
-                List<DictEntry> entries = ParseDict(cff, fdArray.GetObject(index));
-                fontDictionaries.Add(ReadFontDictionary(cff, entries));
+                if (usedFds[index]) {
+                    List<DictEntry> entries = ParseDict(cff, fdArray.GetObject(index));
+                    fontDictionaries.Add(ReadFontDictionary(cff, entries));
+                } else {
+                    unusedDictionary ??= new FontDictionary(new List<DictEntry>(), new List<DictEntry>(), EmptyIndex());
+                    fontDictionaries.Add(unusedDictionary);
+                }
             }
-            fdOfGlyph = ReadFdSelect(cff, fdSelectEntry.Value.Integer(0), charStrings.Count, fontDictionaries.Count);
         } else {
             fontDictionaries.Add(ReadFontDictionary(cff, new List<DictEntry>(), Find(top, DictOperatorPrivate)));
             fdOfGlyph = new int[charStrings.Count];
