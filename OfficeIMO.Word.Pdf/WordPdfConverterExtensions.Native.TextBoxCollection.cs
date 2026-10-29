@@ -6,8 +6,14 @@ namespace OfficeIMO.Word.Pdf;
 public static partial class WordPdfConverterExtensions {
     /// <summary>Uses the same effective visibility owner before discovering any textbox payload.</summary>
     private static List<WordTextBox> GetNativeVisibleTextBoxes(WordParagraph paragraph,
-        IReadOnlyList<WordParagraph> runs) => runs.Where(run => !IsNativeHiddenTextRun(run, paragraph))
-        .SelectMany(run => run.GetTextBoxes()).ToList();
+        IReadOnlyList<WordParagraph> runs) {
+        // Header and footer building blocks (grouped page numbers) keep their text in a text box
+        // inside a shape group. Their text is what matters there, so read it like a plain text box.
+        bool inHeaderFooter = paragraph._paragraph.Ancestors().Any(parent => parent is W.Header or W.Footer);
+        return runs.Where(run => !IsNativeHiddenTextRun(run, paragraph))
+            .SelectMany(run => inHeaderFooter ? run.GetTextBoxes().Concat(run.GetGroupTextBoxes()) : run.GetTextBoxes())
+            .ToList();
+    }
 
     private static void RecordNativeCellTextBoxDiagnostic(WordParagraph paragraph,
         WordPdfExportOptions options, string source) {

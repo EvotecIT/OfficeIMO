@@ -221,6 +221,10 @@ namespace OfficeIMO.Word.Pdf {
             WordTextBox? numberedTextBox = GetNativeParagraphTextBox(paragraph, out _);
             if (numberedTextBox != null && GetNativeTextBoxParagraphs(numberedTextBox).Any(inner => inner.IsListItem)) {
                 zoneOverride = MapNativeTextBoxHeaderFooterZone(numberedTextBox.HorizontalAlignment);
+            } else if (numberedTextBox?.Anchor != null &&
+                numberedTextBox.Drawing?.Descendants<DocumentFormat.OpenXml.Office2010.Word.DrawingGroup.WordprocessingGroup>().Any() == true) {
+                // A grouped page-number block is positioned by its anchor, not by the paragraph.
+                zoneOverride = MapNativeTextBoxHeaderFooterZone(numberedTextBox.HorizontalAlignment);
             }
             if (numberedTextBox != null) {
                 // Serialize text and its styled replacements from the same source

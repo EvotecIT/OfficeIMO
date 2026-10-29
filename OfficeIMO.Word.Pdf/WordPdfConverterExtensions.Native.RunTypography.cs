@@ -130,6 +130,7 @@ namespace OfficeIMO.Word.Pdf {
             PdfCore.PdfColor? color = TryGetNativeRunColor(runProperties, out PdfCore.PdfColor? directColor)
                 ? directColor
                 : ResolveNativeInheritedRunColor(characterStyleDefaults, styleDefaults, tableRunStyleDefaults, resolvedNativeDefaults);
+            color = ResolveNativeGroupedHeaderFooterTextColor(paragraph, color);
             PdfCore.PdfColor? background = MapNativeHighlight(
                 WordRunFormatting.ResolveRunHighlight(paragraph, tableRunStyleDefaults.Highlight));
             background ??= ParseNativeColor(WordRunFormatting.ResolveRunShadingFillColorHex(paragraph));

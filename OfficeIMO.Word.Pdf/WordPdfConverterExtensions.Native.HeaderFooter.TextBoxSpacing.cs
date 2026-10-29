@@ -42,7 +42,7 @@ public static partial class WordPdfConverterExtensions {
                 // belonging to an earlier identical but differently styled run.
                 foreach (var child in item.Run.EnumerateEffectiveRunContent()) {
                     WordParagraph view = CreateNativeRunContentView(item.Run, new[] { child });
-                    if (view.TextBox is { } box) {
+                    if ((view.TextBox ?? view.GetGroupTextBoxes().FirstOrDefault()) is { } box) {
                         IReadOnlyList<WordParagraph> innerParagraphs = GetNativeTextBoxParagraphs(box);
                         bool separatesListParagraphs = innerParagraphs.Any(inner => inner.IsListItem);
                         for (int index = 0; index < innerParagraphs.Count; index++) {
