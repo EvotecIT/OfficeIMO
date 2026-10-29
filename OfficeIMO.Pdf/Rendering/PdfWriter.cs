@@ -1486,8 +1486,18 @@ internal static partial class PdfWriter {
         List<(string Name, int Id)> resources) {
         var used = new List<(string Name, int Id)>();
         if (string.IsNullOrEmpty(content) || resources.Count == 0) return used;
+        var available = new HashSet<string>(resources.Select(resource => resource.Name.TrimStart('/')), StringComparer.Ordinal);
+        var usedNames = new HashSet<string>(StringComparer.Ordinal);
+        for (int index = 0; index < content.Length; index++) {
+            if (content[index] != '/') continue;
+            int end = index + 1;
+            while (end < content.Length && content[end] != '/' && !char.IsWhiteSpace(content[end])) end++;
+            string name = content.Substring(index + 1, end - index - 1);
+            if ((end == content.Length || char.IsWhiteSpace(content[end])) && available.Contains(name)) usedNames.Add(name);
+            index = end - 1;
+        }
         for (int index = 0; index < resources.Count; index++) {
-            if (UsesPdfResource(content, resources[index].Name)) used.Add(resources[index]);
+            if (usedNames.Contains(resources[index].Name.TrimStart('/'))) used.Add(resources[index]);
         }
         return used;
     }
@@ -1497,8 +1507,18 @@ internal static partial class PdfWriter {
         List<(string Name, int Id)> resources) {
         var used = new List<(string Name, int Id)>();
         if (content.Length == 0 || resources.Count == 0) return used;
+        var available = new HashSet<string>(resources.Select(resource => resource.Name.TrimStart('/')), StringComparer.Ordinal);
+        var usedNames = new HashSet<string>(StringComparer.Ordinal);
+        for (int index = 0; index < content.Length; index++) {
+            if (content[index] != (byte)'/') continue;
+            int end = index + 1;
+            while (end < content.Length && content[end] != (byte)'/' && !char.IsWhiteSpace((char)content[end])) end++;
+            string name = System.Text.Encoding.ASCII.GetString(content, index + 1, end - index - 1);
+            if ((end == content.Length || char.IsWhiteSpace((char)content[end])) && available.Contains(name)) usedNames.Add(name);
+            index = end - 1;
+        }
         for (int index = 0; index < resources.Count; index++) {
-            if (UsesPdfResource(content, resources[index].Name)) used.Add(resources[index]);
+            if (usedNames.Contains(resources[index].Name.TrimStart('/'))) used.Add(resources[index]);
         }
         return used;
     }
