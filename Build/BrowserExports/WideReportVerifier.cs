@@ -6,7 +6,7 @@ using OfficeIMO.Pdf;
 internal static class WideReportVerifier {
     internal static object Verify(string path) {
         using var expected = JsonDocument.Parse(File.ReadAllText(path + ".json")); JsonElement contract = expected.RootElement;
-        var document = PdfReadDocument.Open(path, new PdfLoadOptions { IncludeArtifactText = true });
+        using var document = PdfDocument.Load(path, new PdfLoadOptions { IncludeArtifactText = true });
         Require(!document.RepairReport.HasRepairs, "PDF required repair.");
         bool grouped = contract.GetProperty("grouped").GetBoolean();
         string[][] groupPaths = contract.GetProperty("groupPaths").EnumerateArray()

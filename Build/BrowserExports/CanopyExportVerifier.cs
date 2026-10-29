@@ -17,7 +17,7 @@ internal static class CanopyExportVerifier {
         JsonElement[] rows = contract.GetProperty("rows").EnumerateArray().ToArray(), columns = contract.GetProperty("columns").EnumerateArray().ToArray();
         string values = contract.GetProperty("values").GetString()!;
         if (path.EndsWith(".pdf", StringComparison.Ordinal)) {
-            var pdf = PdfReadDocument.Open(path); WorkbookVerifier.Require(!pdf.RepairReport.HasRepairs, "Canopy PDF requires repairs.");
+            using var pdf = PdfDocument.Load(path); WorkbookVerifier.Require(!pdf.RepairReport.HasRepairs, "Canopy PDF requires repairs.");
             string text = string.Concat(pdf.Pages.SelectMany(page => page.GetTextSpans()).Select(span => span.Text));
             // Remove repeated headings/page labels separately; body values must occur in captured row/column order.
             int position = 0;

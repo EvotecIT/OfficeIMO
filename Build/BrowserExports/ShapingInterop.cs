@@ -65,7 +65,7 @@ internal static class ShapingInterop {
     }
 
     private static object VerifyPdf(string path, JsonElement corpus) {
-        var document = PdfReadDocument.Open(path);
+        using var document = PdfDocument.Load(path);
         Require(!document.RepairReport.HasRepairs && document.Pages.Count >= 1, "Shaped PDF required repairs or has no page.");
         PdfTaggedContentInfo tagged = document.TaggedContent ?? throw new InvalidDataException("Shaped PDF has no structure tree.");
         foreach (string type in new[] { "Document", "H1", "P", "Table", "TR", "TH", "TD", "Link" }) Require(tagged.StructureTypes.Contains(type), "Shaped PDF lost structure type " + type);

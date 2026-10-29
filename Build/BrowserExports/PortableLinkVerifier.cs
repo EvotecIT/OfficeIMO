@@ -23,7 +23,7 @@ internal static class PortableLinkVerifier {
                 reader.GetValue(1) is DateTime date && date == new DateTime(2026, 10, 8), "Linked XLSX numeric/date values differ.");
             return new { file = Path.GetFileName(path), links = links.Length, readers = 2, openXml = true };
         }
-        var pdf = PdfReadDocument.Open(path);
+        using var pdf = PdfDocument.Load(path);
         WorkbookVerifier.Require(!pdf.RepairReport.HasRepairs, "Portable PDF requires reader repairs.");
         bool spans = Path.GetFileName(path).Contains("spans", StringComparison.Ordinal);
         int count = 0;

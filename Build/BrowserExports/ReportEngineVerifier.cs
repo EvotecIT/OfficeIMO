@@ -96,7 +96,7 @@ internal static class ReportEngineVerifier {
     }
 
     private static object VerifyPdf(string path, int count) {
-        PdfReadDocument document = PdfReadDocument.Open(path);
+        using PdfDocument document = PdfDocument.Load(path);
         Require(!document.RepairReport.HasRepairs, "PDF required repairs.");
         string[] spans = document.Pages.SelectMany(page => page.GetTextSpans()).Select(span => span.Text).ToArray();
         string text = string.Concat(spans);
