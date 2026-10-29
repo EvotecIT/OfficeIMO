@@ -45,6 +45,48 @@ namespace OfficeIMO.Excel {
             if (worksheetChanged) {
                 worksheet.Save();
             }
+
+            RewriteCopiedChartSheetReferences(worksheetPart, sheetNameMap);
+        }
+
+        /// <summary>
+        /// Points copied chart series at the copied worksheets instead of their source worksheets.
+        /// </summary>
+        private static void RewriteCopiedChartSheetReferences(WorksheetPart worksheetPart, IReadOnlyDictionary<string, string> sheetNameMap) {
+            DrawingsPart? drawingsPart = worksheetPart.DrawingsPart;
+            if (drawingsPart == null || sheetNameMap.Count == 0) {
+                return;
+            }
+
+            foreach (ChartPart chartPart in drawingsPart.ChartParts) {
+                if (chartPart.ChartSpace == null) {
+                    continue;
+                }
+
+                bool changed = false;
+                foreach (DocumentFormat.OpenXml.Drawing.Charts.Formula formula in chartPart.ChartSpace.Descendants<DocumentFormat.OpenXml.Drawing.Charts.Formula>()) {
+                    changed |= RewriteFormulaSheetReference(formula, sheetNameMap);
+                }
+
+                if (changed) {
+                    chartPart.ChartSpace.Save();
+                }
+            }
+
+            foreach (ExtendedChartPart chartPart in drawingsPart.ExtendedChartParts) {
+                if (chartPart.ChartSpace == null) {
+                    continue;
+                }
+
+                bool changed = false;
+                foreach (DocumentFormat.OpenXml.Office2016.Drawing.ChartDrawing.Formula formula in chartPart.ChartSpace.Descendants<DocumentFormat.OpenXml.Office2016.Drawing.ChartDrawing.Formula>()) {
+                    changed |= RewriteFormulaSheetReference(formula, sheetNameMap);
+                }
+
+                if (changed) {
+                    chartPart.ChartSpace.Save();
+                }
+            }
         }
 
         private static bool RewriteStructuredTableReferences(Worksheet worksheet, IReadOnlyDictionary<string, string> tableNameMap) {

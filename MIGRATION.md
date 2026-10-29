@@ -1,5 +1,9 @@
 # Upgrading OfficeIMO
 
+## Excel worksheet copies keep drawings, comments and links
+
+`CopyWorksheet`, `CopyWorksheetFrom` with `ExcelWorksheetCopyMode.Package` and package-mode `MergeWorkbookFrom` now keep the copied sheet's images, charts, shapes, legacy and threaded comments, header/footer images, background picture and external hyperlinks. Earlier versions removed them. Copied threaded comments receive new ids, and the people they mention are added to the target workbook. Code that removed these features after copying, or that expected the copy to have none, should remove them explicitly with the sheet's comment, image and hyperlink APIs. See the [worksheet copy contract](OfficeIMO.Excel/COMPATIBILITY.md#workbook-capabilities).
+
 ## JavaScript CanopyX pivot captures
 
 Pass explicit frozen `request.pivot` captures through the optional CanopyX export entry point. They retain their own precomputed numeric values, formats and row/column outlines. Do not supply ordinary grouping metadata, replacement outline callbacks, an Excel table or a recalculating footer for the same pivot. PDF/CSV preserve the complete static projection and report `PIVOT_OUTLINES_XLSX_ONLY`; XLSX retains the interactive outlines with summaries above and left of details. Ordinary record/grouped exports keep their existing behavior.
