@@ -532,8 +532,12 @@ namespace OfficeIMO.Excel {
         }
 
         private void ApplyNewTableDefaults(string range, bool hasHeader) {
-            if (hasHeader) AlignNumericTableHeaders(range);
-            ApplyTablePrintDefaults(hasHeader && ExcelA1.TryParseRange(range, out int headerRow, out _, out _, out _) ? headerRow : 0);
+            // Defaults also edit the shared workbook DOM (including print-title names).
+            // Use the same write lock as table creation when callers add tables concurrently.
+            WriteLock(() => {
+                if (hasHeader) AlignNumericTableHeaders(range);
+                ApplyTablePrintDefaults(hasHeader && ExcelA1.TryParseRange(range, out int headerRow, out _, out _, out _) ? headerRow : 0);
+            });
         }
 
         /// <summary>

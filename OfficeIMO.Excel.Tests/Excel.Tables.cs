@@ -162,8 +162,14 @@ namespace OfficeIMO.Tests {
                     sheet.CellValue(rowStart + 2, 2, 2d);
                 }
 
+                var start = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+                int ready = 0;
                 var tasks = Enumerable.Range(0, 5)
-                    .Select(i => Task.Run(() => sheet.AddTable($"A{1 + i * 3}:B{3 + i * 3}", true, $"MyTable{i}", ExcelTableStyle.TableStyleMedium9)))
+                    .Select(i => Task.Run(async () => {
+                        if (System.Threading.Interlocked.Increment(ref ready) == 5) start.SetResult(true);
+                        await start.Task;
+                        sheet.AddTable($"A{1 + i * 3}:B{3 + i * 3}", true, $"MyTable{i}", ExcelTableStyle.TableStyleMedium9);
+                    }))
                     .ToArray();
                 await Task.WhenAll(tasks);
                 document.Save();
@@ -172,6 +178,8 @@ namespace OfficeIMO.Tests {
             using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
                 WorksheetPart wsPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
                 Assert.Equal(5, wsPart.TableDefinitionParts.Count());
+                Assert.Single(spreadsheet.WorkbookPart.Workbook.DefinedNames!.Elements<DocumentFormat.OpenXml.Spreadsheet.DefinedName>(),
+                    name => name.Name == "_xlnm.Print_Titles");
             }
         }
 
