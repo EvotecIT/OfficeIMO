@@ -1,3 +1,5 @@
+using System.Threading;
+
 namespace OfficeIMO.Epub;
 
 /// <summary>Shared package vocabulary expansion for extraction and authoring.</summary>
@@ -28,7 +30,9 @@ internal static class EpubVocabulary {
         ValidateDeclaration(prefix, vocabulary);
     }
 
-    internal static Dictionary<string, string> ReadPrefixes(string declaration, Action? invalid = null) {
+    internal static Dictionary<string, string> ReadPrefixes(string declaration, Action? invalid = null,
+        CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
         var prefixes = new Dictionary<string, string>(StringComparer.Ordinal) {
             ["rendition"] = "http://www.idpf.org/vocab/rendition/#", ["dcterms"] = "http://purl.org/dc/terms/",
             ["schema"] = "http://schema.org/", ["media"] = "http://www.idpf.org/epub/vocab/overlays/#",
@@ -37,16 +41,19 @@ internal static class EpubVocabulary {
         };
         string[] parts = declaration.Split(new[] { ' ', '\t', '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
         for (int index = 0; index < parts.Length; index += 2) {
+            if ((index & 511) == 0) cancellationToken.ThrowIfCancellationRequested();
             if (index + 1 >= parts.Length || !parts[index].EndsWith(":", StringComparison.Ordinal) || parts[index].Length < 2 ||
                 !Uri.TryCreate(parts[index + 1], UriKind.Absolute, out _)) { invalid?.Invoke(); continue; }
             prefixes[parts[index].Substring(0, parts[index].Length - 1)] = parts[index + 1];
         }
         return prefixes;
     }
-    internal static string Expand(XElement package, string property) {
+    internal static string Expand(XElement package, string property) =>
+        Expand(ReadPrefixes((string?)package.Attribute("prefix") ?? string.Empty), property);
+
+    internal static string Expand(IReadOnlyDictionary<string, string> prefixes, string property) {
         int colon = property.IndexOf(':');
         if (colon < 0) return PackageVocabulary + property;
-        var prefixes = ReadPrefixes((string?)package.Attribute("prefix") ?? string.Empty);
         return prefixes.TryGetValue(property.Substring(0, colon), out string? vocabulary) ? vocabulary + property.Substring(colon + 1) : property;
     }
 }
