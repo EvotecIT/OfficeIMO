@@ -136,7 +136,7 @@ public sealed class PdfShapeGroupTests {
         word.Sections[0].PageSettings.Width = global::OfficeIMO.OfficeLength.Points(300D);
         word.Sections[0].PageSettings.Height = global::OfficeIMO.OfficeLength.Points(300D);
         if (columns) { word.Sections[0].ColumnCount = 2; word.Sections[0].ColumnsSpace = global::OfficeIMO.OfficeLength.Points(6); }
-        for (int i = 0; i < (columns ? 40 : 20); i++) word.AddParagraph("Filler " + i).FontSize = 12;
+        for (int i = 0; i < (columns ? 40 : 20); i++) word.AddParagraph("Filler " + i).FontSize = global::OfficeIMO.OfficeLength.Points(12);
         var paragraph = word.AddParagraph();
         paragraph.AddShapeGroup(new[] {
             new WordShapeGroupItem(WordShapeType.Rectangle, 0, 0, 24, 12) { FillColorHex = "FF0000" },
@@ -240,7 +240,7 @@ public sealed class PdfShapeGroupTests {
     [Fact]
     public void BehindTextGroupDoesNotCoverEarlierParagraphsAndRespectsGroupZOrder() {
         using WordDocument word = WordDocument.Create();
-        word.AddParagraph("FIRST TEXT").FontSize = 18;
+        word.AddParagraph("FIRST TEXT").FontSize = global::OfficeIMO.OfficeLength.Points(18);
         foreach (var item in new[] { (Color: "00FF00", Z: 20U), (Color: "FF0000", Z: 10U) }) {
             var paragraph = word.AddParagraph("Anchor");
             paragraph.AddShapeGroup(new[] {

@@ -22,7 +22,7 @@ public sealed class WordPdfTextFormattingTests {
         authored.CapsStyle = WordCapsStyle.Caps;
         authored.ColorHex = "336699";
         authored.FontFamily = "Aptos";
-        authored.FontSizePoints = 14D;
+        authored.FontSize = global::OfficeIMO.OfficeLength.Points(14D);
 
         MethodInfo method = typeof(WordPdfConverterExtensions).GetMethod(
             "CreateNativeCellParagraphRuns",

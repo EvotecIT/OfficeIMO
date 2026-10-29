@@ -202,7 +202,7 @@ public class HtmlTextFormattingConversionTests {
         WordParagraph authored = source.AddParagraph("Styled");
         authored.SetBold().SetItalic().SetUnderline(WordUnderlineStyle.WavyDouble)
             .SetDoubleStrike().SetSuperScript().SetSmallCaps()
-            .SetFontFamily("Aptos").SetFontSize(14).SetColorHex("336699");
+            .SetFontFamily("Aptos").SetFontSize(global::OfficeIMO.OfficeLength.Points(14)).SetColorHex("336699");
 
         HtmlTextConversionResult export = source.ConvertToHtmlWithEvidence(new WordHtmlExportOptions { IncludeFontStyles = true });
         Assert.Contains("data-officeimo-word-underline=\"WavyDouble\"", export.Value, StringComparison.Ordinal);
@@ -912,7 +912,7 @@ public class HtmlTextFormattingConversionTests {
         using WordDocument document = WordDocument.Create();
         document.AddParagraph("Styled").SetBold().SetItalic()
             .SetUnderline(WordUnderlineStyle.WavyDouble).SetDoubleStrike()
-            .SetSuperScript().SetFontFamily("Aptos").SetFontSize(18).SetColorHex("336699");
+            .SetSuperScript().SetFontFamily("Aptos").SetFontSize(global::OfficeIMO.OfficeLength.Points(18)).SetColorHex("336699");
         OfficeImageExportFormat[] formats = {
             OfficeImageExportFormat.Png,
             OfficeImageExportFormat.Svg,

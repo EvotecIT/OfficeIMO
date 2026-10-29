@@ -41,7 +41,7 @@ public partial class Word {
             WordParagraph paragraph = table.Rows[row].Cells[0].Paragraphs[0];
             paragraph.Text = row == 0 ? "DefaultInset" : "ExplicitZero";
             paragraph.FontFamily = "Arial";
-            paragraph.FontSize = 12;
+            paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(12);
             paragraph.LineSpacingBefore = paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
         }
         table.Rows[1].Cells[0].MarginLeft = global::OfficeIMO.OfficeLength.Zero;
@@ -63,7 +63,7 @@ public partial class Word {
             cell.MarginBottom = global::OfficeIMO.OfficeLength.Zero;
             WordParagraph paragraph = cell.Paragraphs[0];
             paragraph.FontFamily = "Arial";
-            paragraph.FontSize = 12;
+            paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(12);
             paragraph.LineSpacingBefore = paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
             paragraph.LineSpacing = 240;
         }

@@ -80,11 +80,11 @@ public sealed class PdfAnchoredImagePaginationTests {
         if (columns) { section.ColumnCount = 2; section.ColumnsSpace = global::OfficeIMO.OfficeLength.Points(6); }
         for (int index = 0; index < 16; index++) {
             var filler = word.AddParagraph("Filler " + index);
-            filler.FontSize = 12;
+            filler.FontSize = global::OfficeIMO.OfficeLength.Points(12);
             filler.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
         }
         var anchor = kind == "list" ? word.AddList(WordListStyle.Bulleted).AddItem(string.Empty) : word.AddParagraph();
-        anchor.FontSize = 12;
+        anchor.FontSize = global::OfficeIMO.OfficeLength.Points(12);
         anchor._paragraph!.ParagraphProperties ??= new ParagraphProperties();
         if (kind != "split") anchor._paragraph.ParagraphProperties.KeepLines = new KeepLines();
         if (kind == "keepnext") anchor._paragraph.ParagraphProperties.KeepNext = new KeepNext();
@@ -106,7 +106,7 @@ public sealed class PdfAnchoredImagePaginationTests {
             second.HorizontalPositionOffset = OfficeIMO.OfficeLength.Emus(40 * 12700);
             second.VerticalPositionOffset = OfficeIMO.OfficeLength.Emus(10 * 12700);
         }
-        anchor.AddText("ANCHOR TEXT " + string.Join(" ", Enumerable.Repeat("wrapped text", kind == "split" ? 80 : 4))).FontSize = 12;
+        anchor.AddText("ANCHOR TEXT " + string.Join(" ", Enumerable.Repeat("wrapped text", kind == "split" ? 80 : 4))).FontSize = global::OfficeIMO.OfficeLength.Points(12);
         word.AddParagraph("Following paragraph");
         var result = word.ConvertToPdfWithEvidence(new WordPdfExportOptions { Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(30)) });
         var pdf = PdfCore.PdfDocument.Load(result.Value.ToBytes());

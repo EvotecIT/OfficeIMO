@@ -11,7 +11,7 @@ internal static class BrowserBusinessSample {
         document.BuiltinDocumentProperties.Creator = "OfficeIMO";
         document.Settings.FontFamily = "Carlito";
         document.Settings.FontFamilyHighAnsi = "Carlito";
-        document.Settings.FontSize = 11;
+        document.Settings.FontSize = global::OfficeIMO.OfficeLength.Points(11);
 
         Paragraph("NORTHWIND OPERATIONS", 10, true);
         Paragraph("Monthly operations brief", 26, true);
@@ -43,7 +43,7 @@ internal static class BrowserBusinessSample {
         void Paragraph(string text, int size, bool bold = false) {
             WordParagraph paragraph = document.AddParagraph(text);
             paragraph.FontFamily = "Carlito";
-            paragraph.FontSize = size;
+            paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(size);
             paragraph.Bold = bold;
             paragraph.Color = OfficeIMO.OfficeColor.FromRgb(15, 23, 42);
             paragraph.LineSpacingBefore = global::OfficeIMO.OfficeLength.Points(size == 16 ? 14 : 3);
@@ -57,7 +57,7 @@ internal static class BrowserBusinessSample {
                     WordParagraph paragraph = table.Rows[row].Cells[column].Paragraphs[0];
                     paragraph.Text = values[row, column];
                     paragraph.FontFamily = "Carlito";
-                    paragraph.FontSize = 11;
+                    paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(11);
                     paragraph.Bold = row == 0;
                     paragraph.LineSpacingBefore = global::OfficeIMO.OfficeLength.Points(3D);
                     paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Points(3D);

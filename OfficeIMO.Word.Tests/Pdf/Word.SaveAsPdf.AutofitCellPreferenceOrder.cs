@@ -139,7 +139,7 @@ public partial class Word {
                 WordParagraph paragraph = cell.Paragraphs[0];
                 paragraph.Text = (row == 0 ? "M" : "P") + column;
                 paragraph.FontFamily = "Arial";
-                paragraph.FontSize = 12;
+                paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(12);
                 paragraph.LineSpacingBefore = paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
                 paragraph.LineSpacingRule = WordLineSpacingRule.Auto;
                 paragraph.LineSpacing = 240;

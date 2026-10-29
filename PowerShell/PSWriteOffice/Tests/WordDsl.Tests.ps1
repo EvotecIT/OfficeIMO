@@ -1839,7 +1839,7 @@ Describe 'Word DSL surface' {
             $styledText.Italic | Should -BeTrue
             $styledText.Underline.ToString() | Should -Be 'Single'
             $styledText.ColorHex | Should -Be 'c00000'
-            $styledText.FontSize | Should -Be 14
+            $styledText.FontSize.ToPoints() | Should -Be 14
             $styledText.FontFamily | Should -Be 'Aptos'
             $styledText.Highlight.ToString() | Should -Be 'Yellow'
             $styledText.CapsStyle.ToString() | Should -Be 'SmallCaps'

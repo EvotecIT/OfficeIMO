@@ -428,8 +428,8 @@ namespace OfficeIMO.Word.Pdf {
             double.IsNaN(value) || double.IsInfinity(value) ? 0D : value;
 
         private static double ResolveNativeTableCellParagraphFontSize(WordParagraph paragraph, NativeDocumentDefaults nativeDefaults, NativeParagraphStyleDefaults styleDefaults, NativeTableStyleDefaults tableStyleDefaults) =>
-            paragraph.FontSizePoints.HasValue && paragraph.FontSizePoints.Value > 0
-                ? paragraph.FontSizePoints.Value
+            paragraph.NativeFontSizePoints.HasValue && paragraph.NativeFontSizePoints.Value > 0
+                ? paragraph.NativeFontSizePoints.Value
                 : styleDefaults.FontSize ?? tableStyleDefaults.RunStyle.FontSize ?? nativeDefaults.FontSize;
 
         private static double ResolveNativeTableCellParagraphEffectiveFontSize(WordParagraph paragraph, NativeDocumentDefaults nativeDefaults, NativeParagraphStyleDefaults styleDefaults, NativeTableStyleDefaults tableStyleDefaults) {

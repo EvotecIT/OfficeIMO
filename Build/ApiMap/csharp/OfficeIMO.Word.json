@@ -2987,17 +2987,17 @@
       "old": "OfficeIMO.Word.WordPaperStyle.TableFontSizePoints",
       "kind": "property",
       "action": "merge",
-      "new": "OfficeIMO.Word.WordPaperStyle.TableFontSize : double (points)",
-      "reason": "Parameter and property names never carry a unit suffix; font sizes stay numeric points.",
+      "new": "OfficeIMO.Word.WordPaperStyle.TableFontSize : OfficeLength",
+      "reason": "Physical font size; retain the 10pt table body default and 9pt header override.",
       "file": "OfficeIMO.Word/WordPaperStyle.cs",
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical typography uses OfficeLength with native half-point or twip rounding and nullable inheritance. Saved DOCX style/run readback, native DOC kerning, PDF text geometry, modern NativeAOT and existing adapters retain their format-specific numeric contracts."
     },
     {
       "old": "OfficeIMO.Word.WordPaperStyle.TableLineSpacingPoints",
@@ -3035,17 +3035,17 @@
       "old": "OfficeIMO.Word.WordParagraph.FontSizePoints",
       "kind": "property",
       "action": "merge",
-      "new": "OfficeIMO.Word.WordParagraph.FontSize : double (points)",
-      "reason": "Parameter and property names never carry a unit suffix; font sizes stay numeric points.",
+      "new": "OfficeIMO.Word.WordParagraph.FontSize : OfficeLength?",
+      "reason": "Consolidate numeric font-size twins into one nullable physical length. Preserve native half-point rounding, limits, null removal, hyperlinks and page-number formatting; native numeric renderer access remains internal.",
       "file": "OfficeIMO.Word/WordParagraph.RunProperties.cs",
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical typography uses OfficeLength with native half-point or twip rounding and nullable inheritance. Saved DOCX style/run readback, native DOC kerning, PDF text geometry, modern NativeAOT and existing adapters retain their format-specific numeric contracts."
     },
     {
       "old": "OfficeIMO.Word.WordParagraph.IndentationAfterPoints",
@@ -3115,17 +3115,17 @@
       "old": "OfficeIMO.Word.WordParagraph.KerningMinimumFontSizePoints",
       "kind": "property",
       "action": "merge",
-      "new": "OfficeIMO.Word.WordParagraph.KerningMinimumFontSize : double (points)",
-      "reason": "Parameter and property names never carry a unit suffix; font sizes stay numeric points.",
+      "new": "OfficeIMO.Word.WordParagraph.KerningMinimumFontSize : OfficeLength?",
+      "reason": "Physical kerning threshold; retain zero, null, 1638pt limit and half-point storage.",
       "file": "OfficeIMO.Word/WordParagraph.Kerning.cs",
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical typography uses OfficeLength with native half-point or twip rounding and nullable inheritance. Saved DOCX style/run readback, native DOC kerning, PDF text geometry, modern NativeAOT and existing adapters retain their format-specific numeric contracts."
     },
     {
       "old": "OfficeIMO.Word.WordParagraph.LineSpacingAfterPoints",
@@ -3259,65 +3259,65 @@
       "old": "OfficeIMO.Word.WordParagraphStyleDefinition.FontSizePoints",
       "kind": "property",
       "action": "merge",
-      "new": "OfficeIMO.Word.WordParagraphStyleDefinition.FontSize : double (points)",
-      "reason": "Parameter and property names never carry a unit suffix; font sizes stay numeric points.",
+      "new": "OfficeIMO.Word.WordParagraphStyleDefinition.FontSize : OfficeLength?",
+      "reason": "Physical style length; preserve nullable inheritance, imported style template and native half-point/twip writing.",
       "file": "OfficeIMO.Word/WordParagraphStyleDefinition.cs",
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical typography uses OfficeLength with native half-point or twip rounding and nullable inheritance. Saved DOCX style/run readback, native DOC kerning, PDF text geometry, modern NativeAOT and existing adapters retain their format-specific numeric contracts."
     },
     {
       "old": "OfficeIMO.Word.WordParagraphStyleDefinition.LeftIndentTwips",
       "kind": "property",
       "action": "merge",
-      "new": "OfficeIMO.Word.WordParagraphStyleDefinition.LeftIndent : OfficeLength",
-      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "new": "OfficeIMO.Word.WordParagraphStyleDefinition.LeftIndent : OfficeLength?",
+      "reason": "Physical style length; preserve nullable inheritance, imported style template and native half-point/twip writing.",
       "file": "OfficeIMO.Word/WordParagraphStyleDefinition.cs",
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical typography uses OfficeLength with native half-point or twip rounding and nullable inheritance. Saved DOCX style/run readback, native DOC kerning, PDF text geometry, modern NativeAOT and existing adapters retain their format-specific numeric contracts."
     },
     {
       "old": "OfficeIMO.Word.WordParagraphStyleDefinition.SpacingAfterTwips",
       "kind": "property",
       "action": "merge",
-      "new": "OfficeIMO.Word.WordParagraphStyleDefinition.SpacingAfter : OfficeLength",
-      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "new": "OfficeIMO.Word.WordParagraphStyleDefinition.SpacingAfter : OfficeLength?",
+      "reason": "Physical style length; preserve nullable inheritance, imported style template and native half-point/twip writing.",
       "file": "OfficeIMO.Word/WordParagraphStyleDefinition.cs",
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical typography uses OfficeLength with native half-point or twip rounding and nullable inheritance. Saved DOCX style/run readback, native DOC kerning, PDF text geometry, modern NativeAOT and existing adapters retain their format-specific numeric contracts."
     },
     {
       "old": "OfficeIMO.Word.WordParagraphStyleDefinition.SpacingBeforeTwips",
       "kind": "property",
       "action": "merge",
-      "new": "OfficeIMO.Word.WordParagraphStyleDefinition.SpacingBefore : OfficeLength",
-      "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
+      "new": "OfficeIMO.Word.WordParagraphStyleDefinition.SpacingBefore : OfficeLength?",
+      "reason": "Physical style length; preserve nullable inheritance, imported style template and native half-point/twip writing.",
       "file": "OfficeIMO.Word/WordParagraphStyleDefinition.cs",
       "category": "units",
       "implementation": {
         "phase": "B",
-        "status": "pending-phase-b"
+        "status": "applied"
       },
       "phase": "B",
-      "applied": "phase-b-pending",
-      "note": "The authoring, geometry and generated visibility analysis belongs to Phase B."
+      "applied": "phase-b-applied",
+      "note": "Physical typography uses OfficeLength with native half-point or twip rounding and nullable inheritance. Saved DOCX style/run readback, native DOC kerning, PDF text geometry, modern NativeAOT and existing adapters retain their format-specific numeric contracts."
     },
     {
       "old": "OfficeIMO.Word.WordRunSnapshot.FontSizePoints",
@@ -6106,6 +6106,14 @@
   },
   "extraChanges": [
     {
+      "old": "WordParagraph.FontSize : int?; WordList.FontSize : int?; WordStructuredDocumentTag.FontSize : int?; WordSettings.FontSize/FontSizeComplexScript : int?; WordWatermark.FontSize : double?; WordChart.SetAxisTitleFormat fontSize : int; bullet-list fontSize : int?; WordParagraph.SetFontSize(int); WordStructuredDocumentTag.SetFontSize(int)",
+      "new": "Nullable physical fonts use OfficeLength?; font-size method arguments use OfficeLength or OfficeLength?",
+      "action": "change",
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "reason": "The suffix inventory missed actual Word font-size properties and method parameters. Preserve native storage, nullable behavior, default values and imported renderer precision. Mechanical consumers retain each foreign format font contract. SetFontSize accepts the same physical length as its property. Every changed C# and PowerShell assignment boundary is migrated; PDF, Excel, ODF and native inspection font measurements retain their own contracts."
+    },
+    {
       "subject": "WordLoadOptions.Password and WordSaveOptions.Password",
       "note": "Loaded encryption is retained by native file/stream/byte output; explicitly assigning null removes it. Native DOC output rejects encryption. This closes the ordinary Load/Save lifecycle without writing decrypted data over an encrypted source.",
       "status": "applied"
@@ -6624,6 +6632,15 @@
       ]
     },
     {
+      "change": "Add a heading paragraph with a validated level from one through nine",
+      "reason": "The approved C# quick start uses this authoring contract. Existing style and theme serialization own its native representation; no compatibility alias is added.",
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "files": [
+        "OfficeIMO.Word/WordDocument.Headings.cs"
+      ]
+    },
+    {
       "change": "Bind VML AddEllipse, AddRoundedRectangle, AddLine and AddPolygon results to the node each factory creates and enumerate every independent sibling in document/section shape collections",
       "reason": "Multiple shapes may share one paragraph run. Returning the new shape must not select, mutate or remove an earlier sibling. Saved XML and reload proof cover mixed and repeated shape kinds. The collection uses the same selected-node discovery as the singular property while retaining its text-box/group/alternate-content classification.",
       "phase": "B",
@@ -6633,15 +6650,6 @@
         "OfficeIMO.Word.Tests/Word.Shapes.PhysicalGeometry.cs",
         "OfficeIMO.Word/WordParagraph.DrawingMedia.cs",
         "OfficeIMO.Word/WordSection.cs"
-      ]
-    },
-    {
-      "change": "Add a heading paragraph with a validated level from one through nine",
-      "reason": "The approved C# quick start uses this authoring contract. Existing style and theme serialization own its native representation; no compatibility alias is added.",
-      "phase": "B",
-      "applied": "phase-b-applied",
-      "files": [
-        "OfficeIMO.Word/WordDocument.Headings.cs"
       ]
     }
   ],

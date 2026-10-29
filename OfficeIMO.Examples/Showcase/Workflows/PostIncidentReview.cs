@@ -6,7 +6,7 @@ namespace OfficeIMO.Examples.Showcase.Workflows {
         internal static void Create(string folder) {
             using var document = WordDocument.Create(Path.Combine(folder, "example.docx"));
             document.Settings.FontFamily = "Carlito";
-            document.Settings.FontSize = 11;
+            document.Settings.FontSize = global::OfficeIMO.OfficeLength.Points(11);
             document.BuiltinDocumentProperties.Title = "Post-incident review";
             document.AddParagraph("Post-incident review").Style = WordParagraphStyles.Heading1;
             document.AddParagraph("NORTHWIND / INCIDENT INC-042 / SYNTHETIC SCENARIO");
@@ -35,7 +35,7 @@ namespace OfficeIMO.Examples.Showcase.Workflows {
                     paragraph.Bold = row == 0;
                     paragraph.ColorHex = row == 0 ? "FFFFFF" : "243247";
                     paragraph.FontFamily = "Carlito";
-                    paragraph.FontSize = 10;
+                    paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(10);
                     paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Points(2D);
                 }
             }
@@ -50,7 +50,7 @@ namespace OfficeIMO.Examples.Showcase.Workflows {
                 paragraph.FontFamily = "Carlito";
                 bool title = paragraph.Style == WordParagraphStyles.Heading1;
                 bool heading = paragraph.Style == WordParagraphStyles.Heading2;
-                paragraph.FontSize = title ? 26 : heading ? 15 : 11;
+                paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(title ? 26 : heading ? 15 : 11);
                 paragraph.LineSpacingBefore = global::OfficeIMO.OfficeLength.Points(heading ? 14 : 0);
                 paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Points(title ? 14 : heading ? 8 : 7);
                 if (title || heading) {

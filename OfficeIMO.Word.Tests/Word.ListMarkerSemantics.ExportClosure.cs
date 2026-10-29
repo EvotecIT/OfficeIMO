@@ -98,10 +98,10 @@ public sealed partial class WordListMarkerSemanticsTests {
     public void PdfHeaderNestedTextBoxMarkerStylesFollowFlattenedTextOrder() {
         using WordDocument document = WordDocument.Create();
         document.AddHeadersAndFooters();
-        WordList nestedList = document.AddCustomBulletList('*', "Arial", "FF0000", 18);
+        WordList nestedList = document.AddCustomBulletList('*', "Arial", "FF0000", global::OfficeIMO.OfficeLength.Points(18));
         nestedList.Numbering.Levels[0].OpenXmlElement.GetFirstChild<NumberingSymbolRunProperties>()?.Append(new Bold());
-        WordList laterList = document.AddCustomBulletList('◆', "Arial", "0000FF", 10);
-        WordList outerList = document.AddCustomBulletList('•', "Arial", "000000", 9);
+        WordList laterList = document.AddCustomBulletList('◆', "Arial", "0000FF", global::OfficeIMO.OfficeLength.Points(10));
+        WordList outerList = document.AddCustomBulletList('•', "Arial", "000000", global::OfficeIMO.OfficeLength.Points(9));
         WordParagraph host = document.Header!.Default!.AddParagraph("Before ");
         WordTextBox outer = host.AddTextBox("Outer styled", WordImageTextWrapping.Square);
         host.AddText(" After");
@@ -203,10 +203,10 @@ public sealed partial class WordListMarkerSemanticsTests {
     public void PdfHeaderListMarkerPreservesMarkerSpecificFormatting() {
         using WordDocument document = WordDocument.Create();
         document.AddHeadersAndFooters();
-        WordList list = document.AddCustomBulletList('*', "Arial", "FF0000", 18);
+        WordList list = document.AddCustomBulletList('*', "Arial", "FF0000", global::OfficeIMO.OfficeLength.Points(18));
         list.Numbering.Levels[0].OpenXmlElement.GetFirstChild<NumberingSymbolRunProperties>()?.Append(new Bold());
         WordParagraph header = document.Header!.Default!.AddParagraph("HeaderStyledMarker");
-        header.FontSize = 9;
+        header.FontSize = global::OfficeIMO.OfficeLength.Points(9);
         AttachToList(header, list.NumberId);
         document.AddParagraph("Body");
 
@@ -261,10 +261,10 @@ public sealed partial class WordListMarkerSemanticsTests {
             level.OpenXmlElement.AppendChild(new NumberingSymbolRunProperties());
         markerProperties.Append(new Bold(), new FontSize { Val = "36" });
         WordParagraph nineItem = document.Header!.Default!.AddParagraph("HeaderNine");
-        nineItem.FontSize = 9;
+        nineItem.FontSize = global::OfficeIMO.OfficeLength.Points(9);
         AttachToList(nineItem, list.NumberId);
         WordParagraph tenItem = document.Header.Default.AddParagraph("HeaderTen");
-        tenItem.FontSize = 9;
+        tenItem.FontSize = global::OfficeIMO.OfficeLength.Points(9);
         AttachToList(tenItem, list.NumberId);
         document.AddParagraph("Body");
 
@@ -302,7 +302,7 @@ public sealed partial class WordListMarkerSemanticsTests {
     public void PdfHeaderTextBoxPreservesInnerMarkerStyle() {
         using WordDocument document = WordDocument.Create();
         document.AddHeadersAndFooters();
-        WordList list = document.AddCustomBulletList('*', "Arial", "FF0000", 18);
+        WordList list = document.AddCustomBulletList('*', "Arial", "FF0000", global::OfficeIMO.OfficeLength.Points(18));
         list.Numbering.Levels[0].OpenXmlElement.GetFirstChild<NumberingSymbolRunProperties>()?.Append(new Bold());
         WordParagraph host = document.Header!.Default!.AddParagraph("Before ");
         WordTextBox box = host.AddTextBox("StyledHeaderBox", WordImageTextWrapping.Square);

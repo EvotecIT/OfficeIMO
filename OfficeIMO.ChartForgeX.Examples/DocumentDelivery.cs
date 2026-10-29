@@ -34,10 +34,10 @@ internal static class DocumentDelivery {
             if (index > 0) document.AddPageBreak();
             var specimen = specimens[index];
             var heading = document.AddParagraph().AddText(Heading(specimen));
-            heading.FontFamily = Style.FontFamily; heading.FontSizePoints = Style.HeadingSizePoints;
+            heading.FontFamily = Style.FontFamily; heading.FontSize = global::OfficeIMO.OfficeLength.Points(Style.HeadingSizePoints);
             document.AddParagraph().AddVisualArtifact(specimen.Artifact);
             var caption = document.AddParagraph().AddText(specimen.Caption);
-            caption.FontFamily = Style.FontFamily; caption.FontSizePoints = Style.CaptionSizePoints;
+            caption.FontFamily = Style.FontFamily; caption.FontSize = global::OfficeIMO.OfficeLength.Points(Style.CaptionSizePoints);
         }
         document.Save();
     }

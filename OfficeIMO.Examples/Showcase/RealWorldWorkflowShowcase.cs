@@ -31,10 +31,10 @@ internal static class RealWorldWorkflowShowcase {
         #region Excerpt:customer-delivery-summary
         using WordDocument document = WordDocument.Create(sourcePath);
         document.Settings.FontFamily = "Carlito";
-        document.Settings.FontSize = 11;
+        document.Settings.FontSize = global::OfficeIMO.OfficeLength.Points(11);
         document.BuiltinDocumentProperties.Title = "Customer delivery summary";
         document.AddHeadersAndFooters();
-        document.HeaderDefaultOrCreate.AddParagraph("Northwind Operations · Quarterly service review").FontSize = 9;
+        document.HeaderDefaultOrCreate.AddParagraph("Northwind Operations · Quarterly service review").FontSize = global::OfficeIMO.OfficeLength.Points(9);
         document.FooterDefaultOrCreate.AddPageNumber(includeTotalPages: true);
 
         AddTitleBlock(document, "NORTHWIND OPERATIONS / QUARTERLY SERVICE REVIEW", "Customer delivery summary",
@@ -91,7 +91,7 @@ internal static class RealWorldWorkflowShowcase {
     private static WordParagraph AddHeading(WordDocument document, string text, int size = 14, int before = 8) {
         WordParagraph heading = document.AddParagraph(text);
         heading.Style = size > 20 ? WordParagraphStyles.Heading1 : WordParagraphStyles.Heading2;
-        heading.FontSize = size;
+        heading.FontSize = global::OfficeIMO.OfficeLength.Points(size);
         heading.Bold = true;
         heading.SetColorHex("17365D");
         heading.LineSpacingBefore = global::OfficeIMO.OfficeLength.Points(before);
@@ -101,7 +101,7 @@ internal static class RealWorldWorkflowShowcase {
 
     private static void AddTitleBlock(WordDocument document, string eyebrow, string title, string subtitle) {
         WordParagraph label = document.AddParagraph(eyebrow);
-        label.FontSize = 9;
+        label.FontSize = global::OfficeIMO.OfficeLength.Points(9);
         label.Bold = true;
         label.SetColorHex("235FB4");
         AddHeading(document, title, 28, 4);
@@ -117,11 +117,11 @@ internal static class RealWorldWorkflowShowcase {
             cell.MarginTop = global::OfficeIMO.OfficeLength.Centimeters(0.1D);
             cell.MarginBottom = global::OfficeIMO.OfficeLength.Centimeters(0.1D);
             cell.Paragraphs[0].Text = kpis[i].Value;
-            cell.Paragraphs[0].FontSize = 22;
+            cell.Paragraphs[0].FontSize = global::OfficeIMO.OfficeLength.Points(22);
             cell.Paragraphs[0].Bold = true;
             cell.Paragraphs[0].SetColorHex("17365D");
             WordParagraph label = cell.AddParagraph(kpis[i].Label);
-            label.FontSize = 9;
+            label.FontSize = global::OfficeIMO.OfficeLength.Points(9);
             label.SetColorHex("526179");
         }
     }

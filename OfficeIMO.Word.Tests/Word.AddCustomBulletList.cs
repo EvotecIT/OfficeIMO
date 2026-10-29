@@ -11,8 +11,8 @@ namespace OfficeIMO.Tests {
             var filePath = Path.Combine(_directoryWithFiles, "CustomBulletList.docx");
             using (var document = WordDocument.Create(filePath)) {
                 var list = document.AddCustomList();
-                WordListLevel first = list.AddListLevel(1, WordListLevelKind.BulletSquareSymbol, "Courier New", OfficeIMO.OfficeColor.Red, fontSize: 14);
-                WordListLevel fifth = list.AddListLevel(5, WordListLevelKind.BulletBlackCircle, "Arial", colorHex: "#00FF00", fontSize: 10);
+                WordListLevel first = list.AddListLevel(1, WordListLevelKind.BulletSquareSymbol, "Courier New", OfficeIMO.OfficeColor.Red, fontSize: global::OfficeIMO.OfficeLength.Points(14));
+                WordListLevel fifth = list.AddListLevel(5, WordListLevelKind.BulletBlackCircle, "Arial", colorHex: "#00FF00", fontSize: global::OfficeIMO.OfficeLength.Points(10));
                 first.IndentationLeft = OfficeIMO.OfficeLength.Points(36);
                 Assert.Throws<OverflowException>(() => first.IndentationLeft = OfficeIMO.OfficeLength.Emus(long.MaxValue));
                 Assert.Equal(OfficeIMO.OfficeLength.Points(36), first.IndentationLeft);
@@ -49,7 +49,7 @@ namespace OfficeIMO.Tests {
         public void Test_AddCustomBulletList() {
             var filePath = Path.Combine(_directoryWithFiles, "CustomBulletSimple.docx");
             using (var document = WordDocument.Create(filePath)) {
-                var list = document.AddCustomBulletList(WordListLevelKind.BulletDiamondSymbol, "Wingdings", OfficeIMO.OfficeColor.Blue, fontSize: 12);
+                var list = document.AddCustomBulletList(WordListLevelKind.BulletDiamondSymbol, "Wingdings", OfficeIMO.OfficeColor.Blue, fontSize: global::OfficeIMO.OfficeLength.Points(12));
                 list.AddItem("Item");
                 document.Save();
             }

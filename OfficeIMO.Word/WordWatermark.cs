@@ -136,7 +136,13 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Font size of text watermark in points.
         /// </summary>
-        public double? FontSize {
+        public global::OfficeIMO.OfficeLength? FontSize {
+            get => NativeFontSizePoints is double points ? global::OfficeIMO.OfficeLength.Points(points) : null;
+            set => NativeFontSizePoints = value?.ToPoints();
+        }
+
+        /// <summary>Gets or sets the native VML size without quantizing imported values.</summary>
+        internal double? NativeFontSizePoints {
             get {
                 var value = GetTextPathStyleComponent("font-size");
                 if (value == null) {

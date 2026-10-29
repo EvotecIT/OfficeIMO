@@ -93,12 +93,12 @@ public sealed class WordPaperHeaderSizingTests {
     [InlineData("Unavailable paper font 537")]
     public void ShortHeadersKeepDesiredRatiosAndDoNotChangeBodyTypography(string family) {
         using WordDocument document = WordDocument.Create();
-        var style = new WordPaperStyle { FontFamily = family, TableFontSizePoints = 10.5D };
+        var style = new WordPaperStyle { FontFamily = family, TableFontSize = global::OfficeIMO.OfficeLength.Points(10.5D)};
         WordTable table = style.AddKeyValueTable(document,
             new[] { new System.Collections.Generic.KeyValuePair<string, string>("Host", "example.test") }, "Key", "Value");
         WordParagraph body = table.Rows[1].Cells[1].Paragraphs[0];
         body.FontFamily = "Courier New";
-        body.FontSizePoints = 12.5D;
+        body.FontSize = global::OfficeIMO.OfficeLength.Points(12.5D);
         body.ColorHex = "405060";
         style.FitTableColumnsToHeaders(table, 1, 2);
         using var serialized = new MemoryStream();
@@ -109,10 +109,10 @@ public sealed class WordPaperHeaderSizingTests {
         Assert.InRange(Math.Abs(saved.ColumnWidth[1] - saved.ColumnWidth[0] * 2), 0, 2);
         WordParagraph restored = saved.Rows[1].Cells[1].Paragraphs[0];
         Assert.Equal("Courier New", restored.FontFamily);
-        Assert.Equal(12.5D, restored.FontSizePoints);
+        Assert.Equal(12.5D, restored.FontSize?.ToPoints());
         Assert.Equal("405060", restored.ColorHex);
         Assert.Equal(family, saved.Rows[0].Cells[0].Paragraphs[0].FontFamily);
-        Assert.Equal(9D, saved.Rows[0].Cells[0].Paragraphs[0].FontSizePoints);
+        Assert.Equal(9D, saved.Rows[0].Cells[0].Paragraphs[0].FontSize?.ToPoints());
     }
 
     [Fact]

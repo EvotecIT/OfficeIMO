@@ -124,7 +124,7 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
         source.AddHeadersAndFooters();
         WordParagraph header = source.Header!.Default!.AddParagraph("Styled header");
         header.Bold = true;
-        header.FontSizePoints = 11.5;
+        header.FontSize = global::OfficeIMO.OfficeLength.Points(11.5);
 
         OdfConversionResult<OdtDocument> conversion = source.ToOpenDocumentResult();
         OdtSpan bodySpan = Assert.Single(conversion.Value.Paragraphs.Single().Spans);
@@ -202,7 +202,7 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
         using WordDocument target = conversion.Value;
         WordParagraph run = Assert.Single(target.Paragraphs.Single().GetRuns());
 
-        Assert.Equal(10.5D, run.FontSizePoints);
+        Assert.Equal(10.5D, run.FontSize?.ToPoints());
         Assert.DoesNotContain(conversion.Report.Mappings, mapping =>
             mapping.Feature == "relative-measurements" && mapping.Status == OdfConversionMappingStatus.Unsupported);
 
@@ -492,7 +492,7 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
         using WordDocument target = conversion.Value;
         WordParagraph run = Assert.Single(target.Paragraphs.Single().GetRuns());
 
-        Assert.Null(run.FontSizePoints);
+        Assert.Null(run.FontSize?.ToPoints());
         Assert.Contains(conversion.Report.Mappings, mapping =>
             mapping.Feature == "relative-measurements"
             && mapping.Status == OdfConversionMappingStatus.Unsupported

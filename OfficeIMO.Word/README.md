@@ -112,7 +112,7 @@ document.Save("custom-list.docx");
 using OfficeIMO.Word;
 
 using var document = WordDocument.Create("assessment.docx");
-var paper = new WordPaperStyle { TableFontSizePoints = 9 };
+var paper = new WordPaperStyle { TableFontSize = global::OfficeIMO.OfficeLength.Points(9) };
 var cover = paper.AddCover(document, "ASSESSMENT", "Domain assessment", "Example fixture");
 var chrome = paper.AddPageChrome(document, "Domain assessment", "Example reports", "example.test");
 var table = document.AddTable(2, 2);
@@ -407,7 +407,7 @@ paragraph.AddText(" on ");
 paragraph.AddText(DateTime.Today.ToString("yyyy-MM-dd")).Italic = true;
 ```
 
-`KerningMinimumFontSizePoints` controls the minimum font size at which a run uses kerning.
+`KerningMinimumFontSize` controls the minimum font size at which a run uses kerning.
 Set it to `null` to inherit the threshold or `0` to disable kerning. Values from `0` to
 `1638` points round to the nearest half point and persist in DOCX and supported native DOC content.
 The property reads the run's explicit threshold; an inherited value reads as `null`.
@@ -415,8 +415,8 @@ The property reads the run's explicit threshold; an inherited value reads as `nu
 ```csharp
 var title = document.AddParagraph("AV typography");
 title.FontFamily = "Arial";
-title.FontSizePoints = 24;
-title.KerningMinimumFontSizePoints = 8;
+title.FontSize = global::OfficeIMO.OfficeLength.Points(24);
+title.KerningMinimumFontSize = global::OfficeIMO.OfficeLength.Points(8);
 ```
 
 ### Footnotes and endnotes

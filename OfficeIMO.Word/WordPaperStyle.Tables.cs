@@ -44,7 +44,7 @@ public sealed partial class WordPaperStyle {
                 if (header) cell.ShadingFillColorHex = Surface;
                 foreach (WordParagraph paragraph in cell.Paragraphs) {
                     paragraph.FontFamily = FontFamily;
-                    paragraph.FontSizePoints = header ? 9 : TableFontSizePoints;
+                    paragraph.FontSize = header ? global::OfficeIMO.OfficeLength.Points(9) : TableFontSize;
                     paragraph.Bold = header;
                     paragraph.ColorHex = header ? Muted : Ink;
                     paragraph.LineSpacingBefore = global::OfficeIMO.OfficeLength.Points(TableParagraphSpacingPoints);

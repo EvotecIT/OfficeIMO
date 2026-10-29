@@ -41,13 +41,13 @@ namespace OfficeIMO.Tests {
                 watermark.Height = 158.34;
                 watermark.HorizontalOffset = 12.5;
                 watermark.VerticalOffset = 24.75;
-                watermark.FontSize = 72.25;
+                watermark.FontSize = global::OfficeIMO.OfficeLength.Points(72.25);
 
                 Assert.Equal(633.42, watermark.Width);
                 Assert.Equal(158.34, watermark.Height);
                 Assert.Equal(12.5, watermark.HorizontalOffset);
                 Assert.Equal(24.75, watermark.VerticalOffset);
-                Assert.Equal(72.25, watermark.FontSize);
+                Assert.Equal(72.25, watermark.FontSize?.ToPoints());
 
                 watermark.Rotation = 135;
                 Assert.Equal(135, watermark.Rotation);

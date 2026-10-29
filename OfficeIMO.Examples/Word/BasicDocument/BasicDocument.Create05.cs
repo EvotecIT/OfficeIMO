@@ -19,7 +19,7 @@ namespace OfficeIMO.Examples.Word {
                 document.Sections[0].Margins.Right = global::OfficeIMO.OfficeLength.Points(30D);
 
                 document.Settings.FontFamily = "Arial";
-                document.Settings.FontSize = 9;
+                document.Settings.FontSize = global::OfficeIMO.OfficeLength.Points(9);
 
                 var defaultHeader = document.HeaderDefaultOrCreate;
                 var defaultFooter = document.FooterDefaultOrCreate;
@@ -31,7 +31,7 @@ namespace OfficeIMO.Examples.Word {
 
                 var firstHeaderParagraph = Guard.GetRequiredItem(defaultHeader.Paragraphs, 0, "Default header should expose the inserted paragraph.");
                 firstHeaderParagraph.SetFontFamily("Arial");
-                firstHeaderParagraph.SetFontSize(7).Bold = false;
+                firstHeaderParagraph.SetFontSize(global::OfficeIMO.OfficeLength.Points(7)).Bold = false;
 
                 Console.WriteLine("Images Count: " + document.Images.Count);
                 Console.WriteLine("Images in Header Count: " + defaultHeader.Images.Count);
@@ -39,7 +39,7 @@ namespace OfficeIMO.Examples.Word {
                 defaultFooter.AddParagraph();
                 var firstFooterParagraph = Guard.GetRequiredItem(defaultFooter.Paragraphs, 0, "Default footer should expose the first paragraph after adding one.");
                 firstFooterParagraph.SetFontFamily("Arial");
-                firstFooterParagraph.SetFontSize(7).Bold = false;
+                firstFooterParagraph.SetFontSize(global::OfficeIMO.OfficeLength.Points(7)).Bold = false;
                 firstFooterParagraph.ParagraphAlignment = WordParagraphAlignment.Right;
                 firstFooterParagraph.Text = "SMA.5.doc 04/10/19";
                 firstFooterParagraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
@@ -49,7 +49,7 @@ namespace OfficeIMO.Examples.Word {
                 defaultFooter.AddParagraph();
                 var secondFooterParagraph = Guard.GetRequiredItem(defaultFooter.Paragraphs, 1, "Default footer should expose the second paragraph after adding two paragraphs.");
                 secondFooterParagraph.SetFontFamily("Arial");
-                secondFooterParagraph.SetFontSize(7).Bold = false;
+                secondFooterParagraph.SetFontSize(global::OfficeIMO.OfficeLength.Points(7)).Bold = false;
                 secondFooterParagraph.ParagraphAlignment = WordParagraphAlignment.Center;
                 secondFooterParagraph.Text = "My address";
                 secondFooterParagraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
@@ -57,13 +57,13 @@ namespace OfficeIMO.Examples.Word {
 
                 var par00 = document.AddParagraph("My text");
                 par00.ParagraphAlignment = WordParagraphAlignment.Left;
-                par00.SetFontFamily("Arial").SetFontSize(10).Bold = true;
+                par00.SetFontFamily("Arial").SetFontSize(global::OfficeIMO.OfficeLength.Points(10)).Bold = true;
                 par00.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
                 par00.LineSpacingBefore = global::OfficeIMO.OfficeLength.Zero;
 
                 var par01 = document.AddParagraph("My declaration");
                 par01.ParagraphAlignment = WordParagraphAlignment.Left;
-                par01.SetFontFamily("Arial").SetFontSize(10).Bold = true;
+                par01.SetFontFamily("Arial").SetFontSize(global::OfficeIMO.OfficeLength.Points(10)).Bold = true;
                 par01.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
                 par01.LineSpacingBefore = global::OfficeIMO.OfficeLength.Zero;
 

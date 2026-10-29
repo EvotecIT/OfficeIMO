@@ -119,7 +119,7 @@ internal sealed class OfficeMarkupWordExporter {
     private static void ApplyTextStyle(WordParagraph paragraph, OfficeMarkupResolvedStyle? style) {
         if (style == null) return;
         if (!string.IsNullOrWhiteSpace(style.FontName)) paragraph.FontFamily = style.FontName;
-        if (style.FontSize != null) paragraph.FontSizePoints = style.FontSize.Value;
+        if (style.FontSize != null) paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(style.FontSize.Value);
         if (style.Bold != null) paragraph.Bold = style.Bold.Value;
         if (style.Italic != null) paragraph.Italic = style.Italic.Value;
         if (style.UnderlineStyle != null) paragraph.Underline = ToWordUnderline(style.UnderlineStyle.Value);

@@ -26,7 +26,7 @@ public partial class Word {
             foreach (WordTableCell cell in table.Rows[row].Cells) {
                 cell.MarginTop = cell.MarginBottom = global::OfficeIMO.OfficeLength.Zero;
                 foreach (WordParagraph paragraph in cell.Paragraphs) {
-                    paragraph.FontFamily = "Arial"; paragraph.FontSize = 12;
+                    paragraph.FontFamily = "Arial"; paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(12);
                     paragraph.LineSpacingBefore = paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
                     paragraph.LineSpacingRule = WordLineSpacingRule.Exact; paragraph.LineSpacing = 400;
                     paragraph.KeepLinesTogetherOverride = false; paragraph.KeepWithNextOverride = false;
@@ -69,7 +69,7 @@ public partial class Word {
                         cell.AddParagraph($"SpanToken{row * paragraphsPerRow + paragraph + 1}");
                 foreach (WordParagraph paragraph in cell.Paragraphs) {
                     paragraph.FontFamily = "Arial";
-                    paragraph.FontSize = 12;
+                    paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(12);
                     paragraph.LineSpacingBefore = paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
                     paragraph.LineSpacingRule = WordLineSpacingRule.Auto;
                     paragraph.LineSpacing = 240;

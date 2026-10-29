@@ -63,7 +63,7 @@ public partial class Word {
                 new W.SpacingBetweenLines { Before = "0", After = "0" },
                 new W.ParagraphMarkRunProperties(new W.RunFonts { Ascii = "Arial", HighAnsi = "Arial" }, new W.FontSize { Val = "24" }));
             paragraph.FontFamily = "Arial";
-            paragraph.FontSize = 12;
+            paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(12);
         }
         if (running != null) document.AddParagraph("C");
         return document;

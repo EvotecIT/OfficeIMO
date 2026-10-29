@@ -170,7 +170,7 @@ namespace OfficeIMO.Tests.Pdf {
                 document.Settings.FontFamily = "Helvetica";
                 WordParagraph paragraph = document.AddParagraph("A");
                 paragraph.FontFamily = "Helvetica";
-                paragraph.FontSize = 12;
+                paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(12);
                 paragraph.AddTab().AddText("B");
                 const string styleId = "HostileTabStops";
                 var tabs = new W.Tabs();

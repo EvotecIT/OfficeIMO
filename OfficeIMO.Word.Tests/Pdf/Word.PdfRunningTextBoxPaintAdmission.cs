@@ -92,7 +92,7 @@ public partial class Word {
         WordParagraph paragraph = box.Paragraphs.Single();
         paragraph.Text = "BOX ONE TWO THREE FOUR FIVE SIX";
         paragraph.FontFamily = "Arial";
-        paragraph.FontSize = 11;
+        paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(11);
         if (layout == "columns") body.ColumnCount = 2;
         else body.GetFirstChild<A.PresetTextWarp>()!.Preset = A.TextShapeValues.TextArchUp;
         AssertRunningTextBoxPaintIsExplicitlyApproximated(document,

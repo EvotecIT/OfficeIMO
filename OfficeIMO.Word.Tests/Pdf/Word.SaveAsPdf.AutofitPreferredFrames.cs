@@ -56,7 +56,7 @@ public partial class Word {
             cell.WidthType = WordTableWidthUnit.Dxa; cell.Width = 2250;
             cell.MarginLeft = cell.MarginRight = global::OfficeIMO.OfficeLength.Zero;
             cell.Paragraphs[0].Text = column == 0 ? "A" : "B";
-            cell.Paragraphs[0].FontFamily = "Arial"; cell.Paragraphs[0].FontSize = 12;
+            cell.Paragraphs[0].FontFamily = "Arial"; cell.Paragraphs[0].FontSize = global::OfficeIMO.OfficeLength.Points(12);
         }
         string xml = document._wordprocessingDocument.MainDocumentPart!.Document.OuterXml;
         using var pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions {

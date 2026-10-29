@@ -42,7 +42,7 @@ public partial class Word {
                 WordParagraph paragraph = cell.Paragraphs[0];
                 paragraph.Text = text[row, column];
                 paragraph.FontFamily = "Courier New";
-                paragraph.FontSize = 12;
+                paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(12);
                 paragraph.LineSpacingBefore = global::OfficeIMO.OfficeLength.Zero;
                 paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
             }

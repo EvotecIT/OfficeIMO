@@ -24,7 +24,7 @@ public sealed class PdfListMarkerAnchorTests {
         WordParagraph paragraph = table.Rows[0].Cells[0].Paragraphs[0];
         paragraph.Text = "a-abcdefghij";
         paragraph.FontFamily = "Courier New";
-        paragraph.FontSize = 12;
+        paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(12);
         paragraph._paragraph.ParagraphProperties = new ParagraphProperties(new NumberingProperties(
             new NumberingLevelReference { Val = 0 }, new NumberingId { Val = list.NumberId }));
         using var pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions {
@@ -69,7 +69,7 @@ public sealed class PdfListMarkerAnchorTests {
         WordParagraph paragraph = table ? document.AddTable(1, 1).Rows[0].Cells[0].Paragraphs[0] : list.AddItem("BODY");
         paragraph.Text = "BODY";
         paragraph.FontFamily = "Courier New";
-        paragraph.FontSize = 12;
+        paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(12);
         if (inline) paragraph.CharacterScale = 95;
         paragraph._paragraph.ParagraphProperties ??= new ParagraphProperties();
         if (table) paragraph._paragraph.ParagraphProperties.NumberingProperties = new NumberingProperties(
@@ -124,7 +124,7 @@ public sealed class PdfListMarkerAnchorTests {
         WordParagraph paragraph = table ? document.AddTable(1, 1).Rows[0].Cells[0].Paragraphs[0] : list.AddItem("BODY");
         paragraph.Text = "BODY\nNEXT";
         paragraph.FontFamily = "Courier New";
-        paragraph.FontSize = 12;
+        paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(12);
         if (inline) paragraph.CharacterScale = 95;
         paragraph._paragraph.ParagraphProperties ??= new ParagraphProperties();
         if (table) paragraph._paragraph.ParagraphProperties.NumberingProperties = new NumberingProperties(
@@ -162,7 +162,7 @@ public sealed class PdfListMarkerAnchorTests {
         WordParagraph paragraph = table ? document.AddTable(1, 1).Rows[0].Cells[0].Paragraphs[0] : list.AddItem("BODY");
         paragraph.Text = "BODY";
         paragraph.FontFamily = "Courier New";
-        paragraph.FontSize = 12;
+        paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(12);
         if (inline) paragraph.CharacterScale = 95;
         if (table) paragraph._paragraph.ParagraphProperties = new ParagraphProperties(new NumberingProperties(
             new NumberingLevelReference { Val = 0 }, new NumberingId { Val = list.NumberId }));
@@ -201,7 +201,7 @@ public sealed class PdfListMarkerAnchorTests {
         foreach (string text in new[] { "FIRST", "SECOND" }) {
             WordParagraph paragraph = list.AddItem(text);
             paragraph.FontFamily = "Courier New";
-            paragraph.FontSize = 12;
+            paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(12);
             paragraph._paragraph.ParagraphProperties ??= new ParagraphProperties();
             paragraph._paragraph.ParagraphProperties.ParagraphMarkRunProperties = new ParagraphMarkRunProperties(
                 new RunFonts { Ascii = "Times New Roman", HighAnsi = "Times New Roman" },
@@ -243,7 +243,7 @@ public sealed class PdfListMarkerAnchorTests {
         WordParagraph paragraph = table ? document.AddTable(1, 1).Rows[0].Cells[0].Paragraphs[0] : list.AddItem("MARKER BODY");
         paragraph.Text = "MARKER BODY";
         paragraph.FontFamily = "Courier New";
-        paragraph.FontSize = 12;
+        paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(12);
         paragraph.Spacing = 20;
         paragraph._paragraph.ParagraphProperties ??= new ParagraphProperties();
         paragraph._paragraph.ParagraphProperties.NumberingProperties = new NumberingProperties(
@@ -281,7 +281,7 @@ public sealed class PdfListMarkerAnchorTests {
         WordParagraph paragraph = document.AddTable(1, 1).Rows[0].Cells[0].Paragraphs[0];
         paragraph.Text = "MARKER BODY";
         paragraph.FontFamily = "Courier New";
-        paragraph.FontSize = 12;
+        paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(12);
         paragraph._paragraph.ParagraphProperties = new ParagraphProperties(new NumberingProperties(
             new NumberingLevelReference { Val = 0 }, new NumberingId { Val = list.NumberId }));
         using var pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions {
@@ -322,7 +322,7 @@ public sealed class PdfListMarkerAnchorTests {
             new RunFonts { Ascii = "Courier New", HighAnsi = "Courier New" }, new FontSize { Val = "24" }, new CharacterScale { Val = 100 });
         WordParagraph paragraph = list.AddItem("MARKER BODY");
         paragraph.FontFamily = "Courier New";
-        paragraph.FontSize = 12;
+        paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(12);
         if (inline) paragraph.CharacterScale = 95;
         using var pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions {
             IncludePageNumbers = false, FontFamily = "Courier"

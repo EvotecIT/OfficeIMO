@@ -76,7 +76,7 @@ public sealed partial class IWorkBoundaryTests {
             foreach (IWorkTableCell source in table.Cells) {
                 IWorkTextStyle style = table.GetParagraphStyle(source.Row, source.Column)!.TextStyle;
                 var paragraph = reopened.Tables[index].Rows[source.Row - 1].Cells[source.Column - 1].Paragraphs[0];
-                Assert.Equal(Math.Round(style.FontSizePoints!.Value * 2, MidpointRounding.AwayFromZero) / 2, paragraph.FontSizePoints);
+                Assert.Equal(Math.Round(style.FontSizePoints!.Value * 2, MidpointRounding.AwayFromZero) / 2, paragraph.FontSize?.ToPoints());
                 Assert.Equal(style.FontName, paragraph.FontFamily);
             }
         }
@@ -114,9 +114,9 @@ public sealed partial class IWorkBoundaryTests {
             result.Value.Save(saved); saved.Position = 0;
             using var reopened = OfficeIMO.Word.WordDocument.Load(saved);
             var numeric = reopened.Tables[0].Rows[0].Cells[0].Paragraphs[0];
-            Assert.Equal("42", numeric.Text); Assert.False(numeric.Bold); Assert.Equal(18, numeric.FontSizePoints);
+            Assert.Equal("42", numeric.Text); Assert.False(numeric.Bold); Assert.Equal(18, numeric.FontSize?.ToPoints());
             Assert.Equal(OfficeIMO.Word.WordParagraphAlignment.Right, numeric.ParagraphAlignment);
-            Assert.Equal(20, reopened.Tables[0].Rows[2].Cells[1].Paragraphs[0].FontSizePoints);
+            Assert.Equal(20, reopened.Tables[0].Rows[2].Cells[1].Paragraphs[0].FontSize?.ToPoints());
         } else if (kind == IWorkDocumentKind.Numbers) {
             using var result = source.ToExcelDocumentResult(policy); Assert.False(result.IsVisualFallback);
             result.Value.Save(saved); saved.Position = 0;
@@ -257,8 +257,8 @@ public sealed partial class IWorkBoundaryTests {
             using var reopened = OfficeIMO.Word.WordDocument.Load(saved);
             var paragraphs = reopened.Tables[0].Rows[0].Cells[0].Paragraphs;
             Assert.Equal(2, paragraphs.Count);
-            Assert.All(paragraphs, paragraph => { Assert.Equal(36, paragraph.FontSizePoints); Assert.True(paragraph.Bold); });
-            Assert.Equal(18, reopened.Tables[0].Rows[0].Cells[1].Paragraphs[0].FontSizePoints);
+            Assert.All(paragraphs, paragraph => { Assert.Equal(36, paragraph.FontSize?.ToPoints()); Assert.True(paragraph.Bold); });
+            Assert.Equal(18, reopened.Tables[0].Rows[0].Cells[1].Paragraphs[0].FontSize?.ToPoints());
         } else {
             using var result = source.ToPowerPointDocumentResult(policy); Assert.False(result.IsVisualFallback);
             result.Value.Save(saved); saved.Position = 0;

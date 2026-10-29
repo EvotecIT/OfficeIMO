@@ -22,8 +22,8 @@ public sealed class WordPdfKerningTests {
         foreach (string text in new[] { "\t1.", "\t." }) {
             WordParagraph paragraph = cell == null ? document.AddParagraph(text) : cell.AddParagraph(text);
             paragraph.FontFamily = ManagedTextShapingTestAssets.FamilyName;
-            paragraph.FontSize = 10;
-            paragraph.KerningMinimumFontSizePoints = 1D;
+            paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(10);
+            paragraph.KerningMinimumFontSize = global::OfficeIMO.OfficeLength.Points(1D);
             paragraph.CharacterScale = characterScale;
             paragraph._paragraph.Descendants<Run>().Last().RunProperties!.Spacing = new Spacing { Val = spacingTwips };
             paragraph.AddTabStop(2000, WordTabAlignment.Decimal);
@@ -83,8 +83,8 @@ public sealed class WordPdfKerningTests {
         using WordDocument document = WordDocument.Create();
         WordParagraph paragraph = document.AddParagraph("fi");
         paragraph.FontFamily = ManagedTextShapingTestAssets.FamilyName;
-        paragraph.FontSize = 10;
-        paragraph.KerningMinimumFontSizePoints = 1D;
+        paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(10);
+        paragraph.KerningMinimumFontSize = global::OfficeIMO.OfficeLength.Points(1D);
         paragraph._paragraph.Descendants<Run>().Single().RunProperties!.Append(
             new DocumentFormat.OpenXml.Office2010.Word.Ligatures { Val = DocumentFormat.OpenXml.Office2010.Word.LigaturesValues.Standard });
         document._wordprocessingDocument.MainDocumentPart!.DocumentSettingsPart!.Settings!
@@ -183,7 +183,7 @@ public sealed class WordPdfKerningTests {
             paragraph = document.AddParagraph(route == "link" ? string.Empty : "AV");
             if (route == "link") paragraph = paragraph.AddHyperLink("AV", new Uri("https://example.com/")).Paragraph;
         }
-        paragraph.FontSize = 10;
+        paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(10);
         paragraph.FontFamily = ManagedTextShapingTestAssets.FamilyName;
         // This hierarchy independently tests a threshold inherited from document
         // defaults, a based-on paragraph style, a character style, and a direct reset.
@@ -205,12 +205,13 @@ public sealed class WordPdfKerningTests {
             table!._tableProperties!.TableStyle = new TableStyle { Val = "KernedHeader" };
             table.ConditionalFormattingFirstRow = true;
         }
-        if (level == "direct") paragraph.KerningMinimumFontSizePoints = threshold;
+        if (level == "direct") paragraph.KerningMinimumFontSize = threshold.HasValue
+            ? global::OfficeIMO.OfficeLength.Points(threshold.Value) : null;
         if (mixed) {
             WordParagraph following = paragraph.AddText("AV");
-            following.FontSize = 10;
+            following.FontSize = global::OfficeIMO.OfficeLength.Points(10);
             following.FontFamily = ManagedTextShapingTestAssets.FamilyName;
-            following.KerningMinimumFontSizePoints = 0D;
+            following.KerningMinimumFontSize = global::OfficeIMO.OfficeLength.Points(0D);
         }
         using var pdf = PdfPigDocument.Open(document.ToPdf(ConversionOptions(
             FontOptions(ManagedTextShapingTestAssets.CreateFontWithPairPositioning('A', 'V')))).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));

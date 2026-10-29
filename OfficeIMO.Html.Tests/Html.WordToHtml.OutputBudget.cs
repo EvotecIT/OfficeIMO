@@ -135,7 +135,7 @@ namespace OfficeIMO.Tests {
             using WordDocument document = WordDocument.Create();
             WordParagraph paragraph = document.AddParagraph();
             for (int index = 0; index < 64; index++) {
-                paragraph.AddText("x").SetFontSize(12);
+                paragraph.AddText("x").SetFontSize(global::OfficeIMO.OfficeLength.Points(12));
             }
             string expected = document.ConvertToHtmlWithEvidence(new WordHtmlExportOptions {
                 IncludeDefaultCss = false

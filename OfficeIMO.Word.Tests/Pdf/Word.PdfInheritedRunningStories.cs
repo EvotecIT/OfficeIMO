@@ -147,7 +147,7 @@ public partial class Word {
     }
 
     private static void SetInheritedRunningControlStyle(WordParagraph paragraph) {
-        paragraph.FontFamily = "Arial"; paragraph.FontSize = 12;
+        paragraph.FontFamily = "Arial"; paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(12);
         paragraph.LineSpacing = 240; paragraph.LineSpacingRule = WordLineSpacingRule.Exact;
         paragraph.LineSpacingBefore = paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
     }

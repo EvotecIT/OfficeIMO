@@ -34,7 +34,7 @@ public partial class Word {
         const string text = "Start Alpha Beta Gamma Delta Epsilon Zeta Eta Theta";
         paragraph.Text = text;
         paragraph.FontFamily = "Arial";
-        paragraph.FontSize = 12;
+        paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(12);
         paragraph.LineSpacingBefore = global::OfficeIMO.OfficeLength.Zero;
         paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
         paragraph.LineSpacingRule = WordLineSpacingRule.Auto;
@@ -89,7 +89,7 @@ public partial class Word {
             WordParagraph paragraph = cell.Paragraphs[0];
             paragraph.Text = column == 0 ? text : "Short";
             paragraph.FontFamily = "Arial";
-            paragraph.FontSize = 12;
+            paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(12);
             paragraph.LineSpacingBefore = global::OfficeIMO.OfficeLength.Zero;
             paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
             paragraph.LineSpacingRule = WordLineSpacingRule.Auto;

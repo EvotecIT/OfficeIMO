@@ -23,7 +23,7 @@ public partial class Word {
         paragraph.SetStyleId(characterStyle ? "Normal" : "InheritedCase");
         WordParagraph run = paragraph.AddText("mmmmx");
         run.FontFamily = "Arial";
-        run.FontSize = 12;
+        run.FontSize = global::OfficeIMO.OfficeLength.Points(12);
         run.CharacterScale = 200;
         run.Spacing = 20;
         if (characterStyle) run._run.RunProperties!.RunStyle = new W.RunStyle { Val = "InheritedCase" };

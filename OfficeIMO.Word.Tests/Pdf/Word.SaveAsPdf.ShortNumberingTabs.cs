@@ -29,7 +29,7 @@ public sealed class PdfShortNumberingTabTests {
         ConfigureShortNumbering(list, authored);
         WordParagraph paragraph = table ? document.AddTable(1, 1).Rows[0].Cells[0].Paragraphs[0] : list.AddItem("BODY\nNEXT");
         paragraph.Text = "BODY\nNEXT";
-        paragraph.FontFamily = "Courier New"; paragraph.FontSize = 12;
+        paragraph.FontFamily = "Courier New"; paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(12);
         if (inline) paragraph.CharacterScale = 95;
         if (table) paragraph._paragraph.ParagraphProperties = new ParagraphProperties(new NumberingProperties(
             new NumberingLevelReference { Val = 0 }, new NumberingId { Val = list.NumberId }));
@@ -58,7 +58,7 @@ public sealed class PdfShortNumberingTabTests {
         WordList list = story.AddList(WordListStyle.Custom);
         ConfigureShortNumbering(list, authored);
         WordParagraph paragraph = list.AddItem("RUNNING");
-        paragraph.FontFamily = "Courier New"; paragraph.FontSize = 12;
+        paragraph.FontFamily = "Courier New"; paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(12);
         document.AddParagraph("BODY");
         Assert.Empty(document.ValidateDocument());
         using var pdf = OpenPdf(document);
@@ -124,7 +124,7 @@ public sealed class PdfShortNumberingTabTests {
         WordParagraph second = cell == null ? list.AddItem("SECOND") : cell.AddParagraph("SECOND");
         first.Text = "FIRST";
         foreach (WordParagraph paragraph in new[] { first, second }) {
-            paragraph.FontFamily = "Courier New"; paragraph.FontSize = 9;
+            paragraph.FontFamily = "Courier New"; paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(9);
             if (cell != null) paragraph._paragraph.ParagraphProperties = new ParagraphProperties(new NumberingProperties(
                 new NumberingLevelReference { Val = 0 }, new NumberingId { Val = list.NumberId }));
         }

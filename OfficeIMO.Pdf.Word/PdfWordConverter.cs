@@ -520,7 +520,7 @@ namespace OfficeIMO.Pdf.Word {
             paragraph.SetStyle(MapHeadingStyle(heading.Level));
             paragraph.KeepWithNext = true;
             if (heading.FontSize > 0) {
-                paragraph.FontSizePoints = ScaleEditableFontSize(heading.FontSize, typographyScale);
+                paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(ScaleEditableFontSize(heading.FontSize, typographyScale));
             }
         }
 
@@ -597,7 +597,7 @@ namespace OfficeIMO.Pdf.Word {
             if (runs.Count == 0) {
                 WordParagraph fallbackRun = paragraph.AddText(fallbackText);
                 if (fallbackFontSize > 0D) {
-                    fallbackRun.FontSizePoints = ScaleEditableFontSize(fallbackFontSize, typographyScale);
+                    fallbackRun.FontSize = global::OfficeIMO.OfficeLength.Points(ScaleEditableFontSize(fallbackFontSize, typographyScale));
                 }
                 return;
             }
@@ -609,7 +609,7 @@ namespace OfficeIMO.Pdf.Word {
                 if (source.IsItalic) run.SetItalic();
                 double fontSize = source.FontSize > 0D ? source.FontSize : fallbackFontSize;
                 if (fontSize > 0D) {
-                    run.FontSizePoints = ScaleEditableFontSize(fontSize, typographyScale);
+                    run.FontSize = global::OfficeIMO.OfficeLength.Points(ScaleEditableFontSize(fontSize, typographyScale));
                 }
                 if (source.Color.HasValue && source.Color.Value.A > 0) {
                     run.SetColorHex(source.Color.Value.ToRgbHex());
@@ -644,7 +644,7 @@ namespace OfficeIMO.Pdf.Word {
             WordParagraph hyperlink;
             if (target.IsUri) {
                 hyperlink = paragraph.AddHyperLink(text, target.Uri!, addStyle: true, tooltip: "Imported PDF link from page " + link.PageNumber.ToString(CultureInfo.InvariantCulture)).Paragraph;
-                if (fontSizePoints > 0D) hyperlink.FontSizePoints = BoundEditableFontSize(fontSizePoints.Value);
+                if (fontSizePoints > 0D) hyperlink.FontSize = global::OfficeIMO.OfficeLength.Points(BoundEditableFontSize(fontSizePoints.Value));
                 AddWarning(
                     options,
                     "pdf-uri-link-reconstructed",
@@ -659,7 +659,7 @@ namespace OfficeIMO.Pdf.Word {
             }
 
             hyperlink = paragraph.AddHyperLink(text, target.Anchor!, addStyle: true, tooltip: "Imported PDF internal link from page " + link.PageNumber.ToString(CultureInfo.InvariantCulture)).Paragraph;
-            if (fontSizePoints > 0D) hyperlink.FontSizePoints = BoundEditableFontSize(fontSizePoints.Value);
+            if (fontSizePoints > 0D) hyperlink.FontSize = global::OfficeIMO.OfficeLength.Points(BoundEditableFontSize(fontSizePoints.Value));
             AddWarning(
                 options,
                 "pdf-internal-link-reconstructed",
@@ -869,7 +869,7 @@ namespace OfficeIMO.Pdf.Word {
                 WordParagraph paragraph = cells[columnIndex].AddParagraph(value ?? string.Empty, removeExistingParagraphs: true);
                 ApplySourceParagraphSpacing(paragraph, options);
                 if (typographyScale != 1D) {
-                    paragraph.FontSizePoints = ScaleEditableFontSize(DefaultEditableTableFontSizePoints, typographyScale);
+                    paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(ScaleEditableFontSize(DefaultEditableTableFontSizePoints, typographyScale));
                 }
                 if (alignNumericColumns && data.IsNumericColumn(columnIndex)) {
                     paragraph.ParagraphAlignment = WordParagraphAlignment.Right;

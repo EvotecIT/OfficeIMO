@@ -119,8 +119,8 @@ namespace OfficeIMO.Word.Pdf {
                 characterStyleDefaults.Baseline ??
                 styleDefaults.Baseline ??
                 tableRunStyleDefaults.Baseline ?? resolvedNativeDefaults.RunStyle.Baseline);
-            double? fontSize = paragraph.FontSizePoints.HasValue && paragraph.FontSizePoints.Value > 0
-                ? paragraph.FontSizePoints.Value
+            double? fontSize = paragraph.NativeFontSizePoints.HasValue && paragraph.NativeFontSizePoints.Value > 0
+                ? paragraph.NativeFontSizePoints.Value
                 : characterStyleDefaults.FontSize ?? styleDefaults.FontSize ?? tableRunStyleDefaults.FontSize;
             fontSize = ResolveNativeComplexScriptFontSize(fontSize, runProperties, characterStyleDefaults, styleDefaults, tableRunStyleDefaults, resolvedNativeDefaults);
             // The paragraph wrapper's first run supplies no formatting inheritance to sibling runs.

@@ -113,7 +113,7 @@ public partial class Word {
             cell.MarginTop = global::OfficeIMO.OfficeLength.Zero; cell.MarginBottom = global::OfficeIMO.OfficeLength.Zero;
             var paragraph = cell.Paragraphs[0];
             paragraph.Text = "Span" + column;
-            paragraph.FontFamily = "Arial"; paragraph.FontSize = 12;
+            paragraph.FontFamily = "Arial"; paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(12);
             paragraph.LineSpacingBefore = global::OfficeIMO.OfficeLength.Zero; paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
             paragraph.LineSpacingRule = WordLineSpacingRule.Auto; paragraph.LineSpacing = 240;
         }
@@ -159,7 +159,7 @@ public partial class Word {
             cell.MarginTop = global::OfficeIMO.OfficeLength.Zero; cell.MarginBottom = global::OfficeIMO.OfficeLength.Zero;
             var paragraph = cell.Paragraphs[0];
             paragraph.Text = column == 0 ? "ABCDEFGHIJ" : "Z";
-            paragraph.FontFamily = "Courier New"; paragraph.FontSize = 10;
+            paragraph.FontFamily = "Courier New"; paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(10);
             paragraph.LineSpacingBefore = global::OfficeIMO.OfficeLength.Zero; paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
         }
         table.GridColumnWidth = new List<int> { cachedGridTwips / 2, cachedGridTwips / 2 };

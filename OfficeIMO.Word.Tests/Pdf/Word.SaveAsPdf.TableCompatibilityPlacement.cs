@@ -35,7 +35,7 @@ public sealed class PdfTableCompatibilityPlacementTests {
             cell.MarginLeft = global::OfficeIMO.OfficeLength.Points(5.4D);
             cell.MarginRight = global::OfficeIMO.OfficeLength.Points(5.4D);
             cell.Paragraphs[0].FontFamily = "Courier New";
-            cell.Paragraphs[0].FontSize = 12;
+            cell.Paragraphs[0].FontSize = global::OfficeIMO.OfficeLength.Points(12);
         }
         table.Rows[0].Cells[firstCellMargin ? 0 : 1].MarginLeft = global::OfficeIMO.OfficeLength.Points(18D);
         table.Rows[0].Cells[0].Paragraphs[0].Text = "FIRST";

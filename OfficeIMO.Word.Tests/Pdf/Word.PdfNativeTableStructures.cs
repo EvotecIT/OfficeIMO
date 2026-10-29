@@ -146,7 +146,7 @@ public partial class Word {
                 cell.MarginLeft = global::OfficeIMO.OfficeLength.Zero;
                 cell.MarginRight = global::OfficeIMO.OfficeLength.Zero;
                 cell.Paragraphs[0].FontFamily = "Arial";
-                cell.Paragraphs[0].FontSize = 10;
+                cell.Paragraphs[0].FontSize = global::OfficeIMO.OfficeLength.Points(10);
                 cell.Paragraphs[0].LineSpacingBefore = global::OfficeIMO.OfficeLength.Zero;
                 cell.Paragraphs[0].LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
             }

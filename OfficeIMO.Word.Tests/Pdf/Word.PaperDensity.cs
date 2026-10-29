@@ -10,11 +10,11 @@ public sealed class WordPaperDensityTests {
     public void TableDensityPreservesDefaultsAndAllowsCompactPaperTables(bool compact, double fontSize, int vertical, int horizontal, double spacing) {
         using WordDocument document = WordDocument.Create();
         var style = compact ? new WordPaperStyle {
-            TableFontSizePoints = 9, TableCellVerticalPadding = 30,
+            TableFontSize = global::OfficeIMO.OfficeLength.Points(9), TableCellVerticalPadding = 30,
             TableCellHorizontalPadding = 70, TableParagraphSpacingPoints = 0, TableLineSpacingPoints = 11
         } : new WordPaperStyle();
         var table = style.AddKeyValueTable(document, new[] { new KeyValuePair<string, string>("Host", "mail.example.test") });
-        Assert.Equal(fontSize, table.Rows[1].Cells[1].Paragraphs[0].FontSizePoints);
+        Assert.Equal(fontSize, table.Rows[1].Cells[1].Paragraphs[0].FontSize?.ToPoints());
         Assert.Equal((short)vertical, table.StyleDetails!.MarginDefaultTopWidth);
         Assert.Equal((short)vertical, table.StyleDetails.MarginDefaultBottomWidth);
         Assert.Equal((short)horizontal, table.StyleDetails.MarginDefaultLeftWidth);

@@ -93,7 +93,7 @@ namespace OfficeIMO.Tests {
                 sdt1.Italic = true;
                 sdt1.Underline = WordUnderlineStyle.Single;
                 sdt1.FontFamily = "Calibri";
-                sdt1.FontSize = 12;
+                sdt1.FontSize = global::OfficeIMO.OfficeLength.Points(12);
                 sdt1.ColorHex = "2F5597";
                 sdt1.Highlight = WordHighlightColor.Yellow;
 
@@ -103,7 +103,7 @@ namespace OfficeIMO.Tests {
                     .SetItalic()
                     .SetUnderline(WordUnderlineStyle.Single)
                     .SetFontFamily("Calibri")
-                    .SetFontSize(14)
+                    .SetFontSize(global::OfficeIMO.OfficeLength.Points(14))
                     .SetColorHex("C00000")
                     .SetHighlight(WordHighlightColor.LightGray);
 
@@ -117,7 +117,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(props!.Bold);
                 Assert.True(props.Italic);
                 Assert.Equal(WordUnderlineStyle.Single, props.Underline);
-                Assert.Equal(12, props.FontSize);
+                Assert.Equal(12, props.FontSize?.ToPoints());
                 Assert.Equal("Calibri", props.FontFamily);
                 Assert.Equal("2F5597", props.ColorHex);
                 Assert.Equal(WordHighlightColor.Yellow, props.Highlight);
@@ -127,7 +127,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(fluent!.Bold);
                 Assert.True(fluent.Italic);
                 Assert.Equal(WordUnderlineStyle.Single, fluent.Underline);
-                Assert.Equal(14, fluent.FontSize);
+                Assert.Equal(14, fluent.FontSize?.ToPoints());
                 Assert.Equal("Calibri", fluent.FontFamily);
                 Assert.Equal("C00000", fluent.ColorHex);
                 Assert.Equal(WordHighlightColor.LightGray, fluent.Highlight);

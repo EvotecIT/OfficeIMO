@@ -42,7 +42,7 @@ public partial class Word {
         Style headingStyle = styles.Elements<Style>().Single(style => style.StyleId?.Value == heading.ToString());
         headingStyle.StyleParagraphProperties!.SpacingBetweenLines = null;
         paragraph.FontFamily = "Arial";
-        paragraph.FontSize = 12;
+        paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(12);
         using WordDocument document = WordDocument.Load(new MemoryStream(source.ToBytes()));
         var pdfOptions = new PdfCreateOptions { DefaultFont = PdfStandardFont.Helvetica };
         pdfOptions.EmbedStandardFont(PdfStandardFont.Helvetica,
@@ -189,7 +189,7 @@ public partial class Word {
             paragraph.SetStyleId("InheritedLeading");
             paragraph.FontFamily = family;
         }
-        paragraph.FontSize = ruleOnly ? 32 : 12;
+        paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(ruleOnly ? 32 : 12);
         if (ruleOnly) {
             foreach (Run run in paragraph._paragraph.Descendants<Run>()) {
                 (run.RunProperties ??= new RunProperties()).FontSize = new FontSize { Val = "64" };

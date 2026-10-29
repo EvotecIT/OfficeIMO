@@ -174,7 +174,7 @@ public partial class Word {
         });
         foreach (char text in "ABC") {
             WordParagraph paragraph = list?.AddItem(text.ToString()) ?? source.AddParagraph(text.ToString());
-            paragraph.FontSize = 11;
+            paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(11);
             paragraph.FontFamily = "Arial";
             paragraph.LineSpacing = line; paragraph.LineSpacingRule = rule;
             paragraph.LineSpacingBefore = global::OfficeIMO.OfficeLength.Zero; paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;

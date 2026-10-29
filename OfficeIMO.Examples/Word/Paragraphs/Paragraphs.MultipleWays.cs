@@ -46,7 +46,7 @@ internal static partial class Paragraphs {
 
             paragraph = document.AddParagraph("7th Highlight me on a new page?");
             paragraph.Highlight = WordHighlightColor.Yellow;
-            paragraph.FontSize = 15;
+            paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(15);
             paragraph.ParagraphAlignment = WordParagraphAlignment.Center;
             paragraph.PageBreakBefore = true;
 
@@ -74,14 +74,14 @@ internal static partial class Paragraphs {
             paragraph.Bold = true;
             paragraph.ColorHex = "4F48E2";
             paragraph.FontFamily = "Tahoma";
-            paragraph.FontSize = 20;
+            paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(20);
             paragraph.LineSpacingBefore = global::OfficeIMO.OfficeLength.Points(15D);
 
             paragraph = document.AddParagraph("12th This text should be colored and Tahoma and text direction changed");
             paragraph.Bold = true;
             paragraph.ColorHex = "4F48E2";
             paragraph.FontFamily = "Tahoma";
-            paragraph.FontSize = 10;
+            paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(10);
             paragraph.TextDirection = WordTextDirection.TopToBottomRightToLeftRotated;
 
             paragraph = document.AddParagraph("Spacing Test 1");

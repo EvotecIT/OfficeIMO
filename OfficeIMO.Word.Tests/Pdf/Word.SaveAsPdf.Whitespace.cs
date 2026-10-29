@@ -23,7 +23,7 @@ public partial class Word {
         WordParagraph paragraph;
         if (table) paragraph = word.AddTable(1, 1).Rows[0].Cells[0].Paragraphs[0];
         else paragraph = word.AddParagraph();
-        paragraph.Text = "  ALPHA   BETA"; paragraph.FontSize = 12; paragraph.FontFamily = "Arial";
+        paragraph.Text = "  ALPHA   BETA"; paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(12); paragraph.FontFamily = "Arial";
         PdfCreateOptions? pdfOptions = policy == "none" ? null : new PdfCreateOptions { DefaultFontSize = 12D };
         if (policy == "collapse") pdfOptions!.PreserveTextWhitespace = false;
         if (policy == "preformatted") pdfOptions!.PreserveTextWhitespace = true;
@@ -44,7 +44,7 @@ public partial class Word {
     public void SaveAsPdf_DefaultSpaceFlowWrapsOnceAndCloneRetainsExplicitOverride() {
         using WordDocument word = WordDocument.Create();
         WordParagraph paragraph = word.AddParagraph("ALPHA" + new string(' ', 60) + "BETA");
-        paragraph.FontSize = 12; paragraph.FontFamily = "Arial";
+        paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(12); paragraph.FontFamily = "Arial";
         PdfCreateOptions unconfigured = new PdfCreateOptions { DefaultFontSize = 12D }.Clone();
         var options = new WordPdfExportOptions { IncludePageNumbers = false, FontFamily = "Arial",
             ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic(), PdfOptions = unconfigured,

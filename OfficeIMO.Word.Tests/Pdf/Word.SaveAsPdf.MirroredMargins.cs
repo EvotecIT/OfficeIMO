@@ -30,7 +30,7 @@ public partial class Word {
         document.Settings.GutterAtTop = atTop;
         for (int index = 1; index <= 3; index++) {
             var paragraph = document.AddParagraph("MirrorMarker" + index);
-            paragraph.FontFamily = "Arial"; paragraph.FontSize = 12;
+            paragraph.FontFamily = "Arial"; paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(12);
             paragraph.PageBreakBeforeOverride = index > 1;
         }
         using var source = new MemoryStream(document.ToBytes(format));

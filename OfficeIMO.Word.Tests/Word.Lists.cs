@@ -657,39 +657,39 @@ public partial class Word {
             // Add items and set their style individually
             var listItem1 = wordList1.AddItem("Text 1");
             listItem1.Bold = true;
-            listItem1.FontSize = 16;
+            listItem1.FontSize = global::OfficeIMO.OfficeLength.Points(16);
             listItem1.Color = Color.DarkRed;
 
             var listItem2 = wordList1.AddItem("Text 2", 1);
             listItem2.Bold = true;
-            listItem2.FontSize = 16;
+            listItem2.FontSize = global::OfficeIMO.OfficeLength.Points(16);
             listItem2.Color = Color.DarkRed;
 
             var listItem3 = wordList1.AddItem("Text 3", 2);
             listItem3.Bold = true;
-            listItem3.FontSize = 16;
+            listItem3.FontSize = global::OfficeIMO.OfficeLength.Points(16);
             listItem3.Color = Color.DarkRed;
 
             // Verify list item count and styling
             Assert.Equal(3, wordList1.ListItems.Count);
             Assert.True(document.Lists[0].ListItems.All(item => item.Bold));
-            Assert.True(document.Lists[0].ListItems.All(item => item.FontSize == 16));
+            Assert.True(document.Lists[0].ListItems.All(item => item.FontSize?.ToPoints() == 16));
             Assert.True(document.Lists[0].ListItems.All(item => item.Color == Color.DarkRed));
 
             // Add final paragraph with different styling
             paragraph = document.AddParagraph("Second list title");
             paragraph.Bold = true;
-            paragraph.FontSize = 16;
+            paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(16);
             paragraph.Color = Color.AliceBlue;
             paragraph.ParagraphAlignment = WordParagraphAlignment.Center;
 
             listItem3.Bold = false;
-            listItem3.FontSize = 12;
+            listItem3.FontSize = global::OfficeIMO.OfficeLength.Points(12);
             listItem3.Color = Color.Blue;
 
             Assert.Equal(3, document.Lists[0].ListItems.Count);
             Assert.True(document.Lists[0].ListItems[2].Bold == false);
-            Assert.True(document.Lists[0].ListItems[2].FontSize == 12);
+            Assert.True(document.Lists[0].ListItems[2].FontSize?.ToPoints() == 12);
             Assert.True(document.Lists[0].ListItems[2].Color == Color.Blue);
 
             document.Save();
@@ -701,15 +701,15 @@ public partial class Word {
             Assert.Single(document.Lists);
             Assert.Equal(3, document.Lists[0].ListItems.Count);
             Assert.True(document.Lists[0].ListItems[0].Bold);
-            Assert.True(document.Lists[0].ListItems[0].FontSize == 16);
+            Assert.True(document.Lists[0].ListItems[0].FontSize?.ToPoints() == 16);
             Assert.True(document.Lists[0].ListItems[0].Color == Color.DarkRed);
 
             Assert.True(document.Lists[0].ListItems[1].Bold);
-            Assert.True(document.Lists[0].ListItems[1].FontSize == 16);
+            Assert.True(document.Lists[0].ListItems[1].FontSize?.ToPoints() == 16);
             Assert.True(document.Lists[0].ListItems[1].Color == Color.DarkRed);
 
             Assert.True(document.Lists[0].ListItems[2].Bold == false);
-            Assert.True(document.Lists[0].ListItems[2].FontSize == 12);
+            Assert.True(document.Lists[0].ListItems[2].FontSize?.ToPoints() == 12);
             Assert.True(document.Lists[0].ListItems[2].Color == Color.Blue);
         }
     }
@@ -809,7 +809,7 @@ public partial class Word {
             var list1 = document.AddList(WordListStyle.Bulleted);
             list1.Bold = true;
             list1.Italic = true;
-            list1.FontSize = 20;
+            list1.FontSize = global::OfficeIMO.OfficeLength.Points(20);
             list1.AddItem("Item 1");
             list1.AddItem("Item 2");
 
@@ -819,11 +819,11 @@ public partial class Word {
 
             Assert.True(list1.Bold);
             Assert.True(list1.Italic);
-            Assert.Equal(20, list1.FontSize);
+            Assert.Equal(20, list1.FontSize?.ToPoints());
 
             Assert.False(list2.Bold);
             Assert.False(list2.Italic);
-            Assert.Null(list2.FontSize);
+            Assert.Null(list2.FontSize?.ToPoints());
 
             document.Save();
         }
@@ -831,7 +831,7 @@ public partial class Word {
         using (var document = WordDocument.Load(filePath)) {
             Assert.True(document.Lists[0].Bold);
             Assert.True(document.Lists[0].Italic);
-            Assert.Equal(20, document.Lists[0].FontSize);
+            Assert.Equal(20, document.Lists[0].FontSize?.ToPoints());
 
             // Due to document reload limitations, formatting of other lists is
             // verified only before saving.

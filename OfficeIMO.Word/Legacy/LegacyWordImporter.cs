@@ -209,7 +209,7 @@ public static partial class LegacyWordImporter {
                     sourceRun.Bold, sourceRun.Italic, sourceRun.Underline);
                 if (sourceRun.Strike) run.SetStrike();
                 if (sourceRun.VerticalPosition.HasValue) run.SetVerticalTextAlignment(sourceRun.VerticalPosition);
-                if (sourceRun.FontSizePoints.HasValue) run.FontSizePoints = sourceRun.FontSizePoints.Value;
+                if (sourceRun.FontSizePoints.HasValue) run.FontSize = global::OfficeIMO.OfficeLength.Points(sourceRun.FontSizePoints.Value);
                 if (!string.IsNullOrWhiteSpace(sourceRun.FontFamily)) run.SetFontFamily(sourceRun.FontFamily!);
                 if (!string.IsNullOrWhiteSpace(sourceRun.ColorHex)) run.SetColorHex(sourceRun.ColorHex!);
                 ApplyRecoveredStyleRunOverrides(run, sourceRun, recoveredStyle, document);

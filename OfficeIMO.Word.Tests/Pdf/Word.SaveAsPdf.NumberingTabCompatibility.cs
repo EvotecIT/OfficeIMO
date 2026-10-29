@@ -34,7 +34,7 @@ public sealed class PdfNumberingTabCompatibilityTests {
         WordParagraph paragraph = table ? document.AddTable(1, 1).Rows[0].Cells[0].Paragraphs[0] : list.AddItem("BODY\nNEXT");
         paragraph.Text = "BODY\nNEXT";
         paragraph.FontFamily = "Courier New";
-        paragraph.FontSize = 12;
+        paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(12);
         if (inline) paragraph.CharacterScale = 95;
         if (table) paragraph._paragraph.ParagraphProperties = new ParagraphProperties(new NumberingProperties(
             new NumberingLevelReference { Val = 0 }, new NumberingId { Val = list.NumberId }));

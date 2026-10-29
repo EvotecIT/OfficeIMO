@@ -344,7 +344,7 @@ namespace OfficeIMO.Word {
             DocumentFormat.OpenXml.Drawing.Paragraph paragraph = new DocumentFormat.OpenXml.Drawing.Paragraph();
             DocumentFormat.OpenXml.Drawing.ParagraphProperties paragraphProperties = new DocumentFormat.OpenXml.Drawing.ParagraphProperties();
             DocumentFormat.OpenXml.Drawing.DefaultRunProperties runProperties = new DocumentFormat.OpenXml.Drawing.DefaultRunProperties() {
-                FontSize = _axisTitleFontSize * 100
+                FontSize = _axisTitleFontSize
             };
             DocumentFormat.OpenXml.Drawing.SolidFill solidFill = new DocumentFormat.OpenXml.Drawing.SolidFill(
                 new DocumentFormat.OpenXml.Drawing.RgbColorModelHex() { Val = _axisTitleColor.ToRgbHex() });

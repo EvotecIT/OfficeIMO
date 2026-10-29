@@ -19,7 +19,7 @@ public partial class Word {
         cell.Width = 2160;
         cell.Paragraphs[0].Text = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
         cell.Paragraphs[0].FontFamily = "Arial";
-        cell.Paragraphs[0].FontSize = 12;
+        cell.Paragraphs[0].FontSize = global::OfficeIMO.OfficeLength.Points(12);
         table._tableProperties!.TableLayout = null;
         string sourceXml = source._wordprocessingDocument.MainDocumentPart!.Document.OuterXml;
         double originalWidth = TableLayoutContractPdfWidth(source);

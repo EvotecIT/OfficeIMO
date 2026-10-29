@@ -760,7 +760,7 @@ OfficeIMO.Word.WordChart.Name.set -> void
 OfficeIMO.Word.WordChart.RadialLayout.get -> OfficeIMO.Drawing.OfficeChartRadialLayout!
 OfficeIMO.Word.WordChart.RoundedCorners.get -> bool
 OfficeIMO.Word.WordChart.RoundedCorners.set -> void
-OfficeIMO.Word.WordChart.SetAxisTitleFormat(string! fontName, int fontSize, OfficeIMO.OfficeColor color) -> OfficeIMO.Word.WordChart!
+OfficeIMO.Word.WordChart.SetAxisTitleFormat(string! fontName, OfficeIMO.OfficeLength fontSize, OfficeIMO.OfficeColor color) -> OfficeIMO.Word.WordChart!
 OfficeIMO.Word.WordChart.SetCountAxis(uint? majorUnit = null) -> OfficeIMO.Word.WordChart!
 OfficeIMO.Word.WordChart.SetData(OfficeIMO.OfficeChartType chartKind, OfficeIMO.Drawing.OfficeChartData! data) -> OfficeIMO.Word.WordChart!
 OfficeIMO.Word.WordChart.SetDataPointStyle(int seriesIndex, uint pointIndex, OfficeIMO.Drawing.OfficeChartPointStyle? style) -> OfficeIMO.Word.WordChart!
@@ -1197,9 +1197,9 @@ OfficeIMO.Word.WordDocument.AddCitation(string! sourceTag) -> OfficeIMO.Word.Wor
 OfficeIMO.Word.WordDocument.AddCodeBlock(string! code, string? language = null) -> OfficeIMO.Word.WordParagraph!
 OfficeIMO.Word.WordDocument.AddComboChart(string! title = "", bool roundedCorners = false, OfficeIMO.OfficeLength? width = null, OfficeIMO.OfficeLength? height = null) -> OfficeIMO.Word.WordChart!
 OfficeIMO.Word.WordDocument.AddCoverPage(OfficeIMO.Word.WordCoverPageTemplate coverPageTemplate) -> OfficeIMO.Word.WordCoverPage!
-OfficeIMO.Word.WordDocument.AddCustomBulletList(OfficeIMO.Word.WordBulletSymbol symbol, string! fontName, OfficeIMO.OfficeColor? color = null, string? colorHex = null, int? fontSize = null) -> OfficeIMO.Word.WordList!
-OfficeIMO.Word.WordDocument.AddCustomBulletList(OfficeIMO.Word.WordListLevelKind kind, string! fontName, OfficeIMO.OfficeColor? color = null, string? colorHex = null, int? fontSize = null) -> OfficeIMO.Word.WordList!
-OfficeIMO.Word.WordDocument.AddCustomBulletList(char symbol, string! fontName, string! colorHex, int? fontSize = null) -> OfficeIMO.Word.WordList!
+OfficeIMO.Word.WordDocument.AddCustomBulletList(OfficeIMO.Word.WordBulletSymbol symbol, string! fontName, OfficeIMO.OfficeColor? color = null, string? colorHex = null, OfficeIMO.OfficeLength? fontSize = null) -> OfficeIMO.Word.WordList!
+OfficeIMO.Word.WordDocument.AddCustomBulletList(OfficeIMO.Word.WordListLevelKind kind, string! fontName, OfficeIMO.OfficeColor? color = null, string? colorHex = null, OfficeIMO.OfficeLength? fontSize = null) -> OfficeIMO.Word.WordList!
+OfficeIMO.Word.WordDocument.AddCustomBulletList(char symbol, string! fontName, string! colorHex, OfficeIMO.OfficeLength? fontSize = null) -> OfficeIMO.Word.WordList!
 OfficeIMO.Word.WordDocument.AddCustomList() -> OfficeIMO.Word.WordList!
 OfficeIMO.Word.WordDocument.AddEmbeddedDocument(string! fileName, OfficeIMO.Word.WordAlternativeFormatImportPartType? type = null) -> OfficeIMO.Word.WordEmbeddedDocument!
 OfficeIMO.Word.WordDocument.AddEmbeddedFragment(string! htmlContent, OfficeIMO.Word.WordAlternativeFormatImportPartType type) -> OfficeIMO.Word.WordEmbeddedDocument!
@@ -2395,9 +2395,9 @@ OfficeIMO.Word.WordList
 OfficeIMO.Word.WordList.AddItem(OfficeIMO.Word.WordParagraph? wordParagraph, int level = 0) -> OfficeIMO.Word.WordParagraph!
 OfficeIMO.Word.WordList.AddItem(string? text, int level = 0, OfficeIMO.Word.WordParagraph? wordParagraph = null) -> OfficeIMO.Word.WordParagraph!
 OfficeIMO.Word.WordList.AddLinkItem(string! text, System.Uri! destination, bool addStyle = false, int level = 0) -> OfficeIMO.Word.WordParagraph!
-OfficeIMO.Word.WordList.AddListLevel(int levelIndex, OfficeIMO.Word.WordBulletSymbol symbol, string! fontName, OfficeIMO.OfficeColor? color = null, string? colorHex = null, int? fontSize = null) -> OfficeIMO.Word.WordListLevel!
-OfficeIMO.Word.WordList.AddListLevel(int levelIndex, OfficeIMO.Word.WordListLevelKind kind, string! fontName, OfficeIMO.OfficeColor? color = null, string? colorHex = null, int? fontSize = null) -> OfficeIMO.Word.WordListLevel!
-OfficeIMO.Word.WordList.AddListLevel(int levelIndex, char symbol, string! fontName, string? colorHex, int? fontSize = null) -> OfficeIMO.Word.WordListLevel!
+OfficeIMO.Word.WordList.AddListLevel(int levelIndex, OfficeIMO.Word.WordBulletSymbol symbol, string! fontName, OfficeIMO.OfficeColor? color = null, string? colorHex = null, OfficeIMO.OfficeLength? fontSize = null) -> OfficeIMO.Word.WordListLevel!
+OfficeIMO.Word.WordList.AddListLevel(int levelIndex, OfficeIMO.Word.WordListLevelKind kind, string! fontName, OfficeIMO.OfficeColor? color = null, string? colorHex = null, OfficeIMO.OfficeLength? fontSize = null) -> OfficeIMO.Word.WordListLevel!
+OfficeIMO.Word.WordList.AddListLevel(int levelIndex, char symbol, string! fontName, string? colorHex, OfficeIMO.OfficeLength? fontSize = null) -> OfficeIMO.Word.WordListLevel!
 OfficeIMO.Word.WordList.AddTaskItem(string! text, bool done = false, int level = 0) -> OfficeIMO.Word.WordParagraph!
 OfficeIMO.Word.WordList.Bold.get -> bool
 OfficeIMO.Word.WordList.Bold.set -> void
@@ -2413,7 +2413,7 @@ OfficeIMO.Word.WordList.DoubleStrike.get -> bool
 OfficeIMO.Word.WordList.DoubleStrike.set -> void
 OfficeIMO.Word.WordList.FontName.get -> string!
 OfficeIMO.Word.WordList.FontName.set -> void
-OfficeIMO.Word.WordList.FontSize.get -> int?
+OfficeIMO.Word.WordList.FontSize.get -> OfficeIMO.OfficeLength?
 OfficeIMO.Word.WordList.FontSize.set -> void
 OfficeIMO.Word.WordList.IsToc.get -> bool
 OfficeIMO.Word.WordList.Italic.get -> bool
@@ -2976,8 +2976,8 @@ OfficeIMO.Word.WordPaperStyle.TableCellHorizontalPadding.get -> short
 OfficeIMO.Word.WordPaperStyle.TableCellHorizontalPadding.set -> void
 OfficeIMO.Word.WordPaperStyle.TableCellVerticalPadding.get -> short
 OfficeIMO.Word.WordPaperStyle.TableCellVerticalPadding.set -> void
-OfficeIMO.Word.WordPaperStyle.TableFontSizePoints.get -> double
-OfficeIMO.Word.WordPaperStyle.TableFontSizePoints.set -> void
+OfficeIMO.Word.WordPaperStyle.TableFontSize.get -> OfficeIMO.OfficeLength
+OfficeIMO.Word.WordPaperStyle.TableFontSize.set -> void
 OfficeIMO.Word.WordPaperStyle.TableLineSpacingPoints.get -> double?
 OfficeIMO.Word.WordPaperStyle.TableLineSpacingPoints.set -> void
 OfficeIMO.Word.WordPaperStyle.TableParagraphSpacingPoints.get -> double
@@ -3090,10 +3090,8 @@ OfficeIMO.Word.WordParagraph.FontFamilyEastAsia.get -> string?
 OfficeIMO.Word.WordParagraph.FontFamilyEastAsia.set -> void
 OfficeIMO.Word.WordParagraph.FontFamilyHighAnsi.get -> string?
 OfficeIMO.Word.WordParagraph.FontFamilyHighAnsi.set -> void
-OfficeIMO.Word.WordParagraph.FontSize.get -> int?
+OfficeIMO.Word.WordParagraph.FontSize.get -> OfficeIMO.OfficeLength?
 OfficeIMO.Word.WordParagraph.FontSize.set -> void
-OfficeIMO.Word.WordParagraph.FontSizePoints.get -> double?
-OfficeIMO.Word.WordParagraph.FontSizePoints.set -> void
 OfficeIMO.Word.WordParagraph.FootNote.get -> OfficeIMO.Word.WordFootNote?
 OfficeIMO.Word.WordParagraph.GetContentWidthPoints() -> double
 OfficeIMO.Word.WordParagraph.GetFormattedRuns() -> System.Collections.Generic.IEnumerable<OfficeIMO.Word.WordFormattedRun>!
@@ -3152,8 +3150,8 @@ OfficeIMO.Word.WordParagraph.KeepWithNext.get -> bool
 OfficeIMO.Word.WordParagraph.KeepWithNext.set -> void
 OfficeIMO.Word.WordParagraph.KeepWithNextOverride.get -> bool?
 OfficeIMO.Word.WordParagraph.KeepWithNextOverride.set -> void
-OfficeIMO.Word.WordParagraph.KerningMinimumFontSizePoints.get -> double?
-OfficeIMO.Word.WordParagraph.KerningMinimumFontSizePoints.set -> void
+OfficeIMO.Word.WordParagraph.KerningMinimumFontSize.get -> OfficeIMO.OfficeLength?
+OfficeIMO.Word.WordParagraph.KerningMinimumFontSize.set -> void
 OfficeIMO.Word.WordParagraph.Language.get -> string?
 OfficeIMO.Word.WordParagraph.Language.set -> void
 OfficeIMO.Word.WordParagraph.Line.get -> OfficeIMO.Word.WordLine?
@@ -3204,7 +3202,7 @@ OfficeIMO.Word.WordParagraph.SetColorHex(string! color) -> OfficeIMO.Word.WordPa
 OfficeIMO.Word.WordParagraph.SetDoubleStrike(bool isDoubleStrike = true) -> OfficeIMO.Word.WordParagraph!
 OfficeIMO.Word.WordParagraph.SetEmboss(bool isEmboss = true) -> OfficeIMO.Word.WordParagraph!
 OfficeIMO.Word.WordParagraph.SetFontFamily(string! fontFamily) -> OfficeIMO.Word.WordParagraph!
-OfficeIMO.Word.WordParagraph.SetFontSize(int fontSize) -> OfficeIMO.Word.WordParagraph!
+OfficeIMO.Word.WordParagraph.SetFontSize(OfficeIMO.OfficeLength fontSize) -> OfficeIMO.Word.WordParagraph!
 OfficeIMO.Word.WordParagraph.SetHighlight(OfficeIMO.Word.WordHighlightColor highlight) -> OfficeIMO.Word.WordParagraph!
 OfficeIMO.Word.WordParagraph.SetItalic(bool isItalic = true) -> OfficeIMO.Word.WordParagraph!
 OfficeIMO.Word.WordParagraph.SetLanguage(string! language) -> OfficeIMO.Word.WordParagraph!
@@ -3409,8 +3407,8 @@ OfficeIMO.Word.WordParagraphStyleDefinition.ContextualSpacing.get -> bool?
 OfficeIMO.Word.WordParagraphStyleDefinition.ContextualSpacing.set -> void
 OfficeIMO.Word.WordParagraphStyleDefinition.FontName.get -> string?
 OfficeIMO.Word.WordParagraphStyleDefinition.FontName.set -> void
-OfficeIMO.Word.WordParagraphStyleDefinition.FontSizePoints.get -> double?
-OfficeIMO.Word.WordParagraphStyleDefinition.FontSizePoints.set -> void
+OfficeIMO.Word.WordParagraphStyleDefinition.FontSize.get -> OfficeIMO.OfficeLength?
+OfficeIMO.Word.WordParagraphStyleDefinition.FontSize.set -> void
 OfficeIMO.Word.WordParagraphStyleDefinition.IsDefault.get -> bool
 OfficeIMO.Word.WordParagraphStyleDefinition.IsDefault.set -> void
 OfficeIMO.Word.WordParagraphStyleDefinition.IsPrimary.get -> bool
@@ -3421,8 +3419,8 @@ OfficeIMO.Word.WordParagraphStyleDefinition.KeepLinesTogether.get -> bool?
 OfficeIMO.Word.WordParagraphStyleDefinition.KeepLinesTogether.set -> void
 OfficeIMO.Word.WordParagraphStyleDefinition.KeepWithNext.get -> bool?
 OfficeIMO.Word.WordParagraphStyleDefinition.KeepWithNext.set -> void
-OfficeIMO.Word.WordParagraphStyleDefinition.LeftIndentTwips.get -> int?
-OfficeIMO.Word.WordParagraphStyleDefinition.LeftIndentTwips.set -> void
+OfficeIMO.Word.WordParagraphStyleDefinition.LeftIndent.get -> OfficeIMO.OfficeLength?
+OfficeIMO.Word.WordParagraphStyleDefinition.LeftIndent.set -> void
 OfficeIMO.Word.WordParagraphStyleDefinition.MirrorIndents.get -> bool?
 OfficeIMO.Word.WordParagraphStyleDefinition.MirrorIndents.set -> void
 OfficeIMO.Word.WordParagraphStyleDefinition.Name.get -> string!
@@ -3433,10 +3431,10 @@ OfficeIMO.Word.WordParagraphStyleDefinition.OutlineLevel.get -> int?
 OfficeIMO.Word.WordParagraphStyleDefinition.OutlineLevel.set -> void
 OfficeIMO.Word.WordParagraphStyleDefinition.PageBreakBefore.get -> bool?
 OfficeIMO.Word.WordParagraphStyleDefinition.PageBreakBefore.set -> void
-OfficeIMO.Word.WordParagraphStyleDefinition.SpacingAfterTwips.get -> int?
-OfficeIMO.Word.WordParagraphStyleDefinition.SpacingAfterTwips.set -> void
-OfficeIMO.Word.WordParagraphStyleDefinition.SpacingBeforeTwips.get -> int?
-OfficeIMO.Word.WordParagraphStyleDefinition.SpacingBeforeTwips.set -> void
+OfficeIMO.Word.WordParagraphStyleDefinition.SpacingAfter.get -> OfficeIMO.OfficeLength?
+OfficeIMO.Word.WordParagraphStyleDefinition.SpacingAfter.set -> void
+OfficeIMO.Word.WordParagraphStyleDefinition.SpacingBefore.get -> OfficeIMO.OfficeLength?
+OfficeIMO.Word.WordParagraphStyleDefinition.SpacingBefore.set -> void
 OfficeIMO.Word.WordParagraphStyleDefinition.StyleId.get -> string!
 OfficeIMO.Word.WordParagraphStyleDefinition.SuppressAutoHyphens.get -> bool?
 OfficeIMO.Word.WordParagraphStyleDefinition.SuppressAutoHyphens.set -> void
@@ -3806,9 +3804,9 @@ OfficeIMO.Word.WordSettings.FontFamilyEastAsia.get -> string?
 OfficeIMO.Word.WordSettings.FontFamilyEastAsia.set -> void
 OfficeIMO.Word.WordSettings.FontFamilyHighAnsi.get -> string?
 OfficeIMO.Word.WordSettings.FontFamilyHighAnsi.set -> void
-OfficeIMO.Word.WordSettings.FontSize.get -> int?
+OfficeIMO.Word.WordSettings.FontSize.get -> OfficeIMO.OfficeLength?
 OfficeIMO.Word.WordSettings.FontSize.set -> void
-OfficeIMO.Word.WordSettings.FontSizeComplexScript.get -> int?
+OfficeIMO.Word.WordSettings.FontSizeComplexScript.get -> OfficeIMO.OfficeLength?
 OfficeIMO.Word.WordSettings.FontSizeComplexScript.set -> void
 OfficeIMO.Word.WordSettings.GutterAtTop.get -> bool
 OfficeIMO.Word.WordSettings.GutterAtTop.set -> void
@@ -4117,7 +4115,7 @@ OfficeIMO.Word.WordStructuredDocumentTag.ColorHex.get -> string!
 OfficeIMO.Word.WordStructuredDocumentTag.ColorHex.set -> void
 OfficeIMO.Word.WordStructuredDocumentTag.FontFamily.get -> string?
 OfficeIMO.Word.WordStructuredDocumentTag.FontFamily.set -> void
-OfficeIMO.Word.WordStructuredDocumentTag.FontSize.get -> int?
+OfficeIMO.Word.WordStructuredDocumentTag.FontSize.get -> OfficeIMO.OfficeLength?
 OfficeIMO.Word.WordStructuredDocumentTag.FontSize.set -> void
 OfficeIMO.Word.WordStructuredDocumentTag.Highlight.get -> OfficeIMO.Word.WordHighlightColor?
 OfficeIMO.Word.WordStructuredDocumentTag.Highlight.set -> void
@@ -4128,7 +4126,7 @@ OfficeIMO.Word.WordStructuredDocumentTag.SetBold(bool isBold = true) -> OfficeIM
 OfficeIMO.Word.WordStructuredDocumentTag.SetColor(OfficeIMO.OfficeColor? color) -> OfficeIMO.Word.WordStructuredDocumentTag!
 OfficeIMO.Word.WordStructuredDocumentTag.SetColorHex(string! color) -> OfficeIMO.Word.WordStructuredDocumentTag!
 OfficeIMO.Word.WordStructuredDocumentTag.SetFontFamily(string! fontFamily) -> OfficeIMO.Word.WordStructuredDocumentTag!
-OfficeIMO.Word.WordStructuredDocumentTag.SetFontSize(int fontSize) -> OfficeIMO.Word.WordStructuredDocumentTag!
+OfficeIMO.Word.WordStructuredDocumentTag.SetFontSize(OfficeIMO.OfficeLength fontSize) -> OfficeIMO.Word.WordStructuredDocumentTag!
 OfficeIMO.Word.WordStructuredDocumentTag.SetHighlight(OfficeIMO.Word.WordHighlightColor? highlight) -> OfficeIMO.Word.WordStructuredDocumentTag!
 OfficeIMO.Word.WordStructuredDocumentTag.SetItalic(bool isItalic = true) -> OfficeIMO.Word.WordStructuredDocumentTag!
 OfficeIMO.Word.WordStructuredDocumentTag.SetUnderline(OfficeIMO.Word.WordUnderlineStyle? underline) -> OfficeIMO.Word.WordStructuredDocumentTag!
@@ -4927,7 +4925,7 @@ OfficeIMO.Word.WordWatermark.ColorHex.get -> string!
 OfficeIMO.Word.WordWatermark.ColorHex.set -> void
 OfficeIMO.Word.WordWatermark.FontFamily.get -> string?
 OfficeIMO.Word.WordWatermark.FontFamily.set -> void
-OfficeIMO.Word.WordWatermark.FontSize.get -> double?
+OfficeIMO.Word.WordWatermark.FontSize.get -> OfficeIMO.OfficeLength?
 OfficeIMO.Word.WordWatermark.FontSize.set -> void
 OfficeIMO.Word.WordWatermark.Height.get -> double?
 OfficeIMO.Word.WordWatermark.Height.set -> void
@@ -5045,9 +5043,9 @@ static OfficeIMO.Word.WordHyperLink.AddHyperLink(OfficeIMO.Word.WordParagraph! p
 static OfficeIMO.Word.WordHyperLink.CreateFormattedHyperlink(OfficeIMO.Word.WordHyperLink! reference, string! newText, System.Uri! newUri) -> OfficeIMO.Word.WordHyperLink!
 static OfficeIMO.Word.WordHyperLink.DuplicateHyperlink(OfficeIMO.Word.WordHyperLink! reference) -> OfficeIMO.Word.WordHyperLink!
 static OfficeIMO.Word.WordImageShapeStyle.FromString(string! styleString) -> OfficeIMO.Word.WordImageShapeStyle!
-static OfficeIMO.Word.WordList.AddCustomBulletList(OfficeIMO.Word.WordDocument! document, OfficeIMO.Word.WordBulletSymbol symbol, string! fontName, OfficeIMO.OfficeColor? color = null, string? colorHex = null, int? fontSize = null) -> OfficeIMO.Word.WordList!
-static OfficeIMO.Word.WordList.AddCustomBulletList(OfficeIMO.Word.WordDocument! document, OfficeIMO.Word.WordListLevelKind kind, string! fontName, OfficeIMO.OfficeColor? color = null, string? colorHex = null, int? fontSize = null) -> OfficeIMO.Word.WordList!
-static OfficeIMO.Word.WordList.AddCustomBulletList(OfficeIMO.Word.WordDocument! document, char symbol, string! fontName, string? colorHex, int? fontSize = null) -> OfficeIMO.Word.WordList!
+static OfficeIMO.Word.WordList.AddCustomBulletList(OfficeIMO.Word.WordDocument! document, OfficeIMO.Word.WordBulletSymbol symbol, string! fontName, OfficeIMO.OfficeColor? color = null, string? colorHex = null, OfficeIMO.OfficeLength? fontSize = null) -> OfficeIMO.Word.WordList!
+static OfficeIMO.Word.WordList.AddCustomBulletList(OfficeIMO.Word.WordDocument! document, OfficeIMO.Word.WordListLevelKind kind, string! fontName, OfficeIMO.OfficeColor? color = null, string? colorHex = null, OfficeIMO.OfficeLength? fontSize = null) -> OfficeIMO.Word.WordList!
+static OfficeIMO.Word.WordList.AddCustomBulletList(OfficeIMO.Word.WordDocument! document, char symbol, string! fontName, string? colorHex, OfficeIMO.OfficeLength? fontSize = null) -> OfficeIMO.Word.WordList!
 static OfficeIMO.Word.WordList.AddCustomList(OfficeIMO.Word.WordDocument! document) -> OfficeIMO.Word.WordList!
 static OfficeIMO.Word.WordList.AddPictureBulletList(OfficeIMO.Word.WordDocument! document, System.IO.Stream! imageStream, string! fileName) -> OfficeIMO.Word.WordList!
 static OfficeIMO.Word.WordList.AddPictureBulletList(OfficeIMO.Word.WordDocument! document, string! imagePath) -> OfficeIMO.Word.WordList!

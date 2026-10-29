@@ -209,7 +209,7 @@ public sealed class WordPdfTabInheritanceTests {
             new W.RunFonts { Ascii = "Courier New", HighAnsi = "Courier New" }, new W.FontSize { Val = "24" });
         WordParagraph paragraph = list.AddItem("LISTBODY\nLISTNEXT");
         paragraph.FontFamily = "Courier New";
-        paragraph.FontSize = 12;
+        paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(12);
         W.ParagraphProperties properties = paragraph._paragraph.ParagraphProperties!;
         if (styleId != null) properties.ParagraphStyleId = new W.ParagraphStyleId { Val = styleId };
         if (tabs != null) properties.Tabs = tabs;

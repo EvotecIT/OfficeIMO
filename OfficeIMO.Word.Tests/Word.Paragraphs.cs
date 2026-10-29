@@ -20,7 +20,7 @@ namespace OfficeIMO.Tests {
 
                 // set font family sets it for FontFamily, FontFamilyEastAsia, FontFamilyHighAnsi and FontFamilyComplexScript
                 paragraph.SetBold().SetFontFamily("Tahoma");
-                paragraph.AddText(" This is continuation").SetUnderline(WordUnderlineStyle.Double).SetFontSize(15).SetColor(Color.Yellow).SetHighlight(WordHighlightColor.DarkGreen);
+                paragraph.AddText(" This is continuation").SetUnderline(WordUnderlineStyle.Double).SetFontSize(global::OfficeIMO.OfficeLength.Points(15)).SetColor(Color.Yellow).SetHighlight(WordHighlightColor.DarkGreen);
 
                 paragraph.AddText(" this is more continuation").SetItalic().SetCapsStyle(WordCapsStyle.Caps);
 
@@ -69,7 +69,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Paragraphs[1].FontFamily == null, "2nd paragraph should be not set. Expected: " + document.Paragraphs[1].FontFamily);
                 Assert.True(document.Paragraphs[1].Underline == WordUnderlineStyle.Double, "2nd paragraph should be underline double. " + document.Paragraphs[1].Underline);
                 Assert.True(document.Paragraphs[1].Highlight == WordHighlightColor.DarkGreen, "2nd paragraph should be dark green highligh. " + document.Paragraphs[1].Highlight);
-                Assert.True(document.Paragraphs[1].FontSize == 15, "2nd paragraph should be 15 font size. " + document.Paragraphs[1].FontSize);
+                Assert.True(document.Paragraphs[1].FontSize?.ToPoints() == 15, "2nd paragraph should be 15 font size. " + document.Paragraphs[1].FontSize?.ToPoints());
                 Assert.True(document.Paragraphs[1].IsPageBreak == false, "2nd paragraph should not be page break. " + document.Paragraphs[1].IsPageBreak);
                 Assert.True(document.Paragraphs[1].DoubleStrike == false, "2nd paragraph should not be double strike. " + document.Paragraphs[1].DoubleStrike);
 
@@ -91,7 +91,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Paragraphs[1].FontFamily == null, "2nd paragraph should be not set. Expected: " + document.Paragraphs[1].FontFamily);
                 Assert.True(document.Paragraphs[1].Underline == WordUnderlineStyle.Double, "2nd paragraph should be underline double. " + document.Paragraphs[1].Underline);
                 Assert.True(document.Paragraphs[1].Highlight == WordHighlightColor.DarkGreen, "2nd paragraph should be dark green highligh. " + document.Paragraphs[1].Highlight);
-                Assert.True(document.Paragraphs[1].FontSize == 15, "2nd paragraph should be 15 font size. " + document.Paragraphs[1].FontSize);
+                Assert.True(document.Paragraphs[1].FontSize?.ToPoints() == 15, "2nd paragraph should be 15 font size. " + document.Paragraphs[1].FontSize?.ToPoints());
                 Assert.True(document.Paragraphs[1].IsPageBreak == false, "2nd paragraph should not be page break. " + document.Paragraphs[1].IsPageBreak);
                 Assert.True(document.Paragraphs[1].DoubleStrike == false, "2nd paragraph should not be double strike. " + document.Paragraphs[1].DoubleStrike);
 
@@ -128,7 +128,7 @@ namespace OfficeIMO.Tests {
                 paragraph.Color = OfficeIMO.OfficeColor.Blue;
 
                 paragraph.SetBold().SetFontFamily("Tahoma");
-                paragraph.AddText(" This is continuation").SetUnderline(WordUnderlineStyle.Double).SetHighlight(WordHighlightColor.DarkGreen).SetFontSize(15).SetColor(Color.Yellow);
+                paragraph.AddText(" This is continuation").SetUnderline(WordUnderlineStyle.Double).SetHighlight(WordHighlightColor.DarkGreen).SetFontSize(global::OfficeIMO.OfficeLength.Points(15)).SetColor(Color.Yellow);
 
                 Assert.True(document.Sections.Count() == 1, "Sections count doesn't match. Provided: " + document.Sections.Count);
                 Assert.True(document.Paragraphs.Count == 6, "Paragraphs count doesn't match. Provided: " + document.Paragraphs.Count);
@@ -168,7 +168,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Paragraphs[5].FontFamily == null, "2nd paragraph should be not set. Expected: " + document.Paragraphs[5].FontFamily);
                 Assert.True(document.Paragraphs[5].Underline == WordUnderlineStyle.Double, "2nd paragraph should be underline double. " + document.Paragraphs[5].Underline);
                 Assert.True(document.Paragraphs[5].Highlight == WordHighlightColor.DarkGreen, "2nd paragraph should be dark green highligh. " + document.Paragraphs[5].Highlight);
-                Assert.True(document.Paragraphs[5].FontSize == 15, "2nd paragraph should be 15 font size. " + document.Paragraphs[5].FontSize);
+                Assert.True(document.Paragraphs[5].FontSize?.ToPoints() == 15, "2nd paragraph should be 15 font size. " + document.Paragraphs[5].FontSize?.ToPoints());
                 Assert.True(document.Paragraphs[5].IsPageBreak == false, "2nd paragraph should not be page break. " + document.Paragraphs[5].IsPageBreak);
                 Assert.True(document.Paragraphs[5].DoubleStrike == false, "2nd paragraph should not be double strike. " + document.Paragraphs[5].DoubleStrike);
                 document.Save();
@@ -197,7 +197,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Paragraphs[5].FontFamily == null, "2nd paragraph should be not set. Expected: " + document.Paragraphs[5].FontFamily);
                 Assert.True(document.Paragraphs[5].Underline == WordUnderlineStyle.Double, "2nd paragraph should be underline double. " + document.Paragraphs[5].Underline);
                 Assert.True(document.Paragraphs[5].Highlight == WordHighlightColor.DarkGreen, "2nd paragraph should be dark green highligh. " + document.Paragraphs[5].Highlight);
-                Assert.True(document.Paragraphs[5].FontSize == 15, "2nd paragraph should be 15 font size. " + document.Paragraphs[5].FontSize);
+                Assert.True(document.Paragraphs[5].FontSize?.ToPoints() == 15, "2nd paragraph should be 15 font size. " + document.Paragraphs[5].FontSize?.ToPoints());
                 Assert.True(document.Paragraphs[5].IsPageBreak == false, "2nd paragraph should not be page break. " + document.Paragraphs[5].IsPageBreak);
                 Assert.True(document.Paragraphs[5].DoubleStrike == false, "2nd paragraph should not be double strike. " + document.Paragraphs[5].DoubleStrike);
             }

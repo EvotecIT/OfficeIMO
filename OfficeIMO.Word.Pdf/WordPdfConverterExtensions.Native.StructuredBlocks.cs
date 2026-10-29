@@ -471,7 +471,7 @@ namespace OfficeIMO.Word.Pdf {
             !string.IsNullOrWhiteSpace(mark.Text) || mark.HasImage;
 
         private static double? ResolveNativeWatermarkFontSize(WordWatermark watermark) {
-            double? fontSize = watermark.FontSize;
+            double? fontSize = watermark.NativeFontSizePoints;
             if (fontSize.HasValue && fontSize.Value > 2D) {
                 return fontSize.Value;
             }

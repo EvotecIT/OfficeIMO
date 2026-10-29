@@ -326,7 +326,7 @@ public sealed class IWorkCorpusTests {
         var savedTitle = reopened.Paragraphs.First(p => p.Text == "购 销 合 同");
         Assert.True(savedTitle.Bold);
         Assert.Equal(WordParagraphAlignment.Center, savedTitle.ParagraphAlignment);
-        Assert.Equal(26d, savedTitle.FontSizePoints);
+        Assert.Equal(26d, savedTitle.FontSize?.ToPoints());
         Assert.Equal("SimSun", savedTitle.FontFamily);
         var validation = reopened.ValidateDocument();
         Assert.True(validation.Count == 0, string.Join("\n", validation.Select(error => error.PartUri + ": " + error.Description)));

@@ -78,11 +78,11 @@ namespace OfficeIMO.Tests {
             string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeRunFontSizes.pdf");
 
             using (WordDocument document = WordDocument.Create(docPath)) {
-                document.AddParagraph("ParagraphSized").SetFontSize(16);
+                document.AddParagraph("ParagraphSized").SetFontSize(global::OfficeIMO.OfficeLength.Points(16));
 
                 WordParagraph paragraph = document.AddParagraph();
                 paragraph.AddText("Small");
-                paragraph.AddText("Large").SetFontSize(18);
+                paragraph.AddText("Large").SetFontSize(global::OfficeIMO.OfficeLength.Points(18));
                 paragraph.AddText("Normal");
 
                 document.Save();
@@ -113,10 +113,10 @@ namespace OfficeIMO.Tests {
             string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeHalfPointFonts.pdf");
 
             using (WordDocument document = WordDocument.Create(docPath)) {
-                document.AddParagraph("BodyHalfPoint").FontSizePoints = 10.5D;
+                document.AddParagraph("BodyHalfPoint").FontSize = global::OfficeIMO.OfficeLength.Points(10.5D);
                 WordParagraph cellParagraph = document.AddTable(1, 1).Rows[0].Cells[0].Paragraphs[0];
                 cellParagraph.Text = "CellHalfPoint";
-                cellParagraph.FontSizePoints = 10.5D;
+                cellParagraph.FontSize = global::OfficeIMO.OfficeLength.Points(10.5D);
                 document.Save();
                 document.SaveAsPdf(pdfPath, new WordPdfExportOptions());
             }

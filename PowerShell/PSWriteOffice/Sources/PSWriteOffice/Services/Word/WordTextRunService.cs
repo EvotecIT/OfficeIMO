@@ -120,7 +120,7 @@ internal static class WordTextRunService
 
         if (fontSize.HasValue)
         {
-            run.FontSizePoints = fontSize.Value;
+            run.FontSize = global::OfficeIMO.OfficeLength.Points(fontSize.Value);
         }
 
         if (!string.IsNullOrWhiteSpace(fontName))

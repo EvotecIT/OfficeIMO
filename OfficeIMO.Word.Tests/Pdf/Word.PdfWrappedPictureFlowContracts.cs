@@ -194,7 +194,7 @@ public sealed class WordPdfWrappedPictureFlowContractTests {
     private static void Configure(WordParagraph paragraph, string text) {
         paragraph.Text = text;
         paragraph.FontFamily = ManagedTextShapingTestAssets.FamilyName;
-        paragraph.FontSize = 12;
+        paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(12);
         paragraph.LineSpacingPoints = Line;
         paragraph.LineSpacingRule = WordLineSpacingRule.Exact;
         paragraph.LineSpacingBefore = paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;

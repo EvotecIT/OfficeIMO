@@ -128,7 +128,7 @@ public partial class Word {
         WordTableCell cell = row.Cells[0];
         cell.Width = 0; cell.WidthType = WordTableWidthUnit.Auto;
         cell.Paragraphs[0].Text = new string('W', characters);
-        cell.Paragraphs[0].FontFamily = "Arial"; cell.Paragraphs[0].FontSize = 12;
+        cell.Paragraphs[0].FontFamily = "Arial"; cell.Paragraphs[0].FontSize = global::OfficeIMO.OfficeLength.Points(12);
         table.GridColumnWidth = new List<int> { 1600, 3200 };
 
         using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions { IncludePageNumbers = false }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
@@ -176,7 +176,7 @@ public partial class Word {
         WordTableCell cell = CreateAutomaticWidthControl(document, 2400).Rows[0].Cells[0];
         WordParagraph paragraph = numbered ? cell.AddList(WordListStyle.Numbered).AddItem(string.Empty) : cell.Paragraphs[0];
         paragraph.Text = "東京\n東京\n東京";
-        paragraph.FontFamily = "Arial"; paragraph.FontSize = 12;
+        paragraph.FontFamily = "Arial"; paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(12);
         paragraph.LineSpacingBefore = global::OfficeIMO.OfficeLength.Zero; paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
         paragraph.LineSpacingRule = WordLineSpacingRule.Auto; paragraph.LineSpacing = spacing;
         using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions {
@@ -211,7 +211,7 @@ public partial class Word {
             cell.MarginLeft = global::OfficeIMO.OfficeLength.Points(5.4D); cell.MarginRight = global::OfficeIMO.OfficeLength.Points(5.4D);
             cell.MarginTop = global::OfficeIMO.OfficeLength.Zero; cell.MarginBottom = global::OfficeIMO.OfficeLength.Zero;
             var paragraph = cell.Paragraphs[0];
-            paragraph.FontFamily = "Arial"; paragraph.FontSize = 12;
+            paragraph.FontFamily = "Arial"; paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(12);
             paragraph.LineSpacingBefore = global::OfficeIMO.OfficeLength.Zero; paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
             paragraph.LineSpacingRule = WordLineSpacingRule.Auto; paragraph.LineSpacing = 240;
         }

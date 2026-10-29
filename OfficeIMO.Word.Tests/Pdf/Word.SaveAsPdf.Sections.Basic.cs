@@ -207,7 +207,7 @@ public partial class Word {
 
             document.AddHeadersAndFooters();
             WordParagraph header = RequireSectionHeader(document, 0, HeaderFooterValues.Default).AddParagraph("BigNativeHeader");
-            header.FontSize = 18;
+            header.FontSize = global::OfficeIMO.OfficeLength.Points(18);
             WordParagraph footer = RequireSectionFooter(document, 0, HeaderFooterValues.Default).AddParagraph("StyledNativeFooter");
             footer.SetStyleId(footerStyleId);
             document.AddParagraph("Plain body text");
@@ -637,7 +637,7 @@ public partial class Word {
             for (int index = 1; index <= 4; index++) {
                 WordParagraph paragraph = header.AddParagraph("ClearanceHeaderLine" + index.ToString(System.Globalization.CultureInfo.InvariantCulture));
                 if (headerFontSize.HasValue) {
-                    paragraph.FontSize = headerFontSize.Value;
+                    paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(headerFontSize.Value);
                 }
             }
 
@@ -704,8 +704,8 @@ public partial class Word {
         using (WordDocument document = WordDocument.Create(docPath)) {
             document.AddHeadersAndFooters();
             WordFooter footer = RequireSectionFooter(document, 0, HeaderFooterValues.Default);
-            footer.AddParagraph("NativeFooterBandLineOne").FontSize = 9;
-            footer.AddParagraph("NativeFooterBandLineTwo").FontSize = 9;
+            footer.AddParagraph("NativeFooterBandLineOne").FontSize = global::OfficeIMO.OfficeLength.Points(9);
+            footer.AddParagraph("NativeFooterBandLineTwo").FontSize = global::OfficeIMO.OfficeLength.Points(9);
 
             document.AddParagraph("Native footer placement body");
             document.Save();
@@ -736,7 +736,7 @@ public partial class Word {
             WordFooter footer = RequireSectionFooter(document, 0, HeaderFooterValues.Default);
             for (int index = 1; index <= 4; index++) {
                 WordParagraph paragraph = footer.AddParagraph("LargeFooterLine" + index.ToString(CultureInfo.InvariantCulture));
-                paragraph.FontSize = 24;
+                paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(24);
             }
 
             document.AddParagraph("Large footer placement body");
@@ -771,12 +771,12 @@ public partial class Word {
         document.Sections[0].Margins.Right = global::OfficeIMO.OfficeLength.Points(30D);
         document.AddHeadersAndFooters();
         WordFooter footer = RequireSectionFooter(document, 0, HeaderFooterValues.Default);
-        footer.AddParagraph("ClearanceFooterOne").FontSize = 9;
-        footer.AddParagraph("ClearanceFooterTwo").FontSize = 9;
+        footer.AddParagraph("ClearanceFooterOne").FontSize = global::OfficeIMO.OfficeLength.Points(9);
+        footer.AddParagraph("ClearanceFooterTwo").FontSize = global::OfficeIMO.OfficeLength.Points(9);
 
         for (int index = 0; index < 70; index++) {
             WordParagraph paragraph = document.AddParagraph("BodyMarker");
-            paragraph.FontSize = 11;
+            paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(11);
             paragraph._paragraph.ParagraphProperties = new ParagraphProperties(new SpacingBetweenLines {
                 Before = "0", After = "0", Line = "280", LineRule = LineSpacingRuleValues.Exact });
         }

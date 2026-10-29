@@ -14,7 +14,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal(18d, paragraph.IndentationBefore?.ToPoints());
             Assert.Equal(7.5d, paragraph.LineSpacingBefore?.ToPoints());
             var run = paragraph.GetRuns().First();
-            Assert.Equal(24, run.FontSize);
+            Assert.Equal(24, run.FontSize?.ToPoints());
             Assert.Equal("123456", run.ColorHex);
         }
 
@@ -54,7 +54,7 @@ namespace OfficeIMO.Tests {
             Assert.True(run.Italic);
             Assert.Equal(OfficeIMO.Word.WordUnderlineStyle.Single, run.Underline);
             Assert.True(run.Strike);
-            Assert.Equal(16, run.FontSize);
+            Assert.Equal(16, run.FontSize?.ToPoints());
             Assert.Equal("008000", run.ColorHex);
         }
 
@@ -73,11 +73,11 @@ namespace OfficeIMO.Tests {
             var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWord(new WordHtmlImportOptions());
             var runs = doc.Paragraphs[0].GetRuns().ToArray();
             Assert.Equal("FF0000", runs[0].ColorHex);
-            Assert.Equal(20, runs[0].FontSize);
+            Assert.Equal(20, runs[0].FontSize?.ToPoints());
             Assert.Equal("FF0000", runs[1].ColorHex);
-            Assert.Equal(10, runs[1].FontSize);
+            Assert.Equal(10, runs[1].FontSize?.ToPoints());
             Assert.Equal("FF0000", runs[2].ColorHex);
-            Assert.Equal(20, runs[2].FontSize);
+            Assert.Equal(20, runs[2].FontSize?.ToPoints());
         }
 
         [Fact]
@@ -110,7 +110,7 @@ namespace OfficeIMO.Tests {
             var run = doc.Paragraphs[0].GetRuns().First();
 
             Assert.Equal("ABCDEF", run.ColorHex);
-            Assert.Equal(11, run.FontSize);
+            Assert.Equal(11, run.FontSize?.ToPoints());
         }
 
         [Fact]

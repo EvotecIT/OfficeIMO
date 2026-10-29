@@ -640,7 +640,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal("under ", runs[1].Text);
             Assert.Equal(WordUnderlineStyle.Single, runs[1].Underline);
             Assert.Equal("sized ", runs[2].Text);
-            Assert.Equal(14, runs[2].FontSize);
+            Assert.Equal(14, runs[2].FontSize?.ToPoints());
             FontSizeComplexScript complexScriptSize = Assert.IsType<FontSizeComplexScript>(runs[2]._runProperties?.FontSizeComplexScript);
             Assert.Equal("28", complexScriptSize.Val!.Value);
             Assert.Equal("red ", runs[3].Text);
@@ -5704,7 +5704,7 @@ namespace OfficeIMO.Tests {
                     WordParagraph paragraph = document.AddParagraph();
                     paragraph.AddText("plain ");
                     paragraph.AddText("under ").SetUnderline(WordUnderlineStyle.Single);
-                    paragraph.AddText("sized ").SetFontSize(14);
+                    paragraph.AddText("sized ").SetFontSize(global::OfficeIMO.OfficeLength.Points(14));
                     paragraph.AddText("strike ").SetStrike();
                     paragraph.AddText("double ").SetDoubleStrike();
                     paragraph.AddText("outline ").SetOutline();
@@ -5758,7 +5758,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("under ", runs[1].Text);
                 Assert.Equal(WordUnderlineStyle.Single, runs[1].Underline);
                 Assert.Equal("sized ", runs[2].Text);
-                Assert.Equal(14, runs[2].FontSize);
+                Assert.Equal(14, runs[2].FontSize?.ToPoints());
                 Assert.Equal("strike ", runs[3].Text);
                 Assert.True(runs[3].Strike);
                 Assert.Equal("double ", runs[4].Text);
@@ -6031,7 +6031,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 WordParagraph reloadedRun = Assert.Single(reloaded.Paragraphs);
                 Assert.Equal("Sized", reloadedRun.Text);
-                Assert.Equal(14, reloadedRun.FontSize);
+                Assert.Equal(14, reloadedRun.FontSize?.ToPoints());
             } finally {
                 DeleteIfExists(docPath);
             }
@@ -9417,21 +9417,21 @@ namespace OfficeIMO.Tests {
                 Assert.True(firstStyled.Bold);
                 Assert.False(firstStyled.Italic);
                 Assert.Equal("FF0000", firstStyled.ColorHex);
-                Assert.Equal(14, firstStyled.FontSize);
+                Assert.Equal(14, firstStyled.FontSize?.ToPoints());
 
                 WordParagraph directStyled = reloadedTable.Rows[0].Cells[1].Paragraphs[0];
                 Assert.Equal("B1", directStyled.Text);
                 Assert.False(directStyled.Bold);
                 Assert.True(directStyled.Italic);
                 Assert.Equal("0000FF", directStyled.ColorHex);
-                Assert.Equal(14, directStyled.FontSize);
+                Assert.Equal(14, directStyled.FontSize?.ToPoints());
 
                 WordParagraph unstyled = reloadedTable.Rows[1].Cells[0].Paragraphs[0];
                 Assert.Equal("A2", unstyled.Text);
                 Assert.False(unstyled.Bold);
                 Assert.False(unstyled.Italic);
                 Assert.Equal(string.Empty, unstyled.ColorHex);
-                Assert.Null(unstyled.FontSize);
+                Assert.Null(unstyled.FontSize?.ToPoints());
             } finally {
                 DeleteIfExists(docPath);
             }
@@ -9478,21 +9478,21 @@ namespace OfficeIMO.Tests {
                 Assert.True(firstStyled.Bold);
                 Assert.False(firstStyled.Italic);
                 Assert.Equal("FF0000", firstStyled.ColorHex);
-                Assert.Equal(14, firstStyled.FontSize);
+                Assert.Equal(14, firstStyled.FontSize?.ToPoints());
 
                 WordParagraph directStyled = reloadedTable.Rows[0].Cells[1].Paragraphs[0];
                 Assert.Equal("B1", directStyled.Text);
                 Assert.False(directStyled.Bold);
                 Assert.True(directStyled.Italic);
                 Assert.Equal("0000FF", directStyled.ColorHex);
-                Assert.Equal(14, directStyled.FontSize);
+                Assert.Equal(14, directStyled.FontSize?.ToPoints());
 
                 WordParagraph unstyled = reloadedTable.Rows[1].Cells[0].Paragraphs[0];
                 Assert.Equal("A2", unstyled.Text);
                 Assert.False(unstyled.Bold);
                 Assert.False(unstyled.Italic);
                 Assert.Equal(string.Empty, unstyled.ColorHex);
-                Assert.Null(unstyled.FontSize);
+                Assert.Null(unstyled.FontSize?.ToPoints());
             } finally {
                 DeleteIfExists(docPath);
             }
@@ -10117,14 +10117,14 @@ namespace OfficeIMO.Tests {
                 Assert.True(inheritedRun.Bold);
                 Assert.False(inheritedRun.Italic);
                 Assert.Equal("FF0000", inheritedRun.ColorHex);
-                Assert.Equal(14, inheritedRun.FontSize);
+                Assert.Equal(14, inheritedRun.FontSize?.ToPoints());
 
                 WordParagraph directRun = row.Cells[1].Paragraphs[0];
                 Assert.Equal("Direct", directRun.Text);
                 Assert.False(directRun.Bold);
                 Assert.True(directRun.Italic);
                 Assert.Equal("0000FF", directRun.ColorHex);
-                Assert.Equal(14, directRun.FontSize);
+                Assert.Equal(14, directRun.FontSize?.ToPoints());
             } finally {
                 DeleteIfExists(docPath);
             }

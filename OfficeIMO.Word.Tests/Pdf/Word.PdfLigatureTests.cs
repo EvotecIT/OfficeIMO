@@ -124,7 +124,7 @@ public sealed class WordPdfLigatureTests {
             if (story == "link") paragraph = paragraph.AddHyperLink("fi", new Uri("https://example.com/")).Paragraph;
         }
         paragraph.FontFamily = ManagedTextShapingTestAssets.FamilyName;
-        paragraph.FontSize = 10;
+        paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(10);
         if (direct != null) paragraph._paragraph.Descendants<W.Run>().Last(run => run.InnerText == "fi").RunProperties!.Append(Ligatures(direct));
         if (malformedRoute != null) {
             var element = new OpenXmlUnknownElement("w14", "ligatures", "http://schemas.microsoft.com/office/word/2010/wordml");

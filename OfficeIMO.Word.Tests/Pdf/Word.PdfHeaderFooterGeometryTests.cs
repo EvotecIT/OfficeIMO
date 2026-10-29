@@ -27,7 +27,7 @@ public partial class Word {
         AddRunningGeometryPicture(story.AddParagraph(), 624, 416);
         var body = document.AddParagraph(string.Join("\n", Enumerable.Repeat("BodyMarker", 25)));
         body.FontFamily = "Arial";
-        body.FontSize = 12;
+        body.FontSize = global::OfficeIMO.OfficeLength.Points(12);
         body.LineSpacingBefore = body.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
         body.LineSpacing = 240;
 
@@ -69,7 +69,7 @@ public partial class Word {
             WordParagraph paragraph = document.AddParagraph("VariantBody");
             paragraph.PageBreakBefore = index > 0;
             paragraph.FontFamily = "Arial";
-            paragraph.FontSize = 12;
+            paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(12);
             paragraph.LineSpacingBefore = paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
         }
         byte[] bytes = document.ToPdf(new WordPdfExportOptions { IncludePageNumbers = false }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });

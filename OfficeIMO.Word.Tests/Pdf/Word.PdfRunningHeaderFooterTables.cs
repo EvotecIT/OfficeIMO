@@ -17,7 +17,7 @@ public partial class Word {
         cell.WidthType = WordTableWidthUnit.Dxa; cell.Width = 2400; cell.TextDirection = direction;
         table.Rows[0].Height = global::OfficeIMO.OfficeLength.Points(((int)(height * 20)) / 20D);
         WordParagraph paragraph = cell.Paragraphs[0];
-        paragraph.Text = text; paragraph.FontFamily = "Arial"; paragraph.FontSize = 12;
+        paragraph.Text = text; paragraph.FontFamily = "Arial"; paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(12);
         story.AddParagraph();
         return table;
     }

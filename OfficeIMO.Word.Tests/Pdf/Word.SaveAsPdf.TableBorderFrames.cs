@@ -255,7 +255,7 @@ public partial class Word {
                 cell.MarginTop = cell.MarginBottom = global::OfficeIMO.OfficeLength.Zero;
                 WordParagraph paragraph = cell.Paragraphs[0];
                 paragraph.Text = $"Frame{row * columns + column}";
-                paragraph.FontFamily = "Arial"; paragraph.FontSize = 12;
+                paragraph.FontFamily = "Arial"; paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(12);
                 paragraph.LineSpacingBefore = paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
                 paragraph.LineSpacingRule = WordLineSpacingRule.Auto; paragraph.LineSpacing = 240;
             }

@@ -60,7 +60,7 @@ public partial class Word {
         document.Settings.GutterAtTop = atTop; section.RtlGutter = onRight;
         foreach (string marker in new[] { "LeftMarker", "RightMarker" }) {
             var paragraph = document.AddParagraph(marker);
-            paragraph.FontFamily = "Arial"; paragraph.FontSize = 12;
+            paragraph.FontFamily = "Arial"; paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(12);
             paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
             if (marker == "RightMarker") paragraph.ParagraphAlignment = WordParagraphAlignment.Right;
         }

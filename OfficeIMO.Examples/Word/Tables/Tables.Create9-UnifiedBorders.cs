@@ -19,7 +19,7 @@ namespace OfficeIMO.Examples.Word {
                 var title = document.AddParagraph("Unified Table Border Examples");
                 title.ParagraphAlignment = WordParagraphAlignment.Center;
                 title.Bold = true;
-                title.FontSize = 16;
+                title.FontSize = global::OfficeIMO.OfficeLength.Points(16);
                 document.AddParagraph();
 
                 // Example 1: Simple uniform borders

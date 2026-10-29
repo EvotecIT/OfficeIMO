@@ -270,21 +270,16 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Gets or sets the font size in points.
-        /// </summary>
-        public int? FontSize {
-            get {
-                double? points = FontSizePoints;
-                return points.HasValue ? checked((int)points.Value) : null;
-            }
-            set => FontSizePoints = value;
-        }
-
-        /// <summary>
         /// Gets or sets the font size in points with Word's native half-point precision.
         /// Values finer than half a point are rounded away from zero to the nearest representable size.
         /// </summary>
-        public double? FontSizePoints {
+        public global::OfficeIMO.OfficeLength? FontSize {
+            get => NativeFontSizePoints is double points ? global::OfficeIMO.OfficeLength.Points(points) : null;
+            set => NativeFontSizePoints = value?.ToPoints();
+        }
+
+        /// <summary>Gets or sets native point values without a whole-EMU round trip.</summary>
+        internal double? NativeFontSizePoints {
             get {
                 var runProperties = ScopedRunProperties;
                 string? value = runProperties?.FontSize?.Val?.Value;

@@ -25,19 +25,19 @@ namespace OfficeIMO.Tests {
             using (WordDocument document = WordDocument.Create(docPath)) {
                 document.AddParagraph("Before native baseline formatting");
                 WordParagraph superscript = document.AddParagraph("Native paragraph superscript");
-                superscript.FontSize = 20;
+                superscript.FontSize = global::OfficeIMO.OfficeLength.Points(20);
                 superscript.SetSuperScript();
                 WordParagraph subscript = document.AddParagraph("Native paragraph subscript");
-                subscript.FontSize = 20;
+                subscript.FontSize = global::OfficeIMO.OfficeLength.Points(20);
                 subscript.SetSubScript();
                 WordParagraph mixed = document.AddParagraph();
                 mixed.AddText("Native mixed baseline ");
                 WordParagraph runSuperscript = mixed.AddText("run superscript");
-                runSuperscript.FontSize = 20;
+                runSuperscript.FontSize = global::OfficeIMO.OfficeLength.Points(20);
                 runSuperscript.SetSuperScript();
                 mixed.AddText(" ");
                 WordParagraph runSubscript = mixed.AddText("run subscript");
-                runSubscript.FontSize = 20;
+                runSubscript.FontSize = global::OfficeIMO.OfficeLength.Points(20);
                 runSubscript.SetSubScript();
                 document.AddParagraph("After native baseline formatting");
                 document.Save();
@@ -1589,7 +1589,7 @@ namespace OfficeIMO.Tests {
         public void SaveAsPdf_OfficeIMOEngine_Maps_Explicit_Paragraph_Line_Spacing() {
             using WordDocument document = WordDocument.Create(Path.Combine(_directoryWithFiles, "PdfNativeExplicitParagraphStyle.docx"));
             WordParagraph exactParagraph = document.AddParagraph("Native exact line spacing");
-            exactParagraph.FontSize = 12;
+            exactParagraph.FontSize = global::OfficeIMO.OfficeLength.Points(12);
             exactParagraph.LineSpacingPoints = 24;
 
             WordParagraph autoParagraph = document.AddParagraph("Native auto line spacing");
@@ -1749,7 +1749,7 @@ namespace OfficeIMO.Tests {
         public void SaveAsPdf_OfficeIMOEngine_Maps_AtLeast_Paragraph_Line_Spacing() {
             using WordDocument document = WordDocument.Create(Path.Combine(_directoryWithFiles, "PdfNativeAtLeastParagraphStyle.docx"));
             WordParagraph directParagraph = document.AddParagraph("Native at least line spacing");
-            directParagraph.FontSize = 24;
+            directParagraph.FontSize = global::OfficeIMO.OfficeLength.Points(24);
             directParagraph.LineSpacingPoints = 6;
             directParagraph.LineSpacingRule = WordLineSpacingRule.AtLeast;
 
@@ -1788,18 +1788,18 @@ namespace OfficeIMO.Tests {
 
             using (WordDocument document = WordDocument.Create(docPath)) {
                 WordParagraph exact = document.AddParagraph("ExactSmallFirst");
-                exact.FontSize = 24;
+                exact.FontSize = global::OfficeIMO.OfficeLength.Points(24);
                 exact.LineSpacingPoints = 6;
                 exact.LineSpacingRule = WordLineSpacingRule.Exact;
                 exact.AddBreak();
-                exact.AddText("ExactSmallSecond").FontSize = 24;
+                exact.AddText("ExactSmallSecond").FontSize = global::OfficeIMO.OfficeLength.Points(24);
 
                 WordParagraph atLeast = document.AddParagraph("AtLeastFirst");
-                atLeast.FontSize = 24;
+                atLeast.FontSize = global::OfficeIMO.OfficeLength.Points(24);
                 atLeast.LineSpacingPoints = 6;
                 atLeast.LineSpacingRule = WordLineSpacingRule.AtLeast;
                 atLeast.AddBreak();
-                atLeast.AddText("AtLeastSecond").FontSize = 24;
+                atLeast.AddText("AtLeastSecond").FontSize = global::OfficeIMO.OfficeLength.Points(24);
 
                 document.Save();
                 document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
@@ -1881,7 +1881,7 @@ namespace OfficeIMO.Tests {
             });
 
             WordParagraph paragraph = document.AddParagraph("Native style exact line spacing");
-            paragraph.FontSize = 12;
+            paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(12);
             paragraph.SetStyleId(styleId);
 
             MethodInfo method = typeof(WordPdfConverterExtensions).GetMethod("CreateNativeParagraphStyle", BindingFlags.NonPublic | BindingFlags.Static, binder: null, new[] { typeof(WordParagraph) }, modifiers: null)!;
@@ -1986,7 +1986,7 @@ namespace OfficeIMO.Tests {
                 });
 
             WordParagraph paragraph = document.AddParagraph("Native derived style auto line spacing");
-            paragraph.FontSize = 12;
+            paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(12);
             paragraph.SetStyleId(derivedStyleId);
 
             MethodInfo method = typeof(WordPdfConverterExtensions).GetMethod("CreateNativeParagraphStyle", BindingFlags.NonPublic | BindingFlags.Static, binder: null, new[] { typeof(WordParagraph) }, modifiers: null)!;

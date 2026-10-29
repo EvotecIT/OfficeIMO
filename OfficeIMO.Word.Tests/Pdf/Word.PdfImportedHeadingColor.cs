@@ -87,7 +87,7 @@ public sealed class WordPdfImportedHeadingColorTests {
         using WordDocument document = CreateDocument();
         WordParagraph heading = document.AddParagraph("AUTHORED").SetStyle(WordParagraphStyles.Heading1);
         heading.FontFamily = ManagedTextShapingTestAssets.FamilyName;
-        heading.FontSize = 12;
+        heading.FontSize = global::OfficeIMO.OfficeLength.Points(12);
         W.Style sourceStyle = Assert.Single(document.OpenXmlDocument.MainDocumentPart!
             .StyleDefinitionsPart!.Styles!.Elements<W.Style>(), style => style.StyleId?.Value == "Heading1");
         Assert.Equal("2F5496", sourceStyle.StyleRunProperties!.GetFirstChild<W.Color>()!.Val!.Value);

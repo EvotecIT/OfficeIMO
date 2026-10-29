@@ -37,13 +37,13 @@ public partial class PdfDocumentRasterVisualBaselineTests {
                 document.AddParagraph("Native Word PDF Visual Gate").SetStyle(WordParagraphStyles.Heading1);
 
                 WordParagraph summary = document.AddParagraph("This document is generated as DOCX first, then rendered with the first-party OfficeIMO PDF engine.");
-                summary.SetFontSize(10);
+                summary.SetFontSize(global::OfficeIMO.OfficeLength.Points(10));
 
                 document.AddParagraph("Native proof areas").SetStyle(WordParagraphStyles.Heading2);
 
                 WordParagraph styled = document.AddParagraph();
                 styled.AddText("Scoped runs: ");
-                styled.AddText("large blue").SetFontSize(15).ColorHex = "1f4e79";
+                styled.AddText("large blue").SetFontSize(global::OfficeIMO.OfficeLength.Points(15)).ColorHex = "1f4e79";
                 styled.AddText(", ");
                 styled.AddText("highlighted").SetHighlight(WordHighlightColor.Yellow);
                 styled.AddText(", and restored default text.");
@@ -138,7 +138,7 @@ public partial class PdfDocumentRasterVisualBaselineTests {
                 document.AddParagraph("Daily Word Layout Gate").SetStyle(WordParagraphStyles.Heading1);
 
                 WordParagraph intro = document.AddParagraph("This Word-origin fixture combines margins, section columns, fonts, colors, links, images, lists, a TOC, and a table on one page.");
-                intro.SetFontSize(9);
+                intro.SetFontSize(global::OfficeIMO.OfficeLength.Points(9));
 
                 WordParagraph leftHeading = document.AddParagraph("Column narrative");
                 leftHeading.SetStyle(WordParagraphStyles.Heading2);
@@ -148,9 +148,9 @@ public partial class PdfDocumentRasterVisualBaselineTests {
                 rich.AddText("Styled runs: ");
                 rich.AddText("Calibri default").SetFontFamily("Calibri");
                 rich.AddText(", ");
-                rich.AddText("Courier note").SetFontFamily("Courier New").SetFontSize(8);
+                rich.AddText("Courier note").SetFontFamily("Courier New").SetFontSize(global::OfficeIMO.OfficeLength.Points(8));
                 rich.AddText(", ");
-                rich.AddText("blue emphasis").SetFontSize(11).ColorHex = "1f4e79";
+                rich.AddText("blue emphasis").SetFontSize(global::OfficeIMO.OfficeLength.Points(11)).ColorHex = "1f4e79";
                 rich.AddText(", and ");
                 rich.AddHyperLink("external link", new Uri("https://evotec.xyz/native-daily-layout"), addStyle: true, tooltip: "Native daily layout link");
                 rich.AddText(".");
@@ -198,7 +198,7 @@ public partial class PdfDocumentRasterVisualBaselineTests {
                 table.Rows[3].Cells[2].Paragraphs[0].Text = "annotation";
 
                 WordParagraph closing = document.AddParagraph("Footer, header image, TOC link, section separator, and table borders should all survive the native PDF path.");
-                closing.SetFontSize(8);
+                closing.SetFontSize(global::OfficeIMO.OfficeLength.Points(8));
 
                 document.Save();
                 document.SaveAsPdf(pdfPath, new WordPdfExportOptions {

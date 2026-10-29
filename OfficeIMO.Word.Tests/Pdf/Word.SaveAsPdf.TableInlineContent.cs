@@ -37,7 +37,7 @@ public partial class Word {
         using WordDocument document = WordDocument.Create(sourcePath);
         WordParagraph paragraph = document.AddTable(1, 1, WordTableStyle.TableGrid).Rows[0].Cells[0].Paragraphs[0];
         paragraph.Text = "Before";
-        paragraph.FontFamily = "Arial"; paragraph.FontSize = 12;
+        paragraph.FontFamily = "Arial"; paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(12);
         paragraph.LineSpacingBefore = global::OfficeIMO.OfficeLength.Zero; paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
         paragraph.LineSpacingRule = WordLineSpacingRule.Auto; paragraph.LineSpacing = 240;
         using var image = new MemoryStream(OfficeIMO.Tests.Pdf.PdfPngTestImages.CreateRgbPng(2, 1));
@@ -122,7 +122,7 @@ public partial class Word {
         WordParagraph paragraph = document.AddTable(1, 1).Rows[0].Cells[0].Paragraphs[0];
         paragraph.Text = "Before";
         paragraph.FontFamily = "Arial";
-        paragraph.FontSize = 12;
+        paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(12);
         paragraph.Bold = true;
         using var image = new MemoryStream(OfficeIMO.Tests.Pdf.PdfPngTestImages.CreateRgbPng(2, 1));
         paragraph.AddImage(image, "inline.png", OfficeIMO.OfficeLength.Pixels(16), OfficeIMO.OfficeLength.Pixels(32));

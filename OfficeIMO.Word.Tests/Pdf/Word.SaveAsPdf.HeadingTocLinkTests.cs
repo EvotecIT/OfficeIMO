@@ -436,7 +436,7 @@ namespace OfficeIMO.Tests {
             using WordDocument document = WordDocument.Create();
             WordParagraph heading = document.AddParagraph(string.Join(" ", Enumerable.Repeat("Native declared heading formatting", 12)))
                 .SetStyle(WordParagraphStyles.Heading1);
-            heading.FontSize = 30;
+            heading.FontSize = global::OfficeIMO.OfficeLength.Points(30);
             heading.LineSpacingBefore = global::OfficeIMO.OfficeLength.Points(12D);
             heading.LineSpacingAfter = global::OfficeIMO.OfficeLength.Points(3D);
             heading.LineSpacingPoints = 36D;

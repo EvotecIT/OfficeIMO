@@ -27,10 +27,10 @@ public static partial class ProjectReportWorkflow {
             document.Margins.Top = document.Margins.Bottom = global::OfficeIMO.OfficeLength.Points((checked((int)Math.Round(view.PageMargin * 20))) / 20D);
             if (options.IncludeCharts && view.Kind != ProjectViewKind.Table) AddWordCharts(document, view, options, cancellationToken);
             if (!options.IncludeDataTables && view.Kind != ProjectViewKind.Table) return document;
-            var title = document.AddParagraph(view.Title); title.Bold = true; title.FontSize = 20; title.FontFamily = "Arial"; title.ColorHex = "183047";
+            var title = document.AddParagraph(view.Title); title.Bold = true; title.FontSize = global::OfficeIMO.OfficeLength.Points(20); title.FontFamily = "Arial"; title.ColorHex = "183047";
             foreach (var part in TableParts(view, cancellationToken)) {
                 cancellationToken.ThrowIfCancellationRequested();
-                var heading = document.AddParagraph(part.Title); heading.FontFamily = "Arial"; heading.FontSize = 13;
+                var heading = document.AddParagraph(part.Title); heading.FontFamily = "Arial"; heading.FontSize = global::OfficeIMO.OfficeLength.Points(13);
                 heading.Bold = true; heading.ColorHex = "183047"; heading.KeepWithNext = true;
                 heading.LineSpacingBefore = global::OfficeIMO.OfficeLength.Points(10D); heading.LineSpacingAfter = global::OfficeIMO.OfficeLength.Points(6D);
                 var table = document.AddTable(part.Rows.Length + 1, part.Headers.Length, WordTableStyle.TableGrid);
@@ -48,7 +48,7 @@ public static partial class ProjectReportWorkflow {
                         cell.MarginLeft = cell.MarginRight = global::OfficeIMO.OfficeLength.Points(6D);
                         var paragraph = cell.Paragraphs[0];
                         paragraph.Text = r == 0 ? part.Headers[c] : part.Rows[r - 1][c]; paragraph.Bold = r == 0;
-                        paragraph.FontSize = 11; paragraph.FontFamily = "Arial"; paragraph.ColorHex = r == 0 ? "FFFFFF" : "183047";
+                        paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(11); paragraph.FontFamily = "Arial"; paragraph.ColorHex = r == 0 ? "FFFFFF" : "183047";
                     }
                 }
             }

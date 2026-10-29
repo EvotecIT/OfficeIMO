@@ -74,7 +74,7 @@ public partial class Word {
             var paragraph = cell.Paragraphs[0];
             paragraph.Text = $"RowMarker{row}";
             paragraph.FontFamily = "Arial";
-            paragraph.FontSize = 12;
+            paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(12);
             paragraph.LineSpacingBefore = global::OfficeIMO.OfficeLength.Zero;
             paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
             paragraph.LineSpacingRule = WordLineSpacingRule.Auto;

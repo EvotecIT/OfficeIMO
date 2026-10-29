@@ -28,7 +28,7 @@ public sealed class WordPdfTableParagraphLineBoxTests {
             cell.MarginTop = global::OfficeIMO.OfficeLength.Zero; cell.MarginBottom = global::OfficeIMO.OfficeLength.Zero;
             WordParagraph paragraph = cell.Paragraphs[0];
             paragraph.Text = row == 0 ? "A" : "B";
-            paragraph.FontSize = 8;
+            paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(8);
             paragraph.FontFamily = "Arial";
             paragraph.LineSpacingBefore = global::OfficeIMO.OfficeLength.Zero;
             paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;

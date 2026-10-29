@@ -29,7 +29,7 @@ namespace OfficeIMO.Tests {
                 paragraph.AddText(" ");
                 paragraph.AddText("CellMarked").SetHighlight(WordHighlightColor.Yellow);
                 paragraph.AddText(" ");
-                paragraph.AddText("CellLarge").SetFontSize(18);
+                paragraph.AddText("CellLarge").SetFontSize(global::OfficeIMO.OfficeLength.Points(18));
 
                 document.Save();
                 document.SaveAsPdf(pdfPath, new WordPdfExportOptions {

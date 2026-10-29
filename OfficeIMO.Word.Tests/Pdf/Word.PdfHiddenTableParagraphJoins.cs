@@ -48,9 +48,9 @@ public partial class Word {
         table.LayoutMode = WordTableLayoutMode.Fixed; table.GridColumnWidth = new List<int> { 9360 };
         WordTableCell cell = table.Rows[0].Cells[0]; cell.WidthType = WordTableWidthUnit.Dxa; cell.Width = 9360;
         WordParagraph alpha = cell.AddParagraph("ALPHA", removeExistingParagraphs: true);
-        alpha.FontSize = 16; alpha.ParagraphAlignment = WordParagraphAlignment.Right;
+        alpha.FontSize = global::OfficeIMO.OfficeLength.Points(16); alpha.ParagraphAlignment = WordParagraphAlignment.Right;
         alpha.LineSpacingAfter = global::OfficeIMO.OfficeLength.Points(80D); HideJoinMark(alpha, true);
-        WordParagraph beta = cell.AddParagraph("BETA"); beta.FontSize = 8;
+        WordParagraph beta = cell.AddParagraph("BETA"); beta.FontSize = global::OfficeIMO.OfficeLength.Points(8);
         beta._run!.Append(new W.Break(), new W.Text("TAIL"), new W.Break(), new W.Text("END"));
         beta.LineSpacingBefore = global::OfficeIMO.OfficeLength.Points(80D); beta.LineSpacingAfter = global::OfficeIMO.OfficeLength.Points(20D);
         cell.AddParagraph("SECOND");

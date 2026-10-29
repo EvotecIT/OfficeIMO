@@ -26,7 +26,7 @@ public sealed partial class WordPaperStyle {
     public uint RuleSize { get; set; } = 4;
 
     /// <summary>Gets or sets table body type size in points. Header cells use 9 points.</summary>
-    public double TableFontSizePoints { get; set; } = 10;
+    public global::OfficeIMO.OfficeLength TableFontSize { get; set; } = global::OfficeIMO.OfficeLength.Points(10);
     /// <summary>Gets or sets top and bottom table-cell padding in twentieths of a point.</summary>
     public short TableCellVerticalPadding { get; set; } = 90;
     /// <summary>Gets or sets left and right table-cell padding in twentieths of a point.</summary>
@@ -46,7 +46,7 @@ public sealed partial class WordPaperStyle {
                 : paragraph.Style == WordParagraphStyles.Heading3 ? 3
                 : paragraph.Style == WordParagraphStyles.Heading4 ? 4 : 0;
             if (level == 0) continue;
-            paragraph.FontSize = level == 1 ? 18 : level == 2 ? 14 : level == 3 ? 11 : 10;
+            paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(level == 1 ? 18 : level == 2 ? 14 : level == 3 ? 11 : 10);
             paragraph.ColorHex = Ink;
             paragraph.Bold = true;
             paragraph.LineSpacingBefore = global::OfficeIMO.OfficeLength.Points(level == 1 ? 16 : level == 2 ? 12 : 8);
@@ -201,7 +201,7 @@ public sealed partial class WordPaperStyle {
 
     private void Format(WordParagraph paragraph, int size, string color, bool bold = false) {
         paragraph.FontFamily = FontFamily;
-        paragraph.FontSize = size;
+        paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(size);
         paragraph.ColorHex = color;
         if (bold) paragraph.Bold = true;
     }

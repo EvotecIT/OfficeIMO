@@ -23,7 +23,7 @@ public partial class Word {
             new RunFonts { Ascii = family, HighAnsi = family }, new FontSize { Val = "16" });
         list.Numbering.AddLevel(level);
         var paragraph = list.AddItem("B");
-        paragraph.FontFamily = family; paragraph.FontSize = 8;
+        paragraph.FontFamily = family; paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(8);
         paragraph.LineSpacingPoints = 30; paragraph.LineSpacingRule = WordLineSpacingRule.Exact;
         paragraph._paragraph.ParagraphProperties!.TextAlignment = new TextAlignment { Val = new VerticalTextAlignmentValues(alignment) };
         var options = new PdfCreateOptions();

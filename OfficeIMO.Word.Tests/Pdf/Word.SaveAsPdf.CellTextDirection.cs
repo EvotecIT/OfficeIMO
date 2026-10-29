@@ -134,11 +134,11 @@ public partial class Word {
         WordParagraph paragraph = table.Rows[0].Cells[0].Paragraphs[0];
         table.Rows[0].Cells[0].TextDirection = WordTextDirection.TopToBottomRightToLeft;
         paragraph.Text = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-        paragraph.FontSize = runSize;
+        paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(runSize);
         paragraph._paragraph.ParagraphProperties!.ParagraphMarkRunProperties =
             new W.ParagraphMarkRunProperties(new W.FontSize { Val = (markSize * 2).ToString(System.Globalization.CultureInfo.InvariantCulture) });
         WordParagraph after = document.AddParagraph("After");
-        after.FontSize = 12;
+        after.FontSize = global::OfficeIMO.OfficeLength.Points(12);
         after.LineSpacingBefore = after.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
         using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdf(BorderFramePdfOptions()).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         return Assert.Single(Assert.Single(pdf.GetPages()).GetWords(), word => word.Text == "After")

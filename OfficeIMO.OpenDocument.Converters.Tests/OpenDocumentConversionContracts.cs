@@ -78,7 +78,7 @@ public sealed class OpenDocumentConversionContracts {
         paragraph.Italic = true;
         paragraph.Underline = WordUnderlineStyle.Single;
         paragraph.Strike = true;
-        paragraph.FontSize = 13;
+        paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(13);
         paragraph.FontFamily = "Aptos";
         paragraph.ColorHex = "123456";
         paragraph.Highlight = WordHighlightColor.Yellow;

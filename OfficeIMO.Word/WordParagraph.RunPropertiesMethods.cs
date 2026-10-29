@@ -105,7 +105,7 @@ namespace OfficeIMO.Word {
         /// </summary>
         /// <param name="fontSize">Font size in points.</param>
         /// <returns>The current paragraph instance.</returns>
-        public WordParagraph SetFontSize(int fontSize) {
+        public WordParagraph SetFontSize(global::OfficeIMO.OfficeLength fontSize) {
             this.FontSize = fontSize;
             return this;
         }

@@ -16,7 +16,7 @@ internal static partial class Paragraphs {
             paragraph.Color = OfficeIMO.OfficeColor.Blue;
             paragraph.AddText(" This is continutation in the same line");
             paragraph.AddBreak(WordBreakType.TextWrapping);
-            paragraph.AddText(" This is continuation, in another line").SetUnderline(WordUnderlineStyle.Double).SetFontSize(15).SetColor(Color.Yellow).SetHighlight(WordHighlightColor.DarkGreen);
+            paragraph.AddText(" This is continuation, in another line").SetUnderline(WordUnderlineStyle.Double).SetFontSize(global::OfficeIMO.OfficeLength.Points(15)).SetColor(Color.Yellow).SetHighlight(WordHighlightColor.DarkGreen);
 
             var paragraph1 = document.AddParagraph("Here's another paragraph ").AddText(" which continues here, but will continue in another line ").AddBreak(WordBreakType.TextWrapping).AddText("to confirm that breaks with TextWrapping is working properly");
 

@@ -59,7 +59,7 @@ public sealed partial class WordPaperStyle {
                 var inherited = WordRunFormatting.EnumerateRunStyleProperties(scoped).ToArray();
                 string family = scoped.FontFamily ?? inherited.Select(style => style.RunFonts?.Ascii?.Value)
                     .FirstOrDefault(value => !string.IsNullOrEmpty(value)) ?? FontFamily;
-                double size = scoped.FontSizePoints ?? inherited.Select(style => style.FontSize?.Val?.Value)
+                double size = scoped.NativeFontSizePoints ?? inherited.Select(style => style.FontSize?.Val?.Value)
                     .Select(value => double.TryParse(value, NumberStyles.Number, CultureInfo.InvariantCulture, out double halfPoints)
                         ? (double?)(halfPoints / 2D) : null).FirstOrDefault(value => value.HasValue) ?? 9D;
                 bool bold = (run.RunProperties?.Bold == null ? (bool?)null : scoped.Bold) ?? inherited.Select(style => style.Bold == null ? (bool?)null : style.Bold.Val?.Value ?? true)

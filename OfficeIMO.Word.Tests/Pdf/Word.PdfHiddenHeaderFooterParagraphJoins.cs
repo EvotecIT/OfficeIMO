@@ -167,7 +167,7 @@ public partial class Word {
         document.AddParagraph("BODY"); document.AddHeadersAndFooters();
         WordHeaderFooter story = footer ? document.Footer.Default : document.Header.Default;
         WordParagraph alpha = story.AddParagraph("ALPHA"); HideJoinMark(alpha, true);
-        story.AddParagraph("BETA").FontSize = sameSize ? 12 : 14;
+        story.AddParagraph("BETA").FontSize = global::OfficeIMO.OfficeLength.Points(sameSize ? 12 : 14);
         var result = document.ConvertToPdfWithEvidence(new WordPdfExportOptions { IncludePageNumbers = false,
             ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic() });
         using var pdf = PdfPigDocument.Open(result.Value.ToBytes());

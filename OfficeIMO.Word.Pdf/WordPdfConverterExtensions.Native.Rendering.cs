@@ -1139,8 +1139,8 @@ namespace OfficeIMO.Word.Pdf {
         }
 
         private static double? ResolveNativeHeadingDeclaredFontSize(WordParagraph paragraph, NativeParagraphStyleDefaults styleDefaults) {
-            if (paragraph.FontSizePoints.HasValue && paragraph.FontSizePoints.Value > 0D) {
-                return paragraph.FontSizePoints.Value;
+            if (paragraph.NativeFontSizePoints.HasValue && paragraph.NativeFontSizePoints.Value > 0D) {
+                return paragraph.NativeFontSizePoints.Value;
             }
 
             if (styleDefaults.FontSize.HasValue && styleDefaults.FontSize.Value > 0D) {

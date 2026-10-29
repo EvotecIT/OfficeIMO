@@ -42,7 +42,7 @@ public partial class Word {
             WordParagraph paragraph = cell.Paragraphs[0];
             paragraph.Text = $"BorderFirst{row}\nBorderNext{row}";
             paragraph.FontFamily = "Arial";
-            paragraph.FontSize = 12;
+            paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(12);
             paragraph.LineSpacingBefore = paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
             paragraph.LineSpacingRule = WordLineSpacingRule.Auto;
             paragraph.LineSpacing = 240;
@@ -71,7 +71,7 @@ public partial class Word {
         WordParagraph after = document.AddParagraph("BorderFlowAfter");
         foreach (WordParagraph paragraph in new[] { first, after }) {
             paragraph.FontFamily = "Arial";
-            paragraph.FontSize = 12;
+            paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(12);
             paragraph.LineSpacingBefore = paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
             paragraph.LineSpacingRule = WordLineSpacingRule.Auto;
             paragraph.LineSpacing = 240;

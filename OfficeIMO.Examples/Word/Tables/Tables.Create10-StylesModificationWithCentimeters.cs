@@ -14,7 +14,7 @@ namespace OfficeIMO.Examples.Word {
                 var title = document.AddParagraph("Table Styles with Twips and Centimeters");
                 title.ParagraphAlignment = WordParagraphAlignment.Center;
                 title.Bold = true;
-                title.FontSize = 16;
+                title.FontSize = global::OfficeIMO.OfficeLength.Points(16);
                 document.AddParagraph();
 
                 // Example 1: Using Twips (Original Method)

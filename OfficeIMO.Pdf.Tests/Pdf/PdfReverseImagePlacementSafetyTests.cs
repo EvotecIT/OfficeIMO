@@ -756,7 +756,7 @@ public sealed class PdfReverseImagePlacementSafetyTests {
             OfficeIMO.Word.WordParagraph paragraph = Assert.Single(
                 word.Value.Paragraphs,
                 candidate => candidate.Text.Contains(marker, StringComparison.Ordinal));
-            Assert.Equal(20D, paragraph.FontSizePoints);
+            Assert.Equal(20D, paragraph.FontSize?.ToPoints());
         }
 
         PdfWordConversionResult unscaled = logical.ConvertToWordWithEvidence(new WordPdfImportOptions {
@@ -766,7 +766,7 @@ public sealed class PdfReverseImagePlacementSafetyTests {
             OfficeIMO.Word.WordParagraph paragraph = Assert.Single(
                 unscaled.Value.Paragraphs,
                 candidate => candidate.Text.Contains(marker, StringComparison.Ordinal));
-            Assert.Equal(10D, paragraph.FontSizePoints);
+            Assert.Equal(10D, paragraph.FontSize?.ToPoints());
         }
     }
 
@@ -786,7 +786,7 @@ public sealed class PdfReverseImagePlacementSafetyTests {
             OfficeIMO.Word.WordParagraph paragraph = Assert.Single(
                 reopened.Paragraphs,
                 candidate => candidate.Text.Contains(marker, StringComparison.Ordinal));
-            Assert.Equal(4000D, paragraph.FontSizePoints);
+            Assert.Equal(4000D, paragraph.FontSize?.ToPoints());
         }
     }
 
@@ -810,9 +810,9 @@ public sealed class PdfReverseImagePlacementSafetyTests {
         });
         using (word.Value) {
             Assert.Equal(10D, Assert.Single(word.Value.Paragraphs,
-                paragraph => paragraph.Text.Contains(firstMarker, StringComparison.Ordinal)).FontSizePoints);
+                paragraph => paragraph.Text.Contains(firstMarker, StringComparison.Ordinal)).FontSize?.ToPoints());
             Assert.Equal(10D, Assert.Single(word.Value.Paragraphs,
-                paragraph => paragraph.Text.Contains(secondMarker, StringComparison.Ordinal)).FontSizePoints);
+                paragraph => paragraph.Text.Contains(secondMarker, StringComparison.Ordinal)).FontSize?.ToPoints());
             Assert.Single(word.Value.Sections);
         }
     }
@@ -836,7 +836,7 @@ public sealed class PdfReverseImagePlacementSafetyTests {
             using OfficeIMO.Word.WordDocument reopened = OfficeIMO.Word.WordDocument.Load(serialized);
             OfficeIMO.Word.WordTable table = Assert.Single(reopened.Tables);
             Assert.All(table.Rows.SelectMany(static row => row.Cells), static cell =>
-                Assert.All(cell.Paragraphs, static paragraph => Assert.Equal(22D, paragraph.FontSizePoints)));
+                Assert.All(cell.Paragraphs, static paragraph => Assert.Equal(22D, paragraph.FontSize?.ToPoints())));
         }
     }
 
@@ -861,7 +861,7 @@ public sealed class PdfReverseImagePlacementSafetyTests {
             using OfficeIMO.Word.WordDocument reopened = OfficeIMO.Word.WordDocument.Load(serialized);
             OfficeIMO.Word.WordTable table = Assert.Single(reopened.Tables);
             Assert.All(table.Rows.SelectMany(static row => row.Cells), static cell =>
-                Assert.All(cell.Paragraphs, static paragraph => Assert.Equal(4000D, paragraph.FontSizePoints)));
+                Assert.All(cell.Paragraphs, static paragraph => Assert.Equal(4000D, paragraph.FontSize?.ToPoints())));
         }
     }
 

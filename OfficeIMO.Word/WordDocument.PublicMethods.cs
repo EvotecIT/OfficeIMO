@@ -219,7 +219,7 @@ namespace OfficeIMO.Word {
         /// <param name="colorHex">Hex color of the symbol.</param>
         /// <param name="fontSize">Font size in points.</param>
         /// <returns>The created <see cref="WordList"/>.</returns>
-        public WordList AddCustomBulletList(char symbol, string fontName, string colorHex, int? fontSize = null) {
+        public WordList AddCustomBulletList(char symbol, string fontName, string colorHex, global::OfficeIMO.OfficeLength? fontSize = null) {
             return WordList.AddCustomBulletList(this, symbol, fontName, colorHex, fontSize);
         }
 
@@ -232,7 +232,7 @@ namespace OfficeIMO.Word {
         /// <param name="colorHex">Hex color fallback.</param>
         /// <param name="fontSize">Font size in points.</param>
         /// <returns>The created <see cref="WordList"/>.</returns>
-        public WordList AddCustomBulletList(WordBulletSymbol symbol, string fontName, OfficeIMO.OfficeColor? color = null, string? colorHex = null, int? fontSize = null) {
+        public WordList AddCustomBulletList(WordBulletSymbol symbol, string fontName, OfficeIMO.OfficeColor? color = null, string? colorHex = null, global::OfficeIMO.OfficeLength? fontSize = null) {
             return WordList.AddCustomBulletList(this, symbol, fontName, color, colorHex, fontSize);
         }
 
@@ -253,13 +253,13 @@ namespace OfficeIMO.Word {
         ///     WordListLevelKind.BulletSquareSymbol,
         ///     "Courier New",
         ///     OfficeIMO.OfficeColor.Red,
-        ///     fontSize: 16);
+        ///     fontSize: global::OfficeIMO.OfficeLength.Points(16));
         ///
         /// list.AddItem("Custom bullet item");
         /// document.Save();
         /// ]]></code>
         /// </example>
-        public WordList AddCustomBulletList(WordListLevelKind kind, string fontName, OfficeIMO.OfficeColor? color = null, string? colorHex = null, int? fontSize = null) {
+        public WordList AddCustomBulletList(WordListLevelKind kind, string fontName, OfficeIMO.OfficeColor? color = null, string? colorHex = null, global::OfficeIMO.OfficeLength? fontSize = null) {
             return WordList.AddCustomBulletList(this, kind, fontName, color, colorHex, fontSize);
         }
 
@@ -291,8 +291,8 @@ namespace OfficeIMO.Word {
         /// using WordDocument document = WordDocument.Create(filePath);
         ///
         /// WordList list = document.AddCustomList();
-        /// list.AddListLevel(1, WordListLevelKind.BulletSquareSymbol, "Courier New", colorHex: "#FF0000", fontSize: 14);
-        /// list.AddListLevel(5, WordListLevelKind.BulletBlackCircle, "Arial", colorHex: "#00FF00", fontSize: 10);
+        /// list.AddListLevel(1, WordListLevelKind.BulletSquareSymbol, "Courier New", colorHex: "#FF0000", fontSize: global::OfficeIMO.OfficeLength.Points(14));
+        /// list.AddListLevel(5, WordListLevelKind.BulletBlackCircle, "Arial", colorHex: "#00FF00", fontSize: global::OfficeIMO.OfficeLength.Points(10));
         ///
         /// list.AddItem("First level item");
         /// list.AddItem("Fifth level item", 4);

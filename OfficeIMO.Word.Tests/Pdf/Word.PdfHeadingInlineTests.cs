@@ -21,7 +21,7 @@ public partial class Word {
         using var document = WordDocument.Create(source);
         if (columns) document.Sections[0].ColumnCount = 2;
         WordParagraph heading = document.AddParagraph("PlainMarker ").SetStyle(style);
-        heading.FontSize = 12;
+        heading.FontSize = global::OfficeIMO.OfficeLength.Points(12);
         heading.AddText("ItalicMarker ").Italic = true;
         heading.AddHyperLink("LinkedMarker", new Uri(uri), tooltip: "Heading link metadata");
         document.Save();
@@ -49,7 +49,7 @@ public partial class Word {
         using var document = WordDocument.Create(source);
         if (columns) document.Sections[0].ColumnCount = 2;
         WordParagraph heading = document.AddParagraph("HeadingNoteMarker").SetStyle(style);
-        heading.FontSize = 12;
+        heading.FontSize = global::OfficeIMO.OfficeLength.Points(12);
         heading.AddFootNote("FootnoteBodyMarker");
         heading.AddEndNote("EndnoteBodyMarker");
         document.Save();

@@ -61,7 +61,7 @@ public sealed class WordPdfSmallCapsTests {
     public void SmallCapsUsesNativeHalfPointSizesAndKeepsOriginalCapitals(double fontSize, double smallSize) {
         using WordDocument document = CreateDocument();
         WordParagraph run = document.AddParagraph("Aa 1!");
-        run.FontSizePoints = fontSize;
+        run.FontSize = global::OfficeIMO.OfficeLength.Points(fontSize);
         run.SetSmallCaps();
         using var pdf = OpenPdf(document);
         var letters = pdf.GetPage(1).Letters.Where(letter => letter.Value != " ").ToArray();

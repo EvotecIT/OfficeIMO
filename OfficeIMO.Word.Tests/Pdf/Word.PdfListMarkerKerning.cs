@@ -79,7 +79,7 @@ public sealed class WordPdfListMarkerKerningTests {
         };
         paragraph.Text = "B";
         paragraph.FontFamily = "Courier";
-        paragraph.FontSize = 10;
+        paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(10);
         paragraph._paragraph.ParagraphProperties ??= new ParagraphProperties();
         paragraph._paragraph.ParagraphProperties.NumberingProperties = new NumberingProperties(
             new NumberingLevelReference { Val = 0 }, new NumberingId { Val = list.NumberId });

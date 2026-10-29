@@ -2538,7 +2538,7 @@ public sealed class PdfRenderingProfileTests {
         using var stream = new MemoryStream();
         using OfficeIMO.Word.WordDocument document =
             OfficeIMO.Word.WordDocument.Create(stream);
-        document.Settings.FontSize = 18;
+        document.Settings.FontSize = global::OfficeIMO.OfficeLength.Points(18);
         document.AddParagraph("A");
         var options = new OfficeIMO.Word.Pdf.WordPdfExportOptions()
             .UseRenderingProfile(new OfficeRenderingProfile(

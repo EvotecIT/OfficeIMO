@@ -44,7 +44,7 @@ public sealed class ImageExportProviderVisualBaselineTests {
         document.PageSettings.Height = global::OfficeIMO.OfficeLength.Points(216D);
         document.Margins.Type = WordMargin.Narrow;
         document.AddParagraph("Quarterly delivery brief")
-            .SetFontSize(22)
+            .SetFontSize(global::OfficeIMO.OfficeLength.Points(22))
             .SetBold()
             .SetFontFamily(PortableFontFamily)
             .SetColor(OfficeColor.FromRgb(30, 64, 175));

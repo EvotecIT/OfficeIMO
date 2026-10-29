@@ -81,7 +81,7 @@ namespace OfficeIMO.Word {
             }
 
             if (legacyRun.KerningMinimumFontSizeHalfPoints.HasValue) {
-                run.KerningMinimumFontSizePoints = legacyRun.KerningMinimumFontSizeHalfPoints.Value / 2D;
+                run.KerningMinimumFontSize = global::OfficeIMO.OfficeLength.Points(legacyRun.KerningMinimumFontSizeHalfPoints.Value / 2D);
             }
 
             if (legacyRun.CharacterScalePercentage.HasValue) {

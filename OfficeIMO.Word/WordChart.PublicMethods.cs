@@ -380,9 +380,9 @@ namespace OfficeIMO.Word {
         /// <param name="fontSize">Font size in points.</param>
         /// <param name="color">Text color.</param>
         /// <returns>The current <see cref="WordChart"/> instance.</returns>
-        public WordChart SetAxisTitleFormat(string fontName, int fontSize, OfficeIMO.OfficeColor color) {
+        public WordChart SetAxisTitleFormat(string fontName, global::OfficeIMO.OfficeLength fontSize, OfficeIMO.OfficeColor color) {
             _axisTitleFontName = fontName;
-            _axisTitleFontSize = fontSize;
+            _axisTitleFontSize = checked((int)Math.Round(fontSize.ToPoints() * 100D, MidpointRounding.AwayFromZero));
             _axisTitleColor = color;
             UpdateAxisTitles();
             return this;

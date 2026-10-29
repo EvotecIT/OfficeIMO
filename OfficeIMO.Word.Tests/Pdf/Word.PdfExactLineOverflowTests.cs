@@ -30,7 +30,7 @@ public partial class Word {
         if (footer) SetStory(source.FooterDefaultOrCreate);
         if (prefix) {
             WordParagraph preceding = source.AddParagraph("P");
-            preceding.FontSize = 12;
+            preceding.FontSize = global::OfficeIMO.OfficeLength.Points(12);
             preceding.LineSpacingPoints = 12;
             preceding.LineSpacingRule = WordLineSpacingRule.Exact;
             preceding.LineSpacingBefore = preceding.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;

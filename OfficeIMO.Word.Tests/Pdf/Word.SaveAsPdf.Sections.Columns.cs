@@ -31,7 +31,7 @@ public partial class Word {
 
             void AddLines(string prefix, int count) {
                 var paragraph = document.AddParagraph(string.Join("\n", Enumerable.Range(1, count).Select(index => prefix + index.ToString("D3"))));
-                paragraph.FontFamily = "Arial"; paragraph.FontSize = 12;
+                paragraph.FontFamily = "Arial"; paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(12);
                 paragraph.LineSpacing = 400; paragraph.LineSpacingRule = WordLineSpacingRule.Exact;
                 paragraph.LineSpacingBefore = global::OfficeIMO.OfficeLength.Zero; paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
                 paragraph.AvoidWidowAndOrphanOverride = false;
@@ -100,10 +100,10 @@ public partial class Word {
                 new Column { Width = "4320" });
 
             WordParagraph left = document.AddParagraph("LeftMarker starts in the explicitly narrow first Word section column.");
-            left.FontFamily = "Arial"; left.FontSize = 12;
+            left.FontFamily = "Arial"; left.FontSize = global::OfficeIMO.OfficeLength.Points(12);
             left.AddBreak(WordBreakType.Column);
             WordParagraph right = document.AddParagraph("RightMarker starts in the wider second Word section column.");
-            right.FontFamily = "Arial"; right.FontSize = 12;
+            right.FontFamily = "Arial"; right.FontSize = global::OfficeIMO.OfficeLength.Points(12);
 
             document.Save();
             document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
@@ -209,7 +209,7 @@ public partial class Word {
             WordParagraph heading = document.AddParagraph("ColumnKeepHeading").SetStyle(WordParagraphStyles.Heading2);
             WordParagraph body = document.AddParagraph("ColumnKeepBody\nSecond body line\nThird body line");
             foreach (WordParagraph paragraph in new[] { prelude, heading, body }) {
-                paragraph.FontSize = 12;
+                paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(12);
                 paragraph.LineSpacing = 400;
                 paragraph.LineSpacingRule = WordLineSpacingRule.Exact;
                 paragraph.LineSpacingBefore = global::OfficeIMO.OfficeLength.Zero;
@@ -263,7 +263,7 @@ public partial class Word {
             WordParagraph heading = document.AddParagraph("StyledColumnKeepHeading").SetStyleId(styleId);
             WordParagraph body = document.AddParagraph("StyledColumnKeepBody\nSecond body line\nThird body line");
             foreach (WordParagraph paragraph in new[] { prelude, heading, body }) {
-                paragraph.FontSize = 12;
+                paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(12);
                 paragraph.LineSpacing = 400;
                 paragraph.LineSpacingRule = WordLineSpacingRule.Exact;
                 paragraph.LineSpacingBefore = global::OfficeIMO.OfficeLength.Zero;

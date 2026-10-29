@@ -94,7 +94,7 @@ public sealed class WordRunBackgroundDocumentDefaultsTests {
             if (story == "link") paragraph.AddHyperLink("BACKGROUND", new Uri("https://example.com/"));
         }
         paragraph.FontFamily = "Arial";
-        paragraph.FontSize = 12;
+        paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(12);
 
         using WordDocument loaded = WordDocument.Load(new MemoryStream(document.ToBytes()));
         using PdfPigDocument pdf = PdfPigDocument.Open(loaded.ToPdf(new WordPdfExportOptions {

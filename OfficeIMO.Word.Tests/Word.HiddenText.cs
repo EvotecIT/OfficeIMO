@@ -49,7 +49,7 @@ public partial class Word {
     public void HiddenText_ExplicitFormattingRoundTripsWithoutLosingText(WordFileFormat format, bool hidden) {
         using WordDocument source = WordDocument.Create();
         WordParagraph run = source.AddParagraph("Retained hidden content");
-        run.FontSize = 12;
+        run.FontSize = global::OfficeIMO.OfficeLength.Points(12);
         run.Hidden = hidden;
         Assert.Equal(hidden, run.Hidden);
         Assert.Empty(source.ValidateDocument());
@@ -58,7 +58,7 @@ public partial class Word {
         WordParagraph saved = Assert.Single(reopened.Paragraphs);
         Assert.Equal("Retained hidden content", saved.Text);
         Assert.Equal(hidden, saved.Hidden);
-        Assert.Equal(12, saved.FontSize);
+        Assert.Equal(12, saved.FontSize?.ToPoints());
         Assert.Empty(reopened.ValidateDocument());
     }
 

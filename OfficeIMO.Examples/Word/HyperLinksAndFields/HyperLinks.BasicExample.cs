@@ -36,7 +36,7 @@ namespace OfficeIMO.Examples.Word {
                 // lets style next hyperlink with orange color and make it 20 in size
                 var anotherHyperlink = document.AddParagraph("Test HYPERLINK ").AddHyperLink(" to website?", new Uri("https://evotec.pl")).Paragraph;
                 anotherHyperlink.Color = Color.Orange;
-                anotherHyperlink.FontSize = 20;
+                anotherHyperlink.FontSize = global::OfficeIMO.OfficeLength.Points(20);
 
                 //document.HyperLinks.Last().Remove();
 

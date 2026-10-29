@@ -300,7 +300,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(paragraph.Bold);
                 Assert.True(paragraph.Italic);
                 Assert.Equal("0000FF", paragraph.ColorHex);
-                Assert.Equal(14, paragraph.FontSize);
+                Assert.Equal(14, paragraph.FontSize?.ToPoints());
             } finally {
                 DeleteIfExists(docPath);
             }

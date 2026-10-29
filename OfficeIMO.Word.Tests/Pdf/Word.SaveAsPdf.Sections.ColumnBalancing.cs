@@ -43,7 +43,7 @@ public partial class Word {
             void AddParagraph(string text) {
                 WordParagraph paragraph = document.AddParagraph(text);
                 paragraph.FontFamily = "Arial";
-                paragraph.FontSize = 12;
+                paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(12);
                 paragraph.LineSpacing = 400;
                 paragraph.LineSpacingRule = WordLineSpacingRule.Exact;
                 paragraph.LineSpacingBefore = global::OfficeIMO.OfficeLength.Zero;

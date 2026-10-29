@@ -469,7 +469,7 @@ public sealed class WordPdfBarTabTests {
     private static void ConfigureParagraph(WordParagraph paragraph, string text) {
         paragraph.Text = text;
         paragraph.FontFamily = ManagedTextShapingTestAssets.FamilyName;
-        paragraph.FontSize = 12;
+        paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(12);
         W.ParagraphProperties properties = paragraph._paragraph.ParagraphProperties ??= new W.ParagraphProperties();
         properties.SpacingBetweenLines = new W.SpacingBetweenLines {
             Before = "0", After = "0", Line = "240", LineRule = W.LineSpacingRuleValues.Auto

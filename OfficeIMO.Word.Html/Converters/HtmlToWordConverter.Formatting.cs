@@ -267,7 +267,7 @@ namespace OfficeIMO.Word.Html {
             }
 
             if (TryParseFontSize(GetInlinePropertyValue(declaration, styleAttribute, "font-size"), out int fontSize)) {
-                paragraph.SetFontSize(fontSize);
+                paragraph.SetFontSize(global::OfficeIMO.OfficeLength.Points(fontSize));
             }
 
             if (TryConvertToTwipAllowNegative(GetInlinePropertyRawValue(declaration, styleAttribute, "letter-spacing"), out int lsParagraph)) {
@@ -517,7 +517,7 @@ namespace OfficeIMO.Word.Html {
             if (!string.IsNullOrEmpty(formatting.ColorHex)) run.SetColorHex(formatting.ColorHex!);
             if (formatting.Highlight.HasValue) run.SetHighlight(formatting.Highlight.Value.ToOfficeEnum());
             ApplyTextBackground(run, formatting, options);
-            if (formatting.FontSize.HasValue) run.SetFontSize(formatting.FontSize.Value);
+            if (formatting.FontSize.HasValue) run.SetFontSize(global::OfficeIMO.OfficeLength.Points(formatting.FontSize.Value));
             if (formatting.Caps.HasValue) run.SetCapsStyle(formatting.Caps.Value);
             if (formatting.LetterSpacing.HasValue) run.SetSpacing(formatting.LetterSpacing.Value);
             if (!string.IsNullOrWhiteSpace(formatting.Language)) run.SetLanguage(formatting.Language!);

@@ -28,7 +28,7 @@ public partial class Word {
     public void SaveAsPdf_PresentationOptionsPreserveInheritedBodyTypography(bool profile, string setting) {
         using WordDocument document = WordDocument.Create();
         document.Settings.FontFamily = "Times New Roman";
-        document.Settings.FontSize = 18;
+        document.Settings.FontSize = global::OfficeIMO.OfficeLength.Points(18);
         document.AddParagraph("Inherited body font and size");
         var options = new WordPdfExportOptions { ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic() };
         if (profile) options.UseRenderingProfile(new OfficeRenderingProfile("shaping-only"));
@@ -81,7 +81,7 @@ public partial class Word {
     public void SaveAsPdf_GeneratedPresentationRetainsItsExplicitFont(bool profile, bool footer) {
         using WordDocument document = WordDocument.Create();
         document.Settings.FontFamily = "Times New Roman";
-        document.Settings.FontSize = 18;
+        document.Settings.FontSize = global::OfficeIMO.OfficeLength.Points(18);
         document.AddParagraph("BODY");
         var options = new WordPdfExportOptions { ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic() };
         if (profile) options.UseRenderingProfile(new OfficeRenderingProfile("shaping-only"));
@@ -110,7 +110,7 @@ public partial class Word {
     public void SaveAsPdf_DefaultSizeAssignmentPreservesTheInheritedFamily(bool profile, bool repeatProfile) {
         using WordDocument document = WordDocument.Create();
         document.Settings.FontFamily = "Times New Roman";
-        document.Settings.FontSize = 18;
+        document.Settings.FontSize = global::OfficeIMO.OfficeLength.Points(18);
         document.AddParagraph("BODY");
         var options = new WordPdfExportOptions { ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic() };
         var fontless = new OfficeRenderingProfile("shaping-only");

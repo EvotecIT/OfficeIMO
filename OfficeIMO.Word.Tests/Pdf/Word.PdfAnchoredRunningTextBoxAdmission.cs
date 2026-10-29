@@ -22,8 +22,8 @@ public partial class Word {
         WordParagraph inner = box.Paragraphs.Single();
         foreach (W.Break lineBreak in inner._paragraph.Descendants<W.Break>().ToArray()) lineBreak.Remove();
         inner.Text = "small";
-        inner.FontSize = 6;
-        inner.AddText("LARGE").FontSize = 24;
+        inner.FontSize = global::OfficeIMO.OfficeLength.Points(6);
+        inner.AddText("LARGE").FontSize = global::OfficeIMO.OfficeLength.Points(24);
         inner.LineSpacingPoints = 6;
         inner.LineSpacingRule = WordLineSpacingRule.Exact;
         // Short advances fit; the larger run's actual line ink crosses the inner clip.
@@ -128,10 +128,10 @@ public partial class Word {
         foreach (W.Break lineBreak in inner._paragraph.Descendants<W.Break>().ToArray()) lineBreak.Remove();
         inner.Text = "x";
         inner.FontFamily = "Arial";
-        inner.FontSize = 6;
+        inner.FontSize = global::OfficeIMO.OfficeLength.Points(6);
         WordParagraph large = inner.AddText("X");
         large.FontFamily = "Arial";
-        large.FontSize = 144;
+        large.FontSize = global::OfficeIMO.OfficeLength.Points(144);
         large.AddBreak();
         string[] before = AnchoredRunningStoryXml(document);
         var result = document.ConvertToPdfWithEvidence(EmptyRunningOptions());
@@ -187,10 +187,10 @@ public partial class Word {
         foreach (W.Break lineBreak in inner._paragraph.Descendants<W.Break>().ToArray()) lineBreak.Remove();
         inner.Text = "small";
         inner.FontFamily = "Arial";
-        inner.FontSize = 6;
+        inner.FontSize = global::OfficeIMO.OfficeLength.Points(6);
         WordParagraph large = inner.AddText("LARGE");
         large.FontFamily = "Arial";
-        large.FontSize = 24;
+        large.FontSize = global::OfficeIMO.OfficeLength.Points(24);
         string[] before = AnchoredRunningStoryXml(document);
         var result = document.ConvertToPdfWithEvidence(EmptyRunningOptions());
         Assert.DoesNotContain(result.Report.Warnings, warning => warning.Code == "native-mixed-text-box-layout-approximated");
@@ -230,7 +230,7 @@ public partial class Word {
         WordParagraph inner = document.Sections[1].Header!.First!.TextBoxes.Single().Paragraphs.Single();
         inner.Text = "SMALL";
         inner.FontFamily = "Arial";
-        inner.FontSize = 6;
+        inner.FontSize = global::OfficeIMO.OfficeLength.Points(6);
         inner.LineSpacingPoints = 144;
         inner.LineSpacingRule = rule;
         // The unchanged 129.6pt frame has 122.4pt after vertical insets.

@@ -23,7 +23,7 @@ public partial class Word {
         paragraph._paragraph.RemoveAllChildren<Run>();
         for (int index = 0; index < count; index++)
             paragraph._paragraph.Append(TextLine(((char)('A' + index)).ToString(), 10, index + 1 < count));
-        paragraph.FontFamily = "Arial"; paragraph.FontSize = 10;
+        paragraph.FontFamily = "Arial"; paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(10);
         paragraph.LineSpacing = 480; paragraph.LineSpacingRule = WordLineSpacingRule.Auto;
         paragraph.LineSpacingBefore = global::OfficeIMO.OfficeLength.Zero; paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
         paragraph.AvoidWidowAndOrphanOverride = false;

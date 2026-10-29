@@ -388,7 +388,7 @@ public static partial class WordIWorkConverter {
                     if (firstRunSize != sourceParagraph.Style.TextStyle.FontSizePoints) {
                         // Pages interprets relative marker sizes using the leading run and paragraph mark.
                         // Keep both at the first body run's size; the numbering level owns the marker size.
-                        paragraph.FontSizePoints = firstRunSize;
+                        paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(firstRunSize);
                         paragraph.CopyRunFormattingToParagraphMark();
                     }
                 }
@@ -507,7 +507,7 @@ public static partial class WordIWorkConverter {
         if (style.Italic.HasValue) run.Italic = style.Italic.Value;
         if (style.Underline.HasValue) run.Underline = style.Underline.Value ? WordUnderlineStyle.Single : null;
         if (style.Strikethrough.HasValue) run.Strike = style.Strikethrough.Value;
-        if (style.FontSizePoints.HasValue) run.FontSizePoints = style.FontSizePoints.Value;
+        if (style.FontSizePoints.HasValue) run.FontSize = global::OfficeIMO.OfficeLength.Points(style.FontSizePoints.Value);
         if (style.CharacterSpacingPoints is double spacing) run.Spacing = ToCharacterSpacingTwips(spacing);
         if (!string.IsNullOrWhiteSpace(style.FontName)) run.FontFamily = style.FontName;
         if (style.Color != null) run.ColorHex = style.Color.RgbHex;

@@ -70,7 +70,7 @@ public static partial class WordIWorkConverter {
                     + (level + 1).ToString(System.Globalization.CultureInfo.InvariantCulture) + ")";
             }
             if (firstObservation && fontName != null) list.FontName = fontName;
-            if (firstObservation && qualifiedMarkerFontSize.HasValue) list.FontSize = qualifiedMarkerFontSize;
+            if (firstObservation && qualifiedMarkerFontSize.HasValue) list.FontSize = qualifiedMarkerFontSize.HasValue ? global::OfficeIMO.OfficeLength.Points(qualifiedMarkerFontSize.Value) : null;
             if (qualifiedLeftOffset.HasValue && qualifiedHangingOffset.HasValue) {
                 WordListLevel numberingLevel = list.Numbering.Levels[level];
                 numberingLevel.IndentationLeft= global::OfficeIMO.OfficeLength.Points((qualifiedLeftOffset.Value) / 20D);

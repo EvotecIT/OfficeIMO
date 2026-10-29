@@ -25,7 +25,7 @@ public partial class Word {
             WordParagraph paragraph = table.Rows[row].Cells[column].Paragraphs[0];
             paragraph.Text = $"CELL{row + 1}{column + 1}";
             paragraph.FontFamily = "Arial";
-            paragraph.FontSize = 12;
+            paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(12);
         }
         story.AddParagraph("AFTERTABLE");
 

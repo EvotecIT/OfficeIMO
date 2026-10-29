@@ -301,7 +301,7 @@ public sealed class WordPdfRunningPictureWrapTests {
     private static void ConfigureParagraph(WordParagraph paragraph, string text) {
         paragraph.Text = text;
         paragraph.FontFamily = ManagedTextShapingTestAssets.FamilyName;
-        paragraph.FontSize = 12;
+        paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(12);
         paragraph.LineSpacingPoints = 15;
         paragraph.LineSpacingRule = WordLineSpacingRule.Exact;
         paragraph.LineSpacingBefore = paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;

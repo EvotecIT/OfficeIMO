@@ -21,7 +21,7 @@ namespace OfficeIMO.Tests {
                 list2.AddItem("Two");
 
                 list1.Bold = true;
-                list1.FontSize = 20;
+                list1.FontSize = global::OfficeIMO.OfficeLength.Points(20);
                 list1.Color = Color.BlueViolet;
 
                 list1Id = list1._numberId;
@@ -49,11 +49,11 @@ namespace OfficeIMO.Tests {
 
             using (var document = WordDocument.Load(filePath)) {
                 Assert.True(document.Lists[0].Bold);
-                Assert.Equal(20, document.Lists[0].FontSize);
+                Assert.Equal(20, document.Lists[0].FontSize?.ToPoints());
                 Assert.Equal(Color.BlueViolet, document.Lists[0].Color);
 
                 Assert.False(document.Lists[1].Bold);
-                Assert.Null(document.Lists[1].FontSize);
+                Assert.Null(document.Lists[1].FontSize?.ToPoints());
                 Assert.Null(document.Lists[1].Color);
             }
         }

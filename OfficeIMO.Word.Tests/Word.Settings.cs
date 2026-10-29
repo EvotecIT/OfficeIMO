@@ -37,17 +37,17 @@ namespace OfficeIMO.Tests {
 
                 Assert.True(document.Settings.UpdateFieldsOnOpen == true);
 
-                Assert.True(document.Settings.FontSize == 11); // default value
+                Assert.True(document.Settings.FontSize?.ToPoints() == 11); // default value
 
-                document.Settings.FontSize = 30;
+                document.Settings.FontSize = global::OfficeIMO.OfficeLength.Points(30);
 
-                Assert.True(document.Settings.FontSize == 30);
+                Assert.True(document.Settings.FontSize?.ToPoints() == 30);
 
-                Assert.True(document.Settings.FontSizeComplexScript == 11);
+                Assert.True(document.Settings.FontSizeComplexScript?.ToPoints() == 11);
 
-                document.Settings.FontSizeComplexScript = 20;
+                document.Settings.FontSizeComplexScript = global::OfficeIMO.OfficeLength.Points(20);
 
-                Assert.True(document.Settings.FontSizeComplexScript == 20);
+                Assert.True(document.Settings.FontSizeComplexScript?.ToPoints() == 20);
 
                 // those are default values
                 Assert.True(document.Settings.FontFamily == null);
@@ -122,8 +122,8 @@ namespace OfficeIMO.Tests {
 
                 document.Settings.UpdateFieldsOnOpen = false;
 
-                Assert.True(document.Settings.FontSizeComplexScript == 20);
-                Assert.True(document.Settings.FontSize == 30);
+                Assert.True(document.Settings.FontSizeComplexScript?.ToPoints() == 20);
+                Assert.True(document.Settings.FontSize?.ToPoints() == 30);
                 Assert.True(document.Settings.FontFamily == "Times New Roman");
 
                 document.Settings.FontFamilyHighAnsi = "Abadi";

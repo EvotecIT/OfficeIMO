@@ -93,7 +93,7 @@ public sealed class WordPdfRunSpacingTests {
             paragraph = document.AddParagraph(route == "link" ? string.Empty : "ABCD");
             if (route == "link") paragraph.AddHyperLink("ABCD", new Uri("https://example.com/"));
         }
-        paragraph.FontSize = 12;
+        paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(12);
         paragraph.FontFamily = "Arial";
         if (styled) {
             RunPropertiesBaseStyle defaults = styles.DocDefaults!.RunPropertiesDefault!.RunPropertiesBaseStyle!;
@@ -133,7 +133,7 @@ public sealed class WordPdfRunSpacingTests {
         if (mixed) {
             paragraph.Text = "AB";
             WordParagraph normal = paragraph.AddText("CD");
-            normal.FontSize = 12;
+            normal.FontSize = global::OfficeIMO.OfficeLength.Points(12);
             normal.FontFamily = "Arial";
             normal.CharacterScale = 100;
             normal.Spacing = 0;

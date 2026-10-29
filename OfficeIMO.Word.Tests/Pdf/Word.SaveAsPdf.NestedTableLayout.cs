@@ -332,7 +332,7 @@ public partial class Word {
     private static void ConfigureNestedLayoutParagraph(WordParagraph paragraph, string text) {
         paragraph.Text = text;
         paragraph.FontFamily = "Arial";
-        paragraph.FontSize = 10;
+        paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(10);
         paragraph.LineSpacingBefore = paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
         paragraph.LineSpacing = 240;
         paragraph.LineSpacingRule = WordLineSpacingRule.Exact;

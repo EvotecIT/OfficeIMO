@@ -24,13 +24,13 @@ namespace OfficeIMO.Examples.Word {
 
 
                 document.Settings.FontFamily = "Arial";
-                document.Settings.FontSize = 9;
+                document.Settings.FontSize = global::OfficeIMO.OfficeLength.Points(9);
 
                 document.AddParagraph("This should be Arial 9");
 
                 var par = document.AddParagraph("This should be Tahoma 20");
                 par.FontFamily = "Tahoma";
-                par.FontSize = 20;
+                par.FontSize = global::OfficeIMO.OfficeLength.Points(20);
 
                 document.Save();
                 if (openWord) document.OpenInApplication();

@@ -13,7 +13,7 @@ namespace OfficeIMO.Tests {
             var run = doc.Paragraphs[0].GetRuns().First();
 
             Assert.Equal("00FF00", run.ColorHex);
-            Assert.Equal(18, run.FontSize);
+            Assert.Equal(18, run.FontSize?.ToPoints());
         }
     }
 }

@@ -254,7 +254,7 @@ public partial class Word {
         list.Numbering.AddLevel(level);
         foreach (string text in wrapped ? new[] { "A\nB\nC" } : new[] { "A", "B", "C" }) {
             WordParagraph paragraph = list.AddItem(text);
-            paragraph.FontFamily = "Arial"; paragraph.FontSize = 11;
+            paragraph.FontFamily = "Arial"; paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(11);
             paragraph.LineSpacing = 240; paragraph.LineSpacingRule = WordLineSpacingRule.Auto;
             paragraph.LineSpacingBefore = global::OfficeIMO.OfficeLength.Zero; paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
         }

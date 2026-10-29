@@ -135,7 +135,7 @@ public static partial class WordRtfConverterExtensions {
         }
 
         if (run.FontSize.HasValue) {
-            wordRun.FontSize = (int)Math.Round(run.FontSize.Value, MidpointRounding.AwayFromZero);
+            wordRun.FontSize = global::OfficeIMO.OfficeLength.Points((int)Math.Round(run.FontSize.Value, MidpointRounding.AwayFromZero));
         }
     }
 

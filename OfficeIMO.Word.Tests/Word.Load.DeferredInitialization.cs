@@ -216,11 +216,11 @@ public sealed class WordLoadDeferredInitializationTests {
 
         Assert.Null(mainPart.StyleDefinitionsPart);
 
-        document.Settings.FontSize = 13;
+        document.Settings.FontSize = global::OfficeIMO.OfficeLength.Points(13);
         document.Settings.FontFamily = "Aptos";
 
         Assert.NotNull(mainPart.StyleDefinitionsPart?.Styles);
-        Assert.Equal(13, document.Settings.FontSize);
+        Assert.Equal(13, document.Settings.FontSize?.ToPoints());
         Assert.Equal("Aptos", document.Settings.FontFamily);
         Assert.Empty(new OpenXmlValidator().Validate(document._wordprocessingDocument));
     }

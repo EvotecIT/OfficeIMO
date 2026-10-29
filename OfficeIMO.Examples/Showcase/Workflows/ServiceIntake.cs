@@ -8,7 +8,7 @@ internal static class ServiceIntake {
         string templatePath = Path.Combine(folder, "template.docx");
         using (WordDocument template = WordDocument.Create(templatePath)) {
             template.Settings.FontFamily = "Carlito";
-            template.Settings.FontSize = 11;
+            template.Settings.FontSize = global::OfficeIMO.OfficeLength.Points(11);
             template.AddParagraph("Service request").Style = WordParagraphStyles.Heading1;
             template.AddParagraph("NORTHWIND / INTAKE / EDITABLE TEMPLATE");
             AddField("Request identifier", "request-id");
@@ -20,7 +20,7 @@ internal static class ServiceIntake {
             template.AddParagraph("Confirm the owner, clarify acceptance criteria and agree the next update before scheduling work.");
             foreach (var paragraph in template.Paragraphs) {
                 paragraph.FontFamily = "Carlito";
-                paragraph.FontSize = paragraph.Style == WordParagraphStyles.Heading1 ? 26 : paragraph.Style == WordParagraphStyles.Heading2 ? 15 : 11;
+                paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(paragraph.Style == WordParagraphStyles.Heading1 ? 26 : paragraph.Style == WordParagraphStyles.Heading2 ? 15 : 11);
                 paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Points(8D);
             }
             template.Save();

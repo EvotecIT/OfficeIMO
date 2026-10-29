@@ -23,7 +23,7 @@ namespace OfficeIMO.Examples.Word
                     paragraph1 = paragraph1.AddText(" Formatting");
                     paragraph1.SetUnderline(WordUnderlineStyle.Single);
                     paragraph1.SetHighlight(WordHighlightColor.Yellow);
-                    paragraph1.SetFontSize(18);
+                    paragraph1.SetFontSize(global::OfficeIMO.OfficeLength.Points(18));
                     paragraph1.SetFontFamily("Arial");
                     paragraph1.SetCapsStyle(WordCapsStyle.SmallCaps);
                     paragraph1.SetStrike();

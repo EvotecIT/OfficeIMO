@@ -13,9 +13,9 @@ namespace OfficeIMO.Tests {
             using WordDocument document = CreateJoinedParagraphDocument();
             WordHeaderFooter story = footer ? document.FooterDefaultOrCreate : document.HeaderDefaultOrCreate;
             WordParagraph paragraph = story.AddParagraph("Small ");
-            paragraph.FontSize = 8;
+            paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(8);
             if (largeRun) {
-                paragraph.AddText("Large").FontSize = 800;
+                paragraph.AddText("Large").FontSize = global::OfficeIMO.OfficeLength.Points(800);
             } else {
                 paragraph.AddText(string.Concat(Enumerable.Repeat("ALPHA BETA ", 600)));
             }
@@ -89,7 +89,7 @@ namespace OfficeIMO.Tests {
             header._paragraph.ParagraphProperties = new W.ParagraphProperties(new W.SpacingBetweenLines {
                 Before = "0", After = "0", Line = "13000", LineRule = W.LineSpacingRuleValues.Exact });
             if (afterPageBreak) document.AddParagraph("FIRST").AddBreak(WordBreakType.Page);
-            document.AddParagraph("BODY").FontSize = 40;
+            document.AddParagraph("BODY").FontSize = global::OfficeIMO.OfficeLength.Points(40);
 
             using var pdf = OpenJoinedParagraphPdf(document);
             Assert.Equal(afterPageBreak ? 2 : 1, pdf.NumberOfPages);

@@ -17,7 +17,7 @@ public sealed class WordContentsTitleParagraphTests {
         WordParagraph title = Assert.IsType<WordParagraph>(contents.TitleParagraph);
         title.Style = WordParagraphStyles.Heading2;
         title.PageBreakBefore = true;
-        title.FontSize = 14;
+        title.FontSize = global::OfficeIMO.OfficeLength.Points(14);
         title.ColorHex = "202428";
         WordParagraph heading = document.AddParagraph("Evidence");
         heading.Style = WordParagraphStyles.Heading1;
@@ -32,7 +32,7 @@ public sealed class WordContentsTitleParagraphTests {
         Assert.Equal("Contents", restored.Text);
         Assert.Equal(WordParagraphStyles.Heading2, restored.TitleParagraph!.Style);
         Assert.True(restored.TitleParagraph.PageBreakBefore);
-        Assert.Equal(14, restored.TitleParagraph.FontSize);
+        Assert.Equal(14, restored.TitleParagraph.FontSize?.ToPoints());
         Assert.Equal("202428", restored.TitleParagraph.ColorHex);
         Assert.Single(restored.RefreshEntries().Entries);
         PdfReadDocument pdf = PdfReadDocument.Open(reopened.ToPdf(new WordPdfExportOptions { IncludePageNumbers = false }).ToBytes());

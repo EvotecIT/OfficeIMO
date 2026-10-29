@@ -99,7 +99,7 @@ public partial class Word {
                 Assert.Null(target._paragraph.ParagraphProperties!.SpacingBetweenLines!.Line);
             }
         }
-        target.FontSize = 32;
+        target.FontSize = global::OfficeIMO.OfficeLength.Points(32);
         var originalRoots = new[] { mainPart.Document }.Cast<OpenXmlPartRootElement>()
             .Concat(mainPart.Parts.Select(part => part.OpenXmlPart.RootElement).OfType<OpenXmlPartRootElement>())
             .Select(root => (Root: root, Xml: root.OuterXml)).ToArray();
