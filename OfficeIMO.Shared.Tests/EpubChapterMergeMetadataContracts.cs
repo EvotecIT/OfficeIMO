@@ -1,6 +1,7 @@
 using System.Threading;
 using OfficeIMO.Epub;
 using System.IO.Compression;
+using System.Text;
 using System.Xml.Linq;
 using Xunit;
 
@@ -8,6 +9,31 @@ namespace OfficeIMO.Shared.Tests;
 
 public sealed class EpubChapterMergeMetadataContracts {
     private static readonly XNamespace Opf = "http://www.idpf.org/2007/opf";
+
+    [Fact]
+    public void ManyRefinementsToLongRetainedPositionStopAtMetadataBudget() {
+        var authored = EpubPublication.Create("Bounded refinements", "en");
+        authored.AddChapter("one", "EPUB/one.xhtml", "First", "<p>First</p>");
+        authored.AddChapter("two", "EPUB/two.xhtml", "Second", "<p>Second</p>");
+        XDocument package = authored.GetPackageXml();
+        XElement[] positions = package.Root!.Element(Opf + "spine")!.Elements(Opf + "itemref").ToArray();
+        positions[0].SetAttributeValue("id", new string('a', 1_024));
+        positions[1].SetAttributeValue("id", "s");
+        package.Root.Element(Opf + "metadata")!.Add(Enumerable.Range(0, 30).Select(index =>
+            new XElement(Opf + "meta", new XAttribute("id", "note" + index),
+                new XAttribute("property", "dcterms:description"), new XAttribute("refines", "#s"), "Note")));
+        byte[] packageBytes = Encoding.UTF8.GetBytes(package.ToString(SaveOptions.DisableFormatting));
+        byte[] bytes = EpubWritingContracts.ReplaceEntry(authored.Write().Bytes, authored.PackagePath, packageBytes);
+        var loaded = EpubPublication.Load(new MemoryStream(bytes),
+            new EpubPublicationLoadOptions { MaxMetadataBytes = packageBytes.Length + 100 });
+        byte[] before = loaded.Write().Bytes;
+
+        InvalidDataException error = Assert.Throws<InvalidDataException>(() => loaded.MergeChapters(
+            "one", "two", "boundary", new EpubChapterMergeOptions { RetargetPackageRefinements = true }));
+
+        Assert.Contains("Merge package edits exceed", error.Message);
+        Assert.Equal(before, loaded.Write().Bytes);
+    }
 
     [Theory]
     [InlineData(false, "#two", "#second-position")]

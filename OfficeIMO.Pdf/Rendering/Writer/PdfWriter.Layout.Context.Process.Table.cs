@@ -104,7 +104,7 @@ internal static partial class PdfWriter {
             if (captionText != null) {
                 var captionFontForWrap = ChooseNormal(currentOpts.DefaultFont);
                 captionRuns = new[] { PdfTextRun.Normal(captionText, style.CaptionColor, captionSize) };
-                var captionWrap = WrapRichRunsCore(captionRuns, tableWidth, captionSize, captionFontForWrap, captionLeading, null, DefaultParagraphTabStopWidth, currentOpts);
+                var captionWrap = WrapRichRunsCore(captionRuns, tableWidth, captionSize, captionFontForWrap, captionLeading, null, DefaultParagraphTabStopWidth, currentOpts, cancellationToken: cancellationToken);
                 captionLines = captionWrap.Lines;
                 captionLineHeights = captionWrap.LineHeights;
                 captionHeight = MeasureRichLinesHeight(captionLineHeights, captionLines.Count, captionLeading);
@@ -118,6 +118,25 @@ internal static partial class PdfWriter {
             void ReflowTableForCurrentFrame(int rowIndex = 0, int startLine = 0, bool paddingChanged = false) {
                 maxContentHeight = style.Position?.VerticalAnchor == PdfTableAnchor.Page ? currentOpts.PageHeight : GetFullPageContentHeight();
                 double newContentWidth = currentOpts.PageWidth - currentOpts.MarginLeft - currentOpts.MarginRight;
+                if (paddingChanged && rowIndex > 0 && startLine == 0 && activeColumnFlow == null &&
+                    Math.Abs(contentWidth - newContentWidth) <= 0.001D && spanFlow.ActiveCells.Count == 0 &&
+                    GetTableCellLayouts(tb, rowIndex, cols).All(cell => cell.RowSpan <= 1)) {
+                    // Border continuation changes only this row's top clearance. The wrapped
+                    // text and all other rows retain their measured widths and heights.
+                    double previousHeight = rowHeights[rowIndex];
+                    double refreshedHeight = MeasurePreparedTableRowSegmentHeight(tb, style, preparedRows,
+                        cols, colPixel, colGapPx, rowIndex, 0, rowLineCounts[rowIndex],
+                        suppressCellObjects: false, refreshHeight: true);
+                    rowHeights[rowIndex] = refreshedHeight;
+                    preparedRows.IntrinsicHeights[rowIndex] = refreshedHeight;
+                    remainingRowHeights[rowIndex] += refreshedHeight - previousHeight;
+                    tableContentHeight += refreshedHeight - previousHeight;
+                    tableCornerRadius = ResolveTableCornerRadius(style.CornerRadius, tableWidth,
+                        logicalTopBoundary ? rowHeights[0] : double.PositiveInfinity,
+                        logicalBottomBoundary ? rowHeights[rowHeights.Length - 1] : double.PositiveInfinity,
+                        colPixel[0], colPixel[colPixel.Length - 1]);
+                    return;
+                }
                 if (!paddingChanged && (activeColumnFlow == null || Math.Abs(contentWidth - newContentWidth) <= 0.001D)) return;
                 contentWidth = newContentWidth;
                 TableColumnLayout preparedColumns = ResolveTableColumnLayout(tb, currentOpts, style, cols, contentWidth, size, headerRowCount, footerStartRowIndex);
@@ -138,7 +157,7 @@ internal static partial class PdfWriter {
                     logicalBottomBoundary ? rowHeights[rowHeights.Length - 1] : double.PositiveInfinity, colPixel[0], colPixel[colPixel.Length - 1]);
                 if (captionRuns != null && rowIndex == 0 && startLine == 0) {
                     var wrap = WrapRichRunsCore(captionRuns, tableWidth, captionSize, ChooseNormal(currentOpts.DefaultFont), captionLeading,
-                        null, DefaultParagraphTabStopWidth, currentOpts);
+                        null, DefaultParagraphTabStopWidth, currentOpts, cancellationToken: cancellationToken);
                     captionLines = wrap.Lines;
                     captionLineHeights = wrap.LineHeights;
                     captionHeight = MeasureRichLinesHeight(captionLineHeights, captionLines.Count, captionLeading);
@@ -352,7 +371,7 @@ internal static partial class PdfWriter {
                 MarkRichFonts(captionRuns);
                 if (style!.Position == null) RecordFlowPlacement(y);
                 else ResolveFloatingBookmarks(y);
-                WriteRichParagraph(sb, new RichParagraphBlock(captionRuns, style.CaptionAlign, style.CaptionColor), captionLines, captionLineHeights, currentOpts, FirstTextBaselineFromTop(captionFont, captionSize, y), captionSize, captionLeading, currentPage!.Annotations, xOrigin, tableWidth, structureType: "Caption", markedContentId: captionMarkedContentId, structurePage: currentPage);
+                WriteRichParagraph(sb, new RichParagraphBlock(captionRuns, style.CaptionAlign, style.CaptionColor), captionLines, captionLineHeights, currentOpts, FirstTextBaselineFromTop(captionFont, captionSize, y), captionSize, captionLeading, currentPage!.Annotations, xOrigin, tableWidth, structureType: "Caption", markedContentId: captionMarkedContentId, structurePage: currentPage, suppressInlineAccessibility: _suppressCanvasAccessibilityWrappers);
                 if (style.Position is { } captionPosition)
                     ReserveFloatingTable(captionPosition, xOrigin, y, tableWidth, captionHeight + style.CaptionSpacingAfter);
                 y -= captionHeight + style.CaptionSpacingAfter;

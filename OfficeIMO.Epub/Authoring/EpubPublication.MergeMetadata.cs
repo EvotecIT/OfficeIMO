@@ -13,11 +13,11 @@ public sealed partial class EpubPublication {
         return targets;
     }
 
-    private string? RetargetMergePackageRefinement(XAttribute attribute, IReadOnlyDictionary<string, string> targets) {
-        if (targets.Count == 0 || !IsMergeMetadataRefinement(attribute)) return null;
+    private string? RetargetMergePackageRefinement(XAttribute attribute, IReadOnlyDictionary<string, string> escapedTargets) {
+        if (escapedTargets.Count == 0 || !IsMergeMetadataRefinement(attribute)) return null;
         EpubReference reference = EpubReference.Resolve(PackagePath, attribute.Value);
         return reference.Kind == EpubReferenceKind.Container && reference.ContainerPath == PackagePath &&
-            reference.Fragment != null && targets.TryGetValue(reference.Fragment, out string? target)
-            ? "#" + Uri.EscapeDataString(target) : null;
+            reference.Fragment != null && escapedTargets.TryGetValue(reference.Fragment, out string? target)
+            ? target : null;
     }
 }

@@ -145,6 +145,8 @@ The page-context overload supplies visible and physical page numbers, section-re
 
 A kept block or indivisible fragment can advance to a later first/even/default running-story frame that has room for it. Each actual frame is measured through normal page and column transitions; future factories are not evaluated eagerly. Static frame cycles end with the normal fitting error. Searching arbitrary page-context factories requires a finite `MaxGeneratedPages` budget, and cancellation and page limits continue to apply.
 
+A single flow spacer is limited to 1,000 page or column traversal steps and cannot exceed 1,000 configured page heights. Larger spacing fails with `InvalidDataException`. Set `MaxGeneratedPages` when the total output page count also needs a limit.
+
 Running stories are marked as pagination artifacts. Their fonts, images, drawing resources and links use the document's normal PDF resource owners. A later `Text` or `Zones` call replaces rich content for that variant.
 
 ## Page-associated footnotes

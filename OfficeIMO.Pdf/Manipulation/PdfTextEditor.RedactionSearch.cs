@@ -149,6 +149,7 @@ internal static partial class PdfTextEditor {
     private static bool CanSelectGlyphs(PdfTextSpan span, out IReadOnlyList<PdfTextGlyph> glyphs) {
         glyphs = Array.Empty<PdfTextGlyph>();
         return span.ContentOrderKey is not null &&
+            span.TextRenderingMode is >= 0 and <= 3 &&
             (!span.ClipPath.HasValue || span.ClipPath.Value.IsRectangle && span.ClipPath.Value.IsExact && !span.ClipPath.Value.ContainsTextClipping) && !span.IsType3Font &&
             string.Equals(span.Text, span.RestampText, StringComparison.Ordinal) && span.TryGetGlyphs(out glyphs) &&
             glyphs.All(static glyph => glyph.EncodedBytes.Count > 0 && glyph.PaintedAdvance > 0D &&

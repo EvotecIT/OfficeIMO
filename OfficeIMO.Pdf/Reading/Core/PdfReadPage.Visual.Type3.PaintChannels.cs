@@ -127,6 +127,7 @@ public sealed partial class PdfReadPage {
                 patternBaseColorSpaces: GetPatternBaseColorSpaceResources(resources, invokedResources.ColorSpaces, pageContentBudget),
                 maxNestingDepth: _limits.MaxContentNestingDepth,
                 maxOperands: _limits.MaxContentOperands,
+                strokeDashProjectionConsumer: pageContentBudget.ChargeStrokeDashProjection,
                 primitiveVisitor: primitive => {
                     PdfPageDrawingEffect effect = ResolveDrawingEffect(effects, primitive.PaintOrder);
                     if (IsPaintSuppressedByTransparentSoftMask(

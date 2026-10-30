@@ -344,7 +344,7 @@ public sealed partial class PdfReadPage {
 
         var contentDrawing = new OfficeDrawing(localPageWidth, localPageHeight);
         var softMasks = new Dictionary<(PdfStream Group, PdfDictionary? ParentResources, OfficeSoftMaskMode Mode, OfficeColor Backdrop, Matrix2D Transform, double Width, double Height, OfficeIccRenderingIntent Intent), OfficeDrawingSoftMask>();
-        var activeSoftMasks = new HashSet<PdfStream>();
+        var activeSoftMasks = pageContentBudget.ActiveSoftMasks;
         TextContentParser.TextOutputBudget outputBudget = textOutputBudget ?? CreateTextOutputBudget();
         for (int i = 0; i < elements.Count; i++) {
             AddDrawingElement(contentDrawing, localPageHeight, localTransform, elements[i], softMasks, activeSoftMasks, outputBudget, pageContentBudget, type3GlyphBudget, invocationTextClippingBudget, patternTextClippingBudget);

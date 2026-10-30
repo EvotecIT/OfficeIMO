@@ -56,7 +56,8 @@ namespace OfficeIMO.OpenXml.Internal {
                 bool automaticColor = OfficeOpenXmlChartAutomaticColors.HasAutomaticSeriesColor(element);
                 if (!forDataUpdate && fill == null) {
                     // Office colours bubbles without a stored fill from the chart style and theme.
-                    fill = OfficeOpenXmlChartAutomaticColors.ResolveSeries(element, colorScheme);
+                    fill = OfficeOpenXmlChartAutomaticColors.ResolveSeries(element, colorScheme,
+                        projectionBudget.AutomaticColors);
                     if (fill == null) return null;
                     automaticColor = true;
                 }

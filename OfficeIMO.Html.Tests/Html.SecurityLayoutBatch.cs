@@ -326,4 +326,16 @@ public sealed class HtmlSecurityLayoutBatchTests {
             })).LimitSource);
     }
 
+    [Fact]
+    public void NestedAutoWidthInlineBlocksChargeRepeatedIntrinsicDescendantScans() {
+        string html = string.Concat(Enumerable.Repeat("<span style='display:inline-block'>", 20)) +
+            string.Concat(Enumerable.Repeat("<span></span>", 300)) +
+            string.Concat(Enumerable.Repeat("</span>", 20));
+
+        HtmlDomLimitException error = Assert.Throws<HtmlDomLimitException>(() =>
+            HtmlRenderTestDriver.Render(html, new HtmlRenderOptions { MaxLayoutOperations = 10_000 }));
+        Assert.Equal(nameof(HtmlRenderOptions.MaxLayoutOperations), error.LimitSource);
+        Assert.Contains("intrinsic replaced descendant scan", error.Message, StringComparison.Ordinal);
+    }
+
 }

@@ -20,6 +20,8 @@ internal sealed partial class PdfWorkspace {
         ArgumentNullException.ThrowIfNull(options);
         if (!CanEditPageContent) throw new NotSupportedException("Text can't be added to this document's pages safely.");
         var capturedOptions = options.Clone();
+        // The native host owns the recognizer context only until this operation returns.
+        capturedOptions.AwaitProviderSettlement = true;
         long revision;
         byte[] bytes;
         await _operationGate.WaitAsync(token).ConfigureAwait(false);

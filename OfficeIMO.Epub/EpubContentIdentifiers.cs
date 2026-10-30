@@ -40,16 +40,29 @@ internal static class EpubContentIdentifiers {
         }
     }
 
-    internal static void RewriteReferences(XElement root, IReadOnlyDictionary<string, string> replacements, CancellationToken token) {
+    internal static void RewriteReferences(XElement root, IReadOnlyDictionary<string, string> replacements,
+        long maximumCharacters, CancellationToken token) {
+        long rewrittenCharacters = 0;
         foreach (XElement element in root.DescendantsAndSelf()) {
             token.ThrowIfCancellationRequested();
             foreach (XAttribute attribute in GetReferenceAttributes(element)) {
-                attribute.Value = System.Text.RegularExpressions.Regex.Replace(attribute.Value, @"[^ \t\r\n\f]+", match => {
+                string original = attribute.Value;
+                if (original.Length > maximumCharacters - rewrittenCharacters) throw OutputLimit();
+                long projectedCharacters = original.Length;
+                string rewritten = System.Text.RegularExpressions.Regex.Replace(original, @"[^ \t\r\n\f]+", match => {
                     token.ThrowIfCancellationRequested();
-                    return replacements.TryGetValue(match.Value, out string? value) ? value : match.Value;
+                    if (!replacements.TryGetValue(match.Value, out string? value)) return match.Value;
+                    projectedCharacters += value.Length - match.Length;
+                    if (projectedCharacters > maximumCharacters - rewrittenCharacters) throw OutputLimit();
+                    return value;
                 });
+                rewrittenCharacters += projectedCharacters;
+                attribute.Value = rewritten;
             }
         }
+
+        static InvalidDataException OutputLimit() =>
+            new InvalidDataException("Rewritten identifier references exceed the chapter entry limit.");
     }
 
     /// <summary>Enumerates the same document-local relationships used by validation, repair and boundary planning.</summary>

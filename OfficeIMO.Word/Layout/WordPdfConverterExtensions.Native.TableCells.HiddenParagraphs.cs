@@ -6,26 +6,39 @@ using PdfCore = OfficeIMO.Pdf;
 namespace OfficeIMO.Word.Pdf;
 
 public static partial class WordPdfConverterExtensions {
-    private static int GetNativeJoinedCellParagraphEnd(IReadOnlyList<WordElement> elements, int index,
+    private static int GetNativeJoinedCellParagraphEnd(IReadOnlyList<WordElement> elements, int index, ref int rejectedJoinUntil,
         Func<WordParagraph, (int Level, string Marker)?>? getMarker,
         NativeDocumentDefaults defaults, NativeTableStyleDefaults tableStyle, NativeFontMap? fontMap, WordToPdfOptions? options) {
+        if (index <= rejectedJoinUntil) return index;
+        if (elements[index] is not WordParagraph candidate || ShouldRenderNativeEmptyParagraphLineBox(candidate) ||
+            index + 1 >= elements.Count || elements[index + 1] is not WordParagraph) return index;
+        Func<WordParagraph, (int Level, string Marker)?> marker = getMarker ?? (_ => null);
+        if (!CanJoinNativeTextParagraph(candidate, marker, defaults, fontMap) ||
+            (tableStyle.UseConfiguredTypography && !ResolveNativeJoinedCellFontSize(candidate, defaults, tableStyle).HasValue)) {
+            ReportUnsupportedJoin();
+            return index;
+        }
         int end = index;
         while (elements[end] is WordParagraph paragraph && !ShouldRenderNativeEmptyParagraphLineBox(paragraph) &&
                end + 1 < elements.Count && elements[end + 1] is WordParagraph) end++;
         if (end == index) return index;
 
-        Func<WordParagraph, (int Level, string Marker)?> marker = getMarker ?? (_ => null);
         for (int current = index; current <= end; current++) {
             var paragraph = (WordParagraph)elements[current];
             if (!CanJoinNativeTextParagraph(paragraph, marker, defaults, fontMap) ||
                 (current > index && HasNativePageBreakBefore(paragraph)) ||
                 (tableStyle.UseConfiguredTypography && !ResolveNativeJoinedCellFontSize(paragraph, defaults, tableStyle).HasValue)) {
-                if (options != null) AddNativeExportWarning(options, "NativeHiddenParagraphJoinUnsupported", "table cell",
-                    "Hidden paragraph marks beside lists, headings, decorated paragraphs, flow breaks, objects or unresolved configured typography retain separate PDF paragraph boundaries.");
+                rejectedJoinUntil = current - 1;
+                ReportUnsupportedJoin();
                 return index;
             }
         }
         return end;
+
+        void ReportUnsupportedJoin() {
+            if (options != null) AddNativeExportWarning(options, "NativeHiddenParagraphJoinUnsupported", "table cell",
+                "Hidden paragraph marks beside lists, headings, decorated paragraphs, flow breaks, objects or unresolved configured typography retain separate PDF paragraph boundaries.");
+        }
     }
 
     private static (double? FontSize, double? LineHeight, PdfCore.PdfLineSpacing? LineSpacing)

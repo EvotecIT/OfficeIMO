@@ -6,6 +6,7 @@ namespace OfficeIMO.Xps;
 public sealed partial class XpsPage {
     internal XpsDocument Document { get; }
     private readonly XElement _markup;
+    private HashSet<string>? _namedTargets;
     internal XpsPage(XpsDocument document, string partName, XElement markup) {
         Document = document; PartName = partName; _markup = markup;
         ValidatePageDimension(Width); ValidatePageDimension(Height);
@@ -27,7 +28,7 @@ public sealed partial class XpsPage {
         var copy = Document.ValidatePageMarkup(markup);
         Document.CommitPageContent(this, copy);
     }
-    internal void ApplyMarkup(XElement markup) { _markup.ReplaceAttributes(markup.Attributes()); _markup.ReplaceNodes(markup.Nodes()); }
+    internal void ApplyMarkup(XElement markup) { _markup.ReplaceAttributes(markup.Attributes()); _markup.ReplaceNodes(markup.Nodes()); _namedTargets = null; }
     /// <summary>Appends native path geometry; paint strings follow the XPS color syntax.</summary>
     public XpsPage AddPath(string data, string? fill = "#FF000000", string? stroke = null, double strokeThickness = 1) {
         if (string.IsNullOrWhiteSpace(data)) throw new ArgumentException("Path geometry is required.", nameof(data));
@@ -35,7 +36,7 @@ public sealed partial class XpsPage {
         var element = new XElement(_markup.Name.Namespace + "Path", new XAttribute("Data", data));
         if (fill != null) element.Add(new XAttribute("Fill", fill));
         if (stroke != null) element.Add(new XAttribute("Stroke", stroke), new XAttribute("StrokeThickness", XpsPackage.N(strokeThickness)));
-        _markup.Add(element); return this;
+        _markup.Add(element); _namedTargets = null; return this;
     }
     /// <summary>Appends Unicode glyph text using an embedded font. Origin is the baseline in XPS units.</summary>
     public XpsPage AddText(string text, string fontUri, double fontSize, double originX, double originY, string fill = "#FF000000") {
@@ -44,7 +45,7 @@ public sealed partial class XpsPage {
         _ = Document.GetPartBytes(XpsPackage.Resolve(PartName, fontUri));
         _markup.Add(new XElement(_markup.Name.Namespace + "Glyphs", new XAttribute("FontUri", fontUri), new XAttribute("FontRenderingEmSize", XpsPackage.N(fontSize)),
             new XAttribute("OriginX", XpsPackage.N(originX)), new XAttribute("OriginY", XpsPackage.N(originY)), new XAttribute("UnicodeString", text.StartsWith("{", StringComparison.Ordinal) ? "{}" + text : text), new XAttribute("Fill", fill)));
-        return this;
+        _namedTargets = null; return this;
     }
     /// <summary>Places an embedded PNG, JPEG, TIFF or supported JPEG XR using an image brush and a rectangular viewport.</summary>
     public XpsPage AddImage(string imageUri, double x, double y, double width, double height) {
@@ -61,7 +62,7 @@ public sealed partial class XpsPage {
             new XElement(ns + "Path.Fill", new XElement(ns + "ImageBrush", new XAttribute("ImageSource", imageUri),
                 new XAttribute("Viewbox", "0,0," + XpsPackage.N(iw) + "," + XpsPackage.N(ih)), new XAttribute("Viewport", string.Join(",", new[] { x, y, width, height }.Select(XpsPackage.N))),
                 new XAttribute("ViewboxUnits", "Absolute"), new XAttribute("ViewportUnits", "Absolute")))));
-        return this;
+        _namedTargets = null; return this;
     }
     /// <summary>Returns page-element UnicodeString values in markup order, excluding resources and brush visuals. Paragraphs and reading order are not inferred.</summary>
     public string ExtractText() => string.Join("\n", XpsStoryFragmentsReader.PageElements(_markup).Where(e => e.Name.LocalName == "Glyphs").Select(g => Unescape((string?)g.Attribute("UnicodeString") ?? "")));
@@ -73,21 +74,35 @@ public sealed partial class XpsPage {
     internal static void ValidateDimension(double value) {
         if (value <= 0 || double.IsNaN(value) || double.IsInfinity(value) || value > 100000) throw new ArgumentOutOfRangeException(nameof(value), "XPS dimensions must be positive and at most 100000 units.");
     }
-    internal bool HasNamedTarget(string name) => _markup.DescendantsAndSelf().Any(e => (string?)e.Attribute("Name") == name && !e.Ancestors().Any(a => a.Name.LocalName == "VisualBrush.Visual"));
+    internal bool HasNamedTarget(string name) {
+        if (_namedTargets == null) {
+            var names = new HashSet<string>(StringComparer.Ordinal);
+            var pending = new Stack<XElement>();
+            pending.Push(_markup);
+            while (pending.Count != 0) {
+                XElement element = pending.Pop();
+                string? target = (string?)element.Attribute("Name");
+                if (target != null) names.Add(target);
+                if (element.Name.LocalName == "VisualBrush.Visual") continue;
+                foreach (XElement child in element.Elements()) pending.Push(child);
+            }
+            _namedTargets = names;
+        }
+        return _namedTargets.Contains(name);
+    }
     internal byte[] Serialize() => XpsPackage.Serialize(_markup);
-    internal IEnumerable<string> ResourceReferences(XElement? markup, Func<string, XElement?> dictionaryReader) {
+    internal IEnumerable<string> ResourceReferences(XElement? markup, Func<string, IReadOnlyList<string>?> dictionaryReferences) {
         var visited = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        var pending = new Queue<(XElement Markup, string Part)>();
-        pending.Enqueue((markup ?? _markup, PartName));
+        var pending = new Queue<IReadOnlyList<string>>();
+        pending.Enqueue(XpsResourceSyntax.References(markup ?? _markup)
+            .Select(uri => XpsPackage.Resolve(PartName, uri)).ToArray());
         while (pending.Count != 0) {
-            var current = pending.Dequeue();
-            foreach (string uri in XpsResourceSyntax.References(current.Markup)) {
-                string name = XpsPackage.Resolve(current.Part, uri);
+            foreach (string name in pending.Dequeue()) {
                 if (!visited.Add(name)) continue;
                 if (visited.Count > 100000) throw new InvalidDataException("XPS resource reference budget exceeded.");
                 yield return name;
-                var dictionary = dictionaryReader(name);
-                if (dictionary != null) pending.Enqueue((dictionary, name));
+                IReadOnlyList<string>? references = dictionaryReferences(name);
+                if (references != null) pending.Enqueue(references);
             }
         }
     }
@@ -109,7 +124,8 @@ public sealed partial class XpsPage {
 
 /// <summary>A self-contained SVG projection and its explicit loss diagnostics.</summary>
 public sealed class XpsSvgResult {
-    internal XpsSvgResult(string svg, List<string> diagnostics, List<XpsTextSpan> textSpans, List<XpsNavigationTarget> targets) { Svg = svg; Diagnostics = diagnostics.AsReadOnly(); TextSpans = textSpans.AsReadOnly(); Targets = targets.AsReadOnly(); }
+    internal XpsSvgResult(string svg, List<string> diagnostics, List<XpsTextSpan> textSpans, List<XpsNavigationTarget> targets, int pathCommands) { Svg = svg; Diagnostics = diagnostics.AsReadOnly(); TextSpans = textSpans.AsReadOnly(); Targets = targets.AsReadOnly(); PathCommands = pathCommands; }
+    internal int PathCommands { get; }
     internal IReadOnlyList<XpsTextSpan> TextSpans { get; }
     internal IReadOnlyList<XpsNavigationTarget> Targets { get; }
     /// <summary>Self-contained SVG. Embedded glyphs are outlined to preserve native positioning.</summary>

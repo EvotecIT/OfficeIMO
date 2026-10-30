@@ -4,6 +4,11 @@ using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word {
     public partial class WordDocument {
+        private const int MaxLegacyDocStyleToggleDepth = 256;
+        private Styles? _legacyDocToggleStyles;
+        private Dictionary<string, Style>? _legacyDocToggleStyleIndex;
+        private readonly Dictionary<(string? Run, string? Paragraph), LegacyDocCharacterFormatProperties> _legacyDocToggleCache = new();
+
         private static void ApplyLegacyDocRunOnOffProperty<T>(WordParagraph run, bool enabled, bool specified) where T : OnOffType, new() {
             if (!enabled && !specified) {
                 return;
@@ -105,20 +110,36 @@ namespace OfficeIMO.Word {
                 : ((inherited & property) != 0) ^ ((inverted & property) != 0);
 
         private static LegacyDocCharacterFormatProperties GetLegacyDocStyleToggles(WordParagraph run) {
-            Styles? styles = run._document._wordprocessingDocument?.MainDocumentPart?.StyleDefinitionsPart?.Styles;
+            WordDocument owner = run._document;
+            Styles? styles = owner._wordprocessingDocument?.MainDocumentPart?.StyleDefinitionsPart?.Styles;
             if (styles == null) return LegacyDocCharacterFormatProperties.None;
+            if (!ReferenceEquals(owner._legacyDocToggleStyles, styles)) {
+                owner._legacyDocToggleStyles = styles;
+                owner._legacyDocToggleCache.Clear();
+                var index = new Dictionary<string, Style>(StringComparer.OrdinalIgnoreCase);
+                foreach (Style style in styles.Elements<Style>()) {
+                    string? id = style.StyleId?.Value;
+                    if (!string.IsNullOrWhiteSpace(id) && !index.ContainsKey(id!)) index.Add(id!, style);
+                }
+                owner._legacyDocToggleStyleIndex = index;
+            }
+            string? runStyleId = run._runProperties?.RunStyle?.Val?.Value;
+            string? paragraphStyleId = run._paragraph.ParagraphProperties?.ParagraphStyleId?.Val?.Value ?? "Normal";
+            var cacheKey = (runStyleId, paragraphStyleId);
+            if (owner._legacyDocToggleCache.TryGetValue(cacheKey, out LegacyDocCharacterFormatProperties cached)) return cached;
             var seen = LegacyDocCharacterFormatProperties.None;
             var values = LegacyDocCharacterFormatProperties.None;
-            ReadStyleChain(run._runProperties?.RunStyle?.Val?.Value);
-            ReadStyleChain(run._paragraph.ParagraphProperties?.ParagraphStyleId?.Val?.Value ?? "Normal");
+            ReadStyleChain(runStyleId);
+            ReadStyleChain(paragraphStyleId);
             ReadProperties(styles.DocDefaults?.RunPropertiesDefault?.RunPropertiesBaseStyle);
+            owner._legacyDocToggleCache.Add(cacheKey, values);
             return values;
 
             void ReadStyleChain(string? styleId) {
                 var visited = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
                 while (!string.IsNullOrEmpty(styleId) && visited.Add(styleId!)) {
-                    Style? style = styles.Elements<Style>().FirstOrDefault(candidate => string.Equals(candidate.StyleId?.Value, styleId, StringComparison.OrdinalIgnoreCase));
-                    if (style == null) break;
+                    if (visited.Count > MaxLegacyDocStyleToggleDepth) throw new InvalidDataException("The legacy DOC style toggle inheritance chain exceeds the supported depth.");
+                    if (!owner._legacyDocToggleStyleIndex!.TryGetValue(styleId!, out Style? style)) break;
                     ReadProperties(style.StyleRunProperties);
                     styleId = style.BasedOn?.Val?.Value;
                 }

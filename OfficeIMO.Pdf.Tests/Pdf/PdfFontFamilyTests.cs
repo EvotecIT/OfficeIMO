@@ -265,6 +265,15 @@ public partial class PdfFontFamilyTests {
     }
 
     [Fact]
+    public void PdfEmbeddedFontFamily_RejectsPunctuationOnlySystemNamesBeforeFontEnumeration() {
+        foreach (string familyName in Enumerable.Range(1, 256).Select(index => new string('!', index) + "?")) {
+            Assert.False(PdfEmbeddedFontFamily.TryFromSystem(familyName, out PdfEmbeddedFontFamily? family));
+            Assert.Null(family);
+        }
+        Assert.Throws<FileNotFoundException>(() => PdfEmbeddedFontFamily.FromSystem("!?"));
+    }
+
+    [Fact]
     public void NamedOfficeFontRegistrationHonorsInstalledCandidateOrderBeforeReuse() {
         string[] candidates = {
             "Arial", "Calibri", "Helvetica", "Times New Roman",

@@ -7,6 +7,29 @@ namespace OfficeIMO.Shared.Tests;
 
 public sealed class EpubMediaOverlayPreflightContracts {
     private static readonly XNamespace Smil = "http://www.w3.org/ns/SMIL";
+    private static readonly XNamespace Opf = "http://www.idpf.org/2007/opf";
+
+    [Fact]
+    public void AliasedSmilManifestIdsAreRejectedWithoutRepeatedPayloadInspection() {
+        var authored = Book();
+        XDocument package = authored.GetPackageXml();
+        XElement manifest = package.Root!.Element(Opf + "manifest")!;
+        XElement source = manifest.Elements(Opf + "item").Single(item => (string?)item.Attribute("id") == "overlay");
+        for (int index = 0; index < 64; index++) {
+            var alias = new XElement(source);
+            alias.SetAttributeValue("id", "overlay-alias-" + index);
+            manifest.Add(alias);
+        }
+        byte[] bytes = EpubWritingContracts.ReplaceEntry(authored.Write().Bytes, authored.PackagePath,
+            System.Text.Encoding.UTF8.GetBytes(package.ToString()));
+        var book = EpubPublication.Load(new MemoryStream(bytes));
+
+        EpubPreflightCheck check = book.Preflight().Checks.Single(item => item.Code == "media-overlays");
+
+        Assert.Equal(EpubPreflightStatus.Failed, check.Status);
+        Assert.Contains(check.Diagnostics, item => item.Code == "EPUB_PREFLIGHT_OVERLAY_ALIAS_AMBIGUOUS");
+        Assert.Equal(bytes, book.Write().Bytes);
+    }
 
     [Theory]
     [InlineData("text")]

@@ -16,8 +16,8 @@ permissions:
   contents: read
 
 concurrency:
-  group: documentation-examples-${{ github.ref }}
-  cancel-in-progress: true
+  group: documentation-examples-${{ github.event_name == 'pull_request' && github.run_attempt == 1 && format('pr-{0}', github.event.pull_request.number) || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' && github.run_attempt == 1 }}
 
 jobs:
   examples:

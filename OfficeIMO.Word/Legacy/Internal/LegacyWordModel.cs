@@ -62,9 +62,11 @@ internal sealed class LegacyWordStyle {
 internal sealed class LegacyWordRun {
     private readonly string _text;
     private System.Text.StringBuilder? _builder;
+    private string? _cachedText;
     internal LegacyWordRun(string text) => _text = text;
-    internal string Text => _builder?.ToString() ?? _text;
-    internal void AppendText(string text) { _builder ??= new System.Text.StringBuilder(_text); _builder.Append(text); }
+    internal string Text => _builder == null ? _text : _cachedText ??= _builder.ToString();
+    internal int TextLength => _builder?.Length ?? _text.Length;
+    internal void AppendText(string text) { _builder ??= new System.Text.StringBuilder(_text); _builder.Append(text); _cachedText = null; }
     internal bool Bold { get; set; }
     internal bool Italic { get; set; }
     internal bool Strike { get; set; }

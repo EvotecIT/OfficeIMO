@@ -1,5 +1,63 @@
 # Upgrading OfficeIMO
 
+## PowerShell Excel image URLs
+
+`Add-OfficeExcelImage -Url` and `Add-OfficeExcelImageFromUrl -Url` now accept
+HTTP and HTTPS URLs only. To add a local image, use `Add-OfficeExcelImage -Path`
+with its file path instead of passing a `file:` URL. This keeps local file reads
+behind the explicit path parameter.
+
+## XML Spreadsheet defined-name limit
+
+XML Spreadsheet import now admits at most 10,000 defined names by default. If
+you import a trusted workbook with more names, set
+`ExcelSpreadsheetXmlOptions.MaxNames` to the required positive limit. Imports
+that exceed the configured limit fail before the names are materialized.
+
+## Stroke geometry projection limits
+
+Raster and gradient stroke projection limits cumulative copied and generated
+points to two million per projection. Excessive expansion raises
+`NotSupportedException`; simplify the geometry or dash pattern before
+exporting it. PDF header/footer and link-bounds inspection uses a tighter
+65,536-point budget. An exhausted inspection records unassessed clipping or
+retains conservative clickable bounds while preserving native PDF paint.
+
+## PDF content limits and redaction plans
+
+`PdfReadLimits.MaxContentNestingDepth` also bounds nested marked-content scopes
+(`BMC` and `BDC`). `MaxContentOperands` also bounds the cumulative dash-array
+entries projected during one page operation, including nested forms. If you
+set custom limits, account for these operations as well as lexical operands
+and form nesting. Over-complex input raises `PdfReadLimitException`; simplify
+the input or adjust the relevant limit for a trusted workload.
+
+Rotation normalization rejects destination coordinates or zoom operands that
+resolve to values other than numbers or `null`. Repair invalid destination
+operands before calling `Pages.NormalizeRotation`.
+
+SVG images normalized for PDF embedding have a cumulative raster-work limit:
+paint bounding boxes may visit at most 256 times the output pixel count, and
+contour crossings share a 512-million-work ceiling across nested renders.
+`TryPrepareImageBytes` returns `false` with a reason when the limit is exceeded;
+simplify excessive overdraw before embedding the image.
+
+Matched-glyph redaction includes clipping-only text in its search and reports
+unsupported clipping modes in the plan instead of silently omitting them.
+Check `PdfRedactionPlan.IsReviewable` and inspect `Findings` before applying
+the plan; a matching clipping-mode span requires a supported redaction strategy.
+## Excel worksheet copies keep drawings, comments and links
+
+`CopyWorksheet`, `CopyWorksheetFrom` with `ExcelWorksheetCopyMode.Package` and package-mode `MergeWorkbookFrom` now keep the copied sheet's images, charts, shapes, legacy and threaded comments, header/footer images, background picture and external hyperlinks. Earlier versions removed them. Copied threaded comments receive new ids, and the people they mention are added to the target workbook. Code that removed these features after copying, or that expected the copy to have none, should remove them explicitly with the sheet's comment, image and hyperlink APIs. See the [worksheet copy contract](OfficeIMO.Excel/COMPATIBILITY.md#workbook-capabilities).
+
+## Word document append
+
+`WordDocument.AppendDocument` now keeps the page setup of each document: the destination's final section properties become a section break before the appended content, which starts in its own section (a new page unless the source section says otherwise). To continue the appended content in the destination's section, as a workaround that moved the destination's closing `w:sectPr` did before, pass `new WordDocumentMergeOptions { SectionMode = WordMergeSectionMode.UseDestinationSections }`.
+
+Source styles now match destination styles by name before id, so a source style with a different id but the same name (for example a localized `Heading 1`) uses the destination style instead of being copied alongside it. Appended footnotes, endnotes and comments are copied with renumbered ids, and source bookmarks whose names already exist in the destination are renamed with a numeric suffix (`Intro` becomes `Intro_1`); hyperlinks and fields in the appended content follow the new name.
+
+`WordTableOfContent.RefreshEntries()` also includes paragraphs whose style, or a style it is based on, sets an outline level 1-9 when the TOC uses `\u` (as Word's default TOC does), and heading styles copied by a merge such as `heading 1_0`.
+
 ## JavaScript CanopyX pivot captures
 
 Pass explicit frozen `request.pivot` captures through the optional CanopyX export entry point. They retain their own precomputed numeric values, formats and row/column outlines. Do not supply ordinary grouping metadata, replacement outline callbacks, an Excel table or a recalculating footer for the same pivot. PDF/CSV preserve the complete static projection and report `PIVOT_OUTLINES_XLSX_ONLY`; XLSX retains the interactive outlines with summaries above and left of details. Ordinary record/grouped exports keep their existing behavior.
@@ -87,6 +145,13 @@ inspection and conversion commands for existing files.
 Scalar file readers accept `FullName`/`LiteralPath` aliases and `FileInfo`
 pipelines, resolve FileSystem PSDrives, and reject other providers. Input is
 literal; expand wildcards with `Get-ChildItem` first.
+
+`Export-OfficeExcel -InputObject <DataSet> -Append` and `-ClearSheet` no longer
+guess that a lone table named `Budget` owns an existing `Budget (2)` worksheet.
+They use or create `Budget` instead. Name the source table `Budget (2)` when
+that suffixed worksheet is the intended target. Multiple tables in the same
+DataSet that normalize to the same worksheet name still receive successive
+suffixes.
 
 `ConvertTo-OfficeDocument` provides catalog-driven single and batch conversion
 with destination protection, bounds and structured evidence. It requires

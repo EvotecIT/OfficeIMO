@@ -85,6 +85,7 @@ public static partial class HtmlProvenance {
             .ToArray();
         if (manifestElements.Length > 1) diagnostics.Add($"{documentLocation}: manifest.html.multipleManifests: the HTML head contains multiple C2PA manifest associations.");
         int carrierIndex = 0;
+        var comparisonBudget = new OfficeCborMapComparisonBudget(OfficeCborMapComparisonBudget.DefaultLimit);
         foreach (IElement script in head.QuerySelectorAll("script[type]")) {
             options.CancellationToken.ThrowIfCancellationRequested();
             if (!string.Equals(TrimAsciiWhitespace(script.GetAttribute("type")), "application/c2pa", StringComparison.OrdinalIgnoreCase)) continue;
@@ -101,7 +102,7 @@ public static partial class HtmlProvenance {
                 OfficeProvenanceCarrierKind.C2paManifest,
                 $"{documentLocation}/script[type=application/c2pa][{carrierIndex++}]",
                 valid,
-                manifest.Length).WithManifest(valid ? OfficeC2paManifestStore.TryDescribe(manifest, 0, manifest.Length) : null));
+                manifest.Length).WithManifest(valid ? OfficeC2paManifestStore.TryDescribe(manifest, 0, manifest.Length, comparisonBudget) : null));
         }
 
         foreach (IElement link in head.QuerySelectorAll("link[rel][href]")) {

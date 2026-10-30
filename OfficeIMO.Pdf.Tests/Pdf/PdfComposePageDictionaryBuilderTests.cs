@@ -727,6 +727,31 @@ namespace OfficeIMO.Tests.Pdf {
         }
 
         [Fact]
+        public void ChildFormWidgetsDoNotReadMetadataOwnedByTheirParent() {
+            string textWidget = PdfAnnotationDictionaryBuilder.BuildTextFieldWidgetAnnotation(
+                10, 20, 110, 44, "Field", "Value", 10, 12, parentObjectId: 7);
+            string scalarChoiceWidget = PdfAnnotationDictionaryBuilder.BuildChoiceFieldWidgetAnnotation(
+                10, 20, 110, 44, "Field", new UnreadableOptions<string>(), new[] { "Value" },
+                10, 12, isComboBox: true, allowsMultipleSelection: false, parentObjectId: 7);
+            string pairedChoiceWidget = PdfAnnotationDictionaryBuilder.BuildChoiceFieldWidgetAnnotation(
+                10, 20, 110, 44, "Field", new UnreadableOptions<PdfFormFieldOption>(), new[] { "Value" },
+                10, 12, isComboBox: true, allowsMultipleSelection: false, parentObjectId: 7);
+
+            Assert.Equal(textWidget, scalarChoiceWidget);
+            Assert.Equal(textWidget, pairedChoiceWidget);
+            Assert.Contains("/Parent 7 0 R", textWidget, StringComparison.Ordinal);
+            Assert.DoesNotContain("/Opt", textWidget, StringComparison.Ordinal);
+        }
+
+        private sealed class UnreadableOptions<T> : System.Collections.Generic.IReadOnlyList<T> {
+            public int Count => throw new InvalidOperationException("Child widget read parent metadata.");
+            public T this[int index] => throw new InvalidOperationException("Child widget read parent metadata.");
+            public System.Collections.Generic.IEnumerator<T> GetEnumerator() =>
+                throw new InvalidOperationException("Child widget read parent metadata.");
+            System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator() => GetEnumerator();
+        }
+
+        [Fact]
         public void AcroFormDictionaryBuilder_EmitsFieldsAndTextAppearance() {
             Assert.Equal(
                 "<< /Fields [ 4 0 R 5 0 R ] /NeedAppearances false /DR << /Font << /Helv 3 0 R >> >> /DA (/Helv 10 Tf 0 g) >>\n",

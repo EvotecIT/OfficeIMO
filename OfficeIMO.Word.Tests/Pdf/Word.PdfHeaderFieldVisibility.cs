@@ -1,10 +1,30 @@
 using OfficeIMO.Word;
+using OfficeIMO.Word.Pdf;
 using W = DocumentFormat.OpenXml.Wordprocessing;
 using Xunit;
 
 namespace OfficeIMO.Tests;
 
 public partial class Word {
+    [Fact]
+    public void HeaderFieldsRejectAggregateNestedResultScans() {
+        using WordDocument document = CreateJoinedParagraphDocument();
+        document.AddParagraph("BODY");
+        WordParagraph paragraph = document.HeaderDefaultOrCreate.AddParagraph();
+        for (int index = 0; index < 230; index++) {
+            paragraph._paragraph.Append(new W.Run(new W.FieldChar { FieldCharType = W.FieldCharValues.Begin }),
+                new W.Run(new W.FieldCode(" PAGE ")),
+                new W.Run(new W.FieldChar { FieldCharType = W.FieldCharValues.Separate }));
+        }
+        for (int index = 0; index < 230; index++) {
+            paragraph._paragraph.Append(new W.Run(new W.FieldChar { FieldCharType = W.FieldCharValues.End }));
+        }
+
+        InvalidDataException error = Assert.Throws<InvalidDataException>(() =>
+            document.ToPdfBytes(new WordToPdfOptions { IncludePageNumbers = false }));
+        Assert.Contains("scan limit", error.Message);
+    }
+
     [Theory]
     [InlineData(false, false, false)]
     [InlineData(true, true, false)]

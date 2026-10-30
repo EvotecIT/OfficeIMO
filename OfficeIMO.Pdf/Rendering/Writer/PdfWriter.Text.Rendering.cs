@@ -32,7 +32,10 @@ internal static partial class PdfWriter {
         double baseline,
         PdfOptions options,
         LayoutResult.Page? page,
-        int? parentElementIndex) {
+        LayoutResult.Page? structurePage,
+        int? parentElementIndex,
+        bool suppressAccessibility) {
+        LayoutResult.Page? taggingPage = suppressAccessibility ? null : structurePage;
         double bottom = baseline + inlineElement.BaselineOffset;
         if (inlineElement is PdfInlineImage inlineImage) {
             if (page == null) {
@@ -53,11 +56,12 @@ internal static partial class PdfWriter {
                 pageImage.RotationCenterY = bottom + inlineElement.Height / 2D;
             }
             pageImage.IsInlineDecoration = string.IsNullOrWhiteSpace(inlineElement.AlternativeText);
+            pageImage.SuppressAccessibilityWrapper = suppressAccessibility;
             page.Images.Add(pageImage);
             pageImage.InlineDrawToken = AllocateInlineImageDrawToken(page);
             if (!string.IsNullOrWhiteSpace(inlineElement.AlternativeText)) {
-                pageImage.MarkedContentId = RegisterInlineFigureStructureElement(page, options, inlineElement.AlternativeText, parentElementIndex);
-                pageImage.StructElementIndex = FindStructElementIndex(page, pageImage.MarkedContentId, "Figure");
+                pageImage.MarkedContentId = RegisterInlineFigureStructureElement(taggingPage, options, inlineElement.AlternativeText, parentElementIndex);
+                pageImage.StructElementIndex = FindStructElementIndex(taggingPage, pageImage.MarkedContentId, "Figure");
             }
 
             sb.Append(pageImage.InlineDrawToken);
@@ -87,8 +91,8 @@ internal static partial class PdfWriter {
 
         PdfInlineBox inlineBox = (PdfInlineBox)inlineElement;
         bool tagged = options.TaggedStructureMode == PdfTaggedStructureMode.CatalogMarkers;
-        int? figureMarkedContentId = RegisterInlineFigureStructureElement(page, options, inlineElement.AlternativeText, parentElementIndex);
-        bool hasAlternativeText = !string.IsNullOrWhiteSpace(inlineElement.AlternativeText);
+        int? figureMarkedContentId = RegisterInlineFigureStructureElement(taggingPage, options, inlineElement.AlternativeText, parentElementIndex);
+        bool hasAlternativeText = !suppressAccessibility && !string.IsNullOrWhiteSpace(inlineElement.AlternativeText);
         if (hasAlternativeText) {
             sb.Append("/Figure << /Alt ")
                 .Append(PdfSyntaxEscaper.TextString(inlineElement.AlternativeText!));
@@ -98,7 +102,7 @@ internal static partial class PdfWriter {
             }
 
             sb.Append(" >> BDC\n");
-        } else {
+        } else if (!suppressAccessibility) {
             AppendArtifactBegin(sb, tagged);
         }
 
@@ -130,12 +134,12 @@ internal static partial class PdfWriter {
         boxContent.RestoreState();
         if (hasAlternativeText) {
             sb.Append("EMC\n");
-        } else {
+        } else if (!suppressAccessibility) {
             AppendArtifactEnd(sb, tagged);
         }
     }
 
-    private static void WriteRichParagraph(StringBuilder sb, RichParagraphBlock block, System.Collections.Generic.List<System.Collections.Generic.List<RichSeg>> lines, System.Collections.Generic.List<double> lineHeights, PdfOptions opts, double startY, double fontSize, double defaultLeading, System.Collections.Generic.List<LinkAnnotation> annots, double? xOverride = null, double? widthOverride = null, double? firstLineXOverride = null, double? firstLineWidthOverride = null, string? structureType = null, int? markedContentId = null, LayoutResult.Page? structurePage = null, System.Collections.Generic.IReadOnlyList<PdfAlign?>? lineAlignments = null, System.Collections.Generic.IReadOnlyList<double>? lineXOffsets = null, System.Collections.Generic.IReadOnlyList<double>? lineWidths = null, bool suppressActualText = false, System.Collections.Generic.IReadOnlyList<double>? lineTopGaps = null, PdfStandardFont? baselineFont = null, string? foregroundGraphicsState = null, string? decorationGraphicsState = null, bool captureInlineForms = true, bool hasFollowingParagraphLines = false, LayoutResult.Page? fontPage = null, double paragraphSpacingAfter = 0D, TableCellContentFrame? barClipFrame = null, double paragraphSpacingBefore = 0D) {
+    private static void WriteRichParagraph(StringBuilder sb, RichParagraphBlock block, System.Collections.Generic.List<System.Collections.Generic.List<RichSeg>> lines, System.Collections.Generic.List<double> lineHeights, PdfOptions opts, double startY, double fontSize, double defaultLeading, System.Collections.Generic.List<LinkAnnotation> annots, double? xOverride = null, double? widthOverride = null, double? firstLineXOverride = null, double? firstLineWidthOverride = null, string? structureType = null, int? markedContentId = null, LayoutResult.Page? structurePage = null, System.Collections.Generic.IReadOnlyList<PdfAlign?>? lineAlignments = null, System.Collections.Generic.IReadOnlyList<double>? lineXOffsets = null, System.Collections.Generic.IReadOnlyList<double>? lineWidths = null, bool suppressActualText = false, System.Collections.Generic.IReadOnlyList<double>? lineTopGaps = null, PdfStandardFont? baselineFont = null, string? foregroundGraphicsState = null, string? decorationGraphicsState = null, bool captureInlineForms = true, bool hasFollowingParagraphLines = false, LayoutResult.Page? fontPage = null, double paragraphSpacingAfter = 0D, TableCellContentFrame? barClipFrame = null, double paragraphSpacingBefore = 0D, bool suppressInlineAccessibility = false) {
         List<List<RichSeg>> logicalRows = lines;
         RichPaintRows? paintRows = ExpandRichPaintRows(lines, lineHeights, defaultLeading,
             xOverride ?? opts.MarginLeft, widthOverride ?? opts.PageWidth - opts.MarginLeft - opts.MarginRight,
@@ -441,8 +445,10 @@ internal static partial class PdfWriter {
                         s.InlineElement is PdfInlineFormWidget or PdfInlineBox { UsesRunTextMetrics: true }
                             ? lineY + s.LineAlignmentRise : lineY,
                         opts,
+                        fontPage,
                         structurePage,
-                        textStructElementIndex);
+                        textStructElementIndex,
+                        suppressInlineAccessibility);
                     if (pictureClip) new ContentStreamBuilder(sb).RestoreState();
                     xCursor += s.InlineElement.Width + s.JustificationAdvance;
                     content = new ContentStreamBuilder(sb)

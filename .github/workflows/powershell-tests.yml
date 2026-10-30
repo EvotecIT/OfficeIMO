@@ -5,28 +5,28 @@ on:
     branches:
       - master
       - main
-    paths-ignore:
-      - '*.md'
-      - 'Docs/**'
-      - 'Examples/**'
-      - '.gitignore'
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review, labeled, unlabeled]
 
   workflow_dispatch:
 
 env:
-  DOTNET_VERSION: |
-    8.0.426
-    10.0.113
   BUILD_CONFIGURATION: 'Debug'
 
 defaults:
   run:
     working-directory: PowerShell/PSWriteOffice
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && format('pr-{0}', github.event.pull_request.number) || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
+  coverage:
+    uses: ./.github/workflows/ci-coverage.yml
+
   changes:
+    needs: coverage
     name: Select affected powershell contracts
     runs-on: ubuntu-latest
     outputs:
@@ -36,6 +36,7 @@ jobs:
         with:
           persist-credentials: false
       - id: select
+        if: needs.coverage.outputs.build == 'true'
         uses: ./.github/actions/contract-selection
         with:
           suite: powershell
@@ -51,7 +52,8 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@v6
         with:
-          dotnet-version: ${{ env.DOTNET_VERSION }}
+          dotnet-version: 8.0.x
+          global-json-file: global.json
       - uses: ./.github/actions/nuget-cache
 
       - name: Install PowerShell modules
@@ -81,7 +83,8 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@v6
         with:
-          dotnet-version: ${{ env.DOTNET_VERSION }}
+          dotnet-version: 8.0.x
+          global-json-file: global.json
       - uses: ./.github/actions/nuget-cache
 
       - name: Install PowerShell modules
@@ -121,7 +124,8 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@v6
         with:
-          dotnet-version: ${{ env.DOTNET_VERSION }}
+          dotnet-version: 8.0.x
+          global-json-file: global.json
       - uses: ./.github/actions/nuget-cache
 
       - name: Install PowerShell modules
@@ -174,7 +178,8 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@v6
         with:
-          dotnet-version: ${{ env.DOTNET_VERSION }}
+          dotnet-version: 8.0.x
+          global-json-file: global.json
       - uses: ./.github/actions/nuget-cache
 
       - name: Install PowerShell modules
@@ -194,7 +199,7 @@ jobs:
 
   test-macos:
     needs: changes
-    if: needs.changes.outputs.selected == 'true'
+    if: github.event_name != 'pull_request' && needs.changes.outputs.selected == 'true'
     name: 'macOS PowerShell 7'
     runs-on: macos-latest
     steps:
@@ -204,7 +209,8 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@v6
         with:
-          dotnet-version: ${{ env.DOTNET_VERSION }}
+          dotnet-version: 8.0.x
+          global-json-file: global.json
       - uses: ./.github/actions/nuget-cache
 
       - name: Install PowerShell modules
@@ -221,3 +227,25 @@ jobs:
       - name: Run PowerShell tests
         shell: pwsh
         run: ./PSWriteOffice.Tests.ps1 -SkipDependencyInstall
+
+  ci-validation:
+    name: CI validation
+    if: always()
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ${{ github.workspace }}
+    needs: [coverage, changes, test-windows-ps5, test-windows-ps7, packaged-alc-conflict, test-ubuntu, test-macos]
+    steps:
+      - name: Require selection and selected jobs
+        env:
+          RESULTS: ${{ toJSON(needs) }}
+        run: |
+          python3 - <<'PY'
+          import json, os, sys
+          results = json.loads(os.environ['RESULTS'])
+          failed = [k for k, v in results.items() if v['result'] not in ('success', 'skipped')]
+          failed += [k for k in ('coverage', 'changes') if results[k]['result'] != 'success']
+          print(json.dumps(results, indent=2))
+          sys.exit(bool(failed))
+          PY

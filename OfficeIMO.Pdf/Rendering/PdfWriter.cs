@@ -1213,6 +1213,21 @@ internal static partial class PdfWriter {
             if (pageLabelRanges.Count > 0) {
                 ValidatePageLabelRanges(pageLabelRanges, layout.Pages.Count);
                 pageLabelsId = AddObject(objects, PdfPageLabelDictionaryBuilder.BuildGeneratedPageLabelsDictionary(pageLabelRanges));
+            } else if (opts.IncludeLayoutPageNumberLabels && pageNumberInfos.Count > 0) {
+                var layoutLabels = new List<PdfPageLabelRange>();
+                for (int index = 0; index < pageNumberInfos.Count; index++) {
+                    int number = pageNumberInfos[index].PageNumber;
+                    PdfOptions pageOptions = layout.Pages[index].Options;
+                    PdfPageNumberStyle style = pageOptions.LayoutPageNumberStyle ?? PdfPageNumberStyle.Arabic;
+                    bool unsupported = pageOptions.LayoutPageNumberStyleUnsupported;
+                    if (index == 0 || number != pageNumberInfos[index - 1].PageNumber + 1
+                        || style != (layout.Pages[index - 1].Options.LayoutPageNumberStyle ?? PdfPageNumberStyle.Arabic)
+                        || unsupported != layout.Pages[index - 1].Options.LayoutPageNumberStyleUnsupported) {
+                        layoutLabels.Add(new PdfPageLabelRange(index + 1, style, number,
+                            unsupported ? PdfOptions.UnsupportedLayoutPageNumberPrefix : null));
+                    }
+                }
+                pageLabelsId = AddObject(objects, PdfPageLabelDictionaryBuilder.BuildGeneratedPageLabelsDictionary(layoutLabels));
             } else {
                 pageLabelsId = AddObject(objects, PdfPageLabelDictionaryBuilder.BuildGeneratedPageLabelsDictionary(
                     opts.PageNumberStyle,
@@ -1471,8 +1486,18 @@ internal static partial class PdfWriter {
         List<(string Name, int Id)> resources) {
         var used = new List<(string Name, int Id)>();
         if (string.IsNullOrEmpty(content) || resources.Count == 0) return used;
+        var available = new HashSet<string>(resources.Select(resource => resource.Name.TrimStart('/')), StringComparer.Ordinal);
+        var usedNames = new HashSet<string>(StringComparer.Ordinal);
+        for (int index = 0; index < content.Length; index++) {
+            if (content[index] != '/') continue;
+            int end = index + 1;
+            while (end < content.Length && content[end] != '/' && !char.IsWhiteSpace(content[end])) end++;
+            string name = content.Substring(index + 1, end - index - 1);
+            if ((end == content.Length || char.IsWhiteSpace(content[end])) && available.Contains(name)) usedNames.Add(name);
+            index = end - 1;
+        }
         for (int index = 0; index < resources.Count; index++) {
-            if (UsesPdfResource(content, resources[index].Name)) used.Add(resources[index]);
+            if (usedNames.Contains(resources[index].Name.TrimStart('/'))) used.Add(resources[index]);
         }
         return used;
     }
@@ -1482,8 +1507,18 @@ internal static partial class PdfWriter {
         List<(string Name, int Id)> resources) {
         var used = new List<(string Name, int Id)>();
         if (content.Length == 0 || resources.Count == 0) return used;
+        var available = new HashSet<string>(resources.Select(resource => resource.Name.TrimStart('/')), StringComparer.Ordinal);
+        var usedNames = new HashSet<string>(StringComparer.Ordinal);
+        for (int index = 0; index < content.Length; index++) {
+            if (content[index] != (byte)'/') continue;
+            int end = index + 1;
+            while (end < content.Length && content[end] != (byte)'/' && !char.IsWhiteSpace((char)content[end])) end++;
+            string name = System.Text.Encoding.ASCII.GetString(content, index + 1, end - index - 1);
+            if ((end == content.Length || char.IsWhiteSpace((char)content[end])) && available.Contains(name)) usedNames.Add(name);
+            index = end - 1;
+        }
         for (int index = 0; index < resources.Count; index++) {
-            if (UsesPdfResource(content, resources[index].Name)) used.Add(resources[index]);
+            if (usedNames.Contains(resources[index].Name.TrimStart('/'))) used.Add(resources[index]);
         }
         return used;
     }

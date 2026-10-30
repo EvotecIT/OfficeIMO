@@ -115,10 +115,10 @@ internal static partial class PdfAnnotationDictionaryBuilder {
 
     internal static string BuildTextFieldWidgetAnnotation(double x1, double y1, double x2, double y2, string name, string value, double fontSize, int normalAppearanceId, PdfFormFieldStyle? style = null, int? structParentIndex = null, int? parentObjectId = null) {
         ValidateRectangle(x1, y1, x2, y2);
-        string fieldEntries = BuildTextFieldEntries(name, value, fontSize, style, isWidget: !parentObjectId.HasValue);
         if (parentObjectId.HasValue) {
             return BuildChildFormWidgetAnnotation(x1, y1, x2, y2, parentObjectId.Value, normalAppearanceId, style, structParentIndex);
         }
+        string fieldEntries = BuildTextFieldEntries(name, value, fontSize, style, isWidget: true);
 
         return "<< /Type /Annot /Subtype /Widget" + fieldEntries +
             " /Rect [" +
@@ -187,6 +187,9 @@ internal static partial class PdfAnnotationDictionaryBuilder {
 
     internal static string BuildChoiceFieldWidgetAnnotation(double x1, double y1, double x2, double y2, string name, IReadOnlyList<string> options, IReadOnlyList<string> values, double fontSize, int normalAppearanceId, bool isComboBox, bool allowsMultipleSelection, PdfFormFieldStyle? style = null, int? structParentIndex = null, IReadOnlyList<int>? selectedIndices = null, int? topIndex = null, int? parentObjectId = null) {
         Guard.NotNull(options, nameof(options));
+        if (parentObjectId.HasValue) {
+            return BuildChildFormWidgetAnnotation(x1, y1, x2, y2, parentObjectId.Value, normalAppearanceId, style, structParentIndex);
+        }
         var pairedOptions = options.Select(option => new PdfFormFieldOption(option, option)).ToList();
         return BuildChoiceFieldWidgetAnnotationCore(x1, y1, x2, y2, name, pairedOptions, values, fontSize, normalAppearanceId, isComboBox, allowsMultipleSelection, style, structParentIndex, requireUniqueExportValues: true, emitPairedOptions: false, selectedIndices, topIndex, parentObjectId);
     }
@@ -196,10 +199,10 @@ internal static partial class PdfAnnotationDictionaryBuilder {
 
     private static string BuildChoiceFieldWidgetAnnotationCore(double x1, double y1, double x2, double y2, string name, IReadOnlyList<PdfFormFieldOption> options, IReadOnlyList<string> values, double fontSize, int normalAppearanceId, bool isComboBox, bool allowsMultipleSelection, PdfFormFieldStyle? style, int? structParentIndex, bool requireUniqueExportValues, bool emitPairedOptions, IReadOnlyList<int>? selectedIndices = null, int? topIndex = null, int? parentObjectId = null) {
         ValidateRectangle(x1, y1, x2, y2);
-        string fieldEntries = BuildChoiceFieldEntries(name, options, values, fontSize, isComboBox, allowsMultipleSelection, style, requireUniqueExportValues, emitPairedOptions, selectedIndices, topIndex, isWidget: !parentObjectId.HasValue);
         if (parentObjectId.HasValue) {
             return BuildChildFormWidgetAnnotation(x1, y1, x2, y2, parentObjectId.Value, normalAppearanceId, style, structParentIndex);
         }
+        string fieldEntries = BuildChoiceFieldEntries(name, options, values, fontSize, isComboBox, allowsMultipleSelection, style, requireUniqueExportValues, emitPairedOptions, selectedIndices, topIndex, isWidget: true);
 
         return "<< /Type /Annot /Subtype /Widget" + fieldEntries +
             " /Rect [" +
