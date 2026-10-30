@@ -377,7 +377,16 @@ public static partial class OfficeChartDrawingRenderer {
         int stride = Math.Max(1, (int)Math.Ceiling(categories.Count / (double)layout.MaximumCategoryAxisLabels));
         double slot = plotWidth / categories.Count;
         if (layout.PreventLabelOverlap) {
-            double minimumStep = Math.Min(layout.CategoryAxisLabelWidth, Math.Max(18D, slot * stride)) + 2D;
+            // Thin the labels only when the widest one would not fit its step. Comparing with
+            // the default label box instead dropped every other short label, such as "South"
+            // and "West", even though all of them fitted their category slots.
+            double widestLabel = 18D;
+            for (int i = 0; i < categories.Count && i < 512; i++) {
+                string label = FormatCategoryAxisLabel(categories[i], layout);
+                if (!string.IsNullOrWhiteSpace(label)) widestLabel = Math.Max(widestLabel, MeasureAxisLabelWidth(label, layout) + 4D);
+            }
+
+            double minimumStep = Math.Min(layout.CategoryAxisLabelWidth, widestLabel) + 2D;
             stride = EnsureLabelStride(stride, slot, minimumStep);
         }
 
