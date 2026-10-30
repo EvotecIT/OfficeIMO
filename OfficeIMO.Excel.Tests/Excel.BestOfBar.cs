@@ -422,7 +422,7 @@ namespace OfficeIMO.Tests
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddSheet("Data");
-                sheet.AddTable(table, new OfficeIMO.Excel.ExcelTableOptions { IncludeHeaders = true, Name = "Rows", Style = ExcelTableStyle.TableStyleMedium2 }, row: 1, column: 1);
+                sheet.WriteData(table, row: 1, column: 1);
 
                 IReadOnlyList<ExcelColumnFormatResult> results = sheet.ApplyColumnFormatPlan(
                     new ExcelColumnFormatPlan()

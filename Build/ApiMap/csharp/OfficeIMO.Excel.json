@@ -6537,6 +6537,20 @@
         "Docs/officeimo.excel.legacy-xls-compatibility.md",
         "Docs/officeimo.word-excel-interoperability.md"
       ]
+    },
+    {
+      "phase": "B",
+      "action": "change",
+      "applied": "phase-b-applied",
+      "old": "Plain-row migration fixtures create a typed table; direct headerless range tables reuse source member names.",
+      "new": "Plain cells use WriteData; range tables without headers generate column names unless the caller supplies explicit typed names.",
+      "reason": "Preserve plain-row serialization and native headerless table contracts while retaining Modern typed-table defaults.",
+      "note": "The seven migrated plain-row paths retain the DirectDataSetPackage fast writer, indexed read-only lists, null/empty-string distinctions and saved cell data. A separate WriteData-then-AddTable workflow preserves explicit native table metadata.46 focused cases pass on both net10.0 and net8.0; Excel builds pass10/8/std2/isolated472. The full net10 run passes7264 cases with5skips and one separate PDF reader duplicate-table failure under remediation. The earlier PDF reconstruction failure was caused by a stale copied PDF assembly; it passes after refreshing the test output.",
+      "files": [
+        "OfficeIMO.Excel/ExcelSheet.Tables.cs",
+        "OfficeIMO.Excel.Tests/Excel.PerformanceReviewRegression.cs",
+        "OfficeIMO.Excel.Tests/Excel.BestOfBar.cs"
+      ]
     }
   ],
   "applicationStatus": "Phase A applied and validated on the supported macOS targets. Phase B and Tier 2 entries retain their status; Windows .NET Framework validation remains pending.",

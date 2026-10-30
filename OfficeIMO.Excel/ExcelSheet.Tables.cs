@@ -420,7 +420,7 @@ namespace OfficeIMO.Excel {
                 if (canUseDirectCandidateRange) {
                     ensureRangeCellsExist = false;
                     skipExistingTableScan = true;
-                    headerNames ??= directCandidateHeaders;
+                    if (hasHeader) headerNames ??= directCandidateHeaders;
                 }
 
                 if (!skipExistingTableScan) {

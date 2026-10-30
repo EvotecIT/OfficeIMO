@@ -5734,7 +5734,7 @@ namespace OfficeIMO.Tests
         }
 
         [Fact]
-        public void PerformanceReview_FluentRowsFrom_UsesDirectPackageWhenWorkbookIsClean()
+        public void PerformanceReview_WriteData_UsesDirectPackageWhenWorkbookIsClean()
         {
             using var memory = new MemoryStream();
             var rows = new[]
@@ -5746,9 +5746,7 @@ namespace OfficeIMO.Tests
             {
                 {
                     var sheet1 = document.AddSheet("Data");
-                    int nextRow2 = 1;
-                    var table3 = sheet1.AddTable(rows, new ExcelTableOptions { Name = null, Style = ExcelTableStyle.TableStyleMedium2, IncludeAutoFilter = true, Projection = null }, row: nextRow2);
-                    nextRow2 = table3.AsRange().LastRow + 1;
+                    sheet1.WriteData(rows);
                     document.Save(memory);
                 }
 
@@ -5769,7 +5767,7 @@ namespace OfficeIMO.Tests
         }
 
         [Fact]
-        public void PerformanceReview_FluentRowsFrom_NullableSimpleRowsUseDirectPackage()
+        public void PerformanceReview_WriteData_NullableSimpleRowsUseDirectPackage()
         {
             using var memory = new MemoryStream();
             var rows = new[]
@@ -5781,9 +5779,7 @@ namespace OfficeIMO.Tests
             {
                 {
                     var sheet4 = document.AddSheet("Data");
-                    int nextRow5 = 1;
-                    var table6 = sheet4.AddTable(rows, new ExcelTableOptions { Name = null, Style = ExcelTableStyle.TableStyleMedium2, IncludeAutoFilter = true, Projection = null }, row: nextRow5);
-                    nextRow5 = table6.AsRange().LastRow + 1;
+                    sheet4.WriteData(rows);
                     document.Save(memory);
                 }
 
@@ -5799,7 +5795,8 @@ namespace OfficeIMO.Tests
             Assert.Equal("Alpha", GetSpreadsheetCellText(spreadsheet, cells["A2"]));
             Assert.Equal("10", cells["B2"].CellValue!.Text);
             Assert.Equal(1U, cells["C2"].StyleIndex!.Value);
-            Assert.Equal(string.Empty, GetSpreadsheetCellText(spreadsheet, cells["A3"]));
+            AssertMissingSpreadsheetCell(cells, "A3");
+            Assert.Equal(string.Empty, GetSpreadsheetCellText(spreadsheet, cells["D2"]));
             AssertMissingSpreadsheetCell(cells, "B3");
             AssertMissingSpreadsheetCell(cells, "C3");
             Assert.Equal(cells["C2"].StyleIndex!.Value, cells["C3"].StyleIndex!.Value);
@@ -5808,7 +5805,7 @@ namespace OfficeIMO.Tests
         }
 
         [Fact]
-        public void PerformanceReview_FluentRowsFrom_RepeatedSimpleTypeUsesDirectPackage()
+        public void PerformanceReview_WriteData_RepeatedSimpleTypeUsesDirectPackage()
         {
             var rows = new[]
             {
@@ -5819,9 +5816,7 @@ namespace OfficeIMO.Tests
             {
                 {
                     var sheet7 = document.AddSheet("First");
-                    int nextRow8 = 1;
-                    var table9 = sheet7.AddTable(rows, new ExcelTableOptions { Name = null, Style = ExcelTableStyle.TableStyleMedium2, IncludeAutoFilter = true, Projection = null }, row: nextRow8);
-                    nextRow8 = table9.AsRange().LastRow + 1;
+                    sheet7.WriteData(rows);
                     document.Save(first);
                 }
 
@@ -5833,9 +5828,7 @@ namespace OfficeIMO.Tests
             {
                 {
                     var sheet10 = document.AddSheet("Second");
-                    int nextRow11 = 1;
-                    var table12 = sheet10.AddTable(rows, new ExcelTableOptions { Name = null, Style = ExcelTableStyle.TableStyleMedium2, IncludeAutoFilter = true, Projection = null }, row: nextRow11);
-                    nextRow11 = table12.AsRange().LastRow + 1;
+                    sheet10.WriteData(rows);
                     document.Save(second);
                 }
 
@@ -5845,7 +5838,7 @@ namespace OfficeIMO.Tests
         }
 
         [Fact]
-        public void PerformanceReview_FluentRowsFrom_ReadOnlyListUsesDirectPackageWithoutSnapshotEnumeration()
+        public void PerformanceReview_WriteData_ReadOnlyListUsesDirectPackageWithoutSnapshotEnumeration()
         {
             var rows = new ThrowOnEnumerateReadOnlyList<PerformanceObjectExportRow>(new PerformanceObjectExportRow("Alpha", 10, new DateTime(2026, 5, 19)), new PerformanceObjectExportRow("Beta", 20, new DateTime(2026, 5, 20)));
             using var memory = new MemoryStream();
@@ -5853,9 +5846,7 @@ namespace OfficeIMO.Tests
             {
                 {
                     var sheet13 = document.AddSheet("Data");
-                    int nextRow14 = 1;
-                    var table15 = sheet13.AddTable(rows, new ExcelTableOptions { Name = null, Style = ExcelTableStyle.TableStyleMedium2, IncludeAutoFilter = true, Projection = null }, row: nextRow14);
-                    nextRow14 = table15.AsRange().LastRow + 1;
+                    sheet13.WriteData(rows);
                     document.Save(memory);
                 }
 
@@ -5865,7 +5856,7 @@ namespace OfficeIMO.Tests
         }
 
         [Fact]
-        public void PerformanceReview_FluentRowsFrom_DirtyWorkbookPreservesSimpleRows()
+        public void PerformanceReview_WriteData_DirtyWorkbookPreservesSimpleRows()
         {
             using var memory = new MemoryStream();
             var rows = new[]
@@ -5877,10 +5868,8 @@ namespace OfficeIMO.Tests
             {
                 {
                     var sheet16 = document.AddSheet("Data");
-                    int nextRow17 = 1;
                     sheet16.Cell(5, 5, "Manual edit");
-                    var table18 = sheet16.AddTable(rows, new ExcelTableOptions { Name = null, Style = ExcelTableStyle.TableStyleMedium2, IncludeAutoFilter = true, Projection = null }, row: nextRow17);
-                    nextRow17 = table18.AsRange().LastRow + 1;
+                    sheet16.WriteData(rows);
                     document.Save(memory);
                 }
 
@@ -5903,7 +5892,7 @@ namespace OfficeIMO.Tests
         }
 
         [Fact]
-        public void PerformanceReview_FluentRowsFromThenTable_UsesDirectPackageWhenWorkbookIsClean()
+        public void PerformanceReview_WriteDataThenTable_UsesDirectPackageWhenWorkbookIsClean()
         {
             using var memory = new MemoryStream();
             var rows = new[]
@@ -5915,9 +5904,8 @@ namespace OfficeIMO.Tests
             {
                 {
                     var sheet19 = document.AddSheet("Data");
-                    int nextRow20 = 1;
-                    var table21 = sheet19.AddTable(rows, new ExcelTableOptions { Name = "Fluent Rows", Style = OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium5, IncludeAutoFilter = true, Projection = null }, row: nextRow20);
-                    nextRow20 = table21.AsRange().LastRow + 1;
+                    sheet19.WriteData(rows);
+                    sheet19.AddTable("A1:C3", name: "Plain Rows", style: ExcelTableStyle.TableStyleMedium5);
                     document.Save(memory);
                 }
 
@@ -5930,13 +5918,13 @@ namespace OfficeIMO.Tests
             var worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
             var tableDefinition = worksheetPart.TableDefinitionParts.Single().Table!;
             Assert.Equal("A1:C3", tableDefinition.Reference!.Value);
-            Assert.Equal("Fluent_Rows", tableDefinition.Name!.Value);
+            Assert.Equal("Plain_Rows", tableDefinition.Name!.Value);
             Assert.Equal("TableStyleMedium5", tableDefinition.TableStyleInfo!.Name!.Value);
             Assert.Empty(new OpenXmlValidator().Validate(spreadsheet).ToList());
         }
 
         [Fact]
-        public void PerformanceReview_FluentRowsFrom_WorkbookMutationInvalidatesDirectPackageCandidate()
+        public void PerformanceReview_WriteData_WorkbookMutationInvalidatesDirectPackageCandidate()
         {
             using var memory = new MemoryStream();
             var rows = new[]
@@ -5947,9 +5935,7 @@ namespace OfficeIMO.Tests
             {
                 {
                     var sheet22 = document.AddSheet("Data");
-                    int nextRow23 = 1;
-                    var table24 = sheet22.AddTable(rows, new ExcelTableOptions { Name = null, Style = ExcelTableStyle.TableStyleMedium2, IncludeAutoFilter = true, Projection = null }, row: nextRow23);
-                    nextRow23 = table24.AsRange().LastRow + 1;
+                    sheet22.WriteData(rows);
                 }
 
                 document.Sheets[0].CellValue(5, 1, "Manual edit");
