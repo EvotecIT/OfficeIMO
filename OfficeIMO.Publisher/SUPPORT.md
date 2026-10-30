@@ -49,6 +49,7 @@ references do not report missing images.
 | Table creation | Empty unmerged borderless grids on qualified document/master pages; copied positive finite tracks, one new complete story, shared table/story identifier allocation and current SVG/PDF/Reader projection | No merged-cell authoring, cell decoration or native PUB records; text/model/projection limits and transactional failure behavior apply |
 | Page/master authoring | Source-free `Create` with one empty physical page; appended same-size physical pages and centered single-page masters; explicit qualified direct master assignment or clearing; immutable native-source/page provenance | No resize, deletion, reorder, object moves, paired-master creation or master inheritance; unassessed backgrounds and registrations reject assignment; native PUB saving remains unavailable |
 | Ordinary text creation | `AddTextFrame` creates a complete independent styled story and resolved one-frame chain on a qualified document/master page; one column, zero gap/insets, top alignment, no paint/transform/wrap; existing continuation API handles document-page chains | Authored ordinary stories have no implicit final terminator; full overflow is retained. Frame/story IDs reserve atomically; master-owned stories cannot continue across physical pages; no native text records are authored |
+| Text-frame layout edits | `SetTextFrameLayout` replaces equal-width columns/gap, Core padding and Top/Center/Bottom alignment on qualified resolved document/master frames, including mixed text artwork; snapshots expose padding/alignment and operation-specific eligibility | No table stories/aliases, grouped/transformed/unresolved placement, native balancing, distributed alignment or vertical writing. Unqualified native layout overrides remain read-only for this operation; bounds/read behavior stays separate. Changed values are refused by internal native preparation |
 | Continuation-frame creation | Append an ordinary untransformed text frame to a resolved non-table story's tail on an existing document page; one complete styled story, current links/ranges/overflow, copied columns/padding/alignment, no fill/outline, and shared SVG/PDF/Reader projection | The source chain must contain ordinary visible untransformed document-page frames; master chains, ambiguous links and non-tail insertion are rejected; this is in-memory model creation, not native PUB creation |
 | Output | SVG per document page and multi-page PDF through shared engines | No native save-back or editable publication writer |
 
@@ -124,6 +125,24 @@ supported picture edits and rendering consume the typed placement directly.
 Text-frame story bindings, link/catalog order, columns, spacing, padding,
 alignment and geometry are imported into semantic state once. Bounds edits and
 new continuation frames do not synthesize native drawing or text records.
+Layout edits replace only semantic frame settings; the existing Core flow
+recomputes assigned ranges and complete overflow. A frame's graphics, transform,
+owner, story, links and wrap references remain unchanged. Continuations copy the
+current tail layout. Padding and gaps must leave a positive finite content area;
+an already collapsed area does not prevent correcting the layout. Column count
+shares the imported ceiling of 256 and the configured item limit; all existing
+measurement and projection budgets remain active.
+The imported layout edit family admits the absent defaults and exact ordinary
+forms present in the current native controls: `WrapText` value 1 and the
+`TextBooleanProperties` word `0x00020000`, with no explicit OfficeArt anchor or
+text-flow override. Contents vertical alignment admits an absent field or the
+observed four-byte scalar with values 0, 1 or 2. Other text-property forms and
+unknown vertical-alignment encodings/values keep their existing render fallback but expose
+`LayoutEditLimitation` and `PUB_TEXT_FRAME_LAYOUT_EDIT_UNSUPPORTED`. This is managed
+layout qualification; the controls do not establish native column balancing or
+exact Center/Bottom metrics. Internal native preparation compares all current
+layout values and refuses changed layouts instead of returning unchanged source
+bytes as a successful edit.
 The one publication object allocator reserves imported identities and dangling
 references; failed mutations do not consume an identity.
 Vector artwork uses the shared `OfficeShape` descriptor, copied at its public

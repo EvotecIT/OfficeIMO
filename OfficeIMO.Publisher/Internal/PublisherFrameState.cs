@@ -8,12 +8,13 @@ internal sealed class PublisherFrameState {
         OfficeTransform pageTransform, bool hasAnchor, bool transformAvailable, bool hidden, bool drawable,
         bool canEditBounds, bool supportsContinuation, int columns, double columnSpacing, OfficeTextPadding padding,
         OfficeTextVerticalAlignment verticalAlignment, IReadOnlyList<uint> wrapObjects, PublisherFrameEditRange editRange,
-        bool isAuthored = false) {
+        bool isAuthored = false, string? layoutEditLimitation = null) {
         Id = id; StoryId = storyId; PageId = pageId; X = x; Y = y; Width = width; Height = height;
         PageTransform = pageTransform; HasAnchor = hasAnchor; TransformAvailable = transformAvailable;
         Hidden = hidden; Drawable = drawable; CanEditBounds = canEditBounds; SupportsContinuation = supportsContinuation;
         ColumnCount = columns; ColumnSpacing = columnSpacing; Padding = padding; VerticalAlignment = verticalAlignment;
         WrapObjectIds = Array.AsReadOnly(wrapObjects.ToArray()); EditRange = editRange; IsAuthored = isAuthored;
+        LayoutEditLimitation = layoutEditLimitation;
     }
     internal uint Id { get; }
     internal uint StoryId { get; }
@@ -37,10 +38,17 @@ internal sealed class PublisherFrameState {
     internal IReadOnlyList<uint> WrapObjectIds { get; }
     internal PublisherFrameEditRange EditRange { get; }
     internal bool IsAuthored { get; }
+    internal string? LayoutEditLimitation { get; }
+    internal double ColumnWidth => (Width - Padding.Horizontal - (ColumnCount - 1) * ColumnSpacing) / ColumnCount;
+    internal double ContentHeight => Height - Padding.Vertical;
 
     internal PublisherFrameState WithBounds(double x, double y, double width, double height) =>
         new(Id, StoryId, PageId, x, y, width, height, OfficeTransform.Translate(x, y), true, true, Hidden, Drawable,
-            CanEditBounds, SupportsContinuation, ColumnCount, ColumnSpacing, Padding, VerticalAlignment, WrapObjectIds, EditRange, IsAuthored);
+            CanEditBounds, SupportsContinuation, ColumnCount, ColumnSpacing, Padding, VerticalAlignment, WrapObjectIds, EditRange, IsAuthored, LayoutEditLimitation);
+
+    internal PublisherFrameState WithLayout(int columns, double spacing, OfficeTextPadding padding, OfficeTextVerticalAlignment alignment) =>
+        new(Id, StoryId, PageId, X, Y, Width, Height, PageTransform, HasAnchor, TransformAvailable, Hidden, Drawable,
+            CanEditBounds, SupportsContinuation, columns, spacing, padding, alignment, WrapObjectIds, EditRange, IsAuthored, LayoutEditLimitation);
 }
 
 /// <summary>Qualified edit envelope in page points. Native generation limits are translated by the importer.</summary>

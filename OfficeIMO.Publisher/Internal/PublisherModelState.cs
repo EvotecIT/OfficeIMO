@@ -57,6 +57,9 @@ internal sealed partial class PublisherModelState {
         return WithPublication(_publication.WithText(_publication.Text.SetBounds(frame.Id, x, y, width, height)));
     }
 
+    internal PublisherModelState SetFrameLayout(uint id, int columns, double spacing, OfficeTextPadding padding, OfficeTextVerticalAlignment alignment) =>
+        WithPublication(_publication.WithText(_publication.Text.SetFrameLayout(id, columns, spacing, padding, alignment, _decoded.Options)));
+
     internal PublisherModelState AddLinkedTextFrame(uint previousFrameId, uint pageId, double x, double y, double width, double height,
         CancellationToken token, out uint frameId) {
         token.ThrowIfCancellationRequested();

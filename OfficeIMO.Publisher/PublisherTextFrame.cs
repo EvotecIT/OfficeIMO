@@ -9,12 +9,14 @@ namespace OfficeIMO.Publisher;
 public sealed class PublisherTextFrame {
     internal PublisherTextFrame(uint id, uint storyId, uint pageId, uint? previous, uint? next, uint order,
         double x, double y, double width, double height, int columns, double columnSpacing,
-        int? textStart, int? textLength, bool hasOverflow, IReadOnlyList<uint> wrapObjects, OfficeTransform pageTransform) {
+        int? textStart, int? textLength, bool hasOverflow, IReadOnlyList<uint> wrapObjects, OfficeTransform pageTransform,
+        OfficeTextPadding padding, OfficeTextVerticalAlignment verticalAlignment, string? layoutEditLimitation) {
         Id = id; StoryId = storyId; PageId = pageId; PreviousFrameId = previous; NextFrameId = next;
         Order = order; X = x; Y = y; Width = width; Height = height; ColumnCount = columns;
         ColumnSpacing = columnSpacing; TextStart = textStart; TextLength = textLength; HasOverflow = hasOverflow;
         WrapObjectIds = Array.AsReadOnly(wrapObjects.ToArray());
         PageTransform = pageTransform;
+        Padding = padding; VerticalAlignment = verticalAlignment; LayoutEditLimitation = layoutEditLimitation;
     }
     /// <summary>Stable publication object identifier, scoped to this document.</summary>
     public uint Id { get; }
@@ -42,12 +44,20 @@ public sealed class PublisherTextFrame {
     public int ColumnCount { get; }
     /// <summary>Gap between text columns in points.</summary>
     public double ColumnSpacing { get; }
+    /// <summary>Current text insets in points, applied before column layout.</summary>
+    public OfficeTextPadding Padding { get; }
+    /// <summary>Current Core vertical alignment within each generated text region.</summary>
+    public OfficeTextVerticalAlignment VerticalAlignment { get; }
+    /// <summary>Whether SetTextFrameLayout can change this resolved non-table frame's layout. The requested content area is validated separately.</summary>
+    public bool CanEditLayout => LayoutEditLimitation == null;
+    /// <summary>Reason layout editing is unavailable, or null when this frame is eligible. Reading and bounds eligibility are separate contracts.</summary>
+    public string? LayoutEditLimitation { get; }
     /// <summary>Native objects referenced by this frame's text-wrap exclusion list.</summary>
     public IReadOnlyList<uint> WrapObjectIds { get; }
-    /// <summary>UTF-16 start in the normalized source story, or null when placement is unresolved.</summary>
+    /// <summary>UTF-16 start in the normalized current story, or null when placement is unresolved.</summary>
     public int? TextStart { get; }
     /// <summary>Assigned UTF-16 length, including paragraph separators; null when placement is unresolved.</summary>
     public int? TextLength { get; }
-    /// <summary>Whether story content remains after the final recovered frame.</summary>
+    /// <summary>Whether story content remains after the final current frame.</summary>
     public bool HasOverflow { get; }
 }

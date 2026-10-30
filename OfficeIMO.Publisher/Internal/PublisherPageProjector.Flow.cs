@@ -24,8 +24,8 @@ internal sealed partial class PublisherPageProjector {
                 }
                 int columns = frame.ColumnCount;
                 OfficeTextPadding padding = frame.Padding;
-                double width = (frame.Width - padding.Horizontal - (columns - 1) * frame.ColumnSpacing) / columns;
-                double height = frame.Height - padding.Vertical;
+                double width = frame.ColumnWidth;
+                double height = frame.ContentHeight;
                 var content = new List<PreparedTextRegion>();
                 IReadOnlyList<OfficeTextFlowRegion> exclusions = TextExclusions(frame);
                 int? start = unavailable ? null : flow.HasRemaining ? Math.Min(flow.CharacterPosition, story.Text.Length) : story.Text.Length;
@@ -53,8 +53,12 @@ internal sealed partial class PublisherPageProjector {
                     OfficeConversionLossKind.Omission, PublisherEscherReader.ShapeLocation(frame.Id));
                 var model = new PublisherTextFrame(frame.Id, story.Id, frame.PageId!.Value, previous, next, (uint)frameIndex,
                     frame.X, frame.Y, frame.Width, frame.Height, columns, frame.ColumnSpacing, start, end - start, overflow,
-                    frame.WrapObjectIds, frame.PageTransform);
+                    frame.WrapObjectIds, frame.PageTransform, frame.Padding, frame.VerticalAlignment,
+                    _publication.Text.FrameLayoutEditLimitation(frame.Id, start.HasValue));
                 _textFrames.Add(frame.Id, new PreparedTextFrame(model, content));
+                if (model.LayoutEditLimitation != null)
+                    _context.Add("PUB_TEXT_FRAME_LAYOUT_EDIT_UNSUPPORTED", model.LayoutEditLimitation, OfficeConversionLossKind.None,
+                        frame.IsAuthored ? "publication/frame/" + frame.Id : PublisherEscherReader.ShapeLocation(frame.Id));
                 if (!unavailable) _usedStories.Add(story.Id);
             }
             if (chain.Value.Count > 1) {

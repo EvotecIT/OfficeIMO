@@ -3,7 +3,7 @@ using OfficeIMO.Drawing;
 namespace OfficeIMO.Publisher.Internal;
 
 /// <summary>Current complete stories, frame definitions and resolved chain order, independent of native text records.</summary>
-internal sealed class PublisherTextState {
+internal sealed partial class PublisherTextState {
     private readonly HashSet<uint> _tableStories;
     internal PublisherTextState(IReadOnlyDictionary<uint, PublisherTextStory> stories,
         IReadOnlyDictionary<uint, PublisherFrameState> frames, IReadOnlyDictionary<uint, IReadOnlyList<uint>> chains,

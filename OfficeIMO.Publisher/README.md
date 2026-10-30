@@ -161,6 +161,34 @@ the current page scenes, assigned text ranges and overflow. SVG and the optional
 PDF package consume those scenes; the Reader adapter can project the current
 in-memory document directly.
 
+`SetTextFrameLayout` replaces a qualified frame's column count, gap, padding and
+vertical alignment without changing its bounds, graphics, story or links:
+
+```csharp
+var current = publication.Pages[0].TextFrames[0];
+publication.SetTextFrameLayout(current.Id, 2, 18,
+    new OfficeTextPadding(8, 6, 8, 6), OfficeTextVerticalAlignment.Top);
+```
+
+`PublisherTextFrame` exposes the current `Padding`, `VerticalAlignment`,
+`ColumnCount` and `ColumnSpacing`. `CanEditLayout` and `LayoutEditLimitation`
+describe this operation independently of bounds editing. Visible resolved
+untransformed document/master frames are eligible, including text-capable
+artwork. Tables and table-story aliases are excluded. Unassessed native anchor,
+text-direction, wrapping, fitting and vertical-alignment forms retain their
+reading and bounds behavior but reject layout editing.
+
+Columns are equal-width, from 1 through 256 within the configured item limit.
+Gap and inset sizes use points. The gap must be nonnegative and finite, and
+insets/gaps must leave a positive finite content area. An existing frame whose
+current insets consume its area can still be corrected with a usable layout.
+Top, Center and Bottom align text within each generated content region; native
+column balancing, distributed alignment and vertical writing are not provided.
+Complete stories and overflow remain available, other frames keep their stored
+settings, and `AddLinkedTextFrame` copies the tail's current layout. Fresh SVG/PDF
+scenes use the same Core flow. Failed validation, cancellation or resource limits
+leave the current document and old snapshots intact.
+
 `AddLinkedTextFrame` appends a continuation frame to the tail of a complete,
 resolved non-table story chain. The destination is an existing document page;
 the new frame shares the complete styled story and copies the preceding

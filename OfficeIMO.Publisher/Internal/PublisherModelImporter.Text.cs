@@ -35,7 +35,7 @@ internal static partial class PublisherModelImporter {
                 bounds.X, bounds.Y, bounds.Width, bounds.Height, transform, anchor, transformed, shape?.Hidden == true,
                 shape != null && !shape.IsGroup, editable, ordinary, columns > int.MaxValue ? int.MaxValue : (int)columns, gap, padding,
                 vertical switch { 1 => OfficeTextVerticalAlignment.Center, 2 => OfficeTextVerticalAlignment.Bottom, _ => OfficeTextVerticalAlignment.Top },
-                native.WrapObjects, page?.FrameEditRange ?? default));
+                native.WrapObjects, page?.FrameEditRange ?? default, layoutEditLimitation: ImportedFrameLayoutLimitation(native, shape, vertical)));
         }
         IReadOnlyDictionary<uint, IReadOnlyList<uint>> chains = ImportFrameChains(source, text, frames, context);
         var margins = new Dictionary<uint, PublisherWrapInfo>();
