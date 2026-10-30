@@ -13,8 +13,8 @@ permissions:
   contents: read
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: true
+  group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && format('pr-{0}', github.event.pull_request.number) || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 env:
   DOTNET_VERSION: |
@@ -27,7 +27,11 @@ env:
   SUMMARIZE_FAILURES: true # set to 'false' to disable summarizing failing tests
 
 jobs:
+  coverage:
+    uses: ./.github/workflows/ci-coverage.yml
+
   changes:
+    needs: coverage
     name: Select affected contracts
     runs-on: ubuntu-latest
     outputs:
@@ -59,7 +63,11 @@ jobs:
         env:
           PR_BASE: ${{ github.event.pull_request.base.sha }}
         run: |
-          if [ "$GITHUB_EVENT_NAME" = pull_request ]; then
+          if [ "${{ needs.coverage.outputs.build }}" = false ]; then
+            python3 Build/Ci/select.py --files --output ci-selection.json
+          elif [ "${{ needs.coverage.outputs.force_full }}" = true ]; then
+            python3 Build/Ci/select.py --full --output ci-selection.json
+          elif [ "$GITHUB_EVENT_NAME" = pull_request ]; then
             python3 Build/Ci/select.py --base "$PR_BASE" --output ci-selection.json
           else
             python3 Build/Ci/select.py --full --output ci-selection.json
@@ -78,7 +86,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
+        os: ${{ fromJSON(github.event_name == 'pull_request' && '["ubuntu-latest","windows-latest"]' || '["ubuntu-latest","macos-latest","windows-latest"]') }}
         framework: ${{ fromJSON(needs.changes.outputs.full == 'true' && '["net8.0","net10.0"]' || '["net10.0"]') }}
         include:
           - os: windows-latest
@@ -134,7 +142,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
+        os: ${{ fromJSON(github.event_name == 'pull_request' && '["ubuntu-latest","windows-latest"]' || '["ubuntu-latest","macos-latest","windows-latest"]') }}
         framework: ${{ fromJSON(needs.changes.outputs.full == 'true' && '["net8.0","net10.0"]' || '["net10.0"]') }}
     steps:
       - uses: actions/checkout@v7
@@ -1905,7 +1913,7 @@ jobs:
   test-macos-matrix:
     needs: changes
     name: 'macOS platform smoke'
-    if: needs.changes.outputs.managed == 'true'
+    if: github.event_name != 'pull_request' && needs.changes.outputs.managed == 'true'
     runs-on: macos-latest
     # Linux covers the full net8.0/net10.0 solution test contract. Hosted macOS
     # runners are scarce for the organization, so keep this lane to one focused
@@ -2293,7 +2301,7 @@ jobs:
     name: PR validation
     if: always()
     runs-on: ubuntu-latest
-    needs: ["changes", "archives-contracts", "chm-contracts", "legacy-imports", "browser-exports", "workflow-contracts", "document-ai-contracts", "studio-contracts", "studio-locked-restore", "invoice-standards", "build-matrix", "html-package-consumers", "typography-package-consumers", "email-package-consumers", "google-workspace-package-consumers", "onenote-package-consumers", "opendocument-schema", "binary-powerpoint-libreoffice", "office-corpus-libreoffice", "test-windows", "word-vba-office-sip", "test-ubuntu-matrix", "officeimo-tool-package-gate", "excel-image-visual-gate", "office-interoperability-gate", "test-ubuntu", "test-macos-matrix", "test-macos", "aot-managed-analyzers", "aot-linux-scenarios", "aot-trim-analyzers", "aot-windows-scenarios", "aot-windows", "dbf-contracts"]
+    needs: ["coverage", "changes", "archives-contracts", "chm-contracts", "legacy-imports", "browser-exports", "workflow-contracts", "document-ai-contracts", "studio-contracts", "studio-locked-restore", "invoice-standards", "build-matrix", "html-package-consumers", "typography-package-consumers", "email-package-consumers", "google-workspace-package-consumers", "onenote-package-consumers", "opendocument-schema", "binary-powerpoint-libreoffice", "office-corpus-libreoffice", "test-windows", "word-vba-office-sip", "test-ubuntu-matrix", "officeimo-tool-package-gate", "excel-image-visual-gate", "office-interoperability-gate", "test-ubuntu", "test-macos-matrix", "test-macos", "aot-managed-analyzers", "aot-linux-scenarios", "aot-trim-analyzers", "aot-windows-scenarios", "aot-windows", "dbf-contracts"]
     steps:
       - name: Require selection and every selected contract
         env:
@@ -2303,6 +2311,8 @@ jobs:
           import json, os, sys
           results = json.loads(os.environ['RESULTS'])
           failed = [name for name, job in results.items() if job['result'] not in ('success', 'skipped')]
+          if results['coverage']['result'] != 'success':
+              failed.append('coverage')
           if results['changes']['result'] != 'success':
               failed.append('changes')
           print(json.dumps({name: job['result'] for name, job in results.items()}, indent=2))
