@@ -329,7 +329,11 @@ public class PdfTableStreamExportContracts {
                 MarginLeft = 20D,
                 MarginRight = 20D,
                 MarginTop = 20D,
-                MarginBottom = 20D
+                MarginBottom = 20D,
+                // Supply a ruled source table; this test measures spreadsheet value/format semantics.
+                DefaultFont = PdfStandardFont.Helvetica,
+                DefaultFontSize = 11,
+                DefaultTableStyle = PdfTableStyles.Light()
             })
             .Table(new[] {
                 new[] { "Prefix", "Suffix" },
@@ -459,7 +463,11 @@ public class PdfTableStreamExportContracts {
                 MarginLeft = 20D,
                 MarginRight = 20D,
                 MarginTop = 20D,
-                MarginBottom = 20D
+                MarginBottom = 20D,
+                // Supply a ruled source table; this test measures spreadsheet value/format semantics.
+                DefaultFont = PdfStandardFont.Helvetica,
+                DefaultFontSize = 11,
+                DefaultTableStyle = PdfTableStyles.Light()
             })
             .Table(new[] {
                 new[] { "Rate", "Description" },

@@ -450,7 +450,12 @@ public sealed class PdfLogicalTableContinuationContractTests {
             MarginRight = 30,
             MarginTop = 20,
             MarginBottom = 20,
-            DefaultFontSize = 9
+            DefaultFont = PdfStandardFont.Helvetica,
+            DefaultFontSize = 9,
+            // Seven 12.6-point lines with 3.78-point gaps place the native table near the page edge.
+            DefaultParagraphStyle = new PdfParagraphStyle {
+                LineHeight = 1.4, SpacingBefore = 0, SpacingAfter = 3.78, WidowControl = false
+            }
         });
         for (int index = 0; index < 7; index++) {
             document.Paragraph(paragraph => paragraph.Text("Lead line " + index.ToString(CultureInfo.InvariantCulture)));

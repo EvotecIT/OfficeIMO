@@ -35,7 +35,10 @@ public class PdfContainerAndColumnTests {
 
     [Fact]
     public void Columns_DistributesBlocksAcrossEqualFramesAndSupportsExplicitBreak() {
-        byte[] bytes = PdfDocument.Create()
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
+                // Two 222-point frames separated by 24 points start at 72 and 318.
+                PageWidth = 612, MarginLeft = 72, MarginRight = 72
+            })
             .Columns(columns => {
                 columns.Paragraph(paragraph => paragraph.Text("Left one"));
                 columns.Paragraph(paragraph => paragraph.Text("Left two"));

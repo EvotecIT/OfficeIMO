@@ -102,6 +102,8 @@ public partial class PdfDocumentVisualQualityTests {
     private static PdfCreateOptions FragmentJustificationOptions(double height) => new() {
         PageWidth = 260, PageHeight = height, MarginLeft = 20, MarginRight = 20,
         MarginTop = 20, MarginBottom = 20, DefaultFontSize = 8, DefaultFont = PdfStandardFont.Helvetica,
+        // The paint comparison extracts black underline segments from both documents.
+        DefaultTextColor = global::OfficeIMO.OfficeColor.Black,
         CompressContentStreams = false
     };
 

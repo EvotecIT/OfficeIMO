@@ -17,7 +17,9 @@ public partial class PdfDocumentVisualQualityTests {
     public void TableBodyText_ResetsFillColorAfterColoredHeader() {
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
                 DefaultFont = PdfStandardFont.Helvetica,
-                DefaultFontSize = 10
+                DefaultFontSize = 10,
+                // Uncolored body cells inherit this document color after the white header.
+                DefaultTextColor = global::OfficeIMO.OfficeColor.Black
             })
             .Table(new[] {
                 new[] { "Signal", "Evidence" },

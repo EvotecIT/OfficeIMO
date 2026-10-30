@@ -456,7 +456,9 @@ public partial class PdfDocumentVisualQualityTests {
     public void Tables_DeclareRichCellRunFontsBeforeRendering() {
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
                 DefaultFont = PdfStandardFont.Helvetica,
-                DefaultFontSize = 11
+                DefaultFontSize = 11,
+                // Font registration is measured at eleven points in both table routes.
+                DefaultTableStyle = new PdfTableStyle { FontSize = 11, HeaderFontSize = 11 }
             })
             .Table(new[] {
                 new[] {

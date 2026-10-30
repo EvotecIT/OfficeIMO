@@ -3720,6 +3720,60 @@
         "OfficeIMO.Pdf.Tests/Pdf/PdfReverseImagePlacementSafetyTests.cs",
         "OfficeIMO.Pdf.Tests/Pdf/RichParagraphWrappingTrailingTabRenderTests.cs"
       ]
+    },
+    {
+      "phase": "B",
+      "action": "change",
+      "applied": "phase-b-applied",
+      "old": "Native metrics, fallback fonts, inherited styles, theme colors and exact-layout fixtures implicitly rely on the former creation defaults.",
+      "new": "Qualify each measured contract with explicit font, frame, paragraph/list/table style, native placeholder or source theme inputs while retaining Modern public creation defaults.",
+      "reason": "The tests must reach the behavior they measure without pinning superseded authoring defaults or silently discarding assertions.",
+      "note": "32 focused nonperformance cases pass on net10.0, including 29 recorded failing rows and applicable companion cases. Existing assertions and strict loss policies remain; PowerPoint also checks that malformed direct color retains valid inherited appearance. This fixture qualification does not close unrelated product defects, default Modern-table reading coverage, visual baselines or final full-suite gates.",
+      "files": [
+        "OfficeIMO.Pdf.Tests/Pdf/PdfComposePageScopedDefaultStyleTests.cs",
+        "OfficeIMO.Pdf.Tests/Pdf/PdfContainerAndColumnTests.cs",
+        "OfficeIMO.Pdf.Tests/Pdf/PdfDocumentBulletListTests.cs",
+        "OfficeIMO.Pdf.Tests/Pdf/PdfDocumentVisualQualityHeadingPaginationTests.cs",
+        "OfficeIMO.Pdf.Tests/Pdf/PdfDocumentVisualQualityJustificationFragmentsTests.cs",
+        "OfficeIMO.Pdf.Tests/Pdf/PdfDocumentVisualQualityLinksBookmarksTests.cs",
+        "OfficeIMO.Pdf.Tests/Pdf/PdfDocumentVisualQualityRichTextTests.cs",
+        "OfficeIMO.Pdf.Tests/Pdf/PdfDocumentVisualQualityRuleMediaKeepTests.cs",
+        "OfficeIMO.Pdf.Tests/Pdf/PdfDocumentVisualQualityTableBasicsTests.cs",
+        "OfficeIMO.Pdf.Tests/Pdf/PdfDocumentVisualQualityTableFlowTests.cs",
+        "OfficeIMO.Pdf.Tests/Pdf/PdfDocumentVisualQualityTableLayoutTests.cs",
+        "OfficeIMO.Pdf.Tests/Pdf/PdfDocumentVisualQualityTableStructureValidationTests.cs",
+        "OfficeIMO.Pdf.Tests/Pdf/PdfFloatingTableLayoutTests.cs",
+        "OfficeIMO.Pdf.Tests/Pdf/PdfLogicalTableContinuationContractTests.cs",
+        "OfficeIMO.Pdf.Tests/Pdf/PdfOcrTests.cs",
+        "OfficeIMO.Pdf.Tests/Pdf/PdfRunningContentTests.cs",
+        "OfficeIMO.Pdf.Tests/Pdf/PdfTableStreamExportContracts.cs"
+      ]
+    },
+    {
+      "phase": "B",
+      "action": "change",
+      "applied": "phase-b-applied",
+      "old": "A themed list inset wider than its available frame can place its marker beyond the content margin.",
+      "new": "When the inset plus marker column and gap leave no text budget, start the list at the current frame origin. Shared preparation applies the same inset to ordinary, nested and footnote list placement.",
+      "reason": "Preserve usable marker placement in narrow supported frames without restoring previous authoring defaults.",
+      "note": "The existing failing narrow-frame contract and 310 related list, bullet and footnote cases pass on net10.0.",
+      "files": [
+        "OfficeIMO.Pdf/Rendering/Writer/PdfWriter.Layout.Lists.cs"
+      ]
+    },
+    {
+      "phase": "B",
+      "action": "change",
+      "applied": "phase-b-applied",
+      "old": "The remaining layout-cache, footer reset and embedded-font adapter fixtures rely on implicit competing widths, black footer defaults or missing PowerPoint source font declarations.",
+      "new": "Supply only the intended cell-width constraint, assert the resolved default theme footer color, and author the named embedded test font explicitly in the PowerPoint typography input.",
+      "reason": "Retain the exact current geometry, inherited color reset and shaping-warning contracts under Modern defaults.",
+      "note": "All ten selected cases, including companion converter routes, pass on net10.0. Assertions over geometry/shaping remain; the unconfigured footer expects its resolved theme color instead of pinning black.",
+      "files": [
+        "OfficeIMO.Pdf.Tests/Pdf/TableLayoutCacheTests.cs",
+        "OfficeIMO.Pdf.Tests/Pdf/PdfComposePageHeaderFooterRenderingTests.cs",
+        "OfficeIMO.Pdf.Tests/Pdf/PdfConversionTypographyTests.cs"
+      ]
     }
   ],
   "applicationStatus": "Phase A applied and validated on the supported macOS targets. Phase B and Tier 2 entries retain their status; Windows .NET Framework validation remains pending.",

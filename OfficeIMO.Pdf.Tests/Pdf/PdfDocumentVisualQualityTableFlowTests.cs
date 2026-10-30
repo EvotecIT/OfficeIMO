@@ -16,8 +16,11 @@ public partial class PdfDocumentVisualQualityTests {
     [Fact]
     public void Table_WrapsLongCellTextInsideContentArea() {
         var options = new PdfCreateOptions {
+            // The right-column probe assumes an equal-width table in a 468-point frame.
+            PageWidth = 612, MarginLeft = 72, MarginRight = 72,
             DefaultFont = PdfStandardFont.Helvetica,
-            DefaultFontSize = 10
+            DefaultFontSize = 10,
+            DefaultTableStyle = new PdfTableStyle { FontSize = 10, HeaderFontSize = 10, AutoFitColumns = false }
         };
 
         byte[] bytes = PdfDocument.Create(options)
@@ -237,7 +240,9 @@ public partial class PdfDocumentVisualQualityTests {
             MarginTop = 30,
             MarginBottom = 30,
             DefaultFont = PdfStandardFont.Helvetica,
-            DefaultFontSize = 10
+            DefaultFontSize = 10,
+            // Isolate Helvetica glyph advances from theme indentation and marker spacing.
+            DefaultListStyle = new PdfListStyle { FontSize = 10, LeftIndent = 0, MarkerGap = 2.78 }
         };
 
         byte[] bytes = PdfDocument.Create(options)
@@ -301,7 +306,9 @@ public partial class PdfDocumentVisualQualityTests {
             MarginTop = 30,
             MarginBottom = 30,
             DefaultFont = PdfStandardFont.Helvetica,
-            DefaultFontSize = 10
+            DefaultFontSize = 10,
+            // Isolate Helvetica glyph advances from theme indentation and marker spacing.
+            DefaultListStyle = new PdfListStyle { FontSize = 10, LeftIndent = 0, MarkerGap = 2.78 }
         };
 
         byte[] bytes = PdfDocument.Create(options)

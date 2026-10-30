@@ -35,7 +35,10 @@ public partial class PdfDocumentVisualQualityTests {
         var tooWideStyle = PdfTableStyles.Minimal();
         tooWideStyle.ColumnWidthPoints = new List<double?> { 400, 400 };
 
-        byte[] bytes = PdfDocument.Create()
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
+                // The 800-point authored grid must compress into this 468-point content frame.
+                PageWidth = 612, MarginLeft = 72, MarginRight = 72
+            })
             .Table(new[] {
                 new[] { "A", "B" },
                 new[] { "1", "2" }

@@ -100,7 +100,11 @@ namespace OfficeIMO.Tests.Pdf {
             };
             var doc = PdfDocument.Create(new PdfCreateOptions {
                 DefaultFont = PdfStandardFont.Helvetica,
-                DefaultFontSize = 10
+                DefaultFontSize = 10,
+                // The second page inherits this document style, not the page-one override.
+                DefaultHeadingStyles = new PdfHeadingStyles {
+                    Level2 = new PdfHeadingStyle { Font = PdfStandardFont.Helvetica, FontSize = 18 }
+                }
             });
 
             doc.Compose(c => {
@@ -146,7 +150,9 @@ namespace OfficeIMO.Tests.Pdf {
             };
             var doc = PdfDocument.Create(new PdfCreateOptions {
                 DefaultFont = PdfStandardFont.Helvetica,
-                DefaultFontSize = 10
+                DefaultFontSize = 10,
+                // Keep a distinct document fallback to detect page-style leakage.
+                DefaultListStyle = new PdfListStyle { FontSize = 10, LeftIndent = 0, MarkerGap = 2.78 }
             });
 
             doc.Compose(c => {
@@ -200,7 +206,9 @@ namespace OfficeIMO.Tests.Pdf {
                 PageWidth = 360,
                 PageHeight = 240,
                 DefaultFont = PdfStandardFont.Helvetica,
-                DefaultFontSize = 10
+                DefaultFontSize = 10,
+                // Page two measures the document's six-point panel inset.
+                DefaultPanelStyle = new PdfPanelStyle { PaddingX = 6, PaddingY = 6 }
             });
 
             doc.Compose(c => {

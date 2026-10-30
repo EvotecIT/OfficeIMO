@@ -114,7 +114,11 @@ public partial class PdfDocumentVisualQualityTests {
             MarginTop = 30,
             MarginBottom = 30,
             DefaultFont = PdfStandardFont.Helvetica,
-            DefaultFontSize = 10
+            DefaultFontSize = 10,
+            // Fourteen-point body lines leave room for the rule, but not its following line.
+            DefaultParagraphStyle = new PdfParagraphStyle {
+                LineHeight = 1.4, SpacingBefore = 0, SpacingAfter = 0, WidowControl = false
+            }
         };
 
         byte[] bytes = PdfDocument.Create(options)

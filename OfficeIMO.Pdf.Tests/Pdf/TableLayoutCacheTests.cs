@@ -59,6 +59,9 @@ namespace OfficeIMO.Tests.Pdf {
             using WordDocument document = WordDocument.Create();
             WordTable table = document.AddTable(2, 3);
             table.GridColumnWidth = new List<int>().Select(value => global::OfficeIMO.OfficeLength.Emus(checked((long)value * 635))).ToList();
+            // Only the offset cell supplies a width constraint in this layout probe.
+            foreach (WordTableRow row in table.Rows)
+                foreach (WordTableCell cell in row.Cells) cell.Width = null;
             table.Rows[1].Cells[2].Remove();
             W.TableRowProperties rowProperties = table.Rows[1]._tableRow.TableRowProperties ??= new W.TableRowProperties();
             rowProperties.Append(new W.GridBefore { Val = 1 });

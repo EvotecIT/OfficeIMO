@@ -107,6 +107,12 @@ internal static partial class PdfWriter {
                 EstimateSimpleTextWidthForOptions(" ", markerFont, markerNamedFont, markerSize, currentOpts, style?.MarkerFeatureSettings);
             double markerGap = GetListMarkerGap(style, spaceAdvance);
             double listLeftIndent = style?.LeftIndent ?? 0D;
+            // Keep the marker at the frame origin when the requested inset leaves
+            // no room for its column. The same preparation serves nested frames
+            // and continued footnotes, so their placement uses this inset too.
+            if (listLeftIndent + markerWidth + markerGap >= frameWidth) {
+                listLeftIndent = 0D;
+            }
             double rawTextWidth = frameWidth - listLeftIndent - markerWidth - markerGap;
             double availableWidth = System.Math.Max(
                 rawTextWidth,

@@ -85,7 +85,12 @@ public partial class PdfDocumentVisualQualityTests {
     [InlineData(50.1)]
     [InlineData(83.5995)]
     public void ParagraphLineLargerThanTheFrameFailsWithoutUnboundedPagination(double pageHeight) {
-        var options = new PdfCreateOptions { PageHeight = pageHeight, MarginTop = 25, MarginBottom = 25, DefaultFontSize = 24 };
+        // The boundary case leaves 33.5995 points for an explicitly 33.6-point line.
+        var options = new PdfCreateOptions {
+            PageHeight = pageHeight, MarginTop = 25, MarginBottom = 25,
+            DefaultFont = PdfStandardFont.Helvetica, DefaultFontSize = 24,
+            DefaultParagraphStyle = new PdfParagraphStyle { LineHeight = 1.4, SpacingBefore = 0, SpacingAfter = 0 }
+        };
         Assert.Throws<ArgumentException>(() => PdfDocument.Create(options).Paragraph(p => p.Text("Too tall")).ToBytes());
     }
 

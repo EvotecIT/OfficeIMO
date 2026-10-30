@@ -166,6 +166,8 @@ public partial class PdfDocumentVisualQualityTests {
             MarginBottom = 30,
             DefaultFont = PdfStandardFont.Helvetica,
             DefaultFontSize = 9,
+            // Measure the Light preset's default rhythm through document-style inheritance.
+            DefaultTableStyle = PdfTableStyles.Light(),
             DefaultParagraphStyle = new PdfParagraphStyle {
                 SpacingAfter = 0
             }

@@ -20,7 +20,12 @@ namespace OfficeIMO.Tests.Pdf;
 public class PdfOcrTests {
     [Fact]
     public async Task RecognizeAndMergeAsync_NormalizesFiltersAndMergesProviderWords() {
-        byte[] pdf = PdfDocument.Create()
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions {
+                // The provider's Native box is authored over this eleven-point, 72-point-origin line.
+                DefaultFont = PdfStandardFont.Helvetica, DefaultFontSize = 11,
+                MarginLeft = 72, MarginRight = 72, MarginTop = 72, MarginBottom = 72,
+                DefaultParagraphStyle = new PdfParagraphStyle { LineHeight = 1.4, SpacingBefore = 0, SpacingAfter = 0 }
+            })
             .Paragraph(paragraph => paragraph.Text("Native text"))
             .ToBytes();
         var provider = new StubOcrEngine(request => Result(new[] {

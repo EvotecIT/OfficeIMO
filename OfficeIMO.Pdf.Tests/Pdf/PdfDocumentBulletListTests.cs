@@ -338,7 +338,8 @@ public class PdfDocumentBulletListTests {
 
     [Fact]
     public void Bullets_RespectAlignmentOptions() {
-        var options = new PdfCreateOptions();
+        // Compare alignment against the same explicit frame before and after option snapshotting.
+        var options = new PdfCreateOptions { MarginLeft = 72, MarginRight = 72 };
         var doc = PdfDocument.Create(options);
         doc.Bullets(new[] { "Left aligned" }, PdfAlign.Left);
         doc.Bullets(new[] { "Centered bullet" }, PdfAlign.Center);

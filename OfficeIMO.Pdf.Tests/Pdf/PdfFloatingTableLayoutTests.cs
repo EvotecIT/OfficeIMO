@@ -233,7 +233,10 @@ public class PdfFloatingTableLayoutTests {
         var style = Floating(320, movePage ? 145 : 80);
         var document = PdfDocument.Create(Options(240)).Table(new[] { new[] { "floating" } }, style: style)
             .Bookmark("target");
-        byte[] bytes = document.Paragraph(p => p.Text("targetword")).ToBytes();
+        byte[] bytes = document.Paragraph(p => p.Text("targetword"), style: new PdfParagraphStyle {
+            // A 15.4-point line cannot fit in the 15 points remaining below the tall float.
+            FontSize = 11, LineHeight = 1.4, SpacingBefore = 0, SpacingAfter = 0
+        }).ToBytes();
         using var pdf = PdfPigDocument.Open(bytes);
         var destination = Assert.Single(PdfInspector.Inspect(bytes).NamedDestinations);
         Assert.Equal(movePage ? 2 : 1, destination.PageNumber);

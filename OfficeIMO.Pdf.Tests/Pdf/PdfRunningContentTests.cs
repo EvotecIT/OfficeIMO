@@ -109,7 +109,12 @@ public sealed class PdfRunningContentTests {
     [InlineData(false)]
     [InlineData(true)]
     public void ImportedHeaderFitReservesActiveContainerBottomInsetForContinuationLines(bool nested) {
-        var document = PdfDocument.Create(Options());
+        // Continuation admission uses this fixture's 1.4-line-height metrics, without widow grouping.
+        var options = Options();
+        options.DefaultParagraphStyle = new PdfParagraphStyle {
+            LineHeight = 1.4, SpacingBefore = 0, SpacingAfter = 0, WidowControl = false
+        };
+        var document = PdfDocument.Create(options);
         document.Header(header => header.Text("TEXT").Content(content =>
             content.Table(new[] { new[] { "TALL" } }, style: TableStyle(230)), 18));
         document.Options.AllowRunningContentTextFallback(isHeader: true);
@@ -157,7 +162,12 @@ public sealed class PdfRunningContentTests {
 
     [Fact]
     public void ImportedHeaderFitUsesTheActualParagraphContinuationLine() {
-        var document = PdfDocument.Create(Options());
+        // Continuation admission uses this fixture's 1.4-line-height metrics, without widow grouping.
+        var options = Options();
+        options.DefaultParagraphStyle = new PdfParagraphStyle {
+            LineHeight = 1.4, SpacingBefore = 0, SpacingAfter = 0, WidowControl = false
+        };
+        var document = PdfDocument.Create(options);
         document.Header(header => header.Text("TEXT").Content(content =>
             content.Table(new[] { new[] { "FLOW" } }, style: TableStyle(246)), 18));
         document.Options.AllowRunningContentTextFallback(isHeader: true);

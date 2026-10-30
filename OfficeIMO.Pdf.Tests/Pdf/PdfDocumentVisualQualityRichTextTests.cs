@@ -15,7 +15,10 @@ namespace OfficeIMO.Tests.Pdf;
 public partial class PdfDocumentVisualQualityTests {
     [Fact]
     public void RichParagraph_ResetColor_ReturnsToDefaultTextColor() {
-        byte[] bytes = PdfDocument.Create()
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
+                // ResetColor must restore the configured document color after the red run.
+                DefaultTextColor = global::OfficeIMO.OfficeColor.Black
+            })
             .Paragraph(p => p
                 .Text("Before ")
                 .Color(global::OfficeIMO.OfficeColor.FromNormalizedRgb(1, 0, 0))

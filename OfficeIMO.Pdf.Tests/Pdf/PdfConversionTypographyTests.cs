@@ -417,6 +417,7 @@ Zażółć gęślą jaźń
         presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(520),OfficeIMO.OfficeLength.Points(320));
         PowerPointTextBox textBox = presentation.AddSlide().AddTextBox("office cafe\u0301",global::OfficeIMO.OfficeLength.Points(32),global::OfficeIMO.OfficeLength.Points(32),global::OfficeIMO.OfficeLength.Points(220),global::OfficeIMO.OfficeLength.Points(32));
         textBox.FontSize = global::OfficeIMO.OfficeLength.Points(14);
+        textBox.FontName = FamilyName;
 
         var options = new PowerPointPdfExportOptions {
             PdfOptions = CreateOpenTypePdfOptions(fontPath, scalar)
