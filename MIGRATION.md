@@ -146,6 +146,13 @@ Scalar file readers accept `FullName`/`LiteralPath` aliases and `FileInfo`
 pipelines, resolve FileSystem PSDrives, and reject other providers. Input is
 literal; expand wildcards with `Get-ChildItem` first.
 
+`Export-OfficeExcel -InputObject <DataSet> -Append` and `-ClearSheet` no longer
+guess that a lone table named `Budget` owns an existing `Budget (2)` worksheet.
+They use or create `Budget` instead. Name the source table `Budget (2)` when
+that suffixed worksheet is the intended target. Multiple tables in the same
+DataSet that normalize to the same worksheet name still receive successive
+suffixes.
+
 `ConvertTo-OfficeDocument` provides catalog-driven single and batch conversion
 with destination protection, bounds and structured evidence. It requires
 PowerShell 7.4. Existing format-specific commands retain their documented host
