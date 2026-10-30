@@ -18,8 +18,8 @@ public partial class PdfPageFootnoteTests {
         var note = document.Content.DefineFootnote(body => {
             for (int index = 0; index < 9; index++) body.Text("OwnerNote" + index, style: Style());
         });
-        document.Content.Text("Host", style: Style()).Spacer(75D);
-        var reference = PdfTextRun.Normal("BodyReference", fontSize: 8, font: PdfStandardFont.Helvetica).WithFootnoteReference(note);
+        document.Content.Text("Host", style: Style()).Spacer(global::OfficeIMO.OfficeLength.Points(75D));
+        var reference = PdfTextRun.Normal("BodyReference", fontSize: global::OfficeIMO.OfficeLength.Points(8), font: PdfStandardFont.Helvetica).WithFootnoteReference(note);
         if (owner == "heading") {
             // This is the existing converter-facing rich heading entry used by Word.
             document.Content.Heading(2, "BodyReference", paragraph => paragraph.Runs(new[] { reference }),

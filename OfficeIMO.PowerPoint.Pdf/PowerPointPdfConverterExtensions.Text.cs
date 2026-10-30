@@ -49,7 +49,7 @@ public static partial class PowerPointPdfConverterExtensions {
         if (!frame.FillColor.HasValue && frame.FillGradient == null && frame.FillRadialGradient == null
             && !frame.StrokeColor.HasValue) return;
         PptCore.PowerPointSlideImageRenderer.ApplyShapeTransformForExport(frame, textBox, width, height);
-        canvas.Shape(frame, x, y);
+        canvas.Shape(frame, global::OfficeIMO.OfficeLength.Points(x), global::OfficeIMO.OfficeLength.Points(y));
     }
 
 }

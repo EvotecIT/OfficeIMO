@@ -19,10 +19,10 @@ public sealed class PdfDecimalRichFieldTests {
         };
         byte[] bytes = PdfDocument.Create(options).Paragraph(paragraph => paragraph.Runs(new[] {
             PdfTextRun.Normal("LABEL\t"),
-            PdfTextRun.Normal("USD ", fontSize: 9D, font: PdfStandardFont.HelveticaBold),
-            PdfTextRun.Normal(number, fontSize: 16D, font: PdfStandardFont.Courier)
-                .WithHorizontalTextScaling(125D).WithCharacterSpacing(.5D),
-            PdfTextRun.Normal(" net", fontSize: 8D, font: PdfStandardFont.TimesRoman)
+            PdfTextRun.Normal("USD ", fontSize: global::OfficeIMO.OfficeLength.Points(9D), font: PdfStandardFont.HelveticaBold),
+            PdfTextRun.Normal(number, fontSize: global::OfficeIMO.OfficeLength.Points(16D), font: PdfStandardFont.Courier)
+                .WithHorizontalTextScaling(125D).WithCharacterSpacing(global::OfficeIMO.OfficeLength.Points(.5D)),
+            PdfTextRun.Normal(" net", fontSize: global::OfficeIMO.OfficeLength.Points(8D), font: PdfStandardFont.TimesRoman)
         }), style: style).ToBytes();
 
         using var pdf = PdfPigDocument.Open(bytes);

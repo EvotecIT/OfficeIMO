@@ -24,10 +24,10 @@ public sealed partial class PdfDocumentStamper {
             double x = snapshot.X ?? (page.Width - snapshot.Width) / 2D;
             double y = snapshot.Y ?? (page.Height - snapshot.Height) / 2D;
             if (snapshot.ImageBytes is { } image) {
-                canvas.Image(image, x, y, snapshot.Width, snapshot.Height,
+                canvas.Image(image, global::OfficeIMO.OfficeLength.Points(x), global::OfficeIMO.OfficeLength.Points(y), global::OfficeIMO.OfficeLength.Points(snapshot.Width), global::OfficeIMO.OfficeLength.Points(snapshot.Height),
                     rotationAngle: -snapshot.RotationDegrees);
             } else {
-                canvas.TextBox(snapshot.Text, x, y, snapshot.Width, snapshot.Height,
+                canvas.TextBox(snapshot.Text, global::OfficeIMO.OfficeLength.Points(x), global::OfficeIMO.OfficeLength.Points(y), global::OfficeIMO.OfficeLength.Points(snapshot.Width), global::OfficeIMO.OfficeLength.Points(snapshot.Height),
                     new PdfCanvasTextBoxStyle {
                         Font = snapshot.Font, FontSize = snapshot.FontSize, TextColor = snapshot.Color,
                         Align = PdfAlign.Center, VerticalAlign = PdfVerticalAlign.Middle,

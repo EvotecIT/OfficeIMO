@@ -17,7 +17,7 @@ public sealed class PdfNativeSaveLossTests {
         byte[] original = [1, 2, 3]; File.WriteAllBytes(path, original);
         using var destination = new MemoryStream(); destination.Write(original, 0, original.Length);
         using PdfDocument document = PdfDocument.Create(builder => builder.Content(content => content.Canvas(canvas =>
-            canvas.TextBox("First\nSecond\nThird", 24D, 24D, 120D, 18D,
+            canvas.TextBox("First\nSecond\nThird", global::OfficeIMO.OfficeLength.Points(24D), global::OfficeIMO.OfficeLength.Points(24D), global::OfficeIMO.OfficeLength.Points(120D), global::OfficeIMO.OfficeLength.Points(18D),
                 new PdfCanvasTextBoxStyle { FontSize = 9D, PaddingX = 0D, PaddingY = 0D }))));
         try {
             for (int attempt = 0; attempt < 2; attempt++) {

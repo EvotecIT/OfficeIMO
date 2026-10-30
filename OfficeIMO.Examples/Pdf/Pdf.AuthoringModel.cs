@@ -23,7 +23,7 @@ namespace OfficeIMO.Examples.Pdf {
                         .Content(article => article
                             .H1("Operational summary")
                             .Text("The same content receiver powers documents, pages, elements, components, and row columns.")
-                            .Spacer(10)
+                            .Spacer(global::OfficeIMO.OfficeLength.Points(10))
                             .Row(row => row
                                 .Gap(12)
                                 .FixedColumn(54, cell => cell
@@ -35,7 +35,7 @@ namespace OfficeIMO.Examples.Pdf {
                                 .RelativeColumn(cell => cell
                                     .H3("Status")
                                     .Text("Validated through explicit fixed, automatic, and relative sizing.")))))
-                    .Spacer(12)
+                    .Spacer(global::OfficeIMO.OfficeLength.Points(12))
                     .Semantic(PdfSemanticRole.Section, section => section
                         .H2("Notes")
                         .Text("Semantic groups feed the tagged-PDF structure tree without changing visual flow."))))

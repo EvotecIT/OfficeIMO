@@ -15,7 +15,7 @@ public sealed partial class PdfParagraphBuilder {
     private OfficeIMO.Drawing.OfficeTextDecorationStyle _currentUnderlineStyle;
     private OfficeIMO.Drawing.OfficeTextDecorationStyle _currentStrikeStyle;
     private PdfTextBaseline _currentBaseline;
-    private double? _currentFontSize;
+    private global::OfficeIMO.OfficeLength? _currentFontSize;
     private PdfStandardFont? _currentFont;
     private string? _currentFontFamily;
     private global::OfficeIMO.OfficeColor? _currentBackgroundColor;
@@ -38,8 +38,8 @@ public sealed partial class PdfParagraphBuilder {
     public PdfParagraphBuilder Color(global::OfficeIMO.OfficeColor color) { _currentColor = color; return this; }
     /// <summary>Resets the current run color to the paragraph default color.</summary>
     public PdfParagraphBuilder ResetColor() { _currentColor = DefaultColor; return this; }
-    /// <summary>Sets the current run font size in points.</summary>
-    public PdfParagraphBuilder FontSize(double fontSize) { Guard.Positive(fontSize, nameof(fontSize)); _currentFontSize = fontSize; return this; }
+    /// <summary>Sets the current physical run font size.</summary>
+    public PdfParagraphBuilder FontSize(global::OfficeIMO.OfficeLength fontSize) { Guard.Positive(fontSize.ToPoints(), nameof(fontSize)); _currentFontSize = fontSize; return this; }
     /// <summary>Resets the current run font size to the paragraph default font size.</summary>
     public PdfParagraphBuilder ResetFontSize() { _currentFontSize = null; return this; }
     /// <summary>Sets the current standard PDF font for subsequent runs.</summary>
@@ -93,8 +93,6 @@ public sealed partial class PdfParagraphBuilder {
     }
     /// <summary>Adds an explicit line break using the current run style.</summary>
     public PdfParagraphBuilder LineBreak() => Text("\n");
-    /// <summary>Adds an explicit paragraph tab using the current style flags.</summary>
-    public PdfParagraphBuilder Tab(PdfTabLeaderStyle leader) => Tab(leader, PdfTabAlignment.Left);
     /// <summary>Adds an aligned paragraph tab using the current style flags.</summary>
     public PdfParagraphBuilder Tab(PdfTabLeaderStyle leader = PdfTabLeaderStyle.None, PdfTabAlignment alignment = PdfTabAlignment.Left) { AddRun(new PdfTextRun("\t", _currentBold, _currentUnderline, _currentColor, _currentItalic, _currentStrike, fontSize: _currentFontSize, font: _currentFont, baseline: _currentBaseline, tabLeader: leader, tabAlignment: alignment, backgroundColor: _currentBackgroundColor, fontFamily: _currentFontFamily, underlineStyle: _currentUnderlineStyle, strikeStyle: _currentStrikeStyle)); return this; }
     /// <summary>Adds an inline visual; flexible rules retain the current run's typography.</summary>
@@ -106,11 +104,11 @@ public sealed partial class PdfParagraphBuilder {
         return this;
     }
     /// <summary>Adds an image that participates in paragraph wrapping.</summary>
-    public PdfParagraphBuilder InlineImage(byte[] imageBytes, double width, double height, string? alternativeText = null, OfficeIMO.Drawing.OfficeImageFit fit = OfficeIMO.Drawing.OfficeImageFit.Contain, double baselineOffset = 0D) =>
-        Inline(new PdfInlineImage(imageBytes, width, height, alternativeText, fit, baselineOffset));
+    public PdfParagraphBuilder InlineImage(byte[] imageBytes, global::OfficeIMO.OfficeLength width, global::OfficeIMO.OfficeLength height, string? alternativeText = null, OfficeIMO.Drawing.OfficeImageFit fit = OfficeIMO.Drawing.OfficeImageFit.Contain, global::OfficeIMO.OfficeLength? baselineOffset = null) =>
+        Inline(new PdfInlineImage(imageBytes, width.ToPoints(), height.ToPoints(), alternativeText, fit, (baselineOffset ?? global::OfficeIMO.OfficeLength.Points(0D)).ToPoints()));
     /// <summary>Adds a filled and/or bordered box that participates in paragraph wrapping.</summary>
-    public PdfParagraphBuilder InlineBox(double width, double height, global::OfficeIMO.OfficeColor? background = null, global::OfficeIMO.OfficeColor? borderColor = null, double borderWidth = 0.5D, string? alternativeText = null, double baselineOffset = 0D) =>
-        Inline(new PdfInlineBox(width, height, background, borderColor, borderWidth, alternativeText, baselineOffset));
+    public PdfParagraphBuilder InlineBox(global::OfficeIMO.OfficeLength width, global::OfficeIMO.OfficeLength height, global::OfficeIMO.OfficeColor? background = null, global::OfficeIMO.OfficeColor? borderColor = null, global::OfficeIMO.OfficeLength? borderWidth = null, string? alternativeText = null, global::OfficeIMO.OfficeLength? baselineOffset = null) =>
+        Inline(new PdfInlineBox(width.ToPoints(), height.ToPoints(), background, borderColor, (borderWidth ?? global::OfficeIMO.OfficeLength.Points(0.5D)).ToPoints(), alternativeText, (baselineOffset ?? global::OfficeIMO.OfficeLength.Points(0D)).ToPoints()));
     /// <summary>Adds a bold text run.</summary>
     public PdfParagraphBuilder Bold(string text, global::OfficeIMO.OfficeColor? color = null) { AddRun(new PdfTextRun(text, bold: true, underline: false, color: color ?? _currentColor, italic: false, fontSize: _currentFontSize, font: _currentFont, backgroundColor: _currentBackgroundColor, fontFamily: _currentFontFamily)); return this; }
     /// <summary>Adds an italic text run.</summary>

@@ -36,7 +36,7 @@ public static partial class PowerPointPdfConverterExtensions {
                 transformed.AddDrawing(drawing, 0D, 0D, frameTransform);
                 drawing = transformed;
             }
-            canvas.Drawing(drawing, x, y, width, height,
+            canvas.Drawing(drawing, global::OfficeIMO.OfficeLength.Points(x), global::OfficeIMO.OfficeLength.Points(y), global::OfficeIMO.OfficeLength.Points(width), global::OfficeIMO.OfficeLength.Points(height),
                 style: new PdfCore.PdfDrawingStyle {
                     AlternativeText = string.IsNullOrWhiteSpace(source.Name)
                         ? "PowerPoint SmartArt diagram"

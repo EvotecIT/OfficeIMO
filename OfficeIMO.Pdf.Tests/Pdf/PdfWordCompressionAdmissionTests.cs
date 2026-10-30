@@ -104,8 +104,8 @@ public sealed class PdfWordCompressionAdmissionTests {
 
     [Fact]
     public void MixedSourceSpaceAdvancesOwnTheirProportionalCompression() {
-        var runs = new[] { new PdfTextRun("Alpha"), new PdfTextRun(" ", fontSize: 12D),
-            new PdfTextRun("beta"), new PdfTextRun(" ", fontSize: 24D), new PdfTextRun("gamma") };
+        var runs = new[] { new PdfTextRun("Alpha"), new PdfTextRun(" ", fontSize: global::OfficeIMO.OfficeLength.Points(12D)),
+            new PdfTextRun("beta"), new PdfTextRun(" ", fontSize: global::OfficeIMO.OfficeLength.Points(24D)), new PdfTextRun("gamma") };
         List<Letter> natural = Assert.Single(Lines(Render(runs, 300D, false), "mixed-natural"));
         List<Letter> actual = Assert.Single(Lines(Render(runs, Span(natural) - 1.2D, true), "mixed-compressed"));
         double first = Gap(natural, 4, 5) - Gap(actual, 4, 5);

@@ -108,7 +108,7 @@ public partial class PdfDocumentVisualQualityTests {
     public void CharacterJustificationAddsPagePointTrackingWithoutChangingAuthoredScalingAndSpacing() {
         PdfCreateOptions options = JustificationPolicyOptions().UseFontFamily(new PdfEmbeddedFontFamily("Spacing Font",
             ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs(' ', 'A', 'B', 'C', 'D')));
-        var runs = new[] { new PdfTextRun("AB").WithHorizontalTextScaling(150).WithCharacterSpacing(2),
+        var runs = new[] { new PdfTextRun("AB").WithHorizontalTextScaling(150).WithCharacterSpacing(global::OfficeIMO.OfficeLength.Points(2)),
             new PdfTextRun("CD").WithHorizontalTextScaling(75) };
         Letter[] control = ReadJustificationPolicyLetters(RenderJustificationPolicyRuns(options, runs, distributed: false));
         Letter[] actual = ReadJustificationPolicyLetters(RenderJustificationPolicyRuns(options, runs, distributed: true));

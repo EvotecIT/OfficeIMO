@@ -76,7 +76,7 @@ internal sealed partial class PdfWorkspace {
                 double footerY = Math.Max(0D, context.Height - options.Margin * 0.6D - lineHeight);
                 void Draw(string? template, double y, PdfAlign align) {
                     if (string.IsNullOrWhiteSpace(template)) return;
-                    canvas.Text(Expand(template), options.Margin, y, width, lineHeight, fontSize: options.FontSize,
+                    canvas.Text(Expand(template), global::OfficeIMO.OfficeLength.Points(options.Margin), global::OfficeIMO.OfficeLength.Points(y), global::OfficeIMO.OfficeLength.Points(width), global::OfficeIMO.OfficeLength.Points(lineHeight), fontSize: global::OfficeIMO.OfficeLength.Points(options.FontSize),
                         color: global::OfficeIMO.OfficeColor.FromRgb(71, 84, 103), align: align);
                 }
                 Draw(options.HeaderLeft, headerY, PdfAlign.Left);

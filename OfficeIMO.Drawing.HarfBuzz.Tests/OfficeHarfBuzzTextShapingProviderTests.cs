@@ -106,7 +106,7 @@ public sealed class OfficeHarfBuzzTextShapingProviderTests {
 
         byte[] pdf = PdfDocument.Create(
                 document => document.Content(content => content.Canvas(
-                    canvas => canvas.Drawing(drawing, 0D, 0D, 120D, 180D))), options)
+                    canvas => canvas.Drawing(drawing, global::OfficeIMO.OfficeLength.Points(0D), global::OfficeIMO.OfficeLength.Points(0D), global::OfficeIMO.OfficeLength.Points(120D), global::OfficeIMO.OfficeLength.Points(180D)))), options)
             .ToBytes();
         string raw = System.Text.Encoding.ASCII.GetString(pdf);
         string extracted = PdfDocument.Load(new System.IO.MemoryStream(pdf)).ExtractText();
@@ -152,7 +152,7 @@ public sealed class OfficeHarfBuzzTextShapingProviderTests {
             .SetTextShapingProvider(OfficeHarfBuzzTextShapingProvider.Instance)
             .ReportDiagnosticsTo(report, "Japanese vertical glyphs");
         byte[] pdf = PdfDocument.Create(document => document.Content(content => content.Canvas(
-            canvas => canvas.Drawing(drawing, 0D, 0D, 120D, 180D))), options).ToBytes();
+            canvas => canvas.Drawing(drawing, global::OfficeIMO.OfficeLength.Points(0D), global::OfficeIMO.OfficeLength.Points(0D), global::OfficeIMO.OfficeLength.Points(120D), global::OfficeIMO.OfficeLength.Points(180D)))), options).ToBytes();
         string raw = System.Text.Encoding.ASCII.GetString(pdf);
         MatchCollection positions = Regex.Matches(raw,
             @"(?m)^1 0 0 1 (-?[0-9.]+) (-?[0-9.]+) Tm\r?\n<([0-9A-F]{4})> Tj$");

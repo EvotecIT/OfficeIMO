@@ -62,7 +62,7 @@ namespace OfficeIMO.Excel.Pdf {
                             foreach (WorksheetImageExportData image in plan.Images) {
                                 cancellationToken.ThrowIfCancellationRequested();
                                 if (!imagesByCellReference.ContainsKey(NormalizeCellReference(image.CellReference))) {
-                                    item.Image(image.Bytes, image.WidthPoints, image.HeightPoints, PdfCore.PdfAlign.Left, spacingBefore: 4, spacingAfter: 6, style: CreateConverterImageStyle(image));
+                                    item.Image(image.Bytes, global::OfficeIMO.OfficeLength.Points(image.WidthPoints), global::OfficeIMO.OfficeLength.Points(image.HeightPoints), PdfCore.PdfAlign.Left, spacingBefore: global::OfficeIMO.OfficeLength.Points(4), spacingAfter: global::OfficeIMO.OfficeLength.Points(6), style: CreateConverterImageStyle(image));
                                 }
                             }
 

@@ -35,7 +35,7 @@ public sealed class ReaderPdfGeneratedContentTests {
         byte[] png = OfficeRasterImageEncoder.Encode(new OfficeRasterImage(20, 30, OfficeColor.White), OfficeImageExportFormat.Png);
         byte[] pdf = PdfDocument.Create(document => document.Page(page => {
             page.Size(200, 300);
-            if (imageOnly) page.Canvas(canvas => canvas.Image(png, 0, 0, 200, 300));
+            if (imageOnly) page.Canvas(canvas => canvas.Image(png, global::OfficeIMO.OfficeLength.Points(0), global::OfficeIMO.OfficeLength.Points(0), global::OfficeIMO.OfficeLength.Points(200), global::OfficeIMO.OfficeLength.Points(300)));
         })).ToBytes();
         using var stream = new MemoryStream(pdf, writable: false);
         var chunks = PdfReaderAdapter.Read(stream, "empty.pdf", pdfOptions: new ReaderPdfOptions { ChunkByPage = perPage }).ToArray();

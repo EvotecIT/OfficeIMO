@@ -15,7 +15,7 @@ public class PdfImportedSpacerWrappingTests {
         const string text = "a-a-a-a-a-a-a-a-a-a-a-a";
         var cell = new PdfTableCell(new[] {
             PdfTextRun.Inline(new PdfInlineBox(spacerWidth, 0.01D, borderWidth: 0D) { IsTextSpacer = true }),
-            PdfTextRun.Normal(text, fontSize: 1D, font: PdfStandardFont.Helvetica)
+            PdfTextRun.Normal(text, fontSize: global::OfficeIMO.OfficeLength.Points(1D), font: PdfStandardFont.Helvetica)
         });
         var options = new PdfCreateOptions {
             PageWidth = global::OfficeIMO.OfficeLength.Points(200D), PageHeight = global::OfficeIMO.OfficeLength.Points(200D),

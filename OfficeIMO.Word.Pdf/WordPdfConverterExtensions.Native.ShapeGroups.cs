@@ -74,7 +74,7 @@ namespace OfficeIMO.Word.Pdf {
                     }
 
                     var canvas = new PdfCore.PdfPageCanvas();
-                    if (native) canvas.Drawing(scene, x, y, scene.Width, scene.Height);
+                    if (native) canvas.Drawing(scene, global::OfficeIMO.OfficeLength.Points(x), global::OfficeIMO.OfficeLength.Points(y), global::OfficeIMO.OfficeLength.Points(scene.Width), global::OfficeIMO.OfficeLength.Points(scene.Height));
                     else {
                         V.Group? fallback = drawing.Ancestors<AlternateContentChoice>().FirstOrDefault()?.Parent?
                             .GetFirstChild<AlternateContentFallback>()?.Descendants<V.Group>().FirstOrDefault();

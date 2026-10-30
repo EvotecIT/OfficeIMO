@@ -124,7 +124,7 @@ public class PdfPermissionPolicyTests {
             AllowedPermissions = PdfStandardPermissions.None
         };
         byte[] pdf = PdfDocument.Create(new PdfCreateOptions().SetEncryption(encryption))
-            .Canvas(canvas => canvas.Image(PdfPngTestImages.CreateRgbPng(30, 90, 180), 20D, 20D, 40D, 40D))
+            .Canvas(canvas => canvas.Image(PdfPngTestImages.CreateRgbPng(30, 90, 180), global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(40D), global::OfficeIMO.OfficeLength.Points(40D)))
             .ToBytes();
         var enforced = new PdfLoadOptions { Password = "visual-open" };
         PdfReadDocument document = PdfReadDocument.Open(pdf, enforced);

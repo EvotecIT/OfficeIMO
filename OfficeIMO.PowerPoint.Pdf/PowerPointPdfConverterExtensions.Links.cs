@@ -63,7 +63,7 @@ public static partial class PowerPointPdfConverterExtensions {
         }
         if (width <= 0 || height <= 0) return;
         string? contents = string.IsNullOrWhiteSpace(shape.AltText) ? null : shape.AltText;
-        void Add(PdfCore.PdfPageCanvas target) => target.LinkToNamedDestination(destination, x, y, width, height, contents);
+        void Add(PdfCore.PdfPageCanvas target) => target.LinkToNamedDestination(destination, global::OfficeIMO.OfficeLength.Points(x), global::OfficeIMO.OfficeLength.Points(y), global::OfficeIMO.OfficeLength.Points(width), global::OfficeIMO.OfficeLength.Points(height), contents);
         var frame = new OfficeImageFrameTransform(shape.Rotation ?? 0D, centerX, centerY,
             shape.HorizontalFlip == true, shape.VerticalFlip == true);
         if (frame.HasTransform) canvas.Effect(frame.CreateDestinationTransform(), 1D, Add);

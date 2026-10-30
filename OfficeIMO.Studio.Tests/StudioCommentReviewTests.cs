@@ -162,8 +162,8 @@ public sealed class StudioCommentReviewTests {
 
     internal static byte[] CreateSource() {
         var document = PdfDocument.Create(compose => {
-            compose.Page(page => page.Size(600, 800).Canvas(canvas => canvas.TextAnnotation("Check the proposed delivery date.", 70, 700)));
-            compose.Page(page => page.Size(600, 800).Canvas(canvas => canvas.TextAnnotation("Confirm the support contact.", 70, 700)));
+            compose.Page(page => page.Size(600, 800).Canvas(canvas => canvas.TextAnnotation("Check the proposed delivery date.", global::OfficeIMO.OfficeLength.Points(70), global::OfficeIMO.OfficeLength.Points(700))));
+            compose.Page(page => page.Size(600, 800).Canvas(canvas => canvas.TextAnnotation("Confirm the support contact.", global::OfficeIMO.OfficeLength.Points(70), global::OfficeIMO.OfficeLength.Points(700))));
         });
         using var stream = new MemoryStream(); document.Save(stream);
         byte[] bytes = stream.ToArray();

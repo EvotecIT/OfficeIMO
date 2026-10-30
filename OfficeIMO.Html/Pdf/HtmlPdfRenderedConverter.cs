@@ -477,8 +477,8 @@ internal static partial class HtmlPdfRenderedConverter {
         } else if (visual is HtmlRenderNamedDestination destination) {
             canvas.NamedDestination(
                 MapNamedDestination(destination.Name),
-                destination.X * PointsPerCssPixel,
-                destination.Y * PointsPerCssPixel);
+                global::OfficeIMO.OfficeLength.Points(destination.X * PointsPerCssPixel),
+                global::OfficeIMO.OfficeLength.Points(destination.Y * PointsPerCssPixel));
         } else if (visual is HtmlRenderImage image) {
             try {
                 if (!AddImage(canvas, image, imageResources, pagePaint?.Covers(image) == true)) {
@@ -575,7 +575,7 @@ internal static partial class HtmlPdfRenderedConverter {
                 canvas.SearchableText(field.Value, x, y + Math.Min(height, fontSize), logicalOrder: field.SemanticSourceOrder);
             }
         } else if (field.FieldKind == HtmlRenderFormFieldKind.CheckBox) {
-            canvas.CheckBoxWithExportValue(field.Name, field.IsSelected, x, y, width, height, field.RadioOption ?? "Yes", field.Value, style);
+            canvas.CheckBoxWithExportValue(field.Name, field.IsSelected, global::OfficeIMO.OfficeLength.Points(x), global::OfficeIMO.OfficeLength.Points(y), global::OfficeIMO.OfficeLength.Points(width), global::OfficeIMO.OfficeLength.Points(height), field.RadioOption ?? "Yes", field.Value, style);
         } else if (field.FieldKind == HtmlRenderFormFieldKind.Choice) {
             IReadOnlyList<PdfCore.PdfFormFieldOption> choiceOptions = field.Options
                 .Select((label, index) => new PdfCore.PdfFormFieldOption(
@@ -766,13 +766,13 @@ internal static partial class HtmlPdfRenderedConverter {
         double height = fragment.Height * PointsPerCssPixel;
         if (IsFragmentLink(fragment.LinkUri)) {
             canvas.LinkToNamedDestination(MapNamedDestination(fragment.LinkUri!.Substring(1)),
-                x, y, width, height, fragment.LinkContents);
+                global::OfficeIMO.OfficeLength.Points(x), global::OfficeIMO.OfficeLength.Points(y), global::OfficeIMO.OfficeLength.Points(width), global::OfficeIMO.OfficeLength.Points(height), fragment.LinkContents);
             return;
         }
         OfficeShape area = OfficeShape.Rectangle(width, height);
         area.FillColor = null;
         area.StrokeColor = null;
-        canvas.Shape(area, x, y, style: new PdfCore.PdfDrawingStyle { Decorative = true }, linkUri: fragment.LinkUri, linkContents: fragment.LinkContents);
+        canvas.Shape(area, global::OfficeIMO.OfficeLength.Points(x), global::OfficeIMO.OfficeLength.Points(y), style: new PdfCore.PdfDrawingStyle { Decorative = true }, linkUri: fragment.LinkUri, linkContents: fragment.LinkContents);
     }
 
     private static void AddShape(
@@ -794,10 +794,10 @@ internal static partial class HtmlPdfRenderedConverter {
         bool fragmentLink = !suppressLink && IsFragmentLink(visual.LinkUri);
         Action<PdfCore.PdfPageCanvas> addDrawing = target => target.Drawing(
             drawing,
-            drawingX,
-            drawingY,
-            visual.Width * PointsPerCssPixel,
-            visual.Height * PointsPerCssPixel,
+            global::OfficeIMO.OfficeLength.Points(drawingX),
+            global::OfficeIMO.OfficeLength.Points(drawingY),
+            global::OfficeIMO.OfficeLength.Points(visual.Width * PointsPerCssPixel),
+            global::OfficeIMO.OfficeLength.Points(visual.Height * PointsPerCssPixel),
             style: new PdfCore.PdfDrawingStyle { Decorative = true },
             linkUri: suppressLink || fragmentLink ? null : visual.LinkUri,
             linkContents: suppressLink || visual.LinkUri == null || fragmentLink ? null : visual.Source);
@@ -809,10 +809,10 @@ internal static partial class HtmlPdfRenderedConverter {
         if (fragmentLink) {
             canvas.LinkToNamedDestination(
                 MapNamedDestination(visual.LinkUri!.Substring(1)),
-                visual.X * PointsPerCssPixel,
-                visual.Y * PointsPerCssPixel,
-                visual.Width * PointsPerCssPixel,
-                visual.Height * PointsPerCssPixel,
+                global::OfficeIMO.OfficeLength.Points(visual.X * PointsPerCssPixel),
+                global::OfficeIMO.OfficeLength.Points(visual.Y * PointsPerCssPixel),
+                global::OfficeIMO.OfficeLength.Points(visual.Width * PointsPerCssPixel),
+                global::OfficeIMO.OfficeLength.Points(visual.Height * PointsPerCssPixel),
                 visual.Source);
         }
     }

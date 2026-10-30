@@ -257,9 +257,9 @@ public sealed class PdfLogicalReadingOrderTests {
         };
         var rows = new[] {
             new[] { PdfTableCell.TextCell("Service"), PdfTableCell.TextCell("Status"), PdfTableCell.TextCell("Owner") },
-            new[] { PdfTableCell.Span(new[] { new PdfTextRun("Identity systems", bold: true, italic: true, fontSize: 17) }, 3) },
+            new[] { PdfTableCell.Span(new[] { new PdfTextRun("Identity systems", bold: true, italic: true, fontSize: global::OfficeIMO.OfficeLength.Points(17)) }, 3) },
             new[] { PdfTableCell.TextCell("Entra"), PdfTableCell.TextCell("Watch"), PdfTableCell.TextCell("IAM") },
-            new[] { PdfTableCell.Span(new[] { new PdfTextRun("Follow-up", bold: true, fontSize: 15) }, 3) },
+            new[] { PdfTableCell.Span(new[] { new PdfTextRun("Follow-up", bold: true, fontSize: global::OfficeIMO.OfficeLength.Points(15)) }, 3) },
             new[] { PdfTableCell.TextCell("Release"), PdfTableCell.TextCell("Ready"), PdfTableCell.TextCell("OfficeIMO") }
         };
         byte[] pdf = PdfDocument.Create()

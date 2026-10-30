@@ -15,7 +15,7 @@ public static partial class PowerPointPdfConverterExtensions {
             FontSize = fontSize,
             TextColor = color
         };
-        canvas.TextBox(notes, x, y, width, height, style, diagnosticHandler: diagnostic =>
+        canvas.TextBox(notes, global::OfficeIMO.OfficeLength.Points(x), global::OfficeIMO.OfficeLength.Points(y), global::OfficeIMO.OfficeLength.Points(width), global::OfficeIMO.OfficeLength.Points(height), style, diagnosticHandler: diagnostic =>
             AddLayoutWarning(options, slideNumber, "speaker-notes-overflow", diagnostic.Message,
                 diagnostic.Kind, "PowerPointSpeakerNotes", diagnostic.Message, x, y, width, height));
     }

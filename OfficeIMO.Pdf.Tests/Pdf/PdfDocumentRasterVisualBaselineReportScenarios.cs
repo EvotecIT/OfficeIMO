@@ -169,28 +169,28 @@ public partial class PdfDocumentRasterVisualBaselineTests {
                                     .Text("Review by: 06/01/2026"),
                                     style: new PdfParagraphStyle { SpacingAfter = global::OfficeIMO.OfficeLength.Points(2) }))
                             .PercentColumn(42, column => column
-                                .Image(logo, 156, 54, PdfAlign.Right, fit: OfficeImageFit.Contain)));
+                                .Image(logo, global::OfficeIMO.OfficeLength.Points(156), global::OfficeIMO.OfficeLength.Points(54), PdfAlign.Right, fit: OfficeImageFit.Contain)));
 
                         content.Column(column => column
                             .Item()
-                            .Spacer(41.4));
+                            .Spacer(global::OfficeIMO.OfficeLength.Points(41.4)));
 
                         content.Row(row => row
                             .Gap(30)
                             .PercentColumn(47, column => column
                                 .H3("Prepared by")
-                                .HR(1.2, global::OfficeIMO.OfficeColor.Black, spacingBefore: 2, spacingAfter: 10)
+                                .HR(global::OfficeIMO.OfficeLength.Points(1.2), global::OfficeIMO.OfficeColor.Black, spacingBefore: global::OfficeIMO.OfficeLength.Points(2), spacingAfter: global::OfficeIMO.OfficeLength.Points(10))
                                 .Paragraph(p => p.Text("Syllabae Repraesentant\nOvum picem\nPrinceps avem distant, Linteum amicitia\nofficium21@aut statum.com\n881-306-3914"),
                                     style: new PdfParagraphStyle { LineHeight = 1.25, SpacingAfter = global::OfficeIMO.OfficeLength.Points(0) }))
                             .PercentColumn(47, column => column
                                 .H3("Recipient")
-                                .HR(1.2, global::OfficeIMO.OfficeColor.Black, spacingBefore: 2, spacingAfter: 10)
+                                .HR(global::OfficeIMO.OfficeLength.Points(1.2), global::OfficeIMO.OfficeColor.Black, spacingBefore: global::OfficeIMO.OfficeLength.Points(2), spacingAfter: global::OfficeIMO.OfficeLength.Points(10))
                                 .Paragraph(p => p.Text("Ceciderit Original\nAurum currunt\nSolis multum platea, Cocus fuge fluvio\nsubsisto93@celeritate.com\n839-621-9110"),
                                     style: new PdfParagraphStyle { LineHeight = 1.25, SpacingAfter = global::OfficeIMO.OfficeLength.Points(0) })));
 
                         content.Column(column => {
                             column.Item()
-                                .Spacer(33.4)
+                                .Spacer(global::OfficeIMO.OfficeLength.Points(33.4))
                                 .Table(lineItemRows, PdfAlign.Left, lineItemStyle)
                                 .Table(totalsRows, PdfAlign.Right, CreateLineItemTotalsTableStyle())
                                 .PanelParagraph(

@@ -144,7 +144,7 @@ public static partial class MarkdownPdfConverterExtensions {
 
         pdf.Paragraph(builder => {
             builder.Italic(true)
-                .FontSize(figureStyle.CaptionFontSizeSnapshot)
+                .FontSize(global::OfficeIMO.OfficeLength.Points(figureStyle.CaptionFontSizeSnapshot))
                 .Color(figureStyle.CaptionColorSnapshot)
                 .Text(caption!.Trim());
         }, align: figureStyle.CaptionAlignSnapshot, defaultColor: figureStyle.CaptionColorSnapshot, style: new PdfCore.PdfParagraphStyle { SpacingBefore = global::OfficeIMO.OfficeLength.Points(2), SpacingAfter = global::OfficeIMO.OfficeLength.Points(2) });

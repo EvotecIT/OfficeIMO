@@ -97,9 +97,9 @@ public class PdfRedactionVerificationTests {
     public void AppliedPlanVerificationRejectsReorderedPagesThatDifferOnlyByVectorPaths() {
         byte[] source = PdfDocument.Create(compose => {
             compose.Page(page => page.Content(content => content.Item(item => item
-                .Rectangle(40D, 30D, strokeColor: global::OfficeIMO.OfficeColor.FromRgb(180, 20, 20), fillColor: global::OfficeIMO.OfficeColor.FromRgb(255, 220, 220)))));
+                .Rectangle(global::OfficeIMO.OfficeLength.Points(40D), global::OfficeIMO.OfficeLength.Points(30D), strokeColor: global::OfficeIMO.OfficeColor.FromRgb(180, 20, 20), fillColor: global::OfficeIMO.OfficeColor.FromRgb(255, 220, 220)))));
             compose.Page(page => page.Content(content => content.Item(item => item
-                .Rectangle(80D, 30D, strokeColor: global::OfficeIMO.OfficeColor.FromRgb(20, 20, 180), fillColor: global::OfficeIMO.OfficeColor.FromRgb(220, 220, 255)))));
+                .Rectangle(global::OfficeIMO.OfficeLength.Points(80D), global::OfficeIMO.OfficeLength.Points(30D), strokeColor: global::OfficeIMO.OfficeColor.FromRgb(20, 20, 180), fillColor: global::OfficeIMO.OfficeColor.FromRgb(220, 220, 255)))));
         }).ToBytes();
         PdfRedactionPlan plan = PdfRedactionPlanner.Plan(source, [
             new PdfRedactionArea(1, 10D, 10D, 10D, 10D, "reviewed area")

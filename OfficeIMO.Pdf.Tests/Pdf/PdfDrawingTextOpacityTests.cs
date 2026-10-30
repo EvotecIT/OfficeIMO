@@ -187,7 +187,7 @@ public sealed class PdfDrawingTextOpacityTests {
             PageWidth = global::OfficeIMO.OfficeLength.Points(220D), PageHeight = global::OfficeIMO.OfficeLength.Points(150D),
             MarginLeft = global::OfficeIMO.OfficeLength.Points(20D), MarginRight = global::OfficeIMO.OfficeLength.Points(20D), MarginTop = global::OfficeIMO.OfficeLength.Points(20D), MarginBottom = global::OfficeIMO.OfficeLength.Points(20D)
         });
-        document.Content.Canvas(canvas => canvas.Drawing(drawing, 0D, 0D, 180D, 110D));
+        document.Content.Canvas(canvas => canvas.Drawing(drawing, global::OfficeIMO.OfficeLength.Points(0D), global::OfficeIMO.OfficeLength.Points(0D), global::OfficeIMO.OfficeLength.Points(180D), global::OfficeIMO.OfficeLength.Points(110D)));
         byte[] bytes = document.ToBytes();
         string text = PdfReadDocument.Open(bytes).ExtractText();
         Assert.Contains("FIRST", text);
@@ -228,7 +228,7 @@ public sealed class PdfDrawingTextOpacityTests {
             PageWidth = global::OfficeIMO.OfficeLength.Points(220D), PageHeight = global::OfficeIMO.OfficeLength.Points(150D),
             MarginLeft = global::OfficeIMO.OfficeLength.Points(20D), MarginRight = global::OfficeIMO.OfficeLength.Points(20D), MarginTop = global::OfficeIMO.OfficeLength.Points(20D), MarginBottom = global::OfficeIMO.OfficeLength.Points(20D)
         });
-        document.Content.Canvas(canvas => canvas.Drawing(drawing, 0D, 0D, 180D, 110D));
+        document.Content.Canvas(canvas => canvas.Drawing(drawing, global::OfficeIMO.OfficeLength.Points(0D), global::OfficeIMO.OfficeLength.Points(0D), global::OfficeIMO.OfficeLength.Points(180D), global::OfficeIMO.OfficeLength.Points(110D)));
         OfficeDrawing scene = PdfPageImageRenderer.RenderPage(document.ToBytes());
         OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(scene, 2D, OfficeColor.White);
         int opaqueBlue = 0;
@@ -259,7 +259,7 @@ public sealed class PdfDrawingTextOpacityTests {
             MarginTop = global::OfficeIMO.OfficeLength.Points(20D), MarginBottom = global::OfficeIMO.OfficeLength.Points(20D), CompressContentStreams = false,
             TaggedStructureMode = PdfTaggedStructureMode.CatalogMarkers
         });
-        document.Content.Canvas(canvas => canvas.Drawing(drawing, 0D, 0D, 180D, 110D));
+        document.Content.Canvas(canvas => canvas.Drawing(drawing, global::OfficeIMO.OfficeLength.Points(0D), global::OfficeIMO.OfficeLength.Points(0D), global::OfficeIMO.OfficeLength.Points(180D), global::OfficeIMO.OfficeLength.Points(110D)));
         byte[] bytes = document.ToBytes();
         var (objects, _) = PdfSyntax.ParseObjects(bytes);
         var form = Assert.Single(objects.Values.Select(value => value.Value).OfType<PdfStream>()

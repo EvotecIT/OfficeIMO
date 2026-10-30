@@ -58,15 +58,15 @@ public sealed class PdfRichLineBaselineTests {
             LineSpacing = PdfLineSpacing.Multiple(1.4) };
         Action<PdfParagraphBuilder> text = p => {
             if (namedFont) p.FontFamily(family);
-            if (mixed) p.FontSize(8).Text("A\n").FontSize(24).Text("B\n").FontSize(8).Text("C");
-            else p.FontSize(24).Text("A");
+            if (mixed) p.FontSize(global::OfficeIMO.OfficeLength.Points(8)).Text("A\n").FontSize(global::OfficeIMO.OfficeLength.Points(24)).Text("B\n").FontSize(global::OfficeIMO.OfficeLength.Points(8)).Text("C");
+            else p.FontSize(global::OfficeIMO.OfficeLength.Points(24)).Text("A");
         };
         var document = PdfDocument.Create(options);
         if (frame == "flow") document.Paragraph(text, style: style);
         else if (frame == "column") document.Content.Row(row => row.RelativeColumn(column => column.Paragraph(text, style: style)));
         else if (frame == "canvas") {
             var runs = mixed ? new[] { Run("A\n", 8), Run("B\n", 24), Run("C", 8) } : new[] { Run("A", 24) };
-            document.Canvas(canvas => canvas.TextBox(runs, 30, 30, 240, 240, new PdfCanvasTextBoxStyle {
+            document.Canvas(canvas => canvas.TextBox(runs, global::OfficeIMO.OfficeLength.Points(30), global::OfficeIMO.OfficeLength.Points(30), global::OfficeIMO.OfficeLength.Points(240), global::OfficeIMO.OfficeLength.Points(240), new PdfCanvasTextBoxStyle {
                 Font = PdfStandardFont.TimesRoman, FontSize = 8, LineHeight = 8 * 1.4,
                 PaddingX = 0, PaddingY = 0, Background = null, BorderColor = null
             }));
@@ -84,7 +84,7 @@ public sealed class PdfRichLineBaselineTests {
         }
         return document.ToBytes();
 
-        PdfTextRun Run(string value, double size) => new(value, fontSize: size, font: PdfStandardFont.Helvetica,
+        PdfTextRun Run(string value, double size) => new(value, fontSize: global::OfficeIMO.OfficeLength.Points(size), font: PdfStandardFont.Helvetica,
             fontFamily: namedFont ? family : null, linkUri: frame == "linked-table" ? "https://example.com/run" : null);
     }
 }

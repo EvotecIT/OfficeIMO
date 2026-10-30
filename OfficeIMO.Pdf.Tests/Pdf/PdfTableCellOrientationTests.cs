@@ -54,8 +54,8 @@ public sealed class PdfTableCellOrientationTests {
         style.AutoFitWidthUsesContentMinimum = true; style.AutoFitUnspecifiedWidthToContent = true;
         style.FixedRowHeights = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(100) };
         style.CellPaddingX = global::OfficeIMO.OfficeLength.Points(2); style.CellPaddingY = global::OfficeIMO.OfficeLength.Points(2);
-        var first = new[] { new PdfTextRun("ABCD", fontSize: 12) };
-        var second = new[] { new PdfTextRun("EFGH", fontSize: 36) };
+        var first = new[] { new PdfTextRun("ABCD", fontSize: global::OfficeIMO.OfficeLength.Points(12)) };
+        var second = new[] { new PdfTextRun("EFGH", fontSize: global::OfficeIMO.OfficeLength.Points(36)) };
         var paragraphs = new[] { new PdfTableCellParagraph(first, fontSize: 12),
             new PdfTableCellParagraph(second, fontSize: 36) };
         var cell = new PdfTableCell(first.Concat(second), paragraphs,
@@ -155,13 +155,13 @@ public sealed class PdfTableCellOrientationTests {
         style.FixedRowHeights = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(80) };
         style.CellPaddingX = global::OfficeIMO.OfficeLength.Points(4); style.CellPaddingY = global::OfficeIMO.OfficeLength.Points(4);
         style.SpacingBefore = global::OfficeIMO.OfficeLength.Points(0); style.SpacingAfter = global::OfficeIMO.OfficeLength.Points(0);
-        var cells = new[] { new[] { new PdfTableCell(new[] { new PdfTextRun("ABCD", fontSize: 48) },
+        var cells = new[] { new[] { new PdfTableCell(new[] { new PdfTextRun("ABCD", fontSize: global::OfficeIMO.OfficeLength.Points(48)) },
             paragraphs: null, textRotation: -90) } };
         PdfDocument document = PdfDocument.Create(options);
         byte[] bytes = surface switch {
             "flow" => document.Table(cells, style: style).ToBytes(),
             "column" => document.Row(row => row.PercentColumn(100, column => column.Table(cells, style: style))).ToBytes(),
-            "canvas" => document.Canvas(canvas => canvas.Table(cells, 24, 24, 100, 80, style)).ToBytes(),
+            "canvas" => document.Canvas(canvas => canvas.Table(cells, global::OfficeIMO.OfficeLength.Points(24), global::OfficeIMO.OfficeLength.Points(24), global::OfficeIMO.OfficeLength.Points(100), global::OfficeIMO.OfficeLength.Points(80), style)).ToBytes(),
             _ => throw new ArgumentOutOfRangeException(nameof(surface))
         };
         using PdfPigDocument pdf = PdfPigDocument.Open(bytes);
@@ -193,7 +193,7 @@ public sealed class PdfTableCellOrientationTests {
         byte[] bytes = surface switch {
             "flow" => document.Table(cells, style: style).ToBytes(),
             "column" => document.Row(row => row.PercentColumn(100, column => column.Table(cells, style: style))).ToBytes(),
-            "canvas" => document.Canvas(canvas => canvas.Table(cells, 24, 24, 100, 80, style)).ToBytes(),
+            "canvas" => document.Canvas(canvas => canvas.Table(cells, global::OfficeIMO.OfficeLength.Points(24), global::OfficeIMO.OfficeLength.Points(24), global::OfficeIMO.OfficeLength.Points(100), global::OfficeIMO.OfficeLength.Points(80), style)).ToBytes(),
             _ => throw new ArgumentOutOfRangeException(nameof(surface))
         };
         using PdfPigDocument pdf = PdfPigDocument.Open(bytes);

@@ -20,7 +20,7 @@ public sealed class PdfStyledImagePlacementTests {
             MarginLeft = global::OfficeIMO.OfficeLength.Points(40), MarginRight = global::OfficeIMO.OfficeLength.Points(40), MarginTop = global::OfficeIMO.OfficeLength.Points(90), MarginBottom = global::OfficeIMO.OfficeLength.Points(90) });
         if (path == "inline") document.Paragraph(paragraph => paragraph.Inline(new PdfInlineImage(source, 60, 30, style, 0)));
         else if (path == "flow") document.Image(source, 60, 30, style: style);
-        else if (path == "canvas") document.Canvas(canvas => canvas.Image(source, 100, 100, 60, 30, style));
+        else if (path == "canvas") document.Canvas(canvas => canvas.Image(source, global::OfficeIMO.OfficeLength.Points(100), global::OfficeIMO.OfficeLength.Points(100), global::OfficeIMO.OfficeLength.Points(60), global::OfficeIMO.OfficeLength.Points(30), style));
         else {
             var image = new PdfHeaderFooterImage(source, 60, 30, PdfAlign.Left, style);
             document.Compose(compose => compose.Page(page => {

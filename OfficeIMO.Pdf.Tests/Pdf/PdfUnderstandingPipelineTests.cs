@@ -2190,21 +2190,21 @@ public partial class PdfUnderstandingPipelineTests {
             .Canvas(canvas => canvas
                 .Structure(PdfCanvasStructureRole.Table, table => table
                     .Structure(PdfCanvasStructureRole.TableRow, row => row
-                        .Structure(PdfCanvasStructureRole.TableHeaderCell, cell => cell.Text("Code", 40D, 100D, 45D, 16D))
-                        .Structure(PdfCanvasStructureRole.TableHeaderCell, cell => cell.Text("Area", 150D, 100D, 35D, 16D))
-                        .Structure(PdfCanvasStructureRole.TableHeaderCell, cell => cell.Text("Value", 190D, 100D, 38D, 16D))
-                        .Structure(PdfCanvasStructureRole.TableHeaderCell, cell => cell.Text("State", 232D, 100D, 42D, 16D)))
+                        .Structure(PdfCanvasStructureRole.TableHeaderCell, cell => cell.Text("Code", global::OfficeIMO.OfficeLength.Points(40D), global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(45D), global::OfficeIMO.OfficeLength.Points(16D)))
+                        .Structure(PdfCanvasStructureRole.TableHeaderCell, cell => cell.Text("Area", global::OfficeIMO.OfficeLength.Points(150D), global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(35D), global::OfficeIMO.OfficeLength.Points(16D)))
+                        .Structure(PdfCanvasStructureRole.TableHeaderCell, cell => cell.Text("Value", global::OfficeIMO.OfficeLength.Points(190D), global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(38D), global::OfficeIMO.OfficeLength.Points(16D)))
+                        .Structure(PdfCanvasStructureRole.TableHeaderCell, cell => cell.Text("State", global::OfficeIMO.OfficeLength.Points(232D), global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(42D), global::OfficeIMO.OfficeLength.Points(16D))))
                     .Structure(PdfCanvasStructureRole.TableRow, row => row
-                        .Structure(PdfCanvasStructureRole.TableCell, cell => cell.Text("A-01", 40D, 120D, 45D, 16D))
-                        .Structure(PdfCanvasStructureRole.TableCell, cell => cell.Text("SE", 150D, 120D, 35D, 16D))
-                        .Structure(PdfCanvasStructureRole.TableCell, cell => cell.Text("1250.5", 190D, 120D, 38D, 16D))
-                        .Structure(PdfCanvasStructureRole.TableCell, cell => cell.Text("Ready", 232D, 120D, 42D, 16D)))
+                        .Structure(PdfCanvasStructureRole.TableCell, cell => cell.Text("A-01", global::OfficeIMO.OfficeLength.Points(40D), global::OfficeIMO.OfficeLength.Points(120D), global::OfficeIMO.OfficeLength.Points(45D), global::OfficeIMO.OfficeLength.Points(16D)))
+                        .Structure(PdfCanvasStructureRole.TableCell, cell => cell.Text("SE", global::OfficeIMO.OfficeLength.Points(150D), global::OfficeIMO.OfficeLength.Points(120D), global::OfficeIMO.OfficeLength.Points(35D), global::OfficeIMO.OfficeLength.Points(16D)))
+                        .Structure(PdfCanvasStructureRole.TableCell, cell => cell.Text("1250.5", global::OfficeIMO.OfficeLength.Points(190D), global::OfficeIMO.OfficeLength.Points(120D), global::OfficeIMO.OfficeLength.Points(38D), global::OfficeIMO.OfficeLength.Points(16D)))
+                        .Structure(PdfCanvasStructureRole.TableCell, cell => cell.Text("Ready", global::OfficeIMO.OfficeLength.Points(232D), global::OfficeIMO.OfficeLength.Points(120D), global::OfficeIMO.OfficeLength.Points(42D), global::OfficeIMO.OfficeLength.Points(16D))))
                     .Structure(PdfCanvasStructureRole.TableRow, row => row
-                        .Structure(PdfCanvasStructureRole.TableCell, cell => cell.Text("B-02", 40D, 140D, 45D, 16D))
-                        .Structure(PdfCanvasStructureRole.TableCell, cell => cell.Text("PL", 150D, 140D, 35D, 16D))
-                        .Structure(PdfCanvasStructureRole.TableCell, cell => cell.Text("980.25", 190D, 140D, 38D, 16D))
-                        .Structure(PdfCanvasStructureRole.TableCell, cell => cell.Text("Done", 232D, 140D, 42D, 16D))))
-                .Figure("Chart axis", figure => figure.Text("1200", 340D, 121D, 40D, 16D)))
+                        .Structure(PdfCanvasStructureRole.TableCell, cell => cell.Text("B-02", global::OfficeIMO.OfficeLength.Points(40D), global::OfficeIMO.OfficeLength.Points(140D), global::OfficeIMO.OfficeLength.Points(45D), global::OfficeIMO.OfficeLength.Points(16D)))
+                        .Structure(PdfCanvasStructureRole.TableCell, cell => cell.Text("PL", global::OfficeIMO.OfficeLength.Points(150D), global::OfficeIMO.OfficeLength.Points(140D), global::OfficeIMO.OfficeLength.Points(35D), global::OfficeIMO.OfficeLength.Points(16D)))
+                        .Structure(PdfCanvasStructureRole.TableCell, cell => cell.Text("980.25", global::OfficeIMO.OfficeLength.Points(190D), global::OfficeIMO.OfficeLength.Points(140D), global::OfficeIMO.OfficeLength.Points(38D), global::OfficeIMO.OfficeLength.Points(16D)))
+                        .Structure(PdfCanvasStructureRole.TableCell, cell => cell.Text("Done", global::OfficeIMO.OfficeLength.Points(232D), global::OfficeIMO.OfficeLength.Points(140D), global::OfficeIMO.OfficeLength.Points(42D), global::OfficeIMO.OfficeLength.Points(16D)))))
+                .Figure("Chart axis", figure => figure.Text("1200", global::OfficeIMO.OfficeLength.Points(340D), global::OfficeIMO.OfficeLength.Points(121D), global::OfficeIMO.OfficeLength.Points(40D), global::OfficeIMO.OfficeLength.Points(16D))))
             .ToBytes();
 
         PdfLogicalPage page = Assert.Single(PdfDocument.Load(pdf).Read().Pages);
@@ -2228,11 +2228,11 @@ public partial class PdfUnderstandingPipelineTests {
             .Canvas(canvas => canvas
                 .Structure(PdfCanvasStructureRole.Table, table => table
                     .Structure(PdfCanvasStructureRole.TableRow, row => row
-                        .Structure(PdfCanvasStructureRole.TableHeaderCell, cell => cell.Text("Metric", 40D, 100D, 80D, 16D))
-                        .Structure(PdfCanvasStructureRole.TableHeaderCell, cell => cell.Text("Value", 160D, 100D, 80D, 16D)))
+                        .Structure(PdfCanvasStructureRole.TableHeaderCell, cell => cell.Text("Metric", global::OfficeIMO.OfficeLength.Points(40D), global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(80D), global::OfficeIMO.OfficeLength.Points(16D)))
+                        .Structure(PdfCanvasStructureRole.TableHeaderCell, cell => cell.Text("Value", global::OfficeIMO.OfficeLength.Points(160D), global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(80D), global::OfficeIMO.OfficeLength.Points(16D))))
                     .Structure(PdfCanvasStructureRole.TableRow, row => row
-                        .Structure(PdfCanvasStructureRole.TableCell, cell => cell.Text("Quality", 40D, 120D, 80D, 16D))
-                        .Structure(PdfCanvasStructureRole.TableCell, cell => cell.Text("High", 160D, 120D, 80D, 16D)))))
+                        .Structure(PdfCanvasStructureRole.TableCell, cell => cell.Text("Quality", global::OfficeIMO.OfficeLength.Points(40D), global::OfficeIMO.OfficeLength.Points(120D), global::OfficeIMO.OfficeLength.Points(80D), global::OfficeIMO.OfficeLength.Points(16D)))
+                        .Structure(PdfCanvasStructureRole.TableCell, cell => cell.Text("High", global::OfficeIMO.OfficeLength.Points(160D), global::OfficeIMO.OfficeLength.Points(120D), global::OfficeIMO.OfficeLength.Points(80D), global::OfficeIMO.OfficeLength.Points(16D))))))
             .ToBytes();
 
         PdfDocumentReadResult result = PdfDocument.Load(pdf).Read(new PdfLoadOptions {

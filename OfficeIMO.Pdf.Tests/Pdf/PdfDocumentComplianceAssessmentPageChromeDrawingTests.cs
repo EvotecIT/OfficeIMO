@@ -134,7 +134,7 @@ public partial class PdfDocumentComplianceAssessmentTests {
             .Compose(document => document.Page(page => page.Content(content => content.Row(row => row
                 .PercentColumn(100, column => column
                     .Paragraph(paragraph => paragraph.Text("Before row rule."))
-                    .HR(thickness: 0.8, color: global::OfficeIMO.OfficeColor.FromRgb(203, 213, 225), spacingBefore: 2, spacingAfter: 2)
+                    .HR(thickness: global::OfficeIMO.OfficeLength.Points(0.8), color: global::OfficeIMO.OfficeColor.FromRgb(203, 213, 225), spacingBefore: global::OfficeIMO.OfficeLength.Points(2), spacingAfter: global::OfficeIMO.OfficeLength.Points(2))
                     .Paragraph(paragraph => paragraph.Text("After row rule.")))))))
             .ToBytes();
 
@@ -273,7 +273,7 @@ public partial class PdfDocumentComplianceAssessmentTests {
             .AddImage(PdfPngTestImages.CreateRgbPng(1, 1), "image/png", projection, "Nested image alternative text");
         PdfDocument[] documents = {
             PdfDocument.Create().Drawing(drawing),
-            PdfDocument.Create().Canvas(canvas => canvas.Drawing(drawing, 10D, 10D, 24D, 12D))
+            PdfDocument.Create().Canvas(canvas => canvas.Drawing(drawing, global::OfficeIMO.OfficeLength.Points(10D), global::OfficeIMO.OfficeLength.Points(10D), global::OfficeIMO.OfficeLength.Points(24D), global::OfficeIMO.OfficeLength.Points(12D)))
         };
 
         foreach (PdfDocument document in documents) {

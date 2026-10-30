@@ -55,7 +55,7 @@ public static partial class MarkdownPdfConverterExtensions {
             ?? GetFrontMatterMetadata(frontMatter, "subject");
         if (subtitle != null) {
             pdf.Paragraph(builder => builder
-                    .FontSize(visualTheme.DocumentHeaderSubtitleFontSizeSnapshot)
+                    .FontSize(global::OfficeIMO.OfficeLength.Points(visualTheme.DocumentHeaderSubtitleFontSizeSnapshot))
                     .Color(visualTheme.DocumentHeaderSubtitleColorSnapshot)
                     .Text(subtitle),
                 defaultColor: visualTheme.DocumentHeaderSubtitleColorSnapshot,
@@ -69,7 +69,7 @@ public static partial class MarkdownPdfConverterExtensions {
         string? metadataLine = BuildFrontMatterMetadataLine(frontMatter);
         if (metadataLine != null) {
             pdf.Paragraph(builder => builder
-                    .FontSize(visualTheme.DocumentHeaderMetadataFontSizeSnapshot)
+                    .FontSize(global::OfficeIMO.OfficeLength.Points(visualTheme.DocumentHeaderMetadataFontSizeSnapshot))
                     .Color(visualTheme.DocumentHeaderMetadataColorSnapshot)
                     .Text(metadataLine),
                 defaultColor: visualTheme.DocumentHeaderMetadataColorSnapshot,

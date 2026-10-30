@@ -231,7 +231,7 @@ public partial class PdfDocumentVisualQualityTests {
                                 new[] { "TableMarker", "Ready" },
                                 new[] { "Rhythm", "Stable" }
                             }, style: tableStyle)
-                            .Image(png, 24, 24, style: imageStyle)
+                            .Image(png, global::OfficeIMO.OfficeLength.Points(24), global::OfficeIMO.OfficeLength.Points(24), style: imageStyle)
                             .Shape(shape, style: drawingStyle)
                             .Paragraph(p => p.Text("AfterVisualMarker follows image and shape blocks with deliberate breathing room."), style: paragraphStyle));
 

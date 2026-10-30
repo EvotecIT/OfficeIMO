@@ -15,7 +15,7 @@ public sealed class PdfBookmarkTableOfContentsTests {
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
             PageWidth = global::OfficeIMO.OfficeLength.Points(460), PageHeight = global::OfficeIMO.OfficeLength.Points(200), MarginLeft = global::OfficeIMO.OfficeLength.Points(20), MarginRight = global::OfficeIMO.OfficeLength.Points(20), MarginTop = global::OfficeIMO.OfficeLength.Points(20), MarginBottom = global::OfficeIMO.OfficeLength.Points(20)
         }).Columns(column => {
-            column.Spacer(moveBeforeFirstEntry ? 145 : 60);
+            column.Spacer(global::OfficeIMO.OfficeLength.Points(moveBeforeFirstEntry ? 145 : 60));
             column.TableOfContents(new PdfTableOfContentsOptions { Entries = entries });
         }, new PdfMultiColumnOptions {
             BalanceLastPage = false,

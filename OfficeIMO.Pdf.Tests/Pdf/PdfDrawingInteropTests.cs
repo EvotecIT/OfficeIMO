@@ -226,7 +226,7 @@ public class PdfDrawingInteropTests {
                 MarginTop = global::OfficeIMO.OfficeLength.Points(20),
                 MarginBottom = global::OfficeIMO.OfficeLength.Points(20)
             });
-        if (scaledCanvas) doc.Canvas(canvas => canvas.Drawing(drawing, 30D, 40D, 180D, 90D));
+        if (scaledCanvas) doc.Canvas(canvas => canvas.Drawing(drawing, global::OfficeIMO.OfficeLength.Points(30D), global::OfficeIMO.OfficeLength.Points(40D), global::OfficeIMO.OfficeLength.Points(180D), global::OfficeIMO.OfficeLength.Points(90D)));
         else doc.Drawing(drawing, align: PdfAlign.Center, spacingBefore: 4, spacingAfter: 6);
 
         drawing.Shapes[0].Shape.Width = 20;

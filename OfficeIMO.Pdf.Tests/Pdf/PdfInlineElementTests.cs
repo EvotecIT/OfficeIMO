@@ -27,7 +27,7 @@ public class PdfInlineElementTests {
             CompressContentStreams = false
         });
         PdfTableCell[][] rows = new[] { new[] { cell } };
-        if (canvas) document.Canvas(surface => surface.Table(rows, 20, 20, 50, 30, style));
+        if (canvas) document.Canvas(surface => surface.Table(rows, global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(50), global::OfficeIMO.OfficeLength.Points(30), style));
         else document.Table(rows, style: style);
         byte[] bytes = document.ToBytes();
         using UglyToad.PdfPig.PdfDocument pdf = UglyToad.PdfPig.PdfDocument.Open(bytes);
@@ -46,14 +46,14 @@ public class PdfInlineElementTests {
             })
             .Paragraph(paragraph => paragraph
                 .Text("Before ")
-                .InlineImage(PdfPngTestImages.CreateRgbPng(2, 1), 24, 14, "Inline status image")
+                .InlineImage(PdfPngTestImages.CreateRgbPng(2, 1), global::OfficeIMO.OfficeLength.Inches(1D / 3D), global::OfficeIMO.OfficeLength.Emus(177800), "Inline status image")
                 .Text(" middle ")
                 .InlineBox(
-                    18,
-                    12,
+                    global::OfficeIMO.OfficeLength.Pixels(24),
+                    global::OfficeIMO.OfficeLength.Emus(152400),
                     background: global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.2D, 0.7D, 0.3D),
                     borderColor: global::OfficeIMO.OfficeColor.Black,
-                    borderWidth: 1D,
+                    borderWidth: global::OfficeIMO.OfficeLength.Points(1D),
                     alternativeText: "Inline status box")
                 .Text(" after"))
             .ToBytes();
@@ -85,7 +85,7 @@ public class PdfInlineElementTests {
             .Paragraph(paragraph => paragraph.Text("Prior flow marker"))
             .Paragraph(paragraph => paragraph
                 .Text("Tall inline start ")
-                .InlineBox(20, 34, background: global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.8D, 0.8D, 0.8D))
+                .InlineBox(global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(34), background: global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.8D, 0.8D, 0.8D))
                 .Text(" end"))
             .Paragraph(paragraph => paragraph.Text("Following flow marker"))
             .ToBytes();
@@ -106,7 +106,7 @@ public class PdfInlineElementTests {
                 MarginLeft = global::OfficeIMO.OfficeLength.Points(30),
                 MarginRight = global::OfficeIMO.OfficeLength.Points(30)
             })
-            .Paragraph(paragraph => paragraph.InlineBox(101, 12));
+            .Paragraph(paragraph => paragraph.InlineBox(global::OfficeIMO.OfficeLength.Points(101), global::OfficeIMO.OfficeLength.Points(12)));
 
         ArgumentException exception = Assert.Throws<ArgumentException>(() => document.ToBytes());
 
@@ -121,7 +121,7 @@ public class PdfInlineElementTests {
             })
             .Paragraph(paragraph => paragraph
                 .Text("Before ")
-                .InlineImage(PdfPngTestImages.CreateRgbPng(2, 1), 24, 14)
+                .InlineImage(PdfPngTestImages.CreateRgbPng(2, 1), global::OfficeIMO.OfficeLength.Points(24), global::OfficeIMO.OfficeLength.Points(14))
                 .Text(" after"))
             .ToBytes();
 
@@ -142,7 +142,7 @@ public class PdfInlineElementTests {
                 MarginRight = global::OfficeIMO.OfficeLength.Points(20),
                 CompressContentStreams = false
             })
-            .Paragraph(paragraph => paragraph.InlineBox(40, 12, background: fill), PdfAlign.Center)
+            .Paragraph(paragraph => paragraph.InlineBox(global::OfficeIMO.OfficeLength.Points(40), global::OfficeIMO.OfficeLength.Points(12), background: fill), PdfAlign.Center)
             .ToBytes();
 
         double x = FindFilledBoxX(PdfEncoding.Latin1GetString(bytes), fill, 40, 12);
@@ -161,7 +161,7 @@ public class PdfInlineElementTests {
             })
             .Paragraph(paragraph => paragraph
                 .Tab()
-                .InlineBox(18, 12, background: fill))
+                .InlineBox(global::OfficeIMO.OfficeLength.Points(18), global::OfficeIMO.OfficeLength.Points(12), background: fill))
             .ToBytes();
 
         double x = FindFilledBoxX(PdfEncoding.Latin1GetString(bytes), fill, 18, 12);
@@ -178,7 +178,7 @@ public class PdfInlineElementTests {
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
             PageWidth = global::OfficeIMO.OfficeLength.Points(240D), MarginLeft = global::OfficeIMO.OfficeLength.Points(margin), MarginRight = global::OfficeIMO.OfficeLength.Points(margin),
             DefaultFont = PdfStandardFont.Courier, DefaultFontSize = global::OfficeIMO.OfficeLength.Points(12D), CompressContentStreams = false
-        }).Paragraph(p => p.Text("A").Tab().Text(" ").InlineBox(18, 12, background: fill), style: style)
+        }).Paragraph(p => p.Text("A").Tab().Text(" ").InlineBox(global::OfficeIMO.OfficeLength.Points(18), global::OfficeIMO.OfficeLength.Points(12), background: fill), style: style)
             .ToBytes();
 
         using var pdf = UglyToad.PdfPig.PdfDocument.Open(bytes);
@@ -201,7 +201,7 @@ public class PdfInlineElementTests {
             .Table(new[] {
                 new[] {
                     PdfTableCell.RichTextCell(new[] {
-                        PdfTextRun.Normal(longValue, fontSize: 30, font: PdfStandardFont.Courier),
+                        PdfTextRun.Normal(longValue, fontSize: global::OfficeIMO.OfficeLength.Points(30), font: PdfStandardFont.Courier),
                         PdfTextRun.Inline(new PdfInlineBox(12, 10, background: fill))
                     })
                 }

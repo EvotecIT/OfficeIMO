@@ -107,7 +107,7 @@ public sealed class PdfMirroredMarginFlowTests {
     public void MirroredMarginsPreserveAbsoluteCanvasCoordinates() {
         var document = PdfDocument.Create(builder => builder.Content(content => content
             .Text("First").PageBreak().Text("Flow")
-            .Canvas(canvas => canvas.Text("Canvas", 15, 60, 100, 20))), MirroredOptions());
+            .Canvas(canvas => canvas.Text("Canvas", global::OfficeIMO.OfficeLength.Points(15), global::OfficeIMO.OfficeLength.Points(60), global::OfficeIMO.OfficeLength.Points(100), global::OfficeIMO.OfficeLength.Points(20)))), MirroredOptions());
         using var pdf = PdfPigDocument.Open(document.ToBytes());
         Assert.Equal(70, FindMarkerX(pdf.GetPage(2), "Flow")!.Value, 3);
         Assert.Equal(15, FindMarkerX(pdf.GetPage(2), "Canvas")!.Value, 3);
@@ -118,7 +118,7 @@ public sealed class PdfMirroredMarginFlowTests {
     [InlineData(true)]
     public void MirroredMarginsFollowKeepTogetherMoves(bool table) {
         var document = PdfDocument.Create(builder => builder.Content(content => {
-            content.Text("Seed").Spacer(130);
+            content.Text("Seed").Spacer(global::OfficeIMO.OfficeLength.Points(130));
             if (table) content.Table(new[] { new[] { "Moved" }, new[] { "Together" } },
                 style: new PdfTableStyle { HeaderRowCount = 0, CellPaddingX = global::OfficeIMO.OfficeLength.Points(0), KeepTogether = true });
             else content.Text("Moved\nTogether", style: new PdfParagraphStyle { KeepTogether = true });
@@ -135,11 +135,11 @@ public sealed class PdfMirroredMarginFlowTests {
     [InlineData("radio")]
     public void MirroredMarginsMoveFlowFormWidgetRectanglesWithTheirPage(string kind) {
         var document = PdfDocument.Create(builder => builder.Content(content => {
-            content.Text("Seed").Spacer(130);
+            content.Text("Seed").Spacer(global::OfficeIMO.OfficeLength.Points(130));
             switch (kind) {
                 case "text": content.TextField("Field", width: global::OfficeIMO.OfficeLength.Points(80)); break;
                 case "checkbox": content.CheckBox("Field"); break;
-                case "choice": content.ChoiceField("Field", new[] { "A" }, width: 80); break;
+                case "choice": content.ChoiceField("Field", new[] { "A" }, width: global::OfficeIMO.OfficeLength.Points(80)); break;
                 case "radio": content.RadioButtonGroup("Field", new[] { "A" }); break;
             }
         }), MirroredOptions());

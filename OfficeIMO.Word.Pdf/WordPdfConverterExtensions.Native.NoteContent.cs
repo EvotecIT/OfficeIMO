@@ -77,7 +77,7 @@ public static partial class WordPdfConverterExtensions {
         NativeResolvedTextStyle style = ResolveNativeTextRunStyle(source, paragraph, table, defaults, fonts);
         marker = style.ApplyTo(new PdfCore.PdfTextRun(label, bold: style.Bold,
             underline: style.Underline, italic: style.Italic, strike: style.Strike,
-            color: style.Color, fontSize: style.FontSize ?? (configuredTypography ? null : defaults.FontSize),
+            color: style.Color, fontSize: ((double?)(style.FontSize ?? (configuredTypography ? null : defaults.FontSize)) is double physicalLength1 ? global::OfficeIMO.OfficeLength.Points(physicalLength1) : (global::OfficeIMO.OfficeLength?)null),
             font: style.Font, fontFamily: style.FontFamily, baseline: style.Baseline,
             backgroundColor: style.BackgroundColor, underlineStyle: style.UnderlineStyle,
             strikeStyle: style.StrikeStyle, linkDestinationName: destination));

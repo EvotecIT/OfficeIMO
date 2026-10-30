@@ -342,11 +342,11 @@ internal sealed partial class PdfWorkspace : IDisposable {
             bytes => LoadDocument(bytes).Stamp.Content(
                 (canvas, context) => canvas.Text(
                     context.PageNumber.ToString(System.Globalization.CultureInfo.InvariantCulture) + " / " + context.PageCount.ToString(System.Globalization.CultureInfo.InvariantCulture),
-                    20D,
-                    Math.Max(0D, context.Height - 28D),
-                    Math.Max(1D, context.Width - 40D),
-                    18D,
-                    fontSize: 10D,
+                    global::OfficeIMO.OfficeLength.Points(20D),
+                    global::OfficeIMO.OfficeLength.Points(Math.Max(0D, context.Height - 28D)),
+                    global::OfficeIMO.OfficeLength.Points(Math.Max(1D, context.Width - 40D)),
+                    global::OfficeIMO.OfficeLength.Points(18D),
+                    fontSize: global::OfficeIMO.OfficeLength.Points(10D),
                     color: global::OfficeIMO.OfficeColor.FromRgb(71, 84, 103),
                     align: PdfAlign.Center),
                 new PdfCanvasStampOptions()).ToBytes(),

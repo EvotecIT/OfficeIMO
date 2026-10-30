@@ -715,12 +715,12 @@ namespace OfficeIMO.Word.Pdf {
             left.UnderlineStyle == right.UnderlineStyle &&
             left.Italic == right.Italic &&
             left.StrikeStyle == right.StrikeStyle &&
-            NullableDoubleEquals(left.FontSize, right.FontSize) &&
+            NullableDoubleEquals((left.FontSize?.ToPoints()), (right.FontSize?.ToPoints())) &&
             left.Font == right.Font &&
             string.Equals(left.FontFamily, right.FontFamily, StringComparison.OrdinalIgnoreCase) &&
             left.Baseline == right.Baseline &&
             left.HorizontalTextScaling == right.HorizontalTextScaling &&
-            left.CharacterSpacing == right.CharacterSpacing &&
+            (left.CharacterSpacing.ToPoints()) == (right.CharacterSpacing.ToPoints()) &&
             left.FeatureSettings.Equals(right.FeatureSettings) &&
             Equals(left.Color, right.Color) &&
             Equals(left.BackgroundColor, right.BackgroundColor);
@@ -734,8 +734,8 @@ namespace OfficeIMO.Word.Pdf {
                 color: style.Color,
                 italic: style.Italic,
                 strike: style.Strike,
-                fontSize: style.FontSize ?? (tableStyleDefaults.UseConfiguredTypography ? null :
-                    nativeFontMap?.DefaultFontSize ?? (nativeDefaults ?? GetNativeDocumentDefaults(paragraph._document)).FontSize),
+                fontSize: ((double?)(style.FontSize ?? (tableStyleDefaults.UseConfiguredTypography ? null :
+                    nativeFontMap?.DefaultFontSize ?? (nativeDefaults ?? GetNativeDocumentDefaults(paragraph._document)).FontSize)) is double physicalLength1 ? global::OfficeIMO.OfficeLength.Points(physicalLength1) : (global::OfficeIMO.OfficeLength?)null),
                 font: style.Font,
                 baseline: style.Baseline,
                 backgroundColor: style.BackgroundColor,
@@ -761,8 +761,8 @@ namespace OfficeIMO.Word.Pdf {
                 color: style.Color,
                 italic: style.Italic,
                 strike: style.Strike,
-                fontSize: style.FontSize ?? (tableStyleDefaults.UseConfiguredTypography ? null :
-                    nativeFontMap?.DefaultFontSize ?? (nativeDefaults ?? GetNativeDocumentDefaults(paragraph._document)).FontSize),
+                fontSize: ((double?)(style.FontSize ?? (tableStyleDefaults.UseConfiguredTypography ? null :
+                    nativeFontMap?.DefaultFontSize ?? (nativeDefaults ?? GetNativeDocumentDefaults(paragraph._document)).FontSize)) is double physicalLength2 ? global::OfficeIMO.OfficeLength.Points(physicalLength2) : (global::OfficeIMO.OfficeLength?)null),
                 font: style.Font,
                 linkUri: linkUri,
                 linkContents: contents,

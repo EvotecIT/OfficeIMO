@@ -22,7 +22,7 @@ public sealed class PdfNamedFontShapingDiagnosticsTests {
             .SetTextShapingProvider(provider)
             .ReportDiagnosticsTo(report);
         PdfDocument document = PdfDocument.Create(options).Page(page => page.Canvas(canvas =>
-            canvas.Text(new[] { new PdfTextRun(text, fontFamily: family) }, 8D, 8D, 100D, 40D)));
+            canvas.Text(new[] { new PdfTextRun(text, fontFamily: family) }, global::OfficeIMO.OfficeLength.Points(8D), global::OfficeIMO.OfficeLength.Points(8D), global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(40D))));
 
         Assert.Empty(document.AnalyzeTextEncoding());
         Assert.Empty(report.Warnings);

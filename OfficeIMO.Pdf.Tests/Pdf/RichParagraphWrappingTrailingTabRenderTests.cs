@@ -128,9 +128,9 @@ public partial class RichParagraphWrappingTests {
         style.AddTabStop(global::OfficeIMO.OfficeLength.Points(180D));
         PdfTextRun content = inline
             ? PdfTextRun.Inline(new PdfInlineBox(10D, 10D, background: global::OfficeIMO.OfficeColor.Black))
-            : PdfTextRun.Normal("VISIBLE", fontSize: 20D);
+            : PdfTextRun.Normal("VISIBLE", fontSize: global::OfficeIMO.OfficeLength.Points(20D));
         byte[] bytes = PdfDocument.Create(TrailingTabInkOptions())
-            .Paragraph(p => p.Runs(new[] { PdfTextRun.Normal("\t", fontSize: 24D), content }), style: style)
+            .Paragraph(p => p.Runs(new[] { PdfTextRun.Normal("\t", fontSize: global::OfficeIMO.OfficeLength.Points(24D)), content }), style: style)
             .Paragraph(p => p.Text("NEXT"), style: new PdfParagraphStyle { SpacingAfter = global::OfficeIMO.OfficeLength.Points(0D) })
             .ToBytes();
 
@@ -166,13 +166,13 @@ public partial class RichParagraphWrappingTests {
         byte[] leaderBytes = PdfDocument.Create(TrailingTabInkOptions())
             .Paragraph(p => {
                 // The effective paragraph stop overrides the run's dotted leader.
-                p.Runs(new[] { new PdfTextRun("\t", fontSize: 24D, tabLeader: PdfTabLeaderStyle.Dots) });
+                p.Runs(new[] { new PdfTextRun("\t", fontSize: global::OfficeIMO.OfficeLength.Points(24D), tabLeader: PdfTabLeaderStyle.Dots) });
                 if (trailingSpace) p.Text(" ");
             }, style: style)
             .Paragraph(p => p.Text("NEXT"), style: new PdfParagraphStyle { SpacingAfter = global::OfficeIMO.OfficeLength.Points(0D) })
             .ToBytes();
         byte[] referenceBytes = PdfDocument.Create(TrailingTabInkOptions())
-            .Paragraph(p => p.Runs(new[] { PdfTextRun.Normal("___", fontSize: 24D) }),
+            .Paragraph(p => p.Runs(new[] { PdfTextRun.Normal("___", fontSize: global::OfficeIMO.OfficeLength.Points(24D)) }),
                 style: new PdfParagraphStyle { SpacingAfter = global::OfficeIMO.OfficeLength.Points(0D) })
             .Paragraph(p => p.Text("NEXT"), style: new PdfParagraphStyle { SpacingAfter = global::OfficeIMO.OfficeLength.Points(0D) })
             .ToBytes();
@@ -204,7 +204,7 @@ public partial class RichParagraphWrappingTests {
             // leader threshold. The selected leader therefore paints no glyphs.
             style.AddTabStop(global::OfficeIMO.OfficeLength.Points(12D), leader: leader);
             return PdfDocument.Create(TrailingTabInkOptions())
-                .Paragraph(p => p.Runs(new[] { new PdfTextRun("\t", fontSize: 24D, tabLeader: leader) }), style: style)
+                .Paragraph(p => p.Runs(new[] { new PdfTextRun("\t", fontSize: global::OfficeIMO.OfficeLength.Points(24D), tabLeader: leader) }), style: style)
                 .Paragraph(p => p.Text("NEXT"), style: new PdfParagraphStyle { SpacingAfter = global::OfficeIMO.OfficeLength.Points(0D) })
                 .ToBytes();
         }
@@ -228,8 +228,8 @@ public partial class RichParagraphWrappingTests {
                 return (height > 20D ? 60D : 288D, 0D, 0D);
             };
         var runs = new[] {
-            new PdfTextRun("\t", fontSize: 24D, tabLeader: PdfTabLeaderStyle.Underscores),
-            PdfTextRun.Normal(" ", fontSize: 12D),
+            new PdfTextRun("\t", fontSize: global::OfficeIMO.OfficeLength.Points(24D), tabLeader: PdfTabLeaderStyle.Underscores),
+            PdfTextRun.Normal(" ", fontSize: global::OfficeIMO.OfficeLength.Points(12D)),
             PdfTextRun.Tab()
         };
         object result = InvokePrivateFontMethod<object>("WrapRichRunsCoreWithFirstLineOrigin",
@@ -266,7 +266,7 @@ public partial class RichParagraphWrappingTests {
                 return result;
             };
         object result = InvokePrivateFontMethod<object>("WrapRichRunsCoreWithFirstLineOrigin",
-            new[] { new PdfTextRun("\t", fontSize: 24D, tabLeader: PdfTabLeaderStyle.Underscores) },
+            new[] { new PdfTextRun("\t", fontSize: global::OfficeIMO.OfficeLength.Points(24D), tabLeader: PdfTabLeaderStyle.Underscores) },
             288D, 12D, PdfStandardFont.Helvetica, 14.4D, null!, null!, 36D,
             TrailingTabInkOptions(), new[] { new PdfTabStop(global::OfficeIMO.OfficeLength.Points(72D), leader: PdfTabLeaderStyle.Underscores) },
             frame, null!, null!, PdfTextWhitespaceMode.Preserve);
@@ -308,8 +308,8 @@ public partial class RichParagraphWrappingTests {
             style.AddTabStop(global::OfficeIMO.OfficeLength.Points(stop), leader: PdfTabLeaderStyle.Underscores);
             var runs = new System.Collections.Generic.List<PdfTextRun>();
             for (int index = 0; index < count; index++) {
-                runs.Add(new PdfTextRun("\t", fontSize: 24D));
-                if (index + 1 < count) runs.Add(PdfTextRun.Normal("\n", fontSize: 12D));
+                runs.Add(new PdfTextRun("\t", fontSize: global::OfficeIMO.OfficeLength.Points(24D)));
+                if (index + 1 < count) runs.Add(PdfTextRun.Normal("\n", fontSize: global::OfficeIMO.OfficeLength.Points(12D)));
             }
             return document.Paragraph(p => p.Runs(runs), style: style)
                 .Paragraph(p => p.Text("NEXT"), style: new PdfParagraphStyle { SpacingAfter = global::OfficeIMO.OfficeLength.Points(0D) })
@@ -341,17 +341,17 @@ public partial class RichParagraphWrappingTests {
         options.RegisterNamedFontFamily(new PdfEmbeddedFontFamily(family,
             OfficeIMO.TestAssets.ManagedTextShapingTestAssets.CreateFontWithLineBoxMetrics(800, -200, 200, 200,
                 Enumerable.Range(32, 95).ToArray())));
-        PdfTextRun source = new PdfTextRun("\t", fontSize: 24D, font: PdfStandardFont.Helvetica,
+        PdfTextRun source = new PdfTextRun("\t", fontSize: global::OfficeIMO.OfficeLength.Points(24D), font: PdfStandardFont.Helvetica,
             fontFamily: family, baseline: PdfTextBaseline.Superscript,
             tabLeader: PdfTabLeaderStyle.Underscores, tabAlignment: PdfTabAlignment.Right)
             .WithFeatureSettings(OfficeIMO.Drawing.OfficeTextFeatureSettings.Default.With("kern", 0))
-            .WithHorizontalTextScaling(90D).WithCharacterSpacing(.3D);
+            .WithHorizontalTextScaling(90D).WithCharacterSpacing(global::OfficeIMO.OfficeLength.Points(.3D));
         object wrapped = InvokeWrapRichRunsWithOptions(new[] { source }, 288D, 12D, PdfStandardFont.Helvetica, options);
         object lines = wrapped.GetType().GetField("Item1")!.GetValue(wrapped)!;
         var restored = InvokePrivateFontMethod<System.Collections.Generic.List<PdfTextRun>>(
             "BuildTextRunsFromWrappedLines", lines, 0, 1);
         PdfTextRun tab = Assert.Single(restored, run => run.Text == "\t");
-        Assert.Equal(source.FontSize, tab.FontSize);
+        Assert.Equal((source.FontSize?.ToPoints()), (tab.FontSize?.ToPoints()));
         Assert.Equal(source.Font, tab.Font);
         Assert.Equal(source.FontFamily, tab.FontFamily);
         Assert.Equal(source.Baseline, tab.Baseline);
@@ -359,7 +359,7 @@ public partial class RichParagraphWrappingTests {
         Assert.Equal(source.TabAlignment, tab.TabAlignment);
         Assert.Equal(source.FeatureSettings, tab.FeatureSettings);
         Assert.Equal(source.HorizontalTextScaling, tab.HorizontalTextScaling);
-        Assert.Equal(source.CharacterSpacing, tab.CharacterSpacing);
+        Assert.Equal((source.CharacterSpacing.ToPoints()), (tab.CharacterSpacing.ToPoints()));
     }
     [Fact]
     public void ParagraphTabs_RelativeContinuationRetainsItsFrameBinding() {
@@ -372,7 +372,7 @@ public partial class RichParagraphWrappingTests {
             "BuildTextRunsFromWrappedLines", lines, 0, 1);
         PdfTextRun tab = Assert.Single(restored, run => run.Text == "\t");
         Assert.Equal(source.RelativeTabStop, tab.RelativeTabStop);
-        Assert.Equal(24D, tab.FontSize);
+        Assert.Equal(24D, (tab.FontSize?.ToPoints()));
         object resized = InvokeWrapRichRunsWithOptions(restored, 200D, 12D, PdfStandardFont.Helvetica, options);
         var resizedTab = Assert.Single(Assert.Single(ExtractLines(resized)));
         Assert.Equal(96D, ExtractLeadingAdvance(resizedTab), 3);

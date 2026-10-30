@@ -50,7 +50,7 @@ public static partial class WordPdfConverterExtensions {
                 double? width = fontMap.MeasureText(run);
                 if (!width.HasValue) return null;
                 if (width.Value <= 0D) continue;
-                double? fontSize = run.FontSize ?? (paragraphStyle.FontSize?.ToPoints());
+                double? fontSize = (run.FontSize?.ToPoints()) ?? (paragraphStyle.FontSize?.ToPoints());
                 if (canvasStyle.LineSpacing == null || !fontSize.HasValue) return null;
                 double frameHeight = canvasStyle.LineSpacing.GetAdvance(fontSize.Value);
                 PdfCore.PdfWriter.CanvasTextBoxMeasurement? measured = fontMap.MeasureCanvasTextBox(new[] { run },

@@ -92,7 +92,7 @@ public sealed class PdfNonFlowTableMeasurementTests {
         style.KeepWithNext = true;
         var document = PdfDocument.Create(Options());
         document.Compose(compose => compose.Page(page => page.Content(content => {
-            content.Spacer(leadingSpace);
+            content.Spacer(global::OfficeIMO.OfficeLength.Points(leadingSpace));
             void AddSequence(PdfContentBuilder flow) {
                 flow.Paragraph(paragraph => paragraph.Text("LEAD"), style: new PdfParagraphStyle {
                     FontSize = global::OfficeIMO.OfficeLength.Points(10D), LineSpacing = PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(12D)),
@@ -121,7 +121,7 @@ public sealed class PdfNonFlowTableMeasurementTests {
     public void KeptColumnGroupsRetainOverlayPaintWithoutAddingItsFlow(string grouping) {
         var document = PdfDocument.Create(Options());
         document.Compose(compose => compose.Page(page => page.Content(content => {
-            content.Spacer(194D);
+            content.Spacer(global::OfficeIMO.OfficeLength.Points(194D));
             void AddSequence(PdfContentBuilder flow) {
                 flow.Paragraph(paragraph => paragraph.Text("LEAD"), style: ParagraphStyle());
                 flow.Table(new[] { new[] { "OVERLAY" } }, PdfAlign.Right, OverlayStyle(36D));
@@ -153,7 +153,7 @@ public sealed class PdfNonFlowTableMeasurementTests {
     public void KeptGroupsReserveOverlayExtentWhileFollowingTextUsesRestoredFlow(bool rowKeepsNext, int leadingSpace) {
         var document = PdfDocument.Create(Options());
         document.Compose(compose => compose.Page(page => page.Content(content => {
-            content.Spacer(leadingSpace);
+            content.Spacer(global::OfficeIMO.OfficeLength.Points(leadingSpace));
             content.Row(columns => {
                 if (rowKeepsNext) columns.Style(new PdfRowStyle { KeepWithNext = true });
                 columns.PercentColumn(100D, flow => {

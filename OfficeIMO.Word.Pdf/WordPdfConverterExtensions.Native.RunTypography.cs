@@ -50,7 +50,7 @@ namespace OfficeIMO.Word.Pdf {
 
         private static void ApplyNativeTextStyle(PdfCore.PdfParagraphBuilder builder, NativeResolvedTextStyle style) {
             builder.HorizontalTextScaling(style.TextSpacing.WidthPercentage ?? 100D);
-            builder.CharacterSpacing(style.TextSpacing.CharacterSpacing ?? 0D);
+            builder.CharacterSpacing(global::OfficeIMO.OfficeLength.Points(style.TextSpacing.CharacterSpacing ?? 0D));
             builder.FeatureSettings(style.TextSpacing.ResolveFeatureSettings(style.EffectiveFontSize));
             builder.Bold(style.Bold);
             builder.Italic(style.Italic);
@@ -58,7 +58,7 @@ namespace OfficeIMO.Word.Pdf {
             builder.Strike(style.StrikeStyle);
             builder.Baseline(style.Baseline);
             if (style.FontSize.HasValue) {
-                builder.FontSize(style.FontSize.Value);
+                builder.FontSize(global::OfficeIMO.OfficeLength.Points(style.FontSize.Value));
             }
 
             if (!string.IsNullOrWhiteSpace(style.FontFamily)) {
@@ -147,7 +147,7 @@ namespace OfficeIMO.Word.Pdf {
 
         private static void ResetNativeTextStyle(PdfCore.PdfParagraphBuilder builder) {
             builder.HorizontalTextScaling(100D)
-                .CharacterSpacing(0D)
+                .CharacterSpacing(global::OfficeIMO.OfficeLength.Points(0D))
                 .ResetFeatureSettings()
                 .Bold(false)
                 .Italic(false)

@@ -319,7 +319,7 @@ namespace OfficeIMO.Tests.Pdf {
                     page.Content(content =>
                         content.Column(column =>
                             column.Item()
-                                .Image(png, 24, 24)
+                                .Image(png, global::OfficeIMO.OfficeLength.Points(24), global::OfficeIMO.OfficeLength.Points(24))
                                 .Paragraph(p => p.Text("PageOneImage"))));
                 });
 
@@ -331,7 +331,7 @@ namespace OfficeIMO.Tests.Pdf {
                     page.Content(content =>
                         content.Column(column =>
                             column.Item()
-                                .Image(png, 24, 24)
+                                .Image(png, global::OfficeIMO.OfficeLength.Points(24), global::OfficeIMO.OfficeLength.Points(24))
                                 .Paragraph(p => p.Text("PageTwoImage"))));
                 });
             });

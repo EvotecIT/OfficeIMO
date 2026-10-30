@@ -73,11 +73,11 @@ public sealed class PdfPaintedGlyphPreservationTests {
         var options = new PdfCreateOptions().UseManagedTextShaping();
         if (named) options.RegisterNamedFontFamily(new PdfEmbeddedFontFamily("Painted", data));
         else options.EmbedStandardFont(PdfStandardFont.Helvetica, data, "Painted");
-        PdfTextRun run = new PdfTextRun(visualText, fontSize: 12D, fontFamily: named ? "Painted" : null)
+        PdfTextRun run = new PdfTextRun(visualText, fontSize: global::OfficeIMO.OfficeLength.Points(12D), fontFamily: named ? "Painted" : null)
             .WithPaintedGlyphPreservation()
             .WithFeatureSettings(OfficeTextFeatureSettings.Default)
             .WithHorizontalOffset(2D)
-            .WithCharacterSpacing(.1D)
+            .WithCharacterSpacing(global::OfficeIMO.OfficeLength.Points(.1D))
             .WithHorizontalTextScaling(110D)
             .WithTextDirection(OfficeTextDirection.Auto);
         double? width = PdfWriter.MeasurePositionedText(run, options);
@@ -109,7 +109,7 @@ public sealed class PdfPaintedGlyphPreservationTests {
         byte[] data = CreateDirectionalFont();
         if (named) options.RegisterNamedFontFamily(new PdfEmbeddedFontFamily("Painted", data));
         else options.EmbedStandardFont(PdfStandardFont.Helvetica, data, "Painted");
-        var run = new PdfTextRun(text, fontSize: 12D, fontFamily: named ? "Painted" : null)
+        var run = new PdfTextRun(text, fontSize: global::OfficeIMO.OfficeLength.Points(12D), fontFamily: named ? "Painted" : null)
             .WithPaintedGlyphPreservation(preservesPaintedGlyphs);
         PdfDocument document = PdfDocument.Create(options).Canvas(canvas => canvas.PositionedText(
             new[] { run }, PdfCanvasTextStructureRole.Paragraph, 10D, 10D, 200D, 30D,

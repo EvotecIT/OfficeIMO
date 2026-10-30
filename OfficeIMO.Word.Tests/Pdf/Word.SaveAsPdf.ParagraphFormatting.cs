@@ -1092,14 +1092,14 @@ namespace OfficeIMO.Tests {
             Assert.Equal(OfficeTextDecorationStyle.Double, run.StrikeStyle);
             Assert.Equal(global::OfficeIMO.OfficeColor.FromRgb(192, 0, 0), run.Color);
             Assert.Equal(global::OfficeIMO.OfficeColor.FromRgb(255, 255, 0), run.BackgroundColor);
-            Assert.Equal(14D, run.FontSize);
+            Assert.Equal(14D, (run.FontSize?.ToPoints()));
             Assert.False(overrideRun.Bold);
             Assert.False(overrideRun.Italic);
             Assert.False(overrideRun.Underline);
             Assert.Equal(OfficeTextDecorationStyle.None, overrideRun.UnderlineStyle);
             Assert.Equal(OfficeTextDecorationStyle.None, overrideRun.StrikeStyle);
             Assert.Equal(global::OfficeIMO.OfficeColor.FromRgb(0, 0, 255), overrideRun.Color);
-            Assert.Equal(10D, overrideRun.FontSize);
+            Assert.Equal(10D, (overrideRun.FontSize?.ToPoints()));
         }
 
         [Fact]

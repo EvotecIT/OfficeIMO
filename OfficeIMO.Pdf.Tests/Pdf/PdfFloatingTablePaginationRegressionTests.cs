@@ -40,7 +40,7 @@ public class PdfFloatingTablePaginationRegressionTests {
         byte[] baseline = PdfDocument.Create(options).Table(new[] { new[] { "floating" } }, style: table)
             .Paragraph(p => p.Text("following")).ToBytes();
         byte[] actual = PdfDocument.Create(options).Table(new[] { new[] { "floating" } }, style: table)
-            .Flow(flow => flow.Paragraph(p => p.Text("skipped")).Spacer(70),
+            .Flow(flow => flow.Paragraph(p => p.Text("skipped")).Spacer(global::OfficeIMO.OfficeLength.Points(70)),
                 new PdfFlowOptions { OverflowBehavior = PdfFlowOverflowBehavior.Skip })
             .Paragraph(p => p.Text("following")).ToBytes();
         using var expectedPdf = Pig.Open(baseline);
@@ -55,7 +55,7 @@ public class PdfFloatingTablePaginationRegressionTests {
     public void FloatClearancePrecedesNonContinuingOverflowDecision(PdfFlowOverflowBehavior behavior) {
         using var pdf = Pig.Open(PdfDocument.Create(Options(240))
             .Table(new[] { new[] { "floating" } }, style: Floating(320, 100))
-            .Flow(flow => flow.Paragraph(p => p.Text("first")).Spacer(70),
+            .Flow(flow => flow.Paragraph(p => p.Text("first")).Spacer(global::OfficeIMO.OfficeLength.Points(70)),
                 new PdfFlowOptions { OverflowBehavior = behavior })
             .Paragraph(p => p.Text("following")).ToBytes());
         Assert.DoesNotContain(pdf.GetPages().SelectMany(p => p.GetWords()), w => w.Text == "first");
@@ -67,7 +67,7 @@ public class PdfFloatingTablePaginationRegressionTests {
         using var pdf = Pig.Open(PdfDocument.Create(Options(240))
             .Table(new[] { new[] { "floating" } }, style: Floating(320, 50))
             .Flow(flow => flow.Paragraph(p => p.Text("first"), style: new PdfParagraphStyle { LineHeight = 1, SpacingBefore = global::OfficeIMO.OfficeLength.Points(50), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0) })
-                .Spacer(80).Paragraph(p => p.Text("last"), style: new PdfParagraphStyle { LineHeight = 1, SpacingAfter = global::OfficeIMO.OfficeLength.Points(0) }),
+                .Spacer(global::OfficeIMO.OfficeLength.Points(80)).Paragraph(p => p.Text("last"), style: new PdfParagraphStyle { LineHeight = 1, SpacingAfter = global::OfficeIMO.OfficeLength.Points(0) }),
                 new PdfFlowOptions { KeepTogether = true }).ToBytes());
         Assert.DoesNotContain(pdf.GetPage(1).GetWords(), word => word.Text == "first");
         Assert.Contains(pdf.GetPage(2).GetWords(), word => word.Text == "first");
@@ -81,7 +81,7 @@ public class PdfFloatingTablePaginationRegressionTests {
             .Table(new[] { new[] { "top" } }, style: Floating(320, 30))
             .Table(new[] { new[] { "lower" } }, style: lower)
             .Deferred(context => flow => flow.Paragraph(p => p.Text(context.IsAtPageTop ? "first" : "first\none\ntwo\nthree\nfour\nfive"))
-                .Spacer(30).Paragraph(p => p.Text("last")), new PdfFlowOptions { KeepTogether = true }).ToBytes());
+                .Spacer(global::OfficeIMO.OfficeLength.Points(30)).Paragraph(p => p.Text("last")), new PdfFlowOptions { KeepTogether = true }).ToBytes());
         Assert.DoesNotContain(pdf.GetPage(1).GetWords(), word => word.Text == "first");
         Assert.Contains(pdf.GetPage(2).GetWords(), word => word.Text == "first");
         Assert.Contains(pdf.GetPage(2).GetWords(), word => word.Text == "last");
@@ -91,7 +91,7 @@ public class PdfFloatingTablePaginationRegressionTests {
     public void ConstrainedFlowMovesAsAWholePastFloat() {
         using var pdf = Pig.Open(PdfDocument.Create(Options(240))
             .Table(new[] { new[] { "floating" } }, style: Floating(320, 100))
-            .Flow(flow => flow.Paragraph(p => p.Text("first")).Spacer(50).Paragraph(p => p.Text("last")),
+            .Flow(flow => flow.Paragraph(p => p.Text("first")).Spacer(global::OfficeIMO.OfficeLength.Points(50)).Paragraph(p => p.Text("last")),
                 new PdfFlowOptions { KeepTogether = true }).ToBytes());
         Assert.Equal(2, pdf.NumberOfPages);
         Assert.DoesNotContain(pdf.GetPage(1).GetWords(), word => word.Text == "first" || word.Text == "last");

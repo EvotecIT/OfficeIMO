@@ -19,7 +19,7 @@ public sealed class PdfReverseImagePlacementSafetyTests {
             .Canvas(canvas => canvas.Effect(
                 OfficeIMO.Drawing.OfficeTransform.Identity,
                 0D,
-                effect => effect.Image(Png, 20D, 30D, 80D, 40D)))
+                effect => effect.Image(Png, global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(30D), global::OfficeIMO.OfficeLength.Points(80D), global::OfficeIMO.OfficeLength.Points(40D))))
             .ToBytes();
         PdfDocumentReadResult logical = PdfDocumentReadResult.Load(source);
         Assert.Equal(0D, Assert.Single(Assert.Single(logical.Pages).Images).Placements[0].Opacity);
@@ -55,7 +55,7 @@ public sealed class PdfReverseImagePlacementSafetyTests {
             .Canvas(canvas => canvas.Effect(
                 OfficeIMO.Drawing.OfficeTransform.Identity,
                 0D,
-                effect => effect.Image(Png, 20D, 30D, 80D, 40D)))
+                effect => effect.Image(Png, global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(30D), global::OfficeIMO.OfficeLength.Points(80D), global::OfficeIMO.OfficeLength.Points(40D))))
             .ToBytes();
         PdfDocumentReadResult logical = PdfDocumentReadResult.Load(invisible);
         Assert.Single(Assert.Single(logical.Pages).Images);
@@ -91,7 +91,7 @@ public sealed class PdfReverseImagePlacementSafetyTests {
             .Canvas(canvas => canvas.Effect(
                 OfficeIMO.Drawing.OfficeTransform.Identity,
                 0D,
-                effect => effect.Image(Png, 20D, 30D, 80D, 40D)))
+                effect => effect.Image(Png, global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(30D), global::OfficeIMO.OfficeLength.Points(80D), global::OfficeIMO.OfficeLength.Points(40D))))
             .ToBytes();
         PdfDocumentReadResult logical = PdfDocumentReadResult.Load(source);
 
@@ -119,7 +119,7 @@ public sealed class PdfReverseImagePlacementSafetyTests {
             .Canvas(canvas => canvas.Effect(
                 OfficeIMO.Drawing.OfficeTransform.Identity,
                 0D,
-                effect => effect.Image(Png, 20D, 30D, 80D, 40D)))
+                effect => effect.Image(Png, global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(30D), global::OfficeIMO.OfficeLength.Points(80D), global::OfficeIMO.OfficeLength.Points(40D))))
             .PageBreak()
             .Paragraph(paragraph => paragraph.Text("Visible second page"))
             .ToBytes();
@@ -268,11 +268,11 @@ public sealed class PdfReverseImagePlacementSafetyTests {
     public void ClippedImagePlacementsNeverEmbedRawPixelsAcrossEditableAdapters() {
         byte[] source = CreateDocument()
             .Canvas(canvas => canvas.Clip(
-                40D,
-                40D,
-                20D,
-                20D,
-                clipped => clipped.Image(Png, 20D, 20D, 80D, 60D)))
+                global::OfficeIMO.OfficeLength.Points(40D),
+                global::OfficeIMO.OfficeLength.Points(40D),
+                global::OfficeIMO.OfficeLength.Points(20D),
+                global::OfficeIMO.OfficeLength.Points(20D),
+                clipped => clipped.Image(Png, global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(80D), global::OfficeIMO.OfficeLength.Points(60D))))
             .ToBytes();
         PdfDocumentReadResult logical = PdfDocumentReadResult.Load(source);
         PdfImagePlacement placement = Assert.Single(Assert.Single(Assert.Single(logical.Pages).Images).Placements);
@@ -345,11 +345,11 @@ public sealed class PdfReverseImagePlacementSafetyTests {
     public void PositionedPageAppearanceNeverEmbedsPixelsHiddenByImageClipping() {
         byte[] source = CreateDocument()
             .Canvas(canvas => canvas.Clip(
-                40D,
-                40D,
-                20D,
-                20D,
-                clipped => clipped.Image(Png, 20D, 20D, 80D, 60D)))
+                global::OfficeIMO.OfficeLength.Points(40D),
+                global::OfficeIMO.OfficeLength.Points(40D),
+                global::OfficeIMO.OfficeLength.Points(20D),
+                global::OfficeIMO.OfficeLength.Points(20D),
+                clipped => clipped.Image(Png, global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(80D), global::OfficeIMO.OfficeLength.Points(60D))))
             .ToBytes();
 
         PdfHtmlConversionResult html = PdfDocument.Load(new System.IO.MemoryStream(source))
@@ -653,7 +653,7 @@ public sealed class PdfReverseImagePlacementSafetyTests {
     [Fact]
     public void FloatingPositionAndNaturalImageSizeCanBeSelectedIndependently() {
         byte[] source = CreateDocument()
-            .Canvas(canvas => canvas.Image(Png, 20D, 30D, 80D, 40D))
+            .Canvas(canvas => canvas.Image(Png, global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(30D), global::OfficeIMO.OfficeLength.Points(80D), global::OfficeIMO.OfficeLength.Points(40D)))
             .ToBytes();
         PdfDocumentReadResult logical = PdfDocumentReadResult.Load(source);
 
@@ -745,7 +745,7 @@ public sealed class PdfReverseImagePlacementSafetyTests {
         const string marker = "Scaled user unit text";
         byte[] source = WithUserUnit(
             CreateDocument()
-                .Paragraph(paragraph => paragraph.FontSize(10D).Text(marker))
+                .Paragraph(paragraph => paragraph.FontSize(global::OfficeIMO.OfficeLength.Points(10D)).Text(marker))
                 .ToBytes(),
             2D);
         PdfDocumentReadResult logical = PdfDocumentReadResult.Load(source);
@@ -795,9 +795,9 @@ public sealed class PdfReverseImagePlacementSafetyTests {
         const string secondMarker = "Second page typography";
         byte[] source = WithPageUserUnit(
             CreateDocument()
-                .Paragraph(paragraph => paragraph.FontSize(10D).Text(firstMarker))
+                .Paragraph(paragraph => paragraph.FontSize(global::OfficeIMO.OfficeLength.Points(10D)).Text(firstMarker))
                 .PageBreak()
-                .Paragraph(paragraph => paragraph.FontSize(10D).Text(secondMarker))
+                .Paragraph(paragraph => paragraph.FontSize(global::OfficeIMO.OfficeLength.Points(10D)).Text(secondMarker))
                 .ToBytes(),
             pageNumber: 2,
             userUnit: 2D);
@@ -1002,8 +1002,8 @@ public sealed class PdfReverseImagePlacementSafetyTests {
     public void FloatingImagePaintedBeforeOverlappingTextStaysBehindTheText() {
         byte[] source = CreateDocument()
             .Canvas(canvas => canvas
-                .Image(Png, 20D, 30D, 120D, 80D)
-                .Text("Foreground invoice text", 30D, 50D, 100D, 24D, fontSize: 14D))
+                .Image(Png, global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(30D), global::OfficeIMO.OfficeLength.Points(120D), global::OfficeIMO.OfficeLength.Points(80D))
+                .Text("Foreground invoice text", global::OfficeIMO.OfficeLength.Points(30D), global::OfficeIMO.OfficeLength.Points(50D), global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(24D), fontSize: global::OfficeIMO.OfficeLength.Points(14D)))
             .ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         PdfDocumentReadResult logical = PdfDocumentReadResult.Load(source);
         PdfLogicalPage page = Assert.Single(logical.Pages);
@@ -1024,8 +1024,8 @@ public sealed class PdfReverseImagePlacementSafetyTests {
     public void FloatingImagePaintedAfterOverlappingTextStaysInFrontOfTheText() {
         byte[] source = CreateDocument()
             .Canvas(canvas => canvas
-                .Text("Background invoice text", 30D, 50D, 100D, 24D, fontSize: 14D)
-                .Image(Png, 20D, 30D, 120D, 80D))
+                .Text("Background invoice text", global::OfficeIMO.OfficeLength.Points(30D), global::OfficeIMO.OfficeLength.Points(50D), global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(24D), fontSize: global::OfficeIMO.OfficeLength.Points(14D))
+                .Image(Png, global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(30D), global::OfficeIMO.OfficeLength.Points(120D), global::OfficeIMO.OfficeLength.Points(80D)))
             .ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         PdfDocumentReadResult logical = PdfDocumentReadResult.Load(source);
         PdfLogicalPage page = Assert.Single(logical.Pages);
@@ -1046,9 +1046,9 @@ public sealed class PdfReverseImagePlacementSafetyTests {
     public void FloatingImageInterleavedWithOverlappingTextReportsApproximation() {
         byte[] source = CreateDocument()
             .Canvas(canvas => canvas
-                .Text("Background invoice text", 30D, 50D, 100D, 24D, fontSize: 14D)
-                .Image(Png, 20D, 30D, 120D, 80D)
-                .Text("Foreground invoice text", 30D, 50D, 100D, 24D, fontSize: 14D))
+                .Text("Background invoice text", global::OfficeIMO.OfficeLength.Points(30D), global::OfficeIMO.OfficeLength.Points(50D), global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(24D), fontSize: global::OfficeIMO.OfficeLength.Points(14D))
+                .Image(Png, global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(30D), global::OfficeIMO.OfficeLength.Points(120D), global::OfficeIMO.OfficeLength.Points(80D))
+                .Text("Foreground invoice text", global::OfficeIMO.OfficeLength.Points(30D), global::OfficeIMO.OfficeLength.Points(50D), global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(24D), fontSize: global::OfficeIMO.OfficeLength.Points(14D)))
             .ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         PdfDocumentReadResult logical = PdfDocumentReadResult.Load(source);
         PdfLogicalPage page = Assert.Single(logical.Pages);
@@ -1074,7 +1074,7 @@ public sealed class PdfReverseImagePlacementSafetyTests {
             .Canvas(canvas => canvas.Effect(
                 OfficeIMO.Drawing.OfficeTransform.Identity,
                 0.5D,
-                effect => effect.Image(Png, 20D, 30D, 80D, 40D)))
+                effect => effect.Image(Png, global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(30D), global::OfficeIMO.OfficeLength.Points(80D), global::OfficeIMO.OfficeLength.Points(40D))))
             .ToBytes();
         PdfDocumentReadResult logical = PdfDocumentReadResult.Load(source);
 

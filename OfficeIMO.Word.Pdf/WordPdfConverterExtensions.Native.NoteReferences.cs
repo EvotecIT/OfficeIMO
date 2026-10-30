@@ -36,7 +36,7 @@ namespace OfficeIMO.Word.Pdf {
                     GetNativeParagraphStyleDefaults(paragraph).FontSize ?? tableDefaults.FontSize ?? (useConfiguredTypography ? null : defaults.FontSize);
                 yield return style.ApplyTo(new PdfCore.PdfTextRun(numbersById.GetLabel(number),
                     bold: style.Bold, underline: style.Underline, italic: style.Italic, strike: style.Strike,
-                    color: style.Color, fontSize: size, font: style.Font, fontFamily: style.FontFamily,
+                    color: style.Color, fontSize: ((double?)(size) is double physicalLength1 ? global::OfficeIMO.OfficeLength.Points(physicalLength1) : (global::OfficeIMO.OfficeLength?)null), font: style.Font, fontFamily: style.FontFamily,
                     baseline: PdfCore.PdfTextBaseline.Superscript, backgroundColor: style.BackgroundColor,
                     underlineStyle: style.UnderlineStyle, strikeStyle: style.StrikeStyle));
             }

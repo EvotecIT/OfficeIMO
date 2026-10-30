@@ -17,8 +17,8 @@ public sealed class PdfFontLineAlignmentTests {
         var options = new PdfCreateOptions();
         options.RegisterNamedFontFamily(new PdfEmbeddedFontFamily("Device metrics", ManagedTextShapingTestAssets.CreateFontWithDeviceMetrics()));
         var doc = PdfDocument.Create(options);
-        doc.Paragraph(p => p.FontFamily("Device metrics").FontSize(8).Text("A")
-            .FontSize(16).Text("B"), style: new PdfParagraphStyle {
+        doc.Paragraph(p => p.FontFamily("Device metrics").FontSize(global::OfficeIMO.OfficeLength.Points(8)).Text("A")
+            .FontSize(global::OfficeIMO.OfficeLength.Points(16)).Text("B"), style: new PdfParagraphStyle {
                 LineSpacing = PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(30)).WithFixedLineBoxBaseline(24).WithFontAlignment(alignment, .12D)
             });
         using var pdf = PdfPigDocument.Open(doc.ToBytes());

@@ -34,7 +34,7 @@ namespace OfficeIMO.Word.Pdf {
                 nativeDefaults: nativeDefaults, nativeFontMap: nativeFontMap);
             PdfCore.PdfTextRun markerRun = CreateNativeListMarkerTextRun(marker, paragraph, textStyle, nativeFontMap, includeSuffix: false);
             double markerWidth = nativeFontMap.MeasureText(markerRun)
-                ?? EstimateNativeListMarkerWidth(marker, markerRun.FontSize ?? nativeDefaults.FontSize,
+                ?? EstimateNativeListMarkerWidth(marker, (markerRun.FontSize?.ToPoints()) ?? nativeDefaults.FontSize,
                     ResolveNativeListMarkerTextSpacing(info.Value, textStyle.ListMarkerTextSpacing));
             double markerStart = paragraphStyle.LeftIndent.ToPoints() + paragraphStyle.FirstLineIndent.ToPoints();
             double bodyPosition = ResolveNativeListTabBodyPosition(paragraph, markerStart + markerWidth,
@@ -78,7 +78,7 @@ namespace OfficeIMO.Word.Pdf {
             string? family = nativeFontMap?.TryGetNamedFontFamily("Arial", out string? namedFamily) == true
                 ? namedFamily : null;
             return spacing.ApplyTo(new PdfCore.PdfTextRun(" ",
-                fontSize: fontSize, font: font, fontFamily: family) { ContributesLineBoxDescent = false }, fontSize);
+                fontSize: global::OfficeIMO.OfficeLength.Points(fontSize), font: font, fontFamily: family) { ContributesLineBoxDescent = false }, fontSize);
         }
     }
 }

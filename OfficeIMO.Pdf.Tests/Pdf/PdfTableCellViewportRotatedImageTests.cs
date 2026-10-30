@@ -79,7 +79,7 @@ public sealed partial class PdfTableCellViewportTests {
         style.SpacingBefore = global::OfficeIMO.OfficeLength.Points(0); style.SpacingAfter = global::OfficeIMO.OfficeLength.Points(0);
         style.VerticalAlignments = new List<PdfCellVerticalAlign> { PdfCellVerticalAlign.Top };
         return PdfDocument.Create(options).Compose(document => document.Page(page => {
-            if (mode == "canvas") page.Canvas(canvas => canvas.Table(rows, 24, 24, width, 72, style));
+            if (mode == "canvas") page.Canvas(canvas => canvas.Table(rows, global::OfficeIMO.OfficeLength.Points(24), global::OfficeIMO.OfficeLength.Points(24), global::OfficeIMO.OfficeLength.Points(width), global::OfficeIMO.OfficeLength.Points(72), style));
             else page.Content(content => {
                 if (mode == "flow") content.Item(item => item.Table(rows, style: style));
                 else content.Row(row => row.PercentColumn(100, column => column.Table(rows, style: style)));

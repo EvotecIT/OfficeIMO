@@ -17,8 +17,8 @@ public sealed class PdfInlineFormPaintTests {
         var options = new PdfCreateOptions { DefaultFont = PdfStandardFont.Helvetica, DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10) };
         options.RegisterNamedFontFamily(new PdfEmbeddedFontFamily(family,
             ManagedTextShapingTestAssets.CreateFontWithDeviceMetrics()));
-        var checkedRun = PdfTextRun.Normal("A", fontSize: 10, fontFamily: family);
-        var uncheckedRun = PdfTextRun.Normal("B", fontSize: 10, fontFamily: family);
+        var checkedRun = PdfTextRun.Normal("A", fontSize: global::OfficeIMO.OfficeLength.Points(10), fontFamily: family);
+        var uncheckedRun = PdfTextRun.Normal("B", fontSize: global::OfficeIMO.OfficeLength.Points(10), fontFamily: family);
         var field = new PdfInlineFormField(PdfCanvasFormFieldItem.CheckBox("OnlyWidgetFont", true,
             "Yes", "Yes", 0, 0, 12, 12, new PdfFormFieldStyle {
                 BackgroundColor = null, BorderColor = null, BorderWidth = 0
@@ -75,7 +75,7 @@ public sealed class PdfInlineFormPaintTests {
     [InlineData(true)]
     public void InlineControlBackgroundRequiresStaticParagraphPaint(bool checkBox) {
         var style = new PdfFormFieldStyle { BackgroundColor = null, BorderColor = null, BorderWidth = 0 };
-        var highlighted = PdfTextRun.Normal("CACHE", fontSize: 10,
+        var highlighted = PdfTextRun.Normal("CACHE", fontSize: global::OfficeIMO.OfficeLength.Points(10),
             backgroundColor: global::OfficeIMO.OfficeColor.FromRgb(255, 255, 0));
         var field = new PdfInlineFormField(checkBox
             ? PdfCanvasFormFieldItem.CheckBox("Background", true, "Yes", "Yes", 0, 0, 10, 10, style)
@@ -92,7 +92,7 @@ public sealed class PdfInlineFormPaintTests {
         var field = new PdfInlineFormField(PdfCanvasFormFieldItem.Text("Italic", cached, cached,
             0, 0, 1, 16, 16, style, style));
         byte[] Create(bool inline) {
-            PdfTextRun run = PdfTextRun.Normal(cached, fontSize: 16, font: PdfStandardFont.TimesItalic);
+            PdfTextRun run = PdfTextRun.Normal(cached, fontSize: global::OfficeIMO.OfficeLength.Points(16), font: PdfStandardFont.TimesItalic);
             if (inline) run = run.WithFormField(field);
             return PdfDocument.Create(new PdfCreateOptions {
                 PageWidth = global::OfficeIMO.OfficeLength.Points(300), PageHeight = global::OfficeIMO.OfficeLength.Points(120), MarginLeft = global::OfficeIMO.OfficeLength.Points(24), MarginRight = global::OfficeIMO.OfficeLength.Points(24),
@@ -143,7 +143,7 @@ public sealed class PdfInlineFormPaintTests {
         }).Compose(compose => compose.Page(page => page.Content(content => content.Paragraph(paragraph =>
             paragraph.Runs(new[] {
                 PdfTextRun.Normal("LEAD "),
-                new PdfTextRun(cached, underline: true, fontSize: 10, font: PdfStandardFont.Helvetica)
+                new PdfTextRun(cached, underline: true, fontSize: global::OfficeIMO.OfficeLength.Points(10), font: PdfStandardFont.Helvetica)
                     .WithFormField(field),
                 PdfTextRun.Normal(" TAIL")
             }))))).ToBytes();
@@ -193,8 +193,8 @@ public sealed class PdfInlineFormPaintTests {
             MarginTop = global::OfficeIMO.OfficeLength.Points(24), MarginBottom = global::OfficeIMO.OfficeLength.Points(24), DefaultFont = PdfStandardFont.Helvetica, DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
         }.RegisterNamedFontFamily(new PdfEmbeddedFontFamily(family,
             ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphOutlines('A', 'B')));
-        var checkedRun = PdfTextRun.Italicized("A", fontSize: size, fontFamily: family);
-        var uncheckedRun = PdfTextRun.Italicized("B", fontSize: size, fontFamily: family);
+        var checkedRun = PdfTextRun.Italicized("A", fontSize: global::OfficeIMO.OfficeLength.Points(size), fontFamily: family);
+        var uncheckedRun = PdfTextRun.Italicized("B", fontSize: global::OfficeIMO.OfficeLength.Points(size), fontFamily: family);
         var metrics = Assert.IsType<PdfWriter.PositionedTextBoxMeasurement>(PdfWriter.MeasurePositionedTextBox(checkedRun, options));
         var alternateMetrics = Assert.IsType<PdfWriter.PositionedTextBoxMeasurement>(PdfWriter.MeasurePositionedTextBox(uncheckedRun, options));
         Assert.Equal(metrics.Width, alternateMetrics.Width, 3);

@@ -85,7 +85,7 @@ public partial class PdfDocumentVisualQualityTests {
         PdfDocument document = PdfDocument.Create(options);
         Action<PdfContentBuilder> content = panel => {
             if (!firstChild) panel.Paragraph(p => p.Text("Lead"), style: new PdfParagraphStyle { SpacingAfter = global::OfficeIMO.OfficeLength.Points(0) });
-            panel.Image(CreateMinimalRgbPng(), 25, 185, style: imageStyle, linkUri: "https://example.test/image");
+            panel.Image(CreateMinimalRgbPng(), global::OfficeIMO.OfficeLength.Points(25), global::OfficeIMO.OfficeLength.Points(185), style: imageStyle, linkUri: "https://example.test/image");
         };
         Action<PdfContentBuilder> outerContent = nested
             ? panel => panel.Panel(content, new PdfPanelStyle { PaddingY = 8, PaddingX = 5, KeepTogether = keepTogether, SpacingAfter = 0 })
@@ -234,7 +234,7 @@ public partial class PdfDocumentVisualQualityTests {
         var options = new PdfCreateOptions { PageWidth = global::OfficeIMO.OfficeLength.Points(400), PageHeight = global::OfficeIMO.OfficeLength.Points(150), MarginLeft = global::OfficeIMO.OfficeLength.Points(25), MarginRight = global::OfficeIMO.OfficeLength.Points(25), MarginTop = global::OfficeIMO.OfficeLength.Points(25), MarginBottom = global::OfficeIMO.OfficeLength.Points(25), DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10) };
         PdfDocument document = PdfDocument.Create(options).Panel(panel => panel
             .Paragraph(p => p.Text("Lead"), style: new PdfParagraphStyle { SpacingAfter = global::OfficeIMO.OfficeLength.Points(0) })
-            .Paragraph(p => p.FontSize(55).Text("A"), style: new PdfParagraphStyle { SpacingAfter = global::OfficeIMO.OfficeLength.Points(0) }),
+            .Paragraph(p => p.FontSize(global::OfficeIMO.OfficeLength.Points(55)).Text("A"), style: new PdfParagraphStyle { SpacingAfter = global::OfficeIMO.OfficeLength.Points(0) }),
             new PdfPanelStyle { PaddingY = 30, PaddingX = 5, KeepTogether = false, SpacingAfter = 0 });
         Assert.Throws<ArgumentException>(() => document.ToBytes());
     }

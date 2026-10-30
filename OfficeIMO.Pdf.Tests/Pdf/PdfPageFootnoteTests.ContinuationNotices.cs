@@ -127,7 +127,7 @@ public partial class PdfPageFootnoteTests {
         PdfFootnoteDefinition note = document.Content.DefineFootnote(body => {
             for (int index = 0; index < 25; index++) body.Text("LongNote" + index, style: Style());
         }, new PdfFootnoteOptions {
-            ContinuationNotice = body => body.Spacer(100)
+            ContinuationNotice = body => body.Spacer(global::OfficeIMO.OfficeLength.Points(100))
         });
         document.Content.Paragraph(body => body.Runs(new[] { PdfTextRun.Normal("Reference").WithFootnoteReference(note) }), style: Style());
         Assert.Throws<ArgumentException>(() => document.ToBytes());

@@ -22,7 +22,7 @@ internal static class DispatchNote {
         PdfDocument.Create(pdf => pdf.Content(content => content
             .H1("Dispatch note", PdfAlign.Left, navy)
             .Paragraph(p => p.Bold("DN-2026-0418").Text(" / Northwind equipment services"))
-            .HR(1, navy, 12, 14)
+            .HR(global::OfficeIMO.OfficeLength.Points(1), navy, global::OfficeIMO.OfficeLength.Points(12), global::OfficeIMO.OfficeLength.Points(14))
             .H2("Deliver to", PdfAlign.Left, navy)
             .Paragraph(p => p.Text("Northwind Delivery Centre\nReceiving desk / Building B\nScheduled delivery: 18 September 2026"))
             .Table(items, style: tableStyle)

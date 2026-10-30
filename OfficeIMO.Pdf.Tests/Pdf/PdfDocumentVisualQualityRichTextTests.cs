@@ -50,7 +50,7 @@ public partial class PdfDocumentVisualQualityTests {
             })
             .Paragraph(p => p
                 .Text("Small")
-                .FontSize(18)
+                .FontSize(global::OfficeIMO.OfficeLength.Points(18))
                 .Text("Large")
                 .ResetFontSize()
                 .Text("Normal"))
@@ -139,7 +139,7 @@ public partial class PdfDocumentVisualQualityTests {
                         PdfTextRun.Normal(" "),
                         PdfTextRun.Normal("CellMarked", backgroundColor: global::OfficeIMO.OfficeColor.FromRgb(255, 255, 0)),
                         PdfTextRun.Normal(" "),
-                        PdfTextRun.Normal("CellLarge", fontSize: 18)
+                        PdfTextRun.Normal("CellLarge", fontSize: global::OfficeIMO.OfficeLength.Points(18))
                     })
                 }
             }, style: new PdfTableStyle {

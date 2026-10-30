@@ -336,7 +336,7 @@ public class PdfNestedTableCellFlowTests {
     public void FittingKeptParagraphInAnOrderedRowMovesTogetherWhenTheCurrentFrameIsShort() {
         var document = PdfDocument.Create(Options(190D));
         document.Content.Text("Prefix", style: ParagraphStyle());
-        document.Content.Spacer(80D);
+        document.Content.Spacer(global::OfficeIMO.OfficeLength.Points(80D));
         var expected = Enumerable.Range(0, 6).Select(index => "FittingLine" + index.ToString("00")).ToArray();
         var runs = new[] { PdfTextRun.Normal(string.Join("\n", expected)) };
         var paragraph = new PdfTableCellParagraph(runs, fontSize: 8D, lineSpacing: PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(10D)),

@@ -92,7 +92,7 @@ namespace OfficeIMO.Tests.Pdf {
                     new[] {
                         PdfTableCell.TextCell("Alpha"),
                         PdfTableCell.RichTextCell(new[] {
-                            PdfTextRun.Normal("AVAVAVAV", fontSize: 24D).WithFeatureSettings(features)
+                            PdfTextRun.Normal("AVAVAVAV", fontSize: global::OfficeIMO.OfficeLength.Points(24D)).WithFeatureSettings(features)
                         }).WithNoWrap()
                     }
                 }, style: new PdfTableStyle {

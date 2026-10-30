@@ -14,7 +14,7 @@ namespace OfficeIMO.Word.Pdf {
             }
 
             PdfCore.PdfTextRun markerRun = CreateNativeListMarkerTextRun(marker, paragraph, textStyle, nativeFontMap, includeSuffix: false);
-            double markerFontSize = markerRun.FontSize ?? textStyle.FontSize ?? nativeDefaults.FontSize;
+            double markerFontSize = (markerRun.FontSize?.ToPoints()) ?? textStyle.FontSize ?? nativeDefaults.FontSize;
             NativeTextSpacing markerSpacing = ResolveNativeListMarkerTextSpacing(info.Value, textStyle.ListMarkerTextSpacing);
             double markerWidth = nativeFontMap?.MeasureText(markerRun)
                 ?? EstimateNativeListMarkerWidth(marker, markerFontSize, markerSpacing);

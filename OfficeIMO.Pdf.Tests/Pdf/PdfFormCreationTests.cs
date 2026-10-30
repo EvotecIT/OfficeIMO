@@ -928,19 +928,19 @@ public class PdfFormCreationTests {
             .Compose(document => document.Page(page => page.Content(content => {
                 content.Item(item => item
                     .TextField("Item.Name", width: global::OfficeIMO.OfficeLength.Points(120), height: global::OfficeIMO.OfficeLength.Points(20), value: "Ada", spacingAfter: global::OfficeIMO.OfficeLength.Points(8))
-                    .Element(element => element.Content(nested => nested.CheckBox("Element.Accept", isChecked: true, size: 14, spacingAfter: 10))));
+                    .Element(element => element.Content(nested => nested.CheckBox("Element.Accept", isChecked: true, size: global::OfficeIMO.OfficeLength.Points(14), spacingAfter: global::OfficeIMO.OfficeLength.Points(10)))));
 
                 content.Row(row => row
                     .Gap(24)
                     .PercentColumn(50, column => column
                         .Paragraph(p => p.Text("Left column"))
                         .TextField("Left.Email", width: global::OfficeIMO.OfficeLength.Points(120), height: global::OfficeIMO.OfficeLength.Points(20), value: "left@example.com", spacingAfter: global::OfficeIMO.OfficeLength.Points(8))
-                        .ChoiceField("Left.Country", new[] { "Poland", "Germany" }, value: "Poland", width: 120, height: 20))
+                        .ChoiceField("Left.Country", new[] { "Poland", "Germany" }, value: "Poland", width: global::OfficeIMO.OfficeLength.Points(120), height: global::OfficeIMO.OfficeLength.Points(20)))
                     .PercentColumn(50, column => column
                         .Paragraph(p => p.Text("Right column"))
-                        .CheckBox("Right.Enabled", isChecked: true, size: 14, align: PdfAlign.Center, spacingAfter: 8)
-                        .MultiSelectChoiceField("Right.Countries", new[] { "Poland", "Germany", "United States" }, values: new[] { "Germany" }, width: 120, height: 44)
-                        .RadioButtonGroup("Right.Contact", new[] { "Email", "Phone" }, value: "Phone", size: 12, gap: 4)));
+                        .CheckBox("Right.Enabled", isChecked: true, size: global::OfficeIMO.OfficeLength.Points(14), align: PdfAlign.Center, spacingAfter: global::OfficeIMO.OfficeLength.Points(8))
+                        .MultiSelectChoiceField("Right.Countries", new[] { "Poland", "Germany", "United States" }, values: new[] { "Germany" }, width: global::OfficeIMO.OfficeLength.Points(120), height: global::OfficeIMO.OfficeLength.Points(44))
+                        .RadioButtonGroup("Right.Contact", new[] { "Email", "Phone" }, value: "Phone", size: global::OfficeIMO.OfficeLength.Points(12), gap: global::OfficeIMO.OfficeLength.Points(4))));
             })))
             .ToBytes();
 

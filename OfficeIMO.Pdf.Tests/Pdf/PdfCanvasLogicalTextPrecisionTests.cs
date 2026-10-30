@@ -21,8 +21,8 @@ public class PdfCanvasLogicalTextPrecisionTests {
             options.UseFontFamily(new PdfEmbeddedFontFamily("Fractional carrier", File.ReadAllBytes(path)));
         }
         byte[] bytes = PdfDocument.Create(options)
-            .Canvas(canvas => canvas.ActualText("Logical marker", 10D, 20D, 50D, height,
-                paint => paint.Text("PaintOnly", 10D, 20D, 50D, 12D)))
+            .Canvas(canvas => canvas.ActualText("Logical marker", global::OfficeIMO.OfficeLength.Points(10D), global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(50D), global::OfficeIMO.OfficeLength.Points(height),
+                paint => paint.Text("PaintOnly", global::OfficeIMO.OfficeLength.Points(10D), global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(50D), global::OfficeIMO.OfficeLength.Points(12D))))
             .ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         PdfReadPage page = Assert.Single(PdfReadDocument.Open(bytes).Pages);
         PdfTextSpan span = Assert.Single(page.GetTextSpans());

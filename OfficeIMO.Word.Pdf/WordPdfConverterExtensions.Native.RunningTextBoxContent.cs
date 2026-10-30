@@ -72,7 +72,7 @@ public static partial class WordPdfConverterExtensions {
             x + measuredBox.PaintLeft < pageSize.Width.ToPoints() &&
             y + measuredBox.PaintTop + measuredBox.PaintHeight > margins.Top.ToPoints() + defaults.BodyTextInkTopOffset.GetValueOrDefault() &&
             y + measuredBox.PaintTop < pageSize.Height.ToPoints()) return false;
-        canvas.TextBox(boxRuns, x, y, width, height, style);
+        canvas.TextBox(boxRuns, global::OfficeIMO.OfficeLength.Points(x), global::OfficeIMO.OfficeLength.Points(y), global::OfficeIMO.OfficeLength.Points(width), global::OfficeIMO.OfficeLength.Points(height), style);
         return true;
     }
 

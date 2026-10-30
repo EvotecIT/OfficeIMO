@@ -41,7 +41,7 @@ public sealed class PdfDrawingFlowWidthTests {
     public void ConstraintRecomputesTheBoxAfterMovingToANarrowerSequentialColumn() {
         var document = PdfDocument.Create(Options(460, 300));
         document.Content.Columns(content => {
-            content.Spacer(240);
+            content.Spacer(global::OfficeIMO.OfficeLength.Points(240));
             content.Drawing(ImageDrawing(200, 80), style: Constrained(), linkUri: ObjectLink);
         }, UnequalColumns());
 
@@ -182,7 +182,7 @@ public sealed class PdfDrawingFlowWidthTests {
         if (partialFirstPage) {
             PdfParagraphStyle prelude = Paragraph();
             prelude.FontSize = global::OfficeIMO.OfficeLength.Points(20);
-            document.Content.Paragraph(p => p.Text("Prelude"), style: prelude).Spacer(180);
+            document.Content.Paragraph(p => p.Text("Prelude"), style: prelude).Spacer(global::OfficeIMO.OfficeLength.Points(180));
         }
         PdfPanelStyle panelStyle = PlainPanel(10);
         panelStyle.KeepTogether = true;
@@ -229,7 +229,7 @@ public sealed class PdfDrawingFlowWidthTests {
         if (partialFirstPage) {
             PdfParagraphStyle prelude = Paragraph();
             prelude.FontSize = global::OfficeIMO.OfficeLength.Points(20);
-            document.Content.Paragraph(p => p.Text("Prelude"), style: prelude).Spacer(180);
+            document.Content.Paragraph(p => p.Text("Prelude"), style: prelude).Spacer(global::OfficeIMO.OfficeLength.Points(180));
         }
         document.Content.Columns(content => content.Flow(flow => {
             flow.Drawing(ImageDrawing(400, 800), style: Constrained(), linkUri: ObjectLink);
@@ -261,7 +261,7 @@ public sealed class PdfDrawingFlowWidthTests {
     [Fact]
     public void KeptRowUsesConstrainedDrawingHeightForMeasurementAndPlacement() {
         var document = PdfDocument.Create(Options(260, 220));
-        document.Content.Spacer(80);
+        document.Content.Spacer(global::OfficeIMO.OfficeLength.Points(80));
         document.Content.Row(row => row.Gap(20).Style(new PdfRowStyle { KeepTogether = true })
             .FixedColumn(100, content => content.Drawing(ImageDrawing(400, 320), style: Constrained(), linkUri: ObjectLink)
                 .Paragraph(p => p.Text("Caption"), style: Paragraph()))
@@ -282,7 +282,7 @@ public sealed class PdfDrawingFlowWidthTests {
     [Fact]
     public void KeepWithNextRemeasuresTheDrawingAndCaptionInTheDestinationColumn() {
         var document = PdfDocument.Create(Options(460, 300));
-        document.Content.Paragraph(p => p.Text("Prelude"), style: Paragraph()).Spacer(160);
+        document.Content.Paragraph(p => p.Text("Prelude"), style: Paragraph()).Spacer(global::OfficeIMO.OfficeLength.Points(160));
         PdfDrawingStyle style = Constrained();
         style.KeepWithNext = true;
         document.Content.Columns(content => {

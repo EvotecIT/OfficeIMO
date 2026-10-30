@@ -213,9 +213,9 @@ internal static partial class PdfWriter {
     private static RichSeg CreateRunKerningProbe(string text, PdfTextRun run, PdfStandardFont baseFont, double fontSize, PdfCreateOptions? options) {
         PdfNamedFontFace? named = options != null && options.TryResolveNamedFontFace(run.FontFamily, run.Bold, run.Italic, out PdfNamedFontFace face) ? face : null;
         return new RichSeg(text, run.Bold, run.Italic, false, false, null, null, null, null, null,
-            ResolveFontForRun(run, baseFont), run.FontSize ?? fontSize, run.Baseline, 0D, namedFont: named,
+            ResolveFontForRun(run, baseFont), (run.FontSize?.ToPoints()) ?? fontSize, run.Baseline, 0D, namedFont: named,
             featureSettings: run.FeatureSettings, textDirection: run.TextDirection,
-            horizontalTextScaling: run.HorizontalTextScaling, characterSpacing: run.CharacterSpacing,
+            horizontalTextScaling: run.HorizontalTextScaling, characterSpacing: (run.CharacterSpacing.ToPoints()),
             preservesPaintedGlyphs: run.PreservesPaintedGlyphs, formField: run.FormField);
     }
 }

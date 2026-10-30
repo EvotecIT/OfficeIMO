@@ -1434,7 +1434,7 @@ public sealed class HtmlPdfTests {
         byte[] pdf = PdfCore.PdfDocument.Create(pdfOptions)
             .H1("Positioned geometry")
             .Table(tableRows, style: tableStyle)
-            .Canvas(canvas => canvas.Text("Ready", outsideX, outsideY, 50D, 18D, fontSize: matchingRow.FontSize))
+            .Canvas(canvas => canvas.Text("Ready", global::OfficeIMO.OfficeLength.Points(outsideX), global::OfficeIMO.OfficeLength.Points(outsideY), global::OfficeIMO.OfficeLength.Points(50D), global::OfficeIMO.OfficeLength.Points(18D), fontSize: global::OfficeIMO.OfficeLength.Points(matchingRow.FontSize)))
             .ToBytes();
         PdfCore.PdfLogicalPage page = PdfCore.PdfDocumentReadResult.Load(pdf).Pages[0];
         PdfCore.PdfLogicalTable table = Assert.Single(page.Tables);

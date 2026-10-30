@@ -176,7 +176,7 @@ namespace OfficeIMO.Word.Pdf {
 
                 bool hasVisibleFrame = !renderedImage || shape.StrokeColor.HasValue || shape.Shadow != null || shape.Kind == OfficeShapeKind.Line;
                 if (hasVisibleFrame && IsNativeVmlBoxVisibleOnPage(box, pageWidth, pageHeight)) {
-                    RenderNativeVmlVisible(canvas, box, pageWidth, pageHeight, target => target.Shape(shape, box.X, box.Y, new PdfCore.PdfDrawingStyle { Decorative = true }));
+                    RenderNativeVmlVisible(canvas, box, pageWidth, pageHeight, target => target.Shape(shape, global::OfficeIMO.OfficeLength.Points(box.X), global::OfficeIMO.OfficeLength.Points(box.Y), new PdfCore.PdfDrawingStyle { Decorative = true }));
                     rendered = true;
                 }
             }
@@ -186,7 +186,7 @@ namespace OfficeIMO.Word.Pdf {
                 PdfCore.PdfCanvasTextBoxStyle style = CreateNativeVmlTextBoxStyle(element, textRuns);
                 double textRotation = GetNativeVmlRotationDegrees(element) ?? 0D;
                 if (IsNativeVmlBoxVisibleOnPage(box, pageWidth, pageHeight)) {
-                    RenderNativeVmlVisible(canvas, box, pageWidth, pageHeight, target => target.TextBox(textRuns, box.X, box.Y, box.Width, box.Height, style, textRotation));
+                    RenderNativeVmlVisible(canvas, box, pageWidth, pageHeight, target => target.TextBox(textRuns, global::OfficeIMO.OfficeLength.Points(box.X), global::OfficeIMO.OfficeLength.Points(box.Y), global::OfficeIMO.OfficeLength.Points(box.Width), global::OfficeIMO.OfficeLength.Points(box.Height), style, textRotation));
                     rendered = true;
                 }
             }
@@ -217,10 +217,10 @@ namespace OfficeIMO.Word.Pdf {
 
             RenderNativeVmlVisible(canvas, box, pageWidth, pageHeight, target => target.Image(
                 preparedBytes,
-                box.X,
-                box.Y,
-                box.Width,
-                box.Height,
+                global::OfficeIMO.OfficeLength.Points(box.X),
+                global::OfficeIMO.OfficeLength.Points(box.Y),
+                global::OfficeIMO.OfficeLength.Points(box.Width),
+                global::OfficeIMO.OfficeLength.Points(box.Height),
                 new PdfCore.PdfImageStyle {
                     Fit = OfficeImageFit.Stretch
                 },

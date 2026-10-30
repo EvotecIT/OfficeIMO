@@ -189,7 +189,7 @@ internal static partial class PdfWriter {
             PdfNamedFontFace? namedFont = options != null &&
                 options.TryResolveNamedFontFace(run.FontFamily, run.Bold, run.Italic, out PdfNamedFontFace resolved)
                     ? resolved : null;
-            GetRichRunLineMetrics(font, namedFont, run.FontSize ?? fontSize, run.Baseline,
+            GetRichRunLineMetrics(font, namedFont, (run.FontSize?.ToPoints()) ?? fontSize, run.Baseline,
                 options, spacing, out double runAscent, out double runDescent);
             ascent = Math.Max(ascent, runAscent);
             if (run.ContributesLineBoxDescent) descent = Math.Max(descent, runDescent);

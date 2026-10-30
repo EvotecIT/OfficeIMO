@@ -124,7 +124,7 @@ internal static class PdfRichTextRunBuilder
             color: PdfCommandUtilities.ParseColor(run.Color),
             italic: run.Italic,
             strike: run.Strike,
-            fontSize: run.FontSize,
+            fontSize: ((double?)(run.FontSize) is double physicalLength1 ? global::OfficeIMO.OfficeLength.Points(physicalLength1) : (global::OfficeIMO.OfficeLength?)null),
             baseline: baseline,
             font: GetNullableEnum<PdfStandardFont>(run.FontName),
             tabLeader: GetEnum(run.TabLeader, PdfTabLeaderStyle.None),
@@ -187,7 +187,7 @@ internal static class PdfRichTextRunBuilder
 
         if (fontSize.HasValue)
         {
-            builder.FontSize(fontSize.Value);
+            builder.FontSize(global::OfficeIMO.OfficeLength.Points(fontSize.Value));
         }
         else
         {

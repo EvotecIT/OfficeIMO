@@ -146,7 +146,7 @@ public partial class PdfDocumentVisualQualityTests {
                 case "flow": content.Table(rows, style: style); break;
                 case "row": content.Row(row => row.PercentColumn(100, column => column.Table(rows, style: style))); break;
                 case "columns": content.Columns(inner => inner.Table(rows, style: style), new PdfMultiColumnOptions { ColumnCount = 2, BalanceLastPage = false }); break;
-                case "canvas": content.Canvas(canvas => canvas.Table(rows, 30, 30, 200, 40, style)); break;
+                case "canvas": content.Canvas(canvas => canvas.Table(rows, global::OfficeIMO.OfficeLength.Points(30), global::OfficeIMO.OfficeLength.Points(30), global::OfficeIMO.OfficeLength.Points(200), global::OfficeIMO.OfficeLength.Points(40), style)); break;
                 default: throw new ArgumentException("Unknown surface", nameof(surface));
             }
         })));

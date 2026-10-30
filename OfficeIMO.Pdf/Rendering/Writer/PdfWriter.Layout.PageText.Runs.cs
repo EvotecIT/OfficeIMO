@@ -13,7 +13,7 @@ internal static partial class PdfWriter {
             color: color,
             italic: italic,
             strike: false,
-            fontSize: fontSize,
+            fontSize: global::OfficeIMO.OfficeLength.Points(fontSize),
             font: ChooseNormal(font),
             fontFamily: fontFamily);
         return NormalizeFallbackRuns(new[] { run }, ChooseNormal(font), opts);
@@ -50,7 +50,7 @@ internal static partial class PdfWriter {
                     color: color,
                     italic: italic,
                     strike: false,
-                    fontSize: fontSize,
+                    fontSize: global::OfficeIMO.OfficeLength.Points(fontSize),
                     font: ChooseNormal(font),
                     fontFamily: fontFamily));
             }
@@ -204,7 +204,7 @@ internal static partial class PdfWriter {
                     ? resolvedNamedFont
                     : null;
                 string fontResource = ResolvePageTextFontResource(fontResources, namedFontResources, runFont, namedFont);
-                double requestedFontSize = run.FontSize ?? fontSize;
+                double requestedFontSize = (run.FontSize?.ToPoints()) ?? fontSize;
                 double runFontSize = EffectiveRichFontSize(requestedFontSize, run.Baseline);
                 double textRise = TextRiseForBaseline(requestedFontSize, run.Baseline);
                 content.Font(fontResource, runFontSize, opts.NeedsSyntheticOblique(runFont, namedFont));
@@ -212,12 +212,12 @@ internal static partial class PdfWriter {
                     content.TextRise(textRise);
                     currentTextRise = textRise;
                 }
-                ApplyRichTextSpacing(content, run.HorizontalTextScaling, run.CharacterSpacing);
+                ApplyRichTextSpacing(content, run.HorizontalTextScaling, (run.CharacterSpacing.ToPoints()));
                 content
                     .TextMatrix(cursorX, baselines[lineIndex])
                     .FillColor(ResolvePageTextColor(run.Color ?? color, opts))
                     .ShowText(segment.KerningCommand ?? EncodeTextShowCommand(text, runFont, namedFont, opts, run.FeatureSettings, run.TextDirection), runFontSize, textRise);
-                ResetRichTextSpacing(content, run.HorizontalTextScaling, run.CharacterSpacing);
+                ResetRichTextSpacing(content, run.HorizontalTextScaling, (run.CharacterSpacing.ToPoints()));
                 cursorX += GetRichSegmentWidth(segment);
             }
         }

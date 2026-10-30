@@ -24,7 +24,7 @@ public sealed class PdfTableCellTextSizingTests {
             MarginLeft = global::OfficeIMO.OfficeLength.Points(20), MarginRight = global::OfficeIMO.OfficeLength.Points(20), MarginTop = global::OfficeIMO.OfficeLength.Points(20), MarginBottom = global::OfficeIMO.OfficeLength.Points(20)
         });
         PdfTableCell[][] rows = new[] { new[] { cell } };
-        if (canvas) document.Canvas(surface => surface.Table(rows, 20, 20, 50, 30, style));
+        if (canvas) document.Canvas(surface => surface.Table(rows, global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(50), global::OfficeIMO.OfficeLength.Points(30), style));
         else document.Table(rows, style: style);
         using PdfPigDocument pdf = PdfPigDocument.Open(document.ToBytes());
         UglyToad.PdfPig.Content.Word word = Assert.Single(pdf.GetPage(1).GetWords());
@@ -37,7 +37,7 @@ public sealed class PdfTableCellTextSizingTests {
     [InlineData(false)]
     [InlineData(true)]
     public void DefaultCellShrinkMinimumAppliesToEveryExplicitRun(bool paragraphs) {
-        var runs = new[] { new PdfTextRun("A", fontSize: 30), new PdfTextRun("B", fontSize: 12) };
+        var runs = new[] { new PdfTextRun("A", fontSize: global::OfficeIMO.OfficeLength.Points(30)), new PdfTextRun("B", fontSize: global::OfficeIMO.OfficeLength.Points(12)) };
         var cell = paragraphs ? new PdfTableCell(runs, new[] { new PdfTableCellParagraph(runs) }) : new PdfTableCell(runs);
         cell = cell.WithShrinkTextToFit();
         var style = new PdfTableStyle {
@@ -59,7 +59,7 @@ public sealed class PdfTableCellTextSizingTests {
     public void CellTextShrinkingIsIndependentInFlowAndCanvasTables(bool canvas, bool explicitSize) {
         double targetSize = explicitSize ? 20 : 12;
         var target = explicitSize
-            ? new PdfTableCell(new[] { new PdfTextRun("ShrinkTarget", fontSize: targetSize) })
+            ? new PdfTableCell(new[] { new PdfTextRun("ShrinkTarget", fontSize: global::OfficeIMO.OfficeLength.Points(targetSize)) })
             : new PdfTableCell("ShrinkTarget");
         var rows = new[] { new[] {
             target.WithShrinkTextToFit().WithNoWrap().WithNamedDestination("Target"),
@@ -78,7 +78,7 @@ public sealed class PdfTableCellTextSizingTests {
             PageWidth = global::OfficeIMO.OfficeLength.Points(300), PageHeight = global::OfficeIMO.OfficeLength.Points(200),
             MarginLeft = global::OfficeIMO.OfficeLength.Points(20), MarginRight = global::OfficeIMO.OfficeLength.Points(20), MarginTop = global::OfficeIMO.OfficeLength.Points(20), MarginBottom = global::OfficeIMO.OfficeLength.Points(20)
         });
-        if (canvas) document.Canvas(surface => surface.Table(rows, 20, 20, 190, 40, style));
+        if (canvas) document.Canvas(surface => surface.Table(rows, global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(190), global::OfficeIMO.OfficeLength.Points(40), style));
         else document.Table(rows, style: style);
         using PdfPigDocument pdf = PdfPigDocument.Open(document.ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         var words = pdf.GetPage(1).GetWords().ToArray();

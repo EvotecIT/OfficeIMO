@@ -18,12 +18,12 @@ public partial class PdfPageImageRendererTests {
             MarginLeft = global::OfficeIMO.OfficeLength.Points(0D), MarginRight = global::OfficeIMO.OfficeLength.Points(0D), MarginTop = global::OfficeIMO.OfficeLength.Points(0D), MarginBottom = global::OfficeIMO.OfficeLength.Points(0D) };
         byte[] labelled = PdfDocument.Create(options)
             .Canvas(canvas => canvas
-                .Shape(ink, 5D, 5D)
-                .ActualText("Outlined AB", 20D, 30D, logical => logical.Shape(ink, 20D, 20D))
-                .Shape(ink, 35D, 35D))
+                .Shape(ink, global::OfficeIMO.OfficeLength.Points(5D), global::OfficeIMO.OfficeLength.Points(5D))
+                .ActualText("Outlined AB", global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(30D), logical => logical.Shape(ink, global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(20D)))
+                .Shape(ink, global::OfficeIMO.OfficeLength.Points(35D), global::OfficeIMO.OfficeLength.Points(35D)))
             .ToBytes();
         byte[] control = PdfDocument.Create(options)
-            .Canvas(canvas => canvas.Shape(ink, 5D, 5D).Shape(ink, 20D, 20D).Shape(ink, 35D, 35D))
+            .Canvas(canvas => canvas.Shape(ink, global::OfficeIMO.OfficeLength.Points(5D), global::OfficeIMO.OfficeLength.Points(5D)).Shape(ink, global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(20D)).Shape(ink, global::OfficeIMO.OfficeLength.Points(35D), global::OfficeIMO.OfficeLength.Points(35D)))
             .ToBytes();
 
         PdfReadPage page = PdfReadDocument.Open(labelled).Pages[0];

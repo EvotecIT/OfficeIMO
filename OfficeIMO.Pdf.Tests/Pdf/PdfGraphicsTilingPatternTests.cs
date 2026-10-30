@@ -84,7 +84,7 @@ public sealed class PdfGraphicsTilingPatternTests {
         var drawing = new OfficeDrawing(2D, 1D).AddTilingPattern(tile,
             new OfficeImagePlacement(0D, 0D, 2D, 1D), 1D, 1D, maximumTileCount: 3);
         var document = PdfDocument.Create(Options());
-        if (header) document.Header(builder => builder.Content(content => content.Drawing(drawing, spacingBefore: 0D, spacingAfter: 0D), 8D));
+        if (header) document.Header(builder => builder.Content(content => content.Drawing(drawing, spacingBefore: global::OfficeIMO.OfficeLength.Points(0D), spacingAfter: global::OfficeIMO.OfficeLength.Points(0D)), 8D));
         document.Drawing(drawing);
         if (!header) document.PageBreak().Drawing(drawing);
         var error = Assert.Throws<InvalidOperationException>(() => document.ToBytes());

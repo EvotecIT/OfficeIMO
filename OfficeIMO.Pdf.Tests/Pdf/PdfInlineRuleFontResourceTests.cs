@@ -44,7 +44,7 @@ public sealed class PdfInlineRuleFontResourceTests {
             ? new[] { PdfTextRun.Normal("A"), Rule(sourceStyle, maximumWidth: null), PdfTextRun.Normal(" B") }
             : new[] { PdfTextRun.Normal("A"), new PdfTextRun("\t", fontFamily: Family, tabLeader: leader), Rule(sourceStyle), PdfTextRun.Normal("B") };
         var document = PdfDocument.Create(options);
-        if (artifactCanvas) document.Canvas(canvas => canvas.Artifact(artifact => artifact.TextBox(runs, 20D, 20D, 100D, 100D)));
+        if (artifactCanvas) document.Canvas(canvas => canvas.Artifact(artifact => artifact.TextBox(runs, global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(100D))));
         else document.Paragraph(p => p.Runs(runs));
         byte[] bytes = document.ToBytes();
 

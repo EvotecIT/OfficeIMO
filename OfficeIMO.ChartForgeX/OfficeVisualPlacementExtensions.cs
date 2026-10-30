@@ -151,8 +151,8 @@ public static partial class OfficeVisualPlacementExtensions {
         content.Item(item => item.Drawing(
             OfficeVisualPdfDrawingResolver.Resolve(conversion),
             align,
-            spacingBefore,
-            spacingAfter,
+            ((double?)(spacingBefore) is double physicalLength1 ? global::OfficeIMO.OfficeLength.Points(physicalLength1) : (global::OfficeIMO.OfficeLength?)null),
+            ((double?)(spacingAfter) is double physicalLength2 ? global::OfficeIMO.OfficeLength.Points(physicalLength2) : (global::OfficeIMO.OfficeLength?)null),
             effectiveStyle,
             linkUri,
             linkContents));
@@ -191,8 +191,8 @@ public static partial class OfficeVisualPlacementExtensions {
         return document.Compose(compose => compose.Content(item => item.Drawing(
             OfficeVisualPdfDrawingResolver.Resolve(conversion),
             align,
-            spacingBefore,
-            spacingAfter,
+            ((double?)(spacingBefore) is double physicalLength3 ? global::OfficeIMO.OfficeLength.Points(physicalLength3) : (global::OfficeIMO.OfficeLength?)null),
+            ((double?)(spacingAfter) is double physicalLength4 ? global::OfficeIMO.OfficeLength.Points(physicalLength4) : (global::OfficeIMO.OfficeLength?)null),
             effectiveStyle,
             linkUri,
             linkContents)));

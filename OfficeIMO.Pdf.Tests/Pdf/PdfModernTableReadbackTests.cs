@@ -56,7 +56,7 @@ public sealed class PdfModernTableReadbackTests {
             new[] { "South", "980", "False" }
         };
         using var document = PdfDocument.Create();
-        document.Content.Table(compactFirst ? compact : regular).Spacer(24).Table(compactFirst ? regular : compact);
+        document.Content.Table(compactFirst ? compact : regular).Spacer(global::OfficeIMO.OfficeLength.Points(24)).Table(compactFirst ? regular : compact);
         using var stream = new MemoryStream(document.ToBytes());
         using var loaded = PdfDocument.Load(stream);
         var tables = Assert.Single(loaded.Read().Pages).Tables;

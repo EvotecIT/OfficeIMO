@@ -67,7 +67,7 @@ public sealed class OfficeOcrConversionTests {
         })).ToArray();
         var engine = new DelegateOcrEngine("table", (_, _) => Task.FromResult(new OcrResult { Spans = spans }));
         byte[] png = Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAIAAAD91JpzAAAADklEQVR4nGP4CgYMEAoAUHILfRDviCcAAAAASUVORK5CYII=");
-        using var generated = PdfDocument.Create(builder => builder.Content(content => content.Image(png, 200, 100)));
+        using var generated = PdfDocument.Create(builder => builder.Content(content => content.Image(png, global::OfficeIMO.OfficeLength.Points(200), global::OfficeIMO.OfficeLength.Points(100))));
         using var source = PdfDocument.Load(new MemoryStream(generated.ToBytes()));
         return await source.ReadWithOcrAsync(engine, new PdfOcrMergeOptions { ReconstructLayout = true, Dpi = 72 });
     }

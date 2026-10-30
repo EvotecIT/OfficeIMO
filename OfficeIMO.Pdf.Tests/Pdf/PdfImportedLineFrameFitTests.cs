@@ -83,7 +83,7 @@ public sealed class PdfImportedLineFrameFitTests {
 
     [Fact]
     public void ImportedFrameFittingStillRejectsAnOversizedVisibleFontBox() {
-        var document = PdfDocument.Create(Options(20D)).Paragraph(p => p.FontSize(30D).Text("A"),
+        var document = PdfDocument.Create(Options(20D)).Paragraph(p => p.FontSize(global::OfficeIMO.OfficeLength.Points(30D)).Text("A"),
             style: new PdfParagraphStyle { FontSize = global::OfficeIMO.OfficeLength.Points(10D), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0D),
                 LineSpacing = PdfLineSpacing.Multiple(2.8D).WithFontLineBoxBaseline(1.4D) });
         Assert.Throws<ArgumentException>(() => document.ToBytes());

@@ -56,7 +56,7 @@ public sealed class PdfEmptyColumnPageBreakTests {
         var document = PdfDocument.Create(new PdfCreateOptions { CompressContentStreams = false });
         document.Compose(builder => builder.Page(page => page.Content(body => {
             void Content(PdfContentBuilder content) {
-                content.Spacer(12);
+                content.Spacer(global::OfficeIMO.OfficeLength.Points(12));
                 if (nextColumn) content.ColumnBreak();
                 content.PageBreak(preserveEmptyPage: false);
                 content.Paragraph(paragraph => paragraph.Text("AFTER"));

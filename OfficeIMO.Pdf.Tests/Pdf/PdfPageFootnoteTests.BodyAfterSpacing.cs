@@ -63,7 +63,7 @@ public partial class PdfPageFootnoteTests {
     [Fact]
     public void OrdinaryFinalParagraphRetainsItsPhysicalPageEndSpacingBehavior() {
         var document = PdfDocument.Create(Options());
-        document.Content.Text("Reference", style: BodyAfterStyle(0)).Spacer(80)
+        document.Content.Text("Reference", style: BodyAfterStyle(0)).Spacer(global::OfficeIMO.OfficeLength.Points(80))
             .Text("FollowingBody", style: BodyAfterStyle(16));
 
         using var pdf = PdfPigDocument.Open(document.ToBytes());
@@ -91,7 +91,7 @@ public partial class PdfPageFootnoteTests {
                 PdfTextRun.Normal("Reference").WithFootnoteReference(note)
             }), style: BodyAfterStyle(0));
 
-        PdfTextRun run = PdfTextRun.Normal("OwnerBody", fontSize: 8, font: PdfStandardFont.Helvetica);
+        PdfTextRun run = PdfTextRun.Normal("OwnerBody", fontSize: global::OfficeIMO.OfficeLength.Points(8), font: PdfStandardFont.Helvetica);
         if (introducesReference) run = run.WithFootnoteReference(note);
         if (owner == "heading") {
             document.Content.Heading(2, "OwnerBody", paragraph => paragraph.Runs(new[] { run }),

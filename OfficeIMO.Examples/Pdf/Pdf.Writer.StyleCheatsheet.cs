@@ -41,7 +41,7 @@ namespace OfficeIMO.Examples.Pdf {
                     .Italic(false).Text("italic off ")
                     .Underline(true).Text("ul on ")
                     .Underline(false).Text("ul off"))
-                .HR(0.8, global::OfficeIMO.OfficeColor.FromRgb(183, 194, 207), 8, 8)
+                .HR(global::OfficeIMO.OfficeLength.Points(0.8), global::OfficeIMO.OfficeColor.FromRgb(183, 194, 207), global::OfficeIMO.OfficeLength.Points(8), global::OfficeIMO.OfficeLength.Points(8))
                 .Paragraph(p => p.Text("Center aligned line"), PdfAlign.Center)
                 .Paragraph(p => p.Text("Right aligned line"), PdfAlign.Right)), new PdfCreateOptions {
                     DefaultFont = PdfStandardFont.Helvetica,

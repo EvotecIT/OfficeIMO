@@ -210,7 +210,7 @@ public partial class PdfFontFamilyTests {
                 ManagedTextShapingTestAssets.CreateFontWithUniformAdvance(1000, 700, ' ', 'A')))
             .RegisterEmbeddedFontFallbacks(fallbacks);
         PdfTextRun template = fallbacks.PlanTextRuns("A")[0]
-            .WithCharacterSpacing(1).WithHorizontalTextScaling(50);
+            .WithCharacterSpacing(global::OfficeIMO.OfficeLength.Points(1)).WithHorizontalTextScaling(50);
         PdfTextFallbackPlan plan = fallbacks.PlanText("A");
         IReadOnlyList<PdfTextRun> runs = namedMapping
             ? plan.ToNamedTextRuns(new[] { "Caller Family" }, template)
@@ -218,7 +218,7 @@ public partial class PdfFontFamilyTests {
         PdfTextRun expected = PdfTextRun.Normal("A",
                 font: namedMapping ? null : PdfStandardFont.TimesRoman,
                 fontFamily: namedMapping ? "Caller Family" : null)
-            .WithCharacterSpacing(1).WithHorizontalTextScaling(50);
+            .WithCharacterSpacing(global::OfficeIMO.OfficeLength.Points(1)).WithHorizontalTextScaling(50);
 
         byte[] Render(IReadOnlyList<PdfTextRun> textRuns) => PdfDocument.Create(options.Clone())
             .Paragraph(paragraph => paragraph.Runs(textRuns)).ToBytes();

@@ -45,7 +45,7 @@ public sealed class PdfCanvasRotatedImageClipTests {
                 MarginBottom = global::OfficeIMO.OfficeLength.Points(0D),
                 CompressContentStreams = false
             })
-            .Canvas(canvas => canvas.Clip(0D, 18D, 120D, 2D, clipped =>
-                clipped.Drawing(drawing, 10D, 10D, 60D, 50D, rotationAngle: rotationAngle)))
+            .Canvas(canvas => canvas.Clip(global::OfficeIMO.OfficeLength.Points(0D), global::OfficeIMO.OfficeLength.Points(18D), global::OfficeIMO.OfficeLength.Points(120D), global::OfficeIMO.OfficeLength.Points(2D), clipped =>
+                clipped.Drawing(drawing, global::OfficeIMO.OfficeLength.Points(10D), global::OfficeIMO.OfficeLength.Points(10D), global::OfficeIMO.OfficeLength.Points(60D), global::OfficeIMO.OfficeLength.Points(50D), rotationAngle: rotationAngle)))
             .ToBytes();
 }

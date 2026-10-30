@@ -19,10 +19,10 @@ public partial class Word {
         byte[] pdf = PdfCore.PdfDocument.Create()
             .Paragraph(paragraph => paragraph
                 .Color(global::OfficeIMO.OfficeColor.FromRgb(255, 0, 0))
-                .FontSize(14)
+                .FontSize(global::OfficeIMO.OfficeLength.Points(14))
                 .Bold("Bold red")
                 .Color(global::OfficeIMO.OfficeColor.FromRgb(0, 0, 255))
-                .FontSize(9)
+                .FontSize(global::OfficeIMO.OfficeLength.Points(9))
                 .Italic(" italic blue"))
             .ToBytes();
 
@@ -96,8 +96,8 @@ public partial class Word {
             .Footer(footer => footer.AlignCenter().Text("Import footer {page}"))
             .Canvas(canvas => canvas
                 .Image(PdfPngTestImages.CreateRgbPng(30, 90, 180), 36D, 120D, 120D, 60D, alternativeText: "Data visualization")
-                .Text("Kort beskrivning", 36D, 184D, 120D, 18D, fontSize: 9D))
-            .Canvas(canvas => canvas.Text("1 Bottom annotation", 36D, 415D, 220D, 18D, fontSize: 7D))
+                .Text("Kort beskrivning", global::OfficeIMO.OfficeLength.Points(36D), global::OfficeIMO.OfficeLength.Points(184D), global::OfficeIMO.OfficeLength.Points(120D), global::OfficeIMO.OfficeLength.Points(18D), fontSize: global::OfficeIMO.OfficeLength.Points(9D)))
+            .Canvas(canvas => canvas.Text("1 Bottom annotation", global::OfficeIMO.OfficeLength.Points(36D), global::OfficeIMO.OfficeLength.Points(415D), global::OfficeIMO.OfficeLength.Points(220D), global::OfficeIMO.OfficeLength.Points(18D), fontSize: global::OfficeIMO.OfficeLength.Points(7D)))
             .PageBreak()
             .Paragraph(paragraph => paragraph.Text("Second page body."))
             .PageBreak()
@@ -257,7 +257,7 @@ public partial class Word {
                 HeaderRowCount = 1,
                 ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(60D), global::OfficeIMO.OfficeLength.Points(60D) }
             })
-            .Canvas(canvas => canvas.Shape(shape, 165D, 140D))
+            .Canvas(canvas => canvas.Shape(shape, global::OfficeIMO.OfficeLength.Points(165D), global::OfficeIMO.OfficeLength.Points(140D)))
             .ToBytes();
 
         PdfWordConversionResult conversion = LoadSemanticPdf(pdf).ConvertToWordWithEvidence(new WordPdfImportOptions());
@@ -345,7 +345,7 @@ public partial class Word {
                 FooterFill = null,
                 ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(60D), global::OfficeIMO.OfficeLength.Points(60D) }
             })
-            .Canvas(canvas => canvas.Shape(shape, 80D, 115D))
+            .Canvas(canvas => canvas.Shape(shape, global::OfficeIMO.OfficeLength.Points(80D), global::OfficeIMO.OfficeLength.Points(115D)))
             .ToBytes();
 
         PdfWordConversionResult conversion = LoadSemanticPdf(pdf).ConvertToWordWithEvidence(new WordPdfImportOptions());
@@ -379,7 +379,7 @@ public partial class Word {
                 FooterFill = null,
                 ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(60D), global::OfficeIMO.OfficeLength.Points(60D) }
             })
-            .Canvas(canvas => canvas.Shape(line, 50D, 115D))
+            .Canvas(canvas => canvas.Shape(line, global::OfficeIMO.OfficeLength.Points(50D), global::OfficeIMO.OfficeLength.Points(115D)))
             .ToBytes();
 
         PdfWordConversionResult conversion = LoadSemanticPdf(pdf).ConvertToWordWithEvidence(new WordPdfImportOptions());

@@ -69,7 +69,7 @@ public sealed partial class PdfAuthoringLayoutDiagnosticsTests {
     public void TextBoxClippingReachesConversionReportWithoutRequiringCallback(bool overflows) {
         var report = new PdfConversionReport();
         byte[] bytes = PdfDocument.Create(CreateOptions(report)).Canvas(canvas => canvas.TextBox(
-            overflows ? "First\nSecond\nThird" : "First", 24, 24, 120, 18,
+            overflows ? "First\nSecond\nThird" : "First", global::OfficeIMO.OfficeLength.Points(24), global::OfficeIMO.OfficeLength.Points(24), global::OfficeIMO.OfficeLength.Points(120), global::OfficeIMO.OfficeLength.Points(18),
             new PdfCanvasTextBoxStyle {
                 FontSize = 9, PaddingX = 0, PaddingY = 0, Background = null, BorderColor = null
             })).ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
@@ -92,7 +92,7 @@ public sealed partial class PdfAuthoringLayoutDiagnosticsTests {
     public void PlainCanvasTextReportsFullyClippedLines(bool overflows) {
         var report = new PdfConversionReport();
         byte[] bytes = PdfDocument.Create(CreateOptions(report)).Canvas(canvas => canvas.Text(
-            overflows ? "First\nSecond\nThird" : "First", 24, 24, 120, 18, fontSize: 9)).ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
+            overflows ? "First\nSecond\nThird" : "First", global::OfficeIMO.OfficeLength.Points(24), global::OfficeIMO.OfficeLength.Points(24), global::OfficeIMO.OfficeLength.Points(120), global::OfficeIMO.OfficeLength.Points(18), fontSize: global::OfficeIMO.OfficeLength.Points(9))).ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         using PdfPigDocument pdf = PdfPigDocument.Open(bytes);
         Assert.Contains("First", pdf.GetPage(1).Text);
         Assert.Equal(overflows, report.Warnings.Any(warning => warning.Code == "canvas-text-content-clipped"));
@@ -108,9 +108,9 @@ public sealed partial class PdfAuthoringLayoutDiagnosticsTests {
         if (table) {
             PdfTableStyle style = CreateTableStyle(18);
             style.LineHeight = 12; // A 108-point advance; the sole 9-point glyph line still fits.
-            document.Canvas(canvas => canvas.Table(new[] { new[] { "Fits" } }, 24, 24, 120, 18, style));
+            document.Canvas(canvas => canvas.Table(new[] { new[] { "Fits" } }, global::OfficeIMO.OfficeLength.Points(24), global::OfficeIMO.OfficeLength.Points(24), global::OfficeIMO.OfficeLength.Points(120), global::OfficeIMO.OfficeLength.Points(18), style));
         } else {
-            document.Canvas(canvas => canvas.TextBox("Fits", 24, 24, 120, 18,
+            document.Canvas(canvas => canvas.TextBox("Fits", global::OfficeIMO.OfficeLength.Points(24), global::OfficeIMO.OfficeLength.Points(24), global::OfficeIMO.OfficeLength.Points(120), global::OfficeIMO.OfficeLength.Points(18),
                 new PdfCanvasTextBoxStyle { FontSize = 9, LineHeight = 108, PaddingX = 0, PaddingY = 0 }));
         }
         using PdfPigDocument pdf = PdfPigDocument.Open(document.ToBytes());
@@ -172,7 +172,7 @@ public sealed partial class PdfAuthoringLayoutDiagnosticsTests {
         const int letters = 20;
         var text = new string('W', letters);
         var cell = (explicitFontSize
-            ? new PdfTableCell(new[] { new PdfTextRun(text, fontSize: 14) })
+            ? new PdfTableCell(new[] { new PdfTextRun(text, fontSize: global::OfficeIMO.OfficeLength.Points(14)) })
             : new PdfTableCell(text)).WithNoWrap().WithShrinkTextToFit();
         using PdfPigDocument pdf = PdfPigDocument.Open(RenderTable(frame, report, cell, 18));
         var painted = pdf.GetPage(1).Letters;
@@ -223,7 +223,7 @@ public sealed partial class PdfAuthoringLayoutDiagnosticsTests {
             "flow" => document.Table(rows, style: style).ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }),
             "column" => document.Compose(compose => compose.Page(page => page.Content(content =>
                 content.Row(row => row.PercentColumn(100, column => column.Table(rows, style: style)))))).ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }),
-            "canvas" => document.Canvas(canvas => canvas.Table(rows, 24, 24, 120, fixedHeight!.Value, style)).ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }),
+            "canvas" => document.Canvas(canvas => canvas.Table(rows, global::OfficeIMO.OfficeLength.Points(24), global::OfficeIMO.OfficeLength.Points(24), global::OfficeIMO.OfficeLength.Points(120), global::OfficeIMO.OfficeLength.Points(fixedHeight!.Value), style)).ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }),
             _ => throw new ArgumentOutOfRangeException(nameof(frame))
         };
     }

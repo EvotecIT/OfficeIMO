@@ -24,7 +24,7 @@ public class PdfDocumentPngImageTests {
 
         try {
             byte[] pdf = PdfDocument.Create()
-                .Paragraph(paragraph => paragraph.InlineImage(source, 24, 24, "Status"))
+                .Paragraph(paragraph => paragraph.InlineImage(source, global::OfficeIMO.OfficeLength.Points(24), global::OfficeIMO.OfficeLength.Points(24), "Status"))
                 .ToBytes();
 
             Assert.Equal(1, alphaSplitPasses);

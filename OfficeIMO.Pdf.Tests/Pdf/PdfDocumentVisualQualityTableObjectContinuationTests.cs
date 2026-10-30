@@ -38,7 +38,7 @@ public partial class PdfDocumentVisualQualityTests {
         var rows = new[] { new[] { "Filler" }, new[] { string.Join("\n", Enumerable.Range(1, lineCount).Select(line => "Unique" + line.ToString("D2"))) } };
         var document = PdfDocument.Create(options);
         if (inColumn) document.Compose(compose => compose.Page(page => page.Content(content =>
-            content.Row(row => row.PercentColumn(100, column => column.Paragraph(p => p.Text("BeforeTable")).Spacer(55).Table(rows, style: style))))));
+            content.Row(row => row.PercentColumn(100, column => column.Paragraph(p => p.Text("BeforeTable")).Spacer(global::OfficeIMO.OfficeLength.Points(55)).Table(rows, style: style))))));
         else document.Paragraph(p => p.Text("BeforeTable")).Spacer(55).Table(rows, style: style);
         return document.ToBytes();
     }
@@ -72,7 +72,7 @@ public partial class PdfDocumentVisualQualityTests {
         var rows = new[] { new[] { "Heading" }, new[] { string.Join("\n", Enumerable.Range(1, 11).Select(line => "Unique" + line.ToString("D2"))) } };
         var document = PdfDocument.Create(options);
         if (inColumn) document.Compose(compose => compose.Page(page => page.Content(content =>
-            content.Row(row => row.PercentColumn(100, column => column.Spacer(50).Table(rows, style: style))))));
+            content.Row(row => row.PercentColumn(100, column => column.Spacer(global::OfficeIMO.OfficeLength.Points(50)).Table(rows, style: style))))));
         else document.Spacer(50).Table(rows, style: style);
         using var pdf = PdfPigDocument.Open(document.ToBytes());
         Assert.Equal(2, pdf.NumberOfPages);

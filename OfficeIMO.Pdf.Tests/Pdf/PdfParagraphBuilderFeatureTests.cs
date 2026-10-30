@@ -55,8 +55,8 @@ public class PdfParagraphBuilderFeatureTests {
         var options = new PdfCreateOptions { PageWidth = global::OfficeIMO.OfficeLength.Points(300), PageHeight = global::OfficeIMO.OfficeLength.Points(240), MarginRight = global::OfficeIMO.OfficeLength.Points(30) };
         options.RegisterNamedFontFamily(new PdfEmbeddedFontFamily("Page features", font));
         var features = OfficeTextFeatureSettings.Default.With("kern", kern);
-        var pair = new PdfTextRun("AB", fontSize: 24, fontFamily: "Page features").WithFeatureSettings(features);
-        var following = new PdfTextRun("A", fontSize: 24, fontFamily: "Page features");
+        var pair = new PdfTextRun("AB", fontSize: global::OfficeIMO.OfficeLength.Points(24), fontFamily: "Page features").WithFeatureSettings(features);
+        var following = new PdfTextRun("A", fontSize: global::OfficeIMO.OfficeLength.Points(24), fontFamily: "Page features");
         var document = PdfDocument.Create(options);
         if (header) document.Header(builder => builder.AlignRight().Text(text => text.Run(pair).Run(following)));
         else document.Footer(builder => builder.AlignRight().Text(text => text.Run(pair).Run(following)));

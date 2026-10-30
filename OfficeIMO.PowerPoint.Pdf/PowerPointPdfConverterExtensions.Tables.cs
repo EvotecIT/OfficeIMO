@@ -39,7 +39,7 @@ public static partial class PowerPointPdfConverterExtensions {
         bool reportedCellOverflow = height > authoredHeight + .001D
             && ReportTableSlideOverflow(x, y, width, height, slideWidth, slideHeight, slideNumber, options);
         try {
-            Action<PdfCore.PdfPageCanvas> render = target => target.Table(rows, x, y, width, height, style, table.Rotation ?? 0D, diagnostic => {
+            Action<PdfCore.PdfPageCanvas> render = target => target.Table(rows, global::OfficeIMO.OfficeLength.Points(x), global::OfficeIMO.OfficeLength.Points(y), global::OfficeIMO.OfficeLength.Points(width), global::OfficeIMO.OfficeLength.Points(height), style, table.Rotation ?? 0D, diagnostic => {
                 if (reportedCellOverflow || diagnostic.Kind != PdfCore.PdfLayoutDiagnosticKind.ClippedContent) {
                     return;
                 }
@@ -60,7 +60,7 @@ public static partial class PowerPointPdfConverterExtensions {
                         diagnostic.Height ?? height));
             });
             if (reportedCellOverflow && !hasAncestorPageClip) {
-                canvas.Clip(0D, 0D, slideWidth!.Value, slideHeight!.Value, render);
+                canvas.Clip(global::OfficeIMO.OfficeLength.Points(0D), global::OfficeIMO.OfficeLength.Points(0D), global::OfficeIMO.OfficeLength.Points(slideWidth!.Value), global::OfficeIMO.OfficeLength.Points(slideHeight!.Value), render);
             } else {
                 render(canvas);
             }
@@ -142,7 +142,7 @@ public static partial class PowerPointPdfConverterExtensions {
             bold: cell.Bold,
             italic: cell.Italic,
             color: ParsePdfColor(cell.Color),
-            fontSize: cell.FontSize?.ToPoints(),
+            fontSize: ((double?)(cell.FontSize?.ToPoints()) is double physicalLength9 ? global::OfficeIMO.OfficeLength.Points(physicalLength9) : (global::OfficeIMO.OfficeLength?)null),
             font: MapFont(fontFamily),
             fontFamily: fontFamily);
     }

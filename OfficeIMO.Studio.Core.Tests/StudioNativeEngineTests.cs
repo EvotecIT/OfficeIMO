@@ -232,10 +232,10 @@ public sealed class StudioNativeEngineTests : IDisposable {
         string path = Path.Combine(_root, "form.pdf");
         File.WriteAllBytes(path, PdfDocument.Create(document => document.Content(content => content.Canvas(canvas => {
             canvas.TextField("Name", null, global::OfficeIMO.OfficeLength.Points(72), global::OfficeIMO.OfficeLength.Points(72), global::OfficeIMO.OfficeLength.Points(200), global::OfficeIMO.OfficeLength.Points(24));
-            canvas.CheckBox("Subscribe", false, 72, 120, 16, 16);
-            canvas.RadioButton("Plan", "Basic", true, 72, 160, 16, 16);
-            canvas.RadioButton("Plan", "Pro", false, 120, 160, 16, 16);
-            canvas.ChoiceField("Country", ["Poland", "Germany"], null, 72, 200, 150, 22);
+            canvas.CheckBox("Subscribe", false, global::OfficeIMO.OfficeLength.Points(72), global::OfficeIMO.OfficeLength.Points(120), global::OfficeIMO.OfficeLength.Points(16), global::OfficeIMO.OfficeLength.Points(16));
+            canvas.RadioButton("Plan", "Basic", true, global::OfficeIMO.OfficeLength.Points(72), global::OfficeIMO.OfficeLength.Points(160), global::OfficeIMO.OfficeLength.Points(16), global::OfficeIMO.OfficeLength.Points(16));
+            canvas.RadioButton("Plan", "Pro", false, global::OfficeIMO.OfficeLength.Points(120), global::OfficeIMO.OfficeLength.Points(160), global::OfficeIMO.OfficeLength.Points(16), global::OfficeIMO.OfficeLength.Points(16));
+            canvas.ChoiceField("Country", ["Poland", "Germany"], null, global::OfficeIMO.OfficeLength.Points(72), global::OfficeIMO.OfficeLength.Points(200), global::OfficeIMO.OfficeLength.Points(150), global::OfficeIMO.OfficeLength.Points(22));
         }))).ToBytes());
         return path;
     }

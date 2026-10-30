@@ -194,7 +194,7 @@ public sealed class StudioNativeStructureTests : IDisposable {
         string path = Path.Combine(_root, "form.pdf");
         File.WriteAllBytes(path, PdfDocument.Create(document => document.Content(content => content.Canvas(canvas => {
             canvas.TextField("Name", "Alex", global::OfficeIMO.OfficeLength.Points(72), global::OfficeIMO.OfficeLength.Points(72), global::OfficeIMO.OfficeLength.Points(200), global::OfficeIMO.OfficeLength.Points(24));
-            canvas.CheckBox("Subscribe", true, 72, 120, 16, 16);
+            canvas.CheckBox("Subscribe", true, global::OfficeIMO.OfficeLength.Points(72), global::OfficeIMO.OfficeLength.Points(120), global::OfficeIMO.OfficeLength.Points(16), global::OfficeIMO.OfficeLength.Points(16));
         }))).ToBytes());
         using StudioNativeDocument document = await StudioNativeDocument.OpenAsync(path, null, default);
         StudioNativeStructure structure = await document.GetStructureAsync(default);
@@ -289,7 +289,7 @@ public sealed class StudioNativeStructureTests : IDisposable {
         // A one-pixel red PNG.
         byte[] png = Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGP4z8AAAAMBAQDJ/pLvAAAAAElFTkSuQmCC");
         string path = Path.Combine(_root, "images.pdf");
-        File.WriteAllBytes(path, PdfDocument.Create(document => document.Content(content => content.Image(png, 24, 24))).ToBytes());
+        File.WriteAllBytes(path, PdfDocument.Create(document => document.Content(content => content.Image(png, global::OfficeIMO.OfficeLength.Points(24), global::OfficeIMO.OfficeLength.Points(24)))).ToBytes());
         using StudioNativeDocument document = await StudioNativeDocument.OpenAsync(path, null, default);
         string folder = Path.Combine(_root, "images");
 

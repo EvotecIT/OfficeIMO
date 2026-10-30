@@ -20,11 +20,11 @@ internal static class EvaluationCorpus {
         byte[] scan = tableDocument.ExportImages(new PdfImageExportOptions {
             Format = OfficeImageExportFormat.Png, TargetDpi = 120, MaximumOutputCount = 1, MaximumRasterPixels = 5_000_000
         }).Single();
-        byte[] scannedPdf = PdfDocument.Create(builder => builder.Content(content => content.Image(scan, 400, 566)), fontOptions).ToBytes();
+        byte[] scannedPdf = PdfDocument.Create(builder => builder.Content(content => content.Image(scan, global::OfficeIMO.OfficeLength.Points(400), global::OfficeIMO.OfficeLength.Points(566))), fontOptions).ToBytes();
         using PdfDocument rotated = PdfDocument.Load(new MemoryStream(scannedPdf));
         rotated.Pages.Rotate(90, 1);
         byte[] mixed = PdfDocument.Create(builder => builder.Content(content => content.Text("Dispatch note: shipment BOX-204.")
-            .PageBreak().Image(scan, 400, 566)), fontOptions).ToBytes();
+            .PageBreak().Image(scan, global::OfficeIMO.OfficeLength.Points(400), global::OfficeIMO.OfficeLength.Points(566))), fontOptions).ToBytes();
         OfficeAiRequest fields = ExampleOptions.InvoiceRequest;
         OfficeAiRequest parse = new() { Operation = OfficeAiOperation.Parse, Instruction = "Transcribe the heading and stock table, preserving every column and value." };
         EvaluationGold FieldGold(string invoice, string total, string date) => new(Fields: new[] {

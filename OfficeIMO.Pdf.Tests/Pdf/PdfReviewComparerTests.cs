@@ -28,8 +28,8 @@ public sealed class PdfReviewComparerTests {
             for (int index = 0; index < 4; index++) {
                 if (index > 0) document.PageBreak();
                 string text = index == 3 ? lastText : "Unchanged";
-                document.Canvas(canvas => canvas.Image(image, 20D, 50D, 40D, 40D)
-                    .Text(text, 80D, 30D, 120D, 25D));
+                document.Canvas(canvas => canvas.Image(image, global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(50D), global::OfficeIMO.OfficeLength.Points(40D), global::OfficeIMO.OfficeLength.Points(40D))
+                    .Text(text, global::OfficeIMO.OfficeLength.Points(80D), global::OfficeIMO.OfficeLength.Points(30D), global::OfficeIMO.OfficeLength.Points(120D), global::OfficeIMO.OfficeLength.Points(25D)));
             }
             return PdfDocument.Load(document.ToBytes());
         }
@@ -98,7 +98,7 @@ public sealed class PdfReviewComparerTests {
             line.FillColor = color;
             line.StrokeColor = null;
             return PdfDocument.Load(PdfDocument.Create(new PdfCreateOptions { PageWidth = global::OfficeIMO.OfficeLength.Points(240D), PageHeight = global::OfficeIMO.OfficeLength.Points(180D) })
-                .Canvas(canvas => canvas.Text(text, 20D, 20D, 100D, 20D).Shape(line, 42D, 27D))
+                .Canvas(canvas => canvas.Text(text, global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(20D)).Shape(line, global::OfficeIMO.OfficeLength.Points(42D), global::OfficeIMO.OfficeLength.Points(27D)))
                 .ToBytes());
         }
 
@@ -116,7 +116,7 @@ public sealed class PdfReviewComparerTests {
             outline.FillColor = null;
             outline.StrokeColor = OfficeIMO.OfficeColor.Black;
             return PdfDocument.Load(PdfDocument.Create(new PdfCreateOptions { PageWidth = global::OfficeIMO.OfficeLength.Points(240D), PageHeight = global::OfficeIMO.OfficeLength.Points(180D) })
-                .Canvas(canvas => canvas.Shape(outline, 18D, 18D).Text(text, 20D, 20D, 100D, 20D))
+                .Canvas(canvas => canvas.Shape(outline, global::OfficeIMO.OfficeLength.Points(18D), global::OfficeIMO.OfficeLength.Points(18D)).Text(text, global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(20D)))
                 .ToBytes());
         }
 
@@ -133,9 +133,9 @@ public sealed class PdfReviewComparerTests {
             outline.StrokeColor = OfficeIMO.OfficeColor.Black;
             return PdfDocument.Load(PdfDocument.Create(new PdfCreateOptions { PageWidth = global::OfficeIMO.OfficeLength.Points(240D), PageHeight = global::OfficeIMO.OfficeLength.Points(180D) })
                 .Canvas(canvas => {
-                    canvas.Text("Name", 20D, 20D, 100D, 20D);
-                    if (insertText) canvas.Text("Added", 38D, 21D, 70D, 20D);
-                    canvas.Shape(outline, 18D, 18D);
+                    canvas.Text("Name", global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(20D));
+                    if (insertText) canvas.Text("Added", global::OfficeIMO.OfficeLength.Points(38D), global::OfficeIMO.OfficeLength.Points(21D), global::OfficeIMO.OfficeLength.Points(70D), global::OfficeIMO.OfficeLength.Points(20D));
+                    canvas.Shape(outline, global::OfficeIMO.OfficeLength.Points(18D), global::OfficeIMO.OfficeLength.Points(18D));
                 }).ToBytes());
         }
 
@@ -225,7 +225,7 @@ public sealed class PdfReviewComparerTests {
         rectangle.FillColor = color;
         rectangle.StrokeColor = null;
         return PdfDocument.Load(PdfDocument.Create(new PdfCreateOptions { PageWidth = global::OfficeIMO.OfficeLength.Points(240D), PageHeight = global::OfficeIMO.OfficeLength.Points(180D) })
-            .Canvas(canvas => canvas.Text(text, 20D, 20D, 100D, 20D).Shape(rectangle, 180D, 110D))
+            .Canvas(canvas => canvas.Text(text, global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(20D)).Shape(rectangle, global::OfficeIMO.OfficeLength.Points(180D), global::OfficeIMO.OfficeLength.Points(110D)))
             .ToBytes());
     }
 
@@ -418,9 +418,9 @@ public sealed class PdfReviewComparerTests {
         byte[] white = PdfPngTestImages.CreateRgbPng(255, 255, 255);
         var pageOptions = new PdfCreateOptions { PageWidth = global::OfficeIMO.OfficeLength.Points(240D), PageHeight = global::OfficeIMO.OfficeLength.Points(180D) };
         PdfDocument expected = PdfDocument.Load(PdfDocument.Create(pageOptions)
-            .Canvas(canvas => canvas.Image(white, 0D, 0D, 240D, 180D)).ToBytes());
+            .Canvas(canvas => canvas.Image(white, global::OfficeIMO.OfficeLength.Points(0D), global::OfficeIMO.OfficeLength.Points(0D), global::OfficeIMO.OfficeLength.Points(240D), global::OfficeIMO.OfficeLength.Points(180D))).ToBytes());
         PdfDocument actual = PdfDocument.Load(PdfDocument.Create(pageOptions)
-            .Canvas(canvas => canvas.Image(white, 10D, 10D, 220D, 160D)).ToBytes());
+            .Canvas(canvas => canvas.Image(white, global::OfficeIMO.OfficeLength.Points(10D), global::OfficeIMO.OfficeLength.Points(10D), global::OfficeIMO.OfficeLength.Points(220D), global::OfficeIMO.OfficeLength.Points(160D))).ToBytes());
 
         Assert.True(expected.Proof.CompareVisual(actual).IsMatch);
         PdfReviewPageComparison page = Assert.Single(expected.Proof.CompareReview(actual).Pages);
@@ -433,10 +433,10 @@ public sealed class PdfReviewComparerTests {
         byte[] white = PdfPngTestImages.CreateRgbPng(255, 255, 255);
         var pageOptions = new PdfCreateOptions { PageWidth = global::OfficeIMO.OfficeLength.Points(240D), PageHeight = global::OfficeIMO.OfficeLength.Points(180D) };
         PdfDocument scanned = PdfDocument.Load(PdfDocument.Create(pageOptions)
-            .Canvas(canvas => canvas.Image(white, 0D, 0D, 240D, 180D)
-                .Text("Anchor", 20D, 20D, 100D, 20D)).ToBytes());
+            .Canvas(canvas => canvas.Image(white, global::OfficeIMO.OfficeLength.Points(0D), global::OfficeIMO.OfficeLength.Points(0D), global::OfficeIMO.OfficeLength.Points(240D), global::OfficeIMO.OfficeLength.Points(180D))
+                .Text("Anchor", global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(20D))).ToBytes());
         PdfDocument blank = PdfDocument.Load(PdfDocument.Create(pageOptions)
-            .Canvas(canvas => canvas.Text("Anchor", 20D, 20D, 100D, 20D)).ToBytes());
+            .Canvas(canvas => canvas.Text("Anchor", global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(20D))).ToBytes());
 
         PdfReviewComparisonReport report = scanned.Proof.CompareReview(blank);
 
@@ -450,10 +450,10 @@ public sealed class PdfReviewComparerTests {
         byte[] white = PdfPngTestImages.CreateRgbPng(255, 255, 255);
         var pageOptions = new PdfCreateOptions { PageWidth = global::OfficeIMO.OfficeLength.Points(400D), PageHeight = global::OfficeIMO.OfficeLength.Points(180D) };
         PdfDocument scanned = PdfDocument.Load(PdfDocument.Create(pageOptions)
-            .Canvas(canvas => canvas.Image(white, 0D, 0D, 360D, 180D)
-                .Text("Anchor", 370D, 20D, 28D, 20D)).ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
+            .Canvas(canvas => canvas.Image(white, global::OfficeIMO.OfficeLength.Points(0D), global::OfficeIMO.OfficeLength.Points(0D), global::OfficeIMO.OfficeLength.Points(360D), global::OfficeIMO.OfficeLength.Points(180D))
+                .Text("Anchor", global::OfficeIMO.OfficeLength.Points(370D), global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(28D), global::OfficeIMO.OfficeLength.Points(20D))).ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         PdfDocument blank = PdfDocument.Load(PdfDocument.Create(pageOptions)
-            .Canvas(canvas => canvas.Text("Anchor", 370D, 20D, 28D, 20D)).ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
+            .Canvas(canvas => canvas.Text("Anchor", global::OfficeIMO.OfficeLength.Points(370D), global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(28D), global::OfficeIMO.OfficeLength.Points(20D))).ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         var options = new PdfReviewComparisonOptions();
         options.Visual.IgnoredRegions.Add(new PdfPixelRegion(0, 0, 360, 180));
 
@@ -556,7 +556,7 @@ public sealed class PdfReviewComparerTests {
     public void ReviewRejectsIgnoredRegionWorkBeforeRasterizing() {
         PdfDocument page = PdfDocument.Load(PdfDocument.Create(new PdfCreateOptions {
             PageWidth = global::OfficeIMO.OfficeLength.Points(600D), PageHeight = global::OfficeIMO.OfficeLength.Points(400D)
-        }).Canvas(canvas => canvas.Text("Page", 20D, 20D, 100D, 20D)).ToBytes());
+        }).Canvas(canvas => canvas.Text("Page", global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(20D))).ToBytes());
         var options = new PdfReviewComparisonOptions();
         for (int index = 0; index < 1000; index++) {
             options.Visual.IgnoredRegions.Add(new PdfPixelRegion(0, 0, 600, 400));
@@ -571,11 +571,11 @@ public sealed class PdfReviewComparerTests {
     public void OrdersMixedTextChangesByPagePosition() {
         PdfDocument expected = PdfDocument.Load(PdfDocument.Create(new PdfCreateOptions { PageWidth = global::OfficeIMO.OfficeLength.Points(240D), PageHeight = global::OfficeIMO.OfficeLength.Points(180D) })
             .Canvas(canvas => {
-                canvas.Text("Remove", 20D, 15D, 130D, 20D);
-                canvas.Text("Original", 20D, 90D, 130D, 20D);
+                canvas.Text("Remove", global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(15D), global::OfficeIMO.OfficeLength.Points(130D), global::OfficeIMO.OfficeLength.Points(20D));
+                canvas.Text("Original", global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(90D), global::OfficeIMO.OfficeLength.Points(130D), global::OfficeIMO.OfficeLength.Points(20D));
             }).ToBytes());
         PdfDocument actual = PdfDocument.Load(PdfDocument.Create(new PdfCreateOptions { PageWidth = global::OfficeIMO.OfficeLength.Points(240D), PageHeight = global::OfficeIMO.OfficeLength.Points(180D) })
-            .Canvas(canvas => canvas.Text("Revised", 20D, 90D, 130D, 20D)).ToBytes());
+            .Canvas(canvas => canvas.Text("Revised", global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(90D), global::OfficeIMO.OfficeLength.Points(130D), global::OfficeIMO.OfficeLength.Points(20D))).ToBytes());
 
         PdfReviewChangeKind[] kinds = Assert.Single(expected.Proof.CompareReview(actual).Pages).Changes
             .Select(static change => change.Kind).ToArray();
@@ -655,9 +655,9 @@ public sealed class PdfReviewComparerTests {
         double actualX, double actualY, double actualWidth, double actualHeight) {
         byte[] white = PdfPngTestImages.CreateRgbPng(255, 255, 255);
         PdfDocument expected = PdfDocument.Load(PdfDocument.Create(new PdfCreateOptions { PageWidth = global::OfficeIMO.OfficeLength.Points(240D), PageHeight = global::OfficeIMO.OfficeLength.Points(180D) })
-            .Canvas(canvas => canvas.Image(white, 20D, 20D, 20D, 20D)).ToBytes());
+            .Canvas(canvas => canvas.Image(white, global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(20D))).ToBytes());
         PdfDocument actual = PdfDocument.Load(PdfDocument.Create(new PdfCreateOptions { PageWidth = global::OfficeIMO.OfficeLength.Points(240D), PageHeight = global::OfficeIMO.OfficeLength.Points(180D) })
-            .Canvas(canvas => canvas.Image(white, actualX, actualY, actualWidth, actualHeight)).ToBytes());
+            .Canvas(canvas => canvas.Image(white, global::OfficeIMO.OfficeLength.Points(actualX), global::OfficeIMO.OfficeLength.Points(actualY), global::OfficeIMO.OfficeLength.Points(actualWidth), global::OfficeIMO.OfficeLength.Points(actualHeight))).ToBytes());
 
         PdfReviewComparisonReport report = expected.Proof.CompareReview(actual);
 
@@ -744,8 +744,8 @@ public sealed class PdfReviewComparerTests {
     public void RemovingTheFirstOfTwoIdenticalTextBlocksDoesNotMoveTheSecond() {
         PdfDocument expected = PdfDocument.Load(PdfDocument.Create(new PdfCreateOptions { PageWidth = global::OfficeIMO.OfficeLength.Points(240D), PageHeight = global::OfficeIMO.OfficeLength.Points(180D) })
             .Canvas(canvas => {
-                canvas.Text("Duplicate", 20D, 20D, 100D, 20D);
-                canvas.Text("Duplicate", 20D, 100D, 100D, 20D);
+                canvas.Text("Duplicate", global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(20D));
+                canvas.Text("Duplicate", global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(20D));
             }).ToBytes());
         PdfDocument actual = PageAt("Duplicate", 100D);
 
@@ -758,11 +758,11 @@ public sealed class PdfReviewComparerTests {
         byte[] image = PdfPngTestImages.CreateRgbPng(20, 60, 180);
         PdfDocument expected = PdfDocument.Load(PdfDocument.Create(new PdfCreateOptions { PageWidth = global::OfficeIMO.OfficeLength.Points(240D), PageHeight = global::OfficeIMO.OfficeLength.Points(180D) })
             .Canvas(canvas => {
-                canvas.Image(image, 20D, 20D, 40D, 40D);
-                canvas.Image(image, 20D, 100D, 40D, 40D);
+                canvas.Image(image, global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(40D), global::OfficeIMO.OfficeLength.Points(40D));
+                canvas.Image(image, global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(40D), global::OfficeIMO.OfficeLength.Points(40D));
             }).ToBytes());
         PdfDocument actual = PdfDocument.Load(PdfDocument.Create(new PdfCreateOptions { PageWidth = global::OfficeIMO.OfficeLength.Points(240D), PageHeight = global::OfficeIMO.OfficeLength.Points(180D) })
-            .Canvas(canvas => canvas.Image(image, 20D, 100D, 40D, 40D)).ToBytes());
+            .Canvas(canvas => canvas.Image(image, global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(40D), global::OfficeIMO.OfficeLength.Points(40D))).ToBytes());
 
         PdfReviewChange change = Assert.Single(Assert.Single(expected.Proof.CompareReview(actual).Pages).Changes);
         Assert.Equal(PdfReviewChangeKind.ImageRemoved, change.Kind);
@@ -774,8 +774,8 @@ public sealed class PdfReviewComparerTests {
         PdfDocument expected = ImagePage(blue, scan: true);
         PdfDocument actual = PdfDocument.Load(PdfDocument.Create(new PdfCreateOptions { PageWidth = global::OfficeIMO.OfficeLength.Points(240D), PageHeight = global::OfficeIMO.OfficeLength.Points(180D) })
             .Canvas(canvas => {
-                canvas.Image(blue, 0D, 0D, 240D, 180D);
-                canvas.Image(blue, 10D, 10D, 20D, 20D);
+                canvas.Image(blue, global::OfficeIMO.OfficeLength.Points(0D), global::OfficeIMO.OfficeLength.Points(0D), global::OfficeIMO.OfficeLength.Points(240D), global::OfficeIMO.OfficeLength.Points(180D));
+                canvas.Image(blue, global::OfficeIMO.OfficeLength.Points(10D), global::OfficeIMO.OfficeLength.Points(10D), global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(20D));
             }).ToBytes());
 
         Assert.Throws<PdfReadLimitException>(() => expected.Proof.CompareReview(actual,
@@ -796,8 +796,8 @@ public sealed class PdfReviewComparerTests {
     private static PdfDocument TiledScan(byte[] image) => PdfDocument.Load(PdfDocument.Create(
         new PdfCreateOptions { PageWidth = global::OfficeIMO.OfficeLength.Points(240D), PageHeight = global::OfficeIMO.OfficeLength.Points(180D) })
         .Canvas(canvas => {
-            canvas.Image(image, 0D, 0D, 120D, 180D);
-            canvas.Image(image, 120D, 0D, 120D, 180D);
+            canvas.Image(image, global::OfficeIMO.OfficeLength.Points(0D), global::OfficeIMO.OfficeLength.Points(0D), global::OfficeIMO.OfficeLength.Points(120D), global::OfficeIMO.OfficeLength.Points(180D));
+            canvas.Image(image, global::OfficeIMO.OfficeLength.Points(120D), global::OfficeIMO.OfficeLength.Points(0D), global::OfficeIMO.OfficeLength.Points(120D), global::OfficeIMO.OfficeLength.Points(180D));
         }).ToBytes());
 
     [Fact]
@@ -868,9 +868,9 @@ public sealed class PdfReviewComparerTests {
     public void PartiallyMaskedScanResizeAroundSameCenterRemainsUncertain() {
         byte[] image = PdfPngTestImages.CreateRgbPng(20, 60, 180);
         PdfDocument expected = PdfDocument.Load(PdfDocument.Create(new PdfCreateOptions { PageWidth = global::OfficeIMO.OfficeLength.Points(240D), PageHeight = global::OfficeIMO.OfficeLength.Points(180D) })
-            .Canvas(canvas => canvas.Image(image, 0D, 0D, 240D, 180D)).ToBytes());
+            .Canvas(canvas => canvas.Image(image, global::OfficeIMO.OfficeLength.Points(0D), global::OfficeIMO.OfficeLength.Points(0D), global::OfficeIMO.OfficeLength.Points(240D), global::OfficeIMO.OfficeLength.Points(180D))).ToBytes());
         PdfDocument actual = PdfDocument.Load(PdfDocument.Create(new PdfCreateOptions { PageWidth = global::OfficeIMO.OfficeLength.Points(240D), PageHeight = global::OfficeIMO.OfficeLength.Points(180D) })
-            .Canvas(canvas => canvas.Image(image, 10D, 10D, 220D, 160D)).ToBytes());
+            .Canvas(canvas => canvas.Image(image, global::OfficeIMO.OfficeLength.Points(10D), global::OfficeIMO.OfficeLength.Points(10D), global::OfficeIMO.OfficeLength.Points(220D), global::OfficeIMO.OfficeLength.Points(160D))).ToBytes());
         var options = new PdfReviewComparisonOptions();
         options.Visual.IgnoredRegions.Add(new PdfPixelRegion(0, 0, 12, 180));
         options.Visual.IgnoredRegions.Add(new PdfPixelRegion(228, 0, 12, 180));
@@ -902,7 +902,7 @@ public sealed class PdfReviewComparerTests {
 
     private static PdfDocument PageAt(string text, double y) => PdfDocument.Load(PdfDocument.Create(
         new PdfCreateOptions { PageWidth = global::OfficeIMO.OfficeLength.Points(240D), PageHeight = global::OfficeIMO.OfficeLength.Points(180D) })
-        .Canvas(canvas => canvas.Text(text, 20D, y, 100D, 20D)).ToBytes());
+        .Canvas(canvas => canvas.Text(text, global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(y), global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(20D))).ToBytes());
 
     private static byte[] OffPageImagePdf(string pixels) {
         const string content = "q 240 0 0 180 230 0 cm /Im0 Do Q\n";
@@ -919,21 +919,21 @@ public sealed class PdfReviewComparerTests {
 
     private static PdfDocument Page(string text, double x) => PdfDocument.Load(PdfDocument.Create(
         new PdfCreateOptions { PageWidth = global::OfficeIMO.OfficeLength.Points(240D), PageHeight = global::OfficeIMO.OfficeLength.Points(180D) })
-        .Canvas(canvas => canvas.Text(text, x, 30D, 130D, 25D)).ToBytes());
+        .Canvas(canvas => canvas.Text(text, global::OfficeIMO.OfficeLength.Points(x), global::OfficeIMO.OfficeLength.Points(30D), global::OfficeIMO.OfficeLength.Points(130D), global::OfficeIMO.OfficeLength.Points(25D))).ToBytes());
 
     private static PdfDocument ImagePage(byte[] png, bool scan) => PdfDocument.Load(PdfDocument.Create(
         new PdfCreateOptions { PageWidth = global::OfficeIMO.OfficeLength.Points(240D), PageHeight = global::OfficeIMO.OfficeLength.Points(180D) })
         .Canvas(canvas => {
-            if (!scan) canvas.Text("Proof", 20D, 20D, 80D, 20D);
-            canvas.Image(png, scan ? 0D : 20D, scan ? 0D : 50D,
-                scan ? 240D : 40D, scan ? 180D : 40D);
+            if (!scan) canvas.Text("Proof", global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(80D), global::OfficeIMO.OfficeLength.Points(20D));
+            canvas.Image(png, global::OfficeIMO.OfficeLength.Points(scan ? 0D : 20D), global::OfficeIMO.OfficeLength.Points(scan ? 0D : 50D),
+                global::OfficeIMO.OfficeLength.Points(scan ? 240D : 40D), global::OfficeIMO.OfficeLength.Points(scan ? 180D : 40D));
         }).ToBytes());
 
     private static PdfDocument ScanWithStamp(byte[] png) => PdfDocument.Load(PdfDocument.Create(
         new PdfCreateOptions { PageWidth = global::OfficeIMO.OfficeLength.Points(240D), PageHeight = global::OfficeIMO.OfficeLength.Points(180D) })
         .Canvas(canvas => {
-            canvas.Image(png, 0D, 0D, 240D, 180D);
-            canvas.Text("Reviewed", 20D, 20D, 100D, 20D);
+            canvas.Image(png, global::OfficeIMO.OfficeLength.Points(0D), global::OfficeIMO.OfficeLength.Points(0D), global::OfficeIMO.OfficeLength.Points(240D), global::OfficeIMO.OfficeLength.Points(180D));
+            canvas.Text("Reviewed", global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(20D));
         }).ToBytes());
 
     private static PdfDocument PagesWithHeaders(params (string Header, string Body)[] pages) {
@@ -942,8 +942,8 @@ public sealed class PdfReviewComparerTests {
             if (index > 0) document.PageBreak();
             (string header, string body) = pages[index];
             document.Canvas(canvas => {
-                canvas.Text(header, 20D, 10D, 160D, 20D);
-                canvas.Text(body, 20D, 90D, 160D, 25D);
+                canvas.Text(header, global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(10D), global::OfficeIMO.OfficeLength.Points(160D), global::OfficeIMO.OfficeLength.Points(20D));
+                canvas.Text(body, global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(90D), global::OfficeIMO.OfficeLength.Points(160D), global::OfficeIMO.OfficeLength.Points(25D));
             });
         }
         return PdfDocument.Load(document.ToBytes());
@@ -954,7 +954,7 @@ public sealed class PdfReviewComparerTests {
         for (int index = 0; index < texts.Length; index++) {
             if (index > 0) document.PageBreak();
             string text = texts[index];
-            document.Canvas(canvas => canvas.Text(text, 20D, 30D, 160D, 25D));
+            document.Canvas(canvas => canvas.Text(text, global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(30D), global::OfficeIMO.OfficeLength.Points(160D), global::OfficeIMO.OfficeLength.Points(25D)));
         }
         return PdfDocument.Load(document.ToBytes());
     }

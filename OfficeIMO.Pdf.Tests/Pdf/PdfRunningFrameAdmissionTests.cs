@@ -129,7 +129,7 @@ public sealed class PdfRunningFrameAdmissionTests {
             if (context.PageNumber > 1) Assert.True(lazyBodyMaterialized);
             headerPages.Add(context.PageNumber);
             double bodyHeight = context.PageNumber < 3 ? SmallBodyHeight : LargeBodyHeight;
-            return story => story.Spacer(HeaderHeight(bodyHeight));
+            return story => story.Spacer(global::OfficeIMO.OfficeLength.Points(HeaderHeight(bodyHeight)));
         }, HeaderDistance));
 
         using var pdf = PdfPigDocument.Open(document.ToBytes());
@@ -154,7 +154,7 @@ public sealed class PdfRunningFrameAdmissionTests {
                 // A deterministic watchdog makes an erroneous unlimited search
                 // fail by cancellation without a host-dependent time budget.
                 if (context.PageNumber > 2) cancellation.Cancel();
-                return story => story.Spacer(HeaderHeight(SmallBodyHeight));
+                return story => story.Spacer(global::OfficeIMO.OfficeLength.Points(HeaderHeight(SmallBodyHeight)));
             }, HeaderDistance), maximumPages: null);
 
         Assert.Throws<ArgumentException>(() => document.ToBytes(cancellationToken: cancellation.Token));
@@ -226,7 +226,7 @@ public sealed class PdfRunningFrameAdmissionTests {
         Action<PdfContentBuilder> target = flow => flow.Paragraph(paragraph => paragraph.Text("FLOW"),
             style: TargetStyle(keepTogether: false));
         PdfDocument document = CreateContentDocument(content => {
-            content.Spacer(150D);
+            content.Spacer(global::OfficeIMO.OfficeLength.Points(150D));
             var options = new PdfFlowOptions { KeepTogether = true };
             if (replayable) content.Deferred(_ => target, options);
             else content.Flow(target, options);
@@ -251,7 +251,7 @@ public sealed class PdfRunningFrameAdmissionTests {
     public void TableFragmentsRecheckEachActualRunningFrame(string profile, bool occupiedFirstFrame) {
         PdfTableStyle style = ReviewTableStyle(profile);
         PdfDocument document = CreateContentDocument(content => {
-            if (occupiedFirstFrame) content.Spacer(150D);
+            if (occupiedFirstFrame) content.Spacer(global::OfficeIMO.OfficeLength.Points(150D));
             content.Table(new[] { new[] { "ROW" } }, style: style);
         }, header => ConfigureStaticHeader(header,
             occupiedFirstFrame ? LargeBodyHeight : SmallBodyHeight, LargeBodyHeight, SmallBodyHeight));
@@ -262,7 +262,7 @@ public sealed class PdfRunningFrameAdmissionTests {
     [Fact]
     public void FixedRowRejectsARepeatedShortRunningFrameAfterAnOrdinaryMove() {
         PdfDocument document = CreateContentDocument(content => {
-            content.Spacer(150D);
+            content.Spacer(global::OfficeIMO.OfficeLength.Points(150D));
             content.Table(new[] { new[] { "ROW" } }, style: ReviewTableStyle("fixed"));
         }, header => ConfigureStaticHeader(header, LargeBodyHeight, SmallBodyHeight, SmallBodyHeight));
 
@@ -333,7 +333,7 @@ public sealed class PdfRunningFrameAdmissionTests {
     [InlineData(false)]
     public void ContainerKeepWithNextRechecksRunningFramesAfterAnOrdinaryMove(bool laterFrameFits) {
         PdfDocument document = CreateContentDocument(content => {
-            content.Spacer(90D);
+            content.Spacer(global::OfficeIMO.OfficeLength.Points(90D));
             content.Panel(panel => panel.Paragraph(paragraph => paragraph.Text("PANEL"),
                 style: TargetStyle(keepTogether: false)), new PdfPanelStyle {
                     PaddingX = 0D, PaddingY = 0D, SpacingBefore = 0D, SpacingAfter = 0D,
@@ -357,7 +357,7 @@ public sealed class PdfRunningFrameAdmissionTests {
     [InlineData("list", false)]
     public void KeptGroupsRemainWholeAfterTheirKeepWithNextMove(string kind, bool laterFrameFits) {
         PdfDocument document = CreateContentDocument(content => {
-            content.Spacer(90D);
+            content.Spacer(global::OfficeIMO.OfficeLength.Points(90D));
             if (kind == "table") {
                 PdfTableStyle style = ReviewTableStyle("kept");
                 style.KeepWithNext = true;
@@ -398,7 +398,7 @@ public sealed class PdfRunningFrameAdmissionTests {
     public void AtomicNoteMoveRechecksTheKeptBodyAgainstItsNewRunningFrame(string kind) {
         var capture = new PdfLayoutPositionCapture();
         PdfDocument document = CreateContentDocument(content => {
-            content.Spacer(90D);
+            content.Spacer(global::OfficeIMO.OfficeLength.Points(90D));
             PdfFootnoteDefinition note = content.DefineFootnote(body => body.Text("NOTE", style: new PdfParagraphStyle {
                 LineSpacing = PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(40D)), SpacingBefore = global::OfficeIMO.OfficeLength.Points(0D),
                 SpacingAfter = global::OfficeIMO.OfficeLength.Points(0D), WidowControl = false
@@ -432,7 +432,7 @@ public sealed class PdfRunningFrameAdmissionTests {
     [InlineData(false)]
     public void IndivisibleListLinesRecheckEachActualRunningFrame(bool occupiedFirstFrame) {
         PdfDocument document = CreateContentDocument(content => {
-            if (occupiedFirstFrame) content.Spacer(150D);
+            if (occupiedFirstFrame) content.Spacer(global::OfficeIMO.OfficeLength.Points(150D));
             content.Bullets(new[] { "LIST" }, style: new PdfListStyle {
                 FontSize = 10D, LineSpacing = PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(RequiredParagraphHeight)),
                 SpacingBefore = 0D, SpacingAfter = 0D, ItemSpacing = 0D
@@ -475,7 +475,7 @@ public sealed class PdfRunningFrameAdmissionTests {
         PdfDocument document = CreateContentDocument(content =>
             content.Paragraph(paragraph => paragraph.Text("TARGET"), style: TargetStyle(keepTogether: false)),
             configureHeader: header => {
-                header.Content(story => story.Spacer(HeaderHeight(LargeBodyHeight)), HeaderDistance);
+                header.Content(story => story.Spacer(global::OfficeIMO.OfficeLength.Points(HeaderHeight(LargeBodyHeight))), HeaderDistance);
                 ConfigureFirstPageHeader(header, contextualFirst);
             }, maximumPages: null);
 
@@ -499,8 +499,8 @@ public sealed class PdfRunningFrameAdmissionTests {
 
     private static void ConfigureFirstPageHeader(PdfHeaderBuilder header, bool contextualFirst) {
         if (contextualFirst)
-            header.FirstPageContent(context => story => story.Spacer(HeaderHeight(SmallBodyHeight)), HeaderDistance);
-        else header.FirstPageContent(story => story.Spacer(HeaderHeight(SmallBodyHeight)), HeaderDistance);
+            header.FirstPageContent(context => story => story.Spacer(global::OfficeIMO.OfficeLength.Points(HeaderHeight(SmallBodyHeight))), HeaderDistance);
+        else header.FirstPageContent(story => story.Spacer(global::OfficeIMO.OfficeLength.Points(HeaderHeight(SmallBodyHeight))), HeaderDistance);
     }
 
     private static PdfDocument CreateDocument(bool keepTogether, bool explicitBreak,
@@ -556,10 +556,10 @@ public sealed class PdfRunningFrameAdmissionTests {
         double laterBodyHeight, double? evenBodyHeight = null) {
         // Each spacer gives its variant the declared body capacity:
         // page height - edge distance - story height - bottom margin.
-        header.Content(content => content.Spacer(HeaderHeight(laterBodyHeight)), HeaderDistance)
-            .FirstPageContent(content => content.Spacer(HeaderHeight(firstBodyHeight)), HeaderDistance);
+        header.Content(content => content.Spacer(global::OfficeIMO.OfficeLength.Points(HeaderHeight(laterBodyHeight))), HeaderDistance)
+            .FirstPageContent(content => content.Spacer(global::OfficeIMO.OfficeLength.Points(HeaderHeight(firstBodyHeight))), HeaderDistance);
         if (evenBodyHeight.HasValue)
-            header.EvenPagesContent(content => content.Spacer(HeaderHeight(evenBodyHeight.Value)), HeaderDistance);
+            header.EvenPagesContent(content => content.Spacer(global::OfficeIMO.OfficeLength.Points(HeaderHeight(evenBodyHeight.Value))), HeaderDistance);
     }
 
     private static double HeaderHeight(double bodyHeight) =>

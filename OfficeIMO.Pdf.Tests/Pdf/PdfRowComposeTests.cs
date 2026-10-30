@@ -466,7 +466,7 @@ namespace OfficeIMO.Tests.Pdf {
                                 .Item(item => item
                                     .H2("Grouped heading")
                                     .Paragraph(paragraph => paragraph.Text("Grouped paragraph")))
-                                .Spacer(6)
+                                .Spacer(global::OfficeIMO.OfficeLength.Points(6))
                                 .Item(item => item.Bullets(new[] { "Grouped bullet" })))))));
 
             var page = Assert.IsType<PageBlock>(Assert.Single(doc.Blocks));

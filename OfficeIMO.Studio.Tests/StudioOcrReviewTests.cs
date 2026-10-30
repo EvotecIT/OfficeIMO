@@ -25,7 +25,7 @@ public sealed class StudioOcrReviewTests {
             PdfDocument.Create(compose => {
                 for (int page = 0; page < 2; page++)
                     compose.Page(item => item.Size(600, 800).Canvas(canvas =>
-                        canvas.Text([new PdfTextRun("Native text")], 72, 66, 400, 25, fontSize: 12)));
+                        canvas.Text([new PdfTextRun("Native text")], global::OfficeIMO.OfficeLength.Points(72), global::OfficeIMO.OfficeLength.Points(66), global::OfficeIMO.OfficeLength.Points(400), global::OfficeIMO.OfficeLength.Points(25), fontSize: global::OfficeIMO.OfficeLength.Points(12))));
             }).Save(source);
             byte[] original = File.ReadAllBytes(source);
             var native = PdfPageInteractionMap.Create(original, 1).TextRegions;

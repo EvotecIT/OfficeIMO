@@ -38,7 +38,7 @@ internal static partial class PdfWriter {
                 PdfNamedFontFace? namedFont = options.TryResolveNamedFontFace(run.FontFamily, run.Bold, run.Italic, out PdfNamedFontFace resolvedNamedFont)
                     ? resolvedNamedFont
                     : null;
-                double requestedFontSize = run.FontSize ?? defaultFontSize;
+                double requestedFontSize = (run.FontSize?.ToPoints()) ?? defaultFontSize;
                 double effectiveFontSize = EffectiveRichFontSize(requestedFontSize, run.Baseline);
                 double textRise = TextRiseForBaseline(requestedFontSize, run.Baseline);
                 double runBaseline = baselines[lineIndex] + textRise;
@@ -46,7 +46,7 @@ internal static partial class PdfWriter {
                 double descender = GetDescenderForOptions(runFont, namedFont, effectiveFontSize, options);
                 double runBottom = runBaseline - descender;
                 double runTop = runBaseline + ascender;
-                double width = MeasureRichText(run.Text, runFont, namedFont, requestedFontSize, run.Baseline, options, run.FeatureSettings, run.HorizontalTextScaling, run.CharacterSpacing);
+                double width = MeasureRichText(run.Text, runFont, namedFont, requestedFontSize, run.Baseline, options, run.FeatureSettings, run.HorizontalTextScaling, (run.CharacterSpacing.ToPoints()));
                 if (width > 0D && run.BackgroundColor.HasValue) {
                     double paddingY = System.Math.Max(0.35D, effectiveFontSize * 0.04D);
                     runBottom -= paddingY;
@@ -103,7 +103,7 @@ internal static partial class PdfWriter {
     private static double GetPageTextLineLeading(System.Collections.Generic.IReadOnlyList<PdfTextRun> line, double defaultFontSize) {
         double leading = defaultFontSize * 1.2D;
         foreach (PdfTextRun run in line) {
-            double requestedFontSize = run.FontSize ?? defaultFontSize;
+            double requestedFontSize = (run.FontSize?.ToPoints()) ?? defaultFontSize;
             leading = Math.Max(leading, EffectiveRichFontSize(requestedFontSize, run.Baseline) * 1.2D);
         }
 
@@ -146,7 +146,7 @@ internal static partial class PdfWriter {
                 PdfNamedFontFace? namedFont = options.TryResolveNamedFontFace(run.FontFamily, run.Bold, run.Italic, out PdfNamedFontFace resolvedNamedFont)
                     ? resolvedNamedFont
                     : null;
-                double requestedFontSize = run.FontSize ?? defaultFontSize;
+                double requestedFontSize = (run.FontSize?.ToPoints()) ?? defaultFontSize;
                 double effectiveFontSize = EffectiveRichFontSize(requestedFontSize, run.Baseline);
                 double textRise = TextRiseForBaseline(requestedFontSize, run.Baseline);
                 double width = GetRichSegmentWidth(segments[runIndex]);

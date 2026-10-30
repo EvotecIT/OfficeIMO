@@ -87,10 +87,10 @@ public partial class PdfDocumentVisualQualityTests {
                         content.Row(row =>
                             row.PercentColumn(100, column => column
                                 .HR(
-                                    thickness: 3,
+                                    thickness: global::OfficeIMO.OfficeLength.Points(3),
                                     color: global::OfficeIMO.OfficeColor.FromRgb(26, 51, 77),
-                                    spacingBefore: 4,
-                                    spacingAfter: 6)
+                                    spacingBefore: global::OfficeIMO.OfficeLength.Points(4),
+                                    spacingAfter: global::OfficeIMO.OfficeLength.Points(6))
                                 .Paragraph(p => p.Text("Guarded rhythm stays below the rule.")))))))
             .ToBytes();
 
@@ -287,7 +287,7 @@ public partial class PdfDocumentVisualQualityTests {
                     page.Content(content =>
                         content.Row(row =>
                             row.PercentColumn(100, column => column
-                                .Image(png, 24, 24, style: new PdfImageStyle {
+                                .Image(png, global::OfficeIMO.OfficeLength.Points(24), global::OfficeIMO.OfficeLength.Points(24), style: new PdfImageStyle {
                                     KeepWithNext = true
                                 })
                                 .Paragraph(p => p.Text("ColumnFollowingImageBody")))))))

@@ -33,13 +33,13 @@ internal static class WorkshopPack {
             .H1("Exercise sheet", PdfAlign.Left, accent)
             .H2("1. Describe one difficult moment", PdfAlign.Left, accent)
             .Paragraph(p => p.Text("Who is trying to do what, and where do they get stuck? Use an observed example."))
-            .HR(0.5, global::OfficeIMO.OfficeColor.FromRgb(203, 213, 225), 30, 30)
+            .HR(global::OfficeIMO.OfficeLength.Points(0.5), global::OfficeIMO.OfficeColor.FromRgb(203, 213, 225), global::OfficeIMO.OfficeLength.Points(30), global::OfficeIMO.OfficeLength.Points(30))
             .H2("2. Propose the smallest useful change", PdfAlign.Left, accent)
             .Paragraph(p => p.Text("Describe what the person will be able to do after the change."))
-            .HR(0.5, global::OfficeIMO.OfficeColor.FromRgb(203, 213, 225), 30, 30)
+            .HR(global::OfficeIMO.OfficeLength.Points(0.5), global::OfficeIMO.OfficeColor.FromRgb(203, 213, 225), global::OfficeIMO.OfficeLength.Points(30), global::OfficeIMO.OfficeLength.Points(30))
             .H2("3. Choose the first check", PdfAlign.Left, accent)
             .Paragraph(p => p.Text("What evidence would show that the change helped? Who will collect it?"))
-            .HR(0.5, global::OfficeIMO.OfficeColor.FromRgb(203, 213, 225), 30, 30)), options)
+            .HR(global::OfficeIMO.OfficeLength.Points(0.5), global::OfficeIMO.OfficeColor.FromRgb(203, 213, 225), global::OfficeIMO.OfficeLength.Points(30), global::OfficeIMO.OfficeLength.Points(30))), options)
             .Meta(title: "Service design workshop pack", author: "OfficeIMO")
             .Save(Path.Combine(folder, "example.pdf"));
     }

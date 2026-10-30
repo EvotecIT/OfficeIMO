@@ -16,7 +16,7 @@ namespace OfficeIMO.Examples.Showcase.Workflows {
                 .Paragraph(p => p.Bold("Planned work")).TextField("planned-work", width: global::OfficeIMO.OfficeLength.Points(450), height: global::OfficeIMO.OfficeLength.Points(44), value: "Inspect the meeting-room display and record the connection test.")
                 .H2("Record the result", PdfAlign.Left, navy)
                 .Paragraph(p => p.Bold("Work completed")).TextField("completed-work", width: global::OfficeIMO.OfficeLength.Points(450), height: global::OfficeIMO.OfficeLength.Points(44))
-                .Paragraph(p => p.Bold("Outcome")).ChoiceField("outcome", new[] { "Awaiting work", "Completed", "Follow-up needed" }, value: "Awaiting work", width: 260)
+                .Paragraph(p => p.Bold("Outcome")).ChoiceField("outcome", new[] { "Awaiting work", "Completed", "Follow-up needed" }, value: "Awaiting work", width: global::OfficeIMO.OfficeLength.Points(260))
                 .Paragraph(p => p.Text("Handover acknowledged")).CheckBox("handover-acknowledged")
                 .Paragraph(p => p.Bold("Follow-up owner and date")).TextField("follow-up", width: global::OfficeIMO.OfficeLength.Points(450))),
                 new PdfCreateOptions { DefaultFontSize = global::OfficeIMO.OfficeLength.Points(11) }.SetDefaultHeadingStyle(2, new PdfHeadingStyle { SpacingBefore = 14, SpacingAfter = 8 }))

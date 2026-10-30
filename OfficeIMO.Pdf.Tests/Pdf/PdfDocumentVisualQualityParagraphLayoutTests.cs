@@ -181,7 +181,7 @@ public partial class PdfDocumentVisualQualityTests {
         byte[] bytes = PdfDocument.Create(options)
             .Compose(document => document.Page(page => page.Content(content => content.Row(row => row.PercentColumn(100, column => column
                 .Paragraph(p => p.Text("TopMarker"), style: paragraphStyle)
-                .Spacer(20)
+                .Spacer(global::OfficeIMO.OfficeLength.Points(20))
                 .Paragraph(p => p.Text("BottomMarker"), style: paragraphStyle))))))
             .ToBytes();
 

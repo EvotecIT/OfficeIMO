@@ -26,9 +26,9 @@ public sealed class PdfRunSpacingTests {
             PdfCreateOptions options = Options();
             options.TextShapingMode = PdfTextShapingMode.OpenTypeLigatures;
             options.EmbedStandardFont(PdfStandardFont.Helvetica, fontBytes, "SpacingTest");
-            PdfTextRun word = new PdfTextRun("office", fontSize: 12D);
-            if (styled) word = word.WithHorizontalTextScaling(50D).WithCharacterSpacing(1D);
-            return PdfDocument.Create(options).Paragraph(paragraph => paragraph.Runs(new[] { word, PdfTextRun.Normal("X", fontSize: 12D) })).ToBytes();
+            PdfTextRun word = new PdfTextRun("office", fontSize: global::OfficeIMO.OfficeLength.Points(12D));
+            if (styled) word = word.WithHorizontalTextScaling(50D).WithCharacterSpacing(global::OfficeIMO.OfficeLength.Points(1D));
+            return PdfDocument.Create(options).Paragraph(paragraph => paragraph.Runs(new[] { word, PdfTextRun.Normal("X", fontSize: global::OfficeIMO.OfficeLength.Points(12D)) })).ToBytes();
         }
         using var natural = PdfPigDocument.Open(Render(false));
         using var styled = PdfPigDocument.Open(Render(true));
@@ -45,10 +45,10 @@ public sealed class PdfRunSpacingTests {
         PdfCreateOptions options = Options();
         options.PageWidth = global::OfficeIMO.OfficeLength.Points(180D); options.PageHeight = global::OfficeIMO.OfficeLength.Points(120D);
         options.MarginLeft = options.MarginRight = options.MarginTop = options.MarginBottom = global::OfficeIMO.OfficeLength.Points(20D);
-        PdfTextRun run = new PdfTextRun(string.Join("\n", Enumerable.Repeat("ABCD", 20)), fontSize: 12D)
-            .WithHorizontalTextScaling(50D).WithCharacterSpacing(1D);
+        PdfTextRun run = new PdfTextRun(string.Join("\n", Enumerable.Repeat("ABCD", 20)), fontSize: global::OfficeIMO.OfficeLength.Points(12D))
+            .WithHorizontalTextScaling(50D).WithCharacterSpacing(global::OfficeIMO.OfficeLength.Points(1D));
         byte[] bytes = PdfDocument.Create(options).Paragraph(paragraph => paragraph.Runs(new[] { run })).ToBytes();
-        Letter[] baseline = Letters(Create("paragraph", new PdfTextRun("ABCD", fontSize: 12D)));
+        Letter[] baseline = Letters(Create("paragraph", new PdfTextRun("ABCD", fontSize: global::OfficeIMO.OfficeLength.Points(12D))));
         using var pdf = PdfPigDocument.Open(bytes);
         Assert.True(pdf.NumberOfPages > 1);
         int totalLines = 0;
@@ -77,9 +77,9 @@ public sealed class PdfRunSpacingTests {
     [InlineData("header", 50D, 1D)]
     [InlineData("header", 200D, -0.5D)]
     public void RunSpacing_UsesPhysicalAdvancesAndPreservesGlyphHeight(string surface, double scaling, double spacing) {
-        PdfTextRun natural = new PdfTextRun("ABCD", font: PdfStandardFont.Helvetica, fontSize: 12D);
+        PdfTextRun natural = new PdfTextRun("ABCD", font: PdfStandardFont.Helvetica, fontSize: global::OfficeIMO.OfficeLength.Points(12D));
         Letter[] baseline = Letters(Create(surface, natural));
-        Letter[] actual = Letters(Create(surface, natural.WithHorizontalTextScaling(scaling).WithCharacterSpacing(spacing)));
+        Letter[] actual = Letters(Create(surface, natural.WithHorizontalTextScaling(scaling).WithCharacterSpacing(global::OfficeIMO.OfficeLength.Points(spacing))));
         Assert.Equal("ABCD", string.Concat(actual.Select(letter => letter.Value)));
         Assert.Equal(4, baseline.Length);
         for (int index = 0; index < baseline.Length; index++) {
@@ -93,10 +93,10 @@ public sealed class PdfRunSpacingTests {
     [Fact]
     public void ParagraphBuilder_RestoresNaturalTextAfterStyledRuns() {
         byte[] actualBytes = PdfDocument.Create(Options())
-            .Paragraph(paragraph => paragraph.HorizontalTextScaling(50D).CharacterSpacing(1D).Text("AB")
-                .HorizontalTextScaling(100D).CharacterSpacing(0D).Text("CD"))
+            .Paragraph(paragraph => paragraph.HorizontalTextScaling(50D).CharacterSpacing(global::OfficeIMO.OfficeLength.Points(1D)).Text("AB")
+                .HorizontalTextScaling(100D).CharacterSpacing(global::OfficeIMO.OfficeLength.Points(0D)).Text("CD"))
             .ToBytes();
-        Letter[] baseline = Letters(Create("paragraph", new PdfTextRun("ABCD", fontSize: 12D)));
+        Letter[] baseline = Letters(Create("paragraph", new PdfTextRun("ABCD", fontSize: global::OfficeIMO.OfficeLength.Points(12D))));
         Letter[] actual = Letters(actualBytes);
         Assert.Equal("ABCD", string.Concat(actual.Select(letter => letter.Value)));
         double expectedC = (baseline[2].StartBaseLine.X - baseline[0].StartBaseLine.X) / 2D + 2D;
@@ -107,36 +107,35 @@ public sealed class PdfRunSpacingTests {
 
     [Fact]
     public void RunSpacingCopies_PreserveOtherSettingsAndLeaveSourceUnchanged() {
-        PdfTextRun original = PdfTextRun.Link("ABCD", "https://example.test", fontSize: 12D)
-            .WithHorizontalTextScaling(50D).WithCharacterSpacing(1D);
+        PdfTextRun original = PdfTextRun.Link("ABCD", "https://example.test", fontSize: global::OfficeIMO.OfficeLength.Points(12D))
+            .WithHorizontalTextScaling(50D).WithCharacterSpacing(global::OfficeIMO.OfficeLength.Points(1D));
         PdfTextRun copy = original.WithFeatureSettings(OfficeTextFeatureSettings.Default);
         Assert.NotSame(original, copy);
         Assert.Equal(original.LinkUri, copy.LinkUri);
         Assert.Equal(original.UnderlineStyle, copy.UnderlineStyle);
         Assert.Equal(50D, copy.HorizontalTextScaling);
-        Assert.Equal(1D, copy.CharacterSpacing);
-        Letter[] baseline = Letters(Create("paragraph", new PdfTextRun("ABCD", fontSize: 12D)));
+        Assert.Equal(1D, (copy.CharacterSpacing.ToPoints()));
+        Letter[] baseline = Letters(Create("paragraph", new PdfTextRun("ABCD", fontSize: global::OfficeIMO.OfficeLength.Points(12D))));
         Letter[] actual = Letters(Create("paragraph", copy));
         Assert.InRange(Math.Abs(actual[3].StartBaseLine.X - actual[0].StartBaseLine.X -
             ((baseline[3].StartBaseLine.X - baseline[0].StartBaseLine.X) / 2D + 3D)), 0D, 0.02D);
-        PdfTextRun changed = copy.WithCharacterSpacing(2D).WithHorizontalTextScaling(75D);
-        Assert.Equal(1D, original.CharacterSpacing);
+        PdfTextRun changed = copy.WithCharacterSpacing(global::OfficeIMO.OfficeLength.Points(2D)).WithHorizontalTextScaling(75D);
+        Assert.Equal(1D, (original.CharacterSpacing.ToPoints()));
         Assert.Equal(50D, original.HorizontalTextScaling);
-        Assert.Equal(2D, changed.CharacterSpacing);
+        Assert.Equal(2D, (changed.CharacterSpacing.ToPoints()));
         Assert.Equal(75D, changed.HorizontalTextScaling);
     }
 
     [Fact]
-    public void RunSpacing_RejectsNonFiniteValuesAndNonPositiveScaling() {
+    public void HorizontalTextScaling_RejectsNonFiniteAndNonPositiveValues() {
         PdfTextRun run = PdfTextRun.Normal("ABCD");
         foreach (double invalid in new[] { double.NaN, double.PositiveInfinity, double.NegativeInfinity }) {
-            Assert.Throws<ArgumentOutOfRangeException>(() => run.WithCharacterSpacing(invalid));
             Assert.Throws<ArgumentOutOfRangeException>(() => run.WithHorizontalTextScaling(invalid));
         }
         Assert.Throws<ArgumentOutOfRangeException>(() => run.WithHorizontalTextScaling(0D));
         Assert.Throws<ArgumentOutOfRangeException>(() => run.WithHorizontalTextScaling(-1D));
         Assert.Equal(100D, run.HorizontalTextScaling);
-        Assert.Equal(0D, run.CharacterSpacing);
+        Assert.Equal(0D, (run.CharacterSpacing.ToPoints()));
     }
 
     private static PdfCreateOptions Options() => new PdfCreateOptions {

@@ -187,7 +187,7 @@ public partial class PdfDocumentReadResultTests {
                     PdfAlign.Left,
                     linkContents: "Nested heading jump metadata",
                     linkDestinationName: "Details")))
-                .Spacer(18)
+                .Spacer(global::OfficeIMO.OfficeLength.Points(18))
                 .Bookmark("Details")
                 .H2("Details")), new PdfCreateOptions {
                 PageWidth = global::OfficeIMO.OfficeLength.Points(360),

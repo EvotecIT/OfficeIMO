@@ -43,7 +43,7 @@ public sealed class PdfRichInlineLineHeightTests {
     [Fact]
     public void CompressedTextOnlySpacingRetainsItsAuthoredAdvance() {
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions { DefaultFontSize = global::OfficeIMO.OfficeLength.Points(8) })
-            .Paragraph(p => p.FontSize(24).Text("A\n").FontSize(8).Text("B"),
+            .Paragraph(p => p.FontSize(global::OfficeIMO.OfficeLength.Points(24)).Text("A\n").FontSize(global::OfficeIMO.OfficeLength.Points(8)).Text("B"),
                 style: new PdfParagraphStyle { FontSize = global::OfficeIMO.OfficeLength.Points(8), LineSpacing = PdfLineSpacing.Multiple(.5) }).ToBytes();
         using var pdf = PdfPigDocument.Open(bytes);
         var first = Assert.Single(pdf.GetPage(1).Letters, letter => letter.Value == "A");
@@ -55,16 +55,16 @@ public sealed class PdfRichInlineLineHeightTests {
         var options = new PdfCreateOptions { PageWidth = global::OfficeIMO.OfficeLength.Points(300), PageHeight = global::OfficeIMO.OfficeLength.Points(300), DefaultFontSize = global::OfficeIMO.OfficeLength.Points(8),
             MarginTop = global::OfficeIMO.OfficeLength.Points(30), MarginBottom = global::OfficeIMO.OfficeLength.Points(30), MarginLeft = global::OfficeIMO.OfficeLength.Points(30), MarginRight = global::OfficeIMO.OfficeLength.Points(30),
             CompressContentStreams = false };
-        var text = new PdfTextRun("A", fontSize: 24, font: PdfStandardFont.Helvetica);
+        var text = new PdfTextRun("A", fontSize: global::OfficeIMO.OfficeLength.Points(24), font: PdfStandardFont.Helvetica);
         var box = PdfTextRun.Inline(new PdfInlineBox(20, 32, background: global::OfficeIMO.OfficeColor.FromNormalizedRgb(.2, .5, .8), baselineOffset: -20));
-        var runs = boxFirst ? new[] { box, text, new PdfTextRun("\nB", fontSize: 8) }
-            : new[] { text, box, new PdfTextRun("\nB", fontSize: 8) };
+        var runs = boxFirst ? new[] { box, text, new PdfTextRun("\nB", fontSize: global::OfficeIMO.OfficeLength.Points(8)) }
+            : new[] { text, box, new PdfTextRun("\nB", fontSize: global::OfficeIMO.OfficeLength.Points(8)) };
         var style = new PdfParagraphStyle { FontSize = global::OfficeIMO.OfficeLength.Points(8), LineSpacing = spacing ?? PdfLineSpacing.Multiple(1.4),
             SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0) };
         var document = PdfDocument.Create(options);
         if (frame == "flow") document.Paragraph(p => p.Runs(runs), style: style);
         else if (frame == "column") document.Content.Row(row => row.RelativeColumn(column => column.Paragraph(p => p.Runs(runs), style: style)));
-        else if (frame == "canvas") document.Canvas(canvas => canvas.TextBox(runs, 30, 30, 240, 240,
+        else if (frame == "canvas") document.Canvas(canvas => canvas.TextBox(runs, global::OfficeIMO.OfficeLength.Points(30), global::OfficeIMO.OfficeLength.Points(30), global::OfficeIMO.OfficeLength.Points(240), global::OfficeIMO.OfficeLength.Points(240),
             new PdfCanvasTextBoxStyle { FontSize = 8, LineHeight = 11.2, PaddingX = 0, PaddingY = 0,
                 Background = null, BorderColor = null }));
         else {

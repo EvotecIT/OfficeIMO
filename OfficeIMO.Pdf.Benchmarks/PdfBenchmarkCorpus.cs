@@ -58,12 +58,12 @@ internal static class PdfBenchmarkCorpus {
                         .PercentColumn(50, column => column.Numbered(boundaryItems.Take(3)))
                         .PercentColumn(50, column => column.Bullets(boundaryItems.Skip(2).Take(3))))
                     .Rectangle(
-                        180,
-                        24,
+                        global::OfficeIMO.OfficeLength.Points(180),
+                        global::OfficeIMO.OfficeLength.Points(24),
                         strokeColor: global::OfficeIMO.OfficeColor.FromRgb(0, 64, 128),
-                        strokeWidth: 1.5,
+                        strokeWidth: global::OfficeIMO.OfficeLength.Points(1.5),
                         fillColor: global::OfficeIMO.OfficeColor.FromRgb(220, 240, 252))
-                    .Image(image, 32, 32, alternativeText: "Deterministic benchmark image");
+                    .Image(image, global::OfficeIMO.OfficeLength.Points(32), global::OfficeIMO.OfficeLength.Points(32), alternativeText: "Deterministic benchmark image");
                 if (page < PageCount) {
                     content.PageBreak();
                 }

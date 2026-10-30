@@ -10,8 +10,8 @@ public sealed partial class PdfInvoiceDocument {
                     if (_layout.LogoBytesSnapshot != null) {
                         column.Image(
                             _layout.LogoBytesSnapshot,
-                            _layout.LogoWidth,
-                            _layout.LogoHeight,
+                            global::OfficeIMO.OfficeLength.Points(_layout.LogoWidth),
+                            global::OfficeIMO.OfficeLength.Points(_layout.LogoHeight),
                             align: PdfAlign.Left,
                             clipPath: null,
                             fit: _layout.LogoFit,
@@ -26,7 +26,7 @@ public sealed partial class PdfInvoiceDocument {
                     }
                 })
                 .PercentColumn(56D, column => {
-                    column.Paragraph(p => p.FontSize(18D).Bold(DocumentTitle, theme.Text), PdfAlign.Right, style: new PdfParagraphStyle {
+                    column.Paragraph(p => p.FontSize(global::OfficeIMO.OfficeLength.Points(18D)).Bold(DocumentTitle, theme.Text), PdfAlign.Right, style: new PdfParagraphStyle {
                         SpacingBefore = global::OfficeIMO.OfficeLength.Points(0D),
                         SpacingAfter = global::OfficeIMO.OfficeLength.Points(6D),
                         WidowControl = true
@@ -222,7 +222,7 @@ public sealed partial class PdfInvoiceDocument {
             foreach (InvoicePdfApproval approval in _layout.Approvals) {
                 row.RelativeColumn(column => column.Panel(card => {
                     card.Paragraph(p => p.Text(approval.Label.ToUpperInvariant()), defaultColor: theme.MutedText, style: new PdfParagraphStyle { SpacingAfter = global::OfficeIMO.OfficeLength.Points(9D) });
-                    card.HR(0.8D, theme.Border, 0D, 6D);
+                    card.HR(global::OfficeIMO.OfficeLength.Points(0.8D), theme.Border, global::OfficeIMO.OfficeLength.Points(0D), global::OfficeIMO.OfficeLength.Points(6D));
                     card.Paragraph(p => p.Bold(approval.Name, theme.Text));
                     string detail = string.Join(" · ", new[] {
                         approval.Role,

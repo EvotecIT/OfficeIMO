@@ -674,7 +674,7 @@ internal static partial class PdfWriter {
             if (!string.IsNullOrWhiteSpace(style.Caption)) {
                 double captionSize = style.CaptionFontSize?.ToPoints() ?? fontSize;
                 double captionLeading = captionSize * 1.25D;
-                var captionRuns = new[] { PdfTextRun.Normal(style.Caption!, style.CaptionColor, captionSize) };
+                var captionRuns = new[] { PdfTextRun.Normal(style.Caption!, style.CaptionColor, global::OfficeIMO.OfficeLength.Points(captionSize)) };
                 var captionWrap = WrapRichRunsCore(captionRuns, columnLayout.Width, captionSize, ChooseNormal(currentOpts.DefaultFont), captionLeading, null, DefaultParagraphTabStopWidth, currentOpts);
                 captionHeight = MeasureRichLinesHeight(captionWrap.LineHeights, captionWrap.Lines.Count, captionLeading) + style.CaptionSpacingAfter.ToPoints();
             }

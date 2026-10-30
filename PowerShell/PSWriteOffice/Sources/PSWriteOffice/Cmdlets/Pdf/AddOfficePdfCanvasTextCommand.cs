@@ -122,13 +122,13 @@ public sealed class AddOfficePdfCanvasTextCommand : PSWriteOffice.Cmdlets.Office
 
         context.Canvas.Text(
             runs,
-            X,
-            Y,
-            width,
-            height,
+            global::OfficeIMO.OfficeLength.Points(X),
+            global::OfficeIMO.OfficeLength.Points(Y),
+            global::OfficeIMO.OfficeLength.Points(width),
+            global::OfficeIMO.OfficeLength.Points(height),
             PdfCommandUtilities.ParseColor(Color),
             Align,
-            FontSize,
+            ((double?)(FontSize) is double physicalLength5 ? global::OfficeIMO.OfficeLength.Points(physicalLength5) : (global::OfficeIMO.OfficeLength?)null),
             LineHeight);
         WritePassThru(context.Page);
     }

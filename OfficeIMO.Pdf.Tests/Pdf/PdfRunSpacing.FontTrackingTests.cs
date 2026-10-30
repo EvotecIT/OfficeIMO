@@ -18,8 +18,8 @@ public sealed class PdfRunSpacingFontTrackingTests {
     [InlineData(100D, 0D, false, 500, -100)]
     public void TableShrinkingFitsThePaintedWidthWithSizeDependentFontTracking(double scale, double spacing, bool explicitSize, short smallTracking, short largeTracking) {
         var options = TrackingOptions(smallTracking, largeTracking);
-        PdfTextRun Run(double? size) => new PdfTextRun("AABBAABBAABBAABB", fontSize: size)
-            .WithHorizontalTextScaling(scale).WithCharacterSpacing(spacing);
+        PdfTextRun Run(double? size) => new PdfTextRun("AABBAABBAABBAABB", fontSize: ((double?)(size) is double physicalLength2 ? global::OfficeIMO.OfficeLength.Points(physicalLength2) : (global::OfficeIMO.OfficeLength?)null))
+            .WithHorizontalTextScaling(scale).WithCharacterSpacing(global::OfficeIMO.OfficeLength.Points(spacing));
         using var table = PdfPigDocument.Open(PdfDocument.Create(options).Table(new[] {
             new[] { PdfTableCell.RichTextCell(new[] { Run(explicitSize ? 30D : null) }) }
         }, style: new PdfTableStyle {
@@ -31,7 +31,7 @@ public sealed class PdfRunSpacingFontTrackingTests {
         Assert.All(letters, letter => Assert.Equal(letters[0].StartBaseLine.Y, letter.StartBaseLine.Y, 3));
         double chosenSize = letters[0].FontSize;
         using var probe = PdfPigDocument.Open(PdfDocument.Create(options).Paragraph(p =>
-            p.Runs(new[] { Run(chosenSize), PdfTextRun.Normal("X", fontSize: chosenSize) })).ToBytes());
+            p.Runs(new[] { Run(chosenSize), PdfTextRun.Normal("X", fontSize: global::OfficeIMO.OfficeLength.Points(chosenSize)) })).ToBytes());
         var painted = probe.GetPage(1).Letters;
         double width = painted.Single(letter => letter.Value == "X").StartBaseLine.X - painted[0].StartBaseLine.X;
         Assert.InRange(width, 99.9D, 100.02D);
@@ -44,9 +44,9 @@ public sealed class PdfRunSpacingFontTrackingTests {
     [InlineData(true, 200D, -0.5D)]
     public void WordUnderlinesFollowTrackedGlyphsAndWordStarts(bool positioned, double scale, double spacing) {
         var options = TrackingOptions(-100, 0);
-        var run = new PdfTextRun("AA BB", fontSize: 12D, underlineStyle: OfficeIMO.Drawing.OfficeTextDecorationStyle.Words)
-            .WithHorizontalTextScaling(scale).WithCharacterSpacing(spacing);
-        var runs = new[] { run, PdfTextRun.Normal("X", fontSize: 12D) };
+        var run = new PdfTextRun("AA BB", fontSize: global::OfficeIMO.OfficeLength.Points(12D), underlineStyle: OfficeIMO.Drawing.OfficeTextDecorationStyle.Words)
+            .WithHorizontalTextScaling(scale).WithCharacterSpacing(global::OfficeIMO.OfficeLength.Points(spacing));
+        var runs = new[] { run, PdfTextRun.Normal("X", fontSize: global::OfficeIMO.OfficeLength.Points(12D)) };
         var document = PdfDocument.Create(options);
         if (positioned) document.Canvas(canvas => canvas.PositionedText(runs, PdfCanvasTextStructureRole.Paragraph,
             40D, 40D, 400D, 40D, fontSize: 12D, fontMetricScale: 0.75D));
@@ -93,9 +93,9 @@ public sealed class PdfRunSpacingFontTrackingTests {
         byte[] Render(bool styled) {
             var options = new PdfCreateOptions { DefaultFontSize = global::OfficeIMO.OfficeLength.Points(12D) };
             options.EmbedStandardFont(PdfStandardFont.Helvetica, font, "TrackedSpacing");
-            var run = new PdfTextRun("AABB", fontSize: 12D);
-            if (styled) run = run.WithHorizontalTextScaling(scale).WithCharacterSpacing(spacing);
-            var runs = new[] { run, PdfTextRun.Normal("X", fontSize: 12D) };
+            var run = new PdfTextRun("AABB", fontSize: global::OfficeIMO.OfficeLength.Points(12D));
+            if (styled) run = run.WithHorizontalTextScaling(scale).WithCharacterSpacing(global::OfficeIMO.OfficeLength.Points(spacing));
+            var runs = new[] { run, PdfTextRun.Normal("X", fontSize: global::OfficeIMO.OfficeLength.Points(12D)) };
             PdfDocument document = PdfDocument.Create(options);
             if (positioned) document.Canvas(canvas => canvas.PositionedText(runs, PdfCanvasTextStructureRole.Paragraph,
                 40D, 40D, 400D, 40D, fontSize: 12D, fontMetricScale: 0.75D));

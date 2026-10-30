@@ -44,7 +44,7 @@ internal static partial class PdfWriter {
                 continue;
             }
 
-            double? scaledFontSize = ScaleTableFontSizeForShrink(run.FontSize, runFontSizeScale, minimumShrinkFontSize);
+            double? scaledFontSize = ScaleTableFontSizeForShrink((run.FontSize?.ToPoints()), runFontSizeScale, minimumShrinkFontSize);
 
             var scaledRun = new PdfTextRun(
                 run.Text,
@@ -53,7 +53,7 @@ internal static partial class PdfWriter {
                 run.Color,
                 run.Italic,
                 run.Strike,
-                scaledFontSize,
+                ((double?)(scaledFontSize) is double physicalLength1 ? global::OfficeIMO.OfficeLength.Points(physicalLength1) : (global::OfficeIMO.OfficeLength?)null),
                 run.Font,
                 run.LinkUri,
                 run.LinkContents,

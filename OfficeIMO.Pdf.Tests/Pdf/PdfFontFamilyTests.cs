@@ -2118,7 +2118,7 @@ public partial class PdfFontFamilyTests {
             color: global::OfficeIMO.OfficeColor.FromRgb(1, 2, 3),
             italic: true,
             strike: true,
-            fontSize: 14,
+            fontSize: global::OfficeIMO.OfficeLength.Points(14),
             baseline: PdfTextBaseline.Superscript,
             backgroundColor: global::OfficeIMO.OfficeColor.FromRgb(250, 240, 200));
 
@@ -2130,7 +2130,7 @@ public partial class PdfFontFamilyTests {
         Assert.True(run.Underline);
         Assert.True(run.Italic);
         Assert.True(run.Strike);
-        Assert.Equal(14, run.FontSize);
+        Assert.Equal(14, (run.FontSize?.ToPoints()));
         Assert.Equal(PdfTextBaseline.Superscript, run.Baseline);
         Assert.Equal(template.Color, run.Color);
         Assert.Equal(template.BackgroundColor, run.BackgroundColor);
@@ -2386,14 +2386,14 @@ public partial class PdfFontFamilyTests {
             "Invoice Cafe",
             out IReadOnlyList<PdfTextRun> runs,
             "word:paragraph[11]",
-            PdfTextRun.Italicized("template", fontSize: 12),
+            PdfTextRun.Italicized("template", fontSize: global::OfficeIMO.OfficeLength.Points(12)),
             report,
             "OfficeIMO.Word.Pdf");
 
         PdfTextRun run = Assert.Single(runs);
         Assert.True(covered);
         Assert.True(run.Italic);
-        Assert.Equal(12, run.FontSize);
+        Assert.Equal(12, (run.FontSize?.ToPoints()));
         Assert.Equal(PdfStandardFont.Helvetica, run.Font);
         Assert.False(report.HasWarnings);
     }
@@ -2494,7 +2494,7 @@ public partial class PdfFontFamilyTests {
                 .Bold()
                 .Italic()
                 .Underline()
-                .FontSize(13)
+                .FontSize(global::OfficeIMO.OfficeLength.Points(13))
                 .Color(global::OfficeIMO.OfficeColor.FromRgb(10, 20, 30))
                 .FallbackText(fallbackSet, "Invoice Cafe", "word:paragraph[9]"))
             .ToBytes();
@@ -2665,8 +2665,8 @@ public partial class PdfFontFamilyTests {
             })
             .RegisterEmbeddedFontFallbacks(fallbackSet)
             .Canvas(canvas => canvas
-                .Text("Canvas Łódź", 18, 16, 180, 28, fontSize: 12)
-                .TextBox("Ramka Zażółć", 18, 54, 190, 42, new PdfCanvasTextBoxStyle {
+                .Text("Canvas Łódź", global::OfficeIMO.OfficeLength.Points(18), global::OfficeIMO.OfficeLength.Points(16), global::OfficeIMO.OfficeLength.Points(180), global::OfficeIMO.OfficeLength.Points(28), fontSize: global::OfficeIMO.OfficeLength.Points(12))
+                .TextBox("Ramka Zażółć", global::OfficeIMO.OfficeLength.Points(18), global::OfficeIMO.OfficeLength.Points(54), global::OfficeIMO.OfficeLength.Points(190), global::OfficeIMO.OfficeLength.Points(42), new PdfCanvasTextBoxStyle {
                     FontSize = 11,
                     PaddingX = 4,
                     PaddingY = 4
@@ -2698,7 +2698,7 @@ public partial class PdfFontFamilyTests {
                 PageHeight = global::OfficeIMO.OfficeLength.Points(180)
             })
             .RegisterEmbeddedFontFallbacks(fallbackSet)
-            .Canvas(canvas => canvas.Text(marker, 18, 16, 180, 28, fontSize: 12))
+            .Canvas(canvas => canvas.Text(marker, global::OfficeIMO.OfficeLength.Points(18), global::OfficeIMO.OfficeLength.Points(16), global::OfficeIMO.OfficeLength.Points(180), global::OfficeIMO.OfficeLength.Points(28), fontSize: global::OfficeIMO.OfficeLength.Points(12)))
             .ToBytes();
 
         PdfReadDocument read = PdfReadDocument.Open(bytes);

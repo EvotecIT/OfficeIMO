@@ -23,7 +23,7 @@ public partial class PdfFontFamilyTests {
             .RegisterEmbeddedFontFallbacks(fallbacks);
         PdfTextRun template = fallbacks.PlanTextRuns("A", styleTemplate:
                 PdfTextRun.Normal("template", font: PdfStandardFont.Courier))[0]
-            .WithCharacterSpacing(1).WithHorizontalTextScaling(50);
+            .WithCharacterSpacing(global::OfficeIMO.OfficeLength.Points(1)).WithHorizontalTextScaling(50);
         PdfTextFallbackPlan plan = PdfTextDiagnostics.PlanEmbeddedFontFallbackText("A A", new[] {
             new PdfEmbeddedFontFallbackCandidate("Planner Without Spaces",
                 ManagedTextShapingTestAssets.CreateFontWithUniformAdvance(1000, 500, 'A'))
@@ -37,9 +37,9 @@ public partial class PdfFontFamilyTests {
         PdfTextRun MappedLetter() => PdfTextRun.Normal("A",
                 font: namedMapping ? null : PdfStandardFont.TimesRoman,
                 fontFamily: namedMapping ? "Caller Family" : null)
-            .WithCharacterSpacing(1).WithHorizontalTextScaling(50);
+            .WithCharacterSpacing(global::OfficeIMO.OfficeLength.Points(1)).WithHorizontalTextScaling(50);
         PdfTextRun gap = PdfTextRun.Normal(" ", font: PdfStandardFont.Courier)
-            .WithCharacterSpacing(1).WithHorizontalTextScaling(50);
+            .WithCharacterSpacing(global::OfficeIMO.OfficeLength.Points(1)).WithHorizontalTextScaling(50);
         byte[] Render(IReadOnlyList<PdfTextRun> textRuns) => PdfDocument.Create(options.Clone())
             .Paragraph(paragraph => paragraph.Runs(textRuns)).ToBytes();
 

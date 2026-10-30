@@ -84,7 +84,7 @@ public sealed class RecentDocumentThumbnailTests {
             try {
                 string path = Path.Combine(root, "preview.pdf");
                 PdfDocument.Create(compose => compose.Page(page => page.Size(600D, 800D)
-                    .Canvas(canvas => canvas.Text("Preview", 30D, 100D, 100D, 30D, fontSize: 12D)))).Save(path);
+                    .Canvas(canvas => canvas.Text("Preview", global::OfficeIMO.OfficeLength.Points(30D), global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(30D), fontSize: global::OfficeIMO.OfficeLength.Points(12D))))).Save(path);
                 using var cancelled = new CancellationTokenSource();
                 cancelled.Cancel();
 

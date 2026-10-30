@@ -114,7 +114,7 @@ public class PdfTableLayoutScalingBenchmarks {
         cellMode == PdfTableLayoutCellMode.Plain
             ? PdfTableCell.TextCell(text).WithNoWrap()
             : PdfTableCell.RichTextCell(new[] {
-                new PdfTextRun(text, bold: bold, fontSize: CellFontSize)
+                new PdfTextRun(text, bold: bold, fontSize: global::OfficeIMO.OfficeLength.Points(CellFontSize))
             }).WithNoWrap();
 
     private static string CreateMarker(int index) =>

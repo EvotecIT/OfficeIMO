@@ -34,7 +34,7 @@ public sealed partial class PdfStaticFormRecognizerTests {
     [Fact]
     public void OcrLabelCanSupportAProposalFromAnExactSourceSnapshot() {
         byte[] sourceBytes = PdfDocument.Create(new PdfCreateOptions { PageWidth = global::OfficeIMO.OfficeLength.Points(400), PageHeight = global::OfficeIMO.OfficeLength.Points(300) })
-            .Canvas(canvas => canvas.Shape(Box(140D, 20D), 100D, 30D))
+            .Canvas(canvas => canvas.Shape(Box(140D, 20D), global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(30D)))
             .ToBytes();
         var ocr = new[] { new PdfStaticFormTextEvidence(1, "Customer ID", 20D, 30D, 85D, 49D, 0.95D) };
         PdfStaticFormRecognitionReport report = PdfDocument.Load(sourceBytes).Forms.RecognizeStaticLayout(ocrText: ocr);
@@ -50,8 +50,8 @@ public sealed partial class PdfStaticFormRecognizerTests {
     [Fact]
     public void CorrectedOcrLabelSupersedesConflictingNativeExtraction() {
         byte[] source = PdfDocument.Create(new PdfCreateOptions { PageWidth = global::OfficeIMO.OfficeLength.Points(400), PageHeight = global::OfficeIMO.OfficeLength.Points(300) })
-            .Canvas(canvas => canvas.Text("Narne:", 20D, 28D, 70D, 20D)
-                .Shape(Box(140D, 20D), 100D, 28D)).ToBytes();
+            .Canvas(canvas => canvas.Text("Narne:", global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(28D), global::OfficeIMO.OfficeLength.Points(70D), global::OfficeIMO.OfficeLength.Points(20D))
+                .Shape(Box(140D, 20D), global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(28D))).ToBytes();
         var corrected = new[] { new PdfStaticFormTextEvidence(1, "Name", 20D, 28D, 90D, 48D, 0.95D) };
 
         PdfStaticFormFieldProposal proposal = Assert.Single(
@@ -70,9 +70,9 @@ public sealed partial class PdfStaticFormRecognizerTests {
         backdrop.StrokeColor = null;
         byte[] source = PdfDocument.Create(new PdfCreateOptions { PageWidth = global::OfficeIMO.OfficeLength.Points(400), PageHeight = global::OfficeIMO.OfficeLength.Points(300) })
             .Canvas(canvas => {
-                if (darkBackdrop) canvas.Shape(backdrop, 10D, 20D);
-                canvas.Text("Name:", 20D, 28D, 70D, 20D, color: global::OfficeIMO.OfficeColor.FromRgb(255, 255, 255))
-                    .Shape(Box(140D, 20D), 100D, 28D);
+                if (darkBackdrop) canvas.Shape(backdrop, global::OfficeIMO.OfficeLength.Points(10D), global::OfficeIMO.OfficeLength.Points(20D));
+                canvas.Text("Name:", global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(28D), global::OfficeIMO.OfficeLength.Points(70D), global::OfficeIMO.OfficeLength.Points(20D), color: global::OfficeIMO.OfficeColor.FromRgb(255, 255, 255))
+                    .Shape(Box(140D, 20D), global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(28D));
             }).ToBytes();
 
         PdfStaticFormRecognitionReport report = PdfDocument.Load(source).Forms.RecognizeStaticLayout();
@@ -98,9 +98,9 @@ public sealed partial class PdfStaticFormRecognizerTests {
         white.FillColor = OfficeColor.White;
         white.StrokeColor = null;
         byte[] source = PdfDocument.Create(new PdfCreateOptions { PageWidth = global::OfficeIMO.OfficeLength.Points(400D), PageHeight = global::OfficeIMO.OfficeLength.Points(300D) })
-            .Canvas(canvas => canvas.Shape(dark, 0D, 0D).Shape(white, 10D, 20D)
-                .Text("Name:", 20D, 28D, 70D, 20D, color: global::OfficeIMO.OfficeColor.FromRgb(255, 255, 255))
-                .Shape(Box(140D, 20D), 100D, 28D)).ToBytes();
+            .Canvas(canvas => canvas.Shape(dark, global::OfficeIMO.OfficeLength.Points(0D), global::OfficeIMO.OfficeLength.Points(0D)).Shape(white, global::OfficeIMO.OfficeLength.Points(10D), global::OfficeIMO.OfficeLength.Points(20D))
+                .Text("Name:", global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(28D), global::OfficeIMO.OfficeLength.Points(70D), global::OfficeIMO.OfficeLength.Points(20D), color: global::OfficeIMO.OfficeColor.FromRgb(255, 255, 255))
+                .Shape(Box(140D, 20D), global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(28D))).ToBytes();
 
         Assert.Empty(PdfDocument.Load(source).Forms.RecognizeStaticLayout().Proposals);
     }
@@ -108,7 +108,7 @@ public sealed partial class PdfStaticFormRecognizerTests {
     [Fact]
     public void OcrEvidenceBelowHalfConfidenceUsesTheConfiguredProposalThreshold() {
         byte[] source = PdfDocument.Create(new PdfCreateOptions { PageWidth = global::OfficeIMO.OfficeLength.Points(400), PageHeight = global::OfficeIMO.OfficeLength.Points(300) })
-            .Canvas(canvas => canvas.Shape(Box(140D, 20D), 100D, 30D)).ToBytes();
+            .Canvas(canvas => canvas.Shape(Box(140D, 20D), global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(30D))).ToBytes();
         var ocr = new[] { new PdfStaticFormTextEvidence(1, "Customer ID", 20D, 30D, 85D, 49D, 0.49D) };
 
         PdfStaticFormRecognitionReport accepted = PdfDocument.Load(source).Forms.RecognizeStaticLayout(
@@ -166,8 +166,8 @@ public sealed partial class PdfStaticFormRecognizerTests {
         OfficeShape outline = Box(140D, 20D);
         outline.FillColor = null;
         byte[] source = PdfDocument.Create(new PdfCreateOptions { PageWidth = global::OfficeIMO.OfficeLength.Points(400), PageHeight = global::OfficeIMO.OfficeLength.Points(300) })
-            .Canvas(canvas => canvas.Shape(painted, 100D, 28D).Shape(white, 100D, 28D)
-                .Shape(outline, 100D, 28D).Text("Name:", 20D, 28D, 70D, 20D)).ToBytes();
+            .Canvas(canvas => canvas.Shape(painted, global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(28D)).Shape(white, global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(28D))
+                .Shape(outline, global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(28D)).Text("Name:", global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(28D), global::OfficeIMO.OfficeLength.Points(70D), global::OfficeIMO.OfficeLength.Points(20D))).ToBytes();
 
         Assert.Empty(PdfDocument.Load(source).Forms.RecognizeStaticLayout().Proposals);
     }
@@ -183,8 +183,8 @@ public sealed partial class PdfStaticFormRecognizerTests {
         OfficeShape outline = Box(140D, 20D);
         outline.FillColor = null;
         byte[] source = PdfDocument.Create(new PdfCreateOptions { PageWidth = global::OfficeIMO.OfficeLength.Points(400), PageHeight = global::OfficeIMO.OfficeLength.Points(300) })
-            .Canvas(canvas => canvas.Shape(painted, 100D, 28D).Shape(white, 0D, 0D)
-                .Shape(outline, 100D, 28D).Text("Name:", 20D, 28D, 70D, 20D)).ToBytes();
+            .Canvas(canvas => canvas.Shape(painted, global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(28D)).Shape(white, global::OfficeIMO.OfficeLength.Points(0D), global::OfficeIMO.OfficeLength.Points(0D))
+                .Shape(outline, global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(28D)).Text("Name:", global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(28D), global::OfficeIMO.OfficeLength.Points(70D), global::OfficeIMO.OfficeLength.Points(20D))).ToBytes();
 
         Assert.Single(PdfDocument.Load(source).Forms.RecognizeStaticLayout().Proposals);
     }
@@ -198,8 +198,8 @@ public sealed partial class PdfStaticFormRecognizerTests {
         OfficeShape outline = Box(140D, 20D);
         outline.FillColor = null;
         byte[] source = PdfDocument.Create(new PdfCreateOptions { PageWidth = global::OfficeIMO.OfficeLength.Points(400), PageHeight = global::OfficeIMO.OfficeLength.Points(300) })
-            .Canvas(canvas => canvas.Image(image, 80D, 20D, 180D, 60D)
-                .Shape(white, 100D, 30D).Shape(outline, 100D, 30D))
+            .Canvas(canvas => canvas.Image(image, global::OfficeIMO.OfficeLength.Points(80D), global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(180D), global::OfficeIMO.OfficeLength.Points(60D))
+                .Shape(white, global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(30D)).Shape(outline, global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(30D)))
             .ToBytes();
         var ocr = new[] { new PdfStaticFormTextEvidence(1, "Name", 20D, 30D, 70D, 50D, 1D) };
 
@@ -231,8 +231,8 @@ public sealed partial class PdfStaticFormRecognizerTests {
         white.FillColor = OfficeColor.White;
         white.StrokeColor = null;
         byte[] source = PdfDocument.Create(new PdfCreateOptions { PageWidth = global::OfficeIMO.OfficeLength.Points(400), PageHeight = global::OfficeIMO.OfficeLength.Points(300) })
-            .Canvas(canvas => canvas.Shape(outline, 100D, 28D).Shape(white, 0D, 0D)
-                .Text("Name:", 20D, 28D, 70D, 20D)).ToBytes();
+            .Canvas(canvas => canvas.Shape(outline, global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(28D)).Shape(white, global::OfficeIMO.OfficeLength.Points(0D), global::OfficeIMO.OfficeLength.Points(0D))
+                .Text("Name:", global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(28D), global::OfficeIMO.OfficeLength.Points(70D), global::OfficeIMO.OfficeLength.Points(20D))).ToBytes();
 
         PdfStaticFormRecognitionReport report = PdfDocument.Load(source).Forms.RecognizeStaticLayout();
 
@@ -246,8 +246,8 @@ public sealed partial class PdfStaticFormRecognizerTests {
         white.FillColor = OfficeColor.White;
         white.StrokeColor = null;
         byte[] source = PdfDocument.Create(new PdfCreateOptions { PageWidth = global::OfficeIMO.OfficeLength.Points(400), PageHeight = global::OfficeIMO.OfficeLength.Points(300) })
-            .Canvas(canvas => canvas.Text("Name:", 20D, 28D, 70D, 20D)
-                .Shape(white, 10D, 20D).Shape(Box(140D, 20D), 100D, 28D)).ToBytes();
+            .Canvas(canvas => canvas.Text("Name:", global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(28D), global::OfficeIMO.OfficeLength.Points(70D), global::OfficeIMO.OfficeLength.Points(20D))
+                .Shape(white, global::OfficeIMO.OfficeLength.Points(10D), global::OfficeIMO.OfficeLength.Points(20D)).Shape(Box(140D, 20D), global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(28D))).ToBytes();
 
         Assert.Empty(PdfDocument.Load(source).Forms.RecognizeStaticLayout().Proposals);
     }
@@ -260,8 +260,8 @@ public sealed partial class PdfStaticFormRecognizerTests {
         white.FillColor = OfficeColor.White;
         white.StrokeColor = null;
         byte[] source = PdfDocument.Create(new PdfCreateOptions { PageWidth = global::OfficeIMO.OfficeLength.Points(400), PageHeight = global::OfficeIMO.OfficeLength.Points(300) })
-            .Canvas(canvas => canvas.Shape(underline, 100D, 48D).Shape(white, 0D, 0D)
-                .Text("Name:", 20D, 28D, 70D, 20D)).ToBytes();
+            .Canvas(canvas => canvas.Shape(underline, global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(48D)).Shape(white, global::OfficeIMO.OfficeLength.Points(0D), global::OfficeIMO.OfficeLength.Points(0D))
+                .Text("Name:", global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(28D), global::OfficeIMO.OfficeLength.Points(70D), global::OfficeIMO.OfficeLength.Points(20D))).ToBytes();
 
         PdfStaticFormRecognitionReport report = PdfDocument.Load(source).Forms.RecognizeStaticLayout();
 
@@ -272,7 +272,7 @@ public sealed partial class PdfStaticFormRecognizerTests {
     [Fact]
     public void SuggestedNamesReserveFieldAncestorsAcrossUnselectedPages() {
         byte[] sourceBytes = PdfDocument.Create(new PdfCreateOptions { PageWidth = global::OfficeIMO.OfficeLength.Points(400), PageHeight = global::OfficeIMO.OfficeLength.Points(300) })
-            .Canvas(canvas => canvas.Text("Customer:", 20D, 28D, 85D, 20D).Shape(Box(140D, 20D), 125D, 28D))
+            .Canvas(canvas => canvas.Text("Customer:", global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(28D), global::OfficeIMO.OfficeLength.Points(85D), global::OfficeIMO.OfficeLength.Points(20D)).Shape(Box(140D, 20D), global::OfficeIMO.OfficeLength.Points(125D), global::OfficeIMO.OfficeLength.Points(28D)))
             .PageBreak()
             .Paragraph(paragraph => paragraph.Text("Existing field lives here"))
             .ToBytes();
@@ -291,7 +291,7 @@ public sealed partial class PdfStaticFormRecognizerTests {
     public void GeneratedEncryptedSourceRetainsSecurityWhenApplyingRecognizedFields() {
         PdfDocument source = PdfDocument.Create(new PdfCreateOptions { PageWidth = global::OfficeIMO.OfficeLength.Points(400), PageHeight = global::OfficeIMO.OfficeLength.Points(300) }
             .SetEncryption(new PdfStandardEncryptionOptions("open") { OwnerPassword = "owner" }))
-            .Canvas(canvas => canvas.Text("Name:", 20D, 28D, 70D, 20D).Shape(Box(140D, 20D), 100D, 28D));
+            .Canvas(canvas => canvas.Text("Name:", global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(28D), global::OfficeIMO.OfficeLength.Points(70D), global::OfficeIMO.OfficeLength.Points(20D)).Shape(Box(140D, 20D), global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(28D)));
 
         PdfStaticFormRecognitionReport report = source.Forms.RecognizeStaticLayout();
 
@@ -331,11 +331,11 @@ public sealed partial class PdfStaticFormRecognizerTests {
         gradientBox.FillGradient = OfficeLinearGradient.Horizontal(OfficeColor.Red, OfficeColor.Blue);
         byte[] source = PdfDocument.Create(new PdfCreateOptions { PageWidth = global::OfficeIMO.OfficeLength.Points(400D), PageHeight = global::OfficeIMO.OfficeLength.Points(300D) })
             .Canvas(canvas => canvas
-                .Text("Name:", 20D, 28D, 70D, 20D)
-                .Shape(Box(100D, 28D), 140D, 20D)
-                .Text("Alice", 150D, 25D, 60D, 20D)
-                .Text("Status:", 20D, 78D, 70D, 20D)
-                .Shape(gradientBox, 140D, 70D))
+                .Text("Name:", global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(28D), global::OfficeIMO.OfficeLength.Points(70D), global::OfficeIMO.OfficeLength.Points(20D))
+                .Shape(Box(100D, 28D), global::OfficeIMO.OfficeLength.Points(140D), global::OfficeIMO.OfficeLength.Points(20D))
+                .Text("Alice", global::OfficeIMO.OfficeLength.Points(150D), global::OfficeIMO.OfficeLength.Points(25D), global::OfficeIMO.OfficeLength.Points(60D), global::OfficeIMO.OfficeLength.Points(20D))
+                .Text("Status:", global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(78D), global::OfficeIMO.OfficeLength.Points(70D), global::OfficeIMO.OfficeLength.Points(20D))
+                .Shape(gradientBox, global::OfficeIMO.OfficeLength.Points(140D), global::OfficeIMO.OfficeLength.Points(70D)))
             .ToBytes();
 
         PdfStaticFormRecognitionReport report = PdfDocument.Load(source).Forms.RecognizeStaticLayout();
@@ -350,9 +350,9 @@ public sealed partial class PdfStaticFormRecognizerTests {
         cover.StrokeColor = null;
         byte[] source = PdfDocument.Create(new PdfCreateOptions { PageWidth = global::OfficeIMO.OfficeLength.Points(400D), PageHeight = global::OfficeIMO.OfficeLength.Points(300D) })
             .Canvas(canvas => canvas
-                .Text("Name:", 20D, 28D, 70D, 20D)
-                .Shape(Box(140D, 20D), 100D, 28D)
-                .Shape(cover, 0D, 10D))
+                .Text("Name:", global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(28D), global::OfficeIMO.OfficeLength.Points(70D), global::OfficeIMO.OfficeLength.Points(20D))
+                .Shape(Box(140D, 20D), global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(28D))
+                .Shape(cover, global::OfficeIMO.OfficeLength.Points(0D), global::OfficeIMO.OfficeLength.Points(10D)))
             .ToBytes();
 
         PdfStaticFormRecognitionReport report = PdfDocument.Load(source).Forms.RecognizeStaticLayout();
@@ -369,7 +369,7 @@ public sealed partial class PdfStaticFormRecognizerTests {
         outline.FillColor = null;
         outline.StrokeColor = OfficeColor.White;
         byte[] source = PdfDocument.Create(new PdfCreateOptions { PageWidth = global::OfficeIMO.OfficeLength.Points(400D), PageHeight = global::OfficeIMO.OfficeLength.Points(300D) })
-            .Canvas(canvas => canvas.Shape(backdrop, 0D, 0D).Shape(outline, 100D, 28D))
+            .Canvas(canvas => canvas.Shape(backdrop, global::OfficeIMO.OfficeLength.Points(0D), global::OfficeIMO.OfficeLength.Points(0D)).Shape(outline, global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(28D)))
             .ToBytes();
         var label = new[] { new PdfStaticFormTextEvidence(1, "Name", 20D, 28D, 70D, 48D, 1D) };
 
@@ -384,8 +384,8 @@ public sealed partial class PdfStaticFormRecognizerTests {
         fill.FillColor = OfficeColor.Red;
         fill.StrokeColor = null;
         byte[] source = PdfDocument.Create(new PdfCreateOptions { PageWidth = global::OfficeIMO.OfficeLength.Points(400D), PageHeight = global::OfficeIMO.OfficeLength.Points(300D) })
-            .Canvas(canvas => canvas.Text("Name", 20D, 28D, 70D, 20D)
-                .Shape(fill, 300D, 100D).Shape(fill, 320D, 100D)).ToBytes();
+            .Canvas(canvas => canvas.Text("Name", global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(28D), global::OfficeIMO.OfficeLength.Points(70D), global::OfficeIMO.OfficeLength.Points(20D))
+                .Shape(fill, global::OfficeIMO.OfficeLength.Points(300D), global::OfficeIMO.OfficeLength.Points(100D)).Shape(fill, global::OfficeIMO.OfficeLength.Points(320D), global::OfficeIMO.OfficeLength.Points(100D))).ToBytes();
 
         PdfReadLimitException limit = Assert.Throws<PdfReadLimitException>(() =>
             PdfDocument.Load(source).Forms.RecognizeStaticLayout(
@@ -402,10 +402,10 @@ public sealed partial class PdfStaticFormRecognizerTests {
         secondMark.StrokeColor = OfficeColor.Black;
         byte[] source = PdfDocument.Create(new PdfCreateOptions { PageWidth = global::OfficeIMO.OfficeLength.Points(400D), PageHeight = global::OfficeIMO.OfficeLength.Points(300D) })
             .Canvas(canvas => canvas
-                .Shape(Box(15D, 15D), 100D, 75D)
-                .Shape(firstMark, 103D, 78D)
-                .Shape(secondMark, 103D, 78D)
-                .Text("I agree", 125D, 72D, 100D, 20D))
+                .Shape(Box(15D, 15D), global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(75D))
+                .Shape(firstMark, global::OfficeIMO.OfficeLength.Points(103D), global::OfficeIMO.OfficeLength.Points(78D))
+                .Shape(secondMark, global::OfficeIMO.OfficeLength.Points(103D), global::OfficeIMO.OfficeLength.Points(78D))
+                .Text("I agree", global::OfficeIMO.OfficeLength.Points(125D), global::OfficeIMO.OfficeLength.Points(72D), global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(20D)))
             .ToBytes();
 
         PdfStaticFormRecognitionReport report = PdfDocument.Load(source).Forms.RecognizeStaticLayout();
@@ -422,9 +422,9 @@ public sealed partial class PdfStaticFormRecognizerTests {
         mark.StrokeColor = OfficeColor.Black;
         byte[] source = PdfDocument.Create(new PdfCreateOptions { PageWidth = global::OfficeIMO.OfficeLength.Points(400D), PageHeight = global::OfficeIMO.OfficeLength.Points(300D) })
             .Canvas(canvas => canvas
-                .Shape(Box(15D, 15D), 100D, 75D)
-                .Shape(mark, 103D, 78D)
-                .Text("I agree", 125D, 72D, 100D, 20D))
+                .Shape(Box(15D, 15D), global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(75D))
+                .Shape(mark, global::OfficeIMO.OfficeLength.Points(103D), global::OfficeIMO.OfficeLength.Points(78D))
+                .Text("I agree", global::OfficeIMO.OfficeLength.Points(125D), global::OfficeIMO.OfficeLength.Points(72D), global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(20D)))
             .ToBytes();
 
         PdfStaticFormRecognitionReport report = PdfDocument.Load(source).Forms.RecognizeStaticLayout();
@@ -438,9 +438,9 @@ public sealed partial class PdfStaticFormRecognizerTests {
         byte[] image = PdfPngTestImages.CreateRgbPng(20, 20);
         byte[] source = PdfDocument.Create(new PdfCreateOptions { PageWidth = global::OfficeIMO.OfficeLength.Points(400D), PageHeight = global::OfficeIMO.OfficeLength.Points(300D) })
             .Canvas(canvas => canvas
-                .Text("Name:", 20D, 28D, 70D, 20D)
-                .Shape(Box(140D, 20D), 100D, 28D)
-                .Image(image, 110D, 30D, 16D, 16D))
+                .Text("Name:", global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(28D), global::OfficeIMO.OfficeLength.Points(70D), global::OfficeIMO.OfficeLength.Points(20D))
+                .Shape(Box(140D, 20D), global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(28D))
+                .Image(image, global::OfficeIMO.OfficeLength.Points(110D), global::OfficeIMO.OfficeLength.Points(30D), global::OfficeIMO.OfficeLength.Points(16D), global::OfficeIMO.OfficeLength.Points(16D)))
             .ToBytes();
 
         PdfStaticFormRecognitionReport report = PdfDocument.Load(source).Forms.RecognizeStaticLayout();
@@ -458,12 +458,12 @@ public sealed partial class PdfStaticFormRecognizerTests {
         dot.StrokeColor = null;
         byte[] source = PdfDocument.Create(new PdfCreateOptions { PageWidth = global::OfficeIMO.OfficeLength.Points(400D), PageHeight = global::OfficeIMO.OfficeLength.Points(300D) })
             .Canvas(canvas => canvas
-                .Shape(Box(15D, 15D), 100D, 75D)
-                .Shape(mark, 101D, 76D)
-                .Text("First", 125D, 72D, 100D, 20D)
-                .Shape(Box(15D, 15D), 100D, 115D)
-                .Shape(dot, 106D, 121D)
-                .Text("Second", 125D, 112D, 100D, 20D))
+                .Shape(Box(15D, 15D), global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(75D))
+                .Shape(mark, global::OfficeIMO.OfficeLength.Points(101D), global::OfficeIMO.OfficeLength.Points(76D))
+                .Text("First", global::OfficeIMO.OfficeLength.Points(125D), global::OfficeIMO.OfficeLength.Points(72D), global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(20D))
+                .Shape(Box(15D, 15D), global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(115D))
+                .Shape(dot, global::OfficeIMO.OfficeLength.Points(106D), global::OfficeIMO.OfficeLength.Points(121D))
+                .Text("Second", global::OfficeIMO.OfficeLength.Points(125D), global::OfficeIMO.OfficeLength.Points(112D), global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(20D)))
             .ToBytes();
 
         PdfStaticFormRecognitionReport report = PdfDocument.Load(source).Forms.RecognizeStaticLayout();
@@ -478,8 +478,8 @@ public sealed partial class PdfStaticFormRecognizerTests {
         mark.FillColor = OfficeColor.Black;
         mark.StrokeColor = null;
         byte[] source = PdfDocument.Create(new PdfCreateOptions { PageWidth = global::OfficeIMO.OfficeLength.Points(400D), PageHeight = global::OfficeIMO.OfficeLength.Points(300D) })
-            .Canvas(canvas => canvas.Shape(Box(15D, 15D), 100D, 75D)
-                .Shape(mark, 107D, 78D).Text("I agree", 125D, 72D, 100D, 20D)).ToBytes();
+            .Canvas(canvas => canvas.Shape(Box(15D, 15D), global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(75D))
+                .Shape(mark, global::OfficeIMO.OfficeLength.Points(107D), global::OfficeIMO.OfficeLength.Points(78D)).Text("I agree", global::OfficeIMO.OfficeLength.Points(125D), global::OfficeIMO.OfficeLength.Points(72D), global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(20D))).ToBytes();
 
         PdfStaticFormRecognitionReport report = PdfDocument.Load(source).Forms.RecognizeStaticLayout();
 
@@ -499,8 +499,8 @@ public sealed partial class PdfStaticFormRecognizerTests {
         mark.FillColor = OfficeColor.White;
         mark.StrokeColor = null;
         byte[] source = PdfDocument.Create(new PdfCreateOptions { PageWidth = global::OfficeIMO.OfficeLength.Points(400D), PageHeight = global::OfficeIMO.OfficeLength.Points(300D) })
-            .Canvas(canvas => canvas.Shape(backdrop, 0D, 0D).Shape(box, 100D, 75D)
-                .Shape(mark, 107D, 78D)).ToBytes();
+            .Canvas(canvas => canvas.Shape(backdrop, global::OfficeIMO.OfficeLength.Points(0D), global::OfficeIMO.OfficeLength.Points(0D)).Shape(box, global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(75D))
+                .Shape(mark, global::OfficeIMO.OfficeLength.Points(107D), global::OfficeIMO.OfficeLength.Points(78D))).ToBytes();
         var label = new[] { new PdfStaticFormTextEvidence(1, "I agree", 125D, 72D, 225D, 92D, 1D) };
 
         PdfStaticFormRecognitionReport report = PdfDocument.Load(source).Forms.RecognizeStaticLayout(ocrText: label);
@@ -515,9 +515,9 @@ public sealed partial class PdfStaticFormRecognizerTests {
         mark.StrokeColor = OfficeColor.Black;
         byte[] source = PdfDocument.Create(new PdfCreateOptions { PageWidth = global::OfficeIMO.OfficeLength.Points(400D), PageHeight = global::OfficeIMO.OfficeLength.Points(300D) })
             .Canvas(canvas => canvas
-                .Shape(Box(15D, 15D), 100D, 75D)
-                .Shape(mark, 90D, 78D)
-                .Text("I agree", 125D, 72D, 100D, 20D))
+                .Shape(Box(15D, 15D), global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(75D))
+                .Shape(mark, global::OfficeIMO.OfficeLength.Points(90D), global::OfficeIMO.OfficeLength.Points(78D))
+                .Text("I agree", global::OfficeIMO.OfficeLength.Points(125D), global::OfficeIMO.OfficeLength.Points(72D), global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(20D)))
             .ToBytes();
 
         PdfStaticFormRecognitionReport report = PdfDocument.Load(source).Forms.RecognizeStaticLayout();
@@ -535,9 +535,9 @@ public sealed partial class PdfStaticFormRecognizerTests {
         field.FillColor = null;
         byte[] source = PdfDocument.Create(new PdfCreateOptions { PageWidth = global::OfficeIMO.OfficeLength.Points(400D), PageHeight = global::OfficeIMO.OfficeLength.Points(300D) })
             .Canvas(canvas => canvas
-                .Shape(backdrop, 0D, 0D)
-                .Text("Name:", 20D, 28D, 70D, 20D)
-                .Shape(field, 100D, 28D))
+                .Shape(backdrop, global::OfficeIMO.OfficeLength.Points(0D), global::OfficeIMO.OfficeLength.Points(0D))
+                .Text("Name:", global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(28D), global::OfficeIMO.OfficeLength.Points(70D), global::OfficeIMO.OfficeLength.Points(20D))
+                .Shape(field, global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(28D)))
             .ToBytes();
 
         PdfStaticFormRecognitionReport report = PdfDocument.Load(source).Forms.RecognizeStaticLayout();
@@ -553,8 +553,8 @@ public sealed partial class PdfStaticFormRecognizerTests {
         panel.FillColor = OfficeColor.Blue;
         panel.StrokeColor = null;
         byte[] source = PdfDocument.Create(new PdfCreateOptions { PageWidth = global::OfficeIMO.OfficeLength.Points(400D), PageHeight = global::OfficeIMO.OfficeLength.Points(300D) })
-            .Canvas(canvas => canvas.Text("Name:", 20D, 28D, 70D, 20D)
-                .Shape(field, 100D, 28D).Shape(panel, 95D, 35D)).ToBytes();
+            .Canvas(canvas => canvas.Text("Name:", global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(28D), global::OfficeIMO.OfficeLength.Points(70D), global::OfficeIMO.OfficeLength.Points(20D))
+                .Shape(field, global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(28D)).Shape(panel, global::OfficeIMO.OfficeLength.Points(95D), global::OfficeIMO.OfficeLength.Points(35D))).ToBytes();
 
         Assert.Empty(PdfDocument.Load(source).Forms.RecognizeStaticLayout().Proposals);
     }
@@ -567,8 +567,8 @@ public sealed partial class PdfStaticFormRecognizerTests {
         OfficeShape field = Box(140D, 20D);
         field.FillColor = null;
         byte[] source = PdfDocument.Create(new PdfCreateOptions { PageWidth = global::OfficeIMO.OfficeLength.Points(400D), PageHeight = global::OfficeIMO.OfficeLength.Points(300D) })
-            .Canvas(canvas => canvas.Text("Name:", 20D, 28D, 70D, 20D)
-                .Shape(panel, 95D, 35D).Shape(field, 100D, 28D)).ToBytes();
+            .Canvas(canvas => canvas.Text("Name:", global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(28D), global::OfficeIMO.OfficeLength.Points(70D), global::OfficeIMO.OfficeLength.Points(20D))
+                .Shape(panel, global::OfficeIMO.OfficeLength.Points(95D), global::OfficeIMO.OfficeLength.Points(35D)).Shape(field, global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(28D))).ToBytes();
 
         Assert.Empty(PdfDocument.Load(source).Forms.RecognizeStaticLayout().Proposals);
     }
@@ -581,8 +581,8 @@ public sealed partial class PdfStaticFormRecognizerTests {
         white.FillColor = OfficeColor.White;
         white.StrokeColor = null;
         byte[] source = PdfDocument.Create(new PdfCreateOptions { PageWidth = global::OfficeIMO.OfficeLength.Points(400D), PageHeight = global::OfficeIMO.OfficeLength.Points(300D) })
-            .Canvas(canvas => canvas.Text("Name:", 20D, 28D, 70D, 20D)
-                .Shape(field, 100D, 28D).Shape(white, 110D, 30D)).ToBytes();
+            .Canvas(canvas => canvas.Text("Name:", global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(28D), global::OfficeIMO.OfficeLength.Points(70D), global::OfficeIMO.OfficeLength.Points(20D))
+                .Shape(field, global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(28D)).Shape(white, global::OfficeIMO.OfficeLength.Points(110D), global::OfficeIMO.OfficeLength.Points(30D))).ToBytes();
 
         Assert.Single(PdfDocument.Load(source).Forms.RecognizeStaticLayout().Proposals);
     }
@@ -601,7 +601,7 @@ public sealed partial class PdfStaticFormRecognizerTests {
         OfficeShape box = Box(140D, 20D);
         box.StrokeColor = OfficeColor.White;
         byte[] source = PdfDocument.Create(new PdfCreateOptions { PageWidth = global::OfficeIMO.OfficeLength.Points(400D), PageHeight = global::OfficeIMO.OfficeLength.Points(300D) })
-            .Canvas(canvas => canvas.Text("Name:", 20D, 28D, 70D, 20D).Shape(box, 100D, 28D))
+            .Canvas(canvas => canvas.Text("Name:", global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(28D), global::OfficeIMO.OfficeLength.Points(70D), global::OfficeIMO.OfficeLength.Points(20D)).Shape(box, global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(28D)))
             .ToBytes();
 
         PdfStaticFormRecognitionReport report = PdfDocument.Load(source).Forms.RecognizeStaticLayout();
@@ -667,9 +667,9 @@ public sealed partial class PdfStaticFormRecognizerTests {
         mark.StrokeColor = OfficeColor.Black;
         byte[] source = PdfDocument.Create(new PdfCreateOptions { PageWidth = global::OfficeIMO.OfficeLength.Points(400D), PageHeight = global::OfficeIMO.OfficeLength.Points(300D) })
             .Canvas(canvas => canvas
-                .Shape(mark, 103D, 78D)
-                .Shape(Box(15D, 15D), 100D, 75D)
-                .Text("I agree", 125D, 72D, 100D, 20D))
+                .Shape(mark, global::OfficeIMO.OfficeLength.Points(103D), global::OfficeIMO.OfficeLength.Points(78D))
+                .Shape(Box(15D, 15D), global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(75D))
+                .Text("I agree", global::OfficeIMO.OfficeLength.Points(125D), global::OfficeIMO.OfficeLength.Points(72D), global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(20D)))
             .ToBytes();
 
         PdfStaticFormRecognitionReport report = PdfDocument.Load(source).Forms.RecognizeStaticLayout();
@@ -802,7 +802,7 @@ public sealed partial class PdfStaticFormRecognizerTests {
     [Fact]
     public void ExistingLinkAnnotationBlocksOverlappingProposal() {
         byte[] source = PdfDocument.Create(new PdfCreateOptions { PageWidth = global::OfficeIMO.OfficeLength.Points(400D), PageHeight = global::OfficeIMO.OfficeLength.Points(300D) })
-            .Canvas(canvas => canvas.Text("Name:", 20D, 28D, 70D, 20D).Shape(Box(140D, 20D), 100D, 28D))
+            .Canvas(canvas => canvas.Text("Name:", global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(28D), global::OfficeIMO.OfficeLength.Points(70D), global::OfficeIMO.OfficeLength.Points(20D)).Shape(Box(140D, 20D), global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(28D)))
             .ToBytes();
         PdfDocument annotated = PdfDocument.Load(source).Annotations.Add(new PdfAnnotationCreateOptions {
             Subtype = "Link", LinkUri = "https://example.com", Rectangle = new[] { 100D, 252D, 240D, 272D }
@@ -832,7 +832,7 @@ public sealed partial class PdfStaticFormRecognizerTests {
     [Fact]
     public void RightToLeftLabelsSuggestRightmostTabFirst() {
         byte[] source = PdfDocument.Create(new PdfCreateOptions { PageWidth = global::OfficeIMO.OfficeLength.Points(400), PageHeight = global::OfficeIMO.OfficeLength.Points(300) })
-            .Canvas(canvas => canvas.Shape(Box(80D, 20D), 70D, 80D).Shape(Box(80D, 20D), 250D, 80D))
+            .Canvas(canvas => canvas.Shape(Box(80D, 20D), global::OfficeIMO.OfficeLength.Points(70D), global::OfficeIMO.OfficeLength.Points(80D)).Shape(Box(80D, 20D), global::OfficeIMO.OfficeLength.Points(250D), global::OfficeIMO.OfficeLength.Points(80D)))
             .ToBytes();
         var labels = new[] {
             new PdfStaticFormTextEvidence(1, "\u05E9\u05DD", 70D, 45D, 140D, 65D, 1D),
@@ -848,7 +848,7 @@ public sealed partial class PdfStaticFormRecognizerTests {
     [Fact]
     public void RightToLeftTextFieldAcceptsLabelOnItsRight() {
         byte[] source = PdfDocument.Create(new PdfCreateOptions { PageWidth = global::OfficeIMO.OfficeLength.Points(400D), PageHeight = global::OfficeIMO.OfficeLength.Points(300D) })
-            .Canvas(canvas => canvas.Shape(Box(140D, 20D), 80D, 80D)).ToBytes();
+            .Canvas(canvas => canvas.Shape(Box(140D, 20D), global::OfficeIMO.OfficeLength.Points(80D), global::OfficeIMO.OfficeLength.Points(80D))).ToBytes();
         var labels = new[] { new PdfStaticFormTextEvidence(1, "\u05E9\u05DD", 230D, 80D, 300D, 100D, 1D) };
 
         PdfStaticFormRecognitionReport report = PdfDocument.Load(source).Forms.RecognizeStaticLayout(ocrText: labels);
@@ -882,10 +882,10 @@ public sealed partial class PdfStaticFormRecognizerTests {
         OfficeShape checkBox = Box(15D, 15D);
         return PdfDocument.Create(new PdfCreateOptions { PageWidth = global::OfficeIMO.OfficeLength.Points(400), PageHeight = global::OfficeIMO.OfficeLength.Points(300) })
             .Canvas(canvas => canvas
-                .Text("Name:", 20D, 28D, 70D, 20D)
-                .Shape(textBox, 100D, 28D)
-                .Shape(checkBox, 100D, 75D)
-                .Text("I agree", 125D, 72D, 100D, 20D))
+                .Text("Name:", global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(28D), global::OfficeIMO.OfficeLength.Points(70D), global::OfficeIMO.OfficeLength.Points(20D))
+                .Shape(textBox, global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(28D))
+                .Shape(checkBox, global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(75D))
+                .Text("I agree", global::OfficeIMO.OfficeLength.Points(125D), global::OfficeIMO.OfficeLength.Points(72D), global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(20D)))
             .ToBytes();
     }
 

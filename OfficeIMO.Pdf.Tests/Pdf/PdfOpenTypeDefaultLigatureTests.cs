@@ -145,7 +145,7 @@ public class PdfOpenTypeDefaultLigatureTests {
     public void RedactingOneOrdinaryCharacterPreservesOtherCharactersInWord() {
         byte[] data = ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs(' ', 'A', 'a', 'h', 'l', 'p');
         byte[] pdf = PdfDocument.Create(new PdfCreateOptions { CompressContentStreams = false }.EmbedStandardFont(PdfStandardFont.Helvetica, data, "Test"))
-            .Canvas(c => c.Text("Alpha", 40, 40, 200, 30, fontSize: 12)).ToBytes();
+            .Canvas(c => c.Text("Alpha", global::OfficeIMO.OfficeLength.Points(40), global::OfficeIMO.OfficeLength.Points(40), global::OfficeIMO.OfficeLength.Points(200), global::OfficeIMO.OfficeLength.Points(30), fontSize: global::OfficeIMO.OfficeLength.Points(12))).ToBytes();
         using var reader = UglyToad.PdfPig.PdfDocument.Open(pdf);
         var target = reader.GetPage(1).Letters.Single(letter => letter.Value == "p").BoundingBox;
         byte[] redacted = PdfRedactionApplier.Apply(pdf, new[] { new PdfRedactionArea(1,
@@ -304,7 +304,7 @@ public class PdfOpenTypeDefaultLigatureTests {
     public void RedactingMixedWhitespaceLigaturePreservesFollowingWord() {
         byte[] data = ManagedTextShapingTestAssets.CreateMixedWhitespaceLigatureFont();
         byte[] pdf = PdfDocument.Create(new PdfCreateOptions { CompressContentStreams = false }.EmbedStandardFont(PdfStandardFont.Helvetica, data, "Test"))
-            .Canvas(canvas => canvas.Text("A B", 40, 40, 200, 30, fontSize: 12)).ToBytes();
+            .Canvas(canvas => canvas.Text("A B", global::OfficeIMO.OfficeLength.Points(40), global::OfficeIMO.OfficeLength.Points(40), global::OfficeIMO.OfficeLength.Points(200), global::OfficeIMO.OfficeLength.Points(30), fontSize: global::OfficeIMO.OfficeLength.Points(12))).ToBytes();
         var spans = PdfReadDocument.Open(pdf).Pages[0].GetTextSpans();
         var first = spans.First(span => span.Text.Contains("A"));
         Assert.Contains("B", PdfTextExtractor.ExtractAllText(pdf));

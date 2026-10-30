@@ -35,7 +35,7 @@ public static partial class PowerPointPdfConverterExtensions {
             if (runs.Count == 0 || runs.All(run => string.IsNullOrEmpty(run.Text))) {
                 string? family = ReadRunFontName(cell, sources) ?? fallbackFontFamily;
                 runs.Clear();
-                runs.Add(new PdfCore.PdfTextRun(string.Empty, fontSize: fontSize, font: MapFont(family), fontFamily: family));
+                runs.Add(new PdfCore.PdfTextRun(string.Empty, fontSize: global::OfficeIMO.OfficeLength.Points(fontSize), font: MapFont(family), fontFamily: family));
             }
             PdfCore.PdfLineSpacing lineSpacing = wrapped.LineSpacing?.ToPoints() is double points
                 ? PdfCore.PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(Math.Max(1D, points)))

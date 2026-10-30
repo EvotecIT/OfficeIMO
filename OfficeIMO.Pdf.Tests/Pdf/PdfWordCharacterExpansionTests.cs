@@ -17,11 +17,11 @@ namespace OfficeIMO.Tests.Pdf {
             double adjustment, double firstLetterDelta, double middleLetterDelta, double lastLetterDelta,
             double firstSpaceDelta, double secondSpaceDelta) {
             var runs = new[] {
-                new PdfTextRun("AB", fontFamily: "Small Average", fontSize: 12D),
-                new PdfTextRun(" ", fontFamily: "Small Average", fontSize: 8D),
-                new PdfTextRun("CD", fontFamily: "Large Average", fontSize: 16D).WithHorizontalTextScaling(75D),
-                new PdfTextRun(" ", fontFamily: "Small Average", fontSize: 16D),
-                new PdfTextRun("EF", fontFamily: "Small Average", fontSize: 12D)
+                new PdfTextRun("AB", fontFamily: "Small Average", fontSize: global::OfficeIMO.OfficeLength.Points(12D)),
+                new PdfTextRun(" ", fontFamily: "Small Average", fontSize: global::OfficeIMO.OfficeLength.Points(8D)),
+                new PdfTextRun("CD", fontFamily: "Large Average", fontSize: global::OfficeIMO.OfficeLength.Points(16D)).WithHorizontalTextScaling(75D),
+                new PdfTextRun(" ", fontFamily: "Small Average", fontSize: global::OfficeIMO.OfficeLength.Points(16D)),
+                new PdfTextRun("EF", fontFamily: "Small Average", fontSize: global::OfficeIMO.OfficeLength.Points(12D))
             };
             Letter[] natural = Read(Render(runs, 200D, distributed: false), caseName + "-natural");
             double width = Span(natural) + adjustment;
@@ -44,14 +44,14 @@ namespace OfficeIMO.Tests.Pdf {
             string? smallAverage = embedded ? "Small Average" : null;
             string? largeAverage = embedded ? "Large Average" : null;
             var controlRuns = new[] {
-                new PdfTextRun("AB", fontFamily: smallAverage, fontSize: 12D),
-                new PdfTextRun(" ", fontFamily: smallAverage, fontSize: 8D),
-                new PdfTextRun("CD", fontFamily: largeAverage, fontSize: 16D).WithHorizontalTextScaling(75D),
-                new PdfTextRun(" ", fontFamily: smallAverage, fontSize: 16D),
-                new PdfTextRun("EF", fontFamily: smallAverage, fontSize: 12D)
+                new PdfTextRun("AB", fontFamily: smallAverage, fontSize: global::OfficeIMO.OfficeLength.Points(12D)),
+                new PdfTextRun(" ", fontFamily: smallAverage, fontSize: global::OfficeIMO.OfficeLength.Points(8D)),
+                new PdfTextRun("CD", fontFamily: largeAverage, fontSize: global::OfficeIMO.OfficeLength.Points(16D)).WithHorizontalTextScaling(75D),
+                new PdfTextRun(" ", fontFamily: smallAverage, fontSize: global::OfficeIMO.OfficeLength.Points(16D)),
+                new PdfTextRun("EF", fontFamily: smallAverage, fontSize: global::OfficeIMO.OfficeLength.Points(12D))
             };
             var optionalBreakRuns = (PdfTextRun[])controlRuns.Clone();
-            optionalBreakRuns[2] = new PdfTextRun("C\u200BD", fontFamily: largeAverage, fontSize: 16D)
+            optionalBreakRuns[2] = new PdfTextRun("C\u200BD", fontFamily: largeAverage, fontSize: global::OfficeIMO.OfficeLength.Points(16D))
                 .WithHorizontalTextScaling(75D);
             string label = "optional-break-" + (embedded ? "embedded" : "standard");
             Letter[] natural = Read(Render(controlRuns, 200D, distributed: false), label + "-natural");
@@ -73,8 +73,8 @@ namespace OfficeIMO.Tests.Pdf {
         [Fact]
         public void UnavailableSourceAverageLeavesItsGlyphBoundariesForResidualOnly() {
             var runs = new[] {
-                new PdfTextRun("AB", fontFamily: "Small Average", fontSize: 12D),
-                new PdfTextRun("CD", fontFamily: "Unavailable Average", fontSize: 12D)
+                new PdfTextRun("AB", fontFamily: "Small Average", fontSize: global::OfficeIMO.OfficeLength.Points(12D)),
+                new PdfTextRun("CD", fontFamily: "Unavailable Average", fontSize: global::OfficeIMO.OfficeLength.Points(12D))
             };
             Letter[] natural = Read(Render(runs, 200D, distributed: false), "missing-natural");
             Letter[] actual = Read(Render(runs, Span(natural) + 0.15D, distributed: true), "missing-actual");
@@ -92,8 +92,8 @@ namespace OfficeIMO.Tests.Pdf {
             string cffPath = Assert.IsType<string>(PdfComplianceTestFonts.FindBundledOpenTypeCffFont());
             byte[] cff = File.ReadAllBytes(cffPath);
             var runs = new[] {
-                new PdfTextRun("AB", fontFamily: "Cff Average", fontSize: 16D),
-                new PdfTextRun("CD", fontFamily: "Small Average", fontSize: 12D)
+                new PdfTextRun("AB", fontFamily: "Cff Average", fontSize: global::OfficeIMO.OfficeLength.Points(16D)),
+                new PdfTextRun("CD", fontFamily: "Small Average", fontSize: global::OfficeIMO.OfficeLength.Points(12D))
             };
             // The bundled SourceSerif4 OS/2 xAvg is 558 with UPEM 1000;
             // the synthetic TrueType average is 400 with UPEM 1000.

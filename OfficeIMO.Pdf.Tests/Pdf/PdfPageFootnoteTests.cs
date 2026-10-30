@@ -25,7 +25,7 @@ public partial class PdfPageFootnoteTests {
         var note = content.DefineFootnote(body => {
             for (int index = 0; index < 3; index++) body.Text("NoteFragment" + index, style: Style());
         });
-        content.Spacer(70).Paragraph(p => p.Text("Reference").Runs(new[] { PdfTextRun.Superscript("1").WithFootnoteReference(note) }), style: Style());
+        content.Spacer(global::OfficeIMO.OfficeLength.Points(70)).Paragraph(p => p.Text("Reference").Runs(new[] { PdfTextRun.Superscript("1").WithFootnoteReference(note) }), style: Style());
         content.Text("FollowingBody", style: Style());
         using var pdf = PdfPigDocument.Open(new MemoryStream(doc.ToBytes()));
         Assert.Equal(2, pdf.NumberOfPages);
@@ -64,7 +64,7 @@ public partial class PdfPageFootnoteTests {
     public void ReferenceMovesWithItsNoteWhenFirstFragmentDoesNotFit() {
         var doc = PdfDocument.Create(Options());
         var note = doc.Content.DefineFootnote(body => body.Text("FootnoteText", style: Style()));
-        doc.Content.Text("PriorBody", style: Style()).Spacer(75);
+        doc.Content.Text("PriorBody", style: Style()).Spacer(global::OfficeIMO.OfficeLength.Points(75));
         doc.Content.Paragraph(p => p.Runs(new[] { PdfTextRun.Normal("Reference").WithFootnoteReference(note) }), style: Style());
         using var pdf = PdfPigDocument.Open(new MemoryStream(doc.ToBytes()));
         Assert.Equal(2, pdf.NumberOfPages);
@@ -78,7 +78,7 @@ public partial class PdfPageFootnoteTests {
     public void EmptyReferencePreservesAssociationWithoutVisibleReplacementAndSerializesRepeatedly() {
         var doc = PdfDocument.Create(Options());
         var note = doc.Content.DefineFootnote(body => body.Text("AssociatedNote", style: Style()));
-        doc.Content.Paragraph(p => p.Text("BodyText").Runs(new[] { PdfTextRun.Normal("").WithFootnoteReference(note).WithCharacterSpacing(1).WithTextCase(OfficeIMO.Drawing.OfficeTextCase.Uppercase) }), style: Style());
+        doc.Content.Paragraph(p => p.Text("BodyText").Runs(new[] { PdfTextRun.Normal("").WithFootnoteReference(note).WithCharacterSpacing(global::OfficeIMO.OfficeLength.Points(1)).WithTextCase(OfficeIMO.Drawing.OfficeTextCase.Uppercase) }), style: Style());
         foreach (byte[] bytes in new[] { doc.ToBytes(), doc.ToBytes() }) {
             using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
             Assert.Single(pdf.GetPages());

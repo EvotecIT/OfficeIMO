@@ -22,10 +22,10 @@ public sealed class PdfTableTextReuseTests {
             style.FontSize = global::OfficeIMO.OfficeLength.Points(10);
             style.CellPaddingX = style.CellPaddingY = global::OfficeIMO.OfficeLength.Points(0);
             style.ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(100), global::OfficeIMO.OfficeLength.Points(100), global::OfficeIMO.OfficeLength.Points(100) };
-            PdfTextRun Plain() => PdfTextRun.Normal("AB", fontSize: explicitSize ? 10 : null);
+            PdfTextRun Plain() => PdfTextRun.Normal("AB", fontSize: explicitSize ? OfficeLength.Points(10) : (OfficeLength?)null);
             PdfTextRun styled = horizontalScaling
                 ? Plain().WithHorizontalTextScaling(150)
-                : Plain().WithCharacterSpacing(10);
+                : Plain().WithCharacterSpacing(global::OfficeIMO.OfficeLength.Points(10));
             var rows = new[] { new[] {
                 new PdfTableCell(new[] { Plain() }),
                 new PdfTableCell(new[] { styled }),
@@ -69,7 +69,7 @@ public sealed class PdfTableTextReuseTests {
             style.AutoFitWidthUsesContentMinimum = true;
             var rows = Enumerable.Range(0, 3).Select(index => new[] {
                 new PdfTableCell(new[] { PdfTextRun.Normal("Alpha beta gamma delta epsilon",
-                    fontSize: explicitSize ? 10 : null) }).WithNoWrap(),
+                    fontSize: ((double?)(explicitSize ? 10 : null) is double physicalLength3 ? global::OfficeIMO.OfficeLength.Points(physicalLength3) : (global::OfficeIMO.OfficeLength?)null)) }).WithNoWrap(),
                 new PdfTableCell("R" + index.ToString("D3"))
             }).ToArray();
             PdfDocument document = PdfDocument.Create(options);
@@ -110,9 +110,9 @@ public sealed class PdfTableTextReuseTests {
             style.SpacingAfter = global::OfficeIMO.OfficeLength.Points(0);
             style.ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(35), null };
             var rows = Enumerable.Range(0, 18).Select(index => new[] {
-                new PdfTableCell(new[] { PdfTextRun.Normal("R" + index.ToString("D3"), fontSize: explicitSize ? 10 : null) }),
+                new PdfTableCell(new[] { PdfTextRun.Normal("R" + index.ToString("D3"), fontSize: ((double?)(explicitSize ? 10 : null) is double physicalLength4 ? global::OfficeIMO.OfficeLength.Points(physicalLength4) : (global::OfficeIMO.OfficeLength?)null)) }),
                 new PdfTableCell(new[] { PdfTextRun.Normal("Alpha beta gamma delta epsilon zeta eta theta iota kappa lambda mu nu xi omicron pi rho sigma tau",
-                    fontSize: explicitSize ? 10 : null) })
+                    fontSize: ((double?)(explicitSize ? 10 : null) is double physicalLength5 ? global::OfficeIMO.OfficeLength.Points(physicalLength5) : (global::OfficeIMO.OfficeLength?)null)) })
             }).ToArray();
             return PdfDocument.Create(options).Columns(content => content.Table(rows, style: style),
                 new PdfMultiColumnOptions {
@@ -191,7 +191,7 @@ public sealed class PdfTableTextReuseTests {
                 double contentWidth = 70 * (columnIndex + 1);
                 double offset = rowIndex < 2 ? 0 : Math.Min(70, contentWidth - 70);
                 cells[columnIndex] = new PdfTableCell(new[] {
-                    PdfTextRun.Normal("Alpha beta gamma delta epsilon zeta", fontSize: explicitSize ? 10 : null)
+                    PdfTextRun.Normal("Alpha beta gamma delta epsilon zeta", fontSize: ((double?)(explicitSize ? 10 : null) is double physicalLength6 ? global::OfficeIMO.OfficeLength.Points(physicalLength6) : (global::OfficeIMO.OfficeLength?)null))
                 }).WithViewport(new PdfTableCellViewport(contentWidth, 120, 70, 120, offsetX: offset));
             }
             rows.Add(cells);
@@ -227,7 +227,7 @@ public sealed class PdfTableTextReuseTests {
             double size = index == 0 ? 12 : index == count - 1 ? 8 : 10;
             string text = lineBreaks == null ? "Alpha beta gamma delta" : "alphaomegabetagamma";
             PdfTableCell Cell(string value, bool noWrap = false) =>
-                new PdfTableCell(new[] { PdfTextRun.Normal(value, fontSize: explicitSize ? size : null) }).WithNoWrap(noWrap);
+                new PdfTableCell(new[] { PdfTextRun.Normal(value, fontSize: ((double?)(explicitSize ? size : null) is double physicalLength7 ? global::OfficeIMO.OfficeLength.Points(physicalLength7) : (global::OfficeIMO.OfficeLength?)null)) }).WithNoWrap(noWrap);
             rows.Add(new[] { Cell(text, index % 3 == 0), Cell(text), Cell("R" + index.ToString("D3")) });
         }
         PdfDocument document = PdfDocument.Create(options);

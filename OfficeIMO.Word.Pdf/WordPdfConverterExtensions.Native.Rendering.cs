@@ -629,8 +629,8 @@ namespace OfficeIMO.Word.Pdf {
             IReadOnlyDictionary<DocumentFormat.OpenXml.OpenXmlElement, PdfCore.PdfTextRun>? inlineImages = null) {
             if (needsAnchorLine) {
                 // An image-only paragraph still participates in pagination and decoration.
-                builder.FontSize(ResolveNativeParagraphFontSize(paragraph,
-                    nativeDefaults, GetNativeParagraphStyleDefaults(paragraph))).LineBreak();
+                builder.FontSize(global::OfficeIMO.OfficeLength.Points(ResolveNativeParagraphFontSize(paragraph,
+                    nativeDefaults, GetNativeParagraphStyleDefaults(paragraph)))).LineBreak();
                 return;
             }
             if (marker != null && !string.IsNullOrEmpty(marker.Value.Marker)) {
@@ -757,7 +757,7 @@ namespace OfficeIMO.Word.Pdf {
 
         private static void AddNativeInlineListMarkerSpacer(PdfCore.PdfParagraphBuilder builder, double width) {
             if (width > 0.01D) {
-                builder.InlineBox(width, 0.01D, borderWidth: 0D);
+                builder.InlineBox(global::OfficeIMO.OfficeLength.Points(width), global::OfficeIMO.OfficeLength.Points(0.01D), borderWidth: global::OfficeIMO.OfficeLength.Points(0D));
             }
         }
 
@@ -1456,7 +1456,7 @@ namespace OfficeIMO.Word.Pdf {
                 color: style.Color,
                 italic: style.Italic,
                 strike: style.Strike,
-                fontSize: style.FontSize,
+                fontSize: ((double?)(style.FontSize) is double physicalLength5 ? global::OfficeIMO.OfficeLength.Points(physicalLength5) : (global::OfficeIMO.OfficeLength?)null),
                 font: style.Font,
                 linkUri: linkUri,
                 linkContents: contents,

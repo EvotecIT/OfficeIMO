@@ -39,8 +39,8 @@ namespace OfficeIMO.Excel.Pdf {
                 }
                 double x = sceneX + cell.X * scale;
                 double y = sceneY + cell.Y * scale;
-                canvas.Clip(x, y, cell.Width * scale, cell.Height * scale, clipped =>
-                    clipped.Artifact(artifact => artifact.Drawing(drawing, x + bounds.X, y + bounds.Y, bounds.Size, bounds.Size)));
+                canvas.Clip(global::OfficeIMO.OfficeLength.Points(x), global::OfficeIMO.OfficeLength.Points(y), global::OfficeIMO.OfficeLength.Points(cell.Width * scale), global::OfficeIMO.OfficeLength.Points(cell.Height * scale), clipped =>
+                    clipped.Artifact(artifact => artifact.Drawing(drawing, global::OfficeIMO.OfficeLength.Points(x + bounds.X), global::OfficeIMO.OfficeLength.Points(y + bounds.Y), global::OfficeIMO.OfficeLength.Points(bounds.Size), global::OfficeIMO.OfficeLength.Points(bounds.Size))));
             }
         }
 

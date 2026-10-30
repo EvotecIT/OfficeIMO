@@ -35,10 +35,10 @@ public partial class PdfDocumentVisualQualityTests {
                 lineHeight: 11D)
             .HighlightAnnotation("Flow highlight", width: 120, height: 12, color: global::OfficeIMO.OfficeColor.FromNormalizedRgb(1D, 0.9D, 0.1D))
             .Canvas(canvas => canvas
-                .Text("Canvas text", 72, 120, 120, 28)
-                .TextAnnotation("Canvas note", 200, 120, 20, 20, PdfTextAnnotationIcon.Help, global::OfficeIMO.OfficeColor.FromNormalizedRgb(0D, 0.5D, 1D))
-                .FreeTextAnnotation("Canvas free text wraps as a right aligned reviewer callout", 72, 170, 150, 48, borderColor: global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.2D, 0.4D, 0.8D), fillColor: global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.95D, 0.98D, 1D), textAlign: PdfAlign.Right, padding: 5D, lineHeight: 12D)
-                .HighlightAnnotation("Canvas highlight", 72, 220, 120, 14, global::OfficeIMO.OfficeColor.FromNormalizedRgb(1D, 0.9D, 0.1D)))
+                .Text("Canvas text", global::OfficeIMO.OfficeLength.Points(72), global::OfficeIMO.OfficeLength.Points(120), global::OfficeIMO.OfficeLength.Points(120), global::OfficeIMO.OfficeLength.Points(28))
+                .TextAnnotation("Canvas note", global::OfficeIMO.OfficeLength.Points(200), global::OfficeIMO.OfficeLength.Points(120), global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(20), PdfTextAnnotationIcon.Help, global::OfficeIMO.OfficeColor.FromNormalizedRgb(0D, 0.5D, 1D))
+                .FreeTextAnnotation("Canvas free text wraps as a right aligned reviewer callout", global::OfficeIMO.OfficeLength.Points(72), global::OfficeIMO.OfficeLength.Points(170), global::OfficeIMO.OfficeLength.Points(150), global::OfficeIMO.OfficeLength.Points(48), borderColor: global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.2D, 0.4D, 0.8D), fillColor: global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.95D, 0.98D, 1D), textAlign: PdfAlign.Right, padding: global::OfficeIMO.OfficeLength.Points(5D), lineHeight: OfficeLength.Inches(1D / 6D))
+                .HighlightAnnotation("Canvas highlight", global::OfficeIMO.OfficeLength.Points(72), global::OfficeIMO.OfficeLength.Points(220), global::OfficeIMO.OfficeLength.Points(120), global::OfficeIMO.OfficeLength.Points(14), global::OfficeIMO.OfficeColor.FromNormalizedRgb(1D, 0.9D, 0.1D)))
             .ToBytes();
 
         string pdf = PdfTestContentText.ReadDecoded(bytes);
@@ -889,14 +889,14 @@ public partial class PdfDocumentVisualQualityTests {
         Assert.Throws<ArgumentOutOfRangeException>(() => PdfDocument.Create().FreeTextAnnotation("note", 120, 20, lineHeight: 0));
         Assert.Throws<ArgumentOutOfRangeException>(() => PdfDocument.Create().HighlightAnnotation("note", 0, 20));
         Assert.Throws<ArgumentException>(() => PdfDocument.Create().HighlightAnnotation("note", 120, 20, align: PdfAlign.Justify));
-        Assert.Throws<ArgumentException>(() => PdfDocument.Create().Canvas(canvas => canvas.TextAnnotation(" ", 10, 10)));
-        Assert.Throws<ArgumentOutOfRangeException>(() => PdfDocument.Create().Canvas(canvas => canvas.TextAnnotation("note", 10, 10, width: 0)));
-        Assert.Throws<ArgumentException>(() => PdfDocument.Create().Canvas(canvas => canvas.FreeTextAnnotation(" ", 10, 10, 120, 20)));
-        Assert.Throws<ArgumentOutOfRangeException>(() => PdfDocument.Create().Canvas(canvas => canvas.FreeTextAnnotation("note", 10, 10, 0, 20)));
-        Assert.Throws<ArgumentException>(() => PdfDocument.Create().Canvas(canvas => canvas.FreeTextAnnotation("note", 10, 10, 120, 20, textAlign: PdfAlign.Justify)));
-        Assert.Throws<ArgumentOutOfRangeException>(() => PdfDocument.Create().Canvas(canvas => canvas.FreeTextAnnotation("note", 10, 10, 120, 20, padding: -1)));
-        Assert.Throws<ArgumentOutOfRangeException>(() => PdfDocument.Create().Canvas(canvas => canvas.FreeTextAnnotation("note", 10, 10, 120, 20, lineHeight: 0)));
-        Assert.Throws<ArgumentOutOfRangeException>(() => PdfDocument.Create().Canvas(canvas => canvas.HighlightAnnotation("note", 10, 10, 0, 20)));
+        Assert.Throws<ArgumentException>(() => PdfDocument.Create().Canvas(canvas => canvas.TextAnnotation(" ", global::OfficeIMO.OfficeLength.Points(10), global::OfficeIMO.OfficeLength.Points(10))));
+        Assert.Throws<ArgumentOutOfRangeException>(() => PdfDocument.Create().Canvas(canvas => canvas.TextAnnotation("note", global::OfficeIMO.OfficeLength.Points(10), global::OfficeIMO.OfficeLength.Points(10), width: global::OfficeIMO.OfficeLength.Points(0))));
+        Assert.Throws<ArgumentException>(() => PdfDocument.Create().Canvas(canvas => canvas.FreeTextAnnotation(" ", global::OfficeIMO.OfficeLength.Points(10), global::OfficeIMO.OfficeLength.Points(10), global::OfficeIMO.OfficeLength.Points(120), global::OfficeIMO.OfficeLength.Points(20))));
+        Assert.Throws<ArgumentOutOfRangeException>(() => PdfDocument.Create().Canvas(canvas => canvas.FreeTextAnnotation("note", global::OfficeIMO.OfficeLength.Points(10), global::OfficeIMO.OfficeLength.Points(10), global::OfficeIMO.OfficeLength.Points(0), global::OfficeIMO.OfficeLength.Points(20))));
+        Assert.Throws<ArgumentException>(() => PdfDocument.Create().Canvas(canvas => canvas.FreeTextAnnotation("note", global::OfficeIMO.OfficeLength.Points(10), global::OfficeIMO.OfficeLength.Points(10), global::OfficeIMO.OfficeLength.Points(120), global::OfficeIMO.OfficeLength.Points(20), textAlign: PdfAlign.Justify)));
+        Assert.Throws<ArgumentOutOfRangeException>(() => PdfDocument.Create().Canvas(canvas => canvas.FreeTextAnnotation("note", global::OfficeIMO.OfficeLength.Points(10), global::OfficeIMO.OfficeLength.Points(10), global::OfficeIMO.OfficeLength.Points(120), global::OfficeIMO.OfficeLength.Points(20), padding: global::OfficeIMO.OfficeLength.Points(-1))));
+        Assert.Throws<ArgumentOutOfRangeException>(() => PdfDocument.Create().Canvas(canvas => canvas.FreeTextAnnotation("note", global::OfficeIMO.OfficeLength.Points(10), global::OfficeIMO.OfficeLength.Points(10), global::OfficeIMO.OfficeLength.Points(120), global::OfficeIMO.OfficeLength.Points(20), lineHeight: OfficeLength.Zero)));
+        Assert.Throws<ArgumentOutOfRangeException>(() => PdfDocument.Create().Canvas(canvas => canvas.HighlightAnnotation("note", global::OfficeIMO.OfficeLength.Points(10), global::OfficeIMO.OfficeLength.Points(10), global::OfficeIMO.OfficeLength.Points(0), global::OfficeIMO.OfficeLength.Points(20))));
     }
 
     private static int CountTextAnnotationOccurrences(string pdf) {

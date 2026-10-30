@@ -1094,7 +1094,7 @@ public partial class Word {
         Assert.Equal(new[] { "Monospace VML text", "\n", "Next line" }, runs.Select(run => run.Text));
         Assert.All(runs, run => {
             Assert.Equal(PdfStandardFont.Courier, run.Font);
-            Assert.Equal(16D, run.FontSize);
+            Assert.Equal(16D, (run.FontSize?.ToPoints()));
         });
     }
 
@@ -1127,7 +1127,7 @@ public partial class Word {
         Assert.False(plain.Underline);
         PdfTextRun textPath = Assert.Single(runs, run => run.Text == "TextPath cover label");
         Assert.Equal(PdfStandardFont.Courier, textPath.Font);
-        Assert.Equal(18D, textPath.FontSize);
+        Assert.Equal(18D, (textPath.FontSize?.ToPoints()));
     }
 
     [Fact]

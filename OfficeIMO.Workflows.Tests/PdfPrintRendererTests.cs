@@ -13,7 +13,7 @@ public sealed class PdfPrintRendererTests {
         stripe.FillColor = OfficeColor.Blue; stripe.StrokeWidth = 0;
         PdfDocument document = PdfDocument.Create(new PdfCreateOptions {
             PageWidth = global::OfficeIMO.OfficeLength.Points(100), PageHeight = global::OfficeIMO.OfficeLength.Points(100), MarginLeft = global::OfficeIMO.OfficeLength.Points(0), MarginRight = global::OfficeIMO.OfficeLength.Points(0), MarginTop = global::OfficeIMO.OfficeLength.Points(0), MarginBottom = global::OfficeIMO.OfficeLength.Points(0)
-        }).Canvas(canvas => canvas.Shape(background, 0, 0).Shape(stripe, 80, 0));
+        }).Canvas(canvas => canvas.Shape(background, global::OfficeIMO.OfficeLength.Points(0), global::OfficeIMO.OfficeLength.Points(0)).Shape(stripe, global::OfficeIMO.OfficeLength.Points(80), global::OfficeIMO.OfficeLength.Points(0)));
         PdfPreparedPrintDocument prepared = PdfPrintRenderer.Prepare(document, new() {
             InputPath = "snapshot.pdf", PaperSize = new PdfPageSize(OfficeIMO.OfficeLength.Points(150),OfficeIMO.OfficeLength.Points(180)), Margin = 10,
             ScaleMode = PdfPrintScaleMode.Custom, CustomScalePercent = 250, Alignment = alignment
@@ -35,7 +35,7 @@ public sealed class PdfPrintRendererTests {
         marker.StrokeWidth = 0;
         PdfDocument document = PdfDocument.Create(new PdfCreateOptions {
             PageWidth = global::OfficeIMO.OfficeLength.Points(100), PageHeight = global::OfficeIMO.OfficeLength.Points(100), MarginLeft = global::OfficeIMO.OfficeLength.Points(0), MarginRight = global::OfficeIMO.OfficeLength.Points(0), MarginTop = global::OfficeIMO.OfficeLength.Points(0), MarginBottom = global::OfficeIMO.OfficeLength.Points(0)
-        }).Canvas(canvas => canvas.Shape(marker, 0, 0));
+        }).Canvas(canvas => canvas.Shape(marker, global::OfficeIMO.OfficeLength.Points(0), global::OfficeIMO.OfficeLength.Points(0)));
         byte[] source = document.ToBytes();
         var request = new PdfPrintPlanRequest {
             InputPath = "snapshot.pdf", PaperSize = new PdfPageSize(OfficeIMO.OfficeLength.Points(200),OfficeIMO.OfficeLength.Points(200)), Margin = 10,
@@ -64,7 +64,7 @@ public sealed class PdfPrintRendererTests {
         marker.StrokeWidth = 0;
         PdfDocument document = PdfDocument.Create(new PdfCreateOptions {
             PageWidth = global::OfficeIMO.OfficeLength.Points(200), PageHeight = global::OfficeIMO.OfficeLength.Points(300), MarginLeft = global::OfficeIMO.OfficeLength.Points(0), MarginRight = global::OfficeIMO.OfficeLength.Points(0), MarginTop = global::OfficeIMO.OfficeLength.Points(0), MarginBottom = global::OfficeIMO.OfficeLength.Points(0)
-        }).Canvas(canvas => canvas.Shape(marker, 20, 20));
+        }).Canvas(canvas => canvas.Shape(marker, global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(20)));
         // A multi-channel gradient keeps more than 256 colors after placement, so the
         // encoder cannot replace RGB scanlines with a compact exact palette.
         // This sheet fits the pixel budget, but its RGB scanlines and decoded RGBA output
@@ -96,7 +96,7 @@ public sealed class PdfPrintRendererTests {
         PdfDocument document = PdfDocument.Create(new PdfCreateOptions {
             PageWidth = global::OfficeIMO.OfficeLength.Points(72), PageHeight = global::OfficeIMO.OfficeLength.Points(72), MarginLeft = global::OfficeIMO.OfficeLength.Points(0), MarginRight = global::OfficeIMO.OfficeLength.Points(0), MarginTop = global::OfficeIMO.OfficeLength.Points(0), MarginBottom = global::OfficeIMO.OfficeLength.Points(0)
         })
-            .Canvas(canvas => canvas.Shape(stripe, 30, 0));
+            .Canvas(canvas => canvas.Shape(stripe, global::OfficeIMO.OfficeLength.Points(30), global::OfficeIMO.OfficeLength.Points(0)));
         PdfPreparedPrintDocument prepared = PdfPrintRenderer.Prepare(document,
             new PdfPrintPlanRequest { InputPath = "snapshot.pdf", PaperSize = new PdfPageSize(OfficeIMO.OfficeLength.Points(720),OfficeIMO.OfficeLength.Points(720)), Margin = 0, ScaleMode = mode },
             new PdfPrintRenderOptions { Dpi = 72, MaximumPixelsPerImage = 1_000_000 });

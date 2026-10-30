@@ -10,7 +10,7 @@ namespace OfficeIMO.Examples.Pdf {
             PdfDocument.Create(pdf => pdf.Content(content => content
                 .H1("Drawing Gallery", PdfAlign.Left, global::OfficeIMO.OfficeColor.FromRgb(25, 55, 85))
                 .Paragraph(p => p.Text("A visual baseline for shared OfficeIMO.Drawing vector descriptors rendered by the dependency-free PDF engine."))
-                .Drawing(CreateDrawingScene(), PdfAlign.Center, spacingBefore: 8, spacingAfter: 10)
+                .Drawing(CreateDrawingScene(), PdfAlign.Center, spacingBefore: global::OfficeIMO.OfficeLength.Points(8), spacingAfter: global::OfficeIMO.OfficeLength.Points(10))
                 .Paragraph(p => p
                     .Text("Covered: ")
                     .Bold("gradients")

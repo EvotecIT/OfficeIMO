@@ -38,8 +38,8 @@ public sealed class WordPdfIdentifierTests {
 
     [Fact]
     public void CanvasLogicalText_AfterSharedAnchorExtraction_PreservesBoundedSelection() {
-        byte[] pdf = PdfDocument.Create().Canvas(canvas => canvas.ActualText("OriginalIdentifier", 20, 20, 120, 12,
-            paint => paint.Text("Painted glyphs", 20, 20, 120, 12))).ToBytes();
+        byte[] pdf = PdfDocument.Create().Canvas(canvas => canvas.ActualText("OriginalIdentifier", global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(120), global::OfficeIMO.OfficeLength.Points(12),
+            paint => paint.Text("Painted glyphs", global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(120), global::OfficeIMO.OfficeLength.Points(12)))).ToBytes();
         Assert.Equal("OriginalIdentifier", PdfReadDocument.Open(pdf).ExtractText().Trim());
     }
 

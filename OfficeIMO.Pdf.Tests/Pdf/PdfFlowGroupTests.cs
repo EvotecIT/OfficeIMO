@@ -27,7 +27,7 @@ public class PdfFlowGroupTests {
             .Paragraph(paragraph => paragraph.Text("Page one"))
             .Spacer(105)
             .Flow(
-                item => item.Rectangle(60, 80),
+                item => item.Rectangle(global::OfficeIMO.OfficeLength.Points(60), global::OfficeIMO.OfficeLength.Points(80)),
                 new PdfFlowOptions { KeepTogether = true },
                 capture)
             .ToBytes();
@@ -80,7 +80,7 @@ public class PdfFlowGroupTests {
             .Paragraph(paragraph => paragraph.Text("Before"))
             .Spacer(105)
             .Flow(
-                item => item.Rectangle(60, 80),
+                item => item.Rectangle(global::OfficeIMO.OfficeLength.Points(60), global::OfficeIMO.OfficeLength.Points(80)),
                 new PdfFlowOptions { OverflowBehavior = PdfFlowOverflowBehavior.Skip },
                 skipCapture)
             .Paragraph(paragraph => paragraph.Text("After skip"))
@@ -90,7 +90,7 @@ public class PdfFlowGroupTests {
             .Paragraph(paragraph => paragraph.Text("Before"))
             .Spacer(105)
             .Flow(
-                item => item.Rectangle(60, 80),
+                item => item.Rectangle(global::OfficeIMO.OfficeLength.Points(60), global::OfficeIMO.OfficeLength.Points(80)),
                 new PdfFlowOptions { OverflowBehavior = PdfFlowOverflowBehavior.StopDocument })
             .Paragraph(paragraph => paragraph.Text("After stop"))
             .ToBytes();

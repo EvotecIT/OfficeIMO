@@ -53,8 +53,8 @@ public static partial class WordPdfConverterExtensions {
                         RenderNativeParagraphShapeGroups(pdf, paragraph, new[] { view },
                             ResolveNativeParagraphAlign(paragraph, allowJustify: false), options, groupStyle, ref imageCount, null);
                         if (groupStyle.AnchoredCanvas != null) {
-                            pdf.Paragraph(builder => builder.FontSize(ResolveNativeParagraphFontSize(paragraph,
-                                defaults, GetNativeParagraphStyleDefaults(paragraph))).LineBreak(), style: groupStyle);
+                            pdf.Paragraph(builder => builder.FontSize(global::OfficeIMO.OfficeLength.Points(ResolveNativeParagraphFontSize(paragraph,
+                                defaults, GetNativeParagraphStyleDefaults(paragraph)))).LineBreak(), style: groupStyle);
                             emittedOwnParagraph = true;
                         }
                         continue;

@@ -290,7 +290,7 @@ public static partial class MarkdownPdfConverterExtensions {
             color: color,
             italic: style.Italic,
             strike: style.Strike,
-            fontSize: style.FontSize,
+            fontSize: ((double?)(style.FontSize) is double physicalLength1 ? global::OfficeIMO.OfficeLength.Points(physicalLength1) : (global::OfficeIMO.OfficeLength?)null),
             font: style.Font,
             linkUri: uri,
             linkContents: contents,
@@ -306,7 +306,7 @@ public static partial class MarkdownPdfConverterExtensions {
             color: style.Color,
             italic: style.Italic,
             strike: style.Strike,
-            fontSize: style.FontSize,
+            fontSize: ((double?)(style.FontSize) is double physicalLength2 ? global::OfficeIMO.OfficeLength.Points(physicalLength2) : (global::OfficeIMO.OfficeLength?)null),
             font: style.Font,
             baseline: style.Baseline,
             backgroundColor: style.Background);
@@ -320,7 +320,7 @@ public static partial class MarkdownPdfConverterExtensions {
             .Baseline(style.Baseline);
 
         if (style.FontSize.HasValue) {
-            builder.FontSize(style.FontSize.Value);
+            builder.FontSize(global::OfficeIMO.OfficeLength.Points(style.FontSize.Value));
         } else {
             builder.ResetFontSize();
         }

@@ -22,8 +22,8 @@ internal static class OfficeImoPdfInvoiceGenerator {
                     .Style(new PdfRowStyle { Gap = 20D, SpacingAfter = 14D })
                     .PercentColumn(44D, left => left.Image(
                         scenario.LogoBytes,
-                        180D,
-                        42D,
+                        global::OfficeIMO.OfficeLength.Points(180D),
+                        global::OfficeIMO.OfficeLength.Points(42D),
                         align: null,
                         clipPath: null,
                         fit: OfficeImageFit.Contain,
@@ -34,9 +34,9 @@ internal static class OfficeImoPdfInvoiceGenerator {
                         linkContents: null,
                         alternativeText: "Evotec"))
                     .PercentColumn(56D, right => {
-                        right.Paragraph(p => p.FontSize(18D).Bold("Invoice", Navy), PdfAlign.Right,
+                        right.Paragraph(p => p.FontSize(global::OfficeIMO.OfficeLength.Points(18D)).Bold("Invoice", Navy), PdfAlign.Right,
                             style: Tight(2D));
-                        right.Paragraph(p => p.FontSize(20D).Bold(invoice.Number, Navy), PdfAlign.Right,
+                        right.Paragraph(p => p.FontSize(global::OfficeIMO.OfficeLength.Points(20D)).Bold(invoice.Number, Navy), PdfAlign.Right,
                             style: Tight(4D));
                         right.Paragraph(p => p.Color(Muted).Text($"Issued {invoice.IssueDate:dd/MM/yyyy} · Due {invoice.DueDate:dd/MM/yyyy}"),
                             PdfAlign.Right, style: Tight(0D));
@@ -114,7 +114,7 @@ internal static class OfficeImoPdfInvoiceGenerator {
 
     private static void Approval(PdfContentBuilder content, string label, string name, string detail) => content.Panel(card => {
         card.Paragraph(p => p.Color(Muted).Text(label), style: Tight(9D));
-        card.HR(0.8D, Border, 0D, 6D);
+        card.HR(global::OfficeIMO.OfficeLength.Points(0.8D), Border, global::OfficeIMO.OfficeLength.Points(0D), global::OfficeIMO.OfficeLength.Points(6D));
         card.Paragraph(p => p.Bold(name, Navy), style: Tight(3D));
         card.Paragraph(p => p.Color(Muted).Text(detail), style: Tight(0D));
     }, CardStyle());

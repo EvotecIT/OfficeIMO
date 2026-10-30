@@ -11,7 +11,7 @@ namespace OfficeIMO.Examples.Showcase.Workflows {
                 Badge("Leon Brooks", "PARTICIPANT", "Operations");
                 void Badge(string name, string role, string team) {
                     content.Paragraph(p => p.Text("NORTHWIND / COMMUNITY WORKSHOP"))
-                        .HR(2, navy, 12, 18)
+                        .HR(global::OfficeIMO.OfficeLength.Points(2), navy, global::OfficeIMO.OfficeLength.Points(12), global::OfficeIMO.OfficeLength.Points(18))
                         .H1(name, PdfAlign.Left, navy)
                         .H2(role, PdfAlign.Left, navy)
                         .Paragraph(p => p.Text(team))

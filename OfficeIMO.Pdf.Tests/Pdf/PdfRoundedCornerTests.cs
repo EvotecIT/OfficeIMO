@@ -10,13 +10,13 @@ public class PdfRoundedCornerTests {
     private static List<PdfTableCell[]> Callout() => new() {
         new[] {
             new PdfTableCell(new[] {
-                new PdfTextRun("Callout title", bold: true, color: global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.1, 0.1, 0.1), fontSize: 11),
-                new PdfTextRun("\n", color: global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.1, 0.1, 0.1), fontSize: 5),
-                new PdfTextRun("Body with ", color: global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.2, 0.2, 0.2), fontSize: 10),
-                new PdfTextRun("bold", bold: true, color: global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.2, 0.2, 0.2), fontSize: 10),
-                new PdfTextRun(" and a ", color: global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.2, 0.2, 0.2), fontSize: 10),
-                new PdfTextRun("link", color: global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.1, 0.4, 0.7), fontSize: 10, linkUri: "https://example.com"),
-                new PdfTextRun(".", color: global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.2, 0.2, 0.2), fontSize: 10),
+                new PdfTextRun("Callout title", bold: true, color: global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.1, 0.1, 0.1), fontSize: global::OfficeIMO.OfficeLength.Points(11)),
+                new PdfTextRun("\n", color: global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.1, 0.1, 0.1), fontSize: global::OfficeIMO.OfficeLength.Points(5)),
+                new PdfTextRun("Body with ", color: global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.2, 0.2, 0.2), fontSize: global::OfficeIMO.OfficeLength.Points(10)),
+                new PdfTextRun("bold", bold: true, color: global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.2, 0.2, 0.2), fontSize: global::OfficeIMO.OfficeLength.Points(10)),
+                new PdfTextRun(" and a ", color: global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.2, 0.2, 0.2), fontSize: global::OfficeIMO.OfficeLength.Points(10)),
+                new PdfTextRun("link", color: global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.1, 0.4, 0.7), fontSize: global::OfficeIMO.OfficeLength.Points(10), linkUri: "https://example.com"),
+                new PdfTextRun(".", color: global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.2, 0.2, 0.2), fontSize: global::OfficeIMO.OfficeLength.Points(10)),
             }),
         },
     };
@@ -88,7 +88,7 @@ public class PdfRoundedCornerTests {
                 PageHeight = global::OfficeIMO.OfficeLength.Points(160),
                 CompressContentStreams = false
             })
-            .Canvas(canvas => canvas.Table(Callout(), 24, 24, 160, 64, style))
+            .Canvas(canvas => canvas.Table(Callout(), global::OfficeIMO.OfficeLength.Points(24), global::OfficeIMO.OfficeLength.Points(24), global::OfficeIMO.OfficeLength.Points(160), global::OfficeIMO.OfficeLength.Points(64), style))
             .ToBytes();
 
         string raw = PdfTestContentText.ReadDecoded(bytes);
@@ -213,10 +213,10 @@ public class PdfRoundedCornerTests {
             .Table(rows, style: CreateStyle(100))
             .ToBytes();
         byte[] expectedCanvas = PdfDocument.Create(new PdfCreateOptions { PageWidth = global::OfficeIMO.OfficeLength.Points(180), PageHeight = global::OfficeIMO.OfficeLength.Points(120), MarginLeft = global::OfficeIMO.OfficeLength.Points(10), MarginRight = global::OfficeIMO.OfficeLength.Points(10), MarginTop = global::OfficeIMO.OfficeLength.Points(10), MarginBottom = global::OfficeIMO.OfficeLength.Points(10), CompressContentStreams = false })
-            .Canvas(canvas => canvas.Table(rows, 20, 20, 120, 60, CreateStyle(10)))
+            .Canvas(canvas => canvas.Table(rows, global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(120), global::OfficeIMO.OfficeLength.Points(60), CreateStyle(10)))
             .ToBytes();
         byte[] oversizedCanvas = PdfDocument.Create(new PdfCreateOptions { PageWidth = global::OfficeIMO.OfficeLength.Points(180), PageHeight = global::OfficeIMO.OfficeLength.Points(120), MarginLeft = global::OfficeIMO.OfficeLength.Points(10), MarginRight = global::OfficeIMO.OfficeLength.Points(10), MarginTop = global::OfficeIMO.OfficeLength.Points(10), MarginBottom = global::OfficeIMO.OfficeLength.Points(10), CompressContentStreams = false })
-            .Canvas(canvas => canvas.Table(rows, 20, 20, 120, 60, CreateStyle(100)))
+            .Canvas(canvas => canvas.Table(rows, global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(120), global::OfficeIMO.OfficeLength.Points(60), CreateStyle(100)))
             .ToBytes();
 
         Assert.Equal(expectedFlow, oversizedFlow);

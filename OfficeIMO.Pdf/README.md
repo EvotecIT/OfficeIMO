@@ -371,9 +371,9 @@ This aligns the period at 180 points from the paragraph frame. A value without t
 Run width and tracking adjust horizontal advances without changing font height:
 
 ```csharp
-var condensed = PdfTextRun.Normal("Condensed text", fontSize: 12)
+var condensed = PdfTextRun.Normal("Condensed text", fontSize: OfficeLength.Points(12))
     .WithHorizontalTextScaling(75)
-    .WithCharacterSpacing(0.5);
+    .WithCharacterSpacing(OfficeLength.Points(0.5));
 
 using var pdf = PdfDocument.Create();
 pdf.Content.Paragraph(p => p.Runs(new[] { condensed, PdfTextRun.Normal(" Natural text") }));
@@ -381,7 +381,7 @@ pdf.Save("run-spacing.pdf");
 ```
 
 `HorizontalTextScaling` is a positive percentage; 100 retains the font's normal
-width. `CharacterSpacing` adds page points after each rendered glyph, independently
+width. `CharacterSpacing` adds a physical length after each rendered glyph, independently
 of that percentage. Negative spacing condenses advances. The copy methods retain
 the source run's other formatting. Paragraph builders expose matching
 `HorizontalTextScaling(...)` and `CharacterSpacing(...)` controls; use 100 and zero
@@ -1194,7 +1194,7 @@ var hyphenation = new PdfHyphenationLexicon(new[] {
 PdfDocument.Create(pdf => pdf.Content(content => content
         .Paragraph(paragraph => paragraph
             .Text("Automation status ")
-            .InlineImage(statusIcon, 12, 12, alternativeText: "Healthy")
+            .InlineImage(statusIcon, OfficeLength.Points(12), OfficeLength.Points(12), alternativeText: "Healthy")
             .Text(" remains available during long reporting runs."))),
     new PdfCreateOptions().UseTextHyphenationDictionary(hyphenation))
     .Save("inline-status.pdf");
@@ -1212,8 +1212,8 @@ top-left page coordinates:
 
 ```csharp
 byte[] logicalText = PdfDocument.Create(pdf => pdf.Content(content => content
-    .Canvas(canvas => canvas.ActualText("Total: 42", 10, 28, 80, 12,
-        paint => paint.Text("Total: 42", 10, 28, 80, 12))))).ToBytes();
+    .Canvas(canvas => canvas.ActualText("Total: 42", OfficeLength.Points(10), OfficeLength.Points(28), OfficeLength.Points(80), OfficeLength.Points(12),
+        paint => paint.Text("Total: 42", OfficeLength.Points(10), OfficeLength.Points(28), OfficeLength.Points(80), OfficeLength.Points(12)))))).ToBytes();
 ```
 
 The rectangle describes logical text geometry; it does not resize the paint.
@@ -1236,7 +1236,7 @@ var formulaStructure = new PdfCanvasStructureOptions { AlternativeText = "x squa
 byte[] mathematicalPdf = PdfDocument.Create(pdf => pdf.Content(content => content
     .Canvas(canvas => canvas.Structure(PdfCanvasStructureRole.Formula,
         expression => expression.ActualText("x^(2)",
-            paint => paint.Text("x2", 10, 10, 60, 20)), formulaStructure))),
+            paint => paint.Text("x2", OfficeLength.Points(10), OfficeLength.Points(10), OfficeLength.Points(60), OfficeLength.Points(20))), formulaStructure))),
     new PdfCreateOptions().EnableTaggedPdfCatalogMarkers()).ToBytes();
 ```
 
@@ -2478,11 +2478,11 @@ using separate table-, text-, and image-only operations:
 ```csharp
 PdfDocument.Load("contract.pdf")
     .Stamp.Content((canvas, page) => {
-        canvas.Text($"Page {page.PageNumber} of {page.PageCount}", 36, 24, 220, 24)
+        canvas.Text($"Page {page.PageNumber} of {page.PageCount}", OfficeLength.Points(36), OfficeLength.Points(24), OfficeLength.Points(220), OfficeLength.Points(24))
             .Table(new[] {
                 new[] { PdfTableCell.TextCell("Status"), PdfTableCell.TextCell("Reviewed") },
                 new[] { PdfTableCell.TextCell("Owner"), PdfTableCell.RichTextCell(new[] { PdfTextRun.Bolded("Legal") }) }
-            }, 36, 620, page.Width - 72, 90);
+            }, OfficeLength.Points(36), OfficeLength.Points(620), OfficeLength.Points(page.Width - 72), OfficeLength.Points(90));
     }, new PdfCanvasStampOptions {
         TargetPages = PdfPageSelector.Parse("1,last"),
         Opacity = 0.95
@@ -2752,7 +2752,7 @@ document.Content.Canvas(canvas => canvas.Structure(
     paragraph => paragraph.Structure(
         PdfCanvasStructureRole.Span,
         span => span.Text(new[] { PdfTextRun.Normal("Bonjour") },
-            PdfCanvasTextStructureRole.Span, 36, 36, 160, 24),
+            PdfCanvasTextStructureRole.Span, OfficeLength.Points(36), OfficeLength.Points(36), OfficeLength.Points(160), OfficeLength.Points(24)),
         new PdfCanvasStructureOptions { Language = "fr-FR" })));
 ```
 

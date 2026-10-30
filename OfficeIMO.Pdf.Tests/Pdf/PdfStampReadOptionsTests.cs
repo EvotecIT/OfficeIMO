@@ -28,7 +28,7 @@ public class PdfStampReadOptionsTests {
             "ImageWatermark" => source.Stamp.ImageWatermark(image, new PdfImageStampOptions { Width = 24D, Height = 24D }, explicitOptions),
             "OverlayPage" => source.Stamp.OverlayPage(overlay, null, explicitOptions),
             "UnderlayPage" => source.Stamp.UnderlayPage(overlay, null, explicitOptions),
-            "Content" => source.Stamp.Content((canvas, _) => canvas.Text("Canvas", 30D, 30D, 200D, 24D), readOptions: explicitOptions),
+            "Content" => source.Stamp.Content((canvas, _) => canvas.Text("Canvas", global::OfficeIMO.OfficeLength.Points(30D), global::OfficeIMO.OfficeLength.Points(30D), global::OfficeIMO.OfficeLength.Points(200D), global::OfficeIMO.OfficeLength.Points(24D)), readOptions: explicitOptions),
             "Watermark" => source.Stamp.Watermark(new PdfWatermarkOptions { Text = "Watermark" }, explicitOptions),
             _ => throw new ArgumentOutOfRangeException(nameof(operation))
         };

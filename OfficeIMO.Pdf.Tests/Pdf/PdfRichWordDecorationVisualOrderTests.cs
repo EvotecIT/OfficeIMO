@@ -21,7 +21,7 @@ public sealed class PdfRichWordDecorationVisualOrderTests {
             MarginTop = global::OfficeIMO.OfficeLength.Points(30), MarginBottom = global::OfficeIMO.OfficeLength.Points(30), DefaultFontSize = global::OfficeIMO.OfficeLength.Points(12),
             TextShapingMode = PdfTextShapingMode.UnicodeScalar, CompressContentStreams = false
         }.EmbedStandardFont(PdfStandardFont.Helvetica, font, "RTL word decoration");
-        var run = new PdfTextRun(text, fontSize: 12, underlineStyle: OfficeTextDecorationStyle.Words);
+        var run = new PdfTextRun(text, fontSize: global::OfficeIMO.OfficeLength.Points(12), underlineStyle: OfficeTextDecorationStyle.Words);
         PdfDocument document = PdfDocument.Create(options).Compose(composition => composition.Page(page => {
             page.Content(content => {
                 if (owner == "Body") content.Paragraph(paragraph => paragraph.Runs(new[] { run }));

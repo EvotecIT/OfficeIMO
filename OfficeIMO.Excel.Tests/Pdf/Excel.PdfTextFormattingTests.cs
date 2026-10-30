@@ -38,6 +38,6 @@ public sealed class ExcelPdfTextFormattingTests {
         Assert.Equal(PdfCore.PdfTextBaseline.Superscript, run.Baseline);
         Assert.Equal(global::OfficeIMO.OfficeColor.FromRgb(51, 102, 153), run.Color);
         Assert.Equal("Aptos", run.FontFamily);
-        Assert.Equal(14D, run.FontSize);
+        Assert.Equal(14D, (run.FontSize?.ToPoints()));
     }
 }

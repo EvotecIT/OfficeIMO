@@ -49,7 +49,7 @@ namespace OfficeIMO.Examples.Pdf {
                                 "Visual gates should cover both public authoring styles.",
                                 "Footer page totals must remain correct after explicit breaks."
                             }, color: global::OfficeIMO.OfficeColor.FromRgb(55, 65, 81));
-                            column.Item().HR(0.8, global::OfficeIMO.OfficeColor.FromRgb(183, 194, 207), 8, 8);
+                            column.Item().HR(global::OfficeIMO.OfficeLength.Points(0.8), global::OfficeIMO.OfficeColor.FromRgb(183, 194, 207), global::OfficeIMO.OfficeLength.Points(8), global::OfficeIMO.OfficeLength.Points(8));
                             column.Item().Paragraph(p => p
                                 .Text("Status: ")
                                 .Bold("ready for wrapper experiments ")

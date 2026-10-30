@@ -261,7 +261,7 @@ public static class PdfBatesNumberer {
             ? PdfAlign.Center
             : options.Position is PdfBatesPosition.BottomRight or PdfBatesPosition.TopRight ? PdfAlign.Right : PdfAlign.Left;
         double y = top ? options.VerticalMargin : context.Height - options.VerticalMargin - options.Height;
-        canvas.Text(text, options.HorizontalMargin, y, availableWidth, options.Height, options.FontSize, options.Color, alignment, options.Font);
+        canvas.Text(text, global::OfficeIMO.OfficeLength.Points(options.HorizontalMargin), global::OfficeIMO.OfficeLength.Points(y), global::OfficeIMO.OfficeLength.Points(availableWidth), global::OfficeIMO.OfficeLength.Points(options.Height), global::OfficeIMO.OfficeLength.Points(options.FontSize), options.Color, alignment, options.Font);
     }
 
     private static void ValidateOptions(PdfBatesNumberingOptions options) {

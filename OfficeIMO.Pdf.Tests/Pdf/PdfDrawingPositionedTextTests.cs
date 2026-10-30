@@ -34,7 +34,7 @@ public sealed class PdfDrawingPositionedTextTests {
             MarginLeft = global::OfficeIMO.OfficeLength.Points(0D), MarginRight = global::OfficeIMO.OfficeLength.Points(0D), MarginTop = global::OfficeIMO.OfficeLength.Points(0D), MarginBottom = global::OfficeIMO.OfficeLength.Points(0D)
         }.UseRenderingProfile(new OfficeRenderingProfile("prepared-alias", profileFonts));
         byte[] bytes = PdfDocument.Create(options)
-            .Canvas(canvas => canvas.Drawing(drawing, 0D, 0D, 100D, 80D)).ToBytes();
+            .Canvas(canvas => canvas.Drawing(drawing, global::OfficeIMO.OfficeLength.Points(0D), global::OfficeIMO.OfficeLength.Points(0D), global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(80D))).ToBytes();
         PdfReadDocument loaded = PdfReadDocument.Open(bytes);
         Assert.Equal("A", loaded.ExtractText().Trim());
         Assert.Empty(PdfDocument.Load(bytes).Reader.Images());

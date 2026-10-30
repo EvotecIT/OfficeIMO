@@ -52,7 +52,7 @@ public sealed class PdfLayoutDiagnosticOwnershipTests {
 
     private static byte[] WriteClippedDocument(PdfConversionReport report) =>
         PdfDocument.Create(Options().ReportDiagnosticsTo(report, "Inner"))
-            .Canvas(canvas => canvas.TextBox("First\nSecond\nThird", 24D, 24D, 120D, 18D,
+            .Canvas(canvas => canvas.TextBox("First\nSecond\nThird", global::OfficeIMO.OfficeLength.Points(24D), global::OfficeIMO.OfficeLength.Points(24D), global::OfficeIMO.OfficeLength.Points(120D), global::OfficeIMO.OfficeLength.Points(18D),
                 new PdfCanvasTextBoxStyle {
                     FontSize = 9D, PaddingX = 0D, PaddingY = 0D, Background = null, BorderColor = null
                 })).ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });

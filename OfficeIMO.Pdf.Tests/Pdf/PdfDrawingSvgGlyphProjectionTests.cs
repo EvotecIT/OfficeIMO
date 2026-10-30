@@ -19,7 +19,7 @@ public sealed class PdfDrawingSvgGlyphProjectionTests {
         var options = new PdfCreateOptions().UseManagedTextShaping()
             .EmbedStandardFont(PdfStandardFont.Helvetica, fontData, "Svg Projection");
         byte[] bytes = PdfDocument.Create(options).Canvas(canvas => canvas.PositionedText(
-            new[] { new PdfTextRun(text, fontSize: 20D) }, PdfCanvasTextStructureRole.Paragraph,
+            new[] { new PdfTextRun(text, fontSize: global::OfficeIMO.OfficeLength.Points(20D)) }, PdfCanvasTextStructureRole.Paragraph,
             20D, 20D, 260D, 40D, fontSize: 20D)).ToBytes();
         OfficeDrawing drawing = PdfReadDocument.Open(bytes).Pages[0].ToDrawing();
         OfficeDrawingText[] runs = drawing.Elements.OfType<OfficeDrawingText>().ToArray();

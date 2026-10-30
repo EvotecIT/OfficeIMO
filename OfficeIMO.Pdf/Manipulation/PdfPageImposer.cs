@@ -145,7 +145,7 @@ internal static class PdfPageImposer {
                 OfficeShape marker = OfficeShape.Rectangle(1D, 1D);
                 marker.FillColor = OfficeColor.White;
                 marker.StrokeWidth = 0D;
-                canvas.Shape(marker, 0D, 0D);
+                canvas.Shape(marker, global::OfficeIMO.OfficeLength.Points(0D), global::OfficeIMO.OfficeLength.Points(0D));
             });
         }
         byte[] blankSheets = blank.ToBytes();

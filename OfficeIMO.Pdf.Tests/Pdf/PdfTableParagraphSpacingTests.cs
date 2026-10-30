@@ -62,7 +62,7 @@ public sealed class PdfTableParagraphSpacingTests {
             "flow" => PdfDocument.Create(options).Table(cells, style: style).ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }),
             "column" => PdfDocument.Create(options).Compose(compose => compose.Page(page => page.Content(content =>
                 content.Row(row => row.PercentColumn(100, column => column.Table(cells, style: style)))))).ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }),
-            "canvas" => PdfDocument.Create(options).Canvas(canvas => canvas.Table(cells, 24, 24, 192, 32, style)).ToBytes(),
+            "canvas" => PdfDocument.Create(options).Canvas(canvas => canvas.Table(cells, global::OfficeIMO.OfficeLength.Points(24), global::OfficeIMO.OfficeLength.Points(24), global::OfficeIMO.OfficeLength.Points(192), global::OfficeIMO.OfficeLength.Points(32), style)).ToBytes(),
             _ => throw new ArgumentOutOfRangeException(nameof(mode))
         };
     }

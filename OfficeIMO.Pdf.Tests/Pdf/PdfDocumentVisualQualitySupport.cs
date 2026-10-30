@@ -437,7 +437,7 @@ public partial class PdfDocumentVisualQualityTests {
                     .Paragraph(p => p.Text("ColumnAfterFixedMarker"), style: paragraphStyle);
                 break;
             case "image":
-                column.Image(CreateMinimalRgbPng(), 24, 12, style: new PdfImageStyle { SpacingBefore = spacingBefore, SpacingAfter = 0 })
+                column.Image(CreateMinimalRgbPng(), global::OfficeIMO.OfficeLength.Points(24), global::OfficeIMO.OfficeLength.Points(12), style: new PdfImageStyle { SpacingBefore = spacingBefore, SpacingAfter = 0 })
                     .Paragraph(p => p.Text("ColumnAfterFixedMarker"), style: paragraphStyle);
                 break;
             case "shape":

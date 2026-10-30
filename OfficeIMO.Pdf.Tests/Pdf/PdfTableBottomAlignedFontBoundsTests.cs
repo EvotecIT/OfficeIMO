@@ -32,7 +32,7 @@ public sealed class PdfTableBottomAlignedFontBoundsTests {
         }) } };
         var document = PdfDocument.Create(options);
         byte[] bytes = canvas
-            ? document.Canvas(c => c.Clip(24, 24, 100, 24, clipped => clipped.Table(cells, 24, 24, 100, 24, style))).ToBytes()
+            ? document.Canvas(c => c.Clip(global::OfficeIMO.OfficeLength.Points(24), global::OfficeIMO.OfficeLength.Points(24), global::OfficeIMO.OfficeLength.Points(100), global::OfficeIMO.OfficeLength.Points(24), clipped => clipped.Table(cells, global::OfficeIMO.OfficeLength.Points(24), global::OfficeIMO.OfficeLength.Points(24), global::OfficeIMO.OfficeLength.Points(100), global::OfficeIMO.OfficeLength.Points(24), style))).ToBytes()
             : document.Table(cells, style: style).ToBytes();
         Assert.DoesNotContain(report.Warnings, warning => warning.Code.Contains("PaintClipped", StringComparison.Ordinal));
         using var pdf = UglyToad.PdfPig.PdfDocument.Open(bytes);

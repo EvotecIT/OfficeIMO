@@ -83,7 +83,7 @@ public static partial class WordPdfConverterExtensions {
         // Effects retain signed producer offsets without weakening the public canvas coordinate contract.
         imageCanvas.Effect(OfficeTransform.Translate(placement.X, placement.Y), 1D, content => {
             if (layout.BehindDocument)
-                content.Image(bytes, 0D, 0D, width, height, style: imageStyle);
+                content.Image(bytes, global::OfficeIMO.OfficeLength.Points(0D), global::OfficeIMO.OfficeLength.Points(0D), global::OfficeIMO.OfficeLength.Points(width), global::OfficeIMO.OfficeLength.Points(height), style: imageStyle);
             else
                 content.ForegroundImage(bytes, 0D, 0D, width, height,
                     zOrder: layout.RelativeHeight, style: imageStyle);

@@ -156,7 +156,7 @@ public sealed partial class PdfAttachmentAuthoringBudgetTests {
             MaxTotalAssociatedFileBytes = long.MaxValue
         }.AddAssociatedFile(File("structure.bin", new byte[] { 4, 5, 6 }));
         var document = PdfDocument.Create(options).Canvas(canvas => canvas.Structure(
-            PdfCanvasStructureRole.Formula, nested => nested.Text("x", 20, 20, 40, 20), structure));
+            PdfCanvasStructureRole.Formula, nested => nested.Text("x", global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(40), global::OfficeIMO.OfficeLength.Points(20)), structure));
 
         Assert.Equal(long.MaxValue, options.Clone().MaxTotalEmbeddedFileBytes);
         Assert.Equal(2, PdfAttachmentExtractor.ExtractAttachments(document.ToBytes()).Count);

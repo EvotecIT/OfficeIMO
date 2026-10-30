@@ -169,7 +169,7 @@ public class PdfVisualComparerTests {
     [Fact]
     public void CompareRejectsIgnoredRegionWorkBeforeRasterizing() {
         byte[] pdf = PdfDocument.Create(new PdfCreateOptions { PageWidth = global::OfficeIMO.OfficeLength.Points(400D), PageHeight = global::OfficeIMO.OfficeLength.Points(300D) })
-            .Canvas(canvas => canvas.Text("Bounded ignored regions", 20D, 20D, 200D, 20D)).ToBytes();
+            .Canvas(canvas => canvas.Text("Bounded ignored regions", global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(200D), global::OfficeIMO.OfficeLength.Points(20D))).ToBytes();
         var options = new PdfVisualComparisonOptions();
         for (int index = 0; index < 3000; index++) {
             options.IgnoredRegions.Add(new PdfPixelRegion(0, 0, 240, 180));
@@ -185,10 +185,10 @@ public class PdfVisualComparerTests {
     public void CompareChargesIgnoredRegionWorkForTheCombinedCanvas() {
         byte[] wide = PdfDocument.Create(new PdfCreateOptions { PageWidth = global::OfficeIMO.OfficeLength.Points(400D), PageHeight = global::OfficeIMO.OfficeLength.Points(40D),
             MarginTop = global::OfficeIMO.OfficeLength.Points(0D), MarginBottom = global::OfficeIMO.OfficeLength.Points(0D), MarginLeft = global::OfficeIMO.OfficeLength.Points(0D), MarginRight = global::OfficeIMO.OfficeLength.Points(0D) })
-            .Canvas(canvas => canvas.Text("A", 0D, 0D, 10D, 10D)).ToBytes();
+            .Canvas(canvas => canvas.Text("A", global::OfficeIMO.OfficeLength.Points(0D), global::OfficeIMO.OfficeLength.Points(0D), global::OfficeIMO.OfficeLength.Points(10D), global::OfficeIMO.OfficeLength.Points(10D))).ToBytes();
         byte[] tall = PdfDocument.Create(new PdfCreateOptions { PageWidth = global::OfficeIMO.OfficeLength.Points(40D), PageHeight = global::OfficeIMO.OfficeLength.Points(400D),
             MarginTop = global::OfficeIMO.OfficeLength.Points(0D), MarginBottom = global::OfficeIMO.OfficeLength.Points(0D), MarginLeft = global::OfficeIMO.OfficeLength.Points(0D), MarginRight = global::OfficeIMO.OfficeLength.Points(0D) })
-            .Canvas(canvas => canvas.Text("A", 0D, 0D, 10D, 10D)).ToBytes();
+            .Canvas(canvas => canvas.Text("A", global::OfficeIMO.OfficeLength.Points(0D), global::OfficeIMO.OfficeLength.Points(0D), global::OfficeIMO.OfficeLength.Points(10D), global::OfficeIMO.OfficeLength.Points(10D))).ToBytes();
         var options = new PdfVisualComparisonOptions();
         for (int index = 0; index < 4096; index++) options.IgnoredRegions.Add(new PdfPixelRegion(0, 0, 1, 1));
 
@@ -201,7 +201,7 @@ public class PdfVisualComparerTests {
     [Fact]
     public void CompareDoesNotChargeSourceRastersAsIgnoredRegionWork() {
         byte[] pdf = PdfDocument.Create(new PdfCreateOptions { PageWidth = global::OfficeIMO.OfficeLength.Points(500D), PageHeight = global::OfficeIMO.OfficeLength.Points(500D) })
-            .Canvas(canvas => canvas.Text("A", 20D, 20D, 20D, 20D)).ToBytes();
+            .Canvas(canvas => canvas.Text("A", global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(20D))).ToBytes();
         var options = new PdfVisualComparisonOptions();
         for (int index = 0; index < 300; index++) options.IgnoredRegions.Add(new PdfPixelRegion(0, 0, 500, 500));
 

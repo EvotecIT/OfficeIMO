@@ -16,7 +16,7 @@ public class PdfFloatingTableLayoutTests {
             ? new PdfParagraphStyle { FontSize = global::OfficeIMO.OfficeLength.Points(10D), SpacingBefore = global::OfficeIMO.OfficeLength.Points(0D), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0D),
                 LineSpacing = PdfLineSpacing.Multiple(2.8D).WithFontLineBoxBaseline(1.4D) }
             : new PdfParagraphStyle { SpacingAfter = global::OfficeIMO.OfficeLength.Points(0D) };
-        using var pdf = PdfPigDocument.Open(PdfDocument.Create(Options(240)).Canvas(c => c.Text("before", 40, 10, 100, 20)).Spacer(80)
+        using var pdf = PdfPigDocument.Open(PdfDocument.Create(Options(240)).Canvas(c => c.Text("before", global::OfficeIMO.OfficeLength.Points(40), global::OfficeIMO.OfficeLength.Points(10), global::OfficeIMO.OfficeLength.Points(100), global::OfficeIMO.OfficeLength.Points(20))).Spacer(80)
             .Table(new[] { new[] { "floating" } }, style: style)
             .Paragraph(p => p.Text("below"), style: paragraphStyle).ToBytes());
         Assert.Equal(2, pdf.NumberOfPages);
@@ -27,7 +27,7 @@ public class PdfFloatingTableLayoutTests {
 
     [Fact]
     public void OuterKeptFlowAccountsForNestedKeptFlowClearance() {
-        using var pdf = PdfPigDocument.Open(PdfDocument.Create(Options(240)).Canvas(c => c.Text("before", 40, 10, 100, 20)).Spacer(60).Flow(flow => {
+        using var pdf = PdfPigDocument.Open(PdfDocument.Create(Options(240)).Canvas(c => c.Text("before", global::OfficeIMO.OfficeLength.Points(40), global::OfficeIMO.OfficeLength.Points(10), global::OfficeIMO.OfficeLength.Points(100), global::OfficeIMO.OfficeLength.Points(20))).Spacer(60).Flow(flow => {
             flow.Table(new[] { new[] { "floating" } }, style: Floating(100, 70));
             flow.Flow(nested => nested.Paragraph(p => p.Text("below"), style: new PdfParagraphStyle { LineHeight = 3.75, SpacingAfter = global::OfficeIMO.OfficeLength.Points(0) }),
                 new PdfFlowOptions { KeepTogether = true });
@@ -157,8 +157,8 @@ public class PdfFloatingTableLayoutTests {
         var document = PdfDocument.Create(Options(240)).Table(new[] { new[] { "floating" } }, style: Floating(320, 80))
             .Bookmark("target");
         if (kind == 0) document.Columns(columns => columns.H1("first"));
-        else if (kind == 1) document.Columns(columns => columns.Rectangle(60, 20));
-        else document.Canvas(canvas => canvas.Text("first", 40, 130, 120, 20));
+        else if (kind == 1) document.Columns(columns => columns.Rectangle(global::OfficeIMO.OfficeLength.Points(60), global::OfficeIMO.OfficeLength.Points(20)));
+        else document.Canvas(canvas => canvas.Text("first", global::OfficeIMO.OfficeLength.Points(40), global::OfficeIMO.OfficeLength.Points(130), global::OfficeIMO.OfficeLength.Points(120), global::OfficeIMO.OfficeLength.Points(20)));
         byte[] bytes = document.PageBreak().Paragraph(p => p.Text("later")).ToBytes();
         var destination = Assert.Single(PdfInspector.Inspect(bytes).NamedDestinations);
         Assert.Equal(1, destination.PageNumber);

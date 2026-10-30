@@ -61,7 +61,7 @@ public class PdfContinuedFlowCapacityTests {
         PdfDocument document = PdfDocument.Create(Options());
         document.Footer(footer => {
             footer.Text("").EvenPagesText("FooterFallback").FontSize(6).Offset(10);
-            if (useTextFallback) footer.EvenPagesContent(content => content.Spacer(200), 10);
+            if (useTextFallback) footer.EvenPagesContent(content => content.Spacer(global::OfficeIMO.OfficeLength.Points(200)), 10);
             else footer.EvenPagesContent(content => content.Text("FooterFlow", style: Style()), 10);
         });
         if (useTextFallback) document.Options.AllowRunningContentTextFallback(isHeader: false);
@@ -122,7 +122,7 @@ public class PdfContinuedFlowCapacityTests {
         Action<PdfContentBuilder> build = content => WriteStory(content, count);
         Action<PdfContentBuilder> first = content => content.Text("FirstSeparator", style: Style(20D));
         Action<PdfContentBuilder> later = content => content.Text("ContinuationSeparator", style: Style(continuationHeight));
-        Action<PdfContentBuilder>? notice = emptyNotice ? content => content.Spacer(10D) : null;
+        Action<PdfContentBuilder>? notice = emptyNotice ? content => content.Spacer(global::OfficeIMO.OfficeLength.Points(10D)) : null;
         if (allowBottomMargin)
             document.Content.ContinuedFlow(build, first, later, notice, reserveFinalNotice: false,
                 allowContinuationSeparatorInBottomMargin: true);

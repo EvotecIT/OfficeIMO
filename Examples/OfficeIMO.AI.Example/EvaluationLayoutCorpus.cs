@@ -8,15 +8,15 @@ internal static class EvaluationLayoutCorpus {
         var font = new PdfCreateOptions { DefaultFontSize = global::OfficeIMO.OfficeLength.Points(16) };
         if (!font.TryUseDefaultDocumentFontFallback(requireEmbeddedFont: true)) throw new InvalidOperationException("Evaluation requires an embeddable font.");
         byte[] columns = PdfDocument.Create(builder => builder.Content(content => content.Canvas(canvas => {
-            canvas.Text("Regional dispatches", 50, 40, 480, 40, 22);
-            canvas.Text("WEST REGION", 50, 120, 220, 35, 18);
-            canvas.Text("EAST REGION", 320, 120, 220, 35, 18);
-            canvas.Text("Reference: W-731", 50, 165, 220, 30);
-            canvas.Text("Reference: E-294", 320, 165, 220, 30);
-            canvas.Text("Crates: 31", 50, 205, 220, 30);
-            canvas.Text("Crates: 98", 320, 205, 220, 30);
-            canvas.Text("Arrival: Tuesday", 50, 245, 220, 30);
-            canvas.Text("Arrival: Thursday", 320, 245, 220, 30);
+            canvas.Text("Regional dispatches", global::OfficeIMO.OfficeLength.Points(50), global::OfficeIMO.OfficeLength.Points(40), global::OfficeIMO.OfficeLength.Points(480), global::OfficeIMO.OfficeLength.Points(40), global::OfficeIMO.OfficeLength.Points(22));
+            canvas.Text("WEST REGION", global::OfficeIMO.OfficeLength.Points(50), global::OfficeIMO.OfficeLength.Points(120), global::OfficeIMO.OfficeLength.Points(220), global::OfficeIMO.OfficeLength.Points(35), global::OfficeIMO.OfficeLength.Points(18));
+            canvas.Text("EAST REGION", global::OfficeIMO.OfficeLength.Points(320), global::OfficeIMO.OfficeLength.Points(120), global::OfficeIMO.OfficeLength.Points(220), global::OfficeIMO.OfficeLength.Points(35), global::OfficeIMO.OfficeLength.Points(18));
+            canvas.Text("Reference: W-731", global::OfficeIMO.OfficeLength.Points(50), global::OfficeIMO.OfficeLength.Points(165), global::OfficeIMO.OfficeLength.Points(220), global::OfficeIMO.OfficeLength.Points(30));
+            canvas.Text("Reference: E-294", global::OfficeIMO.OfficeLength.Points(320), global::OfficeIMO.OfficeLength.Points(165), global::OfficeIMO.OfficeLength.Points(220), global::OfficeIMO.OfficeLength.Points(30));
+            canvas.Text("Crates: 31", global::OfficeIMO.OfficeLength.Points(50), global::OfficeIMO.OfficeLength.Points(205), global::OfficeIMO.OfficeLength.Points(220), global::OfficeIMO.OfficeLength.Points(30));
+            canvas.Text("Crates: 98", global::OfficeIMO.OfficeLength.Points(320), global::OfficeIMO.OfficeLength.Points(205), global::OfficeIMO.OfficeLength.Points(220), global::OfficeIMO.OfficeLength.Points(30));
+            canvas.Text("Arrival: Tuesday", global::OfficeIMO.OfficeLength.Points(50), global::OfficeIMO.OfficeLength.Points(245), global::OfficeIMO.OfficeLength.Points(220), global::OfficeIMO.OfficeLength.Points(30));
+            canvas.Text("Arrival: Thursday", global::OfficeIMO.OfficeLength.Points(320), global::OfficeIMO.OfficeLength.Points(245), global::OfficeIMO.OfficeLength.Points(220), global::OfficeIMO.OfficeLength.Points(30));
         })), font).ToBytes();
         var fields = new OfficeAiRequest { Operation = OfficeAiOperation.ExtractFields,
             Instruction = "Extract westReference, westCrates, eastReference and eastCrates, preserving the correct regional associations.",
@@ -26,12 +26,12 @@ internal static class EvaluationLayoutCorpus {
             new EvaluationFieldGold("westReference", OfficeAiFieldStatus.Present, "W-731"), new EvaluationFieldGold("westCrates", OfficeAiFieldStatus.Present, "31"),
             new EvaluationFieldGold("eastReference", OfficeAiFieldStatus.Present, "E-294"), new EvaluationFieldGold("eastCrates", OfficeAiFieldStatus.Present, "98") });
         byte[] diagram = PdfDocument.Create(builder => builder.Content(content => content.Canvas(canvas => {
-            canvas.Text("Record processing", 50, 50, 480, 40, 22);
+            canvas.Text("Record processing", global::OfficeIMO.OfficeLength.Points(50), global::OfficeIMO.OfficeLength.Points(50), global::OfficeIMO.OfficeLength.Points(480), global::OfficeIMO.OfficeLength.Points(40), global::OfficeIMO.OfficeLength.Points(22));
             for (int index = 0; index < 3; index++) {
                 double x = 45 + 180 * index;
-                canvas.Shape(OfficeShape.Rectangle(125, 60), x, 150);
-                canvas.Text(new[] { "Intake", "Review", "Archive" }[index], x + 10, 168, 105, 30, 18);
-                if (index < 2) canvas.Text("→", x + 135, 166, 40, 35, 24);
+                canvas.Shape(OfficeShape.Rectangle(125, 60), global::OfficeIMO.OfficeLength.Points(x), global::OfficeIMO.OfficeLength.Points(150));
+                canvas.Text(new[] { "Intake", "Review", "Archive" }[index], global::OfficeIMO.OfficeLength.Points(x + 10), global::OfficeIMO.OfficeLength.Points(168), global::OfficeIMO.OfficeLength.Points(105), global::OfficeIMO.OfficeLength.Points(30), global::OfficeIMO.OfficeLength.Points(18));
+                if (index < 2) canvas.Text("→", global::OfficeIMO.OfficeLength.Points(x + 135), global::OfficeIMO.OfficeLength.Points(166), global::OfficeIMO.OfficeLength.Points(40), global::OfficeIMO.OfficeLength.Points(35), global::OfficeIMO.OfficeLength.Points(24));
             }
         })), font).ToBytes();
         var diagramGold = new EvaluationGold(Fields: new[] { new EvaluationFieldGold("nextStep", OfficeAiFieldStatus.Present, "Archive") }, Status: null);

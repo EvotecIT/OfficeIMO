@@ -25,7 +25,7 @@ internal static partial class VisioPdfConversionEngine {
             pdf.Compose(document => document.Page(page => {
                 page.Size(drawing.Width, drawing.Height).Margin(0);
                 page.Canvas(canvas => {
-                    if (drawing.Elements.Count > 0) canvas.Drawing(drawing, 0, 0, drawing.Width, drawing.Height);
+                    if (drawing.Elements.Count > 0) canvas.Drawing(drawing, global::OfficeIMO.OfficeLength.Points(0), global::OfficeIMO.OfficeLength.Points(0), global::OfficeIMO.OfficeLength.Points(drawing.Width), global::OfficeIMO.OfficeLength.Points(drawing.Height));
                 });
             }));
         }

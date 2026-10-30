@@ -62,7 +62,7 @@ public sealed class PdfColumnRowBalancingTests {
             var paragraphs = Enumerable.Range(1, 12).Select(index => {
                 double height = right ? (index <= 6 && index % 2 == 1 ? 10 : 30)
                     : (index <= 6 && index % 2 == 1 ? 30 : 10);
-                return new PdfTableCellParagraph(new[] { PdfTextRun.Normal($"{prefix}{index:D3}", fontSize: 8) },
+                return new PdfTableCellParagraph(new[] { PdfTextRun.Normal($"{prefix}{index:D3}", fontSize: global::OfficeIMO.OfficeLength.Points(8)) },
                     fontSize: 8, lineSpacing: PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(height)), widowControl: false);
             }).ToArray();
             return new PdfTableCell(paragraphs.SelectMany(paragraph => paragraph.Runs), paragraphs);

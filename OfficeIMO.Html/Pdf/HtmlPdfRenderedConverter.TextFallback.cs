@@ -157,7 +157,7 @@ internal static partial class HtmlPdfRenderedConverter {
                 glyph,
                 bold: visual.Font.IsBold,
                 italic: visual.Font.IsItalic,
-                fontSize: visual.Font.Size * PointsPerCssPixel,
+                fontSize: global::OfficeIMO.OfficeLength.Points(visual.Font.Size * PointsPerCssPixel),
                 font: MapFont(family, glyph, style, webFonts),
                 fontFamily: family).WithFeatureSettings(visual.FeatureSettings);
             try {

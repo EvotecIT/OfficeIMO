@@ -16,7 +16,7 @@ namespace OfficeIMO.Tests.Pdf {
                     MarginTop = global::OfficeIMO.OfficeLength.Points(30D), MarginBottom = global::OfficeIMO.OfficeLength.Points(30D), MarginLeft = global::OfficeIMO.OfficeLength.Points(30D), MarginRight = global::OfficeIMO.OfficeLength.Points(30D)
                 };
                 options.RegisterNamedFontFamily(new PdfEmbeddedFontFamily("Strut grid metrics", font));
-                var ascentOnly = PdfTextRun.Normal(strut ? string.Empty : "X", fontSize: 40D,
+                var ascentOnly = PdfTextRun.Normal(strut ? string.Empty : "X", fontSize: global::OfficeIMO.OfficeLength.Points(40D),
                     fontFamily: "Strut grid metrics");
                 ascentOnly.IsLineBoxStrut = strut;
                 ascentOnly.ContributesLineBoxDescent = false;
@@ -26,10 +26,10 @@ namespace OfficeIMO.Tests.Pdf {
                 };
                 return PdfDocument.Create(options)
                     .Paragraph(paragraph => paragraph.Runs(new[] {
-                        PdfTextRun.Normal("A", fontSize: 11D, fontFamily: "Strut grid metrics"), ascentOnly
+                        PdfTextRun.Normal("A", fontSize: global::OfficeIMO.OfficeLength.Points(11D), fontFamily: "Strut grid metrics"), ascentOnly
                     }), style: style)
                     .Paragraph(paragraph => paragraph.Runs(new[] {
-                        PdfTextRun.Normal("B", fontSize: 11D, fontFamily: "Strut grid metrics")
+                        PdfTextRun.Normal("B", fontSize: global::OfficeIMO.OfficeLength.Points(11D), fontFamily: "Strut grid metrics")
                     }), style: style).ToBytes();
             }
             using PdfPigDocument actual = PdfPigDocument.Open(Render(strut: true));
@@ -56,8 +56,8 @@ namespace OfficeIMO.Tests.Pdf {
                 .WithFontLineBoxBaseline(1D).WithFontAlignment(PdfFontLineAlignment.Top, .12D);
             PdfDocument document = PdfDocument.Create(options);
             document.Compose(builder => builder.Content(content => content.Paragraph(paragraph => paragraph
-                .FontFamily("Natural line bounds").FontSize(8).Text("A").FontSize(16).Text("B")
-                .Text("\n").FontSize(8).Text("A").FontSize(16).Text("B"),
+                .FontFamily("Natural line bounds").FontSize(global::OfficeIMO.OfficeLength.Points(8)).Text("A").FontSize(global::OfficeIMO.OfficeLength.Points(16)).Text("B")
+                .Text("\n").FontSize(global::OfficeIMO.OfficeLength.Points(8)).Text("A").FontSize(global::OfficeIMO.OfficeLength.Points(16)).Text("B"),
                 style: new PdfParagraphStyle { LineSpacing = spacing })));
             using PdfPigDocument pdf = PdfPigDocument.Open(document.ToBytes());
             Letter[] letters = pdf.GetPage(1).Letters.Where(letter => letter.Value == "A").ToArray();
@@ -83,8 +83,8 @@ namespace OfficeIMO.Tests.Pdf {
             PdfLineSpacing spacing = (minimum ? PdfLineSpacing.AtLeast(global::OfficeIMO.OfficeLength.Points(30), 1.2D) : PdfLineSpacing.Multiple(1.2D))
                 .WithFontLineBoxBaseline(1.2D).WithFontAlignment(alignment, .12D);
             PdfDocument document = PdfDocument.Create(options);
-            document.Paragraph(paragraph => paragraph.FontFamily("Natural device metrics").FontSize(8).Text("A")
-                .FontSize(16).Text("B"), style: new PdfParagraphStyle { LineSpacing = spacing });
+            document.Paragraph(paragraph => paragraph.FontFamily("Natural device metrics").FontSize(global::OfficeIMO.OfficeLength.Points(8)).Text("A")
+                .FontSize(global::OfficeIMO.OfficeLength.Points(16)).Text("B"), style: new PdfParagraphStyle { LineSpacing = spacing });
             using PdfPigDocument pdf = PdfPigDocument.Open(document.ToBytes());
             IReadOnlyList<Letter> letters = pdf.GetPage(1).Letters;
             Letter first = Assert.Single(letters, letter => letter.Value == "A");

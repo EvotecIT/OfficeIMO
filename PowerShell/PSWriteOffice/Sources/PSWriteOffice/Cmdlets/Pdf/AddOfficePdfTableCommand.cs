@@ -332,7 +332,7 @@ public sealed class AddOfficePdfTableCommand : PSCmdlet
                 color: PdfCommandUtilities.ParseColor(cell.Style.TextColor),
                 italic: cell.Style.Italic,
                 strike: cell.Style.Strike,
-                fontSize: cell.Style.FontSize);
+                fontSize: ((double?)(cell.Style.FontSize) is double physicalLength1 ? global::OfficeIMO.OfficeLength.Points(physicalLength1) : (global::OfficeIMO.OfficeLength?)null));
 
             return PdfTableCell.Merge(new[] { run }, cell.ColumnSpan, cell.RowSpan);
         }

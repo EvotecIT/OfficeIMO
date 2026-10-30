@@ -72,8 +72,8 @@ public sealed partial class PdfImageOrientationPlacementTests {
         byte[] jpeg = CreateJpeg(orientation);
         var style = new PdfImageStyle { SourceCrop = new PdfImageSourceCrop(0.25, 0.125, 0, 0.25) };
         byte[] pdf = PdfDocument.Create(builder => builder.Content(content => {
-            if (path == "flow") content.Image(jpeg, 60, 40, style: style);
-            else if (path == "canvas") content.Canvas(canvas => canvas.Image(jpeg, 10, 20, 60, 40,
+            if (path == "flow") content.Image(jpeg, global::OfficeIMO.OfficeLength.Points(60), global::OfficeIMO.OfficeLength.Points(40), style: style);
+            else if (path == "canvas") content.Canvas(canvas => canvas.Image(jpeg, global::OfficeIMO.OfficeLength.Points(10), global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(60), global::OfficeIMO.OfficeLength.Points(40),
                 style: style, horizontalFlip: horizontal, verticalFlip: vertical));
             else {
                 var projection = new OfficeImageProjection(new OfficeImagePlacement(10, 20, 60, 40),
@@ -160,8 +160,8 @@ public sealed partial class PdfImageOrientationPlacementTests {
             if (path == "page-watermark") page.ImageWatermark(source, 60, 40, opacity: 1, rotationAngle: 0);
             page.Content(content => {
                 switch (path) {
-                    case "flow": content.Image(source, 60, 40); break;
-                    case "canvas": content.Canvas(canvas => canvas.Image(source, 10, 20, 60, 40)); break;
+                    case "flow": content.Image(source, global::OfficeIMO.OfficeLength.Points(60), global::OfficeIMO.OfficeLength.Points(40)); break;
+                    case "canvas": content.Canvas(canvas => canvas.Image(source, global::OfficeIMO.OfficeLength.Points(10), global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(60), global::OfficeIMO.OfficeLength.Points(40))); break;
                     case "drawing":
                         content.Drawing(new OfficeDrawing(100, 100).AddImage(source, "image/jpeg",
                             new OfficeImageProjection(new OfficeImagePlacement(10, 20, 60, 40))));
@@ -178,7 +178,7 @@ public sealed partial class PdfImageOrientationPlacementTests {
                         content.Table(new[] { new[] { PdfTableCell.WithImages(string.Empty,
                             new[] { new PdfTableCellImage(source, 60, 40) }) } }, style: style);
                         break;
-                    case "inline": content.Paragraph(paragraph => paragraph.InlineImage(source, 60, 40, fit: OfficeImageFit.Stretch)); break;
+                    case "inline": content.Paragraph(paragraph => paragraph.InlineImage(source, global::OfficeIMO.OfficeLength.Points(60), global::OfficeIMO.OfficeLength.Points(40), fit: OfficeImageFit.Stretch)); break;
                     default: content.Paragraph(paragraph => paragraph.Text("Image target")); break;
                 }
             });

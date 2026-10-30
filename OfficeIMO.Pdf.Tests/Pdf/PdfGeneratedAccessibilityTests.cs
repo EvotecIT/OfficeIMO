@@ -26,8 +26,8 @@ public sealed class PdfGeneratedAccessibilityTests {
         var options = new PdfCanvasStructureOptions { ListNumbering = PdfListNumbering.UpperRoman };
         PdfDocument document = PdfDocument.Create(TaggedOptions()).Canvas(canvas =>
             canvas.Structure(PdfCanvasStructureRole.List, list => list.Structure(PdfCanvasStructureRole.ListItem, item => item
-                .Structure(PdfCanvasStructureRole.ListLabel, label => label.Text("I.", 20, 20, 20, 20))
-                .Structure(PdfCanvasStructureRole.ListBody, body => body.Text("First", 45, 20, 100, 20))), options));
+                .Structure(PdfCanvasStructureRole.ListLabel, label => label.Text("I.", global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(20)))
+                .Structure(PdfCanvasStructureRole.ListBody, body => body.Text("First", global::OfficeIMO.OfficeLength.Points(45), global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(100), global::OfficeIMO.OfficeLength.Points(20)))), options));
         options.ListNumbering = PdfListNumbering.None;
 
         PdfReadDocument read = PdfReadDocument.Open(document.ToBytes());
@@ -43,9 +43,9 @@ public sealed class PdfGeneratedAccessibilityTests {
     public void CanvasNavigationUsesItsActualContainingStructureAndPreservesPageDestinations() {
         byte[] bytes = PdfDocument.Create(TaggedOptions()).Canvas(canvas => canvas
             .Structure(PdfCanvasStructureRole.Section, section => section
-                .NamedDestination("details", 20, 20).Outline("Details", 1, 20)
-                .Text("Details", 20, 20, 100, 20))
-            .LinkToNamedDestination("details", 20, 60, 100, 20, "Details")).ToBytes();
+                .NamedDestination("details", global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(20)).Outline("Details", 1, global::OfficeIMO.OfficeLength.Points(20))
+                .Text("Details", global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(100), global::OfficeIMO.OfficeLength.Points(20)))
+            .LinkToNamedDestination("details", global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(60), global::OfficeIMO.OfficeLength.Points(100), global::OfficeIMO.OfficeLength.Points(20), "Details")).ToBytes();
 
         PdfReadDocument read = PdfReadDocument.Open(bytes);
         PdfRawDocumentView raw = read.RawStructure();
@@ -76,9 +76,9 @@ public sealed class PdfGeneratedAccessibilityTests {
         var style = new PdfFormFieldStyle { AlternateName = "Accessible control" };
         byte[] bytes = PdfDocument.Create(TaggedOptions()).Canvas(canvas => canvas
             .TextField("name", "", global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(100), global::OfficeIMO.OfficeLength.Points(20), style: style)
-            .CheckBox("reviewed", false, 20, 50, 20, 20, style: style)
-            .ChoiceField("region", new[] { "North", "South" }, new[] { "North" }, 20, 80, 100, 20, style: style)
-            .RadioButton("delivery", "Email", true, 20, 110, 20, 20, style: style)).ToBytes();
+            .CheckBox("reviewed", false, global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(50), global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(20), style: style)
+            .ChoiceField("region", new[] { "North", "South" }, new[] { "North" }, global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(80), global::OfficeIMO.OfficeLength.Points(100), global::OfficeIMO.OfficeLength.Points(20), style: style)
+            .RadioButton("delivery", "Email", true, global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(110), global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(20), style: style)).ToBytes();
         var widgets = PdfReadDocument.Open(bytes).RawStructure().Objects.Where(item =>
             item.Value.Entries.TryGetValue("Subtype", out var subtype) && subtype.Text == "Widget").ToArray();
         Assert.Equal(4, widgets.Length);
@@ -91,10 +91,10 @@ public sealed class PdfGeneratedAccessibilityTests {
     public void StrictUa2RejectsCanvasNavigationWithoutATaggedTarget(bool outline) {
         PdfDocument document = PdfDocument.Create(StrictOptions()).Meta(title: "Navigation boundary")
             .Canvas(canvas => {
-                canvas.Text("Visible content", 20, 20, 120, 20);
-                if (outline) canvas.Outline("Details", 1, 20);
-                else canvas.NamedDestination("details", 20, 20)
-                    .LinkToNamedDestination("details", 20, 60, 100, 20, "Details");
+                canvas.Text("Visible content", global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(120), global::OfficeIMO.OfficeLength.Points(20));
+                if (outline) canvas.Outline("Details", 1, global::OfficeIMO.OfficeLength.Points(20));
+                else canvas.NamedDestination("details", global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(20))
+                    .LinkToNamedDestination("details", global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(60), global::OfficeIMO.OfficeLength.Points(100), global::OfficeIMO.OfficeLength.Points(20), "Details");
             });
 
         var error = Assert.Throws<InvalidOperationException>(() => document.ToBytes());
@@ -166,13 +166,13 @@ public sealed class PdfGeneratedAccessibilityTests {
         var fieldStyle = new PdfFormFieldStyle { AlternateName = "Contact control" };
         PdfDocument document = PdfDocument.Create(StrictOptions()).Meta(title: "Non-text destination");
         if (surface == "canvas-image") {
-            document.Bookmark("target").Canvas(canvas => canvas.Image(image, 20, 20, 20, 20, alternativeText: "Status badge"));
+            document.Bookmark("target").Canvas(canvas => canvas.Image(image, global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(20), alternativeText: "Status badge"));
             document.Paragraph(p => p.Text("Later text ").LinkToBookmark("Return to target", "target"));
         } else document.Compose(compose => compose.Page(page => page.Content(content => {
             content.Bookmark("target");
-            if (surface == "column-image") content.Row(row => row.PercentColumn(100, column => column.Image(image, 20, 20, alternativeText: "Status badge")));
+            if (surface == "column-image") content.Row(row => row.PercentColumn(100, column => column.Image(image, global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(20), alternativeText: "Status badge")));
             else if (surface == "column-field") content.Row(row => row.PercentColumn(100, column => column.TextField("contact", style: fieldStyle)));
-            else if (surface == "flow-image") content.Image(image, 20, 20, "Status badge");
+            else if (surface == "flow-image") content.Image(image, global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(20), "Status badge");
             else if (surface == "text-field") content.TextField("contact", style: fieldStyle);
             else if (surface == "checkbox") content.CheckBox("contact", style: fieldStyle);
             else if (surface == "choice") content.ChoiceField("contact", new[] { "Email", "Phone" }, style: fieldStyle);
@@ -196,9 +196,9 @@ public sealed class PdfGeneratedAccessibilityTests {
         } };
         PdfCreateOptions options = StrictOptions();
         byte[] bytes = PdfDocument.Create(options).Meta(title: "Cell destinations").Canvas(canvas => canvas
-            .Table(cells, 20, 20, 240, 80, new PdfTableStyle { HeaderRowCount = 0 })
-            .LinkToNamedDestination("first", 20, 120, 100, 20, "First cell")
-            .LinkToNamedDestination("last", 140, 120, 100, 20, "Last cell")).ToBytes();
+            .Table(cells, global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(240), global::OfficeIMO.OfficeLength.Points(80), new PdfTableStyle { HeaderRowCount = 0 })
+            .LinkToNamedDestination("first", global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(120), global::OfficeIMO.OfficeLength.Points(100), global::OfficeIMO.OfficeLength.Points(20), "First cell")
+            .LinkToNamedDestination("last", global::OfficeIMO.OfficeLength.Points(140), global::OfficeIMO.OfficeLength.Points(120), global::OfficeIMO.OfficeLength.Points(100), global::OfficeIMO.OfficeLength.Points(20), "Last cell")).ToBytes();
 
         PdfRawDocumentView raw = PdfReadDocument.Open(bytes).RawStructure();
         var cellIds = raw.Objects.Where(item => IsStructure(item, "TD")).Select(item => item.ObjectNumber).ToArray();

@@ -176,7 +176,7 @@ namespace OfficeIMO.Word.Pdf {
             PdfCore.PdfTextRun measuredMarker = CreateNativeListMarkerTextRun(displayMarker, paragraph,
                 textStyle, nativeFontMap, includeSuffix: false);
             double markerWidth = nativeFontMap.MeasureText(measuredMarker)
-                ?? EstimateNativeListMarkerWidth(displayMarker, measuredMarker.FontSize ?? nativeDefaults.FontSize);
+                ?? EstimateNativeListMarkerWidth(displayMarker, (measuredMarker.FontSize?.ToPoints()) ?? nativeDefaults.FontSize);
             // An overrun advances only the first line to the next Word tab stop.
             // The paragraph path keeps continuation lines at the authored indent.
             if (markerWidth - GetNativeMarkerAnchorShift(info.Value, markerWidth) > style.MarkerWidth + 0.01D)
@@ -377,7 +377,7 @@ namespace OfficeIMO.Word.Pdf {
             WordDocumentTraversal.ListInfo? info = WordDocumentTraversal.GetListInfo(paragraph);
             if (info == null) {
                 return textStyle.ApplyTo(new PdfCore.PdfTextRun(marker + (includeSuffix ? " " : string.Empty), bold: textStyle.Bold, color: textStyle.Color,
-                    italic: textStyle.Italic, fontSize: textStyle.FontSize, font: textStyle.Font,
+                    italic: textStyle.Italic, fontSize: ((double?)(textStyle.FontSize) is double physicalLength1 ? global::OfficeIMO.OfficeLength.Points(physicalLength1) : (global::OfficeIMO.OfficeLength?)null), font: textStyle.Font,
                     fontFamily: textStyle.FontFamily));
             }
 
@@ -387,7 +387,7 @@ namespace OfficeIMO.Word.Pdf {
                 color: ParseNativeColor(info.Value.MarkerColorHex) ?? textStyle.Color,
                 italic: info.Value.MarkerItalic ?? textStyle.Italic,
                 strike: textStyle.Strike,
-                fontSize: info.Value.MarkerFontSize ?? textStyle.FontSize,
+                fontSize: ((double?)(info.Value.MarkerFontSize ?? textStyle.FontSize) is double physicalLength2 ? global::OfficeIMO.OfficeLength.Points(physicalLength2) : (global::OfficeIMO.OfficeLength?)null),
                 font: ResolveNativeListMarkerFont(info.Value, marker, textStyle, nativeFontMap),
                 fontFamily: nativeFontMap != null
                     ? ResolveNativeListMarkerFontFamily(info.Value, marker, textStyle, nativeFontMap)

@@ -23,7 +23,7 @@ internal static partial class PdfWriter {
             if (!string.IsNullOrWhiteSpace(style.Caption)) {
                 double size = style.CaptionFontSize?.ToPoints() ?? fontSize;
                 double leading = size * 1.25D;
-                var wrapped = WrapRichRunsCore(new[] { PdfTextRun.Normal(style.Caption!, style.CaptionColor, size) }, layout.Width,
+                var wrapped = WrapRichRunsCore(new[] { PdfTextRun.Normal(style.Caption!, style.CaptionColor, global::OfficeIMO.OfficeLength.Points(size)) }, layout.Width,
                     size, ChooseNormal(currentOpts.DefaultFont), leading, null, DefaultParagraphTabStopWidth, currentOpts);
                 before += MeasureRichLinesHeight(wrapped.LineHeights, wrapped.Lines.Count, leading) + style.CaptionSpacingAfter.ToPoints();
             }

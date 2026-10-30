@@ -31,24 +31,24 @@ namespace OfficeIMO.Examples.Pdf {
                         page.Content(content => {
                             content.Item(item => item.H1("Statement #4048", PdfAlign.Left, global::OfficeIMO.OfficeColor.FromRgb(15, 23, 42)));
                             content.Item(item => item.Paragraph(p => p.Text("Issue date: 23/12/2025").Text("   Due date: 06/01/2026"), style: TightParagraph()));
-                            content.Item(item => item.Shape(CreateBrandRule(), PdfAlign.Right, spacingBefore: 6, spacingAfter: 22));
+                            content.Item(item => item.Shape(CreateBrandRule(), PdfAlign.Right, spacingBefore: global::OfficeIMO.OfficeLength.Points(6), spacingAfter: global::OfficeIMO.OfficeLength.Points(22)));
                             content.Row(row => {
                                 row.Gap(58)
                                     .PercentColumn(50, column => {
                                         column.Paragraph(p => p.Bold("From"), style: LabelParagraph());
-                                        column.HR(1.2, global::OfficeIMO.OfficeColor.FromRgb(15, 23, 42), spacingBefore: 0, spacingAfter: 8);
+                                        column.HR(global::OfficeIMO.OfficeLength.Points(1.2), global::OfficeIMO.OfficeColor.FromRgb(15, 23, 42), spacingBefore: global::OfficeIMO.OfficeLength.Points(0), spacingAfter: global::OfficeIMO.OfficeLength.Points(8));
                                         column.Paragraph(p => p.Text("Syllabae Representative\nOvum picem\nPrinceps avem distant, Linteum amicitia\nofficium21@aut statum.com\n881-306-3914"), style: AddressParagraph());
                                     })
                                     .PercentColumn(50, column => {
                                         column.Paragraph(p => p.Bold("For"), style: LabelParagraph());
-                                        column.HR(1.2, global::OfficeIMO.OfficeColor.FromRgb(15, 23, 42), spacingBefore: 0, spacingAfter: 8);
+                                        column.HR(global::OfficeIMO.OfficeLength.Points(1.2), global::OfficeIMO.OfficeColor.FromRgb(15, 23, 42), spacingBefore: global::OfficeIMO.OfficeLength.Points(0), spacingAfter: global::OfficeIMO.OfficeLength.Points(8));
                                         column.Paragraph(p => p.Text("Ceciderit Original\nAurum currunt\nSolis multum platea, Cocus fuge fluvio\nsubsisto93@celeritate.com\n839-621-9110"), style: AddressParagraph());
                                     });
                             });
 
-                            content.Spacer(24);
+                            content.Spacer(global::OfficeIMO.OfficeLength.Points(24));
                             content.Item(item => item.Table(CreateLineItemRows(), style: LineItemStyle()));
-                            content.Spacer(10);
+                            content.Spacer(global::OfficeIMO.OfficeLength.Points(10));
                             content.Row(row => {
                                 row.Style(new PdfRowStyle { KeepTogether = true, SpacingBefore = 2 })
                                     .Gap(22)

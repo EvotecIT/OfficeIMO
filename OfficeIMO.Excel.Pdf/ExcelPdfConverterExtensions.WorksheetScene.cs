@@ -78,18 +78,18 @@ namespace OfficeIMO.Excel.Pdf {
             double sceneX = margins.Left.ToPoints();
             double sceneY = margins.Top.ToPoints() + headingHeight;
             if (firstPageForSheet) {
-                canvas.Outline(plan.SheetName, 1, margins.Top.ToPoints());
+                canvas.Outline(plan.SheetName, 1, margins.Top);
             }
 
             if (headingHeight > 0D) {
                 canvas.Text(
-                    new[] { PdfCore.PdfTextRun.Bolded(plan.SheetName, fontSize: 15D) },
+                    new[] { PdfCore.PdfTextRun.Bolded(plan.SheetName, fontSize: global::OfficeIMO.OfficeLength.Points(15D)) },
                     PdfCore.PdfCanvasTextStructureRole.Heading1,
-                    margins.Left.ToPoints(),
-                    margins.Top.ToPoints(),
-                    availableWidth,
-                    headingHeight,
-                    fontSize: 15D);
+                    margins.Left,
+                    margins.Top,
+                    global::OfficeIMO.OfficeLength.Points(availableWidth),
+                    global::OfficeIMO.OfficeLength.Points(headingHeight),
+                    fontSize: global::OfficeIMO.OfficeLength.Points(15D));
             }
 
             List<double> columnWidths = CreateWorksheetSceneColumnWidths(plan, chunk);
@@ -111,7 +111,7 @@ namespace OfficeIMO.Excel.Pdf {
 
             double tableX = sceneX - objectBounds.Left * scale;
             double tableY = sceneY - objectBounds.Top * scale;
-            canvas.Clip(sceneX, sceneY, Math.Max(1D, clipWidth), Math.Max(1D, clipHeight), clipped => {
+            canvas.Clip(global::OfficeIMO.OfficeLength.Points(sceneX), global::OfficeIMO.OfficeLength.Points(sceneY), global::OfficeIMO.OfficeLength.Points(Math.Max(1D, clipWidth)), global::OfficeIMO.OfficeLength.Points(Math.Max(1D, clipHeight)), clipped => {
                 if (plan.HasTable && chunk.RowIndexes.Count > 0 && chunk.ColumnCount > 0) {
                     SheetExportData data = SelectPageCells(plan, chunk, options);
                     int[] pageRows = Enumerable.Range(0, chunk.RowIndexes.Count).ToArray();
@@ -136,10 +136,10 @@ namespace OfficeIMO.Excel.Pdf {
                             scale,
                             preserveWorksheetNoWrap: true,
                             dateSystem: dateSystem),
-                        tableX,
-                        tableY,
-                        tableWidth * scale,
-                        tableHeight * scale,
+                        global::OfficeIMO.OfficeLength.Points(tableX),
+                        global::OfficeIMO.OfficeLength.Points(tableY),
+                        global::OfficeIMO.OfficeLength.Points(tableWidth * scale),
+                        global::OfficeIMO.OfficeLength.Points(tableHeight * scale),
                         tableStyle);
                     AddWorksheetSceneConditionalIcons(clipped, data, columnWidths, rowHeights, tableX, tableY, scale);
                 }
@@ -400,10 +400,10 @@ namespace OfficeIMO.Excel.Pdf {
 
                 canvas.Image(
                     image.Bytes,
-                    sceneX + (x + image.OffsetXPoints) * scale,
-                    sceneY + (y + image.OffsetYPoints) * scale,
-                    image.WidthPoints * scale,
-                    image.HeightPoints * scale,
+                    global::OfficeIMO.OfficeLength.Points(sceneX + (x + image.OffsetXPoints) * scale),
+                    global::OfficeIMO.OfficeLength.Points(sceneY + (y + image.OffsetYPoints) * scale),
+                    global::OfficeIMO.OfficeLength.Points(image.WidthPoints * scale),
+                    global::OfficeIMO.OfficeLength.Points(image.HeightPoints * scale),
                     CreateConverterImageStyle(),
                     alternativeText: image.AlternativeText,
                     rotationAngle: -image.RotationDegrees,
@@ -433,10 +433,10 @@ namespace OfficeIMO.Excel.Pdf {
                 string chartName = string.IsNullOrWhiteSpace(snapshot.Title) ? snapshot.Name : snapshot.Title!;
                 canvas.Drawing(
                     rendering.Drawing,
-                    sceneX + (x + snapshot.OffsetX.ToPoints()) * scale,
-                    sceneY + (y + snapshot.OffsetY.ToPoints()) * scale,
-                    snapshot.Width.ToPoints() * scale,
-                    snapshot.Height.ToPoints() * scale,
+                    global::OfficeIMO.OfficeLength.Points(sceneX + (x + snapshot.OffsetX.ToPoints()) * scale),
+                    global::OfficeIMO.OfficeLength.Points(sceneY + (y + snapshot.OffsetY.ToPoints()) * scale),
+                    global::OfficeIMO.OfficeLength.Points(snapshot.Width.ToPoints() * scale),
+                    global::OfficeIMO.OfficeLength.Points(snapshot.Height.ToPoints() * scale),
                     new PdfCore.PdfDrawingStyle {
                         AlternativeText = string.IsNullOrWhiteSpace(chartName) ? "Worksheet chart" : chartName
                     });

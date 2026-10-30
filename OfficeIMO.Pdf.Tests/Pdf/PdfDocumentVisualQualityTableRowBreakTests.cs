@@ -71,7 +71,7 @@ public partial class PdfDocumentVisualQualityTests {
         style.ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(70), null };
 
         var richRuns = new[] {
-            PdfTextRun.Normal(string.Join(" ", Enumerable.Range(1, 30).Select(i => "large" + i.ToString("00", CultureInfo.InvariantCulture))), fontSize: 22)
+            PdfTextRun.Normal(string.Join(" ", Enumerable.Range(1, 30).Select(i => "large" + i.ToString("00", CultureInfo.InvariantCulture))), fontSize: global::OfficeIMO.OfficeLength.Points(22))
         };
 
         byte[] bytes = PdfDocument.Create(options)
@@ -112,7 +112,7 @@ public partial class PdfDocumentVisualQualityTests {
         style.ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(70), null };
 
         var richRuns = new[] {
-            PdfTextRun.Normal(string.Join(" ", Enumerable.Range(1, 30).Select(i => "large" + i.ToString("00", CultureInfo.InvariantCulture))), fontSize: 22)
+            PdfTextRun.Normal(string.Join(" ", Enumerable.Range(1, 30).Select(i => "large" + i.ToString("00", CultureInfo.InvariantCulture))), fontSize: global::OfficeIMO.OfficeLength.Points(22))
         };
 
         byte[] bytes = PdfDocument.Create(options)
@@ -309,7 +309,7 @@ public partial class PdfDocumentVisualQualityTests {
                     page.Content(content =>
                         content.Row(row =>
                             row.PercentColumn(100, column => column
-                                .Spacer(94)
+                                .Spacer(global::OfficeIMO.OfficeLength.Points(94))
                                 .Table(new[] {
                                     new[] { "Name", "Value" },
                                     new[] { "Row01", "Alpha" },

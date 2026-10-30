@@ -11,7 +11,7 @@ internal static partial class PdfWriter {
                 double innerWidth = Math.Max(0D, width - 2D * annotation.Padding);
                 double innerHeight = Math.Max(0D, height - 2D * annotation.Padding);
                 double leading = annotation.LineHeight ?? annotation.FontSize * 1.2D;
-                var runs = new[] { PdfTextRun.Normal(annotation.Contents, annotation.TextColor, annotation.FontSize, font: PdfStandardFont.Helvetica) };
+                var runs = new[] { PdfTextRun.Normal(annotation.Contents, annotation.TextColor, global::OfficeIMO.OfficeLength.Points(annotation.FontSize), font: PdfStandardFont.Helvetica) };
                 // Wrapping omitted lines must not enlarge the serialized font subset.
                 var measurementOptions = DiagnosticTextOptions;
                 var wrapped = WrapRichRunsCore(runs, innerWidth, annotation.FontSize, PdfStandardFont.Helvetica,

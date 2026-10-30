@@ -166,7 +166,7 @@ public partial class PdfDocumentVisualQualityTests {
                         page.Content(content =>
                             content.Row(row =>
                                 row.PercentColumn(100, column =>
-                                    column.HR(thickness: double.NaN)))))));
+                                    column.HR(thickness: OfficeLength.Zero)))))));
 
         Assert.Contains("Horizontal rule thickness must be a positive finite value.", columnException.Message, StringComparison.Ordinal);
     }

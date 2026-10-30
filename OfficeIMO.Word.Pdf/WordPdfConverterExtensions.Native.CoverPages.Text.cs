@@ -70,8 +70,8 @@ namespace OfficeIMO.Word.Pdf {
                 color: ParseNativeColor(properties?.Color?.Val?.Value),
                 italic: HasNativeOnOff(properties?.Italic),
                 strike: HasNativeOnOff(properties?.Strike),
-                fontSize: style.FontSize ?? (style.SmallCaps && !style.AllCaps
-                    ? style.EffectiveFontSize : GetNativeVmlRunFontSize(properties)),
+                fontSize: ((double?)(style.FontSize ?? (style.SmallCaps && !style.AllCaps
+                    ? style.EffectiveFontSize : GetNativeVmlRunFontSize(properties))) is double physicalLength1 ? global::OfficeIMO.OfficeLength.Points(physicalLength1) : (global::OfficeIMO.OfficeLength?)null),
                 font: GetNativeVmlRunFont(properties)));
 
         private static void AddNativeVmlTextPathRuns(List<PdfCore.PdfTextRun> runs, WordDocument document, OpenXmlElement element) {
@@ -97,7 +97,7 @@ namespace OfficeIMO.Word.Pdf {
                     color: null,
                     italic: false,
                     strike: false,
-                    fontSize: GetNativeVmlTextPathFontSize(textPath),
+                    fontSize: ((double?)(GetNativeVmlTextPathFontSize(textPath)) is double physicalLength2 ? global::OfficeIMO.OfficeLength.Points(physicalLength2) : (global::OfficeIMO.OfficeLength?)null),
                     font: GetNativeVmlTextPathFont(textPath)));
             }
         }
@@ -239,8 +239,8 @@ namespace OfficeIMO.Word.Pdf {
         private static double GetNativeVmlDefaultFontSize(IReadOnlyList<PdfCore.PdfTextRun> runs) {
             double max = 0D;
             foreach (PdfCore.PdfTextRun run in runs) {
-                if (!string.IsNullOrWhiteSpace(run.Text) && run.FontSize.HasValue && run.FontSize.Value > max) {
-                    max = run.FontSize.Value;
+                if (!string.IsNullOrWhiteSpace(run.Text) && run.FontSize is OfficeLength fontSize) {
+                    max = Math.Max(max, fontSize.ToPoints());
                 }
             }
 

@@ -26,7 +26,7 @@ internal static class EquipmentInspection {
             .CheckBox("accessories-checked")
             .Paragraph(p => p.Bold("Disposition"))
             .ChoiceField("disposition", new[] { "Awaiting inspection", "Return to pool", "Repair required", "Retire from use" },
-                value: "Awaiting inspection", width: 280)
+                value: "Awaiting inspection", width: global::OfficeIMO.OfficeLength.Points(280))
             .Paragraph(p => p.Bold("Follow-up note"))
             .TextField("follow-up", width: global::OfficeIMO.OfficeLength.Points(450), height: global::OfficeIMO.OfficeLength.Points(38))),
             new PdfCreateOptions { DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10) })

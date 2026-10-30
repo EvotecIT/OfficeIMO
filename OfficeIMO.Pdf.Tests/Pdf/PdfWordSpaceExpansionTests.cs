@@ -17,8 +17,8 @@ public sealed class PdfWordSpaceExpansionTests {
     [InlineData(PdfTextWhitespaceMode.Preserve, 12D)]
     [InlineData(PdfTextWhitespaceMode.Collapse, 12D)]
     public void SourceSpaceAdvancesOwnPreferredExpansionBeforeEqualRemainder(PdfTextWhitespaceMode whitespace, double adjustment) {
-        var runs = new[] { new PdfTextRun("Alpha"), new PdfTextRun(" ", fontSize: 12D),
-            new PdfTextRun("beta"), new PdfTextRun(" ", fontSize: 24D), new PdfTextRun("gamma") };
+        var runs = new[] { new PdfTextRun("Alpha"), new PdfTextRun(" ", fontSize: global::OfficeIMO.OfficeLength.Points(12D)),
+            new PdfTextRun("beta"), new PdfTextRun(" ", fontSize: global::OfficeIMO.OfficeLength.Points(24D)), new PdfTextRun("gamma") };
         string label = whitespace + "-" + adjustment.ToString("0.0", CultureInfo.InvariantCulture);
         List<Letter> natural = Letters(Render(runs, 300D, false, false, whitespace), label + "-natural");
         double width = Span(natural) + adjustment;
@@ -43,8 +43,8 @@ public sealed class PdfWordSpaceExpansionTests {
 
     [Fact]
     public void PreservedSourceSpacesRetainIndividualEqualRemainderShares() {
-        var runs = new[] { new PdfTextRun("Alpha"), new PdfTextRun("   ", fontSize: 8D),
-            new PdfTextRun("beta"), new PdfTextRun(" ", fontSize: 16D), new PdfTextRun("gamma") };
+        var runs = new[] { new PdfTextRun("Alpha"), new PdfTextRun("   ", fontSize: global::OfficeIMO.OfficeLength.Points(8D)),
+            new PdfTextRun("beta"), new PdfTextRun(" ", fontSize: global::OfficeIMO.OfficeLength.Points(16D)), new PdfTextRun("gamma") };
         List<Letter> natural = Letters(Render(runs, 300D, false, false, PdfTextWhitespaceMode.Preserve), "group-natural");
         const double adjustment = 12D;
         List<Letter> actual = Letters(Render(runs, Span(natural) + adjustment, true, true, PdfTextWhitespaceMode.Preserve), "group-native");
@@ -61,9 +61,9 @@ public sealed class PdfWordSpaceExpansionTests {
     public void ImportedWordExpansionAfterALeftTabMatchesTheSameIndentedWordField() {
         // Native Word preserves the body-word positions when an equal left-tab
         // field replaces a paragraph indent, including differently sized spaces.
-        var runs = new[] { new PdfTextRun("Alpha"), new PdfTextRun(" ", fontSize: 12D),
-            new PdfTextRun("beta"), new PdfTextRun(" ", fontSize: 24D),
-            new PdfTextRun("gamma"), new PdfTextRun(" ", fontSize: 12D), new PdfTextRun("delta") };
+        var runs = new[] { new PdfTextRun("Alpha"), new PdfTextRun(" ", fontSize: global::OfficeIMO.OfficeLength.Points(12D)),
+            new PdfTextRun("beta"), new PdfTextRun(" ", fontSize: global::OfficeIMO.OfficeLength.Points(24D)),
+            new PdfTextRun("gamma"), new PdfTextRun(" ", fontSize: global::OfficeIMO.OfficeLength.Points(12D)), new PdfTextRun("delta") };
         byte[] Render(bool anchored) {
             var style = new PdfParagraphStyle {
                 UseWordJustificationSpacing = true, JustificationMode = PdfJustificationMode.Words,

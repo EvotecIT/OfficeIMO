@@ -190,8 +190,8 @@ public sealed class StudioOcrSessionTests {
             string image = Path.Combine(services.Paths.Root, "Invoice.png");
             string pdf = Path.Combine(services.Paths.Root, "Scanned page.pdf");
             byte[] visualSource = PdfDocument.Create(document => document.Page(page => page.Size(360, 480).Canvas(canvas =>
-                canvas.Text([new PdfTextRun("Invoice 4827")], 30, 60, 280, 30, fontSize: 24)
-                    .Text([new PdfTextRun("Reviewed searchable statement")], 30, 120, 300, 25, fontSize: 16)))).ToBytes();
+                canvas.Text([new PdfTextRun("Invoice 4827")], global::OfficeIMO.OfficeLength.Points(30), global::OfficeIMO.OfficeLength.Points(60), global::OfficeIMO.OfficeLength.Points(280), global::OfficeIMO.OfficeLength.Points(30), fontSize: global::OfficeIMO.OfficeLength.Points(24))
+                    .Text([new PdfTextRun("Reviewed searchable statement")], global::OfficeIMO.OfficeLength.Points(30), global::OfficeIMO.OfficeLength.Points(120), global::OfficeIMO.OfficeLength.Points(300), global::OfficeIMO.OfficeLength.Points(25), fontSize: global::OfficeIMO.OfficeLength.Points(16))))).ToBytes();
             byte[] png = PdfDocument.Load(new System.IO.MemoryStream(visualSource)).Render.Pages(PdfPageSelection.From(1),
                 new PdfPageRenderOptions { Format = global::OfficeIMO.Drawing.OfficeImageExportFormat.Png, Dpi = 72 }).Single().Bytes!;
             File.WriteAllBytes(image, png);

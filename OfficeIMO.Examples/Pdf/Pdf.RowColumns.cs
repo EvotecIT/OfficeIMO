@@ -48,7 +48,7 @@ namespace OfficeIMO.Examples.Pdf {
                                             PaddingY = 5,
                                             KeepTogether = true
                                         })
-                                    .RoundedRectangle(96, 5, 2.5, strokeColor: global::OfficeIMO.OfficeColor.FromRgb(22, 101, 52), strokeWidth: 0, fillColor: global::OfficeIMO.OfficeColor.FromRgb(22, 163, 74), spacingBefore: 8, spacingAfter: 8)
+                                    .RoundedRectangle(global::OfficeIMO.OfficeLength.Points(96), global::OfficeIMO.OfficeLength.Points(5), global::OfficeIMO.OfficeLength.Points(2.5), strokeColor: global::OfficeIMO.OfficeColor.FromRgb(22, 101, 52), strokeWidth: global::OfficeIMO.OfficeLength.Points(0), fillColor: global::OfficeIMO.OfficeColor.FromRgb(22, 163, 74), spacingBefore: global::OfficeIMO.OfficeLength.Points(8), spacingAfter: global::OfficeIMO.OfficeLength.Points(8))
                                     .Paragraph(p => p
                                         .Bold("Ready: ")
                                         .Text("row gutters are part of the composition model instead of caller-managed whitespace.")));
@@ -83,7 +83,7 @@ namespace OfficeIMO.Examples.Pdf {
                                         Alignments = new System.Collections.Generic.List<PdfColumnAlign> { PdfColumnAlign.Left, PdfColumnAlign.Right },
                                         ColumnWidthWeights = new System.Collections.Generic.List<double> { 1.2, 0.8 }
                                     })
-                                    .HR(0.8, global::OfficeIMO.OfficeColor.FromRgb(183, 194, 207), 8, 8)
+                                    .HR(global::OfficeIMO.OfficeLength.Points(0.8), global::OfficeIMO.OfficeColor.FromRgb(183, 194, 207), global::OfficeIMO.OfficeLength.Points(8), global::OfficeIMO.OfficeLength.Points(8))
                                     .Paragraph(p => p
                                         .Bold("Guarded: ")
                                         .Text("the Poppler baseline catches cramped columns and accidental gutter regressions.")));

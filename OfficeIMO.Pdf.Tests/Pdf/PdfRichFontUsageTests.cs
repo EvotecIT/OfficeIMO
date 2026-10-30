@@ -41,7 +41,7 @@ public class PdfRichFontUsageTests {
             TableSurface.RowColumn => PdfDocument.Create(options)
                 .Row(row => row.PercentColumn(100D, column => column.Table(rows, style: style))),
             TableSurface.Canvas => PdfDocument.Create(options)
-                .Canvas(canvas => canvas.Table(rows, 40D, 40D, 180D, 60D, style)),
+                .Canvas(canvas => canvas.Table(rows, global::OfficeIMO.OfficeLength.Points(40D), global::OfficeIMO.OfficeLength.Points(40D), global::OfficeIMO.OfficeLength.Points(180D), global::OfficeIMO.OfficeLength.Points(60D), style)),
             _ => throw new ArgumentOutOfRangeException(nameof(surface))
         };
 
@@ -77,7 +77,7 @@ public class PdfRichFontUsageTests {
             TableSurface.RowColumn => PdfDocument.Create(options)
                 .Row(row => row.PercentColumn(100D, column => column.Table(rows, style: style))),
             TableSurface.Canvas => PdfDocument.Create(options)
-                .Canvas(canvas => canvas.Table(rows, 40D, 40D, 180D, 60D, style)),
+                .Canvas(canvas => canvas.Table(rows, global::OfficeIMO.OfficeLength.Points(40D), global::OfficeIMO.OfficeLength.Points(40D), global::OfficeIMO.OfficeLength.Points(180D), global::OfficeIMO.OfficeLength.Points(60D), style)),
             _ => throw new ArgumentOutOfRangeException(nameof(surface))
         };
         using var independent = UglyToad.PdfPig.PdfDocument.Open(document.ToBytes());

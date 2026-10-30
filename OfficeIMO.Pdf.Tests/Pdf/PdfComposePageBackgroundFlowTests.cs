@@ -53,10 +53,10 @@ namespace OfficeIMO.Tests.Pdf {
                         .Item(item => item
                             .H1("DirectComposeTitle")
                             .Paragraph(paragraph => paragraph.Text("DirectComposeLead")))
-                        .Spacer(24)
+                        .Spacer(global::OfficeIMO.OfficeLength.Points(24))
                         .Column(column => column
                             .Item(item => item.Paragraph(paragraph => paragraph.Text("ColumnComposeTop")))
-                            .Spacer(18)
+                            .Spacer(global::OfficeIMO.OfficeLength.Points(18))
                             .Item(item => item.Paragraph(paragraph => paragraph.Text("ColumnComposeBottom")))))))
                 .ToBytes();
 

@@ -23,8 +23,8 @@ public static partial class PowerPointPdfConverterExtensions {
         shape.FillRadialGradient = null;
         var frame = new OfficeImageFrameTransform(source.Rotation ?? 0D, x + width / 2D, y + height / 2D,
             source.HorizontalFlip == true, source.VerticalFlip == true);
-        if (frame.HasTransform) canvas.Effect(frame.CreateDestinationTransform(), 1D, target => target.Shape(shape, x, y));
-        else canvas.Shape(shape, x, y);
+        if (frame.HasTransform) canvas.Effect(frame.CreateDestinationTransform(), 1D, target => target.Shape(shape, global::OfficeIMO.OfficeLength.Points(x), global::OfficeIMO.OfficeLength.Points(y)));
+        else canvas.Shape(shape, global::OfficeIMO.OfficeLength.Points(x), global::OfficeIMO.OfficeLength.Points(y));
     }
 
     private static bool TryCreateBentConnectorPath(string? presetName, double width, double height, out List<OfficePathCommand> commands) {

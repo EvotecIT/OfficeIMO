@@ -53,7 +53,7 @@ public static class XpsPdfExtensions {
                         navigation.AddDestinations(c, projection, pageIndex, width, height, cancellationToken);
                         if (drawing.Elements.Count > 0) {
                             if (structure?.HasNativeStructure == true) c.SourceStructuredDrawing(drawing, width, height, structure.Paint(pageIndex));
-                            else c.Drawing(drawing, 0, 0, width, height);
+                            else c.Drawing(drawing, global::OfficeIMO.OfficeLength.Points(0), global::OfficeIMO.OfficeLength.Points(0), global::OfficeIMO.OfficeLength.Points(width), global::OfficeIMO.OfficeLength.Points(height));
                         }
                         if (structure?.HasNativeStructure == true) structure.AddText(c, projection.TextSpans, pageIndex);
                         else foreach (var span in projection.TextSpans) {

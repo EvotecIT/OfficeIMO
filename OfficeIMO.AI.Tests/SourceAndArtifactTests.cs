@@ -118,7 +118,7 @@ public sealed class SourceAndArtifactTests {
         using var pageDocument = PdfDocument.Load(new MemoryStream(page));
         byte[] scan = pageDocument.ExportImages(new PdfImageExportOptions { Format = OfficeImageExportFormat.Png }).Single();
         byte[] source = PdfDocument.Create(builder => builder.Content(content => content.Text("NATIVE")
-            .PageBreak().Image(scan, 400, 566))).ToBytes();
+            .PageBreak().Image(scan, global::OfficeIMO.OfficeLength.Points(400), global::OfficeIMO.OfficeLength.Points(566)))).ToBytes();
         var document = await DocumentInputs.ReadAsync(source, name, images, Array.Empty<int>(), new(), CancellationToken.None);
         Assert.Contains(document.Evidence, item => item.Text.Contains("NATIVE"));
         Assert.Equal(new[] { 1, 2 }, document.Pages);

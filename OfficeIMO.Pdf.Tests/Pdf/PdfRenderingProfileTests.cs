@@ -813,7 +813,7 @@ public sealed class PdfRenderingProfileTests {
             color: global::OfficeIMO.OfficeColor.FromRgb(10, 20, 30),
             italic: true,
             strike: true,
-            fontSize: 13,
+            fontSize: global::OfficeIMO.OfficeLength.Points(13),
             font: PdfStandardFont.Courier,
             baseline: PdfTextBaseline.Superscript,
             backgroundColor: global::OfficeIMO.OfficeColor.FromRgb(40, 50, 60),
@@ -827,7 +827,7 @@ public sealed class PdfRenderingProfileTests {
         Assert.Equal(styleTemplate.Color, runs[0].Color);
         Assert.True(runs[0].Italic);
         Assert.True(runs[0].Strike);
-        Assert.Equal(13, runs[0].FontSize);
+        Assert.Equal(13, (runs[0].FontSize?.ToPoints()));
         Assert.Equal(PdfStandardFont.Courier, runs[0].Font);
         Assert.Equal(PdfTextBaseline.Superscript, runs[0].Baseline);
         Assert.Equal(styleTemplate.BackgroundColor, runs[0].BackgroundColor);

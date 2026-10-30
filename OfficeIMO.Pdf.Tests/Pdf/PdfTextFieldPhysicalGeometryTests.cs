@@ -30,13 +30,21 @@ public sealed class PdfTextFieldPhysicalGeometryTests {
             .TextField("Flow", OfficeLength.Centimeters(2.54), OfficeLength.Pixels(24), "Ada", fontSize: OfficeLength.Points(11),
                 spacingBefore: OfficeLength.Millimeters(2.54), spacingAfter: OfficeLength.Points(3))
             .Canvas(canvas => canvas.TextField("Canvas", "Lin", OfficeLength.Inches(1), OfficeLength.Points(120),
-                OfficeLength.Pixels(96), OfficeLength.Millimeters(6.35), OfficeLength.Points(9)))
+                OfficeLength.Pixels(96), OfficeLength.Millimeters(6.35), OfficeLength.Points(9))
+                .CheckBox("CanvasCheck", true, OfficeLength.Inches(1), OfficeLength.Points(150),
+                    OfficeLength.Pixels(16), OfficeLength.Millimeters(4.233333333333333))
+                .ChoiceField("CanvasChoice", new[] { "EU", "US" }, new[] { "EU" }, OfficeLength.Inches(1), OfficeLength.Points(180),
+                    OfficeLength.Centimeters(2.54), OfficeLength.Pixels(24), OfficeLength.Inches(0.125)))
             .Table(new[] { new[] { new PdfTableCell("", formFields: new[] { cell }) } }, style: new PdfTableStyle { HeaderRowCount = 0 })));
         using var readback = PdfDocument.Load(document.ToBytes());
         var fields = readback.Reader.DocumentInfo().FormFields;
         AssertWidget(fields.Single(field => field.Name == "Flow"), 72, 18);
         AssertWidget(fields.Single(field => field.Name == "Canvas"), 72, 18);
         AssertWidget(fields.Single(field => field.Name == "Cell"), 72, 18);
+        AssertWidget(fields.Single(field => field.Name == "CanvasCheck"), 12, 12);
+        AssertWidget(fields.Single(field => field.Name == "CanvasChoice"), 72, 18);
+        Assert.Equal(72, fields.Single(field => field.Name == "CanvasCheck").Widgets.Single().X1, 3);
+        Assert.Contains(" 9 Tf", fields.Single(field => field.Name == "CanvasChoice").DefaultAppearance);
         Assert.Contains(" 11 Tf", fields.Single(field => field.Name == "Flow").DefaultAppearance);
         Assert.Contains(" 9 Tf", fields.Single(field => field.Name == "Canvas").DefaultAppearance);
     }

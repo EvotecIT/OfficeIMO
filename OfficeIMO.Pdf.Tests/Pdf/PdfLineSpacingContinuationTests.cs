@@ -18,7 +18,7 @@ public sealed class PdfLineSpacingContinuationTests {
             var document = PdfDocument.Create(options);
             document.Content.Row(row => row.Gap(10)
                 .AutoColumn(column => column.Paragraph(p => {
-                    if (explicitRunSize) p.FontSize(size);
+                    if (explicitRunSize) p.FontSize(global::OfficeIMO.OfficeLength.Points(size));
                     p.Text("WWWW");
                 }, style: defaultStyle ? null : style))
                 .RelativeColumn(column => column.Text("Marker")));
@@ -38,9 +38,9 @@ public sealed class PdfLineSpacingContinuationTests {
         if (atBoundary) options.PageHeight = global::OfficeIMO.OfficeLength.Points(60D + 5D * (multiple ? 8D : 20D));
         var document = PdfDocument.Create(options);
         document.Content.Columns(columns => columns.Paragraph(p => {
-            p.FontSize(8).Text(atBoundary ? "A\nB\nC\nD\n" : "A\n");
-            p.FontSize(32).LineBreak();
-            p.FontSize(8).Text(atBoundary ? "E" : "B\nC\nD\nE\nF\nG\nH\nI\nJ");
+            p.FontSize(global::OfficeIMO.OfficeLength.Points(8)).Text(atBoundary ? "A\nB\nC\nD\n" : "A\n");
+            p.FontSize(global::OfficeIMO.OfficeLength.Points(32)).LineBreak();
+            p.FontSize(global::OfficeIMO.OfficeLength.Points(8)).Text(atBoundary ? "E" : "B\nC\nD\nE\nF\nG\nH\nI\nJ");
         }, style: new PdfParagraphStyle {
             FontSize = global::OfficeIMO.OfficeLength.Points(8), SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0),
             LineSpacing = multiple ? PdfLineSpacing.Multiple(1) : PdfLineSpacing.AtLeast(global::OfficeIMO.OfficeLength.Points(20), 1)

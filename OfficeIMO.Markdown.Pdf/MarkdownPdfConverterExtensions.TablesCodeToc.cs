@@ -443,13 +443,13 @@ public static partial class MarkdownPdfConverterExtensions {
 
         pdf.Panel(contentBuilder => contentBuilder.Paragraph(builder => {
             if (language.Length > 0) {
-                builder.FontSize(visualTheme.CodeBlockLabelFontSizeSnapshot)
+                builder.FontSize(global::OfficeIMO.OfficeLength.Points(visualTheme.CodeBlockLabelFontSizeSnapshot))
                     .Bold(language, visualTheme.CodeBlockLabelColorSnapshot)
                     .LineBreak();
             }
 
             builder.Font(PdfCore.PdfStandardFont.Courier)
-                .FontSize(visualTheme.CodeBlockFontSizeSnapshot)
+                .FontSize(global::OfficeIMO.OfficeLength.Points(visualTheme.CodeBlockFontSizeSnapshot))
                 .Color(visualTheme.CodeBlockTextColorSnapshot);
             AppendTextWithLineBreaks(builder, content);
         }, style: new PdfCore.PdfParagraphStyle { TextWhitespaceMode = PdfCore.PdfTextWhitespaceMode.Preformatted }), visualTheme.CodeBlockPanelStyleSnapshot);
@@ -474,11 +474,11 @@ public static partial class MarkdownPdfConverterExtensions {
         }
 
         pdf.PanelParagraph(builder => {
-            builder.FontSize(visualTheme.SemanticBlockLabelFontSizeSnapshot)
+            builder.FontSize(global::OfficeIMO.OfficeLength.Points(visualTheme.SemanticBlockLabelFontSizeSnapshot))
                 .Bold(label, visualTheme.SemanticBlockLabelColorSnapshot);
             builder.LineBreak();
             builder.Font(PdfCore.PdfStandardFont.Courier)
-                .FontSize(visualTheme.SemanticBlockFontSizeSnapshot)
+                .FontSize(global::OfficeIMO.OfficeLength.Points(visualTheme.SemanticBlockFontSizeSnapshot))
                 .Color(visualTheme.SemanticBlockTextColorSnapshot);
             AppendTextWithLineBreaks(builder, semantic.Content ?? string.Empty);
         }, visualTheme.SemanticBlockPanelStyleSnapshot);
@@ -614,7 +614,7 @@ public static partial class MarkdownPdfConverterExtensions {
             pdf.PanelParagraph(builder => {
                 if (toc.IncludeTitle && !string.IsNullOrWhiteSpace(toc.Title)) {
                     builder.Bold(true)
-                        .FontSize(GetTocTitleFontSize(toc.TitleLevel))
+                        .FontSize(global::OfficeIMO.OfficeLength.Points(GetTocTitleFontSize(toc.TitleLevel)))
                         .Color(visualTheme.TocTitleColorSnapshot)
                         .Text(toc.Title.Trim())
                         .Bold(false)

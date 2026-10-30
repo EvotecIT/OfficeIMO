@@ -104,7 +104,7 @@ public sealed class PdfInlineRuleTests {
         var decorated = original.WithAdditionalBand(.75D, AdditionalColor, baselineOffset: -40D);
         byte[] Render(PdfInlineRule rule) => Create(60D).Paragraph(p => p.Runs(new[] {
             PdfTextRun.Normal("0123456789"),
-            PdfTextRun.Inline(rule, PdfTextRun.Normal(string.Empty, fontSize: 24D)),
+            PdfTextRun.Inline(rule, PdfTextRun.Normal(string.Empty, fontSize: global::OfficeIMO.OfficeLength.Points(24D))),
             PdfTextRun.Normal("\nB")
         }), style: Style()).ToBytes();
 
@@ -250,17 +250,17 @@ public sealed class PdfInlineRuleTests {
     [Fact]
     public void PageContinuationRetainsTheFlexibleSourceAndItsLargeFontLineBox() {
         byte[] Render(bool rule) {
-            var source = PdfTextRun.Normal("R", fontSize: 24D, font: PdfStandardFont.Helvetica);
+            var source = PdfTextRun.Normal("R", fontSize: global::OfficeIMO.OfficeLength.Points(24D), font: PdfStandardFont.Helvetica);
             var document = PdfDocument.Create(new PdfCreateOptions { BackgroundColor = null,
                 PageWidth = global::OfficeIMO.OfficeLength.Points(140D), PageHeight = global::OfficeIMO.OfficeLength.Points(80D), MarginLeft = global::OfficeIMO.OfficeLength.Points(20D), MarginRight = global::OfficeIMO.OfficeLength.Points(20D),
                 MarginTop = global::OfficeIMO.OfficeLength.Points(20D), MarginBottom = global::OfficeIMO.OfficeLength.Points(20D), DefaultFontSize = global::OfficeIMO.OfficeLength.Points(8D),
                 DefaultFont = PdfStandardFont.Courier, CompressContentStreams = false
             });
             return document.Paragraph(p => p.Runs(new[] {
-                PdfTextRun.Normal("A\n", fontSize: 8D),
+                PdfTextRun.Normal("A\n", fontSize: global::OfficeIMO.OfficeLength.Points(8D)),
                 rule ? PdfTextRun.Inline(new PdfInlineRule(.5D, RuleColor)
                     .WithAdditionalBand(.75D, AdditionalColor, baselineOffset: -2D), source) : source,
-                PdfTextRun.Normal("\nB", fontSize: 8D)
+                PdfTextRun.Normal("\nB", fontSize: global::OfficeIMO.OfficeLength.Points(8D))
             }), style: new PdfParagraphStyle {
                 FontSize = global::OfficeIMO.OfficeLength.Points(8D), LineSpacing = PdfLineSpacing.Multiple(1.4D), SpacingBefore = global::OfficeIMO.OfficeLength.Points(0D), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0D)
             }).ToBytes();
@@ -304,7 +304,7 @@ public sealed class PdfInlineRuleTests {
         if (family is not null) options.RegisterNamedFontFamily(family);
         var document = PdfDocument.Create(options);
         document.Content.Paragraph(p => {
-            p.FontSize(24D).Bold(boldItalic).Italic(boldItalic);
+            p.FontSize(global::OfficeIMO.OfficeLength.Points(24D)).Bold(boldItalic).Italic(boldItalic);
             if (family is null) p.Font(font);
             else p.FontFamily(family.FamilyName);
             if (rule) p.Inline(new PdfInlineRule(.5D, RuleColor));
@@ -331,10 +331,10 @@ public sealed class PdfInlineRuleTests {
     }
 
     private static byte[] RenderFontMetrics(string frame, bool rule) {
-        var source = PdfTextRun.Normal(rule ? string.Empty : "R", fontSize: 24D, font: PdfStandardFont.Helvetica);
+        var source = PdfTextRun.Normal(rule ? string.Empty : "R", fontSize: global::OfficeIMO.OfficeLength.Points(24D), font: PdfStandardFont.Helvetica);
         source.IsLineBoxStrut = rule;
         PdfTextRun[] runs = { rule ? PdfTextRun.Inline(new PdfInlineRule(.5D, RuleColor, 40D, 3D), source) : source,
-            PdfTextRun.Normal("\nB", fontSize: 8D) };
+            PdfTextRun.Normal("\nB", fontSize: global::OfficeIMO.OfficeLength.Points(8D)) };
         var document = Create(100D);
         var style = new PdfParagraphStyle { FontSize = global::OfficeIMO.OfficeLength.Points(8D), LineSpacing = PdfLineSpacing.Multiple(1.4D), SpacingBefore = global::OfficeIMO.OfficeLength.Points(0D), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0D) };
         if (frame == "flow") document.Paragraph(p => p.Runs(runs), style: style);

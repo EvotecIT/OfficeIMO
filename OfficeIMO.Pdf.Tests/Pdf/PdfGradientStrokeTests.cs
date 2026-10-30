@@ -47,7 +47,7 @@ public sealed class PdfGradientStrokeTests {
         byte[] bytes = document.Compose(compose => compose.Page(page => {
             if (footer) page.Footer(content => content.Shape(shape));
             else page.Header(content => content.Shape(shape));
-            page.Content(content => content.Spacer(20));
+            page.Content(content => content.Spacer(global::OfficeIMO.OfficeLength.Points(20)));
         })).ToBytes();
         string syntax = Encoding.ASCII.GetString(bytes);
         Assert.Contains("/ShadingType 2", syntax);

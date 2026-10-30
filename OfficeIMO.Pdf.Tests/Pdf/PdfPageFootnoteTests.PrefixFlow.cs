@@ -11,7 +11,7 @@ public partial class PdfPageFootnoteTests {
         static byte[] Build(bool associateNote) {
             var document = PdfDocument.Create(Options());
             var note = document.Content.DefineFootnote(body => body.Text("AttachedNote", style: Style()));
-            document.Content.Text("Host", style: Style()).Spacer(75D);
+            document.Content.Text("Host", style: Style()).Spacer(global::OfficeIMO.OfficeLength.Points(75D));
             var reference = PdfTextRun.Normal("LateReference");
             if (associateNote) reference = reference.WithFootnoteReference(note);
             var style = FootnoteTableStyle();

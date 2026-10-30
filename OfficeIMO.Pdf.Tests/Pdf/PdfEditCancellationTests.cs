@@ -126,7 +126,7 @@ public sealed class PdfEditCancellationTests {
         int callbacks = 0;
         void Build(PdfPageCanvas canvas, PdfStampPageContext _) {
             callbacks++;
-            canvas.Text("Draft", 20D, 20D, 100D, 25D);
+            canvas.Text("Draft", global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(25D));
             cancellation.Cancel();
         }
         Assert.ThrowsAny<OperationCanceledException>(() => {

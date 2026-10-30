@@ -93,7 +93,7 @@ public sealed class PdfCreationOfficeThemeTests {
         document.Content.H1("OptionHeading")
             .H1("BlockHeading", new PdfHeadingStyle { FontSize = 19 })
             .Text("OptionBody")
-            .Paragraph(paragraph => paragraph.FontSize(7).Color(OfficeColor.Black).Text("RunBody"))
+            .Paragraph(paragraph => paragraph.FontSize(global::OfficeIMO.OfficeLength.Points(7)).Color(OfficeColor.Black).Text("RunBody"))
             .Table(new[] { new { Item = "TableBody" } });
         options.Theme = OfficeTheme.Dark;
         options.DefaultFontSize = global::OfficeIMO.OfficeLength.Points(40);

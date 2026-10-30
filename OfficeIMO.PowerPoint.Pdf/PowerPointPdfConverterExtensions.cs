@@ -16,7 +16,7 @@ namespace OfficeIMO.PowerPoint.Pdf;
 public static partial class PowerPointPdfConverterExtensions {
     private static void RenderSlide(PdfCore.PdfDocument pdf, PptCore.PowerPointSlide slide, int slideNumber, double pageWidth, double pageHeight, PowerPointPdfExportOptions options) {
         pdf.Canvas(canvas => {
-            canvas.NamedDestination(PptCore.PowerPointHyperlinkResolver.GetSlideDestinationName(slideNumber), 0, 0);
+            canvas.NamedDestination(PptCore.PowerPointHyperlinkResolver.GetSlideDestinationName(slideNumber), global::OfficeIMO.OfficeLength.Points(0), global::OfficeIMO.OfficeLength.Points(0));
             RenderSlideBackground(canvas, slide, slideNumber, pageWidth, pageHeight, options);
 
             RenderShapes(canvas, slide.GetInheritedShapesForExport(), slideNumber, pageWidth, pageHeight, options, warnInvalidBounds: false, groupDepth: 0);
@@ -42,8 +42,8 @@ public static partial class PowerPointPdfConverterExtensions {
                     presentation.SlideSize.Width.ToPoints();
                 RenderSnapshotThumbnail(canvas, item.Slide, item.Number, margin, margin, availableWidth,
                     slideHeight, options);
-                canvas.Text("Slide " + item.Number.ToString(CultureInfo.InvariantCulture), margin,
-                    margin + slideHeight + 18D, availableWidth, 18D, fontSize: 10D,
+                canvas.Text("Slide " + item.Number.ToString(CultureInfo.InvariantCulture), global::OfficeIMO.OfficeLength.Points(margin),
+                    global::OfficeIMO.OfficeLength.Points(margin + slideHeight + 18D), global::OfficeIMO.OfficeLength.Points(availableWidth), global::OfficeIMO.OfficeLength.Points(18D), fontSize: global::OfficeIMO.OfficeLength.Points(10D),
                     color: global::OfficeIMO.OfficeColor.FromRgb(80, 86, 96));
                 string notes = string.Empty;
                 if (options.IncludeSpeakerNotes) item.Slide.Notes.TryGetText(out notes);
@@ -124,7 +124,7 @@ public static partial class PowerPointPdfConverterExtensions {
             RenderSnapshotThumbnail(canvas, slides[index].Slide, slides[index].Number,
                 left + (cellWidth - thumbWidth) / 2D, top, thumbWidth, thumbHeight, options);
             canvas.Text("Slide " + slides[index].Number.ToString(CultureInfo.InvariantCulture),
-                left, top + thumbHeight + 2D, cellWidth, labelHeight, fontSize: 8D,
+                global::OfficeIMO.OfficeLength.Points(left), global::OfficeIMO.OfficeLength.Points(top + thumbHeight + 2D), global::OfficeIMO.OfficeLength.Points(cellWidth), global::OfficeIMO.OfficeLength.Points(labelHeight), fontSize: global::OfficeIMO.OfficeLength.Points(8D),
                 color: global::OfficeIMO.OfficeColor.FromRgb(80, 86, 96), align: PdfCore.PdfAlign.Center);
             if (notesHeight > 0D && slides[index].Slide.Notes.TryGetText(out string notes) &&
                 !string.IsNullOrWhiteSpace(notes)) {
@@ -137,10 +137,10 @@ public static partial class PowerPointPdfConverterExtensions {
     private static void RenderSnapshotThumbnail(PdfCore.PdfPageCanvas canvas, PptCore.PowerPointSlide slide,
         int slideNumber, double x, double y, double width, double height, PowerPointPdfExportOptions options) {
         var size = slide.OwnerDocument!.SlideSize;
-        canvas.NamedDestination(PptCore.PowerPointHyperlinkResolver.GetSlideDestinationName(slideNumber), x, y);
+        canvas.NamedDestination(PptCore.PowerPointHyperlinkResolver.GetSlideDestinationName(slideNumber), global::OfficeIMO.OfficeLength.Points(x), global::OfficeIMO.OfficeLength.Points(y));
         // Draw the canonical slide directly under a thumbnail transform. Reading
         // an image snapshot here would discard PDF links and text semantics.
-        canvas.Clip(x, y, width, height, clipped =>
+        canvas.Clip(global::OfficeIMO.OfficeLength.Points(x), global::OfficeIMO.OfficeLength.Points(y), global::OfficeIMO.OfficeLength.Points(width), global::OfficeIMO.OfficeLength.Points(height), clipped =>
             clipped.Effect(new OfficeTransform(width / size.Width.ToPoints(), 0D, 0D, height / size.Height.ToPoints(), x, y), 1D, target => {
                 RenderSlideBackground(target, slide, slideNumber, size.Width.ToPoints(), size.Height.ToPoints(), options);
                 RenderShapes(target, slide.GetInheritedShapesForExport(), slideNumber, size.Width.ToPoints(), size.Height.ToPoints(),
@@ -210,10 +210,10 @@ public static partial class PowerPointPdfConverterExtensions {
 
                 canvas.Image(
                     background.ImageBytes,
-                    0,
-                    0,
-                    pageWidth,
-                    pageHeight,
+                    global::OfficeIMO.OfficeLength.Points(0),
+                    global::OfficeIMO.OfficeLength.Points(0),
+                    global::OfficeIMO.OfficeLength.Points(pageWidth),
+                    global::OfficeIMO.OfficeLength.Points(pageHeight),
                     style: imageStyle,
                     alternativeText: "PowerPoint slide background");
                 return;
@@ -248,7 +248,7 @@ public static partial class PowerPointPdfConverterExtensions {
         background.FillColor = fillColor;
         background.FillGradient = fillGradient?.Clone();
         background.StrokeWidth = 0D;
-        canvas.Shape(background, 0, 0);
+        canvas.Shape(background, global::OfficeIMO.OfficeLength.Points(0), global::OfficeIMO.OfficeLength.Points(0));
     }
 
     private static string ApplyPowerPointDisplayCase(
@@ -334,10 +334,10 @@ public static partial class PowerPointPdfConverterExtensions {
 
             canvas.Image(
                 imageBytes,
-                x,
-                y,
-                width,
-                height,
+                global::OfficeIMO.OfficeLength.Points(x),
+                global::OfficeIMO.OfficeLength.Points(y),
+                global::OfficeIMO.OfficeLength.Points(width),
+                global::OfficeIMO.OfficeLength.Points(height),
                 style: style,
                 linkUri: linkUri,
                 linkContents: linkUri != null ? picture.AltText : null,
@@ -368,7 +368,7 @@ public static partial class PowerPointPdfConverterExtensions {
                     .TryCreateCustomGeometryDrawing(autoShape, width, height,
                         out OfficeDrawing? drawing, out string? reason)
                 && drawing != null) {
-                canvas.Drawing(drawing, x, y, width, height,
+                canvas.Drawing(drawing, global::OfficeIMO.OfficeLength.Points(x), global::OfficeIMO.OfficeLength.Points(y), global::OfficeIMO.OfficeLength.Points(width), global::OfficeIMO.OfficeLength.Points(height),
                     style: new PdfCore.PdfDrawingStyle {
                         AlternativeText = string.IsNullOrWhiteSpace(autoShape.Name)
                             ? "PowerPoint custom geometry"
@@ -393,7 +393,7 @@ public static partial class PowerPointPdfConverterExtensions {
 
         ApplyShapeAppearance(autoShape, shape, slideNumber, options);
         PptCore.PowerPointSlideImageRenderer.ApplyShapeTransformForExport(shape, autoShape, width, height);
-        canvas.Shape(shape, x, y);
+        canvas.Shape(shape, global::OfficeIMO.OfficeLength.Points(x), global::OfficeIMO.OfficeLength.Points(y));
     }
 
     private static bool RenderTextBoxGeometry(PdfCore.PdfPageCanvas canvas, PptCore.PowerPointTextBox textBox, double x, double y, double width, double height, int slideNumber, PowerPointPdfExportOptions options) {
@@ -409,7 +409,7 @@ public static partial class PowerPointPdfConverterExtensions {
 
         ApplyShapeAppearance(textBox, shape, slideNumber, options);
         PptCore.PowerPointSlideImageRenderer.ApplyShapeTransformForExport(shape, textBox, width, height);
-        canvas.Shape(shape, x, y);
+        canvas.Shape(shape, global::OfficeIMO.OfficeLength.Points(x), global::OfficeIMO.OfficeLength.Points(y));
         return true;
     }
 

@@ -22,7 +22,7 @@ public sealed class WatermarkSelectionTests {
             BehindContent = true
         };
         var document = PdfDocument.Create(builder => builder.Page(page => page.Size(600, 800)
-            .Canvas(canvas => canvas.Text("FOREGROUND CONTENT", 80, 180, 200, 70, fontSize: 24))))
+            .Canvas(canvas => canvas.Text("FOREGROUND CONTENT", global::OfficeIMO.OfficeLength.Points(80), global::OfficeIMO.OfficeLength.Points(180), global::OfficeIMO.OfficeLength.Points(200), global::OfficeIMO.OfficeLength.Points(70), fontSize: global::OfficeIMO.OfficeLength.Points(24)))))
             .Stamp.Watermark(settings)
             .Stamp.Watermark(new PdfWatermarkOptions { Text = "OTHER MARK", X = 80, Y = 320, Width = 200, Height = 70, FontSize = 24, RotationDegrees = 0 });
         document.Save(files.Source);

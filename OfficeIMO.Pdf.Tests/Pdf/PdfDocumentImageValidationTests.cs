@@ -15,73 +15,6 @@ namespace OfficeIMO.Tests.Pdf;
 
 public class PdfDocumentImageValidationTests {
     [Fact]
-    public void ImageApis_PreserveBuilderClrSignaturesWithoutDuplicatingTheDocumentFacade() {
-        Assert.DoesNotContain(
-            typeof(PdfDocument).GetMethods(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance),
-            method => method.Name == "Image");
-        Assert.NotNull(typeof(PdfContentBuilder).GetMethod(nameof(PdfContentBuilder.Image), new[] {
-            typeof(byte[]),
-            typeof(double),
-            typeof(double),
-            typeof(PdfAlign?),
-            typeof(OfficeClipPath),
-            typeof(OfficeImageFit?),
-            typeof(double?),
-            typeof(double?),
-            typeof(PdfImageStyle),
-            typeof(string),
-            typeof(string)
-        }));
-        Assert.NotNull(typeof(PdfContentBuilder).GetMethod(nameof(PdfContentBuilder.Image), new[] {
-            typeof(byte[]),
-            typeof(double),
-            typeof(double),
-            typeof(PdfAlign?),
-            typeof(OfficeClipPath),
-            typeof(OfficeImageFit?),
-            typeof(double?),
-            typeof(double?),
-            typeof(PdfImageStyle),
-            typeof(string),
-            typeof(string)
-        }));
-        Assert.NotNull(typeof(PdfContentBuilder).GetMethod(nameof(PdfContentBuilder.Image), new[] {
-            typeof(byte[]),
-            typeof(double),
-            typeof(double),
-            typeof(PdfAlign?),
-            typeof(OfficeClipPath),
-            typeof(OfficeImageFit?),
-            typeof(double?),
-            typeof(double?),
-            typeof(PdfImageStyle),
-            typeof(string),
-            typeof(string)
-        }));
-        Assert.NotNull(typeof(PdfHeaderBuilder).GetMethod(nameof(PdfHeaderBuilder.Image), new[] {
-            typeof(byte[]),
-            typeof(double),
-            typeof(double),
-            typeof(PdfAlign),
-            typeof(OfficeImageFit)
-        }));
-        Assert.NotNull(typeof(PdfFooterBuilder).GetMethod(nameof(PdfFooterBuilder.Image), new[] {
-            typeof(byte[]),
-            typeof(double),
-            typeof(double),
-            typeof(PdfAlign),
-            typeof(OfficeImageFit)
-        }));
-        Assert.NotNull(typeof(PdfHeaderFooterImage).GetConstructor(new[] {
-            typeof(byte[]),
-            typeof(double),
-            typeof(double),
-            typeof(PdfAlign),
-            typeof(OfficeImageFit)
-        }));
-    }
-
-    [Fact]
     public void Image_WithNullBytes_ThrowsArgumentNullException() {
         var doc = PdfDocument.Create();
 
@@ -479,7 +412,7 @@ public class PdfDocumentImageValidationTests {
                     page.Content(content =>
                         content.Row(row =>
                             row.PercentColumn(100, column =>
-                                column.Image(null!, 24, 24)))))));
+                                column.Image(null!, global::OfficeIMO.OfficeLength.Points(24), global::OfficeIMO.OfficeLength.Points(24))))))));
 
         Assert.Equal("jpegBytes", exception.ParamName);
     }
@@ -494,7 +427,7 @@ public class PdfDocumentImageValidationTests {
                     page.Content(content =>
                         content.Row(row =>
                             row.PercentColumn(100, column =>
-                                column.Image(Array.Empty<byte>(), 24, 24)))))));
+                                column.Image(Array.Empty<byte>(), global::OfficeIMO.OfficeLength.Points(24), global::OfficeIMO.OfficeLength.Points(24))))))));
 
         Assert.Equal("jpegBytes", exception.ParamName);
         Assert.Contains("Parameter 'jpegBytes' cannot be empty.", exception.Message, StringComparison.Ordinal);
@@ -512,7 +445,7 @@ public class PdfDocumentImageValidationTests {
                     page.Content(content =>
                         content.Row(row =>
                             row.PercentColumn(100, column =>
-                                column.Image(new byte[] { 0xFF, 0xD8, 0xFF, 0xD9 }, invalidWidth, 24)))))));
+                                column.Image(new byte[] { 0xFF, 0xD8, 0xFF, 0xD9 }, global::OfficeIMO.OfficeLength.Points(invalidWidth), global::OfficeIMO.OfficeLength.Points(24))))))));
 
         Assert.Equal("width", exception.ParamName);
     }
@@ -529,7 +462,7 @@ public class PdfDocumentImageValidationTests {
                     page.Content(content =>
                         content.Row(row =>
                             row.PercentColumn(100, column =>
-                                column.Image(new byte[] { 0xFF, 0xD8, 0xFF, 0xD9 }, 24, invalidHeight)))))));
+                                column.Image(new byte[] { 0xFF, 0xD8, 0xFF, 0xD9 }, global::OfficeIMO.OfficeLength.Points(24), global::OfficeIMO.OfficeLength.Points(invalidHeight))))))));
 
         Assert.Equal("height", exception.ParamName);
     }
@@ -543,7 +476,7 @@ public class PdfDocumentImageValidationTests {
                 page.Content(content =>
                     content.Row(row =>
                         row.PercentColumn(100, column =>
-                            column.Image(CreateMinimalGif(), 24, 24))))));
+                            column.Image(CreateMinimalGif(), global::OfficeIMO.OfficeLength.Points(24), global::OfficeIMO.OfficeLength.Points(24)))))));
 
         Assert.Single(PdfImageExtractor.ExtractImages(doc.ToBytes()));
     }
@@ -618,7 +551,7 @@ public class PdfDocumentImageValidationTests {
                 compose.Page(page =>
                     page.Content(content =>
                         content.Column(column =>
-                            column.Item().Image(null!, 24, 24))))));
+                            column.Item().Image(null!, global::OfficeIMO.OfficeLength.Points(24), global::OfficeIMO.OfficeLength.Points(24)))))));
 
         Assert.Equal("jpegBytes", exception.ParamName);
     }
@@ -632,7 +565,7 @@ public class PdfDocumentImageValidationTests {
                 compose.Page(page =>
                     page.Content(content =>
                         content.Column(column =>
-                            column.Item().Image(Array.Empty<byte>(), 24, 24))))));
+                            column.Item().Image(Array.Empty<byte>(), global::OfficeIMO.OfficeLength.Points(24), global::OfficeIMO.OfficeLength.Points(24)))))));
 
         Assert.Equal("jpegBytes", exception.ParamName);
         Assert.Contains("Parameter 'jpegBytes' cannot be empty.", exception.Message, StringComparison.Ordinal);
@@ -649,7 +582,7 @@ public class PdfDocumentImageValidationTests {
                 compose.Page(page =>
                     page.Content(content =>
                         content.Column(column =>
-                            column.Item().Image(new byte[] { 0xFF, 0xD8, 0xFF, 0xD9 }, invalidWidth, 24))))));
+                            column.Item().Image(new byte[] { 0xFF, 0xD8, 0xFF, 0xD9 }, global::OfficeIMO.OfficeLength.Points(invalidWidth), global::OfficeIMO.OfficeLength.Points(24)))))));
 
         Assert.Equal("width", exception.ParamName);
     }
@@ -665,7 +598,7 @@ public class PdfDocumentImageValidationTests {
                 compose.Page(page =>
                     page.Content(content =>
                         content.Column(column =>
-                            column.Item().Image(new byte[] { 0xFF, 0xD8, 0xFF, 0xD9 }, 24, invalidHeight))))));
+                            column.Item().Image(new byte[] { 0xFF, 0xD8, 0xFF, 0xD9 }, global::OfficeIMO.OfficeLength.Points(24), global::OfficeIMO.OfficeLength.Points(invalidHeight)))))));
 
         Assert.Equal("height", exception.ParamName);
     }
@@ -1053,7 +986,7 @@ public class PdfDocumentImageValidationTests {
                     page.Content(content =>
                         content.Row(row =>
                             row.PercentColumn(100, column =>
-                                column.Image(png, 24, 24))))))
+                                column.Image(png, global::OfficeIMO.OfficeLength.Points(24), global::OfficeIMO.OfficeLength.Points(24)))))))
             .ToBytes();
 
         string pdfContent = PdfTestContentText.ReadDecoded(bytes);
@@ -1078,7 +1011,7 @@ public class PdfDocumentImageValidationTests {
                     page.Content(content =>
                         content.Row(row =>
                             row.PercentColumn(100, column =>
-                                column.Image(jpeg, 360, 180, style: new PdfImageStyle { ScaleDownToFit = true }))))))
+                                column.Image(jpeg, global::OfficeIMO.OfficeLength.Points(360), global::OfficeIMO.OfficeLength.Points(180), style: new PdfImageStyle { ScaleDownToFit = true }))))))
             .ToBytes();
 
         string pdfContent = PdfTestContentText.ReadDecoded(bytes);
@@ -1096,7 +1029,7 @@ public class PdfDocumentImageValidationTests {
                     page.Content(content =>
                         content.Row(row =>
                             row.PercentColumn(60, column =>
-                                column.Image(png, 24, 24, clipPath: OfficeClipPath.RoundedRectangle(12, 12, 3)))))))
+                                column.Image(png, global::OfficeIMO.OfficeLength.Points(24), global::OfficeIMO.OfficeLength.Points(24), clipPath: OfficeClipPath.RoundedRectangle(12, 12, 3)))))))
             .ToBytes();
 
         string pdfContent = PdfTestContentText.ReadDecoded(bytes);

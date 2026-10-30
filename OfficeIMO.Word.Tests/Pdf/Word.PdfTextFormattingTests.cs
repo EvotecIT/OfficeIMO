@@ -43,7 +43,7 @@ public sealed class WordPdfTextFormattingTests {
         Assert.Equal(global::OfficeIMO.OfficeColor.FromRgb(51, 102, 153), run.Color);
         Assert.Equal(PdfStandardFont.Helvetica, run.Font);
         Assert.Null(run.FontFamily);
-        Assert.Equal(14D, run.FontSize);
+        Assert.Equal(14D, (run.FontSize?.ToPoints()));
     }
 
     [Fact]

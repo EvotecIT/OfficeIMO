@@ -45,7 +45,7 @@ internal static class OneNoteVisualPdfRenderer {
             document.Compose(pdf => pdf.Page(page => page
                 .Size(snapshot.Drawing.Width, snapshot.Drawing.Height)
                 .Margin(0D)
-                .Canvas(canvas => canvas.Image(png, 0D, 0D, snapshot.Drawing.Width, snapshot.Drawing.Height, alternativeText: alternativeText))));
+                .Canvas(canvas => canvas.Image(png, global::OfficeIMO.OfficeLength.Points(0D), global::OfficeIMO.OfficeLength.Points(0D), global::OfficeIMO.OfficeLength.Points(snapshot.Drawing.Width), global::OfficeIMO.OfficeLength.Points(snapshot.Drawing.Height), alternativeText: alternativeText))));
             AddDiagnostics(reference, diagnostics, report);
         }
 

@@ -270,7 +270,7 @@ public sealed class PowerPointPdfTextFormattingTests {
             Assert.Equal(OfficeTextDecorationStyle.Wavy, run.UnderlineStyle);
             Assert.Equal(OfficeTextDecorationStyle.Double, run.StrikeStyle);
             Assert.Equal(PdfCore.PdfTextBaseline.Superscript, run.Baseline);
-            Assert.Equal(18D, run.FontSize);
+            Assert.Equal(18D, (run.FontSize?.ToPoints()));
             Assert.Equal("Theme Minor", run.FontFamily);
             // Local text formatting overrides table regions; the master is a
             // fallback when an active table region supplies no text color.

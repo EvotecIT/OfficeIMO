@@ -231,14 +231,14 @@ public class PdfContainerAndColumnTests {
                 CompressContentStreams = false
             })
             .Columns(columns => columns.Paragraph(paragraph => paragraph
-                .Text("ColumnLine01 ").InlineBox(8, 8).Text("after").LineBreak()
-                .Text("ColumnLine02 ").InlineBox(8, 8).Text("after").LineBreak()
-                .Text("ColumnLine03 ").InlineBox(8, 8).Text("after").LineBreak()
-                .Text("ColumnLine04 ").InlineBox(8, 8).Text("after").LineBreak()
-                .Text("ColumnLine05 ").InlineBox(8, 8).Text("after").LineBreak()
-                .Text("ColumnLine06 ").InlineBox(8, 8).Text("after").LineBreak()
-                .Text("ColumnLine07 ").InlineBox(8, 8).Text("after").LineBreak()
-                .Text("ColumnLine08 ").InlineBox(8, 8).Text("after")), new PdfMultiColumnOptions {
+                .Text("ColumnLine01 ").InlineBox(global::OfficeIMO.OfficeLength.Points(8), global::OfficeIMO.OfficeLength.Points(8)).Text("after").LineBreak()
+                .Text("ColumnLine02 ").InlineBox(global::OfficeIMO.OfficeLength.Points(8), global::OfficeIMO.OfficeLength.Points(8)).Text("after").LineBreak()
+                .Text("ColumnLine03 ").InlineBox(global::OfficeIMO.OfficeLength.Points(8), global::OfficeIMO.OfficeLength.Points(8)).Text("after").LineBreak()
+                .Text("ColumnLine04 ").InlineBox(global::OfficeIMO.OfficeLength.Points(8), global::OfficeIMO.OfficeLength.Points(8)).Text("after").LineBreak()
+                .Text("ColumnLine05 ").InlineBox(global::OfficeIMO.OfficeLength.Points(8), global::OfficeIMO.OfficeLength.Points(8)).Text("after").LineBreak()
+                .Text("ColumnLine06 ").InlineBox(global::OfficeIMO.OfficeLength.Points(8), global::OfficeIMO.OfficeLength.Points(8)).Text("after").LineBreak()
+                .Text("ColumnLine07 ").InlineBox(global::OfficeIMO.OfficeLength.Points(8), global::OfficeIMO.OfficeLength.Points(8)).Text("after").LineBreak()
+                .Text("ColumnLine08 ").InlineBox(global::OfficeIMO.OfficeLength.Points(8), global::OfficeIMO.OfficeLength.Points(8)).Text("after")), new PdfMultiColumnOptions {
                     ColumnCount = 2,
                     Gap = 20,
                     BalanceLastPage = true,

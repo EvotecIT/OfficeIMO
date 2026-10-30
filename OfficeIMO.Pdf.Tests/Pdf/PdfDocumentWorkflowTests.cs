@@ -91,7 +91,7 @@ public class PdfDocumentWorkflowTests {
                 new[] {
                     new PdfTableCell("Alpha"),
                     PdfTableCell.RichTextCell(new[] {
-                        PdfTextRun.Normal(longValue, fontSize: 30, font: PdfStandardFont.Courier)
+                        PdfTextRun.Normal(longValue, fontSize: global::OfficeIMO.OfficeLength.Points(30), font: PdfStandardFont.Courier)
                     })
                 }
             }, style: new PdfTableStyle {
@@ -124,7 +124,7 @@ public class PdfDocumentWorkflowTests {
                 new[] {
                     new PdfTableCell("Alpha"),
                     PdfTableCell.RichTextCell(new[] {
-                        PdfTextRun.Normal(longValue, fontSize: 8, font: PdfStandardFont.Courier)
+                        PdfTextRun.Normal(longValue, fontSize: global::OfficeIMO.OfficeLength.Points(8), font: PdfStandardFont.Courier)
                     })
                 }
             }, style: new PdfTableStyle {
@@ -160,7 +160,7 @@ public class PdfDocumentWorkflowTests {
                 new[] {
                     new PdfTableCell("Alpha"),
                     PdfTableCell.RichTextCell(new[] {
-                        PdfTextRun.Normal(longValue, fontSize: 30, font: PdfStandardFont.Courier)
+                        PdfTextRun.Normal(longValue, fontSize: global::OfficeIMO.OfficeLength.Points(30), font: PdfStandardFont.Courier)
                     })
                 }
             }, style: new PdfTableStyle {
@@ -195,7 +195,7 @@ public class PdfDocumentWorkflowTests {
                 new[] {
                     new PdfTableCell("Alpha"),
                     PdfTableCell.RichTextCell(new[] {
-                        PdfTextRun.Normal(tinyValue, fontSize: 4, font: PdfStandardFont.Courier),
+                        PdfTextRun.Normal(tinyValue, fontSize: global::OfficeIMO.OfficeLength.Points(4), font: PdfStandardFont.Courier),
                         PdfTextRun.Normal(longValue)
                     })
                 }
@@ -225,7 +225,7 @@ public class PdfDocumentWorkflowTests {
                     new PdfTableCell("Alpha"),
                     PdfTableCell.RichTextCell(new[] {
                         PdfTextRun.Normal(prefix),
-                        PdfTextRun.Normal(largeValue, fontSize: 30, font: PdfStandardFont.Courier)
+                        PdfTextRun.Normal(largeValue, fontSize: global::OfficeIMO.OfficeLength.Points(30), font: PdfStandardFont.Courier)
                     })
                 }
             }, style: new PdfTableStyle {
@@ -260,7 +260,7 @@ public class PdfDocumentWorkflowTests {
                     new PdfTableCell("Alpha"),
                     PdfTableCell.RichTextCell(new[] {
                         PdfTextRun.Normal(prefix),
-                        PdfTextRun.Normal(largeValue, fontSize: 20, font: PdfStandardFont.Courier)
+                        PdfTextRun.Normal(largeValue, fontSize: global::OfficeIMO.OfficeLength.Points(20), font: PdfStandardFont.Courier)
                     })
                 }
             }, style: new PdfTableStyle {
@@ -327,7 +327,7 @@ public class PdfDocumentWorkflowTests {
             .Canvas(canvas => canvas.Table(new[] {
                 new[] { "Name", "Value" },
                 new[] { "Alpha", longValue }
-            }, 20, 20, 162, 80, new PdfTableStyle {
+            }, global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(162), global::OfficeIMO.OfficeLength.Points(80), new PdfTableStyle {
                 FontSize = global::OfficeIMO.OfficeLength.Points(18),
                 HeaderFontSize = global::OfficeIMO.OfficeLength.Points(18),
                 MinimumShrinkFontSize = global::OfficeIMO.OfficeLength.Points(7),
@@ -1521,9 +1521,9 @@ public class PdfDocumentWorkflowTests {
                 Caption = "Table caption \u2666"
             })
             .Canvas(canvas => canvas
-                .Text("Canvas \u260e", 10, 10, 120, 24)
-                .FreeTextAnnotation("Callout \u2615", 10, 42, 120, 32)
-                .Table(new[] { new[] { "Canvas table" } }, 10, 84, 120, 42, new PdfTableStyle {
+                .Text("Canvas \u260e", global::OfficeIMO.OfficeLength.Points(10), global::OfficeIMO.OfficeLength.Points(10), global::OfficeIMO.OfficeLength.Points(120), global::OfficeIMO.OfficeLength.Points(24))
+                .FreeTextAnnotation("Callout \u2615", global::OfficeIMO.OfficeLength.Points(10), global::OfficeIMO.OfficeLength.Points(42), global::OfficeIMO.OfficeLength.Points(120), global::OfficeIMO.OfficeLength.Points(32))
+                .Table(new[] { new[] { "Canvas table" } }, global::OfficeIMO.OfficeLength.Points(10), global::OfficeIMO.OfficeLength.Points(84), global::OfficeIMO.OfficeLength.Points(120), global::OfficeIMO.OfficeLength.Points(42), new PdfTableStyle {
                     Caption = "Canvas caption \u273f"
                 }))
             .TextField("Person.Name", width: global::OfficeIMO.OfficeLength.Points(120), height: global::OfficeIMO.OfficeLength.Points(20), value: "Field \u2603");

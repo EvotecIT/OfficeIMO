@@ -250,7 +250,7 @@ public partial class PdfDocumentVisualQualityTests {
             })
             .Canvas(canvas => canvas.Table(new[] {
                 new[] { "FixedBorderText" }
-            }, 24, 24, 160, 60, style))
+            }, global::OfficeIMO.OfficeLength.Points(24), global::OfficeIMO.OfficeLength.Points(24), global::OfficeIMO.OfficeLength.Points(160), global::OfficeIMO.OfficeLength.Points(60), style))
             .ToBytes();
 
         string content = PdfTestContentText.JoinTextArrays(string.Join("\n", GetPageContentStreams(bytes, pageNumber: 1)));

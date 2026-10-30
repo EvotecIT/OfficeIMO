@@ -19,7 +19,7 @@ internal static partial class PdfWriter {
             PdfStandardFont font = PdfStandardFontMapper.TryMapFontFamily(family, out PdfStandardFont mapped)
                 ? mapped : string.IsNullOrWhiteSpace(family) ? options.DefaultFont : PdfStandardFont.Helvetica;
             var run = new PdfTextRun(text!, bold: (style & OfficeFontStyle.Bold) != 0,
-                italic: (style & OfficeFontStyle.Italic) != 0, fontSize: size, font: font, fontFamily: family);
+                italic: (style & OfficeFontStyle.Italic) != 0, fontSize: global::OfficeIMO.OfficeLength.Points(size), font: font, fontFamily: family);
             foreach (PdfTextRun part in NormalizeFallbackRuns(new[] { run }, ChooseNormal(options.DefaultFont), options)) {
                 cancellationToken.ThrowIfCancellationRequested();
                 byte[]? data = null;
@@ -54,7 +54,7 @@ internal static partial class PdfWriter {
             double width = 0D;
             foreach (var part in Resolve(text, size, family, style))
                 width += part.Canvas != null
-                    ? part.Canvas.MeasureText(part.Run.Text, part.Run.FontSize ?? size, part.Family, style)
+                    ? part.Canvas.MeasureText(part.Run.Text, (part.Run.FontSize?.ToPoints()) ?? size, part.Family, style)
                     : GetRichSegmentWidth(CreatePositionedTextSegment(part.Run, size, options));
             return width;
         }
@@ -65,7 +65,7 @@ internal static partial class PdfWriter {
             foreach (var part in Resolve(text, size, family, style)) {
                 width += part.Canvas != null
                     ? part.Canvas.MeasurePositionedText(
-                        part.Run.Text, part.Run.FontSize ?? size, part.Family, style,
+                        part.Run.Text, (part.Run.FontSize?.ToPoints()) ?? size, part.Family, style,
                         part.Run.FeatureSettings, direction)
                     : GetRichSegmentWidth(CreatePositionedTextSegment(
                         part.Run.WithTextDirection(direction), size, options));
@@ -79,8 +79,8 @@ internal static partial class PdfWriter {
             foreach (var part in Resolve(text, size, family, style)) {
                 if (string.IsNullOrWhiteSpace(part.Run.Text)) continue;
                 OfficeTextPaintBounds bounds = part.Canvas != null
-                    ? part.Canvas.MeasureTextPaintBounds(part.Run.Text, part.Run.FontSize ?? size, part.Family, style)
-                    : GetStandardFontPaintBounds(part.Run.Text, part.Font, part.Run.FontSize ?? size);
+                    ? part.Canvas.MeasureTextPaintBounds(part.Run.Text, (part.Run.FontSize?.ToPoints()) ?? size, part.Family, style)
+                    : GetStandardFontPaintBounds(part.Run.Text, part.Font, (part.Run.FontSize?.ToPoints()) ?? size);
                 if (!hasPaint) {
                     top = bounds.Top; bottom = bounds.Bottom; hasPaint = true;
                 } else {
@@ -102,7 +102,7 @@ internal static partial class PdfWriter {
             if (segment.BackgroundColor.HasValue && segment.BackgroundColor.Value.A > 0 && segment.Width > 0D) {
                 foreach (var part in Resolve(segment.Text, size, segment.FontFamily, segment.FontStyle)) {
                     var selected = CreatePositionedTextSegment(part.Run, size, options);
-                    double fontSize = part.Run.FontSize ?? size;
+                    double fontSize = (part.Run.FontSize?.ToPoints()) ?? size;
                     double padding = Math.Max(.45D, fontSize * .05D);
                     Include(-GetAscenderForOptions(selected.Font, selected.NamedFont, fontSize, options) - padding,
                         GetDescenderForOptions(selected.Font, selected.NamedFont, fontSize, options) + padding);
@@ -126,7 +126,7 @@ internal static partial class PdfWriter {
         (double Left, double Right) MeasureHorizontalPaint(string? text, double size, string? family, OfficeFontStyle style) {
             double cursor = 0D, left = 0D, right = 0D;
             foreach (var part in Resolve(text, size, family, style)) {
-                double renderedSize = part.Run.FontSize ?? size;
+                double renderedSize = (part.Run.FontSize?.ToPoints()) ?? size;
                 double advance = part.Canvas != null
                     ? part.Canvas.MeasureText(part.Run.Text, renderedSize, part.Family, style)
                     : GetRichSegmentWidth(CreatePositionedTextSegment(part.Run, size, options));

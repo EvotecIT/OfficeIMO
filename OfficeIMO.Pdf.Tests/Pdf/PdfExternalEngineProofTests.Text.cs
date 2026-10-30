@@ -27,17 +27,17 @@ public partial class PdfExternalEngineProofTests {
         if (scenario == "drawing") {
             var ink = new OfficeDrawing(120D, 40D).AddText(paint, 5D, 5D, 100D, 25D, new OfficeFontInfo("Helvetica", 12D));
             var drawing = new OfficeDrawing(120D, 40D).AddActualTextDrawing(replacement, ink, 5D, 5D);
-            document.Canvas(canvas => canvas.Drawing(drawing, 10D, 10D, 120D, 40D));
+            document.Canvas(canvas => canvas.Drawing(drawing, global::OfficeIMO.OfficeLength.Points(10D), global::OfficeIMO.OfficeLength.Points(10D), global::OfficeIMO.OfficeLength.Points(120D), global::OfficeIMO.OfficeLength.Points(40D)));
         } else {
             document.Canvas(canvas => {
-                canvas.ActualText(replacement, 10D, 10D, logical => {
-                    if (scenario == "effect") logical.Effect(OfficeTransform.Identity, .5D, effect => effect.Text(paint, 10D, 10D, 100D, 20D));
+                canvas.ActualText(replacement, global::OfficeIMO.OfficeLength.Points(10D), global::OfficeIMO.OfficeLength.Points(10D), logical => {
+                    if (scenario == "effect") logical.Effect(OfficeTransform.Identity, .5D, effect => effect.Text(paint, global::OfficeIMO.OfficeLength.Points(10D), global::OfficeIMO.OfficeLength.Points(10D), global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(20D)));
                     else if (scenario == "nested") logical.ActualText("NestedReplacement", nested => nested
-                        .Text(paint, 10D, 10D, 100D, 20D).SearchableText("NestedSearch", 10D, 10D));
-                    else if (scenario == "shape") logical.Shape(OfficeShape.Rectangle(100D, 20D), 10D, 10D);
-                    else logical.Text(paint, 10D, 10D, 100D, 20D);
+                        .Text(paint, global::OfficeIMO.OfficeLength.Points(10D), global::OfficeIMO.OfficeLength.Points(10D), global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(20D)).SearchableText("NestedSearch", 10D, 10D));
+                    else if (scenario == "shape") logical.Shape(OfficeShape.Rectangle(100D, 20D), global::OfficeIMO.OfficeLength.Points(10D), global::OfficeIMO.OfficeLength.Points(10D));
+                    else logical.Text(paint, global::OfficeIMO.OfficeLength.Points(10D), global::OfficeIMO.OfficeLength.Points(10D), global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(20D));
                 });
-                if (scenario == "following") canvas.Text("FollowingPaint", 10D, 50D, 100D, 20D);
+                if (scenario == "following") canvas.Text("FollowingPaint", global::OfficeIMO.OfficeLength.Points(10D), global::OfficeIMO.OfficeLength.Points(50D), global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(20D));
             });
         }
         string expected = scenario == "following" ? replacement + "\n" + "FollowingPaint" : replacement;

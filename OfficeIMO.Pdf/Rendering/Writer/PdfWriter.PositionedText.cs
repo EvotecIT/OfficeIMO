@@ -35,17 +35,17 @@ internal static partial class PdfWriter {
         PdfStandardFont font = ResolveFontForRun(run, ChooseNormal(options.DefaultFont));
         PdfNamedFontFace? namedFont = options.TryResolveNamedFontFace(run.FontFamily, run.Bold, run.Italic, out PdfNamedFontFace resolved)
             ? resolved : null;
-        double effectiveFontSize = run.FontSize ?? fontSize;
+        double effectiveFontSize = (run.FontSize?.ToPoints()) ?? fontSize;
         double measuredWidth = MeasurePositionedTextWidth(
             run.Text, font, namedFont, effectiveFontSize, run.Baseline, options,
-            run.FeatureSettings, run.TextDirection, run.HorizontalTextScaling, run.CharacterSpacing, fontMetricScale,
+            run.FeatureSettings, run.TextDirection, run.HorizontalTextScaling, (run.CharacterSpacing.ToPoints()), fontMetricScale,
             run.PreservesPaintedGlyphs);
         return new RichSeg(run.Text, run.Bold, run.Italic, run.Underline, run.Strike,
             run.Color, run.BackgroundColor, run.LinkUri, run.LinkDestinationName, run.LinkContents,
             font, effectiveFontSize, run.Baseline, measuredWidth, namedFont: namedFont,
             underlineStyle: run.UnderlineStyle, strikeStyle: run.StrikeStyle,
             decorationColor: run.DecorationColor, featureSettings: run.FeatureSettings,
-            textDirection: run.TextDirection, horizontalTextScaling: run.HorizontalTextScaling, characterSpacing: run.CharacterSpacing, fontMetricScale: fontMetricScale,
+            textDirection: run.TextDirection, horizontalTextScaling: run.HorizontalTextScaling, characterSpacing: (run.CharacterSpacing.ToPoints()), fontMetricScale: fontMetricScale,
             preservesPaintedGlyphs: run.PreservesPaintedGlyphs, formField: run.FormField);
     }
 

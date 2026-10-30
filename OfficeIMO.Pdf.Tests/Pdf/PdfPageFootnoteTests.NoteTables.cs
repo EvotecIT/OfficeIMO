@@ -81,7 +81,7 @@ public partial class PdfPageFootnoteTests {
         PdfFootnoteDefinition note = document.Content.DefineFootnote(body => body.Table(new[] { new[] {
             new PdfTableCell(runs, namedDestinationName: "NoteCell"), new PdfTableCell("ShortNeighbor")
         } }, style: NoteGridStyle()));
-        document.Content.Text("PreviousBody", style: Style()).Spacer(60);
+        document.Content.Text("PreviousBody", style: Style()).Spacer(global::OfficeIMO.OfficeLength.Points(60));
         document.Content.Paragraph(paragraph => paragraph.Runs(new[] {
             PdfTextRun.Normal("Reference").WithFootnoteReference(note)
         }), style: Style());
@@ -178,7 +178,7 @@ public partial class PdfPageFootnoteTests {
             PaddingX = horizontalPadding, PaddingY = verticalPadding, SpacingBefore = 0, SpacingAfter = 0,
             BorderColor = global::OfficeIMO.OfficeColor.FromNormalizedRgb(.2D, .2D, .2D), BorderWidth = .5D
         }));
-        document.Content.Text("PreviousBody", style: Style()).Spacer(60);
+        document.Content.Text("PreviousBody", style: Style()).Spacer(global::OfficeIMO.OfficeLength.Points(60));
         document.Content.Paragraph(paragraph => paragraph.Runs(new[] {
             PdfTextRun.Normal("Reference").WithFootnoteReference(note)
         }), style: Style());

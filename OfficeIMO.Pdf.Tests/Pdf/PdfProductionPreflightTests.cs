@@ -86,7 +86,7 @@ public sealed class PdfProductionPreflightTests {
         PdfDocument source = PdfDocument.Load(PdfDocument.Create(new PdfCreateOptions { PageWidth = global::OfficeIMO.OfficeLength.Points(240D), PageHeight = global::OfficeIMO.OfficeLength.Points(180D) })
             .Paragraph(paragraph => paragraph.Text("First page"))
             .PageBreak()
-            .Canvas(canvas => canvas.Image(image, 20D, 20D, 100D, 100D))
+            .Canvas(canvas => canvas.Image(image, global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(100D)))
             .ToBytes());
 
         PdfProductionPreflightReport report = source.Proof.PreflightProduction(new PdfProductionPreflightOptions {
@@ -109,7 +109,7 @@ public sealed class PdfProductionPreflightTests {
     public void EffectiveImageResolutionAccountsForPageUserUnit() {
         byte[] image = PdfPngTestImages.CreateRgbPng(30, 30);
         byte[] source = PdfDocument.Create(new PdfCreateOptions { PageWidth = global::OfficeIMO.OfficeLength.Points(240D), PageHeight = global::OfficeIMO.OfficeLength.Points(180D) })
-            .Canvas(canvas => canvas.Image(image, 20D, 20D, 72D, 72D)).ToBytes();
+            .Canvas(canvas => canvas.Image(image, global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(72D), global::OfficeIMO.OfficeLength.Points(72D))).ToBytes();
         byte[] scaled = PdfDocumentObjectGraphRewriter.Rewrite(source, null, null, (objects, security) => {
             PdfIndirectObject page = Assert.Single(objects.Values, static item =>
                 item.Value is PdfDictionary dictionary && dictionary.Get<PdfName>("Type")?.Name == "Page");

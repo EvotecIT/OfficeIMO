@@ -11,7 +11,7 @@ public sealed class PdfExplicitLineSpacingTests {
     [InlineData(false, 20D)]
     [InlineData(true, 14D)]
     public void Table_text_shrinking_retains_explicit_paragraph_spacing(bool exact, double expected) {
-        var runs = new[] { new PdfTextRun("Q\nThisIdentifierShouldShrinkToFit\nZ", fontSize: 30, font: PdfStandardFont.Courier) };
+        var runs = new[] { new PdfTextRun("Q\nThisIdentifierShouldShrinkToFit\nZ", fontSize: global::OfficeIMO.OfficeLength.Points(30), font: PdfStandardFont.Courier) };
         var cell = new PdfTableCell(runs, new[] { new PdfTableCellParagraph(runs, lineHeight: 3, fontSize: 8,
             lineSpacing: exact ? PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(14)) : PdfLineSpacing.AtLeast(global::OfficeIMO.OfficeLength.Points(20))) });
         var style = new PdfTableStyle { HeaderRowCount = 0, FontSize = global::OfficeIMO.OfficeLength.Points(18), MinimumShrinkFontSize = global::OfficeIMO.OfficeLength.Points(7),
@@ -33,7 +33,7 @@ public sealed class PdfExplicitLineSpacingTests {
         var style = new PdfParagraphStyle { FontSize = global::OfficeIMO.OfficeLength.Points(8), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0),
             LineSpacing = exact ? PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(20)) : PdfLineSpacing.AtLeast(global::OfficeIMO.OfficeLength.Points(20), 1) };
         using var pdf = PdfPigDocument.Open(PdfDocument.Create(Options()).Paragraph(p =>
-            p.FontSize(8).Text("A").LineBreak().FontSize(32).LineBreak().FontSize(8).Text("B"), style: style).ToBytes());
+            p.FontSize(global::OfficeIMO.OfficeLength.Pixels(32D / 3D)).Text("A").LineBreak().FontSize(global::OfficeIMO.OfficeLength.Points(32)).LineBreak().FontSize(global::OfficeIMO.OfficeLength.Pixels(32D / 3D)).Text("B"), style: style).ToBytes());
         var letters = pdf.GetPage(1).Letters;
         Assert.Equal(expected, Assert.Single(letters, letter => letter.Value == "A").StartBaseLine.Y -
             Assert.Single(letters, letter => letter.Value == "B").StartBaseLine.Y, 3);
@@ -106,11 +106,11 @@ public sealed class PdfExplicitLineSpacingTests {
         MarginTop = global::OfficeIMO.OfficeLength.Points(30), MarginBottom = global::OfficeIMO.OfficeLength.Points(30), MarginLeft = global::OfficeIMO.OfficeLength.Points(30), MarginRight = global::OfficeIMO.OfficeLength.Points(30), DefaultFontSize = global::OfficeIMO.OfficeLength.Points(12) };
 
     private static byte[] Render(string frame, PdfParagraphStyle style, bool mixed) {
-        Action<PdfParagraphBuilder> text = p => p.Text("A\n").FontSize(mixed ? 32 : 8).Text("B\n").FontSize(8).Text("C");
+        Action<PdfParagraphBuilder> text = p => p.Text("A\n").FontSize(global::OfficeIMO.OfficeLength.Inches((mixed ? 32D : 8D) / 72D)).Text("B\n").FontSize(global::OfficeIMO.OfficeLength.Pixels(32D / 3D)).Text("C");
         if (frame == "flow") return PdfDocument.Create(Options()).Paragraph(text, style: style).ToBytes();
         if (frame == "column") return PdfDocument.Create(Options()).Compose(c => c.Page(page => page.Content(content =>
             content.Row(row => row.PercentColumn(100, column => column.Paragraph(text, style: style)))))).ToBytes();
-        var runs = new[] { new PdfTextRun("A\n", fontSize: 8), new PdfTextRun("B\n", fontSize: mixed ? 32 : 8), new PdfTextRun("C", fontSize: 8) };
+        var runs = new[] { new PdfTextRun("A\n", fontSize: global::OfficeIMO.OfficeLength.Points(8)), new PdfTextRun("B\n", fontSize: global::OfficeIMO.OfficeLength.Points(mixed ? 32 : 8)), new PdfTextRun("C", fontSize: global::OfficeIMO.OfficeLength.Points(8)) };
         var cell = new PdfTableCell(runs, new[] { new PdfTableCellParagraph(runs,
             fontSize: (style.FontSize?.ToPoints()), lineSpacing: style.LineSpacing) });
         var tableStyle = PdfTableStyles.Minimal(); tableStyle.HeaderRowCount = 0;

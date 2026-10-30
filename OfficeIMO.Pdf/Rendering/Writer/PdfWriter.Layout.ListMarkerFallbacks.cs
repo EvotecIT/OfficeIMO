@@ -12,7 +12,7 @@ internal static partial class PdfWriter {
         /// <summary>Uses the ordinary run fallback planner for markers before measuring their column.</summary>
         private ListMarkerFallbackLayout? PrepareListMarkerFallback(string marker, PdfStandardFont font,
             double size, double leading, PdfListStyle? style) {
-            var run = new PdfTextRun(marker, fontSize: size, font: font, fontFamily: style?.MarkerFontFamily)
+            var run = new PdfTextRun(marker, fontSize: global::OfficeIMO.OfficeLength.Points(size), font: font, fontFamily: style?.MarkerFontFamily)
                 .WithInheritedFontStyle(font == ChooseBold(font) || font == ChooseBoldItalic(font),
                     font == ChooseItalic(font) || font == ChooseBoldItalic(font));
             if (style?.MarkerFeatureSettings is { } features) run = run.WithFeatureSettings(features);

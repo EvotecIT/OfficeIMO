@@ -35,7 +35,7 @@ public sealed class PdfTextQualityReviewRegressionTests {
         Assert.NotEqual(Enumerable.Range(0, text.Length), run.Glyphs.Select(glyph => glyph.TextIndex));
         byte[] pdf = PdfDocument.Create(new PdfCreateOptions { TextShapingMode = PdfTextShapingMode.UnicodeScalar }
                 .UseFontFamily(new PdfEmbeddedFontFamily("Bidi", data)))
-            .Canvas(canvas => canvas.Text(text, 20, 20, 500, 30)).ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
+            .Canvas(canvas => canvas.Text(text, global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(500), global::OfficeIMO.OfficeLength.Points(30))).ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         Assert.Equal(text, PdfReadDocument.Open(pdf).ExtractText().Trim());
         if (marked && text.IndexOf(' ') < 0) {
             if (text.Any(char.IsDigit)) Assert.Contains("/ActualText", PdfTestContentText.ReadDecoded(pdf), StringComparison.Ordinal);
@@ -57,7 +57,7 @@ public sealed class PdfTextQualityReviewRegressionTests {
         Assert.Equal(letters, run.Glyphs[0].UnicodeText);
         byte[] pdf = PdfDocument.Create(new PdfCreateOptions { TextShapingMode = PdfTextShapingMode.LatinLigatures }
                 .UseFontFamily(new PdfEmbeddedFontFamily("Bidi", data)))
-            .Canvas(canvas => canvas.Text(text, 20, 20, 500, 30)).ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
+            .Canvas(canvas => canvas.Text(text, global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(20), global::OfficeIMO.OfficeLength.Points(500), global::OfficeIMO.OfficeLength.Points(30))).ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         Assert.Equal(text, PdfReadDocument.Open(pdf).ExtractText().Trim());
         Assert.Contains("/ActualText", PdfTestContentText.ReadDecoded(pdf), StringComparison.Ordinal);
     }

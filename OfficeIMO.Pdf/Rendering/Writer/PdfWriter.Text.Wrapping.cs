@@ -597,15 +597,15 @@ internal static partial class PdfWriter {
             currentRunDecorationColor = run.DecorationColor;
             currentRunFeatureSettings = run.FeatureSettings;
             currentRunHorizontalTextScaling = run.HorizontalTextScaling;
-            currentRunCharacterSpacing = run.CharacterSpacing;
+            currentRunCharacterSpacing = (run.CharacterSpacing.ToPoints());
             currentRunUnderlineStyle = underline && underlineStyle != OfficeIMO.Drawing.OfficeTextDecorationStyle.Words ? (underlineStyle == OfficeIMO.Drawing.OfficeTextDecorationStyle.None ? OfficeIMO.Drawing.OfficeTextDecorationStyle.Single : underlineStyle) : OfficeIMO.Drawing.OfficeTextDecorationStyle.None;
             currentRunUnderlineColor = run.DecorationColor ?? color;
             string? uri = run.LinkUri;
             string? destinationName = run.LinkDestinationName;
             string? contents = run.LinkContents;
             var baseline = run.Baseline;
-            currentRunDecorationFontSize = EffectiveRichFontSize(run.FontSize ?? fontSize, baseline);
-            currentRunDecorationTextRise = TextRiseForBaseline(run.FontSize ?? fontSize, baseline);
+            currentRunDecorationFontSize = EffectiveRichFontSize((run.FontSize?.ToPoints()) ?? fontSize, baseline);
+            currentRunDecorationTextRise = TextRiseForBaseline((run.FontSize?.ToPoints()) ?? fontSize, baseline);
             var tabLeader = run.TabLeader;
             var tabAlignment = run.TabAlignment;
             var runBaseFont = run.Font.HasValue ? ChooseNormal(run.Font.Value) : baseFont;
@@ -614,7 +614,7 @@ internal static partial class PdfWriter {
                                   options.TryResolveNamedFontFace(run.FontFamily, bold, italic, out PdfNamedFontFace resolvedNamedFont)
                 ? resolvedNamedFont
                 : null;
-            double runFontSize = run.FontSize ?? fontSize;
+            double runFontSize = (run.FontSize?.ToPoints()) ?? fontSize;
             bool whitespaceFootnote = run.InlineElement == null && run.FootnoteReference != null && text.All(character => character is ' ' or '\t' or '\n');
             if (whitespaceFootnote) {
                 // Defer invisible associations until wrapping is complete so an anchor

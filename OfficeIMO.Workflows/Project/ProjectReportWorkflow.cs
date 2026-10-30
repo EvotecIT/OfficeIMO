@@ -50,7 +50,7 @@ public static partial class ProjectReportWorkflow {
                 cancellationToken.ThrowIfCancellationRequested();
                 var drawing = page.Drawing;
                 builder.Page(p => p.Size(drawing.Width, drawing.Height).Margin(0)
-                    .Canvas(canvas => canvas.Drawing(drawing, 0, 0, drawing.Width, drawing.Height)));
+                    .Canvas(canvas => canvas.Drawing(drawing, global::OfficeIMO.OfficeLength.Points(0), global::OfficeIMO.OfficeLength.Points(0), global::OfficeIMO.OfficeLength.Points(drawing.Width), global::OfficeIMO.OfficeLength.Points(drawing.Height))));
             }
         });
         return document.ToBytes(new PdfSaveOptions { AllowLoss = true }, cancellationToken);

@@ -83,13 +83,13 @@ public sealed class PdfUnderstandingTableCandidateReconcilerTests {
             .Canvas(canvas => canvas
                 .Structure(PdfCanvasStructureRole.Table, table => table
                     .Structure(PdfCanvasStructureRole.TableRow, row => row
-                        .Structure(PdfCanvasStructureRole.TableHeaderCell, cell => cell.Text("Code", 40D, 100D, 60D, 16D))
-                        .Structure(PdfCanvasStructureRole.TableHeaderCell, cell => cell.Text("Value", 140D, 100D, 60D, 16D)))
+                        .Structure(PdfCanvasStructureRole.TableHeaderCell, cell => cell.Text("Code", global::OfficeIMO.OfficeLength.Points(40D), global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(60D), global::OfficeIMO.OfficeLength.Points(16D)))
+                        .Structure(PdfCanvasStructureRole.TableHeaderCell, cell => cell.Text("Value", global::OfficeIMO.OfficeLength.Points(140D), global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(60D), global::OfficeIMO.OfficeLength.Points(16D))))
                     .Structure(PdfCanvasStructureRole.TableRow, row => row
-                        .Structure(PdfCanvasStructureRole.TableCell, cell => cell.Text("A-01", 40D, 120D, 60D, 16D))
-                        .Structure(PdfCanvasStructureRole.TableCell, cell => cell.Text("10", 140D, 120D, 60D, 16D))))
-                .Text("Outside header", 260D, 100D, 100D, 16D)
-                .Text("Outside value", 260D, 120D, 100D, 16D))
+                        .Structure(PdfCanvasStructureRole.TableCell, cell => cell.Text("A-01", global::OfficeIMO.OfficeLength.Points(40D), global::OfficeIMO.OfficeLength.Points(120D), global::OfficeIMO.OfficeLength.Points(60D), global::OfficeIMO.OfficeLength.Points(16D)))
+                        .Structure(PdfCanvasStructureRole.TableCell, cell => cell.Text("10", global::OfficeIMO.OfficeLength.Points(140D), global::OfficeIMO.OfficeLength.Points(120D), global::OfficeIMO.OfficeLength.Points(60D), global::OfficeIMO.OfficeLength.Points(16D)))))
+                .Text("Outside header", global::OfficeIMO.OfficeLength.Points(260D), global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(16D))
+                .Text("Outside value", global::OfficeIMO.OfficeLength.Points(260D), global::OfficeIMO.OfficeLength.Points(120D), global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(16D)))
             .ToBytes();
         PdfUnderstandingPipelineOptions pipeline = PdfUnderstandingPipelineOptions.Structured();
         pipeline.WordGrouping = new BaselineMergedWordGroupingStage();

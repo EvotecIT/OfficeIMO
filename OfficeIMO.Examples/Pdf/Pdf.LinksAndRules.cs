@@ -47,7 +47,7 @@ namespace OfficeIMO.Examples.Pdf {
                     .Text(" and the ")
                     .Link("project website", "https://officeimo.net/", global::OfficeIMO.OfficeColor.FromRgb(20, 90, 180))
                     .Text(" for more details."))
-                .HR(0.8, global::OfficeIMO.OfficeColor.FromRgb(183, 194, 207), 8, 8)
+                .HR(global::OfficeIMO.OfficeLength.Points(0.8), global::OfficeIMO.OfficeColor.FromRgb(183, 194, 207), global::OfficeIMO.OfficeLength.Points(8), global::OfficeIMO.OfficeLength.Points(8))
                 .TableWithLinks(rows, links, PdfAlign.Left, tableStyle)
                 .PanelParagraph(
                     p => p

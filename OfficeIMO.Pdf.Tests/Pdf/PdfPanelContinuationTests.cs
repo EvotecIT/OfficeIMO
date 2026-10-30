@@ -99,12 +99,12 @@ public class PdfPanelContinuationTests {
         void Compose(PdfContentBuilder content) => content.Panel(panel => panel
             .Paragraph(p => p.Text("Marker"), style: new PdfParagraphStyle { LineSpacing = PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(20)), SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0) })
             .Image(
-            PdfPngTestImages.CreateRgbPng(2, 2), 40, 160, style: new PdfImageStyle { ScaleDownToFit = false }), panelStyle);
+            PdfPngTestImages.CreateRgbPng(2, 2), global::OfficeIMO.OfficeLength.Points(40), global::OfficeIMO.OfficeLength.Points(160), style: new PdfImageStyle { ScaleDownToFit = false }), panelStyle);
         PdfDocument document = PdfDocument.Create(options);
         if (layout == "row") document.Row(row => row.RelativeColumn(Compose));
         else if (layout == "columns") document.Columns(Compose, new PdfMultiColumnOptions { BalanceLastPage = false });
         else document.Panel(panel => panel.Paragraph(p => p.Text("Marker"), style: new PdfParagraphStyle {
-            LineSpacing = PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(20)), SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0) }).Image(PdfPngTestImages.CreateRgbPng(2, 2), 40, 160,
+            LineSpacing = PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(20)), SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0) }).Image(PdfPngTestImages.CreateRgbPng(2, 2), global::OfficeIMO.OfficeLength.Points(40), global::OfficeIMO.OfficeLength.Points(160),
             style: new PdfImageStyle { ScaleDownToFit = false }), panelStyle);
         Assert.Throws<ArgumentException>(() => document.ToBytes());
     }
@@ -175,7 +175,7 @@ public class PdfPanelContinuationTests {
         void Content(PdfContentBuilder panel) => panel
             .Paragraph(p => p.Text(string.Join("\n", Enumerable.Range(1, 14).Select(i => $"Marker{i:D3}"))),
                 style: new PdfParagraphStyle { LineSpacing = PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(20)), SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0), WidowControl = false })
-            .Image(PdfPngTestImages.CreateRgbPng(2, 2), 40, 160, style: new PdfImageStyle { ScaleDownToFit = true });
+            .Image(PdfPngTestImages.CreateRgbPng(2, 2), global::OfficeIMO.OfficeLength.Points(40), global::OfficeIMO.OfficeLength.Points(160), style: new PdfImageStyle { ScaleDownToFit = true });
         byte[] bytes = PdfDocument.Create(options).Columns(columns => columns.Panel(panel => {
             if (depth == 2) panel.Panel(Content, panelStyle);
             else Content(panel);
@@ -200,7 +200,7 @@ public class PdfPanelContinuationTests {
         void Content(PdfContentBuilder panel) => panel
             .Paragraph(p => p.Text(string.Join("\n", Enumerable.Range(1, 7).Select(i => $"Marker{i:D3}"))),
                 style: new PdfParagraphStyle { LineSpacing = PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(20)), SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0), WidowControl = false })
-            .Image(PdfPngTestImages.CreateRgbPng(2, 2), 40, scale ? 160 : 160 - depth * 4, style: new PdfImageStyle { ScaleDownToFit = scale });
+            .Image(PdfPngTestImages.CreateRgbPng(2, 2), global::OfficeIMO.OfficeLength.Points(40), global::OfficeIMO.OfficeLength.Points(scale ? 160 : 160 - depth * 4), style: new PdfImageStyle { ScaleDownToFit = scale });
         byte[] bytes = PdfDocument.Create(options).Row(row => row.RelativeColumn(column => column.Panel(panel => {
             if (depth == 2) panel.Panel(Content, panelStyle);
             else Content(panel);
@@ -280,11 +280,11 @@ public class PdfPanelContinuationTests {
         byte[] image = PdfPngTestImages.CreateRgbPng(2, 2);
         var imageStyle = new PdfImageStyle { ScaleDownToFit = true };
         void Compose(PdfContentBuilder content) => content.Panel(
-            panel => panel.Image(image, 40, 160, style: imageStyle), panelStyle);
+            panel => panel.Image(image, global::OfficeIMO.OfficeLength.Points(40), global::OfficeIMO.OfficeLength.Points(160), style: imageStyle), panelStyle);
         PdfDocument document = PdfDocument.Create(options);
         if (layout == "columns") document.Columns(Compose, new PdfMultiColumnOptions { BalanceLastPage = false });
         else if (layout == "row") document.Row(row => row.RelativeColumn(Compose));
-        else document.Panel(panel => panel.Image(image, 40, 160, style: imageStyle), panelStyle);
+        else document.Panel(panel => panel.Image(image, global::OfficeIMO.OfficeLength.Points(40), global::OfficeIMO.OfficeLength.Points(160), style: imageStyle), panelStyle);
 
         byte[] bytes = document.ToBytes();
         using var pdf = UglyToad.PdfPig.PdfDocument.Open(bytes);

@@ -581,7 +581,7 @@ namespace OfficeIMO.Tests.Pdf {
             byte[] backgroundBytes = PdfDocument.Create(backgroundOptions)
                 .Header(header => header.Text(text => text.Run(PdfTextRun.Normal(
                     "HeaderBackgroundClip",
-                    fontSize: 12,
+                    fontSize: global::OfficeIMO.OfficeLength.Points(12),
                     backgroundColor: global::OfficeIMO.OfficeColor.FromRgb(255, 255, 0)))))
                 .Paragraph(paragraph => paragraph.Text("Header decoration diagnostic body"))
                 .ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
@@ -599,7 +599,7 @@ namespace OfficeIMO.Tests.Pdf {
             }.ReportDiagnosticsTo(underlineReport, "OfficeIMO.Tests");
 
             byte[] underlineBytes = PdfDocument.Create(underlineOptions)
-                .Footer(footer => footer.Text(text => text.Run(PdfTextRun.Underlined("FooterUnderlineClip", fontSize: 1))))
+                .Footer(footer => footer.Text(text => text.Run(PdfTextRun.Underlined("FooterUnderlineClip", fontSize: global::OfficeIMO.OfficeLength.Points(1)))))
                 .Paragraph(paragraph => paragraph.Text("Footer decoration diagnostic body"))
                 .ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
 
@@ -680,13 +680,13 @@ namespace OfficeIMO.Tests.Pdf {
                     FooterFont = PdfStandardFont.Helvetica
                 })
                 .Header(header => header
-                    .StyledZones(left => left.Run(PdfTextRun.Bolded("OddStyled", fontSize: 14)), null, null)
-                    .FirstPageStyledZones(left => left.Run(PdfTextRun.Bolded("FirstStyled", fontSize: 17)).Text("-").CurrentPage(), null, null)
-                    .EvenPagesStyledZones(left => left.Run(PdfTextRun.Italicized("EvenStyled", fontSize: 15)).Text("-").CurrentPage(), null, null))
+                    .StyledZones(left => left.Run(PdfTextRun.Bolded("OddStyled", fontSize: global::OfficeIMO.OfficeLength.Points(14))), null, null)
+                    .FirstPageStyledZones(left => left.Run(PdfTextRun.Bolded("FirstStyled", fontSize: global::OfficeIMO.OfficeLength.Points(17))).Text("-").CurrentPage(), null, null)
+                    .EvenPagesStyledZones(left => left.Run(PdfTextRun.Italicized("EvenStyled", fontSize: global::OfficeIMO.OfficeLength.Points(15))).Text("-").CurrentPage(), null, null))
                 .Footer(footer => footer
-                    .StyledZones(null, null, right => right.Run(PdfTextRun.Bolded("OddFooter", fontSize: 13)))
-                    .FirstPageStyledZones(null, null, right => right.Run(PdfTextRun.Bolded("FirstFooter", fontSize: 16)))
-                    .EvenPagesStyledZones(null, null, right => right.Run(PdfTextRun.Italicized("EvenFooter", fontSize: 12))))
+                    .StyledZones(null, null, right => right.Run(PdfTextRun.Bolded("OddFooter", fontSize: global::OfficeIMO.OfficeLength.Points(13))))
+                    .FirstPageStyledZones(null, null, right => right.Run(PdfTextRun.Bolded("FirstFooter", fontSize: global::OfficeIMO.OfficeLength.Points(16))))
+                    .EvenPagesStyledZones(null, null, right => right.Run(PdfTextRun.Italicized("EvenFooter", fontSize: global::OfficeIMO.OfficeLength.Points(12)))))
                 .Paragraph(p => p.Text("First styled-zone page."))
                 .PageBreak()
                 .Paragraph(p => p.Text("Even styled-zone page."))

@@ -23,7 +23,7 @@ public class PdfGradientPlacementConsistencyTests {
             .Compose(document => document.Page(page => page
                 .Header(header => header.Shape(shape))
                 .Footer(footer => footer.Shape(shape))
-                .Content(content => content.Spacer(150).Shape(shape))))
+                .Content(content => content.Spacer(global::OfficeIMO.OfficeLength.Points(150)).Shape(shape))))
             .ToBytes();
 
         MatchCollection coordinates = Regex.Matches(Encoding.ASCII.GetString(bytes), @"/Coords\s*\[([^\]]+)\]");

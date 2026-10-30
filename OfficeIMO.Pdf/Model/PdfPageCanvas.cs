@@ -33,7 +33,7 @@ public sealed partial class PdfPageCanvas {
     /// <param name="title">Visible outline title.</param>
     /// <param name="level">One-based outline hierarchy level.</param>
     /// <param name="y">Top coordinate in page points.</param>
-    public PdfPageCanvas Outline(string title, int level, double y) =>
+    public PdfPageCanvas Outline(string title, int level, global::OfficeIMO.OfficeLength y) =>
         Outline(title, level, y, PdfOutlineState.Default);
 
     /// <summary>Adds a PDF outline entry anchored to this page with an explicit expansion preference.</summary>
@@ -41,8 +41,8 @@ public sealed partial class PdfPageCanvas {
     /// <param name="level">One-based outline hierarchy level.</param>
     /// <param name="y">Top coordinate in page points.</param>
     /// <param name="state">Optional per-entry expansion preference.</param>
-    public PdfPageCanvas Outline(string title, int level, double y, PdfOutlineState state) =>
-        AddOutline(title, level, y, state, documentOrder: null);
+    public PdfPageCanvas Outline(string title, int level, global::OfficeIMO.OfficeLength y, PdfOutlineState state) =>
+        AddOutline(title, level, y.ToPoints(), state, documentOrder: null);
 
     /// <summary>Adds an adapter-owned outline entry whose logical order may differ from its destination-page order.</summary>
     internal PdfPageCanvas Outline(string title, int level, double y, PdfOutlineState state, int documentOrder, string? structureElementKey = null) {
@@ -77,29 +77,29 @@ public sealed partial class PdfPageCanvas {
     }
 
     /// <summary>Adds a named destination at an absolute top-left page coordinate.</summary>
-    public PdfPageCanvas NamedDestination(string name, double x, double y) {
+    public PdfPageCanvas NamedDestination(string name, global::OfficeIMO.OfficeLength x, global::OfficeIMO.OfficeLength y) {
         Guard.NotNullOrWhiteSpace(name, nameof(name));
-        ValidateCanvasCoordinate(x, nameof(x));
-        ValidateCanvasCoordinate(y, nameof(y));
-        _items.Add(new PdfCanvasNamedDestinationItem(name.Trim(), x, y));
+        ValidateCanvasCoordinate(x.ToPoints(), nameof(x));
+        ValidateCanvasCoordinate(y.ToPoints(), nameof(y));
+        _items.Add(new PdfCanvasNamedDestinationItem(name.Trim(), x.ToPoints(), y.ToPoints()));
         return this;
     }
 
     /// <summary>Adds a document-internal link annotation targeting a named destination.</summary>
     public PdfPageCanvas LinkToNamedDestination(
         string destinationName,
-        double x,
-        double y,
-        double width,
-        double height,
+        global::OfficeIMO.OfficeLength x,
+        global::OfficeIMO.OfficeLength y,
+        global::OfficeIMO.OfficeLength width,
+        global::OfficeIMO.OfficeLength height,
         string? contents = null) {
         Guard.NotNullOrWhiteSpace(destinationName, nameof(destinationName));
-        ValidateCanvasCoordinate(x, nameof(x));
-        ValidateCanvasCoordinate(y, nameof(y));
-        Guard.Positive(width, nameof(width));
-        Guard.Positive(height, nameof(height));
+        ValidateCanvasCoordinate(x.ToPoints(), nameof(x));
+        ValidateCanvasCoordinate(y.ToPoints(), nameof(y));
+        Guard.Positive(width.ToPoints(), nameof(width));
+        Guard.Positive(height.ToPoints(), nameof(height));
         if (contents != null) Guard.NotNullOrWhiteSpace(contents, nameof(contents));
-        _items.Add(new PdfCanvasNamedDestinationLinkItem(destinationName.Trim(), x, y, width, height, contents));
+        _items.Add(new PdfCanvasNamedDestinationLinkItem(destinationName.Trim(), x.ToPoints(), y.ToPoints(), width.ToPoints(), height.ToPoints(), contents));
         return this;
     }
 
@@ -155,19 +155,19 @@ public sealed partial class PdfPageCanvas {
     }
 
     /// <summary>Adds text inside a fixed page rectangle using top-left page coordinates.</summary>
-    public PdfPageCanvas Text(string text, double x, double y, double width, double height, double? fontSize = null, global::OfficeIMO.OfficeColor? color = null, PdfAlign align = PdfAlign.Left, PdfStandardFont? font = null) {
+    public PdfPageCanvas Text(string text, global::OfficeIMO.OfficeLength x, global::OfficeIMO.OfficeLength y, global::OfficeIMO.OfficeLength width, global::OfficeIMO.OfficeLength height, global::OfficeIMO.OfficeLength? fontSize = null, global::OfficeIMO.OfficeColor? color = null, PdfAlign align = PdfAlign.Left, PdfStandardFont? font = null) {
         Guard.NotNull(text, nameof(text));
         return Text(new[] { PdfTextRun.Normal(text, color, fontSize, font: font) }, x, y, width, height, color, align, fontSize);
     }
 
     /// <summary>Adds rich text runs inside a fixed page rectangle using top-left page coordinates.</summary>
-    public PdfPageCanvas Text(IEnumerable<PdfTextRun> runs, double x, double y, double width, double height, global::OfficeIMO.OfficeColor? defaultColor = null, PdfAlign align = PdfAlign.Left, double? fontSize = null, double? lineHeight = null) {
-        return AddText(runs, PdfCanvasTextStructureRole.Paragraph, x, y, width, height, defaultColor, align, fontSize, lineHeight);
+    public PdfPageCanvas Text(IEnumerable<PdfTextRun> runs, global::OfficeIMO.OfficeLength x, global::OfficeIMO.OfficeLength y, global::OfficeIMO.OfficeLength width, global::OfficeIMO.OfficeLength height, global::OfficeIMO.OfficeColor? defaultColor = null, PdfAlign align = PdfAlign.Left, global::OfficeIMO.OfficeLength? fontSize = null, OfficeLength? lineHeight = null) {
+        return AddText(runs, PdfCanvasTextStructureRole.Paragraph, x.ToPoints(), y.ToPoints(), width.ToPoints(), height.ToPoints(), defaultColor, align, (fontSize?.ToPoints()), lineHeight?.ToPoints());
     }
 
     /// <summary>Adds tagged rich text runs inside a fixed page rectangle using top-left page coordinates.</summary>
-    public PdfPageCanvas Text(IEnumerable<PdfTextRun> runs, PdfCanvasTextStructureRole structureRole, double x, double y, double width, double height, global::OfficeIMO.OfficeColor? defaultColor = null, PdfAlign align = PdfAlign.Left, double? fontSize = null, double? lineHeight = null) {
-        return AddText(runs, structureRole, x, y, width, height, defaultColor, align, fontSize, lineHeight);
+    public PdfPageCanvas Text(IEnumerable<PdfTextRun> runs, PdfCanvasTextStructureRole structureRole, global::OfficeIMO.OfficeLength x, global::OfficeIMO.OfficeLength y, global::OfficeIMO.OfficeLength width, global::OfficeIMO.OfficeLength height, global::OfficeIMO.OfficeColor? defaultColor = null, PdfAlign align = PdfAlign.Left, global::OfficeIMO.OfficeLength? fontSize = null, OfficeLength? lineHeight = null) {
+        return AddText(runs, structureRole, x.ToPoints(), y.ToPoints(), width.ToPoints(), height.ToPoints(), defaultColor, align, (fontSize?.ToPoints()), lineHeight?.ToPoints());
     }
 
     private PdfPageCanvas AddText(IEnumerable<PdfTextRun> runs, PdfCanvasTextStructureRole structureRole, double x, double y, double width, double height, global::OfficeIMO.OfficeColor? defaultColor, PdfAlign align, double? fontSize, double? lineHeight) {
@@ -198,75 +198,65 @@ public sealed partial class PdfPageCanvas {
         return this;
     }
 
-    /// <summary>Adds a styled fixed-position text box using top-left page coordinates.</summary>
-    public PdfPageCanvas TextBox(string text, double x, double y, double width, double height, PdfCanvasTextBoxStyle? style = null, double rotationAngle = 0D) {
-        return TextBox(text, x, y, width, height, style, rotationAngle, diagnosticHandler: null);
-    }
-
     /// <summary>Adds a styled fixed-position text box using top-left page coordinates and reports layout diagnostics during rendering.</summary>
-    public PdfPageCanvas TextBox(string text, double x, double y, double width, double height, PdfCanvasTextBoxStyle? style, Action<PdfLayoutDiagnostic>? diagnosticHandler) {
+    public PdfPageCanvas TextBox(string text, global::OfficeIMO.OfficeLength x, global::OfficeIMO.OfficeLength y, global::OfficeIMO.OfficeLength width, global::OfficeIMO.OfficeLength height, PdfCanvasTextBoxStyle? style, Action<PdfLayoutDiagnostic>? diagnosticHandler) {
         return TextBox(text, x, y, width, height, style, 0D, diagnosticHandler);
     }
 
     /// <summary>Adds a styled fixed-position text box using top-left page coordinates and reports layout diagnostics during rendering.</summary>
-    public PdfPageCanvas TextBox(string text, double x, double y, double width, double height, PdfCanvasTextBoxStyle? style, double rotationAngle, Action<PdfLayoutDiagnostic>? diagnosticHandler) {
+    public PdfPageCanvas TextBox(string text, global::OfficeIMO.OfficeLength x, global::OfficeIMO.OfficeLength y, global::OfficeIMO.OfficeLength width, global::OfficeIMO.OfficeLength height, PdfCanvasTextBoxStyle? style = null, double rotationAngle = 0D, Action<PdfLayoutDiagnostic>? diagnosticHandler = null) {
         Guard.NotNull(text, nameof(text));
         return TextBox(new[] { PdfTextRun.Normal(text) }, x, y, width, height, style, rotationAngle, diagnosticHandler);
     }
 
-    /// <summary>Adds styled rich text inside a fixed-position text box using top-left page coordinates.</summary>
-    public PdfPageCanvas TextBox(IEnumerable<PdfTextRun> runs, double x, double y, double width, double height, PdfCanvasTextBoxStyle? style = null, double rotationAngle = 0D) {
-        return TextBox(runs, x, y, width, height, style, rotationAngle, diagnosticHandler: null);
-    }
-
     /// <summary>Adds styled rich text inside a fixed-position text box using top-left page coordinates and reports layout diagnostics during rendering.</summary>
-    public PdfPageCanvas TextBox(IEnumerable<PdfTextRun> runs, double x, double y, double width, double height, PdfCanvasTextBoxStyle? style, Action<PdfLayoutDiagnostic>? diagnosticHandler) {
+    public PdfPageCanvas TextBox(IEnumerable<PdfTextRun> runs, global::OfficeIMO.OfficeLength x, global::OfficeIMO.OfficeLength y, global::OfficeIMO.OfficeLength width, global::OfficeIMO.OfficeLength height, PdfCanvasTextBoxStyle? style, Action<PdfLayoutDiagnostic>? diagnosticHandler) {
         return TextBox(runs, x, y, width, height, style, 0D, diagnosticHandler);
     }
 
     /// <summary>Adds styled rich text inside a fixed-position text box using top-left page coordinates and reports layout diagnostics during rendering.</summary>
-    public PdfPageCanvas TextBox(IEnumerable<PdfTextRun> runs, double x, double y, double width, double height, PdfCanvasTextBoxStyle? style, double rotationAngle, Action<PdfLayoutDiagnostic>? diagnosticHandler) {
+    public PdfPageCanvas TextBox(IEnumerable<PdfTextRun> runs, global::OfficeIMO.OfficeLength x, global::OfficeIMO.OfficeLength y, global::OfficeIMO.OfficeLength width, global::OfficeIMO.OfficeLength height, PdfCanvasTextBoxStyle? style = null, double rotationAngle = 0D, Action<PdfLayoutDiagnostic>? diagnosticHandler = null) {
         Guard.NotNull(runs, nameof(runs));
-        ValidateCanvasCoordinate(x, nameof(x));
-        ValidateCanvasCoordinate(y, nameof(y));
-        Guard.Positive(width, nameof(width));
-        Guard.Positive(height, nameof(height));
+        ValidateCanvasCoordinate(x.ToPoints(), nameof(x));
+        ValidateCanvasCoordinate(y.ToPoints(), nameof(y));
+        Guard.Positive(width.ToPoints(), nameof(width));
+        Guard.Positive(height.ToPoints(), nameof(height));
         ValidateFiniteRotation(rotationAngle, nameof(rotationAngle), "Canvas text box rotation angle must be finite.");
 
         PdfCanvasTextBoxStyle textBoxStyle = style?.Clone() ?? new PdfCanvasTextBoxStyle();
-        ValidateTextBoxInnerArea(width, height, textBoxStyle, nameof(style));
+        ValidateTextBoxInnerArea(width.ToPoints(), height.ToPoints(), textBoxStyle, nameof(style));
 
         var snapshot = runs.ToList();
         if (snapshot.Count == 0) {
             throw new ArgumentException("Canvas text box requires at least one text run.", nameof(runs));
         }
 
-        _items.Add(new PdfCanvasTextBoxItem(ApplyTextBoxDefaults(snapshot, textBoxStyle), x, y, width, height, textBoxStyle, rotationAngle, diagnosticHandler));
+        _items.Add(new PdfCanvasTextBoxItem(ApplyTextBoxDefaults(snapshot, textBoxStyle), x.ToPoints(), y.ToPoints(), width.ToPoints(), height.ToPoints(), textBoxStyle, rotationAngle, diagnosticHandler));
         return this;
     }
 
     /// <summary>Adds a shared drawing shape at fixed top-left page coordinates.</summary>
-    public PdfPageCanvas Shape(OfficeShape shape, double x, double y, PdfDrawingStyle? style = null, string? linkUri = null, string? linkContents = null, double rotationAngle = 0D) {
+    public PdfPageCanvas Shape(OfficeShape shape, global::OfficeIMO.OfficeLength x, global::OfficeIMO.OfficeLength y, PdfDrawingStyle? style = null, string? linkUri = null, string? linkContents = null, double rotationAngle = 0D) {
         Guard.NotNull(shape, nameof(shape));
-        ValidateCanvasCoordinate(x, nameof(x));
-        ValidateCanvasCoordinate(y, nameof(y));
+        ValidateCanvasCoordinate(x.ToPoints(), nameof(x));
+        ValidateCanvasCoordinate(y.ToPoints(), nameof(y));
         ValidateFiniteRotation(rotationAngle, nameof(rotationAngle), "Canvas shape rotation angle must be finite.");
         ShapeBlock block = PdfDocument.CreateShapeBlock(CreateRotatedShape(shape, rotationAngle), PdfAlign.Left, spacingBefore: 0D, spacingAfter: 0D, style, linkUri, linkContents);
-        _items.Add(new PdfCanvasShapeItem(block, x, y, rotationAngle));
+        _items.Add(new PdfCanvasShapeItem(block, x.ToPoints(), y.ToPoints(), rotationAngle));
         return this;
     }
 
     /// <summary>Adds a shared vector drawing inside a fixed page rectangle using top-left page coordinates.</summary>
-    public PdfPageCanvas Drawing(OfficeDrawing drawing, double x, double y, double width, double height, PdfDrawingStyle? style = null, string? linkUri = null, string? linkContents = null, double rotationAngle = 0D) {
+    public PdfPageCanvas Drawing(OfficeDrawing drawing, global::OfficeIMO.OfficeLength x, global::OfficeIMO.OfficeLength y, global::OfficeIMO.OfficeLength width, global::OfficeIMO.OfficeLength height, PdfDrawingStyle? style = null, string? linkUri = null, string? linkContents = null, double rotationAngle = 0D) {
         Guard.NotNull(drawing, nameof(drawing));
-        ValidateCanvasCoordinate(x, nameof(x));
-        ValidateCanvasCoordinate(y, nameof(y));
-        Guard.Positive(width, nameof(width));
-        Guard.Positive(height, nameof(height));
+        ValidateCanvasCoordinate(x.ToPoints(), nameof(x));
+        ValidateCanvasCoordinate(y.ToPoints(), nameof(y));
+        Guard.Positive(width.ToPoints(), nameof(width));
+        Guard.Positive(height.ToPoints(), nameof(height));
         ValidateFiniteRotation(rotationAngle, nameof(rotationAngle), "Canvas drawing rotation angle must be finite.");
 
         DrawingBlock block = PdfDocument.CreateDrawingBlock(drawing, PdfAlign.Left, spacingBefore: 0D, spacingAfter: 0D, style, linkUri, linkContents);
-        _items.Add(new PdfCanvasDrawingItem(block, x, y, width, height, rotationAngle));
+        _items.Add(new PdfCanvasDrawingItem(block, x.ToPoints(), y.ToPoints(), width.ToPoints(), height.ToPoints(), rotationAngle));
         return this;
     }
 
@@ -298,18 +288,18 @@ public sealed partial class PdfPageCanvas {
     }
 
     /// <summary>Adds a supported image at fixed top-left page coordinates.</summary>
-    public PdfPageCanvas Image(byte[] imageBytes, double x, double y, double width, double height, PdfImageStyle? style, string? linkUri, string? linkContents, string? alternativeText, double rotationAngle) =>
+    public PdfPageCanvas Image(byte[] imageBytes, global::OfficeIMO.OfficeLength x, global::OfficeIMO.OfficeLength y, global::OfficeIMO.OfficeLength width, global::OfficeIMO.OfficeLength height, PdfImageStyle? style, string? linkUri, string? linkContents, string? alternativeText, double rotationAngle) =>
         Image(imageBytes, x, y, width, height, style, linkUri, linkContents, alternativeText, rotationAngle, horizontalFlip: false, verticalFlip: false);
 
     /// <summary>Adds a supported image at fixed top-left page coordinates.</summary>
-    public PdfPageCanvas Image(byte[] imageBytes, double x, double y, double width, double height, PdfImageStyle? style = null, string? linkUri = null, string? linkContents = null, string? alternativeText = null, double rotationAngle = 0D, bool horizontalFlip = false, bool verticalFlip = false) {
+    public PdfPageCanvas Image(byte[] imageBytes, global::OfficeIMO.OfficeLength x, global::OfficeIMO.OfficeLength y, global::OfficeIMO.OfficeLength width, global::OfficeIMO.OfficeLength height, PdfImageStyle? style = null, string? linkUri = null, string? linkContents = null, string? alternativeText = null, double rotationAngle = 0D, bool horizontalFlip = false, bool verticalFlip = false) {
         Guard.NotNullOrEmpty(imageBytes, nameof(imageBytes));
         return ImageShared(
             PdfCanvasImageResource.Create(imageBytes),
-            x,
-            y,
-            width,
-            height,
+            x.ToPoints(),
+            y.ToPoints(),
+            width.ToPoints(),
+            height.ToPoints(),
             style,
             linkUri,
             linkContents,
@@ -357,105 +347,95 @@ public sealed partial class PdfPageCanvas {
     }
 
     /// <summary>Adds a PDF text annotation at fixed top-left page coordinates.</summary>
-    public PdfPageCanvas TextAnnotation(string contents, double x, double y, double width = 18D, double height = 18D, PdfTextAnnotationIcon icon = PdfTextAnnotationIcon.Comment, global::OfficeIMO.OfficeColor? color = null, bool open = false) {
+    public PdfPageCanvas TextAnnotation(string contents, global::OfficeIMO.OfficeLength x, global::OfficeIMO.OfficeLength y, global::OfficeIMO.OfficeLength? width = null, global::OfficeIMO.OfficeLength? height = null, PdfTextAnnotationIcon icon = PdfTextAnnotationIcon.Comment, global::OfficeIMO.OfficeColor? color = null, bool open = false) {
         Guard.NotNullOrWhiteSpace(contents, nameof(contents));
-        ValidateCanvasCoordinate(x, nameof(x));
-        ValidateCanvasCoordinate(y, nameof(y));
-        Guard.Positive(width, nameof(width));
-        Guard.Positive(height, nameof(height));
+        ValidateCanvasCoordinate(x.ToPoints(), nameof(x));
+        ValidateCanvasCoordinate(y.ToPoints(), nameof(y));
+        Guard.Positive((width ?? global::OfficeIMO.OfficeLength.Points(18D)).ToPoints(), nameof(width));
+        Guard.Positive((height ?? global::OfficeIMO.OfficeLength.Points(18D)).ToPoints(), nameof(height));
         PdfDocument.ValidateTextAnnotationIcon(icon, nameof(icon));
-        _items.Add(new PdfCanvasTextAnnotationItem(contents, x, y, width, height, icon, color, open));
+        _items.Add(new PdfCanvasTextAnnotationItem(contents, x.ToPoints(), y.ToPoints(), (width ?? global::OfficeIMO.OfficeLength.Points(18D)).ToPoints(), (height ?? global::OfficeIMO.OfficeLength.Points(18D)).ToPoints(), icon, color, open));
         return this;
     }
 
     /// <summary>Adds a PDF free-text annotation at fixed top-left page coordinates.</summary>
-    public PdfPageCanvas FreeTextAnnotation(string contents, double x, double y, double width, double height, double fontSize = 10D, global::OfficeIMO.OfficeColor? textColor = null, global::OfficeIMO.OfficeColor? borderColor = null, double borderWidth = 1D, global::OfficeIMO.OfficeColor? fillColor = null, PdfAlign textAlign = PdfAlign.Left, double padding = 3D, double? lineHeight = null) {
+    public PdfPageCanvas FreeTextAnnotation(string contents, global::OfficeIMO.OfficeLength x, global::OfficeIMO.OfficeLength y, global::OfficeIMO.OfficeLength width, global::OfficeIMO.OfficeLength height, global::OfficeIMO.OfficeLength? fontSize = null, global::OfficeIMO.OfficeColor? textColor = null, global::OfficeIMO.OfficeColor? borderColor = null, global::OfficeIMO.OfficeLength? borderWidth = null, global::OfficeIMO.OfficeColor? fillColor = null, PdfAlign textAlign = PdfAlign.Left, global::OfficeIMO.OfficeLength? padding = null, OfficeLength? lineHeight = null) {
         Guard.NotNullOrWhiteSpace(contents, nameof(contents));
-        ValidateCanvasCoordinate(x, nameof(x));
-        ValidateCanvasCoordinate(y, nameof(y));
-        Guard.Positive(width, nameof(width));
-        Guard.Positive(height, nameof(height));
-        Guard.Positive(fontSize, nameof(fontSize));
-        Guard.NonNegative(borderWidth, nameof(borderWidth));
+        ValidateCanvasCoordinate(x.ToPoints(), nameof(x));
+        ValidateCanvasCoordinate(y.ToPoints(), nameof(y));
+        Guard.Positive(width.ToPoints(), nameof(width));
+        Guard.Positive(height.ToPoints(), nameof(height));
+        Guard.Positive((fontSize ?? global::OfficeIMO.OfficeLength.Points(10D)).ToPoints(), nameof(fontSize));
+        Guard.NonNegative((borderWidth ?? global::OfficeIMO.OfficeLength.Points(1D)).ToPoints(), nameof(borderWidth));
         Guard.LeftCenterRightAlign(textAlign, nameof(textAlign), "Canvas free text annotation text");
-        Guard.NonNegative(padding, nameof(padding));
+        Guard.NonNegative((padding ?? global::OfficeIMO.OfficeLength.Points(3D)).ToPoints(), nameof(padding));
         if (lineHeight.HasValue) {
-            Guard.Positive(lineHeight.Value, nameof(lineHeight));
+            Guard.Positive(lineHeight.Value.ToPoints(), nameof(lineHeight));
         }
 
-        _items.Add(new PdfCanvasFreeTextAnnotationItem(contents, x, y, width, height, fontSize, textColor ?? global::OfficeIMO.OfficeColor.Black, borderColor, borderWidth, fillColor, textAlign, padding, lineHeight));
+        _items.Add(new PdfCanvasFreeTextAnnotationItem(contents, x.ToPoints(), y.ToPoints(), width.ToPoints(), height.ToPoints(), (fontSize ?? global::OfficeIMO.OfficeLength.Points(10D)).ToPoints(), textColor ?? global::OfficeIMO.OfficeColor.Black, borderColor, (borderWidth ?? global::OfficeIMO.OfficeLength.Points(1D)).ToPoints(), fillColor, textAlign, (padding ?? global::OfficeIMO.OfficeLength.Points(3D)).ToPoints(), lineHeight?.ToPoints()));
         return this;
     }
 
     /// <summary>Adds a PDF highlight annotation rectangle at fixed top-left page coordinates.</summary>
-    public PdfPageCanvas HighlightAnnotation(string contents, double x, double y, double width, double height, global::OfficeIMO.OfficeColor? color = null) {
+    public PdfPageCanvas HighlightAnnotation(string contents, global::OfficeIMO.OfficeLength x, global::OfficeIMO.OfficeLength y, global::OfficeIMO.OfficeLength width, global::OfficeIMO.OfficeLength height, global::OfficeIMO.OfficeColor? color = null) {
         Guard.NotNullOrWhiteSpace(contents, nameof(contents));
-        ValidateCanvasCoordinate(x, nameof(x));
-        ValidateCanvasCoordinate(y, nameof(y));
-        Guard.Positive(width, nameof(width));
-        Guard.Positive(height, nameof(height));
-        _items.Add(new PdfCanvasHighlightAnnotationItem(contents, x, y, width, height, color ?? global::OfficeIMO.OfficeColor.FromNormalizedRgb(1D, 0.92D, 0.2D)));
+        ValidateCanvasCoordinate(x.ToPoints(), nameof(x));
+        ValidateCanvasCoordinate(y.ToPoints(), nameof(y));
+        Guard.Positive(width.ToPoints(), nameof(width));
+        Guard.Positive(height.ToPoints(), nameof(height));
+        _items.Add(new PdfCanvasHighlightAnnotationItem(contents, x.ToPoints(), y.ToPoints(), width.ToPoints(), height.ToPoints(), color ?? global::OfficeIMO.OfficeColor.FromNormalizedRgb(1D, 0.92D, 0.2D)));
         return this;
     }
 
-    /// <summary>Adds a fixed-position table inside a page rectangle using top-left page coordinates.</summary>
-    public PdfPageCanvas Table(IEnumerable<string[]> rows, double x, double y, double width, double height, PdfTableStyle? style = null, double rotationAngle = 0D) {
-        return Table(rows, x, y, width, height, style, rotationAngle, diagnosticHandler: null);
-    }
-
     /// <summary>Adds a fixed-position table inside a page rectangle using top-left page coordinates and reports layout diagnostics during rendering.</summary>
-    public PdfPageCanvas Table(IEnumerable<string[]> rows, double x, double y, double width, double height, PdfTableStyle? style, Action<PdfLayoutDiagnostic>? diagnosticHandler) {
+    public PdfPageCanvas Table(IEnumerable<string[]> rows, global::OfficeIMO.OfficeLength x, global::OfficeIMO.OfficeLength y, global::OfficeIMO.OfficeLength width, global::OfficeIMO.OfficeLength height, PdfTableStyle? style, Action<PdfLayoutDiagnostic>? diagnosticHandler) {
         return Table(rows, x, y, width, height, style, 0D, diagnosticHandler);
     }
 
     /// <summary>Adds a fixed-position table inside a page rectangle using top-left page coordinates and reports layout diagnostics during rendering.</summary>
-    public PdfPageCanvas Table(IEnumerable<string[]> rows, double x, double y, double width, double height, PdfTableStyle? style, double rotationAngle, Action<PdfLayoutDiagnostic>? diagnosticHandler) {
+    public PdfPageCanvas Table(IEnumerable<string[]> rows, global::OfficeIMO.OfficeLength x, global::OfficeIMO.OfficeLength y, global::OfficeIMO.OfficeLength width, global::OfficeIMO.OfficeLength height, PdfTableStyle? style = null, double rotationAngle = 0D, Action<PdfLayoutDiagnostic>? diagnosticHandler = null) {
         Guard.NotNull(rows, nameof(rows));
-        ValidateCanvasCoordinate(x, nameof(x));
-        ValidateCanvasCoordinate(y, nameof(y));
-        Guard.Positive(width, nameof(width));
-        Guard.Positive(height, nameof(height));
+        ValidateCanvasCoordinate(x.ToPoints(), nameof(x));
+        ValidateCanvasCoordinate(y.ToPoints(), nameof(y));
+        Guard.Positive(width.ToPoints(), nameof(width));
+        Guard.Positive(height.ToPoints(), nameof(height));
         ValidateFiniteRotation(rotationAngle, nameof(rotationAngle), "Canvas table rotation angle must be finite.");
-        _items.Add(new PdfCanvasTableItem(new TableBlock(rows, PdfAlign.Left, style), x, y, width, height, rotationAngle, diagnosticHandler));
+        _items.Add(new PdfCanvasTableItem(new TableBlock(rows, PdfAlign.Left, style), x.ToPoints(), y.ToPoints(), width.ToPoints(), height.ToPoints(), rotationAngle, diagnosticHandler));
         return this;
     }
 
-    /// <summary>Adds a fixed-position rich table inside a page rectangle using top-left page coordinates.</summary>
-    public PdfPageCanvas Table(IEnumerable<PdfTableCell[]> rows, double x, double y, double width, double height, PdfTableStyle? style = null, double rotationAngle = 0D) {
-        return Table(rows, x, y, width, height, style, rotationAngle, diagnosticHandler: null);
-    }
-
     /// <summary>Adds a fixed-position rich table inside a page rectangle using top-left page coordinates and reports layout diagnostics during rendering.</summary>
-    public PdfPageCanvas Table(IEnumerable<PdfTableCell[]> rows, double x, double y, double width, double height, PdfTableStyle? style, Action<PdfLayoutDiagnostic>? diagnosticHandler) {
+    public PdfPageCanvas Table(IEnumerable<PdfTableCell[]> rows, global::OfficeIMO.OfficeLength x, global::OfficeIMO.OfficeLength y, global::OfficeIMO.OfficeLength width, global::OfficeIMO.OfficeLength height, PdfTableStyle? style, Action<PdfLayoutDiagnostic>? diagnosticHandler) {
         return Table(rows, x, y, width, height, style, 0D, diagnosticHandler);
     }
 
     /// <summary>Adds a fixed-position rich table inside a page rectangle using top-left page coordinates and reports layout diagnostics during rendering.</summary>
-    public PdfPageCanvas Table(IEnumerable<PdfTableCell[]> rows, double x, double y, double width, double height, PdfTableStyle? style, double rotationAngle, Action<PdfLayoutDiagnostic>? diagnosticHandler) {
+    public PdfPageCanvas Table(IEnumerable<PdfTableCell[]> rows, global::OfficeIMO.OfficeLength x, global::OfficeIMO.OfficeLength y, global::OfficeIMO.OfficeLength width, global::OfficeIMO.OfficeLength height, PdfTableStyle? style = null, double rotationAngle = 0D, Action<PdfLayoutDiagnostic>? diagnosticHandler = null) {
         Guard.NotNull(rows, nameof(rows));
-        ValidateCanvasCoordinate(x, nameof(x));
-        ValidateCanvasCoordinate(y, nameof(y));
-        Guard.Positive(width, nameof(width));
-        Guard.Positive(height, nameof(height));
+        ValidateCanvasCoordinate(x.ToPoints(), nameof(x));
+        ValidateCanvasCoordinate(y.ToPoints(), nameof(y));
+        Guard.Positive(width.ToPoints(), nameof(width));
+        Guard.Positive(height.ToPoints(), nameof(height));
         ValidateFiniteRotation(rotationAngle, nameof(rotationAngle), "Canvas table rotation angle must be finite.");
-        _items.Add(new PdfCanvasTableItem(new TableBlock(rows, PdfAlign.Left, style), x, y, width, height, rotationAngle, diagnosticHandler));
+        _items.Add(new PdfCanvasTableItem(new TableBlock(rows, PdfAlign.Left, style), x.ToPoints(), y.ToPoints(), width.ToPoints(), height.ToPoints(), rotationAngle, diagnosticHandler));
         return this;
     }
 
     /// <summary>Adds a clipped fixed-position canvas frame using top-left page coordinates.</summary>
-    public PdfPageCanvas Clip(double x, double y, double width, double height, Action<PdfPageCanvas> build) =>
-        Clip(x, y, OfficeClipPath.Rectangle(width, height), build);
+    public PdfPageCanvas Clip(global::OfficeIMO.OfficeLength x, global::OfficeIMO.OfficeLength y, global::OfficeIMO.OfficeLength width, global::OfficeIMO.OfficeLength height, Action<PdfPageCanvas> build) =>
+        Clip(x, y, OfficeClipPath.Rectangle(width.ToPoints(), height.ToPoints()), build);
 
     /// <summary>Adds a path-clipped fixed-position canvas frame using top-left page coordinates.</summary>
-    public PdfPageCanvas Clip(double x, double y, OfficeClipPath clipPath, Action<PdfPageCanvas> build) {
-        ValidateCanvasCoordinate(x, nameof(x));
-        ValidateCanvasCoordinate(y, nameof(y));
+    public PdfPageCanvas Clip(global::OfficeIMO.OfficeLength x, global::OfficeIMO.OfficeLength y, OfficeClipPath clipPath, Action<PdfPageCanvas> build) {
+        ValidateCanvasCoordinate(x.ToPoints(), nameof(x));
+        ValidateCanvasCoordinate(y.ToPoints(), nameof(y));
         Guard.NotNull(clipPath, nameof(clipPath));
         Guard.NotNull(build, nameof(build));
 
         var clippedCanvas = new PdfPageCanvas(allowOutOfPageCoordinates: true);
         build(clippedCanvas);
-        _items.Add(new PdfCanvasClipItem(clippedCanvas.Items, x, y, clipPath));
+        _items.Add(new PdfCanvasClipItem(clippedCanvas.Items, x.ToPoints(), y.ToPoints(), clipPath));
         return this;
     }
 
@@ -535,7 +515,7 @@ public sealed partial class PdfPageCanvas {
                 continue;
             }
             bool applyTextColor = !run.Color.HasValue && style.TextColor.HasValue;
-            bool applyFontSize = !run.FontSize.HasValue && style.FontSize.HasValue;
+            bool applyFontSize = !(run.FontSize?.ToPoints()).HasValue && style.FontSize.HasValue;
             bool applyFont = !run.Font.HasValue && style.Font.HasValue;
             if (!applyTextColor && !applyFontSize && !applyFont) {
                 styled.Add(run);
@@ -549,7 +529,7 @@ public sealed partial class PdfPageCanvas {
                 applyTextColor ? style.TextColor : run.Color,
                 run.Italic,
                 run.Strike,
-                applyFontSize ? style.FontSize : run.FontSize,
+                (applyFontSize ? global::OfficeIMO.OfficeLength.Points(style.FontSize!.Value) : run.FontSize),
                 applyFont ? style.Font : run.Font,
                 run.LinkUri,
                 run.LinkContents,

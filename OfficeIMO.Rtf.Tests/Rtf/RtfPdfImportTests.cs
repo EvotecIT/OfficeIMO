@@ -13,10 +13,10 @@ public class RtfPdfImportTests {
         byte[] pdf = PdfCore.PdfDocument.Create()
             .Paragraph(paragraph => paragraph
                 .Color(global::OfficeIMO.OfficeColor.FromRgb(255, 0, 0))
-                .FontSize(14)
+                .FontSize(global::OfficeIMO.OfficeLength.Points(14))
                 .Bold("Bold red")
                 .Color(global::OfficeIMO.OfficeColor.FromRgb(0, 0, 255))
-                .FontSize(9)
+                .FontSize(global::OfficeIMO.OfficeLength.Points(9))
                 .Italic(" italic blue"))
             .ToBytes();
 

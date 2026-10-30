@@ -59,7 +59,7 @@ public sealed class PdfInlineFormLineMetricsTests {
             PageWidth = global::OfficeIMO.OfficeLength.Points(300), PageHeight = global::OfficeIMO.OfficeLength.Points(300), DefaultFont = PdfStandardFont.Helvetica, DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10),
             MarginTop = global::OfficeIMO.OfficeLength.Points(30), MarginBottom = global::OfficeIMO.OfficeLength.Points(30), MarginLeft = global::OfficeIMO.OfficeLength.Points(30), MarginRight = global::OfficeIMO.OfficeLength.Points(30)
         };
-        var source = PdfTextRun.Normal("H", fontSize: 20, font: PdfStandardFont.Helvetica);
+        var source = PdfTextRun.Normal("H", fontSize: global::OfficeIMO.OfficeLength.Points(20), font: PdfStandardFont.Helvetica);
         PdfTextRun content = source;
         if (field) {
             var metrics = Assert.IsType<PdfWriter.PositionedTextBoxMeasurement>(
@@ -67,21 +67,21 @@ public sealed class PdfInlineFormLineMetricsTests {
             var appearance = new PdfFormFieldStyle { BackgroundColor = null, BorderColor = null, BorderWidth = 0 };
             var descriptor = new PdfInlineFormField(PdfCanvasFormFieldItem.CheckBox("LargerSource", true,
                 "Yes", "Yes", 0, 0, metrics.Width, metrics.Ascent + metrics.Descent, appearance),
-                source, PdfTextRun.Normal("O", fontSize: 20, font: PdfStandardFont.Helvetica));
+                source, PdfTextRun.Normal("O", fontSize: global::OfficeIMO.OfficeLength.Points(20), font: PdfStandardFont.Helvetica));
             var widget = new PdfInlineFormWidget(descriptor, metrics.Width, metrics.Ascent + metrics.Descent,
                 -metrics.Descent, sourceRun: source);
             // This is the adapter's actual construction path; the source font size
             // is inherited by the inline wrapper before layout measures the line.
             content = PdfTextRun.Inline(widget);
         }
-        var runs = new[] { PdfTextRun.Normal("P", fontSize: 10), content, PdfTextRun.Normal("\nB", fontSize: 10) };
+        var runs = new[] { PdfTextRun.Normal("P", fontSize: global::OfficeIMO.OfficeLength.Points(10)), content, PdfTextRun.Normal("\nB", fontSize: global::OfficeIMO.OfficeLength.Points(10)) };
         PdfLineSpacing? spacing = exactSpacing ? PdfLineSpacing.Exact(global::OfficeIMO.OfficeLength.Points(12)) : null;
         var style = new PdfParagraphStyle { FontSize = global::OfficeIMO.OfficeLength.Points(10), SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0), LineSpacing = spacing };
         var document = PdfDocument.Create(options);
         if (frame == "flow") document.Paragraph(paragraph => paragraph.Runs(runs), style: style);
         else if (frame == "column") document.Content.Row(row => row.RelativeColumn(column =>
             column.Paragraph(paragraph => paragraph.Runs(runs), style: style)));
-        else if (frame == "canvas") document.Canvas(canvas => canvas.TextBox(runs, 30, 30, 240, 240,
+        else if (frame == "canvas") document.Canvas(canvas => canvas.TextBox(runs, global::OfficeIMO.OfficeLength.Points(30), global::OfficeIMO.OfficeLength.Points(30), global::OfficeIMO.OfficeLength.Points(240), global::OfficeIMO.OfficeLength.Points(240),
             new PdfCanvasTextBoxStyle { FontSize = 10, LineHeight = 12, LineSpacing = spacing,
                 PaddingX = 0, PaddingY = 0, Background = null, BorderColor = null }));
         else {

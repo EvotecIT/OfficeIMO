@@ -11,7 +11,7 @@ internal static class ServiceCatalog {
             content.H1("Choose the support you need", PdfAlign.Left, navy);
             content.Paragraph(p => p.Text("NORTHWIND / SERVICE CATALOG"));
             content.Paragraph(p => p.Text("Three example offerings, with scope and handover expectations visible before work starts."));
-            content.HR(1, navy, 12, 20);
+            content.HR(global::OfficeIMO.OfficeLength.Points(1), navy, global::OfficeIMO.OfficeLength.Points(12), global::OfficeIMO.OfficeLength.Points(20));
             content.Row(row => {
                 row.Gap(18);
                 row.RelativeColumn(column => column

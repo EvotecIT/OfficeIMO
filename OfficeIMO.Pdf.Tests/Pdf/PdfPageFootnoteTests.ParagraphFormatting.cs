@@ -20,7 +20,7 @@ public partial class PdfPageFootnoteTests {
             .Text("NoteLead", style: NoteLineStyle(20))
             .Text("KeptHeading", style: inherited ? null : kept)
             .Text(string.Join("\n", Enumerable.Range(0, 6).Select(index => $"Terminal{index:D2}")), style: NoteLineStyle(20)));
-        document.Content.Spacer(50).Paragraph(paragraph => paragraph.Runs(new[] {
+        document.Content.Spacer(global::OfficeIMO.OfficeLength.Points(50)).Paragraph(paragraph => paragraph.Runs(new[] {
             PdfTextRun.Normal("Reference").WithFootnoteReference(note)
         }), style: Style());
 
@@ -139,11 +139,11 @@ public partial class PdfPageFootnoteTests {
         var document = PdfDocument.Create(options);
         var note = document.Content.DefineFootnote(body => {
             body.Text("NoteLead", style: NoteLineStyle(20));
-            if (kind == "Image") body.Image(PdfPngTestImages.Create16BitRgbPng(), 4, 20, style: inherited ? null : imageStyle);
+            if (kind == "Image") body.Image(PdfPngTestImages.Create16BitRgbPng(), global::OfficeIMO.OfficeLength.Points(4), global::OfficeIMO.OfficeLength.Points(20), style: inherited ? null : imageStyle);
             else body.HR(style: inherited ? null : ruleStyle);
             body.Text("KeptCaption", style: NoteLineStyle(20));
         });
-        document.Content.Spacer(50).Paragraph(paragraph => paragraph.Runs(new[] {
+        document.Content.Spacer(global::OfficeIMO.OfficeLength.Points(50)).Paragraph(paragraph => paragraph.Runs(new[] {
             PdfTextRun.Normal("Reference").WithFootnoteReference(note)
         }), style: Style());
 

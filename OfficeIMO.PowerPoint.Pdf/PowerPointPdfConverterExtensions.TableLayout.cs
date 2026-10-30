@@ -74,7 +74,7 @@ public static partial class PowerPointPdfConverterExtensions {
 
     private static OfficeRichTextRun[] CreateTableLayoutRuns(IEnumerable<PdfCore.PdfTextRun> runs,
         double fontSize, bool rowBold, PowerPointPdfExportOptions options) => runs.Select(run => new OfficeRichTextRun(run.Text,
-            run.FontSize ?? fontSize, OfficeColor.Black, run.Bold || rowBold, run.Italic,
+            (run.FontSize?.ToPoints()) ?? fontSize, OfficeColor.Black, run.Bold || rowBold, run.Italic,
             fontFamily: run.FontFamily ?? options.NativeTextDefaultFontFamily
                 ?? PdfCore.PdfFontNames.ToBaseFontName(run.Font ?? options.PdfOptions?.DefaultFont ?? PdfCore.PdfStandardFont.Helvetica),
             baseline: run.Baseline == PdfCore.PdfTextBaseline.Superscript ? OfficeTextBaseline.Superscript

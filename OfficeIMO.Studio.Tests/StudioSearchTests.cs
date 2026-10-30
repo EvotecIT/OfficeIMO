@@ -182,7 +182,7 @@ public sealed class StudioSearchTests {
             string source = Path.Combine(services.Paths.Root, "Scanned page.pdf");
             byte[] image = PdfDocument.Create(compose => compose.Page(page => page.Content(text => text.Text("Scanned needle"))))
                 .Render.Pages(PdfPageSelection.From(1), new PdfPageRenderOptions { Format = global::OfficeIMO.Drawing.OfficeImageExportFormat.Png, Dpi = 72 }).Single().Bytes!;
-            PdfDocument.Create(compose => compose.Page(page => page.Content(content => content.Image(image, 400, 500)))).Save(source);
+            PdfDocument.Create(compose => compose.Page(page => page.Content(content => content.Image(image, global::OfficeIMO.OfficeLength.Points(400), global::OfficeIMO.OfficeLength.Points(500))))).Save(source);
             var window = new MainWindow(services) { Width = 960, Height = 620 };
             try {
                 window.Show(); await window.TabHost.OpenDocumentAsync(source);

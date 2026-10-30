@@ -133,6 +133,6 @@ public sealed class PdfRunningPaintRecoveryTests {
         PdfDocument.Create(new PdfCreateOptions { PageWidth = global::OfficeIMO.OfficeLength.Points(100), PageHeight = global::OfficeIMO.OfficeLength.Points(100),
             MarginLeft = global::OfficeIMO.OfficeLength.Points(10), MarginRight = global::OfficeIMO.OfficeLength.Points(10), MarginTop = global::OfficeIMO.OfficeLength.Points(20), MarginBottom = global::OfficeIMO.OfficeLength.Points(20), HeaderOffsetY = global::OfficeIMO.OfficeLength.Points(0) }
             .ReportDiagnosticsTo(report, "OfficeIMO.Tests")).Compose(c => c.Page(p => {
-                p.Header(b => b.Shape(shape)); p.Content(b => b.Spacer(10));
+                p.Header(b => b.Shape(shape)); p.Content(b => b.Spacer(global::OfficeIMO.OfficeLength.Points(10)));
             })).ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
 }

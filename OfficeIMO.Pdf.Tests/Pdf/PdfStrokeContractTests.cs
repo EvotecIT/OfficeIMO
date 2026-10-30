@@ -142,12 +142,12 @@ public sealed class PdfStrokeContractTests {
     private static byte[] Running(PdfCreateOptions options, OfficeShape shape, bool footer) => PdfDocument.Create(options).Compose(compose => compose.Page(page => {
         if (footer) page.Footer(content => content.Shape(shape));
         else page.Header(content => content.Shape(shape));
-        page.Content(content => content.Spacer(10));
+        page.Content(content => content.Spacer(global::OfficeIMO.OfficeLength.Points(10)));
     })).ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
 
     private static byte[] PaintAtPlacement(PdfCreateOptions options, OfficeShape shape, int placement) => placement == 0
         ? PdfDocument.Create(options).Compose(compose => compose.Page(page => page.Canvas(canvas =>
-            canvas.Drawing(new OfficeDrawing(100, 100).AddShape(shape, 10, 50), 0, 0, 100, 100)))).ToBytes()
+            canvas.Drawing(new OfficeDrawing(100, 100).AddShape(shape, 10, 50), global::OfficeIMO.OfficeLength.Points(0), global::OfficeIMO.OfficeLength.Points(0), global::OfficeIMO.OfficeLength.Points(100), global::OfficeIMO.OfficeLength.Points(100))))).ToBytes()
         : Running(options, shape, placement == 2);
 
     private static IEnumerable<OfficeDrawingShape> Shapes(OfficeDrawing drawing) {

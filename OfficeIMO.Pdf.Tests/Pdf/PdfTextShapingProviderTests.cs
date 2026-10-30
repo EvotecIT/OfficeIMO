@@ -161,7 +161,7 @@ public class PdfTextShapingProviderTests {
             .ReportDiagnosticsTo(report, "Baseline-relative vertical glyphs");
 
         byte[] pdf = PdfDocument.Create(options)
-            .Canvas(canvas => canvas.Drawing(drawing, 0D, 0D, 120D, 180D))
+            .Canvas(canvas => canvas.Drawing(drawing, global::OfficeIMO.OfficeLength.Points(0D), global::OfficeIMO.OfficeLength.Points(0D), global::OfficeIMO.OfficeLength.Points(120D), global::OfficeIMO.OfficeLength.Points(180D)))
             .ToBytes();
         PixelBounds bounds = GetInkBounds(OfficeDrawingRasterRenderer.Render(PdfPageImageRenderer.RenderPage(pdf)));
 
@@ -342,7 +342,7 @@ public class PdfTextShapingProviderTests {
                 .SetLanguage(evidence.Language)
                 .SetTextShapingProvider(OfficeManagedTextShapingProvider.Instance);
             byte[] pdf = PdfDocument.Create(pdfOptions)
-                .Canvas(canvas => canvas.Drawing(drawing, 20D, 20D, 560D, 100D))
+                .Canvas(canvas => canvas.Drawing(drawing, global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(560D), global::OfficeIMO.OfficeLength.Points(100D)))
                 .ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
             PixelBounds pdfBounds = GetInkBounds(OfficeDrawingRasterRenderer.Render(PdfPageImageRenderer.RenderPage(pdf), rasterOptions));
 

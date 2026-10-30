@@ -378,7 +378,7 @@ public class PdfITextInspiredCoverageTests {
     [Fact]
     public void FormFillers_MapCheckboxExportValuesBackToAppearanceStates() {
         byte[] pdf = PdfDocument.Create()
-            .Canvas(canvas => canvas.CheckBoxWithExportValue("Accept", false, 20D, 20D, 14D, 14D, "Yes", "accepted"))
+            .Canvas(canvas => canvas.CheckBoxWithExportValue("Accept", false, global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(14D), global::OfficeIMO.OfficeLength.Points(14D), "Yes", "accepted"))
             .ToBytes();
         var values = new Dictionary<string, string> { ["Accept"] = "accepted" };
 

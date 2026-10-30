@@ -1806,7 +1806,7 @@ internal static partial class PdfWriter {
 
             PdfStandardFont runFont = ResolvePageTextRunFont(run, baseFont);
             string runFontResource = ResolvePageTextFontResource(fontResources, runFont);
-            double runFontSize = run.FontSize ?? watermark.FontSize;
+            double runFontSize = (run.FontSize?.ToPoints()) ?? watermark.FontSize;
             content
                 .Font(runFontResource, runFontSize, options.NeedsSyntheticOblique(runFont))
                 .ShowText(EncodeTextShowCommand(text, runFont, options), runFontSize, suppressActualText: true);
@@ -1826,7 +1826,7 @@ internal static partial class PdfWriter {
             color: watermark.Color,
             italic: watermark.Italic,
             strike: false,
-            fontSize: watermark.FontSize,
+            fontSize: global::OfficeIMO.OfficeLength.Points(watermark.FontSize),
             font: baseFont);
         return NormalizeFallbackRuns(new[] { run }, baseFont, options);
     }
@@ -1834,7 +1834,7 @@ internal static partial class PdfWriter {
     private static double MeasureTextWatermarkRuns(System.Collections.Generic.IReadOnlyList<PdfTextRun> runs, PdfStandardFont baseFont, double fontSize, PdfCreateOptions options) {
         double width = 0D;
         foreach (PdfTextRun run in runs) {
-            width += MeasureRichText(run.Text ?? string.Empty, ResolvePageTextRunFont(run, baseFont), run.FontSize ?? fontSize, run.Baseline, options);
+            width += MeasureRichText(run.Text ?? string.Empty, ResolvePageTextRunFont(run, baseFont), (run.FontSize?.ToPoints()) ?? fontSize, run.Baseline, options);
         }
 
         return width;

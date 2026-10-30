@@ -10,7 +10,7 @@ namespace OfficeIMO.Tests.Pdf;
 public sealed class PdfCrossRunKerningTests {
     [Fact]
     public void OptionalBreaksKeepCrossRunKerningSourceIndicesAndPaintPositions() {
-        PdfTextRun Run(string text) => new PdfTextRun(text, fontSize: 20D,
+        PdfTextRun Run(string text) => new PdfTextRun(text, fontSize: OfficeLength.Points(20D),
             fontFamily: ManagedTextShapingTestAssets.FamilyName)
             .WithFeatureSettings(OfficeTextFeatureSettings.Default.With("kern", 1));
         using var joined = PdfPigDocument.Open(Create(300D, PdfAlign.Left, Run("A\u200BVA\u200BV")));
@@ -24,7 +24,7 @@ public sealed class PdfCrossRunKerningTests {
     [InlineData(-200, 29D)]
     [InlineData(200, 42D)]
     public void OversizedContinuationFitsItsBoundaryKerningInTheRemainingFrame(short adjustment, double width) {
-        PdfTextRun Run(string text) => new PdfTextRun(text, fontSize: 20D,
+        PdfTextRun Run(string text) => new PdfTextRun(text, fontSize: OfficeLength.Points(20D),
             fontFamily: ManagedTextShapingTestAssets.FamilyName)
             .WithFeatureSettings(OfficeTextFeatureSettings.Default.With("kern", 1));
         byte[] font = ManagedTextShapingTestAssets.CreateFontWithFontUnitKerning(1000, 'A', 'B', adjustment);
@@ -68,7 +68,7 @@ public sealed class PdfCrossRunKerningTests {
 
     [Fact]
     public void SubstitutionContinuationGlyphsRetainTheirSourceScriptForKerning() {
-        PdfTextRun Run(string text) => new PdfTextRun(text, fontSize: 20D, fontFamily: ManagedTextShapingTestAssets.FamilyName)
+        PdfTextRun Run(string text) => new PdfTextRun(text, fontSize: OfficeLength.Points(20D), fontFamily: ManagedTextShapingTestAssets.FamilyName)
             .WithFeatureSettings(OfficeTextFeatureSettings.Default.With("kern", 1));
         byte[] font = ManagedTextShapingTestAssets.CreateFontWithScriptSpecificContinuationKerning();
         var shaped = PdfTrueTypeFontProgram.Parse(font).ShapeText("A", PdfTextShapingOptions.ForRendering(
@@ -83,7 +83,7 @@ public sealed class PdfCrossRunKerningTests {
 
     [Fact]
     public void EmptyFormattingRunsDoNotInterruptKernedWordContinuations() {
-        PdfTextRun Run(string text) => new PdfTextRun(text, fontSize: 20D, fontFamily: ManagedTextShapingTestAssets.FamilyName)
+        PdfTextRun Run(string text) => new PdfTextRun(text, fontSize: OfficeLength.Points(20D), fontFamily: ManagedTextShapingTestAssets.FamilyName)
             .WithFeatureSettings(OfficeTextFeatureSettings.Default.With("kern", 1));
         Letter[] joined = Render(29D, PdfAlign.Left, Run("A AVA"));
         Letter[] split = Render(29D, PdfAlign.Left, Run("A A"), Run(""), Run("V"), Run(""), Run("A"));
@@ -92,7 +92,7 @@ public sealed class PdfCrossRunKerningTests {
 
     [Fact]
     public void SubstitutionContinuationGlyphsRetainTheirNominalAdvancesAcrossRuns() {
-        PdfTextRun Run(string text) => new PdfTextRun(text, fontSize: 20D, fontFamily: ManagedTextShapingTestAssets.FamilyName)
+        PdfTextRun Run(string text) => new PdfTextRun(text, fontSize: OfficeLength.Points(20D), fontFamily: ManagedTextShapingTestAssets.FamilyName)
             .WithFeatureSettings(OfficeTextFeatureSettings.Default.With("kern", 1));
         byte[] font = ManagedTextShapingTestAssets.CreateFontWithMultipleSubstitution('A', scriptTag: "latn", featureTag: "liga");
         using var joined = PdfPigDocument.Open(Create(100D, PdfAlign.Left, new[] { Run("AA") }, font));
@@ -104,7 +104,7 @@ public sealed class PdfCrossRunKerningTests {
     [InlineData(29D)]
     [InlineData(39D)]
     public void OversizedWordsFitKernedChunksAcrossPaintBoundaries(double width) {
-        PdfTextRun Run(string text) => new PdfTextRun(text, fontSize: 20D, fontFamily: ManagedTextShapingTestAssets.FamilyName)
+        PdfTextRun Run(string text) => new PdfTextRun(text, fontSize: OfficeLength.Points(20D), fontFamily: ManagedTextShapingTestAssets.FamilyName)
             .WithFeatureSettings(OfficeTextFeatureSettings.Default.With("kern", 1));
         Letter[] joined = Render(width, PdfAlign.Left, Run("AVAVA"));
         Letter[] split = Render(width, PdfAlign.Left, "AVAVA".Select(character => Run(character.ToString())).ToArray());
@@ -115,7 +115,7 @@ public sealed class PdfCrossRunKerningTests {
     [InlineData(false)]
     [InlineData(true)]
     public void ConsecutiveGposPairsRetainTheirLookupConsumptionAcrossRuns(bool secondRunHasTwoGlyphs) {
-        PdfTextRun Run(string text) => new PdfTextRun(text, fontSize: 20D, fontFamily: ManagedTextShapingTestAssets.FamilyName)
+        PdfTextRun Run(string text) => new PdfTextRun(text, fontSize: OfficeLength.Points(20D), fontFamily: ManagedTextShapingTestAssets.FamilyName)
             .WithFeatureSettings(OfficeTextFeatureSettings.Default.With("kern", 1));
         byte[] font = ManagedTextShapingTestAssets.CreateFontWithSequencedPairPositioning();
         using var joined = PdfPigDocument.Open(Create(100D, PdfAlign.Left, new[] { Run("ABC") }, font));
@@ -130,10 +130,10 @@ public sealed class PdfCrossRunKerningTests {
     [InlineData(49D, 100D, 0D, PdfAlign.Right)]
     [InlineData(25D, 50D, 1D, PdfAlign.Center)]
     public void SplitWordsUseTheSameLineBreaksAndAlignmentAsJoinedWords(double width, double scale, double spacing, PdfAlign align) {
-        PdfTextRun Run(string text, bool blue = false) => new PdfTextRun(text, fontSize: 20D,
+        PdfTextRun Run(string text, bool blue = false) => new PdfTextRun(text, fontSize: OfficeLength.Points(20D),
             fontFamily: ManagedTextShapingTestAssets.FamilyName, color: blue ? global::OfficeIMO.OfficeColor.FromRgb(0, 0, 255) : global::OfficeIMO.OfficeColor.FromRgb(255, 0, 0))
             .WithFeatureSettings(OfficeTextFeatureSettings.Default.With("kern", 1))
-            .WithHorizontalTextScaling(scale).WithCharacterSpacing(spacing);
+            .WithHorizontalTextScaling(scale).WithCharacterSpacing(global::OfficeIMO.OfficeLength.Points(spacing));
         Letter[] joined = Render(width, align, Run("A AVA"));
         Letter[] split = Render(width, align, Run("A A"), Run("V", blue: true), Run("A"));
         Assert.Equal(joined.Length, split.Length);
@@ -152,7 +152,7 @@ public sealed class PdfCrossRunKerningTests {
     [InlineData("separator")]
     [InlineData("break")]
     public void IncompatibleRunsDoNotAcquireBoundaryKerning(string boundary) {
-        PdfTextRun Run(string text, string font, double size, int kern) => new PdfTextRun(text, fontSize: size, fontFamily: font)
+        PdfTextRun Run(string text, string font, double size, int kern) => new PdfTextRun(text, fontSize: global::OfficeIMO.OfficeLength.Points(size), fontFamily: font)
             .WithFeatureSettings(OfficeTextFeatureSettings.Default.With("kern", kern));
         string family = ManagedTextShapingTestAssets.FamilyName;
         PdfTextRun left = Run(boundary == "separator" ? "A " : boundary == "break" ? "A\n" : "A", family, 20D, 1);
@@ -172,7 +172,7 @@ public sealed class PdfCrossRunKerningTests {
     [Fact]
     public void PairPositioningPreservesSeparateLinksAndDecoratedRuns() {
         PdfTextRun Run(string text, string uri, bool underline) => new PdfTextRun(text,
-            fontSize: 20D, fontFamily: ManagedTextShapingTestAssets.FamilyName,
+            fontSize: OfficeLength.Points(20D), fontFamily: ManagedTextShapingTestAssets.FamilyName,
             linkUri: uri, underline: underline, strike: !underline)
             .WithFeatureSettings(OfficeTextFeatureSettings.Default.With("kern", 1));
         var runs = new[] { Run("A", "https://example.test/a", true), Run("V", "https://example.test/v", false), Run("A", "https://example.test/last", true) };
@@ -194,7 +194,7 @@ public sealed class PdfCrossRunKerningTests {
     [InlineData(false)]
     public void LargePaintSplitWordsHaveBoundedCrossRunKerningWork(bool kern) {
         PdfTextRun[] runs = Enumerable.Range(0, 2048).Select(index => new PdfTextRun(index % 2 == 0 ? "A" : "V",
-            fontSize: 20D, fontFamily: ManagedTextShapingTestAssets.FamilyName,
+            fontSize: OfficeLength.Points(20D), fontFamily: ManagedTextShapingTestAssets.FamilyName,
             color: index % 2 == 0 ? global::OfficeIMO.OfficeColor.FromRgb(255, 0, 0) : global::OfficeIMO.OfficeColor.FromRgb(0, 0, 255))
             .WithFeatureSettings(OfficeTextFeatureSettings.Default.With("kern", kern ? 1 : 0))).ToArray();
         if (kern) {
