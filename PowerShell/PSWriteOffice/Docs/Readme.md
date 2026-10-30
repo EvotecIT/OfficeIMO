@@ -799,9 +799,6 @@ Lists or downloads Confluence page attachments.
 ### [Get-OfficeConfluencePage](Get-OfficeConfluencePage.md)
 Reads one page or streams a filtered Confluence Cloud page listing.
 
-### [Get-OfficeConversionJobReport](Get-OfficeConversionJobReport.md)
-Reads a bounded saved conversion run report without executing its job or changing outputs.
-
 ### [Get-OfficeCsv](Get-OfficeCsv.md)
 Loads a CSV document from disk or parses CSV text.
 
@@ -1119,6 +1116,9 @@ Gets the table of contents from a Word document.
 
 ### [Get-OfficeWordText](Get-OfficeWordText.md)
 Gets text segments from Word paragraphs.
+
+### [Import-OfficeConversionReport](Import-OfficeConversionReport.md)
+Reads saved conversion run reports without executing jobs or changing outputs.
 
 ### [Import-OfficeCsv](Import-OfficeCsv.md)
 Imports CSV rows as PSCustomObjects, dictionaries, or a DataTable.
