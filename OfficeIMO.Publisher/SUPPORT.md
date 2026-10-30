@@ -90,8 +90,11 @@ load. Validation, cancellation and projection failures leave the current model
 unchanged. Native bytes and compound metadata are retained privately and remain
 inert. The import-time semantic baseline and exact source OfficeArt bindings
 support an internal contributor preparation path: unchanged content copies the
-original bytes; bounded existing anchor and solid-scalar edits replace only the
-OfficeArt stream and retain other logical streams and directory metadata.
+original bytes; bounded existing anchor and solid-scalar edits replace the
+OfficeArt stream. A single plain-story profile can replace text of different
+lengths with unchanged formatting by updating Quill text, story lengths,
+formatting endpoints and page indexes. Other logical streams and directory
+metadata remain unchanged, including cached previews whose freshness is unassessed.
 Unsupported semantic changes refuse output. This path does not establish
 repair-free opening, native edit acceptance or opaque semantic preservation and
 does not expose public native saving. The [writer probe](../Build/Publisher/WriterProbe/README.md#loaded-source-candidates)
@@ -105,7 +108,8 @@ FDPP selections and direct FDPC spans in native UTF-16 coordinates, with CR and
 NUL retained in that coordinate domain. Public story text normalizes CR to LF
 and removes NUL. An absent FDPP selector stays absent even when the resolver
 uses pair zero. In-memory edits retain these original bindings; changed-story
-preparation refusals identify their source dependencies without returning bytes.
+preparation reports identify their source dependencies. Unsupported changes
+return no candidate bytes.
 STSH0/2 entries and STSH1 prefixes/suffixes remain opaque. This catalog does not
 expose an editable named-style library or qualify native Quill writing.
 

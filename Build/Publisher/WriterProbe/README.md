@@ -33,6 +33,7 @@ dotnet $probe create combined ./candidate-combined.pub ./picture.png
 dotnet $probe render ./reference.pub ./managed-comparison
 dotnet $probe preserve ./reference.pub ./exact-copy.pub
 dotnet $probe edit ./reference.pub ./edited.pub 293 36 48 120 84 0000FF
+dotnet $probe edit-text ./native-text.pub ./edited-text.pub 2 'Replacement text'
 ```
 
 Output parent directories must exist. Existing outputs are never overwritten.
@@ -80,13 +81,23 @@ native endpoint direction and imported page/master registration. Existing local
 solid RGB, opacity and line-width slots can change only when their source
 representation is unambiguous and requires no new property. Paint visibility,
 alpha, inherited-only properties and duplicate scalar slots are refused.
-Only `Escher/EscherStm` is replaced through the shared compound writer; other
-logical streams and directory metadata are retained. Physical CFB allocation can
+`Escher/EscherStm` is replaced through the shared compound writer; streams outside
+the prepared replacements and directory metadata are retained. Physical CFB allocation can
 change. Invalid or unreachable directory trees, noncanonical roots and nonempty
 active-content, signature or protected streams are outside edited-source support.
 
-Stories and formatting, tables, image replacement, page/master relationships,
-new objects and source-free publications have no writer in this path. Every
+`edit-text` replaces a single nonempty plain story with one paragraph and one
+styled run, retaining that formatting and its final native CR convention. The
+observed modern profile has one frame, no table story, one Quill directory, the
+original 15 tag/ID records, single character/paragraph formatting pages and
+matching BTE indexes. Other profiles are refused. Growth moves the following
+payload by whole 512-byte pages, retaining formatting-page alignment; shrinking
+clears the former text tail. Opaque style/library payloads stay unchanged while
+TEXT, STRS, FDPC/FDPP endpoints and BTEC/BTEP references are updated. Cached
+previews in other streams are retained and their freshness remains unassessed.
+
+Formatting changes, multiple paragraphs/runs/stories, tables, image replacement,
+page/master relationships, new objects and source-free publications have no writer in this path. Every
 current semantic family is compared with the import baseline before output;
 source-byte retention does not permit dropping unsupported edits. Prepared edit
 candidates report native acceptance, repair-free opening and opaque semantic
@@ -96,8 +107,8 @@ structural evidence, not Microsoft Publisher qualification.
 When story text or formatting changes, the preparation result's
 `styleDependencies` retains the affected original story keys, native ranges,
 definition pairs and direct OPL spans. It refers to the imported source even
-after normal model edits. The refusal returns no candidate bytes; this evidence
-does not enable style editing or Quill serialization.
+after normal model edits. Unsupported changes return no candidate bytes; the
+bindings do not establish editable named styles or unknown metadata semantics.
 
 ## Creation cases
 

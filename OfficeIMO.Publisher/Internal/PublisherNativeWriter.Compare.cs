@@ -11,7 +11,7 @@ internal sealed partial class PublisherNativeWriter {
                 if ((!_current.Text.Stories.TryGetValue(story.Key, out PublisherTextStory? current) || !StoryEqual(story.Value, current))
                     && sourceStyles.TryGetValue(story.Key, out PublisherQuillStoryStyles? dependency)) _styleDependencies.Add(dependency);
             }
-            Reject("Quill", "Stories or formatting changed. StyleDependencies identifies the original story, definition ordinals and direct native OPL spans; Quill rewriting is unavailable.");
+            if (!TryRewritePlainStory()) Reject("Quill", "Stories or formatting changed outside the observed single plain-story writer profile. StyleDependencies identifies the original story, definition ordinals and direct native OPL spans.");
         }
         if (!PagesEqual() || !MapEqual(_baseline.ObjectOwners, _current.ObjectOwners, (a, b) => a == b)
             || !SameKeys(_baseline.Text.Frames, _current.Text.Frames) || !SameKeys(_baseline.Shapes, _current.Shapes)
@@ -37,6 +37,19 @@ internal sealed partial class PublisherNativeWriter {
         foreach (var entry in _baseline.Text.Frames) CompareFrame(entry.Value, _current.Text.Frames[entry.Key]);
         foreach (var entry in _baseline.Pictures) ComparePicture(entry.Value, _current.Pictures[entry.Key]);
         foreach (var entry in _baseline.Shapes) CompareShape(entry.Value, _current.Shapes[entry.Key]);
+    }
+
+    private bool TryRewritePlainStory() {
+        if (_baseline.Text.Stories.Count != 1 || _current.Text.Stories.Count != 1 || _styleDependencies.Count != 1
+            || _baseline.Text.Frames.Count != 1 || _baseline.Text.TableStories.Count != 0) return false;
+        PublisherTextStory before = _baseline.Text.Stories.Values.Single(), after = _current.Text.Stories.Values.Single();
+        if (before.Id != after.Id || before.Paragraphs.Count != 1 || after.Paragraphs.Count != 1) return false;
+        OfficeRichTextParagraph a = before.Paragraphs[0], b = after.Paragraphs[0];
+        if (a.Runs.Count != 1 || b.Runs.Count != 1 || a.Label != null || b.Label != null
+            || !ParagraphFormattingEqual(a, b) || !RunFormattingEqual(a.Runs[0], b.Runs[0])) return false;
+        _quillBytes = PublisherQuillTextWriter.TryRewrite(_imported.NativeSource!.QuillBytes, _styleDependencies[0],
+            before, after, _sourceLimits, _maximumBytes, _token);
+        return _quillBytes != null;
     }
 
     private bool PagesEqual() => _baseline.Pages.Count == _current.Pages.Count
@@ -134,10 +147,13 @@ internal sealed partial class PublisherNativeWriter {
         || a.Id == b.Id && a.Text == b.Text && a.HasFinalParagraphTerminator == b.HasFinalParagraphTerminator
         && a.Paragraphs.Count == b.Paragraphs.Count && a.Paragraphs.Zip(b.Paragraphs, ParagraphEqual).All(value => value);
     private static bool ParagraphEqual(OfficeRichTextParagraph a, OfficeRichTextParagraph b) => ReferenceEquals(a, b)
-        || a.Alignment == b.Alignment && a.LineHeight == b.LineHeight && a.LineHeightFactor == b.LineHeightFactor
-        && a.Margins.Equals(b.Margins) && a.Indent == b.Indent && LabelEqual(a.Label, b.Label) && TabsEqual(a.TabStops, b.TabStops)
+        || ParagraphFormattingEqual(a, b)
         && a.Runs.Count == b.Runs.Count && a.Runs.Zip(b.Runs, RunEqual).All(value => value);
-    private static bool RunEqual(OfficeRichTextRun a, OfficeRichTextRun b) => a.Text == b.Text && a.FontSize == b.FontSize
+    private static bool ParagraphFormattingEqual(OfficeRichTextParagraph a, OfficeRichTextParagraph b) =>
+        a.Alignment == b.Alignment && a.LineHeight == b.LineHeight && a.LineHeightFactor == b.LineHeightFactor
+        && a.Margins.Equals(b.Margins) && a.Indent == b.Indent && LabelEqual(a.Label, b.Label) && TabsEqual(a.TabStops, b.TabStops);
+    private static bool RunEqual(OfficeRichTextRun a, OfficeRichTextRun b) => a.Text == b.Text && RunFormattingEqual(a, b);
+    private static bool RunFormattingEqual(OfficeRichTextRun a, OfficeRichTextRun b) => a.FontSize == b.FontSize
         && a.Color == b.Color && a.FontFamily == b.FontFamily && a.Bold == b.Bold && a.Italic == b.Italic
         && a.UnderlineStyle == b.UnderlineStyle && a.StrikethroughStyle == b.StrikethroughStyle && a.Baseline == b.Baseline
         && a.BackgroundColor == b.BackgroundColor && a.ParagraphIndent == b.ParagraphIndent

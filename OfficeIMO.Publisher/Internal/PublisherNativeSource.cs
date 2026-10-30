@@ -11,6 +11,7 @@ internal sealed class PublisherNativeSource {
     internal int StreamCount => _compound.Streams.Count;
     internal byte[] CopyBytes() => (byte[])_bytes.Clone();
     internal byte[] EscherBytes => _compound.Streams["Escher/EscherStm"];
+    internal byte[] QuillBytes => _compound.Streams["Quill/QuillSub/CONTENTS"];
 
     internal bool CanRewrite(OfficeLegacyImportLimits limits, CancellationToken token) {
         var bounds = new OfficeCompoundReadOptions(maxDirectoryEntries: limits.MaxRecords,
@@ -33,7 +34,7 @@ internal sealed class PublisherNativeSource {
         }
     }
 
-    internal byte[] RewriteEscher(byte[] escher, long maximumBytes, CancellationToken token) =>
-        OfficeCompoundFileWriter.Rewrite(_compound, new Dictionary<string, byte[]> { ["Escher/EscherStm"] = escher },
+    internal byte[] Rewrite(IReadOnlyDictionary<string, byte[]> streams, long maximumBytes, CancellationToken token) =>
+        OfficeCompoundFileWriter.Rewrite(_compound, streams,
             maxOutputBytes: maximumBytes, cancellationToken: token);
 }

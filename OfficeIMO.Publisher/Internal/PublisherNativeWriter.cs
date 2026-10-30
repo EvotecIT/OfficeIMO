@@ -2,7 +2,7 @@ using OfficeIMO.Drawing;
 
 namespace OfficeIMO.Publisher.Internal;
 
-/// <summary>Accounts for current semantic differences before copying or applying fixed-size native source patches.</summary>
+/// <summary>Accounts for semantic differences before exact copying or preparing bounded native source edits.</summary>
 internal sealed partial class PublisherNativeWriter {
     private readonly PublisherPublicationState _current, _baseline;
     private readonly PublisherImportedResidue _imported;
@@ -11,9 +11,14 @@ internal sealed partial class PublisherNativeWriter {
     private readonly List<OfficeConversionFidelityDiagnostic> _diagnostics = new();
     private readonly List<PublisherQuillStoryStyles> _styleDependencies = new();
     private readonly Dictionary<int, (uint Original, uint Replacement)> _patches = new();
+    private byte[]? _quillBytes;
+    private readonly OfficeLegacyImportLimits _sourceLimits;
+    private readonly long _maximumBytes;
 
-    private PublisherNativeWriter(PublisherPublicationState current, PublisherImportedResidue imported, CancellationToken token) {
+    private PublisherNativeWriter(PublisherPublicationState current, PublisherImportedResidue imported,
+        OfficeLegacyImportLimits sourceLimits, long maximumBytes, CancellationToken token) {
         _current = current; _baseline = imported.Baseline!; _imported = imported; _token = token;
+        _sourceLimits = sourceLimits; _maximumBytes = maximumBytes;
         _artwork = imported.Artwork.Shapes.ToDictionary(shape => shape.Id);
     }
 
@@ -24,11 +29,11 @@ internal sealed partial class PublisherNativeWriter {
         if (imported?.NativeSource == null || imported.Baseline == null)
             return new PublisherNativePreparation(null, new[] { Finding("PUB_NATIVE_SOURCE_REQUIRED",
                 "Native preparation requires an imported source and its semantic baseline. Source-free authoring is not a native writer.", OfficeConversionLossKind.Failure, "Contents") });
-        var writer = new PublisherNativeWriter(current, imported, token);
+        var writer = new PublisherNativeWriter(current, imported, sourceLimits, maximumBytes, token);
         writer.Compare();
         if (writer._diagnostics.Count != 0) return new PublisherNativePreparation(null, writer._diagnostics, writer._styleDependencies);
         PublisherNativeSource source = imported.NativeSource;
-        if (writer._patches.Count == 0) {
+        if (writer._patches.Count == 0 && writer._quillBytes == null) {
             if (source.ByteLength > maximumBytes) throw new InvalidDataException("Publisher native output byte limit exceeded.");
             token.ThrowIfCancellationRequested();
             return new PublisherNativePreparation(source.CopyBytes(), new[] { Finding("PUB_NATIVE_EXACT_COPY",
@@ -36,24 +41,32 @@ internal sealed partial class PublisherNativeWriter {
         }
         if (!source.CanRewrite(sourceLimits, token)) {
             writer.Reject("Contents", "Edited output is unavailable for an invalid directory tree, nonempty active-content carriers, signatures or protected storage.");
-            return new PublisherNativePreparation(null, writer._diagnostics);
+            return new PublisherNativePreparation(null, writer._diagnostics, writer._styleDependencies);
         }
-        byte[] bytes = (byte[])source.EscherBytes.Clone();
+        var streams = new Dictionary<string, byte[]>();
+        byte[] bytes = writer._patches.Count == 0 ? Array.Empty<byte>() : (byte[])source.EscherBytes.Clone();
         var data = new PublisherBinaryData(bytes, "Escher/EscherStm");
         foreach (var patch in writer._patches) {
             token.ThrowIfCancellationRequested();
             if (data.U32(patch.Key) != patch.Value.Original) {
                 writer.Reject("Escher/EscherStm", "The retained native source no longer matches its guarded patch slots.");
-                return new PublisherNativePreparation(null, writer._diagnostics);
+                return new PublisherNativePreparation(null, writer._diagnostics, writer._styleDependencies);
             }
             uint value = patch.Value.Replacement;
             for (int index = 0; index < 4; index++) bytes[patch.Key + index] = (byte)(value >> (index * 8));
         }
-        byte[] output = source.RewriteEscher(bytes, maximumBytes, token);
+        if (writer._patches.Count != 0) streams.Add("Escher/EscherStm", bytes);
+        if (writer._quillBytes != null) streams.Add("Quill/QuillSub/CONTENTS", writer._quillBytes);
+        byte[] output = source.Rewrite(streams, maximumBytes, token);
         token.ThrowIfCancellationRequested();
-        return new PublisherNativePreparation(output, new[] { Finding("PUB_NATIVE_FIXED_PATCH_UNQUALIFIED",
-            "Only guarded fixed-size OfficeArt slots changed. Other logical streams and directory metadata are retained. Repair-free opening, native edit acceptance and opaque semantic preservation require independent qualification.",
-            OfficeConversionLossKind.Unassessed, "Escher/EscherStm") });
+        var diagnostics = new List<OfficeConversionFidelityDiagnostic>();
+        if (writer._patches.Count != 0) diagnostics.Add(Finding("PUB_NATIVE_FIXED_PATCH_UNQUALIFIED",
+            "Guarded fixed-size OfficeArt slots changed. Streams outside the prepared replacements and directory metadata are retained. Repair-free opening, native edit acceptance and opaque semantic preservation require independent qualification.",
+            OfficeConversionLossKind.Unassessed, "Escher/EscherStm"));
+        if (writer._quillBytes != null) diagnostics.Add(Finding("PUB_NATIVE_QUILL_TEXT_UNQUALIFIED",
+            "The observed single-story Quill text profile was rewritten with unchanged formatting. Other logical streams, including cached previews, are retained. Native opening, editing, resave/reopen and opaque record preservation remain unassessed.",
+            OfficeConversionLossKind.Unassessed, "Quill"));
+        return new PublisherNativePreparation(output, diagnostics, writer._styleDependencies);
     }
 
     private static OfficeConversionFidelityDiagnostic Finding(string code, string message, OfficeConversionLossKind kind, string location) =>

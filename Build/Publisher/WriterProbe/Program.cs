@@ -13,7 +13,8 @@ internal static class Program {
 
     public static int Main(string[] args) {
         try {
-            if ((args.Length == 3 && args[0] == "preserve") || (args.Length is 8 or 9 && args[0] == "edit"))
+            if ((args.Length == 3 && args[0] == "preserve") || (args.Length is 8 or 9 && args[0] == "edit")
+                || (args.Length == 5 && args[0] == "edit-text"))
                 return PrepareLoaded(args);
             if (args.Length is >= 2 and <= 3 && args[0] == "inventory") {
                 string json = JsonSerializer.Serialize(NativeInventory.Read(args[1]), JsonOptions);
@@ -56,7 +57,7 @@ internal static class Program {
                 else Console.WriteLine(json);
                 return 0;
             }
-            Console.Error.WriteLine("inventory <input.pub> [report.json]\ndiff <left.pub> <right.pub> [report.json]\ncreate <blank|text|styled-text|shape|image|combined> <candidate.pub> [text-or-image-path]\npreserve <input.pub> <candidate.pub>\nedit <input.pub> <candidate.pub> <object-id> <x> <y> <width> <height> [RRGGBB]\nrender <input.pub> <unused-output-directory>");
+            Console.Error.WriteLine("inventory <input.pub> [report.json]\ndiff <left.pub> <right.pub> [report.json]\ncreate <blank|text|styled-text|shape|image|combined> <candidate.pub> [text-or-image-path]\npreserve <input.pub> <candidate.pub>\nedit <input.pub> <candidate.pub> <object-id> <x> <y> <width> <height> [RRGGBB]\nedit-text <input.pub> <candidate.pub> <story-id> <text>\nrender <input.pub> <unused-output-directory>");
             return 2;
         } catch (Exception exception) {
             Console.Error.WriteLine(exception.GetType().Name + ": " + exception.Message);
@@ -66,6 +67,17 @@ internal static class Program {
 
     private static int PrepareLoaded(string[] args) {
         PublisherDocument document = PublisherDocument.Load(args[1]);
+        if (args[0] == "edit-text") {
+            uint storyId = uint.Parse(args[3], NumberStyles.None, CultureInfo.InvariantCulture);
+            PublisherTextStory story = document.TextStories.Single(item => item.Id == storyId);
+            OfficeRichTextParagraph paragraph = story.Paragraphs.Single();
+            OfficeRichTextRun run = paragraph.Runs.Single();
+            document.ReplaceStoryParagraphs(storyId, new[] { new OfficeRichTextParagraph(new[] {
+                new OfficeRichTextRun(args[4], run.FontSize, run.Color, run.Bold, run.Italic, run.Underline,
+                    run.FontFamily, run.Strikethrough, run.BackgroundColor, run.UnderlineStyle, run.StrikethroughStyle,
+                    run.Baseline, run.ParagraphIndent)
+            }, paragraph.Alignment, paragraph.LineHeight, paragraph.Margins, paragraph.Indent, paragraph.LineHeightFactor).WithTabStops(paragraph.TabStops) });
+        }
         if (args[0] == "edit") {
             uint id = uint.Parse(args[3], NumberStyles.None, CultureInfo.InvariantCulture);
             double Number(int index) => double.Parse(args[index], NumberStyles.Float, CultureInfo.InvariantCulture);

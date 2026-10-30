@@ -126,7 +126,7 @@ public sealed class PublisherNativeWritingTests {
     }
 
     [Theory]
-    [InlineData("story")]
+    [InlineData("multi-paragraph-story")]
     [InlineData("format")]
     [InlineData("page")]
     [InlineData("master")]
@@ -148,7 +148,8 @@ public sealed class PublisherNativeWritingTests {
             : PublisherDocument.Load(PublisherNativeTests.Fixture(file));
         PublisherPage page = document.Pages[0];
         switch (mutation) {
-            case "story": document.ReplaceStoryParagraphs(document.TextStories[0].Id, Paragraphs("Different length")); break;
+            case "multi-paragraph-story": document.ReplaceStoryParagraphs(document.TextStories[0].Id,
+                Paragraphs("First paragraph").Concat(Paragraphs("Second paragraph")).ToArray()); break;
             case "format":
                 OfficeRichTextRun run = document.TextStories[0].Paragraphs[0].Runs[0];
                 document.ReplaceStoryParagraphs(document.TextStories[0].Id, new[] { new OfficeRichTextParagraph(new[] {
@@ -228,6 +229,93 @@ public sealed class PublisherNativeWritingTests {
             && item.Message.Contains("invalid directory tree"));
     }
 
+    [Theory]
+    [InlineData("Text", "Publisher text with a longer replacement", 19456, 19968, false)]
+    [InlineData("TextLong", "Publisher text", 18944, 19456, false)]
+    [InlineData("Text", "Changed string", 18944, 19456, false)]
+    [InlineData("Text", "Text and frame changed together", 19456, 19968, true)]
+    public void Plain_story_text_replacement_rewrites_native_ranges_and_preserves_other_storage(
+        string fixture, string replacement, int expectedParagraphPage, int expectedCharacterPage, bool moveFrame) {
+        byte[] source = File.ReadAllBytes(PublisherNativeTests.Fixture($"NativeComparison/{fixture}/native-{fixture.ToLowerInvariant()}.pub"));
+        PublisherDocument document = PublisherDocument.Load(source);
+        PublisherTextStory story = Assert.Single(document.TextStories);
+        OfficeRichTextParagraph paragraph = Assert.Single(story.Paragraphs);
+        OfficeRichTextRun run = Assert.Single(paragraph.Runs);
+        document.ReplaceStoryParagraphs(story.Id, new[] { new OfficeRichTextParagraph(new[] {
+            new OfficeRichTextRun(replacement, run.FontSize, run.Color, run.Bold, run.Italic, run.Underline, run.FontFamily)
+        }, paragraph.Alignment, paragraph.LineHeight, paragraph.Margins, paragraph.Indent, paragraph.LineHeightFactor).WithTabStops(paragraph.TabStops) });
+        if (moveFrame) {
+            PublisherTextFrame frame = document.Pages[0].TextFrames[0];
+            document.SetTextFrameBounds(frame.Id, frame.X + 6, frame.Y + 12, frame.Width, frame.Height);
+        }
+        PublisherNativePreparation prepared = document.PrepareNativeBytes(MaximumBytes);
+        Assert.True(prepared.IsPrepared, string.Join("; ", prepared.FidelityDiagnostics.Select(item => item.Message)));
+        Assert.Contains(prepared.FidelityDiagnostics, item => item.Code == "PUB_NATIVE_QUILL_TEXT_UNQUALIFIED"
+            && item.LossKind == OfficeConversionLossKind.Unassessed);
+        Assert.Throws<OfficeConversionException>(() => prepared.RequireNoLoss());
+        Assert.Equal(story.Id, Assert.Single(prepared.StyleDependencies).StoryId);
+        byte[] output = prepared.CopyBytes();
+        AssertPreservedStorage(source, output, "Quill/QuillSub/CONTENTS", moveFrame ? new[] { "Escher/EscherStm" } : Array.Empty<string>());
+        PublisherDocument reopened = PublisherDocument.Load(output);
+        PublisherTextStory current = Assert.Single(reopened.TextStories);
+        Assert.Equal(replacement + "\n", current.Text);
+        OfficeRichTextRun actual = Assert.Single(Assert.Single(current.Paragraphs).Runs);
+        Assert.Equal((run.FontFamily, run.FontSize, run.Color, run.Bold, run.Italic, run.Underline),
+            (actual.FontFamily, actual.FontSize, actual.Color, actual.Bold, actual.Italic, actual.Underline));
+        Assert.Equal(document.Pages[0].TextFrames[0].X, reopened.Pages[0].TextFrames[0].X);
+        Assert.Equal(document.Pages[0].TextFrames[0].Y, reopened.Pages[0].TextFrames[0].Y);
+        if (moveFrame) {
+            Assert.Equal((78D, 84D), (reopened.Pages[0].TextFrames[0].X, reopened.Pages[0].TextFrames[0].Y));
+            Assert.Contains(prepared.FidelityDiagnostics, item => item.Code == "PUB_NATIVE_FIXED_PATCH_UNQUALIFIED");
+        }
+        byte[] q = Compound(output).Streams["Quill/QuillSub/CONTENTS"];
+        var context = new PublisherParseContext(new PublisherReadOptions(), CancellationToken.None);
+        var chunks = PublisherQuillDirectory.Read(new PublisherBinaryData(q, "Quill"), context);
+        PublisherQuillChunk Find(string tag) => Assert.Single(chunks, item => item.Tag == tag);
+        // The native Text/TextLong controls independently establish the TEXT
+        // origin and FDPP/FDPC endpoints, including the final CR's own range.
+        Assert.Equal(512, Find("TEXT").Offset);
+        Assert.Equal(System.Text.Encoding.Unicode.GetBytes(replacement + "\r"),
+            q.Skip(512).Take((replacement.Length + 1) * 2).ToArray());
+        Assert.Equal((expectedParagraphPage, expectedCharacterPage), (Find("FDPP").Offset, Find("FDPC").Offset));
+        uint contentEnd = (uint)(512 + replacement.Length * 2), finalEnd = contentEnd + 2;
+        Assert.Equal(finalEnd, BitConverter.ToUInt32(q, Find("FDPP").Offset + 8));
+        Assert.Equal(contentEnd, BitConverter.ToUInt32(q, Find("FDPC").Offset + 8));
+        Assert.Equal(finalEnd, BitConverter.ToUInt32(q, Find("FDPC").Offset + 12));
+        Assert.Equal((uint)(replacement.Length + 1), BitConverter.ToUInt32(q, Find("STRS").Offset + 12));
+        Assert.Equal(finalEnd, BitConverter.ToUInt32(q, Find("BTEP").Offset + 16));
+        Assert.Equal((uint)expectedParagraphPage, BitConverter.ToUInt32(q, Find("BTEP").Offset + 20));
+        Assert.Equal(finalEnd, BitConverter.ToUInt32(q, Find("BTEC").Offset + 16));
+        Assert.Equal((uint)expectedCharacterPage, BitConverter.ToUInt32(q, Find("BTEC").Offset + 20));
+        if (fixture == "TextLong") Assert.All(q.Skip((int)finalEnd).Take(82 - (replacement.Length + 1) * 2), value => Assert.Equal(0, value));
+        byte[] old = Compound(source).Streams["Quill/QuillSub/CONTENTS"];
+        var oldChunks = PublisherQuillDirectory.Read(new PublisherBinaryData(old, "Quill"), context);
+        foreach (PublisherQuillChunk chunk in chunks.Where(item => item.Tag is "STSH" or "FONT" or "MCLD" or "PL  " or "SGP " or "INK ")) {
+            PublisherQuillChunk original = oldChunks.Single(item => item.Tag == chunk.Tag && item.Id == chunk.Id);
+            Assert.Equal(old.Skip(original.Offset).Take(original.Length), q.Skip(chunk.Offset).Take(chunk.Length));
+        }
+        Assert.Equal(source, PublisherDocument.Load(source).PrepareNativeBytes(MaximumBytes).CopyBytes());
+        Assert.Throws<InvalidDataException>(() => document.PrepareNativeBytes(1));
+    }
+
+    [Fact]
+    public void Contradictory_native_formatting_index_refuses_text_replacement_but_allows_exact_copy() {
+        byte[] source = PublisherInputContractTests.Mutate("Quill/QuillSub/CONTENTS", bytes => {
+            // The original Text control's BTEC is [20018,20042), with the
+            // character formatting page's absolute position at its final DWORD.
+            Assert.Equal(19456U, BitConverter.ToUInt32(bytes, 20038));
+            PublisherInputContractTests.WriteUInt32(bytes, 20038, 18944);
+        }, "NativeComparison/Text/native-text.pub");
+        PublisherDocument document = PublisherDocument.Load(source);
+        Assert.Equal(source, document.PrepareNativeBytes(MaximumBytes).CopyBytes());
+        document.ReplaceStoryParagraphs(document.TextStories[0].Id, Paragraphs("Replacement text"));
+        PublisherNativePreparation prepared = document.PrepareNativeBytes(MaximumBytes);
+        Assert.False(prepared.IsPrepared);
+        Assert.Throws<NotSupportedException>(() => prepared.CopyBytes());
+        Assert.Contains(prepared.FidelityDiagnostics, item => item.Location == "Quill" && item.LossKind == OfficeConversionLossKind.Failure);
+        Assert.Equal(2U, Assert.Single(prepared.StyleDependencies).StoryId);
+    }
+
     private static IReadOnlyList<OfficeRichTextParagraph> Paragraphs(string text) =>
         new[] { new OfficeRichTextParagraph(new[] { new OfficeRichTextRun(text, 12, OfficeColor.Black, fontFamily: "Arial") }) };
     private static byte[] PictureBytes() => File.ReadAllBytes(PublisherNativeTests.Fixture("NativeComparison/Image/native-image.png"));
@@ -238,10 +326,11 @@ public sealed class PublisherNativeWritingTests {
         new PublisherBinaryData(compound.Streams["Escher/EscherStm"], "Escher/EscherStm"),
         compound.Streams.TryGetValue("Escher/EscherDelayStm", out byte[]? delay) ? new PublisherBinaryData(delay, "Escher/EscherDelayStm") : null,
         new PublisherParseContext(new PublisherReadOptions(), CancellationToken.None)).Read();
-    private static void AssertPreservedStorage(byte[] source, byte[] output) {
+    private static void AssertPreservedStorage(byte[] source, byte[] output, string changedStream = "Escher/EscherStm", params string[] additionalChangedStreams) {
         OfficeCompoundFile before = Compound(source), after = Compound(output);
         Assert.Equal(before.Streams.Keys.OrderBy(path => path), after.Streams.Keys.OrderBy(path => path));
-        foreach (var stream in before.Streams.Where(item => item.Key != "Escher/EscherStm")) Assert.Equal(stream.Value, after.Streams[stream.Key]);
+        foreach (var stream in before.Streams.Where(item => item.Key != changedStream && !additionalChangedStreams.Contains(item.Key)))
+            Assert.Equal(stream.Value, after.Streams[stream.Key]);
         var metadata = before.Entries.ToDictionary(entry => entry.Path);
         Assert.Equal(metadata.Count, after.Entries.Count);
         foreach (OfficeCompoundFileEntry entry in after.Entries) {
