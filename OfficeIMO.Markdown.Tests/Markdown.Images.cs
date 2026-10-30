@@ -234,12 +234,12 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void MarkdownToWord_AppliesConfiguredImageMaxWidthPixels() {
+        public void MarkdownToWord_AppliesConfiguredImageMaxWidth() {
             string imagePath = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "Assets", "OfficeIMO.png"));
             string md = $"![Local]({imagePath}){{width=1200 height=300}}";
             var doc = OfficeIMO.Markdown.MarkdownDocument.Parse(md).ToWord(new WordMarkdownImportOptions {
                 AllowLocalImages = true,
-                MaxImageWidthPixels = 480
+                MaxImageWidth = global::OfficeIMO.OfficeLength.Inches(5)
             });
 
             Assert.Single(doc.Images);
@@ -266,12 +266,12 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void MarkdownToWord_AppliesConfiguredImageMaxHeightPixels() {
+        public void MarkdownToWord_AppliesConfiguredImageMaxHeight() {
             string imagePath = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "Assets", "OfficeIMO.png"));
             string md = $"![Local]({imagePath}){{width=1200 height=300}}";
             var doc = OfficeIMO.Markdown.MarkdownDocument.Parse(md).ToWord(new WordMarkdownImportOptions {
                 AllowLocalImages = true,
-                MaxImageHeightPixels = 100
+                MaxImageHeight = global::OfficeIMO.OfficeLength.Points(75)
             });
 
             Assert.Single(doc.Images);
@@ -285,9 +285,9 @@ namespace OfficeIMO.Tests {
             string md = $"![Local]({imagePath}){{width=1200 height=300}}";
             var diagnostics = new List<WordMarkdownImageLayoutDiagnostic>();
 
-            var doc = OfficeIMO.Markdown.MarkdownDocument.Parse(md).ToWord(new WordMarkdownImportOptions {
+            using var doc = OfficeIMO.Markdown.MarkdownDocument.Parse(md).ToWord(new WordMarkdownImportOptions {
                 AllowLocalImages = true,
-                MaxImageWidthPixels = 480,
+                MaxImageWidth = global::OfficeIMO.OfficeLength.Inches(5),
                 OnImageLayoutDiagnostic = diagnostics.Add
             });
 
@@ -295,8 +295,22 @@ namespace OfficeIMO.Tests {
             var diagnostic = Assert.Single(diagnostics);
             Assert.True(diagnostic.ScaledByLayout);
             Assert.Equal("block-local", diagnostic.Context);
-            Assert.Equal(1200, diagnostic.RequestedWidthPixels);
-            Assert.InRange(diagnostic.FinalWidthPixels ?? 0, 479.5, 480.5);
+            Assert.Equal(1200, diagnostic.RequestedWidth?.ToPixels());
+            Assert.InRange(diagnostic.FinalWidth?.ToPixels() ?? 0, 479.5, 480.5);
+
+            Assert.Equal(imagePath, diagnostic.Source);
+            Assert.Equal(300, diagnostic.RequestedHeight?.ToPixels());
+            Assert.Equal(489, diagnostic.NaturalWidth?.ToPixels());
+            Assert.Equal(436, diagnostic.NaturalHeight?.ToPixels());
+            Assert.Equal(480, diagnostic.EffectiveMaxWidth?.ToPixels());
+            Assert.Equal(436, diagnostic.EffectiveMaxHeight?.ToPixels());
+            Assert.Equal(120, diagnostic.FinalHeight?.ToPixels());
+
+            using var savedBytes = new MemoryStream(doc.ToBytes());
+            using var reopened = WordDocument.Load(savedBytes);
+            var savedImage = Assert.Single(reopened.Images);
+            Assert.Equal(360D, savedImage.Width!.Value.ToPoints(), 4);
+            Assert.Equal(90D, savedImage.Height!.Value.ToPoints(), 4);
         }
 
         [Fact]

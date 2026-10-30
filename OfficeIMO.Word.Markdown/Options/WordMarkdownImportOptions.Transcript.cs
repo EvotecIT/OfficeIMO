@@ -27,7 +27,7 @@ public partial class WordMarkdownImportOptions {
             ReaderOptions = readerOptions,
             MaxImageWidthPercentOfContent = 100d,
             FitImagesToPageContentWidth = true,
-            MaxImageWidthPixels = NormalizeIntelligenceXVisualMaxWidth(visualMaxWidth)
+            MaxImageWidth = global::OfficeIMO.OfficeLength.Pixels(NormalizeIntelligenceXVisualMaxWidth(visualMaxWidth))
         };
 
         if (allowedImageDirectories is { Count: > 0 }) {

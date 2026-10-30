@@ -16,14 +16,14 @@ namespace OfficeIMO.Word.Markdown {
         public WordMarkdownImageHintPrecedence HintPrecedence { get; set; } = WordMarkdownImageHintPrecedence.MarkdownThenLayout;
 
         /// <summary>
-        /// Optional hard cap (pixels) for image width.
+        /// Optional physical hard cap for image width.
         /// </summary>
-        public double? MaxWidthPixels { get; set; }
+        public global::OfficeIMO.OfficeLength? MaxWidth { get; set; }
 
         /// <summary>
-        /// Optional hard cap (pixels) for image height.
+        /// Optional physical hard cap for image height.
         /// </summary>
-        public double? MaxHeightPixels { get; set; }
+        public global::OfficeIMO.OfficeLength? MaxHeight { get; set; }
 
         /// <summary>
         /// Optional hard cap expressed as percent of available content width (for example 100, 85, 50).
@@ -86,42 +86,42 @@ namespace OfficeIMO.Word.Markdown {
         /// <summary>
         /// Requested width hint from markdown or caller.
         /// </summary>
-        public double? RequestedWidthPixels { get; set; }
+        public global::OfficeIMO.OfficeLength? RequestedWidth { get; set; }
 
         /// <summary>
         /// Requested height hint from markdown or caller.
         /// </summary>
-        public double? RequestedHeightPixels { get; set; }
+        public global::OfficeIMO.OfficeLength? RequestedHeight { get; set; }
 
         /// <summary>
-        /// Natural image width when available.
+        /// Natural image width interpreted at 96 DPI when available.
         /// </summary>
-        public double? NaturalWidthPixels { get; set; }
+        public global::OfficeIMO.OfficeLength? NaturalWidth { get; set; }
 
         /// <summary>
-        /// Natural image height when available.
+        /// Natural image height interpreted at 96 DPI when available.
         /// </summary>
-        public double? NaturalHeightPixels { get; set; }
+        public global::OfficeIMO.OfficeLength? NaturalHeight { get; set; }
 
         /// <summary>
         /// Effective width limit applied by converter logic.
         /// </summary>
-        public double? EffectiveMaxWidthPixels { get; set; }
+        public global::OfficeIMO.OfficeLength? EffectiveMaxWidth { get; set; }
 
         /// <summary>
         /// Effective height limit applied by converter logic.
         /// </summary>
-        public double? EffectiveMaxHeightPixels { get; set; }
+        public global::OfficeIMO.OfficeLength? EffectiveMaxHeight { get; set; }
 
         /// <summary>
         /// Final width selected for insertion.
         /// </summary>
-        public double? FinalWidthPixels { get; set; }
+        public global::OfficeIMO.OfficeLength? FinalWidth { get; set; }
 
         /// <summary>
         /// Final height selected for insertion.
         /// </summary>
-        public double? FinalHeightPixels { get; set; }
+        public global::OfficeIMO.OfficeLength? FinalHeight { get; set; }
 
         /// <summary>
         /// Indicates that at least one layout constraint changed the dimensions.

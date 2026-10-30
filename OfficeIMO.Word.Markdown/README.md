@@ -96,9 +96,11 @@ For HTML input, add `OfficeIMO.Markdown.Html`, parse with `HtmlConversionDocumen
 
 ```csharp
 using OfficeIMO.Markdown;
+using OfficeIMO.Word.Markdown;
 var options = new WordMarkdownImportOptions {
     AllowLocalImages = true,
     FitImagesToPageContentWidth = true,           // page width minus margins
+    MaxImageWidth = OfficeIMO.OfficeLength.Inches(5), // optional physical cap
     MaxImageWidthPercentOfContent = 85            // optional percent-based cap
 };
 
@@ -107,7 +109,7 @@ using var doc = MarkdownDocument.Parse("# Report\n\nBody").ToWord(options);
 
 - Typed contract is available via `WordMarkdownImportOptions.ImageLayout`.
 - `PreferNarrativeSingleLineDefinitions = true` keeps isolated `Label: value` lines as narrative paragraphs while still allowing grouped definition-list blocks.
-- `OnImageLayoutDiagnostic` can be used to inspect final width/height and applied layout constraints.
+- `OnImageLayoutDiagnostic` reports requested, natural, effective-limit, and final dimensions as nullable `OfficeLength` values. Natural image pixels are interpreted at 96 DPI; use `ToPixels()` for that projection or `ToPoints()` for points.
 
 ## Word -> Markdown layout and visual fallback options
 

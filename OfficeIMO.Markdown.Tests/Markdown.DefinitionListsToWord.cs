@@ -104,7 +104,7 @@ namespace OfficeIMO.Tests {
             Assert.True(options.FitImagesToPageContentWidth);
             Assert.False(options.FitImagesToContextWidth);
             Assert.Equal(100d, options.MaxImageWidthPercentOfContent);
-            Assert.Equal(2000, options.MaxImageWidthPixels);
+            Assert.Equal(2000, options.MaxImageWidth?.ToPixels());
             Assert.Equal(2, options.AllowedImageDirectories.Count);
             Assert.Contains("C:\\allowed-a", options.AllowedImageDirectories);
             Assert.Contains("C:\\allowed-b", options.AllowedImageDirectories);
