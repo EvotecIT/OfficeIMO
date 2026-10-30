@@ -32,6 +32,9 @@ public sealed class PdfSaveFailureEvidenceTests {
             if (extension == ".docx") options.Word = new() { TextFallbacks = PdfTextFallbackFeatures.None, ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic() };
             else if (extension == ".xlsx") options.Excel = new() { TextFallbacks = PdfTextFallbackFeatures.None, ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic() };
             else if (extension == ".pptx") options.PowerPoint = new() { TextFallbacks = PdfTextFallbackFeatures.None, ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic() };
+            else options.RegisteredSettings = new OfficeWorkflowRouteSettings {
+                Draw = new() { PdfOptions = new() { EmbedDefaultFonts = false } }
+            };
             var result = await new OfficeWorkflowRunner().RunAsync(new() {
                 Operation = OfficeWorkflowOperation.Convert, InputPath = input, OutputPath = output,
                 ConversionRouteId = route, ConflictPolicy = OfficePublicationPolicy.Replace,
@@ -39,7 +42,7 @@ public sealed class PdfSaveFailureEvidenceTests {
             });
             Assert.False(result.Succeeded);
             var evidence = Assert.IsType<OfficeWorkflowConversionEvidence>(result.ConversionEvidence);
-            string encodingCode = route == "odg-pdf" ? "missing-embedded-font-glyph" : "unsupported-text-glyph";
+            const string encodingCode = "unsupported-text-glyph";
             Assert.Contains(evidence.FidelityDiagnostics, finding => finding.Code == encodingCode);
             Assert.Contains(result.Diagnostics, finding => finding.Code == encodingCode);
             Assert.Equal(source, File.ReadAllBytes(input));

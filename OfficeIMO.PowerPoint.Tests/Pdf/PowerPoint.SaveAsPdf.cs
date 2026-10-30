@@ -232,7 +232,7 @@ public partial class PowerPointSaveAsPdfTests {
 
         string raw = PdfOperatorSearchText.From(bytes);
         Assert.Contains("20 108 120 48 re", raw, StringComparison.Ordinal);
-        AssertRawPdfContainsAnyBaseFont(raw, "Times-Roman", "Georgia");
+        AssertRawPdfContainsAnyBaseFont(raw, "Times-Roman", "Georgia", "LiberationSerif");
         Assert.Contains("/Im1 Do", raw, StringComparison.Ordinal);
     }
 
@@ -1626,7 +1626,10 @@ public partial class PowerPointSaveAsPdfTests {
         Assert.Contains("StyledSerif", text, StringComparison.Ordinal);
         Assert.Contains("DefaultSerif", text, StringComparison.Ordinal);
         var defaultWord = Assert.Single(pdf.GetPage(1).GetWords(), word => word.Text == "DefaultSerif");
-        Assert.All(defaultWord.Letters, letter => Assert.Contains("Times", letter.FontName, StringComparison.Ordinal));
+        Assert.All(defaultWord.Letters, letter => Assert.True(
+            letter.FontName.Contains("Times", StringComparison.Ordinal) ||
+            letter.FontName.Contains("LiberationSerif", StringComparison.Ordinal),
+            "Expected the configured serif font slot, received " + letter.FontName));
         var styledWord = Assert.Single(pdf.GetPage(1).GetWords(), word => word.Text == "StyledSerif");
         Assert.All(styledWord.Letters, letter => Assert.Contains("Georgia", letter.FontName, StringComparison.Ordinal));
     }

@@ -925,4 +925,10 @@
     <Right>lib/netstandard2.0/OfficeIMO.OneNote.Pdf.dll</Right>
     <IsBaselineSuppression>true</IsBaselineSuppression>
   </Suppression>
+  <!-- 3.6 uses PdfCreateOptions for PDF creation settings. -->
+  <Suppression>
+    <DiagnosticId>CP0002</DiagnosticId>
+    <Target>M:OfficeIMO.OneNote.Pdf.OneNoteVisualPdfOptions.get_PdfOptions</Target>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
 </Suppressions>

@@ -20,6 +20,7 @@ env:
     8.0.426
     10.0.114
   BUILD_CONFIGURATION: 'Debug'
+  PSWRITEOFFICE_FOUNDATION_TEST_ASSEMBLY: '${{ github.workspace }}/PowerShell/PSWriteOffice/Sources/PSWriteOffice.Tests/bin/Debug/net8.0/PSWriteOffice.Tests.dll'
 
 defaults:
   run:

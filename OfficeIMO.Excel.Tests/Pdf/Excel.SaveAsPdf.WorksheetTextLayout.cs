@@ -82,7 +82,8 @@ public partial class Excel {
         ExcelSheet wrappedSheet = wrappedDocument.AddWorksheet("Wrapped");
         wrappedSheet.Cell(1, 2, "Wrapped text stays inside its column");
         wrappedSheet.CellWrapText(1, 2);
-        using PdfPigDocument wrappedPdf = OpenWorksheetPdf(wrappedDocument);
+        wrappedSheet.SetColumnWidth(2, 14);
+        using PdfPigDocument wrappedPdf = OpenWorksheetPdf(wrappedDocument, CreateDeterministicFontOptions());
         var words = wrappedPdf.GetPage(1).GetWords().ToArray();
         var first = Assert.Single(words, word => word.Text == "Wrapped");
         var last = Assert.Single(words, word => word.Text == "column");

@@ -12,6 +12,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\OfficeIMO\OfficeIMO.csproj" />
     <ProjectReference Include="..\OfficeIMO.Adf\OfficeIMO.Adf.csproj" />
     <ProjectReference Include="..\OfficeIMO.AsciiDoc\OfficeIMO.AsciiDoc.csproj" />
     <ProjectReference Include="..\OfficeIMO.AsciiDoc.Markdown\OfficeIMO.AsciiDoc.Markdown.csproj" />
@@ -75,7 +76,10 @@
     <ProjectReference Include="..\OfficeIMO.OpenDocument.Ods.Pdf\OfficeIMO.OpenDocument.Ods.Pdf.csproj" />
     <ProjectReference Include="..\OfficeIMO.OpenDocument.Odt.Pdf\OfficeIMO.OpenDocument.Odt.Pdf.csproj" />
     <ProjectReference Include="..\OfficeIMO.Pdf\OfficeIMO.Pdf.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Pdf.Excel\OfficeIMO.Pdf.Excel.csproj" />
     <ProjectReference Include="..\OfficeIMO.Pdf.Ocr\OfficeIMO.Pdf.Ocr.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Pdf.PowerPoint\OfficeIMO.Pdf.PowerPoint.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Pdf.Word\OfficeIMO.Pdf.Word.csproj" />
     <ProjectReference Include="..\OfficeIMO.PowerPoint\OfficeIMO.PowerPoint.csproj" />
     <ProjectReference Include="..\OfficeIMO.PowerPoint.IWork\OfficeIMO.PowerPoint.IWork.csproj" />
     <ProjectReference Include="..\OfficeIMO.PowerPoint.GoogleSlides\OfficeIMO.PowerPoint.GoogleSlides.csproj" />
@@ -130,6 +134,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <TrimmerRootAssembly Include="OfficeIMO" />
     <TrimmerRootAssembly Include="OfficeIMO.Adf" />
     <TrimmerRootAssembly Include="OfficeIMO.AsciiDoc" />
     <TrimmerRootAssembly Include="OfficeIMO.AsciiDoc.Markdown" />
@@ -189,7 +194,10 @@
     <TrimmerRootAssembly Include="OfficeIMO.OpenDocument.Ods.Pdf" />
     <TrimmerRootAssembly Include="OfficeIMO.OpenDocument.Odt.Pdf" />
     <TrimmerRootAssembly Include="OfficeIMO.Pdf" />
+    <TrimmerRootAssembly Include="OfficeIMO.Pdf.Excel" />
     <TrimmerRootAssembly Include="OfficeIMO.Pdf.Ocr" />
+    <TrimmerRootAssembly Include="OfficeIMO.Pdf.PowerPoint" />
+    <TrimmerRootAssembly Include="OfficeIMO.Pdf.Word" />
     <TrimmerRootAssembly Include="OfficeIMO.PowerPoint" />
     <TrimmerRootAssembly Include="OfficeIMO.PowerPoint.IWork" />
     <TrimmerRootAssembly Include="OfficeIMO.PowerPoint.GoogleSlides" />

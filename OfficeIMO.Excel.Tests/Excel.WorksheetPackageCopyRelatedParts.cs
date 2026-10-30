@@ -424,17 +424,17 @@ namespace OfficeIMO.Tests {
             Assert.Equal("Check the totals", comment.Text);
             Assert.Equal("Reviewer", comment.Author);
 
-            IReadOnlyList<ExcelThreadedCommentSnapshot> threaded = sheet.GetThreadedComments();
+            IReadOnlyList<ExcelThreadedCommentInfo> threaded = sheet.GetThreadedComments();
             Assert.Equal(2, threaded.Count);
-            ExcelThreadedCommentSnapshot root = Assert.Single(threaded, _ => _.ParentId == null);
-            ExcelThreadedCommentSnapshot reply = Assert.Single(threaded, _ => _.ParentId != null);
+            ExcelThreadedCommentInfo root = Assert.Single(threaded, _ => _.ParentId == null);
+            ExcelThreadedCommentInfo reply = Assert.Single(threaded, _ => _.ParentId != null);
             Assert.Equal("E1", root.CellReference);
             Assert.Equal("Asker", root.Author);
             Assert.Equal("Is this final?", root.Text);
             Assert.Equal(root.Id, reply.ParentId);
             Assert.Equal("Answerer", reply.Author);
 
-            ExcelHyperlinkSnapshot hyperlink = sheet.GetHyperlinks()["F1"];
+            ExcelHyperlinkInfo hyperlink = sheet.GetHyperlinks()["F1"];
             Assert.True(hyperlink.IsExternal);
             Assert.Equal("https://example.com/report", hyperlink.Target);
         }

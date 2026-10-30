@@ -146,7 +146,7 @@ public sealed class FoundationRunspaceTests {
             Assert.True(FoundationBatchControl.Started.Wait(TimeSpan.FromSeconds(10)));
             shell.Stop();
             Assert.Throws<PipelineStoppedException>(() => shell.EndInvoke(running));
-            Assert.True(FoundationBatchControl.Cancelled.IsSet);
+            Assert.True(FoundationBatchControl.Cancelled.Wait(TimeSpan.FromSeconds(10)));
         } finally { Directory.Delete(root, true); }
     }
 }
