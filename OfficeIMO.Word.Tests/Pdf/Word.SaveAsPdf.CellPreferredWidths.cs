@@ -8,6 +8,45 @@ namespace OfficeIMO.Tests;
 
 public partial class Word {
     [Fact]
+    public void SaveAsPdf_ImportedAutoFitKeepsCompactWordsAndNumbersWholeWhenOtherColumnsMustWrap() {
+        using WordDocument document = WordDocument.Create();
+        WordTable table = CreateAutomaticWidthControl(document, Enumerable.Repeat(1440, 6).ToArray());
+        string[][] rows = {
+            new[] { "#", "Scope", "Change", "Location", "Source", "Target" },
+            new[] { "10", "Paragraph", "Modified", "field[0]", new string('A', 50), new string('B', 48) },
+            new[] { "11", "Paragraph", "Modified", "field[1]", new string('A', 50), new string('B', 48) },
+            new[] { "12", "Paragraph", "Modified", "field[2]", new string('A', 50), new string('B', 48) }
+        };
+        for (int row = 0; row < rows.Length; row++) {
+            WordTableRow target = row == 0 ? table.Rows[0] : table.AddRow();
+            for (int column = 0; column < rows[row].Length; column++) {
+                WordTableCell cell = target.Cells[column];
+                cell.Width = 1440; cell.WidthType = WordTableWidthUnit.Dxa;
+                cell.Paragraphs[0].Text = rows[row][column];
+                cell.Paragraphs[0].FontFamily = "Arial";
+                cell.Paragraphs[0].FontSize = 10;
+            }
+        }
+        using var input = new MemoryStream(document.ToBytes(new WordSaveOptions { Format = WordFileFormat.Docx }));
+        using WordDocument loaded = WordDocument.Load(input);
+        var fonts = new OfficeIMO.Pdf.PdfCreateOptions();
+        fonts.RegisterNamedFontFamily(new OfficeIMO.Pdf.PdfEmbeddedFontFamily("Arial",
+            OfficeIMO.TestAssets.ManagedTextShapingTestAssets.CreateFontWithUniformAdvance(1000, 600, Enumerable.Range(32, 95).ToArray())));
+        using var pdf = PdfPigDocument.Open(loaded.ToPdf(new WordPdfExportOptions {
+            IncludePageNumbers = false, PdfOptions = fonts,
+            PageSize = new OfficeIMO.Pdf.PdfPageSize(576D, 792D), Margins = OfficeIMO.Pdf.PdfPageMargins.Uniform(72D)
+        }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
+        var page = Assert.Single(pdf.GetPages());
+        var words = page.GetWords().Select(word => word.Text).ToArray();
+        Assert.Contains("Change", words);
+        Assert.Equal(3, words.Count(word => word == "Modified"));
+        foreach (string number in new[] { "10", "11", "12" }) Assert.Contains(number, words);
+        Assert.Equal(150, page.Letters.Count(letter => letter.Value == "A"));
+        Assert.Equal(144, page.Letters.Count(letter => letter.Value == "B"));
+        Assert.All(page.Letters, letter => Assert.InRange(letter.BoundingBox.Right, 72D, 504.1D));
+    }
+
+    [Fact]
     public void SaveAsPdf_AutomaticMergedCellGrowsBeyondAbsoluteCellsInAnotherRow() {
         using WordDocument document = WordDocument.Create();
         WordTable table = CreateAutomaticWidthControl(document, 1440, 1440);

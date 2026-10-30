@@ -6,11 +6,12 @@ namespace OfficeIMO.Tests.Pdf;
 
 public class PdfImportedColumnPreferenceTests {
     [Theory]
-    [InlineData(0, false)]
-    [InlineData(1, false)]
-    [InlineData(2, false)]
-    [InlineData(0, true)]
-    public void ImportedContentMinimumCompressionPreservesPaddingAndAllClippedCellText(int automaticColumn, bool explicitMaximum) {
+    [InlineData(0, false, 60D)]
+    [InlineData(1, false, 60D)]
+    [InlineData(2, false, 60D)]
+    [InlineData(2, false, 75D)]
+    [InlineData(0, true, 60D)]
+    public void ImportedContentMinimumCompressionPreservesPaddingAndAllClippedCellText(int automaticColumn, bool explicitMaximum, double firstPreference) {
         const string leftText = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
         const string rightText = "ABCDEFGHIJKLM";
         var options = new PdfCreateOptions {
@@ -24,7 +25,7 @@ public class PdfImportedColumnPreferenceTests {
             AllowWidthBeyondFrame = explicitMaximum, PreferredWidth = explicitMaximum ? 200D : 79D,
             MaxWidth = explicitMaximum ? 79D : null,
             AutoFitColumnPreferredWidthPoints = new List<double?> {
-                automaticColumn == 1 ? null : 60D, automaticColumn == 2 ? null : 140D },
+                automaticColumn == 1 ? null : firstPreference, automaticColumn == 2 ? null : 140D },
             CellPaddingX = 2D, CellPaddingY = 0D, FontSize = 10D, BorderColor = null
         };
         using var pdf = PdfPigDocument.Open(PdfDocument.Create(options)
