@@ -11,7 +11,7 @@ internal sealed partial class PublisherNativeWriter {
                 if ((!_current.Text.Stories.TryGetValue(story.Key, out PublisherTextStory? current) || !StoryEqual(story.Value, current))
                     && sourceStyles.TryGetValue(story.Key, out PublisherQuillStoryStyles? dependency)) _styleDependencies.Add(dependency);
             }
-            if (!TryRewriteSingleStory()) Reject("Quill", "Stories or formatting changed outside the observed single-paragraph writer profile. StyleDependencies identifies the original story, definition ordinals and direct native OPL spans.");
+            if (!TryRewriteSingleStory()) Reject("Quill", "Stories or formatting changed outside the observed single-story writer profile. StyleDependencies identifies the original story, definition ordinals and direct native OPL spans.");
         }
         if (!PagesEqual() || !MapEqual(_baseline.ObjectOwners, _current.ObjectOwners, (a, b) => a == b)
             || !SameKeys(_baseline.Text.Frames, _current.Text.Frames) || !SameKeys(_baseline.Shapes, _current.Shapes)
@@ -43,12 +43,15 @@ internal sealed partial class PublisherNativeWriter {
         if (_baseline.Text.Stories.Count != 1 || _current.Text.Stories.Count != 1 || _styleDependencies.Count != 1
             || _baseline.Text.Frames.Count != 1 || _baseline.Text.TableStories.Count != 0) return false;
         PublisherTextStory before = _baseline.Text.Stories.Values.Single(), after = _current.Text.Stories.Values.Single();
-        if (before.Id != after.Id || before.Paragraphs.Count != 1 || after.Paragraphs.Count != 1) return false;
-        OfficeRichTextParagraph a = before.Paragraphs[0], b = after.Paragraphs[0];
-        if (a.Runs.Count < 1 || b.Runs.Count < 1 || a.Runs.Count != 1 && a.Runs.Count != b.Runs.Count
-            || a.Label != null || b.Label != null || !ParagraphFormattingEqual(a, b)) return false;
-        for (int index = 0; index < b.Runs.Count; index++)
-            if (b.Runs[index].Text.Length == 0 || !RunOtherFormattingEqual(a.Runs[a.Runs.Count == 1 ? 0 : index], b.Runs[index])) return false;
+        if (before.Id != after.Id || before.Paragraphs.Count == 0 || before.Paragraphs.Count != after.Paragraphs.Count) return false;
+        for (int paragraph = 0; paragraph < before.Paragraphs.Count; paragraph++) {
+            OfficeRichTextParagraph a = before.Paragraphs[paragraph], b = after.Paragraphs[paragraph];
+            if (a.Runs.Count < 1 || b.Runs.Count < 1 || a.Runs.Count != 1 && a.Runs.Count != b.Runs.Count
+                || a.Label != null || b.Label != null || !ParagraphFormattingEqual(a, b)) return false;
+            for (int index = 0; index < b.Runs.Count; index++)
+                if (b.Runs[index].Text.Length == 0 && (before.Paragraphs.Count == 1 || b.Runs.Count != 1)
+                    || !RunOtherFormattingEqual(a.Runs[a.Runs.Count == 1 ? 0 : index], b.Runs[index])) return false;
+        }
         _quillBytes = PublisherQuillTextWriter.TryRewrite(_imported.NativeSource!.QuillBytes, _styleDependencies[0],
             before, after, _sourceLimits, _maximumBytes, _token);
         return _quillBytes != null;

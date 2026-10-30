@@ -8,10 +8,12 @@ internal static class PublisherQuillTextWriter {
     internal static byte[]? TryRewrite(byte[] source, PublisherQuillStoryStyles binding,
         PublisherTextStory before, PublisherTextStory after, OfficeLegacyImportLimits limits, long maximumBytes, CancellationToken token) {
         token.ThrowIfCancellationRequested();
-        if (binding.StoryOrdinal != 0 || binding.NativeStart != 0 || binding.NullCharacters != 0 || binding.CarriageReturns != 1
+        int paragraphCount = before.Paragraphs.Count;
+        if (paragraphCount == 0 || after.Paragraphs.Count != paragraphCount
+            || binding.StoryOrdinal != 0 || binding.NativeStart != 0 || binding.NullCharacters != 0 || binding.CarriageReturns != paragraphCount
             || binding.NativeLength != before.Text.Length || !before.HasFinalParagraphTerminator || !after.HasFinalParagraphTerminator
-            || before.Text.Length < 2 || after.Text.Length < 2 || before.Text.Count(value => value == '\n') != 1
-            || after.Text.Count(value => value == '\n') != 1
+            || before.Text.Length < 2 || after.Text.Length < 2 || before.Text.Count(value => value == '\n') != paragraphCount
+            || after.Text.Count(value => value == '\n') != paragraphCount
             || !after.Text.EndsWith("\n", StringComparison.Ordinal)) return null;
         var data = new PublisherBinaryData(source, "Quill/QuillSub/CONTENTS");
         var context = new PublisherParseContext(new PublisherReadOptions { Limits = limits }, token);
@@ -42,20 +44,26 @@ internal static class PublisherQuillTextWriter {
             || !Index(Find("BTEC"), pc) || !Index(Find("BTEP"), pp)) return null;
         IReadOnlyList<OfficeRichTextRun> oldRuns = before.Paragraphs[0].Runs, newRuns = after.Paragraphs[0].Runs;
         PublisherQuillStyleUse[] characterUses = binding.Uses.Where(use => use.Tag == "FDPC").ToArray();
-        if (characterUses.Length != oldRuns.Count && characterUses.Length != oldRuns.Count + 1) return null;
-        int nativePosition = 0;
-        for (int index = 0; index < oldRuns.Count; index++) {
-            PublisherQuillStyleUse use = characterUses[index];
-            int end = checked(nativePosition + oldRuns[index].Text.Length);
-            bool includesCr = index == oldRuns.Count - 1 && characterUses.Length == oldRuns.Count;
-            if (use.NativeStart != nativePosition || use.NativeLength != oldRuns[index].Text.Length + (includesCr ? 1 : 0)) return null;
-            nativePosition = end;
+        byte[]? characterPage = null, paragraphPage = null;
+        if (paragraphCount > 1) {
+            if (!PublisherQuillParagraphWriter.TryWrite(data, context, binding, before, after, text.Offset, token,
+                out characterPage, out paragraphPage)) return null;
+        } else {
+            if (characterUses.Length != oldRuns.Count && characterUses.Length != oldRuns.Count + 1) return null;
+            int nativePosition = 0;
+            for (int index = 0; index < oldRuns.Count; index++) {
+                PublisherQuillStyleUse use = characterUses[index];
+                int end = checked(nativePosition + oldRuns[index].Text.Length);
+                bool includesCr = index == oldRuns.Count - 1 && characterUses.Length == oldRuns.Count;
+                if (use.NativeStart != nativePosition || use.NativeLength != oldRuns[index].Text.Length + (includesCr ? 1 : 0)) return null;
+                nativePosition = end;
+            }
+            if (nativePosition + 1 != before.Text.Length) return null;
+            bool replacePage = oldRuns.Count != 1 || newRuns.Count != 1
+                || oldRuns[0].FontSize != newRuns[0].FontSize || oldRuns[0].Bold != newRuns[0].Bold;
+            characterPage = replacePage ? CharacterPage() : null;
+            if (replacePage && characterPage == null) return null;
         }
-        if (nativePosition + 1 != before.Text.Length) return null;
-        bool replacePage = oldRuns.Count != 1 || newRuns.Count != 1
-            || oldRuns[0].FontSize != newRuns[0].FontSize || oldRuns[0].Bold != newRuns[0].Bold;
-        byte[]? characterPage = replacePage ? CharacterPage() : null;
-        if (replacePage && characterPage == null) return null;
         byte[] replacement = Encoding.Unicode.GetBytes(after.Text.Replace('\n', '\r'));
         int growth = Math.Max(0, replacement.Length - text.Length);
         int shift = checked((growth + 511) / 512 * 512);
@@ -79,7 +87,8 @@ internal static class PublisherQuillTextWriter {
         Write(strs.Offset + shift + 12, (uint)after.Text.Length);
         if (characterPage == null) RemapPage(pc);
         else Buffer.BlockCopy(characterPage, 0, output, pc.Offset + shift, characterPage.Length);
-        RemapPage(pp);
+        if (paragraphPage == null) RemapPage(pp);
+        else Buffer.BlockCopy(paragraphPage, 0, output, pp.Offset + shift, paragraphPage.Length);
         foreach (string tag in new[] { "BTEC", "BTEP" }) {
             PublisherQuillChunk index = Find(tag);
             Write(index.Offset + shift + 16, (uint)(text.Offset + replacement.Length));
@@ -91,7 +100,7 @@ internal static class PublisherQuillTextWriter {
         bool FormattingPage(PublisherQuillChunk page, string tag) {
             int count = data.U16(page.Offset);
             if (data.U16(page.Offset + 2) != 1 || data.U32(page.Offset + 4) != 0
-                || count < 1 || count > 84 || tag == "FDPP" && count != 1) return false;
+                || count < 1 || count > 84 || tag == "FDPP" && count != paragraphCount) return false;
             PublisherQuillStyleUse[] uses = binding.Uses.Where(use => use.Tag == tag).ToArray();
             if (uses.Length != count) return false;
             for (int index = 0; index < count; index++) {

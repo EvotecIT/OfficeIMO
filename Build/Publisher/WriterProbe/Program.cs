@@ -14,7 +14,7 @@ internal static class Program {
     public static int Main(string[] args) {
         try {
             if ((args.Length == 3 && args[0] == "preserve") || (args.Length is 8 or 9 && args[0] == "edit")
-                || (args.Length == 5 && args[0] is "edit-text" or "edit-story"))
+                || (args.Length == 5 && args[0] is "edit-text" or "edit-story" or "edit-paragraphs"))
                 return PrepareLoaded(args);
             if (args.Length is >= 2 and <= 3 && args[0] == "inventory") {
                 string json = JsonSerializer.Serialize(NativeInventory.Read(args[1]), JsonOptions);
@@ -58,6 +58,7 @@ internal static class Program {
                 return 0;
             }
             Console.Error.WriteLine("inventory <input.pub> [report.json]\ndiff <left.pub> <right.pub> [report.json]\ncreate <blank|text|styled-text|shape|image|combined> <candidate.pub> [text-or-image-path]\npreserve <input.pub> <candidate.pub>\nedit <input.pub> <candidate.pub> <object-id> <x> <y> <width> <height> [RRGGBB]\nedit-text <input.pub> <candidate.pub> <story-id> <text>\nedit-story <input.pub> <candidate.pub> <story-id> <runs.json>\nrender <input.pub> <unused-output-directory>");
+            Console.Error.WriteLine("edit-paragraphs <input.pub> <candidate.pub> <story-id> <paragraph-run-arrays.json>");
             return 2;
         } catch (Exception exception) {
             Console.Error.WriteLine(exception.GetType().Name + ": " + exception.Message);
@@ -67,21 +68,27 @@ internal static class Program {
 
     private static int PrepareLoaded(string[] args) {
         PublisherDocument document = PublisherDocument.Load(args[1]);
-        if (args[0] == "edit-story") {
+        if (args[0] is "edit-story" or "edit-paragraphs") {
             if (new FileInfo(args[4]).Length > 64 * 1024) throw new ArgumentException("The styled-run input exceeds 64 KiB.");
-            ProbeRun[] values = JsonSerializer.Deserialize<ProbeRun[]>(File.ReadAllText(args[4]))
-                ?? throw new ArgumentException("The styled-run input must be an array.");
             uint storyId = uint.Parse(args[3], NumberStyles.None, CultureInfo.InvariantCulture);
             PublisherTextStory story = document.TextStories.Single(item => item.Id == storyId);
-            OfficeRichTextParagraph paragraph = story.Paragraphs.Single();
-            var runs = values.Select((value, index) => {
-                OfficeRichTextRun original = paragraph.Runs[Math.Min(index, paragraph.Runs.Count - 1)];
-                return new OfficeRichTextRun(value.Text, value.FontSize, original.Color, value.Bold, original.Italic, original.Underline,
-                    original.FontFamily, original.Strikethrough, original.BackgroundColor, original.UnderlineStyle,
-                    original.StrikethroughStyle, original.Baseline, original.ParagraphIndent);
+            string json = File.ReadAllText(args[4]);
+            ProbeRun[][] values = args[0] == "edit-story"
+                ? new[] { JsonSerializer.Deserialize<ProbeRun[]>(json) ?? throw new ArgumentException("The styled-run input must be an array.") }
+                : JsonSerializer.Deserialize<ProbeRun[][]>(json) ?? throw new ArgumentException("The paragraph input must be an array of run arrays.");
+            if (values.Length != story.Paragraphs.Count) throw new ArgumentException("Retain the original paragraph count.");
+            var paragraphs = values.Select((items, paragraphIndex) => {
+                OfficeRichTextParagraph paragraph = story.Paragraphs[paragraphIndex];
+                var runs = items.Select((value, index) => {
+                    OfficeRichTextRun original = paragraph.Runs[Math.Min(index, paragraph.Runs.Count - 1)];
+                    return new OfficeRichTextRun(value.Text, value.FontSize, original.Color, value.Bold, original.Italic, original.Underline,
+                        original.FontFamily, original.Strikethrough, original.BackgroundColor, original.UnderlineStyle,
+                        original.StrikethroughStyle, original.Baseline, original.ParagraphIndent);
+                }).ToArray();
+                return new OfficeRichTextParagraph(runs, paragraph.Alignment, paragraph.LineHeight,
+                    paragraph.Margins, paragraph.Indent, paragraph.LineHeightFactor).WithTabStops(paragraph.TabStops);
             }).ToArray();
-            document.ReplaceStoryParagraphs(storyId, new[] { new OfficeRichTextParagraph(runs, paragraph.Alignment,
-                paragraph.LineHeight, paragraph.Margins, paragraph.Indent, paragraph.LineHeightFactor).WithTabStops(paragraph.TabStops) });
+            document.ReplaceStoryParagraphs(storyId, paragraphs);
         }
         if (args[0] == "edit-text") {
             uint storyId = uint.Parse(args[3], NumberStyles.None, CultureInfo.InvariantCulture);

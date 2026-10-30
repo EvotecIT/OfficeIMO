@@ -380,6 +380,79 @@ public sealed class PublisherNativeWritingTests {
         Assert.Equal("Part 0Part 1Part 2Part 3\n", document.TextStories[0].Text);
     }
 
+    [Theory]
+    [InlineData("growth")]
+    [InlineData("shrink")]
+    [InlineData("fill-empty")]
+    [InlineData("style")]
+    public void Multiple_paragraphs_retain_native_boundaries_empty_formatting_and_unaffected_storage(string variant) {
+        byte[] source = File.ReadAllBytes(PublisherNativeTests.Fixture("NativeComparison/TextParagraphs/native-textparagraphs.pub"));
+        PublisherDocument document = PublisherDocument.Load(source);
+        string[] text = variant == "growth" ? new[] { new string('i', 300), "", "Longer last paragraph" }
+            : variant == "shrink" ? new[] { "A", "", "Z" }
+            : variant == "fill-empty" ? new[] { "First changed", "Middle now has text", "Last changed" }
+            : new[] { "First style", "", "Last style" };
+        double[] sizes = variant == "style" ? new[] { 18D, 18D, 12D } : new[] { 12D, 12D, 12D };
+        ReplaceParagraphs(document, text, sizes, new[] { false, variant == "style", false });
+        PublisherNativePreparation prepared = document.PrepareNativeBytes(MaximumBytes);
+        Assert.True(prepared.IsPrepared, string.Join("; ", prepared.FidelityDiagnostics.Select(item => item.Message)));
+        byte[] output = prepared.CopyBytes();
+        AssertPreservedStorage(source, output, "Quill/QuillSub/CONTENTS");
+        PublisherDocument reopened = PublisherDocument.Load(output);
+        PublisherTextStory story = Assert.Single(reopened.TextStories);
+        Assert.Equal(string.Join("\n", text) + "\n", story.Text);
+        Assert.Equal(3, story.Paragraphs.Count);
+        for (int index = 0; index < 3; index++) {
+            OfficeRichTextRun run = Assert.Single(story.Paragraphs[index].Runs);
+            Assert.Equal(text[index], run.Text);
+            Assert.Equal(sizes[index], run.FontSize);
+            Assert.Equal(index == 1 && variant == "style", run.Bold);
+            Assert.Equal("Arial", run.FontFamily);
+        }
+        int start = 0;
+        var expectedRanges = text.Select(value => { int from = start; start += value.Length + 1; return (from, start - from); }).ToArray();
+        Assert.Equal(expectedRanges, reopened.SourceStyleCatalog.Stories[0].Uses.Where(use => use.Tag == "FDPP")
+            .Select(use => (use.NativeStart, use.NativeLength)));
+    }
+
+    [Fact]
+    public void Making_a_paragraph_empty_with_a_distinct_native_CR_style_refuses_bytes() {
+        PublisherDocument document = PublisherDocument.Load(PublisherNativeTests.Fixture("NativeComparison/TextParagraphs/native-textparagraphs.pub"));
+        ReplaceParagraphs(document, new[] { "First paragraph", "", "" }, new[] { 12D, 12D, 12D }, new[] { false, false, false });
+        PublisherNativePreparation prepared = document.PrepareNativeBytes(MaximumBytes);
+        Assert.False(prepared.IsPrepared);
+        Assert.Contains(prepared.FidelityDiagnostics, item => item.Location == "Quill" && item.LossKind == OfficeConversionLossKind.Failure);
+        Assert.Equal("First paragraph\n\n\n", document.TextStories[0].Text);
+    }
+
+    [Fact]
+    public void Multiple_paragraph_styles_exceeding_one_native_page_refuse_the_candidate() {
+        PublisherDocument document = PublisherDocument.Load(PublisherNativeTests.Fixture("NativeComparison/TextParagraphs/native-textparagraphs.pub"));
+        PublisherTextStory story = document.TextStories[0];
+        document.ReplaceStoryParagraphs(story.Id, story.Paragraphs.Select(paragraph => {
+            OfficeRichTextRun original = paragraph.Runs[0];
+            return new OfficeRichTextParagraph(new[] {
+                new OfficeRichTextRun("Plain ", 12, original.Color, fontFamily: original.FontFamily),
+                new OfficeRichTextRun("Bold", 18, original.Color, bold: true, fontFamily: original.FontFamily)
+            }, paragraph.Alignment, paragraph.LineHeight, paragraph.Margins, paragraph.Indent,
+                paragraph.LineHeightFactor).WithTabStops(paragraph.TabStops);
+        }).ToArray());
+        PublisherNativePreparation prepared = document.PrepareNativeBytes(MaximumBytes);
+        Assert.False(prepared.IsPrepared);
+        Assert.Contains(prepared.FidelityDiagnostics, item => item.Location == "Quill" && item.LossKind == OfficeConversionLossKind.Failure);
+        Assert.Equal("Plain Bold\nPlain Bold\nPlain Bold\n", document.TextStories[0].Text);
+    }
+
+    private static void ReplaceParagraphs(PublisherDocument document, string[] text, double[] sizes, bool[] bold) {
+        PublisherTextStory story = Assert.Single(document.TextStories);
+        document.ReplaceStoryParagraphs(story.Id, story.Paragraphs.Select((paragraph, index) => {
+            OfficeRichTextRun run = paragraph.Runs[0];
+            return new OfficeRichTextParagraph(new[] { new OfficeRichTextRun(text[index], sizes[index], run.Color, bold[index],
+                run.Italic, run.Underline, run.FontFamily) }, paragraph.Alignment, paragraph.LineHeight,
+                paragraph.Margins, paragraph.Indent, paragraph.LineHeightFactor).WithTabStops(paragraph.TabStops);
+        }).ToArray());
+    }
+
     private static void ReplaceRuns(PublisherDocument document, params OfficeRichTextRun[] runs) {
         PublisherTextStory story = Assert.Single(document.TextStories);
         OfficeRichTextParagraph original = Assert.Single(story.Paragraphs);
