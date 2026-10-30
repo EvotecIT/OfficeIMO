@@ -2254,6 +2254,18 @@
       "reason": "Generated surface analysis identified an undocumented reader implementation type. Only MarkdownReader and its paragraph parsing implementation consume it. Public MarkdownLoadOptions.BlockParserExtensions, MarkdownBlockParserExtension and IMarkdownBlockParser remain the supported extension contract; no cross-assembly caller or public model exposes the pipeline.",
       "phase": "B",
       "applied": "phase-b"
+    },
+    {
+      "phase": "B",
+      "action": "change",
+      "applied": "phase-b-applied",
+      "old": "Theme-series visual fallback fixtures implicitly rely on the historical Office palette.",
+      "new": "The two conversion controls supply their source palette explicitly.",
+      "reason": "Chart color-transform and theme-alias controls need a known input palette; new Word documents retain Modern defaults.",
+      "note": "The complete Markdown net10.0 suite passes3154 cases after the two source palette fixtures are explicit. No converter or runtime default changes.",
+      "files": [
+        "OfficeIMO.Markdown.Tests/Markdown.WordToMarkdown.cs"
+      ]
     }
   ],
   "applicationStatus": "Phase A applied and validated on the supported macOS targets. Phase B and Tier 2 entries retain their status; Windows .NET Framework validation remains pending.",

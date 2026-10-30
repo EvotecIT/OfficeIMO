@@ -1106,7 +1106,10 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void WordToMarkdown_VisualFallbackMode_Resolves_Theme_Series_Colors() {
-            using var doc = WordDocument.Create();
+            using var doc = WordDocument.Create(new WordCreateOptions {
+                Theme = OfficeTheme.Modern.WithPalette(OfficeTheme.Modern.Palette.With(
+                    accent1: OfficeColor.ParseHex("4472C4"), textMuted: OfficeColor.ParseHex("44546A")))
+            });
             var chart = doc.AddChart("Theme Revenue",width: OfficeIMO.OfficeLength.Pixels(400),height: OfficeIMO.OfficeLength.Pixels(240));
             chart.AddCategories(new System.Collections.Generic.List<string> { "Q1", "Q2" });
             chart.AddBar("Actual", new System.Collections.Generic.List<int> { 10, 20 }, OfficeColor.Black);
@@ -1151,7 +1154,10 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void WordToMarkdown_VisualFallbackMode_Resolves_Theme_Alias_Series_Colors() {
-            using var doc = WordDocument.Create();
+            using var doc = WordDocument.Create(new WordCreateOptions {
+                Theme = OfficeTheme.Modern.WithPalette(OfficeTheme.Modern.Palette.With(
+                    accent1: OfficeColor.ParseHex("4472C4"), textMuted: OfficeColor.ParseHex("44546A")))
+            });
             var chart = doc.AddChart("Theme Alias Revenue",width: OfficeIMO.OfficeLength.Pixels(400),height: OfficeIMO.OfficeLength.Pixels(240));
             chart.AddCategories(new System.Collections.Generic.List<string> { "Q1", "Q2" });
             chart.AddBar("Actual", new System.Collections.Generic.List<int> { 10, 20 }, OfficeColor.Black);
