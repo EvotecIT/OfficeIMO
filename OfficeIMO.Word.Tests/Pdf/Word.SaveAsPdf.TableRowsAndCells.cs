@@ -49,8 +49,8 @@ public partial class Word {
         using (WordDocument document = WordDocument.Create(docPath)) {
             WordTable table = document.AddTable(1, 2);
             table.LayoutMode = WordTableLayoutMode.Fixed;
-            table.Rows[0].Cells[0].Width = 2400;
-            table.Rows[0].Cells[1].Width = 2400;
+            table.Rows[0].Cells[0].Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(2400) * 635)));
+            table.Rows[0].Cells[1].Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(2400) * 635)));
 
             WordParagraph mixed = table.Rows[0].Cells[0].Paragraphs[0];
             mixed.Text = string.Empty;
@@ -101,8 +101,8 @@ public partial class Word {
             WordTable table = document.AddTable(1, 2);
             table.LayoutMode = WordTableLayoutMode.Fixed;
             table._tableProperties!.TableStyle = new TableStyle { Val = styleId };
-            table.Rows[0].Cells[0].Width = 2400;
-            table.Rows[0].Cells[1].Width = 2400;
+            table.Rows[0].Cells[0].Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(2400) * 635)));
+            table.Rows[0].Cells[1].Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(2400) * 635)));
 
             WordParagraph direct = table.Rows[0].Cells[0].Paragraphs[0];
             direct.Text = string.Empty;
@@ -150,7 +150,7 @@ public partial class Word {
             WordTable table = document.AddTable(1, 1);
             table.LayoutMode = WordTableLayoutMode.Fixed;
             table._tableProperties!.TableStyle = new TableStyle { Val = styleId };
-            table.Rows[0].Cells[0].Width = 3600;
+            table.Rows[0].Cells[0].Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(3600) * 635)));
             table.Rows[0].Cells[0].Paragraphs[0].Text = "TableStyledSub";
 
             document.Save();
@@ -348,12 +348,10 @@ public partial class Word {
 
         using (WordDocument document = WordDocument.Create(docPath)) {
             WordTable table = document.AddTable(2, 1);
-            table.WidthType = WordTableWidthUnit.Dxa;
-            table.Width = 2200;
+            table.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(2200) * 635)));
             if (heightRule == HeightRuleValues.AtLeast) table.Rows[0].MinimumHeight = global::OfficeIMO.OfficeLength.Points(18D);
             else table.Rows[0].Height = global::OfficeIMO.OfficeLength.Points(18D);
-            table.Rows[0].Cells[0].Width = 2200;
-            table.Rows[0].Cells[0].WidthType = WordTableWidthUnit.Dxa;
+            table.Rows[0].Cells[0].Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(2200) * 635)));
             // Keep enough wrapped lines to exceed the minimum height under font substitution too.
             table.Rows[0].Cells[0].Paragraphs[0].Text = "Alpha Beta Gamma Delta Epsilon Zeta Eta Theta Iota Kappa Lambda Mu Nu Xi Omicron Pi Rho Sigma Tau Upsilon Phi Chi Psi Omega";
             table.Rows[1].Cells[0].Paragraphs[0].Text = followingRowText;
@@ -381,12 +379,9 @@ public partial class Word {
 
         using (WordDocument document = WordDocument.Create(docPath)) {
             WordTable table = document.AddTable(1, 2);
-            table.WidthType = WordTableWidthUnit.Pct;
-            table.Width = 5000;
-            table.Rows[0].Cells[0].Width = 1440;
-            table.Rows[0].Cells[0].WidthType = WordTableWidthUnit.Dxa;
-            table.Rows[0].Cells[1].Width = 1440;
-            table.Rows[0].Cells[1].WidthType = WordTableWidthUnit.Dxa;
+            table.Width = WordTableWidth.Percent((5000) / 50d);
+            table.Rows[0].Cells[0].Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(1440) * 635)));
+            table.Rows[0].Cells[1].Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(1440) * 635)));
             table.Rows[0].Cells[0].Paragraphs[0].Text = "LeftColumn";
             table.Rows[0].Cells[1].Paragraphs[0].Text = "RightColumn";
 
@@ -415,14 +410,12 @@ public partial class Word {
 
         using (WordDocument document = WordDocument.Create(docPath)) {
             WordTable table = document.AddTable(2, 3);
-            table.Width = 4320;
-            table.WidthType = WordTableWidthUnit.Dxa;
+            table.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(4320) * 635)));
             table.LayoutMode = WordTableLayoutMode.Fixed;
-            table.GridColumnWidth = new List<int> { 1440, 1440, 1440 };
+            table.GridColumnWidth = new List<int> { 1440, 1440, 1440 }.Select(value => global::OfficeIMO.OfficeLength.Emus(checked((long)value * 635))).ToList();
             foreach (WordTableRow row in table.Rows) {
                 foreach (WordTableCell cell in row.Cells) {
-                    cell.Width = 1440;
-                    cell.WidthType = WordTableWidthUnit.Dxa;
+                    cell.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(1440) * 635)));
                 }
             }
 
@@ -465,13 +458,11 @@ public partial class Word {
 
         using (WordDocument document = WordDocument.Create(docPath)) {
             WordTable table = document.AddTable(1, 3);
-            table.Width = 4320;
-            table.WidthType = WordTableWidthUnit.Dxa;
+            table.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(4320) * 635)));
             table.LayoutMode = WordTableLayoutMode.Fixed;
-            table.GridColumnWidth = new List<int> { 1440, 1440, 1440 };
+            table.GridColumnWidth = new List<int> { 1440, 1440, 1440 }.Select(value => global::OfficeIMO.OfficeLength.Emus(checked((long)value * 635))).ToList();
             foreach (WordTableCell cell in table.Rows[0].Cells) {
-                cell.Width = 1440;
-                cell.WidthType = WordTableWidthUnit.Dxa;
+                cell.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(1440) * 635)));
             }
 
             table.Rows[0].Cells[0].Paragraphs[0].Text = "GALeft";
@@ -505,8 +496,7 @@ public partial class Word {
 
         using (WordDocument document = WordDocument.Create(docPath)) {
             WordTable table = document.AddTable(2, 7);
-            table.WidthType = WordTableWidthUnit.Pct;
-            table.Width = 5000;
+            table.Width = WordTableWidth.Percent((5000) / 50d);
             table.LayoutMode = WordTableLayoutMode.AutoFit;
             string[] headers = {
                 "Item",
@@ -528,11 +518,9 @@ public partial class Word {
             };
 
             for (int column = 0; column < headers.Length; column++) {
-                table.Rows[0].Cells[column].Width = 2400;
-                table.Rows[0].Cells[column].WidthType = WordTableWidthUnit.Dxa;
+                table.Rows[0].Cells[column].Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(2400) * 635)));
                 table.Rows[0].Cells[column].Paragraphs[0].Text = headers[column];
-                table.Rows[1].Cells[column].Width = 2400;
-                table.Rows[1].Cells[column].WidthType = WordTableWidthUnit.Dxa;
+                table.Rows[1].Cells[column].Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(2400) * 635)));
                 table.Rows[1].Cells[column].Paragraphs[0].Text = values[column];
             }
 
@@ -596,12 +584,10 @@ public partial class Word {
 
         using (WordDocument document = WordDocument.Create(docPath)) {
             WordTable table = document.AddTable(1, 1);
-            table.Width = 900;
-            table.WidthType = WordTableWidthUnit.Dxa;
+            table.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(900) * 635)));
             table.LayoutMode = WordTableLayoutMode.Fixed;
             WordTableCell cell = table.Rows[0].Cells[0];
-            cell.Width = 900;
-            cell.WidthType = WordTableWidthUnit.Dxa;
+            cell.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(900) * 635)));
             cell.WrapText = wrapText;
             if (explicitNoWrapOff) {
                 cell._tableCell.TableCellProperties!.AddChild(new NoWrap { Val = OnOffOnlyValues.Off }, true);
@@ -651,8 +637,7 @@ public partial class Word {
             });
 
             WordTable table = document.AddTable(1, 1);
-            table.Width = 2880;
-            table.WidthType = WordTableWidthUnit.Dxa;
+            table.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(2880) * 635)));
             table._tableProperties!.TableStyle = new TableStyle { Val = styleId };
             WordParagraph paragraph = table.Rows[0].Cells[0].Paragraphs[0];
             paragraph.Text = firstMarker;
@@ -683,12 +668,10 @@ public partial class Word {
 
         using (WordDocument document = WordDocument.Create(docPath)) {
             WordTable table = document.AddTable(1, 1);
-            table.Width = 900;
-            table.WidthType = WordTableWidthUnit.Dxa;
+            table.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(900) * 635)));
             table.LayoutMode = WordTableLayoutMode.Fixed;
             WordTableCell cell = table.Rows[0].Cells[0];
-            cell.Width = 900;
-            cell.WidthType = WordTableWidthUnit.Dxa;
+            cell.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(900) * 635)));
 
             WordParagraph paragraph = cell.Paragraphs[0];
             paragraph.Text = firstMarker + " " + secondMarker;
@@ -730,12 +713,10 @@ public partial class Word {
             });
 
             WordTable table = document.AddTable(1, 1);
-            table.Width = 3000;
-            table.WidthType = WordTableWidthUnit.Dxa;
+            table.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(3000) * 635)));
             table.LayoutMode = WordTableLayoutMode.Fixed;
             WordTableCell cell = table.Rows[0].Cells[0];
-            cell.Width = 3000;
-            cell.WidthType = WordTableWidthUnit.Dxa;
+            cell.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(3000) * 635)));
 
             WordParagraph paragraph = cell.Paragraphs[0];
             paragraph.Text = string.Empty;
@@ -893,8 +874,7 @@ public partial class Word {
             });
 
             WordTable table = document.AddTable(2, 2);
-            table.Width = 3600;
-            table.WidthType = WordTableWidthUnit.Dxa;
+            table.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(3600) * 635)));
             table.LayoutMode = WordTableLayoutMode.Fixed;
             table._tableProperties!.TableStyle = new TableStyle { Val = styleId };
             table.ConditionalFormattingFirstColumn = true;
@@ -902,8 +882,7 @@ public partial class Word {
                 row.Height = global::OfficeIMO.OfficeLength.Points(60D);
                 row._tableRow.TableRowProperties!.GetFirstChild<TableRowHeight>()!.HeightType = HeightRuleValues.Exact;
                 foreach (WordTableCell cell in row.Cells) {
-                    cell.Width = 1800;
-                    cell.WidthType = WordTableWidthUnit.Dxa;
+                    cell.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(1800) * 635)));
                 }
             }
 
@@ -956,14 +935,12 @@ public partial class Word {
             });
 
             WordTable table = document.AddTable(2, 1);
-            table.Width = 3600;
-            table.WidthType = WordTableWidthUnit.Dxa;
+            table.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(3600) * 635)));
             table.LayoutMode = WordTableLayoutMode.Fixed;
             table._tableProperties!.TableStyle = new TableStyle { Val = styleId };
             table.ConditionalFormattingFirstRow = true;
             foreach (WordTableRow row in table.Rows) {
-                row.Cells[0].Width = 3600;
-                row.Cells[0].WidthType = WordTableWidthUnit.Dxa;
+                row.Cells[0].Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(3600) * 635)));
             }
 
             table.Rows[0].Cells[0].Paragraphs[0].Text = "CenteredAA";
@@ -1014,14 +991,12 @@ public partial class Word {
             });
 
             WordTable table = document.AddTable(2, 1);
-            table.Width = 900;
-            table.WidthType = WordTableWidthUnit.Dxa;
+            table.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(900) * 635)));
             table.LayoutMode = WordTableLayoutMode.Fixed;
             table._tableProperties!.TableStyle = new TableStyle { Val = styleId };
             table.ConditionalFormattingFirstRow = true;
             foreach (WordTableRow row in table.Rows) {
-                row.Cells[0].Width = 900;
-                row.Cells[0].WidthType = WordTableWidthUnit.Dxa;
+                row.Cells[0].Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(900) * 635)));
             }
 
             table.Rows[0].Cells[0].Paragraphs[0].Text = "TallA TallB";
@@ -1070,14 +1045,12 @@ public partial class Word {
             });
 
             WordTable table = document.AddTable(2, 1);
-            table.Width = 3600;
-            table.WidthType = WordTableWidthUnit.Dxa;
+            table.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(3600) * 635)));
             table.LayoutMode = WordTableLayoutMode.Fixed;
             table._tableProperties!.TableStyle = new TableStyle { Val = styleId };
             table.ConditionalFormattingFirstRow = true;
             foreach (WordTableRow row in table.Rows) {
-                row.Cells[0].Width = 3600;
-                row.Cells[0].WidthType = WordTableWidthUnit.Dxa;
+                row.Cells[0].Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(3600) * 635)));
             }
 
             table.Rows[0].Cells[0].Paragraphs[0].Text = "StyledIndent";
@@ -1108,12 +1081,10 @@ public partial class Word {
 
         using (WordDocument document = WordDocument.Create(docPath)) {
             WordTable table = document.AddTable(2, 1);
-            table.Width = 3000;
-            table.WidthType = WordTableWidthUnit.Dxa;
+            table.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(3000) * 635)));
             table.LayoutMode = WordTableLayoutMode.Fixed;
             foreach (WordTableRow row in table.Rows) {
-                row.Cells[0].Width = 3000;
-                row.Cells[0].WidthType = WordTableWidthUnit.Dxa;
+                row.Cells[0].Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(3000) * 635)));
             }
 
             table.Rows[0].Cells[0].Paragraphs[0].Text = "PlainCellIndent";
@@ -1146,12 +1117,10 @@ public partial class Word {
 
         using (WordDocument document = WordDocument.Create(docPath)) {
             WordTable table = document.AddTable(3, 1);
-            table.Width = 600;
-            table.WidthType = WordTableWidthUnit.Dxa;
+            table.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(600) * 635)));
             table.LayoutMode = WordTableLayoutMode.Fixed;
             foreach (WordTableRow row in table.Rows) {
-                row.Cells[0].Width = 600;
-                row.Cells[0].WidthType = WordTableWidthUnit.Dxa;
+                row.Cells[0].Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(600) * 635)));
             }
 
             table.Rows[0].Cells[0].Paragraphs[0].Text = "P0";
@@ -1200,11 +1169,9 @@ public partial class Word {
 
         using (WordDocument document = WordDocument.Create(docPath)) {
             WordTable table = document.AddTable(1, 1);
-            table.Width = 5200;
-            table.WidthType = WordTableWidthUnit.Dxa;
+            table.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(5200) * 635)));
             table.LayoutMode = WordTableLayoutMode.Fixed;
-            table.Rows[0].Cells[0].Width = 5200;
-            table.Rows[0].Cells[0].WidthType = WordTableWidthUnit.Dxa;
+            table.Rows[0].Cells[0].Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(5200) * 635)));
 
             WordParagraph paragraph = table.Rows[0].Cells[0].Paragraphs[0];
             paragraph.Text = "CellTabRevenue\t42";
@@ -1408,11 +1375,9 @@ public partial class Word {
         using (WordDocument document = WordDocument.Create(docPath)) {
             document.Settings.DefaultTabStop = defaultTabStopTwips;
             WordTable table = document.AddTable(1, 1);
-            table.Width = 5200;
-            table.WidthType = WordTableWidthUnit.Dxa;
+            table.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(5200) * 635)));
             table.LayoutMode = WordTableLayoutMode.Fixed;
-            table.Rows[0].Cells[0].Width = 5200;
-            table.Rows[0].Cells[0].WidthType = WordTableWidthUnit.Dxa;
+            table.Rows[0].Cells[0].Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(5200) * 635)));
             table.Rows[0].Cells[0].Paragraphs[0].Text = "WWW\tDefaultCellTab";
 
             document.Save();
@@ -1440,8 +1405,7 @@ public partial class Word {
         using (WordDocument document = WordDocument.Create(docPath)) {
             WordTable table = document.AddTable(1, 1);
             table._tableProperties!.TableStyle?.Remove();
-            table.Rows[0].Cells[0].Width = 2880;
-            table.Rows[0].Cells[0].WidthType = WordTableWidthUnit.Dxa;
+            table.Rows[0].Cells[0].Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(2880) * 635)));
             WordTableCell cell = table.Rows[0].Cells[0];
             cell.Paragraphs[0].Text = firstMarker;
             cell.Paragraphs[0].LineSpacingAfter = global::OfficeIMO.OfficeLength.Points(firstSpacingAfter);
@@ -1485,11 +1449,9 @@ public partial class Word {
 
             WordTable table = document.AddTable(1, 1);
             table._tableProperties!.TableStyle?.Remove();
-            table.Width = 3200;
-            table.WidthType = WordTableWidthUnit.Dxa;
+            table.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(3200) * 635)));
             WordTableCell cell = table.Rows[0].Cells[0];
-            cell.Width = 3200;
-            cell.WidthType = WordTableWidthUnit.Dxa;
+            cell.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(3200) * 635)));
             cell.Paragraphs[0].AddText(firstMarker).SetCharacterStyleId(styleId);
             cell.Paragraphs[0].LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
             WordParagraph second = cell.AddParagraph(string.Empty);
@@ -1540,8 +1502,7 @@ public partial class Word {
 
             WordTable table = document.AddTable(1, 1);
             table._tableProperties!.TableStyle?.Remove();
-            table.Rows[0].Cells[0].Width = 2880;
-            table.Rows[0].Cells[0].WidthType = WordTableWidthUnit.Dxa;
+            table.Rows[0].Cells[0].Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(2880) * 635)));
             WordTableCell cell = table.Rows[0].Cells[0];
             cell.Paragraphs[0].Text = firstMarker;
             cell.Paragraphs[0].SetStyleId(styleId);
@@ -1605,12 +1566,9 @@ public partial class Word {
             WordTableCell centerCell = table.Rows[0].Cells[1];
             WordTableCell rightCell = table.Rows[0].Cells[2];
 
-            leftCell.Width = 1440;
-            leftCell.WidthType = WordTableWidthUnit.Dxa;
-            centerCell.Width = 1440;
-            centerCell.WidthType = WordTableWidthUnit.Dxa;
-            rightCell.Width = 1440;
-            rightCell.WidthType = WordTableWidthUnit.Dxa;
+            leftCell.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(1440) * 635)));
+            centerCell.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(1440) * 635)));
+            rightCell.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(1440) * 635)));
 
             leftCell.Paragraphs[0].Text = "TOP";
             leftCell.AddParagraph("PAD");
@@ -1661,8 +1619,7 @@ public partial class Word {
         using (WordDocument document = WordDocument.Create(docPath)) {
             WordTable table = document.AddTable(1, 1);
             WordTableCell cell = table.Rows[0].Cells[0];
-            cell.Width = 2880;
-            cell.WidthType = WordTableWidthUnit.Dxa;
+            cell.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(2880) * 635)));
             cell.Paragraphs[0].Text = "LeftMix";
             cell.Paragraphs[0].ParagraphAlignment = WordParagraphAlignment.Left;
             WordParagraph center = cell.AddParagraph("CenterMix");
@@ -1732,12 +1689,9 @@ public partial class Word {
             WordTableCell centerCell = table.Rows[0].Cells[1];
             WordTableCell rightCell = table.Rows[0].Cells[2];
 
-            leftCell.Width = 1440;
-            leftCell.WidthType = WordTableWidthUnit.Dxa;
-            centerCell.Width = 1440;
-            centerCell.WidthType = WordTableWidthUnit.Dxa;
-            rightCell.Width = 1440;
-            rightCell.WidthType = WordTableWidthUnit.Dxa;
+            leftCell.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(1440) * 635)));
+            centerCell.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(1440) * 635)));
+            rightCell.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(1440) * 635)));
 
             leftCell.Paragraphs[0].Text = "SLEFT";
             centerCell.Paragraphs[0].Text = "SMID";
@@ -1778,8 +1732,7 @@ public partial class Word {
             foreach (WordTableRow row in table.Rows) {
                 row.Height = global::OfficeIMO.OfficeLength.Points(55D);
                 foreach (WordTableCell cell in row.Cells) {
-                    cell.Width = 1440;
-                    cell.WidthType = WordTableWidthUnit.Dxa;
+                    cell.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(1440) * 635)));
                 }
             }
 
@@ -1824,8 +1777,7 @@ public partial class Word {
             WordTable table = document.AddTable(3, 3);
             foreach (WordTableRow row in table.Rows) {
                 foreach (WordTableCell cell in row.Cells) {
-                    cell.Width = 1440;
-                    cell.WidthType = WordTableWidthUnit.Dxa;
+                    cell.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(1440) * 635)));
                 }
             }
 

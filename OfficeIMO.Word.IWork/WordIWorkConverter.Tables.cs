@@ -28,11 +28,10 @@ public static partial class WordIWorkConverter {
         }
         table.Description = source.AccessibilityDescription;
         if (source.DefaultColumnWidth is > 0 || source.ColumnWidths.Count > 0) {
-            List<int> widths = table.ColumnWidth;
-            table.ColumnWidthType = WordTableWidthUnit.Dxa;
+            var widths = table.ColumnWidth;
             for (int column = 1; column <= source.ColumnCount; column++) {
                 cancellationToken.ThrowIfCancellationRequested();
-                if (source.GetColumnWidth(column) is double width) widths[column - 1] = ToSignedTwips(width);
+                if (source.GetColumnWidth(column) is double width) widths[column - 1] = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Points(width));
             }
             table.ColumnWidth = widths;
         }

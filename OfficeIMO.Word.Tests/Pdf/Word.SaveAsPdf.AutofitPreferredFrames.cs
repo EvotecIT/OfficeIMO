@@ -1,3 +1,4 @@
+using System.Linq;
 using OfficeIMO.Word;
 using OfficeIMO.Word.Pdf;
 using PdfPigDocument = UglyToad.PdfPig.PdfDocument;
@@ -12,11 +13,11 @@ public partial class Word {
         WordTable table = document.AddTable(1, 2);
         table._tableProperties.TableStyle?.Remove();
         table.LayoutMode = WordTableLayoutMode.AutoFit;
-        table.WidthType = WordTableWidthUnit.Dxa; table.Width = 6000;
-        table.GridColumnWidth = new List<int> { 3000, 3000 };
+        table.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(6000) * 635)));
+        table.GridColumnWidth = new List<int> { 3000, 3000 }.Select(value => global::OfficeIMO.OfficeLength.Emus(checked((long)value * 635))).ToList();
         for (int column = 0; column < 2; column++) {
             WordTableCell cell = table.Rows[0].Cells[column];
-            cell.WidthType = WordTableWidthUnit.Dxa; cell.Width = 3000;
+            cell.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(3000) * 635)));
             cell.MarginLeft = cell.MarginRight = global::OfficeIMO.OfficeLength.Zero;
             cell.Paragraphs[0].Text = column == 0 ? "A" : "B";
         }
@@ -45,15 +46,14 @@ public partial class Word {
         using WordDocument document = WordDocument.Create();
         WordTable table = document.AddTable(1, 2, WordTableStyle.TableNormal);
         table.LayoutMode = WordTableLayoutMode.AutoFit;
-        table.WidthType = WordTableWidthUnit.Dxa;
-        table.Width = (int)(width * 20D);
-        table.GridColumnWidth = new List<int> { 2250, 2250 };
+        table.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)((int)(width * 20D)) * 635)));
+        table.GridColumnWidth = new List<int> { 2250, 2250 }.Select(value => global::OfficeIMO.OfficeLength.Emus(checked((long)value * 635))).ToList();
         table.StyleDetails!.SetBordersForAllSides(WordBorderStyle.Nil, 0U, OfficeIMO.OfficeColor.Black);
         if (spacing >= 0) table.StyleDetails.CellSpacing = spacing;
         else table._tableProperties.TableCellSpacing = null;
         for (int column = 0; column < 2; column++) {
             WordTableCell cell = table.Rows[0].Cells[column];
-            cell.WidthType = WordTableWidthUnit.Dxa; cell.Width = 2250;
+            cell.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(2250) * 635)));
             cell.MarginLeft = cell.MarginRight = global::OfficeIMO.OfficeLength.Zero;
             cell.Paragraphs[0].Text = column == 0 ? "A" : "B";
             cell.Paragraphs[0].FontFamily = "Arial"; cell.Paragraphs[0].FontSize = global::OfficeIMO.OfficeLength.Points(12);

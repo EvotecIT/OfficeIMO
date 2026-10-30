@@ -81,21 +81,10 @@ namespace OfficeIMO.Word.Html {
         }
 
 
-            string? GetWidthCss(TableWidthUnitValues? type, int? width) {
-                if (type == null || width == null) {
-                    return null;
-                }
-
-                if (type == TableWidthUnitValues.Pct) {
-                    return $"{FormatCssNumber(width.Value / 50.0)}%";
-                }
-
-                if (type == TableWidthUnitValues.Dxa) {
-                    double points = width.Value / 20.0;
-                    double pixels = points * 96 / 72;
-                    return $"{Math.Round(pixels)}px";
-                }
-
+            string? GetWidthCss(WordTableWidth? width) {
+                if (width?.PercentValue is double percent) return $"{FormatCssNumber(percent)}%";
+                if (width?.LengthValue is { } length) return $"{FormatCssNumber(length.ToPixels())}px";
+                if (width?.Kind == WordTableWidthKind.Auto) return "auto";
                 return null;
             }
 
@@ -115,9 +104,9 @@ namespace OfficeIMO.Word.Html {
                 }
 
                 var colGroup = CreateOutputElement(htmlDoc, "colgroup");
-                foreach (var (type, width) in columns) {
+                foreach (var width in columns) {
                     var col = CreateOutputElement(htmlDoc, "col");
-                    var widthCss = GetWidthCss(type, width);
+                    var widthCss = GetWidthCss(width);
                     if (!string.IsNullOrEmpty(widthCss)) {
                         SetOutputAttribute(col, "style", $"width:{widthCss}", "TableColumn:style");
                     }
@@ -126,14 +115,14 @@ namespace OfficeIMO.Word.Html {
                 tableElement.AppendChild(colGroup);
             }
 
-            List<(TableWidthUnitValues? Type, int Width)> GetColumnWidths(WordTable table) {
+            List<WordTableWidth?> GetColumnWidths(WordTable table) {
                 if (table.Rows.Count == 0) {
-                    return new List<(TableWidthUnitValues? Type, int Width)>();
+                    return new List<WordTableWidth?>();
                 }
 
                 var gridColumns = GetGridColumnWidths(table);
                 var firstRow = table.Rows[0];
-                var columns = new List<(TableWidthUnitValues? Type, int Width)>();
+                var columns = new List<WordTableWidth?>();
                 foreach (var cell in firstRow.Cells) {
                     if (cell.HorizontalMerge == WordCellMerge.Continue || cell.VerticalMerge == WordCellMerge.Continue) {
                         return gridColumns;
@@ -141,11 +130,11 @@ namespace OfficeIMO.Word.Html {
                     if (cell.HorizontalMerge == WordCellMerge.Restart || cell.VerticalMerge == WordCellMerge.Restart) {
                         return gridColumns;
                     }
-                    if (cell.WidthType == null || cell.Width == null || GetWidthCss(cell.WidthType?.ToOpenXml(), cell.Width) == null) {
+                    if (cell.Width == null || GetWidthCss(cell.Width) == null) {
                         return gridColumns;
                     }
 
-                    columns.Add((cell.WidthType?.ToOpenXml(), cell.Width.Value));
+                    columns.Add(cell.Width);
                 }
 
                 if (columns.Count > 0) {
@@ -155,11 +144,11 @@ namespace OfficeIMO.Word.Html {
                 return gridColumns;
             }
 
-            List<(TableWidthUnitValues? Type, int Width)> GetGridColumnWidths(WordTable table) {
+            List<WordTableWidth?> GetGridColumnWidths(WordTable table) {
                 var gridWidths = table.GridColumnWidth;
                 return gridWidths.Count > 0
-                    ? gridWidths.Select(width => ((TableWidthUnitValues?)TableWidthUnitValues.Dxa, width)).ToList()
-                    : new List<(TableWidthUnitValues? Type, int Width)>();
+                    ? gridWidths.Select(width => (WordTableWidth?)WordTableWidth.Length(width)).ToList()
+                    : new List<WordTableWidth?>();
             }
 
             static string FormatCssNumber(double value) {

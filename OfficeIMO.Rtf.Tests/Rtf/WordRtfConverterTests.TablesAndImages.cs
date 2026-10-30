@@ -27,10 +27,8 @@ public partial class WordRtfConverterTests {
         table.Rows[0].Cells[1].AddParagraph("B1", removeExistingParagraphs: true);
         table.Rows[1].Cells[0].AddParagraph("A2", removeExistingParagraphs: true);
         table.Rows[1].Cells[1].AddParagraph("B2", removeExistingParagraphs: true);
-        table.Rows[0].Cells[0].WidthType = WordTableWidthUnit.Dxa;
-        table.Rows[0].Cells[0].Width = 1800;
-        table.Rows[0].Cells[1].WidthType = WordTableWidthUnit.Dxa;
-        table.Rows[0].Cells[1].Width = 3000;
+        table.Rows[0].Cells[0].Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(1800) * 635)));
+        table.Rows[0].Cells[1].Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(3000) * 635)));
         word.AddParagraph("After");
 
         RtfDocument rtfDocument = word.ToRtfDocument();
@@ -69,10 +67,10 @@ public partial class WordRtfConverterTests {
         Assert.Equal((short?)300, roundTripTable._tableProperties?.TableCellMarginDefault?.TableCellLeftMargin?.Width?.Value);
         Assert.Equal((short?)300, roundTripTable._tableProperties?.TableCellMarginDefault?.TableCellRightMargin?.Width?.Value);
         Assert.Equal(1020, roundTripTable._tableProperties?.TableIndentation?.Width?.Value);
-        Assert.Equal(WordTableWidthUnit.Dxa, roundTripTable.Rows[0].Cells[0].WidthType);
-        Assert.Equal(1800, roundTripTable.Rows[0].Cells[0].Width);
-        Assert.Equal(WordTableWidthUnit.Dxa, roundTripTable.Rows[0].Cells[1].WidthType);
-        Assert.Equal(3000, roundTripTable.Rows[0].Cells[1].Width);
+        Assert.Equal(WordTableWidthKind.Length, roundTripTable.Rows[0].Cells[0].Width?.Kind);
+        Assert.Equal(1800, roundTripTable.Rows[0].Cells[0].Width?.ToNativeValue());
+        Assert.Equal(WordTableWidthKind.Length, roundTripTable.Rows[0].Cells[1].Width?.Kind);
+        Assert.Equal(3000, roundTripTable.Rows[0].Cells[1].Width?.ToNativeValue());
         Assert.Equal("A1", GetCellText(roundTripTable, 0, 0));
         Assert.Equal("B1", GetCellText(roundTripTable, 0, 1));
         Assert.Equal("A2", GetCellText(roundTripTable, 1, 0));
@@ -124,12 +122,12 @@ public partial class WordRtfConverterTests {
         Assert.Equal((short?)300, wordTable._tableProperties?.TableCellMarginDefault?.TableCellLeftMargin?.Width?.Value);
         Assert.Equal((short?)300, wordTable._tableProperties?.TableCellMarginDefault?.TableCellRightMargin?.Width?.Value);
         Assert.Equal(720, wordTable._tableProperties?.TableIndentation?.Width?.Value);
-        Assert.Equal(WordTableWidthUnit.Dxa, wordTable.Rows[0].Cells[0].WidthType);
-        Assert.Equal(1800, wordTable.Rows[0].Cells[0].Width);
+        Assert.Equal(WordTableWidthKind.Length, wordTable.Rows[0].Cells[0].Width?.Kind);
+        Assert.Equal(1800, wordTable.Rows[0].Cells[0].Width?.ToNativeValue());
         Assert.False(wordTable.Rows[0].Cells[0].WrapText);
         Assert.True(wordTable.Rows[0].Cells[0].FitText);
-        Assert.Equal(WordTableWidthUnit.Dxa, wordTable.Rows[0].Cells[1].WidthType);
-        Assert.Equal(3000, wordTable.Rows[0].Cells[1].Width);
+        Assert.Equal(WordTableWidthKind.Length, wordTable.Rows[0].Cells[1].Width?.Kind);
+        Assert.Equal(3000, wordTable.Rows[0].Cells[1].Width?.ToNativeValue());
         Assert.Equal("Left bold", GetCellText(wordTable, 0, 0));
         Assert.Equal("Right", GetCellText(wordTable, 0, 1));
         Assert.Contains(wordTable.Rows[0].Cells[0].Paragraphs, paragraph => paragraph.Text == "bold" && paragraph.Bold);
@@ -867,8 +865,7 @@ public partial class WordRtfConverterTests {
         using WordDocument word = WordDocument.Create();
         WordTable table = word.AddTable(2, 3);
         table.Alignment = WordTableAlignment.Center;
-        table.WidthType = WordTableWidthUnit.Pct;
-        table.Width = 4250;
+        table.Width = WordTableWidth.Percent((4250) / 50d);
         table.Rows[0].RepeatHeaderRowAtTheTopOfEachPage = true;
         table.Rows[0].AllowRowToBreakAcrossPages = false;
         table.Rows[0].Height = global::OfficeIMO.OfficeLength.Points(32D);
@@ -878,8 +875,7 @@ public partial class WordRtfConverterTests {
         table.Rows[1].Cells[0].VerticalMerge = WordCellMerge.Continue;
         table.Rows[0].Cells[0].VerticalAlignment = WordTableVerticalAlignment.Center;
         table.Rows[0].Cells[0].TextDirection = WordTextDirection.TopToBottomRightToLeftRotated;
-        table.Rows[0].Cells[0].WidthType = WordTableWidthUnit.Dxa;
-        table.Rows[0].Cells[0].Width = 1800;
+        table.Rows[0].Cells[0].Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(1800) * 635)));
         table.Rows[0].Cells[0].WrapText = false;
         table.Rows[0].Cells[0].FitText = true;
         table.Rows[1].Cells[2].VerticalAlignment = WordTableVerticalAlignment.Bottom;
@@ -973,8 +969,8 @@ public partial class WordRtfConverterTests {
 
         WordTable roundTripTable = Assert.Single(roundTrip.Tables);
         Assert.Equal(WordTableAlignment.Center, roundTripTable.Alignment);
-        Assert.Equal(WordTableWidthUnit.Pct, roundTripTable.WidthType);
-        Assert.Equal(4250, roundTripTable.Width);
+        Assert.Equal(WordTableWidthKind.Percent, roundTripTable.Width?.Kind);
+        Assert.Equal(4250, roundTripTable.Width?.ToNativeValue());
         Assert.True(roundTripTable.Rows[0].RepeatHeaderRowAtTheTopOfEachPage);
         Assert.False(roundTripTable.Rows[0].AllowRowToBreakAcrossPages);
         Assert.Equal(640, checked((int?)(roundTripTable.Rows[0].Height?.ToTwips())));
@@ -984,8 +980,8 @@ public partial class WordRtfConverterTests {
         Assert.Equal(WordCellMerge.Continue, roundTripTable.Rows[1].Cells[0].VerticalMerge);
         Assert.Equal(WordTableVerticalAlignment.Center, roundTripTable.Rows[0].Cells[0].VerticalAlignment);
         Assert.Equal(WordTextDirection.TopToBottomRightToLeftRotated, roundTripTable.Rows[0].Cells[0].TextDirection);
-        Assert.Equal(WordTableWidthUnit.Dxa, roundTripTable.Rows[0].Cells[0].WidthType);
-        Assert.Equal(1800, roundTripTable.Rows[0].Cells[0].Width);
+        Assert.Equal(WordTableWidthKind.Length, roundTripTable.Rows[0].Cells[0].Width?.Kind);
+        Assert.Equal(1800, roundTripTable.Rows[0].Cells[0].Width?.ToNativeValue());
         Assert.False(roundTripTable.Rows[0].Cells[0].WrapText);
         Assert.True(roundTripTable.Rows[0].Cells[0].FitText);
         Assert.Equal(WordTableVerticalAlignment.Bottom, roundTripTable.Rows[1].Cells[2].VerticalAlignment);

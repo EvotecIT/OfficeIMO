@@ -18,8 +18,7 @@ public partial class Word {
         using WordDocument document = WordDocument.Create(Path.Combine(_directoryWithFiles, "PdfNativeDefaultAutofitPercentageTable.docx"));
 
         WordTable table = document.AddTable(2, 2);
-        table.WidthType = WordTableWidthUnit.Pct;
-        table.Width = 5000;
+        table.Width = WordTableWidth.Percent((5000) / 50d);
         table._tableProperties!.TableLayout?.Remove();
         table.Rows[0].Cells[0].Paragraphs[0].Text = "Worksheet";
         table.Rows[0].Cells[1].Paragraphs[0].Text = "Purpose";
@@ -39,14 +38,13 @@ public partial class Word {
 
         WordTable table = document.AddTable(1, 3);
         table._tableProperties!.TableStyle?.Remove();
-        table.WidthType = WordTableWidthUnit.Pct;
-        table.Width = 5000;
+        table.Width = WordTableWidth.Percent((5000) / 50d);
         table.LayoutMode = WordTableLayoutMode.AutoFit;
-        table.Rows[0].Cells[0].Width = 1200;
-        table.Rows[0].Cells[1].Width = 2400;
-        table.Rows[0].Cells[2].Width = 1200;
+        table.Rows[0].Cells[0].Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(1200) * 635)));
+        table.Rows[0].Cells[1].Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(2400) * 635)));
+        table.Rows[0].Cells[2].Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(1200) * 635)));
         foreach (WordTableCell cell in table.Rows[0].Cells) {
-            cell.WidthType = WordTableWidthUnit.Dxa;
+            cell.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(cell.Width?.ToNativeValue() ?? 5000) * 635)));
         }
 
         var configuredMinimums = new double?[] { 72D, null, 96D };
@@ -131,8 +129,7 @@ public partial class Word {
         using WordDocument document = WordDocument.Create(Path.Combine(_directoryWithFiles, "PdfNativeAutofitPreferredWidth.docx"));
 
         WordTable table = document.AddTable(1, 3);
-        table.WidthType = WordTableWidthUnit.Pct;
-        table.Width = 5000;
+        table.Width = WordTableWidth.Percent((5000) / 50d);
         table.LayoutMode = WordTableLayoutMode.AutoFit;
         table.Rows[0].Cells[0].Paragraphs[0].Text = "Date";
         table.Rows[0].Cells[1].Paragraphs[0].Text = "Narrative";
@@ -160,10 +157,8 @@ public partial class Word {
         WordTable styledTable = document.AddTable(1, 2);
         styledTable._tableProperties!.TableStyle = new TableStyle { Val = "GenericAutofitLayoutTable" };
         styledTable._tableProperties.TableLayout?.Remove();
-        styledTable.Rows[0].Cells[0].Width = 2160;
-        styledTable.Rows[0].Cells[0].WidthType = WordTableWidthUnit.Dxa;
-        styledTable.Rows[0].Cells[1].Width = 2160;
-        styledTable.Rows[0].Cells[1].WidthType = WordTableWidthUnit.Dxa;
+        styledTable.Rows[0].Cells[0].Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(2160) * 635)));
+        styledTable.Rows[0].Cells[1].Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(2160) * 635)));
 
         PdfCore.PdfTableStyle styled = CreateNativeTableStyleForTest(styledTable);
 
@@ -172,10 +167,8 @@ public partial class Word {
         WordTable directFixedTable = document.AddTable(1, 2);
         directFixedTable._tableProperties!.TableStyle = new TableStyle { Val = "GenericAutofitLayoutTable" };
         directFixedTable.LayoutMode = WordTableLayoutMode.Fixed;
-        directFixedTable.Rows[0].Cells[0].Width = 2160;
-        directFixedTable.Rows[0].Cells[0].WidthType = WordTableWidthUnit.Dxa;
-        directFixedTable.Rows[0].Cells[1].Width = 2160;
-        directFixedTable.Rows[0].Cells[1].WidthType = WordTableWidthUnit.Dxa;
+        directFixedTable.Rows[0].Cells[0].Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(2160) * 635)));
+        directFixedTable.Rows[0].Cells[1].Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(2160) * 635)));
 
         PdfCore.PdfTableStyle direct = CreateNativeTableStyleForTest(directFixedTable);
 
@@ -615,8 +608,7 @@ public partial class Word {
         using WordDocument document = WordDocument.Create(Path.Combine(_directoryWithFiles, "PdfNativeDefaultTableStyleClone.docx"));
         WordTable table = document.AddTable(1, 1);
         table._tableProperties!.TableStyle?.Remove();
-        table.WidthType = WordTableWidthUnit.Dxa;
-        table.Width = 1440;
+        table.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(1440) * 635)));
         table._tableProperties.TableCellSpacing = new TableCellSpacing { Width = "120", Type = TableWidthUnitValues.Dxa };
 
         var configuredStyle = new PdfCore.PdfTableStyle {
@@ -740,8 +732,7 @@ public partial class Word {
 
         WordTable directTable = document.AddTable(1, 1);
         directTable._tableProperties!.TableStyle = new TableStyle { Val = "GenericWidthTable" };
-        directTable.WidthType = WordTableWidthUnit.Dxa;
-        directTable.Width = 2880;
+        directTable.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(2880) * 635)));
 
         PdfCore.PdfTableStyle direct = CreateNativeTableStyleForTest(directTable);
 

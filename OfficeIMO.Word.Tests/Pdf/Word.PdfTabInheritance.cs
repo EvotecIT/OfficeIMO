@@ -281,11 +281,9 @@ public sealed class WordPdfTabInheritanceTests {
             main.Document.Body!.InsertBefore(source, main.Document.Body.GetFirstChild<W.SectionProperties>());
         } else if (container == "table") {
             WordTable table = document.AddTable(1, 1);
-            table.Width = 5200;
-            table.WidthType = WordTableWidthUnit.Dxa;
+            table.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(5200) * 635)));
             table.LayoutMode = WordTableLayoutMode.Fixed;
-            table.Rows[0].Cells[0].Width = 5200;
-            table.Rows[0].Cells[0].WidthType = WordTableWidthUnit.Dxa;
+            table.Rows[0].Cells[0].Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(5200) * 635)));
             W.TableCell cell = main.Document.Body!.Descendants<W.TableCell>().Single();
             cell.RemoveAllChildren<W.Paragraph>();
             cell.Append(new W.Paragraph(Run("CELLORIGIN")), source);

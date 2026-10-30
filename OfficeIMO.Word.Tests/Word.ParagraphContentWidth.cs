@@ -1,3 +1,4 @@
+using System.Linq;
 using OfficeIMO.Drawing;
 using OfficeIMO.Word;
 using Xunit;
@@ -67,7 +68,7 @@ public sealed class WordParagraphContentWidthTests {
         using var document = WordDocument.Create();
         SetPage(document.Sections[0], 18000);
         WordTable table = document.AddTable(1, 2);
-        table.GridColumnWidth = new List<int> { 2400, 4800 };
+        table.GridColumnWidth = new List<int> { 2400, 4800 }.Select(value => global::OfficeIMO.OfficeLength.Emus(checked((long)value * 635))).ToList();
         WordTableCell cell = table.Rows[0].Cells[0];
         cell.MarginLeft = global::OfficeIMO.OfficeLength.Points(10D);
         cell.MarginRight = global::OfficeIMO.OfficeLength.Points(10D);
@@ -99,7 +100,7 @@ public sealed class WordParagraphContentWidthTests {
         WordParagraph paragraph;
         if (inCell) {
             WordTable table = document.AddTable(1, 1);
-            table.GridColumnWidth = new List<int> { 7200 };
+            table.GridColumnWidth = new List<int> { 7200 }.Select(value => global::OfficeIMO.OfficeLength.Emus(checked((long)value * 635))).ToList();
             WordTableCell cell = table.Rows[0].Cells[0];
             cell.MarginLeft = global::OfficeIMO.OfficeLength.Points(10D);
             cell.MarginRight = global::OfficeIMO.OfficeLength.Points(10D);

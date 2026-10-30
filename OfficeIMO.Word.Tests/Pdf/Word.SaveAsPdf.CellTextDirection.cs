@@ -1,3 +1,4 @@
+using System.Linq;
 using OfficeIMO.Word;
 using OfficeIMO.Word.Pdf;
 using Xunit;
@@ -22,10 +23,10 @@ public partial class Word {
         WordTable table = CreateBorderFrameControl(document, 1, 1, 0);
         table.LayoutMode = WordTableLayoutMode.AutoFit;
         table._tableProperties!.TableWidth = new W.TableWidth { Type = W.TableWidthUnitValues.Auto, Width = "0" };
-        table.GridColumnWidth = new List<int> { 0 };
+        table.GridColumnWidth = new List<int> { 0 }.Select(value => global::OfficeIMO.OfficeLength.Emus(checked((long)value * 635))).ToList();
         table.Rows[0].Height = global::OfficeIMO.OfficeLength.Points(120D);
         WordTableCell cell = table.Rows[0].Cells[0];
-        cell.WidthType = WordTableWidthUnit.Auto; cell.Width = 0;
+        cell.Width = WordTableWidth.Auto;
         cell.TextDirection = direction;
         WordParagraph paragraph = cell.Paragraphs[0];
         paragraph.Text = "ABCDEFGHIJKLMNOPQRSTUVWXYZABCDEFGHIJKLMNOPQRSTUVWXYZABCDEFGHIJKLMNOPQRSTUVWXYZ";

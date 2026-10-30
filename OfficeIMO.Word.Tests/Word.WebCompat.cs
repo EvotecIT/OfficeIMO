@@ -10,18 +10,15 @@ namespace OfficeIMO.Tests {
         public void Test_NormalizeTablesForOnline_UpdatesBodyHeaderAndFooterTables() {
             using var document = WordDocument.Create();
             var bodyTable = document.AddTable(2, 2);
-            bodyTable.WidthType = WordTableWidthUnit.Dxa;
-            bodyTable.Width = 5000;
+            bodyTable.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(5000) * 635)));
 
             var header = document.Sections[0].GetOrCreateHeader(WordHeaderFooterType.Default);
             var headerTable = header.AddTable(1, 2);
-            headerTable.WidthType = WordTableWidthUnit.Dxa;
-            headerTable.Width = 4000;
+            headerTable.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(4000) * 635)));
 
             var footer = document.Sections[0].GetOrCreateFooter(WordHeaderFooterType.Default);
             var footerTable = footer.AddTable(1, 2);
-            footerTable.WidthType = WordTableWidthUnit.Dxa;
-            footerTable.Width = 4000;
+            footerTable.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(4000) * 635)));
 
             document.NormalizeTablesForOnline();
             using var saved = new MemoryStream();
@@ -49,23 +46,20 @@ namespace OfficeIMO.Tests {
             using var document = WordDocument.Create();
 
             var bodyTable = document.AddTable(2, 3);
-            bodyTable.WidthType = WordTableWidthUnit.Pct;
-            bodyTable.Width = 5000;
+            bodyTable.Width = WordTableWidth.Percent((5000) / 50d);
             bodyTable.Rows[0].Cells[0].Paragraphs[0].Text = "Merged";
             bodyTable.Rows[0].Cells[1].Paragraphs[0].Text = "Removed after merge";
             bodyTable.Rows[0].Cells[0].MergeHorizontally(1, copyParagraphs: true);
 
             var nestedTable = bodyTable.Rows[1].Cells[0].AddTable(1, 3);
-            nestedTable.WidthType = WordTableWidthUnit.Pct;
-            nestedTable.Width = 5000;
+            nestedTable.Width = WordTableWidth.Percent((5000) / 50d);
             nestedTable.Rows[0].Cells[0].Paragraphs[0].Text = "Nested merged";
             nestedTable.Rows[0].Cells[1].Paragraphs[0].Text = "Nested hidden";
             nestedTable.Rows[0].Cells[0].MergeHorizontally(1, copyParagraphs: true);
 
             var header = document.Sections[0].GetOrCreateHeader(WordHeaderFooterType.Default);
             var headerTable = header.AddTable(1, 3);
-            headerTable.WidthType = WordTableWidthUnit.Dxa;
-            headerTable.Width = 4500;
+            headerTable.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(4500) * 635)));
             headerTable.Rows[0].Cells[0].Paragraphs[0].Text = "Header merged";
             headerTable.Rows[0].Cells[1].Paragraphs[0].Text = "Header hidden";
             headerTable.Rows[0].Cells[0].MergeHorizontally(1, copyParagraphs: true);
@@ -104,8 +98,7 @@ namespace OfficeIMO.Tests {
             using var document = WordDocument.Create();
             WordTableCell host = document.AddTable(1, 1).Rows[0].Cells[0];
             WordTable nested = host.AddTable(1, 1);
-            nested.WidthType = WordTableWidthUnit.Dxa;
-            nested.Width = 2400;
+            nested.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(2400) * 635)));
             host.MarginTop= top.HasValue ? global::OfficeIMO.OfficeLength.Points((checked((short)top.Value)) / 20D) : null;
             host.MarginBottom= bottom.HasValue ? global::OfficeIMO.OfficeLength.Points((checked((short)bottom.Value)) / 20D) : null;
 
@@ -128,8 +121,7 @@ namespace OfficeIMO.Tests {
         public void Test_NormalizeTablesForOnline_PreservesExplicitNestedTableTopBorderSuppression() {
             using var document = WordDocument.Create();
             WordTable nested = document.AddTable(1, 1).Rows[0].Cells[0].AddTable(1, 1);
-            nested.WidthType = WordTableWidthUnit.Dxa;
-            nested.Width = 2400;
+            nested.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(2400) * 635)));
             nested.StyleDetails!.SetCustomBorders(topStyle: WordBorderStyle.Nil);
 
             document.NormalizeTablesForOnline();
@@ -149,8 +141,7 @@ namespace OfficeIMO.Tests {
         public void Test_NormalizeTablesForOnline_PreservesExplicitNestedCellTopBorderSuppression() {
             using var document = WordDocument.Create();
             WordTable nested = document.AddTable(1, 1).Rows[0].Cells[0].AddTable(1, 2);
-            nested.WidthType = WordTableWidthUnit.Dxa;
-            nested.Width = 2400;
+            nested.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(2400) * 635)));
             nested.Rows[0].Cells[0].Borders.TopStyle = WordBorderStyle.Nil;
 
             document.NormalizeTablesForOnline();

@@ -81,8 +81,7 @@ public sealed class WordPdfJustificationPolicyTests {
         table.LayoutMode = WordTableLayoutMode.Fixed;
         table._tableProperties!.TableWidth = new W.TableWidth { Type = W.TableWidthUnitValues.Dxa, Width = "4800" };
         WordTableCell cell = table.Rows[0].Cells[0];
-        cell.Width = 4800;
-        cell.WidthType = WordTableWidthUnit.Dxa;
+        cell.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(4800) * 635)));
         W.Paragraph original = cell.Paragraphs[0]._paragraph;
         W.Paragraph paragraph = CreateJustificationPolicyParagraph(W.JustificationValues.Both);
         original.InsertAfterSelf(paragraph);

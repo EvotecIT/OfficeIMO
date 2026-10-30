@@ -436,11 +436,13 @@ namespace OfficeIMO.Word {
             var gridColumnWidths = table.GridColumnWidth;
             if (gridColumnWidths.Count > 0) {
                 foreach (var width in gridColumnWidths) {
-                    snapshot.AddColumnWidth(Helpers.ConvertTwipsToPoints(width));
+                    snapshot.AddColumnWidth(width.ToPoints());
                 }
-            } else {
-                foreach (var width in table.ColumnWidth) {
-                    snapshot.AddColumnWidth(Helpers.ConvertTwipsToPoints(width));
+            } else if (table.Rows.Count > 0) {
+                foreach (var cell in table.Rows[0].Cells) {
+                    // Snapshot columns are physical points. Zero marks an unresolved preference
+                    // for destination adapters; percentages are never interpreted as twips.
+                    snapshot.AddColumnWidth(WordTableWidthNative.AbsoluteCellPoints(cell) ?? 0D);
                 }
             }
 

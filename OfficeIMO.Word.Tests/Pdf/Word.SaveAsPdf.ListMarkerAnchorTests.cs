@@ -19,8 +19,7 @@ public sealed class PdfListMarkerAnchorTests {
         level.OpenXmlElement.NumberingSymbolRunProperties = new NumberingSymbolRunProperties(
             new RunFonts { Ascii = "Courier New", HighAnsi = "Courier New" }, new FontSize { Val = "24" });
         WordTable table = document.AddTable(1, 1);
-        table.WidthType = WordTableWidthUnit.Dxa;
-        table.Width = 2400;
+        table.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(2400) * 635)));
         WordParagraph paragraph = table.Rows[0].Cells[0].Paragraphs[0];
         paragraph.Text = "a-abcdefghij";
         paragraph.FontFamily = "Courier New";

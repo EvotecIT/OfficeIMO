@@ -38,11 +38,9 @@ public partial class Word {
 
         static void Configure(WordTable table, string marker) {
             table.LayoutMode = WordTableLayoutMode.Fixed;
-            table.WidthType = WordTableWidthUnit.Dxa;
-            table.Width = 3600;
+            table.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(3600) * 635)));
             WordTableCell cell = table.Rows[0].Cells[0];
-            cell.WidthType = WordTableWidthUnit.Dxa;
-            cell.Width = 3600;
+            cell.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(3600) * 635)));
             cell.MarginLeft = global::OfficeIMO.OfficeLength.Zero; cell.MarginRight = global::OfficeIMO.OfficeLength.Zero;
             cell.Paragraphs[0].Text = marker;
         }

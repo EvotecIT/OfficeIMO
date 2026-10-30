@@ -1,3 +1,4 @@
+using System.Linq;
 using OfficeIMO.Word;
 using OfficeIMO.Word.Pdf;
 using W = DocumentFormat.OpenXml.Wordprocessing;
@@ -11,10 +12,10 @@ public partial class Word {
     private static WordTable CreateRunningStoryTable(WordHeaderFooter story, string text, double height, WordTextDirection direction) {
         WordTable table = story.AddTable(1, 1, WordTableStyle.TableGrid);
         table.LayoutMode = WordTableLayoutMode.Fixed;
-        table.WidthType = WordTableWidthUnit.Dxa; table.Width = 2400;
-        table.GridColumnWidth = new List<int> { 2400 };
+        table.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(2400) * 635)));
+        table.GridColumnWidth = new List<int> { 2400 }.Select(value => global::OfficeIMO.OfficeLength.Emus(checked((long)value * 635))).ToList();
         WordTableCell cell = table.Rows[0].Cells[0];
-        cell.WidthType = WordTableWidthUnit.Dxa; cell.Width = 2400; cell.TextDirection = direction;
+        cell.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(2400) * 635))); cell.TextDirection = direction;
         table.Rows[0].Height = global::OfficeIMO.OfficeLength.Points(((int)(height * 20)) / 20D);
         WordParagraph paragraph = cell.Paragraphs[0];
         paragraph.Text = text; paragraph.FontFamily = "Arial"; paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(12);

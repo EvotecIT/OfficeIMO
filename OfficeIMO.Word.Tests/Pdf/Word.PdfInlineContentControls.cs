@@ -1,3 +1,4 @@
+using System.Linq;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Validation;
@@ -338,10 +339,8 @@ public sealed partial class WordPdfInlineContentControlTests {
         });
         if (inTable) {
             WordTable table = document.AddTable(1, 1, WordTableStyle.TableNormal);
-            table.WidthType = WordTableWidthUnit.Dxa;
-            table.Width = tableWidth;
-            table.ColumnWidthType = WordTableWidthUnit.Dxa;
-            table.ColumnWidth = new List<int> { tableWidth };
+            table.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(tableWidth) * 635)));
+            table.ColumnWidth = new List<int> { tableWidth }.Select(value => (WordTableWidth?)WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(value) * 635)))).ToList();
             paragraph = table.Rows[0].Cells[0].Paragraphs[0];
         } else paragraph = document.AddParagraph();
         paragraph._paragraph.RemoveAllChildren();

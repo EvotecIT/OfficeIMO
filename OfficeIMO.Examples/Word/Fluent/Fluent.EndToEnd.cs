@@ -48,8 +48,7 @@ namespace OfficeIMO.Examples.Word
                     row7.Cells[2].Paragraphs[0].Text = System.Convert.ToString(91) ?? string.Empty;
                     table4.Style = WordTableStyle.TableGrid;
                     table4.Alignment = WordTableAlignment.Center;
-                    table4.WidthType = WordTableWidthUnit.Pct;
-                    table4.Width = 100 * 50;
+                    table4.Width = WordTableWidth.Percent(100);
                     var image9 = document.AddParagraph().AddImage(Path.Combine(imagesPath, "Kulek.jpg"));
                     image9.Width = OfficeIMO.OfficeLength.Pixels(100);
                     image9.Title = "Chart";

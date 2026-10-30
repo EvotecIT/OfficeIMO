@@ -22,8 +22,7 @@ public partial class Word {
             WordTable table = document.AddTable(46, 2);
             foreach (WordTableRow row in table.Rows) {
                 foreach (WordTableCell cell in row.Cells) {
-                    cell.Width = 1440;
-                    cell.WidthType = WordTableWidthUnit.Dxa;
+                    cell.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(1440) * 635)));
                 }
             }
 
@@ -63,8 +62,7 @@ public partial class Word {
             WordTable table = document.AddTable(44, 2);
             foreach (WordTableRow row in table.Rows) {
                 foreach (WordTableCell cell in row.Cells) {
-                    cell.Width = 1440;
-                    cell.WidthType = WordTableWidthUnit.Dxa;
+                    cell.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(1440) * 635)));
                 }
             }
 
@@ -114,8 +112,7 @@ public partial class Word {
             table.Rows[0].RepeatHeaderRowAtTheTopOfEachPage = false;
             foreach (WordTableRow row in table.Rows) {
                 foreach (WordTableCell cell in row.Cells) {
-                    cell.Width = 1440;
-                    cell.WidthType = WordTableWidthUnit.Dxa;
+                    cell.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(1440) * 635)));
                 }
             }
 

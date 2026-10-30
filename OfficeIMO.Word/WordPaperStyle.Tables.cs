@@ -14,8 +14,7 @@ public sealed partial class WordPaperStyle {
     public void ApplyTable(WordTable table, bool hasHeader = true, bool allowRowSplit = false, bool alignNumericColumns = true) {
         if (table == null) throw new ArgumentNullException(nameof(table));
         table.Style = WordTableStyle.TableNormal;
-        table.WidthType = WordTableWidthUnit.Pct;
-        table.Width = 5000;
+        table.Width = WordTableWidth.Percent(100);
         table.RepeatHeaderRowAtTheTopOfEachPage = hasHeader;
         table.AllowRowToBreakAcrossPages = allowRowSplit;
         table.StyleDetails!.SetCustomBorders(topStyle: WordBorderStyle.Nil, bottomStyle: WordBorderStyle.Nil,

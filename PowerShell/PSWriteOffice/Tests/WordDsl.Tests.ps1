@@ -539,11 +539,11 @@ Describe 'Word DSL surface' {
         try {
             $document.Tables.Count | Should -Be 3
             $document.Tables[0].LayoutMode.ToString() | Should -Be 'AutoFit'
-            $document.Tables[0].WidthType.ToString() | Should -Be 'Auto'
-            $document.Tables[0].Width | Should -Be 0
+            $document.Tables[0].Width.Kind.ToString() | Should -Be 'Auto'
+            $document.Tables[0].Width.LengthValue | Should -BeNullOrEmpty
             $document.Tables[1].LayoutMode.ToString() | Should -Be 'Fixed'
-            $document.Tables[1].WidthType.ToString() | Should -Be 'Pct'
-            $document.Tables[1].Width | Should -Be 5000
+            $document.Tables[1].Width.Kind.ToString() | Should -Be 'Percent'
+            $document.Tables[1].Width.PercentValue | Should -Be 100
             $document.Tables[2].LayoutMode.ToString() | Should -Be 'Fixed'
         } finally {
             $document.Dispose()
@@ -1663,7 +1663,7 @@ Describe 'Word DSL surface' {
                 Set-OfficeWordTableCell -ShadingFillColor '#DDEEFF' -Width 2400 -WidthType Dxa -WrapText $false -FitText $true -PassThru
 
             $cell.ShadingFillColorHex | Should -Be 'DDEEFF'
-            $cell.Width | Should -Be 2400
+            $cell.Width.LengthValue.ToTwips() | Should -Be 2400
             $cell.FitText | Should -BeTrue
         } | Out-Null
 
@@ -1673,8 +1673,8 @@ Describe 'Word DSL surface' {
             $cell = $table | Get-OfficeWordTableCell -Row 1 -Column 1
 
             $cell.ShadingFillColorHex | Should -Be 'DDEEFF'
-            $cell.Width | Should -Be 2400
-            $cell.WidthType.ToString() | Should -Be 'Dxa'
+            $cell.Width.LengthValue.ToTwips() | Should -Be 2400
+            $cell.Width.Kind.ToString() | Should -Be 'Length'
         } finally {
             $document.Dispose()
         }

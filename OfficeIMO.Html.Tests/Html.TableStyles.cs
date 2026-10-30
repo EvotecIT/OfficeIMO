@@ -74,8 +74,8 @@ namespace OfficeIMO.Tests {
             string html = "<table style=\"width:auto\"><tr><td>Cell</td></tr></table>";
             using var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWord(new WordHtmlImportOptions());
             var table = doc.Tables[0];
-            Assert.Equal(WordTableWidthUnit.Auto, table.WidthType);
-            Assert.Equal(0, table.Width);
+            Assert.Equal(WordTableWidthKind.Auto, table.Width?.Kind);
+            Assert.Equal(0, table.Width?.ToNativeValue());
         }
 
         [Fact]

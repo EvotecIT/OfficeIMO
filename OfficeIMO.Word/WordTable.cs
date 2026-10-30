@@ -131,67 +131,21 @@ namespace OfficeIMO.Word {
             }
         }
 
-        /// <summary>
-        /// Gets or sets the unit type used by the <see cref="Width"/> property.
-        /// </summary>
-        public WordTableWidthUnit? WidthType {
-            get {
-                if (_tableProperties != null && _tableProperties.TableWidth != null) {
-                    return _tableProperties.TableWidth.Type?.Value.ToOfficeEnum();
-                }
-
-                return null;
-            }
+        /// <summary>Gets or sets the directly authored preferred width. Null removes tblW and preserves the grid.</summary>
+        /// <remarks>Reading preserves native lexical and partial declarations. Unsupported declarations throw
+        /// when accessed as a value; native load/save retains them.</remarks>
+        public WordTableWidth? Width {
+            get => WordTableWidthNative.Read(_tableProperties?.TableWidth);
             set {
                 CheckTableProperties();
-                if (_tableProperties!.TableWidth == null) {
-                    if (value.HasValue) {
-                        _tableProperties.TableWidth = new TableWidth() {
-                            Type = value.Value.ToOpenXml(),
-                            Width = value.Value == WordTableWidthUnit.Auto ? "0" : "5000"
-                        };
-                    }
-                } else {
-                    if (value.HasValue) {
-                        _tableProperties.TableWidth.Type = value.Value.ToOpenXml();
-                        if (value.Value == WordTableWidthUnit.Auto) {
-                            _tableProperties.TableWidth.Width = "0";
-                        }
-                    } else {
-                        _tableProperties.TableWidth.Remove();
-                    }
+                if (!value.HasValue) {
+                    _tableProperties!.TableWidth?.Remove();
+                    return;
                 }
-                // Keep tblGrid consistent when width interpretation changes
-                if (!_suppressGridRefresh) { try { RefreshTblGridFromColumnWidths(); } catch { } }
-            }
-        }
-
-        /// <summary>
-        /// Gets or sets width of a table
-        /// </summary>
-        public int? Width {
-            get {
-                if (_tableProperties != null && _tableProperties.TableWidth != null) {
-                    if (!string.IsNullOrEmpty(_tableProperties.TableWidth.Width)) {
-                        if (int.TryParse(_tableProperties.TableWidth.Width, out var width)) {
-                            return width;
-                        }
-                    }
-                }
-                return null;
-            }
-            set {
-                CheckTableProperties();
-                if (_tableProperties!.TableWidth == null) {
-                    _tableProperties.TableWidth = new TableWidth() {
-                        Type = TableWidthUnitValues.Pct,
-                        Width = value?.ToString()
-                    };
-                } else {
-                    _tableProperties.TableWidth.Width = value?.ToString();
-                }
-                // Grid depends on overall width (for pct columns)
-                if (!_suppressGridRefresh) { try { RefreshTblGridFromColumnWidths(); } catch { } }
+                var width = new TableWidth();
+                WordTableWidthNative.Write(width, value.Value);
+                _tableProperties!.TableWidth = width;
+                if (!_suppressGridRefresh) RefreshTblGridFromColumnWidths();
             }
         }
 

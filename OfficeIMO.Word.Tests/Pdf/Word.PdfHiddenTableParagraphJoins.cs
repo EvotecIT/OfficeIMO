@@ -1,3 +1,4 @@
+using System.Linq;
 using OfficeIMO.Pdf;
 using OfficeIMO.Word;
 using OfficeIMO.Word.Pdf;
@@ -44,9 +45,9 @@ public partial class Word {
     public void SaveAsPdf_HiddenTableJoinRetainsFirstAlignmentFinalSpacingAndContinuationMetrics(bool nativeDoc) {
         using WordDocument source = CreateJoinedParagraphDocument();
         WordTable table = source.AddTable(1, 1);
-        table.WidthType = WordTableWidthUnit.Dxa; table.Width = 9360;
-        table.LayoutMode = WordTableLayoutMode.Fixed; table.GridColumnWidth = new List<int> { 9360 };
-        WordTableCell cell = table.Rows[0].Cells[0]; cell.WidthType = WordTableWidthUnit.Dxa; cell.Width = 9360;
+        table.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(9360) * 635)));
+        table.LayoutMode = WordTableLayoutMode.Fixed; table.GridColumnWidth = new List<int> { 9360 }.Select(value => global::OfficeIMO.OfficeLength.Emus(checked((long)value * 635))).ToList();
+        WordTableCell cell = table.Rows[0].Cells[0]; cell.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(9360) * 635)));
         WordParagraph alpha = cell.AddParagraph("ALPHA", removeExistingParagraphs: true);
         alpha.FontSize = global::OfficeIMO.OfficeLength.Points(16); alpha.ParagraphAlignment = WordParagraphAlignment.Right;
         alpha.LineSpacingAfter = global::OfficeIMO.OfficeLength.Points(80D); HideJoinMark(alpha, true);
@@ -224,9 +225,9 @@ public partial class Word {
     public void SaveAsPdf_TablePartialMarginsRetainMissingSidesAndExplicitOverrides(bool nativeDoc, bool configuredPdf) {
         using WordDocument source = CreateJoinedParagraphDocument();
         WordTable table = source.AddTable(1, 2);
-        table.WidthType = WordTableWidthUnit.Dxa; table.Width = 9360;
-        table.LayoutMode = WordTableLayoutMode.Fixed; table.GridColumnWidth = new List<int> { 4680, 4680 };
-        foreach (WordTableCell cell in table.Rows[0].Cells) { cell.WidthType = WordTableWidthUnit.Dxa; cell.Width = 4680; }
+        table.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(9360) * 635)));
+        table.LayoutMode = WordTableLayoutMode.Fixed; table.GridColumnWidth = new List<int> { 4680, 4680 }.Select(value => global::OfficeIMO.OfficeLength.Emus(checked((long)value * 635))).ToList();
+        foreach (WordTableCell cell in table.Rows[0].Cells) { cell.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(4680) * 635))); }
         table.StyleDetails!.MarginDefaultTopWidth = 60;
         table._tableProperties!.TableStyle = null;
         table.Rows[0].Cells[0].AddParagraph("MARGIN", removeExistingParagraphs: true);

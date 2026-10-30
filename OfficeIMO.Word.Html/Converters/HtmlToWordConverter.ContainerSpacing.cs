@@ -65,8 +65,7 @@ namespace OfficeIMO.Word.Html {
                 return;
             }
 
-            table.WidthType = WordTableWidthUnit.Dxa;
-            table.Width = (int)constrainedWidth;
+            table.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus((long)constrainedWidth * 635));
         }
 
         private void ApplyContainerVerticalSpacingFromCss(

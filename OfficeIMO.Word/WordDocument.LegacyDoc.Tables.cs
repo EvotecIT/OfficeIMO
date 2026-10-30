@@ -66,8 +66,7 @@ namespace OfficeIMO.Word {
                 for (int columnIndex = 0; columnIndex < sourceRow.Cells.Count && columnIndex < columnCount; columnIndex++) {
                     AddLegacyDocTableCell(table.Rows[rowIndex].Cells[columnIndex], sourceRow.Cells[columnIndex], styleSheet, notes, projectNestedTables);
                     if (columnIndex < sourceRow.CellWidthsTwips.Count) {
-                        table.Rows[rowIndex].Cells[columnIndex].WidthType = WordTableWidthUnit.Dxa;
-                        table.Rows[rowIndex].Cells[columnIndex].Width = sourceRow.CellWidthsTwips[columnIndex];
+                        table.Rows[rowIndex].Cells[columnIndex].Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus((long)sourceRow.CellWidthsTwips[columnIndex] * 635));
                     }
 
                     if (columnIndex < sourceRow.CellHorizontalMerges.Count) {
@@ -170,16 +169,13 @@ namespace OfficeIMO.Word {
         private static void ApplyLegacyDocTablePreferredWidth(WordTable table, LegacyDocTablePreferredWidth preferredWidth) {
             switch (preferredWidth.Unit) {
                 case LegacyDocTablePreferredWidthUnit.Auto:
-                    table.WidthType = WordTableWidthUnit.Auto;
-                    table.Width = 0;
+                    table.Width = WordTableWidth.Auto;
                     break;
                 case LegacyDocTablePreferredWidthUnit.Percent:
-                    table.WidthType = WordTableWidthUnit.Pct;
-                    table.Width = preferredWidth.Value;
+                    table.Width = WordTableWidth.Percent(preferredWidth.Value / 50d);
                     break;
                 case LegacyDocTablePreferredWidthUnit.Dxa:
-                    table.WidthType = WordTableWidthUnit.Dxa;
-                    table.Width = preferredWidth.Value;
+                    table.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus((long)preferredWidth.Value * 635));
                     break;
             }
         }

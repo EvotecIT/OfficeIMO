@@ -126,7 +126,7 @@ public partial class Word {
             var percentage = document.AddTable(1, 1);
             percentage.SetWidthPercentage(37);
             var automatic = document.AddTable(1, 1);
-            automatic.WidthType = WordTableWidthUnit.Auto;
+            automatic.Width = WordTableWidth.Auto;
             document.Save(output);
         }
         output.Position = 0;

@@ -21,10 +21,9 @@ public partial class Word {
         // additional space reserved for table border paint.
         table.StyleDetails!.SetBordersForAllSides(WordBorderStyle.Nil, 0U, OfficeIMO.OfficeColor.Black);
         table.LayoutMode = WordTableLayoutMode.Fixed;
-        table.WidthType = WordTableWidthUnit.Dxa;
-        table.Width = columns ? 2040 : 4800;
+        table.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(columns ? 2040 : 4800) * 635)));
         WordTableCell cell = table.Rows[0].Cells[0];
-        cell.WidthType = WordTableWidthUnit.Dxa; cell.Width = table.Width;
+        cell.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(table.Width?.ToNativeValue()) * 635)));
         cell.MarginTop = global::OfficeIMO.OfficeLength.Zero; cell.MarginBottom = global::OfficeIMO.OfficeLength.Zero;
         cell.MarginLeft = global::OfficeIMO.OfficeLength.Zero; cell.MarginRight = global::OfficeIMO.OfficeLength.Zero;
         WordParagraph paragraph = cell.Paragraphs[0];

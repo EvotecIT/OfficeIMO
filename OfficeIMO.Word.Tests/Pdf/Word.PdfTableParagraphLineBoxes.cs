@@ -1,3 +1,4 @@
+using System.Linq;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Pdf;
 using OfficeIMO.Word;
@@ -19,12 +20,11 @@ public sealed class WordPdfTableParagraphLineBoxTests {
         WordTable table = document.AddTable(2, 1);
         table._tableProperties!.TableStyle = null;
         table.LayoutMode = WordTableLayoutMode.Fixed;
-        table.WidthType = WordTableWidthUnit.Dxa;
-        table.Width = 2000;
-        table.GridColumnWidth = new List<int> { 2000 };
+        table.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(2000) * 635)));
+        table.GridColumnWidth = new List<int> { 2000 }.Select(value => global::OfficeIMO.OfficeLength.Emus(checked((long)value * 635))).ToList();
         for (int row = 0; row < 2; row++) {
             WordTableCell cell = table.Rows[row].Cells[0];
-            cell.WidthType = WordTableWidthUnit.Dxa; cell.Width = 2000;
+            cell.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(2000) * 635)));
             cell.MarginTop = global::OfficeIMO.OfficeLength.Zero; cell.MarginBottom = global::OfficeIMO.OfficeLength.Zero;
             WordParagraph paragraph = cell.Paragraphs[0];
             paragraph.Text = row == 0 ? "A" : "B";

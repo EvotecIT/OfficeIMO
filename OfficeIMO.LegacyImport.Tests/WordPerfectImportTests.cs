@@ -128,7 +128,7 @@ public sealed class WordPerfectImportTests {
         WordTable table = Assert.Single(result.Value.Tables);
         Assert.Equal("A1", string.Concat(table.Rows[0].Cells[0].Paragraphs.Select(paragraph => paragraph.Text)));
         Assert.Equal("B2", string.Concat(table.Rows[1].Cells[1].Paragraphs.Select(paragraph => paragraph.Text)));
-        Assert.Equal(2880, table.Rows[0].Cells[0].Width);
+        Assert.Equal(2880, table.Rows[0].Cells[0].Width?.ToNativeValue());
         Assert.Equal("Before\nA1\nB1\nA2\nB2\nAfter", result.PlainText);
         Assert.Empty(new OpenXmlValidator(FileFormatVersions.Office2019).Validate(result.Value.OpenXmlDocument));
     }

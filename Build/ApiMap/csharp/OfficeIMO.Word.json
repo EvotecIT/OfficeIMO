@@ -7021,6 +7021,52 @@
       "file": "OfficeIMO.Word/WordDocument.TypedTables.cs",
       "applied": "phase-b-applied",
       "note": "The more specific overload preserves row cells rather than projecting Array metadata. Saved native table rows are covered in the net10.0 creation suite."
+    },
+    {
+      "phase": "B",
+      "action": "change",
+      "category": "units",
+      "old": "WordTable.Width/WidthType; WordTableCell.Width/WidthType (raw integer plus unit pairs)",
+      "new": "WordTableWidth immutable Word-owned Length(OfficeLength), Percent(double), Auto, Nil; nullable WordTable.Width and WordTableCell.Width; read-only WordTableWidthKind and payloads",
+      "reason": "Distinguish physical geometry from relative preferences and author the native type and measurement atomically.",
+      "files": [
+        "OfficeIMO.Word/WordTableWidth.cs",
+        "OfficeIMO.Word/WordTableWidthNative.cs",
+        "OfficeIMO.Word/WordTable.cs",
+        "OfficeIMO.Word/WordTableCell.cs"
+      ],
+      "applied": "phase-b-applied",
+      "note": "Atomic native widths distinguish physical lengths, human percentages, Auto, Nil and absence. Native lexical/partial/unknown declarations remain intact. Save-time normalization preserves an existing physical grid after clearing the preferred width. Twenty-five new saved/reloaded native cases and net10.0 Word/PDF/HTML library builds pass; six further Word import/export adapters compile. Broader table coverage exposed separate Modern-default fixture and stale-consumer failures; full framework, module and phase qualification remains open."
+    },
+    {
+      "phase": "B",
+      "action": "merge",
+      "category": "units",
+      "old": "WordTable.ColumnWidth : List<int>; ColumnWidthType; GridColumnWidth : List<int>",
+      "new": "WordTable.ColumnWidth : List<WordTableWidth?>; GridColumnWidth : List<OfficeLength>",
+      "reason": "Retain positional absence and per-cell interpretation independently from the physical grid.",
+      "files": [
+        "OfficeIMO.Word/WordTable.Properties.cs",
+        "OfficeIMO.Word/WordTable.PreferredWidths.cs"
+      ],
+      "applied": "phase-b-applied",
+      "note": "Atomic native widths distinguish physical lengths, human percentages, Auto, Nil and absence. Native lexical/partial/unknown declarations remain intact. Save-time normalization preserves an existing physical grid after clearing the preferred width. Twenty-five new saved/reloaded native cases and net10.0 Word/PDF/HTML library builds pass; six further Word import/export adapters compile. Broader table coverage exposed separate Modern-default fixture and stale-consumer failures; full framework, module and phase qualification remains open."
+    },
+    {
+      "phase": "B",
+      "action": "move",
+      "category": "units",
+      "old": "OfficeIMO.Word.Pdf.TablePreferredWidth native preferred-width parser",
+      "new": "OfficeIMO.Word.WordTableWidthNative internal owner shared with the PDF adapter through the existing friendship",
+      "reason": "Keep table-versus-cell defaults, lexical percentages, zero, missing attributes and Nil grid preservation in one native parsing owner.",
+      "files": [
+        "OfficeIMO.Word/WordTableWidthNative.cs",
+        "OfficeIMO.Word.Pdf/TablePreferredWidth.cs",
+        "OfficeIMO.Word.Pdf/TableLayoutCache.cs",
+        "OfficeIMO.Word.Pdf/WordPdfConverterExtensions.Native.TableLayout.cs"
+      ],
+      "applied": "phase-b-applied",
+      "note": "Atomic native widths distinguish physical lengths, human percentages, Auto, Nil and absence. Native lexical/partial/unknown declarations remain intact. Save-time normalization preserves an existing physical grid after clearing the preferred width. Twenty-five new saved/reloaded native cases and net10.0 Word/PDF/HTML library builds pass; six further Word import/export adapters compile. Broader table coverage exposed separate Modern-default fixture and stale-consumer failures; full framework, module and phase qualification remains open."
     }
   ],
   "applicationStatus": "Phase A applied and validated on the supported macOS targets. Phase B and Tier 2 entries retain their status; Windows .NET Framework validation remains pending.",

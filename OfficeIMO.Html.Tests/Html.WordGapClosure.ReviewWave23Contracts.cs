@@ -56,7 +56,7 @@ public partial class HtmlWordGapClosure {
             """));
 
         WordTable table = Assert.Single(document.Tables);
-        Assert.Equal(WordTableWidthUnit.Dxa, table.WidthType);
-        Assert.Equal(6700, table.Width);
+        Assert.Equal(WordTableWidthKind.Length, table.Width?.Kind);
+        Assert.Equal(6700, table.Width?.ToNativeValue());
     }
 }

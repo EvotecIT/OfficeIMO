@@ -1,3 +1,4 @@
+using System.Linq;
 using OfficeIMO.Word;
 using OfficeIMO.Word.LegacyDoc;
 using OfficeIMO.Word.LegacyDoc.Diagnostics;
@@ -134,10 +135,10 @@ namespace OfficeIMO.Tests {
             Assert.True(result.HasDocument);
             WordTable table = Assert.Single(result.Document.Tables);
             WordTableRow row = Assert.Single(table.Rows);
-            Assert.Equal(1440, row.Cells[0].Width);
-            Assert.Equal(WordTableWidthUnit.Dxa, row.Cells[0].WidthType);
-            Assert.Equal(2880, row.Cells[1].Width);
-            Assert.Equal(WordTableWidthUnit.Dxa, row.Cells[1].WidthType);
+            Assert.Equal(1440, row.Cells[0].Width?.ToNativeValue());
+            Assert.Equal(WordTableWidthKind.Length, row.Cells[0].Width?.Kind);
+            Assert.Equal(2880, row.Cells[1].Width?.ToNativeValue());
+            Assert.Equal(WordTableWidthKind.Length, row.Cells[1].Width?.Kind);
         }
 
         [Theory]
@@ -194,8 +195,8 @@ namespace OfficeIMO.Tests {
             WordTable table = Assert.Single(result.Document.Tables);
             Assert.Equal((short)720, table.StyleDetails!.TableIndentationWidth);
             WordTableRow row = Assert.Single(table.Rows);
-            Assert.Equal(1440, row.Cells[0].Width);
-            Assert.Equal(1440, row.Cells[1].Width);
+            Assert.Equal(1440, row.Cells[0].Width?.ToNativeValue());
+            Assert.Equal(1440, row.Cells[1].Width?.ToNativeValue());
         }
 
         [Fact]
@@ -207,8 +208,8 @@ namespace OfficeIMO.Tests {
             result.EnsureNoImportErrors();
             Assert.True(result.HasDocument);
             WordTable table = Assert.Single(result.Document.Tables);
-            Assert.Equal(WordTableWidthUnit.Dxa, table.WidthType);
-            Assert.Equal(4320, table.Width);
+            Assert.Equal(WordTableWidthKind.Length, table.Width?.Kind);
+            Assert.Equal(4320, table.Width?.ToNativeValue());
             Assert.Equal(WordTableLayoutMode.AutoFit, table.LayoutMode);
             Assert.Equal(WordTableLayoutMode.AutoFit, table.LayoutMode);
         }
@@ -8176,11 +8177,9 @@ namespace OfficeIMO.Tests {
             try {
                 using (WordDocument document = WordDocument.Create()) {
                     WordTable table = document.AddTable(1, 2);
-                    table.Rows[0].Cells[0].WidthType = WordTableWidthUnit.Dxa;
-                    table.Rows[0].Cells[0].Width = 1440;
+                    table.Rows[0].Cells[0].Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(1440) * 635)));
                     table.Rows[0].Cells[0].AddParagraph("Narrow", removeExistingParagraphs: true);
-                    table.Rows[0].Cells[1].WidthType = WordTableWidthUnit.Dxa;
-                    table.Rows[0].Cells[1].Width = 2880;
+                    table.Rows[0].Cells[1].Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(2880) * 635)));
                     table.Rows[0].Cells[1].AddParagraph("Wide", removeExistingParagraphs: true);
 
                     document.Save(docPath);
@@ -8197,11 +8196,11 @@ namespace OfficeIMO.Tests {
                 WordTable reloadedTable = Assert.Single(reloaded.Tables);
                 WordTableRow row = Assert.Single(reloadedTable.Rows);
                 Assert.Equal("Narrow", row.Cells[0].Paragraphs[0].Text);
-                Assert.Equal(1440, row.Cells[0].Width);
-                Assert.Equal(WordTableWidthUnit.Dxa, row.Cells[0].WidthType);
+                Assert.Equal(1440, row.Cells[0].Width?.ToNativeValue());
+                Assert.Equal(WordTableWidthKind.Length, row.Cells[0].Width?.Kind);
                 Assert.Equal("Wide", row.Cells[1].Paragraphs[0].Text);
-                Assert.Equal(2880, row.Cells[1].Width);
-                Assert.Equal(WordTableWidthUnit.Dxa, row.Cells[1].WidthType);
+                Assert.Equal(2880, row.Cells[1].Width?.ToNativeValue());
+                Assert.Equal(WordTableWidthKind.Length, row.Cells[1].Width?.Kind);
             } finally {
                 DeleteIfExists(docPath);
             }
@@ -8214,10 +8213,9 @@ namespace OfficeIMO.Tests {
             try {
                 using (WordDocument document = WordDocument.Create()) {
                     WordTable table = document.AddTable(1, 2);
-                    table.GridColumnWidth = new List<int> { 1800, 3600 };
+                    table.GridColumnWidth = new List<int> { 1800, 3600 }.Select(value => global::OfficeIMO.OfficeLength.Emus(checked((long)value * 635))).ToList();
                     foreach (WordTableCell cell in table.Rows[0].Cells) {
                         cell.Width = null;
-                        cell.WidthType = null;
                     }
 
                     table.Rows[0].Cells[0].AddParagraph("Grid narrow", removeExistingParagraphs: true);
@@ -8237,11 +8235,11 @@ namespace OfficeIMO.Tests {
                 WordTable reloadedTable = Assert.Single(reloaded.Tables);
                 WordTableRow row = Assert.Single(reloadedTable.Rows);
                 Assert.Equal("Grid narrow", row.Cells[0].Paragraphs[0].Text);
-                Assert.Equal(1800, row.Cells[0].Width);
-                Assert.Equal(WordTableWidthUnit.Dxa, row.Cells[0].WidthType);
+                Assert.Equal(1800, row.Cells[0].Width?.ToNativeValue());
+                Assert.Equal(WordTableWidthKind.Length, row.Cells[0].Width?.Kind);
                 Assert.Equal("Grid wide", row.Cells[1].Paragraphs[0].Text);
-                Assert.Equal(3600, row.Cells[1].Width);
-                Assert.Equal(WordTableWidthUnit.Dxa, row.Cells[1].WidthType);
+                Assert.Equal(3600, row.Cells[1].Width?.ToNativeValue());
+                Assert.Equal(WordTableWidthKind.Length, row.Cells[1].Width?.Kind);
             } finally {
                 DeleteIfExists(docPath);
             }
@@ -8320,9 +8318,8 @@ namespace OfficeIMO.Tests {
             try {
                 using WordDocument document = WordDocument.Create();
                 WordTable table = document.AddTable(1, 1);
-                table.GridColumnWidth = new List<int> { short.MaxValue + 1 };
+                table.GridColumnWidth = new List<int> { short.MaxValue + 1 }.Select(value => global::OfficeIMO.OfficeLength.Emus(checked((long)value * 635))).ToList();
                 table.Rows[0].Cells[0].Width = null;
-                table.Rows[0].Cells[0].WidthType = null;
                 table.Rows[0].Cells[0].AddParagraph("Too wide", removeExistingParagraphs: true);
 
                 NotSupportedException exception = Assert.Throws<NotSupportedException>(() => document.Save(docPath));
@@ -8406,11 +8403,9 @@ namespace OfficeIMO.Tests {
                 using (WordDocument document = WordDocument.Create()) {
                     WordTable table = document.AddTable(1, 2);
                     table.Rows[0].Cells[0].AddParagraph("Indented", removeExistingParagraphs: true);
-                    table.Rows[0].Cells[0].WidthType = WordTableWidthUnit.Dxa;
-                    table.Rows[0].Cells[0].Width = 1440;
+                    table.Rows[0].Cells[0].Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(1440) * 635)));
                     table.Rows[0].Cells[1].AddParagraph("Table", removeExistingParagraphs: true);
-                    table.Rows[0].Cells[1].WidthType = WordTableWidthUnit.Dxa;
-                    table.Rows[0].Cells[1].Width = 1440;
+                    table.Rows[0].Cells[1].Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(1440) * 635)));
                     table.StyleDetails!.TableIndentationWidth = 720;
 
                     document.Save(docPath);
@@ -8428,8 +8423,8 @@ namespace OfficeIMO.Tests {
                 Assert.Equal((short)720, reloadedTable.StyleDetails!.TableIndentationWidth);
                 WordTableRow row = Assert.Single(reloadedTable.Rows);
                 Assert.Equal("Indented", row.Cells[0].Paragraphs[0].Text);
-                Assert.Equal(1440, row.Cells[0].Width);
-                Assert.Equal(1440, row.Cells[1].Width);
+                Assert.Equal(1440, row.Cells[0].Width?.ToNativeValue());
+                Assert.Equal(1440, row.Cells[1].Width?.ToNativeValue());
             } finally {
                 DeleteIfExists(docPath);
             }
@@ -8442,8 +8437,7 @@ namespace OfficeIMO.Tests {
             try {
                 using (WordDocument document = WordDocument.Create()) {
                     WordTable table = document.AddTable(1, 2);
-                    table.WidthType = WordTableWidthUnit.Pct;
-                    table.Width = 3750;
+                    table.Width = WordTableWidth.Percent((3750) / 50d);
                     table.LayoutMode = WordTableLayoutMode.Fixed;
                     table.Rows[0].Cells[0].AddParagraph("Wide", removeExistingParagraphs: true);
                     table.Rows[0].Cells[1].AddParagraph("Table", removeExistingParagraphs: true);
@@ -8463,8 +8457,8 @@ namespace OfficeIMO.Tests {
 
                 Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 WordTable reloadedTable = Assert.Single(reloaded.Tables);
-                Assert.Equal(WordTableWidthUnit.Pct, reloadedTable.WidthType);
-                Assert.Equal(3750, reloadedTable.Width);
+                Assert.Equal(WordTableWidthKind.Percent, reloadedTable.Width?.Kind);
+                Assert.Equal(3750, reloadedTable.Width?.ToNativeValue());
                 Assert.Equal(WordTableLayoutMode.Fixed, reloadedTable.LayoutMode);
                 WordTableRow row = Assert.Single(reloadedTable.Rows);
                 Assert.Equal("Wide", row.Cells[0].Paragraphs[0].Text);
@@ -8493,19 +8487,16 @@ namespace OfficeIMO.Tests {
 
                     WordTable styledTable = document.AddTable(1, 2, WordTableStyle.TableNormal);
                     styledTable._tableProperties!.TableStyle = new TableStyle { Val = styleId };
-                    styledTable.Rows[0].Cells[0].WidthType = WordTableWidthUnit.Dxa;
-                    styledTable.Rows[0].Cells[0].Width = 1440;
+                    styledTable.Rows[0].Cells[0].Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(1440) * 635)));
                     styledTable.Rows[0].Cells[0].AddParagraph("Styled layout", removeExistingParagraphs: true);
-                    styledTable.Rows[0].Cells[1].WidthType = WordTableWidthUnit.Dxa;
-                    styledTable.Rows[0].Cells[1].Width = 1440;
+                    styledTable.Rows[0].Cells[1].Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(1440) * 635)));
                     styledTable.Rows[0].Cells[1].AddParagraph("Table", removeExistingParagraphs: true);
 
                     WordTable directTable = document.AddTable(1, 1, WordTableStyle.TableNormal);
                     directTable._tableProperties!.TableStyle = new TableStyle { Val = styleId };
                     directTable.Alignment = WordTableAlignment.Center;
                     directTable.StyleDetails!.TableIndentationWidth = 240;
-                    directTable.WidthType = WordTableWidthUnit.Dxa;
-                    directTable.Width = 2160;
+                    directTable.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(2160) * 635)));
                     directTable.LayoutMode = WordTableLayoutMode.AutoFit;
                     directTable.Rows[0].Cells[0].AddParagraph("Direct layout", removeExistingParagraphs: true);
 
@@ -8528,20 +8519,20 @@ namespace OfficeIMO.Tests {
                 WordTable styledReloaded = reloaded.Tables[0];
                 Assert.Equal(WordTableAlignment.Right, styledReloaded.Alignment);
                 Assert.Equal((short)720, styledReloaded.StyleDetails!.TableIndentationWidth);
-                Assert.Equal(WordTableWidthUnit.Pct, styledReloaded.WidthType);
-                Assert.Equal(3750, styledReloaded.Width);
+                Assert.Equal(WordTableWidthKind.Percent, styledReloaded.Width?.Kind);
+                Assert.Equal(3750, styledReloaded.Width?.ToNativeValue());
                 Assert.Equal(WordTableLayoutMode.Fixed, styledReloaded.LayoutMode);
                 WordTableRow styledRow = Assert.Single(styledReloaded.Rows);
                 Assert.Equal("Styled layout", styledRow.Cells[0].Paragraphs[0].Text);
-                Assert.Equal(1440, styledRow.Cells[0].Width);
+                Assert.Equal(1440, styledRow.Cells[0].Width?.ToNativeValue());
                 Assert.Equal("Table", styledRow.Cells[1].Paragraphs[0].Text);
-                Assert.Equal(1440, styledRow.Cells[1].Width);
+                Assert.Equal(1440, styledRow.Cells[1].Width?.ToNativeValue());
 
                 WordTable directReloaded = reloaded.Tables[1];
                 Assert.Equal(WordTableAlignment.Center, directReloaded.Alignment);
                 Assert.Equal((short)240, directReloaded.StyleDetails!.TableIndentationWidth);
-                Assert.Equal(WordTableWidthUnit.Dxa, directReloaded.WidthType);
-                Assert.Equal(2160, directReloaded.Width);
+                Assert.Equal(WordTableWidthKind.Length, directReloaded.Width?.Kind);
+                Assert.Equal(2160, directReloaded.Width?.ToNativeValue());
                 Assert.Equal(WordTableLayoutMode.AutoFit, directReloaded.LayoutMode);
                 WordTableRow directRow = Assert.Single(directReloaded.Rows);
                 Assert.Equal("Direct layout", directRow.Cells[0].Paragraphs[0].Text);
@@ -10312,8 +10303,8 @@ namespace OfficeIMO.Tests {
 
                 Assert.True(reloaded.SourceFormat == WordFileFormat.Doc);
                 WordTable reloadedTable = Assert.Single(reloaded.Tables);
-                Assert.Equal(WordTableWidthUnit.Auto, reloadedTable.WidthType);
-                Assert.Equal(0, reloadedTable.Width);
+                Assert.Equal(WordTableWidthKind.Auto, reloadedTable.Width?.Kind);
+                Assert.Equal(0, reloadedTable.Width?.ToNativeValue());
                 Assert.Equal("Styled", reloadedTable.Rows[0].Cells[0].Paragraphs[0].Text);
             } finally {
                 DeleteIfExists(docPath);

@@ -481,18 +481,18 @@ public partial class Word {
             document.AddHeadersAndFooters();
             WordTable headerTable = RequireSectionHeader(document, 0, HeaderFooterValues.Default).AddTable(1, 3, WordTableStyle.TableNormal);
             headerTable.LayoutMode = WordTableLayoutMode.Fixed;
-            headerTable.WidthType = WordTableWidthUnit.Dxa; headerTable.Width = 7200;
-            headerTable.GridColumnWidth = new List<int> { 2400, 2400, 2400 };
-            foreach (WordTableCell cell in headerTable.Rows[0].Cells) { cell.WidthType = WordTableWidthUnit.Dxa; cell.Width = 2400; }
+            headerTable.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(7200) * 635)));
+            headerTable.GridColumnWidth = new List<int> { 2400, 2400, 2400 }.Select(value => global::OfficeIMO.OfficeLength.Emus(checked((long)value * 635))).ToList();
+            foreach (WordTableCell cell in headerTable.Rows[0].Cells) { cell.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(2400) * 635))); }
             headerTable.Rows[0].Cells[0].Paragraphs[0].Text = "LHdr";
             headerTable.Rows[0].Cells[1].Paragraphs[0].Text = "CHdr";
             headerTable.Rows[0].Cells[2].Paragraphs[0].Text = "RHdr";
 
             WordTable footerTable = RequireSectionFooter(document, 0, HeaderFooterValues.Default).AddTable(1, 2, WordTableStyle.TableNormal);
             footerTable.LayoutMode = WordTableLayoutMode.Fixed;
-            footerTable.WidthType = WordTableWidthUnit.Dxa; footerTable.Width = 4800;
-            footerTable.GridColumnWidth = new List<int> { 2400, 2400 };
-            foreach (WordTableCell cell in footerTable.Rows[0].Cells) { cell.WidthType = WordTableWidthUnit.Dxa; cell.Width = 2400; }
+            footerTable.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(4800) * 635)));
+            footerTable.GridColumnWidth = new List<int> { 2400, 2400 }.Select(value => global::OfficeIMO.OfficeLength.Emus(checked((long)value * 635))).ToList();
+            foreach (WordTableCell cell in footerTable.Rows[0].Cells) { cell.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(2400) * 635))); }
             footerTable.Rows[0].Cells[0].Paragraphs[0].Text = "LFtr";
             footerTable.Rows[0].Cells[1].Paragraphs[0].Text = "RFtr";
 

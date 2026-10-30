@@ -31,8 +31,7 @@ namespace OfficeIMO.Examples.Word
                     row4.Cells[2].Paragraphs[0].Text = System.Convert.ToString(91) ?? string.Empty;
                     table1.Style = WordTableStyle.TableGrid;
                     table1.Alignment = WordTableAlignment.Center;
-                    table1.WidthType = WordTableWidthUnit.Pct;
-                    table1.Width = 100 * 50;
+                    table1.Width = WordTableWidth.Percent(100);
                     var table5 = document.AddTable(new object[, ] { { "Q", "Revenue", "Churn" }, { "Q1", "1.1M", "2.1%" }, { "Q2", "1.3M", "1.8%" } });
                     table5.Rows[0].RepeatHeaderRowAtTheTopOfEachPage = true;
                     var table6 = document.AddTable(2, 3);

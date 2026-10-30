@@ -49,7 +49,7 @@ namespace OfficeIMO.Word.Pdf {
             var absolute = new bool[layout.ColumnWidths.Length];
             var cached = new bool[layout.ColumnWidths.Length];
             foreach (var cell in EnumerateNativeTableCells(layout)) {
-                bool hasAbsoluteWidth = TablePreferredWidth.AbsoluteCellPoints(cell.Cell).HasValue;
+                bool hasAbsoluteWidth = WordTableWidthNative.AbsoluteCellPoints(cell.Cell).HasValue;
                 bool hasCachedWidth = !GetNativeTableCellPreferredWidthPercent(cell.Cell).HasValue;
                 for (int column = cell.Column; column < cell.Column + cell.ColumnSpan && column < cached.Length; column++) {
                     absolute[column] |= hasAbsoluteWidth;
@@ -72,9 +72,9 @@ namespace OfficeIMO.Word.Pdf {
             if (style.AutoFitColumns) {
                 style.AutoFitCellPreferredWidthPoints =
                     EnumerateNativeTableCellPositions(layout)
-                        .Where(cell => TablePreferredWidth.HasAbsoluteCellPreference(cell.Cell))
+                        .Where(cell => WordTableWidthNative.HasAbsoluteCellPreference(cell.Cell))
                         .ToDictionary(cell => (cell.Row, cell.Column), cell => Math.Max(.001D,
-                            TablePreferredWidth.AbsoluteCellPoints(cell.Cell) ??
+                            WordTableWidthNative.AbsoluteCellPoints(cell.Cell) ??
                             layout.ColumnWidths.Skip(cell.Column).Take(cell.ColumnSpan).Sum(width => (double)width)));
             }
             if (!style.AutoFitColumns && style.ImportedColumnWidthFractions == null && !style.MaxWidth.HasValue &&
@@ -113,7 +113,7 @@ namespace OfficeIMO.Word.Pdf {
         private static void ApplyNativeAbsoluteNoWrapMinimums(TableLayout layout, PdfCore.PdfTableStyle style) {
             if (!style.AutoFitColumns) return;
             foreach (var cell in EnumerateNativeTableCellPositions(layout)) {
-                double? width = TablePreferredWidth.AbsoluteCellPoints(cell.Cell);
+                double? width = WordTableWidthNative.AbsoluteCellPoints(cell.Cell);
                 if (cell.Cell.WrapText || width is not > 0D) continue;
                 style.ColumnMinWidthPoints ??= new List<double?>();
                 while (style.ColumnMinWidthPoints.Count < layout.ColumnWidths.Length)
@@ -147,7 +147,7 @@ namespace OfficeIMO.Word.Pdf {
                 // Automatic cells share the remaining width according to content.
                 var hasAbsolutePreference = new bool[derivedMinimums.Count];
                 foreach (var cell in EnumerateNativeTableCells(layout)) {
-                    if (!TablePreferredWidth.HasAbsoluteCellPreference(cell.Cell))
+                    if (!WordTableWidthNative.HasAbsoluteCellPreference(cell.Cell))
                         continue;
                     for (int column = cell.Column; column < cell.Column + cell.ColumnSpan && column < hasAbsolutePreference.Length; column++)
                         hasAbsolutePreference[column] = true;
@@ -317,7 +317,7 @@ namespace OfficeIMO.Word.Pdf {
         private static List<double?> CreateNativeAutoFitColumnPreferences(TableLayout layout) {
             var result = Enumerable.Repeat<double?>(null, layout.ColumnWidths.Length).ToList();
             foreach (var cell in EnumerateNativeTableCells(layout)) {
-                if (!TablePreferredWidth.HasAbsoluteCellPreference(cell.Cell)) continue;
+                if (!WordTableWidthNative.HasAbsoluteCellPreference(cell.Cell)) continue;
                 for (int column = cell.Column; column < cell.Column + cell.ColumnSpan && column < result.Count; column++)
                     result[column] = Math.Max(.001D, layout.ColumnWidths[column]);
             }
@@ -345,7 +345,7 @@ namespace OfficeIMO.Word.Pdf {
 
         private static bool HasNativeTableCellWidthPreferences(TableLayout layout) =>
             EnumerateNativeTableCells(layout).Any(cell =>
-                TablePreferredWidth.HasAbsoluteCellPreference(cell.Cell) ||
+                WordTableWidthNative.HasAbsoluteCellPreference(cell.Cell) ||
                 GetNativeTableCellPreferredWidthPercent(cell.Cell).HasValue);
 
         private static bool ShouldUseNativeAutoFitTableLayout(W.TableProperties? properties, NativeTableStyleDefaults tableStyleDefaults) {
@@ -370,11 +370,11 @@ namespace OfficeIMO.Word.Pdf {
             properties?.TableLayout?.Type?.Value != W.TableLayoutValues.Fixed;
 
         /// <summary>Resolves omitted defaults and Word's zero, nil and percentage preferred-width rules.</summary>
-        private static W.TableWidthUnitValues ResolveNativeTablePreferredWidthType(W.TableWidth? width) =>
-            TablePreferredWidth.ResolveType(width);
+        private static W.TableWidthUnitValues? ResolveNativeTablePreferredWidthType(W.TableWidth? width) =>
+            WordTableWidthNative.ResolveType(width);
 
         private static double? GetNativeTablePreferredWidth(W.TableWidth? width, double? contentWidth) {
-            W.TableWidthUnitValues type = ResolveNativeTablePreferredWidthType(width);
+            W.TableWidthUnitValues? type = ResolveNativeTablePreferredWidthType(width);
             if (type == W.TableWidthUnitValues.Pct && width != null) {
                 double? percent = GetNativeTablePreferredWidthPercent(width);
                 if (!percent.HasValue || !contentWidth.HasValue || contentWidth.Value <= 0D) {
@@ -398,14 +398,14 @@ namespace OfficeIMO.Word.Pdf {
 
         private static double? GetNativeTableCellPreferredWidthPercent(WordTableCell cell) {
             W.TableCellWidth? width = cell._tableCellProperties?.TableCellWidth;
-            if (TablePreferredWidth.ResolveCellType(width) != W.TableWidthUnitValues.Pct) {
+            if (WordTableWidthNative.ResolveCellType(width) != W.TableWidthUnitValues.Pct) {
                 return null;
             }
 
             return GetNativeTableWidthPercent(width?.Width?.Value);
         }
 
-        private static double? GetNativeTableWidthPercent(string? rawWidth) => TablePreferredWidth.Percentage(rawWidth);
+        private static double? GetNativeTableWidthPercent(string? rawWidth) => WordTableWidthNative.Percentage(rawWidth);
 
         private static double? GetNativeTableLeftIndent(W.TableIndentation? indentation) {
             if (indentation?.Type?.Value != W.TableWidthUnitValues.Dxa || indentation.Width == null) {

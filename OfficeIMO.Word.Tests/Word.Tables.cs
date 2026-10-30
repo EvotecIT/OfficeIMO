@@ -834,8 +834,7 @@ namespace OfficeIMO.Tests {
 
                 Assert.True(wordTable1.Alignment == WordTableAlignment.Center);
 
-                wordTable1.WidthType = WordTableWidthUnit.Pct;
-                wordTable1.Width = 3000;
+                wordTable1.Width = WordTableWidth.Percent((3000) / 50d);
 
                 wordTable1.Title = "This is a title of the table";
                 wordTable1.Description = "This is a table showing some features";
@@ -960,8 +959,8 @@ namespace OfficeIMO.Tests {
                 WordTable wordTable = document.AddTable(3, 4, WordTableStyle.PlainTable1);
                 wordTable.Rows[0].Cells[0].Paragraphs[0].Text = "Test 1";
 
-                Assert.True(wordTable.Width == 0);
-                Assert.True(wordTable.WidthType == WordTableWidthUnit.Auto);
+                Assert.True(wordTable.Width?.ToNativeValue() == 0);
+                Assert.True(wordTable.Width?.Kind == WordTableWidthKind.Auto);
 
                 document.AddParagraph();
                 document.AddParagraph();
@@ -969,12 +968,11 @@ namespace OfficeIMO.Tests {
                 WordTable wordTable1 = document.AddTable(2, 6, WordTableStyle.PlainTable1);
                 wordTable1.Rows[0].Cells[0].Paragraphs[0].Text = "Test 1";
                 wordTable1.Rows[1].Cells[0].Paragraphs[0].Text = "Test 1 - ok longer text, no autosize right?";
-                wordTable1.WidthType = WordTableWidthUnit.Pct;
-                wordTable1.Width = 2000;
+                wordTable1.Width = WordTableWidth.Percent((2000) / 50d);
                 wordTable1.Alignment = WordTableAlignment.Center;
 
-                Assert.True(wordTable1.Width == 2000);
-                Assert.True(wordTable1.WidthType == WordTableWidthUnit.Pct);
+                Assert.True(wordTable1.Width?.ToNativeValue() == 2000);
+                Assert.True(wordTable1.Width?.Kind == WordTableWidthKind.Percent);
                 Assert.True(wordTable1.Alignment == WordTableAlignment.Center);
 
                 document.AddParagraph();
@@ -983,30 +981,28 @@ namespace OfficeIMO.Tests {
                 WordTable wordTable2 = document.AddTable(3, 4, WordTableStyle.PlainTable1);
                 wordTable2.Rows[0].Cells[0].Paragraphs[0].Text = "Test 1";
 
-                Assert.True(wordTable2.Width == 0);
-                Assert.True(wordTable2.WidthType == WordTableWidthUnit.Auto);
+                Assert.True(wordTable2.Width?.ToNativeValue() == 0);
+                Assert.True(wordTable2.Width?.Kind == WordTableWidthKind.Auto);
 
                 document.AddParagraph();
                 document.AddParagraph();
                 document.AddParagraph("Table 4 - Magic number 5000 (full width)");
                 WordTable wordTable3 = document.AddTable(3, 4, WordTableStyle.PlainTable1);
-                wordTable3.WidthType = WordTableWidthUnit.Pct;
-                wordTable3.Width = 5000;
+                wordTable3.Width = WordTableWidth.Percent((5000) / 50d);
                 wordTable3.Rows[0].Cells[0].Paragraphs[0].Text = "Test 1";
 
-                Assert.True(wordTable3.Width == 5000);
-                Assert.True(wordTable3.WidthType == WordTableWidthUnit.Pct);
+                Assert.True(wordTable3.Width?.ToNativeValue() == 5000);
+                Assert.True(wordTable3.Width?.Kind == WordTableWidthKind.Percent);
 
                 document.AddParagraph();
                 document.AddParagraph();
                 document.AddParagraph("Table 5 - 50% by using 2500 width (pct)");
                 WordTable wordTable4 = document.AddTable(3, 4, WordTableStyle.PlainTable1);
-                wordTable4.WidthType = WordTableWidthUnit.Pct;
-                wordTable4.Width = 2500;
+                wordTable4.Width = WordTableWidth.Percent((2500) / 50d);
                 wordTable4.Rows[0].Cells[0].Paragraphs[0].Text = "Test 1";
 
-                Assert.True(wordTable4.Width == 2500);
-                Assert.True(wordTable4.WidthType == WordTableWidthUnit.Pct);
+                Assert.True(wordTable4.Width?.ToNativeValue() == 2500);
+                Assert.True(wordTable4.Width?.Kind == WordTableWidthKind.Percent);
 
 
                 document.AddParagraph();
@@ -1014,15 +1010,14 @@ namespace OfficeIMO.Tests {
                 document.AddParagraph("Table 6 - 50% by using 2500 width (pct), that we fix to full width");
                 WordTable wordTable5 = document.AddTable(3, 4, WordTableStyle.PlainTable1);
                 // this data is temporary just to prove things work
-                wordTable5.WidthType = WordTableWidthUnit.Pct;
-                wordTable5.Width = 2500;
+                wordTable5.Width = WordTableWidth.Percent((2500) / 50d);
                 // lets fix it for full width
                 wordTable5.DistributeColumnsEvenly();
 
                 // Verify the NEW behavior: DistributeColumnsEvenly distributes within the current width context.
                 // Since Width was set to 2500 (Pct), it should remain 2500.
-                Assert.True(wordTable5.Width == 2500, $"Width after DistributeColumnsEvenly should be 2500, but was {wordTable5.Width}");
-                Assert.True(wordTable5.WidthType == WordTableWidthUnit.Pct, $"WidthType after DistributeColumnsEvenly should be Pct, but was {wordTable5.WidthType}");
+                Assert.True(wordTable5.Width?.ToNativeValue() == 2500, $"Width after DistributeColumnsEvenly should be 2500, but was {wordTable5.Width}");
+                Assert.True(wordTable5.Width?.Kind == WordTableWidthKind.Percent, $"WidthType after DistributeColumnsEvenly should be Pct, but was {wordTable5.Width?.Kind}");
 
                 document.AddParagraph();
                 document.AddParagraph();
@@ -1030,8 +1025,8 @@ namespace OfficeIMO.Tests {
                 WordTable wordTable6 = document.AddTable(3, 4, WordTableStyle.PlainTable1);
                 wordTable6.SetWidthPercentage(50);
 
-                Assert.True(wordTable6.Width == 2500);
-                Assert.True(wordTable6.WidthType == WordTableWidthUnit.Pct);
+                Assert.True(wordTable6.Width?.ToNativeValue() == 2500);
+                Assert.True(wordTable6.Width?.Kind == WordTableWidthKind.Percent);
 
                 document.AddParagraph();
                 document.AddParagraph();
@@ -1039,37 +1034,37 @@ namespace OfficeIMO.Tests {
                 WordTable wordTable7 = document.AddTable(3, 4, WordTableStyle.PlainTable1);
                 wordTable7.SetWidthPercentage(75);
 
-                Assert.True(wordTable7.Width == 3750);
-                Assert.True(wordTable7.WidthType == WordTableWidthUnit.Pct);
+                Assert.True(wordTable7.Width?.ToNativeValue() == 3750);
+                Assert.True(wordTable7.Width?.Kind == WordTableWidthKind.Percent);
 
                 document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(Path.Combine(_directoryWithFiles, "CreatingWordDocumentWithTablesAndSizes.docx"))) {
-                Assert.True(document.Tables[0].Width == 0);
-                Assert.True(document.Tables[0].WidthType == WordTableWidthUnit.Auto);
+                Assert.True(document.Tables[0].Width?.ToNativeValue() == 0);
+                Assert.True(document.Tables[0].Width?.Kind == WordTableWidthKind.Auto);
 
-                Assert.True(document.Tables[1].Width == 2000);
-                Assert.True(document.Tables[1].WidthType == WordTableWidthUnit.Pct);
+                Assert.True(document.Tables[1].Width?.ToNativeValue() == 2000);
+                Assert.True(document.Tables[1].Width?.Kind == WordTableWidthKind.Percent);
 
-                Assert.True(document.Tables[2].Width == 0);
-                Assert.True(document.Tables[2].WidthType == WordTableWidthUnit.Auto);
+                Assert.True(document.Tables[2].Width?.ToNativeValue() == 0);
+                Assert.True(document.Tables[2].Width?.Kind == WordTableWidthKind.Auto);
 
-                Assert.True(document.Tables[3].Width == 5000);
-                Assert.True(document.Tables[3].WidthType == WordTableWidthUnit.Pct);
+                Assert.True(document.Tables[3].Width?.ToNativeValue() == 5000);
+                Assert.True(document.Tables[3].Width?.Kind == WordTableWidthKind.Percent);
 
-                Assert.True(document.Tables[4].Width == 2500);
-                Assert.True(document.Tables[4].WidthType == WordTableWidthUnit.Pct);
+                Assert.True(document.Tables[4].Width?.ToNativeValue() == 2500);
+                Assert.True(document.Tables[4].Width?.Kind == WordTableWidthKind.Percent);
 
                 // Verify loaded state for the table where DistributeColumnsEvenly was called
-                Assert.True(document.Tables[5].Width == 2500, $"[Load] Width after DistributeColumnsEvenly should be 2500, but was {document.Tables[5].Width}");
-                Assert.True(document.Tables[5].WidthType == WordTableWidthUnit.Pct, $"[Load] WidthType after DistributeColumnsEvenly should be Pct, but was {document.Tables[5].WidthType}");
+                Assert.True(document.Tables[5].Width?.ToNativeValue() == 2500, $"[Load] Width after DistributeColumnsEvenly should be 2500, but was {document.Tables[5].Width}");
+                Assert.True(document.Tables[5].Width?.Kind == WordTableWidthKind.Percent, $"[Load] WidthType after DistributeColumnsEvenly should be Pct, but was {document.Tables[5].Width?.Kind}");
 
-                Assert.True(document.Tables[6].Width == 2500);
-                Assert.True(document.Tables[6].WidthType == WordTableWidthUnit.Pct);
+                Assert.True(document.Tables[6].Width?.ToNativeValue() == 2500);
+                Assert.True(document.Tables[6].Width?.Kind == WordTableWidthKind.Percent);
 
-                Assert.True(document.Tables[7].Width == 3750);
-                Assert.True(document.Tables[7].WidthType == WordTableWidthUnit.Pct);
+                Assert.True(document.Tables[7].Width?.ToNativeValue() == 3750);
+                Assert.True(document.Tables[7].Width?.Kind == WordTableWidthKind.Percent);
 
             }
         }

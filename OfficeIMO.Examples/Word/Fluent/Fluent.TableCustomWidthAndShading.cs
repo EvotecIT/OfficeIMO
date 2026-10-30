@@ -20,14 +20,12 @@ namespace OfficeIMO.Examples.Word
                     row2.Cells[1].Paragraphs[0].Text = System.Convert.ToString("Blue") ?? string.Empty;
                     foreach (var row in table1.Rows)
                     {
-                        row.Cells[1 - 1].WidthType = WordTableWidthUnit.Dxa;
-                        row.Cells[1 - 1].Width = (int)(72 * 20);
+                        row.Cells[1 - 1].Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)((int)(72 * 20)) * 635)));
                     }
 
                     foreach (var row in table1.Rows)
                     {
-                        row.Cells[2 - 1].WidthType = WordTableWidthUnit.Dxa;
-                        row.Cells[2 - 1].Width = (int)(144 * 20);
+                        row.Cells[2 - 1].Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)((int)(144 * 20)) * 635)));
                     }
 
                     table1.Rows[1 - 1].Height = global::OfficeIMO.OfficeLength.Points(((int)(36 * 20)) / 20D);

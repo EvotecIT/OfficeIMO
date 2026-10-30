@@ -1,3 +1,4 @@
+using System.Linq;
 using System;
 using System.Collections.Generic;
 using DocumentFormat.OpenXml.Wordprocessing;
@@ -18,9 +19,8 @@ namespace OfficeIMO.Examples.Word {
             using (WordDocument document = WordDocument.Create(filePath)) {
                 var table = document.AddTable(1, 3);
                 table.Alignment = WordTableAlignment.Right;
-                table.Width = 5000;
-                table.WidthType = WordTableWidthUnit.Pct;
-                table.ColumnWidth = new List<int>() { 1500, 2000, 1500 };
+                table.Width = WordTableWidth.Percent(100);
+                table.ColumnWidth = new List<WordTableWidth?> { WordTableWidth.Length(global::OfficeIMO.OfficeLength.Points(75)), WordTableWidth.Length(global::OfficeIMO.OfficeLength.Points(100)), WordTableWidth.Length(global::OfficeIMO.OfficeLength.Points(75)) };
 
                 // add on the left
                 table.Rows[0].Cells[0].Paragraphs[0].Text = "To: ";

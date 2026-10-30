@@ -1001,7 +1001,7 @@ namespace OfficeIMO.Word.Html {
                     SetOutputAttribute(tableEl, "aria-description", table.Description!, "Table:accessible-description");
                 }
                 var tableStyles = new List<string>();
-                var tableWidth = GetWidthCss(table.WidthType?.ToOpenXml(), table.Width);
+                var tableWidth = GetWidthCss(table.Width);
                 if (!string.IsNullOrEmpty(tableWidth)) {
                     tableStyles.Add($"width:{tableWidth}");
                 }
@@ -1069,7 +1069,7 @@ namespace OfficeIMO.Word.Html {
                         }
 
                         var cellStyles = new List<string>();
-                        var width = GetWidthCss(cell.WidthType?.ToOpenXml(), cell.Width);
+                        var width = GetWidthCss(cell.Width);
                         if (!string.IsNullOrEmpty(width)) {
                             cellStyles.Add($"width:{width}");
                         }

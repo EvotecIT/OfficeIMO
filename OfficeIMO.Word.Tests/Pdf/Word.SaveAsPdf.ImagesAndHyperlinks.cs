@@ -243,10 +243,8 @@ public partial class Word {
 
         using (WordDocument document = WordDocument.Create(docPath)) {
             WordTable table = document.AddTable(1, 1, WordTableStyle.TableGrid);
-            table.WidthType = WordTableWidthUnit.Dxa;
-            table.Width = 7200;
-            table.ColumnWidth = new[] { 7200 }.ToList();
-            table.ColumnWidthType = WordTableWidthUnit.Dxa;
+            table.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(7200) * 635)));
+            table.ColumnWidth = new[] { 7200 }.ToList().Select(value => (WordTableWidth?)WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(value) * 635)))).ToList();
             WordParagraph paragraph = table.Rows[0].Cells[0].Paragraphs[0];
             paragraph.Text = "Logo content control in a table";
             paragraph.ParagraphAlignment = WordParagraphAlignment.Center;

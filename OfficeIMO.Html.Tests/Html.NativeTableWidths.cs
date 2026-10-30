@@ -1,3 +1,4 @@
+using System.Linq;
 using OfficeIMO.Html;
 using OfficeIMO.Word;
 using OfficeIMO.Word.Html;
@@ -17,7 +18,7 @@ public class HtmlNativeTableWidths {
         WordTable table = Assert.Single(reopened.Tables);
         WordSection section = reopened.Sections[0];
         int textWidth = (int)checked((uint?)(section.PageSettings.Width?.ToTwips()))!.Value - (int)checked((uint)(section.Margins.Left.GetValueOrDefault().ToTwips())) - (int)checked((uint)(section.Margins.Right.GetValueOrDefault().ToTwips()));
-        Assert.InRange(table.GridColumnWidth.Sum(), 1, textWidth);
+        Assert.InRange(table.GridColumnWidth.Select(width => checked((int)width.ToTwips())).ToList().Sum(), 1, textWidth);
         Assert.Equal(5, table.Rows[0].Cells.Count);
         Assert.Contains("Fifth column is visible", table.Rows[0].Cells[4].Paragraphs.Select(p => p.Text));
     }
@@ -28,7 +29,7 @@ public class HtmlNativeTableWidths {
     public void HtmlToWord_AuthoredTableAndColumnWidthsArePreserved(string attributes, string columns, int width) {
         using WordDocument word = HtmlConversionDocument.Parse("<table " + attributes + ">" + columns + FiveColumns + "</table>").ToWord();
         WordTable table = Assert.Single(word.Tables);
-        Assert.Equal(width, table.GridColumnWidth.Sum());
+        Assert.Equal(width, table.GridColumnWidth.Select(width => checked((int)width.ToTwips())).ToList().Sum());
     }
 
     [Fact]
@@ -37,7 +38,7 @@ public class HtmlNativeTableWidths {
         WordTable outer = Assert.Single(word.Tables);
         WordTableCell containingCell = outer.Rows[0].Cells[1];
         WordTable nested = Assert.Single(containingCell.NestedTables);
-        Assert.InRange(nested.GridColumnWidth.Sum(), 1, containingCell.Width!.Value);
+        Assert.InRange(nested.GridColumnWidth.Select(width => checked((int)width.ToTwips())).ToList().Sum(), 1, containingCell.Width!.Value.ToNativeValue());
     }
     [Theory]
     [InlineData("", "")]
@@ -52,10 +53,10 @@ public class HtmlNativeTableWidths {
         using var xml = archive.GetEntry("word/document.xml")!.Open();
         var document = System.Xml.Linq.XDocument.Load(xml);
         System.Xml.Linq.XNamespace w = "http://schemas.openxmlformats.org/wordprocessingml/2006/main";
-        Assert.Equal(new[] { 2400, 2400 }, outer.GridColumnWidth);
+        Assert.Equal(new[] { 2400, 2400 }, outer.GridColumnWidth.Select(width => checked((int)width.ToTwips())).ToList());
         var nested = Assert.Single(document.Descendants(w + "sdtContent").Elements(w + "tbl"));
         int width = nested.Element(w + "tblGrid")!.Elements(w + "gridCol").Sum(col => (int)col.Attribute(w + "w")!);
-        Assert.InRange(width, 1, containingCell.Width!.Value - 216);
+        Assert.InRange(width, 1, containingCell.Width!.Value.ToNativeValue() - 216);
     }
 
     [Theory]
@@ -137,7 +138,7 @@ public class HtmlNativeTableWidths {
         first.Margins.Right = global::OfficeIMO.OfficeLength.Points(50D);
         word.AddHtmlToBody(HtmlConversionDocument.Parse("<table style='width:100%'>" + FiveColumns + "</table>"));
         WordTable table = Assert.Single(word.Tables);
-        Assert.Equal(5000, table.GridColumnWidth.Sum());
+        Assert.Equal(5000, table.GridColumnWidth.Select(width => checked((int)width.ToTwips())).ToList().Sum());
         WordSection last = word.AddSection();
         last.PageSettings.Width = global::OfficeIMO.OfficeLength.Points(600D);
         last.Margins.Left = global::OfficeIMO.OfficeLength.Points(75D);
@@ -147,7 +148,7 @@ public class HtmlNativeTableWidths {
         word.InsertTableAfter(anchor, table);
         using MemoryStream saved = new System.IO.MemoryStream(word.ToBytes());
         using WordDocument reopened = WordDocument.Load(saved);
-        Assert.Equal(9000, Assert.Single(reopened.Tables).GridColumnWidth.Sum());
+        Assert.Equal(9000, Assert.Single(reopened.Tables).GridColumnWidth.Select(width => checked((int)width.ToTwips())).ToList().Sum());
     }
 
 }

@@ -246,72 +246,21 @@ namespace OfficeIMO.Word {
             }
         }
 
-        /// <summary>
-        /// Gets or sets cell width
-        /// </summary>
-        public int? Width {
-            get {
-                var width = _tableCellProperties?.TableCellWidth?.Width;
-                if (width != null) {
-                    return int.Parse(width!);
-                }
-
-                return null;
-            }
+        /// <summary>Gets or sets the directly authored preferred cell width. Null removes tcW.</summary>
+        /// <remarks>Native lexical and partial declarations are preserved on read. Unsupported values throw
+        /// on public value access while native load/save retains them.</remarks>
+        public WordTableWidth? Width {
+            get => WordTableWidthNative.Read(_tableCellProperties?.TableCellWidth);
             set {
-                AddTableCellProperties();
-                if (value != null) {
-                    _tableCellProperties!.TableCellWidth ??= new TableCellWidth();
-                    _tableCellProperties.TableCellWidth.Width = value.Value.ToString();
-                    NormalizeTableCellPropertiesOrder();
-                } else {
+                if (!value.HasValue) {
                     _tableCellProperties?.TableCellWidth?.Remove();
+                    return;
                 }
-            }
-        }
-
-        //public int? WidthPercentage {
-        //    get {
-        //        if (_tableCellProperties.TableCellWidth != null) {
-        //            var width = _tableCellProperties.TableCellWidth.Width;
-        //            var type = _tableCellProperties.TableCellWidth.Type;
-        //            if (type == TableWidthUnitValues.Pct) {
-        //                if (width.Value.Contains("%")) {
-        //                    return int.Parse(width.Value.Replace("%", ""));
-        //                }
-        //            } else if (type == TableWidthUnitValues.Dxa) {
-        //                throw new NotImplementedException("WidthPercentage is not implemented for TableWidthUnitValues.Dxa");
-        //                //var widthInInches = (double.Parse(width.Value) / 1440);
-        //                //var widthInPercentage = (widthInInches / _wordTable.Width) * 100;
-        //                //return (int)widthInPercentage;
-        //            } else {
-        //                throw new NotImplementedException("WidthPercentage is not implemented for " + type);
-        //            }
-        //        }
-
-        //        return null;
-        //    }
-        //    set {
-
-        //    }
-        //}
-
-        /// <summary>
-        /// Gets or sets cell width type
-        /// </summary>
-        public WordTableWidthUnit? WidthType {
-            get {
-                return _tableCellProperties?.TableCellWidth?.Type?.Value.ToOfficeEnum();
-            }
-            set {
                 AddTableCellProperties();
-                if (value != null) {
-                    _tableCellProperties!.TableCellWidth ??= new TableCellWidth();
-                    _tableCellProperties.TableCellWidth.Type = value.Value.ToOpenXml();
-                    NormalizeTableCellPropertiesOrder();
-                } else {
-                    _tableCellProperties?.TableCellWidth?.Remove();
-                }
+                var width = new TableCellWidth();
+                WordTableWidthNative.Write(width, value.Value);
+                _tableCellProperties!.TableCellWidth = width;
+                NormalizeTableCellPropertiesOrder();
             }
         }
 

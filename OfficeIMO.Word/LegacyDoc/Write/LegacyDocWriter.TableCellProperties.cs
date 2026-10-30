@@ -361,7 +361,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 return null;
             }
 
-            if (cellWidth.Type?.Value != TableWidthUnitValues.Dxa) {
+            if (cellWidth.Type == null || WordTableWidthNative.NativeType(cellWidth) != TableWidthUnitValues.Dxa) {
                 throw new NotSupportedException("Native DOC saving supports simple table cell widths only as explicit DXA twip values.");
             }
 

@@ -103,8 +103,7 @@ public partial class Word {
         ConfigureNestedLayoutParagraph(parent.Paragraphs[0], "FRAMEANCHOR");
         WordTable inner = parent.AddTable(2, 2, WordTableStyle.TableGrid);
         ConfigureNestedLayoutTable(inner, 3000, 900, 2100);
-        inner.WidthType = WordTableWidthUnit.Pct;
-        inner.Width = 2500;
+        inner.Width = WordTableWidth.Percent((2500) / 50d);
         inner.LayoutMode = automatic ? WordTableLayoutMode.AutoFit : WordTableLayoutMode.Fixed;
         inner._tableProperties!.TableIndentation = new W.TableIndentation { Width = 0, Type = W.TableWidthUnitValues.Dxa };
         inner._tableProperties.TableBorders = new W.TableBorders(
@@ -169,7 +168,7 @@ public partial class Word {
             new W.RightBorder { Val = W.BorderValues.Single, Size = borderSizeEighthsOfPoint },
             new W.InsideHorizontalBorder { Val = W.BorderValues.Single, Size = borderSizeEighthsOfPoint },
             new W.InsideVerticalBorder { Val = W.BorderValues.Single, Size = borderSizeEighthsOfPoint });
-        if (percentage) { inner.WidthType = WordTableWidthUnit.Pct; inner.Width = percentageFiftieths; }
+        if (percentage) { inner.Width = WordTableWidth.Percent((percentageFiftieths) / 50d); }
         foreach (WordTableCell cell in inner.Rows[0].Cells) cell.MarginLeft = cell.MarginRight = global::OfficeIMO.OfficeLength.Points(2D);
         ConfigureNestedLayoutParagraph(inner.Rows[0].Cells[0].Paragraphs[0], "LEFT");
         ConfigureNestedLayoutParagraph(inner.Rows[0].Cells[1].Paragraphs[0], "RIGHT");
@@ -203,8 +202,7 @@ public partial class Word {
         ConfigureNestedLayoutTable(inner, 3000, 900, 2100);
         inner._tableProperties!.TableIndentation = new W.TableIndentation { Width = 0, Type = W.TableWidthUnitValues.Dxa };
         if (percentage) {
-            inner.WidthType = WordTableWidthUnit.Pct;
-            inner.Width = 2500;
+            inner.Width = WordTableWidth.Percent((2500) / 50d);
         }
         foreach (WordTableCell cell in inner.Rows[0].Cells)
             cell.MarginLeft = cell.MarginRight = global::OfficeIMO.OfficeLength.Points((childMarginTwips) / 20D);

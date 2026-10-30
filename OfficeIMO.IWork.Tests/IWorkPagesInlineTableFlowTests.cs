@@ -1,3 +1,4 @@
+using System.Linq;
 using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.IWork;
 using OfficeIMO.Word;
@@ -101,10 +102,10 @@ public sealed partial class IWorkBoundaryTests {
         using var reopened = WordDocument.Load(saved);
         WordTable table = Assert.Single(reopened.Tables);
         Assert.Equal(WordTableLayoutMode.Fixed, table.LayoutMode);
-        Assert.Equal(WordTableWidthUnit.Dxa, table.WidthType);
-        Assert.Equal(1210, table.Width);
-        Assert.Equal(new[] { 810, 400 }, table.GridColumnWidth);
-        Assert.Equal(new[] { 810, 400 }, table.ColumnWidth);
+        Assert.Equal(WordTableWidthKind.Length, table.Width?.Kind);
+        Assert.Equal(1210, table.Width?.LengthValue?.ToTwips());
+        Assert.Equal(new[] { 810, 400 }, table.GridColumnWidth.Select(width => checked((int)width.ToTwips())).ToList());
+        Assert.Equal(new[] { 810, 400 }, table.ColumnWidth.Select(width => width?.ToNativeValue() ?? 0).ToList());
         Assert.Empty(reopened.ValidateDocument());
     }
 

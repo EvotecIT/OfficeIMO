@@ -1,3 +1,4 @@
+using System.Linq;
 using OfficeIMO.Word;
 using DocumentFormat.OpenXml.Wordprocessing;
 using Xunit;
@@ -242,12 +243,11 @@ public partial class Word {
         WordTable outer = storyKind == 0 ? source.AddTable(1, 1, WordTableStyle.TableNormal)
             : (storyKind == 1 ? (WordHeaderFooter)source.Header.Default : source.Footer.Default).AddTable(1, 1, WordTableStyle.TableNormal);
         WordTable nested = outer.Rows[0].Cells[0].AddTable(2, 2, WordTableStyle.TableNormal);
-        nested.GridColumnWidth = new List<int> { 1800, 3000 };
+        nested.GridColumnWidth = new List<int> { 1800, 3000 }.Select(value => global::OfficeIMO.OfficeLength.Emus(checked((long)value * 635))).ToList();
         nested.Rows[0].Height = global::OfficeIMO.OfficeLength.Points(36D);
         for (int row = 0; row < 2; row++) for (int column = 0; column < 2; column++) {
             WordTableCell cell = nested.Rows[row].Cells[column];
-            cell.Width = column == 0 ? 1800 : 3000;
-            cell.WidthType = WordTableWidthUnit.Dxa;
+            cell.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(column == 0 ? 1800 : 3000) * 635)));
             cell.MarginLeft = global::OfficeIMO.OfficeLength.Points(12D);
             cell.Paragraphs[0].Text = $"CELL{row}{column}";
             cell.AddParagraph("SECOND");
@@ -268,8 +268,8 @@ public partial class Word {
             Assert.Equal(720, checked((int?)(restoredNested.Rows[0].Height?.ToTwips())));
             for (int row = 0; row < 2; row++) {
                 Assert.Equal(2, restoredNested.Rows[row].Cells.Count);
-                Assert.Equal(1800, restoredNested.Rows[row].Cells[0].Width);
-                Assert.Equal(3000, restoredNested.Rows[row].Cells[1].Width);
+                Assert.Equal(1800, restoredNested.Rows[row].Cells[0].Width?.ToNativeValue());
+                Assert.Equal(3000, restoredNested.Rows[row].Cells[1].Width?.ToNativeValue());
                 Assert.All(restoredNested.Rows[row].Cells, cell => Assert.Equal((short)240, checked((short?)(cell.MarginLeft?.ToTwips()))));
                 for (int column = 0; column < 2; column++) Assert.Equal(new[] { $"CELL{row}{column}", "SECOND" },
                     restoredNested.Rows[row].Cells[column].Paragraphs.Select(paragraph => paragraph.Text));

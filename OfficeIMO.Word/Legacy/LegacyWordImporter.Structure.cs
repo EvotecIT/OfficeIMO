@@ -65,8 +65,7 @@ public static partial class LegacyWordImporter {
                 LegacyWordTableCell sourceCell = source.Rows[row].Cells[column];
                 WordTableCell cell = table.Rows[row].Cells[column];
                 if (column < source.ColumnWidthsPoints.Count) {
-                    cell.WidthType = WordTableWidthUnit.Dxa;
-                    cell.Width = Twips(source.ColumnWidthsPoints[column]);
+                    cell.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Points(source.ColumnWidthsPoints[column]));
                 }
                 for (int paragraph = 0; paragraph < sourceCell.Paragraphs.Count; paragraph++) {
                     cancellation.ThrowIfCancellationRequested();

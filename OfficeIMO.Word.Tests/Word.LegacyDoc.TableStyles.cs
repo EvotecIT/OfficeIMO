@@ -158,11 +158,9 @@ namespace OfficeIMO.Tests {
 
                     WordTable table = document.AddTable(1, 2, WordTableStyle.TableNormal);
                     table._tableProperties!.TableStyle = new TableStyle { Val = childStyleId };
-                    table.Rows[0].Cells[0].WidthType = WordTableWidthUnit.Dxa;
-                    table.Rows[0].Cells[0].Width = 1440;
+                    table.Rows[0].Cells[0].Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(1440) * 635)));
                     table.Rows[0].Cells[0].AddParagraph("Inherited layout", removeExistingParagraphs: true);
-                    table.Rows[0].Cells[1].WidthType = WordTableWidthUnit.Dxa;
-                    table.Rows[0].Cells[1].Width = 1440;
+                    table.Rows[0].Cells[1].Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(1440) * 635)));
                     table.Rows[0].Cells[1].AddParagraph("Merged margins", removeExistingParagraphs: true);
 
                     document.Save(docPath);
@@ -174,8 +172,8 @@ namespace OfficeIMO.Tests {
                 WordTable reloadedTable = Assert.Single(reloaded.Tables);
                 Assert.Equal(WordTableAlignment.Right, reloadedTable.Alignment);
                 Assert.Equal((short)720, reloadedTable.StyleDetails!.TableIndentationWidth);
-                Assert.Equal(WordTableWidthUnit.Dxa, reloadedTable.WidthType);
-                Assert.Equal(2160, reloadedTable.Width);
+                Assert.Equal(WordTableWidthKind.Length, reloadedTable.Width?.Kind);
+                Assert.Equal(2160, reloadedTable.Width?.ToNativeValue());
                 Assert.Equal(WordTableLayoutMode.Fixed, reloadedTable.LayoutMode);
                 Assert.Equal((short)240, reloadedTable.StyleDetails.CellSpacing);
 

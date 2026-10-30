@@ -1,3 +1,4 @@
+using System.Linq;
 using DocumentFormat.OpenXml;
 using OfficeIMO.Pdf;
 using OfficeIMO.Word;
@@ -288,11 +289,9 @@ public partial class Word {
         ConfigureNestedLayoutParagraph(parent.Paragraphs[0], "AHEAD");
         WordTable inner = parent.AddTable(1, 2, WordTableStyle.TableGrid);
         ConfigureNestedLayoutTable(inner, 6000, 3000, 3000);
-        inner.WidthType = WordTableWidthUnit.Pct;
-        inner.Width = innerWidthPercentage;
+        inner.Width = WordTableWidth.Percent((innerWidthPercentage) / 50d);
         foreach (WordTableCell cell in inner.Rows[0].Cells) {
-            cell.WidthType = WordTableWidthUnit.Auto;
-            cell.Width = 0;
+            cell.Width = WordTableWidth.Auto;
         }
         ConfigureNestedLayoutParagraph(inner.Rows[0].Cells[0].Paragraphs[0], "LEFT");
         ConfigureNestedLayoutParagraph(inner.Rows[0].Cells[1].Paragraphs[0], "RIGHT");
@@ -316,14 +315,12 @@ public partial class Word {
 
     private static void ConfigureNestedLayoutTable(WordTable table, int widthTwips, params int[] columns) {
         table.LayoutMode = WordTableLayoutMode.Fixed;
-        table.WidthType = WordTableWidthUnit.Dxa;
-        table.Width = widthTwips;
-        table.GridColumnWidth = columns.ToList();
+        table.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(widthTwips) * 635)));
+        table.GridColumnWidth = columns.ToList().Select(value => global::OfficeIMO.OfficeLength.Emus(checked((long)value * 635))).ToList();
         foreach (WordTableRow row in table.Rows) {
             for (int index = 0; index < row.Cells.Count; index++) {
                 WordTableCell cell = row.Cells[index];
-                cell.WidthType = WordTableWidthUnit.Dxa;
-                cell.Width = columns[index];
+                cell.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(columns[index]) * 635)));
                 cell.MarginTop = cell.MarginBottom = cell.MarginLeft = cell.MarginRight = global::OfficeIMO.OfficeLength.Zero;
             }
         }

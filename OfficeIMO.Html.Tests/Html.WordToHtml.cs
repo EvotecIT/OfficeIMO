@@ -589,13 +589,10 @@ namespace OfficeIMO.Tests {
         public void Test_WordToHtml_TableColumnGroups_ExportWhenEnabled() {
             using var doc = WordDocument.Create();
             var table = doc.AddTable(1, 2);
-            table.WidthType = WordTableWidthUnit.Pct;
-            table.Width = 5000;
-            table.Rows[0].Cells[0].WidthType = WordTableWidthUnit.Pct;
-            table.Rows[0].Cells[0].Width = 675;
+            table.Width = WordTableWidth.Percent((5000) / 50d);
+            table.Rows[0].Cells[0].Width = WordTableWidth.Percent((675) / 50d);
             table.Rows[0].Cells[0].Paragraphs[0].Text = "A";
-            table.Rows[0].Cells[1].WidthType = WordTableWidthUnit.Pct;
-            table.Rows[0].Cells[1].Width = 4325;
+            table.Rows[0].Cells[1].Width = WordTableWidth.Percent((4325) / 50d);
             table.Rows[0].Cells[1].Paragraphs[0].Text = "B";
 
             string defaultHtml = doc.ToHtml();
@@ -613,11 +610,9 @@ namespace OfficeIMO.Tests {
         public void Test_WordToHtml_TableColumnGroups_FallBackToGridWidths() {
             using var doc = WordDocument.Create();
             var table = doc.AddTable(1, 2);
-            table.GridColumnWidth = new List<int> { 2400, 4800 };
-            table.Rows[0].Cells[0].WidthType = null;
+            table.GridColumnWidth = new List<int> { 2400, 4800 }.Select(value => global::OfficeIMO.OfficeLength.Emus(checked((long)value * 635))).ToList();
             table.Rows[0].Cells[0].Width = null;
             table.Rows[0].Cells[0].Paragraphs[0].Text = "A";
-            table.Rows[0].Cells[1].WidthType = null;
             table.Rows[0].Cells[1].Width = null;
             table.Rows[0].Cells[1].Paragraphs[0].Text = "B";
 
@@ -1147,12 +1142,10 @@ namespace OfficeIMO.Tests {
         public void Test_WordToHtml_TableCellStyles() {
             using var doc = WordDocument.Create();
             var table = doc.AddTable(1, 1);
-            table.WidthType = WordTableWidthUnit.Pct;
-            table.Width = 5000;
+            table.Width = WordTableWidth.Percent((5000) / 50d);
 
             var cell = table.Rows[0].Cells[0];
-            cell.WidthType = WordTableWidthUnit.Pct;
-            cell.Width = 2500;
+            cell.Width = WordTableWidth.Percent((2500) / 50d);
             cell.Paragraphs[0].ParagraphAlignment = WordParagraphAlignment.Center;
             cell.Borders.LeftStyle = WordBorderStyle.Single;
             cell.Borders.RightStyle = WordBorderStyle.Single;

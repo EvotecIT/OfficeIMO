@@ -69,28 +69,20 @@ namespace OfficeIMO.Word {
 
             CheckTableProperties();
 
-            // Determine the target total width and type to distribute
-            WordTableWidthUnit targetType = this.WidthType ?? WordTableWidthUnit.Pct; // Default to Pct if not set
-            int targetTotalWidth;
-
-            if (targetType == WordTableWidthUnit.Pct) {
-                targetTotalWidth = this.Width ?? 5000; // Default to 100% (5000) if width not set
-            } else if (targetType == WordTableWidthUnit.Dxa) {
-                targetTotalWidth = this.Width ?? 0;
-                // If Dxa width is 0 or not set, it's ambiguous. Default to distributing 100% Pct.
-                if (targetTotalWidth <= 0) {
-                    targetType = WordTableWidthUnit.Pct;
-                    targetTotalWidth = 5000;
-                }
-            } else { // Auto or unspecified - default to distributing 100% Pct
-                targetType = WordTableWidthUnit.Pct;
-                targetTotalWidth = 5000;
-            }
-
-            // Ensure Table Width properties reflect the distribution target
-            // Setting these ensures the table container matches the distributed columns
-            this.WidthType = targetType;
-            this.Width = targetTotalWidth;
+            TableWidthUnitValues? authoredType = WordTableWidthNative.NativeType(_tableProperties?.TableWidth);
+            if (!authoredType.HasValue)
+                throw new NotSupportedException("Cannot distribute columns with an unsupported native preferred-width type.");
+            bool physical = authoredType == TableWidthUnitValues.Dxa && TableWidthNativeValue > 0;
+            int targetTotalWidth = physical ? TableWidthNativeValue
+                : authoredType == TableWidthUnitValues.Pct
+                    ? WordTableWidthNative.NumericValue(_tableProperties?.TableWidth)
+                        ?? (_tableProperties?.TableWidth?.Width?.Value?.Trim().EndsWith("%", StringComparison.Ordinal) == true
+                            ? checked((int)Math.Round(TableWidthFraction * 5000d, MidpointRounding.AwayFromZero)) : 5000)
+                    : 5000;
+            TableWidthUnitValues targetType = physical ? TableWidthUnitValues.Dxa : TableWidthUnitValues.Pct;
+            // Install the complete preference without refreshing an intermediate grid.
+            _tableProperties!.TableWidth = new TableWidth { Type = targetType,
+                Width = targetTotalWidth.ToString(System.Globalization.CultureInfo.InvariantCulture) };
 
             // Calculate width per column, handling potential rounding for the last column
             int baseColumnWidth = targetTotalWidth / columnCount;
@@ -119,20 +111,13 @@ namespace OfficeIMO.Word {
                         if (!tcPr.Elements<TableCellWidth>().Any()) tcPr.Append(tcW);
 
                         // Set the calculated type and width for the cell
-                        tcW.Type = targetType.ToOpenXml();
+                        tcW.Type = targetType;
                         tcW.Width = newColumnWidths[j].ToString();
                     }
                 }
             }
 
-            // Update the TableGrid for consistency
-            TableGrid? tableGrid = _table.GetFirstChild<TableGrid>();
-            if (tableGrid != null) {
-                tableGrid.RemoveAllChildren<GridColumn>();
-                foreach (int width in newColumnWidths) {
-                    tableGrid.Append(new GridColumn() { Width = width.ToString() });
-                }
-            }
+            RefreshGrid();
         }
 
         /// <summary>
@@ -145,16 +130,16 @@ namespace OfficeIMO.Word {
         /// </summary>
         public void NormalizeForOnline() {
             try {
-                bool explicitTableWidth = (this.WidthType == WordTableWidthUnit.Dxa && (this.Width ?? 0) > 0)
-                                       || (this.WidthType == WordTableWidthUnit.Pct && (this.Width ?? 0) > 0);
-                bool columnWidthTypeSet = this.ColumnWidthType != null;
+                bool explicitTableWidth = (WordTableWidthNative.ResolveType(_tableProperties?.TableWidth) == TableWidthUnitValues.Dxa && TableWidthNativeValue > 0)
+                                       || (WordTableWidthNative.ResolveType(_tableProperties?.TableWidth) == TableWidthUnitValues.Pct && TableWidthFraction > 0);
+                bool columnWidthTypeSet = Rows.FirstOrDefault()?.Cells.FirstOrDefault()?._tableCellProperties?.TableCellWidth?.Type != null;
 
                 // Treat the library's constructor default (DXA 2400) as non-explicit.
                 bool anyExplicitCellWidths = false;
                 foreach (var r in Rows) {
                     foreach (var c in r.Cells) {
                         if (c.Width.HasValue) {
-                            if (c.WidthType != WordTableWidthUnit.Dxa || c.Width!.Value != 2400) {
+                            if (c.Width.Value.Kind != WordTableWidthKind.Length || c.Width.Value.LengthValue!.Value.ToTwips() != 2400) {
                                 anyExplicitCellWidths = true; break;
                             }
                         }
@@ -169,9 +154,12 @@ namespace OfficeIMO.Word {
                     return;
                 }
 
-                // Only update tblGrid using current widths/types
+                // An absent preferred width leaves an existing physical grid authoritative.
+                // Recomputing percentages during save would change a grid preserved by Width = null.
+                bool preserveGrid = _tableProperties?.TableWidth == null &&
+                    _table.GetFirstChild<TableGrid>()?.Elements<GridColumn>().Any() == true;
                 ConvertHorizontalMergesToGridSpan();
-                RefreshGrid();
+                if (!preserveGrid) RefreshGrid();
 
                 // Supply missing host cell margins without replacing direct authoring values.
                 if (IsNestedTable) EnsureHostCellVerticalMargins(72);
@@ -470,13 +458,11 @@ namespace OfficeIMO.Word {
         /// <param name="columnWidths">List of column widths in DXA units</param>
         private void ApplyCalculatedWidths(List<int> columnWidths) {
             // Set column widths
-            this.ColumnWidth = columnWidths;
-            this.ColumnWidthType = WordTableWidthUnit.Dxa;
+            this.ColumnWidth = columnWidths.Select(width => (WordTableWidth?)WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus((long)width * 635))).ToList();
 
             // Ensure the overall table width is set appropriately
             if (columnWidths.Sum() > 0) {
-                this.Width = columnWidths.Sum();
-                this.WidthType = WordTableWidthUnit.Dxa;
+                this.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus((long)columnWidths.Sum() * 635));
             }
         }
 
@@ -682,8 +668,7 @@ namespace OfficeIMO.Word {
         public void SetWidthPercentage(int percentage) {
             if (percentage < 0) percentage = 0;
             if (percentage > 100) percentage = 100;
-            this.WidthType = WordTableWidthUnit.Pct;
-            this.Width = percentage * 50; // Convert percentage to Word's internal units (50 = 1%)
+            this.Width = WordTableWidth.Percent(percentage);
         }
 
         /// <summary>

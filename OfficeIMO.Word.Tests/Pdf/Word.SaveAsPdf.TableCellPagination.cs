@@ -121,10 +121,10 @@ public partial class Word {
         // paint and cell margins have separate artifact regression coverage.
         table.StyleDetails!.SetBordersForAllSides(WordBorderStyle.Nil, 0U, OfficeIMO.OfficeColor.Black);
         table.LayoutMode = WordTableLayoutMode.Fixed;
-        table.Width = 4000; table.WidthType = WordTableWidthUnit.Dxa;
+        table.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(4000) * 635)));
         for (int row = 0; row < rowCount; row++) {
             WordTableCell cell = table.Rows[row].Cells[0];
-            cell.Width = 4000; cell.WidthType = WordTableWidthUnit.Dxa;
+            cell.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(4000) * 635)));
             cell.MarginTop = global::OfficeIMO.OfficeLength.Zero; cell.MarginBottom = global::OfficeIMO.OfficeLength.Zero; cell.MarginLeft = global::OfficeIMO.OfficeLength.Zero; cell.MarginRight = global::OfficeIMO.OfficeLength.Zero;
             WordParagraph paragraph = cell.Paragraphs[0];
             paragraph.Text = string.Join("\n", Enumerable.Range(1, 3).Select(line => $"Row{row + 1:D2}Line{line:D3}"));

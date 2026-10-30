@@ -30,8 +30,7 @@ public sealed class PdfTableCompatibilityPlacementTests {
             new RightBorder { Val = BorderValues.Nil }, new InsideHorizontalBorder { Val = BorderValues.Nil },
             new InsideVerticalBorder { Val = BorderValues.Nil });
         foreach (WordTableCell cell in table.Rows[0].Cells) {
-            cell.Width = 3240;
-            cell.WidthType = WordTableWidthUnit.Dxa;
+            cell.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(3240) * 635)));
             cell.MarginLeft = global::OfficeIMO.OfficeLength.Points(5.4D);
             cell.MarginRight = global::OfficeIMO.OfficeLength.Points(5.4D);
             cell.Paragraphs[0].FontFamily = "Courier New";

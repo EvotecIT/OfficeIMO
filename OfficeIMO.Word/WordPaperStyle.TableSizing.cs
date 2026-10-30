@@ -42,10 +42,8 @@ public sealed partial class WordPaperStyle {
         }
         int[] widths = AllocateHeaderWidths(available, minima, weights);
         // Keep the serialized preferred width, fixed layout, grid and every row in agreement.
-        table.WidthType = WordTableWidthUnit.Dxa;
-        table.Width = available;
-        table.ColumnWidthType = WordTableWidthUnit.Dxa;
-        table.ColumnWidth = widths.ToList();
+        table.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus((long)available * 635));
+        table.ColumnWidth = widths.Select(width => (WordTableWidth?)WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus((long)width * 635))).ToList();
         table._tableProperties!.TableLayout = new TableLayout { Type = TableLayoutValues.Fixed };
         table.RefreshGrid();
     }

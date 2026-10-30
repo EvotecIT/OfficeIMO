@@ -1,3 +1,4 @@
+using System.Linq;
 using OfficeIMO.Word;
 using OfficeIMO.Word.Pdf;
 using Xunit;
@@ -250,7 +251,7 @@ public partial class Word {
         for (int row = 0; row < rows; row++)
             for (int column = 0; column < columns; column++) {
                 WordTableCell cell = table.Rows[row].Cells[column];
-                cell.Width = 2400; cell.WidthType = WordTableWidthUnit.Dxa;
+                cell.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(2400) * 635)));
                 cell.MarginLeft = cell.MarginRight = global::OfficeIMO.OfficeLength.Points(5.4D);
                 cell.MarginTop = cell.MarginBottom = global::OfficeIMO.OfficeLength.Zero;
                 WordParagraph paragraph = cell.Paragraphs[0];
@@ -259,7 +260,7 @@ public partial class Word {
                 paragraph.LineSpacingBefore = paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Zero;
                 paragraph.LineSpacing = global::OfficeIMO.Word.WordLineSpacing.Multiple((240) / 240D);
             }
-        table.GridColumnWidth = Enumerable.Repeat(2400, columns).ToList();
+        table.GridColumnWidth = Enumerable.Repeat(2400, columns).ToList().Select(value => global::OfficeIMO.OfficeLength.Emus(checked((long)value * 635))).ToList();
         return table;
     }
 }

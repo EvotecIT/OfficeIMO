@@ -87,8 +87,7 @@ public partial class Word {
         using var document = WordDocument.Create();
         var table = document.AddTable(1, 1);
         table.LayoutMode = WordTableLayoutMode.Fixed;
-        table.WidthType = WordTableWidthUnit.Dxa;
-        table.Width = 6400;
+        table.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(6400) * 635)));
         table.Rows[0].Height = global::OfficeIMO.OfficeLength.Points(45D);
         table.Rows[0].Cells[0].Paragraphs[0].Text = "Floating";
         table._tableProperties!.TablePositionProperties = new TablePositionProperties {
@@ -114,8 +113,7 @@ public partial class Word {
         using var document = WordDocument.Create();
         var table = document.AddTable(1, 1);
         table.LayoutMode = WordTableLayoutMode.Fixed;
-        table.WidthType = WordTableWidthUnit.Dxa;
-        table.Width = 2400;
+        table.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(2400) * 635)));
         table.Rows[0].Height = global::OfficeIMO.OfficeLength.Points(80D);
         table.Rows[0].Cells[0].Paragraphs[0].Text = "Floating";
         table._tableProperties!.TablePositionProperties = new TablePositionProperties {

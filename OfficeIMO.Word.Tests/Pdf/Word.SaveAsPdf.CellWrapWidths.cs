@@ -1,3 +1,4 @@
+using System.Linq;
 using OfficeIMO.Word;
 using OfficeIMO.Word.Pdf;
 using Xunit;
@@ -7,24 +8,22 @@ namespace OfficeIMO.Tests;
 
 public partial class Word {
     [Theory]
-    [InlineData(WordTableLayoutMode.Fixed, WordTableWidthUnit.Dxa, 3)]
-    [InlineData(WordTableLayoutMode.Fixed, WordTableWidthUnit.Auto, 3)]
-    [InlineData(WordTableLayoutMode.Fixed, WordTableWidthUnit.Pct, 3)]
-    [InlineData(WordTableLayoutMode.AutoFit, WordTableWidthUnit.Dxa, 3)]
-    [InlineData(WordTableLayoutMode.AutoFit, WordTableWidthUnit.Auto, 1)]
-    [InlineData(WordTableLayoutMode.AutoFit, WordTableWidthUnit.Pct, 1)]
+    [InlineData(WordTableLayoutMode.Fixed, WordTableWidthKind.Length, 3)]
+    [InlineData(WordTableLayoutMode.Fixed, WordTableWidthKind.Auto, 3)]
+    [InlineData(WordTableLayoutMode.Fixed, WordTableWidthKind.Percent, 3)]
+    [InlineData(WordTableLayoutMode.AutoFit, WordTableWidthKind.Length, 3)]
+    [InlineData(WordTableLayoutMode.AutoFit, WordTableWidthKind.Auto, 1)]
+    [InlineData(WordTableLayoutMode.AutoFit, WordTableWidthKind.Percent, 1)]
     public void SaveAsPdf_CellNoWrapUsesTableLayoutAndPreferredWidthType(
-        WordTableLayoutMode layout, WordTableWidthUnit widthType, int expectedLines) {
+        WordTableLayoutMode layout, WordTableWidthKind widthType, int expectedLines) {
         using WordDocument document = WordDocument.Create();
         WordTable table = document.AddTable(1, 1);
         table.ConditionalFormattingFirstRow = false;
-        table.Width = 3000;
-        table.WidthType = WordTableWidthUnit.Dxa;
+        table.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(3000) * 635)));
         table.LayoutMode = layout;
-        table.GridColumnWidth = new List<int> { 3000 };
+        table.GridColumnWidth = new List<int> { 3000 }.Select(value => global::OfficeIMO.OfficeLength.Emus(checked((long)value * 635))).ToList();
         WordTableCell cell = table.Rows[0].Cells[0];
-        cell.Width = widthType == WordTableWidthUnit.Pct ? 5000 : 3000;
-        cell.WidthType = widthType;
+        cell.Width = TableWidthFixture(widthType, widthType == WordTableWidthKind.Percent ? 5000 : 3000);
         cell.WrapText = false;
         cell.MarginLeft = global::OfficeIMO.OfficeLength.Points(5.4D);
         cell.MarginRight = global::OfficeIMO.OfficeLength.Points(5.4D);
@@ -55,31 +54,29 @@ public partial class Word {
     }
 
     [Theory]
-    [InlineData(WordTableWidthUnit.Dxa, 6000, WordTableWidthUnit.Dxa, true, 3, 150D)]
-    [InlineData(WordTableWidthUnit.Dxa, 6000, WordTableWidthUnit.Auto, true, 2, 260.5D)]
-    [InlineData(WordTableWidthUnit.Dxa, 6000, WordTableWidthUnit.Auto, false, 1, 301D)]
-    [InlineData(WordTableWidthUnit.Pct, 5000, WordTableWidthUnit.Dxa, true, 2, 234D)]
-    [InlineData(WordTableWidthUnit.Pct, 5000, WordTableWidthUnit.Auto, true, 1, 413.4D)]
-    [InlineData(WordTableWidthUnit.Pct, 5000, WordTableWidthUnit.Auto, false, 1, 413.4D)]
-    [InlineData(WordTableWidthUnit.Dxa, 3000, WordTableWidthUnit.Dxa, true, 7, 75D)]
-    [InlineData(WordTableWidthUnit.Dxa, 3000, WordTableWidthUnit.Auto, true, 4, 110.5D)]
-    [InlineData(WordTableWidthUnit.Dxa, 3000, WordTableWidthUnit.Auto, false, 1, 301D)]
+    [InlineData(WordTableWidthKind.Length, 6000, WordTableWidthKind.Length, true, 3, 150D)]
+    [InlineData(WordTableWidthKind.Length, 6000, WordTableWidthKind.Auto, true, 2, 260.5D)]
+    [InlineData(WordTableWidthKind.Length, 6000, WordTableWidthKind.Auto, false, 1, 301D)]
+    [InlineData(WordTableWidthKind.Percent, 5000, WordTableWidthKind.Length, true, 2, 234D)]
+    [InlineData(WordTableWidthKind.Percent, 5000, WordTableWidthKind.Auto, true, 1, 413.4D)]
+    [InlineData(WordTableWidthKind.Percent, 5000, WordTableWidthKind.Auto, false, 1, 413.4D)]
+    [InlineData(WordTableWidthKind.Length, 3000, WordTableWidthKind.Length, true, 7, 75D)]
+    [InlineData(WordTableWidthKind.Length, 3000, WordTableWidthKind.Auto, true, 4, 110.5D)]
+    [InlineData(WordTableWidthKind.Length, 3000, WordTableWidthKind.Auto, false, 1, 301D)]
     public void SaveAsPdf_AutomaticTableSharesPreferredWidthAccordingToCellPreferences(
-        WordTableWidthUnit tableWidthType, int tableWidth, WordTableWidthUnit cellWidthType,
+        WordTableWidthKind tableWidthType, int tableWidth, WordTableWidthKind cellWidthType,
         bool wrap, int expectedLines, double expectedGap) {
         using WordDocument document = WordDocument.Create();
         WordTable table = document.AddTable(1, 2);
         table.ConditionalFormattingFirstRow = false;
-        table.WidthType = tableWidthType;
-        table.Width = tableWidth;
+        table.Width = TableWidthFixture(tableWidthType, tableWidth);
         table.LayoutMode = WordTableLayoutMode.AutoFit;
-        int gridWidth = tableWidthType == WordTableWidthUnit.Pct ? 4680 : tableWidth / 2;
-        table.GridColumnWidth = new List<int> { gridWidth, gridWidth };
+        int gridWidth = tableWidthType == WordTableWidthKind.Percent ? 4680 : tableWidth / 2;
+        table.GridColumnWidth = new List<int> { gridWidth, gridWidth }.Select(value => global::OfficeIMO.OfficeLength.Emus(checked((long)value * 635))).ToList();
         const string text = "Start Alpha Beta Gamma Delta Epsilon Zeta Eta Theta";
         for (int column = 0; column < 2; column++) {
             WordTableCell cell = table.Rows[0].Cells[column];
-            cell.Width = cellWidthType == WordTableWidthUnit.Dxa ? gridWidth : 0;
-            cell.WidthType = cellWidthType;
+            cell.Width = TableWidthFixture(cellWidthType, cellWidthType == WordTableWidthKind.Length ? gridWidth : 0);
             cell.WrapText = wrap;
             cell.MarginLeft = global::OfficeIMO.OfficeLength.Points(5.4D);
             cell.MarginRight = global::OfficeIMO.OfficeLength.Points(5.4D);

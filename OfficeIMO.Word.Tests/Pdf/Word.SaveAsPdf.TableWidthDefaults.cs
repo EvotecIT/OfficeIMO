@@ -1,3 +1,4 @@
+using System.Linq;
 using OfficeIMO.Word;
 using OfficeIMO.Word.Pdf;
 using PdfPigDocument = UglyToad.PdfPig.PdfDocument;
@@ -31,7 +32,7 @@ public partial class Word {
         WordTableLayoutMode? layout, string? widthType, string? widthValue, bool omitWidth, double expectedColumnWidth) {
         using WordDocument document = WordDocument.Create();
         WordTable table = document.AddTable(1, 2);
-        table.GridColumnWidth = new List<int> { 1440, 1440 };
+        table.GridColumnWidth = new List<int> { 1440, 1440 }.Select(value => global::OfficeIMO.OfficeLength.Emus(checked((long)value * 635))).ToList();
         if (layout.HasValue) table.LayoutMode = layout.Value;
         else table._tableProperties!.TableLayout?.Remove();
         if (omitWidth) table._tableProperties!.TableWidth?.Remove();
@@ -49,8 +50,7 @@ public partial class Word {
         }
         for (int index = 0; index < 2; index++) {
             WordTableCell cell = table.Rows[0].Cells[index];
-            cell.Width = 1440;
-            cell.WidthType = WordTableWidthUnit.Dxa;
+            cell.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(1440) * 635)));
             cell.MarginLeft = cell.MarginRight = global::OfficeIMO.OfficeLength.Points(5.4D);
             cell.MarginTop = cell.MarginBottom = global::OfficeIMO.OfficeLength.Zero;
             WordParagraph paragraph = cell.Paragraphs[0];

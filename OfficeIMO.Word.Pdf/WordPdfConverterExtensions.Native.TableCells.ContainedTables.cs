@@ -38,7 +38,7 @@ public static partial class WordPdfConverterExtensions {
             foreach (WordTableCell cell in row) {
                 options?.CancellationToken.ThrowIfCancellationRequested();
                 if (GetNativeCellRowSpan(cell) > 1 ||
-                    style.AutoFitColumns && TablePreferredWidth.CanDisableCellWrapping(cell) && !cell.WrapText)
+                    style.AutoFitColumns && WordTableWidthNative.CanDisableCellWrapping(cell) && !cell.WrapText)
                     return false;
                 NativeTableCellEmbeddedContent content = CreateNativeTableCellEmbeddedContent(cell, options,
                     interactiveControls: defaults.RunningContentContext == null);

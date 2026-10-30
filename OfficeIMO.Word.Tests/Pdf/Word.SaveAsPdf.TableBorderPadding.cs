@@ -36,11 +36,11 @@ public partial class Word {
     private static void ConfigureMeasuredBorderTable(WordTable table, WordBorderStyle style) {
         table.ConditionalFormattingFirstRow = false;
         table.LayoutMode = WordTableLayoutMode.Fixed;
-        table.Width = 4000; table.WidthType = WordTableWidthUnit.Dxa;
+        table.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(4000) * 635)));
         table.StyleDetails!.SetBordersForAllSides(style, 12U, OfficeIMO.OfficeColor.Black);
         foreach (var row in table.Rows) {
             var cell = row.Cells[0];
-            cell.Width = 4000; cell.WidthType = WordTableWidthUnit.Dxa;
+            cell.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(4000) * 635)));
             cell.MarginTop = global::OfficeIMO.OfficeLength.Zero; cell.MarginBottom = global::OfficeIMO.OfficeLength.Zero;
         }
     }

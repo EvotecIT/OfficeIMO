@@ -41,8 +41,8 @@ public partial class HtmlWordGapClosure {
         int pageWidth = (int)(checked((uint?)(section.PageSettings.Width?.ToTwips())) ?? checked((uint)(WordPageSizes.A4.Width.ToTwips())));
         int contentWidth = pageWidth - (int)checked((uint)(section.Margins.Left.GetValueOrDefault().ToTwips())) - (int)checked((uint)(section.Margins.Right.GetValueOrDefault().ToTwips()));
 
-        Assert.Equal(WordTableWidthUnit.Dxa, table.WidthType);
-        Assert.Equal(contentWidth - 600, table.Width);
+        Assert.Equal(WordTableWidthKind.Length, table.Width?.Kind);
+        Assert.Equal(contentWidth - 600, table.Width?.ToNativeValue());
     }
 
     [Fact]

@@ -39,8 +39,7 @@ public sealed class WordNativeCompressionAdmissionTests {
             string twips = Math.Round(width * 20D).ToString(CultureInfo.InvariantCulture);
             table._tableProperties!.TableWidth = new W.TableWidth { Type = W.TableWidthUnitValues.Dxa, Width = twips };
             WordTableCell cell = table.Rows[0].Cells[0];
-            cell.Width = int.Parse(twips, CultureInfo.InvariantCulture);
-            cell.WidthType = WordTableWidthUnit.Dxa;
+            cell.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus(checked((long)(int.Parse(twips, CultureInfo.InvariantCulture)) * 635)));
             cell.MarginLeft = global::OfficeIMO.OfficeLength.Zero;
             cell.MarginRight = global::OfficeIMO.OfficeLength.Zero;
             target = cell.Paragraphs[0];

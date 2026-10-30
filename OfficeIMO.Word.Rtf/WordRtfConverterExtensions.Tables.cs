@@ -60,8 +60,8 @@ public static partial class WordRtfConverterExtensions {
         int? tableLeftPadding = cellGap.HasValue ? null : GetWordTableLeftPadding(source);
         int? tableRightPadding = cellGap.HasValue ? null : GetWordTableRightPadding(source);
         RtfTableAlignment? tableAlignment = ToRtfTableAlignment(source.Alignment.ToOpenXml());
-        RtfTableWidthUnit? tableWidthUnit = ToRtfTableWidthUnit(source.WidthType.ToOpenXml());
-        int? tableWidth = source.Width;
+        RtfTableWidthUnit? tableWidthUnit = ToRtfTableWidthUnit(source._tableProperties?.TableWidth);
+        int? tableWidth = ToRtfPreferredWidthValue(source._tableProperties?.TableWidth);
         foreach (WordTableRow wordRow in source.Rows) {
             RtfTableRow row = destination.AddRow();
             row.RepeatHeader = wordRow.RepeatHeaderRowAtTheTopOfEachPage;
@@ -76,8 +76,8 @@ public static partial class WordRtfConverterExtensions {
             row.PreferredWidth = tableWidth;
             int rightBoundary = 0;
             foreach (WordTableCell wordCell in wordRow.GetCells(readOnly: true)) {
-                int width = wordCell.WidthType == WordTableWidthUnit.Dxa && wordCell.Width.HasValue
-                    ? Math.Max(1, wordCell.Width.Value)
+                int width = wordCell.Width?.LengthValue is { } physicalWidth
+                    ? Math.Max(1, checked((int)physicalWidth.ToTwips()))
                     : 2400;
                 rightBoundary += width;
                 RtfTableCell cell = row.AddCell(rightBoundary);
@@ -92,8 +92,8 @@ public static partial class WordRtfConverterExtensions {
         destination.VerticalMerge = ToRtfCellMerge(source.VerticalMerge.ToOpenXml());
         destination.VerticalAlignment = ToRtfCellVerticalAlignment(source.VerticalAlignment.ToOpenXml());
         destination.TextFlow = ToRtfCellTextFlow(source.TextDirection.ToOpenXml());
-        destination.PreferredWidthUnit = ToRtfTableWidthUnit(source.WidthType.ToOpenXml());
-        destination.PreferredWidth = source.Width;
+        destination.PreferredWidthUnit = ToRtfTableWidthUnit(source._tableCellProperties?.TableCellWidth);
+        destination.PreferredWidth = ToRtfPreferredWidthValue(source._tableCellProperties?.TableCellWidth);
         destination.NoWrap = !source.WrapText;
         destination.FitText = source.FitText;
 
@@ -330,14 +330,18 @@ public static partial class WordRtfConverterExtensions {
             return;
         }
 
-        TableWidthUnitValues? wordUnit = ToWordTableWidthUnit(firstUnit);
-        if (wordUnit.HasValue) {
-            destination.WidthType = wordUnit.Value.ToOfficeEnum();
-        }
+        ApplyNativeTablePreference(destination, firstUnit, firstWidth);
+    }
 
-        if (firstWidth.HasValue) {
-            destination.Width = firstWidth.Value;
-        }
+    // Preserve partial RTF declarations rather than inventing a missing measurement or unit.
+    private static void ApplyNativeTablePreference(WordTable destination, RtfTableWidthUnit? unit, int? value) {
+        destination.CheckTableProperties();
+        var native = destination._tableProperties!.TableWidth?.CloneNode(true) as TableWidth ?? new TableWidth();
+        var type = ToWordTableWidthUnit(unit);
+        if (type.HasValue) native.Type = type.Value;
+        if (value.HasValue) native.Width = value.Value.ToString(System.Globalization.CultureInfo.InvariantCulture);
+        destination._tableProperties!.TableWidth = native;
+        destination.RefreshGrid();
     }
 
     private static void ApplyCellWidth(RtfTableCell source, WordTableCell destination, ref int previousBoundary) {
@@ -351,8 +355,7 @@ public static partial class WordRtfConverterExtensions {
             return;
         }
 
-        destination.WidthType = WordTableWidthUnit.Dxa;
-        destination.Width = width;
+        destination.Width = WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus((long)width * 635));
     }
 
     private static void ApplyCellProperties(RtfTableCell source, RtfTableRow row, WordTableCell destination, RtfDocument document) {
@@ -390,14 +393,13 @@ public static partial class WordRtfConverterExtensions {
     }
 
     private static void ApplyCellPreferredWidth(RtfTableCell source, WordTableCell destination) {
-        TableWidthUnitValues? wordUnit = ToWordTableWidthUnit(source.PreferredWidthUnit);
-        if (wordUnit.HasValue) {
-            destination.WidthType = wordUnit.Value.ToOfficeEnum();
-        }
-
-        if (source.PreferredWidth.HasValue) {
-            destination.Width = source.PreferredWidth.Value;
-        }
+        if (!source.PreferredWidthUnit.HasValue && !source.PreferredWidth.HasValue) return;
+        destination.AddTableCellProperties();
+        var native = destination._tableCellProperties!.TableCellWidth?.CloneNode(true) as TableCellWidth ?? new TableCellWidth();
+        var type = ToWordTableWidthUnit(source.PreferredWidthUnit);
+        if (type.HasValue) native.Type = type.Value;
+        if (source.PreferredWidth.HasValue) native.Width = source.PreferredWidth.Value.ToString(System.Globalization.CultureInfo.InvariantCulture);
+        destination._tableCellProperties!.TableCellWidth = native;
     }
 
     private static Shading GetOrCreateCellShading(WordTableCell cell) {
@@ -529,11 +531,22 @@ public static partial class WordRtfConverterExtensions {
         return null;
     }
 
-    private static RtfTableWidthUnit? ToRtfTableWidthUnit(TableWidthUnitValues? value) {
-        if (value == TableWidthUnitValues.Auto) return RtfTableWidthUnit.Auto;
-        if (value == TableWidthUnitValues.Dxa) return RtfTableWidthUnit.Twips;
-        if (value == TableWidthUnitValues.Pct) return RtfTableWidthUnit.Percent;
+    private static RtfTableWidthUnit? ToRtfTableWidthUnit(TableWidthType? width) {
+        if (width == null) return null;
+        var type = WordTableWidthNative.NativeType(width);
+        if (!type.HasValue) throw new NotSupportedException("Unsupported Word preferred-width type: " + width.Type?.InnerText);
+        // Lexical percentages remain relative in RTF even if the native unit was omitted.
+        if (width.Width?.Value?.Trim().EndsWith("%", StringComparison.Ordinal) == true) return RtfTableWidthUnit.Percent;
+        if (width.Type == null) return null;
+        if (type == TableWidthUnitValues.Auto) return RtfTableWidthUnit.Auto;
+        if (type == TableWidthUnitValues.Dxa) return RtfTableWidthUnit.Twips;
+        if (type == TableWidthUnitValues.Pct) return RtfTableWidthUnit.Percent;
         return null;
+    }
+
+    private static int? ToRtfPreferredWidthValue(TableWidthType? width) {
+        if (width?.Width == null) return null;
+        return WordTableWidthNative.NumericValue(width) ?? WordTableWidthNative.Read(width)?.ToNativeValue();
     }
 
     private static TableRowAlignmentValues? ToWordTableAlignment(RtfTableAlignment? value) {

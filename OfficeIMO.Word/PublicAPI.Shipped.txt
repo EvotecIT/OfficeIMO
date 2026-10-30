@@ -4202,10 +4202,8 @@ OfficeIMO.Word.WordTable.Clone(OfficeIMO.Word.WordParagraph! paragraph, bool aft
 OfficeIMO.Word.WordTable.Clone(OfficeIMO.Word.WordTable! table, bool after = true) -> OfficeIMO.Word.WordTable!
 OfficeIMO.Word.WordTable.CloneAfterSelf() -> OfficeIMO.Word.WordTable!
 OfficeIMO.Word.WordTable.CloneBeforeSelf() -> OfficeIMO.Word.WordTable!
-OfficeIMO.Word.WordTable.ColumnWidth.get -> System.Collections.Generic.List<int>!
+OfficeIMO.Word.WordTable.ColumnWidth.get -> System.Collections.Generic.List<OfficeIMO.Word.WordTableWidth?>!
 OfficeIMO.Word.WordTable.ColumnWidth.set -> void
-OfficeIMO.Word.WordTable.ColumnWidthType.get -> OfficeIMO.Word.WordTableWidthUnit?
-OfficeIMO.Word.WordTable.ColumnWidthType.set -> void
 OfficeIMO.Word.WordTable.ConditionalFormatting(System.Collections.Generic.IEnumerable<(string! ColumnName, string! MatchText, OfficeIMO.Word.WordTextMatchType MatchType)>! conditions, bool matchAll, OfficeIMO.OfficeColor matchFillColor, OfficeIMO.OfficeColor? matchFontColor = null, OfficeIMO.OfficeColor? noMatchFillColor = null, OfficeIMO.OfficeColor? noMatchFontColor = null, bool ignoreCase = true, System.Collections.Generic.IEnumerable<string!>? highlightColumns = null, System.Action<OfficeIMO.Word.WordParagraph!>? matchTextFormat = null, System.Action<OfficeIMO.Word.WordParagraph!>? noMatchTextFormat = null) -> void
 OfficeIMO.Word.WordTable.ConditionalFormatting(System.Collections.Generic.IEnumerable<(string! ColumnName, string! MatchText, OfficeIMO.Word.WordTextMatchType MatchType)>! conditions, bool matchAll, string? matchFillColorHex = null, string? matchFontColorHex = null, string? noMatchFillColorHex = null, string? noMatchFontColorHex = null, bool ignoreCase = true, System.Collections.Generic.IEnumerable<string!>? highlightColumns = null, System.Action<OfficeIMO.Word.WordParagraph!>? matchTextFormat = null, System.Action<OfficeIMO.Word.WordParagraph!>? noMatchTextFormat = null) -> void
 OfficeIMO.Word.WordTable.ConditionalFormatting(System.Func<OfficeIMO.Word.WordTableRow!, bool>! predicate, System.Action<OfficeIMO.Word.WordTableRow!>! matchAction, System.Action<OfficeIMO.Word.WordTableRow!>? noMatchAction = null) -> void
@@ -4232,7 +4230,7 @@ OfficeIMO.Word.WordTable.DropDownLists.get -> System.Collections.Generic.List<Of
 OfficeIMO.Word.WordTable.FirstRow.get -> OfficeIMO.Word.WordTableRow!
 OfficeIMO.Word.WordTable.FitText.get -> bool
 OfficeIMO.Word.WordTable.FitText.set -> void
-OfficeIMO.Word.WordTable.GridColumnWidth.get -> System.Collections.Generic.List<int>!
+OfficeIMO.Word.WordTable.GridColumnWidth.get -> System.Collections.Generic.List<OfficeIMO.OfficeLength>!
 OfficeIMO.Word.WordTable.GridColumnWidth.set -> void
 OfficeIMO.Word.WordTable.HasNestedTables.get -> bool
 OfficeIMO.Word.WordTable.InsertColumn(int index, params object?[]! values) -> System.Collections.Generic.IReadOnlyList<OfficeIMO.Word.WordTableCell!>!
@@ -4268,10 +4266,8 @@ OfficeIMO.Word.WordTable.Style.set -> void
 OfficeIMO.Word.WordTable.StyleDetails.get -> OfficeIMO.Word.WordTableStyleDetails?
 OfficeIMO.Word.WordTable.Title.get -> string?
 OfficeIMO.Word.WordTable.Title.set -> void
-OfficeIMO.Word.WordTable.Width.get -> int?
+OfficeIMO.Word.WordTable.Width.get -> OfficeIMO.Word.WordTableWidth?
 OfficeIMO.Word.WordTable.Width.set -> void
-OfficeIMO.Word.WordTable.WidthType.get -> OfficeIMO.Word.WordTableWidthUnit?
-OfficeIMO.Word.WordTable.WidthType.set -> void
 OfficeIMO.Word.WordTable.WrapText.get -> bool
 OfficeIMO.Word.WordTable.WrapText.set -> void
 OfficeIMO.Word.WordTableAlignment
@@ -4333,10 +4329,8 @@ OfficeIMO.Word.WordTableCell.VerticalAlignment.get -> OfficeIMO.Word.WordTableVe
 OfficeIMO.Word.WordTableCell.VerticalAlignment.set -> void
 OfficeIMO.Word.WordTableCell.VerticalMerge.get -> OfficeIMO.Word.WordCellMerge?
 OfficeIMO.Word.WordTableCell.VerticalMerge.set -> void
-OfficeIMO.Word.WordTableCell.Width.get -> int?
+OfficeIMO.Word.WordTableCell.Width.get -> OfficeIMO.Word.WordTableWidth?
 OfficeIMO.Word.WordTableCell.Width.set -> void
-OfficeIMO.Word.WordTableCell.WidthType.get -> OfficeIMO.Word.WordTableWidthUnit?
-OfficeIMO.Word.WordTableCell.WidthType.set -> void
 OfficeIMO.Word.WordTableCell.WrapText.get -> bool
 OfficeIMO.Word.WordTableCell.WrapText.set -> void
 OfficeIMO.Word.WordTableCellBorder
@@ -4737,6 +4731,17 @@ OfficeIMO.Word.WordTableVerticalPositionAlignment.Inline = 0 -> OfficeIMO.Word.W
 OfficeIMO.Word.WordTableVerticalPositionAlignment.Inside = 4 -> OfficeIMO.Word.WordTableVerticalPositionAlignment
 OfficeIMO.Word.WordTableVerticalPositionAlignment.Outside = 5 -> OfficeIMO.Word.WordTableVerticalPositionAlignment
 OfficeIMO.Word.WordTableVerticalPositionAlignment.Top = 1 -> OfficeIMO.Word.WordTableVerticalPositionAlignment
+OfficeIMO.Word.WordTableWidth
+OfficeIMO.Word.WordTableWidth.Equals(OfficeIMO.Word.WordTableWidth other) -> bool
+OfficeIMO.Word.WordTableWidth.Kind.get -> OfficeIMO.Word.WordTableWidthKind
+OfficeIMO.Word.WordTableWidth.LengthValue.get -> OfficeIMO.OfficeLength?
+OfficeIMO.Word.WordTableWidth.PercentValue.get -> double?
+OfficeIMO.Word.WordTableWidth.WordTableWidth() -> void
+OfficeIMO.Word.WordTableWidthKind
+OfficeIMO.Word.WordTableWidthKind.Auto = 2 -> OfficeIMO.Word.WordTableWidthKind
+OfficeIMO.Word.WordTableWidthKind.Length = 0 -> OfficeIMO.Word.WordTableWidthKind
+OfficeIMO.Word.WordTableWidthKind.Nil = 3 -> OfficeIMO.Word.WordTableWidthKind
+OfficeIMO.Word.WordTableWidthKind.Percent = 1 -> OfficeIMO.Word.WordTableWidthKind
 OfficeIMO.Word.WordTableWidthUnit
 OfficeIMO.Word.WordTableWidthUnit.Auto = 3 -> OfficeIMO.Word.WordTableWidthUnit
 OfficeIMO.Word.WordTableWidthUnit.Dxa = 2 -> OfficeIMO.Word.WordTableWidthUnit
@@ -4974,6 +4979,8 @@ override OfficeIMO.Word.WordTableCell.Equals(object? obj) -> bool
 override OfficeIMO.Word.WordTableCell.GetHashCode() -> int
 override OfficeIMO.Word.WordTableRow.Equals(object? obj) -> bool
 override OfficeIMO.Word.WordTableRow.GetHashCode() -> int
+override OfficeIMO.Word.WordTableWidth.Equals(object? obj) -> bool
+override OfficeIMO.Word.WordTableWidth.GetHashCode() -> int
 static OfficeIMO.Word.Legacy.LegacyWordImporter.Detect(System.IO.Stream! stream, OfficeIMO.Word.Legacy.LegacyWordImportOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> OfficeIMO.Word.Legacy.LegacyWordDetection!
 static OfficeIMO.Word.Legacy.LegacyWordImporter.Detect(byte[]! data, OfficeIMO.Word.Legacy.LegacyWordImportOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> OfficeIMO.Word.Legacy.LegacyWordDetection!
 static OfficeIMO.Word.Legacy.LegacyWordImporter.Detect(string! path, OfficeIMO.Word.Legacy.LegacyWordImportOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> OfficeIMO.Word.Legacy.LegacyWordDetection!
@@ -5134,6 +5141,12 @@ static OfficeIMO.Word.WordTableCell.operator !=(OfficeIMO.Word.WordTableCell? le
 static OfficeIMO.Word.WordTableCell.operator ==(OfficeIMO.Word.WordTableCell? left, OfficeIMO.Word.WordTableCell? right) -> bool
 static OfficeIMO.Word.WordTableRow.operator !=(OfficeIMO.Word.WordTableRow? left, OfficeIMO.Word.WordTableRow? right) -> bool
 static OfficeIMO.Word.WordTableRow.operator ==(OfficeIMO.Word.WordTableRow? left, OfficeIMO.Word.WordTableRow? right) -> bool
+static OfficeIMO.Word.WordTableWidth.Auto.get -> OfficeIMO.Word.WordTableWidth
+static OfficeIMO.Word.WordTableWidth.Length(OfficeIMO.OfficeLength value) -> OfficeIMO.Word.WordTableWidth
+static OfficeIMO.Word.WordTableWidth.Nil.get -> OfficeIMO.Word.WordTableWidth
+static OfficeIMO.Word.WordTableWidth.Percent(double value) -> OfficeIMO.Word.WordTableWidth
+static OfficeIMO.Word.WordTableWidth.operator !=(OfficeIMO.Word.WordTableWidth left, OfficeIMO.Word.WordTableWidth right) -> bool
+static OfficeIMO.Word.WordTableWidth.operator ==(OfficeIMO.Word.WordTableWidth left, OfficeIMO.Word.WordTableWidth right) -> bool
 static OfficeIMO.Word.WordTemplate.Apply(OfficeIMO.Word.WordDocument! document, System.Collections.Generic.IEnumerable<System.Collections.Generic.KeyValuePair<string!, object?>>! values, OfficeIMO.Word.WordTemplateOptions? options = null) -> OfficeIMO.Word.WordTemplateResult!
 static OfficeIMO.Word.WordTemplate.Apply(OfficeIMO.Word.WordDocument! document, object! model, OfficeIMO.Word.WordTemplateOptions? options = null) -> OfficeIMO.Word.WordTemplateResult!
 static OfficeIMO.Word.WordTemplatePreflightReport.FromInspection(OfficeIMO.Word.WordMailMergeTemplateInspection! inspection) -> OfficeIMO.Word.WordTemplatePreflightReport!

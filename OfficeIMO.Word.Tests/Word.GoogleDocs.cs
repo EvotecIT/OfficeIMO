@@ -3993,7 +3993,10 @@ namespace OfficeIMO.Tests {
 
             var table = document.AddTable(2, 2, WordTableStyle.TableGrid);
             table.RepeatAsHeaderRowAtTheTopOfEachPage = true;
-            table.ColumnWidth = new List<int> { 1440, 2880 };
+            table.ColumnWidth = new List<WordTableWidth?> {
+                WordTableWidth.Length(global::OfficeIMO.OfficeLength.Points(72)),
+                WordTableWidth.Length(global::OfficeIMO.OfficeLength.Points(144))
+            };
             var firstCellParagraph = table.Rows[0].Cells[0].Paragraphs[0];
             firstCellParagraph.Text = "Cell ";
             firstCellParagraph.AddFormattedText("Bold", bold: true);

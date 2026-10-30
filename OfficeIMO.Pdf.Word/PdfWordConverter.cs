@@ -826,8 +826,7 @@ namespace OfficeIMO.Pdf.Word {
                 if (columnWeights.Length == data.Columns.Count) {
                     table.SetColumnWidthsPercentage(columnWeights);
                 } else {
-                    table.WidthType = WordTableWidthUnit.Pct;
-                    table.Width = 5000;
+                    table.Width = WordTableWidth.Percent(100);
                     table.DistributeColumnsEvenly();
                 }
             }
