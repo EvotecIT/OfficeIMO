@@ -673,7 +673,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal("mark ", runs[16].Text);
             Assert.Equal(WordHighlightColor.Yellow, runs[16].Highlight);
             Assert.Equal("space ", runs[17].Text);
-            Assert.Equal(80, runs[17].Spacing);
+            Assert.Equal(OfficeLength.Emus(80L * 635), runs[17].Spacing);
             Assert.Equal("direct", runs[18].Text);
             Assert.Equal("336699", runs[18].ColorHex);
         }
@@ -5726,7 +5726,7 @@ namespace OfficeIMO.Tests {
                     paragraph.AddText("sub ").SetSubScript();
                     paragraph.AddText("mark ").SetHighlight(WordHighlightColor.Yellow);
                     WordParagraph spaced = paragraph.AddText("space ");
-                    spaced.Spacing = 80;
+                    spaced.Spacing = OfficeLength.Emus((long)(80) * 635);
                     paragraph.AddText("color").SetColorHex("336699");
 
                     document.Save(docPath);
@@ -5787,7 +5787,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("mark ", runs[15].Text);
                 Assert.Equal(WordHighlightColor.Yellow, runs[15].Highlight);
                 Assert.Equal("space ", runs[16].Text);
-                Assert.Equal(80, runs[16].Spacing);
+                Assert.Equal(OfficeLength.Emus(80L * 635), runs[16].Spacing);
                 Assert.Equal("color", runs[17].Text);
                 Assert.Equal("336699", runs[17].ColorHex);
             } finally {

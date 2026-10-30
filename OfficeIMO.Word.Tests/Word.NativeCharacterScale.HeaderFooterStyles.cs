@@ -22,7 +22,7 @@ public partial class Word {
         style.StyleRunProperties ??= new StyleRunProperties();
         style.StyleRunProperties.AddChild(new CharacterScale { Val = 200L }, true);
         style.StyleRunProperties.AddChild(new Spacing { Val = 20 }, true);
-        if (directReset) { paragraph.CharacterScale = 100; paragraph.Spacing = 0; }
+        if (directReset) { paragraph.CharacterScale = 100; paragraph.Spacing = OfficeLength.Emus((long)(0) * 635); }
         string before = style.OuterXml;
         Assert.Empty(source.ValidateDocument());
 
@@ -34,7 +34,7 @@ public partial class Word {
         Assert.Equal(200L, imported.StyleRunProperties?.CharacterScale?.Val?.Value);
         Assert.Equal(20, imported.StyleRunProperties?.Spacing?.Val?.Value);
         Assert.Equal(directReset ? 100 : (int?)null, actual.CharacterScale);
-        Assert.Equal(directReset ? 0 : (int?)null, actual.Spacing);
+        Assert.Equal(directReset ? OfficeLength.Zero : (OfficeLength?)null, actual.Spacing);
         Assert.Equal(before, style.OuterXml);
         Assert.Empty(loaded.ValidateDocument());
 
@@ -47,7 +47,7 @@ public partial class Word {
         Assert.Equal(200L, repeatedStyle.StyleRunProperties?.CharacterScale?.Val?.Value);
         Assert.Equal(20, repeatedStyle.StyleRunProperties?.Spacing?.Val?.Value);
         Assert.Equal(directReset ? 100 : (int?)null, repeated.CharacterScale);
-        Assert.Equal(directReset ? 0 : (int?)null, repeated.Spacing);
+        Assert.Equal(directReset ? OfficeLength.Zero : (OfficeLength?)null, repeated.Spacing);
         Assert.Contains(savedAgain.Paragraphs, item => item.Text == "Edited body");
         Assert.Empty(savedAgain.ValidateDocument());
     }

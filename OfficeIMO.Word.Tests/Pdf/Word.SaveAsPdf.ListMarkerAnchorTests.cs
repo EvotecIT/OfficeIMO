@@ -243,7 +243,7 @@ public sealed class PdfListMarkerAnchorTests {
         paragraph.Text = "MARKER BODY";
         paragraph.FontFamily = "Courier New";
         paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(12);
-        paragraph.Spacing = 20;
+        paragraph.Spacing = OfficeLength.Emus((long)(20) * 635);
         paragraph._paragraph.ParagraphProperties ??= new ParagraphProperties();
         paragraph._paragraph.ParagraphProperties.NumberingProperties = new NumberingProperties(
             new NumberingLevelReference { Val = 0 }, new NumberingId { Val = list.NumberId });

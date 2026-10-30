@@ -55,10 +55,10 @@ public partial class Word {
         using WordDocument source = WordDocument.Create();
         WordParagraph paragraph = source.AddParagraph("Width and tracking");
         paragraph.CharacterScale = percentage;
-        paragraph.Spacing = -10;
+        paragraph.Spacing = OfficeLength.Emus((long)(-10) * 635);
         using WordDocument loaded = WordDocument.Load(new MemoryStream(source.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc })));
         Assert.Equal(percentage, loaded.Paragraphs[0].CharacterScale);
-        Assert.Equal(-10, loaded.Paragraphs[0].Spacing);
+        Assert.Equal(OfficeLength.Emus(-10L * 635), loaded.Paragraphs[0].Spacing);
         using WordDocument docx = WordDocument.Load(new MemoryStream(loaded.ToBytes()));
         Assert.Equal(percentage, docx.Paragraphs[0].CharacterScale);
         Assert.Empty(docx.ValidateDocument());

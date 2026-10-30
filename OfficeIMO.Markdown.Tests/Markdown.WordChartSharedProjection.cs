@@ -20,8 +20,8 @@ namespace OfficeIMO.Tests {
             Assert.True(start >= 0, markdown);
             start += prefix.Length;
             string svg = Encoding.UTF8.GetString(Convert.FromBase64String(markdown.Substring(start, markdown.IndexOf(')', start) - start)));
-            Assert.Contains("viewBox=\"0 0 " + snapshot.WidthPoints.ToString(System.Globalization.CultureInfo.InvariantCulture) + " " +
-                snapshot.HeightPoints.ToString(System.Globalization.CultureInfo.InvariantCulture) + "\"", svg);
+            Assert.Contains("viewBox=\"0 0 " + snapshot.Width.ToPoints().ToString(System.Globalization.CultureInfo.InvariantCulture) + " " +
+                snapshot.Height.ToPoints().ToString(System.Globalization.CultureInfo.InvariantCulture) + "\"", svg);
         }
 
         [Theory]

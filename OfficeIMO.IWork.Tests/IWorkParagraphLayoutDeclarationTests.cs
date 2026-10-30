@@ -110,7 +110,7 @@ public sealed partial class IWorkBoundaryTests {
         Assert.Contains(result.Value.Paragraphs, paragraph => paragraph.LineSpacing == global::OfficeIMO.Word.WordLineSpacing.Multiple(1.15));
         Assert.Contains(result.Projection.Body.Paragraphs, paragraph => paragraph.Style.TabStops?.Any(tab => tab.PositionPoints == 18
             && tab.Alignment == IWorkTabAlignment.Left) == true);
-        Assert.Contains(result.Value.Paragraphs, paragraph => paragraph.TabStops.Any(tab => tab.Position == 360
+        Assert.Contains(result.Value.Paragraphs, paragraph => paragraph.TabStops.Any(tab => tab.Position == OfficeLength.Points(18)
             && tab.Alignment == OfficeIMO.Word.WordTabAlignment.Left));
         Assert.False(result.IsVisualFallback);
         Assert.True(result.Report.IsPartialEditableReconstruction);

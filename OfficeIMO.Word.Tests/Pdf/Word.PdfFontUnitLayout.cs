@@ -100,7 +100,7 @@ public partial class Word {
 
         void Configure(WordParagraph run) {
             run.FontFamily = ManagedTextShapingTestAssets.FamilyName; run.FontSize = global::OfficeIMO.OfficeLength.Points(12);
-            run.CharacterScale = scale; run.Spacing = spacing;
+            run.CharacterScale = scale; run.Spacing = OfficeLength.Emus((long)(spacing) * 635);
         }
     }
 }

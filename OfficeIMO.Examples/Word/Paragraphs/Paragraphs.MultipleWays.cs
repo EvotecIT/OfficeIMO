@@ -25,7 +25,7 @@ internal static partial class Paragraphs {
             var paragraph2 = paragraph.AddText("3rd continuing?");
             paragraph2.Underline = WordUnderlineStyle.Double;
             paragraph2.Bold = true;
-            paragraph2.Spacing = 200;
+            paragraph2.Spacing = OfficeLength.Emus((long)(200) * 635);
 
             document.AddParagraph().SetText("4th Fourth paragraph with text").Bold = true;
 

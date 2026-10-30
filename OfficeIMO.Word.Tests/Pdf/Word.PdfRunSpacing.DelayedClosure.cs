@@ -25,7 +25,7 @@ public partial class Word {
         run.FontFamily = "Arial";
         run.FontSize = global::OfficeIMO.OfficeLength.Points(12);
         run.CharacterScale = 200;
-        run.Spacing = 20;
+        run.Spacing = OfficeLength.Emus((long)(20) * 635);
         if (characterStyle) run._run.RunProperties!.RunStyle = new W.RunStyle { Val = "InheritedCase" };
         paragraph._paragraph.Append(new W.SimpleField(new W.Run(new W.Text("999"))) { Instruction = " PAGE " });
         Assert.Empty(document.ValidateDocument());

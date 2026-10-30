@@ -272,7 +272,7 @@ namespace OfficeIMO.Word.Html {
             }
 
             if (TryConvertToTwipAllowNegative(GetInlinePropertyRawValue(declaration, styleAttribute, "letter-spacing"), out int lsParagraph)) {
-                paragraph.SetSpacing(lsParagraph);
+                paragraph.SetSpacing(OfficeLength.Emus((long)lsParagraph * 635));
             }
 
             if (StyleRequestsPageBreakBefore(declaration, styleAttribute) || StyleTextRequestsPageBreak(styleAttribute, "break-before", "page-break-before")) {
@@ -520,7 +520,7 @@ namespace OfficeIMO.Word.Html {
             ApplyTextBackground(run, formatting, options);
             if (formatting.FontSize.HasValue) run.SetFontSize(global::OfficeIMO.OfficeLength.Points(formatting.FontSize.Value));
             if (formatting.Caps.HasValue) run.SetCapsStyle(formatting.Caps.Value);
-            if (formatting.LetterSpacing.HasValue) run.SetSpacing(formatting.LetterSpacing.Value);
+            if (formatting.LetterSpacing.HasValue) run.SetSpacing(OfficeLength.Emus((long)formatting.LetterSpacing.Value * 635));
             if (!string.IsNullOrWhiteSpace(formatting.Language)) run.SetLanguage(formatting.Language!);
             if (!string.IsNullOrEmpty(formatting.FontFamily)) {
                 var font = ResolveFontFamily(formatting.FontFamily);

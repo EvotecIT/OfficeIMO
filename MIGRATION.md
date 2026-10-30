@@ -4255,5 +4255,6 @@ PDF creation option page dimensions, margins, default font size, and header/foot
 
 For custom JSON persistence, store lengths with `ToEmus()` and restore them with `OfficeLength.Emus(value)`. Default object serialization does not preserve an `OfficeLength` value. Conversion checkpoints fingerprint physical settings as exact signed EMUs; existing checkpoints whose rendering identity was written using numeric point settings must be regenerated.
 
+Word character `Spacing` and `SetSpacing` now use nullable `OfficeLength`. Replace `SetSpacing(20)` with `SetSpacing(OfficeLength.Points(1))`. Negative spacing contracts text, zero remains explicit, and null removes the local value.
 
 Batch output names replace the final source extension: `Sales.docx` becomes `Sales.pdf`. Sources such as `Sales.docx` and `Sales.xlsx` now select the same destination. Use distinct stems or an explicit `OfficePublicationPolicy.Rename`/`Replace` conflict policy.

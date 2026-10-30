@@ -3090,7 +3090,7 @@ OfficeIMO.Word.WordParagraph.SetOutline(bool isOutline = true) -> OfficeIMO.Word
 OfficeIMO.Word.WordParagraph.SetRunShadingFillColorHex(string! color) -> OfficeIMO.Word.WordParagraph!
 OfficeIMO.Word.WordParagraph.SetShadow(bool isShadow = true) -> OfficeIMO.Word.WordParagraph!
 OfficeIMO.Word.WordParagraph.SetSmallCaps(bool isSmallCaps = true) -> OfficeIMO.Word.WordParagraph!
-OfficeIMO.Word.WordParagraph.SetSpacing(int spacing) -> OfficeIMO.Word.WordParagraph!
+OfficeIMO.Word.WordParagraph.SetSpacing(OfficeIMO.OfficeLength? spacing) -> OfficeIMO.Word.WordParagraph!
 OfficeIMO.Word.WordParagraph.SetStrike(bool isStrike = true) -> OfficeIMO.Word.WordParagraph!
 OfficeIMO.Word.WordParagraph.SetStyle(OfficeIMO.Word.WordParagraphStyles style) -> OfficeIMO.Word.WordParagraph!
 OfficeIMO.Word.WordParagraph.SetStyleId(string! styleId) -> OfficeIMO.Word.WordParagraph!
@@ -3110,7 +3110,7 @@ OfficeIMO.Word.WordParagraph.Shadow.set -> void
 OfficeIMO.Word.WordParagraph.Shape.get -> OfficeIMO.Word.WordShape?
 OfficeIMO.Word.WordParagraph.ShapeGroup.get -> OfficeIMO.Word.WordShapeGroup?
 OfficeIMO.Word.WordParagraph.SmartArt.get -> OfficeIMO.Word.WordSmartArt?
-OfficeIMO.Word.WordParagraph.Spacing.get -> int?
+OfficeIMO.Word.WordParagraph.Spacing.get -> OfficeIMO.OfficeLength?
 OfficeIMO.Word.WordParagraph.Spacing.set -> void
 OfficeIMO.Word.WordParagraph.Strike.get -> bool
 OfficeIMO.Word.WordParagraph.Strike.set -> void

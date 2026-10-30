@@ -265,7 +265,7 @@ public class RtfCharacterFormattingTests {
     public void Word_Rtf_Bridge_Carries_Character_Spacing_Scale_Kerning_And_Offset() {
         using WordDocument word = WordDocument.Create();
         WordParagraph paragraph = word.AddParagraph();
-        WordParagraph styled = paragraph.AddText("Styled").SetSpacing(40);
+        WordParagraph styled = paragraph.AddText("Styled").SetSpacing(OfficeLength.Points(2));
         styled._run!.RunProperties ??= new RunProperties();
         styled._run.RunProperties.CharacterScale = new CharacterScale { Val = 80 };
         styled._run.RunProperties.Kern = new Kern { Val = 24U };

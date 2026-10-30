@@ -8002,6 +8002,20 @@
       ],
       "applied": "phase-b-applied",
       "note": "Reuse WordBorderLengths rather than duplicate conversion logic. Inspection accepts physical widths directly; HTML rounds native quantized widths before pixel conversion. Extend existing saved DOCX and no-mutation proof across all ten cell sides."
+    },
+    {
+      "phase": "B",
+      "action": "change",
+      "old": "WordParagraph.Spacing : int? and SetSpacing(int) in raw twentieth-points",
+      "new": "WordParagraph.Spacing : OfficeLength? and SetSpacing(OfficeLength?)",
+      "reason": "Character spacing is signed physical geometry. Preserve signed Int32 native twips, null removal, zero and midpoint rounding; reject overflow before mutating run properties.",
+      "files": [
+        "OfficeIMO.Word/WordParagraph.RunProperties.cs",
+        "OfficeIMO.Word/WordParagraph.RunPropertiesMethods.cs",
+        "OfficeIMO.Word.Tests/Word.CharacterSpacing.PhysicalLengths.cs"
+      ],
+      "applied": "phase-b-applied",
+      "note": "HTML, iWork, RTF, native DOC and PowerShell consumers convert at their existing twip boundaries. PowerShell numeric parameter semantics are unchanged."
     }
   ],
   "applicationStatus": "Phase A applied and validated on the supported macOS targets. Phase B and Tier 2 entries retain their status; Windows .NET Framework validation remains pending.",

@@ -111,17 +111,19 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Gets or sets the character spacing value in twentieths of a point.
+        /// Gets or sets the signed physical character spacing. Null removes the local value.
         /// </summary>
-        public int? Spacing {
+        public OfficeLength? Spacing {
             get {
                 var runProperties = ScopedRunProperties;
                 if (runProperties != null && runProperties.Spacing != null) {
-                    return runProperties.Spacing.Val?.Value;
+                    return runProperties.Spacing.Val?.Value is int nativeSpacing
+                        ? OfficeLength.Emus((long)nativeSpacing * 635) : (OfficeLength?)null;
                 }
                 return null;
             }
             set {
+                int? nativeSpacing = value.HasValue ? checked((int)value.Value.ToTwips()) : (int?)null;
                 RunProperties runProperties;
                 if (IsHyperLink && _stdRun == null) {
                     var hyperlink = this.Hyperlink!;
@@ -131,7 +133,7 @@ namespace OfficeIMO.Word {
                 }
                 if (value != null) {
                     Spacing spacing = new Spacing();
-                    spacing.Val = value;
+                    spacing.Val = nativeSpacing;
                     runProperties.Spacing = spacing;
                 } else {
                     if (runProperties.Spacing != null) runProperties.Spacing.Remove();

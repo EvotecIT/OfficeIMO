@@ -50,15 +50,15 @@ public sealed class WordPdfRunSpacingTests {
         using WordDocument document = WordDocument.Create();
         WordParagraph run = document.AddParagraph("Authored width");
         run.CharacterScale = 50;
-        run.Spacing = 20;
+        run.Spacing = OfficeLength.Emus((long)(20) * 635);
         using WordDocument loaded = WordDocument.Load(new MemoryStream(document.ToBytes()));
         Assert.Equal(50, loaded.Paragraphs[0].CharacterScale);
-        Assert.Equal(20, loaded.Paragraphs[0].Spacing);
+        Assert.Equal(OfficeLength.Emus(20L * 635), loaded.Paragraphs[0].Spacing);
         loaded.Paragraphs[0].CharacterScale = 100;
         Assert.Equal(100, loaded.Paragraphs[0].CharacterScale);
         loaded.Paragraphs[0].CharacterScale = null;
         Assert.Null(loaded.Paragraphs[0].CharacterScale);
-        Assert.Equal(20, loaded.Paragraphs[0].Spacing);
+        Assert.Equal(OfficeLength.Emus(20L * 635), loaded.Paragraphs[0].Spacing);
         Assert.Throws<ArgumentOutOfRangeException>(() => run.CharacterScale = 0);
         Assert.Throws<ArgumentOutOfRangeException>(() => run.CharacterScale = 601);
     }
@@ -136,7 +136,7 @@ public sealed class WordPdfRunSpacingTests {
             normal.FontSize = global::OfficeIMO.OfficeLength.Points(12);
             normal.FontFamily = "Arial";
             normal.CharacterScale = 100;
-            normal.Spacing = 0;
+            normal.Spacing = OfficeLength.Emus((long)(0) * 635);
         }
         byte[] bytes = document.ToPdf(new WordPdfExportOptions {
             IncludePageNumbers = false, ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic()

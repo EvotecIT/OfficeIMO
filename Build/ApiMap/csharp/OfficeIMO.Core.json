@@ -1261,7 +1261,10 @@
         "OfficeIMO.Drawing.Tests/Drawing.ChartPhysicalSize.cs"
       ],
       "applied": "phase-b-applied",
-      "note": "All explicit snapshot constructors and resize consumers use typed lengths; positive-size validation and immutable chart metadata remain. Exact EMUs survive construction and resize."
+      "note": "All explicit snapshot constructors and resize consumers use typed lengths; positive-size validation and immutable chart metadata remain. Exact EMUs survive construction and resize.",
+      "consumerFiles": [
+        "OfficeIMO.Markdown.Tests/Markdown.WordChartSharedProjection.cs"
+      ]
     }
   ],
   "applicationStatus": "Phase A applied and validated on the supported macOS targets. Phase B and Tier 2 entries retain their status; Windows .NET Framework validation remains pending.",

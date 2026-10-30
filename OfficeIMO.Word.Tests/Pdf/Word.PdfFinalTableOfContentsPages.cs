@@ -22,7 +22,7 @@ public sealed class WordPdfFinalTableOfContentsPagesTests {
         var list = document.AddList(WordListStyle.Numbered);
         WordParagraph heading = list.AddItem("Numbered findings");
         heading.Style = WordParagraphStyles.Heading1;
-        if (paragraphPath) heading.Spacing = 20;
+        if (paragraphPath) heading.Spacing = OfficeLength.Emus((long)(20) * 635);
         document.AddParagraph("Numbered body marker");
         byte[] bytes = document.ToPdf(new WordPdfExportOptions { IncludePageNumbers = false }).ToBytes();
         var loaded = PdfDocument.Load(bytes);

@@ -148,8 +148,8 @@ public partial class WordRtfConverterTests {
     public void Word_Rtf_Bridge_Carries_Tab_Stops_And_Tab_Text() {
         using WordDocument word = WordDocument.Create();
         WordParagraph paragraph = word.AddParagraph("Name");
-        paragraph.AddTabStop(1440);
-        paragraph.AddTabStop(2880, WordTabAlignment.Right, WordTabLeader.Dot);
+        paragraph.AddTabStop(OfficeLength.Emus(1440L * 635));
+        paragraph.AddTabStop(OfficeLength.Emus(2880L * 635), WordTabAlignment.Right, WordTabLeader.Dot);
         paragraph.AddText("\tAmount");
 
         RtfDocument rtfDocument = word.ToRtfDocument();

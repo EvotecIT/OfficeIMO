@@ -134,7 +134,7 @@ Run width and tracking are readable and writable on `WordParagraph`:
 ```csharp
 var text = document.AddParagraph("Condensed text");
 text.CharacterScale = 75; // Percentage, from 1 through 600.
-text.Spacing = 10;        // Twips: 10 adds half a point per glyph.
+text.Spacing = OfficeLength.Points(0.5); // Add half a point per glyph.
 ```
 
 Set `CharacterScale` to 100 for an explicit normal-width override, or to `null`

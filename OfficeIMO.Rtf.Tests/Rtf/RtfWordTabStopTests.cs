@@ -16,7 +16,7 @@ public class RtfWordTabStopTests {
     [InlineData(true)]
     public void ReplacedAncestorStyleStopsAreClearedWithoutClearingActivePositions(bool samePosition) {
         RtfDocument source = RtfDocument.Create();
-        source.AddStyle(7, "Ancestor tabs").AddTabStop(4320, RtfTabAlignment.Right, RtfTabLeader.Dots);
+        source.AddStyle(7, "Ancestor tabs").AddTabStop(OfficeLength.Emus(4320L * 635), RtfTabAlignment.Right, RtfTabLeader.Dots);
         RtfStyle child = source.AddStyle(8, "Replacement tabs");
         child.BasedOnStyleId = 7;
         int activePosition = samePosition ? 4320 : 2880;
@@ -99,10 +99,10 @@ public class RtfWordTabStopTests {
     [Fact]
     public void Rtf_Style_Tabs_Reach_Paragraphs_Cells_And_Notes_Without_Duplicating_Direct_Stops() {
         RtfDocument source = RtfDocument.Create();
-        source.AddStyle(7, "Tab parent").AddTabStop(4320, RtfTabAlignment.Right, RtfTabLeader.Dots);
+        source.AddStyle(7, "Tab parent").AddTabStop(OfficeLength.Emus(4320L * 635), RtfTabAlignment.Right, RtfTabLeader.Dots);
         source.AddStyle(8, "Inherited tabs").BasedOnStyleId = 7;
         source.AddParagraph("Styled\tBody").SetStyle(8);
-        source.AddParagraph("Direct\tBody").SetStyle(8).AddTabStop(2880, RtfTabAlignment.Decimal, RtfTabLeader.Hyphen);
+        source.AddParagraph("Direct\tBody").SetStyle(8).AddTabStop(OfficeLength.Emus(2880L * 635), RtfTabAlignment.Decimal, RtfTabLeader.Hyphen);
         source.AddTable(1, 1).Rows[0].Cells[0].AddParagraph("Styled\tCell").SetStyle(8);
         var note = new RtfNote(RtfNoteKind.Footnote);
         note.AddParagraph("Styled\tNote").SetStyle(8);
@@ -146,8 +146,8 @@ public class RtfWordTabStopTests {
             new TabStop { Position = 1440, Val = TabStopValues.Clear }));
         word._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!.Append(style);
         WordParagraph paragraph = word.AddParagraph("Direct\tTab");
-        paragraph.AddTabStop(2880, WordTabAlignment.Decimal, WordTabLeader.Hyphen);
-        paragraph.AddTabStop(720, WordTabAlignment.Clear);
+        paragraph.AddTabStop(OfficeLength.Emus(2880L * 635), WordTabAlignment.Decimal, WordTabLeader.Hyphen);
+        paragraph.AddTabStop(OfficeLength.Emus(720L * 635), WordTabAlignment.Clear);
         string before = word._document.OuterXml;
         string styleBefore = style.OuterXml;
 
@@ -169,7 +169,7 @@ public class RtfWordTabStopTests {
         source.Settings.SetDefaultFont(source.AddFont("Arial"));
         RtfStyle parent = source.AddStyle(7, "Tab parent");
         parent.FontSize = 12;
-        parent.AddTabStop(4320, RtfTabAlignment.Right, RtfTabLeader.Dots);
+        parent.AddTabStop(OfficeLength.Emus(4320L * 635), RtfTabAlignment.Right, RtfTabLeader.Dots);
         source.AddStyle(8, "Inherited tabs").BasedOnStyleId = parent.Id;
         switch (story) {
             case "table": paragraph = source.AddTable(1, 1).Rows[0].Cells[0].AddParagraph(); break;
@@ -183,7 +183,7 @@ public class RtfWordTabStopTests {
                 break;
             default: paragraph = source.AddParagraph(); break;
         }
-        paragraph.SetStyle(8).AddTabStop(2880);
+        paragraph.SetStyle(8).AddTabStop(OfficeLength.Emus(2880L * 635));
         return source;
     }
 

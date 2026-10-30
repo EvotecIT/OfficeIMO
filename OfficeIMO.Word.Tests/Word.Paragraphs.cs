@@ -211,7 +211,7 @@ namespace OfficeIMO.Tests {
 
                 document.AddPageBreak();
 
-                paragraph = document.AddParagraph().SetColorHex("#FFFF00").SetSpacing(20).SetDoubleStrike();
+                paragraph = document.AddParagraph().SetColorHex("#FFFF00").SetSpacing(OfficeLength.Points(1)).SetDoubleStrike();
 
                 document.AddPageBreak();
 
@@ -231,7 +231,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Paragraphs[1].IsPageBreak == true, "2nd paragraph color should be the page break");
                 Assert.True(document.Paragraphs[2].Color == OfficeIMO.OfficeColor.Yellow, "3rd paragraph color should be the same");
                 Assert.True(document.Paragraphs[2].DoubleStrike == true, "DoubleStrike should be set");
-                Assert.True(document.Paragraphs[2].Spacing == 20, "Spacing should be set");
+                Assert.True(document.Paragraphs[2].Spacing == OfficeLength.Points(1), "Spacing should be set");
                 Assert.True(document.Paragraphs[3].IsPageBreak == true, "4th paragraph color should be the page break");
                 Assert.True(document.Paragraphs[4].Color == OfficeIMO.OfficeColor.Yellow, "2nd paragraph color should be " + OfficeIMO.OfficeColor.Yellow.ToRgbHex() + " Was: " + document.Paragraphs[4].Color);
                 Assert.True(document.Paragraphs[4].Bold == false, "2nd paragraph should not be bold");
@@ -254,7 +254,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Paragraphs[1].IsPageBreak == true, "2nd paragraph color should be the page break");
                 Assert.True(document.Paragraphs[2].Color == OfficeIMO.OfficeColor.Yellow, "3rd paragraph color should be the same");
                 Assert.True(document.Paragraphs[2].DoubleStrike == true, "DoubleStrike should be set");
-                Assert.True(document.Paragraphs[2].Spacing == 20, "Spacing should be set");
+                Assert.True(document.Paragraphs[2].Spacing == OfficeLength.Points(1), "Spacing should be set");
                 Assert.True(document.Paragraphs[3].IsPageBreak == true, "4th paragraph color should be the page break");
                 Assert.True(document.Paragraphs[4].Color == OfficeIMO.OfficeColor.Yellow, "2nd paragraph color should be " + OfficeIMO.OfficeColor.Yellow.ToRgbHex() + " Was: " + document.Paragraphs[4].Color);
                 Assert.True(document.Paragraphs[4].Bold == false, "2nd paragraph should not be bold");

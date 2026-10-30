@@ -276,7 +276,7 @@ namespace OfficeIMO.Tests {
                 hyperlinkWithoutStyle.Italic = true;
                 hyperlinkWithoutStyle.Color = Color.Red;
                 hyperlinkWithoutStyle.Underline = WordUnderlineStyle.Dash;
-                hyperlinkWithoutStyle.Spacing = 2;
+                hyperlinkWithoutStyle.Spacing = OfficeLength.Emus((long)(2) * 635);
                 hyperlinkWithoutStyle.FontSize = global::OfficeIMO.OfficeLength.Points(12);
                 hyperlinkWithoutStyle.FontFamily = "Arial";
                 hyperlinkWithoutStyle.Highlight = WordHighlightColor.Cyan;
@@ -288,7 +288,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(hyperlinkWithoutStyle.Italic);
                 Assert.True(hyperlinkWithoutStyle.Underline == WordUnderlineStyle.Dash);
                 Assert.True(hyperlinkWithoutStyle.Color == Color.Red);
-                Assert.True(hyperlinkWithoutStyle.Spacing == 2);
+                Assert.True(hyperlinkWithoutStyle.Spacing == OfficeLength.Emus(2 * 635));
                 Assert.True(hyperlinkWithoutStyle.FontSize?.ToPoints() == 12);
                 Assert.True(hyperlinkWithoutStyle.FontFamily == "Arial");
                 Assert.True(hyperlinkWithoutStyle.Highlight == WordHighlightColor.Cyan);
