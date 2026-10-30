@@ -41,6 +41,18 @@ to 1 MiB. Reports can contain complete recovered text; use synthetic fixtures.
 
 `inventory` records compound metadata and hashes, known Contents fields, Quill
 directories, OfficeArt envelopes and a separate OfficeIMO reader result.
+The reader result's `sourceStyles` explains recovered formatting through the
+retained native style catalog and original story use ranges. Definition pair
+ordinals preserve source identity; nullable values distinguish missing fields
+from explicit overrides. `CharacterEntry`/`ParagraphEntry` cover complete indexed
+STSH1 entries, while `CharacterDefinition`/`ParagraphDefinition` cover their
+self-sized OPLs. All source spans use byte offsets in `Quill/QuillSub/CONTENTS`.
+Story and use `NativeStart`/`NativeLength` count UTF-16 units from TEXT start,
+including CR and NUL, separately from normalized public text. FDPP selectors
+remain null when absent; pair zero can still supply resolver defaults. STSH0/2
+entries and STSH1 prefixes/suffixes remain opaque and do not establish names,
+builtin identities or inheritance semantics.
+
 Unknown encodings and incomplete decoding remain visible. `diff` compares
 streams, native chunk IDs and Quill tag/ID pairs. It distinguishes changed
 payloads and known field values from record relocation, retaining occurrence
@@ -80,6 +92,12 @@ source-byte retention does not permit dropping unsupported edits. Prepared edit
 candidates report native acceptance, repair-free opening and opaque semantic
 preservation as unassessed. Managed reopening and stream comparisons are
 structural evidence, not Microsoft Publisher qualification.
+
+When story text or formatting changes, the preparation result's
+`styleDependencies` retains the affected original story keys, native ranges,
+definition pairs and direct OPL spans. It refers to the imported source even
+after normal model edits. The refusal returns no candidate bytes; this evidence
+does not enable style editing or Quill serialization.
 
 ## Creation cases
 

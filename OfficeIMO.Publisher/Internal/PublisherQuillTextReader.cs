@@ -9,10 +9,11 @@ internal sealed class PublisherQuillTextReader {
     internal PublisherQuillText Read(IReadOnlyList<OfficeColor?> palette) {
         IReadOnlyList<PublisherQuillChunk> chunks = PublisherQuillDirectory.Read(_data, _context);
         PublisherQuillChunk? text = PublisherQuillDirectory.Single(chunks, "TEXT");
-        var result = new PublisherQuillText();
-        if (text == null || text.Length == 0) return result;
-        if ((text.Length & 1) != 0 || text.Length / 2 > _context.Options.Limits.MaxTextCharacters)
+        if (text != null && ((text.Length & 1) != 0 || text.Length / 2 > _context.Options.Limits.MaxTextCharacters))
             throw new InvalidDataException("Publisher text exceeds the configured character limit or has odd UTF-16 length.");
+        var styles = new PublisherQuillStyleReader(_data, _context, chunks, palette, text).Read();
+        var result = new PublisherQuillText { StyleCatalog = styles.Catalog };
+        if (text == null || text.Length == 0) return result;
         var idsChunk = PublisherQuillDirectory.Single(chunks, "SYID") ?? throw new InvalidDataException("Publisher text story identifiers are missing.");
         var lengthsChunk = PublisherQuillDirectory.Single(chunks, "STRS") ?? throw new InvalidDataException("Publisher text story lengths are missing.");
         _data.Range(idsChunk.Offset, 8, idsChunk.End);
@@ -23,9 +24,9 @@ internal sealed class PublisherQuillTextReader {
         int lengths = checked(lengthsChunk.Offset + 4 + _data.Offset(_data.U32(lengthsChunk.Offset + 4)));
         _data.Range(idsChunk.Offset + 8, checked(count * 4), idsChunk.End);
         _data.Range(lengths, checked(count * 4), lengthsChunk.End);
-        var styles = new PublisherQuillStyleReader(_data, _context, chunks, palette, text).Read();
         int position = 0;
         var rawStories = new List<(uint Id, string Text, int Offset)>();
+        var sourceStyles = new List<PublisherQuillStoryStyles>();
         for (int i = 0; i < count; i++) {
             _context.Record();
             uint id = _data.U32(idsChunk.Offset + 8 + i * 4);
@@ -36,6 +37,7 @@ internal sealed class PublisherQuillTextReader {
             IReadOnlyList<OfficeRichTextParagraph> paragraphs = ReadParagraphs(value, position, styles);
             if (result.Stories.ContainsKey(id)) throw new InvalidDataException("Duplicate Publisher text story identifier.");
             result.Stories.Add(id, new PublisherTextStory(id, Normalize(value), paragraphs));
+            sourceStyles.Add(styles.BindStory(id, i, position, value, text.Offset));
             rawStories.Add((id, value, position));
             position += characters;
         }
@@ -67,6 +69,7 @@ internal sealed class PublisherQuillTextReader {
             if (!result.TableStories.ContainsKey(story.Id)) result.TableStories.Add(story.Id, new PublisherTableStory(segments));
             else throw new InvalidDataException("Duplicate Publisher table text definition.");
         }
+        result.StyleCatalog = styles.Catalog.WithStories(sourceStyles);
         return result;
     }
     private IReadOnlyList<OfficeRichTextParagraph> ReadParagraphs(string text, int storyOffset, PublisherQuillStyles styles) {
@@ -132,6 +135,7 @@ internal sealed class PublisherQuillTextReader {
 }
 
 internal sealed class PublisherQuillText {
+    internal PublisherQuillStyleCatalog StyleCatalog { get; set; } = PublisherQuillStyleCatalog.Empty;
     internal Dictionary<uint, PublisherTextStory> Stories { get; } = new();
     internal Dictionary<uint, PublisherTableStory> TableStories { get; } = new();
 }

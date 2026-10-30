@@ -29,7 +29,7 @@ references do not report missing images.
 | --- | --- | --- |
 | Document pages | Native order, physical size and page clipping, including empty physical pages | Master and utility roles follow the ordered native reference array and its role boundaries; malformed boundaries are rejected |
 | Master pages | Recovered definitions applied to referring pages | Missing references report omission; nested master inheritance is unassessed |
-| Text | UTF-16 stories, styled paragraphs, referenced native style values, explicit reciprocal links or complete native story/frame catalog bindings, sequential columns, continuation and overflow reporting | Shared measurement approximates native frame breaks and column balancing; style names and auxiliary inheritance metadata are not exposed as an editable style library |
+| Text | UTF-16 stories, styled paragraphs, referenced native style values, explicit reciprocal links or complete native story/frame catalog bindings, sequential columns, continuation and overflow reporting | Shared measurement approximates native frame breaks and column balancing; source style pairs and use ranges are retained internally, while names, builtin selectors and auxiliary inheritance metadata remain unassessed |
 | Lists and tabs | Native Unicode bullet labels, qualified Symbol/Wingdings marker normalization, hanging indentation, text position and declared left tabs | Numbering sequences, additional tab alignments/leaders and drop caps are unassessed; undeclared tab stops use the shared 36-point interval |
 | Tables | `PublisherPage.Tables` exposes current tracks, spans, styled paragraphs, text and placement; qualified anchor-cell text edits preserve complete story partitions, and qualified bounds edits scale tracks proportionally; master tables remain on their master | Separate `CanEditCellText`/`CanEditBounds` and limitation properties identify supported operations. Unavailable frame geometry retains the grid and mapped text with `HasPlacement = false`; unresolved text mappings use `HasTextMapping = false`; individual cell borders, fills and padding are unassessed |
 | Shapes | Rectangles, rounded rectangles, ellipses, diamonds, triangles and lines; solid paints and basic shadows | Other geometries and unsupported fill types report approximation; compound and non-solid strokes remain unassessed |
@@ -96,6 +96,19 @@ Unsupported semantic changes refuse output. This path does not establish
 repair-free opening, native edit acceptance or opaque semantic preservation and
 does not expose public native saving. The [writer probe](../Build/Publisher/WriterProbe/README.md#loaded-source-candidates)
 owns its use and qualification limits.
+
+One retained Quill style catalog supplies the existing formatting resolver.
+It keeps native character/paragraph pair ordinals, nullable decoded values,
+whole indexed STSH entries and their inner definition spans, including when
+the publication has no TEXT descriptor. Original story keys and ordinals bind
+FDPP selections and direct FDPC spans in native UTF-16 coordinates, with CR and
+NUL retained in that coordinate domain. Public story text normalizes CR to LF
+and removes NUL. An absent FDPP selector stays absent even when the resolver
+uses pair zero. In-memory edits retain these original bindings; changed-story
+preparation refusals identify their source dependencies without returning bytes.
+STSH0/2 entries and STSH1 prefixes/suffixes remain opaque. This catalog does not
+expose an editable named-style library or qualify native Quill writing.
+
 `PublisherPage.CreateDrawing()` returns a detached scene for callers
 that need render-only annotations. Document SVG/PDF exports use the canonical
 publication state, and the Reader extension projects its current stories,

@@ -4,17 +4,25 @@ namespace OfficeIMO.Publisher.Internal;
 
 internal sealed partial class PublisherNativeWriter {
     private void Compare() {
+        if (!MapEqual(_baseline.Text.Stories, _current.Text.Stories, StoryEqual)) {
+            var sourceStyles = _imported.Styles.Stories.ToDictionary(story => story.StoryId);
+            foreach (var story in _baseline.Text.Stories) {
+                _token.ThrowIfCancellationRequested();
+                if ((!_current.Text.Stories.TryGetValue(story.Key, out PublisherTextStory? current) || !StoryEqual(story.Value, current))
+                    && sourceStyles.TryGetValue(story.Key, out PublisherQuillStoryStyles? dependency)) _styleDependencies.Add(dependency);
+            }
+            Reject("Quill", "Stories or formatting changed. StyleDependencies identifies the original story, definition ordinals and direct native OPL spans; Quill rewriting is unavailable.");
+        }
         if (!PagesEqual() || !MapEqual(_baseline.ObjectOwners, _current.ObjectOwners, (a, b) => a == b)
             || !SameKeys(_baseline.Text.Frames, _current.Text.Frames) || !SameKeys(_baseline.Shapes, _current.Shapes)
             || !SameKeys(_baseline.Pictures, _current.Pictures) || !SameKeys(_baseline.Tables, _current.Tables)) {
             Reject("Contents", "Page/master topology, object ownership, order or object identities changed. Authored objects have no native records in this operation."); return;
         }
-        if (!MapEqual(_baseline.Text.Stories, _current.Text.Stories, StoryEqual)
-            || !MapEqual(_baseline.Text.Chains, _current.Text.Chains, (a, b) => a.SequenceEqual(b))
+        if (!MapEqual(_baseline.Text.Chains, _current.Text.Chains, (a, b) => a.SequenceEqual(b))
             || !MapEqual(_baseline.Text.TableStories, _current.Text.TableStories, (a, b) => ReferenceEquals(a, b)
                 || a.Segments.Count == b.Segments.Count && a.Segments.Zip(b.Segments, StoryEqual).All(value => value))
             || !MapEqual(_baseline.TableStoryReferences, _current.TableStoryReferences, (a, b) => a == b))
-            Reject("Quill", "Stories, formatting, terminator conventions, frame chains or table story ownership changed. Quill rewriting is unavailable.");
+            Reject("Quill", "Frame chains or table story ownership changed. Quill rewriting is unavailable.");
         if (!MapEqual(_baseline.Text.WrapInfo, _current.Text.WrapInfo, (a, b) => Equals(a, b))
             || !MapEqual(_baseline.Text.ImportedObstacles, _current.Text.ImportedObstacles, (a, b) => Equals(a, b)))
             Reject("Contents", "Native wrap intent or unsupported artwork placement changed.");

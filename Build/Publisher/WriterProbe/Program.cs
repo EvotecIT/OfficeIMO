@@ -94,6 +94,7 @@ internal static class Program {
             output = bytes == null ? null : Path.GetFullPath(args[2]),
             bytes = prepared.ByteLength, sha256 = bytes == null ? null : NativeInventory.Hash(bytes),
             diagnostics = prepared.FidelityDiagnostics,
+            styleDependencies = prepared.StyleDependencies,
             nativeAcceptance = "unassessed",
             repairFreeOpening = "unassessed"
         }, JsonOptions));

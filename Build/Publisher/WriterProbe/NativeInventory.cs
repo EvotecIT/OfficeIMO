@@ -203,6 +203,7 @@ internal static class NativeInventory {
                 status = "accepted",
                 pages = document.Pages.Select(page => new { page.Id, page.Width, page.Height, textFrames = page.TextFrames.Count, tables = page.Tables.Count }).ToArray(),
                 stories = document.TextStories.Select(story => new { story.Id, story.Text }).ToArray(),
+                sourceStyles = document.SourceStyleCatalog,
                 images = document.Images.Count,
                 diagnostics = document.ReadReport.FidelityDiagnostics.Select(diagnostic => new { diagnostic.Code, diagnostic.LossKind, diagnostic.Message }).ToArray()
             };

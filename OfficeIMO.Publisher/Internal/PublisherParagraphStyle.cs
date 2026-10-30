@@ -4,20 +4,20 @@ namespace OfficeIMO.Publisher.Internal;
 
 // Nullable native values distinguish an explicit override from an inherited value.
 internal sealed class PublisherParagraphStyle {
-    internal uint? DefaultStyleIndex { get; set; }
-    internal OfficeTextAlignment? Alignment { get; set; }
-    internal double? LineHeight { get; set; }
-    internal double? LineHeightFactor { get; set; }
-    internal double? Before { get; set; }
-    internal double? After { get; set; }
-    internal double? Left { get; set; }
-    internal double? Right { get; set; }
-    internal double? FirstLine { get; set; }
-    internal IReadOnlyList<OfficeTextTabStop>? Tabs { get; set; }
-    internal PublisherListStyle? List { get; set; }
-    internal double? LabelSize { get; set; }
-    internal uint? LabelFont { get; set; }
-    internal double? LabelTextPosition { get; set; }
+    public uint? DefaultStyleIndex { get; internal set; }
+    public OfficeTextAlignment? Alignment { get; internal set; }
+    public double? LineHeight { get; internal set; }
+    public double? LineHeightFactor { get; internal set; }
+    public double? Before { get; internal set; }
+    public double? After { get; internal set; }
+    public double? Left { get; internal set; }
+    public double? Right { get; internal set; }
+    public double? FirstLine { get; internal set; }
+    public IReadOnlyList<OfficeTextTabStop>? Tabs { get; internal set; }
+    public PublisherListStyle? List { get; internal set; }
+    public double? LabelSize { get; internal set; }
+    public uint? LabelFont { get; internal set; }
+    public double? LabelTextPosition { get; internal set; }
 
     internal OfficeTextPadding Margins => new(Math.Max(0, (Left ?? 0) + Math.Min(0, FirstLine ?? 0)),
         Before ?? 0, Math.Max(0, Right ?? 0), After ?? 0);

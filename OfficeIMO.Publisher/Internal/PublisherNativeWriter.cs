@@ -9,6 +9,7 @@ internal sealed partial class PublisherNativeWriter {
     private readonly IReadOnlyDictionary<uint, PublisherEscherShape> _artwork;
     private readonly CancellationToken _token;
     private readonly List<OfficeConversionFidelityDiagnostic> _diagnostics = new();
+    private readonly List<PublisherQuillStoryStyles> _styleDependencies = new();
     private readonly Dictionary<int, (uint Original, uint Replacement)> _patches = new();
 
     private PublisherNativeWriter(PublisherPublicationState current, PublisherImportedResidue imported, CancellationToken token) {
@@ -25,7 +26,7 @@ internal sealed partial class PublisherNativeWriter {
                 "Native preparation requires an imported source and its semantic baseline. Source-free authoring is not a native writer.", OfficeConversionLossKind.Failure, "Contents") });
         var writer = new PublisherNativeWriter(current, imported, token);
         writer.Compare();
-        if (writer._diagnostics.Count != 0) return new PublisherNativePreparation(null, writer._diagnostics);
+        if (writer._diagnostics.Count != 0) return new PublisherNativePreparation(null, writer._diagnostics, writer._styleDependencies);
         PublisherNativeSource source = imported.NativeSource;
         if (writer._patches.Count == 0) {
             if (source.ByteLength > maximumBytes) throw new InvalidDataException("Publisher native output byte limit exceeded.");

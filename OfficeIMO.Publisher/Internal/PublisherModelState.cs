@@ -14,7 +14,7 @@ internal sealed partial class PublisherModelState {
         PublisherParseContext decoded, PublisherNativeSource nativeSource, PublisherReadReport? sourceReport = null,
         PublisherPublicationState? publication = null) {
         _publication = publication ?? PublisherModelImporter.Import(contents, text, artwork, decoded);
-        _imported = new PublisherImportedResidue(contents, artwork, nativeSource, _publication); _decoded = decoded;
+        _imported = new PublisherImportedResidue(contents, artwork, nativeSource, _publication, text.StyleCatalog); _decoded = decoded;
         _sourceReport = sourceReport ?? new PublisherReadReport(decoded.Diagnostics, contents.Shapes.Count, 0,
             text.Stories.Count, artwork.Images.Count, decoded.Records);
     }
@@ -29,6 +29,7 @@ internal sealed partial class PublisherModelState {
             new PublisherReadReport(Array.Empty<OfficeConversionFidelityDiagnostic>(), 0, 0, 0, 0, 0));
 
     private int SourceObjectCount => _imported?.Contents.Shapes.Count ?? 0;
+    internal PublisherQuillStyleCatalog SourceStyleCatalog => _imported?.Styles ?? PublisherQuillStyleCatalog.Empty;
 
     internal PublisherNativePreparation PrepareNativeBytes(long maximumBytes, CancellationToken token) =>
         PublisherNativeWriter.Prepare(_publication, _imported, _decoded.Options.Limits, maximumBytes, token);

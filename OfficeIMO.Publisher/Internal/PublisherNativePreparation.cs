@@ -3,9 +3,12 @@ namespace OfficeIMO.Publisher.Internal;
 /// <summary>Internal candidate bytes and operation evidence. Prepared candidates still require independent native qualification.</summary>
 internal sealed class PublisherNativePreparation : IOfficeConversionReport {
     private readonly byte[]? _bytes;
-    internal PublisherNativePreparation(byte[]? bytes, IEnumerable<OfficeConversionFidelityDiagnostic> diagnostics) {
+    internal PublisherNativePreparation(byte[]? bytes, IEnumerable<OfficeConversionFidelityDiagnostic> diagnostics,
+        IEnumerable<PublisherQuillStoryStyles>? styleDependencies = null) {
         _bytes = bytes; FidelityDiagnostics = Array.AsReadOnly(diagnostics.ToArray());
+        StyleDependencies = Array.AsReadOnly((styleDependencies ?? Array.Empty<PublisherQuillStoryStyles>()).ToArray());
     }
+    internal IReadOnlyList<PublisherQuillStoryStyles> StyleDependencies { get; }
     internal bool IsPrepared => _bytes != null;
     internal int ByteLength => _bytes?.Length ?? 0;
     internal byte[] CopyBytes() => _bytes == null
