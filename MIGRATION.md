@@ -56,6 +56,25 @@ zero remains explicit. Storage rounds to signed 32-bit twips (36.03 points becom
 Native DOC retains its zero-through-65535-twip limit and 720-twip default.
 Use `section.ColumnsSpace?.ToTwips()` only at a native-value boundary.
 
+## Word row heights and SmartArt lengths
+
+`WordTable.RowHeight` uses `List<OfficeLength?>`. Convert integer twips with
+`OfficeLength.Points(twips / 20D)` before assignment. For example,
+`new List<int> { 240, 0 }` becomes
+`new List<OfficeLength?> { OfficeLength.Points(12), OfficeLength.Zero }`.
+A missing constraint now reads as `null`; an explicit zero remains
+`OfficeLength.Zero`. Assigning `null` clears that row's constraint. The complete
+collection is checked before any row changes.
+
+Replace `paragraph.GetContentWidthPoints()` with
+`paragraph.GetContentWidth()`. Call `.ToPoints()` on the result only when a numeric
+point value is needed.
+
+Formatted SmartArt `ReplaceTexts` and `SetNodeText` overloads replace `sizePt`
+with `fontSize`. For example, use `fontSize: OfficeLength.Points(12)` instead of
+`sizePt: 12`. Sizes must be from 1 through 4000 points; `null` inherits the
+diagram's font size.
+
 ## Word page image exports
 
 Replace Word's `ToPng`, `ToSvg`, `ToJpeg`, `ToTiff` and `ToWebp` with

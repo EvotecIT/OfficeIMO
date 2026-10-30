@@ -2368,7 +2368,7 @@
       "old": "OfficeIMO.Word.WordParagraph.GetContentWidthPoints()",
       "kind": "method",
       "action": "merge",
-      "new": "OfficeIMO.Word.WordParagraph.GetContentWidth(... OfficeLength ...)",
+      "new": "OfficeIMO.Word.WordParagraph.GetContentWidth() : OfficeLength",
       "reason": "Public geometry uses OfficeLength; methods never take raw EMUs, twips or half-points and names carry no unit suffix.",
       "file": "OfficeIMO.Word/WordParagraph.ContentWidth.cs",
       "category": "units",
@@ -6373,6 +6373,22 @@
         "membersHiddenWithType": 2
       },
       "note": "Scratch-only candidate. Change one accessibility token; no consumer edits, wrappers, friends, dependency or target-framework changes. Compiler/API-analyzer validation remains pending."
+    },
+    {
+      "old": "OfficeIMO.Word.WordTable.RowHeight",
+      "kind": "property",
+      "action": "change",
+      "new": "OfficeIMO.Word.WordTable.RowHeight : List<OfficeLength?>",
+      "reason": "The table-level collection exposes physical geometry alongside the already typed row properties. Null and zero are distinct constraints.",
+      "file": "OfficeIMO.Word/WordTable.Properties.cs",
+      "category": "units",
+      "implementation": {
+        "phase": "B",
+        "status": "applied"
+      },
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "note": "The complete input is checked for row count, negative values and native integer overflow before any row is changed. Values are rounded at the existing row serialization boundary; null removes a constraint. Native iWork tests, smoke consumers and the Word table example are migrated. Word native geometry/SmartArt closure passes 66 cases; iWork boundary closure passes 2665 cases. The iWork NativePagesBorderSmoke consumer also adopts the previously migrated WordTableWidth and typed grid contract."
     }
   ],
   "packageMoves": [
@@ -7095,19 +7111,6 @@
         "OfficeIMO.Word.Tests/Word.CompareDocuments.StructuredReports.cs",
         "OfficeIMO.Word.Tests/Word.LegacyDoc.InheritedLineSpacing.cs",
         "OfficeIMO.Word.Tests/Word.Settings.cs"
-      ]
-    },
-    {
-      "phase": "B",
-      "action": "change",
-      "applied": "phase-b-applied",
-      "old": "WordTable.RowHeight : List<int> (twips, missing values read as zero)",
-      "new": "WordTable.RowHeight : List<OfficeLength?>",
-      "reason": "The table-level collection exposes physical geometry alongside the already typed row properties. Null and zero are distinct constraints.",
-      "note": "The complete input is checked for row count, negative values and native integer overflow before any row is changed. Values are rounded at the existing row serialization boundary; null removes a constraint. Native iWork tests, smoke consumers and the Word table example are migrated. Word native geometry/SmartArt closure passes 66 cases; iWork boundary closure passes 2665 cases. The iWork NativePagesBorderSmoke consumer also adopts the previously migrated WordTableWidth and typed grid contract.",
-      "files": [
-        "OfficeIMO.Word/WordTable.Properties.cs",
-        "OfficeIMO.Word.Tests/Word.PhysicalCollectionGeometry.cs"
       ]
     },
     {
