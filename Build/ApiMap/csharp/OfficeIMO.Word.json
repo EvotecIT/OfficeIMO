@@ -8191,6 +8191,108 @@
         "OfficeIMO.Rtf.Tests/Rtf/RtfWordTableImportDefaultsTests.cs",
         "OfficeIMO.Rtf.Tests/Rtf/WordRtfCharacterFormattingTests.cs"
       ]
+    },
+    {
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "action": "change",
+      "old": "Seventeen public legacy source-projection *Points properties use double, nullable double or IReadOnlyList<double>.",
+      "new": "The corresponding unit-free properties use OfficeLength, OfficeLength? or IReadOnlyList<OfficeLength>.",
+      "reason": "Recovered source snapshots expose physical dimensions through the same public length contract as document authoring. Native parser/model values remain unchanged; project once in the public snapshot constructor and preserve missing values and read-only collections.",
+      "files": [
+        "OfficeIMO.Word/Legacy/LegacyWordContracts.cs",
+        "OfficeIMO.Word/Legacy/LegacyWordStructureContracts.cs",
+        "OfficeIMO.LegacyImport.Tests/LegacyWordImportTests.cs",
+        "OfficeIMO.LegacyImport.Tests/WordPerfectImportTests.cs"
+      ],
+      "signatures": [
+        {
+          "type": "OfficeIMO.Word.Legacy.LegacyWordRunContent",
+          "old": "public double? FontSizePoints { get; }",
+          "new": "public global::OfficeIMO.OfficeLength? FontSize { get; }"
+        },
+        {
+          "type": "OfficeIMO.Word.Legacy.LegacyWordImageContent",
+          "old": "public double WidthPoints { get; }",
+          "new": "public global::OfficeIMO.OfficeLength Width { get; }"
+        },
+        {
+          "type": "OfficeIMO.Word.Legacy.LegacyWordImageContent",
+          "old": "public double HeightPoints { get; }",
+          "new": "public global::OfficeIMO.OfficeLength Height { get; }"
+        },
+        {
+          "type": "OfficeIMO.Word.Legacy.LegacyWordStyleContent",
+          "old": "public double? FontSizePoints { get; }",
+          "new": "public global::OfficeIMO.OfficeLength? FontSize { get; }"
+        },
+        {
+          "type": "OfficeIMO.Word.Legacy.LegacyWordStyleContent",
+          "old": "public double? LineSpacingPoints { get; }",
+          "new": "public global::OfficeIMO.OfficeLength? LineSpacing { get; }"
+        },
+        {
+          "type": "OfficeIMO.Word.Legacy.LegacyWordStyleContent",
+          "old": "public double? SpacingBeforePoints { get; }",
+          "new": "public global::OfficeIMO.OfficeLength? SpacingBefore { get; }"
+        },
+        {
+          "type": "OfficeIMO.Word.Legacy.LegacyWordStyleContent",
+          "old": "public double? SpacingAfterPoints { get; }",
+          "new": "public global::OfficeIMO.OfficeLength? SpacingAfter { get; }"
+        },
+        {
+          "type": "OfficeIMO.Word.Legacy.LegacyWordParagraphContent",
+          "old": "public double? LineSpacingPoints { get; }",
+          "new": "public global::OfficeIMO.OfficeLength? LineSpacing { get; }"
+        },
+        {
+          "type": "OfficeIMO.Word.Legacy.LegacyWordParagraphContent",
+          "old": "public double? SpacingBeforePoints { get; }",
+          "new": "public global::OfficeIMO.OfficeLength? SpacingBefore { get; }"
+        },
+        {
+          "type": "OfficeIMO.Word.Legacy.LegacyWordParagraphContent",
+          "old": "public double? SpacingAfterPoints { get; }",
+          "new": "public global::OfficeIMO.OfficeLength? SpacingAfter { get; }"
+        },
+        {
+          "type": "OfficeIMO.Word.Legacy.LegacyWordTableContent",
+          "old": "public IReadOnlyList<double> ColumnWidthsPoints { get; }",
+          "new": "public IReadOnlyList<global::OfficeIMO.OfficeLength> ColumnWidths { get; }"
+        },
+        {
+          "type": "OfficeIMO.Word.Legacy.LegacyWordSectionContent",
+          "old": "public double? PageWidthPoints { get; }",
+          "new": "public global::OfficeIMO.OfficeLength? PageWidth { get; }"
+        },
+        {
+          "type": "OfficeIMO.Word.Legacy.LegacyWordSectionContent",
+          "old": "public double? PageHeightPoints { get; }",
+          "new": "public global::OfficeIMO.OfficeLength? PageHeight { get; }"
+        },
+        {
+          "type": "OfficeIMO.Word.Legacy.LegacyWordSectionContent",
+          "old": "public double? MarginLeftPoints { get; }",
+          "new": "public global::OfficeIMO.OfficeLength? MarginLeft { get; }"
+        },
+        {
+          "type": "OfficeIMO.Word.Legacy.LegacyWordSectionContent",
+          "old": "public double? MarginRightPoints { get; }",
+          "new": "public global::OfficeIMO.OfficeLength? MarginRight { get; }"
+        },
+        {
+          "type": "OfficeIMO.Word.Legacy.LegacyWordSectionContent",
+          "old": "public double? MarginTopPoints { get; }",
+          "new": "public global::OfficeIMO.OfficeLength? MarginTop { get; }"
+        },
+        {
+          "type": "OfficeIMO.Word.Legacy.LegacyWordSectionContent",
+          "old": "public double? MarginBottomPoints { get; }",
+          "new": "public global::OfficeIMO.OfficeLength? MarginBottom { get; }"
+        }
+      ],
+      "note": "The internal integer-derived native grids remain exact at EMU precision. Existing producer fixtures retain literal numeric expectations, null checks, saved DOCX validation and import loss contracts. Existing parser line-spacing provenance limitations remain; no relative spacing rule is invented."
     }
   ],
   "applicationStatus": "Phase A applied and validated on the supported macOS targets. Phase B and Tier 2 entries retain their status; Windows .NET Framework validation remains pending.",

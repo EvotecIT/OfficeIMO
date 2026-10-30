@@ -30,8 +30,8 @@ OfficeIMO.Word.Legacy.LegacyWordHeaderFooterOccurrence.Odd = 1 -> OfficeIMO.Word
 OfficeIMO.Word.Legacy.LegacyWordImageContent
 OfficeIMO.Word.Legacy.LegacyWordImageContent.GetPngBytes() -> byte[]!
 OfficeIMO.Word.Legacy.LegacyWordImageContent.GetSourceBytes() -> byte[]!
-OfficeIMO.Word.Legacy.LegacyWordImageContent.HeightPoints.get -> double
-OfficeIMO.Word.Legacy.LegacyWordImageContent.WidthPoints.get -> double
+OfficeIMO.Word.Legacy.LegacyWordImageContent.Height.get -> OfficeIMO.OfficeLength
+OfficeIMO.Word.Legacy.LegacyWordImageContent.Width.get -> OfficeIMO.OfficeLength
 OfficeIMO.Word.Legacy.LegacyWordImportOptions
 OfficeIMO.Word.Legacy.LegacyWordImportOptions.FormatHint.get -> OfficeIMO.Word.Legacy.LegacyWordFormat?
 OfficeIMO.Word.Legacy.LegacyWordImportOptions.FormatHint.set -> void
@@ -69,12 +69,12 @@ OfficeIMO.Word.Legacy.LegacyWordParagraphContent.Alignment.get -> OfficeIMO.Word
 OfficeIMO.Word.Legacy.LegacyWordParagraphContent.IsList.get -> bool
 OfficeIMO.Word.Legacy.LegacyWordParagraphContent.KeepLinesTogether.get -> bool
 OfficeIMO.Word.Legacy.LegacyWordParagraphContent.KeepWithNext.get -> bool
-OfficeIMO.Word.Legacy.LegacyWordParagraphContent.LineSpacingPoints.get -> double?
+OfficeIMO.Word.Legacy.LegacyWordParagraphContent.LineSpacing.get -> OfficeIMO.OfficeLength?
 OfficeIMO.Word.Legacy.LegacyWordParagraphContent.ListLevel.get -> int
 OfficeIMO.Word.Legacy.LegacyWordParagraphContent.PageBreakBefore.get -> bool
 OfficeIMO.Word.Legacy.LegacyWordParagraphContent.Runs.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.Word.Legacy.LegacyWordRunContent!>!
-OfficeIMO.Word.Legacy.LegacyWordParagraphContent.SpacingAfterPoints.get -> double?
-OfficeIMO.Word.Legacy.LegacyWordParagraphContent.SpacingBeforePoints.get -> double?
+OfficeIMO.Word.Legacy.LegacyWordParagraphContent.SpacingAfter.get -> OfficeIMO.OfficeLength?
+OfficeIMO.Word.Legacy.LegacyWordParagraphContent.SpacingBefore.get -> OfficeIMO.OfficeLength?
 OfficeIMO.Word.Legacy.LegacyWordParagraphContent.StyleName.get -> string?
 OfficeIMO.Word.Legacy.LegacyWordParagraphContent.Text.get -> string!
 OfficeIMO.Word.Legacy.LegacyWordResourceReference
@@ -84,7 +84,7 @@ OfficeIMO.Word.Legacy.LegacyWordRunContent
 OfficeIMO.Word.Legacy.LegacyWordRunContent.Bold.get -> bool
 OfficeIMO.Word.Legacy.LegacyWordRunContent.ColorHex.get -> string?
 OfficeIMO.Word.Legacy.LegacyWordRunContent.FontFamily.get -> string?
-OfficeIMO.Word.Legacy.LegacyWordRunContent.FontSizePoints.get -> double?
+OfficeIMO.Word.Legacy.LegacyWordRunContent.FontSize.get -> OfficeIMO.OfficeLength?
 OfficeIMO.Word.Legacy.LegacyWordRunContent.Image.get -> OfficeIMO.Word.Legacy.LegacyWordImageContent?
 OfficeIMO.Word.Legacy.LegacyWordRunContent.Italic.get -> bool
 OfficeIMO.Word.Legacy.LegacyWordRunContent.NoteIndex.get -> int?
@@ -95,33 +95,33 @@ OfficeIMO.Word.Legacy.LegacyWordRunContent.VerticalPosition.get -> OfficeIMO.Wor
 OfficeIMO.Word.Legacy.LegacyWordSectionContent
 OfficeIMO.Word.Legacy.LegacyWordSectionContent.Blocks.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.Word.Legacy.LegacyWordBlockContent!>!
 OfficeIMO.Word.Legacy.LegacyWordSectionContent.HeadersAndFooters.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.Word.Legacy.LegacyWordHeaderFooterContent!>!
-OfficeIMO.Word.Legacy.LegacyWordSectionContent.MarginBottomPoints.get -> double?
-OfficeIMO.Word.Legacy.LegacyWordSectionContent.MarginLeftPoints.get -> double?
-OfficeIMO.Word.Legacy.LegacyWordSectionContent.MarginRightPoints.get -> double?
-OfficeIMO.Word.Legacy.LegacyWordSectionContent.MarginTopPoints.get -> double?
-OfficeIMO.Word.Legacy.LegacyWordSectionContent.PageHeightPoints.get -> double?
-OfficeIMO.Word.Legacy.LegacyWordSectionContent.PageWidthPoints.get -> double?
+OfficeIMO.Word.Legacy.LegacyWordSectionContent.MarginBottom.get -> OfficeIMO.OfficeLength?
+OfficeIMO.Word.Legacy.LegacyWordSectionContent.MarginLeft.get -> OfficeIMO.OfficeLength?
+OfficeIMO.Word.Legacy.LegacyWordSectionContent.MarginRight.get -> OfficeIMO.OfficeLength?
+OfficeIMO.Word.Legacy.LegacyWordSectionContent.MarginTop.get -> OfficeIMO.OfficeLength?
+OfficeIMO.Word.Legacy.LegacyWordSectionContent.PageHeight.get -> OfficeIMO.OfficeLength?
+OfficeIMO.Word.Legacy.LegacyWordSectionContent.PageWidth.get -> OfficeIMO.OfficeLength?
 OfficeIMO.Word.Legacy.LegacyWordSectionContent.StartsNewPage.get -> bool
 OfficeIMO.Word.Legacy.LegacyWordStyleContent
 OfficeIMO.Word.Legacy.LegacyWordStyleContent.Alignment.get -> OfficeIMO.Word.WordParagraphAlignment?
 OfficeIMO.Word.Legacy.LegacyWordStyleContent.Bold.get -> bool
 OfficeIMO.Word.Legacy.LegacyWordStyleContent.ColorHex.get -> string?
 OfficeIMO.Word.Legacy.LegacyWordStyleContent.FontFamily.get -> string?
-OfficeIMO.Word.Legacy.LegacyWordStyleContent.FontSizePoints.get -> double?
+OfficeIMO.Word.Legacy.LegacyWordStyleContent.FontSize.get -> OfficeIMO.OfficeLength?
 OfficeIMO.Word.Legacy.LegacyWordStyleContent.Italic.get -> bool
 OfficeIMO.Word.Legacy.LegacyWordStyleContent.KeepLinesTogether.get -> bool
 OfficeIMO.Word.Legacy.LegacyWordStyleContent.KeepWithNext.get -> bool
-OfficeIMO.Word.Legacy.LegacyWordStyleContent.LineSpacingPoints.get -> double?
+OfficeIMO.Word.Legacy.LegacyWordStyleContent.LineSpacing.get -> OfficeIMO.OfficeLength?
 OfficeIMO.Word.Legacy.LegacyWordStyleContent.Name.get -> string!
 OfficeIMO.Word.Legacy.LegacyWordStyleContent.PageBreakBefore.get -> bool
-OfficeIMO.Word.Legacy.LegacyWordStyleContent.SpacingAfterPoints.get -> double?
-OfficeIMO.Word.Legacy.LegacyWordStyleContent.SpacingBeforePoints.get -> double?
+OfficeIMO.Word.Legacy.LegacyWordStyleContent.SpacingAfter.get -> OfficeIMO.OfficeLength?
+OfficeIMO.Word.Legacy.LegacyWordStyleContent.SpacingBefore.get -> OfficeIMO.OfficeLength?
 OfficeIMO.Word.Legacy.LegacyWordStyleContent.Underline.get -> OfficeIMO.Word.WordUnderlineStyle?
 OfficeIMO.Word.Legacy.LegacyWordTableCellContent
 OfficeIMO.Word.Legacy.LegacyWordTableCellContent.ColumnSpan.get -> int
 OfficeIMO.Word.Legacy.LegacyWordTableCellContent.Paragraphs.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.Word.Legacy.LegacyWordParagraphContent!>!
 OfficeIMO.Word.Legacy.LegacyWordTableContent
-OfficeIMO.Word.Legacy.LegacyWordTableContent.ColumnWidthsPoints.get -> System.Collections.Generic.IReadOnlyList<double>!
+OfficeIMO.Word.Legacy.LegacyWordTableContent.ColumnWidths.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.OfficeLength>!
 OfficeIMO.Word.Legacy.LegacyWordTableContent.Rows.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.Word.Legacy.LegacyWordTableRowContent!>!
 OfficeIMO.Word.Legacy.LegacyWordTableRowContent
 OfficeIMO.Word.Legacy.LegacyWordTableRowContent.Cells.get -> System.Collections.Generic.IReadOnlyList<OfficeIMO.Word.Legacy.LegacyWordTableCellContent!>!
