@@ -91,11 +91,17 @@ unchanged. Native bytes and compound metadata are retained privately and remain
 inert. The import-time semantic baseline and exact source OfficeArt bindings
 support an internal contributor preparation path: unchanged content copies the
 original bytes; bounded existing anchor and solid-scalar edits replace the
-OfficeArt stream. A single-paragraph story profile can replace text of different
+OfficeArt stream. A single-story profile with unchanged paragraph count can
+replace text of different
 lengths and edit font size/bold through retained per-run OPLs, Quill text, story lengths,
 formatting endpoints and page indexes. A single original run can split into
 styled runs, and matching run counts can be edited again within one formatting
-page. Unsupported run merges, other formatting and page-capacity overflow refuse
+page. In multi-paragraph stories, existing empty paragraphs can remain empty or
+gain text. Each paragraph's
+native definition and endpoint are retained independently; character ranges can
+cross paragraph boundaries. Making a paragraph empty refuses output when its
+source CR has a distinct OPL from the last visible run. Paragraph-count changes,
+unsupported run merges, other formatting and page-capacity overflow refuse
 output. Other logical streams and directory
 metadata remain unchanged, including cached previews whose freshness is unassessed.
 Unsupported semantic changes refuse output. This path does not establish
@@ -103,7 +109,7 @@ repair-free opening, general native edit acceptance or opaque semantic preservat
 does not expose public native saving. The [writer probe](../Build/Publisher/WriterProbe/README.md#loaded-source-candidates)
 owns its use and qualification limits.
 
-Six exact edited specimens of this single-paragraph profile have native
+Six exact single-paragraph specimens of this profile have native
 read-only open, PDF export, save-as and read-only reopen evidence in Microsoft
 Publisher 16.0.20527.20088. They include OfficeIMO re-editing a native-resaved
 styled file. Native text, frame bounds and size/bold states match the requests
@@ -112,6 +118,14 @@ and after resave. These observations do not establish repair-free opening,
 native text mutation, other profiles or opaque-record semantics. The
 [qualification record](../Build/Publisher/WriterProbe/qualification.json)
 keeps source provenance, exact file hashes and operation boundaries.
+
+Five multi-paragraph specimens also pass native open, PDF export, save-as and
+reopen checks: growth, shrink, filling an empty paragraph, size/bold changes
+including a styled empty paragraph, and OfficeIMO re-editing after Publisher
+resaves. Native text, frame bounds and visible size/bold states match the requests
+within 0.1 point, with identical native PDF pixels across resave. These observations
+qualify the listed specimens, not general paragraph editing, layout or repair-free
+opening.
 
 Nine additional placement/paint specimens cover a rectangle's bounds and solid
 fill, a physical text frame, default and paired-master frames, and physical/master

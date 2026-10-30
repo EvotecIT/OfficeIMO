@@ -35,6 +35,8 @@ dotnet $probe preserve ./reference.pub ./exact-copy.pub
 dotnet $probe edit ./reference.pub ./edited.pub 293 36 48 120 84 0000FF
 dotnet $probe edit-text ./native-text.pub ./edited-text.pub 2 'Replacement text'
 dotnet $probe edit-story ./native-text.pub ./styled-edit.pub 2 ./runs.json
+
+dotnet $probe edit-paragraphs ./native-textparagraphs.pub ./edited-paragraphs.pub 2 ./paragraph-runs.json
 ```
 
 Output parent directories must exist. Existing outputs are never overwritten.
@@ -113,7 +115,18 @@ changed run boundaries and OPLs. Unchanged OPL tokens and opaque style/library p
 TEXT, STRS, FDPC/FDPP endpoints and BTEC/BTEP references are updated. Cached
 previews in other streams are retained and their freshness remains unassessed.
 
-Other formatting changes, run merges, multiple paragraphs/stories, tables, image replacement,
+`edit-paragraphs` reads one run array per existing paragraph, also bounded to
+64 KiB. It retains the paragraph count, ordering and paragraph attributes.
+Within the same single-story/frame and one-page formatting profile, text can
+grow or shrink, existing empty paragraphs can remain empty or gain text, and
+size/bold edits use each original native range. Character ranges can cross
+paragraph boundaries; each paragraph retains its own FDPP definition and end.
+Adjacent identical character OPLs coalesce without changing the shared page
+encoder. Making a paragraph empty is refused when its source CR has a different
+OPL from the last visible run, because that would substitute an unqualified
+typing style. Formatting-page overflow also refuses output.
+
+Other formatting changes, run merges, paragraph-count changes, multiple stories, tables, image replacement,
 page/master relationships, new objects and source-free publications have no writer in this path. Every
 current semantic family is compared with the import baseline before output;
 source-byte retention does not permit dropping unsupported edits. Each new
@@ -137,6 +150,16 @@ match the requested values within 0.1 point, and native rendered pixels remain
 identical across resave. This includes re-editing a file after Microsoft
 Publisher resaved it. These six runs do not exercise native text mutation or
 establish repair-free opening, other profiles or opaque record semantics.
+
+The record's `paragraphEditing` section binds five multi-paragraph specimens to
+the independent TextParagraphs control or a native-resaved derivative. They cover
+growth, shrink, filling an empty paragraph, size/bold changes including a styled
+empty paragraph, and re-editing after Publisher resaves. Native text, frame bounds
+and visible size/bold states match the requests within 0.1 point; native PDF pixels
+match before and after resave. Raw comparison retains unrelated streams,
+directory metadata, opaque Quill payloads and unrelated OPL tokens. These files
+do not qualify paragraph-count changes, general native layout or repair-free
+opening.
 
 The record also binds nine placement/paint candidates to independent native
 Rectangle, TwoPageMaster and PictureOwnership controls. Across 19 physical pages,
