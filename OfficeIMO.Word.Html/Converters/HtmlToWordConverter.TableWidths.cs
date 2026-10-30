@@ -16,8 +16,9 @@ namespace OfficeIMO.Word.Html {
                 desired = checked((int)Math.Round(available * percent / 100d));
             if (cell != null) desired = Math.Min(desired, available);
             int width = Math.Max(1, Math.Min(2400, desired / columns));
+            // Apply the computed width even at the cap; native defaults may fill the section.
             // Authored column and cell widths are applied afterward.
-            if (width < 2400) table.ColumnWidth = Enumerable.Repeat<WordTableWidth?>(WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus((long)width * 635)), columns).ToList();
+            table.ColumnWidth = Enumerable.Repeat<WordTableWidth?>(WordTableWidth.Length(global::OfficeIMO.OfficeLength.Emus((long)width * 635)), columns).ToList();
         }
     }
 }

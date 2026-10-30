@@ -410,9 +410,14 @@ namespace OfficeIMO.Tests {
             Assert.Equal(2, html.Split(new[] { "<ul" }, StringSplitOptions.None).Length - 1);
             Assert.Equal(1, html.Split(new[] { "<ol" }, StringSplitOptions.None).Length - 1);
             Assert.Contains("Item 1<ul", html, StringComparison.OrdinalIgnoreCase);
-            Assert.Contains("<table>", html, StringComparison.OrdinalIgnoreCase);
-            Assert.Contains(">A<", html, StringComparison.OrdinalIgnoreCase);
-            Assert.Contains(">D<", html, StringComparison.OrdinalIgnoreCase);
+            var parsed = new AngleSharp.Html.Parser.HtmlParser().ParseDocument(html);
+            var exportedTable = Assert.Single(parsed.QuerySelectorAll("table"));
+            var rows = exportedTable.QuerySelectorAll("tr");
+            Assert.Equal(2, rows.Length);
+            Assert.All(rows, row => {
+                Assert.Equal(new[] { "td", "td" }, row.Children.Select(cell => cell.LocalName));
+            });
+            Assert.Equal(new[] { "A", "B", "C", "D" }, exportedTable.QuerySelectorAll("td").Select(cell => cell.TextContent.Trim()));
         }
 
         [Fact]
@@ -465,16 +470,25 @@ namespace OfficeIMO.Tests {
 
             string html = doc.ToHtml();
 
-            Assert.Contains("<thead><tr><th", html, StringComparison.OrdinalIgnoreCase);
-            Assert.Equal(2, html.Split(new[] { "scope=\"col\"" }, StringSplitOptions.None).Length - 1);
-            Assert.DoesNotContain("<td scope=\"col\"", html, StringComparison.OrdinalIgnoreCase);
-            Assert.Contains("<p>Name</p>", html, StringComparison.OrdinalIgnoreCase);
-            Assert.Contains("<p>Score</p>", html, StringComparison.OrdinalIgnoreCase);
-            Assert.Contains("</th></tr></thead>", html, StringComparison.OrdinalIgnoreCase);
-            Assert.Contains("<tbody><tr><td", html, StringComparison.OrdinalIgnoreCase);
-            Assert.Contains("<p>Ada</p>", html, StringComparison.OrdinalIgnoreCase);
-            Assert.Contains("<p>42</p>", html, StringComparison.OrdinalIgnoreCase);
-            Assert.Contains("</td></tr></tbody>", html, StringComparison.OrdinalIgnoreCase);
+            var parsed = new AngleSharp.Html.Parser.HtmlParser().ParseDocument(html);
+            var exportedTable = Assert.Single(parsed.QuerySelectorAll("table"));
+            Assert.Equal(new[] { "thead", "tbody" }, exportedTable.Children.Select(element => element.LocalName));
+            var header = Assert.Single(exportedTable.QuerySelectorAll("thead"));
+            var headerRow = Assert.Single(header.Children);
+            Assert.Equal("tr", headerRow.LocalName);
+            Assert.Equal(new[] { "th", "th" }, headerRow.Children.Select(cell => cell.LocalName));
+            Assert.Equal(2, parsed.QuerySelectorAll("[scope=col]").Length);
+            Assert.Empty(parsed.QuerySelectorAll("td[scope=col]"));
+            Assert.All(headerRow.Children, cell => Assert.Equal("col", cell.GetAttribute("scope")));
+            Assert.Equal(new[] { "Name", "Score" }, headerRow.Children.Select(cell => Assert.Single(cell.QuerySelectorAll("p")).TextContent.Trim()));
+            Assert.Equal(new[] { "Name", "Score" }, headerRow.Children.Select(cell => cell.TextContent.Trim()));
+
+            var body = Assert.Single(exportedTable.QuerySelectorAll("tbody"));
+            var bodyRow = Assert.Single(body.Children);
+            Assert.Equal("tr", bodyRow.LocalName);
+            Assert.Equal(new[] { "td", "td" }, bodyRow.Children.Select(cell => cell.LocalName));
+            Assert.Equal(new[] { "Ada", "42" }, bodyRow.Children.Select(cell => Assert.Single(cell.QuerySelectorAll("p")).TextContent.Trim()));
+            Assert.Equal(new[] { "Ada", "42" }, bodyRow.Children.Select(cell => cell.TextContent.Trim()));
         }
 
         [Fact]
@@ -565,8 +579,15 @@ namespace OfficeIMO.Tests {
 
             string html = doc.ToHtml();
 
-            Assert.Contains("<body><table>", html, StringComparison.OrdinalIgnoreCase);
-            Assert.DoesNotContain("<body><p></p><table>", html, StringComparison.OrdinalIgnoreCase);
+            var parsed = new AngleSharp.Html.Parser.HtmlParser().ParseDocument(html);
+            var body = Assert.Single(parsed.QuerySelectorAll("body"));
+            var exportedTable = Assert.Single(body.Children);
+            Assert.Equal("table", exportedTable.LocalName);
+            Assert.Single(body.QuerySelectorAll("table"));
+            var row = Assert.Single(exportedTable.QuerySelectorAll("tr"));
+            var cell = Assert.Single(row.Children);
+            Assert.Equal("td", cell.LocalName);
+            Assert.Equal("42", cell.TextContent.Trim());
         }
 
         [Fact]
@@ -577,12 +598,19 @@ namespace OfficeIMO.Tests {
 
             string html = doc.ToHtml();
 
-            Assert.Contains("<table><tr><td", html, StringComparison.OrdinalIgnoreCase);
-            Assert.Contains("<p>Cell</p>", html, StringComparison.OrdinalIgnoreCase);
-            Assert.Contains("</td></tr></table>", html, StringComparison.OrdinalIgnoreCase);
-            Assert.DoesNotContain("<thead>", html, StringComparison.OrdinalIgnoreCase);
-            Assert.DoesNotContain("<tbody>", html, StringComparison.OrdinalIgnoreCase);
-            Assert.DoesNotContain("<colgroup>", html, StringComparison.OrdinalIgnoreCase);
+            var parsed = new AngleSharp.Html.Parser.HtmlParser().ParseDocument(html);
+            var exportedTable = Assert.Single(parsed.QuerySelectorAll("table"));
+            Assert.Empty(exportedTable.QuerySelectorAll("thead, colgroup"));
+            // HTML parsing inserts tbody for flat rows; the export must not emit it explicitly.
+            Assert.DoesNotContain("<tbody", html, StringComparison.OrdinalIgnoreCase);
+            var body = Assert.Single(exportedTable.Children);
+            Assert.Equal("tbody", body.LocalName);
+            var row = Assert.Single(body.Children);
+            Assert.Equal("tr", row.LocalName);
+            var cell = Assert.Single(row.Children);
+            Assert.Equal("td", cell.LocalName);
+            Assert.Equal("Cell", Assert.Single(cell.QuerySelectorAll("p")).TextContent.Trim());
+            Assert.Equal("Cell", cell.TextContent.Trim());
         }
 
         [Fact]

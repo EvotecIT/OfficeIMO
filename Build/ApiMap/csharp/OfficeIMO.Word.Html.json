@@ -594,6 +594,28 @@
       "files": [
         "OfficeIMO.Html.Tests/Html.HtmlConverter.cs"
       ]
+    },
+    {
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "action": "fix",
+      "old": "Default HTML table column widths are assigned only below the converter cap.",
+      "new": "Apply the computed default column widths at the cap as well, before explicit source column and cell overrides.",
+      "reason": "The adopted Word table defaults fill the available section; relying on the previous implicit 2400-twip columns enlarges nested list-cell tables. Preserve selected section and host-cell sizing.",
+      "files": [
+        "OfficeIMO.Word.Html/Converters/HtmlToWordConverter.TableWidths.cs"
+      ]
+    },
+    {
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "action": "change",
+      "old": "Word-to-HTML table fixtures require attribute-free literal table and cell tags.",
+      "new": "Assert the emitted DOM table, header/body structure, cell text, order and absence of placeholder paragraphs.",
+      "reason": "Theme attributes are part of current styled-table output. Retain the actual structural and content round-trip contract.",
+      "files": [
+        "OfficeIMO.Html.Tests/Html.WordToHtml.cs"
+      ]
     }
   ],
   "applicationStatus": "Phase A applied and validated on macOS, including standard-library and modern-framework runtime proof. Windows .NET Framework validation remains pending.",
