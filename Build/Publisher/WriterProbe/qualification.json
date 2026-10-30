@@ -5330,6 +5330,49 @@
       "The eighteen automation choices use Quill-specific stored values. Seven kinds are representable; eleven require explicit approximation.",
       "Product native formatting edits remain limited to size/bold until the independent font/character writer is implemented and qualified.",
       "Both controls have two Quill directories, with 22 and 26 descriptors. They are readable, but changed-story saving remains outside the current single-directory profile."
-    ]
+    ],
+    "powerShellWorkflow": {
+      "command": "ConvertTo-OfficeDocument",
+      "route": "publisher-pdf",
+      "runtime": "7.6.9",
+      "sourceBuiltTarget": "net8.0",
+      "sourceBuildCommit": "90f99aaf15",
+      "publisherAssemblySha256": "e03e45e2e2713bb1172ead5a3528283fb7195615ebc7707adc291cf9b91cf66d",
+      "moduleAssemblySha256": "b2abe920c266e0abf0d82d253e7174844d30c1411afc73414e283bcf6804071a",
+      "actualLoadedPublisherMatchesSourceBuild": true,
+      "cases": [
+        {
+          "case": "TextCharacterAttributes",
+          "pages": 2,
+          "sourceSha256": "6bd37dbba41ee7caf9393446866d8ac48f230ff851605297af63c98acb7000fe",
+          "outputSha256": "4addca1ba306d382ee0a3249cb14b86cac8ec43d180a9f15b2bd50d6a2a3baf8",
+          "sourceUnchanged": true,
+          "outputReopened": true,
+          "retainedApproximationLocations": []
+        },
+        {
+          "case": "TextUnderlinePatterns",
+          "pages": 3,
+          "sourceSha256": "5cb4bd00b71f3ac357c6163bfe60790467c869d96dcfd81b3d40120c11482e54",
+          "outputSha256": "65803d0b7383d32d97a38481534df5fec8b9dbadb12dd2027c9987f79e82dd66",
+          "sourceUnchanged": true,
+          "outputReopened": true,
+          "retainedApproximationLocations": [
+            "Quill/underline/10",
+            "Quill/underline/16",
+            "Quill/underline/17",
+            "Quill/underline/18",
+            "Quill/underline/19",
+            "Quill/underline/20",
+            "Quill/underline/21",
+            "Quill/underline/22",
+            "Quill/underline/23",
+            "Quill/underline/6",
+            "Quill/underline/9"
+          ]
+        }
+      ],
+      "scope": "Compiled PSWriteOffice conversion cmdlet through the canonical in-process Publisher workflow. Package installation, signing, Windows PowerShell5.1 conversion and native writing are separate boundaries."
+    }
   }
 }

@@ -31,6 +31,11 @@ that the recovered decorations reach output; it does not establish matching nati
 decoration geometry, font availability or script metrics.
 Both controls exercise two chained Quill directories. This reading evidence does
 not extend the admitted single-directory native story-save profile.
+Source-built PSWriteOffice converts both controls through `ConvertTo-OfficeDocument`
+and the in-process `publisher-pdf` route on PowerShell 7. The five output pages
+reopen, and all eleven underline approximation locations survive in workflow
+evidence. This qualifies the conversion path, with packaging and native writing
+remaining separate boundaries.
 
 Inline OfficeArt picture data stays in the preserved source and reports omitted
 artwork; positioned reconstruction uses image-store references. Cleared picture
