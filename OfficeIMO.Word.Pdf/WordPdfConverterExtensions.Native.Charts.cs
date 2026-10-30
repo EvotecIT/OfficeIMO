@@ -14,10 +14,13 @@ namespace OfficeIMO.Word.Pdf {
         private const double NativeEmusPerPoint = 12700D;
         private const int MaxNativeWordChartSeries = 256;
         private const int MaxNativeWordChartPoints = 4096;
-        private const double MinNativeWordChartWidthPoints = 240D;
-        private const double MaxNativeWordChartWidthPoints = 420D;
-        private const double MinNativeWordChartHeightPoints = 150D;
-        private const double MaxNativeWordChartHeightPoints = 260D;
+        // The chart fills its wp:extent frame. The bounds only reject degenerate or runaway
+        // frames; page-width fitting happens when the drawing is placed.
+        private const double MinNativeWordChartWidthPoints = 72D;
+        private const double MaxNativeWordChartWidthPoints = 1584D;
+        private const double MinNativeWordChartHeightPoints = 54D;
+        // Fits the text column of a landscape Letter page with one-inch margins.
+        private const double MaxNativeWordChartHeightPoints = 460D;
         private const double NativeWordChartTitleTopPadding = 31D;
         private static OfficeDrawing? PrepareNativeChart(WordChart? chart, WordPdfExportOptions? options, string source) {
             if (chart == null) {
@@ -33,7 +36,7 @@ namespace OfficeIMO.Word.Pdf {
                         warning ?? "Word chart data is not mapped by the OfficeIMO PDF engine yet.");
                 }
 
-                return null;
+                return CreateNativeChartPlaceholder(chart);
             }
 
             if (options != null) {
@@ -64,6 +67,31 @@ namespace OfficeIMO.Word.Pdf {
             }
 
             return rendering.Drawing;
+        }
+
+        /// <summary>
+        /// A chart the renderer cannot draw keeps its frame on the page as a labelled box,
+        /// so the layout matches the document and the reader can see a chart belongs there.
+        /// </summary>
+        private static OfficeDrawing CreateNativeChartPlaceholder(WordChart chart) {
+            (double width, double height) = GetNativeWordChartSizePoints(chart);
+            var drawing = new OfficeDrawing(width, height);
+            OfficeShape frame = OfficeShape.RoundedRectangle(width - 1D, height - 1D, 4D);
+            frame.FillColor = OfficeColor.FromRgb(0xF6, 0xF8, 0xFB);
+            frame.StrokeColor = OfficeColor.FromRgb(0xC9, 0xD2, 0xDE);
+            frame.StrokeWidth = 0.75D;
+            drawing.AddShape(frame, 0.5D, 0.5D);
+            string? title = chart.ChartPart?.ChartSpace?.GetFirstChild<Chart>() is { } openXmlChart
+                ? GetNativeWordChartTitle(openXmlChart)
+                : null;
+            string label = string.IsNullOrWhiteSpace(title) ? "Chart" : title!;
+            drawing.AddText(label, 12D, height / 2D - 20D, width - 24D, 18D,
+                new OfficeFontInfo("Arial", 12D, OfficeFontStyle.Bold), OfficeColor.FromRgb(0x1B, 0x24, 0x33),
+                OfficeTextAlignment.Center, verticalAlignment: OfficeTextVerticalAlignment.Center);
+            drawing.AddText("This chart type is not drawn in the PDF export.", 12D, height / 2D + 2D, width - 24D, 16D,
+                new OfficeFontInfo("Arial", 9D), OfficeColor.FromRgb(0x5B, 0x67, 0x77),
+                OfficeTextAlignment.Center, verticalAlignment: OfficeTextVerticalAlignment.Center);
+            return drawing;
         }
 
         internal static bool TryCreateNativeWordChartSnapshot(WordChart chart, out OfficeChartSnapshot? snapshot, out string? warning) {
@@ -573,8 +601,10 @@ namespace OfficeIMO.Word.Pdf {
             long? cy = chart.Drawing?.Inline?.Extent?.Cy?.Value ?? chart.Drawing?.Anchor?.Extent?.Cy?.Value;
             double width = cx.HasValue && cx.Value > 0 ? cx.Value / NativeEmusPerPoint : 360D;
             double height = cy.HasValue && cy.Value > 0 ? cy.Value / NativeEmusPerPoint : 216D;
-            width = Math.Min(MaxNativeWordChartWidthPoints, Math.Max(MinNativeWordChartWidthPoints, width));
-            height = Math.Min(MaxNativeWordChartHeightPoints, Math.Max(MinNativeWordChartHeightPoints, height));
+            // Scale an oversized frame as a whole so the chart keeps its proportions.
+            double scale = Math.Min(1D, Math.Min(MaxNativeWordChartWidthPoints / width, MaxNativeWordChartHeightPoints / height));
+            width = Math.Max(MinNativeWordChartWidthPoints, width * scale);
+            height = Math.Max(MinNativeWordChartHeightPoints, height * scale);
             return (width, height);
         }
 

@@ -991,6 +991,10 @@ namespace OfficeIMO.Word.Html {
                 if (IsCodeParagraph(para)) {
                     var pre = CreateOutputElement(htmlDoc, "pre");
                     ApplyBookmarkId(pre, para);
+                    if (para.IndentationBefore is int codeIndent && codeIndent > 0) {
+                        // Code inside a list item keeps the item's indent.
+                        SetOutputAttribute(pre, "style", $"margin-left:{FormatTwips(codeIndent)}", "CodeBlock:indent");
+                    }
                     var code = CreateOutputElement(htmlDoc, "code");
                     code.TextContent = GetCodeParagraphText(para);
                     pre.AppendChild(code);
@@ -999,8 +1003,7 @@ namespace OfficeIMO.Word.Html {
                 }
 
                 int level = para.Style.HasValue ? WordHeadingStyleMapper.GetLevelForHeadingStyle(para.Style.Value) : 0;
-                bool isBlockQuote = (!string.IsNullOrEmpty(para.StyleId) && (string.Equals(para.StyleId, "Quote", StringComparison.OrdinalIgnoreCase) || string.Equals(para.StyleId, "IntenseQuote", StringComparison.OrdinalIgnoreCase)))
-                    || (para.IndentationBefore.HasValue && para.IndentationBefore.Value > 0);
+                bool isBlockQuote = IsBlockQuoteParagraph(para, level);
                 var element = CreateOutputElement(htmlDoc, isBlockQuote ? "blockquote" : (level > 0 ? $"h{level}" : "p"));
                 if (isBlockQuote && TryGetBlockquoteCiteAttribute(para, out var blockquoteCite)) {
                     SetOutputAttribute(element, "cite", blockquoteCite, "Paragraph:cite");
@@ -1031,13 +1034,17 @@ namespace OfficeIMO.Word.Html {
                 if (pBorderCss.Count > 0) {
                     pStyles.AddRange(pBorderCss);
                 }
-                if (options.IncludeParagraphIndentationStyles) {
+                // An indent is a margin, not a quotation. It stays visible even when the
+                // caller did not ask for the remaining indentation styles.
+                if (!isBlockQuote || options.IncludeParagraphIndentationStyles) {
                     if (para.IndentationBefore.HasValue && para.IndentationBefore.Value != 0) {
                         pStyles.Add($"margin-left:{FormatTwips(para.IndentationBefore.Value)}");
                     }
                     if (para.IndentationAfter.HasValue && para.IndentationAfter.Value != 0) {
                         pStyles.Add($"margin-right:{FormatTwips(para.IndentationAfter.Value)}");
                     }
+                }
+                if (options.IncludeParagraphIndentationStyles) {
                     if (para.IndentationFirstLine.HasValue && para.IndentationFirstLine.Value != 0) {
                         pStyles.Add($"text-indent:{FormatTwips(para.IndentationFirstLine.Value)}");
                     } else if (para.IndentationHanging.HasValue && para.IndentationHanging.Value != 0) {
@@ -1127,9 +1134,17 @@ namespace OfficeIMO.Word.Html {
                     SetOutputAttribute(tableEl, "aria-description", table.Description!, "Table:accessible-description");
                 }
                 var tableStyles = new List<string>();
-                var tableWidth = GetWidthCss(table.WidthType?.ToOpenXml(), table.Width);
+                var tableWidth = nestingDepth == 0
+                    ? GetTopLevelTableWidthCss(table)
+                    : GetWidthCss(table.WidthType?.ToOpenXml(), table.Width);
                 if (!string.IsNullOrEmpty(tableWidth)) {
                     tableStyles.Add($"width:{tableWidth}");
+                }
+                var tableIndent = table._tableProperties?.TableIndentation;
+                if (tableIndent?.Width?.Value is int indentTwips && indentTwips != 0 &&
+                    (tableIndent.Type == null || tableIndent.Type.Value == TableWidthUnitValues.Dxa)) {
+                    // tblInd lines the table up with indented paragraphs around it.
+                    tableStyles.Add($"margin-left:{FormatTwips(indentTwips)}");
                 }
                 var tableCellSpacing = GetTableCellSpacingCss(table);
                 if (!string.IsNullOrEmpty(tableCellSpacing)) {
@@ -1151,6 +1166,12 @@ namespace OfficeIMO.Word.Html {
                 int headerRowCount = 0;
                 while (headerRowCount < table.Rows.Count && table.Rows[headerRowCount].RepeatHeaderRowAtTheTopOfEachPage) {
                     headerRowCount++;
+                }
+                // A table style's first-row formatting makes the first row a header even when it is
+                // not marked to repeat; without this the header reads as data.
+                TableFirstRowAppearance? firstRowAppearance = ResolveTableFirstRowAppearance(table);
+                if (headerRowCount == 0 && firstRowAppearance != null) {
+                    headerRowCount = 1;
                 }
                 bool hasFooterRow = table.ConditionalFormattingLastRow == true && table.Rows.Count > headerRowCount;
                 IElement? thead = null;
@@ -1183,6 +1204,10 @@ namespace OfficeIMO.Word.Html {
                             if (colSpan > 1) {
                                 SetOutputAttribute(cellElement, "colspan", colSpan.ToString(CultureInfo.InvariantCulture), "TableCell:colspan");
                             }
+                        } else if (cell.ColumnSpan > 1) {
+                            // gridSpan: one cell covering several grid columns.
+                            colSpan = cell.ColumnSpan;
+                            SetOutputAttribute(cellElement, "colspan", colSpan.ToString(CultureInfo.InvariantCulture), "TableCell:colspan");
                         }
                         if (cell.VerticalMerge == WordCellMerge.Restart) {
                             int rr = r + 1;
@@ -1206,6 +1231,10 @@ namespace OfficeIMO.Word.Html {
                             // Columns of numbers read right-aligned; only cells without an authored alignment change.
                             align = "right";
                         }
+                        if (string.IsNullOrEmpty(align) && isHeaderRow) {
+                            // Browsers centre th; Word header cells start at the left like the data under them.
+                            align = "left";
+                        }
                         if (!string.IsNullOrEmpty(align)) {
                             cellStyles.Add($"text-align:{align}");
                         }
@@ -1227,6 +1256,12 @@ namespace OfficeIMO.Word.Html {
                         var borderCss = GetBorderCss(cell);
                         if (borderCss.Count > 0) {
                             cellStyles.AddRange(borderCss);
+                        }
+                        if (r == 0 && firstRowAppearance != null) {
+                            cellStyles.AddRange(firstRowAppearance.ToCss(
+                                normalizedCellBackground != null,
+                                borderCss.Any(css => css.StartsWith("border:", StringComparison.Ordinal) || css.StartsWith("border-top:", StringComparison.Ordinal)),
+                                borderCss.Any(css => css.StartsWith("border:", StringComparison.Ordinal) || css.StartsWith("border-bottom:", StringComparison.Ordinal))));
                         }
                         if (cellStyles.Count > 0) {
                             SetOutputAttribute(cellElement, "style", string.Join(";", cellStyles), "TableCell:style");
@@ -1384,11 +1419,11 @@ namespace OfficeIMO.Word.Html {
                     return marker switch {
                         "o" or "◦" => "circle",
                         "■" or "§" => "square",
-                        "-" => "'-'",
-                        "\u2013" => "'\\2013'",
-                        "\u2014" => "'\\2014'",
-                        "*" => "'*'",
-                        "+" => "'+'",
+                        "-" => QuoteCssListMarker("-"),
+                        "\u2013" => "'\\2013\\a0\\a0 '",
+                        "\u2014" => "'\\2014\\a0\\a0 '",
+                        "*" => QuoteCssListMarker("*"),
+                        "+" => QuoteCssListMarker("+"),
                         "•" or "·" or "●" or "∙" or "" or null or "" => "disc",
                         _ => QuoteCssListMarker(marker),
                     };
@@ -1406,7 +1441,8 @@ namespace OfficeIMO.Word.Html {
                     .Replace("\r", "\\d ")
                     .Replace("\n", "\\a ")
                     .Replace("\t", "\\9 ");
-                return $"'{escaped}'";
+                // A string marker has no gap of its own; two no-break spaces keep it off the text.
+                return $"'{escaped}\\a0\\a0 '";
             }
 
             string? GetListType(WordDocumentTraversal.ListInfo info, string marker) {

@@ -345,6 +345,7 @@ namespace OfficeIMO.Word.Html {
                                     para.SetStyleId("Quote");
                                 }
                                 para.IndentationBefore = 720;
+                                HtmlSemanticMetadata.MarkBlockquote(para);
                                 ApplyParagraphStyleFromCss(
                                     para,
                                     element,

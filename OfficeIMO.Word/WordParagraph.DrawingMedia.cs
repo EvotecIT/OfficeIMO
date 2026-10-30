@@ -178,6 +178,21 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
+        /// Text boxes that sit inside DrawingML shape groups, such as the boxes that hold the
+        /// number in the grouped page-number building blocks. <see cref="GetTextBoxes"/> leaves these out.
+        /// </summary>
+        internal IEnumerable<WordTextBox> GetGroupTextBoxes() {
+            if (_run == null) yield break;
+            foreach (OpenXmlElement child in EnumerateEffectiveRunContent()) {
+                if (child is WordDrawing drawing &&
+                    drawing.Descendants<Wps.TextBoxInfo2>().Any(box => box.Ancestors<Wpg.WordprocessingGroup>().Any()) &&
+                    !drawing.Descendants<Wps.TextBoxInfo2>().Any(box => !box.Ancestors<Wpg.WordprocessingGroup>().Any())) {
+                    yield return new WordTextBox(_document, _paragraph, _run, selectedDrawing: drawing);
+                }
+            }
+        }
+
+        /// <summary>
         /// Returns a <see cref="WordShape"/> instance when the paragraph contains shapes.
         /// </summary>
         public WordShape? Shape {

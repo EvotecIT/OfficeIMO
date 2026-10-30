@@ -598,7 +598,12 @@ namespace OfficeIMO.Word {
         private Extent? _anchorExtent => _anchor?.ChildElements.OfType<Extent>().FirstOrDefault();
 
         private DocumentFormat.OpenXml.Office2010.Word.DrawingShape.WordprocessingShape? _wordprocessingShape =>
-            _graphicData?.GetFirstChild<DocumentFormat.OpenXml.Office2010.Word.DrawingShape.WordprocessingShape>();
+            _graphicData?.GetFirstChild<DocumentFormat.OpenXml.Office2010.Word.DrawingShape.WordprocessingShape>() ??
+            // A text box inside a shape group (page-number building blocks use these); only reached
+            // through WordParagraph.GetGroupTextBoxes, which selects such drawings explicitly.
+            _graphicData?.GetFirstChild<DocumentFormat.OpenXml.Office2010.Word.DrawingGroup.WordprocessingGroup>()?
+                .Descendants<DocumentFormat.OpenXml.Office2010.Word.DrawingShape.WordprocessingShape>()
+                .FirstOrDefault(shape => shape.GetFirstChild<TextBoxInfo2>() != null);
 
         private TextBoxInfo2? _textBoxInfo2 =>
             _wordprocessingShape?.GetFirstChild<DocumentFormat.OpenXml.Office2010.Word.DrawingShape.TextBoxInfo2>();

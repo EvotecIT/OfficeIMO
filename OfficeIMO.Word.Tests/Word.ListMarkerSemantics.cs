@@ -44,7 +44,7 @@ public sealed partial class WordListMarkerSemanticsTests {
         Assert.DoesNotContain("\uf0a7", pdfText, StringComparison.Ordinal);
         string html = document.ToHtml(new WordHtmlExportOptions { IncludeListStyles = true });
         Assert.DoesNotContain("\uf0a7", html, StringComparison.Ordinal);
-        Assert.Contains("list-style-type:'▪'", html, StringComparison.Ordinal);
+        Assert.Contains("list-style-type:'▪\\a0\\a0 '", html, StringComparison.Ordinal);
     }
 
     [Fact]

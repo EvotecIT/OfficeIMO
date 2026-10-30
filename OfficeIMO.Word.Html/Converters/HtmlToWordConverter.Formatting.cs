@@ -18,7 +18,7 @@ namespace OfficeIMO.Word.Html {
         }
 
         private struct TextFormatting {
-            internal TextFormatting(bool bold = false, bool italic = false, bool underline = false, string? colorHex = null, string? fontFamily = null, int? fontSize = null, bool superscript = false, bool subscript = false, bool strike = false, HighlightColorValues? highlight = null, string? backgroundColorHex = null, int? letterSpacing = null, TextTransform transform = TextTransform.None, WhiteSpaceMode? whiteSpace = null, string? language = null) {
+            internal TextFormatting(bool bold = false, bool italic = false, bool underline = false, string? colorHex = null, string? fontFamily = null, double? fontSize = null, bool superscript = false, bool subscript = false, bool strike = false, HighlightColorValues? highlight = null, string? backgroundColorHex = null, int? letterSpacing = null, TextTransform transform = TextTransform.None, WhiteSpaceMode? whiteSpace = null, string? language = null) {
                 Bold = bold;
                 Italic = italic;
                 Underline = underline;
@@ -49,7 +49,7 @@ namespace OfficeIMO.Word.Html {
             internal bool Subscript { get; set; }
             internal string? ColorHex { get; set; }
             internal string? FontFamily { get; set; }
-            internal int? FontSize { get; set; }
+            internal double? FontSize { get; set; }
             internal HighlightColorValues? Highlight { get; set; }
             internal string? BackgroundColorHex { get; set; }
             internal string? BackgroundBackdropColorHex { get; set; }
@@ -136,29 +136,42 @@ namespace OfficeIMO.Word.Html {
             return found;
         }
 
-        private static bool TryParseFontSize(string? text, out int size) {
+        /// <summary>
+        /// Parses a CSS font size into points, rounded to Word's half-point grid. CSS pixels are
+        /// 1/96 inch, so 16px is 12pt; named sizes and percentages resolve against the 16px default.
+        /// </summary>
+        private static bool TryParseFontSize(string? text, out double size) {
             size = 0;
             if (string.IsNullOrWhiteSpace(text)) {
                 return false;
             }
             text = (text ?? string.Empty).Trim().ToLowerInvariant();
             if (text.EndsWith("pt") && double.TryParse(text.Substring(0, text.Length - 2), NumberStyles.Float, CultureInfo.InvariantCulture, out double pt)) {
-                size = (int)Math.Round(pt);
+                size = RoundToHalfPoint(pt);
                 return size > 0;
             }
             if (text.EndsWith("px") && double.TryParse(text.Substring(0, text.Length - 2), NumberStyles.Float, CultureInfo.InvariantCulture, out double px)) {
-                size = (int)Math.Round(px);
+                size = RoundToHalfPoint(px * 0.75d);
                 return size > 0;
             }
             if (_namedFontSizes.TryGetValue(text, out int named)) {
-                size = named;
+                size = RoundToHalfPoint(named * 0.75d);
                 return true;
             }
             if (text.EndsWith("%") && double.TryParse(text.Substring(0, text.Length - 1), NumberStyles.Float, CultureInfo.InvariantCulture, out double percent)) {
-                size = (int)Math.Round(_renderDevice.FontSize * (percent / 100d));
+                size = RoundToHalfPoint(_renderDevice.FontSize * 0.75d * (percent / 100d));
                 return size > 0;
             }
             return false;
+        }
+
+        private static double RoundToHalfPoint(double points) =>
+            double.IsNaN(points) || double.IsInfinity(points) ? 0d : Math.Min(1638d, Math.Round(points * 2d, MidpointRounding.AwayFromZero) / 2d);
+
+        private static void SetRunFontSizePoints(WordParagraph run, double points) {
+            if (points > 0d) {
+                run.FontSizePoints = points;
+            }
         }
 
         private static bool TryConvertToTwip(ICssValue? value, out int twips) {
@@ -266,8 +279,8 @@ namespace OfficeIMO.Word.Html {
                 }
             }
 
-            if (TryParseFontSize(GetInlinePropertyValue(declaration, styleAttribute, "font-size"), out int fontSize)) {
-                paragraph.SetFontSize(fontSize);
+            if (TryParseFontSize(GetInlinePropertyValue(declaration, styleAttribute, "font-size"), out double fontSize)) {
+                SetRunFontSizePoints(paragraph, fontSize);
             }
 
             if (TryConvertToTwipAllowNegative(GetInlinePropertyRawValue(declaration, styleAttribute, "letter-spacing"), out int lsParagraph)) {
@@ -540,7 +553,7 @@ namespace OfficeIMO.Word.Html {
             if (!string.IsNullOrEmpty(formatting.ColorHex)) run.SetColorHex(formatting.ColorHex!);
             if (formatting.Highlight.HasValue) run.SetHighlight(formatting.Highlight.Value.ToOfficeEnum());
             ApplyTextBackground(run, formatting, options);
-            if (formatting.FontSize.HasValue) run.SetFontSize(formatting.FontSize.Value);
+            if (formatting.FontSize.HasValue) SetRunFontSizePoints(run, formatting.FontSize.Value);
             if (formatting.Caps.HasValue) run.SetCapsStyle(formatting.Caps.Value);
             if (formatting.LetterSpacing.HasValue) run.SetSpacing(formatting.LetterSpacing.Value);
             if (!string.IsNullOrWhiteSpace(formatting.Language)) run.SetLanguage(formatting.Language!);
@@ -603,7 +616,7 @@ namespace OfficeIMO.Word.Html {
                 }
             }
 
-            if (TryParseFontSize(GetInlinePropertyValue(declaration, styleText, "font-size"), out int size)) {
+            if (TryParseFontSize(GetInlinePropertyValue(declaration, styleText, "font-size"), out double size)) {
                 formatting.FontSize = size;
             }
 
@@ -716,7 +729,7 @@ namespace OfficeIMO.Word.Html {
             }
 
             int sizeIndex = -1;
-            int? parsedSize = null;
+            double? parsedSize = null;
             for (int i = 0; i < tokens.Count; i++) {
                 var token = tokens[i];
                 var sizeToken = token;
@@ -724,7 +737,7 @@ namespace OfficeIMO.Word.Html {
                 if (slashIndex >= 0) {
                     sizeToken = token.Substring(0, slashIndex);
                 }
-                if (TryParseFontSize(sizeToken, out int size)) {
+                if (TryParseFontSize(sizeToken, out double size)) {
                     sizeIndex = i;
                     parsedSize = size;
                     break;
@@ -794,7 +807,7 @@ namespace OfficeIMO.Word.Html {
             return tokens;
         }
 
-        private static bool TryParseHtmlFontSize(string? value, out int size) {
+        private static bool TryParseHtmlFontSize(string? value, out double size) {
             size = 0;
             if (TryParseFontSize(value, out size)) {
                 return true;
@@ -823,7 +836,7 @@ namespace OfficeIMO.Word.Html {
                 formatting.ColorHex = colorAttr;
             }
 
-            if (TryParseHtmlFontSize(element.GetAttribute("size"), out int size)) {
+            if (TryParseHtmlFontSize(element.GetAttribute("size"), out double size)) {
                 formatting.FontSize = size;
             }
         }

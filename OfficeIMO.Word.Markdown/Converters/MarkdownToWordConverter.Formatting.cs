@@ -130,6 +130,10 @@ namespace OfficeIMO.Word.Markdown {
             paragraph.Borders.LeftStyle = WordBorderStyle.Single;
             paragraph.Borders.LeftColorHex = palette.Border.ToRgbHex();
             paragraph.Borders.LeftSize = 4;
+            // Keep the rule off the code and give the block room above and below.
+            paragraph.Borders.LeftSpace = 6;
+            paragraph.LineSpacingBefore ??= 120;
+            paragraph.LineSpacingAfter ??= 120;
             foreach (var run in paragraph.GetRuns()) {
                 run.SetColorHex(palette.Text.ToRgbHex());
             }
@@ -190,18 +194,20 @@ namespace OfficeIMO.Word.Markdown {
                     cell.MarginRightWidth = horizontalPadding;
                     cell.MarginTopWidth = verticalPadding;
                     cell.MarginBottomWidth = verticalPadding;
+                    // Horizontal rules only: vertical grid lines make a document table look like a spreadsheet.
                     cell.Borders.TopStyle = borderStyle;
                     cell.Borders.BottomStyle = borderStyle;
-                    cell.Borders.LeftStyle = borderStyle;
-                    cell.Borders.RightStyle = borderStyle;
+                    cell.Borders.LeftStyle = WordBorderStyle.None;
+                    cell.Borders.RightStyle = WordBorderStyle.None;
                     cell.Borders.TopSize = borderSize;
                     cell.Borders.BottomSize = borderSize;
-                    cell.Borders.LeftSize = borderSize;
-                    cell.Borders.RightSize = borderSize;
                     cell.Borders.TopColorHex = borderHex;
                     cell.Borders.BottomColorHex = borderHex;
-                    cell.Borders.LeftColorHex = borderHex;
-                    cell.Borders.RightColorHex = borderHex;
+                    cell.VerticalAlignment = WordTableVerticalAlignment.Center;
+                    foreach (var cellParagraph in cell.Paragraphs) {
+                        // Body spacing after would make every row tall with the text at the top.
+                        cellParagraph.LineSpacingAfter ??= 0;
+                    }
 
                     if (header && tableStyle.EmphasizeHeader) {
                         ApplyCellFillColor(cell, palette.TableHeaderBackground);

@@ -8,11 +8,25 @@ namespace OfficeIMO.Word.Pdf {
         // Word places side borders outside the text frame, including a 1.5-point gap.
         private const double NativeParagraphBorderHorizontalGapPoints = 1.5D;
 
+        /// <summary>
+        /// A full-width rule cannot follow a paragraph's indents or sit under its shading. Such body
+        /// paragraphs draw the rule as a panel border instead, so it is painted once, inside the indent.
+        /// </summary>
+        private static bool HasNativePanelOwnedRule(WordParagraph paragraph, PdfCore.PdfParagraphStyle paragraphStyle) {
+            if (GetHeadingLevel(paragraph) > 0) {
+                return false;
+            }
+            double left = paragraphStyle.LeftIndent + Math.Min(paragraphStyle.FirstLineIndent, 0D);
+            return ParseNativeColor(GetNativeEffectiveParagraphShadingFill(paragraph)).HasValue ||
+                Math.Abs(left) > 0.01D || Math.Abs(paragraphStyle.RightIndent) > 0.01D;
+        }
+
         private static PdfCore.PdfPanelStyle? CreateNativeParagraphPanelStyle(WordParagraph paragraph, PdfCore.PdfParagraphStyle paragraphStyle) {
             NativeParagraphBorders borders = GetNativeEffectiveParagraphBorders(paragraph);
             PdfCore.PdfColor? background = ParseNativeColor(GetNativeEffectiveParagraphShadingFill(paragraph));
             (PdfCore.PdfColor? Color, double Width)? border = GetNativeUniformParagraphBorder(borders);
             bool renderAsRule = !background.HasValue && !HasNativeBorder(borders.Between.Style) &&
+                !HasNativePanelOwnedRule(paragraph, paragraphStyle) &&
                 (HasNativeOnlyTopParagraphBorder(borders) || HasNativeOnlyBottomParagraphBorder(borders));
             if (renderAsRule) {
                 return null;
@@ -101,6 +115,9 @@ namespace OfficeIMO.Word.Pdf {
 
         private static PdfCore.PdfHorizontalRuleStyle? CreateNativeBottomBorderRuleStyle(WordParagraph paragraph, PdfCore.PdfParagraphStyle paragraphStyle) {
             NativeParagraphBorders borders = GetNativeEffectiveParagraphBorders(paragraph);
+            if (HasNativePanelOwnedRule(paragraph, paragraphStyle)) {
+                return null;
+            }
             if (!HasNativeOnlyBottomParagraphBorder(borders) || HasNativeMatchingBorderNeighbor(paragraph, borders, next: true)) {
                 return null;
             }
@@ -116,6 +133,9 @@ namespace OfficeIMO.Word.Pdf {
 
         private static PdfCore.PdfHorizontalRuleStyle? CreateNativeTopBorderRuleStyle(WordParagraph paragraph, PdfCore.PdfParagraphStyle paragraphStyle) {
             NativeParagraphBorders borders = GetNativeEffectiveParagraphBorders(paragraph);
+            if (HasNativePanelOwnedRule(paragraph, paragraphStyle)) {
+                return null;
+            }
             if (!HasNativeOnlyTopParagraphBorder(borders) || HasNativeMatchingBorderNeighbor(paragraph, borders, next: false)) {
                 return null;
             }

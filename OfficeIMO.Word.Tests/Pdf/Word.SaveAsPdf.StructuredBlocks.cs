@@ -1531,7 +1531,8 @@ public partial class Word {
 
         string text = PdfTextExtractor.ExtractAllText(pdfPath);
         Assert.Contains("After mixed chart", text);
-        Assert.DoesNotContain("Word PDF Mixed Chart", text);
+        // The chart keeps its frame as a labelled placeholder; none of its data is drawn.
+        Assert.Contains("This chart type is not drawn in the PDF export.", text);
         Assert.DoesNotContain("Q1", text);
         Assert.DoesNotContain("Q2", text);
     }
