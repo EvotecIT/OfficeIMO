@@ -1,0 +1,54 @@
+name: Documentation examples
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/documentation-examples.yml'
+      - 'Build/docs-sync.json'
+      - 'Build/DocumentationExamples/**'
+      - 'OfficeIMO.Word/README.md'
+      - 'OfficeIMO.Excel/README.md'
+      - 'global.json'
+      - 'Directory.Build.props'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: documentation-examples-${{ github.event_name == 'pull_request' && github.run_attempt == 1 && format('pr-{0}', github.event.pull_request.number) || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' && github.run_attempt == 1 }}
+
+jobs:
+  examples:
+    runs-on: ubuntu-latest
+    env:
+      MSBUILDDISABLENODEREUSE: '1'
+      DOTNET_CLI_USE_MSBUILD_SERVER: '0'
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Check out PowerForge documentation tooling
+        uses: actions/checkout@v7
+        with:
+          repository: EvotecIT/PSPublishModule
+          ref: 95c9d689019f8c3cd87f42d4e37bda7d7ef14231
+          path: .tools/powerforge-docs
+          persist-credentials: false
+      - uses: actions/setup-dotnet@v5
+        with:
+          global-json-file: .tools/powerforge-docs/global.json
+          dotnet-version: '8.0.x'
+      - name: Check README code blocks
+        working-directory: .tools/powerforge-docs
+        run: dotnet run --project PowerForge.Cli/PowerForge.Cli.csproj -c Release -f net10.0 -- docs sync --config "$GITHUB_WORKSPACE/Build/docs-sync.json"
+      - name: Run published-package quick starts
+        shell: bash
+        run: |
+          mkdir -p "$RUNNER_TEMP/officeimo-documentation-examples"
+          cd "$RUNNER_TEMP/officeimo-documentation-examples"
+          dotnet run --project "$GITHUB_WORKSPACE/Build/DocumentationExamples/Word/Word.csproj" -c Release -f net8.0
+          dotnet run --project "$GITHUB_WORKSPACE/Build/DocumentationExamples/Excel/Excel.csproj" -c Release -f net8.0
+          python3 "$GITHUB_WORKSPACE/Build/DocumentationExamples/verify.py" .
+          python3 -m unittest discover -s "$GITHUB_WORKSPACE/Build/DocumentationExamples" -p 'test_verify.py'

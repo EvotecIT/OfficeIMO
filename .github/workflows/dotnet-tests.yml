@@ -1462,24 +1462,15 @@ jobs:
         env:
           OFFICEIMO_TEST_FRAMEWORK: ${{ matrix.framework }}
           OFFICEIMO_TEST_PARTITION: ${{ matrix.partition }}
-          OFFICEIMO_COLLECT_COVERAGE: ${{ matrix.collectCoverage }}
         run: |
           # Keep the heavy Excel image visual gate on its dedicated script path; run test projects
           # explicitly so Ubuntu does not spend the job budget walking every solution project.
           test_filter='Category!=ExcelImageVisualGate&Category!=Performance'
           run_shared_tests() {
             local name="$1"
-            local collect_coverage="${2:-false}"
-            local coverage_args=()
-            # Keep PR test partitions focused on contract proof. Coverage collection is
-            # intentionally disabled for the matrix because it turns data-heavy Markdown
-            # and PDF slices into long-running hosted-runner jobs.
-            if [ "${OFFICEIMO_COLLECT_COVERAGE}" = "true" ] && [ "${collect_coverage}" = "true" ]; then
-              coverage_args=(--collect "XPlat Code Coverage")
-            fi
             echo ""
             echo "== OfficeIMO.Shared.Tests: ${name} =="
-            if ci_project_selected "OfficeIMO.Shared.Tests/OfficeIMO.Shared.Tests.csproj"; then dotnet test OfficeIMO.Shared.Tests/OfficeIMO.Shared.Tests.csproj --configuration "${BUILD_CONFIGURATION}" --no-build --verbosity "${TEST_VERBOSITY}" --framework "${OFFICEIMO_TEST_FRAMEWORK}" --filter "${test_filter}" -m:1 --logger "console;verbosity=${TEST_VERBOSITY}" --logger trx "${coverage_args[@]}"; fi
+            if ci_project_selected "OfficeIMO.Shared.Tests/OfficeIMO.Shared.Tests.csproj"; then dotnet test OfficeIMO.Shared.Tests/OfficeIMO.Shared.Tests.csproj --configuration "${BUILD_CONFIGURATION}" --no-build --verbosity "${TEST_VERBOSITY}" --framework "${OFFICEIMO_TEST_FRAMEWORK}" --filter "${test_filter}" -m:1 --logger "console;verbosity=${TEST_VERBOSITY}" --logger trx; fi
           }
 
           run_excel_tests() {
@@ -1757,13 +1748,6 @@ jobs:
             **/*.trx
             TestResults/visual-baselines/**
           retention-days: 7
-      - name: Upload coverage to Codecov
-        if: ${{ matrix.collectCoverage }}
-        uses: codecov/codecov-action@v7
-        with:
-          files: '**/coverage.cobertura.xml'
-          fail_ci_if_error: false
-        continue-on-error: true
 
   officeimo-tool-package-gate:
     needs: changes

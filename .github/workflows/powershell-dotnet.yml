@@ -61,7 +61,7 @@ jobs:
         run: dotnet build PowerShell/PSWriteOffice/Sources/PSWriteOffice.sln --configuration ${{ env.BUILD_CONFIGURATION }} --no-restore
 
       - name: Run tests
-        run: dotnet test PowerShell/PSWriteOffice/Sources/PSWriteOffice.sln --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity normal --logger trx ${{ github.event_name != 'pull_request' && '--collect:"XPlat Code Coverage" --settings PowerShell/PSWriteOffice/Sources/PSWriteOffice.Tests/coverage.runsettings' || '' }}
+        run: dotnet test PowerShell/PSWriteOffice/Sources/PSWriteOffice.sln --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity normal --logger trx
 
       - name: Upload test results
         uses: actions/upload-artifact@v7
@@ -70,18 +70,6 @@ jobs:
           name: test-results-windows
           path: '**/*.trx'
 
-      - name: Upload coverage reports
-        uses: actions/upload-artifact@v7
-        if: always() && github.event_name != 'pull_request'
-        with:
-          name: coverage-reports-windows
-          path: '**/coverage.cobertura.xml'
-      - name: Upload coverage to Codecov
-        if: github.event_name != 'pull_request'
-        uses: codecov/codecov-action@v7
-        with:
-          files: '**/coverage.cobertura.xml'
-          fail_ci_if_error: false
 
   test-ubuntu:
     needs: changes
@@ -107,7 +95,7 @@ jobs:
         run: dotnet build PowerShell/PSWriteOffice/Sources/PSWriteOffice.sln --configuration ${{ env.BUILD_CONFIGURATION }} --no-restore
 
       - name: Run tests
-        run: dotnet test PowerShell/PSWriteOffice/Sources/PSWriteOffice.sln --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity normal --logger trx ${{ github.event_name != 'pull_request' && '--collect:"XPlat Code Coverage" --settings PowerShell/PSWriteOffice/Sources/PSWriteOffice.Tests/coverage.runsettings' || '' }}
+        run: dotnet test PowerShell/PSWriteOffice/Sources/PSWriteOffice.sln --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity normal --logger trx
 
       - name: Upload test results
         uses: actions/upload-artifact@v7
@@ -115,18 +103,6 @@ jobs:
         with:
           name: test-results-ubuntu
           path: '**/*.trx'
-      - name: Upload coverage reports
-        uses: actions/upload-artifact@v7
-        if: always() && github.event_name != 'pull_request'
-        with:
-          name: coverage-reports-ubuntu
-          path: '**/coverage.cobertura.xml'
-      - name: Upload coverage to Codecov
-        if: github.event_name != 'pull_request'
-        uses: codecov/codecov-action@v7
-        with:
-          files: '**/coverage.cobertura.xml'
-          fail_ci_if_error: false
 
   test-macos:
     needs: changes
@@ -152,7 +128,7 @@ jobs:
         run: dotnet build PowerShell/PSWriteOffice/Sources/PSWriteOffice.sln --configuration ${{ env.BUILD_CONFIGURATION }} --no-restore
 
       - name: Run tests
-        run: dotnet test PowerShell/PSWriteOffice/Sources/PSWriteOffice.sln --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity normal --logger trx ${{ github.event_name != 'pull_request' && '--collect:"XPlat Code Coverage" --settings PowerShell/PSWriteOffice/Sources/PSWriteOffice.Tests/coverage.runsettings' || '' }}
+        run: dotnet test PowerShell/PSWriteOffice/Sources/PSWriteOffice.sln --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity normal --logger trx
 
       - name: Upload test results
         uses: actions/upload-artifact@v7
@@ -160,18 +136,6 @@ jobs:
         with:
           name: test-results-macos
           path: '**/*.trx'
-      - name: Upload coverage reports
-        uses: actions/upload-artifact@v7
-        if: always() && github.event_name != 'pull_request'
-        with:
-          name: coverage-reports-macos
-          path: '**/coverage.cobertura.xml'
-      - name: Upload coverage to Codecov
-        if: github.event_name != 'pull_request'
-        uses: codecov/codecov-action@v7
-        with:
-          files: '**/coverage.cobertura.xml'
-          fail_ci_if_error: false
 
   ci-validation:
     name: CI validation
