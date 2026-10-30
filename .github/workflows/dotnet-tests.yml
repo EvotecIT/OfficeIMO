@@ -341,7 +341,7 @@ jobs:
 
   studio-contracts:
     needs: changes
-    name: 'Studio workflows and accessibility / ${{ matrix.os }}'
+    name: 'Studio workflows and accessibility / ${{ matrix.os }} / ${{ matrix.slice }}'
     if: fromJSON(needs.changes.outputs.suites)['studio-contracts']
     runs-on: ${{ matrix.os }}
     timeout-minutes: 20
@@ -349,6 +349,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest]
+        slice: [visual, workflows]
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-dotnet@v6
@@ -366,9 +367,15 @@ jobs:
         run: |
           $ErrorActionPreference = 'Stop'
           $PSNativeCommandUseErrorActionPreference = $true
-          dotnet test OfficeIMO.Studio.Core.Tests/OfficeIMO.Studio.Core.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework net10.0 --filter 'Category!=Performance' --logger 'trx;LogFileName=studio-core.trx' --results-directory TestResults/Studio
-          dotnet test OfficeIMO.Studio.Tests/OfficeIMO.Studio.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework net10.0 --logger 'trx;LogFileName=studio.trx' --results-directory TestResults/Studio
+          if ('${{ matrix.slice }}' -eq 'visual') {
+            dotnet test OfficeIMO.Studio.Core.Tests/OfficeIMO.Studio.Core.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework net10.0 --filter 'Category!=Performance' --logger 'trx;LogFileName=studio-core.trx' --results-directory TestResults/Studio
+            $filter = 'FullyQualifiedName~Visual|FullyQualifiedName~Render|FullyQualifiedName~Layout|FullyQualifiedName~Screenshot'
+          } else {
+            $filter = 'FullyQualifiedName!~Visual&FullyQualifiedName!~Render&FullyQualifiedName!~Layout&FullyQualifiedName!~Screenshot'
+          }
+          dotnet test OfficeIMO.Studio.Tests/OfficeIMO.Studio.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework net10.0 --filter $filter --logger 'trx;LogFileName=studio-${{ matrix.slice }}.trx' --results-directory TestResults/Studio
       - name: Test Store channel availability
+        if: matrix.slice == 'visual'
         shell: pwsh
         env:
           OFFICEIMO_STUDIO_VISUAL_OUTPUT: ${{ github.workspace }}/TestResults/Studio/StoreVisual
@@ -380,7 +387,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: studio-tests-${{ matrix.os }}
+          name: studio-tests-${{ matrix.os }}-${{ matrix.slice }}
           path: TestResults/Studio
           if-no-files-found: ignore
           retention-days: 7

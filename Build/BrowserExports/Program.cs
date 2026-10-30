@@ -132,6 +132,10 @@ foreach (HtmlBrowserEngine engine in engines) {
     };
     if (engine == HtmlBrowserEngine.Chromium && args.Contains("--scale")) launch.BrowserArguments.Add("--enable-precise-memory-info");
     await using HtmlBrowserSession session = await HtmlBrowser.OpenSessionAsync(new Uri(host).AbsoluteUri, launch);
+    Console.WriteLine($"{engine}: fixture page ready.");
+    session.Page.Console += (_, message) => {
+        if (message.Text.StartsWith("OfficeIMO report:", StringComparison.Ordinal)) Console.WriteLine($"{engine}: {message.Text}");
+    };
     var errors = new List<string>();
     var produced = new List<string>();
     session.Page.PageError += (_, error) => errors.Add(error);
@@ -142,12 +146,15 @@ foreach (HtmlBrowserEngine engine in engines) {
         return true;
     });
     await session.Page.AddScriptTagAsync(new() { Content = scenarios });
+    Console.WriteLine($"{engine}: workbook and CSV scenarios.");
     JsonElement result = await session.Page.EvaluateAsync<JsonElement>("async args => runBrowserScenarios(args)",
-        new { vectorJson, workerScript = JavaScriptAssets.Script.Content, limits = args.Contains("--limits") });
+        new { vectorJson, workerScript = JavaScriptAssets.Script.Content, limits = args.Contains("--limits") }).WaitAsync(TimeSpan.FromMinutes(3));
     await session.Page.AddScriptTagAsync(new() { Content = layers });
-    JsonElement layerResult = await session.Page.EvaluateAsync<JsonElement>("args => runLayerScenarios(args)", new { fixtureJson, moduleBase = moduleUrl });
+    Console.WriteLine($"{engine}: module and corpus scenarios.");
+    JsonElement layerResult = await session.Page.EvaluateAsync<JsonElement>("args => runLayerScenarios(args)", new { fixtureJson, moduleBase = moduleUrl }).WaitAsync(TimeSpan.FromMinutes(3));
     await session.Page.AddScriptTagAsync(new() { Content = reportContracts });
-    JsonElement reportResult = await session.Page.EvaluateAsync<JsonElement>("fixture => runReportContracts(fixture)", fixtureJson);
+    Console.WriteLine($"{engine}: report scenarios.");
+    JsonElement reportResult = await session.Page.EvaluateAsync<JsonElement>("fixture => runReportContracts(fixture)", fixtureJson).WaitAsync(TimeSpan.FromMinutes(3));
     foreach (string name in produced.Where(name => name.EndsWith(".xlsx", StringComparison.Ordinal))) WorkbookVerifier.Verify(Path.Combine(output, name));
     foreach (string name in produced.Where(name => name.StartsWith("report-", StringComparison.Ordinal))) ReportVerifier.Verify(Path.Combine(output, name), fixtureJson);
     using (JsonDocument corpus = JsonDocument.Parse(fixtureJson)) {
