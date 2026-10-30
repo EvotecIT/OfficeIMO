@@ -217,9 +217,10 @@ public static partial class WordPdfConverterExtensions {
                 ?? new NativeNoteNumbering(section._document, options);
             notes.BeginSection(section);
             var destinations = new Dictionary<W.Paragraph, string>();
+            int rejectedJoinUntil = -1;
             for (int index = 0; index < elements.Count; index++) {
                 options?.CancellationToken.ThrowIfCancellationRequested();
-                if (TryRenderNativeJoinedParagraphs(flow, elements, ref index,
+                if (TryRenderNativeJoinedParagraphs(flow, elements, ref index, ref rejectedJoinUntil,
                     paragraph => listMarkers.TryGetValue(paragraph, out var joinedMarker) ? joinedMarker : null,
                     notes, options, runningDefaults, fontMap)) continue;
                 RenderNativeElement(flow, elements[index], section,
