@@ -191,6 +191,24 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlRender_DecorativeImagesShareTheirAnchorTextDescription() {
+        string html = "<a href='https://example.com/report'>" +
+            string.Concat(Enumerable.Repeat("<img src='missing.png' alt='' width='2' height='2'>", 40)) +
+            "Read report</a>";
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Continuous,
+            ViewportWidth = 200D,
+            Margins = HtmlRenderMargins.All(0D)
+        });
+
+        HtmlRenderShape[] imageLinks = rendered.Pages.SelectMany(page => EnumerateRenderVisuals(page.Visuals))
+            .OfType<HtmlRenderShape>()
+            .Where(shape => shape.LinkUri == "https://example.com/report" && shape.Source == "Read report")
+            .ToArray();
+        Assert.Equal(40, imageLinks.Length);
+    }
+
+    [Fact]
     public void HtmlRender_InlineSvgReceivesHostDocumentCssAndCustomProperties() {
         const string html = "<style>svg{--accent:#ff0000} svg .host-painted{fill:var(--accent);stroke:#0000ff;stroke-width:2}</style>"
             + "<svg id='art' viewBox='0 0 20 10' style='width:40px;height:20px'>"

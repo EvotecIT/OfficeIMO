@@ -1,4 +1,5 @@
 using DocumentFormat.OpenXml.Spreadsheet;
+using OfficeIMO.ContentSafety;
 using OfficeIMO.Excel;
 using OfficeIMO.Excel.Utilities;
 using Xunit;
@@ -48,6 +49,26 @@ public sealed class ExcelCustomIndexedColorTests {
         Assert.Null(ExcelThemeColorResolver.Resolve(new Color { Indexed = uint.MaxValue }, workbook));
         styles.Colors = null;
         Assert.Equal("FF000000", ExcelThemeColorResolver.Resolve(new Color { Indexed = 0U }, workbook));
+    }
+
+    [Fact]
+    public void Content_safety_inspection_uses_the_workbook_palette_for_indexed_font_colors() {
+        using var document = ExcelDocument.Create();
+        var sheet = document.AddWorksheet("Palette");
+        sheet.CellValue(1, 1, "Concealed text");
+        sheet.CellAt(1, 1).SetFontColor("112233");
+        var workbook = document.OpenXmlDocument.WorkbookPart!;
+        var styles = workbook.WorkbookStylesPart!.Stylesheet!;
+        Cell cell = workbook.WorksheetParts.Single().Worksheet.Descendants<Cell>().Single();
+        CellFormat format = styles.CellFormats!.Elements<CellFormat>().ElementAt((int)cell.StyleIndex!.Value);
+        styles.Fonts!.Elements<Font>().ElementAt((int)format.FontId!.Value).Color = new Color { Indexed = 2U };
+        styles.Colors = new Colors(new IndexedColors(new RgbColor { Rgb = "FF000000" },
+            new RgbColor { Rgb = "FF000000" }, new RgbColor { Rgb = "FFFFFFFF" }));
+
+        byte[] bytes = document.ToBytes(ExcelFileFormat.Xlsx);
+        Assert.Contains(ExcelDocument.InspectContentSafety(bytes, "palette.xlsx").Findings,
+            finding => finding.Kind == OfficeContentConcealmentKind.LowContrastText
+                && finding.Location.Contains("Cell(A1)", StringComparison.Ordinal));
     }
 
     private static void AssertPaletteStyle(ExcelCellStyleSnapshot style) {

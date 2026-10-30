@@ -8,6 +8,24 @@ using static OfficeIMO.Xps.Tests.XpsLogicalStructureTests;
 namespace OfficeIMO.Xps.Tests;
 
 public sealed class XpsPdfStreamTests {
+    [Fact]
+    public void RepeatedPageOccurrencesShareProjectionCommandBudget() {
+        var document = XpsDocument.Create();
+        var page = document.AddPage(100, 100).AddPath("M10,10H20V20H10Z");
+        var options = new XpsToPdfOptions { MaximumPathCommands = 8 };
+        using (var single = new MemoryStream())
+            Assert.True(document.SavePdf(single, options).Succeeded);
+
+        document.Documents[0].InsertPage(1, page);
+        using var output = new MemoryStream(new byte[] { 1, 2, 3 }, true);
+        output.Position = 2;
+
+        InvalidDataException error = Assert.Throws<InvalidDataException>(() => document.SavePdf(output, options));
+        Assert.Contains("MaximumPathCommands", error.Message, StringComparison.Ordinal);
+        Assert.Equal(new byte[] { 1, 2, 3 }, output.ToArray());
+        Assert.Equal(2, output.Position);
+    }
+
     [Theory]
     [InlineData(true)]
     [InlineData(false)]

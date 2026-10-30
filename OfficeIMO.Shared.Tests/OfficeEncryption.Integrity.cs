@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Security.Cryptography;
 using System.Text;
@@ -9,6 +10,60 @@ using Xunit;
 
 namespace OfficeIMO.Shared.Tests {
     public class AgileIntegrityTests {
+        private const string IntegrityFailureMessage = "The encrypted package integrity check failed.";
+
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void DecryptPackage_RejectsSaltLengthMismatchBeforeUsingThePassword(bool passwordSalt) {
+            byte[] encrypted = OfficeEncryption.EncryptPackage(new byte[] { 1, 2, 3 }, "test-password",
+                new OfficeEncryptionOptions { SpinCount = 1 });
+            byte[] changed = RewriteDescriptor(encrypted, descriptor => {
+                XNamespace ns = "http://schemas.microsoft.com/office/2006/encryption";
+                XNamespace password = "http://schemas.microsoft.com/office/2006/keyEncryptor/password";
+                XElement element = passwordSalt ? descriptor.Root!.Element(ns + "keyEncryptors")!
+                    .Element(ns + "keyEncryptor")!.Element(password + "encryptedKey")! : descriptor.Root!.Element(ns + "keyData")!;
+                element.SetAttributeValue("saltSize", 31);
+            });
+            Assert.Throws<InvalidDataException>(() => OfficeEncryption.DecryptPackage(changed, "test-password"));
+        }
+
+        [Fact]
+        public void DecryptPackage_DoesNotDistinguishIntegrityPaddingFromAuthenticationFailure() {
+            byte[] encrypted = ReadFixture("agile-digest-sha1.xlsx");
+            byte[] invalidPadding = RewriteIntegrity(encrypted, "encryptedHmacKey", bytes => { bytes[15] ^= 1; return bytes; });
+            byte[] invalidTag = RewriteIntegrity(encrypted, "encryptedHmacValue", bytes => { bytes[0] ^= 1; return bytes; });
+            var paddingError = Assert.Throws<CryptographicException>(() => OfficeEncryption.DecryptPackage(invalidPadding, "hunter2"));
+            var tagError = Assert.Throws<CryptographicException>(() => OfficeEncryption.DecryptPackage(invalidTag, "hunter2"));
+            Assert.Equal(IntegrityFailureMessage, paddingError.Message);
+            Assert.Equal(tagError.Message, paddingError.Message);
+        }
+
+        [Fact]
+        public void DecryptPackage_ConsistentSaltDescriptorDoesNotRestoreThePaddingOracle() {
+            byte[] encrypted = OfficeEncryption.EncryptPackage(new byte[] { 1, 2, 3 }, "test-password",
+                new OfficeEncryptionOptions { SpinCount = 1 });
+            var messages = new HashSet<string>(StringComparer.Ordinal);
+            for (int value = 0; value < 256; value++) {
+                byte[] changed = RewriteDescriptor(encrypted, descriptor => {
+                    XNamespace ns = "http://schemas.microsoft.com/office/2006/encryption";
+                    XElement keyData = descriptor.Root!.Element(ns + "keyData")!;
+                    keyData.SetAttributeValue("saltSize", 31);
+                    keyData.SetAttributeValue("saltValue", Convert.ToBase64String(new byte[31]));
+                    XAttribute key = descriptor.Root.Element(ns + "dataIntegrity")!.Attribute("encryptedHmacKey")!;
+                    byte[] ciphertext = Convert.FromBase64String(key.Value);
+                    Array.Resize(ref ciphertext, 32);
+                    // Every possible last plaintext byte occurs in block two, while
+                    // both salt fields remain consistent with the format's range.
+                    ciphertext[15] = (byte)value;
+                    key.Value = Convert.ToBase64String(ciphertext);
+                });
+                var error = Assert.Throws<CryptographicException>(() => OfficeEncryption.DecryptPackage(changed, "test-password"));
+                messages.Add(error.Message);
+            }
+            Assert.Equal(IntegrityFailureMessage, Assert.Single(messages));
+        }
+
         [Theory]
         [InlineData("sha1")]
         [InlineData("sha256")]
@@ -89,7 +144,7 @@ namespace OfficeIMO.Shared.Tests {
             });
             CryptographicException error = Assert.Throws<CryptographicException>(() =>
                 OfficeEncryption.DecryptPackage(tampered, "hunter2"));
-            Assert.Contains("unsupported length", error.Message);
+            Assert.Equal(IntegrityFailureMessage, error.Message);
         }
 
         [Fact]
@@ -103,7 +158,7 @@ namespace OfficeIMO.Shared.Tests {
             });
             CryptographicException error = Assert.Throws<CryptographicException>(() =>
                 OfficeEncryption.DecryptPackage(tampered, "hunter2"));
-            Assert.Contains("invalid padding", error.Message);
+            Assert.Equal(IntegrityFailureMessage, error.Message);
         }
 
         private static byte[] ReadFixture(string name) => File.ReadAllBytes(Path.Combine(
@@ -119,7 +174,14 @@ namespace OfficeIMO.Shared.Tests {
             return XDocument.Parse(Encoding.UTF8.GetString(descriptor, 8, descriptor.Length - 8));
         }
 
-        private static byte[] RewriteIntegrity(byte[] encrypted, string attribute, Func<byte[], byte[]> change) {
+        private static byte[] RewriteIntegrity(byte[] encrypted, string attribute, Func<byte[], byte[]> change) =>
+            RewriteDescriptor(encrypted, descriptor => {
+                XNamespace ns = "http://schemas.microsoft.com/office/2006/encryption";
+                XAttribute value = descriptor.Root!.Element(ns + "dataIntegrity")!.Attribute(attribute)!;
+                value.Value = Convert.ToBase64String(change(Convert.FromBase64String(value.Value)));
+            });
+
+        private static byte[] RewriteDescriptor(byte[] encrypted, Action<XDocument> change) {
             using var source = new MemoryStream();
             source.Write(encrypted, 0, encrypted.Length);
             source.Position = 0;
@@ -129,9 +191,7 @@ namespace OfficeIMO.Shared.Tests {
                 stream.CopyTo(original);
                 byte[] bytes = original.ToArray();
                 XDocument descriptor = XDocument.Parse(Encoding.UTF8.GetString(bytes, 8, bytes.Length - 8));
-                XNamespace ns = "http://schemas.microsoft.com/office/2006/encryption";
-                XAttribute value = descriptor.Root!.Element(ns + "dataIntegrity")!.Attribute(attribute)!;
-                value.Value = Convert.ToBase64String(change(Convert.FromBase64String(value.Value)));
+                change(descriptor);
                 byte[] xml = Encoding.UTF8.GetBytes(descriptor.ToString(SaveOptions.DisableFormatting));
                 stream.Position = 0;
                 stream.SetLength(8 + xml.Length);

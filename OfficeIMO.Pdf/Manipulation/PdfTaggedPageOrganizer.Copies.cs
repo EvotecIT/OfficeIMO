@@ -50,7 +50,7 @@ internal static partial class PdfTaggedPageOrganizer {
         if (!catalog.Items.TryGetValue("StructTreeRoot", out var rootValue) || PdfObjectLookup.Resolve(objects, rootValue) is not PdfDictionary root) return;
         var projected = new Dictionary<int, int>(); var visited = new HashSet<int>();
         var ids = new Dictionary<string, PdfStringObj>(StringComparer.Ordinal);
-        string idPrefix = UniqueStructureIdPrefix(objects, "copy" + (-copiedPage).ToString(System.Globalization.CultureInfo.InvariantCulture) + ":");
+        string idPrefix = UniqueStructureIdPrefix(objects, "copy" + (-copiedPage).ToString(System.Globalization.CultureInfo.InvariantCulture) + ":", token);
         PdfObject? Project(PdfObject value, int? inheritedPage, PdfObject parent, int depth) {
             token.ThrowIfCancellationRequested();
             if (depth > 256) throw new InvalidOperationException("Page copying exceeded the structure nesting limit.");

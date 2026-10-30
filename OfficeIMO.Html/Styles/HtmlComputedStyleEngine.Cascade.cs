@@ -293,9 +293,7 @@ public static partial class HtmlComputedStyleEngine {
 
     private static IReadOnlyList<CascadedProperty> CollectCandidates(CascadedProperty? property) {
         if (property == null) return Array.Empty<CascadedProperty>();
-        var candidates = new List<CascadedProperty>(property.Alternatives.Count + 1) { property };
-        candidates.AddRange(property.Alternatives);
-        return candidates;
+        return new CascadedProperty.AlternativeChain(property, property.Alternatives);
     }
 
     private static string StripTrailingImportant(string value, out bool isImportant) {

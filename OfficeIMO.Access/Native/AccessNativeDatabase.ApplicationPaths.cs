@@ -13,9 +13,12 @@ namespace OfficeIMO.Access {
                 if (current.ParentId == current.Id) {
                     if (current.Type != 1 || current.Name != "MSysAccessStorage_ROOT" && current.Name != "MSysAccessStorage_SCRATCH")
                         throw new InvalidDataException("An ACE application root is invalid.");
-                    Add(current.Name == "MSysAccessStorage_ROOT" ? string.Empty : current.Name, current.Id); continue;
+                    string rootPath = current.Name == "MSysAccessStorage_ROOT" ? string.Empty : current.Name;
+                    ChargePath(rootPath.Length);
+                    Add(rootPath, current.Id); continue;
                 }
                 var parts = new List<string> { current.Name }; var seen = new HashSet<int> { current.Id };
+                long pathCharacters = current.Name.Length;
                 while (true) {
                     cancellation.ThrowIfCancellationRequested();
                     if (seen.Count >= MaxChainLength || !records.TryGetValue(current.ParentId, out StorageRecord? parent) || parent.Type != 1 || !seen.Add(parent.Id))
@@ -25,11 +28,21 @@ namespace OfficeIMO.Access {
                         if (current.Name != "MSysAccessStorage_ROOT") throw new InvalidDataException("An ACE application storage does not reach its root.");
                         break;
                     }
-                    parts.Insert(0, current.Name);
+                    pathCharacters += current.Name.Length + 1L;
+                    if (pathCharacters > RemainingMetadataBytes / sizeof(char))
+                        throw new InvalidDataException("Native Access decoded metadata exceeds MaxMetadataBytes.");
+                    parts.Add(current.Name);
                 }
+                ChargePath(pathCharacters);
+                parts.Reverse();
                 Add(string.Join("/", parts), record.Id);
             }
             return paths;
+            void ChargePath(long characters) {
+                if (characters > RemainingMetadataBytes / sizeof(char))
+                    throw new InvalidDataException("Native Access decoded metadata exceeds MaxMetadataBytes.");
+                AccountMetadata(checked((int)(characters * sizeof(char))));
+            }
             void Add(string path, int id) {
                 if (paths.ContainsKey(path)) throw new InvalidDataException("ACE application storage contains ambiguous identities.");
                 paths.Add(path, id);

@@ -96,7 +96,7 @@ public partial class WordDocument {
         IDictionary<string, WordCleanupTarget>? targets, CancellationToken cancellationToken = default) {
         MainDocumentPart main = document.MainDocumentPart ?? throw new InvalidDataException("The package has no Word main document part.");
         var builder = new OfficeContentSafetyBuilder("Word Open XML", options, cancellationToken);
-        WordStyleResolver styleResolver = new WordStyleResolver(main);
+        WordStyleResolver? styleResolver = builder.Options.TextIntegrityOnly ? null : new WordStyleResolver(main);
         W.Document mainDocument = main.Document ?? throw new InvalidDataException("The Word main document part has no document root.");
         InspectWordRoot(mainDocument, "Document", false, styleResolver, builder, targets);
         int index = 0;
@@ -115,7 +115,7 @@ public partial class WordDocument {
         OpenXmlPartRootElement root,
         string rootLocation,
         bool nonPrimary,
-        WordStyleResolver styleResolver,
+        WordStyleResolver? styleResolver,
         OfficeContentSafetyBuilder builder,
         IDictionary<string, WordCleanupTarget>? targets) {
         int runIndex = 0;
@@ -124,30 +124,30 @@ public partial class WordDocument {
             string text = run.InnerText;
             if (text.Length == 0) continue;
             string location = rootLocation + "/Run[" + (++runIndex).ToString(CultureInfo.InvariantCulture) + "]";
-            EffectiveWordRunStyle style = styleResolver.Resolve(run);
             OfficeContentConcealmentKind? kind = null;
             string? evidence = null;
-            if (style.Hidden) {
-                kind = OfficeContentConcealmentKind.HiddenByProperty;
-                evidence = "The effective Word run formatting enables vanish, webHidden, or specVanish.";
-            } else if (run.Ancestors<W.DeletedRun>().Any()) {
-                kind = OfficeContentConcealmentKind.HiddenByProperty;
-                evidence = "The run is retained as deleted revision content and is not ordinary current text.";
-            } else if (style.FontSizePoints.HasValue && style.FontSizePoints.Value <= builder.Options.MaximumTinyFontSizePoints) {
-                kind = OfficeContentConcealmentKind.TinyText;
-                evidence = "The effective Word font size is " + style.FontSizePoints.Value.ToString("0.###", CultureInfo.InvariantCulture) + "pt.";
-            } else if (HasZeroDrawingExtent(run)) {
-                kind = OfficeContentConcealmentKind.ZeroDimension;
-                evidence = "The owning Word drawing or VML shape has zero visible geometry.";
-            } else if (TryGetWordContrast(style, out double contrast, out string colors) && contrast < builder.Options.MinimumVisibleContrastRatio) {
-                kind = OfficeContentConcealmentKind.LowContrastText;
-                evidence = colors + " has contrast ratio " + contrast.ToString("0.###", CultureInfo.InvariantCulture) + ".";
-            } else if (nonPrimary && builder.Options.IncludeNonPrimaryContent) {
-                kind = OfficeContentConcealmentKind.NonPrimaryContent;
-                evidence = "The text is stored outside the primary body story in " + rootLocation + ".";
+            if (!builder.Options.TextIntegrityOnly) {
+                EffectiveWordRunStyle style = styleResolver!.Resolve(run);
+                if (style.Hidden) {
+                    kind = OfficeContentConcealmentKind.HiddenByProperty;
+                    evidence = "The effective Word run formatting enables vanish, webHidden, or specVanish.";
+                } else if (run.Ancestors<W.DeletedRun>().Any()) {
+                    kind = OfficeContentConcealmentKind.HiddenByProperty;
+                    evidence = "The run is retained as deleted revision content and is not ordinary current text.";
+                } else if (style.FontSizePoints.HasValue && style.FontSizePoints.Value <= builder.Options.MaximumTinyFontSizePoints) {
+                    kind = OfficeContentConcealmentKind.TinyText;
+                    evidence = "The effective Word font size is " + style.FontSizePoints.Value.ToString("0.###", CultureInfo.InvariantCulture) + "pt.";
+                } else if (HasZeroDrawingExtent(run)) {
+                    kind = OfficeContentConcealmentKind.ZeroDimension;
+                    evidence = "The owning Word drawing or VML shape has zero visible geometry.";
+                } else if (TryGetWordContrast(style, out double contrast, out string colors) && contrast < builder.Options.MinimumVisibleContrastRatio) {
+                    kind = OfficeContentConcealmentKind.LowContrastText;
+                    evidence = colors + " has contrast ratio " + contrast.ToString("0.###", CultureInfo.InvariantCulture) + ".";
+                } else if (nonPrimary && builder.Options.IncludeNonPrimaryContent) {
+                    kind = OfficeContentConcealmentKind.NonPrimaryContent;
+                    evidence = "The text is stored outside the primary body story in " + rootLocation + ".";
+                }
             }
-
-            if (builder.Options.TextIntegrityOnly) kind = null;
             if (kind.HasValue) {
                 OfficeContentSafetyFinding finding = builder.Add(
                     kind.Value,
@@ -260,7 +260,9 @@ public partial class WordDocument {
     }
 
     private sealed class WordStyleResolver {
+        private const int MaxStyleChainDepth = 256;
         private readonly Dictionary<string, W.Style> _styles;
+        private readonly Dictionary<string, W.Style[]> _styleChains = new(StringComparer.Ordinal);
         private readonly W.RunPropertiesBaseStyle? _defaults;
         internal WordStyleResolver(MainDocumentPart main) {
             _styles = main.StyleDefinitionsPart?.Styles?.Elements<W.Style>()
@@ -285,14 +287,20 @@ public partial class WordDocument {
         }
         private void ApplyStyleChain(EffectiveWordRunStyle target, string? styleId) {
             if (string.IsNullOrWhiteSpace(styleId)) return;
-            var chain = new Stack<W.Style>();
-            var visited = new HashSet<string>(StringComparer.Ordinal);
-            string? current = styleId;
-            while (!string.IsNullOrWhiteSpace(current) && visited.Add(current!) && _styles.TryGetValue(current!, out W.Style? style)) {
-                chain.Push(style);
-                current = style.BasedOn?.Val?.Value;
+            if (!_styleChains.TryGetValue(styleId!, out W.Style[]? chain)) {
+                var inherited = new List<W.Style>();
+                var visited = new HashSet<string>(StringComparer.Ordinal);
+                string? current = styleId;
+                while (!string.IsNullOrWhiteSpace(current) && visited.Add(current!) && _styles.TryGetValue(current!, out W.Style? style)) {
+                    if (inherited.Count == MaxStyleChainDepth) throw new InvalidDataException("The Word style inheritance chain exceeds the supported depth.");
+                    inherited.Add(style);
+                    current = style.BasedOn?.Val?.Value;
+                }
+                inherited.Reverse();
+                chain = inherited.ToArray();
+                _styleChains.Add(styleId!, chain);
             }
-            while (chain.Count > 0) Apply(target, chain.Pop().StyleRunProperties);
+            foreach (W.Style style in chain) Apply(target, style.StyleRunProperties);
         }
         private static void Apply(EffectiveWordRunStyle target, OpenXmlElement? properties) {
             if (properties == null) return;

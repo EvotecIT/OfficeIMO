@@ -115,13 +115,35 @@ namespace OfficeIMO.Excel.Pdf {
             return cellReference.Replace("$", string.Empty).ToUpperInvariant();
         }
 
-        private static IReadOnlyList<TableChunk> CreateTableChunks(WorksheetPdfExportPlan plan, ExcelToPdfOptions options, int exportedColumns, bool honorRowBreaks = true, bool honorColumnBreaks = true) {
+        private static IReadOnlyList<TableChunk> CreateTableChunks(WorksheetPdfExportPlan plan, ExcelToPdfOptions options, int exportedColumns, long maximumProjectedCells, bool honorRowBreaks = true, bool honorColumnBreaks = true) {
             IReadOnlyList<TableAxisChunk> rowChunks = CreateTableAxisChunks(
                 plan.ExportedRows,
                 options.UseWorksheetPageBreaks && honorRowBreaks ? GetManualRowBreakOffsets(plan) : new List<int>());
             IReadOnlyList<TableAxisChunk> columnChunks = CreateTableAxisChunks(
                 exportedColumns,
                 options.UseWorksheetPageBreaks && honorColumnBreaks ? GetManualColumnBreakOffsets(plan) : new List<int>());
+            {
+                long projectedRows = 0;
+                IReadOnlyList<int> titleRows = plan.ExportData.RepeatingRowIndexes;
+                int titleRowCount = 0;
+                foreach (TableAxisChunk rowChunk in rowChunks) {
+                    while (titleRowCount < titleRows.Count && titleRows[titleRowCount] < rowChunk.Start) titleRowCount++;
+                    projectedRows += rowChunk.Count + titleRowCount;
+                    if (projectedRows > maximumProjectedCells)
+                        throw new NotSupportedException("Worksheet page projection exceeds the supported cell budget.");
+                }
+                long projectedColumns = 0;
+                IReadOnlyList<int> titleColumns = plan.ExportData.PrintTitleColumnIndexes;
+                int titleColumnCount = 0;
+                foreach (TableAxisChunk columnChunk in columnChunks) {
+                    while (titleColumnCount < titleColumns.Count && titleColumns[titleColumnCount] < columnChunk.Start) titleColumnCount++;
+                    projectedColumns += columnChunk.Count + titleColumnCount;
+                    if (projectedColumns > maximumProjectedCells)
+                        throw new NotSupportedException("Worksheet page projection exceeds the supported cell budget.");
+                }
+                if (projectedColumns > 0 && projectedRows > maximumProjectedCells / projectedColumns)
+                    throw new NotSupportedException("Worksheet page projection exceeds the supported cell budget.");
+            }
             var chunks = new List<TableChunk>(rowChunks.Count * columnChunks.Count);
             if (plan.PageSetup?.PageOrder == ExcelPageOrder.OverThenDown) {
                 foreach (TableAxisChunk rowChunk in rowChunks) {

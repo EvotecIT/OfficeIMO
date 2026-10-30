@@ -21,8 +21,10 @@ public sealed partial class EpubPublication {
             Add(package, "EPUB_PREFLIGHT_WRITE_FAILED", EpubDiagnosticSeverity.Error, error.Message, PackagePath);
         }
         checks.Add(Result("native-save", package));
-        checks.Add(CheckAccessibilityDiscovery());
-        if (PackageVersion == "3.0") checks.Add(CheckMetadataLinks(cancellationToken));
+        IReadOnlyDictionary<string, string> prefixes = EpubVocabulary.ReadPrefixes(
+            (string?)Root.Attribute("prefix") ?? string.Empty, cancellationToken: cancellationToken);
+        checks.Add(CheckAccessibilityDiscovery(prefixes, cancellationToken));
+        if (PackageVersion == "3.0") checks.Add(CheckMetadataLinks(prefixes, cancellationToken));
 
         var contentFindings = new List<EpubDiagnostic>();
         var imageFindings = new List<EpubDiagnostic>();

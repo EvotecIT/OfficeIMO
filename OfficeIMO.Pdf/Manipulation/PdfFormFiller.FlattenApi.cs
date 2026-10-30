@@ -48,7 +48,7 @@ internal static partial class PdfFormFiller {
         var removableObjects = new HashSet<int>();
         for (int i = 0; i < fields.Items.Count; i++) {
             cancellationToken.ThrowIfCancellationRequested();
-            CollectFlattenWidgets(objects, fields.Items[i], null, 0, ReadFieldQuadding(objects, acroForm, null), null, acroFormDefaultResources, acroFormDefaultAppearance, null, null, null, null, options, widgets, removableObjects, new HashSet<int>(), ref nextObjectNumber, cancellationToken);
+            CollectFlattenWidgets(objects, fields.Items[i], null, 0, ReadFieldQuadding(objects, acroForm, null), null, acroFormDefaultResources, acroFormDefaultAppearance, null, null, null, null, options, widgets, removableObjects, new HashSet<int>(), ref nextObjectNumber, source.ReadOptions.Limits.MaxDecodedTextCharacters, cancellationToken);
         }
 
         if (widgets.Count == 0) {
@@ -143,7 +143,7 @@ internal static partial class PdfFormFiller {
             options,
             widgets,
             removableObjects,
-            ref nextObjectNumber, cancellationToken);
+            ref nextObjectNumber, source.ReadOptions.Limits.MaxDecodedTextCharacters, cancellationToken);
 
         if (matched.Count != requested.Count) {
             throw new ArgumentException("PDF form field was not found: " + string.Join(", ", requested.Where(name => !matched.Contains(name))), nameof(fieldNames));

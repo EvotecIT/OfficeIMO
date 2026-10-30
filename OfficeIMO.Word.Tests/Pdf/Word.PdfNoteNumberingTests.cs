@@ -1,4 +1,5 @@
 using System.Text.RegularExpressions;
+using OfficeIMO.Core;
 using OfficeIMO.Word;
 using OfficeIMO.Word.Pdf;
 using Xunit;
@@ -8,6 +9,25 @@ using W = DocumentFormat.OpenXml.Wordprocessing;
 namespace OfficeIMO.Tests;
 
 public sealed class WordPdfNoteNumberingTests {
+    [Fact]
+    public void RepeatedLetterLabelsRejectExcessiveSingleExpansion() {
+        Assert.Throws<InvalidDataException>(() =>
+            OfficeNumberFormatter.Format(106_497, OfficeNumberStyle.RepeatedLowerLetter));
+    }
+
+    [Fact]
+    public void ImportedNoteLabelsRejectExcessiveCumulativeExpansion() {
+        using WordDocument source = WordDocument.Create();
+        source.Sections[0].AddFootnoteProperties(WordNumberFormat.LowerLetter,
+            WordFootnotePosition.PageBottom, WordNoteNumberRestart.Continuous, startNumber: 65_535);
+        for (int index = 0; index < 40; index++)
+            source.AddParagraph("REF").AddFootNote("BODY");
+
+        Assert.Throws<InvalidDataException>(() => source.ToPdfBytes(new WordToPdfOptions {
+            IncludePageNumbers = false
+        }));
+    }
+
     [Theory]
     [InlineData(WordNumberFormat.Decimal, false, "0", "1")]
     [InlineData(WordNumberFormat.UpperLetter, false, "", "A")]

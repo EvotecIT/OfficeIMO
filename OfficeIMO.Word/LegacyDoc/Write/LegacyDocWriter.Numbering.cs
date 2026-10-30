@@ -56,8 +56,9 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             if (instances.Any(item => item.NumberID?.Value == null || item.NumberID.Value < 1 || item.NumberID.Value > short.MaxValue)
                 || instances.Select(item => item.NumberID!.Value).Distinct().Count() != instances.Length)
                 throw new NotSupportedException("Native DOC list instance ids must be unique values from 1 through 32767.");
+            var referencedIds = new HashSet<int?>(instances.Select(instance => instance.AbstractNumId?.Val?.Value));
             var referencedDefinitions = (numbering?.Elements<AbstractNum>() ?? Enumerable.Empty<AbstractNum>())
-                .Where(item => instances.Any(instance => instance.AbstractNumId?.Val?.Value == item.AbstractNumberId?.Value)).ToArray();
+                .Where(item => referencedIds.Contains(item.AbstractNumberId?.Value)).ToArray();
             if (referencedDefinitions.Length == 0 || referencedDefinitions.Length > short.MaxValue
                 || referencedDefinitions.Any(item => item.AbstractNumberId?.Value == null)
                 || referencedDefinitions.Select(item => item.AbstractNumberId!.Value).Distinct().Count() != referencedDefinitions.Length)

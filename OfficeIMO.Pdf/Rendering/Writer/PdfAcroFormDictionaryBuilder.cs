@@ -1,3 +1,5 @@
+using System.Threading;
+
 namespace OfficeIMO.Pdf;
 
 internal static partial class PdfAcroFormDictionaryBuilder {
@@ -111,7 +113,7 @@ internal static partial class PdfAcroFormDictionaryBuilder {
             " >>";
     }
 
-    internal static string BuildTextFieldAppearanceContent(double width, double height, string value, double fontSize, PdfFormFieldStyle? style = null, string? encodedTextHex = null, PdfFormFieldTextAlignment? textAlignment = null, double? textWidth = null, string? fontResourceName = null, Func<string, string?>? encodeTextSegmentHex = null, Func<string, double, double>? measureTextSegmentWidth = null, Func<string, IReadOnlyList<PdfTextAppearanceSegment>>? encodeTextSegments = null, double? singleLineBaseline = null) {
+    internal static string BuildTextFieldAppearanceContent(double width, double height, string value, double fontSize, PdfFormFieldStyle? style = null, string? encodedTextHex = null, PdfFormFieldTextAlignment? textAlignment = null, double? textWidth = null, string? fontResourceName = null, Func<string, string?>? encodeTextSegmentHex = null, Func<string, double, double>? measureTextSegmentWidth = null, Func<string, IReadOnlyList<PdfTextAppearanceSegment>>? encodeTextSegments = null, double? singleLineBaseline = null, int maximumMeasurementCharacters = PdfReadLimits.DefaultMaxDecodedTextCharacters, CancellationToken cancellationToken = default) {
         Guard.Positive(width, nameof(width));
         Guard.Positive(height, nameof(height));
         Guard.NotNull(value, nameof(value));
@@ -140,7 +142,7 @@ internal static partial class PdfAcroFormDictionaryBuilder {
         }
 
         if (effectiveStyle.IsMultiline) {
-            content += BuildMultilineTextFieldAppearanceContent(height, displayValue, fontSize, effectiveStyle, effectiveAlignment, availableTextWidth, effectiveFontResourceName, encodeTextSegmentHex, measureTextSegmentWidth, encodeTextSegments);
+            content += BuildMultilineTextFieldAppearanceContent(height, displayValue, fontSize, effectiveStyle, effectiveAlignment, availableTextWidth, effectiveFontResourceName, encodeTextSegmentHex, measureTextSegmentWidth, encodeTextSegments, maximumMeasurementCharacters, cancellationToken);
         } else if (effectiveStyle.IsComb && effectiveStyle.MaxLength.HasValue) {
             content += BuildCombTextFieldAppearanceContent(width, height, displayValue, fontSize, effectiveStyle, effectiveFontResourceName, encodeTextSegmentHex, measureTextSegmentWidth, encodeTextSegments);
         } else {
@@ -183,12 +185,14 @@ internal static partial class PdfAcroFormDictionaryBuilder {
         }
     }
 
-    private static string BuildMultilineTextFieldAppearanceContent(double height, string displayValue, double fontSize, PdfFormFieldStyle effectiveStyle, PdfFormFieldTextAlignment alignment, double availableTextWidth, string fontResourceName, Func<string, string?>? encodeTextSegmentHex, Func<string, double, double>? measureTextSegmentWidth, Func<string, IReadOnlyList<PdfTextAppearanceSegment>>? encodeTextSegments) {
-        List<string> lines = WrapTextFieldAppearanceLines(displayValue, fontSize, availableTextWidth, measureTextSegmentWidth);
+    private static string BuildMultilineTextFieldAppearanceContent(double height, string displayValue, double fontSize, PdfFormFieldStyle effectiveStyle, PdfFormFieldTextAlignment alignment, double availableTextWidth, string fontResourceName, Func<string, string?>? encodeTextSegmentHex, Func<string, double, double>? measureTextSegmentWidth, Func<string, IReadOnlyList<PdfTextAppearanceSegment>>? encodeTextSegments, int maximumMeasurementCharacters, CancellationToken cancellationToken) {
+        var measurementBudget = new TextAppearanceMeasurementBudget(maximumMeasurementCharacters, cancellationToken);
+        List<string> lines = WrapTextFieldAppearanceLines(displayValue, fontSize, availableTextWidth, measureTextSegmentWidth, measurementBudget);
         double lineHeight = Math.Max(fontSize, fontSize * 1.2D);
         double baseline = Math.Max(2D, height - fontSize * 1.15D);
         var content = new StringBuilder();
         for (int i = 0; i < lines.Count && baseline >= 2D; i++) {
+            cancellationToken.ThrowIfCancellationRequested();
             string line = availableTextWidth <= 0.001D ? string.Empty : lines[i];
             double lineWidth = MeasureTextAppearanceSegment(line, fontSize, measureTextSegmentWidth);
             double textX = CalculateAlignedTextX(availableTextWidth, lineWidth, alignment);
@@ -212,30 +216,38 @@ internal static partial class PdfAcroFormDictionaryBuilder {
         return content.ToString();
     }
 
-    private static List<string> WrapTextFieldAppearanceLines(string displayValue, double fontSize, double availableTextWidth, Func<string, double, double>? measureTextSegmentWidth) {
+    private static List<string> WrapTextFieldAppearanceLines(string displayValue, double fontSize, double availableTextWidth, Func<string, double, double>? measureTextSegmentWidth, TextAppearanceMeasurementBudget measurementBudget) {
         string[] explicitLines = SplitTextFieldAppearanceLines(displayValue);
         var wrappedLines = new List<string>();
         for (int i = 0; i < explicitLines.Length; i++) {
-            WrapTextFieldAppearanceLine(explicitLines[i], fontSize, availableTextWidth, measureTextSegmentWidth, wrappedLines);
+            measurementBudget.CheckCancellation();
+            WrapTextFieldAppearanceLine(explicitLines[i], fontSize, availableTextWidth, measureTextSegmentWidth, wrappedLines, measurementBudget);
         }
 
         return wrappedLines;
     }
 
-    private static void WrapTextFieldAppearanceLine(string line, double fontSize, double availableTextWidth, Func<string, double, double>? measureTextSegmentWidth, List<string> wrappedLines) {
+    private static void WrapTextFieldAppearanceLine(string line, double fontSize, double availableTextWidth, Func<string, double, double>? measureTextSegmentWidth, List<string> wrappedLines, TextAppearanceMeasurementBudget measurementBudget) {
         if (line.Length == 0 || availableTextWidth <= 0.001D) {
             wrappedLines.Add(line);
             return;
         }
 
+        // Built-in glyph widths are additive, so a line that fits cannot need token-by-token wrapping.
+        if (measureTextSegmentWidth == null && FitsTextFieldAppearanceLine(line, fontSize, availableTextWidth, null, measurementBudget)) {
+            AddWrappedTextFieldAppearanceLine(wrappedLines, line.TrimStart());
+            return;
+        }
+
         string currentLine = string.Empty;
         foreach (string token in EnumerateTextFieldAppearanceTokens(line)) {
+            measurementBudget.CheckCancellation();
             if (currentLine.Length == 0 && IsAllWhiteSpace(token)) {
                 continue;
             }
 
             string candidate = currentLine + token;
-            if (FitsTextFieldAppearanceLine(candidate, fontSize, availableTextWidth, measureTextSegmentWidth)) {
+            if (FitsTextFieldAppearanceLine(candidate, fontSize, availableTextWidth, measureTextSegmentWidth, measurementBudget)) {
                 currentLine = candidate;
                 continue;
             }
@@ -251,7 +263,7 @@ internal static partial class PdfAcroFormDictionaryBuilder {
                 currentLine = string.Empty;
             }
 
-            currentLine = AddWrappedTextFieldAppearanceWord(token, fontSize, availableTextWidth, measureTextSegmentWidth, wrappedLines);
+            currentLine = AddWrappedTextFieldAppearanceWord(token, fontSize, availableTextWidth, measureTextSegmentWidth, wrappedLines, measurementBudget);
         }
 
         AddWrappedTextFieldAppearanceLine(wrappedLines, currentLine);
@@ -274,15 +286,16 @@ internal static partial class PdfAcroFormDictionaryBuilder {
         yield return line.Substring(start);
     }
 
-    private static string AddWrappedTextFieldAppearanceWord(string word, double fontSize, double availableTextWidth, Func<string, double, double>? measureTextSegmentWidth, List<string> wrappedLines) {
+    private static string AddWrappedTextFieldAppearanceWord(string word, double fontSize, double availableTextWidth, Func<string, double, double>? measureTextSegmentWidth, List<string> wrappedLines, TextAppearanceMeasurementBudget measurementBudget) {
         string currentLine = string.Empty;
         for (int i = 0; i < word.Length;) {
+            measurementBudget.CheckCancellation();
             int scalarLength = GetScalarLength(word, i);
             string scalar = word.Substring(i, scalarLength);
             i += scalarLength;
 
             string candidate = currentLine + scalar;
-            if (currentLine.Length == 0 || FitsTextFieldAppearanceLine(candidate, fontSize, availableTextWidth, measureTextSegmentWidth)) {
+            if (currentLine.Length == 0 || FitsTextFieldAppearanceLine(candidate, fontSize, availableTextWidth, measureTextSegmentWidth, measurementBudget)) {
                 currentLine = candidate;
                 continue;
             }
@@ -303,8 +316,30 @@ internal static partial class PdfAcroFormDictionaryBuilder {
         wrappedLines.Add(line.TrimEnd());
     }
 
-    private static bool FitsTextFieldAppearanceLine(string line, double fontSize, double availableTextWidth, Func<string, double, double>? measureTextSegmentWidth) =>
-        MeasureTextAppearanceSegment(line.TrimEnd(), fontSize, measureTextSegmentWidth) <= availableTextWidth;
+    private static bool FitsTextFieldAppearanceLine(string line, double fontSize, double availableTextWidth, Func<string, double, double>? measureTextSegmentWidth, TextAppearanceMeasurementBudget measurementBudget) {
+        measurementBudget.Charge(line.Length);
+        return MeasureTextAppearanceSegment(line.TrimEnd(), fontSize, measureTextSegmentWidth) <= availableTextWidth;
+    }
+
+    private sealed class TextAppearanceMeasurementBudget {
+        private readonly int _maximumCharacters;
+        private readonly CancellationToken _cancellationToken;
+        private long _measuredCharacters;
+
+        internal TextAppearanceMeasurementBudget(int maximumCharacters, CancellationToken cancellationToken) {
+            _maximumCharacters = maximumCharacters;
+            _cancellationToken = cancellationToken;
+        }
+
+        internal void CheckCancellation() => _cancellationToken.ThrowIfCancellationRequested();
+
+        internal void Charge(int characters) {
+            CheckCancellation();
+            _measuredCharacters = checked(_measuredCharacters + characters);
+            if (_measuredCharacters > _maximumCharacters)
+                throw PdfReadLimitException.Create(PdfReadLimitKind.DecodedTextCharacters, _maximumCharacters, _measuredCharacters);
+        }
+    }
 
     private static bool IsAllWhiteSpace(string value) {
         for (int i = 0; i < value.Length; i++) {

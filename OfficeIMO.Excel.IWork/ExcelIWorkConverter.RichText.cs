@@ -134,7 +134,9 @@ public static partial class ExcelIWorkConverter {
                     StringComparison.Ordinal)) return null;
             hyperlink = run.Hyperlink;
         }
-        return hyperlink != null && Uri.TryCreate(hyperlink, UriKind.Absolute, out _)
-            ? hyperlink : null;
+        return hyperlink != null
+            && OfficeDrawingLinkPolicy.TryNormalize(hyperlink, out string normalized)
+            && Uri.TryCreate(normalized, UriKind.Absolute, out _)
+            ? normalized : null;
     }
 }

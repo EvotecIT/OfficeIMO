@@ -126,7 +126,7 @@ internal static partial class PdfComplianceAnalyzer {
         }
 
         if (IsPdfA(profile) || IsElectronicInvoice(profile)) {
-            AddPdfAReadbackRequirements(requirements, profile, info);
+            AddPdfAReadbackRequirements(requirements, profile, info, cancellationToken);
         }
 
         if (RequiresAccessibility(profile)) {
@@ -144,7 +144,8 @@ internal static partial class PdfComplianceAnalyzer {
         return new PdfComplianceReadinessReport(profile, GetDisplayName(profile), requirements.AsReadOnly());
     }
 
-    private static void AddPdfAReadbackRequirements(List<PdfComplianceRequirement> requirements, PdfComplianceProfile profile, PdfDocumentInfo info) {
+    private static void AddPdfAReadbackRequirements(List<PdfComplianceRequirement> requirements, PdfComplianceProfile profile, PdfDocumentInfo info,
+        System.Threading.CancellationToken cancellationToken) {
         PdfXmpMetadataInfo? xmp = info.XmpMetadata;
         (int Part, string? Conformance) target = GetPdfAIdentificationTarget(profile);
 
@@ -170,7 +171,7 @@ internal static partial class PdfComplianceAnalyzer {
                 "Hybrid invoices support only PDF/A-3a, PDF/A-3b and PDF/A-3u, optionally with PDF/UA-1; PDF/UA-2 is not supported.");
         }
 
-        AddPdfIdentificationReadbackRequirements(requirements, xmp, target.Part);
+        AddPdfIdentificationReadbackRequirements(requirements, xmp, target.Part, cancellationToken);
 
         Add(requirements, "readback-output-intent", "Readback catalog output intent",
             info.OutputIntentCount > 0,

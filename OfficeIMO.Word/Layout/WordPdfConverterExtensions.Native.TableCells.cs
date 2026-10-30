@@ -214,6 +214,7 @@ namespace OfficeIMO.Word.Pdf {
                 tableStyleDefaults,
                 nativeDefaults,
                 nativeFontMap, inlineImages);
+            int rejectedJoinUntil = -1;
             for (int i = 0; i < cellElements.Count; i++) {
                 if (cellElements[i] is WordTable nestedTable) {
                     options?.CancellationToken.ThrowIfCancellationRequested();
@@ -246,7 +247,7 @@ namespace OfficeIMO.Word.Pdf {
                     continue;
                 }
 
-                int lastIndex = GetNativeJoinedCellParagraphEnd(cellElements, i, getMarker, nativeDefaults, tableStyleDefaults, nativeFontMap, options);
+                int lastIndex = GetNativeJoinedCellParagraphEnd(cellElements, i, ref rejectedJoinUntil, getMarker, nativeDefaults, tableStyleDefaults, nativeFontMap, options);
                 WordParagraph finalParagraph = (WordParagraph)cellElements[lastIndex];
                 List<PdfCore.PdfTextRun> paragraphRuns = paragraphRunsByElement == null
                     ? CreateNativeCellParagraphRuns(paragraph, footnoteNumbersById, tableStyleDefaults, nativeDefaults, nativeFontMap, inlineImages)

@@ -250,8 +250,9 @@ The EPUB owner reports metadata, reading-order, resource and source-text changes
 project, undo state or revision history. See the EPUB README for matching rules and
 coverage limits.
 
-A project retains up to 100 named revisions and 128 MiB of combined revision EPUB
-bytes, in addition to its current publication (up to 128 MiB). Capture rejects an
+A project retains up to 100 named revisions, with 128 MiB of combined stored EPUB
+bytes and 256 MiB of combined expanded EPUB content. These limits are separate from
+the current publication (up to 128 MiB). Capture and reopen reject an
 exhausted bound without evicting existing revisions. Version-2 projects retain these
 snapshots; version-1 projects remain readable. Session undo/redo is not persisted.
 Revision hashes detect inconsistent stored content; they are not digital signatures.

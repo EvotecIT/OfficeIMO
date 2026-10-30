@@ -66,7 +66,7 @@ namespace OfficeIMO.OpenXml.Internal {
                 double[] normalized = new double[categories.Count];
                 for (int index = 0; index < item.Values.Count; index++) normalized[index] = item.Values[index];
                 series.Add(ReadSeries(item.Element, normalized, null, kind, scheme, axisGroup, item.Position, maximumPoints,
-                    maximumPointOverrides, forDataUpdate));
+                    maximumPointOverrides, forDataUpdate, projectionBudget.AutomaticColors));
             }
             return series.Count == 0 ? null : new Result(categories, series);
         }
@@ -90,7 +90,8 @@ namespace OfficeIMO.OpenXml.Internal {
                 double[] alignedX = x.Take(count).ToArray();
                 categories ??= alignedX.Select(value => value.ToString(CultureInfo.InvariantCulture)).ToArray();
                 series.Add(ReadSeries(element, y.Take(count).ToArray(), alignedX, OfficeChartKind.Scatter,
-                    scheme, OfficeChartAxisGroup.Primary, sourcePosition, maximumPoints, maximumPointOverrides, forDataUpdate));
+                    scheme, OfficeChartAxisGroup.Primary, sourcePosition, maximumPoints, maximumPointOverrides,
+                    forDataUpdate, projectionBudget.AutomaticColors));
             }
             return categories == null || series.Count == 0 ? null : new Result(categories, series);
         }
@@ -98,6 +99,7 @@ namespace OfficeIMO.OpenXml.Internal {
         /// <summary>Bounds normalized positions retained by one complete chart projection.</summary>
         internal sealed class ProjectionBudget {
             private long _positions;
+            internal OfficeOpenXmlChartAutomaticColors.SeriesResolutionContext AutomaticColors { get; } = new();
             internal void Reserve(int positions) {
                 _positions += positions;
                 ValidateTotalPoints(_positions);
@@ -134,7 +136,7 @@ namespace OfficeIMO.OpenXml.Internal {
         private static Series ReadSeries(OpenXmlCompositeElement element, IReadOnlyList<double> values,
             IReadOnlyList<double>? xValues, OfficeChartKind kind, A.ColorScheme? scheme,
             OfficeChartAxisGroup axisGroup, int fallbackIndex, int maximumPoints, int maximumPointOverrides,
-            bool forDataUpdate) {
+            bool forDataUpdate, OfficeOpenXmlChartAutomaticColors.SeriesResolutionContext colorContext) {
             C.ChartShapeProperties? properties = element.GetFirstChild<C.ChartShapeProperties>();
             A.Outline? outline = properties?.GetFirstChild<A.Outline>();
             OfficeColor? fill = OfficeOpenXmlThemeColorResolver.ResolveColor(properties?.GetFirstChild<A.SolidFill>(), scheme);
@@ -236,7 +238,7 @@ namespace OfficeIMO.OpenXml.Internal {
             bool automaticColor = OfficeOpenXmlChartAutomaticColors.HasAutomaticSeriesColor(element);
             if (!forDataUpdate && seriesColor == null && kind is not OfficeChartKind.Pie and not OfficeChartKind.Doughnut) {
                 // Office colours series without a stored colour from the chart style and theme.
-                seriesColor = OfficeOpenXmlChartAutomaticColors.ResolveSeries(element, scheme);
+                seriesColor = OfficeOpenXmlChartAutomaticColors.ResolveSeries(element, scheme, colorContext);
                 Reject(seriesColor == null, "an automatic colour whose theme colours cannot be resolved");
                 automaticColor = true;
             }
@@ -250,7 +252,7 @@ namespace OfficeIMO.OpenXml.Internal {
             if (ribbon && !forDataUpdate) {
                 // A 3-D ribbon projects its fill into a flat line. Its native edge's
                 // no-fill controls the ribbon border, not visibility of that projection.
-                var projection = OfficeOpenXmlChartPointStyles.ReadRibbonPaint(element, scheme);
+                var projection = OfficeOpenXmlChartPointStyles.ReadRibbonPaint(element, scheme, colorContext);
                 seriesColor = projection.Color;
                 seriesPaint = projection.Paint;
                 automaticColor = projection.Automatic;

@@ -1,3 +1,4 @@
+using System.Text;
 using System.Threading;
 
 namespace OfficeIMO.Pdf;
@@ -6,14 +7,16 @@ internal static partial class PdfFormFiller {
     private static bool TryBuildTransientChoiceAppearance(Dictionary<int, PdfIndirectObject> objects,
         string? defaultAppearance, PdfDictionary? defaultResources, double width, double height,
         PdfArray options, PdfObject? value, PdfArray? indices, int topIndex, int flags, PdfFormFieldStyle style,
-        out string content, out PdfDictionary? resources, int maximumDecodedBytes, CancellationToken cancellationToken) {
+        out string content, out PdfDictionary? resources, int maximumDecodedBytes,
+        int maximumVisibleTextCharacters, CancellationToken cancellationToken) {
         content = string.Empty;
         resources = null;
-        ChoiceAppearanceData data = ReadChoiceAppearanceData(objects, options, value, indices, topIndex, flags, cancellationToken);
+        ChoiceAppearanceData data = ReadChoiceAppearanceData(objects, options, value, indices, topIndex, flags,
+            maximumVisibleTextCharacters, cancellationToken);
         IReadOnlyList<string> labels = data.Labels;
         IReadOnlyList<int> selected = data.Selected;
         double fontSize = ReadWidgetAppearanceFontSize(defaultAppearance, height);
-        string visibleText = data.VisibleText(height, fontSize);
+        string visibleText = data.VisibleText(height, fontSize, cancellationToken);
         if (!TryPrepareTransientTextFont(objects, defaultAppearance, defaultResources, visibleText,
                 out string fontName, out TextAppearanceFontPlan? plan, out resources, maximumDecodedBytes, cancellationToken)) return false;
         content = PdfAcroFormDictionaryBuilder.BuildChoiceListAppearanceContent(width, height, labels.Count, data.TopIndex,
@@ -29,17 +32,31 @@ internal static partial class PdfFormFiller {
         internal IReadOnlyList<string> Labels { get; }
         internal IReadOnlyList<int> Selected { get; }
         internal int TopIndex { get; }
-        internal ChoiceAppearanceData(IReadOnlyList<string> labels, IReadOnlyList<int> selected, int topIndex) {
-            Labels = labels; Selected = selected; TopIndex = topIndex;
+        private readonly int _maximumCharacters;
+        internal ChoiceAppearanceData(IReadOnlyList<string> labels, IReadOnlyList<int> selected, int topIndex, int maximumCharacters) {
+            Labels = labels; Selected = selected; TopIndex = topIndex; _maximumCharacters = maximumCharacters;
         }
-        internal string VisibleText(double height, double fontSize) {
+        internal string VisibleText(double height, double fontSize, CancellationToken cancellationToken) {
             (int first, int visible) = PdfAcroFormDictionaryBuilder.GetChoiceListVisibleRange(height, fontSize, Labels.Count, TopIndex);
-            return string.Concat(Labels.Skip(first).Take(visible));
+            long characters = 0;
+            for (int i = first; i < first + visible; i++) {
+                cancellationToken.ThrowIfCancellationRequested();
+                characters += Labels[i].Length;
+                if (characters > _maximumCharacters)
+                    throw PdfReadLimitException.Create(PdfReadLimitKind.DecodedTextCharacters, _maximumCharacters, characters);
+            }
+            var text = new StringBuilder((int)characters);
+            for (int i = first; i < first + visible; i++) {
+                cancellationToken.ThrowIfCancellationRequested();
+                text.Append(Labels[i]);
+            }
+            return text.ToString();
         }
     }
 
     internal static ChoiceAppearanceData ReadChoiceAppearanceData(Dictionary<int, PdfIndirectObject> objects,
-        PdfArray options, PdfObject? value, PdfArray? indices, int topIndex, int flags, CancellationToken cancellationToken) {
+        PdfArray options, PdfObject? value, PdfArray? indices, int topIndex, int flags,
+        int maximumVisibleTextCharacters, CancellationToken cancellationToken) {
         var selectedValues = new HashSet<string>(StringComparer.Ordinal);
         if (value is PdfArray values) {
             foreach (PdfObject item in values.Items) {
@@ -68,7 +85,7 @@ internal static partial class PdfFormFiller {
             if (!useIndices && selectedValues.Contains(export) && ((flags & MultiSelectChoiceFlag) != 0 || selected.Count == 0)) selected.Add(index);
         }
         if ((flags & MultiSelectChoiceFlag) == 0 && selected.Count > 1) selected.RemoveRange(1, selected.Count - 1);
-        return new ChoiceAppearanceData(labels, selected, topIndex);
+        return new ChoiceAppearanceData(labels, selected, topIndex, maximumVisibleTextCharacters);
     }
 
 }

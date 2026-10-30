@@ -15,9 +15,14 @@ public sealed partial class PdfDocument {
         Action<PdfContentBuilder>? continuationSeparator = options.ContinuationSeparator;
         Action<PdfContentBuilder>? continuationNotice = options.ContinuationNotice;
         var content = BuildFlowBlocks(build);
-        IReadOnlyList<IPdfBlock> first = separator == null ? Array.Empty<IPdfBlock>() : BuildFlowBlocks(separator);
-        IReadOnlyList<IPdfBlock> continuation = continuationSeparator == null ? Array.Empty<IPdfBlock>() : BuildFlowBlocks(continuationSeparator);
-        IReadOnlyList<IPdfBlock> notice = continuationNotice == null ? Array.Empty<IPdfBlock>() : BuildFlowBlocks(continuationNotice);
+        if (options.SharedDecorationOwner != null && !ReferenceEquals(options.SharedDecorationOwner, this))
+            throw new ArgumentException("Footnote decoration blocks belong to another document.", nameof(options));
+        IReadOnlyList<IPdfBlock> first = options.SharedSeparator ??
+            (separator == null ? Array.Empty<IPdfBlock>() : BuildFlowBlocks(separator));
+        IReadOnlyList<IPdfBlock> continuation = options.SharedContinuationSeparator ??
+            (continuationSeparator == null ? Array.Empty<IPdfBlock>() : BuildFlowBlocks(continuationSeparator));
+        IReadOnlyList<IPdfBlock> notice = options.SharedContinuationNotice ??
+            (continuationNotice == null ? Array.Empty<IPdfBlock>() : BuildFlowBlocks(continuationNotice));
         ValidateFootnoteBlocks(content, _options);
         ValidateFootnoteBlocks(first, _options, allowTables: false);
         ValidateFootnoteBlocks(continuation, _options, allowTables: false);
