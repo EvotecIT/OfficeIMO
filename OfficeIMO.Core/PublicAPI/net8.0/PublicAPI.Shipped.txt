@@ -78,8 +78,8 @@ OfficeIMO.ContentSafety.OfficeContentSafetyOptions.MaxPackageEntries.get -> int
 OfficeIMO.ContentSafety.OfficeContentSafetyOptions.MaxPackageEntries.set -> void
 OfficeIMO.ContentSafety.OfficeContentSafetyOptions.MaxPreviewCharacters.get -> int
 OfficeIMO.ContentSafety.OfficeContentSafetyOptions.MaxPreviewCharacters.set -> void
-OfficeIMO.ContentSafety.OfficeContentSafetyOptions.MaximumTinyFontSizePoints.get -> double
-OfficeIMO.ContentSafety.OfficeContentSafetyOptions.MaximumTinyFontSizePoints.set -> void
+OfficeIMO.ContentSafety.OfficeContentSafetyOptions.MaximumTinyFontSize.get -> OfficeIMO.OfficeLength
+OfficeIMO.ContentSafety.OfficeContentSafetyOptions.MaximumTinyFontSize.set -> void
 OfficeIMO.ContentSafety.OfficeContentSafetyOptions.MinimumVisibleContrastRatio.get -> double
 OfficeIMO.ContentSafety.OfficeContentSafetyOptions.MinimumVisibleContrastRatio.set -> void
 OfficeIMO.ContentSafety.OfficeContentSafetyOptions.OfficeContentSafetyOptions() -> void

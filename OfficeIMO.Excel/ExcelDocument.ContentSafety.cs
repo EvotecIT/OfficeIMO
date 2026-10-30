@@ -186,7 +186,7 @@ public partial class ExcelDocument {
                 } else if (hiddenColumn) {
                     kind = OfficeContentConcealmentKind.HiddenContainer;
                     evidence = "The owning column is hidden or has zero effective width.";
-                } else if (style.FontSizePoints.HasValue && style.FontSizePoints.Value <= builder.Options.MaximumTinyFontSizePoints) {
+                } else if (style.FontSizePoints.HasValue && style.FontSizePoints.Value <= builder.Options.MaximumTinyFontSize.ToPoints()) {
                     kind = OfficeContentConcealmentKind.TinyText;
                     evidence = "The effective cell font size is " + style.FontSizePoints.Value.ToString("0.###", CultureInfo.InvariantCulture) + "pt.";
                 } else if (style.TransparentText) {
@@ -348,7 +348,7 @@ public partial class ExcelDocument {
             double? fontSize = properties?.GetFirstChild<FontSize>()?.Val?.Value;
             OfficeContentConcealmentKind? kind = null;
             string? evidence = null;
-            if (fontSize.HasValue && fontSize.Value <= builder.Options.MaximumTinyFontSizePoints) {
+            if (fontSize.HasValue && fontSize.Value <= builder.Options.MaximumTinyFontSize.ToPoints()) {
                 kind = OfficeContentConcealmentKind.TinyText;
                 evidence = "The SpreadsheetML rich-text run font size is " + fontSize.Value.ToString("0.###", CultureInfo.InvariantCulture) + "pt.";
             } else if (transparent) {
@@ -416,7 +416,7 @@ public partial class ExcelDocument {
         if (TryGetExcelDrawingOwnerConcealment(owner, out OfficeContentConcealmentKind ownerKind, out string ownerEvidence)) {
             kind = ownerKind;
             evidence = ownerEvidence;
-        } else if (fontSize.HasValue && fontSize.Value / 100D <= builder.Options.MaximumTinyFontSizePoints) {
+        } else if (fontSize.HasValue && fontSize.Value / 100D <= builder.Options.MaximumTinyFontSize.ToPoints()) {
             kind = OfficeContentConcealmentKind.TinyText;
             evidence = "The worksheet drawing text font size is " + (fontSize.Value / 100D).ToString("0.###", CultureInfo.InvariantCulture) + "pt.";
         } else if (alpha.HasValue && alpha.Value <= 1000) {

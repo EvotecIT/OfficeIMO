@@ -392,7 +392,7 @@ public static partial class HtmlContentSafety {
                 descendantsMayOverride: true,
                 reportOnly: !isHtmlElement);
         }
-        if (TryParseLengthPoints(style.GetValue("font-size"), out double fontPoints) && fontPoints <= options.MaximumTinyFontSizePoints) {
+        if (TryParseLengthPoints(style.GetValue("font-size"), out double fontPoints) && fontPoints <= options.MaximumTinyFontSize.ToPoints()) {
             return new Concealment(
                 OfficeContentConcealmentKind.TinyText,
                 "Computed font size is " + fontPoints.ToString("0.###", CultureInfo.InvariantCulture) + "pt.",

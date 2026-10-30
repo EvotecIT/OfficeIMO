@@ -183,7 +183,7 @@ public sealed partial class PowerPointDocument {
             bool transparent = IsPowerPointTransparent(foregroundFill);
             OfficeContentConcealmentKind? kind = null;
             string? evidence = null;
-            if (fontSize.HasValue && fontSize.Value / 100D <= builder.Options.MaximumTinyFontSizePoints) {
+            if (fontSize.HasValue && fontSize.Value / 100D <= builder.Options.MaximumTinyFontSize.ToPoints()) {
                 kind = OfficeContentConcealmentKind.TinyText;
                 evidence = "The effective explicit PowerPoint run font size is " + (fontSize.Value / 100D).ToString("0.###", CultureInfo.InvariantCulture) + "pt.";
             } else if (transparent) {

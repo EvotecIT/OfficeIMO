@@ -1464,6 +1464,28 @@
       "files": [
         "OfficeIMO.Core/Compatibility/OfficeConversionCapabilityCatalog.cs"
       ]
+    },
+    {
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "action": "change",
+      "old": "OfficeContentSafetyOptions.MaximumTinyFontSizePoints: double, default 2.",
+      "new": "OfficeContentSafetyOptions.MaximumTinyFontSize: OfficeLength, default OfficeLength.Points(2).",
+      "reason": "The content-safety classifier threshold is a physical font size. Preserve the inclusive zero-to-72-point option range and existing per-format native comparisons through ToPoints at their numeric boundary.",
+      "files": [
+        "OfficeIMO.Core/ContentSafety/OfficeContentSafetyContracts.cs",
+        "OfficeIMO.Core/OfficeSvgDrawingReader.ContentSafety.Inspection.cs",
+        "OfficeIMO.Drawing.Tests/Drawing.Svg.ContentSafety.Adversarial.cs",
+        "OfficeIMO.Excel/ExcelDocument.ContentSafety.cs",
+        "OfficeIMO.Html/ContentSafety/HtmlContentSafety.cs",
+        "OfficeIMO.OpenDocument/Core/OdfDocument.ContentSafety.cs",
+        "OfficeIMO.Pdf/Core/PdfDocument.ContentSafety.cs",
+        "OfficeIMO.PowerPoint/PowerPointDocument.ContentSafety.cs",
+        "OfficeIMO.Rtf/Model/RtfDocument.ContentSafety.cs",
+        "OfficeIMO.Word/WordDocument.ContentSafety.cs",
+        "OfficeIMO.Workflows/OfficeRasterContentSafetyOptions.cs"
+      ],
+      "note": "All native classifier scaling, risk ordering, evidence and exact defaults remain. Nonfinite values are rejected by the shared length factory before option assignment; finite negative and above-range values remain rejected by option validation. No PDF user-space reinterpretation is made."
     }
   ],
   "applicationStatus": "Phase A applied and validated on the supported macOS targets. Phase B and Tier 2 entries retain their status; Windows .NET Framework validation remains pending.",
