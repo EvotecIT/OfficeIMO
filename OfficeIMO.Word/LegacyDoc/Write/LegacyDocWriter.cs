@@ -107,6 +107,9 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
             ThrowIfUnsupportedLegacyDocImportState(document, options);
 
+            Styles? fieldStyles = document._wordprocessingDocument?.MainDocumentPart?.StyleDefinitionsPart?.Styles;
+            if (fieldStyles != null) FieldComparisonStyles.Remove(fieldStyles);
+
             LegacyDocWritableBody body = BuildBody(document);
             byte[] wordDocumentStream = PadToRegularOleStream(CreateWordDocumentStream(body, isTemplate));
             byte[] tableStream = PadToRegularOleStream(CreateTableStream(body));
