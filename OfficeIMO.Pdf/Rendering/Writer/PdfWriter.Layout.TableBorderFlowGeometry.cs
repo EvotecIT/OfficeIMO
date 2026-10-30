@@ -33,7 +33,7 @@ internal static partial class PdfWriter {
     /// <summary>Omits incoming paint clearance from a neighbour on the preceding page.</summary>
     private static PdfTableStyle PrepareTableBorderContinuation(TableBlock table, PdfTableStyle prepared, int rowIndex) {
         PdfTableStyle? authored = table.Style;
-        if (authored?.CellVerticalPaddingFromBorderInterior != true || authored.Position != null || !authored.ConsumesVerticalFlow ||
+        if (authored?.CellPaddingFromBorderInterior != true || authored.Position != null || !authored.ConsumesVerticalFlow ||
             GetTableRepeatHeaderRowCount(authored) > 0 || rowIndex <= 0 || rowIndex >= table.Rows.Count)
             return prepared;
         PdfTableStyle? result = null;

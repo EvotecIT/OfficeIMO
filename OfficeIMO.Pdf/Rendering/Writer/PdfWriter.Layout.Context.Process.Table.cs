@@ -65,6 +65,7 @@ internal static partial class PdfWriter {
 
             style = preparedPairedStyle ?? PreparePairedTableBorders(tb, style);
             StringBuilder? pairedBorders = deferredPairedBorders;
+            var collapsedBorders = style.CollapseHorizontalCellBorders ? new CollapsedTableBorders() : null;
             double contentWidth = currentOpts.PageWidth - currentOpts.MarginLeft - currentOpts.MarginRight;
             PreparedTableGeometry initialGeometry = PrepareTableGeometry(tb, style, contentWidth, logicalTopBoundary, logicalBottomBoundary);
             double tableWidth = initialGeometry.Width;
@@ -450,6 +451,7 @@ internal static partial class PdfWriter {
             }
 
             void FlushPairedBorders() {
+                collapsedBorders?.Flush(sb);
                 if (pairedBorders == null) return;
                 sb.Append(pairedBorders);
                 pairedBorders.Clear();
@@ -461,7 +463,7 @@ internal static partial class PdfWriter {
                     int? fragmentTable = spanFlow.ActiveCells.Any(span => span.Height > .001D) ? EnsureTableStructureElement() : tableStructureElementIndex;
                     FlushTableSpanFragments(tb, style, spanFlow, preparedRows, colPixel, colGapPx, rowGapPx, xOrigin, fragmentTable, ref pairedBorders,
                         cornerRadius: tableCornerRadius, fullFrameHeight: Math.Max(0D, MaximumContinuationHeight() - repeatHeaderHeight), logicalTopBoundary: logicalTopBoundary, logicalBottomBoundary: logicalBottomBoundary,
-                        closingPadding: GetClosingTextPadding(style.SpacingAfter));
+                        closingPadding: GetClosingTextPadding(style.SpacingAfter), collapsedBorders: collapsedBorders);
                     FlushPairedBorders();
                     PrepareTableFrameContinuation(tb, rowIndex);
                     if (CanQueueColumnBalanceRemainder(blockList)) {
@@ -591,13 +593,14 @@ internal static partial class PdfWriter {
                 var geometry = new PreparedTableGeometry(tb, style, preparedRows, colPixel, tableWidth, tableCornerRadius);
                 var slice = new TableRowSlice(rowIndex, startLine, lineCount, rowHeight, renderAsHeader, suppressCellObjects);
                 PaintPreparedTableRow(geometry, spanFlow, slice, xOrigin, y, EnsureTableStructureElement(),
-                    ref pairedBorders, existingRowStructureElement, bodyRowOffset, logicalTopBoundary, logicalBottomBoundary);
+                    ref pairedBorders, existingRowStructureElement, bodyRowOffset, logicalTopBoundary, logicalBottomBoundary,
+                    collapsedBorders: collapsedBorders);
                 bool wholeRowSegment = startLine == 0 && lineCount == rowLineCounts[rowIndex];
                 if (style.Position is { } floatingPosition) ReserveFloatingTable(floatingPosition, xOrigin, y, tableWidth, rowHeight + (wholeRowSegment ? GetTableRowGapAfter(rowIndex, tb.Rows.Count, rowGapPx) : 0));
                 if (wholeRowSegment || startLine + lineCount == rowLineCounts[rowIndex])
                     FlushTableSpanFragments(tb, style, spanFlow, preparedRows, colPixel, colGapPx, rowGapPx, xOrigin, EnsureTableStructureElement(), ref pairedBorders, rowIndex,
                         tableCornerRadius, Math.Max(0D, MaximumContinuationHeight() - repeatHeaderHeight), logicalTopBoundary, logicalBottomBoundary,
-                        GetClosingTextPadding(style.SpacingAfter));
+                        GetClosingTextPadding(style.SpacingAfter), collapsedBorders: collapsedBorders);
                 RecordTableFrameContentBottom(tb, y - rowHeight);
                 y -= rowHeight;
                 if (wholeRowSegment && GetTableSpanRemainingLineCount(spanFlow, preparedRows, rowIndex) == 0)
@@ -803,8 +806,9 @@ internal static partial class PdfWriter {
 
             FlushTableSpanFragments(tb, style, spanFlow, preparedRows, colPixel, colGapPx, rowGapPx, xOrigin, EnsureTableStructureElement(), ref pairedBorders,
                 cornerRadius: tableCornerRadius, fullFrameHeight: Math.Max(0D, MaximumContinuationHeight() - repeatHeaderHeight), logicalTopBoundary: logicalTopBoundary, logicalBottomBoundary: logicalBottomBoundary,
-                closingPadding: GetClosingTextPadding(style.SpacingAfter));
+                closingPadding: GetClosingTextPadding(style.SpacingAfter), collapsedBorders: collapsedBorders);
             if (deferredPairedBorders == null) FlushPairedBorders();
+            else collapsedBorders?.Flush(sb);
             if (style.Position == null) y -= style.SpacingAfter;
             if (restoreVerticalFlow && (!style.ConsumesVerticalFlow || style.Position != null) && ReferenceEquals(currentPage, pageBeforeTable)) {
                 y = flowYBeforeTable;

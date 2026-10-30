@@ -9,29 +9,6 @@ namespace OfficeIMO.Word.Pdf {
             borders.BottomStyle.HasValue || borders.LeftStyle.HasValue ||
             borders.TopLeftToBottomRightStyle.HasValue || borders.TopRightToBottomLeftStyle.HasValue;
 
-        private static bool HasNativeConditionalHiddenBorders(WordTable table, NativeTableStyleDefaults defaults) =>
-            (table.ConditionalFormattingFirstRow == true && HasHiddenBorder(defaults.FirstRowStyle.CellBorders)) ||
-            (table.ConditionalFormattingLastRow == true && HasHiddenBorder(defaults.LastRowStyle.CellBorders)) ||
-            (table.ConditionalFormattingFirstColumn == true && HasHiddenBorder(defaults.FirstColumnStyle.CellBorders)) ||
-            (table.ConditionalFormattingLastColumn == true && HasHiddenBorder(defaults.LastColumnStyle.CellBorders)) ||
-            (table.ConditionalFormattingNoHorizontalBand != true && (HasHiddenBorder(defaults.Band1HorizontalStyle.CellBorders) || HasHiddenBorder(defaults.Band2HorizontalStyle.CellBorders))) ||
-            (table.ConditionalFormattingNoVerticalBand != true && (HasHiddenBorder(defaults.Band1VerticalStyle.CellBorders) || HasHiddenBorder(defaults.Band2VerticalStyle.CellBorders)));
-
-        private static bool HasHiddenBorder(W.TableCellBorders? borders) {
-            if (borders == null) {
-                return false;
-            }
-
-            foreach (var child in borders.ChildElements) {
-                if (child is W.BorderType border &&
-                    (border.Val?.Value == W.BorderValues.Nil || border.Val?.Value == W.BorderValues.None)) {
-                    return true;
-                }
-            }
-
-            return false;
-        }
-
         private static void ApplyNativeDirectCellBorders(
             PdfCore.PdfTableStyle style,
             TableLayout layout,
@@ -98,13 +75,15 @@ namespace OfficeIMO.Word.Pdf {
         private static bool IsNativeHiddenCellBorderSide(PdfCore.PdfCellBorderSide? side) =>
             side != null && !side.Color.HasValue && side.Width <= 0D;
 
-        private static void ReconcileNativeHiddenSharedBorders(
+        private static void ReconcileNativeSharedBorders(
             WordTable table,
             TableLayout layout,
             NativeTableStyleDefaults tableStyleDefaults,
-            int headerRowCount,
-            Dictionary<(int Row, int Column), PdfCore.PdfCellBorder> borders,
-            Dictionary<(int Row, int Column), WordTableCellBorder> directBorders) {
+            PdfCore.PdfTableStyle style,
+            Dictionary<(int Row, int Column), WordTableCellBorder> directBorders,
+            WordPdfExportOptions? options) {
+            Dictionary<(int Row, int Column), PdfCore.PdfCellBorder> borders = style.CellBorders!;
+            int headerRowCount = style.HeaderRowCount;
             bool hasHiddenEdge = false;
             foreach (PdfCore.PdfCellBorder border in borders.Values) {
                 if (IsNativeHiddenCellBorderSide(border.TopBorder) ||
@@ -115,7 +94,7 @@ namespace OfficeIMO.Word.Pdf {
                     break;
                 }
             }
-            if (!hasHiddenEdge) return;
+            if (!hasHiddenEdge && directBorders.Count == 0 && !HasNativeConditionalCellBorders(table, tableStyleDefaults)) return;
 
             const long maximumReconciliationCoordinates = 262_144L;
             int columnCount = GetNativeTableColumnCount(layout);
@@ -134,9 +113,13 @@ namespace OfficeIMO.Word.Pdf {
                         int rowSpan = GetNativeCellRowSpan(cell);
                         spans[key] = (rowSpan, columnSpan);
                         occupiedCoordinates += (long)System.Math.Min(rowSpan, layout.Rows.Count - rowIndex) * columnSpan;
-                        if (occupiedCoordinates > maximumReconciliationCoordinates)
-                            throw new System.IO.InvalidDataException(
+                        if (occupiedCoordinates > maximumReconciliationCoordinates) {
+                            if (hasHiddenEdge) throw new System.IO.InvalidDataException(
                                 "The table's collapsed-border grid exceeds the supported reconciliation limit.");
+                            if (options != null) AddNativeExportWarning(options, "native-table-border-conflict-approximation", "table",
+                                "The large table retains overlapping borders because its collapsed-border grid exceeds the supported reconciliation limit.");
+                            return;
+                        }
                     }
                     logicalColumn += columnSpan;
                 }
@@ -165,17 +148,10 @@ namespace OfficeIMO.Word.Pdf {
                         HideNativeNeighborBorder(occupied, spans, borders, entry.Key, (row + offset, column - 1), NativeBorderEdge.Right);
                     }
                 }
-                if (IsNativeHiddenCellBorderSide(border.BottomBorder) && IsNativeNilBorderSide(table, layout, tableStyleDefaults, headerRowCount, columnCount, entry.Key, entry.Value.Columns, NativeBorderEdge.Bottom, directBorders)) {
-                    for (int offset = 0; offset < entry.Value.Columns; offset++) {
-                        HideNativeNeighborBorder(occupied, spans, borders, entry.Key, (row + entry.Value.Rows, column + offset), NativeBorderEdge.Top);
-                    }
-                }
-                if (IsNativeHiddenCellBorderSide(border.TopBorder) && IsNativeNilBorderSide(table, layout, tableStyleDefaults, headerRowCount, columnCount, entry.Key, entry.Value.Columns, NativeBorderEdge.Top, directBorders)) {
-                    for (int offset = 0; offset < entry.Value.Columns; offset++) {
-                        HideNativeNeighborBorder(occupied, spans, borders, entry.Key, (row - 1, column + offset), NativeBorderEdge.Bottom);
-                    }
-                }
             }
+            ReconcileNativeCellTableBorders(table, layout, tableStyleDefaults, headerRowCount, columnCount,
+                spans, occupied, borders, directBorders);
+            style.CollapseHorizontalCellBorders = true;
         }
 
         private enum NativeBorderEdge { Top, Right, Bottom, Left }
@@ -202,6 +178,15 @@ namespace OfficeIMO.Word.Pdf {
                 }
             }
 
+            W.BorderValues? conditional = GetNativeConditionalCellBorderValue(table, layout, defaults,
+                headerRowCount, columnCount, key, columnSpan, edge);
+            // Word's nil wins a collapsed shared edge; none hides only its own side.
+            return conditional != W.BorderValues.None;
+        }
+
+        private static W.BorderValues? GetNativeConditionalCellBorderValue(WordTable table, TableLayout layout,
+            NativeTableStyleDefaults defaults, int headerRowCount, int columnCount,
+            (int Row, int Column) key, int columnSpan, NativeBorderEdge edge) {
             W.BorderValues? conditional = null;
             int footerStartRow = table.ConditionalFormattingLastRow == true && layout.Rows.Count > headerRowCount
                 ? layout.Rows.Count - 1 : layout.Rows.Count;
@@ -221,8 +206,7 @@ namespace OfficeIMO.Word.Pdf {
             if (table.ConditionalFormattingLastColumn == true && key.Column + columnSpan >= columnCount) {
                 UpdateNativeConditionalBorderValue(ref conditional, defaults.LastColumnStyle.CellBorders, edge);
             }
-            // Word's nil wins a collapsed shared edge; none hides only its own side.
-            return conditional != W.BorderValues.None;
+            return conditional;
         }
 
         private static void UpdateNativeConditionalBorderValue(ref W.BorderValues? value, W.TableCellBorders? borders, NativeBorderEdge edge) {

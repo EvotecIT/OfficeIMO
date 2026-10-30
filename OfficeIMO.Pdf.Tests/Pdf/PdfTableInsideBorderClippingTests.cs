@@ -13,7 +13,7 @@ public sealed partial class PdfTableCellViewportTests {
         byte[] Create(bool hidden) => Render(mode, new PdfTableCell("A"), PdfCellVerticalAlign.Top, style => {
             style.ClipTextToCellBounds = true;
             style.PreservePartialCellLines = true;
-            style.CellVerticalPaddingFromBorderInterior = true;
+            style.CellPaddingFromBorderInterior = true;
             style.CellPaddingBottom = hidden ? 24D : 0D;
             style.BorderFrame = new PdfTableBorderFrame { Border = new PdfCellBorder { Color = PdfColor.Black, Width = 4D } };
             style.CellBorders = new Dictionary<(int, int), PdfCellBorder> {

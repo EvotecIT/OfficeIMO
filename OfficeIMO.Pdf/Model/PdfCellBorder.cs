@@ -1,5 +1,7 @@
 namespace OfficeIMO.Pdf;
 
+internal enum PdfCellBorderPriority { Table, Cell, Nil }
+
 /// <summary>
 /// Describes an override border for a single table cell.
 /// </summary>
@@ -112,6 +114,10 @@ public sealed class PdfCellBorder {
     /// <summary>Zero-based column segments to omit from the bottom side of a horizontally merged cell.</summary>
     public System.Collections.Generic.HashSet<int>? HiddenBottomColumnSegments { get; set; }
 
+    /// <summary>Source precedence for collapsed borders resolved on each physical page.</summary>
+    internal PdfCellBorderPriority TopPriority { get; set; }
+    internal PdfCellBorderPriority BottomPriority { get; set; }
+
     internal bool HasHiddenSegments =>
         HiddenRightRowSegments?.Count > 0 || HiddenLeftRowSegments?.Count > 0 ||
         HiddenTopColumnSegments?.Count > 0 || HiddenBottomColumnSegments?.Count > 0;
@@ -139,6 +145,8 @@ public sealed class PdfCellBorder {
         HiddenRightRowSegments = HiddenRightRowSegments == null ? null : new System.Collections.Generic.HashSet<int>(HiddenRightRowSegments),
         HiddenLeftRowSegments = HiddenLeftRowSegments == null ? null : new System.Collections.Generic.HashSet<int>(HiddenLeftRowSegments),
         HiddenTopColumnSegments = HiddenTopColumnSegments == null ? null : new System.Collections.Generic.HashSet<int>(HiddenTopColumnSegments),
-        HiddenBottomColumnSegments = HiddenBottomColumnSegments == null ? null : new System.Collections.Generic.HashSet<int>(HiddenBottomColumnSegments)
+        HiddenBottomColumnSegments = HiddenBottomColumnSegments == null ? null : new System.Collections.Generic.HashSet<int>(HiddenBottomColumnSegments),
+        TopPriority = TopPriority,
+        BottomPriority = BottomPriority
     };
 }

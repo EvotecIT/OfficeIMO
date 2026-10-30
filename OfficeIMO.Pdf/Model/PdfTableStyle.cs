@@ -66,10 +66,12 @@ public partial class PdfTableStyle {
     internal bool ClipTextToCellBounds { get; set; }
     internal bool PreservePartialCellLines { get; set; }
     /// <summary>
-    /// Document adapters can measure vertical cell margins from the inner edge
-    /// of the border paint instead of the cell's grid boundary.
+    /// Document adapters can measure cell margins from the inner edge of the border
+    /// paint and retain clearance from neighboring cell borders.
     /// </summary>
-    internal bool CellVerticalPaddingFromBorderInterior { get; set; }
+    internal bool CellPaddingFromBorderInterior { get; set; }
+    /// <summary>Resolves source cell rules against inherited rules at physical row boundaries.</summary>
+    internal bool CollapseHorizontalCellBorders { get; set; }
     /// <summary>Prepared inside-frame cells retain the vertical margin clip after their border insets are resolved.</summary>
     internal bool CellTextClipIncludesVerticalPadding { get; set; }
     /// <summary>Imported fixed grids compress the width above each physical cell minimum.</summary>
@@ -723,7 +725,8 @@ public partial class PdfTableStyle {
             CellPaddingRight = CellPaddingRight,
             CellPaddingTop = CellPaddingTop,
             CellPaddingBottom = CellPaddingBottom,
-            CellVerticalPaddingFromBorderInterior = CellVerticalPaddingFromBorderInterior,
+            CellPaddingFromBorderInterior = CellPaddingFromBorderInterior,
+            CollapseHorizontalCellBorders = CollapseHorizontalCellBorders,
             CellTextClipIncludesVerticalPadding = CellTextClipIncludesVerticalPadding,
             CompressFixedColumnsAboveMinimums = CompressFixedColumnsAboveMinimums,
             BorderFrame = BorderFrame?.Clone(),

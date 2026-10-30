@@ -80,9 +80,9 @@ internal static partial class PdfWriter {
         if (bl) content.CubicTo(x, y + r - control, x + r - control, y, x + r, y);
     }
 
-    private static void DrawRoundedCellBorder(StringBuilder sb, PdfCellBorder border, double x, double y, double w, double h, double radius, double outerBorderWidth, bool tl, bool tr, bool br, bool bl, bool artifact = false, TableCellContentFrame? diagonalFrame = null) {
+    private static void DrawRoundedCellBorder(StringBuilder sb, PdfCellBorder border, double x, double y, double w, double h, double radius, double outerBorderWidth, bool tl, bool tr, bool br, bool bl, bool artifact = false, TableCellContentFrame? diagonalFrame = null, CollapsedTableBorders? collapsedBorders = null) {
         if (!(tl || tr || br || bl)) {
-            DrawCellBorder(sb, border, x, y, w, h, artifact, diagonalFrame: diagonalFrame);
+            DrawCellBorder(sb, border, x, y, w, h, artifact, diagonalFrame: diagonalFrame, collapsedBorders: collapsedBorders);
             return;
         }
 
@@ -96,7 +96,11 @@ internal static partial class PdfWriter {
         PdfCellBorderSide? bottom = border.Bottom ? ResolveCellBorderSide(border.BottomBorderSnapshot, border) : null;
         PdfCellBorderSide? left = border.Left ? ResolveCellBorderSide(border.LeftBorderSnapshot, border) : null;
 
-        if (IsRenderableCellBorderSide(top)) {
+        if (collapsedBorders != null) {
+            QueueHorizontal(true, border.TopPriority, border.Top, top);
+            QueueHorizontal(false, border.BottomPriority, border.Bottom, bottom);
+        }
+        if (collapsedBorders == null && IsRenderableCellBorderSide(top)) {
             if (tl || tr) DrawRoundedCellBorderSide(sb, top!, outerBorderWidth, RoundedRectSide.Top, x, y, w, h, radius, tl, tr, br, bl, left, right, artifact);
             else DrawCellHBorder(sb, top, x, x2, y2, -1D, artifact, left, right);
         }
@@ -104,7 +108,7 @@ internal static partial class PdfWriter {
             if (tr || br) DrawRoundedCellBorderSide(sb, right!, outerBorderWidth, RoundedRectSide.Right, x, y, w, h, radius, tl, tr, br, bl, top, bottom, artifact);
             else DrawCellVBorder(sb, right, x2, y2, y, -1D, artifact, top, bottom);
         }
-        if (IsRenderableCellBorderSide(bottom)) {
+        if (collapsedBorders == null && IsRenderableCellBorderSide(bottom)) {
             if (br || bl) DrawRoundedCellBorderSide(sb, bottom!, outerBorderWidth, RoundedRectSide.Bottom, x, y, w, h, radius, tl, tr, br, bl, left, right, artifact);
             else DrawCellHBorder(sb, bottom, x, x2, y, 1D, artifact, left, right);
         }
@@ -119,6 +123,28 @@ internal static partial class PdfWriter {
             DrawTableCellDiagonals(sb, border, x, y, w, h, diagonalFrame, artifact: false);
             EndRoundedClip(sb);
             AppendArtifactEnd(sb, artifact);
+        }
+        void QueueHorizontal(bool isTop, PdfCellBorderPriority priority, bool enabled, PdfCellBorderSide? side) {
+            double edgeY = isTop ? y2 : y;
+            collapsedBorders!.Add(isTop, priority, enabled, side, x, x2, edgeY, (output, start, end) => {
+                bool rounded = isTop ? tl || tr : bl || br;
+                if (!rounded) {
+                    DrawCellHBorder(output, side, start, end, edgeY, isTop ? -1D : 1D, artifact,
+                        start == x ? left : null, end == x2 ? right : null);
+                    return;
+                }
+                bool partial = start > x || end < x2;
+                var content = new ContentStreamBuilder(output);
+                if (partial) {
+                    double bleed = radius + side!.Width * 4D;
+                    double clipLeft = start == x ? start - bleed : start;
+                    double clipRight = end == x2 ? end + bleed : end;
+                    content.SaveState().Rectangle(clipLeft, edgeY - bleed, clipRight - clipLeft, bleed * 2D).ClipPath().EndPath();
+                }
+                DrawRoundedCellBorderSide(output, side!, outerBorderWidth, isTop ? RoundedRectSide.Top : RoundedRectSide.Bottom,
+                    x, y, w, h, radius, tl, tr, br, bl, left, right, artifact);
+                if (partial) content.RestoreState();
+            });
         }
     }
 

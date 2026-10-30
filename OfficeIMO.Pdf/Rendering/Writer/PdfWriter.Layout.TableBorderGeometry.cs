@@ -51,8 +51,8 @@ internal static partial class PdfWriter {
     }
 
     private static PdfTableStyle PreparePairedTableBorders(TableBlock table, PdfTableStyle style) {
-        bool addVerticalBorderInsets = style.CellVerticalPaddingFromBorderInterior;
-        if (!addVerticalBorderInsets && (style.CellBorders == null || !style.CellBorders.Values.Any(HasPairedCellBorder))) return style;
+        bool addBorderInsets = style.CellPaddingFromBorderInterior;
+        if (!addBorderInsets && (style.CellBorders == null || !style.CellBorders.Values.Any(HasPairedCellBorder))) return style;
 
         PdfTableStyle prepared = style.Clone();
         int columns = GetTableColumnCount(table);
@@ -76,7 +76,7 @@ internal static partial class PdfWriter {
             border.BottomBorder = PrepareSide(border.Bottom, border.BottomBorderSnapshot, border, !border.PaintInsideFrame && entry.Key.Row + cell.RowSpan < table.Rows.Count);
             border.LeftBorder = PrepareSide(border.Left, border.LeftBorderSnapshot, border, !border.PaintInsideFrame && cell.Column > 0);
         }
-        if (addVerticalBorderInsets) {
+        if (addBorderInsets) {
             foreach (var anchor in layouts.Keys) {
                 borders.TryGetValue(anchor, out PdfCellBorder? border);
                 verticalInsets[anchor] = (GetOwnTableCellVerticalBorderInset(prepared, border, true), GetOwnTableCellVerticalBorderInset(prepared, border, false));
@@ -101,7 +101,7 @@ internal static partial class PdfWriter {
                     (entry.Key.Row + segment, cell.Column + cell.ColumnSpan), TableCellBorderEdge.Left);
             }
         }
-        if (addVerticalBorderInsets) {
+        if (addBorderInsets) {
             foreach (var entry in verticalInsets) {
                 if (entry.Value.Top <= 0D && entry.Value.Bottom <= 0D) continue;
                 if (!prepared.CellPaddings.TryGetValue(entry.Key, out PdfCellPadding? padding)) {
@@ -122,7 +122,7 @@ internal static partial class PdfWriter {
             }
             // The prepared snapshot already includes the inset. Deferred slices
             // and nested measurements must not add it a second time.
-            prepared.CellVerticalPaddingFromBorderInterior = false;
+            prepared.CellPaddingFromBorderInterior = false;
             prepared.CellTextClipIncludesVerticalPadding = true;
         }
         return prepared;
@@ -143,13 +143,15 @@ internal static partial class PdfWriter {
             if (!enabled || !IsRenderableCellBorderSide(side) || hidden?.Contains(segment) == true || !owners.TryGetValue(coordinate, out var anchor)) return;
             double clearance = Math.Max(0D, GetCellBorderPairOutset(side) + side!.Width / 2D - spacing);
             if (clearance <= 0D) return;
-            if (addVerticalBorderInsets && (edge == TableCellBorderEdge.Top || edge == TableCellBorderEdge.Bottom)) {
+            if (addBorderInsets && (edge == TableCellBorderEdge.Top || edge == TableCellBorderEdge.Bottom)) {
                 var inset = verticalInsets[anchor];
                 verticalInsets[anchor] = edge == TableCellBorderEdge.Top
                     ? (Math.Max(inset.Top, clearance), inset.Bottom)
                     : (inset.Top, Math.Max(inset.Bottom, clearance));
             }
-            if (!HasPair(enabled, side)) return;
+            // Adapted cell text also clears ordinary incoming side paint when its own border is suppressed.
+            bool ordinarySideInset = addBorderInsets && (edge == TableCellBorderEdge.Left || edge == TableCellBorderEdge.Right);
+            if (!HasPair(enabled, side) && !ordinarySideInset) return;
             if (!prepared.CellPaddings.TryGetValue(anchor, out PdfCellPadding? padding)) {
                 padding = new PdfCellPadding();
                 prepared.CellPaddings[anchor] = padding;

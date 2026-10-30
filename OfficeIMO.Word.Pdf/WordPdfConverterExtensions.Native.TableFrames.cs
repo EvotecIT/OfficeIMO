@@ -33,7 +33,7 @@ namespace OfficeIMO.Word.Pdf {
                     ? Math.Max(.001D, style.PreferredWidth.Value - 2D * style.CellSpacing)
                     : style.PreferredWidth.Value + Math.Max(0, layout.ColumnWidths.Length - 1) * sourceSpacing;
             style.AutoFitWidthUsesContentMinimum = style.AutoFitColumns;
-            style.CellVerticalPaddingFromBorderInterior = true;
+            style.CellPaddingFromBorderInterior = true;
             style.PreservePartialCellLines = true;
             // The independent perimeter supplies the source continuation inset.
             style.PageContinuationSpacingBefore = 0D;

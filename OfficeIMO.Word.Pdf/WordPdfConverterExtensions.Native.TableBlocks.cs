@@ -169,7 +169,7 @@ namespace OfficeIMO.Word.Pdf {
 
             ApplyNativeDirectCellBorders(style, layout, directCellBorders);
             if (style.CellBorders != null && !UsesNativeSeparateTableCellBorders(table, style, tableStyleDefaults)) {
-                ReconcileNativeHiddenSharedBorders(table, layout, tableStyleDefaults, style.HeaderRowCount, style.CellBorders, directCellBorders);
+                ReconcileNativeSharedBorders(table, layout, tableStyleDefaults, style, directCellBorders, options);
             }
 
             if (cellPaddings.Count > 0) {

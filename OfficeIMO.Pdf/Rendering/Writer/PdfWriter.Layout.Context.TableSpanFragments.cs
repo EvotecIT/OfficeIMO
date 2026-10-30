@@ -8,7 +8,7 @@ internal static partial class PdfWriter {
             double tableX, int? tableStructureElementIndex, ref StringBuilder? pairedBorders,
             int completedRow = -1, double cornerRadius = 0D, double fullFrameHeight = double.PositiveInfinity,
             bool logicalTopBoundary = true, bool logicalBottomBoundary = true, double closingPadding = 0D,
-            Dictionary<(int Row, int Column), int>? acceptedLineCounts = null) {
+            Dictionary<(int Row, int Column), int>? acceptedLineCounts = null, CollapsedTableBorders? collapsedBorders = null) {
             // Alignment belongs to the complete logical cell, not each page fragment.
             foreach (TableSpanCellFlow span in flow.ActiveCells) {
                 if (span.Height <= .001D || span.AlignmentLeadingHeight.HasValue) continue;
@@ -86,19 +86,19 @@ internal static partial class PdfWriter {
                 span.DestinationEmitted = true;
                 PdfCellBorder? border = null;
                 bool hasBorderOverride = style.CellBorders?.TryGetValue((row, cell.Column), out border) == true;
-                if (hasBorderOverride && HasRenderableCellBorder(border)) {
+                if (hasBorderOverride && HasCellBorderPaintOrConflict(border, collapsedBorders)) {
                     border = PrepareTableSpanFragmentBorder(border!, span, continuation, continues);
                     StringBuilder output = HasPairedCellBorder(border) || flow.HasDeferredFills(style)
                         ? pairedBorders ??= new StringBuilder() : sb;
                     if (rounded && !border.HasHiddenSegments)
                         DrawRoundedCellBorder(output, border, x, bottom, width, span.Height, cornerRadius,
                             style.BorderColor.HasValue ? style.BorderWidth : 0D, topLeft, topRight, bottomRight, bottomLeft,
-                            emitGeneratedStructure, GetTableCellDiagonalFrame(cell, x, bottom, width, span.Height));
+                            emitGeneratedStructure, GetTableCellDiagonalFrame(cell, x, bottom, width, span.Height), collapsedBorders: collapsedBorders);
                     else
                         DrawCellBorder(output, border, x, bottom, width, span.Height, emitGeneratedStructure,
                             span.FragmentRowHeights.ToArray(),
                             GetCellBorderSegmentLengths(columnWidths, cell.Column, cell.ColumnSpan, columnGap),
-                            GetTableCellDiagonalFrame(cell, x, bottom, width, span.Height));
+                            GetTableCellDiagonalFrame(cell, x, bottom, width, span.Height), collapsedBorders: collapsedBorders);
                 } else if (!hasBorderOverride && style.BorderColor.HasValue && style.BorderWidth > 0D && (continuation || continues)) {
                     // The ordinary row grid omits horizontal edges inside a span.
                     // Close that grid only where this span crosses a physical frame.

@@ -6,7 +6,8 @@ internal static partial class PdfWriter {
         private void PaintPreparedTableRow(PreparedTableGeometry geometry, TableSpanFlow spanFlow,
             TableRowSlice slice, double xOrigin, double top, int? tableStructureElementIndex,
             ref StringBuilder? pairedBorders, PageStructElement? existingRowStructureElement = null,
-            int bodyRowOffset = 0, bool logicalTopBoundary = true, bool logicalBottomBoundary = true) {
+            int bodyRowOffset = 0, bool logicalTopBoundary = true, bool logicalBottomBoundary = true,
+            CollapsedTableBorders? collapsedBorders = null) {
             TableBlock tb = geometry.Table;
             PdfTableStyle style = geometry.Style;
             PreparedFlowTableRows preparedRows = geometry.Rows;
@@ -222,7 +223,7 @@ internal static partial class PdfWriter {
                     if (!spanFlow.Contains(rowIndex, borderColumn) && style.CellBorders.TryGetValue((rowIndex, borderColumn), out PdfCellBorder? cellBorder) &&
                         TryGetTableCellLayoutAtColumn(cells, borderColumn, out TableCellLayout borderCell) &&
                         (borderColumn >= rowFillSkips.Length || !rowFillSkips[borderColumn]) &&
-                        HasRenderableCellBorder(cellBorder)) {
+                        HasCellBorderPaintOrConflict(cellBorder, collapsedBorders)) {
                         int span = wholeRowSegment || cellBorder.HasHiddenSegments ? borderCell.ColumnSpan : 1;
                         double borderHeight = hRect;
                         double borderBottom = yRect;
@@ -249,12 +250,12 @@ internal static partial class PdfWriter {
                             ? pairedBorders ??= new StringBuilder() : sb;
                         if (!cellBorder.HasHiddenSegments && (topLeft || topRight || bottomRight || bottomLeft)) {
                             DrawRoundedCellBorder(borderOutput, cellBorder, borderX, borderBottom, GetTableCellWidth(colPixel, borderColumn, span, colGapPx), borderHeight, cornerRadius, roundedOuterBorder, topLeft, topRight, bottomRight, bottomLeft, emitGeneratedStructure,
-                                GetTableCellDiagonalFrame(borderCell, borderX, borderBottom, GetTableCellWidth(colPixel, borderColumn, span, colGapPx), borderHeight));
+                                GetTableCellDiagonalFrame(borderCell, borderX, borderBottom, GetTableCellWidth(colPixel, borderColumn, span, colGapPx), borderHeight), collapsedBorders: collapsedBorders);
                         } else {
                             DrawCellBorder(borderOutput, cellBorder, borderX, borderBottom, GetTableCellWidth(colPixel, borderColumn, span, colGapPx), borderHeight, emitGeneratedStructure,
                                 GetCellBorderSegmentLengths(rowHeights, rowIndex, borderCell.RowSpan, rowGapPx),
                                 GetCellBorderSegmentLengths(colPixel, borderColumn, span, colGapPx),
-                                GetTableCellDiagonalFrame(borderCell, borderX, borderBottom, GetTableCellWidth(colPixel, borderColumn, span, colGapPx), borderHeight));
+                                GetTableCellDiagonalFrame(borderCell, borderX, borderBottom, GetTableCellWidth(colPixel, borderColumn, span, colGapPx), borderHeight), collapsedBorders: collapsedBorders);
                         }
                     }
                     borderX += colPixel[borderColumn] + colGapPx;

@@ -755,7 +755,7 @@ internal static partial class PdfWriter {
         AppendArtifactEnd(sb, artifact);
     }
 
-    private static void DrawCellBorder(StringBuilder sb, PdfCellBorder border, double x, double y, double w, double h, bool artifact = false, double[]? rowSegmentHeights = null, double[]? columnSegmentWidths = null, TableCellContentFrame? diagonalFrame = null) {
+    private static void DrawCellBorder(StringBuilder sb, PdfCellBorder border, double x, double y, double w, double h, bool artifact = false, double[]? rowSegmentHeights = null, double[]? columnSegmentWidths = null, TableCellContentFrame? diagonalFrame = null, CollapsedTableBorders? collapsedBorders = null) {
         if (border.PaintInsideFrame) {
             InsetCellBorderToFrame(border, ref x, ref y, ref w, ref h);
         }
@@ -769,7 +769,7 @@ internal static partial class PdfWriter {
             return;
         }
 
-        if (border.Color.HasValue &&
+        if (collapsedBorders == null && border.Color.HasValue &&
             border.Width > 0 &&
             border.DashStyle == OfficeIMO.Drawing.OfficeStrokeDashStyle.Solid &&
             border.LineStyle == PdfCellBorderLineStyle.Standard &&
@@ -796,9 +796,16 @@ internal static partial class PdfWriter {
         PdfCellBorderSide? right = border.Right ? ResolveCellBorderSide(border.RightBorderSnapshot, border) : null;
         PdfCellBorderSide? bottom = border.Bottom ? ResolveCellBorderSide(border.BottomBorderSnapshot, border) : null;
         PdfCellBorderSide? left = border.Left ? ResolveCellBorderSide(border.LeftBorderSnapshot, border) : null;
-        if (border.Top) DrawCellHBorderSegments(sb, top, x, x2, y2, -1D, border.HiddenTopColumnSegments, columnSegmentWidths, artifact, left, right);
+        if (collapsedBorders != null) {
+            collapsedBorders.Add(true, border.TopPriority, border.Top, top, x, x2, y2,
+                (output, start, end) => DrawCellHBorder(output, top, start, end, y2, -1D, artifact,
+                    start == x ? left : null, end == x2 ? right : null), border.HiddenTopColumnSegments, columnSegmentWidths);
+            collapsedBorders.Add(false, border.BottomPriority, border.Bottom, bottom, x, x2, y,
+                (output, start, end) => DrawCellHBorder(output, bottom, start, end, y, 1D, artifact,
+                    start == x ? left : null, end == x2 ? right : null), border.HiddenBottomColumnSegments, columnSegmentWidths);
+        } else if (border.Top) DrawCellHBorderSegments(sb, top, x, x2, y2, -1D, border.HiddenTopColumnSegments, columnSegmentWidths, artifact, left, right);
         if (border.Right) DrawCellVBorderSegments(sb, right, x2, y2, y, -1D, border.HiddenRightRowSegments, rowSegmentHeights, artifact, top, bottom);
-        if (border.Bottom) DrawCellHBorderSegments(sb, bottom, x, x2, y, 1D, border.HiddenBottomColumnSegments, columnSegmentWidths, artifact, left, right);
+        if (collapsedBorders == null && border.Bottom) DrawCellHBorderSegments(sb, bottom, x, x2, y, 1D, border.HiddenBottomColumnSegments, columnSegmentWidths, artifact, left, right);
         if (border.Left) DrawCellVBorderSegments(sb, left, x, y2, y, 1D, border.HiddenLeftRowSegments, rowSegmentHeights, artifact, top, bottom);
         DrawTableCellDiagonals(sb, border, x, y, w, h, diagonalFrame, artifact);
     }

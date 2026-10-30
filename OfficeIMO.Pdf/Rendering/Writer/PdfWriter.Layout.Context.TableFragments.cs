@@ -230,19 +230,21 @@ internal static partial class PdfWriter {
             int? structure = RegisterStructureContainer("Table", parent, alternativeText: style.AlternativeText);
             StringBuilder? paired = null;
             top -= plan.Before;
+            var collapsedBorders = style.CollapseHorizontalCellBorders ? new CollapsedTableBorders() : null;
             foreach (TableRowSlice slice in plan.Slices) {
                 cancellationToken.ThrowIfCancellationRequested();
-                PaintPreparedTableRow(geometry, spans, slice, left, top, structure, ref paired);
+                PaintPreparedTableRow(geometry, spans, slice, left, top, structure, ref paired, collapsedBorders: collapsedBorders);
                 if (slice.CompletedSpans != null)
                     FlushTableSpanFragments(table, style, spans, geometry.Rows, geometry.Widths, geometry.Gap, geometry.Gap,
                         left, structure, ref paired, slice.Row, geometry.CornerRadius, plan.FullHeight,
-                        acceptedLineCounts: slice.CompletedSpans);
+                        acceptedLineCounts: slice.CompletedSpans, collapsedBorders: collapsedBorders);
                 top -= slice.Height + slice.GapAfter;
             }
             FlushTableSpanFragments(table, style, spans, geometry.Rows, geometry.Widths, geometry.Gap, geometry.Gap,
                 left, structure, ref paired, cornerRadius: geometry.CornerRadius, fullFrameHeight: plan.FullHeight,
-                acceptedLineCounts: plan.FinalSpans);
+                acceptedLineCounts: plan.FinalSpans, collapsedBorders: collapsedBorders);
             if (paired != null) sb.Append(paired);
+            collapsedBorders?.Flush(sb);
             top -= plan.After;
         }
     }

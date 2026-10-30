@@ -15,6 +15,7 @@ internal static partial class PdfWriter {
         if (closingPadding > 0D) closingPadding += table.Style.SpacingAfter;
         var tableStyle = table.Style;
         StringBuilder? pairedBorders = null;
+        var collapsedBorders = tableStyle.CollapseHorizontalCellBorders ? new CollapsedTableBorders() : null;
         double textClipBleed = tableStyle.ClipTextToCellBounds ? 0D : TableCellClipBleed;
         bool tableStartedInThisColumn = state.Line == 0 && state.Subline == 0;
         double flowYBeforeTable = state.Y;
@@ -383,7 +384,7 @@ internal static partial class PdfWriter {
                     if (!table.SpanFlow.Contains(rowIndex, borderColumn) && tableStyle.CellBorders.TryGetValue((rowIndex, borderColumn), out PdfCellBorder? cellBorder) &&
                         TryGetTableCellLayoutAtColumn(cells, borderColumn, out TableCellLayout borderCell) &&
                         (borderColumn >= rowFillSkips.Length || !rowFillSkips[borderColumn]) &&
-                        HasRenderableCellBorder(cellBorder)) {
+                        HasCellBorderPaintOrConflict(cellBorder, collapsedBorders)) {
                         int span = wholeRowSegment || cellBorder.HasHiddenSegments ? borderCell.ColumnSpan : 1;
                         double borderHeight = rowHeight;
                         double borderBottom = rowBottom;
@@ -410,12 +411,12 @@ internal static partial class PdfWriter {
                             ? pairedBorders ??= new StringBuilder() : sb;
                         if (!cellBorder.HasHiddenSegments && (topLeft || topRight || bottomRight || bottomLeft)) {
                             DrawRoundedCellBorder(borderOutput, cellBorder, borderX, borderBottom, GetTableCellWidth(table.ColumnWidths, borderColumn, span, columnGap), borderHeight, cornerRadius, roundedOuterBorder, topLeft, topRight, bottomRight, bottomLeft, emitGeneratedStructure,
-                                GetTableCellDiagonalFrame(borderCell, borderX, borderBottom, GetTableCellWidth(table.ColumnWidths, borderColumn, span, columnGap), borderHeight));
+                                GetTableCellDiagonalFrame(borderCell, borderX, borderBottom, GetTableCellWidth(table.ColumnWidths, borderColumn, span, columnGap), borderHeight), collapsedBorders: collapsedBorders);
                         } else {
                             DrawCellBorder(borderOutput, cellBorder, borderX, borderBottom, GetTableCellWidth(table.ColumnWidths, borderColumn, span, columnGap), borderHeight, emitGeneratedStructure,
                                 GetCellBorderSegmentLengths(table.RowHeights, rowIndex, borderCell.RowSpan, columnTableRowGap),
                                 GetCellBorderSegmentLengths(table.ColumnWidths, borderColumn, span, columnGap),
-                                GetTableCellDiagonalFrame(borderCell, borderX, borderBottom, GetTableCellWidth(table.ColumnWidths, borderColumn, span, columnGap), borderHeight));
+                                GetTableCellDiagonalFrame(borderCell, borderX, borderBottom, GetTableCellWidth(table.ColumnWidths, borderColumn, span, columnGap), borderHeight), collapsedBorders: collapsedBorders);
                         }
                     }
                     borderX += table.ColumnWidths[borderColumn] + columnGap;
@@ -425,7 +426,7 @@ internal static partial class PdfWriter {
             if (wholeRowSegment || startLine + lineCount == table.RowLineCounts[rowIndex])
                 FlushTableSpanFragments(tbColumn, tableStyle, table.SpanFlow, table.PreparedRows, table.ColumnWidths,
                     columnGap, columnTableRowGap, xTable, tableStructureElementIndex, ref pairedBorders, rowIndex,
-                    tableCornerRadius, Math.Max(0D, maxContentHeight - repeatHeaderHeight), closingPadding: closingPadding);
+                    tableCornerRadius, Math.Max(0D, maxContentHeight - repeatHeaderHeight), closingPadding: closingPadding, collapsedBorders: collapsedBorders);
             bool spanTailPending = GetTableSpanRemainingLineCount(table.SpanFlow, table.PreparedRows, rowIndex) > 0;
             double rowAdvance = rowHeight + (wholeRowSegment && !spanTailPending ? GetTableRowGapAfter(rowIndex, tbColumn.Rows.Count, columnTableRowGap) : 0D);
             RecordTableFrameContentBottom(tbColumn, rowBottom);
@@ -589,8 +590,9 @@ internal static partial class PdfWriter {
 
         FlushTableSpanFragments(tbColumn, tableStyle, table.SpanFlow, table.PreparedRows, table.ColumnWidths,
             columnGap, columnTableRowGap, xTable, tableStructureElementIndex, ref pairedBorders,
-            cornerRadius: tableCornerRadius, fullFrameHeight: Math.Max(0D, maxContentHeight - repeatHeaderHeight), closingPadding: closingPadding);
+            cornerRadius: tableCornerRadius, fullFrameHeight: Math.Max(0D, maxContentHeight - repeatHeaderHeight), closingPadding: closingPadding, collapsedBorders: collapsedBorders);
         if (pairedBorders != null) sb.Append(pairedBorders);
+        collapsedBorders?.Flush(sb);
         if (rowIndex >= tbColumn.Rows.Count) {
             if (tableStyle.SpacingAfter > 0 && tableStyle.SpacingAfter <= state.Remaining) {
                 state.Y -= tableStyle.SpacingAfter;
