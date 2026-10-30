@@ -1034,8 +1034,8 @@ Console.WriteLine("OfficeIMO");
 """;
 
         MarkdownPdfStyle theme = MarkdownPdfStyle.Plain();
-        theme.CodeBlockLabelFontSize = 7;
-        theme.CodeBlockFontSize = 11;
+        theme.CodeBlockLabelFontSize = global::OfficeIMO.OfficeLength.Inches(7D / 72D);
+        theme.CodeBlockFontSize = global::OfficeIMO.OfficeLength.Inches(11D / 72D);
         theme.CodeBlockLabelColor = global::OfficeIMO.OfficeColor.FromRgb(255, 0, 0);
         theme.CodeBlockTextColor = global::OfficeIMO.OfficeColor.FromRgb(0, 128, 0);
 
@@ -1053,6 +1053,13 @@ Console.WriteLine("OfficeIMO");
         Assert.Contains("Console.WriteLine", text);
         Assert.Contains("1 0 0 rg", rawPdf, StringComparison.Ordinal);
         Assert.Contains("0 0.502 0 rg", rawPdf, StringComparison.Ordinal);
+
+        using var savedPdf = PdfPigDocument.Open(pdf);
+        var words = savedPdf.GetPage(1).GetWords().ToList();
+        var language = Assert.Single(words.Where(word => word.Text == "csharp"));
+        Assert.All(language.Letters, letter => Assert.Equal(7D, letter.FontSize, 3));
+        var code = Assert.Single(words.Where(word => word.Text.Contains("Console.WriteLine")));
+        Assert.All(code.Letters, letter => Assert.Equal(11D, letter.FontSize, 3));
     }
 
     [Fact]

@@ -116,8 +116,8 @@ var options = new MarkdownPdfExportOptions {
     BaseDirectory = Path.GetDirectoryName(Path.GetFullPath("Docs/status.md")),
     IncludeImages = true,
     ResourcePolicy = PdfResourcePolicy.CreateTrustedHost(),
-    DefaultImageWidth = 420,
-    DefaultImageHeight = 240,
+    DefaultImageWidth = OfficeIMO.OfficeLength.Points(420),
+    DefaultImageHeight = OfficeIMO.OfficeLength.Points(240),
     Theme = OfficeIMO.Markdown.MarkdownVisualTheme.Report()
 };
 

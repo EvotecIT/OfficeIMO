@@ -17,12 +17,12 @@ public sealed partial class MarkdownPdfStyle {
     private PdfCore.PdfTableStyle? _checklistTableStyle;
     private PdfCore.PdfTableStyle? _definitionListTableStyle;
     private PdfCore.PdfTableStyle? _frontMatterTableStyle;
-    private double? _codeBlockFontSize;
-    private double? _codeBlockLabelFontSize;
+    private global::OfficeIMO.OfficeLength? _codeBlockFontSize;
+    private global::OfficeIMO.OfficeLength? _codeBlockLabelFontSize;
     private global::OfficeIMO.OfficeColor? _codeBlockTextColor;
     private global::OfficeIMO.OfficeColor? _codeBlockLabelColor;
-    private double? _semanticBlockFontSize;
-    private double? _semanticBlockLabelFontSize;
+    private global::OfficeIMO.OfficeLength? _semanticBlockFontSize;
+    private global::OfficeIMO.OfficeLength? _semanticBlockLabelFontSize;
     private global::OfficeIMO.OfficeColor? _semanticBlockTextColor;
     private global::OfficeIMO.OfficeColor? _semanticBlockLabelColor;
     private global::OfficeIMO.OfficeColor? _checklistCheckedIconColor;
@@ -31,9 +31,9 @@ public sealed partial class MarkdownPdfStyle {
     private global::OfficeIMO.OfficeColor? _checklistUncheckedTextColor;
     private global::OfficeIMO.OfficeColor? _checklistCheckedFillColor;
     private global::OfficeIMO.OfficeColor? _checklistUncheckedFillColor;
-    private double? _documentHeaderTitleFontSize;
-    private double? _documentHeaderSubtitleFontSize;
-    private double? _documentHeaderMetadataFontSize;
+    private global::OfficeIMO.OfficeLength? _documentHeaderTitleFontSize;
+    private global::OfficeIMO.OfficeLength? _documentHeaderSubtitleFontSize;
+    private global::OfficeIMO.OfficeLength? _documentHeaderMetadataFontSize;
     private global::OfficeIMO.OfficeColor? _documentHeaderTitleColor;
     private global::OfficeIMO.OfficeColor? _documentHeaderSubtitleColor;
     private global::OfficeIMO.OfficeColor? _documentHeaderMetadataColor;
@@ -116,13 +116,13 @@ public sealed partial class MarkdownPdfStyle {
     }
 
     /// <summary>Font size for fenced code block content.</summary>
-    public double? CodeBlockFontSize {
+    public global::OfficeIMO.OfficeLength? CodeBlockFontSize {
         get => _codeBlockFontSize;
         set => _codeBlockFontSize = ValidateOptionalPositive(value, nameof(CodeBlockFontSize));
     }
 
     /// <summary>Font size for the optional fenced code language label.</summary>
-    public double? CodeBlockLabelFontSize {
+    public global::OfficeIMO.OfficeLength? CodeBlockLabelFontSize {
         get => _codeBlockLabelFontSize;
         set => _codeBlockLabelFontSize = ValidateOptionalPositive(value, nameof(CodeBlockLabelFontSize));
     }
@@ -140,13 +140,13 @@ public sealed partial class MarkdownPdfStyle {
     }
 
     /// <summary>Font size for semantic fenced block content.</summary>
-    public double? SemanticBlockFontSize {
+    public global::OfficeIMO.OfficeLength? SemanticBlockFontSize {
         get => _semanticBlockFontSize;
         set => _semanticBlockFontSize = ValidateOptionalPositive(value, nameof(SemanticBlockFontSize));
     }
 
     /// <summary>Font size for semantic fenced block labels.</summary>
-    public double? SemanticBlockLabelFontSize {
+    public global::OfficeIMO.OfficeLength? SemanticBlockLabelFontSize {
         get => _semanticBlockLabelFontSize;
         set => _semanticBlockLabelFontSize = ValidateOptionalPositive(value, nameof(SemanticBlockLabelFontSize));
     }
@@ -200,19 +200,19 @@ public sealed partial class MarkdownPdfStyle {
     }
 
     /// <summary>Font size used for front matter title blocks.</summary>
-    public double? DocumentHeaderTitleFontSize {
+    public global::OfficeIMO.OfficeLength? DocumentHeaderTitleFontSize {
         get => _documentHeaderTitleFontSize;
         set => _documentHeaderTitleFontSize = ValidateOptionalPositive(value, nameof(DocumentHeaderTitleFontSize));
     }
 
     /// <summary>Font size used for front matter subtitles or descriptions.</summary>
-    public double? DocumentHeaderSubtitleFontSize {
+    public global::OfficeIMO.OfficeLength? DocumentHeaderSubtitleFontSize {
         get => _documentHeaderSubtitleFontSize;
         set => _documentHeaderSubtitleFontSize = ValidateOptionalPositive(value, nameof(DocumentHeaderSubtitleFontSize));
     }
 
     /// <summary>Font size used for front matter author/date/tags metadata lines.</summary>
-    public double? DocumentHeaderMetadataFontSize {
+    public global::OfficeIMO.OfficeLength? DocumentHeaderMetadataFontSize {
         get => _documentHeaderMetadataFontSize;
         set => _documentHeaderMetadataFontSize = ValidateOptionalPositive(value, nameof(DocumentHeaderMetadataFontSize));
     }
@@ -316,12 +316,12 @@ public sealed partial class MarkdownPdfStyle {
         ChecklistTableStyle = ChecklistTable(203, 213, 225, 31, 41, 55, 10, 4),
         DefinitionListTableStyle = DefinitionTable(226, 232, 240, 0.4, 5, 4),
         FrontMatterTableStyle = FrontMatterTable(),
-        CodeBlockFontSize = 9.5,
-        CodeBlockLabelFontSize = 8,
+        CodeBlockFontSize = global::OfficeIMO.OfficeLength.Points(9.5),
+        CodeBlockLabelFontSize = global::OfficeIMO.OfficeLength.Points(8),
         CodeBlockTextColor = Color(31, 41, 55),
         CodeBlockLabelColor = Color(71, 85, 105),
-        SemanticBlockFontSize = 9.5,
-        SemanticBlockLabelFontSize = 8,
+        SemanticBlockFontSize = global::OfficeIMO.OfficeLength.Points(9.5),
+        SemanticBlockLabelFontSize = global::OfficeIMO.OfficeLength.Points(8),
         SemanticBlockTextColor = Color(31, 41, 55),
         SemanticBlockLabelColor = Color(71, 85, 105),
         ChecklistCheckedIconColor = Color(22, 163, 74),
@@ -329,9 +329,9 @@ public sealed partial class MarkdownPdfStyle {
         ChecklistCheckedTextColor = Color(71, 85, 105),
         ChecklistUncheckedTextColor = Color(31, 41, 55),
         ChecklistCheckedFillColor = Color(240, 253, 244),
-        DocumentHeaderTitleFontSize = 25,
-        DocumentHeaderSubtitleFontSize = 12.5,
-        DocumentHeaderMetadataFontSize = 9.5,
+        DocumentHeaderTitleFontSize = global::OfficeIMO.OfficeLength.Points(25),
+        DocumentHeaderSubtitleFontSize = global::OfficeIMO.OfficeLength.Points(12.5),
+        DocumentHeaderMetadataFontSize = global::OfficeIMO.OfficeLength.Points(9.5),
         DocumentHeaderTitleColor = Color(17, 24, 39),
         DocumentHeaderSubtitleColor = Color(71, 85, 105),
         DocumentHeaderMetadataColor = Color(100, 116, 139),
@@ -367,12 +367,12 @@ public sealed partial class MarkdownPdfStyle {
         ChecklistTableStyle = ChecklistTable(203, 213, 225, 15, 23, 42, 10.5, 5),
         DefinitionListTableStyle = DefinitionTable(203, 213, 225, 0.35, 6, 5),
         FrontMatterTableStyle = FrontMatterTable(),
-        CodeBlockFontSize = 9.5,
-        CodeBlockLabelFontSize = 8,
+        CodeBlockFontSize = global::OfficeIMO.OfficeLength.Points(9.5),
+        CodeBlockLabelFontSize = global::OfficeIMO.OfficeLength.Points(8),
         CodeBlockTextColor = Color(15, 23, 42),
         CodeBlockLabelColor = Color(9, 105, 218),
-        SemanticBlockFontSize = 9.25,
-        SemanticBlockLabelFontSize = 8,
+        SemanticBlockFontSize = global::OfficeIMO.OfficeLength.Points(9.25),
+        SemanticBlockLabelFontSize = global::OfficeIMO.OfficeLength.Points(8),
         SemanticBlockTextColor = Color(15, 23, 42),
         SemanticBlockLabelColor = Color(2, 132, 199),
         ChecklistCheckedIconColor = Color(22, 163, 74),
@@ -380,9 +380,9 @@ public sealed partial class MarkdownPdfStyle {
         ChecklistCheckedTextColor = Color(71, 85, 105),
         ChecklistUncheckedTextColor = Color(15, 23, 42),
         ChecklistCheckedFillColor = Color(240, 253, 244),
-        DocumentHeaderTitleFontSize = 26,
-        DocumentHeaderSubtitleFontSize = 12.5,
-        DocumentHeaderMetadataFontSize = 9.5,
+        DocumentHeaderTitleFontSize = global::OfficeIMO.OfficeLength.Points(26),
+        DocumentHeaderSubtitleFontSize = global::OfficeIMO.OfficeLength.Points(12.5),
+        DocumentHeaderMetadataFontSize = global::OfficeIMO.OfficeLength.Points(9.5),
         DocumentHeaderTitleColor = Color(15, 23, 42),
         DocumentHeaderSubtitleColor = Color(51, 65, 85),
         DocumentHeaderMetadataColor = Color(100, 116, 139),
@@ -414,12 +414,12 @@ public sealed partial class MarkdownPdfStyle {
         ChecklistTableStyle = ChecklistTable(208, 215, 222, 36, 41, 47, 10, 5),
         DefinitionListTableStyle = DefinitionTable(208, 215, 222, 0.5, 6, 5),
         FrontMatterTableStyle = GitHubTable(),
-        CodeBlockFontSize = 9.25,
-        CodeBlockLabelFontSize = 8,
+        CodeBlockFontSize = global::OfficeIMO.OfficeLength.Points(9.25),
+        CodeBlockLabelFontSize = global::OfficeIMO.OfficeLength.Points(8),
         CodeBlockTextColor = Color(36, 41, 47),
         CodeBlockLabelColor = Color(87, 96, 106),
-        SemanticBlockFontSize = 9.25,
-        SemanticBlockLabelFontSize = 8,
+        SemanticBlockFontSize = global::OfficeIMO.OfficeLength.Points(9.25),
+        SemanticBlockLabelFontSize = global::OfficeIMO.OfficeLength.Points(8),
         SemanticBlockTextColor = Color(36, 41, 47),
         SemanticBlockLabelColor = Color(87, 96, 106),
         ChecklistCheckedIconColor = Color(26, 127, 55),
@@ -427,9 +427,9 @@ public sealed partial class MarkdownPdfStyle {
         ChecklistCheckedTextColor = Color(87, 96, 106),
         ChecklistUncheckedTextColor = Color(36, 41, 47),
         ChecklistCheckedFillColor = Color(246, 248, 250),
-        DocumentHeaderTitleFontSize = 24,
-        DocumentHeaderSubtitleFontSize = 12,
-        DocumentHeaderMetadataFontSize = 9,
+        DocumentHeaderTitleFontSize = global::OfficeIMO.OfficeLength.Points(24),
+        DocumentHeaderSubtitleFontSize = global::OfficeIMO.OfficeLength.Points(12),
+        DocumentHeaderMetadataFontSize = global::OfficeIMO.OfficeLength.Points(9),
         DocumentHeaderTitleColor = Color(36, 41, 47),
         DocumentHeaderSubtitleColor = Color(87, 96, 106),
         DocumentHeaderMetadataColor = Color(87, 96, 106),
@@ -461,12 +461,12 @@ public sealed partial class MarkdownPdfStyle {
         ChecklistTableStyle = ChecklistTable(226, 232, 240, 31, 41, 55, 9.5, 3),
         DefinitionListTableStyle = DefinitionTable(226, 232, 240, 0.35, 4, 3),
         FrontMatterTableStyle = CompactTable(),
-        CodeBlockFontSize = 8.75,
-        CodeBlockLabelFontSize = 7.5,
+        CodeBlockFontSize = global::OfficeIMO.OfficeLength.Points(8.75),
+        CodeBlockLabelFontSize = global::OfficeIMO.OfficeLength.Points(7.5),
         CodeBlockTextColor = Color(31, 41, 55),
         CodeBlockLabelColor = Color(71, 85, 105),
-        SemanticBlockFontSize = 8.75,
-        SemanticBlockLabelFontSize = 7.5,
+        SemanticBlockFontSize = global::OfficeIMO.OfficeLength.Points(8.75),
+        SemanticBlockLabelFontSize = global::OfficeIMO.OfficeLength.Points(7.5),
         SemanticBlockTextColor = Color(31, 41, 55),
         SemanticBlockLabelColor = Color(71, 85, 105),
         ChecklistCheckedIconColor = Color(22, 163, 74),
@@ -474,9 +474,9 @@ public sealed partial class MarkdownPdfStyle {
         ChecklistCheckedTextColor = Color(71, 85, 105),
         ChecklistUncheckedTextColor = Color(31, 41, 55),
         ChecklistCheckedFillColor = Color(240, 253, 244),
-        DocumentHeaderTitleFontSize = 20,
-        DocumentHeaderSubtitleFontSize = 10.5,
-        DocumentHeaderMetadataFontSize = 8.5,
+        DocumentHeaderTitleFontSize = global::OfficeIMO.OfficeLength.Points(20),
+        DocumentHeaderSubtitleFontSize = global::OfficeIMO.OfficeLength.Points(10.5),
+        DocumentHeaderMetadataFontSize = global::OfficeIMO.OfficeLength.Points(8.5),
         DocumentHeaderTitleColor = Color(31, 41, 55),
         DocumentHeaderSubtitleColor = Color(71, 85, 105),
         DocumentHeaderMetadataColor = Color(100, 116, 139),
@@ -504,12 +504,12 @@ public sealed partial class MarkdownPdfStyle {
         ChecklistTableStyle = ChecklistTable(191, 219, 254, 30, 41, 59, 10.5, 5),
         DefinitionListTableStyle = DefinitionTable(191, 219, 254, 0.4, 6, 5),
         FrontMatterTableStyle = ReportTable(),
-        CodeBlockFontSize = 9.5,
-        CodeBlockLabelFontSize = 8,
+        CodeBlockFontSize = global::OfficeIMO.OfficeLength.Points(9.5),
+        CodeBlockLabelFontSize = global::OfficeIMO.OfficeLength.Points(8),
         CodeBlockTextColor = Color(30, 41, 59),
         CodeBlockLabelColor = Color(30, 64, 175),
-        SemanticBlockFontSize = 9.25,
-        SemanticBlockLabelFontSize = 8,
+        SemanticBlockFontSize = global::OfficeIMO.OfficeLength.Points(9.25),
+        SemanticBlockLabelFontSize = global::OfficeIMO.OfficeLength.Points(8),
         SemanticBlockTextColor = Color(30, 41, 59),
         SemanticBlockLabelColor = Color(30, 64, 175),
         ChecklistCheckedIconColor = Color(22, 163, 74),
@@ -517,9 +517,9 @@ public sealed partial class MarkdownPdfStyle {
         ChecklistCheckedTextColor = Color(71, 85, 105),
         ChecklistUncheckedTextColor = Color(30, 41, 59),
         ChecklistCheckedFillColor = Color(239, 246, 255),
-        DocumentHeaderTitleFontSize = 27,
-        DocumentHeaderSubtitleFontSize = 13,
-        DocumentHeaderMetadataFontSize = 9.5,
+        DocumentHeaderTitleFontSize = global::OfficeIMO.OfficeLength.Points(27),
+        DocumentHeaderSubtitleFontSize = global::OfficeIMO.OfficeLength.Points(13),
+        DocumentHeaderMetadataFontSize = global::OfficeIMO.OfficeLength.Points(9.5),
         DocumentHeaderTitleColor = Color(30, 41, 59),
         DocumentHeaderSubtitleColor = Color(30, 64, 175),
         DocumentHeaderMetadataColor = Color(71, 85, 105),
@@ -591,12 +591,12 @@ public sealed partial class MarkdownPdfStyle {
     internal PdfCore.PdfTableStyle ChecklistTableStyleSnapshot => (_checklistTableStyle ?? Plain()._checklistTableStyle)!.Clone();
     internal PdfCore.PdfTableStyle DefinitionListTableStyleSnapshot => (_definitionListTableStyle ?? Plain()._definitionListTableStyle)!.Clone();
     internal PdfCore.PdfTableStyle FrontMatterTableStyleSnapshot => (_frontMatterTableStyle ?? PdfCore.PdfTableStyles.Minimal()).Clone();
-    internal double CodeBlockFontSizeSnapshot => _codeBlockFontSize ?? 9.5;
-    internal double CodeBlockLabelFontSizeSnapshot => _codeBlockLabelFontSize ?? 8;
+    internal global::OfficeIMO.OfficeLength CodeBlockFontSizeSnapshot => _codeBlockFontSize ?? global::OfficeIMO.OfficeLength.Points(9.5);
+    internal global::OfficeIMO.OfficeLength CodeBlockLabelFontSizeSnapshot => _codeBlockLabelFontSize ?? global::OfficeIMO.OfficeLength.Points(8);
     internal global::OfficeIMO.OfficeColor CodeBlockTextColorSnapshot => _codeBlockTextColor ?? Color(31, 41, 55);
     internal global::OfficeIMO.OfficeColor CodeBlockLabelColorSnapshot => _codeBlockLabelColor ?? Color(71, 85, 105);
-    internal double SemanticBlockFontSizeSnapshot => _semanticBlockFontSize ?? CodeBlockFontSizeSnapshot;
-    internal double SemanticBlockLabelFontSizeSnapshot => _semanticBlockLabelFontSize ?? CodeBlockLabelFontSizeSnapshot;
+    internal global::OfficeIMO.OfficeLength SemanticBlockFontSizeSnapshot => _semanticBlockFontSize ?? CodeBlockFontSizeSnapshot;
+    internal global::OfficeIMO.OfficeLength SemanticBlockLabelFontSizeSnapshot => _semanticBlockLabelFontSize ?? CodeBlockLabelFontSizeSnapshot;
     internal global::OfficeIMO.OfficeColor SemanticBlockTextColorSnapshot => _semanticBlockTextColor ?? CodeBlockTextColorSnapshot;
     internal global::OfficeIMO.OfficeColor SemanticBlockLabelColorSnapshot => _semanticBlockLabelColor ?? CodeBlockLabelColorSnapshot;
     internal global::OfficeIMO.OfficeColor ChecklistCheckedIconColorSnapshot => _checklistCheckedIconColor ?? Plain()._checklistCheckedIconColor ?? Color(22, 163, 74);
@@ -605,9 +605,9 @@ public sealed partial class MarkdownPdfStyle {
     internal global::OfficeIMO.OfficeColor ChecklistUncheckedTextColorSnapshot => _checklistUncheckedTextColor ?? Plain()._checklistUncheckedTextColor ?? Color(31, 41, 55);
     internal global::OfficeIMO.OfficeColor? ChecklistCheckedFillColorSnapshot => _checklistCheckedFillColor ?? Plain()._checklistCheckedFillColor;
     internal global::OfficeIMO.OfficeColor? ChecklistUncheckedFillColorSnapshot => _checklistUncheckedFillColor ?? Plain()._checklistUncheckedFillColor;
-    internal double DocumentHeaderTitleFontSizeSnapshot => _documentHeaderTitleFontSize ?? Plain()._documentHeaderTitleFontSize ?? 25;
-    internal double DocumentHeaderSubtitleFontSizeSnapshot => _documentHeaderSubtitleFontSize ?? Plain()._documentHeaderSubtitleFontSize ?? 12.5;
-    internal double DocumentHeaderMetadataFontSizeSnapshot => _documentHeaderMetadataFontSize ?? Plain()._documentHeaderMetadataFontSize ?? 9.5;
+    internal global::OfficeIMO.OfficeLength DocumentHeaderTitleFontSizeSnapshot => _documentHeaderTitleFontSize ?? Plain()._documentHeaderTitleFontSize ?? global::OfficeIMO.OfficeLength.Points(25);
+    internal global::OfficeIMO.OfficeLength DocumentHeaderSubtitleFontSizeSnapshot => _documentHeaderSubtitleFontSize ?? Plain()._documentHeaderSubtitleFontSize ?? global::OfficeIMO.OfficeLength.Points(12.5);
+    internal global::OfficeIMO.OfficeLength DocumentHeaderMetadataFontSizeSnapshot => _documentHeaderMetadataFontSize ?? Plain()._documentHeaderMetadataFontSize ?? global::OfficeIMO.OfficeLength.Points(9.5);
     internal global::OfficeIMO.OfficeColor DocumentHeaderTitleColorSnapshot => _documentHeaderTitleColor ?? Plain()._documentHeaderTitleColor ?? Color(17, 24, 39);
     internal global::OfficeIMO.OfficeColor DocumentHeaderSubtitleColorSnapshot => _documentHeaderSubtitleColor ?? Plain()._documentHeaderSubtitleColor ?? Color(71, 85, 105);
     internal global::OfficeIMO.OfficeColor DocumentHeaderMetadataColorSnapshot => _documentHeaderMetadataColor ?? Plain()._documentHeaderMetadataColor ?? Color(100, 116, 139);

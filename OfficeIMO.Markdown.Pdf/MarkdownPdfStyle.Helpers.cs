@@ -145,8 +145,8 @@ public sealed partial class MarkdownPdfStyle {
 
     private static global::OfficeIMO.OfficeColor Color(int r, int g, int b) => global::OfficeIMO.OfficeColor.FromRgb((byte)r, (byte)g, (byte)b);
 
-    private static double? ValidateOptionalPositive(double? value, string propertyName) {
-        if (value.HasValue && (double.IsNaN(value.Value) || double.IsInfinity(value.Value) || value.Value <= 0)) {
+    private static global::OfficeIMO.OfficeLength? ValidateOptionalPositive(global::OfficeIMO.OfficeLength? value, string propertyName) {
+        if (value.HasValue && value.Value <= global::OfficeIMO.OfficeLength.Zero) {
             throw new ArgumentOutOfRangeException(propertyName, "Markdown PDF visual theme sizes must be positive finite values.");
         }
 

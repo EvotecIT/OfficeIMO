@@ -41,7 +41,7 @@ public static partial class MarkdownPdfConverterExtensions {
         }
 
         pdf.H1(title, PdfCore.PdfAlign.Left, visualTheme.DocumentHeaderTitleColorSnapshot, style: new PdfCore.PdfHeadingStyle {
-            FontSize = visualTheme.DocumentHeaderTitleFontSizeSnapshot,
+            FontSize = visualTheme.DocumentHeaderTitleFontSizeSnapshot.ToPoints(),
             LineHeight = 1.12,
             SpacingBefore = 0,
             SpacingAfter = 3,
@@ -55,7 +55,7 @@ public static partial class MarkdownPdfConverterExtensions {
             ?? GetFrontMatterMetadata(frontMatter, "subject");
         if (subtitle != null) {
             pdf.Paragraph(builder => builder
-                    .FontSize(global::OfficeIMO.OfficeLength.Points(visualTheme.DocumentHeaderSubtitleFontSizeSnapshot))
+                    .FontSize(visualTheme.DocumentHeaderSubtitleFontSizeSnapshot)
                     .Color(visualTheme.DocumentHeaderSubtitleColorSnapshot)
                     .Text(subtitle),
                 defaultColor: visualTheme.DocumentHeaderSubtitleColorSnapshot,
@@ -69,7 +69,7 @@ public static partial class MarkdownPdfConverterExtensions {
         string? metadataLine = BuildFrontMatterMetadataLine(frontMatter);
         if (metadataLine != null) {
             pdf.Paragraph(builder => builder
-                    .FontSize(global::OfficeIMO.OfficeLength.Points(visualTheme.DocumentHeaderMetadataFontSizeSnapshot))
+                    .FontSize(visualTheme.DocumentHeaderMetadataFontSizeSnapshot)
                     .Color(visualTheme.DocumentHeaderMetadataColorSnapshot)
                     .Text(metadataLine),
                 defaultColor: visualTheme.DocumentHeaderMetadataColorSnapshot,

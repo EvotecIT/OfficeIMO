@@ -248,8 +248,8 @@ public static partial class MarkdownPdfConverterExtensions {
             }
 
             string? title = ReadChartTitle(root) ?? semantic.FenceInfo.Title;
-            double width = ReadPositiveDouble(root, "width") ?? options.DefaultImageWidth;
-            double height = ReadPositiveDouble(root, "height") ?? options.DefaultImageHeight;
+            double width = ReadPositiveDouble(root, "width") ?? options.DefaultImageWidth.ToPoints();
+            double height = ReadPositiveDouble(root, "height") ?? options.DefaultImageHeight.ToPoints();
             width = Math.Max(MinimumChartWidth, Math.Min(520D, width));
             height = Math.Max(150D, Math.Min(320D, height));
             FitChartToPageFrame(options, resolvedVisualTheme, ref width, ref height);

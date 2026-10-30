@@ -443,13 +443,13 @@ public static partial class MarkdownPdfConverterExtensions {
 
         pdf.Panel(contentBuilder => contentBuilder.Paragraph(builder => {
             if (language.Length > 0) {
-                builder.FontSize(global::OfficeIMO.OfficeLength.Points(visualTheme.CodeBlockLabelFontSizeSnapshot))
+                builder.FontSize(visualTheme.CodeBlockLabelFontSizeSnapshot)
                     .Bold(language, visualTheme.CodeBlockLabelColorSnapshot)
                     .LineBreak();
             }
 
             builder.Font(PdfCore.PdfStandardFont.Courier)
-                .FontSize(global::OfficeIMO.OfficeLength.Points(visualTheme.CodeBlockFontSizeSnapshot))
+                .FontSize(visualTheme.CodeBlockFontSizeSnapshot)
                 .Color(visualTheme.CodeBlockTextColorSnapshot);
             AppendTextWithLineBreaks(builder, content);
         }, style: new PdfCore.PdfParagraphStyle { TextWhitespaceMode = PdfCore.PdfTextWhitespaceMode.Preformatted }), visualTheme.CodeBlockPanelStyleSnapshot);
@@ -474,11 +474,11 @@ public static partial class MarkdownPdfConverterExtensions {
         }
 
         pdf.PanelParagraph(builder => {
-            builder.FontSize(global::OfficeIMO.OfficeLength.Points(visualTheme.SemanticBlockLabelFontSizeSnapshot))
+            builder.FontSize(visualTheme.SemanticBlockLabelFontSizeSnapshot)
                 .Bold(label, visualTheme.SemanticBlockLabelColorSnapshot);
             builder.LineBreak();
             builder.Font(PdfCore.PdfStandardFont.Courier)
-                .FontSize(global::OfficeIMO.OfficeLength.Points(visualTheme.SemanticBlockFontSizeSnapshot))
+                .FontSize(visualTheme.SemanticBlockFontSizeSnapshot)
                 .Color(visualTheme.SemanticBlockTextColorSnapshot);
             AppendTextWithLineBreaks(builder, semantic.Content ?? string.Empty);
         }, visualTheme.SemanticBlockPanelStyleSnapshot);

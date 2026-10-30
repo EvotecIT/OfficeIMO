@@ -11,7 +11,7 @@ public sealed class MarkdownPdfFigureStyle {
     private PdfCore.PdfDrawingStyle? _drawingStyle;
     private global::OfficeIMO.OfficeColor? _captionColor;
     private global::OfficeIMO.OfficeColor? _placeholderColor;
-    private double? _captionFontSize;
+    private global::OfficeIMO.OfficeLength? _captionFontSize;
     private PdfCore.PdfAlign _captionAlign = PdfCore.PdfAlign.Center;
 
     /// <summary>Optional panel chrome used for unresolved visual placeholders. Media figures render directly in document flow.</summary>
@@ -39,7 +39,7 @@ public sealed class MarkdownPdfFigureStyle {
     }
 
     /// <summary>Caption font size.</summary>
-    public double? CaptionFontSize {
+    public global::OfficeIMO.OfficeLength? CaptionFontSize {
         get => _captionFontSize;
         set => _captionFontSize = ValidateOptionalPositive(value, nameof(CaptionFontSize));
     }
@@ -77,7 +77,7 @@ public sealed class MarkdownPdfFigureStyle {
     internal PdfCore.PdfImageStyle ImageStyleSnapshot => (_imageStyle ?? CreateDefaultImageStyle()).Clone();
     internal PdfCore.PdfDrawingStyle DrawingStyleSnapshot => (_drawingStyle ?? CreateDefaultDrawingStyle()).Clone();
     internal global::OfficeIMO.OfficeColor CaptionColorSnapshot => _captionColor ?? global::OfficeIMO.OfficeColor.FromRgb(71, 85, 105);
-    internal double CaptionFontSizeSnapshot => _captionFontSize ?? 9D;
+    internal global::OfficeIMO.OfficeLength CaptionFontSizeSnapshot => _captionFontSize ?? global::OfficeIMO.OfficeLength.Points(9D);
     internal PdfCore.PdfAlign CaptionAlignSnapshot => _captionAlign;
     internal global::OfficeIMO.OfficeColor PlaceholderColorSnapshot => _placeholderColor ?? global::OfficeIMO.OfficeColor.FromRgb(100, 116, 139);
 
@@ -86,7 +86,7 @@ public sealed class MarkdownPdfFigureStyle {
         DrawingStyle = CreateDefaultDrawingStyle(),
         CaptionColor = global::OfficeIMO.OfficeColor.FromRgb(71, 85, 105),
         PlaceholderColor = global::OfficeIMO.OfficeColor.FromRgb(100, 116, 139),
-        CaptionFontSize = 9D,
+        CaptionFontSize = global::OfficeIMO.OfficeLength.Points(9D),
         CaptionAlign = PdfCore.PdfAlign.Center
     };
 
@@ -110,7 +110,7 @@ public sealed class MarkdownPdfFigureStyle {
             DrawingStyle = CreateDefaultDrawingStyle(),
             CaptionColor = caption,
             PlaceholderColor = placeholder,
-            CaptionFontSize = 9D,
+            CaptionFontSize = global::OfficeIMO.OfficeLength.Points(9D),
             CaptionAlign = PdfCore.PdfAlign.Center
         };
 
@@ -129,8 +129,8 @@ public sealed class MarkdownPdfFigureStyle {
         KeepWithNext = true
     };
 
-    private static double? ValidateOptionalPositive(double? value, string propertyName) {
-        if (value.HasValue && (double.IsNaN(value.Value) || double.IsInfinity(value.Value) || value.Value <= 0)) {
+    private static global::OfficeIMO.OfficeLength? ValidateOptionalPositive(global::OfficeIMO.OfficeLength? value, string propertyName) {
+        if (value.HasValue && value.Value <= global::OfficeIMO.OfficeLength.Zero) {
             throw new ArgumentOutOfRangeException(propertyName, "Markdown PDF figure style sizes must be positive finite values.");
         }
 
