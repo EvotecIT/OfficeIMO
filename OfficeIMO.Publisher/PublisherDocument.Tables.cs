@@ -1,0 +1,38 @@
+using OfficeIMO.Drawing;
+using OfficeIMO.Publisher.Internal;
+
+namespace OfficeIMO.Publisher;
+
+public sealed partial class PublisherDocument {
+    /// <summary>Replaces the styled paragraphs of the cell anchored at the given zero-based grid coordinates. Other cells, merged ownership and the complete story remain intact.</summary>
+    /// <remarks>Compatible tables sharing the story update together. Covered merged coordinates, unresolved partitions and stories also used by ordinary frames are rejected. Clearing retains the cell boundary and its terminator convention. Existing objects remain snapshots. Validation, cancellation or projection failure leaves the document unchanged; concurrent mutation is unsupported.</remarks>
+    public void ReplaceTableCellParagraphs(uint tableId, int rowIndex, int columnIndex,
+        IReadOnlyList<OfficeRichTextParagraph> paragraphs, CancellationToken cancellationToken = default) {
+        if (paragraphs == null) throw new ArgumentNullException(nameof(paragraphs));
+        cancellationToken.ThrowIfCancellationRequested();
+        PublisherModelState model = _model ?? throw new NotSupportedException("This publication has no editable model.");
+        Commit(model.ReplaceTableCell(tableId, rowIndex, columnIndex, paragraphs, cancellationToken).Project(cancellationToken), cancellationToken);
+    }
+
+    /// <summary>Moves and proportionally resizes a qualified table in page-local points, scaling its column and row tracks by the frame's width and height ratios.</summary>
+    /// <remarks>Dimensions must be positive and finite; finite negative offsets allow clipped bleed. Placement eligibility is independent of cell-text eligibility. Unsupported native graphics and transformed, hidden or unresolved placement reject bounds edits. Complete text is retained on overflow. Failed edits leave the publication unchanged.</remarks>
+    public void SetTableBounds(uint tableId, double x, double y, double width, double height, CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
+        PublisherModelState model = _model ?? throw new NotSupportedException("This publication has no editable model.");
+        Commit(model.SetTableBounds(tableId, x, y, width, height).Project(cancellationToken), cancellationToken);
+    }
+
+    /// <summary>Appends an empty, unmerged, borderless table to an existing qualified document or master page. Track sizes and offsets use points. Returns the current immutable snapshot.</summary>
+    /// <remarks>Track lists are copied and must be nonempty, positive and finite. Populate cells through ReplaceTableCellParagraphs. A new complete story and the table use the publication's shared allocator. Validation, cancellation or projection failure consumes no identifiers. This is in-memory creation and does not provide native PUB saving or new publication/page creation.</remarks>
+    public PublisherTable AddTable(uint pageId, double x, double y, IReadOnlyList<double> columnWidths, IReadOnlyList<double> rowHeights,
+        CancellationToken cancellationToken = default) {
+        if (columnWidths == null) throw new ArgumentNullException(nameof(columnWidths));
+        if (rowHeights == null) throw new ArgumentNullException(nameof(rowHeights));
+        cancellationToken.ThrowIfCancellationRequested();
+        PublisherModelState model = _model ?? throw new NotSupportedException("This publication has no editable model.");
+        PublisherDocument candidate = model.AddTable(pageId, x, y, columnWidths, rowHeights, cancellationToken, out uint id).Project(cancellationToken);
+        PublisherTable result = candidate.Pages.Concat(candidate.MasterPages).SelectMany(page => page.Tables).Single(table => table.Id == id);
+        Commit(candidate, cancellationToken);
+        return result;
+    }
+}

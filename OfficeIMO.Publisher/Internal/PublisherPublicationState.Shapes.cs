@@ -52,9 +52,9 @@ internal sealed partial class PublisherPublicationState {
             OfficeTransform.Translate(x, y), true, shape, null, true));
         var owners = ObjectOwners.ToDictionary(item => item.Key, item => item.Value); owners.Add(createdId, pageId);
         return new PublisherPublicationState(Pages.Select(item => item.Id == pageId ? item.WithObject(createdId) : item),
-            owners, Pictures, Images, Text, _sourceImageIds, NextImageId, createdId == uint.MaxValue ? 0 : createdId + 1, shapes);
+            owners, Pictures, Images, Text, TableStoryReferences, _sourceImageIds, NextImageId, createdId == uint.MaxValue ? 0 : createdId + 1, shapes, Tables);
     }
 
     private PublisherPublicationState WithShapes(IReadOnlyDictionary<uint, PublisherShape> shapes) =>
-        new(Pages, ObjectOwners, Pictures, Images, Text, _sourceImageIds, NextImageId, NextObjectId, shapes);
+        new(Pages, ObjectOwners, Pictures, Images, Text, TableStoryReferences, _sourceImageIds, NextImageId, NextObjectId, shapes, Tables);
 }

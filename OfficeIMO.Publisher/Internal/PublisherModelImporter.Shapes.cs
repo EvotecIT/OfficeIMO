@@ -35,14 +35,15 @@ internal static partial class PublisherModelImporter {
     }
 
     private static string? ShapeEditLimitation(PublisherEscherShape shape, PublisherPageState page,
-        IReadOnlyList<OfficeColor?> palette, bool placement) {
+        IReadOnlyList<OfficeColor?> palette, bool placement, bool allowTableFrame = false) {
         if (!placement) return "The artwork has no usable resolved page placement.";
         if (shape.Hidden) return "Hidden artwork is inspection-only.";
         if (shape.HasPublicationGroupParent || shape.GroupTransform != OfficeTransform.Identity || shape.LayoutTransform != OfficeTransform.Identity
             || shape.Transform.RotationDegrees.GetValueOrDefault() != 0 || shape.Transform.FlipHorizontal || shape.Transform.FlipVertical)
             return "Grouped, rotated and reflected artwork is inspection-only.";
         if (!page.SupportsPlacementEditing) return "This master page's coordinate registration is not qualified for shape edits.";
-        if (shape.Type is not (1 or 2 or 3 or 4 or 5 or 6 or 20 or 202) || OfficeArtCustomPathProjector.HasPath(shape.Properties))
+        if (shape.Type is not (1 or 2 or 3 or 4 or 5 or 6 or 20 or 202) && !(allowTableFrame && (shape.Type is 75 or 201))
+            || OfficeArtCustomPathProjector.HasPath(shape.Properties))
             return "The artwork's preset or custom geometry has no qualified editable model.";
         OfficeArtShapeStyle style = shape.Style;
         // This is an in-memory solid-paint contract, not a native rewrite gate.

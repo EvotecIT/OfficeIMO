@@ -34,6 +34,9 @@ internal sealed partial class PublisherPageProjector {
     }
 
     private PublisherImportedWrapObject? CurrentWrapObject(uint id) {
+        if (_publication.Tables.TryGetValue(id, out PublisherTableState? table))
+            return new PublisherImportedWrapObject(table.PageId, table.X, table.Y, table.Width, table.Height, table.PageTransform,
+                table.HasPlacement, table.Hidden);
         if (_publication.Text.Frames.TryGetValue(id, out PublisherFrameState? frame))
             return new PublisherImportedWrapObject(frame.PageId, frame.X, frame.Y, frame.Width, frame.Height, frame.PageTransform,
                 frame.HasAnchor && frame.TransformAvailable, frame.Hidden);

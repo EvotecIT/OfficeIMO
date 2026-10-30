@@ -5,11 +5,10 @@ namespace OfficeIMO.Publisher.Internal;
 internal sealed partial class PublisherPageProjector {
     private OfficeRasterCanvas? _textMetrics;
 
-    private void ProjectText(IReadOnlyList<OfficeRichTextParagraph> paragraphs, OfficeDrawing drawing,
-        PublisherEscherShape source, double x, double y, double width, double height,
+    private void ProjectText(IReadOnlyList<OfficeRichTextParagraph> paragraphs, OfficeDrawing drawing, uint objectId,
+        OfficeTextPadding padding, double x, double y, double width, double height,
         OfficeTextVerticalAlignment vertical = OfficeTextVerticalAlignment.Top) {
-        OfficeTextPadding padding = TextPadding(source);
-        string location = PublisherEscherReader.ShapeLocation(source.Id);
+        string location = PublisherEscherReader.ShapeLocation(objectId);
         if (padding.Horizontal >= width || padding.Vertical >= height) {
             _context.Add("PUB_TEXT_FRAME_HAS_NO_CONTENT_AREA", "Native text insets consume its frame. The text remains available in TextStories but has no printable content area.",
                 OfficeConversionLossKind.Omission, location);

@@ -2,7 +2,7 @@ using OfficeIMO.Drawing;
 
 namespace OfficeIMO.Publisher;
 
-/// <summary>A native table cell, including its merged span and recovered styled paragraphs.</summary>
+/// <summary>An immutable current table cell snapshot, including its merged span and styled paragraphs.</summary>
 public sealed class PublisherTableCell {
     internal PublisherTableCell(int row, int column, int rowSpan, int columnSpan,
         double x, double y, double width, double height, IReadOnlyList<OfficeRichTextParagraph> paragraphs) {
@@ -32,8 +32,8 @@ public sealed class PublisherTableCell {
     public double Width { get; }
     /// <summary>Height of the occupied row tracks in points.</summary>
     public double Height { get; }
-    /// <summary>Recovered paragraphs and styled runs. Empty when the owning table has no resolved text mapping.</summary>
+    /// <summary>Current paragraphs and styled runs. Empty when the owning table has no resolved text mapping.</summary>
     public IReadOnlyList<OfficeRichTextParagraph> Paragraphs { get; }
-    /// <summary>Recovered cell text including paragraph labels, with paragraphs separated by newlines. Empty when text mapping is unresolved.</summary>
+    /// <summary>Current cell text including paragraph labels, with paragraphs separated by newlines. Empty when text mapping is unresolved.</summary>
     public string Text { get; }
 }

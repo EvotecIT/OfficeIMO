@@ -50,7 +50,7 @@ internal sealed class PublisherQuillTextReader {
             if (chunk.Id >= rawStories.Count || cells > _context.Options.Limits.MaxItems)
                 throw new InvalidDataException("Publisher table text refers to an invalid story or exceeds its cell limit.");
             var story = rawStories[chunk.Id];
-            var cellParagraphs = new List<IReadOnlyList<OfficeRichTextParagraph>>();
+            var segments = new List<PublisherTextStory>();
             int start = 0;
             for (int i = 0; i < cells; i++) {
                 _context.Record();
@@ -58,11 +58,13 @@ internal sealed class PublisherQuillTextReader {
                 // the final entry is the exclusive story endpoint.
                 int end = checked(_data.Offset(_data.U32(chunk.Offset + 12 + i * 4)) + (i < cells - 1 ? 1 : 0));
                 if (end < start || end > story.Text.Length) throw new InvalidDataException("Publisher cell text endpoints are outside their story.");
-                cellParagraphs.Add(ReadParagraphs(story.Text.Substring(start, end - start), story.Offset + start, styles));
+                string segment = story.Text.Substring(start, end - start);
+                IReadOnlyList<OfficeRichTextParagraph> paragraphs = ReadParagraphs(segment, story.Offset + start, styles);
+                segments.Add(new PublisherTextStory(story.Id, Normalize(segment), paragraphs));
                 start = end;
             }
             if (start != story.Text.Length) throw new InvalidDataException("Publisher cell text does not cover its complete story.");
-            if (!result.CellParagraphs.ContainsKey(story.Id)) result.CellParagraphs.Add(story.Id, cellParagraphs);
+            if (!result.TableStories.ContainsKey(story.Id)) result.TableStories.Add(story.Id, new PublisherTableStory(segments));
             else throw new InvalidDataException("Duplicate Publisher table text definition.");
         }
         return result;
@@ -131,5 +133,5 @@ internal sealed class PublisherQuillTextReader {
 
 internal sealed class PublisherQuillText {
     internal Dictionary<uint, PublisherTextStory> Stories { get; } = new();
-    internal Dictionary<uint, List<IReadOnlyList<OfficeRichTextParagraph>>> CellParagraphs { get; } = new();
+    internal Dictionary<uint, PublisherTableStory> TableStories { get; } = new();
 }

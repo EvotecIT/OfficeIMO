@@ -7,31 +7,31 @@ internal sealed class PublisherTextState {
     private readonly HashSet<uint> _tableStories;
     internal PublisherTextState(IReadOnlyDictionary<uint, PublisherTextStory> stories,
         IReadOnlyDictionary<uint, PublisherFrameState> frames, IReadOnlyDictionary<uint, IReadOnlyList<uint>> chains,
-        IEnumerable<uint> tableStories, IReadOnlyDictionary<uint, List<IReadOnlyList<OfficeRichTextParagraph>>> cells,
+        IEnumerable<uint> tableStoryIds, IReadOnlyDictionary<uint, PublisherTableStory> tableStories,
         IReadOnlyDictionary<uint, PublisherWrapInfo> wrapInfo, IReadOnlyDictionary<uint, PublisherImportedWrapObject> obstacles) {
         Stories = ReadOnly(stories); Frames = ReadOnly(frames);
         Chains = ReadOnly(chains.ToDictionary(item => item.Key, item => (IReadOnlyList<uint>)Array.AsReadOnly(item.Value.ToArray())));
-        _tableStories = new HashSet<uint>(tableStories);
-        CellParagraphs = ReadOnly(cells.ToDictionary(item => item.Key,
-            item => (IReadOnlyList<IReadOnlyList<OfficeRichTextParagraph>>)Array.AsReadOnly(item.Value
-                .Select(cell => (IReadOnlyList<OfficeRichTextParagraph>)Array.AsReadOnly(cell.ToArray())).ToArray())));
+        _tableStories = new HashSet<uint>(tableStoryIds.Concat(tableStories.Keys));
+        TableStories = ReadOnly(tableStories);
         WrapInfo = ReadOnly(wrapInfo); ImportedObstacles = ReadOnly(obstacles);
     }
 
     private PublisherTextState(PublisherTextState previous, IReadOnlyDictionary<uint, PublisherTextStory>? stories = null,
         IReadOnlyDictionary<uint, PublisherFrameState>? frames = null,
-        IReadOnlyDictionary<uint, IReadOnlyList<uint>>? chains = null) {
+        IReadOnlyDictionary<uint, IReadOnlyList<uint>>? chains = null,
+        IReadOnlyDictionary<uint, PublisherTableStory>? tableStories = null) {
         Stories = stories == null ? previous.Stories : ReadOnly(stories);
         Frames = frames == null ? previous.Frames : ReadOnly(frames);
         Chains = chains == null ? previous.Chains : ReadOnly(chains);
-        _tableStories = previous._tableStories; CellParagraphs = previous.CellParagraphs;
+        TableStories = tableStories == null ? previous.TableStories : ReadOnly(tableStories);
+        _tableStories = new HashSet<uint>(previous._tableStories.Concat(TableStories.Keys));
         WrapInfo = previous.WrapInfo; ImportedObstacles = previous.ImportedObstacles;
     }
 
     internal IReadOnlyDictionary<uint, PublisherTextStory> Stories { get; }
     internal IReadOnlyDictionary<uint, PublisherFrameState> Frames { get; }
     internal IReadOnlyDictionary<uint, IReadOnlyList<uint>> Chains { get; }
-    internal IReadOnlyDictionary<uint, IReadOnlyList<IReadOnlyList<OfficeRichTextParagraph>>> CellParagraphs { get; }
+    internal IReadOnlyDictionary<uint, PublisherTableStory> TableStories { get; }
     internal IReadOnlyDictionary<uint, PublisherWrapInfo> WrapInfo { get; }
     internal IReadOnlyDictionary<uint, PublisherImportedWrapObject> ImportedObstacles { get; }
     internal bool IsTableStory(uint storyId) => _tableStories.Contains(storyId);
@@ -40,6 +40,12 @@ internal sealed class PublisherTextState {
     internal PublisherTextState ReplaceStory(PublisherTextStory story) {
         var stories = Stories.ToDictionary(item => item.Key, item => item.Value); stories[story.Id] = story;
         return new PublisherTextState(this, stories: stories);
+    }
+
+    internal PublisherTextState WithTableStory(PublisherTextStory story, PublisherTableStory partition) {
+        var stories = Stories.ToDictionary(item => item.Key, item => item.Value); stories[story.Id] = story;
+        var partitions = TableStories.ToDictionary(item => item.Key, item => item.Value); partitions[story.Id] = partition;
+        return new PublisherTextState(this, stories: stories, tableStories: partitions);
     }
 
     internal PublisherTextState SetBounds(uint id, double x, double y, double width, double height) {

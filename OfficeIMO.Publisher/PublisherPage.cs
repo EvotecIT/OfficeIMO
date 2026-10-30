@@ -25,7 +25,7 @@ public sealed class PublisherPage {
     public OfficeDrawing CreateDrawing() => _drawing.Clone();
     /// <summary>Current text frames owned by this page, including authored continuation frames. Frames inherited from a master are listed on that master page.</summary>
     public IReadOnlyList<PublisherTextFrame> TextFrames { get; }
-    /// <summary>Native tables owned by this page. Tables inherited from a master are listed on that master page.</summary>
+    /// <summary>Current tables owned by this page, including authored tables. Tables inherited from a master are listed on that master page.</summary>
     public IReadOnlyList<PublisherTable> Tables { get; }
     /// <summary>Picture placements owned by this page, in recovered drawing order. Pictures inherited from a master are listed on that master.</summary>
     public IReadOnlyList<PublisherPicture> Pictures { get; }

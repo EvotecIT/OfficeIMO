@@ -1,8 +1,8 @@
 # OfficeIMO.Publisher
 
 Read Microsoft Publisher publications into positioned pages, styled text
-stories and embedded image assets, edit supported stories, frames, pictures and
-vector artwork, append continuation frames and primitive shapes, and
+stories and embedded image assets, edit supported stories, frames, tables, pictures and
+vector artwork, append tables, continuation frames and primitive shapes, and
 render the current model. The managed reader handles the Publisher
 2002-and-later compound-document generation without installing Publisher.
 [The support contract](SUPPORT.md) identifies the qualified fixtures and rendering
@@ -171,22 +171,73 @@ a detached descriptor for editable artwork and rejects inspection-only shapes;
 their current rendered representation remains in `CreateDrawing()`. Creation
 rejects unsupported descriptors rather than dropping their effects.
 
+`PublisherPage.Tables` exposes current tracks, merged spans and styled cell
+paragraphs. `CanEditCellText` and `CanEditBounds` describe separate operations;
+their corresponding limitation properties explain unsupported cases.
+`HasTextMapping` records successful text recovery and does not by itself grant
+editing. A table's graphic belongs to the table and is excluded from `Shapes`.
+
+```csharp
+var table = publication.Pages[0].Tables.First(item => item.CanEditCellText);
+publication.ReplaceTableCellParagraphs(table.Id, 0, 0, new[] {
+    new OfficeRichTextParagraph(new[] {
+        new OfficeRichTextRun("Updated cell", 10, OfficeColor.Black,
+            bold: true, fontFamily: "Arial")
+    })
+});
+if (table.CanEditBounds)
+    publication.SetTableBounds(table.Id, 36, 180, 240, 108);
+
+var addedTable = publication.AddTable(publication.Pages[0].Id, 36, 324,
+    new[] { 120D, 120D }, new[] { 30D, 30D });
+publication.ReplaceTableCellParagraphs(addedTable.Id, 0, 0, new[] {
+    new OfficeRichTextParagraph(new[] {
+        new OfficeRichTextRun("Item", 10, OfficeColor.Black, fontFamily: "Arial")
+    })
+});
+File.WriteAllText("table-edited.svg", publication.ToSvg());
+```
+
+Cell coordinates are zero-based anchors. A merged cell is edited through its
+first row and column; covered coordinates are rejected. Paragraph replacement
+preserves every other cell, the complete styled story and each cell's paragraph
+terminator convention, including when clearing and refilling a cell. Compatible
+tables sharing a story update together. Conflicting cell grids, unresolved
+boundaries and stories also referenced by ordinary text frames reject cell edits.
+Complete text remains inspectable when a cell overflows its rendered frame.
+
+`SetTableBounds` uses positive finite frame dimensions and proportionally scales
+column and row tracks. Imported differences between track sums and frame size
+are retained in that ratio. Moving a table recalculates text frames that already
+wrap around it. Hidden, grouped, rotated, reflected, unplaced and unsupported
+graphic representations retain their reading/rendering behavior and reject
+bounds edits. Safe cell text can remain editable independently of those graphics.
+Native individual cell fills, borders and cell-specific padding remain unassessed.
+
+`AddTable` copies positive finite column widths and row heights, appends an empty,
+unmerged, borderless table to an existing qualified document or master page and
+creates its complete story. Master tables remain listed once on the master;
+their current artwork appears on referring pages. Populate the cells through
+the same paragraph API. Table and story identities come from the shared
+publication allocator. Cancellation, text, grid and cumulative projection
+limits apply before the candidate replaces the current document.
+
 Each operation validates and projects its candidate before changing the
 document. Failed or cancelled edits leave the preceding state usable. Concurrent
-mutation is unsupported. Fetch `Pages`, `MasterPages`, `TextStories`, `Images`, frames, pictures and shapes
+mutation is unsupported. Fetch `Pages`, `MasterPages`, `TextStories`, `Images`, frames, tables, pictures and shapes
 again after an edit: previously returned objects remain snapshots.
 `ReadReport` describes the current reconstruction; `SourceReadReport` retains
 the original native decoding evidence without projection findings.
 
 These edits change the in-memory publication and rendered outputs. Native PUB
-save-back, standalone publication creation, page/master relationship edits, table editing and arbitrary frame relinking are not provided
+save-back, standalone publication creation, page/master relationship edits, table topology/styling changes and arbitrary frame relinking are not provided
 by this API. Retaining private native source data does not establish opaque
 preservation or a native save contract.
 
 `ReadReport.CurrentObjectCount` includes retained imported objects and authored
-continuation frames and shapes; `ProjectedObjectCount` counts distinct current objects
+tables, continuation frames and shapes; `ProjectedObjectCount` counts distinct current objects
 represented in the page scenes. `SourceObjectCount` and `SourceReadReport` retain
-the original native object inventory. Authored frames and shapes do not add native records
+the original native object inventory. Authored tables, frames and shapes do not add native records
 to `InspectedRecordCount`.
 
 ## Recovered content and layout

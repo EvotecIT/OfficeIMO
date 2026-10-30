@@ -13,10 +13,13 @@ internal sealed partial class PublisherNativeShapeMapper {
 
     /// <summary>Preserves logical native extents for custom paths and fills; only preset fallback geometry uses the positive render canvas. Native lines always retain logical extents.</summary>
     internal OfficeShape Map(PublisherEscherShape source, double geometryWidth, double geometryHeight,
-        double canvasWidth, double canvasHeight, out OfficeShape? clipShape) {
+        double canvasWidth, double canvasHeight, out OfficeShape? clipShape, bool tableFrame = false) {
         OfficeArtCustomPathProjection? custom = CustomPath(source, geometryWidth, geometryHeight);
-        OfficeShape shape = custom?.Shape ?? Geometry(source, source.Type == 20 ? geometryWidth : canvasWidth,
-            source.Type == 20 ? geometryHeight : canvasHeight);
+        // A qualified native Publisher table descriptor supplies the rectangular
+        // frame contract for host shape 201. Ordinary artwork keeps preset rules.
+        OfficeShape shape = custom?.Shape ?? (tableFrame && source.Type == 201
+            ? OfficeShape.Rectangle(canvasWidth, canvasHeight)
+            : Geometry(source, source.Type == 20 ? geometryWidth : canvasWidth, source.Type == 20 ? geometryHeight : canvasHeight));
         OfficeArtShapeStyle style = source.Style;
         bool noFill = custom?.NoFill ?? OfficeArtCustomPathProjector.IsFillDisabled(source.Properties);
         bool noLine = custom?.NoLine ?? OfficeArtCustomPathProjector.IsLineDisabled(source.Properties);

@@ -31,7 +31,7 @@ references do not report missing images.
 | Master pages | Recovered definitions applied to referring pages | Missing references report omission; nested master inheritance is unassessed |
 | Text | UTF-16 stories, styled paragraphs, referenced native style values, explicit reciprocal links or complete native story/frame catalog bindings, sequential columns, continuation and overflow reporting | Shared measurement approximates native frame breaks and column balancing; style names and auxiliary inheritance metadata are not exposed as an editable style library |
 | Lists and tabs | Native Unicode bullet labels, qualified Symbol/Wingdings marker normalization, hanging indentation, text position and declared left tabs | Numbering sequences, additional tab alignments/leaders and drop caps are unassessed; undeclared tab stops use the shared 36-point interval |
-| Tables | `PublisherPage.Tables` exposes native tracks, spans, styled paragraphs, text and placement; master tables remain on their owner | Unavailable frame geometry retains the grid and mapped text with `HasPlacement = false`; unresolved text mappings use `HasTextMapping = false`; individual cell borders, fills and padding are unassessed |
+| Tables | `PublisherPage.Tables` exposes current tracks, spans, styled paragraphs, text and placement; qualified anchor-cell text edits preserve complete story partitions, and qualified bounds edits scale tracks proportionally; master tables remain on their master | Separate `CanEditCellText`/`CanEditBounds` and limitation properties identify supported operations. Unavailable frame geometry retains the grid and mapped text with `HasPlacement = false`; unresolved text mappings use `HasTextMapping = false`; individual cell borders, fills and padding are unassessed |
 | Shapes | Rectangles, rounded rectangles, ellipses, diamonds, triangles and lines; solid paints and basic shadows | Other geometries and unsupported fill types report approximation; compound and non-solid strokes remain unassessed |
 | Custom paths | Literal eight-byte signed and compact unsigned vertices in declared geometry space; bounded SG guide formulas and backward references; implicit open/closed line or cubic paths, explicit move/line/cubic/close/end commands, subpaths and no-fill/no-line controls | Device-pixel guide operands, limousine scaling, advanced commands and separate paint groups retain an explicit fallback; guide rounding, shared nonzero winding and native appearance remain unqualified |
 | Linear fills | Native color stops, fixed-point angles, focus ramps and foreground/background opacity for fill types 4 and 7 | Custom anchors, native shading corrections and unrepresentable alpha ratios report approximation; native Publisher rendering remains unqualified |
@@ -44,7 +44,8 @@ references do not report missing images.
 | Fields, links and active content | Cached story characters are retained; source active content stays inert | No field evaluation, hyperlink reconstruction, macro execution, link refresh or object activation |
 | Editable vector artwork | `PublisherPage.Shapes` records owner, stable ID, point bounds and placement availability; bounds and solid-paint edits for supported basic geometry; shared text-frame placement and current wrap obstacles | Grouped, transformed, hidden, custom-path, gradient, effected and unresolved artwork is inspection-only; detached editable descriptors do not establish native writable support |
 | Primitive creation | Rectangle, rounded rectangle, ellipse and nondegenerate line descriptors append to existing document/master pages; shared publication allocator and current SVG/PDF scenes | No new publication, page/master topology or native records; unsupported geometry/effects are rejected; new shapes have no story or wrap references |
-| In-memory edits | Document-owned replacement of complete non-table story paragraphs, bounds changes for resolved visible untransformed top-level frames, and image replacement/bounds changes for supported rectangular PNG/JPEG picture placements; stable IDs, ownership and order, fresh scenes, text ranges and overflow | Picture edits reject grouped/transformed, hidden, effected, custom-clipped, unresolved or otherwise unqualified placements; no table edits, arbitrary relinking, page/master topology edits or native save-back; old references remain snapshots |
+| In-memory edits | Document-owned replacement of complete non-table story paragraphs and mapped table-cell paragraphs, bounds changes for qualified frames/tables, and image replacement/bounds changes for supported rectangular PNG/JPEG picture placements; stable IDs, ownership and order, fresh scenes, text ranges and overflow | Picture and table bounds edits reject unsupported graphic placement. Cell edits reject conflicting grids, unsafe partitions and stories also used by ordinary frames; no table topology/styling changes, arbitrary relinking, page/master topology edits or native save-back; old references remain snapshots |
+| Table creation | Empty unmerged borderless grids on existing qualified document/master pages; copied positive finite tracks, one new complete story, shared table/story identifier allocation and current SVG/PDF/Reader projection | No new publication/page creation, merged-cell authoring, cell decoration or native PUB records; text/model/projection limits and transactional failure behavior apply |
 | Continuation-frame creation | Append an ordinary untransformed text frame to a resolved non-table story's tail on an existing document page; one complete styled story, current links/ranges/overflow, copied columns/padding/alignment, no fill/outline, and shared SVG/PDF/Reader projection | The source chain must contain ordinary visible untransformed document-page frames; master chains, ambiguous links and non-tail insertion are rejected; this is in-memory model creation, not native PUB creation |
 | Output | SVG per document page and multi-page PDF through shared engines | No native save-back or editable publication writer |
 
@@ -72,9 +73,9 @@ adapter is included in `OfficeIMO.Reader.All`.
 
 `SourceObjectCount` measures the original native descriptors.
 `CurrentObjectCount` includes retained imported objects and authored
-continuation frames and shapes; `ProjectedObjectCount` counts distinct current objects
+tables, continuation frames and shapes; `ProjectedObjectCount` counts distinct current objects
 represented in document or master scenes. Repeated master use counts once.
-Authored frames and shapes do not add native inspection records, and `SourceReadReport`
+Authored tables, frames and shapes do not add native inspection records, and `SourceReadReport`
 retains the original decoding evidence. Counts do not measure pixel fidelity
 or prove that all content of an object survived. Complete stories remain
 inspectable even when their visual placement is incomplete.
@@ -90,7 +91,7 @@ publication state, and the Reader extension projects its current stories,
 tables, physical pages and assets without serializing or reopening it.
 
 Page/master dimensions, registration and object ownership, picture placement,
-complete text stories, frame definitions/chains, supported shape geometry/paint and embedded asset state are
+complete text stories, table grids/placement, frame definitions/chains, supported shape geometry/paint and embedded asset state are
 retained independently of the derived drawing.
 Modern native bindings and coordinate interpretation are mapped at import;
 supported picture edits and rendering consume the typed placement directly.
@@ -111,6 +112,24 @@ positive canvas used for rendering. Basic solid paint validates finite widths
 and opacities; creation rejects clipping, transforms, effects, dashes, markers
 and unsupported geometry. Shape and continuation creation share the same object
 and projection limits and leave the allocator unchanged on failure.
+Tables import their placement, tracks, cell ownership and frame padding once.
+Qualified rectangular frame paint uses the existing shared shape mapper.
+The TableLabel, Sample and Sample_2010 controls qualify OfficeArt host type 201
+as a rectangular frame only when paired with a recovered native table grid.
+This does not admit type 201 as independently editable vector artwork, and
+custom paths, effects and unsupported paint still reject table bounds edits.
+Unsupported graphics retain the private native projection adapter and reject
+bounds edits. Tables remain excluded from independent shape editing. Current
+table placement also supplies existing wrap exclusions.
+Quill cell endpoints become ordered normalized semantic story segments before
+their native offsets are discarded. Every segment retains its terminator
+convention, and cell snapshots derive paragraphs from that shared partition.
+An edit rebuilds the complete story and all compatible table occurrences
+atomically; other cell content and merged ownership remain intact. Conflicting
+table grids and stories also used by ordinary frames remain inspection-only
+for cell text. Creating a table reserves both its object and story identity
+through the publication allocator; its story is counted once and its page
+object is counted once. No native records are synthesized.
 Other object features retain their bounded imported representation while the
 editable model develops. This is not a complete authoring or generation-neutral
 native codec contract. Replacing one picture leaves shared-asset siblings
@@ -270,6 +289,13 @@ origins agree within 0.1 point horizontally and 1 point in baseline position;
 the baseline allowance accounts for the qualified difference in font metrics.
 Each native and OfficeIMO PDF page contains only its assigned master's markers.
 These controls do not qualify native frame breaks or broad pixel fidelity.
+The TableLabel PUB has one 288-by-216-point publication page and a 2-by-2 table
+at (18, 66), sized 180 by 72 points, with 90-point columns and 36-point rows.
+Its native reference PDF is an imposed 595.32-by-841.92-point label sheet with
+six copies in two columns and three rows. TableLabel qualification uses the PUB
+inventory and an individual copy's content and geometry; it does not claim
+whole-sheet page or rendering equivalence. The managed publication retains its
+single label-sized page rather than reproducing the native print imposition.
 The multilingual PDF check uses explicit Unicode font configuration; default
 standard-font output is a separate contract. Native page enumeration also has
 instruction and decompiler evidence for the qualified Publisher build. Its

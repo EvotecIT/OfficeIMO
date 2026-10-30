@@ -13,6 +13,8 @@ internal sealed partial class PublisherPageProjector {
     private static (double X, double Y) PageOrigin(PublisherPageState page) => (page.RegistrationX, page.RegistrationY);
 
     private FrameRectangle FrameBounds(PublisherEscherShape shape) {
+        if (_publication.Tables.TryGetValue(shape.Id, out PublisherTableState? table))
+            return new FrameRectangle(table.X, table.Y, table.Width, table.Height);
         if (_publication.Text.Frames.TryGetValue(shape.Id, out PublisherFrameState? frame))
             return new FrameRectangle(frame.X, frame.Y, frame.Width, frame.Height);
         if (_publication.Pictures.TryGetValue(shape.Id, out PublisherPicture? picture) && picture.CanEdit)
@@ -25,6 +27,8 @@ internal sealed partial class PublisherPageProjector {
     }
 
     private OfficeTransform PageTransform(PublisherEscherShape shape, FrameRectangle bounds) {
+        if (_publication.Tables.TryGetValue(shape.Id, out PublisherTableState? table) && table.HasPlacement)
+            return OfficeTransform.Translate(-bounds.X, -bounds.Y).Then(table.PageTransform);
         if (_publication.Text.Frames.TryGetValue(shape.Id, out PublisherFrameState? frame))
             return OfficeTransform.Translate(-bounds.X, -bounds.Y).Then(frame.PageTransform);
         if (_publication.Pictures.TryGetValue(shape.Id, out PublisherPicture? picture) && picture.CanEdit)

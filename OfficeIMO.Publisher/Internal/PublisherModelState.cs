@@ -3,8 +3,8 @@ using OfficeIMO.Drawing;
 
 namespace OfficeIMO.Publisher.Internal;
 
-// Current semantic pages, pictures, stories and frame chains feed projection.
-// Imported graphics/table residue and native provenance stay separate and inert.
+// Current semantic pages, pictures, tables, stories and frame chains feed projection.
+// Unsupported imported graphics and native provenance stay separate and inert.
 internal sealed partial class PublisherModelState {
     private readonly PublisherContents _contents;
     private readonly PublisherQuillText _importedText;
@@ -36,7 +36,7 @@ internal sealed partial class PublisherModelState {
         if (!_publication.Text.Stories.TryGetValue(storyId, out PublisherTextStory? original))
             throw new ArgumentOutOfRangeException(nameof(storyId), "The publication has no such story.");
         if (_publication.Text.IsTableStory(storyId))
-            throw new NotSupportedException("Editing table stories requires a qualified cell-to-story mapping and is not supported.");
+            throw new NotSupportedException("Use ReplaceTableCellParagraphs for a table story with qualified cell ownership.");
         PublisherTextStory replacement = PublisherStoryEditor.Replace(original, paragraphs, _decoded.Options, token);
         if (_publication.Text.Stories.Values.Sum(story => PublisherStoryEditor.CharacterCount(story.Id == storyId ? replacement : story)) > _decoded.Options.Limits.MaxTextCharacters)
             throw new ArgumentException("Publication story text exceeds the configured character limit.", nameof(paragraphs));

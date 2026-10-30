@@ -30,16 +30,7 @@ internal sealed partial class PublisherPageProjector {
     internal PublisherDocument Project() {
         var scenes = new Dictionary<uint, OfficeDrawing>();
         var artwork = _escher.Shapes.ToDictionary(shape => shape.Id);
-        var tableShapes = _escher.Shapes.Where(shape => _source.Shapes.TryGetValue(shape.Id, out PublisherSourceShape? native)
-            && native.Table != null).ToDictionary(shape => shape.Id);
-        foreach (PublisherSourceShape native in _source.Shapes.Values.Where(native => native.Table != null)) {
-            _context.Token.ThrowIfCancellationRequested();
-            uint? owner = Owner(native.Chunk.Id, 0);
-            if (!owner.HasValue) continue;
-            tableShapes.TryGetValue(native.Chunk.Id, out PublisherEscherShape? shape);
-            ProjectTable(native, native.Value(0x27), shape,
-                shape?.Bounds.HasValue == true ? FrameBounds(shape) : default, owner.Value, null);
-        }
+        PrepareTables();
         PrepareTextFrames();
         var pageFrames = new Dictionary<uint, List<PublisherTextFrame>>();
         foreach (PreparedTextFrame frame in _textFrames.Values) {
@@ -53,7 +44,9 @@ internal sealed partial class PublisherPageProjector {
             var drawing = new OfficeDrawing(page.Width, page.Height);
             foreach (uint id in page.ObjectIds) {
                 _context.Token.ThrowIfCancellationRequested();
-                if (_publication.Pictures.TryGetValue(id, out PublisherPicture? picture) && picture.CanEdit)
+                if (_publication.Tables.TryGetValue(id, out PublisherTableState? table) && table.HasSemanticPaint)
+                    ProjectSemanticTable(table, drawing);
+                else if (_publication.Pictures.TryGetValue(id, out PublisherPicture? picture) && picture.CanEdit)
                     ProjectSemanticPicture(picture, drawing);
                 else if (_publication.Text.Frames.TryGetValue(id, out PublisherFrameState? frame) && frame.IsAuthored)
                     ProjectAuthoredTextFrame(frame, drawing);
@@ -153,7 +146,7 @@ internal sealed partial class PublisherPageProjector {
             _context.Add("PUB_PAGE_BLEED_CLIPPED", "Artwork outside the publication page remains in the scene but is clipped to the printable page in exports.", OfficeConversionLossKind.Approximation, PublisherEscherReader.ShapeLocation(shape.Id));
         var local = new OfficeDrawing(width, height);
         ProjectGraphic(shape, local, geometryWidth, geometryHeight);
-        if (native.Chunk.Kind == 0x10) ProjectTable(native, native.Value(0x27), shape, bounds, pageId, local);
+        if (native.Chunk.Kind == 0x10) ProjectTableText(shape.Id, local);
         else if (_publication.Text.Frames.TryGetValue(shape.Id, out PublisherFrameState? definition)) {
             if (_publication.Text.Stories.ContainsKey(definition.StoryId)) {
                 if (_textFrames.TryGetValue(shape.Id, out PreparedTextFrame? frame)) {
@@ -197,9 +190,6 @@ internal sealed partial class PublisherPageProjector {
             if (element is OfficeDrawingEffectGroup transformed) TagSourceElements(transformed.InnerDrawing, ids);
         }
     }
-    private OfficeTextPadding TextPadding(PublisherEscherShape shape) => new(
-        (shape.Property(0x81) ?? 36576) / 12700D, (shape.Property(0x82) ?? 36576) / 12700D,
-        (shape.Property(0x83) ?? 36576) / 12700D, (shape.Property(0x84) ?? 36576) / 12700D);
     private static bool FiniteRectangle(double x, double y, double width, double height) =>
         !double.IsNaN(x) && !double.IsInfinity(x) && !double.IsNaN(y) && !double.IsInfinity(y)
         && !double.IsNaN(width) && !double.IsInfinity(width) && !double.IsNaN(height) && !double.IsInfinity(height);

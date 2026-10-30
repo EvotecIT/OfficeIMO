@@ -54,8 +54,13 @@ internal static partial class PublisherModelImporter {
         }
         PublisherTextState currentText = ImportText(source, text, artwork, pageMap, owners, pictures, context);
         IReadOnlyDictionary<uint, PublisherShape> shapes = ImportShapes(source, artwork, pageMap, owners, pictures, currentText, context);
-        return new PublisherPublicationState(pages, owners, pictures, artwork.Images, currentText,
+        IReadOnlyDictionary<uint, PublisherTableState> tables = ImportTables(source, artwork, pageMap, owners, context);
+        // Grid and page recovery do not determine whether an occurrence shares
+        // a story. Retain all declared table bindings before projection filters.
+        var tableStories = source.Shapes.Values.Where(shape => shape.Chunk.Kind == 0x10)
+            .ToDictionary(shape => shape.Chunk.Id, shape => shape.Value(0x27));
+        return new PublisherPublicationState(pages, owners, pictures, artwork.Images, currentText, tableStories,
             nextImageId: maximumImageId == int.MaxValue ? 0 : maximumImageId + 1,
-            nextObjectId: NextModelObjectId(source, text, owners, pages, currentText), shapes: shapes);
+            nextObjectId: NextModelObjectId(source, text, owners, pages, currentText), shapes: shapes, tables: tables);
     }
 }

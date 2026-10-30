@@ -57,7 +57,7 @@ internal static partial class PublisherModelImporter {
             obstacles.Add(shape.Id, new PublisherImportedWrapObject(owner, bounds.X, bounds.Y, bounds.Width, bounds.Height, transform, available, shape.Hidden));
         }
         return new PublisherTextState(text.Stories, frames, chains,
-            text.CellParagraphs.Keys.Concat(source.Shapes.Values.Where(shape => shape.Chunk.Kind == 0x10 && shape.Value(0x27).HasValue).Select(shape => shape.Value(0x27)!.Value)),
-            text.CellParagraphs, margins, obstacles);
+            text.TableStories.Keys.Concat(source.Shapes.Values.Where(shape => shape.Chunk.Kind == 0x10 && shape.Value(0x27).HasValue).Select(shape => shape.Value(0x27)!.Value)),
+            text.TableStories, margins, obstacles);
     }
 }
