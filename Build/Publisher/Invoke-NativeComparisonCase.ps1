@@ -28,7 +28,7 @@ param(
     [string] $NativeEditText,
 
     [Parameter(Mandatory)]
-    [ValidateSet('Blank', 'BlankPages', 'Text', 'TextLong', 'TextBlank', 'TextParagraphs', 'TextStories', 'TextFormattingPages', 'TextFormattingMany', 'TextCharacterPages', 'TextCharacterAttributes', 'TextUnderlinePatterns', 'ZeroAnchors', 'Rectangle', 'Image', 'Newsletter', 'TableLabel', 'Brochure', 'MultipleMasters', 'TwoPageMaster', 'PictureOwnership')]
+    [ValidateSet('Blank', 'BlankPages', 'Text', 'TextLong', 'TextBlank', 'TextParagraphs', 'TextParagraphAttributes', 'TextStories', 'TextFormattingPages', 'TextFormattingMany', 'TextCharacterPages', 'TextCharacterAttributes', 'TextUnderlinePatterns', 'ZeroAnchors', 'Rectangle', 'Image', 'Newsletter', 'TableLabel', 'Brochure', 'MultipleMasters', 'TwoPageMaster', 'PictureOwnership')]
     [string] $Case,
 
     [Parameter(Mandatory)]
@@ -127,6 +127,7 @@ $layout = $null
 . (Join-Path $PSScriptRoot 'Add-NativeComparisonLayout.ps1')
 . (Join-Path $PSScriptRoot 'Add-NativeComparisonPictures.ps1')
 . (Join-Path $PSScriptRoot 'Add-NativeCharacterAttributeControl.ps1')
+. (Join-Path $PSScriptRoot 'Add-NativeParagraphFormatControl.ps1')
 . (Join-Path $PSScriptRoot 'Write-NativePublisherPhaseReceipt.ps1')
 
 function Set-NativePhase {
@@ -561,6 +562,9 @@ try {
         }
         'TextParagraphs' {
             $null = Add-TextFrame $page 'ParagraphText' "First paragraph`r`rLast paragraph" 72 72 360 144
+        }
+        'TextParagraphAttributes' {
+            $pageCount = Add-NativeParagraphFormatControl -Publication $document -FirstPage $page
         }
         'TextStories' {
             $null = Add-TextFrame $page 'FirstStory' 'First independent story' 72 72 360 72

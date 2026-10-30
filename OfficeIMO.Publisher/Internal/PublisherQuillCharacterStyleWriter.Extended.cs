@@ -1,4 +1,5 @@
 using OfficeIMO.Drawing;
+using static OfficeIMO.Publisher.Internal.PublisherQuillOplWriter;
 
 namespace OfficeIMO.Publisher.Internal;
 
@@ -80,15 +81,5 @@ internal static partial class PublisherQuillCharacterStyleWriter {
     }
 
     private static readonly byte[] ScriptIds = { 0, 1, 2, 3, 4, 5, 0x2A, 0x2C };
-    private static byte[] Boolean(byte id, bool value) => new[] { id, value ? (byte)0x0A : (byte)0x02 };
-    private static byte[] UInt16(byte id, ushort value) => new[] { id, (byte)0x12, (byte)value, (byte)(value >> 8) };
     private static byte[] FontIndex(ushort value) => new[] { (byte)0, (byte)0x18, (byte)value, (byte)(value >> 8) };
-    private static byte[] UInt32(byte id, uint value) => new[] { id, (byte)0x22, (byte)value, (byte)(value >> 8), (byte)(value >> 16), (byte)(value >> 24) };
-    private static byte[] Nested(byte id, byte type, params byte[][] children) {
-        int length = checked(4 + children.Sum(child => child.Length)); var bytes = new byte[length + 2]; bytes[0] = id; bytes[1] = type;
-        for (int i = 0; i < 4; i++) bytes[2 + i] = (byte)(length >> (i * 8));
-        int position = 6;
-        foreach (byte[] child in children) { Buffer.BlockCopy(child, 0, bytes, position, child.Length); position += child.Length; }
-        return bytes;
-    }
 }

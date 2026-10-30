@@ -79,7 +79,8 @@ internal sealed partial class PublisherNativeWriter {
         for (int paragraph = 0; paragraph < after.Paragraphs.Count; paragraph++) {
             OfficeRichTextParagraph a = before.Paragraphs[reshape ? 0 : paragraph], b = after.Paragraphs[paragraph];
             if (a.Runs.Count < 1 || b.Runs.Count < 1 || a.Runs.Count != 1 && a.Runs.Count != b.Runs.Count
-                || a.Label != null || b.Label != null || !ParagraphFormattingEqual(a, b)) return false;
+                || a.Label != null || b.Label != null) return false;
+            extended |= PublisherQuillParagraphStyleWriter.HasChanges(a, b);
             for (int index = 0; index < b.Runs.Count; index++) {
                 if (b.Runs[index].Text.Length == 0 && (!reshape && before.Paragraphs.Count == 1 || b.Runs.Count != 1)
                     || !RunPreservedFormattingEqual(a.Runs[a.Runs.Count == 1 ? 0 : index], b.Runs[index])) return false;
@@ -187,8 +188,7 @@ internal sealed partial class PublisherNativeWriter {
         || ParagraphFormattingEqual(a, b)
         && a.Runs.Count == b.Runs.Count && a.Runs.Zip(b.Runs, RunEqual).All(value => value);
     private static bool ParagraphFormattingEqual(OfficeRichTextParagraph a, OfficeRichTextParagraph b) =>
-        a.Alignment == b.Alignment && a.LineHeight == b.LineHeight && a.LineHeightFactor == b.LineHeightFactor
-        && a.Margins.Equals(b.Margins) && a.Indent == b.Indent && LabelEqual(a.Label, b.Label) && TabsEqual(a.TabStops, b.TabStops);
+        !PublisherQuillParagraphStyleWriter.HasChanges(a, b) && LabelEqual(a.Label, b.Label);
     private static bool RunEqual(OfficeRichTextRun a, OfficeRichTextRun b) => a.Text == b.Text && RunFormattingEqual(a, b);
     private static bool RunFormattingEqual(OfficeRichTextRun a, OfficeRichTextRun b) => a.FontSize == b.FontSize
         && a.Bold == b.Bold && !PublisherQuillCharacterStyleWriter.HasExtendedChanges(a, b) && RunPreservedFormattingEqual(a, b);
@@ -198,8 +198,4 @@ internal sealed partial class PublisherNativeWriter {
     private static bool LabelEqual(OfficeTextParagraphLabel? a, OfficeTextParagraphLabel? b) => ReferenceEquals(a, b)
         || a != null && b != null && a.Position == b.Position && a.Alignment == b.Alignment && a.MinimumWidth == b.MinimumWidth
         && a.MinimumDistance == b.MinimumDistance && a.FollowedBy == b.FollowedBy && a.TextPosition == b.TextPosition && RunEqual(a.Run, b.Run);
-    private static bool TabsEqual(OfficeTextTabStops? a, OfficeTextTabStops? b) => ReferenceEquals(a, b)
-        || a != null && b != null && a.DefaultInterval == b.DefaultInterval && a.Origin == b.Origin && a.AlignWithParagraph == b.AlignWithParagraph
-        && a.Stops.Count == b.Stops.Count && a.Stops.Zip(b.Stops, (x, y) => x.Position == y.Position && x.Alignment == y.Alignment
-            && x.Character == y.Character && x.LeaderText == y.LeaderText && Equals(x.LineLeader, y.LineLeader) && Equals(x.LeaderStyle, y.LeaderStyle)).All(value => value);
 }

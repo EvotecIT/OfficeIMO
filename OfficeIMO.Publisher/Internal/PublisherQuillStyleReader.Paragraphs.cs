@@ -51,7 +51,9 @@ internal sealed partial class PublisherQuillStyleReader {
         if (array.HasValue) {
             foreach (PublisherBlock entry in _blocks.Children(array.Value)) {
                 _context.Record();
-                if (entry.Id != 0 || entry.Type != 0x88) throw new InvalidDataException("Invalid Publisher tab-stop entry.");
+                // Native arrays number entries by ordinal. Retain the older
+                // repeated-zero profile while admitting the indexed encoding.
+                if (entry.Id != 0 && entry.Id != result.Count || entry.Type != 0x88) throw new InvalidDataException("Invalid Publisher tab-stop entry.");
                 IReadOnlyList<PublisherBlock> properties = _blocks.Children(entry);
                 PublisherBlock amount = PublisherContentsReader.Field(properties, 0)
                     ?? throw new InvalidDataException("Publisher tab stop has no position.");

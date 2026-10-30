@@ -1,0 +1,599 @@
+{
+  "schema": "officeimo.publisher.native-case.v1",
+  "case": "TextParagraphAttributes",
+  "status": "Produced",
+  "license": "MIT",
+  "producer": {
+    "name": "Microsoft Publisher",
+    "version": "16.0",
+    "executableVersion": "16.0.20527.20088",
+    "powershell": "7.6.9",
+    "culture": "pl-PL",
+    "textFont": {
+      "family": "Arial",
+      "file": "arial.ttf",
+      "sha256": "b3658eadae55e682b5f69eb64c439c1ecc8f196c0bb8d4756d145d13bc86476a"
+    },
+    "appearance": "Explicit frame fonts, margins and object colors; untouched native publication defaults.",
+    "automationSecurity": 3
+  },
+  "expected": {
+    "pages": 4,
+    "widthPoints": 612,
+    "heightPoints": 792,
+    "text": [
+      "Native paragraph control: Default. This sentence wraps so paragraph spacing and indentation are visible.\rSecond paragraph with the same native settings.",
+      "Native paragraph control: Center. This sentence wraps so paragraph spacing and indentation are visible.\rSecond paragraph with the same native settings.",
+      "Native paragraph control: Right. This sentence wraps so paragraph spacing and indentation are visible.\rSecond paragraph with the same native settings.",
+      "Native paragraph control: Justify. This sentence wraps so paragraph spacing and indentation are visible.\rSecond paragraph with the same native settings.",
+      "Native paragraph control: Spacing. This sentence wraps so paragraph spacing and indentation are visible.\rSecond paragraph with the same native settings.",
+      "Native paragraph control: Insets. This sentence wraps so paragraph spacing and indentation are visible.\rSecond paragraph with the same native settings.",
+      "Native paragraph control: FirstLine. This sentence wraps so paragraph spacing and indentation are visible.\rSecond paragraph with the same native settings.",
+      "Native paragraph control: Hanging. This sentence wraps so paragraph spacing and indentation are visible.\rSecond paragraph with the same native settings.",
+      "Native paragraph control: Exactly18. This sentence wraps so paragraph spacing and indentation are visible.\rSecond paragraph with the same native settings.",
+      "Native paragraph control: Multiple1pt5. This sentence wraps so paragraph spacing and indentation are visible.\rSecond paragraph with the same native settings.",
+      "Native paragraph control: Single. This sentence wraps so paragraph spacing and indentation are visible.\rSecond paragraph with the same native settings.",
+      "Native paragraph control: Double. This sentence wraps so paragraph spacing and indentation are visible.\rSecond paragraph with the same native settings.",
+      "Native paragraph control: Tabs\rLeft\tMiddle\tRight",
+      "Native paragraph control: Combined\rLeft\tMiddle\tRight"
+    ],
+    "shapes": [
+      {
+        "name": "Default",
+        "kind": "TextFrame",
+        "left": 54.0,
+        "top": 54.0,
+        "width": 504.0,
+        "height": 144.0,
+        "font": "Arial",
+        "size": 12.0,
+        "paragraphAttributes": {
+          "Alignment": 0,
+          "LeftIndent": 0.0,
+          "RightIndent": 0.0,
+          "FirstLineIndent": 0.0,
+          "SpaceBefore": 0.0,
+          "SpaceAfter": 0.0,
+          "LineSpacingRule": 0,
+          "LineSpacing": 1.0,
+          "TabPositions": []
+        }
+      },
+      {
+        "name": "Center",
+        "kind": "TextFrame",
+        "left": 54.0,
+        "top": 222.0,
+        "width": 504.0,
+        "height": 144.0,
+        "font": "Arial",
+        "size": 12.0,
+        "paragraphAttributes": {
+          "Alignment": 1,
+          "LeftIndent": 0.0,
+          "RightIndent": 0.0,
+          "FirstLineIndent": 0.0,
+          "SpaceBefore": 0.0,
+          "SpaceAfter": 0.0,
+          "LineSpacingRule": 0,
+          "LineSpacing": 1.0,
+          "TabPositions": []
+        }
+      },
+      {
+        "name": "Right",
+        "kind": "TextFrame",
+        "left": 54.0,
+        "top": 390.0,
+        "width": 504.0,
+        "height": 144.0,
+        "font": "Arial",
+        "size": 12.0,
+        "paragraphAttributes": {
+          "Alignment": 2,
+          "LeftIndent": 0.0,
+          "RightIndent": 0.0,
+          "FirstLineIndent": 0.0,
+          "SpaceBefore": 0.0,
+          "SpaceAfter": 0.0,
+          "LineSpacingRule": 0,
+          "LineSpacing": 1.0,
+          "TabPositions": []
+        }
+      },
+      {
+        "name": "Justify",
+        "kind": "TextFrame",
+        "left": 54.0,
+        "top": 558.0,
+        "width": 504.0,
+        "height": 144.0,
+        "font": "Arial",
+        "size": 12.0,
+        "paragraphAttributes": {
+          "Alignment": 6,
+          "LeftIndent": 0.0,
+          "RightIndent": 0.0,
+          "FirstLineIndent": 0.0,
+          "SpaceBefore": 0.0,
+          "SpaceAfter": 0.0,
+          "LineSpacingRule": 0,
+          "LineSpacing": 1.0,
+          "TabPositions": []
+        }
+      },
+      {
+        "name": "Spacing",
+        "kind": "TextFrame",
+        "left": 54.0,
+        "top": 54.0,
+        "width": 504.0,
+        "height": 144.0,
+        "font": "Arial",
+        "size": 12.0,
+        "paragraphAttributes": {
+          "Alignment": 0,
+          "LeftIndent": 0.0,
+          "RightIndent": 0.0,
+          "FirstLineIndent": 0.0,
+          "SpaceBefore": 6.0,
+          "SpaceAfter": 9.0,
+          "LineSpacingRule": 0,
+          "LineSpacing": 1.0,
+          "TabPositions": []
+        }
+      },
+      {
+        "name": "Insets",
+        "kind": "TextFrame",
+        "left": 54.0,
+        "top": 222.0,
+        "width": 504.0,
+        "height": 144.0,
+        "font": "Arial",
+        "size": 12.0,
+        "paragraphAttributes": {
+          "Alignment": 0,
+          "LeftIndent": 36.0,
+          "RightIndent": 24.0,
+          "FirstLineIndent": 0.0,
+          "SpaceBefore": 0.0,
+          "SpaceAfter": 0.0,
+          "LineSpacingRule": 0,
+          "LineSpacing": 1.0,
+          "TabPositions": []
+        }
+      },
+      {
+        "name": "FirstLine",
+        "kind": "TextFrame",
+        "left": 54.0,
+        "top": 390.0,
+        "width": 504.0,
+        "height": 144.0,
+        "font": "Arial",
+        "size": 12.0,
+        "paragraphAttributes": {
+          "Alignment": 0,
+          "LeftIndent": 0.0,
+          "RightIndent": 0.0,
+          "FirstLineIndent": 18.0,
+          "SpaceBefore": 0.0,
+          "SpaceAfter": 0.0,
+          "LineSpacingRule": 0,
+          "LineSpacing": 1.0,
+          "TabPositions": []
+        }
+      },
+      {
+        "name": "Hanging",
+        "kind": "TextFrame",
+        "left": 54.0,
+        "top": 558.0,
+        "width": 504.0,
+        "height": 144.0,
+        "font": "Arial",
+        "size": 12.0,
+        "paragraphAttributes": {
+          "Alignment": 0,
+          "LeftIndent": 36.0,
+          "RightIndent": 0.0,
+          "FirstLineIndent": -18.0,
+          "SpaceBefore": 0.0,
+          "SpaceAfter": 0.0,
+          "LineSpacingRule": 0,
+          "LineSpacing": 1.0,
+          "TabPositions": []
+        }
+      },
+      {
+        "name": "Exactly18",
+        "kind": "TextFrame",
+        "left": 54.0,
+        "top": 54.0,
+        "width": 504.0,
+        "height": 144.0,
+        "font": "Arial",
+        "size": 12.0,
+        "paragraphAttributes": {
+          "Alignment": 0,
+          "LeftIndent": 0.0,
+          "RightIndent": 0.0,
+          "FirstLineIndent": 0.0,
+          "SpaceBefore": 0.0,
+          "SpaceAfter": 0.0,
+          "LineSpacingRule": 4,
+          "LineSpacing": 18.0,
+          "TabPositions": []
+        }
+      },
+      {
+        "name": "Multiple1pt5",
+        "kind": "TextFrame",
+        "left": 54.0,
+        "top": 222.0,
+        "width": 504.0,
+        "height": 144.0,
+        "font": "Arial",
+        "size": 12.0,
+        "paragraphAttributes": {
+          "Alignment": 0,
+          "LeftIndent": 0.0,
+          "RightIndent": 0.0,
+          "FirstLineIndent": 0.0,
+          "SpaceBefore": 0.0,
+          "SpaceAfter": 0.0,
+          "LineSpacingRule": 1,
+          "LineSpacing": 1.5,
+          "TabPositions": []
+        }
+      },
+      {
+        "name": "Single",
+        "kind": "TextFrame",
+        "left": 54.0,
+        "top": 390.0,
+        "width": 504.0,
+        "height": 144.0,
+        "font": "Arial",
+        "size": 12.0,
+        "paragraphAttributes": {
+          "Alignment": 0,
+          "LeftIndent": 0.0,
+          "RightIndent": 0.0,
+          "FirstLineIndent": 0.0,
+          "SpaceBefore": 0.0,
+          "SpaceAfter": 0.0,
+          "LineSpacingRule": 0,
+          "LineSpacing": 1.0,
+          "TabPositions": []
+        }
+      },
+      {
+        "name": "Double",
+        "kind": "TextFrame",
+        "left": 54.0,
+        "top": 558.0,
+        "width": 504.0,
+        "height": 144.0,
+        "font": "Arial",
+        "size": 12.0,
+        "paragraphAttributes": {
+          "Alignment": 0,
+          "LeftIndent": 0.0,
+          "RightIndent": 0.0,
+          "FirstLineIndent": 0.0,
+          "SpaceBefore": 0.0,
+          "SpaceAfter": 0.0,
+          "LineSpacingRule": 2,
+          "LineSpacing": 2.0,
+          "TabPositions": []
+        }
+      },
+      {
+        "name": "Tabs",
+        "kind": "TextFrame",
+        "left": 54.0,
+        "top": 54.0,
+        "width": 504.0,
+        "height": 144.0,
+        "font": "Arial",
+        "size": 12.0,
+        "paragraphAttributes": {
+          "Alignment": 0,
+          "LeftIndent": 0.0,
+          "RightIndent": 0.0,
+          "FirstLineIndent": 0.0,
+          "SpaceBefore": 0.0,
+          "SpaceAfter": 0.0,
+          "LineSpacingRule": 0,
+          "LineSpacing": 1.0,
+          "TabPositions": [
+            72,
+            144
+          ]
+        }
+      },
+      {
+        "name": "Combined",
+        "kind": "TextFrame",
+        "left": 54.0,
+        "top": 222.0,
+        "width": 504.0,
+        "height": 144.0,
+        "font": "Arial",
+        "size": 12.0,
+        "paragraphAttributes": {
+          "Alignment": 1,
+          "LeftIndent": 36.0,
+          "RightIndent": 18.0,
+          "FirstLineIndent": 12.0,
+          "SpaceBefore": 6.0,
+          "SpaceAfter": 9.0,
+          "LineSpacingRule": 5,
+          "LineSpacing": 1.25,
+          "TabPositions": [
+            72,
+            144
+          ]
+        }
+      }
+    ]
+  },
+  "nativePages": [
+    {
+      "index": 1,
+      "pageId": 33554698,
+      "pageIndex": 1,
+      "pageNumber": "1",
+      "pageType": 2,
+      "name": "Page Title",
+      "masterStatus": "Observed",
+      "master": {
+        "pageId": 33554695,
+        "name": "Master Page A"
+      },
+      "masterErrorHResult": null,
+      "shapes": [
+        {
+          "name": "Default",
+          "type": 17,
+          "left": 54.0,
+          "top": 54.0,
+          "width": 504.0,
+          "height": 144.0,
+          "text": "Native paragraph control: Default. This sentence wraps so paragraph spacing and indentation are visible.\rSecond paragraph with the same native settings.\r",
+          "font": "",
+          "nextLink": false,
+          "previousLink": false
+        },
+        {
+          "name": "Center",
+          "type": 17,
+          "left": 54.0,
+          "top": 222.0,
+          "width": 504.0,
+          "height": 144.0,
+          "text": "Native paragraph control: Center. This sentence wraps so paragraph spacing and indentation are visible.\rSecond paragraph with the same native settings.\r",
+          "font": "",
+          "nextLink": false,
+          "previousLink": false
+        },
+        {
+          "name": "Right",
+          "type": 17,
+          "left": 54.0,
+          "top": 390.0,
+          "width": 504.0,
+          "height": 144.0,
+          "text": "Native paragraph control: Right. This sentence wraps so paragraph spacing and indentation are visible.\rSecond paragraph with the same native settings.\r",
+          "font": "",
+          "nextLink": false,
+          "previousLink": false
+        },
+        {
+          "name": "Justify",
+          "type": 17,
+          "left": 54.0,
+          "top": 558.0,
+          "width": 504.0,
+          "height": 144.0,
+          "text": "Native paragraph control: Justify. This sentence wraps so paragraph spacing and indentation are visible.\rSecond paragraph with the same native settings.\r",
+          "font": "",
+          "nextLink": false,
+          "previousLink": false
+        }
+      ]
+    },
+    {
+      "index": 2,
+      "pageId": 33554729,
+      "pageIndex": 2,
+      "pageNumber": "2",
+      "pageType": 1,
+      "name": "Page Title",
+      "masterStatus": "Observed",
+      "master": {
+        "pageId": 33554695,
+        "name": "Master Page A"
+      },
+      "masterErrorHResult": null,
+      "shapes": [
+        {
+          "name": "Spacing",
+          "type": 17,
+          "left": 54.0,
+          "top": 54.0,
+          "width": 504.0,
+          "height": 144.0,
+          "text": "Native paragraph control: Spacing. This sentence wraps so paragraph spacing and indentation are visible.\rSecond paragraph with the same native settings.\r",
+          "font": "",
+          "nextLink": false,
+          "previousLink": false
+        },
+        {
+          "name": "Insets",
+          "type": 17,
+          "left": 54.0,
+          "top": 222.0,
+          "width": 504.0,
+          "height": 144.0,
+          "text": "Native paragraph control: Insets. This sentence wraps so paragraph spacing and indentation are visible.\rSecond paragraph with the same native settings.\r",
+          "font": "",
+          "nextLink": false,
+          "previousLink": false
+        },
+        {
+          "name": "FirstLine",
+          "type": 17,
+          "left": 54.0,
+          "top": 390.0,
+          "width": 504.0,
+          "height": 144.0,
+          "text": "Native paragraph control: FirstLine. This sentence wraps so paragraph spacing and indentation are visible.\rSecond paragraph with the same native settings.\r",
+          "font": "",
+          "nextLink": false,
+          "previousLink": false
+        },
+        {
+          "name": "Hanging",
+          "type": 17,
+          "left": 54.0,
+          "top": 558.0,
+          "width": 504.0,
+          "height": 144.0,
+          "text": "Native paragraph control: Hanging. This sentence wraps so paragraph spacing and indentation are visible.\rSecond paragraph with the same native settings.\r",
+          "font": "",
+          "nextLink": false,
+          "previousLink": false
+        }
+      ]
+    },
+    {
+      "index": 3,
+      "pageId": 33554736,
+      "pageIndex": 3,
+      "pageNumber": "3",
+      "pageType": 2,
+      "name": "Page Title",
+      "masterStatus": "Observed",
+      "master": {
+        "pageId": 33554695,
+        "name": "Master Page A"
+      },
+      "masterErrorHResult": null,
+      "shapes": [
+        {
+          "name": "Exactly18",
+          "type": 17,
+          "left": 54.0,
+          "top": 54.0,
+          "width": 504.0,
+          "height": 144.0,
+          "text": "Native paragraph control: Exactly18. This sentence wraps so paragraph spacing and indentation are visible.\rSecond paragraph with the same native settings.\r",
+          "font": "",
+          "nextLink": false,
+          "previousLink": false
+        },
+        {
+          "name": "Multiple1pt5",
+          "type": 17,
+          "left": 54.0,
+          "top": 222.0,
+          "width": 504.0,
+          "height": 144.0,
+          "text": "Native paragraph control: Multiple1pt5. This sentence wraps so paragraph spacing and indentation are visible.\rSecond paragraph with the same native settings.\r",
+          "font": "",
+          "nextLink": false,
+          "previousLink": false
+        },
+        {
+          "name": "Single",
+          "type": 17,
+          "left": 54.0,
+          "top": 390.0,
+          "width": 504.0,
+          "height": 144.0,
+          "text": "Native paragraph control: Single. This sentence wraps so paragraph spacing and indentation are visible.\rSecond paragraph with the same native settings.\r",
+          "font": "",
+          "nextLink": false,
+          "previousLink": false
+        },
+        {
+          "name": "Double",
+          "type": 17,
+          "left": 54.0,
+          "top": 558.0,
+          "width": 504.0,
+          "height": 144.0,
+          "text": "Native paragraph control: Double. This sentence wraps so paragraph spacing and indentation are visible.\rSecond paragraph with the same native settings.\r",
+          "font": "",
+          "nextLink": false,
+          "previousLink": false
+        }
+      ]
+    },
+    {
+      "index": 4,
+      "pageId": 33554743,
+      "pageIndex": 4,
+      "pageNumber": "4",
+      "pageType": 1,
+      "name": "Page Title",
+      "masterStatus": "Observed",
+      "master": {
+        "pageId": 33554695,
+        "name": "Master Page A"
+      },
+      "masterErrorHResult": null,
+      "shapes": [
+        {
+          "name": "Tabs",
+          "type": 17,
+          "left": 54.0,
+          "top": 54.0,
+          "width": 504.0,
+          "height": 144.0,
+          "text": "Native paragraph control: Tabs\rLeft\tMiddle\tRight\r",
+          "font": "",
+          "nextLink": false,
+          "previousLink": false
+        },
+        {
+          "name": "Combined",
+          "type": 17,
+          "left": 54.0,
+          "top": 222.0,
+          "width": 504.0,
+          "height": 144.0,
+          "text": "Native paragraph control: Combined\rLeft\tMiddle\tRight\r",
+          "font": "",
+          "nextLink": false,
+          "previousLink": false
+        }
+      ]
+    }
+  ],
+  "nativeMasterPages": [
+    {
+      "index": 1,
+      "pageId": 33554695,
+      "pageIndex": 1,
+      "pageType": 4,
+      "name": "Master Page A",
+      "isTwoPageMaster": false,
+      "shapeCount": 0,
+      "shapes": []
+    }
+  ],
+  "files": {
+    "publication": {
+      "name": "native-textparagraphattributes.pub",
+      "sha256": "ceca829da6caa699403af4bddccae78ca4149067d54ca1714384ed88a82079b3"
+    },
+    "reference": {
+      "name": "native-textparagraphattributes.pdf",
+      "sha256": "04a6b25cc4337a43bfdb96126371319fe4313c06b475e10026bcc49fccbde8f3"
+    }
+  }
+}

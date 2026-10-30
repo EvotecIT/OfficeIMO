@@ -59,7 +59,10 @@ internal static partial class PublisherQuillParagraphWriter {
             if (terminator == null) return false;
             position = checked(position + 2);
             AppendRange(pc, position, terminator);
-            pp.Add(new PublisherQuillFormattingRange(position, Copy(paragraph.DirectDefinition)));
+            byte[]? definition = PublisherQuillParagraphStyleWriter.Rewrite(data, paragraph.DirectDefinition,
+                before.Paragraphs[paragraphIndex], after.Paragraphs[paragraphIndex], context);
+            if (definition == null) return false;
+            pp.Add(new PublisherQuillFormattingRange(position, definition));
             originalPosition = checked(oldCursor + 1);
         }
         return originalPosition == binding.NativeStart + binding.NativeLength && position == outputTextOffset + after.Text.Length * 2;
