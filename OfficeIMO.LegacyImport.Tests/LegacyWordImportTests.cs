@@ -227,8 +227,12 @@ public sealed class LegacyWordImportTests {
         Assert.False(properties.Bold!.Val!.Value);
         Assert.False(properties.Italic!.Val!.Value);
         Assert.Equal(DocumentFormat.OpenXml.Wordprocessing.UnderlineValues.None, properties.Underline!.Val!.Value);
-        Assert.Equal(DocumentFormat.OpenXml.Wordprocessing.ThemeFontValues.MinorHighAnsi, properties.RunFonts!.AsciiTheme!.Value);
-        Assert.Equal("22", properties.FontSize!.Val!.Value);
+        Assert.Equal(OfficeTheme.Default.Fonts.Body.Family, properties.RunFonts!.Ascii!.Value);
+        Assert.Equal(OfficeTheme.Default.Fonts.Body.Family, properties.RunFonts.HighAnsi!.Value);
+        Assert.Equal(OfficeTheme.Default.Fonts.Body.Family, properties.RunFonts.EastAsia!.Value);
+        Assert.Equal(OfficeTheme.Default.Fonts.Body.Family, properties.RunFonts.ComplexScript!.Value);
+        Assert.Equal(OfficeTheme.Default.TypeScale.Body.ToHalfPoints().ToString(System.Globalization.CultureInfo.InvariantCulture),
+            properties.FontSize!.Val!.Value);
         Assert.Equal("auto", properties.Color!.Val!.Value);
         imported.Report.RequireNoLoss();
     }

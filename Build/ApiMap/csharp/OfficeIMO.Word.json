@@ -8293,6 +8293,18 @@
         }
       ],
       "note": "The internal integer-derived native grids remain exact at EMU precision. Existing producer fixtures retain literal numeric expectations, null checks, saved DOCX validation and import loss contracts. Existing parser line-spacing provenance limitations remain; no relative spacing rule is invented."
+    },
+    {
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "action": "change",
+      "old": "Ami Pro style-reset fixture requires minor-theme font references and a fixed former default size.",
+      "new": "Verify explicit resets to the canonical default theme body font in all four script font slots and its body size.",
+      "reason": "The importer already clones the current document defaults. Preserve the recovered-style override, bold/italic/underline/color and no-loss contracts without restoring former authoring defaults or pinning a former XML font representation.",
+      "files": [
+        "OfficeIMO.LegacyImport.Tests/LegacyWordImportTests.cs"
+      ],
+      "note": "The existing two-class legacy fixture run has one pre-migration assertion failure and122passes; after the fixture update all123pass on net10.0. No importer behavior changes."
     }
   ],
   "applicationStatus": "Phase A applied and validated on the supported macOS targets. Phase B and Tier 2 entries retain their status; Windows .NET Framework validation remains pending.",
