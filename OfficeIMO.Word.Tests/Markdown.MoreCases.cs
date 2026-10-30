@@ -61,8 +61,8 @@ namespace OfficeIMO.Tests {
             var model = OfficeIMO.Markdown.MarkdownDocument.Parse(md);
             var img = model.Blocks.OfType<ImageBlock>().FirstOrDefault();
             Assert.NotNull(img);
-            Assert.Equal(40, img!.Width);
-            Assert.Equal(30, img!.Height);
+            Assert.Equal(OfficeLength.Pixels(40), img!.Width);
+            Assert.Equal(OfficeLength.Pixels(30), img!.Height);
             Assert.Equal("logo.png", img.Path);
             Assert.Equal("logo", img.Alt);
         }

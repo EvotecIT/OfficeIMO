@@ -2337,8 +2337,10 @@
         "OfficeIMO.Markup/Parsing/OfficeMarkupParser.Markdown.cs",
         "OfficeIMO.Pdf.Tests/Pdf/Markdown.SaveAsPdf.Visuals.cs",
         "OfficeIMO.Word.Markdown/Converters/MarkdownToWordConverter.BlockRenderer.cs",
-        "PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Markdown/AddOfficeMarkdownImageCommand.cs"
-      ]
+        "PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Markdown/AddOfficeMarkdownImageCommand.cs",
+        "OfficeIMO.Word.Tests/Markdown.MoreCases.cs"
+      ],
+      "note": "Word package reader fixture also asserts typed CSS-pixel lengths; its original path, alt-text and size expectations remain unchanged."
     }
   ],
   "applicationStatus": "Phase A applied and validated on the supported macOS targets. Phase B and Tier 2 entries retain their status; Windows .NET Framework validation remains pending.",
