@@ -10,7 +10,7 @@ namespace PSWriteOffice.Cmdlets.Markdown;
 /// <example>
 ///   <summary>Read tables as PowerShell objects.</summary>
 ///   <prefix>PS&gt; </prefix>
-///   <code>Get-OfficeMarkdown -Path .\Report.md | Get-OfficeMarkdownTable -AsObject</code>
+///   <code>Open-OfficeMarkdown -Path .\Report.md | Get-OfficeMarkdownTable -AsObject</code>
 ///   <para>Returns table rows as PowerShell objects using the Markdown header row as property names.</para>
 /// </example>
 [Cmdlet(VerbsCommon.Get, "OfficeMarkdownTable")]

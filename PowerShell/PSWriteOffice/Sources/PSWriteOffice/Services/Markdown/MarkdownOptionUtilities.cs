@@ -1,10 +1,12 @@
 using System;
+using System.Collections;
 using System.IO;
 using System.Management.Automation;
 using OfficeIMO.Drawing;
 using OfficeIMO.Markdown;
 using OfficeIMO.Markdown.Pdf;
 using PSWriteOffice.Services.Pdf;
+using PSWriteOffice.Foundation;
 
 namespace PSWriteOffice.Services.Markdown;
 
@@ -61,6 +63,29 @@ internal interface IMarkdownPdfOptionSource
 
 internal static class MarkdownOptionUtilities
 {
+    /// <summary>Captures native reader settings and applies explicit hashtable overrides to an independent snapshot.</summary>
+    internal static MarkdownLoadOptions? BindReaderOptions(EngineIntrinsics engine, object[]? inputs)
+    {
+        MarkdownLoadOptions? options = null;
+        var binder = new OfficeOptionsTransformationAttribute(typeof(MarkdownLoadOptions));
+        foreach (object input in inputs ?? Array.Empty<object>())
+        {
+            object? value = OfficeArgumentValue.Unwrap(input);
+            if (value is MarkdownLoadOptions typed)
+            {
+                if (options != null) throw new PSArgumentException("Supply one Markdown reader options object before any hashtable overrides.");
+                options = typed.Clone();
+            }
+            else if (value is IDictionary dictionary)
+            {
+                options ??= MarkdownLoadOptions.CreateOfficeIMOProfile();
+                binder.ApplyTo(engine, options, dictionary);
+            }
+            else throw new PSArgumentException("Options accepts Markdown reader settings or a hashtable of native reader properties.");
+        }
+        return options;
+    }
+
     internal static MarkdownLoadOptions? BuildReaderOptions(IMarkdownReaderOptionSource source)
     {
         if (source.ReaderOptions != null && source.Profile.HasValue)
@@ -73,7 +98,7 @@ internal static class MarkdownOptionUtilities
             return null;
         }
 
-        var options = source.ReaderOptions
+        var options = source.ReaderOptions?.Clone()
             ?? (source.Profile.HasValue
                 ? MarkdownLoadOptions.CreateProfile(source.Profile.Value)
                 : MarkdownLoadOptions.CreateOfficeIMOProfile());
@@ -129,6 +154,10 @@ internal static class MarkdownOptionUtilities
 
     internal static MarkdownSaveOptions? BuildWriteOptions(IMarkdownWriteOptionSource source)
     {
+        if (source.WriteOptions != null && source.WriteProfile.HasValue)
+        {
+            throw new PSArgumentException("Specify either -WriteOptions or -WriteProfile, not both.");
+        }
         if (source.WriteOptions == null && !source.WriteProfile.HasValue && !source.ImageRenderingMode.HasValue
             && string.IsNullOrWhiteSpace(source.LineEnding) && string.IsNullOrWhiteSpace(source.UnorderedListMarker))
         {

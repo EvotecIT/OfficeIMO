@@ -4,7 +4,7 @@ $services = @(
     [pscustomobject]@{ Service = 'Remote access'; Owner = 'Security'; Availability = 98.84; Incidents = 7; Status = 'Action' }
 )
 
-MarkdownNew -Path '.\Service-Status.md' {
+New-OfficeMarkdown -Path '.\Service-Status.md' {
     MarkdownHeading -Level 1 -Text 'Service Status'
     MarkdownParagraph -Text 'The same PowerShell objects also feed the Word, Excel, PowerPoint, and PDF outputs in this recipe.'
     MarkdownTable -InputObject $services

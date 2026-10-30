@@ -56,7 +56,7 @@ Describe 'Word Markdown conversions' {
         ($paragraphs.Text -join "`n") | Should -Match 'Title'
         ($paragraphs.Text -join "`n") | Should -Match 'Body text'
 
-        $markdownDocument = Get-OfficeMarkdown -Text "## Pipeline`n`nGenerated"
+        $markdownDocument = Open-OfficeMarkdown -Text "## Pipeline`n`nGenerated"
         $document = $markdownDocument | ConvertFrom-OfficeWordMarkdown
         try {
             $document.Paragraphs.Count | Should -BeGreaterThan 0

@@ -36,7 +36,7 @@ internal sealed class MarkdownDslContext : IDisposable
         if (scope == null)
         {
             throw new InvalidOperationException(
-                $"'{caller.MyInvocation.InvocationName}' must run inside New-OfficeMarkdown script block.");
+                $"'{caller.MyInvocation.InvocationName}' must run inside a New-/Open-OfficeMarkdown content block.");
         }
 
         return scope;

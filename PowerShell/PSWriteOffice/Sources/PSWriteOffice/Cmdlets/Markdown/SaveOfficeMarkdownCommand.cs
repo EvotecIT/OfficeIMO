@@ -1,71 +1,64 @@
-using OfficeIMO.Core.Internal;
+using System;
 using System.IO;
 using System.Management.Automation;
-using System.Text;
 using OfficeIMO.Markdown;
+using PSWriteOffice.Foundation;
 using PSWriteOffice.Services.Markdown;
-using PSWriteOffice.Services.Pdf;
 
 namespace PSWriteOffice.Cmdlets.Markdown;
 
-/// <summary>Saves a Markdown document without changing its lifetime.</summary>
-/// <example>
-///   <summary>Save a Markdown document.</summary>
-///   <prefix>PS&gt; </prefix>
-///   <code>$doc | Save-OfficeMarkdown -Path .\Report.md</code>
-///   <para>Writes the Markdown artifact and keeps the document available for further changes.</para>
-/// </example>
+/// <summary>Saves a live Markdown document using its native save policy and keeps it available.</summary>
+/// <example><summary>Save to the document's associated path.</summary>
+/// <code>$document | Save-OfficeMarkdown -PassThru</code></example>
+/// <example><summary>Write a CRLF copy.</summary>
+/// <code>Save-OfficeMarkdown -Document $document -Path ./Publish/Report.md -LineEnding CRLF -PassThru</code></example>
 [Cmdlet(VerbsData.Save, "OfficeMarkdown", SupportsShouldProcess = true)]
-[OutputType(typeof(MarkdownDocument))]
-public sealed class SaveOfficeMarkdownCommand : PSCmdlet
-    , IMarkdownWriteOptionSource {
+[OutputType(typeof(FileInfo))]
+public sealed class SaveOfficeMarkdownCommand : OfficeCmdlet, IMarkdownWriteOptionSource {
     /// <summary>Markdown document to save.</summary>
-    [Parameter(Mandatory = true, ValueFromPipeline = true, Position = 0)]
+    [Parameter(Mandatory = true, ValueFromPipeline = true), ValidateNotNull]
     public MarkdownDocument Document { get; set; } = null!;
-
-    /// <summary>Destination Markdown path.</summary>
-    [Parameter(Mandatory = true, Position = 1)]
-    [Alias("FilePath")]
-    public string Path { get; set; } = string.Empty;
-
-    /// <summary>Optional Markdown writer options.</summary>
-    [Parameter]
+    /// <summary>Optional destination; omission saves to the associated path.</summary>
+    [Parameter(Position = 0), ValidateNotNullOrEmpty]
+    public string? Path { get; set; }
+    /// <summary>Native save settings, or a hashtable of native option properties.</summary>
+    [Parameter, OfficeOptionsTransformation(typeof(MarkdownSaveOptions)), ValidateNotNull]
     public MarkdownSaveOptions? WriteOptions { get; set; }
-
     /// <summary>Friendly Markdown writer profile.</summary>
     [Parameter]
     public OfficeMarkdownWriteProfile? WriteProfile { get; set; }
-
-    /// <summary>Controls how Markdown images are serialized.</summary>
+    /// <summary>Controls Markdown image serialization.</summary>
     [Parameter]
     public MarkdownImageRenderingMode? ImageRenderingMode { get; set; }
-
-    /// <summary>Markdown line ending: CRLF, LF, CR, or a literal line ending string.</summary>
+    /// <summary>Output line endings.</summary>
     [Parameter]
-    [ArgumentCompleter(typeof(OfficeLineEndingArgumentCompleter))]
-    public string? LineEnding { get; set; }
-
-    /// <summary>Unordered list marker: '-', '*', or '+'.</summary>
-    [Parameter]
+    public OfficeLineEnding? LineEnding { get; set; }
+    /// <summary>Unordered list marker.</summary>
+    [Parameter, ValidateSet("-", "*", "+")]
     public string? UnorderedListMarker { get; set; }
-
-    /// <summary>Emit the Markdown document rather than the saved file.</summary>
+    /// <summary>Accept explicit native-save omissions, overriding WriteOptions when supplied.</summary>
+    [Parameter]
+    public SwitchParameter AllowLoss { get; set; }
+    /// <summary>Return the saved file.</summary>
     [Parameter]
     public SwitchParameter PassThru { get; set; }
+    string? IMarkdownWriteOptionSource.LineEnding => LineEnding?.ToString();
 
     /// <inheritdoc />
     protected override void ProcessRecord() {
-        var fullPath = PdfCommandUtilities.ResolvePath(this, Path);
-        if (!PdfCommandUtilities.ShouldWrite(this, fullPath, "Save Markdown document")) {
+        string? destination = Path ?? Document.FilePath;
+        if (string.IsNullOrWhiteSpace(destination)) {
+            InvalidArgument(new PSArgumentException("Supply Path when the document has no associated destination."), Document);
             return;
         }
-
-        PdfCommandUtilities.EnsureDirectory(fullPath);
-        OfficeFileOutput.Write(fullPath, overwrite: true, temporaryPath => File.WriteAllText(temporaryPath, Document.ToMarkdown(MarkdownOptionUtilities.BuildWriteOptions(this)), new UTF8Encoding(encoderShouldEmitUTF8Identifier: false)));
-
-        if (PassThru.IsPresent) {
-            WriteObject(Document);
-        }
+        MarkdownSaveOptions options = MarkdownOptionUtilities.BuildWriteOptions(this) ?? new MarkdownSaveOptions();
+        if (MyInvocation.BoundParameters.ContainsKey(nameof(AllowLoss))) options.AllowLoss = AllowLoss.IsPresent;
+        destination = ResolveOutputPath(destination!);
+        if (!ShouldProcess(destination, "Save Markdown document")) return;
+        try {
+            Document.Save(destination, options);
+            if (PassThru) WriteObject(new FileInfo(destination));
+        } catch (PipelineStoppedException) { throw; }
+        catch (Exception error) { ItemError(error, "native-save-failed", destination); }
     }
-
 }

@@ -36,7 +36,7 @@
             },
             {
               "name": "WriteOptions",
-              "type": "MarkdownWriteOptions",
+              "type": "MarkdownSaveOptions",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -75,6 +75,12 @@
               "type": "switch",
               "mandatory": false,
               "pipeline": "none"
+            },
+            {
+              "name": "AllowLoss",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
             }
           ]
         },
@@ -95,41 +101,11 @@
               "type": "switch",
               "mandatory": false,
               "pipeline": "none"
-            },
-            {
-              "name": "WriteOptions",
-              "type": "MarkdownWriteOptions",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "WriteProfile",
-              "type": "OfficeMarkdownWriteProfile",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "ImageRenderingMode",
-              "type": "MarkdownImageRenderingMode",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "LineEnding",
-              "type": "OfficeLineEnding",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "UnorderedListMarker",
-              "type": "string",
-              "mandatory": false,
-              "pipeline": "none"
             }
           ]
         }
       ],
-      "notes": "Content set: -Path is required, the block runs and the file is saved (FileInfo with -PassThru). Live set: no block, -Path optional; returns the live MarkdownDocument for Save-OfficeMarkdown [-Path]. Refuses an existing file unless -Force. Markdown has no theme, so no -Theme.",
+      "notes": "Content set: -Path is required, the block runs and the file is saved (FileInfo with -PassThru). Live set: no block, -Path optional; returns the live MarkdownDocument for Save-OfficeMarkdown [-Path]. Refuses an existing file unless -Force. Markdown has no theme, so no -Theme. Writer settings apply to a content block; pass them to Save-OfficeMarkdown when saving a live document. Native save rejects selected omissions unless AllowLoss explicitly accepts them.",
       "examples": [
         {
           "title": "Create a Markdown file",
@@ -183,7 +159,7 @@
             },
             {
               "name": "WriteOptions",
-              "type": "MarkdownWriteOptions",
+              "type": "MarkdownSaveOptions",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -195,6 +171,12 @@
             },
             {
               "name": "Show",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "AllowLoss",
               "type": "switch",
               "mandatory": false,
               "pipeline": "none"
@@ -231,7 +213,7 @@
             },
             {
               "name": "WriteOptions",
-              "type": "MarkdownWriteOptions",
+              "type": "MarkdownSaveOptions",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -243,6 +225,12 @@
             },
             {
               "name": "Show",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "AllowLoss",
               "type": "switch",
               "mandatory": false,
               "pipeline": "none"
@@ -314,7 +302,7 @@
             },
             {
               "name": "WriteOptions",
-              "type": "MarkdownWriteOptions",
+              "type": "MarkdownSaveOptions",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -344,6 +332,12 @@
             },
             {
               "name": "PassThru",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "AllowLoss",
               "type": "switch",
               "mandatory": false,
               "pipeline": "none"
@@ -405,7 +399,7 @@
       "alias": null,
       "status": "new",
       "synopsis": "Creates Markdown reader options (dialect profile, URL policy, input limits) for Open-OfficeMarkdown, the Markdown readers and conversions.",
-      "outputType": "OfficeIMO.Markdown.MarkdownReaderOptions",
+      "outputType": "OfficeIMO.Markdown.MarkdownLoadOptions",
       "shouldProcess": false,
       "parameterSets": [
         {

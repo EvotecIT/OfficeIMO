@@ -19,7 +19,7 @@ namespace PSWriteOffice.Cmdlets.Markdown;
 /// <example>
 ///   <summary>Inspect a parsed document.</summary>
 ///   <prefix>PS&gt; </prefix>
-///   <code>Get-OfficeMarkdown -Path .\README.md | Get-OfficeMarkdownNode -NodeType '*Table*'</code>
+///   <code>Open-OfficeMarkdown -Path .\README.md | Get-OfficeMarkdownNode -NodeType '*Table*'</code>
 ///   <para>Returns matching nodes from an existing Markdown document.</para>
 /// </example>
 [Cmdlet(VerbsCommon.Get, "OfficeMarkdownNode")]

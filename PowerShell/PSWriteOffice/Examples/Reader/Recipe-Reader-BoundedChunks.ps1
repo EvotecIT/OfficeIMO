@@ -1,6 +1,6 @@
 $source = '.\Reader-Chunk-Source.md'
 
-MarkdownNew -Path $source {
+New-OfficeMarkdown -Path $source {
     MarkdownHeading -Level 1 -Text 'Operations'
     MarkdownParagraph -Text 'Identity is healthy and the weekly review is complete.'
     MarkdownHeading -Level 2 -Text 'Actions'

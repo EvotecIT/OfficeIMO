@@ -15,7 +15,7 @@ namespace PSWriteOffice.Cmdlets.Markdown;
 /// <example>
 ///   <summary>Inspect a parsed Markdown document.</summary>
 ///   <prefix>PS&gt; </prefix>
-///   <code>Get-OfficeMarkdown -Path .\README.md | Get-OfficeMarkdownHeading -MinLevel 2</code>
+///   <code>Open-OfficeMarkdown -Path .\README.md | Get-OfficeMarkdownHeading -MinLevel 2</code>
 ///   <para>Returns headings from an existing Markdown document object.</para>
 /// </example>
 [Cmdlet(VerbsCommon.Get, "OfficeMarkdownHeading")]

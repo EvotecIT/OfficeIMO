@@ -36,7 +36,7 @@ Describe 'Expanded OfficeIMO support' {
     }
 
     It 'round-trips AsciiDoc and LaTeX through loss-aware Markdown results' {
-        $markdown = Get-OfficeMarkdown -Text "# Portable report`n`nA compact conversion contract."
+        $markdown = Open-OfficeMarkdown -Text "# Portable report`n`nA compact conversion contract."
         $asciiDocPath = Join-Path $TestDrive 'portable.adoc'
         $latexPath = Join-Path $TestDrive 'portable.tex'
 

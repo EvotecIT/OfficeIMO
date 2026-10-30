@@ -24,7 +24,7 @@ namespace PSWriteOffice.Cmdlets.Word;
 /// <example>
 ///   <summary>Pipe a Markdown document into Word conversion.</summary>
 ///   <prefix>PS&gt; </prefix>
-///   <code>Get-OfficeMarkdown -Path .\README.md | ConvertFrom-OfficeWordMarkdown</code>
+///   <code>Open-OfficeMarkdown -Path .\README.md | ConvertFrom-OfficeWordMarkdown</code>
 ///   <para>Returns a Word document instance for further edits.</para>
 /// </example>
 /// <example>
