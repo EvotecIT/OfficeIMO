@@ -286,7 +286,7 @@ Describe 'Reader cmdlets' {
 
     It 'creates configurable readers without requiring OfficeIMO option objects' {
         $runtime = New-TestTesseractExecutable -Directory $TestDrive
-        $ocr = New-OfficeOcrOptions -TesseractLanguageExpression 'eng+pol' -TesseractPath $runtime -NoLanguageDownload
+        $ocr = New-OfficeOcrOptions -LanguageExpression 'eng+pol' -TesseractPath $runtime -NoLanguageDownload
         $reader = New-OfficeDocumentReader -OcrOptions $ocr -MaximumStoreItems 2500 -MaximumConcurrentReads 2
 
         $reader | Should -Not -BeNullOrEmpty

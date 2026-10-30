@@ -192,7 +192,8 @@ Describe 'Consolidated document reading' {
     It 'creates OCR options without executing a provider and enriches ordinary text only when requested' {
         $marker = Join-Path $TestDrive 'recognition-started.txt'
         $runtime = New-TestTesseractExecutable -Directory $TestDrive -CreateFilePath $marker
-        $ocr = New-OfficeOcrOptions -TesseractPath $runtime -Language English -NoLanguageDownload
+        $ocr = New-OfficeOcrOptions -TesseractPath $runtime -Language English -NoLanguageDownload `
+            -SessionOptions @{ Engine = @{ Dpi = 96; Timeout = '00:01:00' } } -Dpi 300 -TimeoutSeconds 10
         Test-Path -LiteralPath $marker | Should -BeFalse
         $image = Join-Path $PSScriptRoot 'Assets\CellImage.png'
         $null = Read-OfficeDocument $image
