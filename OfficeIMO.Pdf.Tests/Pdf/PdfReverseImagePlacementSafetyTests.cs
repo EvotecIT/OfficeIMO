@@ -1390,7 +1390,7 @@ public sealed class PdfReverseImagePlacementSafetyTests {
         }
     }
 
-    private static PdfDocument CreateDocument() => PdfDocument.Create(new PdfCreateOptions {
+    private static PdfDocument CreateDocument() => PdfDocument.Create(new PdfCreateOptions { BackgroundColor = null,
         PageWidth = 160D,
         PageHeight = 160D,
         MarginLeft = 0D,

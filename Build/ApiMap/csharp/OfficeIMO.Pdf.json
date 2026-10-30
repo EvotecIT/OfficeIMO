@@ -3696,6 +3696,29 @@
         "OfficeIMO.Pdf/Reading/Layout/TableDetector.ColumnRefinement.cs",
         "OfficeIMO.Pdf.Tests/Pdf/PdfModernTableReadbackTests.cs"
       ]
+    },
+    {
+      "phase": "B",
+      "action": "change",
+      "applied": "phase-b-applied",
+      "old": "Native PDF geometry/transparency fixtures implicitly rely on an unpainted background, historical page margins or grid table styling.",
+      "new": "Fixtures supply explicit transparent backgrounds, measured margins and table/paragraph styles while Modern remains the creation default.",
+      "reason": "Saved-path, alpha, redaction-region, footnote reservation and image-frame controls must distinguish their explicit measured content from optional theme paint and inherited typography.",
+      "note": "The changed native fixture families pass 580 cases on net10.0. This is focused proof; the full PDF suite still has other default/theme-related findings under review. The visual baseline snapshots are unchanged.",
+      "files": [
+        "OfficeIMO.Pdf.Tests/Pdf/PdfColumnFrameRegressionTests.cs",
+        "OfficeIMO.Pdf.Tests/Pdf/PdfContainerClosingPaddingTests.cs",
+        "OfficeIMO.Pdf.Tests/Pdf/PdfDocumentCanvasTests.cs",
+        "OfficeIMO.Pdf.Tests/Pdf/PdfDocumentImageValidationTests.cs",
+        "OfficeIMO.Pdf.Tests/Pdf/PdfDrawingLineMarkerTests.cs",
+        "OfficeIMO.Pdf.Tests/Pdf/PdfDrawingLuminosityMaskWriterTests.cs",
+        "OfficeIMO.Pdf.Tests/Pdf/PdfGradientStrokeTests.cs",
+        "OfficeIMO.Pdf.Tests/Pdf/PdfInlineRuleTests.cs",
+        "OfficeIMO.Pdf.Tests/Pdf/PdfPageFootnoteTests.cs",
+        "OfficeIMO.Pdf.Tests/Pdf/PdfRedactionRegionAndAnnotationTests.cs",
+        "OfficeIMO.Pdf.Tests/Pdf/PdfReverseImagePlacementSafetyTests.cs",
+        "OfficeIMO.Pdf.Tests/Pdf/RichParagraphWrappingTrailingTabRenderTests.cs"
+      ]
     }
   ],
   "applicationStatus": "Phase A applied and validated on the supported macOS targets. Phase B and Tier 2 entries retain their status; Windows .NET Framework validation remains pending.",

@@ -13,7 +13,7 @@ namespace OfficeIMO.Tests.Pdf;
 public class PdfDocumentCanvasTests {
     [Fact]
     public void CanvasFormDataExportOmitsNoExportFields() {
-        byte[] bytes = PdfDocument.Create()
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { BackgroundColor = null })
             .Canvas(canvas => canvas
                 .TextField("enabled", "included", global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(120D), global::OfficeIMO.OfficeLength.Points(20D))
                 .TextField("disabled", "excluded", global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(50D), global::OfficeIMO.OfficeLength.Points(120D), global::OfficeIMO.OfficeLength.Points(20D), style: new PdfFormFieldStyle { IsNoExport = true }))
@@ -31,7 +31,7 @@ public class PdfDocumentCanvasTests {
             IsRequired = true,
             AlternateName = "Contact name"
         };
-        byte[] bytes = PdfDocument.Create()
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { BackgroundColor = null })
             .Canvas(canvas => canvas
                 .TextField("ContactName", "Ada", global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(30D), global::OfficeIMO.OfficeLength.Points(160D), global::OfficeIMO.OfficeLength.Points(24D), style: textStyle)
                 .CheckBox("ContactAccept", true, 20D, 70D, 16D, 16D)
@@ -84,7 +84,7 @@ public class PdfDocumentCanvasTests {
 
     [Fact]
     public void CanvasChoiceField_StringMultiSelectNormalizesDuplicateValuesBeforeSerialization() {
-        byte[] bytes = PdfDocument.Create()
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { BackgroundColor = null })
             .Canvas(canvas => canvas.ChoiceField(
                 "Choice",
                 new[] { "A", "B" },
@@ -131,7 +131,7 @@ public class PdfDocumentCanvasTests {
     [Fact]
     public void CanvasEditableComboFieldsAllowCustomScalarValues() {
         var style = new PdfFormFieldStyle { IsEditableChoice = true };
-        byte[] bytes = PdfDocument.Create()
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { BackgroundColor = null })
             .Canvas(canvas => canvas
                 .ChoiceField("Strings", new[] { "A", "B" }, new[] { "Custom" }, 20D, 20D, 120D, 24D, style: style)
                 .ChoiceField("Options", new[] {
@@ -167,7 +167,7 @@ public class PdfDocumentCanvasTests {
 
     [Fact]
     public void CanvasRadioButtons_CanStartWithNoSelectedWidget() {
-        byte[] bytes = PdfDocument.Create()
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { BackgroundColor = null })
             .Canvas(canvas => canvas
                 .RadioButton("Preference", "One", false, 20D, 20D, 14D, 14D)
                 .RadioButton("Preference", "Two", false, 50D, 20D, 14D, 14D))
@@ -181,7 +181,7 @@ public class PdfDocumentCanvasTests {
 
     [Fact]
     public void CanvasRadioButtons_CanShareOneFieldAcrossPages() {
-        byte[] bytes = PdfDocument.Create()
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { BackgroundColor = null })
             .Page(page => page.Canvas(canvas => canvas.RadioButton("AcrossPages", "First", false, 20D, 20D, 14D, 14D)))
             .Page(page => page.Canvas(canvas => canvas.RadioButton("AcrossPages", "Second", true, 20D, 20D, 14D, 14D)))
             .ToBytes();
@@ -195,7 +195,7 @@ public class PdfDocumentCanvasTests {
 
     [Fact]
     public void CanvasRadioButtons_NormalizeMultipleCrossPageSelectionsToTheLastOption() {
-        byte[] bytes = PdfDocument.Create()
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { BackgroundColor = null })
             .Page(page => page.Canvas(canvas => canvas.RadioButton("AcrossPages", "First", true, 20D, 20D, 14D, 14D)))
             .Page(page => page.Canvas(canvas => canvas.RadioButton("AcrossPages", "Second", true, 20D, 20D, 14D, 14D)))
             .ToBytes();
@@ -208,7 +208,7 @@ public class PdfDocumentCanvasTests {
 
     [Fact]
     public void CanvasRadioButtons_CanUseDifferentWidgetDimensionsWithinOneField() {
-        byte[] bytes = PdfDocument.Create()
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { BackgroundColor = null })
             .Canvas(canvas => canvas
                 .RadioButton("VariableSize", "Small", false, 20D, 20D, 12D, 12D)
                 .RadioButton("VariableSize", "Large", true, 60D, 20D, 24D, 18D))
@@ -229,7 +229,7 @@ public class PdfDocumentCanvasTests {
         var disabled = new PdfFormFieldStyle { IsReadOnly = true, IsNoExport = true };
         PdfFormFieldStyle first = disabledFirst ? disabled : enabled;
         PdfFormFieldStyle second = disabledFirst ? enabled : disabled;
-        PdfDocument document = PdfDocument.Create()
+        PdfDocument document = PdfDocument.Create(new PdfCreateOptions { BackgroundColor = null })
             .Canvas(canvas => canvas
                 .RadioButton("MixedState", "First", false, 20D, 20D, 14D, 14D, first)
                 .RadioButton("MixedState", "Second", true, 50D, 20D, 14D, 14D, second));
@@ -241,7 +241,7 @@ public class PdfDocumentCanvasTests {
 
     [Fact]
     public void CanvasRadioButtons_RejectMixedFieldLevelStateAcrossPages() {
-        PdfDocument document = PdfDocument.Create()
+        PdfDocument document = PdfDocument.Create(new PdfCreateOptions { BackgroundColor = null })
             .Page(page => page.Canvas(canvas => canvas.RadioButton("MixedPages", "First", false, 20D, 20D, 14D, 14D)))
             .Page(page => page.Canvas(canvas => canvas.RadioButton(
                 "MixedPages",
@@ -258,7 +258,7 @@ public class PdfDocumentCanvasTests {
 
     [Fact]
     public void CanvasRadioButtons_CanSeparateAppearanceStatesFromUnicodeExportValues() {
-        byte[] bytes = PdfDocument.Create()
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { BackgroundColor = null })
             .Page(page => page.Canvas(canvas => canvas.RadioButtonWithExportValue("Preference", "Option1", "caf\u00E9", false, 20D, 20D, 14D, 14D)))
             .Page(page => page.Canvas(canvas => canvas.RadioButtonWithExportValue("Preference", "Option2", "th\u00E9", true, 50D, 20D, 14D, 14D)))
             .ToBytes();
@@ -272,7 +272,7 @@ public class PdfDocumentCanvasTests {
 
     [Fact]
     public void CanvasActualText_PreservesLogicalExtractionForReversePositionedFragments() {
-        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { CompressContentStreams = false })
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { BackgroundColor = null, CompressContentStreams = false })
             .TaggedPdfCatalogMarkers()
             .Canvas(canvas => canvas.ActualText("ABC", logical => logical
                 .Text("A", 50D, 10D, 10D, 20D)
@@ -286,7 +286,7 @@ public class PdfDocumentCanvasTests {
 
     [Fact]
     public void CanvasActualText_ReplacesTextInsideEffectGroupsWithoutDuplication() {
-        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { CompressContentStreams = false })
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { BackgroundColor = null, CompressContentStreams = false })
             .TaggedPdfCatalogMarkers()
             .Canvas(canvas => canvas.ActualText("AB", logical => logical
                 .Effect(OfficeIMO.Drawing.OfficeTransform.Identity, .5D, effect => effect.Text("A", 20D, 10D, 10D, 20D))
@@ -302,7 +302,7 @@ public class PdfDocumentCanvasTests {
     public void CanvasActualText_PreservesLogicalExtractionWithEmbeddedDefaultFont() {
         string? fontPath = PdfComplianceTestFonts.FindBundledTrueTypeFont();
         if (fontPath == null) return;
-        var options = new PdfCreateOptions { CompressContentStreams = false }
+        var options = new PdfCreateOptions { BackgroundColor = null, CompressContentStreams = false }
             .UseFontFamily(new PdfEmbeddedFontFamily("ActualText Embedded", File.ReadAllBytes(fontPath)));
 
         byte[] bytes = PdfDocument.Create(options)
@@ -317,7 +317,7 @@ public class PdfDocumentCanvasTests {
 
     [Fact]
     public void CanvasActualText_PositionedOverloadPreservesReadingOrderAndCoordinates() {
-        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { CompressContentStreams = false })
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { BackgroundColor = null, CompressContentStreams = false })
             .TaggedPdfCatalogMarkers()
             .Canvas(canvas => canvas
                 .ActualText("First", 20D, 30D, logical => logical.Shape(
@@ -350,7 +350,7 @@ public class PdfDocumentCanvasTests {
 
     [Fact]
     public void CanvasNamedDestinations_CreateReusableInternalNavigation() {
-        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { PageWidth = 200D, PageHeight = 200D })
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { BackgroundColor = null, PageWidth = 200D, PageHeight = 200D })
             .Canvas(canvas => canvas
                 .NamedDestination("details", 10D, 120D)
                 .Text("Details", 10D, 120D, 80D, 20D)
@@ -371,7 +371,7 @@ public class PdfDocumentCanvasTests {
     [Fact]
     public void CanvasNamedDestinationsPreserveUnicodeKeysAndByteOrdering() {
         const string name = "Earth’s\u00A0€";
-        byte[] bytes = PdfDocument.Create()
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { BackgroundColor = null })
             .Canvas(canvas => canvas.NamedDestination("Z", 10, 5)
                 .NamedDestination("ÿ", 10, 10)
                 .NamedDestination("’", 10, 20)
@@ -394,7 +394,7 @@ public class PdfDocumentCanvasTests {
 
     [Fact]
     public void CanvasStructure_GroupsFragmentedHeadingAndParagraphTextUnderSection() {
-        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { CompressContentStreams = false })
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { BackgroundColor = null, CompressContentStreams = false })
             .TaggedPdfCatalogMarkers()
             .Canvas(canvas => canvas
                 .Structure(PdfCanvasStructureRole.Section, section => section
@@ -415,7 +415,7 @@ public class PdfDocumentCanvasTests {
 
     [Fact]
     public void CanvasStructure_KeepsInteractiveFormWidgetsUnderTheActiveSemanticParent() {
-        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { CompressContentStreams = false })
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { BackgroundColor = null, CompressContentStreams = false })
             .TaggedPdfCatalogMarkers()
             .Canvas(canvas => canvas.Structure(PdfCanvasStructureRole.Section, section => section
                 .TextField("ContactName", "Ada", global::OfficeIMO.OfficeLength.Points(10D), global::OfficeIMO.OfficeLength.Points(10D), global::OfficeIMO.OfficeLength.Points(100D), global::OfficeIMO.OfficeLength.Points(20D))))
@@ -435,7 +435,7 @@ public class PdfDocumentCanvasTests {
             HeaderScope = PdfCanvasTableHeaderScope.Column,
             ColumnSpan = 2
         };
-        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { CompressContentStreams = false })
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { BackgroundColor = null, CompressContentStreams = false })
             .TaggedPdfCatalogMarkers()
             .Canvas(canvas => canvas
                 .Structure(PdfCanvasStructureRole.List, list => list
@@ -469,7 +469,7 @@ public class PdfDocumentCanvasTests {
     [Fact]
     public void CanvasStructure_FormulaRetainsDescriptionAndContentUnderItsDeclaredParent() {
         var options = new PdfCanvasStructureOptions { AlternativeText = "x squared" };
-        PdfDocument document = PdfDocument.Create().TaggedPdfCatalogMarkers().Canvas(canvas => canvas
+        PdfDocument document = PdfDocument.Create(new PdfCreateOptions { BackgroundColor = null }).TaggedPdfCatalogMarkers().Canvas(canvas => canvas
             .Structure(PdfCanvasStructureRole.Paragraph, paragraph => paragraph
                 .Structure(PdfCanvasStructureRole.Formula, formula => formula
                     .ActualText("x^(2)", paint => paint.Text("x2", 10D, 10D, 60D, 20D)), options)));
@@ -505,7 +505,7 @@ public class PdfDocumentCanvasTests {
 
     [Fact]
     public void CanvasArtifact_ExcludesDecorativeContentFromTheStructureTree() {
-        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { CompressContentStreams = false })
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { BackgroundColor = null, CompressContentStreams = false })
             .TaggedPdfCatalogMarkers()
             .Canvas(canvas => canvas
                 .Artifact(artifact => artifact
@@ -536,7 +536,7 @@ public class PdfDocumentCanvasTests {
     [Fact]
     public void CanvasArtifact_SuppressesEveryInteractiveDescendant() {
         const string uri = "https://evotec.xyz/decorative";
-        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { CompressContentStreams = false })
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { BackgroundColor = null, CompressContentStreams = false })
             .TaggedPdfCatalogMarkers()
             .Canvas(canvas => canvas.Artifact(artifact => artifact
                 .Text(new[] { PdfTextRun.Link("Decorative link", uri) }, 10D, 10D, 100D, 20D)
@@ -562,7 +562,7 @@ public class PdfDocumentCanvasTests {
 
     [Fact]
     public void CanvasOutline_SupportsPerEntryExpansionState() {
-        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { OutlineExpansionLevel = 0 })
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { BackgroundColor = null, OutlineExpansionLevel = 0 })
             .Canvas(canvas => canvas
                 .Outline("Open parent", 1, 10D, PdfOutlineState.Open)
                 .Outline("Open child", 2, 20D)
@@ -580,7 +580,7 @@ public class PdfDocumentCanvasTests {
 
     [Fact]
     public void CanvasFigure_GroupsMixedCanvasContentUnderOneTaggedFigure() {
-        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { CompressContentStreams = false })
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { BackgroundColor = null, CompressContentStreams = false })
             .TaggedPdfCatalogMarkers()
             .Canvas(canvas => canvas.Figure("Composite diagram", figure => figure
                 .Shape(OfficeShape.Rectangle(20D, 10D), 12D, 12D)
@@ -614,7 +614,7 @@ public class PdfDocumentCanvasTests {
                 "Nested image alternative text");
 
         foreach (double size in new[] { 20D, 40D }) {
-            byte[] bytes = PdfDocument.Create(new PdfCreateOptions { CompressContentStreams = false })
+            byte[] bytes = PdfDocument.Create(new PdfCreateOptions { BackgroundColor = null, CompressContentStreams = false })
                 .TaggedPdfCatalogMarkers()
                 .Canvas(canvas => canvas.Drawing(
                     drawing,
@@ -630,7 +630,7 @@ public class PdfDocumentCanvasTests {
             Assert.Equal("Outer drawing alternative text", figure.AlternateText);
             Assert.Equal(1, CountOccurrences(Encoding.ASCII.GetString(bytes), "/Figure <<"));
 
-            byte[] decorative = PdfDocument.Create(new PdfCreateOptions { CompressContentStreams = false })
+            byte[] decorative = PdfDocument.Create(new PdfCreateOptions { BackgroundColor = null, CompressContentStreams = false })
                 .Canvas(canvas => canvas.Drawing(
                     drawing,
                     10D,
@@ -645,7 +645,7 @@ public class PdfDocumentCanvasTests {
 
     [Fact]
     public void CanvasStructure_RetainedImageKeepsFigureUnderDeclaredParent() {
-        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { CompressContentStreams = false })
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { BackgroundColor = null, CompressContentStreams = false })
             .TaggedPdfCatalogMarkers()
             .Canvas(canvas => canvas.Structure(PdfCanvasStructureRole.Section, section => section
                 .Image(CreateMinimalRgbPng(), 10D, 10D, 20D, 20D, alternativeText: "Nested image alternative text")))
@@ -667,7 +667,7 @@ public class PdfDocumentCanvasTests {
                 new OfficeImageProjection(new OfficeImagePlacement(0D, 0D, 20D, 20D)),
                 "Clipped image alternative text");
 
-        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { BackgroundColor = null,
                 PageWidth = 120D,
                 PageHeight = 120D,
                 MarginLeft = 0D,
@@ -691,7 +691,7 @@ public class PdfDocumentCanvasTests {
 
     [Fact]
     public void CanvasText_RendersAtFixedTopLeftCoordinatesWithoutMovingFlowContent() {
-        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { BackgroundColor = null,
                 PageWidth = 240,
                 PageHeight = 160,
                 MarginLeft = 24,
@@ -717,7 +717,7 @@ public class PdfDocumentCanvasTests {
 
     [Fact]
     public void CanvasText_EmitsTypedHeadingStructureWhenTagged() {
-        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { CompressContentStreams = false })
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { BackgroundColor = null, CompressContentStreams = false })
             .TaggedPdfCatalogMarkers()
             .Canvas(canvas => canvas.Text(
                 new[] { PdfTextRun.Normal("Canvas semantic heading") },
@@ -749,7 +749,7 @@ public class PdfDocumentCanvasTests {
         shape.StrokeColor = global::OfficeIMO.OfficeColor.FromRgb(15, 98, 160);
         shape.StrokeWidth = 1.25D;
 
-        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { BackgroundColor = null,
                 PageWidth = 240,
                 PageHeight = 160,
                 CompressContentStreams = false
@@ -773,7 +773,7 @@ public class PdfDocumentCanvasTests {
         shape.StrokeMiterLimit = 7.5D;
         shape.SetStrokeDashArray(new[] { 9D, 3D, 1D }, 2.5D);
 
-        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { BackgroundColor = null,
                 PageWidth = 160D,
                 PageHeight = 80D,
                 MarginLeft = 0D,
@@ -801,7 +801,7 @@ public class PdfDocumentCanvasTests {
         shape.StrokeColor = global::OfficeIMO.OfficeColor.FromRgb(15, 98, 160);
         shape.StrokeWidth = 1D;
 
-        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { BackgroundColor = null,
                 PageWidth = 240,
                 PageHeight = 160,
                 CompressContentStreams = false
@@ -825,7 +825,7 @@ public class PdfDocumentCanvasTests {
         verticalLine.StrokeColor = global::OfficeIMO.OfficeColor.FromRgb(15, 98, 160);
         verticalLine.StrokeWidth = 2D;
 
-        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { BackgroundColor = null,
                 PageWidth = 240,
                 PageHeight = 180,
                 MarginLeft = 24,
@@ -859,7 +859,7 @@ public class PdfDocumentCanvasTests {
             global::OfficeIMO.OfficeColor.FromRgb(31, 78, 121),
             OfficeTextAlignment.Center);
 
-        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { BackgroundColor = null,
                 PageWidth = 240,
                 PageHeight = 140,
                 MarginLeft = 0,
@@ -891,7 +891,7 @@ public class PdfDocumentCanvasTests {
         shape.StrokeWidth = 0D;
         drawing.AddShape(shape, 0D, 0D);
 
-        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { BackgroundColor = null,
                 PageWidth = 240D,
                 PageHeight = 140D,
                 MarginLeft = 0D,
@@ -917,7 +917,7 @@ public class PdfDocumentCanvasTests {
                 "image/png",
                 new OfficeImageProjection(new OfficeImagePlacement(0D, 0D, 20D, 20D)));
 
-        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { BackgroundColor = null,
                 PageWidth = 120D,
                 PageHeight = 120D,
                 MarginLeft = 0D,
@@ -945,7 +945,7 @@ public class PdfDocumentCanvasTests {
         var drawing = new OfficeDrawing(100D, 50D)
             .AddEffectDrawing(source, OfficeTransform.Translate(40D, 0D));
 
-        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { BackgroundColor = null,
                 PageWidth = 120D,
                 PageHeight = 120D,
                 MarginLeft = 0D,
@@ -967,7 +967,7 @@ public class PdfDocumentCanvasTests {
             .AddShape(OfficeShape.Line(0, 0, 80, 0), 10, 10)
             .AddShape(OfficeShape.Line(0, 0, 0, 50), 20, 10);
 
-        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { BackgroundColor = null,
                 PageWidth = 240,
                 PageHeight = 180,
                 MarginLeft = 24,
@@ -995,7 +995,7 @@ public class PdfDocumentCanvasTests {
                 global::OfficeIMO.OfficeColor.FromRgb(31, 78, 121),
                 OfficeTextAlignment.Center);
 
-        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { BackgroundColor = null,
                 PageWidth = 240,
                 PageHeight = 160,
                 MarginLeft = 24,
@@ -1014,7 +1014,7 @@ public class PdfDocumentCanvasTests {
 
     [Fact]
     public void CanvasImage_RendersImageAtFixedTopLeftCoordinatesWithAltText() {
-        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { BackgroundColor = null,
                 PageWidth = 240,
                 PageHeight = 160,
                 CompressContentStreams = false
@@ -1031,7 +1031,7 @@ public class PdfDocumentCanvasTests {
 
     [Fact]
     public void CanvasImage_WithSourceCrop_ClipsAndOffsetsImageInsideDeclaredFrame() {
-        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { BackgroundColor = null,
                 PageWidth = 240,
                 PageHeight = 160,
                 CompressContentStreams = false
@@ -1055,7 +1055,7 @@ public class PdfDocumentCanvasTests {
 
     [Fact]
     public void CanvasImage_WithRotation_RendersImageAroundDeclaredFrameCenter() {
-        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { BackgroundColor = null,
                 PageWidth = 240,
                 PageHeight = 160,
                 CompressContentStreams = false
@@ -1076,7 +1076,7 @@ public class PdfDocumentCanvasTests {
         shape.StrokeColor = global::OfficeIMO.OfficeColor.FromRgb(15, 98, 160);
         shape.StrokeWidth = 1D;
 
-        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { BackgroundColor = null,
                 PageWidth = 240,
                 PageHeight = 160,
                 CompressContentStreams = false
@@ -1097,7 +1097,7 @@ public class PdfDocumentCanvasTests {
 
     [Fact]
     public void CanvasTextBox_RendersStyledBoxAndClippedTextAtFixedCoordinates() {
-        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { BackgroundColor = null,
                 PageWidth = 260,
                 PageHeight = 180,
                 CompressContentStreams = false
@@ -1169,7 +1169,7 @@ public class PdfDocumentCanvasTests {
     [Fact]
     public void CanvasTextBox_ReportsClippedContentDuringRender() {
         PdfLayoutDiagnostic? diagnostic = null;
-        PdfDocument document = PdfDocument.Create(new PdfCreateOptions {
+        PdfDocument document = PdfDocument.Create(new PdfCreateOptions { BackgroundColor = null,
                 PageWidth = 180,
                 PageHeight = 120,
                 MarginLeft = 0,
@@ -1210,7 +1210,7 @@ public class PdfDocumentCanvasTests {
 
     [Fact]
     public void CanvasTextBox_WithAsymmetricPadding_UsesIndividualEdges() {
-        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { BackgroundColor = null,
                 PageWidth = 260,
                 PageHeight = 180,
                 CompressContentStreams = false
@@ -1244,7 +1244,7 @@ public class PdfDocumentCanvasTests {
                 VerticalAlign = verticalAlign
             };
 
-        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { BackgroundColor = null,
                 PageWidth = 360,
                 PageHeight = 200,
                 CompressContentStreams = false
@@ -1283,7 +1283,7 @@ public class PdfDocumentCanvasTests {
         shape.StrokeColor = global::OfficeIMO.OfficeColor.FromRgb(30, 64, 175);
         shape.StrokeWidth = 1D;
 
-        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { BackgroundColor = null,
                 PageWidth = 260,
                 PageHeight = 180,
                 CompressContentStreams = false
@@ -1329,7 +1329,7 @@ public class PdfDocumentCanvasTests {
             }
         };
 
-        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { BackgroundColor = null,
                 PageWidth = 240,
                 PageHeight = 180,
                 CompressContentStreams = false
@@ -1357,7 +1357,7 @@ public class PdfDocumentCanvasTests {
 
     [Fact]
     public void CanvasTable_EmitsNestedTableRowAndCellStructure() {
-        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { BackgroundColor = null,
                 TaggedStructureMode = PdfTaggedStructureMode.CatalogMarkers
             })
             .Canvas(canvas => canvas.Structure(PdfCanvasStructureRole.Section, section => section
@@ -1401,7 +1401,7 @@ public class PdfDocumentCanvasTests {
     [Fact]
     public void CanvasTable_ReportsClippedCellContentDuringRender() {
         var diagnostics = new List<PdfLayoutDiagnostic>();
-        PdfDocument document = PdfDocument.Create(new PdfCreateOptions {
+        PdfDocument document = PdfDocument.Create(new PdfCreateOptions { BackgroundColor = null,
                 PageWidth = 220,
                 PageHeight = 140,
                 MarginLeft = 0,
@@ -1446,7 +1446,7 @@ public class PdfDocumentCanvasTests {
 
     [Fact]
     public void CanvasTable_WithRotation_RendersInsideRotatedFrame() {
-        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { BackgroundColor = null,
                 PageWidth = 240,
                 PageHeight = 180,
                 CompressContentStreams = false
@@ -1454,7 +1454,7 @@ public class PdfDocumentCanvasTests {
             .Canvas(canvas => canvas.Table(new[] {
                 new[] { "Name", "Score" },
                 new[] { "OfficeIMO", "99" }
-            }, 30, 30, 120, 60, rotationAngle: 90D))
+            }, 30, 30, 120, 60, new PdfTableStyle(), rotationAngle: 90D))
             .ToBytes();
 
         string raw = Encoding.ASCII.GetString(bytes);
@@ -1477,7 +1477,7 @@ public class PdfDocumentCanvasTests {
             }
         };
 
-        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { BackgroundColor = null,
                 PageWidth = 220,
                 PageHeight = 160,
                 CompressContentStreams = false
@@ -1509,7 +1509,7 @@ public class PdfDocumentCanvasTests {
             }
         };
 
-        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { BackgroundColor = null,
                 PageWidth = 220,
                 PageHeight = 160,
                 CompressContentStreams = false
@@ -1544,7 +1544,7 @@ public class PdfDocumentCanvasTests {
             }
         };
 
-        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { BackgroundColor = null,
                 PageWidth = 220,
                 PageHeight = 160,
                 CompressContentStreams = false
@@ -1568,14 +1568,14 @@ public class PdfDocumentCanvasTests {
 
     [Fact]
     public void CanvasClip_RequiresWidgetsToBeFullyContainedByRectangularClips() {
-        Assert.Throws<ArgumentException>(() => PdfDocument.Create().Canvas(canvas => canvas.Clip(
+        Assert.Throws<ArgumentException>(() => PdfDocument.Create(new PdfCreateOptions { BackgroundColor = null }).Canvas(canvas => canvas.Clip(
             20D,
             20D,
             50D,
             30D,
             clipped => clipped.TextField("Partial", "Ada", global::OfficeIMO.OfficeLength.Points(50D), global::OfficeIMO.OfficeLength.Points(10D), global::OfficeIMO.OfficeLength.Points(40D), global::OfficeIMO.OfficeLength.Points(20D)))).ToBytes());
 
-        byte[] contained = PdfDocument.Create().Canvas(canvas => canvas.Clip(
+        byte[] contained = PdfDocument.Create(new PdfCreateOptions { BackgroundColor = null }).Canvas(canvas => canvas.Clip(
             20D,
             20D,
             80D,
@@ -1588,7 +1588,7 @@ public class PdfDocumentCanvasTests {
             OfficePathCommand.LineTo(80D, 0D),
             OfficePathCommand.LineTo(40D, 40D),
             OfficePathCommand.Close());
-        Assert.Throws<ArgumentException>(() => PdfDocument.Create().Canvas(canvas => canvas.Clip(
+        Assert.Throws<ArgumentException>(() => PdfDocument.Create(new PdfCreateOptions { BackgroundColor = null }).Canvas(canvas => canvas.Clip(
             20D,
             20D,
             triangle,
@@ -1597,7 +1597,7 @@ public class PdfDocumentCanvasTests {
 
     [Fact]
     public void CanvasClip_EmptyPathSuppressesFormFields() {
-        byte[] bytes = PdfDocument.Create().Canvas(canvas => canvas.Clip(
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { BackgroundColor = null }).Canvas(canvas => canvas.Clip(
             20D,
             20D,
             OfficeClipPath.Empty(),
@@ -1611,7 +1611,7 @@ public class PdfDocumentCanvasTests {
 
     [Fact]
     public void CanvasClip_ClipsVisualAnnotationsInsideFrame() {
-        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { BackgroundColor = null,
                 PageWidth = 220,
                 PageHeight = 160,
                 CompressContentStreams = false
@@ -1652,7 +1652,7 @@ public class PdfDocumentCanvasTests {
             OfficePathCommand.LineTo(100D, 0D),
             OfficePathCommand.LineTo(0D, 80D),
             OfficePathCommand.Close());
-        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { BackgroundColor = null,
                 PageWidth = 220,
                 PageHeight = 160
             })
@@ -1685,7 +1685,7 @@ public class PdfDocumentCanvasTests {
 
     [Fact]
     public void CanvasClip_PreservesInlineImageClipPathInsideFrame() {
-        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { BackgroundColor = null,
                 PageWidth = 220,
                 PageHeight = 160,
                 CompressContentStreams = false
@@ -1703,7 +1703,7 @@ public class PdfDocumentCanvasTests {
 
     [Fact]
     public void CanvasClip_AcceptsRoundedSharedClipPath() {
-        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { BackgroundColor = null,
                 PageWidth = 220,
                 PageHeight = 160,
                 CompressContentStreams = false
@@ -1725,7 +1725,7 @@ public class PdfDocumentCanvasTests {
             OfficePathCommand.LineTo(100, 0),
             OfficePathCommand.LineTo(50, 80),
             OfficePathCommand.Close());
-        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { BackgroundColor = null,
                 PageWidth = 220,
                 PageHeight = 160,
                 CompressContentStreams = false
@@ -1741,7 +1741,7 @@ public class PdfDocumentCanvasTests {
 
     [Fact]
     public void CanvasTable_SkipsVerticalGridDividersInsideMergedCells() {
-        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { BackgroundColor = null,
                 PageWidth = 240,
                 PageHeight = 180,
                 CompressContentStreams = false
@@ -1749,7 +1749,7 @@ public class PdfDocumentCanvasTests {
             .Canvas(canvas => canvas.Table(new[] {
                 new[] { PdfTableCell.Span("Merged", 2) },
                 new[] { PdfTableCell.TextCell("Left"), PdfTableCell.TextCell("Right") }
-            }, 30, 30, 120, 60))
+            }, 30, 30, 120, 60, new PdfTableStyle()))
             .ToBytes();
 
         string raw = Encoding.ASCII.GetString(bytes);
@@ -1761,7 +1761,7 @@ public class PdfDocumentCanvasTests {
 
     [Fact]
     public void CanvasTable_RejectsUnboundedLogicalGridBeforeRendering() {
-        PdfDocument document = PdfDocument.Create(new PdfCreateOptions {
+        PdfDocument document = PdfDocument.Create(new PdfCreateOptions { BackgroundColor = null,
                 PageWidth = 240,
                 PageHeight = 180
             })
@@ -1775,7 +1775,7 @@ public class PdfDocumentCanvasTests {
 
     [Fact]
     public void CanvasTable_RowSpanSkipsContinuationRowStripeFill() {
-        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { BackgroundColor = null,
                 PageWidth = 240,
                 PageHeight = 180,
                 CompressContentStreams = false
@@ -1800,7 +1800,7 @@ public class PdfDocumentCanvasTests {
 
     [Fact]
     public void CanvasTextBox_WithRotation_RendersBoxAndTextInsideRotatedGroup() {
-        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { BackgroundColor = null,
                 PageWidth = 260,
                 PageHeight = 180,
                 CompressContentStreams = false
@@ -1826,7 +1826,7 @@ public class PdfDocumentCanvasTests {
     [Fact]
     public void CanvasTextBox_InvalidPadding_ThrowsClearDiagnostic() {
         ArgumentException ex = Assert.Throws<ArgumentException>(() =>
-            PdfDocument.Create(new PdfCreateOptions {
+            PdfDocument.Create(new PdfCreateOptions { BackgroundColor = null,
                     PageWidth = 100,
                     PageHeight = 100
                 })
@@ -1841,19 +1841,19 @@ public class PdfDocumentCanvasTests {
     public void CanvasRotation_NonFiniteAngle_ThrowsClearDiagnostic() {
         var shape = OfficeShape.Rectangle(10, 10);
         Assert.Throws<ArgumentOutOfRangeException>(() =>
-            PdfDocument.Create()
+            PdfDocument.Create(new PdfCreateOptions { BackgroundColor = null })
                 .Canvas(canvas => canvas.TextBox("Bad", 0, 0, 10, 10, rotationAngle: double.NegativeInfinity)));
 
         Assert.Throws<ArgumentOutOfRangeException>(() =>
-            PdfDocument.Create()
+            PdfDocument.Create(new PdfCreateOptions { BackgroundColor = null })
                 .Canvas(canvas => canvas.Shape(shape, 0, 0, rotationAngle: double.NaN)));
 
         Assert.Throws<ArgumentOutOfRangeException>(() =>
-            PdfDocument.Create()
+            PdfDocument.Create(new PdfCreateOptions { BackgroundColor = null })
                 .Canvas(canvas => canvas.Image(CreateMinimalRgbPng(), 0, 0, 10, 10, rotationAngle: double.PositiveInfinity)));
 
         Assert.Throws<ArgumentOutOfRangeException>(() =>
-            PdfDocument.Create()
+            PdfDocument.Create(new PdfCreateOptions { BackgroundColor = null })
                 .Canvas(canvas => canvas.Table(new[] { new[] { "Bad" } }, 0, 0, 10, 10, rotationAngle: double.NaN)));
     }
 
@@ -1912,7 +1912,7 @@ public class PdfDocumentCanvasTests {
 
     [Fact]
     public void CanvasImage_AppliesFitAfterSourceCrop() {
-        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { BackgroundColor = null,
                 PageWidth = 100,
                 PageHeight = 100,
                 MarginLeft = 0,
@@ -1942,7 +1942,7 @@ public class PdfDocumentCanvasTests {
     [Fact]
     public void CanvasEffect_WritesIsolatedFormAndTransformsSearchableLinkedText() {
         const string uri = "https://evotec.xyz/canvas-effect";
-        PdfCreateOptions options = new PdfCreateOptions {
+        PdfCreateOptions options = new PdfCreateOptions { BackgroundColor = null,
             PageWidth = 140,
             PageHeight = 100,
             MarginLeft = 0,
@@ -1981,7 +1981,7 @@ public class PdfDocumentCanvasTests {
         highlight.FillColor = OfficeColor.FromRgb(255, 230, 70);
         highlight.StrokeWidth = 0D;
 
-        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { BackgroundColor = null,
                 PageWidth = 180D,
                 PageHeight = 100D,
                 MarginLeft = 0D,
@@ -2007,7 +2007,7 @@ public class PdfDocumentCanvasTests {
 
     [Fact]
     public void CanvasEffect_CombinesOpacityAndBlendModeInOneGraphicsState() {
-        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { CompressContentStreams = false })
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { BackgroundColor = null, CompressContentStreams = false })
             .Canvas(canvas => canvas.Effect(
                 OfficeTransform.Identity,
                 0.4D,
@@ -2021,17 +2021,17 @@ public class PdfDocumentCanvasTests {
 
     [Fact]
     public void CanvasEffect_RejectsInvalidOpacity() {
-        Assert.Throws<ArgumentOutOfRangeException>(() => PdfDocument.Create().Canvas(canvas =>
+        Assert.Throws<ArgumentOutOfRangeException>(() => PdfDocument.Create(new PdfCreateOptions { BackgroundColor = null }).Canvas(canvas =>
             canvas.Effect(OfficeTransform.Identity, double.NaN, _ => { })));
-        Assert.Throws<ArgumentNullException>(() => PdfDocument.Create().Canvas(canvas =>
+        Assert.Throws<ArgumentNullException>(() => PdfDocument.Create(new PdfCreateOptions { BackgroundColor = null }).Canvas(canvas =>
             canvas.Effect(OfficeTransform.Identity, 1D, null!)));
-        Assert.Throws<ArgumentOutOfRangeException>(() => PdfDocument.Create().Canvas(canvas =>
+        Assert.Throws<ArgumentOutOfRangeException>(() => PdfDocument.Create(new PdfCreateOptions { BackgroundColor = null }).Canvas(canvas =>
             canvas.WithBlendMode((OfficeBlendMode)99, _ => { })));
     }
 
     [Fact]
     public void CanvasEffect_IdentityOpaqueInlinesContentWithoutRedundantFormXObject() {
-        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { CompressContentStreams = false })
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { BackgroundColor = null, CompressContentStreams = false })
             .Canvas(canvas => canvas.Effect(
                 OfficeTransform.Identity,
                 1D,
@@ -2047,7 +2047,7 @@ public class PdfDocumentCanvasTests {
     [Fact]
     public void CanvasEffect_OpaqueTransformInlinesContentAndTransformsLinks() {
         const string uri = "https://evotec.xyz/opaque-effect";
-        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { CompressContentStreams = false })
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { BackgroundColor = null, CompressContentStreams = false })
             .Canvas(canvas => canvas.Effect(
                 OfficeTransform.Translate(12D, 7D),
                 1D,
@@ -2069,7 +2069,7 @@ public class PdfDocumentCanvasTests {
         OfficeDrawing drawing = new OfficeDrawing(120D, 40D)
             .AddEffectDrawing(source, OfficeTransform.Translate(10D, 5D));
 
-        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { CompressContentStreams = false })
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { BackgroundColor = null, CompressContentStreams = false })
             .Drawing(drawing)
             .ToBytes();
 
@@ -2081,14 +2081,14 @@ public class PdfDocumentCanvasTests {
 
     [Fact]
     public void CanvasEffect_RejectsInteractiveFieldsInNontrivialEffects() {
-        Assert.Throws<ArgumentException>(() => PdfDocument.Create().Canvas(canvas =>
+        Assert.Throws<ArgumentException>(() => PdfDocument.Create(new PdfCreateOptions { BackgroundColor = null }).Canvas(canvas =>
             canvas.Effect(OfficeTransform.RotateDegrees(45D), 0.5D, nested =>
                 nested.TextField("Name", "Ada", global::OfficeIMO.OfficeLength.Points(10D), global::OfficeIMO.OfficeLength.Points(10D), global::OfficeIMO.OfficeLength.Points(80D), global::OfficeIMO.OfficeLength.Points(20D)))));
-        Assert.Throws<ArgumentException>(() => PdfDocument.Create().Canvas(canvas =>
+        Assert.Throws<ArgumentException>(() => PdfDocument.Create(new PdfCreateOptions { BackgroundColor = null }).Canvas(canvas =>
             canvas.WithBlendMode(OfficeBlendMode.Multiply, nested =>
                 nested.TextField("Name", "Ada", global::OfficeIMO.OfficeLength.Points(10D), global::OfficeIMO.OfficeLength.Points(10D), global::OfficeIMO.OfficeLength.Points(80D), global::OfficeIMO.OfficeLength.Points(20D)))));
 
-        byte[] identityBytes = PdfDocument.Create().Canvas(canvas =>
+        byte[] identityBytes = PdfDocument.Create(new PdfCreateOptions { BackgroundColor = null }).Canvas(canvas =>
             canvas.Effect(OfficeTransform.Identity, 1D, nested =>
                 nested.TextField("Name", "Ada", global::OfficeIMO.OfficeLength.Points(10D), global::OfficeIMO.OfficeLength.Points(10D), global::OfficeIMO.OfficeLength.Points(80D), global::OfficeIMO.OfficeLength.Points(20D)))).ToBytes();
         Assert.Single(PdfInspector.Inspect(identityBytes).FormFields);
@@ -2096,7 +2096,7 @@ public class PdfDocumentCanvasTests {
 
     [Fact]
     public void CanvasMultiSelect_SerializesSelectionsInOptionOrder() {
-        byte[] bytes = PdfDocument.Create().Canvas(canvas => canvas.ChoiceField(
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { BackgroundColor = null }).Canvas(canvas => canvas.ChoiceField(
             "Letters",
             new[] { "A", "B", "C" },
             new[] { "C", "A" },
@@ -2114,7 +2114,7 @@ public class PdfDocumentCanvasTests {
 
     [Fact]
     public void CanvasItem_OutsidePageBounds_ThrowsClearDiagnostic() {
-        var doc = PdfDocument.Create(new PdfCreateOptions {
+        var doc = PdfDocument.Create(new PdfCreateOptions { BackgroundColor = null,
                 PageWidth = 100,
                 PageHeight = 100,
                 MarginLeft = 10,
@@ -2163,7 +2163,7 @@ public class PdfDocumentCanvasTests {
     }
 
     private static PdfCreateOptions CreateCanvasOptions() =>
-        new PdfCreateOptions {
+        new PdfCreateOptions { BackgroundColor = null,
             PageWidth = 260,
             PageHeight = 180,
             CompressContentStreams = false

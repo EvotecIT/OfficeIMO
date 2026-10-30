@@ -385,6 +385,7 @@ public partial class RichParagraphWrappingTests {
         return options;
     }
     private static PdfCreateOptions TrailingTabOptions() => new PdfCreateOptions {
+        BackgroundColor = null,
         PageWidth = 360D, PageHeight = 220D,
         MarginLeft = 36D, MarginRight = 36D, MarginTop = 36D, MarginBottom = 36D,
         DefaultFont = PdfStandardFont.Helvetica, DefaultFontSize = 12D

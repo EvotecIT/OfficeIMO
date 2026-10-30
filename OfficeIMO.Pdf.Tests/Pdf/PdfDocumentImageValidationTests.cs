@@ -932,7 +932,7 @@ public class PdfDocumentImageValidationTests {
     public void Image_WithContainFit_PreservesAspectRatioInsideTargetBox() {
         byte[] jpeg = CreateMinimalJpeg(200, 100);
 
-        byte[] bytes = PdfDocument.Create()
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { Margins = PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(72)) })
             .Image(jpeg, 100, 100, fit: OfficeImageFit.Contain)
             .ToBytes();
 
@@ -946,7 +946,7 @@ public class PdfDocumentImageValidationTests {
     public void Image_WithCoverFit_PreservesAspectRatioAndClipsToTargetBox() {
         byte[] jpeg = CreateMinimalJpeg(200, 100);
 
-        byte[] bytes = PdfDocument.Create()
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { Margins = PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(72)) })
             .Image(jpeg, 100, 100, fit: OfficeImageFit.Cover)
             .ToBytes();
 
@@ -970,7 +970,7 @@ public class PdfDocumentImageValidationTests {
     public void Image_WithClipPath_WritesClippingPathAroundImageXObject() {
         byte[] png = CreateMinimalRgbPng();
 
-        byte[] bytes = PdfDocument.Create()
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { Margins = PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(72)) })
             .Image(png, 24, 24, clipPath: OfficeClipPath.Rectangle(12, 12))
             .ToBytes();
 
@@ -1090,7 +1090,7 @@ public class PdfDocumentImageValidationTests {
     public void RowColumnImage_WithClipPath_WritesClippingPathAroundImageXObject() {
         byte[] png = CreateMinimalRgbPng();
 
-        byte[] bytes = PdfDocument.Create()
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { Margins = PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(72)) })
             .Compose(compose =>
                 compose.Page(page =>
                     page.Content(content =>

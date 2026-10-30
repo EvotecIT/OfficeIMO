@@ -21,7 +21,7 @@ public sealed class PdfDrawingLineMarkerTests {
         shape.StrokeEndMarker = new OfficeLineMarker(OfficeLineMarkerKind.Arrow, 18, 20);
         shape.Transform = OfficeTransform.RotateDegrees(30, 40, 0);
         var drawing = new OfficeDrawing(140, 100).AddShape(shape, 20, 50);
-        PdfDocument pdf = PdfDocument.Create().Compose(builder => builder.Page(page => page.Size(140, 100).Margin(0)
+        PdfDocument pdf = PdfDocument.Create(new PdfCreateOptions { BackgroundColor = null }).Compose(builder => builder.Page(page => page.Size(140, 100).Margin(0)
             .Canvas(canvas => canvas.Drawing(drawing, 0, 0, 140, 100))));
         OfficeDrawing read = PdfReadDocument.Open(pdf.ToBytes()).Pages[0].ToDrawing();
         OfficeShape[] painted = Shapes(read).Select(item => item.Shape).ToArray();
@@ -45,7 +45,7 @@ public sealed class PdfDrawingLineMarkerTests {
         shape.StrokeEndMarker = new OfficeLineMarker(OfficeLineMarkerKind.Arrow, 20, 20);
         shape.ClipPath = OfficeClipPath.Rectangle(60, 40);
         var drawing = new OfficeDrawing(140, 100).AddShape(shape, 20, 20);
-        byte[] bytes = PdfDocument.Create().Compose(builder => builder.Page(page => page.Size(140, 100).Margin(0)
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { BackgroundColor = null }).Compose(builder => builder.Page(page => page.Size(140, 100).Margin(0)
             .Canvas(canvas => canvas.Drawing(drawing, 0, 0, 140, 100)))).ToBytes();
         Assert.DoesNotContain("/Subtype /Image", System.Text.Encoding.ASCII.GetString(bytes));
         OfficeRasterImage image = OfficeDrawingRasterRenderer.Render(PdfPageImageRenderer.RenderPage(bytes));
@@ -76,7 +76,7 @@ public sealed class PdfDrawingLineMarkerTests {
         shape.StrokeEndMarker = new OfficeLineMarker(OfficeLineMarkerKind.Arrow, 20, 20);
         shape.Transform = OfficeTransform.RotateDegrees(30, 40, 20);
         shape.ClipPath = OfficeClipPath.Rectangle(80, 40);
-        byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { BackgroundColor = null,
             PageWidth = 200, PageHeight = 400, MarginTop = 100, MarginBottom = 100,
             MarginLeft = 20, MarginRight = 20
         }).Compose(compose => compose.Page(page => {
@@ -99,7 +99,7 @@ public sealed class PdfDrawingLineMarkerTests {
     [InlineData(true, true)]
     public void RunningMarkerClippingReportsPaintBeyondThePageButHonorsTheShapeClip(bool footer, bool clipped) {
         var report = new PdfConversionReport();
-        var options = new PdfCreateOptions {
+        var options = new PdfCreateOptions { BackgroundColor = null,
             PageWidth = 100, PageHeight = 100, MarginLeft = 10, MarginRight = 10,
             MarginTop = 20, MarginBottom = 20, HeaderOffsetY = 0, FooterOffsetY = 0
         }.ReportDiagnosticsTo(report, "OfficeIMO.Tests");
@@ -131,7 +131,7 @@ public sealed class PdfDrawingLineMarkerTests {
     [InlineData(true)]
     public void RunningGradientArrowReportsPhysicalPageClipping(bool radial) {
         var report = new PdfConversionReport();
-        var options = new PdfCreateOptions { PageWidth = 100, PageHeight = 100, MarginLeft = 10, MarginRight = 10,
+        var options = new PdfCreateOptions { BackgroundColor = null, PageWidth = 100, PageHeight = 100, MarginLeft = 10, MarginRight = 10,
             MarginTop = 20, MarginBottom = 20, HeaderOffsetY = 0 }.ReportDiagnosticsTo(report, "OfficeIMO.Tests");
         var shape = OfficeShape.Path(70, 1, OfficePathCommand.MoveTo(0, .5), OfficePathCommand.LineTo(70, .5));
         shape.StrokeWidth = 2;
@@ -154,7 +154,7 @@ public sealed class PdfDrawingLineMarkerTests {
     [InlineData(true, true)]
     public void RunningPaintBoundsUseTheEffectiveRadialGradient(bool radialVisible, bool marker) {
         var report = new PdfConversionReport();
-        var options = new PdfCreateOptions { PageWidth = 100, PageHeight = 100, MarginLeft = 10, MarginRight = 10,
+        var options = new PdfCreateOptions { BackgroundColor = null, PageWidth = 100, PageHeight = 100, MarginLeft = 10, MarginRight = 10,
             MarginTop = 20, MarginBottom = 20, HeaderOffsetY = 0 }.ReportDiagnosticsTo(report, "OfficeIMO.Tests");
         var linear = OfficeLinearGradient.Horizontal(radialVisible ? OfficeColor.Transparent : OfficeColor.Red,
             radialVisible ? OfficeColor.Transparent : OfficeColor.Blue);
@@ -182,7 +182,7 @@ public sealed class PdfDrawingLineMarkerTests {
     [Fact]
     public void RunningGradientArrowReportsDefaultRoundCapClipping() {
         var report = new PdfConversionReport();
-        var options = new PdfCreateOptions { PageWidth = 100, PageHeight = 100, MarginLeft = 10, MarginRight = 10,
+        var options = new PdfCreateOptions { BackgroundColor = null, PageWidth = 100, PageHeight = 100, MarginLeft = 10, MarginRight = 10,
             MarginTop = 31, MarginBottom = 20, HeaderOffsetY = 0 }.ReportDiagnosticsTo(report, "OfficeIMO.Tests");
         var shape = OfficeShape.Path(70, 1, OfficePathCommand.MoveTo(0, .5), OfficePathCommand.LineTo(70, .5));
         shape.StrokeColor = OfficeColor.Red; shape.StrokeWidth = 4; shape.StrokeLineJoin = OfficeStrokeLineJoin.Round;
@@ -200,7 +200,7 @@ public sealed class PdfDrawingLineMarkerTests {
     [InlineData(true)]
     public void FreeformMarkerClipRetainsOnlyPaintInsideThePage(bool gradient) {
         var report = new PdfConversionReport();
-        var options = new PdfCreateOptions { PageWidth = 100, PageHeight = 100, MarginLeft = 10, MarginRight = 10,
+        var options = new PdfCreateOptions { BackgroundColor = null, PageWidth = 100, PageHeight = 100, MarginLeft = 10, MarginRight = 10,
             MarginTop = 20, MarginBottom = 20, FooterOffsetY = 0 }.ReportDiagnosticsTo(report, "OfficeIMO.Tests");
         var shape = OfficeShape.Path(70, 30, OfficePathCommand.MoveTo(0, .5), OfficePathCommand.LineTo(70, .5));
         shape.StrokeWidth = 2;
@@ -221,7 +221,7 @@ public sealed class PdfDrawingLineMarkerTests {
     [Fact]
     public void RunningGradientShaftReportsPhysicalPageClipping() {
         var report = new PdfConversionReport();
-        var options = new PdfCreateOptions { PageWidth = 100, PageHeight = 100, MarginLeft = 10, MarginRight = 10,
+        var options = new PdfCreateOptions { BackgroundColor = null, PageWidth = 100, PageHeight = 100, MarginLeft = 10, MarginRight = 10,
             MarginTop = 1, MarginBottom = 20, HeaderOffsetY = 0 }.ReportDiagnosticsTo(report, "OfficeIMO.Tests");
         var shape = OfficeShape.Path(70, 1, OfficePathCommand.MoveTo(0, .5), OfficePathCommand.LineTo(70, .5));
         shape.StrokeWidth = 4; shape.StrokeGradient = OfficeLinearGradient.Horizontal(OfficeColor.Red, OfficeColor.Blue);
@@ -241,7 +241,7 @@ public sealed class PdfDrawingLineMarkerTests {
         shape.StrokeWidth = 2; shape.StrokeGradient = OfficeLinearGradient.Horizontal(OfficeColor.Red, OfficeColor.Blue);
         shape.ClipPath = OfficeClipPath.Path(commands);
         var report = new PdfConversionReport();
-        var options = new PdfCreateOptions { PageWidth = 100, PageHeight = 100, MarginLeft = 10, MarginRight = 10,
+        var options = new PdfCreateOptions { BackgroundColor = null, PageWidth = 100, PageHeight = 100, MarginLeft = 10, MarginRight = 10,
             MarginTop = 20, MarginBottom = 20, HeaderOffsetY = 0 }.ReportDiagnosticsTo(report, "OfficeIMO.Tests");
         byte[] bytes = PdfDocument.Create(options).Compose(b => b.Page(page => {
             page.Header(c => c.Shape(shape)); page.Content(c => c.Spacer(10));
@@ -265,7 +265,7 @@ public sealed class PdfDrawingLineMarkerTests {
         shape.StrokeWidth = 1; shape.StrokeColor = OfficeColor.Red;
         shape.StrokeStartMarker = new OfficeLineMarker(OfficeLineMarkerKind.Triangle, 10, 10);
         shape.StrokeEndMarker = new OfficeLineMarker(OfficeLineMarkerKind.Triangle, 10, 10);
-        byte[] bytes = PdfDocument.Create().Compose(b => b.Page(p => p.Size(100, 60).Margin(0)
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { BackgroundColor = null }).Compose(b => b.Page(p => p.Size(100, 60).Margin(0)
             .Canvas(c => c.Drawing(new OfficeDrawing(100, 60).AddShape(shape, 0, 0), 0, 0, 100, 60)))).ToBytes();
         Assert.Equal(2, Shapes(PdfReadDocument.Open(bytes).Pages[0].ToDrawing()).Count(item => item.Shape.FillColor == OfficeColor.Red));
         OfficeRasterImage image = OfficeDrawingRasterRenderer.Render(PdfPageImageRenderer.RenderPage(bytes));
@@ -286,7 +286,7 @@ public sealed class PdfDrawingLineMarkerTests {
             var xml = System.Xml.Linq.XElement.Parse(OfficeDrawingSvgExporter.ToSvg(new OfficeDrawing(40, 40).AddShape(shape, 0, 0)));
             Assert.Equal(2, xml.Descendants().Count(element => element.Name.LocalName == "polygon"));
         } else {
-            byte[] bytes = PdfDocument.Create().Shape(shape).ToBytes();
+            byte[] bytes = PdfDocument.Create(new PdfCreateOptions { BackgroundColor = null }).Shape(shape).ToBytes();
             Assert.Equal(2, Shapes(PdfReadDocument.Open(bytes).Pages[0].ToDrawing()).Count(item => item.Shape.FillColor == OfficeColor.Red));
         }
     }
@@ -303,7 +303,7 @@ public sealed class PdfDrawingLineMarkerTests {
             new OfficeGradientStop(0, OfficeColor.Red), new OfficeGradientStop(1, OfficeColor.Blue));
         else shape.StrokeGradient = new OfficeLinearGradient(0, 0, 1, 1,
             new OfficeGradientStop(0, OfficeColor.Red), new OfficeGradientStop(1, OfficeColor.Blue));
-        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { PageWidth = 1000, PageHeight = 1000,
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { BackgroundColor = null, PageWidth = 1000, PageHeight = 1000,
             MarginLeft = 10, MarginRight = 10 }).Shape(shape).ToBytes();
         Assert.DoesNotContain("/Subtype /Image", System.Text.Encoding.ASCII.GetString(bytes));
         Assert.Single(PdfReadDocument.Open(bytes).Pages);
@@ -318,7 +318,7 @@ public sealed class PdfDrawingLineMarkerTests {
         shape.StrokeColor = OfficeColor.Red; shape.StrokeWidth = 1;
         shape.StrokeStartMarker = new OfficeLineMarker(OfficeLineMarkerKind.Triangle, 1, 1);
         shape.StrokeEndMarker = new OfficeLineMarker(OfficeLineMarkerKind.Arrow, 1, 1);
-        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { PageWidth = 1000, PageHeight = 1000,
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { BackgroundColor = null, PageWidth = 1000, PageHeight = 1000,
             MarginLeft = 10, MarginRight = 10 }).Shape(shape).ToBytes();
         string text = OfficeIMO.Tests.Pdf.PdfTestContentText.ReadDecoded(bytes);
         Assert.Contains(" c", text);
@@ -336,7 +336,7 @@ public sealed class PdfDrawingLineMarkerTests {
             new OfficeGradientStop(0, OfficeColor.Transparent),
             new OfficeGradientStop(1, new OfficeColor(0, 0, 255, 128)));
         shape.StrokeEndMarker = new OfficeLineMarker(OfficeLineMarkerKind.Diamond, shaft ? 2 : 40, shaft ? 2 : 40);
-        var options = new PdfCreateOptions { PageWidth = 200, PageHeight = 200, MarginLeft = 30, MarginRight = 30,
+        var options = new PdfCreateOptions { BackgroundColor = null, PageWidth = 200, PageHeight = 200, MarginLeft = 30, MarginRight = 30,
             MarginTop = 30, MarginBottom = 30 };
         byte[] bytes = PdfDocument.Create(options).Shape(shape, linkUri: "https://example.test/marker").ToBytes();
         PdfLinkAnnotation link = Assert.Single(PdfInspector.Inspect(bytes).LinkAnnotations);
