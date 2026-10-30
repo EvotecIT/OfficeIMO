@@ -93,6 +93,14 @@ managed read establishes only the managed
 reader result. Native open, native resave and content fidelity are separate
 qualification requirements.
 
+The master alone references a generated margin-guide record (`0x4C`) through
+field 3, `OhMgPage`. Four typed guide rows form the full-page rectangle with
+coordinates `0,width,0,height`; page dimensions are explicit, with two column
+guides, two row guides and zero gutters. Optional gutter flags retain their native
+false defaults. Physical pages use their existing master relation for the native
+fallback. This supplies the calculated geometry used by the render consumer;
+native export qualification remains a separate check.
+
 Document field 3 points to a generated print block (`0x4B`) containing one empty
 typed `OplDnb` profile. The ordinary native open path accesses row zero of that
 array; an empty list is insufficient even when it passes structural validation.

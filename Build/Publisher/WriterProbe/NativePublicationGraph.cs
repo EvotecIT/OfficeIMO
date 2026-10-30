@@ -21,6 +21,7 @@ internal static class NativePublicationGraph {
         bool hasShape = kind != "blank";
         uint quillDocumentId = shapeId + (hasShape ? 1U : 0U);
         uint printBlockId = quillDocumentId + 3;
+        uint masterGeometryId = printBlockId + 1;
         byte[] references = Variable(2, 0xA0, Enumerable.Range(0, OrderedPageCount)
             .Select(index => Scalar(0, 0x70, firstPageId + (uint)index)).ToArray());
         byte[] document = Chunk(Scalar(1, 0x20, OrderedPageCount), references, Scalar(3, 0x70, printBlockId),
@@ -35,6 +36,7 @@ internal static class NativePublicationGraph {
                 Scalar(1, 0x20, containsShape ? 1U : 0U),
                 Variable(2, 0xA0, containsShape ? Scalar(0, 0x70, shapeId) : Array.Empty<byte>())
             };
+            if (isMaster) fields.Add(Scalar(3, 0x70, masterGeometryId));
             if (!isMaster) fields.Add(Scalar(0x0D, 0x68, masterId));
             fields.Add(Variable(0x0E, 0xC0, Encoding.Unicode.GetBytes(isMaster ? "A\0" : "\0")));
             fields.Add(Variable(0x0F, 0xC0, Encoding.Unicode.GetBytes(isMaster ? "Master Page A\0" : "\0")));
@@ -58,6 +60,7 @@ internal static class NativePublicationGraph {
         // supplies that row; its fields use the native decoder's defaults.
         chunks.Add(new NativeRecord(0x4B, documentId, Chunk(Scalar(1, 0x20, 1),
             Variable(2, 0x90, Variable(0, 0x88)))));
+        chunks.Add(new NativeRecord(0x4C, masterId, CandidateMasterGeometry.Create(width, height)));
         return new Graph(chunks, shapeId);
     }
 
