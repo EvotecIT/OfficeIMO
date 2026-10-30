@@ -45,7 +45,51 @@ namespace OfficeIMO.Excel.Pdf {
                     palette!));
             }
 
+            AddPivotTableVisuals(document, sheetName, visuals);
             return visuals;
+        }
+
+        /// <summary>
+        /// A pivot table prints with its pivot style: a coloured header row and a bold grand total
+        /// row with a rule above it. The built-in pivot styles share their palettes with the table
+        /// style of the same family and number, so the pivot area is drawn with that palette.
+        /// </summary>
+        private static void AddPivotTableVisuals(ExcelDocument document, string sheetName, List<StructuredTableVisualData> visuals) {
+            IReadOnlyList<ExcelPivotTableInfo> pivots;
+            try {
+                pivots = document.GetPivotTables();
+            } catch (InvalidOperationException) {
+                return;
+            }
+
+            foreach (ExcelPivotTableInfo pivot in pivots) {
+                if (!string.Equals(pivot.SheetName, sheetName, StringComparison.OrdinalIgnoreCase) ||
+                    string.IsNullOrWhiteSpace(pivot.PivotStyle) ||
+                    !pivot.PivotStyle!.StartsWith("PivotStyle", StringComparison.OrdinalIgnoreCase) ||
+                    !ExcelA1.TryParseRange(pivot.Location ?? string.Empty, out int firstRow, out int firstColumn, out int lastRow, out int lastColumn) ||
+                    lastRow <= firstRow) {
+                    continue;
+                }
+
+                string tableStyle = "TableStyle" + pivot.PivotStyle.Substring("PivotStyle".Length);
+                if (!ExcelBuiltInTableStylePaletteResolver.TryCreate(document, tableStyle, out ExcelBuiltInTableStylePalette? palette)) {
+                    continue;
+                }
+
+                bool hasGrandTotal = pivot.RowGrandTotals != false && pivot.RowFields.Count > 0;
+                visuals.Add(new StructuredTableVisualData(
+                    firstRow,
+                    firstColumn,
+                    lastRow,
+                    lastColumn,
+                    hasHeader: true,
+                    hasTotals: hasGrandTotal,
+                    showFirstColumn: false,
+                    showLastColumn: false,
+                    showRowStripes: false,
+                    showColumnStripes: false,
+                    palette!));
+            }
         }
 
         private static StructuredTableCellVisual? GetStructuredTableCellVisual(
