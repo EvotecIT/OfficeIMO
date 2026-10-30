@@ -126,6 +126,11 @@ PDF export, while frame/master state and original source bytes remain unchanged.
 This qualifies one controlled text replacement, not character-level editing,
 manual UI editing, general formatting changes or repair-free opening.
 
+Empty paragraphs use the character formatting on their native paragraph CR,
+including its font family and size, rather than the publication's global defaults.
+The native TextParagraphs control qualifies this distinction with an Arial
+12-point empty paragraph between two text paragraphs.
+
 One retained Quill style catalog supplies the existing formatting resolver.
 It keeps native character/paragraph pair ordinals, nullable decoded values,
 whole indexed STSH entries and their inner definition spans, including when
@@ -250,8 +255,11 @@ do not paint or exclude printable text.
 ## Qualification and limits
 
 [Fixture provenance](../OfficeIMO.Publisher.Tests/Fixtures/provenance.json)
-records source revision and SHA-256 hashes. The corpus is distributed under the
-Apache POI license and notice included beside the fixtures. Format descriptions
+records the imported Apache POI samples' source revision and SHA-256 hashes.
+Those samples use the Apache POI license and notice included beside the fixtures.
+The separately authored native controls record their producer, MIT license and
+file hashes in their own contracts, described in the
+[fixture guide](../OfficeIMO.Publisher.Tests/Fixtures/README.md). Format descriptions
 include [Apache POI's Publisher notes](https://poi.apache.org/components/hpbf/file-format.html)
 and Microsoft's [Office Drawing binary specification](https://learn.microsoft.com/en-us/openspecs/office_file_formats/ms-odraw/).
 

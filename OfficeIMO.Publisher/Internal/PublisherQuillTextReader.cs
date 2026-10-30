@@ -94,7 +94,12 @@ internal sealed class PublisherQuillTextReader {
                 if (++runCount > 4096) throw new InvalidDataException("Publisher story exceeds the shared rich text run limit.");
                 cursor = next;
             }
-            if (runs.Count == 0) { runs.Add(styles.Run(string.Empty, null, paragraph)); runCount++; }
+            if (runs.Count == 0) {
+                // An empty paragraph still has a native CR carrying character
+                // formatting; global defaults can change its line height.
+                runs.Add(styles.Run(string.Empty, styles.CharacterAt(storyOffset + start)?.Style, paragraph));
+                runCount++;
+            }
             if (paragraph.Tabs == null && runs.Any(run => run.Text.IndexOf('\t') >= 0))
                 _context.Add("PUB_TAB_LAYOUT_APPROXIMATED", "Native tabs without an explicit array use the shared measured 36-point interval.",
                     OfficeConversionLossKind.Approximation, "Quill/FDPP");

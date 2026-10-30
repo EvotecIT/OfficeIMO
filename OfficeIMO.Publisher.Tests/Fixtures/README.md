@@ -38,7 +38,10 @@ of the same story, a solid rectangle and an embedded synthetic picture. BlankPag
 has two empty physical pages; TextBlank has a text page followed by an empty page.
 They distinguish blank document pages from utility and master definitions. Text and
 TextLong use identical page geometry, frame geometry and Arial formatting; their
-only authored difference is the text. Newsletter adds a two-page linked story
+only authored difference is the text. TextParagraphs has one Arial 12-point story
+with an empty paragraph between two text paragraphs. Its retained character
+formatting covers that empty paragraph's CR; the final story CR has a separate
+native character range. Newsletter adds a two-page linked story
 and a picture. TableLabel adds a custom page size, styled 2-by-2 table, picture
 and Polish/Greek characters. Brochure adds two 792-by-612-point landscape sides,
 each with three 264-point panels, explicit text frames and panel markers.

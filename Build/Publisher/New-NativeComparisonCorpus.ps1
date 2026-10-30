@@ -14,6 +14,7 @@ Empty task-owned directory for publications, PDF references, contracts and run r
 .PARAMETER Case
 Cases to produce. Text and TextLong differ only in their text length; Blank, Rectangle
 and Image isolate the smallest native structures needed by a template-free writer.
+TextParagraphs isolates a single story with two text paragraphs and an empty one.
 Brochure has two landscape sides with three panels each. MultipleMasters and
 TwoPageMaster exercise explicit native single-page and paired master assignments.
 PictureOwnership duplicates an embedded picture and applies one master picture
@@ -36,8 +37,8 @@ param(
     [Parameter(Mandatory)]
     [string] $OutputDirectory,
 
-    [ValidateSet('Blank', 'BlankPages', 'Text', 'TextLong', 'TextBlank', 'Rectangle', 'Image', 'Newsletter', 'TableLabel', 'Brochure', 'MultipleMasters', 'TwoPageMaster', 'PictureOwnership')]
-    [string[]] $Case = @('Blank', 'BlankPages', 'Text', 'TextLong', 'TextBlank', 'Rectangle', 'Image', 'Newsletter', 'TableLabel', 'Brochure', 'MultipleMasters', 'TwoPageMaster', 'PictureOwnership'),
+    [ValidateSet('Blank', 'BlankPages', 'Text', 'TextLong', 'TextBlank', 'TextParagraphs', 'Rectangle', 'Image', 'Newsletter', 'TableLabel', 'Brochure', 'MultipleMasters', 'TwoPageMaster', 'PictureOwnership')]
+    [string[]] $Case = @('Blank', 'BlankPages', 'Text', 'TextLong', 'TextBlank', 'TextParagraphs', 'Rectangle', 'Image', 'Newsletter', 'TableLabel', 'Brochure', 'MultipleMasters', 'TwoPageMaster', 'PictureOwnership'),
 
     [ValidateRange(10, 600)]
     [int] $TimeoutSeconds = 90

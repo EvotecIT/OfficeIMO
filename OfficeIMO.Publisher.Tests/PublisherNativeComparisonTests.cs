@@ -117,6 +117,24 @@ public sealed class PublisherNativeComparisonTests {
     }
 
     [Fact]
+    public void Native_empty_paragraph_keeps_the_character_format_of_its_terminator() {
+        const string caseId = "TextParagraphs";
+        NativeCase contract = ReadContract(caseId);
+        PublisherDocument publication = Load(caseId, contract);
+        PublisherTextStory story = Assert.Single(publication.TextStories);
+        Assert.Equal("First paragraph\n\nLast paragraph\n", story.Text);
+        Assert.Equal(3, story.Paragraphs.Count);
+        Assert.Equal(string.Empty, Assert.Single(story.Paragraphs[1].Runs).Text);
+        // The independently authored control's FDPC range [0,31) covers
+        // both text paragraphs and the empty paragraph's CR at offset 16.
+        Assert.All(story.Paragraphs, paragraph => Assert.All(paragraph.Runs, run => {
+            Assert.Equal("Arial", run.FontFamily);
+            Assert.Equal(12D, run.FontSize);
+        }));
+        AssertHash(FilePath(caseId, contract.Files.Reference), contract.Files.Reference.Sha256);
+    }
+
+    [Fact]
     public void Brochure_keeps_three_panel_markers_and_landscape_pdf_geometry_on_both_sides() {
         const string caseId = "Brochure";
         NativeCase contract = ReadContract(caseId);

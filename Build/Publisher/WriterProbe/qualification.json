@@ -1024,11 +1024,13 @@
       "runnerFiles": [
         {
           "path": "../Invoke-NativePublisherOperation.ps1",
-          "sha256": "1f0c8f93794abf3b88779074bd6c777af38e0bf1a026e2295247753ff505f28c"
+          "sha256": "1f0c8f93794abf3b88779074bd6c777af38e0bf1a026e2295247753ff505f28c",
+          "gitBlobSha256": "1f0c8f93794abf3b88779074bd6c777af38e0bf1a026e2295247753ff505f28c"
         },
         {
           "path": "../Invoke-NativeComparisonCase.ps1",
-          "sha256": "3feb94ac86e3cdf7717b27c3d3d05c05b953e0a4b76972d46d9e4ba68b65df72"
+          "sha256": "3feb94ac86e3cdf7717b27c3d3d05c05b953e0a4b76972d46d9e4ba68b65df72",
+          "gitBlobSha256": "767fa729498441355087a4503b7261db1bd2d036185a73069ecb77dddf3fb019"
         }
       ],
       "qualifiedOperations": [
@@ -1076,7 +1078,9 @@
         "One controlled whole-range replacement, not character-level or manual UI editing.",
         "Immediate assigned text omits the final paragraph CR; save/reopen materializes it.",
         "Native repair and general editing/formatting remain unassessed."
-      ]
+      ],
+      "runnerCommit": "9058ff38db70d67db2d205da3190bfd39cd78769",
+      "runnerSourceHashScope": "sha256 identifies executed worktree bytes; gitBlobSha256 identifies the Git-normalized file at runnerCommit."
     }
   }
 }
