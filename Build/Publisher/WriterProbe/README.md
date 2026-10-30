@@ -112,8 +112,12 @@ matching BTE indexes. Other profiles are refused. Growth moves the following
 payload by whole 512-byte pages, retaining formatting-page alignment; shrinking
 clears the former text tail. The shared Publisher formatting-page codec emits
 changed run boundaries and OPLs. Unchanged OPL tokens and opaque style/library payloads stay unchanged while
-TEXT, STRS, FDPC/FDPP endpoints and BTEC/BTEP references are updated. Cached
-previews in other streams are retained and their freshness remains unassessed.
+TEXT, STRS, FDPC/FDPP endpoints and BTEC/BTEP references are updated. Accepted
+content edits also remove the optional SummaryInformation thumbnail (PID 17)
+through the shared OLE property-set editor. Other raw metadata values, sections
+and the property-set header are retained. Unchanged/no-op preparation remains an
+exact byte copy. Invalid property-set structure refuses edited output; other
+cached-record semantics remain unassessed.
 
 `edit-paragraphs` reads one run array per existing paragraph, also bounded to
 64 KiB. It retains the paragraph count, ordering and paragraph attributes.
@@ -160,6 +164,16 @@ match before and after resave. Raw comparison retains unrelated streams,
 directory metadata, opaque Quill payloads and unrelated OPL tokens. These files
 do not qualify paragraph-count changes, general native layout or repair-free
 opening.
+
+The `previewInvalidation` qualification section records four new thumbnail-free
+variants of previously qualified edits. All other logical streams are identical
+to those earlier candidates, and the SummaryInformation change removes only
+PID 17. Native open/export/save/reopen succeeds, with unchanged native inventories
+and rendered pixels across ten physical page states. Publisher recreates the
+thumbnail when resaving these files. That raw property observation does not
+qualify the regenerated thumbnail's appearance or repair-free opening. The
+preparation diagnostic reports invalidation; OfficeIMO does not render a new
+thumbnail.
 
 The record also binds nine placement/paint candidates to independent native
 Rectangle, TwoPageMaster and PictureOwnership controls. Across 19 physical pages,

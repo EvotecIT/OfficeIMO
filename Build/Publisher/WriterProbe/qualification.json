@@ -200,7 +200,7 @@
   ],
   "reproduction": "Build the opt-in probe with the pinned SDK, run the recorded create command with the repository image, then Invoke-NativePublisherOperation.ps1 -Operation Validate -Stage Full on an isolated copy. Compare native inventories and both PDFs against the explicit candidate expectations. Native artifact hashes identify this observed run; a subsequent native save can include different metadata.",
   "sourceEditing": {
-    "scope": "Bounded modern-generation source edits: single-paragraph text/size/bold specimens below, with separate placement/paint, native text mutation and multi-paragraph qualification records.",
+    "scope": "Bounded modern-generation source edits: single-paragraph text/size/bold specimens below, with separate placement/paint, native text mutation, multi-paragraph and preview-invalidation qualification records.",
     "codecCommit": "6a0c79187aa5f68f4003f8ddeafa1b2a4a1887d2",
     "codecFiles": [
       {
@@ -576,7 +576,7 @@
     ],
     "limits": [
       "Repair-free opening remains unassessed.",
-      "Opaque record semantics, cached preview freshness and broad native-layout fidelity remain unassessed.",
+      "Opaque record semantics and broad native-layout fidelity remain unassessed. Known SummaryInformation thumbnail invalidation is qualified separately; other cached records remain unassessed.",
       "The 20-point request renders at 20.04 points in these native PDFs, within the recorded tolerance.",
       "Original controls and native-resaved derivatives retain their distinct provenance.",
       "Native whole-range text mutation is qualified separately on one styled candidate; it does not qualify all source-edit specimens."
@@ -1502,6 +1502,362 @@
         "Making a paragraph empty refuses output when its original CR OPL differs from the last visible run OPL.",
         "Original OPLs, unrelated streams and directory metadata are retained; this does not qualify their opaque semantics or cached preview freshness.",
         "Repair-free opening, general native layout and native typing defaults remain unassessed."
+      ]
+    },
+    "previewInvalidation": {
+      "scope": "Accepted native source content edits remove only the optional SummaryInformation thumbnail; unchanged source/no-op copies remain exact.",
+      "codecCommit": "f2e9401770df9282e569bae3060203aa3cf86e0f",
+      "codecFiles": [
+        {
+          "path": "../../../OfficeIMO.Publisher/Internal/PublisherNativeSource.cs",
+          "sha256": "57fdcf69f063a2501a9fb909f315e71cb948b8c61f99739644a839901ac0d276",
+          "gitBlobSha256": "57fdcf69f063a2501a9fb909f315e71cb948b8c61f99739644a839901ac0d276"
+        },
+        {
+          "path": "../../../OfficeIMO.Publisher/Internal/PublisherNativeWriter.cs",
+          "sha256": "5428c834e2bbb429b146cab296802ccb83ec0857946d09e67e7490bc60f3f7c5",
+          "gitBlobSha256": "5428c834e2bbb429b146cab296802ccb83ec0857946d09e67e7490bc60f3f7c5"
+        },
+        {
+          "path": "../../../OfficeIMO.Publisher.Tests/PublisherNativeWritingTests.cs",
+          "sha256": "97623817545a578c64686f35be9c3f4ce1249217039baf94a7df6ff3e637b1af",
+          "gitBlobSha256": "97623817545a578c64686f35be9c3f4ce1249217039baf94a7df6ff3e637b1af"
+        },
+        {
+          "path": "../../../OfficeIMO.Core/Internal/Ole/OfficeOlePropertySetEditor.cs",
+          "sha256": "faf6e287195911220bdbe8ec8b045fb4b38a0e8d583dcab82b7f0485439cc7ed",
+          "gitBlobSha256": "319021351c32e65dfdfa1bef650e41bc267f3e1f293c2f017ec0c8c049ba421b"
+        },
+        {
+          "path": "../../../OfficeIMO.Core/Internal/Ole/OfficeOlePropertySetReader.cs",
+          "sha256": "a8346c39eae52d360c2b4cf45ce168891db805b01212ff903922f964945245c5",
+          "gitBlobSha256": "a20d8159508155e4f04fe08a82cf9e2890b7a02a5b376481a7887c160b1e917d"
+        },
+        {
+          "path": "../../../OfficeIMO.Core/Internal/Ole/OfficeOlePropertySetReader.Bounds.cs",
+          "sha256": "bab1ec657d84de6089d252f94a23b71287f28188bf1c3d29ada9fdef6dd0d77a",
+          "gitBlobSha256": "3b01c6f7532019c074a6ef1796ba85e95a2dcb6bc72edcf7b4743e0de73d1063"
+        },
+        {
+          "path": "../../../OfficeIMO.Core/Internal/Ole/OfficeOlePropertySetWriter.cs",
+          "sha256": "38149f5e8263df030ee44a81c1c989dd7f9c1d8a2cac5cc0b823cc6b8fe81a64",
+          "gitBlobSha256": "b388730fb6bffcff05d77b889338983f9743f48f6cc668984fe7f0036813a1a3"
+        }
+      ],
+      "sourceHashScope": "sha256 identifies qualified worktree bytes; gitBlobSha256 identifies Git-normalized files at codecCommit.",
+      "specification": {
+        "url": "https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-oleps/f7933d28-2cc4-4b36-bc23-8861cbcd37c4",
+        "section": "2.25.1 SummaryInformation",
+        "formatId": "F29F85E0-4FF9-1068-AB91-08002B27B3D9",
+        "propertyId": 17,
+        "variantType": 71,
+        "mayBeAbsent": true
+      },
+      "validationCommand": "Invoke-NativePublisherOperation.ps1 -Operation Validate -Stage Full -InputPath <candidate.pub> -OutputDirectory <fresh-output>",
+      "qualifiedOperations": [
+        "ReadOnlyOpen",
+        "InitialInventory",
+        "InitialPdfExport",
+        "NativeSaveAs",
+        "ReadOnlyReopen",
+        "ResavedInventory",
+        "ResavedPdfExport"
+      ],
+      "nativePhysicalPageStates": 10,
+      "cases": [
+        {
+          "name": "text-size",
+          "source": {
+            "path": "../../../OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/Text/native-text.pub",
+            "sha256": "cbdf571aab64e1138dcb6ca40d39ccd6ff923c88c06c16c2929ed8797bcb085d"
+          },
+          "baselineQualification": {
+            "section": "sourceEditing",
+            "case": "size",
+            "candidateSha256": "25dd20170cdf3ac1d27f09c1735ca2d644f5d8953f22b74278a6b2fec21beabf"
+          },
+          "probeCommand": [
+            "edit-story",
+            "<source.pub>",
+            "<candidate.pub>",
+            "2",
+            "<same-runs-as-baseline.json>"
+          ],
+          "candidateSha256": "eb62e53d25f3883cefa29e9aa8ba078f62d88a00bac82a7fdf22b198898244e1",
+          "candidateBytes": 37376,
+          "oldSummaryBytes": 50872,
+          "newSummaryBytes": 116,
+          "removedThumbnail": {
+            "id": 17,
+            "type": 71,
+            "bytes": 50748,
+            "sha256": "c11636adf0232e835c40f184c5945c528447c3a9e37a98f668a3117668ad8bdd"
+          },
+          "otherRawPropertyValuesAndHeaderUnchanged": true,
+          "allOtherLogicalStreamsByteIdentical": true,
+          "directoryMetadataEntries": 16,
+          "nativeInventoryMatchesQualifiedContent": true,
+          "nativePixelsMatchQualifiedContentAndResave": true,
+          "physicalPages": 1,
+          "nativeResaveThumbnailProperties": [
+            {
+              "id": 17,
+              "type": 71,
+              "bytes": 50748,
+              "sha256": "70503bd00463d725dbc00660aa17a5fcfcfc0953c5378a312e7c68053f2b700d"
+            }
+          ],
+          "sourceUnchanged": true,
+          "nativeArtifacts": [
+            {
+              "name": "candidate-input.pub",
+              "sha256": "eb62e53d25f3883cefa29e9aa8ba078f62d88a00bac82a7fdf22b198898244e1"
+            },
+            {
+              "name": "native-initial-inventory.json",
+              "sha256": "b7621019f80b472301c2ce02a18dfd22312f547bd7701b53b8770bdfa2c6d9ee"
+            },
+            {
+              "name": "native-resaved.pub",
+              "sha256": "6d9a8d2546f3a4a8b25a64ccbcef8b53aacdbd9868025e1ef89edda1f5ccfdc1"
+            },
+            {
+              "name": "native-resaved-inventory.json",
+              "sha256": "e1bf7b60a316e21e9077297ac2cc22f5b03ae4851e4d5a6c17fdb24ccae44aa5"
+            },
+            {
+              "name": "native-initial.pdf",
+              "sha256": "da26f1d409e4642daec0f39b4330259a30c176aad49f0009d8084ef47797986d"
+            },
+            {
+              "name": "native-resaved.pdf",
+              "sha256": "d95a340c53a3c7f375b7d151cb4a811f2878c13d776036ca4e01e0456ae26ee5"
+            }
+          ]
+        },
+        {
+          "name": "rectangle",
+          "source": {
+            "path": "../../../OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/Rectangle/native-rectangle.pub",
+            "sha256": "bd876bc5d9e7d9b1b7e22202caea262b7fa931f97aa80b0bfcd64813877553b1"
+          },
+          "baselineQualification": {
+            "section": "sourceEditing.placementAndPaint",
+            "case": "rectangle-bounds-blue",
+            "candidateSha256": "3243df4b4d599971f8d56c11d086793d327f24c77e2caf52e791bdc718acb9ba"
+          },
+          "probeCommand": [
+            "edit",
+            "<source.pub>",
+            "<candidate.pub>",
+            "293",
+            "90",
+            "108",
+            "216",
+            "90",
+            "005AAA"
+          ],
+          "candidateSha256": "3bc96ffe9a40b9717c441139f3f007db6477fece7487bfc3591b4000b9362834",
+          "candidateBytes": 37376,
+          "oldSummaryBytes": 50872,
+          "newSummaryBytes": 116,
+          "removedThumbnail": {
+            "id": 17,
+            "type": 71,
+            "bytes": 50748,
+            "sha256": "25152ccb372fad1390fc7f0179ad438df8a1546190a16418063fd07ae82ba06c"
+          },
+          "otherRawPropertyValuesAndHeaderUnchanged": true,
+          "allOtherLogicalStreamsByteIdentical": true,
+          "directoryMetadataEntries": 16,
+          "nativeInventoryMatchesQualifiedContent": true,
+          "nativePixelsMatchQualifiedContentAndResave": true,
+          "physicalPages": 1,
+          "nativeResaveThumbnailProperties": [
+            {
+              "id": 17,
+              "type": 71,
+              "bytes": 50748,
+              "sha256": "6b20dfed9fb3b6fecb9673f382ec441c55d49fe6dd051227eb957c119ca57ff5"
+            }
+          ],
+          "sourceUnchanged": true,
+          "nativeArtifacts": [
+            {
+              "name": "candidate-input.pub",
+              "sha256": "3bc96ffe9a40b9717c441139f3f007db6477fece7487bfc3591b4000b9362834"
+            },
+            {
+              "name": "native-initial-inventory.json",
+              "sha256": "2620ec428f2f70a2d7eb7acd0d1399901306ed49faf154f3ad78f3f095027303"
+            },
+            {
+              "name": "native-resaved.pub",
+              "sha256": "ee4c3cc56c52e675b6fd253c76d7e78a00142b37fdad9cd57ccafbddc3bdc36f"
+            },
+            {
+              "name": "native-resaved-inventory.json",
+              "sha256": "bbd8fc4e74f32cd153dd6b5ab88c33046231403b5b1a82591db762cb4bd70499"
+            },
+            {
+              "name": "native-initial.pdf",
+              "sha256": "8dce23d4d250e05aaa79efd1ae100c1f245b5f4db12912dd4919edf1f620e810"
+            },
+            {
+              "name": "native-resaved.pdf",
+              "sha256": "fee3f83460ea6c66dc122944ec29be78fea6a3f439ad424e6888c0a68a0decce"
+            }
+          ]
+        },
+        {
+          "name": "master-picture",
+          "source": {
+            "path": "../../../OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/PictureOwnership/native-pictureownership.pub",
+            "sha256": "d2b49025a8b0e9f4f893e97497d190d7f173ba16d851c212f5338c222b2f1309"
+          },
+          "baselineQualification": {
+            "section": "sourceEditing.placementAndPaint",
+            "case": "picture-master-bounds",
+            "candidateSha256": "9d86778eda7305cd4ff2f03ae2cad9e33bd1fe5a2da99e7ce804404964dc0b41"
+          },
+          "probeCommand": [
+            "edit",
+            "<source.pub>",
+            "<candidate.pub>",
+            "296",
+            "36",
+            "36",
+            "72",
+            "48"
+          ],
+          "candidateSha256": "18000486e23325540d96cb088f438fcfce8f5b2236f3d318ec7b6a1446a02b5f",
+          "candidateBytes": 37888,
+          "oldSummaryBytes": 50872,
+          "newSummaryBytes": 116,
+          "removedThumbnail": {
+            "id": 17,
+            "type": 71,
+            "bytes": 50748,
+            "sha256": "4a312e6aaf072fa15a7056873df85e7e8fa466fee9b680bfbeeed580a9e1598f"
+          },
+          "otherRawPropertyValuesAndHeaderUnchanged": true,
+          "allOtherLogicalStreamsByteIdentical": true,
+          "directoryMetadataEntries": 16,
+          "nativeInventoryMatchesQualifiedContent": true,
+          "nativePixelsMatchQualifiedContentAndResave": true,
+          "physicalPages": 2,
+          "nativeResaveThumbnailProperties": [
+            {
+              "id": 17,
+              "type": 71,
+              "bytes": 50748,
+              "sha256": "23c61b38593e1f018f17f817948b3c7cd9ef78449086ba813d838be12b5e6eba"
+            }
+          ],
+          "sourceUnchanged": true,
+          "nativeArtifacts": [
+            {
+              "name": "candidate-input.pub",
+              "sha256": "18000486e23325540d96cb088f438fcfce8f5b2236f3d318ec7b6a1446a02b5f"
+            },
+            {
+              "name": "native-initial-inventory.json",
+              "sha256": "4f9c1f7f46c95e5f34fe79da48d82648d59a816b9724b532177cecf2e8498e41"
+            },
+            {
+              "name": "native-resaved.pub",
+              "sha256": "8799742f85502d40c902f1e170309b007585e97a6b6dc4d7d842320983c0f83b"
+            },
+            {
+              "name": "native-resaved-inventory.json",
+              "sha256": "bccb73b3bd35ac0da0534f14d833f76b8c002b8af10ec0ce1c9b4d287e795301"
+            },
+            {
+              "name": "native-initial.pdf",
+              "sha256": "1a29e49e6883912ef33f24a8921f6a2927b4da4b604359cdaacd5931d227ba74"
+            },
+            {
+              "name": "native-resaved.pdf",
+              "sha256": "46edb4f700b91ff939afd7a5fa07718beab0fe6edeb481f4600553fb44416c4b"
+            }
+          ]
+        },
+        {
+          "name": "paragraph-style",
+          "source": {
+            "path": "../../../OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/TextParagraphs/native-textparagraphs.pub",
+            "sha256": "8fcf3743fa67c16e68a56249374cfeba72aad69a2466c66a88ee3c51f29bb1b8"
+          },
+          "baselineQualification": {
+            "section": "sourceEditing.paragraphEditing",
+            "case": "style",
+            "candidateSha256": "58d85761825b9aaff3e9c644385fccbd319414b02f1d27dc8c88147ebc8416f0"
+          },
+          "probeCommand": [
+            "edit-paragraphs",
+            "<source.pub>",
+            "<candidate.pub>",
+            "2",
+            "<same-runs-as-baseline.json>"
+          ],
+          "candidateSha256": "fe02a78260eaf893cfb6589a421fe9d916c6718f47732fcd2c061aebbdaa21b8",
+          "candidateBytes": 37376,
+          "oldSummaryBytes": 50872,
+          "newSummaryBytes": 116,
+          "removedThumbnail": {
+            "id": 17,
+            "type": 71,
+            "bytes": 50748,
+            "sha256": "75abc43b3cb3a2ab6699fca20247805dd0d117189fcc1907bfb6074bcaa12f44"
+          },
+          "otherRawPropertyValuesAndHeaderUnchanged": true,
+          "allOtherLogicalStreamsByteIdentical": true,
+          "directoryMetadataEntries": 16,
+          "nativeInventoryMatchesQualifiedContent": true,
+          "nativePixelsMatchQualifiedContentAndResave": true,
+          "physicalPages": 1,
+          "nativeResaveThumbnailProperties": [
+            {
+              "id": 17,
+              "type": 71,
+              "bytes": 50748,
+              "sha256": "a308f248e370af6606917aa9b17966b31c6e696c65b345c1f04871e45246a97b"
+            }
+          ],
+          "sourceUnchanged": true,
+          "nativeArtifacts": [
+            {
+              "name": "candidate-input.pub",
+              "sha256": "fe02a78260eaf893cfb6589a421fe9d916c6718f47732fcd2c061aebbdaa21b8"
+            },
+            {
+              "name": "native-initial-inventory.json",
+              "sha256": "f5366a4a7f874326c0c5ee94aab90bb20c5b81c3e1c3c70fa197b9a649068129"
+            },
+            {
+              "name": "native-resaved.pub",
+              "sha256": "ca4305f08b32e703bde8341b229f6cdc2dff37249c7d592c5bd914f79542125d"
+            },
+            {
+              "name": "native-resaved-inventory.json",
+              "sha256": "d805e1be6bd3e04bfb1afbaabf0eece71d09c930de29c516b94436de3e93e41e"
+            },
+            {
+              "name": "native-initial.pdf",
+              "sha256": "0bde7eaba74f5795e1fc52a578256e83ba5a8f89617c88f827cc9cb97f9377b3"
+            },
+            {
+              "name": "native-resaved.pdf",
+              "sha256": "4137627431a4e862a596009955a1b6b01e75cd516727ff33b2978cb55e6ad316"
+            }
+          ]
+        }
+      ],
+      "limits": [
+        "Only the four exact post-invalidation specimens are natively qualified here; earlier qualification records identify their distinct pre-invalidation bytes and codec commits.",
+        "OfficeIMO removes the stale thumbnail without generating a replacement. Native resave recreates it in these cases; raw property hashes do not qualify thumbnail appearance.",
+        "Malformed SummaryInformation property-set structure refuses edits; unsupported semantic changes still refuse output.",
+        "Repair-free opening, general layout and other opaque/cached-record semantics remain unassessed."
       ]
     }
   }

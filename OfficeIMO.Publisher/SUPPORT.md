@@ -102,8 +102,13 @@ native definition and endpoint are retained independently; character ranges can
 cross paragraph boundaries. Making a paragraph empty refuses output when its
 source CR has a distinct OPL from the last visible run. Paragraph-count changes,
 unsupported run merges, other formatting and page-capacity overflow refuse
-output. Other logical streams and directory
-metadata remain unchanged, including cached previews whose freshness is unassessed.
+output. Edited output removes the optional [SummaryInformation thumbnail](https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-oleps/f7933d28-2cc4-4b36-bc23-8861cbcd37c4) so it
+cannot retain that stale content preview. The shared OLE property-set editor
+retains the other raw property values and header; unrelated logical streams and
+directory metadata remain unchanged. An unchanged semantic model still copies
+the original native bytes exactly, including its preview. Malformed
+SummaryInformation property-set structure refuses edited output. Other cached-record semantics
+remain unassessed.
 Unsupported semantic changes refuse output. This path does not establish
 repair-free opening, general native edit acceptance or opaque semantic preservation and
 does not expose public native saving. The [writer probe](../Build/Publisher/WriterProbe/README.md#loaded-source-candidates)
@@ -126,6 +131,14 @@ resaves. Native text, frame bounds and visible size/bold states match the reques
 within 0.1 point, with identical native PDF pixels across resave. These observations
 qualify the listed specimens, not general paragraph editing, layout or repair-free
 opening.
+
+Four thumbnail-free edited specimens cover text sizing, rectangle bounds/fill,
+master-picture placement and multi-paragraph formatting. All pass native open,
+PDF export, save-as and reopen checks. Native inventories and rendered pixels
+match the earlier content-qualified specimens across ten physical page states.
+Publisher recreates a thumbnail on native resave in these cases; its appearance
+is not decoded or qualified by the raw-property comparison. OfficeIMO invalidates
+the old thumbnail without generating a replacement.
 
 Nine additional placement/paint specimens cover a rectangle's bounds and solid
 fill, a physical text frame, default and paired-master frames, and physical/master
