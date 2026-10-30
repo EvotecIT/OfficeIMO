@@ -43,7 +43,7 @@ jobs:
           FULL_CI: ${{ contains(github.event.pull_request.labels.*.name, 'full-ci') }}
         run: |
           python3 - <<'PY'
-          import fnmatch, importlib.util, os, subprocess
+          import fnmatch, functools, importlib.util, os, subprocess
           from pathlib import Path
 
           build, force_full = True, False
@@ -59,6 +59,7 @@ jobs:
               spec.loader.exec_module(selector)
               _, linked = selector.project_graph(Path.cwd(), selector.tracked(Path.cwd()))
 
+              @functools.lru_cache(maxsize=None)
               def consumed(path):
                   parts = path.lower().split('/')
                   return (any('test' in part or part in ('fixtures', 'schema', 'schemas', 'generated') for part in parts[:-1])
