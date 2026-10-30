@@ -6,8 +6,8 @@ using OfficeIMO.Drawing;
 namespace OfficeIMO.PowerPoint {
     /// <summary>
     ///     Text measurement and line breaking for layout decisions. Widths use the deterministic Office measurer
-    ///     scaled by a per-family advance factor (calibrated against the Aptos font files: the Office measurer reads about 6 % wide), so a layout sized here never overflows when
-    ///     the font falls back to a narrower metric-compatible face.
+    ///     scaled by calibrated family advances, with the shared drawing renderer as a lower bound
+    ///     when an installed or fallback face is wider.
     /// </summary>
     internal static class PowerPointTextMeasure {
         private static readonly OfficeTextMeasurer Measurer = OfficeTextMeasurer.Create(new OfficeFontInfo("Aptos", 10D));
@@ -40,7 +40,12 @@ namespace OfficeIMO.PowerPoint {
             OfficeTextMeasurementStyle style = Measurer.CreateStyle(
                 new OfficeFontInfo("Aptos", size, bold ? OfficeFontStyle.Bold : OfficeFontStyle.Regular), 72D);
             double width = Measurer.MeasureWidth(text, style) * FamilyFactor(family);
-            return width + tracking * size * text.Length;
+            // A missing theme face can resolve to wider glyphs on another host. Keep the
+            // native Office estimate, but never reserve less than the actual export face.
+            var metrics = OfficeDrawingTextLayout.CreateMetrics((OfficeFontFaceCollection?)null);
+            double exportWidth = metrics.MeasureText(text, size, family,
+                bold ? OfficeFontStyle.Bold : OfficeFontStyle.Regular);
+            return Math.Max(width + tracking * size * text.Length, exportWidth);
         }
 
         /// <summary>Greedy word wrap. Words are never broken; a word longer than the line takes its own line.</summary>
