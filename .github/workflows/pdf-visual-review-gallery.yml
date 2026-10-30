@@ -5,6 +5,7 @@ on:
     branches:
       - master
     paths:
+      - '.github/workflows/ci-coverage.yml'
       - 'OfficeIMO.Pdf/**'
       - 'OfficeIMO.Core/**'
       - 'OfficeIMO.AsciiDoc/**'
@@ -142,8 +143,17 @@ env:
   BUILD_CONFIGURATION: Release
   GALLERY_PATH: artifacts/pdf-visual-review
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && format('pr-{0}', github.event.pull_request.number) || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
+  coverage:
+    uses: ./.github/workflows/ci-coverage.yml
+
   pdf-visual-review-gallery:
+    needs: coverage
+    if: needs.coverage.outputs.build == 'true'
     name: Generate visual review gallery
     runs-on: ubuntu-latest
     timeout-minutes: 25
@@ -234,3 +244,22 @@ jobs:
             ${{ env.GALLERY_PATH }}/*.docx
             ${{ env.GALLERY_PATH }}/*.xlsx
             ${{ env.GALLERY_PATH }}/*.pptx
+
+  ci-validation:
+    name: CI validation
+    if: always()
+    runs-on: ubuntu-latest
+    needs: [coverage, pdf-visual-review-gallery]
+    steps:
+      - name: Require coverage and validation
+        env:
+          RESULTS: ${{ toJSON(needs) }}
+        run: |
+          python3 - <<'PY'
+          import json, os, sys
+          results = json.loads(os.environ['RESULTS'])
+          failed = [k for k, v in results.items() if v['result'] not in ('success', 'skipped')]
+          failed += ['coverage'] if results['coverage']['result'] != 'success' else []
+          print(json.dumps(results, indent=2))
+          sys.exit(bool(failed))
+          PY
