@@ -6,20 +6,24 @@ namespace OfficeIMO.Publisher.Internal;
 internal sealed class PublisherPublicationState {
     private readonly HashSet<int> _sourceImageIds;
     internal PublisherPublicationState(IEnumerable<PublisherPageState> pages, IReadOnlyDictionary<uint, uint?> owners,
-        IReadOnlyDictionary<uint, PublisherPicture> pictures, IReadOnlyDictionary<int, PublisherImage> images,
-        IEnumerable<int>? sourceImageIds = null, int? nextImageId = null) {
+        IReadOnlyDictionary<uint, PublisherPicture> pictures, IReadOnlyDictionary<int, PublisherImage> images, PublisherTextState text,
+        IEnumerable<int>? sourceImageIds = null, int? nextImageId = null, uint nextObjectId = 0) {
         Pages = Array.AsReadOnly(pages.ToArray());
         ObjectOwners = new System.Collections.ObjectModel.ReadOnlyDictionary<uint, uint?>(owners.ToDictionary(item => item.Key, item => item.Value));
         Pictures = new System.Collections.ObjectModel.ReadOnlyDictionary<uint, PublisherPicture>(pictures.ToDictionary(item => item.Key, item => item.Value));
         Images = new System.Collections.ObjectModel.ReadOnlyDictionary<int, PublisherImage>(images.ToDictionary(item => item.Key, item => item.Value));
+        Text = text;
         _sourceImageIds = new HashSet<int>(sourceImageIds ?? images.Keys);
         NextImageId = nextImageId ?? (images.Count == 0 ? 1 : images.Keys.Max() == int.MaxValue ? 0 : images.Keys.Max() + 1);
+        NextObjectId = nextObjectId;
     }
     internal IReadOnlyList<PublisherPageState> Pages { get; }
     internal IReadOnlyDictionary<uint, uint?> ObjectOwners { get; }
     internal IReadOnlyDictionary<uint, PublisherPicture> Pictures { get; }
     internal IReadOnlyDictionary<int, PublisherImage> Images { get; }
+    internal PublisherTextState Text { get; }
     internal int NextImageId { get; }
+    internal uint NextObjectId { get; }
     internal long AdditionalImageBytes => Images.Values.Where(image => !_sourceImageIds.Contains(image.Id)).Sum(image => (long)image.ByteCount);
     internal int AdditionalImageCount => Images.Keys.Count(id => !_sourceImageIds.Contains(id));
 
@@ -33,7 +37,7 @@ internal sealed class PublisherPublicationState {
     internal PublisherPublicationState SetBounds(PublisherPicture picture, double x, double y, double width, double height) {
         var pictures = Pictures.ToDictionary(item => item.Key, item => item.Value);
         pictures[picture.Id] = picture.WithBounds(x, y, width, height);
-        return new PublisherPublicationState(Pages, ObjectOwners, pictures, Images, _sourceImageIds, NextImageId);
+        return new PublisherPublicationState(Pages, ObjectOwners, pictures, Images, Text, _sourceImageIds, NextImageId, NextObjectId);
     }
 
     internal PublisherPublicationState ReplaceImage(PublisherPicture picture, byte[] bytes, string contentType) {
@@ -46,8 +50,34 @@ internal sealed class PublisherPublicationState {
         // preservation role and can be released when no current placement uses them.
         if (picture.ImageId.HasValue && !_sourceImageIds.Contains(picture.ImageId.Value)
             && !pictures.Values.Any(item => item.ImageId == picture.ImageId)) images.Remove(picture.ImageId.Value);
-        return new PublisherPublicationState(Pages, ObjectOwners, pictures, images, _sourceImageIds,
-            NextImageId == int.MaxValue ? 0 : NextImageId + 1);
+        return new PublisherPublicationState(Pages, ObjectOwners, pictures, images, Text, _sourceImageIds,
+            NextImageId == int.MaxValue ? 0 : NextImageId + 1, NextObjectId);
+    }
+
+    internal PublisherPublicationState WithText(PublisherTextState text) =>
+        new(Pages, ObjectOwners, Pictures, Images, text, _sourceImageIds, NextImageId, NextObjectId);
+
+    internal PublisherPublicationState AddLinkedTextFrame(uint previousFrameId, uint pageId,
+        double x, double y, double width, double height, out uint frameId) {
+        if (!Text.Frames.TryGetValue(previousFrameId, out PublisherFrameState? previous))
+            throw new ArgumentOutOfRangeException(nameof(previousFrameId), "The publication has no such text frame.");
+        PublisherPageState? page = Pages.SingleOrDefault(item => item.Id == pageId);
+        if (page == null) throw new ArgumentOutOfRangeException(nameof(pageId), "The publication has no such page.");
+        if (page.IsMaster) throw new NotSupportedException("A continuation frame must belong to a document page.");
+        if (Text.IsTableStory(previous.StoryId) || !Text.Stories.ContainsKey(previous.StoryId)
+            || !Text.Chains.TryGetValue(previous.StoryId, out IReadOnlyList<uint>? chain) || chain.Count == 0 || chain[chain.Count - 1] != previousFrameId)
+            throw new NotSupportedException("A continuation frame requires the tail of a resolved non-table story chain.");
+        var pages = Pages.ToDictionary(item => item.Id);
+        if (chain.Any(id => !Text.Frames[id].Available || !Text.Frames[id].SupportsContinuation
+            || !Text.Frames[id].PageId.HasValue || !pages.TryGetValue(Text.Frames[id].PageId!.Value, out PublisherPageState? owner) || owner.IsMaster))
+            throw new NotSupportedException("Continuation creation requires a complete chain of ordinary, visible, untransformed document-page text frames.");
+        if (NextObjectId == 0) throw new InvalidOperationException("The publication object identifier space is exhausted.");
+        frameId = NextObjectId;
+        PublisherTextState text = Text.AppendFrame(previous, page, x, y, width, height, frameId);
+        var owners = ObjectOwners.ToDictionary(item => item.Key, item => item.Value); owners.Add(frameId, pageId);
+        uint createdId = frameId;
+        return new PublisherPublicationState(Pages.Select(item => item.Id == pageId ? item.WithObject(createdId) : item),
+            owners, Pictures, Images, text, _sourceImageIds, NextImageId, createdId == uint.MaxValue ? 0 : createdId + 1);
     }
 }
 
@@ -55,10 +85,11 @@ internal sealed class PublisherPublicationState {
 internal sealed class PublisherPageState {
     internal PublisherPageState(uint id, string name, bool isMaster, double width, double height, uint? masterPageId,
         double registrationX, double registrationY, bool supportsPlacementEditing, bool hasUnassessedBackground,
-        IReadOnlyList<uint> objectIds) {
+        IReadOnlyList<uint> objectIds, PublisherFrameEditRange frameEditRange) {
         Id = id; Name = name; IsMaster = isMaster; Width = width; Height = height; MasterPageId = masterPageId;
         RegistrationX = registrationX; RegistrationY = registrationY; SupportsPlacementEditing = supportsPlacementEditing;
         HasUnassessedBackground = hasUnassessedBackground; ObjectIds = Array.AsReadOnly(objectIds.ToArray());
+        FrameEditRange = frameEditRange;
     }
     internal uint Id { get; }
     internal string Name { get; }
@@ -71,4 +102,8 @@ internal sealed class PublisherPageState {
     internal bool SupportsPlacementEditing { get; }
     internal bool HasUnassessedBackground { get; }
     internal IReadOnlyList<uint> ObjectIds { get; }
+    internal PublisherFrameEditRange FrameEditRange { get; }
+    internal PublisherPageState WithObject(uint id) => new(Id, Name, IsMaster, Width, Height, MasterPageId,
+        RegistrationX, RegistrationY, SupportsPlacementEditing, HasUnassessedBackground,
+        ObjectIds.Concat(new[] { id }).ToArray(), FrameEditRange);
 }

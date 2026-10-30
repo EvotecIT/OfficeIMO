@@ -2,7 +2,7 @@ namespace OfficeIMO.Publisher.Internal;
 
 /// <summary>
 /// Recovers ordinal-only native story chains from the publication's frame and
-/// story catalogs. Explicit per-frame links remain the projector's primary contract.
+/// story catalogs. Explicit per-frame links remain the model importer's primary contract.
 /// </summary>
 internal static class PublisherTextFrameCatalogReader {
     internal static void Read(PublisherBinaryData data, PublisherContents publication, PublisherParseContext context) {

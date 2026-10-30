@@ -47,4 +47,9 @@ public sealed class PublisherPicture {
         return new PublisherPicture(Id, PageId, ImageId, x, y, width, height,
             OfficeTransform.Translate(x, y), Crop, true, CanEdit, paint, EditLimitation);
     }
+
+    // Mixed image/text objects take current placement from their frame owner.
+    // This creates a view; it does not introduce independently editable geometry.
+    internal PublisherPicture WithPlacement(double x, double y, double width, double height, OfficeTransform transform, bool hasPlacement) =>
+        new(Id, PageId, ImageId, x, y, width, height, transform, Crop, hasPlacement, CanEdit, _paint, EditLimitation);
 }

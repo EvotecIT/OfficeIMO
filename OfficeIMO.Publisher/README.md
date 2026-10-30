@@ -1,7 +1,8 @@
 # OfficeIMO.Publisher
 
 Read Microsoft Publisher publications into positioned pages, styled text
-stories and embedded image assets, edit supported stories, frame bounds and pictures, and
+stories and embedded image assets, edit supported stories, frame bounds and pictures,
+append story continuation frames, and
 render the current model. The managed reader handles the Publisher
 2002-and-later compound-document generation without installing Publisher.
 [The support contract](SUPPORT.md) identifies the qualified fixtures and rendering
@@ -36,7 +37,7 @@ the applied master. Adding artwork to that copy affects exports of the copy;
 document exports use the publication model. Use the document's typed edit
 operations to change its stories and text frames.
 
-## Edit stories and frame bounds
+## Edit publication content
 
 For a publication with an ordinary, resolved, untransformed top-level text frame:
 
@@ -76,6 +77,32 @@ the current page scenes, assigned text ranges and overflow. SVG and the optional
 PDF package consume those scenes; the Reader adapter can project the current
 in-memory document directly.
 
+`AddLinkedTextFrame` appends a continuation frame to the tail of a complete,
+resolved non-table story chain. The destination is an existing document page;
+the new frame shares the complete styled story and copies the preceding
+frame's column count, spacing, padding and vertical alignment. It has no fill,
+outline or wrap references and is appended to that page's drawing order.
+The source chain must contain ordinary visible untransformed document-page
+frames. Master chains, ambiguous chains and non-tail insertion are rejected.
+
+For a two-page publication whose ordinary story starts on the first page:
+
+```csharp
+var continued = PublisherDocument.Load("two-page.pub");
+var start = continued.Pages[0].TextFrames[0];
+continued.SetTextFrameBounds(start.Id, 54, 108, 228, 120);
+var continuation = continued.AddLinkedTextFrame(
+    start.Id, continued.Pages[1].Id, 54, 72, 468, 600);
+Console.WriteLine($"Frame {continuation.Id}, range {continuation.TextStart}+{continuation.TextLength}");
+File.WriteAllText("continued-page.svg", continued.ToSvg(1));
+```
+
+The operation recalculates chain links, assigned text ranges and overflow.
+It retains all story content even when the available frames are too small.
+The returned frame is a snapshot; retrieve it again after later story or bounds
+edits. Object, text-layout and projection limits apply, and failed creation
+leaves the publication and its next object identity unchanged.
+
 `PublisherPage.Pictures` exposes placed pictures separately from the embedded
 assets in `Images`. Each placement identifies its page, image asset, unrotated
 bounds, crop and page transform. Master pictures remain listed on the master;
@@ -111,9 +138,15 @@ again after an edit: previously returned objects remain snapshots.
 the original native decoding evidence without projection findings.
 
 These edits change the in-memory publication and rendered outputs. Native PUB
-save-back, object creation, page/master relationship edits, table editing and frame relinking are not provided
+save-back, standalone object creation, page/master relationship edits, table editing and arbitrary frame relinking are not provided
 by this API. Retaining private native source data does not establish opaque
 preservation or a native save contract.
+
+`ReadReport.CurrentObjectCount` includes retained imported objects and authored
+continuation frames; `ProjectedObjectCount` counts distinct current objects
+represented in the page scenes. `SourceObjectCount` and `SourceReadReport` retain
+the original native object inventory. Authored frames do not add native records
+to `InspectedRecordCount`.
 
 ## Recovered content and layout
 

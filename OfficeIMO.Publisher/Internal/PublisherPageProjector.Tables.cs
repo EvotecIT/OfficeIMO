@@ -18,9 +18,9 @@ internal sealed partial class PublisherPageProjector {
         }
         PublisherSourceTable? table = native.Table;
         if (table == null) return;
-        List<IReadOnlyList<OfficeRichTextParagraph>>? paragraphs = null;
-        bool hasStory = storyId.HasValue && _text.Stories.ContainsKey(storyId.Value);
-        bool mapped = hasStory && _text.CellParagraphs.TryGetValue(storyId!.Value, out paragraphs) && paragraphs.Count == table.Cells.Count;
+        IReadOnlyList<IReadOnlyList<OfficeRichTextParagraph>>? paragraphs = null;
+        bool hasStory = storyId.HasValue && _publication.Text.Stories.ContainsKey(storyId.Value);
+        bool mapped = hasStory && _publication.Text.CellParagraphs.TryGetValue(storyId!.Value, out paragraphs) && paragraphs.Count == table.Cells.Count;
         if (!hasStory) {
             _context.Add("PUB_TEXT_REFERENCE_UNRESOLVED", "A native table has no available text story. Its grid is retained without cell text.",
                 OfficeConversionLossKind.Omission, PublisherEscherReader.ShapeLocation(id));

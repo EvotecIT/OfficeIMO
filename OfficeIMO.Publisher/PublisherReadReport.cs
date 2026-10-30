@@ -3,16 +3,19 @@ namespace OfficeIMO.Publisher;
 /// <summary>Immutable source-decoding and page-projection evidence. Recovered objects do not imply complete native fidelity.</summary>
 public sealed class PublisherReadReport : IOfficeConversionReport {
     internal PublisherReadReport(IEnumerable<OfficeConversionFidelityDiagnostic> diagnostics, int sourceObjects,
-        int projectedObjects, int stories, int images, int records) {
+        int projectedObjects, int stories, int images, int records, int? currentObjects = null) {
         FidelityDiagnostics = Array.AsReadOnly(diagnostics.ToArray());
         SourceObjectCount = sourceObjects; ProjectedObjectCount = projectedObjects;
+        CurrentObjectCount = currentObjects ?? sourceObjects;
         TextStoryCount = stories; ImageCount = images; InspectedRecordCount = records;
     }
     /// <summary>Diagnostics identifying approximated, omitted, or unassessed source content.</summary>
     public IReadOnlyList<OfficeConversionFidelityDiagnostic> FidelityDiagnostics { get; }
     /// <summary>Number of publication shape, group, and table records identified in the native directory.</summary>
     public int SourceObjectCount { get; }
-    /// <summary>Number of distinct source objects represented on a document or master page. Repeated master use counts once.</summary>
+    /// <summary>Number of current publication objects, including retained imported objects and authored continuation frames.</summary>
+    public int CurrentObjectCount { get; }
+    /// <summary>Number of distinct current objects represented on a document or master page, including authored frames. Repeated master use counts once.</summary>
     public int ProjectedObjectCount { get; }
     /// <summary>Number of decoded text stories, including stories not placed on a page.</summary>
     public int TextStoryCount { get; }

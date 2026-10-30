@@ -21,7 +21,7 @@ public sealed class PublisherPage {
     public uint? MasterPageId { get; }
     /// <summary>Creates a detached drawing snapshot, including the applied master. Changes to this copy do not edit the publication.</summary>
     public OfficeDrawing CreateDrawing() => _drawing.Clone();
-    /// <summary>Native text frames owned by this page. Frames inherited from a master are listed on that master page.</summary>
+    /// <summary>Current text frames owned by this page, including authored continuation frames. Frames inherited from a master are listed on that master page.</summary>
     public IReadOnlyList<PublisherTextFrame> TextFrames { get; }
     /// <summary>Native tables owned by this page. Tables inherited from a master are listed on that master page.</summary>
     public IReadOnlyList<PublisherTable> Tables { get; }

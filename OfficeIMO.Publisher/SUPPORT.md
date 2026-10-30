@@ -41,7 +41,8 @@ references do not report missing images.
 | Placed-picture model | `PublisherPage.Pictures` separates page/master ownership, stable object IDs, asset references, page-point bounds, transforms and normalized crop from embedded bytes; unsupported placements expose an edit limitation | Unresolved image references can remain unresolved; inspection does not qualify native save-back or editable effects |
 | Picture controls | Source-RGB transparency keys, encoded-RGB brightness/contrast, preserve-grays tone handling, BT.709 grayscale and a 50-percent two-color threshold; original assets remain available | Color space, effect ordering and native Publisher pixels remain unqualified; recoloring and extended color controls are unassessed; invalid tone values or unresolved keys report omission |
 | Fields, links and active content | Cached story characters are retained; source active content stays inert | No field evaluation, hyperlink reconstruction, macro execution, link refresh or object activation |
-| In-memory edits | Document-owned replacement of complete non-table story paragraphs, bounds changes for resolved visible untransformed top-level frames, and image replacement/bounds changes for supported rectangular PNG/JPEG picture placements; stable IDs, ownership and order, fresh scenes, text ranges and overflow | Picture edits reject grouped/transformed, hidden, effected, custom-clipped, unresolved or otherwise unqualified placements; no table edits, relinking, object creation, page/master topology edits or native save-back; old references remain snapshots |
+| In-memory edits | Document-owned replacement of complete non-table story paragraphs, bounds changes for resolved visible untransformed top-level frames, and image replacement/bounds changes for supported rectangular PNG/JPEG picture placements; stable IDs, ownership and order, fresh scenes, text ranges and overflow | Picture edits reject grouped/transformed, hidden, effected, custom-clipped, unresolved or otherwise unqualified placements; no table edits, arbitrary relinking, standalone object creation, page/master topology edits or native save-back; old references remain snapshots |
+| Continuation-frame creation | Append an ordinary untransformed text frame to a resolved non-table story's tail on an existing document page; one complete styled story, current links/ranges/overflow, copied columns/padding/alignment, no fill/outline, and shared SVG/PDF/Reader projection | The source chain must contain ordinary visible untransformed document-page frames; master chains, ambiguous links and non-tail insertion are rejected; this is in-memory model creation, not native PUB creation |
 | Output | SVG per document page and multi-page PDF through shared engines | No native save-back or editable publication writer |
 
 `OfficeIMO.Workflows` uses the same native codec for its `publisher-pdf` route,
@@ -66,10 +67,14 @@ correlates table blocks and rows to avoid repeated text. Typography, page artwor
 and frame flow remain explicitly omitted from the semantic projection. The same
 adapter is included in `OfficeIMO.Reader.All`.
 
-Source object counts measure recovered descriptors and distinct projected
-objects. They do not measure pixel fidelity or prove that all content of an
-object survived. Complete source stories remain inspectable even when their
-visual placement is incomplete.
+`SourceObjectCount` measures the original native descriptors.
+`CurrentObjectCount` includes retained imported objects and authored
+continuation frames; `ProjectedObjectCount` counts distinct current objects
+represented in document or master scenes. Repeated master use counts once.
+Authored frames do not add native inspection records, and `SourceReadReport`
+retains the original decoding evidence. Counts do not measure pixel fidelity
+or prove that all content of an object survived. Complete stories remain
+inspectable even when their visual placement is incomplete.
 
 Every successful edit replaces the current projection and its `ReadReport`.
 `SourceReadReport` remains the immutable decode-only evidence from the initial
@@ -81,10 +86,16 @@ that need render-only annotations. Document SVG/PDF exports use the canonical
 publication state, and the Reader extension projects its current stories,
 tables, physical pages and assets without serializing or reopening it.
 
-Page/master dimensions, registration and object ownership, picture placement
-and embedded asset state are retained independently of the derived drawing.
+Page/master dimensions, registration and object ownership, picture placement,
+complete text stories, frame definitions/chains and embedded asset state are
+retained independently of the derived drawing.
 Modern native bindings and coordinate interpretation are mapped at import;
 supported picture edits and rendering consume the typed placement directly.
+Text-frame story bindings, link/catalog order, columns, spacing, padding,
+alignment and geometry are imported into semantic state once. Bounds edits and
+new continuation frames do not synthesize native drawing or text records.
+The one publication object allocator reserves imported identities and dangling
+references; failed mutations do not consume an identity.
 Other object features retain their bounded imported representation while the
 editable model develops. This is not a complete authoring or generation-neutral
 native codec contract. Replacing one picture leaves shared-asset siblings

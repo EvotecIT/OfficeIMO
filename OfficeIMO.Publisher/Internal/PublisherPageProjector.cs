@@ -5,7 +5,6 @@ namespace OfficeIMO.Publisher.Internal;
 
 internal sealed partial class PublisherPageProjector {
     private readonly PublisherContents _source;
-    private readonly PublisherQuillText _text;
     private readonly PublisherEscherData _escher;
     private readonly PublisherParseContext _context;
     private readonly HashSet<uint> _projected = new();
@@ -15,8 +14,8 @@ internal sealed partial class PublisherPageProjector {
     private readonly Dictionary<uint, PublisherPageState> _pages;
     internal PublisherPageProjector(PublisherContents source, PublisherQuillText text, PublisherEscherData escher, PublisherParseContext context,
         PublisherPublicationState? publication = null) {
-        _source = source; _text = text; _escher = escher; _context = context;
-        _publication = publication ?? PublisherModelImporter.Import(source, escher, context);
+        _source = source; _escher = escher; _context = context;
+        _publication = publication ?? PublisherModelImporter.Import(source, text, escher, context);
         _pages = _publication.Pages.ToDictionary(page => page.Id);
         foreach (PublisherPageState page in _publication.Pages.Where(page => !page.SupportsPlacementEditing))
             _context.Add("PUB_MASTER_COORDINATE_ORIGIN_UNASSESSED", "An unassessed master-page layout uses the centered page coordinate origin.",
@@ -53,6 +52,8 @@ internal sealed partial class PublisherPageProjector {
                 _context.Token.ThrowIfCancellationRequested();
                 if (_publication.Pictures.TryGetValue(id, out PublisherPicture? picture) && picture.CanEdit)
                     ProjectSemanticPicture(picture, drawing);
+                else if (_publication.Text.Frames.TryGetValue(id, out PublisherFrameState? frame) && frame.IsAuthored)
+                    ProjectAuthoredTextFrame(frame, drawing);
                 else if (artwork.TryGetValue(id, out PublisherEscherShape? shape)) ProjectShape(shape, drawing, page.Id);
             }
             scenes.Add(page.Id, drawing);
@@ -89,7 +90,7 @@ internal sealed partial class PublisherPageProjector {
             var projectedPage = new PublisherPage(page.Id, page.Name, page.MasterPageId, page.Width, page.Height, clipped,
                 pageFrames.TryGetValue(page.Id, out List<PublisherTextFrame>? frames) ? frames : Array.Empty<PublisherTextFrame>(),
                 pageTables.TryGetValue(page.Id, out PublisherTable[]? tables) ? tables : Array.Empty<PublisherTable>(),
-                page.ObjectIds.Where(id => _publication.Pictures.ContainsKey(id)).Select(id => _publication.Pictures[id]).ToArray());
+                page.ObjectIds.Where(id => _publication.Pictures.ContainsKey(id)).Select(CurrentPictureSnapshot).ToArray());
             if (page.IsMaster) masters.Add(projectedPage); else pages.Add(projectedPage);
         }
         if (pages.Count == 0) throw new InvalidDataException("Publisher publication has no printable document pages.");
@@ -97,17 +98,26 @@ internal sealed partial class PublisherPageProjector {
             if (!_projected.Contains(shape.Chunk.Id)) _context.Add("PUB_OBJECT_NOT_PROJECTED",
                 "A native publication object was not reconstructed on a document or master page.", OfficeConversionLossKind.Omission, PublisherEscherReader.ShapeLocation(shape.Chunk.Id));
         }
-        foreach (PublisherTextStory story in _text.Stories.Values) {
+        foreach (PublisherTextStory story in _publication.Text.Stories.Values) {
             if (!_usedStories.Contains(story.Id)) _context.Add("PUB_STORY_NOT_PLACED", "Recovered story text is available in TextStories, but was not placed on a publication page.",
                 OfficeConversionLossKind.Omission, "Quill/story/" + story.Id);
         }
         var report = new PublisherReadReport(_context.Diagnostics, _source.Shapes.Count, _projected.Count,
-            _text.Stories.Count, _publication.Images.Count, _context.Records);
-        return new PublisherDocument(pages, masters, _text.Stories.Values.ToArray(), _publication.Images.Values.ToArray(), report);
+            _publication.Text.Stories.Count, _publication.Images.Count, _context.Records,
+            _source.Shapes.Count + _publication.Text.AuthoredFrameCount);
+        return new PublisherDocument(pages, masters, _publication.Text.Stories.Values.ToArray(), _publication.Images.Values.ToArray(), report);
     }
     private uint? Owner(uint id, int depth) {
         _context.CheckDepth(depth);
         return _publication.ObjectOwners.TryGetValue(id, out uint? owner) ? owner : null;
+    }
+
+    private PublisherPicture CurrentPictureSnapshot(uint id) {
+        PublisherPicture picture = _publication.Pictures[id];
+        if (!_publication.Text.Frames.TryGetValue(id, out PublisherFrameState? frame)) return picture;
+        return picture.WithPlacement(frame.X, frame.Y, frame.Width, frame.Height, frame.PageTransform,
+            frame.HasAnchor && frame.TransformAvailable && frame.Width > 0 && frame.Height > 0
+                && FiniteRectangle(frame.X, frame.Y, frame.Width, frame.Height));
     }
     private void ProjectShape(PublisherEscherShape shape, OfficeDrawing page, uint pageId) {
         _context.Token.ThrowIfCancellationRequested();
@@ -137,15 +147,13 @@ internal sealed partial class PublisherPageProjector {
             _context.Add("PUB_PAGE_BLEED_CLIPPED", "Artwork outside the publication page remains in the scene but is clipped to the printable page in exports.", OfficeConversionLossKind.Approximation, PublisherEscherReader.ShapeLocation(shape.Id));
         var local = new OfficeDrawing(width, height);
         ProjectGraphic(shape, local, geometryWidth, geometryHeight);
-        uint? storyId = native.Value(0x27);
-        if (native.Chunk.Kind == 0x10) ProjectTable(native, storyId, shape, bounds, pageId, local);
-        else if (storyId.HasValue) {
-            if (_text.Stories.TryGetValue(storyId.Value, out PublisherTextStory? story)) {
+        if (native.Chunk.Kind == 0x10) ProjectTable(native, native.Value(0x27), shape, bounds, pageId, local);
+        else if (_publication.Text.Frames.TryGetValue(shape.Id, out PublisherFrameState? definition)) {
+            if (_publication.Text.Stories.ContainsKey(definition.StoryId)) {
                 if (_textFrames.TryGetValue(shape.Id, out PreparedTextFrame? frame)) {
-                    uint vertical = native.Value(0x35) ?? 0;
                     foreach (PreparedTextRegion region in frame.Regions) local.AddRichTextParagraphs(region.Paragraphs,
                         region.X, region.Y, region.Width, region.Height,
-                        verticalAlignment: vertical switch { 1 => OfficeTextVerticalAlignment.Center, 2 => OfficeTextVerticalAlignment.Bottom, _ => OfficeTextVerticalAlignment.Top });
+                        verticalAlignment: definition.VerticalAlignment);
                 }
                 _context.Add("PUB_TEXT_LAYOUT_APPROXIMATED", "Native text stories use the shared drawing paragraph layout. Font availability, line breaking, fitting, and overflow may differ from Publisher.",
                     OfficeConversionLossKind.Approximation, "Quill");

@@ -3,11 +3,11 @@ using OfficeIMO.Drawing;
 
 namespace OfficeIMO.Publisher.Internal;
 
-// Current semantic page/picture/asset state and the remaining decoded object
-// model feed projection. Native bytes remain separate immutable provenance.
+// Current semantic pages, pictures, stories and frame chains feed projection.
+// Imported graphics/table residue and native provenance stay separate and inert.
 internal sealed class PublisherModelState {
     private readonly PublisherContents _contents;
-    private readonly PublisherQuillText _text;
+    private readonly PublisherQuillText _importedText;
     private readonly PublisherEscherData _artwork;
     private readonly PublisherParseContext _decoded;
     private readonly PublisherNativeSource _nativeSource;
@@ -17,15 +17,15 @@ internal sealed class PublisherModelState {
     internal PublisherModelState(PublisherContents contents, PublisherQuillText text, PublisherEscherData artwork,
         PublisherParseContext decoded, PublisherNativeSource nativeSource, PublisherReadReport? sourceReport = null,
         PublisherPublicationState? publication = null) {
-        _contents = contents; _text = text; _artwork = artwork; _decoded = decoded; _nativeSource = nativeSource;
-        _publication = publication ?? PublisherModelImporter.Import(contents, artwork, decoded);
+        _contents = contents; _importedText = text; _artwork = artwork; _decoded = decoded; _nativeSource = nativeSource;
+        _publication = publication ?? PublisherModelImporter.Import(contents, text, artwork, decoded);
         _sourceReport = sourceReport ?? new PublisherReadReport(decoded.Diagnostics, contents.Shapes.Count, 0,
             text.Stories.Count, artwork.Images.Count, decoded.Records);
     }
 
     internal PublisherDocument Project(CancellationToken token) {
         token.ThrowIfCancellationRequested();
-        PublisherDocument document = new PublisherPageProjector(_contents, _text, _artwork,
+        PublisherDocument document = new PublisherPageProjector(_contents, _importedText, _artwork,
             _decoded.ForProjection(token, _publication.AdditionalImageBytes, _publication.AdditionalImageCount), _publication).Project();
         token.ThrowIfCancellationRequested();
         document.AttachModel(this, _sourceReport);
@@ -33,41 +33,26 @@ internal sealed class PublisherModelState {
     }
 
     internal PublisherModelState ReplaceStory(uint storyId, IReadOnlyList<OfficeRichTextParagraph> paragraphs, CancellationToken token) {
-        if (!_text.Stories.TryGetValue(storyId, out PublisherTextStory? original))
+        if (!_publication.Text.Stories.TryGetValue(storyId, out PublisherTextStory? original))
             throw new ArgumentOutOfRangeException(nameof(storyId), "The publication has no such story.");
-        if (_text.CellParagraphs.ContainsKey(storyId) || _contents.Shapes.Values.Any(shape => shape.Chunk.Kind == 0x10 && shape.Value(0x27) == storyId))
+        if (_publication.Text.IsTableStory(storyId))
             throw new NotSupportedException("Editing table stories requires a qualified cell-to-story mapping and is not supported.");
         PublisherTextStory replacement = PublisherStoryEditor.Replace(original, paragraphs, _decoded.Options, token);
-        if (_text.Stories.Values.Sum(story => PublisherStoryEditor.CharacterCount(story.Id == storyId ? replacement : story)) > _decoded.Options.Limits.MaxTextCharacters)
+        if (_publication.Text.Stories.Values.Sum(story => PublisherStoryEditor.CharacterCount(story.Id == storyId ? replacement : story)) > _decoded.Options.Limits.MaxTextCharacters)
             throw new ArgumentException("Publication story text exceeds the configured character limit.", nameof(paragraphs));
-        var text = new PublisherQuillText();
-        foreach (var entry in _text.Stories) text.Stories.Add(entry.Key, entry.Key == storyId ? replacement : entry.Value);
-        foreach (var entry in _text.CellParagraphs) text.CellParagraphs.Add(entry.Key, entry.Value);
-        return new PublisherModelState(_contents, text, _artwork, _decoded, _nativeSource, _sourceReport, _publication);
+        return WithPublication(_publication.WithText(_publication.Text.ReplaceStory(replacement)));
     }
 
     internal PublisherModelState SetBounds(PublisherTextFrame frame, double x, double y, double width, double height) {
-        PublisherEscherShape? shape = _artwork.Shapes.SingleOrDefault(item => item.Id == frame.Id);
-        if (shape == null || !shape.Bounds.HasValue || shape.Hidden || shape.IsGroup || shape.HasPublicationGroupParent
-            || shape.GroupTransform != OfficeTransform.Identity || shape.LayoutTransform != OfficeTransform.Identity
-            || shape.Transform.RotationDegrees.GetValueOrDefault() != 0 || shape.Transform.FlipHorizontal || shape.Transform.FlipVertical)
-            throw new NotSupportedException("Frame bounds can only be edited for visible, resolved, untransformed top-level frames.");
-        PublisherPageState page = _publication.Pages.Single(item => item.Id == frame.PageId);
-        if (!page.SupportsPlacementEditing) throw new NotSupportedException("This master page's coordinate basis is not qualified for frame edits.");
-        double originX = page.RegistrationX, originY = page.RegistrationY;
-        double x1 = (x - originX) * 12700, y1 = (y - originY) * 12700;
-        double x2 = (x + width - originX) * 12700, y2 = (y + height - originY) * 12700;
-        if (new[] { x1, y1, x2, y2 }.Any(value => value < int.MinValue || value > int.MaxValue))
-            throw new ArgumentOutOfRangeException(nameof(width), "Frame bounds exceed native signed coordinate limits.");
-        var replacement = new PublisherEscherShape(shape.Id, shape.Type, shape.Flags, shape.Properties, shape.HasParentDrawingSpace) {
-            Bounds = new PublisherNativeRectangle(x1, y1, x2, y2), GroupCoordinates = shape.GroupCoordinates,
-            GroupTransform = shape.GroupTransform, LayoutTransform = shape.LayoutTransform,
-            HasPublicationGroupParent = shape.HasPublicationGroupParent, HiddenByGroup = shape.HiddenByGroup
-        };
-        var artwork = new PublisherEscherData();
-        foreach (PublisherEscherShape item in _artwork.Shapes) artwork.Shapes.Add(item.Id == frame.Id ? replacement : item);
-        foreach (var entry in _artwork.Images) artwork.Images.Add(entry.Key, entry.Value);
-        return new PublisherModelState(_contents, _text, artwork, _decoded, _nativeSource, _sourceReport, _publication);
+        return WithPublication(_publication.WithText(_publication.Text.SetBounds(frame.Id, x, y, width, height)));
+    }
+
+    internal PublisherModelState AddLinkedTextFrame(uint previousFrameId, uint pageId, double x, double y, double width, double height,
+        CancellationToken token, out uint frameId) {
+        token.ThrowIfCancellationRequested();
+        if ((long)_contents.Shapes.Count + _publication.Text.AuthoredFrameCount >= _decoded.Options.Limits.MaxItems)
+            throw new InvalidDataException("Publisher current object limit exceeded.");
+        return WithPublication(_publication.AddLinkedTextFrame(previousFrameId, pageId, x, y, width, height, out frameId));
     }
 
     internal PublisherModelState SetPictureBounds(uint pictureId, double x, double y, double width, double height) {
@@ -101,7 +86,7 @@ internal sealed class PublisherModelState {
     }
 
     private PublisherModelState WithPublication(PublisherPublicationState publication) =>
-        new(_contents, _text, _artwork, _decoded, _nativeSource, _sourceReport, publication);
+        new(_contents, _importedText, _artwork, _decoded, _nativeSource, _sourceReport, publication);
 }
 
 // Owned source storage is private to the model. Retention is not a native-save
