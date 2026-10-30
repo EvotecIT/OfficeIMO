@@ -7,7 +7,10 @@ Generates the 3.6 section of MIGRATION.md from the API map.
 Reads powershell/*.json and csharp/*.json next to this script and writes the OfficeIMO and
 PSWriteOffice 3.6 upgrade section as Markdown: the global rules, before/after for common jobs,
 .NET package changes, and complete reference tables. The output is deterministic, so running it
-again on an unchanged map produces an identical file.
+again on an unchanged map produces an identical file. When the output contains the
+officeimo-api-map begin/end comments, only that region is replaced and surrounding text is
+preserved. Existing unmarked files must be standalone generated sections; other content is
+rejected before writing.
 
 The script fails when a map entry does not appear exactly once in the reference tables or when a
 generated table row has the wrong number of cells. Map data that looks inconsistent with the API
@@ -967,6 +970,25 @@ if ($FailOnDataWarning -and $script:DataWarnings.Count -gt 0) {
 while ($script:Lines.Count -gt 0 -and $script:Lines[$script:Lines.Count - 1] -eq '') { $script:Lines.RemoveAt($script:Lines.Count - 1) }
 $text = ($script:Lines -join "`n") + "`n"
 $fullOutput = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($OutputPath)
+if ([System.IO.File]::Exists($fullOutput)) {
+    $existing = [System.IO.File]::ReadAllText($fullOutput)
+    $begin = '<!-- officeimo-api-map:begin -->'
+    $end = '<!-- officeimo-api-map:end -->'
+    $beginCount = [regex]::Matches($existing, [regex]::Escape($begin)).Count
+    $endCount = [regex]::Matches($existing, [regex]::Escape($end)).Count
+    if ($beginCount -or $endCount) {
+        $start = $existing.IndexOf($begin, [System.StringComparison]::Ordinal)
+        $finish = $existing.IndexOf($end, [System.StringComparison]::Ordinal)
+        if ($beginCount -ne 1 -or $endCount -ne 1 -or $finish -lt $start) {
+            throw 'Migration output must contain exactly one ordered pair of officeimo-api-map begin/end comments.'
+        }
+        $text = $existing.Substring(0, $start + $begin.Length) + "`n" + $text +
+            $existing.Substring($finish)
+    } elseif ($existing.Length -gt 0 -and -not $existing.StartsWith($script:Lines[0] + "`n", [System.StringComparison]::Ordinal) -and
+        -not $existing.StartsWith($script:Lines[0] + "`r`n", [System.StringComparison]::Ordinal)) {
+        throw 'Migration output contains maintained content. Add one ordered pair of officeimo-api-map begin/end comments to select the generated region.'
+    }
+}
 $outputDirectory = Split-Path -Parent $fullOutput
 if ($outputDirectory -and -not (Test-Path -LiteralPath $outputDirectory)) { [void](New-Item -ItemType Directory -Path $outputDirectory) }
 [System.IO.File]::WriteAllText($fullOutput, $text, [System.Text.UTF8Encoding]::new($false))

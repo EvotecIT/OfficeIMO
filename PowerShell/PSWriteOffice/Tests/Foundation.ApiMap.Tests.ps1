@@ -63,3 +63,38 @@ Describe 'Command map foundations' {
         }
     }
 }
+
+Describe 'Migration generator document preservation' {
+    It 'preserves surrounding text or rejects ambiguous regions: <Region>' -ForEach @(
+        @{ Region = 'unmarked'; ExtraBegin = ''; End = ''; Valid = $false }
+        @{ Region = 'paired'; ExtraBegin = ''; End = '<!-- officeimo-api-map:end -->'; Valid = $true }
+        @{ Region = 'missing-end'; ExtraBegin = ''; End = ''; Valid = $false }
+        @{ Region = 'duplicate-begin'; ExtraBegin = '<!-- officeimo-api-map:begin -->'; End = '<!-- officeimo-api-map:end -->'; Valid = $false }
+    ) {
+        $path = Join-Path $TestDrive "$Region.md"
+        $prefix = "# Maintained introduction`r`n`r`n"
+        $suffix = "`r`n## Maintained history`r`n"
+        $begin = if ($Region -eq 'unmarked') { '' } else { '<!-- officeimo-api-map:begin -->' }
+        $inputText = $prefix + "$begin`n$ExtraBegin`nOld generated content`n$End" + $suffix
+        [IO.File]::WriteAllText($path, $inputText)
+        $generate = {
+            $ErrorActionPreference = 'Continue'
+            & pwsh -NoProfile -File (Join-Path $repo 'Build/ApiMap/New-MigrationGuide.ps1') -OutputPath $path -FailOnDataWarning 2>&1
+        }
+        if ($Valid) {
+            $output = & $generate
+            $LASTEXITCODE | Should -Be 0 -Because ($output -join [Environment]::NewLine)
+            $first = [IO.File]::ReadAllText($path)
+            $first.StartsWith($prefix + '<!-- officeimo-api-map:begin -->') | Should -BeTrue
+            $first.EndsWith('<!-- officeimo-api-map:end -->' + $suffix) | Should -BeTrue
+            $output = & $generate
+            $LASTEXITCODE | Should -Be 0 -Because ($output -join [Environment]::NewLine)
+            [IO.File]::ReadAllText($path) | Should -BeExactly $first
+        } else {
+            $output = & $generate
+            $LASTEXITCODE | Should -Not -Be 0
+            ($output -join [Environment]::NewLine) | Should -Match 'one ordered pair'
+            [IO.File]::ReadAllText($path) | Should -BeExactly $inputText
+        }
+    }
+}
