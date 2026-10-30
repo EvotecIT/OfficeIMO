@@ -13,7 +13,8 @@ public sealed class RedactionReviewTests {
         using var files = new TestFiles();
         string text = string.Join(" ", Enumerable.Repeat("x", 1001).Concat(Enumerable.Repeat("y", 999)).Append("z"));
         PdfDocument.Create(compose => compose.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(600), global::OfficeIMO.OfficeLength.Points(800)).Content(content =>
-            content.Item(item => item.Paragraph(paragraph => paragraph.Text(text)))))).Save(files.Input);
+            content.Item(item => item.Paragraph(paragraph => paragraph.Font(PdfStandardFont.Courier).FontSize(global::OfficeIMO.OfficeLength.Points(10)).Text(text),
+                style: new PdfParagraphStyle { LineHeight = 2D }))))).Save(files.Input);
         using var model = new MainWindowViewModel(_ => Task.FromResult<string?>(null));
         await model.OpenDocumentAsync(files.Input);
         model.RedactionSearchMatchedTextOnly = true;

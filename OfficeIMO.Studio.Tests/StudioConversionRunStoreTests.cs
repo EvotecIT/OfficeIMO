@@ -106,7 +106,7 @@ public sealed class StudioConversionRunStoreTests {
 
         Assert.Equal(OfficeBatchRunState.Completed, report.State);
         Assert.False(File.Exists(reportPath));
-        Assert.True(File.Exists(Path.Combine(output, "one.txt.pdf")));
+        Assert.True(File.Exists(Path.Combine(output, "one.pdf")));
         Assert.True(File.Exists(jobPath));
         Assert.Equal("Keep the recovery", File.ReadAllText(files.Recovery));
     }

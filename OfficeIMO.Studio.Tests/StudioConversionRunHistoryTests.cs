@@ -38,7 +38,7 @@ public sealed class StudioConversionRunHistoryTests {
                 Assert.Equal(OfficeWorkflowStatus.Failed, Assert.Single(services.Jobs.Entries).Outcome);
             }
             string firstPath = Assert.Single(Directory.GetFiles(services.Paths.ConversionRunsRoot, "*.json"));
-            byte[] firstReport = File.ReadAllBytes(firstPath), firstPdf = File.ReadAllBytes(Path.Combine(output, "one.txt.pdf"));
+            byte[] firstReport = File.ReadAllBytes(firstPath), firstPdf = File.ReadAllBytes(Path.Combine(output, "one.pdf"));
             var restarted = StudioApplicationServices.Create(services.Paths);
             var first = Assert.Single(restarted.Jobs.Entries);
             Assert.True(first.HasRunReport); Assert.True(first.CanOpenOutput); Assert.True(first.IsFailed);
@@ -72,7 +72,7 @@ public sealed class StudioConversionRunHistoryTests {
                 Assert.True(window.ViewModel.ConversionWorkbench.IsFolderJobReviewVisible);
                 Assert.Equal(path, window.ViewModel.ConversionWorkbench.BatchExport.SavedJobPath);
                 Assert.Single(restarted.Jobs.Entries);
-                Assert.False(File.Exists(Path.Combine(output, "two.docx.pdf")));
+                Assert.False(File.Exists(Path.Combine(output, "two.pdf")));
                 await window.ViewModel.ConversionWorkbench.BatchExport.PlanJobCommand.ExecuteAsync(null);
                 Assert.Contains("Selected 2", window.ViewModel.ConversionWorkbench.BatchExport.PlanSummary);
                 Capture(window, $"durable-jobs-{width}-review-before-run.png");
@@ -86,16 +86,16 @@ public sealed class StudioConversionRunHistoryTests {
                 var retryReport = OfficeBatchReport.Load(retry.RunReportPath!);
                 Assert.Single(retryReport.Items, item => item.Reused);
                 Assert.Single(retryReport.Items, item => item.Status == OfficeBatchItemStatus.Completed && !item.Reused);
-                Assert.Equal(firstPdf, File.ReadAllBytes(Path.Combine(output, "one.txt.pdf")));
+                Assert.Equal(firstPdf, File.ReadAllBytes(Path.Combine(output, "one.pdf")));
                 Assert.Equal(firstReport, File.ReadAllBytes(firstPath));
-                Assert.Contains("Repaired second source", OfficeIMO.Pdf.PdfDocument.Load(Path.Combine(output, "two.docx.pdf")).Read().Text);
+                Assert.Contains("Repaired second source", OfficeIMO.Pdf.PdfDocument.Load(Path.Combine(output, "two.pdf")).Read().Text);
                 window.ViewModel.ShowJobsCommand.Execute(null); Layout(window);
                 list.SelectedItem = retry; list.ScrollIntoView(retry); Layout(window);
                 Capture(window, $"durable-jobs-{width}-retried.png");
                 window.ViewModel.Jobs.ClearFinishedCommand.Execute(null);
                 Assert.Empty(restarted.Jobs.Entries);
                 Assert.Empty(Directory.GetFiles(restarted.Paths.ConversionRunsRoot, "*.json"));
-                Assert.Equal(firstPdf, File.ReadAllBytes(Path.Combine(output, "one.txt.pdf")));
+                Assert.Equal(firstPdf, File.ReadAllBytes(Path.Combine(output, "one.pdf")));
                 Assert.True(Directory.Exists(Path.Combine(root, "checkpoints")));
                 Assert.True(File.Exists(path));
             } finally { window.Close(); }
@@ -178,7 +178,7 @@ public sealed class StudioConversionRunHistoryTests {
             Assert.False(Assert.Single(services.Jobs.Entries).HasRunReport);
             Assert.False(Directory.Exists(services.Paths.ConversionRunsRoot));
             Assert.Empty(StudioApplicationServices.Create(services.Paths).Jobs.Entries);
-            Assert.True(File.Exists(Path.Combine(output, "one.txt.pdf")));
+            Assert.True(File.Exists(Path.Combine(output, "one.pdf")));
             return true;
         }, CancellationToken.None);
     }
@@ -229,7 +229,7 @@ public sealed class StudioConversionRunHistoryTests {
             Assert.True(attempt.IsSucceeded, attempt.Summary); Assert.True(attempt.CanOpenOutput);
             Assert.Contains("could not be fully saved", attempt.RecordingError);
             Assert.Contains("could not be fully saved", model.ConversionWorkbench.BatchExport.Status);
-            Assert.Contains("committed output", OfficeIMO.Pdf.PdfDocument.Load(Path.Combine(output, "one.txt.pdf")).Read().Text);
+            Assert.Contains("committed output", OfficeIMO.Pdf.PdfDocument.Load(Path.Combine(output, "one.pdf")).Read().Text);
             Assert.Equal("Keep this blocked history location", File.ReadAllText(services.Paths.ConversionRunsRoot));
             return true;
         }, CancellationToken.None);

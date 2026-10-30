@@ -66,8 +66,8 @@ public sealed class ReliableBatchCommandTests {
         Assert.Equal(1, summary.GetProperty("completed").GetInt64());
         Assert.Equal(1, summary.GetProperty("failed").GetInt64());
         Assert.Equal(1, summary.GetProperty("skipped").GetInt64());
-        Assert.Contains("Reliable batch result marker", PdfDocument.Load(new System.IO.MemoryStream(File.ReadAllBytes(Path.Combine(files.Output, "good.txt.pdf")))).ExtractText());
-        Assert.False(File.Exists(Path.Combine(files.Output, "broken.docx.pdf")));
+        Assert.Contains("Reliable batch result marker", PdfDocument.Load(new System.IO.MemoryStream(File.ReadAllBytes(Path.Combine(files.Output, "good.pdf")))).ExtractText());
+        Assert.False(File.Exists(Path.Combine(files.Output, "broken.pdf")));
     }
 
     [Theory]

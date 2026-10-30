@@ -22,6 +22,19 @@
       "phase": "B",
       "applied": "phase-b-applied",
       "note": "The tabular CSV-to-XLSX route uses CreateWriter(...).WriteTable(...) with the existing header policy, cancellation, streaming reader and atomic output commit."
+    },
+    {
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "action": "change",
+      "old": "Consumer batch fixtures expect source.txt.pdf rather than the adopted source.pdf output basename.",
+      "new": "Use source.pdf in saved-job, publication, recovery, history and CLI output assertions.",
+      "reason": "The extension-replacement naming rule applies to every batch consumer; source inputs and all output integrity assertions remain unchanged.",
+      "files": [
+        "OfficeIMO.Tool.Tests/ConversionBatchCommandTests.cs",
+        "OfficeIMO.Tool.Tests/ReliableBatchCommandTests.cs",
+        "OfficeIMO.Tool.Tests/SavedConversionJobCommandTests.cs"
+      ]
     }
   ],
   "applicationStatus": "Phase A applied and validated on the supported macOS targets. Phase B and Tier 2 entries retain their status; Windows .NET Framework validation remains pending.",

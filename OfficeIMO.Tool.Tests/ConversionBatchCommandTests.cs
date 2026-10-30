@@ -27,7 +27,7 @@ public sealed class ConversionBatchCommandTests {
                 Assert.Contains("\"reused\":" + run, json);
                 Assert.Equal(string.Empty, error.ToString());
             }
-            Assert.True(File.Exists(Path.Combine(request.OutputDirectory, "source.txt.pdf")));
+            Assert.True(File.Exists(Path.Combine(request.OutputDirectory, "source.pdf")));
         } finally { Directory.Delete(root, true); }
     }
 
@@ -48,7 +48,7 @@ public sealed class ConversionBatchCommandTests {
             Assert.Equal(1, result.RootElement.GetProperty("summary").GetProperty("completed").GetInt32());
             Assert.Equal(1, result.RootElement.GetProperty("summary").GetProperty("failed").GetInt32());
             Assert.Contains("Literal mixed batch marker",
-                PdfReadDocument.Open(File.ReadAllBytes(Path.Combine(destination, "text.txt.pdf"))).ExtractText(), StringComparison.Ordinal);
+                PdfReadDocument.Open(File.ReadAllBytes(Path.Combine(destination, "text.pdf"))).ExtractText(), StringComparison.Ordinal);
             Assert.False(File.Exists(Path.Combine(destination, "drawing.fodg.pdf")));
             Assert.Contains("drawing.fodg", run.Error, StringComparison.Ordinal);
         } finally { Directory.Delete(root, true); }

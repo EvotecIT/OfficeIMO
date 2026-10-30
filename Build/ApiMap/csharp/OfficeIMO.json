@@ -521,6 +521,33 @@
         "OfficeIMO.Workflows.Tests/PublisherPdfWorkflowTests.cs",
         "OfficeIMO.Workflows.Tests/VisioPdfWorkflowTests.cs"
       ]
+    },
+    {
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "action": "change",
+      "old": "Consumer batch fixtures expect source.txt.pdf rather than the adopted source.pdf output basename.",
+      "new": "Use source.pdf in saved-job, publication, recovery, history and CLI output assertions.",
+      "reason": "The extension-replacement naming rule applies to every batch consumer; source inputs and all output integrity assertions remain unchanged.",
+      "files": [
+        "OfficeIMO.Studio.Tests/PdfBatchExportVisualTests.cs",
+        "OfficeIMO.Studio.Tests/RedactionReviewTests.cs",
+        "OfficeIMO.Studio.Tests/StudioConversionRunHistoryTests.cs",
+        "OfficeIMO.Studio.Tests/StudioConversionRunStoreTests.cs",
+        "OfficeIMO.Studio.Tests/StudioSavedFolderJobTests.cs",
+        "OfficeIMO.Studio.Tests/StudioWorkflowJobIntegrationTests.cs"
+      ]
+    },
+    {
+      "phase": "B",
+      "applied": "phase-b-applied",
+      "action": "change",
+      "old": "Studio precise-redaction capacity fixture inherits dense Modern typography and is refused for overlapping glyph geometry before reaching the capacity guard.",
+      "new": "Use explicit standard Courier10pt with2xleading in the existing2000-mark capacity fixture.",
+      "reason": "The fixture proves distinct-mark capacity, idempotent repeated searches and review identity/reason retention. Its exact glyph regions must be disjoint; real safety guards and document defaults are unchanged.",
+      "files": [
+        "OfficeIMO.Studio.Tests/RedactionReviewTests.cs"
+      ]
     }
   ],
   "applicationStatus": "Phase A applied and validated on the supported macOS targets. Phase B and Tier 2 entries retain their status; Windows .NET Framework validation remains pending.",
