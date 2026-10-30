@@ -13,7 +13,7 @@ internal static class NativePdfScenarios {
             OfficeWorkflowResult result = await IWorkWorkflow.CreateRunner().RunAsync(request);
             Require(result.Succeeded, source.Name + ": " + result.Summary);
             VerifyEvidence(result, source);
-            PdfReadDocument pdf = PdfReadDocument.Open(File.ReadAllBytes(request.OutputPath!));
+            using PdfDocument pdf = PdfDocument.Load(request.OutputPath!);
             Require(pdf.Pages.Count == source.Pages, source.Name + " lost pages.");
             VerifyContent(pdf, source);
             VerifyIntegrity(request, source);
@@ -65,7 +65,7 @@ internal static class NativePdfScenarios {
             source.Name + " lost output reopen or source identity evidence.");
     }
 
-    private static void VerifyContent(PdfReadDocument pdf, Source source) {
+    private static void VerifyContent(PdfDocument pdf, Source source) {
         string[] pages = pdf.Pages.Select(page => page.ExtractText()).ToArray();
         if (source == Body) {
             Require(pages[0].Contains("OfficeIMO native body document", StringComparison.Ordinal)

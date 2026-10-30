@@ -14,8 +14,10 @@ var imageOptions = new HtmlRenderOptions {
 
 string svg = source.ToSvg(imageOptions);
 byte[] png = source.ToPng(imageOptions);
-byte[] pdf = source.ToPdfBytes(new HtmlToPdfOptions(imageOptions));
-string extractedText = PdfReadDocument.Open(pdf).ExtractText();
+using PdfDocument renderedPdf = source.ToPdf(new HtmlToPdfOptions(imageOptions));
+using var pdfBytes = new MemoryStream(renderedPdf.ToBytes(), writable: false);
+using PdfDocument reopenedPdf = PdfDocument.Load(pdfBytes);
+string extractedText = reopenedPdf.ExtractText();
 
 if (!svg.Contains(marker, StringComparison.Ordinal)) throw new InvalidOperationException("The NativeAOT SVG output lost searchable text.");
 if (png.Length < 8 || png[0] != 137 || png[1] != 80) throw new InvalidOperationException("The NativeAOT PNG output is invalid.");
@@ -45,8 +47,9 @@ var standardsOptions = new HtmlRenderOptions {
     FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss
 };
 string secondPageSvg = standardsSource.ToSvg(standardsOptions, pageIndex: 1);
-byte[] standardsPdf = standardsSource.ToPdfBytes(new HtmlToPdfOptions(standardsOptions));
-PdfReadDocument standardsReadDocument = PdfReadDocument.Open(standardsPdf);
+using PdfDocument standardsPdf = standardsSource.ToPdf(new HtmlToPdfOptions(standardsOptions));
+using var standardsBytes = new MemoryStream(standardsPdf.ToBytes(), writable: false);
+using PdfDocument standardsReadDocument = PdfDocument.Load(standardsBytes);
 string standardsText = standardsReadDocument.ExtractText();
 if (!string.Concat(System.Xml.Linq.XDocument.Parse(secondPageSvg).Descendants()
         .Where(element => (element.Name.LocalName == "text" || element.Attribute("aria-label") != null) &&
@@ -90,8 +93,10 @@ if (advancedRender.Diagnostics.Any(diagnostic =>
         + string.Join(", ", advancedRender.Diagnostics.Select(diagnostic => diagnostic.Code)));
 }
 string advancedSvg = advancedSource.ToSvg(advancedOptions);
-byte[] advancedPdf = advancedSource.ToPdfBytes(new HtmlToPdfOptions(advancedOptions));
-string advancedText = PdfReadDocument.Open(advancedPdf).ExtractText();
+using PdfDocument advancedPdf = advancedSource.ToPdf(new HtmlToPdfOptions(advancedOptions));
+using var advancedBytes = new MemoryStream(advancedPdf.ToBytes(), writable: false);
+using PdfDocument advancedReadDocument = PdfDocument.Load(advancedBytes);
+string advancedText = advancedReadDocument.ExtractText();
 string compactAdvancedText = string.Concat(advancedText.Where(character => !char.IsWhiteSpace(character)));
 if (!compactAdvancedText.Contains("VerticalAot", StringComparison.Ordinal)
     || !compactAdvancedText.Contains("MarkerAot", StringComparison.Ordinal)
