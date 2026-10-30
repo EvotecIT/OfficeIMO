@@ -18,7 +18,22 @@ public sealed class PdfStandardEncryptionOptions {
         UserPassword = userPassword;
     }
 
-    /// <summary>Password required to open the generated PDF. AES-256 accepts at most 4096 UTF-16 characters before normalization.</summary>
+    private PdfStandardEncryptionOptions() { }
+
+    /// <summary>Creates permissions-only security: readers can open without a password, while changing
+    /// restrictions requires the supplied owner password.</summary>
+    /// <param name="ownerPassword">Non-empty password authorizing permission changes.</param>
+    /// <param name="allowedPermissions">Operations permitted to readers without the owner password.</param>
+    /// <returns>Explicit permissions-only encryption options using AES-256 by default.</returns>
+    public static PdfStandardEncryptionOptions ForPermissions(string ownerPassword, PdfStandardPermissions allowedPermissions) {
+        Guard.NotNullOrWhiteSpace(ownerPassword, nameof(ownerPassword));
+        if ((allowedPermissions & ~PdfStandardPermissions.All) != 0)
+            throw new ArgumentOutOfRangeException(nameof(allowedPermissions));
+        return new PdfStandardEncryptionOptions { OwnerPassword = ownerPassword, AllowedPermissions = allowedPermissions };
+    }
+
+    /// <summary>Password required to open the generated PDF, or empty for options created by
+    /// <see cref="ForPermissions"/>. AES-256 accepts at most 4096 UTF-16 characters before normalization.</summary>
     public string UserPassword {
         get => _userPassword;
         set {
@@ -31,6 +46,8 @@ public sealed class PdfStandardEncryptionOptions {
     public string? OwnerPassword {
         get => _ownerPassword;
         set {
+            if (value == null && _userPassword.Length == 0)
+                throw new ArgumentException("Permissions-only security requires an owner password.", nameof(OwnerPassword));
             if (value != null) {
                 Guard.NotNullOrWhiteSpace(value, nameof(OwnerPassword));
             }
@@ -38,6 +55,11 @@ public sealed class PdfStandardEncryptionOptions {
             _ownerPassword = value;
         }
     }
+
+    /// <summary>Whether the owner password differs from the open password after the selected PDF
+    /// algorithm's normalization and byte limit. False means an open-password holder also has owner access.</summary>
+    public bool HasDistinctOwnerPassword => OwnerPassword != null &&
+        !PdfStandardSecurityWriter.PasswordsAreEquivalent(UserPassword, OwnerPassword, Algorithm, default);
 
     /// <summary>Encryption algorithm. AES-256 revision 6 is the default; RC4 requires explicit legacy selection.</summary>
     public PdfStandardEncryptionAlgorithm Algorithm { get; set; } = PdfStandardEncryptionAlgorithm.Aes256;
@@ -65,13 +87,15 @@ public sealed class PdfStandardEncryptionOptions {
 
     /// <summary>Creates a deep copy of the encryption options.</summary>
     public PdfStandardEncryptionOptions Clone() {
-        return new PdfStandardEncryptionOptions(UserPassword) {
-            OwnerPassword = OwnerPassword,
-            Permissions = Permissions,
-            Algorithm = Algorithm,
-            EncryptMetadata = EncryptMetadata,
-            AesCryptographyProvider = AesCryptographyProvider
-        };
+        var copy = UserPassword.Length == 0
+            ? ForPermissions(OwnerPassword!, AllowedPermissions)
+            : new PdfStandardEncryptionOptions(UserPassword);
+        copy.OwnerPassword = OwnerPassword;
+        copy.Permissions = Permissions;
+        copy.Algorithm = Algorithm;
+        copy.EncryptMetadata = EncryptMetadata;
+        copy.AesCryptographyProvider = AesCryptographyProvider;
+        return copy;
     }
 
     internal static int ToRawPermissions(PdfStandardPermissions permissions) {

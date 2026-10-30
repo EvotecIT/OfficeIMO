@@ -7,6 +7,9 @@ namespace PSWriteOffice.Foundation;
 
 /// <summary>Resolves filesystem provider paths without interpreting literal bracket characters as wildcards.</summary>
 public static class OfficePath {
+    /// <summary>Compares physical filesystem identities, including directory aliases and links.</summary>
+    public static bool AreEquivalent(string left, string right) => OfficeIMO.Internal.OfficePathIdentity.AreEquivalent(left, right);
+
     /// <summary>Resolves existing input items through the current PowerShell provider; an optional reporter retains valid wildcard matches when other items are rejected.</summary>
     public static IReadOnlyList<string> ResolveInput(SessionState session, string path, bool literal, bool allowDirectory = false, Action<Exception, string>? reportItemError = null) {
         if (session == null) throw new ArgumentNullException(nameof(session));
