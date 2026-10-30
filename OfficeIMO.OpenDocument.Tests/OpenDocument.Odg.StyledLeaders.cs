@@ -33,7 +33,7 @@ public sealed class OpenDocumentOdgStyledLeaderTests {
         foreach (var read in reads) {
             string[] readBefore = Parts(read);
             var text = Text(read.Pages[0]); var leader = text.Paragraphs[0].TabStops!.Stops[0];
-            Assert.Equal("A\tB", text.PlainText); Assert.Equal(30, leader.LeaderStyle!.FontSizePoints); Assert.True(leader.LeaderStyle.Bold);
+            Assert.Equal("A\tB", text.PlainText); Assert.Equal(OfficeLength.Points(30), leader.LeaderStyle!.FontSize); Assert.True(leader.LeaderStyle.Bold);
             Assert.Equal(OfficeColor.Blue, leader.LeaderStyle.Color);
             var svg = XDocument.Parse(OfficeDrawingSvgExporter.ToSvg(read.Pages[0].ToDrawing().Value));
             var glyph = Assert.Single(svg.Descendants(), e => e.Name.LocalName == "text" && e.Value.Length > 0 && e.Value.All(c => c == '.'));

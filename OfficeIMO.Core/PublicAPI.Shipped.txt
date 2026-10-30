@@ -3175,20 +3175,20 @@ OfficeIMO.Drawing.OfficeTextTabLeaderStyle.Bold.get -> bool?
 OfficeIMO.Drawing.OfficeTextTabLeaderStyle.Color.get -> OfficeIMO.OfficeColor?
 OfficeIMO.Drawing.OfficeTextTabLeaderStyle.FontFamily.get -> string?
 OfficeIMO.Drawing.OfficeTextTabLeaderStyle.FontSizeFactor.get -> double
-OfficeIMO.Drawing.OfficeTextTabLeaderStyle.FontSizePoints.get -> double?
+OfficeIMO.Drawing.OfficeTextTabLeaderStyle.FontSize.get -> OfficeIMO.OfficeLength?
 OfficeIMO.Drawing.OfficeTextTabLeaderStyle.InheritOpacity.get -> bool
 OfficeIMO.Drawing.OfficeTextTabLeaderStyle.Italic.get -> bool?
-OfficeIMO.Drawing.OfficeTextTabLeaderStyle.OfficeTextTabLeaderStyle(double? fontSizePoints = null, double fontSizeFactor = 1, OfficeIMO.OfficeColor? color = null, string? fontFamily = null, bool? bold = null, bool? italic = null, OfficeIMO.Drawing.OfficeTextDecorationStyle? underlineStyle = null, OfficeIMO.Drawing.OfficeTextDecorationStyle? strikethroughStyle = null, OfficeIMO.Drawing.OfficeTextBaseline? baseline = null, OfficeIMO.OfficeColor? backgroundColor = null, bool inheritOpacity = false, double? opacity = null) -> void
+OfficeIMO.Drawing.OfficeTextTabLeaderStyle.OfficeTextTabLeaderStyle(OfficeIMO.OfficeLength? fontSize = null, double fontSizeFactor = 1, OfficeIMO.OfficeColor? color = null, string? fontFamily = null, bool? bold = null, bool? italic = null, OfficeIMO.Drawing.OfficeTextDecorationStyle? underlineStyle = null, OfficeIMO.Drawing.OfficeTextDecorationStyle? strikethroughStyle = null, OfficeIMO.Drawing.OfficeTextBaseline? baseline = null, OfficeIMO.OfficeColor? backgroundColor = null, bool inheritOpacity = false, double? opacity = null) -> void
 OfficeIMO.Drawing.OfficeTextTabLeaderStyle.Opacity.get -> double?
 OfficeIMO.Drawing.OfficeTextTabLeaderStyle.StrikethroughStyle.get -> OfficeIMO.Drawing.OfficeTextDecorationStyle?
 OfficeIMO.Drawing.OfficeTextTabLeaderStyle.UnderlineStyle.get -> OfficeIMO.Drawing.OfficeTextDecorationStyle?
 OfficeIMO.Drawing.OfficeTextTabLineLeader
 OfficeIMO.Drawing.OfficeTextTabLineLeader.Color.get -> OfficeIMO.OfficeColor?
 OfficeIMO.Drawing.OfficeTextTabLineLeader.DoubleLine.get -> bool
-OfficeIMO.Drawing.OfficeTextTabLineLeader.OfficeTextTabLineLeader(OfficeIMO.Drawing.OfficeTextTabLineLeaderStyle style = OfficeIMO.Drawing.OfficeTextTabLineLeaderStyle.Solid, bool doubleLine = false, double? widthPoints = null, double widthFontFraction = 0.05, OfficeIMO.OfficeColor? color = null) -> void
+OfficeIMO.Drawing.OfficeTextTabLineLeader.OfficeTextTabLineLeader(OfficeIMO.Drawing.OfficeTextTabLineLeaderStyle style = OfficeIMO.Drawing.OfficeTextTabLineLeaderStyle.Solid, bool doubleLine = false, OfficeIMO.OfficeLength? width = null, double widthFontFraction = 0.05, OfficeIMO.OfficeColor? color = null) -> void
 OfficeIMO.Drawing.OfficeTextTabLineLeader.Style.get -> OfficeIMO.Drawing.OfficeTextTabLineLeaderStyle
 OfficeIMO.Drawing.OfficeTextTabLineLeader.WidthFontFraction.get -> double
-OfficeIMO.Drawing.OfficeTextTabLineLeader.WidthPoints.get -> double?
+OfficeIMO.Drawing.OfficeTextTabLineLeader.Width.get -> OfficeIMO.OfficeLength?
 OfficeIMO.Drawing.OfficeTextTabLineLeaderStyle
 OfficeIMO.Drawing.OfficeTextTabLineLeaderStyle.Dash = 3 -> OfficeIMO.Drawing.OfficeTextTabLineLeaderStyle
 OfficeIMO.Drawing.OfficeTextTabLineLeaderStyle.DotDash = 5 -> OfficeIMO.Drawing.OfficeTextTabLineLeaderStyle

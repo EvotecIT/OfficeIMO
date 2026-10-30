@@ -22,7 +22,8 @@ public sealed partial class OdgPage {
         var size = OdfTextStyleResolver.ResolveFontSizeBasis(chain, losses);
         double? points = size.Points.HasValue ? size.Points.Value * size.Factor : null;
         bool hasBackground = chain.Any(s => s.TryGetTextBackgroundColor(out _));
-        var formatting = new OfficeTextTabLeaderStyle(points, size.Points.HasValue ? 1 : size.Factor,
+        var formatting = new OfficeTextTabLeaderStyle(points.HasValue ? OfficeLength.Points(points.Value) : (OfficeLength?)null,
+            size.Points.HasValue ? 1 : size.Factor,
             ToColor(source.Color), source.FontFamily, source.Bold, source.Italic,
             source.Underline.HasValue || source.UnderlineStyle.HasValue || source.UnderlineType.HasValue ? mapped.UnderlineStyle : null,
             source.StrikeThrough.HasValue ? mapped.StrikethroughStyle : null,

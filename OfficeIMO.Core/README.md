@@ -1414,17 +1414,17 @@ var styledStop = new OfficeTextTabStop(180).WithLeader(".").WithLeaderStyle(
     new OfficeTextTabLeaderStyle(fontSizeFactor: 1.5, color: OfficeColor.Blue, italic: true));
 ```
 
-Unspecified properties inherit each actual tab run, including font family, bold/italic state, decorations and baseline. `fontSizePoints` overrides the relative multiplier and follows drawing scale and frame fitting. Color includes alpha by default; `inheritOpacity: true` keeps the active run's alpha, and an explicit `opacity` overrides either source. A transparent background override clears inherited background paint. The style is immutable, survives cloning and tinting, and has no effect on line leaders or a blank SPACE leader. Editing the glyph preserves its style; passing null to `WithLeaderStyle` removes only the formatting overrides. Unrepresentable relative font sizes suppress leader paint, report clipping and retain the body and tab advance.
+Unspecified properties inherit each actual tab run, including font family, bold/italic state, decorations and baseline. `fontSize` accepts an `OfficeLength`, overrides the relative multiplier and follows drawing scale and frame fitting. Color includes alpha by default; `inheritOpacity: true` keeps the active run's alpha, and an explicit `opacity` overrides either source. A transparent background override clears inherited background paint. The style is immutable, survives cloning and tinting, and has no effect on line leaders or a blank SPACE leader. Editing the glyph preserves its style; passing null to `WithLeaderStyle` removes only the formatting overrides. Unrepresentable relative font sizes suppress leader paint, report clipping and retain the body and tab advance.
 
 Use `WithLineLeader` for vector paint that adds no characters to extracted text:
 
 ```csharp
 var ruledStop = new OfficeTextTabStop(180).WithLineLeader(
     new OfficeTextTabLineLeader(OfficeTextTabLineLeaderStyle.DotDash,
-        doubleLine: true, widthPoints: 0.75, color: OfficeColor.Blue));
+        doubleLine: true, width: OfficeLength.Points(0.75), color: OfficeColor.Blue));
 ```
 
-Line leaders support solid, dotted, dash, long dash, dot dash, dot dot dash and wave patterns, with optional parallel double lines. `None` retains a blank gap. A null color uses the tab's active text color. An absolute `widthPoints` follows drawing scale; otherwise `widthFontFraction` follows the active rendered font size, including frame fitting. Patterns and their painted bounds share one layout plan across SVG, raster and PDF. A declared `LeaderText`, including SPACE, takes precedence; each editing method preserves the other declaration, and null clears only its own kind. Vector paint is bounded to 8,192 vertices per tab and 100,000 per text frame. Truncation reports clipping and retains field positions and body font sizes. Pattern spacing and wave outlines are an approximation profile, not a promise of identical typography across native producers.
+Line leaders support solid, dotted, dash, long dash, dot dash, dot dot dash and wave patterns, with optional parallel double lines. `None` retains a blank gap. A null color uses the tab's active text color. An absolute `width` accepts an `OfficeLength` and follows drawing scale; otherwise `widthFontFraction` follows the active rendered font size, including frame fitting. Patterns and their painted bounds share one layout plan across SVG, raster and PDF. A declared `LeaderText`, including SPACE, takes precedence; each editing method preserves the other declaration, and null clears only its own kind. Vector paint is bounded to 8,192 vertices per tab and 100,000 per text frame. Truncation reports clipping and retains field positions and body font sizes. Pattern spacing and wave outlines are an approximation profile, not a promise of identical typography across native producers.
 
 Affine effect groups contribute their transformed child bounds, not the dimensions
 of their temporary rendering buffers. Empty groups do not create overflow findings.

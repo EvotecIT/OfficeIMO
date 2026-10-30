@@ -1415,6 +1415,30 @@
         "OfficeIMO.Core/OfficePageSizes.cs"
       ],
       "note": "Remove FromMillimeters and ToPointWidth/ToPointHeight convenience helpers; consumers construct Millimeters/Inches lengths and read Width.ToPoints or Height.ToPoints. Portrait/landscape use typed lengths. Raster DPI/scale stay numeric with existing ceiling/minimum-pixel behavior. Preserve native artifact assertions, relative geometry and contextual font sizes; no aliases or golden changes."
+    },
+    {
+      "phase": "B",
+      "action": "change",
+      "old": "OfficeTextTabLineLeader(double? widthPoints = null); WidthPoints -> double?",
+      "new": "OfficeTextTabLineLeader(OfficeLength? width = null); Width -> OfficeLength?",
+      "reason": "Absolute authoring stroke width is a physical length; null retains numeric WidthFontFraction. Drawing Scale stays unquantized numerical render state.",
+      "applied": "phase-b-applied",
+      "note": "Existing absolute double.Epsilon/double.MaxValue theory moved to relative WidthFontFraction with original rows and bounded-paint/body/field assertions; expected immutable declaration is fraction plus null Width. Tiny absolute dotted fixture becomes one EMU. Absolute finite 0/-1 guards retained; impossible nonfinite absolute branch retired, all relative invalid-value checks retained. Numeric drawing coordinates, relative ratios, resource pixel counts and measured concealment thresholds remain unchanged.",
+      "files": [
+        "OfficeIMO.Core/OfficeTextTabLineLeader.cs"
+      ]
+    },
+    {
+      "phase": "B",
+      "action": "change",
+      "old": "OfficeTextTabLeaderStyle(double? fontSizePoints = null); FontSizePoints -> double?",
+      "new": "OfficeTextTabLeaderStyle(OfficeLength? fontSize = null); FontSize -> OfficeLength?",
+      "reason": "Absolute authored leader font size is physical; null retains FontSizeFactor. Resolved drawing font sizes, Scale/Tint override state and OfficeFontInfo remain numerical.",
+      "applied": "phase-b-applied",
+      "note": "Keep absolute 15/20/30-point expectations as exact typed lengths and all fitting/body/field/ODF assertions. Keep physical finite 0/-1 and all relative invalid-value guards; retire only impossible absolute NaN/Infinity assignments. Numeric drawing coordinates, relative ratios, resource pixel counts and measured concealment thresholds remain unchanged.",
+      "files": [
+        "OfficeIMO.Core/OfficeTextTabLeaderStyle.cs"
+      ]
     }
   ],
   "applicationStatus": "Phase A applied and validated on the supported macOS targets. Phase B and Tier 2 entries retain their status; Windows .NET Framework validation remains pending.",

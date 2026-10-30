@@ -44,7 +44,7 @@ internal static class OfficeTextTabLineLeaderLayout {
         if (leader == null || leader.Style == OfficeTextTabLineLeaderStyle.None || gap <= 0) return null;
         OfficeColor color = leader.Color ?? activeColor;
         if (color.A == 0) return null;
-        double width = leader.WidthPoints ?? fontSize * leader.WidthFontFraction;
+        double width = leader.DrawingWidthPoints ?? fontSize * leader.WidthFontFraction;
         if (!FinitePositive(width) || !FinitePositive(gap) || !FinitePositive(fontSize)) { limited = true; return null; }
         int available = Math.Min(MaximumTabVertices, budget.RemainingVertices);
         int used = 0; bool exhausted = false;

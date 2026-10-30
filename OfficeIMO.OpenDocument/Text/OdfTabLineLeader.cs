@@ -46,6 +46,7 @@ public sealed class OdfTabLineLeader {
         }
         // The shared constructor enforces positive finite widths before any geometry allocation.
         return new OfficeTextTabLineLeader(Type == "none" ? OfficeTextTabLineLeaderStyle.None : style,
-            Type == "double", points, fraction, Color.HasValue ? OfficeColor.Parse(Color.Value.ToString()) : null);
+            Type == "double", points.HasValue ? OfficeLength.Points(points.Value) : (OfficeLength?)null,
+            fraction, Color.HasValue ? OfficeColor.Parse(Color.Value.ToString()) : null);
     }
 }

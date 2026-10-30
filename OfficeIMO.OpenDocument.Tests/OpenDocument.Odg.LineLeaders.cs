@@ -33,7 +33,7 @@ public sealed class OpenDocumentOdgLineLeaderTests {
                     var text = Assert.Single(result.Value.Elements.OfType<OfficeDrawingRichText>());
                     var leader = text.Paragraphs[0].TabStops!.Stops[0].LineLeader!;
                     Assert.Equal(expected, leader.Style); Assert.True(leader.DoubleLine);
-                    Assert.Equal(2, leader.WidthPoints); Assert.Equal(OfficeColor.Blue, leader.Color);
+                    Assert.Equal(OfficeLength.Points(2), leader.Width); Assert.Equal(OfficeColor.Blue, leader.Color);
                     Assert.Equal("A\tB", text.PlainText);
                     Assert.Contains(result.Report.Mappings, m => m.Feature.EndsWith(":tab-line-leaders") && m.Status == OdfConversionMappingStatus.Approximated);
                 }
@@ -61,7 +61,7 @@ public sealed class OpenDocumentOdgLineLeaderTests {
     [InlineData("200%", .1)]
     public void RelativeWidthsUseTheDeclaredApproximationProfile(string width, double fraction) {
         var leader = new OdfTabLineLeader(width: width).ToDrawingLeader();
-        Assert.Null(leader.WidthPoints); Assert.Equal(fraction, leader.WidthFontFraction, 8); Assert.Null(leader.Color);
+        Assert.Null(leader.Width); Assert.Equal(fraction, leader.WidthFontFraction, 8); Assert.Null(leader.Color);
     }
 
     [Fact]
