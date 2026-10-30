@@ -481,6 +481,19 @@
       ],
       "applied": "phase-b-applied",
       "note": "Both raw PDF metadata and outer settings register the shared internal converters. Existing built-in settings-change proof remains; registered RTF covers a theme, one-EMU and sub-byte color changes while preserving saved artifacts. Source-format imports retain neutral defaults."
+    },
+    {
+      "phase": "B",
+      "action": "fix",
+      "old": "Website API source provenance checks only OfficeIMO.* engine folders with ordinary wildcard arguments.",
+      "new": "Include the OfficeIMO front door and use explicit root-anchored Git pathspecs for engine and shared build inputs.",
+      "reason": "Native argument globbing can otherwise expand against an unrelated current directory before Git selects the source checkout, omitting changed inputs.",
+      "applied": "phase-b-applied",
+      "files": [
+        "PowerShell/PSWriteOffice/Build/Export-WebsiteArtifacts.ps1",
+        "PowerShell/PSWriteOffice/Tests/WebsiteArtifactExport.Tests.ps1"
+      ],
+      "note": "Retain the existing unsigned, no-install website build boundary. Extend the existing tracked/untracked engine checks to the front-door package and an unrelated working directory; all four new cases reproduce the omitted-input bug before the fix."
     }
   ],
   "applicationStatus": "Phase A applied and validated on the supported macOS targets. Phase B and Tier 2 entries retain their status; Windows .NET Framework validation remains pending.",

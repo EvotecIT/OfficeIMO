@@ -7,8 +7,13 @@ BeforeAll {
     $sourceInput = Join-Path $sourceRoot 'Sources/Example.cs'
     $sourceManifest = Join-Path $sourceRoot 'PSWriteOffice.psd1'
     $engineInput = Join-Path $repositoryRoot 'OfficeIMO.Word/Engine.cs'
-    $null = New-Item -ItemType Directory -Path (Split-Path $engineInput)
-    'public class Engine { }' | Set-Content $engineInput
+    $engineFiles = @($engineInput, (Join-Path $repositoryRoot 'OfficeIMO/Engine.cs'))
+    foreach ($file in $engineFiles) {
+        $null = New-Item -ItemType Directory -Path (Split-Path $file)
+        'public class Engine { }' | Set-Content $file
+    }
+    $nativeWorkingRoot = Join-Path $TestDrive 'native-working-directory'
+    $null = New-Item -ItemType Directory -Path (Join-Path $nativeWorkingRoot 'OfficeIMO.Unrelated')
     $null = New-Item -ItemType Directory -Path (Split-Path $sourceInput), (Join-Path $sourceRoot 'Build')
     $manifestText = "@{ ModuleVersion = '3.0.8'; RootModule = 'PSWriteOffice.psm1'; CmdletsToExport = @('Get-OfficeExample') }"
     $manifestText | Set-Content $sourceManifest
@@ -38,8 +43,10 @@ AfterAll {
 
 Describe 'Website API source build qualification' {
     BeforeEach {
-        'public class Engine { }' | Set-Content $engineInput
-        & git -C $repositoryRoot add -- OfficeIMO.Word/Engine.cs
+        foreach ($file in $engineFiles) {
+            'public class Engine { }' | Set-Content $file
+        }
+        & git -C $repositoryRoot add -- OfficeIMO.Word/Engine.cs OfficeIMO/Engine.cs
         'public class Example { }' | Set-Content $sourceInput
         $manifestText | Set-Content $sourceManifest
         '# Source module' | Set-Content (Join-Path $sourceRoot 'PSWriteOffice.psm1')
@@ -70,21 +77,34 @@ Describe 'Website API source build qualification' {
         Test-Path $outputRoot | Should -BeFalse
     }
 
-    It 'rejects uncommitted engine source outside the PowerShell module' {
-        'public class ChangedEngine { }' | Set-Content $engineInput
-        { & $exportScript -RepositoryRoot $sourceRoot -ArtifactsRoot $outputRoot -BuildOutputRoot $buildRoot } |
-            Should -Throw '*does not match the selected API and build inputs*'
-        Test-Path $outputRoot | Should -BeFalse
+    It 'rejects uncommitted <Package> source outside the module from an unrelated working directory' -ForEach @(
+        @{ Package = 'OfficeIMO.Word' }
+        @{ Package = 'OfficeIMO' }
+    ) {
+        'public class ChangedEngine { }' | Set-Content (Join-Path $repositoryRoot "$Package/Engine.cs")
+        Push-Location $nativeWorkingRoot
+        try {
+            { & $exportScript -RepositoryRoot $sourceRoot -ArtifactsRoot $outputRoot -BuildOutputRoot $buildRoot } |
+                Should -Throw '*does not match the selected API and build inputs*'
+            Test-Path $outputRoot | Should -BeFalse
+        } finally { Pop-Location }
     }
 
-    It 'rejects untracked engine source included by SDK compile globs' {
-        $untrackedEngine = Join-Path (Split-Path $engineInput) 'UntrackedEngine.cs'
+    It 'rejects untracked <Package> source included by SDK compile globs from an unrelated working directory' -ForEach @(
+        @{ Package = 'OfficeIMO.Word' }
+        @{ Package = 'OfficeIMO' }
+    ) {
+        $untrackedEngine = Join-Path $repositoryRoot "$Package/UntrackedEngine.cs"
+        Push-Location $nativeWorkingRoot
         try {
             'public class UntrackedEngine { }' | Set-Content $untrackedEngine
             { & $exportScript -RepositoryRoot $sourceRoot -ArtifactsRoot $outputRoot -BuildOutputRoot $buildRoot } |
                 Should -Throw '*does not match the selected API and build inputs*'
             Test-Path $outputRoot | Should -BeFalse
-        } finally { Remove-Item -LiteralPath $untrackedEngine }
+        } finally {
+            Remove-Item -LiteralPath $untrackedEngine
+            Pop-Location
+        }
     }
 
     It 'rejects staged source changes even if the working file has been changed back' {

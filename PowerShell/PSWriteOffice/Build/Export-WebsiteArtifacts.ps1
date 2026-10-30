@@ -206,7 +206,8 @@ function Get-QualifiedSourceRevision {
     }
     # The module now compiles the engines from the same checkout. Their source and
     # shared build settings are part of its provenance, even outside the module folder.
-    $engineInputs = @('OfficeIMO.*', 'Directory.Build.*', 'Directory.Packages.*', 'global.json', 'NuGet.Config', 'nuget.config', 'Build')
+    # Explicit Git pathspecs keep native wildcard expansion independent of the caller's directory.
+    $engineInputs = @(':(top)OfficeIMO', ':(top)OfficeIMO.*', ':(top)Directory.Build.*', ':(top)Directory.Packages.*', ':(top)global.json', ':(top)NuGet.Config', ':(top)nuget.config', ':(top)Build')
     foreach ($arguments in @(
         @('diff', '--quiet', 'HEAD', '--'),
         @('diff', '--cached', '--quiet', 'HEAD', '--')
