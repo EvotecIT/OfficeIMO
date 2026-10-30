@@ -13,10 +13,12 @@ using PdfCore = OfficeIMO.Pdf;
 namespace OfficeIMO.Tests;
 
 public partial class Word {
-    [Fact]
-    public void SaveAsPdf_OfficeIMOEngine_Renders_Table_Header_Row() {
-        string docPath = Path.Combine(_directoryWithFiles, "PdfNativeRepeatingHeaderTable.docx");
-        string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeRepeatingHeaderTable.pdf");
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void SaveAsPdf_OfficeIMOEngine_Renders_Modern_Header_On_Every_Page_Unless_Disabled(bool repeatHeader) {
+        string docPath = Path.Combine(_directoryWithFiles, "PdfNativeRepeatingHeaderTable-" + repeatHeader + ".docx");
+        string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeRepeatingHeaderTable-" + repeatHeader + ".pdf");
 
         using (WordDocument document = WordDocument.Create(docPath)) {
             WordTable table = document.AddTable(46, 2);
@@ -29,7 +31,9 @@ public partial class Word {
 
             table.Rows[0].Cells[0].Paragraphs[0].Text = "RepeatHdr";
             table.Rows[0].Cells[1].Paragraphs[0].Text = "ValueHdr";
-            table.RepeatAsHeaderRowAtTheTopOfEachPage = true;
+            if (!repeatHeader) {
+                table.RepeatHeaderRowAtTheTopOfEachPage = false;
+            }
 
             for (int rowIndex = 1; rowIndex < table.Rows.Count; rowIndex++) {
                 table.Rows[rowIndex].Cells[0].Paragraphs[0].Text = "Row " + rowIndex.ToString("D2");
@@ -48,10 +52,17 @@ public partial class Word {
         using PdfPigDocument pdf = PdfPigDocument.Open(bytes);
         Assert.True(pdf.NumberOfPages > 1);
 
-        int repeatedHeaderCount = pdf.GetPages()
-            .SelectMany(page => page.GetWords())
-            .Count(word => word.Text == "RepeatHdr");
-        Assert.True(repeatedHeaderCount >= 2);
+        double headerTop = pdf.GetPage(1).GetWords().Single(word => word.Text == "RepeatHdr").BoundingBox.Top;
+        foreach (var page in pdf.GetPages()) {
+            int expected = repeatHeader || page.Number == 1 ? 1 : 0;
+            Assert.Equal(expected, page.GetWords().Count(word => word.Text == "RepeatHdr"));
+            Assert.Equal(expected, page.GetWords().Count(word => word.Text == "ValueHdr"));
+            if (expected == 1) {
+                Assert.Equal(headerTop, page.GetWords().Single(word => word.Text == "RepeatHdr").BoundingBox.Top, 2);
+            }
+        }
+        Assert.Equal(45, pdf.GetPages().SelectMany(page => page.GetWords())
+            .Count(word => word.Text == "Row"));
     }
 
     [Fact]

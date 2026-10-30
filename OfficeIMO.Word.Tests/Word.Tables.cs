@@ -28,9 +28,9 @@ namespace OfficeIMO.Tests {
                 wordTable.Rows[1].Cells[0].Paragraphs[0].Text = "Test 2";
                 wordTable.Rows[2].Cells[0].Paragraphs[0].Text = "Test 3";
 
-                Assert.True(wordTable.RepeatHeaderRowAtTheTopOfEachPage == false);
+                Assert.True(wordTable.RepeatHeaderRowAtTheTopOfEachPage);
 
-                foreach (var row in wordTable.Rows) {
+                foreach (var row in wordTable.Rows.Skip(1)) {
                     Assert.True(row.RepeatHeaderRowAtTheTopOfEachPage == false);
                 }
 

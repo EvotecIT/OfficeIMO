@@ -32,6 +32,11 @@ paragraph-adjacent table creation. Assigning a plain numeric value in an
 unaligned Modern table cell now applies the theme's numeric alignment. Set
 `ParagraphAlignment` explicitly to choose a different alignment.
 
+New `OfficeIMOModern` tables mark the first row as a repeating header (`w:tblHeader`),
+including in Word PDF output. Set `table.RepeatHeaderRowAtTheTopOfEachPage = false` to
+turn repetition off. Headerless object tables keep every row as body data; loading an
+existing table does not add a repeating header.
+
 `Bold = false` and `Italic = false` now explicitly disable inherited emphasis
 instead of removing the direct setting. This lets regular text override a
 bold table header or an italic paragraph style.

@@ -131,6 +131,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Gets or sets whether this table row should repeat at the top of each page.
         /// Word repeats contiguous header rows from the start of the table.
+        /// Setting <c>false</c> explicitly overrides a repeating header inherited from a table style.
         /// </summary>
         public bool RepeatHeaderRowAtTheTopOfEachPage {
             get {
@@ -147,14 +148,11 @@ namespace OfficeIMO.Word {
                 var tableRowProperties = _tableRow.TableRowProperties!;
                 var rowHeader = tableRowProperties.OfType<TableHeader>().FirstOrDefault();
                 if (rowHeader != null) {
-                    if (value == false) {
-                        rowHeader.Remove();
-                    } else {
-                        rowHeader.Val = OnOffOnlyValues.On;
-                    }
-                } else if (value) {
-                    // Add table header
-                    tableRowProperties.InsertAt(new TableHeader(), 0);
+                    rowHeader.Val = value ? OnOffOnlyValues.On : OnOffOnlyValues.Off;
+                } else {
+                    tableRowProperties.InsertAt(new TableHeader {
+                        Val = value ? OnOffOnlyValues.On : OnOffOnlyValues.Off
+                    }, 0);
                 }
             }
         }

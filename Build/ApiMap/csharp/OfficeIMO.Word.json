@@ -5523,7 +5523,7 @@
       "kind": "method",
       "action": "change",
       "new": "OfficeIMO.Word.WordDocument.AddTable(int rows, int columns, WordTableStyle tableStyle = OfficeIMOModern)",
-      "reason": "New tables follow the shared Modern theme. Pass TableGrid explicitly to retain cell grid borders. Body, section, header, footer, nested and paragraph-adjacent creation use the same default. Assigning a plain numeric value in an unaligned Modern table cell applies the theme numeric alignment; explicit alignment and rich text retain their formatting.",
+      "reason": "New tables follow the shared Modern theme. Pass TableGrid explicitly to retain cell grid borders. Body, section, header, footer, nested and paragraph-adjacent creation use the same default. Assigning a plain numeric value in an unaligned Modern table cell applies the theme numeric alignment; explicit alignment and rich text retain their formatting. New OfficeIMOModern tables mark the first row as a repeating header (w:tblHeader), including in Word PDF output. Set table.RepeatHeaderRowAtTheTopOfEachPage = false to turn repetition off. Headerless object tables keep every row as body data; loading an existing table does not add a repeating header.",
       "file": "OfficeIMO.Word/WordDocument.PublicMethods.cs",
       "category": "authoring",
       "phase": "M6",

@@ -127,7 +127,28 @@ public partial class Word {
         Table[] savedTables = saved.ToArray();
         Assert.Contains(savedTables, item => item.InnerText == "Header");
         Assert.All(savedTables, item => Assert.Equal("OfficeIMOModern", item.GetFirstChild<TableProperties>()!.TableStyle!.Val!.Value));
+        Assert.All(savedTables, item => {
+            TableRow[] rows = item.Elements<TableRow>().ToArray();
+            Assert.NotNull(rows[0].TableRowProperties?.GetFirstChild<TableHeader>());
+            Assert.All(rows.Skip(1), row => Assert.Null(row.TableRowProperties?.GetFirstChild<TableHeader>()));
+        });
         Assert.Empty(new DocumentFormat.OpenXml.Validation.OpenXmlValidator().Validate(package));
+    }
+
+    [Fact]
+    public void ModernTableHeaderRepeatCanBeDisabledAndStaysDisabledAfterLoad() {
+        using WordDocument source = WordDocument.Create();
+        WordTable table = source.AddTable(2, 2);
+        Assert.True(table.RepeatHeaderRowAtTheTopOfEachPage);
+        table.RepeatHeaderRowAtTheTopOfEachPage = false;
+        Assert.False(table.RepeatAsHeaderRowAtTheTopOfEachPage);
+        using WordDocument loaded = WordDocument.Load(new MemoryStream(source.ToBytes()));
+        WordTable restored = Assert.Single(loaded.Tables);
+        Assert.Equal(WordTableStyle.OfficeIMOModern, restored.Style);
+        Assert.True(restored.ConditionalFormattingFirstRow);
+        Assert.False(restored.RepeatHeaderRowAtTheTopOfEachPage);
+        Assert.False(restored.RepeatAsHeaderRowAtTheTopOfEachPage);
+        Assert.Equal(OnOffOnlyValues.Off, restored.Rows[0]._tableRow.TableRowProperties!.GetFirstChild<TableHeader>()!.Val!.Value);
     }
 
     [Fact]
@@ -135,7 +156,9 @@ public partial class Word {
         using WordDocument source = WordDocument.Create();
         source.AddTable(2, 2, WordTableStyle.TableGrid);
         using WordDocument loaded = WordDocument.Load(new MemoryStream(source.ToBytes()));
-        Assert.Equal(WordTableStyle.TableGrid, Assert.Single(loaded.Tables).Style);
+        WordTable table = Assert.Single(loaded.Tables);
+        Assert.Equal(WordTableStyle.TableGrid, table.Style);
+        Assert.False(table.RepeatHeaderRowAtTheTopOfEachPage);
     }
 
     [Fact]

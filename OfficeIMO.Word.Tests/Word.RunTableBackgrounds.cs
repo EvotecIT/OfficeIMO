@@ -111,7 +111,7 @@ public sealed class WordRunTableBackgroundTests {
         styles.Append(new Style(new TableStyleProperties(new RunPropertiesBaseStyle(Shade("0000FF"))) {
             Type = new TableStyleOverrideValues(condition)
         }) { Type = StyleValues.Table, StyleId = "ConditionalBackground" });
-        WordTable table = document.AddTable(3, 3);
+        WordTable table = document.AddTable(3, 3, WordTableStyle.TableGrid);
         table._tableProperties!.TableStyle = new TableStyle { Val = "ConditionalBackground" };
         table._tableProperties.TableLook = new TableLook { Val = look };
         for (int r = 0; r < 3; r++)
@@ -137,7 +137,7 @@ public sealed class WordRunTableBackgroundTests {
         styles.Append(new Style(new TableStyleProperties(new RunPropertiesBaseStyle(Shade("0000FF"))) {
             Type = vertical ? TableStyleOverrideValues.Band2Vertical : TableStyleOverrideValues.Band2Horizontal
         }) { Type = StyleValues.Table, StyleId = "SecondBandBackground" });
-        WordTable table = document.AddTable(vertical ? 1 : 2, vertical ? 2 : 1);
+        WordTable table = document.AddTable(vertical ? 1 : 2, vertical ? 2 : 1, WordTableStyle.TableGrid);
         table._tableProperties!.TableStyle = new TableStyle { Val = "SecondBandBackground" };
         table._tableProperties.TableLook = new TableLook { Val = vertical ? "0200" : "0400" };
         table.Rows[0].Cells[0].Paragraphs[0].Text = "FIRST";
@@ -172,7 +172,7 @@ public sealed class WordRunTableBackgroundTests {
             new TableStyleProperties(new RunPropertiesBaseStyle(Shade("00FF00"))) {
                 Type = TableStyleOverrideValues.FirstColumn
             }) { Type = StyleValues.Table, StyleId = "SizedBands" });
-        WordTable table = document.AddTable(vertical ? 1 : 5, vertical ? 5 : 1);
+        WordTable table = document.AddTable(vertical ? 1 : 5, vertical ? 5 : 1, WordTableStyle.TableGrid);
         table._tableProperties!.TableStyle = new TableStyle { Val = "SizedBands" };
         table._tableProperties.TableLook = new TableLook { Val = firstRow ? vertical ? "0280" : "0420" : vertical ? "0200" : "0400" };
         foreach (WordTableRow row in table.Rows)
@@ -208,7 +208,7 @@ public sealed class WordRunTableBackgroundTests {
         if (inherited) current.BasedOn = new BasedOn { Val = "BandParent" };
         else current.Append(band.CloneNode(true));
         styles.Append(current);
-        WordTable table = document.AddTable(vertical ? 1 : 3, vertical ? 3 : 1);
+        WordTable table = document.AddTable(vertical ? 1 : 3, vertical ? 3 : 1, WordTableStyle.TableGrid);
         table._tableProperties!.TableStyle = new TableStyle { Val = "ZeroBand" };
         table._tableProperties.TableLook = new TableLook { Val = vertical ? "0200" : "0400" };
         foreach (WordTableRow row in table.Rows)
@@ -320,7 +320,7 @@ public sealed class WordRunTableBackgroundTests {
             });
             styleId = "DerivedTableBackground";
         }
-        WordTable table = document.AddTable(1, 1);
+        WordTable table = document.AddTable(1, 1, WordTableStyle.TableGrid);
         table._tableProperties!.TableStyle = new TableStyle { Val = styleId };
         table._tableProperties.TableLook = new TableLook { Val = "0600", FirstRow = conditional };
         if (source == "default") {

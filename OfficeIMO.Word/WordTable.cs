@@ -51,37 +51,8 @@ namespace OfficeIMO.Word {
         /// This applies to only header of the table (first row)
         /// </summary>
         public bool RepeatAsHeaderRowAtTheTopOfEachPage {
-            get {
-                WordTableRow? firstRow = Rows.FirstOrDefault();
-                if (firstRow == null) {
-                    return false;
-                }
-
-                var tableRowProperties = firstRow._tableRow.TableRowProperties;
-                var tableHeader = tableRowProperties?.OfType<TableHeader>().FirstOrDefault();
-                return tableHeader != null;
-            }
-            set {
-                WordTableRow? firstRow = Rows.FirstOrDefault();
-                if (firstRow == null) {
-                    return;
-                }
-
-                if (value) {
-                    firstRow.AddTableRowProperties();
-                    var tableProperties = firstRow._tableRow.TableRowProperties;
-                    var tableHeader = tableProperties?.OfType<TableHeader>().FirstOrDefault();
-                    if (tableHeader == null) {
-                        tableProperties?.InsertAt(new TableHeader(), 0);
-                    }
-                } else {
-                    var tableRowTableRowProperties = firstRow._tableRow.TableRowProperties;
-                    var tableHeader = tableRowTableRowProperties?.OfType<TableHeader>().FirstOrDefault();
-                    if (tableHeader != null) {
-                        tableRowTableRowProperties!.RemoveChild(tableHeader);
-                    }
-                }
-            }
+            get => RepeatHeaderRowAtTheTopOfEachPage;
+            set => RepeatHeaderRowAtTheTopOfEachPage = value;
         }
 
         /// <summary>
@@ -422,6 +393,9 @@ namespace OfficeIMO.Word {
             _rowElements = new List<TableRow>(rows);
             for (int i = 0; i < rows; i++) {
                 var row = new TableRow();
+                if (i == 0 && tableStyle == WordTableStyle.OfficeIMOModern) {
+                    row.Append(new TableRowProperties(new TableHeader()));
+                }
                 _rowElements.Add(row);
                 table.Append(row);
                 for (int j = 0; j < columns; j++) {

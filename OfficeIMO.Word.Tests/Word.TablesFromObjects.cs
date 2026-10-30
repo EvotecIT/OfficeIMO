@@ -24,8 +24,8 @@ namespace OfficeIMO.Tests {
             WordTable native = Assert.Single(restored.Tables);
             Assert.Equal(includeHeader ? 3 : 2, native.Rows.Count);
             Assert.Equal(includeHeader ? "Name" : "North", native.Rows[0].Cells[0].Paragraphs[0].Text);
+            Assert.Equal(includeHeader, native.Rows[0].RepeatHeaderRowAtTheTopOfEachPage);
             if (format == WordFileFormat.Docx) Assert.Equal(includeHeader, native.ConditionalFormattingFirstRow);
-            else Assert.Equal(includeHeader, native.Rows[0].RepeatHeaderRowAtTheTopOfEachPage);
             Assert.False(native.Rows[includeHeader ? 1 : 0].Cells[0].Paragraphs[0].Bold);
         }
 

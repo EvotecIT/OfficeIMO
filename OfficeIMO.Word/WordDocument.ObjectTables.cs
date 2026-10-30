@@ -38,6 +38,9 @@ namespace OfficeIMO.Word {
 
             var table = AddTable(rows, cols, style);
             table.ConditionalFormattingFirstRow = includeHeader;
+            if (!includeHeader) {
+                table.RepeatHeaderRowAtTheTopOfEachPage = false;
+            }
 
             if (layout.HasValue) {
                 table.LayoutMode = layout.Value;
