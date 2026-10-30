@@ -1,0 +1,7 @@
+<Solution>
+  <Project Path="PSWriteOffice.TestingGround/PSWriteOffice.TestingGround.csproj">
+    <BuildDependency Project="PSWriteOffice/PSWriteOffice.csproj" />
+  </Project>
+  <Project Path="PSWriteOffice.Tests/PSWriteOffice.Tests.csproj" />
+  <Project Path="PSWriteOffice/PSWriteOffice.csproj" />
+</Solution>

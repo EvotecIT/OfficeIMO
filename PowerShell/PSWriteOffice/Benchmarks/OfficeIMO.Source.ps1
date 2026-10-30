@@ -7,7 +7,7 @@ function Resolve-OfficeIMOSourceRoot {
 
     $resolvedRoot = (Resolve-Path -LiteralPath $Path -ErrorAction Stop).Path
     $requiredSourceFiles = @(
-        'OfficeIMO.sln',
+        'OfficeIMO.slnx',
         'OfficeIMO.CSV/OfficeIMO.CSV.csproj',
         'OfficeIMO.Excel/OfficeIMO.Excel.csproj'
     )
