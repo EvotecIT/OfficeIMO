@@ -34,10 +34,10 @@ namespace OfficeIMO.Tests {
             Assert.Equal("112233", colorHex);
             var cell = table.Rows[0].Cells[0];
             Assert.Equal(WordBorderStyle.Dotted, cell.Borders.BottomStyle);
-            Assert.Equal(12U, cell.Borders.BottomSize);
+            Assert.Equal(global::OfficeIMO.OfficeLength.Points(1.5), cell.Borders.BottomSize);
             Assert.Equal("445566", cell.Borders.BottomColorHex);
             Assert.Equal(WordBorderStyle.Dashed, cell.Borders.RightStyle);
-            Assert.Equal(6U, cell.Borders.RightSize);
+            Assert.Equal(global::OfficeIMO.OfficeLength.Points(0.75), cell.Borders.RightSize);
             Assert.Equal("778899", cell.Borders.RightColorHex);
         }
 

@@ -319,22 +319,22 @@ namespace OfficeIMO.Word.Html {
             switch (side) {
                 case BlockBorderSide.Left:
                     cell.Borders.LeftStyle = value.Style.ToOfficeEnum();
-                    cell.Borders.LeftSize = value.Size;
+                    cell.Borders.LeftSize = WordBorderLengths.FromSize(value.Size);
                     cell.Borders.LeftColorHex = color;
                     break;
                 case BlockBorderSide.Right:
                     cell.Borders.RightStyle = value.Style.ToOfficeEnum();
-                    cell.Borders.RightSize = value.Size;
+                    cell.Borders.RightSize = WordBorderLengths.FromSize(value.Size);
                     cell.Borders.RightColorHex = color;
                     break;
                 case BlockBorderSide.Top:
                     cell.Borders.TopStyle = value.Style.ToOfficeEnum();
-                    cell.Borders.TopSize = value.Size;
+                    cell.Borders.TopSize = WordBorderLengths.FromSize(value.Size);
                     cell.Borders.TopColorHex = color;
                     break;
                 case BlockBorderSide.Bottom:
                     cell.Borders.BottomStyle = value.Style.ToOfficeEnum();
-                    cell.Borders.BottomSize = value.Size;
+                    cell.Borders.BottomSize = WordBorderLengths.FromSize(value.Size);
                     cell.Borders.BottomColorHex = color;
                     break;
             }

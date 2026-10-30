@@ -19,7 +19,7 @@ public sealed class WordInspectionPhysicalLengthTests {
         document.AddParagraph("Inherited text");
         WordTableCell cell = document.AddTable(1, 1, WordTableStyle.TableNormal).Rows[0].Cells[0];
         cell.Borders.TopStyle = WordBorderStyle.Single;
-        cell.Borders.TopSize = 5;
+        cell.Borders.TopSize = global::OfficeIMO.OfficeLength.Points(0.625);
         string before = document._wordprocessingDocument.MainDocumentPart!.Document.OuterXml;
 
         Check(document.Inspect());

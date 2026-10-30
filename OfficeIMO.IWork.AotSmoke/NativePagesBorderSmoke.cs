@@ -63,7 +63,7 @@ internal static class NativePagesBorderSmoke {
                     "Projected Pages border changed.");
                 Require(actual.Style == (width == 0 ? WordBorderStyle.Nil : WordBorderStyle.Single)
                     && appleSide.Style == actual.Style, "Saved/native Pages border style changed.");
-                if (width > 0) Require(actual.Size == checked((uint)(width * 8)) && appleSide.Size == actual.Size
+                if (width > 0) Require(actual.Size == OfficeLength.Points(width) && appleSide.Size == actual.Size
                     && actual.Color == rgb && appleSide.Color == rgb, "Saved/native Pages border width or color changed.");
                 edges++;
             }
@@ -73,7 +73,7 @@ internal static class NativePagesBorderSmoke {
         Console.WriteLine("PASS | native Pages table borders | 16 values, 64 independently decoded edges, hidden edge, physical row heights, fixed grid and complete inline-table flow");
     }
 
-    private static (WordBorderStyle? Style, uint? Size, string? Color) Side(WordTableCellBorder border, string side) => side switch {
+    private static (WordBorderStyle? Style, OfficeLength? Size, string? Color) Side(WordTableCellBorder border, string side) => side switch {
         "left" => (border.LeftStyle, border.LeftSize, border.LeftColorHex),
         "right" => (border.RightStyle, border.RightSize, border.RightColorHex),
         "top" => (border.TopStyle, border.TopSize, border.TopColorHex),

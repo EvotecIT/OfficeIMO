@@ -232,10 +232,10 @@ namespace OfficeIMO.Word.Html {
                     return styles;
                 }
 
-                var left = BuildBorderCss(b.LeftStyle?.ToOpenXml(), b.LeftColorHex, b.LeftSize);
-                var right = BuildBorderCss(b.RightStyle?.ToOpenXml(), b.RightColorHex, b.RightSize);
-                var top = BuildBorderCss(b.TopStyle?.ToOpenXml(), b.TopColorHex, b.TopSize);
-                var bottom = BuildBorderCss(b.BottomStyle?.ToOpenXml(), b.BottomColorHex, b.BottomSize);
+                var left = BuildBorderCss(b.LeftStyle?.ToOpenXml(), b.LeftColorHex, WordBorderLengths.ToSize(b.LeftSize));
+                var right = BuildBorderCss(b.RightStyle?.ToOpenXml(), b.RightColorHex, WordBorderLengths.ToSize(b.RightSize));
+                var top = BuildBorderCss(b.TopStyle?.ToOpenXml(), b.TopColorHex, WordBorderLengths.ToSize(b.TopSize));
+                var bottom = BuildBorderCss(b.BottomStyle?.ToOpenXml(), b.BottomColorHex, WordBorderLengths.ToSize(b.BottomSize));
 
                 if (left == null && right == null && top == null && bottom == null) {
                     return styles;

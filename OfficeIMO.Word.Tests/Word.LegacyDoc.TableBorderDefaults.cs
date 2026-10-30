@@ -39,13 +39,13 @@ public partial class Word {
         var cell = document.Tables[0].Rows[0].Cells[0];
         Assert.Equal(style, cell.Borders.TopStyle);
         Assert.Equal(color, cell.Borders.TopColorHex);
-        Assert.Equal(size, cell.Borders.TopSize);
+        Assert.Equal(size.HasValue ? OfficeLength.Points(size.Value / 8D) : (OfficeLength?)null, cell.Borders.TopSize);
         Assert.Equal(WordBorderStyle.Single, document.Tables[0].StyleDetails!.GetBorderProperties(WordTableBorderSide.Top).Style);
         using WordDocument restored = WordDocument.Load(new MemoryStream(document.ToBytes(new WordSaveOptions { Format = WordFileFormat.Docx,  LossPolicy = OfficeConversionLossPolicy.Allow })));
         var border = restored.Tables[0].Rows[0].Cells[0].Borders;
         Assert.Equal(style, border.TopStyle);
         Assert.Equal(color, border.TopColorHex);
-        Assert.Equal(size, border.TopSize);
+        Assert.Equal(size.HasValue ? OfficeLength.Points(size.Value / 8D) : (OfficeLength?)null, border.TopSize);
     }
 
     [Theory]

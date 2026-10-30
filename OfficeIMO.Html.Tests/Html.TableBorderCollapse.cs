@@ -28,7 +28,7 @@ namespace OfficeIMO.Tests {
             Assert.Null(insideH.Style);
             var cell = table.Rows[0].Cells[0];
             Assert.Equal(WordBorderStyle.Single, cell.Borders.TopStyle);
-            Assert.Equal(12U, cell.Borders.TopSize);
+            Assert.Equal(global::OfficeIMO.OfficeLength.Points(1.5), cell.Borders.TopSize);
             Assert.Equal("FF0000", cell.Borders.TopColorHex);
         }
     }

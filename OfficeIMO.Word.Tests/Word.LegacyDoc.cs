@@ -349,11 +349,11 @@ namespace OfficeIMO.Tests {
             WordTableRow row = Assert.Single(table.Rows);
             Assert.Equal(WordBorderStyle.Single, row.Cells[0].Borders.TopStyle);
             Assert.Equal("FF0000", row.Cells[0].Borders.TopColorHex);
-            Assert.Equal(4U, row.Cells[0].Borders.TopSize);
-            Assert.Equal(2U, row.Cells[0].Borders.TopSpace);
+            Assert.Equal(global::OfficeIMO.OfficeLength.Points(0.5), row.Cells[0].Borders.TopSize);
+            Assert.Equal(global::OfficeIMO.OfficeLength.Points(2), row.Cells[0].Borders.TopSpace);
             Assert.Equal(WordBorderStyle.Double, row.Cells[1].Borders.RightStyle);
             Assert.Equal("0000FF", row.Cells[1].Borders.RightColorHex);
-            Assert.Equal(8U, row.Cells[1].Borders.RightSize);
+            Assert.Equal(global::OfficeIMO.OfficeLength.Points(1), row.Cells[1].Borders.RightSize);
         }
 
         [Fact]
@@ -7855,13 +7855,13 @@ namespace OfficeIMO.Tests {
                 WordTable reloadedTable = Assert.Single(reloaded.Tables);
                 Assert.Equal("A1", reloadedTable.Rows[0].Cells[0].Paragraphs[0].Text);
                 Assert.Equal(WordBorderStyle.Single, reloadedTable.Rows[0].Cells[0].Borders.TopStyle);
-                Assert.Equal(4U, reloadedTable.Rows[0].Cells[0].Borders.TopSize);
+                Assert.Equal(global::OfficeIMO.OfficeLength.Points(0.5), reloadedTable.Rows[0].Cells[0].Borders.TopSize);
                 Assert.Equal(WordBorderStyle.Single, reloadedTable.Rows[0].Cells[0].Borders.RightStyle);
-                Assert.Equal(4U, reloadedTable.Rows[0].Cells[0].Borders.RightSize);
+                Assert.Equal(global::OfficeIMO.OfficeLength.Points(0.5), reloadedTable.Rows[0].Cells[0].Borders.RightSize);
                 Assert.Equal(WordBorderStyle.Single, reloadedTable.Rows[0].Cells[0].Borders.BottomStyle);
-                Assert.Equal(4U, reloadedTable.Rows[0].Cells[0].Borders.BottomSize);
+                Assert.Equal(global::OfficeIMO.OfficeLength.Points(0.5), reloadedTable.Rows[0].Cells[0].Borders.BottomSize);
                 Assert.Equal(WordBorderStyle.Single, reloadedTable.Rows[1].Cells[1].Borders.BottomStyle);
-                Assert.Equal(4U, reloadedTable.Rows[1].Cells[1].Borders.BottomSize);
+                Assert.Equal(global::OfficeIMO.OfficeLength.Points(0.5), reloadedTable.Rows[1].Cells[1].Borders.BottomSize);
             } finally {
                 DeleteIfExists(docPath);
             }
@@ -7896,18 +7896,18 @@ namespace OfficeIMO.Tests {
                 WordTableCell firstCell = reloadedTable.Rows[0].Cells[0];
                 Assert.Equal("A1", firstCell.Paragraphs[0].Text);
                 Assert.Equal(WordBorderStyle.Single, firstCell.Borders.TopStyle);
-                Assert.Equal(4U, firstCell.Borders.TopSize);
+                Assert.Equal(global::OfficeIMO.OfficeLength.Points(0.5), firstCell.Borders.TopSize);
                 Assert.Equal(WordBorderStyle.Single, firstCell.Borders.RightStyle);
-                Assert.Equal(4U, firstCell.Borders.RightSize);
+                Assert.Equal(global::OfficeIMO.OfficeLength.Points(0.5), firstCell.Borders.RightSize);
                 Assert.Equal(WordBorderStyle.Single, firstCell.Borders.BottomStyle);
-                Assert.Equal(4U, firstCell.Borders.BottomSize);
+                Assert.Equal(global::OfficeIMO.OfficeLength.Points(0.5), firstCell.Borders.BottomSize);
 
                 WordTableCell lastCell = reloadedTable.Rows[1].Cells[1];
                 Assert.Equal("B2", lastCell.Paragraphs[0].Text);
                 Assert.Equal(WordBorderStyle.Single, lastCell.Borders.BottomStyle);
-                Assert.Equal(4U, lastCell.Borders.BottomSize);
+                Assert.Equal(global::OfficeIMO.OfficeLength.Points(0.5), lastCell.Borders.BottomSize);
                 Assert.Equal(WordBorderStyle.Single, lastCell.Borders.RightStyle);
-                Assert.Equal(4U, lastCell.Borders.RightSize);
+                Assert.Equal(global::OfficeIMO.OfficeLength.Points(0.5), lastCell.Borders.RightSize);
             } finally {
                 DeleteIfExists(docPath);
             }
@@ -9036,12 +9036,12 @@ namespace OfficeIMO.Tests {
                     table.Rows[0].Cells[0].AddParagraph("Border", removeExistingParagraphs: true);
                     table.Rows[0].Cells[0].Borders.TopStyle = WordBorderStyle.Single;
                     table.Rows[0].Cells[0].Borders.TopColorHex = "FF0000";
-                    table.Rows[0].Cells[0].Borders.TopSize = 4U;
-                    table.Rows[0].Cells[0].Borders.TopSpace = 2U;
+                    table.Rows[0].Cells[0].Borders.TopSize = global::OfficeIMO.OfficeLength.Points(0.5);
+                    table.Rows[0].Cells[0].Borders.TopSpace = global::OfficeIMO.OfficeLength.Points(2);
                     table.Rows[0].Cells[1].AddParagraph("Cell", removeExistingParagraphs: true);
                     table.Rows[0].Cells[1].Borders.RightStyle = WordBorderStyle.Double;
                     table.Rows[0].Cells[1].Borders.RightColorHex = "0000FF";
-                    table.Rows[0].Cells[1].Borders.RightSize = 8U;
+                    table.Rows[0].Cells[1].Borders.RightSize = global::OfficeIMO.OfficeLength.Points(1);
 
                     document.Save(docPath);
                 }
@@ -9062,12 +9062,12 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("Border", row.Cells[0].Paragraphs[0].Text);
                 Assert.Equal(WordBorderStyle.Single, row.Cells[0].Borders.TopStyle);
                 Assert.Equal("FF0000", row.Cells[0].Borders.TopColorHex);
-                Assert.Equal(4U, row.Cells[0].Borders.TopSize);
-                Assert.Equal(2U, row.Cells[0].Borders.TopSpace);
+                Assert.Equal(global::OfficeIMO.OfficeLength.Points(0.5), row.Cells[0].Borders.TopSize);
+                Assert.Equal(global::OfficeIMO.OfficeLength.Points(2), row.Cells[0].Borders.TopSpace);
                 Assert.Equal("Cell", row.Cells[1].Paragraphs[0].Text);
                 Assert.Equal(WordBorderStyle.Double, row.Cells[1].Borders.RightStyle);
                 Assert.Equal("0000FF", row.Cells[1].Borders.RightColorHex);
-                Assert.Equal(8U, row.Cells[1].Borders.RightSize);
+                Assert.Equal(global::OfficeIMO.OfficeLength.Points(1), row.Cells[1].Borders.RightSize);
             } finally {
                 DeleteIfExists(docPath);
             }
@@ -9114,17 +9114,17 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("A1", reloadedTable.Rows[0].Cells[0].Paragraphs[0].Text);
                 Assert.Equal(WordBorderStyle.Single, reloadedTable.Rows[0].Cells[0].Borders.TopStyle);
                 Assert.Equal("FF0000", reloadedTable.Rows[0].Cells[0].Borders.TopColorHex);
-                Assert.Equal(4U, reloadedTable.Rows[0].Cells[0].Borders.TopSize);
-                Assert.Equal(1U, reloadedTable.Rows[0].Cells[0].Borders.TopSpace);
+                Assert.Equal(global::OfficeIMO.OfficeLength.Points(0.5), reloadedTable.Rows[0].Cells[0].Borders.TopSize);
+                Assert.Equal(global::OfficeIMO.OfficeLength.Points(1), reloadedTable.Rows[0].Cells[0].Borders.TopSpace);
                 Assert.Equal(WordBorderStyle.Double, reloadedTable.Rows[0].Cells[0].Borders.RightStyle);
                 Assert.Equal("0000FF", reloadedTable.Rows[0].Cells[0].Borders.RightColorHex);
-                Assert.Equal(8U, reloadedTable.Rows[0].Cells[0].Borders.RightSize);
+                Assert.Equal(global::OfficeIMO.OfficeLength.Points(1), reloadedTable.Rows[0].Cells[0].Borders.RightSize);
                 Assert.Equal(WordBorderStyle.Dashed, reloadedTable.Rows[0].Cells[0].Borders.BottomStyle);
                 Assert.Equal("00FF00", reloadedTable.Rows[0].Cells[0].Borders.BottomColorHex);
-                Assert.Equal(6U, reloadedTable.Rows[0].Cells[0].Borders.BottomSize);
+                Assert.Equal(global::OfficeIMO.OfficeLength.Points(0.75), reloadedTable.Rows[0].Cells[0].Borders.BottomSize);
                 Assert.Equal(WordBorderStyle.Dotted, reloadedTable.Rows[1].Cells[0].Borders.BottomStyle);
                 Assert.Equal("000000", reloadedTable.Rows[1].Cells[0].Borders.BottomColorHex);
-                Assert.Equal(5U, reloadedTable.Rows[1].Cells[0].Borders.BottomSize);
+                Assert.Equal(global::OfficeIMO.OfficeLength.Points(0.625), reloadedTable.Rows[1].Cells[0].Borders.BottomSize);
             } finally {
                 DeleteIfExists(docPath);
             }
@@ -9225,8 +9225,8 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("FF0000", reloadedTable.Rows[0].Cells[0].ShadingFillColorHex);
                 Assert.Equal(WordBorderStyle.Double, reloadedTable.Rows[0].Cells[0].Borders.BottomStyle);
                 Assert.Equal("0000FF", reloadedTable.Rows[0].Cells[0].Borders.BottomColorHex);
-                Assert.Equal(8U, reloadedTable.Rows[0].Cells[0].Borders.BottomSize);
-                Assert.Equal(1U, reloadedTable.Rows[0].Cells[0].Borders.BottomSpace);
+                Assert.Equal(global::OfficeIMO.OfficeLength.Points(1), reloadedTable.Rows[0].Cells[0].Borders.BottomSize);
+                Assert.Equal(global::OfficeIMO.OfficeLength.Points(1), reloadedTable.Rows[0].Cells[0].Borders.BottomSpace);
                 Assert.Equal("B1", reloadedTable.Rows[0].Cells[1].Paragraphs[0].Text);
                 Assert.Equal("FF0000", reloadedTable.Rows[0].Cells[1].ShadingFillColorHex);
                 Assert.Equal(WordBorderStyle.Double, reloadedTable.Rows[0].Cells[1].Borders.BottomStyle);

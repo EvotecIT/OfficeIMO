@@ -120,10 +120,10 @@ namespace OfficeIMO.Word.Markdown {
                     cell.Borders.BottomStyle = borderStyle;
                     cell.Borders.LeftStyle = borderStyle;
                     cell.Borders.RightStyle = borderStyle;
-                    cell.Borders.TopSize = borderSize;
-                    cell.Borders.BottomSize = borderSize;
-                    cell.Borders.LeftSize = borderSize;
-                    cell.Borders.RightSize = borderSize;
+                    cell.Borders.TopSize = WordBorderLengths.FromSize(borderSize.Value);
+                    cell.Borders.BottomSize = WordBorderLengths.FromSize(borderSize.Value);
+                    cell.Borders.LeftSize = WordBorderLengths.FromSize(borderSize.Value);
+                    cell.Borders.RightSize = WordBorderLengths.FromSize(borderSize.Value);
                     cell.Borders.TopColorHex = borderHex;
                     cell.Borders.BottomColorHex = borderHex;
                     cell.Borders.LeftColorHex = borderHex;

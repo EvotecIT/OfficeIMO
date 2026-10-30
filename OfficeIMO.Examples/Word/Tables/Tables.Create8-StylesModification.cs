@@ -66,7 +66,7 @@ namespace OfficeIMO.Examples.Word {
 
                 wordTable2.Rows[0].Cells[2].Borders.TopColor = Color.Red;
                 wordTable2.Rows[0].Cells[2].Borders.BottomColor = Color.Green;
-                wordTable2.Rows[0].Cells[2].Borders.TopSize = 24;
+                wordTable2.Rows[0].Cells[2].Borders.TopSize = OfficeLength.Points(3);
                 wordTable2.Rows[0].Cells[2].Borders.TopStyle = WordBorderStyle.Single;
 
                 Console.WriteLine("\nSecond table settings:");

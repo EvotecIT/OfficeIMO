@@ -241,7 +241,7 @@ public partial class WordTableStyleDetails {
                     cell.Borders.TopStyle = TableBorders.TopBorder.Val!.Value.ToOfficeEnum();
                 }
                 if (TableBorders.TopBorder.Size != null)
-                    cell.Borders.TopSize = TableBorders.TopBorder.Size;
+                    cell.Borders.TopSize = WordBorderLengths.FromSize(TableBorders.TopBorder.Size.Value);
                 if (TableBorders.TopBorder.Color != null)
                     cell.Borders.TopColorHex = TableBorders.TopBorder.Color!;
             }
@@ -252,7 +252,7 @@ public partial class WordTableStyleDetails {
                     cell.Borders.BottomStyle = TableBorders.BottomBorder.Val!.Value.ToOfficeEnum();
                 }
                 if (TableBorders.BottomBorder.Size != null)
-                    cell.Borders.BottomSize = TableBorders.BottomBorder.Size;
+                    cell.Borders.BottomSize = WordBorderLengths.FromSize(TableBorders.BottomBorder.Size.Value);
                 if (TableBorders.BottomBorder.Color != null)
                     cell.Borders.BottomColorHex = TableBorders.BottomBorder.Color!;
             }
@@ -263,7 +263,7 @@ public partial class WordTableStyleDetails {
                     cell.Borders.LeftStyle = TableBorders.LeftBorder.Val!.Value.ToOfficeEnum();
                 }
                 if (TableBorders.LeftBorder.Size != null)
-                    cell.Borders.LeftSize = TableBorders.LeftBorder.Size;
+                    cell.Borders.LeftSize = WordBorderLengths.FromSize(TableBorders.LeftBorder.Size.Value);
                 if (TableBorders.LeftBorder.Color != null)
                     cell.Borders.LeftColorHex = TableBorders.LeftBorder.Color!;
             }
@@ -274,7 +274,7 @@ public partial class WordTableStyleDetails {
                     cell.Borders.RightStyle = TableBorders.RightBorder.Val!.Value.ToOfficeEnum();
                 }
                 if (TableBorders.RightBorder.Size != null)
-                    cell.Borders.RightSize = TableBorders.RightBorder.Size;
+                    cell.Borders.RightSize = WordBorderLengths.FromSize(TableBorders.RightBorder.Size.Value);
                 if (TableBorders.RightBorder.Color != null)
                     cell.Borders.RightColorHex = TableBorders.RightBorder.Color!;
             }
@@ -285,7 +285,7 @@ public partial class WordTableStyleDetails {
                     cell.Borders.InsideHorizontalStyle = TableBorders.InsideHorizontalBorder.Val!.Value.ToOfficeEnum();
                 }
                 if (TableBorders.InsideHorizontalBorder.Size != null)
-                    cell.Borders.InsideHorizontalSize = TableBorders.InsideHorizontalBorder.Size;
+                    cell.Borders.InsideHorizontalSize = WordBorderLengths.FromSize(TableBorders.InsideHorizontalBorder.Size.Value);
                 if (TableBorders.InsideHorizontalBorder.Color != null)
                     cell.Borders.InsideHorizontalColorHex = TableBorders.InsideHorizontalBorder.Color!;
             }
@@ -296,7 +296,7 @@ public partial class WordTableStyleDetails {
                     cell.Borders.InsideVerticalStyle = TableBorders.InsideVerticalBorder.Val!.Value.ToOfficeEnum();
                 }
                 if (TableBorders.InsideVerticalBorder.Size != null)
-                    cell.Borders.InsideVerticalSize = TableBorders.InsideVerticalBorder.Size;
+                    cell.Borders.InsideVerticalSize = WordBorderLengths.FromSize(TableBorders.InsideVerticalBorder.Size.Value);
                 if (TableBorders.InsideVerticalBorder.Color != null)
                     cell.Borders.InsideVerticalColorHex = TableBorders.InsideVerticalBorder.Color!;
             }

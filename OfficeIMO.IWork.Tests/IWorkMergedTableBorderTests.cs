@@ -59,9 +59,9 @@ public sealed partial class IWorkBoundaryTests {
             using var result = source.ToWordDocumentResult(); result.Report.RequireCompleteEditableReconstruction();
             result.Value.Save(saved); saved.Position = 0;
             using var reopened = WordDocument.Load(saved); var table = reopened.Tables[0];
-            Assert.Equal(columns == 2 ? 16u : 8u, table.Rows[0].Cells[0].Borders.RightSize);
-            Assert.Equal(rows == 3 ? 16u : 8u, table.Rows[rows - 1].Cells[0].Borders.BottomSize);
-            Assert.Equal(16u, table.Rows[0].Cells[0].Borders.TopSize);
+            Assert.Equal(global::OfficeIMO.OfficeLength.Points(columns == 2 ? 2 : 1), table.Rows[0].Cells[0].Borders.RightSize);
+            Assert.Equal(global::OfficeIMO.OfficeLength.Points(rows == 3 ? 2 : 1), table.Rows[rows - 1].Cells[0].Borders.BottomSize);
+            Assert.Equal(global::OfficeIMO.OfficeLength.Points(2), table.Rows[0].Cells[0].Borders.TopSize);
             if (rows > 1) Assert.Equal(WordBorderStyle.Nil, table.Rows[0].Cells[0].Borders.BottomStyle);
         } else if (kind == IWorkDocumentKind.Numbers) {
             using var result = source.ToExcelDocumentResult(); result.Report.RequireCompleteEditableReconstruction();

@@ -231,26 +231,26 @@ namespace OfficeIMO.Word {
                 borders.Top,
                 style => cell.Borders.TopStyle = style.ToOfficeEnum(),
                 color => cell.Borders.TopColorHex = color,
-                size => cell.Borders.TopSize = size,
-                space => cell.Borders.TopSpace = space);
+                size => cell.Borders.TopSize = WordBorderLengths.FromSize(size),
+                space => cell.Borders.TopSpace = WordBorderLengths.FromSpace(space));
             ApplyLegacyDocTableCellBorder(
                 borders.Left,
                 style => cell.Borders.LeftStyle = style.ToOfficeEnum(),
                 color => cell.Borders.LeftColorHex = color,
-                size => cell.Borders.LeftSize = size,
-                space => cell.Borders.LeftSpace = space);
+                size => cell.Borders.LeftSize = WordBorderLengths.FromSize(size),
+                space => cell.Borders.LeftSpace = WordBorderLengths.FromSpace(space));
             ApplyLegacyDocTableCellBorder(
                 borders.Bottom,
                 style => cell.Borders.BottomStyle = style.ToOfficeEnum(),
                 color => cell.Borders.BottomColorHex = color,
-                size => cell.Borders.BottomSize = size,
-                space => cell.Borders.BottomSpace = space);
+                size => cell.Borders.BottomSize = WordBorderLengths.FromSize(size),
+                space => cell.Borders.BottomSpace = WordBorderLengths.FromSpace(space));
             ApplyLegacyDocTableCellBorder(
                 borders.Right,
                 style => cell.Borders.RightStyle = style.ToOfficeEnum(),
                 color => cell.Borders.RightColorHex = color,
-                size => cell.Borders.RightSize = size,
-                space => cell.Borders.RightSpace = space);
+                size => cell.Borders.RightSize = WordBorderLengths.FromSize(size),
+                space => cell.Borders.RightSpace = WordBorderLengths.FromSpace(space));
         }
 
         private static void ApplyLegacyDocTableCellBorder(

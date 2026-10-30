@@ -98,7 +98,7 @@ public partial class Word {
         cell.Paragraphs[0].Text = "Cell border pattern";
         cell.Borders.TopStyle = borderStyle;
         cell.Borders.TopColorHex = "FF0000";
-        cell.Borders.TopSize = 12U;
+        cell.Borders.TopSize = global::OfficeIMO.OfficeLength.Points(1.5);
         string raw = PdfOperatorSearchText.From(document.ToPdf(new WordPdfExportOptions { IncludePageNumbers = false }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         Assert.Contains(pattern, raw, StringComparison.Ordinal);
     }

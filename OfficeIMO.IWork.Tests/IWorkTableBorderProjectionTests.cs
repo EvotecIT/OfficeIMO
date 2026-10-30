@@ -70,11 +70,11 @@ public sealed partial class IWorkBoundaryTests {
             using var reopened = WordDocument.Load(saved);
             var output = Assert.Single(reopened.Tables);
             Assert.Equal("FF0000", output.Rows[0].Cells[0].Borders.BottomColorHex);
-            Assert.Equal(24U, output.Rows[0].Cells[0].Borders.BottomSize);
+            Assert.Equal(global::OfficeIMO.OfficeLength.Points(3), output.Rows[0].Cells[0].Borders.BottomSize);
             Assert.Equal(WordBorderStyle.Nil, output.Rows[0].Cells[1].Borders.BottomStyle);
             Assert.Equal(WordBorderStyle.Nil, output.Rows[1].Cells[1].Borders.TopStyle);
             Assert.Equal("000000", output.Rows[2].Cells[1].Borders.BottomColorHex);
-            Assert.Equal(8U, output.Rows[2].Cells[1].Borders.BottomSize);
+            Assert.Equal(global::OfficeIMO.OfficeLength.Points(1), output.Rows[2].Cells[1].Borders.BottomSize);
         } else if (kind == IWorkDocumentKind.Numbers) {
             using var result = source.ToExcelDocumentResult(policy); Assert.False(result.IsVisualFallback);
             table = Assert.Single(Assert.Single(result.Projection.Sheets).Tables); result.Value.Save(saved); saved.Position = 0;
@@ -247,7 +247,7 @@ public sealed partial class IWorkBoundaryTests {
             using var converted = source.ToWordDocumentResult(partial); Assert.False(converted.IsVisualFallback);
             Assert.Contains(converted.Report.Diagnostics, diagnostic => diagnostic.Code == "IWORK_PAGES_DOCX_PRECISION");
             using var saved = new MemoryStream(); converted.Value.Save(saved); saved.Position = 0;
-            using var reopened = WordDocument.Load(saved); Assert.Equal(2U, reopened.Tables[0].Rows[0].Cells[0].Borders.TopSize);
+            using var reopened = WordDocument.Load(saved); Assert.Equal(global::OfficeIMO.OfficeLength.Points(0.25), reopened.Tables[0].Rows[0].Cells[0].Borders.TopSize);
         } else {
             using var rejected = source.ToPowerPointDocumentResult(strict); Assert.True(rejected.IsVisualFallback);
             using var converted = source.ToPowerPointDocumentResult(partial); Assert.False(converted.IsVisualFallback);

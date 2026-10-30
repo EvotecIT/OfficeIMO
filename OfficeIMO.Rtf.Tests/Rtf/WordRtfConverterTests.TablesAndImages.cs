@@ -887,16 +887,16 @@ public partial class WordRtfConverterTests {
         table.Rows[0].Cells[0].MarginBottom = global::OfficeIMO.OfficeLength.Points(12D);
         table.Rows[0].Cells[0].MarginRight = global::OfficeIMO.OfficeLength.Points(15D);
         table.Rows[0].Cells[0].Borders.TopStyle = WordBorderStyle.Single;
-        table.Rows[0].Cells[0].Borders.TopSize = 12U;
+        table.Rows[0].Cells[0].Borders.TopSize = global::OfficeIMO.OfficeLength.Points(1.5);
         table.Rows[0].Cells[0].Borders.TopColorHex = "4472C4";
         table.Rows[0].Cells[0].Borders.LeftStyle = WordBorderStyle.Double;
-        table.Rows[0].Cells[0].Borders.LeftSize = 8U;
+        table.Rows[0].Cells[0].Borders.LeftSize = global::OfficeIMO.OfficeLength.Points(1);
         table.Rows[0].Cells[0].Borders.LeftColorHex = "00AA55";
         table.Rows[0].Cells[0].Borders.TopLeftToBottomRightStyle = WordBorderStyle.Dotted;
-        table.Rows[0].Cells[0].Borders.TopLeftToBottomRightSize = 6U;
+        table.Rows[0].Cells[0].Borders.TopLeftToBottomRightSize = global::OfficeIMO.OfficeLength.Points(0.75);
         table.Rows[0].Cells[0].Borders.TopLeftToBottomRightColorHex = "4472C4";
         table.Rows[0].Cells[0].Borders.TopRightToBottomLeftStyle = WordBorderStyle.Dashed;
-        table.Rows[0].Cells[0].Borders.TopRightToBottomLeftSize = 10U;
+        table.Rows[0].Cells[0].Borders.TopRightToBottomLeftSize = global::OfficeIMO.OfficeLength.Points(1.25);
         table.Rows[0].Cells[0].Borders.TopRightToBottomLeftColorHex = "00AA55";
         table.Rows[0].Cells[0].AddParagraph("Merged", removeExistingParagraphs: true);
         table.Rows[1].Cells[0].AddParagraph("Vertical", removeExistingParagraphs: true);
@@ -993,16 +993,16 @@ public partial class WordRtfConverterTests {
         Assert.Equal((short?)240, checked((short?)(roundTripTable.Rows[0].Cells[0].MarginBottom?.ToTwips())));
         Assert.Equal((short?)300, checked((short?)(roundTripTable.Rows[0].Cells[0].MarginRight?.ToTwips())));
         Assert.Equal(WordBorderStyle.Single, roundTripTable.Rows[0].Cells[0].Borders.TopStyle);
-        Assert.Equal(12U, roundTripTable.Rows[0].Cells[0].Borders.TopSize);
+        Assert.Equal(global::OfficeIMO.OfficeLength.Points(1.5), roundTripTable.Rows[0].Cells[0].Borders.TopSize);
         Assert.Equal("4472C4", roundTripTable.Rows[0].Cells[0].Borders.TopColorHex);
         Assert.Equal(WordBorderStyle.Double, roundTripTable.Rows[0].Cells[0].Borders.LeftStyle);
-        Assert.Equal(8U, roundTripTable.Rows[0].Cells[0].Borders.LeftSize);
+        Assert.Equal(global::OfficeIMO.OfficeLength.Points(1), roundTripTable.Rows[0].Cells[0].Borders.LeftSize);
         Assert.Equal("00AA55", roundTripTable.Rows[0].Cells[0].Borders.LeftColorHex);
         Assert.Equal(WordBorderStyle.Dotted, roundTripTable.Rows[0].Cells[0].Borders.TopLeftToBottomRightStyle);
-        Assert.Equal(6U, roundTripTable.Rows[0].Cells[0].Borders.TopLeftToBottomRightSize);
+        Assert.Equal(global::OfficeIMO.OfficeLength.Points(0.75), roundTripTable.Rows[0].Cells[0].Borders.TopLeftToBottomRightSize);
         Assert.Equal("4472C4", roundTripTable.Rows[0].Cells[0].Borders.TopLeftToBottomRightColorHex);
         Assert.Equal(WordBorderStyle.Dashed, roundTripTable.Rows[0].Cells[0].Borders.TopRightToBottomLeftStyle);
-        Assert.Equal(10U, roundTripTable.Rows[0].Cells[0].Borders.TopRightToBottomLeftSize);
+        Assert.Equal(global::OfficeIMO.OfficeLength.Points(1.25), roundTripTable.Rows[0].Cells[0].Borders.TopRightToBottomLeftSize);
         Assert.Equal("00AA55", roundTripTable.Rows[0].Cells[0].Borders.TopRightToBottomLeftColorHex);
     }
 }

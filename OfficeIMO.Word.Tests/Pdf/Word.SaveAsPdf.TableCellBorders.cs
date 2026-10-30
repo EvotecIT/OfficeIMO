@@ -31,10 +31,10 @@ public partial class Word {
             cell.Borders.BottomColorHex = "0000FF";
             cell.Borders.LeftColorHex = "0000FF";
             cell.Borders.RightColorHex = "0000FF";
-            cell.Borders.TopSize = 8;
-            cell.Borders.BottomSize = 8;
-            cell.Borders.LeftSize = 8;
-            cell.Borders.RightSize = 8;
+            cell.Borders.TopSize = global::OfficeIMO.OfficeLength.Points(1);
+            cell.Borders.BottomSize = global::OfficeIMO.OfficeLength.Points(1);
+            cell.Borders.LeftSize = global::OfficeIMO.OfficeLength.Points(1);
+            cell.Borders.RightSize = global::OfficeIMO.OfficeLength.Points(1);
             document.Save();
             document.SaveAsPdf(pdfPath);
         }
@@ -63,10 +63,10 @@ public partial class Word {
             cell.Borders.BottomColorHex = "0000FF";
             cell.Borders.LeftColorHex = "0000FF";
             cell.Borders.RightColorHex = "0000FF";
-            cell.Borders.TopSize = 8;
-            cell.Borders.BottomSize = 8;
-            cell.Borders.LeftSize = 8;
-            cell.Borders.RightSize = 8;
+            cell.Borders.TopSize = global::OfficeIMO.OfficeLength.Points(1);
+            cell.Borders.BottomSize = global::OfficeIMO.OfficeLength.Points(1);
+            cell.Borders.LeftSize = global::OfficeIMO.OfficeLength.Points(1);
+            cell.Borders.RightSize = global::OfficeIMO.OfficeLength.Points(1);
 
             document.Save();
             document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
@@ -97,10 +97,10 @@ public partial class Word {
             cell.Paragraphs[0].Text = "Native non-uniform cell";
             cell.Borders.TopStyle = WordBorderStyle.Single;
             cell.Borders.TopColorHex = "FF0000";
-            cell.Borders.TopSize = 16;
+            cell.Borders.TopSize = global::OfficeIMO.OfficeLength.Points(2);
             cell.Borders.RightStyle = WordBorderStyle.Single;
             cell.Borders.RightColorHex = "0000FF";
-            cell.Borders.RightSize = 20;
+            cell.Borders.RightSize = global::OfficeIMO.OfficeLength.Points(2.5);
 
             document.Save();
             document.SaveAsPdf(pdfPath, new WordPdfExportOptions {
@@ -141,16 +141,16 @@ public partial class Word {
             cell.Borders.BottomColorHex = "123456";
             cell.Borders.LeftColorHex = "123456";
             cell.Borders.RightColorHex = "123456";
-            cell.Borders.TopSize = 8;
-            cell.Borders.BottomSize = 8;
-            cell.Borders.LeftSize = 8;
-            cell.Borders.RightSize = 8;
+            cell.Borders.TopSize = global::OfficeIMO.OfficeLength.Points(1);
+            cell.Borders.BottomSize = global::OfficeIMO.OfficeLength.Points(1);
+            cell.Borders.LeftSize = global::OfficeIMO.OfficeLength.Points(1);
+            cell.Borders.RightSize = global::OfficeIMO.OfficeLength.Points(1);
             cell.Borders.TopLeftToBottomRightStyle = WordBorderStyle.Double;
             cell.Borders.TopLeftToBottomRightColorHex = "654321";
-            cell.Borders.TopLeftToBottomRightSize = 8;
+            cell.Borders.TopLeftToBottomRightSize = global::OfficeIMO.OfficeLength.Points(1);
             cell.Borders.TopRightToBottomLeftStyle = WordBorderStyle.Double;
             cell.Borders.TopRightToBottomLeftColorHex = "654321";
-            cell.Borders.TopRightToBottomLeftSize = 8;
+            cell.Borders.TopRightToBottomLeftSize = global::OfficeIMO.OfficeLength.Points(1);
 
             document.Save();
             document.SaveAsPdf(pdfPath, new WordPdfExportOptions {

@@ -69,7 +69,7 @@ public partial class Word {
         foreach (WordTableRow row in table.Rows)
             foreach (WordTableCell cell in row.Cells) {
                 cell.Borders.TopStyle = cell.Borders.BottomStyle = cell.Borders.LeftStyle = cell.Borders.RightStyle = WordBorderStyle.Single;
-                cell.Borders.TopSize = cell.Borders.BottomSize = cell.Borders.LeftSize = cell.Borders.RightSize = 4U;
+                cell.Borders.TopSize = cell.Borders.BottomSize = cell.Borders.LeftSize = cell.Borders.RightSize = global::OfficeIMO.OfficeLength.Points(0.5);
                 cell.Borders.TopColorHex = cell.Borders.BottomColorHex = cell.Borders.LeftColorHex = cell.Borders.RightColorHex = "000000";
             }
         string raw = PdfOperatorSearchText.From(document.ToPdf(BorderFramePdfOptions()).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
@@ -101,7 +101,7 @@ public partial class Word {
         foreach (WordTableRow row in table.Rows)
             foreach (WordTableCell cell in row.Cells) {
                 cell.Borders.TopStyle = cell.Borders.BottomStyle = cell.Borders.LeftStyle = cell.Borders.RightStyle = WordBorderStyle.Double;
-                cell.Borders.TopSize = cell.Borders.BottomSize = cell.Borders.LeftSize = cell.Borders.RightSize = 12U;
+                cell.Borders.TopSize = cell.Borders.BottomSize = cell.Borders.LeftSize = cell.Borders.RightSize = global::OfficeIMO.OfficeLength.Points(1.5);
                 cell.Borders.TopColorHex = cell.Borders.BottomColorHex = cell.Borders.LeftColorHex = cell.Borders.RightColorHex = "000000";
             }
         using PdfPigDocument after = PdfPigDocument.Open(document.ToPdf(BorderFramePdfOptions()).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));

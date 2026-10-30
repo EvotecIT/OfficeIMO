@@ -180,7 +180,7 @@ namespace OfficeIMO.Word {
                 // Do not overwrite if user already set something
                 if (cell._tableCell.TableCellProperties?.TableCellBorders?.TopBorder == null) {
                     cell.Borders.TopStyle = WordBorderStyle.Single;
-                    cell.Borders.TopSize = 4;
+                    cell.Borders.TopSize = global::OfficeIMO.OfficeLength.Points(0.5);
                     // Let Word/consumers choose the default color; do not emit "auto" as an explicit hex.
                     cell.Borders.TopColorHex = null;
                 }

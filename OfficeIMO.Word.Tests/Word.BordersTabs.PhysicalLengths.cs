@@ -19,6 +19,9 @@ public sealed class WordBorderTabPhysicalLengthTests {
         Assert.Null(page.LeftSpace);
         Assert.Null(borders.LeftSize);
         Assert.Null(borders.LeftSpace);
+        WordTableCell cell = document.AddTable(1, 1, WordTableStyle.TableNormal).Rows[0].Cells[0];
+        WordTableCellBorder cellBorders = cell.Borders;
+        Assert.All(CellLengths(cellBorders), value => Assert.Null(value));
 
         page.LeftStyle = WordBorderStyle.Single;
         page.LeftSize = OfficeLength.Points(1.1);
@@ -40,6 +43,28 @@ public sealed class WordBorderTabPhysicalLengthTests {
         borders.TopSize = null;
         borders.TopSpace = null;
         borders.BottomStyle = WordBorderStyle.Single;
+        cellBorders.LeftStyle = WordBorderStyle.Single;
+        cellBorders.LeftSize = OfficeLength.Points(1.1);
+        cellBorders.LeftSpace = OfficeLength.Points(2.5);
+        cellBorders.RightSize = OfficeLength.Zero;
+        cellBorders.RightSpace = OfficeLength.Zero;
+        cellBorders.TopSize = OfficeLength.Points(1);
+        cellBorders.TopSpace = OfficeLength.Points(1);
+        cellBorders.TopSize = null;
+        cellBorders.TopSpace = null;
+        cellBorders.BottomStyle = WordBorderStyle.Single;
+        cellBorders.StartSize = OfficeLength.Points(2.1);
+        cellBorders.StartSpace = OfficeLength.Points(4.5);
+        cellBorders.EndSize = OfficeLength.Points(3.1);
+        cellBorders.EndSpace = OfficeLength.Points(6.5);
+        cellBorders.TopLeftToBottomRightSize = OfficeLength.Points(4.1);
+        cellBorders.TopLeftToBottomRightSpace = OfficeLength.Points(8.5);
+        cellBorders.TopRightToBottomLeftSize = OfficeLength.Points(5.1);
+        cellBorders.TopRightToBottomLeftSpace = OfficeLength.Points(10.5);
+        cellBorders.InsideHorizontalSize = OfficeLength.Points(6.1);
+        cellBorders.InsideHorizontalSpace = OfficeLength.Points(12.5);
+        cellBorders.InsideVerticalSize = OfficeLength.Points(7.1);
+        cellBorders.InsideVerticalSpace = OfficeLength.Points(14.5);
 
         using var bytes = new MemoryStream(document.ToBytes());
         using (WordprocessingDocument saved = WordprocessingDocument.Open(bytes, false)) {
@@ -48,6 +73,14 @@ public sealed class WordBorderTabPhysicalLengthTests {
             ParagraphBorders nativeParagraph = body.Elements<Paragraph>().Single().ParagraphProperties!.ParagraphBorders!;
             CheckNative(nativePage.LeftBorder!, nativePage.RightBorder!, nativePage.TopBorder!, nativePage.BottomBorder!);
             CheckNative(nativeParagraph.LeftBorder!, nativeParagraph.RightBorder!, nativeParagraph.TopBorder!, nativeParagraph.BottomBorder!);
+            TableCellBorders nativeCell = body.Elements<Table>().Single().Elements<TableRow>().Single()
+                .Elements<TableCell>().Single().TableCellProperties!.TableCellBorders!;
+            CheckNative(nativeCell.LeftBorder!, nativeCell.RightBorder!, nativeCell.TopBorder!, nativeCell.BottomBorder!);
+            BorderType[] remainingEdges = { nativeCell.StartBorder!, nativeCell.EndBorder!,
+                nativeCell.TopLeftToBottomRightCellBorder!, nativeCell.TopRightToBottomLeftCellBorder!,
+                nativeCell.InsideHorizontalBorder!, nativeCell.InsideVerticalBorder! };
+            Assert.Equal(new[] { 17U, 25U, 33U, 41U, 49U, 57U }, remainingEdges.Select(edge => edge.Size!.Value));
+            Assert.Equal(new[] { 5U, 7U, 9U, 11U, 13U, 15U }, remainingEdges.Select(edge => edge.Space!.Value));
         }
         bytes.Position = 0;
         using WordDocument reopened = WordDocument.Load(bytes);
@@ -72,6 +105,17 @@ public sealed class WordBorderTabPhysicalLengthTests {
             .Elements.OfType<WordParagraphInfo>().Single().LeftBorder!;
         Assert.Equal(restored.LeftSize, snapshot.Size);
         Assert.Equal(restored.LeftSpace, snapshot.Space);
+        WordTableCellBorder restoredCell = reopened.Tables[0].Rows[0].Cells[0].Borders;
+        Assert.Equal(new OfficeLength?[] {
+            OfficeLength.Points(1.125), OfficeLength.Points(3), OfficeLength.Zero, OfficeLength.Zero,
+            null, null, null, null, OfficeLength.Points(2.125), OfficeLength.Points(5),
+            OfficeLength.Points(3.125), OfficeLength.Points(7), OfficeLength.Points(4.125), OfficeLength.Points(9),
+            OfficeLength.Points(5.125), OfficeLength.Points(11), OfficeLength.Points(6.125), OfficeLength.Points(13),
+            OfficeLength.Points(7.125), OfficeLength.Points(15)
+        }, CellLengths(restoredCell));
+        WordTableCellInfo cellSnapshot = Assert.Single(reopened.Inspect().Sections)
+            .Elements.OfType<WordTableInfo>().Single().Rows[0].Cells[0];
+        Assert.Equal(OfficeLength.Points(1.125), cellSnapshot.LeftBorder!.Size);
 
         static void CheckNative(BorderType left, BorderType right, BorderType cleared, BorderType unset) {
             Assert.Equal(9U, left.Size!.Value);
@@ -90,6 +134,14 @@ public sealed class WordBorderTabPhysicalLengthTests {
         using WordDocument document = WordDocument.Create();
         WordSection section = document.Sections[0];
         WordParagraph paragraph = document.AddParagraph("No borders");
+        WordTableCell cell = document.AddTable(1, 1, WordTableStyle.TableNormal).Rows[0].Cells[0];
+        // Start without tcPr so rejected values must not create any formatting container.
+        cell._tableCell.TableCellProperties?.Remove();
+        cell._tableCellProperties = null;
+        string beforeRead = cell._tableCell.OuterXml;
+        WordTableCellBorder cellBorders = cell.Borders;
+        Assert.All(CellLengths(cellBorders), value => Assert.Null(value));
+        Assert.Equal(beforeRead, cell._tableCell.OuterXml);
         WordBorders page = section.Borders;
         WordParagraphBorders borders = paragraph.Borders;
         Action<OfficeLength?>[] setters = {
@@ -100,15 +152,27 @@ public sealed class WordBorderTabPhysicalLengthTests {
             value => borders.LeftSize = value, value => borders.RightSize = value,
             value => borders.TopSize = value, value => borders.BottomSize = value,
             value => borders.LeftSpace = value, value => borders.RightSpace = value,
-            value => borders.TopSpace = value, value => borders.BottomSpace = value
+            value => borders.TopSpace = value, value => borders.BottomSpace = value,
+            value => cellBorders.LeftSize = value, value => cellBorders.LeftSpace = value,
+            value => cellBorders.RightSize = value, value => cellBorders.RightSpace = value,
+            value => cellBorders.TopSize = value, value => cellBorders.TopSpace = value,
+            value => cellBorders.BottomSize = value, value => cellBorders.BottomSpace = value,
+            value => cellBorders.StartSize = value, value => cellBorders.StartSpace = value,
+            value => cellBorders.EndSize = value, value => cellBorders.EndSpace = value,
+            value => cellBorders.TopLeftToBottomRightSize = value, value => cellBorders.TopLeftToBottomRightSpace = value,
+            value => cellBorders.TopRightToBottomLeftSize = value, value => cellBorders.TopRightToBottomLeftSpace = value,
+            value => cellBorders.InsideHorizontalSize = value, value => cellBorders.InsideHorizontalSpace = value,
+            value => cellBorders.InsideVerticalSize = value, value => cellBorders.InsideVerticalSpace = value
         };
         // Exercise both absent containers and existing authored values.
         for (int pass = 0; pass < 2; pass++) {
             string sectionBefore = section._sectionProperties.OuterXml;
             string paragraphBefore = paragraph._paragraph.OuterXml;
+            string cellBefore = cell._tableCell.OuterXml;
             foreach (Action<OfficeLength?> set in setters) {
                 Assert.Throws<ArgumentOutOfRangeException>(() => set(OfficeLength.Emus(-1)));
                 Assert.Throws<OverflowException>(() => set(OfficeLength.Emus(long.MaxValue)));
+                Assert.Equal(cellBefore, cell._tableCell.OuterXml);
                 Assert.Equal(sectionBefore, section._sectionProperties.OuterXml);
                 Assert.Equal(paragraphBefore, paragraph._paragraph.OuterXml);
             }
@@ -121,6 +185,8 @@ public sealed class WordBorderTabPhysicalLengthTests {
                 Assert.Equal(paragraphBefore, paragraph._paragraph.OuterXml);
             }
             foreach (Action<OfficeLength?> set in setters) set(OfficeLength.Points(1));
+            cellBorders.LeftStyle = WordBorderStyle.Double;
+            cellBorders.LeftColorHex = "0000FF";
         }
     }
 
@@ -172,11 +238,31 @@ public sealed class WordBorderTabPhysicalLengthTests {
         WordBorders borders = document.Borders;
         borders.LeftSize = OfficeLength.Points(uint.MaxValue / 8D);
         borders.LeftSpace = OfficeLength.Emus((long)uint.MaxValue * 12700);
+        WordTableCellBorder cell = document.AddTable(1, 1, WordTableStyle.TableNormal).Rows[0].Cells[0].Borders;
+        cell.LeftSize = OfficeLength.Points(uint.MaxValue / 8D);
+        cell.LeftSpace = OfficeLength.Emus((long)uint.MaxValue * 12700);
         using var bytes = new MemoryStream(document.ToBytes());
         using WordprocessingDocument saved = WordprocessingDocument.Open(bytes, false);
         LeftBorder border = saved.MainDocumentPart!.Document.Body!.Elements<SectionProperties>().Single()
             .GetFirstChild<PageBorders>()!.LeftBorder!;
         Assert.Equal(uint.MaxValue, border.Size!.Value);
         Assert.Equal(uint.MaxValue, border.Space!.Value);
+        LeftBorder cellBorder = saved.MainDocumentPart.Document.Body!.Elements<Table>().Single()
+            .Elements<TableRow>().Single().Elements<TableCell>().Single().TableCellProperties!.TableCellBorders!.LeftBorder!;
+        Assert.Equal(uint.MaxValue, cellBorder.Size!.Value);
+        Assert.Equal(uint.MaxValue, cellBorder.Space!.Value);
     }
+
+    private static OfficeLength?[] CellLengths(WordTableCellBorder borders) => new[] {
+        borders.LeftSize, borders.LeftSpace,
+        borders.RightSize, borders.RightSpace,
+        borders.TopSize, borders.TopSpace,
+        borders.BottomSize, borders.BottomSpace,
+        borders.StartSize, borders.StartSpace,
+        borders.EndSize, borders.EndSpace,
+        borders.TopLeftToBottomRightSize, borders.TopLeftToBottomRightSpace,
+        borders.TopRightToBottomLeftSize, borders.TopRightToBottomLeftSpace,
+        borders.InsideHorizontalSize, borders.InsideHorizontalSpace,
+        borders.InsideVerticalSize, borders.InsideVerticalSpace
+    };
 }

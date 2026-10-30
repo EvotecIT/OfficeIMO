@@ -47,7 +47,7 @@ public partial class Word {
             paragraph.LineSpacing = global::OfficeIMO.Word.WordLineSpacing.Multiple((240) / 240D);
         }
         table.Rows[0].Cells[0].Borders.BottomStyle = WordBorderStyle.Single;
-        table.Rows[0].Cells[0].Borders.BottomSize = previousBottomSize;
+        table.Rows[0].Cells[0].Borders.BottomSize = global::OfficeIMO.OfficeLength.Points(previousBottomSize / 8D);
         table.Rows[1].AllowRowToBreakAcrossPages = splitRow;
         using PdfPigDocument pdf = PdfPigDocument.Open(document.ToPdf(new WordPdfExportOptions {
             IncludePageNumbers = false, PageSize = new OfficeIMO.Pdf.PdfPageSize(OfficeIMO.OfficeLength.Points(300),OfficeIMO.OfficeLength.Points(90)),

@@ -131,14 +131,14 @@ public partial class Word {
         cell.ShadingFillColorHex = "FFFF00";
         cell.Borders.BottomStyle = WordBorderStyle.Double;
         cell.Borders.BottomColorHex = "00FF00";
-        cell.Borders.BottomSize = 8;
+        cell.Borders.BottomSize = global::OfficeIMO.OfficeLength.Points(1);
         using WordDocument restored = WordDocument.Load(new MemoryStream(source.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc })));
         WordHeaderFooter restoredStory = footer ? restored.Footer.Default : restored.Header.Default;
         WordTableCell restoredCell = Assert.Single(restoredStory.Tables).Rows[0].Cells[0];
         Assert.Equal("FFFF00", restoredCell.ShadingFillColorHex);
         Assert.Equal(WordBorderStyle.Double, restoredCell.Borders.BottomStyle);
         Assert.Equal("00FF00", restoredCell.Borders.BottomColorHex);
-        Assert.Equal(8U, restoredCell.Borders.BottomSize);
+        Assert.Equal(global::OfficeIMO.OfficeLength.Points(1), restoredCell.Borders.BottomSize);
     }
 
     [Theory]

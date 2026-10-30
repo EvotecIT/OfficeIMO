@@ -1267,10 +1267,10 @@ namespace OfficeIMO.Tests {
             cell.Borders.RightColorHex = "00FF00";
             cell.Borders.TopColorHex = "00FF00";
             cell.Borders.BottomColorHex = "00FF00";
-            cell.Borders.LeftSize = 8;
-            cell.Borders.RightSize = 8;
-            cell.Borders.TopSize = 8;
-            cell.Borders.BottomSize = 8;
+            cell.Borders.LeftSize = global::OfficeIMO.OfficeLength.Points(1);
+            cell.Borders.RightSize = global::OfficeIMO.OfficeLength.Points(1);
+            cell.Borders.TopSize = global::OfficeIMO.OfficeLength.Points(1);
+            cell.Borders.BottomSize = global::OfficeIMO.OfficeLength.Points(1);
 
             string html = doc.ToHtml();
 

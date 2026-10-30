@@ -23,7 +23,7 @@ namespace OfficeIMO.Tests {
             var cell = table.Rows[0].Cells[1];
             Assert.Equal(WordBorderStyle.Single, cell.Borders.TopStyle);
             Assert.Equal("FF0000", cell.Borders.TopColorHex);
-            Assert.Equal(6U, cell.Borders.TopSize);
+            Assert.Equal(global::OfficeIMO.OfficeLength.Points(0.75), cell.Borders.TopSize);
         }
     }
 }

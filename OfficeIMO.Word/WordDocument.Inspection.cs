@@ -610,7 +610,7 @@ namespace OfficeIMO.Word {
         private static WordTableCellBorderInfo? BuildBorderSnapshot(
             string? style,
             string? colorHex,
-            uint? size) {
+            OfficeLength? size) {
             if (string.IsNullOrWhiteSpace(style) && string.IsNullOrWhiteSpace(colorHex) && !size.HasValue) {
                 return null;
             }
@@ -618,7 +618,7 @@ namespace OfficeIMO.Word {
             return new WordTableCellBorderInfo {
                 Style = style,
                 ColorHex = colorHex,
-                Size = size.HasValue ? OfficeLength.Points(size.Value / 8D) : null,
+                Size = size,
             };
         }
 

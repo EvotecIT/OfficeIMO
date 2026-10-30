@@ -64,27 +64,27 @@ namespace OfficeIMO.Word.Pdf {
 
                 if (source.TopStyle.HasValue) {
                     border.Top = HasNativeBorder(source.TopStyle);
-                    border.TopBorder = CreateNativeCellBorderSide(source.TopStyle, source.TopColorHex, source.TopSize) ?? NativeHiddenCellBorderSide();
+                    border.TopBorder = CreateNativeCellBorderSide(source.TopStyle, source.TopColorHex, WordBorderLengths.ToSize(source.TopSize)) ?? NativeHiddenCellBorderSide();
                 }
                 if (source.RightStyle.HasValue) {
                     border.Right = HasNativeBorder(source.RightStyle);
-                    border.RightBorder = CreateNativeCellBorderSide(source.RightStyle, source.RightColorHex, source.RightSize) ?? NativeHiddenCellBorderSide();
+                    border.RightBorder = CreateNativeCellBorderSide(source.RightStyle, source.RightColorHex, WordBorderLengths.ToSize(source.RightSize)) ?? NativeHiddenCellBorderSide();
                 }
                 if (source.BottomStyle.HasValue) {
                     border.Bottom = HasNativeBorder(source.BottomStyle);
-                    border.BottomBorder = CreateNativeCellBorderSide(source.BottomStyle, source.BottomColorHex, source.BottomSize) ?? NativeHiddenCellBorderSide();
+                    border.BottomBorder = CreateNativeCellBorderSide(source.BottomStyle, source.BottomColorHex, WordBorderLengths.ToSize(source.BottomSize)) ?? NativeHiddenCellBorderSide();
                 }
                 if (source.LeftStyle.HasValue) {
                     border.Left = HasNativeBorder(source.LeftStyle);
-                    border.LeftBorder = CreateNativeCellBorderSide(source.LeftStyle, source.LeftColorHex, source.LeftSize) ?? NativeHiddenCellBorderSide();
+                    border.LeftBorder = CreateNativeCellBorderSide(source.LeftStyle, source.LeftColorHex, WordBorderLengths.ToSize(source.LeftSize)) ?? NativeHiddenCellBorderSide();
                 }
                 if (source.TopLeftToBottomRightStyle.HasValue) {
                     border.DiagonalDown = HasNativeBorder(source.TopLeftToBottomRightStyle);
-                    border.DiagonalDownBorder = CreateNativeCellBorderSide(source.TopLeftToBottomRightStyle, source.TopLeftToBottomRightColorHex, source.TopLeftToBottomRightSize);
+                    border.DiagonalDownBorder = CreateNativeCellBorderSide(source.TopLeftToBottomRightStyle, source.TopLeftToBottomRightColorHex, WordBorderLengths.ToSize(source.TopLeftToBottomRightSize));
                 }
                 if (source.TopRightToBottomLeftStyle.HasValue) {
                     border.DiagonalUp = HasNativeBorder(source.TopRightToBottomLeftStyle);
-                    border.DiagonalUpBorder = CreateNativeCellBorderSide(source.TopRightToBottomLeftStyle, source.TopRightToBottomLeftColorHex, source.TopRightToBottomLeftSize);
+                    border.DiagonalUpBorder = CreateNativeCellBorderSide(source.TopRightToBottomLeftStyle, source.TopRightToBottomLeftColorHex, WordBorderLengths.ToSize(source.TopRightToBottomLeftSize));
                 }
                 effective[entry.Key] = border;
             }

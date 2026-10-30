@@ -128,7 +128,7 @@ public sealed partial class WordPaperStyle {
         cell.MarginRight = global::OfficeIMO.OfficeLength.Points(8.5D);
         cell.Borders.TopStyle = WordBorderStyle.Single;
         cell.Borders.TopColorHex = tone;
-        cell.Borders.TopSize = 20;
+        cell.Borders.TopSize = global::OfficeIMO.OfficeLength.Points(2.5);
         WordParagraph caption = cell.AddParagraph(label.ToUpperInvariant(), true);
         Format(caption, 8, Muted, true);
         caption.LineSpacingAfter = global::OfficeIMO.OfficeLength.Points(2D);
