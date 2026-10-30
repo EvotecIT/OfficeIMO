@@ -7,8 +7,8 @@ on:
   workflow_dispatch:
 
 concurrency:
-  group: website-ci-${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && format('pr-{0}', github.event.pull_request.number) || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 permissions:
   actions: read
@@ -31,16 +31,44 @@ jobs:
           suite: website
   website-build:
     needs: changes
-    if: needs.changes.outputs.selected == 'true'
+    if: github.event_name == 'pull_request' && needs.changes.outputs.selected == 'true'
     uses: EvotecIT/PSPublishModule/.github/workflows/powerforge-website-ci.yml@396e00acba04dcaae4c3c95433338f4df65fbc01
     with:
       website_root: Website
       authenticate_public_github_data: true
       pipeline_config: Website/pipeline.json
+      # Cold API documentation builds exceeded 40 minutes twice.
+      # Preserve the complete generation and downstream site checks.
+      timeout_minutes: 90
       engine_mode: source
       runner_labels_json: ${{ (github.event.repository.private && vars.OFFICEIMO_FORCE_GITHUB_HOSTED != 'true') && '["self-hosted","linux"]' || '["ubuntu-latest"]' }}
       dotnet_version: "10.0.x"
       dotnet_workloads: wasm-tools
       powerforge_repository: EvotecIT/PSPublishModule
-      powerforge_ref: 396e00acba04dcaae4c3c95433338f4df65fbc01
+      powerforge_ref: 9d7ff674528e837ea295a2a23d2fbc6856fd0e3a
       report_artifact_name: powerforge-website-reports
+
+  website-build-manual:
+    needs: changes
+    if: github.event_name == 'workflow_dispatch' && needs.changes.outputs.selected == 'true'
+    # The CI wrapper has its own branch-wide cancellation group. Manual runs
+    # use its canonical runner directly and retain this caller's unique group.
+    permissions:
+      actions: read
+      contents: read
+      packages: read
+    uses: EvotecIT/PSPublishModule/.github/workflows/powerforge-website-run.yml@396e00acba04dcaae4c3c95433338f4df65fbc01
+    with:
+      website_root: Website
+      pipeline_config: Website/pipeline.json
+      engine_mode: source
+      runner_labels_json: ${{ (github.event.repository.private && vars.OFFICEIMO_FORCE_GITHUB_HOSTED != 'true') && '["self-hosted","linux"]' || '["ubuntu-latest"]' }}
+      timeout_minutes: 90
+      dotnet_version: "10.0.114"
+      dotnet_workloads: wasm-tools
+      powerforge_repository: EvotecIT/PSPublishModule
+      powerforge_ref: 9d7ff674528e837ea295a2a23d2fbc6856fd0e3a
+      report_artifact_name: powerforge-website-reports
+      pipeline_mode: ci
+      credential_mode: standard
+      use_playwright_cache: true
