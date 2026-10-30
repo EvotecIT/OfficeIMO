@@ -10,7 +10,14 @@ namespace OfficeIMO.Excel.Pdf {
             if (sheet == null || !options.UseWorksheetImages) return Array.Empty<ExcelWorksheetDrawingObjectInfo>();
             var result = new List<ExcelWorksheetDrawingObjectInfo>();
             foreach (var drawing in ExcelWorksheetDrawingObjectResolver.FindDrawingObjects(sheet.WorksheetPart)) {
+                options.CancellationToken.ThrowIfCancellationRequested();
                 if (filterToExportedCells && (drawing.CellReference == null || exportedCells?.Contains(drawing.CellReference) != true)) continue;
+                if ((drawing.ToColumn is int toColumn && !ExcelImageExportLimits.IsValidMarkerSpan(drawing.Column - 1, toColumn - 1, 16384))
+                    || (drawing.ToRow is int toRow && !ExcelImageExportLimits.IsValidMarkerSpan(drawing.Row - 1, toRow - 1, 1048576))) {
+                    AddWarning(options, sheetName, "WorksheetDrawingObject",
+                        $"Worksheet drawing '{drawing.Name}' was not exported: its anchor exceeds the supported span.");
+                    continue;
+                }
                 if (!drawing.IsRenderable || options.WorksheetLayout != ExcelPdfWorksheetLayoutMode.WorksheetCanvas) {
                     AddWarning(options, sheetName, "WorksheetDrawingObject",
                         $"Worksheet drawing '{drawing.Name}' was not exported: {drawing.UnsupportedReason ?? "drawing shapes require worksheet-canvas layout"}.");
@@ -30,8 +37,8 @@ namespace OfficeIMO.Excel.Pdf {
                 for (int column = drawing.Column; column < lastColumn; column++) width += GetWorksheetColumnWidthPoints(plan.Geometry, column);
             }
             if (drawing.ToRow is int lastRow && lastRow >= drawing.Row) {
-                height = PixelsToPoints(drawing.ToOffsetYPixels - drawing.OffsetYPixels);
-                for (int row = drawing.Row; row < lastRow; row++) height += GetWorksheetRowHeightPoints(plan.Geometry, row);
+                height = PixelsToPoints(drawing.ToOffsetYPixels - drawing.OffsetYPixels)
+                    + GetWorksheetRowHeightRangePoints(plan.Geometry, drawing.Row, lastRow);
             }
             return (Math.Max(0.75D, width), Math.Max(0.75D, height));
         }
