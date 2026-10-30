@@ -12,7 +12,10 @@ internal static class QuillCandidate {
         var records = new List<QuillRecord>();
         if (text != null) {
             records.Add(new QuillRecord("TEXT", 0, Encoding.Unicode.GetBytes(text)));
-            records.Add(new QuillRecord("SYID", 0, Bytes(writer => { writer.Write(0U); writer.Write(1U); writer.Write(1U); })));
+            records.Add(new QuillRecord("SYID", 0, Bytes(writer => {
+                writer.Write(NativePublicationGraph.TextStoryKey);
+                writer.Write(1U); writer.Write(NativePublicationGraph.TextStoryKey);
+            })));
             records.Add(new QuillRecord("STRS", 0, Bytes(writer => {
                 writer.Write(1U); writer.Write(8U); writer.Write(0U); // Count, record size, clean flags hypothesis.
                 writer.Write((uint)text.Length); writer.Write(0U); // Per-story length table plus final zero.

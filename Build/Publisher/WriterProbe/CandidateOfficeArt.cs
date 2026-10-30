@@ -65,6 +65,9 @@ internal static class CandidateOfficeArt {
             Art((ushort)((properties.Count << 4) | 3), 0xF00B, fopt),
             Art(0, 0xF010, Client((0x2001, Coord(72, width)), (0x2002, Coord(72, height)),
                 (0x2003, Coord(360, width)), (0x2004, Coord(180, height)))),
-            Art(0, 0xF011, Client((0x6801, nativeShapeId))));
+            Art(0, 0xF011, Client((0x6801, nativeShapeId))),
+            // Publisher's native text-bearing shapes carry this ClientTextbox
+            // OPL with their story key and the observed client record header.
+            kind == "text" ? Art(0x01AA, 0xF00D, Client((0x2001, NativePublicationGraph.TextStoryKey))) : Array.Empty<byte>());
     }
 }

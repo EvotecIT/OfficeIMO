@@ -96,11 +96,27 @@ at index `N-4`. The non-master pages reference the generated master. Optional
 auxiliary page records remain absent; the inspected validator permits their zero
 references, and this does not establish that the ordinary native loader needs no
 others. Document field `0x20` points to a generated Quill document (`0x5B`), with
-decoded references to empty `0x61` and `0x65` children and its observed options
-field. Those used classes receive explicit catalog descriptors. A successful
+references to `0x61` and `0x65` children and its observed options field. Text
+candidates give each catalog one generated row: the frame row binds story key 1
+to the shape, and the story row binds that same key with observed `IdLayout`
+(field 7) value 1. This field is separate from the frame reference count. Other
+profiles retain empty catalogs. The one-story `SYID` uses first DWORD 1, count 1
+and key 1; no lower
+identifier limit is inferred from controls that use key 2. Those used classes
+receive explicit catalog descriptors. A successful
 managed read establishes only the managed
 reader result. Native open, native resave and content fidelity are separate
 qualification requirements.
+
+Every profile references a generated `OplSccm` color scheme (`0x5C`) through
+document field `0x22`, `OhColorScheme`. `Cecp=8` agrees with the eight `Rgecp`
+rows: automatic black uses the native compressed row, followed by seven
+explicit RGB colors. The RGB values are constructed from named color components;
+no native row payload is copied. Optional scheme identity, name and extended
+color properties retain qualified native defaults. This metadata supplies the
+publication context used to resolve indexed colors, including automatic black
+from the text engine. Its addition changes every profile's publication bytes;
+native lifecycle results must therefore be qualified again for those outputs.
 
 The master alone references a generated margin-guide record (`0x4C`) through
 field 3, `OhMgPage`. Four typed guide rows form the full-page rectangle with
@@ -128,6 +144,12 @@ candidates use the shared delayed FBSE and standalone BLIP writers, placing the
 image record in `EscherDelayStm` and preserving picture shape type 75. This
 matches the independently observed native storage layout and the independent
 reader's delayed image path. The common blank publication bytes are unchanged.
+
+The text candidate adds a calculated `F00D` ClientTextbox OPL with story key 1
+in field 1/type `0x20`. Its record header follows the native Text, Rectangle and
+Newsletter controls. Shape type 1 and the existing Quill and Contents data are
+unchanged for this binding discriminator. A usable native frame text range,
+save/reopen and export remain separate qualification checks.
 
 The earlier named hypothesis commands and their exact source are retained in
 commit `a69b7b8b56`. Retained raw candidates and their native rejection records

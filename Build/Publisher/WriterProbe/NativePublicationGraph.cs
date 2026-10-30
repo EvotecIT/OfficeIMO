@@ -11,6 +11,7 @@ internal static class NativePublicationGraph {
     internal const ushort OrderedPageCount = 6;
     internal const ushort MasterPageCount = 1;
     internal const ushort SpecialPageBoundary = 5;
+    internal const uint TextStoryKey = 1;
     private const int PhysicalPageIndex = 1;
 
     internal static Graph Create(string kind, uint documentId, uint width, uint height) {
@@ -22,11 +23,13 @@ internal static class NativePublicationGraph {
         uint quillDocumentId = shapeId + (hasShape ? 1U : 0U);
         uint printBlockId = quillDocumentId + 3;
         uint masterGeometryId = printBlockId + 1;
+        uint colorSchemeId = masterGeometryId + 1;
         byte[] references = Variable(2, 0xA0, Enumerable.Range(0, OrderedPageCount)
             .Select(index => Scalar(0, 0x70, firstPageId + (uint)index)).ToArray());
         byte[] document = Chunk(Scalar(1, 0x20, OrderedPageCount), references, Scalar(3, 0x70, printBlockId),
             Variable(0x12, 0x88, Scalar(1, 0x20, width), Scalar(2, 0x20, height)),
             Scalar(0x20, 0x70, quillDocumentId),
+            Scalar(0x22, 0x70, colorSchemeId),
             ShortScalar(0x2C, 0x18, SpecialPageBoundary), ShortScalar(0x2D, 0x18, MasterPageCount));
         var chunks = new List<NativeRecord> { new(0x44, null, document) };
         for (int index = 0; index < OrderedPageCount; index++) {
@@ -46,21 +49,30 @@ internal static class NativePublicationGraph {
             chunks.Add(new NativeRecord(0x43, documentId, Chunk(fields.ToArray())));
         }
         if (hasShape) chunks.Add(new NativeRecord(kind == "image" ? 0x20U : 1U, physicalId,
-            kind == "text" ? Chunk(Scalar(0x27, 0x20, 1), Scalar(0x28, 0x20, 0)) : Chunk()));
+            kind == "text" ? Chunk(Scalar(0x27, 0x20, TextStoryKey), Scalar(0x28, 0x20, 0)) : Chunk()));
         // The ordinary native loader obtains its Quill document through field
-        // 0x20 and kind 0x5B. The two empty children and the option value below
-        // are decoded fields from an independently authored blank publication.
+        // 0x20 and kind 0x5B. Its frame/story catalogs use generated rows for the
+        // text object; the other profiles retain the blank control's empty catalogs.
         chunks.Add(new NativeRecord(0x5B, documentId, Chunk(
             Scalar(1, 0x70, quillDocumentId + 1), Scalar(2, 0x70, quillDocumentId + 2),
             Variable(10, 0x98, Scalar(1, 0x20, 0x08000000)))));
-        chunks.Add(new NativeRecord(0x61, quillDocumentId, Chunk()));
-        chunks.Add(new NativeRecord(0x65, quillDocumentId, Chunk()));
+        chunks.Add(new NativeRecord(0x61, quillDocumentId, kind == "text"
+            ? Chunk(Scalar(1, 0x20, 1), Variable(2, 0xA0, Variable(0, 0x88,
+                Scalar(1, 0x20, TextStoryKey), Scalar(3, 0x68, shapeId))))
+            : Chunk()));
+        // IdLayout (field 7) uses 1, following the independently authored
+        // one-story controls. It is separate from the frame reference count.
+        chunks.Add(new NativeRecord(0x65, quillDocumentId, kind == "text"
+            ? Chunk(Scalar(1, 0x20, 1), Variable(2, 0xA0, Variable(0, 0x88,
+                Scalar(1, 0x20, TextStoryKey), Scalar(7, 0x20, 1))))
+            : Chunk()));
         // The normal native loader requires OhPrintBlock (document field 3).
         // Normal opening accesses row zero of Rgdnb. One empty typed OplDnb
         // supplies that row; its fields use the native decoder's defaults.
         chunks.Add(new NativeRecord(0x4B, documentId, Chunk(Scalar(1, 0x20, 1),
             Variable(2, 0x90, Variable(0, 0x88)))));
         chunks.Add(new NativeRecord(0x4C, masterId, CandidateMasterGeometry.Create(width, height)));
+        chunks.Add(new NativeRecord(0x5C, documentId, CandidateColorScheme.CreateDefault()));
         return new Graph(chunks, shapeId);
     }
 
